@@ -28,9 +28,9 @@ noinst_HEADERS = \
 	include/xnet-private.h \
 	include/session-private.h \
 	include/mt19937ar.h \
-	include/client-private.h \
-	include/server-private.h \
-	include/archive-private.h
+	include/peer-private.h \
+	include/archive-private.h \
+	include/task-select-private.h
 
 lwmsg_includedir = $(includedir)/lwmsg
 
@@ -47,12 +47,14 @@ lwmsg_include_HEADERS = \
 	include/lwmsg/protocol.h \
 	include/lwmsg/status.h \
 	include/lwmsg/type.h \
-	include/lwmsg/server.h \
+	include/lwmsg/peer.h \
 	include/lwmsg/security.h \
 	include/lwmsg/common.h \
 	include/lwmsg/session.h \
 	include/lwmsg/client.h \
-	include/lwmsg/archive.h
+	include/lwmsg/server.h \
+	include/lwmsg/archive.h \
+	include/lwmsg/task.h
 
 
 # src
@@ -92,16 +94,14 @@ src_liblwmsg_nothr_la_SOURCES = \
 	src/archive.c \
 	src/archive-format.c
 
-src_liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@ @LIB_ICONV@
+src_liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@ @LIB_ICONV@ @LIB_RT@
 src_liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/src/liblwmsg_nothr.sym
 
 src_liblwmsg_la_SOURCES = \
-	src/server.c \
-	src/server-task.c \
-	src/server-io.c \
-	src/server-dispatch.c \
-	src/server-call.c \
-	src/client.c \
+	src/task-select.c \
+	src/peer.c \
+	src/peer-task.c \
+	src/peer-call.c \
 	src/session-shared.c
 
 src_liblwmsg_la_LIBADD = src/liblwmsg_nothr.la @LIB_PTHREAD@
@@ -121,7 +121,8 @@ TEST_SOURCES = \
 	test/test-session.c \
 	test/test-client-server.c \
 	test/test-async.c \
-	test/test-archive.c
+	test/test-archive.c \
+	test/test-task.c
 
 BUILT_SOURCES = test/stub.c
 
@@ -152,7 +153,6 @@ DOXYGEN_HEADER_DEPS = \
 	$(top_srcdir)/include/lwmsg/call.h \
 	$(top_srcdir)/include/lwmsg/assoc.h \
 	$(top_srcdir)/include/lwmsg/buffer.h \
-	$(top_srcdir)/include/lwmsg/client.h \
 	$(top_srcdir)/include/lwmsg/common.h \
 	$(top_srcdir)/include/lwmsg/connection.h \
 	$(top_srcdir)/include/lwmsg/context.h \
@@ -160,7 +160,7 @@ DOXYGEN_HEADER_DEPS = \
 	$(top_srcdir)/include/lwmsg/lwmsg.h \
 	$(top_srcdir)/include/lwmsg/protocol.h \
 	$(top_srcdir)/include/lwmsg/security.h \
-	$(top_srcdir)/include/lwmsg/server.h \
+	$(top_srcdir)/include/lwmsg/peer.h \
 	$(top_srcdir)/include/lwmsg/session.h \
 	$(top_srcdir)/include/lwmsg/status.h \
 	$(top_srcdir)/include/lwmsg/time.h \
@@ -170,7 +170,6 @@ DOXYGEN_HEADER_DEPS = \
 	$(top_srcdir)/include/archive-private.h \
 	$(top_srcdir)/include/assoc-private.h \
 	$(top_srcdir)/include/call-private.h \
-	$(top_srcdir)/include/client-private.h \
 	$(top_srcdir)/include/connection-private.h \
 	$(top_srcdir)/include/context-private.h \
 	$(top_srcdir)/include/convert.h \
@@ -178,7 +177,7 @@ DOXYGEN_HEADER_DEPS = \
 	$(top_srcdir)/include/mt19937ar.h \
 	$(top_srcdir)/include/protocol-private.h \
 	$(top_srcdir)/include/security-private.h \
-	$(top_srcdir)/include/server-private.h \
+	$(top_srcdir)/include/peer-private.h \
 	$(top_srcdir)/include/session-private.h \
 	$(top_srcdir)/include/status-private.h \
 	$(top_srcdir)/include/test-private.h \

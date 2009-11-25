@@ -109,13 +109,13 @@ reg_vsyslog(
     DWORD dwError;
     PSTR buffer = NULL;
 
-    dwError = LwAllocateStringPrintfV(&buffer, format, ap);
+    dwError = LwRtlCStringAllocatePrintfV(&buffer, format, ap);
     if (!dwError)
     {
         syslog(priority, "%s", buffer);
     }
 
-    LW_SAFE_FREE_STRING(buffer);
+    LWREG_SAFE_FREE_STRING(buffer);
 #endif /* ! HAVE_VSYSLOG */
 }
 

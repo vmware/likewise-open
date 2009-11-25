@@ -59,11 +59,13 @@ struct LWMsgArchive
     LWMsgArchiveDisposition disp;
     mode_t mode;
     LWMsgByteOrder byte_order;
+    uint8_t version_major;
+    uint8_t version_minor;
     LWMsgDataContext* data_context;
 };
 
 #define ARCHIVE_VERSION_FLAG_BIG_ENDIAN 0x1
-#define ARCHIVE_VERSION_MAJOR 0
+#define ARCHIVE_VERSION_MAJOR 1
 #define ARCHIVE_VERSION_MINOR 0
 #define ARCHIVE_VERSION_MICRO 0
 
@@ -78,11 +80,21 @@ typedef struct ArchiveHeader
     uint8_t protocol_id[16];
 } PACKED ArchiveHeader;
 
-typedef struct ArchiveMessage
+typedef struct ArchiveMessage_v0
 {
     uint32_t status;
     uint32_t cookie;
     int32_t tag;
+    uint32_t size;
+    uint8_t data[];
+} PACKED ArchiveMessage_v0;
+
+typedef struct ArchiveMessage
+{
+    uint32_t status;
+    uint16_t flags;
+    uint16_t cookie;
+    int16_t tag;
     uint32_t size;
     uint8_t data[];
 } PACKED ArchiveMessage;

@@ -337,32 +337,9 @@ lwmsg_assoc_send(
     LWMsgAssoc* assoc,
     LWMsgTag type,
     void* object
-    );
-
-LWMsgStatus
-lwmsg_assoc_recv(
-    LWMsgAssoc* assoc,
-    LWMsgTag* out_type,
-    void** out_object
-    );
-
-LWMsgStatus
-lwmsg_assoc_send_transact(
-    LWMsgAssoc* assoc,
-    LWMsgTag in_type,
-    void* in_object,
-    LWMsgTag* out_type,
-    void** out_object
-    );
-
-LWMsgStatus
-lwmsg_assoc_send(
-    LWMsgAssoc* assoc,
-    LWMsgTag type,
-    void* object
     )
 {
-    LWMsgMessage message;
+    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     message.tag = type;
     message.data = object;
@@ -378,7 +355,7 @@ lwmsg_assoc_recv(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgMessage message;
+    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     BAIL_ON_ERROR(status = lwmsg_assoc_recv_message(assoc, &message));
 
@@ -401,8 +378,8 @@ lwmsg_assoc_send_transact(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgMessage in_message;
-    LWMsgMessage out_message;
+    LWMsgMessage in_message = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage out_message = LWMSG_MESSAGE_INITIALIZER;
 
     in_message.tag = in_type;
     in_message.data = in_object;
@@ -662,10 +639,11 @@ lwmsg_assoc_establish(
 
 LWMsgStatus
 lwmsg_assoc_finish(
-    LWMsgAssoc* assoc
+    LWMsgAssoc* assoc,
+    LWMsgMessage** message
     )
 {
-    return assoc->aclass->finish(assoc);
+    return assoc->aclass->finish(assoc, message);
 }
 
 LWMsgStatus
@@ -680,8 +658,8 @@ lwmsg_assoc_set_nonblock(
 LWMsgStatus
 lwmsg_assoc_set_session_functions(
     LWMsgAssoc* assoc,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* data
     )
 {
@@ -720,7 +698,7 @@ lwmsg_assoc_print_message_alloc(
     }
     else
     {
-        my_result = lwmsg_format("%s: <null>", tag_name);
+        my_result = lwmsg_format("%s", tag_name);
     }
 
     if (!my_result)

@@ -73,12 +73,8 @@ typedef enum ConnectionState
     CONNECTION_STATE_BEGIN_RECV_HANDSHAKE,
     /* Finish receiving handshake */
     CONNECTION_STATE_FINISH_RECV_HANDSHAKE,
-    /* Idle */
-    CONNECTION_STATE_IDLE,
-    /* Begin sending a message */
-    CONNECTION_STATE_BEGIN_SEND_MESSAGE,
-    /* Begin receiving a message */
-    CONNECTION_STATE_BEGIN_RECV_MESSAGE,
+    /* Established */
+    CONNECTION_STATE_ESTABLISHED,
     /* Begin a close */
     CONNECTION_STATE_BEGIN_CLOSE,
     /* Finish a close */
@@ -87,10 +83,6 @@ typedef enum ConnectionState
     CONNECTION_STATE_BEGIN_RESET,
     /* Finish a reset */
     CONNECTION_STATE_FINISH_RESET,
-    /* Finish sending a message */
-    CONNECTION_STATE_FINISH_SEND_MESSAGE,
-    /* Finish receiving a message */
-    CONNECTION_STATE_FINISH_RECV_MESSAGE,
     /* Closed */
     CONNECTION_STATE_CLOSED,
     /* Error */
@@ -126,10 +118,8 @@ typedef struct ConnectionFragment
 
 typedef struct ConnectionBuffer
 {
-    LWMsgRing pending;
-    LWMsgRing unused;
-    size_t num_pending;
-    size_t num_unused;
+    ConnectionFragment* current;
+    LWMsgRing fragments;
     size_t fd_capacity;
     size_t fd_length;
     int* fd;
@@ -155,6 +145,10 @@ typedef struct ConnectionPrivate
     ConnectionBuffer sendbuffer;
     /* Buffer for incoming packets */
     ConnectionBuffer recvbuffer;
+    /* Pending message read */
+    LWMsgMessage* incoming;
+    /* Pending message write */
+    LWMsgMessage* outgoing;
     /* Current state of connection state machine */
     ConnectionState state;
     /* Parameters passed into state machine */
@@ -163,8 +157,8 @@ typedef struct ConnectionPrivate
         LWMsgMessage* message;
         struct
         {
-            LWMsgSessionConstructor construct;
-            LWMsgSessionDestructor destruct;
+            LWMsgSessionConstructFunction construct;
+            LWMsgSessionDestructFunction destruct;
             void* construct_data;
         } establish;
     } params;
@@ -177,12 +171,8 @@ typedef struct ConnectionPrivate
         /* Timeout for transceiving messages */
         LWMsgTime message;
         /* Currently relevant timeout value */
-        LWMsgTime current;
+        LWMsgTime* current;
     } timeout;
-    /* Deadline for current activity (absolute) */
-    LWMsgTime end_time;
-    /* Time of last activity (absolute) */
-    LWMsgTime last_time;
     /* Negotiated packet size */
     size_t packet_size;
     /* Peer security token */
@@ -220,7 +210,10 @@ typedef struct ConnectionPacket
         } PACKED base;
         struct ConnectionPacketMsg
         {
-            uint16_t type;
+            uint8_t flags;
+            uint32_t status;
+            uint16_t cookie;
+            int16_t tag;
         } PACKED msg;
         struct ConnectionPacketGreeting
         {
@@ -245,6 +238,12 @@ typedef struct LocalTokenPrivate
 
 #define CONNECTION_PACKET_SIZE(_type_) (offsetof(struct ConnectionPacket, contents) + sizeof(struct _type_))
 #define MAX_FD_PAYLOAD 256
+
+
+void
+lwmsg_connection_buffer_empty(
+    ConnectionBuffer* buffer
+    );
 
 LWMsgStatus
 lwmsg_connection_buffer_construct(
@@ -321,13 +320,14 @@ lwmsg_connection_begin_timeout(
     );
 
 LWMsgStatus
-lwmsg_connection_flush(
+lwmsg_connection_send_all_fragments(
     LWMsgAssoc* assoc
     );
 
 LWMsgStatus
-lwmsg_connection_check(
-    LWMsgAssoc* assoc
+lwmsg_connection_recv_next_fragment(
+    LWMsgAssoc* assoc,
+    ConnectionFragment** fragment
     );
 
 LWMsgStatus

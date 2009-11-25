@@ -57,7 +57,10 @@
    or asynchronously (returning LWMSG_STATUS_PENDING), so
    all 4 combinations must be tested.  We also test that
    asynchronously completed calls can be cancelled by
-   disconnecting the client or by shutting down the server. */
+   explicit client request, by disconnecting the client,
+   or by shutting down the server. */
+
+#define DELAY_IN_MS 50
 
 typedef enum AsyncTag
 {
@@ -90,6 +93,7 @@ typedef struct
 static pthread_mutex_t async_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t async_event = PTHREAD_COND_INITIALIZER;
 static LWMsgBool async_cancelled = LWMSG_FALSE;
+static LWMsgBool async_cancel_received = LWMSG_FALSE;
 
 static
 void
@@ -102,7 +106,23 @@ async_wait_cancelled(
     {
         pthread_cond_wait(&async_event, &async_lock);
     }
+    pthread_mutex_unlock(&async_lock);
 }
+
+static
+void
+async_wait_cancel_received(
+    void
+    )
+{
+    pthread_mutex_lock(&async_lock);
+    while (!async_cancel_received)
+    {
+        pthread_cond_wait(&async_event, &async_lock);
+    }
+    pthread_mutex_unlock(&async_lock);
+}
+
 
 static
 void*
@@ -111,9 +131,16 @@ async_response_thread(
     )
 {
     AsyncRequest* request = data;
+    LWMsgTime now = {-1, -1};
+    LWMsgTime wait = {0, DELAY_IN_MS * 1000};
+    LWMsgTime abs = {-1, -1};
     struct timespec ts = {0, 0};
 
-    ts.tv_sec = time(NULL) + 1;
+    MU_TRY(lwmsg_time_now(&now));
+    lwmsg_time_sum(&now, &wait, &abs);
+
+    ts.tv_sec = abs.seconds;
+    ts.tv_nsec = abs.microseconds * 1000;
 
     pthread_mutex_lock(&request->lock);
 
@@ -127,7 +154,7 @@ async_response_thread(
         }
     }
 
-    MU_INFO("Request interrupted");
+    MU_VERBOSE("Request interrupted");
 
     lwmsg_call_complete(request->call, LWMSG_STATUS_CANCELLED);
 
@@ -197,6 +224,35 @@ async_request(
     }
 }
 
+static
+void
+async_dummy_complete(
+    LWMsgCall* call,
+    LWMsgStatus status,
+    void* data
+    )
+{
+    return;
+}
+
+static
+void
+async_notify_cancelled(
+    LWMsgCall* call,
+    LWMsgStatus status,
+    void* data
+    )
+{
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_CANCELLED);
+    pthread_mutex_lock(&async_lock);
+    async_cancel_received = LWMSG_TRUE;
+    pthread_cond_broadcast(&async_event);
+    pthread_mutex_unlock(&async_lock);
+
+    return;
+}
+
+
 LWMsgDispatchSpec async_dispatch_spec[] =
 {
     LWMSG_DISPATCH_BLOCK(BLOCK_REQUEST_SYNCHRONOUS, async_request),
@@ -206,16 +262,20 @@ LWMsgDispatchSpec async_dispatch_spec[] =
     LWMSG_DISPATCH_END
 };
 
+static LWMsgContext* context;
 static LWMsgProtocol* protocol;
 static LWMsgClient* client;
 static LWMsgServer* server;
 
 MU_FIXTURE_SETUP(async)
 {
-    MU_TRY(lwmsg_protocol_new(NULL, &protocol));
+    MU_TRY(lwmsg_context_new(NULL, &context));
+    lwmsg_context_set_log_function(context, lwmsg_test_log_function, NULL);
+
+    MU_TRY(lwmsg_protocol_new(context, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, async_protocol_spec));
 
-    MU_TRY(lwmsg_server_new(NULL, protocol, &server));
+    MU_TRY(lwmsg_server_new(context, protocol, &server));
     MU_TRY(lwmsg_server_add_dispatch_spec(server, async_dispatch_spec));
     MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
     MU_TRY(lwmsg_server_start(server));
@@ -224,7 +284,6 @@ MU_FIXTURE_SETUP(async)
     MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 }
 
-/* Nonblocking function returning result sychronously */
 MU_TEST(async, nonblock_synchrounous)
 {
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
@@ -273,17 +332,21 @@ MU_TEST(async, nonblock_asynchronous)
 
 MU_TEST(async, nonblock_asynchronous_disconnect)
 {
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgAssoc* assoc = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
+    struct timespec ts = {0, (DELAY_IN_MS * 1000000) / 2};
 
-    request_msg.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
+    in.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_connection_new(NULL, protocol, &assoc));
-    MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
-    lwmsg_assoc_delete(assoc);
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_call_dispatch(call, &in, &out, async_dummy_complete, NULL),
+        LWMSG_STATUS_PENDING);
+    nanosleep(&ts, NULL);
+    lwmsg_call_release(call);
+    MU_TRY(lwmsg_peer_disconnect(client));
 
     async_wait_cancelled();
 
@@ -295,24 +358,49 @@ MU_TEST(async, nonblock_asynchronous_disconnect)
 
 MU_TEST(async, nonblock_asynchronous_shutdown)
 {
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgAssoc* assoc = NULL;
-    struct timespec ts = {0, 500000000};
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
+    struct timespec ts = {0, (DELAY_IN_MS * 1000000) / 2};
 
-    request_msg.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
+    in.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_connection_new(NULL, protocol, &assoc));
-    MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
-
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_call_dispatch(call, &in, &out, async_dummy_complete, NULL),
+        LWMSG_STATUS_PENDING);
     nanosleep(&ts, NULL);
-
+    lwmsg_call_release(call);
     MU_TRY(lwmsg_server_stop(server));
 
     async_wait_cancelled();
 
-    lwmsg_assoc_delete(assoc);
+    lwmsg_client_delete(client);
+    lwmsg_server_delete(server);
+}
+
+MU_TEST(async, nonblock_asynchronous_cancel)
+{
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
+    struct timespec ts = {0, (DELAY_IN_MS * 1000000) / 2};
+
+    in.tag = NONBLOCK_REQUEST_ASYNCHRONOUS;
+
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_call_dispatch(call, &in, &out, async_notify_cancelled, NULL),
+        LWMSG_STATUS_PENDING);
+    nanosleep(&ts, NULL);
+    lwmsg_call_cancel(call);
+
+    async_wait_cancelled();
+    async_wait_cancel_received();
+
+    lwmsg_call_release(call);
     lwmsg_client_delete(client);
     lwmsg_server_delete(server);
 }
@@ -365,21 +453,24 @@ MU_TEST(async, block_asynchronous)
 
 MU_TEST(async, block_asynchronous_disconnect)
 {
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgAssoc* assoc = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
+    struct timespec ts = {0, (DELAY_IN_MS * 1000000) / 2};
 
-    request_msg.tag = BLOCK_REQUEST_ASYNCHRONOUS;
+    in.tag = BLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_connection_new(NULL, protocol, &assoc));
-    MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
-    lwmsg_assoc_delete(assoc);
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_call_dispatch(call, &in, &out, async_dummy_complete, NULL),
+        LWMSG_STATUS_PENDING);
+    nanosleep(&ts, NULL);
+    lwmsg_call_release(call);
+    MU_TRY(lwmsg_peer_disconnect(client));
 
     async_wait_cancelled();
 
-    MU_TRY(lwmsg_client_shutdown(client));
     lwmsg_client_delete(client);
 
     MU_TRY(lwmsg_server_stop(server));
@@ -388,24 +479,49 @@ MU_TEST(async, block_asynchronous_disconnect)
 
 MU_TEST(async, block_asynchronous_shutdown)
 {
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgAssoc* assoc = NULL;
-    struct timespec ts = {0, 500000000};
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
+    struct timespec ts = {0, (DELAY_IN_MS * 1000000) / 2};
 
-    request_msg.tag = BLOCK_REQUEST_ASYNCHRONOUS;
+    in.tag = BLOCK_REQUEST_ASYNCHRONOUS;
 
-    MU_TRY(lwmsg_connection_new(NULL, protocol, &assoc));
-    MU_TRY_ASSOC(assoc, lwmsg_connection_set_endpoint(assoc, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
-
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_call_dispatch(call, &in, &out, async_dummy_complete, NULL),
+        LWMSG_STATUS_PENDING);
     nanosleep(&ts, NULL);
-
+    lwmsg_call_release(call);
     MU_TRY(lwmsg_server_stop(server));
 
     async_wait_cancelled();
 
-    lwmsg_assoc_delete(assoc);
+    lwmsg_client_delete(client);
+    lwmsg_server_delete(server);
+}
+
+MU_TEST(async, block_asynchronous_cancel)
+{
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
+    struct timespec ts = {0, (DELAY_IN_MS * 1000000) / 2};
+
+    in.tag = BLOCK_REQUEST_ASYNCHRONOUS;
+
+    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_ASSERT_EQUAL(
+        MU_TYPE_INTEGER,
+        lwmsg_call_dispatch(call, &in, &out, async_notify_cancelled, NULL),
+        LWMSG_STATUS_PENDING);
+    nanosleep(&ts, NULL);
+    lwmsg_call_cancel(call);
+
+    async_wait_cancelled();
+    async_wait_cancel_received();
+
+    lwmsg_call_release(call);
     lwmsg_client_delete(client);
     lwmsg_server_delete(server);
 }

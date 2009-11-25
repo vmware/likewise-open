@@ -172,6 +172,7 @@ typedef struct LWMsgTypeAttrs
     unsigned nonnull:1;
     unsigned aliasable:1;
     unsigned sensitive:1;
+    unsigned promoted:1;
 } LWMsgTypeAttrs;
 
 /**

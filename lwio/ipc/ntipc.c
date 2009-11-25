@@ -376,6 +376,9 @@ NtIpcLWMsgStatusToNtStatus(
     case LWMSG_STATUS_SUCCESS:
         status = STATUS_SUCCESS;
         break;
+    case LWMSG_STATUS_PENDING:
+        status = STATUS_PENDING;
+        break;
     case LWMSG_STATUS_ERROR:
         status = STATUS_UNSUCCESSFUL;
         break;

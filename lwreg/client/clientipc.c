@@ -48,71 +48,79 @@
 #include "client.h"
 
 static
-DWORD
+NTSTATUS
 RegIpcUnregisterHandle(
     LWMsgCall* pCall,
     PVOID pHandle
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS status = 0;
     LWMsgSession* pSession = lwmsg_call_get_session(pCall);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_session_unregister_handle(pSession, pHandle));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_session_unregister_handle(pSession, pHandle));
+    BAIL_ON_NT_STATUS(status);
 
 error:
 
-    return dwError;
+    return status;
 }
 
 DWORD
 RegOpenServer(
+	PHANDLE phConnection
+	)
+{
+    return RegNtStatusToWin32Error(
+		NtRegOpenServer(phConnection));
+}
+
+NTSTATUS
+NtRegOpenServer(
     PHANDLE phConnection
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS status = 0;
     PREG_CLIENT_CONNECTION_CONTEXT pContext = NULL;
     static LWMsgTime connectTimeout = {2, 0};
 
-    BAIL_ON_INVALID_POINTER(phConnection);
+    BAIL_ON_NT_INVALID_POINTER(phConnection);
 
-    dwError = LwAllocateMemory(sizeof(REG_CLIENT_CONNECTION_CONTEXT),
-                              (PVOID*)&pContext);
-    BAIL_ON_REG_ERROR(dwError);
+    status = LW_RTL_ALLOCATE((PVOID*)&pContext, REG_CLIENT_CONNECTION_CONTEXT, sizeof(*pContext));
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, RegIPCGetProtocolSpec()));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, RegIPCGetProtocolSpec()));
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
+    BAIL_ON_NT_STATUS(status);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
+    status = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
                                   pContext->pAssoc,
                                   LWMSG_CONNECTION_MODE_LOCAL,
                                   CACHEDIR "/" REG_SERVER_FILENAME));
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
     {
         /* Give up connecting within 2 seconds in case lsassd
            is unresponsive (e.g. it's being traced in a debugger) */
-        dwError = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
+	status = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
                                       pContext->pAssoc,
                                       LWMSG_TIMEOUT_ESTABLISH,
                                       &connectTimeout));
-        BAIL_ON_REG_ERROR(dwError);
+        BAIL_ON_NT_STATUS(status);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
+    BAIL_ON_NT_STATUS(status);
 
     *phConnection = (HANDLE)pContext;
 
 cleanup:
-    return dwError;
+    return status;
 
 error:
     if (pContext)
@@ -127,7 +135,7 @@ error:
             lwmsg_protocol_delete(pContext->pProtocol);
         }
 
-        LwFreeMemory(pContext);
+        LwRtlMemoryFree(pContext);
     }
 
     if (phConnection)
@@ -140,6 +148,15 @@ error:
 
 VOID
 RegCloseServer(
+    HANDLE hConnection
+    )
+{
+	NtRegCloseServer(hConnection);
+}
+
+
+VOID
+NtRegCloseServer(
     HANDLE hConnection
     )
 {
@@ -160,50 +177,50 @@ RegCloseServer(
         lwmsg_protocol_delete(pContext->pProtocol);
     }
 
-    LwFreeMemory(pContext);
+    LwRtlMemoryFree(pContext);
 }
 
-DWORD
+NTSTATUS
 RegIpcAcquireCall(
     HANDLE hConnection,
     LWMsgCall** ppCall
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS status = 0;
     PREG_CLIENT_CONNECTION_CONTEXT pContext = hConnection;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_acquire_call(pContext->pAssoc, ppCall));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_assoc_acquire_call(pContext->pAssoc, ppCall));
+    BAIL_ON_NT_STATUS(status);
 
 error:
 
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegTransactEnumRootKeysW(
     IN HANDLE hConnection,
     OUT PWSTR** pppwszRootKeyNames,
     OUT PDWORD pdwNumRootKey
     )
 {
-    DWORD dwError = 0;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+	NTSTATUS status = 0;
+	// Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
     PREG_IPC_ENUM_ROOTKEYS_RESPONSE pEnumRootKeysResp = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     in.tag = REG_Q_ENUM_ROOT_KEYSW;
     in.data = NULL;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -216,13 +233,13 @@ RegTransactEnumRootKeysW(
 
             break;
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+		status = LwErrnoToNtStatus(LwErrnoToNtStatus(EINVAL));
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -232,13 +249,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactCreateKeyExW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -252,18 +269,18 @@ RegTransactCreateKeyExW(
     OUT OPTIONAL PDWORD pdwDisposition
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_CREATE_KEY_EX_REQ CreateKeyExReq;
     PREG_IPC_CREATE_KEY_EX_RESPONSE pCreateKeyExResp = NULL;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     CreateKeyExReq.hKey = hKey;
     CreateKeyExReq.pSubKey = pSubKey;
@@ -275,8 +292,8 @@ RegTransactCreateKeyExW(
     in.tag = REG_Q_CREATE_KEY_EX;
     in.data = &CreateKeyExReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -292,13 +309,13 @@ RegTransactCreateKeyExW(
 
             break;
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+		status = LwErrnoToNtStatus(LwErrnoToNtStatus(EINVAL));
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -308,13 +325,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactOpenKeyExW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -324,18 +341,18 @@ RegTransactOpenKeyExW(
     OUT PHKEY phkResult
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS status = 0;
     REG_IPC_OPEN_KEY_EX_REQ OpenKeyExReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
     PREG_IPC_OPEN_KEY_EX_RESPONSE pOpenKeyExResp = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     OpenKeyExReq.hKey = hKey;
     OpenKeyExReq.pSubKey = pwszSubKey;
@@ -344,8 +361,8 @@ RegTransactOpenKeyExW(
     in.tag = REG_Q_OPEN_KEYW_EX;
     in.data = &OpenKeyExReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -357,13 +374,13 @@ RegTransactOpenKeyExW(
 
             break;
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+		status = LwErrnoToNtStatus(LwErrnoToNtStatus(EINVAL));
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -373,55 +390,55 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactCloseKey(
     IN HANDLE hConnection,
     IN HKEY hKey
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS status = 0;
     REG_IPC_CLOSE_KEY_REQ CloseKeyReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     CloseKeyReq.hKey = hKey;
 
     in.tag = REG_Q_CLOSE_KEY;
     in.data = &CloseKeyReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
         case REG_R_CLOSE_KEY:
-            dwError = RegIpcUnregisterHandle(pCall, hKey);
-            BAIL_ON_REG_ERROR(dwError);
+		status = RegIpcUnregisterHandle(pCall, hKey);
+            BAIL_ON_NT_STATUS(status);
 
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
 
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(LwErrnoToNtStatus(EINVAL));
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -431,30 +448,30 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactDeleteKeyW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN PCWSTR pSubKey
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_DELETE_KEY_REQ DeleteKeyReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     DeleteKeyReq.hKey = hKey;
     DeleteKeyReq.pSubKey = pSubKey;
@@ -462,8 +479,8 @@ RegTransactDeleteKeyW(
     in.tag = REG_Q_DELETE_KEY;
     in.data = &DeleteKeyReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -471,14 +488,14 @@ RegTransactDeleteKeyW(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
 
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -488,13 +505,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactQueryInfoKeyW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -511,18 +528,18 @@ RegTransactQueryInfoKeyW(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_QUERY_INFO_KEY_REQ QueryInfoKeyReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
     PREG_IPC_QUERY_INFO_KEY_RESPONSE pQueryInfoKeyResp = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     QueryInfoKeyReq.hKey = hKey;
     QueryInfoKeyReq.pcClass = pcClass;
@@ -530,8 +547,8 @@ RegTransactQueryInfoKeyW(
     in.tag = REG_Q_QUERY_INFO_KEYW;
     in.data = &QueryInfoKeyReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -561,13 +578,13 @@ RegTransactQueryInfoKeyW(
 
             break;
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -577,13 +594,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactEnumKeyExW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -596,19 +613,19 @@ RegTransactEnumKeyExW(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
 
     REG_IPC_ENUM_KEY_EX_REQ EnumKeyExReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
     PREG_IPC_ENUM_KEY_EX_RESPONSE pEnumKeyExResp = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     EnumKeyExReq.hKey = hKey;
     EnumKeyExReq.dwIndex = dwIndex;
@@ -620,8 +637,8 @@ RegTransactEnumKeyExW(
     in.tag = REG_Q_ENUM_KEYW_EX;
     in.data = &EnumKeyExReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -634,13 +651,13 @@ RegTransactEnumKeyExW(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -650,13 +667,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactGetValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -668,18 +685,18 @@ RegTransactGetValueW(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_GET_VALUE_REQ GetValueReq;
     PREG_IPC_GET_VALUE_RESPONSE pGetValueResp = NULL;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     GetValueReq.hKey = hKey;
     GetValueReq.pSubKey = pSubKey;
@@ -691,8 +708,8 @@ RegTransactGetValueW(
     in.tag = REG_Q_GET_VALUEW;
     in.data = &GetValueReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -717,13 +734,13 @@ RegTransactGetValueW(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -733,13 +750,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactDeleteKeyValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -747,17 +764,17 @@ RegTransactDeleteKeyValueW(
     IN OPTIONAL PCWSTR pValueName
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_DELETE_KEY_VALUE_REQ DeleteKeyValueReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     DeleteKeyValueReq.hKey = hKey;
     DeleteKeyValueReq.pSubKey = pSubKey;
@@ -766,8 +783,8 @@ RegTransactDeleteKeyValueW(
     in.tag = REG_Q_DELETE_KEY_VALUE;
     in.data = &DeleteKeyValueReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -775,14 +792,14 @@ RegTransactDeleteKeyValueW(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
 
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -791,30 +808,30 @@ cleanup:
         lwmsg_call_destroy_params(pCall, &out);
         lwmsg_call_release(pCall);
     }
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactDeleteTreeW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_DELETE_TREE_REQ DeleteTreeReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     DeleteTreeReq.hKey = hKey;
     DeleteTreeReq.pSubKey = pSubKey;
@@ -822,8 +839,8 @@ RegTransactDeleteTreeW(
     in.tag = REG_Q_DELETE_TREE;
     in.data = &DeleteTreeReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -831,13 +848,13 @@ RegTransactDeleteTreeW(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -847,30 +864,30 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactDeleteValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_DELETE_VALUE_REQ DeleteValueReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     DeleteValueReq.hKey = hKey;
     DeleteValueReq.pValueName = pValueName;
@@ -878,21 +895,21 @@ RegTransactDeleteValueW(
     in.tag = REG_Q_DELETE_VALUE;
     in.data = &DeleteValueReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
         case REG_R_DELETE_VALUE:
             break;
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -902,13 +919,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactEnumValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -921,18 +938,18 @@ RegTransactEnumValueW(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_ENUM_VALUE_REQ EnumValueReq;
     PREG_IPC_ENUM_VALUE_RESPONSE pEnumValueResp = NULL;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     EnumValueReq.hKey = hKey;
     EnumValueReq.dwIndex = dwIndex;
@@ -945,8 +962,8 @@ RegTransactEnumValueW(
     in.tag = REG_Q_ENUM_VALUEW;
     in.data = &EnumValueReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -974,13 +991,13 @@ RegTransactEnumValueW(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -990,13 +1007,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactQueryMultipleValues(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -1006,11 +1023,11 @@ RegTransactQueryMultipleValues(
     IN OUT OPTIONAL PDWORD pdwTotsize
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_QUERY_MULTIPLE_VALUES_REQ QueryMultipleValuesReq;
     PREG_IPC_QUERY_MULTIPLE_VALUES_RESPONSE pRegResp = NULL;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
     int iCount = 0;
     int offSet = 0;
 
@@ -1018,8 +1035,8 @@ RegTransactQueryMultipleValues(
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     QueryMultipleValuesReq.hKey = hKey;
     QueryMultipleValuesReq.num_vals = num_vals;
@@ -1036,8 +1053,8 @@ RegTransactQueryMultipleValues(
     in.tag = REG_Q_QUERY_MULTIPLE_VALUES;
     in.data = &QueryMultipleValuesReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -1069,13 +1086,13 @@ RegTransactQueryMultipleValues(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -1085,13 +1102,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactSetKeyValue(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -1102,17 +1119,17 @@ RegTransactSetKeyValue(
     IN DWORD cbData
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     REG_IPC_SET_KEY_VALUE_REQ SetValueExReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    dwError = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_REG_ERROR(dwError);
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
 
     SetValueExReq.hKey = hKey;
     SetValueExReq.pValueName = pValueName;
@@ -1123,8 +1140,8 @@ RegTransactSetKeyValue(
     in.tag = REG_Q_SET_KEY_VALUE;
     in.data = &SetValueExReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_REG_ERROR(dwError);
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
 
     switch (out.tag)
     {
@@ -1132,14 +1149,14 @@ RegTransactSetKeyValue(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
 
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
@@ -1149,13 +1166,13 @@ cleanup:
         lwmsg_call_release(pCall);
     }
 
-    return dwError;
+    return status;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 RegTransactSetValueExW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -1166,13 +1183,13 @@ RegTransactSetValueExW(
     IN DWORD cbData
     )
 {
-    DWORD dwError = 0;
+	NTSTATUS status = 0;
     PREG_CLIENT_CONNECTION_CONTEXT pContext =
                      (PREG_CLIENT_CONNECTION_CONTEXT)hConnection;
 
     REG_IPC_SET_VALUE_EX_REQ SetValueExReq;
-    // Do not free pError
-    PREG_IPC_ERROR pError = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
 
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
@@ -1186,11 +1203,11 @@ RegTransactSetValueExW(
     request.tag = REG_Q_SET_VALUEW_EX;
     request.object = &SetValueExReq;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+    status = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
                               pContext->pAssoc,
                               &request,
                               &response));
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     switch (response.tag)
     {
@@ -1198,19 +1215,19 @@ RegTransactSetValueExW(
             break;
 
         case REG_R_ERROR:
-            pError = (PREG_IPC_ERROR) response.object;
-            dwError = pError->dwError;
-            BAIL_ON_REG_ERROR(dwError);
+            pStatus = (PREG_IPC_STATUS) response.object;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
             break;
 
         default:
-            dwError = EINVAL;
-            BAIL_ON_REG_ERROR(dwError);
+            status = LwErrnoToNtStatus(EINVAL);
+            BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
 
-    return dwError;
+    return status;
 
 error:
 

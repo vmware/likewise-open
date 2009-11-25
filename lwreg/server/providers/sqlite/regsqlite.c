@@ -44,55 +44,55 @@
  */
 #include "includes.h"
 
-DWORD
+NTSTATUS
 RegSqliteBindString(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN PCSTR pszValue
     )
 {
-    return sqlite3_bind_text(pstQuery, Index, pszValue,
+    return (NTSTATUS)sqlite3_bind_text(pstQuery, Index, pszValue,
                              -1, SQLITE_TRANSIENT);
 }
 
-DWORD
+NTSTATUS
 RegSqliteBindInt64(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN int64_t Value
     )
 {
-    return sqlite3_bind_int64(pstQuery, Index, (sqlite3_int64)Value);
+    return (NTSTATUS)sqlite3_bind_int64(pstQuery, Index, (sqlite3_int64)Value);
 }
 
-DWORD
+NTSTATUS
 RegSqliteBindInt32(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN int Value
     )
 {
-    return sqlite3_bind_int(pstQuery, Index, Value);
+    return (NTSTATUS)sqlite3_bind_int(pstQuery, Index, Value);
 }
 
-DWORD
+NTSTATUS
 RegSqliteBindBoolean(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN BOOLEAN bValue
     )
 {
-    return sqlite3_bind_int(pstQuery, Index, bValue ? 1 : 0);
+    return (NTSTATUS)sqlite3_bind_int(pstQuery, Index, bValue ? 1 : 0);
 }
 
-DWORD
+NTSTATUS
 RegSqliteReadInt64(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
     int64_t *pqwResult)
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     //Do not free
     PSTR pszEndPtr = NULL;
     //Do not free
@@ -102,32 +102,33 @@ RegSqliteReadInt64(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_REG_ERROR(dwError);
+        status = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(status);
     }
 #endif
 
     *pqwResult = strtoll(pszColumnValue, &pszEndPtr, 10);
     if (pszEndPtr == NULL || pszEndPtr == pszColumnValue || *pszEndPtr != '\0')
     {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_REG_ERROR(dwError);
+        status = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(status);
     }
 
     (*piColumnPos)++;
 
 error:
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegSqliteReadString(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
-    PSTR *ppszResult)
+    PSTR *ppszResult
+    )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     //Do not free
     PCSTR pszColumnValue = (PCSTR)sqlite3_column_text(pstQuery, *piColumnPos);
 
@@ -135,20 +136,20 @@ RegSqliteReadString(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_REG_ERROR(dwError);
+        status = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(status);
     }
 #endif
 
-    dwError = LwStrDupOrNull(
+    status = RegStrDupOrNull(
             pszColumnValue,
             ppszResult);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     (*piColumnPos)++;
 
 cleanup:
-    return dwError;
+    return status;
 
 error:
     *ppszResult = NULL;
@@ -156,76 +157,39 @@ error:
     goto cleanup;
 }
 
-#if 0
-DWORD
-RegSqliteReadWcString(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PCSTR name,
-    PWSTR *ppszResult
-    )
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    //Do not free
-    PCWSTR pszColumnValue = (PCWSTR)sqlite3_column_text16(pstQuery, *piColumnPos);
-
-#ifdef DEBUG
-    // Extra internal error checking
-    if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-#endif
-
-    dwError = LwWcStrDupOrNull(
-            pszColumnValue,
-            ppszResult);
-    BAIL_ON_REG_ERROR(dwError);
-
-    (*piColumnPos)++;
-
-cleanup:
-    return dwError;
-
-error:
-    *ppszResult = NULL;
-
-    goto cleanup;
-}
-#endif
-
-DWORD
+NTSTATUS
 RegSqliteReadTimeT(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
-    time_t *pResult)
+    time_t *pResult
+    )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     uint64_t qwTemp;
 
-    dwError = RegSqliteReadUInt64(
+    status = RegSqliteReadUInt64(
         pstQuery,
         piColumnPos,
         name,
         &qwTemp);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     *pResult = qwTemp;
 
 error:
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegSqliteReadUInt64(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
-    uint64_t *pqwResult)
+    uint64_t *pqwResult
+    )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+	NTSTATUS status = STATUS_SUCCESS;
     //Do not free
     PSTR pszEndPtr = NULL;
     //Do not free
@@ -235,235 +199,58 @@ RegSqliteReadUInt64(
     // Extra internal error checking
     if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
     {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_REG_ERROR(dwError);
+        status = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(status);
     }
 #endif
 
-    BAIL_ON_INVALID_STRING(pszColumnValue);
+    BAIL_ON_NT_INVALID_STRING(pszColumnValue);
     *pqwResult = strtoull(pszColumnValue, &pszEndPtr, 10);
     if (pszEndPtr == NULL || pszEndPtr == pszColumnValue || *pszEndPtr != '\0')
     {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_REG_ERROR(dwError);
+        status = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(status);
     }
 
     (*piColumnPos)++;
 
 error:
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegSqliteReadUInt32(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
-    DWORD *pdwResult)
+    DWORD *pdwResult
+    )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     uint64_t qwTemp;
     int iColumnPos = *piColumnPos;
 
-    dwError = RegSqliteReadUInt64(
+    status = RegSqliteReadUInt64(
         pstQuery,
         &iColumnPos,
         name,
         &qwTemp);
-    BAIL_ON_REG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(status);
 
     if (qwTemp > UINT_MAX)
     {
-        dwError = ERANGE;
-        BAIL_ON_REG_ERROR(dwError);
+        status = STATUS_RANGE_NOT_FOUND;
+        BAIL_ON_NT_STATUS(status);
     }
 
     *pdwResult = qwTemp;
     *piColumnPos = iColumnPos;
 
 error:
-    return dwError;
+    return status;
 }
 
-#if 0
-DWORD
-RegSqliteReadBoolean(
-    sqlite3_stmt *pstQuery,
-    int *piColumnPos,
-    PCSTR name,
-    BOOLEAN *pbResult)
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    DWORD dwTemp;
-
-    dwError = RegSqliteReadUInt32(
-        pstQuery,
-        piColumnPos,
-        name,
-        &dwTemp);
-    BAIL_ON_REG_ERROR(dwError);
-
-    *pbResult = (dwTemp != 0);
-
-error:
-    return dwError;
-}
-
-DWORD
-RegSqliteReadStringInPlace(
-    IN sqlite3_stmt *pstQuery,
-    IN OUT int *piColumnPos,
-    IN PCSTR name,
-    OUT PSTR pszResult,
-    //Includes NULL
-    IN size_t sMaxSize)
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    //Do not free
-    PCSTR pszColumnValue = (PCSTR)sqlite3_column_text(pstQuery, *piColumnPos);
-    size_t sRequiredSize = 0;
-
-#ifdef DEBUG
-    // Extra internal error checking
-    if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-#endif
-
-    sRequiredSize = strlen(pszColumnValue) + 1;
-    if (sRequiredSize > sMaxSize)
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    memcpy(pszResult, pszColumnValue, sRequiredSize);
-
-    (*piColumnPos)++;
-
-cleanup:
-    return dwError;
-
-error:
-    pszResult[0] = '\0';
-
-    goto cleanup;
-}
-
-DWORD
-RegSqliteReadSid(
-    IN sqlite3_stmt *pstQuery,
-    IN OUT int *piColumnPos,
-    IN PCSTR name,
-    OUT PSID* ppSid)
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR pszSid = NULL;
-    PSID pSid = NULL;
-    int iColumnPos = *piColumnPos;
-
-    dwError = RegSqliteReadString(
-        pstQuery,
-        &iColumnPos,
-        name,
-        &pszSid);
-    BAIL_ON_REG_ERROR(dwError);
-
-    dwError = RegAllocateSidFromCString(
-            &pSid,
-            pszSid);
-    BAIL_ON_REG_ERROR(dwError);
-
-    *ppSid = pSid;
-    *piColumnPos = iColumnPos;
-
-cleanup:
-    LSA_SAFE_FREE_STRING(pszSid);
-
-    return dwError;
-
-error:
-
-    *ppSid = NULL;
-    LSA_SAFE_FREE_MEMORY(pSid);
-    goto cleanup;
-}
-
-DWORD
-RegSqliteReadGuid(
-    IN sqlite3_stmt *pstQuery,
-    IN OUT int *piColumnPos,
-    IN PCSTR name,
-    OUT uuid_t** ppGuid)
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR pszGuid = NULL;
-    uuid_t *pGuid = NULL;
-    int iColumnPos = *piColumnPos;
-
-    dwError = RegSqliteReadString(
-        pstQuery,
-        &iColumnPos,
-        name,
-        &pszGuid);
-    BAIL_ON_REG_ERROR(dwError);
-
-    dwError = LwAllocateMemory(
-                    sizeof(*pGuid),
-                    (PVOID*)&pGuid);
-    BAIL_ON_REG_ERROR(dwError);
-
-    if (uuid_parse(
-            pszGuid,
-            *pGuid) < 0)
-    {
-        // uuid_parse returns -1 on error, but does not set errno
-        dwError = LW_ERROR_INVALID_OBJECTGUID;
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    *ppGuid = pGuid;
-    *piColumnPos = iColumnPos;
-
-cleanup:
-    LSA_SAFE_FREE_STRING(pszGuid);
-
-    return dwError;
-
-error:
-
-    *ppGuid = NULL;
-    LSA_SAFE_FREE_MEMORY(pGuid);
-    goto cleanup;
-}
-
-DWORD
-RegSqliteAllocPrintf(
-    OUT PSTR* ppszSqlCommand,
-    IN PCSTR pszSqlFormat,
-    IN ...
-    )
-{
-    DWORD dwError = 0;
-    va_list args;
-
-    va_start(args, pszSqlFormat);
-    *ppszSqlCommand = sqlite3_vmprintf(pszSqlFormat, args);
-    va_end(args);
-
-    if (!*ppszSqlCommand)
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-    }
-
-    return dwError;
-}
-#endif
-
-
-DWORD
+NTSTATUS
 RegSqliteExecCallbackWithRetry(
     IN sqlite3* pDb,
     IN pthread_rwlock_t* pLock,
@@ -471,8 +258,8 @@ RegSqliteExecCallbackWithRetry(
     IN PVOID pContext
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     PSTR pszError = NULL;
-    DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwRetry;
     BOOLEAN bInLock = FALSE;
 
@@ -480,11 +267,11 @@ RegSqliteExecCallbackWithRetry(
 
     for (dwRetry = 0; dwRetry < 20; dwRetry++)
     {
-        dwError = pfnCallback(pDb, pContext, &pszError);
-        if (dwError == SQLITE_BUSY)
+        status = pfnCallback(pDb, pContext, &pszError);
+        if (status == SQLITE_BUSY)
         {
             SQLITE3_SAFE_FREE_STRING(pszError);
-            dwError = 0;
+            status = 0;
             // Rollback the half completed transaction
             RegSqliteExec(pDb, "ROLLBACK", NULL);
 
@@ -494,20 +281,20 @@ RegSqliteExecCallbackWithRetry(
         }
         else
         {
-            BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+            BAIL_ON_SQLITE3_ERROR(status, pszError);
             break;
         }
     }
-    BAIL_ON_SQLITE3_ERROR(dwError, pszError);
+    BAIL_ON_SQLITE3_ERROR(status, pszError);
 
 error:
     LEAVE_SQLITE_LOCK(pLock, bInLock);
     SQLITE3_SAFE_FREE_STRING(pszError);
 
-    return dwError;
+    return status;
 }
 
-DWORD
+NTSTATUS
 RegSqliteBasicCallback(
     IN sqlite3 *pDb,
     IN PVOID pContext,
@@ -519,7 +306,7 @@ RegSqliteBasicCallback(
     return RegSqliteExec(pDb, pszTransaction, ppszError);
 }
 
-DWORD
+NTSTATUS
 RegSqliteExecWithRetry(
     IN sqlite3* pDb,
     IN pthread_rwlock_t* pLock,
@@ -533,13 +320,143 @@ RegSqliteExecWithRetry(
                 (PVOID)pszTransaction);
 }
 
-DWORD
+NTSTATUS
 RegSqliteExec(
     IN sqlite3* pSqlDatabase,
     IN PCSTR pszSqlCommand,
     OUT PSTR* ppszSqlError
     )
 {
-    return sqlite3_exec(pSqlDatabase, pszSqlCommand,
+    return (NTSTATUS)sqlite3_exec(pSqlDatabase, pszSqlCommand,
                         NULL, NULL, ppszSqlError);
 }
+
+
+
+
+#if 0
+NTSTATUS
+RegSqliteReadWcString(
+    sqlite3_stmt *pstQuery,
+    int *piColumnPos,
+    PCSTR name,
+    PWSTR *ppszResult
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    //Do not free
+    PCWSTR pszColumnValue = (PCWSTR)sqlite3_column_text16(pstQuery, *piColumnPos);
+
+#ifdef DEBUG
+    // Extra internal error checking
+    if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
+    {
+        status = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(status);
+    }
+#endif
+
+    status = LwWcStrDupOrNull(
+            pszColumnValue,
+            ppszResult);
+    BAIL_ON_NT_STATUS(status);
+
+    (*piColumnPos)++;
+
+cleanup:
+    return status;
+
+error:
+    *ppszResult = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+RegSqliteReadBoolean(
+    sqlite3_stmt *pstQuery,
+    int *piColumnPos,
+    PCSTR name,
+    BOOLEAN *pbResult)
+{
+	NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwTemp;
+
+    status = RegSqliteReadUInt32(
+        pstQuery,
+        piColumnPos,
+        name,
+        &dwTemp);
+    BAIL_ON_NT_STATUS(status);
+
+    *pbResult = (dwTemp != 0);
+
+error:
+    return status;
+}
+
+NTSTATUS
+RegSqliteReadStringInPlace(
+    IN sqlite3_stmt *pstQuery,
+    IN OUT int *piColumnPos,
+    IN PCSTR name,
+    OUT PSTR pszResult,
+    //Includes NULL
+    IN size_t sMaxSize)
+{
+	NTSTATUS status = STATUS_SUCCESS;
+    //Do not free
+    PCSTR pszColumnValue = (PCSTR)sqlite3_column_text(pstQuery, *piColumnPos);
+    size_t sRequiredSize = 0;
+
+#ifdef DEBUG
+    // Extra internal error checking
+    if (strcmp(sqlite3_column_name(pstQuery, *piColumnPos), name))
+    {
+        status = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(status);
+    }
+#endif
+
+    sRequiredSize = strlen(pszColumnValue) + 1;
+    if (sRequiredSize > sMaxSize)
+    {
+        status = LW_ERROR_OUT_OF_MEMORY;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    memcpy(pszResult, pszColumnValue, sRequiredSize);
+
+    (*piColumnPos)++;
+
+cleanup:
+    return status;
+
+error:
+    pszResult[0] = '\0';
+
+    goto cleanup;
+}
+
+DWORD
+RegSqliteAllocPrintf(
+    OUT PSTR* ppszSqlCommand,
+    IN PCSTR pszSqlFormat,
+    IN ...
+    )
+{
+    DWORD status = 0;
+    va_list args;
+
+    va_start(args, pszSqlFormat);
+    *ppszSqlCommand = sqlite3_vmprintf(pszSqlFormat, args);
+    va_end(args);
+
+    if (!*ppszSqlCommand)
+    {
+        status = LW_ERROR_OUT_OF_MEMORY;
+    }
+
+    return status;
+}
+#endif

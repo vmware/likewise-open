@@ -9,11 +9,9 @@ namespace Likewise.LMC.FileClient
     {
         #region Copy/Delete/Move File APIs
 
-	    [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
-		public static extern bool CreateDirectory(
-		    string lpDirectoryName,
-		    IntPtr lpSecurityAttributes
-		    );
+        [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern UInt32 GetLastError(
+            );
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool CopyFile(
@@ -34,19 +32,33 @@ namespace Likewise.LMC.FileClient
             );
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool RemoveDirectory(
+        public static extern bool CreateDirectory(
             string lpDirectoryName
             );
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool Rename(
-            string lpOldName,
-		    string lpNewName
+        public static extern bool RemoveDirectory(
+            string lpDirectoryName
             );
 
         #endregion
 
         #region Local and Connected Share File Enumeration APIs
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct LIKEWISE_FIND_DATA
+        {
+            public FILE_ATTRIBUTE dwFileAttributes;
+            public UInt64 time_tCreationTime;
+            public UInt64 time_tLastAccessTime;
+            public UInt64 time_tLastWriteTime;
+            public UInt32 nFileSizeHigh;
+            public UInt32 nFileSizeLow;
+            public UInt32 dwReserved0;
+            public UInt32 dwReserved1;
+            public string FileName;
+            public string Alternate;
+        };
 
         [DllImport("liblwfileclient.so", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr FindFirstFile(
@@ -58,6 +70,11 @@ namespace Likewise.LMC.FileClient
         public static extern bool FindNextFile(
             IntPtr hFindFile,
             ref LIKEWISE_FIND_DATA FindFileData
+            );
+
+        [DllImport("liblwfileclient.so", SetLastError = true)]
+        public static extern bool FindClose(
+            IntPtr hFindFile
             );
 
         [DllImport("liblwfileclient.so", SetLastError = true)]

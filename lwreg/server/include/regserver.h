@@ -92,7 +92,7 @@ typedef struct __REG_KEY_CONTEXT
     if (!bInLock) { \
        int thr_err = pthread_mutex_lock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to lock mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to lock mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
@@ -102,7 +102,7 @@ typedef struct __REG_KEY_CONTEXT
     if (bInLock) { \
        int thr_err = pthread_mutex_unlock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to unlock mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to unlock mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = FALSE; \
@@ -113,7 +113,7 @@ typedef struct __REG_KEY_CONTEXT
     if (!bInLock) { \
        int thr_err = pthread_rwlock_rdlock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to acquire shared lock on rw mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to acquire shared lock on rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
@@ -124,7 +124,7 @@ typedef struct __REG_KEY_CONTEXT
     if (!bInLock) { \
        int thr_err = pthread_rwlock_wrlock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to acquire exclusive lock on rw mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to acquire exclusive lock on rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = TRUE; \
@@ -134,16 +134,11 @@ typedef struct __REG_KEY_CONTEXT
     if (bInLock) { \
        int thr_err = pthread_rwlock_unlock(mutex); \
        if (thr_err) { \
-           LW_LOG_ERROR("Failed to unlock rw mutex. Aborting program"); \
+           LWREG_LOG_ERROR("Failed to unlock rw mutex. Aborting program"); \
            abort(); \
        } \
        bInLock = FALSE; \
     }
-
-void
-RegSrvSafeFreeKeyContext(
-    IN PREG_KEY_CONTEXT pKeyResult
-    );
 
 void
 RegSrvIpcDestructSession(
@@ -168,27 +163,16 @@ RegSrvApiShutdown(
     VOID
     );
 
-DWORD
+LWMsgDispatchSpec*
+RegSrvGetDispatchSpec(
+    void
+    );
+
+NTSTATUS
 RegSrvOpenServer(
     uid_t peerUID,
     gid_t peerGID,
     PHANDLE phServer
-    );
-
-DWORD
-RegSrvOpenServerEnum(
-    PHANDLE phServer
-    );
-
-VOID
-RegSrvGetUid(
-    HANDLE hServer,
-    uid_t* pUid
-    );
-
-void
-RegSrvCloseServerEnum(
-    HANDLE hServer
     );
 
 void
@@ -196,24 +180,14 @@ RegSrvCloseServer(
     HANDLE hServer
     );
 
-LWMsgDispatchSpec*
-RegSrvGetDispatchSpec(
-    void
-    );
-
-BOOLEAN
-RegSrvIsValidKeyName(
-    PSTR pszKeyName
-    );
-
-DWORD
+NTSTATUS
 RegSrvEnumRootKeysW(
     IN HANDLE Handle,
     OUT PWSTR** pppszRootKeys,
     OUT PDWORD pdwNumRootKeys
     );
 
-DWORD
+NTSTATUS
 RegSrvCreateKeyEx(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -227,7 +201,7 @@ RegSrvCreateKeyEx(
     OUT OPTIONAL PDWORD pdwDisposition
     );
 
-DWORD
+NTSTATUS
 RegSrvOpenKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -242,14 +216,14 @@ RegSrvCloseKey(
     HKEY hKey
     );
 
-DWORD
+NTSTATUS
 RegSrvDeleteKey(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR pSubKey
     );
 
-DWORD
+NTSTATUS
 RegSrvDeleteKeyValue(
     HANDLE Handle,
     HKEY hKey,
@@ -257,21 +231,21 @@ RegSrvDeleteKeyValue(
     PCWSTR pValueName
     );
 
-DWORD
+NTSTATUS
 RegSrvDeleteTree(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR lpSubKey
     );
 
-DWORD
+NTSTATUS
 RegSrvDeleteValue(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR lpValueName
     );
 
-DWORD
+NTSTATUS
 RegSrvEnumKeyExW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -284,7 +258,7 @@ RegSrvEnumKeyExW(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     );
 
-DWORD
+NTSTATUS
 RegSrvEnumValueW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -297,7 +271,7 @@ RegSrvEnumValueW(
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
     );
 
-DWORD
+NTSTATUS
 RegSrvGetValueW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -309,7 +283,7 @@ RegSrvGetValueW(
     IN OUT PDWORD pcbData
     );
 
-LWMsgStatus
+NTSTATUS
 RegSrvQueryInfoKeyW(
     HANDLE Handle,
     HKEY hKey,
@@ -326,7 +300,7 @@ RegSrvQueryInfoKeyW(
     PFILETIME pftLastWriteTime
     );
 
-DWORD
+NTSTATUS
 RegSrvQueryMultipleValues(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -336,7 +310,7 @@ RegSrvQueryMultipleValues(
     OUT OPTIONAL PDWORD pdwTotalsize
     );
 
-DWORD
+NTSTATUS
 RegSrvSetValueExW(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -347,54 +321,18 @@ RegSrvSetValueExW(
     DWORD cbData
     );
 
-
-//Server side helper functions
-#if 0
-PREG_KEY_CONTEXT
-RegSrvLocateActiveKey(
-    IN PCSTR pszKeyName
+BOOLEAN
+RegSrvIsValidKeyName(
+    PSTR pszKeyName
     );
 
-PREG_KEY_CONTEXT
-RegSrvLocateActiveKey_inlock(
-    IN PCSTR pszKeyName
-    );
 
-DWORD
-RegSrvInsertActiveKey(
+
+// Key context (key handle) utility functions
+void
+RegSrvSafeFreeKeyContext(
     IN PREG_KEY_CONTEXT pKeyResult
     );
-
-DWORD
-RegSrvInsertActiveKey_inlock(
-    IN PREG_KEY_CONTEXT pKeyResult
-    );
-
-VOID
-RegSrvDeleteActiveKey(
-    IN PSTR pszKeyName
-    );
-
-VOID
-RegSrvDeleteActiveKey_inlock(
-    IN PSTR pszKeyName
-    );
-
-void
-RegSrvResetParentKeySubKeyInfo(
-    IN PSTR pszParentKeyName
-    );
-
-void
-RegSrvResetKeyValueInfo(
-    IN PSTR pszKeyName
-    );
-
-VOID
-RegSrvReleaseKey(
-    PREG_KEY_CONTEXT pKeyResult
-    );
-#endif
 
 DWORD
 RegSrvGetKeyRefCount(

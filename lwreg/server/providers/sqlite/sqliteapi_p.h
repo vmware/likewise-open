@@ -47,173 +47,47 @@
 #ifndef SQLITEAPI_P_H_
 #define SQLITEAPI_P_H_
 
-DWORD
+NTSTATUS
 SqliteGetParentKeyName(
     PCSTR pszInputString,
     CHAR c,
     PSTR *ppszOutputString
     );
 
-DWORD
+NTSTATUS
 SqliteCreateKeyHandle(
     IN PREG_ENTRY pRegEntry,
     OUT PHKEY phkResult
     );
 
-DWORD
+NTSTATUS
 SqliteCreateKeyInternal(
     IN PSTR pszKeyName,
     IN OPTIONAL PCWSTR pSubKey, //pSubKey is null only when creating HKEY_LIKEWISE
     OUT OPTIONAL PHKEY ppKeyResult
     );
 
-DWORD
+NTSTATUS
 SqliteOpenKeyInternal(
     IN PSTR pszKeyName,
     IN OPTIONAL PCWSTR pSubKey,
     OUT PHKEY phkResult
     );
 
-DWORD
-SqliteCacheSubKeysInfo_inlock(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
-    );
-
-DWORD
-SqliteCacheSubKeysInfo(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
-    );
-
-DWORD
-SqliteUpdateSubKeysInfo_inlock(
-    IN DWORD dwOffSet,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
-    OUT size_t* psNumSubKeys
-    );
-
-DWORD
-SqliteUpdateSubKeysInfo(
-    IN DWORD dwOffSet,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
-    OUT size_t* psNumSubKeys
-    );
-
-DWORD
-SqliteCacheKeyValuesInfo_inlock(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
-    );
-
-DWORD
-SqliteCacheKeyValuesInfo(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
-    );
-
-DWORD
-SqliteUpdateValuesInfo_inlock(
-    DWORD dwOffSet,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
-    OUT size_t* psNumValues
-    );
-
-DWORD
-SqliteUpdateValuesInfo(
-    DWORD dwOffSet,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
-    OUT size_t* psNumValues
-    );
-
-DWORD
-SqliteDbDeleteKeyInternal(
+NTSTATUS
+SqliteDeleteKeyInternal(
     IN PSTR pszKeyName
     );
 
-DWORD
+NTSTATUS
 SqliteDeleteActiveKey(
     IN PSTR pszKeyName
     );
 
-
-
-PREG_KEY_CONTEXT
-RegSrvLocateActiveKey(
-    IN PCSTR pszKeyName
-    );
-
-PREG_KEY_CONTEXT
-RegSrvLocateActiveKey_inlock(
-    IN PCSTR pszKeyName
-    );
-
-DWORD
-RegSrvInsertActiveKey(
-    IN PREG_KEY_CONTEXT pKeyResult
-    );
-
-DWORD
-RegSrvInsertActiveKey_inlock(
-    IN PREG_KEY_CONTEXT pKeyResult
-    );
-
-VOID
-RegSrvDeleteActiveKey(
-    IN PSTR pszKeyName
-    );
-
-VOID
-RegSrvDeleteActiveKey_inlock(
-    IN PSTR pszKeyName
-    );
-
-void
-RegSrvResetParentKeySubKeyInfo(
-    IN PSTR pszParentKeyName
-    );
-
-void
-RegSrvResetParentKeySubKeyInfo_inlock(
-    IN PSTR pszParentKeyName
-    );
-
-void
-RegSrvResetKeyValueInfo(
-    IN PSTR pszKeyName
-    );
-
-void
-RegSrvResetKeyValueInfo_inlock(
-    IN PSTR pszKeyName
-    );
-
-VOID
-RegSrvReleaseKey(
-    PREG_KEY_CONTEXT pKeyResult
-    );
-
-VOID
-RegSrvReleaseKey_inlock(
-    PREG_KEY_CONTEXT pKeyResult
-    );
-
-void
-RegSrvFreeHashEntry(
-    IN const REG_HASH_ENTRY* pEntry
-    );
-
-DWORD
-GetValueAsBytes(
-    IN REG_DATA_TYPE type,
-    IN PCSTR pszValue,
-    IN BOOLEAN bDoAnsi,
-    OUT OPTIONAL PBYTE pData,
-    IN OUT OPTIONAL PDWORD pcbData
+NTSTATUS
+SqliteDeleteTreeInternal(
+    IN HANDLE Handle,
+    IN HKEY hKey
     );
 
 #endif /* SQLITEAPI_P_H_ */

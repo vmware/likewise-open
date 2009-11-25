@@ -54,7 +54,7 @@
 #include <lw/errno.h>
 #include <lwmem.h>
 #include <lwstr.h>
-#include <reg/reg.h>
+#include <reg/lwreg.h>
 
 #include "lsadef.h"
 #include "lwsecurityidentifier.h"

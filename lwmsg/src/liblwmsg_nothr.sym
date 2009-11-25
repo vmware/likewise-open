@@ -46,6 +46,7 @@ lwmsg_call_cancel
 lwmsg_call_release
 lwmsg_call_destroy_params
 lwmsg_call_get_session
+lwmsg_call_acquire_callback
 lwmsg_context_new
 lwmsg_context_delete
 lwmsg_context_set_memory_functions
@@ -85,7 +86,6 @@ lwmsg_time_difference
 lwmsg_time_sum
 lwmsg_time_compare
 lwmsg_time_normalize
-lwmsg_time_is_positive
 lwmsg_clock_init
 lwmsg_clock_get_wall_time
 lwmsg_clock_get_monotonic_time
@@ -107,6 +107,9 @@ lwmsg_session_manager_init
 lwmsg_session_manager_delete
 lwmsg_session_manager_get_id
 lwmsg_session_id_to_string
+lwmsg_session_manager_retain_session
+lwmsg_session_manager_enter_session
+lwmsg_session_manager_leave_session
 lwmsg_session_manager_handle_id_to_pointer
 lwmsg_session_manager_handle_pointer_to_id
 lwmsg_session_manager_register_handle_local

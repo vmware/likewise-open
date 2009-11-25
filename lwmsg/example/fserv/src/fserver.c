@@ -19,9 +19,19 @@ blocked_signal_set(sigset_t* set)
 }
 
 static void
+wait_signal_set(sigset_t* set)
+{
+    sigemptyset(set);
+    sigaddset(set, SIGTERM);
+    sigaddset(set, SIGINT);
+}
+
+static void
 block_signals(void)
 {
     sigset_t blocked;
+
+    signal(SIGPIPE, SIG_IGN);
 
     blocked_signal_set(&blocked);
 
@@ -34,7 +44,7 @@ wait_signal(void)
     sigset_t wait;
     int sig = 0;
 
-    blocked_signal_set(&wait);
+    wait_signal_set(&wait);
 
     sigwait(&wait, &sig);
 
@@ -129,7 +139,15 @@ int main(int argc, char** argv)
 
 error:
 
-    lwmsg_server_delete(server);
+    if (server)
+    {
+        lwmsg_server_delete(server);
+    }
+
+    if (protocol)
+    {
+        lwmsg_protocol_delete(protocol);
+    }
 
     if (status != LWMSG_STATUS_SUCCESS)
     {

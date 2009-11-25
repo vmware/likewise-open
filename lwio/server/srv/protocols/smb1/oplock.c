@@ -295,6 +295,7 @@ SrvProcessOplock(
                 ntStatus = SrvAcknowledgeOplockBreak(
                                pCtxSmb1,
                                pOplockState,
+                               NULL,
                                FALSE);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
@@ -335,7 +336,8 @@ NTSTATUS
 SrvAcknowledgeOplockBreak(
     PSRV_EXEC_CONTEXT_SMB_V1 pCtxSmb1,
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState,
-    BOOLEAN bFileIsClosed
+    PUCHAR                   pucNewOplockLevel,
+    BOOLEAN                  bFileIsClosed
     )
 {
     NTSTATUS ntStatus      = STATUS_SUCCESS;
@@ -392,7 +394,16 @@ SrvAcknowledgeOplockBreak(
     }
     else
     {
-        pOplockState->oplockBuffer_ack.Response = IO_OPLOCK_BREAK_ACKNOWLEDGE;
+        if (pucNewOplockLevel && (*pucNewOplockLevel != ucOplockLevel))
+        {
+            pOplockState->oplockBuffer_ack.Response =
+                                                IO_OPLOCK_BREAK_ACK_NO_LEVEL_2;
+        }
+        else
+        {
+            pOplockState->oplockBuffer_ack.Response =
+                                                IO_OPLOCK_BREAK_ACKNOWLEDGE;
+        }
     }
 
     SrvPrepareOplockStateAsync(pOplockState);

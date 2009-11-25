@@ -203,15 +203,16 @@ lwmsg_archive_populate_message_header(
     ArchiveMessage* header
     )
 {
-     header->status = LWMSG_SWAP32((uint32_t) message->status, LWMSG_NATIVE_ENDIAN, archive->byte_order);
-     header->cookie = LWMSG_SWAP32((uint32_t) message->cookie, LWMSG_NATIVE_ENDIAN, archive->byte_order);
-     header->tag = LWMSG_SWAP32((int32_t) message->tag, LWMSG_NATIVE_ENDIAN, archive->byte_order);
-     header->size = LWMSG_SWAP32((uint32_t) data_size, LWMSG_NATIVE_ENDIAN, archive->byte_order);
+    header->flags = LWMSG_SWAP32((uint16_t) message->flags, LWMSG_NATIVE_ENDIAN, archive->byte_order);
+    header->status = LWMSG_SWAP32((uint32_t) message->status, LWMSG_NATIVE_ENDIAN, archive->byte_order);
+    header->cookie = LWMSG_SWAP32((uint16_t) message->cookie, LWMSG_NATIVE_ENDIAN, archive->byte_order);
+    header->tag = LWMSG_SWAP32((int16_t) message->tag, LWMSG_NATIVE_ENDIAN, archive->byte_order);
+    header->size = LWMSG_SWAP32((uint32_t) data_size, LWMSG_NATIVE_ENDIAN, archive->byte_order);
 }
 
 static
 LWMsgStatus
-lwmsg_archive_write_message_wrap_fd (
+lwmsg_archive_write_message_wrap_fd(
     LWMsgBuffer* buffer,
     size_t needed
     )
@@ -287,12 +288,14 @@ lwmsg_archive_read_header_fd(
         BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
     }
 
-    if (header.version_major != ARCHIVE_VERSION_MAJOR ||
-        header.version_minor != ARCHIVE_VERSION_MINOR ||
-        header.version_micro > ARCHIVE_VERSION_MICRO)
+    if (header.version_major > ARCHIVE_VERSION_MAJOR ||
+        header.version_minor > ARCHIVE_VERSION_MINOR)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
     }
+
+    archive->version_major = header.version_major;
+    archive->version_minor = header.version_minor;
 
     if (header.version_flags & ARCHIVE_VERSION_FLAG_BIG_ENDIAN)
     {
@@ -363,6 +366,56 @@ error:
     return status;
 }
 
+static
+LWMsgStatus
+lwmsg_archive_read_message_header(
+    LWMsgArchive* archive,
+    LWMsgMessage* message,
+    size_t* size
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ArchiveMessage_v0 header_v0 = {0};
+    ArchiveMessage header = {0};
+    size_t count = 0;
+
+    switch(archive->version_major)
+    {
+    case 0:
+        BAIL_ON_ERROR(status = lwmsg_archive_read_fd(archive, &header_v0, sizeof(header_v0), &count));
+
+        if (count < sizeof(header))
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
+
+        message->flags = 0;
+        message->status = LWMSG_SWAP32(header_v0.status, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        message->cookie = (uint16_t) LWMSG_SWAP32(header_v0.cookie, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        message->tag = (int16_t) LWMSG_SWAP32(header_v0.tag, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        *size = LWMSG_SWAP32(header_v0.size, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        break;
+    case ARCHIVE_VERSION_MAJOR:
+        BAIL_ON_ERROR(status = lwmsg_archive_read_fd(archive, &header, sizeof(header), &count));
+
+        if (count < sizeof(header))
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+        }
+
+        message->flags = LWMSG_SWAP16(header.flags, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        message->status = LWMSG_SWAP32(header.status, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        message->cookie = LWMSG_SWAP16(header.cookie, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        message->tag = LWMSG_SWAP16(header.tag, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        *size = LWMSG_SWAP32(header.size, archive->byte_order, LWMSG_NATIVE_ENDIAN);
+        break;
+    }
+
+error:
+
+    return status;
+}
+
 LWMsgStatus
 lwmsg_archive_read_message_fd(
     LWMsgArchive* archive,
@@ -371,28 +424,15 @@ lwmsg_archive_read_message_fd(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     readinfo info;
-    ArchiveMessage header = {0};
     LWMsgBuffer buffer = {0};
     LWMsgTypeSpec* type = NULL;
-    size_t count = 0;
-    uint32_t message_size = 0;
+    size_t message_size = 0;
 
-    BAIL_ON_ERROR(status = lwmsg_archive_read_fd(archive, &header, sizeof(header), &count));
-
-    if (count < sizeof(header))
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
-    }
-
-    message->status = LWMSG_SWAP32(header.status, archive->byte_order, LWMSG_NATIVE_ENDIAN);
-    message->cookie = LWMSG_SWAP32(header.cookie, archive->byte_order, LWMSG_NATIVE_ENDIAN);
-    message->tag = LWMSG_SWAP32(header.tag, archive->byte_order, LWMSG_NATIVE_ENDIAN);
-    message_size = LWMSG_SWAP32(header.size, archive->byte_order, LWMSG_NATIVE_ENDIAN);
-
+    BAIL_ON_ERROR(status = lwmsg_archive_read_message_header(archive, message, &message_size));
     BAIL_ON_ERROR(status = lwmsg_protocol_get_message_type(archive->base.prot, message->tag, &type));
 
     info.archive = archive;
-    info.remaining = (size_t) message_size;
+    info.remaining = message_size;
     buffer.base = info.data;
     buffer.end = buffer.base;
     buffer.cursor = buffer.base;

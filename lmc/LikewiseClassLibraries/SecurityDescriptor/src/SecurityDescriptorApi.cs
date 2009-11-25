@@ -14,14 +14,14 @@ namespace Likewise.LMC.SecurityDesriptor
         // This function uses the DACL to retrieve an array of explicit entries,
         // each of which contains information about individual ACEs within the
         // DACL.
-        [DllImport("AdvAPI32.DLL", CharSet = CharSet.Auto, SetLastError = true)]
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
         public static extern Int32 GetExplicitEntriesFromAcl(
         IntPtr pacl,
         ref UInt32 pcCountOfExplicitEntries,
         out IntPtr pListOfExplicitEntries);
 
-        [DllImport("advapi32.dll", CharSet = CharSet.Auto)]
-        static extern uint GetNamedSecurityInfo(
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto)]
+        public static extern uint GetNamedSecurityInfo(
             string pObjectName,
             SE_OBJECT_TYPE ObjectType,
             SECURITY_INFORMATION SecurityInfo,
@@ -31,8 +31,8 @@ namespace Likewise.LMC.SecurityDesriptor
             out IntPtr pSacl,
             out IntPtr pSecurityDescriptor);
 
-        [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        static extern bool LookupAccountSid(
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool LookupAccountSid(
             string lpSystemName,
             /*[MarshalAs(UnmanagedType.LPArray)]*/ IntPtr Sid,
             System.Text.StringBuilder lpName,
@@ -41,19 +41,53 @@ namespace Likewise.LMC.SecurityDesriptor
             ref uint cchReferencedDomainName,
             out SID_NAME_USE peUse);
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        static extern bool GetAclInformation(IntPtr pAcl, ref ACL_SIZE_INFORMATION pAclInformation, uint nAclInformationLength, ACL_INFORMATION_CLASS dwAclInformationClass);
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetAclInformation(IntPtr pAcl, ref ACL_SIZE_INFORMATION pAclInformation, uint nAclInformationLength, ACL_INFORMATION_CLASS dwAclInformationClass);
 
-        [DllImport("advapi32.dll")]
-        static extern int GetAce(IntPtr aclPtr, int aceIndex, out IntPtr acePtr);
+        [DllImport(LibADVAPIPath)]
+        public static extern int GetAce(IntPtr aclPtr, int aceIndex, out IntPtr acePtr);
 
-        [DllImport("advapi32.dll")]
-        static extern uint GetLengthSid(IntPtr pSid);
+        [DllImport(LibADVAPIPath)]
+        public static extern uint GetLengthSid(IntPtr pSid);
 
-        [DllImport("advapi32", CharSet = CharSet.Auto, SetLastError = true)]
-        static extern bool ConvertSidToStringSid(
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool ConvertSidToStringSid(
             [MarshalAs(UnmanagedType.LPArray)] byte[] pSID,
             out IntPtr ptrSid);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool OpenProcessToken(IntPtr ProcessHandle,
+            UInt32 DesiredAccess, out IntPtr TokenHandle);
+
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool LookupPrivilegeValue(string lpSystemName, string lpName,
+            out IntPtr lpLuid);
+
+        // Use this signature if you want the previous state information returned
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle,
+           [MarshalAs(UnmanagedType.Bool)]bool DisableAllPrivileges,
+           ref TOKEN_PRIVILEGES NewState,
+           UInt32 BufferLengthInBytes,
+           ref TOKEN_PRIVILEGES PreviousState,
+           out UInt32 ReturnLengthInBytes);
+
+        // Use this signature if you do not want the previous state
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle,
+           [MarshalAs(UnmanagedType.Bool)]bool DisableAllPrivileges,
+           ref TOKEN_PRIVILEGES NewState,
+           UInt32 Zero,
+           IntPtr Null1,
+           IntPtr Null2);
+
+        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Auto)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CloseHandle(IntPtr hObject);
 
         #endregion
 
@@ -73,9 +107,92 @@ namespace Likewise.LMC.SecurityDesriptor
         public const int SE_SACL_PROTECTED = 0x2000; //8192
         public const int SE_SELF_RELATIVE = 0x8000; //32768
 
+        //Use these for DesiredAccess
+        public static UInt32 STANDARD_RIGHTS_REQUIRED = 0x000F0000;
+        public static UInt32 STANDARD_RIGHTS_READ = 0x00020000;
+        public static UInt32 TOKEN_ASSIGN_PRIMARY = 0x0001;
+        public static UInt32 TOKEN_DUPLICATE = 0x0002;
+        public static UInt32 TOKEN_IMPERSONATE = 0x0004;
+        public static UInt32 TOKEN_QUERY = 0x0008;
+        public static UInt32 TOKEN_QUERY_SOURCE = 0x0010;
+        public static UInt32 TOKEN_ADJUST_PRIVILEGES = 0x0020;
+        public static UInt32 TOKEN_ADJUST_GROUPS = 0x0040;
+        public static UInt32 TOKEN_ADJUST_DEFAULT = 0x0080;
+        public static UInt32 TOKEN_ADJUST_SESSIONID = 0x0100;
+        public static UInt32 TOKEN_READ = (STANDARD_RIGHTS_READ | TOKEN_QUERY);
+        public static UInt32 TOKEN_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED | TOKEN_ASSIGN_PRIMARY |
+            TOKEN_DUPLICATE | TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_QUERY_SOURCE |
+            TOKEN_ADJUST_PRIVILEGES | TOKEN_ADJUST_GROUPS | TOKEN_ADJUST_DEFAULT |
+            TOKEN_ADJUST_SESSIONID);
+
+        //Token privilege constants
+        public const UInt32 SE_PRIVILEGE_ENABLED_BY_DEFAULT = 0x00000001;
+        public const UInt32 SE_PRIVILEGE_ENABLED = 0x00000002;
+        public const UInt32 SE_PRIVILEGE_REMOVED = 0x00000004;
+        public const UInt32 SE_PRIVILEGE_USED_FOR_ACCESS = 0x80000000;
+
+
+        public const string SE_ASSIGNPRIMARYTOKEN_NAME = "SeAssignPrimaryTokenPrivilege";
+        public const string SE_AUDIT_NAME = "SeAuditPrivilege";
+        public const string SE_BACKUP_NAME = "SeBackupPrivilege";
+        public const string SE_CHANGE_NOTIFY_NAME = "SeChangeNotifyPrivilege";
+        public const string SE_CREATE_GLOBAL_NAME = "SeCreateGlobalPrivilege";
+        public const string SE_CREATE_PAGEFILE_NAME = "SeCreatePagefilePrivilege";
+        public const string SE_CREATE_PERMANENT_NAME = "SeCreatePermanentPrivilege";
+        public const string SE_CREATE_SYMBOLIC_LINK_NAME = "SeCreateSymbolicLinkPrivilege";
+        public const string SE_CREATE_TOKEN_NAME = "SeCreateTokenPrivilege";
+        public const string SE_DEBUG_NAME = "SeDebugPrivilege";
+        public const string SE_ENABLE_DELEGATION_NAME = "SeEnableDelegationPrivilege";
+        public const string SE_IMPERSONATE_NAME = "SeImpersonatePrivilege";
+        public const string SE_INC_BASE_PRIORITY_NAME = "SeIncreaseBasePriorityPrivilege";
+        public const string SE_INCREASE_QUOTA_NAME = "SeIncreaseQuotaPrivilege";
+        public const string SE_INC_WORKING_SET_NAME = "SeIncreaseWorkingSetPrivilege";
+        public const string SE_LOAD_DRIVER_NAME = "SeLoadDriverPrivilege";
+        public const string SE_LOCK_MEMORY_NAME = "SeLockMemoryPrivilege";
+        public const string SE_MACHINE_ACCOUNT_NAME = "SeMachineAccountPrivilege";
+        public const string SE_MANAGE_VOLUME_NAME = "SeManageVolumePrivilege";
+        public const string SE_PROF_SINGLE_PROCESS_NAME = "SeProfileSingleProcessPrivilege";
+        public const string SE_RELABEL_NAME = "SeRelabelPrivilege";
+        public const string SE_REMOTE_SHUTDOWN_NAME = "SeRemoteShutdownPrivilege";
+        public const string SE_RESTORE_NAME = "SeRestorePrivilege";
+        public const string SE_SECURITY_NAME = "SeSecurityPrivilege";
+        public const string SE_SHUTDOWN_NAME = "SeShutdownPrivilege";
+        public const string SE_SYNC_AGENT_NAME = "SeSyncAgentPrivilege";
+        public const string SE_SYSTEM_ENVIRONMENT_NAME = "SeSystemEnvironmentPrivilege";
+        public const string SE_SYSTEM_PROFILE_NAME = "SeSystemProfilePrivilege";
+        public const string SE_SYSTEMTIME_NAME = "SeSystemtimePrivilege";
+        public const string SE_TAKE_OWNERSHIP_NAME = "SeTakeOwnershipPrivilege";
+        public const string SE_TCB_NAME = "SeTcbPrivilege";
+        public const string SE_TIME_ZONE_NAME = "SeTimeZonePrivilege";
+        public const string SE_TRUSTED_CREDMAN_ACCESS_NAME = "SeTrustedCredManAccessPrivilege";
+        public const string SE_UNDOCK_NAME = "SeUndockPrivilege";
+        public const string SE_UNSOLICITED_INPUT_NAME = "SeUnsolicitedInputPrivilege";
+
         #endregion
 
         #region Structures
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public class TOKEN_PRIVILEGES
+        {
+            public UInt32 PrivilegeCount;
+            [MarshalAs(UnmanagedType.ByValArray)]
+            public LUID_AND_ATTRIBUTES[] Privileges;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public class LwLUID
+        {
+            public UInt32 LowPart;
+            public Int32 HighPart;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public class LUID_AND_ATTRIBUTES
+        {
+            public LwLUID Luid;
+            public UInt32 Attributes;
+        }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 4)]
         public class TRUSTEE
@@ -168,6 +285,12 @@ namespace Likewise.LMC.SecurityDesriptor
             public int nLength;
             public unsafe byte* lpSecurityDescriptor;
             public int bInheritHandle;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class SID_IDENTIFIER_AUTHORITY
+        {
+            byte Value;
         }
 
         #endregion

@@ -63,15 +63,12 @@ public partial class LUGPage : StandardPage
 
     public delegate uint DeleteLUG(string servername, string username);
 
-    public delegate uint RenameLUG(string servername, string oldname, string newname);
-
     private LUGAPI.LUGType memberType = LUGAPI.LUGType.Undefined;
     private string memberTypeString = "";
 
     private EnumLUG enumLUG = null;
     private DeleteLUG deleteLUG = null;
-    private RenameLUG renameLUG = null;
-    
+
     private LUGStatusIcon imageLUG = LUGStatusIcon.User;
     private LUGStatusIcon imageLUGDisabled = LUGStatusIcon.UserDisabled;
     
@@ -124,7 +121,6 @@ public partial class LUGPage : StandardPage
             memberTypeString = "User";
             enumLUG = LUGAPI.NetEnumUsers;
             deleteLUG = LUGAPI.NetDeleteUser;
-            renameLUG = LUGAPI.NetRenameUser;
 
             columnLabels = new string[] { "", "Status", "Username", "Full Name", "Description" };
 
@@ -137,7 +133,6 @@ public partial class LUGPage : StandardPage
             memberTypeString = "Group";
             enumLUG = LUGAPI.NetEnumGroups;
             deleteLUG = LUGAPI.NetDeleteGroup;
-            renameLUG = LUGAPI.NetRenameGroup;
 
             imageLUG = LUGStatusIcon.Group;
             imageLUGDisabled = LUGStatusIcon.Group;
@@ -674,9 +669,8 @@ public partial class LUGPage : StandardPage
         }
     }
     
-    private void RenameDlg()
+    private void ShowRenameDlg()
     {
-        
         Logger.Log("LUGPage.Rename() called", Logger.netAPILogLevel);
         
         if (lvLUGBETA.SelectedItems.Count != 1)
@@ -686,73 +680,34 @@ public partial class LUGPage : StandardPage
         
         try
         {
-            string oldName = "";
-            string caption = "";
-            string groupBoxCaption = "";
-            string hint = "";
-            string description = "";
             ListViewItem item = lvLUGBETA.SelectedItems[0];
+            Hostinfo hn = ctx as Hostinfo;
+            RenameDlg renameDlg = new RenameDlg();
+
+            renameDlg.HostName = hn.hostName;
+
             if (memberType == LUGAPI.LUGType.User)
             {
-                oldName = item.SubItems[2].Text;
-                caption = "Rename User";
-                description = "New Name:";
-                hint = "e.g. myNewName";
+                renameDlg.IsUser = true;
+                renameDlg.Text = "Rename User";
+                renameDlg.OldName = item.SubItems[2].Text;
             }
             else if (memberType == LUGAPI.LUGType.Group)
             {
-                oldName = item.SubItems[1].Text;
-                caption = "Rename Group";
-                description = "New Name:";
-                hint = "e.g., ourNewGroupName";
+                renameDlg.IsUser = false;
+                renameDlg.Text = "Rename Group";
+                renameDlg.OldName = item.SubItems[1].Text;
             }
 
-            StringRequestDialog dlg = new StringRequestDialog(
-            LUGRenameDelegate,
-            caption,
-            groupBoxCaption,
-            new string[]
+            if (renameDlg.ShowDialog() == DialogResult.OK)
             {
-                description
+                Refresh();
             }
-            ,
-            new string[]
-            {
-                hint
-            }
-            ,
-            new string[]
-            {
-                oldName
-            }
-            ,
-            oldName);
-            dlg.ShowDialog();
-            
         }
         catch (Exception except)
         {
             container.ShowError(except.Message);
         }
-    }
-    
-    private bool LUGRenameDelegate(string[] newNames, Object oldName)
-    {
-        if (newNames == null || newNames.Length == 0)
-        {
-            return false;
-        }
-        string newName = newNames[0];
-        string oldNameStr = (string)oldName;
-        
-        if (!String.IsNullOrEmpty(oldNameStr))
-        {
-            Hostinfo hn = ctx as Hostinfo;
-            this.renameLUG(hn.hostName, oldNameStr, newName);
-            Refresh();
-            return true;
-        }
-        return false;
     }
     
     private void DeleteDlg()
@@ -918,7 +873,7 @@ public partial class LUGPage : StandardPage
                 break;
 
             case "&Rename...":
-                RenameDlg();
+                ShowRenameDlg();
                 break;
 
             case "&Properties...":
@@ -976,7 +931,7 @@ public partial class LUGPage : StandardPage
     
     private void acRename_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
-        RenameDlg();
+        ShowRenameDlg();
     }   
 
 

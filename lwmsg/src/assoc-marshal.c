@@ -249,14 +249,23 @@ lwmsg_assoc_unmarshal_handle(
         switch (status)
         {
         case LWMSG_STATUS_NOT_FOUND:
-            /* Implicitly register handle seen from the peer for the first time */
-            BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle_remote(
-                              manager,
-                              session,
-                              (const char*) data,
-                              handle,
-                              NULL,
-                              &pointer));
+            if (location == LWMSG_HANDLE_REMOTE)
+            {
+                /* Implicitly register handle seen from the peer for the first time */
+                BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle_remote(
+                                  manager,
+                                  session,
+                                  (const char*) data,
+                                  handle,
+                                  NULL,
+                                  &pointer));
+            }
+            else
+            {
+                MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
+                                    "Invalid handle (%lu)",
+                                    (unsigned long) handle);
+            }
             break;
         default:
             BAIL_ON_ERROR(status);

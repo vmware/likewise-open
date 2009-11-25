@@ -58,14 +58,14 @@ typedef struct __REG_CLIENT_CONNECTION_CONTEXT
     LWMsgAssoc* pAssoc;
 } REG_CLIENT_CONNECTION_CONTEXT, *PREG_CLIENT_CONNECTION_CONTEXT;
 
-DWORD
+NTSTATUS
 RegTransactEnumRootKeysW(
     IN HANDLE hConnection,
     OUT PWSTR** pppwszRootKeyNames,
     OUT PDWORD pdwNumRootKey
     );
 
-DWORD
+NTSTATUS
 RegTransactOpenKeyExW(
     HANDLE Handle,
     HKEY hKey,
@@ -75,7 +75,7 @@ RegTransactOpenKeyExW(
     PHKEY phkResult
     );
 
-DWORD
+NTSTATUS
 RegTransactCreateKeyExW(
     HANDLE Handle,
     HKEY hKey,
@@ -89,20 +89,20 @@ RegTransactCreateKeyExW(
     PDWORD pdwDisposition
     );
 
-DWORD
+NTSTATUS
 RegTransactCloseKey(
     HANDLE Handle,
     HKEY hKey
     );
 
-DWORD
+NTSTATUS
 RegTransactDeleteKeyW(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR pSubKey
     );
 
-DWORD
+NTSTATUS
 RegTransactQueryInfoKeyW(
     HANDLE Handle,
     HKEY hKey,
@@ -119,7 +119,7 @@ RegTransactQueryInfoKeyW(
     PFILETIME pftLastWriteTime
     );
 
-DWORD
+NTSTATUS
 RegTransactEnumKeyExW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -132,7 +132,7 @@ RegTransactEnumKeyExW(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     );
 
-DWORD
+NTSTATUS
 RegTransactDeleteKeyValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -140,21 +140,21 @@ RegTransactDeleteKeyValueW(
     IN OPTIONAL PCWSTR pValueName
     );
 
-DWORD
+NTSTATUS
 RegTransactDeleteTreeW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey
     );
 
-DWORD
+NTSTATUS
 RegTransactDeleteValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName
     );
 
-DWORD
+NTSTATUS
 RegTransactEnumValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -167,7 +167,7 @@ RegTransactEnumValueW(
     IN OUT OPTIONAL PDWORD pcbData
     );
 
-DWORD
+NTSTATUS
 RegTransactGetValueW(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -179,7 +179,7 @@ RegTransactGetValueW(
     IN OUT OPTIONAL PDWORD pcbData
     );
 
-DWORD
+NTSTATUS
 RegTransactQueryMultipleValues(
     HANDLE Handle,
     HKEY hKey,
@@ -189,7 +189,7 @@ RegTransactQueryMultipleValues(
     PDWORD dwTotsize
     );
 
-DWORD
+NTSTATUS
 RegTransactSetKeyValue(
     IN HANDLE hConnection,
     IN HKEY hKey,
@@ -200,7 +200,7 @@ RegTransactSetKeyValue(
     IN DWORD cbData
     );
 
-DWORD
+NTSTATUS
 RegTransactSetValueExW(
     HANDLE Handle,
     HKEY hKey,

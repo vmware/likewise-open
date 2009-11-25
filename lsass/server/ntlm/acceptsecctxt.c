@@ -67,7 +67,7 @@ NtlmServerAcceptSecurityContext(
     PNTLM_CONTEXT pNtlmCtxtOut = NULL;
     PNTLM_CONTEXT pNtlmCtxtChlng = NULL;
     NTLM_CONTEXT_HANDLE ContextHandle = NULL;
-    const NTLM_NEGOTIATE_MESSAGE* pNegMsg = NULL;
+    const NTLM_NEGOTIATE_MESSAGE_V1* pNegMsg = NULL;
     PNTLM_RESPONSE_MESSAGE_V1 pRespMsg = NULL;
     DWORD dwMessageSize = 0;
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE] = {0};
@@ -166,7 +166,7 @@ error:
 
 DWORD
 NtlmCreateChallengeContext(
-    IN const NTLM_NEGOTIATE_MESSAGE* pNtlmNegMsg,
+    IN const NTLM_NEGOTIATE_MESSAGE_V1* pNtlmNegMsg,
     IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT *ppNtlmContext,
     OUT PSecBuffer pOutput

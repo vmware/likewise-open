@@ -185,15 +185,16 @@ error:
 LW_NTSTATUS
 LwIoCtxConnectNamedPipe(
     LW_PIO_CONTEXT pContext,
-    IO_FILE_HANDLE File
+    IO_FILE_HANDLE File,
+    PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    PIO_STATUS_BLOCK IoStatusBlock
     )
 {
-    IO_STATUS_BLOCK IoStatusBlock = {0};
-
-    return NtFsControlFile(
+    return NtCtxFsControlFile(
+        pContext,
         File,
-        NULL,
-        &IoStatusBlock,
+        AsyncControlBlock,
+        IoStatusBlock,
         0x2,
         NULL,
         0,

@@ -62,8 +62,8 @@ lwmsg_connection_construct(
     priv->fd = -1;
     priv->mode = LWMSG_CONNECTION_MODE_NONE;
 
-    memset(&priv->timeout, 0xFF, sizeof(priv->timeout));
-    memset(&priv->end_time, 0xFF, sizeof(priv->end_time));
+    memset(&priv->timeout.establish, 0xFF, sizeof(priv->timeout.establish));
+    memset(&priv->timeout.message, 0xFF, sizeof(priv->timeout.message));
 
 error:
 
@@ -189,12 +189,24 @@ error:
 
 static LWMsgStatus
 lwmsg_connection_finish(
-    LWMsgAssoc* assoc
+    LWMsgAssoc* assoc,
+    LWMsgMessage** message
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
+
+    if (message)
+    {
+        priv->params.message = NULL;
+    }
 
     BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_FINISH));
+
+    if (message)
+    {
+        *message = priv->params.message;
+    }
 
 error:
 
@@ -275,6 +287,8 @@ lwmsg_connection_get_state(
     )
 {
     ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
+    LWMsgBool need_send = LWMSG_FALSE;
+    LWMsgBool need_recv = LWMSG_FALSE;
 
     switch (priv->state)
     {
@@ -282,14 +296,29 @@ lwmsg_connection_get_state(
         return LWMSG_ASSOC_STATE_NONE;
     case CONNECTION_STATE_START:
         return LWMSG_ASSOC_STATE_NOT_ESTABLISHED;
-    case CONNECTION_STATE_IDLE:
-        return LWMSG_ASSOC_STATE_IDLE;
+    case CONNECTION_STATE_ESTABLISHED:
+        need_send = (priv->sendbuffer.current != NULL || !lwmsg_ring_is_empty(&priv->sendbuffer.fragments));
+        need_recv = (priv->recvbuffer.current != NULL);
+        if (need_send && need_recv)
+        {
+            return LWMSG_ASSOC_STATE_BLOCKED_SEND_RECV;
+        }
+        else if (need_send)
+        {
+            return LWMSG_ASSOC_STATE_BLOCKED_SEND;
+        }
+        else if (need_recv)
+        {
+            return LWMSG_ASSOC_STATE_BLOCKED_RECV;
+        }
+        else
+        {
+            return LWMSG_ASSOC_STATE_IDLE;
+        }
     case CONNECTION_STATE_FINISH_CONNECT:
         return LWMSG_ASSOC_STATE_BLOCKED_SEND;
-    case CONNECTION_STATE_FINISH_SEND_MESSAGE:
     case CONNECTION_STATE_FINISH_SEND_HANDSHAKE:
         return LWMSG_ASSOC_STATE_BLOCKED_SEND_RECV;
-    case CONNECTION_STATE_FINISH_RECV_MESSAGE:
     case CONNECTION_STATE_FINISH_RECV_HANDSHAKE:
         return LWMSG_ASSOC_STATE_BLOCKED_RECV;
     case CONNECTION_STATE_CLOSED:
@@ -351,8 +380,8 @@ static
 LWMsgStatus
 lwmsg_connection_establish(
     LWMsgAssoc* assoc,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* data
     )
 {

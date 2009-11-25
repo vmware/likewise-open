@@ -264,26 +264,15 @@ namespace Likewise.LMC.Plugins.LUG
         {
             try
             {
-                string caption = String.Format("Add {0} to {1}", listMemberType, listOwnerType);
-                string groupBoxCaption = String.Format("Add {0} to {1}", listMemberType, listOwnerType);
-                string[] descriptions = new string[]
-                {
-                    String.Format("{0}: ", listMemberType)
-                };
-                string[] hints = new string[]
-                {
-                    String.Format("e.g. my{0}", listMemberType)
-                };
+                AddMemberDlg addMemberDlg = new AddMemberDlg();
+                addMemberDlg.Label = listMemberType + ":";
 
-                StringRequestDialog strDlg = new StringRequestDialog(
-                    AddMember,
-                    caption,
-                    groupBoxCaption,
-                    descriptions,
-                    hints,
-                    new string[] {""},
-                    null);
-                strDlg.ShowDialog();
+                if (addMemberDlg.ShowDialog() == DialogResult.OK)
+                {
+                    string[] arr = new string[1];
+                    arr[0] = addMemberDlg.Member;
+                    AddMember(arr, null);
+                }
 
                 editDialog.bDataWasChanged = (membersAdded.Count + membersDeleted.Count + Description.Length > 0);
                 editDialog.btnApply.Enabled = editDialog.bDataWasChanged;

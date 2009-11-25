@@ -124,7 +124,9 @@ error:
 
 LW_NTSTATUS
 LwIoConnectNamedPipe(
-    IO_FILE_HANDLE File
+    IO_FILE_HANDLE File,
+    PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    PIO_STATUS_BLOCK IoStatusBlock
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -135,7 +137,9 @@ LwIoConnectNamedPipe(
 
     Status = LwIoCtxConnectNamedPipe(
         &Context,
-        File);
+        File,
+        AsyncControlBlock,
+        IoStatusBlock);
     BAIL_ON_NT_STATUS(Status);
 
 error:

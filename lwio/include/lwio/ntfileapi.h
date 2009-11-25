@@ -662,6 +662,16 @@ LwNtSetSecurityFile(
 
 #endif /* ! LW_NO_THREADS */
 
+VOID
+LwNtCancelAsyncCancelContext(
+    LW_IN PIO_ASYNC_CANCEL_CONTEXT pAsyncCancelContext
+    );
+
+VOID
+LwNtDereferenceAsyncCancelContext(
+    LW_IN LW_OUT PIO_ASYNC_CANCEL_CONTEXT* ppAsyncCancelContext
+    );
+
 // TODO: QueryEaFile and SetEaFile.
 
 #ifndef LW_STRICT_NAMESPACE

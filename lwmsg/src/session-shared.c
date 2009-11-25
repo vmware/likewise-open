@@ -67,7 +67,7 @@ typedef struct SharedSession
     /* User data pointer */
     void* data;
     /* Destruct function */
-    LWMsgSessionDestructor destruct;
+    LWMsgSessionDestructFunction destruct;
 } SharedSession;
 
 typedef struct SharedHandle
@@ -285,8 +285,8 @@ shared_enter_session(
     LWMsgSessionManager* manager,
     const LWMsgSessionID* rsmid,
     LWMsgSecurityToken* rtoken,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* construct_data,
     LWMsgSession** out_session
     )
@@ -404,6 +404,23 @@ shared_leave_session(
     shared_unlock(priv);
 
     return status;
+}
+
+static
+void
+shared_retain_session(
+    LWMsgSessionManager* manager,
+    LWMsgSession* session
+    )
+{
+    SharedManager* priv = SHARED_MANAGER(manager);
+    SharedSession* my_session = SHARED_SESSION(session);
+
+    shared_lock(priv);
+
+    my_session->refs++;
+
+    shared_unlock(priv);
 }
 
 static
@@ -799,6 +816,7 @@ static LWMsgSessionManagerClass shared_class =
     .delete = shared_delete,
     .enter_session = shared_enter_session,
     .leave_session = shared_leave_session,
+    .retain_session = shared_retain_session,
     .register_handle_local = shared_register_handle_local,
     .register_handle_remote = shared_register_handle_remote,
     .retain_handle = shared_retain_handle,

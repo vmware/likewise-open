@@ -54,16 +54,3 @@ typedef struct _DOM_SID
     unsigned int sub_auths[15];
 } DOM_SID, *PDOM_SID;
 
-typedef struct _LWPS_PASSWORD_INFOA
-{
-    PSTR pszDomainName;
-    PSTR pszDnsDomainName;
-    PSTR pszSid;
-    PSTR pszHostname;
-    PSTR pszHostDnsDomain;
-    PSTR pszMachineAccount;
-    PSTR pszMachinePassword;
-    time_t last_change_time;
-    DWORD dwSchannelType;
-} LWPS_PASSWORD_INFOA, *PLWPS_PASSWORD_INFOA;
-

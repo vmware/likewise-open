@@ -52,15 +52,22 @@ namespace Likewise.LMC.Plugins.FileBrowser
         private Hostinfo _hn;
         private FileBrowserNode _pluginNode;
         private LACTreeNode _currentNode = null;
-        List<IPlugIn> _extPlugins = null;
-		string PathSeparator = "/";
-        List<string> RemoteShares = new List<string>();
+        private LACTreeNode _selectedNode = null;
+        private List<IPlugIn> _extPlugins = null;
+        private string PathSeparator = "/";
+        private List<string> RemoteShares = new List<string>();
+        private View _currentView = View.LargeIcon;
 
         #endregion
 
         public List<string> GetActiveShares()
         {
             return RemoteShares;
+        }
+
+        public View GetCurrentViewStyle()
+        {
+            return _currentView;
         }
 
         #region IPlugIn Members
@@ -123,7 +130,40 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (platform == LikewiseTargetPlatform.Windows)
             {
                 FileClient.FileClient.SetWindowsPlatform();
-				PathSeparator = "\\";
+                PathSeparator = "\\";
+            }
+            else
+            {
+                Services.ServiceManagerApi.LW_SERVICE_STATUS status;
+
+                string[] LWISServices = Services.ServiceManagerInteropWrapper.ApiLwSmEnumerateServices();
+
+                foreach (string service in LWISServices)
+                    Console.Write(service);
+
+                IntPtr lwio = Services.ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle("lwio");
+                status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(lwio);
+                if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+                {
+                    Services.ServiceManagerInteropWrapper.ApiLwSmStartService(lwio);
+                }
+                Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(lwio);
+
+                IntPtr rdr = Services.ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle("rdr");
+                status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(rdr);
+                if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+                {
+                    Services.ServiceManagerInteropWrapper.ApiLwSmStartService(rdr);
+                }
+                Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(rdr);
+
+                IntPtr pvfs = Services.ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle("pvfs");
+                status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(pvfs);
+                if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
+                {
+                    Services.ServiceManagerInteropWrapper.ApiLwSmStartService(pvfs);
+                }
+                Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pvfs);
             }
 
             _container = container;
@@ -272,14 +312,14 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 FileBrowserNode node = new FileBrowserNode(folderName, Resources.Folder, typeof(FilesDetailPage), this);
                 node.FBNodeType = FileBrowserNode.FileBrowserNopeType.DIRECTORY;
 
-				if (parentNode.Path.Equals("/"))
-				{
+                if (parentNode.Path.Equals("/"))
+                {
                      node.Path = parentNode.Path + folderName;
-				}
-				else
-				{
-					node.Path = parentNode.Path + PathSeparator + folderName;
-				}
+                }
+                else
+                {
+                    node.Path = parentNode.Path + PathSeparator + folderName;
+                }
                 parentNode.Nodes.Add(node);
             }
         }
@@ -369,6 +409,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
             MenuItem menuItem = null;
             StandardPage fileBrowserPage = (StandardPage)nodeClicked.PluginPage;
 
+            _selectedNode = _pluginNode.TreeView.SelectedNode as LACTreeNode;
             _currentNode = nodeClicked;
 
             if (fileBrowserPage == null)
@@ -388,10 +429,33 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
             if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.ROOT)
             {
+                fileBrowserContextMenu = new ContextMenu();
+
+                menuItem = new MenuItem("View Details", cm_OnSetView_Detail);
+                if (_currentView == View.Details)
+                    menuItem.Checked = true;
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem("View Large Icons", cm_OnSetView_LargeIcon);
+                if (_currentView == View.LargeIcon)
+                    menuItem.Checked = true;
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem("View Small Icons", cm_OnSetView_SmallIcon);
+                if (_currentView == View.SmallIcon)
+                    menuItem.Checked = true;
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem("View List", cm_OnSetView_List);
+                if (_currentView == View.List)
+                    menuItem.Checked = true;
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
                 return fileBrowserContextMenu;
             }
 
             fileBrowserContextMenu = new ContextMenu();
+
             menuItem = new MenuItem("Expand", cm_OnExpand);
             fileBrowserContextMenu.MenuItems.Add(0, menuItem);
 
@@ -409,6 +473,12 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.SHARE ||
                 node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
             {
+                menuItem = new MenuItem("Refresh", cm_OnRefresh);
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem("New folder", new EventHandler(cm_OnCreateFolder));
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
                 menuItem = new MenuItem("Copy", new EventHandler(cm_OnCopy));
                 fileBrowserContextMenu.MenuItems.Add(menuItem);
             }
@@ -416,6 +486,9 @@ namespace Likewise.LMC.Plugins.FileBrowser
             if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
             {
                 menuItem = new MenuItem("Move", new EventHandler(cm_OnMove));
+                fileBrowserContextMenu.MenuItems.Add(menuItem);
+
+                menuItem = new MenuItem("Delete", new EventHandler(cm_OnDelete));
                 fileBrowserContextMenu.MenuItems.Add(menuItem);
 
                 menuItem = new MenuItem("Rename", new EventHandler(cm_OnRename));
@@ -474,6 +547,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 if (_pluginNode.Nodes.Find(Resources.String_Computer, false).Length == 0)
                 {
                     FileBrowserNode computerNode = new FileBrowserNode(Resources.String_Computer, iconComputer, typeof(FilesDetailPage), this);
+                    computerNode.Path = "";
                     computerNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
                     _pluginNode.Nodes.Add(computerNode);
 
@@ -483,35 +557,38 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     computerNode.Nodes.Add(localDiskRootNode);
 
                     /* Disabled for now - These could be suitable common local user paths that are worth browsing.
-                    FileBrowserNode homeNode = new FileBrowserNode(Resources.String_Home, iconHome, typeof(FilesDetailPage), this);
-                    computerNode.Path = "~/";
-                    homeNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(homeNode);
+                    if (platform != LikewiseTargetPlatform.Windows)
+                    {
+                        FileBrowserNode homeNode = new FileBrowserNode(Resources.String_Home, iconHome, typeof(FilesDetailPage), this);
+                        computerNode.Path = "~/";
+                        homeNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(homeNode);
 
-                    FileBrowserNode deskNode = new FileBrowserNode(Resources.String_Desktop, iconFolder, typeof(FilesDetailPage), this);
-                    deskNode.Path = "~/Desktop/";
-                    deskNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(deskNode);
+                        FileBrowserNode deskNode = new FileBrowserNode(Resources.String_Desktop, iconFolder, typeof(FilesDetailPage), this);
+                        deskNode.Path = "~/Desktop/";
+                        deskNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(deskNode);
 
-                    FileBrowserNode docNode = new FileBrowserNode(Resources.String_Documents, iconFolder, typeof(FilesDetailPage), this);
-                    docNode.Path = "~/Documents/";
-                    docNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(docNode);
+                        FileBrowserNode docNode = new FileBrowserNode(Resources.String_Documents, iconFolder, typeof(FilesDetailPage), this);
+                        docNode.Path = "~/Documents/";
+                        docNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(docNode);
 
-                    FileBrowserNode musicNode = new FileBrowserNode(Resources.String_Music, iconFolder, typeof(FilesDetailPage), this);
-                    musicNode.Path = "~/Music/";
-                    musicNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(musicNode);
+                        FileBrowserNode musicNode = new FileBrowserNode(Resources.String_Music, iconFolder, typeof(FilesDetailPage), this);
+                        musicNode.Path = "~/Music/";
+                        musicNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(musicNode);
 
-                    FileBrowserNode pictNode = new FileBrowserNode(Resources.String_Pictures, iconFolder, typeof(FilesDetailPage), this);
-                    pictNode.Path = "~/Photos/";
-                    pictNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(pictNode);
+                        FileBrowserNode pictNode = new FileBrowserNode(Resources.String_Pictures, iconFolder, typeof(FilesDetailPage), this);
+                        pictNode.Path = "~/Photos/";
+                        pictNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(pictNode);
 
-                    FileBrowserNode videoNode = new FileBrowserNode(Resources.String_Videos, iconFolder, typeof(FilesDetailPage), this);
-                    videoNode.Path = "~/Movies/";
-                    videoNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
-                    computerNode.Nodes.Add(videoNode);
+                        FileBrowserNode videoNode = new FileBrowserNode(Resources.String_Videos, iconFolder, typeof(FilesDetailPage), this);
+                        videoNode.Path = "~/Movies/";
+                        videoNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.CATEGORY;
+                        computerNode.Nodes.Add(videoNode);
+                    }
                   */
                 }
             }
@@ -627,7 +704,9 @@ namespace Likewise.LMC.Plugins.FileBrowser
         {
             string name = null;
 
-            if (_currentNode != null)
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
             {
                 name = _currentNode.Name;
 
@@ -641,9 +720,23 @@ namespace Likewise.LMC.Plugins.FileBrowser
             }
         }
 
+        private void cm_OnRefresh(object sender, EventArgs e)
+        {
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
+            {
+                _currentNode.Nodes.Clear();
+                EnumChildren(_currentNode);
+                _currentNode.Expand();
+            }
+        }
+
         private void cm_OnExpand(object sender, EventArgs e)
         {
-            if (_currentNode != null)
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
             {
                 EnumChildren(_currentNode);
                 _currentNode.Expand();
@@ -652,24 +745,32 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         private void cm_OnCopy(object sender, EventArgs e)
         {
-            if (_currentNode != null)
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
             {
                 FileBrowserNode node = _currentNode as FileBrowserNode;
-                string destination = "";
+                FileBrowserNode parent = _currentNode.Parent as FileBrowserNode;
 
                 // Determine destingation to copy to
                 SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Path, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.COPY_DIRECTORY, this);
 
                 if (destinationDialog.ShowDialog() == DialogResult.OK)
                 {
-                    destination = destinationDialog.GetPath() + PathSeparator + node.Name;
+                    WinError error = FileClient.FileClient.CopyDirectory(parent.Path,
+                                                                         destinationDialog.GetPath(),
+                                                                         node.Name,
+                                                                         node.Name,
+                                                                         true);
 
-                    WinError error = FileClient.FileClient.apiCopyDirectory(node.Path, destination, true);
-
-                    if (error == WinError.ERROR_FILE_EXISTS)
+                    if (error == WinError.ERROR_FILE_EXISTS ||
+                        error == WinError.ERROR_ALREADY_EXISTS)
                     {
-                        destination = destinationDialog.GetPath() + PathSeparator + "Copy of " + node.Name;
-                        error = FileClient.FileClient.apiCopyDirectory(node.Path, destination, true);
+                        error = FileClient.FileClient.CopyDirectory(parent.Path,
+                                                                    destinationDialog.GetPath(),
+                                                                    node.Name,
+                                                                    "Copy of " + node.Name,
+                                                                    true);
                     }
 
                     if (error != WinError.NO_ERROR)
@@ -683,24 +784,32 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
         private void cm_OnMove(object sender, EventArgs e)
         {
-            if (_currentNode != null)
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
             {
                 FileBrowserNode node = _currentNode as FileBrowserNode;
-                string destination = "";
+                FileBrowserNode parent = _currentNode.Parent as FileBrowserNode;
 
                 // Determine destingation to copy to
                 SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Path, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.MOVE_DIRECTORY, this);
 
                 if (destinationDialog.ShowDialog() == DialogResult.OK)
                 {
-                    destination = destinationDialog.GetPath() + PathSeparator + node.Name;
+                    WinError error = FileClient.FileClient.MoveDirectory(parent.Path,
+                                                                         destinationDialog.GetPath(),
+                                                                         node.Name,
+                                                                         node.Name,
+                                                                         true);
 
-                    WinError error = FileClient.FileClient.apiMoveDirectory(node.Path, destination);
-
-                    if (error == WinError.ERROR_FILE_EXISTS)
+                    if (error == WinError.ERROR_FILE_EXISTS ||
+                        error == WinError.ERROR_ALREADY_EXISTS)
                     {
-                        destination = destinationDialog.GetPath() + PathSeparator + "Copy of " + node.Name;
-                        error = FileClient.FileClient.apiMoveDirectory(node.Path, destination);
+                        error = FileClient.FileClient.MoveDirectory(parent.Path,
+                                                                    destinationDialog.GetPath(),
+                                                                    node.Name,
+                                                                    "Copy of " + node.Name,
+                                                                    true);
                     }
 
                     if (error != WinError.NO_ERROR)
@@ -708,31 +817,156 @@ namespace Likewise.LMC.Plugins.FileBrowser
                         string message = "Move directory operation failed. Error: " + error.ToString();
                         MessageBox.Show(message, "Could not move directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
+                    else
+                    {
+                        _currentNode.Remove();
+                    }
+                }
+            }
+        }
+
+        private void cm_OnDelete(object sender, EventArgs e)
+        {
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
+            {
+                FileBrowserNode node = _currentNode as FileBrowserNode;
+                DialogResult result = MessageBox.Show("Are you sure that you want to delete the directory called: " + node.Name + "?",
+                                                      "File Browser",
+                                                      MessageBoxButtons.YesNo);
+
+                if (result == DialogResult.Yes)
+                {
+                    WinError error = FileClient.FileClient.DeleteDirectory(node.Path);
+
+                    if (error != WinError.NO_ERROR)
+                    {
+                        string message = "Delete directory operation failed. Error: " + error.ToString();
+                        MessageBox.Show(message, "Could not remove directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    else
+                    {
+                        node.Remove();
+                    }
                 }
             }
         }
 
         private void cm_OnRename(object sender, EventArgs e)
         {
-            if (_currentNode != null)
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
+            {
+                FileBrowserNode node = _currentNode as FileBrowserNode;
+                FileBrowserNode parent = _currentNode.Parent as FileBrowserNode;
+                string newName = "";
+
+                if (node != null &&
+                    parent != null)
+                {
+                    // Determine destingation to copy to
+                    RenameDialog renameDialog = new RenameDialog(node.Name, RenameDialog.RENAME_OPERATION.RENAME_DIRECTORY, this);
+
+                    if (renameDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        newName = renameDialog.GetName();
+
+                        WinError error = FileClient.FileClient.MoveDirectory(parent.Path, parent.Path, node.Name, newName, true);
+
+                        if (error != WinError.NO_ERROR)
+                        {
+                            string message = "Rename directory operation failed. Error: " + error.ToString();
+                            MessageBox.Show(message, "Could not rename directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void cm_OnCreateFolder(object sender, EventArgs e)
+        {
+            if (_currentNode != null &&
+                _selectedNode != null &&
+                _currentNode == _selectedNode)
             {
                 FileBrowserNode node = _currentNode as FileBrowserNode;
                 string newName = "";
 
-                // Determine destingation to copy to
-                SelectDestinationDialog destinationDialog = new SelectDestinationDialog(node.Name, SelectDestinationDialog.SELECT_DESTINATION_OPERATION.MOVE_DIRECTORY, this);
-
-                if (destinationDialog.ShowDialog() == DialogResult.OK)
+                if (node != null)
                 {
-                    newName = destinationDialog.GetPath();
+                    // Determine destingation to copy to
+                    RenameDialog renameDialog = new RenameDialog("New Folder", RenameDialog.RENAME_OPERATION.NEW_FOLDER_NAME, this);
 
-                    WinError error = FileClient.FileClient.apiRename(node.Path, newName);
-
-                    if (error != WinError.NO_ERROR)
+                    if (renameDialog.ShowDialog() == DialogResult.OK)
                     {
-                        string message = "Rename directory operation failed. Error: " + error.ToString();
-                        MessageBox.Show(message, "Could not rename directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        newName = node.Path + PathSeparator + renameDialog.GetName();
+
+                        WinError error = FileClient.FileClient.CreateDirectory(newName);
+
+                        if (error != WinError.NO_ERROR)
+                        {
+                            string message = "Create directory operation failed. Error: " + error.ToString();
+                            MessageBox.Show(message, "Could not create new directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
                     }
+                }
+            }
+        }
+
+        private void cm_OnSetView_Detail(object sender, EventArgs e)
+        {
+            _currentView = View.Details;
+
+            if (_selectedNode != null)
+            {
+                FilesDetailPage fdp = _selectedNode.PluginPage as FilesDetailPage;
+                if (fdp != null)
+                {
+                    fdp.Refresh();
+                }
+            }
+        }
+
+        private void cm_OnSetView_LargeIcon(object sender, EventArgs e)
+        {
+            _currentView = View.LargeIcon;
+
+            if (_selectedNode != null)
+            {
+                FilesDetailPage fdp = _selectedNode.PluginPage as FilesDetailPage;
+                if (fdp != null)
+                {
+                    fdp.Refresh();
+                }
+            }
+        }
+
+        private void cm_OnSetView_SmallIcon(object sender, EventArgs e)
+        {
+            _currentView = View.SmallIcon;
+
+            if (_selectedNode != null)
+            {
+                FilesDetailPage fdp = _selectedNode.PluginPage as FilesDetailPage;
+                if (fdp != null)
+                {
+                    fdp.Refresh();
+                }
+            }
+        }
+
+        private void cm_OnSetView_List(object sender, EventArgs e)
+        {
+            _currentView = View.List;
+
+            if (_selectedNode != null)
+            {
+                FilesDetailPage fdp = _selectedNode.PluginPage as FilesDetailPage;
+                if (fdp != null)
+                {
+                    fdp.Refresh();
                 }
             }
         }

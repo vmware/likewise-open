@@ -239,6 +239,7 @@ SrvProcessLockAndX(
                     ntStatus = SrvAcknowledgeOplockBreak(
                                    pCtxSmb1,
                                    pOplockState,
+                                   &pLockState->pRequestHeader->ucOplockLevel,
                                    FALSE);
                     BAIL_ON_NT_STATUS(ntStatus);
                 }

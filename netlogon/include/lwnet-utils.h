@@ -47,7 +47,7 @@
 #ifndef __LWNET_UTILS_H__
 #define __LWNET_UTILS_H__
 
-#include <reg/reg.h>
+#include <reg/lwreg.h>
 
 typedef struct __DLINKEDLIST
 {

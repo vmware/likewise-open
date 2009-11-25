@@ -51,6 +51,13 @@
 #ifndef __REGLOG_R_H__
 #define __REGLOG_R_H__
 
+#define LWREG_LOG_DEBUG(...) do { } while(0)
+#define LWREG_LOG_INFO(...) do { } while(0)
+#define LWREG_LOG_WARNING(...) do { } while(0)
+#define LWREG_LOG_ERROR(...) do { } while(0)
+#define LWREG_LOG_VERBOSE(...) do { } while(0)
+
+
 DWORD
 RegInitLogging_r(
     PCSTR         pszProgramName,
@@ -62,11 +69,6 @@ RegInitLogging_r(
 DWORD
 RegLogGetInfo_r(
     PREG_LOG_INFO* ppLogInfo
-    );
-
-DWORD
-RegLogSetInfo_r(
-    PREG_LOG_INFO pLogInfo
     );
 
 DWORD

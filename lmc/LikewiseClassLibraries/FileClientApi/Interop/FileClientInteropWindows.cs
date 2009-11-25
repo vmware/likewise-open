@@ -9,11 +9,6 @@ namespace Likewise.LMC.FileClient
     {
         #region Copy/Delete/Move File APIs
 
-		[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-		public static extern bool CreateDirectory(
-		    string lpDirectoryName,
-		    IntPtr lpSecurityAttributes
-		    );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool CopyFile(
@@ -34,19 +29,36 @@ namespace Likewise.LMC.FileClient
             );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool RemoveDirectory(
-            string lpDirectoryName
+        public static extern bool CreateDirectory(
+            string lpDirectoryName,
+            IntPtr lpSecurityAttributes
             );
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool Rename(
-            string lpOldName,
-		    string lpNewName
+        public static extern bool RemoveDirectory(
+            string lpDirectoryName
             );
 
         #endregion
 
         #region Local and Connected Share File Enumeration APIs
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct WIN32_FIND_DATA
+        {
+            public FILE_ATTRIBUTE dwFileAttributes;
+            public FILETIME ftCreationTime;
+            public FILETIME ftLastAccessTime;
+            public FILETIME ftLastWriteTime;
+            public UInt32 nFileSizeHigh;
+            public UInt32 nFileSizeLow;
+            public UInt32 dwReserved0;
+            public UInt32 dwReserved1;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] // public const int MAX_PATH = 260;
+            public string cFileName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 14)] // public const int MAX_ALTERNATE = 14;
+            public string cAlternate;
+        };
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr FindFirstFileW(
@@ -58,6 +70,11 @@ namespace Likewise.LMC.FileClient
         public static extern bool FindNextFileW(
             IntPtr hFindFile,
             ref WIN32_FIND_DATA FindFileData
+            );
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern bool FindClose(
+            IntPtr hFindFile
             );
 
         [DllImport("kernel32.dll", SetLastError = true)]

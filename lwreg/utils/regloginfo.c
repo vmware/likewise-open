@@ -62,16 +62,13 @@ RegBuildLogInfo(
 
     BAIL_ON_INVALID_POINTER(ppLogInfo);
 
-    dwError = LwAllocateMemory(
-                    sizeof(REG_LOG_INFO),
-                    (PVOID*)&pLogInfo);
+    dwError = RegAllocateMemory(sizeof(*pLogInfo), (PVOID*)&pLogInfo);
     BAIL_ON_REG_ERROR(dwError);
 
     if (!IsNullOrEmptyString(pszPath))
     {
-        dwError = LwAllocateString(
-                        pszPath,
-                        &pLogInfo->pszPath);
+        dwError = RegCStringDuplicate(&pLogInfo->pszPath,
+                                        pszPath);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -104,6 +101,6 @@ RegFreeLogInfo(
     PREG_LOG_INFO pLogInfo
     )
 {
-    LW_SAFE_FREE_STRING(pLogInfo->pszPath);
-    LwFreeMemory(pLogInfo);
+	LWREG_SAFE_FREE_STRING(pLogInfo->pszPath);
+	RegMemoryFree(pLogInfo);
 }

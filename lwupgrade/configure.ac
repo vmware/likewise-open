@@ -129,6 +129,34 @@ AC_SUBST(LWBASE_LIBS)
 AM_CPPFLAGS="$AM_CPPFLAGS $LWBASE_INCLUDES"
 AM_LDFLAGS="$AM_LDFLAGS $LWBASE_LDFLAGS $LWBASE_LIBS"
 
+
+# sqlite
+
+AC_ARG_WITH([sqlite],
+        [AC_HELP_STRING([--with-sqlite=<dir>], [use sqlite located in prefix <dir>])],
+        [
+            SQLITE_INCLUDES="-I$withval/include"
+            SQLITE_LDFLAGS="-L$withval/lib"
+        ])
+
+AC_ARG_WITH([sqlite-includes],
+        [AC_HELP_STRING([--with-sqlite-includes=<dir>], [use sqlite includes located in <dir>])],
+        [
+            SQLITE_INCLUDES="-I$withval"
+        ])
+
+AC_ARG_WITH([sqlite-libs],
+        [AC_HELP_STRING([--with-sqlite-libs=<dir>], [use sqlite libs located in <dir>])],
+        [
+            SQLITE_LDFLAGS="-L$withval"
+        ])
+
+SQLITE_LIBS="-lsqlite3"
+
+AC_SUBST(SQLITE_INCLUDES)
+AC_SUBST(SQLITE_LDFLAGS)
+AC_SUBST(SQLITE_LIBS)
+
 # tdb
 
 AC_ARG_WITH([tdb],
@@ -250,6 +278,7 @@ AC_CONFIG_FILES([Makefile
                  tools/conf2reg/agents/lwiauth/Makefile
                  tools/conf2reg/agents/lwio/Makefile
                  tools/conf2reg/agents/netlogon/Makefile
+                 tools/conf2reg/agents/pstore-sqlite/Makefile
                  tools/conf2reg/agents/testparse/Makefile
                  tools/conf2reg/agents/testsambaparse/Makefile
                  utils/Makefile])

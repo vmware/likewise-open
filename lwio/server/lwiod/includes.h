@@ -51,7 +51,7 @@
 
 #include "lwio/lwio.h"
 
-#include <reg/reg.h>
+#include <reg/lwntreg.h>
 #include <lwmsg/lwmsg.h>
 #include <lwmsg/protocol.h>
 #include <lwmsg/server.h>

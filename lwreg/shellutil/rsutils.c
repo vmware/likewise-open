@@ -64,7 +64,7 @@ RegShellCanonicalizePath(
      */
     if (pszInKeyName && (pszInKeyName[0] == '\\'))
     {
-        dwError = LwAllocateString(pszInKeyName, &pszNewPath);
+        dwError = RegCStringDuplicate(&pszNewPath, pszInKeyName);
         BAIL_ON_REG_ERROR(dwError);
     }
     else if (pszInKeyName || pszInDefaultKey)
@@ -80,7 +80,8 @@ RegShellCanonicalizePath(
 
         /* Leading and separating \ and \0 characters */
         dwFullPathLen += 3;
-        dwError = LwAllocateMemory(dwFullPathLen, (LW_PVOID) &pszNewPath);
+
+        dwError = RegAllocateMemory(sizeof(*pszNewPath) * dwFullPathLen, (PVOID*)&pszNewPath);
         BAIL_ON_REG_ERROR(dwError);
 
         if (pszInDefaultKey)
@@ -91,7 +92,7 @@ RegShellCanonicalizePath(
         if (pszInKeyName)
         {
             /* Copy of pszInKeyName because strtok_r modifies this value */
-            dwError = LwAllocateString(pszInKeyName, &pszStrtokValue);
+            dwError = RegCStringDuplicate(&pszStrtokValue, pszInKeyName);
             BAIL_ON_REG_ERROR(dwError);
 
             pszToken = strtok_r(pszStrtokValue, "\\", &pszStrtokState);
@@ -119,7 +120,7 @@ RegShellCanonicalizePath(
                 }
                 else if (strncmp(pszToken, "...", 3) == 0)
                 {
-                    dwError = LW_ERROR_INVALID_CONTEXT;
+                    dwError = LWREG_ERROR_INVALID_CONTEXT;
                     BAIL_ON_REG_ERROR(dwError);
                 }
                 else
@@ -136,7 +137,7 @@ RegShellCanonicalizePath(
     }
     else if (!pszInDefaultKey)
     {
-        dwError = LwAllocateString("\\", &pszNewPath);
+        dwError = RegCStringDuplicate(&pszNewPath, "\\");
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -149,7 +150,7 @@ RegShellCanonicalizePath(
 #endif
     if (ppszParentPath)
     {
-        dwError = LwAllocateString(pszNewPath, ppszParentPath);
+        dwError = RegCStringDuplicate(ppszParentPath, pszNewPath);
         BAIL_ON_REG_ERROR(dwError);
 
         pszTmp = strrchr(*ppszParentPath, '\\');
@@ -170,12 +171,12 @@ RegShellCanonicalizePath(
         pszTmp = strrchr(pszNewPath, '\\');
         if (pszTmp)
         {
-            dwError = LwAllocateString(pszTmp+1, ppszSubKey);
+            dwError = RegCStringDuplicate(ppszSubKey, pszTmp+1);
             BAIL_ON_REG_ERROR(dwError);
         }
         else
         {
-            dwError = LwAllocateString("", ppszSubKey);
+            dwError = RegCStringDuplicate(ppszSubKey, "");
             BAIL_ON_REG_ERROR(dwError);
         }
 
@@ -186,7 +187,7 @@ RegShellCanonicalizePath(
     }
 
 cleanup:
-    LW_SAFE_FREE_MEMORY(pszStrtokValue);
+    LWREG_SAFE_FREE_MEMORY(pszStrtokValue);
     return dwError;
 
 error:
@@ -216,8 +217,8 @@ RegShellIsValidKey(
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwMbsToWc16s(pszKey, &pSubKey);
-    BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pSubKey, pszKey);
+	BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegOpenKeyExW(
         hReg,
@@ -230,7 +231,7 @@ RegShellIsValidKey(
 
 cleanup:
 
-    LW_SAFE_FREE_MEMORY(pSubKey);
+    LWREG_SAFE_FREE_MEMORY(pSubKey);
     if (pFullKey && pFullKey != pRootKey)
     {
         RegCloseKey(hReg, pFullKey);
@@ -286,8 +287,8 @@ RegShellUtilAddKey(
     pszToken = strtok_r(pszFullPath, pszDelim, &pszStrtokState);
     while (!LW_IS_NULL_OR_EMPTY_STR(pszToken))
     {
-        dwError = LwMbsToWc16s(pszToken, &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszToken);
+	BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegCreateKeyExW(
             hReg,
@@ -302,7 +303,7 @@ RegShellUtilAddKey(
             NULL);
         BAIL_ON_REG_ERROR(dwError);
 
-        LW_SAFE_FREE_MEMORY(pwszSubKey);
+        LWREG_SAFE_FREE_MEMORY(pwszSubKey);
 
         if (pCurrentKey)
         {
@@ -325,7 +326,7 @@ cleanup:
     return dwError;
 
 error:
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
+    LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     goto cleanup;
 }
 
@@ -374,8 +375,9 @@ RegShellUtilDeleteKey(
     pCurrentKey = pRootKey;
     if (pszParentPath && pszParentPath[1])
     {
-        dwError = LwMbsToWc16s(pszParentPath+1, &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszParentPath+1);
+	BAIL_ON_REG_ERROR(dwError);
+
         dwError = RegOpenKeyExW(
                       hReg,
                       pRootKey,
@@ -384,11 +386,11 @@ RegShellUtilDeleteKey(
                       0,
                       &pCurrentKey);
         BAIL_ON_REG_ERROR(dwError);
-        LW_SAFE_FREE_MEMORY(pwszSubKey);
+        LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     }
 
-    dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
-    BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszSubKey);
+	BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegDeleteKeyW(hReg, pCurrentKey, pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
@@ -399,7 +401,7 @@ cleanup:
     {
         RegCloseKey(hReg, pCurrentKey);
     }
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
+    LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     return dwError;
 
 error:
@@ -451,8 +453,9 @@ RegShellUtilDeleteTree(
     pCurrentKey = pRootKey;
     if (pszParentPath && pszParentPath[1])
     {
-        dwError = LwMbsToWc16s(pszParentPath+1, &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszParentPath+1);
+	BAIL_ON_REG_ERROR(dwError);
+
         dwError = RegOpenKeyExW(
                       hReg,
                       pRootKey,
@@ -461,11 +464,11 @@ RegShellUtilDeleteTree(
                       0,
                       &pCurrentKey);
         BAIL_ON_REG_ERROR(dwError);
-        LW_SAFE_FREE_MEMORY(pwszSubKey);
+        LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     }
 
-    dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
-    BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszSubKey);
+	BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegDeleteTreeW(hReg, pCurrentKey, pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
@@ -476,7 +479,7 @@ cleanup:
     {
         RegCloseKey(hReg, pCurrentKey);
     }
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
+    LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     return dwError;
 
 error:
@@ -533,8 +536,9 @@ RegShellUtilGetKeys(
 
     if (pszParentPath && pszParentPath[1])
     {
-        dwError = LwMbsToWc16s(pszParentPath+1, &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszParentPath+1);
+	BAIL_ON_REG_ERROR(dwError);
+
         dwError = RegOpenKeyExW(
                       hReg,
                       pRootKey,
@@ -543,7 +547,7 @@ RegShellUtilGetKeys(
                       0,
                       &pFullKey);
         BAIL_ON_REG_ERROR(dwError);
-        LW_SAFE_FREE_MEMORY(pwszSubKey);
+        LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     }
     else
     {
@@ -566,9 +570,12 @@ RegShellUtilGetKeys(
         NULL);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = LwAllocateMemory(
-                  sizeof(LW_WCHAR *)*dwSubKeyCount,
-                  (LW_PVOID) &subKeys);
+    if (!dwSubKeyCount)
+    {
+	goto done;
+    }
+
+    dwError = RegAllocateMemory(sizeof(*subKeys) * dwSubKeyCount, (PVOID*)&subKeys);
     BAIL_ON_REG_ERROR(dwError);
 
 #ifdef _LW_DEBUG
@@ -579,8 +586,7 @@ RegShellUtilGetKeys(
     {
         dwSubKeyLen = dwMaxSubKeyLen+1;
 
-        dwError = LwAllocateMemory(dwSubKeyLen*sizeof(*pszKeyName),
-                                   (PVOID)&pszKeyName);
+        dwError = RegAllocateMemory(sizeof(*pszKeyName) * dwSubKeyLen, (PVOID*)&pszKeyName);
         BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegEnumKeyExA((HANDLE)hReg,
@@ -594,12 +600,14 @@ RegShellUtilGetKeys(
                                 NULL);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = LwMbsToWc16s(pszKeyName, &subKeys[i]);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&subKeys[i], pszKeyName);
+	BAIL_ON_REG_ERROR(dwError);
 
-        LW_SAFE_FREE_STRING(pszKeyName);
+        LWREG_SAFE_FREE_STRING(pszKeyName);
         pszKeyName = NULL;
     }
+
+done:
 
     *pppRetSubKeys = subKeys;
     *pdwRetSubKeyCount = dwSubKeyCount;
@@ -610,16 +618,16 @@ cleanup:
     {
         RegCloseKey(hReg, pFullKey);
     }
-    LW_SAFE_FREE_STRING(pszKeyName);
+    LWREG_SAFE_FREE_STRING(pszKeyName);
 
     return dwError;
 
 error:
     for (i = 0; i < dwSubKeyCount; i++)
     {
-        LW_SAFE_FREE_MEMORY(subKeys[i]);
+        LWREG_SAFE_FREE_MEMORY(subKeys[i]);
     }
-    LW_SAFE_FREE_MEMORY(subKeys);
+    LWREG_SAFE_FREE_MEMORY(subKeys);
     goto cleanup;
 }
 
@@ -669,8 +677,9 @@ RegShellUtilSetValue(
     pFullKey = pRootKey;
     if (pszParentPath && pszParentPath[1])
     {
-        dwError = LwMbsToWc16s(pszParentPath+1, &pwszParentPath);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pwszParentPath, pszParentPath+1);
+	BAIL_ON_REG_ERROR(dwError);
+
         dwError = RegOpenKeyExW(
                       hReg,
                       pRootKey,
@@ -679,7 +688,7 @@ RegShellUtilSetValue(
                       0,
                       &pFullKey);
         BAIL_ON_REG_ERROR(dwError);
-        LW_SAFE_FREE_MEMORY(pwszParentPath);
+        LWREG_SAFE_FREE_MEMORY(pwszParentPath);
     }
 
     switch (type)
@@ -693,13 +702,15 @@ RegShellUtilSetValue(
             break;
 
         case REG_SZ:
-            dwError = LwAllocateString(data?data:"", (LW_PVOID) &pData);
+
+            dwError = RegCStringDuplicate((LW_PVOID) &pData, data?data:"");
             BAIL_ON_REG_ERROR(dwError);
             dwDataLen = strlen((PSTR) pData)+1;
+
             break;
 
         case REG_DWORD:
-            dwError = LwAllocateMemory(sizeof(DWORD), (LW_PVOID) &pData);
+            dwError = RegAllocateMemory(sizeof(*pData) * sizeof(DWORD), (PVOID*)&pData);
             BAIL_ON_REG_ERROR(dwError);
 
             dwDataLen = (SSIZE_T) dataLen;
@@ -727,12 +738,12 @@ RegShellUtilSetValue(
     BAIL_ON_REG_ERROR(dwError);
     if (type != REG_BINARY)
     {
-        LW_SAFE_FREE_MEMORY(pData);
+        LWREG_SAFE_FREE_MEMORY(pData);
     }
 
 cleanup:
     RegCloseServer(hRegLocal);
-    LW_SAFE_FREE_MEMORY(pwszParentPath);
+    LWREG_SAFE_FREE_MEMORY(pwszParentPath);
     if (pFullKey && pFullKey != pRootKey)
     {
         RegCloseKey(hReg, pFullKey);
@@ -796,8 +807,9 @@ RegShellUtilGetValues(
     pFullKey = pRootKey;
     if (pszParentPath && strcmp(pszParentPath, "\\") != 0)
     {
-        dwError = LwMbsToWc16s(pszParentPath+1, &pwszParentPath);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pwszParentPath, pszParentPath+1);
+	BAIL_ON_REG_ERROR(dwError);
+
         dwError = RegOpenKeyExW(
                       hReg,
                       pRootKey,
@@ -806,7 +818,7 @@ RegShellUtilGetValues(
                       0,
                       &pFullKey);
         BAIL_ON_REG_ERROR(dwError);
-        LW_SAFE_FREE_MEMORY(pwszParentPath);
+        LWREG_SAFE_FREE_MEMORY(pwszParentPath);
     }
 
     dwError = RegQueryInfoKeyA(
@@ -823,9 +835,14 @@ RegShellUtilGetValues(
                   &dwMaxValueLen,
                   NULL,
                   NULL);
-    dwError = LwAllocateMemory(
-                  dwValuesCount * sizeof(REGSHELL_UTIL_VALUE),
-                  (LW_PVOID) &pValueArray);
+    BAIL_ON_REG_ERROR(dwError);
+
+    if (!dwValuesCount)
+    {
+	goto done;
+    }
+
+    dwError = RegAllocateMemory(sizeof(*pValueArray) * dwValuesCount, (PVOID*)&pValueArray);
     BAIL_ON_REG_ERROR(dwError);
 
     /*
@@ -842,13 +859,12 @@ RegShellUtilGetValues(
          */
         dwValueNameLen = dwMaxValueNameLen;
 
-        dwError = LwAllocateMemory(
-                      dwValueNameLen,
-                      (LW_PVOID) &pszValueName);
+        dwError = RegAllocateMemory(sizeof(*pszValueName) * dwValueNameLen, (PVOID*)&pszValueName);
         BAIL_ON_REG_ERROR(dwError);
 
         dwDataLen = dwMaxValueLen;
-        dwError = LwAllocateMemory(dwDataLen, (LW_PVOID) &pData);
+
+        dwError = RegAllocateMemory(dwDataLen, (PVOID*)&pData);
         BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegEnumValueA(
@@ -863,14 +879,16 @@ RegShellUtilGetValues(
                       &dwDataLen);
         BAIL_ON_REG_ERROR(dwError);
 
-        dwError = LwMbsToWc16s(pszValueName, &pValueArray[indx].pValueName);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pValueArray[indx].pValueName, pszValueName);
+	BAIL_ON_REG_ERROR(dwError);
 
         pValueArray[indx].type = regType;
         pValueArray[indx].pData = pData;
         pData = NULL;
         pValueArray[indx].dwDataLen = dwDataLen;
     }
+
+ done:
 
     *valueArray = pValueArray;
     *pdwValueArrayLen = indx;
@@ -881,18 +899,18 @@ cleanup:
     {
         RegCloseKey(hReg, pFullKey);
     }
-    LW_SAFE_FREE_MEMORY(pSubKey);
-    LW_SAFE_FREE_MEMORY(pData);
+    LWREG_SAFE_FREE_MEMORY(pSubKey);
+    LWREG_SAFE_FREE_MEMORY(pData);
     return dwError;
 
 error:
-    LW_SAFE_FREE_MEMORY(pwszParentPath);
+    LWREG_SAFE_FREE_MEMORY(pwszParentPath);
     for (indx=0; indx<dwValuesCount; indx++)
     {
-        LW_SAFE_FREE_MEMORY(pValueArray[indx].pValueName);
-        LW_SAFE_FREE_MEMORY(pValueArray[indx].pData);
+        LWREG_SAFE_FREE_MEMORY(pValueArray[indx].pValueName);
+        LWREG_SAFE_FREE_MEMORY(pValueArray[indx].pData);
     }
-    LW_SAFE_FREE_MEMORY(pValueArray);
+    LWREG_SAFE_FREE_MEMORY(pValueArray);
     goto cleanup;
 }
 
@@ -926,17 +944,17 @@ RegShellUtilDeleteValue(
     }
     if (keyName)
     {
-        dwError = LwMbsToWc16s(keyName, &pSubKey);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pSubKey, keyName);
+	BAIL_ON_REG_ERROR(dwError);
     }
     if (pszDefaultKey)
     {
-        dwError = LwMbsToWc16s(pszDefaultKey, &pDefaultKey);
-        BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pDefaultKey, pszDefaultKey);
+	BAIL_ON_REG_ERROR(dwError);
     }
 
-    dwError = LwMbsToWc16s(valueName, &pValueName);
-    BAIL_ON_REG_ERROR(dwError);
+	dwError = RegWC16StringAllocateFromCString(&pValueName, valueName);
+	BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &hRootKey);
     BAIL_ON_REG_ERROR(dwError);
@@ -963,7 +981,7 @@ cleanup:
         RegCloseKey(hReg, hRootKey);
     }
     RegCloseServer(hRegLocal);
-    LW_SAFE_FREE_MEMORY(pSubKey);
+    LWREG_SAFE_FREE_MEMORY(pSubKey);
     return dwError;
 
 error:
@@ -1005,9 +1023,7 @@ RegShellUtilAllocateMemory(
     }
     if (dwError == 0 && dwValueLen > 0)
     {
-        dwError = LwAllocateMemory(
-                      (dwValueLen+1) * sizeof(CHAR),
-                      (PVOID) &pBuf);
+        dwError = RegAllocateMemory((dwValueLen+1), (PVOID*)&pBuf);
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -1213,7 +1229,7 @@ RegShellUtilGetValue(
                           pRetData,
                           dwValueLen,
                           &ppszMultiStrArray);
-            LW_SAFE_FREE_MEMORY(pRetData);
+            LWREG_SAFE_FREE_MEMORY(pRetData);
             BAIL_ON_REG_ERROR(dwError);
 
             /* Return number of entries in multi-string array, not byte count */
@@ -1271,9 +1287,8 @@ RegShellUtilEscapeString(
         dwEscapeValueLen++;
     }
     dwEscapeValueLen++;
-    dwError = LwAllocateMemory(
-                  sizeof(*pszRetValue) * dwEscapeValueLen,
-                  (PVOID) &pszRetValue);
+
+    dwError = RegAllocateMemory(sizeof(*pszRetValue)* dwEscapeValueLen, (PVOID*)&pszRetValue);
     BAIL_ON_REG_ERROR(dwError);
 
     for (i=0; pszValue[i]; i++)

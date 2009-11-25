@@ -53,7 +53,7 @@
 
 #include <lwio/lwio.h>
 
-#include <reg/reg.h>
+#include <reg/lwntreg.h>
 
 #include <lwiodef.h>
 #include <lwioutils.h>

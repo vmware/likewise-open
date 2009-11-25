@@ -112,7 +112,7 @@ typedef void (*LWMsgHandleCleanupFunction) (void* handle);
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus
-(*LWMsgSessionConstructor) (
+(*LWMsgSessionConstructFunction) (
     LWMsgSecurityToken* token,
     void* data,
     void** session_data
@@ -129,7 +129,7 @@ typedef LWMsgStatus
  * @param[in,out] session_data the custom session data created by the constructor
  */
 typedef void
-(*LWMsgSessionDestructor) (
+(*LWMsgSessionDestructFunction) (
     LWMsgSecurityToken* token,
     void* session_data
     );

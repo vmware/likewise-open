@@ -41,12 +41,15 @@
 #include "status-private.h"
 #include "context-private.h"
 #include <lwmsg/buffer.h>
+#include <lwmsg/time.h>
 
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #define LWMSG_ASSERT_SUCCESS(_x_)                                       \
     do                                                                  \
@@ -419,5 +422,58 @@ lwmsg_set_close_on_exec(
     ((src_order) == (dst_order) ?               \
      (val) :                                    \
      _LWMSG_SWAP64((val)))
+
+#define LWMSG_LOCK(b, l)                        \
+    do                                          \
+    {                                           \
+        if (!(b))                               \
+        {                                       \
+            pthread_mutex_lock((l));            \
+            (b) = LWMSG_TRUE;                   \
+        }                                       \
+    } while(0)
+
+#define LWMSG_UNLOCK(b, l)                      \
+    do                                          \
+    {                                           \
+        if ((b))                                \
+        {                                       \
+            pthread_mutex_unlock((l));          \
+            (b) = LWMSG_FALSE;                  \
+        }                                       \
+    } while(0)
+
+static inline
+const char*
+lwmsg_string_without_prefix(
+    const char* str,
+    const char* prefix
+    )
+{
+    if (!strncmp(str, prefix, strlen(prefix)))
+    {
+        return str + strlen(prefix);
+    }
+    else
+    {
+        return str;
+    }
+}
+
+ssize_t
+lwmsg_recvmsg_timeout(
+    int sock,
+    struct msghdr* msg,
+    int flags,
+    LWMsgTime* time
+    );
+
+ssize_t
+lwmsg_sendmsg_timeout(
+    int sock,
+    const struct msghdr* msg,
+    int flags,
+    LWMsgTime* time
+    );
 
 #endif

@@ -36,6 +36,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\AddMemberDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\AddMemberDlg.Designer.cs">
+      <DependentUpon>AddMemberDlg.cs</DependentUpon>
+    </Compile>
     <Compile Include="src\ChangePasswordDlg.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -93,6 +99,12 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="src\RenameDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="src\RenameDlg.Designer.cs">
+      <DependentUpon>RenameDlg.cs</DependentUpon>
+    </Compile>
     <Compile Include="src\UserPropertiesDlg.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -101,6 +113,10 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="src\AddMemberDlg.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>AddMemberDlg.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="src\ChangePasswordDlg.resx">
       <SubType>Designer</SubType>
       <DependentUpon>ChangePasswordDlg.cs</DependentUpon>
@@ -144,6 +160,10 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\RenameDlg.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>RenameDlg.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="src\UserPropertiesDlg.resx">
       <DependentUpon>UserPropertiesDlg.cs</DependentUpon>

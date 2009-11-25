@@ -76,10 +76,10 @@ AM_CONDITIONAL([HAVE_DOXYGEN_PDF], [$HAVE_DOXYGEN_PDF])
 
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
-AC_CHECK_LIB(lwmsg, lwmsg_server_new, [LIB_LWMSG="-llwmsg"], [AC_MSG_ERROR([Could not find liblwmsg_nothr])])
+AC_CHECK_LIB(lwmsg, lwmsg_peer_new, [LIB_LWMSG="-llwmsg"], [AC_MSG_ERROR([Could not find liblwmsg_nothr])])
 AC_CHECK_LIB(lwadvapi, LwBuildSIDString, [LIB_LWADVAPI="-llwadvapi"], [AC_MSG_ERROR([Could not find liblwadvapi])])
 AC_CHECK_LIB(lwbase, RtlAccessCheck, [LIB_LWBASE="-llwbase"], [AC_MSG_ERROR([Could not find liblwbase])])
-AC_CHECK_LIB(regclient, RegOpenKeyExA, [LIB_REGCLIENT="-lregclient"], [AC_MSG_ERROR([Could not find libregclient])])
+AC_CHECK_LIB(regclient, LwRegOpenKeyExA, [LIB_REGCLIENT="-lregclient"], [AC_MSG_ERROR([Could not find libregclient])])
 AC_CHECK_LIB(lwioclient, LwIoGetDriverStatus, [LIB_LWIOCLIENT="-llwioclient"], [AC_MSG_ERROR([Could not find liblwioclient])])
 AC_CHECK_LIB(dl, dlopen, [LIB_DL="-ldl"], [LIB_DL=""])
 

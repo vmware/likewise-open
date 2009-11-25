@@ -2,6 +2,7 @@ noinst_LTLIBRARIES = libupgradeutils.la
 
 libupgradeutils_la_SOURCES = \
     format.c \
+    machine_account.c \
     parser.c \
     print.c \
     time.c

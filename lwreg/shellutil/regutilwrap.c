@@ -41,13 +41,12 @@
  *
  */
 #include <stdarg.h>
-#include <reg/reg.h>
+#include <reg/lwreg.h>
 #include <rsutils.h>
 
 #include <lw/base.h>
-#include <lwstr.h>
-#include <lwmem.h>
-#include <lwerror.h>
+#include <lw/rtlstring.h>
+#include <lw/rtlmemory.h>
 
 
 DWORD

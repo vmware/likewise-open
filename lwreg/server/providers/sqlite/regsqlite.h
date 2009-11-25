@@ -91,7 +91,7 @@ typedef enum
            bInLock = FALSE;                                \
         }
 
-typedef DWORD (*PFN_REG_SQLITE_EXEC_CALLBACK)(
+typedef NTSTATUS (*PFN_REG_SQLITE_EXEC_CALLBACK)(
     IN sqlite3 *pDb,
     IN PVOID pContext,
     OUT PSTR* ppszError
@@ -119,192 +119,37 @@ typedef struct __REG_ENTRY
    PSTR pszValue;
 } REG_ENTRY, *PREG_ENTRY;
 
-void
-RegCacheSafeFreeEntry(
-    PREG_ENTRY* ppEntry
-    );
 
-void
-RegCacheSafeFreeEntryList(
-    size_t sCount,
-    PREG_ENTRY** pppEntries
-    );
 
-DWORD
-RegCacheSafeRecordSubKeysInfo_inlock(
-    IN size_t sCount,
-    IN size_t sCacheCount,
-    IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
-    );
-
-DWORD
-RegCacheSafeRecordSubKeysInfo(
-    IN size_t sCount,
-    IN size_t sCacheCount,
-    IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
-    );
-
-DWORD
-RegCacheSafeRecordValuesInfo_inlock(
-    IN size_t sCount,
-    IN size_t sCacheCount,
-    IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
-    );
-
-DWORD
-RegCacheSafeRecordValuesInfo(
-    IN size_t sCount,
-    IN size_t sCacheCount,
-    IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
-    );
-
-DWORD
-RegDbOpen(
-    IN PCSTR pszDbPath,
-    OUT PREG_DB_HANDLE phDb
-    );
-
-DWORD
-RegDbStoreKeyObjectEntries(
-    REG_DB_HANDLE hDb,
-    size_t  sEntryCount,
-    PREG_ENTRY* ppEntries
-    );
-
-DWORD
-RegDbStoreObjectEntries(
-    REG_DB_HANDLE hDb,
-    size_t  sEntryCount,
-    PREG_ENTRY* ppEntries
-    );
-
-DWORD
-RegDbCreateKey(
-    IN REG_DB_HANDLE hDb,
-    IN PSTR pszKeyName,
-    OUT PREG_ENTRY* ppRegEntry
-    );
-
-DWORD
-RegDbOpenKey(
-    IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName,
-    OUT OPTIONAL PREG_ENTRY* ppRegEntry
-    );
-
-DWORD
-RegDbDeleteKey(
-    IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName
-    );
-
-DWORD
-RegDbQueryInfoKey(
-    IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName,
-    IN QueryKeyInfoOption queryType,
-    IN DWORD dwLimit,
-    IN DWORD dwOffset,
-    OUT size_t* psCount,
-    OUT OPTIONAL PREG_ENTRY** pppRegEntries
-    );
-
-DWORD
-RegDbQueryInfoKeyCount(
-    IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName,
-    IN QueryKeyInfoOption queryType,
-    OUT size_t* psSubKeyCount
-    );
-
-DWORD
-RegDbCreateKeyValue(
-    IN REG_DB_HANDLE hDb,
-    IN PSTR pszKeyName,
-    IN PSTR pszValueName,
-    IN PSTR pszValue,
-    IN REG_DATA_TYPE valueType,
-    OUT OPTIONAL PREG_ENTRY* ppRegEntry
-    );
-
-DWORD
-RegDbGetKeyValue(
-    IN REG_DB_HANDLE hDb,
-    IN PSTR pszKeyName,
-    IN PSTR pszValueName,
-    IN REG_DATA_TYPE valueType,
-    IN OPTIONAL PBOOLEAN pbIsWrongType,
-    OUT OPTIONAL PREG_ENTRY* ppRegEntry
-    );
-
-DWORD
-RegDbDeleteKeyValue(
-    IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName,
-    IN PCSTR pszValueName
-    );
-
-DWORD
-RegDbGetMultiKeyValues(
-    IN REG_DB_HANDLE hDb,
-    IN PSTR pszKeyName,
-    IN DWORD dwNumValuesRequest,
-    OUT size_t* psCount,
-    OUT PREG_ENTRY** pppRegEntry
-    );
-
-void
-RegDbSafeClose(
-    PREG_DB_HANDLE phDb
-    );
-
-DWORD
-RegDbEmptyCache(
-    IN REG_DB_HANDLE hDb
-    );
-
-DWORD
-RegDbFlushNOP(
-    REG_DB_HANDLE hDb
-    );
-
-DWORD
+NTSTATUS
 RegSqliteReadUInt64(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
     uint64_t *pqwResult);
 
-DWORD
+NTSTATUS
 RegSqliteReadInt64(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
     int64_t *pqwResult);
 
-DWORD
+NTSTATUS
 RegSqliteReadUInt32(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
     DWORD *pdwResult);
 
-DWORD
+NTSTATUS
 RegSqliteReadString(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
     PSTR *ppszResult);
 
-DWORD
+NTSTATUS
 RegSqliteReadWcString(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
@@ -312,49 +157,49 @@ RegSqliteReadWcString(
     PWSTR *ppszResult
     );
 
-DWORD
+NTSTATUS
 RegSqliteBindInt64(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN int64_t Value
     );
 
-DWORD
+NTSTATUS
 RegSqliteBindInt32(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN int Value
     );
 
-DWORD
+NTSTATUS
 RegSqliteReadTimeT(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
     time_t *pResult);
 
-DWORD
+NTSTATUS
 RegSqliteBindString(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN PCSTR pszValue
     );
 
-DWORD
+NTSTATUS
 RegSqliteBindBoolean(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN BOOLEAN bValue
     );
 
-DWORD
+NTSTATUS
 RegSqliteExec(
     IN sqlite3* pSqlDatabase,
     IN PCSTR pszSqlCommand,
     OUT PSTR* ppszSqlError
     );
 
-DWORD
+NTSTATUS
 RegSqliteExecCallbackWithRetry(
     IN sqlite3* pDb,
     IN pthread_rwlock_t* pLock,
@@ -362,7 +207,7 @@ RegSqliteExecCallbackWithRetry(
     IN PVOID pContext
     );
 
-DWORD
+NTSTATUS
 RegSqliteExecWithRetry(
     IN sqlite3* pDb,
     IN pthread_rwlock_t* pLock,

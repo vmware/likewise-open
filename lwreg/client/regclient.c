@@ -43,7 +43,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Kyle Stemen (kstemen@likewisesoftware.com)
+ *          Wei Fu (wfu@likewise.com)
  *          Marc Guy (mguy@likewisesoftware.com)
  */
 #include "client.h"
@@ -56,53 +56,11 @@ RegEnumRootKeysA(
     OUT PDWORD pdwNumRootKeys
     )
 {
-    DWORD dwError = 0;
-    PWSTR* ppwszRootKeyNames = NULL;
-    PSTR* ppszRootKeyNames = NULL;
-    DWORD dwNumRootKeys = 0;
-    int iCount = 0;
-
-    dwError = RegTransactEnumRootKeysW(hRegConnection,
-                                       &ppwszRootKeyNames,
-                                       &dwNumRootKeys);
-    BAIL_ON_REG_ERROR(dwError);
-
-    if (!dwNumRootKeys)
-        goto cleanup;
-
-    dwError = LwAllocateMemory(sizeof(*ppszRootKeyNames)*dwNumRootKeys,
-                               (PVOID)&ppszRootKeyNames);
-    BAIL_ON_REG_ERROR(dwError);
-
-    for (iCount = 0; iCount < dwNumRootKeys; iCount++)
-    {
-        dwError = LwWc16sToMbs(ppwszRootKeyNames[iCount],
-                               &ppszRootKeyNames[iCount]);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-cleanup:
-    *pppszRootKeyNames = ppszRootKeyNames;
-    *pdwNumRootKeys = dwNumRootKeys;
-
-    if (ppwszRootKeyNames)
-    {
-        for (iCount=0; iCount<dwNumRootKeys; iCount++)
-        {
-            LW_SAFE_FREE_MEMORY(ppwszRootKeyNames[iCount]);
-        }
-        ppwszRootKeyNames = NULL;
-    }
-
-    return dwError;
-
-error:
-    if (ppszRootKeyNames)
-    {
-        LwFreeStringArray(ppszRootKeyNames, dwNumRootKeys);
-    }
-
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegEnumRootKeysA(hRegConnection,
+				         pppszRootKeyNames,
+				         pdwNumRootKeys)
+				         );
 }
 
 REG_API
@@ -113,9 +71,11 @@ RegEnumRootKeysW(
     OUT PDWORD pdwNumRootKeys
     )
 {
-    return RegTransactEnumRootKeysW(hRegConnection,
-                                    pppwszRootKeyNames,
-                                   pdwNumRootKeys);
+    return RegNtStatusToWin32Error(
+		NtRegEnumRootKeysW(hRegConnection,
+				         pppwszRootKeyNames,
+				         pdwNumRootKeys)
+				         );
 }
 
 REG_API
@@ -133,36 +93,20 @@ RegCreateKeyExA(
     OUT OPTIONAL PDWORD pdwDisposition
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszSubKey = NULL;
-
-    if (pszSubKey)
-    {
-        dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = RegTransactCreateKeyExW(
-        hRegConnection,
-        hKey,
-        pwszSubKey,
-        Reserved,
-        pClass,
-        dwOptions,
-        samDesired,
-        pSecurityAttributes,
-        phkResult,
-        pdwDisposition
-        );
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
-
-    return dwError;
-
-error:
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegCreateKeyExA(
+		    hRegConnection,
+		    hKey,
+		    pszSubKey,
+		    Reserved,
+		    pClass,
+		    dwOptions,
+		    samDesired,
+		    pSecurityAttributes,
+		    phkResult,
+		    pdwDisposition
+		    )
+		    );
 }
 
 REG_API
@@ -180,18 +124,20 @@ RegCreateKeyExW(
     OUT OPTIONAL PDWORD pdwDisposition
     )
 {
-    return RegTransactCreateKeyExW(
-        hRegConnection,
-        hKey,
-        pSubKey,
-        Reserved,
-        pClass,
-        dwOptions,
-        samDesired,
-        pSecurityAttributes,
-        phkResult,
-        pdwDisposition
-        );
+    return RegNtStatusToWin32Error(
+		NtRegCreateKeyExW(
+		    hRegConnection,
+		    hKey,
+		    pSubKey,
+		    Reserved,
+		    pClass,
+		    dwOptions,
+		    samDesired,
+		    pSecurityAttributes,
+		    phkResult,
+		    pdwDisposition
+		    )
+		    );
 }
 
 REG_API
@@ -201,10 +147,12 @@ RegCloseKey(
     IN HKEY hKey
     )
 {
-    return RegTransactCloseKey(
-        hRegConnection,
-        hKey
-        );
+    return RegNtStatusToWin32Error(
+		NtRegCloseKey(
+		    hRegConnection,
+		    hKey
+		    )
+		    );
 }
 
 REG_API
@@ -215,28 +163,13 @@ RegDeleteKeyA(
     IN PCSTR pszSubKey
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszSubKey = NULL;
-
-    BAIL_ON_INVALID_STRING(pszSubKey);
-
-    dwError = LwMbsToWc16s(pszSubKey,
-                           &pwszSubKey);
-    BAIL_ON_REG_ERROR(dwError);
-
-    dwError = RegTransactDeleteKeyW(
-        hRegConnection,
-        hKey,
-        pwszSubKey);
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
-
-    return dwError;
-
-error:
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegDeleteKeyA(
+		    hRegConnection,
+		    hKey,
+		    pszSubKey
+		    )
+		    );
 }
 
 REG_API
@@ -247,11 +180,13 @@ RegDeleteKeyW(
     IN PCWSTR pSubKey
     )
 {
-    return RegTransactDeleteKeyW(
-        hRegConnection,
-        hKey,
-        pSubKey
-        );
+    return RegNtStatusToWin32Error(
+		NtRegDeleteKeyW(
+		    hRegConnection,
+		    hKey,
+		    pSubKey
+		    )
+		    );
 }
 
 REG_API
@@ -263,39 +198,14 @@ RegDeleteKeyValueA(
     IN OPTIONAL PCSTR pszValueName
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszSubKey = NULL;
-    PWSTR pwszValueName = NULL;
-
-    if (pszSubKey)
-    {
-        dwError = LwMbsToWc16s(pszSubKey,
-                               &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (pszValueName)
-    {
-        dwError = LwMbsToWc16s(pszValueName,
-                               &pwszValueName);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = RegTransactDeleteKeyValueW(
-                           hRegConnection,
-                           hKey,
-                           pwszSubKey,
-                           pwszValueName);
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
-    LW_SAFE_FREE_MEMORY(pwszValueName);
-
-    return dwError;
-
-error:
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegDeleteKeyValueA(
+		    hRegConnection,
+		    hKey,
+		    pszSubKey,
+		    pszValueName
+		    )
+		    );
 }
 
 REG_API
@@ -307,12 +217,14 @@ RegDeleteKeyValueW(
     IN OPTIONAL PCWSTR pValueName
     )
 {
-    return RegTransactDeleteKeyValueW(
-        hRegConnection,
-        hKey,
-        pSubKey,
-        pValueName
-        );
+    return RegNtStatusToWin32Error(
+		NtRegDeleteKeyValueW(
+		    hRegConnection,
+		    hKey,
+		    pSubKey,
+		    pValueName
+		    )
+		    );
 }
 
 REG_API
@@ -323,28 +235,13 @@ RegDeleteTreeA(
     IN OPTIONAL PCSTR pszSubKey
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszSubKey = NULL;
-
-    if (pszSubKey)
-    {
-        dwError = LwMbsToWc16s(pszSubKey,
-                               &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = RegTransactDeleteTreeW(
-                               hRegConnection,
-                               hKey,
-                               pwszSubKey);
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
-    return dwError;
-
-error:
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegDeleteTreeA(
+		    hRegConnection,
+		    hKey,
+		    pszSubKey
+		    )
+		    );
 }
 
 REG_API
@@ -355,11 +252,13 @@ RegDeleteTreeW(
     IN OPTIONAL PCWSTR pSubKey
     )
 {
-    return RegTransactDeleteTreeW(
-        hRegConnection,
-        hKey,
-        pSubKey
-        );
+    return RegNtStatusToWin32Error(
+		NtRegDeleteTreeW(
+		    hRegConnection,
+		    hKey,
+		    pSubKey
+		    )
+		    );
 }
 
 REG_API
@@ -370,28 +269,13 @@ RegDeleteValueA(
     IN PCSTR pszValueName
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszValueName = NULL;
-
-    BAIL_ON_INVALID_STRING(pszValueName);
-
-    dwError = LwMbsToWc16s(pszValueName,
-                           &pwszValueName);
-    BAIL_ON_REG_ERROR(dwError);
-
-    dwError = RegTransactDeleteValueW(
-        hRegConnection,
-        hKey,
-        pwszValueName
-        );
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszValueName);
-
-    return dwError;
-error:
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegDeleteValueA(
+		    hRegConnection,
+		    hKey,
+		    pszValueName
+		    )
+		    );
 }
 
 REG_API
@@ -402,11 +286,13 @@ RegDeleteValueW(
     IN PCWSTR pValueName
     )
 {
-    return RegTransactDeleteValueW(
-        hRegConnection,
-        hKey,
-        pValueName
-        );
+    return RegNtStatusToWin32Error(
+		NtRegDeleteValueW(
+		    hRegConnection,
+		    hKey,
+		    pValueName
+		    )
+		    );
 }
 
 REG_API
@@ -423,69 +309,19 @@ RegEnumKeyExA(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszName = NULL;
-    PSTR pszKeyName = NULL;
-    PWSTR pwszClass = NULL;
-
-    if (*pcName == 0)
-    {
-		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-		BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = LwAllocateMemory(*pcName*sizeof(WCHAR), (LW_PVOID*)&pwszName);
-    BAIL_ON_REG_ERROR(dwError);
-
-    if (pcClass)
-    {
-        if (*pcClass == 0)
-        {
-		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-		BAIL_ON_REG_ERROR(dwError);
-        }
-
-	dwError = LwAllocateMemory(*pcClass*sizeof(WCHAR), (LW_PVOID*)&pwszName);
-        BAIL_ON_REG_ERROR(dwError);
-
-        dwError = LwAllocateMemory(*pcClass*sizeof(WCHAR), (LW_PVOID*)&pwszClass);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-	dwError = RegTransactEnumKeyExW(
-        hRegConnection,
-        hKey,
-        dwIndex,
-        pwszName,
-        pcName,
-        pReserved,
-        pwszClass,
-        pcClass,
-        pftLastWriteTime
-        );
-	BAIL_ON_REG_ERROR(dwError);
-
-	dwError = LwWc16sToMbs((PCWSTR)pwszName, &pszKeyName);
-	BAIL_ON_REG_ERROR(dwError);
-
-	if (*pcName < strlen(pszKeyName))
-	{
-		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-		BAIL_ON_REG_ERROR(dwError);
-	}
-
-	memcpy((PBYTE)pszName, (PBYTE)pszKeyName, strlen(pszKeyName));
-	*pcName = strlen(pszKeyName);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszName);
-    LW_SAFE_FREE_MEMORY(pwszClass);
-    LW_SAFE_FREE_STRING(pszKeyName);
-
-    return dwError;
-
-error:
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegEnumKeyExA(
+		    hRegConnection,
+		    hKey,
+		    dwIndex,
+		    pszName,
+		    pcName,
+		    pReserved,
+		    pszClass,
+		    pcClass,
+		    pftLastWriteTime
+		    )
+		    );
 }
 
 REG_API
@@ -502,17 +338,19 @@ RegEnumKeyExW(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    return RegTransactEnumKeyExW(
-        hRegConnection,
-        hKey,
-        dwIndex,
-        pName,
-        pcName,
-        pReserved,
-        pClass,
-        pcClass,
-        pftLastWriteTime
-        );
+    return RegNtStatusToWin32Error(
+		NtRegEnumKeyExW(
+		        hRegConnection,
+				hKey,
+				dwIndex,
+				pName,
+				pcName,
+				pReserved,
+				pClass,
+				pcClass,
+				pftLastWriteTime
+				)
+		    );
 }
 
 
@@ -530,130 +368,18 @@ RegEnumValueA(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    DWORD dwError = 0;
-    DWORD dwType = REG_UNKNOWN;
-    PWSTR pwszValueName = NULL;
-    PSTR pszTempValueName = NULL;
-    PVOID pTempData = NULL;
-    DWORD cTempData = 0;
-    PBYTE pValue = NULL;
-
-    if (*pcchValueName == 0)
-    {
-		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-		BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (pData && !pcbData)
-    {
-	dwError = LW_ERROR_INVALID_PARAMETER;
-	BAIL_ON_REG_ERROR(dwError);
-    }
-
-    dwError = LwAllocateMemory(*pcchValueName*sizeof(WCHAR), (LW_PVOID*)&pwszValueName);
-    BAIL_ON_REG_ERROR(dwError);
-
-    if (pData && pcbData)
-    {
-	cTempData = (*pcbData)*sizeof(WCHAR);
-
-	if (cTempData > MAX_VALUE_LENGTH)
-	{
-		cTempData = MAX_VALUE_LENGTH;
-	}
-
-		dwError = LwAllocateMemory(cTempData*sizeof(WCHAR), &pTempData);
-		BAIL_ON_REG_ERROR(dwError);
-    }
-
-	dwError = RegTransactEnumValueW(
-	        hRegConnection,
-	        hKey,
-	        dwIndex,
-	        pwszValueName,
-	        pcchValueName,
-	        pReserved,
-	        &dwType,
-	        pTempData,
-	        &cTempData);
-	BAIL_ON_REG_ERROR(dwError);
-
-	if (!pTempData)
-	{
-		goto done;
-	}
-
-	if (REG_SZ == dwType)
-	{
-		dwError = LwWc16sToMbs((PCWSTR)pTempData, (PSTR*)&pValue);
-		BAIL_ON_REG_ERROR(dwError);
-
-		cTempData = strlen((PSTR)pValue) + 1;
-	}
-	else if (REG_MULTI_SZ == dwType)
-	{
-		dwError = RegConvertByteStreamW2A((PBYTE)pTempData,
-				                           cTempData,
-				                           &pValue,
-				                           &cTempData);
-		BAIL_ON_REG_ERROR(dwError);
-	}
-	else
-	{
-		dwError = LwAllocateMemory(cTempData, (LW_PVOID*)&pValue);
-		BAIL_ON_REG_ERROR(dwError);
-
-		memcpy(pValue, pTempData, cTempData);
-	}
-
-    if (pData)
-    {
-	memcpy(pData, pValue, cTempData);
-    }
-
-done:
-    dwError = LwWc16sToMbs((PCWSTR)pwszValueName, &pszTempValueName);
-    BAIL_ON_REG_ERROR(dwError);
-
-    if (*pcchValueName < strlen(pszTempValueName))
-    {
-	    dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-	    BAIL_ON_REG_ERROR(dwError);
-    }
-
-    memcpy((PBYTE)pszValueName, (PBYTE)pszTempValueName, strlen(pszTempValueName));
-    *pcchValueName = strlen(pszTempValueName);
-
-    if (pdwType)
-    {
-        *pdwType = dwType;
-    }
-
-    if (pcbData)
-    {
-	*pcbData = cTempData;
-    }
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszValueName);
-    LW_SAFE_FREE_MEMORY(pTempData);
-    LW_SAFE_FREE_MEMORY(pValue);
-    LW_SAFE_FREE_STRING(pszTempValueName);
-
-    return dwError;
-
-error:
-    if (pdwType)
-    {
-        *pdwType = REG_UNKNOWN;
-    }
-    if (pcbData)
-    {
-	    *pcbData = 0;
-    }
-    *pcchValueName = 0;
-
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegEnumValueA(
+	         hRegConnection,
+			 hKey,
+			 dwIndex,
+			 pszValueName,
+			 pcchValueName,
+			 pReserved,
+			 pdwType,
+			 pData,
+			 pcbData)
+		    );
 }
 
 REG_API
@@ -670,17 +396,18 @@ RegEnumValueW(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return RegTransactEnumValueW(
-        hRegConnection,
-        hKey,
-        dwIndex,
-        pValueName,
-        pcchValueName,
-        pReserved,
-        pType,
-        pData,
-        pcbData
-        );
+    return RegNtStatusToWin32Error(
+		NtRegEnumValueW(
+	         hRegConnection,
+			 hKey,
+			 dwIndex,
+			 pValueName,
+			 pcchValueName,
+			 pReserved,
+			 pType,
+			 pData,
+			 pcbData)
+		    );
 }
 
 REG_API
@@ -696,120 +423,17 @@ RegGetValueA(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    DWORD dwError = 0;
-    DWORD dwType = REG_UNKNOWN;
-    PWSTR pwszSubKey = NULL;
-    PWSTR pwszValueName = NULL;
-    PVOID pTempData = NULL;
-    DWORD cTempData = 0;
-    PBYTE pValue = NULL;
-
-    if (pvData && !pcbData)
-    {
-	dwError = LW_ERROR_INVALID_PARAMETER;
-	BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (pszSubKey)
-    {
-	dwError = LwMbsToWc16s(pszSubKey, &pwszSubKey);
-	BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (pszValueName)
-    {
-	dwError = LwMbsToWc16s(pszValueName, &pwszValueName);
-	BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (pvData && pcbData)
-    {
-	cTempData = (*pcbData)*sizeof(WCHAR);
-
-	if (cTempData > MAX_VALUE_LENGTH)
-	{
-		cTempData = MAX_VALUE_LENGTH;
-	}
-
-		dwError = LwAllocateMemory(cTempData*sizeof(WCHAR), &pTempData);
-		BAIL_ON_REG_ERROR(dwError);
-    }
-
-	dwError = RegTransactGetValueW(
-        hRegConnection,
-        hKey,
-        pwszSubKey,
-        pwszValueName,
-        Flags,
-        &dwType,
-        pTempData,
-        &cTempData);
-	BAIL_ON_REG_ERROR(dwError);
-
-	if (!pTempData)
-	{
-		goto done;
-	}
-
-	if (REG_SZ == dwType)
-	{
-		dwError = LwWc16sToMbs((PCWSTR)pTempData, (PSTR*)&pValue);
-		BAIL_ON_REG_ERROR(dwError);
-
-		cTempData = strlen((PSTR)pValue) + 1;
-	}
-	else if (REG_MULTI_SZ == dwType)
-	{
-		dwError = RegConvertByteStreamW2A((PBYTE)pTempData,
-				                           cTempData,
-				                           &pValue,
-				                           &cTempData);
-		BAIL_ON_REG_ERROR(dwError);
-	}
-	else
-	{
-		dwError = LwAllocateMemory(cTempData, (LW_PVOID*)&pValue);
-		BAIL_ON_REG_ERROR(dwError);
-
-		memcpy(pValue, pTempData, cTempData);
-	}
-
-    if (pvData)
-    {
-	memcpy(pvData, pValue, cTempData);
-    }
-
-done:
-    if (pdwType)
-    {
-        *pdwType = dwType;
-    }
-
-    if (pcbData)
-    {
-	*pcbData = cTempData;
-    }
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
-    LW_SAFE_FREE_MEMORY(pwszValueName);
-    LW_SAFE_FREE_MEMORY(pTempData);
-    LW_SAFE_FREE_MEMORY(pValue);
-
-    return dwError;
-
-error:
-    if (pdwType)
-    {
-        *pdwType = REG_UNKNOWN;
-    }
-
-    if (pcbData)
-    {
-	    *pcbData = 0;
-    }
-
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegGetValueA(
+	         hRegConnection,
+			 hKey,
+			 pszSubKey,
+			 pszValueName,
+			 Flags,
+			 pdwType,
+			 pvData,
+			 pcbData)
+		    );
 }
 
 REG_API
@@ -818,23 +442,24 @@ RegGetValueW(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
+    IN OPTIONAL PCWSTR pValueName,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT OPTIONAL PDWORD pdwType,
     OUT OPTIONAL PVOID pvData,
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-    return RegTransactGetValueW(
-        hRegConnection,
-        hKey,
-        pSubKey,
-        pValue,
-        Flags,
-        pdwType,
-        pvData,
-        pcbData
-        );
+    return RegNtStatusToWin32Error(
+		NtRegGetValueW(
+	         hRegConnection,
+			 hKey,
+			 pSubKey,
+			 pValueName,
+			 Flags,
+			 pdwType,
+			 pvData,
+			 pcbData)
+		    );
 }
 
 REG_API
@@ -848,32 +473,15 @@ RegOpenKeyExA(
     OUT PHKEY phkResult
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszSubKey = NULL;
-
-    if (pszSubKey)
-    {
-        dwError = LwMbsToWc16s(pszSubKey,
-                               &pwszSubKey);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-	dwError = RegTransactOpenKeyExW(
-        hRegConnection,
-        hKey,
-        pwszSubKey,
-        ulOptions,
-        samDesired,
-        phkResult);
-	BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszSubKey);
-
-    return dwError;
-
-error:
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegOpenKeyExA(
+	         hRegConnection,
+			 hKey,
+			 pszSubKey,
+			 ulOptions,
+			 samDesired,
+			 phkResult)
+		    );
 }
 
 REG_API
@@ -887,14 +495,15 @@ RegOpenKeyExW(
     OUT PHKEY phkResult
     )
 {
-    return RegTransactOpenKeyExW(
-        hRegConnection,
-        hKey,
-        pSubKey,
-        ulOptions,
-        samDesired,
-        phkResult
-        );
+    return RegNtStatusToWin32Error(
+		NtRegOpenKeyExW(
+	         hRegConnection,
+			 hKey,
+			 pSubKey,
+			 ulOptions,
+			 samDesired,
+			 phkResult)
+		    );
 }
 
 REG_API
@@ -915,93 +524,22 @@ RegQueryInfoKeyA(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszClass = NULL;
-    DWORD dwIndex = 0;
-    DWORD cValues = 0;
-    DWORD cbData = 0;
-    DWORD cMaxValueLen = 0;
-    CHAR valueName[MAX_KEY_LENGTH] = {0};
-    DWORD cValueName = MAX_KEY_LENGTH;
-
-    if (pcClass)
-    {
-        if (*pcClass == 0)
-        {
-		dwError = LW_ERROR_INSUFFICIENT_BUFFER;
-		BAIL_ON_REG_ERROR(dwError);
-        }
-
-        dwError = LwAllocateMemory(*pcClass*sizeof(WCHAR), (LW_PVOID*)&pwszClass);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-	dwError = RegQueryInfoKeyW(
-        hRegConnection,
-        hKey,
-        pwszClass,
-        pcClass,
-        pReserved,
-        pcSubKeys,
-        pcMaxSubKeyLen,
-        pcMaxClassLen,
-        &cValues,
-        pcMaxValueNameLen,
-        NULL,
-        pcbSecurityDescriptor,
-        pftLastWriteTime);
-	BAIL_ON_REG_ERROR(dwError);
-
-	for (; dwIndex < cValues; dwIndex++)
-	{
-		memset(valueName, 0, MAX_KEY_LENGTH);
-		cValueName = MAX_KEY_LENGTH;
-		cbData = 0;
-
-		dwError = RegEnumValueA(hRegConnection,
-				                hKey,
-				                dwIndex,
-				                valueName,
-				                &cValueName,
-				                NULL,
-				                NULL,
-		                        NULL,
-		                        &cbData);
-		BAIL_ON_REG_ERROR(dwError);
-
-		if (cMaxValueLen < cbData)
-		{
-			cMaxValueLen = cbData;
-		}
-	}
-
-	if (pcValues)
-	{
-		*pcValues = cValues;
-	}
-
-	if (pcMaxValueLen)
-	{
-		*pcMaxValueLen = cMaxValueLen;
-	}
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszClass);
-
-    return dwError;
-
-error:
-    if (pcValues)
-    {
-	    *pcValues = 0;
-    }
-
-    if (pcMaxValueLen)
-    {
-	    *pcMaxValueLen = 0;
-    }
-
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegQueryInfoKeyA(
+	         hRegConnection,
+			 hKey,
+			 pszClass,
+			 pcClass,
+			 pReserved,
+			 pcSubKeys,
+			 pcMaxSubKeyLen,
+			 pcMaxClassLen,
+			 pcValues,
+			 pcMaxValueNameLen,
+			 pcMaxValueLen,
+			 pcbSecurityDescriptor,
+			 pftLastWriteTime)
+		    );
 }
 
 REG_API
@@ -1022,21 +560,22 @@ RegQueryInfoKeyW(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-    return RegTransactQueryInfoKeyW(
-        hRegConnection,
-        hKey,
-        pClass,
-        pcClass,
-        pReserved,
-        pcSubKeys,
-        pcMaxSubKeyLen,
-        pcMaxClassLen,
-        pcValues,
-        pcMaxValueNameLen,
-        pcMaxValueLen,
-        pcbSecurityDescriptor,
-        pftLastWriteTime
-        );
+    return RegNtStatusToWin32Error(
+		NtRegQueryInfoKeyW(
+	         hRegConnection,
+			 hKey,
+			 pClass,
+			 pcClass,
+			 pReserved,
+			 pcSubKeys,
+			 pcMaxSubKeyLen,
+			 pcMaxClassLen,
+			 pcValues,
+			 pcMaxValueNameLen,
+			 pcMaxValueLen,
+			 pcbSecurityDescriptor,
+			 pftLastWriteTime)
+		    );
 }
 
 REG_API
@@ -1050,14 +589,15 @@ RegQueryMultipleValues(
     IN OUT OPTIONAL PDWORD dwTotsize
     )
 {
-    return RegTransactQueryMultipleValues(
-        hRegConnection,
-        hKey,
-        val_list,
-        num_vals,
-        pValueBuf,
-        dwTotsize
-        );
+    return RegNtStatusToWin32Error(
+		NtRegQueryMultipleValues(
+	         hRegConnection,
+			 hKey,
+			 val_list,
+			 num_vals,
+			 pValueBuf,
+			 dwTotsize)
+		    );
 }
 
 REG_API
@@ -1072,14 +612,16 @@ RegQueryValueExA(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-	return RegGetValueA(hRegConnection,
-			            hKey,
-			            NULL,
-			            pszValueName,
-			            RRF_RT_REG_NONE,
-			            pType,
-			            pData,
-			            pcbData);
+    return RegNtStatusToWin32Error(
+		NtRegQueryValueExA(
+	         hRegConnection,
+			 hKey,
+			 pszValueName,
+			 pReserved,
+			 pType,
+			 pData,
+			 pcbData)
+		    );
 }
 
 REG_API
@@ -1094,14 +636,16 @@ RegQueryValueExW(
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
-	return RegGetValueW(hRegConnection,
-			            hKey,
-			            NULL,
-			            pValueName,
-			            RRF_RT_REG_NONE,
-			            pType,
-			            pData,
-			            pcbData);
+    return RegNtStatusToWin32Error(
+		NtRegQueryValueExW(
+	         hRegConnection,
+			 hKey,
+			 pValueName,
+			 pReserved,
+			 pType,
+			 pData,
+			 pcbData)
+		    );
 }
 
 REG_API
@@ -1116,59 +660,16 @@ RegSetValueExA(
     IN DWORD cbData
     )
 {
-    DWORD dwError = 0;
-    PWSTR pwszValueName = NULL;
-    PBYTE   pOutData = NULL;
-    DWORD   cbOutDataLen = 0;
-    BOOLEAN bIsStrType = FALSE;
-
-    if (pszValueName)
-    {
-        dwError = LwMbsToWc16s(pszValueName,
-                               &pwszValueName);
-        BAIL_ON_REG_ERROR(dwError);
-    }
-
-    if (pData)
-    {
-	if (REG_MULTI_SZ == dwType)
-	{
-		dwError = RegConvertByteStreamA2W((PBYTE)pData,
-				                          cbData,
-				                          &pOutData,
-				                          &cbOutDataLen);
-		BAIL_ON_REG_ERROR(dwError);
-
-		bIsStrType = TRUE;
-	}
-	else if (REG_SZ == dwType)
-	{
-		dwError = LwMbsToWc16s((PCSTR)pData, (PWSTR*)&pOutData);
-		BAIL_ON_REG_ERROR(dwError);
-
-		cbOutDataLen = cbData*sizeof(WCHAR);
-
-		bIsStrType = TRUE;
-	}
-    }
-
-    dwError = RegTransactSetValueExW(
-            hRegConnection,
-            hKey,
-            pwszValueName,
-            Reserved,
-            dwType,
-            bIsStrType ? pOutData : pData,
-            bIsStrType ? cbOutDataLen : cbData);
-    BAIL_ON_REG_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pwszValueName);
-    LW_SAFE_FREE_MEMORY(pOutData);
-
-    return dwError;
-error:
-    goto cleanup;
+    return RegNtStatusToWin32Error(
+		NtRegSetValueExA(
+	         hRegConnection,
+			 hKey,
+			 pszValueName,
+			 Reserved,
+			 dwType,
+			 pData,
+			 cbData)
+		    );
 }
 
 REG_API
@@ -1183,17 +684,20 @@ RegSetValueExW(
     IN DWORD cbData
     )
 {
-    return RegTransactSetValueExW(
-        hRegConnection,
-        hKey,
-        pValueName,
-        Reserved,
-        dwType,
-        pData,
-        cbData
-        );
+    return RegNtStatusToWin32Error(
+		NtRegSetValueExW(
+	         hRegConnection,
+			 hKey,
+			 pValueName,
+			 Reserved,
+			 dwType,
+			 pData,
+			 cbData)
+		    );
 }
 
+//Obsolete API
+#if 0
 REG_API
 DWORD
 RegSetKeyValue(
@@ -1206,14 +710,16 @@ RegSetKeyValue(
     IN DWORD cbData
     )
 {
-    return RegTransactSetKeyValue(
-        hRegConnection,
-        hKey,
-        lpSubKey,
-        lpValueName,
-        dwType,
-        lpData,
-        cbData
-        );
+    return RegNtStatusToWin32Error(
+		NtRegSetKeyValue(
+	         hRegConnection,
+			 hKey,
+			 lpSubKey,
+			 lpValueName,
+			 dwType,
+			 lpData,
+			 cbData)
+		    );
 }
+#endif
 

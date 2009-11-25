@@ -7,6 +7,19 @@
 
 static LWMsgProtocol* protocol = NULL;
 
+static
+void
+__attribute__((destructor))
+free_protocol(
+    void
+    )
+{
+    if (protocol)
+    {
+        lwmsg_protocol_delete(protocol);
+    }
+}
+
 /* Connect to local fserv */
 int
 fserv_connect(

@@ -23,6 +23,7 @@ namespace Likewise.LMC.FileClient
         ERROR_INVALID_PASSWORD = 86,
         ERROR_INVALID_PARAMETER = 87,
         ERROR_BUSY = 170,
+        ERROR_ALREADY_EXISTS = 183,
         ERROR_MORE_DATA = 234,
         ERROR_NO_MORE_ITEMS = 259,
         ERROR_INVALID_ADDRESS = 487,
@@ -141,38 +142,6 @@ namespace Likewise.LMC.FileClient
         public uint dwHighDateTime;
     };
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    public struct WIN32_FIND_DATA
-    {
-        public FILE_ATTRIBUTE dwFileAttributes;
-        public FILETIME ftCreationTime;
-        public FILETIME ftLastAccessTime;
-        public FILETIME ftLastWriteTime;
-        public UInt32 nFileSizeHigh;
-        public UInt32 nFileSizeLow;
-        public UInt32 dwReserved0;
-        public UInt32 dwReserved1;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] // public const int MAX_PATH = 260;
-        public string cFileName;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 14)] // public const int MAX_ALTERNATE = 14;
-        public string cAlternate;
-    };
-
-	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    public struct LIKEWISE_FIND_DATA
-    {
-        public FILE_ATTRIBUTE dwFileAttributes;
-        public UInt64 time_tCreationTime;
-        public UInt64 time_tLastAccessTime;
-        public UInt64 time_tLastWriteTime;
-        public UInt32 nFileSizeHigh;
-        public UInt32 nFileSizeLow;
-        public UInt32 dwReserved0;
-        public UInt32 dwReserved1;
-        public string FileName;
-        public string Alternate;
-    };
-
     public struct SYSTEMTIME
     {
         public Int16 wYear;
@@ -196,6 +165,10 @@ namespace Likewise.LMC.FileClient
         {
         }
 
+        /*
+         * SetWindowsPlatform - Tells this library class to use Windows specific interop calls,
+         * default is to call Likewise functions.
+         */
         public static void SetWindowsPlatform(
             )
         {
@@ -204,84 +177,43 @@ namespace Likewise.LMC.FileClient
 
         #region Copy/Delete/Move File APIs
 
-		public static WinError apiCreateDirectory(
-		       string lpDirectoryName
-		       )
-		{
-		    bool created = false;
+        /*
+         * CreateDirectory - Creates a new directory file on a local or remote file system.
+         */
+        public static WinError CreateDirectory(
+            string lpDirectoryName
+            )
+        {
+            bool created = false;
             WinError error = 0;
-			IntPtr securityDescriptor = new IntPtr(0);
+            IntPtr securityDescriptor = new IntPtr(0);
 
             if (useWindowsDlls)
             {
                 created = InteropWindows.CreateDirectory(lpDirectoryName, securityDescriptor);
+
+                if (!created)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
-                created = InteropLikewise.CreateDirectory(lpDirectoryName, securityDescriptor);
-            }
+                created = InteropLikewise.CreateDirectory(lpDirectoryName);
 
-            if (!created)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
-            }
-
-            return error;
-		}
-
-		public static WinError apiCopyDirectory(
-               string lpExistingDirectoryName,
-               string lpNewDirectoryName,
-               bool bFailIfExists
-            )
-        {
-			WinError dwError = WinError.NO_ERROR;
-            bool copied = false;
-
-            if (useWindowsDlls)
-            {
-                copied = InteropWindows.CopyFile(lpExistingDirectoryName, lpNewDirectoryName, bFailIfExists);
-            }
-            else
-            {
-                copied = InteropLikewise.CopyFile(lpExistingDirectoryName, lpNewDirectoryName, bFailIfExists);
-            }
-
-            if (!copied)
-            {
-                dwError = (WinError)Marshal.GetLastWin32Error();
-            }
-
-            return dwError;
-        }
-
-        public static WinError apiCopyFile(
-            string lpExistingFileName,
-            string lpNewFileName,
-            bool bFailIfExists
-            )
-        {
-            bool copied = false;
-            WinError error = 0;
-
-            if (useWindowsDlls)
-            {
-                copied = InteropWindows.CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
-            }
-            else
-            {
-                copied = InteropLikewise.CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
-            }
-
-            if (!copied)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!created)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
         }
 
-        public static WinError apiRemoveDirectory(
+        /*
+         * RemoveDirectory - Removes an empty directory file from a local or remote file system.
+         */
+        public static WinError RemoveDirectory(
             string lpDirectoryName
             )
         {
@@ -290,70 +222,57 @@ namespace Likewise.LMC.FileClient
 
             if (useWindowsDlls)
             {
-                deleted = InteropWindows.DeleteFile(lpDirectoryName);
+                deleted = InteropWindows.RemoveDirectory(lpDirectoryName);
+
+                if (!deleted)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
-                deleted = InteropLikewise.DeleteFile(lpDirectoryName);
-            }
+                deleted = InteropLikewise.RemoveDirectory(lpDirectoryName);
 
-            if (!deleted)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!deleted)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
         }
 
-        public static WinError apiDeleteFile(
-            string lpFileName
+        /*
+         * CopyDirectory - Copies full file directory contents to and from a local or
+         * remote file system (via recursive create folder/copy file).
+         */
+        public static WinError CopyDirectory(
+            string lpSourceParentPath,
+            string lpDestParentPath,
+            string lpSourceDirectoryName,
+            string lpDestDirectoryName,
+            bool copyHiddenFiles
             )
         {
-            bool deleted = false;
-            WinError error = 0;
-
-            if (useWindowsDlls)
-            {
-                deleted = InteropWindows.DeleteFile(lpFileName);
-            }
-            else
-            {
-                deleted = InteropLikewise.DeleteFile(lpFileName);
-            }
-
-            if (!deleted)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
-            }
-
-            return error;
-        }
-
-        private static WinError apiMoveDirectory_Recursive(
-		    string lpSourceParentPath,
-		    string lpDestParentPath,
-            string lpDirectoryName,
-		    bool moveHiddenFiles
-            )
-        {
-			WinError dwError = WinError.NO_ERROR;
+            WinError dwError = WinError.NO_ERROR;
             IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-            WIN32_FIND_DATA WinFindFileData = new WIN32_FIND_DATA();
-			LIKEWISE_FIND_DATA LwFindFileData = new LIKEWISE_FIND_DATA();
-			string PathSeparator = useWindowsDlls ? "\\" : "/";
-            bool success = false;
-			string sourceDir = lpSourceParentPath + PathSeparator + lpDirectoryName;
-			string destDir = lpDestParentPath + PathSeparator + lpDirectoryName;
-			string search = sourceDir + PathSeparator + "*";
-
-			// Create the destination directory
-			dwError = apiCreateDirectory(lpDestParentPath);
-			if (dwError != WinError.NO_ERROR)
-			{
-				goto error;
-			}
-
             IntPtr handle = INVALID_HANDLE_VALUE;
+            Likewise.LMC.FileClient.InteropWindows.WIN32_FIND_DATA WinFindFileData =
+                new Likewise.LMC.FileClient.InteropWindows.WIN32_FIND_DATA();
+            Likewise.LMC.FileClient.InteropLikewise.LIKEWISE_FIND_DATA LwFindFileData =
+                new Likewise.LMC.FileClient.InteropLikewise.LIKEWISE_FIND_DATA();
+            string PathSeparator = useWindowsDlls ? "\\" : "/";
+            bool success = false;
+            string sourceDir = lpSourceParentPath + PathSeparator + lpSourceDirectoryName;
+            string destDir = lpDestParentPath + PathSeparator + lpDestDirectoryName;
+            string search = sourceDir + PathSeparator + "*";
+
+            // Create the destination directory
+            dwError = CreateDirectory(destDir);
+            if (dwError != WinError.NO_ERROR)
+            {
+                goto error;
+            }
 
             if (useWindowsDlls)
             {
@@ -373,18 +292,18 @@ namespace Likewise.LMC.FileClient
             {
                 FileItem file = new FileItem();
 
-				if (useWindowsDlls)
-				{
+                if (useWindowsDlls)
+                {
                     file.FileName = WinFindFileData.cFileName;
                     file.Alternate = WinFindFileData.cAlternate;
-				}
-				else
-				{
-					file.FileName = LwFindFileData.FileName;
+                }
+                else
+                {
+                    file.FileName = LwFindFileData.FileName;
                     file.Alternate = LwFindFileData.Alternate;
-				}
+                }
 
-				// Skip to next item, dont need to move these
+                // Skip to next item, dont need to move these
                 if (String.Compare(file.FileName, ".") == 0 ||
                     String.Compare(file.FileName, "..") == 0)
                 {
@@ -399,7 +318,177 @@ namespace Likewise.LMC.FileClient
                     continue;
                 }
 
-				// Skip to next item if we dont want hidden items
+                // Skip to next item if we dont want hidden items
+                if (!copyHiddenFiles &&
+                    file.FileName[0] == '.')
+                {
+                    if (useWindowsDlls)
+                    {
+                        success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
+                    }
+                    else
+                    {
+                        success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
+                    }
+                    continue;
+                }
+
+                // Determine file type
+                if (useWindowsDlls)
+                {
+                    if ((WinFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
+                    {
+                        file.IsDirectory = true;
+                    }
+                }
+                else
+                {
+                    if ((LwFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
+                    {
+                        file.IsDirectory = true;
+                    }
+                }
+
+                // Copy current item to new folder
+                if (file.IsDirectory)
+                {
+                    dwError = CopyDirectory(sourceDir, destDir, file.FileName, file.FileName, copyHiddenFiles);
+                    if (dwError != WinError.NO_ERROR)
+                    {
+                        goto error;
+                    }
+                }
+                else
+                {
+                    string sourceFile = sourceDir + PathSeparator + file.FileName;
+                    string destFile = destDir + PathSeparator + file.FileName;
+                    dwError = CopyFile(sourceFile, destFile, true);
+                    if (dwError != WinError.NO_ERROR)
+                    {
+                        goto error;
+                    }
+                }
+
+                // Get next item
+                if (useWindowsDlls)
+                {
+                    success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
+                }
+                else
+                {
+                    success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
+                }
+            }
+
+            if (useWindowsDlls)
+            {
+                success = InteropWindows.FindClose(handle);
+            }
+            else
+            {
+                success = InteropLikewise.FindClose(handle);
+            }
+
+            handle = INVALID_HANDLE_VALUE;
+
+        cleanup:
+
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                if (useWindowsDlls)
+                {
+                    success = InteropWindows.FindClose(handle);
+                }
+                else
+                {
+                    success = InteropLikewise.FindClose(handle);
+                }
+            }
+
+            return dwError;
+
+        error:
+
+            goto cleanup;
+        }
+
+        /*
+         * MoveDirectory - Moves the full file directory contents to and from a local or
+         * remote file system (via recursive create folder/copy file/delete original).
+         */
+        public static WinError MoveDirectory(
+            string lpSourceParentPath,
+            string lpDestParentPath,
+            string lpSourceDirectoryName,
+            string lpDestDirectoryName,
+            bool moveHiddenFiles
+            )
+        {
+            WinError dwError = WinError.NO_ERROR;
+            IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+            IntPtr handle = INVALID_HANDLE_VALUE;
+            Likewise.LMC.FileClient.InteropWindows.WIN32_FIND_DATA WinFindFileData =
+                new Likewise.LMC.FileClient.InteropWindows.WIN32_FIND_DATA();
+            Likewise.LMC.FileClient.InteropLikewise.LIKEWISE_FIND_DATA LwFindFileData =
+                new Likewise.LMC.FileClient.InteropLikewise.LIKEWISE_FIND_DATA();
+            string PathSeparator = useWindowsDlls ? "\\" : "/";
+            bool success = false;
+            string sourceDir = lpSourceParentPath + PathSeparator + lpSourceDirectoryName;
+            string destDir = lpDestParentPath + PathSeparator + lpDestDirectoryName;
+            string search = sourceDir + PathSeparator + "*";
+
+            // Create the destination directory
+            dwError = CreateDirectory(destDir);
+            if (dwError != WinError.NO_ERROR)
+            {
+                goto error;
+            }
+
+            if (useWindowsDlls)
+            {
+                handle = InteropWindows.FindFirstFileW(search, ref WinFindFileData);
+            }
+            else
+            {
+                handle = InteropLikewise.FindFirstFile(search, ref LwFindFileData);
+            }
+
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                success = true;
+            }
+
+            while (success)
+            {
+                FileItem file = new FileItem();
+
+                if (useWindowsDlls)
+                {
+                    file.FileName = WinFindFileData.cFileName;
+                    file.Alternate = WinFindFileData.cAlternate;
+                }
+                else
+                {
+                    file.FileName = LwFindFileData.FileName;
+                    file.Alternate = LwFindFileData.Alternate;
+                }
+
+                // Skip to next item, dont need to move these
+                if (String.Compare(file.FileName, ".") == 0 ||
+                    String.Compare(file.FileName, "..") == 0)
+                {
+                    if (useWindowsDlls)
+                    {
+                        success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
+                    }
+                    else
+                    {
+                        success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
+                    }
+                    continue;
+                }
+
+                // Skip to next item if we dont want hidden items
                 if (!moveHiddenFiles &&
                     file.FileName[0] == '.')
                 {
@@ -414,43 +503,43 @@ namespace Likewise.LMC.FileClient
                     continue;
                 }
 
-				// Determine file type
-				if (useWindowsDlls)
-				{
+                // Determine file type
+                if (useWindowsDlls)
+                {
                     if ((WinFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
                     {
                         file.IsDirectory = true;
                     }
-				}
-				else
-				{
+                }
+                else
+                {
                     if ((LwFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
                     {
                         file.IsDirectory = true;
                     }
-				}
+                }
 
-				// Move current item to new folder
+                // Move current item to new folder
                 if (file.IsDirectory)
-				{
-					dwError = apiMoveDirectory_Recursive(sourceDir, destDir, file.FileName, moveHiddenFiles);
-					if (dwError != WinError.NO_ERROR)
-					{
-						goto error;
-					}
-				}
-				else
-				{
-					string sourceFile = sourceDir + PathSeparator + file.FileName;
-					string destFile = destDir + PathSeparator + file.FileName;
-					dwError = apiMoveFile(sourceFile, destFile);
-					if (dwError != WinError.NO_ERROR)
-					{
-						goto error;
-					}
-				}
+                {
+                    dwError = MoveDirectory(sourceDir, destDir, file.FileName, file.FileName, moveHiddenFiles);
+                    if (dwError != WinError.NO_ERROR)
+                    {
+                        goto error;
+                    }
+                }
+                else
+                {
+                    string sourceFile = sourceDir + PathSeparator + file.FileName;
+                    string destFile = destDir + PathSeparator + file.FileName;
+                    dwError = MoveFile(sourceFile, destFile);
+                    if (dwError != WinError.NO_ERROR)
+                    {
+                        goto error;
+                    }
+                }
 
-				// Get next item
+                // Get next item
                 if (useWindowsDlls)
                 {
                     success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
@@ -461,39 +550,264 @@ namespace Likewise.LMC.FileClient
                 }
             }
 
-			dwError = apiRemoveDirectory(sourceDir);
-			if (dwError != WinError.NO_ERROR)
-			{
-				goto error;
-			}
+            if (useWindowsDlls)
+            {
+                success = InteropWindows.FindClose(handle);
+            }
+            else
+            {
+                success = InteropLikewise.FindClose(handle);
+            }
 
-		 cleanup:
+            handle = INVALID_HANDLE_VALUE;
 
-			return dwError;
+            dwError = RemoveDirectory(sourceDir);
+            if (dwError != WinError.NO_ERROR)
+            {
+                goto error;
+            }
 
-		 error:
-			goto cleanup;
-        }
+        cleanup:
 
-        public static WinError apiMoveDirectory(
-            string lpExistingDirectoryName,
-            string lpNewDirectoryName
-            )
-        {
-			WinError dwError = WinError.NO_ERROR;
-		    //string[] sourceParentPathParts = lpExistingDirectoryName;
-			//string[] destParentPathParts = lpNewDirectoryName;
-
-			dwError = apiMoveDirectory_Recursive(
-		        "/home/glenncurtis/foo",
-		        "/home/glenncurtis/bar",
-                "cat",
-		        true);
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                if (useWindowsDlls)
+                {
+                    success = InteropWindows.FindClose(handle);
+                }
+                else
+                {
+                    success = InteropLikewise.FindClose(handle);
+                }
+            }
 
             return dwError;
+
+        error:
+
+            goto cleanup;
         }
 
-        public static WinError apiMoveFile(
+        /*
+         * DeleteDirectory - Deletes a directory and it's contents from a local or
+         * remote file system (via recusive delete file/directory).
+         */
+        public static WinError DeleteDirectory(
+            string lpDirectoryPath
+            )
+        {
+            WinError dwError = WinError.NO_ERROR;
+            IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+            IntPtr handle = INVALID_HANDLE_VALUE;
+            Likewise.LMC.FileClient.InteropWindows.WIN32_FIND_DATA WinFindFileData =
+                new Likewise.LMC.FileClient.InteropWindows.WIN32_FIND_DATA();
+            Likewise.LMC.FileClient.InteropLikewise.LIKEWISE_FIND_DATA LwFindFileData =
+                new Likewise.LMC.FileClient.InteropLikewise.LIKEWISE_FIND_DATA();
+            string PathSeparator = useWindowsDlls ? "\\" : "/";
+            bool success = false;
+            string search = lpDirectoryPath + PathSeparator + "*";
+
+            if (useWindowsDlls)
+            {
+                handle = InteropWindows.FindFirstFileW(search, ref WinFindFileData);
+            }
+            else
+            {
+                handle = InteropLikewise.FindFirstFile(search, ref LwFindFileData);
+            }
+
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                success = true;
+            }
+            else
+            {
+                goto cleanup;
+            }
+
+            while (success)
+            {
+                FileItem file = new FileItem();
+
+                if (useWindowsDlls)
+                {
+                    file.FileName = WinFindFileData.cFileName;
+                    file.Alternate = WinFindFileData.cAlternate;
+                }
+                else
+                {
+                    file.FileName = LwFindFileData.FileName;
+                    file.Alternate = LwFindFileData.Alternate;
+                }
+
+                // Skip to next item, dont need to move these
+                if (String.Compare(file.FileName, ".") == 0 ||
+                    String.Compare(file.FileName, "..") == 0)
+                {
+                    if (useWindowsDlls)
+                    {
+                        success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
+                    }
+                    else
+                    {
+                        success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
+                    }
+                    continue;
+                }
+
+                // Determine file type
+                if (useWindowsDlls)
+                {
+                    if ((WinFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
+                    {
+                        file.IsDirectory = true;
+                    }
+                }
+                else
+                {
+                    if ((LwFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
+                    {
+                        file.IsDirectory = true;
+                    }
+                }
+
+                // Delete current item
+                if (file.IsDirectory)
+                {
+                    dwError = DeleteDirectory(lpDirectoryPath + PathSeparator + file.FileName);
+                    if (dwError != WinError.NO_ERROR)
+                    {
+                        goto error;
+                    }
+                }
+                else
+                {
+                    dwError = DeleteFile(lpDirectoryPath + PathSeparator + file.FileName);
+                    if (dwError != WinError.NO_ERROR)
+                    {
+                        goto error;
+                    }
+                }
+
+                // Get next item
+                if (useWindowsDlls)
+                {
+                    success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
+                }
+                else
+                {
+                    success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
+                }
+            }
+
+            if (useWindowsDlls)
+            {
+                success = InteropWindows.FindClose(handle);
+            }
+            else
+            {
+                success = InteropLikewise.FindClose(handle);
+            }
+
+            handle = INVALID_HANDLE_VALUE;
+
+            dwError = RemoveDirectory(lpDirectoryPath);
+            if (dwError != WinError.NO_ERROR)
+            {
+                goto error;
+            }
+
+        cleanup:
+
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                if (useWindowsDlls)
+                {
+                    success = InteropWindows.FindClose(handle);
+                }
+                else
+                {
+                    success = InteropLikewise.FindClose(handle);
+                }
+            }
+
+            return dwError;
+
+        error:
+
+            goto cleanup;
+        }
+
+        /*
+         * DeleteFile - Deletes a file from a local or remote file system.
+         */
+        public static WinError DeleteFile(
+            string lpFileName
+            )
+        {
+            bool deleted = false;
+            WinError error = 0;
+
+            if (useWindowsDlls)
+            {
+                deleted = InteropWindows.DeleteFile(lpFileName);
+
+                if (!deleted)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
+            }
+            else
+            {
+                deleted = InteropLikewise.DeleteFile(lpFileName);
+
+                if (!deleted)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
+            }
+
+            return error;
+        }
+
+        /*
+         * CopyFile - Copy a file to/from a local or remote file system.
+         */
+        public static WinError CopyFile(
+            string lpExistingFileName,
+            string lpNewFileName,
+            bool bFailIfExists
+            )
+        {
+            bool copied = false;
+            WinError error = 0;
+
+            if (useWindowsDlls)
+            {
+                copied = InteropWindows.CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
+
+                if (!copied)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
+            }
+            else
+            {
+                copied = InteropLikewise.CopyFile(lpExistingFileName, lpNewFileName, bFailIfExists);
+
+                if (!copied)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
+            }
+
+            return error;
+        }
+
+        /*
+         * MoveFile - Move a file to/from a local or remote file system.
+         */
+        public static WinError MoveFile(
             string lpExistingFileName,
             string lpNewFileName
             )
@@ -504,40 +818,20 @@ namespace Likewise.LMC.FileClient
             if (useWindowsDlls)
             {
                 moved = InteropWindows.MoveFile(lpExistingFileName, lpNewFileName);
+
+                if (!moved)
+                {
+                    error = (WinError)Marshal.GetLastWin32Error();
+                }
             }
             else
             {
                 moved = InteropLikewise.MoveFile(lpExistingFileName, lpNewFileName);
-            }
 
-            if (!moved)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
-            }
-
-            return error;
-        }
-
-        public static WinError apiRename(
-            string lpOldName,
-		    string lpNewName
-            )
-        {
-            bool renamed = false;
-            WinError error = 0;
-
-            if (useWindowsDlls)
-            {
-                renamed = InteropWindows.Rename(lpOldName, lpNewName);
-            }
-            else
-            {
-                renamed = InteropLikewise.Rename(lpOldName, lpNewName);
-            }
-
-            if (!renamed)
-            {
-                error = (WinError)Marshal.GetLastWin32Error();
+                if (!moved)
+                {
+                    error = (WinError)InteropLikewise.GetLastError();
+                }
             }
 
             return error;
@@ -547,6 +841,11 @@ namespace Likewise.LMC.FileClient
 
         #region Local and Connected Share File Enumeration APIs
 
+        /*
+         * EnumFiles - Lists all files and directories under a given path location for a local or
+         * remote file system (one level). FileItem list returned details each file type, name,
+         * size, created/modified/accessed times.
+         */
         public static List<FileItem> EnumFiles(
             string filepath,
             bool showHiddenFiles
@@ -554,21 +853,23 @@ namespace Likewise.LMC.FileClient
         {
             List<FileItem> Files = new List<FileItem>();
             IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-            WIN32_FIND_DATA WinFindFileData = new WIN32_FIND_DATA();
-			LIKEWISE_FIND_DATA LwFindFileData = new LIKEWISE_FIND_DATA();
+            Likewise.LMC.FileClient.InteropWindows.WIN32_FIND_DATA WinFindFileData =
+                new Likewise.LMC.FileClient.InteropWindows.WIN32_FIND_DATA();
+            Likewise.LMC.FileClient.InteropLikewise.LIKEWISE_FIND_DATA LwFindFileData =
+                new Likewise.LMC.FileClient.InteropLikewise.LIKEWISE_FIND_DATA();
             bool success = false;
             string search = null;
-			UInt64 size = 0;
+            UInt64 size = 0;
             UInt64 extra = 0;
 
-			if (useWindowsDlls)
-			{
-				search = filepath + "\\*";
-			}
-			else
-			{
-				search = filepath + "/*";
-			}
+            if (useWindowsDlls)
+            {
+                search = filepath + "\\*";
+            }
+            else
+            {
+                search = filepath + "/*";
+            }
 
             IntPtr handle = INVALID_HANDLE_VALUE;
 
@@ -590,16 +891,16 @@ namespace Likewise.LMC.FileClient
             {
                 FileItem file = new FileItem();
 
-				if (useWindowsDlls)
-				{
+                if (useWindowsDlls)
+                {
                     file.FileName = WinFindFileData.cFileName;
                     file.Alternate = WinFindFileData.cAlternate;
-				}
-				else
-				{
-					file.FileName = LwFindFileData.FileName;
+                }
+                else
+                {
+                    file.FileName = LwFindFileData.FileName;
                     file.Alternate = LwFindFileData.Alternate;
-				}
+                }
 
                 if (String.Compare(file.FileName, ".") == 0 ||
                     String.Compare(file.FileName, "..") == 0)
@@ -629,17 +930,17 @@ namespace Likewise.LMC.FileClient
                     continue;
                 }
 
-				if (useWindowsDlls)
-				{
+                if (useWindowsDlls)
+                {
                     size = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296)/1024;
                     extra = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296)%1024;
                     if ((WinFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
                     {
                         file.IsDirectory = true;
                     }
-				}
-				else
-				{
+                }
+                else
+                {
                     size = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296)/1024;
                     extra = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296)%1024;
 
@@ -647,7 +948,7 @@ namespace Likewise.LMC.FileClient
                     {
                         file.IsDirectory = true;
                     }
-				}
+                }
 
                 SYSTEMTIME created = new SYSTEMTIME();
                 SYSTEMTIME modified = new SYSTEMTIME();
@@ -665,7 +966,7 @@ namespace Likewise.LMC.FileClient
                 {
                     if (WinFindFileData.ftCreationTime.dwHighDateTime != 0 &&
                         WinFindFileData.ftCreationTime.dwLowDateTime != 0)
-				    {
+                    {
                         InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftCreationTime, ref created);
                     }
                 }
@@ -736,6 +1037,10 @@ namespace Likewise.LMC.FileClient
 
         #region Remote File Resource Enumeration APIs
 
+        /*
+         * CreateConnection - Adds a connection to a network SMB file share. Optional credentials
+         * can be passed, otherwise default will be used for connection.
+         */
         public static WinError CreateConnection(
             string networkName,
             string username,
@@ -763,6 +1068,9 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * DeleteConnection - Cancel a connection to a network SMB file share.
+         */
         public static WinError DeleteConnection(
             string networkName
             )
@@ -781,6 +1089,9 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * BeginEnumNetResources - Begin search for connections. Options to find connected, connectable, remembered locations.
+         */
         public static WinError BeginEnumNetResources(
             ResourceScope dwScope,
             ResourceType dwType,
@@ -809,6 +1120,9 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * EnumNetResources - Continue search for connections.
+         */
         public static WinError EnumNetResources(
             IntPtr enumHandle,
             out List<NETRESOURCE> NetResources
@@ -860,6 +1174,9 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * EndEnumNetResources - End search for connections.
+         */
         public static WinError EndEnumNetResources(
             IntPtr enumHandle
             )

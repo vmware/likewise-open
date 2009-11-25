@@ -55,7 +55,12 @@ SqliteProvider_Initialize(
     const PSTR* ppszRootKeyNames
     );
 
-DWORD
+VOID
+SqliteProvider_Shutdown(
+    PREGPROV_PROVIDER_FUNCTION_TABLE pFnTable
+    );
+
+NTSTATUS
 SqliteCreateKeyEx(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -69,7 +74,7 @@ SqliteCreateKeyEx(
     OUT OPTIONAL PDWORD pdwDisposition
     );
 
-DWORD
+NTSTATUS
 SqliteOpenKeyEx(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -84,14 +89,14 @@ SqliteCloseKey(
     IN HKEY hKey
     );
 
-DWORD
+NTSTATUS
 SqliteDeleteKey(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN PCWSTR pSubKey
     );
 
-DWORD
+NTSTATUS
 SqliteEnumKeyEx(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -104,7 +109,7 @@ SqliteEnumKeyEx(
     OUT PFILETIME pftLastWriteTime
     );
 
-DWORD
+NTSTATUS
 SqliteSetValueEx(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -115,7 +120,7 @@ SqliteSetValueEx(
     DWORD cbData
     );
 
-DWORD
+NTSTATUS
 SqliteDeleteKeyValue(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -123,21 +128,21 @@ SqliteDeleteKeyValue(
     IN OPTIONAL PCWSTR pValueName
     );
 
-DWORD
+NTSTATUS
 SqliteDeleteValue(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pValueName
     );
 
-DWORD
+NTSTATUS
 SqliteDeleteTree(
     HANDLE Handle,
     HKEY hKey,
     PCWSTR pSubKey
     );
 
-DWORD
+NTSTATUS
 SqliteGetValue(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -149,7 +154,7 @@ SqliteGetValue(
     IN OUT OPTIONAL PDWORD pcbData
     );
 
-DWORD
+NTSTATUS
 SqliteQueryInfoKey(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -166,17 +171,7 @@ SqliteQueryInfoKey(
     OUT OPTIONAL PFILETIME pftLastWriteTime/*implement this later*/
     );
 
-DWORD
-SqliteQueryMultipleValues(
-    IN HANDLE Handle,
-    IN HKEY hKey,
-    IN OUT PVALENT pVal_list,
-    IN DWORD num_vals,
-    OUT PWSTR pValue,
-    OUT PDWORD pdwTotalsize
-    );
-
-DWORD
+NTSTATUS
 SqliteEnumValue(
     IN HANDLE Handle,
     IN HKEY hKey,
@@ -187,6 +182,17 @@ SqliteEnumValue(
     OUT OPTIONAL PDWORD pType,
     OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
+    );
+
+/* Obsolete API */
+NTSTATUS
+SqliteQueryMultipleValues(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OUT PVALENT pVal_list,
+    IN DWORD num_vals,
+    OUT PWSTR pValue,
+    OUT PDWORD pdwTotalsize
     );
 
 #endif /* SQLITEAPI_H_ */

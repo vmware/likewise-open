@@ -195,13 +195,6 @@ LwiauthConfFileToRegFile(
     memset(&PassInfoA, 0, sizeof(PassInfoA));
     memset(&PassInfoW, 0, sizeof(PassInfoW));
 
-    fp = fopen(pszRegFile, "w");
-    if (!fp)
-    {
-        dwError = LwMapErrnoToLwError(errno);
-    }
-    BAIL_ON_UP_ERROR(dwError);
-
     dwError = LwiSetConfigDefaults(&Config);
     BAIL_ON_UP_ERROR(dwError);
 
@@ -210,6 +203,13 @@ LwiauthConfFileToRegFile(
                 &LwiConfigSectionHandler,
                 &LwiConfigNameValuePair,
                 &Config);
+    BAIL_ON_UP_ERROR(dwError);
+
+    if (LW_IS_NULL_OR_EMPTY_STR(Config.pszRealm) ||
+        LW_IS_NULL_OR_EMPTY_STR(Config.pszWorkgroup))
+    {
+        dwError = LW_ERROR_NOT_JOINED_TO_AD;
+    }
     BAIL_ON_UP_ERROR(dwError);
 
     dwError = LwiGetMachineInformationA(&Config, pszSecretsFile, &PassInfoA);
@@ -227,12 +227,19 @@ LwiauthConfFileToRegFile(
     fprintf(stdout, "SchannelType:%lu\n", (unsigned long)PassInfoA.dwSchannelType);
 #endif
 
-    dwError = LwiAllocateMachineInformationContentsW(
+    dwError = UpAllocateMachineInformationContentsW(
                 &PassInfoA,
                 &PassInfoW);
     BAIL_ON_UP_ERROR(dwError);
 
     dwError = LwpsWritePasswordToAllStores(&PassInfoW);
+    BAIL_ON_UP_ERROR(dwError);
+
+    fp = fopen(pszRegFile, "w");
+    if (!fp)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+    }
     BAIL_ON_UP_ERROR(dwError);
 
     dwError = LwiConfigPrint(fp, &Config);
@@ -246,8 +253,8 @@ cleanup:
     }
 
     LwiConfigFreeContents(&Config);
-    LwiFreeMachineInformationContentsA(&PassInfoA);
-    LwiFreeMachineInformationContentsW(&PassInfoW);
+    UpFreeMachineInformationContentsA(&PassInfoA);
+    UpFreeMachineInformationContentsW(&PassInfoW);
 
     return dwError;
 

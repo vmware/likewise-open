@@ -371,22 +371,6 @@
 #define LW_ERROR_CSV_NO_SUCH_FIELD                         40603
 #define LW_ERROR_TEST_SKIPPED                              40604
 
-
-/*Range 40700 - 41200 is reserved for registry specific error*/
-#define LW_ERROR_DUPLICATE_KEYNAME                         40700
-#define LW_ERROR_NO_ACTIVE_KEY_FOUND                       40701
-#define LW_ERROR_NO_SUCH_KEY                               40702
-#define LW_ERROR_KEY_IS_ACTIVE                             40703
-#define LW_ERROR_DUPLICATE_KEYVALUENAME                    40704
-#define LW_ERROR_FAILED_DELETE_HAS_SUBKEY                  40705
-#define LW_ERROR_NO_SUBKEYS                                40706
-#define LW_ERROR_NO_SUCH_VALUENAME                         40707
-#define LW_ERROR_UNKNOWN_DATA_TYPE                         40708
-#define LW_ERROR_BEYOUND_MAX_VALUE_LEN                     40709
-#define LW_ERROR_NO_MORE_ITEMS                             40710
-#define LW_ERROR_INVALID_KEYNAME                           40711
-#define LW_ERROR_INVALID_VALUENAME                         40712
-
 /* Range 41201 - 41700 is reserved for service manager errors */
 #define LW_ERROR_INVALID_SERVICE_TRANSITION                41201
 #define LW_ERROR_SERVICE_DEPENDENCY_UNMET                  41202

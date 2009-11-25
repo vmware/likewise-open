@@ -162,12 +162,21 @@ NtlmCreateNegotiateContext(
     DWORD dwError = LW_ERROR_SUCCESS;
     PNTLM_CONTEXT pNtlmContext = NULL;
     DWORD dwMessageSize = 0;
-    PNTLM_NEGOTIATE_MESSAGE pMessage = NULL;
+    PNTLM_NEGOTIATE_MESSAGE_V1 pMessage = NULL;
+    NTLM_CONFIG config;
 
     *ppNtlmContext = NULL;
 
     dwError = NtlmCreateContext(hCred, &pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmReadRegistry(&config);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!config.bSupportUnicode)
+    {
+        dwOptions &= ~NTLM_FLAG_UNICODE;
+    }
 
     dwError = NtlmCreateNegotiateMessage(
         dwOptions,

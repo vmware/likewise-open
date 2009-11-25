@@ -413,7 +413,8 @@ lwmsg_assoc_reset(
 
 LWMsgStatus
 lwmsg_assoc_finish(
-    LWMsgAssoc* assoc
+    LWMsgAssoc* assoc,
+    LWMsgMessage** completed
     );
 
 LWMsgStatus
@@ -791,8 +792,8 @@ lwmsg_assoc_establish(
 LWMsgStatus
 lwmsg_assoc_set_session_functions(
     LWMsgAssoc* assoc,
-    LWMsgSessionConstructor construct,
-    LWMsgSessionDestructor destruct,
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
     void* data
     );
 

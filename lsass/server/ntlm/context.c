@@ -270,11 +270,11 @@ NtlmCreateNegotiateMessage(
     IN PCSTR pWorkstation,
     IN PBYTE pOsVersion,
     OUT PDWORD pdwSize,
-    OUT PNTLM_NEGOTIATE_MESSAGE* ppNegMsg
+    OUT PNTLM_NEGOTIATE_MESSAGE_V1* ppNegMsg
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_NEGOTIATE_MESSAGE pMessage = NULL;
+    PNTLM_NEGOTIATE_MESSAGE_V1 pMessage = NULL;
     DWORD dwSize = 0;
     // The following pointers point into pMessage and will not be freed on error
     PNTLM_SEC_BUFFER pDomainSecBuffer = NULL;
@@ -317,7 +317,7 @@ NtlmCreateNegotiateMessage(
         }
     }
 
-    dwSize += sizeof(NTLM_NEGOTIATE_MESSAGE);
+    dwSize += sizeof(NTLM_NEGOTIATE_MESSAGE_V1);
 
     // There is no flag to indicate if there is OS version information added
     // to the packet... if we have OS information, we will need to allocate
@@ -353,7 +353,7 @@ NtlmCreateNegotiateMessage(
     pMessage->NtlmFlags = dwOptions;
 
     // Start writing optional information (if there is any) after the structure
-    pBuffer = (PBYTE)pMessage + sizeof(NTLM_NEGOTIATE_MESSAGE);
+    pBuffer = (PBYTE)pMessage + sizeof(NTLM_NEGOTIATE_MESSAGE_V1);
 
     // If you have OS info, you HAVE to at least adjust the pointers past the
     // domain secbuffer (even if you don't fill it in with data).
@@ -427,7 +427,7 @@ error:
 /******************************************************************************/
 DWORD
 NtlmCreateChallengeMessage(
-    IN const NTLM_NEGOTIATE_MESSAGE* pNegMsg,
+    IN const NTLM_NEGOTIATE_MESSAGE_V1* pNegMsg,
     IN PCSTR pServerName,
     IN PCSTR pDomainName,
     IN PCSTR pDnsServerName,
@@ -449,6 +449,7 @@ NtlmCreateChallengeMessage(
     PBYTE pBuffer = NULL;
     PNTLM_SEC_BUFFER pTargetInfoSecBuffer= NULL;
     PNTLM_TARGET_INFO_BLOCK pTargetInfoBlock = NULL;
+    NTLM_CONFIG config;
 
     // sanity checks
     if (!pNegMsg || !ppChlngMsg)
@@ -459,6 +460,9 @@ NtlmCreateChallengeMessage(
 
     *ppChlngMsg = NULL;
     *pdwSize = 0;
+
+    dwError = NtlmReadRegistry(&config);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwSize = sizeof(NTLM_CHALLENGE_MESSAGE);
 
@@ -471,9 +475,10 @@ NtlmCreateChallengeMessage(
     }
 
     // We need to build up the challenge options based on the negotiate options.
-    // We *must* have either unicode or ansii string set
+    // We *must* have either unicode or ansi string set
     //
-    if (pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE)
+    if ((pNegMsg->NtlmFlags & NTLM_FLAG_UNICODE) &&
+            config.bSupportUnicode)
     {
         dwOptions |= NTLM_FLAG_UNICODE;
     }
@@ -497,15 +502,12 @@ NtlmCreateChallengeMessage(
             sizeof(NTLM_SEC_BUFFER) +   // For target information block
             NTLM_WIN_SPOOF_SIZE;        // Win version info
 
-        if (gbUseNtlmV2)
-        {
-            // This is for the terminating target info block
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        // This is for the terminating target info block
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
 
-            dwOptions |= NTLM_FLAG_TARGET_INFO;
-        }
+        dwOptions |= NTLM_FLAG_TARGET_INFO;
     }
-    else if (gbUseNtlmV2)
+    else
     {
         // This is the same as the 'if' statement above, minus accounting for
         // space for the OS version spoof.
@@ -519,32 +521,29 @@ NtlmCreateChallengeMessage(
 
     // Allocate space in the target information block for each piece of target
     // information we have.
-    if (gbUseNtlmV2)
+    // Target information block info is always in unicode format.
+    if (!LW_IS_NULL_OR_EMPTY_STR(pServerName))
     {
-        // Target information block info is always in unicode format.
-        if (!LW_IS_NULL_OR_EMPTY_STR(pServerName))
-        {
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
-            dwTargetInfoSize += strlen(pServerName) * sizeof(WCHAR);
-        }
-        if (!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
-        {
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
-            dwTargetInfoSize += strlen(pDomainName) * sizeof(WCHAR);
-        }
-        if (!LW_IS_NULL_OR_EMPTY_STR(pDnsServerName))
-        {
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
-            dwTargetInfoSize += strlen(pDnsServerName) * sizeof(WCHAR);
-        }
-        if (!LW_IS_NULL_OR_EMPTY_STR(pDnsDomainName))
-        {
-            dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
-            dwTargetInfoSize += strlen(pDnsDomainName) * sizeof(WCHAR);
-        }
-
-        dwSize += dwTargetInfoSize;
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        dwTargetInfoSize += strlen(pServerName) * sizeof(WCHAR);
     }
+    if (!LW_IS_NULL_OR_EMPTY_STR(pDomainName))
+    {
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        dwTargetInfoSize += strlen(pDomainName) * sizeof(WCHAR);
+    }
+    if (!LW_IS_NULL_OR_EMPTY_STR(pDnsServerName))
+    {
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        dwTargetInfoSize += strlen(pDnsServerName) * sizeof(WCHAR);
+    }
+    if (!LW_IS_NULL_OR_EMPTY_STR(pDnsDomainName))
+    {
+        dwTargetInfoSize += sizeof(NTLM_TARGET_INFO_BLOCK);
+        dwTargetInfoSize += strlen(pDnsDomainName) * sizeof(WCHAR);
+    }
+
+    dwSize += dwTargetInfoSize;
 
     if (pNegMsg->NtlmFlags & NTLM_FLAG_REQUEST_TARGET)
     {

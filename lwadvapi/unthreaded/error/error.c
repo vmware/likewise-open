@@ -671,58 +671,6 @@ static struct
         "No such member in local group"
     },
     {
-        LW_ERROR_DUPLICATE_KEYNAME,
-        "Duplicate Registry Keys were found"
-    },
-    {
-        LW_ERROR_NO_ACTIVE_KEY_FOUND,
-        "No specified active opened registry was found"
-    },
-    {
-        LW_ERROR_NO_SUCH_KEY,
-        "The specified key cannot be found in registry"
-    },
-    {
-        LW_ERROR_KEY_IS_ACTIVE,
-        "The key is still actively in use"
-    },
-    {
-        LW_ERROR_DUPLICATE_KEYVALUENAME,
-        "Duplicate key/value name is not allowed in registry"
-    },
-    {
-        LW_ERROR_FAILED_DELETE_HAS_SUBKEY,
-        "Cannot delete key because it still has subkeys (If you want to delete the key, please use delete_tree.)"
-    },
-    {
-        LW_ERROR_NO_SUBKEYS,
-        "The Key has no subkeys"
-    },
-    {
-        LW_ERROR_NO_SUCH_VALUENAME,
-        "The Key has no such value name"
-    },
-    {
-        LW_ERROR_UNKNOWN_DATA_TYPE,
-        "Unsupported registry data type"
-    },
-    {
-        LW_ERROR_BEYOUND_MAX_VALUE_LEN,
-        "Value length is beyond maximum allowed value length"
-    },
-    {
-        LW_ERROR_NO_MORE_ITEMS,
-        "No more entries available"
-    },
-    {
-        LW_ERROR_INVALID_KEYNAME,
-        "The registry keyname cannot have '\\'"
-    },
-    {
-        LW_ERROR_INVALID_VALUENAME,
-        "The registry valuename cannot be NULL"
-    },
-    {
         LW_ERROR_INVALID_SERVICE_TRANSITION,
         "The operation is invalid from the service's present state"
     },

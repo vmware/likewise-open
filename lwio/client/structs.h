@@ -48,4 +48,25 @@ typedef struct IO_PATH_CREDS
     LW_LIST_LINKS link;
 } IO_PATH_CREDS, *PIO_PATH_CREDS;
 
+
+typedef NTSTATUS
+(*IO_CLIENT_ASYNC_COMPLETE_FUNCTION) (
+    NTSTATUS status,
+    PVOID pOut,
+    PVOID pData
+    );
+
+typedef struct _IO_ASYNC_CANCEL_CONTEXT
+{
+    LONG volatile lRefcount;
+    LWMsgCall* pCall;
+    LWMsgParams in;
+    LWMsgParams out;
+    LWMsgTag responseType;
+    IO_CLIENT_ASYNC_COMPLETE_FUNCTION pfnComplete;
+    PIO_ASYNC_COMPLETE_CALLBACK pfnUserCallback;
+    PVOID pUserCallbackContext;
+    PVOID pData;
+} IO_CLIENT_ASYNC_CANCEL_CONTEXT, *PIO_CLIENT_ASYNC_CANCEL_CONTEXT;
+
 #endif /* __STRUCTS_H__ */

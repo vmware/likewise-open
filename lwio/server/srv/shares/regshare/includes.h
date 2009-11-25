@@ -52,7 +52,7 @@
 #include <lwio/lwio.h>
 
 #include <lwerror.h>
-#include <reg/reg.h>
+#include <reg/lwntreg.h>
 
 
 #include <lwiodef.h>

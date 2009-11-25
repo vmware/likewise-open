@@ -29,6 +29,8 @@
 
 #include <lwerror.h>
 
+#include <lwps/lwps.h>
+
 typedef DWORD (*UpParseConfigSectionHandler)(
     BOOLEAN bStartOfSection,
     PCSTR pszSectionName, 
@@ -45,6 +47,20 @@ typedef DWORD (*UpParseConfigNameValueHandler)(
     );
 
 typedef DWORD (*UPCONVPFN)(PCSTR pszConfFilename, PCSTR pszRegFilename);
+
+
+typedef struct _LWPS_PASSWORD_INFOA
+{
+    PSTR pszDomainName;
+    PSTR pszDnsDomainName;
+    PSTR pszSid;
+    PSTR pszHostname;
+    PSTR pszHostDnsDomain;
+    PSTR pszMachineAccount;
+    PSTR pszMachinePassword;
+    time_t last_change_time;
+    DWORD dwSchannelType;
+} LWPS_PASSWORD_INFOA, *PLWPS_PASSWORD_INFOA;
 
 DWORD
 UpParseConfigFile(
@@ -114,5 +130,21 @@ DWORD
 UpParseDateString(
     PCSTR  pszTimeInterval,
     PDWORD pdwTimeInterval
+    );
+
+VOID
+UpFreeMachineInformationContentsA(
+    PLWPS_PASSWORD_INFOA pInfo
+    );
+
+DWORD
+UpAllocateMachineInformationContentsW(
+    PLWPS_PASSWORD_INFOA pInfo,
+    PLWPS_PASSWORD_INFO pPasswordInfo
+    );
+
+VOID
+UpFreeMachineInformationContentsW(
+    PLWPS_PASSWORD_INFO pInfo
     );
 

@@ -4,6 +4,7 @@ SUBDIRS = \
     lwiauth \
     lwio \
     netlogon \
+    pstore-sqlite \
     testparse \
     testsambaparse
 

@@ -54,17 +54,14 @@
 #include <sqlite3.h>
 #include <uuid/uuid.h>
 
-#include "regsystem.h"
-#include <reg/reg.h>
+#include <regsystem.h>
+#include <reg/lwreg.h>
 #include <lwmsg/lwmsg.h>
 
 #include <lw/base.h>
-#include <lwdef.h>
-#include <lwerror.h>
-#include <lwstr.h>
-#include <lwmem.h>
-#include <lwfile.h>
 #include <lw/ntstatus.h>
+#include <lw/rtlstring.h>
+#include <lw/rtlmemory.h>
 
 //#include <eventlog.h>
 #include <regdef.h>
@@ -74,6 +71,7 @@
 
 #include "regsrvutils.h"
 #include "regprovspi.h"
+#include "reglog_r.h"
 
 
 #include "structs_p.h"
