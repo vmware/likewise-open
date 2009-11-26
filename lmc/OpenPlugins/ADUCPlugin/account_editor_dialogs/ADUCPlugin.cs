@@ -460,7 +460,12 @@ public class ADUCPlugin: IPlugIn
                     }
                 }
                 else
+                {
+                    if (!_hn.IsConnectionSuccess)
+                        _hn.domainControllerName = _hn.domainName = _hn.creds.UserName = _hn.creds.Password = "";
+
                     break; // Connection dialog close on cancel
+                }
             }
 
             if (!ConnectToDomain())
@@ -468,17 +473,24 @@ public class ADUCPlugin: IPlugIn
                 if (!domainDlg.UseDefaultUserCreds())
                 {
                     CredentialsDialog credsDialog = new CredentialsDialog(_hn.creds.UserName);
-                    if (credsDialog.ShowDialog() == DialogResult.OK)
+                    if (credsDialog.ShowDialog(domainDlg) == DialogResult.OK)
                     {
+                        _hn.creds.UserName = credsDialog.GetUsername();
+                        _hn.creds.Password = credsDialog.GetPassword();
+
                         initialConnect = false;
                         continue;
                     }
                     else
+                    {
+                        _hn.domainControllerName = _hn.domainName = _hn.creds.UserName = _hn.creds.Password = "";
                         break; // Connection dialog close on cancel
+                    }
                 }
                 else
                 {
-                    MessageBox.Show("Failed to connect to domain. Please use the alternate credentials");
+                    MessageBox.Show("Failed to connect to domain. Please use the alternate credentials",
+                                    "Likewise Administrative Console", MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
                 }
             }
             else
