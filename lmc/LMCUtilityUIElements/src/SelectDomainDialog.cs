@@ -41,6 +41,7 @@ namespace Likewise.LMC.UtilityUIElements
                 tbDomain.Text = domain;
                 rbOtherDomain.Checked = true;
             }
+            credsDialog = new CredentialsDialog(username);
         }
 
         #endregion
@@ -113,7 +114,7 @@ namespace Likewise.LMC.UtilityUIElements
             if (rbDefaultDomain.Checked)
             {
                 if (String.IsNullOrEmpty(sDomain))
-                    GetDCInfo();
+                    GetDCInfo(null);
 
                 return sDomain;
             }
@@ -123,9 +124,15 @@ namespace Likewise.LMC.UtilityUIElements
 
         public string GetDomainControllerName()
         {
-            if (String.IsNullOrEmpty(sDomainController))
-                GetDCInfo();
-
+            if (rbDefaultDomain.Checked)
+            {
+                if (String.IsNullOrEmpty(sDomainController))
+                    GetDCInfo(null);
+            }
+            else
+            {
+                GetDCInfo(tbDomain.Text.Trim());
+            }
             return sDomainController;
         }
 
@@ -147,11 +154,15 @@ namespace Likewise.LMC.UtilityUIElements
                 return true;
         }
 
-        private void GetDCInfo()
+        private void GetDCInfo(string domain)
         {
             CNetlogon.LWNET_DC_INFO DCInfo;
 
-            CNetlogon.GetCurrentDomain(out sDomain);
+            if (String.IsNullOrEmpty(domain))
+                CNetlogon.GetCurrentDomain(out sDomain);
+            else
+                sDomain = domain;
+
             uint netlogonError = CNetlogon.GetDCName(sDomain, 0, out DCInfo);
 
             if (netlogonError == 0 && !String.IsNullOrEmpty(DCInfo.DomainControllerName)) {
