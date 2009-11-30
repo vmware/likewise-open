@@ -62,6 +62,7 @@ DCEIDL_PASS_INCLUDES = \
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 libsamr_la_CFLAGS = \
+    $(AM_CFLAGS)            \
     -DLIBRPC_BUILD          \
     $(FEATURETEST_FLAGS)    \
     -I$(srv_srcdir)/include \
@@ -92,6 +93,7 @@ libsamr_ss_la_SOURCES = \
     samr_sstub.c
 
 libsamr_ss_la_CFLAGS = \
+    $(AM_CFLAGS)            \
     -DDCERPC_STUB_BUILD   \
     $(FEATURETEST_FLAGS)  \
     $(DCERPC_INCLUDES)    \
@@ -103,7 +105,8 @@ libsamr_ss_la_LIBADD = \
 
 
 libsamr_srv_la_SOURCES =
-libsamr_srv_la_CFLAGS =
+libsamr_srv_la_CFLAGS = \
+    $(AM_CFLAGS)
 libsamr_srv_la_LIBADD = \
     libsamr_ss.la
 

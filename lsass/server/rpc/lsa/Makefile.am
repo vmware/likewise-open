@@ -37,6 +37,7 @@ DCEIDL_PASS_INCLUDES = \
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
 
 liblsa_la_CFLAGS = \
+    $(AM_CFLAGS)             \
     -DLIBRPC_BUILD           \
     $(FEATURETEST_FLAGS)     \
     -I$(srv_srcdir)/include  \
@@ -64,6 +65,7 @@ liblsa_ss_la_SOURCES = \
     lsa_sstub.c
 
 liblsa_ss_la_CFLAGS = \
+    $(AM_CFLAGS)             \
     -DDCERPC_STUB_BUILD   \
     $(FEATURETEST_FLAGS)  \
     $(DCERPC_INCLUDES)    \
@@ -75,7 +77,8 @@ liblsa_ss_la_LIBADD = \
 
 
 liblsa_srv_la_SOURCES =
-liblsa_srv_la_CFLAGS =
+liblsa_srv_la_CFLAGS = \
+       $(AM_CFLAGS)
 liblsa_srv_la_LIBADD = \
     liblsa_ss.la
 

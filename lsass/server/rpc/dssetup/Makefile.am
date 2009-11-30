@@ -25,6 +25,7 @@ DCEIDL_PASS_INCLUDES = \
 FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
 
 libdssetup_la_CFLAGS = \
+    $(AM_CFLAGS)            \
     -DLIBRPC_BUILD          \
     -I$(srv_srcdir)/include \
     -I$(top_srcdir)/include \
@@ -47,6 +48,7 @@ libdssetup_ss_la_SOURCES = \
     dssetup_sstub.c
 
 libdssetup_ss_la_CFLAGS = \
+    $(AM_CFLAGS)          \
     -DDCERPC_STUB_BUILD   \
     $(FEATURETEST_FLAGS)  \
     $(DCERPC_INCLUDES)    \
@@ -57,7 +59,8 @@ libdssetup_ss_la_LIBADD = \
     libdssetup.la
 
 libdssetup_srv_la_SOURCES =
-libdssetup_srv_la_CFLAGS =
+libdssetup_srv_la_CFLAGS = \
+    $(AM_CFLAGS)
 libdssetup_srv_la_LIBADD = \
     libdssetup_ss.la
 
