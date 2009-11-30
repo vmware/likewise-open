@@ -2388,7 +2388,7 @@ LocalDirModifyUser(
     DWORD   dwUserInfoFlags = 0;
     DWORD   dwOrigUserInfoFlags = 0;
     WCHAR   wszAttrDN[] = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
-    DIRECTORY_MOD mods[9] = {0};
+    DIRECTORY_MOD mods[9] = {{0}};
 
     ATTRIBUTE_VALUE UserAttrVal[] = {
         {
