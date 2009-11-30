@@ -64,14 +64,6 @@ namespace Likewise.LMC.Plugins.LUG
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.SuspendLayout();
             //
-            // btnOK
-            //
-            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            //
-            // btnCancel
-            //
-            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            //
             // errorProvider
             //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
@@ -86,7 +78,6 @@ namespace Likewise.LMC.Plugins.LUG
             this.MinimumSize = new System.Drawing.Size(123, 88);
             this.Name = "GroupPropertiesDlg";
             this.Text = "{0} Properties";
-            this.TopMost = true;
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).EndInit();
             this.ResumeLayout(false);
 

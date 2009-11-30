@@ -73,7 +73,7 @@ LwpsCreateRWLock(
                      &pLock->pszFilename);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    pLock->fd = open(pLock->pszFilename, O_RDWR);
+    pLock->fd = open(pLock->pszFilename, O_RDWR | O_CREAT, 0600);
     if (pLock->fd < 0) {
        dwError = errno;
        BAIL_ON_LWPS_ERROR(dwError);

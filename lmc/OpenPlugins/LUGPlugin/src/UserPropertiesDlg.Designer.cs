@@ -83,7 +83,6 @@ namespace Likewise.LMC.Plugins.LUG
             this.MinimumSize = new System.Drawing.Size(123, 88);
             this.Name = "UserPropertiesDlg";
             this.Text = "{0} Properties";
-            this.TopMost = true;
             this.ResumeLayout(false);
 
         }

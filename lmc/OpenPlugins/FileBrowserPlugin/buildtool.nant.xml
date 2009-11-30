@@ -31,6 +31,7 @@
         <include name="${build.dist.os}/Likewise.LMC.Netlogon.dll" />
         <include name="${build.dist.os}/Likewise.LMC.NETAPI.dll" />
         <include name="${build.dist.os}/Likewise.LMC.ServerControl.unix.dll" />
+        <include name="${build.dist.os}/Likewise.LMC.Services.dll" />
         <include name="System.dll" />
         <include name="System.Data.dll" />
         <include name="System.Drawing.dll" />

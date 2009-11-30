@@ -10,7 +10,7 @@
   <target name="local.build">
 
     <buildtool.assemblyinfo title="Likewise Management Console" />
-    <buildtool.csc output="${local.output}" target="winexe" win32icon="App.ico" noconfig="true" define="QUARTZ">
+    <buildtool.csc output="${local.output}" target="winexe" win32icon="App.ico" noconfig="true" define="QUARTZ,LMC_OPEN">
 
       <nowarn>
         <warning number="0169" />

@@ -60,6 +60,8 @@ extern DWORD LWPS_INITIALIZE_PROVIDER(tdb)(PCSTR, PSTR*, PLWPS_PROVIDER_FUNC_TAB
 extern DWORD LWPS_SHUTDOWN_PROVIDER(tdb)(PSTR, PLWPS_PROVIDER_FUNC_TABLE);
 extern DWORD LWPS_INITIALIZE_PROVIDER(filedb)(PCSTR, PSTR*, PLWPS_PROVIDER_FUNC_TABLE*);
 extern DWORD LWPS_SHUTDOWN_PROVIDER(filedb)(PSTR, PLWPS_PROVIDER_FUNC_TABLE);
+extern DWORD LWPS_INITIALIZE_PROVIDER(regdb)(PCSTR, PSTR*, PLWPS_PROVIDER_FUNC_TABLE*);
+extern DWORD LWPS_SHUTDOWN_PROVIDER(regdb)(PSTR, PLWPS_PROVIDER_FUNC_TABLE);
 
 static LWPS_STATIC_PROVIDER gStaticProviders[] =
 {
@@ -71,6 +73,9 @@ static LWPS_STATIC_PROVIDER gStaticProviders[] =
 #endif
 #ifdef ENABLE_TDB
     LWPS_STATIC_PROVIDER_ENTRY(tdb, tdb),
+#endif
+#ifdef ENABLE_REGDB
+    LWPS_STATIC_PROVIDER_ENTRY(regdb, regdb),
 #endif
     LWPS_STATIC_PROVIDER_END
 };
@@ -423,6 +428,8 @@ LwpsConfigNameValuePair(
            pProvider->storeType = LWPS_PASSWORD_STORE_TDB;
        } else if (!strcasecmp(pszValue, "filedb")) {
            pProvider->storeType = LWPS_PASSWORD_STORE_FILEDB;
+       } else if (!strcasecmp(pszValue, "regdb")) {
+           pProvider->storeType = LWPS_PASSWORD_STORE_REGDB;
        } else {
            pProvider->storeType = LWPS_PASSWORD_STORE_UNKNOWN;
        }

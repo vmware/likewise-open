@@ -842,7 +842,6 @@ public class ADUCDirectoryNode: DirectoryNode
             {
                 oldEntries.Add(dNode.distinguishedName, dNode);
             }
-
         }
 
         foreach (LdapEntry ldapNextEntry in ldapEntries)

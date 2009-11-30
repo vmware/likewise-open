@@ -2773,9 +2773,6 @@ public partial class ADUCPage : StandardPage
         }
     }
     
-    
-    
-    
     /// <summary>
     /// Refreshes the child nodes when we click of refresh menu item on any selected node
     /// </summary>
