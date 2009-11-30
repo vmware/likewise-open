@@ -25,7 +25,8 @@ MODE_NAMES = \
 	refresh-configuration \
 	set-log-level \
 	set-machine-sid \
-	trace-info
+	trace-info \
+	find-objects
 
 bin_PROGRAMS = lw-lsa
 
@@ -58,6 +59,7 @@ lw_lsa_SOURCES = \
 	set_log_level_main.c \
 	set_machine_sid_main.c \
 	trace_info_main.c \
+	find_objects.c \
 	main.c
 
 lw_lsa_LDADD = \

@@ -60,77 +60,6 @@ typedef struct _LSA_SRV_ENUM_HANDLE
 } LSA_SRV_ENUM_HANDLE, *PLSA_SRV_ENUM_HANDLE;
 
 static
-VOID
-LsaSrvFreeSecurityObject(
-    PLSA_SECURITY_OBJECT pObject
-    )
-{
-    if (pObject)
-    {
-        LW_SAFE_FREE_STRING(pObject->pszDN);
-        LW_SAFE_FREE_STRING(pObject->pszObjectSid);
-        LW_SAFE_FREE_STRING(pObject->pszNetbiosDomainName);
-        LW_SAFE_FREE_STRING(pObject->pszSamAccountName);
-
-        switch(pObject->type)
-        {
-        case AccountType_Group:
-            LW_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
-            LW_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
-            break;
-        case AccountType_User:
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszPasswd);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszGecos);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszShell);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszHomedir);
-            break;
-        }
-    }
-}
-
-static
-void
-LsaSrvFreeSecurityObjectList(
-    DWORD dwCount,
-    PLSA_SECURITY_OBJECT* ppObjectList
-    )
-{
-    DWORD dwIndex = 0;
-
-    if (ppObjectList)
-    {
-        for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
-        {
-            LsaSrvFreeSecurityObject(ppObjectList[dwIndex]);
-        }
-
-        LwFreeMemory(ppObjectList);
-    }
-}
-
-static
-void
-LsaSrvFreeSidList(
-    DWORD dwCount,
-    PSTR* ppszSidList
-    )
-{
-    DWORD dwIndex = 0;
-
-    if (ppszSidList)
-    {
-        for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
-        {
-            LW_SAFE_FREE_STRING(ppszSidList[dwIndex]);
-        }
-
-        LwFreeMemory(ppszSidList);
-    }
-}
-
-static
 DWORD
 LsaSrvConcatenateSidLists(
     IN DWORD dwSidCount,
@@ -175,8 +104,7 @@ LsaSrvConstructPartialQuery(
         {
             switch (QueryType)
             {
-            case LSA_QUERY_TYPE_BY_UID:
-            case LSA_QUERY_TYPE_BY_GID:
+            case LSA_QUERY_TYPE_BY_UNIX_ID:
                 PartialQueryList.pdwIds[dwPartialIndex++] = QueryList.pdwIds[dwIndex];
                 break;
             default:
@@ -242,8 +170,7 @@ LsaSrvFindObjects(
 
     switch (QueryType)
     {
-    case LSA_QUERY_TYPE_BY_UID:
-    case LSA_QUERY_TYPE_BY_GID:
+    case LSA_QUERY_TYPE_BY_UNIX_ID:
         dwError = LwAllocateMemory(
             sizeof(*PartialQueryList.pdwIds) * dwCount,
             OUT_PPVOID(&PartialQueryList.pdwIds));
@@ -357,7 +284,7 @@ error:
 
     if (ppCombinedObjects)
     {
-        LsaSrvFreeSecurityObjectList(dwCount, ppCombinedObjects);
+        LsaUtilFreeSecurityObjectList(dwCount, ppCombinedObjects);
     }
 
     goto cleanup;
@@ -544,7 +471,7 @@ error:
 
     if (ppCombinedObjects)
     {
-        LsaSrvFreeSecurityObjectList(dwCombinedObjectCount, ppCombinedObjects);
+        LsaUtilFreeSecurityObjectList(dwCombinedObjectCount, ppCombinedObjects);
     }
 
     goto cleanup;
@@ -728,7 +655,7 @@ error:
 
     if (ppszCombinedSids)
     {
-        LsaSrvFreeSidList(dwCombinedSidCount, ppszCombinedSids);
+        LwFreeStringArray(ppszCombinedSids, dwCombinedSidCount);
     }
 
     goto cleanup;
@@ -840,7 +767,7 @@ error:
 
     if (ppszCombinedSids)
     {
-        LsaSrvFreeSidList(dwCombinedCount, ppszCombinedSids);
+        LwFreeStringArray(ppszCombinedSids, dwCombinedCount);
     }
 
     goto cleanup;

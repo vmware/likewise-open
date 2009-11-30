@@ -14,7 +14,8 @@ liblsaclient_api_la_SOURCES = \
     session.c   \
     status.c    \
     tracing.c   \
-    users.c
+    users.c     \
+    api2.c
 
 liblsaclient_api_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

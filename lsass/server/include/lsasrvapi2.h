@@ -101,7 +101,7 @@ LsaSrvQueryMemberOf(
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwSidCount,
     IN PSTR* ppszSids,
-    OUT PDWORD pdwObjectsCount,
+    OUT PDWORD pdwGroupSidCount,
     OUT PSTR** pppszGroupSids
     );
 

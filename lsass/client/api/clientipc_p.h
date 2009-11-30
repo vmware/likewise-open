@@ -255,5 +255,71 @@ LsaTransactProviderIoControl(
     OUT PVOID* ppOutputBuffer
     );
 
+DWORD
+LsaTransactFindObjects(
+    IN HANDLE hLsa,
+    IN PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LsaTransactOpenEnumObjects(
+    IN HANDLE hLsa,
+    IN PCSTR pszTargetProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN OPTIONAL PCSTR pszDomainName
+    );
+
+DWORD
+LsaTransactEnumObjects(
+    IN HANDLE hLsa,
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LsaTransactOpenEnumMembers(
+    IN HANDLE hLsa,
+    IN PCSTR pszTargetProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid
+    );
+
+DWORD
+LsaTransactEnumMembers(
+    IN HANDLE hLsa,
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PSTR** pppszMember
+    );
+
+DWORD
+LsaTransactQueryMemberOf(
+    IN HANDLE hLsa,
+    IN PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    );
+
+DWORD
+LsaTransactCloseEnum(
+    IN HANDLE hLsa,
+    IN OUT HANDLE hEnum
+    );
+
 #endif /* __CLIENTIPC_P_H__ */
 

@@ -1761,6 +1761,14 @@ LsaSrvCleanupUserEnumHandle(
         (HANDLE) pData);
 }
 
+static void
+LsaSrvCleanupEnumHandle(
+    void* pData
+    )
+{
+    LsaSrvCloseEnum(NULL, pData);
+}
+
 static LWMsgStatus
 LsaSrvIpcAddUser(
     LWMsgCall* pCall,
@@ -2328,6 +2336,404 @@ error:
     goto cleanup;
 }
 
+static LWMsgStatus
+LsaSrvIpcFindObjects(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA2_IPC_FIND_OBJECTS_REQ pReq = pIn->data;
+    PLSA2_IPC_FIND_OBJECTS_RES pRes = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    switch (pReq->QueryType)
+    {
+    case LSA_QUERY_TYPE_BY_UNIX_ID:
+        if (pReq->IpcQueryType != LSA2_IPC_QUERY_DWORDS)
+        {
+            dwError = LW_ERROR_INTERNAL;
+        }
+        break;
+    case LSA_QUERY_TYPE_BY_DN:
+    case LSA_QUERY_TYPE_BY_SID:
+    case LSA_QUERY_TYPE_BY_NT4:
+    case LSA_QUERY_TYPE_BY_ALIAS:
+        if (pReq->IpcQueryType != LSA2_IPC_QUERY_STRINGS)
+        {
+            dwError = LW_ERROR_INTERNAL;
+        }
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!dwError)
+    {
+        dwError = LsaSrvFindObjects(
+            LsaSrvIpcGetSessionData(pCall),
+            pReq->pszTargetProvider,
+            pReq->FindFlags,
+            pReq->ObjectType,
+            pReq->QueryType,
+            pReq->dwCount,
+            pReq->QueryList,
+            &ppObjects);
+    }
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pRes->dwCount = pReq->dwCount;
+        pRes->ppObjects = ppObjects;
+        ppObjects = NULL;
+
+        pOut->tag = LSA2_R_FIND_OBJECTS;
+        pOut->data = pRes;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+
+    if (ppObjects)
+    {
+        LsaUtilFreeSecurityObjectList(pReq->dwCount, ppObjects);
+    }
+
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static LWMsgStatus
+LsaSrvIpcOpenEnumObjects(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA2_IPC_OPEN_ENUM_OBJECTS_REQ pReq = pIn->data;
+    PLSA_IPC_ERROR pError = NULL;
+    HANDLE hEnum = NULL;
+
+    dwError = LsaSrvOpenEnumObjects(
+            LsaSrvIpcGetSessionData(pCall),
+            pReq->pszTargetProvider,
+            &hEnum,
+            pReq->FindFlags,
+            pReq->ObjectType,
+            pReq->pszDomainName);
+
+    if (!dwError)
+    {
+        dwError = LsaSrvIpcRegisterHandle(
+            pCall,
+            "LSA2_IPC_ENUM_HANDLE",
+            hEnum,
+            LsaSrvCleanupEnumHandle);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_OPEN_ENUM_OBJECTS;
+        pOut->data = hEnum;
+
+        dwError = LsaSrvIpcRetainHandle(pCall, pOut->data);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static LWMsgStatus
+LsaSrvIpcEnumObjects(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA2_IPC_ENUM_OBJECTS_REQ pReq = pIn->data;
+    PLSA2_IPC_ENUM_OBJECTS_RES pRes = NULL;
+    DWORD dwObjectsCount = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    dwError = LsaSrvEnumObjects(
+        LsaSrvIpcGetSessionData(pCall),
+        pReq->hEnum,
+        pReq->dwMaxObjectsCount,
+        &dwObjectsCount,
+        &ppObjects);
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pRes->dwObjectsCount = dwObjectsCount;
+        pRes->ppObjects = ppObjects;
+        ppObjects = NULL;
+
+        pOut->tag = LSA2_R_ENUM_OBJECTS;
+        pOut->data = pRes;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+
+    if (ppObjects)
+    {
+        LsaUtilFreeSecurityObjectList(dwObjectsCount, ppObjects);
+    }
+
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static LWMsgStatus
+LsaSrvIpcOpenEnumMembers(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA2_IPC_OPEN_ENUM_MEMBERS_REQ pReq = pIn->data;
+    PLSA_IPC_ERROR pError = NULL;
+    HANDLE hEnum = NULL;
+
+    dwError = LsaSrvOpenEnumMembers(
+            LsaSrvIpcGetSessionData(pCall),
+            pReq->pszTargetProvider,
+            &hEnum,
+            pReq->FindFlags,
+            pReq->pszSid);
+
+    if (!dwError)
+    {
+        dwError = LsaSrvIpcRegisterHandle(
+            pCall,
+            "LSA2_IPC_ENUM_HANDLE",
+            hEnum,
+            LsaSrvCleanupEnumHandle);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_OPEN_ENUM_OBJECTS;
+        pOut->data = hEnum;
+
+        dwError = LsaSrvIpcRetainHandle(pCall, pOut->data);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static LWMsgStatus
+LsaSrvIpcEnumMembers(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA2_IPC_ENUM_MEMBERS_REQ pReq = pIn->data;
+    PLSA2_IPC_ENUM_MEMBERS_RES pRes = NULL;
+    DWORD dwSidCount = 0;
+    PSTR* ppszMemberSids = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    dwError = LsaSrvEnumMembers(
+        LsaSrvIpcGetSessionData(pCall),
+        pReq->hEnum,
+        pReq->dwMaxSidCount,
+        &dwSidCount,
+        &ppszMemberSids);
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pRes->dwSidCount = dwSidCount;
+        pRes->ppszMemberSids = ppszMemberSids;
+        ppszMemberSids = NULL;
+
+        pOut->tag = LSA2_R_ENUM_MEMBERS;
+        pOut->data = pRes;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+
+    if (ppszMemberSids)
+    {
+        LwFreeStringArray(ppszMemberSids, dwSidCount);
+    }
+
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static LWMsgStatus
+LsaSrvIpcQueryMemberOf(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA2_IPC_QUERY_MEMBER_OF_REQ pReq = pIn->data;
+    PLSA2_IPC_QUERY_MEMBER_OF_RES pRes = NULL;
+    DWORD dwGroupSidCount = 0;
+    PSTR* ppszGroupSids = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    dwError = LsaSrvQueryMemberOf(
+            LsaSrvIpcGetSessionData(pCall),
+            pReq->pszTargetProvider,
+            pReq->FindFlags,
+            pReq->dwSidCount,
+            pReq->ppszSids,
+            &dwGroupSidCount,
+            &ppszGroupSids);
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pRes->dwGroupSidCount = dwGroupSidCount;
+        pRes->ppszGroupSids = ppszGroupSids;
+        ppszGroupSids = NULL;
+
+        pOut->tag = LSA2_R_QUERY_MEMBER_OF;
+        pOut->data = pRes;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+
+    if (ppszGroupSids)
+    {
+        LwFreeStringArray(ppszGroupSids, dwGroupSidCount);
+    }
+
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static LWMsgStatus
+LsaSrvIpcCloseEnum(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+
+    dwError = LsaSrvIpcUnregisterHandle(pCall, pIn->data);
+    if (!dwError)
+    {
+        pOut->tag = LSA2_R_CLOSE_ENUM;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+
+    goto cleanup;
+}
+
 static LWMsgDispatchSpec gMessageHandlers[] =
 {
     LWMSG_DISPATCH_BLOCK(LSA_Q_GROUP_BY_NAME, LsaSrvIpcFindGroupByName),
@@ -2370,6 +2776,13 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(LSA_Q_ENUM_TRACE_INFO, LsaSrvIpcEnumTraceInfo),
     LWMSG_DISPATCH_BLOCK(LSA_Q_PROVIDER_IO_CONTROL, LsaSrvIpcProviderIoControl),
     LWMSG_DISPATCH_BLOCK(LSA_Q_SET_MACHINE_SID, LsaSrvIpcSetMachineSid),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_FIND_OBJECTS, LsaSrvIpcFindObjects),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_OPEN_ENUM_OBJECTS, LsaSrvIpcOpenEnumObjects),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_ENUM_OBJECTS, LsaSrvIpcEnumObjects),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_OPEN_ENUM_MEMBERS, LsaSrvIpcOpenEnumMembers),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_ENUM_MEMBERS, LsaSrvIpcEnumMembers),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_QUERY_MEMBER_OF, LsaSrvIpcQueryMemberOf),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_CLOSE_ENUM, LsaSrvIpcCloseEnum),
     LWMSG_DISPATCH_END
 };
 

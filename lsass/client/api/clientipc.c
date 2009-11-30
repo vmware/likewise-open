@@ -1782,6 +1782,488 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaTransactFindObjects(
+    IN HANDLE hLsa,
+    IN PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    LSA2_IPC_FIND_OBJECTS_REQ req = {0};
+    PLSA2_IPC_FIND_OBJECTS_RES pRes = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hLsa, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.pszTargetProvider = pszTargetProvider;
+    req.FindFlags = FindFlags;
+    req.ObjectType = ObjectType;
+    req.QueryType = QueryType;
+
+    switch (QueryType)
+    {
+    case LSA_QUERY_TYPE_BY_UNIX_ID:
+        req.IpcQueryType = LSA2_IPC_QUERY_DWORDS;
+        break;
+    case LSA_QUERY_TYPE_BY_DN:
+    case LSA_QUERY_TYPE_BY_SID:
+    case LSA_QUERY_TYPE_BY_NT4:
+    case LSA_QUERY_TYPE_BY_ALIAS:
+        req.IpcQueryType = LSA2_IPC_QUERY_STRINGS;
+        break;
+    default:
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    req.dwCount = dwCount;
+    req.QueryList = QueryList;
+
+    in.tag = LSA2_Q_FIND_OBJECTS;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_FIND_OBJECTS:
+        pRes = out.data;
+        if (pRes->dwCount != dwCount)
+        {
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        *pppObjects = pRes->ppObjects;
+        pRes->ppObjects = NULL;
+        break;
+    case LSA2_R_ERROR:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    *pppObjects = NULL;
+
+    goto cleanup;
+}
+
+
+DWORD
+LsaTransactOpenEnumObjects(
+    IN HANDLE hLsa,
+    IN PCSTR pszTargetProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN OPTIONAL PCSTR pszDomainName
+    )
+{
+    DWORD dwError = 0;
+    LSA2_IPC_OPEN_ENUM_OBJECTS_REQ req = {0};
+    PLSA_IPC_ERROR pError = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hLsa, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.pszTargetProvider = pszTargetProvider;
+    req.FindFlags = FindFlags;
+    req.ObjectType = ObjectType;
+    req.pszDomainName = pszDomainName;
+
+    in.tag = LSA2_Q_OPEN_ENUM_OBJECTS;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_OPEN_ENUM_OBJECTS:
+        *phEnum = out.data;
+        out.data = NULL;
+        break;
+    case LSA2_R_ERROR:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    *phEnum = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+LsaTransactEnumObjects(
+    IN HANDLE hLsa,
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    LSA2_IPC_ENUM_OBJECTS_REQ req = {0};
+    PLSA2_IPC_ENUM_OBJECTS_RES pRes = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hLsa, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.hEnum = hEnum;
+    req.dwMaxObjectsCount = dwMaxObjectsCount;
+
+    in.tag = LSA2_Q_ENUM_OBJECTS;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_ENUM_OBJECTS:
+        pRes = out.data;
+        if (pRes->dwObjectsCount > dwMaxObjectsCount)
+        {
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        *pdwObjectsCount = pRes->dwObjectsCount;
+        *pppObjects = pRes->ppObjects;
+        pRes->ppObjects = NULL;
+        break;
+    case LSA2_R_ERROR:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    *pdwObjectsCount = 0;
+    *pppObjects = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+LsaTransactOpenEnumMembers(
+    IN HANDLE hLsa,
+    IN PCSTR pszTargetProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid
+    )
+{
+    DWORD dwError = 0;
+    LSA2_IPC_OPEN_ENUM_MEMBERS_REQ req = {0};
+    PLSA_IPC_ERROR pError = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hLsa, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.pszTargetProvider = pszTargetProvider;
+    req.FindFlags = FindFlags;
+    req.pszSid = pszSid;
+
+    in.tag = LSA2_Q_OPEN_ENUM_MEMBERS;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_OPEN_ENUM_MEMBERS:
+        *phEnum = out.data;
+        out.data = NULL;
+        break;
+    case LSA2_R_ERROR:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    *phEnum = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+LsaTransactEnumMembers(
+    IN HANDLE hLsa,
+    IN HANDLE hEnum,
+    IN DWORD dwMaxSidCount,
+    OUT PDWORD pdwSidCount,
+    OUT PSTR** pppszMemberSids
+    )
+{
+    DWORD dwError = 0;
+    LSA2_IPC_ENUM_MEMBERS_REQ req = {0};
+    PLSA2_IPC_ENUM_MEMBERS_RES pRes = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hLsa, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.hEnum = hEnum;
+    req.dwMaxSidCount = dwMaxSidCount;
+
+    in.tag = LSA2_Q_ENUM_MEMBERS;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_ENUM_MEMBERS:
+        pRes = out.data;
+        if (pRes->dwSidCount > dwMaxSidCount)
+        {
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        *pdwSidCount = pRes->dwSidCount;
+        *pppszMemberSids = pRes->ppszMemberSids;
+        pRes->ppszMemberSids = NULL;
+        break;
+    case LSA2_R_ERROR:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    *pdwSidCount = 0;
+    *pppszMemberSids = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+LsaTransactQueryMemberOf(
+    IN HANDLE hLsa,
+    IN PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    )
+{
+    DWORD dwError = 0;
+    LSA2_IPC_QUERY_MEMBER_OF_REQ req = {0};
+    PLSA2_IPC_QUERY_MEMBER_OF_RES pRes = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hLsa, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.pszTargetProvider = pszTargetProvider;
+    req.FindFlags = FindFlags;
+    req.dwSidCount = dwSidCount;
+    req.ppszSids = ppszSids;
+
+    in.tag = LSA2_Q_QUERY_MEMBER_OF;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_QUERY_MEMBER_OF:
+        pRes = out.data;
+        *pdwGroupSidCount = pRes->dwGroupSidCount;
+        *pppszGroupSids = pRes->ppszGroupSids;
+        pRes->ppszGroupSids = NULL;
+        break;
+    case LSA2_R_ERROR:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    *pdwGroupSidCount = 0;
+    *pppszGroupSids = NULL;
+
+    goto cleanup;
+}
+
+DWORD
+LsaTransactCloseEnum(
+    IN HANDLE hLsa,
+    IN OUT HANDLE hEnum
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+    LWMsgSession* pSession = NULL;
+
+    dwError = LsaIpcAcquireCall(hLsa, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pSession = lwmsg_call_get_session(pCall);
+
+    in.tag = LSA2_Q_CLOSE_ENUM;
+    in.data = hEnum;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_CLOSE_ENUM:
+        break;
+    case LSA2_R_ERROR:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_session_unregister_handle(pSession, hEnum);
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 
 /*
 local variables:
