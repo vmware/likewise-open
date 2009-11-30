@@ -1819,6 +1819,7 @@ LsaTransactFindObjects(
     case LSA_QUERY_TYPE_BY_SID:
     case LSA_QUERY_TYPE_BY_NT4:
     case LSA_QUERY_TYPE_BY_ALIAS:
+    case LSA_QUERY_TYPE_BY_UPN:
         req.IpcQueryType = LSA2_IPC_QUERY_STRINGS;
         break;
     default:
