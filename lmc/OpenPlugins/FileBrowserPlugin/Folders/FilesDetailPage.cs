@@ -148,7 +148,14 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     modified = File.LastWriteTime.ToString();
                 }
 
-                size = File.FileSize.ToString() + " KB";
+                if (File.FileSizeInKB > 0)
+                {
+                    size = File.FileSizeInKB.ToString() + " KB";
+                }
+                else
+                {
+                    size = File.FileSmallSizeInBytes.ToString() + " Bytes";
+                }
                 string[] file = { File.FileName, creation, modified, type, size };
 
                 ListViewItem lvItem = new ListViewItem(file, imageIndex);

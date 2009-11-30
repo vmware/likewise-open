@@ -111,7 +111,8 @@ namespace Likewise.LMC.FileClient
         public DateTime CreationTime = new DateTime();
         public DateTime LastAccessTime = new DateTime();
         public DateTime LastWriteTime = new DateTime();
-        public UInt64 FileSize = 0;
+        public UInt64 FileSizeInKB = 0; // For files larger than 1 KB
+        public UInt64 FileSmallSizeInBytes = 0; // For files smaller than 1KB
         public string FileName = null;
         public string Alternate = null;
     };
@@ -934,6 +935,7 @@ namespace Likewise.LMC.FileClient
                 {
                     size = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296)/1024;
                     extra = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296)%1024;
+
                     if ((WinFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
                     {
                         file.IsDirectory = true;
@@ -1016,7 +1018,16 @@ namespace Likewise.LMC.FileClient
                 file.CreationTime = Created;
                 file.LastWriteTime = Modified;
                 file.LastAccessTime = Accessed;
-                file.FileSize = size;
+                if (size > 0)
+                {
+                    file.FileSizeInKB = size;
+                    file.FileSmallSizeInBytes = 0;
+                }
+                else
+                {
+                    file.FileSizeInKB = 0;
+                    file.FileSmallSizeInBytes = extra;
+                }
 
                 Files.Add(file);
 

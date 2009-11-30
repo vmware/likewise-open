@@ -138,13 +138,11 @@ namespace Likewise.LMC.Plugins.FileBrowser
 
                 string[] LWISServices = Services.ServiceManagerInteropWrapper.ApiLwSmEnumerateServices();
 
-                foreach (string service in LWISServices)
-                    Console.Write(service);
-
                 IntPtr lwio = Services.ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle("lwio");
                 status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(lwio);
                 if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
                 {
+                    Console.WriteLine("Going to start lwio service since it is not running\n");
                     Services.ServiceManagerInteropWrapper.ApiLwSmStartService(lwio);
                 }
                 Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(lwio);
@@ -153,6 +151,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(rdr);
                 if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
                 {
+                    Console.WriteLine("Going to start rdr driver since it is not running\n");
                     Services.ServiceManagerInteropWrapper.ApiLwSmStartService(rdr);
                 }
                 Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(rdr);
@@ -161,6 +160,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 status = Services.ServiceManagerInteropWrapper.ApiLwSmQueryServiceStatus(pvfs);
                 if (status.state != Likewise.LMC.Services.ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_RUNNING)
                 {
+                    Console.WriteLine("Going to start pvfs driver since it is not running\n");
                     Services.ServiceManagerInteropWrapper.ApiLwSmStartService(pvfs);
                 }
                 Services.ServiceManagerInteropWrapper.ApiLwSmReleaseServiceHandle(pvfs);
