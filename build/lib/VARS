@@ -12,8 +12,8 @@ LIKEWISE_OPEN_EXTRA_TAG=""
 ## List of all components necessary 
 __COMP_LIST="krb5 openldap libunistr lwbase \
     lwmapsecurity lwmsg centutils \
-    sqlite libtdb pstore \
-    lwadvapi lwreg netlogon lwio lwsm libkeytab libgss \
+    sqlite libtdb lwreg pstore \
+    lwadvapi netlogon lwio lwsm libkeytab libgss \
     dcerpc lwrpcrt librpc eventlog lsass \
     lwdns domainjoin srvsvc \
 "
