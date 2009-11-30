@@ -394,7 +394,9 @@ SrvAcknowledgeOplockBreak(
     }
     else
     {
-        if (pucNewOplockLevel && (*pucNewOplockLevel != ucOplockLevel))
+        if (pucNewOplockLevel &&
+            (*pucNewOplockLevel == SMB_OPLOCK_LEVEL_NONE) &&
+            (ucOplockLevel == SMB_OPLOCK_LEVEL_II))
         {
             pOplockState->oplockBuffer_ack.Response =
                                                 IO_OPLOCK_BREAK_ACK_NO_LEVEL_2;
