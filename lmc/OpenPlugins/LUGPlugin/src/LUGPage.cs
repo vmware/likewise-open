@@ -315,7 +315,7 @@ public partial class LUGPage : StandardPage
     
     public uint AddLUG(object o)
     {
-        uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+        uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
         
         try
         {
@@ -348,7 +348,7 @@ public partial class LUGPage : StandardPage
                         nu.Description,
                         flags);
 
-                    if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         string[] row = new string[] { "", nu.IsDisabled ? "Disabled" : "", nu.User, nu.FullName, nu.Description };
                         InsertLUGToListView(row);
@@ -367,7 +367,7 @@ public partial class LUGPage : StandardPage
                         ng.GroupName,
                         ng.Description);
 
-                    if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         string[] row = new string[] { "", ng.GroupName, ng.Description };
                         InsertLUGToListView(row);
@@ -378,7 +378,7 @@ public partial class LUGPage : StandardPage
         }
         catch (Exception)
         {
-            result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+            result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
         }
         return result;
     }

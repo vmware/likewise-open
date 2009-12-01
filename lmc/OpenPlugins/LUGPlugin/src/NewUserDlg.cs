@@ -32,6 +32,7 @@ using System;
 using System.Windows.Forms;
 using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
+using Likewise.LMC.NETAPI;
 
 namespace Likewise.LMC.Plugins.LUG
 {
@@ -93,7 +94,7 @@ public partial class NewUserDlg : EditDialog
     #region EventHandlers
     protected override bool Apply(EditDialogAction actionCause)
     {
-        uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+        uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
         string errorMessage = null;
         try
         {
@@ -124,7 +125,7 @@ public partial class NewUserDlg : EditDialog
 
             result = lugPg.AddLUG(this);
 
-            if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+            if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
             {
                 container.ShowError(
                 "Likewise Administrative Console encountered an error when trying to add a new user.  " + ErrorCodes.WIN32String((int)result),

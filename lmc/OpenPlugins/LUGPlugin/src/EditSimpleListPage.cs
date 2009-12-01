@@ -264,8 +264,22 @@ namespace Likewise.LMC.Plugins.LUG
         {
             try
             {
-                AddMemberDlg addMemberDlg = new AddMemberDlg();
+                bool bEnumUsers = true;
+
+                // I don't like comparing strings in this case... we will probably change this
+                if (listMemberType == "Group")
+                {
+                    bEnumUsers = false;
+                }
+                else if (listMemberType != "User")
+                {
+                    return;
+                }
+
+                AddMemberDlg addMemberDlg = new AddMemberDlg(bEnumUsers);
                 addMemberDlg.Label = listMemberType + ":";
+
+                addMemberDlg.HostName = _servername;
 
                 if (addMemberDlg.ShowDialog() == DialogResult.OK)
                 {

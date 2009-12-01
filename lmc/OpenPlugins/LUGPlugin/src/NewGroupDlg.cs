@@ -102,8 +102,8 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
     private bool ProcessMembers(CredentialEntry ce, string domain)
     {
         bool retVal = true;
-        uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
-        
+        uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
+
         for (int i = 0; i < lvMembers.Items.Count; i++)
         {
             try
@@ -114,7 +114,7 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
                     lvMembers.Items[i].Text
                     );
 
-                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                 {
                     container.ShowError(String.Format(
                         "User \"{0}\" could not be added:\n{1}",
@@ -157,7 +157,7 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
         try
         {
             uint result = localParent.AddLUG(this);
-            if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+            if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
             {
                 container.ShowError(
                 "Likewise Administrative Console encountered an error when trying to add a new group.  " + ErrorCodes.WIN32String((int)result),
@@ -223,7 +223,8 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
     {
         try
         {
-            AddMemberDlg addMemberDlg = new AddMemberDlg();
+            AddMemberDlg addMemberDlg = new AddMemberDlg(true);
+            addMemberDlg.HostName = _hn.hostName;
 
             if (addMemberDlg.ShowDialog() == DialogResult.OK)
             {
