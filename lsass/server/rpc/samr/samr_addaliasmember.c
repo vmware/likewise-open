@@ -93,10 +93,10 @@ SamrSrvAddAliasMember(
     DWORD dwLookupLevel = 0;
     DWORD dwRemoteNamesCount = 0;
     PWSTR pwszName = NULL;
-    DWORD dwNameLen = 0;
+    size_t sNameLen = 0;
     DWORD dwObjectClass = DS_OBJECT_CLASS_UNKNOWN;
     PWSTR pwszDomain = NULL;
-    DWORD dwDomainLen = 0;
+    size_t sDomainLen = 0;
     PWSTR pwszMemberDn = NULL;
     DWORD dwMemberDnLen = 0;
 
@@ -324,7 +324,7 @@ SamrSrvAddAliasMember(
                                                &pRemoteNames[0].name);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        dwError = LwWc16sLen(pwszName, &dwNameLen);
+        dwError = LwWc16sLen(pwszName, &sNameLen);
         BAIL_ON_LSA_ERROR(dwError);
 
         i = pRemoteNames[0].sid_index;
@@ -333,10 +333,10 @@ SamrSrvAddAliasMember(
                                         &pRemoteDomains->domains[i].name);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        dwError = LwWc16sLen(pwszDomain, &dwDomainLen);
+        dwError = LwWc16sLen(pwszDomain, &sDomainLen);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwMemberDnLen = dwNameLen + dwDomainLen +
+        dwMemberDnLen = sNameLen + sDomainLen +
                         (sizeof(wszMemberDnFmt)/sizeof(wszMemberDnFmt[0]));
 
         dwError = LwAllocateMemory(sizeof(WCHAR) * dwMemberDnLen,
