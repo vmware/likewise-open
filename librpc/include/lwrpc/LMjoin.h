@@ -59,7 +59,7 @@ NetJoinDomain(
     const wchar16_t *account_ou,
     const wchar16_t *account,
     const wchar16_t *password,
-    uint32 options
+    UINT32 options
     );
 
 
@@ -71,7 +71,7 @@ NetJoinDomainLocal(
     const wchar16_t *account_ou,
     const wchar16_t *account,
     const wchar16_t *password,
-    uint32 options,
+    UINT32 options,
     const wchar16_t *osname,
     const wchar16_t *osver,
     const wchar16_t *ospack
@@ -83,7 +83,7 @@ NetUnjoinDomain(
     const wchar16_t *hostname,
     const wchar16_t *account,
     const wchar16_t *password,
-    uint32 options
+    UINT32 options
     );
 
 
@@ -93,7 +93,7 @@ NetUnjoinDomainLocal(
     const wchar16_t *domain,
     const wchar16_t *account,
     const wchar16_t *password,
-    uint32 options
+    UINT32 options
     );
 
 

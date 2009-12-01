@@ -145,17 +145,17 @@ typedef struct netr_domain_trust {
     [string]
 #endif
     wchar16_t *dns_name;
-    uint32 trust_flags;
-    uint32 parent_index;
-    uint16 trust_type;
-    uint32 trust_attrs;
+    UINT32 trust_flags;
+    UINT32 parent_index;
+    UINT16 trust_type;
+    UINT32 trust_attrs;
     PSID sid;
     uuid_t guid;
 } NetrDomainTrust;
 
 
 typedef struct netr_domain_trust_list {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -187,21 +187,21 @@ typedef struct netr_domain_trust_list {
 
 
 typedef struct netr_cred {
-	uint8 data[8];
+	UINT8 data[8];
 } NetrCred;
 
 
 typedef struct netr_auth {
     NetrCred cred;
-    uint32 timestamp;
+    UINT32 timestamp;
 } NetrAuth;
 
 
 typedef struct netr_identity_info {
     UnicodeString domain_name;
-    uint32        param_control;
-    uint32        logon_id_low;
-    uint32        logon_id_high;
+    UINT32        param_control;
+    UINT32        logon_id_low;
+    UINT32        logon_id_high;
     UnicodeString account_name;
     UnicodeString workstation;
 } NetrIdentityInfo;
@@ -215,18 +215,18 @@ typedef struct netr_password_info {
 
 
 typedef struct netr_challenge_response {
-    uint16 length;
-    uint16 size;
+    UINT16 length;
+    UINT16 size;
 #ifdef _DCE_IDL_
     [size_is(length),length_is(length)]
 #endif
-    uint8 *data;
+    UINT8 *data;
 } NetrChallengeResponse;
 
 
 typedef struct netr_network_info {
     NetrIdentityInfo identity;
-    uint8 challenge[8];
+    UINT8 challenge[8];
     NetrChallengeResponse nt;
     NetrChallengeResponse lm;
 } NetrNetworkInfo;
@@ -244,11 +244,11 @@ typedef union netr_logon_info {
 
 
 typedef struct netr_credentials {
-    uint32 negotiate_flags;
-    uint8  pass_hash[16];
-    uint8  session_key[16];
-    uint16 channel_type;
-    uint32 sequence;
+    UINT32 negotiate_flags;
+    UINT8  pass_hash[16];
+    UINT8  session_key[16];
+    UINT16 channel_type;
+    UINT32 sequence;
 
     NetrCred  cli_chal;
     NetrCred  srv_chal;
@@ -257,18 +257,18 @@ typedef struct netr_credentials {
 
 
 typedef struct win_nt_time {
-    uint32  low;
-    uint32  high;
+    UINT32  low;
+    UINT32  high;
 } WinNtTime;
 
 
 typedef struct netr_user_session_key {
-    uint8 key[16];
+    UINT8 key[16];
 } NetrUserSessionKey;
 
 
 typedef struct netr_lm_session_key {
-    uint8 key[8];
+    UINT8 key[8];
 } NetrLMSessionKey;
 
 
@@ -285,19 +285,19 @@ typedef struct netr_sam_base_info {
     UnicodeStringEx profile_path;
     UnicodeStringEx home_directory;
     UnicodeStringEx home_drive;
-    uint16 logon_count;
-    uint16 bad_password_count;
-    uint32 rid;
-    uint32 primary_gid;
+    UINT16 logon_count;
+    UINT16 bad_password_count;
+    UINT32 rid;
+    UINT32 primary_gid;
     RidWithAttributeArray groups;
-    uint32 user_flags;
+    UINT32 user_flags;
     NetrUserSessionKey key;
     UnicodeStringEx logon_server;
     UnicodeStringEx domain;
     PSID domain_sid;
     NetrLMSessionKey lmkey;
-    uint32 acct_flags;
-    uint32 unknown[7];
+    UINT32 acct_flags;
+    UINT32 unknown[7];
 } NetrSamBaseInfo;
 
 
@@ -308,13 +308,13 @@ typedef struct netr_sam_info2 {
 
 typedef struct netr_sid_attr {
     PSID sid;
-    uint32 attribute;
+    UINT32 attribute;
 } NetrSidAttr;
 
 
 typedef struct netr_sam_info3 {
     NetrSamBaseInfo base;
-    uint32 sidcount;
+    UINT32 sidcount;
 #ifdef _DCE_IDL_
     [size_is(sidcount)]
 #endif
@@ -324,33 +324,33 @@ typedef struct netr_sam_info3 {
 
 typedef struct netr_sam_info6 {
     NetrSamBaseInfo base;
-    uint32 sidcount;
+    UINT32 sidcount;
 #ifdef _DCE_IDL_
     [size_is(sidcount)]
 #endif
     NetrSidAttr *sids;
     UnicodeString forest;
     UnicodeString principal;
-    uint32 unknown[20];
+    UINT32 unknown[20];
 } NetrSamInfo6;
 
 
 typedef struct netr_pac_info {
-    uint32 pac_size;
+    UINT32 pac_size;
 #ifdef _DCE_IDL_
     [size_is(pac_size)]
 #endif
-    uint8 *pac;
+    UINT8 *pac;
     UnicodeString logon_domain;
     UnicodeString logon_server;
     UnicodeString principal_name;
-    uint32 auth_size;
+    UINT32 auth_size;
 #ifdef _DCE_IDL_
     [size_is(auth_size)]
 #endif
-    uint8 *auth;
+    UINT8 *auth;
     NetrUserSessionKey user_session_key;
-    uint32 expansionroom[10];
+    UINT32 expansionroom[10];
     UnicodeString unknown1;
     UnicodeString unknown2;
     UnicodeString unknown3;
@@ -399,7 +399,7 @@ typedef struct netr_domain_query_1 {
     UnicodeString product;
     UnicodeString unknown7;
     UnicodeString unknown8;
-    uint32 unknown9[4];
+    UINT32 unknown9[4];
 } NetrDomainQuery1;
 
 
@@ -419,18 +419,18 @@ typedef struct netr_domain_trust_info {
     Guid guid;
     PSID sid;
     UnicodeString unknown1[4];
-    uint32 unknown2[4];
+    UINT32 unknown2[4];
 } NetrDomainTrustInfo;
 
 
 typedef struct netr_domain_info_1 {
     NetrDomainTrustInfo domain_info;
-    uint32 num_trusts;
+    UINT32 num_trusts;
 #ifdef _DCE_IDL_
     [size_is(num_trusts)]
 #endif
     NetrDomainTrustInfo *trusts;
-    uint32 unknown1[14];
+    UINT32 unknown1[14];
 } NetrDomainInfo1;
 
 
@@ -475,7 +475,7 @@ typedef struct dsr_dc_name_info {
     [string]
 #endif
     wchar16_t *dc_address;
-    uint16 address_type;
+    UINT16 address_type;
     Guid domain_guid;
 #ifdef _DCE_IDL_
     [string]
@@ -485,7 +485,7 @@ typedef struct dsr_dc_name_info {
     [string]
 #endif
     wchar16_t *forest_name;
-    uint32 flags;
+    UINT32 flags;
 #ifdef _DCE_IDL_
     [string]
 #endif

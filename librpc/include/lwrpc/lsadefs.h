@@ -75,22 +75,22 @@ typedef struct _object_attribute {
 } ObjectAttribute;
 
 typedef struct audit_log_info {
-    uint32 percent_full;
-    uint32 log_size;
+    UINT32 percent_full;
+    UINT32 log_size;
     NtTime retention_time;
-    uint8  shutdown_in_progress;
+    UINT8  shutdown_in_progress;
     NtTime time_to_shutdown;
-    uint32 next_audit_record;
-    uint32 unknown;
+    UINT32 next_audit_record;
+    UINT32 unknown;
 } AuditLogInfo;
 
 typedef struct audit_events_info {
-    uint32 auditing_mode;
+    UINT32 auditing_mode;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
-    uint32 *settings;
-    uint32 count;
+    UINT32 *settings;
+    UINT32 count;
 } AuditEventsInfo;
 
 typedef struct lsa_domain_info {
@@ -103,8 +103,8 @@ typedef struct pd_account_info {
 } PDAccountInfo;
 
 typedef struct server_role {
-    uint16 unknown;
-    uint16 role;
+    UINT16 unknown;
+    UINT16 role;
 } ServerRole;
 
 typedef struct replica_source_info {
@@ -113,27 +113,27 @@ typedef struct replica_source_info {
 } ReplicaSourceInfo;
 
 typedef struct default_quota_info {
-    uint32 paged_pool;
-    uint32 non_paged_pool;
-    uint32 min_wss;
-    uint32 max_wss;
-    uint32 pagefile;
-    uint64 unknown;
+    UINT32 paged_pool;
+    UINT32 non_paged_pool;
+    UINT32 min_wss;
+    UINT32 max_wss;
+    UINT32 pagefile;
+    UINT64 unknown;
 } DefaultQuotaInfo;
 
 typedef struct modification_info {
-    uint64 modified_id;
+    UINT64 modified_id;
     NtTime db_create_time;
 } ModificationInfo;
 
 typedef struct audit_full_set_info {
-    uint8 shutdown_on_full;
+    UINT8 shutdown_on_full;
 } AuditFullSetInfo;
 
 typedef struct audit_full_query_info {
-    uint16 unknown;
-    uint8 shutdown_on_full;
-    uint8 log_is_full;
+    UINT16 unknown;
+    UINT8 shutdown_on_full;
+    UINT8 log_is_full;
 } AuditFullQueryInfo;
 
 typedef struct _guid {
@@ -184,7 +184,7 @@ typedef union lsa_policy_information {
 #endif
 
 
-typedef uint16 LsaSidType;
+typedef UINT16 LsaSidType;
 
 #define SID_TYPE_USE_NONE   0
 #define SID_TYPE_USER       1
@@ -203,25 +203,25 @@ typedef struct ref_domain_list {
 #ifdef _DCE_IDL_
     [range(0,1000)]
 #endif
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
     LsaDomainInfo *domains;
-    uint32 max_size;
+    UINT32 max_size;
 } RefDomainList;
 
 typedef struct translated_sid {
-    uint16 type;     /* SID_TYPE_ */
-    uint32 rid;
-    uint32 index;
+    UINT16 type;     /* SID_TYPE_ */
+    UINT32 rid;
+    UINT32 index;
 } TranslatedSid;
 
 typedef struct translated_sid_array {
 #ifdef _DCE_IDL_
     [range(0,1000)]
 #endif
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -229,17 +229,17 @@ typedef struct translated_sid_array {
 } TranslatedSidArray;
 
 typedef struct translated_sid2 {
-    uint16 type;     /* SID_TYPE_ */
-    uint32 rid;
-    uint32 index;
-    uint32 unknown1;
+    UINT16 type;     /* SID_TYPE_ */
+    UINT32 rid;
+    UINT32 index;
+    UINT32 unknown1;
 } TranslatedSid2;
 
 typedef struct translated_sid_array2 {
 #ifdef _DCE_IDL_
     [range(0,1000)]
 #endif
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -247,17 +247,17 @@ typedef struct translated_sid_array2 {
 } TranslatedSidArray2;
 
 typedef struct translated_sid3 {
-    uint16 type;     /* SID_TYPE_ */
+    UINT16 type;     /* SID_TYPE_ */
     PSID   sid;
-    uint32 index;
-    uint32 unknown1;
+    UINT32 index;
+    UINT32 unknown1;
 } TranslatedSid3;
 
 typedef struct translated_sid_array3 {
 #ifdef _DCE_IDL_
     [range(0,1000)]
 #endif
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -265,16 +265,16 @@ typedef struct translated_sid_array3 {
 } TranslatedSidArray3;
 
 typedef struct translated_name {
-    uint16 type;             /* SID_TYPE_ */
+    UINT16 type;             /* SID_TYPE_ */
     UnicodeString name;
-    uint32 sid_index;
+    UINT32 sid_index;
 } TranslatedName;
 
 typedef struct translated_name_array {
 #ifdef _DCE_IDL_
     [range(0,1000)]
 #endif
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -282,17 +282,17 @@ typedef struct translated_name_array {
 } TranslatedNameArray;
 
 typedef struct translated_name2 {
-    uint16 type;             /* SID_TYPE_ */
+    UINT16 type;             /* SID_TYPE_ */
     UnicodeString name;
-    uint32 sid_index;
-    uint32 unknown1;
+    UINT32 sid_index;
+    UINT32 unknown1;
 } TranslatedName2;
 
 typedef struct translated_name_array2 {
 #ifdef _DCE_IDL_
     [range(0,1000)]
 #endif
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif

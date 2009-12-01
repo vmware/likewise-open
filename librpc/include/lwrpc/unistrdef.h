@@ -43,8 +43,8 @@
 #include <lwrpc/types.h>
 
 typedef struct unicode_string {
-    uint16 len;
-    uint16 size;
+    UINT16 len;
+    UINT16 size;
 #ifdef _DCE_IDL_
     [size_is(size/2),length_is(len/2)]
 #endif
@@ -53,8 +53,8 @@ typedef struct unicode_string {
 
 
 typedef struct unicode_string_ex {
-    uint16 len;
-    uint16 size;   /* size = len + 1 (for terminating char) */
+    UINT16 len;
+    UINT16 size;   /* size = len + 1 (for terminating char) */
 #ifdef _DCE_IDL_
     [size_is(size/2),length_is(len/2)]
 #endif
@@ -63,12 +63,12 @@ typedef struct unicode_string_ex {
 
 
 typedef struct entry {
-    uint32 idx;
+    UINT32 idx;
     UnicodeString name;
 } Entry;
 
 typedef struct entry_array {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -77,7 +77,7 @@ typedef struct entry_array {
 
 
 typedef struct unicode_string_array {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
