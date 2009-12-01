@@ -365,7 +365,7 @@ SamrSrvBuildHomedirPath(
     DWORD dwOffset = 0;
     DWORD dwLenRemaining = 0;
     PWSTR pwszInsert = NULL;
-    DWORD dwInsertLen = 0;
+    size_t sInsertLen = 0;
 
     dwError = LwAllocateWc16String(&pwszSamAccount,
                                    pwszSamAccountName);
@@ -451,7 +451,7 @@ SamrSrvBuildHomedirPath(
             {
             case (WCHAR)('D'):
                 pwszInsert = pwszDomain;
-                dwInsertLen = sDomainNameLen;
+                sInsertLen = sDomainNameLen;
 
                 dwError = LwWc16sToUpper(pwszInsert);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -459,7 +459,7 @@ SamrSrvBuildHomedirPath(
 
             case (WCHAR)('U'):
                 pwszInsert = pwszSamAccount;
-                dwInsertLen = sSamAccountNameLen;
+                sInsertLen = sSamAccountNameLen;
 
                 dwError = LwWc16sToLower(pwszInsert);
                 BAIL_ON_LSA_ERROR(dwError);
@@ -467,12 +467,12 @@ SamrSrvBuildHomedirPath(
 
             case (WCHAR)('H'):
                 pwszInsert = pwszHomedirPrefix;
-                dwInsertLen = sHomedirPrefixLen;
+                sInsertLen = sHomedirPrefixLen;
                 break;
 
             case (WCHAR)('L'):
                 pwszInsert = pwszHostName;
-                dwInsertLen = sHostNameLen;
+                sInsertLen = sHostNameLen;
 
             default:
                 dwError = LW_ERROR_INVALID_HOMEDIR_TEMPLATE;
@@ -493,23 +493,23 @@ SamrSrvBuildHomedirPath(
             if (!pwszEnd)
             {
                 dwError = LwWc16sLen(pwszTemplateCursor,
-                                     &dwInsertLen);
+                                     &sInsertLen);
                 BAIL_ON_LSA_ERROR(dwError);
             }
             else
             {
-                dwInsertLen = pwszEnd - pwszTemplateCursor;
+                sInsertLen = pwszEnd - pwszTemplateCursor;
             }
 
             pwszInsert = pwszTemplateCursor;
-            pwszTemplateCursor += dwInsertLen;
+            pwszTemplateCursor += sInsertLen;
         }
 
         memcpy(pwszHomedirPath + dwOffset,
                pwszInsert,
-               sizeof(WCHAR) * dwInsertLen);
+               sizeof(WCHAR) * sInsertLen);
 
-        dwOffset += dwInsertLen;
+        dwOffset += sInsertLen;
         dwLenRemaining = dwHomedirPathLenAllowed - dwOffset - 1;
     }
 
