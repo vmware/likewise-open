@@ -31,7 +31,7 @@ RpcSvcCreateDomainSocketPath(
     )
 {
     const mode_t PathMode = 0655;
-    const mode_t DirMode = 0600;
+    const mode_t DirMode = 0755;
 
     DWORD dwError = 0;
     PSTR pszSocketPath = NULL;
@@ -253,9 +253,13 @@ RpcSvcInitServerBinding(
     DWORD dwError = 0;
     DWORD rpcstatus = rpc_s_ok;
     DWORD i = 0;
+    BOOLEAN bIsLocalInterface = FALSE;
 
     for (i = 0; pEndPoints[i].pszProtocol != NULL; i++)
     {
+        bIsLocalInterface = (!strcmp(pEndPoints[i].pszProtocol, "ncalrpc")) &&
+                            (pEndPoints[i].pszEndpoint[0] == '/');
+
         if (!pEndPoints[i].pszEndpoint)
         {
             rpc_server_use_protseq((unsigned char*) pEndPoints[i].pszProtocol,
@@ -265,11 +269,11 @@ RpcSvcInitServerBinding(
         }
         else
         {
-            if (!strcmp(pEndPoints[i].pszProtocol, "ncalrpc") &&
-                pEndPoints[i].pszEndpoint[0] == '/') {
-
+            if (bIsLocalInterface)
+            {
                 dwError = RpcSvcCreateDomainSocketPath(pEndPoints[i].pszEndpoint);
                 BAIL_ON_LSA_ERROR(dwError);
+
             }
 
             rpc_server_use_protseq_ep((unsigned char*)pEndPoints[i].pszProtocol,
