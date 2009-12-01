@@ -142,13 +142,15 @@ PrintRegFile(
     BAIL_ON_UP_ERROR(dwError);
 
     if (pConfig->bSawProviderAD && pConfig->bSawProviderLocal)
-        pszLoad = "ActiveDirectory,Local";
+        pszLoad = "ActiveDirectory\0Local\0";
     else if (pConfig->bSawProviderAD)
-        pszLoad = "ActiveDirectory";
+        pszLoad = "ActiveDirectory\0";
     else if (pConfig->bSawProviderLocal)
-        pszLoad = "Local";
+        pszLoad = "Local\0";
+    else
+        pszLoad = "";
 
-    dwError = UpPrintString(fp, "Load", pszLoad);
+    dwError = UpPrintMultiString(fp, "LoadOrder", pszLoad);
     if (fputs("\n", fp) < 0)
     {
         dwError = LwMapErrnoToLwError(errno);

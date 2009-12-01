@@ -1,31 +1,26 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software    2004-2009
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights reserved.
  *
- * This library is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the license, or (at
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
  * your option) any later version.
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
- * General Public License for more details.  You should have received a copy
- * of the GNU Lesser General Public License along with this program.  If
- * not, see <http://www.gnu.org/licenses/>.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.  You should have received a copy of the GNU General
+ * Public License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
  * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
  * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
  * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
- * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
+ * license@likewise.com
  */
 
 /*
@@ -178,6 +173,90 @@ cleanup:
 
 error:
     LW_SAFE_FREE_STRING(pszString);
+    goto cleanup;
+}
+
+DWORD
+UpFormatMultiString(
+    PCSTR pszName,
+    PCSTR pszValue,
+    PSTR *ppszMultiString
+    )
+{
+    DWORD dwError = 0;
+    PCSTR pszMultiStringSegment = NULL;
+    PSTR pszEscapedMultiStringSegment = NULL;
+    PSTR pszEscapedMultiString = NULL;
+    PSTR *ppszEscapedMultiStrings = NULL;
+    DWORD dwSegments = 0;
+    DWORD i = 0;
+    DWORD dwNeededLength = 0;
+
+    // Count components of string.
+    pszMultiStringSegment = pszValue;
+    while (pszMultiStringSegment && *pszMultiStringSegment)
+    {
+        dwSegments++;
+
+        pszMultiStringSegment += strlen(pszMultiStringSegment) + 1;
+    }
+
+    dwError = LwAllocateMemory(
+                sizeof(PSTR*) * dwSegments,
+                (PVOID*)&ppszEscapedMultiStrings);
+    BAIL_ON_UP_ERROR(dwError);
+
+    pszMultiStringSegment = pszValue;
+    i = 0;
+    while (pszMultiStringSegment && *pszMultiStringSegment)
+    {
+        dwError = UpAllocateEscapedString(
+                    pszMultiStringSegment,
+                    &pszEscapedMultiStringSegment);
+        BAIL_ON_UP_ERROR(dwError);
+
+        // 3 = the room for two double quotes and one space.
+        dwNeededLength += strlen(pszEscapedMultiStringSegment) + 3;
+
+        ppszEscapedMultiStrings[i++] = pszEscapedMultiStringSegment;
+        pszEscapedMultiStringSegment = NULL;
+
+        pszMultiStringSegment += strlen(pszMultiStringSegment) + 1;
+    }
+    dwNeededLength += strlen("\"") + strlen(pszName) + strlen("\"=sza:\"\"");
+
+    dwError = LwAllocateMemory(dwNeededLength, (PVOID*)&pszEscapedMultiString);
+    BAIL_ON_UP_ERROR(dwError);
+
+    strcat(pszEscapedMultiString, "\"");
+    strcat(pszEscapedMultiString, pszName);
+    strcat(pszEscapedMultiString, "\"=sza:");
+
+    for (i = 0; i < dwSegments; i++)
+    {
+        strcat(pszEscapedMultiString, "\"");
+        strcat(pszEscapedMultiString, ppszEscapedMultiStrings[i]);
+        strcat(pszEscapedMultiString, "\" ");
+    }
+
+    strcat(pszEscapedMultiString, "\"\"");
+    strcat(pszEscapedMultiString, "\n");
+
+cleanup:
+
+    *ppszMultiString = pszEscapedMultiString;
+
+    for (i = 0; i < dwSegments; i++)
+    {
+        LW_SAFE_FREE_STRING(ppszEscapedMultiStrings[i]);
+    }
+    LW_SAFE_FREE_MEMORY(ppszEscapedMultiStrings);
+    return dwError;
+
+error:
+
+    LW_SAFE_FREE_STRING(pszEscapedMultiStringSegment);
+    LW_SAFE_FREE_STRING(pszEscapedMultiString);
     goto cleanup;
 }
 

@@ -1,10 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +10,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -25,15 +20,7 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewisesoftware.com
- */
-
-/*
- * Copyright (C) Likewise Software 2007
- * All rights reserved.
- *
- * Authors:
- *
+ * license@likewise.com
  */
 
 typedef struct _LWISERVERINFO
