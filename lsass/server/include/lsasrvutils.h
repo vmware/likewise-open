@@ -141,7 +141,8 @@ typedef enum
     LsaTypeDword,
     LsaTypeBoolean,
     LsaTypeChar,
-    LsaTypeEnum
+    LsaTypeEnum,
+    LsaTypeMultiString
 } LSA_CONFIG_TYPE;
 
 typedef struct __LSA_CONFIG
