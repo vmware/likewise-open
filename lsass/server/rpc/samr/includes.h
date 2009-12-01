@@ -45,6 +45,7 @@
 #include <wchar.h>
 
 #include <dce/rpc.h>
+#include <dce/smb.h>
 #include <dce/dcethread.h>
 #include <wc16str.h>
 #include <wc16printf.h>
@@ -53,7 +54,7 @@
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/rid.h>
-#include <lwrpc/lsadefs.h>
+#include <lwrpc/lsa.h>
 #include <lwrpc/samrdefs.h>
 #include <lwio/lwio.h>
 #include <lwnet.h>

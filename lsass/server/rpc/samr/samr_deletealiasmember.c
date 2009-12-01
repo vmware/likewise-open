@@ -58,7 +58,6 @@ SamrSrvDeleteAliasMember(
 
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    RPCSTATUS rpcStatus = 0;
     PACCOUNT_CONTEXT pAcctCtx = NULL;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PCONNECT_CONTEXT pConnCtx = NULL;

@@ -120,7 +120,6 @@ SamrSrvSetUserInfo(
     PACCOUNT_CONTEXT pAcctCtx = NULL;
     HANDLE hDirectory = NULL;
     PWSTR pwszAccountDn = NULL;
-    WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
     WCHAR wszAttrPrimaryGroup[] = DS_ATTR_PRIMARY_GROUP;
@@ -137,11 +136,8 @@ SamrSrvSetUserInfo(
     WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
     WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
-    WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
     WCHAR wszAttrAccountExpiry[] = DS_ATTR_ACCOUNT_EXPIRY;
-    WCHAR wszAttrLmHash[] = DS_ATTR_LM_HASH;
-    WCHAR wszAttrNtHash[] = DS_ATTR_NT_HASH;
     DWORD i = 0;
 
     enum AttrValueIndex {
@@ -222,10 +218,6 @@ SamrSrvSetUserInfo(
         },
         {
             .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-            .data.ulValue = 0
-        },
-        {
-            .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         },
         {
@@ -358,13 +350,6 @@ SamrSrvSetUserInfo(
         &AttrValues[ATTR_VAL_IDX_BAD_PASSWORD_COUNT]
     };
 
-    DIRECTORY_MOD ModLogonCount = {
-        DIR_MOD_FLAGS_REPLACE,
-        wszAttrLogonCount,
-        1,
-        &AttrValues[ATTR_VAL_IDX_LOGON_COUNT]
-    };
-
     DIRECTORY_MOD ModCountryCode = {
         DIR_MOD_FLAGS_REPLACE,
         wszAttrCountryCode,
@@ -379,7 +364,8 @@ SamrSrvSetUserInfo(
         &AttrValues[ATTR_VAL_IDX_CODE_PAGE]
     };
 
-    DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1] = {0};
+    DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1];
+    memset(&Mods, 0, sizeof(Mods));
 
     pAcctCtx = (PACCOUNT_CONTEXT)hUser;
 

@@ -17,10 +17,18 @@ SamrSrvInitialiseConfig(
     PSAMR_SRV_CONFIG pConfig
     );
 
+
 VOID
 SamrSrvFreeConfigContents(
     PSAMR_SRV_CONFIG pConfig
     );
+
+
+DWORD
+SamrSrvReadRegistry(
+    PSAMR_SRV_CONFIG pConfig
+    );
+
 
 DWORD
 SamrSrvConfigGetLpcSocketPath(

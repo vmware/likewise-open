@@ -86,7 +86,7 @@ cleanup:
 
 error:
     *hAccountOut = hAccountIn;
-    goto error;
+    goto cleanup;
 }
 
 

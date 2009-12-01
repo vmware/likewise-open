@@ -76,7 +76,6 @@ SamrSrvSetAliasInfo(
     PACCOUNT_CONTEXT pAcctCtx = NULL;
     HANDLE hDirectory = NULL;
     PWSTR pwszAccountDn = NULL;
-    WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
     DWORD i = 0;
@@ -112,7 +111,8 @@ SamrSrvSetAliasInfo(
         &AttrValues[ATTR_VAL_IDX_DESCRIPTION]
     };
 
-    DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1] = {0};
+    DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1];
+    memset(&Mods, 0, sizeof(Mods));
 
     pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
     pDomCtx  = pAcctCtx->pDomCtx;

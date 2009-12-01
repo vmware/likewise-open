@@ -59,8 +59,14 @@ SamrSrvCreateAccessToken(
     PSTR pszPrincipalName = NULL;
     PBYTE pbSessionKey = NULL;
     USHORT usSessionKeyLen = 0;
-    PLW_MAP_SECURITY_CONTEXT *pSecCtx = NULL;
+    PLW_MAP_SECURITY_CONTEXT pSecCtx = NULL;
     PACCESS_TOKEN pToken = NULL;
+
+    if (!pSecCtx)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     rpc_binding_inq_transport_info(hBinding,
                                    &hTransportInfo,
@@ -79,9 +85,6 @@ SamrSrvCreateAccessToken(
                                    (unsigned char**)&pbSessionKey,
                                    (unsigned16*)&usSessionKeyLen);
 
-    ntStatus = LwMapSecurityCreateContext(&pSecCtx);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
     ntStatus = LwMapSecurityCreateAccessTokenFromCStringUsername(
                                    pSecCtx,
                                    &pToken,
@@ -91,17 +94,12 @@ SamrSrvCreateAccessToken(
     *ppToken = pToken;
 
 cleanup:
-    if (pSecCtx)
-    {
-        LwMapSecurityFreeContext(&pSecCtx);
-    }
-
     return ntStatus;
 
 error:
     if (pToken)
     {
-        RtlReleaseAccessToken(pToken);
+        RtlReleaseAccessToken(&pToken);
     }
 
     *ppToken = NULL;
