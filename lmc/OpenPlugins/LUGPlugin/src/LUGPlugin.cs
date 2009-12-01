@@ -174,13 +174,13 @@ class LUGPlugIn: IPlugIn
                 _hn.creds.Password);
 
             if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows &&
-                result == (uint)ErrorCodes.WIN32Enum.ERROR_FILE_NOT_FOUND)
+                result == (uint)LUGAPI.WinError.ERROR_FILE_NOT_FOUND)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+                result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
             }
 
             hn.IsConnectionSuccess = false;
-            if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+            if (result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
             {
                 hn.IsConnectionSuccess = true;
             }
@@ -400,7 +400,7 @@ class LUGPlugIn: IPlugIn
 
         if (selectDlg.ShowDialog() == DialogResult.OK)
         {
-            int result = (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            int result = (int)LUGAPI.WinError.ERROR_SUCCESS;
 
             _hn.hostName = selectDlg.GetHostname();
 
@@ -416,12 +416,12 @@ class LUGPlugIn: IPlugIn
                     _hn.creds.Password);
 
                 if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows &&
-                    result == (int)ErrorCodes.WIN32Enum.ERROR_FILE_NOT_FOUND)
+                    result == (int)LUGAPI.WinError.ERROR_FILE_NOT_FOUND)
                 {
-                    result = (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+                    result = (int)LUGAPI.WinError.ERROR_SUCCESS;
                 }
 
-                if (result != (int)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                if (result != (int)LUGAPI.WinError.ERROR_SUCCESS)
                 {
                     MessageBox.Show(
                        "Unable to connect to system:\n" + ErrorCodes.WIN32String(result),

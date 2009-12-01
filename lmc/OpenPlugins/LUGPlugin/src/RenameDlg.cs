@@ -36,7 +36,7 @@ namespace Likewise.LMC.Plugins.LUG
 
         private void btnOK_Click(object sender, EventArgs e)
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if(_isUser)
             {
@@ -47,7 +47,7 @@ namespace Likewise.LMC.Plugins.LUG
                 result = LUGAPI.NetRenameGroup(_hostName, _oldName, _newName);
             }
 
-            if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+            if (result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
             {
                 this.DialogResult = DialogResult.OK;
                 Close();

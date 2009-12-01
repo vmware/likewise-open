@@ -79,6 +79,7 @@ SamrSrvInitialiseConfig(
 
 cleanup:
     return dwError;
+
 error:
     SamrSrvFreeConfigContents(pConfig);
     goto cleanup;

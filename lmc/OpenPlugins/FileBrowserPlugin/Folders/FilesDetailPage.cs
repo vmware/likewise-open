@@ -107,6 +107,12 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 lvFilePage.Items.Clear();
             }
 
+            if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.CATEGORY ||
+                node.FBNodeType == FileBrowserNode.FileBrowserNopeType.ROOT)
+            {
+                this.lblCaption.Text = node.Text;
+            }
+
             if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.SHARE ||
                 node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
             {

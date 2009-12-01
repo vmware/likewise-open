@@ -114,7 +114,7 @@ NtRegMultiStrsToByteArrayW(
         pCursor += len * sizeof(WCHAR);
     }
 
-    *((PWSTR)(++pCursor)) = 0;
+    *((PWSTR)(pCursor)) = 0;
 
    *ppOutBuf   = pOutBuf;
    *pOutBufLen = OutBufLen;
@@ -194,7 +194,7 @@ NtRegMultiStrsToByteArrayA(
         pCursor += len;
     }
 
-    *++pCursor = '\0';
+    *pCursor = '\0';
 
    *ppOutBuf   = pOutBuf;
    *pOutBufLen = OutBufLen;

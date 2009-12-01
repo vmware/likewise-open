@@ -167,6 +167,63 @@ namespace Likewise.LMC.NETAPI
 
         #endregion
 
+        #region Error Codes
+
+        public enum WinError
+        {
+            ERROR_SUCCESS = 0,
+            ERROR_FILE_NOT_FOUND = 2,
+            ERROR_ACCESS_DENIED = 5,
+            ERROR_NOT_ENOUGH_MEMORY = 8,
+            ERROR_BAD_NETPATH = 53,
+            ERROR_BAD_DEV_TYPE = 66,
+            ERROR_BAD_NET_NAME = 67,
+            ERROR_ALREADY_ASSIGNED = 85,
+            ERROR_INVALID_PASSWORD = 86,
+            ERROR_INVALID_PARAMETER = 87,
+            ERROR_INVALID_LEVEL = 124,
+            ERROR_BUSY = 170,
+            ERROR_MORE_DATA = 234,
+            ERROR_INVALID_ADDRESS = 487,
+            ERROR_EXCEPTION_IN_SERVICE = 1064,
+            ERROR_BAD_DEVICE = 1200,
+            ERROR_DEVICE_ALREADY_REMEMBERED = 1202,
+            ERROR_NO_NET_OR_BAD_PATH = 1203,
+            ERROR_BAD_PROVIDER = 1204,
+            ERROR_CANNOT_OPEN_PROFILE = 1205,
+            ERROR_BAD_PROFILE = 1206,
+            ERROR_EXTENDED_ERROR = 1208,
+            ERROR_SESSION_CREDENTIAL_CONFLICT = 1219,
+            ERROR_NO_NETWORK = 1222,
+            ERROR_CANCELLED = 1223,
+            ERROR_LOGON_FAILURE = 1326,
+            ERROR_NO_SUCH_ALIAS = 1376,
+            ERROR_MEMBER_NOT_IN_ALIAS = 1377,
+            ERROR_MEMBER_IN_ALIAS = 1378,
+            ERROR_ALIAS_EXISTS = 1379,
+            ERROR_NO_SUCH_MEMBER = 1387,
+            ERROR_INVALID_MEMBER = 1388,
+            RPC_S_SERVER_UNAVAILABLE = 1722,
+            NERR_BufTooSmall = 2123,
+            NERR_BAD_USERNAME = 2202,
+            NERR_BadPassword = 2203,
+            NERR_GroupNotFound = 2220,
+            NERR_UserNotFound = 2221,
+            NERR_GroupExists = 2223,
+            NERR_UserExists = 2224,
+            NERR_NotPrimary = 2226,
+            NERR_SpeGroupOp = 2234,
+            NERR_PasswordTooShort = 2245,
+            NERR_UseNotFound = 2250,
+            NERR_InvalidComputer = 2351,
+            NERR_OpenFiles = 2401,
+            NERR_DevInUse = 2404,
+            NERR_LastAdmin = 2452,
+            NERR_DCNotFound = 2453
+        }
+
+        #endregion
+
         #region Net API Helper Functions
 
         private static uint apiNetUserEnum(
@@ -195,7 +252,7 @@ namespace Likewise.LMC.NETAPI
                 );
 
             //allow non-zero error code if indicates more data must be read.
-            if (result != (uint)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
+            if (result != (uint)LUGAPI.WinError.ERROR_MORE_DATA)
             {
                 return result;
             }
@@ -290,7 +347,7 @@ namespace Likewise.LMC.NETAPI
             string sPassword
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(sUsername))
             {
@@ -320,7 +377,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -338,7 +395,7 @@ namespace Likewise.LMC.NETAPI
 
                 // another session is preventing us from connecting... close it and
                 // retry
-                if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SESSION_CREDENTIAL_CONFLICT)
+                if (result == (uint)LUGAPI.WinError.ERROR_SESSION_CREDENTIAL_CONFLICT)
                 {
                     if (NetCancelConnection(sServer) == 0)
                     {
@@ -352,7 +409,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -368,14 +425,14 @@ namespace Likewise.LMC.NETAPI
             string sServer
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             try
             {
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -390,7 +447,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -410,7 +467,7 @@ namespace Likewise.LMC.NETAPI
             string description
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -440,7 +497,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -454,7 +511,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -476,7 +533,7 @@ namespace Likewise.LMC.NETAPI
             uint flags
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -523,7 +580,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -554,7 +611,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -572,7 +629,7 @@ namespace Likewise.LMC.NETAPI
                 }
                 catch (Exception)
                 {
-                    result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                    result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
                 }
             }
             return result;
@@ -586,7 +643,7 @@ namespace Likewise.LMC.NETAPI
             string password
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -611,7 +668,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -624,7 +681,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -641,7 +698,7 @@ namespace Likewise.LMC.NETAPI
             string username
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -657,7 +714,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -670,7 +727,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
 
             return result;
@@ -683,7 +740,7 @@ namespace Likewise.LMC.NETAPI
             string username
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -699,7 +756,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -711,7 +768,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
 
             return result;
@@ -725,7 +782,7 @@ namespace Likewise.LMC.NETAPI
             out string[] groups
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -748,7 +805,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -756,8 +813,15 @@ namespace Likewise.LMC.NETAPI
                     NetApiInitCalled = true;
                 }
 
-                result = (uint)NetUserGetLocalGroups(servername,
-                    username, 0, 0, out bufPtr, MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries);
+                result = (uint)NetUserGetLocalGroups(
+                    servername,
+                    username,
+                    0,
+                    0,
+                    out bufPtr,
+                    MAX_PREFERRED_LENGTH,
+                    out entriesRead,
+                    out totalEntries);
 
                 if (entriesRead > 0)
                 {
@@ -774,10 +838,7 @@ namespace Likewise.LMC.NETAPI
 
                             if (!String.IsNullOrEmpty(groupsStruct.lgrui0_name))
                             {
-                                groups[i] = scrubString(groupsStruct.lgrui0_name, NETAPI_MAX_GROUP_NAME_LENGTH);
-                            }
-                            else
-                            {
+                                groups[i] = groupsStruct.lgrui0_name;
                             }
 
                             iter = (IntPtr)((long)iter + Marshal.SizeOf(typeof(LOCALGROUP_USERS_INFO_0)));
@@ -787,7 +848,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -807,7 +868,7 @@ namespace Likewise.LMC.NETAPI
             out LUGEnumStatus enumStatus
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -829,7 +890,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -848,8 +909,8 @@ namespace Likewise.LMC.NETAPI
                     ref localResumeHandle
                     );
 
-                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS &&
-                    result != (uint)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
+                if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS &&
+                    result != (uint)LUGAPI.WinError.ERROR_MORE_DATA)
                 {
                     return result;
                 }
@@ -877,7 +938,7 @@ namespace Likewise.LMC.NETAPI
 
                         enumStatus.entries.Add(userInfo);
                     }
-                    if (result == (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
+                    if (result == (int)LUGAPI.WinError.ERROR_MORE_DATA)
                     {
                         enumStatus.moreEntries = true;
                     }
@@ -885,7 +946,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -905,7 +966,7 @@ namespace Likewise.LMC.NETAPI
             out LUGEnumStatus enumStatus
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -927,7 +988,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -945,7 +1006,7 @@ namespace Likewise.LMC.NETAPI
                     ref localResumeHandle
                     );
 
-                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                 {
                     return result;
                 }
@@ -971,7 +1032,7 @@ namespace Likewise.LMC.NETAPI
                         enumStatus.entries.Add(groupInfo);
                     }
                 }
-                if (result == (int)ErrorCodes.WIN32Enum.ERROR_MORE_DATA)
+                if (result == (int)LUGAPI.WinError.ERROR_MORE_DATA)
                 {
                     enumStatus.moreEntries = true;
                 }
@@ -979,7 +1040,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1000,7 +1061,7 @@ namespace Likewise.LMC.NETAPI
             )
         {
 
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1024,7 +1085,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1037,7 +1098,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1067,7 +1128,7 @@ namespace Likewise.LMC.NETAPI
                 username = null;
             }
 
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             userInfo = new LUGInfo();
             userInfo.initializeToNull();
@@ -1081,7 +1142,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1091,7 +1152,7 @@ namespace Likewise.LMC.NETAPI
 
                 result = (uint)NetUserGetInfo(servername, username, 20, out bufPtr);
 
-                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                 {
                     return result;
                 }
@@ -1104,7 +1165,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1124,7 +1185,7 @@ namespace Likewise.LMC.NETAPI
             string username
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1150,7 +1211,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1164,7 +1225,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1184,7 +1245,7 @@ namespace Likewise.LMC.NETAPI
             string groupname
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1211,7 +1272,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1230,7 +1291,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1252,7 +1313,7 @@ namespace Likewise.LMC.NETAPI
             string fullname
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1278,7 +1339,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1292,7 +1353,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1311,7 +1372,7 @@ namespace Likewise.LMC.NETAPI
             string description
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1339,7 +1400,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1351,7 +1412,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1371,7 +1432,7 @@ namespace Likewise.LMC.NETAPI
             uint flags
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1393,7 +1454,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1406,7 +1467,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1425,7 +1486,7 @@ namespace Likewise.LMC.NETAPI
             out string [] members
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1462,7 +1523,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1480,7 +1541,7 @@ namespace Likewise.LMC.NETAPI
                     out totalEntries,
                     resumeHandleStar);
 
-                if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                 {
                     return result;
                 }
@@ -1507,7 +1568,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1551,7 +1612,7 @@ namespace Likewise.LMC.NETAPI
             out string description
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1570,7 +1631,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1591,7 +1652,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1612,7 +1673,7 @@ namespace Likewise.LMC.NETAPI
             string description
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1638,7 +1699,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1652,7 +1713,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1672,7 +1733,7 @@ namespace Likewise.LMC.NETAPI
             string username
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1696,7 +1757,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1709,7 +1770,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1720,7 +1781,7 @@ namespace Likewise.LMC.NETAPI
                 }
                 catch (Exception)
                 {
-                    result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                    result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
                 }
             }
 
@@ -1736,7 +1797,7 @@ namespace Likewise.LMC.NETAPI
             string username
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             if (String.IsNullOrEmpty(servername))
             {
@@ -1764,7 +1825,7 @@ namespace Likewise.LMC.NETAPI
                 if (!NetApiInitCalled)
                 {
                     result = NetApiInit();
-                    if (result != (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
                     {
                         return result;
                     }
@@ -1776,7 +1837,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
             finally
             {
@@ -1831,47 +1892,6 @@ namespace Likewise.LMC.NETAPI
                                  ",\nUF_NORMAL_ACCOUNT:\r\t\t\t\t", ((flags & UF_NORMAL_ACCOUNT) != 0),
                                  ",\nUF_DONT_EXPIRE_PASSWD:\r\t\t\t\t", ((flags & UF_DONT_EXPIRE_PASSWD) != 0),
                                  ",\nUF_PASSWORD_EXPIRED:\r\t\t\t\t", ((flags & UF_PASSWORD_EXPIRED) != 0));
-
-        }
-
-        private static string scrubString(
-            string input,
-            int maxLength
-            )
-        {
-            if (input == null)
-            {
-                return null;
-            }
-
-            char[] inputArr = input.ToCharArray();
-
-            if (inputArr == null)
-            {
-                return null;
-            }
-
-            char[] outputArr = new char[inputArr.Length];
-            int idxOut = 0;
-
-            foreach (char c in inputArr)
-            {
-                if (idxOut >= maxLength)
-                {
-                    continue;
-                }
-
-                //HACK: this is filter out presumed invalid non-English usernames resulting from plumb bug#
-                //TODO: remove the check for (int)c > 127; this HACK prevents internationalization.
-                if (Char.IsLetterOrDigit(c) && (int)c <= 127)
-                {
-                    outputArr[idxOut] = c;
-                    idxOut++;
-                }
-            }
-
-            return new string(outputArr, 0, idxOut);
-
         }
 
         #endregion
@@ -1880,7 +1900,7 @@ namespace Likewise.LMC.NETAPI
         NetApiInit(
             )
         {
-            uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
             try
             {
@@ -1891,7 +1911,7 @@ namespace Likewise.LMC.NETAPI
             }
             catch (Exception)
             {
-                result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
             }
 
             return result;

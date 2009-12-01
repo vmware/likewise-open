@@ -220,7 +220,8 @@
     if (!bInLock) { \
        int thr_err = pthread_mutex_lock(mutex); \
        if (thr_err) { \
-           LWIO_LOG_ERROR("Failed to lock mutex. Aborting program"); \
+           LWIO_LOG_ERROR("Failed to lock mutex: %d. Aborting program", \
+               thr_err); \
            abort(); \
        } \
        bInLock = TRUE; \
@@ -230,7 +231,8 @@
     if (bInLock) { \
        int thr_err = pthread_mutex_unlock(mutex); \
        if (thr_err) { \
-           LWIO_LOG_ERROR("Failed to unlock mutex. Aborting program"); \
+           LWIO_LOG_ERROR("Failed to unlock mutex. Aborting program", \
+               thr_err); \
            abort(); \
        } \
        bInLock = FALSE; \

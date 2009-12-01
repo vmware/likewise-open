@@ -632,7 +632,7 @@ SamDbUpdateBindValues(
 
                 if (pIter->pAttrValues)
                 {
-                    dwError = sqlite3_bind_int(
+                    dwError = sqlite3_bind_int64(
                                     pSqlStatement,
                                     ++iParam,
                                     pIter->pAttrValues[0].data.llValue);
@@ -640,7 +640,7 @@ SamDbUpdateBindValues(
                 else
                 if (pIter->pDirMod)
                 {
-                    dwError = sqlite3_bind_int(
+                    dwError = sqlite3_bind_int64(
                                     pSqlStatement,
                                     ++iParam,
                                     pIter->pDirMod->pAttrValues[0].data.llValue);

@@ -28,7 +28,7 @@ namespace Likewise.LMC.Plugins.LUG
             string errorMessage = null;
             if (Hostinfo.ValidatePassword(_sNewPassword, _sConfirmPassword, out errorMessage))
             {
-                uint result = (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS;
+                uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
 
                 try
                 {
@@ -37,17 +37,18 @@ namespace Likewise.LMC.Plugins.LUG
                 }
                 catch (Exception)
                 {
-                    result = (uint)ErrorCodes.WIN32Enum.ERROR_EXCEPTION_IN_SERVICE;
+                    result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
                 }
 
-                if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+                if (result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
                 {
                     this.DialogResult = DialogResult.OK;
                     Close();
                     return;
                 }
 
-                errorMessage = ErrorCodes.WIN32String((int)result);
+                errorMessage = "Win32 Error: ";
+                errorMessage += Convert.ToString(Enum.Parse(typeof(LUGAPI.WinError), result.ToString()));
             }
 
             Logger.ShowUserError(errorMessage);

@@ -13,10 +13,18 @@ LsaSrvInitialiseConfig(
     PLSA_SRV_CONFIG pConfig
     );
 
+
 VOID
 LsaSrvFreeConfigContents(
     PLSA_SRV_CONFIG pConfig
     );
+
+
+DWORD
+LsaSrvReadRegistry(
+    PLSA_SRV_CONFIG pConfig
+    );
+
 
 DWORD
 LsaSrvConfigGetLpcSocketPath(

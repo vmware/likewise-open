@@ -258,11 +258,28 @@ SamrSrvOpenUser(
 
 
 NTSTATUS
+SamrSrvDeleteUser(
+    handle_t hBinding,
+    ACCOUNT_HANDLE hUserIn,
+    ACCOUNT_HANDLE *phUserOut
+    );
+
+
+NTSTATUS
 SamrSrvQueryUserInfo(
     handle_t hBinding,
     ACCOUNT_HANDLE hUser,
     uint16 level,
     UserInfo **info
+    );
+
+
+NTSTATUS
+SamrSrvSetUserInfo(
+    handle_t hBinding,
+    ACCOUNT_HANDLE hUser,
+    uint16 level,
+    UserInfo *pInfo
     );
 
 

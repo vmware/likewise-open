@@ -348,9 +348,9 @@ error:
             if (pLockState)
             {
                 SrvReleaseLockStateAsync(pLockState);
-            }
 
-            SrvClearLocks(pLockState);
+                SrvClearLocks(pLockState);
+            }
 
             // ntStatus = STATUS_LOCK_NOT_GRANTED;
 

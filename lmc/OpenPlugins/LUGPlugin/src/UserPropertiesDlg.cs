@@ -211,7 +211,7 @@ public partial class UserPropertiesDlg : MPContainer
             _username,
             out groups);
 
-        if ( result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+        if ( result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
         {
             return groups;
         }
@@ -231,7 +231,7 @@ public partial class UserPropertiesDlg : MPContainer
             group,
             _username);
 
-        if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+        if (result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
         {
             return true;
         }
@@ -251,7 +251,7 @@ public partial class UserPropertiesDlg : MPContainer
             group,
             _username);
 
-        if (result == (uint)ErrorCodes.WIN32Enum.ERROR_SUCCESS)
+        if (result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
         {
             return true;
         }

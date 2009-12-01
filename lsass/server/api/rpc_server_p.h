@@ -89,9 +89,15 @@ LsaValidateRpcServer(
 
 DWORD
 LsaRpcReadRegistry(
-    PLSA_STACK *ppRpcSrvStack
+    PLSA_RPC_SERVER *ppRpcSrvList
     );
 
+
+VOID
+LsaSrvAppendRpcServerList(
+    PLSA_RPC_SERVER pRpcServer,
+    PLSA_RPC_SERVER *ppRpcServerList
+    );
 
 void
 LsaFreeRpcServer(
@@ -104,13 +110,10 @@ LsaFreeRpcServerList(
     PLSA_RPC_SERVER pRpcServerList
     );
 
-
-DWORD
-LsaCfgFreeRpcServerInStack(
-    PVOID pItem,
-    PVOID pUserData
+void
+LsaFreeRpcServerListWithoutStopping(
+    PLSA_RPC_SERVER pRpcServerList
     );
-
 
 #endif /* _RPC_SERVER_P_H_ */
 

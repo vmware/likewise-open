@@ -282,7 +282,7 @@ AD_ReadRegistry(
         {
             "RequireMembershipOf",
             TRUE,
-            LsaTypeString,
+            LsaTypeMultiString,
             0,
             MAXDWORD,
             NULL,
@@ -786,43 +786,24 @@ AD_SetConfig_RequireMembershipOf(
 {
     DWORD dwError = 0;
     PCSTR pszIter = pszValue;
-    size_t stLen = 0;
     PSTR  pszMember = NULL;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
+    pszIter = pszValue;
+    while (pszIter != NULL && *pszIter != '\0')
     {
-        goto cleanup;
-    }
-
-    while ((stLen = strcspn(pszIter, ",")) != 0)
-    {
-        dwError = LwStrndup(
+        dwError = LwStrDupOrNull(
                         pszIter,
-                        stLen,
                         &pszMember);
         BAIL_ON_LSA_ERROR(dwError);
 
-        LwStripWhitespace(pszMember, TRUE, TRUE);
+        dwError = LsaDLinkedListAppend(
+                        &pConfig->pUnresolvedMemberList,
+                        pszMember);
+        BAIL_ON_LSA_ERROR(dwError);
 
-        if (*pszMember)
-        {
-            dwError = LsaDLinkedListAppend(
-                            &pConfig->pUnresolvedMemberList,
-                            pszMember);
-            BAIL_ON_LSA_ERROR(dwError);
+        pszMember = NULL;
 
-            pszMember = NULL;
-        }
-        else
-        {
-            LW_SAFE_FREE_STRING(pszMember);
-        }
-
-        pszIter += stLen;
-
-        stLen = strspn(pszIter, ",");
-
-        pszIter += stLen;
+        pszIter += strlen(pszIter);
     }
 
 cleanup:

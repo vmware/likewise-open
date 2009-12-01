@@ -190,6 +190,7 @@ SrvQueryInfo(
             break;
 
         case SMB_QUERY_FILE_ALL_INFO :
+        case SMB_QUERY_FILE_ALL_INFO_ALIAS :
 
             ntStatus = SrvQueryAllInfo(pExecContext);
 

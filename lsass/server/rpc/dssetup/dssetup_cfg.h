@@ -15,6 +15,12 @@ DsrSrvInitialiseConfig(
 
 
 DWORD
+DsrSrvReadRegistry(
+    PDSSETUP_SRV_CONFIG pConfig
+    );
+
+
+DWORD
 DsrSrvConfigGetLpcSocketPath(
     PSTR *ppszLpcSocketPath
     );
