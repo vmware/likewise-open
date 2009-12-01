@@ -261,6 +261,10 @@ _RegOpenKey(
     {
         dwError = ERROR_SUCCESS;
     }
+    else
+    {
+        dwError = ERROR_FILE_NOT_FOUND;
+    }
 
     if (dwError == ERROR_SUCCESS)
     {
