@@ -135,7 +135,7 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\StandardPage.cs">
-      <SubType>UserControl</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="src\StandardPage.Designer.cs">
       <DependentUpon>StandardPage.cs</DependentUpon>

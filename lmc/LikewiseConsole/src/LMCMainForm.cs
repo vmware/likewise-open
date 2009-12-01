@@ -76,9 +76,6 @@ namespace Likewise.LMC
         private Panel pivotPanel;
         private CServerControl sc;
         private StatusBar statusBar1;
-        private StatusBarPanel statusBarPanel1;
-        private StatusBarPanel statusBarPanel2;
-        private StatusBarPanel statusBarPanel3;
 
         #endregion
 
@@ -204,9 +201,6 @@ namespace Likewise.LMC
             this.menuItem12 = new System.Windows.Forms.MenuItem();
             this.menuItem_About = new System.Windows.Forms.MenuItem();
             this.statusBar1 = new System.Windows.Forms.StatusBar();
-            this.statusBarPanel1 = new System.Windows.Forms.StatusBarPanel();
-            this.statusBarPanel2 = new System.Windows.Forms.StatusBarPanel();
-            this.statusBarPanel3 = new System.Windows.Forms.StatusBarPanel();
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.pivotPanel = new System.Windows.Forms.Panel();
             this.navTree = new Likewise.LMC.ServerControl.LWTreeView();
@@ -216,9 +210,6 @@ namespace Likewise.LMC
             this.imageListLarge32 = new System.Windows.Forms.ImageList(this.components);
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.sc = new Likewise.LMC.ServerControl.CServerControl();
-            ((System.ComponentModel.ISupportInitialize)(this.statusBarPanel1)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.statusBarPanel2)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.statusBarPanel3)).BeginInit();
             this.pivotPanel.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -306,38 +297,16 @@ namespace Likewise.LMC
             this.menuItem_About.Click += new System.EventHandler(this.menuItem_About_Click);
             // 
             // statusBar1
-            // 
+            //
             this.statusBar1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.statusBar1.Location = new System.Drawing.Point(0, 543);
+            this.statusBar1.Location = new System.Drawing.Point(0, 549);
             this.statusBar1.Name = "statusBar1";
-            this.statusBar1.Panels.AddRange(new System.Windows.Forms.StatusBarPanel[] {
-            this.statusBarPanel1,
-            this.statusBarPanel2,
-            this.statusBarPanel3});
             this.statusBar1.ShowPanels = true;
-            this.statusBar1.Size = new System.Drawing.Size(792, 23);
+            this.statusBar1.Size = new System.Drawing.Size(792, 22);
             this.statusBar1.TabIndex = 0;
-            // 
-            // statusBarPanel1
-            // 
-            this.statusBarPanel1.AutoSize = System.Windows.Forms.StatusBarPanelAutoSize.Spring;
-            this.statusBarPanel1.Name = "statusBarPanel1";
-            this.statusBarPanel1.Width = 525;
-            // 
-            // statusBarPanel2
-            // 
-            this.statusBarPanel2.BorderStyle = System.Windows.Forms.StatusBarPanelBorderStyle.None;
-            this.statusBarPanel2.Name = "statusBarPanel2";
-            this.statusBarPanel2.Width = 240;
-            // 
-            // statusBarPanel3
-            // 
-            this.statusBarPanel3.BorderStyle = System.Windows.Forms.StatusBarPanelBorderStyle.None;
-            this.statusBarPanel3.Name = "statusBarPanel3";
-            this.statusBarPanel3.Width = 10;
-            // 
+            //
             // imageList1
-            // 
+            //
             this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
             this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
             this.imageList1.Images.SetKeyName(0, "");
@@ -365,9 +334,9 @@ namespace Likewise.LMC
             this.pivotPanel.Dock = System.Windows.Forms.DockStyle.Left;
             this.pivotPanel.Location = new System.Drawing.Point(0, 0);
             this.pivotPanel.Name = "pivotPanel";
-            this.pivotPanel.Size = new System.Drawing.Size(231, 543);
+            this.pivotPanel.Size = new System.Drawing.Size(231, 549);
             this.pivotPanel.TabIndex = 0;
-            // 
+            //
             // navTree
             // 
             this.navTree.BorderStyle = System.Windows.Forms.BorderStyle.None;
@@ -375,7 +344,7 @@ namespace Likewise.LMC
             this.navTree.HideSelection = false;
             this.navTree.Location = new System.Drawing.Point(0, 16);
             this.navTree.Name = "navTree";
-            this.navTree.Size = new System.Drawing.Size(231, 527);
+            this.navTree.Size = new System.Drawing.Size(231, 533);
             this.navTree.TabIndex = 0;
             this.navTree.AfterCollapse += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterCollapse);
             this.navTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterSelect);
@@ -405,7 +374,7 @@ namespace Likewise.LMC
             this.splitter1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.splitter1.Location = new System.Drawing.Point(231, 0);
             this.splitter1.Name = "splitter1";
-            this.splitter1.Size = new System.Drawing.Size(8, 543);
+            this.splitter1.Size = new System.Drawing.Size(8, 549);
             this.splitter1.TabIndex = 2;
             this.splitter1.TabStop = false;
             this.splitter1.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitter1_SplitterMoved);
@@ -437,14 +406,14 @@ namespace Likewise.LMC
             this.sc.Location = new System.Drawing.Point(239, 0);
             this.sc.Margin = new System.Windows.Forms.Padding(2);
             this.sc.Name = "sc";
-            this.sc.Size = new System.Drawing.Size(553, 543);
+            this.sc.Size = new System.Drawing.Size(553, 549);
             this.sc.TabIndex = 1;
             //
             // LMCMainForm
             //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.MenuBar;
-            this.ClientSize = new System.Drawing.Size(792, 566);
+            this.ClientSize = new System.Drawing.Size(792, 571);
             this.Controls.Add(this.sc);
             this.Controls.Add(this.splitter1);
             this.Controls.Add(this.pivotPanel);
@@ -456,9 +425,6 @@ namespace Likewise.LMC
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Likewise Management Console";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.LMCMainForm_FormClosing);
-            ((System.ComponentModel.ISupportInitialize)(this.statusBarPanel1)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.statusBarPanel2)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.statusBarPanel3)).EndInit();
             this.pivotPanel.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -896,7 +862,6 @@ namespace Likewise.LMC
                 // reestablish frame state
                 if (fs.bShowMaximized)
                     this.WindowState = FormWindowState.Maximized;
-                statusBar1.Visible = fs.bShowStatusBar;
                 this.pivotPanel.Visible = this.splitter1.Visible = fs.bShowTreeControl;
                 this.menuItem_Save.Enabled = fs.bReadOnly ? false : true;
 
@@ -1001,7 +966,6 @@ namespace Likewise.LMC
             FrameState fs = new FrameState();
 
             fs.bShowMaximized = this.WindowState == FormWindowState.Maximized;
-            fs.bShowStatusBar = statusBar1.Visible;
             fs.bShowTreeControl = navTree.Visible;
             fs.bReadOnly = this.menuItem_Save.Enabled ? false : true;
             fs.left = this.Location.X;
