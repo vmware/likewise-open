@@ -813,8 +813,15 @@ namespace Likewise.LMC.NETAPI
                     NetApiInitCalled = true;
                 }
 
-                result = (uint)NetUserGetLocalGroups(servername,
-                    username, 0, 0, out bufPtr, MAX_PREFERRED_LENGTH, out entriesRead, out totalEntries);
+                result = (uint)NetUserGetLocalGroups(
+                    servername,
+                    username,
+                    0,
+                    0,
+                    out bufPtr,
+                    MAX_PREFERRED_LENGTH,
+                    out entriesRead,
+                    out totalEntries);
 
                 if (entriesRead > 0)
                 {
@@ -831,10 +838,7 @@ namespace Likewise.LMC.NETAPI
 
                             if (!String.IsNullOrEmpty(groupsStruct.lgrui0_name))
                             {
-                                groups[i] = scrubString(groupsStruct.lgrui0_name, NETAPI_MAX_GROUP_NAME_LENGTH);
-                            }
-                            else
-                            {
+                                groups[i] = groupsStruct.lgrui0_name;
                             }
 
                             iter = (IntPtr)((long)iter + Marshal.SizeOf(typeof(LOCALGROUP_USERS_INFO_0)));
@@ -1888,47 +1892,6 @@ namespace Likewise.LMC.NETAPI
                                  ",\nUF_NORMAL_ACCOUNT:\r\t\t\t\t", ((flags & UF_NORMAL_ACCOUNT) != 0),
                                  ",\nUF_DONT_EXPIRE_PASSWD:\r\t\t\t\t", ((flags & UF_DONT_EXPIRE_PASSWD) != 0),
                                  ",\nUF_PASSWORD_EXPIRED:\r\t\t\t\t", ((flags & UF_PASSWORD_EXPIRED) != 0));
-
-        }
-
-        private static string scrubString(
-            string input,
-            int maxLength
-            )
-        {
-            if (input == null)
-            {
-                return null;
-            }
-
-            char[] inputArr = input.ToCharArray();
-
-            if (inputArr == null)
-            {
-                return null;
-            }
-
-            char[] outputArr = new char[inputArr.Length];
-            int idxOut = 0;
-
-            foreach (char c in inputArr)
-            {
-                if (idxOut >= maxLength)
-                {
-                    continue;
-                }
-
-                //HACK: this is filter out presumed invalid non-English usernames resulting from plumb bug#
-                //TODO: remove the check for (int)c > 127; this HACK prevents internationalization.
-                if (Char.IsLetterOrDigit(c) && (int)c <= 127)
-                {
-                    outputArr[idxOut] = c;
-                    idxOut++;
-                }
-            }
-
-            return new string(outputArr, 0, idxOut);
-
         }
 
         #endregion
