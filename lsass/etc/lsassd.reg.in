@@ -39,7 +39,7 @@
 "AssumeDefaultDomain"=dword:00000000
 "SyncSystemTime"=dword:00000001
 "CachePurgeTimeout"=dword:00278D00
-"RequireMembershipOf"=""
+"RequireMembershipOf"=sza:""
 "CreateK5Login"=dword:00000001
 "CreateHomeDir"=dword:00000001
 "HomeDirUmask"="022"
@@ -67,7 +67,7 @@
 "AcceptNTLMv1"=dword:00000001
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers]
-"Load"="lsarpc,samr,dssetup"
+"LoadOrder"=sza:"lsarpc" "samr" "dssetup"
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\lsarpc]
 "Path"="@rpcserverdir@/liblsa_srv@MOD_EXT@"

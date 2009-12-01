@@ -166,16 +166,19 @@ LsaInitRpcServers(
 {
     DWORD dwError = 0;
     PLSA_RPC_SERVER pRpc = NULL;
+    PLSA_RPC_SERVER pUninitializedRpcList = NULL;
     PLSA_RPC_SERVER pRpcList = NULL;
-    PLSA_STACK pRpcSrvStack = NULL;
     BOOLEAN bLocked = TRUE;
 
-    dwError = LsaRpcReadRegistry(&pRpcSrvStack);
+    dwError = LsaRpcReadRegistry(&pUninitializedRpcList);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pRpc = (PLSA_RPC_SERVER) LsaStackPop(&pRpcSrvStack);
+    while (pUninitializedRpcList)
+    {
+        pRpc = pUninitializedRpcList;
+        pUninitializedRpcList = pUninitializedRpcList->pNext;
+        pRpc->pNext = NULL;
 
-    while (pRpc) {
         dwError = LsaInitRpcServer(pRpc);
         if (dwError)
         {
@@ -190,10 +193,9 @@ LsaInitRpcServers(
         }
         else
         {
-            pRpc->pNext = pRpcList;
-            pRpcList = pRpc;
+            LsaSrvAppendRpcServerList(pRpc, &pRpcList);
+            pRpc = NULL;
         }
-        pRpc = (PLSA_RPC_SERVER) LsaStackPop(&pRpcSrvStack);
     }
 
     ENTER_RPC_SERVER_LIST_WRITER_LOCK(bLocked);
@@ -201,7 +203,7 @@ LsaInitRpcServers(
     LsaFreeRpcServerList(gpRpcServerList);
 
     gpRpcServerList = pRpcList;
-    pRpcList        = NULL;
+    pRpcList     = NULL;
 
     LsaStartRpcServers(gpRpcServerList);
 
@@ -213,13 +215,9 @@ LsaInitRpcServers(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    if (pRpcSrvStack) {
-        LsaStackForeach(
-            pRpcSrvStack,
-            &LsaCfgFreeRpcServerInStack,
-            NULL);
-
-        LsaStackFree(pRpcSrvStack);
+    if (pUninitializedRpcList)
+    {
+        LsaFreeRpcServerListWithoutStopping(pUninitializedRpcList);
     }
 
     return dwError;
@@ -334,7 +332,7 @@ DWORD
 LsaRpcReadServer(
     PCSTR   pszServerName,
     PCSTR   pszServerKey,
-    PLSA_STACK *ppRpcSrvStack
+    PLSA_RPC_SERVER *ppRpcSrvList
     )
 {
     DWORD dwError = 0;
@@ -376,8 +374,7 @@ LsaRpcReadServer(
         dwError = LwAllocateString(pszServerName, &pRpcSrv->pszName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LsaStackPush(pRpcSrv, ppRpcSrvStack);
-        BAIL_ON_LSA_ERROR(dwError);
+        LsaSrvAppendRpcServerList(pRpcSrv, ppRpcSrvList);
         pRpcSrv = NULL;
     }
 
@@ -401,7 +398,7 @@ error:
 
 DWORD
 LsaRpcReadRegistry(
-    PLSA_STACK *ppRpcSrvStack
+    PLSA_RPC_SERVER *ppRpcSrvList
     )
 {
     DWORD dwError = 0;
@@ -411,9 +408,8 @@ LsaRpcReadRegistry(
     PSTR pszServerKey = NULL;
 
     PSTR pszServer = NULL;
-    PSTR pszTokenState = NULL;
 
-    BAIL_ON_INVALID_POINTER(ppRpcSrvStack);
+    BAIL_ON_INVALID_POINTER(ppRpcSrvList);
 
     dwError = LsaOpenConfig(
                 "Services\\lsass\\Parameters\\RPCServers",
@@ -426,9 +422,9 @@ LsaRpcReadRegistry(
         goto error;
     }
 
-    dwError = LsaReadConfigString(
+    dwError = LsaReadConfigMultiString(
                 pReg,
-                "Load",
+                "LoadOrder",
                 FALSE,
                 &pszServers);
     BAIL_ON_LSA_ERROR(dwError);
@@ -441,24 +437,23 @@ LsaRpcReadRegistry(
         goto error;
     }
 
-    pszServer = strtok_r(pszServers, ",", &pszTokenState);
-    while ( pszServer != NULL )
+    pszServer = pszServers;
+    while (pszServer != NULL && *pszServer != '\0')
     {
-        if(!LW_IS_NULL_OR_EMPTY_STR(pszServer))
-        {
-            dwError = LwAllocateStringPrintf(
-                        &pszServerKey,
-                        "Services\\lsass\\Parameters\\RpcServers\\%s",
-                        pszServer);
-            BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwAllocateStringPrintf(
+                    &pszServerKey,
+                    "Services\\lsass\\Parameters\\RpcServers\\%s",
+                    pszServer);
+        BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaRpcReadServer(
-                        pszServer,
-                        pszServerKey,
-                        ppRpcSrvStack);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-        pszServer = strtok_r(NULL, ",", &pszTokenState);
+        dwError = LsaRpcReadServer(
+                    pszServer,
+                    pszServerKey,
+                    ppRpcSrvList);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LW_SAFE_FREE_STRING(pszServerKey);
+        pszServer = pszServer + strlen(pszServer) + 1;
     }
 
 cleanup:
@@ -472,6 +467,30 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+VOID
+LsaSrvAppendRpcServerList(
+    PLSA_RPC_SERVER pRpcServer,
+    PLSA_RPC_SERVER *ppRpcServerList
+    )
+{
+    if (ppRpcServerList)
+    {
+        if (!*ppRpcServerList)
+        {
+            *ppRpcServerList = pRpcServer;
+        }
+        else
+        {
+            PLSA_RPC_SERVER pCurrent = *ppRpcServerList;
+            while (pCurrent->pNext)
+            {
+                pCurrent = pCurrent->pNext;
+            }
+            pCurrent->pNext = pRpcServer;
+        }
+    }
 }
 
 void
@@ -516,22 +535,20 @@ LsaFreeRpcServerList(
     }
 }
 
-
-DWORD
-LsaCfgFreeRpcServerInStack(
-    PVOID pItem,
-    PVOID pUserData
+void
+LsaFreeRpcServerListWithoutStopping(
+    PLSA_RPC_SERVER pRpcServerList
     )
 {
-    DWORD dwError = 0;
+    PLSA_RPC_SERVER pRpc = NULL;
 
-    if (pItem) {
-        LsaFreeRpcServer((PLSA_RPC_SERVER)pItem);
+    while (pRpcServerList) {
+        pRpc = pRpcServerList;
+        pRpcServerList = pRpcServerList->pNext;
+        LsaFreeRpcServer(pRpc);
+        pRpc = NULL;
     }
-
-    return dwError;
 }
-
 
 /*
 local variables:
