@@ -336,6 +336,75 @@ namespace Likewise.LMC.NETAPI
             return result;
         }
 
+        public static uint
+        apiNetAddGroup(
+            string servername,
+            string groupname,
+            string description
+            )
+        {
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
+
+            LOCALGROUP_INFO_1 lg1 = new LOCALGROUP_INFO_1();
+            lg1.name = groupname;
+            lg1.comment = description;
+            UInt32 parm_err = 0;
+
+            IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lg1));
+            IntPtr bufptr_parm_err = Marshal.AllocHGlobal(Marshal.SizeOf(parm_err));
+
+            try
+            {
+                Marshal.StructureToPtr(lg1, bufptr, false);
+                result = (uint)NetLocalGroupAdd(servername, 1, bufptr, bufptr_parm_err);
+            }
+            catch (Exception)
+            {
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
+            }
+            finally
+            {
+                Marshal.DestroyStructure(bufptr, lg1.GetType());
+                Marshal.FreeHGlobal(bufptr);
+                Marshal.FreeHGlobal(bufptr_parm_err);
+
+            }
+            return result;
+        }
+
+        private static uint
+        apiNetAddGroup(
+            string servername,
+            string groupname            )
+        {
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
+
+            LOCALGROUP_INFO_0 lg0 = new LOCALGROUP_INFO_0();
+            lg0.lgrpi0_name = groupname;
+            UInt32 parm_err = 0;
+
+            IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lg0));
+            IntPtr bufptr_parm_err = Marshal.AllocHGlobal(Marshal.SizeOf(parm_err));
+
+            try
+            {
+                Marshal.StructureToPtr(lg0, bufptr, false);
+                result = (uint)NetLocalGroupAdd(servername, 0, bufptr, bufptr_parm_err);
+            }
+            catch (Exception)
+            {
+                result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
+            }
+            finally
+            {
+                Marshal.DestroyStructure(bufptr, lg0.GetType());
+                Marshal.FreeHGlobal(bufptr);
+                Marshal.FreeHGlobal(bufptr_parm_err);
+
+            }
+            return result;
+        }
+
         #endregion
 
         #region MPR API wrappers
@@ -484,14 +553,6 @@ namespace Likewise.LMC.NETAPI
                 description = null;
             }
 
-            LOCALGROUP_INFO_1 lg1 = new LOCALGROUP_INFO_1();
-            lg1.name = groupname;
-            lg1.comment = description;
-            UInt32 parm_err = 0;
-
-            IntPtr bufptr = Marshal.AllocHGlobal(Marshal.SizeOf(lg1));
-            IntPtr bufptr_parm_err = Marshal.AllocHGlobal(Marshal.SizeOf(parm_err));
-
             try
             {
                 if (!NetApiInitCalled)
@@ -505,20 +566,18 @@ namespace Likewise.LMC.NETAPI
                     NetApiInitCalled = true;
                 }
 
-                Marshal.StructureToPtr(lg1, bufptr, false);
-
-                result = (uint)NetLocalGroupAdd(servername, 1, bufptr, bufptr_parm_err);
+                if (description == null)
+                {
+                    result = apiNetAddGroup(servername, groupname);
+                }
+                else
+                {
+                    result = apiNetAddGroup(servername, groupname, description);
+                }
             }
             catch (Exception)
             {
                 result = (uint)LUGAPI.WinError.ERROR_EXCEPTION_IN_SERVICE;
-            }
-            finally
-            {
-                Marshal.DestroyStructure(bufptr, lg1.GetType());
-                Marshal.FreeHGlobal(bufptr);
-                Marshal.FreeHGlobal(bufptr_parm_err);
-
             }
             return result;
         }
