@@ -94,12 +94,14 @@ SrvSetInfo(
             break;
 
         case SMB_SET_FILE_ALLOCATION_INFO :
+        case SMB_SET_FILE_ALLOCATION_INFO_ALIAS:
 
-            ntStatus = SrvSetAllocationInfo(pExecContext);
+	    ntStatus = SrvSetAllocationInfo(pExecContext);
 
             break;
 
         case SMB_SET_FILE_END_OF_FILE_INFO :
+        case SMB_SET_FILE_END_OF_FILE_INFO_ALIAS:
 
             ntStatus = SrvSetEndOfFileInfo(pExecContext);
 
