@@ -48,82 +48,30 @@
  */
 #include "includes.h"
 
-#define LSA_PAM_LOGON_RIGHTS_DENIED_MESSAGE "Access denied"
-
 DWORD
-LsaPamReadRegistry(
-    PLSA_PAM_CONFIG* ppConfig
+LsaPamGetConfig(
+    OUT PLSA_PAM_CONFIG* ppConfig
     )
 {
     DWORD dwError = 0;
-    LSA_PAM_CONFIG StagingConfig;
+    HANDLE hLsaConnection = NULL;
     PLSA_PAM_CONFIG pConfig = NULL;
 
-#if 0
-    const PCSTR LogLevels[] =
-    {
-        "disabled",
-        "always",
-        "error",
-        "warning",
-        "info",
-        "verbose",
-        "debug"
-    };
-
-    LSA_CONFIG ConfigDescription[] =
-    {
-        {   "LogLevel",
-            TRUE,
-            LsaTypeEnum,
-            PAM_LOG_LEVEL_DISABLED,
-            PAM_LOG_LEVEL_DEBUG,
-            LogLevels,
-            &(StagingConfig.dwLogLevel)
-        },
-        {
-            "DisplayMOTD",
-            TRUE,
-            LsaTypeBoolean,
-            0,
-            -1,
-            NULL,
-            &(StagingConfig.bLsaPamDisplayMOTD)
-        },
-        {
-            "UserNotAllowedError",
-            TRUE,
-            LsaTypeString,
-            0,
-            -1,
-            NULL,
-            &(StagingConfig.pszAccessDeniedMessage)
-        }
-    };
-#endif
-
-    dwError = LwAllocateMemory(sizeof(LSA_PAM_CONFIG), (PVOID*) &pConfig);
+    dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);
 
-    memset(&StagingConfig, 0, sizeof(LSA_PAM_CONFIG));
-    dwError = LsaPamInitializeConfig(&StagingConfig);
+    dwError = LsaGetPamConfig(hLsaConnection, &pConfig);
     BAIL_ON_LSA_ERROR(dwError);
-
-#if 0
-    dwError = LsaProcessConfig(
-                "Services\\lsass\\Parameters\\PAM",
-                "Policy\\Services\\lsass\\Parameters\\PAM",
-                ConfigDescription,
-                sizeof(ConfigDescription)/sizeof(ConfigDescription[0]));
-    BAIL_ON_LSA_ERROR(dwError);
-#endif
-
-    *pConfig = StagingConfig;
-    memset(&StagingConfig, 0, sizeof(LSA_PAM_CONFIG));
 
     *ppConfig = pConfig;
 
 cleanup:
+
+    if (hLsaConnection != NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = NULL;
+    }
 
     return dwError;
 
@@ -131,54 +79,17 @@ error:
 
     if ( pConfig )
     {
-        LsaPamFreeConfigContents(pConfig);
-        LW_SAFE_FREE_MEMORY(pConfig);
+        LsaFreePamConfig(pConfig);
+        pConfig = NULL;
     }
-
-    LsaPamFreeConfigContents(&StagingConfig);
 
     goto cleanup;
 }
 
-DWORD
-LsaPamInitializeConfig(
-    PLSA_PAM_CONFIG pConfig
-    )
-{
-    DWORD dwError = 0;
-    PSTR  pszMessage = NULL;
-
-    memset(pConfig, 0, sizeof(LSA_PAM_CONFIG));
-
-    pConfig->bLsaPamDisplayMOTD = FALSE;
-    pConfig->dwLogLevel = PAM_LOG_LEVEL_ERROR;
-
-    dwError = LwAllocateString(
-                    LSA_PAM_LOGON_RIGHTS_DENIED_MESSAGE,
-                    &pszMessage);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
-    pConfig->pszAccessDeniedMessage = pszMessage;
-
-error:
-
-    return dwError;
-}
-
 VOID
 LsaPamFreeConfig(
-    PLSA_PAM_CONFIG pConfig
+    IN PLSA_PAM_CONFIG pConfig
     )
 {
-    LsaPamFreeConfigContents(pConfig);
-    LwFreeMemory(pConfig);
-}
-
-VOID
-LsaPamFreeConfigContents(
-    PLSA_PAM_CONFIG pConfig
-    )
-{
-    LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
+    LsaFreePamConfig(pConfig);
 }

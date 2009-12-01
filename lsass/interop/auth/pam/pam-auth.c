@@ -65,7 +65,7 @@ pam_sm_authenticate(
 
     LSA_LOG_PAM_DEBUG("pam_sm_authenticate::begin");
 
-    dwError = LsaPamReadRegistry(&pConfig);
+    dwError = LsaPamGetConfig(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaPamSetLogLevel(pConfig->dwLogLevel);
@@ -266,7 +266,7 @@ pam_sm_setcred(
     DWORD dwUserInfoLevel = 0;
     PLSA_USER_INFO_0 pUserInfo = NULL;
 
-    dwError = LsaPamReadRegistry(&pConfig);
+    dwError = LsaPamGetConfig(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaPamSetLogLevel(pConfig->dwLogLevel);

@@ -80,7 +80,7 @@ LsaNssOpen(
 
     if (!strcasecmp(pszOptions, "debug"))
     {
-        LsaPamSetLogLevel(PAM_LOG_LEVEL_DEBUG);
+        LsaPamSetLogLevel(LSA_PAM_LOG_LEVEL_DEBUG);
     }
 
 cleanup:

@@ -2336,6 +2336,48 @@ error:
     goto cleanup;
 }
 
+static
+LWMsgStatus
+LsaSrvIpcGetPamConfig(
+    IN LWMsgCall* pCall,
+    IN const LWMsgParams* pIn,
+    OUT LWMsgParams* pOut,
+    IN OPTIONAL void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA_PAM_CONFIG pPamConfig = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    dwError = LsaSrvGetPamConfig(LsaSrvIpcGetSessionData(pCall),
+                               &pPamConfig);
+
+    if (!dwError)
+    {
+        pOut->tag = LSA_R_GET_PAM_CONFIG_SUCCESS;
+        pOut->data = pPamConfig;
+        pPamConfig = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA_R_GET_PAM_CONFIG_FAILURE;
+        pOut->data = pError;
+    }
+
+cleanup:
+    if (pPamConfig)
+    {
+        LsaSrvFreePamConfig(pPamConfig);
+    }
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
 static LWMsgStatus
 LsaSrvIpcFindObjects(
     LWMsgCall* pCall,
@@ -2777,6 +2819,7 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(LSA_Q_ENUM_TRACE_INFO, LsaSrvIpcEnumTraceInfo),
     LWMSG_DISPATCH_BLOCK(LSA_Q_PROVIDER_IO_CONTROL, LsaSrvIpcProviderIoControl),
     LWMSG_DISPATCH_BLOCK(LSA_Q_SET_MACHINE_SID, LsaSrvIpcSetMachineSid),
+    LWMSG_DISPATCH_BLOCK(LSA_Q_GET_PAM_CONFIG, LsaSrvIpcGetPamConfig),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_FIND_OBJECTS, LsaSrvIpcFindObjects),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_OPEN_ENUM_OBJECTS, LsaSrvIpcOpenEnumObjects),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_ENUM_OBJECTS, LsaSrvIpcEnumObjects),

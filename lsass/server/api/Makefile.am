@@ -36,6 +36,7 @@ liblsaserverapi_la_SOURCES = \
        lsatime.c       \
        loginfo.c       \
        metrics.c       \
+       pam.c           \
        provider.c      \
        session.c       \
        state.c         \

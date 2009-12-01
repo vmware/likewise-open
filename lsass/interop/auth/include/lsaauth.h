@@ -113,14 +113,6 @@ extern DWORD gdwLogLevel;
 /*
  * Log levels
  */
-#define PAM_LOG_LEVEL_DISABLED 0
-#define PAM_LOG_LEVEL_ALWAYS   1
-#define PAM_LOG_LEVEL_ERROR    2
-#define PAM_LOG_LEVEL_WARNING  3
-#define PAM_LOG_LEVEL_INFO     4
-#define PAM_LOG_LEVEL_VERBOSE  5
-#define PAM_LOG_LEVEL_DEBUG    6
-
 #if defined(EXPLICIT_OPEN_CLOSE_LOG)
 
 #define LOG_FMT_MODULE_NAME "%s"
@@ -133,73 +125,66 @@ extern DWORD gdwLogLevel;
 
 #endif /* defined(EXPLICIT_OPEN_CLOSE_LOG) */
 
-#define LSA_LOG_PAM_ALWAYS(szFmt, ...)              \
-    do {                                            \
-        LsaPamLogMessage(PAM_LOG_LEVEL_ALWAYS,      \
+#define LSA_LOG_PAM_ALWAYS(szFmt, ...) \
+    do { \
+        LsaPamLogMessage(LSA_PAM_LOG_LEVEL_ALWAYS, \
                          LOG_FMT_MODULE_NAME szFmt, \
-                         LOG_MODULE_NAME,           \
-                         ## __VA_ARGS__);           \
+                         LOG_MODULE_NAME, \
+                         ## __VA_ARGS__); \
     } while(0)
 
-#define LSA_LOG_PAM_ERROR(szFmt, ...)               \
-    do {                                            \
-        if (gdwLogLevel >= PAM_LOG_LEVEL_ERROR) {   \
-            LsaPamLogMessage(PAM_LOG_LEVEL_ERROR,   \
-                             LOG_FMT_MODULE_NAME szFmt,   \
-                             LOG_MODULE_NAME,       \
-                             ## __VA_ARGS__);       \
-        }                                           \
+#define LSA_LOG_PAM_ERROR(szFmt, ...) \
+    do { \
+        if (gdwLogLevel >= LSA_PAM_LOG_LEVEL_ERROR) { \
+            LsaPamLogMessage(LSA_PAM_LOG_LEVEL_ERROR, \
+                             LOG_FMT_MODULE_NAME szFmt, \
+                             LOG_MODULE_NAME, \
+                             ## __VA_ARGS__); \
+        } \
     } while(0)
 
-#define LSA_LOG_PAM_WARNING(szFmt, ...)             \
-    do {                                            \
-        if (gdwLogLevel >= PAM_LOG_LEVEL_WARNING) { \
-            LsaPamLogMessage(PAM_LOG_LEVEL_WARNING, \
-                             LOG_FMT_MODULE_NAME szFmt,   \
-                             LOG_MODULE_NAME,       \
-                             ## __VA_ARGS__);       \
-        }                                           \
+#define LSA_LOG_PAM_WARNING(szFmt, ...) \
+    do { \
+        if (gdwLogLevel >= LSA_PAM_LOG_LEVEL_WARNING) { \
+            LsaPamLogMessage(LSA_PAM_LOG_LEVEL_WARNING, \
+                             LOG_FMT_MODULE_NAME szFmt, \
+                             LOG_MODULE_NAME, \
+                             ## __VA_ARGS__); \
+        } \
     } while(0)
 
-#define LSA_LOG_PAM_INFO(szFmt, ...)                \
-    do {                                            \
-        if (gdwLogLevel >= PAM_LOG_LEVEL_INFO)    { \
-            LsaPamLogMessage(PAM_LOG_LEVEL_INFO,    \
-                             LOG_FMT_MODULE_NAME szFmt,   \
-                             LOG_MODULE_NAME,       \
-                             ## __VA_ARGS__);       \
-        }                                           \
+#define LSA_LOG_PAM_INFO(szFmt, ...) \
+    do { \
+        if (gdwLogLevel >= LSA_PAM_LOG_LEVEL_INFO)    { \
+            LsaPamLogMessage(LSA_PAM_LOG_LEVEL_INFO, \
+                             LOG_FMT_MODULE_NAME szFmt, \
+                             LOG_MODULE_NAME, \
+                             ## __VA_ARGS__); \
+        } \
     } while(0)
 
-#define LSA_LOG_PAM_VERBOSE(szFmt, ...)             \
-    do {                                            \
-        if (gdwLogLevel >= PAM_LOG_LEVEL_VERBOSE) { \
-            LsaPamLogMessage(PAM_LOG_LEVEL_VERBOSE, \
-                             LOG_FMT_MODULE_NAME szFmt,   \
-                             LOG_MODULE_NAME,       \
-                             ## __VA_ARGS__);       \
-        }                                           \
+#define LSA_LOG_PAM_VERBOSE(szFmt, ...) \
+    do { \
+        if (gdwLogLevel >= LSA_PAM_LOG_LEVEL_VERBOSE) { \
+            LsaPamLogMessage(LSA_PAM_LOG_LEVEL_VERBOSE, \
+                             LOG_FMT_MODULE_NAME szFmt, \
+                             LOG_MODULE_NAME, \
+                             ## __VA_ARGS__); \
+        } \
     } while(0)
 
-#define LSA_LOG_PAM_DEBUG(szFmt, ...)               \
-    do {                                            \
-        if (gdwLogLevel >= PAM_LOG_LEVEL_DEBUG) {   \
-           LsaPamLogMessage(PAM_LOG_LEVEL_DEBUG,    \
-                            LOG_FMT_MODULE_NAME "[%s() %s:%d] " szFmt,  \
-                            LOG_MODULE_NAME,        \
-                            __FUNCTION__,           \
-                            __FILE__,               \
-                            __LINE__,               \
-                            ## __VA_ARGS__);        \
-        }                                           \
+#define LSA_LOG_PAM_DEBUG(szFmt, ...) \
+    do { \
+        if (gdwLogLevel >= LSA_PAM_LOG_LEVEL_DEBUG) { \
+           LsaPamLogMessage(LSA_PAM_LOG_LEVEL_DEBUG, \
+                            LOG_FMT_MODULE_NAME "[%s() %s:%d] " szFmt, \
+                            LOG_MODULE_NAME, \
+                            __FUNCTION__, \
+                            __FILE__, \
+                            __LINE__, \
+                            ## __VA_ARGS__); \
+        } \
     } while (0)
-
-typedef struct _LSA_PAM_CONFIG
-{
-    DWORD   dwLogLevel;
-    BOOLEAN bLsaPamDisplayMOTD;
-    PSTR    pszAccessDeniedMessage;
-} LSA_PAM_CONFIG, *PLSA_PAM_CONFIG;
 
 void
 LsaPamLogMessage(
@@ -218,7 +203,7 @@ LsaPamCloseLog(
     );
 
 DWORD
-LsaPamReadRegistry(
+LsaPamGetConfig(
     PLSA_PAM_CONFIG* ppConfig
     );
 
