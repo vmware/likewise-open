@@ -51,10 +51,10 @@
 NTSTATUS
 SamrSrvConnect4(
     /* [in] */ handle_t hBinding,
-    /* [in] */ uint32 size,
+    /* [in] */ UINT32 size,
     /* [in] */ wchar16_t *system_name,
-    /* [in] */ uint32 unknown,
-    /* [in] */ uint32 access_mask,
+    /* [in] */ UINT32 unknown,
+    /* [in] */ UINT32 access_mask,
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {

@@ -51,8 +51,8 @@ NTSTATUS
 SamrSrvLookupRids(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ uint32 dwNumRids,
-    /* [in] */ uint32 *pdwRids,
+    /* [in] */ UINT32 dwNumRids,
+    /* [in] */ UINT32 *pdwRids,
     /* [out] */ UnicodeStringArray *pNames,
     /* [out] */ Ids *pTypes
     )

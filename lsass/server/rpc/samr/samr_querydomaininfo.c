@@ -160,7 +160,7 @@ NTSTATUS
 SamrSrvQueryDomainInfo(
     /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ uint16 level,
+    /* [in] */ UINT16 level,
     /* [out] */ DomainInfo **ppInfo
     )
 {

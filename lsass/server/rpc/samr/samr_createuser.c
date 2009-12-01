@@ -52,16 +52,16 @@ SamrSrvCreateUser(
     /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ UnicodeString *account_name,
-    /* [in] */ uint32 access_mask,
+    /* [in] */ UINT32 access_mask,
     /* [out] */ ACCOUNT_HANDLE *hUser,
-    /* [out] */ uint32 *rid
+    /* [out] */ UINT32 *rid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     PWSTR pwszUserName = NULL;
     UnicodeStringEx UserName;
-    uint32 ulAccessGranted = 0;
+    UINT32 ulAccessGranted = 0;
 
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 

@@ -14,7 +14,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 
     /* LsaPolicyInformation union returned from LsaQueryInfoPolicy */
-    typedef [switch_type(uint16)] union lsa_policy_information {
+    typedef [switch_type(UINT16)] union lsa_policy_information {
         [case(LSA_POLICY_INFO_AUDIT_LOG)]        AuditLogInfo        audit_log;
         [case(LSA_POLICY_INFO_AUDIT_EVENTS)]     AuditEventsInfo     audit_events;
         [case(LSA_POLICY_INFO_DOMAIN)]           LsaDomainInfo       domain;
@@ -48,7 +48,7 @@ cpp_quote("#endif")
 	/* function 0x07 */
     NTSTATUS __LsaQueryInfoPolicy(
         [in] POLICY_HANDLE hPolicy,
-        [in] uint16 level,
+        [in] UINT16 level,
         [out,switch_is(level)] LsaPolicyInformation **info
         );
 
@@ -62,12 +62,12 @@ cpp_quote("#endif")
 	/* function 0x0e */
     NTSTATUS __LsaLookupNames(
         [in] POLICY_HANDLE hPolicy,
-        [in,range(0,1000)] uint32 num_names,
+        [in,range(0,1000)] UINT32 num_names,
         [in,size_is(num_names)] UnicodeString *names,
         [out] RefDomainList **domains,
         [in,out] TranslatedSidArray *sids,
-        [in] uint16 level,
-        [in,out] uint32 *count
+        [in] UINT16 level,
+        [in,out] UINT32 *count
         );
 
 	/* function 0x0f */
@@ -76,8 +76,8 @@ cpp_quote("#endif")
         [in] SidArray *sids,
         [out] RefDomainList **domains,
         [in,out] TranslatedNameArray *names,
-        [in] uint16 level,
-        [in,out] uint32 *count
+        [in] UINT16 level,
+        [in,out] UINT32 *count
         );
 
     NTSTATUS _lsa_Function10();
@@ -113,7 +113,7 @@ cpp_quote("#endif")
     NTSTATUS __LsaOpenPolicy2(
         [in,string,unique] wchar16_t *system_name,
         [in] ObjectAttribute *attrib,
-        [in] uint32 access_mask,
+        [in] UINT32 access_mask,
         [out] POLICY_HANDLE *hPolicy
         );
 
@@ -122,7 +122,7 @@ cpp_quote("#endif")
 	/* function 0x2e */
     NTSTATUS __LsaQueryInfoPolicy2(
         [in] POLICY_HANDLE hPolicy,
-        [in] uint16 level,
+        [in] UINT16 level,
         [out,switch_is(level)] LsaPolicyInformation **info
         );
 
@@ -143,23 +143,23 @@ cpp_quote("#endif")
         [in] SidArray *sids,
         [out] RefDomainList **domains,
         [in,out] TranslatedNameArray2 *names,
-        [in] uint16 level,
-        [in,out] uint32 *count,
-        [in] uint32 unknown1,
-        [in] uint32 unknown2
+        [in] UINT16 level,
+        [in,out] UINT32 *count,
+        [in] UINT32 unknown1,
+        [in] UINT32 unknown2
         );
 
 	/* function 0x3a */
     NTSTATUS __LsaLookupNames2(
         [in] POLICY_HANDLE hPolicy,
-        [in,range(0,1000)] uint32 num_names,
+        [in,range(0,1000)] UINT32 num_names,
         [in,size_is(num_names)] UnicodeStringEx *names,
         [out] RefDomainList **domains,
         [in,out] TranslatedSidArray2 *sids,
-        [in] uint16 level,
-        [in,out] uint32 *count,
-        [in] uint32 unknown1,
-        [in] uint32 unknown2
+        [in] UINT16 level,
+        [in,out] UINT32 *count,
+        [in] UINT32 unknown1,
+        [in] UINT32 unknown2
         );
 
     NTSTATUS _lsa_Function3b();
@@ -175,14 +175,14 @@ cpp_quote("#endif")
     /* function 0x44 */
     NTSTATUS __LsaLookupNames3(
         [in] POLICY_HANDLE hPolicy,
-        [in,range(0,1000)] uint32 num_names,
+        [in,range(0,1000)] UINT32 num_names,
         [in,size_is(num_names)] UnicodeStringEx *names,
         [out] RefDomainList **domains,
         [in,out] TranslatedSidArray3 *sids,
-        [in] uint16 level,
-        [in,out] uint32 *count,
-        [in] uint32 unknown1,
-        [in] uint32 unknown2
+        [in] UINT16 level,
+        [in,out] UINT32 *count,
+        [in] UINT32 unknown1,
+        [in] UINT32 unknown2
         );
 }
 

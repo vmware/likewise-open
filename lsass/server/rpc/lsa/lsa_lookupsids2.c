@@ -54,10 +54,11 @@ LsaSrvLookupSids2(
     SidArray *pSids,
     RefDomainList **ppDomains,
     TranslatedNameArray2 *pNamesArray,
-    uint16 level,
-    uint32 *pdwCount,
-    uint32 unknown1,
-    uint32 unknown2    )
+    UINT16 level,
+    UINT32 *pdwCount,
+    UINT32 unknown1,
+    UINT32 unknown2
+    )
 {
     const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS;
 

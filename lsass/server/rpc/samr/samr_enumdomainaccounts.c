@@ -51,12 +51,12 @@ NTSTATUS
 SamrSrvEnumDomainAccounts(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint32 *resume,
+    UINT32 *resume,
     DWORD dwObjectClass,
-    uint32 account_flags,
-    uint32 max_size,
+    UINT32 account_flags,
+    UINT32 max_size,
     RidNameArray **names,
-    uint32 *num_entries
+    UINT32 *num_entries
     )
 {
     wchar_t wszFilterFmt[] = L"%ws=%d AND %ws='%ws'";
@@ -163,9 +163,9 @@ SamrSrvEnumDomainAccounts(
 
         if (!account_flags ||
             (dwAccountFlags & account_flags)) {
-            dwSize += sizeof(uint32);
+            dwSize += sizeof(UINT32);
             dwSize += wc16slen(pwszName) * sizeof(wchar16_t);
-            dwSize += 2 * sizeof(uint16);
+            dwSize += 2 * sizeof(UINT16);
 
             dwCount++;
         }
@@ -215,7 +215,7 @@ SamrSrvEnumDomainAccounts(
 
         dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
-        pName->rid = (uint32)dwRid;
+        pName->rid = (UINT32)dwRid;
 
         ntStatus = SamrSrvInitUnicodeString(&pName->name,
                                             pwszName);

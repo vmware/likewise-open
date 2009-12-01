@@ -99,12 +99,12 @@ NTSTATUS
 SamrSrvQueryDisplayInfo(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ uint16 level,
-    /* [in] */ uint32 start_idx,
-    /* [in] */ uint32 max_entries,
-    /* [in] */ uint32 buf_size,
-    /* [out] */ uint32 *total_size,
-    /* [out] */ uint32 *returned_size,
+    /* [in] */ UINT16 level,
+    /* [in] */ UINT32 start_idx,
+    /* [in] */ UINT32 max_entries,
+    /* [in] */ UINT32 buf_size,
+    /* [out] */ UINT32 *total_size,
+    /* [out] */ UINT32 *returned_size,
     /* [out] */ SamrDisplayInfo *info
     )
 {
@@ -237,7 +237,7 @@ SamrSrvQueryDisplayInfo(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwTotalSize += sizeof(uint32);    /* "count" field in info structure */
+    dwTotalSize += sizeof(UINT32);    /* "count" field in info structure */
 
     for (i = 0; i < dwEntriesNum; i++) {
         pEntry = &(pEntries[i]);
@@ -292,7 +292,7 @@ SamrSrvQueryDisplayInfo(
        max response size */
     dwCount  = (!dwCount) ? 1 : dwCount;
 
-    dwSize += sizeof(uint32);    /* "count" field in info structure */
+    dwSize += sizeof(UINT32);    /* "count" field in info structure */
     i       = start_idx;
 
     if (dwEntriesNum == 0) {
@@ -472,15 +472,15 @@ SamrSrvFillDisplayInfoFull(
 
     pDisplayEntry = &(pInfo1->entries[i]);
 
-    pDisplayEntry->idx           = (uint32)llRecId;
+    pDisplayEntry->idx           = (UINT32)llRecId;
 
     ntStatus = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
-    pDisplayEntry->rid           = (uint32)dwRid;
-    pDisplayEntry->account_flags = (uint32)ulAccountFlags;
+    pDisplayEntry->rid           = (UINT32)dwRid;
+    pDisplayEntry->account_flags = (UINT32)ulAccountFlags;
 
     ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
                                       pwszUsername);
@@ -583,15 +583,15 @@ SamrSrvFillDisplayInfoGeneral(
 
     pDisplayEntry = &(pInfo2->entries[i]);
 
-    pDisplayEntry->idx           = (uint32)llRecId;
+    pDisplayEntry->idx           = (UINT32)llRecId;
 
     ntStatus = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
-    pDisplayEntry->rid           = (uint32)dwRid;
-    pDisplayEntry->account_flags = (uint32)ulAccountFlags;
+    pDisplayEntry->rid           = (UINT32)dwRid;
+    pDisplayEntry->account_flags = (UINT32)ulAccountFlags;
 
     ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
                                       pwszUsername);
@@ -690,15 +690,15 @@ SamrSrvFillDisplayInfoGeneralGroups(
 
     pDisplayEntry = &(pInfo3->entries[i]);
 
-    pDisplayEntry->idx           = (uint32)llRecId;
+    pDisplayEntry->idx           = (UINT32)llRecId;
 
     ntStatus = SamrSrvAllocateSidFromWC16String(&pSid, pwszSid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
 
-    pDisplayEntry->rid           = (uint32)dwRid;
-    pDisplayEntry->account_flags = (uint32)ulAccountFlags;
+    pDisplayEntry->rid           = (UINT32)dwRid;
+    pDisplayEntry->account_flags = (UINT32)ulAccountFlags;
 
     ntStatus = SamrSrvInitUnicodeString(&pDisplayEntry->account_name,
                                       pwszUsername);
@@ -779,7 +779,7 @@ SamrSrvFillDisplayInfoAscii(
 
     pDisplayEntry = &(pInfo->entries[i]);
 
-    pDisplayEntry->idx = (uint32)llRecId;
+    pDisplayEntry->idx = (UINT32)llRecId;
 
     pDisplayEntry->account_name.Length        = dwUsernameLen;
     pDisplayEntry->account_name.MaximumLength = dwUsernameLen;

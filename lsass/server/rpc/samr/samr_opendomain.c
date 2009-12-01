@@ -51,7 +51,7 @@ NTSTATUS
 SamrSrvOpenDomain(
     /* [in] */ handle_t hBinding,
     /* [in] */ CONNECT_HANDLE hConn,
-    /* [in] */ uint32 access_mask,
+    /* [in] */ UINT32 access_mask,
     /* [in] */ SID *sid,
     /* [out] */ DOMAIN_HANDLE *hDomain
     )

@@ -51,11 +51,11 @@ NTSTATUS
 SamrSrvEnumDomainUsers(
     /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in, out] */ uint32 *resume,
-    /* [in] */ uint32 account_flags,
-    /* [in] */ uint32 max_size,
+    /* [in, out] */ UINT32 *resume,
+    /* [in] */ UINT32 account_flags,
+    /* [in] */ UINT32 max_size,
     /* [out] */ RidNameArray **names,
-    /* [out] */ uint32 *num_entries
+    /* [out] */ UINT32 *num_entries
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

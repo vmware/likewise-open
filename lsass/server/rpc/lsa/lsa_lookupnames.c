@@ -51,12 +51,12 @@ NTSTATUS
 LsaSrvLookupNames(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ POLICY_HANDLE hPolicy,
-    /* [in] */ uint32 num_names,
+    /* [in] */ UINT32 num_names,
     /* [in] */ UnicodeString *names,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedSidArray *sids,
-    /* [in] */ uint16 level,
-    /* [in, out] */ uint32 *count
+    /* [in] */ UINT16 level,
+    /* [in, out] */ UINT32 *count
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

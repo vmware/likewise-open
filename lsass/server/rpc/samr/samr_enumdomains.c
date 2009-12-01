@@ -51,10 +51,10 @@ NTSTATUS
 SamrSrvEnumDomains(
     /* [in] */ handle_t hBinding,
     /* [in] */ CONNECT_HANDLE hConn,
-    /* [in, out] */ uint32 *resume,
-    /* [in] */ uint32 size,
+    /* [in, out] */ UINT32 *resume,
+    /* [in] */ UINT32 size,
     /* [out] */ EntryArray **domains,
-    /* [out] */ uint32 *num_entries
+    /* [out] */ UINT32 *num_entries
     )
 {
     wchar_t wszFilter[] = L"%ws=%d OR %ws=%d";
@@ -147,9 +147,9 @@ SamrSrvEnumDomains(
         if (pAttrVal &&
             pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
 
-            dwSize += sizeof(uint32);
+            dwSize += sizeof(UINT32);
             dwSize += wc16slen(pAttrVal->data.pwszStringValue) * sizeof(wchar16_t);
-            dwSize += 2 * sizeof(uint16);
+            dwSize += 2 * sizeof(UINT16);
 
             dwCount++;
 

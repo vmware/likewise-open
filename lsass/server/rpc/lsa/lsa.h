@@ -51,7 +51,7 @@ LsaSrvOpenPolicy2(
     handle_t b,
     wchar16_t *system_name,
     ObjectAttribute *attrib,
-    uint32 access_mask,
+    UINT32 access_mask,
     POLICY_HANDLE *phPolicy
     );
 
@@ -60,12 +60,12 @@ NTSTATUS
 LsaSrvLookupNames(
     handle_t b,
     POLICY_HANDLE hPolicy,
-    uint32 num_names,
+    UINT32 num_names,
     UnicodeString *names,
     RefDomainList **domains,
     TranslatedSidArray *sids,
-    uint16 level,
-    uint32 *count
+    UINT16 level,
+    UINT32 *count
     );
 
 
@@ -76,8 +76,8 @@ LsaSrvLookupSids(
     SidArray *sids,
     RefDomainList **domains,
     TranslatedNameArray *names,
-    uint16 level,
-    uint32 *count
+    UINT16 level,
+    UINT32 *count
     );
 
 
@@ -85,14 +85,14 @@ NTSTATUS
 LsaSrvLookupNames2(
     handle_t b,
     POLICY_HANDLE hPolicy,
-    uint32 num_names,
+    UINT32 num_names,
     UnicodeStringEx *names,
     RefDomainList **domains,
     TranslatedSidArray2 *sids,
-    uint16 level,
-    uint32 *count,
-    uint32 unknown1,
-    uint32 unknown2
+    UINT16 level,
+    UINT32 *count,
+    UINT32 unknown1,
+    UINT32 unknown2
     );
 
 
@@ -103,10 +103,10 @@ LsaSrvLookupSids2(
     SidArray *sids,
     RefDomainList **domains,
     TranslatedNameArray2 *names,
-    uint16 level,
-    uint32 *count,
-    uint32 unknown1,
-    uint32 unknown2
+    UINT16 level,
+    UINT32 *count,
+    UINT32 unknown1,
+    UINT32 unknown2
     );
 
 
@@ -114,7 +114,7 @@ NTSTATUS
 LsaSrvQueryInfoPolicy(
     handle_t b,
     POLICY_HANDLE hPolicy,
-    uint16 level,
+    UINT16 level,
     LsaPolicyInformation **info
     );
 
@@ -123,7 +123,7 @@ NTSTATUS
 LsaSrvQueryInfoPolicy2(
     handle_t b,
     POLICY_HANDLE hPolicy,
-    uint16 level,
+    UINT16 level,
     LsaPolicyInformation **info
     );
 
@@ -132,14 +132,14 @@ NTSTATUS
 LsaSrvLookupNames3(
     handle_t b,
     POLICY_HANDLE hPolicy,
-    uint32 num_names,
+    UINT32 num_names,
     UnicodeStringEx *names,
     RefDomainList **domains,
     TranslatedSidArray3 *sids,
-    uint16 level,
-    uint32 *count,
-    uint32 unknown1,
-    uint32 unknown2
+    UINT16 level,
+    UINT32 *count,
+    UINT32 unknown1,
+    UINT32 unknown2
     );
 
 
