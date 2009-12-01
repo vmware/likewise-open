@@ -387,7 +387,7 @@ SrvDeleteFiles(
                             DELETE,
                             0,
                             FILE_ATTRIBUTE_NORMAL,
-                            FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
+                            FILE_NO_SHARE,
                             FILE_OPEN,
                             pDeleteState->ulCreateOptions,
                             NULL,
