@@ -1474,6 +1474,17 @@ LsaAllocateSidAppendRid(
     IN ULONG Rid
     );
 
+VOID
+LsaUtilFreeSecurityObject(
+    PLSA_SECURITY_OBJECT pObject
+    );
+
+VOID
+LsaUtilFreeSecurityObjectList(
+    DWORD dwCount,
+    PLSA_SECURITY_OBJECT* ppObjectList
+    );
+
 #endif /* __LSA_UTILS_H__ */
 
 

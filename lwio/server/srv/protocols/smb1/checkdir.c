@@ -204,7 +204,7 @@ SrvProcessCheckDirectory(
                                 &pCheckdirState->fileName,
                                 pCheckdirState->pSecurityDescriptor,
                                 pCheckdirState->pSecurityQOS,
-                                GENERIC_READ|GENERIC_WRITE|GENERIC_EXECUTE,
+                                FILE_LIST_DIRECTORY,
                                 0, /* allocation size */
                                 FILE_ATTRIBUTE_NORMAL,
                                 FILE_SHARE_READ|FILE_SHARE_WRITE,

@@ -1823,7 +1823,8 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszDnsDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
-        if (!*pListEntry->pszDnsDomainName)
+        if (pListEntry->pszDnsDomainName &&
+	    !*pListEntry->pszDnsDomainName)
         {
             LW_SAFE_FREE_STRING(pListEntry->pszDnsDomainName);
         }
@@ -1838,7 +1839,8 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszNetbiosDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
-        if (!*pListEntry->pszNetbiosDomainName)
+        if (pListEntry->pszNetbiosDomainName &&
+	    !*pListEntry->pszNetbiosDomainName)
         {
             LW_SAFE_FREE_STRING(pListEntry->pszNetbiosDomainName);
         }
@@ -1895,7 +1897,8 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszTrusteeDnsDomainName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
-        if (!*pListEntry->pszTrusteeDnsDomainName)
+        if (pListEntry->pszTrusteeDnsDomainName &&
+	    !*pListEntry->pszTrusteeDnsDomainName)
         {
             LW_SAFE_FREE_STRING(pListEntry->pszTrusteeDnsDomainName);
         }
@@ -1965,7 +1968,7 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszForestName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
-        if (!*pListEntry->pszForestName)
+        if (pListEntry->pszForestName && !*pListEntry->pszForestName)
         {
             LW_SAFE_FREE_STRING(pListEntry->pszForestName);
         }
@@ -1980,7 +1983,7 @@ ADState_ReadRegDomainEntry(
                       (PVOID) &pListEntry->pszClientSiteName,
                       &dwValueLen);
         BAIL_ON_LSA_ERROR(dwError);
-        if (!*pListEntry->pszClientSiteName)
+        if (pListEntry->pszClientSiteName && !*pListEntry->pszClientSiteName)
         {
             LW_SAFE_FREE_STRING(pListEntry->pszClientSiteName);
         }

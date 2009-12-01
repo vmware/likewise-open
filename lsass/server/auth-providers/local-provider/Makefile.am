@@ -30,7 +30,7 @@ liblsass_auth_provider_local_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1              \
     -I@top_srcdir@/server/include
 
-liblsass_auth_provider_local_la_CFLAGS = $(PROVIDER_CFLAGS)
+liblsass_auth_provider_local_la_CFLAGS = $(AM_CFLAGS) $(PROVIDER_CFLAGS)
 
 #netapi is needed for NTLMv1EncryptChallenge
 liblsass_auth_provider_local_la_LIBADD = \

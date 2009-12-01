@@ -2633,8 +2633,8 @@ LocalDirCreateForeignPrincipalDN(
     wchar_t wszForeignDnFmt[] = L"CN=%ws,"
                                 L"CN=ForeignSecurityPrincipals,"
                                 L"DC=%ws";
-    DWORD dwSidStrLen = 0;
-    DWORD dwDomainNameLen = 0;
+    size_t sidStrLen = 0;
+    size_t domainNameLen = 0;
     DWORD dwForeignDnLen = 0;
     PWSTR pwszDn = NULL;
 
@@ -2682,20 +2682,20 @@ LocalDirCreateForeignPrincipalDN(
                               (PVOID)&pwszDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwWc16sLen(pwszSID, &dwSidStrLen);
+    dwError = LwWc16sLen(pwszSID, &sidStrLen);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (dwSidStrLen == 0)
+    if (sidStrLen == 0)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LwWc16sLen(pwszDomainName, &dwDomainNameLen);
+    dwError = LwWc16sLen(pwszDomainName, &domainNameLen);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwForeignDnLen = dwSidStrLen +
-                     dwDomainNameLen +
+    dwForeignDnLen = (DWORD) sidStrLen +
+                     (DWORD) domainNameLen +
                      (sizeof(wszForeignDnFmt)/sizeof(wszForeignDnFmt[0]));
 
     dwError = LwAllocateMemory(sizeof(WCHAR) * dwForeignDnLen,

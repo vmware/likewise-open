@@ -107,16 +107,21 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 lvFilePage.Items.Clear();
             }
 
-            if (String.IsNullOrEmpty(node.Path))
+            if (node.FBNodeType == FileBrowserNode.FileBrowserNopeType.SHARE ||
+                node.FBNodeType == FileBrowserNode.FileBrowserNopeType.DIRECTORY)
             {
-                this.lblCaption.Text = node.Text;
+                if (String.IsNullOrEmpty(node.Path))
+                {
+                    // Local HD root scenario
+                    this.lblCaption.Text = node.Text;
 
-                // Show children of treenode (File Browser, Network, Computer, etc)
-            }
-            else
-            {
-                this.lblCaption.Text = string.Format(this.lblCaption.Text, node.Path);
-                FileList = FileClient.FileClient.EnumFiles(node.Path, false);
+                    FileList = FileClient.FileClient.EnumFiles("", false);
+                }
+                else
+                {
+                    this.lblCaption.Text = string.Format(this.lblCaption.Text, node.Path);
+                    FileList = FileClient.FileClient.EnumFiles(node.Path, false);
+                }
             }
 
             if (FileList == null || FileList.Count == 0)
@@ -148,7 +153,14 @@ namespace Likewise.LMC.Plugins.FileBrowser
                     modified = File.LastWriteTime.ToString();
                 }
 
-                size = File.FileSize.ToString() + " KB";
+                if (File.FileSizeInKB > 0)
+                {
+                    size = File.FileSizeInKB.ToString() + " KB";
+                }
+                else
+                {
+                    size = File.FileSmallSizeInBytes.ToString() + " Bytes";
+                }
                 string[] file = { File.FileName, creation, modified, type, size };
 
                 ListViewItem lvItem = new ListViewItem(file, imageIndex);

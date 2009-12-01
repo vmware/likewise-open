@@ -41,6 +41,7 @@ static main_entry entry_list[] =
     {"set-log-level", set_log_level_main},
     {"set-machine-sid", set_machine_sid_main},
     {"trace-info", trace_info_main},
+    {"find-objects", FindObjectsMain},
     {NULL, NULL}
 };
 

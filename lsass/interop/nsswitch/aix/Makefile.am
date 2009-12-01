@@ -15,7 +15,7 @@ LSASS_la_CPPFLAGS = \
 	-I@srcdir@/../include \
 	-I@top_srcdir@/interop/auth/include
 
-LSASS_la_CFLAGS = -shared
+LSASS_la_CFLAGS = -shared $(AM_CFLAGS)
 
 LSASS_la_LIBADD = \
 	@builddir@/../common/libnsscommon.la \
@@ -32,7 +32,7 @@ lsass_la_CPPFLAGS = \
 	-I@srcdir@/../include \
 	-I@top_srcdir@/interop/auth/include
 
-lsass_la_CFLAGS = -shared
+lsass_la_CFLAGS = -shared $(AM_CFLAGS)
 
 lsass_la_LIBADD = \
 	@builddir@/../common/libnsscommon.la \

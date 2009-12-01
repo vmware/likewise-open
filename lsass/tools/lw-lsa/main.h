@@ -165,3 +165,9 @@ trace_info_main(
     int argc,
     char* argv[]
     );
+
+int
+FindObjectsMain(
+    int argc,
+    char** ppszArgv
+    );

@@ -50,6 +50,7 @@
 
 #include <lwmsg/lwmsg.h>
 #include <lsa/lsa.h>
+#include <lsa/lsa2.h>
 
 #define LSA_CLIENT_PATH_FORMAT "/var/tmp/.lsaclient_%05ld"
 #define LSA_SERVER_FILENAME    ".lsassd"
@@ -176,7 +177,22 @@ typedef enum __LSA_IPC_TAG
     LSA_R_PROVIDER_IO_CONTROL_FAILURE,
     LSA_Q_SET_MACHINE_SID,
     LSA_R_SET_MACHINE_SID_SUCCESS,
-    LSA_R_SET_MACHINE_SID_FAILURE
+    LSA_R_SET_MACHINE_SID_FAILURE,
+    LSA2_R_ERROR,
+    LSA2_Q_FIND_OBJECTS,
+    LSA2_R_FIND_OBJECTS,
+    LSA2_Q_OPEN_ENUM_OBJECTS,
+    LSA2_R_OPEN_ENUM_OBJECTS,
+    LSA2_Q_ENUM_OBJECTS,
+    LSA2_R_ENUM_OBJECTS,
+    LSA2_Q_OPEN_ENUM_MEMBERS,
+    LSA2_R_OPEN_ENUM_MEMBERS,
+    LSA2_Q_ENUM_MEMBERS,
+    LSA2_R_ENUM_MEMBERS,
+    LSA2_Q_CLOSE_ENUM,
+    LSA2_R_CLOSE_ENUM,
+    LSA2_Q_QUERY_MEMBER_OF,
+    LSA2_R_QUERY_MEMBER_OF
 } LSA_IPC_TAG;
 
 /* Opaque type -- actual definition in state_p.h - LSA_SRV_ENUM_STATE */
@@ -298,6 +314,80 @@ typedef struct __LSA_IPC_PROVIDER_IO_CONTROL_REQ {
 typedef struct __LSA_IPC_SET_MACHINE_SID {
     PCSTR pszSid;
 } LSA_IPC_SET_MACHINE_SID, *PLSA_IPC_SET_MACHINE_SID;
+
+typedef struct _LSA2_IPC_FIND_OBJECTS_REQ
+{
+    PCSTR pszTargetProvider;
+    LSA_FIND_FLAGS FindFlags;
+    LSA_OBJECT_TYPE ObjectType;
+    LSA_QUERY_TYPE QueryType;
+    enum
+    {
+        LSA2_IPC_QUERY_STRINGS,
+        LSA2_IPC_QUERY_DWORDS
+    } IpcQueryType;
+    DWORD dwCount;
+    LSA_QUERY_LIST QueryList;
+} LSA2_IPC_FIND_OBJECTS_REQ, *PLSA2_IPC_FIND_OBJECTS_REQ;
+
+typedef struct _LSA2_IPC_FIND_OBJECTS_RES
+{
+    DWORD dwCount;
+    PLSA_SECURITY_OBJECT* ppObjects;
+} LSA2_IPC_FIND_OBJECTS_RES, *PLSA2_IPC_FIND_OBJECTS_RES;
+
+typedef struct _LSA2_IPC_OPEN_ENUM_OBJECTS_REQ
+{
+    PCSTR pszTargetProvider;
+    LSA_FIND_FLAGS FindFlags;
+    LSA_OBJECT_TYPE ObjectType;
+    PCSTR pszDomainName;
+} LSA2_IPC_OPEN_ENUM_OBJECTS_REQ, *PLSA2_IPC_OPEN_ENUM_OBJECTS_REQ;
+
+typedef struct _LSA2_IPC_ENUM_OBJECTS_REQ
+{
+    HANDLE hEnum;
+    DWORD dwMaxObjectsCount;
+} LSA2_IPC_ENUM_OBJECTS_REQ, *PLSA2_IPC_ENUM_OBJECTS_REQ;
+
+typedef struct _LSA2_IPC_ENUM_OBJECTS_RES
+{
+    DWORD dwObjectsCount;
+    PLSA_SECURITY_OBJECT* ppObjects;
+} LSA2_IPC_ENUM_OBJECTS_RES, *PLSA2_IPC_ENUM_OBJECTS_RES;
+
+typedef struct _LSA2_IPC_OPEN_ENUM_MEMBERS_REQ
+{
+    PCSTR pszTargetProvider;
+    LSA_FIND_FLAGS FindFlags;
+    PCSTR pszSid;
+} LSA2_IPC_OPEN_ENUM_MEMBERS_REQ, *PLSA2_IPC_OPEN_ENUM_MEMBERS_REQ;
+
+typedef struct _LSA2_IPC_ENUM_MEMBERS_REQ
+{
+    HANDLE hEnum;
+    DWORD dwMaxSidCount;
+} LSA2_IPC_ENUM_MEMBERS_REQ, *PLSA2_IPC_ENUM_MEMBERS_REQ;
+
+typedef struct _LSA2_IPC_ENUM_MEMBERS_RES
+{
+    DWORD dwSidCount;
+    PSTR* ppszMemberSids;
+} LSA2_IPC_ENUM_MEMBERS_RES, *PLSA2_IPC_ENUM_MEMBERS_RES;
+
+typedef struct _LSA2_IPC_QUERY_MEMBER_OF_REQ
+{
+    PCSTR pszTargetProvider;
+    LSA_FIND_FLAGS FindFlags;
+    DWORD dwSidCount;
+    PSTR* ppszSids;
+} LSA2_IPC_QUERY_MEMBER_OF_REQ, *PLSA2_IPC_QUERY_MEMBER_OF_REQ;
+
+typedef struct _LSA2_IPC_QUERY_MEMBER_OF_RES
+{
+    DWORD dwGroupSidCount;
+    PSTR* ppszGroupSids;
+} LSA2_IPC_QUERY_MEMBER_OF_RES, *PLSA2_IPC_QUERY_MEMBER_OF_RES;
 
 #define MAP_LWMSG_ERROR(_e_) (LsaMapLwmsgStatus(_e_))
 #define MAP_LW_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
