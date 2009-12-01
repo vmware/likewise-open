@@ -140,7 +140,6 @@ typedef enum
     LsaTypeString,
     LsaTypeDword,
     LsaTypeBoolean,
-    LsaTypeChar,
     LsaTypeEnum,
     LsaTypeMultiString
 } LSA_CONFIG_TYPE;
