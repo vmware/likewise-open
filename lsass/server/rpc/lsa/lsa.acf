@@ -10,5 +10,6 @@ interface lsa
 	[enable_allocate] __LsaOpenPolicy2();
 	[enable_allocate] __LsaQueryInfoPolicy2();
 	[enable_allocate] __LsaLookupNames2();
+	[enable_allocate] __LsaLookupSids2();
 	[enable_allocate] __LsaLookupNames3();
 }
