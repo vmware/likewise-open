@@ -63,8 +63,10 @@ LsaSrvLookupNames2(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     NTSTATUS ntLookupStatus = STATUS_SUCCESS;
+    RefDomainList *pDomains = NULL;
     TranslatedSidArray2 Sids2;
     TranslatedSidArray3 Sids3;
+    DWORD dwCount = 0;
     DWORD i = 0;
 
     memset(&Sids2, 0, sizeof(Sids2));
@@ -74,10 +76,10 @@ LsaSrvLookupNames2(
                                   hPolicy,
                                   num_names,
                                   names,
-                                  domains,
+                                  &pDomains,
                                   &Sids3,
                                   level,
-                                  count,
+                                  &dwCount,
                                   unknown1,
                                   unknown2);
     ntLookupStatus = ntStatus;
@@ -105,6 +107,8 @@ LsaSrvLookupNames2(
 
     pSids->count = Sids2.count;
     pSids->sids  = Sids2.sids;
+    *domains     = pDomains;
+    *count       = dwCount;
 
 cleanup:
     if (ntStatus == STATUS_SUCCESS &&
@@ -116,12 +120,16 @@ cleanup:
     return ntStatus;
 
 error:
-    if (Sids2.sids) {
+    if (Sids2.sids)
+    {
         LsaSrvFreeMemory(Sids2.sids);
     }
 
     pSids->count = 0;
     pSids->sids  = NULL;
+    *domains     = NULL;
+    *count       = 0;
+
     goto cleanup;
 }
 

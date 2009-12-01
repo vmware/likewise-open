@@ -64,7 +64,7 @@ pam_sm_open_session(
 
     LSA_LOG_PAM_DEBUG("pam_sm_open_session::begin");
 
-    dwError = LsaPamReadRegistry(&pConfig);
+    dwError = LsaPamGetConfig(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaPamSetLogLevel(pConfig->dwLogLevel);
@@ -225,7 +225,7 @@ pam_sm_close_session(
     HANDLE hLsaConnection = (HANDLE)NULL;
     PLSA_PAM_CONFIG pConfig = NULL;
 
-    dwError = LsaPamReadRegistry(&pConfig);
+    dwError = LsaPamGetConfig(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaPamSetLogLevel(pConfig->dwLogLevel);

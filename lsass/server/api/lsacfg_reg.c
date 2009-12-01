@@ -75,6 +75,14 @@ LsaProcessConfig(
                             pConfig[dwEntry].pValue);
                 break;
 
+            case LsaTypeMultiString:
+                dwError = LsaReadConfigMultiString(
+                            pReg,
+                            pConfig[dwEntry].pszName,
+                            pConfig[dwEntry].bUsePolicy,
+                            pConfig[dwEntry].pValue);
+                break;
+
             case LsaTypeDword:
                 dwError = LsaReadConfigDword(
                             pReg,

@@ -93,7 +93,7 @@ LsaPamLogMessage(
     PSTR pszFormat, ...
     )
 {
-    if ((gdwLogLevel != PAM_LOG_LEVEL_DISABLED) &&
+    if ((gdwLogLevel != LSA_PAM_LOG_LEVEL_DISABLED) &&
         (gdwLogLevel >= dwLogLevel))
     {
        va_list argp;
@@ -104,24 +104,24 @@ LsaPamLogMessage(
 
        switch (dwLogLevel)
        {
-           case PAM_LOG_LEVEL_ALWAYS:
+           case LSA_PAM_LOG_LEVEL_ALWAYS:
            {
                lsass_vsyslog(LOG_INFO, pszFormat, argp);
                break;
            }
-           case PAM_LOG_LEVEL_ERROR:
+           case LSA_PAM_LOG_LEVEL_ERROR:
            {
                lsass_vsyslog(LOG_ERR, pszFormat, argp);
                break;
            }
 
-           case PAM_LOG_LEVEL_WARNING:
+           case LSA_PAM_LOG_LEVEL_WARNING:
            {
                lsass_vsyslog(LOG_WARNING, pszFormat, argp);
                break;
            }
 
-           case PAM_LOG_LEVEL_INFO:
+           case LSA_PAM_LOG_LEVEL_INFO:
            {
                lsass_vsyslog(LOG_INFO, pszFormat, argp);
                break;

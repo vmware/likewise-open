@@ -125,11 +125,12 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pInfo) {
+    if (pInfo)
+    {
         LsaSrvFreeMemory(pInfo);
     }
 
-    pInfo = NULL;
+    *ppInfo = NULL;
     goto cleanup;
 }
 

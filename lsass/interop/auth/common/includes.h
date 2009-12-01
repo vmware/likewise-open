@@ -55,7 +55,6 @@
 
 #include "lsaauth.h"
 
-#include "pam-config.h"
 #include "pam-logging.h"
 #include "externs.h"
 

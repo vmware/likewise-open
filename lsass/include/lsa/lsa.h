@@ -764,6 +764,21 @@ typedef struct __LSA_AUTH_USER_INFO
     PLSA_SID_ATTRIB pSidAttribList;
 } LSA_AUTH_USER_INFO, *PLSA_AUTH_USER_INFO;
 
+#define LSA_PAM_LOG_LEVEL_DISABLED 0
+#define LSA_PAM_LOG_LEVEL_ALWAYS   1
+#define LSA_PAM_LOG_LEVEL_ERROR    2
+#define LSA_PAM_LOG_LEVEL_WARNING  3
+#define LSA_PAM_LOG_LEVEL_INFO     4
+#define LSA_PAM_LOG_LEVEL_VERBOSE  5
+#define LSA_PAM_LOG_LEVEL_DEBUG    6
+
+typedef struct _LSA_PAM_CONFIG
+{
+    LW_DWORD dwLogLevel;
+    LW_BOOLEAN bLsaPamDisplayMOTD;
+    LW_PSTR pszAccessDeniedMessage;
+} LSA_PAM_CONFIG, *PLSA_PAM_CONFIG;
+
 /**
  * @ingroup connection
  * @brief Open connection to local LSASS server
@@ -1585,6 +1600,17 @@ LsaProviderIoControl(
     LW_IN LW_PVOID pInputBuffer,
     LW_OUT LW_OPTIONAL LW_DWORD* pdwOutputBufferSize,
     LW_OUT LW_OPTIONAL LW_PVOID* ppOutputBuffer
+    );
+
+LW_DWORD
+LsaGetPamConfig(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_OUT PLSA_PAM_CONFIG *ppPamConfig
+    );
+
+LW_VOID
+LsaFreePamConfig(
+    LW_IN PLSA_PAM_CONFIG pPamConfig
     );
 
 #endif /* __LSA_H__ */

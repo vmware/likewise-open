@@ -423,6 +423,17 @@ LsaSrvGetGroupMembershipByProvider(
     OUT PVOID  **pppMembershipInfo
     );
 
+DWORD
+LsaSrvGetPamConfig(
+    IN HANDLE hServer,
+    OUT PLSA_PAM_CONFIG *ppPamConfig
+    );
+
+VOID
+LsaSrvFreePamConfig(
+    IN PLSA_PAM_CONFIG pConfig
+    );
+
 #define LSA_PROVIDER_TAG_LOCAL "lsa-local-provider"
 
 #endif /* __LSASRVAPI_H__ */

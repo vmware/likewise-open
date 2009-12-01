@@ -48,6 +48,6 @@
 
 BOOLEAN gbLogInitialized = FALSE;
 
-DWORD   gdwLogLevel      = PAM_LOG_LEVEL_ERROR;
+DWORD   gdwLogLevel      = LSA_PAM_LOG_LEVEL_ERROR;
 
 

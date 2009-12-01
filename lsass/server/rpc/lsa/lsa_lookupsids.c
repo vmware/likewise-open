@@ -61,6 +61,7 @@ LsaSrvLookupSids(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     RefDomainList *pDomains = NULL;
     TranslatedNameArray2 Names = {0};
+    DWORD dwCount = 0;
     DWORD i = 0;
 
     ntStatus = LsaSrvLookupSids2(hBinding,
@@ -69,7 +70,7 @@ LsaSrvLookupSids(
                                  &pDomains,
                                  &Names,
                                  level,
-                                 count,
+                                 &dwCount,
                                  0, 0);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
@@ -90,7 +91,8 @@ LsaSrvLookupSids(
         pIn->size                  = pOut->size;
     }
 
-    *ppDomains    = pDomains;
+    *ppDomains = pDomains;
+    *count     = dwCount;
 
 cleanup:
     if (Names.names)
@@ -104,6 +106,7 @@ error:
     pNames->names = NULL;
     pNames->count = 0;
     *ppDomains    = NULL;
+    *count        = 0;
 
     goto cleanup;
 }
