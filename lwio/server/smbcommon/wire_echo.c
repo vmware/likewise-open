@@ -64,12 +64,6 @@ WireUnmarshallEchoRequest(
     /* @todo: endian swap as appropriate */
     pEchoHeader = (PECHO_REQUEST_HEADER) pBuffer;
 
-    if (pEchoHeader->byteCount < 1)
-    {
-        ntStatus = STATUS_INVALID_USER_BUFFER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     if (pEchoHeader->byteCount)
     {
         ntStatus = WireUnmarshallEchoData(
