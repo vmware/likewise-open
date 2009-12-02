@@ -53,54 +53,6 @@
 #include <lw/types.h>
 #include <lw/ntstatus.h>
 
-#ifndef _DCE_IDL_
-
-#include <inttypes.h>
-
-/* Types needed for librpc build pass */
-
-#ifndef UINT8_DEFINED
-typedef uint8_t uint8;
-#define UINT8_DEFINED
-#endif
-
-#ifndef UINT16_DEFINED
-typedef uint16_t uint16;
-#define UINT16_DEFINED
-#endif
-
-#ifndef UINT32_DEFINED
-typedef uint32_t uint32;
-#define UINT32_DEFINED
-#endif
-
-#ifndef UINT64_DEFINED
-typedef uint64_t uint64;
-#define UINT64_DEFINED
-#endif
-
-#ifndef INT8_DEFINED
-typedef int8_t int8;
-#define INT8_DEFINED
-#endif
-
-#ifndef INT16_DEFINED
-typedef int16_t int16;
-#define INT16_DEFINED
-#endif
-
-#ifndef INT32_DEFINED
-typedef int32_t int32;
-#define INT32_DEFINED
-#endif
-
-#ifndef INT64_DEFINED
-#define INT64_DEFINED
-typedef int64_t int64;
-#endif
-
-#endif /* _DCE_IDL_ */
-
 typedef UINT32 WINERR;
 typedef UINT64 NtTime;
 
