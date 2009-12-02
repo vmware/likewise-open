@@ -205,6 +205,37 @@ SrvSetPathInfo(
     return ntStatus;
 }
 
+ACCESS_MASK
+SrvGetPathAccessMask(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    switch (*pTrans2State->pSmbInfoLevel)
+    {
+        case SMB_SET_FILE_END_OF_FILE_INFO:
+        case SMB_SET_FILE_END_OF_FILE_INFO_ALIAS:
+        case SMB_SET_FILE_ALLOCATION_INFO:
+        case SMB_SET_FILE_ALLOCATION_INFO_ALIAS:
+
+            return FILE_WRITE_DATA;
+
+        case SMB_SET_FILE_DISPOSITION_INFO:
+        case SMB_SET_FILE_RENAME_INFO:
+
+            return DELETE;
+
+        default:
+
+            return FILE_WRITE_ATTRIBUTES;
+    }
+}
+
 NTSTATUS
 SrvBuildSetInfoResponse(
     PSRV_EXEC_CONTEXT pExecContext

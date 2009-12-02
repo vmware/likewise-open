@@ -474,6 +474,11 @@ SrvSetPathInfo(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+ACCESS_MASK
+SrvGetPathAccessMask(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 NTSTATUS
 SrvBuildSetInfoResponse(
     PSRV_EXEC_CONTEXT pExecContext
