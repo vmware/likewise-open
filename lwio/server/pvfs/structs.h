@@ -467,6 +467,17 @@ typedef struct _PVFS_NOTIFY_REPORT_RECORD
 } PVFS_NOTIFY_REPORT_RECORD, *PPVFS_NOTIFY_REPORT_RECORD;
 
 
+/* SID/UID/GID caches */
+
+typedef struct _PVFS_ID_CACHE
+{
+    union {
+        uid_t Uid;
+        gid_t Gid;
+    } UnixId;
+    PSID pSid;
+} PVFS_ID_CACHE, *PPVFS_ID_CACHE;
+
 
 #endif    /* _PVFS_STRUCTS_H */
 

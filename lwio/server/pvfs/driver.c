@@ -112,6 +112,13 @@ error:
  Driver Exit Function
  ***********************************************************/
 
+static
+VOID
+PvfsDestroyUnixIdCache(
+    PPVFS_ID_CACHE *ppCacheArray,
+    LONG Length
+    );
+
 static VOID
 PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
@@ -121,7 +128,31 @@ PvfsDriverShutdown(
 
     pthread_rwlock_destroy(&gPathCacheRwLock);
 
+    PvfsDestroyUnixIdCache(gUidMruCache, PVFS_MAX_MRU_SIZE);
+    PvfsDestroyUnixIdCache(gGidMruCache, PVFS_MAX_MRU_SIZE);
+
     IO_LOG_ENTER_LEAVE("");
+}
+
+static
+VOID
+PvfsDestroyUnixIdCache(
+    PPVFS_ID_CACHE *ppCacheArray,
+    LONG Length
+    )
+{
+    LONG i = 0;
+
+    for (i=0; i<Length; i++)
+    {
+        if (ppCacheArray[i] != NULL)
+        {
+            RTL_FREE(&ppCacheArray[i]->pSid);
+            PVFS_FREE(&ppCacheArray[i]);
+        }
+    }
+
+    return;
 }
 
 /************************************************************

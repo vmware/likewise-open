@@ -106,7 +106,7 @@
 
 #define PVFS_WORKERS_NUMBER_THREADS      2
 #define PVFS_WORKERS_MAX_WORK_ITEMS      1024
-
+#define PVFS_MAX_MRU_SIZE                64
 
 /* Top level API functions */
 

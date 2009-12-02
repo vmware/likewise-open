@@ -240,8 +240,17 @@ PvfsSecuritySidMapFromUid(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    UINT32 Key = Uid % PVFS_MAX_MRU_SIZE;
 
     BAIL_ON_INVALID_PTR(ppUserSid, ntError);
+
+    if (gUidMruCache[Key] != NULL && (gUidMruCache[Key]->UnixId.Uid == Uid))
+    {
+        ntError = RtlDuplicateSid(ppUserSid, gUidMruCache[Key]->pSid);
+        BAIL_ON_NT_STATUS(ntError);
+
+        goto cleanup;
+    }
 
     if (!gpPvfsLwMapSecurityCtx)
     {
@@ -255,6 +264,33 @@ PvfsSecuritySidMapFromUid(
                   TRUE,
                   Uid);
     BAIL_ON_NT_STATUS(ntError);
+
+    /* Try to cache the SID/UID pair but don't fail if we can't since
+       we have already got the data the caller asked for */
+
+    if (gUidMruCache[Key] != NULL)
+    {
+        PVFS_FREE(&gUidMruCache[Key]);
+    }
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&gUidMruCache[Key],
+                  sizeof(PVFS_ID_CACHE));
+    if (ntError != STATUS_SUCCESS)
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    gUidMruCache[Key]->UnixId.Uid = Uid;
+    ntError = RtlDuplicateSid(&gUidMruCache[Key]->pSid, *ppUserSid);
+    if (ntError != STATUS_SUCCESS)
+    {
+        PVFS_FREE(&gUidMruCache[Key]);
+
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
 
 cleanup:
     return ntError;
@@ -275,8 +311,17 @@ PvfsSecuritySidMapFromGid(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    UINT32 Key = Gid % PVFS_MAX_MRU_SIZE;
 
     BAIL_ON_INVALID_PTR(ppGroupSid, ntError);
+
+    if (gGidMruCache[Key] != NULL && (gGidMruCache[Key]->UnixId.Gid == Gid))
+    {
+        ntError = RtlDuplicateSid(ppGroupSid, gGidMruCache[Key]->pSid);
+        BAIL_ON_NT_STATUS(ntError);
+
+        goto cleanup;
+    }
 
     if (!gpPvfsLwMapSecurityCtx)
     {
@@ -290,6 +335,33 @@ PvfsSecuritySidMapFromGid(
                   FALSE,
                   Gid);
     BAIL_ON_NT_STATUS(ntError);
+
+    /* Try to cache the SID/GID pair but don't fail if we can't since
+       we have already got the data the caller asked for */
+
+    if (gGidMruCache[Key] != NULL)
+    {
+        PVFS_FREE(&gGidMruCache[Key]);
+    }
+
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&gGidMruCache[Key],
+                  sizeof(PVFS_ID_CACHE));
+    if (ntError != STATUS_SUCCESS)
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    gGidMruCache[Key]->UnixId.Gid = Gid;
+    ntError = RtlDuplicateSid(&gGidMruCache[Key]->pSid, *ppGroupSid);
+    if (ntError != STATUS_SUCCESS)
+    {
+        PVFS_FREE(&gGidMruCache[Key]);
+
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
 
 cleanup:
     return ntError;
