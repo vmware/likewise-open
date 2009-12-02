@@ -366,6 +366,64 @@ LocalGetGroupMembershipByProvider(
     OUT PVOID   **ppMembershipInfo
     );
 
+DWORD
+LocalFindObjects(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LocalOpenEnumObjects(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN OPTIONAL PCSTR pszDomainName
+    );
+
+DWORD
+LocalEnumObjects(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LocalOpenEnumMembers(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid
+    );
+
+DWORD
+LocalEnumMembers(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxMemberSidCount,
+    OUT PDWORD pdwMemberSidCount,
+    OUT PSTR** pppszMemberSids
+    );
+
+VOID
+LocalCloseEnum(
+    IN OUT HANDLE hEnum
+    );
+
+DWORD
+LocalQueryMemberOf(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    );
 
 #endif /* __PROVIDER_MAIN_H__ */
 

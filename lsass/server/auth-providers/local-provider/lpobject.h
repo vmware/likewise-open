@@ -68,4 +68,63 @@ LocalDirGetNamesBySidList(
     ADAccountType** ppTypes
     );
 
+DWORD
+LocalDirFindObjects(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LocalDirOpenEnumObjects(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN OPTIONAL PCSTR pszDomainName
+    );
+
+DWORD
+LocalDirEnumObjects(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+LocalDirOpenEnumMembers(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid
+    );
+
+DWORD
+LocalDirEnumMembers(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxMemberSidCount,
+    OUT PDWORD pdwMemberSidCount,
+    OUT PSTR** pppszMemberSids
+    );
+
+VOID
+LocalDirCloseEnum(
+    IN OUT HANDLE hEnum
+    );
+
+DWORD
+LocalDirQueryMemberOf(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    );
+
 #endif /* __LP_OBJECT_H__ */

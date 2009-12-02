@@ -27,13 +27,13 @@
 /*
  * Module Name:
  *
- *        find_objects.c
+ *        query_member_of.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Tool to find objects
+ *        Tool to query group membership of object
  *
  * Authors: Brian Koropoff(bkoropoff@likewise.com)
  */
@@ -43,18 +43,16 @@
 #include "lsadef.h"
 #include "lsaclient.h"
 #include "common.h"
+
 #include <lsa/lsa.h>
 #include <lsa/lsa2.h>
 #include <lwmem.h>
 #include <lwerror.h>
 
-#define SAFE_STRING(x) ((x) == NULL ? "<null>" : (x))
-
 static struct
 {
     PCSTR pszTargetProvider;
     LSA_FIND_FLAGS FindFlags;
-    LSA_OBJECT_TYPE ObjectType;
     LSA_QUERY_TYPE QueryType;
     DWORD dwCount;
     LSA_QUERY_LIST QueryList;
@@ -62,7 +60,6 @@ static struct
 {
     .pszTargetProvider = NULL,
     .FindFlags = 0,
-    .ObjectType = LSA_OBJECT_TYPE_UNDEFINED,
     .QueryType = LSA_QUERY_TYPE_UNDEFINED,
     .dwCount = 0
 };
@@ -142,15 +139,7 @@ ParseArguments(
 
     for (i = 1; i < argc; i++)
     {
-        if (!strcmp(ppszArgv[i], "--user"))
-        {
-            gState.ObjectType = LSA_OBJECT_TYPE_USER;
-        }
-        else if (!strcmp(ppszArgv[i], "--group"))
-        {
-            gState.ObjectType = LSA_OBJECT_TYPE_GROUP;
-        }
-        else if (!strcmp(ppszArgv[i], "--by-dn"))
+        if (!strcmp(ppszArgv[i], "--by-dn"))
         {
             dwError = SetQueryType(LSA_QUERY_TYPE_BY_DN);
             BAIL_ON_LSA_ERROR(dwError);
@@ -215,55 +204,193 @@ error:
 
 static
 DWORD
-FindObjects(
-    VOID
+ResolveSid(
+    HANDLE hLsa,
+    LSA_QUERY_TYPE QueryType,
+    LSA_QUERY_LIST QueryList,
+    DWORD dwIndex,
+    PSTR* ppszSid
     )
 {
     DWORD dwError = 0;
-    HANDLE hLsa = NULL;
+    LSA_QUERY_LIST SingleList;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
-    DWORD dwIndex = 0;
 
-    dwError = LsaOpenServer(&hLsa);
-    BAIL_ON_LSA_ERROR(dwError);
+    *ppszSid = NULL;
 
-    dwError = LsaFindObjects(
-        hLsa,
-        gState.pszTargetProvider,
-        gState.FindFlags,
-        gState.ObjectType,
-        gState.QueryType,
-        gState.dwCount,
-        gState.QueryList,
-        &ppObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (dwIndex = 0; dwIndex < gState.dwCount; dwIndex++)
+    if (QueryType == LSA_QUERY_TYPE_BY_SID)
     {
-        if (ppObjects[dwIndex])
+        dwError = LwAllocateString(QueryList.ppszStrings[dwIndex], ppszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        switch (QueryType)
         {
-            PrintSecurityObject(ppObjects[dwIndex]);
+        case LSA_QUERY_TYPE_BY_UNIX_ID:
+            SingleList.pdwIds = &QueryList.pdwIds[dwIndex];
+            break;
+        default:
+            SingleList.ppszStrings = &QueryList.ppszStrings[dwIndex];
+            break;
         }
-        else
+
+        dwError = LsaFindObjects(
+            hLsa,
+            gState.pszTargetProvider,
+            gState.FindFlags,
+            LSA_OBJECT_TYPE_UNDEFINED,
+            QueryType,
+            1,
+            SingleList,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (ppObjects[0])
         {
-            switch (gState.QueryType)
-            {
-            case LSA_QUERY_TYPE_BY_UNIX_ID:
-                printf("Not found: %lu\n", (unsigned long) gState.QueryList.pdwIds[dwIndex]);
-                break;
-            default:
-                printf("Not found: %s\n", gState.QueryList.ppszStrings[dwIndex]);
-                break;
-            }
+            dwError = LwAllocateString(ppObjects[0]->pszObjectSid, ppszSid);
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        printf("\n");
     }
 
 error:
 
     if (ppObjects)
     {
-        LsaFreeSecurityObjectList(gState.dwCount, ppObjects);
+        LsaFreeSecurityObjectList(1, ppObjects);
+    }
+
+    return dwError;
+}
+
+static
+DWORD
+ResolveGroup(
+    HANDLE hLsa,
+    PSTR pszSid,
+    PLSA_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+
+    QueryList.ppszStrings = (PCSTR*) &pszSid;
+
+    dwError = LsaFindObjects(
+        hLsa,
+        NULL, //gState.pszTargetProvider,
+        gState.FindFlags,
+        LSA_OBJECT_TYPE_UNDEFINED,
+        LSA_QUERY_TYPE_BY_SID,
+        1,
+        QueryList,
+        &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppObject = ppObjects[0];
+    ppObjects[0] = NULL;
+
+cleanup:
+
+    if (ppObjects)
+    {
+        LsaFreeSecurityObjectList(1, ppObjects);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+QueryMemberOf(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hLsa = NULL;
+    PSTR* ppszMembers = NULL;
+    DWORD dwIndex = 0;
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    PSTR pszSid = NULL;
+    PSTR* ppszSids = NULL;
+    DWORD dwSidCount = 0;
+    DWORD dwGroupSidCount = 0;
+    PSTR* ppszGroupSids = NULL;
+
+    dwError = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*ppszSids) * gState.dwCount, OUT_PPVOID(&ppszSids));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < gState.dwCount; dwIndex++)
+    {
+        dwError = ResolveSid(hLsa, gState.QueryType, gState.QueryList, dwIndex, &pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!pszSid)
+        {
+            switch(gState.QueryType)
+            {
+            case LSA_QUERY_TYPE_BY_UNIX_ID:
+                printf("Not found: %lu\n\n", (unsigned long) gState.QueryList.pdwIds[dwIndex]);
+                break;
+            default:
+                printf("Not found: %s\n\n", gState.QueryList.ppszStrings[dwIndex]);
+                break;
+            }
+        }
+        else
+        {
+            ppszSids[dwSidCount++] = pszSid;
+            pszSid = NULL;
+        }
+    }
+
+    dwError = LsaQueryMemberOf(
+                hLsa,
+                gState.pszTargetProvider,
+                gState.FindFlags,
+                dwSidCount,
+                ppszSids,
+                &dwGroupSidCount,
+                &ppszGroupSids);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < dwGroupSidCount; dwIndex++)
+    {
+        dwError = ResolveGroup(hLsa, ppszGroupSids[dwIndex], &pObject);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pObject)
+        {
+            PrintSecurityObject(pObject);
+            printf("\n");
+            LsaFreeSecurityObject(pObject);
+        }
+        else
+        {
+            printf("Unresolvable object (%s)\n\n", ppszMembers[dwIndex]);
+        }
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pszSid);
+
+    if (ppszGroupSids)
+    {
+        LsaFreeSidList(dwGroupSidCount, ppszGroupSids);
+    }
+
+    if (ppszSids)
+    {
+        LsaFreeSidList(dwSidCount, ppszSids);
     }
 
     if (hLsa)
@@ -271,11 +398,20 @@ error:
         LsaCloseServer(hLsa);
     }
 
+    if (pObject)
+    {
+        LsaFreeSecurityObject(pObject);
+    }
+
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 int
-FindObjectsMain(
+QueryMemberOfMain(
     int argc,
     char** ppszArgv
     )
@@ -291,7 +427,7 @@ FindObjectsMain(
         gState.QueryType = LSA_QUERY_TYPE_BY_NAME;
     }
 
-    dwError = FindObjects();
+    dwError = QueryMemberOf();
     BAIL_ON_LSA_ERROR(dwError);
 
 error:

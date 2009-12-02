@@ -683,6 +683,11 @@ LsaHashCreate(
     LSA_HASH_TABLE** ppResult
     );
 
+size_t
+LsaHashGetKeyCount(
+    PLSA_HASH_TABLE pTable
+    );
+
 void
 LsaHashRemoveAll(
         LSA_HASH_TABLE* pResult);

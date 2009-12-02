@@ -92,12 +92,6 @@ typedef DWORD (*PFN_LSA_PROVIDER_ENUM_OBJECTS)(
 //
 // Enumerate members of a group.
 //
-// Note that the group object must be resolved first
-// (by the SRV/API layer, in any case).  The provider
-// can use any field as a key to do the enumeration
-// of members.
-//
-// TODO: Perhaps replace pGroup w/QueryType + QueryItem.
 //
 typedef DWORD (*PFN_LSA_PROVIDER_OPEN_ENUM_MEMBERS)(
     IN HANDLE hProvider,

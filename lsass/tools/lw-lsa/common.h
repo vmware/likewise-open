@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -29,31 +25,29 @@
  */
 
 /*
- * Copyright (C) Likewise Software. All rights reserved.
- *
  * Module Name:
  *
- *        externs.h
+ *        common.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Local Authentication Provider
+ *        Common functions for tools
  *
- *        External Variables
- *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Brian Koropoff(bkoropoff@likewise.com)
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern PCSTR gpszLocalProviderName;
+#ifndef __TOOLS_COMMON_H__
+#define __TOOLS_COMMON_H__
 
-extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
-extern LSA_PROVIDER_FUNCTION_TABLE_2 gLocalProviderAPITable2;
+#include <lsa/lsa.h>
+#include <lsa/lsa2.h>
+#include "common.h"
 
-extern LOCAL_PROVIDER_GLOBALS gLPGlobals;
+VOID
+PrintSecurityObject(
+    PLSA_SECURITY_OBJECT pObject
+    );
 
-#endif /* __EXTERNS_H__ */
+#endif

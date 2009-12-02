@@ -1609,6 +1609,127 @@ error:
 }
 
 DWORD
+LocalFindObjects(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = LocalDirFindObjects(
+        hProvider,
+        FindFlags,
+        ObjectType,
+        QueryType,
+        dwCount,
+        QueryList,
+        pppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LocalOpenEnumObjects(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN OPTIONAL PCSTR pszDomainName
+    )
+{
+    return LocalDirOpenEnumObjects(
+        hProvider,
+        phEnum,
+        FindFlags,
+        ObjectType,
+        pszDomainName);
+}
+
+DWORD
+LocalEnumObjects(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    return LocalDirEnumObjects(
+        hEnum,
+        dwMaxObjectsCount,
+        pdwObjectsCount,
+        pppObjects);
+}
+
+DWORD
+LocalOpenEnumMembers(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid
+    )
+{
+    return LocalDirOpenEnumMembers(
+        hProvider,
+        phEnum,
+        FindFlags,
+        pszSid);
+}
+
+DWORD
+LocalEnumMembers(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxMemberSidCount,
+    OUT PDWORD pdwMemberSidCount,
+    OUT PSTR** pppszMemberSids
+    )
+{
+    return LocalDirEnumMembers(
+        hEnum,
+        dwMaxMemberSidCount,
+        pdwMemberSidCount,
+        pppszMemberSids);
+}
+
+VOID
+LocalCloseEnum(
+    IN OUT HANDLE hEnum
+    )
+{
+    return LocalDirCloseEnum(hEnum);
+}
+
+DWORD
+LocalQueryMemberOf(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    )
+{
+    return LocalDirQueryMemberOf(
+        hProvider,
+        FindFlags,
+        dwSidCount,
+        ppszSids,
+        pdwGroupSidCount,
+        pppszGroupSids);
+}
+
+DWORD
 LocalShutdownProvider(
     VOID
     )

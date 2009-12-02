@@ -90,11 +90,25 @@ LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
     .pfnRefreshConfiguration         = &LocalRefreshConfiguration,
     .pfnProviderIoControl            = &LocalIoControl,
     .pfnCloseHandle                  = &LocalCloseHandle,
-    .pfnGetGroupMembershipByProvider = &LocalGetGroupMembershipByProvider
+    .pfnGetGroupMembershipByProvider = &LocalGetGroupMembershipByProvider,
+    .pFnTable2 = &gLocalProviderAPITable2
+};
+
+LSA_PROVIDER_FUNCTION_TABLE_2 gLocalProviderAPITable2 =
+{
+    .pfnFindObjects = LocalFindObjects,
+    .pfnOpenEnumObjects = LocalOpenEnumObjects,
+    .pfnEnumObjects = LocalEnumObjects,
+    .pfnOpenEnumGroupMembers = LocalOpenEnumMembers,
+    .pfnEnumGroupMembers = LocalEnumMembers,
+    .pfnCloseEnum = LocalCloseEnum,
+    .pfnQueryMemberOf = LocalQueryMemberOf,
+    .pfnOpenHandle = LocalOpenHandle,
+    .pfnCloseHandle = LocalCloseHandle,
 };
 
 LOCAL_PROVIDER_GLOBALS gLPGlobals =
-    {
-        PTHREAD_MUTEX_INITIALIZER,
-        "BUILTIN"
-    };
+{
+    PTHREAD_MUTEX_INITIALIZER,
+    "BUILTIN"
+};

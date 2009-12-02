@@ -171,3 +171,21 @@ FindObjectsMain(
     int argc,
     char** ppszArgv
     );
+
+int
+EnumObjectsMain(
+    int argc,
+    char** ppszArgv
+    );
+
+int
+EnumMembersMain(
+    int argc,
+    char** ppszArgv
+    );
+
+int
+QueryMemberOfMain(
+    int argc,
+    char** ppszArgv
+    );
