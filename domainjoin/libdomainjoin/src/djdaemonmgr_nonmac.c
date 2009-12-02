@@ -894,6 +894,14 @@ DJManageDaemon(
 {
     BOOLEAN bStarted = FALSE;
 
+    // Verify that daemon is configured as needed for running after restart,
+    // this also sets up any service control manager settings. On newer
+    // Solaris systems, the service control manager will start/stop the
+    // daemon as a result of the service configuration. It is okay to have
+    // this function called more than once for a given daemon, if it is already
+    // running or stopped it will remain the same with the same service pid.
+    LW_TRY(exc, DJConfigureForDaemonRestart(pszName, bStatus, startPriority, stopPriority, &LW_EXC));
+
     // check our current state prior to doing anything.  notice that
     // we are using the private version so that if we fail, our inner
     // exception will be the one that was tossed due to the failure.
@@ -908,8 +916,6 @@ DJManageDaemon(
         LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, &LW_EXC));
 
     }
-
-    LW_TRY(exc, DJConfigureForDaemonRestart(pszName, bStatus, startPriority, stopPriority, &LW_EXC));
 
 cleanup:
     ;
