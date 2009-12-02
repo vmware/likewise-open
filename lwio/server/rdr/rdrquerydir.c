@@ -197,6 +197,12 @@ RdrCommonQueryDirectory(
         pHandle->find.pCursor = pHandle->find.pBuffer;
     }
 
+    if (pHandle->find.usSearchCount == 0)
+    {
+        ntStatus = STATUS_NO_MORE_MATCHES;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = RdrUnmarshalFindResults(
         pHandle,
         pIrp->Args.QueryDirectory.ReturnSingleEntry,
@@ -295,10 +301,13 @@ RdrUnmarshalFindResults(
             break;
         }
 
-        ulTotalLengthUsed += ulLengthUsed;
-        pFileInformation = ((PBYTE) pFileInformation) + ulLengthUsed;
-        ulLength -= ulLengthUsed;
-        *pulNextOffset = ulLengthUsed;
+        if (ulLengthUsed)
+        {
+            ulTotalLengthUsed += ulLengthUsed;
+            pFileInformation = ((PBYTE) pFileInformation) + ulLengthUsed;
+            ulLength -= ulLengthUsed;
+            *pulNextOffset = ulLengthUsed;
+        }
     } while (!bReturnSingleEntry && ulLengthUsed);
 
     if (pulNextOffset)
