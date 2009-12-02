@@ -157,82 +157,81 @@ SamrSrvSetUserInfo(
         ATTR_VAL_IDX_ACCOUNT_EXPIRY,
         ATTR_VAL_IDX_ACCOUNT_FLAGS,
         ATTR_VAL_IDX_BAD_PASSWORD_COUNT,
-        ATTR_VAL_IDX_LOGON_COUNT,
         ATTR_VAL_IDX_COUNTRY_CODE,
         ATTR_VAL_IDX_CODE_PAGE,
         ATTR_VAL_IDX_SENTINEL
     };
 
     ATTRIBUTE_VALUE AttrValues[] = {
-        {
+        {   /* ATTR_VAL_IDX_SAM_ACCOUNT_NAME */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_FULL_NAME */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_PRIMARY_GROUP */
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_HOME_DIRECTORY */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_HOME_DRIVE */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_LOGON_SCRIPT */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_PROFILE_PATH */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_DESCRIPTION */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_WORKSTATIONS */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_COMMENT */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_PARAMETERS */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_ALLOW_PASSWORD_CHANGE */
             .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_FORCE_PASSWORD_CHANGE */
             .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_ACCOUNT_EXPIRY */
             .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_ACCOUNT_FLAGS */
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_BAD_PASSWORD_COUNT */
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_COUNTRY_CODE */
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_CODE_PAGE */
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         }

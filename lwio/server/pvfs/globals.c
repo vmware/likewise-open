@@ -68,6 +68,9 @@ PVFS_FCB_TABLE gFcbTable;
 
 PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx = NULL;
 
+PPVFS_ID_CACHE gUidMruCache[PVFS_MAX_MRU_SIZE];
+PPVFS_ID_CACHE gGidMruCache[PVFS_MAX_MRU_SIZE];
+
 
 /*
 local variables:

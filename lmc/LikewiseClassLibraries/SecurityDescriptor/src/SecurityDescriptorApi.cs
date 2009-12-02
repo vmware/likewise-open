@@ -62,7 +62,8 @@ namespace Likewise.LMC.SecurityDesriptor
 
         [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool LookupPrivilegeValue(string lpSystemName, string lpName,
+        public static extern bool LookupPrivilegeValueW([MarshalAs(UnmanagedType.LPWStr)] string lpSystemName,
+            [MarshalAs(UnmanagedType.LPWStr)] string lpName,
             out IntPtr lpLuid);
 
         // Use this signature if you want the previous state information returned
@@ -70,10 +71,10 @@ namespace Likewise.LMC.SecurityDesriptor
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle,
            [MarshalAs(UnmanagedType.Bool)]bool DisableAllPrivileges,
-           ref TOKEN_PRIVILEGES NewState,
+           TOKEN_PRIVILEGES NewState,
            UInt32 BufferLengthInBytes,
-           ref TOKEN_PRIVILEGES PreviousState,
-           out UInt32 ReturnLengthInBytes);
+           TOKEN_PRIVILEGES PreviousState,
+           UInt32 ReturnLengthInBytes);
 
         // Use this signature if you do not want the previous state
         [DllImport(LibADVAPIPath, SetLastError = true)]
@@ -83,11 +84,49 @@ namespace Likewise.LMC.SecurityDesriptor
            ref TOKEN_PRIVILEGES NewState,
            UInt32 Zero,
            IntPtr Null1,
-           IntPtr Null2);
+           UInt32 Null2);
 
         [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetTokenInformation(
+            IntPtr TokenHandle,
+            TOKEN_INFORMATION_CLASS TokenInformationClass,
+            ref IntPtr TokenInformation,
+            uint TokenInformationLength,
+            out uint ReturnLength);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetTokenInformation(
+            IntPtr TokenHandle,
+            TOKEN_INFORMATION_CLASS TokenInformationClass,
+            TOKEN_PRIVILEGES TokenInformation,
+            uint TokenInformationLength,
+            out uint ReturnLength);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetTokenInformation(
+            IntPtr TokenHandle,
+            TOKEN_INFORMATION_CLASS TokenInformationClass,
+            TOKEN_PRIVILEGES TokenInformation,
+            uint TokenInformationLength);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool BuildTrusteeWithSid(
+             out IntPtr pTrustee,
+             IntPtr pSid);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool LogonUser(
+            String lpszUsername,
+            String lpszDomain,
+            String lpszPassword,
+            int dwLogonType,
+            int dwLogonProvider,
+            ref IntPtr phToken
+            );
 
         #endregion
 
@@ -176,32 +215,35 @@ namespace Likewise.LMC.SecurityDesriptor
         public class TOKEN_PRIVILEGES
         {
             public UInt32 PrivilegeCount;
-            [MarshalAs(UnmanagedType.ByValArray)]
-            public LUID_AND_ATTRIBUTES[] Privileges;
+            //[MarshalAs(UnmanagedType.ByValArray)]
+            //public LUID_AND_ATTRIBUTES[] Privileges;
+            public IntPtr Luid;
+            public int Attributes;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public class LwLUID
         {
-            public UInt32 LowPart;
+            public Int32 LowPart;
             public Int32 HighPart;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public class LUID_AND_ATTRIBUTES
         {
-            public LwLUID Luid;
+            //public LwLUID Luid;
+            public IntPtr Luid;
             public UInt32 Attributes;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 4)]
         public class TRUSTEE
         {
-            IntPtr pMultipleTrustee; // must be null
-            int MultipleTrusteeOperation;
-            int TrusteeForm;
-            int TrusteeType;
-            string ptstrName;
+            public IntPtr pMultipleTrustee; // must be null
+            public int MultipleTrusteeOperation;
+            public int TrusteeForm;
+            public int TrusteeType;
+            public string ptstrName;
         }
 
         [StructLayoutAttribute(LayoutKind.Sequential)]
@@ -486,6 +528,209 @@ namespace Likewise.LMC.SecurityDesriptor
             //Event provider indicates that WMI checks the SECURITY_DESCRIPTOR property in each event (inherited from __Event),
             //and only sends events to consumers with the appropriate access permissions.
             WBEM_S_SUBJECT_TO_SDS = 0x43003
+        }
+
+        public enum TOKEN_INFORMATION_CLASS
+        {
+
+            /// <summary>
+            /// The buffer receives a TOKEN_USER structure that contains the user account of the token.
+            /// </summary>
+            TokenUser = 1,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_GROUPS structure that contains the group accounts associated with the token.
+            /// </summary>
+            TokenGroups,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_PRIVILEGES structure that contains the privileges of the token.
+            /// </summary>
+            TokenPrivileges,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_OWNER structure that contains the default owner security identifier (SID) for newly created objects.
+            /// </summary>
+            TokenOwner,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_PRIMARY_GROUP structure that contains the default primary group SID for newly created objects.
+            /// </summary>
+            TokenPrimaryGroup,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_DEFAULT_DACL structure that contains the default DACL for newly created objects.
+            /// </summary>
+            TokenDefaultDacl,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_SOURCE structure that contains the source of the token. TOKEN_QUERY_SOURCE access is needed to retrieve this information.
+            /// </summary>
+            TokenSource,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_TYPE value that indicates whether the token is a primary or impersonation token.
+            /// </summary>
+            TokenType,
+
+            /// <summary>
+            /// The buffer receives a SECURITY_IMPERSONATION_LEVEL value that indicates the impersonation level of the token. If the access token is not an impersonation token, the function fails.
+            /// </summary>
+            TokenImpersonationLevel,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_STATISTICS structure that contains various token statistics.
+            /// </summary>
+            TokenStatistics,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_GROUPS structure that contains the list of restricting SIDs in a restricted token.
+            /// </summary>
+            TokenRestrictedSids,
+
+            /// <summary>
+            /// The buffer receives a DWORD value that indicates the Terminal Services session identifier that is associated with the token.
+            /// </summary>
+            TokenSessionId,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_GROUPS_AND_PRIVILEGES structure that contains the user SID, the group accounts, the restricted SIDs, and the authentication ID associated with the token.
+            /// </summary>
+            TokenGroupsAndPrivileges,
+
+            /// <summary>
+            /// Reserved.
+            /// </summary>
+            TokenSessionReference,
+
+            /// <summary>
+            /// The buffer receives a DWORD value that is nonzero if the token includes the SANDBOX_INERT flag.
+            /// </summary>
+            TokenSandBoxInert,
+
+            /// <summary>
+            /// Reserved.
+            /// </summary>
+            TokenAuditPolicy,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_ORIGIN value.
+            /// </summary>
+            TokenOrigin,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_ELEVATION_TYPE value that specifies the elevation level of the token.
+            /// </summary>
+            TokenElevationType,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_LINKED_TOKEN structure that contains a handle to another token that is linked to this token.
+            /// </summary>
+            TokenLinkedToken,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_ELEVATION structure that specifies whether the token is elevated.
+            /// </summary>
+            TokenElevation,
+
+            /// <summary>
+            /// The buffer receives a DWORD value that is nonzero if the token has ever been filtered.
+            /// </summary>
+            TokenHasRestrictions,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_ACCESS_INFORMATION structure that specifies security information contained in the token.
+            /// </summary>
+            TokenAccessInformation,
+
+            /// <summary>
+            /// The buffer receives a DWORD value that is nonzero if virtualization is allowed for the token.
+            /// </summary>
+            TokenVirtualizationAllowed,
+
+            /// <summary>
+            /// The buffer receives a DWORD value that is nonzero if virtualization is enabled for the token.
+            /// </summary>
+            TokenVirtualizationEnabled,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_MANDATORY_LABEL structure that specifies the token's integrity level.
+            /// </summary>
+            TokenIntegrityLevel,
+
+            /// <summary>
+            /// The buffer receives a DWORD value that is nonzero if the token has the UIAccess flag set.
+            /// </summary>
+            TokenUIAccess,
+
+            /// <summary>
+            /// The buffer receives a TOKEN_MANDATORY_POLICY structure that specifies the token's mandatory integrity policy.
+            /// </summary>
+            TokenMandatoryPolicy,
+
+            /// <summary>
+            /// The buffer receives the token's logon security identifier (SID).
+            /// </summary>
+            TokenLogonSid,
+
+            /// <summary>
+            /// The maximum value for this enumeration
+            /// </summary>
+            MaxTokenInfoClass
+
+        }
+
+        public enum LogonType : int
+        {
+            //'This logon type is intended for batch servers, where processes may be executing on behalf of a user without
+            //'their direct intervention. This type is also for higher performance servers that process many plaintext
+            //'authentication attempts at a time, such as mail or Web servers.
+            //'The LogonUser function does not cache credentials for this logon type.
+            LOGON32_LOGON_BATCH = 4,
+
+            //'This logon type is intended for users who will be interactively using the computer, such as a user being logged on
+            //'by a terminal server, remote shell, or similar process.
+            //'This logon type has the additional expense of caching logon information for disconnected operations;
+            //'therefore, it is inappropriate for some client/server applications,
+            //'such as a mail server.
+            LOGON32_LOGON_INTERACTIVE = 2,
+
+            //'This logon type is intended for high performance servers to authenticate plaintext passwords.
+            //'The LogonUser function does not cache credentials for this logon type.
+            LOGON32_LOGON_NETWORK = 3,
+
+            //'This logon type preserves the name and password in the authentication package, which allows the server to make
+            //'connections to other network servers while impersonating the client. A server can accept plaintext credentials
+            //'from a client, call LogonUser, verify that the user can access the system across the network, and still
+            //'communicate with other servers.
+            //'NOTE: Windows NT:  This value is not supported.
+            LOGON32_LOGON_NETWORK_CLEARTEXT = 8,
+
+            //'This logon type allows the caller to clone its current token and specify new credentials for outbound connections.
+            //'The new logon session has the same local identifier but uses different credentials for other network connections.
+            //'NOTE: This logon type is supported only by the LOGON32_PROVIDER_WINNT50 logon provider.
+            //'NOTE: Windows NT:  This value is not supported.
+            LOGON32_LOGON_NEW_CREDENTIALS = 9,
+
+            //'Indicates a service-type logon. The account provided must have the service privilege enabled.
+            LOGON32_LOGON_SERVICE = 5,
+
+            //'This logon type is for GINA DLLs that log on users who will be interactively using the computer.
+            //'This logon type can generate a unique audit record that shows when the workstation was unlocked.
+            LOGON32_LOGON_UNLOCK = 7
+        }
+
+        public enum LogonProvider : int
+        {
+            /// <summary>
+            /// Use the standard logon provider for the system.
+            /// The default security provider is negotiate, unless you pass NULL for the domain name and the user name
+            /// is not in UPN format. In this case, the default provider is NTLM.
+            /// NOTE: Windows 2000/NT:   The default security provider is NTLM.
+            /// </summary>
+            LOGON32_PROVIDER_DEFAULT = 0,
+            LOGON32_PROVIDER_WINNT50,
+            LOGON32_PROVIDER_WINNT40
         }
 
         #endregion
