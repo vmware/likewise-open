@@ -186,9 +186,9 @@ namespace Likewise.LMC.ServerControl
         private Border border1;
         protected System.Windows.Forms.Panel pnlActions;
         protected Label lblSubCaption;
-        private PictureBox pbHelp;
-        private LinkLabel lnkHelp;
         protected Panel pnlHeader;
+        protected PictureBox pbHelp;
+        protected LinkLabel lnkHelp;
         
     }
 }
