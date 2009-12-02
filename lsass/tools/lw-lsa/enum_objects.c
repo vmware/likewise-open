@@ -55,13 +55,44 @@ static struct
     LSA_FIND_FLAGS FindFlags;
     LSA_OBJECT_TYPE ObjectType;
     PCSTR pszDomainName;
+    BOOLEAN bShowUsage;
 } gState =
 {
     .pszTargetProvider = NULL,
     .FindFlags = 0,
     .ObjectType = LSA_OBJECT_TYPE_UNDEFINED,
-    .pszDomainName = NULL
+    .pszDomainName = NULL,
+    .bShowUsage = FALSE
 };
+
+static
+VOID
+ShowUsage(
+    PCSTR pszProgramName,
+    BOOLEAN bFull
+    )
+{
+    printf(
+        "Usage: %s [ --<object type> ] [ <flags> ] [ --provider name ]\n",
+        Basename(pszProgramName));
+
+    if (bFull)
+    {
+        printf(
+            "\n"
+            "Object type options:\n"
+            "    --user                  Return only user objects\n"
+            "    --group                 Return only group objects\n"
+            "\n"
+            "Query flags:\n"
+            "     --nss                  Omit data not necessary for NSS layer\n"
+            "\n"
+            "Other options:\n"
+            "     --domain name          Restrict enumeration to the specified NetBIOS domain\n"
+            "     --provider name        Direct request to provider with the specified name\n"
+            "\n");
+    }
+}
 
 static
 DWORD
@@ -110,6 +141,11 @@ ParseArguments(
             }
 
             gState.pszDomainName = ppszArgv[i];
+        }
+        else if (!strcmp(ppszArgv[i], "--help") ||
+                 !strcmp(ppszArgv[i], "-h"))
+        {
+            gState.bShowUsage = TRUE;
         }
         else
         {
@@ -214,10 +250,22 @@ EnumObjectsMain(
     dwError = ParseArguments(argc, ppszArgv);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = EnumObjects();
-    BAIL_ON_LSA_ERROR(dwError);
+   if (!gState.bShowUsage)
+   {
+       dwError = EnumObjects();
+       BAIL_ON_LSA_ERROR(dwError);
+   }
 
 error:
+
+    if (gState.bShowUsage)
+    {
+        ShowUsage(ppszArgv[0], TRUE);
+    }
+    else if (dwError == LW_ERROR_INVALID_PARAMETER)
+    {
+        ShowUsage(ppszArgv[0], FALSE);
+    }
 
     if (dwError)
     {

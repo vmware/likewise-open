@@ -53,15 +53,19 @@ static struct
 {
     PCSTR pszTargetProvider;
     LSA_FIND_FLAGS FindFlags;
+    LSA_OBJECT_TYPE ObjectType;
     LSA_QUERY_TYPE QueryType;
     DWORD dwCount;
     LSA_QUERY_LIST QueryList;
+    BOOLEAN bShowUsage;
 } gState =
 {
     .pszTargetProvider = NULL,
     .FindFlags = 0,
+    .ObjectType = LSA_OBJECT_TYPE_UNDEFINED,
     .QueryType = LSA_QUERY_TYPE_UNDEFINED,
-    .dwCount = 0
+    .dwCount = 0,
+    .bShowUsage = FALSE
 };
 
 static
@@ -128,6 +132,43 @@ error:
 }
 
 static
+VOID
+ShowUsage(
+    PCSTR pszProgramName,
+    BOOLEAN bFull
+    )
+{
+    printf(
+        "Usage: %s [ --<object type> ] [ --by-<key> ] [ <flags> ] [ --provider name ] objects ...\n",
+        Basename(pszProgramName));
+
+    if (bFull)
+    {
+        printf(
+            "\n"
+            "Object type options:\n"
+            "    --user                  Specify only user objects\n"
+            "    --group                 Specify only group objects\n"
+            "\n"
+            "Key type options:\n"
+            "    --by-dn                 Specify objects by distinguished name\n"
+            "    --by-sid                Specify objects by SID\n"
+            "    --by-nt4                Specify objects by NT4-style domain-qualified name\n"
+            "    --by-alias              Specify objects by alias (must specify object type)\n"
+            "    --by-upn                Specify objects by user principal name\n"
+            "    --by-unix-id            Specify objects by UID or GID (must specify object type)\n"
+            "    --by-name               Specify objects by generic name (NT4, alias, or UPN accepted)\n"
+            "\n"
+            "Query flags:\n"
+            "     --nss                  Omit data not necessary for NSS layer\n"
+            "\n"
+            "Other options:\n"
+            "     --provider name        Direct request to provider with the specified name\n"
+            "\n");
+    }
+}
+
+static
 DWORD
 ParseArguments(
     int argc,
@@ -139,7 +180,15 @@ ParseArguments(
 
     for (i = 1; i < argc; i++)
     {
-        if (!strcmp(ppszArgv[i], "--by-dn"))
+        if (!strcmp(ppszArgv[i], "--user"))
+        {
+            gState.ObjectType = LSA_OBJECT_TYPE_USER;
+        }
+        else if (!strcmp(ppszArgv[i], "--group"))
+        {
+            gState.ObjectType = LSA_OBJECT_TYPE_GROUP;
+        }
+        else if (!strcmp(ppszArgv[i], "--by-dn"))
         {
             dwError = SetQueryType(LSA_QUERY_TYPE_BY_DN);
             BAIL_ON_LSA_ERROR(dwError);
@@ -190,6 +239,11 @@ ParseArguments(
 
             gState.pszTargetProvider = ppszArgv[i];
         }
+        else if (!strcmp(ppszArgv[i], "--help") ||
+                 !strcmp(ppszArgv[i], "-h"))
+        {
+            gState.bShowUsage = TRUE;
+        }
         else
         {
             dwError = ParseQueryItem(ppszArgv[i]);
@@ -239,7 +293,7 @@ ResolveSid(
             hLsa,
             gState.pszTargetProvider,
             gState.FindFlags,
-            LSA_OBJECT_TYPE_UNDEFINED,
+            gState.ObjectType,
             QueryType,
             1,
             SingleList,
@@ -427,10 +481,28 @@ QueryMemberOfMain(
         gState.QueryType = LSA_QUERY_TYPE_BY_NAME;
     }
 
-    dwError = QueryMemberOf();
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!gState.bShowUsage)
+    {
+        if (!gState.dwCount)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = QueryMemberOf();
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 error:
+
+    if (gState.bShowUsage)
+    {
+        ShowUsage(ppszArgv[0], TRUE);
+    }
+    else if (dwError == LW_ERROR_INVALID_PARAMETER)
+    {
+        ShowUsage(ppszArgv[0], FALSE);
+    }
 
     if (dwError)
     {

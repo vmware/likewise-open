@@ -50,4 +50,9 @@ PrintSecurityObject(
     PLSA_SECURITY_OBJECT pObject
     );
 
+PCSTR
+Basename(
+    PCSTR pszPath
+    );
+
 #endif

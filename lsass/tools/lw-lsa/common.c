@@ -60,7 +60,7 @@ PrintSecurityObject(
         printf("Group object (%s)\n", SAFE_STRING(pObject->pszObjectSid));
         printf("============\n");
         printf("Enabled: %s\n", pObject->enabled ? "yes" : "no");
-        printf("Distinguished: %s\n", SAFE_STRING(pObject->pszDN));
+        printf("Distinguished name: %s\n", SAFE_STRING(pObject->pszDN));
         printf("SAM account name: %s\n", SAFE_STRING(pObject->pszSamAccountName));
         printf("NetBIOS domain name: %s\n", SAFE_STRING(pObject->pszNetbiosDomainName));
         printf("Alias: %s\n", SAFE_STRING(pObject->groupInfo.pszAliasName));
@@ -101,5 +101,22 @@ PrintSecurityObject(
     default:
         printf("Unknown object (%s)\n", SAFE_STRING(pObject->pszObjectSid));
         break;
+    }
+}
+
+PCSTR
+Basename(
+    PCSTR pszPath
+    )
+{
+    PSTR pszSlash = strrchr(pszPath, '/');
+
+    if (pszSlash)
+    {
+        return pszSlash + 1;
+    }
+    else
+    {
+        return pszPath;
     }
 }
