@@ -110,6 +110,8 @@ namespace Likewise.LMC.Utilities
 
         public static LogLevel Krb5LogLevel = LogLevel.Verbose;
 
+        public static LogLevel SecurityDescriptorLogLevel = LogLevel.Verbose;
+
         #endregion
 
         #region Public methods

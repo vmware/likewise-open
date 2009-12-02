@@ -218,16 +218,6 @@ namespace Likewise.LMC.Registry
             );
 
         [DllImport(advapiDllPath, SetLastError = true)]
-        public static extern bool LogonUser(
-            String lpszUsername,
-            String lpszDomain,
-            String lpszPassword,
-            int dwLogonType,
-            int dwLogonProvider,
-            ref IntPtr phToken
-            );
-
-        [DllImport(advapiDllPath, SetLastError = true)]
         public static extern int RegConnectRegistry(
            string lpMachineName,
            Microsoft.Win32.RegistryHive hive,
