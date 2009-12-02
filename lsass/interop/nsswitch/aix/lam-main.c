@@ -61,7 +61,7 @@ LsaNssOpen(
     DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_PAM_CONFIG pConfig = NULL;
 
-    dwError = LsaPamReadRegistry(&pConfig);
+    dwError = LsaPamGetConfig(&pConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     LsaPamSetLogLevel(pConfig->dwLogLevel);
