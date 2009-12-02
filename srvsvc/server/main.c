@@ -637,7 +637,7 @@ DWORD
 SrvSvcStopSignalHandler()
 {
     DWORD dwError = 0;
-    uint32_t status = 0;
+    UINT32 status = 0;
 
     rpc_mgmt_stop_server_listening(NULL, (unsigned32*)&status);
 

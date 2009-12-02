@@ -525,8 +525,10 @@ ProcessExportedKeyInfo(
 
     for (iCount = 0; iCount < dwValuesCount; iCount++)
    {
-       dwValueLen = MAX_VALUE_LENGTH;
+       memset(valueName, 0, MAX_KEY_LENGTH);
        dwValueNameLen = MAX_KEY_LENGTH;
+       memset(value, 0, MAX_VALUE_LENGTH);
+       dwValueLen = MAX_VALUE_LENGTH;
 
        dwError = RegEnumValueA((HANDLE)hReg,
                                hKey,
@@ -549,16 +551,11 @@ ProcessExportedKeyInfo(
                       dwValueLen,
                       pPrevType);
        BAIL_ON_REG_ERROR(dwError);
-
-       memset(valueName, 0 , dwValueNameLen);
-       dwValueNameLen = MAX_KEY_LENGTH;
-       memset(value, 0 , dwValueLen);
-       dwValueLen = MAX_VALUE_LENGTH;
    }
 
 cleanup:
-    memset(valueName, 0 , dwValueNameLen);
-    memset(value, 0 , dwValueLen);
+    memset(valueName, 0 , MAX_KEY_LENGTH);
+    memset(value, 0 , MAX_KEY_LENGTH);
 
     return dwError;
 

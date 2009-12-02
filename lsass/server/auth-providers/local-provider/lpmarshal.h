@@ -152,6 +152,12 @@ LocalMarshalAttrToBOOLEAN(
     PBOOLEAN         pbValue
     );
 
+DWORD
+LocalMarshalEntryToSecurityObject(
+    PDIRECTORY_ENTRY pEntry,
+    PLSA_SECURITY_OBJECT* ppObject
+    );
+
 #endif /* __LP_MARSHAL_H__ */
 
 

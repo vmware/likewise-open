@@ -51,10 +51,10 @@ NTSTATUS
 SamrSrvEnumDomainAliases(
     /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in, out] */ uint32 *resume,
-    /* [in] */ uint32 account_flags,
+    /* [in, out] */ UINT32 *resume,
+    /* [in] */ UINT32 account_flags,
     /* [out] */ RidNameArray **names,
-    /* [out] */ uint32 *num_entries
+    /* [out] */ UINT32 *num_entries
     )
 {
     /* this should be reasonable value to send over 50 aliases */

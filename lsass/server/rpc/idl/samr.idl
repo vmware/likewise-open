@@ -17,7 +17,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 
     /* DomainInfo union returned from SamrQueryDomainInfo */
-    typedef [switch_type(uint16)] union domain_info {
+    typedef [switch_type(UINT16)] union domain_info {
         [case(1)] DomainInfo1 info1;
         [case(2)] DomainInfo2 info2;
         [case(3)] DomainInfo3 info3;
@@ -33,14 +33,14 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
     } DomainInfo;
 
     /* AliasInfo union returned from SamrQueryAliasInfo */
-    typedef [switch_type(uint16)] union alias_info {
+    typedef [switch_type(UINT16)] union alias_info {
         [case(1)] AliasInfoAll all;
         [case(2)] UnicodeString name;
         [case(3)] UnicodeString description;
     } AliasInfo;
 
     /* UserInfo union returned from SamrQueryUserInfo */
-    typedef [switch_type(uint16)] union user_info {
+    typedef [switch_type(UINT16)] union user_info {
         [case(1)] UserInfo1 info1;
         [case(2)] UserInfo2 info2;
         [case(3)] UserInfo3 info3;
@@ -66,7 +66,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
     } UserInfo;
 
     /* SamrDisplayInfo union returned from SamrQueryDisplayInfo */
-    typedef [switch_type(uint16)] union samr_display_info {
+    typedef [switch_type(UINT16)] union samr_display_info {
         [case(1)] SamrDisplayInfoFull info1;
         [case(2)] SamrDisplayInfoGeneral info2;
         [case(3)] SamrDisplayInfoGeneralGroups info3;
@@ -75,7 +75,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
     } SamrDisplayInfo;
 
     /* SamrConnectInfo used in SamrConnect5 */
-    typedef [switch_type(uint32)] union samr_connect_info {
+    typedef [switch_type(UINT32)] union samr_connect_info {
         [case(1)] SamrConnectInfo1 info1;
     } SamrConnectInfo;
 
@@ -85,7 +85,7 @@ cpp_quote("#endif")
     /* function 0x00 */
     NTSTATUS __SamrConnect(
         [in,unique] wchar16_t *system_name,
-        [in] uint32 access_mask,
+        [in] UINT32 access_mask,
         [out] CONNECT_HANDLE *hConn
         );
 
@@ -100,7 +100,7 @@ cpp_quote("#endif")
     /* function 0x03 */
     NTSTATUS __SamrQuerySecurity(
         [in,context_handle] void *hObject,
-        [in] uint32 security_info,
+        [in] UINT32 security_info,
         [out] PSECURITY_DESCRIPTOR_BUFFER *secdesc
         );
 
@@ -115,16 +115,16 @@ cpp_quote("#endif")
 
     NTSTATUS __SamrEnumDomains(
         [in] CONNECT_HANDLE hConn,
-        [in,out,ref] uint32 *resume,
-        [in] uint32 size,
+        [in,out,ref] UINT32 *resume,
+        [in] UINT32 size,
         [out] EntryArray **domains,
-        [out] uint32 *num_entries
+        [out] UINT32 *num_entries
         );
 
     /* function 0x07 */
     NTSTATUS __SamrOpenDomain(
         [in] CONNECT_HANDLE hConn,
-        [in] uint32 access_mask,
+        [in] UINT32 access_mask,
         [in,ref] IDLREF_PSID sid,
         [out] DOMAIN_HANDLE *hDomain
         );
@@ -132,7 +132,7 @@ cpp_quote("#endif")
     /* function 0x08 */
     NTSTATUS __SamrQueryDomainInfo(
         [in] DOMAIN_HANDLE hDomain,
-        [in] uint16 level,
+        [in] UINT16 level,
         [out,switch_is(level)] DomainInfo **info
         );
 
@@ -144,37 +144,37 @@ cpp_quote("#endif")
     NTSTATUS __SamrCreateUser(
         [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeString *account_name,
-        [in] uint32 access_mask,
+        [in] UINT32 access_mask,
         [out] ACCOUNT_HANDLE *hUser,
-        [out,ref] uint32 *rid
+        [out,ref] UINT32 *rid
         );
 
     /* function 0x0d */
     NTSTATUS __SamrEnumDomainUsers(
         [in] DOMAIN_HANDLE hDomain,
-        [in,out,ref] uint32 *resume,
-        [in] uint32 account_flags,
-        [in] uint32 max_size,
+        [in,out,ref] UINT32 *resume,
+        [in] UINT32 account_flags,
+        [in] UINT32 max_size,
         [out] RidNameArray **names,
-        [out] uint32 *num_entries
+        [out] UINT32 *num_entries
         );
 
     /* function 0x0e */
     NTSTATUS __SamrCreateDomAlias(
         [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeString *alias_name,
-        [in] uint32 access_mask,
+        [in] UINT32 access_mask,
         [out] ACCOUNT_HANDLE *hAlias,
-        [out,ref] uint32 *rid
+        [out,ref] UINT32 *rid
         );
 
     /* function 0x0f */
     NTSTATUS __SamrEnumDomainAliases(
         [in] DOMAIN_HANDLE hDomain,
-        [in,out,ref] uint32 *resume,
-        [in] uint32 account_flags,
+        [in,out,ref] UINT32 *resume,
+        [in] UINT32 account_flags,
         [out] RidNameArray **names,
-        [out] uint32 *num_entries
+        [out] UINT32 *num_entries
         );
 
     /* function 0x10 */
@@ -187,7 +187,7 @@ cpp_quote("#endif")
     /* function 0x11 */
     NTSTATUS __SamrLookupNames(
         [in] DOMAIN_HANDLE hDomain,
-        [in,range(0,1000)] uint32 num_names,
+        [in,range(0,1000)] UINT32 num_names,
         [in,size_is(1000),length_is(num_names)] UnicodeString *names,
         [out] Ids *ids,
         [out] Ids *types
@@ -196,8 +196,8 @@ cpp_quote("#endif")
     /* function 0x12 */
     NTSTATUS __SamrLookupRids(
         [in] DOMAIN_HANDLE hDomain,
-        [in,range(0,1000)] uint32 num_rids,
-        [in,size_is(1000),length_is(num_rids)] uint32 rids[],
+        [in,range(0,1000)] UINT32 num_rids,
+        [in,size_is(1000),length_is(num_rids)] UINT32 rids[],
         [out] UnicodeStringArray *names,
         [out] Ids *types
         );
@@ -214,22 +214,22 @@ cpp_quote("#endif")
     /* function 0x1b */
     NTSTATUS __SamrOpenAlias(
         [in] DOMAIN_HANDLE hDomain,
-        [in] uint32 access_mask,
-        [in] uint32 rid,
+        [in] UINT32 access_mask,
+        [in] UINT32 rid,
         [out] ACCOUNT_HANDLE *hAlias
         );
 
     /* function 0x1c */
     NTSTATUS __SamrQueryAliasInfo(
         [in] ACCOUNT_HANDLE hAlias,
-        [in] uint16 level,
+        [in] UINT16 level,
         [out,switch_is(level)] AliasInfo **info
         );
 
     /* function 0x1d */
     NTSTATUS __SamrSetAliasInfo(
         [in] ACCOUNT_HANDLE hAlias,
-        [in] uint16 level,
+        [in] UINT16 level,
         [in,switch_is(level),ref] AliasInfo *info
         );
 
@@ -260,8 +260,8 @@ cpp_quote("#endif")
     /* function 0x22 */
     NTSTATUS __SamrOpenUser(
         [in] DOMAIN_HANDLE hDomain,
-        [in] uint32 access_mask,
-        [in] uint32 rid,
+        [in] UINT32 access_mask,
+        [in] UINT32 rid,
         [out] ACCOUNT_HANDLE *hUser
         );
 
@@ -274,14 +274,14 @@ cpp_quote("#endif")
     /* function 0x24 */
     NTSTATUS __SamrQueryUserInfo(
         [in] ACCOUNT_HANDLE hUser,
-        [in] uint16 level,
+        [in] UINT16 level,
         [out,switch_is(level)] UserInfo **info
         );
 
     /* function 0x25 */
     NTSTATUS __SamrSetUserInfo(
         [in] ACCOUNT_HANDLE hAccount,
-        [in] uint16 level,
+        [in] UINT16 level,
         [in,ref,switch_is(level)] UserInfo *info
         );
 
@@ -296,12 +296,12 @@ cpp_quote("#endif")
     /* function 0x28 */
     NTSTATUS __SamrQueryDisplayInfo(
         [in] DOMAIN_HANDLE hDomain,
-        [in] uint16 level,
-        [in] uint32 start_idx,
-        [in] uint32 max_entries,
-        [in] uint32 buf_size,
-        [out,ref] uint32 *total_size,
-        [out,ref] uint32 *returned_size,
+        [in] UINT16 level,
+        [in] UINT32 start_idx,
+        [in] UINT32 max_entries,
+        [in] UINT32 buf_size,
+        [out,ref] UINT32 *total_size,
+        [out,ref] UINT32 *returned_size,
         [out,ref,switch_is(level)] SamrDisplayInfo *info
         );
 
@@ -330,11 +330,11 @@ cpp_quote("#endif")
     NTSTATUS __SamrCreateUser2(
         [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeStringEx *account_name,
-        [in] uint32 account_flags,
-        [in] uint32 access_mask,
+        [in] UINT32 account_flags,
+        [in] UINT32 access_mask,
         [out] ACCOUNT_HANDLE *hUser,
-        [out,ref] uint32 *access_granted,
-        [out,ref] uint32 *rid
+        [out,ref] UINT32 *access_granted,
+        [out,ref] UINT32 *rid
         );
 
     NTSTATUS _samr_Function33();
@@ -348,7 +348,7 @@ cpp_quote("#endif")
         [in,ref] UnicodeString *account_name,
         [in,unique] CryptPassword *nt_password,
         [in,unique] HashPassword *nt_verifier,
-        [in] uint8 lm_change,
+        [in] UINT8 lm_change,
         [in,unique] CryptPassword *lm_password,
         [in,unique] HashPassword *lm_verifier
         );
@@ -357,9 +357,9 @@ cpp_quote("#endif")
 
     /* function 0x39 */
     NTSTATUS __SamrConnect2(
-        [in] uint32 size,
+        [in] UINT32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
-        [in] uint32 access_mask,
+        [in] UINT32 access_mask,
         [out] CONNECT_HANDLE *hConn
         );
 
@@ -369,19 +369,19 @@ cpp_quote("#endif")
 
     /* function 0x3d */
     NTSTATUS __SamrConnect3(
-        [in] uint32 size,
+        [in] UINT32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
-        [in] uint32 unknown,
-        [in] uint32 access_mask,
+        [in] UINT32 unknown,
+        [in] UINT32 access_mask,
         [out] CONNECT_HANDLE *hConn
         );
 
     /* function 0x3e */
     NTSTATUS __SamrConnect4(
-        [in] uint32 size,
+        [in] UINT32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
-        [in] uint32 client_access,
-        [in] uint32 access_mask,
+        [in] UINT32 client_access,
+        [in] UINT32 access_mask,
         [out] CONNECT_HANDLE *hConn
         );
 
@@ -389,12 +389,12 @@ cpp_quote("#endif")
 
     /* function 0x40 */
     NTSTATUS __SamrConnect5(
-        [in] uint32 size,
+        [in] UINT32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
-        [in] uint32 access_mask,
-        [in] uint32 level_in,
+        [in] UINT32 access_mask,
+        [in] UINT32 level_in,
         [in,ref,switch_is(level_in)] SamrConnectInfo *info_in,
-        [out,ref] uint32 *level_out,
+        [out,ref] UINT32 *level_out,
         [out,ref,switch_is(*level_out)] SamrConnectInfo *info_out,
         [out] CONNECT_HANDLE *hConn
         );

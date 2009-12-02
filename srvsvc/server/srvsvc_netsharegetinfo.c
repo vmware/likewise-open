@@ -66,7 +66,7 @@ SrvSvcNetShareGetInfo(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *netname,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 level,
     /* [out,ref] */ srvsvc_NetShareInfo *info
     )
 {

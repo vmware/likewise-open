@@ -51,9 +51,9 @@ NTSTATUS
 SamrSrvOpenAccount(
     /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ uint32 access_mask,
-    /* [in] */ uint32 rid,
-    /* [in] */ uint32 objectClass,
+    /* [in] */ UINT32 access_mask,
+    /* [in] */ UINT32 rid,
+    /* [in] */ UINT32 objectClass,
     /* [out] */ ACCOUNT_HANDLE *hAccount
     )
 {

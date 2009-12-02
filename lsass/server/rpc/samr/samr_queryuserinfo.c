@@ -107,7 +107,7 @@
                           &ulValue);                                    \
         BAIL_ON_LSA_ERROR(dwError);                                     \
                                                                         \
-        field = (uint32)ulValue;                                        \
+        field = (UINT32)ulValue;                                        \
     }
 
 #define GET_UINT16_VALUE(attr, field)                                   \
@@ -120,7 +120,7 @@
                           &ulValue);                                    \
         BAIL_ON_LSA_ERROR(dwError);                                     \
                                                                         \
-        field = (uint16)ulValue;                                        \
+        field = (UINT16)ulValue;                                        \
     }
 
 
@@ -272,7 +272,7 @@ NTSTATUS
 SamrSrvQueryUserInfo(
     /* [in] */ handle_t hBinding,
     /* [in] */ ACCOUNT_HANDLE hUser,
-    /* [in] */ uint16 level,
+    /* [in] */ UINT16 level,
     /* [out] */ UserInfo **info
     )
 {

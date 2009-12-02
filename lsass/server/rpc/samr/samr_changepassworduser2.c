@@ -43,7 +43,7 @@ SamrChangePasswordUser2(
     /* [in] */ UnicodeString *account_name,
     /* [in] */ CryptPassword *nt_password,
     /* [in] */ HashPassword *nt_verifier,
-    /* [in] */ uint8 lm_change,
+    /* [in] */ UINT8 lm_change,
     /* [in] */ CryptPassword *lm_password,
     /* [in] */ HashPassword *lm_verifier
     )

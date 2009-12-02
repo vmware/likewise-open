@@ -36,9 +36,9 @@
 #ifndef _ERRCHECK_H_
 #define _ERRCHECK_H_
 
-int IsNtStatusError(uint32 v);
-int IsDceRpcException(uint32 v);
-int IsDceRpcConnError(uint32 v);
+int IsNtStatusError(UINT32 v);
+int IsDceRpcException(UINT32 v);
+int IsDceRpcConnError(UINT32 v);
 
 
 #endif /* _ERRCHECK_H_ */

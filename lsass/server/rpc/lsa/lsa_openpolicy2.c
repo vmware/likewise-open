@@ -52,7 +52,7 @@ LsaSrvOpenPolicy2(
     /* [in] */ handle_t hBinding,
     /* [in] */ wchar16_t *system_name,
     /* [in] */ ObjectAttribute *attrib,
-    /* [in] */ uint32 access_mask,
+    /* [in] */ UINT32 access_mask,
     /* [out] */ POLICY_HANDLE *hPolicy
     )
 {

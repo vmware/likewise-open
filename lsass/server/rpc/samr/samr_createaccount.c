@@ -16,11 +16,11 @@ SamrSrvCreateAccount(
     /* [in] */ DOMAIN_HANDLE hDomain,
     /* [in] */ UnicodeStringEx *account_name,
     /* [in  */ DWORD dwObjectClass,
-    /* [in] */ uint32 account_flags,
-    /* [in] */ uint32 access_mask,
+    /* [in] */ UINT32 account_flags,
+    /* [in] */ UINT32 access_mask,
     /* [out] */ ACCOUNT_HANDLE *hAccount,
-    /* [out] */ uint32 *access_granted,
-    /* [out] */ uint32 *rid
+    /* [out] */ UINT32 *access_granted,
+    /* [out] */ UINT32 *rid
     )
 {
     const wchar_t wszAccountDnFmt[] = L"CN=%ws,%ws";

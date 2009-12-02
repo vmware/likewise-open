@@ -234,4 +234,9 @@ LsaFreeSecurityObjectList(
     IN OUT PLSA_SECURITY_OBJECT* ppObjects
     );
 
+VOID
+LsaFreeSecurityObject(
+    IN OUT PLSA_SECURITY_OBJECT pObject
+    );
+
 #endif

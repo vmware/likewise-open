@@ -34,9 +34,9 @@ NET_API_STATUS NetShareSetInfo(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *netname,
-    uint32 level,
-    uint8 *bufptr,
-    uint32 *parm_err
+    UINT32 level,
+    UINT8 *bufptr,
+    UINT32 *parm_err
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
@@ -45,7 +45,7 @@ NET_API_STATUS NetShareSetInfo(
     SHARE_INFO_502_I info502;
     PSHARE_INFO_1501 buf1501 = NULL;
     SHARE_INFO_1501_I info1501;
-    uint8 *sdbuf = NULL;
+    UINT8 *sdbuf = NULL;
 
     BAIL_ON_INVALID_PTR(b, status);
     BAIL_ON_INVALID_PTR(netname, status);

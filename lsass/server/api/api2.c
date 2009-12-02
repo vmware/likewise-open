@@ -139,8 +139,9 @@ LsaSrvMergePartialQueryResult(
     }
 }
 
+static
 DWORD
-LsaSrvFindObjects(
+LsaSrvFindObjectsInternal(
     IN HANDLE hServer,
     IN PCSTR pszTargetProvider,
     IN LSA_FIND_FLAGS FindFlags,
@@ -148,25 +149,19 @@ LsaSrvFindObjects(
     IN LSA_QUERY_TYPE QueryType,
     IN DWORD dwCount,
     IN LSA_QUERY_LIST QueryList,
-    OUT PLSA_SECURITY_OBJECT** pppObjects
+    IN OUT PLSA_SECURITY_OBJECT* ppCombinedObjects
     )
 {
     DWORD dwError = 0;
     PLSA_AUTH_PROVIDER pProvider = NULL;
     BOOLEAN bInLock = FALSE;
     HANDLE hProvider = NULL;
-    PLSA_SECURITY_OBJECT* ppCombinedObjects = NULL;
     PLSA_SECURITY_OBJECT* ppPartialObjects = NULL;
     LSA_QUERY_LIST PartialQueryList;
     DWORD dwPartialCount = 0;
     BOOLEAN bFoundProvider = FALSE;
 
     memset(&PartialQueryList, 0, sizeof(PartialQueryList));
-
-    dwError = LwAllocateMemory(
-        sizeof(*ppCombinedObjects) * dwCount,
-        OUT_PPVOID(&ppCombinedObjects));
-    BAIL_ON_LSA_ERROR(dwError);
 
     switch (QueryType)
     {
@@ -259,8 +254,6 @@ LsaSrvFindObjects(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    *pppObjects = ppCombinedObjects;
-
 cleanup:
 
     /* All objects inside the partial result list were moved into
@@ -275,6 +268,113 @@ cleanup:
     }
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LsaSrvFindObjects(
+    IN HANDLE hServer,
+    IN PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppCombinedObjects = NULL;
+    DWORD dwIndex = 0;
+    LSA_QUERY_LIST SingleList;
+    LSA_QUERY_TYPE SingleType = 0;
+    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+
+    dwError = LwAllocateMemory(
+        sizeof(*ppCombinedObjects) * dwCount,
+        OUT_PPVOID(&ppCombinedObjects));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (QueryType)
+    {
+    default:
+        dwError = LsaSrvFindObjectsInternal(
+            hServer,
+            pszTargetProvider,
+            FindFlags,
+            ObjectType,
+            QueryType,
+            dwCount,
+            QueryList,
+            ppCombinedObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    case LSA_QUERY_TYPE_BY_NAME:
+        /* Each name in the query list could end up being
+           a different type (alias, NT4, UPN, etc.), so break
+           the query up into multiple single queries,
+           using LsaCrackDomainQualifiedName() to determine
+           the appropriate query type for each name */
+        for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+        {
+            dwError = LsaCrackDomainQualifiedName(
+                QueryList.ppszStrings[dwIndex],
+                NULL,
+                &pLoginInfo);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            switch (pLoginInfo->nameType)
+            {
+            case NameType_NT4:
+                SingleType = LSA_QUERY_TYPE_BY_NT4;
+                break;
+            case NameType_UPN:
+                SingleType = LSA_QUERY_TYPE_BY_UPN;
+                break;
+            case NameType_Alias:
+                SingleType = LSA_QUERY_TYPE_BY_ALIAS;
+                break;
+            default:
+                dwError = LW_ERROR_INTERNAL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            SingleList.ppszStrings = &QueryList.ppszStrings[dwIndex];
+
+            dwError = LsaSrvFindObjectsInternal(
+                hServer,
+                pszTargetProvider,
+                FindFlags,
+                ObjectType,
+                SingleType,
+                1,
+                SingleList,
+                &ppCombinedObjects[dwIndex]);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (pLoginInfo)
+            {
+                LsaFreeNameInfo(pLoginInfo);
+                pLoginInfo = NULL;
+            }
+        }
+        break;
+    }
+
+    *pppObjects = ppCombinedObjects;
+
+cleanup:
+
+    if (pLoginInfo)
+    {
+        LsaFreeNameInfo(pLoginInfo);
+        pLoginInfo = NULL;
+    }
 
     return dwError;
 
@@ -307,8 +407,11 @@ LsaSrvOpenEnumObjects(
     dwError = LwAllocateMemory(sizeof(*pEnum), OUT_PPVOID(&pEnum));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwAllocateString(pszDomainName, &pEnum->pszDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pszDomainName)
+    {
+        dwError = LwAllocateString(pszDomainName, &pEnum->pszDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     pEnum->Type = LSA_SRV_ENUM_OBJECTS;
     pEnum->FindFlags = FindFlags;

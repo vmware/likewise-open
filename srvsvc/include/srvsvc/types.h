@@ -53,66 +53,8 @@
 #include <lw/types.h>
 #include <lw/ntstatus.h>
 
-#ifdef _DCE_IDL_
-// TODO-Eventually remove (u)int<N> types in favor of <lw/types.h> types.
-typedef unsigned small int uint8;
-typedef unsigned short int uint16;
-typedef unsigned long int uint32;
-typedef unsigned hyper int uint64;
-typedef small int int8;
-typedef short int int16;
-typedef long int int32;
-typedef hyper int int64;
-#else
-
-#include <inttypes.h>
-
-/* Types needed for librpc build pass */
-
-#ifndef UINT8_DEFINED
-typedef uint8_t uint8;
-#define UINT8_DEFINED
-#endif
-
-#ifndef UINT16_DEFINED
-typedef uint16_t uint16;
-#define UINT16_DEFINED
-#endif
-
-#ifndef UINT32_DEFINED
-typedef uint32_t uint32;
-#define UINT32_DEFINED
-#endif
-
-#ifndef UINT64_DEFINED
-typedef uint64_t uint64;
-#define UINT64_DEFINED
-#endif
-
-#ifndef INT8_DEFINED
-typedef int8_t int8;
-#define INT8_DEFINED
-#endif
-
-#ifndef INT16_DEFINED
-typedef int16_t int16;
-#define INT16_DEFINED
-#endif
-
-#ifndef INT32_DEFINED
-typedef int32_t int32;
-#define INT32_DEFINED
-#endif
-
-#ifndef INT64_DEFINED
-#define INT64_DEFINED
-typedef int64_t int64;
-#endif
-
-#endif /* _DCE_IDL_ */
-
-typedef uint32 WINERR;
-typedef uint64 NtTime;
+typedef UINT32 WINERR;
+typedef UINT64 NtTime;
 
 
 #ifndef NET_API_STATUS_DEFINED
@@ -123,7 +65,7 @@ cpp_quote("#ifndef NET_API_STATUS_DEFINED")
 cpp_quote("#define NET_API_STATUS_DEFINED 1")
 #endif
 
-typedef uint32 NET_API_STATUS;
+typedef UINT32 NET_API_STATUS;
 
 #ifdef _DCE_IDL_
 cpp_quote("#endif")

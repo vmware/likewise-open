@@ -41,7 +41,7 @@ NTSTATUS
 SamrSrvConnect(
     /* [in] */ handle_t hBinding,
     /* [in] */ const wchar16_t *system_name,
-    /* [in] */ uint32 access_mask,
+    /* [in] */ UINT32 access_mask,
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {

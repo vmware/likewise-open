@@ -51,7 +51,7 @@ NTSTATUS
 SamrSrvQuerySecurity(
     handle_t hBinding,
     void *hObject,
-    uint32 security_info,
+    UINT32 security_info,
     PSECURITY_DESCRIPTOR_BUFFER *ppSecDescBuf
     )
 {

@@ -69,7 +69,7 @@ NTSTATUS
 LsaSrvQueryInfoPolicy2(
     handle_t hBinding,
     POLICY_HANDLE hPolicy,
-    uint16 level,
+    UINT16 level,
     LsaPolicyInformation **ppInfo
     )
 {

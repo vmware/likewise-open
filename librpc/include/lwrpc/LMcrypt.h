@@ -43,11 +43,11 @@
 
 NTSTATUS
 NTLMv1EncryptChallenge(
-    uint8  Challenge[8],
-    uint8  *pLMHash,
-    uint8  *pNTHash,
-    uint8  LMResp[24],
-    uint8  NTResp[24]
+    UINT8  Challenge[8],
+    UINT8  *pLMHash,
+    UINT8  *pNTHash,
+    UINT8  LMResp[24],
+    UINT8  NTResp[24]
     );
 
 #endif   /* _LM_CRYPT_H_ */

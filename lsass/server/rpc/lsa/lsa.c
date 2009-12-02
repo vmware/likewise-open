@@ -110,7 +110,7 @@ NTSTATUS _lsa_Function06(
 NTSTATUS __LsaQueryInfoPolicy(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ POLICY_HANDLE hPolicy,
-    /* [in] */ uint16 level,
+    /* [in] */ UINT16 level,
     /* [out] */ LsaPolicyInformation **info
 )
 {
@@ -181,12 +181,12 @@ NTSTATUS _lsa_Function0d(
 NTSTATUS __LsaLookupNames(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ POLICY_HANDLE hPolicy,
-    /* [in] */ uint32 num_names,
+    /* [in] */ UINT32 num_names,
     /* [in] */ UnicodeString *names,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedSidArray *sids,
-    /* [in] */ uint16 level,
-    /* [in, out] */ uint32 *count
+    /* [in] */ UINT16 level,
+    /* [in, out] */ UINT32 *count
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -209,8 +209,8 @@ NTSTATUS __LsaLookupSids(
     /* [in] */ SidArray *sids,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedNameArray *names,
-    /* [in] */ uint16 level,
-    /* [in, out] */ uint32 *count
+    /* [in] */ UINT16 level,
+    /* [in, out] */ UINT32 *count
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -482,7 +482,7 @@ NTSTATUS __LsaOpenPolicy2(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *system_name,
     /* [in] */ ObjectAttribute *attrib,
-    /* [in] */ uint32 access_mask,
+    /* [in] */ UINT32 access_mask,
     /* [out] */ POLICY_HANDLE *hPolicy
 )
 {
@@ -509,7 +509,7 @@ NTSTATUS _lsa_Function2d(
 NTSTATUS __LsaQueryInfoPolicy2(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ POLICY_HANDLE hPolicy,
-    /* [in] */ uint16 level,
+    /* [in] */ UINT16 level,
     /* [out] */ LsaPolicyInformation **info
 )
 {
@@ -619,10 +619,10 @@ NTSTATUS __LsaLookupSids2(
     /* [in] */ SidArray *sids,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedNameArray2 *names,
-    /* [in] */ uint16 level,
-    /* [in, out] */ uint32 *count,
-    /* [in] */ uint32 unknown1,
-    /* [in] */ uint32 unknown2
+    /* [in] */ UINT16 level,
+    /* [in, out] */ UINT32 *count,
+    /* [in] */ UINT32 unknown1,
+    /* [in] */ UINT32 unknown2
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -643,14 +643,14 @@ NTSTATUS __LsaLookupSids2(
 NTSTATUS __LsaLookupNames2(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ POLICY_HANDLE hPolicy,
-    /* [in] */ uint32 num_names,
+    /* [in] */ UINT32 num_names,
     /* [in] */ UnicodeStringEx *names,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedSidArray2 *sids,
-    /* [in] */ uint16 level,
-    /* [in, out] */ uint32 *count,
-    /* [in] */ uint32 unknown1,
-    /* [in] */ uint32 unknown2
+    /* [in] */ UINT16 level,
+    /* [in, out] */ UINT32 *count,
+    /* [in] */ UINT32 unknown1,
+    /* [in] */ UINT32 unknown2
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -753,14 +753,14 @@ NTSTATUS _lsa_Function43(
 NTSTATUS __LsaLookupNames3(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ POLICY_HANDLE hPolicy,
-    /* [in] */ uint32 num_names,
+    /* [in] */ UINT32 num_names,
     /* [in] */ UnicodeStringEx *names,
     /* [out] */ RefDomainList **domains,
     /* [in, out] */ TranslatedSidArray3 *sids,
-    /* [in] */ uint16 level,
-    /* [in, out] */ uint32 *count,
-    /* [in] */ uint32 unknown1,
-    /* [in] */ uint32 unknown2
+    /* [in] */ UINT16 level,
+    /* [in, out] */ UINT32 *count,
+    /* [in] */ UINT32 unknown1,
+    /* [in] */ UINT32 unknown2
 )
 {
     NTSTATUS status = STATUS_SUCCESS;

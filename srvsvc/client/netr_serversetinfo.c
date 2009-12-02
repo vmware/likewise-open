@@ -33,9 +33,9 @@
 NET_API_STATUS NetServerSetInfo(
     handle_t b,
     const wchar16_t *servername,
-    uint32 level,
-    uint8 *bufptr,
-    uint32 *parm_err
+    UINT32 level,
+    UINT8 *bufptr,
+    UINT32 *parm_err
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;

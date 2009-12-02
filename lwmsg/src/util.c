@@ -99,7 +99,7 @@ char* lwmsg_formatv(const char* fmt, va_list ap)
                 return NULL;
             }
             str = str_new;
-        } while ((len = vsnprintf(str, capacity-1, fmt, my_ap)) == -1 || capacity <= len);
+        } while ((len = vsnprintf(str, capacity, fmt, my_ap)) == -1 || capacity <= len);
         str[len] = '\0';
         
         return str;

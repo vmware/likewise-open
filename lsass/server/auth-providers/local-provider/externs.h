@@ -52,6 +52,7 @@
 extern PCSTR gpszLocalProviderName;
 
 extern LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable;
+extern LSA_PROVIDER_FUNCTION_TABLE_2 gLocalProviderAPITable2;
 
 extern LOCAL_PROVIDER_GLOBALS gLPGlobals;
 

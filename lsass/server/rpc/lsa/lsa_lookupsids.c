@@ -54,8 +54,8 @@ LsaSrvLookupSids(
     SidArray *sids,
     RefDomainList **ppDomains,
     TranslatedNameArray *pNames,
-    uint16 level,
-    uint32 *count
+    UINT16 level,
+    UINT32 *count
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

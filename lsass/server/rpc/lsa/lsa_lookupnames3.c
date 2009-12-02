@@ -51,14 +51,14 @@ NTSTATUS
 LsaSrvLookupNames3(
     handle_t b,
     POLICY_HANDLE hPolicy,
-    uint32 num_names,
+    UINT32 num_names,
     UnicodeStringEx *names,
     RefDomainList **domains,
     TranslatedSidArray3 *sids,
-    uint16 level,
-    uint32 *count,
-    uint32 unknown1,
-    uint32 unknown2
+    UINT16 level,
+    UINT32 *count,
+    UINT32 unknown1,
+    UINT32 unknown2
     )
 {
     const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS;

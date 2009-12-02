@@ -42,7 +42,7 @@ NTSTATUS
 SamrSrvConnect(
     handle_t hBinding,
     const wchar16_t *system_name,
-    uint32 access_mask,
+    UINT32 access_mask,
     CONNECT_HANDLE *hConn
     );
 
@@ -59,7 +59,7 @@ NTSTATUS
 SamrSrvQuerySecurity(
     handle_t hBinding,
     void *hObject,
-    uint32 security_info,
+    UINT32 security_info,
     PSECURITY_DESCRIPTOR_BUFFER *secdesc
     );
 
@@ -77,10 +77,10 @@ NTSTATUS
 SamrSrvEnumDomains(
     handle_t hBinding,
     CONNECT_HANDLE hConn,
-    uint32 *resume,
-    uint32 size,
+    UINT32 *resume,
+    UINT32 size,
     EntryArray **domains,
-    uint32 *num_entries
+    UINT32 *num_entries
     );
 
 
@@ -88,7 +88,7 @@ NTSTATUS
 SamrSrvOpenDomain(
     handle_t hBinding,
     CONNECT_HANDLE hConn,
-    uint32 access_mask,
+    UINT32 access_mask,
     SID *sid,
     DOMAIN_HANDLE *hDomain
     );
@@ -98,7 +98,7 @@ NTSTATUS
 SamrSrvQueryDomainInfo(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint16 level,
+    UINT16 level,
     DomainInfo **info
     );
 
@@ -108,9 +108,9 @@ SamrSrvCreateUser(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
     UnicodeString *account_name,
-    uint32 access_mask,
+    UINT32 access_mask,
     ACCOUNT_HANDLE *hUser,
-    uint32 *rid
+    UINT32 *rid
     );
 
 
@@ -118,11 +118,11 @@ NTSTATUS
 SamrSrvEnumDomainUsers(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint32 *resume,
-    uint32 account_flags,
-    uint32 max_size,
+    UINT32 *resume,
+    UINT32 account_flags,
+    UINT32 max_size,
     RidNameArray **names,
-    uint32 *num_entries
+    UINT32 *num_entries
     );
 
 
@@ -131,9 +131,9 @@ SamrSrvCreateDomAlias(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
     UnicodeString *alias_name,
-    uint32 access_mask,
+    UINT32 access_mask,
     ACCOUNT_HANDLE *hAlias,
-    uint32 *rid
+    UINT32 *rid
     );
 
 
@@ -141,10 +141,10 @@ NTSTATUS
 SamrSrvEnumDomainAliases(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint32 *resume,
-    uint32 account_flags,
+    UINT32 *resume,
+    UINT32 account_flags,
     RidNameArray **names,
-    uint32 *num_entries
+    UINT32 *num_entries
     );
 
 
@@ -161,7 +161,7 @@ NTSTATUS
 SamrSrvLookupNames(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint32 num_names,
+    UINT32 num_names,
     UnicodeString *names,
     Ids *ids,
     Ids *types
@@ -172,8 +172,8 @@ NTSTATUS
 SamrSrvLookupRids(
     handle_t IDL_handle,
     DOMAIN_HANDLE hDomain,
-    uint32 dwNumRids,
-    uint32 *pdwRids,
+    UINT32 dwNumRids,
+    UINT32 *pdwRids,
     UnicodeStringArray *pNames,
     Ids *pTypes
     );
@@ -183,8 +183,8 @@ NTSTATUS
 SamrSrvOpenAlias(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint32 access_mask,
-    uint32 rid,
+    UINT32 access_mask,
+    UINT32 rid,
     ACCOUNT_HANDLE *hAlias
     );
 
@@ -193,7 +193,7 @@ NTSTATUS
 SamrSrvQueryAliasInfo(
     handle_t hBinding,
     ACCOUNT_HANDLE hUser,
-    uint16 level,
+    UINT16 level,
     AliasInfo **info
     );
 
@@ -202,7 +202,7 @@ NTSTATUS
 SamrSrvSetAliasInfo(
     handle_t hBinding,
     ACCOUNT_HANDLE hAlias,
-    uint16 level,
+    UINT16 level,
     AliasInfo *pInfo
     );
 
@@ -251,8 +251,8 @@ NTSTATUS
 SamrSrvOpenUser(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint32 access_mask,
-    uint32 rid,
+    UINT32 access_mask,
+    UINT32 rid,
     ACCOUNT_HANDLE *hUser
     );
 
@@ -269,7 +269,7 @@ NTSTATUS
 SamrSrvQueryUserInfo(
     handle_t hBinding,
     ACCOUNT_HANDLE hUser,
-    uint16 level,
+    UINT16 level,
     UserInfo **info
     );
 
@@ -278,7 +278,7 @@ NTSTATUS
 SamrSrvSetUserInfo(
     handle_t hBinding,
     ACCOUNT_HANDLE hUser,
-    uint16 level,
+    UINT16 level,
     UserInfo *pInfo
     );
 
@@ -287,12 +287,12 @@ NTSTATUS
 SamrSrvQueryDisplayInfo(
     handle_t IDL_handle,
     DOMAIN_HANDLE hDomain,
-    uint16 level,
-    uint32 start_idx,
-    uint32 max_entries,
-    uint32 buf_size,
-    uint32 *total_size,
-    uint32 *returned_size,
+    UINT16 level,
+    UINT32 start_idx,
+    UINT32 max_entries,
+    UINT32 buf_size,
+    UINT32 *total_size,
+    UINT32 *returned_size,
     SamrDisplayInfo *info
     );
 
@@ -310,20 +310,20 @@ SamrSrvCreateUser2(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
     UnicodeStringEx *account_name,
-    uint32 account_flags,
-    uint32 access_mask,
+    UINT32 account_flags,
+    UINT32 access_mask,
     ACCOUNT_HANDLE *hUser,
-    uint32 *access_granted,
-    uint32 *rid
+    UINT32 *access_granted,
+    UINT32 *rid
     );
 
 
 NTSTATUS
 SamrSrvConnect2(
     handle_t hBinding,
-    uint32 size,
+    UINT32 size,
     const wchar16_t *sysname,
-    uint32 access_mask,
+    UINT32 access_mask,
     CONNECT_HANDLE *hConn
     );
 
@@ -332,12 +332,12 @@ NTSTATUS
 SamrSrvEnumDomainAccounts(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint32 *resume,
+    UINT32 *resume,
     DWORD dwObjectClass,
-    uint32 account_flags,
-    uint32 max_size,
+    UINT32 account_flags,
+    UINT32 max_size,
     RidNameArray **names,
-    uint32 *num_entries
+    UINT32 *num_entries
     );
 
 
@@ -345,9 +345,9 @@ NTSTATUS
 SamrSrvOpenAccount(
     handle_t hBinding,
     DOMAIN_HANDLE hDomain,
-    uint32 access_mask,
-    uint32 rid,
-    uint32 objectClass,
+    UINT32 access_mask,
+    UINT32 rid,
+    UINT32 objectClass,
     ACCOUNT_HANDLE *hAccount
     );
 
@@ -358,21 +358,21 @@ SamrSrvCreateAccount(
     DOMAIN_HANDLE hDomain,
     UnicodeStringEx *account_name,
     DWORD dwObjectClass,
-    uint32 account_flags,
-    uint32 access_mask,
+    UINT32 account_flags,
+    UINT32 access_mask,
     ACCOUNT_HANDLE *hAccount,
-    uint32 *access_granted,
-    uint32 *rid
+    UINT32 *access_granted,
+    UINT32 *rid
     );
 
 
 NTSTATUS
 SamrSrvConnect3(
     handle_t hBinding,
-    uint32 size,
+    UINT32 size,
     const wchar16_t *system_name,
-    uint32 unknown1,
-    uint32 access_mask,
+    UINT32 unknown1,
+    UINT32 access_mask,
     CONNECT_HANDLE *hConn
     );
 
@@ -380,10 +380,10 @@ SamrSrvConnect3(
 NTSTATUS
 SamrSrvConnect4(
     handle_t hBinding,
-    uint32 size,
+    UINT32 size,
     wchar16_t *system_name,
-    uint32 unknown,
-    uint32 access_mask,
+    UINT32 unknown,
+    UINT32 access_mask,
     CONNECT_HANDLE *hConn
     );
 
@@ -391,12 +391,12 @@ SamrSrvConnect4(
 NTSTATUS
 SamrSrvConnect5(
     handle_t hBinding,
-    uint32 size,
+    UINT32 size,
     wchar16_t *system_name,
-    uint32 access_mask,
-    uint32 level_in,
+    UINT32 access_mask,
+    UINT32 level_in,
     SamrConnectInfo *info_in,
-    uint32 *level_out,
+    UINT32 *level_out,
     SamrConnectInfo *info_out,
     CONNECT_HANDLE *hConn
     );

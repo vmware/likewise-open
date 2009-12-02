@@ -42,22 +42,22 @@ typedef struct ids {
 #ifdef _DCE_IDL_
 	[range(0,1024)]
 #endif
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
 	[size_is(count)]
 #endif
-    uint32 *ids;
+    UINT32 *ids;
 } Ids;
 
 
 typedef struct rid_with_attribute {
-    uint32 rid;
-    uint32 attributes;
+    UINT32 rid;
+    UINT32 attributes;
 } RidWithAttribute;
 
 
 typedef struct rid_with_attribute_array {
-    uint32     count;
+    UINT32     count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -66,13 +66,13 @@ typedef struct rid_with_attribute_array {
 
 
 typedef struct rid_name {
-    uint32 rid;
+    UINT32 rid;
     UnicodeString name;
 } RidName;
 
 
 typedef struct rid_name_array {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif

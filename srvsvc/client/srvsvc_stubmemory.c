@@ -41,7 +41,7 @@ static void SrvSvcClearCONNECTION_INFO_1(PCONNECTION_INFO_1 info)
     SAFE_FREE(info->coni1_netname);
 }
 
-void SrvSvcClearNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr)
+void SrvSvcClearNetConnCtr(UINT32 level, srvsvc_NetConnCtr *ctr)
 {
     int i;
 
@@ -82,7 +82,7 @@ static void SrvSvcClearFILE_INFO_3(PFILE_INFO_3 info)
     SAFE_FREE(info->fi3_username);
 }
 
-void SrvSvcClearNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr)
+void SrvSvcClearNetFileCtr(UINT32 level, srvsvc_NetFileCtr *ctr)
 {
     int i;
 
@@ -113,7 +113,7 @@ void SrvSvcClearNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr)
     }
 }
 
-void SrvSvcClearNetFileInfo(uint32 level, srvsvc_NetFileInfo *info)
+void SrvSvcClearNetFileInfo(UINT32 level, srvsvc_NetFileInfo *info)
 {
     if (!info) {
         return;
@@ -190,7 +190,7 @@ static void SrvSvcClearSESSION_INFO_502(PSESSION_INFO_502 info)
     SAFE_FREE(info->sesi502_transport);
 }
 
-void SrvSvcClearNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr)
+void SrvSvcClearNetSessCtr(UINT32 level, srvsvc_NetSessCtr *ctr)
 {
     int i;
 
@@ -311,7 +311,7 @@ static void SrvSvcClearSHARE_INFO_502_I(PSHARE_INFO_502_I info)
     SAFE_FREE(info->shi502_security_descriptor);
 }
 
-void SrvSvcClearNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr)
+void SrvSvcClearNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr)
 {
     int i;
 
@@ -378,7 +378,7 @@ void SrvSvcClearNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr)
     }
 }
 
-void SrvSvcClearNetShareInfo(uint32 level, srvsvc_NetShareInfo *info)
+void SrvSvcClearNetShareInfo(UINT32 level, srvsvc_NetShareInfo *info)
 {
     if (!info) {
         return;
@@ -508,7 +508,7 @@ static void SrvSvcClearSERVER_INFO_1005(PSERVER_INFO_1005 info)
     SAFE_FREE(info->sv1005_comment);
 }
 
-void SrvSvcClearNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info)
+void SrvSvcClearNetSrvInfo(UINT32 level, srvsvc_NetSrvInfo *info)
 {
     if (!info) {
         return;

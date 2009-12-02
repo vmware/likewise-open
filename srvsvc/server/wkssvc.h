@@ -53,7 +53,7 @@ NET_API_STATUS
 WksSvcNetWkstaGetInfo(
     handle_t IDL_handle,
     wchar16_t *server_name,
-    uint32 level,
+    UINT32 level,
     wkssvc_NetWkstaInfo *info
     );
 

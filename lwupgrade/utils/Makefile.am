@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libupgradeutils.la
 
 libupgradeutils_la_SOURCES = \
+    convert.c \
     format.c \
     machine_account.c \
     parser.c \

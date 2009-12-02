@@ -208,12 +208,12 @@ NetConnectionEnum(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *qualifier,
-    uint32 level,
-    uint8 **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resume_handle
+    UINT32 level,
+    UINT8 **bufptr,
+    UINT32 prefmaxlen,
+    UINT32 *entriesread,
+    UINT32 *totalentries,
+    UINT32 *resume_handle
     );
 
 
@@ -223,12 +223,12 @@ NetFileEnum(
     const wchar16_t *servername,
     const wchar16_t *basepath,
     const wchar16_t *username,
-    uint32 level,
-    uint8 **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resume_handle
+    UINT32 level,
+    UINT8 **bufptr,
+    UINT32 prefmaxlen,
+    UINT32 *entriesread,
+    UINT32 *totalentries,
+    UINT32 *resume_handle
     );
 
 
@@ -236,9 +236,9 @@ NET_API_STATUS
 NetFileGetInfo(
     handle_t b,
     const wchar16_t *servername,
-    uint32 fileid,
-    uint32 level,
-    uint8 **bufptr
+    UINT32 fileid,
+    UINT32 level,
+    UINT8 **bufptr
     );
 
 
@@ -246,7 +246,7 @@ NET_API_STATUS
 NetFileClose(
     handle_t b,
     const wchar16_t *servername,
-    uint32 fileid
+    UINT32 fileid
     );
 
 
@@ -256,12 +256,12 @@ NetSessionEnum(
     const wchar16_t *servername,
     const wchar16_t *unc_client_name,
     const wchar16_t *username,
-    uint32 level,
-    uint8 **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resume_handle
+    UINT32 level,
+    UINT8 **bufptr,
+    UINT32 prefmaxlen,
+    UINT32 *entriesread,
+    UINT32 *totalentries,
+    UINT32 *resume_handle
     );
 
 
@@ -314,8 +314,8 @@ NetShareGetInfo(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *netname,
-    uint32 level,
-    uint8 **bufptr
+    UINT32 level,
+    UINT8 **bufptr
     );
 
 
@@ -324,9 +324,9 @@ NetShareSetInfo(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *netname,
-    uint32 level,
-    uint8 *bufptr,
-    uint32 *parm_err
+    UINT32 level,
+    UINT8 *bufptr,
+    UINT32 *parm_err
     );
 
 
@@ -351,8 +351,8 @@ NET_API_STATUS
 NetServerGetInfo(
     handle_t b,
     const wchar16_t *servername,
-    uint32 level,
-    uint8 **bufptr
+    UINT32 level,
+    UINT8 **bufptr
     );
 
 
@@ -360,9 +360,9 @@ NET_API_STATUS
 NetServerSetInfo(
     handle_t b,
     const wchar16_t *servername,
-    uint32 level,
-    uint8 *bufptr,
-    uint32 *parm_err
+    UINT32 level,
+    UINT8 *bufptr,
+    UINT32 *parm_err
     );
 
 
@@ -370,7 +370,7 @@ NET_API_STATUS
 NetRemoteTOD(
     handle_t b,
     const wchar16_t *servername,
-    uint8 **bufptr
+    UINT8 **bufptr
     );
 
 

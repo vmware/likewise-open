@@ -51,7 +51,7 @@ NTSTATUS
 SamrSrvLookupNames(
     /* [in] */ handle_t hBinding,
     /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ uint32 num_names,
+    /* [in] */ UINT32 num_names,
     /* [in] */ UnicodeString *names,
     /* [out] */ Ids *ids,
     /* [out] */ Ids *types
@@ -108,7 +108,7 @@ SamrSrvLookupNames(
 
     pIds->count = num_names;
     ntStatus = SamrSrvAllocateMemory((void**)&(pIds->ids),
-                                   pIds->count * sizeof(uint32));
+                                   pIds->count * sizeof(UINT32));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     ntStatus = SamrSrvAllocateMemory((void**)&pTypes,
@@ -117,7 +117,7 @@ SamrSrvLookupNames(
 
     pTypes->count = num_names;
     ntStatus = SamrSrvAllocateMemory((void**)&(pTypes->ids),
-                                   pTypes->count * sizeof(uint32));
+                                   pTypes->count * sizeof(UINT32));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < num_names; i++) {

@@ -15,8 +15,8 @@ libsrvsvcutils_la_SOURCES = \
     sysfuncs.c
 
 libsrvsvcutils_la_LIBADD = \
-    @DCERPC_LIBS@    \
-    @LIBUNISTR_LIBS@
+    $(DCERPC_LIBS)         \
+    $(LIBUNISTR_LIBS)
 
 libsrvsvcutils_la_CFLAGS = \
     -DSRVSVC_BUILD         \

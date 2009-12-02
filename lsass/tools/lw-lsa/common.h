@@ -1,5 +1,6 @@
 /*
- * Copyright (c) Likewise Software.  All rights reserved.
+ * Copyright Likewise Software
+ * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,29 +21,38 @@
  * GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
  * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
- * license@likewise.com
+ * license@likewisesoftware.com
  */
 
-
-/* This structure captures the arguments that must be
- * sent to the Group Policy Service
+/*
+ * Module Name:
+ *
+ *        common.c
+ *
+ * Abstract:
+ *
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
+ *        Common functions for tools
+ *
+ * Authors: Brian Koropoff(bkoropoff@likewise.com)
  */
-typedef struct {
-    /* Maximum number of log file size in KB that is supported */
-    DWORD dwMaxLogSize;
-    /* Maximum number of records that can be hold*/
-    DWORD dwMaxRecords;
-    /* Remove the events older than*/
-    DWORD dwMaxAge;
-    /* Purge the records at the interval */
-    DWORD dwPurgeInterval;
-    /* Flag to prune database*/
-    BOOLEAN bRemoveAsNeeded;
 
-    /* Who is allowed to read events */
-    PSTR pszAllowReadTo;
-    /* Who is allowed to write events */
-    PSTR pszAllowWriteTo;
-    /* Who is allowed to delete events */
-    PSTR pszAllowDeleteTo;
-} EVTSERVERINFO, *PEVTSERVERINFO;
+#ifndef __TOOLS_COMMON_H__
+#define __TOOLS_COMMON_H__
+
+#include <lsa/lsa.h>
+#include <lsa/lsa2.h>
+#include "common.h"
+
+VOID
+PrintSecurityObject(
+    PLSA_SECURITY_OBJECT pObject
+    );
+
+PCSTR
+Basename(
+    PCSTR pszPath
+    );
+
+#endif

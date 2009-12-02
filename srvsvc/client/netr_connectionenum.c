@@ -35,12 +35,12 @@ NET_API_STATUS NetConnectionEnum(
     handle_t b,
     const wchar16_t *servername,
     const wchar16_t *qualifier,
-    uint32 level,
-    uint8 **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resume_handle
+    UINT32 level,
+    UINT8 **bufptr,
+    UINT32 prefmaxlen,
+    UINT32 *entriesread,
+    UINT32 *totalentries,
+    UINT32 *resume_handle
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
@@ -48,7 +48,7 @@ NET_API_STATUS NetConnectionEnum(
     srvsvc_NetConnCtr ctr;
     srvsvc_NetConnCtr0 ctr0;
     srvsvc_NetConnCtr1 ctr1;
-    uint32 l = level;
+    UINT32 l = level;
 
     BAIL_ON_INVALID_PTR(b, status);
     BAIL_ON_INVALID_PTR(bufptr, status);

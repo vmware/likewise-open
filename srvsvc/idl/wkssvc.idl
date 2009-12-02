@@ -50,7 +50,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
     cpp_quote("#endif") //_WIN32, !_WIN32
 
-    typedef [switch_type(uint32)] union {
+    typedef [switch_type(UINT32)] union {
         [case(100)]           WKSTA_INFO_100 *info100;
         [default];
     } wkssvc_NetWkstaInfo;
@@ -60,7 +60,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     /* Function 0x0 */
     WINERR _NetWkstaGetInfo(
         [in,string,unique] wchar16_t *server_name,
-        [in] uint32 level,
+        [in] UINT32 level,
         [out,ref,switch_is(level)] wkssvc_NetWkstaInfo *info
     );
 

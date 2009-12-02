@@ -55,7 +55,7 @@ SrvSvcNetShareDel(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *netname,
-    /* [in] */ uint32 reserved
+    /* [in] */ UINT32 reserved
     )
 {
     NTSTATUS ntStatus = 0;

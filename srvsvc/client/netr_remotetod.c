@@ -34,7 +34,7 @@
 NET_API_STATUS NetRemoteTOD(
     handle_t b,
     const wchar16_t *servername,
-    uint8 **bufptr
+    UINT8 **bufptr
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;

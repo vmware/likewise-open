@@ -26,7 +26,10 @@ MODE_NAMES = \
 	set-log-level \
 	set-machine-sid \
 	trace-info \
-	find-objects
+	find-objects \
+	enum-objects \
+	enum-members \
+	query-member-of
 
 bin_PROGRAMS = lw-lsa
 
@@ -60,6 +63,10 @@ lw_lsa_SOURCES = \
 	set_machine_sid_main.c \
 	trace_info_main.c \
 	find_objects.c \
+	enum_objects.c \
+	enum_members.c \
+	query_member_of.c \
+	common.c \
 	main.c
 
 lw_lsa_LDADD = \

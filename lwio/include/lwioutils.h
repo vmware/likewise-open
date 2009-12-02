@@ -231,7 +231,7 @@
     if (bInLock) { \
        int thr_err = pthread_mutex_unlock(mutex); \
        if (thr_err) { \
-           LWIO_LOG_ERROR("Failed to unlock mutex. Aborting program", \
+           LWIO_LOG_ERROR("Failed to unlock mutex: %d. Aborting program", \
                thr_err); \
            abort(); \
        } \

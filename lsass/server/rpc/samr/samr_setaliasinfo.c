@@ -65,7 +65,7 @@ NTSTATUS
 SamrSrvSetAliasInfo(
     /* [in] */ handle_t hBinding,
     /* [in] */ ACCOUNT_HANDLE hAlias,
-    /* [in] */ uint16 level,
+    /* [in] */ UINT16 level,
     /* [in] */ AliasInfo *pInfo
     )
 {

@@ -254,7 +254,8 @@ my_vasprintf(
                 return NULL;
             }
             str = str_new;
-        } while ((len = vsnprintf(str, capacity-1, fmt, my_ap)) == -1 || capacity <= len);
+        len = vsnprintf(str, capacity, fmt, my_ap);
+        } while (len == -1 || capacity <= len);
         str[len] = '\0';
 
         return str;

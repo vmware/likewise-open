@@ -32,36 +32,34 @@ libsrvsvc_ss_la_SOURCES = srvsvc_sstub.c
 libwkssvc_ss_la_SOURCES = wkssvc_sstub.c
 libwinreg_ss_la_SOURCES = winreg_sstub.c
 
-FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
-
 libsrvsvc_ss_la_CPPFLAGS = \
+    $(AM_CPPFLAGS)         \
     -DDCERPC_STUB_BUILD    \
-    $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libsrvsvc_ss_la_CFLAGS = \
+    $(AM_CPPFLAGS)       \
     -DDCERPC_STUB_BUILD  \
-    $(FEATURETEST_FLAGS) \
     $(DCERPC_INCLUDES)
 
 libwkssvc_ss_la_CPPFLAGS = \
+    $(AM_CPPFLAGS)         \
     -DDCERPC_STUB_BUILD    \
-    $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libwkssvc_ss_la_CFLAGS = \
+    $(AM_CPPFLAGS)       \
     -DDCERPC_STUB_BUILD  \
-    $(FEATURETEST_FLAGS) \
     $(DCERPC_INCLUDES)
 
 libwinreg_ss_la_CPPFLAGS = \
+    $(AM_CPPFLAGS)         \
     -DDCERPC_STUB_BUILD    \
-    $(FEATURETEST_FLAGS)   \
     $(DCERPC_INCLUDES)
 
 libwinreg_ss_la_CFLAGS = \
+    $(AM_CPPFLAGS)       \
     -DDCERPC_STUB_BUILD  \
-    $(FEATURETEST_FLAGS) \
     $(DCERPC_INCLUDES)
 
 

@@ -182,3 +182,11 @@ LsaFreeSecurityObjectList(
 {
     LsaUtilFreeSecurityObjectList(dwObjectCount, ppObjects);
 }
+
+VOID
+LsaFreeSecurityObject(
+    IN OUT PLSA_SECURITY_OBJECT pObject
+    )
+{
+    LsaUtilFreeSecurityObject(pObject);
+}

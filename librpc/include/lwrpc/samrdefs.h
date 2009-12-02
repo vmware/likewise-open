@@ -113,7 +113,7 @@
 typedef struct user_info1 {
     UnicodeString account_name;
     UnicodeString full_name;
-    uint32 primary_gid;
+    UINT32 primary_gid;
     UnicodeString description;
     UnicodeString comment;
 } UserInfo1;
@@ -121,23 +121,23 @@ typedef struct user_info1 {
 typedef struct user_info2 {
     UnicodeString comment;
     UnicodeString unknown1;
-    uint16 country_code;
-	uint16 code_page;
+    UINT16 country_code;
+	UINT16 code_page;
 } UserInfo2;
 
 typedef struct logon_hours {
-    uint16 units_per_week;
+    UINT16 units_per_week;
 #ifdef _DCE_IDL_
     [size_is(1260), length_is(units_per_week/8)]
 #endif
-    uint8 *units;
+    UINT8 *units;
 } LogonHours;
 
 typedef struct user_info3 {
     UnicodeString account_name;
     UnicodeString full_name;
-    uint32 rid;
-    uint32 primary_gid;
+    UINT32 rid;
+    UINT32 primary_gid;
     UnicodeString home_directory;
     UnicodeString home_drive;
     UnicodeString logon_script;
@@ -149,9 +149,9 @@ typedef struct user_info3 {
     NtTime allow_password_change;
     NtTime force_password_change;
     LogonHours logon_hours;
-    uint16 bad_password_count;
-    uint16 logon_count;
-    uint32 account_flags;
+    UINT16 bad_password_count;
+    UINT16 logon_count;
+    UINT32 account_flags;
 } UserInfo3;
 
 typedef struct user_info4 {
@@ -161,8 +161,8 @@ typedef struct user_info4 {
 typedef struct user_info5 {
 	UnicodeString account_name;
 	UnicodeString full_name;
-	uint32 rid;
-	uint32 primary_gid;
+	UINT32 rid;
+	UINT32 primary_gid;
 	UnicodeString home_directory;
 	UnicodeString home_drive;
 	UnicodeString logon_script;
@@ -172,11 +172,11 @@ typedef struct user_info5 {
 	NtTime last_logon;
 	NtTime last_logoff;
 	LogonHours logon_hours;
-	uint16 bad_password_count;
-	uint16 logon_count;
+	UINT16 bad_password_count;
+	UINT16 logon_count;
 	NtTime last_password_change;
 	NtTime account_expiry;
-	uint32 account_flags;
+	UINT32 account_flags;
 } UserInfo5;
 
 typedef struct user_info6 {
@@ -193,7 +193,7 @@ typedef struct user_info8 {
 } UserInfo8;
 
 typedef struct user_info9 {
-	uint32 primary_gid;
+	UINT32 primary_gid;
 } UserInfo9;
 
 typedef struct user_info10 {
@@ -218,7 +218,7 @@ typedef struct user_info14 {
 } UserInfo14;
 
 typedef struct user_info16 {
-	uint32 account_flags;
+	UINT32 account_flags;
 } UserInfo16;
 
 typedef struct user_info17 {
@@ -282,32 +282,32 @@ typedef struct user_info21 {
 	UnicodeString unknown1;
 	UnicodeString unknown2;
 	UnicodeString unknown3;
-	uint32 buf_count;
+	UINT32 buf_count;
 #ifdef _DCE_IDL_
 	[size_is(buf_count)]
 #endif
-	uint8 *buffer;
-	uint32 rid;
-	uint32 primary_gid;
-	uint32 account_flags;
-	uint32 fields_present;
+	UINT8 *buffer;
+	UINT32 rid;
+	UINT32 primary_gid;
+	UINT32 account_flags;
+	UINT32 fields_present;
 	LogonHours logon_hours;
-	uint16 bad_password_count;
-	uint16 logon_count;
-	uint16 country_code;
-	uint16 code_page;
-	uint8 nt_password_set;
-	uint8 lm_password_set;
-	uint8 password_expired;
-	uint8 unknown4;
+	UINT16 bad_password_count;
+	UINT16 logon_count;
+	UINT16 country_code;
+	UINT16 code_page;
+	UINT8 nt_password_set;
+	UINT8 lm_password_set;
+	UINT8 password_expired;
+	UINT8 unknown4;
 } UserInfo21;
 
 typedef struct hash_pass {
-	uint8 data[16];
+	UINT8 data[16];
 } HashPassword;
 
 typedef struct crypt_password {
-	uint8 data[516];
+	UINT8 data[516];
 } CryptPassword;
 
 typedef struct user_info23 {
@@ -317,11 +317,11 @@ typedef struct user_info23 {
 
 typedef struct user_info24 {
 	CryptPassword password;
-	uint8 password_len;
+	UINT8 password_len;
 } UserInfo24;
 
 typedef struct crypt_password_ex {
-	uint8 data[532];
+	UINT8 data[532];
 } CryptPasswordEx;
 
 typedef struct user_info25 {
@@ -331,12 +331,12 @@ typedef struct user_info25 {
 
 typedef struct user_info26 {
 	CryptPasswordEx password;
-	uint8 password_len;
+	UINT8 password_len;
 } UserInfo26;
 
 typedef struct samr_pw_info {
-    uint16 min_password_length;
-    uint32 password_properties;
+    UINT16 min_password_length;
+    UINT32 password_properties;
 } PwInfo;
 
 #ifndef _DCE_IDL_
@@ -376,14 +376,14 @@ typedef union user_info {
 
 typedef struct alias_info_all {
 	UnicodeString name;
-	uint32 num_members;
+	UINT32 num_members;
 	UnicodeString description;
 } AliasInfoAll;
 
 
 #ifndef _DCE_IDL_
 typedef union alias_info {
-	AliasInfoAll all;
+	AliasInfoAll all;            /* read-only infolevel */
 	UnicodeString name;
 	UnicodeString description;
 } AliasInfo;
@@ -400,8 +400,8 @@ typedef union alias_info {
 
 
 typedef struct samr_connect_info1 {
-    uint32 client_version;
-    uint32 unknown1;
+    UINT32 client_version;
+    UINT32 unknown1;
 } SamrConnectInfo1, SAMR_CONNECT_INFO_1, *PSAMR_CONNECT_INFO_1;
 
 
@@ -416,11 +416,11 @@ typedef union samr_connect_info {
  * Domain info structues
  */
 typedef struct domain_info_1 {
-    uint16 min_pass_length;
-    uint16 pass_history_length;
-    uint32 pass_properties;
-    int64  max_pass_age;
-    int64  min_pass_age;
+    UINT16 min_pass_length;
+    UINT16 pass_history_length;
+    UINT32 pass_properties;
+    INT64  max_pass_age;
+    INT64  min_pass_age;
 } DomainInfo1;
 
 typedef struct domain_info_2 {
@@ -428,13 +428,13 @@ typedef struct domain_info_2 {
     UnicodeString comment;
     UnicodeString domain_name;
     UnicodeString primary;
-    uint64 sequence_num;
-    uint32 unknown1;
-    uint32 role;
-    uint32 unknown2;
-    uint32 num_users;
-    uint32 num_groups;
-    uint32 num_aliases;
+    UINT64 sequence_num;
+    UINT32 unknown1;
+    UINT32 role;
+    UINT32 unknown2;
+    UINT32 num_users;
+    UINT32 num_groups;
+    UINT32 num_aliases;
 } DomainInfo2;
 
 typedef struct domain_info_3 {
@@ -460,36 +460,36 @@ typedef struct domain_info_6 {
 #define SAMR_ROLE_DOMAIN_PDC      3
 
 typedef struct domain_info_7 {
-    uint32 role;
+    UINT32 role;
 } DomainInfo7;
 
 typedef struct domain_info_8 {
-    uint64 sequence_number;
+    UINT64 sequence_number;
     NtTime domain_create_time;
 } DomainInfo8;
 
 typedef struct domain_info_9 {
-    uint32 unknown;
+    UINT32 unknown;
 } DomainInfo9;
 
 typedef struct domain_info_11 {
     DomainInfo2 info2;
-    uint64 lockout_duration;
-    uint64 lockout_window;
-    uint16 lockout_threshold;
+    UINT64 lockout_duration;
+    UINT64 lockout_window;
+    UINT16 lockout_threshold;
 } DomainInfo11;
 
 typedef struct domain_info_12 {
-    uint64 lockout_duration;
-    uint64 lockout_window;
-    uint16 lockout_threshold;
+    UINT64 lockout_duration;
+    UINT64 lockout_window;
+    UINT16 lockout_threshold;
 } DomainInfo12;
 
 typedef struct domain_info_13 {
-    uint64 sequence_number;
+    UINT64 sequence_number;
     NtTime domain_create_time;
-    uint32 unknown1;
-    uint32 unknown2;
+    UINT32 unknown1;
+    UINT32 unknown2;
 } DomainInfo13;
 
 
@@ -515,9 +515,9 @@ typedef union domain_info {
  * Display info structures
  */
 typedef struct samr_display_entry_full {
-    uint32 idx;
-    uint32 rid;
-    uint32 account_flags;
+    UINT32 idx;
+    UINT32 rid;
+    UINT32 account_flags;
     UnicodeString account_name;
     UnicodeString description;
     UnicodeString full_name;
@@ -525,7 +525,7 @@ typedef struct samr_display_entry_full {
 
 
 typedef struct samr_display_info_full {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -534,16 +534,16 @@ typedef struct samr_display_info_full {
 
 
 typedef struct samr_display_entry_general {
-    uint32 idx;
-    uint32 rid;
-    uint32 account_flags;
+    UINT32 idx;
+    UINT32 rid;
+    UINT32 account_flags;
     UnicodeString account_name;
     UnicodeString description;
 } SamrDisplayEntryGeneral;
 
 
 typedef struct samr_display_info_general {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -552,15 +552,15 @@ typedef struct samr_display_info_general {
 
 
 typedef struct samr_display_entry_general_group {
-    uint32 idx;
-    uint32 rid;
-    uint32 account_flags;
+    UINT32 idx;
+    UINT32 rid;
+    UINT32 account_flags;
     UnicodeString account_name;
     UnicodeString description;
 } SamrDisplayEntryGeneralGroup;
 
 typedef struct samr_display_info_general_groups {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -569,13 +569,13 @@ typedef struct samr_display_info_general_groups {
 
 
 typedef struct samr_display_entry_ascii {
-    uint32 idx;
+    UINT32 idx;
     ANSI_STRING account_name;
 } SamrDisplayEntryAscii;
 
 
 typedef struct samr_display_info_ascii {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif

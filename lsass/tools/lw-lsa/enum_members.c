@@ -27,13 +27,13 @@
 /*
  * Module Name:
  *
- *        find_objects.c
+ *        enum_members.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
  *
- *        Tool to find objects
+ *        Tool to enum members
  *
  * Authors: Brian Koropoff(bkoropoff@likewise.com)
  */
@@ -43,12 +43,11 @@
 #include "lsadef.h"
 #include "lsaclient.h"
 #include "common.h"
+
 #include <lsa/lsa.h>
 #include <lsa/lsa2.h>
 #include <lwmem.h>
 #include <lwerror.h>
-
-#define SAFE_STRING(x) ((x) == NULL ? "<null>" : (x))
 
 static struct
 {
@@ -140,7 +139,7 @@ ShowUsage(
     )
 {
     printf(
-        "Usage: %s [ --<object type> ] [ --by-<key> ] [ <flags> ] [ --provider name ] keys ...\n",
+        "Usage: %s [ --<object type> ] [ --by-<key> ] [ <flags> ] [ --provider name ] groups ...\n",
         Basename(pszProgramName));
 
     if (bFull)
@@ -152,13 +151,13 @@ ShowUsage(
             "    --group                 Return only group objects\n"
             "\n"
             "Key type options:\n"
-            "    --by-dn                 Query by distinguished name\n"
-            "    --by-sid                Query by SID\n"
-            "    --by-nt4                Query by NT4-style domain-qualified name\n"
-            "    --by-alias              Query by alias (must specify object type)\n"
-            "    --by-upn                Query by user principal name\n"
-            "    --by-unix-id            Query by UID or GID (must specify object type)\n"
-            "    --by-name               Query by generic name (NT4, alias, or UPN accepted)\n"
+            "    --by-dn                 Specify groups by distinguished name\n"
+            "    --by-sid                Specify groups by SID\n"
+            "    --by-nt4                Specify groups by NT4-style domain-qualified name\n"
+            "    --by-alias              Specify groups by alias (must specify object type)\n"
+            "    --by-upn                Specify groups by user principal name\n"
+            "    --by-unix-id            Specify groups by UID or GID (must specify object type)\n"
+            "    --by-name               Specify groups by generic name (NT4, alias, or UPN accepted)\n"
             "\n"
             "Query flags:\n"
             "     --nss                  Omit data not necessary for NSS layer\n"
@@ -259,55 +258,222 @@ error:
 
 static
 DWORD
-FindObjects(
-    VOID
+ResolveSid(
+    HANDLE hLsa,
+    LSA_QUERY_TYPE QueryType,
+    LSA_QUERY_LIST QueryList,
+    DWORD dwIndex,
+    PSTR* ppszSid
     )
 {
     DWORD dwError = 0;
-    HANDLE hLsa = NULL;
+    LSA_QUERY_LIST SingleList;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
-    DWORD dwIndex = 0;
 
-    dwError = LsaOpenServer(&hLsa);
-    BAIL_ON_LSA_ERROR(dwError);
+    *ppszSid = NULL;
 
-    dwError = LsaFindObjects(
-        hLsa,
-        gState.pszTargetProvider,
-        gState.FindFlags,
-        gState.ObjectType,
-        gState.QueryType,
-        gState.dwCount,
-        gState.QueryList,
-        &ppObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (dwIndex = 0; dwIndex < gState.dwCount; dwIndex++)
+    if (QueryType == LSA_QUERY_TYPE_BY_SID)
     {
-        if (ppObjects[dwIndex])
+        dwError = LwAllocateString(QueryList.ppszStrings[dwIndex], ppszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        switch (QueryType)
         {
-            PrintSecurityObject(ppObjects[dwIndex]);
+        case LSA_QUERY_TYPE_BY_UNIX_ID:
+            SingleList.pdwIds = &QueryList.pdwIds[dwIndex];
+            break;
+        default:
+            SingleList.ppszStrings = &QueryList.ppszStrings[dwIndex];
+            break;
         }
-        else
+
+        dwError = LsaFindObjects(
+            hLsa,
+            gState.pszTargetProvider,
+            gState.FindFlags,
+            LSA_OBJECT_TYPE_GROUP,
+            QueryType,
+            1,
+            SingleList,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (ppObjects[0])
         {
-            switch (gState.QueryType)
-            {
-            case LSA_QUERY_TYPE_BY_UNIX_ID:
-                printf("Not found: %lu\n", (unsigned long) gState.QueryList.pdwIds[dwIndex]);
-                break;
-            default:
-                printf("Not found: %s\n", gState.QueryList.ppszStrings[dwIndex]);
-                break;
-            }
+            dwError = LwAllocateString(ppObjects[0]->pszObjectSid, ppszSid);
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        printf("\n");
     }
 
 error:
 
     if (ppObjects)
     {
-        LsaFreeSecurityObjectList(gState.dwCount, ppObjects);
+        LsaFreeSecurityObjectList(1, ppObjects);
+    }
+
+    return dwError;
+}
+
+static
+DWORD
+ResolveMember(
+    HANDLE hLsa,
+    PSTR pszSid,
+    PLSA_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+
+    QueryList.ppszStrings = (PCSTR*) &pszSid;
+
+    dwError = LsaFindObjects(
+        hLsa,
+        NULL, //gState.pszTargetProvider,
+        gState.FindFlags,
+        LSA_OBJECT_TYPE_UNDEFINED,
+        LSA_QUERY_TYPE_BY_SID,
+        1,
+        QueryList,
+        &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppObject = ppObjects[0];
+    ppObjects[0] = NULL;
+
+cleanup:
+
+    if (ppObjects)
+    {
+        LsaFreeSecurityObjectList(1, ppObjects);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+EnumMembers(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hLsa = NULL;
+    HANDLE hEnum = NULL;
+    PSTR* ppszMembers = NULL;
+    const DWORD dwMaxCount = 512;
+    DWORD dwCount = 0;
+    DWORD dwIndex = 0;
+    DWORD dwSidIndex = 0;
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    PSTR pszSid = NULL;
+
+    dwError = LsaOpenServer(&hLsa);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwSidIndex = 0; dwSidIndex < gState.dwCount; dwSidIndex++)
+    {
+        dwError = ResolveSid(hLsa, gState.QueryType, gState.QueryList, dwSidIndex, &pszSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (!pszSid)
+        {
+            switch(gState.QueryType)
+            {
+            case LSA_QUERY_TYPE_BY_UNIX_ID:
+                printf("Not found: %lu\n\n", (unsigned long) gState.QueryList.pdwIds[dwSidIndex]);
+                break;
+            default:
+                printf("Not found: %s\n\n", gState.QueryList.ppszStrings[dwSidIndex]);
+                break;
+            }
+        }
+        else
+        {
+            dwError = LsaOpenEnumMembers(
+                hLsa,
+                gState.pszTargetProvider,
+                &hEnum,
+                gState.FindFlags,
+                pszSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            for (;;)
+            {
+                dwError = LsaEnumMembers(
+                    hLsa,
+                    hEnum,
+                    dwMaxCount,
+                    &dwCount,
+                    &ppszMembers);
+                if (dwError == ERROR_NO_MORE_ITEMS)
+                {
+                    dwError = 0;
+                    break;
+                }
+                BAIL_ON_LSA_ERROR(dwError);
+
+                for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+                {
+                    dwError = ResolveMember(hLsa, ppszMembers[dwIndex], &pObject);
+                    BAIL_ON_LSA_ERROR(dwError);
+
+                    if (pObject)
+                    {
+                        LSA_OBJECT_TYPE type = LSA_OBJECT_TYPE_UNDEFINED;
+
+                        switch(pObject->type)
+                        {
+                        case AccountType_Group:
+                            type = LSA_OBJECT_TYPE_GROUP;
+                            break;
+                        case AccountType_User:
+                            type = LSA_OBJECT_TYPE_USER;
+                            break;
+                        }
+
+                        if (type == gState.ObjectType || gState.ObjectType == LSA_OBJECT_TYPE_UNDEFINED)
+                        {
+                            PrintSecurityObject(pObject);
+                            printf("\n");
+                        }
+
+                        LsaFreeSecurityObject(pObject);
+                    }
+                    else
+                    {
+                        printf("Unresolvable object (%s)\n\n", ppszMembers[dwIndex]);
+                    }
+                }
+
+                LsaFreeSidList(dwCount, ppszMembers);
+            }
+
+            LW_SAFE_FREE_MEMORY(pszSid);
+            LsaCloseEnum(hLsa, hEnum);
+        }
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pszSid);
+
+    if (ppszMembers)
+    {
+        LsaFreeSidList(dwCount, ppszMembers);
+    }
+
+    if (hEnum)
+    {
+        LsaCloseEnum(hLsa, hEnum);
     }
 
     if (hLsa)
@@ -316,10 +482,14 @@ error:
     }
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 int
-FindObjectsMain(
+EnumMembersMain(
     int argc,
     char** ppszArgv
     )
@@ -337,13 +507,13 @@ FindObjectsMain(
 
     if (!gState.bShowUsage)
     {
-        if (gState.dwCount == 0)
+        if (!gState.dwCount)
         {
             dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        dwError = FindObjects();
+        dwError = EnumMembers();
         BAIL_ON_LSA_ERROR(dwError);
     }
 

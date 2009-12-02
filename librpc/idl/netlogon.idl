@@ -15,7 +15,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
 #include <lwrpc/rid.h>
 #include <lwrpc/netrdefs.h>
 
-    typedef [switch_type(uint16)] union {
+    typedef [switch_type(UINT16)] union {
         [case(1)] NetrPasswordInfo *password1;
         [case(2)] NetrNetworkInfo  *network2;
         [case(3)] NetrPasswordInfo *password3;
@@ -23,7 +23,7 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
         [case(6)] NetrNetworkInfo  *network6;
     } NetrLogonInfo;
 
-    typedef [switch_type(uint16)] union {
+    typedef [switch_type(UINT16)] union {
         [case(2)] NetrSamInfo2 *sam2;
         [case(3)] NetrSamInfo3 *sam3;
         [case(4)] NetrPacInfo  *pac4;
@@ -31,12 +31,12 @@ cpp_quote("#ifdef DCERPC_STUB_BUILD")
         [case(6)] NetrSamInfo6 *sam6;
     } NetrValidationInfo;
 
-    typedef [switch_type(uint32)] union netr_domain_query {
+    typedef [switch_type(UINT32)] union netr_domain_query {
         [case(1)] NetrDomainQuery1 *query1;
         [case(2)] NetrDomainQuery1 *query2;
     } NetrDomainQuery;
 
-    typedef [switch_type(uint32)] union netr_domain_info {
+    typedef [switch_type(UINT32)] union netr_domain_info {
         [case(1)] NetrDomainInfo1 *info1;
         [case(2)] NetrDomainInfo1 *info2;
     } NetrDomainInfo;
@@ -53,11 +53,11 @@ cpp_quote("#endif")
         [in,unique,string] wchar16_t *computer_name,
         [in,unique] NetrAuth *creds,
         [in,out,unique] NetrAuth *ret_creds,
-        [in] uint16 logon_level,
+        [in] UINT16 logon_level,
         [in,ref,switch_is(logon_level)] NetrLogonInfo *logon,
-        [in] uint16 validation_level,
+        [in] UINT16 validation_level,
         [out,ref,switch_is(validation_level)] NetrValidationInfo *validation,
-        [out,ref] uint8 *authoritative
+        [out,ref] UINT8 *authoritative
         );
 
 	/* function 0x03 */
@@ -66,7 +66,7 @@ cpp_quote("#endif")
         [in,unique,string] wchar16_t *computer_name,
         [in,unique] NetrAuth *creds,
         [in,out,unique] NetrAuth *ret_creds,
-        [in] uint16 logon_level,
+        [in] UINT16 logon_level,
         [in,ref,switch_is(logon_level)] NetrLogonInfo *logon
         );
 
@@ -81,7 +81,7 @@ cpp_quote("#endif")
     NTSTATUS _NetrServerAuthenticate(
         [in,string,unique] wchar16_t *server_name,
         [in,string] wchar16_t account_name[],
-        [in] uint16 secure_channel_type,
+        [in] UINT16 secure_channel_type,
         [in,string] wchar16_t computer_name[],
         [in,out,ref] NetrCred *credentials
         );
@@ -100,10 +100,10 @@ cpp_quote("#endif")
     NTSTATUS _NetrServerAuthenticate2(
         [in,string,unique] wchar16_t *server_name,
         [in,string] wchar16_t account_name[],
-        [in] uint16 secure_channel_type,
+        [in] UINT16 secure_channel_type,
         [in,string] wchar16_t computer_name[],
         [in,out,ref] NetrCred *credentials,
-        [in,out,ref] uint32 *negotiate_flags
+        [in,out,ref] UINT32 *negotiate_flags
         );
 
     NTSTATUS netr_Function10();
@@ -117,7 +117,7 @@ cpp_quote("#endif")
         [in,string,unique] wchar16_t *domain_name,
         [in,unique] Guid *domain_guid,
         [in,unique] Guid *site_guid,
-        [in] uint32 get_dc_flags,
+        [in] UINT32 get_dc_flags,
         [out,ref] DsrDcNameInfo **info
         );
 
@@ -131,11 +131,11 @@ cpp_quote("#endif")
     NTSTATUS _NetrServerAuthenticate3(
         [in,string] wchar16_t *server_name,
         [in,string] wchar16_t account_name[],
-        [in] uint16 secure_channel_type,
+        [in] UINT16 secure_channel_type,
         [in,string] wchar16_t computer_name[],
         [in,out,ref] NetrCred *credentials,
-        [in,out,ref] uint32 *negotiate_flags,
-        [out,ref] uint32 *rid
+        [in,out,ref] UINT32 *negotiate_flags,
+        [out,ref] UINT32 *rid
         );
 
     NTSTATUS netr_Function1b();
@@ -147,7 +147,7 @@ cpp_quote("#endif")
         [in,unique,string] wchar16_t *computer_name,
         [in] NetrAuth *creds,
         [in,out,ref] NetrAuth *ret_creds,
-        [in] uint32 level,
+        [in] UINT32 level,
         [in,switch_is(level)] NetrDomainQuery *query,
         [out,ref,switch_is(level)] NetrDomainInfo *info
         );
@@ -173,19 +173,19 @@ cpp_quote("#endif")
     NTSTATUS _NetrLogonSamLogonEx(
         [in,unique,string] wchar16_t *server_name,
         [in,unique,string] wchar16_t *computer_name,
-        [in] uint16 logon_level,
+        [in] UINT16 logon_level,
         [in,ref,switch_is(logon_level)] NetrLogonInfo *logon,
-        [in] uint16 validation_level,
+        [in] UINT16 validation_level,
         [out,ref,switch_is(validation_level)] NetrValidationInfo *validation,
-        [out,ref] uint8 *authoritative,
-        [in,out,ref] uint32 *flags
+        [out,ref] UINT8 *authoritative,
+        [in,out,ref] UINT32 *flags
         );
 
 
 	/* function 0x28 */
 	WINERR _DsrEnumerateDomainTrusts(
         [in,unique,string] wchar16_t *server_name,
-        [in] uint32 trust_flags,
+        [in] UINT32 trust_flags,
         [out,ref] NetrDomainTrustList *trusts
         );
 

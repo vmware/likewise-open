@@ -1,6 +1,5 @@
 /*
- * Copyright Likewise Software    2004-2009
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -401,7 +400,7 @@ AD_FreeConfigContents(
 
     if (pConfig->pszUnresolvedMemberList)
     {
-        LW_SAFE_FREE_STRING(pConfig->pszUnresolvedMemberList);
+        LW_SAFE_FREE_MEMORY(pConfig->pszUnresolvedMemberList);
         pConfig->pszUnresolvedMemberList = NULL;
     }
 }
@@ -887,12 +886,11 @@ AD_SetConfig_RequireMembershipOf(
         goto cleanup;
     }
 
-    pConfig->pszUnresolvedMemberList = strdup(pszValue); /* FIXME */
-    if (!pConfig->pszUnresolvedMemberList )
-    {
-        dwError = LW_ERROR_OUT_OF_MEMORY;
-        goto error;
-    }
+    dwError = UpStringToMultiString(
+                pszValue,
+                ",",
+                &pConfig->pszUnresolvedMemberList);
+    BAIL_ON_UP_ERROR(dwError);
 
 cleanup:
 
@@ -1376,7 +1374,7 @@ PrintADConfig(
     dwError = UpPrintDword(fp, "CachePurgeTimeout", pConfig->dwCacheReaperTimeoutSecs);
     BAIL_ON_UP_ERROR(dwError);
 
-    dwError = UpPrintString(fp, "RequireMembershipOf", pConfig->pszUnresolvedMemberList);
+    dwError = UpPrintMultiString(fp, "RequireMembershipOf", pConfig->pszUnresolvedMemberList);
     BAIL_ON_UP_ERROR(dwError);
 
     dwError = UpPrintBoolean(fp, "CreateK5Login", pConfig->bCreateK5Login);

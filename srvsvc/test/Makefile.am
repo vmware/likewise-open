@@ -14,6 +14,7 @@ SRVSVC_INCLUDES= \
     $(LIBUNISTR_INCLUDES)
 
 testsrvsvc_CFLAGS =       \
+    $(AM_CPPFLAGS)        \
     $(SRVSVC_INCLUDES)    \
     -D_GNU_SOURCE         \
     -DLIBRPC_BUILD

@@ -22,8 +22,6 @@ DCEIDL_PASS_INCLUDES = \
     $(NETAPI_INCLUDES) \
     $(LWBASE_INCLUDES)
 
-FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500"
-
 libdssetup_la_CFLAGS = \
     $(AM_CFLAGS)            \
     -DLIBRPC_BUILD          \
@@ -50,7 +48,6 @@ libdssetup_ss_la_SOURCES = \
 libdssetup_ss_la_CFLAGS = \
     $(AM_CFLAGS)          \
     -DDCERPC_STUB_BUILD   \
-    $(FEATURETEST_FLAGS)  \
     $(DCERPC_INCLUDES)    \
     $(LIBUNISTR_INCLUDES) \
     $(LWBASE_INCLUDES)

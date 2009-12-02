@@ -53,8 +53,8 @@ SrvSvcNetNameValidate(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *name,
-    /* [in] */ uint32 type,
-    /* [in] */ uint32 flags
+    /* [in] */ UINT32 type,
+    /* [in] */ UINT32 flags
     )
 {
     WINERR winError = ERROR_SUCCESS;

@@ -2405,6 +2405,7 @@ LsaSrvIpcFindObjects(
     case LSA_QUERY_TYPE_BY_NT4:
     case LSA_QUERY_TYPE_BY_ALIAS:
     case LSA_QUERY_TYPE_BY_UPN:
+    case LSA_QUERY_TYPE_BY_NAME:
         if (pReq->IpcQueryType != LSA2_IPC_QUERY_STRINGS)
         {
             dwError = LW_ERROR_INTERNAL;
@@ -2603,7 +2604,7 @@ LsaSrvIpcOpenEnumMembers(
             LsaSrvCleanupEnumHandle);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pOut->tag = LSA2_R_OPEN_ENUM_OBJECTS;
+        pOut->tag = LSA2_R_OPEN_ENUM_MEMBERS;
         pOut->data = hEnum;
 
         dwError = LsaSrvIpcRetainHandle(pCall, pOut->data);

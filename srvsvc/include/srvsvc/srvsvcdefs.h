@@ -38,13 +38,13 @@
 #define CONNECTION_INFO_0_DEFINED 1
 
 typedef struct _CONNECTION_INFO_0 {
-    uint32 coni0_id;
+    UINT32 coni0_id;
 } CONNECTION_INFO_0, *PCONNECTION_INFO_0;
 
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -83,7 +83,7 @@ cpp_quote("#endif")
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -105,13 +105,13 @@ typedef union {
 #define FILE_INFO_2_DEFINED 1
 
 typedef struct _FILE_INFO_2 {
-    uint32 fi2_id;
+    UINT32 fi2_id;
 } FILE_INFO_2, *PFILE_INFO_2;
 
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -123,9 +123,9 @@ typedef struct {
 #define FILE_INFO_3_DEFINED 1
 
 typedef struct _FILE_INFO_3 {
-    uint32 fi3_idd;
-    uint32 fi3_permissions;
-    uint32 fi3_num_locks;
+    UINT32 fi3_idd;
+    UINT32 fi3_permissions;
+    UINT32 fi3_num_locks;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -139,7 +139,7 @@ typedef struct _FILE_INFO_3 {
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -176,7 +176,7 @@ typedef struct _SESSION_INFO_0 {
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -196,16 +196,16 @@ typedef struct _SESSION_INFO_1 {
     [string]
 #endif
     wchar16_t *sesi1_username;
-    uint32 sesi1_num_opens;
-    uint32 sesi1_time;
-    uint32 sesi1_idle_time;
-    uint32 sesi1_user_flags;
+    UINT32 sesi1_num_opens;
+    UINT32 sesi1_time;
+    UINT32 sesi1_idle_time;
+    UINT32 sesi1_user_flags;
 } SESSION_INFO_1, *PSESSION_INFO_1;
 
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -226,10 +226,10 @@ typedef struct _SESSION_INFO_2 {
     [string]
 #endif
     wchar16_t *sesi2_username;
-    uint32 sesi2_num_opens;
-    uint32 sesi2_time;
-    uint32 sesi2_idle_time;
-    uint32 sesi2_user_flags;
+    UINT32 sesi2_num_opens;
+    UINT32 sesi2_time;
+    UINT32 sesi2_idle_time;
+    UINT32 sesi2_user_flags;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -239,7 +239,7 @@ typedef struct _SESSION_INFO_2 {
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -259,14 +259,14 @@ typedef struct _SESSION_INFO_10 {
     [string]
 #endif
     wchar16_t *sesi10_username;
-    uint32 sesi10_time;
-    uint32 sesi10_idle_time;
+    UINT32 sesi10_time;
+    UINT32 sesi10_idle_time;
 } SESSION_INFO_10, *PSESSION_INFO_10;
 
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -286,10 +286,10 @@ typedef struct _SESSION_INFO_502 {
     [string]
 #endif
     wchar16_t *sesi502_username;
-    uint32 sesi502_num_opens;
-    uint32 sesi502_time;
-    uint32 sesi502_idle_time;
-    uint32 sesi502_user_flags;
+    UINT32 sesi502_num_opens;
+    UINT32 sesi502_time;
+    UINT32 sesi502_idle_time;
+    UINT32 sesi502_user_flags;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -303,7 +303,7 @@ typedef struct _SESSION_INFO_502 {
 #endif
 
 typedef struct {
-    uint32 count;
+    UINT32 count;
 #ifdef _DCE_IDL_
     [size_is(count)]
 #endif
@@ -329,7 +329,7 @@ typedef union {
 
 
 typedef struct _SERVER_INFO_100 {
-    uint32 sv100_platform_id;
+    UINT32 sv100_platform_id;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -343,14 +343,14 @@ typedef struct _SERVER_INFO_100 {
 #define SERVER_INFO_101_DEFINED 1
 
 typedef struct _SERVER_INFO_101 {
-    uint32 sv101_platform_id;
+    UINT32 sv101_platform_id;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv101_name;
-    uint32 sv101_version_major;
-    uint32 sv101_version_minor;
-    uint32 sv101_type;
+    UINT32 sv101_version_major;
+    UINT32 sv101_version_minor;
+    UINT32 sv101_type;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -365,24 +365,24 @@ typedef struct _SERVER_INFO_101 {
 
 
 typedef struct _SERVER_INFO_102 {
-    uint32 sv102_platform_id;
+    UINT32 sv102_platform_id;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv102_name;
-    uint32 sv102_version_major;
-    uint32 sv102_version_minor;
-    uint32 sv102_type;
+    UINT32 sv102_version_major;
+    UINT32 sv102_version_minor;
+    UINT32 sv102_type;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv102_comment;
-    uint32 sv102_users;
-    uint32 sv102_disc;
-    uint32 sv102_hidden;
-    uint32 sv102_announce;
-    uint32 sv102_anndelta;
-    uint32 sv102_licenses;
+    UINT32 sv102_users;
+    UINT32 sv102_disc;
+    UINT32 sv102_hidden;
+    UINT32 sv102_announce;
+    UINT32 sv102_anndelta;
+    UINT32 sv102_licenses;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -397,42 +397,42 @@ typedef struct _SERVER_INFO_102 {
 
 
 typedef struct _SERVER_INFO_402 {
-    uint32 sv402_ulist_mtime;
-    uint32 sv402_glist_mtime;
-    uint32 sv402_alist_mtime;
+    UINT32 sv402_ulist_mtime;
+    UINT32 sv402_glist_mtime;
+    UINT32 sv402_alist_mtime;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv402_alerts;
-    uint32 sv402_security;
-    uint32 sv402_numadmin;
-    uint32 sv402_lanmask;
+    UINT32 sv402_security;
+    UINT32 sv402_numadmin;
+    UINT32 sv402_lanmask;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv402_guestacct;
-    uint32 sv402_chdevs;
-    uint32 sv402_chdevq;
-    uint32 sv402_chdevjobs;
-    uint32 sv402_connections;
-    uint32 sv402_shares;
-    uint32 sv402_openfiles;
-    uint32 sv402_sessopens;
-    uint32 sv402_sesssvcs;
-    uint32 sv402_sessreqs;
-    uint32 sv402_opensearch;
-    uint32 sv402_activelocks;
-    uint32 sv402_numreqbuf;
-    uint32 sv402_sizreqbuf;
-    uint32 sv402_numbigbuf;
-    uint32 sv402_numfiletasks;
-    uint32 sv402_alertsched;
-    uint32 sv402_erroralert;
-    uint32 sv402_logonalert;
-    uint32 sv402_accessalert;
-    uint32 sv402_diskalert;
-    uint32 sv402_netioalert;
-    uint32 sv402_maxaudits;
+    UINT32 sv402_chdevs;
+    UINT32 sv402_chdevq;
+    UINT32 sv402_chdevjobs;
+    UINT32 sv402_connections;
+    UINT32 sv402_shares;
+    UINT32 sv402_openfiles;
+    UINT32 sv402_sessopens;
+    UINT32 sv402_sesssvcs;
+    UINT32 sv402_sessreqs;
+    UINT32 sv402_opensearch;
+    UINT32 sv402_activelocks;
+    UINT32 sv402_numreqbuf;
+    UINT32 sv402_sizreqbuf;
+    UINT32 sv402_numbigbuf;
+    UINT32 sv402_numfiletasks;
+    UINT32 sv402_alertsched;
+    UINT32 sv402_erroralert;
+    UINT32 sv402_logonalert;
+    UINT32 sv402_accessalert;
+    UINT32 sv402_diskalert;
+    UINT32 sv402_netioalert;
+    UINT32 sv402_maxaudits;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -446,48 +446,48 @@ typedef struct _SERVER_INFO_402 {
 #define SERVER_INFO_403_DEFINED 1
 
 typedef struct _SERVER_INFO_403 {
-    uint32 sv403_ulist_mtime;
-    uint32 sv403_glist_mtime;
-    uint32 sv403_alist_mtime;
+    UINT32 sv403_ulist_mtime;
+    UINT32 sv403_glist_mtime;
+    UINT32 sv403_alist_mtime;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv403_alerts;
-    uint32 sv403_security;
-    uint32 sv403_numadmin;
-    uint32 sv403_lanmask;
+    UINT32 sv403_security;
+    UINT32 sv403_numadmin;
+    UINT32 sv403_lanmask;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv403_guestacct;
-    uint32 sv403_chdevs;
-    uint32 sv403_chdevq;
-    uint32 sv403_chdevjobs;
-    uint32 sv403_connections;
-    uint32 sv403_shares;
-    uint32 sv403_openfiles;
-    uint32 sv403_sessopens;
-    uint32 sv403_sesssvcs;
-    uint32 sv403_sessreqs;
-    uint32 sv403_opensearch;
-    uint32 sv403_activelocks;
-    uint32 sv403_numreqbuf;
-    uint32 sv403_sizereqbuf;
-    uint32 sv403_numbigbuf;
-    uint32 sv403_numfiletasks;
-    uint32 sv403_alertsched;
-    uint32 sv403_erroralert;
-    uint32 sv403_logonalert;
-    uint32 sv403_accessalert;
-    uint32 sv403_diskalert;
-    uint32 sv403_netioalert;
-    uint32 sv403_maxaudits;
+    UINT32 sv403_chdevs;
+    UINT32 sv403_chdevq;
+    UINT32 sv403_chdevjobs;
+    UINT32 sv403_connections;
+    UINT32 sv403_shares;
+    UINT32 sv403_openfiles;
+    UINT32 sv403_sessopens;
+    UINT32 sv403_sesssvcs;
+    UINT32 sv403_sessreqs;
+    UINT32 sv403_opensearch;
+    UINT32 sv403_activelocks;
+    UINT32 sv403_numreqbuf;
+    UINT32 sv403_sizereqbuf;
+    UINT32 sv403_numbigbuf;
+    UINT32 sv403_numfiletasks;
+    UINT32 sv403_alertsched;
+    UINT32 sv403_erroralert;
+    UINT32 sv403_logonalert;
+    UINT32 sv403_accessalert;
+    UINT32 sv403_diskalert;
+    UINT32 sv403_netioalert;
+    UINT32 sv403_maxaudits;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv403_srvheuristics;
-    uint32 sv403_auditedevents;
-    uint32 sv403_auditprofile;
+    UINT32 sv403_auditedevents;
+    UINT32 sv403_auditprofile;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -501,24 +501,24 @@ typedef struct _SERVER_INFO_403 {
 #define SERVER_INFO_502_DEFINED 1
 
 typedef struct _SERVER_INFO_502 {
-    uint32 sv502_sessopens;
-    uint32 sv502_sessvcs;
-    uint32 sv502_opensearch;
-    uint32 sv502_sizreqbuf;
-    uint32 sv502_initworkitems;
-    uint32 sv502_maxworkitems;
-    uint32 sv502_rawworkitems;
-    uint32 sv502_irpstacksize;
-    uint32 sv502_maxrawbuflen;
-    uint32 sv502_sessusers;
-    uint32 sv502_sessconns;
-    uint32 sv502_maxpagedmemoryusage;
-    uint32 sv502_maxnonpagedmemoryusage;
-    uint32 sv502_enablesoftcompat;
-    uint32 sv502_enableforcedlogoff;
-    uint32 sv502_timesource;
-    uint32 sv502_acceptdownlevelapis;
-    uint32 sv502_lmannounce;
+    UINT32 sv502_sessopens;
+    UINT32 sv502_sessvcs;
+    UINT32 sv502_opensearch;
+    UINT32 sv502_sizreqbuf;
+    UINT32 sv502_initworkitems;
+    UINT32 sv502_maxworkitems;
+    UINT32 sv502_rawworkitems;
+    UINT32 sv502_irpstacksize;
+    UINT32 sv502_maxrawbuflen;
+    UINT32 sv502_sessusers;
+    UINT32 sv502_sessconns;
+    UINT32 sv502_maxpagedmemoryusage;
+    UINT32 sv502_maxnonpagedmemoryusage;
+    UINT32 sv502_enablesoftcompat;
+    UINT32 sv502_enableforcedlogoff;
+    UINT32 sv502_timesource;
+    UINT32 sv502_acceptdownlevelapis;
+    UINT32 sv502_lmannounce;
 } SERVER_INFO_502, *PSERVER_INFO_502;
 
 #endif
@@ -528,51 +528,51 @@ typedef struct _SERVER_INFO_502 {
 #define SERVER_INFO_503_DEFINED 1
 
 typedef struct _SERVER_INFO_503 {
-    uint32 sv503_sessopens;
-    uint32 sv503_sessvcs;
-    uint32 sv503_opensearch;
-    uint32 sv503_sizreqbuf;
-    uint32 sv503_initworkitems;
-    uint32 sv503_maxworkitems;
-    uint32 sv503_rawworkitems;
-    uint32 sv503_irpstacksize;
-    uint32 sv503_maxrawbuflen;
-    uint32 sv503_sessusers;
-    uint32 sv503_sessconns;
-    uint32 sv503_maxpagedmemoryusage;
-    uint32 sv503_maxnonpagedmemoryusage;
-    uint32 sv503_enablesoftcompat;
-    uint32 sv503_enableforcedlogoff;
-    uint32 sv503_timesource;
-    uint32 sv503_acceptdownlevelapis;
-    uint32 sv503_lmannounce;
+    UINT32 sv503_sessopens;
+    UINT32 sv503_sessvcs;
+    UINT32 sv503_opensearch;
+    UINT32 sv503_sizreqbuf;
+    UINT32 sv503_initworkitems;
+    UINT32 sv503_maxworkitems;
+    UINT32 sv503_rawworkitems;
+    UINT32 sv503_irpstacksize;
+    UINT32 sv503_maxrawbuflen;
+    UINT32 sv503_sessusers;
+    UINT32 sv503_sessconns;
+    UINT32 sv503_maxpagedmemoryusage;
+    UINT32 sv503_maxnonpagedmemoryusage;
+    UINT32 sv503_enablesoftcompat;
+    UINT32 sv503_enableforcedlogoff;
+    UINT32 sv503_timesource;
+    UINT32 sv503_acceptdownlevelapis;
+    UINT32 sv503_lmannounce;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv503_domain;
-    uint32 sv503_maxcopyreadlen;
-    uint32 sv503_maxcopywritelen;
-    uint32 sv503_minkeepsearch;
-    uint32 sv503_maxkeepsearch;
-    uint32 sv503_minkeepcomplsearch;
-    uint32 sv503_maxkeepcomplsearch;
-    uint32 sv503_threadcountadd;
-    uint32 sv503_numblockthreads;
-    uint32 sv503_scavtimeout;
-    uint32 sv503_minrcvqueue;
-    uint32 sv503_minfreeworkitems;
-    uint32 sv503_xactmemsize;
-    uint32 sv503_threadpriority;
-    uint32 sv503_maxmpxct;
-    uint32 sv503_oplockbreakwait;
-    uint32 sv503_oplockbreakresponsewait;
-    uint32 sv503_enableoplocks;
-    uint32 sv503_enableoplockforceclose;
-    uint32 sv503_enablefcbopens;
-    uint32 sv503_enableraw;
-    uint32 sv503_enablesharednetdrives;
-    uint32 sv503_minfreeconnections;
-    uint32 sv503_maxfreeconnections;
+    UINT32 sv503_maxcopyreadlen;
+    UINT32 sv503_maxcopywritelen;
+    UINT32 sv503_minkeepsearch;
+    UINT32 sv503_maxkeepsearch;
+    UINT32 sv503_minkeepcomplsearch;
+    UINT32 sv503_maxkeepcomplsearch;
+    UINT32 sv503_threadcountadd;
+    UINT32 sv503_numblockthreads;
+    UINT32 sv503_scavtimeout;
+    UINT32 sv503_minrcvqueue;
+    UINT32 sv503_minfreeworkitems;
+    UINT32 sv503_xactmemsize;
+    UINT32 sv503_threadpriority;
+    UINT32 sv503_maxmpxct;
+    UINT32 sv503_oplockbreakwait;
+    UINT32 sv503_oplockbreakresponsewait;
+    UINT32 sv503_enableoplocks;
+    UINT32 sv503_enableoplockforceclose;
+    UINT32 sv503_enablefcbopens;
+    UINT32 sv503_enableraw;
+    UINT32 sv503_enablesharednetdrives;
+    UINT32 sv503_minfreeconnections;
+    UINT32 sv503_maxfreeconnections;
 } SERVER_INFO_503, *PSERVER_INFO_503;
 
 #endif
@@ -582,65 +582,65 @@ typedef struct _SERVER_INFO_503 {
 #define SERVER_INFO_599_DEFINED 1
 
 typedef struct _SERVER_INFO_599 {
-    uint32 sv599_sessopens;
-    uint32 sv599_sessvcs;
-    uint32 sv599_opensearch;
-    uint32 sv599_sizreqbuf;
-    uint32 sv599_initworkitems;
-    uint32 sv599_maxworkitems;
-    uint32 sv599_rawworkitems;
-    uint32 sv599_irpstacksize;
-    uint32 sv599_maxrawbuflen;
-    uint32 sv599_sessusers;
-    uint32 sv599_sessconns;
-    uint32 sv599_maxpagedmemoryusage;
-    uint32 sv599_maxnonpagedmemoryusage;
-    uint32 sv599_enablesoftcompat;
-    uint32 sv599_enableforcedlogoff;
-    uint32 sv599_timesource;
-    uint32 sv599_acceptdownlevelapis;
-    uint32 sv599_lmannounce;
+    UINT32 sv599_sessopens;
+    UINT32 sv599_sessvcs;
+    UINT32 sv599_opensearch;
+    UINT32 sv599_sizreqbuf;
+    UINT32 sv599_initworkitems;
+    UINT32 sv599_maxworkitems;
+    UINT32 sv599_rawworkitems;
+    UINT32 sv599_irpstacksize;
+    UINT32 sv599_maxrawbuflen;
+    UINT32 sv599_sessusers;
+    UINT32 sv599_sessconns;
+    UINT32 sv599_maxpagedmemoryusage;
+    UINT32 sv599_maxnonpagedmemoryusage;
+    UINT32 sv599_enablesoftcompat;
+    UINT32 sv599_enableforcedlogoff;
+    UINT32 sv599_timesource;
+    UINT32 sv599_acceptdownlevelapis;
+    UINT32 sv599_lmannounce;
 #ifdef _DCE_IDL_
     [string]
 #endif
     wchar16_t *sv599_domain;
-    uint32 sv599_maxcopyreadlen;
-    uint32 sv599_maxcopywritelen;
-    uint32 sv599_minkeepsearch;
-    uint32 sv599_maxkeepsearch;
-    uint32 sv599_minkeepcomplsearch;
-    uint32 sv599_maxkeepcomplsearch;
-    uint32 sv599_threadcountadd;
-    uint32 sv599_numblockthreads;
-    uint32 sv599_scavtimeout;
-    uint32 sv599_minrcvqueue;
-    uint32 sv599_minfreeworkitems;
-    uint32 sv599_xactmemsize;
-    uint32 sv599_threadpriority;
-    uint32 sv599_maxmpxct;
-    uint32 sv599_oplockbreakwait;
-    uint32 sv599_oplockbreakresponsewait;
-    uint32 sv599_enableoplocks;
-    uint32 sv599_enableoplockforceclose;
-    uint32 sv599_enablefcbopens;
-    uint32 sv599_enableraw;
-    uint32 sv599_enablesharednetdrives;
-    uint32 sv599_minfreeconnections;
-    uint32 sv599_maxfreeconnections;
-    uint32 sv599_initsesstable;
-    uint32 sv599_initconntable;
-    uint32 sv599_initfiletable;
-    uint32 sv599_initsearchtable;
-    uint32 sv599_alertschedule;
-    uint32 sv599_errorthreshold;
-    uint32 sv599_networkerrorthreshold;
-    uint32 sv599_diskspacethreshold;
-    uint32 sv599_reserved;
-    uint32 sv599_maxlinkdelay;
-    uint32 sv599_minlinkthroughput;
-    uint32 sv599_linkinfovalidtime;
-    uint32 sv599_scavqosinfoupdatetime;
-    uint32 sv599_maxworkitemidletime;
+    UINT32 sv599_maxcopyreadlen;
+    UINT32 sv599_maxcopywritelen;
+    UINT32 sv599_minkeepsearch;
+    UINT32 sv599_maxkeepsearch;
+    UINT32 sv599_minkeepcomplsearch;
+    UINT32 sv599_maxkeepcomplsearch;
+    UINT32 sv599_threadcountadd;
+    UINT32 sv599_numblockthreads;
+    UINT32 sv599_scavtimeout;
+    UINT32 sv599_minrcvqueue;
+    UINT32 sv599_minfreeworkitems;
+    UINT32 sv599_xactmemsize;
+    UINT32 sv599_threadpriority;
+    UINT32 sv599_maxmpxct;
+    UINT32 sv599_oplockbreakwait;
+    UINT32 sv599_oplockbreakresponsewait;
+    UINT32 sv599_enableoplocks;
+    UINT32 sv599_enableoplockforceclose;
+    UINT32 sv599_enablefcbopens;
+    UINT32 sv599_enableraw;
+    UINT32 sv599_enablesharednetdrives;
+    UINT32 sv599_minfreeconnections;
+    UINT32 sv599_maxfreeconnections;
+    UINT32 sv599_initsesstable;
+    UINT32 sv599_initconntable;
+    UINT32 sv599_initfiletable;
+    UINT32 sv599_initsearchtable;
+    UINT32 sv599_alertschedule;
+    UINT32 sv599_errorthreshold;
+    UINT32 sv599_networkerrorthreshold;
+    UINT32 sv599_diskspacethreshold;
+    UINT32 sv599_reserved;
+    UINT32 sv599_maxlinkdelay;
+    UINT32 sv599_minlinkthroughput;
+    UINT32 sv599_linkinfovalidtime;
+    UINT32 sv599_scavqosinfoupdatetime;
+    UINT32 sv599_maxworkitemidletime;
 } SERVER_INFO_599, *PSERVER_INFO_599;
 
 #endif
@@ -663,7 +663,7 @@ typedef struct _SERVER_INFO_1005 {
 #define SERVER_INFO_1010_DEFINED 1
 
 typedef struct _SERVER_INFO_1010 {
-    uint32 sv1010_disc;
+    UINT32 sv1010_disc;
 } SERVER_INFO_1010, *PSERVER_INFO_1010;
 
 #endif
@@ -673,7 +673,7 @@ typedef struct _SERVER_INFO_1010 {
 #define SERVER_INFO_1016_DEFINED 1
 
 typedef struct _SERVER_INFO_1016 {
-    uint32 sv1016_hidden;
+    UINT32 sv1016_hidden;
 } SERVER_INFO_1016, *PSERVER_INFO_1016;
 
 #endif
@@ -683,7 +683,7 @@ typedef struct _SERVER_INFO_1016 {
 #define SERVER_INFO_1017_DEFINED 1
 
 typedef struct _SERVER_INFO_1017 {
-    uint32 sv1017_announce;
+    UINT32 sv1017_announce;
 } SERVER_INFO_1017, *PSERVER_INFO_1017;
 
 #endif
@@ -693,7 +693,7 @@ typedef struct _SERVER_INFO_1017 {
 #define SERVER_INFO_1018_DEFINED 1
 
 typedef struct _SERVER_INFO_1018 {
-    uint32 sv1018_anndelta;
+    UINT32 sv1018_anndelta;
 } SERVER_INFO_1018, *PSERVER_INFO_1018;
 
 #endif
@@ -703,7 +703,7 @@ typedef struct _SERVER_INFO_1018 {
 #define SERVER_INFO_1107_DEFINED 1
 
 typedef struct _SERVER_INFO_1107 {
-    uint32 sv1107_users;
+    UINT32 sv1107_users;
 } SERVER_INFO_1107, *PSERVER_INFO_1107;
 
 #endif
@@ -713,7 +713,7 @@ typedef struct _SERVER_INFO_1107 {
 #define SERVER_INFO_1501_DEFINED 1
 
 typedef struct _SERVER_INFO_1501 {
-    uint32 sv1501_sessopens;
+    UINT32 sv1501_sessopens;
 } SERVER_INFO_1501, *PSERVER_INFO_1501;
 
 #endif
@@ -723,7 +723,7 @@ typedef struct _SERVER_INFO_1501 {
 #define SERVER_INFO_1502_DEFINED 1
 
 typedef struct _SERVER_INFO_1502 {
-    uint32 sv1502_sessvcs;
+    UINT32 sv1502_sessvcs;
 } SERVER_INFO_1502, *PSERVER_INFO_1502;
 
 #endif
@@ -733,7 +733,7 @@ typedef struct _SERVER_INFO_1502 {
 #define SERVER_INFO_1503_DEFINED 1
 
 typedef struct _SERVER_INFO_1503 {
-    uint32 sv1503_opensearch;
+    UINT32 sv1503_opensearch;
 } SERVER_INFO_1503, *PSERVER_INFO_1503;
 
 #endif
@@ -743,7 +743,7 @@ typedef struct _SERVER_INFO_1503 {
 #define SERVER_INFO_1506_DEFINED 1
 
 typedef struct _SERVER_INFO_1506 {
-    uint32 sv1506_maxworkitems;
+    UINT32 sv1506_maxworkitems;
 } SERVER_INFO_1506, *PSERVER_INFO_1506;
 
 #endif
@@ -753,7 +753,7 @@ typedef struct _SERVER_INFO_1506 {
 #define SERVER_INFO_1509_DEFINED 1
 
 typedef struct _SERVER_INFO_1509 {
-    uint32 sv1509_maxrawbuflen;
+    UINT32 sv1509_maxrawbuflen;
 } SERVER_INFO_1509, *PSERVER_INFO_1509;
 
 #endif
@@ -763,7 +763,7 @@ typedef struct _SERVER_INFO_1509 {
 #define SERVER_INFO_1510_DEFINED 1
 
 typedef struct _SERVER_INFO_1510 {
-    uint32 sv1510_sessusers;
+    UINT32 sv1510_sessusers;
 } SERVER_INFO_1510, *PSERVER_INFO_1510;
 
 #endif
@@ -773,7 +773,7 @@ typedef struct _SERVER_INFO_1510 {
 #define SERVER_INFO_1511_DEFINED 1
 
 typedef struct _SERVER_INFO_1511 {
-    uint32 sv1511_sessconns;
+    UINT32 sv1511_sessconns;
 } SERVER_INFO_1511, *PSERVER_INFO_1511;
 
 #endif
@@ -783,7 +783,7 @@ typedef struct _SERVER_INFO_1511 {
 #define SERVER_INFO_1512_DEFINED 1
 
 typedef struct _SERVER_INFO_1512 {
-    uint32 sv1512_maxnonpagedmemoryusage;
+    UINT32 sv1512_maxnonpagedmemoryusage;
 } SERVER_INFO_1512, *PSERVER_INFO_1512;
 
 #endif
@@ -793,7 +793,7 @@ typedef struct _SERVER_INFO_1512 {
 #define SERVER_INFO_1513_DEFINED 1
 
 typedef struct _SERVER_INFO_1513 {
-    uint32 sv1513_maxpagedmemoryusage;
+    UINT32 sv1513_maxpagedmemoryusage;
 } SERVER_INFO_1513, *PSERVER_INFO_1513;
 
 #endif
@@ -803,7 +803,7 @@ typedef struct _SERVER_INFO_1513 {
 #define SERVER_INFO_1514_DEFINED 1
 
 typedef struct _SERVER_INFO_1514 {
-    uint32 sv1514_enablesoftcompat;
+    UINT32 sv1514_enablesoftcompat;
 } SERVER_INFO_1514, *PSERVER_INFO_1514;
 
 #endif
@@ -813,7 +813,7 @@ typedef struct _SERVER_INFO_1514 {
 #define SERVER_INFO_1515_DEFINED 1
 
 typedef struct _SERVER_INFO_1515 {
-    uint32 sv1515_enableforcedlogoff;
+    UINT32 sv1515_enableforcedlogoff;
 } SERVER_INFO_1515, *PSERVER_INFO_1515;
 
 #endif
@@ -823,7 +823,7 @@ typedef struct _SERVER_INFO_1515 {
 #define SERVER_INFO_1516_DEFINED 1
 
 typedef struct _SERVER_INFO_1516 {
-    uint32 sv1516_timesource;
+    UINT32 sv1516_timesource;
 } SERVER_INFO_1516, *PSERVER_INFO_1516;
 
 #endif
@@ -833,7 +833,7 @@ typedef struct _SERVER_INFO_1516 {
 #define SERVER_INFO_1518_DEFINED 1
 
 typedef struct _SERVER_INFO_1518 {
-    uint32 sv1518_lmannounce;
+    UINT32 sv1518_lmannounce;
 } SERVER_INFO_1518, *PSERVER_INFO_1518;
 
 #endif
@@ -843,7 +843,7 @@ typedef struct _SERVER_INFO_1518 {
 #define SERVER_INFO_1520_DEFINED 1
 
 typedef struct _SERVER_INFO_1520 {
-    uint32 sv1520_maxcopyreadlen;
+    UINT32 sv1520_maxcopyreadlen;
 } SERVER_INFO_1520, *PSERVER_INFO_1520;
 
 #endif
@@ -853,7 +853,7 @@ typedef struct _SERVER_INFO_1520 {
 #define SERVER_INFO_1521_DEFINED 1
 
 typedef struct _SERVER_INFO_1521 {
-    uint32 sv1521_maxcopywritelen;
+    UINT32 sv1521_maxcopywritelen;
 } SERVER_INFO_1521, *PSERVER_INFO_1521;
 
 #endif
@@ -863,7 +863,7 @@ typedef struct _SERVER_INFO_1521 {
 #define SERVER_INFO_1522_DEFINED 1
 
 typedef struct _SERVER_INFO_1522 {
-    uint32 sv1522_minkeepsearch;
+    UINT32 sv1522_minkeepsearch;
 } SERVER_INFO_1522, *PSERVER_INFO_1522;
 
 #endif
@@ -873,7 +873,7 @@ typedef struct _SERVER_INFO_1522 {
 #define SERVER_INFO_1523_DEFINED 1
 
 typedef struct _SERVER_INFO_1523 {
-    uint32 sv1523_maxkeepsearch;
+    UINT32 sv1523_maxkeepsearch;
 } SERVER_INFO_1523, *PSERVER_INFO_1523;
 
 #endif
@@ -883,7 +883,7 @@ typedef struct _SERVER_INFO_1523 {
 #define SERVER_INFO_1524_DEFINED 1
 
 typedef struct _SERVER_INFO_1524 {
-    uint32 sv1524_minkeepcomplsearch;
+    UINT32 sv1524_minkeepcomplsearch;
 } SERVER_INFO_1524, *PSERVER_INFO_1524;
 
 #endif
@@ -893,7 +893,7 @@ typedef struct _SERVER_INFO_1524 {
 #define SERVER_INFO_1525_DEFINED 1
 
 typedef struct _SERVER_INFO_1525 {
-    uint32 sv1525_maxkeepcomplsearch;
+    UINT32 sv1525_maxkeepcomplsearch;
 } SERVER_INFO_1525, *PSERVER_INFO_1525;
 
 #endif
@@ -902,7 +902,7 @@ typedef struct _SERVER_INFO_1525 {
 #define SERVER_INFO_1528_DEFINED 1
 
 typedef struct _SERVER_INFO_1528 {
-    uint32 sv1528_scavtimeout;
+    UINT32 sv1528_scavtimeout;
 } SERVER_INFO_1528, *PSERVER_INFO_1528;
 
 #endif
@@ -912,7 +912,7 @@ typedef struct _SERVER_INFO_1528 {
 #define SERVER_INFO_1529_DEFINED 1
 
 typedef struct _SERVER_INFO_1529 {
-    uint32 sv1529_minrcvqueue;
+    UINT32 sv1529_minrcvqueue;
 } SERVER_INFO_1529, *PSERVER_INFO_1529;
 
 #endif
@@ -922,7 +922,7 @@ typedef struct _SERVER_INFO_1529 {
 #define SERVER_INFO_1530_DEFINED 1
 
 typedef struct _SERVER_INFO_1530 {
-    uint32 sv1530_minfreeworkitems;
+    UINT32 sv1530_minfreeworkitems;
 } SERVER_INFO_1530, *PSERVER_INFO_1530;
 
 #endif
@@ -932,7 +932,7 @@ typedef struct _SERVER_INFO_1530 {
 #define SERVER_INFO_1533_DEFINED 1
 
 typedef struct _SERVER_INFO_1533 {
-    uint32 sv1533_maxmpxct;
+    UINT32 sv1533_maxmpxct;
 } SERVER_INFO_1533, *PSERVER_INFO_1533;
 
 #endif
@@ -942,7 +942,7 @@ typedef struct _SERVER_INFO_1533 {
 #define SERVER_INFO_1534_DEFINED 1
 
 typedef struct _SERVER_INFO_1534 {
-    uint32 sv1534_oplockbreakwait;
+    UINT32 sv1534_oplockbreakwait;
 } SERVER_INFO_1534, *PSERVER_INFO_1534;
 
 #endif
@@ -952,7 +952,7 @@ typedef struct _SERVER_INFO_1534 {
 #define SERVER_INFO_1535_DEFINED 1
 
 typedef struct _SERVER_INFO_1535 {
-    uint32 sv1535_oplockbreakresponsewait;
+    UINT32 sv1535_oplockbreakresponsewait;
 } SERVER_INFO_1535, *PSERVER_INFO_1535;
 
 #endif
@@ -962,7 +962,7 @@ typedef struct _SERVER_INFO_1535 {
 #define SERVER_INFO_1536_DEFINED 1
 
 typedef struct _SERVER_INFO_1536 {
-    uint32 sv1536_enableoplocks;
+    UINT32 sv1536_enableoplocks;
 } SERVER_INFO_1536, *PSERVER_INFO_1536;
 
 #endif
@@ -972,7 +972,7 @@ typedef struct _SERVER_INFO_1536 {
 #define SERVER_INFO_1537_DEFINED 1
 
 typedef struct _SERVER_INFO_1537 {
-    uint32 sv1537_enableoplockforceclose;
+    UINT32 sv1537_enableoplockforceclose;
 } SERVER_INFO_1537, *PSERVER_INFO_1537;
 
 #endif
@@ -981,7 +981,7 @@ typedef struct _SERVER_INFO_1537 {
 #define SERVER_INFO_1538_DEFINED 1
 
 typedef struct _SERVER_INFO_1538 {
-    uint32 sv1538_enablefcbopens;
+    UINT32 sv1538_enablefcbopens;
 } SERVER_INFO_1538, *PSERVER_INFO_1538;
 
 #endif
@@ -991,7 +991,7 @@ typedef struct _SERVER_INFO_1538 {
 #define SERVER_INFO_1539_DEFINED 1
 
 typedef struct _SERVER_INFO_1539 {
-    uint32 sv1539_enableraw;
+    UINT32 sv1539_enableraw;
 } SERVER_INFO_1539, *PSERVER_INFO_1539;
 
 #endif
@@ -1001,7 +1001,7 @@ typedef struct _SERVER_INFO_1539 {
 #define SERVER_INFO_1540_DEFINED 1
 
 typedef struct _SERVER_INFO_1540 {
-    uint32 sv1540_enablesharednetdrives;
+    UINT32 sv1540_enablesharednetdrives;
 } SERVER_INFO_1540, *PSERVER_INFO_1540;
 
 #endif
@@ -1011,7 +1011,7 @@ typedef struct _SERVER_INFO_1540 {
 #define SERVER_INFO_1541_DEFINED 1
 
 typedef struct _SERVER_INFO_1541 {
-    uint32 sv1541_minfreeconnections;
+    UINT32 sv1541_minfreeconnections;
 } SERVER_INFO_1541, *PSERVER_INFO_1541;
 
 #endif
@@ -1021,7 +1021,7 @@ typedef struct _SERVER_INFO_1541 {
 #define SERVER_INFO_1542_DEFINED 1
 
 typedef struct _SERVER_INFO_1542 {
-    uint32 sv1542_maxfreeconnections;
+    UINT32 sv1542_maxfreeconnections;
 } SERVER_INFO_1542, *PSERVER_INFO_1542;
 
 #endif
@@ -1031,7 +1031,7 @@ typedef struct _SERVER_INFO_1542 {
 #define SERVER_INFO_1543_DEFINED 1
 
 typedef struct _SERVER_INFO_1543 {
-    uint32 sv1543_initsesstable;
+    UINT32 sv1543_initsesstable;
 } SERVER_INFO_1543, *PSERVER_INFO_1543;
 
 #endif
@@ -1041,7 +1041,7 @@ typedef struct _SERVER_INFO_1543 {
 #define SERVER_INFO_1544_DEFINED 1
 
 typedef struct _SERVER_INFO_1544 {
-    uint32 sv1544_initconntable;
+    UINT32 sv1544_initconntable;
 } SERVER_INFO_1544, *PSERVER_INFO_1544;
 
 #endif
@@ -1051,7 +1051,7 @@ typedef struct _SERVER_INFO_1544 {
 #define SERVER_INFO_1545_DEFINED 1
 
 typedef struct _SERVER_INFO_1545 {
-    uint32 sv1545_initfiletable;
+    UINT32 sv1545_initfiletable;
 } SERVER_INFO_1545, *PSERVER_INFO_1545;
 
 #endif
@@ -1061,7 +1061,7 @@ typedef struct _SERVER_INFO_1545 {
 #define SERVER_INFO_1546_DEFINED 1
 
 typedef struct _SERVER_INFO_1546 {
-    uint32 sv1546_initsearchtable;
+    UINT32 sv1546_initsearchtable;
 } SERVER_INFO_1546, *PSERVER_INFO_1546;
 
 #endif
@@ -1071,7 +1071,7 @@ typedef struct _SERVER_INFO_1546 {
 #define SERVER_INFO_1547_DEFINED 1
 
 typedef struct _SERVER_INFO_1547 {
-    uint32 sv1547_alertsched;
+    UINT32 sv1547_alertsched;
 } SERVER_INFO_1547, *PSERVER_INFO_1547;
 
 #endif
@@ -1081,7 +1081,7 @@ typedef struct _SERVER_INFO_1547 {
 #define SERVER_INFO_1548_DEFINED 1
 
 typedef struct _SERVER_INFO_1548 {
-    uint32 sv1548_errorthreshold;
+    UINT32 sv1548_errorthreshold;
 } SERVER_INFO_1548, *PSERVER_INFO_1548;
 
 #endif
@@ -1091,7 +1091,7 @@ typedef struct _SERVER_INFO_1548 {
 #define SERVER_INFO_1549_DEFINED 1
 
 typedef struct _SERVER_INFO_1549 {
-    uint32 sv1549_networkerrorthreshold;
+    UINT32 sv1549_networkerrorthreshold;
 } SERVER_INFO_1549, *PSERVER_INFO_1549;
 
 #endif
@@ -1101,7 +1101,7 @@ typedef struct _SERVER_INFO_1549 {
 #define SERVER_INFO_1550_DEFINED 1
 
 typedef struct _SERVER_INFO_1550 {
-    uint32 sv1550_diskspacethreshold;
+    UINT32 sv1550_diskspacethreshold;
 } SERVER_INFO_1550, *PSERVER_INFO_1550;
 
 #endif
@@ -1111,7 +1111,7 @@ typedef struct _SERVER_INFO_1550 {
 #define SERVER_INFO_1552_DEFINED 1
 
 typedef struct _SERVER_INFO_1552 {
-    uint32 sv1552_maxlinkdelay;
+    UINT32 sv1552_maxlinkdelay;
 } SERVER_INFO_1552, *PSERVER_INFO_1552;
 
 #endif
@@ -1121,7 +1121,7 @@ typedef struct _SERVER_INFO_1552 {
 #define SERVER_INFO_1553_DEFINED 1
 
 typedef struct _SERVER_INFO_1553 {
-    uint32 sv1553_minlinkthroughput;
+    UINT32 sv1553_minlinkthroughput;
 } SERVER_INFO_1553, *PSERVER_INFO_1553;
 
 #endif
@@ -1131,7 +1131,7 @@ typedef struct _SERVER_INFO_1553 {
 #define SERVER_INFO_1554_DEFINED 1
 
 typedef struct _SERVER_INFO_1554 {
-    uint32 sv1554_linkinfovalidtime;
+    UINT32 sv1554_linkinfovalidtime;
 } SERVER_INFO_1554, *PSERVER_INFO_1554;
 
 #endif
@@ -1141,7 +1141,7 @@ typedef struct _SERVER_INFO_1554 {
 #define SERVER_INFO_1555_DEFINED 1
 
 typedef struct _SERVER_INFO_1555 {
-    uint32 sv1555_scavqosinfoupdatetime;
+    UINT32 sv1555_scavqosinfoupdatetime;
 } SERVER_INFO_1555, *PSERVER_INFO_1555;
 
 #endif
@@ -1151,7 +1151,7 @@ typedef struct _SERVER_INFO_1555 {
 #define SERVER_INFO_1556_DEFINED 1
 
 typedef struct _SERVER_INFO_1556 {
-    uint32 sv1556_maxworkitemidletime;
+    UINT32 sv1556_maxworkitemidletime;
 } SERVER_INFO_1556, *PSERVER_INFO_1556;
 
 #endif
@@ -1227,18 +1227,18 @@ typedef union {
 #define TIME_OF_DAY_INFO_DEFINED 1
 
 typedef struct _TIME_OF_DAY_INFO {
-    uint32 tod_elapsedt; /* time(NULL) */
-    uint32 tod_msecs; /* milliseconds till system reboot (uptime) */
-    uint32 tod_hours;
-    uint32 tod_mins;
-    uint32 tod_secs;
-    uint32 tod_hunds;
-    int32  tod_timezone; /* in minutes */
-    uint32 tod_tinterval; /* clock tick interval in 0.0001 second units; 310 on windows */
-    uint32 tod_day;
-    uint32 tod_month;
-    uint32 tod_year;
-    uint32 tod_weekday;
+    UINT32 tod_elapsedt; /* time(NULL) */
+    UINT32 tod_msecs; /* milliseconds till system reboot (uptime) */
+    UINT32 tod_hours;
+    UINT32 tod_mins;
+    UINT32 tod_secs;
+    UINT32 tod_hunds;
+    INT32  tod_timezone; /* in minutes */
+    UINT32 tod_tinterval; /* clock tick interval in 0.0001 second units; 310 on windows */
+    UINT32 tod_day;
+    UINT32 tod_month;
+    UINT32 tod_year;
+    UINT32 tod_weekday;
 } TIME_OF_DAY_INFO, *PTIME_OF_DAY_INFO;
 
 #endif /* TIME_OF_DAY_INFO_DEFINED */
