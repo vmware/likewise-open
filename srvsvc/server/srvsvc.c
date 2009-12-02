@@ -91,11 +91,11 @@ NET_API_STATUS _NetrConnectionEnum(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *qualifier,
-    /* [in, out] */ uint32 *level,
+    /* [in, out] */ UINT32 *level,
     /* [in, out] */ srvsvc_NetConnCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
+    /* [in] */ UINT32 prefered_maximum_length,
+    /* [out] */ UINT32 *total_entries,
+    /* [in, out] */ UINT32 *resume_handle
     )
 {
     DWORD dwError = ERROR_NOT_SUPPORTED;
@@ -108,11 +108,11 @@ NET_API_STATUS _NetrFileEnum(
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *basepath,
     /* [in] */ wchar16_t *username,
-    /* [in, out] */ uint32 *level,
+    /* [in, out] */ UINT32 *level,
     /* [in, out] */ srvsvc_NetFileCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
+    /* [in] */ UINT32 prefered_maximum_length,
+    /* [out] */ UINT32 *total_entries,
+    /* [in, out] */ UINT32 *resume_handle
     )
 {
     DWORD dwError = ERROR_NOT_SUPPORTED;
@@ -124,8 +124,8 @@ NET_API_STATUS _NetrFileEnum(
 NET_API_STATUS _NetrFileGetInfo(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 fileid,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 fileid,
+    /* [in] */ UINT32 level,
     /* [out] */ srvsvc_NetFileInfo *info
     )
 {
@@ -137,7 +137,7 @@ NET_API_STATUS _NetrFileGetInfo(
 NET_API_STATUS _NetrFileClose(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 fileid
+    /* [in] */ UINT32 fileid
     )
 {
     DWORD dwError = ERROR_NOT_SUPPORTED;
@@ -150,11 +150,11 @@ NET_API_STATUS _NetrSessionEnum(
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *unc_client_name,
     /* [in] */ wchar16_t *username,
-    /* [in, out] */ uint32 *level,
+    /* [in, out] */ UINT32 *level,
     /* [in, out] */ srvsvc_NetSessCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
+    /* [in] */ UINT32 prefered_maximum_length,
+    /* [out] */ UINT32 *total_entries,
+    /* [in, out] */ UINT32 *resume_handle
     )
 {
     DWORD dwError = ERROR_NOT_SUPPORTED;
@@ -171,9 +171,9 @@ void _srvsvc_FunctionD(
 NET_API_STATUS _NetrShareAdd(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 level,
     /* [in] */ srvsvc_NetShareInfo info,
-    /* [in, out] */ uint32 *parm_error
+    /* [in, out] */ UINT32 *parm_error
     )
 {
     DWORD dwError = 0;
@@ -191,11 +191,11 @@ NET_API_STATUS _NetrShareAdd(
 NET_API_STATUS _NetrShareEnum(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in, out] */ uint32 *level,
+    /* [in, out] */ UINT32 *level,
     /* [in, out] */ srvsvc_NetShareCtr *ctr,
-    /* [in] */ uint32 prefered_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
+    /* [in] */ UINT32 prefered_maximum_length,
+    /* [out] */ UINT32 *total_entries,
+    /* [in, out] */ UINT32 *resume_handle
     )
 {
     DWORD dwError = 0;
@@ -216,7 +216,7 @@ NET_API_STATUS _NetrShareGetInfo(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *netname,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 level,
     /* [out] */ srvsvc_NetShareInfo *info
     )
 {
@@ -238,9 +238,9 @@ NET_API_STATUS _NetrShareSetInfo(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *netname,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 level,
     /* [in] */ srvsvc_NetShareInfo info,
-    /* [in, out] */ uint32 *parm_error
+    /* [in, out] */ UINT32 *parm_error
     )
 {
     DWORD dwError = 0;
@@ -262,7 +262,7 @@ NET_API_STATUS _NetrShareDel(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *netname,
-    /* [in] */ uint32 reserved
+    /* [in] */ UINT32 reserved
     )
 {
     DWORD dwError = 0;
@@ -291,7 +291,7 @@ void _srvsvc_Function14(
 NET_API_STATUS _NetrServerGetInfo(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 level,
     /* [out] */ srvsvc_NetSrvInfo *info
     )
 {
@@ -309,9 +309,9 @@ NET_API_STATUS _NetrServerGetInfo(
 NET_API_STATUS _NetrServerSetInfo(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 level,
     /* [in] */ srvsvc_NetSrvInfo info,
-    /* [in, out] */ uint32 *parm_error
+    /* [in, out] */ UINT32 *parm_error
     )
 {
     DWORD dwError = ERROR_NOT_SUPPORTED;
@@ -389,8 +389,8 @@ NET_API_STATUS _NetrNameValidate(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
     /* [in] */ wchar16_t *name,
-    /* [in] */ uint32 type,
-    /* [in] */ uint32 flags
+    /* [in] */ UINT32 type,
+    /* [in] */ UINT32 flags
 )
 {
     DWORD dwError = 0;

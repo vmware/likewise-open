@@ -54,11 +54,11 @@ NET_API_STATUS
 SrvSvcNetShareEnum(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in, out, ref] */ uint32 *level,
+    /* [in, out, ref] */ UINT32 *level,
     /* [in, out, ref] */ srvsvc_NetShareCtr *ctr,
-    /* [in] */ uint32 preferred_maximum_length,
-    /* [out] */ uint32 *total_entries,
-    /* [in, out] */ uint32 *resume_handle
+    /* [in] */ UINT32 preferred_maximum_length,
+    /* [out] */ UINT32 *total_entries,
+    /* [in, out] */ UINT32 *resume_handle
     )
 {
     NTSTATUS ntStatus = 0;

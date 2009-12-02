@@ -53,17 +53,7 @@
 #include <lw/types.h>
 #include <lw/ntstatus.h>
 
-#ifdef _DCE_IDL_
-// TODO-Eventually remove (u)int<N> types in favor of <lw/types.h> types.
-typedef unsigned small int uint8;
-typedef unsigned short int uint16;
-typedef unsigned long int uint32;
-typedef unsigned hyper int uint64;
-typedef small int int8;
-typedef short int int16;
-typedef long int int32;
-typedef hyper int int64;
-#else
+#ifndef _DCE_IDL_
 
 #include <inttypes.h>
 

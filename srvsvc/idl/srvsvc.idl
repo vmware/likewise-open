@@ -47,25 +47,25 @@ cpp_quote("#endif") // undefined TARGET_IS_NT50_OR_LATER
 
 cpp_quote("#endif") //_WIN32, !_WIN32
 
-    typedef [switch_type(uint32) ] union {
+    typedef [switch_type(UINT32) ] union {
         [case(0)] srvsvc_NetConnCtr0 *ctr0;
         [case(1)] srvsvc_NetConnCtr1 *ctr1;
         [default] ;
     } srvsvc_NetConnCtr;
 
-    typedef [switch_type(uint32)] union {
+    typedef [switch_type(UINT32)] union {
         [case(2)] srvsvc_NetFileCtr2 *ctr2;
         [case(3)] srvsvc_NetFileCtr3 *ctr3;
         [default] ;
     } srvsvc_NetFileCtr;
 
-    typedef [switch_type(uint32)] union {
+    typedef [switch_type(UINT32)] union {
         [case(2)] FILE_INFO_2 *info2;
         [case(3)] FILE_INFO_3 *info3;
         [default] ;
     } srvsvc_NetFileInfo;
 
-    typedef [switch_type(uint32)] union {
+    typedef [switch_type(UINT32)] union {
         [case(0)] srvsvc_NetSessCtr0 *ctr0;
         [case(1)] srvsvc_NetSessCtr1 *ctr1;
         [case(2)] srvsvc_NetSessCtr2 *ctr2;
@@ -74,7 +74,7 @@ cpp_quote("#endif") //_WIN32, !_WIN32
         [default] ;
     } srvsvc_NetSessCtr;
 
-    typedef [switch_type(uint32)] union {
+    typedef [switch_type(UINT32)] union {
         [case(0)] SHARE_INFO_0 *info0;
         [case(1)] SHARE_INFO_1 *info1;
         [case(2)] SHARE_INFO_2 *info2;
@@ -87,7 +87,7 @@ cpp_quote("#endif") //_WIN32, !_WIN32
         [default] ;
     } srvsvc_NetShareInfo;
 
-    typedef [switch_type(uint32)] union {
+    typedef [switch_type(UINT32)] union {
         [case(0)] srvsvc_NetShareCtr0 *ctr0;
         [case(1)] srvsvc_NetShareCtr1 *ctr1;
         [case(2)] srvsvc_NetShareCtr2 *ctr2;
@@ -96,7 +96,7 @@ cpp_quote("#endif") //_WIN32, !_WIN32
         [default] ;
     } srvsvc_NetShareCtr;
 
-    typedef [switch_type(uint32)] union {
+    typedef [switch_type(UINT32)] union {
         [case(100)]     SERVER_INFO_100 *info100;
         [case(101)]     SERVER_INFO_101 *info101;
         [case(102)]     SERVER_INFO_102 *info102;
@@ -174,11 +174,11 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     WINERR _NetrConnectionEnum(
         [in,string,unique] wchar16_t *server_name,
         [in,string,unique] wchar16_t *qualifier,
-        [in,out,ref] uint32 *level,
+        [in,out,ref] UINT32 *level,
         [in,out,ref,switch_is(level)] srvsvc_NetConnCtr *ctr,
-        [in] uint32 prefered_maximum_length,
-        [out,ref] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
+        [in] UINT32 prefered_maximum_length,
+        [out,ref] UINT32 *total_entries,
+        [in,out,unique] UINT32 *resume_handle
     );
 
     /* Function: 0x09 */
@@ -186,25 +186,25 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
         [in,string,unique] wchar16_t *server_name,
         [in,string,unique] wchar16_t *basepath,
         [in,string,unique] wchar16_t *username,
-        [in,out,ref] uint32 *level,
+        [in,out,ref] UINT32 *level,
         [in,out,ref,switch_is(level)] srvsvc_NetFileCtr *ctr,
-        [in] uint32 prefered_maximum_length,
-        [out,ref] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
+        [in] UINT32 prefered_maximum_length,
+        [out,ref] UINT32 *total_entries,
+        [in,out,unique] UINT32 *resume_handle
         );
 
     /* Function: 0x0a */
     WINERR _NetrFileGetInfo(
         [in,string,unique] wchar16_t *server_name,
-        [in] uint32 fileid,
-        [in] uint32 level,
+        [in] UINT32 fileid,
+        [in] UINT32 level,
         [out,ref,switch_is(level)] srvsvc_NetFileInfo *info
         );
 
     /* Function: 0x0b */
     WINERR _NetrFileClose(
         [in,string,unique] wchar16_t *server_name,
-        [in] uint32 fileid
+        [in] UINT32 fileid
         );
 
     /* Function: 0x0c */
@@ -212,11 +212,11 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
         [in,string,unique] wchar16_t *server_name,
         [in,string,unique] wchar16_t *unc_client_name,
         [in,string,unique] wchar16_t *username,
-        [in,out,ref] uint32 *level,
+        [in,out,ref] UINT32 *level,
         [in,out,ref,switch_is(level)] srvsvc_NetSessCtr *ctr,
-        [in] uint32 prefered_maximum_length,
-        [out,ref] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
+        [in] UINT32 prefered_maximum_length,
+        [out,ref] UINT32 *total_entries,
+        [in,out,unique] UINT32 *resume_handle
     );
 
     void _srvsvc_FunctionD();
@@ -224,26 +224,26 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     /* Function: 0x0e */
     WINERR _NetrShareAdd(
         [in,string,unique] wchar16_t *server_name,
-        [in] uint32 level,
+        [in] UINT32 level,
         [in,switch_is(level)] srvsvc_NetShareInfo info,
-        [in,out,unique] uint32 *parm_error
+        [in,out,unique] UINT32 *parm_error
     );
 
     /* Function: 0x0f */
     WINERR _NetrShareEnum(
         [in,string,unique] wchar16_t *server_name,
-        [in,out] uint32 *level,
+        [in,out] UINT32 *level,
         [in,out,switch_is(*level)] srvsvc_NetShareCtr *ctr,
-        [in] uint32 prefered_maximum_length,
-        [out] uint32 *total_entries,
-        [in,out,unique] uint32 *resume_handle
+        [in] UINT32 prefered_maximum_length,
+        [out] UINT32 *total_entries,
+        [in,out,unique] UINT32 *resume_handle
     );
 
     /* Function: 0x10 */
     WINERR _NetrShareGetInfo(
         [in,string,unique] wchar16_t *server_name,
         [in,string,ref] wchar16_t *netname,
-        [in] uint32 level,
+        [in] UINT32 level,
         [out,ref,switch_is(level)] srvsvc_NetShareInfo *info
     );
 
@@ -251,16 +251,16 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     WINERR _NetrShareSetInfo(
         [in,string,unique] wchar16_t *server_name,
         [in,string,ref] wchar16_t *netname,
-        [in] uint32 level,
+        [in] UINT32 level,
         [in,switch_is(level)] srvsvc_NetShareInfo info,
-        [in,out,unique] uint32 *parm_error
+        [in,out,unique] UINT32 *parm_error
     );
 
     /* Function: 0x12 */
     WINERR _NetrShareDel(
         [in,string,unique] wchar16_t *server_name,
         [in,string,ref] wchar16_t *netname,
-        [in] uint32 reserved
+        [in] UINT32 reserved
     );
 
     void _srvsvc_Function13();
@@ -269,16 +269,16 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     /* Function: 0x15 */
     WINERR _NetrServerGetInfo(
         [in,string,unique] wchar16_t *server_name,
-        [in] uint32 level,
+        [in] UINT32 level,
         [out,ref,switch_is(level)] srvsvc_NetSrvInfo *info
     );
 
     /* Function: 0x16 */
     WINERR _NetrServerSetInfo(
         [in,string,unique] wchar16_t *server_name,
-        [in] uint32 level,
+        [in] UINT32 level,
         [in,switch_is(level)] srvsvc_NetSrvInfo info,
-        [in,out,unique] uint32 *parm_error
+        [in,out,unique] UINT32 *parm_error
     );
 
     void _srvsvc_Function17();
@@ -302,8 +302,8 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     WINERR _NetrNameValidate(
         [in,string,unique] wchar16_t *server_name,
 	[in,string] wchar16_t *name,
-	[in] uint32 type,
-	[in] uint32 flags
+	[in] UINT32 type,
+	[in] UINT32 flags
 	);
 
     cpp_quote("#endif /* __SRVSVC_IDL__ */")

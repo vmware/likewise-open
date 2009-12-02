@@ -54,9 +54,9 @@ NET_API_STATUS
 SrvSvcNetShareAdd(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 level,
     /* [in] */ srvsvc_NetShareInfo info,
-    /* [in, out] */ uint32 *parm_error
+    /* [in, out] */ UINT32 *parm_error
     )
 {
     NTSTATUS ntStatus = 0;

@@ -39,7 +39,7 @@
 
 typedef struct _WKSTA_INFO_100
 {
-    uint32 wksta100_platform_id;
+    UINT32 wksta100_platform_id;
 
 #ifdef _DCE_IDL_
     [string]
@@ -50,8 +50,8 @@ typedef struct _WKSTA_INFO_100
 #endif
     wchar16_t *wksta100_domain;
 
-    uint32 wksta100_version_major;
-    uint32 wksta100_version_minor;
+    UINT32 wksta100_version_major;
+    UINT32 wksta100_version_minor;
 
 } WKSTA_INFO_100, *PWKSTA_INFO_100;
 

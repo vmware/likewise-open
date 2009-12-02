@@ -52,7 +52,7 @@ NET_API_STATUS
 SrvSvcNetrServerGetInfo(
     /* [in] */ handle_t b,
     /* [in] */ wchar16_t *server_name,
-    /* [in] */ uint32 level,
+    /* [in] */ UINT32 level,
     /* [out] */ srvsvc_NetSrvInfo *info
     )
 {

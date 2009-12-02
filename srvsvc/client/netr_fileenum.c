@@ -36,12 +36,12 @@ NET_API_STATUS NetFileEnum(
     const wchar16_t *servername,
     const wchar16_t *basepath,
     const wchar16_t *username,
-    uint32 level,
-    uint8 **bufptr,
-    uint32 prefmaxlen,
-    uint32 *entriesread,
-    uint32 *totalentries,
-    uint32 *resume_handle
+    UINT32 level,
+    UINT8 **bufptr,
+    UINT32 prefmaxlen,
+    UINT32 *entriesread,
+    UINT32 *totalentries,
+    UINT32 *resume_handle
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
@@ -49,7 +49,7 @@ NET_API_STATUS NetFileEnum(
     srvsvc_NetFileCtr ctr;
     srvsvc_NetFileCtr2 ctr2;
     srvsvc_NetFileCtr3 ctr3;
-    uint32 l = level;
+    UINT32 l = level;
 
     BAIL_ON_INVALID_PTR(b, status);
     BAIL_ON_INVALID_PTR(bufptr, status);

@@ -28,13 +28,13 @@
  * license@likewisesoftware.com
  */
 
-void SrvSvcClearNetConnCtr(uint32 level, srvsvc_NetConnCtr *ctr);
-void SrvSvcClearNetFileCtr(uint32 level, srvsvc_NetFileCtr *ctr);
-void SrvSvcClearNetFileInfo(uint32 level, srvsvc_NetFileInfo *info);
-void SrvSvcClearNetSessCtr(uint32 level, srvsvc_NetSessCtr *ctr);
-void SrvSvcClearNetShareCtr(uint32 level, srvsvc_NetShareCtr *ctr);
-void SrvSvcClearNetShareInfo(uint32 level, srvsvc_NetShareInfo *info);
-void SrvSvcClearNetSrvInfo(uint32 level, srvsvc_NetSrvInfo *info);
+void SrvSvcClearNetConnCtr(UINT32 level, srvsvc_NetConnCtr *ctr);
+void SrvSvcClearNetFileCtr(UINT32 level, srvsvc_NetFileCtr *ctr);
+void SrvSvcClearNetFileInfo(UINT32 level, srvsvc_NetFileInfo *info);
+void SrvSvcClearNetSessCtr(UINT32 level, srvsvc_NetSessCtr *ctr);
+void SrvSvcClearNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr);
+void SrvSvcClearNetShareInfo(UINT32 level, srvsvc_NetShareInfo *info);
+void SrvSvcClearNetSrvInfo(UINT32 level, srvsvc_NetSrvInfo *info);
 
 /*
 local variables:

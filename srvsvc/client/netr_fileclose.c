@@ -34,7 +34,7 @@
 NET_API_STATUS NetFileClose(
     handle_t b,
     const wchar16_t *servername,
-    uint32 fileid
+    UINT32 fileid
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;

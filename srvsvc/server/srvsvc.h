@@ -53,9 +53,9 @@ NET_API_STATUS
 SrvSvcNetShareAdd(
     handle_t IDL_handle,
     wchar16_t *server_name,
-    uint32 level,
+    UINT32 level,
     srvsvc_NetShareInfo info,
-    uint32 *parm_error
+    UINT32 *parm_error
     );
 
 
@@ -63,11 +63,11 @@ NET_API_STATUS
 SrvSvcNetShareEnum(
     handle_t IDL_handle,
     wchar16_t *server_name,
-    uint32 *level,
+    UINT32 *level,
     srvsvc_NetShareCtr *ctr,
-    uint32 preferred_maximum_length,
-    uint32 *total_entries,
-    uint32 *resume_handle
+    UINT32 preferred_maximum_length,
+    UINT32 *total_entries,
+    UINT32 *resume_handle
     );
 
 
@@ -76,7 +76,7 @@ SrvSvcNetShareGetInfo(
     handle_t IDL_handle,
     wchar16_t *server_name,
     wchar16_t *netname,
-    uint32 level,
+    UINT32 level,
     srvsvc_NetShareInfo *info
     );
 
@@ -86,9 +86,9 @@ SrvSvcNetShareSetInfo(
     handle_t IDL_handle,
     wchar16_t *server_name,
     wchar16_t *netname,
-    uint32 level,
+    UINT32 level,
     srvsvc_NetShareInfo info,
-    uint32 *parm_error
+    UINT32 *parm_error
     );
 
 
@@ -97,7 +97,7 @@ SrvSvcNetShareDel(
     handle_t IDL_handle,
     wchar16_t *server_name,
     wchar16_t *netname,
-    uint32 reserved
+    UINT32 reserved
     );
 
 
@@ -105,7 +105,7 @@ NET_API_STATUS
 SrvSvcNetrServerGetInfo(
     handle_t b,
     wchar16_t *server_name,
-    uint32 level,
+    UINT32 level,
     srvsvc_NetSrvInfo *info
     );
 
@@ -115,8 +115,8 @@ SrvSvcNetNameValidate(
     handle_t IDL_handle,
     wchar16_t *server_name,
     wchar16_t *name,
-    uint32 type,
-    uint32 flags
+    UINT32 type,
+    UINT32 flags
     );
 
 

@@ -34,9 +34,9 @@
 NET_API_STATUS NetFileGetInfo(
     handle_t b,
     const wchar16_t *servername,
-    uint32 fileid,
-    uint32 level,
-    uint8 **bufptr
+    UINT32 fileid,
+    UINT32 level,
+    UINT8 **bufptr
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
