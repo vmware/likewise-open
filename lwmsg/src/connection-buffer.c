@@ -91,6 +91,7 @@ lwmsg_connection_buffer_empty(ConnectionBuffer* buffer)
     if (buffer->current)
     {
         free(buffer->current);
+        buffer->current = NULL;
     }
 }
 
