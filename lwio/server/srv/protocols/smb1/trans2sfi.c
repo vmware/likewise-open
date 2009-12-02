@@ -94,7 +94,7 @@ SrvProcessTrans2SetFileInformation(
 
             pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_IO_COMPLETE;
 
-            ntStatus = SrvSetInfo(pExecContext);
+            ntStatus = SrvSetFileInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
             // intentional fall through

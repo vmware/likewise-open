@@ -465,7 +465,12 @@ SrvProcessTrans2QueryPathInformation(
 
 // trans2si.h
 NTSTATUS
-SrvSetInfo(
+SrvSetFileInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvSetPathInfo(
     PSRV_EXEC_CONTEXT pExecContext
     );
 

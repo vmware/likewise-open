@@ -67,7 +67,7 @@ SrvUnmarshalRenameInformation(
     );
 
 NTSTATUS
-SrvSetInfo(
+SrvSetFileInfo(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
@@ -101,6 +101,78 @@ SrvSetInfo(
             break;
 
         case SMB_SET_FILE_END_OF_FILE_INFO :
+        case SMB_SET_FILE_END_OF_FILE_INFO_ALIAS:
+
+            ntStatus = SrvSetEndOfFileInfo(pExecContext);
+
+            break;
+
+        case SMB_SET_FILE_RENAME_INFO :
+
+            ntStatus = SrvRenameFile(pExecContext);
+
+            break;
+
+        case SMB_INFO_STANDARD :
+        case SMB_INFO_QUERY_EA_SIZE :
+        case SMB_SET_FILE_UNIX_BASIC :
+        case SMB_SET_FILE_UNIX_LINK :
+        case SMB_SET_FILE_UNIX_HLINK :
+
+            ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+
+            break;
+    }
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvSetPathInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    switch (*pTrans2State->pSmbInfoLevel)
+    {
+        case SMB_SET_FILE_BASIC_INFO :
+        case SMB_SET_FILE_BASIC_INFO_ALIAS :
+
+            ntStatus = SrvSetBasicInfo(pExecContext);
+
+            break;
+
+        case SMB_SET_FILE_DISPOSITION_INFO :
+
+            ntStatus = SrvSetDispositionInfo(pExecContext);
+
+            break;
+
+        case SMB_SET_FILE_ALLOCATION_INFO :
+        case SMB_SET_FILE_ALLOCATION_INFO_ALIAS:
+
+	    ntStatus = SrvSetAllocationInfo(pExecContext);
+
+            break;
+
+        case SMB_SET_FILE_END_OF_FILE_INFO :
+
+            ntStatus = STATUS_INVALID_LEVEL;
+
+            break;
+
         case SMB_SET_FILE_END_OF_FILE_INFO_ALIAS:
 
             ntStatus = SrvSetEndOfFileInfo(pExecContext);
