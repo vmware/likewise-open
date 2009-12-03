@@ -25,20 +25,6 @@
 
 #include "api.h"
 
-#define LSA_PAM_LOGON_RIGHTS_DENIED_MESSAGE "Access denied"
-
-static
-DWORD
-LsaSrvInitializePamConfig(
-    OUT PLSA_PAM_CONFIG pConfig
-    );
-
-static
-VOID
-LsaSrvFreePamConfigContents(
-    IN PLSA_PAM_CONFIG pConfig
-    );
-
 DWORD
 LsaSrvGetPamConfig(
     IN HANDLE hServer,
@@ -96,7 +82,7 @@ LsaSrvGetPamConfig(
                 OUT_PPVOID(&pPamConfig));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvInitializePamConfig(&PamConfig);
+    dwError = LsaUtilInitializePamConfig(&PamConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProcessConfig(
@@ -117,58 +103,10 @@ cleanup:
 error:
     if (pPamConfig)
     {
-        LsaSrvFreePamConfigContents(pPamConfig);
+        LsaUtilFreePamConfigContents(pPamConfig);
         LW_SAFE_FREE_MEMORY(pPamConfig);
     }
-    LsaSrvFreePamConfigContents(&PamConfig);
+    LsaUtilFreePamConfigContents(&PamConfig);
 
     goto cleanup;
-}
-
-VOID
-LsaSrvFreePamConfig(
-    IN PLSA_PAM_CONFIG pConfig
-    )
-{
-    if (pConfig)
-    {
-        LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
-        LW_SAFE_FREE_MEMORY(pConfig);
-    }
-}
-
-static
-DWORD
-LsaSrvInitializePamConfig(
-    OUT PLSA_PAM_CONFIG pConfig
-    )
-{
-    DWORD dwError = 0;
-    PSTR pszMessage = NULL;
-
-    memset(pConfig, 0, sizeof(LSA_PAM_CONFIG));
-
-    pConfig->bLsaPamDisplayMOTD = FALSE;
-    pConfig->dwLogLevel = LSA_PAM_LOG_LEVEL_ERROR;
-
-    dwError = LwAllocateString(
-                    LSA_PAM_LOGON_RIGHTS_DENIED_MESSAGE,
-                    &pszMessage);
-                    BAIL_ON_LSA_ERROR(dwError);
-
-    LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
-    pConfig->pszAccessDeniedMessage = pszMessage;
-
-error:
-
-    return dwError;
-}
-
-static
-VOID
-LsaSrvFreePamConfigContents(
-    IN PLSA_PAM_CONFIG pConfig
-    )
-{
-    LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
 }

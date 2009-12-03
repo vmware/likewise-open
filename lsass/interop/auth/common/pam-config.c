@@ -48,38 +48,36 @@
  */
 #include "includes.h"
 
+static
+DWORD
+LsaPamGetConfigFromServer(
+    OUT PLSA_PAM_CONFIG *ppConfig
+    );
+
 DWORD
 LsaPamGetConfig(
     OUT PLSA_PAM_CONFIG* ppConfig
     )
 {
     DWORD dwError = 0;
-    HANDLE hLsaConnection = NULL;
     PLSA_PAM_CONFIG pConfig = NULL;
 
-    dwError = LsaOpenServer(&hLsaConnection);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaGetPamConfig(hLsaConnection, &pConfig);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppConfig = pConfig;
+    dwError = LsaPamGetConfigFromServer(&pConfig);
+    if (dwError)
+    {
+        dwError = LsaUtilAllocatePamConfig(&pConfig);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 cleanup:
-
-    if (hLsaConnection != NULL)
-    {
-        LsaCloseServer(hLsaConnection);
-        hLsaConnection = NULL;
-    }
+    *ppConfig = pConfig;
 
     return dwError;
 
 error:
-
     if ( pConfig )
     {
-        LsaFreePamConfig(pConfig);
+        LsaPamFreeConfig(pConfig);
         pConfig = NULL;
     }
 
@@ -91,5 +89,42 @@ LsaPamFreeConfig(
     IN PLSA_PAM_CONFIG pConfig
     )
 {
-    LsaFreePamConfig(pConfig);
+    LsaUtilFreePamConfig(pConfig);
+}
+
+static
+DWORD
+LsaPamGetConfigFromServer(
+    OUT PLSA_PAM_CONFIG *ppConfig
+    )
+{
+    DWORD dwError = 0;
+    PLSA_PAM_CONFIG pConfig = NULL;
+    HANDLE hLsaConnection = NULL;
+
+    dwError = LsaOpenServer(&hLsaConnection);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaGetPamConfig(hLsaConnection, &pConfig);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    if (hLsaConnection != NULL)
+    {
+        LsaCloseServer(hLsaConnection);
+        hLsaConnection = NULL;
+    }
+
+    *ppConfig = pConfig;
+
+    return dwError;
+
+error:
+    if (pConfig)
+    {
+        LsaPamFreeConfig(pConfig);
+        pConfig = NULL;
+    }
+
+    goto cleanup;
 }

@@ -18,6 +18,7 @@ liblsautils_la_SOURCES =       \
        lsabitvector.c          \
        lsalogger.c             \
        lsamem.c                \
+       lsapam.c                \
        lsapaths.c              \
        lsastack.c              \
        lsaprincipal.c          \
