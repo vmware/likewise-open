@@ -121,6 +121,16 @@ SrvProcessSessionSetup(
                             NULL,
                             &pCtxSmb1->pSession->pszClientPrincipalName);
         }
+
+        // Go ahead and close out this GSS negotiate state so we can
+        // handle another Session setup.  Then call BAIL_ON_XXX to handle
+        // errors
+
+        SrvGssEndNegotiate(
+            pConnection->hGssContext,
+            pConnection->hGssNegotiate);
+        pConnection->hGssNegotiate = NULL;
+
         BAIL_ON_NT_STATUS(ntStatus);
 
         /* Generate and store the IoSecurityContext */
