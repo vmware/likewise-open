@@ -10,7 +10,7 @@
   <target name="local.build">
 
     <buildtool.assemblyinfo title="Likewise Management Console - LDAP" />
-    <buildtool.csc output="${local.output}" target="library" keyfile="ldp.snk" noconfig="true" unsafe="true">
+    <buildtool.csc output="${local.output}" target="library" keyfile="ldp.snk" noconfig="true" unsafe="true" define="MONO_DEVELOP">
 
       <nowarn>
         <warning number="0169" />
