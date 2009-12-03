@@ -276,10 +276,9 @@ namespace Likewise.LMC.Plugins.LUG
                     return;
                 }
 
-                AddMemberDlg addMemberDlg = new AddMemberDlg(bEnumUsers);
+                AddMemberDlg addMemberDlg = new AddMemberDlg();
                 addMemberDlg.Label = listMemberType + ":";
-
-                addMemberDlg.HostName = _servername;
+                addMemberDlg.PopulatePage(_servername, bEnumUsers);
 
                 if (addMemberDlg.ShowDialog() == DialogResult.OK)
                 {

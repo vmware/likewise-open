@@ -1034,8 +1034,6 @@ public partial class LUGPage : StandardPage
         Hostinfo hn = ctx as Hostinfo;
         lvLUGBETA.Items.Clear();
 
-        //enumLUG(hn.creds, hn.hostName, 0, enumLUGCallback);
-
         LUGAPI.LUGEnumStatus enumStatus;
         enumLUG(hn.hostName, 0, out enumStatus);
         enumLUGCallback(enumStatus);
