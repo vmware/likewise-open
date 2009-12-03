@@ -94,8 +94,23 @@ LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
             &AD_FreeStatus,
             &AD_RefreshConfiguration,
             &AD_ProviderIoControl,
-            &AD_GetGroupMembershipByProvider
+            &AD_GetGroupMembershipByProvider,
+            &gADProviderAPITable2
     };
+
+LSA_PROVIDER_FUNCTION_TABLE_2 gADProviderAPITable2 =
+{
+    .pfnFindObjects = AD_FindObjects,
+    .pfnOpenEnumObjects = AD_OpenEnumObjects,
+    .pfnEnumObjects = AD_EnumObjects,
+    .pfnOpenEnumGroupMembers = AD_OpenEnumMembers,
+    .pfnEnumGroupMembers = AD_EnumMembers,
+    .pfnCloseEnum = AD_CloseEnum,
+    .pfnQueryMemberOf = AD_QueryMemberOf,
+    .pfnOpenHandle = AD_OpenHandle,
+    .pfnCloseHandle = AD_CloseHandle,
+};
+
 
 PLSA_HASH_TABLE gpAllowedSIDs   = NULL;
 

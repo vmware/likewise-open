@@ -4590,6 +4590,123 @@ error:
 }
 
 DWORD
+AD_FindObjects(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+   DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (AD_IsOffline())
+    {
+        dwError = AD_OfflineFindObjects(
+            hProvider,
+            FindFlags,
+            ObjectType,
+            QueryType,
+            dwCount,
+            QueryList,
+            pppObjects);
+    }
+    else
+    {
+        dwError = AD_OnlineFindObjects(
+            hProvider,
+            FindFlags,
+            ObjectType,
+            QueryType,
+            dwCount,
+            QueryList,
+            pppObjects);
+    }
+
+error:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
+}
+
+DWORD
+AD_OpenEnumObjects(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN OPTIONAL PCSTR pszDomainName
+    )
+{
+    return LW_ERROR_NOT_HANDLED;
+}
+
+DWORD
+AD_EnumObjects(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    return LW_ERROR_NOT_HANDLED;
+}
+
+DWORD
+AD_OpenEnumMembers(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid
+    )
+{
+    return LW_ERROR_NOT_HANDLED;
+}
+
+DWORD
+AD_EnumMembers(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxMemberSidCount,
+    OUT PDWORD pdwMemberSidCount,
+    OUT PSTR** pppszMemberSids
+    )
+{
+    return LW_ERROR_NOT_HANDLED;
+}
+
+DWORD
+AD_QueryMemberOf(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    )
+{
+    return LW_ERROR_NOT_HANDLED;
+}
+
+VOID
+AD_CloseEnum(
+    IN OUT HANDLE hEnum
+    )
+{
+    return;
+}
+
+DWORD
 AD_InitializeOperatingMode(
     IN PCSTR pszDomain,
     IN PCSTR pszHostName,
