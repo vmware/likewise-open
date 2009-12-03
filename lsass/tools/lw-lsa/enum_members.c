@@ -319,17 +319,17 @@ error:
 
 static
 DWORD
-ResolveMember(
+ResolveMembers(
     HANDLE hLsa,
-    PSTR pszSid,
-    PLSA_SECURITY_OBJECT* ppObject
+    DWORD dwCount,
+    PSTR* ppszSids,
+    PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
-    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     LSA_QUERY_LIST QueryList;
 
-    QueryList.ppszStrings = (PCSTR*) &pszSid;
+    QueryList.ppszStrings = (PCSTR*) ppszSids;
 
     dwError = LsaFindObjects(
         hLsa,
@@ -337,20 +337,12 @@ ResolveMember(
         gState.FindFlags,
         LSA_OBJECT_TYPE_UNDEFINED,
         LSA_QUERY_TYPE_BY_SID,
-        1,
+        dwCount,
         QueryList,
-        &ppObjects);
+        pppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *ppObject = ppObjects[0];
-    ppObjects[0] = NULL;
-
 cleanup:
-
-    if (ppObjects)
-    {
-        LsaFreeSecurityObjectList(1, ppObjects);
-    }
 
     return dwError;
 
@@ -373,7 +365,7 @@ EnumMembers(
     DWORD dwCount = 0;
     DWORD dwIndex = 0;
     DWORD dwSidIndex = 0;
-    PLSA_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PSTR pszSid = NULL;
 
     dwError = LsaOpenServer(&hLsa);
@@ -421,16 +413,16 @@ EnumMembers(
                 }
                 BAIL_ON_LSA_ERROR(dwError);
 
+                dwError = ResolveMembers(hLsa, dwCount, ppszMembers, &ppObjects);
+                BAIL_ON_LSA_ERROR(dwError);
+
                 for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
                 {
-                    dwError = ResolveMember(hLsa, ppszMembers[dwIndex], &pObject);
-                    BAIL_ON_LSA_ERROR(dwError);
-
-                    if (pObject)
+                    if (ppObjects[dwIndex])
                     {
                         LSA_OBJECT_TYPE type = LSA_OBJECT_TYPE_UNDEFINED;
 
-                        switch(pObject->type)
+                        switch(ppObjects[dwIndex]->type)
                         {
                         case AccountType_Group:
                             type = LSA_OBJECT_TYPE_GROUP;
@@ -442,19 +434,20 @@ EnumMembers(
 
                         if (type == gState.ObjectType || gState.ObjectType == LSA_OBJECT_TYPE_UNDEFINED)
                         {
-                            PrintSecurityObject(pObject);
+                            PrintSecurityObject(ppObjects[dwIndex]);
                             printf("\n");
                         }
-
-                        LsaFreeSecurityObject(pObject);
                     }
                     else
                     {
-                        printf("Unresolvable object (%s)\n\n", ppszMembers[dwIndex]);
+                        printf("Unresolvable SID (%s)\n\n", ppszMembers[dwIndex]);
                     }
                 }
 
+                LsaFreeSecurityObjectList(dwCount, ppObjects);
+                ppObjects = NULL;
                 LsaFreeSidList(dwCount, ppszMembers);
+                ppszMembers = NULL;
             }
 
             LW_SAFE_FREE_MEMORY(pszSid);
@@ -465,6 +458,11 @@ EnumMembers(
 cleanup:
 
     LW_SAFE_FREE_MEMORY(pszSid);
+
+    if (ppObjects)
+    {
+        LsaFreeSecurityObjectList(dwCount, ppObjects);
+    }
 
     if (ppszMembers)
     {

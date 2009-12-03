@@ -319,38 +319,30 @@ error:
 
 static
 DWORD
-ResolveGroup(
+ResolveGroups(
     HANDLE hLsa,
-    PSTR pszSid,
-    PLSA_SECURITY_OBJECT* ppObject
+    DWORD dwCount,
+    PSTR* ppszSids,
+    PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
-    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     LSA_QUERY_LIST QueryList;
 
-    QueryList.ppszStrings = (PCSTR*) &pszSid;
+    QueryList.ppszStrings = (PCSTR*) ppszSids;
 
     dwError = LsaFindObjects(
         hLsa,
         NULL, //gState.pszTargetProvider,
         gState.FindFlags,
-        LSA_OBJECT_TYPE_UNDEFINED,
+        LSA_OBJECT_TYPE_GROUP,
         LSA_QUERY_TYPE_BY_SID,
-        1,
+        dwCount,
         QueryList,
-        &ppObjects);
+        pppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    *ppObject = ppObjects[0];
-    ppObjects[0] = NULL;
-
 cleanup:
-
-    if (ppObjects)
-    {
-        LsaFreeSecurityObjectList(1, ppObjects);
-    }
 
     return dwError;
 
@@ -369,7 +361,7 @@ QueryMemberOf(
     HANDLE hLsa = NULL;
     PSTR* ppszMembers = NULL;
     DWORD dwIndex = 0;
-    PLSA_SECURITY_OBJECT pObject = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PSTR pszSid = NULL;
     PSTR* ppszSids = NULL;
     DWORD dwSidCount = 0;
@@ -416,20 +408,19 @@ QueryMemberOf(
                 &ppszGroupSids);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = ResolveGroups(hLsa, dwGroupSidCount, ppszGroupSids, &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
     for (dwIndex = 0; dwIndex < dwGroupSidCount; dwIndex++)
     {
-        dwError = ResolveGroup(hLsa, ppszGroupSids[dwIndex], &pObject);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (pObject)
+        if (ppObjects[dwIndex])
         {
-            PrintSecurityObject(pObject);
+            PrintSecurityObject(ppObjects[dwIndex]);
             printf("\n");
-            LsaFreeSecurityObject(pObject);
         }
         else
         {
-            printf("Unresolvable object (%s)\n\n", ppszMembers[dwIndex]);
+            printf("Unresolvable SID (%s)\n\n", ppszMembers[dwIndex]);
         }
     }
 
@@ -452,9 +443,9 @@ cleanup:
         LsaCloseServer(hLsa);
     }
 
-    if (pObject)
+    if (ppObjects)
     {
-        LsaFreeSecurityObject(pObject);
+        LsaFreeSecurityObjectList(dwGroupSidCount, ppObjects);
     }
 
     return dwError;

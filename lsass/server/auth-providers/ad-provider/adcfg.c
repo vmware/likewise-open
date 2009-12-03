@@ -803,7 +803,7 @@ AD_SetConfig_RequireMembershipOf(
 
         pszMember = NULL;
 
-        pszIter += strlen(pszIter);
+        pszIter += strlen(pszIter) + 1;
     }
 
 cleanup:

@@ -1499,6 +1499,7 @@ lwmsg_peer_task_dispatch_calls(
                 case LWMSG_STATUS_PENDING:
                     task->outgoing = LWMSG_TRUE;
                     task->destroy_outgoing = LWMSG_TRUE;
+                    break;
                 case LWMSG_STATUS_MALFORMED:
                 case LWMSG_STATUS_INVALID_HANDLE:
                 case LWMSG_STATUS_OVERFLOW:

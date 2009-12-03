@@ -223,8 +223,8 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
     {
         try
         {
-            AddMemberDlg addMemberDlg = new AddMemberDlg(true);
-            addMemberDlg.HostName = _hn.hostName;
+            AddMemberDlg addMemberDlg = new AddMemberDlg();
+            addMemberDlg.PopulatePage(_hn.hostName, true);
 
             if (addMemberDlg.ShowDialog() == DialogResult.OK)
             {

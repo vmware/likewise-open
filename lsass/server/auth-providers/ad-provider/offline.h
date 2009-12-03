@@ -169,4 +169,15 @@ AD_OfflineInitializeOperatingMode(
     IN PCSTR pszHostName
     );
 
+DWORD
+AD_OfflineFindObjects(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
 #endif /* __OFFLINE_H__ */

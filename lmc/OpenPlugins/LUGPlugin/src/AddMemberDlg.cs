@@ -15,18 +15,9 @@ namespace Likewise.LMC.Plugins.LUG
         private string _hostName = "";
         private bool _listUsers = true;
 
-        public AddMemberDlg(bool bListUsers)
-        {
-            _listUsers = bListUsers;
-            InitializeComponent();
-
-            PopulatePage();
-        }
-
         public AddMemberDlg()
         {
             InitializeComponent();
-            PopulatePage();
         }
 
         private void btnOK_Click(object sender, EventArgs e)
@@ -72,7 +63,7 @@ namespace Likewise.LMC.Plugins.LUG
 
                 for (int i = 0; i < enumStatus.entries.Count; i++)
                 {
-                    if (_listUsers)
+                    if (enumStatus.type == LUGAPI.LUGType.User)
                     {
                         lvArr[i] = new ListViewItem(enumStatus.entries[i][2]);
                     }
@@ -112,11 +103,12 @@ namespace Likewise.LMC.Plugins.LUG
             }
         }
 
-        private void PopulatePage()
+        public void PopulatePage(string hostName, bool bListUsers)
         {
             LUGAPI.LUGEnumStatus enumStatus;
+            _hostName = hostName;
 
-            if (_listUsers)
+            if (bListUsers)
             {
                 LUGAPI.NetEnumUsers(_hostName, 0, out enumStatus);
             }
@@ -127,7 +119,7 @@ namespace Likewise.LMC.Plugins.LUG
 
             this.lvMembers.Clear();
 
-            if (_listUsers)
+            if (bListUsers)
             {
                 lvMembers.Columns.Add("Users", 20, HorizontalAlignment.Left);
             }
@@ -150,18 +142,6 @@ namespace Likewise.LMC.Plugins.LUG
             set
             {
                 _member = value;
-            }
-        }
-
-        public string HostName
-        {
-            get
-            {
-                return _hostName;
-            }
-            set
-            {
-                _hostName = value;
             }
         }
 

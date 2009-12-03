@@ -616,7 +616,7 @@ error_status_t          *status;
 
 #define RPCD_PID_FILE "/var/run/dcerpcd.pid" 
 #define PID_FILE_CONTENTS_SIZE ((9 * 2) + 2)
-#define RPCD_DAEMON_NAME "rpcd"
+#define RPCD_DAEMON_NAME "dcerpcd"
 
 static
 void
@@ -765,7 +765,7 @@ pid_from_pid_file()
         pid = 0;
     } else {
         // Verify that the peer process is a rpc daemon
-        if (!MatchProgramToPID(RPCD_DAEMON_NAME, pid)) {
+        if (MatchProgramToPID(RPCD_DAEMON_NAME, pid) != 0) {
             unlink(RPCD_PID_FILE);
             pid = 0;
         }

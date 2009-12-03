@@ -513,6 +513,65 @@ AD_GroupObjectToGroupInfo(
     OUT PVOID* ppGroupInfo
     );
 
+DWORD
+AD_FindObjects(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+AD_OpenEnumObjects(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN OPTIONAL PCSTR pszDomainName
+    );
+
+DWORD
+AD_EnumObjects(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+DWORD
+AD_OpenEnumMembers(
+    IN HANDLE hProvider,
+    OUT PHANDLE phEnum,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid
+    );
+
+DWORD
+AD_EnumMembers(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxMemberSidCount,
+    OUT PDWORD pdwMemberSidCount,
+    OUT PSTR** pppszMemberSids
+    );
+
+DWORD
+AD_QueryMemberOf(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    );
+
+VOID
+AD_CloseEnum(
+    IN OUT HANDLE hEnum
+    );
+
 #endif /* __PROVIDER_MAIN_H__ */
 
 

@@ -3631,9 +3631,12 @@ AD_FindObjectByNameTypeNoCache(
             bIsUser = FALSE;
             break;
         default:
-            LSA_ASSERT(FALSE);
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
+            if (NameType == NameType_Alias)
+            {
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+            break;
     }
 
     switch (NameType)
@@ -3667,7 +3670,7 @@ AD_FindObjectByNameTypeNoCache(
     }
 
     // Check whether the object we find is correct type or not
-    if (AccountType != pObject->type)
+    if (AccountType != AccountType_NotFound && AccountType != pObject->type)
     {
         dwError = bIsUser ? LW_ERROR_NO_SUCH_USER : LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
@@ -4375,6 +4378,359 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+AD_OnlineFindObjectsByName(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
+    PSTR  pszLoginId_copy = NULL;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
+    DWORD dwIndex = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_TYPE type = LSA_QUERY_TYPE_UNDEFINED;
+    ADAccountType accountType = 0;
+
+    dwError = LwAllocateMemory(sizeof(*ppObjects) * dwCount, OUT_PPVOID(&ppObjects));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+    {
+        dwError = LwAllocateString(
+            QueryList.ppszStrings[dwIndex],
+            &pszLoginId_copy);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LwStrCharReplace(
+            pszLoginId_copy,
+            AD_GetSpaceReplacement(),
+            ' ');
+
+        dwError = LsaCrackDomainQualifiedName(
+            pszLoginId_copy,
+            gpADProviderData->szDomain,
+            &pUserNameInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        switch(pUserNameInfo->nameType)
+        {
+        case NameType_NT4:
+            type = LSA_QUERY_TYPE_BY_NT4;
+            break;
+        case NameType_UPN:
+            type = LSA_QUERY_TYPE_BY_UPN;
+            break;
+        case NameType_Alias:
+            type = LSA_QUERY_TYPE_BY_ALIAS;
+            break;
+        }
+
+        if (type != QueryType)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        switch(ObjectType)
+        {
+        case LSA_OBJECT_TYPE_USER:
+            accountType = AccountType_User;
+            dwError = ADCacheFindUserByName(
+                gpLsaAdProviderState->hCacheConnection,
+                pUserNameInfo,
+                &pCachedUser);
+            break;
+        case LSA_OBJECT_TYPE_GROUP:
+            accountType = AccountType_Group;
+            dwError = ADCacheFindGroupByName(
+                gpLsaAdProviderState->hCacheConnection,
+                pUserNameInfo,
+                &pCachedUser);
+            break;
+        default:
+            accountType = AccountType_NotFound;
+            dwError = ADCacheFindUserByName(
+                gpLsaAdProviderState->hCacheConnection,
+                pUserNameInfo,
+                &pCachedUser);
+            if (dwError == LW_ERROR_NO_SUCH_USER ||
+                dwError == LW_ERROR_NOT_HANDLED)
+            {
+                dwError = ADCacheFindGroupByName(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pUserNameInfo,
+                    &pCachedUser);
+            }
+            break;
+        }
+
+        if (dwError == LW_ERROR_SUCCESS)
+        {
+            dwError = AD_CheckExpiredObject(&pCachedUser);
+        }
+
+        switch (dwError)
+        {
+        case LW_ERROR_SUCCESS:
+            ppObjects[dwIndex] = pCachedUser;
+            pCachedUser = NULL;
+            break;
+        case LW_ERROR_NOT_HANDLED:
+        case LW_ERROR_NO_SUCH_USER:
+        case LW_ERROR_NO_SUCH_GROUP:
+        case LW_ERROR_NO_SUCH_OBJECT:
+            dwError = AD_FindObjectByNameTypeNoCache(
+                hProvider,
+                pszLoginId_copy,
+                pUserNameInfo->nameType,
+                accountType,
+                &pCachedUser);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = ADCacheStoreObjectEntry(
+                gpLsaAdProviderState->hCacheConnection,
+                pCachedUser);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            ppObjects[dwIndex] = pCachedUser;
+            pCachedUser = NULL;
+            break;
+        default:
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        LW_SAFE_FREE_STRING(pszLoginId_copy);
+        LsaFreeNameInfo(pUserNameInfo);
+        pUserNameInfo = NULL;
+    }
+
+    *pppObjects = ppObjects;
+
+cleanup:
+
+    LW_SAFE_FREE_STRING(pszLoginId_copy);
+
+    if (pUserNameInfo)
+    {
+        LsaFreeNameInfo(pUserNameInfo);
+    }
+
+    return dwError;
+
+error:
+
+    if (ppObjects)
+    {
+        LsaUtilFreeSecurityObjectList(dwCount, ppObjects);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+AD_OnlineFindObjectsById(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT pCachedUser = NULL;
+    DWORD dwIndex = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    ADAccountType accountType = 0;
+
+    dwError = LwAllocateMemory(sizeof(*ppObjects) * dwCount, OUT_PPVOID(&ppObjects));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+    {
+        switch(ObjectType)
+        {
+        case LSA_OBJECT_TYPE_USER:
+            accountType = AccountType_User;
+            dwError = ADCacheFindUserById(
+                gpLsaAdProviderState->hCacheConnection,
+                QueryList.pdwIds[dwIndex],
+                &pCachedUser);
+            break;
+        case LSA_OBJECT_TYPE_GROUP:
+            accountType = AccountType_Group;
+            dwError = ADCacheFindGroupById(
+                gpLsaAdProviderState->hCacheConnection,
+                QueryList.pdwIds[dwIndex],
+                &pCachedUser);
+            break;
+        default:
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        if (dwError == LW_ERROR_SUCCESS)
+        {
+            dwError = AD_CheckExpiredObject(&pCachedUser);
+        }
+
+        switch (dwError)
+        {
+        case LW_ERROR_SUCCESS:
+            ppObjects[dwIndex] = pCachedUser;
+            pCachedUser = NULL;
+            break;
+        case LW_ERROR_NOT_HANDLED:
+        case LW_ERROR_NO_SUCH_USER:
+        case LW_ERROR_NO_SUCH_GROUP:
+        case LW_ERROR_NO_SUCH_OBJECT:
+            dwError = AD_FindObjectByIdTypeNoCache(
+                hProvider,
+                QueryList.pdwIds[dwIndex],
+                accountType,
+                &pCachedUser);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = ADCacheStoreObjectEntry(
+                gpLsaAdProviderState->hCacheConnection,
+                pCachedUser);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            ppObjects[dwIndex] = pCachedUser;
+            pCachedUser = NULL;
+            break;
+        default:
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    *pppObjects = ppObjects;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (ppObjects)
+    {
+        LsaUtilFreeSecurityObjectList(dwCount, ppObjects);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+AD_OnlineFindObjects(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    IN LSA_QUERY_TYPE QueryType,
+    IN DWORD dwCount,
+    IN LSA_QUERY_LIST QueryList,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_OBJECT_TYPE type = LSA_OBJECT_TYPE_UNDEFINED;
+    DWORD dwIndex = 0;
+
+    switch(QueryType)
+    {
+    case LSA_QUERY_TYPE_BY_SID:
+        dwError = AD_FindObjectsBySidList(
+            hProvider,
+            dwCount,
+            (PSTR*) QueryList.ppszStrings,
+            NULL,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    case LSA_QUERY_TYPE_BY_DN:
+         dwError = AD_FindObjectsByDNList(
+            hProvider,
+            dwCount,
+            (PSTR*) QueryList.ppszStrings,
+            NULL,
+            &ppObjects);
+         BAIL_ON_LSA_ERROR(dwError);
+         break;
+    case LSA_QUERY_TYPE_BY_NT4:
+    case LSA_QUERY_TYPE_BY_UPN:
+    case LSA_QUERY_TYPE_BY_ALIAS:
+        dwError = AD_OnlineFindObjectsByName(
+            hProvider,
+            FindFlags,
+            ObjectType,
+            QueryType,
+            dwCount,
+            QueryList,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    case LSA_QUERY_TYPE_BY_UNIX_ID:
+        dwError = AD_OnlineFindObjectsById(
+            hProvider,
+            FindFlags,
+            ObjectType,
+            QueryType,
+            dwCount,
+            QueryList,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+    {
+        if (ppObjects[dwIndex])
+        {
+            switch (ppObjects[dwIndex]->type)
+            {
+            case AccountType_Group:
+                type = LSA_OBJECT_TYPE_GROUP;
+                break;
+            case AccountType_User:
+                type = LSA_OBJECT_TYPE_USER;
+                break;
+                /*
+            case AccountType_Domain:
+                type = LSA_OBJECT_TYPE_DOMAIN;
+                break;
+                */
+            }
+
+            if (ObjectType != LSA_OBJECT_TYPE_UNDEFINED && type != ObjectType)
+            {
+                LsaUtilFreeSecurityObject(ppObjects[dwIndex]);
+                ppObjects[dwIndex] = NULL;
+            }
+        }
+    }
+
+    *pppObjects = ppObjects;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
 
 /*
 local variables:

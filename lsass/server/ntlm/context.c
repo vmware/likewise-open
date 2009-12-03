@@ -148,20 +148,18 @@ NtlmFreeContext(
 
     NtlmReleaseCredential(&pContext->CredHandle);
 
-    if (pContext->pSealKey && pContext->pSealKey != pContext->pSignKey)
-    {
-        LW_SAFE_FREE_MEMORY(pContext->pSealKey);
-    }
-    if (pContext->pVerifyKey && pContext->pVerifyKey != pContext->pSignKey)
-    {
-        LW_SAFE_FREE_MEMORY(pContext->pVerifyKey);
-    }
-    if (pContext->pUnsealKey && pContext->pUnsealKey != pContext->pSignKey)
+    if (pContext->pUnsealKey != pContext->pSealKey)
     {
         LW_SAFE_FREE_MEMORY(pContext->pUnsealKey);
     }
-    LW_SAFE_FREE_MEMORY(pContext->pSignKey);
+    LW_SAFE_FREE_MEMORY(pContext->pSealKey);
     LW_SAFE_FREE_STRING(pContext->pszClientUsername);
+
+    if (pContext->pdwSendMsgSeq != pContext->pdwRecvMsgSeq)
+    {
+        LW_SAFE_FREE_MEMORY(pContext->pdwSendMsgSeq);
+    }
+    LW_SAFE_FREE_MEMORY(pContext->pdwRecvMsgSeq);
 
     LW_SAFE_FREE_MEMORY(pContext);
     *ppContext = NULL;
@@ -492,6 +490,11 @@ NtlmCreateChallengeMessage(
         // least one of those flags set... if it didin't...
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
+    }
+    if ((pNegMsg->NtlmFlags & NTLM_FLAG_NTLM2) &&
+            config.bSupportNTLM2SessionSecurity)
+    {
+        dwOptions |= NTLM_FLAG_NTLM2;
     }
 
     // calculate optional data size
@@ -901,27 +904,45 @@ NtlmCreateResponseMessage(
     dwSize += dwUserNameSize;
     dwSize += dwWorkstationSize;
 
-    dwError = NtlmBuildResponse(
-        pChlngMsg,
-        pUserName,
-        pPassword,
-        dwLmRespType,
-        &dwLmMsgSize,
-        pLmUserSessionKey,
-        &pLmMsg
-        );
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwLmRespType == NTLM_RESPONSE_TYPE_NTLM2)
+    {
+        // The LM session key is not used in this case
+        memset(pLmUserSessionKey, 0, NTLM_SESSION_KEY_SIZE);
 
-    dwError = NtlmBuildResponse(
-        pChlngMsg,
-        pUserName,
-        pPassword,
-        dwNtRespType,
-        &dwNtMsgSize,
-        pNtlmUserSessionKey,
-        &pNtMsg
-        );
-    BAIL_ON_LSA_ERROR(dwError);
+        dwError = NtlmBuildNtlm2Response(
+            pChlngMsg->Challenge,
+            pPassword,
+            &dwLmMsgSize,
+            &pLmMsg,
+            &dwNtMsgSize,
+            &pNtMsg,
+            pNtlmUserSessionKey);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = NtlmBuildResponse(
+            pChlngMsg,
+            pUserName,
+            pPassword,
+            dwLmRespType,
+            &dwLmMsgSize,
+            pLmUserSessionKey,
+            &pLmMsg
+            );
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = NtlmBuildResponse(
+            pChlngMsg,
+            pUserName,
+            pPassword,
+            dwNtRespType,
+            &dwNtMsgSize,
+            pNtlmUserSessionKey,
+            &pNtMsg
+            );
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwSize += dwNtMsgSize;
     dwSize += dwLmMsgSize;
@@ -1184,12 +1205,6 @@ NtlmBuildResponse(
             ppBuffer
             );
         BAIL_ON_LSA_ERROR(dwError);
-        break;
-    case NTLM_RESPONSE_TYPE_NTLM2:
-        {
-            dwError = NtlmBuildNtlm2Response();
-            BAIL_ON_LSA_ERROR(dwError);
-        }
         break;
     case NTLM_RESPONSE_TYPE_ANONYMOUS:
         {
@@ -1569,11 +1584,120 @@ NtlmBuildLmV2Response(
 /******************************************************************************/
 DWORD
 NtlmBuildNtlm2Response(
-    VOID
+    UCHAR ServerChallenge[8],
+    PCSTR pPassword,
+    PDWORD pdwLmRespSize,
+    PBYTE* ppLmResp,
+    PDWORD pdwNtRespSize,
+    PBYTE* ppNtResp,
+    BYTE pUserSessionKey[NTLM_SESSION_KEY_SIZE]
     )
 {
-    DWORD dwError = LW_ERROR_NOT_SUPPORTED;
+    DWORD dwError = ERROR_SUCCESS;
+    BYTE clientNonce[8];
+    DWORD dwLmRespSize = 0;
+    PBYTE pLmResp = NULL;
+    DWORD dwNtRespSize = 0;
+    PBYTE pNtResp = NULL;
+    BYTE sessionNonce[MD5_DIGEST_LENGTH];
+    // This array is 16 bytes long, but only the first 8 bytes are used for the
+    // NTLM2 Session Hash
+    BYTE sessionHashUntrunc[MD5_DIGEST_LENGTH];
+    DES_key_schedule DesKeySchedule;
+    BYTE NtlmHash[MD4_DIGEST_LENGTH] = {0};
+    ULONG64 ulKey1 = 0;
+    ULONG64 ulKey2 = 0;
+    ULONG64 ulKey3 = 0;
+    BYTE NtlmUserSessionKey[NTLM_SESSION_KEY_SIZE];
+
+    memset(&DesKeySchedule, 0, sizeof(DES_key_schedule));
+
+    dwError = NtlmGetRandomBuffer(
+        clientNonce,
+        sizeof(clientNonce));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmCreateNtlmV1Hash(pPassword, NtlmHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmCreateMD4Digest(
+        NtlmHash,
+        MD4_DIGEST_LENGTH,
+        NtlmUserSessionKey);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwLmRespSize = 24;
+    dwError = LwAllocateMemory(dwLmRespSize, OUT_PPVOID(&pLmResp));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Leave the last 16 bytes of the Lm Response as null
+    memcpy(pLmResp, clientNonce, sizeof(clientNonce));
+
+    // Calculate the session nonce first
+    memcpy(sessionNonce + 0, ServerChallenge, 8);
+    memcpy(sessionNonce + 8, clientNonce, 8);
+
+    MD5(sessionNonce, 16, sessionHashUntrunc);
+
+    dwNtRespSize = 24;
+    dwError = LwAllocateMemory(dwNtRespSize, OUT_PPVOID(&pNtResp));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ulKey1 = NtlmCreateKeyFromHash(&NtlmHash[0], 7);
+    ulKey2 = NtlmCreateKeyFromHash(&NtlmHash[7], 7);
+    ulKey3 = NtlmCreateKeyFromHash(&NtlmHash[14], 2);
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey1, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)sessionHashUntrunc,
+        (DES_cblock*)&pNtResp[0],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey2, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)sessionHashUntrunc,
+        (DES_cblock*)&pNtResp[8],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
+
+    DES_set_key_unchecked((const_DES_cblock*)&ulKey3, &DesKeySchedule);
+    DES_ecb_encrypt(
+        (const_DES_cblock *)sessionHashUntrunc,
+        (DES_cblock*)&pNtResp[16],
+        &DesKeySchedule,
+        DES_ENCRYPT
+        );
+
+    HMAC(
+        EVP_md5(),
+        NtlmUserSessionKey,
+        NTLM_SESSION_KEY_SIZE,
+        sessionNonce,
+        16,
+        pUserSessionKey,
+        NULL);
+
+    *pdwLmRespSize = dwLmRespSize;
+    *ppLmResp = pLmResp;
+    *pdwNtRespSize = dwNtRespSize;
+    *ppNtResp = pNtResp;
+
+cleanup:
     return dwError;
+
+error:
+    *pdwLmRespSize = 0;
+    *ppLmResp = NULL;
+    *pdwNtRespSize = 0;
+    *ppNtResp = NULL;
+    LW_SAFE_FREE_MEMORY(pLmResp);
+    LW_SAFE_FREE_MEMORY(pNtResp);
+    memset(pUserSessionKey, 0, NTLM_SESSION_KEY_SIZE);
+
+    goto cleanup;
 }
 
 /******************************************************************************/

@@ -100,12 +100,17 @@ NtlmServerEncryptMessage(
     IN DWORD MessageSeqNo
     );
 
+DWORD
+NtlmInitializeSignature(
+    PNTLM_CONTEXT pContext,
+    const SecBuffer* pData,
+    PNTLM_SIGNATURE pSignature
+    );
+
 VOID
-NtlmMakeSignature(
-    IN PNTLM_CONTEXT pContext,
-    IN DWORD dwCrc32,
-    IN RC4_KEY* pSignKey,
-    IN OUT PSecBuffer pToken
+NtlmFinalizeSignature(
+    PNTLM_CONTEXT pContext,
+    PNTLM_SIGNATURE pSignature
     );
 
 DWORD
@@ -424,7 +429,13 @@ NtlmBuildLmV2Response(
 
 DWORD
 NtlmBuildNtlm2Response(
-    VOID
+    UCHAR ServerChallenge[8],
+    PCSTR pPassword,
+    PDWORD pdwLmRespSize,
+    PBYTE* ppLmResp,
+    PDWORD pdwNtRespSize,
+    PBYTE* ppNtResp,
+    BYTE pUserSessionKey[NTLM_SESSION_KEY_SIZE]
     );
 
 DWORD
@@ -474,6 +485,14 @@ NtlmCreateValidatedContext(
     IN DWORD dwSessionKeyLen,
     IN NTLM_CRED_HANDLE hCred,
     OUT PNTLM_CONTEXT *ppNtlmContext
+    );
+
+DWORD
+NtlmCreateSubkey(
+    DWORD dwMasterKeyLen,
+    PBYTE pMasterKey,
+    PCSTR pszSubkeyMagic,
+    RC4_KEY** ppResult
     );
 
 DWORD

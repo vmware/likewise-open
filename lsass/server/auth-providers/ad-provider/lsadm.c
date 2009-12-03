@@ -130,11 +130,23 @@ LsaDmSetState(
     IN OPTIONAL PDWORD pdwUnknownDomainCacheTimeoutSeconds
     )
 {
-    return LsaDmpSetState(
-                gLsaDmState,
-                pbIsOfflineBehaviorEnabled,
-                pdwCheckOnlineSeconds,
-                pdwUnknownDomainCacheTimeoutSeconds);
+    DWORD dwError = 0;
+
+    if (gLsaDmState)
+    {
+        dwError = LsaDmpSetState(
+                        gLsaDmState,
+                        pbIsOfflineBehaviorEnabled,
+                        pdwCheckOnlineSeconds,
+                        pdwUnknownDomainCacheTimeoutSeconds);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
 }
 
 VOID

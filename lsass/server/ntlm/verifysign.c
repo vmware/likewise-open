@@ -72,7 +72,6 @@ NtlmServerVerifySignature(
         pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
         !pToken->pvBuffer ||
         !pData ||
-        !pData->cbBuffer ||
         !pData->pvBuffer)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
@@ -103,51 +102,104 @@ NtlmVerifySignature(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    PNTLM_SIGNATURE pNtlmSig = NULL;
     DWORD dwCrc32 = 0;
-    BYTE TokenData[NTLM_SIGNATURE_SIZE] = {0};
+    NTLM_SIGNATURE signature;
 
-    //Decrypt the received token, remember to skip the first 4 bytes (which is
-    //the unencrypted version field
-    RC4(
-        pSignKey,
-        pToken->cbBuffer - 4,
-        ((PBYTE)(pToken->pvBuffer)) + 4,
-        TokenData + 4);
-    // Copy the version field
-    memcpy(TokenData, pToken->pvBuffer, 4);
-
-    pNtlmSig = (PNTLM_SIGNATURE)TokenData;
-    pNtlmSig->dwCounterValue = 0;
-
-    if (pContext->NegotiatedFlags & NTLM_FLAG_ALWAYS_SIGN)
+    if (pToken->cbBuffer != sizeof(signature))
     {
-        // Use the dummy signature 0x01000000000000000000000000000000
-        dwCrc32 = 0;
-    }
-    else if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
-    {
-        // generate a crc for the message
-        dwError = NtlmCrc32(pData->pvBuffer, pData->cbBuffer, &dwCrc32);
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
+    }
+    memcpy(&signature, pToken->pvBuffer, sizeof(signature));
+
+    if (pContext->NegotiatedFlags & NTLM_FLAG_NTLM2)
+    {
+        unsigned char tempHmac[EVP_MAX_MD_SIZE];
+        HMAC_CTX c;
+
+        // The davenport doc says the hmac should be encrypted, but
+        // experimentally it should not
+
+        if (!(pContext->NegotiatedFlags & NTLM_FLAG_SIGN))
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        HMAC_CTX_init(&c);
+        HMAC_Init(
+                &c,
+                pContext->VerifyKey,
+                sizeof(pContext->VerifyKey),
+                EVP_md5());
+
+        HMAC_Update(
+                &c,
+                (PBYTE)&signature.v2.dwMsgSeqNum,
+                sizeof(signature.v2.dwMsgSeqNum));
+
+        HMAC_Update(
+                &c,
+                pData->pvBuffer,
+                pData->cbBuffer);
+
+        HMAC_Final(
+                &c,
+                tempHmac,
+                NULL);
+
+        if (memcmp(signature.v2.hmac,
+                    tempHmac,
+                    sizeof(signature.v2.hmac)))
+        {
+            dwError = ERROR_CRC;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
     else
     {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
+        RC4(
+            pSignKey,
+            sizeof(signature.v1.encrypted),
+            (PBYTE)&signature.v1.encrypted,
+            (PBYTE)&signature.v1.encrypted);
+        signature.v1.encrypted.dwCounterValue = 0;
+
+        if (pContext->NegotiatedFlags & NTLM_FLAG_ALWAYS_SIGN)
+        {
+            // Use the dummy signature 0x01000000000000000000000000000000
+            dwCrc32 = 0;
+        }
+        else if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
+        {
+            // generate a crc for the message
+            dwError = NtlmCrc32(pData->pvBuffer, pData->cbBuffer, &dwCrc32);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        else
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (dwCrc32 != signature.v1.encrypted.dwCrc32)
+        {
+            dwError = ERROR_CRC;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
 
-    if (dwCrc32 != pNtlmSig->dwCrc32)
+    if (!pContext->pdwRecvMsgSeq)
     {
-        dwError = ERROR_CRC;
+        dwError = ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    if (pContext->dwMsgSeqNum != pNtlmSig->dwMsgSeqNum)
+    if (*pContext->pdwRecvMsgSeq != signature.v2.dwMsgSeqNum)
     {
         dwError = ERROR_REQUEST_OUT_OF_SEQUENCE;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    pContext->dwMsgSeqNum++;
+    (*pContext->pdwRecvMsgSeq)++;
 
 cleanup:
     return dwError;

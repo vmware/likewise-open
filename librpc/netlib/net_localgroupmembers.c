@@ -28,192 +28,277 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_localgroupmembers.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetLocalGroupAddMembers and NetLocalGroupDelMembers functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 
+static
 NET_API_STATUS
 NetLocalGroupChangeMembers(
-    const wchar16_t *hostname,
-    const wchar16_t *aliasname,
-    uint32 level,
-    void *buffer,
-    uint32 entries,
-    uint32 access)
+    PCWSTR pwszHostname,
+    PCWSTR pwszAliasname,
+    DWORD  dwLevel,
+    PVOID  pBuffer,
+    DWORD  dwNumEntries,
+    DWORD  dwAliasAccess
+    );
+
+
+NET_API_STATUS
+NetLocalGroupAddMembers(
+    PCWSTR pwszHostname,
+    PCWSTR pwszAliasname,
+    DWORD  dwLevel,
+    PVOID  pBuffer,
+    DWORD  dwNumEntries
+    )
 {
-    const uint32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-    const uint32 btin_domain_access = DOMAIN_ACCESS_OPEN_ACCOUNT;
-    const uint16 lookup_level = LSA_LOOKUP_NAMES_ALL;
-    const uint32 num_names = 1;
+    return NetLocalGroupChangeMembers(pwszHostname,
+                                      pwszAliasname,
+                                      dwLevel,
+                                      pBuffer,
+                                      dwNumEntries,
+                                      ALIAS_ACCESS_ADD_MEMBER);
+}
 
+
+
+NET_API_STATUS
+NetLocalGroupDelMembers(
+    PCWSTR pwszHostname,
+    PCWSTR pwszAliasname,
+    DWORD  dwLevel,
+    PVOID  pBuffer,
+    DWORD  dwNumEntries
+    )
+{
+    return NetLocalGroupChangeMembers(pwszHostname,
+                                      pwszAliasname,
+                                      dwLevel,
+                                      pBuffer,
+                                      dwNumEntries,
+                                      ALIAS_ACCESS_REMOVE_MEMBER);
+}
+
+
+static
+NET_API_STATUS
+NetLocalGroupChangeMembers(
+    PCWSTR pwszHostname,
+    PCWSTR pwszAliasname,
+    DWORD  dwLevel,
+    PVOID  pBuffer,
+    DWORD  dwNumEntries,
+    DWORD  dwAliasAccess
+    )
+{
+    const DWORD dwLsaAccessFlags = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const DWORD dwBuiltinDomainAccessFlags = DOMAIN_ACCESS_OPEN_ACCOUNT;
+    const WORD wLsaLookupLevel = LSA_LOOKUP_NAMES_ALL;
+
+    NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    uint32 access_rights = 0;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
-    handle_t lsa_b = NULL;
-    wchar16_t *member = NULL;
-    size_t member_len = 0;
+    DWORD dwAliasAccessFlags = 0;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
+    handle_t hLsaBinding = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
-    PSID user_sid = NULL;
-    PSID dom_sid = NULL;
-    uint32 alias_rid = 0;
-    uint32 i = 0;
-    LOCALGROUP_MEMBERS_INFO_0 *info0 = NULL;
-    LOCALGROUP_MEMBERS_INFO_3 *info3 = NULL;
-    POLICY_HANDLE hPolicy = NULL;
-    wchar16_t *names[1] = {NULL};
-    uint32 count = 0;
-    uint32 sid_index = 0;
-    TranslatedSid *sids = NULL;
-    RefDomainList *domains = NULL;
-    PIO_CREDS creds = NULL;
+    DWORD dwAliasRid = 0;
+    DWORD i = 0;
+    LOCALGROUP_MEMBERS_INFO_0 *pInfo0 = NULL;
+    LOCALGROUP_MEMBERS_INFO_3 *pInfo3 = NULL;
+    PSID *ppSids = NULL;
+    POLICY_HANDLE hLsaPolicy = NULL;
+    PWSTR *ppNames = NULL;
+    RefDomainList *pDomains = NULL;
+    TranslatedSid3 *pTransSids = NULL;
+    DWORD dwSidsCount = 0;
+    PSID pMemberSid = NULL;
+    PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(hostname);
-    BAIL_ON_INVALID_PTR(aliasname);
-    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(pwszAliasname);
+    BAIL_ON_INVALID_PTR(pBuffer);
 
-    if (!(level == 0 || level == 3)) {
+    switch (dwLevel)
+    {
+    case 0:
+        pInfo0 = (PLOCALGROUP_MEMBERS_INFO_0)pBuffer;
+        break;
+
+    case 3:
+        pInfo3 = (PLOCALGROUP_MEMBERS_INFO_3)pBuffer;
+        break;
+
+    default:
         err = ERROR_INVALID_LEVEL;
-        goto cleanup;
+        BAIL_ON_WINERR_ERROR(err);
     }
 
-    access_rights = access;
+    dwAliasAccessFlags = dwAliasAccess;
 
-    status = LwIoGetActiveCreds(NULL, &creds);
+    status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, access, btin_domain_access, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            dwAliasAccess,
+                            dwBuiltinDomainAccessFlags,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b = conn->samr.bind;
+    hSamrBinding = pConn->samr.bind;
 
-    status = NetOpenAlias(conn, aliasname, access_rights, &hAlias,
-                          &alias_rid);
-    if (status == STATUS_NONE_MAPPED) {
+    status = NetOpenAlias(pConn,
+                          pwszAliasname,
+                          dwAliasAccessFlags,
+                          &hAlias,
+                          &dwAliasRid);
+    if (status == STATUS_NONE_MAPPED)
+    {
         /* No such alias in host's domain.
            Try to look in builtin domain. */
-        status = NetOpenAlias(conn, aliasname, access_rights,
-                              hAlias, &alias_rid);
+        status = NetOpenAlias(pConn,
+                              pwszAliasname,
+                              dwAliasAccessFlags,
+                              &hAlias,
+                              &dwAliasRid);
         BAIL_ON_NTSTATUS_ERROR(status);
 
-    } else if (status != STATUS_SUCCESS) {
-        goto error;
+    }
+    else if (status != STATUS_SUCCESS)
+    {
+        BAIL_ON_NTSTATUS_ERROR(status);
     }
 
-    status = NetConnectLsa(&conn, hostname, lsa_access, creds);
+    status = NetAllocateMemory(OUT_PPVOID(&ppSids),
+                               sizeof(ppSids[0]) * dwNumEntries,
+                               NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    lsa_b   = conn->lsa.bind;
-    hPolicy = conn->lsa.hPolicy;
+    if (dwLevel == 0)
+    {
+        for (i = 0; i < dwNumEntries; i++)
+        {
+            ppSids[i] = pInfo0[i].lgrmi0_sid;
+        }
+    }
+    else if (dwLevel == 3)
+    {
+        status = NetConnectLsa(&pConn,
+                               pwszHostname,
+                               dwLsaAccessFlags,
+                               pCreds);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
-    for (i = 0; i < entries; i++) {
-        if (level == 3) {
-            info3 = (LOCALGROUP_MEMBERS_INFO_3*)buffer;
+        hLsaBinding = pConn->lsa.bind;
+        hLsaPolicy  = pConn->lsa.hPolicy;
 
-            member = info3[i].lgrmi3_domainandname;
-            if (member == NULL) {
-                err = ERROR_INVALID_PARAMETER;
-                goto error;
-            }
+        status = NetAllocateMemory(OUT_PPVOID(&ppNames),
+                                   sizeof(ppNames[0]) * dwNumEntries,
+                                   NULL);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
-            member_len = wc16slen(member);
-            if (member_len == 0) {
-                err = ERROR_INVALID_PARAMETER;
-                goto error;
-            }
-
-            names[0] = member;
-            count    = 0;
-
-            status = LsaLookupNames(lsa_b, hPolicy, num_names, names,
-                                    &domains, &sids, lookup_level, &count);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            if (count == 0) continue;
-
-            user_sid  = NULL;
-            dom_sid   = NULL;
-            sid_index = sids[0].index;
-
-            if (sid_index < domains->count) {
-                dom_sid = domains->domains[sid_index].sid;
-                status = MsRpcAllocateSidAppendRid(&user_sid,
-                                                    dom_sid,
-                                                    sids[0].rid);
-                BAIL_ON_NTSTATUS_ERROR(status);
-
-            }
-
-            if (domains) {
-                SamrFreeMemory((void*)domains);
-            }
-
-            if (sids) {
-                SamrFreeMemory((void*)sids);
-            }
-
-        } else if (level == 0) {
-            info0 = (LOCALGROUP_MEMBERS_INFO_0*)buffer;
-
-            MsRpcDuplicateSid(&user_sid, info0[i].lgrmi0_sid);
-            BAIL_ON_NO_MEMORY(user_sid);
+        for (i = 0; i < dwNumEntries; i++)
+        {
+            err = LwAllocateWc16String(&(ppNames[i]),
+                                       pInfo3[i].lgrmi3_domainandname);
+            BAIL_ON_WINERR_ERROR(err);
         }
 
-        if (access_rights == ALIAS_ACCESS_ADD_MEMBER) {
-            status = SamrAddAliasMember(samr_b, hAlias, user_sid);
-            BAIL_ON_NTSTATUS_ERROR(status);
+        status = LsaLookupNames3(hLsaBinding,
+                                 hLsaPolicy,
+                                 dwNumEntries,
+                                 ppNames,
+                                 &pDomains,
+                                 &pTransSids,
+                                 wLsaLookupLevel,
+                                 &dwSidsCount);
+        BAIL_ON_NTSTATUS_ERROR(status);
 
-        } else if (access_rights == ALIAS_ACCESS_REMOVE_MEMBER) {
-            status = SamrDeleteAliasMember(samr_b, hAlias, user_sid);
-            BAIL_ON_NTSTATUS_ERROR(status);
-        }
-
-        if (user_sid) {
-            MsRpcFreeSid(user_sid);
+        for (i = 0; i < dwSidsCount; i++)
+        {
+            ppSids[i] = pTransSids[i].sid;
         }
     }
 
-    status = SamrClose(samr_b, hAlias);
+    for (i = 0; i < dwNumEntries; i++)
+    {
+        pMemberSid = ppSids[i];
+
+        if (dwAliasAccessFlags == ALIAS_ACCESS_ADD_MEMBER)
+        {
+            status = SamrAddAliasMember(hSamrBinding,
+                                        hAlias,
+                                        pMemberSid);
+        }
+        else if (dwAliasAccessFlags == ALIAS_ACCESS_REMOVE_MEMBER)
+        {
+            status = SamrDeleteAliasMember(hSamrBinding,
+                                           hAlias,
+                                           pMemberSid);
+        }
+        BAIL_ON_NTSTATUS_ERROR(status);
+    }
+
+    status = SamrClose(hSamrBinding, hAlias);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:
+    if (ppSids)
+    {
+        NetFreeMemory(ppSids);
+    }
+
+    if (ppNames)
+    {
+        for (i = 0; i < dwNumEntries; i++)
+        {
+            LW_SAFE_FREE_MEMORY(ppNames[i]);
+        }
+
+        NetFreeMemory(ppNames);
+    }
+
+    if (pDomains)
+    {
+        LsaRpcFreeMemory(pDomains);
+    }
+
+    if (pTransSids)
+    {
+        LsaRpcFreeMemory(pTransSids);
+    }
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
+        status != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(status);
     }
 
     return err;
 
 error:
-    if (creds)
-    {
-        LwIoDeleteCreds(creds);
-    }
-
     goto cleanup;
-}
-
-
-NET_API_STATUS NetLocalGroupAddMembers(const wchar16_t *hostname,
-				       const wchar16_t *aliasname,
-				       uint32 level, void *buffer,
-				       uint32 entries)
-{
-    return  NetLocalGroupChangeMembers(hostname, aliasname, level,
-                                       buffer, entries,
-                                       ALIAS_ACCESS_ADD_MEMBER);
-}
-
-
-
-NET_API_STATUS NetLocalGroupDelMembers(const wchar16_t *hostname,
-				       const wchar16_t *aliasname,
-				       uint32 level, void *buffer,
-				       uint32 entries)
-{
-    return NetLocalGroupChangeMembers(hostname, aliasname, level,
-                                      buffer, entries,
-                                      ALIAS_ACCESS_REMOVE_MEMBER);
 }
 
 
