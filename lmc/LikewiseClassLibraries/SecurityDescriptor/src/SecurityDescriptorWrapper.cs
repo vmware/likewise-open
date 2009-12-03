@@ -69,6 +69,8 @@ namespace Likewise.LMC.SecurityDesriptor
 
             Dictionary<string, Dictionary<string, string>> SdDacls = new Dictionary<string, Dictionary<string, string>>();
             uint errorReturn = 0;
+            string sUsername = string.Empty;
+            string sDomain = string.Empty;
             ObjSecurityDescriptor = null;
 
             if (pSECURITY_DESCRIPTOR == null)
@@ -94,7 +96,6 @@ namespace Likewise.LMC.SecurityDesriptor
                     {
                         IntPtr pAce;
                         IntPtr ptrSid;
-                        IntPtr pTrustee;
 
                         int err = SecurityDescriptorApi.GetAce(pSECURITY_DESCRIPTOR.dacl, idx, out pAce);
                         SecurityDescriptorApi.ACCESS_ALLOWED_ACE ace = (SecurityDescriptorApi.ACCESS_ALLOWED_ACE)Marshal.PtrToStructure(pAce, typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE));
@@ -106,12 +107,16 @@ namespace Likewise.LMC.SecurityDesriptor
                         Marshal.Copy(iter, bSID, 0, size);
 
                         SecurityDescriptorApi.ConvertSidToStringSid(bSID, out ptrSid);
-                        SecurityDescriptorApi.BuildTrusteeWithSid(out pTrustee, ptrSid);
-                        SecurityDescriptorApi.TRUSTEE trustee = new SecurityDescriptorApi.TRUSTEE();
-                        Marshal.PtrToStructure(pTrustee, trustee);
                         string strSID = Marshal.PtrToStringAuto(ptrSid);
 
-                        Logger.Log("Trustee = " + trustee.ptstrName, Logger.SecurityDescriptorLogLevel);
+                        //Commented this, to use it in feature
+                        //SecurityDescriptorApi.BuildTrusteeWithSid(out pTrustee, ptrSid);
+                        //SecurityDescriptorApi.TRUSTEE trustee = new SecurityDescriptorApi.TRUSTEE();
+                        //Marshal.PtrToStructure(pTrustee, trustee);
+
+                        ApiLookupAccountSid(bSID, ref sUsername, ref sDomain);
+
+                        Logger.Log("Trustee = " + sUsername, Logger.SecurityDescriptorLogLevel);
                         Logger.Log(string.Format("SID={0} : AceType={1}/ AceMask={2}/ AceFlags={3}",
                                             strSID,
                                             ace.Header.AceType.ToString(),
@@ -119,24 +124,81 @@ namespace Likewise.LMC.SecurityDesriptor
                                             ace.Header.AceFlags.ToString()), Logger.SecurityDescriptorLogLevel);
 
                         Dictionary<string, string> AceProperties = new Dictionary<string, string>();
+                        AceProperties.Add("Username", sUsername + "(" + sUsername + "@" + sDomain + ")");
                         AceProperties.Add("Sid", strSID);
                         AceProperties.Add("AceType", ace.Header.AceType.ToString());
                         AceProperties.Add("AceMask", ace.Mask.ToString());
                         AceProperties.Add("AceFlags", ace.Header.AceFlags.ToString());
                         AceProperties.Add("AceSize", ace.Header.AceSize.ToString());
 
-                        SdDacls.Add(trustee.ptstrName, AceProperties);
+                        SdDacls.Add(sUsername, AceProperties);
 
                         ObjSecurityDescriptor.Descretionary_Access_Control_List = SdDacls;
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.LogException("SecurityDescriptorWrapper.ReadSecurityDescriptor()", ex);
             }
 
             return errorReturn;
+        }
+
+        public static int ApiLookupAccountSid(
+                                    byte[] sid,
+                                    ref string sUsername,
+                                    ref string sDomainname)
+        {
+            Logger.Log("SecurityDescriptorWrapper.ApiLookupAccountSid()");
+
+            SecurityDescriptorApi.SID_NAME_USE sidUse;
+            StringBuilder name = new StringBuilder();
+            StringBuilder referencedDomainName = new StringBuilder();
+            uint cchName = (uint)name.Capacity;
+            uint cchReferencedDomainName = (uint)referencedDomainName.Capacity;
+            int iReturn = 0;
+            int ERROR_INSUFFICIENT_BUFFER = 122;
+
+            try
+            {
+                bool bReturn = SecurityDescriptorApi.LookupAccountSid(
+                                    null,
+                                    sid,
+                                    name,
+                                    ref cchName,
+                                    referencedDomainName,
+                                    ref cchReferencedDomainName,
+                                    out sidUse);
+                if (!bReturn)
+                {
+                    iReturn = Marshal.GetLastWin32Error();
+                    if (iReturn == ERROR_INSUFFICIENT_BUFFER)
+                    {
+                        bReturn = SecurityDescriptorApi.LookupAccountSid(
+                                    null,
+                                    sid,
+                                    name,
+                                    ref cchName,
+                                    referencedDomainName,
+                                    ref cchReferencedDomainName,
+                                    out sidUse);
+
+                        iReturn = Marshal.GetLastWin32Error();
+                        if (iReturn == 0)
+                        {
+                            sUsername = name.ToString();
+                            sDomainname = referencedDomainName.ToString();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("SecurityDescriptorWrapper.ApiLookupAccountSid()", ex);
+            }
+
+            return iReturn;
         }
 
         public static bool ApiAdjustTokenPrivileges(IntPtr pProcessTokenHandle)

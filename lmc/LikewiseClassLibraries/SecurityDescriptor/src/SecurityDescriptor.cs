@@ -135,11 +135,16 @@ namespace Likewise.LMC.SecurityDesriptor
 
     public class PermissionsSet
     {
+        public static Dictionary<SecurityDescriptorApi.ACCESS_MASK, string> permissionSet
+                            = new Dictionary<SecurityDescriptorApi.ACCESS_MASK, string>();
+
         public string[] permissionsSet = new string[]{
-                        "Full Control",
-                        "Modify",
-                        "Read & Execute",
+                        "Delete",
                         "Read",
+                        "Modify user attributes",
+                        "Modify",
+                        "Full Control",
+                        "Read & Execute",
                         "Write",
                         "Special Permissions",
                         "Create All Child Objects",
@@ -165,5 +170,24 @@ namespace Likewise.LMC.SecurityDesriptor
                         "Read Other Domain Parameters (for use bt SAMS)",
                         "Write Other Domain Parameters (for use bt SAMS)"
                         };
+
+        public static Dictionary<SecurityDescriptorApi.ACCESS_MASK, string> PermissionSet
+        {
+            get
+            {
+                if (permissionSet != null && permissionSet.Count != 0)
+                    return permissionSet;
+                else
+                {
+                    permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DELETE, "Delete");
+                    permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.READ_CONTROL, "Read");
+                    permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_DAC, "Modify user attributes");
+                    permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Full Control");
+                    permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.ACCESS_SYSTEM_SECURITY, "Special Permissions");
+
+                    return permissionSet;
+                }
+            }
+        }
     }
 }
