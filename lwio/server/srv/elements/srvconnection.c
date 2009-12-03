@@ -151,6 +151,7 @@ SrvConnectionCreate(
     pConnection->pShareList = pShareList;
     pConnection->state = LWIO_SRV_CONN_STATE_INITIAL;
     pConnection->hSocket = hSocket;
+    pConnection->pfnSocketFree = pfnSocketFree;
 
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
     uuid_copy(pConnection->serverProperties.GUID, pServerProperties->GUID);

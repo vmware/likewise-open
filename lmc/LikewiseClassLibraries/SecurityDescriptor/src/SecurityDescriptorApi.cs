@@ -34,7 +34,7 @@ namespace Likewise.LMC.SecurityDesriptor
         [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool LookupAccountSid(
             string lpSystemName,
-            /*[MarshalAs(UnmanagedType.LPArray)]*/ IntPtr Sid,
+            [MarshalAs(UnmanagedType.LPArray)] byte[] Sid,
             System.Text.StringBuilder lpName,
             ref uint cchName,
             System.Text.StringBuilder ReferencedDomainName,
@@ -454,7 +454,10 @@ namespace Likewise.LMC.SecurityDesriptor
         {
             Allow = 0,
             Deny = 1,
-            Audit = 2
+            Audit = 2,
+            Allow_Object = 5,
+            Deny_Object = 6,
+            Audit_Object = 7
         }
 
         public enum ACEFlags : uint
@@ -472,7 +475,13 @@ namespace Likewise.LMC.SecurityDesriptor
             INHERIT_ONLY_ACE = 0x8,
 
             //This is not set by clients, but is reported to clients when the source of an ACE is a parent namespace.
-            INHERITED_ACE = 0x10
+            INHERITED_ACE = 0x10,
+
+            VALID_INHERIT_FLAGS = 0x1F,
+
+            SUCCESSFUL_ACCESS = 0x40,
+
+            FAILED_ACCESS = 0x80
         }
 
         public enum AccessRights : uint
