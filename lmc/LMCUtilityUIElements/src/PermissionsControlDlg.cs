@@ -28,6 +28,8 @@ namespace Likewise.LMC.UtilityUIElements
 
         #endregion
 
+        #region Event Handlers
+
         private void OKBtn_Click(object sender, EventArgs e)
         {
             //TODO; Need to get back the Security descrupotro edited values.
@@ -41,9 +43,15 @@ namespace Likewise.LMC.UtilityUIElements
             Close();
         }
 
-        #region Event Handlers
+        #endregion
 
+        #region Helper functions
 
+        public void FillSecurityDescriptorsUserGroupList(
+                        SecurityDescriptor securityDescriptor)
+        {
+
+        }
 
         #endregion
     }
