@@ -113,12 +113,13 @@ typedef struct __REG_ENTRY_VERSION_INFO
 typedef struct __REG_ENTRY
 {
    REG_ENTRY_VERSION_INFO version;
-   PSTR pszKeyName;
+   PWSTR pwszKeyName;
    REG_DATA_TYPE type;
-   PSTR pszValueName;
-   PSTR pszValue;
+   PWSTR pwszValueName;
+   PBYTE pValue;
+   DWORD dwValueLen;
+  // PSTR pszValue;
 } REG_ENTRY, *PREG_ENTRY;
-
 
 
 NTSTATUS
@@ -140,17 +141,36 @@ RegSqliteReadUInt32(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
-    DWORD *pdwResult);
+    DWORD *pdwResult
+    );
+
+NTSTATUS
+RegSqliteReadBlob(
+	sqlite3_stmt *pstQuery,
+	int *piColumnPos,
+	PCSTR name,
+	PBYTE* ppValue,
+	PDWORD pdwValueLen
+	);
 
 NTSTATUS
 RegSqliteReadString(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
-    PSTR *ppszResult);
+    PSTR *ppszResult
+    );
 
 NTSTATUS
-RegSqliteReadWcString(
+RegSqliteReadWC16String(
+    sqlite3_stmt *pstQuery,
+    int *piColumnPos,
+    PCSTR name,
+    PWSTR *ppwszResult
+    );
+
+NTSTATUS
+RegSqliteReadWC16String(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
     PCSTR name,
@@ -172,6 +192,14 @@ RegSqliteBindInt32(
     );
 
 NTSTATUS
+RegSqliteBindBlob(
+	IN OUT sqlite3_stmt* pstQuery,
+	IN int Index,
+	IN BYTE* Value,
+	IN DWORD dwValueLen
+	);
+
+NTSTATUS
 RegSqliteReadTimeT(
     sqlite3_stmt *pstQuery,
     int *piColumnPos,
@@ -183,6 +211,13 @@ RegSqliteBindString(
     IN OUT sqlite3_stmt* pstQuery,
     IN int Index,
     IN PCSTR pszValue
+    );
+
+NTSTATUS
+RegSqliteBindStringW(
+    IN OUT sqlite3_stmt* pstQuery,
+    IN int Index,
+    IN PCWSTR pwszValue
     );
 
 NTSTATUS

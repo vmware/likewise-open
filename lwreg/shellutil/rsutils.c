@@ -166,6 +166,7 @@ RegShellCanonicalizePath(
             }
         }
     }
+
     if (ppszSubKey)
     {
         pszTmp = strrchr(pszNewPath, '\\');
@@ -179,14 +180,16 @@ RegShellCanonicalizePath(
             dwError = RegCStringDuplicate(ppszSubKey, "");
             BAIL_ON_REG_ERROR(dwError);
         }
-
     }
+
     if (ppszFullPath)
     {
         *ppszFullPath = pszNewPath;
+        pszNewPath = NULL;
     }
 
 cleanup:
+    LWREG_SAFE_FREE_STRING(pszNewPath);
     LWREG_SAFE_FREE_MEMORY(pszStrtokValue);
     return dwError;
 
@@ -247,9 +250,12 @@ RegShellUtilAddKey(
     HANDLE hReg,
     PSTR pszRootKeyName,
     PSTR pszDefaultKey,
-    PSTR pszKeyName)
+    PSTR pszKeyName,
+    BOOLEAN bDoBail
+    )
 {
-    HANDLE hRegLocal = NULL;
+	DWORD dwError = 0;
+	HANDLE hRegLocal = NULL;
     HKEY pNextKey = NULL;
     HKEY pRootKey = NULL;
     HKEY pCurrentKey = NULL; //key that to be performed more operations on
@@ -260,7 +266,6 @@ RegShellUtilAddKey(
     PSTR pszFullPath = NULL;
     PSTR pszSubKey = NULL;
 
-    DWORD dwError = 0;
 
     if (!hReg)
     {
@@ -290,7 +295,7 @@ RegShellUtilAddKey(
 	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszToken);
 	BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegCreateKeyExW(
+	dwError = RegCreateKeyExW(
             hReg,
             pCurrentKey,
             pwszSubKey,
@@ -301,7 +306,20 @@ RegShellUtilAddKey(
             NULL,
             &pNextKey,
             NULL);
-        BAIL_ON_REG_ERROR(dwError);
+	if (LWREG_ERROR_KEYNAME_EXIST == dwError)
+	{
+		if (strcasecmp(pszToken, pszSubKey) || !bDoBail)
+		{
+		dwError = RegOpenKeyExW(hReg,
+				                pCurrentKey,
+				                pwszSubKey,
+				                0,
+				                0,
+				                &pNextKey);
+		BAIL_ON_REG_ERROR(dwError);
+		}
+	}
+	BAIL_ON_REG_ERROR(dwError);
 
         LWREG_SAFE_FREE_MEMORY(pwszSubKey);
 
@@ -323,10 +341,13 @@ cleanup:
     {
         RegCloseKey(hReg, pCurrentKey);
     }
+    LWREG_SAFE_FREE_STRING(pszFullPath);
+    LWREG_SAFE_FREE_STRING(pszSubKey);
+    LWREG_SAFE_FREE_MEMORY(pwszSubKey);
+
     return dwError;
 
 error:
-    LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     goto cleanup;
 }
 
@@ -1163,6 +1184,7 @@ RegShellUtilGetValue(
             if (ppszValue)
             {
                 *ppszValue = pRetData;
+                pRetData = NULL;
             }
             if (pdwValueLen)
             {
@@ -1202,6 +1224,7 @@ RegShellUtilGetValue(
             if (ppData)
             {
                 *ppData = pRetData;
+                pRetData = NULL;
             }
             if (pdwValueLen)
             {
@@ -1242,6 +1265,7 @@ RegShellUtilGetValue(
     }
 
 cleanup:
+    LWREG_SAFE_FREE_MEMORY(pRetData);
     RegCloseServer(hRegLocal);
     if (hFullKeyName)
     {

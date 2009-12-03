@@ -76,11 +76,140 @@
     "    ValueName text COLLATE NOCASE,\n" \
     "    Type integer,\n" \
     "    Value blob COLLATE NOCASE,\n" \
-    "    UNIQUE (KeyName, ValueName, Type)\n" \
+    "    UNIQUE (KeyName, ValueName)\n" \
     "    );\n" \
     _REG_DB_SQL_CREATE_INDEX(REG_DB_TABLE_NAME_ENTRIES, "CacheId") \
     "\n" \
     ""
+
+#define REG_DB_INSERT_REG_ENTRY "INSERT INTO " REG_DB_TABLE_NAME_ENTRIES " (" \
+                                "CacheId," \
+                                "KeyName," \
+                                "ValueName," \
+                                "Type," \
+                                "Value) " \
+                                "VALUES (?1,?2,?3,?4,?5)" \
+                                ""
+
+#define REG_DB_REPLACE_REG_ENTRY "REPLACE INTO " REG_DB_TABLE_NAME_ENTRIES " (" \
+                                 "CacheId," \
+                                 "KeyName," \
+                                 "ValueName," \
+                                 "Type," \
+                                 "Value) " \
+                                 "VALUES (?1,?2,?3,?4,?5)" \
+
+#define REG_DB_UPDATE_CACHEID_ENTRY "update " REG_DB_TABLE_NAME_CACHE_TAGS " set " \
+                        "LastUpdated = ?1 " \
+                        "where CacheId = ?2;\n" \
+
+#define REG_DB_UPDATE_REG_ENTRY "update " REG_DB_TABLE_NAME_ENTRIES " set " \
+                        "CacheId = ?1, " \
+                        "Value = ?2 " \
+                        "where KeyName = ?3 and ValueName = ?4 and Type = ?5" \
+
+#define REG_DB_DELETE_CACHEID_ENTRY "DELETE from " \
+	          REG_DB_TABLE_NAME_CACHE_TAGS " where CacheId IN " \
+              "( select CacheId from " \
+              REG_DB_TABLE_NAME_ENTRIES " where KeyName = ?1 and ValueName = ?2) " \
+
+#define REG_DB_OPEN_KEY_EX "select " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".LastUpdated, " \
+            REG_DB_TABLE_NAME_ENTRIES ".KeyName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".ValueName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Type, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Value " \
+            "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " " \
+            "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type = 21" \
+
+#define REG_DB_QUERY_KEY_VALUE  "select " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".LastUpdated, " \
+            REG_DB_TABLE_NAME_ENTRIES ".KeyName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".ValueName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Type, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Value " \
+            "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " " \
+            "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".ValueName = ?2 " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type != 21" \
+
+#define REG_DB_QUERY_SUBKEY_COUNT  "select COUNT (*) as subkeyCount " \
+			"from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " " \
+			"where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId " \
+					"AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName LIKE ?1  || '\\%' " \
+					"AND NOT " REG_DB_TABLE_NAME_ENTRIES ".KeyName LIKE ?1  || '\\%\\%' " \
+					"AND " REG_DB_TABLE_NAME_ENTRIES ".Type = 21" \
+
+#define REG_DB_QUERY_VALUE_COUNT   "select COUNT (*) as valueCount " \
+			"from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " " \
+			"where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId " \
+					"AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 " \
+					"AND " REG_DB_TABLE_NAME_ENTRIES ".Type != 21" \
+
+#define REG_DB_DELETE_KEY "delete from "  REG_DB_TABLE_NAME_ENTRIES " " \
+            "where " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1" \
+
+#define REG_DB_QUERY_SUBKEYS       "select " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".LastUpdated, " \
+            REG_DB_TABLE_NAME_ENTRIES ".KeyName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".ValueName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Type, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Value " \
+            "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " " \
+            "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName LIKE ?1  || '\\%' " \
+                    "AND NOT " REG_DB_TABLE_NAME_ENTRIES ".KeyName LIKE ?1  || '\\%\\%' " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type = 21 " \
+                    "LIMIT ?2 OFFSET ?3" \
+
+#define REG_DB_QUERY_VALUES         "select " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".LastUpdated, " \
+            REG_DB_TABLE_NAME_ENTRIES ".KeyName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".ValueName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Type, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Value " \
+            "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " " \
+            "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type != 21 " \
+                    "LIMIT ?2 OFFSET ?3" \
+
+#define REG_DB_DELETE_KEYVALUE  "delete from "  REG_DB_TABLE_NAME_ENTRIES " " \
+            "where " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1" \
+            "AND " REG_DB_TABLE_NAME_ENTRIES ".ValueName = ?2" \
+
+#define REG_DB_QUERY_KEYVALUE_WITHTYPE  "select " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, " \
+            REG_DB_TABLE_NAME_CACHE_TAGS ".LastUpdated, " \
+            REG_DB_TABLE_NAME_ENTRIES ".KeyName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".ValueName, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Type, " \
+            REG_DB_TABLE_NAME_ENTRIES ".Value " \
+            "from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " " \
+            "where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".ValueName = ?2 " \
+                    "AND " REG_DB_TABLE_NAME_ENTRIES ".Type = ?3" \
+
+#define REG_DB_QUERY_KEYVALUE_WITHWRONGTYPE "select " \
+			REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId, " \
+			REG_DB_TABLE_NAME_CACHE_TAGS ".LastUpdated, " \
+			REG_DB_TABLE_NAME_ENTRIES ".KeyName, " \
+			REG_DB_TABLE_NAME_ENTRIES ".ValueName, " \
+			REG_DB_TABLE_NAME_ENTRIES ".Type, " \
+			REG_DB_TABLE_NAME_ENTRIES ".Value " \
+			"from " REG_DB_TABLE_NAME_CACHE_TAGS ", " REG_DB_TABLE_NAME_ENTRIES " " \
+			"where " REG_DB_TABLE_NAME_CACHE_TAGS ".CacheId = " REG_DB_TABLE_NAME_ENTRIES ".CacheId " \
+					"AND " REG_DB_TABLE_NAME_ENTRIES ".KeyName = ?1 " \
+					"AND " REG_DB_TABLE_NAME_ENTRIES ".ValueName = ?2 " \
+					"AND " REG_DB_TABLE_NAME_ENTRIES ".Type != ?3" \
 
 #endif /* __SQLCACHE_CREATE_H__ */
 

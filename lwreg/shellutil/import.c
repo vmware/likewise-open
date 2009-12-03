@@ -118,6 +118,17 @@ ProcessImportedKeyName(
             (PHKEY) &pNewKey,
             (PDWORD) NULL
             );
+        if (LWREG_ERROR_KEYNAME_EXIST == dwError)
+        {
+		// Key has already been created (open it).
+		dwError = RegOpenKeyExW((HANDLE)hReg,
+				                hCurrKey,
+		                        pSubKey,
+		                        0,
+		                        (REGSAM)0,
+		                        (PHKEY) &pNewKey);
+		BAIL_ON_REG_ERROR(dwError);
+        }
         BAIL_ON_REG_ERROR(dwError);
 
         LWREG_SAFE_FREE_MEMORY(pSubKey);

@@ -52,12 +52,12 @@
 
 PREG_KEY_CONTEXT
 SqliteCacheLocateActiveKey(
-    IN PCSTR pszKeyName
+    IN PCWSTR pwszKeyName
     );
 
 PREG_KEY_CONTEXT
 SqliteCacheLocateActiveKey_inlock(
-    IN PCSTR pszKeyName
+    IN PCWSTR pwszKeyName
     );
 
 NTSTATUS
@@ -72,32 +72,32 @@ SqliteCacheInsertActiveKey_inlock(
 
 VOID
 SqliteCacheDeleteActiveKey(
-    IN PSTR pszKeyName
+    IN PWSTR pszKeyName
     );
 
 VOID
 SqliteCacheDeleteActiveKey_inlock(
-    IN PSTR pszKeyName
+    IN PWSTR pwszKeyName
     );
 
 void
 SqliteCacheResetParentKeySubKeyInfo(
-    IN PSTR pszParentKeyName
+    IN PCWSTR pwszParentKeyName
     );
 
 void
 SqliteCacheResetParentKeySubKeyInfo_inlock(
-    IN PSTR pszParentKeyName
+    IN PCWSTR pwszParentKeyName
     );
 
 void
 SqliteCacheResetKeyValueInfo(
-    IN PSTR pszKeyName
+    IN PCWSTR pwszKeyName
     );
 
 void
 SqliteCacheResetKeyValueInfo_inlock(
-    IN PSTR pszKeyName
+    IN PCWSTR pwszKeyName
     );
 
 VOID
@@ -117,21 +117,18 @@ SqliteCacheFreeHashEntry(
 
 NTSTATUS
 SqliteCacheSubKeysInfo_inlock(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
 NTSTATUS
 SqliteCacheSubKeysInfo(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
 NTSTATUS
 SqliteCacheUpdateSubKeysInfo_inlock(
     IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumSubKeys
     );
 
@@ -139,27 +136,23 @@ NTSTATUS
 SqliteCacheUpdateSubKeysInfo(
     IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumSubKeys
     );
 
 NTSTATUS
 SqliteCacheKeyValuesInfo_inlock(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
 NTSTATUS
 SqliteCacheKeyValuesInfo(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
 NTSTATUS
 SqliteCacheUpdateValuesInfo_inlock(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumValues
     );
 
@@ -167,7 +160,6 @@ NTSTATUS
 SqliteCacheUpdateValuesInfo(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumValues
     );
 

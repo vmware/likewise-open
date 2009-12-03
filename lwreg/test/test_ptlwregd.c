@@ -94,7 +94,7 @@ ThreadTestAddKey(
                       dwKeyNum);
             BAIL_ON_REG_ERROR(dwError);
 
-            dwError = RegShellUtilAddKey(hReg, NULL, pszKeyPath, pszKeyName);
+            dwError = RegShellUtilAddKey(hReg, NULL, pszKeyPath, pszKeyName, FALSE);
             BAIL_ON_REG_ERROR(dwError);
 
             printf("    >>ThreadTestAddKey: %d %s\\%s\n",
@@ -109,7 +109,7 @@ ThreadTestAddKey(
                       pszKeyName);
             BAIL_ON_REG_ERROR(dwError);
 
-            dwError = RegShellUtilAddKey(hReg, NULL, pszSubKeyPath, pszKeyName);
+            dwError = RegShellUtilAddKey(hReg, NULL, pszSubKeyPath, pszKeyName, FALSE);
             BAIL_ON_REG_ERROR(dwError);
 
             printf("    >>ThreadTestAddKey: %d %s\\%s\n",

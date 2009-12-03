@@ -63,27 +63,23 @@ typedef struct __REG_KEY_CONTEXT
     pthread_rwlock_t mutex;
     pthread_rwlock_t* pMutex;
 
-    PSTR pszKeyName;
-    PSTR pszParentKeyName;
+    PWSTR pwszKeyName;
+    PWSTR pwszParentKeyName;
 
     DWORD dwNumSubKeys;
     DWORD dwNumCacheSubKeys;
-    size_t sMaxSubKeyALen; //Ansi length
     size_t sMaxSubKeyLen;
-    PSTR* ppszSubKeyNames;
-    BOOLEAN bHasSubKeyAInfo;
+    PWSTR* ppwszSubKeyNames;
     BOOLEAN bHasSubKeyInfo;
 
     DWORD dwNumValues;
     DWORD dwNumCacheValues;
-    size_t sMaxValueNameALen; //Ansi length
     size_t sMaxValueNameLen;
-    size_t sMaxValueALen; //Ansi lenngth
     size_t sMaxValueLen;
     PREG_DATA_TYPE pTypes;
-    PSTR* ppszValueNames;
-    PSTR* ppszValues;
-    BOOLEAN bHasValueAInfo;
+    PWSTR* ppwszValueNames;
+    PBYTE* ppValues;
+    PDWORD pdwValueLen;
     BOOLEAN bHasValueInfo;
 
 } REG_KEY_CONTEXT, *PREG_KEY_CONTEXT;
@@ -323,7 +319,7 @@ RegSrvSetValueExW(
 
 BOOLEAN
 RegSrvIsValidKeyName(
-    PSTR pszKeyName
+    PCWSTR pwszKeyName
     );
 
 
@@ -345,11 +341,6 @@ RegSrvResetSubKeyInfo(
     );
 
 BOOLEAN
-RegSrvHasSubKeyAInfo(
-    IN PREG_KEY_CONTEXT pKeyResult
-    );
-
-BOOLEAN
 RegSrvHasSubKeyInfo(
     IN PREG_KEY_CONTEXT pKeyResult
     );
@@ -364,7 +355,7 @@ RegSrvSubKeyNameMaxLen(
     IN PREG_KEY_CONTEXT pKeyResult
     );
 
-PCSTR
+PCWSTR
 RegSrvSubKeyName(
     IN PREG_KEY_CONTEXT pKeyResult,
     IN DWORD dwIndex
@@ -373,11 +364,6 @@ RegSrvSubKeyName(
 void
 RegSrvResetValueInfo(
     IN OUT PREG_KEY_CONTEXT pKeyResult
-    );
-
-BOOLEAN
-RegSrvHasValueAInfo(
-    IN PREG_KEY_CONTEXT pKeyResult
     );
 
 BOOLEAN
@@ -400,16 +386,18 @@ RegSrvMaxValueLen(
     IN PREG_KEY_CONTEXT pKeyResult
     );
 
-PCSTR
+PCWSTR
 RegSrvValueName(
     IN PREG_KEY_CONTEXT pKeyResult,
     DWORD dwIndex
     );
 
-PCSTR
+void
 RegSrvValueContent(
     IN PREG_KEY_CONTEXT pKeyResult,
-    DWORD dwIndex
+    DWORD dwIndex,
+    PBYTE* ppValue,
+    PDWORD pdwValueLen
     );
 
 REG_DATA_TYPE

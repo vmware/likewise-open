@@ -47,6 +47,8 @@
  */
 #include "includes.h"
 
+#define REG_EMPTY_VALUE_NAME_W {0}
+
 static
 REG_DATA_TYPE
 GetRegDataType(
@@ -56,7 +58,7 @@ GetRegDataType(
 DWORD
 SqliteProvider_Initialize(
     PREGPROV_PROVIDER_FUNCTION_TABLE* ppFnTable,
-    const PSTR* ppszRootKeyNames
+    const PWSTR* ppwszRootKeyNames
     )
 {
     DWORD dwError = ERROR_SUCCESS;
@@ -68,8 +70,8 @@ SqliteProvider_Initialize(
 
     dwError = RegHashCreate(
                     2 * 1024,
-                    RegHashCaselessStringCompare,
-                    RegHashCaselessStringHash,
+                    RegHashCaselessWC16StringCompare,
+                    RegHashCaselessWc16String,
                     SqliteCacheFreeHashEntry,
                     NULL,
                     &gActiveKeyList.pKeyList);
@@ -77,7 +79,14 @@ SqliteProvider_Initialize(
 
     for (iCount = 0; iCount < NUM_ROOTKEY; iCount++)
     {
-	dwError = SqliteCreateKeyInternal(ppszRootKeyNames[iCount], NULL, NULL);
+	dwError = RegNtStatusToWin32Error(
+			                   SqliteCreateKeyInternal(ppwszRootKeyNames[iCount],
+							                   NULL,
+							                   NULL));
+	if (LWREG_ERROR_KEYNAME_EXIST == dwError)
+	{
+		dwError = 0;
+	}
         BAIL_ON_REG_ERROR(dwError);
     }
 
@@ -134,7 +143,7 @@ SqliteCreateKeyEx(
     BAIL_ON_NT_INVALID_POINTER(pSubKey);
 
     status =  SqliteCreateKeyInternal(
-               pKey->pszKeyName,
+               pKey->pwszKeyName,
                pSubKey,
                phkResult);
     BAIL_ON_NT_STATUS(status);
@@ -155,19 +164,18 @@ SqliteOpenKeyEx(
 {
 	NTSTATUS status = STATUS_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PSTR pszRootKeyName = NULL;
 
     if (pKey)
     {
-        if (LW_IS_NULL_OR_EMPTY_STR(pKey->pszKeyName))
+        if (LW_IS_NULL_OR_EMPTY_STR(pKey->pwszKeyName))
         {
             status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
         }
 
-        status = SqliteOpenKeyInternal(pKey->pszKeyName,
-                                        pwszSubKey,
-                                        phkResult);
+        status = SqliteOpenKeyInternal(pKey->pwszKeyName,
+                                       pwszSubKey,
+                                       phkResult);
         BAIL_ON_NT_STATUS(status);
     }
     else
@@ -178,21 +186,11 @@ SqliteOpenKeyEx(
             BAIL_ON_NT_STATUS(status);
         }
 
-	status = LwRtlCStringAllocateFromWC16String(&pszRootKeyName, pwszSubKey);
-        BAIL_ON_NT_STATUS(status);
-
-        if (LW_IS_NULL_OR_EMPTY_STR(pszRootKeyName))
-        {
-            status = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(status);
-        }
-
-        status = SqliteOpenKeyInternal(pszRootKeyName, NULL, phkResult);
+        status = SqliteOpenKeyInternal(pwszSubKey, NULL, phkResult);
         BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszRootKeyName);
 
     return status;
 
@@ -217,33 +215,27 @@ SqliteDeleteKey(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PSTR pszSubKey = NULL;
-    PSTR pszKeyName = NULL;
-    PSTR pszParentKeyName = NULL;
+    PWSTR pwszKeyName = NULL;
+
 
     BAIL_ON_INVALID_KEY(pKey);
     BAIL_ON_NT_INVALID_POINTER(pSubKey);
 
-	status = LwRtlCStringAllocateFromWC16String(&pszSubKey, pSubKey);
+    status = LwRtlWC16StringAllocatePrintfW(
+                    &pwszKeyName,
+                    L"%ws\\%ws",
+                    pKey->pwszKeyName,
+                    pSubKey);
     BAIL_ON_NT_STATUS(status);
 
-    status = LwRtlCStringAllocatePrintf(
-                   &pszKeyName,
-                   "%s\\%s",
-                   pKey->pszKeyName,
-                   pszSubKey);
+    status = SqliteDeleteActiveKey((PCWSTR)pwszKeyName);
     BAIL_ON_NT_STATUS(status);
 
-    status = SqliteDeleteActiveKey(pszKeyName);
-    BAIL_ON_NT_STATUS(status);
-
-    status = SqliteDeleteKeyInternal(pszKeyName);
+    status = SqliteDeleteKeyInternal(pwszKeyName);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszSubKey);
-    LWREG_SAFE_FREE_STRING(pszKeyName);
-    LWREG_SAFE_FREE_STRING(pszParentKeyName);
+    LWREG_SAFE_FREE_MEMORY(pwszKeyName);
 
     return status;
 
@@ -279,17 +271,17 @@ SqliteQueryInfoKey(
 
     BAIL_ON_INVALID_KEY(pKey);
 
-    status = SqliteOpenKeyInternal(pKey->pszKeyName,
-                                    NULL,
-                                    (PHKEY) &pKeyResult);
+    status = SqliteOpenKeyInternal(pKey->pwszKeyName,
+                                   NULL,
+                                   (PHKEY) &pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    status = SqliteCacheSubKeysInfo_inlock(pKeyResult, FALSE);
+    status = SqliteCacheSubKeysInfo_inlock(pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
-    status = SqliteCacheKeyValuesInfo_inlock(pKeyResult, FALSE);
+    status = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
     if (pKeyResult->dwNumSubKeys > pKeyResult->dwNumCacheSubKeys)
@@ -300,7 +292,6 @@ SqliteQueryInfoKey(
             status = SqliteCacheUpdateSubKeysInfo_inlock(
                               dwOffset,
                               pKeyResult,
-                              FALSE,
                               &sNumSubKeys);
             BAIL_ON_NT_STATUS(status);
 
@@ -316,7 +307,6 @@ SqliteQueryInfoKey(
             status = SqliteCacheUpdateValuesInfo_inlock(
                               dwOffset,
                               pKeyResult,
-                              FALSE,
                               &sNumValues);
             BAIL_ON_NT_STATUS(status);
 
@@ -394,6 +384,7 @@ SqliteEnumKeyEx(
     // Do not free if it is an active key
     PREG_KEY_CONTEXT pKeyResult = NULL;
     size_t sSubKeyLen = 0;
+    // Do not free
     PWSTR pSubKeyName = NULL;
     BOOLEAN bInLock = FALSE;
     size_t sNumSubKeys = 0;
@@ -404,8 +395,8 @@ SqliteEnumKeyEx(
     BAIL_ON_NT_INVALID_POINTER(pName); // the size of pName is *pcName
     BAIL_ON_NT_INVALID_POINTER(pcName);
 
-    status = SqliteOpenKeyInternal(pKey->pszKeyName,
-                                    NULL,
+    status = SqliteOpenKeyInternal(pKey->pwszKeyName,
+                                   NULL,
                                    (PHKEY) &pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
@@ -414,7 +405,7 @@ SqliteEnumKeyEx(
     //Try to grab information from pKeyResults:
     //if subkey information is not yet available in pKeyResult, do it here
     //Otherwise, use this information
-    status = SqliteCacheSubKeysInfo_inlock(pKeyResult, FALSE);
+    status = SqliteCacheSubKeysInfo_inlock(pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
     if (!pKeyResult->dwNumSubKeys)
@@ -430,24 +421,17 @@ SqliteEnumKeyEx(
 
     if (dwIndex < pKeyResult->dwNumCacheSubKeys)
     {
-	status = LwRtlWC16StringAllocateFromCString(&pSubKeyName,
-			                                     pKeyResult->ppszSubKeyNames[dwIndex]);
-	BAIL_ON_NT_STATUS(status);
-
-        if (pSubKeyName)
-        {
-		sSubKeyLen = RtlWC16StringNumChars(pSubKeyName);
-        }
+	pSubKeyName = pKeyResult->ppwszSubKeyNames[dwIndex];
     }
     else
     {
-        status = RegDbQueryInfoKey(ghCacheConnection,
-                                    pKeyResult->pszKeyName,
-                                    QuerySubKeys,
-                                    1,
-                                    dwIndex,
-                                    &sNumSubKeys,
-                                    &ppRegEntries);
+	status = RegDbQueryInfoKey(ghCacheConnection,
+			                   pKey->pwszKeyName,
+                                   QuerySubKeys,
+                                   1,
+                                   dwIndex,
+                                   &sNumSubKeys,
+                                   &ppRegEntries);
         BAIL_ON_NT_STATUS(status);
 
         if (sNumSubKeys != 1)
@@ -456,14 +440,12 @@ SqliteEnumKeyEx(
             BAIL_ON_NT_STATUS(status);
         }
 
-	status = LwRtlWC16StringAllocateFromCString(&pSubKeyName,
-			                                     ppRegEntries[0]->pszKeyName);
-	BAIL_ON_NT_STATUS(status);
+        pSubKeyName = ppRegEntries[0]->pwszKeyName;
+    }
 
-        if (pSubKeyName)
-        {
-		sSubKeyLen = RtlWC16StringNumChars(pSubKeyName);
-        }
+    if (pSubKeyName)
+    {
+	sSubKeyLen = RtlWC16StringNumChars(pSubKeyName);
     }
 
     if (*pcName < sSubKeyLen+1)
@@ -479,7 +461,6 @@ SqliteEnumKeyEx(
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
 
-    LWREG_SAFE_FREE_MEMORY(pSubKeyName);
     RegDbSafeFreeEntryList(sNumSubKeys,&ppRegEntries);
     SqliteCacheReleaseKey(pKeyResult);
 
@@ -504,12 +485,12 @@ SqliteSetValueEx(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PSTR    pszValueName = NULL;
-    PSTR    pszValue = NULL;
+    PWSTR   pwszValueName = NULL;
     PWSTR   pwcValue = NULL;
-    DWORD   dwValue = 0;
-    BOOLEAN bIsWrongType = TRUE;
     PWSTR*  ppwszOutMultiSz = NULL;
+    BOOLEAN bIsWrongType = TRUE;
+    wchar16_t wszEmptyValueName[] = REG_EMPTY_VALUE_NAME_W;
+
 
     BAIL_ON_INVALID_KEY(pKey);
 
@@ -519,23 +500,15 @@ SqliteSetValueEx(
 	BAIL_ON_NT_STATUS(status);
     }
 
-    if (!pValueName)
-    {
-        status = LwRtlCStringDuplicate(&pszValueName, "");
-        BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-	status = LwRtlCStringAllocateFromWC16String(&pszValueName, pValueName);
-        BAIL_ON_NT_STATUS(status);
-    }
+    status = LwRtlWC16StringDuplicate(&pwszValueName, !pValueName ? wszEmptyValueName : pValueName);
+    BAIL_ON_NT_STATUS(status);
 
     status = RegDbGetKeyValue(ghCacheConnection,
-                               pKey->pszKeyName,
-                               pszValueName,
-                               (REG_DATA_TYPE)dwType,
-                               &bIsWrongType,
-                               NULL);
+		                  (PCWSTR)pKey->pwszKeyName,
+		                  (PCWSTR)pwszValueName,
+                              (REG_DATA_TYPE)dwType,
+                              &bIsWrongType,
+                              NULL);
     if (!status)
     {
         status = STATUS_DUPLICATE_NAME;
@@ -555,11 +528,7 @@ SqliteSetValueEx(
     switch (dwType)
     {
         case REG_BINARY:
-            status = RegByteArrayToHexStr((UCHAR*)pData,
-                                          cbData,
-                                          &pszValue);
-            BAIL_ON_NT_STATUS(status);
-
+        case REG_DWORD:
             break;
 
         case REG_MULTI_SZ:
@@ -576,22 +545,6 @@ SqliteSetValueEx(
                 BAIL_ON_NT_STATUS(status);
             }
 
-			status = RegByteArrayToHexStr((PBYTE)pData,
-										  cbData,
-										  &pszValue);
-			BAIL_ON_NT_STATUS(status);
-
-            break;
-
-        case REG_DWORD:
-            dwValue = *(DWORD*)&pData[0];
-
-            /* Maximum size for a 4 byte integer converted to a string */
-            status = LW_RTL_ALLOCATE((PVOID*)&pszValue, UCHAR, 32+1);
-            BAIL_ON_NT_STATUS(status);
-
-            sprintf(pszValue, "%d", dwValue);
-
             break;
 
         default:
@@ -600,19 +553,19 @@ SqliteSetValueEx(
     }
 
 done:
-    status = RegDbCreateKeyValue(ghCacheConnection,
-                                  pKey->pszKeyName,
-                                  pszValueName,
-                                  pszValue,
-                                  (REG_DATA_TYPE)dwType,
-                                  NULL);
+    status = RegDbSetKeyValue(ghCacheConnection,
+		                  (PCWSTR)pKey->pwszKeyName,
+							  (PCWSTR)pwszValueName,
+						       (const PBYTE)pData,
+						       cbData,
+							  (REG_DATA_TYPE)dwType,
+							  NULL);
     BAIL_ON_NT_STATUS(status);
 
-    SqliteCacheResetKeyValueInfo(pKey->pszKeyName);
+    SqliteCacheResetKeyValueInfo(pKey->pwszKeyName);
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszValueName);
-    LWREG_SAFE_FREE_STRING(pszValue);
+    LWREG_SAFE_FREE_MEMORY(pwszValueName);
     LWREG_SAFE_FREE_MEMORY(pwcValue);
     if (ppwszOutMultiSz)
     {
@@ -630,7 +583,7 @@ SqliteGetValue(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
+    IN OPTIONAL PCWSTR pValueName,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,
@@ -639,63 +592,50 @@ SqliteGetValue(
 {
 	NTSTATUS status = STATUS_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PSTR pszKeyWithSubKeyName = NULL;
+    PWSTR pwszKeyWithSubKeyName = NULL;
     //Do not free
-    PSTR pszKeyName = NULL;
-    PSTR pszSubKey = NULL;
-    PSTR pszValueName = NULL;
+    PWSTR pwszKeyName = NULL;
+    PWSTR pwszValueName = NULL;
     PREG_ENTRY pRegEntry = NULL;
     BOOLEAN bIsWrongType = FALSE;
+    wchar16_t wszEmptyValueName[] = REG_EMPTY_VALUE_NAME_W;
 
 
     BAIL_ON_INVALID_KEY(pKey);
 
     if (pSubKey != NULL)
     {
-	status = LwRtlCStringAllocateFromWC16String(&pszSubKey, pSubKey);
-        BAIL_ON_NT_STATUS(status);
-
-        status = LwRtlCStringAllocatePrintf(
-                       &pszKeyWithSubKeyName,
-                       "%s\\%s",
-                       pKey->pszKeyName,
-                       pszSubKey);
+        status = LwRtlWC16StringAllocatePrintfW(
+                        &pwszKeyWithSubKeyName,
+                        L"%ws\\%ws",
+                        pKey->pwszKeyName,
+                        pSubKey);
         BAIL_ON_NT_STATUS(status);
     }
-    pszKeyName = pSubKey ? pszKeyWithSubKeyName : pKey->pszKeyName;
+    pwszKeyName = pSubKey ? pwszKeyWithSubKeyName : pKey->pwszKeyName;
 
-    if (!pValue)
-    {
-        status = LwRtlCStringDuplicate(&pszValueName, "");
-        BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-	status = LwRtlCStringAllocateFromWC16String(&pszValueName, pValue);
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = RegDbGetKeyValue(ghCacheConnection,
-                               pszKeyName,
-                               pszValueName,
-                               GetRegDataType(Flags),
-                               &bIsWrongType,
-                               &pRegEntry);
+    status = LwRtlWC16StringDuplicate(&pwszValueName, !pValueName ? wszEmptyValueName : pValueName);
     BAIL_ON_NT_STATUS(status);
 
-    status = RegGetValueAsBytes(pRegEntry->type,
-                              (PCSTR)pRegEntry->pszValue,
-                              FALSE,
-                              pData,
-                              pcbData);
+    status = RegDbGetKeyValue(ghCacheConnection,
+		                  pwszKeyName,
+		                  pwszValueName,
+                              GetRegDataType(Flags),
+                              &bIsWrongType,
+                              &pRegEntry);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RegCopyValueBytes(pRegEntry->pValue,
+		                   pRegEntry->dwValueLen,
+                               pData,
+                               pcbData);
     BAIL_ON_NT_STATUS(status);
 
     *pdwType = (DWORD)pRegEntry->type;
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszKeyWithSubKeyName);
-    LWREG_SAFE_FREE_STRING(pszSubKey);
-    LWREG_SAFE_FREE_STRING(pszValueName);
+    LWREG_SAFE_FREE_MEMORY(pwszKeyWithSubKeyName);
+    LWREG_SAFE_FREE_MEMORY(pwszValueName);
     RegDbSafeFreeEntry(&pRegEntry);
 
     return status;
@@ -716,59 +656,47 @@ SqliteDeleteKeyValue(
 {
 	NTSTATUS status = STATUS_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PSTR pszSubKey = NULL;
-    PSTR pszKeyNameWithSubKey = NULL;
-    PSTR pszValueName = NULL;
+    PWSTR pwszKeyWithSubKeyName = NULL;
+    PWSTR pwszValueName = NULL;
     // Do not free
-    PSTR pszKeyName = NULL;
+    PCWSTR pwszKeyName = NULL;
+    wchar16_t wszEmptyValueName[] = REG_EMPTY_VALUE_NAME_W;
 
     BAIL_ON_INVALID_KEY(pKey);
 
     if (pSubKey)
     {
-	status = LwRtlCStringAllocateFromWC16String(&pszSubKey, pSubKey);
-        BAIL_ON_NT_STATUS(status);
-
-        status = LwRtlCStringAllocatePrintf(
-                       &pszKeyNameWithSubKey,
-                       "%s\\%s",
-                       pKey->pszKeyName,
-                       pszSubKey);
+        status = LwRtlWC16StringAllocatePrintfW(
+                        &pwszKeyWithSubKeyName,
+                        L"%ws\\%ws",
+                        pKey->pwszKeyName,
+                        pSubKey);
         BAIL_ON_NT_STATUS(status);
     }
 
-    pszKeyName = pSubKey ? pszKeyNameWithSubKey : pKey->pszKeyName;
+    pwszKeyName = pSubKey ? pwszKeyWithSubKeyName : pKey->pwszKeyName;
 
-    if (pValueName)
-    {
-	status = LwRtlCStringAllocateFromWC16String(&pszValueName, pValueName);
-        BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-        status = LwRtlCStringDuplicate(&pszValueName, "");
-        BAIL_ON_NT_STATUS(status);
-    }
+    status = LwRtlWC16StringDuplicate(&pwszValueName, !pValueName ? wszEmptyValueName : pValueName);
+    BAIL_ON_NT_STATUS(status);
 
     status = RegDbGetKeyValue(ghCacheConnection,
-                               pszKeyName,
-                               pszValueName,
-                               REG_UNKNOWN,
-                               NULL,
-                               NULL);
+		                  pwszKeyName,
+		                  pwszValueName,
+                              REG_UNKNOWN,
+                              NULL,
+                              NULL);
     BAIL_ON_NT_STATUS(status);
 
     status = RegDbDeleteKeyValue(ghCacheConnection,
-                                  pszKeyName,
-                                  pszValueName);
+		                     pwszKeyName,
+		                     pwszValueName);
     BAIL_ON_NT_STATUS(status);
 
-    SqliteCacheResetKeyValueInfo(pszKeyName);
+    SqliteCacheResetKeyValueInfo(pwszKeyName);
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszSubKey);
-    LWREG_SAFE_FREE_STRING(pszKeyNameWithSubKey);
-    LWREG_SAFE_FREE_STRING(pszValueName);
+    LWREG_SAFE_FREE_MEMORY(pwszKeyWithSubKeyName);
+    LWREG_SAFE_FREE_MEMORY(pwszValueName);
 
     return status;
 
@@ -785,38 +713,32 @@ SqliteDeleteValue(
 {
 	NTSTATUS status = STATUS_SUCCESS;
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
-    PSTR pszValueName = NULL;
+    PWSTR pwszValueName = NULL;
+    wchar16_t wszEmptyValueName[] = REG_EMPTY_VALUE_NAME_W;
+
 
     BAIL_ON_INVALID_KEY(pKey);
 
-    if (pValueName)
-    {
-	status = LwRtlCStringAllocateFromWC16String(&pszValueName, pValueName);
-        BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-	status = LwRtlCStringDuplicate(&pszValueName, "");
-        BAIL_ON_NT_STATUS(status);
-    }
+    status = LwRtlWC16StringDuplicate(&pwszValueName, !pValueName ? wszEmptyValueName : pValueName);
+    BAIL_ON_NT_STATUS(status);
 
     status = RegDbGetKeyValue(ghCacheConnection,
-                               pKey->pszKeyName,
-                               pszValueName,
-                               REG_UNKNOWN,
-                               NULL,
-                               NULL);
+		                  pKey->pwszKeyName,
+		                  pwszValueName,
+                              REG_UNKNOWN,
+                              NULL,
+                              NULL);
     BAIL_ON_NT_STATUS(status);
 
     status = RegDbDeleteKeyValue(ghCacheConnection,
-                                  pKey->pszKeyName,
-                                  pszValueName);
+		                     pKey->pwszKeyName,
+		                     pwszValueName);
     BAIL_ON_NT_STATUS(status);
 
-    SqliteCacheResetKeyValueInfo(pKey->pszKeyName);
+    SqliteCacheResetKeyValueInfo(pKey->pwszKeyName);
 
 cleanup:
-    LWREG_SAFE_FREE_STRING(pszValueName);
+    LWREG_SAFE_FREE_MEMORY(pwszValueName);
 
     return status;
 
@@ -842,20 +764,24 @@ SqliteEnumValue(
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
     PREG_KEY_CONTEXT pKeyResult = NULL;
     size_t sValueNameLen = 0;
-    PWSTR pValName = NULL;
     REG_DATA_TYPE valueType = REG_UNKNOWN;
     BOOLEAN bInLock = FALSE;
     size_t sNumValues = 0;
     PREG_ENTRY* ppRegEntries = NULL;
-    PSTR pszValueContent = NULL;
+    // Do not free
+    PBYTE pValueContent = NULL;
+    //Do not free
+    PWSTR pValName = NULL;
+    DWORD dwValueLen = 0;
 
 
     BAIL_ON_INVALID_KEY(pKey);
     BAIL_ON_NT_INVALID_POINTER(pValueName); // the size of pName is *pcName
     BAIL_ON_NT_INVALID_POINTER(pcchValueName);
 
-    status = SqliteOpenKeyInternal(pKey->pszKeyName,
-                                    NULL,
+
+    status = SqliteOpenKeyInternal(pKey->pwszKeyName,
+                                   NULL,
                                    (PHKEY) &pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
@@ -864,7 +790,7 @@ SqliteEnumValue(
     //Try to grab information from pKeyResults:
     //if subkey information is not yet available in pKeyResult, do it here
     //Otherwise, use this information
-    status = SqliteCacheKeyValuesInfo_inlock(pKeyResult, FALSE);
+    status = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
     if (!pKeyResult->dwNumValues)
@@ -880,13 +806,13 @@ SqliteEnumValue(
 
     if (dwIndex >= pKeyResult->dwNumCacheValues)
     {
-        status = RegDbQueryInfoKey(ghCacheConnection,
-                                    pKeyResult->pszKeyName,
-                                    QueryValues,
-                                    1,
-                                    dwIndex,
-                                    &sNumValues,
-                                    &ppRegEntries);
+	status = RegDbQueryInfoKey(ghCacheConnection,
+			                   pKey->pwszKeyName,
+                                   QueryValues,
+                                   1,
+                                   dwIndex,
+                                   &sNumValues,
+                                   &ppRegEntries);
         BAIL_ON_NT_STATUS(status);
 
         if (sNumValues != 1)
@@ -895,30 +821,17 @@ SqliteEnumValue(
             BAIL_ON_NT_STATUS(status);
         }
 
-	status = LwRtlWC16StringAllocateFromCString(&pValName,
-			                                     ppRegEntries[0]->pszValueName);
-	BAIL_ON_NT_STATUS(status);
-
+	pValName = ppRegEntries[0]->pwszValueName;
         valueType = ppRegEntries[0]->type;
-
-        if (ppRegEntries[0]->pszValue)
-        {
-            status = LwRtlCStringDuplicate(&pszValueContent,
-			                        ppRegEntries[0]->pszValue);
-            BAIL_ON_NT_STATUS(status);
-        }
+        dwValueLen = ppRegEntries[0]->dwValueLen;
+        pValueContent = ppRegEntries[0]->pValue;
     }
     else
     {
-	status = LwRtlWC16StringAllocateFromCString(&pValName,
-			                                     pKeyResult->ppszValueNames[dwIndex]);
-	BAIL_ON_NT_STATUS(status);
-
+	pValName = pKeyResult->ppwszValueNames[dwIndex];
         valueType = pKeyResult->pTypes[dwIndex];
-
-        status = LwRtlCStringDuplicate(&pszValueContent,
-			                        pKeyResult->ppszValues[dwIndex]);
-        BAIL_ON_NT_STATUS(status);
+        dwValueLen = pKeyResult->pdwValueLen[dwIndex];
+        pValueContent = pKeyResult->ppValues[dwIndex];
     }
 
     if (pValName)
@@ -932,17 +845,15 @@ SqliteEnumValue(
         BAIL_ON_NT_STATUS(status);
     }
 
-    memcpy(pValueName, pValName, sValueNameLen*sizeof(*pValueName));
-    pValueName[sValueNameLen] = (LW_WCHAR)'\0';
+    memcpy(pValueName, pValName, (sValueNameLen+1)*sizeof(*pValueName));
     *pcchValueName = (DWORD)sValueNameLen;
 
     if (pcbData)
     {
-        status = RegGetValueAsBytes(valueType,
-                                  pszValueContent,
-                                  FALSE,
-                                  pData,
-                                  pcbData);
+        status = RegCopyValueBytes(pValueContent,
+			                   dwValueLen,
+                                   pData,
+                                   pcbData);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -953,9 +864,6 @@ SqliteEnumValue(
 
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
-
-    LWREG_SAFE_FREE_STRING(pszValueContent);
-    LWREG_SAFE_FREE_MEMORY(pValName);
 
     RegDbSafeFreeEntryList(sNumValues,&ppRegEntries);
     SqliteCacheReleaseKey(pKeyResult);
@@ -1041,9 +949,6 @@ SqliteQueryMultipleValues(
     PREG_KEY_CONTEXT pKey = (PREG_KEY_CONTEXT)hKey;
     DWORD dwTotalSize = 0;
     PREG_ENTRY* ppRegEntries = NULL;
-    PSTR pszValueName = NULL;
-    PWSTR pSingleValue = NULL;
-    size_t sValueLen = 0;
     int iCount  = 0;
     int iOffSet = 0;
 
@@ -1063,33 +968,17 @@ SqliteQueryMultipleValues(
     {
 	BAIL_ON_NT_INVALID_POINTER(pVal_list[iCount].ve_valuename);
 
-	status = LwRtlCStringAllocateFromWC16String(&pszValueName, pVal_list[iCount].ve_valuename);
-        BAIL_ON_NT_STATUS(status);
-
         status = RegDbGetKeyValue(ghCacheConnection,
-                                   pKey->pszKeyName,
-                                   pszValueName,
-                                   REG_UNKNOWN,
-                                   NULL,
-                                   &ppRegEntries[iCount]);
+			                  pKey->pwszKeyName,
+			                  pVal_list[iCount].ve_valuename,
+                                  REG_UNKNOWN,
+                                  NULL,
+                                  &ppRegEntries[iCount]);
         BAIL_ON_NT_STATUS(status);
-        LWREG_SAFE_FREE_STRING(pszValueName);
-
-	status = LwRtlWC16StringAllocateFromCString(&pSingleValue,
-			                                     ppRegEntries[iCount]->pszValue);
-	BAIL_ON_NT_STATUS(status);
-
-        if (pSingleValue)
-        {
-		sValueLen = RtlWC16StringNumChars(pSingleValue);
-        }
 
         /* record val length */
-        pVal_list[iCount].ve_valuelen = (DWORD)sValueLen;
-        dwTotalSize += (DWORD)sValueLen;
-
-        sValueLen = 0;
-        LWREG_SAFE_FREE_MEMORY(pSingleValue);
+        pVal_list[iCount].ve_valuelen = (DWORD)ppRegEntries[iCount]->dwValueLen;
+        dwTotalSize += (DWORD)ppRegEntries[iCount]->dwValueLen;
     }
 
     if (!pVal_list)
@@ -1108,13 +997,7 @@ SqliteQueryMultipleValues(
         /* value type*/
         pVal_list[iCount].ve_type = ppRegEntries[iCount]->type;
 
-	status = LwRtlWC16StringAllocateFromCString(&pSingleValue,
-			                                     ppRegEntries[iCount]->pszValue);
-	BAIL_ON_NT_STATUS(status);
-
-        memcpy(pValue+iOffSet, pSingleValue, pVal_list[iCount].ve_valuelen*sizeof(*pSingleValue));
-
-        LWREG_SAFE_FREE_MEMORY(pSingleValue);
+        memcpy(pValue+iOffSet, ppRegEntries[iCount]->pValue, pVal_list[iCount].ve_valuelen*sizeof(*ppRegEntries[iCount]->pValue));
     }
 
 cleanup:
@@ -1124,8 +1007,6 @@ cleanup:
     }
 
     RegDbSafeFreeEntryList(num_vals, &ppRegEntries);
-    LWREG_SAFE_FREE_STRING(pszValueName);
-    LWREG_SAFE_FREE_MEMORY(pSingleValue);
 
     return status;
 

@@ -590,23 +590,14 @@ error:
 }
 
 NTSTATUS
-RegGetValueAsBytes(
-    IN REG_DATA_TYPE type,
-    IN PCSTR pszValue,
-    IN BOOLEAN bDoAnsi,
+RegCopyValueBytes(
+    IN PBYTE pValue,
+    IN DWORD dwValueLen,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
     )
 {
     NTSTATUS status = 0;
-    PBYTE   pTempData = NULL;
-    PBYTE   pTempData1 = NULL;
-    DWORD   dwValue = 0;
-    DWORD   cbData = 0;
-    DWORD   cbData1 = 0;
-    PWSTR   pwcValue = NULL;
-    PWSTR*  ppwszOutMultiSz = NULL;
-    PBYTE   pOutData = NULL;
 
     if (pData && !pcbData)
     {
@@ -614,14 +605,30 @@ RegGetValueAsBytes(
 	BAIL_ON_NT_STATUS(status);
     }
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszValue))
-	{
-        goto done;
+    if(pData && dwValueLen > *pcbData)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NT_STATUS(status);
     }
 
-    switch (type)
+    if (dwValueLen && pData)
+    {
+        memcpy(pData, pValue, dwValueLen);
+    }
+
+    if (pcbData)
+    {
+        *pcbData = dwValueLen;
+    }
+
+error:
+    return status;
+
+    /*switch (type)
     {
         case REG_BINARY:
+        case REG_MULTI_SZ:
+        case REG_SZ:
             status = RegHexStrToByteArray(
                            pszValue,
                            NULL,
@@ -638,97 +645,6 @@ RegGetValueAsBytes(
             if (pData)
             {
                 memcpy(pData, pTempData, cbData);
-            }
-
-            break;
-
-        case REG_MULTI_SZ:
-            status = RegHexStrToByteArray(
-                           pszValue,
-                           NULL,
-                           &pTempData1,
-                           &cbData1);
-            BAIL_ON_NT_STATUS(status);
-
-            if (bDoAnsi)
-            {
-                status = NtRegConvertByteStreamW2A(
-                                pTempData1,
-                                cbData1,
-                                &pTempData,
-                                &cbData);
-                BAIL_ON_NT_STATUS(status);
-
-                if (pData && cbData > *pcbData)
-                {
-                    status = STATUS_BUFFER_TOO_SMALL;
-                    BAIL_ON_NT_STATUS(status);
-                }
-
-                if (pData)
-                {
-                    memcpy(pData, pTempData, cbData);
-                }
-            }
-            else
-            {
-                if(pData && (DWORD)cbData1 > *pcbData)
-                {
-                    status = STATUS_BUFFER_TOO_SMALL;
-                    BAIL_ON_NT_STATUS(status);
-                }
-
-                if (pData)
-                {
-                    memcpy(pData, pTempData1, cbData1);
-                }
-
-                cbData = cbData1;
-            }
-
-            break;
-
-        case REG_SZ:
-
-            status = RegHexStrToByteArray(
-                           pszValue,
-                           NULL,
-                           &pTempData1,
-                           &cbData1);
-            BAIL_ON_NT_STATUS(status);
-
-            if (bDoAnsi)
-            {
-		status = LwRtlCStringAllocateFromWC16String((PSTR*)&pTempData, (PCWSTR)pTempData1);
-                BAIL_ON_NT_STATUS(status);
-
-		if(pData && strlen((PCSTR)pTempData) > *pcbData)
-                {
-                    status = STATUS_BUFFER_TOO_SMALL;
-                    BAIL_ON_NT_STATUS(status);
-                }
-                //value data length needs including NULL-terminator
-                cbData = strlen((PCSTR)pTempData)+1;
-
-                if (pData)
-                {
-                    memcpy(pData, pTempData, cbData);
-                }
-            }
-            else
-            {
-                if(pData && (DWORD)cbData1 > *pcbData)
-                {
-                    status = STATUS_BUFFER_TOO_SMALL;
-                    BAIL_ON_NT_STATUS(status);
-                }
-
-                if (pData)
-                {
-                    memcpy(pData, pTempData1, cbData1);
-                }
-
-                cbData = cbData1;
             }
 
             break;
@@ -755,36 +671,7 @@ RegGetValueAsBytes(
         default:
 		status = STATUS_NOT_SUPPORTED;
             BAIL_ON_NT_STATUS(status);
-    }
-
-done:
-
-    if (pcbData)
-    {
-        *pcbData = cbData;
-    }
-
-cleanup:
-
-    LWREG_SAFE_FREE_MEMORY(pTempData);
-    LWREG_SAFE_FREE_MEMORY(pTempData1);
-    LWREG_SAFE_FREE_MEMORY(pOutData);
-    LWREG_SAFE_FREE_MEMORY(pwcValue);
-    if (ppwszOutMultiSz)
-    {
-        RegFreeMultiStrsW(ppwszOutMultiSz);
-    }
-
-    return status;
-
-error:
-
-    if (pcbData)
-    {
-        *pcbData = 0;
-    }
-
-    goto cleanup;
+    }*/
 }
 
 void

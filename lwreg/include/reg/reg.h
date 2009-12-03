@@ -223,6 +223,7 @@ RegFreeMemory(
 #define LWREG_ERROR_NO_MORE_KEYS_OR_VALUES                    40706
 #define LWREG_ERROR_INVALID_NAME                              40707
 #define LWREG_ERROR_INVALID_CONTEXT                           40708
+#define LWREG_ERROR_KEYNAME_EXIST                             40709
 
 #define LWREG_ERROR_INVALID_CACHE_PATH                        40712 //LWERROR VALUE 40001
 #define LWREG_ERROR_INVALID_PREFIX_PATH                       40713 //40003

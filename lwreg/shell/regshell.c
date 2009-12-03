@@ -151,7 +151,8 @@ RegShellAddKey(
                   pParseState->hReg,
                   RegShellGetRootKey(pParseState),
                   RegShellGetDefaultKey(pParseState),
-                  rsItem->keyName);
+                  rsItem->keyName,
+                  TRUE);
 
 cleanup:
     return dwError;
