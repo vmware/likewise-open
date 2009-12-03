@@ -26,8 +26,17 @@ While the code is portable among a variety of *nix based platforms
 (Linux, Solaris, AIX, HP-UX, and OS X), this build system is 
 primarily intended for Linux & FreeBSD platforms.
 
-Before you begin, please read over this list of prerequisite packages
-(depending on your Linux distro):
+You need at least the following minimum versions of the toolchain
+components:
+
+  * gcc >= 3.x
+  * autoconf >= 2.61
+  * libtool >= 2.2.4
+  * automake >= 1.9.6
+  * pkg-config >= 0.23
+
+Before you begin, please read over this list of prerequisite development
+packages (depending on your Linux distro):
 
   * RedHat/Fedora - gcc, autoconf, automake, e2fsprogs-devel,
     pam-devel, ncurses-devel, flex, bison, rpm-build, rpm-devel,
