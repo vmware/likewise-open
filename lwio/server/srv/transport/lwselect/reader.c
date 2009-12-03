@@ -497,6 +497,8 @@ SrvSocketReaderProcessConnections(
                                                                 szIpAddr,
                                                                 sizeof(szIpAddr))));
                     }
+		    // Intentional fall through so the connections gets
+		    // marked as invalid
 
                     default:
 
