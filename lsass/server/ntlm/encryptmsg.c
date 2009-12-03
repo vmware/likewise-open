@@ -60,10 +60,10 @@ NtlmServerEncryptMessage(
     // The following pointers point into pMessage and will not be freed
     PSecBuffer pToken = NULL;
     PSecBuffer pData = NULL;
-    DWORD dwCrc32 = 0;
+    PNTLM_SIGNATURE pSignature = NULL;
 
     // Sanity check to see if we handle sealing
-    if(!(pContext->NegotiatedFlags & NTLM_FLAG_SEAL))
+    if (bEncrypt && !(pContext->NegotiatedFlags & NTLM_FLAG_SEAL))
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -83,15 +83,19 @@ NtlmServerEncryptMessage(
         pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
         !pToken->pvBuffer ||
         !pData ||
-        !pData->cbBuffer ||
         !pData->pvBuffer)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    pSignature = (PNTLM_SIGNATURE)pToken->pvBuffer;
+
     // Sign the original message before sealing it.
-    dwError = NtlmCrc32(pData->pvBuffer, pData->cbBuffer, &dwCrc32);
+    dwError = NtlmInitializeSignature(
+                pContext,
+                pData,
+                pSignature);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (bEncrypt)
@@ -103,7 +107,7 @@ NtlmServerEncryptMessage(
             pData->pvBuffer);
     }
 
-    NtlmMakeSignature(pContext, dwCrc32, pContext->pSealKey, pToken);
+    NtlmFinalizeSignature(pContext, pSignature);
 
 cleanup:
     return dwError;

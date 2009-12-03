@@ -69,7 +69,6 @@ NtlmServerDecryptMessage(
         pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
         !pToken->pvBuffer ||
         !pData ||
-        !pData->cbBuffer ||
         !pData->pvBuffer)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;

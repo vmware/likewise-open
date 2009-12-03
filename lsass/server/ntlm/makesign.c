@@ -60,8 +60,7 @@ NtlmServerMakeSignature(
     // The following pointers point into pMessage and will not be freed
     PSecBuffer pToken = NULL;
     PSecBuffer pData = NULL;
-    PNTLM_SIGNATURE pNtlmSignature = NULL;
-    DWORD dwCrc32 = 0;
+    PNTLM_SIGNATURE pSignature = NULL;
 
     NtlmGetSecBuffers(pMessage, &pToken, &pData, NULL);
 
@@ -77,27 +76,27 @@ NtlmServerMakeSignature(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    pSignature = (PNTLM_SIGNATURE)pToken->pvBuffer;
+
     if (pContext->NegotiatedFlags & NTLM_FLAG_ALWAYS_SIGN)
     {
         // Use the dummy signature 0x01000000000000000000000000000000
-        pNtlmSignature = (PNTLM_SIGNATURE)pToken->pvBuffer;
+        pSignature = (PNTLM_SIGNATURE)pToken->pvBuffer;
 
-        pNtlmSignature->dwVersion = NTLM_VERSION;
-        pNtlmSignature->dwCounterValue = 0;
-        pNtlmSignature->dwCrc32 = 0;
-        pNtlmSignature->dwMsgSeqNum = 0;
+        pSignature->dwVersion = NTLM_VERSION;
+        pSignature->v1.encrypted.dwCounterValue = 0;
+        pSignature->v1.encrypted.dwCrc32 = 0;
+        pSignature->v1.encrypted.dwMsgSeqNum = 0;
     }
     else if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
     {
-        dwError = NtlmCrc32(pData->pvBuffer, pData->cbBuffer, &dwCrc32);
+        dwError = NtlmInitializeSignature(
+                    pContext,
+                    pData,
+                    pSignature);
         BAIL_ON_LSA_ERROR(dwError);
 
-        NtlmMakeSignature(
-            pContext,
-            dwCrc32,
-            pContext->pUnsealKey,
-            pToken
-            );
+        NtlmFinalizeSignature(pContext, pSignature);
     }
     else
     {
@@ -112,30 +111,91 @@ error:
     goto cleanup;
 }
 
-VOID
-NtlmMakeSignature(
-    IN PNTLM_CONTEXT pContext,
-    IN DWORD dwCrc32,
-    IN RC4_KEY* pSignKey,
-    IN OUT PSecBuffer pToken
+DWORD
+NtlmInitializeSignature(
+    PNTLM_CONTEXT pContext,
+    const SecBuffer* pData,
+    PNTLM_SIGNATURE pSignature
     )
 {
-    PBYTE pBuffer = pToken->pvBuffer;
-    DWORD nBufferSize = pToken->cbBuffer;
-    BYTE Signature[NTLM_SIGNATURE_SIZE] = {0};
-    PNTLM_SIGNATURE pNtlmSig = (PNTLM_SIGNATURE)Signature;
+    DWORD dwError = 0;
 
-    LW_ASSERT(pToken->cbBuffer == NTLM_SIGNATURE_SIZE);
+    if (!pContext->pdwSendMsgSeq)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    pNtlmSig->dwCrc32 = dwCrc32;
+    pSignature->dwVersion = 1;
+    pSignature->v2.dwMsgSeqNum = *pContext->pdwSendMsgSeq;
+    (*pContext->pdwSendMsgSeq)++;
 
-    pNtlmSig->dwMsgSeqNum = pContext->dwMsgSeqNum;
-    pContext->dwMsgSeqNum++;
+    if (pContext->NegotiatedFlags & NTLM_FLAG_NTLM2)
+    {
+        unsigned char tempHmac[EVP_MAX_MD_SIZE];
+        HMAC_CTX c;
 
-    RC4(pSignKey, 12, &Signature[4], &Signature[4]);
+        HMAC_CTX_init(&c);
+        HMAC_Init(
+                &c,
+                pContext->SignKey,
+                sizeof(pContext->SignKey),
+                EVP_md5());
 
-    pNtlmSig->dwCounterValue = NTLM_COUNTER_VALUE;
-    pNtlmSig->dwVersion = NTLM_VERSION;
+        HMAC_Update(
+                &c,
+                (PBYTE)&pSignature->v2.dwMsgSeqNum,
+                sizeof(pSignature->v2.dwMsgSeqNum));
 
-    memcpy(pBuffer, Signature, nBufferSize);
+        HMAC_Update(
+                &c,
+                pData->pvBuffer,
+                pData->cbBuffer);
+
+        HMAC_Final(
+                &c,
+                tempHmac,
+                NULL);
+        // Copy only the first part of the hmac
+        memcpy(pSignature->v2.hmac,
+                tempHmac,
+                sizeof(pSignature->v2.hmac));
+    }
+    else
+    {
+        dwError = NtlmCrc32(
+                pData->pvBuffer,
+                pData->cbBuffer,
+                &pSignature->v1.encrypted.dwCrc32);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+VOID
+NtlmFinalizeSignature(
+    PNTLM_CONTEXT pContext,
+    PNTLM_SIGNATURE pSignature
+    )
+{
+    if (pContext->NegotiatedFlags & NTLM_FLAG_NTLM2)
+    {
+        // The davenport doc says the hmac should be encrypted, but
+        // experimentally it should not
+    }
+    else
+    {
+        RC4(
+            pContext->pSealKey,
+            sizeof(pSignature->v1.encrypted),
+            (PBYTE)&pSignature->v1.encrypted,
+            (PBYTE)&pSignature->v1.encrypted);
+
+        pSignature->v1.encrypted.dwCounterValue = NTLM_COUNTER_VALUE;
+    }
 }

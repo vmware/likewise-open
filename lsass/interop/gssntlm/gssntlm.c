@@ -1199,9 +1199,9 @@ ntlm_gss_verify_mic(
     pSignature = (PNTLM_SIGNATURE)Token->value;
 
     if (pSignature->dwVersion == NTLM_VERSION &&
-        pSignature->dwCounterValue == 0 &&
-        pSignature->dwCrc32 == 0 &&
-        pSignature->dwMsgSeqNum == 0)
+        pSignature->v1.encrypted.dwCounterValue == 0 &&
+        pSignature->v1.encrypted.dwCrc32 == 0 &&
+        pSignature->v1.encrypted.dwMsgSeqNum == 0)
     {
         dwQop = GSS_C_QOP_DUMMY_SIG;
     }
@@ -1474,7 +1474,7 @@ ntlm_gss_unwrap(
         );
     BAIL_ON_LSA_ERROR(MinorStatus);
 
-    LW_ASSERT(InputMessage->length > Sizes.cbMaxSignature);
+    LW_ASSERT(InputMessage->length >= Sizes.cbMaxSignature);
 
     // Here we are taking out the signature, but adding back in for the
     // padding.  The padding is only needed for the duration of the operation

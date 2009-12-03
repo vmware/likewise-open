@@ -287,6 +287,7 @@ NtlmCreateValidatedContext(
 
     memcpy(pNtlmContext->SessionKey, pSessionKey, NTLM_SESSION_KEY_SIZE);
     pNtlmContext->cbSessionKeyLen = dwSessionKeyLen;
+    pNtlmContext->bInitiatedSide = FALSE;
 
     dwError = NtlmInitializeKeys(pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
@@ -306,25 +307,140 @@ error:
 }
 
 DWORD
+NtlmCreateSubkey(
+    DWORD dwMasterKeyLen,
+    PBYTE pMasterKey,
+    PCSTR pszSubkeyMagic,
+    RC4_KEY** ppResult
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    RC4_KEY* pResult = NULL;
+    BYTE md5Result[MD5_DIGEST_LENGTH];
+    MD5_CTX ctx = {0};
+
+    dwError = LwAllocateMemory(
+        sizeof(*pResult),
+        OUT_PPVOID(&pResult));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    MD5_Init(&ctx);
+    MD5_Update(
+        &ctx,
+        pMasterKey,
+        dwMasterKeyLen);
+    MD5_Update(
+        &ctx,
+        pszSubkeyMagic,
+        strlen(pszSubkeyMagic) + 1); //Include the null
+    MD5_Final(md5Result, &ctx);
+
+    RC4_set_key(
+        pResult,
+        sizeof(md5Result),
+        md5Result);
+
+    *ppResult = pResult;
+
+cleanup:
+    memset(md5Result, 0, sizeof(md5Result));
+    return dwError;
+
+error:
+    *ppResult = NULL;
+    LW_SAFE_FREE_MEMORY(pResult);
+    goto cleanup;
+}
+
+DWORD
 NtlmInitializeKeys(
     PNTLM_CONTEXT pNtlmContext
     )
 {
+    MD5_CTX ctx = {0};
     DWORD dwError = 0;
+    const char *clientServerSign = "session key to client-to-server signing key magic constant";
+    const char *serverClientSign = "session key to server-to-client signing key magic constant";
+    const char *clientServerSeal = "session key to client-to-server sealing key magic constant";
+    const char *serverClientSeal = "session key to server-to-client sealing key magic constant";
 
-    dwError = LwAllocateMemory(
-        sizeof(*pNtlmContext->pSignKey),
-        OUT_PPVOID(&pNtlmContext->pSignKey));
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pNtlmContext->NegotiatedFlags & NTLM_FLAG_NTLM2)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*pNtlmContext->pdwSendMsgSeq),
+            OUT_PPVOID(&pNtlmContext->pdwSendMsgSeq));
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwAllocateMemory(
+            sizeof(*pNtlmContext->pdwRecvMsgSeq),
+            OUT_PPVOID(&pNtlmContext->pdwRecvMsgSeq));
+        BAIL_ON_LSA_ERROR(dwError);
 
-    RC4_set_key(
-        pNtlmContext->pSignKey,
-        pNtlmContext->cbSessionKeyLen,
-        pNtlmContext->SessionKey);
+        MD5_Init(&ctx);
+        MD5_Update(
+            &ctx,
+            pNtlmContext->SessionKey,
+            pNtlmContext->cbSessionKeyLen);
+        MD5_Update(
+            &ctx,
+            clientServerSign,
+            strlen(clientServerSign) + 1); //Include the null
+        MD5_Final(
+            pNtlmContext->bInitiatedSide ?
+                pNtlmContext->SignKey : pNtlmContext->VerifyKey,
+            &ctx);
 
-    pNtlmContext->pSealKey = pNtlmContext->pSignKey;
-    pNtlmContext->pVerifyKey = pNtlmContext->pSignKey;
-    pNtlmContext->pUnsealKey = pNtlmContext->pSignKey;
+        MD5_Init(&ctx);
+        MD5_Update(
+            &ctx,
+            pNtlmContext->SessionKey,
+            pNtlmContext->cbSessionKeyLen);
+        MD5_Update(
+            &ctx,
+            serverClientSign,
+            strlen(serverClientSign) + 1); //Include the null
+        MD5_Final(
+            pNtlmContext->bInitiatedSide ?
+                pNtlmContext->VerifyKey : pNtlmContext->SignKey,
+            &ctx);
+
+        dwError = NtlmCreateSubkey(
+            pNtlmContext->cbSessionKeyLen,
+            pNtlmContext->SessionKey,
+            clientServerSeal,
+            pNtlmContext->bInitiatedSide ?
+                &pNtlmContext->pSealKey : &pNtlmContext->pUnsealKey
+            );
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = NtlmCreateSubkey(
+            pNtlmContext->cbSessionKeyLen,
+            pNtlmContext->SessionKey,
+            serverClientSeal,
+            pNtlmContext->bInitiatedSide ?
+                &pNtlmContext->pUnsealKey : &pNtlmContext->pSealKey
+            );
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*pNtlmContext->pdwSendMsgSeq),
+            OUT_PPVOID(&pNtlmContext->pdwSendMsgSeq));
+        BAIL_ON_LSA_ERROR(dwError);
+        pNtlmContext->pdwRecvMsgSeq = pNtlmContext->pdwSendMsgSeq;
+
+        dwError = LwAllocateMemory(
+            sizeof(*pNtlmContext->pSealKey),
+            OUT_PPVOID(&pNtlmContext->pSealKey));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        RC4_set_key(
+            pNtlmContext->pSealKey,
+            pNtlmContext->cbSessionKeyLen,
+            pNtlmContext->SessionKey);
+
+        pNtlmContext->pUnsealKey = pNtlmContext->pSealKey;
+    }
 
 cleanup:
     return dwError;
@@ -352,6 +468,8 @@ NtlmValidateResponse(
     PSTR pUserName = NULL;
     PSTR pDomainName = NULL;
     PSTR pWorkstation = NULL;
+    BYTE sessionNonce[MD5_DIGEST_LENGTH];
+    BYTE sessionHashUntrunc[MD5_DIGEST_LENGTH];
 
     memset(&Params, 0, sizeof(Params));
     memset(&Challenge, 0, sizeof(Challenge));
@@ -408,8 +526,32 @@ NtlmValidateResponse(
         (PBYTE)pRespMsg + pRespMsg->NtResponse.dwOffset,
         pRespMsg->NtResponse.usLength);
 
-    Challenge.dwLen = NTLM_CHALLENGE_SIZE;
-    Challenge.pData = pChlngCtxt->Challenge;
+    if (pRespMsg->NtResponse.usLength == 24 &&
+            pChlngCtxt->NegotiatedFlags & NTLM_FLAG_NTLM2)
+    {
+        // The client sent an NTLM2 session response. That means we need to
+        // calculate the challenge the client used.
+
+        if (pRespMsg->LmResponse.usLength < 8)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        // Calculate the session nonce first
+        memcpy(sessionNonce + 0, pChlngCtxt->Challenge, 8);
+        memcpy(sessionNonce + 8, pLMRespBuffer, 8);
+
+        MD5(sessionNonce, 16, sessionHashUntrunc);
+
+        Challenge.dwLen = NTLM_CHALLENGE_SIZE;
+        Challenge.pData = sessionHashUntrunc;
+    }
+    else
+    {
+        Challenge.dwLen = NTLM_CHALLENGE_SIZE;
+        Challenge.pData = pChlngCtxt->Challenge;
+    }
 
     LMResp.dwLen = pRespMsg->LmResponse.usLength;
     LMResp.pData = pLMRespBuffer;
@@ -437,7 +579,23 @@ NtlmValidateResponse(
     BAIL_ON_LSA_ERROR(dwError);
 
     LW_ASSERT(pUserInfo->pSessionKey->dwLen == NTLM_SESSION_KEY_SIZE);
-    memcpy(pSessionKey, pUserInfo->pSessionKey->pData, NTLM_SESSION_KEY_SIZE);
+
+    if (pRespMsg->NtResponse.usLength == 24 &&
+            pChlngCtxt->NegotiatedFlags & NTLM_FLAG_NTLM2)
+    {
+        HMAC(
+            EVP_md5(),
+            pUserInfo->pSessionKey->pData,
+            NTLM_SESSION_KEY_SIZE,
+            sessionNonce,
+            16,
+            pSessionKey,
+            NULL);
+    }
+    else
+    {
+        memcpy(pSessionKey, pUserInfo->pSessionKey->pData, NTLM_SESSION_KEY_SIZE);
+    }
 
     // Free the pUserInfo for now... we may want to save this off later
     //

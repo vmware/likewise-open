@@ -216,13 +216,25 @@ typedef struct _NTLM_CONTEXT
     LONG nRefCount;
     BYTE SessionKey[NTLM_SESSION_KEY_SIZE];
     DWORD cbSessionKeyLen;
+    // Set to true if this context was generated through
+    // InitializeSecurityContext.
+    BOOLEAN bInitiatedSide;
+
+    // These keys are only used with NTLM2 session security. They are ignored
+    // with NTLM1 session security.
+    BYTE SignKey[MD5_DIGEST_LENGTH];
+    BYTE VerifyKey[MD5_DIGEST_LENGTH];
+
     // With NTLM1 session security, these keys will all point to the same
-    // address. With NTLM2 session security, each key will be unique.
-    RC4_KEY* pSignKey;
+    // address. With NTLM2 session security, both keys will be unique.
     RC4_KEY* pSealKey;
-    RC4_KEY* pVerifyKey;
     RC4_KEY* pUnsealKey;
-    DWORD dwMsgSeqNum;
+
+    // With NTLM1 session security, these sequences numbers will all point to
+    // the same address. With NTLM2 session security, the sequence numbers are
+    // unique.
+    DWORD *pdwSendMsgSeq;
+    DWORD *pdwRecvMsgSeq;
 } NTLM_CONTEXT, *PNTLM_CONTEXT;
 
 typedef struct _NTLM_CREDENTIALS
@@ -236,6 +248,7 @@ typedef struct _NTLM_CONFIG
 {
     BOOLEAN bSendNTLMv2;
     BOOLEAN bSupportUnicode;
+    BOOLEAN bSupportNTLM2SessionSecurity;
     BOOLEAN bNegotiateKey;
 } NTLM_CONFIG, *PNTLM_CONFIG;
 

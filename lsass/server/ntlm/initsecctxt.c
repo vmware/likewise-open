@@ -177,6 +177,10 @@ NtlmCreateNegotiateContext(
     {
         dwOptions &= ~NTLM_FLAG_UNICODE;
     }
+    if (!config.bSupportNTLM2SessionSecurity)
+    {
+        dwOptions &= ~NTLM_FLAG_NTLM2;
+    }
 
     dwError = NtlmCreateNegotiateMessage(
         dwOptions,
@@ -231,6 +235,8 @@ NtlmCreateResponseContext(
     PLSA_LOGIN_NAME_INFO pUserNameInfo = NULL;
     DWORD dwMessageSize = 0;
     NTLM_CONFIG config;
+    DWORD dwNtRespType = 0;
+    DWORD dwLmRespType = 0;
 
     *ppNtlmContext = NULL;
 
@@ -257,16 +263,31 @@ NtlmCreateResponseContext(
                 &pNtlmContext->pszClientUsername);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (config.bSendNTLMv2)
+    {
+        dwNtRespType = NTLM_RESPONSE_TYPE_NTLMv2;
+        // TODO: the correct thing is to use LMv2
+        dwLmRespType = NTLM_RESPONSE_TYPE_LM;
+    }
+    else if(pChlngMsg->NtlmFlags & NTLM_FLAG_NTLM2)
+    {
+        dwLmRespType = NTLM_RESPONSE_TYPE_NTLM2;
+        dwNtRespType = NTLM_RESPONSE_TYPE_NTLM2;
+    }
+    else
+    {
+        dwNtRespType = NTLM_RESPONSE_TYPE_NTLM;
+        dwLmRespType = NTLM_RESPONSE_TYPE_LM;
+    }
+
     dwError = NtlmCreateResponseMessage(
         pChlngMsg,
         pUserNameInfo->pszName,
         pUserNameInfo->pszDomainNetBiosName,
         pPassword,
         (PBYTE)&gXpSpoof,
-        config.bSendNTLMv2 ?
-            NTLM_RESPONSE_TYPE_NTLMv2 : NTLM_RESPONSE_TYPE_NTLM,
-        config.bSendNTLMv2 ?
-            NTLM_RESPONSE_TYPE_LM : NTLM_RESPONSE_TYPE_LM,
+        dwNtRespType,
+        dwLmRespType,
         &dwMessageSize,
         &pMessage,
         LmUserSessionKey,
@@ -319,8 +340,10 @@ NtlmCreateResponseContext(
     pOutput->BufferType = SECBUFFER_TOKEN;
     pOutput->pvBuffer = pMessage;
     pNtlmContext->NtlmState = NtlmStateResponse;
+    pNtlmContext->bInitiatedSide = TRUE;
 
-    NtlmInitializeKeys(pNtlmContext);
+    dwError = NtlmInitializeKeys(pNtlmContext);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     if (pUserNameInfo)

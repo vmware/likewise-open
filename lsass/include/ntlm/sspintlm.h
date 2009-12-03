@@ -162,12 +162,30 @@ typedef struct _NTLM_CONTEXT *NTLM_CONTEXT_HANDLE, **PNTLM_CONTEXT_HANDLE;
 struct _NTLM_CREDENTIALS;
 typedef struct _NTLM_CREDENTIALS *NTLM_CRED_HANDLE, **PNTLM_CRED_HANDLE;
 
-typedef struct _NTLM_SIGNATURE
+typedef struct
 {
+    // The version field cannot be used to decide whether to use the v1 or v2
+    // union. It is set to 1 in both cases. The negotiated ntlm flags must be
+    // used instead.
     DWORD dwVersion;
-    DWORD dwCounterValue;
-    DWORD dwCrc32;
-    DWORD dwMsgSeqNum;
+    union
+    {
+        struct
+        {
+            // These fields are RC4 encrypted with the sealing key
+            struct
+            {
+                DWORD dwCounterValue;
+                DWORD dwCrc32;
+                DWORD dwMsgSeqNum;
+            } encrypted;
+        } v1;
+        struct
+        {
+            BYTE hmac[8];
+            DWORD dwMsgSeqNum;
+        } v2;
+    };
 } NTLM_SIGNATURE, *PNTLM_SIGNATURE;
 
 //******************************************************************************
@@ -227,8 +245,8 @@ typedef struct _NTLM_SIGNATURE
     NTLM_FLAG_56                    | \
     NTLM_FLAG_128                   | \
     NTLM_FLAG_UNICODE               | \
+    NTLM_FLAG_NTLM2                 | \
     0 )
-    //NTLM_FLAG_NTLM2                 |
 
 #define NTLM_FLAG_SRV_SUPPORTS ( \
     NTLM_FLAG_OEM              | \
