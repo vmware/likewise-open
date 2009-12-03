@@ -1437,6 +1437,12 @@ LsaCopyNetrUserInfo3(
                                pBase->lmkey.key);
     BAIL_ON_LSA_ERROR(dwError);
 
+    RC4_set_key(&RC4Key, 16, gpSchannelCreds->session_key);
+    RC4(&RC4Key,
+        pUserInfo->pLmSessionKey->dwLen,
+        pUserInfo->pLmSessionKey->pData,
+        pUserInfo->pLmSessionKey->pData);
+
     pUserInfo->pszUserPrincipalName = NULL;
     pUserInfo->pszDnsDomain = NULL;
 
