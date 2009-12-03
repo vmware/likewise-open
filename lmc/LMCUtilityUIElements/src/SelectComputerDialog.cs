@@ -124,12 +124,22 @@ namespace Likewise.LMC.UtilityUIElements
 
         public string GetUsername()
         {
-            return credsDialog.GetUsername();
+            if (credsDialog != null)
+            {
+                return credsDialog.GetUsername();
+            }
+
+            return null;
         }
 
         public string GetPassword()
         {
-            return credsDialog.GetPassword();
+            if (credsDialog != null)
+            {
+                return credsDialog.GetPassword();
+            }
+
+            return null;
         }
 
         public bool UseDefaultUserCreds()

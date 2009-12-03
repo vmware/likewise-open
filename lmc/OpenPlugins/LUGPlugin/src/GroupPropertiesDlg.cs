@@ -155,12 +155,12 @@ public partial class GroupPropertiesDlg : MPContainer
 
         return null;
     }
-    
-    public bool AddUserToGroup(string user)
+
+    public uint AddUserToGroup(string user)
     {
-        return !Convert.ToBoolean(LUGAPI.NetAddGroupMember(_servername, _group, user));
+        return LUGAPI.NetAddGroupMember(_servername, _group, user);
     }
-    
+
     public bool DeleteUserFromGroup(string user)
     {
         return !Convert.ToBoolean(LUGAPI.NetDeleteUserFromGroup(_servername, _group, user));

@@ -259,9 +259,11 @@ class LUGPlugIn: IPlugIn
 
     public bool PluginSelected()
     {
-        return SelectComputer();
+        // We'll always attempt to make a connection when we are
+        // loading the plugin for the first time.
+        return SelectComputer(true);
     }
-    
+
     #endregion
     
     #region context menus
@@ -271,7 +273,7 @@ class LUGPlugIn: IPlugIn
         "LUGPlugin.cm_OnConnect: _usingManualCreds: {0}, hn: {1}",
         _usingManualCreds, _hn));
 
-        SelectComputer();
+        SelectComputer(false);
 
         this._pluginNode.sc.Refresh();
     }
@@ -388,7 +390,7 @@ class LUGPlugIn: IPlugIn
         return _pluginNode;
     }
 
-    private bool SelectComputer()
+    private bool SelectComputer(bool bConnect)
     {
         Logger.Log(String.Format(
         "LUGPlugin.SelectComputer: hn: {0}",
@@ -403,12 +405,11 @@ class LUGPlugIn: IPlugIn
             int result = (int)LUGAPI.WinError.ERROR_SUCCESS;
 
             _hn.hostName = selectDlg.GetHostname();
+            _hn.creds.UserName = selectDlg.GetUsername();
+            _hn.creds.Password = selectDlg.GetPassword();
 
-            if (!selectDlg.UseDefaultUserCreds())
+            if (!selectDlg.UseDefaultUserCreds() || bConnect)
             {
-                _hn.creds.UserName = selectDlg.GetUsername();
-                _hn.creds.Password = selectDlg.GetPassword();
-
                 // Only add a connection if we are not using default creds.
                 result = (int)LUGAPI.NetAddConnection(
                     _hn.hostName,
