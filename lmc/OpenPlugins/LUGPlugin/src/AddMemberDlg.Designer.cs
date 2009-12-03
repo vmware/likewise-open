@@ -78,6 +78,7 @@ namespace Likewise.LMC.Plugins.LUG
             // lvMembers
             //
             this.lvMembers.FullRowSelect = true;
+            this.lvMembers.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.lvMembers.Location = new System.Drawing.Point(15, 72);
             this.lvMembers.MultiSelect = false;
             this.lvMembers.Name = "lvMembers";
