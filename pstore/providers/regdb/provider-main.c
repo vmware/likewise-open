@@ -333,6 +333,15 @@ RegDB_ReadPassword(
     *ppInfo = pInfo;
 
 cleanup:
+    LWPS_SAFE_FREE_MEMORY(pszHostName);
+    LWPS_SAFE_FREE_MEMORY(pszHostName);
+    LWPS_SAFE_FREE_MEMORY(pszDomainDnsName);
+    LWPS_SAFE_FREE_MEMORY(pszDomainName);
+    LWPS_SAFE_FREE_MEMORY(pszDomainSID);
+    LWPS_SAFE_FREE_MEMORY(pszHostDnsDomain);
+    LWPS_SAFE_FREE_MEMORY(pszHostNameValue);
+    LWPS_SAFE_FREE_MEMORY(pszMachineAccountName);
+    LWPS_SAFE_FREE_MEMORY(pszMachineAccountPassword);
     if (bUnlock)
     {
        LwpsReleaseReadLock(pContext->hRWLock);
@@ -803,6 +812,7 @@ RegDB_DeleteAllEntries(
     BAIL_ON_LWPS_ERROR(dwError);
 
 cleanup:
+    LWPS_SAFE_FREE_STRING(pszHostName);
     if (bUnlock)
     {
         LwpsReleaseWriteLock(pContext->hRWLock);
@@ -854,6 +864,10 @@ RegDB_FreePassword(
     PLWPS_PASSWORD_INFO pInfo
     )
 {
+    if (!pInfo)
+    {
+        return;
+    }
     LWPS_SAFE_FREE_MEMORY(pInfo->pwszDomainName);
     LWPS_SAFE_FREE_MEMORY(pInfo->pwszDnsDomainName);
     LWPS_SAFE_FREE_MEMORY(pInfo->pwszSID);
