@@ -253,7 +253,7 @@ typedef struct __SMB2_CLOSE_RESPONSE_HEADER
 {
     USHORT   usLength;
     USHORT   usFlags;
-    USHORT   usReserved;
+    ULONG    usReserved;
     ULONG64  ullCreationTime;
     ULONG64  ullLastAccessTime;
     ULONG64  ullLastWriteTime;
