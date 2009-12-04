@@ -28,169 +28,305 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_usergetlocalgroups.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetUserGetLocalGroups
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 
 NET_API_STATUS
 NetUserGetLocalGroups(
-    const wchar16_t *hostname,
-    const wchar16_t *username,
-    uint32 level,
-    uint32 flags,
-    void **bufptr,
-    uint32 prefmaxlen,
-    uint32 *out_entries,
-    uint32 *out_total
+    PCWSTR  pwszHostname,
+    PCWSTR  pwszUsername,
+    DWORD   dwLevel,
+    DWORD   dwFlags,
+    PVOID  *ppBuffer,
+    DWORD   dwMaxBufferSize,
+    PDWORD  pdwNumEntries,
+    PDWORD  pdwTotalEntries
     )
 {
-    const uint32 builtin_dom_access = DOMAIN_ACCESS_OPEN_ACCOUNT |
+    const DWORD dwBuiltinDomainAccess = DOMAIN_ACCESS_OPEN_ACCOUNT |
                                       DOMAIN_ACCESS_ENUM_ACCOUNTS;
-    const uint32 user_access = USER_ACCESS_GET_GROUP_MEMBERSHIP;
+
+    const DWORD dwUserAccess = USER_ACCESS_GET_GROUP_MEMBERSHIP;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *conn = NULL;
-    handle_t samr_b = NULL;
+    NetConn *pConn = NULL;
+    handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     DOMAIN_HANDLE hBtinDomain = NULL;
     ACCOUNT_HANDLE hUser = NULL;
-    PSID domain_sid = NULL;
-    PSID user_sid = NULL;
-    uint32 user_rid = 0;
-    uint32 i = 0;
-    SidPtr sid_ptr;
-    SidArray sids;
-    uint32 *user_rids = NULL;
-    uint32 *btin_user_rids = NULL;
-    uint32 rids_count = 0;
-    uint32 btin_rids_count = 0;
-    wchar16_t **alias_names = NULL;
-    wchar16_t **btin_alias_names = NULL;
-    uint32 *alias_types = NULL;
-    uint32 *btin_alias_types = NULL;
-    LOCALGROUP_USERS_INFO_0 *info = NULL;
-    uint32 entries = 0;
-    uint32 total = 0;
-    wchar16_t *alias_name = NULL;
-    PIO_CREDS creds = NULL;
+    PSID pDomainSid = NULL;
+    PSID pUserSid = NULL;
+    DWORD dwUserRid = 0;
+    DWORD dwSidLen = 0;
+    DWORD i = 0;
+    SidPtr Sidptr;
+    SidArray Sids;
+    PDWORD pdwUserRids = NULL;
+    PDWORD pdwBuiltinUserRids = NULL;
+    DWORD dwRidsCount = 0;
+    DWORD dwBuiltinRidsCount = 0;
+    DWORD dwInfoLevelSize = 0;
+    DWORD dwTotalNumEntries = 0;
+    PWSTR *ppwszAliasNames = NULL;
+    PWSTR *ppwszBuiltinAliasNames = NULL;
+    PDWORD pdwAliasTypes = NULL;
+    PDWORD pdwBuiltinAliasTypes = NULL;
+    PWSTR *ppwszLocalGroupNames = NULL;
+    PVOID pSourceBuffer = NULL;
+    PVOID pBuffer = NULL;
+    PVOID pBufferCursor = NULL;
+    DWORD dwSize = 0;
+    DWORD dwTotalSize = 0;
+    DWORD dwNumEntries = 0;
+    DWORD dwSpaceAvailable = 0;
+    PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(username);
-    BAIL_ON_INVALID_PTR(hostname);
+    BAIL_ON_INVALID_PTR(pwszUsername);
+    BAIL_ON_INVALID_PTR(ppBuffer);
+    BAIL_ON_INVALID_PTR(pdwNumEntries);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries);
 
-    status = LwIoGetActiveCreds(NULL, &creds);
+    switch (dwLevel)
+    {
+    case 0:
+        dwInfoLevelSize = sizeof(LOCALGROUP_USERS_INFO_0);
+        break;
+
+    default:
+        err = ERROR_INVALID_LEVEL;
+        BAIL_ON_WINERR_ERROR(err);
+    }
+
+    status = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = NetConnectSamr(&conn, hostname, 0, builtin_dom_access, creds);
+    status = NetConnectSamr(&pConn,
+                            pwszHostname,
+                            0,
+                            dwBuiltinDomainAccess,
+                            pCreds);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    samr_b      = conn->samr.bind;
-    hDomain     = conn->samr.hDomain;
-    hBtinDomain = conn->samr.hBtinDomain;
-    domain_sid  = conn->samr.dom_sid;
+    hSamrBinding = pConn->samr.bind;
+    hDomain      = pConn->samr.hDomain;
+    hBtinDomain  = pConn->samr.hBtinDomain;
+    pDomainSid   = pConn->samr.dom_sid;
 
-    status = NetOpenUser(conn, username, user_access, &hUser, &user_rid);
+    status = NetOpenUser(pConn,
+                         pwszUsername,
+                         dwUserAccess,
+                         &hUser,
+                         &dwUserRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = MsRpcAllocateSidAppendRid(&user_sid, domain_sid, user_rid);
-    if (status != 0) return NtStatusToWin32Error(status);
+    dwSidLen = RtlLengthRequiredSid(pDomainSid->SubAuthorityCount + 1);
+    err = LwAllocateMemory(dwSidLen,
+                           OUT_PPVOID(&pUserSid));
+    BAIL_ON_WINERR_ERROR(err);
 
-    sids.num_sids = 1;
-    sid_ptr.sid = user_sid;
-    sids.sids = &sid_ptr;
-
-    status = SamrGetAliasMembership(samr_b, hDomain, &user_sid, 1,
-                                    &user_rids, &rids_count);
+    status = RtlCopySid(dwSidLen,
+                        pUserSid,
+                        pDomainSid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrGetAliasMembership(samr_b, hBtinDomain, &user_sid, 1,
-                                    &btin_user_rids, &btin_rids_count);
+    status = RtlAppendRidSid(dwSidLen,
+                             pUserSid,
+                             dwUserRid);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    if (rids_count > 0) {
-        status = SamrLookupRids(samr_b, hDomain, rids_count,
-                                user_rids, &alias_names, &alias_types);
+    Sidptr.sid    = pUserSid;
+    Sids.sids     = &Sidptr;
+    Sids.num_sids = 1;
+
+    status = SamrGetAliasMembership(hSamrBinding,
+                                    hDomain,
+                                    &pUserSid,
+                                    1,
+                                    &pdwUserRids,
+                                    &dwRidsCount);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    status = SamrGetAliasMembership(hSamrBinding,
+                                    hBtinDomain,
+                                    &pUserSid,
+                                    1,
+                                    &pdwBuiltinUserRids,
+                                    &dwBuiltinRidsCount);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    dwTotalNumEntries = dwRidsCount + dwBuiltinRidsCount;
+
+    err = LwAllocateMemory(
+                      sizeof(ppwszLocalGroupNames[0]) * dwTotalNumEntries,
+                      OUT_PPVOID(&ppwszLocalGroupNames));
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (dwRidsCount > 0)
+    {
+        status = SamrLookupRids(hSamrBinding,
+                                hDomain,
+                                dwRidsCount,
+                                pdwUserRids,
+                                &ppwszAliasNames,
+                                &pdwAliasTypes);
         BAIL_ON_NTSTATUS_ERROR(status);
+
+        for (i = 0; i < dwRidsCount; i++)
+        {
+            ppwszLocalGroupNames[i] = ppwszAliasNames[i];
+        }
     }
 
-    if (btin_rids_count > 0) {
-        status = SamrLookupRids(samr_b, hBtinDomain,
-                                btin_rids_count, btin_user_rids,
-                                &btin_alias_names, &btin_alias_types);
+    if (dwBuiltinRidsCount > 0)
+    {
+        status = SamrLookupRids(hSamrBinding,
+                                hBtinDomain,
+                                dwBuiltinRidsCount,
+                                pdwBuiltinUserRids,
+                                &ppwszBuiltinAliasNames,
+                                &pdwBuiltinAliasTypes);
         BAIL_ON_NTSTATUS_ERROR(status);
+
+        for (i = 0; i < dwBuiltinRidsCount; i++)
+        {
+            ppwszLocalGroupNames[i + dwRidsCount] = ppwszBuiltinAliasNames[i];
+        }
     }
 
-    status = SamrClose(samr_b, hUser);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    for (i = 0; i < dwTotalNumEntries; i++)
+    {
+        pSourceBuffer = ppwszLocalGroupNames[i];
 
-    total = rids_count + btin_rids_count;
+        dwSize = 0;
+        err = NetAllocateLocalGroupUsersInfo(NULL,
+                                             NULL,
+                                             dwLevel,
+                                             pSourceBuffer,
+                                             &dwSize);
+        BAIL_ON_WINERR_ERROR(err);
 
-    if (total * sizeof(LOCALGROUP_USERS_INFO_0) > prefmaxlen) {
-        status = STATUS_MORE_ENTRIES;
-    } else {
-        status = STATUS_SUCCESS;
+        dwTotalSize += dwSize;
+        dwNumEntries++;
+
+        if (dwTotalSize > dwMaxBufferSize)
+        {
+            dwTotalSize -= dwSize;
+            dwNumEntries--;
+            break;
+        }
     }
-    BAIL_ON_NTSTATUS_ERROR(status);
 
-    entries = total;
-    while (entries * sizeof(LOCALGROUP_USERS_INFO_0) > prefmaxlen) {
-        entries--;
+    if (dwTotalNumEntries > 0 && dwNumEntries == 0)
+    {
+        err = ERROR_INSUFFICIENT_BUFFER;
+        BAIL_ON_WINERR_ERROR(err);
     }
 
-    /* Allocate memory only when entries number is non-zero, otherwise set info
-       buffer to NULL. This is because allocating zero bytes of memory still returns
-       a valid pointer */
-    if (entries) {
-        status = NetAllocateMemory((void**)&info,
-                                   sizeof(LOCALGROUP_USERS_INFO_0) * entries,
+    if (dwTotalSize)
+    {
+        status = NetAllocateMemory(OUT_PPVOID(&pBuffer),
+                                   dwTotalSize,
                                    NULL);
         BAIL_ON_NTSTATUS_ERROR(status);
-
-        for (i = 0; i < entries && i < rids_count; i++) {
-            alias_name = wc16sdup(alias_names[i]);
-            BAIL_ON_NO_MEMORY(alias_name);
-
-            info[i].lgrui0_name = alias_name;
-
-            status = NetAddDepMemory(alias_name, info);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            alias_name = NULL;
-        }
-
-        /* continue copying from where previous loop has finished */
-        for (i = rids_count; i < entries; i++) {
-            alias_name = wc16sdup(btin_alias_names[i - rids_count]);
-            BAIL_ON_NO_MEMORY(alias_name);
-
-            info[i].lgrui0_name = alias_name;
-
-            status = NetAddDepMemory(alias_name, info);
-            BAIL_ON_NTSTATUS_ERROR(status);
-
-            alias_name = NULL;
-        }
-
     }
 
-    *out_entries = entries;
-    *out_total   = total;
-    *bufptr = (void*)info;
+    dwSize           = 0;
+    pBufferCursor    = pBuffer;
+    dwSpaceAvailable = dwTotalSize;
+
+    for (i = 0; i < dwNumEntries; i++)
+    {
+        pSourceBuffer = ppwszLocalGroupNames[i];
+        pBufferCursor = pBuffer + (i * dwInfoLevelSize);
+
+        err = NetAllocateLocalGroupUsersInfo(pBufferCursor,
+                                             &dwSpaceAvailable,
+                                             dwLevel,
+                                             pSourceBuffer,
+                                             &dwSize);
+        BAIL_ON_WINERR_ERROR(err);
+    }
+
+    if (dwNumEntries < dwTotalNumEntries)
+    {
+        err = ERROR_MORE_DATA;
+    }
+
+    status = SamrClose(hSamrBinding, hUser);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *ppBuffer        = pBuffer;
+    *pdwNumEntries   = dwNumEntries;
+    *pdwTotalEntries = dwTotalNumEntries;
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pUserSid);
+    LW_SAFE_FREE_MEMORY(ppwszLocalGroupNames);
+
+    if (pdwUserRids)
+    {
+        SamrFreeMemory(pdwUserRids);
+    }
+
+    if (pdwBuiltinUserRids)
+    {
+        SamrFreeMemory(pdwBuiltinUserRids);
+    }
+
+    if (ppwszAliasNames)
+    {
+        SamrFreeMemory(ppwszAliasNames);
+    }
+
+    if (pdwAliasTypes)
+    {
+        SamrFreeMemory(pdwAliasTypes);
+    }
+
+    if (ppwszBuiltinAliasNames)
+    {
+        SamrFreeMemory(ppwszBuiltinAliasNames);
+    }
+
+    if (pdwBuiltinAliasTypes)
+    {
+        SamrFreeMemory(pdwBuiltinAliasTypes);
+    }
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     return err;
 
 error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    if (creds)
+    if (pBuffer)
     {
-        LwIoDeleteCreds(creds);
+        NetFreeMemory(pBuffer);
     }
 
-    *out_entries = 0;
-    *out_total   = 0;
+    *ppBuffer        = NULL;
+    *pdwNumEntries   = 0;
+    *pdwTotalEntries = 0;
+
     goto cleanup;
 }
 

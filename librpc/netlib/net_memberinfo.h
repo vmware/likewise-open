@@ -69,6 +69,16 @@ NetAllocateLocalGroupMembersInfo(
     );
 
 
+DWORD
+NetAllocateLocalGroupUsersInfo(
+    PVOID   pInfoBuffer,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwLevel,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
 #endif /* _NET_MEMBERS_H_ */
 
 

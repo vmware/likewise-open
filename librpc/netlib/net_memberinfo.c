@@ -67,6 +67,16 @@ NetAllocateLocalGroupMembersInfo3(
     );
 
 
+static
+DWORD
+NetAllocateLocalGroupUsersInfo0(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    );
+
+
 DWORD
 NetAllocateLocalGroupMembersInfo(
     PVOID   pInfoBuffer,
@@ -216,6 +226,96 @@ NetAllocateLocalGroupMembersInfo3(
                                 pwszDomainName,
                                 pwszAccountName,
                                 &dwSize);
+    BAIL_ON_WINERR_ERROR(err);
+
+    if (pdwSpaceLeft)
+    {
+        *pdwSpaceLeft = dwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        *pdwSize = dwSize;
+    }
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+DWORD
+NetAllocateLocalGroupUsersInfo(
+    PVOID   pInfoBuffer,
+    PDWORD  pdwSpaceLeft,
+    DWORD   dwLevel,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = pInfoBuffer;
+
+    switch (dwLevel)
+    {
+    case 0:
+        err = NetAllocateLocalGroupUsersInfo0(&pCursor,
+                                              pdwSpaceLeft,
+                                              pSource,
+                                              pdwSize);
+        break;
+
+    default:
+        err = ERROR_INVALID_LEVEL;
+        break;
+    }
+    BAIL_ON_WINERR_ERROR(err);
+
+cleanup:
+    return err;
+
+error:
+    goto cleanup;
+}
+
+
+static
+DWORD
+NetAllocateLocalGroupUsersInfo0(
+    PVOID  *ppCursor,
+    PDWORD  pdwSpaceLeft,
+    PVOID   pSource,
+    PDWORD  pdwSize
+    )
+{
+    DWORD err = ERROR_SUCCESS;
+    PVOID pCursor = NULL;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
+    PWSTR pwszName = (PWSTR)pSource;
+
+    if (pdwSpaceLeft)
+    {
+        dwSpaceLeft = *pdwSpaceLeft;
+    }
+
+    if (pdwSize)
+    {
+        dwSize = *pdwSize;
+    }
+
+    if (ppCursor)
+    {
+        pCursor = *ppCursor;
+    }
+
+    /* lgrui0_name */
+    err = NetAllocBufferWC16String(&pCursor,
+                                   &dwSpaceLeft,
+                                   pwszName,
+                                   &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
     if (pdwSpaceLeft)
