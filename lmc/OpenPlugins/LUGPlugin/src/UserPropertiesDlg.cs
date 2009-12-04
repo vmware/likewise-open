@@ -219,24 +219,21 @@ public partial class UserPropertiesDlg : MPContainer
         return null;
     }
 
-    public bool AddUserToGroup(string group)
+    public uint AddUserToGroup(string group)
     {
+        uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
+
         if (ParentPage == null)
         {
-            return false;
+            return result;
         }
 
-        uint result = LUGAPI.NetAddGroupMember(
+        result = LUGAPI.NetAddGroupMember(
             _servername,
             group,
             _username);
 
-        if (result == (uint)LUGAPI.WinError.ERROR_SUCCESS)
-        {
-            return true;
-        }
-
-        return false;
+        return result;
     }
 
     public bool DeleteUserFromGroup(string group)

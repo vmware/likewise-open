@@ -1628,9 +1628,9 @@ error:
 }
 
 DWORD
-ADLdap_GetUserGroupMembership(
+ADLdap_GetObjectGroupMembership(
     IN HANDLE hProvider,
-    IN PLSA_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pObject,
     OUT int* piPrimaryGroupIndex,
     OUT size_t* psNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppGroupInfoList
@@ -1649,14 +1649,14 @@ ADLdap_GetUserGroupMembership(
     PSTR *ppszTempLDAPValues = NULL;
 
     // If we cannot get dn, then we cannot get DN information for this objects, hence BAIL
-    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszDN))
+    if (LW_IS_NULL_OR_EMPTY_STR(pObject->pszDN))
     {
         dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LwLdapConvertDNToDomain(
-                 pUserInfo->pszDN,
+                 pObject->pszDN,
                  &pszFullDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -1665,7 +1665,7 @@ ADLdap_GetUserGroupMembership(
 
     dwError = ADLdap_GetAttributeValuesList(
                     pConn,
-                    pUserInfo->pszDN,
+                    pObject->pszDN,
                     AD_LDAP_MEMBEROF_TAG,
                     TRUE,
                     TRUE,
@@ -1673,34 +1673,37 @@ ADLdap_GetUserGroupMembership(
                     &ppszLDAPValues);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADGetUserPrimaryGroupSid(
-                pConn,
-                pszFullDomainName,
-                pUserInfo->pszDN,
-                pUserInfo->pszObjectSid,
-                &pszPrimaryGroupSID);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pObject->type == AccountType_User)
+    {
+        dwError = ADGetUserPrimaryGroupSid(
+            pConn,
+            pszFullDomainName,
+            pObject->pszDN,
+            pObject->pszObjectSid,
+            &pszPrimaryGroupSID);
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwReallocMemory(
-                ppszLDAPValues,
-                (PVOID*)&ppszTempLDAPValues,
-                (dwSidCount+1)*sizeof(*ppszLDAPValues));
-    BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwReallocMemory(
+            ppszLDAPValues,
+            (PVOID*)&ppszTempLDAPValues,
+            (dwSidCount+1)*sizeof(*ppszLDAPValues));
+        BAIL_ON_LSA_ERROR(dwError);
 
-    // Do not free "ppszTempLDAPValues"
-    ppszLDAPValues = ppszTempLDAPValues;
+        // Do not free "ppszTempLDAPValues"
+        ppszLDAPValues = ppszTempLDAPValues;
 
-    // Append the pszPrimaryGroupSID entry to the results list
-    ppszLDAPValues[dwSidCount] = pszPrimaryGroupSID;
-    pszPrimaryGroupSID = NULL;
-    dwSidCount++;
+        // Append the pszPrimaryGroupSID entry to the results list
+        ppszLDAPValues[dwSidCount] = pszPrimaryGroupSID;
+        pszPrimaryGroupSID = NULL;
+        dwSidCount++;
+    }
 
     dwError = AD_FindObjectsBySidList(
-            hProvider,
-            dwSidCount,
-            ppszLDAPValues,
-            &sNumGroupsFound,
-            &ppGroupInfoList);
+        hProvider,
+        dwSidCount,
+        ppszLDAPValues,
+        &sNumGroupsFound,
+        &ppGroupInfoList);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Determine primary group index
@@ -1737,8 +1740,8 @@ error:
 
     if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE )
     {
-        LSA_LOG_ERROR("Failed to find user's group memberships of UID=%d. [error code:%d]",
-                      pUserInfo->userInfo.uid, dwError);
+        LSA_LOG_ERROR("Failed to group memberships of SID=%s. [error code:%d]",
+                      pObject->pszObjectSid, dwError);
     }
 
     ADCacheSafeFreeObjectList((DWORD)sNumGroupsFound, &ppGroupInfoList);

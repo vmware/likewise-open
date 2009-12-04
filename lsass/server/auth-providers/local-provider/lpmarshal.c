@@ -1669,13 +1669,6 @@ LocalMarshalEntryToSecurityObject(
             &pObject->pszNetbiosDomainName);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LwAllocateStringPrintf(
-            &pObject->userInfo.pszAliasName,
-            "%s\\%s",
-            pObject->pszNetbiosDomainName,
-            pObject->pszSamAccountName);
-        BAIL_ON_LSA_ERROR(dwError);
-
         dwError = LocalMarshalAttrToInteger(
             pEntry,
             wszAttrNameUserInfoFlags,
@@ -1747,13 +1740,6 @@ LocalMarshalEntryToSecurityObject(
             pEntry,
             wszAttrNameNetBIOSDomain,
             &pObject->pszNetbiosDomainName);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = LwAllocateStringPrintf(
-            &pObject->groupInfo.pszAliasName,
-            "%s\\%s",
-            pObject->pszNetbiosDomainName,
-            pObject->pszSamAccountName);
         BAIL_ON_LSA_ERROR(dwError);
         break;
     default:

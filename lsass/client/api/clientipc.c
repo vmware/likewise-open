@@ -2239,6 +2239,7 @@ LsaTransactCloseEnum(
     switch (out.tag)
     {
     case LSA2_R_CLOSE_ENUM:
+        lwmsg_session_unregister_handle(pSession, hEnum);
         break;
     case LSA2_R_ERROR:
         pError = (PLSA_IPC_ERROR) out.data;
@@ -2254,7 +2255,6 @@ cleanup:
 
     if (pCall)
     {
-        lwmsg_session_unregister_handle(pSession, hEnum);
         lwmsg_call_destroy_params(pCall, &out);
         lwmsg_call_release(pCall);
     }

@@ -28,6 +28,22 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_groupinfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetAPI group info buffer handling functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
 static
@@ -48,12 +64,6 @@ NetAllocateLocalGroupInfo1(
     PVOID   pSource,
     PDWORD  pdwSize
     );
-
-
-/*
- * push functions/macros transfer: net userinfo -> samr userinfo
- * pull functions/macros transfer: net userinfo <- samr userinfo
- */
 
 
 DWORD
@@ -221,197 +231,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
-NTSTATUS
-PullLocalGroupInfo0(
-    void **buffer,
-    AliasInfo *ai,
-    int num
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-	LOCALGROUP_INFO_0 *info = NULL;
-    int i = 0;
-
-    BAIL_ON_INVALID_PTR(buffer);
-    BAIL_ON_INVALID_PTR(ai);
-
-    if (num <= 0) {
-        status = STATUS_INVALID_PARAMETER;
-        goto cleanup;
-    }
-
-    status = NetAllocateMemory((void**)&info, sizeof(LOCALGROUP_INFO_0) * num,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < num; i++) {
-        PULL_UNICODE_STRING(info[i].lgrpi0_name, ai[i].all.name, info);
-    }
-
-	*buffer = (void*)info;
-
-cleanup:
-    return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    *buffer = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS
-PullLocalGroupInfo1(
-    void **buffer,
-    AliasInfo *ai,
-    int num
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-	LOCALGROUP_INFO_1 *info = NULL;
-    int i = 0;
-
-    BAIL_ON_INVALID_PTR(buffer);
-    BAIL_ON_INVALID_PTR(ai);
-
-    if (num <= 0) {
-        status = STATUS_INVALID_PARAMETER;
-        goto cleanup;
-    }
-
-    status = NetAllocateMemory((void**)&info, sizeof(LOCALGROUP_INFO_1) * num,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    for (i = 0; i < num; i++) {
-        PULL_UNICODE_STRING(info[i].lgrpi1_name, ai[i].all.name, info);
-        PULL_UNICODE_STRING(info[i].lgrpi1_comment, ai[i].all.description,
-                            info);
-    }
-
-    *buffer = info;
-
-cleanup:
-	return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    *buffer = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS
-PushLocalGroupInfo0(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_0 *ninfo
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-	AliasInfo *info = NULL;
-
-	*slevel = ALIAS_INFO_NAME;
-
-    status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-	PUSH_UNICODE_STRING_ALIASINFO(info->name, ninfo->lgrpi0_name, info);
-
-    *sinfo = info;
-
-cleanup:
-	return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    *sinfo = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS
-PushLocalGroupInfo1(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_1 *ninfo
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-	AliasInfo *info = NULL;
-
-	*slevel = ALIAS_INFO_ALL;
-
-    status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-	PUSH_UNICODE_STRING_ALIASINFO(info->all.name, ninfo->lgrpi1_name, info);
-	PUSH_UNICODE_STRING_ALIASINFO(info->all.description, ninfo->lgrpi1_comment,
-                                  info);
-
-    *sinfo = info;
-
-cleanup:
-	return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    *sinfo = NULL;
-    goto cleanup;
-}
-
-
-NTSTATUS
-PushLocalGroupInfo1002(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_1002 *ninfo
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-	AliasInfo *info = NULL;
-
-	*slevel = ALIAS_INFO_DESCRIPTION;
-
-    status = NetAllocateMemory((void**)&info, sizeof(AliasInfo), NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-	PUSH_UNICODE_STRING_ALIASINFO(info->description, ninfo->lgrpi1002_comment,
-                                  info);
-
-    *sinfo = info;
-
-cleanup:
-	return status;
-
-error:
-    if (info) {
-        NetFreeMemory((void*)info);
-    }
-
-    *sinfo = NULL;
-    goto cleanup;
-}
-
 
 
 /*

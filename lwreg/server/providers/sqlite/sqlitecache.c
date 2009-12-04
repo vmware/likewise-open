@@ -52,7 +52,7 @@
  */
 PREG_KEY_CONTEXT
 SqliteCacheLocateActiveKey(
-    IN PCSTR pszKeyName
+    IN PCWSTR pwszKeyName
     )
 {
     PREG_KEY_CONTEXT pKeyResult = NULL;
@@ -60,7 +60,7 @@ SqliteCacheLocateActiveKey(
 
     LWREG_LOCK_MUTEX(bInLock, &gActiveKeyList.mutex);
 
-    pKeyResult = SqliteCacheLocateActiveKey_inlock(pszKeyName);
+    pKeyResult = SqliteCacheLocateActiveKey_inlock(pwszKeyName);
 
     LWREG_UNLOCK_MUTEX(bInLock, &gActiveKeyList.mutex);
 
@@ -69,14 +69,14 @@ SqliteCacheLocateActiveKey(
 
 PREG_KEY_CONTEXT
 SqliteCacheLocateActiveKey_inlock(
-    IN PCSTR pszKeyName
+    IN PCWSTR pwszKeyName
     )
 {
     PREG_KEY_CONTEXT pKeyResult = NULL;
     DWORD status = 0;
 
     status = RegHashGetValue(gActiveKeyList.pKeyList,
-                              pszKeyName,
+		                 pwszKeyName,
                               (PVOID*)&pKeyResult);
     if (!status && pKeyResult)
     {
@@ -116,7 +116,7 @@ SqliteCacheInsertActiveKey_inlock(
 	NTSTATUS status = STATUS_SUCCESS;
 
     status = RegHashSetValue(gActiveKeyList.pKeyList,
-                              (PVOID)pKeyResult->pszKeyName,
+                              (PVOID)pKeyResult->pwszKeyName,
                               (PVOID)pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
@@ -130,14 +130,14 @@ error:
 
 VOID
 SqliteCacheDeleteActiveKey(
-    IN PSTR pszKeyName
+    IN PWSTR pwszKeyName
     )
 {
     BOOLEAN bInLock = FALSE;
 
     LWREG_LOCK_MUTEX(bInLock, &gActiveKeyList.mutex);
 
-    SqliteCacheDeleteActiveKey_inlock(pszKeyName);
+    SqliteCacheDeleteActiveKey_inlock(pwszKeyName);
 
     LWREG_UNLOCK_MUTEX(bInLock, &gActiveKeyList.mutex);
 
@@ -146,7 +146,7 @@ SqliteCacheDeleteActiveKey(
 
 VOID
 SqliteCacheDeleteActiveKey_inlock(
-    IN PSTR pszKeyName
+    IN PWSTR pwszKeyName
     )
 {
     REG_HASH_ITERATOR hashIterator;
@@ -155,8 +155,8 @@ SqliteCacheDeleteActiveKey_inlock(
     DWORD status = 0;
 
     status = RegHashGetValue(gActiveKeyList.pKeyList,
-                              pszKeyName,
-                              NULL);
+		                 pwszKeyName,
+                             NULL);
     if (ENOENT == LwNtStatusToErrno(status))
     {
         return;
@@ -166,8 +166,8 @@ SqliteCacheDeleteActiveKey_inlock(
 
     for (iCount = 0; (pHashEntry = RegHashNext(&hashIterator)) != NULL; iCount++)
     {
-        if (!strcasecmp((PCSTR)pHashEntry->pKey, pszKeyName))
-        {
+	if (LwRtlWC16StringIsEqual((PCWSTR)pHashEntry->pKey, pwszKeyName, FALSE))
+	{
             RegHashRemoveKey(gActiveKeyList.pKeyList, pHashEntry->pKey);
 
             break;
@@ -179,10 +179,10 @@ SqliteCacheDeleteActiveKey_inlock(
 
 void
 SqliteCacheResetParentKeySubKeyInfo(
-    IN PSTR pszParentKeyName
+    IN PCWSTR pwszParentKeyName
     )
 {
-    PREG_KEY_CONTEXT pKeyResult = SqliteCacheLocateActiveKey(pszParentKeyName);
+    PREG_KEY_CONTEXT pKeyResult = SqliteCacheLocateActiveKey(pwszParentKeyName);
 
     if (pKeyResult)
     {
@@ -198,10 +198,10 @@ SqliteCacheResetParentKeySubKeyInfo(
 
 void
 SqliteCacheResetParentKeySubKeyInfo_inlock(
-    IN PSTR pszParentKeyName
+    IN PCWSTR pwszParentKeyName
     )
 {
-    PREG_KEY_CONTEXT pKeyResult = SqliteCacheLocateActiveKey_inlock(pszParentKeyName);
+    PREG_KEY_CONTEXT pKeyResult = SqliteCacheLocateActiveKey_inlock(pwszParentKeyName);
 
     if (pKeyResult)
     {
@@ -217,10 +217,10 @@ SqliteCacheResetParentKeySubKeyInfo_inlock(
 
 void
 SqliteCacheResetKeyValueInfo(
-    IN PSTR pszKeyName
+    IN PCWSTR pwszKeyName
     )
 {
-    PREG_KEY_CONTEXT pKeyResult = SqliteCacheLocateActiveKey(pszKeyName);
+    PREG_KEY_CONTEXT pKeyResult = SqliteCacheLocateActiveKey(pwszKeyName);
 
     if (pKeyResult)
     {
@@ -236,10 +236,10 @@ SqliteCacheResetKeyValueInfo(
 
 void
 SqliteCacheResetKeyValueInfo_inlock(
-    IN PSTR pszKeyName
+    IN PCWSTR pwszKeyName
     )
 {
-    PREG_KEY_CONTEXT pKeyResult = SqliteCacheLocateActiveKey_inlock(pszKeyName);
+    PREG_KEY_CONTEXT pKeyResult = SqliteCacheLocateActiveKey_inlock(pwszKeyName);
 
     if (pKeyResult)
     {
@@ -274,7 +274,7 @@ SqliteCacheReleaseKey_inlock(
 {
     if (pKeyResult && InterlockedDecrement(&pKeyResult->refCount) == 0)
     {
-        SqliteCacheDeleteActiveKey_inlock(pKeyResult->pszKeyName);
+        SqliteCacheDeleteActiveKey_inlock(pKeyResult->pwszKeyName);
     }
 }
 
@@ -292,8 +292,7 @@ SqliteCacheFreeHashEntry(
 // sqlite caching helper functions supporting paging
 NTSTATUS
 SqliteCacheSubKeysInfo_inlock(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -301,15 +300,15 @@ SqliteCacheSubKeysInfo_inlock(
     size_t sNumCacheSubKeys = 0;
     PREG_ENTRY* ppRegEntries = NULL;
 
-    if (bDoAnsi ? pKeyResult->bHasSubKeyAInfo : pKeyResult->bHasSubKeyInfo)
+    if (pKeyResult->bHasSubKeyInfo)
     {
         goto cleanup;
     }
 
     status = RegDbQueryInfoKeyCount(ghCacheConnection,
-                                     pKeyResult->pszKeyName,
-                                     QuerySubKeys,
-                                     &sNumSubKeys);
+		                        pKeyResult->pwszKeyName,
+                                    QuerySubKeys,
+                                    &sNumSubKeys);
     BAIL_ON_NT_STATUS(status);
 
     sNumCacheSubKeys = (sNumSubKeys > (size_t)dwDefaultCacheSize)
@@ -317,24 +316,24 @@ SqliteCacheSubKeysInfo_inlock(
                       : sNumSubKeys;
 
     status = RegDbQueryInfoKey(ghCacheConnection,
-                                pKeyResult->pszKeyName,
-                                QuerySubKeys,
-                                sNumCacheSubKeys,
-                                0,
-                                &sNumCacheSubKeys,
-                                &ppRegEntries);
+		                   pKeyResult->pwszKeyName,
+                               QuerySubKeys,
+                               sNumCacheSubKeys,
+                               0,
+                               &sNumCacheSubKeys,
+                               &ppRegEntries);
     BAIL_ON_NT_STATUS(status);
 
     status = RegDbSafeRecordSubKeysInfo_inlock(
                             sNumSubKeys,
                             sNumCacheSubKeys,
                             ppRegEntries,
-                            pKeyResult,
-                            bDoAnsi);
+                            pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
     RegDbSafeFreeEntryList(sNumCacheSubKeys,&ppRegEntries);
+
     return status;
 
 error:
@@ -343,8 +342,7 @@ error:
 
 NTSTATUS
 SqliteCacheSubKeysInfo(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -354,7 +352,7 @@ SqliteCacheSubKeysInfo(
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    status = SqliteCacheSubKeysInfo_inlock(pKeyResult, bDoAnsi);
+    status = SqliteCacheSubKeysInfo_inlock(pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
@@ -370,7 +368,6 @@ NTSTATUS
 SqliteCacheUpdateSubKeysInfo_inlock(
     IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumSubKeys
     )
 {
@@ -378,53 +375,36 @@ SqliteCacheUpdateSubKeysInfo_inlock(
     size_t sNumSubKeys = 0;
     PREG_ENTRY* ppRegEntries = NULL;
     int iCount = 0;
-    PWSTR pSubKey = NULL;
     size_t sSubKeyLen = 0;
 
     status = RegDbQueryInfoKey(ghCacheConnection,
-                                pKeyResult->pszKeyName,
-                                QuerySubKeys,
-                                dwDefaultCacheSize,
-                                dwOffSet,
-                                &sNumSubKeys,
-                                &ppRegEntries);
+		                   pKeyResult->pwszKeyName,
+                               QuerySubKeys,
+                               dwDefaultCacheSize,
+                               dwOffSet,
+                               &sNumSubKeys,
+                               &ppRegEntries);
     BAIL_ON_NT_STATUS(status);
 
     for (iCount = 0; iCount < (int)sNumSubKeys; iCount++)
     {
-        if (bDoAnsi)
-        {
-            sSubKeyLen = strlen(ppRegEntries[iCount]->pszKeyName);
+		if (ppRegEntries[iCount]->pwszKeyName)
+		{
+			sSubKeyLen = RtlWC16StringNumChars(ppRegEntries[iCount]->pwszKeyName);
+		}
 
-            if (pKeyResult->sMaxSubKeyALen < sSubKeyLen)
-                pKeyResult->sMaxSubKeyALen = sSubKeyLen;
-        }
-        else
-        {
-		status = LwRtlWC16StringAllocateFromCString(&pSubKey,
-				                                     ppRegEntries[iCount]->pszKeyName);
-		BAIL_ON_NT_STATUS(status);
+		if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
+		{
+			pKeyResult->sMaxSubKeyLen = sSubKeyLen;
+		}
 
-            if (pSubKey)
-            {
-		sSubKeyLen = RtlWC16StringNumChars(pSubKey);
-            }
-
-            if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
-                pKeyResult->sMaxSubKeyLen = sSubKeyLen;
-        }
-
-        LWREG_SAFE_FREE_MEMORY(pSubKey);
         sSubKeyLen = 0;
     }
-
-    pKeyResult->dwNumSubKeys += sNumSubKeys;
 
 cleanup:
     *psNumSubKeys = sNumSubKeys;
 
     RegDbSafeFreeEntryList(sNumSubKeys, &ppRegEntries);
-    LWREG_SAFE_FREE_MEMORY(pSubKey);
 
     return status;
 
@@ -436,7 +416,6 @@ NTSTATUS
 SqliteCacheUpdateSubKeysInfo(
     IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumSubKeys
     )
 {
@@ -449,7 +428,6 @@ SqliteCacheUpdateSubKeysInfo(
 
     status = SqliteCacheUpdateSubKeysInfo_inlock(dwOffSet,
                                              pKeyResult,
-                                             bDoAnsi,
                                              psNumSubKeys);
     BAIL_ON_NT_STATUS(status);
 
@@ -464,8 +442,7 @@ error:
 
 NTSTATUS
 SqliteCacheKeyValuesInfo_inlock(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -473,15 +450,15 @@ SqliteCacheKeyValuesInfo_inlock(
     size_t sNumCacheValues = 0;
     PREG_ENTRY* ppRegEntries = NULL;
 
-    if (bDoAnsi ? pKeyResult->bHasValueAInfo : pKeyResult->bHasValueInfo)
+    if (pKeyResult->bHasValueInfo)
     {
         goto cleanup;
     }
 
     status = RegDbQueryInfoKeyCount(ghCacheConnection,
-                                     pKeyResult->pszKeyName,
-                                     QueryValues,
-                                     &sNumValues);
+		                        pKeyResult->pwszKeyName,
+                                    QueryValues,
+                                    &sNumValues);
     BAIL_ON_NT_STATUS(status);
 
     sNumCacheValues = (sNumValues > (size_t)dwDefaultCacheSize)
@@ -489,24 +466,24 @@ SqliteCacheKeyValuesInfo_inlock(
                       : sNumValues;
 
     status = RegDbQueryInfoKey(ghCacheConnection,
-                                pKeyResult->pszKeyName,
-                                QueryValues,
-                                sNumCacheValues,
-                                0,
-                                &sNumCacheValues,
-                                &ppRegEntries);
+		                   pKeyResult->pwszKeyName,
+                               QueryValues,
+                               sNumCacheValues,
+                               0,
+                               &sNumCacheValues,
+                               &ppRegEntries);
     BAIL_ON_NT_STATUS(status);
 
     status = RegDbSafeRecordValuesInfo_inlock(
                             sNumValues,
                             sNumCacheValues,
                             ppRegEntries,
-                            pKeyResult,
-                            bDoAnsi);
+                            pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
     RegDbSafeFreeEntryList(sNumCacheValues, &ppRegEntries);
+
     return status;
 
 error:
@@ -515,8 +492,7 @@ error:
 
 NTSTATUS
 SqliteCacheKeyValuesInfo(
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -526,7 +502,7 @@ SqliteCacheKeyValuesInfo(
 
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
-    status = SqliteCacheKeyValuesInfo_inlock(pKeyResult, bDoAnsi);
+    status = SqliteCacheKeyValuesInfo_inlock(pKeyResult);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
@@ -542,7 +518,6 @@ NTSTATUS
 SqliteCacheUpdateValuesInfo_inlock(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumValues
     )
 {
@@ -550,72 +525,46 @@ SqliteCacheUpdateValuesInfo_inlock(
     size_t sNumValues = 0;
     PREG_ENTRY* ppRegEntries = NULL;
     int iCount = 0;
-    PWSTR pValueName = NULL;
     size_t sValueNameLen = 0;
     DWORD dwValueLen = 0;
 
+
     status = RegDbQueryInfoKey(ghCacheConnection,
-                                pKeyResult->pszKeyName,
-                                QueryValues,
-                                dwDefaultCacheSize,
-                                dwOffSet,
-                                &sNumValues,
-                                &ppRegEntries);
+		                   pKeyResult->pwszKeyName,
+                               QueryValues,
+                               dwDefaultCacheSize,
+                               dwOffSet,
+                               &sNumValues,
+                               &ppRegEntries);
     BAIL_ON_NT_STATUS(status);
 
     for (iCount = 0; iCount < (int)sNumValues; iCount++)
     {
-        if (bDoAnsi)
-        {
-            sValueNameLen = strlen(ppRegEntries[iCount]->pszValueName);
 
-            if (pKeyResult->sMaxValueNameALen < sValueNameLen)
-                pKeyResult->sMaxValueNameALen = sValueNameLen;
-        }
-        else
-        {
-		status = LwRtlWC16StringAllocateFromCString(&pValueName,
-				                                     ppRegEntries[iCount]->pszValueName);
-		BAIL_ON_NT_STATUS(status);
+		if (ppRegEntries[iCount]->pwszValueName)
+		{
+			sValueNameLen = RtlWC16StringNumChars(ppRegEntries[iCount]->pwszValueName);
+		}
 
-            if (pValueName)
-            {
-		sValueNameLen = RtlWC16StringNumChars(pValueName);
-            }
+		if (pKeyResult->sMaxValueNameLen < sValueNameLen)
+			pKeyResult->sMaxValueNameLen = sValueNameLen;
 
-            if (pKeyResult->sMaxValueNameLen < sValueNameLen)
-                pKeyResult->sMaxValueNameLen = sValueNameLen;
-        }
-
-        status = RegGetValueAsBytes(ppRegEntries[iCount]->type,
-                                  (PCSTR)ppRegEntries[iCount]->pszValue,
-                                  bDoAnsi,
-                                  NULL,
-                                  &dwValueLen);
+        status = RegCopyValueBytes(ppRegEntries[iCount]->pValue,
+			                   ppRegEntries[iCount]->dwValueLen,
+                                   NULL,
+                                   &dwValueLen);
         BAIL_ON_NT_STATUS(status);
 
-        if (bDoAnsi)
-        {
-            if (pKeyResult->sMaxValueALen < (size_t)dwValueLen)
-                pKeyResult->sMaxValueALen = (size_t)dwValueLen;
-        }
-        else
-        {
-            if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
-                pKeyResult->sMaxValueLen = (size_t)dwValueLen;
-        }
+		if (pKeyResult->sMaxValueLen < (size_t)dwValueLen)
+			pKeyResult->sMaxValueLen = (size_t)dwValueLen;
 
-        LWREG_SAFE_FREE_MEMORY(pValueName);
         sValueNameLen = 0;
         dwValueLen = 0;
     }
 
-    pKeyResult->dwNumValues += sNumValues;
-
 cleanup:
     *psNumValues = sNumValues;
     RegDbSafeFreeEntryList(sNumValues, &ppRegEntries);
-    LWREG_SAFE_FREE_MEMORY(pValueName);
 
     return status;
 
@@ -627,7 +576,6 @@ NTSTATUS
 SqliteCacheUpdateValuesInfo(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi,
     OUT size_t* psNumValues
     )
 {
@@ -639,9 +587,8 @@ SqliteCacheUpdateValuesInfo(
     LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
 
     status = SqliteCacheUpdateValuesInfo_inlock(dwOffSet,
-                                     pKeyResult,
-                                     bDoAnsi,
-                                     psNumValues);
+                                                pKeyResult,
+                                                psNumValues);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:

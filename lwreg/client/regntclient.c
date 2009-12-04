@@ -613,13 +613,7 @@ done:
 		                                     (PCWSTR)pwszValueName);
     BAIL_ON_NT_STATUS(status);
 
-    if (*pcchValueName < strlen(pszTempValueName))
-    {
-	    status = STATUS_BUFFER_TOO_SMALL;
-	    BAIL_ON_NT_STATUS(status);
-    }
-
-    memcpy((PBYTE)pszValueName, (PBYTE)pszTempValueName, strlen(pszTempValueName));
+    memcpy((PBYTE)pszValueName, (PBYTE)pszTempValueName, (strlen(pszTempValueName)+1));
     *pcchValueName = strlen(pszTempValueName);
 
     if (pdwType)

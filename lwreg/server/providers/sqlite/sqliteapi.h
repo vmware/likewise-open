@@ -49,17 +49,6 @@
 #ifndef SQLITEAPI_H_
 #define SQLITEAPI_H_
 
-DWORD
-SqliteProvider_Initialize(
-    PREGPROV_PROVIDER_FUNCTION_TABLE* ppFnTable,
-    const PSTR* ppszRootKeyNames
-    );
-
-VOID
-SqliteProvider_Shutdown(
-    PREGPROV_PROVIDER_FUNCTION_TABLE pFnTable
-    );
-
 NTSTATUS
 SqliteCreateKeyEx(
     IN HANDLE Handle,
@@ -147,7 +136,7 @@ SqliteGetValue(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValue,
+    IN OPTIONAL PCWSTR pValueName,
     IN OPTIONAL REG_DATA_TYPE_FLAGS Flags,
     OUT PDWORD pdwType,
     OUT OPTIONAL PBYTE pData,

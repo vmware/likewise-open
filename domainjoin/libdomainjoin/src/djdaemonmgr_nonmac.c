@@ -894,6 +894,11 @@ DJManageDaemon(
 {
     BOOLEAN bStarted = FALSE;
 
+    // Check for the existence of the daemon prior to doing anything.
+    // notice that we are using the private version so that if we fail,
+    // our inner exception will be the one that was tossed due to the failure.
+    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
+
     // Verify that daemon is configured as needed for running after restart,
     // this also sets up any service control manager settings. On newer
     // Solaris systems, the service control manager will start/stop the
@@ -902,19 +907,12 @@ DJManageDaemon(
     // running or stopped it will remain the same with the same service pid.
     LW_TRY(exc, DJConfigureForDaemonRestart(pszName, bStatus, startPriority, stopPriority, &LW_EXC));
 
-    // check our current state prior to doing anything.  notice that
-    // we are using the private version so that if we fail, our inner
-    // exception will be the one that was tossed due to the failure.
+    // Reverify the daemon status now, it may be started or stopped as needed by the step above.
     LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
 
-    // if we got this far, we have validated the existence of the
-    // daemon and we have figured out if its started or stopped
-
-    // if we are already in the desired state, do nothing.
+    // If we are already in the desired state, do nothing.
     if (bStarted != bStatus) {
-
         LW_TRY(exc, DJStartStopDaemon(pszName, bStatus, &LW_EXC));
-
     }
 
 cleanup:
@@ -924,7 +922,6 @@ cleanup:
 struct _DaemonList daemonList[] = {    
     //{ "reapsysld", {NULL}, FALSE, 12, 9 },
     { "gpagentd", {NULL}, FALSE, 22, 9 },
-    { "lwmgmtd", {NULL}, FALSE, 21, 9 },
     //{ "eventfwdd", {NULL}, FALSE, 21, 9 },
     { NULL, {NULL}, FALSE, 0, 0 },
 };

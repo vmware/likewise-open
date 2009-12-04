@@ -73,7 +73,8 @@ RegUtilAddKey(
                hReg,
                pszRootKeyName,
                pszSubKeyPath,
-               pszKeyName);
+               pszKeyName,
+               FALSE);
 }
 
 

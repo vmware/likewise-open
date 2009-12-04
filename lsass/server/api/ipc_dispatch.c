@@ -2370,7 +2370,7 @@ LsaSrvIpcGetPamConfig(
 cleanup:
     if (pPamConfig)
     {
-        LsaSrvFreePamConfig(pPamConfig);
+        LsaUtilFreePamConfig(pPamConfig);
     }
     return MAP_LW_ERROR_IPC(dwError);
 

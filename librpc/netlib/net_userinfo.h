@@ -39,7 +39,7 @@
  *
  *        Remote Procedure Call (RPC) Client Interface
  *
- *        Samr rpc client private definitions
+ *        NetAPI user info buffer handling functions
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -51,74 +51,6 @@ union user_info_id {
     DWORD  dwId;
     PSID   pSid;
 };
-
-
-typedef struct _USER_INFO_X
-{
-    PWSTR   name;
-    PWSTR   password;
-    DWORD   password_age;
-    DWORD   priv;
-    PWSTR   home_dir;
-    PWSTR   comment;
-    DWORD   flags;
-    PWSTR   script_path;
-    DWORD   auth_flags;
-    PWSTR   full_name;
-    PWSTR   usr_comment;
-    PWSTR   parms;
-    PWSTR   workstations;
-    DWORD   last_logon;
-    DWORD   last_logoff;
-    NtTime  acct_expires;
-    DWORD   max_storage;
-    DWORD   units_per_week;
-    USHORT *logon_hours;
-    DWORD   bad_pw_count;
-    DWORD   num_logons;
-    PWSTR   logon_server;
-    DWORD   country_code;
-    DWORD   code_page;
-    union user_info_id user;
-    PSID    user_sid;
-    DWORD   primary_group_id;
-    PWSTR   profile;
-    PWSTR   home_dir_drive;
-    DWORD   password_expired;
-
-} USER_INFO_X, *PUSER_INFO_X;
-
-
-typedef struct _USER_INFO_1X {
-    PWSTR   name;
-    PWSTR   comment;
-    PWSTR   usr_comment;
-    PWSTR   full_name;
-    DWORD   priv;
-    DWORD   auth_flags;
-    DWORD   password_age;
-    PWSTR   home_dir;
-    PWSTR   parms;
-    DWORD   last_logon;
-    DWORD   last_logoff;
-    DWORD   bad_pw_count;
-    DWORD   num_logons;
-    PWSTR   logon_server;
-    DWORD   country_code;
-    PWSTR   workstations;
-    DWORD   max_storage;
-    DWORD   units_per_week;
-    USHORT *logon_hours;
-    DWORD   code_page;
-} USER_INFO_1X, *PUSER_INFO_1X;
-
-
-typedef struct _USER_INFO_2X {
-    PWSTR   name;
-    PWSTR   full_name;
-    PWSTR   comment;
-    union user_info_id user;
-} USER_INFO_2X, *PUSER_INFO_2X;
 
 
 DWORD
@@ -144,16 +76,6 @@ NetAllocateSamrUserInfo(
 
 
 NTSTATUS
-PushUserInfoAdd(
-    UserInfo **ppSamrUserInfo,
-    PDWORD     pdwSamrInfoLevel,
-    PVOID      pNetUserInfo,
-    DWORD      dwNetInfoLevel,
-    PDWORD     pdwParmErr
-    );
-
-
-NTSTATUS
 NetEncPasswordEx(
     BYTE     PasswordBuffer[532],
     PWSTR    pwszPassword,
@@ -161,49 +83,6 @@ NetEncPasswordEx(
     NetConn *pConn
     );
 
-
-NTSTATUS
-PushUserInfo0(
-    UserInfo     **ppSamrUserInfo,
-    PDWORD         pdwLevel,
-    PUSER_INFO_0   pNetUserInfo
-    );
-
-NTSTATUS
-PushUserInfo20(
-    UserInfo      **ppSamrUserInfo,
-    PDWORD          pdwLevel,
-    PUSER_INFO_20   pNetUserInfo
-    );
-
-NTSTATUS
-PushUserInfo1003(
-    UserInfo        **ppSamrUserInfo,
-    PDWORD            pdwLevel,
-    PUSER_INFO_1003   pNetUserInfo,
-    NetConn          *pCconn
-    );
-
-NTSTATUS
-PushUserInfo1007(
-    UserInfo        **ppSamrUserInfo,
-    PDWORD            pdwLevel,
-    PUSER_INFO_1007   pNetUserInfo
-    );
-
-NTSTATUS
-PushUserInfo1008(
-    UserInfo       **ppSamrUserInfo,
-    PDWORD           pdwLevel,
-    PUSER_INFO_1008  pNetUserInfo
-    );
-
-NTSTATUS
-PushUserInfo1011(
-    UserInfo       **ppSamrUserInfo,
-    PDWORD           pdwLevel,
-    PUSER_INFO_1011  pNetUserInfo
-    );
 
 #endif /* _NETUSERINFO_H_ */
 

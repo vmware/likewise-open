@@ -58,6 +58,22 @@ typedef struct __AD_ENUM_STATE {
     LW_SEARCH_COOKIE Cookie;
 } AD_ENUM_STATE, *PAD_ENUM_STATE;
 
+typedef struct __AD_ENUM_HANDLE
+{
+    enum
+    {
+        AD_ENUM_HANDLE_OBJECTS,
+        AD_ENUM_HANDLE_MEMBERS
+    } Type;
+    LSA_FIND_FLAGS FindFlags;
+    LSA_OBJECT_TYPE ObjectType;
+    LSA_OBJECT_TYPE CurrentObjectType;
+    LW_SEARCH_COOKIE Cookie;
+    PSTR* ppszSids;
+    DWORD dwSidCount;
+    DWORD dwSidIndex;
+} AD_ENUM_HANDLE, *PAD_ENUM_HANDLE;
+
 typedef struct __AD_PROVIDER_CONTEXT
 {
     uid_t uid;

@@ -242,6 +242,54 @@ RegFreeStringArray(
     return;
 }
 
+void
+RegFreeWC16StringArray(
+    PWSTR * ppwStringArray,
+    DWORD dwCount
+    )
+{
+    DWORD i;
+
+    if ( ppwStringArray )
+    {
+        for(i = 0; i < dwCount; i++)
+        {
+            if (ppwStringArray[i])
+            {
+		LwRtlMemoryFree(ppwStringArray[i]);
+            }
+        }
+
+        LwRtlMemoryFree(ppwStringArray);
+    }
+
+    return;
+}
+
+void
+RegFreeValueByteArray(
+    PBYTE* ppValues,
+    DWORD dwCount
+    )
+{
+    DWORD i;
+
+    if ( ppValues )
+    {
+        for(i = 0; i < dwCount; i++)
+        {
+            if (ppValues[i])
+            {
+		LwRtlMemoryFree(ppValues[i]);
+            }
+        }
+
+        LwRtlMemoryFree(ppValues);
+    }
+
+    return;
+}
+
 DWORD
 RegStrndup(
     PCSTR pszInputString,
@@ -392,6 +440,23 @@ RegStrDupOrNull(
     else
     {
         return LwRtlCStringDuplicate(ppszOutputString, pszInputString);
+    }
+}
+
+NTSTATUS
+RegWcStrDupOrNull(
+    PCWSTR pwszInputString,
+    PWSTR *ppwszOutputString
+    )
+{
+    if (pwszInputString == NULL)
+    {
+        *ppwszOutputString = NULL;
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        return LwRtlWC16StringDuplicate(ppwszOutputString, pwszInputString);
     }
 }
 

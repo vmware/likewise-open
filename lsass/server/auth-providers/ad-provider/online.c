@@ -1009,7 +1009,7 @@ AD_PacMembershipFilterWithLdap(
     }
 
     // Grab the membership information available in LDAP.
-    dwError = ADLdap_GetUserGroupMembership(
+    dwError = ADLdap_GetObjectGroupMembership(
                     hProvider,
                     pUserInfo,
                     &iPrimaryGroupIndex,
@@ -2430,7 +2430,7 @@ AD_OnlineGetUserGroupObjectMembership(
         LW_SAFE_FREE_MEMORY(ppszSids);
         ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
 
-        dwError = ADLdap_GetUserGroupMembership(
+        dwError = ADLdap_GetObjectGroupMembership(
                          hProvider,
                          pUserInfo,
                          &iPrimaryGroupIndex,
@@ -4493,15 +4493,27 @@ AD_OnlineFindObjectsByName(
                 pUserNameInfo->nameType,
                 accountType,
                 &pCachedUser);
-            BAIL_ON_LSA_ERROR(dwError);
+            switch (dwError)
+            {
+            case LW_ERROR_SUCCESS:
+                dwError = ADCacheStoreObjectEntry(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pCachedUser);
+                BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = ADCacheStoreObjectEntry(
-                gpLsaAdProviderState->hCacheConnection,
-                pCachedUser);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            ppObjects[dwIndex] = pCachedUser;
-            pCachedUser = NULL;
+                ppObjects[dwIndex] = pCachedUser;
+                pCachedUser = NULL;
+                break;
+            case LW_ERROR_NO_SUCH_USER:
+            case LW_ERROR_NO_SUCH_GROUP:
+            case LW_ERROR_NO_SUCH_OBJECT:
+            case LW_ERROR_DOMAIN_IS_OFFLINE:
+                dwError = LW_ERROR_SUCCESS;
+                break;
+            default:
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
             break;
         default:
             BAIL_ON_LSA_ERROR(dwError);
@@ -4598,15 +4610,27 @@ AD_OnlineFindObjectsById(
                 QueryList.pdwIds[dwIndex],
                 accountType,
                 &pCachedUser);
-            BAIL_ON_LSA_ERROR(dwError);
+            switch (dwError)
+            {
+            case LW_ERROR_SUCCESS:
+                dwError = ADCacheStoreObjectEntry(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pCachedUser);
+                BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = ADCacheStoreObjectEntry(
-                gpLsaAdProviderState->hCacheConnection,
-                pCachedUser);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            ppObjects[dwIndex] = pCachedUser;
-            pCachedUser = NULL;
+                ppObjects[dwIndex] = pCachedUser;
+                pCachedUser = NULL;
+                break;
+            case LW_ERROR_NO_SUCH_USER:
+            case LW_ERROR_NO_SUCH_GROUP:
+            case LW_ERROR_NO_SUCH_OBJECT:
+            case LW_ERROR_DOMAIN_IS_OFFLINE:
+                dwError = LW_ERROR_SUCCESS;
+                break;
+            default:
+                BAIL_ON_LSA_ERROR(dwError);
+                break;
+            }
             break;
         default:
             BAIL_ON_LSA_ERROR(dwError);
@@ -4630,6 +4654,55 @@ error:
 }
 
 DWORD
+AD_OnlineDistributeObjects(
+    BOOLEAN bByDn,
+    IN DWORD dwKeyCount,
+    IN PSTR* ppszKeys,
+    IN DWORD dwObjectCount,
+    IN PLSA_SECURITY_OBJECT* ppObjects,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwKeyIndex = 0;
+    DWORD dwObjectIndex = 0;
+    PLSA_SECURITY_OBJECT* ppDistObjects = NULL;
+
+    dwError = LwAllocateMemory(
+        sizeof(*ppDistObjects) * dwKeyCount,
+        OUT_PPVOID(&ppDistObjects));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwObjectIndex = 0; dwObjectIndex < dwObjectCount; dwObjectIndex++)
+    {
+        for (dwKeyIndex = 0; dwKeyIndex < dwKeyCount; dwKeyIndex++)
+        {
+            if (ppDistObjects[dwKeyIndex] == NULL &&
+                !strcmp(bByDn ?
+                        ppObjects[dwObjectIndex]->pszDN :
+                        ppObjects[dwObjectIndex]->pszObjectSid,
+                        ppszKeys[dwKeyIndex]))
+            {
+                ppDistObjects[dwKeyIndex] = ppObjects[dwObjectIndex];
+                ppObjects[dwObjectIndex] = NULL;
+                break;
+            }
+        }
+    }
+
+    *pppObjects = ppDistObjects;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+
+DWORD
 AD_OnlineFindObjects(
     IN HANDLE hProvider,
     IN LSA_FIND_FLAGS FindFlags,
@@ -4641,9 +4714,11 @@ AD_OnlineFindObjects(
     )
 {
     DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppUnorderedObjects = NULL;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     LSA_OBJECT_TYPE type = LSA_OBJECT_TYPE_UNDEFINED;
     DWORD dwIndex = 0;
+    size_t sObjectCount = 0;
 
     switch(QueryType)
     {
@@ -4652,7 +4727,16 @@ AD_OnlineFindObjects(
             hProvider,
             dwCount,
             (PSTR*) QueryList.ppszStrings,
-            NULL,
+            &sObjectCount,
+            &ppUnorderedObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = AD_OnlineDistributeObjects(
+            FALSE,
+            dwCount,
+            (PSTR*) QueryList.ppszStrings,
+            (DWORD) sObjectCount,
+            ppUnorderedObjects,
             &ppObjects);
         BAIL_ON_LSA_ERROR(dwError);
         break;
@@ -4661,9 +4745,18 @@ AD_OnlineFindObjects(
             hProvider,
             dwCount,
             (PSTR*) QueryList.ppszStrings,
-            NULL,
-            &ppObjects);
+            &sObjectCount,
+            &ppUnorderedObjects);
          BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = AD_OnlineDistributeObjects(
+            TRUE,
+            dwCount,
+            (PSTR*) QueryList.ppszStrings,
+            (DWORD) sObjectCount,
+            ppUnorderedObjects,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
          break;
     case LSA_QUERY_TYPE_BY_NT4:
     case LSA_QUERY_TYPE_BY_UPN:
@@ -4725,12 +4818,546 @@ AD_OnlineFindObjects(
 
 cleanup:
 
+    if (ppUnorderedObjects)
+    {
+        LsaUtilFreeSecurityObjectList((DWORD) sObjectCount, ppUnorderedObjects);
+    }
+
     return dwError;
 
 error:
 
     goto cleanup;
 }
+
+DWORD
+AD_OnlineEnumObjects(
+    IN HANDLE hEnum,
+    IN DWORD dwMaxObjectsCount,
+    OUT PDWORD pdwObjectsCount,
+    OUT PLSA_SECURITY_OBJECT** pppObjects
+    )
+{
+    DWORD dwError = 0;
+    PAD_ENUM_HANDLE pEnum = hEnum;
+    BOOLEAN bIsEnumerationEnabled = TRUE;
+    LSA_FIND_FLAGS FindFlags = pEnum->FindFlags;
+
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
+    {
+        bIsEnumerationEnabled = AD_GetNssEnumerationEnabled();
+    }
+
+    if (!bIsEnumerationEnabled || pEnum->CurrentObjectType == LSA_OBJECT_TYPE_UNDEFINED)
+    {
+        dwError = ERROR_NO_MORE_ITEMS;
+        goto cleanup;
+    }
+
+    do
+    {
+        switch (pEnum->CurrentObjectType)
+        {
+        case LSA_OBJECT_TYPE_USER:
+            dwError = LsaAdBatchEnumObjects(
+                &pEnum->Cookie,
+                AccountType_User,
+                dwMaxObjectsCount,
+                pdwObjectsCount,
+                pppObjects);
+            break;
+        case LSA_OBJECT_TYPE_GROUP:
+            dwError = LsaAdBatchEnumObjects(
+                &pEnum->Cookie,
+                AccountType_Group,
+                dwMaxObjectsCount,
+                pdwObjectsCount,
+                pppObjects);
+            break;
+        }
+
+        if ((dwError == LW_ERROR_NO_MORE_USERS ||
+             dwError == LW_ERROR_NO_MORE_GROUPS))
+        {
+            dwError = ERROR_NO_MORE_ITEMS;
+
+            if (pEnum->ObjectType == LSA_OBJECT_TYPE_UNDEFINED &&
+                pEnum->CurrentObjectType < LSA_OBJECT_TYPE_GROUP)
+            {
+                pEnum->CurrentObjectType++;
+                LwFreeCookieContents(&pEnum->Cookie);
+                LwInitCookie(&pEnum->Cookie);
+                continue;
+            }
+            else
+            {
+                pEnum->CurrentObjectType = LSA_OBJECT_TYPE_UNDEFINED;
+                break;
+            }
+        }
+    } while (dwError == ERROR_NO_MORE_ITEMS);
+
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *pdwObjectsCount = 0;
+    *pppObjects = NULL;
+
+    goto cleanup;
+}
+
+static
+DWORD
+AD_OnlineQueryMemberOfForSid(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PSTR pszSid,
+    IN OUT PLSA_HASH_TABLE pGroupHash
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    size_t sMembershipCount = 0;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    BOOLEAN bIsCacheOnlyMode = FALSE;
+    BOOLEAN bExpired = FALSE;
+    BOOLEAN bIsComplete = FALSE;
+    BOOLEAN bUseCache = FALSE;
+    size_t sResultsCount = 0;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
+    // Only free top level array, do not free string pointers.
+    PSTR pszGroupSid = NULL;
+    int iPrimaryGroupIndex = -1;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
+    DWORD dwIndex = 0;
+
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
+    {
+        bIsCacheOnlyMode = AD_GetNssUserMembershipCacheOnlyEnabled();
+    }
+
+    dwError = AD_FindObjectBySid(hProvider, pszSid, &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheGetGroupsForUser(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pszSid,
+                    AD_GetTrimUserMembershipEnabled(),
+                    &sMembershipCount,
+                    &ppMemberships);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_CheckExpiredMemberships(
+                    sMembershipCount,
+                    ppMemberships,
+                    TRUE,
+                    &bExpired,
+                    &bIsComplete);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bExpired)
+    {
+        LSA_LOG_VERBOSE(
+            "Cache entry for user's group membership for sid %s is expired",
+            pszSid);
+    }
+    else if (!bIsComplete)
+    {
+        LSA_LOG_VERBOSE(
+            "Cache entry for user's group membership for sid %s is incomplete",
+            pszSid);
+    }
+
+    if (bExpired || !bIsComplete)
+    {
+        LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+
+        dwError = AD_DetermineTrustModeandDomainName(
+                        pUserInfo->pszNetbiosDomainName,
+                        &dwTrustDirection,
+                        NULL,
+                        NULL,
+                        NULL);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (dwTrustDirection == LSA_TRUST_DIRECTION_ONE_WAY)
+        {
+            bUseCache = TRUE;
+        }
+    }
+    else
+    {
+        bUseCache = TRUE;
+    }
+
+    if (!bUseCache && bIsCacheOnlyMode)
+    {
+        dwError = AD_FilterExpiredMemberships(&sMembershipCount, ppMemberships);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        bUseCache = TRUE;
+    }
+
+    if (!bUseCache)
+    {
+        dwError = ADLdap_GetObjectGroupMembership(
+                         hProvider,
+                         pUserInfo,
+                         &iPrimaryGroupIndex,
+                         &sResultsCount,
+                         &ppResults);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (dwIndex = 0; dwIndex < sResultsCount; dwIndex++)
+        {
+            if (ppResults[dwIndex] &&
+                AdIsSpecialDomainSidPrefix(ppResults[dwIndex]->pszObjectSid))
+            {
+                ADCacheSafeFreeObject(&ppResults[dwIndex]);
+            }
+        }
+
+        AD_FilterNullEntries(ppResults, &sResultsCount);
+
+        dwError = AD_CacheMembershipFromRelatedObjects(
+                        gpLsaAdProviderState->hCacheConnection,
+                        pszSid,
+                        iPrimaryGroupIndex,
+                        FALSE,
+                        sResultsCount,
+                        ppResults);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (ppMemberships)
+    {
+        for (dwIndex = 0; dwIndex < sMembershipCount; dwIndex++)
+        {
+            if (ppMemberships[dwIndex]->pszParentSid)
+            {
+                dwError = LwAllocateString(
+                    ppMemberships[dwIndex]->pszParentSid,
+                    &pszGroupSid);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = LsaHashSetValue(pGroupHash, pszGroupSid, pszGroupSid);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwError = AD_OnlineQueryMemberOfForSid(
+                    hProvider,
+                    FindFlags,
+                    pszGroupSid,
+                    pGroupHash);
+                pszGroupSid = NULL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    if (ppResults)
+    {
+        for (dwIndex = 0; dwIndex < sResultsCount; dwIndex++)
+        {
+            dwError = LwAllocateString(
+                ppResults[dwIndex]->pszObjectSid,
+                &pszGroupSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaHashSetValue(pGroupHash, pszGroupSid, pszGroupSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = AD_OnlineQueryMemberOfForSid(
+                hProvider,
+                FindFlags,
+                pszGroupSid,
+                pGroupHash);
+            pszGroupSid = NULL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pszGroupSid);
+    ADCacheSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+    ADCacheSafeFreeObjectList(sResultsCount, &ppResults);
+
+    return dwError;
+
+error:
+
+    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE )
+    {
+        LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %d)",
+                      pUserInfo->pszNetbiosDomainName,
+                      pUserInfo->pszSamAccountName,
+                      dwError);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+AD_OnlineFreeMemberOfHashEntry(
+    const LSA_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        LwFreeMemory(pEntry->pValue);
+    }
+}
+
+DWORD
+AD_OnlineQueryMemberOf(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwIndex = 0;
+    PLSA_HASH_TABLE   pGroupHash = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY*   pHashEntry = NULL;
+    DWORD dwGroupSidCount = 0;
+    PSTR* ppszGroupSids = NULL;
+
+    dwError = LsaHashCreate(
+        13,
+        LsaHashCaselessStringCompare,
+        LsaHashCaselessStringHash,
+        AD_OnlineFreeMemberOfHashEntry,
+        NULL,
+        &pGroupHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < dwSidCount; dwIndex++)
+    {
+        if (AdIsSpecialDomainSidPrefix(ppszSids[dwIndex]))
+        {
+            continue;
+        }
+
+        dwError = AD_OnlineQueryMemberOfForSid(
+            hProvider,
+            FindFlags,
+            ppszSids[dwIndex],
+            pGroupHash);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwGroupSidCount = (DWORD) LsaHashGetKeyCount(pGroupHash);
+
+    if (dwGroupSidCount)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*ppszGroupSids) * dwGroupSidCount,
+            OUT_PPVOID(&ppszGroupSids));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaHashGetIterator(pGroupHash, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for(dwIndex = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; dwIndex++)
+        {
+            ppszGroupSids[dwIndex] = (PSTR) pHashEntry->pValue;
+            pHashEntry->pValue = NULL;
+        }
+    }
+
+    *pdwGroupSidCount = dwGroupSidCount;
+    *pppszGroupSids = ppszGroupSids;
+
+cleanup:
+
+    LsaHashSafeFree(&pGroupHash);
+
+    return dwError;
+
+error:
+
+    if (ppszGroupSids)
+    {
+        LwFreeStringArray(ppszGroupSids, dwGroupSidCount);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+AD_OnlineGetGroupMemberSids(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid,
+    OUT PDWORD pdwSidCount,
+    OUT PSTR** pppszSids
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    size_t sMembershipCount = 0;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    BOOLEAN bExpired = FALSE;
+    BOOLEAN bIsComplete = FALSE;
+    BOOLEAN bUseCache = FALSE;
+    BOOLEAN bIsCacheOnlyMode = FALSE;
+    size_t sResultsCount = 0;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
+    // Only free top level array, do not free string pointers.
+    PSTR* ppszSids = NULL;
+    DWORD dwSidCount = 0;
+    DWORD dwIndex = 0;
+    PLSA_SECURITY_OBJECT pGroupInfo = NULL;
+
+    if (FindFlags & LSA_FIND_FLAGS_NSS)
+    {
+        bIsCacheOnlyMode = AD_GetNssUserMembershipCacheOnlyEnabled();
+    }
+
+    dwError = AD_FindObjectBySid(hProvider, pszSid, &pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheGetGroupMembers(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pszSid,
+                    AD_GetTrimUserMembershipEnabled(),
+                    &sMembershipCount,
+                    &ppMemberships);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_CheckExpiredMemberships(
+                    sMembershipCount,
+                    ppMemberships,
+                    FALSE,
+                    &bExpired,
+                    &bIsComplete);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bExpired)
+    {
+        LSA_LOG_VERBOSE(
+            "Cache entry for group membership for sid %s is expired",
+            pszSid);
+    }
+    else if (!bIsComplete)
+    {
+        LSA_LOG_VERBOSE(
+            "Cache entry for group membership for sid %s is incomplete",
+            pszSid);
+    }
+
+    if (bExpired || !bIsComplete)
+    {
+        LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
+
+        dwError = AD_DetermineTrustModeandDomainName(
+            pGroupInfo->pszNetbiosDomainName,
+            &dwTrustDirection,
+            NULL,
+            NULL,
+            NULL);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (dwTrustDirection == LSA_TRUST_DIRECTION_ONE_WAY)
+        {
+            bUseCache = TRUE;
+        }
+    }
+    else
+    {
+        bUseCache = TRUE;
+    }
+
+    if (!bUseCache && bIsCacheOnlyMode)
+    {
+        dwError = AD_FilterExpiredMemberships(&sMembershipCount, ppMemberships);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        bUseCache = TRUE;
+    }
+
+    if (!bUseCache)
+    {
+        dwError = ADLdap_GetGroupMembers(
+                        hProvider,
+                        pGroupInfo->pszNetbiosDomainName,
+                        pszSid,
+                        &sResultsCount,
+                        &ppResults);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = AD_CacheMembershipFromRelatedObjects(
+                        gpLsaAdProviderState->hCacheConnection,
+                        pszSid,
+                        -1,
+                        TRUE,
+                        sResultsCount,
+                        ppResults);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(
+        sizeof(*ppszSids) * (sResultsCount + sMembershipCount),
+        OUT_PPVOID(&ppszSids));
+
+    if (ppMemberships)
+    {
+        for (dwIndex = 0; dwIndex < sMembershipCount; dwIndex++)
+        {
+            if (ppMemberships[dwIndex]->pszChildSid)
+            {
+                dwError = LwAllocateString(ppMemberships[dwIndex]->pszChildSid, &ppszSids[dwSidCount++]);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    if (ppResults)
+    {
+        for (dwIndex = 0; dwIndex < sResultsCount; dwIndex++)
+        {
+            if (ppResults[dwIndex])
+            {
+                dwError = LwAllocateString(ppResults[dwIndex]->pszObjectSid, &ppszSids[dwSidCount++]);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    *pdwSidCount = dwSidCount;
+    *pppszSids = ppszSids;
+
+cleanup:
+
+    ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+    ADCacheSafeFreeObjectList(sResultsCount, &ppResults);
+    ADCacheSafeFreeObject(&pGroupInfo);
+
+    return dwError;
+
+error:
+
+    *pdwSidCount = 0;
+    *pppszSids = NULL;
+
+    if (ppszSids)
+    {
+        LwFreeStringArray(ppszSids, dwSidCount);
+    }
+
+    goto cleanup;
+}
+
+
 
 /*
 local variables:

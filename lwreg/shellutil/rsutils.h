@@ -66,7 +66,9 @@ RegShellUtilAddKey(
     HANDLE hReg,
     PSTR pszRootKeyName,
     PSTR pszDefaultKey,
-    PSTR pszKeyName);
+    PSTR pszKeyName,
+    BOOLEAN bDoBail
+    );
 
 DWORD
 RegShellUtilDeleteKey(

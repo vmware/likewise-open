@@ -49,9 +49,9 @@
 
 NTSTATUS
 SqliteGetParentKeyName(
-    PCSTR pszInputString,
-    CHAR c,
-    PSTR *ppszOutputString
+    PCWSTR pwszInputString,
+    wchar16_t c,
+    PWSTR *ppwszOutputString
     );
 
 NTSTATUS
@@ -62,26 +62,26 @@ SqliteCreateKeyHandle(
 
 NTSTATUS
 SqliteCreateKeyInternal(
-    IN PSTR pszKeyName,
+    IN PWSTR pwszKeyName,
     IN OPTIONAL PCWSTR pSubKey, //pSubKey is null only when creating HKEY_LIKEWISE
     OUT OPTIONAL PHKEY ppKeyResult
     );
 
 NTSTATUS
 SqliteOpenKeyInternal(
-    IN PSTR pszKeyName,
+    IN PCWSTR pwszKeyName,
     IN OPTIONAL PCWSTR pSubKey,
     OUT PHKEY phkResult
     );
 
 NTSTATUS
 SqliteDeleteKeyInternal(
-    IN PSTR pszKeyName
+    IN PCWSTR pwszKeyName
     );
 
 NTSTATUS
 SqliteDeleteActiveKey(
-    IN PSTR pszKeyName
+    IN PCWSTR pwszKeyName
     );
 
 NTSTATUS

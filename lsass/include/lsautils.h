@@ -1490,6 +1490,26 @@ LsaUtilFreeSecurityObjectList(
     PLSA_SECURITY_OBJECT* ppObjectList
     );
 
+DWORD
+LsaUtilAllocatePamConfig(
+    OUT PLSA_PAM_CONFIG *ppConfig
+    );
+
+DWORD
+LsaUtilInitializePamConfig(
+    OUT PLSA_PAM_CONFIG pConfig
+    );
+
+VOID
+LsaUtilFreePamConfigContents(
+    IN PLSA_PAM_CONFIG pConfig
+    );
+
+VOID
+LsaUtilFreePamConfig(
+    IN PLSA_PAM_CONFIG pConfig
+    );
+
 #endif /* __LSA_UTILS_H__ */
 
 

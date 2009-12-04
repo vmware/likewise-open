@@ -420,27 +420,12 @@ cleanup:
 }
 
 int
-RegHashCaselessStringCompare(
+RegHashCaselessWC16StringCompare(
     PCVOID str1,
     PCVOID str2
     )
 {
-    if (str1 == NULL)
-    {
-        if (str2 == NULL)
-        {
-            return 0;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-    if (str2 == NULL)
-    {
-        return 1;
-    }
-    return strcasecmp((PCSTR)str1, (PCSTR)str2);
+	return !LwRtlWC16StringIsEqual(str1, str2, FALSE);
 }
 
 size_t
@@ -470,14 +455,36 @@ RegHashCaselessStringHash(
     return result;
 }
 
+size_t
+RegHashCaselessWc16String(
+    PCVOID str
+    )
+{
+    size_t result = 0;
+    PCWSTR pos = (PCWSTR)str;
+    int lowerChar;
+
+    while (*pos != '\0')
+    {
+        // rotate result to the left 3 bits with wrap around
+        result = (result << 3) | (result >> (sizeof(size_t)*8 - 3));
+
+        lowerChar = *pos <= 255 ? tolower(*pos) : *pos;
+        result += lowerChar;
+        pos++;
+    }
+
+    return result;
+}
+
 VOID
-RegHashFreeStringKey(
+RegHashFreeWc16StringKey(
     IN OUT const REG_HASH_ENTRY *pEntry
     )
 {
     if (pEntry->pKey)
     {
-	RegFreeString(pEntry->pKey);
+	RegFreeMemory(pEntry->pKey);
     }
 }
 

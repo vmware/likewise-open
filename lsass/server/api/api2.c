@@ -513,6 +513,7 @@ LsaSrvEnumObjects(
             {
                 dwError = LW_ERROR_SUCCESS;
                 pEnum->pProvider->pFnTable2->pfnCloseHandle(pEnum->hProvider);
+                pEnum->hProvider = NULL;
                 pEnum->pProvider = pEnum->bMergeResults ? pEnum->pProvider->pNext : NULL;
                 continue;
             }
@@ -693,15 +694,17 @@ LsaSrvEnumMembers(
                 &pEnum->hEnum,
                 pEnum->FindFlags,
                 pEnum->pszSid);
-            if (dwError == LW_ERROR_NOT_HANDLED)
+            switch (dwError)
             {
+            case LW_ERROR_NOT_HANDLED:
+            case LW_ERROR_NO_SUCH_OBJECT:
+            case LW_ERROR_NO_SUCH_GROUP:
                 dwError = LW_ERROR_SUCCESS;
                 pEnum->pProvider->pFnTable2->pfnCloseHandle(pEnum->hProvider);
+                pEnum->hProvider = NULL;
                 pEnum->pProvider = pEnum->bMergeResults ? pEnum->pProvider->pNext : NULL;
                 continue;
-            }
-            else
-            {
+            default:
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -826,14 +829,17 @@ LsaSrvQueryMemberOf(
         {
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaSrvConcatenateSidLists(
-                dwCombinedCount,
-                &ppszCombinedSids,
-                dwPartialCount,
-                ppszPartialSids);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (dwPartialCount > 0)
+            {
+                dwError = LsaSrvConcatenateSidLists(
+                    dwCombinedCount,
+                    &ppszCombinedSids,
+                    dwPartialCount,
+                    ppszPartialSids);
+                BAIL_ON_LSA_ERROR(dwError);
 
-            dwCombinedCount += dwPartialCount;
+                dwCombinedCount += dwPartialCount;
+            }
         }
 
         LW_SAFE_FREE_MEMORY(ppszPartialSids);

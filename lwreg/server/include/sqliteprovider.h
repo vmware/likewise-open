@@ -52,7 +52,7 @@
 DWORD
 SqliteProvider_Initialize(
     PREGPROV_PROVIDER_FUNCTION_TABLE* ppFnTable,
-    const PSTR* ppszRootKeyNames
+    const PWSTR* ppwszRootKeyNames
     );
 
 VOID

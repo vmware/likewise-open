@@ -32,7 +32,7 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void OKBtn_Click(object sender, EventArgs e)
         {
-            //TODO; Need to get back the Security descrupotro edited values.
+            //TODO; Need to get back the Security descrupotor edited values.
 
             this.DialogResult = DialogResult.OK;
             Close();
@@ -46,12 +46,6 @@ namespace Likewise.LMC.UtilityUIElements
         #endregion
 
         #region Helper functions
-
-        public void FillSecurityDescriptorsUserGroupList(
-                        SecurityDescriptor securityDescriptor)
-        {
-
-        }
 
         #endregion
     }

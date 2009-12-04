@@ -57,6 +57,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.lvGroupOrUserNames.TabIndex = 1;
             this.lvGroupOrUserNames.UseCompatibleStateImageBehavior = false;
             this.lvGroupOrUserNames.View = System.Windows.Forms.View.List;
+            this.lvGroupOrUserNames.SelectedIndexChanged += new System.EventHandler(this.lvGroupOrUserNames_SelectedIndexChanged);
             //
             // chIcon
             //

@@ -896,3 +896,216 @@ error:
 
     goto cleanup;
 }
+
+static
+DWORD
+AD_OfflineQueryMemberOfForSid(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PSTR pszSid,
+    IN OUT PLSA_HASH_TABLE pGroupHash
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    size_t sMembershipCount = 0;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    // Only free top level array, do not free string pointers.
+    PSTR pszGroupSid = NULL;
+    PLSA_SECURITY_OBJECT pUserInfo = NULL;
+    DWORD dwIndex = 0;
+
+    dwError = AD_FindObjectBySid(hProvider, pszSid, &pUserInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = ADCacheGetGroupsForUser(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pszSid,
+                    AD_GetTrimUserMembershipEnabled(),
+                    &sMembershipCount,
+                    &ppMemberships);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < sMembershipCount; dwIndex++)
+    {
+        if (ppMemberships[dwIndex]->pszParentSid)
+        {
+            dwError = LwAllocateString(
+                ppMemberships[dwIndex]->pszParentSid,
+                &pszGroupSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaHashSetValue(pGroupHash, pszGroupSid, pszGroupSid);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = AD_OfflineQueryMemberOfForSid(
+                hProvider,
+                FindFlags,
+                pszGroupSid,
+                pGroupHash);
+            pszGroupSid = NULL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pszGroupSid);
+    ADCacheSafeFreeObject(&pUserInfo);
+    ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+AD_OfflineFreeMemberOfHashEntry(
+    const LSA_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        LwFreeMemory(pEntry->pValue);
+    }
+}
+
+DWORD
+AD_OfflineQueryMemberOf(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwIndex = 0;
+    PLSA_HASH_TABLE   pGroupHash = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY*   pHashEntry = NULL;
+    DWORD dwGroupSidCount = 0;
+    PSTR* ppszGroupSids = NULL;
+
+    dwError = LsaHashCreate(
+        13,
+        LsaHashCaselessStringCompare,
+        LsaHashCaselessStringHash,
+        AD_OfflineFreeMemberOfHashEntry,
+        NULL,
+        &pGroupHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < dwSidCount; dwIndex++)
+    {
+        dwError = AD_OfflineQueryMemberOfForSid(
+            hProvider,
+            FindFlags,
+            ppszSids[dwIndex],
+            pGroupHash);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwGroupSidCount = (DWORD) LsaHashGetKeyCount(pGroupHash);
+
+    if (dwGroupSidCount)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*ppszGroupSids) * dwGroupSidCount,
+            OUT_PPVOID(&ppszGroupSids));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaHashGetIterator(pGroupHash, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for(dwIndex = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; dwIndex++)
+        {
+            ppszGroupSids[dwIndex] = (PSTR) pHashEntry->pValue;
+            pHashEntry->pValue = NULL;
+        }
+    }
+
+    *pdwGroupSidCount = dwGroupSidCount;
+    *pppszGroupSids = ppszGroupSids;
+
+cleanup:
+
+    LsaHashSafeFree(&pGroupHash);
+
+    return dwError;
+
+error:
+
+    if (ppszGroupSids)
+    {
+        LwFreeStringArray(ppszGroupSids, dwGroupSidCount);
+    }
+
+    goto cleanup;
+}
+
+DWORD
+AD_OfflineGetGroupMemberSids(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid,
+    OUT PDWORD pdwSidCount,
+    OUT PSTR** pppszSids
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    size_t sMembershipCount = 0;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    // Only free top level array, do not free string pointers.
+    PSTR* ppszSids = NULL;
+    DWORD dwSidCount = 0;
+    DWORD dwIndex = 0;
+
+    dwError = ADCacheGetGroupMembers(
+                    gpLsaAdProviderState->hCacheConnection,
+                    pszSid,
+                    AD_GetTrimUserMembershipEnabled(),
+                    &sMembershipCount,
+                    &ppMemberships);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (sMembershipCount)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*ppszSids) * sMembershipCount,
+            OUT_PPVOID(&ppszSids));
+
+        for (dwIndex = 0; dwIndex < sMembershipCount; dwIndex++)
+        {
+            if (ppMemberships[dwIndex]->pszChildSid)
+            {
+                dwError = LwAllocateString(ppMemberships[dwIndex]->pszChildSid, &ppszSids[dwSidCount++]);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    *pdwSidCount = dwSidCount;
+    *pppszSids = ppszSids;
+
+cleanup:
+
+    ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+
+    return dwError;
+
+error:
+
+    *pdwSidCount = 0;
+    *pppszSids = NULL;
+
+    if (ppszSids)
+    {
+        LwFreeStringArray(ppszSids, dwSidCount);
+    }
+
+    goto cleanup;
+}

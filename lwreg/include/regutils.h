@@ -122,7 +122,7 @@
 
 #define BAIL_ON_INVALID_KEY(pKey)                 \
         BAIL_ON_NT_INVALID_POINTER(pKey);            \
-        if (LW_IS_NULL_OR_EMPTY_STR(pKey->pszKeyName)) \
+        if (LW_IS_NULL_OR_EMPTY_STR(pKey->pwszKeyName)) \
         { \
             status = STATUS_INVALID_PARAMETER; \
             BAIL_ON_NT_STATUS(status); \
@@ -130,7 +130,7 @@
 
 #define BAIL_ON_INVALID_REG_ENTRY(pRegEntry)                 \
         BAIL_ON_NT_INVALID_POINTER(pRegEntry);            \
-        if (LW_IS_NULL_OR_EMPTY_STR(pRegEntry->pszKeyName)) \
+        if (LW_IS_NULL_OR_EMPTY_STR(pRegEntry->pwszKeyName)) \
         { \
             status = STATUS_INVALID_PARAMETER; \
             BAIL_ON_NT_STATUS(status); \
@@ -702,13 +702,18 @@ RegHashRemoveKey(
     );
 
 int
-RegHashCaselessStringCompare(
+RegHashCaselessWC16StringCompare(
     PCVOID str1,
     PCVOID str2
     );
 
 size_t
 RegHashCaselessStringHash(
+    PCVOID str
+    );
+
+size_t
+RegHashCaselessWc16String(
     PCVOID str
     );
 
@@ -724,7 +729,7 @@ RegHashPVoidHash(
     );
 
 VOID
-RegHashFreeStringKey(
+RegHashFreeWc16StringKey(
     IN OUT const REG_HASH_ENTRY *pEntry
     );
 
@@ -791,6 +796,18 @@ RegFreeStringArray(
     DWORD dwCount
     );
 
+void
+RegFreeWC16StringArray(
+    PWSTR * ppwStringArray,
+    DWORD dwCount
+    );
+
+void
+RegFreeValueByteArray(
+    PBYTE* ppValues,
+    DWORD dwCount
+    );
+
 DWORD
 RegStrndup(
     PCSTR pszInputString,
@@ -819,6 +836,12 @@ RegStrDupOrNull(
     PSTR *ppszOutputString
     );
 
+NTSTATUS
+RegWcStrDupOrNull(
+    PCWSTR pwszInputString,
+    PWSTR *ppwszOutputString
+    );
+
 void
 RegStripWhitespace(
     PSTR pszString,
@@ -827,10 +850,9 @@ RegStripWhitespace(
     );
 
 NTSTATUS
-RegGetValueAsBytes(
-    IN REG_DATA_TYPE type,
-    IN PCSTR pszValue,
-    IN BOOLEAN bDoAnsi,
+RegCopyValueBytes(
+    IN PBYTE pValue,
+    IN DWORD dwValueLen,
     OUT OPTIONAL PBYTE pData,
     IN OUT OPTIONAL PDWORD pcbData
     );

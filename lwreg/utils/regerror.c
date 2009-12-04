@@ -214,6 +214,10 @@ static struct
     {
         LWREG_ERROR_INVALID_CACHE_PATH,
         "Invalid cache path"
+    },
+    {
+	LWREG_ERROR_KEYNAME_EXIST,
+        "The key already exists in the registry"
     }
 };
 

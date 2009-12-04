@@ -67,6 +67,13 @@ typedef struct _REG_DB_CONNECTION
     sqlite3_stmt *pstQueryKeyValueWithType;
     sqlite3_stmt *pstQueryKeyValueWithWrongType;
     sqlite3_stmt *pstQueryMultiKeyValues;
+    sqlite3_stmt *pstCreateCacheId;
+    sqlite3_stmt *pstDeleteCacheIdEntry;
+    sqlite3_stmt *pstUpdateCacheIdEntry;
+    sqlite3_stmt *pstCreateRegEntry;
+    sqlite3_stmt *pstReplaceRegEntry;
+    sqlite3_stmt *pstUpdateRegEntry;
+
 
 } REG_DB_CONNECTION, *PREG_DB_CONNECTION;
 
@@ -115,8 +122,7 @@ RegDbSafeRecordSubKeysInfo_inlock(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
 NTSTATUS
@@ -124,8 +130,7 @@ RegDbSafeRecordSubKeysInfo(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
 NTSTATUS
@@ -133,8 +138,7 @@ RegDbSafeRecordValuesInfo_inlock(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
 NTSTATUS
@@ -142,8 +146,7 @@ RegDbSafeRecordValuesInfo(
     IN size_t sCount,
     IN size_t sCacheCount,
     IN PREG_ENTRY* ppRegEntries,
-    IN OUT PREG_KEY_CONTEXT pKeyResult,
-    IN BOOLEAN bDoAnsi
+    IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 
 NTSTATUS
@@ -153,10 +156,11 @@ RegDbOpen(
     );
 
 NTSTATUS
-RegDbStoreKeyObjectEntries(
-    REG_DB_HANDLE hDb,
-    size_t  sEntryCount,
-    PREG_ENTRY* ppEntries
+RegDbStoreEntries(
+    IN HANDLE hDB,
+    IN DWORD dwEntryCount,
+    IN PREG_ENTRY* ppEntries,
+    IN OPTIONAL PBOOLEAN pbIsUpdate
     );
 
 NTSTATUS
@@ -169,27 +173,27 @@ RegDbStoreObjectEntries(
 NTSTATUS
 RegDbCreateKey(
     IN REG_DB_HANDLE hDb,
-    IN PSTR pszKeyName,
+    IN PCWSTR pwszKeyName,
     OUT PREG_ENTRY* ppRegEntry
     );
 
 NTSTATUS
 RegDbOpenKey(
     IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName,
+    IN PCWSTR pwszKeyName,
     OUT OPTIONAL PREG_ENTRY* ppRegEntry
     );
 
 NTSTATUS
 RegDbDeleteKey(
     IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName
+    IN PCWSTR pwszKeyName
     );
 
 NTSTATUS
 RegDbQueryInfoKey(
     IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName,
+    IN PCWSTR pwszKeyName,
     IN QueryKeyInfoOption queryType,
     IN DWORD dwLimit,
     IN DWORD dwOffset,
@@ -200,7 +204,7 @@ RegDbQueryInfoKey(
 NTSTATUS
 RegDbQueryInfoKeyCount(
     IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName,
+    IN PCWSTR pwszKeyName,
     IN QueryKeyInfoOption queryType,
     OUT size_t* psSubKeyCount
     );
@@ -208,9 +212,21 @@ RegDbQueryInfoKeyCount(
 NTSTATUS
 RegDbCreateKeyValue(
     IN REG_DB_HANDLE hDb,
-    IN PSTR pszKeyName,
-    IN PSTR pszValueName,
-    IN PSTR pszValue,
+    IN PCWSTR pwszKeyName,
+    IN PCWSTR pwszValueName,
+    IN PBYTE pValue,
+    IN DWORD dwValueLen,
+    IN REG_DATA_TYPE valueType,
+    OUT OPTIONAL PREG_ENTRY* ppRegEntry
+    );
+
+NTSTATUS
+RegDbSetKeyValue(
+    IN REG_DB_HANDLE hDb,
+    IN PCWSTR pwszKeyName,
+    IN PCWSTR pwszValueName,
+    IN const PBYTE pValue,
+    IN DWORD dwValueLen,
     IN REG_DATA_TYPE valueType,
     OUT OPTIONAL PREG_ENTRY* ppRegEntry
     );
@@ -218,8 +234,8 @@ RegDbCreateKeyValue(
 NTSTATUS
 RegDbGetKeyValue(
     IN REG_DB_HANDLE hDb,
-    IN PSTR pszKeyName,
-    IN PSTR pszValueName,
+    IN PCWSTR pwszKeyName,
+    IN PCWSTR pwszValueName,
     IN REG_DATA_TYPE valueType,
     IN OPTIONAL PBOOLEAN pbIsWrongType,
     OUT OPTIONAL PREG_ENTRY* ppRegEntry
@@ -228,18 +244,10 @@ RegDbGetKeyValue(
 NTSTATUS
 RegDbDeleteKeyValue(
     IN REG_DB_HANDLE hDb,
-    IN PCSTR pszKeyName,
-    IN PCSTR pszValueName
+    IN PCWSTR pwszKeyName,
+    IN PCWSTR pwszValueName
     );
 
-NTSTATUS
-RegDbGetMultiKeyValues(
-    IN REG_DB_HANDLE hDb,
-    IN PSTR pszKeyName,
-    IN DWORD dwNumValuesRequest,
-    OUT size_t* psCount,
-    OUT PREG_ENTRY** pppRegEntry
-    );
 
 void
 RegDbSafeClose(

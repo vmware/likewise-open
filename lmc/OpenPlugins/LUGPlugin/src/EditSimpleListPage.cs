@@ -34,6 +34,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
+using Likewise.LMC.NETAPI;
 
 namespace Likewise.LMC.Plugins.LUG
 {
@@ -49,7 +50,7 @@ namespace Likewise.LMC.Plugins.LUG
 
         public delegate string GetSubjectDescriptionDelegate();
         public delegate string[] GetListMembersDelegate();
-        public delegate bool DoAddMemberDelegate(string member);
+        public delegate uint DoAddMemberDelegate(string member);
         public delegate bool DoDelMemberDelegate(string member);
 
         private readonly GetSubjectDescriptionDelegate getSubjectDescription;
@@ -140,6 +141,8 @@ namespace Likewise.LMC.Plugins.LUG
         #region helper methods
         public void ApplyMembers()
         {
+            uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
+
             foreach (string deleted in membersDeleted.Keys)
             {
                 if (members.ContainsKey(deleted))
@@ -157,7 +160,15 @@ namespace Likewise.LMC.Plugins.LUG
                 if (!members.ContainsKey(added))
                 {
                     members.Add(added, 0);
-                    addMember(added);
+                    result = addMember(added);
+
+                    if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
+                    {
+                        container.ShowError(String.Format(
+                            "\"{0}\" could not be added:\n{1}",
+                            added,
+                            ErrorCodes.WIN32String((int)result)));
+                    }
                 }
                 else
                 {
