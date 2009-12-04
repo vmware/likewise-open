@@ -364,7 +364,7 @@ SrvExecuteNtRename(
                         DELETE,
                         0,
                         FILE_ATTRIBUTE_NORMAL,
-                        FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
+                        FILE_SHARE_READ,
                         FILE_OPEN,
                         0,
                         NULL, /* EA Buffer */
