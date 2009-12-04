@@ -157,9 +157,9 @@ NtlmInitializeSignature(
                 tempHmac,
                 NULL);
         // Copy only the first part of the hmac
-        memcpy(pSignature->v2.hmac,
+        memcpy(pSignature->v2.encrypted.hmac,
                 tempHmac,
-                sizeof(pSignature->v2.hmac));
+                sizeof(pSignature->v2.encrypted.hmac));
     }
     else
     {
@@ -185,8 +185,17 @@ NtlmFinalizeSignature(
 {
     if (pContext->NegotiatedFlags & NTLM_FLAG_NTLM2)
     {
-        // The davenport doc says the hmac should be encrypted, but
-        // experimentally it should not
+        // The davenport doc says that the hmac is sealed after being generated
+        // with the signing key. In reality that only happens if the key
+        // exchange flag is set.
+        if (pContext->NegotiatedFlags & NTLM_FLAG_KEY_EXCH)
+        {
+            RC4(
+                pContext->pSealKey,
+                sizeof(pSignature->v2.encrypted),
+                (PBYTE)&pSignature->v2.encrypted,
+                (PBYTE)&pSignature->v2.encrypted);
+        }
     }
     else
     {

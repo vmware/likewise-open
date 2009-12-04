@@ -181,6 +181,10 @@ NtlmCreateNegotiateContext(
     {
         dwOptions &= ~NTLM_FLAG_NTLM2;
     }
+    if (!config.bSupportKeyExchange)
+    {
+        dwOptions &= ~NTLM_FLAG_KEY_EXCH;
+    }
 
     dwError = NtlmCreateNegotiateMessage(
         dwOptions,

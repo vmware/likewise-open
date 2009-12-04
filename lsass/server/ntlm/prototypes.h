@@ -190,7 +190,6 @@ NtlmServerVerifySignature(
 DWORD
 NtlmVerifySignature(
     IN PNTLM_CONTEXT pContext,
-    IN RC4_KEY* pSignKey,
     IN const SecBuffer* pData,
     IN const SecBuffer* pToken
     );
@@ -325,6 +324,12 @@ NtlmCopyStringToSecBuffer(
     IN PBYTE pBufferStart,
     IN OUT PBYTE* ppBufferPos,
     OUT PNTLM_SEC_BUFFER pSec
+    );
+
+DWORD
+NtlmGetStringProtocolSize(
+    DWORD dwFlags,
+    PCSTR pszString
     );
 
 DWORD

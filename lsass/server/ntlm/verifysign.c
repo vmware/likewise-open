@@ -80,7 +80,6 @@ NtlmServerVerifySignature(
 
     dwError = NtlmVerifySignature(
         pContext,
-        pContext->pSealKey,
         pData,
         pToken
         );
@@ -96,7 +95,6 @@ error:
 DWORD
 NtlmVerifySignature(
     IN PNTLM_CONTEXT pContext,
-    IN RC4_KEY* pSignKey,
     IN const SecBuffer* pData,
     IN const SecBuffer* pToken
     )
@@ -116,9 +114,6 @@ NtlmVerifySignature(
     {
         unsigned char tempHmac[EVP_MAX_MD_SIZE];
         HMAC_CTX c;
-
-        // The davenport doc says the hmac should be encrypted, but
-        // experimentally it should not
 
         if (!(pContext->NegotiatedFlags & NTLM_FLAG_SIGN))
         {
@@ -148,9 +143,21 @@ NtlmVerifySignature(
                 tempHmac,
                 NULL);
 
-        if (memcmp(signature.v2.hmac,
+        // The davenport doc says that the hmac is sealed after being generated
+        // with the signing key. In reality that only happens if the key
+        // exchange flag is set.
+        if (pContext->NegotiatedFlags & NTLM_FLAG_KEY_EXCH)
+        {
+            RC4(
+                pContext->pUnsealKey,
+                sizeof(signature.v2.encrypted.hmac),
+                signature.v2.encrypted.hmac,
+                signature.v2.encrypted.hmac);
+        }
+
+        if (memcmp(signature.v2.encrypted.hmac,
                     tempHmac,
-                    sizeof(signature.v2.hmac)))
+                    sizeof(signature.v2.encrypted.hmac)))
         {
             dwError = ERROR_CRC;
             BAIL_ON_LSA_ERROR(dwError);
@@ -159,7 +166,7 @@ NtlmVerifySignature(
     else
     {
         RC4(
-            pSignKey,
+            pContext->pUnsealKey,
             sizeof(signature.v1.encrypted),
             (PBYTE)&signature.v1.encrypted,
             (PBYTE)&signature.v1.encrypted);

@@ -56,7 +56,7 @@ NtlmReadRegistry(
     pConfig->bSendNTLMv2 = FALSE;
     pConfig->bSupportUnicode = TRUE;
     pConfig->bSupportNTLM2SessionSecurity = TRUE;
-    pConfig->bNegotiateKey = TRUE;
+    pConfig->bSupportKeyExchange = FALSE;
 
     LSA_CONFIG configItems[] =
     {
@@ -88,13 +88,13 @@ NtlmReadRegistry(
             &pConfig->bSupportNTLM2SessionSecurity
         },
         {
-            "NegotiateKey",
+            "SupportKeyExchange",
             TRUE,
             LsaTypeBoolean,
             0,
             MAXDWORD,
             NULL,
-            &pConfig->bNegotiateKey
+            &pConfig->bSupportKeyExchange
         },
     };
 
