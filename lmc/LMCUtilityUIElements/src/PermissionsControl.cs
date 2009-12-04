@@ -15,6 +15,7 @@ namespace Likewise.LMC.UtilityUIElements
         #region Class Data
 
         private SecurityDescriptor _securityDescriptor = null;
+        private string _ObjectPath = string.Empty;
 
         #endregion
 
@@ -25,10 +26,12 @@ namespace Likewise.LMC.UtilityUIElements
             InitializeComponent();
         }
 
-        public PermissionsControl(SecurityDescriptor securityDescriptor)
+        public PermissionsControl(SecurityDescriptor securityDescriptor,
+                                  string _objectPath)
             :this()
         {
             this._securityDescriptor = securityDescriptor;
+            this._ObjectPath = _objectPath;
         }
 
         #endregion
@@ -37,7 +40,71 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void PermissionsControl_Load(object sender, EventArgs e)
         {
+            InitailizeData();
+        }
 
+        private void lvGroupOrUserNames_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            ListView listview = sender as ListView;
+            if (listview != null)
+            {
+                if (listview.SelectedItems.Count != 0)
+                {
+                    ListViewItem lvItem = listview.SelectedItems[0];
+                    if (lvItem.Tag != null)
+                    {
+                        Dictionary<string, string> daclInfo = lvItem.Tag as Dictionary<string, string>;
+                        if (daclInfo != null)
+                        {
+                            foreach (DataGridViewRow dgRow in DgPermissions.Rows)
+                            {
+                                dgRow.Cells[1].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, dgRow.Cells[0].Value as string);
+                                dgRow.Cells[2].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, dgRow.Cells[0].Value as string);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region Helper functions
+
+        private void InitailizeData()
+        {
+            this.lblObjectName.Text = string.Format(lblObjectName.Text, _ObjectPath);
+
+            List<ListViewItem> lvItems = new List<ListViewItem>();
+
+            if (_securityDescriptor != null)
+            {
+                if (_securityDescriptor.Descretionary_Access_Control_List != null)
+                {
+                    Dictionary<string, Dictionary<string, string>> SdDacls =
+                                                _securityDescriptor.Descretionary_Access_Control_List as
+                                                Dictionary<string, Dictionary<string, string>>;
+
+                    if (SdDacls != null && SdDacls.Count != 0)
+                    {
+                        foreach (string key in SdDacls.Keys)
+                        {
+                            Dictionary<string, string> daclInfo = SdDacls[key];
+
+                            ListViewItem lvItem = new ListViewItem(new string[] { SdDacls[key]["Username"] });
+                            lvItem.Tag = daclInfo;
+                            lvItems.Add(lvItem);
+
+                            DataGridViewRow dgRow = new DataGridViewRow();
+                            dgRow.CreateCells(DgPermissions);
+                            dgRow.Cells[0].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask");
+                            dgRow.Cells[1].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceType");
+                            dgRow.Cells[2].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceType");
+                            DgPermissions.Rows.Add(dgRow);
+                        }
+                    }
+                }
+            }
         }
 
         #endregion

@@ -42,75 +42,34 @@ namespace Likewise.LMC.UtilityUIElements
             this.lblObjectName.Text = string.Format(lblObjectName.Text, _objectPath);
 
             List<ListViewItem> lvItems = new List<ListViewItem>();
-            bool bAllow = false;
-            bool bDeny = false;
-            //bool bAudit = false;
-            string sPermissiosname = string.Empty;
 
             if (_securityDescriptor != null)
             {
                 if (_securityDescriptor.Descretionary_Access_Control_List != null)
                 {
-                    Dictionary<string, Dictionary<string, string>> SdDacls = _securityDescriptor.Descretionary_Access_Control_List as
-                                                                                 Dictionary<string, Dictionary<string, string>>;
+                    Dictionary<string, Dictionary<string, string>> SdDacls =
+                                                _securityDescriptor.Descretionary_Access_Control_List as
+                                                Dictionary<string, Dictionary<string, string>>;
 
                     if (SdDacls != null && SdDacls.Count != 0)
                     {
                         foreach (string key in SdDacls.Keys)
                         {
                             Dictionary<string, string> daclInfo = SdDacls[key];
-                            foreach (string sKey in daclInfo.Keys)
-                            {
-                                switch (sKey)
-                                {
-                                    case "Username":
-                                        ListViewItem lvItem = new ListViewItem(daclInfo[sKey]);
-                                        lvItem.Tag = daclInfo["Sid"];
-                                        lvItems.Add(lvItem);
-                                        break;
 
-                                    case "Sid":
-                                        break;
+                            ListViewItem lvItem = new ListViewItem(new string[] { SdDacls[key]["Username"] });
+                            lvItem.Tag = daclInfo;
+                            lvItems.Add(lvItem);
 
-                                    case "AceType":
-                                        if (Convert.ToUInt32(daclInfo[sKey]) == 0)
-                                            bAllow = true;
-                                        else if (Convert.ToUInt32(daclInfo[sKey]) == 1)
-                                            bDeny = true;
-                                        //else
-                                        //    bAudit = true;
-                                        break;
-
-                                    case "AceMask":
-                                        SetListWithAccessMask(daclInfo[sKey], ref sPermissiosname);
-                                        break;
-
-                                    case "AceFlags":
-                                        break;
-
-                                    case "AceSize":
-                                        break;
-                                }
-
-                                string[] dgRowsItems = new string[]{
-                                                    sPermissiosname,
-                                                    bAllow.ToString(),
-                                                    bDeny.ToString()
-                                                    };
-                            }
+                            DataGridViewRow dgRow = new DataGridViewRow();
+                            dgRow.CreateCells(DgPermissions);
+                            dgRow.Cells[0].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask");
+                            dgRow.Cells[1].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceType");
+                            dgRow.Cells[2].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceType");
+                            DgPermissions.Rows.Add(dgRow);
                         }
                     }
                 }
-            }
-        }
-
-        public void SetListWithAccessMask(string accessMask, ref string sPermissionname)
-        {
-            uint iAccessMask = Convert.ToUInt32(accessMask);
-
-            if ((iAccessMask & (uint)SecurityDescriptorApi.ACCESS_MASK.DELETE) == 0)
-            {
-                sPermissionname = PermissionsSet.PermissionSet[SecurityDescriptorApi.ACCESS_MASK.DELETE];
             }
         }
 
@@ -133,6 +92,30 @@ namespace Likewise.LMC.UtilityUIElements
         private void SecuritySettingsControl_Load(object sender, EventArgs e)
         {
             InitailizeData();
+        }
+
+        private void lvGroupOrUserNames_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            ListView listview = sender as ListView;
+            if (listview != null)
+            {
+                if (listview.SelectedItems.Count != 0)
+                {
+                    ListViewItem lvItem = listview.SelectedItems[0];
+                    if (lvItem.Tag != null)
+                    {
+                        Dictionary<string, string> daclInfo = lvItem.Tag as Dictionary<string, string>;
+                        if (daclInfo != null)
+                        {
+                            foreach (DataGridViewRow dgRow in DgPermissions.Rows)
+                            {
+                                dgRow.Cells[1].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, dgRow.Cells[0].Value as string);
+                                dgRow.Cells[2].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, dgRow.Cells[0].Value as string);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         #endregion

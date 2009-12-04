@@ -36,12 +36,13 @@ namespace Likewise.LMC.UtilityUIElements
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.lblObjectName = new System.Windows.Forms.Label();
-            this.lvPermissions = new System.Windows.Forms.ListView();
-            this.Permission = new System.Windows.Forms.ColumnHeader();
-            this.Allow = new System.Windows.Forms.ColumnHeader();
-            this.Deny = new System.Windows.Forms.ColumnHeader();
             this.btnAdd = new System.Windows.Forms.Button();
             this.label4 = new System.Windows.Forms.Label();
+            this.DgPermissions = new System.Windows.Forms.DataGridView();
+            this.colPermission = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colAllow = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.colDeny = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            ((System.ComponentModel.ISupportInitialize)(this.DgPermissions)).BeginInit();
             this.SuspendLayout();
             //
             // lvGroupOrUserNames
@@ -55,6 +56,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.lvGroupOrUserNames.TabIndex = 1;
             this.lvGroupOrUserNames.UseCompatibleStateImageBehavior = false;
             this.lvGroupOrUserNames.View = System.Windows.Forms.View.List;
+            this.lvGroupOrUserNames.SelectedIndexChanged += new System.EventHandler(this.lvGroupOrUserNames_SelectedIndexChanged);
             //
             // chIcon
             //
@@ -109,31 +111,6 @@ namespace Likewise.LMC.UtilityUIElements
             this.lblObjectName.TabIndex = 7;
             this.lblObjectName.Text = "An Object with Security Settings";
             //
-            // lvPermissions
-            //
-            this.lvPermissions.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.Permission,
-            this.Allow,
-            this.Deny});
-            this.lvPermissions.Location = new System.Drawing.Point(9, 222);
-            this.lvPermissions.Name = "lvPermissions";
-            this.lvPermissions.Size = new System.Drawing.Size(345, 141);
-            this.lvPermissions.TabIndex = 8;
-            this.lvPermissions.UseCompatibleStateImageBehavior = false;
-            this.lvPermissions.View = System.Windows.Forms.View.List;
-            //
-            // Permission
-            //
-            this.Permission.Text = "";
-            //
-            // Allow
-            //
-            this.Allow.Text = "";
-            //
-            // Deny
-            //
-            this.Deny.Text = "";
-            //
             // btnAdd
             //
             this.btnAdd.Location = new System.Drawing.Point(197, 170);
@@ -152,12 +129,50 @@ namespace Likewise.LMC.UtilityUIElements
             this.label4.TabIndex = 13;
             this.label4.Text = "Permissions for {0}.";
             //
+            // DgPermissions
+            //
+            this.DgPermissions.AllowUserToAddRows = false;
+            this.DgPermissions.AllowUserToDeleteRows = false;
+            this.DgPermissions.BackgroundColor = System.Drawing.SystemColors.Window;
+            this.DgPermissions.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.DgPermissions.ColumnHeadersVisible = false;
+            this.DgPermissions.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colPermission,
+            this.colAllow,
+            this.colDeny});
+            this.DgPermissions.GridColor = System.Drawing.SystemColors.Window;
+            this.DgPermissions.Location = new System.Drawing.Point(9, 220);
+            this.DgPermissions.Name = "DgPermissions";
+            this.DgPermissions.Size = new System.Drawing.Size(345, 141);
+            this.DgPermissions.TabIndex = 16;
+            //
+            // colPermission
+            //
+            this.colPermission.HeaderText = "Column1";
+            this.colPermission.Name = "colPermission";
+            this.colPermission.ReadOnly = true;
+            this.colPermission.Width = 175;
+            //
+            // colAllow
+            //
+            this.colAllow.HeaderText = "Column2";
+            this.colAllow.Name = "colAllow";
+            this.colAllow.ReadOnly = true;
+            this.colAllow.Width = 63;
+            //
+            // colDeny
+            //
+            this.colDeny.HeaderText = "Column3";
+            this.colDeny.Name = "colDeny";
+            this.colDeny.ReadOnly = true;
+            this.colDeny.Width = 63;
+            //
             // PermissionsControl
             //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.Controls.Add(this.DgPermissions);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.btnAdd);
-            this.Controls.Add(this.lvPermissions);
             this.Controls.Add(this.lblObjectName);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
@@ -167,6 +182,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.Name = "PermissionsControl";
             this.Size = new System.Drawing.Size(363, 370);
             this.Load += new System.EventHandler(this.PermissionsControl_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.DgPermissions)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -182,12 +198,12 @@ namespace Likewise.LMC.UtilityUIElements
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label lblObjectName;
-        private System.Windows.Forms.ListView lvPermissions;
-        private System.Windows.Forms.ColumnHeader Permission;
-        private System.Windows.Forms.ColumnHeader Allow;
-        private System.Windows.Forms.ColumnHeader Deny;
         private System.Windows.Forms.Button btnAdd;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.DataGridView DgPermissions;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colPermission;
+        private System.Windows.Forms.DataGridViewCheckBoxColumn colAllow;
+        private System.Windows.Forms.DataGridViewCheckBoxColumn colDeny;
 
     }
 }
