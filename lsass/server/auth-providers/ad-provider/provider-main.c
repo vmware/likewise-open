@@ -4619,7 +4619,7 @@ AD_FindObjects(
     OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
-   DWORD dwError = 0;
+    DWORD dwError = 0;
 
     LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
 
@@ -4775,15 +4775,15 @@ AD_OpenEnumMembers(
     DWORD dwError = 0;
     PAD_ENUM_HANDLE pEnum = NULL;
 
-    if (AdIsSpecialDomainSidPrefix(pszSid))
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
-
-    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    if (AdIsSpecialDomainSidPrefix(pszSid))
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);

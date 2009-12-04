@@ -59,6 +59,59 @@ typedef struct _LSA_SRV_ENUM_HANDLE
     BOOLEAN bReleaseLock;
 } LSA_SRV_ENUM_HANDLE, *PLSA_SRV_ENUM_HANDLE;
 
+typedef struct _LSA_SRV_MEMBER_OF_PASS
+{
+    DWORD dwNumProviders;
+    DWORD dwTotalSidCount;
+    struct
+    {
+        DWORD dwSidCount;
+        PSTR* ppszSids;
+    } *pResults;
+} LSA_SRV_MEMBER_OF_PASS, *PLSA_SRV_MEMBER_OF_PASS;
+
+static
+DWORD
+LsaSrvInitMemberOfPass(
+    DWORD dwNumProviders,
+    PLSA_SRV_MEMBER_OF_PASS pPass
+    )
+{
+    DWORD dwError = 0;
+
+    pPass->dwNumProviders = dwNumProviders;
+    pPass->dwTotalSidCount = 0;
+
+    dwError = LwAllocateMemory(
+        dwNumProviders * sizeof(*pPass->pResults),
+        OUT_PPVOID(&pPass->pResults));
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    return dwError;
+}
+
+static
+VOID
+LsaSrvDestroyMemberOfPass(
+    PLSA_SRV_MEMBER_OF_PASS pPass
+    )
+{
+    DWORD dwIndex = 0;
+
+    for (dwIndex = 0; dwIndex < pPass->dwNumProviders; dwIndex++)
+    {
+        if (pPass->pResults[dwIndex].ppszSids)
+        {
+            LwFreeStringArray(pPass->pResults[dwIndex].ppszSids, pPass->pResults[dwIndex].dwSidCount);
+        }
+    }
+
+    LW_SAFE_FREE_MEMORY(pPass->pResults);
+    memset(pPass, 0, sizeof(*pPass));
+}
+
 static
 DWORD
 LsaSrvConcatenateSidLists(
@@ -82,6 +135,206 @@ LsaSrvConcatenateSidLists(
 error:
 
     return dwError;
+}
+
+static
+DWORD
+LsaSrvMergeMemberOfPass(
+    IN PLSA_SRV_MEMBER_OF_PASS pPass,
+    IN OUT PLSA_HASH_TABLE pSidHash
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwResultIndex = 0;
+    DWORD dwSidIndex = 0;
+
+    for (dwResultIndex = 0; dwResultIndex < pPass->dwNumProviders; dwResultIndex++)
+    {
+        for (dwSidIndex = 0; dwSidIndex < pPass->pResults[dwResultIndex].dwSidCount; dwSidIndex++)
+        {
+            dwError = LsaHashSetValue(pSidHash,
+                                      pPass->pResults[dwResultIndex].ppszSids[dwSidIndex],
+                                      pPass->pResults[dwResultIndex].ppszSids[dwSidIndex]);
+            BAIL_ON_LSA_ERROR(dwError);
+            pPass->pResults[dwResultIndex].ppszSids[dwSidIndex] = NULL;
+        }
+    }
+
+error:
+
+    return dwError;
+}
+
+static
+DWORD
+LsaSrvMakeMemberOfFirstPass(
+    HANDLE hServer,
+    LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PLSA_SRV_MEMBER_OF_PASS pPass
+    )
+{
+    DWORD dwError = 0;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = NULL;
+    DWORD dwProviderCount = 0;
+    DWORD dwIndex = 0;
+
+    for (pProvider = gpAuthProviderList;
+         pProvider;
+         pProvider = pProvider->pNext)
+    {
+        dwProviderCount++;
+    }
+
+    dwError = LsaSrvInitMemberOfPass(dwProviderCount, pPass);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (pProvider = gpAuthProviderList, dwIndex = 0;
+         pProvider;
+         pProvider = pProvider->pNext, dwIndex++)
+    {
+        if (pProvider->pFnTable2 == NULL)
+        {
+            continue;
+        }
+
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable2->pfnQueryMemberOf(
+            hProvider,
+            FindFlags,
+            dwSidCount,
+            ppszSids,
+            &pPass->pResults[dwIndex].dwSidCount,
+            &pPass->pResults[dwIndex].ppszSids);
+        if (dwError == LW_ERROR_NOT_HANDLED)
+        {
+            dwError = LW_ERROR_SUCCESS;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pPass->dwTotalSidCount += pPass->pResults[dwIndex].dwSidCount;
+
+        LsaSrvCloseProvider(pProvider, hProvider);
+        hProvider = NULL;
+    }
+
+cleanup:
+
+    if (hProvider != NULL)
+    {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+LsaSrvMakeMemberOfTransferPass(
+    HANDLE hServer,
+    LSA_FIND_FLAGS FindFlags,
+    IN PLSA_SRV_MEMBER_OF_PASS pIn,
+    OUT PLSA_SRV_MEMBER_OF_PASS pOut
+    )
+{
+    DWORD dwError = 0;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    PLSA_AUTH_PROVIDER pSourceProvider = NULL;
+    HANDLE hProvider = NULL;
+    PSTR* ppszBatchedSids = NULL;
+    DWORD dwBatchedSidCount = 0;
+    DWORD dwIndex = 0;
+    DWORD dwSourceIndex = 0;
+
+    LsaSrvDestroyMemberOfPass(pOut);
+
+    dwError = LsaSrvInitMemberOfPass(pIn->dwNumProviders, pOut);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Iterate each provider that we will query */
+    for (pProvider = gpAuthProviderList, dwIndex = 0;
+         pProvider;
+         pProvider = pProvider->pNext, dwIndex++)
+    {
+        if (pProvider->pFnTable2 == NULL)
+        {
+            continue;
+        }
+
+        /* Iterate each provider from previous pass */
+        for (pSourceProvider = gpAuthProviderList, dwSourceIndex = 0;
+             pSourceProvider;
+             pSourceProvider = pSourceProvider->pNext, dwSourceIndex++)
+        {
+            /* If the source provider is not the provider we are querying,
+               go ahead and add it to the query.  This test can be refined
+               to take into account relationships between providers to
+               avoid making unnecessary queries */
+            if (strcmp(pSourceProvider->pszName, pProvider->pszName) &&
+                pIn->pResults[dwSourceIndex].dwSidCount)
+            {
+                dwError = LsaSrvConcatenateSidLists(
+                    dwBatchedSidCount,
+                    &ppszBatchedSids,
+                    pIn->pResults[dwSourceIndex].dwSidCount,
+                    pIn->pResults[dwSourceIndex].ppszSids);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                dwBatchedSidCount += pIn->pResults[dwSourceIndex].dwSidCount;
+            }
+        }
+
+        if (dwBatchedSidCount)
+        {
+            dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = pProvider->pFnTable2->pfnQueryMemberOf(
+                hProvider,
+                FindFlags,
+                dwBatchedSidCount,
+                ppszBatchedSids,
+                &pOut->pResults[dwIndex].dwSidCount,
+                &pOut->pResults[dwIndex].ppszSids);
+
+            if (dwError == LW_ERROR_NOT_HANDLED)
+            {
+                dwError = LW_ERROR_SUCCESS;
+            }
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pOut->dwTotalSidCount += pOut->pResults[dwIndex].dwSidCount;
+
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = NULL;
+        }
+
+        LW_SAFE_FREE_MEMORY(ppszBatchedSids);
+        dwBatchedSidCount = 0;
+    }
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(ppszBatchedSids);
+
+    if (hProvider != NULL)
+    {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 static
@@ -249,8 +502,7 @@ LsaSrvFindObjectsInternal(
 
     if (pszTargetProvider && !bFoundProvider)
     {
-        /* FIXME: add better error code for this */
-        dwError = LW_ERROR_NO_HANDLER;
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -434,7 +686,7 @@ LsaSrvOpenEnumObjects(
 
         if (!pEnum->pProvider)
         {
-            dwError = LW_ERROR_NO_HANDLER;
+            dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -620,7 +872,7 @@ LsaSrvOpenEnumMembers(
 
         if (!pEnum->pProvider)
         {
-            dwError = LW_ERROR_NO_HANDLER;
+            dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -767,26 +1019,140 @@ error:
     goto cleanup;
 }
 
+static
+VOID
+LsaSrvFreeMemberOfHashEntry(
+    const LSA_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        LwFreeMemory(pEntry->pValue);
+    }
+}
+
+static
 DWORD
-LsaSrvQueryMemberOf(
+LsaSrvQueryMemberOfMerged(
+    IN HANDLE hServer,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bInLock = FALSE;
+    PSTR* ppszCombinedSids = NULL;
+    DWORD dwCombinedCount = 0;
+    LSA_SRV_MEMBER_OF_PASS pass1 = {0};
+    LSA_SRV_MEMBER_OF_PASS pass2 = {0};
+    PLSA_SRV_MEMBER_OF_PASS pSourcePass = &pass1;
+    PLSA_SRV_MEMBER_OF_PASS pDestPass = &pass2;
+    PLSA_SRV_MEMBER_OF_PASS pTempPass = NULL;
+    PLSA_HASH_TABLE pHash = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY* pHashEntry = NULL;
+    DWORD dwIndex = 0;
+
+    dwError = LsaHashCreate(
+        29,
+        LsaHashCaselessStringCompare,
+        LsaHashCaselessStringHash,
+        LsaSrvFreeMemberOfHashEntry,
+        NULL,
+        &pHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LsaSrvMakeMemberOfFirstPass(
+        hServer,
+        FindFlags,
+        dwSidCount,
+        ppszSids,
+        pSourcePass);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while (pSourcePass->dwTotalSidCount)
+    {
+        dwError = LsaSrvMakeMemberOfTransferPass(
+            hServer,
+            FindFlags,
+            pSourcePass,
+            pDestPass);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaSrvMergeMemberOfPass(
+            pSourcePass,
+            pHash);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pTempPass = pSourcePass;
+        pSourcePass = pDestPass;
+        pDestPass =  pTempPass;
+    }
+
+    dwCombinedCount = (DWORD) LsaHashGetKeyCount(pHash);
+
+    if (dwCombinedCount)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*ppszCombinedSids) * dwCombinedCount,
+            OUT_PPVOID(&ppszCombinedSids));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaHashGetIterator(pHash, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (dwIndex = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; dwIndex++)
+        {
+            ppszCombinedSids[dwIndex] = (PSTR) pHashEntry->pValue;
+            pHashEntry->pValue = NULL;
+        }
+    }
+
+    *pppszGroupSids = ppszCombinedSids;
+    *pdwGroupSidCount = dwCombinedCount;
+
+cleanup:
+
+    LsaHashSafeFree(&pHash);
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    return dwError;
+
+error:
+
+    *pppszGroupSids = NULL;
+    *pdwGroupSidCount = 0;
+
+    if (ppszCombinedSids)
+    {
+        LwFreeStringArray(ppszCombinedSids, dwCombinedCount);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+LsaSrvQueryMemberOfSingle(
     IN HANDLE hServer,
     IN OPTIONAL PCSTR pszTargetProvider,
     IN LSA_FIND_FLAGS FindFlags,
     IN DWORD dwSidCount,
     IN PSTR* ppszSids,
-    OUT PDWORD pdwObjectsCount,
+    OUT PDWORD pdwGroupSidCount,
     OUT PSTR** pppszGroupSids
     )
 {
     DWORD dwError = 0;
     PLSA_AUTH_PROVIDER pProvider = NULL;
-    BOOLEAN bInLock = FALSE;
     HANDLE hProvider = NULL;
-    PSTR* ppszCombinedSids = NULL;
-    PSTR* ppszPartialSids = NULL;
-    DWORD dwCombinedCount = 0;
-    DWORD dwPartialCount = 0;
-    BOOLEAN bFoundProvider = FALSE;
+    BOOLEAN bInLock = FALSE;
 
     ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
 
@@ -794,71 +1160,33 @@ LsaSrvQueryMemberOf(
          pProvider;
          pProvider = pProvider->pNext)
     {
-        if (pszTargetProvider)
-        {
-            if (!strcmp(pszTargetProvider, pProvider->pszName))
-            {
-                bFoundProvider = TRUE;
-            }
-            else
-            {
-                continue;
-            }
-        }
-
         if (pProvider->pFnTable2 == NULL)
         {
             continue;
         }
 
-        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = pProvider->pFnTable2->pfnQueryMemberOf(
-            hProvider,
-            FindFlags,
-            dwSidCount,
-            ppszSids,
-            &dwPartialCount,
-            &ppszPartialSids);
-        if (dwError == LW_ERROR_NOT_HANDLED)
+        if (!strcmp(pProvider->pszName, pszTargetProvider))
         {
-            dwError = LW_ERROR_SUCCESS;
-        }
-        else
-        {
+            dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (dwPartialCount > 0)
-            {
-                dwError = LsaSrvConcatenateSidLists(
-                    dwCombinedCount,
-                    &ppszCombinedSids,
-                    dwPartialCount,
-                    ppszPartialSids);
-                BAIL_ON_LSA_ERROR(dwError);
+            dwError = pProvider->pFnTable2->pfnQueryMemberOf(
+                hProvider,
+                FindFlags,
+                dwSidCount,
+                ppszSids,
+                pdwGroupSidCount,
+                pppszGroupSids);
+            BAIL_ON_LSA_ERROR(dwError);
 
-                dwCombinedCount += dwPartialCount;
-            }
+            goto cleanup;
         }
-
-        LW_SAFE_FREE_MEMORY(ppszPartialSids);
-        LsaSrvCloseProvider(pProvider, hProvider);
-        hProvider = NULL;
     }
 
-    if (pszTargetProvider && !bFoundProvider)
-    {
-        dwError = LW_ERROR_NO_HANDLER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    *pppszGroupSids = ppszCombinedSids;
-    *pdwObjectsCount = dwCombinedCount;
+    dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-
-    LW_SAFE_FREE_MEMORY(ppszPartialSids);
 
     if (hProvider != NULL)
     {
@@ -871,13 +1199,61 @@ cleanup:
 
 error:
 
-    *pppszGroupSids = NULL;
-    *pdwObjectsCount = 0;
+    goto cleanup;
+}
 
-    if (ppszCombinedSids)
+DWORD
+LsaSrvQueryMemberOf(
+    IN HANDLE hServer,
+    IN OPTIONAL PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    )
+{
+    DWORD dwError = 0;
+
+    if (dwSidCount == 0)
     {
-        LwFreeStringArray(ppszCombinedSids, dwCombinedCount);
+        *pdwGroupSidCount = 0;
+        *pppszGroupSids = NULL;
+        goto cleanup;
     }
+
+    if (pszTargetProvider)
+    {
+        dwError = LsaSrvQueryMemberOfSingle(
+            hServer,
+            pszTargetProvider,
+            FindFlags,
+            dwSidCount,
+            ppszSids,
+            pdwGroupSidCount,
+            pppszGroupSids);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = LsaSrvQueryMemberOfMerged(
+            hServer,
+            FindFlags,
+            dwSidCount,
+            ppszSids,
+            pdwGroupSidCount,
+            pppszGroupSids);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *pppszGroupSids = NULL;
+    *pdwGroupSidCount = 0;
 
     goto cleanup;
 }
