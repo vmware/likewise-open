@@ -37,7 +37,7 @@ NetGetDomainName(
     wchar16_t **domname
     )
 {
-    const uint32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
+    const UINT32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
 
     NTSTATUS status = STATUS_SUCCESS;
@@ -46,7 +46,6 @@ NetGetDomainName(
     wchar16_t *domain_name = NULL;
     PIO_CREDS creds = NULL;
 
-    BAIL_ON_INVALID_PTR(hostname);
     BAIL_ON_INVALID_PTR(domname);
 
     status = LwIoGetActiveCreds(NULL, &creds);

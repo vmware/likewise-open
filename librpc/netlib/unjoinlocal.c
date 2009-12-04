@@ -38,9 +38,9 @@ DisableWksAccount(
     ACCOUNT_HANDLE *phAccount
     )
 {
-	const uint32 user_access = USER_ACCESS_GET_ATTRIBUTES |
+	const UINT32 user_access = USER_ACCESS_GET_ATTRIBUTES |
                                    USER_ACCESS_SET_ATTRIBUTES;
-	const uint32 acct_flags_level = 16;
+	const UINT32 acct_flags_level = 16;
 
 	NTSTATUS status;
 	handle_t samr_b;
@@ -48,7 +48,7 @@ DisableWksAccount(
     ACCOUNT_HANDLE hAccount = NULL;
 	wchar16_t *names[1];
 	UserInfo16 *info16;
-	uint32 *rids, *types;
+	UINT32 *rids, *types;
 	UserInfo sinfo;
     UserInfo *qinfo = NULL;
 

@@ -33,8 +33,8 @@
 void EncodePassBufferW16(unsigned char buffer[516], const wchar16_t *pass);
 void EncodePassBuffer(unsigned char buffer[516], const char* pass);
 
-void md4hash(uint8 h[16], const wchar16_t *password);
-void deshash(uint8 h[16], const wchar16_t *password);
+void md4hash(UINT8 h[16], const wchar16_t *password);
+void deshash(UINT8 h[16], const wchar16_t *password);
 
 #endif /* _CRYPTO_H_ */
 

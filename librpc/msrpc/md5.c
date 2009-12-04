@@ -52,18 +52,18 @@
 #include <lwrpc/types.h>
 #include "md5.h"
 
-static void md5transform(uint32 buf[4], uint32 const in[16]);
+static void md5transform(UINT32 buf[4], UINT32 const in[16]);
 
 /*
  * Note: this code is harmless on little-endian machines.
  */
 static void byteReverse(unsigned char *buf, unsigned longs)
 {
-    uint32 t;
+    UINT32 t;
     do {
-	t = (uint32) ((unsigned) buf[3] << 8 | buf[2]) << 16 |
+	t = (UINT32) ((unsigned) buf[3] << 8 | buf[2]) << 16 |
 	    ((unsigned) buf[1] << 8 | buf[0]);
-	*(uint32 *) buf = t;
+	*(UINT32 *) buf = t;
 	buf += 4;
     } while (--longs);
 }
@@ -89,12 +89,12 @@ void md5init(struct md5context *ctx)
  */
 void md5update(struct md5context *ctx, unsigned char const *buf, unsigned len)
 {
-    register uint32 t;
+    register UINT32 t;
 
     /* Update bitcount */
 
     t = ctx->bits[0];
-    if ((ctx->bits[0] = t + ((uint32) len << 3)) < t)
+    if ((ctx->bits[0] = t + ((UINT32) len << 3)) < t)
 	ctx->bits[1]++;		/* Carry from low to high */
     ctx->bits[1] += len >> 29;
 
@@ -112,7 +112,7 @@ void md5update(struct md5context *ctx, unsigned char const *buf, unsigned len)
 	}
 	memmove(p, buf, t);
 	byteReverse(ctx->in, 16);
-	md5transform(ctx->buf, (uint32 *) ctx->in);
+	md5transform(ctx->buf, (UINT32 *) ctx->in);
 	buf += t;
 	len -= t;
     }
@@ -121,7 +121,7 @@ void md5update(struct md5context *ctx, unsigned char const *buf, unsigned len)
     while (len >= 64) {
 	memmove(ctx->in, buf, 64);
 	byteReverse(ctx->in, 16);
-	md5transform(ctx->buf, (uint32 *) ctx->in);
+	md5transform(ctx->buf, (UINT32 *) ctx->in);
 	buf += 64;
 	len -= 64;
     }
@@ -156,7 +156,7 @@ void md5final(struct md5context *ctx, unsigned char digest[16])
 	/* Two lots of padding:  Pad the first block to 64 bytes */
 	memset(p, 0, count);
 	byteReverse(ctx->in, 16);
-	md5transform(ctx->buf, (uint32 *) ctx->in);
+	md5transform(ctx->buf, (UINT32 *) ctx->in);
 
 	/* Now fill the next block with 56 bytes */
 	memset(ctx->in, 0, 56);
@@ -167,10 +167,10 @@ void md5final(struct md5context *ctx, unsigned char digest[16])
     byteReverse(ctx->in, 14);
 
     /* Append length in bits and transform */
-    ((uint32 *) ctx->in)[14] = ctx->bits[0];
-    ((uint32 *) ctx->in)[15] = ctx->bits[1];
+    ((UINT32 *) ctx->in)[14] = ctx->bits[0];
+    ((UINT32 *) ctx->in)[15] = ctx->bits[1];
 
-    md5transform(ctx->buf, (uint32 *) ctx->in);
+    md5transform(ctx->buf, (UINT32 *) ctx->in);
     byteReverse((unsigned char *) ctx->buf, 4);
     memmove(digest, ctx->buf, 16);
     memset(ctx, 0, sizeof(ctx));	/* In case it's sensitive */
@@ -193,9 +193,9 @@ void md5final(struct md5context *ctx, unsigned char digest[16])
  * reflect the addition of 16 longwords of new data.  md5update blocks
  * the data and converts bytes into longwords for this routine.
  */
-static void md5transform(uint32 buf[4], uint32 const in[16])
+static void md5transform(UINT32 buf[4], UINT32 const in[16])
 {
-    register uint32 a, b, c, d;
+    register UINT32 a, b, c, d;
 
     a = buf[0];
     b = buf[1];

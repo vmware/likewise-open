@@ -51,8 +51,8 @@ NTSTATUS InitUnicodeStringEx(UnicodeStringEx *u, const wchar16_t *s)
 		return STATUS_NO_MEMORY;
 	}
 
-	u->len  = (uint16) wc16slen(u->string) * sizeof(wchar16_t);
-	u->size = (uint16) (wc16slen(u->string) + 1) * sizeof(wchar16_t);
+	u->len  = (UINT16) wc16slen(u->string) * sizeof(wchar16_t);
+	u->size = (UINT16) (wc16slen(u->string) + 1) * sizeof(wchar16_t);
 
 	return STATUS_SUCCESS;
 }

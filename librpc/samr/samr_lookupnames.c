@@ -64,7 +64,7 @@ SamrLookupNames(
     Ids Rids = {0};
     Ids Types = {0};
     UINT32 *pRids = NULL;
-    uint32 *pTypes = NULL;
+    UINT32 *pTypes = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hDomain, ntStatus);

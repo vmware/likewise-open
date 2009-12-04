@@ -471,23 +471,23 @@ static void ParamInfoChar(void *value)
 
 static void ParamInfoInt32(void *value)
 {
-    int32 *v = NULL;
+    INT32 *v = NULL;
 
     CHECK_PARAM_INFO_PTR(value);
 
-    v = (int32*)value;
+    v = (INT32*)value;
     printf("(int32) %d (0x%08x)\n", (*v), (unsigned int)(*v));
 }
 
 
 static void ParamInfoUInt32(void *value)
 {
-    uint32 *v = NULL;
+    UINT32 *v = NULL;
 
     CHECK_PARAM_INFO_PTR(value);
 
-    v = (uint32*)value;
-    printf("(uint32) %u (0x%08x)\n", (*v), (*v));
+    v = (UINT32*)value;
+    printf("(UINT32) %u (0x%08x)\n", (*v), (*v));
 }
 
 

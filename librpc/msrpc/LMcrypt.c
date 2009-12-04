@@ -31,15 +31,15 @@
 #include <lwrpc/LMcrypt.h>
 
 /* From smbcrypto.c */
-void encrypt_challenge(uint8 out[24], uint8 chal[8], uint8 key[16]);
+void encrypt_challenge(UINT8 out[24], UINT8 chal[8], UINT8 key[16]);
 
 NTSTATUS
 NTLMv1EncryptChallenge(
-    uint8  Challenge[8],
-    uint8  *pLMHash,
-    uint8  *pNTHash,
-    uint8  LMResp[24],
-    uint8  NTResp[24]
+    UINT8  Challenge[8],
+    UINT8  *pLMHash,
+    UINT8  *pNTHash,
+    UINT8  LMResp[24],
+    UINT8  NTResp[24]
     )
 {
     NTSTATUS status = STATUS_SUCCESS;

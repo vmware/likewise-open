@@ -38,8 +38,8 @@
 #include <lwrpc/types.h>
 
 struct md5context {
-	uint32 buf[4];
-	uint32 bits[2];
+	UINT32 buf[4];
+	UINT32 bits[2];
 	unsigned char in[64];
 };
 

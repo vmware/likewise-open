@@ -55,7 +55,7 @@ LsaLookupNames2(
     IN  PWSTR           *ppNames,
     OUT RefDomainList  **ppDomList,
     OUT TranslatedSid2 **ppSids,
-    IN  uint16           Level,
+    IN  UINT16           Level,
     IN OUT UINT32       *Count
     )
 {

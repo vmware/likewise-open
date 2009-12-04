@@ -91,7 +91,7 @@ DsrGetDcName(
                                    pSiteGuidCopy,
                                    GetDcFlags,
                                    &pDcInfo));
-    if (err) goto error;
+    BAIL_ON_WIN_ERROR(err);
 
     ntStatus = NetrAllocateDcNameInfo(&pDcRetInfo,
                                       pDcInfo);

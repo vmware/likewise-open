@@ -63,7 +63,7 @@ NetrOpenSchannel(
 
     md4hash(PassHash, pwszMachinePassword);
 
-    get_random_buffer((uint8*)CliChal, sizeof(CliChal));
+    get_random_buffer((UINT8*)CliChal, sizeof(CliChal));
     ntStatus = NetrServerReqChallenge(hNetrBinding,
                                       pwszServer,
                                       pwszComputer,
@@ -118,7 +118,7 @@ NetrOpenSchannel(
                                           pszHostname,
                                           pIoCreds,
                                           TRUE);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_binding_set_auth_info(hSchannelBinding,
                               NULL,
@@ -133,7 +133,7 @@ NetrOpenSchannel(
                               (rpc_auth_identity_handle_t)&SchannelAuthInfo,
                               rpc_c_authz_name, /* authz_protocol */
                               &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     *phSchannelBinding = hSchannelBinding;
 

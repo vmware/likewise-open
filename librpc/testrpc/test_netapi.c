@@ -32,14 +32,14 @@
 
 
 int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
-                       LOCALGROUP_USERS_INFO_0 *grpinfo, uint32 *entries)
+                       LOCALGROUP_USERS_INFO_0 *grpinfo, UINT32 *entries)
 {
-    const uint32 level = 1;
-    const uint32 flags = 0;
-    const uint32 pref_maxlen = (uint32)(-1);
+    const UINT32 level = 1;
+    const UINT32 flags = 0;
+    const UINT32 pref_maxlen = (UINT32)(-1);
 
     NET_API_STATUS err = ERROR_SUCCESS;
-    uint32 total, parm_err;
+    UINT32 total, parm_err;
     int i = 0;
 
     grpinfo = NULL;
@@ -71,7 +71,7 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
 
             if (name != NULL) {
 
-                if(((uint16) name[0]) == 0) {
+                if(((UINT16) name[0]) == 0) {
                     w16printfw(L"\tERROR: LOCALGROUP_USERS_INFO_0[%2d]"
                               L".lgrui0_name = \"\" (empty string)\n", i);
                     return -1;
@@ -105,12 +105,12 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
 
 
 int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
-                         LOCALGROUP_MEMBERS_INFO_3* info, uint32 *entries)
+                         LOCALGROUP_MEMBERS_INFO_3* info, UINT32 *entries)
 {
-    const uint32 level = 3;
-    const uint32 prefmaxlen = (uint32)(-1);
+    const UINT32 level = 3;
+    const UINT32 prefmaxlen = (UINT32)(-1);
     NET_API_STATUS err;
-    uint32 total, resume;
+    UINT32 total, resume;
     int i = 0;
 
     resume = 0;
@@ -141,7 +141,7 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
             name = info[i].lgrmi3_domainandname;
             if (name != NULL) {
 
-                if(((uint16) name[0]) == 0) {
+                if(((UINT16) name[0]) == 0) {
                     w16printfw(L"\tERROR: LOCALGROUP_MEMBERS_INFO_3[%2d]"
                               L".lgrmi3_domainandname = \"\"  (empty string)\n", i);
                     return -1;
@@ -179,10 +179,10 @@ int AddUser(const wchar16_t *hostname, const wchar16_t *username)
     const char *home_directory = "c:\\";
     const char *script_path = "\\\\server\\share\\dir\\script.cmd";
     const char *password = "TestPassword06-?";
-    const uint32 flags = UF_NORMAL_ACCOUNT;
+    const UINT32 flags = UF_NORMAL_ACCOUNT;
 
     NET_API_STATUS err = ERROR_SUCCESS;
-    uint32 level, parm_err;
+    UINT32 level, parm_err;
     size_t comment_len, home_directory_len, script_path_len, password_len;
     USER_INFO_1 *info1;
 
@@ -233,11 +233,11 @@ int DelUser(const wchar16_t *hostname, const wchar16_t *username)
 int AddLocalGroup(const wchar16_t *hostname, const wchar16_t *aliasname)
 {
     const char *testcomment = "Sample comment";
-    const uint32 level = 1;
+    const UINT32 level = 1;
 
     NET_API_STATUS err = ERROR_SUCCESS;
     LOCALGROUP_INFO_1 info;
-    uint32 parm_err;
+    UINT32 parm_err;
     size_t comment_size;
     wchar16_t *comment = NULL;
 
@@ -337,81 +337,937 @@ void DumpNetUserInfo1(const char *prefix, USER_INFO_1 *info)
 }
 
 
-int TestNetUserAdd(struct test *t, const wchar16_t *hostname,
-                   const wchar16_t *user, const wchar16_t *pass,
-                   struct parameter *options, int optcount)
-
+static
+BOOL
+CallNetUserEnum(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel,
+    DWORD  dwFilter
+    )
 {
-    const char *testusername = "TestUser";
-    const char *comment = "sample comment";
-    const char *home_directory = "c:\\";
-    const char *script_path = "\\\\server\\share\\dir\\script.cmd";
-    const char *testpassword = "TestPassword06-?";
-    const uint32 flags = UF_NORMAL_ACCOUNT;
-
+    BOOL ret = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
+    PVOID pBuffer = NULL;
+    DWORD dwMaxLen = MAX_PREFERRED_LENGTH;
+    DWORD dwNumEntries = 0;
+    DWORD dwLastTotal = 0;
+    DWORD dwCalculatedTotal = 0;
+    DWORD dwTotal = 0;
+    DWORD dwResume = 0;
+
+    /* max buffer size below 10 bytes doesn't make much sense */
+    while (dwMaxLen > 10)
+    {
+        dwCalculatedTotal = 0;
+        dwLastTotal       = (DWORD)-1;
+
+        do
+        {
+            err = NetUserEnum(pwszHostname,
+                              dwLevel,
+                              dwFilter,
+                              &pBuffer,
+                              dwMaxLen,
+                              &dwNumEntries,
+                              &dwTotal,
+                              &dwResume);
+            if (err != ERROR_SUCCESS &&
+                err != ERROR_MORE_DATA &&
+                err != ERROR_NOT_ENOUGH_MEMORY)
+            {
+                ret = FALSE;
+                goto done;
+            }
+
+            if (dwLastTotal != (DWORD)-1)
+            {
+                ASSERT_TEST(dwLastTotal == dwTotal);
+            }
+
+            if (pBuffer)
+            {
+                NetApiBufferFree(pBuffer);
+                pBuffer = NULL;
+            }
+
+            dwLastTotal        = dwTotal;
+            dwCalculatedTotal += dwNumEntries;
+        }
+        while (err == ERROR_MORE_DATA);
+
+        if (dwMaxLen > 65536)
+        {
+            dwMaxLen /= 256;
+        }
+        else if (dwMaxLen <= 65536 && dwMaxLen > 512)
+        {
+            dwMaxLen /= 4;
+        }
+        else if (dwMaxLen <= 512)
+        {
+            dwMaxLen /= 2;
+        }
+        else if (dwMaxLen < 32)
+        {
+            dwMaxLen = 0;
+        }
+
+        ASSERT_TEST(dwCalculatedTotal == dwTotal);
+
+        dwNumEntries = 0;
+        dwTotal      = 0;
+        dwResume     = 0;
+    }
+
+done:
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetUserAdd(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel,
+    PWSTR  pwszUsername,
+    PWSTR  pwszComment,
+    PWSTR  pwszHomedir,
+    PWSTR  pwszScriptPath,
+    PWSTR  pwszPassword,
+    DWORD  dwFlags
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    USER_INFO_1 Info1 = {0};
+    USER_INFO_2 Info2 = {0};
+    USER_INFO_3 Info3 = {0};
+    USER_INFO_4 Info4 = {0};
+    DWORD dwParmErr = 0;
+
+    switch (dwLevel)
+    {
+    case 1:
+        Info1.usri1_name        = pwszUsername;
+        Info1.usri1_password    = pwszPassword;
+        Info1.usri1_priv        = USER_PRIV_USER;
+        Info1.usri1_home_dir    = pwszHomedir;
+        Info1.usri1_comment     = pwszComment;
+        Info1.usri1_flags       = dwFlags;
+        Info1.usri1_script_path = pwszScriptPath;
+
+        pBuffer = (PVOID)&Info1;
+        break;
+
+    case 2:
+        Info2.usri2_name        = pwszUsername;
+        Info2.usri2_password    = pwszPassword;
+        Info2.usri2_priv        = USER_PRIV_USER;
+        Info2.usri2_home_dir    = pwszHomedir;
+        Info2.usri2_comment     = pwszComment;
+        Info2.usri2_flags       = dwFlags;
+        Info2.usri2_script_path = pwszScriptPath;
+
+        pBuffer = (PVOID)&Info2;
+        break;
+
+    case 3:
+        Info3.usri3_name        = pwszUsername;
+        Info3.usri3_password    = pwszPassword;
+        Info3.usri3_priv        = USER_PRIV_USER;
+        Info3.usri3_home_dir    = pwszHomedir;
+        Info3.usri3_comment     = pwszComment;
+        Info3.usri3_flags       = dwFlags;
+        Info3.usri3_script_path = pwszScriptPath;
+
+        pBuffer = (PVOID)&Info3;
+        break;
+
+    case 4:
+        Info4.usri4_name        = pwszUsername;
+        Info4.usri4_password    = pwszPassword;
+        Info4.usri4_priv        = USER_PRIV_USER;
+        Info4.usri4_home_dir    = pwszHomedir;
+        Info4.usri4_comment     = pwszComment;
+        Info4.usri4_flags       = dwFlags;
+        Info4.usri4_script_path = pwszScriptPath;
+
+        pBuffer = (PVOID)&Info4;
+        break;
+    }
+
+    err = NetUserAdd(pwszHostname,
+                     dwLevel,
+                     pBuffer,
+                     &dwParmErr);
+
+    ret = (err == ERROR_SUCCESS);
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetUserSetInfo(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel,
+    PWSTR  pwszUsername,
+    PWSTR  pwszChangedUsername,
+    PWSTR  pwszFullName,
+    PWSTR  pwszComment,
+    PWSTR  pwszHomedir,
+    PWSTR  pwszScriptPath,
+    PWSTR  pwszPassword,
+    DWORD  dwFlags,
+    PBOOL  pbRenamed
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    USER_INFO_0 Info0 = {0};
+    USER_INFO_1 Info1 = {0};
+    USER_INFO_2 Info2 = {0};
+    USER_INFO_3 Info3 = {0};
+    USER_INFO_4 Info4 = {0};
+    USER_INFO_1003 Info1003 = {0};
+    USER_INFO_1007 Info1007 = {0};
+    USER_INFO_1008 Info1008 = {0};
+    USER_INFO_1011 Info1011 = {0};
+    DWORD dwParmErr = 0;
+
+    switch (dwLevel)
+    {
+    case 0:
+        Info0.usri0_name        = pwszChangedUsername;
+
+        pBuffer = (PVOID)&Info0;
+        break;
+
+    case 1:
+        Info1.usri1_name        = pwszUsername;
+        Info1.usri1_password    = pwszPassword;
+        Info1.usri1_priv        = USER_PRIV_USER;
+        Info1.usri1_home_dir    = pwszHomedir;
+        Info1.usri1_comment     = pwszComment;
+        Info1.usri1_flags       = dwFlags;
+        Info1.usri1_script_path = pwszScriptPath;
+
+        pBuffer = (PVOID)&Info1;
+        break;
+
+    case 2:
+        Info2.usri2_name        = pwszUsername;
+        Info2.usri2_password    = pwszPassword;
+        Info2.usri2_priv        = USER_PRIV_USER;
+        Info2.usri2_home_dir    = pwszHomedir;
+        Info2.usri2_comment     = pwszComment;
+        Info2.usri2_flags       = dwFlags;
+        Info2.usri2_script_path = pwszScriptPath;
+
+        pBuffer = (PVOID)&Info2;
+        break;
+
+    case 3:
+        Info3.usri3_name        = pwszUsername;
+        Info3.usri3_password    = pwszPassword;
+        Info3.usri3_priv        = USER_PRIV_USER;
+        Info3.usri3_home_dir    = pwszHomedir;
+        Info3.usri3_comment     = pwszComment;
+        Info3.usri3_flags       = dwFlags;
+        Info3.usri3_script_path = pwszScriptPath;
+
+        pBuffer = (PVOID)&Info3;
+        break;
+
+    case 4:
+        Info4.usri4_name        = pwszUsername;
+        Info4.usri4_password    = pwszPassword;
+        Info4.usri4_priv        = USER_PRIV_USER;
+        Info4.usri4_home_dir    = pwszHomedir;
+        Info4.usri4_comment     = pwszComment;
+        Info4.usri4_flags       = dwFlags;
+        Info4.usri4_script_path = pwszScriptPath;
+
+        pBuffer = (PVOID)&Info4;
+        break;
+
+    case 1003:
+        Info1003.usri1003_password = pwszPassword;
+
+        pBuffer = (PVOID)&Info1003;
+        break;
+
+    case 1007:
+        Info1007.usri1007_comment = pwszComment;
+
+        pBuffer = (PVOID)&Info1007;
+        break;
+
+    case 1008:
+        Info1008.usri1008_flags = dwFlags;
+
+        pBuffer = (PVOID)&Info1008;
+        break;
+
+    case 1011:
+        Info1011.usri1011_full_name = pwszFullName;
+
+        pBuffer = (PVOID)&Info1011;
+        break;
+    }
+
+    err = NetUserSetInfo(pwszHostname,
+                         pwszUsername,
+                         dwLevel,
+                         pBuffer,
+                         &dwParmErr);
+
+    ret = (err == ERROR_SUCCESS);
+
+    if (dwLevel == 0 && pbRenamed)
+    {
+        *pbRenamed = TRUE;
+    }
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetUserGetInfo(
+    PCWSTR pwszHostname,
+    PCWSTR pwszUsername,
+    DWORD  dwLevel
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+
+    err = NetUserGetInfo(pwszHostname,
+                         pwszUsername,
+                         dwLevel,
+                         &pBuffer);
+    if (err != ERROR_SUCCESS)
+    {
+        ret = FALSE;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetUserGetLocalGroups(
+    PCWSTR pwszHostname,
+    PCWSTR pwszUserName,
+    DWORD  dwLevel,
+    DWORD  dwFlags
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    DWORD dwMaxLen = MAX_PREFERRED_LENGTH;
+    DWORD dwNumEntries = 0;
+    DWORD dwLastTotal = 0;
+    DWORD dwCalculatedTotal = 0;
+    DWORD dwTotal = 0;
+    DWORD dwResume = 0;
+
+    /* max buffer size below 10 bytes doesn't make much sense */
+    while (dwMaxLen > 10)
+    {
+        dwCalculatedTotal = 0;
+        dwLastTotal       = (DWORD)-1;
+
+        err = NetUserGetLocalGroups(pwszHostname,
+                                    pwszUserName,
+                                    dwLevel,
+                                    dwFlags,
+                                    &pBuffer,
+                                    dwMaxLen,
+                                    &dwNumEntries,
+                                    &dwTotal);
+        if (err != ERROR_SUCCESS &&
+            err != ERROR_MORE_DATA &&
+            err != ERROR_NOT_ENOUGH_MEMORY)
+        {
+            ret = FALSE;
+            goto done;
+        }
+
+        if (dwLastTotal != (DWORD)-1)
+        {
+            ASSERT_TEST(dwLastTotal == dwTotal);
+        }
+
+        if (pBuffer)
+        {
+            NetApiBufferFree(pBuffer);
+            pBuffer = NULL;
+        }
+
+        dwLastTotal        = dwTotal;
+        dwCalculatedTotal += dwNumEntries;
+
+        if (dwMaxLen > 65536)
+        {
+            dwMaxLen /= 256;
+        }
+        else if (dwMaxLen <= 65536 && dwMaxLen > 512)
+        {
+            dwMaxLen /= 4;
+        }
+        else if (dwMaxLen <= 512)
+        {
+            dwMaxLen /= 2;
+        }
+        else if (dwMaxLen < 32)
+        {
+            dwMaxLen = 0;
+        }
+
+        ASSERT_TEST(dwCalculatedTotal == dwTotal);
+
+        dwNumEntries = 0;
+        dwTotal      = 0;
+        dwResume     = 0;
+    }
+
+done:
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetLocalGroupEnum(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    DWORD dwMaxLen = MAX_PREFERRED_LENGTH;
+    DWORD dwNumEntries = 0;
+    DWORD dwLastTotal = 0;
+    DWORD dwCalculatedTotal = 0;
+    DWORD dwTotal = 0;
+    DWORD dwResume = 0;
+
+    while (dwMaxLen)
+    {
+        dwCalculatedTotal = 0;
+        dwLastTotal       = (DWORD)-1;
+
+        do
+        {
+            err = NetLocalGroupEnum(pwszHostname,
+                                    dwLevel,
+                                    &pBuffer,
+                                    dwMaxLen,
+                                    &dwNumEntries,
+                                    &dwTotal,
+                                    &dwResume);
+            if (err != ERROR_SUCCESS &&
+                err != ERROR_MORE_DATA &&
+                err != ERROR_NOT_ENOUGH_MEMORY)
+            {
+                ret = FALSE;
+                goto done;
+            }
+
+            if (dwLastTotal != (DWORD)-1)
+            {
+                ASSERT_TEST(dwLastTotal == dwTotal);
+            }
+
+            if (pBuffer)
+            {
+                NetApiBufferFree(pBuffer);
+                pBuffer = NULL;
+            }
+
+            dwLastTotal        = dwTotal;
+            dwCalculatedTotal += dwNumEntries;
+        }
+        while (err == ERROR_MORE_DATA);
+
+        if (dwMaxLen > 65536)
+        {
+            dwMaxLen /= 256;
+        }
+        else if (dwMaxLen <= 65536 && dwMaxLen > 512)
+        {
+            dwMaxLen /= 4;
+        }
+        else if (dwMaxLen <= 512)
+        {
+            dwMaxLen /= 2;
+        }
+        else if (dwMaxLen < 32)
+        {
+            dwMaxLen = 0;
+        }
+
+        ASSERT_TEST(dwCalculatedTotal == dwTotal);
+
+        dwNumEntries = 0;
+        dwTotal      = 0;
+        dwResume     = 0;
+    }
+
+done:
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetLocalGroupAdd(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel,
+    PWSTR  pwszAliasname,
+    PWSTR  pwszComment
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    LOCALGROUP_INFO_0 Info0 = {0};
+    LOCALGROUP_INFO_1 Info1 = {0};
+    DWORD dwParmErr = 0;
+
+    switch (dwLevel)
+    {
+    case 0:
+        Info0.lgrpi0_name    = pwszAliasname;
+
+        pBuffer = &Info0;
+        break;
+
+    case 1:
+        Info1.lgrpi1_name    = pwszAliasname;
+        Info1.lgrpi1_comment = pwszComment;
+
+        pBuffer = &Info1;
+        break;
+    }
+
+    err = NetLocalGroupAdd(pwszHostname,
+                           dwLevel,
+                           pBuffer,
+                           &dwParmErr);
+    ret = (err == ERROR_SUCCESS);
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetLocalGroupSetInfo(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel,
+    PWSTR  pwszAliasname,
+    PWSTR  pwszChangedAliasname,
+    PWSTR  pwszComment,
+    PBOOL  pbRenamed
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    LOCALGROUP_INFO_0 Info0 = {0};
+    LOCALGROUP_INFO_1 Info1 = {0};
+    LOCALGROUP_INFO_1002 Info1002 = {0};
+    DWORD dwParmErr = 0;
+
+    switch (dwLevel)
+    {
+    case 0:
+        Info0.lgrpi0_name       = pwszChangedAliasname;
+
+        pBuffer = (PVOID)&Info0;
+        break;
+
+    case 1:
+        /* Check if lgrpi1_name really is ignored */
+        Info1.lgrpi1_name       = pwszChangedAliasname;
+        Info1.lgrpi1_comment    = pwszComment;
+
+        pBuffer = (PVOID)&Info1;
+        break;
+
+    case 1002:
+        Info1002.lgrpi1002_comment = pwszComment;
+
+        pBuffer = (PVOID)&Info1002;
+        break;
+    }
+
+    err = NetLocalGroupSetInfo(pwszHostname,
+                               pwszAliasname,
+                               dwLevel,
+                               pBuffer,
+                               &dwParmErr);
+
+    ret = (err == ERROR_SUCCESS);
+
+    if (dwLevel == 0 && pbRenamed)
+    {
+        *pbRenamed = TRUE;
+    }
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetLocalGroupGetInfo(
+    PCWSTR pwszHostname,
+    PCWSTR pwszAliasname,
+    DWORD  dwLevel
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+
+    err = NetLocalGroupGetInfo(pwszHostname,
+                               pwszAliasname,
+                               dwLevel,
+                               &pBuffer);
+    if (err != ERROR_SUCCESS)
+    {
+        ret = FALSE;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    return ret;
+}
+
+
+static
+BOOL
+CallNetLocalGroupGetMembers(
+    PCWSTR pwszHostname,
+    PCWSTR pwszLocalGroupName,
+    DWORD  dwLevel
+    )
+{
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    DWORD dwMaxLen = MAX_PREFERRED_LENGTH;
+    DWORD dwNumEntries = 0;
+    DWORD dwLastTotal = 0;
+    DWORD dwCalculatedTotal = 0;
+    DWORD dwTotal = 0;
+    DWORD dwResume = 0;
+
+    while (dwMaxLen)
+    {
+        dwCalculatedTotal = 0;
+        dwLastTotal       = (DWORD)-1;
+
+        do
+        {
+            err = NetLocalGroupGetMembers(pwszHostname,
+                                          pwszLocalGroupName,
+                                          dwLevel,
+                                          &pBuffer,
+                                          dwMaxLen,
+                                          &dwNumEntries,
+                                          &dwTotal,
+                                          &dwResume);
+            if (err != ERROR_SUCCESS &&
+                err != ERROR_MORE_DATA &&
+                err != ERROR_NOT_ENOUGH_MEMORY)
+            {
+                ret = FALSE;
+                goto done;
+            }
+
+            if (dwLastTotal != (DWORD)-1)
+            {
+                ASSERT_TEST(dwLastTotal == dwTotal);
+            }
+
+            if (pBuffer)
+            {
+                NetApiBufferFree(pBuffer);
+                pBuffer = NULL;
+            }
+
+            dwLastTotal        = dwTotal;
+            dwCalculatedTotal += dwNumEntries;
+        }
+        while (err == ERROR_MORE_DATA);
+
+        if (dwMaxLen > 65536)
+        {
+            dwMaxLen /= 256;
+        }
+        else if (dwMaxLen <= 65536 && dwMaxLen > 512)
+        {
+            dwMaxLen /= 4;
+        }
+        else if (dwMaxLen <= 512)
+        {
+            dwMaxLen /= 2;
+        }
+        else if (dwMaxLen < 32)
+        {
+            dwMaxLen = 0;
+        }
+
+        ASSERT_TEST(dwCalculatedTotal == dwTotal);
+
+        dwNumEntries = 0;
+        dwTotal      = 0;
+        dwResume     = 0;
+    }
+
+done:
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    return ret;
+}
+
+
+int
+TestNetUserEnum(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
+{
+    const DWORD dwDefaultFilter = 0;
+    const DWORD dwDefaultLevel = (DWORD)(-1);
+
+    BOOL ret = TRUE;
     enum param_err perr = perr_success;
-    uint32 level, parm_err;
-    USER_INFO_1 *info1 = NULL;
+    DWORD i = 0;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1, 2, 20 };
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
+    DWORD dwLevel = 0;
+    DWORD dwFilter = 0;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    level = 1;
-    info1 = (USER_INFO_1*) malloc(sizeof(USER_INFO_1));
-    if (info1 == NULL) return false;
-
-    memset(info1, 0, sizeof(USER_INFO_1));
-
-    perr = fetch_value(options, optcount, "username", pt_w16string,
-                       &info1->usri1_name, &testusername);
+    perr = fetch_value(options, optcount, "filter", pt_uint32,
+                       (UINT32*)&dwFilter, (UINT32*)&dwDefaultFilter);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "comment", pt_w16string,
-                       &info1->usri1_comment, &comment);
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "homedir", pt_w16string,
-                       &info1->usri1_home_dir, &home_directory);
-    if (!perr_is_ok(perr)) perr_fail(perr);
+    PARAM_INFO("filter", pt_uint32, &dwFilter);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
 
-    perr = fetch_value(options, optcount, "scriptpath", pt_w16string,
-                       &info1->usri1_script_path, &script_path);
-    if (!perr_is_ok(perr)) perr_fail(perr);
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
 
-    perr = fetch_value(options, optcount, "password", pt_w16string,
-                       &info1->usri1_password, &testpassword);
-    if (!perr_is_ok(perr)) perr_fail(perr);
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
 
-    PARAM_INFO("username", pt_w16string, &info1->usri1_name);
-    PARAM_INFO("comment", pt_w16string, &info1->usri1_comment);
-    PARAM_INFO("homedir", pt_w16string, &info1->usri1_home_dir);
-    PARAM_INFO("scriptpath", pt_w16string, &info1->usri1_script_path);
-    PARAM_INFO("password", pt_w16string, &info1->usri1_password);
+        if (!dwFilter)
+        {
+            ret &= CallNetUserEnum(hostname,
+                                   dwLevel,
+                                   FILTER_NORMAL_ACCOUNT);
 
-    info1->usri1_flags = flags;
-    info1->usri1_priv = USER_PRIV_USER;
+            ret &= CallNetUserEnum(hostname,
+                                   dwLevel,
+                                   FILTER_INTERDOMAIN_TRUST_ACCOUNT);
 
-    status = CleanupAccount(hostname, info1->usri1_name);
-    if (status != 0) rpc_fail(status);
+            ret &= CallNetUserEnum(hostname,
+                                   dwLevel,
+                                   FILTER_WORKSTATION_TRUST_ACCOUNT);
 
-    CALL_NETAPI(err = NetUserAdd(hostname, level, (void*)info1, &parm_err));
-    if (err != 0) netapi_fail(err);
-
-    status = CleanupAccount(hostname, info1->usri1_name);
-    if (status != 0) rpc_fail(status);
+            ret &= CallNetUserEnum(hostname,
+                                   dwLevel,
+                                   FILTER_SERVER_TRUST_ACCOUNT);
+        }
+        else
+        {
+            ret &= CallNetUserEnum(hostname,
+                                   dwLevel,
+                                   dwFilter);
+        }
+    }
 
 done:
     RELEASE_SESSION_CREDS;
 
-    SAFE_FREE(info1->usri1_name);
-    SAFE_FREE(info1->usri1_comment);
-    SAFE_FREE(info1->usri1_home_dir);
-    SAFE_FREE(info1->usri1_script_path);
-    SAFE_FREE(info1->usri1_password);
-    SAFE_FREE(info1);
+    return ret;
+}
+
+
+int
+TestNetUserAdd(
+    struct test *t,
+    PCWSTR hostname,
+    PCWSTR user,
+    PCWSTR pass,
+    struct parameter *options,
+    int optcount
+    )
+{
+    PCSTR pszDefaultUsername = "TestUser";
+    PCSTR pszDefaultComment = "sample comment";
+    PCSTR pszDefaultHomedir = "c:\\";
+    PCSTR pszDefaultScriptPath = "\\\\server\\share\\dir\\script.cmd";
+    PCSTR pszDefaultPassword = NULL;
+    const DWORD dwDefaultLevel = (DWORD)(-1);
+
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    enum param_err perr = perr_success;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 1, 2, 3, 4, };
+    DWORD dwLevel = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
+    PWSTR pwszUsername = NULL;
+    PWSTR pwszComment = NULL;
+    PWSTR pwszHomedir = NULL;
+    PWSTR pwszScriptPath = NULL;
+    PWSTR pwszPassword = NULL;
+    DWORD dwFlags = 0;
+    DWORD i = 0;
+
+    TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(hCreds);
+
+    perr = fetch_value(options, optcount, "username", pt_w16string,
+                       &pwszUsername, &pszDefaultUsername);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "comment", pt_w16string,
+                       &pwszComment, &pszDefaultComment);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "homedir", pt_w16string,
+                       &pwszHomedir, &pszDefaultHomedir);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "scriptpath", pt_w16string,
+                       &pwszScriptPath, &pszDefaultScriptPath);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "password", pt_w16string,
+                       &pwszPassword, &pszDefaultPassword);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    PARAM_INFO("username", pt_w16string, &pwszUsername);
+    PARAM_INFO("comment", pt_w16string, &pwszComment);
+    PARAM_INFO("homedir", pt_w16string, &pwszHomedir);
+    PARAM_INFO("scriptpath", pt_w16string, &pwszScriptPath);
+    PARAM_INFO("password", pt_w16string, &pwszPassword);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
+
+    /* We're testing user accounts only */
+    dwFlags = UF_NORMAL_ACCOUNT;
+
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
+
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
+
+        status = CleanupAccount(hostname, pwszUsername);
+        if (status != 0) rpc_fail(status);
+
+
+        ret &= CallNetUserAdd(hostname,
+                              dwLevel,
+                              pwszUsername,
+                              pwszComment,
+                              pwszHomedir,
+                              pwszScriptPath,
+                              pwszPassword,
+                              dwFlags);
+    }
+
+done:
+    RELEASE_SESSION_CREDS;
+
+    SAFE_FREE(pwszUsername);
+    SAFE_FREE(pwszComment);
+    SAFE_FREE(pwszHomedir);
+    SAFE_FREE(pwszScriptPath);
+    SAFE_FREE(pwszPassword);
 
     return (err == ERROR_SUCCESS &&
             status == STATUS_SUCCESS);
@@ -422,192 +1278,374 @@ int TestNetUserDel(struct test *t, const wchar16_t *hostname,
                    const wchar16_t *user, const wchar16_t *pass,
                    struct parameter *options, int optcount)
 {
-    const char *testusername = "TestUser";
+    PCSTR pszDefaultUsername = "TestUser";
 
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
-    wchar16_t *username;
-    int created = false;
+    PWSTR pwszUsername = NULL;
+    BOOL bCreated = FALSE;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
-                       &username, &testusername);
+                       &pwszUsername, &pszDefaultUsername);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("username", pt_w16string, username);
+    PARAM_INFO("username", pt_w16string, pwszUsername);
 
-    status = EnsureUserAccount(hostname, username, &created);
+    status = EnsureUserAccount(hostname, pwszUsername, &bCreated);
     if (status != 0) rpc_fail(status);
 
-    CALL_NETAPI(err = NetUserDel(hostname, username));
+    CALL_NETAPI(err = NetUserDel(hostname, pwszUsername));
     if (err != 0) netapi_fail(err);
 
 done:
     RELEASE_SESSION_CREDS;
 
-    SAFE_FREE(username);
+    SAFE_FREE(pwszUsername);
 
     return (err == ERROR_SUCCESS &&
             status == STATUS_SUCCESS);
 }
 
 
-int TestNetUserGetInfo(struct test *t, const wchar16_t *hostname,
-                       const wchar16_t *user, const wchar16_t *pass,
-                       struct parameter *options, int optcount)
+int
+TestNetUserGetInfo(
+    struct test *t,
+    PCWSTR hostname,
+    PCWSTR user,
+    PCWSTR pass,
+    struct parameter *options,
+    int optcount
+    )
 {
-    const char *testusername = "TestUser";
+    const PSTR pszDefaultUsername = "TestUser";
+    const DWORD dwDefaultLevel = (DWORD)(-1);
 
-    NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
+    BOOL ret = TRUE;
     enum param_err perr = perr_success;
-    wchar16_t *username;
-    void *info;
-    int created = false;
-    uint32 level = 20;
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszUsername = NULL;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1, 2, 20 };
+    DWORD dwNumLevels = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD i = 0;
+    DWORD dwLevel = 0;
+    BOOL bCreated = FALSE;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
     perr = fetch_value(options, optcount, "username", pt_w16string,
-                       &username, &testusername);
+                       &pwszUsername, &pszDefaultUsername);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("username", pt_w16string, username);
-
-    status = EnsureUserAccount(hostname, username, &created);
-    if (status != 0) rpc_fail(status);
-
-    CALL_NETAPI(err = NetUserGetInfo(hostname, username, level, &info));
-    if (err != 0) netapi_fail(err);
-
-done:
-    RELEASE_SESSION_CREDS;
-
-    SAFE_FREE(username);
-
-    return (err == ERROR_SUCCESS &&
-            status == STATUS_SUCCESS);
-}
-
-
-int TestNetUserSetInfo(struct test *t, const wchar16_t *hostname,
-                       const wchar16_t *user, const wchar16_t *pass,
-                       struct parameter *options, int optcount)
-{
-    const char *oldusername = "OldUserName";
-    const char *newusername = "NewUserName";
-    const char *newcomment = "Sample comment";
-    const char *newfullname = "Full UserName";
-    const char *newpassword = "JustTesting30$";
-
-    NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr = perr_success;
-    uint32 level, parm_err;
-    wchar16_t buffer[512] = {0};
-    wchar16_t *username = NULL;
-    wchar16_t *newuser = NULL;
-    USER_INFO_0 info0 = {0};
-    USER_INFO_20 *info20 = NULL;
-    USER_INFO_1003 info1003 = {0};
-    USER_INFO_1007 info1007 = {0};
-    USER_INFO_1008 info1008 = {0};
-    USER_INFO_1011 info1011 = {0};
-    int created = false;
-
-    TESTINFO(t, hostname, user, pass);
-
-    SET_SESSION_CREDS(hCreds);
-
-    perr = fetch_value(options, optcount, "username", pt_w16string,
-                       &username, &oldusername);
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("username", pt_w16string, username);
+    PARAM_INFO("username", pt_w16string, pwszUsername);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
 
-    status = EnsureUserAccount(hostname, username, &created);
-    if (status != 0) rpc_fail(status);
-
-    newuser = ambstowc16s(newusername);
-    if (newuser == NULL) return false;
-
-    level = 0;
-    info0.usri0_name = newuser;
-
-    CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
-                                     (void*)&info0, &parm_err));
-    if (err != 0) netapi_fail(err);
-
-    /* the user name is different now - the next will use different pointer
-       holding the new name thus allowing for account deletion */
-    SAFE_FREE(username);
-    username = newuser;
-    newuser  = NULL;
-
-    level = 1003;
-    memset((void*)buffer, 0, sizeof(buffer));
-    mbstowc16s(buffer, newpassword, sizeof(buffer));
-    info1003.usri1003_password = buffer;
-
-    CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
-                                     (void*)&info1003, &parm_err));
-    if (err != 0) netapi_fail(err);
-
-    level = 1007;
-    mbstowc16s(buffer, newcomment, sizeof(buffer));
-    info1007.usri1007_comment = buffer;
-
-    CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
-                                     (void*)&info1007, &parm_err));
-    if (err != 0) netapi_fail(err);
-
-    err = NetUserGetInfo(hostname, username, 20, (void**)&info20);
-    if (err == ERROR_SUCCESS) {
-
-        level = 1008;
-        info1008.usri1008_flags = info20->usri20_flags | UF_ACCOUNTDISABLE;
-
-        CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
-                                         (void*)&info1008, &parm_err));
-        if (err != 0) netapi_fail(err);
-	}
-
-	info20 = NULL;
-	CALL_NETAPI(err = NetUserGetInfo(hostname, username, 20, (void**)&info20));
-	if (err != 0) {
-	    printf("WARNING: Unable to verify whether NetUserSetInfo test "
-               "on USER_INFO_1008 passes correctly\n");
-
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
     }
 
-	if (info20->usri20_flags != info1008.usri1008_flags) {
-	    printf("USER_INFO_1008 level succeeded but didn't set flags correctly\n");
-	    return false;
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
+
+        status = EnsureUserAccount(hostname,
+                                   pwszUsername,
+                                   &bCreated);
+        if (status != 0) rpc_fail(status);
+
+        ret &= CallNetUserGetInfo(hostname,
+                                  pwszUsername,
+                                  dwLevel);
+
+        if (bCreated)
+        {
+            status = CleanupAccount(hostname, pwszUsername);
+            if (status != 0) rpc_fail(status);
+        }
     }
-
-    level = 1011;
-    mbstowc16s(buffer, newfullname, sizeof(buffer));
-    info1011.usri1011_full_name = buffer;
-
-    CALL_NETAPI(err = NetUserSetInfo(hostname, username, level,
-                                     (void*)&info1011, &parm_err));
-    if (err != 0) netapi_fail(err);
 
 done:
     RELEASE_SESSION_CREDS;
 
-    SAFE_FREE(newuser);
-    SAFE_FREE(username);
+    SAFE_FREE(pwszUsername);
 
-    return (err == ERROR_SUCCESS &&
-            status == STATUS_SUCCESS);
+    return ret;
 }
+
+
+int
+TestNetUserSetInfo(
+    struct test *t,
+    PCWSTR hostname,
+    PCWSTR user,
+    PCWSTR pass,
+    struct parameter *options,
+    int optcount
+    )
+{
+    PCSTR pszDefaultUsername = "TestUser";
+    PCSTR pszChangedUsername = "TestUserRename";
+    PCSTR pszDefaultFullName = "Full user name";
+    PCSTR pszDefaultComment = "sample comment";
+    PCSTR pszDefaultHomedir = "c:\\";
+    PCSTR pszDefaultScriptPath = "\\\\server\\share\\dir\\script.cmd";
+    PCSTR pszDefaultPassword = NULL;
+    const DWORD dwDefaultFlags = UF_NORMAL_ACCOUNT | UF_ACCOUNTDISABLE;
+    const DWORD dwDefaultLevel = (DWORD)(-1);
+
+    BOOL ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    enum param_err perr = perr_success;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1, 2, 3, 4, 1003, 1007, 1008, 1011 };
+    DWORD dwLevel = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
+    PWSTR pwszUsername = NULL;
+    PWSTR pwszFullName = NULL;
+    PWSTR pwszChangedUsername = NULL;
+    PWSTR pwszComment = NULL;
+    PWSTR pwszHomedir = NULL;
+    PWSTR pwszScriptPath = NULL;
+    PWSTR pwszPassword = NULL;
+    DWORD dwFlags = 0;
+    DWORD i = 0;
+    BOOL bCreated = FALSE;
+    BOOL bRenamed = FALSE;
+
+    TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(hCreds);
+
+    perr = fetch_value(options, optcount, "username", pt_w16string,
+                       &pwszUsername, &pszDefaultUsername);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "fullname", pt_w16string,
+                       &pwszFullName, &pszDefaultFullName);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "comment", pt_w16string,
+                       &pwszComment, &pszDefaultComment);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "homedir", pt_w16string,
+                       &pwszHomedir, &pszDefaultHomedir);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "scriptpath", pt_w16string,
+                       &pwszScriptPath, &pszDefaultScriptPath);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "password", pt_w16string,
+                       &pwszPassword, &pszDefaultPassword);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "flags", pt_uint32,
+                       (UINT32*)&dwFlags, (UINT32*)&dwDefaultFlags);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    err = LwMbsToWc16s(pszChangedUsername,
+                       &pwszChangedUsername);
+    if (err != 0) netapi_fail(err);
+
+    PARAM_INFO("username", pt_w16string, &pwszUsername);
+    PARAM_INFO("fullname", pt_w16string, &pwszFullName);
+    PARAM_INFO("usernamechange", pt_w16string, &pwszChangedUsername);
+    PARAM_INFO("comment", pt_w16string, &pwszComment);
+    PARAM_INFO("homedir", pt_w16string, &pwszHomedir);
+    PARAM_INFO("scriptpath", pt_w16string, &pwszScriptPath);
+    PARAM_INFO("password", pt_w16string, &pwszPassword);
+    PARAM_INFO("flags", pt_uint32, &dwFlags);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
+
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
+
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
+
+        /* Don't test setting new password if there's no password supplied */
+        if (dwLevel == 1003 &&
+            pwszPassword == NULL) continue;
+
+        status = EnsureUserAccount(hostname,
+                                   pwszUsername,
+                                   &bCreated);
+        if (status != 0) rpc_fail(status);
+
+        status = CleanupAccount(hostname,
+                                pwszChangedUsername);
+        if (status != 0) rpc_fail(status);
+
+        ret &= CallNetUserSetInfo(hostname,
+                                  dwLevel,
+                                  pwszUsername,
+                                  pwszChangedUsername,
+                                  pwszFullName,
+                                  pwszComment,
+                                  pwszHomedir,
+                                  pwszScriptPath,
+                                  pwszPassword,
+                                  dwFlags,
+                                  &bRenamed);
+
+        if (bRenamed)
+        {
+            ret &= CallNetUserSetInfo(hostname,
+                                      0,
+                                      pwszChangedUsername,
+                                      pwszUsername,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      0,
+                                      &bRenamed);
+
+            /* account has been renamed back to original name */
+            bRenamed = FALSE;
+        }
+    }
+
+    if (bCreated)
+    {
+        status = CleanupAccount(hostname, pwszUsername);
+        if (status != 0) rpc_fail(status);
+    }
+
+done:
+    RELEASE_SESSION_CREDS;
+
+    SAFE_FREE(pwszUsername);
+    SAFE_FREE(pwszFullName);
+    SAFE_FREE(pwszComment);
+    SAFE_FREE(pwszHomedir);
+    SAFE_FREE(pwszScriptPath);
+    SAFE_FREE(pwszPassword);
+    SAFE_FREE(pwszChangedUsername);
+
+    return ret;
+}
+
+
+int
+TestNetUserGetLocalGroups(
+    struct test *t,
+    PCWSTR hostname,
+    PCWSTR user,
+    PCWSTR pass,
+    struct parameter *options,
+    int optcount
+    )
+{
+    const PSTR pszDefaultUsername = "TestUser";
+    const DWORD dwDefaultLevel = (DWORD)(-1);
+
+    BOOL ret = TRUE;
+    enum param_err perr = perr_success;
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszUsername = NULL;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0 };
+    DWORD dwNumLevels = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD i = 0;
+    DWORD dwLevel = 0;
+    BOOL bCreated = FALSE;
+
+    TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(hCreds);
+
+    perr = fetch_value(options, optcount, "username", pt_w16string,
+                       &pwszUsername, &pszDefaultUsername);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    PARAM_INFO("username", pt_w16string, pwszUsername);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
+
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
+
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
+
+        status = EnsureUserAccount(hostname,
+                                   pwszUsername,
+                                   &bCreated);
+        if (status != 0) rpc_fail(status);
+
+        ret &= CallNetUserGetLocalGroups(hostname,
+                                         pwszUsername,
+                                         dwLevel,
+                                         0);
+        if (bCreated)
+        {
+            status = CleanupAccount(hostname, pwszUsername);
+            if (status != 0) rpc_fail(status);
+        }
+    }
+
+done:
+    RELEASE_SESSION_CREDS;
+
+    SAFE_FREE(pwszUsername);
+
+    return ret;
+}
+
+
 
 
 int TestNetJoinDomain(struct test *t, const wchar16_t *hostname,
@@ -776,7 +1814,7 @@ int TestNetUserChangePassword(struct test *t, const wchar16_t *hostname,
     NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
     wchar16_t *username, *oldpassword, *newpassword;
-    int created = false;
+    BOOL bCreated = FALSE;
 
     TESTINFO(t, hostname, user, pass);
 
@@ -798,7 +1836,7 @@ int TestNetUserChangePassword(struct test *t, const wchar16_t *hostname,
     PARAM_INFO("oldpassword", pt_w16string, oldpassword);
     PARAM_INFO("newpassword", pt_w16string, newpassword);
 
-    status = EnsureUserAccount(hostname, username, &created);
+    status = EnsureUserAccount(hostname, username, &bCreated);
     if (status != 0) rpc_fail(status);
 
     CALL_NETAPI(err = NetUserChangePassword(hostname, username,
@@ -832,10 +1870,10 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
     NET_API_STATUS err = ERROR_SUCCESS;
     enum param_err perr = perr_success;
     LOCALGROUP_USERS_INFO_0 *grpinfo;
-    uint32 entries;
+    UINT32 entries;
     wchar16_t *username, *aliasname, *guest_user, *admin_user;
     wchar16_t *guests_group, *admins_group, *domname;
-    int created = false;
+    BOOL bCreated = FALSE;
 
     TESTINFO(t, hostname, user, pass);
 
@@ -892,7 +1930,7 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
     /*
      * Test 2: Get groups of newly created user has no group memberships yet
      */
-    status = EnsureUserAccount(hostname, username, &created);
+    status = EnsureUserAccount(hostname, username, &bCreated);
     if (status != 0) rpc_fail(status);
 
 
@@ -931,7 +1969,7 @@ int TestNetUserLocalGroups(struct test *t, const wchar16_t *hostname,
     /*
      * Test 4: Add 2 existing users to a newly created group, and get the local groups list
      */
-    status = EnsureAlias(hostname, aliasname, &created);
+    status = EnsureAlias(hostname, aliasname, &bCreated);
 
     err = AddLocalGroupMember(hostname, aliasname, domname, admin_user);
     if (err != 0) netapi_fail(err);
@@ -976,123 +2014,146 @@ done:
 }
 
 
-int TestNetLocalGroupsEnum(struct test *t, const wchar16_t *hostname,
-                           const wchar16_t *user, const wchar16_t *pass,
-                           struct parameter *options, int optcount)
+int
+TestNetLocalGroupEnum(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    NET_API_STATUS err = ERROR_SUCCESS;
-    void *info;
-    uint32 entries, total, resume, maxlen;
+    const DWORD dwDefaultLevel = (DWORD)(-1);
+
+    BOOL ret = TRUE;
+    enum param_err perr = perr_success;
+    DWORD i = 0;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1 };
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
+    DWORD dwLevel = 0;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    resume = 0;
-    maxlen = MAX_PREFERRED_LENGTH;
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
 
-    do {
-        INPUT_ARG_UINT(resume);
-        INPUT_ARG_UINT(maxlen);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
 
-        CALL_NETAPI(err = NetLocalGroupEnum(hostname, 1, &info, maxlen,
-                                            &entries, &total, &resume));
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
 
-        OUTPUT_ARG_UINT(entries);
-        OUTPUT_ARG_UINT(total);
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
 
-    } while (err == ERROR_MORE_DATA);
-
-    resume = 0;
-    maxlen = 32;
-
-    do {
-        INPUT_ARG_UINT(resume);
-        INPUT_ARG_UINT(maxlen);
-
-        CALL_NETAPI(err = NetLocalGroupEnum(hostname, 1, &info, maxlen,
-                                            &entries, &total, &resume));
-
-        OUTPUT_ARG_UINT(entries);
-        OUTPUT_ARG_UINT(total);
-
-    } while (err == ERROR_MORE_DATA);
-
-    resume = 0;
-    maxlen = 16;
-
-    do {
-        INPUT_ARG_UINT(resume);
-        INPUT_ARG_UINT(maxlen);
-
-        CALL_NETAPI(err = NetLocalGroupEnum(hostname, 1, &info, maxlen,
-                                            &entries, &total, &resume));
-
-        OUTPUT_ARG_UINT(entries);
-        OUTPUT_ARG_UINT(total);
-
-    } while (err == ERROR_MORE_DATA);
-
-
-    resume = 0;
-    maxlen = 4;
-
-    do {
-        INPUT_ARG_UINT(resume);
-        INPUT_ARG_UINT(maxlen);
-
-        CALL_NETAPI(err = NetLocalGroupEnum(hostname, 1, &info, maxlen,
-                                            &entries, &total, &resume));
-
-        OUTPUT_ARG_UINT(entries);
-        OUTPUT_ARG_UINT(total);
-
-    } while (err == ERROR_MORE_DATA);
+        ret &= CallNetLocalGroupEnum(hostname,
+                                     dwLevel);
+    }
 
 done:
     RELEASE_SESSION_CREDS;
 
-    return (err == ERROR_SUCCESS &&
-            status == STATUS_SUCCESS);
+    return ret;
 }
 
 
-int TestNetLocalGroupAdd(struct test *t, const wchar16_t *hostname,
-                         const wchar16_t *user, const wchar16_t *pass,
-                         struct parameter *options, int optcount)
+int
+TestNetLocalGroupAdd(
+    struct test *t,
+    PCWSTR hostname,
+    PCWSTR user,
+    PCWSTR pass,
+    struct parameter *options,
+    int optcount)
 {
-    const char *def_aliasname = "TestAlias";
+    PCSTR pszDefaultAliasname = "TestLocalGroup";
+    PCSTR pszDefaultComment = "Test comment for new local group";
+    const DWORD dwDefaultLevel = (DWORD)(-1);
 
     NTSTATUS status = STATUS_SUCCESS;
-    NET_API_STATUS err = ERROR_SUCCESS;
+    BOOL ret = TRUE;
     enum param_err perr = perr_success;
-    wchar16_t *aliasname;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1 };
+    DWORD dwLevel = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD i = 0;
+    DWORD dwNumLevels = 0;
+    PWSTR pwszAliasname = NULL;
+    PWSTR pwszComment = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
-                       &def_aliasname);
+    perr = fetch_value(options, optcount, "aliasname", pt_w16string,
+                       &pwszAliasname, &pszDefaultAliasname);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("aliasname", pt_w16string, aliasname);
+    perr = fetch_value(options, optcount, "comment", pt_w16string,
+                       &pwszComment, &pszDefaultComment);
+    if (!perr_is_ok(perr)) perr_fail(perr);
 
-    err = AddLocalGroup(hostname, aliasname);
-    if (err != ERROR_SUCCESS) netapi_fail(err);
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
 
-    /* cleanup */
-    err = DelLocalGroup(hostname, aliasname);
-    if (err != ERROR_SUCCESS) netapi_fail(err);
+    PARAM_INFO("aliasname", pt_w16string, pwszAliasname);
+    PARAM_INFO("comment", pt_w16string, pwszComment);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
+
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
+
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
+
+        status = CleanupAlias(hostname,
+                              pwszAliasname);
+        if (status != 0) rpc_fail(status);
+
+        ret &= CallNetLocalGroupAdd(hostname,
+                                    dwLevel,
+                                    pwszAliasname,
+                                    pwszComment);
+    }
+
+    status = CleanupAlias(hostname,
+                          pwszAliasname);
+    if (status != 0) rpc_fail(status);
 
 done:
     RELEASE_SESSION_CREDS;
 
-    SAFE_FREE(aliasname);
+    SAFE_FREE(pwszAliasname);
+    SAFE_FREE(pwszComment);
 
-    return (err == ERROR_SUCCESS &&
-            status == STATUS_SUCCESS);
+    return ret;
 }
 
 
@@ -1130,309 +2191,277 @@ done:
 }
 
 
-int TestNetLocalGroupGetInfo(struct test *t, const wchar16_t *hostname,
-                             const wchar16_t *user, const wchar16_t *pass,
-                             struct parameter *options, int optcount)
+int
+TestNetLocalGroupGetInfo(
+    struct test *t,
+    PCWSTR hostname,
+    PCWSTR user,
+    PCWSTR pass,
+    struct parameter *options,
+    int optcount
+    )
 {
-    const char *def_aliasname = "Guests";
-    const uint32 level = 1;
+    const PSTR pszDefaultAliasname = "TestLocalGroup";
+    const DWORD dwDefaultLevel = (DWORD)(-1);
 
-    NTSTATUS status = STATUS_SUCCESS;
-    NET_API_STATUS err = ERROR_SUCCESS;
+    BOOL ret = TRUE;
     enum param_err perr = perr_success;
-    void *info;
-    wchar16_t *aliasname;
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR pwszAliasname = NULL;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 1 };
+    DWORD dwNumLevels = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD i = 0;
+    DWORD dwLevel = 0;
+    BOOL bCreated = FALSE;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
-                       &def_aliasname);
+    perr = fetch_value(options, optcount, "aliasname", pt_w16string,
+                       &pwszAliasname, &pszDefaultAliasname);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("aliasname", pt_w16string, aliasname);
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
 
-    INPUT_ARG_WSTR(hostname);
-    INPUT_ARG_WSTR(aliasname);
-    INPUT_ARG_UINT(level);
-    INPUT_ARG_PTR(info);
+    PARAM_INFO("aliasname", pt_w16string, pwszAliasname);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
 
-    CALL_NETAPI(err = NetLocalGroupGetInfo(hostname, aliasname, level, &info));
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
 
-    OUTPUT_ARG_PTR(info)
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
 
-    if (info != NULL) {
-        LOCALGROUP_INFO_1 *grpi = info;
-        VERBOSE(printf("\tReceived info:\n"));
-        VERBOSE(w16printfw(L"\t\tLOCALGROUP_INFO_1.lgrpi1_name = \"%ws\"\n", grpi->lgrpi1_name));
-        VERBOSE(w16printfw(L"\t\tLOCALGROUP_INFO_1.lgrpi1_comment = \"%ws\"\n", grpi->lgrpi1_comment));
+        status = EnsureAlias(hostname,
+                             pwszAliasname,
+                             &bCreated);
+        if (status != 0) rpc_fail(status);
 
-    } else {
-        printf("\tERROR: Inconsistency found. Function succeeded while the returned"
-               " buffer is NULL\n");
-        printf("\n");
-        return false;
+        ret &= CallNetLocalGroupGetInfo(hostname,
+                                        pwszAliasname,
+                                        dwLevel);
+
+        if (bCreated)
+        {
+            status = CleanupAlias(hostname, pwszAliasname);
+            if (status != 0) rpc_fail(status);
+        }
     }
 
 done:
     RELEASE_SESSION_CREDS;
 
-    SAFE_FREE(aliasname);
+    SAFE_FREE(pwszAliasname);
 
-    return (err == ERROR_SUCCESS &&
-            status == STATUS_SUCCESS);
+    return ret;
 }
 
 
-int TestNetLocalGroupSetInfo(struct test *t, const wchar16_t *hostname,
-                             const wchar16_t *user, const wchar16_t *pass,
-                             struct parameter *options, int optcount)
+int
+TestNetLocalGroupSetInfo(
+    struct test *t,
+    PCWSTR hostname,
+    PCWSTR user,
+    PCWSTR pass,
+    struct parameter *options,
+    int optcount
+    )
 {
-    const char *def_aliasname = "TestAlias";
-    const char *def_comment = "Sample changed comment";
-    const uint32 level = 1;
+    PCSTR pszDefaultAliasname = "TestLocalGroup";
+    PCSTR pszChangedAliasname = "TestLocalGroupRename";
+    PCSTR pszDefaultComment = "Test comment for local group";
+    const DWORD dwDefaultLevel = (DWORD)(-1);
 
-    NTSTATUS status = STATUS_SUCCESS;
+    BOOL ret = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     enum param_err perr = perr_success;
-    uint32 parm_err;
-    wchar16_t *aliasname, *comment;
-    LOCALGROUP_INFO_1 info;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1, 1002 };
+    DWORD dwLevel = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
+    PWSTR pwszAliasname = NULL;
+    PWSTR pwszChangedAliasname = NULL;
+    PWSTR pwszComment = NULL;
+    DWORD i = 0;
+    BOOL bCreated = FALSE;
+    BOOL bRenamed = FALSE;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
-                       &def_aliasname);
+    perr = fetch_value(options, optcount, "aliasname", pt_w16string,
+                       &pwszAliasname, &pszDefaultAliasname);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "comment", pt_w16string, &comment,
-                       &def_comment);
+    perr = fetch_value(options, optcount, "comment", pt_w16string,
+                       &pwszComment, &pszDefaultComment);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("aliasname", pt_w16string, aliasname);
-    PARAM_INFO("comment", pt_w16string, comment);
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
 
-    info.lgrpi1_name    = aliasname;
-    info.lgrpi1_comment = comment;
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
 
-    INPUT_ARG_WSTR(hostname);
-    INPUT_ARG_WSTR(aliasname);
-    INPUT_ARG_UINT(level);
-    INPUT_ARG_PTR(&info);
-    INPUT_ARG_WSTR(info.lgrpi1_name);
-    INPUT_ARG_WSTR(info.lgrpi1_comment);
-    INPUT_ARG_UINT(parm_err);
+    err = LwMbsToWc16s(pszChangedAliasname,
+                       &pwszChangedAliasname);
+    if (err != 0) netapi_fail(err);
 
-    CALL_NETAPI(err = NetLocalGroupSetInfo(hostname, aliasname, 1, (void*)&info,
-                                           &parm_err));
+    PARAM_INFO("aliasname", pt_w16string, &pwszAliasname);
+    PARAM_INFO("aliasnamechange", pt_w16string, &pwszChangedAliasname);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
 
-    OUTPUT_ARG_UINT(parm_err);
+
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
+    }
+
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
+
+        status = EnsureAlias(hostname,
+                             pwszAliasname,
+                             &bCreated);
+        if (status != 0) rpc_fail(status);
+
+        status = CleanupAlias(hostname,
+                              pwszChangedAliasname);
+        if (status != 0) rpc_fail(status);
+
+        ret &= CallNetLocalGroupSetInfo(hostname,
+                                        dwLevel,
+                                        pwszAliasname,
+                                        pwszChangedAliasname,
+                                        pwszComment,
+                                        &bRenamed);
+
+        if (bRenamed)
+        {
+            ret &= CallNetLocalGroupSetInfo(hostname,
+                                            0,
+                                            pwszChangedAliasname,
+                                            pwszAliasname,
+                                            NULL,
+                                            &bRenamed);
+
+            /* account has been renamed back to original name */
+            bRenamed = FALSE;
+        }
+    }
+
+    if (bCreated)
+    {
+        status = CleanupAlias(hostname, pwszAliasname);
+        if (status != 0) rpc_fail(status);
+    }
 
 done:
     RELEASE_SESSION_CREDS;
 
-    SAFE_FREE(comment);
-    SAFE_FREE(aliasname);
+    SAFE_FREE(pwszAliasname);
+    SAFE_FREE(pwszComment);
+    SAFE_FREE(pwszChangedAliasname);
 
-    return (err == ERROR_SUCCESS &&
-            status == STATUS_SUCCESS);
+    return ret;
 }
 
 
-int TestNetLocalGroupGetMembers(struct test *t, const wchar16_t *hostname,
-                                const wchar16_t *user, const wchar16_t *pass,
-                                struct parameter *options, int optcount)
+int
+TestNetLocalGroupGetMembers(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
 {
-    const char *def_admins_group = "Administrators";
-    const char *def_guests_group = "Guests";
-    const char *def_admin_user = "Administrator";
-    const char *def_guest_user = "Guest";
-    const char *def_aliasname = "TestAlias";
-    const char *def_username = "TestUser";
-    const wchar_t *padding = L"123";
+    PCSTR pszDefaultLocalGroupName = "Administrators";
+    const DWORD dwDefaultLevel = (DWORD)(-1);
 
-    NTSTATUS status = STATUS_SUCCESS;
-    NET_API_STATUS err = ERROR_SUCCESS;
+    BOOL ret = TRUE;
     enum param_err perr = perr_success;
-    LOCALGROUP_MEMBERS_INFO_3 grpmembers_info;
-    uint32 entries = 0;
-    wchar16_t *aliasname = NULL;
-    wchar16_t *username = NULL;
-    wchar16_t *domname = NULL;
-    wchar16_t *admin_user = NULL;
-    wchar16_t *guest_user = NULL;
-    wchar16_t *admins_group = NULL;
-    wchar16_t *guests_group = NULL;
-    wchar16_t paddeduser[256];
-    int newalias = 0;
-    int newuser = 0;
-
-    memset(&grpmembers_info, 0, sizeof(grpmembers_info));
-    memset(paddeduser, 0, sizeof(paddeduser));
+    DWORD i = 0;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 3 };
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
+    DWORD dwLevel = 0;
+    PWSTR pwszLocalGroupName = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
-                       &def_aliasname);
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       (UINT32*)&dwLevel, (UINT32*)&dwDefaultLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "username", pt_w16string, &username,
-                       &def_username);
+    perr = fetch_value(options, optcount, "aliasname", pt_w16string,
+                       &pwszLocalGroupName, &pszDefaultLocalGroupName);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "adminuser", pt_w16string,
-                       &admin_user, &def_admin_user);
-    if (!perr_is_ok(perr)) perr_fail(perr);
+    PARAM_INFO("level", pt_uint32, &dwLevel);
+    PARAM_INFO("aliasname", pt_w16string, &pwszLocalGroupName);
 
-    perr = fetch_value(options, optcount, "guestuser", pt_w16string, &guest_user,
-                       &def_guest_user);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "adminsgroup", pt_w16string,
-                       &admins_group, &def_admins_group);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "guestsgroup", pt_w16string,
-                       &guests_group, &def_guests_group);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    PARAM_INFO("aliasname", pt_w16string, aliasname);
-    PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("admin_user", pt_w16string, admin_user);
-    PARAM_INFO("guest_user", pt_w16string, guest_user);
-    PARAM_INFO("admins_group", pt_w16string, admins_group);
-    PARAM_INFO("guests_group", pt_w16string, guests_group);
-
-    VERBOSE(sw16printfw(
-                paddeduser,
-                sizeof(paddeduser)/sizeof(paddeduser[0]),
-                L"%ws%ls",
-                username,
-                padding));
-
-    /*
-     * Test 1a: Get members of an existing and known to be non-empty group.
-     */
-
-    err = GetLocalGroupMembers(hostname, admins_group, (void*)&grpmembers_info,
-                               &entries);
-    if (err != 0) netapi_fail(err);
-
-    /*
-     * Test 1b: Get members of an existing and known to be non-empty group.
-     */
-
-    err = GetLocalGroupMembers(hostname, guests_group, (void*)&grpmembers_info,
-                               &entries);
-    if (err != 0) netapi_fail(err);
-
-    /*
-     * Test 2: Create a new alias, add two members, and get the list
-     * of them back
-     */
-
-    status = EnsureAlias(hostname, aliasname, &newalias);
-    if (status != 0) rpc_fail(status);
-
-    status = GetSamDomainName(&domname, hostname);
-    if (status != 0) rpc_fail(status);
-
-    err = AddLocalGroupMember(hostname, aliasname, domname, admin_user);
-    if (err != 0) netapi_fail(err);
-
-    err = AddLocalGroupMember(hostname, aliasname, domname, guest_user);
-    if (err != 0) netapi_fail(err);
-
-    err = GetLocalGroupMembers(hostname, aliasname, (void*)&grpmembers_info,
-                               &entries);
-    if (err != 0) netapi_fail(err);
-
-    if (entries != 2) {
-        printf("Total number of members is %d and should be 2\n", entries);
-        return false;
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
     }
 
-    /*
-     * Test 3: Create a new user, add it to three groups, and then get the members
-     * of those groups.
-     */
-    status = EnsureUserAccount(hostname, username, &newuser);
-    if (status != 0) rpc_fail(status);
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
 
-    err = AddLocalGroupMember(hostname, admins_group, domname, username);
-    if (err != 0) netapi_fail(err);
-
-    err = GetLocalGroupMembers(hostname, admins_group, (void*)&grpmembers_info,
-                               &entries);
-    if (err != 0) netapi_fail(err);
-
-    VERBOSE(w16printfw(L"\n\tTest 3b: Adding user \"%ws\" to group \"%ws\"\n",
-                      username, guests_group));
-    err = AddLocalGroupMember(hostname, guests_group, domname, username);
-    if (err != 0) netapi_fail(err);
-
-    VERBOSE(w16printfw(L"\tFetching members of %ws group...\n", guests_group));
-    err = GetLocalGroupMembers(hostname, guests_group, (void*)&grpmembers_info,
-                               &entries);
-    if (err != 0) netapi_fail(err);
-
-
-    /*
-     * Test 4: Create a new user, and a new alias, where the alias contains
-     * the username. Add the new user to the new alias, and the list of members
-     * of the new alias.
-     */
-    VERBOSE(w16printfw(L"\n\tTest 4: Adding newly created user \"%ws\" to newly"
-                      L"created group \"%ws\" and listing members of group\n",
-                      username, paddeduser));
-    err = AddLocalGroup(hostname, paddeduser);
-    if (err != 0) netapi_fail(err);
-
-    err = AddLocalGroupMember(hostname, paddeduser, domname, username);
-    if (err != 0) netapi_fail(err);
-
-    err = GetLocalGroupMembers(hostname, paddeduser, (void*)&grpmembers_info,
-                               &entries);
-    if (err != 0) netapi_fail(err);
-
-    if (entries != 1) {
-        printf("Inconsistency found: "
-               "Total number of members is %d and should be 1\n", entries);
-        return false;
+        ret &= CallNetLocalGroupGetMembers(hostname,
+                                           pwszLocalGroupName,
+                                           dwLevel);
     }
-
-    err = DelLocalGroupMember(hostname, domname, admins_group, username);
-    if (err != 0) netapi_fail(err);
-
-    err = DelLocalGroupMember(hostname, domname, guests_group, username);
-    if (err != 0) netapi_fail(err);
-
-    err = DelLocalGroup(hostname, paddeduser);
-    if (err != 0) netapi_fail(err);
-
-    /* Cleanup accounts (if necessary) */
-    if (newalias) CleanupAlias(hostname, aliasname);
-    if (newuser) CleanupAccount(hostname, username);
 
 done:
+    SAFE_FREE(pwszLocalGroupName);
+
     RELEASE_SESSION_CREDS;
 
-    SAFE_FREE(aliasname);
-    SAFE_FREE(username);
-    SAFE_FREE(domname);
-    SAFE_FREE(admin_user);
-    SAFE_FREE(guest_user);
-    SAFE_FREE(admins_group);
-    SAFE_FREE(guests_group);
-
-    return (err == ERROR_SUCCESS &&
-            status == STATUS_SUCCESS);
+    return ret;
 }
+
 
 
 int TestNetGetDomainName(struct test *t, const wchar16_t *hostname,
@@ -1469,17 +2498,19 @@ void SetupNetApiTests(struct test *t)
     status = NetInitMemory();
     if (status) return;
 
+    AddTest(t, "NETAPI-USER-ENUM", TestNetUserEnum);
     AddTest(t, "NETAPI-USER-ADD", TestNetUserAdd);
     AddTest(t, "NETAPI-USER-DEL", TestNetUserDel);
     AddTest(t, "NETAPI-USER-GETINFO", TestNetUserGetInfo);
     AddTest(t, "NETAPI-USER-SETINFO", TestNetUserSetInfo);
+    AddTest(t, "NETAPI-USER-GET-LOCAL-GROUPS", TestNetUserGetLocalGroups);
     AddTest(t, "NETAPI-JOIN-DOMAIN", TestNetJoinDomain);
     AddTest(t, "NETAPI-UNJOIN-DOMAIN", TestNetUnjoinDomain);
     AddTest(t, "NETAPI-MACHINE-CHANGE-PASSWORD", TestNetMachineChangePassword);
     AddTest(t, "NETAPI-USER-CHANGE-PASSWORD", TestNetUserChangePassword);
     AddTest(t, "NETAPI-GET-DOMAIN-NAME", TestNetGetDomainName);
     AddTest(t, "NETAPI-USER-LOCAL-GROUPS", TestNetUserLocalGroups);
-    AddTest(t, "NETAPI-LOCAL-GROUPS-ENUM", TestNetLocalGroupsEnum);
+    AddTest(t, "NETAPI-LOCAL-GROUP-ENUM", TestNetLocalGroupEnum);
     AddTest(t, "NETAPI-LOCAL-GROUP-ADD", TestNetLocalGroupAdd);
     AddTest(t, "NETAPI-LOCAL-GROUP-GETINFO", TestNetLocalGroupGetInfo);
     AddTest(t, "NETAPI-LOCAL-GROUP-SETINFO", TestNetLocalGroupSetInfo);

@@ -180,11 +180,11 @@ NetUserEnum(
                                NULL);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    for (i = 0; i < dwTotalNumEntries; i++)
+    for (i = 0; i + dwResume < dwTotalNumEntries; i++)
     {
         if (dwLevel == 0)
         {
-            pSourceBuffer = ppwszUsernames[i];
+            pSourceBuffer = ppwszUsernames[i + dwResume];
         }
         else
         {
@@ -229,7 +229,7 @@ NetUserEnum(
 
     if (dwTotalNumEntries > 0 && dwNumEntries == 0)
     {
-        err = ERROR_NOT_ENOUGH_MEMORY;
+        err = ERROR_INSUFFICIENT_BUFFER;
         BAIL_ON_WINERR_ERROR(err);
     }
 
@@ -249,7 +249,7 @@ NetUserEnum(
     {
         if (dwLevel == 0)
         {
-            pSourceBuffer = ppwszUsernames[i];
+            pSourceBuffer = ppwszUsernames[i + dwResume];
         }
         else
         {

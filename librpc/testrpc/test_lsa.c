@@ -46,12 +46,16 @@ handle_t CreateLsaBinding(handle_t *binding, const wchar16_t *host)
     char *hostname = NULL;
     PIO_CREDS creds = NULL;
 
-    if (binding == NULL || host == NULL) return NULL;
+    if (binding == NULL) return NULL;
 
-    hostname_size = wc16slen(host) + 1;
-    hostname = (char*) malloc(hostname_size * sizeof(char));
-    if (hostname == NULL) return NULL;
-    wc16stombs(hostname, host, hostname_size);
+    if (host)
+    {
+        hostname_size = wc16slen(host) + 1;
+        hostname = (char*) malloc(hostname_size * sizeof(char));
+        if (hostname == NULL) return NULL;
+
+        wc16stombs(hostname, host, hostname_size);
+    }
 
     if (LwIoGetActiveCreds(NULL, &creds) != STATUS_SUCCESS)
     {
@@ -86,7 +90,7 @@ int TestLsaOpenPolicy(struct test *t, const wchar16_t *hostname,
                       const wchar16_t *user, const wchar16_t *pass,
                       struct parameter *options, int optcount)
 {
-    const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const UINT32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
 
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
@@ -129,9 +133,9 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
                        const wchar16_t *user, const wchar16_t *pass,
                        struct parameter *options, int optcount)
 {
-    const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const UINT32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     const char *def_usernames = "[BUILTIN\\Users:BUILTIN\\Administrators]";
-    const uint32 def_revlookup = 0;
+    const UINT32 def_revlookup = 0;
 
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
@@ -139,16 +143,16 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     handle_t lsa_b = NULL;
     wchar16_t *domname = NULL;
     wchar16_t **names = NULL;
-    uint32 num_names = 0;
+    UINT32 num_names = 0;
     wchar16_t **usernames = NULL;
     int usernames_count = 0;
-    uint32 revlookup = 0;
+    UINT32 revlookup = 0;
     POLICY_HANDLE hPolicy = NULL;
     RefDomainList *domains = NULL;
     TranslatedSid *sids = NULL;
     SidArray sid_array = {0};
     TranslatedName *trans_names = NULL;
-    uint32 level, names_count, sids_count;
+    UINT32 level, names_count, sids_count;
     int i = 0;
 
     TESTINFO(t, hostname, user, pass);
@@ -211,7 +215,7 @@ int TestLsaLookupNames(struct test *t, const wchar16_t *hostname,
     for (i = 0; i < sid_array.num_sids; i++) {
         PSID usr_sid;
         PSID dom_sid;
-        uint32 sid_index;
+        UINT32 sid_index;
 
         dom_sid = NULL;
         sid_index = sids[i].index;
@@ -303,9 +307,9 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
                         const wchar16_t *user, const wchar16_t *pass,
                         struct parameter *options, int optcount)
 {
-    const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const UINT32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     const char *def_username = "[BUILTIN\\Users:BUILTIN\\Administrators]";
-    const uint32 def_revlookup = 0;
+    const UINT32 def_revlookup = 0;
 
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
@@ -313,16 +317,16 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     handle_t lsa_b = NULL;
     wchar16_t *domname = NULL;
     wchar16_t **names = NULL;
-    uint32 num_names = 0;
+    UINT32 num_names = 0;
     wchar16_t **usernames = NULL;
     int usernames_count = 0;
-    uint32 revlookup;
+    UINT32 revlookup;
     POLICY_HANDLE hPolicy = NULL;
     RefDomainList *domains = NULL;
     TranslatedSid2 *sids = NULL;
     SidArray sid_array = {0};
     TranslatedName *trans_names = NULL;
-    uint32 level, names_count, sids_count;
+    UINT32 level, names_count, sids_count;
     int i = 0;
 
     TESTINFO(t, hostname, user, pass);
@@ -388,7 +392,7 @@ int TestLsaLookupNames2(struct test *t, const wchar16_t *hostname,
     for (i = 0; i < sid_array.num_sids; i++) {
         PSID usr_sid;
         PSID dom_sid;
-        uint32 sid_index;
+        UINT32 sid_index;
         wchar16_t *sidstr = NULL;
 
         dom_sid = NULL;
@@ -480,9 +484,9 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
                         const wchar16_t *user, const wchar16_t *pass,
                         struct parameter *options, int optcount)
 {
-    const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const UINT32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     const char *def_username = "[BUILTIN\\Users:BUILTIN\\Administrators]";
-    const uint32 def_revlookup = 0;
+    const UINT32 def_revlookup = 0;
 
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
@@ -490,16 +494,16 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
     handle_t lsa_b = NULL;
     wchar16_t *domname = NULL;
     wchar16_t **names = NULL;
-    uint32 num_names = 0;
+    UINT32 num_names = 0;
     wchar16_t **usernames = NULL;
     int usernames_count = 0;
-    uint32 revlookup;
+    UINT32 revlookup;
     POLICY_HANDLE hPolicy = NULL;
     RefDomainList *domains = NULL;
     TranslatedSid3 *sids = NULL;
     SidArray sid_array = {0};
     TranslatedName *trans_names = NULL;
-    uint32 level, names_count, sids_count;
+    UINT32 level, names_count, sids_count;
     int i = 0;
 
     TESTINFO(t, hostname, user, pass);
@@ -563,7 +567,7 @@ int TestLsaLookupNames3(struct test *t, const wchar16_t *hostname,
     sid_array.sids = (SidPtr*) malloc(sid_array.num_sids * sizeof(SidPtr));
 
     for (i = 0; i < sid_array.num_sids; i++) {
-        uint32 sid_index;
+        UINT32 sid_index;
         wchar16_t *sidstr = NULL;
 
         sid_index = sids[i].index;
@@ -650,7 +654,7 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
                       const wchar16_t *user, const wchar16_t *pass,
                       struct parameter *options, int optcount)
 {
-    const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const UINT32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS;
 
     const char *def_input_sids = "[S-1-5-32-544]";
 
@@ -667,8 +671,8 @@ int TestLsaLookupSids(struct test *t, const wchar16_t *hostname,
     SidArray sid_array = {0};
     TranslatedName *trans_names = NULL;
     wchar16_t *sidstr = NULL;
-    uint32 level = 0;
-    uint32 count = 0;
+    UINT32 level = 0;
+    UINT32 count = 0;
     int i = 0;
 
     TESTINFO(t, hostname, user, pass);
@@ -754,7 +758,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
                            const wchar16_t *user, const wchar16_t *pass,
                            struct parameter *options, int optcount)
 {
-    const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS |
+    const UINT32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS |
                                  LSA_ACCESS_ENABLE_LSA |
                                  LSA_ACCESS_ADMIN_AUDIT_LOG_ATTRS |
                                  LSA_ACCESS_CHANGE_SYS_AUDIT_REQS |
@@ -767,7 +771,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
                                  LSA_ACCESS_VIEW_SYS_AUDIT_REQS |
                                  LSA_ACCESS_VIEW_POLICY_INFO;
 
-    const uint32 def_level = 0;
+    const UINT32 def_level = 0;
 
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
@@ -776,7 +780,7 @@ int TestLsaQueryInfoPolicy(struct test *t, const wchar16_t *hostname,
     wchar16_t *domname = NULL;
     POLICY_HANDLE hPolicy = NULL;
     LsaPolicyInformation *info = NULL;
-    uint32 level = 0;
+    UINT32 level = 0;
 
     TESTINFO(t, hostname, user, pass);
 
@@ -859,7 +863,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
                             const wchar16_t *user, const wchar16_t *pass,
                             struct parameter *options, int optcount)
 {
-    const uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS |
+    const UINT32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS |
                                  LSA_ACCESS_ENABLE_LSA |
                                  LSA_ACCESS_ADMIN_AUDIT_LOG_ATTRS |
                                  LSA_ACCESS_CHANGE_SYS_AUDIT_REQS |
@@ -872,7 +876,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
                                  LSA_ACCESS_VIEW_SYS_AUDIT_REQS |
                                  LSA_ACCESS_VIEW_POLICY_INFO;
 
-    const uint32 def_level = 0;
+    const UINT32 def_level = 0;
 
     int ret = true;
     NTSTATUS status = STATUS_SUCCESS;
@@ -881,7 +885,7 @@ int TestLsaQueryInfoPolicy2(struct test *t, const wchar16_t *hostname,
     wchar16_t *domname = NULL;
     POLICY_HANDLE hPolicy = NULL;
     LsaPolicyInformation *info = NULL;
-    uint32 level = 0;
+    UINT32 level = 0;
 
     TESTINFO(t, hostname, user, pass);
 
@@ -969,7 +973,7 @@ CallLsaOpenPolicy(
 {
     BOOL ret = TRUE;
     NTSTATUS status = STATUS_SUCCESS;
-    uint32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS |
+    UINT32 access_rights = LSA_ACCESS_LOOKUP_NAMES_SIDS |
                            LSA_ACCESS_ENABLE_LSA |
                            LSA_ACCESS_ADMIN_AUDIT_LOG_ATTRS |
                            LSA_ACCESS_CHANGE_SYS_AUDIT_REQS |
@@ -983,7 +987,7 @@ CallLsaOpenPolicy(
                            LSA_ACCESS_VIEW_POLICY_INFO;
     POLICY_HANDLE hPolicy = NULL;
     LsaPolicyInformation *pPolicyInfo = NULL;
-    uint32 i = 0;
+    UINT32 i = 0;
 
     DISPLAY_COMMENT(("Testing LsaOpenPolicy\n"));
 

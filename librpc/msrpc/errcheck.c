@@ -44,19 +44,19 @@
 #define DCERPC_EXCEPTION        (0x16c90000)
 
 
-int IsNtStatusError(uint32 v)
+int IsNtStatusError(UINT32 v)
 {
     return (ERRTYPE_CODE(v) == NTSTATUS_ERROR);
 }
 
 
-int IsDceRpcException(uint32 v)
+int IsDceRpcException(UINT32 v)
 {
     return (ERRTYPE_CODE(v) == DCERPC_EXCEPTION);
 }
 
 
-int IsDceRpcConnError(uint32 v)
+int IsDceRpcConnError(UINT32 v)
 {
     int conn_error = 0;
 

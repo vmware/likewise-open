@@ -358,7 +358,7 @@ NetLocalGroupEnum(
 
     if (dwTotalNumEntries > 0 && dwNumEntries == 0)
     {
-        err = ERROR_NOT_ENOUGH_MEMORY;
+        err = ERROR_INSUFFICIENT_BUFFER;
         BAIL_ON_WINERR_ERROR(err);
     }
 

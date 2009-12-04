@@ -49,8 +49,8 @@ NTSTATUS InitUnicodeString(UnicodeString *u, const wchar16_t *s)
         return STATUS_NO_MEMORY;
     }
 
-    u->len  = (uint16) wc16slen(u->string) * sizeof(wchar16_t);
-    u->size = (uint16) wc16slen(u->string) * sizeof(wchar16_t);
+    u->len  = (UINT16) wc16slen(u->string) * sizeof(wchar16_t);
+    u->size = (UINT16) wc16slen(u->string) * sizeof(wchar16_t);
 
     return STATUS_SUCCESS;
 }
@@ -79,7 +79,7 @@ wchar16_t *GetFromUnicodeString(UnicodeString *u)
 
 NTSTATUS CopyUnicodeString(UnicodeString *out, UnicodeString *in)
 {
-    uint16 size = 0;
+    UINT16 size = 0;
 
     if (out == NULL || in == NULL) {
         return STATUS_INVALID_PARAMETER;

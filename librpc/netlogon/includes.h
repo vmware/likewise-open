@@ -57,6 +57,7 @@
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/lsadefs.h>
 #include <lwrpc/netlogon.h>
+#include <macros.h>
 
 #include <md4.h>
 #include <md5.h>
@@ -66,7 +67,6 @@
 #include <byteops.h>
 #include <random.h>
 
-#include "netr_util.h"
 #include "netr_credentials.h"
 #include "netr_memory.h"
 #include "netr_stubmemory.h"

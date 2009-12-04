@@ -38,11 +38,11 @@
 
 
 static WINERR SavePrincipalKey(const wchar16_t *name, const wchar16_t *pass,
-                               uint32 pass_len, const wchar16_t *realm,
+                               UINT32 pass_len, const wchar16_t *realm,
                                const wchar16_t *salt, const wchar16_t *dc_name,
-                               uint32 kvno)
+                               UINT32 kvno)
 {
-    uint32 ktstatus = 0;
+    UINT32 ktstatus = 0;
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     wchar16_t *principal = NULL;
@@ -91,7 +91,7 @@ SaveMachinePassword(
 {
     WINERR err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
-    uint32 ktstatus = 0;
+    UINT32 ktstatus = 0;
     wchar16_t *account = NULL;
     wchar16_t *dom_name = NULL;
     wchar16_t *ad_dns_dom_name_lc = NULL;
@@ -104,7 +104,7 @@ SaveMachinePassword(
     wchar16_t *pass = NULL;
     LWPS_PASSWORD_INFO pi = {0};
     size_t pass_len = 0;
-    uint32 kvno = 0;
+    UINT32 kvno = 0;
     wchar16_t *base_dn = NULL;
     wchar16_t *salt = NULL;
     /* various forms of principal name for keytab */

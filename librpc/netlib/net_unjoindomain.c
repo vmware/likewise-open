@@ -39,9 +39,9 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
                                     const wchar16_t *domain,
                                     const wchar16_t *account,
                                     const wchar16_t *password,
-                                    uint32 options)
+                                    UINT32 options)
 {
-    const uint32 domain_access  = DOMAIN_ACCESS_ENUM_ACCOUNTS |
+    const UINT32 domain_access  = DOMAIN_ACCESS_ENUM_ACCOUNTS |
                                   DOMAIN_ACCESS_OPEN_ACCOUNT |
                                   DOMAIN_ACCESS_LOOKUP_INFO_2 |
                                   DOMAIN_ACCESS_CREATE_USER;
@@ -145,7 +145,7 @@ error:
 NET_API_STATUS NetUnjoinDomain(const wchar16_t *hostname,
                                const wchar16_t *account,
                                const wchar16_t *password,
-                               uint32 options)
+                               UINT32 options)
 {
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;

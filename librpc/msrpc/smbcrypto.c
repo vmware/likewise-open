@@ -89,7 +89,7 @@ void EncodePassBuffer(unsigned char buffer[516], const char* pass)
 }
 
 
-void md4hash(uint8 h[16], const wchar16_t *password)
+void md4hash(UINT8 h[16], const wchar16_t *password)
 {
     size_t size = 0;
     size_t len = 0;
@@ -105,16 +105,16 @@ void md4hash(uint8 h[16], const wchar16_t *password)
     /* Force string into little-endian byte ordering */
     wc16stowc16les(password_le, password, len);
 
-    md4(h, (uint8*)password_le, size);
+    md4(h, (UINT8*)password_le, size);
 
     free(password_le);
 }
 
 
-void deshash(uint8 h[16], const wchar16_t *password)
+void deshash(UINT8 h[16], const wchar16_t *password)
 {
     const size_t max_passlen = 14;
-    const uint8 input[] = "KGS!@#$%";
+    const UINT8 input[] = "KGS!@#$%";
     const size_t input_len = 8;
 
     size_t len;
@@ -142,9 +142,9 @@ void deshash(uint8 h[16], const wchar16_t *password)
 }
 
 
-void encrypt_challenge(uint8 out[24], uint8 chal[8], uint8 key[16])
+void encrypt_challenge(UINT8 out[24], UINT8 chal[8], UINT8 key[16])
 {
-    uint8 k[21];
+    UINT8 k[21];
 
     memset(k, 0, sizeof(k));
     memcpy((void*)k, (void*)key, 16);

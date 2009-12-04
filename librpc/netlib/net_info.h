@@ -92,8 +92,8 @@
 
 #define PULL_ACCOUNT_FLAGS(net_flags, samr_flags) \
     do {                                          \
-        uint32 flags = 0;                       \
-        uint32 samrflags = (samr_flags);        \
+        UINT32 flags = 0;                       \
+        UINT32 samrflags = (samr_flags);        \
         \
         PULL_ACCOUNT_FLAG(ACB_DISABLED, UF_ACCOUNTDISABLE); \
         PULL_ACCOUNT_FLAG(ACB_HOMDIRREQ, UF_HOMEDIR_REQUIRED); \
@@ -124,8 +124,8 @@
 
 #define PUSH_ACCOUNT_FLAGS(info, net_flags, samr_flags, field_present) \
     do {                                                              \
-        uint32 flags = 0; \
-        uint32 netflags = (net_flags);          \
+        UINT32 flags = 0; \
+        UINT32 netflags = (net_flags);          \
         \
         PUSH_ACCOUNT_FLAG(UF_ACCOUNTDISABLE, ACB_DISABLED); \
         PUSH_ACCOUNT_FLAG(UF_HOMEDIR_REQUIRED, ACB_HOMDIRREQ); \

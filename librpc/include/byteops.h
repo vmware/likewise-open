@@ -41,17 +41,17 @@
 #include <lwrpc/types.h>
 
 
-#define GETUINT8(buf, off)   ((uint8)(buf)[(off)])
+#define GETUINT8(buf, off)   ((UINT8)(buf)[(off)])
 
 #define GETUINT16(buf, off)                     \
-    (((uint16)GETUINT8((buf), 0+(off))) |       \
-     ((uint16)GETUINT8((buf), 1+(off)) << 8))
+    (((UINT16)GETUINT8((buf), 0+(off))) |       \
+     ((UINT16)GETUINT8((buf), 1+(off)) << 8))
 
 #define GETUINT32(buf, off)                     \
-    (((uint32)GETUINT16((buf), 0+(off))) |      \
-     ((uint32)GETUINT16((buf), 2+(off)) << 16))
+    (((UINT32)GETUINT16((buf), 0+(off))) |      \
+     ((UINT32)GETUINT16((buf), 2+(off)) << 16))
 
-#define SETUINT8(buf, off, v)   ((buf)[(off)] = (uint8)((v) & 0xff))
+#define SETUINT8(buf, off, v)   ((buf)[(off)] = (UINT8)((v) & 0xff))
 
 #define SETUINT16(buf, off, v)                  \
     do {                                        \

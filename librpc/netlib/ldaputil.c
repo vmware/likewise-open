@@ -161,7 +161,7 @@ int LdapMessageFree(LDAPMessage *msg)
 
 
 int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
-                       uint32 security)
+                       UINT32 security)
 {
     const char *url_prefix = "ldap://";
 
