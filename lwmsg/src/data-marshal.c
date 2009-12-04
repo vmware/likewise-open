@@ -102,38 +102,49 @@ lwmsg_data_marshal_indirect_prologue(
                           count));
         break;
     case LWMSG_TERM_ZERO:
-        element = object;
-        is_zero = 0;
-
-        /* We have to calculate the count by searching for the zero element */
-        for (*count = 0;;*count += 1)
+        if (!object)
         {
-            BAIL_ON_ERROR(status = lwmsg_object_is_zero(
-                              state,
-                              inner_iter,
-                              element,
-                              &is_zero));
-
-            if (is_zero)
+            if (iter->attrs.nonnull)
             {
-                break;
+                BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+            }
+            *count = 0;
+        }
+        else
+        {
+            element = object;
+            is_zero = 0;
+
+            /* We have to calculate the count by searching for the zero element */
+            for (*count = 0;;*count += 1)
+            {
+                BAIL_ON_ERROR(status = lwmsg_object_is_zero(
+                                  state,
+                                  inner_iter,
+                                  element,
+                                  &is_zero));
+
+                if (is_zero)
+                {
+                    break;
+                }
+
+                element += inner_iter->size;
             }
 
-            element += inner_iter->size;
+            /* The length is implicitly written into the output to
+               facilitate easy unmarshalling */
+            BAIL_ON_ERROR(status = lwmsg_convert_integer(
+                              count,
+                              sizeof(count),
+                              LWMSG_NATIVE_ENDIAN,
+                              implicit_length,
+                              4,
+                              context->byte_order,
+                              LWMSG_UNSIGNED));
+
+            BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, implicit_length, 4));
         }
-
-        /* The length is implicitly written into the output to
-           facilitate easy unmarshalling */
-        BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                          count,
-                          sizeof(count),
-                          LWMSG_NATIVE_ENDIAN,
-                          implicit_length,
-                          4,
-                          context->byte_order,
-                          LWMSG_UNSIGNED));
-
-        BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, implicit_length, 4));
         break;
     }
 
@@ -164,6 +175,14 @@ lwmsg_data_marshal_indirect(
                       buffer,
                       &inner_iter,
                       &count));
+
+    /* Enforce nullability.  Even if the pointer is marked
+       as non-null, allow it to be null if there are no
+       elements to marshal */
+    if (iter->attrs.nonnull && !object && count != 0)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
+    }
 
     if (inner_iter.kind == LWMSG_KIND_INTEGER &&
         inner_iter.info.kind_integer.width == 1 &&
@@ -350,19 +369,13 @@ lwmsg_data_marshal_pointer(
     /* Indicator byte showing whether the pointer is set */
     ptr_flag = *(void**) object ? 0xFF : 0x00;
 
-    /* Enforce nullability */
-    if (iter->attrs.nonnull && !ptr_flag)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
-    }
-
     /* Only write pointer flag for nullable pointers */
     if (!iter->attrs.nonnull)
     {
         BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, &ptr_flag, 1));
     }
 
-    if (ptr_flag)
+    if (ptr_flag || iter->attrs.nonnull)
     {
         /* Pointer is present, so also write pointee */
         BAIL_ON_ERROR(status = lwmsg_data_marshal_indirect(
