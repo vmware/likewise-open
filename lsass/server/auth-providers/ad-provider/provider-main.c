@@ -4589,6 +4589,25 @@ error:
     goto cleanup;
 }
 
+static
+VOID
+AD_FilterBuiltinObjects(
+    IN DWORD dwCount,
+    PLSA_SECURITY_OBJECT* ppObjects
+    )
+{
+    DWORD dwIndex = 0;
+
+    for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+    {
+        if (ppObjects[dwIndex] &&
+            AdIsSpecialDomainSidPrefix(ppObjects[dwIndex]->pszObjectSid))
+        {
+            ADCacheSafeFreeObject(&ppObjects[dwIndex]);
+        }
+    }
+}
+
 DWORD
 AD_FindObjects(
     IN HANDLE hProvider,
@@ -4633,6 +4652,11 @@ AD_FindObjects(
             pppObjects);
     }
 
+    if (*pppObjects)
+    {
+        AD_FilterBuiltinObjects(dwCount, *pppObjects);
+    }
+
 error:
 
     LsaAdProviderStateRelease(gpLsaAdProviderState);
@@ -4649,7 +4673,53 @@ AD_OpenEnumObjects(
     IN OPTIONAL PCSTR pszDomainName
     )
 {
-    return LW_ERROR_NOT_HANDLED;
+    DWORD dwError = 0;
+    PAD_ENUM_HANDLE pEnum = NULL;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(sizeof(*pEnum), OUT_PPVOID(&pEnum));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEnum->Type = AD_ENUM_HANDLE_OBJECTS;
+    pEnum->FindFlags = FindFlags;
+    pEnum->ObjectType = ObjectType;
+
+    if (ObjectType == LSA_OBJECT_TYPE_UNDEFINED)
+    {
+        pEnum->CurrentObjectType = LSA_OBJECT_TYPE_USER;
+    }
+    else
+    {
+        pEnum->CurrentObjectType = ObjectType;
+    }
+
+    LwInitCookie(&pEnum->Cookie);
+
+    *phEnum = pEnum;
+
+cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
+
+error:
+
+    *phEnum = NULL;
+
+    if (pEnum)
+    {
+        AD_CloseEnum(pEnum);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -4660,7 +4730,38 @@ AD_EnumObjects(
     OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
-    return LW_ERROR_NOT_HANDLED;
+    DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (AD_IsOffline())
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+    }
+    else
+    {
+        dwError = AD_OnlineEnumObjects(
+            hEnum,
+            dwMaxObjectsCount,
+            pdwObjectsCount,
+            pppObjects);
+    }
+
+cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 DWORD
@@ -4671,7 +4772,71 @@ AD_OpenEnumMembers(
     IN PCSTR pszSid
     )
 {
-    return LW_ERROR_NOT_HANDLED;
+    DWORD dwError = 0;
+    PAD_ENUM_HANDLE pEnum = NULL;
+
+    if (AdIsSpecialDomainSidPrefix(pszSid))
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(sizeof(*pEnum), OUT_PPVOID(&pEnum));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEnum->Type = AD_ENUM_HANDLE_MEMBERS;
+    pEnum->FindFlags = FindFlags;
+
+    LwInitCookie(&pEnum->Cookie);
+
+
+    if (AD_IsOffline())
+    {
+        dwError = AD_OfflineGetGroupMemberSids(
+            hProvider,
+            FindFlags,
+            pszSid,
+            &pEnum->dwSidCount,
+            &pEnum->ppszSids);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        dwError = AD_OnlineGetGroupMemberSids(
+            hProvider,
+            FindFlags,
+            pszSid,
+            &pEnum->dwSidCount,
+            &pEnum->ppszSids);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *phEnum = pEnum;
+
+cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
+
+error:
+
+    *phEnum = NULL;
+
+    if (pEnum)
+    {
+        AD_CloseEnum(pEnum);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -4682,7 +4847,47 @@ AD_EnumMembers(
     OUT PSTR** pppszMemberSids
     )
 {
-    return LW_ERROR_NOT_HANDLED;
+   DWORD dwError = 0;
+   PAD_ENUM_HANDLE pEnum = hEnum;
+   DWORD dwMemberSidCount = dwMaxMemberSidCount;
+   PSTR* ppszMemberSids = NULL;
+
+   if (dwMemberSidCount > pEnum->dwSidCount - pEnum->dwSidIndex)
+   {
+       dwMemberSidCount = pEnum->dwSidCount - pEnum->dwSidIndex;
+   }
+
+   if (dwMemberSidCount == 0)
+   {
+       dwError = ERROR_NO_MORE_ITEMS;
+       BAIL_ON_LSA_ERROR(dwError);
+   }
+
+   dwError = LwAllocateMemory(
+       sizeof(*ppszMemberSids) * dwMemberSidCount,
+       OUT_PPVOID(&ppszMemberSids));
+   BAIL_ON_LSA_ERROR(dwError);
+
+   memcpy(ppszMemberSids, pEnum->ppszSids + pEnum->dwSidIndex, sizeof(*ppszMemberSids) * dwMemberSidCount);
+   memset(pEnum->ppszSids, 0, sizeof(*ppszMemberSids) * dwMemberSidCount);
+
+   pEnum->dwSidIndex += dwMemberSidCount;
+
+   *pdwMemberSidCount = dwMemberSidCount;
+   *pppszMemberSids = ppszMemberSids;
+
+cleanup:
+
+   return dwError;
+
+error:
+
+   if (ppszMemberSids)
+   {
+       LwFreeStringArray(ppszMemberSids, dwMemberSidCount);
+   }
+
+   goto cleanup;
 }
 
 DWORD
@@ -4695,7 +4900,46 @@ AD_QueryMemberOf(
     OUT PSTR** pppszGroupSids
     )
 {
-    return LW_ERROR_NOT_HANDLED;
+    DWORD dwError = 0;
+
+    LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
+
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    {
+        dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (AD_IsOffline())
+    {
+        dwError = AD_OfflineQueryMemberOf(
+            hProvider,
+            FindFlags,
+            dwSidCount,
+            ppszSids,
+            pdwGroupSidCount,
+            pppszGroupSids);
+    }
+    else
+    {
+        dwError = AD_OnlineQueryMemberOf(
+            hProvider,
+            FindFlags,
+            dwSidCount,
+            ppszSids,
+            pdwGroupSidCount,
+            pppszGroupSids);
+    }
+
+cleanup:
+
+    LsaAdProviderStateRelease(gpLsaAdProviderState);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 VOID
@@ -4703,7 +4947,16 @@ AD_CloseEnum(
     IN OUT HANDLE hEnum
     )
 {
-    return;
+    PAD_ENUM_HANDLE pEnum = hEnum;
+    if (pEnum)
+    {
+        LwFreeCookieContents(&pEnum->Cookie);
+        LwFreeMemory(pEnum);
+        if (pEnum->ppszSids)
+        {
+            LwFreeStringArray(pEnum->ppszSids, pEnum->dwSidCount);
+        }
+    }
 }
 
 DWORD

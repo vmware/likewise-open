@@ -180,4 +180,23 @@ AD_OfflineFindObjects(
     OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
+DWORD
+AD_OfflineQueryMemberOf(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN DWORD dwSidCount,
+    IN PSTR* ppszSids,
+    OUT PDWORD pdwGroupSidCount,
+    OUT PSTR** pppszGroupSids
+    );
+
+DWORD
+AD_OfflineGetGroupMemberSids(
+    IN HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN PCSTR pszSid,
+    OUT PDWORD pdwSidCount,
+    OUT PSTR** pppszSids
+    );
+
 #endif /* __OFFLINE_H__ */
