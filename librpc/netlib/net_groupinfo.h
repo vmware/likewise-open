@@ -28,6 +28,22 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        net_groupinfo.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetAPI group info buffer handling functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #ifndef _GROUP_INFO_H_
 #define _GROUP_INFO_H_
 
@@ -39,46 +55,6 @@ NetAllocateLocalGroupInfo(
     DWORD   dwLevel,
     PVOID   pSource,
     PDWORD  pdwSize
-    );
-
-
-NTSTATUS
-PullLocalGroupInfo0(
-    void **buffer,
-    AliasInfo *ai,
-    int num
-    );
-
-
-NTSTATUS
-PullLocalGroupInfo1(
-    void **buffer,
-    AliasInfo *ai,
-    int num
-    );
-
-
-NTSTATUS
-PushLocalGroupInfo0(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_0 *ninfo
-    );
-
-
-NTSTATUS
-PushLocalGroupInfo1(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_1 *ninfo
-    );
-
-
-NTSTATUS
-PushLocalGroupInfo1002(
-    AliasInfo **sinfo,
-    uint32 *slevel,
-    LOCALGROUP_INFO_1002 *ninfo
     );
 
 
