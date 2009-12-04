@@ -748,6 +748,17 @@ lwmsg_assoc_acquire_call(
     }
     else
     {
+        switch (lwmsg_assoc_get_state(assoc))
+        {
+        case LWMSG_ASSOC_STATE_IDLE:
+            break;
+        case LWMSG_ASSOC_STATE_NOT_ESTABLISHED:
+            BAIL_ON_ERROR(status = lwmsg_assoc_establish(assoc));
+            break;
+        default:
+            BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
+        }
+
         assoc->call.in_use = LWMSG_TRUE;
         *call = LWMSG_CALL(&assoc->call);
     }
