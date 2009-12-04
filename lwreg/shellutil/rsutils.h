@@ -211,5 +211,9 @@ RegExportPlainText(
     PSTR *dumpString,
     PDWORD dumpStringLen);
 
+DWORD
+RegShellUtilValueArrayFree(
+    PREGSHELL_UTIL_VALUE pValueArray,
+    DWORD dwValueArrayLen);
 
 #endif
