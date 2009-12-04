@@ -478,7 +478,7 @@ SrvBuildNtRenameResponse(
     ulBytesAvailable -= pSmbResponse->usHeaderSize;
     ulTotalBytesUsed += pSmbResponse->usHeaderSize;
 
-    *pSmbResponse->pWordCount = 2;
+    *pSmbResponse->pWordCount = 0;
 
     ntStatus = WireMarshallNtRenameResponse(
                     pOutBuffer,
