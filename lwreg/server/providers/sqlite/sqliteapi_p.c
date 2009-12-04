@@ -54,9 +54,9 @@ RegStrrchr(
     wchar16_t wch
     )
 {
-	int iIndex = 0;
+	int iIndex = RtlWC16StringNumChars(pwszStr);
 
-	for (; iIndex < RtlWC16StringNumChars(pwszStr); iIndex++)
+	for (; iIndex >= 0 ; iIndex--)
 	{
 		if (pwszStr[iIndex] == wch)
 		{
