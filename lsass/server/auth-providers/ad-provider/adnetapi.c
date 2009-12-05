@@ -1220,7 +1220,7 @@ AD_DsGetDcName(
     LW_PIO_CREDS pCreds = NULL;
     LW_PIO_CREDS pOldToken = NULL;
     BOOLEAN bChangedToken = FALSE;
-    const uint32 dwGetDcNameflags = bReturnDnsName ? DS_RETURN_DNS_NAME : DS_RETURN_FLAT_NAME;
+    const UINT32 dwGetDcNameflags = bReturnDnsName ? DS_RETURN_DNS_NAME : DS_RETURN_FLAT_NAME;
     DsrDcNameInfo* pDcNameInfo = NULL;
     PSTR pszDomainDnsOrFlatName = NULL;
     PSTR pszDomainForestDnsName = NULL;

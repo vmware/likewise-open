@@ -466,7 +466,7 @@ lwmsg_set_close_on_exec(
     int fd
     )
 {
-    if (fcntl(fd, F_SETFD, 1) < 0)
+    if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)
     {
         return lwmsg_error_map_errno(errno);
     }

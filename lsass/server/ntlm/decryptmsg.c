@@ -92,7 +92,6 @@ NtlmServerDecryptMessage(
     //verify the key
     dwError = NtlmVerifySignature(
         pContext,
-        pContext->pUnsealKey,
         pData,
         pToken);
     BAIL_ON_LSA_ERROR(dwError);

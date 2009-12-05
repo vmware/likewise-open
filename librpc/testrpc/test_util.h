@@ -32,22 +32,52 @@
 #define _UTIL_H_
 
 
-NTSTATUS GetSamDomainName(wchar16_t **domname, const wchar16_t *hostname);
+NTSTATUS
+GetSamDomainName(
+    PWSTR  *ppwszDomainName,
+    PCWSTR  pwszHostname
+    );
 
-NTSTATUS GetSamDomainName(wchar16_t **domname, const wchar16_t *hostname);
 
-NTSTATUS CleanupAccount(const wchar16_t *hostname, wchar16_t *username);
+NTSTATUS
+GetSamDomainName(
+    PWSTR  *ppwszDomainName,
+    PCWSTR  pwszHostname
+    );
 
-NTSTATUS EnsureUserAccount(const wchar16_t *hostname, wchar16_t *username,
-                           int *created);
 
-NTSTATUS EnsureAlias(const wchar16_t *hostname, wchar16_t *aliasname,
-                     int *created);
+NTSTATUS
+CleanupAccount(
+    PCWSTR pwszHostname,
+    PWSTR  pwszUsername
+    );
 
-NTSTATUS CleanupAlias(const wchar16_t *hostname, wchar16_t *username);
+
+NTSTATUS
+EnsureUserAccount(
+    PCWSTR pwszHostname,
+    PWSTR  pwszUsername,
+    PBOOL  pbCreated
+    );
+
+
+NTSTATUS
+EnsureAlias(
+    PCWSTR pwszHostname,
+    PWSTR  pwszAliasname,
+    PBOOL  pbCreated
+    );
+
+
+NTSTATUS
+CleanupAlias(
+    PCWSTR pwszHostname,
+    PWSTR  pwszUsername
+    );
 
 
 #endif /* _UTIL_H_ */
+
 
 /*
 local variables:

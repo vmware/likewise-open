@@ -47,10 +47,10 @@ NetUserChangePassword(
     wchar16_t *username = NULL;
     size_t oldlen = 0;
     size_t newlen = 0;
-    uint8 old_nthash[16];
-    uint8 new_nthash[16];
-    uint8 ntpassbuf[516];
-    uint8 ntverhash[16];
+    UINT8 old_nthash[16];
+    UINT8 new_nthash[16];
+    UINT8 ntpassbuf[516];
+    UINT8 ntverhash[16];
     PIO_CREDS creds = NULL;
 
     memset((void*)old_nthash, 0, sizeof(old_nthash));

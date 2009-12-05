@@ -191,6 +191,7 @@ RegShellCanonicalizePath(
 cleanup:
     LWREG_SAFE_FREE_STRING(pszNewPath);
     LWREG_SAFE_FREE_MEMORY(pszStrtokValue);
+    LWREG_SAFE_FREE_STRING(pszNewPath);
     return dwError;
 
 error:
@@ -235,9 +236,13 @@ RegShellIsValidKey(
 cleanup:
 
     LWREG_SAFE_FREE_MEMORY(pSubKey);
-    if (pFullKey && pFullKey != pRootKey)
+    if (pFullKey)
     {
         RegCloseKey(hReg, pFullKey);
+    }
+    if (pRootKey)
+    {
+        RegCloseKey(hReg, pRootKey);
     }
     return dwError;
 
@@ -254,10 +259,9 @@ RegShellUtilAddKey(
     BOOLEAN bDoBail
     )
 {
-	DWORD dwError = 0;
-	HANDLE hRegLocal = NULL;
+    DWORD dwError = 0;
+    HANDLE hRegLocal = NULL;
     HKEY pNextKey = NULL;
-    HKEY pRootKey = NULL;
     HKEY pCurrentKey = NULL; //key that to be performed more operations on
     PWSTR pwszSubKey = NULL;
     PSTR pszToken = NULL;
@@ -285,52 +289,51 @@ RegShellUtilAddKey(
                                        &pszSubKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
+    dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pCurrentKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    pCurrentKey = pRootKey;
     pszToken = strtok_r(pszFullPath, pszDelim, &pszStrtokState);
     while (!LW_IS_NULL_OR_EMPTY_STR(pszToken))
     {
-	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszToken);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszToken);
+        BAIL_ON_REG_ERROR(dwError);
 
-	dwError = RegCreateKeyExW(
-            hReg,
-            pCurrentKey,
-            pwszSubKey,
-            0,
-            NULL,
-            0,
-            0,
-            NULL,
-            &pNextKey,
-            NULL);
-	if (LWREG_ERROR_KEYNAME_EXIST == dwError)
-	{
-		if (strcasecmp(pszToken, pszSubKey) || !bDoBail)
-		{
-		dwError = RegOpenKeyExW(hReg,
-				                pCurrentKey,
-				                pwszSubKey,
-				                0,
-				                0,
-				                &pNextKey);
-		BAIL_ON_REG_ERROR(dwError);
-		}
-	}
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = RegCreateKeyExW(
+                      hReg,
+                      pCurrentKey,
+                      pwszSubKey,
+                      0,
+                      NULL,
+                      0,
+                      0,
+                      NULL,
+                      &pNextKey,
+                      NULL);
+        if (LWREG_ERROR_KEYNAME_EXIST == dwError)
+        {
+            if (strcasecmp(pszToken, pszSubKey) || !bDoBail)
+            {
+                dwError = RegOpenKeyExW(hReg,
+                                        pCurrentKey,
+                                        pwszSubKey,
+                                        0,
+                                        0,
+                                        &pNextKey);
+                BAIL_ON_REG_ERROR(dwError);
+            }
+        }
+        BAIL_ON_REG_ERROR(dwError);
 
         LWREG_SAFE_FREE_MEMORY(pwszSubKey);
 
         if (pCurrentKey)
         {
-          dwError = RegCloseKey(hReg, pCurrentKey);
-          BAIL_ON_REG_ERROR(dwError);
-          pCurrentKey = NULL;
+            dwError = RegCloseKey(hReg, pCurrentKey);
+            BAIL_ON_REG_ERROR(dwError);
+            pCurrentKey = NULL;
         }
-
         pCurrentKey = pNextKey;
+        pNextKey = NULL;
 
         pszToken = strtok_r (NULL, pszDelim, &pszStrtokState);
     }
@@ -340,6 +343,10 @@ cleanup:
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
+    }
+    if (pNextKey)
+    {
+        RegCloseKey(hReg, pNextKey);
     }
     LWREG_SAFE_FREE_STRING(pszFullPath);
     LWREG_SAFE_FREE_STRING(pszSubKey);
@@ -362,11 +369,11 @@ RegShellUtilDeleteKey(
     HANDLE hRegLocal = NULL;
     PWSTR pwszSubKey = NULL;
     HKEY pCurrentKey = NULL;
+    HKEY pRootKey = NULL;
     DWORD dwError = 0;
     PSTR pszFullPath = NULL;
     PSTR pszParentPath = NULL;
     PSTR pszSubKey = NULL;
-    HKEY pRootKey = NULL;
 
     if (!hReg)
     {
@@ -393,11 +400,12 @@ RegShellUtilDeleteKey(
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    pCurrentKey = pRootKey;
     if (pszParentPath && pszParentPath[1])
     {
-	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszParentPath+1);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = RegWC16StringAllocateFromCString(
+                      &pwszSubKey,
+                      pszParentPath+1);
+        BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegOpenKeyExW(
                       hReg,
@@ -409,9 +417,14 @@ RegShellUtilDeleteKey(
         BAIL_ON_REG_ERROR(dwError);
         LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     }
+    else
+    {
+        pCurrentKey = pRootKey;
+        pRootKey = NULL;
+    }
 
-	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszSubKey);
-	BAIL_ON_REG_ERROR(dwError);
+    dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszSubKey);
+    BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegDeleteKeyW(hReg, pCurrentKey, pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
@@ -421,6 +434,10 @@ cleanup:
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
+    }
+    if (pRootKey)
+    {
+        RegCloseKey(hReg, pRootKey);
     }
     LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     return dwError;
@@ -440,11 +457,11 @@ RegShellUtilDeleteTree(
     HANDLE hRegLocal = NULL;
     PWSTR pwszSubKey = NULL;
     HKEY pCurrentKey = NULL;
+    HKEY pRootKey = NULL;
     DWORD dwError = 0;
     PSTR pszFullPath = NULL;
     PSTR pszParentPath = NULL;
     PSTR pszSubKey = NULL;
-    HKEY pRootKey = NULL;
 
     if (!hReg)
     {
@@ -471,7 +488,6 @@ RegShellUtilDeleteTree(
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    pCurrentKey = pRootKey;
     if (pszParentPath && pszParentPath[1])
     {
 	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszParentPath+1);
@@ -487,9 +503,14 @@ RegShellUtilDeleteTree(
         BAIL_ON_REG_ERROR(dwError);
         LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     }
+    else
+    {
+        pCurrentKey = pRootKey;
+        pRootKey = NULL;
+    }
 
-	dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszSubKey);
-	BAIL_ON_REG_ERROR(dwError);
+    dwError = RegWC16StringAllocateFromCString(&pwszSubKey, pszSubKey);
+    BAIL_ON_REG_ERROR(dwError);
 
     dwError = RegDeleteTreeW(hReg, pCurrentKey, pwszSubKey);
     BAIL_ON_REG_ERROR(dwError);
@@ -499,6 +520,10 @@ cleanup:
     if (pCurrentKey)
     {
         RegCloseKey(hReg, pCurrentKey);
+    }
+    if (pRootKey)
+    {
+        RegCloseKey(hReg, pRootKey);
     }
     LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     return dwError;
@@ -518,6 +543,7 @@ RegShellUtilGetKeys(
 {
     HANDLE hRegLocal = NULL;
     HKEY pRootKey = NULL;
+    HKEY pFullKey = NULL;
     DWORD dwError = 0;
     DWORD dwSubKeyCount = 0;
     DWORD dwValuesCount = 0;
@@ -525,7 +551,6 @@ RegShellUtilGetKeys(
     DWORD i = 0;
     DWORD dwSubKeyLen = MAX_KEY_LENGTH;
     LW_WCHAR **subKeys = NULL;
-    HKEY pFullKey = NULL;
     PSTR pszParentPath = NULL;
     PWSTR pwszSubKey = NULL;
     PSTR pszKeyName = NULL;
@@ -573,6 +598,7 @@ RegShellUtilGetKeys(
     else
     {
         pFullKey = pRootKey;
+        pRootKey = NULL;
     }
 
     dwError = RegQueryInfoKeyA(
@@ -635,16 +661,21 @@ done:
 
 cleanup:
     RegCloseServer(hRegLocal);
-    if (pFullKey && pFullKey != pRootKey)
+    if (pFullKey)
     {
         RegCloseKey(hReg, pFullKey);
     }
+    if (pRootKey)
+    {
+        RegCloseKey(hReg, pRootKey);
+    }
+    LWREG_SAFE_FREE_STRING(pszParentPath);
     LWREG_SAFE_FREE_STRING(pszKeyName);
 
     return dwError;
 
 error:
-    for (i = 0; i < dwSubKeyCount; i++)
+    for (i = 0; subKeys && i<dwSubKeyCount; i++)
     {
         LWREG_SAFE_FREE_MEMORY(subKeys[i]);
     }
@@ -668,10 +699,10 @@ RegShellUtilSetValue(
     DWORD dwError = 0;
     PBYTE pData = NULL;
     SSIZE_T dwDataLen = 0;
-    PWSTR pwszParentPath = NULL;
     HKEY pFullKey = NULL;
     HKEY pRootKey = NULL;
     PSTR pszParentPath = NULL;
+    DWORD dwOffset = 0;
 
     if (!hReg)
     {
@@ -679,11 +710,19 @@ RegShellUtilSetValue(
         BAIL_ON_REG_ERROR(dwError);
         hReg = hRegLocal;
     }
-
-
     if (!pszRootKeyName)
     {
         pszRootKeyName = HKEY_THIS_MACHINE;
+    }
+
+    /*
+     *  Key specified with leading \ is a fully-qualified path, so
+     * ignore the DefaultKey (pwd) and use only this path.
+     */
+    if (keyName && keyName[0] == '\\')
+    {
+        pszDefaultKey = NULL;
+        keyName++;
     }
     dwError = RegShellCanonicalizePath(pszDefaultKey,
                                        keyName,
@@ -691,25 +730,30 @@ RegShellUtilSetValue(
                                        NULL,
                                        NULL);
     BAIL_ON_REG_ERROR(dwError);
+    if (pszParentPath[0] == '\\')
+    {
+        dwOffset++;
+    }
 
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    pFullKey = pRootKey;
-    if (pszParentPath && pszParentPath[1])
+    if (pszParentPath && strcmp(pszParentPath, "\\") != 0)
     {
-	dwError = RegWC16StringAllocateFromCString(&pwszParentPath, pszParentPath+1);
-	BAIL_ON_REG_ERROR(dwError);
 
-        dwError = RegOpenKeyExW(
+        dwError = RegOpenKeyExA(
                       hReg,
                       pRootKey,
-                      pwszParentPath,
+                      &pszParentPath[dwOffset],
                       0,
                       0,
                       &pFullKey);
         BAIL_ON_REG_ERROR(dwError);
-        LWREG_SAFE_FREE_MEMORY(pwszParentPath);
+    }
+    else
+    {
+        pFullKey = pRootKey;
+        pRootKey = NULL;
     }
 
     switch (type)
@@ -764,16 +808,45 @@ RegShellUtilSetValue(
 
 cleanup:
     RegCloseServer(hRegLocal);
-    LWREG_SAFE_FREE_MEMORY(pwszParentPath);
-    if (pFullKey && pFullKey != pRootKey)
+    if (pFullKey)
     {
         RegCloseKey(hReg, pFullKey);
+    }
+    if (pRootKey)
+    {
+        RegCloseKey(hReg, pRootKey);
     }
     return dwError;
 
 error:
     goto cleanup;
 }
+
+
+DWORD
+RegShellUtilValueArrayFree(
+    PREGSHELL_UTIL_VALUE pValueArray,
+    DWORD dwValueArrayLen)
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+
+    BAIL_ON_INVALID_POINTER(pValueArray);
+
+    for (i=0; i<dwValueArrayLen; i++)
+    {
+        LWREG_SAFE_FREE_MEMORY(pValueArray[i].pValueName);
+        LWREG_SAFE_FREE_MEMORY(pValueArray[i].pData);
+    }
+
+    LWREG_SAFE_FREE_MEMORY(pValueArray);
+cleanup:
+    return dwError;
+error:
+    goto cleanup;
+
+}
+
 
 DWORD
 RegShellUtilGetValues(
@@ -825,7 +898,6 @@ RegShellUtilGetValues(
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &pRootKey);
     BAIL_ON_REG_ERROR(dwError);
 
-    pFullKey = pRootKey;
     if (pszParentPath && strcmp(pszParentPath, "\\") != 0)
     {
 	dwError = RegWC16StringAllocateFromCString(&pwszParentPath, pszParentPath+1);
@@ -840,6 +912,11 @@ RegShellUtilGetValues(
                       &pFullKey);
         BAIL_ON_REG_ERROR(dwError);
         LWREG_SAFE_FREE_MEMORY(pwszParentPath);
+    }
+    else
+    {
+        pFullKey = pRootKey;
+        pRootKey = NULL;
     }
 
     dwError = RegQueryInfoKeyA(
@@ -902,6 +979,7 @@ RegShellUtilGetValues(
 
 	dwError = RegWC16StringAllocateFromCString(&pValueArray[indx].pValueName, pszValueName);
 	BAIL_ON_REG_ERROR(dwError);
+        LWREG_SAFE_FREE_STRING(pszValueName);
 
         pValueArray[indx].type = regType;
         pValueArray[indx].pData = pData;
@@ -916,10 +994,16 @@ RegShellUtilGetValues(
 
 cleanup:
     RegCloseServer(hRegLocal);
-    if (pFullKey && pFullKey != pRootKey)
+    if (pFullKey)
     {
         RegCloseKey(hReg, pFullKey);
     }
+    if (pRootKey)
+    {
+        RegCloseKey(hReg, pRootKey);
+    }
+    LWREG_SAFE_FREE_STRING(pszValueName);
+    LWREG_SAFE_FREE_STRING(pszParentPath);
     LWREG_SAFE_FREE_MEMORY(pSubKey);
     LWREG_SAFE_FREE_MEMORY(pData);
     return dwError;
@@ -947,10 +1031,10 @@ RegShellUtilDeleteValue(
     HANDLE hRegLocal = NULL;
     HKEY hRootKey = NULL;
     HKEY hDefaultKey = NULL;
-    PWSTR pSubKey = NULL;
-    PWSTR pDefaultKey = NULL;
-    PWSTR pValueName = NULL;
+    PSTR pszParentPath = NULL;
+    PSTR pszSubKey = NULL;
     DWORD dwError = 0;
+    DWORD dwOffset = 0;
 
     if (!hReg)
     {
@@ -963,25 +1047,39 @@ RegShellUtilDeleteValue(
     {
         pszRootKeyName = HKEY_THIS_MACHINE;
     }
-    if (keyName)
-    {
-	dwError = RegWC16StringAllocateFromCString(&pSubKey, keyName);
-	BAIL_ON_REG_ERROR(dwError);
-    }
-    if (pszDefaultKey)
-    {
-	dwError = RegWC16StringAllocateFromCString(&pDefaultKey, pszDefaultKey);
-	BAIL_ON_REG_ERROR(dwError);
-    }
 
-	dwError = RegWC16StringAllocateFromCString(&pValueName, valueName);
-	BAIL_ON_REG_ERROR(dwError);
+    /*
+     *  Key specified with leading \ is a fully-qualified path, so
+     * ignore the DefaultKey (pwd) and use only this path.
+     */
+    if (keyName && keyName[0] == '\\')
+    {
+        pszDefaultKey = NULL;
+        keyName++;
+    }
+    dwError = RegShellCanonicalizePath(pszDefaultKey,
+                                       keyName,
+                                       &pszParentPath,
+                                       NULL,
+                                       NULL);
+    BAIL_ON_REG_ERROR(dwError);
+    if (pszParentPath[0] == '\\')
+    {
+        dwOffset++;
+    }
 
     dwError = RegOpenKeyExA(hReg, NULL, pszRootKeyName, 0, 0, &hRootKey);
     BAIL_ON_REG_ERROR(dwError);
-    if (pszDefaultKey)
+    if (pszParentPath && strcmp(pszParentPath, "\\") != 0)
     {
-        dwError = RegOpenKeyExA(hReg, hRootKey, pszDefaultKey, 0, 0, &hDefaultKey);
+        dwError = RegOpenKeyExA(
+                      hReg,
+                      hRootKey,
+                      &pszParentPath[dwOffset],
+                      0,
+                      0,
+                      &hDefaultKey);
+	BAIL_ON_REG_ERROR(dwError);
     }
     else
     {
@@ -989,7 +1087,7 @@ RegShellUtilDeleteValue(
         hRootKey = NULL;
     }
 
-    dwError = RegDeleteKeyValueW(hReg, hDefaultKey, pSubKey, pValueName);
+    dwError = RegDeleteKeyValueA(hReg, hDefaultKey, NULL, valueName);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
@@ -1002,12 +1100,14 @@ cleanup:
         RegCloseKey(hReg, hRootKey);
     }
     RegCloseServer(hRegLocal);
-    LWREG_SAFE_FREE_MEMORY(pSubKey);
+    LWREG_SAFE_FREE_STRING(pszParentPath);
+    LWREG_SAFE_FREE_STRING(pszSubKey);
     return dwError;
 
 error:
     goto cleanup;
 }
+
 
 DWORD
 RegShellUtilAllocateMemory(
@@ -1275,7 +1375,10 @@ cleanup:
     {
         RegCloseKey(hReg, hDefaultKey);
     }
-    RegCloseKey(hReg, hRootKey);
+    if (hRootKey)
+    {
+        RegCloseKey(hReg, hRootKey);
+    }
     return dwError;
 error:
     goto cleanup;

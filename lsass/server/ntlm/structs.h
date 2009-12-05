@@ -247,9 +247,11 @@ typedef struct _NTLM_CREDENTIALS
 typedef struct _NTLM_CONFIG
 {
     BOOLEAN bSendNTLMv2;
+    BOOLEAN bSupport56bit;
+    BOOLEAN bSupport128bit;
     BOOLEAN bSupportUnicode;
     BOOLEAN bSupportNTLM2SessionSecurity;
-    BOOLEAN bNegotiateKey;
+    BOOLEAN bSupportKeyExchange;
 } NTLM_CONFIG, *PNTLM_CONFIG;
 
 #endif /* __STRUCTS_H__ */

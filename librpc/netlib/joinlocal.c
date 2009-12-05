@@ -37,9 +37,9 @@ ResetAccountPasswordTimer(
     ACCOUNT_HANDLE hAccount
     )
 {
-    const uint32 flags_enable  = ACB_WSTRUST;
-    const uint32 flags_disable = ACB_WSTRUST | ACB_DISABLED;
-    const uint32 level = 16;
+    const UINT32 flags_enable  = ACB_WSTRUST;
+    const UINT32 flags_disable = ACB_WSTRUST | ACB_DISABLED;
+    const UINT32 level = 16;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
@@ -125,15 +125,15 @@ CreateWksAccount(
     ACCOUNT_HANDLE *phAccount
     )
 {
-    const uint32 user_access = USER_ACCESS_GET_ATTRIBUTES |
+    const UINT32 user_access = USER_ACCESS_GET_ATTRIBUTES |
                                USER_ACCESS_SET_PASSWORD |
                                USER_ACCESS_SET_ATTRIBUTES;
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS ret = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     handle_t samr_b = NULL;
-    uint32 access_granted = 0;
-    uint32 rid = 0;
+    UINT32 access_granted = 0;
+    UINT32 rid = 0;
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hAccount = NULL;
     PwInfo pwinfo;
@@ -189,7 +189,7 @@ NTSTATUS
 SetMachinePassword(
     NetConn        *conn,
     ACCOUNT_HANDLE  hAccount,
-    uint32          new,
+    UINT32          new,
     wchar16_t      *name,
     wchar16_t      *password
     )
@@ -197,8 +197,8 @@ SetMachinePassword(
 	NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
 	handle_t samr_b = NULL;
-	uint32 level = 0;
-    uint32 password_len = 0;
+	UINT32 level = 0;
+    UINT32 password_len = 0;
 	UserInfo25 *info25 = NULL;
 	UserInfo26 *info26 = NULL;
 	UserInfo pwinfo;

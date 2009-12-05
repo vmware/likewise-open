@@ -2,7 +2,7 @@ librpc_srcdir=$(top_srcdir)
 liballoc_builddir=$(top_builddir)/alloc
 libnetapi_builddir=$(top_builddir)/netlib
 
-noinst_PROGRAMS = testrpc
+bin_PROGRAMS = testrpc
 
 testrpc_SOURCES = \
 	testrpc.c        \

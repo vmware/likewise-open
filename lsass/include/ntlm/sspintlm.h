@@ -182,7 +182,10 @@ typedef struct
         } v1;
         struct
         {
-            BYTE hmac[8];
+            struct
+            {
+                BYTE hmac[8];
+            } encrypted;
             DWORD dwMsgSeqNum;
         } v2;
     };
@@ -246,20 +249,8 @@ typedef struct
     NTLM_FLAG_128                   | \
     NTLM_FLAG_UNICODE               | \
     NTLM_FLAG_NTLM2                 | \
+    NTLM_FLAG_KEY_EXCH              | \
     0 )
-
-#define NTLM_FLAG_SRV_SUPPORTS ( \
-    NTLM_FLAG_OEM              | \
-    NTLM_FLAG_REQUEST_TARGET   | \
-    NTLM_FLAG_NTLM             | \
-    NTLM_FLAG_LOCAL_CALL       | \
-    NTLM_FLAG_ALWAYS_SIGN      | \
-    NTLM_FLAG_WORKSTATION      | \
-    NTLM_FLAG_TARGET_INFO      | \
-    NTLM_FLAG_56               | \
-    NTLM_FLAG_128              )
-    //NTLM_FLAG_NTLM2            |
-    //NTLM_FLAG_UNICODE          |
 
 // Possible information to query our context for
 #define SECPKG_ATTR_ACCESS_TOKEN                1

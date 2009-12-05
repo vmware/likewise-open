@@ -226,22 +226,22 @@ NTSTATUS
 NetConnectSamr(
     NetConn **conn,
     const wchar16_t *hostname,
-    uint32 req_dom_flags,
-    uint32 req_btin_dom_flags,
+    UINT32 req_dom_flags,
+    UINT32 req_btin_dom_flags,
     PIO_CREDS creds
     )
 {
-    const uint32 conn_flags = SAMR_ACCESS_OPEN_DOMAIN |
+    const UINT32 conn_flags = SAMR_ACCESS_OPEN_DOMAIN |
                               SAMR_ACCESS_ENUM_DOMAINS;
 
-    const uint32 dom_flags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
+    const UINT32 dom_flags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
                              DOMAIN_ACCESS_OPEN_ACCOUNT |
                              DOMAIN_ACCESS_LOOKUP_INFO_2;
 
-    const uint32 btin_dom_flags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
+    const UINT32 btin_dom_flags = DOMAIN_ACCESS_ENUM_ACCOUNTS |
                                   DOMAIN_ACCESS_OPEN_ACCOUNT |
                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
-    const uint32 size = 128;
+    const UINT32 size = 128;
     const char *builtin = "BUILTIN";
 
     NTSTATUS status = STATUS_SUCCESS;
@@ -256,12 +256,12 @@ NetConnectSamr(
     DOMAIN_HANDLE hBtinDomain = NULL;
     PSID btin_dom_sid = NULL;
     PSID dom_sid = NULL;
-    uint32 conn_access = 0;
-    uint32 dom_access = 0;
-    uint32 btin_dom_access = 0;
-    uint32 resume = 0;
-    uint32 entries = 0;
-    uint32 i = 0;
+    UINT32 conn_access = 0;
+    UINT32 dom_access = 0;
+    UINT32 btin_dom_access = 0;
+    UINT32 resume = 0;
+    UINT32 entries = 0;
+    UINT32 i = 0;
     char *host = NULL;
     wchar16_t **dom_names = NULL;
     wchar16_t *dom_name = NULL;
@@ -345,7 +345,7 @@ NetConnectSamr(
             if (sess_key_len > 0)
             {
                 memcpy((void*)cn->sess_key, sess_key, sizeof(cn->sess_key));
-                cn->sess_key_len = (uint32)sess_key_len;
+                cn->sess_key_len = (UINT32)sess_key_len;
             }
         }
 
@@ -531,11 +531,11 @@ NTSTATUS
 NetConnectLsa(
     NetConn **conn,
     const wchar16_t *hostname,
-    uint32 req_lsa_flags,
+    UINT32 req_lsa_flags,
     PIO_CREDS creds
     )
 {
-    const uint32 lsa_flags = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const UINT32 lsa_flags = LSA_ACCESS_LOOKUP_NAMES_SIDS;
     const char *localhost = "127.0.0.1";
 
     NTSTATUS status = STATUS_SUCCESS;
@@ -547,7 +547,7 @@ NetConnectLsa(
     NetConn *cn = NULL;
     NetConn *lookup = NULL;
     POLICY_HANDLE hPolicy = NULL;
-    uint32 lsa_access = 0;
+    UINT32 lsa_access = 0;
     wchar16_t localhost_addr[10] = {0};
 
     BAIL_ON_INVALID_PTR(conn);

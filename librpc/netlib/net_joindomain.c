@@ -32,14 +32,14 @@
 
 
 static
-uint32
+UINT32
 NetWc16sHash(
     const wchar16_t *str
     )
 {
     DWORD  dwLen = 0;
     DWORD  dwPos = 0;
-    uint32 result = 0;
+    UINT32 result = 0;
     char   *data = (char *)str;
 
     dwLen = wc16slen(str) * 2;
@@ -49,7 +49,7 @@ NetWc16sHash(
         if ( data[dwPos] )
         {
             // rotate result to the left 3 bits with wrap around
-            result = (result << 3) | (result >> (sizeof(uint32_t)*8 - 3));
+            result = (result << 3) | (result >> (sizeof(UINT32)*8 - 3));
             result += data[dwPos];
         }
     }
@@ -60,13 +60,13 @@ NetWc16sHash(
 static
 wchar16_t *
 NetHashToWc16s(
-    uint32    hash
+    UINT32    hash
     )
 {
     char *pszValidChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     DWORD dwNumValid = strlen(pszValidChars);
     char pszHashStr[16];
-    uint32 hash_local = hash;
+    UINT32 hash_local = hash;
     DWORD dwPos = 0;
     DWORD new_char = 0;
     wchar16_t *result = NULL;
@@ -104,8 +104,8 @@ NetGetAccountName(
     wchar16_t *samname = NULL;     /* short name valid for SAM account */
     wchar16_t *hashstr = NULL;
     wchar16_t *samacctname = NULL; /* account name (with trailing '$') */
-    uint32    hash = 0;
-    uint32    offset = 0;
+    UINT32    hash = 0;
+    UINT32    offset = 0;
     wchar16_t newname[16];
     size_t    hashstrlen = 0;
     size_t    samacctname_len = 0;
@@ -225,20 +225,20 @@ NetJoinDomainLocalInternal(
     const wchar16_t *account_ou,
     const wchar16_t *account,
     const wchar16_t *password,
-    uint32 options,
+    UINT32 options,
     const wchar16_t *osname,
     const wchar16_t *osver,
     const wchar16_t *ospack,
     BOOLEAN is_retry
     )
 {
-    const uint32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS |
+    const UINT32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS |
                               LSA_ACCESS_VIEW_POLICY_INFO;
-    const uint32 domain_access  = DOMAIN_ACCESS_ENUM_ACCOUNTS |
+    const UINT32 domain_access  = DOMAIN_ACCESS_ENUM_ACCOUNTS |
                                   DOMAIN_ACCESS_OPEN_ACCOUNT |
                                   DOMAIN_ACCESS_LOOKUP_INFO_2 |
                                   DOMAIN_ACCESS_CREATE_USER;
-    const uint32 user_access = USER_ACCESS_GET_ATTRIBUTES |
+    const UINT32 user_access = USER_ACCESS_GET_ATTRIBUTES |
                                USER_ACCESS_SET_ATTRIBUTES |
                                USER_ACCESS_SET_PASSWORD;
 
@@ -254,7 +254,7 @@ NetJoinDomainLocalInternal(
     wchar16_t machine_pass[MACHPASS_LEN+1] = {0};
     wchar16_t *dns_domain_name = NULL;
     wchar16_t *domain_controller_name = NULL;
-    uint32 rid, newacct;
+    UINT32 rid, newacct;
     NetConn *conn = NULL;
     NetConn *lsa_conn = NULL;
     LDAP *ld = NULL;
@@ -606,7 +606,7 @@ NET_API_STATUS NetJoinDomainLocal(const wchar16_t *machine,
                                   const wchar16_t *account_ou,
                                   const wchar16_t *account,
                                   const wchar16_t *password,
-                                  uint32 options,
+                                  UINT32 options,
                                   const wchar16_t *osname,
                                   const wchar16_t *osver,
                                   const wchar16_t *ospack)
@@ -627,7 +627,7 @@ NET_API_STATUS NetJoinDomain(const wchar16_t *hostname,
                              const wchar16_t *account_ou,
                              const wchar16_t *account,
                              const wchar16_t *password,
-                             uint32 options)
+                             UINT32 options)
 {
     NET_API_STATUS status = ERROR_SUCCESS;
     char *localname = NULL;

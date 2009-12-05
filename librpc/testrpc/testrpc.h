@@ -287,6 +287,12 @@ extern int verbose_mode;
     } while (0)
 
 
+#define ASSERT_TEST(expr)                                          \
+    if (!(expr)) {                                                 \
+        DISPLAY_ERROR(("assert failed: %s\n", #expr));             \
+    }
+
+
 #endif /* _TESTRPC_H_ */
 
 

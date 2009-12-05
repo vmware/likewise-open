@@ -728,13 +728,6 @@ RegLexParseWhitespace(
     {
         RegLexAppendChar(lexHandle, inC);
     }
-    else if (strcasecmp(lexHandle->curToken.pszValue, "REG_SZ") == 0)
-    {
-        lexHandle->isToken = TRUE;
-        lexHandle->curToken.lineNum = lexHandle->parseLineNum;
-        lexHandle->curToken.token = REGLEX_REG_SZ;
-        lexHandle->state = REGLEX_STATE_INIT;
-    }
     else if (lexHandle->state == REGLEX_STATE_BINHEX_STR)
     {
         if (lexHandle->curToken.valueCursor > 0 &&

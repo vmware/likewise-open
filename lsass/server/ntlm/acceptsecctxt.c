@@ -256,6 +256,8 @@ NtlmCreateValidatedContext(
     PNTLM_CONTEXT pNtlmContext = NULL;
     SEC_CHAR* pUserName = NULL;
     SEC_CHAR* pDomainName = NULL;
+    PNTLM_RESPONSE_MESSAGE_V2 pV2Message = NULL;
+    RC4_KEY Rc4Key;
 
     *ppNtlmContext = NULL;
 
@@ -288,6 +290,38 @@ NtlmCreateValidatedContext(
     memcpy(pNtlmContext->SessionKey, pSessionKey, NTLM_SESSION_KEY_SIZE);
     pNtlmContext->cbSessionKeyLen = dwSessionKeyLen;
     pNtlmContext->bInitiatedSide = FALSE;
+
+    if (NegotiatedFlags & NTLM_FLAG_KEY_EXCH)
+    {
+        pV2Message = (PNTLM_RESPONSE_MESSAGE_V2)pNtlmRespMsg;
+        if (dwMsgSize < sizeof(*pV2Message))
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (pV2Message->SessionKey.dwOffset +
+                pV2Message->SessionKey.usLength > dwMsgSize)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (pV2Message->SessionKey.usLength != NTLM_SESSION_KEY_SIZE)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        RC4_set_key(
+                &Rc4Key,
+                pNtlmContext->cbSessionKeyLen,
+                pNtlmContext->SessionKey);
+        RC4(&Rc4Key,
+                NTLM_SESSION_KEY_SIZE,
+                pV2Message->SessionKey.dwOffset + (PBYTE)pV2Message,
+                pNtlmContext->SessionKey);
+    }
 
     dwError = NtlmInitializeKeys(pNtlmContext);
     BAIL_ON_LSA_ERROR(dwError);
@@ -402,6 +436,21 @@ NtlmInitializeKeys(
             pNtlmContext->bInitiatedSide ?
                 pNtlmContext->VerifyKey : pNtlmContext->SignKey,
             &ctx);
+
+
+        // Weaken the master key
+        if (pNtlmContext->NegotiatedFlags & NTLM_FLAG_128)
+        {
+            // Leave the key as is
+        }
+        else if (pNtlmContext->NegotiatedFlags & NTLM_FLAG_56)
+        {
+            pNtlmContext->cbSessionKeyLen = 7;
+        }
+        else
+        {
+            pNtlmContext->cbSessionKeyLen = 5;
+        }
 
         dwError = NtlmCreateSubkey(
             pNtlmContext->cbSessionKeyLen,

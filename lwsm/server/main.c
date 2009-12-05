@@ -366,6 +366,13 @@ LwSmDaemonize(
     /* Close the read end of the notification pipe now since we don't need it */
     close(gState.notifyPipe[0]);
 
+    /* Prevent the write end of the notification pipe from being inherited by children */
+    if (fcntl(gState.notifyPipe[1], F_SETFD, FD_CLOEXEC) < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_ERROR(dwError);
+    }
+
 error:
 
     return dwError;

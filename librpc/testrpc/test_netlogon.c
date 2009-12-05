@@ -84,7 +84,7 @@ handle_t TestOpenSchannel(handle_t netr_b,
                           const wchar16_t *user, const wchar16_t *pass,
                           wchar16_t *server, wchar16_t *domain,
                           wchar16_t *computer, wchar16_t *machpass,
-                          uint32 protection_level,
+                          UINT32 protection_level,
                           NetrCredentials *creds)
 {
     RPCSTATUS st = rpc_s_ok;
@@ -92,7 +92,7 @@ handle_t TestOpenSchannel(handle_t netr_b,
     wchar16_t *machine_acct = NULL;
     handle_t schn_b = NULL;
     PIO_CREDS auth = NULL;
-    uint8 srv_cred[8];
+    UINT8 srv_cred[8];
     rpc_schannel_auth_info_t schnauth_info;
 
     memset((void*)srv_cred, 0, sizeof(srv_cred));
@@ -153,8 +153,8 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     const char *def_machpass = "SECRET";
     const char *def_username = "user";
     const char *def_password = "pass";
-    const uint32 def_logon_level = 3;
-    const uint32 def_validation_level = 2;
+    const UINT32 def_logon_level = 3;
+    const UINT32 def_validation_level = 2;
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t netr_b = NULL;
@@ -169,11 +169,11 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
     wchar16_t *password = NULL;
     char *computer_name = NULL;
     char *machine_pass = NULL;
-    uint32 logon_level = 0;
-    uint32 validation_level = 0;
+    UINT32 logon_level = 0;
+    UINT32 validation_level = 0;
     NetrCredentials creds = {0};
     NetrValidationInfo *validation_info = NULL;
-    uint8 authoritative = 0;
+    UINT8 authoritative = 0;
     HANDLE store = (HANDLE)NULL;
     LWPS_PASSWORD_INFO *pi = NULL;
     char host[128] = {0};
@@ -280,8 +280,8 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
 
     CALL_MSRPC(status = NetrSamLogonInteractive(schn_b, &creds, server, domain, computer,
                                                 username, password,
-                                                (uint16)logon_level,
-                                                (uint16)validation_level,
+                                                (UINT16)logon_level,
+                                                (UINT16)validation_level,
                                                 &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
@@ -316,8 +316,8 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     const char *def_machpass = "secret01$";
     const char *def_username = "user";
     const char *def_password = "pass";
-    const uint32 def_logon_level = 2;
-    const uint32 def_validation_level = 2;
+    const UINT32 def_logon_level = 2;
+    const UINT32 def_validation_level = 2;
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t netr_b = NULL;
@@ -329,8 +329,8 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
     wchar16_t *domain = NULL;
     wchar16_t *username = NULL;
     wchar16_t *password = NULL;
-    uint32 logon_level = 0;
-    uint32 validation_level = 0;
+    UINT32 logon_level = 0;
+    UINT32 validation_level = 0;
     NetrCredentials creds = {0};
     int hostname_len;
 
@@ -402,7 +402,7 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
                           &creds);
 
     CALL_MSRPC(status = NetrSamLogoff(schn_b, &creds, server, domain, computer,
-                                      username, password, (uint16)logon_level));
+                                      username, password, (UINT16)logon_level));
     if (status != STATUS_SUCCESS) goto close;
 
     TestCloseSchannel(schn_b);
@@ -437,8 +437,8 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     const char *def_machpass = "secret01$";
     const char *def_username = "user";
     const char *def_password = "pass";
-    const uint32 def_logon_level = 2;
-    const uint32 def_validation_level = 2;
+    const UINT32 def_logon_level = 2;
+    const UINT32 def_validation_level = 2;
 
     NTSTATUS status = STATUS_SUCCESS;
     handle_t netr_b = NULL;
@@ -454,11 +454,11 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
     wchar16_t *domain = NULL;
     wchar16_t *username = NULL;
     wchar16_t *password = NULL;
-    uint32 logon_level = 0;
-    uint32 validation_level = 0;
+    UINT32 logon_level = 0;
+    UINT32 validation_level = 0;
     NetrCredentials creds = {0};
     NetrValidationInfo *validation_info = NULL;
-    uint8 authoritative = 0;
+    UINT8 authoritative = 0;
     HANDLE store = (HANDLE)NULL;
     LWPS_PASSWORD_INFO *pi = NULL;
     char host[128] = {0};
@@ -543,8 +543,8 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
 
     CALL_MSRPC(status = NetrSamLogonEx(schn_b, server, domain, computer,
                                        username, password,
-                                       (uint16)logon_level,
-                                       (uint16)validation_level,
+                                       (UINT16)logon_level,
+                                       (UINT16)validation_level,
                                        &validation_info, &authoritative));
     if (status != STATUS_SUCCESS) goto close;
 
@@ -580,8 +580,8 @@ int TestNetlogonCredentials(struct test *t, const wchar16_t *hostname,
     wchar16_t *machpass, *computer;
     char *clichal, *srvchal;
     size_t clichal_len, srvchal_len;
-    uint8 cli_chal[8], srv_chal[8];
-    uint8 pass_hash[16];
+    UINT8 cli_chal[8], srv_chal[8];
+    UINT8 pass_hash[16];
     NetrCredentials creds;
 
     TESTINFO(t, hostname, user, pass);
@@ -638,7 +638,7 @@ int TestNetlogonEnumTrustedDomains(struct test *t, const wchar16_t *hostname,
     handle_t netr_b;
     enum param_err perr = perr_success;
     wchar16_t *server = NULL;
-    uint32 count = 0;
+    UINT32 count = 0;
     NetrDomainTrust *trusts = NULL;
 
     TESTINFO(t, hostname, user, pass);
@@ -676,7 +676,7 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
                                  const wchar16_t *user, const wchar16_t *pass,
                                  struct parameter *options, int optcount)
 {
-    const uint32 def_trustflags = NETR_TRUST_FLAG_IN_FOREST |
+    const UINT32 def_trustflags = NETR_TRUST_FLAG_IN_FOREST |
                                   NETR_TRUST_FLAG_OUTBOUND |
                                   NETR_TRUST_FLAG_TREEROOT |
                                   NETR_TRUST_FLAG_PRIMARY |
@@ -687,8 +687,8 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
     WINERR err = ERROR_SUCCESS;
     handle_t netr_b = NULL;
     enum param_err perr = perr_success;
-    uint32 trustflags = 0;
-    uint32 count = 0;
+    UINT32 trustflags = 0;
+    UINT32 count = 0;
     NetrDomainTrust *trusts = NULL;
 
     TESTINFO(t, hostname, user, pass);
@@ -725,14 +725,14 @@ int TestNetlogonGetDcName(struct test *t, const wchar16_t *hostname,
                           const wchar16_t *user, const wchar16_t *pass,
                           struct parameter *options, int optcount)
 {
-    const uint32 def_getdcflags = DS_FORCE_REDISCOVERY;
+    const UINT32 def_getdcflags = DS_FORCE_REDISCOVERY;
     const char *def_domain_name = "DOMAIN";
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     handle_t netr_b = NULL;
     enum param_err perr = perr_success;
-    uint32 getdcflags = 0;
+    UINT32 getdcflags = 0;
     wchar16_t *domain_name = NULL;
     DsrDcNameInfo *info = NULL;
 

@@ -59,7 +59,7 @@ NTSTATUS
 SetMachinePassword(
     NetConn        *conn,
     ACCOUNT_HANDLE  hAccount,
-    uint32          new,
+    UINT32          new,
     wchar16_t      *name,
     wchar16_t      *password
     );

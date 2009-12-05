@@ -60,7 +60,7 @@ InitNetlogonBindingDefault(
                                         pszOptions,
                                         pAccessToken,
                                         bIsSchannel);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     *phNetrBinding = hNetrBinding;
 
@@ -129,21 +129,21 @@ InitNetlogonBindingFull(
                                options,
                                &binding_string,
                                &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_binding_from_string_binding(binding_string, &hNetrBinding, &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_smb_transport_info_from_lwio_creds(pAccessToken, bIsSchannel, &info, &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     rpc_binding_set_transport_info(hNetrBinding, info, &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
 	info = NULL;
 
     rpc_mgmt_set_com_timeout(hNetrBinding, 6, &rpcStatus);
-    BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+    BAIL_ON_RPC_STATUS(rpcStatus);
 
     *phNetrBinding = hNetrBinding;
 
@@ -189,7 +189,7 @@ FreeNetlogonBinding(
     /* Free the binding itself */
     if (phNetrBinding && *phNetrBinding) {
         rpc_binding_free(phNetrBinding, &rpcStatus);
-        BAIL_ON_RPCSTATUS_ERROR(rpcStatus);
+        BAIL_ON_RPC_STATUS(rpcStatus);
     }
 
 cleanup:

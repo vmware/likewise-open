@@ -41,14 +41,14 @@ NetrCleanStubDomainTrustList(
 void
 NetrCleanStubValidationInfo(
     NetrValidationInfo *r,
-    uint16 level
+    UINT16 level
     );
 
 
 void
 NetrCleanStubDomainInfo(
     NetrDomainInfo *r,
-    uint16 level
+    UINT16 level
     );
 
 

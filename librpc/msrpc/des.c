@@ -35,7 +35,7 @@
 
 
 static const
-uint8 pc1[56] = { 57,   49,   41,   33,   25,   17,    9,
+UINT8 pc1[56] = { 57,   49,   41,   33,   25,   17,    9,
 		   1,   58,   50,   42,   34,   26,   18,
 		  10,    2,   59,   51,   43,   35,   27,
 		  19,   11,    3,   60,   52,   44,   36,
@@ -48,7 +48,7 @@ static const
 int shifts[16] = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1 };
 
 static const
-uint8 pc2[48] = { 14,   17,   11,   24,    1,    5,
+UINT8 pc2[48] = { 14,   17,   11,   24,    1,    5,
 		   3,   28,   15,    6,   21,   10,
 		  23,   19,   12,    4,   26,    8,
 		  16,    7,   27,   20,   13,    2,
@@ -58,7 +58,7 @@ uint8 pc2[48] = { 14,   17,   11,   24,    1,    5,
 		  46,   42,   50,   36,   29,   32 };
 
 static const
-uint8 ip[64] = { 58,   50,   42,   34,   26,   18,   10,   2,
+UINT8 ip[64] = { 58,   50,   42,   34,   26,   18,   10,   2,
 	         60,   52,   44,   36,   28,   20,   12,   4,
 	         62,   54,   46,   38,   30,   22,   14,   6,
 	         64,   56,   48,   40,   32,   24,   16,   8,
@@ -68,7 +68,7 @@ uint8 ip[64] = { 58,   50,   42,   34,   26,   18,   10,   2,
 	         63,   55,   47,   39,   31,   23,   15,   7 };
 
 static const
-uint8 e[48] = { 32,    1,    2,    3,    4,    5,
+UINT8 e[48] = { 32,    1,    2,    3,    4,    5,
 		 4,    5,    6,    7,    8,    9,
 		 8,    9,   10,   11,   12,   13,
 		12,   13,   14,   15,   16,   17,
@@ -78,7 +78,7 @@ uint8 e[48] = { 32,    1,    2,    3,    4,    5,
 		28,   29,   30,   31,   32,    1 };
 
 static const
-uint8 s[8][4][16] = {
+UINT8 s[8][4][16] = {
     {
 	{ 14,  4,  13,  1,   2, 15,  11,  8,   3, 10,   6, 12,   5,  9,   0,  7 },
 	{ 0, 15,   7,  4,  14,  2,  13,  1,  10,  6,  12, 11,   9,  5,   3,  8 },
@@ -131,13 +131,13 @@ uint8 s[8][4][16] = {
 
 
 static const
-uint8 p[32] = { 16,    7,    20,    21,    29,    12,    28,    17,
+UINT8 p[32] = { 16,    7,    20,    21,    29,    12,    28,    17,
 	         1,   15,    23,    26,     5,    18,    31,    10,
 		 2,    8,    24,    14,    32,    27,     3,     9,
 	        19,   13,    30,     6,    22,    11,     4,    25 };
 
 static const
-uint8 fp[64] = { 40,   8,    48,    16,    56,    24,    64,   32,
+UINT8 fp[64] = { 40,   8,    48,    16,    56,    24,    64,   32,
 		 39,   7,    47,    15,    55,    23,    63,   31,
 		 38,   6,    46,    14,    54,    22,    62,   30,
 		 37,   5,    45,    13,    53,    21,    61,   29,
@@ -147,14 +147,14 @@ uint8 fp[64] = { 40,   8,    48,    16,    56,    24,    64,   32,
 		 33,   1,    41,     9,    49,    17,    57,   25 };
 
 
-static void bitblock(uint8 *out, size_t outlen, const uint8 *in)
+static void bitblock(UINT8 *out, size_t outlen, const UINT8 *in)
 {
     int i, count, bytecount;
 
     count = 0, bytecount = 0;
 
     while (count < outlen) {
-	uint8 b = in[bytecount++];
+	UINT8 b = in[bytecount++];
 
 	for (i = 0; i < 8 && count < outlen; i++) {
 	    out[count++] = (b & (1 << (7 - i))) ? 1 : 0;
@@ -163,11 +163,11 @@ static void bitblock(uint8 *out, size_t outlen, const uint8 *in)
 }
 
 
-static void revbitblock(uint8 *out, size_t outlen, const uint8 *in,
+static void revbitblock(UINT8 *out, size_t outlen, const UINT8 *in,
 			size_t inlen)
 {
     int i, j = 0;
-    uint8 b;
+    UINT8 b;
 
     while (j < outlen) {
 	b = 0;
@@ -181,14 +181,14 @@ static void revbitblock(uint8 *out, size_t outlen, const uint8 *in,
 }
 
 
-static void permute(uint8 *pk, const uint8 *k, const uint8 *pt, size_t size)
+static void permute(UINT8 *pk, const UINT8 *k, const UINT8 *pt, size_t size)
 {
     int i;
     for (i = 0; i < size; i++) pk[i] = k[pt[i]-1];
 }
 
 
-static void leftshift(uint8 *out, const uint8 *in, int shift, size_t size)
+static void leftshift(UINT8 *out, const UINT8 *in, int shift, size_t size)
 {
     int i, j = 0;
 
@@ -204,21 +204,21 @@ static void leftshift(uint8 *out, const uint8 *in, int shift, size_t size)
 }
 
 
-static void xor(uint8 *out, const uint8 *in1, const uint8 *in2, size_t size)
+static void xor(UINT8 *out, const UINT8 *in1, const UINT8 *in2, size_t size)
 {
     int i;
     for (i = 0; i < size; i++) out[i] = in1[i] ^ in2[i];
 }
 
 
-static uint8* ef(uint8 out[32], const uint8 in[32], const uint8 key[48])
+static UINT8* ef(UINT8 out[32], const UINT8 in[32], const UINT8 key[48])
 {
     const int size = 48;
     const int sbox_count = 8;
     int i, snum;
-    uint8 si, sj;
-    uint8 expanded[48] = {0};
-    uint8 sboxed[32] = {0};
+    UINT8 si, sj;
+    UINT8 expanded[48] = {0};
+    UINT8 sboxed[32] = {0};
 
     /* expand 32 bits into 48 bits using e selection table */
     for (i = 0; i < size; i++) expanded[i] = in[e[i]-1];
@@ -228,8 +228,8 @@ static uint8* ef(uint8 out[32], const uint8 in[32], const uint8 key[48])
 
     /* process 8 sboxes (48 bits) with sbox functions */
     for (snum = 0; snum < sbox_count; snum++) {
-	uint8 sbox_in[6];
-	uint8 v[8] = {0};
+	UINT8 sbox_in[6];
+	UINT8 v[8] = {0};
 
 	/* prepare sbox input (6 bits) */
 	memcpy(sbox_in, &expanded[snum*6], sizeof(sbox_in));
@@ -250,7 +250,7 @@ static uint8* ef(uint8 out[32], const uint8 in[32], const uint8 key[48])
 }
 
 
-void str_to_key(uint8 outkey[8], const uint8 inkey[7])
+void str_to_key(UINT8 outkey[8], const UINT8 inkey[7])
 {
     int i;
 
@@ -267,22 +267,22 @@ void str_to_key(uint8 outkey[8], const uint8 inkey[7])
 }
 
 
-int des56(uint8 *out, const uint8 *in, size_t len, const uint8 key[7])
+int des56(UINT8 *out, const UINT8 *in, size_t len, const UINT8 key[7])
 {
-    uint8 *buf, *outbuf;
+    UINT8 *buf, *outbuf;
     size_t padlen;
     int i, j;
-    uint8 deskey[8];
-    uint8 k[64], pk[56];
-    uint8 c[17][28], d[17][28];
-    uint8 pkn[16][48];
-    uint8 m[64], pm[64], om[64];
-    uint8 l[17][32], r[17][32];
+    UINT8 deskey[8];
+    UINT8 k[64], pk[56];
+    UINT8 c[17][28], d[17][28];
+    UINT8 pkn[16][48];
+    UINT8 m[64], pm[64], om[64];
+    UINT8 l[17][32], r[17][32];
 
     padlen = (len % 8) > 0 ? 8 - (len % 8) : 0;
-    buf = (uint8*) malloc((len + padlen) * sizeof(uint8));
+    buf = (UINT8*) malloc((len + padlen) * sizeof(UINT8));
     if (buf == NULL) return 0;
-    outbuf = (uint8*) malloc((len + padlen) * sizeof(uint8));
+    outbuf = (UINT8*) malloc((len + padlen) * sizeof(UINT8));
     if (outbuf == NULL) return 0;
 
     memset(buf, 0, len + padlen);
@@ -294,7 +294,7 @@ int des56(uint8 *out, const uint8 *in, size_t len, const uint8 key[7])
 
     /* process 64-bit (8-byte) blocks */
     for (i = 0; i < (len + padlen); i += 8) {
-	uint8 preout[64];
+	UINT8 preout[64];
 
 	/* prepare key block */
 	bitblock(k, sizeof(k), deskey);
@@ -310,7 +310,7 @@ int des56(uint8 *out, const uint8 *in, size_t len, const uint8 key[7])
 	}
 
 	for (j = 1; j <= 16; j++) {
-	    uint8 cd[56];
+	    UINT8 cd[56];
 
 	    memcpy(cd, c[j], 28);
 	    memcpy(&cd[28], d[j], 28);
@@ -327,7 +327,7 @@ int des56(uint8 *out, const uint8 *in, size_t len, const uint8 key[7])
 	memcpy(r[0], &pm[32], sizeof(r[0]));
 
 	for (j = 1; j <= 16; j++) {
-	    uint8 efret[32] = {0};
+	    UINT8 efret[32] = {0};
 
 	    /* l[j] = r[j-1] */
 	    memcpy(l[j], r[j-1], sizeof(l[j]));
@@ -358,18 +358,18 @@ int des56(uint8 *out, const uint8 *in, size_t len, const uint8 key[7])
 }
 
 
-void des128(uint8 out[8], const uint8 in[8], const uint8 key[16])
+void des128(UINT8 out[8], const UINT8 in[8], const UINT8 key[16])
 {
-    uint8 inout[8];
+    UINT8 inout[8];
 
     des56(inout, in, sizeof(inout), key);
     des56(out, inout, sizeof(inout), &key[8]);
 }
 
 
-void des112(uint8 out[8], const uint8 in[8], const uint8 key[14])
+void des112(UINT8 out[8], const UINT8 in[8], const UINT8 key[14])
 {
-    uint8 inout[8];
+    UINT8 inout[8];
 
     des56(inout, in, sizeof(inout), key);
     des56(out, inout, sizeof(inout), &key[7]);

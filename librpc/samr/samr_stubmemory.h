@@ -67,19 +67,19 @@ void SamrCleanStubRidWithAttributeArray(RidWithAttributeArray *r);
 
 void SamrFreeStubRidWithAttributeArray(RidWithAttributeArray *ptr);
 
-void SamrCleanStubAliasInfo(AliasInfo *r, uint16 level);
+void SamrCleanStubAliasInfo(AliasInfo *r, UINT16 level);
 
-void SamrFreeStubAliasInfo(AliasInfo *ptr, uint16 level);
+void SamrFreeStubAliasInfo(AliasInfo *ptr, UINT16 level);
 
-void SamrCleanStubDomainInfo(DomainInfo *r, uint16 level);
+void SamrCleanStubDomainInfo(DomainInfo *r, UINT16 level);
 
-void SamrFreeStubDomainInfo(DomainInfo *ptr, uint16 level);
+void SamrFreeStubDomainInfo(DomainInfo *ptr, UINT16 level);
 
-void SamrCleanStubUserInfo(UserInfo *r, uint16 level);
+void SamrCleanStubUserInfo(UserInfo *r, UINT16 level);
 
-void SamrFreeStubUserInfo(UserInfo *ptr, uint16 level);
+void SamrFreeStubUserInfo(UserInfo *ptr, UINT16 level);
 
-void SamrCleanStubDisplayInfo(SamrDisplayInfo *ptr, uint16 level);
+void SamrCleanStubDisplayInfo(SamrDisplayInfo *ptr, UINT16 level);
 
 void SamrCleanStubSecurityDescriptorBuffer(
     PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer

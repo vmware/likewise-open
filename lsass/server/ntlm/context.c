@@ -496,6 +496,21 @@ NtlmCreateChallengeMessage(
     {
         dwOptions |= NTLM_FLAG_NTLM2;
     }
+    if ((pNegMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH) &&
+            config.bSupportKeyExchange)
+    {
+        dwOptions |= NTLM_FLAG_KEY_EXCH;
+    }
+    if ((pNegMsg->NtlmFlags & NTLM_FLAG_56) &&
+            config.bSupport56bit)
+    {
+        dwOptions |= NTLM_FLAG_56;
+    }
+    if ((pNegMsg->NtlmFlags & NTLM_FLAG_128) &&
+            config.bSupport128bit)
+    {
+        dwOptions |= NTLM_FLAG_128;
+    }
 
     // calculate optional data size
     if (pOsVersion)
@@ -598,10 +613,7 @@ NtlmCreateChallengeMessage(
     //                        provide yet.  We will not use the local context
     // NTLM_FLAG_TYPE_SHARE - The authentication target is a network share (?).
     //                        Odd.
-    // NTLM_FLAG_NTLM2      - At this point we only support NTLMv1 and NTLMv2
-    dwOptions |= NTLM_FLAG_NTLM | // we support NTLM
-                 NTLM_FLAG_128  | // NON-lanman keys are not weakened
-                 NTLM_FLAG_56;    // we support 56 bit encryption
+    dwOptions |= NTLM_FLAG_NTLM;
 
     // These options are being set now simply because they appear to be
     // required for authentication to work
@@ -840,6 +852,24 @@ NtlmCopyStringToSecBuffer(
     *ppBufferPos += dwLen;
 }
 
+DWORD
+NtlmGetStringProtocolSize(
+    DWORD dwFlags,
+    PCSTR pszString
+    )
+{
+    DWORD dwLen = strlen(pszString);
+
+    if (dwFlags & NTLM_FLAG_UNICODE)
+    {
+        return dwLen * sizeof(WCHAR);
+    }
+    else
+    {
+        return dwLen;
+    }
+}
+
 /******************************************************************************/
 DWORD
 NtlmCreateResponseMessage(
@@ -863,9 +893,6 @@ NtlmCreateResponseMessage(
     DWORD dwLmMsgSize = 0;
     PBYTE pNtMsg = NULL;
     PBYTE pLmMsg = NULL;
-    DWORD dwAuthTrgtNameSize = 0;
-    DWORD dwUserNameSize = 0;
-    DWORD dwWorkstationSize = 0;
     CHAR pWorkstation[HOST_NAME_MAX];
     // The following pointers point into pMessage and will not be freed on error
     PBYTE pBuffer = NULL;
@@ -889,20 +916,15 @@ NtlmCreateResponseMessage(
 
     dwSize += sizeof(*pMessage);
 
-    dwAuthTrgtNameSize = strlen(pDomainName);
-    dwUserNameSize = strlen(pUserName);
-    dwWorkstationSize = strlen(pWorkstation);
-
-    if (pChlngMsg->NtlmFlags & NTLM_FLAG_UNICODE)
-    {
-        dwAuthTrgtNameSize *= sizeof(WCHAR);
-        dwUserNameSize *= sizeof(WCHAR);
-        dwWorkstationSize *= sizeof(WCHAR);
-    }
-
-    dwSize += dwAuthTrgtNameSize;
-    dwSize += dwUserNameSize;
-    dwSize += dwWorkstationSize;
+    dwSize += NtlmGetStringProtocolSize(
+                pChlngMsg->NtlmFlags,
+                pDomainName);
+    dwSize += NtlmGetStringProtocolSize(
+                pChlngMsg->NtlmFlags,
+                pUserName);
+    dwSize += NtlmGetStringProtocolSize(
+                pChlngMsg->NtlmFlags,
+                pWorkstation);
 
     if (dwLmRespType == NTLM_RESPONSE_TYPE_NTLM2)
     {
@@ -947,6 +969,11 @@ NtlmCreateResponseMessage(
     dwSize += dwNtMsgSize;
     dwSize += dwLmMsgSize;
 
+    if (pChlngMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH)
+    {
+        dwSize += NTLM_SESSION_KEY_SIZE;
+    }
+
     dwError = LwAllocateMemory(dwSize, OUT_PPVOID(&pMessage));
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -964,15 +991,6 @@ NtlmCreateResponseMessage(
 
     pMessage->NtResponse.usLength = dwNtMsgSize;
     pMessage->NtResponse.usMaxLength = pMessage->NtResponse.usLength;
-
-    pMessage->SessionKey.usLength = 0;
-    if (pChlngMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH)
-    {
-        // we won't fill this in until after we return from this function, but
-        // we'll save space to fill in later
-        pMessage->SessionKey.usLength = NTLM_SESSION_KEY_SIZE;
-    }
-    pMessage->SessionKey.usMaxLength = pMessage->SessionKey.usLength;
 
     pMessage->Flags = pChlngMsg->NtlmFlags;
 
@@ -1012,6 +1030,13 @@ NtlmCreateResponseMessage(
         &pMessage->Workstation);
 
     pMessage->SessionKey.usLength = 0;
+    if (pChlngMsg->NtlmFlags & NTLM_FLAG_KEY_EXCH)
+    {
+        // we won't fill this in until after we return from this function, but
+        // we'll save space to fill in later
+        pMessage->SessionKey.usLength = NTLM_SESSION_KEY_SIZE;
+    }
+    pMessage->SessionKey.usMaxLength = pMessage->SessionKey.usLength;
     pMessage->SessionKey.dwOffset = pBuffer - (PBYTE)pMessage;
 
     // This is only a partial validation since we may be adding a session key
@@ -1038,9 +1063,9 @@ NtlmStoreSecondaryKey(
     IN OUT PNTLM_RESPONSE_MESSAGE_V1 pMessage
     )
 {
-    PNTLM_SEC_BUFFER pSecBuffer = NULL;
+    PNTLM_RESPONSE_MESSAGE_V2 pV2Message = (PNTLM_RESPONSE_MESSAGE_V2)pMessage;
     BYTE EncryptedKey[NTLM_SESSION_KEY_SIZE] = {0};
-    PBYTE pSessionKey = NULL;
+    PBYTE pSessionKeyData = NULL;
     RC4_KEY Rc4Key;
 
     // Encrypt the secondary key with the master key
@@ -1049,13 +1074,9 @@ NtlmStoreSecondaryKey(
     RC4_set_key(&Rc4Key, NTLM_SESSION_KEY_SIZE, pMasterKey);
     RC4(&Rc4Key, NTLM_SESSION_KEY_SIZE, pSecondaryKey, EncryptedKey);
 
-    // The session key is the first bit of information dangling from the
-    // structure.
-    pSecBuffer = (PNTLM_SEC_BUFFER)((PBYTE)pMessage + sizeof(*pMessage));
+    pSessionKeyData = pV2Message->SessionKey.dwOffset + (PBYTE)pMessage;
 
-    pSessionKey = pSecBuffer->dwOffset + (PBYTE)pMessage;
-
-    memcpy(pSessionKey, EncryptedKey, pSecBuffer->usLength);
+    memcpy(pSessionKeyData, EncryptedKey, pV2Message->SessionKey.usLength);
 }
 
 /******************************************************************************/

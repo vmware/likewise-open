@@ -31,29 +31,29 @@
 typedef struct net_conn {
     wchar16_t *hostname;
 
-    uint8 sess_key[16];
-    uint32 sess_key_len;
+    UINT8 sess_key[16];
+    UINT32 sess_key_len;
 
     struct samr {
         handle_t bind;
 
         CONNECT_HANDLE hConn;
-        uint32 conn_access;
+        UINT32 conn_access;
 
         DOMAIN_HANDLE hDomain;
-        uint32 dom_access;
+        UINT32 dom_access;
         wchar16_t *dom_name;
         PSID dom_sid;
 
         DOMAIN_HANDLE hBtinDomain;
-        uint32 btin_dom_access;
+        UINT32 btin_dom_access;
     } samr;
 
     struct lsa {
         handle_t bind;
 
         POLICY_HANDLE hPolicy;
-        uint32 lsa_access;
+        UINT32 lsa_access;
     } lsa;
 
     struct net_conn *next;
@@ -130,8 +130,8 @@ NTSTATUS
 NetConnectSamr(
     NetConn **conn,
     const wchar16_t *hostname,
-    uint32 req_dom_flags,
-    uint32 req_btin_dom_flags,
+    UINT32 req_dom_flags,
+    UINT32 req_btin_dom_flags,
     PIO_CREDS creds
     );
 
@@ -140,7 +140,7 @@ NTSTATUS
 NetConnectLsa(
     NetConn **conn,
     const wchar16_t *hostname,
-    uint32 req_lsa_flags,
+    UINT32 req_lsa_flags,
     PIO_CREDS creds
     );
 

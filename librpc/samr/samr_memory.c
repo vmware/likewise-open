@@ -2101,7 +2101,7 @@ SamrCopyDisplayInfoGeneral(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    uint32 i = 0;
+    UINT32 i = 0;
 
     BAIL_ON_INVALID_PTR(pOut, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
@@ -2172,7 +2172,7 @@ SamrCopyDisplayInfoGeneralGroups(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    uint32 i = 0;
+    UINT32 i = 0;
 
     BAIL_ON_INVALID_PTR(pOut, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
@@ -2242,7 +2242,7 @@ SamrCopyDisplayInfoAscii(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    uint32 i = 0;
+    UINT32 i = 0;
 
     BAIL_ON_INVALID_PTR(pOut, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
