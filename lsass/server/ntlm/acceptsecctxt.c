@@ -437,6 +437,21 @@ NtlmInitializeKeys(
                 pNtlmContext->VerifyKey : pNtlmContext->SignKey,
             &ctx);
 
+
+        // Weaken the master key
+        if (pNtlmContext->NegotiatedFlags & NTLM_FLAG_128)
+        {
+            // Leave the key as is
+        }
+        else if (pNtlmContext->NegotiatedFlags & NTLM_FLAG_56)
+        {
+            pNtlmContext->cbSessionKeyLen = 7;
+        }
+        else
+        {
+            pNtlmContext->cbSessionKeyLen = 5;
+        }
+
         dwError = NtlmCreateSubkey(
             pNtlmContext->cbSessionKeyLen,
             pNtlmContext->SessionKey,

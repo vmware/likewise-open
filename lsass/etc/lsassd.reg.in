@@ -17,6 +17,8 @@
 "SupportNTLM2SessionSecurity"=dword:00000001
 "SupportKeyExchange"=dword:00000001
 "SupportUnicode"=dword:00000001
+"Support56bit"=dword:00000001
+"Support128bit"=dword:00000001
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\PAM]
 "LogLevel"="error"

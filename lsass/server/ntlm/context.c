@@ -501,6 +501,16 @@ NtlmCreateChallengeMessage(
     {
         dwOptions |= NTLM_FLAG_KEY_EXCH;
     }
+    if ((pNegMsg->NtlmFlags & NTLM_FLAG_56) &&
+            config.bSupport56bit)
+    {
+        dwOptions |= NTLM_FLAG_56;
+    }
+    if ((pNegMsg->NtlmFlags & NTLM_FLAG_128) &&
+            config.bSupport128bit)
+    {
+        dwOptions |= NTLM_FLAG_128;
+    }
 
     // calculate optional data size
     if (pOsVersion)
@@ -603,10 +613,7 @@ NtlmCreateChallengeMessage(
     //                        provide yet.  We will not use the local context
     // NTLM_FLAG_TYPE_SHARE - The authentication target is a network share (?).
     //                        Odd.
-    // NTLM_FLAG_NTLM2      - At this point we only support NTLMv1 and NTLMv2
-    dwOptions |= NTLM_FLAG_NTLM | // we support NTLM
-                 NTLM_FLAG_128  | // NON-lanman keys are not weakened
-                 NTLM_FLAG_56;    // we support 56 bit encryption
+    dwOptions |= NTLM_FLAG_NTLM;
 
     // These options are being set now simply because they appear to be
     // required for authentication to work

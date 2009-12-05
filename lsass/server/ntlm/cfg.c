@@ -56,7 +56,9 @@ NtlmReadRegistry(
     pConfig->bSendNTLMv2 = FALSE;
     pConfig->bSupportUnicode = TRUE;
     pConfig->bSupportNTLM2SessionSecurity = TRUE;
-    pConfig->bSupportKeyExchange = FALSE;
+    pConfig->bSupportKeyExchange = TRUE;
+    pConfig->bSupport56bit = TRUE;
+    pConfig->bSupport128bit = TRUE;
 
     LSA_CONFIG configItems[] =
     {
@@ -95,6 +97,24 @@ NtlmReadRegistry(
             MAXDWORD,
             NULL,
             &pConfig->bSupportKeyExchange
+        },
+        {
+            "Support56bit",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &pConfig->bSupport56bit
+        },
+        {
+            "Support128bit",
+            TRUE,
+            LsaTypeBoolean,
+            0,
+            MAXDWORD,
+            NULL,
+            &pConfig->bSupport128bit
         },
     };
 
