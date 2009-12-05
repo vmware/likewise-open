@@ -487,6 +487,76 @@ error:
 }
 
 
+DWORD
+RegShellImportDwordString(
+    PCHAR pszHexString,
+    PUCHAR *ppBinaryValue,
+    PDWORD pBinaryValueLen)
+{
+    DWORD dwError = 0;
+    DWORD dwBase = 10;
+    DWORD dwValue = 0;
+    PDWORD pdwValue = NULL;
+    PSTR pszEndValue = NULL;
+    DWORD dwErrno = 0;
+
+
+    BAIL_ON_INVALID_POINTER(pszHexString);
+
+    while (*pszHexString && isspace(*pszHexString))
+    {
+        pszHexString++;
+    }
+
+    if (strncmp(pszHexString, "0x", 2) == 0)
+    {
+        dwBase = 16;
+    }
+
+    /*
+     * Both 0xffffffff and 4294967295 are 10 characters long
+     * so definitely know this is an overflow case.
+     */
+    if (strlen(pszHexString) > 10)
+    {
+        dwError = RegMapErrnoToLwRegError(ERANGE);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
+    /*
+     * Explicitly set errno to 0 here. When previous value entered
+     * was a legitimate overflow (e.g 4294967297), errno is set.
+     * Now ULONG_MAX (4294967295) is entered. errno is not set, because
+     * no error occurred, but errno is still the value from the previous
+     * error, and the legitimate ULONG_MAX value is flagged as an error.
+     */
+    errno = 0;
+    dwValue = strtoul(pszHexString, &pszEndValue, dwBase);
+    dwErrno = errno;
+    if (pszEndValue && *pszEndValue)
+    {
+        /* Trap an invalid character was present in the string number value */
+        dwError = RegMapErrnoToLwRegError(EINVAL);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    if (dwValue == ULONG_MAX && dwErrno == ERANGE)
+    {
+        dwError = RegMapErrnoToLwRegError(dwErrno);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+    dwError = RegAllocateMemory(sizeof(DWORD), (PVOID*)&pdwValue);
+    BAIL_ON_REG_ERROR(dwError);
+
+    *pdwValue = dwValue;
+    *ppBinaryValue = (PUCHAR) pdwValue;
+    *pBinaryValueLen = sizeof(DWORD);
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
 
 
 DWORD
@@ -724,9 +794,7 @@ RegShellCmdParseValueName(
     DWORD argCount = 0;
     DWORD i = 0;
     DWORD binaryValueLen = 0;
-    DWORD dwValue = 0;
     DWORD argIndx = 2;
-    DWORD dwOffset = 0;
     BOOLEAN bFullPath = FALSE;
     PSTR pszValue = NULL;
     PSTR pszType = NULL;
@@ -816,6 +884,12 @@ RegShellCmdParseValueName(
     switch (pCmdItem->type)
     {
         case REG_BINARY:
+            if (argCount == 0)
+            {
+                dwError = LWREG_ERROR_INVALID_CONTEXT;
+                goto error;
+            }
+            break;
         case REG_DWORD:
             if (argCount != 1)
             {
@@ -860,26 +934,11 @@ RegShellCmdParseValueName(
     {
         case REG_DWORD:
 
-            dwError = RegShellImportBinaryString(
+            dwError = RegShellImportDwordString(
                             pCmdItem->args[0],
                             &binaryValue,
                             &binaryValueLen);
             BAIL_ON_REG_ERROR(dwError);
-
-            if (binaryValueLen > sizeof(DWORD))
-            {
-                dwError = LWREG_ERROR_INVALID_CONTEXT;
-                goto error;
-            }
-            if (binaryValueLen < sizeof(DWORD))
-            {
-                dwOffset = sizeof(DWORD) - binaryValueLen;
-                memmove(binaryValue+dwOffset, binaryValue, binaryValueLen);
-                memset(binaryValue, 0, dwOffset);
-            }
-            memcpy(&dwValue, binaryValue, sizeof(DWORD));
-            dwValue = LW_BTOH32(dwValue);
-            memcpy(binaryValue, &dwValue, sizeof(DWORD));
 
             pCmdItem->binaryValue = binaryValue;
             pCmdItem->binaryValueLen = sizeof(DWORD);
@@ -1748,26 +1807,6 @@ RegShellCmdlineParseToArgv(
                             state = REGSHELL_CMDLINE_STATE_ADDVALUE_STOP;
                         }
                     }
-                    else if (token == REGLEX_REG_SZ ||
-                             token == REGLEX_PLAIN_TEXT)
-                    {
-                        RegLexGetAttribute(pParseState->lexHandle,
-                                           &attrSize,
-                                           &pszAttr);
-                        dwError = RegCStringDuplicate(&pszArgv[dwArgc++], pszAttr);
-                        BAIL_ON_REG_ERROR(dwError);
-                        if (dwArgc >= dwAllocSize)
-                        {
-                            dwAllocSize *= 2;
-                            dwError = RegReallocMemory(
-                                          pszArgv,
-                                          (LW_PVOID) &pszArgvRealloc,
-                                          dwAllocSize * sizeof(PSTR *));
-                            BAIL_ON_REG_ERROR(dwError);
-                            pszArgv = pszArgvRealloc;
-                            pszArgvRealloc = NULL;
-                        }
-                    }
                     else if (valueType == REG_BINARY || valueType == REG_DWORD)
                     {
                         dwError = RegCStringDuplicate(
@@ -1788,6 +1827,26 @@ RegShellCmdlineParseToArgv(
                          */
                         stop = TRUE;
                         RegLexResetToken(pParseState->lexHandle);
+                    }
+                    else if (token == REGLEX_REG_SZ ||
+                             token == REGLEX_PLAIN_TEXT)
+                    {
+                        RegLexGetAttribute(pParseState->lexHandle,
+                                           &attrSize,
+                                           &pszAttr);
+                        dwError = RegCStringDuplicate(&pszArgv[dwArgc++], pszAttr);
+                        BAIL_ON_REG_ERROR(dwError);
+                        if (dwArgc >= dwAllocSize)
+                        {
+                            dwAllocSize *= 2;
+                            dwError = RegReallocMemory(
+                                          pszArgv,
+                                          (LW_PVOID) &pszArgvRealloc,
+                                          dwAllocSize * sizeof(PSTR *));
+                            BAIL_ON_REG_ERROR(dwError);
+                            pszArgv = pszArgvRealloc;
+                            pszArgvRealloc = NULL;
+                        }
                     }
                     else
                     {

@@ -475,7 +475,7 @@ RegShellListValues(
                 continue;
             }
             dwValuesListed++;
-            printf("  %s%*s",
+            printf("  \"%s\"%*s",
                    pszValueName,
                    (int) (strlen(pszValueName)-dwValueNameLenMax),
                    "");
@@ -510,23 +510,34 @@ RegShellListValues(
                                   pValues[i].dwDataLen,
                                   &ppszMultiStrArray);
                     BAIL_ON_REG_ERROR(dwError);
-                    for (dwMultiIndex=0;
-                         ppszMultiStrArray[dwMultiIndex];
-                         dwMultiIndex++)
+                    if (!ppszMultiStrArray[0])
                     {
-                        dwError = RegShellUtilEscapeString(
-                                      ppszMultiStrArray[dwMultiIndex],
-                                      &pszEscapedValue,
-                                      &dwEscapedValueLen);
-                        BAIL_ON_REG_ERROR(dwError);
-                        printf("%*sREG_MULTI_SZ[%d] \"%s\"\n",
+                        /* Just print the type for a reg_multi_sz with no values */
+                        printf("%*sREG_MULTI_SZ\n",
                                dwMultiIndex == 0 ? 0 :
                                    dwValueNameLenMax + 2,
-                                   "",
-                               dwMultiIndex,
-                               pszEscapedValue);
-                        LWREG_SAFE_FREE_MEMORY(pszEscapedValue);
+                                   "");
+                    }
+                    else
+                    {
+                        for (dwMultiIndex=0;
+                             ppszMultiStrArray[dwMultiIndex];
+                             dwMultiIndex++)
+                        {
+                            dwError = RegShellUtilEscapeString(
+                                          ppszMultiStrArray[dwMultiIndex],
+                                          &pszEscapedValue,
+                                          &dwEscapedValueLen);
+                            BAIL_ON_REG_ERROR(dwError);
+                            printf("%*sREG_MULTI_SZ[%d] \"%s\"\n",
+                                   dwMultiIndex == 0 ? 0 :
+                                       dwValueNameLenMax + 4,
+                                       "",
+                                   dwMultiIndex,
+                                   pszEscapedValue);
+                            LWREG_SAFE_FREE_MEMORY(pszEscapedValue);
 
+                        }
                     }
                     break;
 
