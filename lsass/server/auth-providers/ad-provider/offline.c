@@ -927,7 +927,8 @@ AD_OfflineQueryMemberOfForSid(
 
     for (dwIndex = 0; dwIndex < sMembershipCount; dwIndex++)
     {
-        if (ppMemberships[dwIndex]->pszParentSid)
+        if (ppMemberships[dwIndex]->pszParentSid &&
+            !LsaHashExists(pGroupHash, ppMemberships[dwIndex]->pszParentSid))
         {
             dwError = LwAllocateString(
                 ppMemberships[dwIndex]->pszParentSid,
