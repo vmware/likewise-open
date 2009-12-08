@@ -93,6 +93,8 @@ NTSTATUS SamrSrvGetAliasMembership(
     DWORD dwEntriesNum = 0;
     PDIRECTORY_ENTRY pLocalGroupEntries = NULL;
     DWORD dwLocalGroupsNum = 0;
+    PDIRECTORY_ENTRY pLocalGroupEntry = NULL;
+    PWSTR pwszLocalGroupSid = NULL;
     PWSTR pwszDn = NULL;
     DWORD dwSidCount = 0;
     Ids Rids = {0};
@@ -198,20 +200,24 @@ NTSTATUS SamrSrvGetAliasMembership(
 
         for (iGroup = 0; iGroup < dwLocalGroupsNum; iGroup++)
         {
+            pLocalGroupEntry = &(pLocalGroupEntries[iGroup]);
+
             dwError = DirectoryGetEntryAttrValueByName(
-                                  pLocalGroupEntries,
+                                  pLocalGroupEntry,
                                   wszAttrObjectSid,
                                   DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-                                  &pwszSid);
+                                  &pwszLocalGroupSid);
             BAIL_ON_LSA_ERROR(dwError);
 
-            if (pwszSid == NULL)
+            if (pwszLocalGroupSid == NULL)
             {
                 ntStatus = STATUS_INTERNAL_ERROR;
                 BAIL_ON_NTSTATUS_ERROR(ntStatus);
             }
 
-            ntStatus = RtlAllocateSidFromWC16String(&pSid, pwszSid);
+            ntStatus = RtlAllocateSidFromWC16String(
+                                  &pSid,
+                                  pwszLocalGroupSid);
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
             if (RtlIsPrefixSid(pDomCtx->pDomainSid, pSid))
@@ -219,12 +225,19 @@ NTSTATUS SamrSrvGetAliasMembership(
                 dwError = LsaDLinkedListAppend(&pSidList, pSid);
                 BAIL_ON_LSA_ERROR(dwError);
             }
+            else
+            {
+                RTL_FREE(&pSid);
+            }
+
+            pwszLocalGroupSid = NULL;
         }
 
         if (pLocalGroupEntries)
         {
             DirectoryFreeEntries(pLocalGroupEntries,
                                  dwLocalGroupsNum);
+            pLocalGroupEntries = NULL;
         }
     }
 
@@ -235,6 +248,9 @@ NTSTATUS SamrSrvGetAliasMembership(
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     LsaDLinkedListForEach(pSidList, SetRidsArray, (PVOID)&Rids);
+
+    pRids->count = Rids.count;
+    pRids->ids   = Rids.ids;
 
 cleanup:
     if (pEntry)
@@ -263,6 +279,9 @@ cleanup:
     return ntStatus;
 
 error:
+    pRids->count = 0;
+    pRids->ids   = NULL;
+
     goto cleanup;
 }
 
