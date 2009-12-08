@@ -2165,7 +2165,7 @@ LocalDirAddUser_0(
 
     attrValues[LOCAL_DAU0_IDX_SHELL].data.pwszStringValue = pwszShell;
 
-    attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue = 0;
+    attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue = LOCAL_ACB_NORMAL;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszPasswd))
     {
