@@ -408,6 +408,13 @@ SamrSrvGetSystemCreds(
     );
 
 
+NTSTATUS
+SamrSrvRenameAccount(
+    IN  ACCOUNT_HANDLE  hAccount,
+    IN  UnicodeString  *pAccountName
+    );
+
+
 #endif /* _SAMR_H_ */
 
 

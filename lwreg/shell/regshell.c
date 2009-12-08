@@ -539,6 +539,8 @@ RegShellListValues(
 
                         }
                     }
+                    RegFreeMultiStrsA(ppszMultiStrArray);
+                    ppszMultiStrArray = NULL;
                     break;
 
                 default:
@@ -549,6 +551,7 @@ RegShellListValues(
     }
 cleanup:
     LWREG_SAFE_FREE_MEMORY(pszEscapedValue);
+    RegFreeMultiStrsA(ppszMultiStrArray);
     RegShellUtilValueArrayFree(pValues, dwValuesLen);
     if (pdwValuesListed)
     {
@@ -689,7 +692,8 @@ RegShellProcessCmd(
                     if (pParseState->pszDefaultKey)
                     {
                         LWREG_SAFE_FREE_MEMORY(pParseState->pszDefaultKey);
-                        return 0;
+                        dwError = 0;
+                        goto cleanup;
                     }
                     LWREG_SAFE_FREE_MEMORY(pParseState->pszDefaultRootKeyName);
                 }
@@ -2011,7 +2015,8 @@ int main(int argc, char *argv[])
                 if (!readFP)
                 {
                     fprintf(stderr, "Error opening file '%s'\n", pszInFile);
-                    return 0;
+                    dwError = RegMapErrnoToLwRegError(errno);
+                    BAIL_ON_REG_ERROR(dwError);
                 }
             }
             dwError = RegShellProcessInteractive(readFP, parseState);
@@ -2020,19 +2025,22 @@ int main(int argc, char *argv[])
             {
                 fclose(readFP);
             }
-            return 0;
+            dwError = 0;
+            goto cleanup;
         }
         else if (strcmp(argv[indx], "--help") == 0 ||
             strcmp(argv[indx], "-h") == 0)
         {
             RegShellUsage(argv[0]);
-            return 0;
+            dwError = 0;
+            goto cleanup;
         }
         else if (argv[indx][0] == '-')
         {
             printf("ERROR: unknown option %s\n", argv[indx]);
             RegShellUsage(argv[0]);
-            return 0;
+            dwError = 0;
+            goto cleanup;
         }
     }
 

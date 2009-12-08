@@ -120,7 +120,6 @@ SamrSrvSetUserInfo(
     PACCOUNT_CONTEXT pAcctCtx = NULL;
     HANDLE hDirectory = NULL;
     PWSTR pwszAccountDn = NULL;
-    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
     WCHAR wszAttrPrimaryGroup[] = DS_ATTR_PRIMARY_GROUP;
     WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
@@ -141,8 +140,7 @@ SamrSrvSetUserInfo(
     DWORD i = 0;
 
     enum AttrValueIndex {
-        ATTR_VAL_IDX_SAM_ACCOUNT_NAME = 0,
-        ATTR_VAL_IDX_FULL_NAME,
+        ATTR_VAL_IDX_FULL_NAME = 0,
         ATTR_VAL_IDX_PRIMARY_GROUP,
         ATTR_VAL_IDX_HOME_DIRECTORY,
         ATTR_VAL_IDX_HOME_DRIVE,
@@ -163,10 +161,6 @@ SamrSrvSetUserInfo(
     };
 
     ATTRIBUTE_VALUE AttrValues[] = {
-        {   /* ATTR_VAL_IDX_SAM_ACCOUNT_NAME */
-            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
-            .data.pwszStringValue = NULL
-        },
         {   /* ATTR_VAL_IDX_FULL_NAME */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
@@ -235,13 +229,6 @@ SamrSrvSetUserInfo(
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         }
-    };
-
-    DIRECTORY_MOD ModSamAccountName = {
-        DIR_MOD_FLAGS_REPLACE,
-        wszAttrSamAccountName,
-        1,
-        &AttrValues[ATTR_VAL_IDX_SAM_ACCOUNT_NAME]
     };
 
     DIRECTORY_MOD ModFullName = {
@@ -379,21 +366,39 @@ SamrSrvSetUserInfo(
     hDirectory    = pConnCtx->hDirectory;
     pwszAccountDn = pAcctCtx->pwszDn;
 
+    /*
+     * Check if there's an account rename pending
+     */
+    if (level == 6)
+    {
+        ntStatus = SamrSrvRenameAccount(hUser,
+                                        &pInfo->info6.account_name);
+    }
+    else if (level == 7)
+    {
+        ntStatus = SamrSrvRenameAccount(hUser,
+                                        &pInfo->info7.account_name);
+
+        /* No further modification of user account is needed */
+        goto cleanup;
+    }
+    else if (level == 21 &&
+             pInfo->info21.fields_present & SAMR_FIELD_ACCOUNT_NAME)
+    {
+        ntStatus = SamrSrvRenameAccount(hUser,
+                                        &pInfo->info21.account_name);
+    }
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    /*
+     * Now update the other fields
+     */
     switch (level)
     {
     case 6:
-        SET_UNICODE_STRING_VALUE(pInfo->info6.account_name,
-                                 ATTR_VAL_IDX_SAM_ACCOUNT_NAME,
-                                 ModSamAccountName);
         SET_UNICODE_STRING_VALUE(pInfo->info6.full_name,
                                  ATTR_VAL_IDX_FULL_NAME,
                                  ModFullName);
-        break;
-
-    case 7:
-        SET_UNICODE_STRING_VALUE(pInfo->info7.account_name,
-                                 ATTR_VAL_IDX_SAM_ACCOUNT_NAME,
-                                 ModSamAccountName);
         break;
 
     case 8:
@@ -472,10 +477,6 @@ SamrSrvSetUserInfo(
                                  SAMR_FIELD_FORCE_PWD_CHANGE,
                                  ATTR_VAL_IDX_FORCE_PASSWORD_CHANGE,
                                  ModForcePasswordChange);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, account_name,
-                                         SAMR_FIELD_ACCOUNT_NAME,
-                                         ATTR_VAL_IDX_SAM_ACCOUNT_NAME,
-                                         ModSamAccountName);
         SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, full_name,
                                          SAMR_FIELD_FULL_NAME,
                                          ATTR_VAL_IDX_FULL_NAME,
@@ -545,7 +546,7 @@ SamrSrvSetUserInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    for (i = ATTR_VAL_IDX_SAM_ACCOUNT_NAME;
+    for (i = ATTR_VAL_IDX_FULL_NAME;
          i < ATTR_VAL_IDX_SENTINEL;
          i++)
     {

@@ -440,6 +440,11 @@ cleanup:
         RegCloseKey(hReg, pRootKey);
     }
     LWREG_SAFE_FREE_MEMORY(pwszSubKey);
+
+    LWREG_SAFE_FREE_STRING(pszFullPath);
+    LWREG_SAFE_FREE_STRING(pszParentPath);
+    LWREG_SAFE_FREE_STRING(pszSubKey);
+
     return dwError;
 
 error:
@@ -526,6 +531,9 @@ cleanup:
         RegCloseKey(hReg, pRootKey);
     }
     LWREG_SAFE_FREE_MEMORY(pwszSubKey);
+    LWREG_SAFE_FREE_STRING(pszFullPath);
+    LWREG_SAFE_FREE_STRING(pszParentPath);
+    LWREG_SAFE_FREE_STRING(pszSubKey);
     return dwError;
 
 error:
@@ -816,6 +824,7 @@ cleanup:
     {
         RegCloseKey(hReg, pRootKey);
     }
+    LWREG_SAFE_FREE_STRING(pszParentPath);
     return dwError;
 
 error:

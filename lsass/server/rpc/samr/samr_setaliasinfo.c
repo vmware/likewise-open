@@ -76,13 +76,11 @@ SamrSrvSetAliasInfo(
     PACCOUNT_CONTEXT pAcctCtx = NULL;
     HANDLE hDirectory = NULL;
     PWSTR pwszAccountDn = NULL;
-    WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrDescription[] = DS_ATTR_DESCRIPTION;
     DWORD i = 0;
 
     enum AttrValueIndex {
-        ATTR_VAL_IDX_SAM_ACCOUNT_NAME = 0,
-        ATTR_VAL_IDX_DESCRIPTION,
+        ATTR_VAL_IDX_DESCRIPTION = 0,
         ATTR_VAL_IDX_SENTINEL
     };
 
@@ -95,13 +93,6 @@ SamrSrvSetAliasInfo(
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         }
-    };
-
-    DIRECTORY_MOD ModSamAccountName = {
-        DIR_MOD_FLAGS_REPLACE,
-        wszAttrSamAccountName,
-        1,
-        &AttrValues[ATTR_VAL_IDX_SAM_ACCOUNT_NAME]
     };
 
     DIRECTORY_MOD ModDescription = {
@@ -134,11 +125,12 @@ SamrSrvSetAliasInfo(
         break;
 
     case ALIAS_INFO_NAME:
-        SET_UNICODE_STRING_VALUE(pInfo->name,
-                                 ATTR_VAL_IDX_SAM_ACCOUNT_NAME,
-                                 ModSamAccountName);
+        ntStatus = SamrSrvRenameAccount(hAlias,
+                                        &pInfo->name);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        break;
+        goto cleanup;
+
     case ALIAS_INFO_DESCRIPTION:
         SET_UNICODE_STRING_VALUE(pInfo->description,
                                  ATTR_VAL_IDX_DESCRIPTION,

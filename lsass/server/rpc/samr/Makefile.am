@@ -34,6 +34,7 @@ libsamr_la_SOURCES = \
     samr_enumdomainusers.c       \
     samr_enumdomainaliases.c     \
     samr_queryuserinfo.c         \
+    samr_renameaccount.c         \
     samr_setuserinfo.c           \
     samr_queryaliasinfo.c        \
     samr_setaliasinfo.c          \
