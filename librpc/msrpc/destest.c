@@ -29,8 +29,8 @@
  */
 
 #include <stdio.h>
-
 #include <lwrpc/types.h>
+#include <des.h>
 
 
 void printhex(const char* name, unsigned char *b, size_t len)

@@ -147,6 +147,9 @@ lsassd_main(
     dwError = LWNetExtendEnvironmentForKrb5Affinity(FALSE);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LsaBlockSelectedSignals();
+    BAIL_ON_LSA_ERROR(dwError);
+
     // Test system to see if dependent configuration tasks are completed prior to starting our process.
     dwError = LsaSrvStartupPreCheck();
     BAIL_ON_LSA_ERROR(dwError);
@@ -154,9 +157,6 @@ lsassd_main(
 #ifdef ENABLE_PIDFILE
     LsaSrvCreatePIDFile();
 #endif
-
-    dwError = LsaBlockSelectedSignals();
-    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwDsCacheAddPidException(getpid());
     if (dwError == LW_ERROR_FAILED_STARTUP_PREREQUISITE_CHECK)

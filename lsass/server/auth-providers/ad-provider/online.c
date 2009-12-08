@@ -5037,8 +5037,13 @@ AD_OnlineQueryMemberOfForSid(
     {
         for (dwIndex = 0; dwIndex < sMembershipCount; dwIndex++)
         {
-            if (ppMemberships[dwIndex]->pszParentSid)
+            if (ppMemberships[dwIndex]->pszParentSid &&
+                !LsaHashExists(pGroupHash, ppMemberships[dwIndex]->pszParentSid) &&
+                (ppMemberships[dwIndex]->bIsInPac ||
+                 ppMemberships[dwIndex]->bIsDomainPrimaryGroup ||
+                 bUseCache))
             {
+
                 dwError = LwAllocateString(
                     ppMemberships[dwIndex]->pszParentSid,
                     &pszGroupSid);
@@ -5062,21 +5067,24 @@ AD_OnlineQueryMemberOfForSid(
     {
         for (dwIndex = 0; dwIndex < sResultsCount; dwIndex++)
         {
-            dwError = LwAllocateString(
-                ppResults[dwIndex]->pszObjectSid,
-                &pszGroupSid);
-            BAIL_ON_LSA_ERROR(dwError);
+            if (!LsaHashExists(pGroupHash, ppResults[dwIndex]->pszObjectSid))
+            {
+                dwError = LwAllocateString(
+                    ppResults[dwIndex]->pszObjectSid,
+                    &pszGroupSid);
+                BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = LsaHashSetValue(pGroupHash, pszGroupSid, pszGroupSid);
-            BAIL_ON_LSA_ERROR(dwError);
+                dwError = LsaHashSetValue(pGroupHash, pszGroupSid, pszGroupSid);
+                BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = AD_OnlineQueryMemberOfForSid(
-                hProvider,
-                FindFlags,
-                pszGroupSid,
-                pGroupHash);
-            pszGroupSid = NULL;
-            BAIL_ON_LSA_ERROR(dwError);
+                dwError = AD_OnlineQueryMemberOfForSid(
+                    hProvider,
+                    FindFlags,
+                    pszGroupSid,
+                    pGroupHash);
+                pszGroupSid = NULL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
         }
     }
 

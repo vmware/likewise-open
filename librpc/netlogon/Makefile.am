@@ -1,11 +1,9 @@
-AM_CPPFLAGS = -I$(top_srcdir)/include
-
-librpc_srcdir=$(top_srcdir)
-idl_srcdir=$(top_srcdir)/idl
+librpc_srcdir = $(top_srcdir)
+idl_srcdir = $(top_srcdir)/idl
 
 noinst_LTLIBRARIES = libnetlogon_cs.la libnetlogon.la
 
-libnetlogon_la_SOURCES = \
+libnetlogon_la_SOURCES =              \
     globals.c                         \
     netr_binding.c                    \
     netr_memory.c                     \
@@ -26,31 +24,48 @@ libnetlogon_la_SOURCES = \
 
 libnetlogon_cs_la_SOURCES = netlogon_cstub.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/include
-LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
-INCLUDES =                  \
-    $(LWBASE_INCLUDES)      \
-    $(LWADVAPI_INCLUDES)    \
-    $(DCERPC_INCLUDES)      \
-    $(UNISTR_INCLUDES)      \
-    $(LIBRPC_INCLUDES)
+libnetlogon_cs_la_CPPFLAGS =    \
+    $(AM_CPPFLAGS)              \
+    $(LWBASE_INCLUDES)          \
+    $(LWADVAPI_INCLUDES)        \
+    $(DCERPC_INCLUDES)          \
+    -I$(librpc_srcdir)/include
 
-FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
+libnetlogon_cs_la_CFLAGS =      \
+    $(AM_CFLAGS)                \
+    -DDCERPC_STUB_BUILD
 
-libnetlogon_cs_la_CPPFLAGS = $(AM_CPPFLAGS) $(FEATURETEST_FLAGS)
-libnetlogon_cs_la_CFLAGS = \
-    -DDCERPC_STUB_BUILD \
-    $(FEATURETEST_FLAGS)
+libnetlogon_la_CPPFLAGS =       \
+    $(AM_CPPFLAGS)              \
+    $(LWBASE_INCLUDES)          \
+    $(LWADVAPI_INCLUDES)        \
+    $(DCERPC_INCLUDES)          \
+    $(LIBUNISTR_INCLUDES)       \
+    -I$(librpc_srcdir)/include
 
-libnetlogon_la_CFLAGS = -g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
-libnetlogon_la_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
-libnetlogon_la_LIBADD = \
-    -ldcerpc -lunistr -llwbase \
+libnetlogon_la_CFLAGS =         \
+    $(AM_CFLAGS)                \
+    -DLIBRPC_BUILD
+
+libnetlogon_la_LDFLAGS =   \
+    $(AM_LDFLAGS)          \
+    $(LWBASE_LDFLAGS)      \
+    $(LWADVAPI_LDFLAGS)    \
+    $(DCERPC_LDFLAGS)      \
+    $(LIBUNISTR_LDFLAGS)
+
+libnetlogon_la_LIBADD =    \
+    $(LWBASE_LIBS)         \
+    $(LWADVAPI_LIBS)       \
+    $(DCERPC_LIBS)         \
+    $(LIBUNISTR_LIBS)      \
     libnetlogon_cs.la
 
 CLEANFILES = netlogon_h.h netlogon_cstub.c netlogon_sstub.c
 
 BUILT_SOURCES = netlogon_h.h
+
+LIBRPC_INCLUDES = -I$(librpc_srcdir)/include
 
 netlogon_cstub.c netlogon_h.h: $(idl_srcdir)/netlogon.idl
 	$(IDL) $(IDLFLAGS) -keep c_source -header netlogon_h.h \

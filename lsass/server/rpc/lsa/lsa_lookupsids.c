@@ -76,7 +76,7 @@ LsaSrvLookupSids(
 
     pNames->count = Names.count;
     ntStatus = LsaSrvAllocateMemory(OUT_PPVOID(&pNames->names),
-                                    sizeof(pNames->names[0]) * (*count));
+                                    sizeof(pNames->names[0]) * dwCount);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < pNames->count; i++)

@@ -473,7 +473,7 @@ NetAllocateUserInfo1(
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   &pSamrInfo21->comment,
+                                   &pSamrInfo21->description,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -573,11 +573,11 @@ NetAllocateUserInfo2(
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
-    /* usri2_usr_comment: SKIP */
+    /* usri2_usr_comment */
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   NULL,
+                                   &pSamrInfo21->comment,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -932,15 +932,15 @@ NetAllocateUserInfo10(
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   &pSamrInfo21->comment,
+                                   &pSamrInfo21->description,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
-    /* usri10_usr_comment: SKIP */
+    /* usri10_usr_comment */
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   NULL,
+                                   &pSamrInfo21->comment,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -1217,7 +1217,7 @@ NetAllocateUserInfo20(
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   &pSamrInfo21->comment,
+                                   &pSamrInfo21->description,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -1310,7 +1310,7 @@ NetAllocateUserInfo23(
     err = NetAllocBufferWC16StringFromUnicodeString(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   &pSamrInfo21->comment,
+                                   &pSamrInfo21->description,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
@@ -1751,13 +1751,16 @@ NetAllocateSamrUserInfo21FromUserInfo1(
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
-    /* description: SKIP */
+    /* description */
     err = NetAllocBufferUnicodeStringFromWC16String(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   NULL,
+                                   pUserInfo1->usri1_comment,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    SAMR_FIELD_PRESENT(pUserInfo1->usri1_comment,
+                       SAMR_FIELD_DESCRIPTION);
 
     /* workstations: SKIP */
     err = NetAllocBufferUnicodeStringFromWC16String(
@@ -1771,12 +1774,9 @@ NetAllocateSamrUserInfo21FromUserInfo1(
     err = NetAllocBufferUnicodeStringFromWC16String(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   pUserInfo1->usri1_comment,
+                                   NULL,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
-
-    SAMR_FIELD_PRESENT(pUserInfo1->usri1_comment,
-                       SAMR_FIELD_COMMENT);
 
     /* parameters: SKIP */
     err = NetAllocBufferUnicodeStringFromWC16String(
@@ -2413,13 +2413,16 @@ NetAllocateSamrUserInfo21FromUserInfo3(
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
-    /* description: SKIP */
+    /* description */
     err = NetAllocBufferUnicodeStringFromWC16String(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   NULL,
+                                   pUserInfo3->usri3_comment,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    SAMR_FIELD_PRESENT(pUserInfo3->usri3_comment,
+                       SAMR_FIELD_DESCRIPTION);
 
     /* workstations */
     err = NetAllocBufferUnicodeStringFromWC16String(
@@ -2433,11 +2436,11 @@ NetAllocateSamrUserInfo21FromUserInfo3(
     err = NetAllocBufferUnicodeStringFromWC16String(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   pUserInfo3->usri3_comment,
+                                   pUserInfo3->usri3_usr_comment,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
-    SAMR_FIELD_PRESENT(pUserInfo3->usri3_comment,
+    SAMR_FIELD_PRESENT(pUserInfo3->usri3_usr_comment,
                        SAMR_FIELD_COMMENT);
 
     /* parameters */
@@ -2744,13 +2747,16 @@ NetAllocateSamrUserInfo21FromUserInfo4(
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
-    /* description: SKIP */
+    /* description */
     err = NetAllocBufferUnicodeStringFromWC16String(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   NULL,
+                                   pUserInfo4->usri4_comment,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
+
+    SAMR_FIELD_PRESENT(pUserInfo4->usri4_comment,
+                       SAMR_FIELD_DESCRIPTION);
 
     /* workstations */
     err = NetAllocBufferUnicodeStringFromWC16String(
@@ -2764,11 +2770,11 @@ NetAllocateSamrUserInfo21FromUserInfo4(
     err = NetAllocBufferUnicodeStringFromWC16String(
                                    &pCursor,
                                    &dwSpaceLeft,
-                                   pUserInfo4->usri4_comment,
+                                   pUserInfo4->usri4_usr_comment,
                                    &dwSize);
     BAIL_ON_WINERR_ERROR(err);
 
-    SAMR_FIELD_PRESENT(pUserInfo4->usri4_comment,
+    SAMR_FIELD_PRESENT(pUserInfo4->usri4_usr_comment,
                        SAMR_FIELD_COMMENT);
 
     /* parameters */
