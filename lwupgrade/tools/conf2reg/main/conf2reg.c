@@ -202,14 +202,14 @@ PrintUsage(
 {
     fputs(
 "conf2reg: Convert Likewise daemon configuration file into\n"
-"          registry import file.                          \n"
+"          registry import file. Also, import old databases.    \n"
 "\n"
 "--lsass CONF REG\n"
-"  Convert lsassd 5.x configuration file to registry\n"
+"  Convert lsass 5.x configuration file to registry\n"
 "  import file.\n"
 "\n"
 "--lwio CONF REG\n"
-"  Convert lwiod 5.x configuration file to registry import\n"
+"  Convert lwio 5.x configuration file to registry import\n"
 "  file.\n"
 "\n"
 "--netlogon CONF REG\n"
@@ -227,7 +227,7 @@ PrintUsage(
 "\n"
 "--pstore-sqlite SQLDB\n"
 "  Import machine account stored in sqlite database\n"
-"  into pstore.\n"
+"  (as used in versions 5.0 through 5.3) into pstore.\n"
 
 , stderr);
 
