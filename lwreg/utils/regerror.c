@@ -351,6 +351,7 @@ RegPrintError(
                     pszErrorString);
         }
     }
+    LWREG_SAFE_FREE_STRING(pszErrorString);
 }
 
 DWORD

@@ -681,6 +681,10 @@ RegFreeMultiStrsA(
 {
     SSIZE_T idx = 0;
 
+    if (!ppszStrings)
+    {
+        return;
+    }
     while (ppszStrings[idx])
     {
         LwRtlMemoryFree(ppszStrings[idx++]);

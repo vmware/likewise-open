@@ -258,16 +258,18 @@ RegShellCmdParseFree(
     PREGSHELL_CMD_ITEM pCmdItem)
 {
     DWORD dwError = 0;
+    DWORD i = 0;
     BAIL_ON_INVALID_POINTER(pCmdItem);
 
     LWREG_SAFE_FREE_MEMORY(pCmdItem->keyName);
-    pCmdItem->keyName = NULL;
-
     LWREG_SAFE_FREE_MEMORY(pCmdItem->valueName);
-    pCmdItem->valueName = NULL;
-
     LWREG_SAFE_FREE_MEMORY(pCmdItem->binaryValue);
-    pCmdItem->binaryValue = NULL;
+
+    for (i=0; i<pCmdItem->argsCount; i++)
+    {
+        LWREG_SAFE_FREE_MEMORY(pCmdItem->args[i]);
+    }
+    LWREG_SAFE_FREE_MEMORY(pCmdItem->args);
     LWREG_SAFE_FREE_MEMORY(pCmdItem);
 
 cleanup:
@@ -995,24 +997,10 @@ cleanup:
     LWREG_SAFE_FREE_STRING(pszString);
     LWREG_SAFE_FREE_MEMORY(binaryValue);
     LWREG_SAFE_FREE_MEMORY(multiString);
+    RegShellCmdParseFree(pCmdItem);
     return dwError;
 
 error:
-    if (pCmdItem)
-    {
-        if (pCmdItem->args)
-        {
-            for (i=pCmdItem->argsCount = argCount; pCmdItem->args[i]; i++)
-            {
-                LWREG_SAFE_FREE_STRING(pCmdItem->args[i]);
-            }
-            LWREG_SAFE_FREE_MEMORY(pCmdItem->args);
-        }
-        LWREG_SAFE_FREE_MEMORY(pCmdItem->binaryValue);
-        LWREG_SAFE_FREE_STRING(pCmdItem->keyName);
-        LWREG_SAFE_FREE_STRING(pCmdItem->valueName);
-    }
-    LWREG_SAFE_FREE_MEMORY(pCmdItem);
     goto cleanup;
 }
 
@@ -1942,6 +1930,7 @@ RegShellCmdlineParseToArgv(
 #endif
 
 cleanup:
+    RegShellCmdParseFree(pCmdItem);
     LWREG_SAFE_FREE_STRING(pszKeyName);
     if (dwError)
     {
