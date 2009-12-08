@@ -1,8 +1,5 @@
-AM_CPPFLAGS = -I$(top_srcdir)/include
-
-librpc_srcdir=$(top_srcdir)
-libmsrpc_srcdir=$(top_srcdir)/msrpc
-idl_srcdir=$(top_srcdir)/idl
+librpc_srcdir = $(top_srcdir)
+idl_srcdir = $(top_srcdir)/idl
 
 noinst_LTLIBRARIES = liblsa_cs.la liblsa.la
 
@@ -21,31 +18,44 @@ liblsa_la_SOURCES =         \
 
 liblsa_cs_la_SOURCES = lsa_cstub.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/include
-LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
-INCLUDES =                  \
-    $(LWBASE_INCLUDES)      \
-    $(LWADVAPI_INCLUDES)    \
-    $(DCERPC_INCLUDES)      \
-    $(UNISTR_INCLUDES)      \
-    $(LIBRPC_INCLUDES)
+liblsa_cs_la_CPPFLAGS =          \
+    $(AM_CPPFLAGS)               \
+    $(LWBASE_INCLUDES)           \
+    $(DCERPC_INCLUDES)           \
+    -I$(librpc_srcdir)/include
 
-FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
+liblsa_cs_la_CFLAGS =    \
+    $(AM_CFLAGS)         \
+    -DDCERPC_STUB_BUILD
 
-liblsa_cs_la_CPPFLAGS = $(AM_CPPFLAGS) $(FEATURETEST_FLAGS)
-liblsa_cs_la_CFLAGS = \
-    -DDCERPC_STUB_BUILD \
-    $(FEATURETEST_FLAGS)
+liblsa_la_CPPFLAGS =             \
+    $(AM_CPPFLAGS)               \
+    $(LWBASE_INCLUDES)           \
+    $(DCERPC_INCLUDES)           \
+    $(LIBUNISTR_INCLUDES)        \
+    -I$(librpc_srcdir)/include
 
-liblsa_la_CFLAGS=-g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
-liblsa_la_LDFLAGS=$(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
-liblsa_la_LIBADD= \
-    -ldcerpc -lunistr -llwbase \
+liblsa_la_CFLAGS =  \
+    $(AM_CFLAGS)    \
+    -DLIBRPC_BUILD
+
+liblsa_la_LDFLAGS =       \
+    $(AM_LDFLAGS)         \
+    $(LWBASE_LDFLAGS)     \
+    $(DCERPC_LDFLAGS)     \
+    $(LIBUNISTR_LDFLAGS)
+
+liblsa_la_LIBADD =     \
+    $(LWBASE_LIBS)     \
+    $(DCERPC_LIBS)     \
+    $(LIBUNISTR_LIBS)  \
     liblsa_cs.la
 
 CLEANFILES = lsa_h.h lsa_cstub.c lsa_sstub.c
 
 BUILT_SOURCES = lsa_h.h
+
+LIBRPC_INCLUDES = -I$(librpc_srcdir)/include
 
 lsa_cstub.c lsa_h.h: $(idl_srcdir)/lsa.idl lsa.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header lsa_h.h \

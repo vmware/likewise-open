@@ -1,8 +1,5 @@
-AM_CPPFLAGS = -I$(top_srcdir)/include
-
-librpc_srcdir=$(top_srcdir)
-libmsrpc_srcdir=$(top_srcdir)/msrpc
-idl_srcdir=$(top_srcdir)/idl
+librpc_srcdir = $(top_srcdir)
+idl_srcdir = $(top_srcdir)/idl
 
 noinst_LTLIBRARIES = libsamr_cs.la libsamr.la
 
@@ -51,31 +48,47 @@ libsamr_la_SOURCES =             \
 
 libsamr_cs_la_SOURCES = samr_cstub.c
 
-LIBRPC_INCDIR = $(librpc_srcdir)/include
-LIBRPC_INCLUDES = -I$(LIBRPC_INCDIR)
-INCLUDES =                  \
-    $(LWBASE_INCLUDES)      \
-    $(LWADVAPI_INCLUDES)    \
-    $(DCERPC_INCLUDES)      \
-    $(UNISTR_INCLUDES)      \
-    $(LIBRPC_INCLUDES)
+libsamr_cs_la_CPPFLAGS =       \
+    $(AM_CPPFLAGS)             \
+    $(LWBASE_INCLUDES)         \
+    $(DCERPC_INCLUDES)         \
+    -I$(librpc_srcdir)/include
 
-FEATURETEST_FLAGS="-D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_REENTRANT"
+libsamr_cs_la_CFLAGS =         \
+    $(AM_CFLAGS)               \
+    -DDCERPC_STUB_BUILD
 
-libsamr_cs_la_CPPFLAGS = $(AM_CPPFLAGS) $(FEATURETEST_FLAGS)
-libsamr_cs_la_CFLAGS = \
-    -DDCERPC_STUB_BUILD \
-    $(FEATURETEST_FLAGS)
+libsamr_la_CPPFLAGS =          \
+    $(AM_CPPFLAGS)             \
+    $(LWBASE_INCLUDES)         \
+    $(LWADVAPI_INCLUDES)       \
+    $(DCERPC_INCLUDES)         \
+    $(LIBUNISTR_INCLUDES)      \
+    -I$(librpc_srcdir)/include
 
-libsamr_la_CFLAGS = -g $(INCLUDES) -DLIBRPC_BUILD $(FEATURETEST_FLAGS) $(AM_CFLAGS)
-libsamr_la_LDFLAGS = $(DCERPC_LDFLAGS) $(UNISTR_LDFLAGS)
-libsamr_la_LIBADD = \
-    -ldcerpc -lunistr -llwbase \
+libsamr_la_CFLAGS = \
+    $(AM_CFLAGS)    \
+    -DLIBRPC_BUILD
+
+libsamr_la_LDFLAGS =     \
+    $(AM_LDFLAGS)        \
+    $(LWBASE_LIBS)       \
+    $(LWADVAPI_LIBS)     \
+    $(DCERPC_LDFLAGS)    \
+    $(LIBUNISTR_LDFLAGS)
+
+libsamr_la_LIBADD =      \
+    $(LWBASE_LIBS)       \
+    $(LWADVAPI_LIBS)     \
+    $(DCERPC_LIBS)       \
+    $(LIBUNISTR_LIBS)    \
     libsamr_cs.la
 
 CLEANFILES = samr_h.h samr_cstub.c samr_sstub.c
 
 BUILT_SOURCES = samr_h.h
+
+LIBRPC_INCLUDES = -I$(librpc_srcdir)/include
 
 samr_h.h samr_cstub.c: $(idl_srcdir)/samr.idl samr.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header samr_h.h \

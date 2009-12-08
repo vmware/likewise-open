@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <md5.h>
 
 void printdigest(unsigned char m[16])
 {
@@ -50,7 +51,7 @@ int main()
 	size_t len;
 
 	len = strlen(sample);
-	md5(md, sample, len);
+	md5(md, (const unsigned char*)sample, len);
 
 	printdigest(md);
 
