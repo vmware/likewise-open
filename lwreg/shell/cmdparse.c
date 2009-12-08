@@ -502,7 +502,7 @@ RegShellImportDwordString(
 
     BAIL_ON_INVALID_POINTER(pszHexString);
 
-    while (*pszHexString && isspace(*pszHexString))
+    while (*pszHexString && isspace((int) *pszHexString))
     {
         pszHexString++;
     }
