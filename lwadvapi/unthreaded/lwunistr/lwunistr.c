@@ -382,6 +382,7 @@ LwAllocateWc16StringFromUnicodeString(
 {
     DWORD dwError = ERROR_SUCCESS;
     PWSTR pwszString = NULL;
+    DWORD dwSize = 0;
 
     if (!ppOutputString ||
         !pInputString ||
@@ -391,11 +392,29 @@ LwAllocateWc16StringFromUnicodeString(
         BAIL_ON_LW_ERROR(dwError);
     }
 
-    dwError = LwAllocateMemory(sizeof(WCHAR) * pInputString->MaximumLength,
+    /*
+     * Correctly handle the case where windows (incorrectly) sets
+     * max length to the same value as length
+     */
+    if (pInputString->MaximumLength > pInputString->Length)
+    {
+        dwSize = pInputString->MaximumLength;
+    }
+    else if (pInputString->MaximumLength == pInputString->Length)
+    {
+        dwSize = pInputString->Length + sizeof(WCHAR);
+    }
+    else
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(dwSize,
                                OUT_PPVOID(&pwszString));
     BAIL_ON_LW_ERROR(dwError);
 
-    wc16sncpy(pwszString, pInputString->Buffer, pInputString->Length);
+    wc16sncpy(pwszString, pInputString->Buffer, pInputString->Length / 2);
 
     *ppOutputString = pwszString;
 
