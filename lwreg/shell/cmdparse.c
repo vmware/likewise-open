@@ -495,11 +495,10 @@ RegShellImportDwordString(
 {
     DWORD dwError = 0;
     DWORD dwBase = 10;
-    DWORD dwValue = 0;
     PDWORD pdwValue = NULL;
     PSTR pszEndValue = NULL;
     DWORD dwErrno = 0;
-
+    unsigned long int ulValue = 0;
 
     BAIL_ON_INVALID_POINTER(pszHexString);
 
@@ -531,7 +530,7 @@ RegShellImportDwordString(
      * error, and the legitimate ULONG_MAX value is flagged as an error.
      */
     errno = 0;
-    dwValue = strtoul(pszHexString, &pszEndValue, dwBase);
+    ulValue = strtoul(pszHexString, &pszEndValue, dwBase);
     dwErrno = errno;
     if (pszEndValue && *pszEndValue)
     {
@@ -539,15 +538,23 @@ RegShellImportDwordString(
         dwError = RegMapErrnoToLwRegError(EINVAL);
         BAIL_ON_REG_ERROR(dwError);
     }
-    if (dwValue == ULONG_MAX && dwErrno == ERANGE)
+    if (ulValue == ULONG_MAX && dwErrno == ERANGE)
     {
         dwError = RegMapErrnoToLwRegError(dwErrno);
         BAIL_ON_REG_ERROR(dwError);
     }
+
+    /* For 64-bit systems, catch overflow for DWORD (UINT32_MAX) */
+    if (ulValue > LW_MAXDWORD)
+    {
+        dwError = RegMapErrnoToLwRegError(ERANGE);
+        BAIL_ON_REG_ERROR(dwError);
+    }
+
     dwError = RegAllocateMemory(sizeof(DWORD), (PVOID*)&pdwValue);
     BAIL_ON_REG_ERROR(dwError);
 
-    *pdwValue = dwValue;
+    *pdwValue = (DWORD) ulValue;
     *ppBinaryValue = (PUCHAR) pdwValue;
     *pBinaryValueLen = sizeof(DWORD);
 
