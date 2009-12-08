@@ -63,8 +63,9 @@
 #define GSS_MECH_NTLM       "\x2b\x06\x01\x04\x01\x82\x37\x02\x02\x0a"
 #define GSS_MECH_NTLM_LEN   10
 
-#define GSS_CRED_OPT_PW     "\x2b\x06\x01\x01"
-#define GSS_CRED_OPT_PW_LEN 4
+/* 1.3.6.1.4.1.27433.3.1 */
+#define GSS_CRED_OPT_PW     "\x2b\x06\x01\x04\x01\x81\xd6\x29\x03\x01"
+#define GSS_CRED_OPT_PW_LEN 10
 
 #define GSS_C_QOP_DUMMY_SIG 1
 
