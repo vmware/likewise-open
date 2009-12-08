@@ -68,7 +68,7 @@ SamrSrvRenameAccount(
     size_t sParentDnLen = 0;
     DWORD dwNewDnLen = 0;
     PWSTR pwszNewDn = NULL;
-    DWORD sSamAccountNameLen = 0;
+    size_t sSamAccountNameLen = 0;
     PWSTR pwszSamAccountName = NULL;
     PWSTR pwszCommonName = NULL;
     DWORD i = 0;
