@@ -1684,7 +1684,11 @@ ADLdap_GetObjectGroupMembership(
         ppszLDAPValues = ppszTempLDAPValues;
 
         // Append the pszPrimaryGroupSID entry to the results list
-        ppszLDAPValues[dwSidCount] = pObject->userInfo.pszPrimaryGroupSid;
+        dwError = LwAllocateString(
+            pObject->userInfo.pszPrimaryGroupSid,
+            &ppszLDAPValues[dwSidCount]);
+        BAIL_ON_LSA_ERROR(dwError);
+
         dwSidCount++;
     }
 
