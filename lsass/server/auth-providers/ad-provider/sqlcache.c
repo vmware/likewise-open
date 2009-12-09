@@ -2436,7 +2436,7 @@ LsaDbQueryObjectMulti(
     )
 {
     DWORD dwError = 0;
-    const int nExpectedCols = 30; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
+    const int nExpectedCols = 31; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
     int iColumnPos = 0;
     PLSA_SECURITY_OBJECT pObject = NULL;
     int nGotColumns = 0;
@@ -2687,7 +2687,7 @@ LsaDbQueryObject(
     )
 {
     DWORD dwError = 0;
-    const int nExpectedCols = 30; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
+    const int nExpectedCols = 31; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
     int iColumnPos = 0;
     PLSA_SECURITY_OBJECT pObject = NULL;
     int nGotColumns = 0;
