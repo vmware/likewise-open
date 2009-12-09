@@ -49,7 +49,7 @@
 
 #define LSA_DB_TABLE_NAME_CACHE_TAGS       "lwicachetags"
 #define LSA_DB_TABLE_NAME_OBJECTS          "lwiobjects2"
-#define LSA_DB_TABLE_NAME_USERS            "lwiusers4"
+#define LSA_DB_TABLE_NAME_USERS            "lwiusers5"
 #define LSA_DB_TABLE_NAME_VERIFIERS        "lwipasswordverifiers"
 #define LSA_DB_TABLE_NAME_GROUPS           "lwigroups2"
 #define LSA_DB_TABLE_NAME_MEMBERSHIP       "lwigroupmembership2"
@@ -90,11 +90,14 @@
     "\n" \
     _LSA_DB_SQL_DROP_INDEX("lwiusers3", "UPN") \
     _LSA_DB_SQL_DROP_TABLE("lwiusers3") \
+    _LSA_DB_SQL_DROP_INDEX("lwiusers4", "UPN") \
+    _LSA_DB_SQL_DROP_TABLE("lwiusers4") \
     "\n" \
     _LSA_DB_SQL_CREATE_TABLE(LSA_DB_TABLE_NAME_USERS) "(\n" \
     "    ObjectSid text PRIMARY KEY,\n" \
     "    Uid integer,\n" \
     "    Gid integer,\n" \
+    "    PrimaryGroupSid text,\n" \
     "    UPN text COLLATE NOCASE,\n" \
     "    AliasName text COLLATE NOCASE,\n" \
     "    Passwd text,\n" \

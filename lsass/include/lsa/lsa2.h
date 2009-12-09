@@ -63,15 +63,10 @@ typedef struct __LSA_SECURITY_OBJECT_VERSION_INFO
 
 typedef struct _LSA_SECURITY_OBJECT_USER_INFO
 {
-    uid_t uid;
-    gid_t gid;
+    /* Windows-like attributes */
+    PSTR pszPrimaryGroupSid;
     PSTR pszUPN;
     PSTR pszAliasName;
-    PSTR pszUnixName;
-    PSTR pszPasswd;
-    PSTR pszGecos;
-    PSTR pszShell;
-    PSTR pszHomedir;
     uint64_t qwPwdLastSet;
     uint64_t qwMaxPwdAge;
     uint64_t qwAccountExpires;
@@ -92,6 +87,15 @@ typedef struct _LSA_SECURITY_OBJECT_USER_INFO
     PBYTE pLmHash;
     DWORD dwNtHashLen;
     PBYTE pNtHash;
+
+    /* UNIX-like attributes */
+    uid_t uid;
+    gid_t gid;
+    PSTR pszUnixName;
+    PSTR pszPasswd;
+    PSTR pszGecos;
+    PSTR pszShell;
+    PSTR pszHomedir;
 } LSA_SECURITY_OBJECT_USER_INFO, *PLSA_SECURITY_OBJECT_USER_INFO;
 
 typedef struct _LSA_SECURITY_OBJECT_GROUP_INFO

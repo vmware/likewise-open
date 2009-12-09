@@ -46,6 +46,7 @@ LsaUtilFreeSecurityObject(
             LW_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
             break;
         case AccountType_User:
+            LW_SAFE_FREE_STRING(pObject->userInfo.pszPrimaryGroupSid);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszUnixName);
