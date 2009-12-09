@@ -855,7 +855,6 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     {                                                             \
         SAM_DB_DIR_ATTR_DISTINGUISHED_NAME,                       \
         (SAM_DB_ATTR_FLAGS_MANDATORY |                            \
-         SAM_DB_ATTR_FLAGS_READONLY  |                            \
          SAM_DB_ATTR_FLAGS_GENERATE_ALWAYS |                      \
          SAM_DB_ATTR_FLAGS_DERIVATIVE)                            \
     },                                                            \
@@ -868,7 +867,8 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                            \
     {                                                             \
         SAM_DB_DIR_ATTR_OBJECT_CLASS,                             \
-        (SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY)\
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                            \
+         SAM_DB_ATTR_FLAGS_READONLY)                              \
     },                                                            \
     {                                                             \
         SAM_DB_DIR_ATTR_DOMAIN,                                   \
@@ -892,7 +892,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \
     {                                                            \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
-        SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
+        SAM_DB_ATTR_FLAGS_MANDATORY                              \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_USER_PRINCIPAL_NAME,                     \
@@ -900,7 +900,7 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_COMMON_NAME,                             \
-        SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
+        SAM_DB_ATTR_FLAGS_MANDATORY                              \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_UID,                                     \
@@ -1033,11 +1033,11 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     SAMDB_TOP_ATTRIBUTE_MAP,                                     \
     {                                                            \
         SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME,                        \
-        SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
+        SAM_DB_ATTR_FLAGS_MANDATORY                              \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_COMMON_NAME,                             \
-        SAM_DB_ATTR_FLAGS_MANDATORY | SAM_DB_ATTR_FLAGS_READONLY \
+        SAM_DB_ATTR_FLAGS_MANDATORY                              \
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_DESCRIPTION,                             \
