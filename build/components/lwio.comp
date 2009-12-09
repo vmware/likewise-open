@@ -20,6 +20,7 @@ function _setup_build_env
     cd ${COMP_SOURCES}/.
     exit_on_error $?
 
+    CPPFLAGS="${_cppflags}"
     CFLAGS="${_cflags} -fPIC"
     LDFLAGS="${_ldflags}"
 

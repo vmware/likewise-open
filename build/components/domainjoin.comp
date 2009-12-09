@@ -10,6 +10,7 @@ function _setup_build_env
     cd ${COMP_SOURCES}
     exit_on_error $?
 
+    CPPFLAGS="${_cppflags}"
     CFLAGS="${_cflags} -D_REENTRANT -fPIC"
     LDSHFLAGS="${_ldshflags}"
     LDFLAGS="${_ldflags}"
@@ -25,7 +26,7 @@ function _setup_build_env
     ## Allow the domainjoin-gui to be disabled
     [ -n "${DISABLE_DJ_GUI}" ] && WANT_GTK=no
 
-    export CC LDFLAGS CFLAGS LDSHFLAGS WANT_GTK
+    export CC LDFLAGS CPPFLAGS CFLAGS LDSHFLAGS WANT_GTK
 }
 
 function component_configure
