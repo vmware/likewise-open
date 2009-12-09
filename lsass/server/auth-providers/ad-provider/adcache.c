@@ -557,6 +557,11 @@ ADCacheDuplicateObject(
         pDest->userInfo.gid = pSrc->userInfo.gid;
 
         dwError = LwStrDupOrNull(
+                        pSrc->userInfo.pszPrimaryGroupSid,
+                        &pDest->userInfo.pszPrimaryGroupSid);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwStrDupOrNull(
                         pSrc->userInfo.pszUPN,
                         &pDest->userInfo.pszUPN);
         BAIL_ON_LSA_ERROR(dwError);
