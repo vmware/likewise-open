@@ -58,6 +58,8 @@ LsaUtilFreeSecurityObject(
             LW_SAFE_FREE_MEMORY(pObject->userInfo.pNtHash);
             break;
         }
+
+        LwFreeMemory(pObject);
     }
 }
 
