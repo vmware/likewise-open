@@ -1148,6 +1148,7 @@ pfnRegShellCompleteCallback(
     PEDITLINE_CLIENT_DATA cldata = NULL;
     BOOLEAN bExactMatch = FALSE;
     BOOLEAN bBackslashEnd = FALSE;
+    BOOLEAN bAllocArgs = FALSE;
     DWORD dwError = 0;
     DWORD dwSubKeyLen = 0;
     DWORD i = 0;
@@ -1313,6 +1314,7 @@ pfnRegShellCompleteCallback(
                       &ppSubKeys,
                       &dwSubKeyLen);
         BAIL_ON_REG_ERROR(dwError);
+        bAllocArgs = TRUE;
 
         dwError = RegShellCompletionMatch(
                       pszArgPtr,
@@ -1498,11 +1500,16 @@ cleanup:
         LWREG_SAFE_FREE_STRING(cldata->pszCompletePrevCmd);
         cldata->pszCompletePrevCmd = pszCurrentCmd;
         pszCurrentCmd = NULL;
+        LWREG_SAFE_FREE_STRING(cldata->pszCompletePrevArg);
         cldata->pszCompletePrevArg = pszBestMatchValue;
         pszBestMatchValue = NULL;
 
-        RegShellCmdlineParseFree(cldata->dwCompleteMatchesLen,
-                                 cldata->ppszCompleteMatches);
+        /* Free previous command line entered */
+        if (bAllocArgs)
+        {
+            RegShellCmdlineParseFree(cldata->dwCompleteMatchesLen,
+                                     cldata->ppszCompleteMatches);
+        }
         cldata->ppszCompleteMatches = ppMatchArgs;
         cldata->dwCompleteMatchesLen = dwMatchArgsLen;
     }

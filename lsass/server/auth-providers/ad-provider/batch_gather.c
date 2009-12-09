@@ -512,13 +512,6 @@ LsaAdBatchGatherUnprovisionedModeUser(
 {
     DWORD dwError = 0;
 
-    // Need the primary group RID to marshal gid later.
-    dwError = LwLdapGetUInt32(
-                hDirectory,
-                pMessage,
-                AD_LDAP_PRIMEGID_TAG,
-                &pItem->UserInfo.dwPrimaryGroupRid);
-    BAIL_ON_LSA_ERROR(dwError);
 #if 0
     if (dwError != 0)
     {
@@ -588,6 +581,14 @@ LsaAdBatchGatherRealUser(
     )
 {
     DWORD dwError = 0;
+
+    dwError = LwLdapGetUInt32(
+                hDirectory,
+                pMessage,
+                AD_LDAP_PRIMEGID_TAG,
+                &pItem->UserInfo.dwPrimaryGroupRid);
+    BAIL_ON_LSA_ERROR(dwError);
+
 
     LSA_ASSERT(!pItem->UserInfo.pszUserPrincipalName);
 

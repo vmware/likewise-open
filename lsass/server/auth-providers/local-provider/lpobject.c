@@ -390,6 +390,83 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+LocalDirResolveUserObjectPrimaryGroupSid(
+    IN HANDLE hProvider,
+    IN OUT PLSA_SECURITY_OBJECT pUserObject
+    )
+{
+    DWORD dwError = 0;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    static WCHAR wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    static PWSTR wszAttrs[] =
+    {
+        wszAttrNameObjectSID,
+        NULL
+    };
+    PCSTR pszTemplate = LOCAL_DB_DIR_ATTR_GID " = %d";
+    PSTR pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+
+    if (pUserObject->type != AccountType_User)
+    {
+        goto cleanup;
+    }
+
+    dwError = LwAllocateStringPrintf(
+        &pszFilter,
+        pszTemplate,
+        pUserObject->userInfo.gid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+        pszFilter,
+        &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+        pContext->hDirectory,
+        NULL,
+        0,
+        pwszFilter,
+        wszAttrs,
+        FALSE,
+        &pEntry,
+        &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries != 1)
+    {
+        dwError = LW_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LocalMarshalAttrToANSIFromUnicodeString(
+        pEntry,
+        wszAttrNameObjectSID,
+        &pUserObject->userInfo.pszPrimaryGroupSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LW_SAFE_FREE_STRING(pszFilter);
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (pEntry)
+    {
+        DirectoryFreeEntries(pEntry, dwNumEntries);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 
 static
 DWORD
@@ -421,6 +498,8 @@ LocalDirFindObjectsInternal(
     static WCHAR wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     static WCHAR wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     static WCHAR wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
+    static WCHAR wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
+    static WCHAR wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
     static PWSTR wszAttrs[] =
     {
         wszAttrNameObjectClass,
@@ -439,6 +518,8 @@ LocalDirFindObjectsInternal(
         wszAttrNameUserInfoFlags,
         wszAttrNameAccountExpiry,
         wszAttrNamePasswdLastSet,
+        wszAttrNameNTHash,
+        wszAttrNameLMHash,
         NULL
     };
     PDIRECTORY_ENTRY pEntries = NULL;
@@ -595,6 +676,11 @@ LocalDirFindObjectsInternal(
                 pEntry,
                 &ppObjects[dwIndex]);
             BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LocalDirResolveUserObjectPrimaryGroupSid(
+                hProvider,
+                ppObjects[dwIndex]);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         else if (dwNumEntries == 0 && QueryType == LSA_QUERY_TYPE_BY_UPN)
         {
@@ -703,6 +789,7 @@ error:
 
 typedef struct _LOCAL_ENUM_HANDLE
 {
+    HANDLE hProvider;
     enum
     {
         LOCAL_ENUM_HANDLE_OBJECTS,
@@ -740,6 +827,8 @@ LocalDirOpenEnumObjects(
     static WCHAR wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     static WCHAR wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     static WCHAR wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
+    static WCHAR wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
+    static WCHAR wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
     static PWSTR wszAttrs[] =
     {
         wszAttrNameObjectClass,
@@ -758,6 +847,8 @@ LocalDirOpenEnumObjects(
         wszAttrNameUserInfoFlags,
         wszAttrNameAccountExpiry,
         wszAttrNamePasswdLastSet,
+        wszAttrNameNTHash,
+        wszAttrNameLMHash,
         NULL
     };
     PSTR pszTypeFilter = NULL;
@@ -769,6 +860,7 @@ LocalDirOpenEnumObjects(
     dwError = LwAllocateMemory(sizeof(*hEnum), OUT_PPVOID(&hEnum));
     BAIL_ON_LSA_ERROR(dwError);
 
+    hEnum->hProvider = hProvider;
     hEnum->type = LOCAL_ENUM_HANDLE_OBJECTS;
 
     switch (ObjectType)
@@ -895,6 +987,11 @@ LocalDirEnumObjects(
             pEntry,
             &ppObjects[dwIndex]);
         BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LocalDirResolveUserObjectPrimaryGroupSid(
+            pEnum->hProvider,
+            ppObjects[dwIndex]);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *pdwObjectsCount = dwAllocCount;
@@ -970,6 +1067,7 @@ LocalDirOpenEnumMembers(
     dwError = LwAllocateMemory(sizeof(*hEnum), OUT_PPVOID(&hEnum));
     BAIL_ON_LSA_ERROR(dwError);
 
+    hEnum->hProvider = hProvider;
     hEnum->type = LOCAL_ENUM_HANDLE_MEMBERS;
 
     dwError = LwAllocateStringPrintf(

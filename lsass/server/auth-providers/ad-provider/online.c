@@ -1090,6 +1090,7 @@ AD_CacheGroupMembershipFromPac(
     };
     DWORD dwSidsToCombineIndex = 0;
     PLSA_GROUP_MEMBERSHIP pMembershipBuffers = NULL;
+    PSTR pszPrimaryGroupSid = NULL;
 
     LSA_LOG_VERBOSE(
             "Updating user group membership for uid %lu with PAC information",
@@ -1216,6 +1217,30 @@ AD_CacheGroupMembershipFromPac(
                         TRUE);
     BAIL_ON_LSA_ERROR(dwError);
 
+    /* Create primary group sid from pac */
+    dwError = LsaReplaceSidRid(
+        pUserInfo->pszObjectSid,
+        pPac->info3.base.primary_gid,
+        &pszPrimaryGroupSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* If we did not previously know the primary group sid, or
+       it has changed, update the object and re-insert it into
+       the cache */
+    if (!pUserInfo->userInfo.pszPrimaryGroupSid ||
+        strcmp(pszPrimaryGroupSid, pUserInfo->userInfo.pszPrimaryGroupSid))
+    {
+		LW_SAFE_FREE_STRING(pUserInfo->userInfo.pszPrimaryGroupSid);
+
+        pUserInfo->userInfo.pszPrimaryGroupSid = pszPrimaryGroupSid;
+        pszPrimaryGroupSid = NULL;
+
+        dwError = ADCacheStoreObjectEntry(
+            gpLsaAdProviderState->hCacheConnection,
+            pUserInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
 cleanup:
     LW_SAFE_FREE_MEMORY(ppMemberships);
     LW_SAFE_FREE_MEMORY(pMembershipBuffers);
@@ -1223,6 +1248,7 @@ cleanup:
     LwFreeStringArray(ppszResourceGroupSidList, dwResourceGroupSidCount);
     LwFreeStringArray(ppszExtraSidList, dwExtraSidCount);
     LW_SAFE_FREE_MEMORY(pdwExtraSidAttributeList);
+    LW_SAFE_FREE_STRING(pszPrimaryGroupSid);
 
     return dwError;
 

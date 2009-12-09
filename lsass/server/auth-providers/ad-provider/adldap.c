@@ -1638,7 +1638,6 @@ ADLdap_GetObjectGroupMembership(
 {
     DWORD dwError =  0;
     PLSA_DM_LDAP_CONNECTION pConn = NULL;
-    PSTR pszPrimaryGroupSID = NULL;
     PSTR pszFullDomainName = NULL;
     INT i = 0;
     PLSA_SECURITY_OBJECT* ppGroupInfoList = NULL;
@@ -1673,16 +1672,8 @@ ADLdap_GetObjectGroupMembership(
                     &ppszLDAPValues);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type == AccountType_User)
+    if (pObject->type == AccountType_User && pObject->userInfo.pszPrimaryGroupSid)
     {
-        dwError = ADGetUserPrimaryGroupSid(
-            pConn,
-            pszFullDomainName,
-            pObject->pszDN,
-            pObject->pszObjectSid,
-            &pszPrimaryGroupSID);
-        BAIL_ON_LSA_ERROR(dwError);
-
         dwError = LwReallocMemory(
             ppszLDAPValues,
             (PVOID*)&ppszTempLDAPValues,
@@ -1693,8 +1684,7 @@ ADLdap_GetObjectGroupMembership(
         ppszLDAPValues = ppszTempLDAPValues;
 
         // Append the pszPrimaryGroupSID entry to the results list
-        ppszLDAPValues[dwSidCount] = pszPrimaryGroupSID;
-        pszPrimaryGroupSID = NULL;
+        ppszLDAPValues[dwSidCount] = pObject->userInfo.pszPrimaryGroupSid;
         dwSidCount++;
     }
 
@@ -1707,12 +1697,15 @@ ADLdap_GetObjectGroupMembership(
     BAIL_ON_LSA_ERROR(dwError);
 
     // Determine primary group index
-    if (ppGroupInfoList && sNumGroupsFound)
+    if (pObject->type == AccountType_User &&
+        pObject->userInfo.pszPrimaryGroupSid &&
+        ppGroupInfoList &&
+        sNumGroupsFound)
     {
         for (i = (INT)sNumGroupsFound - 1; i >= 0; i--)
         {
             // ppszLDAPValues[dwSidCount-1] stores user's primiary group Sid
-            if (!strcmp(ppGroupInfoList[i]->pszObjectSid,  ppszLDAPValues[dwSidCount-1]))
+            if (!strcmp(ppGroupInfoList[i]->pszObjectSid, pObject->userInfo.pszPrimaryGroupSid))
             {
                 iPrimaryGroupIndex = i;
                 break;
@@ -1725,15 +1718,16 @@ ADLdap_GetObjectGroupMembership(
     *piPrimaryGroupIndex = iPrimaryGroupIndex;
 
 cleanup:
+
     LW_SAFE_FREE_STRING(pszFullDomainName);
     LwFreeStringArray(ppszLDAPValues, dwSidCount);
-    LW_SAFE_FREE_STRING(pszPrimaryGroupSID);
 
     LsaDmLdapClose(pConn);
 
     return dwError;
 
 error:
+
     *pppGroupInfoList = NULL;
     *psNumGroupsFound = 0;
     *piPrimaryGroupIndex = -1;

@@ -64,6 +64,7 @@ PrintSecurityObject(
         printf("SAM account name: %s\n", SAFE_STRING(pObject->pszSamAccountName));
         printf("NetBIOS domain name: %s\n", SAFE_STRING(pObject->pszNetbiosDomainName));
         printf("Alias: %s\n", SAFE_STRING(pObject->groupInfo.pszAliasName));
+        printf("UNIX name: %s\n", SAFE_STRING(pObject->groupInfo.pszUnixName));
         printf("GID: %lu\n", (unsigned long) pObject->groupInfo.gid);
         break;
     case AccountType_User:
@@ -82,10 +83,12 @@ PrintSecurityObject(
             printf("UPN: %s\n", SAFE_STRING(pObject->userInfo.pszUPN));
         }
         printf("Alias: %s\n", SAFE_STRING(pObject->userInfo.pszAliasName));
+        printf("UNIX name: %s\n", SAFE_STRING(pObject->userInfo.pszUnixName));
         printf("GECOS: %s\n", SAFE_STRING(pObject->userInfo.pszAliasName));
         printf("Shell: %s\n", SAFE_STRING(pObject->userInfo.pszShell));
         printf("Home directory: %s\n", SAFE_STRING(pObject->userInfo.pszHomedir));
         printf("UID: %lu\n", (unsigned long) pObject->userInfo.uid);
+        printf("Primary group SID: %s\n", SAFE_STRING(pObject->userInfo.pszPrimaryGroupSid));
         printf("Primary GID: %lu\n", (unsigned long) pObject->userInfo.gid);
         if (pObject->userInfo.bIsAccountInfoKnown)
         {

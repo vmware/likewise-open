@@ -267,7 +267,6 @@ SamDbSchemaModifyValidateDirMods(
 
         if (!pAttrMapInfo ||
             (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_READONLY) ||
-            (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATE_ALWAYS) ||
             (pAttrMapInfo->dwAttributeFlags & SAM_DB_ATTR_FLAGS_GENERATED_BY_DB))
         {
             dwError = LW_ERROR_INVALID_PARAMETER;

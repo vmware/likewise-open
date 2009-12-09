@@ -504,33 +504,9 @@ ADCacheSafeFreeObject(
     PLSA_SECURITY_OBJECT* ppObject
     )
 {
-    PLSA_SECURITY_OBJECT pObject = NULL;
-    if (ppObject != NULL && *ppObject != NULL)
+    if (*ppObject)
     {
-        pObject = *ppObject;
-
-        LW_SAFE_FREE_STRING(pObject->pszObjectSid);
-
-        LW_SAFE_FREE_STRING(pObject->pszNetbiosDomainName);
-        LW_SAFE_FREE_STRING(pObject->pszSamAccountName);
-        LW_SAFE_FREE_STRING(pObject->pszDN);
-
-        if (pObject->type == AccountType_User)
-        {
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszPasswd);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszGecos);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszShell);
-            LW_SAFE_FREE_STRING(pObject->userInfo.pszHomedir);
-        }
-        else if (pObject->type == AccountType_Group)
-        {
-            LW_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
-            LW_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
-        }
-
-        LW_SAFE_FREE_MEMORY(pObject);
+        LsaUtilFreeSecurityObject(*ppObject);
         *ppObject = NULL;
     }
 }

@@ -366,6 +366,15 @@ LsaAdBatchMarshalUserInfo(
     pObjectUserInfo->uid = pUserInfo->uid;
     pObjectUserInfo->gid = pUserInfo->gid;
 
+    if (pUserInfo->dwPrimaryGroupRid)
+    {
+        dwError = LsaReplaceSidRid(
+            pszSid,
+            pUserInfo->dwPrimaryGroupRid,
+            &pObjectUserInfo->pszPrimaryGroupSid);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     LSA_XFER_STRING(pUserInfo->pszAlias, pObjectUserInfo->pszAliasName);
     LSA_XFER_STRING(pUserInfo->pszPasswd, pObjectUserInfo->pszPasswd);
     LSA_XFER_STRING(pUserInfo->pszGecos, pObjectUserInfo->pszGecos);

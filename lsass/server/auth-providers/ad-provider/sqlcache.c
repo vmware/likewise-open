@@ -1159,6 +1159,13 @@ LsaDbUnpackUserInfo(
     dwError = LsaSqliteReadString(
         pstQuery,
         piColumnPos,
+        "PrimaryGroupSid",
+        &pResult->userInfo.pszPrimaryGroupSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSqliteReadString(
+        pstQuery,
+        piColumnPos,
         "UPN",
         &pResult->userInfo.pszUPN);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1580,6 +1587,7 @@ LsaDbStoreObjectEntries(
                             "ObjectSid,"
                             "Uid,"
                             "Gid,"
+                            "PrimaryGroupSid,"
                             "UPN,"
                             "AliasName,"
                             "Passwd,"
@@ -1601,6 +1609,7 @@ LsaDbStoreObjectEntries(
                             "%Q," //sid
                             "%u," //uid
                             "%u," //gid
+                            "%Q," //primary group sid
                             "%Q," //upn
                             "%Q," //alias
                             "%Q," //passwd
@@ -1622,6 +1631,7 @@ LsaDbStoreObjectEntries(
                         ppObjects[sIndex]->pszObjectSid,
                         ppObjects[sIndex]->userInfo.uid,
                         ppObjects[sIndex]->userInfo.gid,
+                        ppObjects[sIndex]->userInfo.pszPrimaryGroupSid,
                         ppObjects[sIndex]->userInfo.pszUPN,
                         LW_IS_NULL_OR_EMPTY_STR(ppObjects[sIndex]->userInfo.pszAliasName) ?
                             NULL :
@@ -2806,6 +2816,7 @@ LsaDbGetObjectFieldList(
         LSA_DB_TABLE_NAME_OBJECTS ".Type, "
         LSA_DB_TABLE_NAME_USERS ".Uid, "
         LSA_DB_TABLE_NAME_USERS ".Gid, "
+        LSA_DB_TABLE_NAME_USERS ".PrimaryGroupSid, "
         LSA_DB_TABLE_NAME_USERS ".UPN, "
         LSA_DB_TABLE_NAME_USERS ".AliasName, "
         LSA_DB_TABLE_NAME_USERS ".Passwd, "
