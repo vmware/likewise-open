@@ -39,7 +39,7 @@ Likewise Server Service
 rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 
 
-%clean 
+%clean
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
 %files

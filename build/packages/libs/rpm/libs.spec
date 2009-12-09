@@ -42,7 +42,6 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 %{PrefixDir}/%{_lib}/*
 %if !%{Compat32}
 %{PrefixDir}/bin/*
-%{PrefixDir}/man/*
 %endif
 
 %changelog
