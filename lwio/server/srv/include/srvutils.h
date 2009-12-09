@@ -121,6 +121,12 @@ SrvBuildFilePath(
     );
 
 NTSTATUS
+SrvGetParentPath(
+    PWSTR  pwszPath,
+    PWSTR* ppwszParentPath
+    );
+
+NTSTATUS
 SrvProdConsInit(
     ULONG                         ulNumMaxItems,
     PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,

@@ -27,11 +27,13 @@ libsrv_protocols_smb1_la_SOURCES = \
     openx.c          \
     oplock.c         \
     pipeinfo.c       \
+    queryinfo2.c     \
     read.c           \
     readx.c          \
     rename.c         \
     session.c        \
     sessionsetup.c   \
+    setinfo2.c       \
     trans2.c         \
     trans2qfi.c      \
     trans2qfsi.c     \

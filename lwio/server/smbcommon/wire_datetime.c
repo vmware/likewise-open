@@ -70,6 +70,54 @@ WireNTTimeToSMBDateTime(
     return ntStatus;
 }
 
+NTSTATUS
+WireSMBDateTimeToNTTime(
+    PSMB_DATE pSmbDate,
+    PSMB_TIME pSmbTime,
+    PLONG64   pllNTTime
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    LONG64   llNTTime = 0LL;
+
+    if (!pSmbDate || !pSmbTime)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if ((pSmbDate->usYear  > 0) &&
+        (pSmbDate->usMonth > 0) &&
+        (pSmbDate->usDay   > 0))
+    {
+        struct tm stTime   = {0};
+        time_t    timeUnix = 0;
+
+        stTime.tm_mday = pSmbDate->usDay;
+        stTime.tm_mon  = pSmbDate->usMonth - 1;
+        stTime.tm_year = (pSmbDate->usYear + 1980) - 1900;
+
+        stTime.tm_sec  = pSmbTime->TwoSeconds * 2;
+        stTime.tm_min  = pSmbTime->Minutes;
+        stTime.tm_hour = pSmbTime->Hours;
+
+        timeUnix = mktime(&stTime);
+
+        llNTTime = (timeUnix + 11644473600LL) * 10000000LL;
+    }
+
+    *pllNTTime = llNTTime;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pllNTTime = 0LL;
+
+    goto cleanup;
+}
 
 /*
 local variables:

@@ -529,16 +529,41 @@ SrvRenameFile(
     }
     else if (!pTrans2State->hDir)
     {
-        LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
-                                    &pCtxSmb1->pTree->pShareInfo->mutex);
+        wchar16_t wszBackSlash[] = { '\\', 0 };
 
-        ntStatus = SrvAllocateStringW(
-                        pCtxSmb1->pTree->pShareInfo->pwszPath,
-                        &pTrans2State->dirPath.FileName);
+        PFILE_RENAME_INFORMATION pRenameInfo    =
+                        (PFILE_RENAME_INFORMATION)pTrans2State->pData2;
+
+        if (*pRenameInfo->FileName == wszBackSlash[0])
+        {
+            LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
+                                        &pCtxSmb1->pTree->pShareInfo->mutex);
+
+            ntStatus = SrvAllocateStringW(
+                            pCtxSmb1->pTree->pShareInfo->pwszPath,
+                            &pTrans2State->dirPath.FileName);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+                                &pCtxSmb1->pTree->pShareInfo->mutex);
+        }
+        else if (pTrans2State->pFile)
+        {
+            ntStatus = SrvGetParentPath(
+                            pTrans2State->pFile->pFilename->FileName,
+                            &pTrans2State->dirPath.FileName);
+        }
+        else if (pTrans2State->hFile)
+        {
+            ntStatus = SrvGetParentPath(
+                            pTrans2State->fileName.FileName,
+                            &pTrans2State->dirPath.FileName);
+        }
+        else
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_RWMUTEX(bTreeInLock,
-                            &pCtxSmb1->pTree->pShareInfo->mutex);
 
         SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 

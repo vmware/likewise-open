@@ -132,3 +132,66 @@ error:
 
     goto cleanup;
 }
+
+NTSTATUS
+SrvGetParentPath(
+    PWSTR  pwszPath,
+    PWSTR* ppwszParentPath
+    )
+{
+    NTSTATUS  ntStatus       = STATUS_SUCCESS;
+    PWSTR     pwszParentPath = NULL;
+    PWSTR     pwszCursor     = NULL;
+    size_t    sLen           = 0;
+    wchar16_t wszBackSlash[] = { '\\', 0 };
+    wchar16_t wszFwdSlash[]  = { '/',  0 };
+
+    if (!pwszPath ||
+        !(sLen = wc16slen(pwszPath)) ||
+        ((*pwszPath != wszBackSlash[0]) && (*pwszPath != wszFwdSlash[0])))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pwszCursor = pwszPath + sLen - 1;
+
+    while (!IsNullOrEmptyString(pwszCursor) && (pwszCursor != pwszPath))
+    {
+        if ((*pwszCursor == wszBackSlash[0]) || (*pwszCursor == wszFwdSlash[0]))
+        {
+            ntStatus = SrvAllocateMemory(
+                            (pwszCursor - pwszPath + 1) * sizeof(wchar16_t),
+                            (PVOID*)&pwszParentPath);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            memcpy( (PBYTE)pwszParentPath,
+                    (PBYTE)pwszPath,
+                    (pwszCursor - pwszPath) * sizeof(wchar16_t));
+
+            break;
+        }
+
+        pwszCursor--;
+    }
+
+    if (!pwszParentPath)
+    {
+        ntStatus = SrvAllocateStringW(&wszBackSlash[0], &pwszParentPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppwszParentPath = pwszParentPath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszParentPath = NULL;
+
+    SRV_SAFE_FREE_MEMORY(pwszParentPath);
+
+    goto cleanup;
+}

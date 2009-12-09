@@ -484,6 +484,70 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 typedef enum
 {
+    SRV_SET_INFO2_STAGE_SMB_V1_INITIAL        = 0,
+    SRV_SET_INFO2_STAGE_SMB_V1_ATTEMPT_SET,
+    SRV_SET_INFO2_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_SET_INFO2_STAGE_SMB_V1_DONE
+} SRV_SET_INFO2_STAGE_SMB_V1;
+
+typedef struct _SRV_SET_INFO2_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_SET_INFO2_STAGE_SMB_V1     stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PLWIO_SRV_FILE             pFile;
+
+    PSET_INFO2_REQUEST_HEADER  pRequestHeader; // Do not free
+
+    FILE_BASIC_INFORMATION     fileBasicInfo;
+
+} SRV_SET_INFO2_STATE_SMB_V1, *PSRV_SET_INFO2_STATE_SMB_V1;
+
+typedef enum
+{
+    SRV_QUERY_INFO2_STAGE_SMB_V1_INITIAL = 0,
+    SRV_QUERY_INFO2_STAGE_SMB_V1_ATTEMPT_IO,
+    SRV_QUERY_INFO2_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_QUERY_INFO2_STAGE_SMB_V1_DONE
+} SRV_QUERY_INFO2_STAGE_SMB_V1;
+
+typedef struct _SRV_QUERY_INFO2_STATE_SMB_V1
+{
+    LONG                         refCount;
+
+    pthread_mutex_t              mutex;
+    pthread_mutex_t*             pMutex;
+
+    SRV_QUERY_INFO2_STAGE_SMB_V1 stage;
+
+    IO_STATUS_BLOCK              ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK       acb;
+    PIO_ASYNC_CONTROL_BLOCK      pAcb;
+
+    PLWIO_SRV_FILE               pFile;
+
+    PQUERY_INFO2_REQUEST_HEADER  pRequestHeader; // Do not free
+
+    FILE_BASIC_INFORMATION       fileBasicInfo;
+    PFILE_BASIC_INFORMATION      pFileBasicInfo;
+
+    FILE_STANDARD_INFORMATION    fileStandardInfo;
+    PFILE_STANDARD_INFORMATION   pFileStandardInfo;
+
+} SRV_QUERY_INFO2_STATE_SMB_V1, *PSRV_QUERY_INFO2_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_TRANS_STAGE_SMB_V1_INITIAL = 0,
     SRV_TRANS_STAGE_SMB_V1_CREATE_FILE_COMPLETED,
     SRV_TRANS_STAGE_SMB_V1_ATTEMPT_IO,

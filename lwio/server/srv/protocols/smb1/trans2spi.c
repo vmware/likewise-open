@@ -52,7 +52,7 @@ SrvProcessTrans2SetPathInformation(
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
     BOOLEAN                    bTreeInLock  = FALSE;
-    ACCESS_MASK                AccessMask   = 0;
+    ACCESS_MASK                accessMask   = 0;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -95,7 +95,7 @@ SrvProcessTrans2SetPathInformation(
 
             SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
-            AccessMask = SrvGetPathAccessMask(pExecContext);
+            accessMask = SrvGetPathAccessMask(pExecContext);
 
             ntStatus = IoCreateFile(
                             &pTrans2State->hFile,
@@ -105,7 +105,7 @@ SrvProcessTrans2SetPathInformation(
                             &pTrans2State->fileName,
                             pTrans2State->pSecurityDescriptor,
                             pTrans2State->pSecurityQOS,
-                            AccessMask,
+                            accessMask,
                             0,
                             FILE_ATTRIBUTE_NORMAL,
                             FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
