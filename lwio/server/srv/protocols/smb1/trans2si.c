@@ -536,16 +536,7 @@ SrvRenameFile(
 
         if (*pRenameInfo->FileName == wszBackSlash[0])
         {
-            LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
-                                        &pCtxSmb1->pTree->pShareInfo->mutex);
-
-            ntStatus = SrvAllocateStringW(
-                            pCtxSmb1->pTree->pShareInfo->pwszPath,
-                            &pTrans2State->dirPath.FileName);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            LWIO_UNLOCK_RWMUTEX(bTreeInLock,
-                                &pCtxSmb1->pTree->pShareInfo->mutex);
+            ntStatus = STATUS_NOT_SUPPORTED;
         }
         else if (pTrans2State->pFile)
         {
