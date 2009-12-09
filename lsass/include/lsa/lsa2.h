@@ -67,11 +67,13 @@ typedef struct _LSA_SECURITY_OBJECT_USER_INFO
     gid_t gid;
     PSTR pszUPN;
     PSTR pszAliasName;
+    PSTR pszUnixName;
     PSTR pszPasswd;
     PSTR pszGecos;
     PSTR pszShell;
     PSTR pszHomedir;
     uint64_t qwPwdLastSet;
+    uint64_t qwMaxPwdAge;
     uint64_t qwAccountExpires;
 
     BOOLEAN bIsGeneratedUPN;
@@ -85,12 +87,18 @@ typedef struct _LSA_SECURITY_OBJECT_USER_INFO
     BOOLEAN bAccountDisabled;
     BOOLEAN bAccountExpired;
     BOOLEAN bAccountLocked;
+
+    DWORD dwLmHashLen;
+    PBYTE pLmHash;
+    DWORD dwNtHashLen;
+    PBYTE pNtHash;
 } LSA_SECURITY_OBJECT_USER_INFO, *PLSA_SECURITY_OBJECT_USER_INFO;
 
 typedef struct _LSA_SECURITY_OBJECT_GROUP_INFO
 {
     gid_t gid;
     PSTR pszAliasName;
+    PSTR pszUnixName;
     PSTR pszPasswd;
 } LSA_SECURITY_OBJECT_GROUP_INFO, *PLSA_SECURITY_OBJECT_GROUP_INFO;
 
@@ -102,6 +110,7 @@ typedef struct __LSA_DB_SECURITY_OBJECT
     PSTR    pszObjectSid;
     //This is false if the object has not been enabled in the cell
     BOOLEAN enabled;
+    BOOLEAN bIsLocal;
 
     PSTR    pszNetbiosDomainName;
     PSTR    pszSamAccountName;

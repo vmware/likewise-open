@@ -731,7 +731,10 @@ LocalMarshallAccountFlagsToSecurityObject(
     BOOLEAN bAccountExpired = FALSE;
     BOOLEAN bPasswordExpired = FALSE;
     BOOLEAN bPromptPasswordChange = FALSE;
-    DWORD   dwDaysToPasswordExpiry = 0;
+    LONG64 llMaxPwdAge = 0;
+
+    dwError = LocalCfgGetMaxPasswordAge(&llMaxPwdAge);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (dwUserInfoFlags & LOCAL_ACB_PWNOEXP)
     {
@@ -760,20 +763,15 @@ LocalMarshallAccountFlagsToSecurityObject(
         if (dwUserInfoFlags & LOCAL_ACB_PW_EXPIRED)
         {
             bPasswordExpired = TRUE;
-            dwDaysToPasswordExpiry = 0;
             bPromptPasswordChange = TRUE;
         }
         else
         {
             // Account has not expired yet
 
-            LONG64 llMaxPwdAge = 0;
             LONG64 llPwdChangeTime = 0;
             LONG64 llCurTime = 0;
             LONG64 llTimeToExpiry = 0;
-
-            dwError = LocalCfgGetMaxPasswordAge(&llMaxPwdAge);
-            BAIL_ON_LSA_ERROR(dwError);
 
             dwError = LocalCfgGetPasswordChangeWarningTime(&llPwdChangeTime);
             BAIL_ON_LSA_ERROR(dwError);
@@ -791,15 +789,12 @@ LocalMarshallAccountFlagsToSecurityObject(
             {
                 bPromptPasswordChange = FALSE;
             }
-
-            dwDaysToPasswordExpiry = llTimeToExpiry/(24 * 60 * 60 * 10000000LL);
         }
     }
     else
     {
         // Password never expires
         bPasswordExpired = FALSE;
-        dwDaysToPasswordExpiry = 0;
         bPromptPasswordChange = FALSE;
     }
 
@@ -811,6 +806,7 @@ LocalMarshallAccountFlagsToSecurityObject(
     }
 
     pObject->userInfo.qwPwdLastSet = llPwdLastSet;
+    pObject->userInfo.qwMaxPwdAge = llMaxPwdAge;
     pObject->userInfo.qwAccountExpires = llAcctExpiry;
     pObject->userInfo.bIsAccountInfoKnown    = TRUE;
     pObject->userInfo.bAccountDisabled       = bAccountDisabled;
@@ -1551,8 +1547,8 @@ LocalMarshalEntryToSecurityObject(
     static WCHAR wszAttrNamePrimaryGroup[]   = LOCAL_DIR_ATTR_PRIMARY_GROUP;
     static WCHAR wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
     static WCHAR wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    //static WCHAR wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
-    //static WCHAR wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
+    static WCHAR wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
+    static WCHAR wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
     static WCHAR wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
     static WCHAR wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
     static WCHAR wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
@@ -1581,6 +1577,8 @@ LocalMarshalEntryToSecurityObject(
         sizeof(*pObject),
         OUT_PPVOID(&pObject));
     BAIL_ON_LSA_ERROR(dwError);
+
+    pObject->bIsLocal = TRUE;
 
     switch (dwObjectClass)
     {
@@ -1694,6 +1692,14 @@ LocalMarshalEntryToSecurityObject(
             llAccountExpiry);
         BAIL_ON_LSA_ERROR(dwError);
 
+        dwError = LwAllocateStringPrintf(
+            &pObject->userInfo.pszUnixName,
+            "%s%c%s",
+            pObject->pszNetbiosDomainName,
+            LsaGetDomainSeparator(),
+            pObject->pszSamAccountName);
+        BAIL_ON_LSA_ERROR(dwError);
+
         if (LW_IS_NULL_OR_EMPTY_STR(pObject->userInfo.pszUPN))
         {
             dwError = LwAllocateStringPrintf(
@@ -1706,6 +1712,28 @@ LocalMarshalEntryToSecurityObject(
 
             pObject->userInfo.bIsGeneratedUPN = TRUE;
         }
+
+        dwError = LocalMarshalAttrToOctetStream(
+            pEntry,
+            wszAttrNameNTHash,
+            &pObject->userInfo.pNtHash,
+            &pObject->userInfo.dwNtHashLen);
+        if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
+        {
+            dwError = 0;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LocalMarshalAttrToOctetStream(
+            pEntry,
+            wszAttrNameLMHash,
+            &pObject->userInfo.pLmHash,
+            &pObject->userInfo.dwLmHashLen);
+        if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
+        {
+            dwError = 0;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
         break;
     case LOCAL_OBJECT_CLASS_GROUP:
         pObject->type = AccountType_Group;
@@ -1740,6 +1768,14 @@ LocalMarshalEntryToSecurityObject(
             pEntry,
             wszAttrNameNetBIOSDomain,
             &pObject->pszNetbiosDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwAllocateStringPrintf(
+            &pObject->groupInfo.pszUnixName,
+            "%s%c%s",
+            pObject->pszNetbiosDomainName,
+            LsaGetDomainSeparator(),
+            pObject->pszSamAccountName);
         BAIL_ON_LSA_ERROR(dwError);
         break;
     default:

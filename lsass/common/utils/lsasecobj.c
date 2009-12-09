@@ -42,15 +42,19 @@ LsaUtilFreeSecurityObject(
         {
         case AccountType_Group:
             LW_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
+            LW_SAFE_FREE_STRING(pObject->groupInfo.pszUnixName);
             LW_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
             break;
         case AccountType_User:
             LW_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);
+            LW_SAFE_FREE_STRING(pObject->userInfo.pszUnixName);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszPasswd);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszGecos);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszShell);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszHomedir);
+            LW_SAFE_FREE_MEMORY(pObject->userInfo.pLmHash);
+            LW_SAFE_FREE_MEMORY(pObject->userInfo.pNtHash);
             break;
         }
     }

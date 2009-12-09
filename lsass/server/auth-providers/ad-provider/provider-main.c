@@ -4608,6 +4608,105 @@ AD_FilterBuiltinObjects(
     }
 }
 
+static
+DWORD
+AD_UpdateObject(
+    IN OUT PLSA_SECURITY_OBJECT pObject
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    struct timeval current_tv = {0};
+    UINT64 u64current_NTtime = 0;
+    int64_t qwNanosecsToPasswordExpiry = 0;
+
+    switch(pObject->type)
+    {
+    case AccountType_User:
+        if (gettimeofday(&current_tv, NULL) < 0)
+        {
+            dwError = errno;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        ADConvertTimeUnix2Nt(current_tv.tv_sec,
+                             &u64current_NTtime);
+
+        if (pObject->userInfo.bIsAccountInfoKnown)
+        {
+            if (pObject->userInfo.qwAccountExpires != 0LL &&
+                pObject->userInfo.qwAccountExpires != 9223372036854775807LL &&
+                u64current_NTtime >= pObject->userInfo.qwAccountExpires)
+            {
+                pObject->userInfo.bAccountExpired = TRUE;
+            }
+
+            if (gpADProviderData->adMaxPwdAge != 0)
+            {
+                pObject->userInfo.qwMaxPwdAge = gpADProviderData->adMaxPwdAge;
+
+                qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
+                    (u64current_NTtime - pObject->userInfo.qwPwdLastSet);
+
+                if ((!pObject->userInfo.bPasswordNeverExpires &&
+                     gpADProviderData->adMaxPwdAge != 0 &&
+                     qwNanosecsToPasswordExpiry < 0) ||
+                    pObject->userInfo.qwPwdLastSet == 0)
+                {
+                    //password is expired already
+                    pObject->userInfo.bPasswordExpired = TRUE;
+                }
+            }
+        }
+
+        if (!pObject->userInfo.pszUnixName)
+        {
+            dwError = ADMarshalGetCanonicalName(pObject, &pObject->userInfo.pszUnixName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        break;
+    case AccountType_Group:
+        if (!pObject->groupInfo.pszUnixName)
+        {
+            dwError = ADMarshalGetCanonicalName(pObject, &pObject->groupInfo.pszUnixName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+        break;
+    default:
+        break;
+    }
+
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
+AD_UpdateObjects(
+    IN DWORD dwCount,
+    IN OUT PLSA_SECURITY_OBJECT* ppObjects)
+{
+    DWORD dwError = 0;
+    DWORD dwIndex = 0;
+
+    for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+    {
+        if (ppObjects[dwIndex])
+        {
+            dwError = AD_UpdateObject(ppObjects[dwIndex]);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+error:
+
+    return dwError;
+}
+
 DWORD
 AD_FindObjects(
     IN HANDLE hProvider,
@@ -4620,6 +4719,7 @@ AD_FindObjects(
     )
 {
     DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
 
     LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
 
@@ -4638,7 +4738,8 @@ AD_FindObjects(
             QueryType,
             dwCount,
             QueryList,
-            pppObjects);
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
@@ -4649,19 +4750,36 @@ AD_FindObjects(
             QueryType,
             dwCount,
             QueryList,
-            pppObjects);
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (*pppObjects)
+    if (ppObjects)
     {
-        AD_FilterBuiltinObjects(dwCount, *pppObjects);
+        dwError = AD_UpdateObjects(dwCount, ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        AD_FilterBuiltinObjects(dwCount, ppObjects);
     }
 
-error:
+    *pppObjects = ppObjects;
+
+cleanup:
 
     LsaAdProviderStateRelease(gpLsaAdProviderState);
 
     return dwError;
+
+error:
+
+    *pppObjects = NULL;
+
+    if (ppObjects)
+    {
+        LsaUtilFreeSecurityObjectList(dwCount, ppObjects);
+    }
+
+    goto cleanup;
 }
 
 DWORD
@@ -4731,6 +4849,8 @@ AD_EnumObjects(
     )
 {
     DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    DWORD dwObjectsCount = 0;
 
     LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
 
@@ -4743,15 +4863,24 @@ AD_EnumObjects(
     if (AD_IsOffline())
     {
         dwError = LW_ERROR_NOT_HANDLED;
+        BAIL_ON_LSA_ERROR(dwError);
     }
     else
     {
         dwError = AD_OnlineEnumObjects(
             hEnum,
             dwMaxObjectsCount,
-            pdwObjectsCount,
-            pppObjects);
+            &dwObjectsCount,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
     }
+
+    dwError = AD_UpdateObjects(dwObjectsCount, ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+
+    *pdwObjectsCount = dwObjectsCount;
+    *pppObjects = ppObjects;
 
 cleanup:
 
@@ -4760,6 +4889,14 @@ cleanup:
     return dwError;
 
 error:
+
+    *pdwObjectsCount = 0;
+    *pppObjects = NULL;
+
+    if (ppObjects)
+    {
+        LsaUtilFreeSecurityObjectList(dwObjectsCount, ppObjects);
+    }
 
     goto cleanup;
 }
