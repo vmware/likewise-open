@@ -2489,7 +2489,7 @@ LsaDbQueryObjectMulti(
     }
     else
     {
-        iColumnPos += 19; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
+        iColumnPos += 20; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
     }
 
     if (pObject->type == AccountType_Group && pObject->enabled)
@@ -2748,7 +2748,7 @@ LsaDbQueryObject(
     }
     else
     {
-        iColumnPos += 19; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
+        iColumnPos += 20; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
     }
 
     if (pObject->type == AccountType_Group && pObject->enabled)
