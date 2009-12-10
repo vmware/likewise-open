@@ -258,7 +258,7 @@ cleanup:
 
     return dwError;
 
-#elif defined(__LWI_LINUX__)
+#elif defined(__LWI_LINUX__) || defined(__LWI_NETBSD__)
     // Linux has a /proc pseudo filesystem but not
     // /proc/pid/psinfo files.
 
