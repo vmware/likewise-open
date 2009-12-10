@@ -19,6 +19,16 @@
 ++*/
 
 #include "config.h"
+
+#if defined(__LWI_NETBSD__)
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#ifdef HAVE_RESOLV_H
+#include <resolv.h>
+#endif
+#endif  // __LWI_NETBSD__
+
 #include "dnssystem.h"
 #include "lwdns.h"
 #include "dnsdefines.h"

@@ -194,6 +194,9 @@ AS_AC_EXPAND(providerdir, $libdir)
 MOD_EXT=".so"
 
 case "$host_os:$host_cpu" in
+     netbsd*:*)
+	AC_DEFINE([__LWI_NETBSD__], [], [Define if the host system is NetBSD])
+	;;
      solaris2.*:*)
 	AC_DEFINE([__LWI_SOLARIS__], [], [Define if the host system is Solaris])
 	;;
