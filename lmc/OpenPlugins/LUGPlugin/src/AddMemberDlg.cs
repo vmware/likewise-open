@@ -117,16 +117,9 @@ namespace Likewise.LMC.Plugins.LUG
                 LUGAPI.NetEnumGroups(_hostName, 0, out enumStatus);
             }
 
-            this.lvMembers.Clear();
+            lvMembers.Clear();
 
-            if (bListUsers)
-            {
-                lvMembers.Columns.Add("Users", 20, HorizontalAlignment.Left);
-            }
-            else
-            {
-                lvMembers.Columns.Add("Groups", 20, HorizontalAlignment.Left);
-            }
+            lvMembers.Columns.Add("", 20, HorizontalAlignment.Left);
 
             PopulateListView(enumStatus);
 
