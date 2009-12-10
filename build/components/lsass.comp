@@ -35,6 +35,13 @@ function _setup_build_env
 
     PATH=${STAGE_INSTALL_DIR}/${PREFIXDIR}/bin:$PATH
 
+    case `uname -s` in
+	NetBSD)
+	    CPPFLAGS="${CPPFLAGS} -DNO_STATIC_MODULES=1"
+	    CFLAGS="${CFLAGS} -DNO_STATIC_MODULES=1"
+	    ;;
+    esac
+
     export PATH CPPFLAGS LDFLAGS CFLAGS CC
 }
 
