@@ -570,6 +570,10 @@ ADCacheDuplicateObject(
                         &pDest->userInfo.pszAliasName);
         BAIL_ON_LSA_ERROR(dwError);
         dwError = LwStrDupOrNull(
+                        pSrc->userInfo.pszUnixName,
+                        &pDest->userInfo.pszUnixName);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwStrDupOrNull(
                         pSrc->userInfo.pszPasswd,
                         &pDest->userInfo.pszPasswd);
         BAIL_ON_LSA_ERROR(dwError);
@@ -606,6 +610,10 @@ ADCacheDuplicateObject(
         dwError = LwStrDupOrNull(
                         pSrc->groupInfo.pszAliasName,
                         &pDest->groupInfo.pszAliasName);
+        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwStrDupOrNull(
+                        pSrc->groupInfo.pszUnixName,
+                        &pDest->groupInfo.pszUnixName);
         BAIL_ON_LSA_ERROR(dwError);
         dwError = LwStrDupOrNull(
                         pSrc->groupInfo.pszPasswd,
