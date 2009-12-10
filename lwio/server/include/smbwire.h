@@ -1350,6 +1350,61 @@ typedef struct
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
 
+    USHORT   usFid;
+    SMB_DATE creationDate;
+    SMB_TIME creationTime;
+    SMB_DATE lastAccessDate;
+    SMB_TIME lastAccessTime;
+    SMB_DATE lastWriteDate;
+    SMB_TIME lastWriteTime;
+    USHORT   usByteCount;
+
+} __attribute__((__packed__)) SET_INFO2_REQUEST_HEADER,
+                             *PSET_INFO2_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT byteCount;         /* Count of data bytes = 0 */
+}  __attribute__((__packed__))  SET_INFO2_RESPONSE_HEADER,
+                               *PSET_INFO2_RESPONSE_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT usFid;
+    USHORT usByteCount;
+
+} __attribute__((__packed__)) QUERY_INFO2_REQUEST_HEADER,
+                             *PQUERY_INFO2_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    SMB_DATE creationDate;
+    SMB_TIME creationTime;
+    SMB_DATE lastAccessDate;
+    SMB_TIME lastAccessTime;
+    SMB_DATE lastWriteDate;
+    SMB_TIME lastWriteTime;
+    ULONG    ulFileDataSize;
+    ULONG    ulFileAllocationSize;
+    USHORT   usFileAttributes;
+    USHORT   usByteCount;
+}  __attribute__((__packed__))  QUERY_INFO2_RESPONSE_HEADER,
+                               *PQUERY_INFO2_RESPONSE_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
     uint16_t echoCount;
     uint16_t byteCount; /* Count of data bytes */
 
@@ -2564,10 +2619,33 @@ WireUnmarshalTrans2ReplySetup(
     );
 
 NTSTATUS
+WireUnmarshalSetInfo2Request(
+    PBYTE                  pBuffer,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulOffset,
+    PSET_INFO2_REQUEST_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
+WireUnmarshalQueryInfo2Request(
+    PBYTE                        pBuffer,
+    ULONG                        ulBytesAvailable,
+    ULONG                        ulOffset,
+    PQUERY_INFO2_REQUEST_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
 WireNTTimeToSMBDateTime(
     LONG64    llNTTime,
     PSMB_DATE pSmbDate,
     PSMB_TIME pSmbTime
+    );
+
+NTSTATUS
+WireSMBDateTimeToNTTime(
+    PSMB_DATE pSmbDate,
+    PSMB_TIME pSmbTime,
+    PLONG64   pllNTTime
     );
 
 #endif /* __SMBWIRE_H__ */

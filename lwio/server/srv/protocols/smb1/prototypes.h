@@ -367,6 +367,13 @@ SrvMarshallPipeInfo(
     PUSHORT                      pusDeviceState
     );
 
+// queryinfo2.c
+
+NTSTATUS
+SrvProcessQueryInformation2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // read.c
 
 NTSTATUS
@@ -402,6 +409,13 @@ SrvSessionFindTree_SMB_V1(
 
 NTSTATUS
 SrvProcessSessionSetup(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// setinfo2.c
+
+NTSTATUS
+SrvProcessSetInformation2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 

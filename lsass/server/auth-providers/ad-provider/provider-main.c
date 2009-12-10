@@ -5088,11 +5088,11 @@ AD_CloseEnum(
     if (pEnum)
     {
         LwFreeCookieContents(&pEnum->Cookie);
-        LwFreeMemory(pEnum);
         if (pEnum->ppszSids)
         {
             LwFreeStringArray(pEnum->ppszSids, pEnum->dwSidCount);
         }
+        LwFreeMemory(pEnum);
     }
 }
 
