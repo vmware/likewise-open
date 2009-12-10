@@ -54,7 +54,7 @@ case $target_os in
          echo "Detected Solaris system"
          target_os="solaris2.10"
          ;;
-     freebsd6.*|freebsd7.*|freebsd8.*)
+     freebsd6.*|freebsd7.*|freebsd8.*|netbsd*5*)
          echo "Detected FreeBSD system"
          target_os="freebsd6.0"
          ;;
