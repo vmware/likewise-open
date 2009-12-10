@@ -430,6 +430,13 @@ case `uname -s` in
         LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djdaemonmgr_nonmac.o"
         ;;
 
+    NetBSD)
+        LWI_OS_FLAGS="-D__LWI_NETBSD__"
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djdaemonmgr_nonmac.o"
+        ;;
+
     SunOS)
         LWI_OS_FLAGS="-D__LWI_SOLARIS__"
         LDFLAGS="${LDFLAGS} -static-libgcc"
