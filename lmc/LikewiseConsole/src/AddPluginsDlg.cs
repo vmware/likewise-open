@@ -184,7 +184,7 @@ namespace Likewise.LMC
                         "The selectedItem is " + selectedItem.SubItems[0].Text + " opted out of selection",
                         Logger.manageLogLevel);
 
-                    return;
+                    continue;
                 }
 
                 node = new LACTreeNode(node.Name, node.image, node.t, node.Plugin);

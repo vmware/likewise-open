@@ -136,6 +136,14 @@ case "$host_os:$host_cpu" in
                 ENABLE_NSS_ENUM_DEFAULT="no"
 		AC_DEFINE([__LWI_FREEBSD__], [], [Define if OS is FreeBSD])
 		;;
+	netbsd*:*)
+                echo "Detected NetBSD OS"
+		nss_libdir="/usr/lib"
+		pam_libdir="/usr/lib/security"
+		NSS_SUBDIR="freebsd"
+                ENABLE_NSS_ENUM_DEFAULT="no"
+		AC_DEFINE([__LWI_NETBSD__], [], [Define if OS is NetBSD])
+		;;
 	hpux*:hppa*)
                 echo "Detected HPUX - hppa*"
 		nss_libdir="/usr/lib"
@@ -924,7 +932,9 @@ AC_CHECK_MEMBERS([ucontext_t.uc_mcontext,
 #endif
 ])
 
-AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])],
+[[#include <stdarg.h>
+]])
 AC_SUBST(LWREG_INCLUDES)
 AC_SUBST(LWREG_LDFLAGS)
 AC_SUBST(LWREG_LIBS)
@@ -1029,7 +1039,7 @@ AC_MSG_RESULT([no])
 
 case "$host_os:$host_cpu" in
 
-    freebsd*:*)
+    freebsd*:*|netbsd*:*)
 
         AC_MSG_CHECKING([if pam_get_data takes const void** as last argument])
         AC_TRY_COMPILE([

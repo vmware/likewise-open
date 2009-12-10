@@ -1065,7 +1065,8 @@ namespace Likewise.LMC.NETAPI
                     ref localResumeHandle
                     );
 
-                if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS)
+                if (result != (uint)LUGAPI.WinError.ERROR_SUCCESS &&
+                    result != (uint)LUGAPI.WinError.ERROR_MORE_DATA)
                 {
                     return result;
                 }

@@ -259,7 +259,9 @@ AC_ARG_WITH([lwreg-libs],
 
 LWREG_LIBS=-lregclient
 
-AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])],
+[[#include <stdarg.h>
+]])
 AC_SUBST(LWREG_INCLUDES)
 AC_SUBST(LWREG_LDFLAGS)
 AC_SUBST(LWREG_LIBS)
@@ -425,6 +427,13 @@ case `uname -s` in
 
     FreeBSD|"Isilon OneFS")
         LWI_OS_FLAGS="-D__LWI_FREEBSD__"
+        BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
+        BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
+        LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djdaemonmgr_nonmac.o"
+        ;;
+
+    NetBSD)
+        LWI_OS_FLAGS="-D__LWI_NETBSD__"
         BUILD_SHLIB_CMD='$(CC) -shared -fPIC -o $@ $(OBJS) $(LDFLAGS) $(LIBS) -Wl,-h$@'
         BUILD_DYNLIB_CMD=$BUILD_SHLIB_CMD
         LIBDOMAINJOIN_OS_SPECIFIC_OBJECTS="djdaemonmgr_nonmac.o"

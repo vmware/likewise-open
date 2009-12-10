@@ -47,6 +47,9 @@ case "$host_os:$host_cpu" in
 	freebsd*:*)
 		AC_DEFINE([__LWI_FREEBSD__], [], [Define if OS is FreeBSD])
 		;;
+	netbsd*:*)
+		AC_DEFINE([__LWI_NETBSD__], [], [Define if OS is FreeBSD])
+		;;
 	hpux*:hppa*)
 		MOD_EXT=".sl"
 		AC_DEFINE([__LWI_HP_UX__], [], [Define if OS is HP-UX])
@@ -100,7 +103,9 @@ AC_ARG_WITH([lwreg-libs],
 
 LWREG_LIBS=-lregclient
 
-AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])],
+[[#include <stdarg.h>
+]])
 AC_SUBST(LWREG_INCLUDES)
 AC_SUBST(LWREG_LDFLAGS)
 AC_SUBST(LWREG_LIBS)

@@ -456,7 +456,10 @@ CFLAGS="$CFLAGS -Wall -Werror"
 
 AC_MSG_CHECKING([whether iconv() takes const char** as its second parameter])
 
-AC_TRY_COMPILE([#include <iconv.h>],
+AC_TRY_COMPILE(
+[#include <iconv.h>
+#include <stddef.h>
+],
                 [iconv_t h = iconv_open(NULL, NULL);
                  char* in;
                  (void) iconv(h, (const char**) &in, NULL, NULL, NULL);

@@ -76,7 +76,7 @@
 #define PAM_MESSAGE_MSG_TYPE          char*
 #define PAM_CONV_2ND_ARG_TYPE         struct pam_message**
 
-#elif defined(__LWI_FREEBSD__)
+#elif defined(__LWI_FREEBSD__) || defined(__LWI_NETBSD__)
 
 #define PAM_GET_ITEM_TYPE             const void**
 

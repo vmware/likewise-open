@@ -238,7 +238,9 @@ AC_ARG_WITH([lwreg-libs],
 
 LWREG_LIBS=-lregclient
 
-AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])])
+AC_CHECK_HEADER([reg/reg.h],,[AC_MSG_ERROR([Could not find lwreg headers])],
+[[#include <stdarg.h>
+]])
 AC_SUBST(LWREG_INCLUDES)
 AC_SUBST(LWREG_LDFLAGS)
 AC_SUBST(LWREG_LIBS)
