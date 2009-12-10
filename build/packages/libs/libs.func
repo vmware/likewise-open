@@ -5,8 +5,18 @@ export BUILD_ROOT
 
 umask 022
 
+_UUID=""
+_ICONV=""
+case `uname -s` in
+    NetBSD)
+        _UUID="libuuid"
+        _ICONV="libiconv"
+    ;;
+esac
+
+
 PKG="libs"
-COMPONENTS="krb5 openldap libcrypto lwbase libunistr \
+COMPONENTS="krb5 openldap libcrypto lwbase ${_UUID} ${_ICONV} libunistr \
             lwmsg lwadvapi lwrpcrt centutils lwmapsecurity \
             libkeytab libgss sqlite"
 
