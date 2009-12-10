@@ -6,7 +6,7 @@ export BUILD_ROOT
 umask 022
 
 PKG="libs"
-COMPONENTS="krb5 openldap lwbase libunistr \
+COMPONENTS="krb5 openldap libcrypto lwbase libunistr \
             lwmsg lwadvapi lwrpcrt centutils lwmapsecurity \
             libkeytab libgss sqlite"
 

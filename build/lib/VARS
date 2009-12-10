@@ -10,7 +10,7 @@ LIKEWISE_OPEN_REVISION=`git log -n1 --grep='\(.*: r[1-9].*\)' | tail -1 | cut -d
 LIKEWISE_OPEN_EXTRA_TAG=""
 
 ## List of all components necessary 
-__COMP_LIST="krb5 openldap libunistr lwbase \
+__COMP_LIST="krb5 openldap libcrypto libunistr lwbase \
     lwmapsecurity lwmsg centutils \
     sqlite libtdb lwreg pstore \
     lwadvapi netlogon lwio lwsm libkeytab libgss \
