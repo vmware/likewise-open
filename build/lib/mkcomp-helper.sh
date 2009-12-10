@@ -6,7 +6,7 @@ function _get_ncpu
 	Linux)
 	    cat /proc/cpuinfo | grep '^processor' | wc -l
 	    ;;
-	FreeBSD)
+	*BSD)
 	    sysctl -n hw.ncpu
 	    ;;
 	*)
@@ -18,7 +18,7 @@ function _get_ncpu
 function _get_mtime
 {
     case `uname -s` in
-	FreeBSD)
+	*BSD)
 	    stat -f "%Uc" $1
 	    ;;
 	*)
@@ -61,6 +61,12 @@ function _get_base_cppflags
 {
     local flags="${BUILD_CPPFLAGS}"
 
+    case `uname -s` in
+	NetBSD)
+	    flags="${flags} -D_NETBSD_SOURCE"
+            ;;
+    esac
+
     echo "$flags"
 }
 
@@ -75,6 +81,12 @@ function _get_base_cflags
     fi
 
     flags="${flags} -fmessage-length=0 -D_GNU_SOURCE -D_FORTIFY_SOURCE=2"
+
+    case `uname -s` in
+	NetBSD)
+	    flags="${flags} -D_NETBSD_SOURCE"
+            ;;
+    esac
 
     echo "$flags"
 }
@@ -111,7 +123,7 @@ function set_compiler_env
     CC="${GCC} -pipe"
 
     case `uname -s` in
-	FreeBSD)
+	*BSD)
 	    MAKE=gmake
 	    ;;
 	*)
