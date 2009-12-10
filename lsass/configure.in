@@ -136,6 +136,14 @@ case "$host_os:$host_cpu" in
                 ENABLE_NSS_ENUM_DEFAULT="no"
 		AC_DEFINE([__LWI_FREEBSD__], [], [Define if OS is FreeBSD])
 		;;
+	netbsd*:*)
+                echo "Detected NetBSD OS"
+		nss_libdir="/usr/lib"
+		pam_libdir="/usr/lib/security"
+		NSS_SUBDIR="freebsd"
+                ENABLE_NSS_ENUM_DEFAULT="no"
+		AC_DEFINE([__LWI_NETBSD__], [], [Define if OS is NetBSD])
+		;;
 	hpux*:hppa*)
                 echo "Detected HPUX - hppa*"
 		nss_libdir="/usr/lib"
