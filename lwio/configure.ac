@@ -47,6 +47,9 @@ case "$host_os:$host_cpu" in
 	freebsd*:*)
 		AC_DEFINE([__LWI_FREEBSD__], [], [Define if OS is FreeBSD])
 		;;
+	netbsd*:*)
+		AC_DEFINE([__LWI_NETBSD__], [], [Define if OS is FreeBSD])
+		;;
 	hpux*:hppa*)
 		MOD_EXT=".sl"
 		AC_DEFINE([__LWI_HP_UX__], [], [Define if OS is HP-UX])
