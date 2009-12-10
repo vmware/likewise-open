@@ -45,7 +45,7 @@ function component_configure
         --disable-static                        \
         --enable-shared                         \
 	--with-gtk=${WANT_GTK} \
-	--with-libxml2-dir=/usr
+	--without-libxml2
 
 }
 
