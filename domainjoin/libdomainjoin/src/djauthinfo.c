@@ -274,7 +274,7 @@ DeletePolicyTreeFromRegistry()
                 "Policy");
     if (ceError)
     {
-        DJ_LOG_ERROR( "Failed to delete 'Policy' key from registry");
+        //Donot log if ceError is about the key which is not present
         ceError = CENTERROR_SUCCESS;
     }
 
