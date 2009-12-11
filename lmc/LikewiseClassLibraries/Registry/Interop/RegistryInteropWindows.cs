@@ -249,8 +249,8 @@ namespace Likewise.LMC.Registry
         public static extern uint RegGetKeySecurity(
             IntPtr hKey,
             SecurityDescriptorApi.SECURITY_INFORMATION SecurityInformation,
-            ref IntPtr pSecurityDescriptor,
+            IntPtr pSecurityDescriptor,
             ref ulong lpcbSecurityDescriptor);
 
-    }    
+    }
 }

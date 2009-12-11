@@ -260,7 +260,7 @@ namespace Likewise.LMC.Registry
             return ret;
         }
 
-        public static uint ApiRegGetKeySecurity(RegistryHive hive, string _sObjectname)
+        public static IntPtr ApiRegGetKeySecurity(RegistryHive hive, string _sObjectname)
         {
             uint iRet = 0;
 
@@ -276,7 +276,7 @@ namespace Likewise.LMC.Registry
                 try
                 {
                     iRet = SecurityDescriptorWrapper.ApiGetCurrentProcessHandle(
-                                          SecurityDescriptorApi.TOKEN_ADJUST_PRIVILEGES,
+                                          SecurityDescriptorApi.TOKEN_ALL_ACCESS,
                                           out pProcessHandle);
 
                     SecurityDescriptorWrapper.ApiAdjustTokenPrivileges(pProcessHandle);
@@ -285,37 +285,35 @@ namespace Likewise.LMC.Registry
                                          hKey,
                                          _sObjectname,
                                          0,
-                                         (uint)(SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
-                                         SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
-                                         SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION),
+                                         (uint)(RegistryApi.RegSAM.AllAccess),
                                          out phSubKey);
-
                     if ((iRet) == 0)
                     {
                         iRet = RegistryInteropWindows.RegGetKeySecurity(phSubKey,
                                          SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
                                          SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
                                          SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
-                                         ref pSecurityDescriptor,
+                                         IntPtr.Zero,
                                          ref lpcbSecurityDescriptor);
 
-                        iRet = RegistryInteropWindows.RegGetKeySecurity(phSubKey,
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
-                                        ref pSecurityDescriptor,
-                                        ref lpcbSecurityDescriptor);
-
-                        SecurityDescriptorApi.SECURITY_DESCRIPTOR sSECURITY_DESCRIPTOR = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
-                        Marshal.PtrToStructure(pSecurityDescriptor, sSECURITY_DESCRIPTOR);
-
-                        SecurityDescriptor SecurityDescriptor = new SecurityDescriptor();
-                        SecurityDescriptorWrapper.ReadSecurityDescriptor(sSECURITY_DESCRIPTOR, SecurityDescriptor);
-
+                        if (iRet == (uint)122) //Insufficient buffer
+                        {
+                            pSecurityDescriptor = Marshal.AllocHGlobal((int)lpcbSecurityDescriptor);
+                            iRet = RegistryInteropWindows.RegGetKeySecurity(phSubKey,
+                                         SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
+                                         SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
+                                         SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
+                                         pSecurityDescriptor,
+                                         ref lpcbSecurityDescriptor);
+                        }
+                        //iRet = SecurityDescriptorWrapper.ApiGetNamedSecurityInfo(
+                        //                "HKEY_CURRENT_USER\\AppEvents1",
+                        //                SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_WOW64_32KEY,
+                        //                out sSECURITY_DESCRIPTOR);
                         if (iRet != 0)
                         {
                             Logger.Log(string.Format("RegistryInteropWrapperWindows.ApiRegGetKeySecurity returns error code; " + iRet), Logger.LogLevel.Verbose);
-                            return iRet;
+                            return IntPtr.Zero;
                         }
                     }
                 }
@@ -339,7 +337,7 @@ namespace Likewise.LMC.Registry
                 }
             }
 
-            return iRet;
+            return pSecurityDescriptor;
         }
 
         #endregion
