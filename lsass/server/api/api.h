@@ -58,6 +58,7 @@
 #include <lw/ntstatus.h>
 #include <lw/base.h>
 #include <reg/reg.h>
+#include <lwmapsecurity/lwmapsecurity.h>
 
 #include <eventlog.h>
 
@@ -69,6 +70,7 @@
 #include "lsaunistr.h"
 #include "lsalog_r.h"
 #include "lsaregdef.h"
+#include "lwmapsecurity-lsass.h"
 
 #include "lsasrvutils.h"
 #include "lsaserver.h"
