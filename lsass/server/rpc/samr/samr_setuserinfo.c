@@ -75,6 +75,21 @@
         Mods[i++] = mod;                                          \
     } while (0);
 
+#define SET_BLOB_VALUE(var, len, idx, mod)                        \
+    do {                                                          \
+        POCTET_STRING pBlob = NULL;                               \
+                                                                  \
+        dwError = LwAllocateMemory(sizeof(*pBlob),                \
+                                   OUT_PPVOID(&pBlob));           \
+        BAIL_ON_LSA_ERROR(dwError);                               \
+                                                                  \
+        pBlob->ulNumBytes = (len);                                \
+        pBlob->pBytes     = (var);                                \
+                                                                  \
+        AttrValues[(idx)].data.pOctetString = pBlob;              \
+        Mods[i++] = (mod);                                        \
+    } while (0);
+
 #define TEST_ACCOUNT_FIELD_FLAG(field, flag)                      \
     if (!((field) & (flag)))                                      \
     {                                                             \
@@ -138,6 +153,8 @@ SamrSrvSetUserInfo(
     WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
     WCHAR wszAttrAccountExpiry[] = DS_ATTR_ACCOUNT_EXPIRY;
     DWORD i = 0;
+    PWSTR pwszPassword = NULL;
+    DWORD dwPasswordLen = 0;
 
     enum AttrValueIndex {
         ATTR_VAL_IDX_FULL_NAME = 0,
@@ -535,6 +552,20 @@ SamrSrvSetUserInfo(
                                  ModCodePage);
         break;
 
+    case 26:
+        dwPasswordLen = pInfo->info26.password_len;
+        ntStatus = SamrSrvDecryptPasswordBlobEx(pConnCtx,
+                                                &pInfo->info26.password,
+                                                dwPasswordLen,
+                                                &pwszPassword);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        dwError = DirectorySetPassword(hDirectory,
+                                       pwszAccountDn,
+                                       pwszPassword);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+
     default:
         ntStatus = STATUS_INVALID_INFO_CLASS;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
@@ -546,6 +577,12 @@ SamrSrvSetUserInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    if (pwszPassword)
+    {
+        memset(pwszPassword, 0, dwPasswordLen * sizeof(WCHAR));
+        LW_SAFE_FREE_MEMORY(pwszPassword);
+    }
+
     for (i = ATTR_VAL_IDX_FULL_NAME;
          i < ATTR_VAL_IDX_SENTINEL;
          i++)
@@ -553,6 +590,10 @@ cleanup:
         if (AttrValues[i].Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
         {
             SamrSrvFreeMemory(AttrValues[i].data.pwszStringValue);
+        }
+        else if (AttrValues[i].Type == DIRECTORY_ATTR_TYPE_OCTET_STREAM)
+        {
+            LW_SAFE_FREE_MEMORY(AttrValues[i].data.pOctetString);
         }
     }
 
