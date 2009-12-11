@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software. All rights reserved.
@@ -137,6 +137,7 @@ typedef struct _LW_MAP_SECURITY_STATE {
     LONG InitCount;
     LONG RefCount;
     PLW_MAP_SECURITY_CONTEXT Context;
+    LWMSP_CREATE_CONTEXT_CALLBACK pCreateContextCallback;
 } LW_MAP_SECURITY_STATE, *PLW_MAP_SECURITY_STATE;
 
 //
@@ -144,7 +145,8 @@ typedef struct _LW_MAP_SECURITY_STATE {
 //
 
 LW_MAP_SECURITY_STATE gLwMapSecurityState = {
-    .Mutex = PTHREAD_MUTEX_INITIALIZER,
+    .Mutex                  = PTHREAD_MUTEX_INITIALIZER,
+    .pCreateContextCallback = NULL
 };
 
 //
@@ -154,7 +156,8 @@ LW_MAP_SECURITY_STATE gLwMapSecurityState = {
 static
 NTSTATUS
 LwMapSecurityCreateContextInternal(
-    OUT PLW_MAP_SECURITY_CONTEXT* Context
+    OUT PLW_MAP_SECURITY_CONTEXT* Context,
+    IN  LWMSP_CREATE_CONTEXT_CALLBACK pCreateContextCallback
     );
 
 static
@@ -225,7 +228,9 @@ LwMapSecurityInitialize(
     if (!gLwMapSecurityState.Context)
     {
         // Ignore failure
-        status = LwMapSecurityCreateContextInternal(&gLwMapSecurityState.Context);
+        status = LwMapSecurityCreateContextInternal(
+                                 &gLwMapSecurityState.Context,
+                                 gLwMapSecurityState.pCreateContextCallback);
         status = STATUS_SUCCESS;
     }
 
@@ -276,7 +281,9 @@ LwMapSecurityCreateContext(
 
     if (!gLwMapSecurityState.Context)
     {
-        status = LwMapSecurityCreateContextInternal(&gLwMapSecurityState.Context);
+        status = LwMapSecurityCreateContextInternal(
+                                  &gLwMapSecurityState.Context,
+                                  gLwMapSecurityState.pCreateContextCallback);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
@@ -321,54 +328,88 @@ LwMapSecurityFreeContext(
     }
 }
 
+VOID
+LwMapSecurityUseInternalPlugin(
+    IN LWMSP_CREATE_CONTEXT_CALLBACK pCreateContextCallback
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+
+    gLwMapSecurityState.pCreateContextCallback = pCreateContextCallback;
+
+    UNLOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+}
+
 static
 NTSTATUS
 LwMapSecurityCreateContextInternal(
-    OUT PLW_MAP_SECURITY_CONTEXT* Context
+    OUT PLW_MAP_SECURITY_CONTEXT*     Context,
+    IN  LWMSP_CREATE_CONTEXT_CALLBACK pCallback
     )
 {
     NTSTATUS status = 0;
     int EE = 0;
     PCSTR pszError = NULL;
     PLW_MAP_SECURITY_CONTEXT pContext = NULL;
-    LWMSP_CREATE_CONTEXT_CALLBACK pCreateContexCallback = NULL;
+    LWMSP_CREATE_CONTEXT_CALLBACK pCreateContextCallback = NULL;
 
     status = RTL_ALLOCATE(&pContext, LW_MAP_SECURITY_CONTEXT, sizeof(*pContext));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = RtlCStringDuplicate(&pContext->LibraryPath, LW_MAP_SECURITY_PLUGIN_PATH);
-    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
-
-    dlerror();
-
-    pContext->LibraryHandle = dlopen(pContext->LibraryPath, RTLD_NOW | RTLD_GLOBAL);
-    if (!pContext->LibraryHandle)
+    if (!pCallback)
     {
+        status = RtlCStringDuplicate(&pContext->LibraryPath, LW_MAP_SECURITY_PLUGIN_PATH);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+        dlerror();
+
+        pContext->LibraryHandle = dlopen(pContext->LibraryPath, RTLD_NOW | RTLD_GLOBAL);
+        if (!pContext->LibraryHandle)
+        {
 #if ENABLE_LOGGING
-        int error = errno;
+            int error = errno;
 #endif
-        pszError = dlerror();
+            pszError = dlerror();
 
-        LOG_ERROR("Failed to load %s (%s (%d))", pContext->LibraryPath, SAFE_LOG_STRING(pszError), error);
+            LOG_ERROR("Failed to load %s (%s (%d))", pContext->LibraryPath,
+                      SAFE_LOG_STRING(pszError), error);
 
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
+            status = STATUS_UNSUCCESSFUL;
+            GOTO_CLEANUP_EE(EE);
+        }
+
+        dlerror();
+        pCreateContextCallback = (LWMSP_CREATE_CONTEXT_CALLBACK)
+                                      dlsym(pContext->LibraryHandle,
+                                            LWMSP_CREATE_CONTEXT_FUNCTION_NAME);
+        if (!pCreateContextCallback)
+        {
+            pszError = dlerror();
+
+            LOG_ERROR("Failed to load " LWMSP_CREATE_CONTEXT_FUNCTION_NAME
+                      " function from %s (%s)",
+                      pContext->LibraryPath, SAFE_LOG_STRING(pszError));
+
+            status = STATUS_UNSUCCESSFUL;
+            GOTO_CLEANUP_EE(EE);
+        }
     }
-
-    dlerror();
-    pCreateContexCallback = (LWMSP_CREATE_CONTEXT_CALLBACK) dlsym(pContext->LibraryHandle, LWMSP_CREATE_CONTEXT_FUNCTION_NAME);
-    if (!pCreateContexCallback)
+    else
     {
-        pszError = dlerror();
+        pCreateContextCallback = pCallback;
+        if (!pCreateContextCallback)
+        {
+            LOG_ERROR("Couldn't find any context create callback function.");
 
-        LOG_ERROR("Failed to load " LWMSP_CREATE_CONTEXT_FUNCTION_NAME " function from %s (%s)",
-                  pContext->LibraryPath, SAFE_LOG_STRING(pszError));
-
-        status = STATUS_UNSUCCESSFUL;
-        GOTO_CLEANUP_EE(EE);
+            status = STATUS_UNSUCCESSFUL;
+            GOTO_CLEANUP_EE(EE);
+        }
     }
 
-    status = pCreateContexCallback(&pContext->PluginContext, &pContext->PluginInterface);
+    status = pCreateContextCallback(&pContext->PluginContext,
+                                    &pContext->PluginInterface);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
 cleanup:
@@ -924,3 +965,13 @@ cleanup:
 
     return status;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
