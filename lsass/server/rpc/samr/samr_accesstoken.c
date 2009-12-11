@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        samr_creds.c
+ *        samr_accesstoken.c
  *
  * Abstract:
  *
@@ -47,20 +47,26 @@
 #include "includes.h"
 
 
+static
 NTSTATUS
-SamrSrvCreateAccessToken(
-    IN  handle_t       hBinding,
-    OUT PACCESS_TOKEN *ppToken
+SamrSrvInitNpAuthInfo(
+    IN  rpc_transport_info_handle_t hTransportInfo,
+    OUT PCONNECT_CONTEXT            pConnCtx
+    );
+
+
+NTSTATUS
+SamrSrvInitAuthInfo(
+    IN  handle_t          hBinding,
+    OUT PCONNECT_CONTEXT  pConnCtx
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     RPCSTATUS rpcStatus = 0;
+    DWORD dwAuthentication = 0;
+    PVOID pAuthCtx = NULL;
     rpc_transport_info_handle_t hTransportInfo = NULL;
-    PSTR pszPrincipalName = NULL;
-    PBYTE pbSessionKey = NULL;
-    USHORT usSessionKeyLen = 0;
-    PLW_MAP_SECURITY_CONTEXT pSecCtx = NULL;
-    PACCESS_TOKEN pToken = NULL;
+    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
 
     if (!pSecCtx)
     {
@@ -68,12 +74,69 @@ SamrSrvCreateAccessToken(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    rpc_binding_inq_transport_info(hBinding,
-                                   &hTransportInfo,
-                                   &rpcStatus);
-    if (rpcStatus)
+    rpc_binding_inq_security_context(hBinding,
+                                     (unsigned32*)&dwAuthentication,
+                                     (PVOID*)&pAuthCtx,
+                                     &rpcStatus);
+    if (rpcStatus == rpc_s_binding_has_no_auth)
+    {
+        /*
+         * There's no  DCE/RPC authentication info so check
+         * the transport layer.
+         */
+        rpcStatus = 0;
+        rpc_binding_inq_transport_info(hBinding,
+                                       &hTransportInfo,
+                                       &rpcStatus);
+        if (rpcStatus)
+        {
+            ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        if (hTransportInfo)
+        {
+            ntStatus = SamrSrvInitNpAuthInfo(hTransportInfo,
+                                             pConnCtx);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+    }
+    else if (rpcStatus)
     {
         ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+cleanup:
+    return ntStatus;
+
+error:
+    SamrSrvFreeAuthInfo(pConnCtx);
+
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SamrSrvInitNpAuthInfo(
+    IN  rpc_transport_info_handle_t hTransportInfo,
+    OUT PCONNECT_CONTEXT            pConnCtx
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
+    PSTR pszPrincipalName = NULL;
+    PUCHAR pucSessionKey = NULL;
+    USHORT usSessionKeyLen = 0;
+    PACCESS_TOKEN pToken = NULL;
+    PBYTE pSessionKey = NULL;
+    DWORD dwSessionKeyLen = 0;
+
+    if (!pSecCtx)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
@@ -81,8 +144,9 @@ SamrSrvCreateAccessToken(
                                    hTransportInfo,
                                    (unsigned char**)&pszPrincipalName);
 
-    rpc_smb_transport_info_inq_session_key(hTransportInfo,
-                                   (unsigned char**)&pbSessionKey,
+    rpc_smb_transport_info_inq_session_key(
+                                   hTransportInfo,
+                                   (unsigned char**)&pucSessionKey,
                                    (unsigned16*)&usSessionKeyLen);
 
     ntStatus = LwMapSecurityCreateAccessTokenFromCStringUsername(
@@ -91,26 +155,60 @@ SamrSrvCreateAccessToken(
                                    pszPrincipalName);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    *ppToken = pToken;
+    dwSessionKeyLen = usSessionKeyLen;
+    if (dwSessionKeyLen)
+    {
+        dwError = LwAllocateMemory(dwSessionKeyLen,
+                                   OUT_PPVOID(&pSessionKey));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        memcpy(pSessionKey, pucSessionKey, dwSessionKeyLen);
+    }
+
+    pConnCtx->pUserToken      = pToken;
+    pConnCtx->pSessionKey     = pSessionKey;
+    pConnCtx->dwSessionKeyLen = dwSessionKeyLen;
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pToken)
+    goto cleanup;
+}
+
+
+
+VOID
+SamrSrvFreeAuthInfo(
+    IN  PCONNECT_CONTEXT pConnCtx
+    )
+{
+    if (pConnCtx == NULL) return;
+
+    if (pConnCtx->pUserToken)
     {
-        RtlReleaseAccessToken(&pToken);
+        RtlReleaseAccessToken(&pConnCtx->pUserToken);
+        pConnCtx->pUserToken = NULL;
     }
 
-    *ppToken = NULL;
-
-    goto cleanup;
+    if (pConnCtx->pSessionKey)
+    {
+        LW_SAFE_FREE_MEMORY(pConnCtx->pSessionKey);
+        pConnCtx->pSessionKey     = NULL;
+        pConnCtx->dwSessionKeyLen = 0;
+    }
 }
 
 
 NTSTATUS
 SamrSrvGetSystemCreds(
-    LW_PIO_CREDS *ppCreds
+    OUT LW_PIO_CREDS *ppCreds
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

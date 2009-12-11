@@ -33,87 +33,41 @@
  *
  * Module Name:
  *
- *        samr_contexthandle.h
+ *        samr_accesstoken.h
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        Samr context handles
+ *        Access token handling functions
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _SAMR_CONTEXT_HANDLE_H_
-#define _SAMR_CONTEXT_HANDLE_H_
+#ifndef _SAMR_ACCESSTOKEN_H_
+#define _SAMR_ACCESSTOKEN_H_
 
 
-enum SamrContextType {
-    SamrContextConnect = 0,
-    SamrContextDomain,
-    SamrContextAccount
-};
-
-
-typedef struct samr_generic_context {
-    enum SamrContextType    Type;
-    LONG                    refcount;
-} SAMR_GENERIC_CONTEXT, *PSAMR_GENERIC_CONTEXT;
-
-
-typedef struct samr_connect_context
-{
-    enum SamrContextType    Type;
-    LONG                    refcount;
-    PACCESS_TOKEN           pUserToken;
-    PBYTE                   pSessionKey;
-    DWORD                   dwSessionKeyLen;
-    HANDLE                  hDirectory;
-}
-CONNECT_CONTEXT, *PCONNECT_CONTEXT;
-
-
-typedef struct samr_domain_context {
-    enum SamrContextType Type;
-    LONG                 refcount;
-    PWSTR                pwszDn;
-    PWSTR                pwszDomainName;
-    PSID                 pDomainSid;
-    PCONNECT_CONTEXT     pConnCtx;
-} DOMAIN_CONTEXT, *PDOMAIN_CONTEXT;
-
-
-typedef struct samr_account_context {
-    enum SamrContextType Type;
-    LONG                 refcount;
-    PWSTR                pwszDn;
-    PWSTR                pwszName;
-    DWORD                dwRid;
-    DWORD                dwAccountType;
-    PSID                 pSid;
-    PDOMAIN_CONTEXT      pDomCtx;
-} ACCOUNT_CONTEXT, *PACCOUNT_CONTEXT;
-
-
-void
-CONNECT_HANDLE_rundown(
-    void *hContext
+NTSTATUS
+SamrSrvInitAuthInfo(
+    IN  handle_t          hBinding,
+    OUT PCONNECT_CONTEXT  pConnCtx
     );
 
 
-void
-DOMAIN_HANDLE_rundown(
-    void *hContext
+VOID
+SamrSrvFreeAuthInfo(
+    IN  PCONNECT_CONTEXT pConnCtx
     );
 
 
-void
-ACCOUNT_HANDLE_rundown(
-    void *hContext
+NTSTATUS
+SamrSrvGetSystemCreds(
+    OUT LW_PIO_CREDS *ppCreds
     );
 
 
-#endif /* _SAMR_CONTEXT_HANDLE_H_ */
+#endif /* _SAMR_ACCESSTOKEN_H_ */
 
 
 /*
