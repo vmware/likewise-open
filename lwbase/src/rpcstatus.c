@@ -436,9 +436,11 @@ LwRpcStatusToNtStatus(
         case LW_ERROR_RPC_S_CALL_TIMEOUT:
             return LW_STATUS_TRANSACTION_TIMED_OUT;
         case LW_ERROR_RPC_S_ADDR_IN_USE:
-	    return LW_STATUS_ADDRESS_ALREADY_EXISTS;
+            return LW_STATUS_ADDRESS_ALREADY_EXISTS;
         case LW_ERROR_RPC_S_TOO_MANY_SOCKETS:
-	    return LW_STATUS_TOO_MANY_ADDRESSES;
+            return LW_STATUS_TOO_MANY_ADDRESSES;
+        case LW_ERROR_RPC_S_INVALID_CREDENTIALS:
+            return LW_STATUS_ACCESS_DENIED;
 
         case LW_ERROR_RPC_S_MOD:
         case LW_ERROR_RPC_S_OP_RNG_ERROR:
@@ -653,7 +655,6 @@ LwRpcStatusToNtStatus(
         case LW_ERROR_RPC_S_SOCKET_FAILURE:
         case LW_ERROR_RPC_S_UNSUPPORTED_PROTECT_LEVEL:
         case LW_ERROR_RPC_S_INVALID_CHECKSUM:
-        case LW_ERROR_RPC_S_INVALID_CREDENTIALS:
         case LW_ERROR_RPC_S_CREDENTIALS_TOO_LARGE:
         case LW_ERROR_RPC_S_CALL_ID_NOT_FOUND:
         case LW_ERROR_RPC_S_KEY_ID_NOT_FOUND:
@@ -794,7 +795,7 @@ LwRpcStatusToNtStatus(
         case LW_ERROR_RPC_M_CTXRUNDOWN_NOMEM:
         case LW_ERROR_RPC_M_CTXRUNDOWN_EXC:
         case LW_ERROR_RPC_S_FAULT_CODESET_CONV_ERROR:
-	default:
+        default:
             return LW_STATUS_UNSUCCESSFUL;
     }
 }
