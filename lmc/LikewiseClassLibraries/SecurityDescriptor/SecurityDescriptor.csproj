@@ -45,6 +45,10 @@
       <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
       <Name>LMCUtilities</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Netlogon\Netlogon.csproj">
+      <Project>{BE8FEFB2-BC23-43AC-A6D4-80B43A6F0B0D}</Project>
+      <Name>Netlogon</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

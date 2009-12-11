@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
 
+using Likewise.LMC.Netlogon;
+
 namespace Likewise.LMC.SecurityDesriptor
 {
     /// <summary>
@@ -13,9 +15,9 @@ namespace Likewise.LMC.SecurityDesriptor
     {
         #region Class Data
 
-        private byte _revision;
+        private uint _revision;
         private byte _size;
-        private short _control;
+        private uint _control;
         private string _owner = string.Empty;
         private string _primaryGroupID = string.Empty;
         private object _descretionary_access_control_list = null;
@@ -75,7 +77,7 @@ namespace Likewise.LMC.SecurityDesriptor
                     break;
 
                 case "AceMask":
-                    GetUserOrGroupAccessMask(daclInfo[sKey], ref value);
+                    value = daclInfo[sKey];
                     break;
 
                 case "AceFlags":
@@ -94,30 +96,115 @@ namespace Likewise.LMC.SecurityDesriptor
         /// </summary>
         /// <param name="accessMask"></param>
         /// <param name="sPermissionname"></param>
-        public void GetUserOrGroupAccessMask(string accessMask, ref object sPermissionname)
+        public List<string> GetUserOrGroupPermissions(
+                        string accessMask)
         {
             //TO DO: Still needs to find the AccessMask enum mapping with string values
             uint iAccessMask = Convert.ToUInt32(accessMask);
 
-            if ((iAccessMask & (uint)SecurityDescriptorApi.ACCESS_MASK.DELETE) == 0)
+            List<string> permissions = new List<string>();
+
+            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
             {
-                sPermissionname = PermissionsSet.PermissionSet[SecurityDescriptorApi.ACCESS_MASK.DELETE];
+                string sPermissionname = string.Empty;
+
+                if ((iAccessMask & (uint)accesskmask) == 0)
+                {
+                    sPermissionname = PermissionsSet.PermissionSet[accesskmask];
+
+                    permissions.Add(sPermissionname);
+                }
             }
-            if ((iAccessMask & (uint)SecurityDescriptorApi.ACCESS_MASK.GENERIC_ALL) == 0)
+
+            return permissions;
+        }
+
+        public List<object[]> GetPermissionsFromAccessMask(string accessMask)
+        {
+            //TO DO: Still needs to find the AccessMask enum mapping with string values
+            uint iAccessMask = Convert.ToUInt32(accessMask);
+
+            List<object[]> permissions = new List<object[]>();
+
+            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
             {
-                sPermissionname = PermissionsSet.PermissionSet[SecurityDescriptorApi.ACCESS_MASK.GENERIC_ALL];
+                string sPermissionname = string.Empty;
+                bool AccessType = false;
+
+                if ((iAccessMask & (uint)accesskmask) == 0)
+                {
+                    sPermissionname = PermissionsSet.PermissionSet[accesskmask];
+                    AccessType = true;
+
+                    permissions.Add(new object[] { sPermissionname, AccessType, !AccessType });
+                }
             }
-            if ((iAccessMask & (uint)SecurityDescriptorApi.ACCESS_MASK.GENERIC_EXECUTE) == 0)
+
+            return permissions;
+        }
+
+        public bool CheckAccessMaskExists(
+                        string inputMask,
+                        uint AccessMaskType)
+        {
+            if ((Convert.ToUInt32(inputMask) & AccessMaskType) == 0)
+                return true;
+
+            return false;
+        }
+
+        public string GetDCInfo(string domain)
+        {
+            string sDomain = string.Empty;
+            Likewise.LMC.Netlogon.CNetlogon.LWNET_DC_INFO DCInfo;
+
+            if (String.IsNullOrEmpty(domain))
+                Likewise.LMC.Netlogon.CNetlogon.GetCurrentDomain(out sDomain);
+            else
+                sDomain = domain;
+
+            uint netlogonError = Likewise.LMC.Netlogon.CNetlogon.GetDCName(sDomain, 0, out DCInfo);
+
+            if (netlogonError == 0 && !String.IsNullOrEmpty(DCInfo.FullyQualifiedDomainName))
             {
-                sPermissionname = PermissionsSet.PermissionSet[SecurityDescriptorApi.ACCESS_MASK.GENERIC_EXECUTE];
+                sDomain = DCInfo.FullyQualifiedDomainName;
             }
-            if ((iAccessMask & (uint)SecurityDescriptorApi.ACCESS_MASK.GENERIC_READ) == 0)
+
+            return sDomain;
+        }
+
+        public string ConvetByteSidToStringSid(byte[] bSid)
+        {
+            return SecurityDescriptorWrapper.ConvetByteSidToStringSid(bSid);
+        }
+
+        public void GetAceType(uint AceType, ref uint iAceType)
+        {
+            switch (AceType)
             {
-                sPermissionname = PermissionsSet.PermissionSet[SecurityDescriptorApi.ACCESS_MASK.GENERIC_READ];
-            }
-            if ((iAccessMask & (uint)SecurityDescriptorApi.ACCESS_MASK.GENERIC_WRITE) == 0)
-            {
-                sPermissionname = PermissionsSet.PermissionSet[SecurityDescriptorApi.ACCESS_MASK.GENERIC_WRITE];
+                case (uint)SecurityDescriptorApi.AccessTypes.Allow:
+                    iAceType = iAceType | (uint)SecurityDescriptorApi.AccessTypes.Allow;
+                    break;
+
+                case (uint)SecurityDescriptorApi.AccessTypes.Allow_Object:
+                    iAceType = iAceType | (uint)SecurityDescriptorApi.AccessTypes.Allow_Object;
+                    break;
+
+                case (uint)SecurityDescriptorApi.AccessTypes.Audit:
+                    iAceType = iAceType | (uint)SecurityDescriptorApi.AccessTypes.Audit;
+                    break;
+
+                case (uint)SecurityDescriptorApi.AccessTypes.Audit_Object:
+                    iAceType = iAceType | (uint)SecurityDescriptorApi.AccessTypes.Audit_Object;
+                    break;
+
+                case (uint)SecurityDescriptorApi.AccessTypes.Deny:
+                    iAceType = iAceType | (uint)SecurityDescriptorApi.AccessTypes.Deny;
+                    break;
+
+                case (uint)SecurityDescriptorApi.AccessTypes.Deny_Object:
+                    iAceType = iAceType | (uint)SecurityDescriptorApi.AccessTypes.Deny_Object;
+                    break;
             }
         }
 
@@ -137,7 +224,7 @@ namespace Likewise.LMC.SecurityDesriptor
             }
         }
 
-        public short Control
+        public uint Control
         {
             set
             {
@@ -149,7 +236,7 @@ namespace Likewise.LMC.SecurityDesriptor
             }
         }
 
-        public byte Revision
+        public uint Revision
         {
             set
             {
@@ -268,38 +355,38 @@ namespace Likewise.LMC.SecurityDesriptor
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.READ_CONTROL, "Read");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_DAC, "Modify");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.SPECIFIC_RIGHTS_ALL, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_CREATEMENU, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_CREATEWINDOW, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_ENUMERATE, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_HOOKCONTROL, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_JOURNALPLAYBACK, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_JOURNALRECORD, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_READOBJECTS, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_SWITCHDESKTOP, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_WRITEOBJECTS, "");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.SPECIFIC_RIGHTS_ALL, "Specific Rights");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_CREATEMENU, "Create Menu");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_CREATEWINDOW, "Create Window");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_ENUMERATE, "Desktop Enumerate");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_HOOKCONTROL, "Hook Control");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_JOURNALPLAYBACK, "Journal Playback");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_JOURNALRECORD, "Journal Record");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_READOBJECTS, "Read Objects");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_SWITCHDESKTOP, "Switch Desktop");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_WRITEOBJECTS, "Write Objects");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_ALL, "Full Control");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_EXECUTE, "Execute");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_READ, "Read");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_WRITE, "Write");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.MAXIMUM_ALLOWED, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.ACCESS_SYSTEM_SECURITY, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_ALL, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_EXECUTE, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_READ, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_REQUIRED, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_WRITE, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.SYNCHRONIZE, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ACCESSCLIPBOARD, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ACCESSGLOBALATOMS, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ALL_ACCESS, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_CREATEDESKTOP, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ENUMDESKTOPS, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ENUMERATE, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_EXITWINDOWS, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_READATTRIBUTES, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_READSCREEN, "");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_WRITEATTRIBUTES, "");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_EXECUTE, "Generic Execute");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_READ, "Generic Read");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_WRITE, "Generic Write");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.MAXIMUM_ALLOWED, "Maximum allowed");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.ACCESS_SYSTEM_SECURITY, "Special Permissions");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_ALL, "Standard Full Control");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_EXECUTE, "Standard Rights Execute");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_READ, "Standard Rights Read");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_REQUIRED, "Standard Rights Required");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_WRITE, "Standard Rights Write");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.SYNCHRONIZE, "Synchronize");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ACCESSCLIPBOARD, "Access Clipboard");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ACCESSGLOBALATOMS, "Access Global Atoms");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ALL_ACCESS, "All Access");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_CREATEDESKTOP, "Create Desktop");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ENUMDESKTOPS, "Enum Desktops");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ENUMERATE, "Enumerate");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_EXITWINDOWS, "Exit Windows");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_READATTRIBUTES, "Read Attributes");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_READSCREEN, "Read Screen");
+            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_WRITEATTRIBUTES, "Write Attributes");
         }
     }
 }

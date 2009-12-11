@@ -62,59 +62,53 @@ namespace Likewise.LMC.SecurityDesriptor
         }
 
         public static uint ReadSecurityDescriptor(
-                                SecurityDescriptorApi.SECURITY_DESCRIPTOR pSECURITY_DESCRIPTOR,
-                                SecurityDescriptor ObjSecurityDescriptor)
+                                IntPtr pSECURITY_DESCRIPTOR,
+                                ref SecurityDescriptor ObjSecurityDescriptor)
         {
             Logger.Log(string.Format("SecurityDescriptorWrapper.ReadSecurityDescriptor()"), Logger.SecurityDescriptorLogLevel);
 
             Dictionary<string, Dictionary<string, string>> SdDacls = new Dictionary<string, Dictionary<string, string>>();
+            IntPtr ptrSid;
             uint errorReturn = 0;
-            string sUsername = string.Empty;
-            string sDomain = string.Empty;
-            ObjSecurityDescriptor = null;
+            bool bRet = false;
+            ObjSecurityDescriptor = new SecurityDescriptor();
 
-            if (pSECURITY_DESCRIPTOR == null)
-                return errorReturn;
+            SecurityDescriptorApi.SECURITY_DESCRIPTOR sSECURITY_DESCRIPTOR = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
 
             try
             {
-                ObjSecurityDescriptor = new SecurityDescriptor();
-                ObjSecurityDescriptor.Control = pSECURITY_DESCRIPTOR.control;
-                ObjSecurityDescriptor.Owner = Marshal.PtrToStringAuto(pSECURITY_DESCRIPTOR.owner);
-                ObjSecurityDescriptor.Revision = pSECURITY_DESCRIPTOR.revision;
-                ObjSecurityDescriptor.PrimaryGroupID = Marshal.PtrToStringAuto(pSECURITY_DESCRIPTOR.group);
-                ObjSecurityDescriptor.Size = pSECURITY_DESCRIPTOR.size;
-
-                if (pSECURITY_DESCRIPTOR.dacl != IntPtr.Zero)
+                if (pSECURITY_DESCRIPTOR != IntPtr.Zero)
                 {
+                    IntPtr pDaclOffset;
+                    bool lpbDaclPresent = false;
+                    bool lpbDaclDefaulted = false;
+
+                    bRet = SecurityDescriptorApi.GetSecurityDescriptorDacl(pSECURITY_DESCRIPTOR, out lpbDaclPresent, out pDaclOffset, out lpbDaclDefaulted);
+                    Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorDacl iRet value", Logger.SecurityDescriptorLogLevel);
+
                     SecurityDescriptorApi.ACL_SIZE_INFORMATION AclSize = new SecurityDescriptorApi.ACL_SIZE_INFORMATION();
-                    SecurityDescriptorApi.GetAclInformation(pSECURITY_DESCRIPTOR.dacl, ref AclSize,
+                    SecurityDescriptorApi.GetAclInformation(pDaclOffset, AclSize,
                                     ((uint)Marshal.SizeOf(typeof(SecurityDescriptorApi.ACL_SIZE_INFORMATION))),
                                     SecurityDescriptorApi.ACL_INFORMATION_CLASS.AclSizeInformation);
 
                     for (int idx = 0; idx < AclSize.AceCount; idx++)
                     {
                         IntPtr pAce;
-                        IntPtr ptrSid;
+                        string sUsername, sDomain;
 
-                        int err = SecurityDescriptorApi.GetAce(pSECURITY_DESCRIPTOR.dacl, idx, out pAce);
+                        int err = SecurityDescriptorApi.GetAce(pDaclOffset, idx, out pAce);
                         SecurityDescriptorApi.ACCESS_ALLOWED_ACE ace = (SecurityDescriptorApi.ACCESS_ALLOWED_ACE)Marshal.PtrToStructure(pAce, typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE));
 
                         IntPtr iter = (IntPtr)((int)pAce + (int)Marshal.OffsetOf(typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE), "SidStart"));
-                        byte[] bSID = null;
-                        int size = (int)SecurityDescriptorApi.GetLengthSid(iter);
-                        bSID = new byte[size];
-                        Marshal.Copy(iter, bSID, 0, size);
-
-                        SecurityDescriptorApi.ConvertSidToStringSid(bSID, out ptrSid);
-                        string strSID = Marshal.PtrToStringAuto(ptrSid);
+                        string strSID = GetObjectStringSid(iter);
 
                         //Commented this, to use it in feature
+                        //IntPtr pTrustee = IntPtr.Zero;
                         //SecurityDescriptorApi.BuildTrusteeWithSid(out pTrustee, ptrSid);
                         //SecurityDescriptorApi.TRUSTEE trustee = new SecurityDescriptorApi.TRUSTEE();
                         //Marshal.PtrToStructure(pTrustee, trustee);
 
-                        ApiLookupAccountSid(bSID, ref sUsername, ref sDomain);
+                        GetObjectLookUpName(iter, out sUsername, out sDomain);
 
                         Logger.Log("Trustee = " + sUsername, Logger.SecurityDescriptorLogLevel);
                         Logger.Log(string.Format("SID={0} : AceType={1}/ AceMask={2}/ AceFlags={3}",
@@ -131,11 +125,36 @@ namespace Likewise.LMC.SecurityDesriptor
                         AceProperties.Add("AceFlags", ace.Header.AceFlags.ToString());
                         AceProperties.Add("AceSize", ace.Header.AceSize.ToString());
 
-                        SdDacls.Add(sUsername, AceProperties);
-
-                        ObjSecurityDescriptor.Descretionary_Access_Control_List = SdDacls;
+                        if (!SdDacls.ContainsKey(sUsername))
+                            SdDacls.Add(sUsername, AceProperties);
                     }
+                    ObjSecurityDescriptor.Descretionary_Access_Control_List = SdDacls;
                 }
+
+                Marshal.PtrToStructure(pSECURITY_DESCRIPTOR, sSECURITY_DESCRIPTOR);
+
+                //Get Security Descriptor Control
+                SecurityDescriptorApi.SECURITY_DESCRIPTOR_CONTROL pControl;
+                uint dwRevision;
+                SecurityDescriptorApi.GetSecurityDescriptorControl(pSECURITY_DESCRIPTOR, out pControl, out dwRevision);
+                ObjSecurityDescriptor.Control = (uint)pControl;
+                ObjSecurityDescriptor.Revision = dwRevision;
+
+                //Get Security Descriptor Owner
+                ptrSid = IntPtr.Zero;
+                bool lpbOwnerDefaulted = false;
+                bRet = SecurityDescriptorApi.GetSecurityDescriptorOwner(pSECURITY_DESCRIPTOR, out ptrSid, out lpbOwnerDefaulted);
+                Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorOwner iRet value: " + Marshal.GetLastWin32Error());
+                ObjSecurityDescriptor.Owner = GetObjectStringSid(ptrSid);
+
+                //Get Security Descriptor Group
+                bool lpbGroupDefaulted = false;
+                ptrSid = IntPtr.Zero;
+                bRet = SecurityDescriptorApi.GetSecurityDescriptorGroup(pSECURITY_DESCRIPTOR, out ptrSid, out lpbGroupDefaulted);
+                Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorGroup iRet value: " + Marshal.GetLastWin32Error());
+                ObjSecurityDescriptor.PrimaryGroupID = GetObjectStringSid(ptrSid);
+
+                ObjSecurityDescriptor.Size = SecurityDescriptorApi.GetSecurityDescriptorLength(pSECURITY_DESCRIPTOR);
             }
             catch (Exception ex)
             {
@@ -170,27 +189,25 @@ namespace Likewise.LMC.SecurityDesriptor
                                     referencedDomainName,
                                     ref cchReferencedDomainName,
                                     out sidUse);
-                if (!bReturn)
-                {
-                    iReturn = Marshal.GetLastWin32Error();
-                    if (iReturn == ERROR_INSUFFICIENT_BUFFER)
-                    {
-                        bReturn = SecurityDescriptorApi.LookupAccountSid(
-                                    null,
-                                    sid,
-                                    name,
-                                    ref cchName,
-                                    referencedDomainName,
-                                    ref cchReferencedDomainName,
-                                    out sidUse);
 
-                        iReturn = Marshal.GetLastWin32Error();
-                        if (iReturn == 0)
-                        {
-                            sUsername = name.ToString();
-                            sDomainname = referencedDomainName.ToString();
-                        }
-                    }
+                iReturn = Marshal.GetLastWin32Error();
+                if (iReturn == ERROR_INSUFFICIENT_BUFFER)
+                {
+                    bReturn = SecurityDescriptorApi.LookupAccountSid(
+                                null,
+                                sid,
+                                name,
+                                ref cchName,
+                                referencedDomainName,
+                                ref cchReferencedDomainName,
+                                out sidUse);
+
+                    iReturn = Marshal.GetLastWin32Error();
+                }
+                if (bReturn)
+                {
+                    sUsername = name.ToString();
+                    sDomainname = referencedDomainName.ToString();
                 }
             }
             catch (Exception ex)
@@ -230,7 +247,7 @@ namespace Likewise.LMC.SecurityDesriptor
                                     out IreturnLength);
                 Logger.Log("Error at SecurityDescriptorApi.GetTokenInformation: " + Marshal.GetLastWin32Error(), Logger.SecurityDescriptorLogLevel);
 
-                uint privilige = SecurityDescriptorApi.SE_PRIVILEGE_USED_FOR_ACCESS;
+                uint privilige = SecurityDescriptorApi.SE_PRIVILEGE_ENABLED;
                 pPreviousTpStruct.Attributes = (int)privilige;
                 pPreviousTpStruct.PrivilegeCount = 1;
 
@@ -254,8 +271,8 @@ namespace Likewise.LMC.SecurityDesriptor
             }
             finally
             {
-                if (pProcessTokenHandle != IntPtr.Zero)
-                    SecurityDescriptorApi.CloseHandle(pProcessTokenHandle);
+                //if (pProcessTokenHandle != IntPtr.Zero)
+                //    SecurityDescriptorApi.CloseHandle(pProcessTokenHandle);
             }
 
             return bIsSuccess;
@@ -325,6 +342,90 @@ namespace Likewise.LMC.SecurityDesriptor
 
             return errorReturn;
         }
+
+        #endregion
+
+        #region Helper functions
+
+        public static string GetObjectStringSid(IntPtr pByteSid)
+        {
+            string strSID = string.Empty;
+            try
+            {
+                IntPtr ptrSid = IntPtr.Zero;
+
+                int size = (int)SecurityDescriptorApi.GetLengthSid(pByteSid);
+                byte[] bSID = new byte[size];
+                Marshal.Copy(pByteSid, bSID, 0, size);
+                SecurityDescriptorApi.ConvertSidToStringSid(bSID, out ptrSid);
+                strSID = Marshal.PtrToStringAuto(ptrSid);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("SecurityDescriptorWrapper.GetObjectStringSid()", ex);
+            }
+
+            return strSID;
+        }
+
+        public static void GetObjectLookUpName(
+                        IntPtr ptrSid,
+                        out string Username,
+                        out string Domain)
+        {
+            Username = string.Empty;
+            Domain = string.Empty;
+
+            try
+            {
+                int size = (int)SecurityDescriptorApi.GetLengthSid(ptrSid);
+                byte[] bSID = new byte[size];
+                Marshal.Copy(ptrSid, bSID, 0, size);
+
+                ApiLookupAccountSid(bSID, ref Username, ref Domain);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("SecurityDescriptorWrapper.GetObjectLookUpName()", ex);
+            }
+        }
+
+        public static string ConvetByteSidToStringSid(byte[] bSid)
+        {
+            string strSID = string.Empty;
+
+            try
+            {
+                IntPtr ptrSid;
+                SecurityDescriptorApi.ConvertSidToStringSid(bSid, out ptrSid);
+                strSID = Marshal.PtrToStringAuto(ptrSid);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("SecurityDescriptorWrapper.ConvetByteSidToStringSid()", ex);
+            }
+
+            return strSID;
+        }
+
+        public static string GetAceTypes(byte[] bSid)
+        {
+            string strSID = string.Empty;
+
+            try
+            {
+                IntPtr ptrSid;
+                SecurityDescriptorApi.ConvertSidToStringSid(bSid, out ptrSid);
+                strSID = Marshal.PtrToStringAuto(ptrSid);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("SecurityDescriptorWrapper.ConvetByteSidToStringSid()", ex);
+            }
+
+            return strSID;
+        }
+
 
         #endregion
     }

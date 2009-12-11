@@ -42,7 +42,7 @@ namespace Likewise.LMC.SecurityDesriptor
             out SID_NAME_USE peUse);
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
-        public static extern bool GetAclInformation(IntPtr pAcl, ref ACL_SIZE_INFORMATION pAclInformation, uint nAclInformationLength, ACL_INFORMATION_CLASS dwAclInformationClass);
+        public static extern bool GetAclInformation(IntPtr pAcl, ACL_SIZE_INFORMATION pAclInformation, uint nAclInformationLength, ACL_INFORMATION_CLASS dwAclInformationClass);
 
         [DllImport(LibADVAPIPath)]
         public static extern int GetAce(IntPtr aclPtr, int aceIndex, out IntPtr acePtr);
@@ -128,23 +128,42 @@ namespace Likewise.LMC.SecurityDesriptor
             ref IntPtr phToken
             );
 
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetSecurityDescriptorDacl(
+            IntPtr pSecurityDescriptor,
+            out bool lpbDaclPresent,
+            out IntPtr pDacl,
+            out bool lpbDaclDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetSecurityDescriptorOwner(
+            IntPtr pSecurityDescriptor,
+            out IntPtr pOwner,
+            out bool lpbOwnerDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetSecurityDescriptorGroup(
+            IntPtr pSecurityDescriptor,
+            out IntPtr pGroup,
+            out bool lpbGroupDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetSecurityDescriptorControl(
+            IntPtr pSecurityDescriptor,
+            out SecurityDescriptorApi.SECURITY_DESCRIPTOR_CONTROL pControl,
+            out uint lpdwRevision
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern byte GetSecurityDescriptorLength(
+            IntPtr pSecurityDescriptor);
+
         #endregion
 
         #region Class Data
-
-        public const int SE_OWNER_DEFAULTED = 0x1; //1
-        public const int SE_GROUP_DEFAULTED = 0x2; //2
-        public const int SE_DACL_PRESENT = 0x4; //4
-        public const int SE_DACL_DEFAULTED = 0x8; //8
-        public const int SE_SACL_PRESENT = 0x10; //16
-        public const int SE_SACL_DEFAULTED = 0x20; //32
-        public const int SE_DACL_AUTO_INHERIT_REQ = 0x100; //256
-        public const int SE_SACL_AUTO_INHERIT_REQ = 0x200; //512
-        public const int SE_DACL_AUTO_INHERITED = 0x400; //1024
-        public const int SE_SACL_AUTO_INHERITED = 0x800; //2048
-        public const int SE_DACL_PROTECTED = 0x1000; //4096
-        public const int SE_SACL_PROTECTED = 0x2000; //8192
-        public const int SE_SELF_RELATIVE = 0x8000; //32768
 
         //Use these for DesiredAccess
         public static UInt32 STANDARD_RIGHTS_REQUIRED = 0x000F0000;
@@ -285,10 +304,10 @@ namespace Likewise.LMC.SecurityDesriptor
         [StructLayout(LayoutKind.Sequential)]
         public class EXPLICIT_ACCESS
         {
-            uint grfAccessPermissions;
-            ACCESS_MODE grfAccessMode;
-            uint grfInheritance;
-            TRUSTEE Trustee;
+            public uint grfAccessPermissions;
+            public ACCESS_MODE grfAccessMode;
+            public uint grfInheritance;
+            public TRUSTEE Trustee;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -339,13 +358,30 @@ namespace Likewise.LMC.SecurityDesriptor
 
         #region Enums
 
+        public enum SECURITY_DESCRIPTOR_CONTROL : uint
+        {
+            SE_OWNER_DEFAULTED = 0x1, //1
+            SE_GROUP_DEFAULTED = 0x2, //2
+            SE_DACL_PRESENT = 0x4,//4
+            SE_DACL_DEFAULTED = 0x8,//8
+            SE_SACL_PRESENT = 0x10, //16
+            SE_SACL_DEFAULTED = 0x20, //32
+            SE_DACL_AUTO_INHERIT_REQ = 0x100, //256
+            SE_SACL_AUTO_INHERIT_REQ = 0x200, //512
+            SE_DACL_AUTO_INHERITED = 0x400, //1024
+            SE_SACL_AUTO_INHERITED = 0x800, //2048
+            SE_DACL_PROTECTED = 0x1000,//4096
+            SE_SACL_PROTECTED = 0x2000, //8192
+            SE_SELF_RELATIVE = 0x8000, //32768
+        }
+
         public enum ACL_INFORMATION_CLASS
         {
             AclRevisionInformation = 1,
             AclSizeInformation
         }
 
-        public enum ACCESS_MODE
+        public enum ACCESS_MODE : int
         {
             NOT_USED_ACCESS = 0,
             GRANT_ACCESS,
