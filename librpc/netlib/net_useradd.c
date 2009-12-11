@@ -206,9 +206,19 @@ NetUserAdd(
     }
 
     /*
+     * Prevent from trying to rename (to the same name) the account
+     * that has just been created. Created samr user info buffer
+     * contains whatever is passed from net user info buffer.
+     */
+    if (dwSamrInfoLevel == 21 &&
+        (pSamrUserInfo->info21.fields_present & SAMR_FIELD_ACCOUNT_NAME))
+    {
+        pSamrUserInfo->info21.fields_present ^= SAMR_FIELD_ACCOUNT_NAME;
+    }
+
+    /*
      * Disable the account only if was no password
      */
-
     if (!bPasswordSet &&
         dwSamrInfoLevel == 21)
     {
