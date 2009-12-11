@@ -60,7 +60,10 @@ SamrSrvConnect2(
     DWORD dwError = 0;
     PCONNECT_CONTEXT pConn = NULL;
 
-    ntStatus = RTL_ALLOCATE(&pConn, CONNECT_CONTEXT, sizeof(*pConn));
+    dwError = LwAllocateMemory(sizeof(*pConn), OUT_PPVOID(&pConn));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = SamrSrvInitAuthInfo(hBinding, pConn);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwError = DirectoryOpen(&pConn->hDirectory);
