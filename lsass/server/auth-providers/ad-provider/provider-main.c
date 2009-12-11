@@ -1922,7 +1922,7 @@ AD_GetUserGroupObjectMembership(
     }
     else
     {
-        dwError = AD_OnlineGetUserGroupObjectMembership(
+        dwError = AD_OnlineGetObjectGroupObjectMembership(
             hProvider,
             pUserInfo,
             bIsCacheOnlyMode,
@@ -1932,7 +1932,7 @@ AD_GetUserGroupObjectMembership(
 
     if (LW_ERROR_DOMAIN_IS_OFFLINE == dwError)
     {
-        dwError = AD_OfflineGetUserGroupObjectMembership(
+        dwError = AD_OfflineGetObjectGroupObjectMembership(
             hProvider,
             pUserInfo,
             psNumGroupsFound,

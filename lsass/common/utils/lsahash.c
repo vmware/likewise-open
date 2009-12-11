@@ -83,6 +83,14 @@ error:
     goto cleanup;
 }
 
+size_t
+LsaHashGetKeyCount(
+    PLSA_HASH_TABLE pTable
+    )
+{
+    return pTable->sCount;
+}
+
 //Don't call this
 void
 LsaHashFree(

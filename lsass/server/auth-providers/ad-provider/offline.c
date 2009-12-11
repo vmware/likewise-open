@@ -292,81 +292,169 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
-AD_OfflineGetUserGroupObjectMembership(
+AD_OfflineGetObjectGroupObjectMembershipInternal(
     IN HANDLE hProvider,
-    IN PLSA_SECURITY_OBJECT pUserInfo,
-    OUT size_t* psNumGroupsFound,
-    OUT PLSA_SECURITY_OBJECT** pppResult
+    IN PLSA_SECURITY_OBJECT pObject,
+    IN OUT PLSA_HASH_TABLE pHash,
+    DWORD dwDepth
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
-    size_t sUserGroupMembershipsCount = 0;
-    PLSA_GROUP_MEMBERSHIP* ppUserGroupMemberships = NULL;
-    size_t sParentSidsCount = 0;
-    // Do not free ppszParentSids at it points to ppUserGroupMemberships data.
-    PSTR* ppszParentSids = NULL;
-    size_t sGroupObjectsCount = 0;
-    PLSA_SECURITY_OBJECT* ppGroupObjects = NULL;
+    size_t sMembershipCount = 0;
+    PLSA_GROUP_MEMBERSHIP* ppMemberships = NULL;
+    size_t sSidCount = 0;
+    PLSA_SECURITY_OBJECT* ppResults = NULL;
+    // Only free top level array, do not free string pointers.
+    PSTR* ppszSids = NULL;
+    PCSTR pszSid = NULL;
+    size_t sIndex = 0;
+    static const DWORD dwMaxDepth = 5;
+
+    if (dwDepth >= dwMaxDepth)
+    {
+        goto cleanup;
+    }
+
+    pszSid = pObject->pszObjectSid;
 
     dwError = ADCacheGetGroupsForUser(
-                gpLsaAdProviderState->hCacheConnection,
-                pUserInfo->pszObjectSid,
-                AD_GetTrimUserMembershipEnabled(),
-                &sUserGroupMembershipsCount,
-                &ppUserGroupMemberships);
+                    gpLsaAdProviderState->hCacheConnection,
+                    pszSid,
+                    AD_GetTrimUserMembershipEnabled(),
+                    &sMembershipCount,
+                    &ppMemberships);
     BAIL_ON_LSA_ERROR(dwError);
-
-    //
-    // Gather up the SIDs.
-    //
 
     dwError = AD_GatherSidsFromGroupMemberships(
-                TRUE,
-                NULL,
-                sUserGroupMembershipsCount,
-                ppUserGroupMemberships,
-                &sParentSidsCount,
-                &ppszParentSids);
+        TRUE,
+        NULL,
+        sMembershipCount,
+        ppMemberships,
+        &sSidCount,
+        &ppszSids);
     BAIL_ON_LSA_ERROR(dwError);
-
-    //
-    // Resolve the SIDs to objects.
-    //
 
     dwError = AD_OfflineFindObjectsBySidList(
-                sParentSidsCount,
-                ppszParentSids,
-                &ppGroupObjects);
+        sSidCount,
+        ppszSids,
+        &ppResults);
     BAIL_ON_LSA_ERROR(dwError);
 
-    //
-    // Filter out any objects that could not be resolved.
-    //
-
-    sGroupObjectsCount = sParentSidsCount;
-    AD_FilterNullEntries(ppGroupObjects, &sGroupObjectsCount);
-
-    *pppResult = ppGroupObjects;
-    *psNumGroupsFound = sGroupObjectsCount;
+    for (sIndex = 0; sIndex < sSidCount; sIndex++)
+    {
+        if (ppResults[sIndex] &&
+            !LsaHashExists(pHash, ppResults[sIndex]->pszObjectSid))
+        {
+            dwError = LsaHashSetValue(
+                pHash,
+                ppResults[sIndex]->pszObjectSid,
+                ppResults[sIndex]);
+            BAIL_ON_LSA_ERROR(dwError);
+            dwError = AD_OfflineGetObjectGroupObjectMembershipInternal(
+                hProvider,
+                ppResults[sIndex],
+                pHash,
+                dwDepth + 1);
+            ppResults[sIndex] = NULL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
 
 cleanup:
-    ADCacheSafeFreeGroupMembershipList(sUserGroupMembershipsCount, &ppUserGroupMemberships);
-    LW_SAFE_FREE_MEMORY(ppszParentSids);
+
+    LW_SAFE_FREE_MEMORY(ppszSids);
+    ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
+    ADCacheSafeFreeObjectList(sSidCount, &ppResults);
 
     return dwError;
 
 error:
 
-    *pppResult = NULL;
-    *psNumGroupsFound = 0;
+    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE )
+    {
+        LSA_LOG_ERROR("Failed to find memberships for object '%s\\%s' (error = %d)",
+                      pObject->pszNetbiosDomainName,
+                      pObject->pszSamAccountName,
+                      dwError);
+    }
 
-    LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %d)",
-                  pUserInfo->pszNetbiosDomainName,
-                  pUserInfo->pszSamAccountName,
-                  dwError);
+    goto cleanup;
+}
 
-    ADCacheSafeFreeObjectList(sGroupObjectsCount, &ppGroupObjects);
+static
+VOID
+AD_OfflineFreeMemberOfHashEntry(
+    const LSA_HASH_ENTRY* pEntry
+    )
+{
+    ADCacheSafeFreeObject((PLSA_SECURITY_OBJECT*) (PVOID) &pEntry->pValue);
+}
+
+
+DWORD
+AD_OfflineGetObjectGroupObjectMembership(
+    IN HANDLE hProvider,
+    IN PLSA_SECURITY_OBJECT pObject,
+    OUT size_t* psCount,
+    OUT PLSA_SECURITY_OBJECT** pppResults
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwGroupCount = 0;
+    PLSA_SECURITY_OBJECT* ppGroups = NULL;
+    PLSA_HASH_TABLE   pGroupHash = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY*   pHashEntry = NULL;
+    DWORD dwIndex = 0;
+
+    dwError = LsaHashCreate(
+        29,
+        LsaHashCaselessStringCompare,
+        LsaHashCaselessStringHash,
+        AD_OfflineFreeMemberOfHashEntry,
+        NULL,
+        &pGroupHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_OfflineGetObjectGroupObjectMembershipInternal(
+        hProvider,
+        pObject,
+        pGroupHash,
+        0);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwGroupCount = (DWORD) LsaHashGetKeyCount(pGroupHash);
+
+    if (dwGroupCount)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*ppGroups) * dwGroupCount,
+            OUT_PPVOID(&ppGroups));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaHashGetIterator(pGroupHash, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (dwIndex = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; dwIndex++)
+        {
+            ppGroups[dwIndex] = pHashEntry->pValue;
+            pHashEntry->pValue = NULL;
+        }
+    }
+
+    *psCount = dwGroupCount;
+    *pppResults = ppGroups;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *psCount = 0;
+    *pppResults = NULL;
 
     goto cleanup;
 }

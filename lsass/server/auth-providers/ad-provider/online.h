@@ -203,7 +203,7 @@ AD_OnlineFindUserObjectById(
     );
 
 DWORD
-AD_OnlineGetUserGroupObjectMembership(
+AD_OnlineGetObjectGroupObjectMembership(
     IN HANDLE hProvider,
     IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
