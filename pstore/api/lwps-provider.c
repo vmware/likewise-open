@@ -95,33 +95,11 @@ LwpsOpenProvider(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
     PLWPS_STORAGE_PROVIDER pProvider = NULL;
     PLWPS_STACK pProviderStack = NULL;
 
-    dwError = LwpsCheckFileExists(
-                  LWPS_CONFIG_PATH,
-                  &bExists);
+    dwError = LwpsBuiltInProviders(&pProviderStack);
     BAIL_ON_LWPS_ERROR(dwError);
-
-    if (bExists)
-    {
-        dwError = LwpsParseConfigFile(
-                      LWPS_CONFIG_PATH,
-                      LWPS_CFG_OPTION_STRIP_ALL,
-                      &LwpsConfigStartSection,
-                      NULL,
-                      &LwpsConfigNameValuePair,
-                      NULL,
-                      (PVOID)&pProviderStack);
-
-        pProviderStack = LwpsStackReverse(pProviderStack);
-    }
-    else
-    {
-        dwError = LwpsBuiltInProviders(&pProviderStack);
-        BAIL_ON_LWPS_ERROR(dwError);
-    }
 
     if (storeType == LWPS_PASSWORD_STORE_DEFAULT) {
 
@@ -272,31 +250,10 @@ LwpsFindAllProviders(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
     PLWPS_STACK pProviderStack = NULL;
 
-    dwError = LwpsCheckFileExists(
-                  LWPS_CONFIG_PATH,
-                  &bExists);
+    dwError = LwpsBuiltInProviders(&pProviderStack);
     BAIL_ON_LWPS_ERROR(dwError);
-
-    if (bExists)
-    {
-        dwError = LwpsParseConfigFile(
-                      LWPS_CONFIG_PATH,
-                      LWPS_CFG_OPTION_STRIP_ALL,
-                      &LwpsConfigStartSection,
-                      NULL,
-                      &LwpsConfigNameValuePair,
-                      NULL,
-                      (PVOID)&pProviderStack);
-        BAIL_ON_LWPS_ERROR(dwError);
-    }
-    else
-    {
-        dwError = LwpsBuiltInProviders(&pProviderStack);
-        BAIL_ON_LWPS_ERROR(dwError);
-    }
 
     *ppStack = LwpsStackReverse(pProviderStack);
 
@@ -730,7 +687,20 @@ LwpsBuiltInProviders(
                   &pProviderStack);
     BAIL_ON_LWPS_ERROR(dwError);
 
-#if defined(ENABLE_FILEDB)
+#if defined(ENABLE_REGDB)
+    dwError = LwpsAllocateString(
+                  "regdb",
+                  &pProvider->pszId);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwpsAllocateString(
+                  "/opt/likewise/lib/liblwps-regdb.so",
+                  &pProvider->pszLibPath);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    pProvider->storeType = LWPS_PASSWORD_STORE_REGDB;
+    pProvider->bDefault = TRUE;
+#elif defined(ENABLE_FILEDB)
     dwError = LwpsAllocateString(
                   "filedb",
                   &pProvider->pszId);

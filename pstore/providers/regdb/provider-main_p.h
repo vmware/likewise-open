@@ -53,7 +53,9 @@
 #define LWPS_LOCK_FILE ".pstore.lock"
 
 #define PSTOREDB_REGISTRY_KEY \
-    "Services\\lsass\\Parameters\\Providers\\ActiveDirectory\\Pstore"
+    "Services\\lsass\\Parameters\\Providers\\ActiveDirectory\\Pstore\\Default"
+#define PSTOREDB_REGISTRY_MACHINE_PWD_KEY \
+        PSTOREDB_REGISTRY_KEY "\\MachinePassword"
 
 #define LWPS_REG_HOSTNAME           "HostName"
 #define LWPS_REG_DOMAIN_SID         "DomainSID"

@@ -4,7 +4,6 @@ SUBDIRS = utils     \
           providers \
           api       \
 	  tools     \
-          etc       \
           include
 
 if ENABLE_TESTS
