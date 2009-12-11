@@ -1331,25 +1331,7 @@ krb5_get_init_creds(krb5_context context,
 					   &out_padata, &retry);
 	  if (ret !=0)
 	    goto cleanup;
-	  if (err_reply->error == KDC_ERR_PREAUTH_FAILED &&
-		  out_padata != NULL &&
-		  out_padata[0] != NULL &&
-		  out_padata[1] == NULL &&
-		  out_padata[0]->pa_type == KRB5_PADATA_ETYPE_INFO)
-	  {
-	      /* The kdc replied with a preauth failed error (meaning that we
-	       * tried to use preauth data, but it was bad). The error message
-	       * is suggesting to use the etype_info preauth type, but it did
-	       * not send the corresponding pa-enc-timestamp option.
-	       *
-	       * Given this, if we retried, the best we could do is send no
-	       * preauth data. Instead of getting stuck in a loop here, it is
-	       * better to admit the preauthentication failed. */
-	      ret = KRB5KDC_ERR_PREAUTH_FAILED;
-	      goto cleanup;
-	  }
-	  if ((err_reply->error == KDC_ERR_PREAUTH_REQUIRED ||err_reply->error == KDC_ERR_PREAUTH_FAILED)
-&& retry) {
+	  if (err_reply->error == KDC_ERR_PREAUTH_REQUIRED && retry) {
 		/* reset the list of preauth types to try */
 		if (preauth_to_use) {
 		    krb5_free_pa_data(context, preauth_to_use);
