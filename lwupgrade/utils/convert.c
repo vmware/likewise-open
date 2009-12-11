@@ -57,7 +57,7 @@ UpStringToMultiString(
     j = 0;
     while (pszCompactIn[i])
     {
-        if (!isspace(pszCompactIn[i]))
+        if (!isspace((int)pszCompactIn[i]))
         {
             pszCompactIn[j++] = pszCompactIn[i];
         }

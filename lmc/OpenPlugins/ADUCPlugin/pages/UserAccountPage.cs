@@ -182,7 +182,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 {
                 }
 
-                FillUserOptiins();
+                FillUserOptions();
 
                 dateTimePicker.Enabled = rbEndOf.Checked;
 
@@ -199,7 +199,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         #region Helper Functions
 
-        private void FillUserOptiins()
+        private void FillUserOptions()
         {
             ListUserOptions.Items.AddRange(OptionsList);
 

@@ -153,9 +153,15 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     RegistryInteropWrapperWindows.Win32RegOpenRemoteBaseKey(hKey,
                                                         out sSubKey);
 
-                    RegistryInteropWrapperWindows.ApiRegGetKeySecurity(
-                                RegistryInteropWrapperWindows.GetRegistryHive(HKEY.HEKY_CURRENT_USER),
-                                "AppEvents1");
+                    //IntPtr pSD = RegistryInteropWrapperWindows.ApiRegGetKeySecurity(
+                    //            RegistryInteropWrapperWindows.GetRegistryHive(HKEY.HEKY_CURRENT_USER),
+                    //            "AppEvents1");
+                    //SecurityDescriptor SecurityDescriptor = new SecurityDescriptor();
+                    //SecurityDescriptorWrapper.ReadSecurityDescriptor(pSD, ref SecurityDescriptor);
+
+                    //PermissionsControlDlg dlg = new PermissionsControlDlg(SecurityDescriptor, "AppEvent1");
+                    //dlg.Show();
+
                     break;
 
                 case RegistryViewerPlugin.NodeType.HKEY_LOCAL_MACHINE:
