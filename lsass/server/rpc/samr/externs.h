@@ -51,4 +51,6 @@ extern SAMR_SRV_CONFIG gSamrSrvConfig;
 
 extern PSECURITY_DESCRIPTOR_ABSOLUTE gpSamrSecDesc;
 
+extern PLW_MAP_SECURITY_CONTEXT gpLsaSecCtx;
+
 #endif /* _EXTERNS_H_ */
