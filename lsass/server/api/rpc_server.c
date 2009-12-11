@@ -93,7 +93,7 @@ error:
 
 
 DWORD
-LsaInitRpcServer(
+LsaSrvInitRpcServer(
     PLSA_RPC_SERVER pRpc
     )
 {
@@ -161,7 +161,8 @@ error:
 
 
 DWORD
-LsaInitRpcServers(
+LsaSrvInitRpcServers(
+    VOID
     )
 {
     DWORD dwError = 0;
@@ -179,7 +180,7 @@ LsaInitRpcServers(
         pUninitializedRpcList = pUninitializedRpcList->pNext;
         pRpc->pNext = NULL;
 
-        dwError = LsaInitRpcServer(pRpc);
+        dwError = LsaSrvInitRpcServer(pRpc);
         if (dwError)
         {
             LSA_LOG_ERROR("Failed to load rpc server [%s] at [%s] [error code:%d]",
@@ -187,7 +188,7 @@ LsaInitRpcServers(
                 (pRpc->pszSrvLibPath ? pRpc->pszSrvLibPath : "<null>"),
                 dwError);
 
-            LsaFreeRpcServer(pRpc);
+            LsaSrvFreeRpcServer(pRpc);
             pRpc = NULL;
             dwError = 0;
         }
@@ -200,7 +201,7 @@ LsaInitRpcServers(
 
     ENTER_RPC_SERVER_LIST_WRITER_LOCK(bLocked);
 
-    LsaFreeRpcServerList(gpRpcServerList);
+    LsaSrvFreeRpcServerList(gpRpcServerList);
 
     gpRpcServerList = pRpcList;
     pRpcList     = NULL;
@@ -217,14 +218,15 @@ LsaInitRpcServers(
 cleanup:
     if (pUninitializedRpcList)
     {
-        LsaFreeRpcServerListWithoutStopping(pUninitializedRpcList);
+        LsaSrvFreeRpcServerListWithoutStopping(pUninitializedRpcList);
     }
 
     return dwError;
 
 error:
-    if (pRpcList) {
-        LsaFreeRpcServerList(pRpcList);
+    if (pRpcList)
+    {
+        LsaSrvFreeRpcServerList(pRpcList);
     }
 
     goto cleanup;
@@ -386,13 +388,13 @@ cleanup:
     return dwError;
 
 error:
-
     LW_SAFE_FREE_STRING(pszPath);
     if (pRpcSrv)
     {
-        LsaFreeRpcServer(pRpcSrv);
+        LsaSrvFreeRpcServer(pRpcSrv);
         pRpcSrv = NULL;
     }
+
     goto cleanup;
 }
 
@@ -494,32 +496,31 @@ LsaSrvAppendRpcServerList(
 }
 
 void
-LsaFreeRpcServer(
+LsaSrvFreeRpcServer(
     PLSA_RPC_SERVER pSrv
     )
 {
     if (pSrv == NULL) return;
 
-    LW_SAFE_FREE_STRING(pSrv->pszName);
-
-    if (pSrv->pfnShutdownSrv) {
+    if (pSrv->pfnShutdownSrv)
+    {
         pSrv->pfnShutdownSrv(
                     pSrv->pszName,
                     pSrv->pfnTable);
     }
 
-    if (pSrv->phLib) {
+    if (pSrv->phLib)
+    {
         dlclose(pSrv->phLib);
     }
 
     LW_SAFE_FREE_STRING(pSrv->pszSrvLibPath);
-
-    LwFreeMemory(pSrv);
+    LW_SAFE_FREE_MEMORY(pSrv);
 }
 
 
 void
-LsaFreeRpcServerList(
+LsaSrvFreeRpcServerList(
     PLSA_RPC_SERVER pRpcServerList
     )
 {
@@ -527,28 +528,47 @@ LsaFreeRpcServerList(
 
     LsaStopRpcServers(pRpcServerList);
 
-    while (pRpcServerList) {
+    while (pRpcServerList)
+    {
         pRpc = pRpcServerList;
         pRpcServerList = pRpcServerList->pNext;
-        LsaFreeRpcServer(pRpc);
+        LsaSrvFreeRpcServer(pRpc);
         pRpc = NULL;
     }
 }
 
 void
-LsaFreeRpcServerListWithoutStopping(
+LsaSrvFreeRpcServerListWithoutStopping(
     PLSA_RPC_SERVER pRpcServerList
     )
 {
     PLSA_RPC_SERVER pRpc = NULL;
 
-    while (pRpcServerList) {
+    while (pRpcServerList)
+    {
         pRpc = pRpcServerList;
         pRpcServerList = pRpcServerList->pNext;
-        LsaFreeRpcServer(pRpc);
+        LsaSrvFreeRpcServer(pRpc);
         pRpc = NULL;
     }
 }
+
+
+VOID
+LsaSrvFreeRpcServers(
+    VOID
+    )
+{
+    BOOLEAN bLocked = FALSE;
+
+    ENTER_RPC_SERVER_LIST_WRITER_LOCK(bLocked);
+
+    LsaSrvFreeRpcServerList(gpRpcServerList);
+    gpRpcServerList = NULL;
+
+    LEAVE_RPC_SERVER_LIST_WRITER_LOCK(bLocked);
+}
+
 
 /*
 local variables:
