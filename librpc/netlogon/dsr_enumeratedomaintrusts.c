@@ -56,11 +56,11 @@ DsrEnumerateDomainTrusts(
     pwszServerName = wc16sdup(pwszServer);
     BAIL_ON_NULL_PTR(pwszServerName, ntStatus);
 
-    DCERPC_CALL(err, _DsrEnumerateDomainTrusts(hNetrBinding,
-                                               pwszServerName,
-                                               Flags,
-                                               &TrustList));
-    BAIL_ON_WINERR(err);
+    DCERPC_CALL(ntStatus, _DsrEnumerateDomainTrusts(hNetrBinding,
+                                                    pwszServerName,
+                                                    Flags,
+                                                    &TrustList));
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NetrAllocateDomainTrusts(&pTrusts,
                                         &TrustList);
