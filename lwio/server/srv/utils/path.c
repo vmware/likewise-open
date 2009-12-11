@@ -61,10 +61,6 @@ SrvBuildFilePath(
     wchar16_t wszBackSlash[] = {'\\', 0};
     PWSTR     pwszFilename   = NULL;
 
-    if (!pwszPrefix)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER_1;
-    }
     if (!pwszSuffix)
     {
         ntStatus = STATUS_INVALID_PARAMETER_2;
@@ -75,10 +71,10 @@ SrvBuildFilePath(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    len_prefix = wc16slen(pwszPrefix);
+    len_prefix = pwszPrefix ? wc16slen(pwszPrefix) : 0;
     len_suffix = wc16slen(pwszSuffix);
 
-    if (len_suffix && *pwszSuffix &&
+    if (len_prefix && len_suffix && *pwszSuffix &&
         (*pwszSuffix != wszFwdSlash[0]) && (*pwszSuffix != wszBackSlash[0]))
     {
         len_separator = sizeof(wszBackSlash[0]);
