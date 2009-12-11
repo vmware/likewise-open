@@ -2596,6 +2596,7 @@ AD_OnlineGetObjectGroupObjectMembership(
     *pppResults = ppGroups;
 
 cleanup:
+    LsaHashSafeFree(&pGroupHash);
 
     return dwError;
 
