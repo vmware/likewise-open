@@ -49,31 +49,31 @@ SamrSrvCreateAccount(
     };
 
     ATTRIBUTE_VALUE AttrValues[] = {
-        {
+        {   /* ATTR_VAL_IDX_OBJECT_CLASS */
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_SAM_ACCOUNT_NAME */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_COMMON_NAME */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_ACCOUNT_FLAGS */
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
             .data.ulValue = 0
         },
-        {
+        {   /* ATTR_VAL_IDX_NETBIOS_NAME */
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
-        {
-            .Type = DIRECTORY_ATTR_TYPE_ANSI_STRING,
+        {   /* ATTR_VAL_IDX_HOME_DIR */
+            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pszStringValue = NULL
         },
-        {
+        {   /* ATTR_VAL_IDX_SHELL */
             .Type = DIRECTORY_ATTR_TYPE_ANSI_STRING,
             .data.pszStringValue = NULL
         }

@@ -110,6 +110,8 @@
     {'A','l','l','o','w','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
 #define DS_ATTR_FORCE_PASSWORD_CHANGE \
     {'F','o','r','c','e','P','a','s','s','w','o','r','d','C','h','a','n','g','e',0}
+#define DS_ATTR_PASSWORD \
+    {'P','a','s','s','w','o','r','d',0}
 #define DS_ATTR_ACCOUNT_FLAGS \
     {'A','c','c','o','u','n','t','F','l','a','g','s',0}
 #define DS_ATTR_CREATED_TIME \
