@@ -57,11 +57,13 @@
 DWORD
 LsaLdapOpenDirectoryDomain(
     IN PCSTR pszDnsDomainName,
+    IN PCSTR pszPrimaryDomain,
     IN DWORD dwFlags,
     OUT PHANDLE phDirectory
     )
 {
     return LsaLdapOpenDirectoryWithReaffinity(pszDnsDomainName,
+                                              pszPrimaryDomain,
                                               dwFlags,
                                               FALSE,
                                               phDirectory);
@@ -70,11 +72,13 @@ LsaLdapOpenDirectoryDomain(
 DWORD
 LsaLdapOpenDirectoryGc(
     IN PCSTR pszDnsForestName,
+    IN PCSTR pszPrimaryDomain,
     IN DWORD dwFlags,
     OUT PHANDLE phDirectory
     )
 {
     return LsaLdapOpenDirectoryWithReaffinity(pszDnsForestName,
+                                              pszPrimaryDomain,
                                               dwFlags,
                                               TRUE,
                                               phDirectory);
@@ -84,6 +88,7 @@ LsaLdapOpenDirectoryGc(
 DWORD
 LsaLdapOpenDirectoryWithReaffinity(
     IN PCSTR pszDnsDomainOrForestName,
+    IN PCSTR pszPrimaryDomain,
     IN DWORD dwFlags,
     IN BOOLEAN bNeedGc,
     OUT PHANDLE phDirectory
@@ -123,10 +128,11 @@ LsaLdapOpenDirectoryWithReaffinity(
             // netlogon to update its cache. Afterwards, the blacklist will be
             // passed in. If it matches what's in netlogon's cache, no network
             // queries will be issued.
-            dwError = LWNetGetDCNameWithBlacklist(
+            dwError = LWNetGetDCNameExt(
                             NULL,
                             pszDnsDomainOrForestName,
                             NULL,
+                            bNeedGc ? pszPrimaryDomain : NULL,
                             dwGetDcNameFlags | DS_FORCE_REDISCOVERY,
                             0,
                             NULL,
@@ -134,10 +140,11 @@ LsaLdapOpenDirectoryWithReaffinity(
             LWNET_SAFE_FREE_DC_INFO(pDCInfo);
         }
 
-        dwError = LWNetGetDCNameWithBlacklist(
+        dwError = LWNetGetDCNameExt(
                         NULL,
                         pszDnsDomainOrForestName,
                         NULL,
+                        bNeedGc ? pszPrimaryDomain : NULL,
                         dwGetDcNameFlags,
                         dwBlackListCount,
                         ppszBlackList,
