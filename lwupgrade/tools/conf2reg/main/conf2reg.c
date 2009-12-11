@@ -93,6 +93,13 @@ TestSambaParseConfFileToRegFile(
 
 
 static
+DWORD
+GetErrorMessage(
+    DWORD dwErrCode,
+    PSTR* ppszErrorMsg
+    );
+
+static
 VOID
 PrintUsage(
     PCSTR pszAdditionalMessage
@@ -105,91 +112,108 @@ main(
     )
 {
     DWORD dwError = 0;
+    PSTR pszErrMsg = NULL;
 
-    if ( argc < 2 )
+    if (argc < 2 )
     {
-        exit(1);
+        PrintUsage(NULL);
+        goto cleanup;
     }
 
-    if (!strcmp(argv[1], "--eventlog"))
+    if (argc > 1)
     {
-        if (argc < 4)
+        if (!strcmp(argv[1], "--eventlog"))
         {
-            PrintUsage("--eventlog requires two arguments.");
+            if (argc < 4)
+            {
+                PrintUsage("--eventlog requires two arguments.");
+            }
+            else
+            {
+                dwError = EventlogConfFileToRegFile(argv[2], argv[3]);
+            }
+        }
+        else if (!strcmp(argv[1], "--lsass"))
+        {
+            if (argc < 4)
+            {
+                PrintUsage("--lsass requires two arguments.");
+            }
+            else
+            {
+                dwError = LsassConfFileToRegFile(argv[2], argv[3]);
+            }
+        }
+        else if (!strcmp(argv[1], "--lwio"))
+        {
+            if (argc < 4)
+            {
+                PrintUsage("--lwio requires two arguments.");
+            }
+            else
+            {
+                dwError = LwioConfFileToRegFile(argv[2], argv[3]);
+            }
+        }
+        else if (!strcmp(argv[1], "--netlogon"))
+        {
+            if (argc < 4)
+            {
+                PrintUsage("--netlogon requires two arguments.");
+            }
+            else
+            {
+                dwError = NetlogonConfFileToRegFile(argv[2], argv[3]);
+            }
+        }
+        else if (!strcmp(argv[1], "--lwiauth"))
+        {
+            if (argc < 5)
+            {
+                PrintUsage("--lwiauth requires three arguments and usually root privileges.");
+            }
+            else
+            {
+                dwError = LwiauthConfFileToRegFile(argv[2], argv[3], argv[4]);
+            }
+        }
+        else if (!strcmp(argv[1], "--pstore-sqlite"))
+        {
+            if (argc < 3)
+            {
+                PrintUsage("--pstore-sqlite requires one argument and usually root privileges.");
+            }
+            else
+            {
+                dwError = SqliteMachineAccountToPstore(argv[2]);
+            }
         }
         else
         {
-            dwError = EventlogConfFileToRegFile(argv[2], argv[3]);
+            PrintUsage(NULL);
         }
-        goto cleanup;
     }
-    if (!strcmp(argv[1], "--lsass"))
+    else
     {
-        if (argc < 4)
-        {
-            PrintUsage("--lsass requires two arguments.");
-        }
-        else
-        {
-            dwError = LsassConfFileToRegFile(argv[2], argv[3]);
-        }
-        goto cleanup;
+        PrintUsage(NULL);
     }
-    if (!strcmp(argv[1], "--lwio"))
-    {
-        if (argc < 4)
-        {
-            PrintUsage("--lwio requires two arguments.");
-        }
-        else
-        {
-            dwError = LwioConfFileToRegFile(argv[2], argv[3]);
-        }
-        goto cleanup;
-    }
-    if (!strcmp(argv[1], "--netlogon"))
-    {
-        if (argc < 4)
-        {
-            PrintUsage("--netlogon requires two arguments.");
-        }
-        else
-        {
-            dwError = NetlogonConfFileToRegFile(argv[2], argv[3]);
-        }
-        goto cleanup;
-    }
-    if (!strcmp(argv[1], "--lwiauth"))
-    {
-        if (argc < 5)
-        {
-            PrintUsage("--lwiauth requires three arguments.");
-        }
-        else
-        {
-            dwError = LwiauthConfFileToRegFile(argv[2], argv[3], argv[4]);
-        }
-        goto cleanup;
-    }
-    if (!strcmp(argv[1], "--pstore-sqlite"))
-    {
-        if (argc < 3)
-        {
-            PrintUsage("--pstore-sqlite requires one argument.");
-        }
-        else
-        {
-            dwError = SqliteMachineAccountToPstore(argv[2]);
-        }
-        goto cleanup;
-    }
-    PrintUsage(NULL);
 
 cleanup:
 
     if (dwError)
     {
-        fprintf(stderr, "Error %d\n", dwError);
+        if (!GetErrorMessage(dwError, &pszErrMsg))
+        {
+            fputs(pszErrMsg, stderr);
+            fputs("\n", stderr);
+            LW_SAFE_FREE_STRING(pszErrMsg);
+        }
+        else
+        {
+            fprintf(stderr, "Error %lu\n", (unsigned long)dwError);
+        }
+
+        return 1;
     }
     return 0;
 }
@@ -201,8 +225,8 @@ PrintUsage(
     )
 {
     fputs(
-"conf2reg: Convert Likewise daemon configuration file into\n"
-"          registry import file. Also, import old databases.    \n"
+"conf2reg: Generates files, from previous Likewise releases, into\n"
+"          the current format and imports the machine account."
 "\n"
 "--lsass CONF REG\n"
 "  Convert lsass 5.x configuration file to registry\n"
@@ -221,14 +245,14 @@ PrintUsage(
 "  import file.\n"
 "\n"
 "--lwiauth CONF TDB REG\n"
-"  Import 4.1 machine account into pstore using\n"
-"  lwiauthd.conf and secrets.tdb file. Also generates\n"
-"  registry file with some settings for import.\n"
+"  Import 4.1 machine account (requires root privileges)\n"
+"  using the files lwiauthd.conf and secrets.tdb.\n"
+"  Also generates a registry file for use with lwregshell\n"
+"  to preserve various system settings.\n"
 "\n"
 "--pstore-sqlite SQLDB\n"
-"  Import machine account stored in sqlite database\n"
-"  (as used in versions 5.0 through 5.3) into pstore.\n"
-
+"  Import 5.0/5.1/5.3 machine account (requires root privileges)\n"
+"  stored in a sqlite database.\n"
 , stderr);
 
    if (pszAdditionalMessage)
@@ -237,3 +261,51 @@ PrintUsage(
        fputs(pszAdditionalMessage, stderr);
    }
 }
+
+static
+DWORD
+GetErrorMessage(
+    DWORD dwErrCode,
+    PSTR* ppszErrorMsg)
+{
+    DWORD dwError = 0;
+    DWORD dwErrorBufferSize = 0;
+    DWORD dwLen = 0;
+    PSTR pszErrorMsg = NULL;
+    PSTR pszErrorBuffer = NULL;
+
+    dwErrorBufferSize = LwGetErrorString(dwErrCode, NULL, 0);
+
+    if(!dwErrorBufferSize)
+        goto cleanup;
+
+    dwError = LwAllocateMemory(
+                    dwErrorBufferSize,
+                    OUT_PPVOID(&pszErrorBuffer));
+    BAIL_ON_UP_ERROR(dwError);
+
+    dwLen = LwGetErrorString(dwErrCode, pszErrorBuffer, dwErrorBufferSize);
+    if ((dwLen == dwErrorBufferSize) && !LW_IS_NULL_OR_EMPTY_STR(pszErrorBuffer))
+    {
+        dwError = LwAllocateStringPrintf(
+                    &pszErrorMsg,
+                    "Error: %s [error code: %d]", pszErrorBuffer,
+                    dwErrCode);
+        BAIL_ON_UP_ERROR(dwError);
+    }
+
+    *ppszErrorMsg = pszErrorMsg;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pszErrorBuffer);
+
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszErrorMsg);
+
+    *ppszErrorMsg = NULL;
+
+    goto cleanup;
+}
+
