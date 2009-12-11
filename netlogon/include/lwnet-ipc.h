@@ -82,6 +82,7 @@ typedef struct _LWNET_IPC_GET_DC
     PCSTR pszServerFQDN;
     PCSTR pszDomainFQDN;
     PCSTR pszSiteName;
+    PCSTR pszPrimaryDomain;
     DWORD dwFlags;
     DWORD dwBlackListCount;
     PSTR* ppszAddressBlackList;

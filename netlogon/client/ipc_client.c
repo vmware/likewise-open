@@ -153,6 +153,7 @@ LWNetTransactGetDCName(
     PCSTR pszServerFQDN,
     PCSTR pszDomainFQDN,
     PCSTR pszSiteName,
+    PCSTR pszPrimaryDomain,
     DWORD dwFlags,
     DWORD dwBlackListCount,
     PSTR* ppszAddressBlackList,
@@ -173,6 +174,7 @@ LWNetTransactGetDCName(
     dcReq.pszServerFQDN = pszServerFQDN;
     dcReq.pszDomainFQDN = pszDomainFQDN;
     dcReq.pszSiteName = pszSiteName;
+    dcReq.pszPrimaryDomain = pszPrimaryDomain;
     dcReq.dwFlags = dwFlags;
     dcReq.dwBlackListCount = dwBlackListCount;
     dcReq.ppszAddressBlackList = ppszAddressBlackList;

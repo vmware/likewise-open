@@ -211,6 +211,7 @@ LWNetSrvIpcGetDCName(
         pReq->pszServerFQDN,
         pReq->pszDomainFQDN,
         pReq->pszSiteName,
+        pReq->pszPrimaryDomain,
         pReq->dwFlags,
         pReq->dwBlackListCount,
         pReq->ppszAddressBlackList,
