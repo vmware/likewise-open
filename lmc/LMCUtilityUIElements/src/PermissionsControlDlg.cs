@@ -20,10 +20,13 @@ namespace Likewise.LMC.UtilityUIElements
             InitializeComponent();
         }
 
-        public PermissionsControlDlg(SecurityDescriptor securityDescriptor)
+        public PermissionsControlDlg(SecurityDescriptor securityDescriptor, string ObjectPath)
             : this()
         {
+            this.Text = String.Format("Permissions for {0}", ObjectPath);
+
             permissionsControl.securityDescriptor = securityDescriptor;
+            permissionsControl._ObjectPath = ObjectPath;
         }
 
         #endregion

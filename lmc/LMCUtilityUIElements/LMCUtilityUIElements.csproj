@@ -139,6 +139,10 @@
       <Project>{FD7DA096-AE24-469F-8358-51E5B25327F4}</Project>
       <Name>SecurityDescriptor</Name>
     </ProjectReference>
+    <ProjectReference Include="..\LikewiseClassLibraries\System.DirectoryServices\System.DirectoryServices.csproj">
+      <Project>{52C1CE09-2AF3-4AF2-8E3A-0C2DC0EB2761}</Project>
+      <Name>System.DirectoryServices</Name>
+    </ProjectReference>
     <ProjectReference Include="..\LMCUtilities\LMCUtilities.csproj">
       <Project>{812CAFA6-B428-4565-A839-A2E1B68096E3}</Project>
       <Name>LMCUtilities</Name>

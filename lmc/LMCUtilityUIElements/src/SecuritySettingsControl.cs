@@ -42,6 +42,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.lblObjectName.Text = string.Format(lblObjectName.Text, _objectPath);
 
             List<ListViewItem> lvItems = new List<ListViewItem>();
+            List<string> possiblePermissions = new List<string>();
 
             if (_securityDescriptor != null)
             {
@@ -56,17 +57,18 @@ namespace Likewise.LMC.UtilityUIElements
                         foreach (string key in SdDacls.Keys)
                         {
                             Dictionary<string, string> daclInfo = SdDacls[key];
+                            int daclCount = daclInfo.Count;
 
                             ListViewItem lvItem = new ListViewItem(new string[] { SdDacls[key]["Username"] });
                             lvItem.Tag = daclInfo;
                             lvItems.Add(lvItem);
 
-                            DataGridViewRow dgRow = new DataGridViewRow();
-                            dgRow.CreateCells(DgPermissions);
-                            dgRow.Cells[0].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask");
-                            dgRow.Cells[1].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceType");
-                            dgRow.Cells[2].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceType");
-                            DgPermissions.Rows.Add(dgRow);
+                            List<object[]> permissions = _securityDescriptor.GetPermissionsFromAccessMask(
+                                                         _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask") as string);
+                            foreach (object[] arry in permissions)
+                            {
+                                DgPermissions.Rows.Add(arry);
+                            }
                         }
                     }
                 }
@@ -79,7 +81,7 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void btnEdit_Click(object sender, EventArgs e)
         {
-            PermissionsControlDlg permissionsDlg = new PermissionsControlDlg(_securityDescriptor);
+            PermissionsControlDlg permissionsDlg = new PermissionsControlDlg(_securityDescriptor, _objectPath);
             permissionsDlg.ShowDialog(this);
         }
 
@@ -107,10 +109,12 @@ namespace Likewise.LMC.UtilityUIElements
                         Dictionary<string, string> daclInfo = lvItem.Tag as Dictionary<string, string>;
                         if (daclInfo != null)
                         {
-                            foreach (DataGridViewRow dgRow in DgPermissions.Rows)
+                            List<object[]> permissions = _securityDescriptor.GetPermissionsFromAccessMask(
+                                                         _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask") as string);
+
+                            foreach (object[] arry in permissions)
                             {
-                                dgRow.Cells[1].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, dgRow.Cells[0].Value as string);
-                                dgRow.Cells[2].Value = _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, dgRow.Cells[0].Value as string);
+                                DgPermissions.Rows.Add(arry);
                             }
                         }
                     }
