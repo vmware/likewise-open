@@ -48,6 +48,13 @@
 #ifndef __LWPS_PROVIDER_P_H__
 #define __LWPS_PROVIDER_P_H__
 
+#define PSTOREDB_REGISTRY_DEFAULTS \
+    "Services\\lsass\\Parameters\\Providers\\ActiveDirectory\\Pstore"
+
+#define LWPS_REG_STORAGE_TYPE     "type"
+#define LWPS_REG_PROVIDER_PATH    "path"
+#define LWPS_REG_PROVIDER_DEFAULT "default"
+
 typedef struct __LWPS_STORAGE_PROVIDER
 {
     LwpsPasswordStoreType storeType;
