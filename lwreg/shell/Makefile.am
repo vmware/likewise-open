@@ -1,13 +1,11 @@
-noinst_PROGRAMS = regshell
+bin_PROGRAMS = lwregshell
 
-bin_PROGRAMS = regshell
-
-#regshell
-regshell_SOURCES = \
+#lwregshell
+lwregshell_SOURCES = \
     cmdparse.c \
     regshell.c
 
-regshell_LDADD = \
+lwregshell_LDADD = \
         @top_builddir@/shellutil/librsutils.la \
         @top_builddir@/utils/libregutils.la \
         @top_builddir@/parse/libregparse.la \
@@ -16,7 +14,7 @@ regshell_LDADD = \
         @LWBASE_NOTHR_LIBS@ \
         @LWMSG_NOTHR_LIBS@
 
-regshell_CPPFLAGS = \
+lwregshell_CPPFLAGS = \
     $(AM_CPPFLAGS)   \
     -I@top_srcdir@/shellutil \
     -I@top_srcdir@/server/include \
