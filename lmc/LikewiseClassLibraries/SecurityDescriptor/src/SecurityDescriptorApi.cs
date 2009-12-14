@@ -153,13 +153,61 @@ namespace Likewise.LMC.SecurityDesriptor
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern bool GetSecurityDescriptorControl(
             IntPtr pSecurityDescriptor,
-            out SecurityDescriptorApi.SECURITY_DESCRIPTOR_CONTROL pControl,
+            out SECURITY_DESCRIPTOR_CONTROL pControl,
             out uint lpdwRevision
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern byte GetSecurityDescriptorLength(
             IntPtr pSecurityDescriptor);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool AddAce(
+            IntPtr pAcl,
+            byte dwAceRevision,
+            uint dwStartingAceIndex,
+            ACE[] pAceList,
+            uint nAceListLength
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool DeleteAce(
+            IntPtr pAcl,
+            uint dwAceIndex
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorDacl(
+            IntPtr pSecurityDescriptor,
+            bool bDaclPresent,
+            IntPtr pDacl,
+            bool bDaclDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern void FreeSid(
+            IntPtr pSid
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern uint SetEntriesInAcl(
+        ulong cCountOfExplicitEntries,
+        EXPLICIT_ACCESS[] pListOfExplicitEntries,
+        IntPtr OldAcl,
+        out IntPtr NewAcl
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern uint SetNamedSecurityInfo(
+            string pObjectName,
+            SE_OBJECT_TYPE ObjectType,
+            SECURITY_INFORMATION SecurityInfo,
+            IntPtr psidOwner,
+            IntPtr psidGroup,
+            IntPtr pDacl,
+            IntPtr pSacl
+        );
+
 
         #endregion
 
@@ -453,7 +501,30 @@ namespace Likewise.LMC.SecurityDesriptor
             WINSTA_ENUMERATE = 0x00000100,
             WINSTA_READSCREEN = 0x00000200,
 
-            WINSTA_ALL_ACCESS = 0x0000037f
+            WINSTA_ALL_ACCESS = 0x0000037f,
+
+            Full_Control = 983103,
+            Read   = 131097,
+            Special_Permissions = 131072,
+            Read_And_Execute = 1179817,
+            Read_And_Write = 1180095,
+            Modify = 1245631,
+
+            Actrl_Ds_list = 4,
+            Delete = 65536,
+            Ds_Control_Access = 256,
+            Ds_Create_Child = 1,
+            Ds_Delete_Child = 2,
+            Ds_List_Object = 128,
+            Ds_Self = 8,
+            Ds_Read_Properties = 16,
+            Ds_Write_Properties = 32,
+            Sychronize = 1048576,
+
+            Generic_All = 268435456,
+            Generic_Execute = 536870912,
+            Generic_Read = 2147483648,
+            Generic_write = 1073741824
         }
 
         public enum SE_OBJECT_TYPE : uint
