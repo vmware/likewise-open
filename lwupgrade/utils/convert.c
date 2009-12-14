@@ -120,3 +120,20 @@ error:
     goto cleanup;
 }
 
+#if !defined(HAVE_STRTOLL)
+
+long long int
+strtoll(
+    const char* nptr,
+    char** endptr,
+    int base
+    )
+{
+#if defined(HAVE___STRTOLL)
+    return __strtoll(nptr, endptr, base);
+#else
+#error strtoll support is not available
+#endif
+}
+
+#endif /* defined(HAVE_STRTOLL) */
