@@ -35,10 +35,13 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void OKBtn_Click(object sender, EventArgs e)
         {
-            //TODO; Need to get back the Security descrupotor edited values.
+            //Need to get back the Security descrupotor edited values.
 
-            this.DialogResult = DialogResult.OK;
-            Close();
+            if (permissionsControl.OnApply())
+            {
+                this.DialogResult = DialogResult.OK;
+                Close();
+            }
         }
 
         private void CancelBtn_Click(object sender, EventArgs e)

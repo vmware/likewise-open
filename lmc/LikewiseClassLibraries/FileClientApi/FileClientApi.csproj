@@ -39,8 +39,14 @@
     <Compile Include="Interop\FileClientInteropLikewise.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SecurityDescriptor\SecurityDescriptor.csproj">
+      <Project>{FD7DA096-AE24-469F-8358-51E5B25327F4}</Project>
+      <Name>SecurityDescriptor</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>

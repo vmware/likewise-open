@@ -128,7 +128,6 @@ RegDB_ReadPassword(
     PLWPS_PASSWORD_INFO pInfo = NULL;
     PREGDB_PROVIDER_CONTEXT pContext = NULL;
     BOOLEAN bUnlock = FALSE;
-    PSTR pszHostName = NULL;
     PSTR pszDomainDnsName = NULL;
     PSTR pszDomainName = NULL;
     PSTR pszDomainSID = NULL;
@@ -165,32 +164,11 @@ RegDB_ReadPassword(
                   (PVOID*)&pInfo);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    /* Read pstore hostname entry first */
     dwError = RegUtilGetValue(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
                   NULL,
-                  LWPS_REG_HOSTNAME,
-                  NULL,
-                  (PVOID) &pszHostName,
-                  NULL);
-    if (dwError)
-    {
-        /* This will fail when not joined to a domain */
-        dwError = LWPS_ERROR_INVALID_ACCOUNT;
-        goto cleanup;
-    }
-
-    /*
-     * All pstore values for this host are stored under a key name
-     * with the same name as LWPS_REG_HOSTNAME
-     */
-    dwError = RegUtilGetValue(
-                  pContext->hReg,
-                  NULL,
-                  PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
                   LWPS_REG_DOMAIN_DNS_NAME,
                   NULL,
                   (PVOID) &pszDomainDnsName,
@@ -201,7 +179,7 @@ RegDB_ReadPassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  NULL,
                   LWPS_REG_DOMAIN_NAME,
                   NULL,
                   (PVOID) &pszDomainName,
@@ -212,7 +190,7 @@ RegDB_ReadPassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  NULL,
                   LWPS_REG_DOMAIN_SID,
                   NULL,
                   (PVOID) &pszDomainSID,
@@ -223,7 +201,7 @@ RegDB_ReadPassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  NULL,
                   LWPS_REG_DOMAIN_DNS_NAME,
                   NULL,
                   (PVOID) &pszHostDnsDomain,
@@ -234,7 +212,7 @@ RegDB_ReadPassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  NULL,
                   LWPS_REG_HOSTNAME,
                   NULL,
                   (PVOID) &pszHostNameValue,
@@ -245,7 +223,7 @@ RegDB_ReadPassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  NULL,
                   LWPS_REG_MACHINE_ACCOUNT,
                   NULL,
                   (PVOID) &pszMachineAccountName,
@@ -255,8 +233,8 @@ RegDB_ReadPassword(
     dwError = RegUtilGetValue(
                   pContext->hReg,
                   NULL,
-                  PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  PSTOREDB_REGISTRY_MACHINE_PWD_KEY,
+                  NULL,
                   LWPS_REG_MACHINE_PWD,
                   NULL,
                   (PVOID) &pszMachineAccountPassword,
@@ -267,7 +245,7 @@ RegDB_ReadPassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  NULL,
                   LWPS_REG_MODIFY_TIMESTAMP,
                   NULL,
                   (PVOID) &dwClientModifyTimestamp,
@@ -280,7 +258,7 @@ RegDB_ReadPassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  NULL,
                   LWPS_REG_CREATION_TIMESTAMP,
                   NULL,
                   (PVOID) &dwCreationTimestamp,
@@ -292,7 +270,7 @@ RegDB_ReadPassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostName,
+                  NULL,
                   LWPS_REG_SCHANNEL_TYPE,
                   NULL,
                   (PVOID) &dwSchannelType,
@@ -314,7 +292,7 @@ RegDB_ReadPassword(
     dwError = LwpsMbsToWc16s(pszHostDnsDomain, &pInfo->pwszHostDnsDomain);
     BAIL_ON_LWPS_ERROR(dwError);
 
-    dwError = LwpsMbsToWc16s(pszHostName, &pInfo->pwszHostname);
+    dwError = LwpsMbsToWc16s(pszHostNameValue, &pInfo->pwszHostname);
     BAIL_ON_LWPS_ERROR(dwError);
     wc16supper(pInfo->pwszHostname);
 
@@ -333,8 +311,6 @@ RegDB_ReadPassword(
     *ppInfo = pInfo;
 
 cleanup:
-    LWPS_SAFE_FREE_MEMORY(pszHostName);
-    LWPS_SAFE_FREE_MEMORY(pszHostName);
     LWPS_SAFE_FREE_MEMORY(pszDomainDnsName);
     LWPS_SAFE_FREE_MEMORY(pszDomainName);
     LWPS_SAFE_FREE_MEMORY(pszDomainSID);
@@ -611,26 +587,15 @@ RegDB_WritePassword(
     BAIL_ON_LWPS_ERROR(dwError);
 
     /*
-     * Add computer configuration data; LWPS_REG_HOSTNAME contains the value
-     * that points at the key containing the computer password info
+     * Add "MachinePassword" registry key, needed to apply ACL restrictions
+     * to restrict read access to value names (the machine password)
+     * stored under this key.
      */
-    dwError = RegUtilSetValue(
-                  pContext->hReg,
-                  NULL,
-                  PSTOREDB_REGISTRY_KEY,
-                  NULL,
-                  LWPS_REG_HOSTNAME,
-                  REG_SZ,
-                  pszHostname,
-                  strlen(pszDomainSID));
-    BAIL_ON_LWPS_ERROR(dwError);
-
-    /* Add computer account registry key */
     dwError = RegUtilAddKey(
                   pContext->hReg,
                   NULL,
-                  PSTOREDB_REGISTRY_KEY,
-                  pszHostname);
+                  PSTOREDB_REGISTRY_MACHINE_PWD_KEY,
+                  NULL);
     BAIL_ON_LWPS_ERROR(dwError);
 
     /* Write the data to the registry */
@@ -638,7 +603,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_DOMAIN_SID,
                   REG_SZ,
                   pszDomainSID,
@@ -648,7 +613,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_DOMAIN_NAME,
                   REG_SZ,
                   pszDomainName,
@@ -658,7 +623,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_DOMAIN_DNS_NAME,
                   REG_SZ,
                   pszDnsDomainName,
@@ -668,7 +633,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_HOSTNAME,
                   REG_SZ,
                   pszHostname,
@@ -678,7 +643,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_DOMAIN_DNS_NAME,
                   REG_SZ,
                   pszHostDnsDomain,
@@ -688,7 +653,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_MACHINE_ACCOUNT,
                   REG_SZ,
                   pszMachineAccount,
@@ -697,8 +662,8 @@ RegDB_WritePassword(
     dwError = RegUtilSetValue(
                   pContext->hReg,
                   NULL,
-                  PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  PSTOREDB_REGISTRY_MACHINE_PWD_KEY,
+                  NULL,
                   LWPS_REG_MACHINE_PWD,
                   REG_SZ,
                   pszMachinePassword,
@@ -708,7 +673,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_MODIFY_TIMESTAMP,
                   REG_DWORD,
                   &dwClientModifyTimestamp,
@@ -718,7 +683,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_CREATION_TIMESTAMP,
                   REG_DWORD,
                   &tCreationTimestamp,
@@ -728,7 +693,7 @@ RegDB_WritePassword(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  pszHostname,
+                  NULL,
                   LWPS_REG_SCHANNEL_TYPE,
                   REG_DWORD,
                   &dwSchannelType,
@@ -763,7 +728,6 @@ RegDB_DeleteAllEntries(
 {
     DWORD dwError = 0;
     PREGDB_PROVIDER_CONTEXT pContext = NULL;
-    PSTR pszHostName = NULL;
     BOOLEAN bUnlock = FALSE;
 
     BAIL_IF_NOT_SUPERUSER(geteuid());
@@ -776,15 +740,10 @@ RegDB_DeleteAllEntries(
     BAIL_ON_LWPS_ERROR(dwError);
     bUnlock = TRUE;
 
-    /* Read pstore hostname entry first */
-    dwError = RegUtilGetValue(
+    dwError = RegUtilDeleteTree(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
-                  NULL,
-                  LWPS_REG_HOSTNAME,
-                  NULL,
-                  (PVOID) &pszHostName,
                   NULL);
     if (dwError)
     {
@@ -792,27 +751,7 @@ RegDB_DeleteAllEntries(
         goto cleanup;
     }
 
-    dwError = RegUtilDeleteTree(
-                  pContext->hReg,
-                  NULL,
-                  PSTOREDB_REGISTRY_KEY,
-                  pszHostName);
-    if (dwError)
-    {
-        dwError = 0;
-        goto cleanup;
-    }
-
-    dwError = RegUtilDeleteValue(
-                  pContext->hReg,
-                  NULL,
-                  PSTOREDB_REGISTRY_KEY,
-                  NULL,
-                  LWPS_REG_HOSTNAME);
-    BAIL_ON_LWPS_ERROR(dwError);
-
 cleanup:
-    LWPS_SAFE_FREE_STRING(pszHostName);
     if (bUnlock)
     {
         LwpsReleaseWriteLock(pContext->hRWLock);

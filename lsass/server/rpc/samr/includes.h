@@ -49,6 +49,9 @@
 #include <dce/dcethread.h>
 #include <wc16str.h>
 #include <wc16printf.h>
+#include <openssl/md4.h>
+#include <openssl/md5.h>
+#include <openssl/rc4.h>
 #include <lw/base.h>
 #include <lw/winerror.h>
 #include <lwrpc/allocate.h>
@@ -77,6 +80,8 @@
 #include "samr_srv.h"
 #include "samrdefs.h"
 #include "samr_contexthandle.h"
+#include "samr_accesstoken.h"
+#include "samr_crypto.h"
 #include "samr_memory.h"
 #include "samr.h"
 #include "samr_h.h"

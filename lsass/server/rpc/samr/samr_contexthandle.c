@@ -57,13 +57,12 @@ CONNECT_HANDLE_rundown(
     InterlockedDecrement(&pConnCtx->refcount);
     if (pConnCtx->refcount) return;
 
-    if (pConnCtx->hDirectory) {
+    if (pConnCtx->hDirectory)
+    {
         DirectoryClose(pConnCtx->hDirectory);
     }
 
-    /*
-      free access token
-    */
+    SamrSrvFreeAuthInfo(pConnCtx);
 }
 
 

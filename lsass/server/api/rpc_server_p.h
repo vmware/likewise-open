@@ -65,7 +65,14 @@ LsaCheckInvalidRpcServer(
 
 
 DWORD
-LsaInitRpcServers(
+LsaSrvInitRpcServer(
+    PLSA_RPC_SERVER pRpc
+    );
+
+
+DWORD
+LsaSrvInitRpcServers(
+    VOID
     );
 
 
@@ -99,21 +106,30 @@ LsaSrvAppendRpcServerList(
     PLSA_RPC_SERVER *ppRpcServerList
     );
 
+
 void
-LsaFreeRpcServer(
+LsaSrvFreeRpcServer(
     PLSA_RPC_SERVER pSrv
     );
 
 
 void
-LsaFreeRpcServerList(
+LsaSrvFreeRpcServerList(
     PLSA_RPC_SERVER pRpcServerList
     );
 
+
 void
-LsaFreeRpcServerListWithoutStopping(
+LsaSrvFreeRpcServerListWithoutStopping(
     PLSA_RPC_SERVER pRpcServerList
     );
+
+
+VOID
+LsaSrvFreeRpcServers(
+    VOID
+    );
+
 
 #endif /* _RPC_SERVER_P_H_ */
 

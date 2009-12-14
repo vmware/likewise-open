@@ -15,6 +15,10 @@ namespace Likewise.LMC.SecurityDesriptor
     {
         #region Class Data
 
+        //Read the security Descriptor object for editing the Aces list and for adding the new Aces to the selected object.
+        public IntPtr pSecurityDescriptor = IntPtr.Zero;
+        private bool _disposed = false;
+
         private uint _revision;
         private byte _size;
         private uint _control;
@@ -32,9 +36,73 @@ namespace Likewise.LMC.SecurityDesriptor
             InitailizeToNull();
         }
 
+        // Use C# destructor syntax for finalization code.
+        // This destructor will run only if the Dispose method
+        // does not get called.
+        // It gives your base class the opportunity to finalize.
+        // Do not provide destructors in types derived from this class.
+        ~SecurityDescriptor()
+        {
+            // Do not re-create Dispose clean-up code here.
+            // Calling Dispose(false) is optimal in terms of
+            // readability and maintainability.
+            Dispose(false);
+        }
+
         #endregion
 
         #region Helper functions
+
+        // Dispose(bool disposing) executes in two distinct scenarios.
+        // If disposing equals true, the method has been called directly
+        // or indirectly by a user's code. Managed and unmanaged resources
+        // can be disposed.
+        // If disposing equals false, the method has been called by the
+        // runtime from inside the finalizer and you should not reference
+        // other objects. Only unmanaged resources can be disposed.
+        protected virtual void Dispose(bool disposing)
+        {
+            // Check to see if Dispose has already been called.
+            if (!_disposed)
+            {
+                // If disposing equals true, dispose all managed
+                // and unmanaged resources.
+                if (disposing)
+                {
+                    // Dispose managed resources.
+                    // Components.Dispose();
+                }
+                // Release unmanaged resources. If disposing is false,
+                // only the following code is executed.
+                CloseHandle();
+
+                // Note that this is not thread safe.
+                // Another thread could start disposing the object
+                // after the managed resources are disposed,
+                // but before the disposed flag is set to true.
+                // If thread safety is necessary, it must be
+                // implemented by the client.
+            }
+            _disposed = true;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            // Take yourself off the Finalization queue
+            // to prevent finalization code for this object
+            // from executing a second time.
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Close the Security Descriptor pointer before the object got disposed.
+        /// </summary>
+        public void CloseHandle()
+        {
+            if(pSecurityDescriptor!=IntPtr.Zero)
+                SecurityDescriptorApi.CloseHandle(pSecurityDescriptor);
+        }
 
         /// <summary>
         /// Function to reset the all the data
@@ -108,7 +176,7 @@ namespace Likewise.LMC.SecurityDesriptor
             {
                 string sPermissionname = string.Empty;
 
-                if ((iAccessMask & (uint)accesskmask) == 0)
+                if ((iAccessMask & (uint)accesskmask) > 0)
                 {
                     sPermissionname = PermissionsSet.PermissionSet[accesskmask];
 
@@ -131,7 +199,7 @@ namespace Likewise.LMC.SecurityDesriptor
                 string sPermissionname = string.Empty;
                 bool AccessType = false;
 
-                if ((iAccessMask & (uint)accesskmask) == 0)
+                if ((iAccessMask & (uint)accesskmask) > 0)
                 {
                     sPermissionname = PermissionsSet.PermissionSet[accesskmask];
                     AccessType = true;
@@ -147,7 +215,7 @@ namespace Likewise.LMC.SecurityDesriptor
                         string inputMask,
                         uint AccessMaskType)
         {
-            if ((Convert.ToUInt32(inputMask) & AccessMaskType) == 0)
+            if ((Convert.ToUInt32(inputMask) & AccessMaskType) > 0)
                 return true;
 
             return false;
@@ -206,6 +274,14 @@ namespace Likewise.LMC.SecurityDesriptor
                     iAceType = iAceType | (uint)SecurityDescriptorApi.AccessTypes.Deny_Object;
                     break;
             }
+        }
+
+        public uint EditAce(object editAceslist,
+                            object addedAceslist,
+                            object deletedAceslist)
+        {
+            return SecurityDescriptorWrapper.ApiSetSecurityDescriptorDacl(
+                                    editAceslist, addedAceslist, deletedAceslist, pSecurityDescriptor);
         }
 
         #endregion
@@ -343,7 +419,7 @@ namespace Likewise.LMC.SecurityDesriptor
             get
             {
                 if (permissionSet == null || permissionSet.Count == 0)
-                    FillPermissionSet();
+                    FillRegistryPermissionSet();
 
                 return permissionSet;
             }
@@ -352,7 +428,7 @@ namespace Likewise.LMC.SecurityDesriptor
         public static void FillPermissionSet()
         {
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DELETE, "Delete");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.READ_CONTROL, "Read");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.READ_CONTROL, "Full Control");//Read
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_DAC, "Modify");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.SPECIFIC_RIGHTS_ALL, "Specific Rights");
@@ -365,28 +441,40 @@ namespace Likewise.LMC.SecurityDesriptor
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_READOBJECTS, "Read Objects");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_SWITCHDESKTOP, "Switch Desktop");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_WRITEOBJECTS, "Write Objects");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_ALL, "Full Control");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_ALL, "Generic All");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_EXECUTE, "Generic Execute");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_READ, "Generic Read");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_WRITE, "Generic Write");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.MAXIMUM_ALLOWED, "Maximum allowed");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.ACCESS_SYSTEM_SECURITY, "Special Permissions");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_ALL, "Standard Full Control");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_EXECUTE, "Standard Rights Execute");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_READ, "Standard Rights Read");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_REQUIRED, "Standard Rights Required");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.STANDARD_RIGHTS_WRITE, "Standard Rights Write");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.SYNCHRONIZE, "Synchronize");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ACCESSCLIPBOARD, "Access Clipboard");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ACCESSGLOBALATOMS, "Access Global Atoms");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ALL_ACCESS, "All Access");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_CREATEDESKTOP, "Create Desktop");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ENUMDESKTOPS, "Enum Desktops");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_ENUMERATE, "Enumerate");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_EXITWINDOWS, "Exit Windows");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_READATTRIBUTES, "Read Attributes");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_READSCREEN, "Read Screen");
-            //permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WINSTA_WRITEATTRIBUTES, "Write Attributes");
+        }
+
+        public static void FillFilePermissionSet()
+        {
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Modify, "Modify");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read_And_Execute, "Read & Execute");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
+        }
+
+        public static void FillDirectiryPermissionSet()
+        {
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Modify, "Modify");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read_And_Execute, "Read & Execute");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Ds_Delete_Child, "List Folder Contents");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
+        }
+
+        public static void FillRegistryPermissionSet()
+        {
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
         }
     }
 }

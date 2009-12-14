@@ -53,6 +53,7 @@ libsamr_la_SOURCES = \
     samr_getmembersinalias.c     \
     samr_getaliasmembership.c    \
     samr_accesstoken.c           \
+    samr_crypto.c                \
     samr_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \

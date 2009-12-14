@@ -49,8 +49,10 @@
 #include "lwps/lwps.h"
 #include "lwps-provider.h"
 #include "lwps-provider_p.h"
+#include <reg/reg.h>
+#include <reg/regutil.h>
 
-#define LWPS_CONFIG_PATH LWPS_CONFIG_DIR "/pstore.conf"
+#define LWPS_CONFIG_PATH "registry"
 
 #ifdef ENABLE_STATIC_PROVIDERS
 
@@ -95,33 +97,11 @@ LwpsOpenProvider(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
     PLWPS_STORAGE_PROVIDER pProvider = NULL;
     PLWPS_STACK pProviderStack = NULL;
 
-    dwError = LwpsCheckFileExists(
-                  LWPS_CONFIG_PATH,
-                  &bExists);
+    dwError = LwpsBuiltInProviders(&pProviderStack);
     BAIL_ON_LWPS_ERROR(dwError);
-
-    if (bExists)
-    {
-        dwError = LwpsParseConfigFile(
-                      LWPS_CONFIG_PATH,
-                      LWPS_CFG_OPTION_STRIP_ALL,
-                      &LwpsConfigStartSection,
-                      NULL,
-                      &LwpsConfigNameValuePair,
-                      NULL,
-                      (PVOID)&pProviderStack);
-
-        pProviderStack = LwpsStackReverse(pProviderStack);
-    }
-    else
-    {
-        dwError = LwpsBuiltInProviders(&pProviderStack);
-        BAIL_ON_LWPS_ERROR(dwError);
-    }
 
     if (storeType == LWPS_PASSWORD_STORE_DEFAULT) {
 
@@ -272,31 +252,10 @@ LwpsFindAllProviders(
     )
 {
     DWORD dwError = 0;
-    BOOLEAN bExists = FALSE;
     PLWPS_STACK pProviderStack = NULL;
 
-    dwError = LwpsCheckFileExists(
-                  LWPS_CONFIG_PATH,
-                  &bExists);
+    dwError = LwpsBuiltInProviders(&pProviderStack);
     BAIL_ON_LWPS_ERROR(dwError);
-
-    if (bExists)
-    {
-        dwError = LwpsParseConfigFile(
-                      LWPS_CONFIG_PATH,
-                      LWPS_CFG_OPTION_STRIP_ALL,
-                      &LwpsConfigStartSection,
-                      NULL,
-                      &LwpsConfigNameValuePair,
-                      NULL,
-                      (PVOID)&pProviderStack);
-        BAIL_ON_LWPS_ERROR(dwError);
-    }
-    else
-    {
-        dwError = LwpsBuiltInProviders(&pProviderStack);
-        BAIL_ON_LWPS_ERROR(dwError);
-    }
 
     *ppStack = LwpsStackReverse(pProviderStack);
 
@@ -719,6 +678,15 @@ LwpsBuiltInProviders(
     DWORD dwError = 0;
     PLWPS_STORAGE_PROVIDER pProvider = NULL;
     PLWPS_STACK pProviderStack = NULL;
+    HANDLE hReg = NULL;
+    DWORD dwStorageType = 0;
+    DWORD dwProviderDefault = 0;
+    PSTR pszStorageType = NULL;
+    PSTR pszProviderPath = NULL;
+    BOOLEAN bHasStorageType = FALSE;
+    BOOLEAN bHasProviderPath = FALSE;
+    BOOLEAN bHasProviderDefault = FALSE;
+
 
     dwError = LwpsAllocateMemory(
                   sizeof(LWPS_STORAGE_PROVIDER),
@@ -730,7 +698,113 @@ LwpsBuiltInProviders(
                   &pProviderStack);
     BAIL_ON_LWPS_ERROR(dwError);
 
-#if defined(ENABLE_FILEDB)
+#if defined(ENABLE_REGDB)
+    dwError = RegOpenServer(&hReg);
+    if (dwError == 0)
+    {
+        dwError = RegUtilIsValidKey(
+                      hReg,
+                      NULL,
+                      PSTOREDB_REGISTRY_DEFAULTS);
+    }
+    if (dwError == 0)
+    {
+        dwError = RegUtilGetValue(
+                      hReg,
+                      NULL,
+                      PSTOREDB_REGISTRY_DEFAULTS,
+                      NULL,
+                      LWPS_REG_STORAGE_TYPE,
+                      NULL,
+                      (PVOID) &dwStorageType,
+                      NULL);
+        if (dwError == 0)
+        {
+            bHasStorageType = TRUE;
+            pProvider->storeType = dwStorageType;
+        }
+
+        dwError = RegUtilGetValue(
+                      hReg,
+                      NULL,
+                      PSTOREDB_REGISTRY_DEFAULTS,
+                      NULL,
+                      LWPS_REG_PROVIDER_PATH,
+                      NULL,
+                      (PVOID) &pszProviderPath,
+                      NULL);
+        if (dwError == 0)
+        {
+            bHasProviderPath = TRUE;
+            pProvider->pszLibPath = pszProviderPath;
+        }
+
+        dwError = RegUtilGetValue(
+                      hReg,
+                      NULL,
+                      PSTOREDB_REGISTRY_DEFAULTS,
+                      NULL,
+                      LWPS_REG_PROVIDER_DEFAULT,
+                      NULL,
+                      (PVOID) &dwProviderDefault,
+                      NULL);
+        if (dwError == 0)
+        {
+            bHasProviderDefault = TRUE;
+            pProvider->bDefault = dwProviderDefault ? TRUE : FALSE;
+        }
+    }
+
+    /* Set defaults when values are not found in registry */
+    if (!bHasProviderPath)
+    {
+        dwError = LwpsAllocateString(
+                      "/opt/likewise/lib/liblwps-regdb.so",
+                      &pProvider->pszLibPath);
+        BAIL_ON_LWPS_ERROR(dwError);
+    }
+    if (!bHasStorageType)
+    {
+        pProvider->storeType = LWPS_PASSWORD_STORE_REGDB;
+    }
+    if (!bHasProviderDefault)
+    {
+        pProvider->bDefault = TRUE;
+    }
+
+    switch (pProvider->storeType)
+    {
+        case LWPS_PASSWORD_STORE_UNKNOWN:   /* 0 */
+            pszStorageType = "unknown";
+            break;
+        case LWPS_PASSWORD_STORE_DEFAULT:   /* 1 */
+            pszStorageType = "unknown";
+            break;
+        case LWPS_PASSWORD_STORE_SQLDB:     /* 2 */
+            pszStorageType = "sqldb";
+            break;
+        case LWPS_PASSWORD_STORE_TDB:       /* 3 */
+            pszStorageType = "tdb";
+            break;
+        case LWPS_PASSWORD_STORE_FILEDB:    /* 4 */
+            pszStorageType = "filedb";
+            break;
+        case LWPS_PASSWORD_STORE_REGDB:     /* 5 */
+        default:
+            pszStorageType = "regdb";
+            break;
+    }
+    dwError = LwpsAllocateString(
+                  pszStorageType,
+                  &pProvider->pszId);
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    if (hReg)
+    {
+        RegCloseServer(hReg);
+    }
+
+#elif defined(ENABLE_FILEDB)
     dwError = LwpsAllocateString(
                   "filedb",
                   &pProvider->pszId);

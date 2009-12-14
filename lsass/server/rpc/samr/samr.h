@@ -403,12 +403,6 @@ SamrSrvConnect5(
 
 
 NTSTATUS
-SamrSrvGetSystemCreds(
-    LW_PIO_CREDS *ppCreds
-    );
-
-
-NTSTATUS
 SamrSrvRenameAccount(
     IN  ACCOUNT_HANDLE  hAccount,
     IN  UnicodeString  *pAccountName

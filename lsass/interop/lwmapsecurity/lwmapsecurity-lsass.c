@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software. All rights reserved.
@@ -32,7 +32,7 @@
  *
  * Module Name:
  *
- *        tokencreateinfo.c
+ *        lwmapsecurity-lsass.c
  *
  * Abstract:
  *
@@ -53,6 +53,8 @@
 #include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include <assert.h>
+#include "lsass-calls.h"
+
 
 typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT {
     // TODO-Add connection caching using TLS, a connection pool,
@@ -977,3 +979,13 @@ cleanup:
 
     return status;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

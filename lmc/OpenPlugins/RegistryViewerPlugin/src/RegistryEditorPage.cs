@@ -41,6 +41,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Likewise.LMC.Registry;
+//using Likewise.LMC.UtilityUIElements;
+//using Likewise.LMC.SecurityDesriptor;
 
 using Microsoft.Win32;
 

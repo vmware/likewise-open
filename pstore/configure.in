@@ -341,8 +341,6 @@ AC_SUBST(PTHREAD_LIBS)
 
 # Create output files
 AC_CONFIG_FILES([Makefile
-                 etc/Makefile
-		 etc/pstore.conf
                  include/Makefile
                  utils/Makefile
                  api/Makefile

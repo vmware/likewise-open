@@ -61,12 +61,16 @@ typedef struct samr_generic_context {
 } SAMR_GENERIC_CONTEXT, *PSAMR_GENERIC_CONTEXT;
 
 
-typedef struct samr_connect_context {
+typedef struct samr_connect_context
+{
     enum SamrContextType    Type;
     LONG                    refcount;
     PACCESS_TOKEN           pUserToken;
+    PBYTE                   pSessionKey;
+    DWORD                   dwSessionKeyLen;
     HANDLE                  hDirectory;
-} CONNECT_CONTEXT, *PCONNECT_CONTEXT;
+}
+CONNECT_CONTEXT, *PCONNECT_CONTEXT;
 
 
 typedef struct samr_domain_context {

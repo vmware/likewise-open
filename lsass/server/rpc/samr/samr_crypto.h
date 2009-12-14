@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,67 +33,42 @@
  *
  * Module Name:
  *
- *        samr_connect2.c
+ *        samr_crypto.h
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        SamrConnect2 function
+ *        Encrypted password blob handling functions
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#include "includes.h"
+#ifndef _SAMR_CRYPTO_H_
+#define _SAMR_CRYPTO_H_
 
 
 NTSTATUS
-SamrSrvConnect2(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ UINT32 size,
-    /* [in] */ const wchar16_t *system_name,
-    /* [in] */ UINT32 access_mask,
-    /* [out] */ CONNECT_HANDLE *hConn
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    PCONNECT_CONTEXT pConn = NULL;
+SamrSrvDecryptPasswordBlobEx(
+    IN  PCONNECT_CONTEXT  pConnCtx,
+    IN  CryptPasswordEx  *pPassBlob,
+    IN  UINT8             PassLen,
+    OUT PWSTR            *ppwszPassword
+    );
 
-    dwError = LwAllocateMemory(sizeof(*pConn), OUT_PPVOID(&pConn));
-    BAIL_ON_LSA_ERROR(dwError);
 
-    ntStatus = SamrSrvInitAuthInfo(hBinding, pConn);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+NTSTATUS
+SamrSrvEncryptPasswordBlobEx(
+    IN  PCONNECT_CONTEXT  pConnCtx,
+    IN  PCWSTR            pwszPassword,
+    IN  PBYTE             pKeyInit,
+    IN  DWORD             dwKeyInitLen,
+    IN  PBYTE             pBlobInit,
+    OUT CryptPasswordEx  *pEncryptedPassBlob
+    );
 
-    dwError = DirectoryOpen(&pConn->hDirectory);
-    BAIL_ON_LSA_ERROR(dwError);
 
-    pConn->Type     = SamrContextConnect;
-    pConn->refcount = 1;
-
-    InterlockedIncrement(&pConn->refcount);
-
-    *hConn = (CONNECT_HANDLE)pConn;
-
-cleanup:
-    if (ntStatus == STATUS_SUCCESS &&
-        dwError != ERROR_SUCCESS)
-    {
-        ntStatus = LwWin32ErrorToNtStatus(dwError);
-    }
-
-    return ntStatus;
-
-error:
-    if (pConn) {
-        InterlockedDecrement(&pConn->refcount);
-        CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConn);
-    }
-
-    *hConn = NULL;
-    goto cleanup;
-}
+#endif /* _SAMR_CRYPTO_H_ */
 
 
 /*

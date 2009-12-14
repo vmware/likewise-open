@@ -54,11 +54,16 @@ pthread_rwlock_t gpAuthProviderList_rwlock;
 PLSA_RPC_SERVER gpRpcServerList = NULL;
 pthread_rwlock_t gpRpcServerList_rwlock;
 
+pthread_t gRpcSrvWorker;
+
 pthread_rwlock_t gPerfCounters_rwlock;
 UINT64 gPerfCounters[LsaMetricSentinel];
 
 pthread_mutex_t    gAPIConfigLock     = PTHREAD_MUTEX_INITIALIZER;
 LSA_SRV_API_CONFIG gAPIConfig = {0};
+
+PLW_MAP_SECURITY_CONTEXT gpLsaSecCtx;
+
 
 DWORD
 LsaSrvApiInit(
@@ -66,6 +71,7 @@ LsaSrvApiInit(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     LSA_SRV_API_CONFIG apiConfig = {0};
 
     gServerStartTime = time(NULL);
@@ -75,6 +81,8 @@ LsaSrvApiInit(
     memset(&gPerfCounters[0], 0, sizeof(gPerfCounters));
 
     pthread_rwlock_init(&gpAuthProviderList_rwlock, NULL);
+
+    pthread_rwlock_init(&gpRpcServerList_rwlock, NULL);
 
     dwError = LsaSrvApiInitConfig(&gAPIConfig);
     BAIL_ON_LSA_ERROR(dwError);
@@ -90,7 +98,16 @@ LsaSrvApiInit(
     dwError = LsaSrvInitAuthProviders(pStaticProviders);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaInitRpcServers();
+    dwError = LsaSrvInitRpcServers();
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LwMapSecurityUseInternalPlugin(MapSecurityPluginCreateContext);
+
+    ntStatus = LwMapSecurityCreateContext(&gpLsaSecCtx);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -111,6 +128,8 @@ LsaSrvApiShutdown(
 {
     LsaSrvFreeAuthProviders();
 
+    LsaSrvFreeRpcServers();
+
     pthread_mutex_lock(&gAPIConfigLock);
 
     LsaSrvApiFreeConfigContents(&gAPIConfig);
@@ -121,5 +140,3 @@ LsaSrvApiShutdown(
 
 
 }
-
-pthread_t gRpcSrvWorker;

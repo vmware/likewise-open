@@ -57,6 +57,9 @@ SamrSrvClose(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSAMR_GENERIC_CONTEXT pContext = NULL;
 
+    BAIL_ON_INVALID_PTR(hIn);
+    BAIL_ON_INVALID_PTR(hOut);
+
     pContext = (PSAMR_GENERIC_CONTEXT)hIn;
 
     switch (pContext->Type) {
