@@ -1006,7 +1006,7 @@ AD_PacMembershipFilterWithLdap(
     }
 
     // Grab the membership information available in LDAP.
-    dwError = ADLdap_GetUserGroupMembership(
+    dwError = ADLdap_GetObjectGroupMembership(
                     hProvider,
                     pUserInfo,
                     &iPrimaryGroupIndex,
@@ -2105,6 +2105,7 @@ error:
     goto cleanup;
 }
 
+#if 0
 static
 DWORD
 AD_CombineCacheObjectsRemoveDuplicates(
@@ -2214,6 +2215,7 @@ error:
     sCombinedObjectsCount = 0;
     goto cleanup;
 }
+#endif
 
 void
 AD_FilterNullEntries(
@@ -2293,13 +2295,14 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
-AD_OnlineGetUserGroupObjectMembership(
+AD_OnlineGetObjectGroupObjectMembershipInternal(
     IN HANDLE hProvider,
-    IN PLSA_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pObject,
     IN BOOLEAN bIsCacheOnlyMode,
-    OUT size_t* psCount,
-    OUT PLSA_SECURITY_OBJECT** pppResults
+    IN OUT PLSA_HASH_TABLE pHash,
+    DWORD dwDepth
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
@@ -2312,14 +2315,20 @@ AD_OnlineGetUserGroupObjectMembership(
     PLSA_SECURITY_OBJECT* ppUnexpirableResults = NULL;
     size_t sResultsCount = 0;
     PLSA_SECURITY_OBJECT* ppResults = NULL;
-    size_t sFilteredResultsCount = 0;
-    PLSA_SECURITY_OBJECT* ppFilteredResults = NULL;
     // Only free top level array, do not free string pointers.
+    size_t sSidCount = 0;
     PSTR* ppszSids = NULL;
     PCSTR pszSid = NULL;
     int iPrimaryGroupIndex = -1;
+    size_t sIndex = 0;
+    static const DWORD dwMaxDepth = 5;
 
-    pszSid = pUserInfo->pszObjectSid;
+    if (dwDepth >= dwMaxDepth)
+    {
+        goto cleanup;
+    }
+
+    pszSid = pObject->pszObjectSid;
 
     dwError = ADCacheGetGroupsForUser(
                     gpLsaAdProviderState->hCacheConnection,
@@ -2355,7 +2364,7 @@ AD_OnlineGetUserGroupObjectMembership(
         LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
 
         dwError = AD_DetermineTrustModeandDomainName(
-                        pUserInfo->pszNetbiosDomainName,
+                        pObject->pszNetbiosDomainName,
                         &dwTrustDirection,
                         NULL,
                         NULL,
@@ -2391,13 +2400,13 @@ AD_OnlineGetUserGroupObjectMembership(
                         AD_IncludeOnlyUnexpirableGroupMembershipsCallback,
                         sMembershipCount,
                         ppMemberships,
-                        &sUnexpirableResultsCount,
+                        &sSidCount,
                         &ppszSids);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = AD_FindObjectsBySidList(
                         hProvider,
-                        sUnexpirableResultsCount,
+                        sSidCount,
                         ppszSids,
                         &sUnexpirableResultsCount,
                         &ppUnexpirableResults);
@@ -2406,9 +2415,9 @@ AD_OnlineGetUserGroupObjectMembership(
         LW_SAFE_FREE_MEMORY(ppszSids);
         ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
 
-        dwError = ADLdap_GetUserGroupMembership(
+        dwError = ADLdap_GetObjectGroupMembership(
                          hProvider,
-                         pUserInfo,
+                         pObject,
                          &iPrimaryGroupIndex,
                          &sResultsCount,
                          &ppResults);
@@ -2423,16 +2432,6 @@ AD_OnlineGetUserGroupObjectMembership(
                         FALSE,
                         sResultsCount,
                         ppResults);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        // Combine and filter out duplicates.
-        dwError = AD_CombineCacheObjectsRemoveDuplicates(
-                        &sResultsCount,
-                        ppResults,
-                        &sUnexpirableResultsCount,
-                        ppUnexpirableResults,
-                        &sFilteredResultsCount,
-                        &ppFilteredResults);
         BAIL_ON_LSA_ERROR(dwError);
     }
     else
@@ -2449,23 +2448,67 @@ AD_OnlineGetUserGroupObjectMembership(
                         NULL,
                         sMembershipCount,
                         ppMemberships,
-                        &sResultsCount,
+                        &sSidCount,
                         &ppszSids);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = AD_FindObjectsBySidList(
                         hProvider,
-                        sResultsCount,
+                        sSidCount,
                         ppszSids,
-                        &sFilteredResultsCount,
-                        &ppFilteredResults);
+                        &sResultsCount,
+                        &ppResults);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    *psCount = sFilteredResultsCount;
-    *pppResults = ppFilteredResults;
+    if (ppUnexpirableResults)
+    {
+        for (sIndex = 0; sIndex < sUnexpirableResultsCount; sIndex++)
+        {
+            if (!LsaHashExists(pHash, ppUnexpirableResults[sIndex]->pszObjectSid))
+            {
+                dwError = LsaHashSetValue(
+                    pHash,
+                    ppUnexpirableResults[sIndex]->pszObjectSid,
+                    ppUnexpirableResults[sIndex]);
+                BAIL_ON_LSA_ERROR(dwError);
+                dwError = AD_OnlineGetObjectGroupObjectMembershipInternal(
+                    hProvider,
+                    ppUnexpirableResults[sIndex],
+                    bIsCacheOnlyMode,
+                    pHash,
+                    dwDepth + 1);
+                ppUnexpirableResults[sIndex] = NULL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    if (ppResults)
+    {
+        for (sIndex = 0; sIndex < sResultsCount; sIndex++)
+        {
+            if (!LsaHashExists(pHash, ppResults[sIndex]->pszObjectSid))
+            {
+                dwError = LsaHashSetValue(
+                    pHash,
+                    ppResults[sIndex]->pszObjectSid,
+                    ppResults[sIndex]);
+                BAIL_ON_LSA_ERROR(dwError);
+                dwError = AD_OnlineGetObjectGroupObjectMembershipInternal(
+                    hProvider,
+                    ppResults[sIndex],
+                    bIsCacheOnlyMode,
+                    pHash,
+                    dwDepth + 1);
+                ppResults[sIndex] = NULL;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
 
 cleanup:
+
     LW_SAFE_FREE_MEMORY(ppszSids);
     ADCacheSafeFreeGroupMembershipList(sMembershipCount, &ppMemberships);
     ADCacheSafeFreeObjectList(sResultsCount, &ppResults);
@@ -2474,19 +2517,93 @@ cleanup:
     return dwError;
 
 error:
-    *psCount = 0;
-    *pppResults = NULL;
 
     if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE )
     {
-        LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %d)",
-                      pUserInfo->pszNetbiosDomainName,
-                      pUserInfo->pszSamAccountName,
+        LSA_LOG_ERROR("Failed to find memberships for object '%s\\%s' (error = %d)",
+                      pObject->pszNetbiosDomainName,
+                      pObject->pszSamAccountName,
                       dwError);
     }
 
-    ADCacheSafeFreeObjectList(sFilteredResultsCount, &ppFilteredResults);
-    sFilteredResultsCount = 0;
+    goto cleanup;
+}
+
+static
+VOID
+AD_OnlineFreeMemberOfHashEntry(
+    const LSA_HASH_ENTRY* pEntry
+    )
+{
+    ADCacheSafeFreeObject((PLSA_SECURITY_OBJECT*) (PVOID) &pEntry->pValue);
+}
+
+
+DWORD
+AD_OnlineGetObjectGroupObjectMembership(
+    IN HANDLE hProvider,
+    IN PLSA_SECURITY_OBJECT pObject,
+    IN BOOLEAN bIsCacheOnlyMode,
+    OUT size_t* psCount,
+    OUT PLSA_SECURITY_OBJECT** pppResults
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    DWORD dwGroupCount = 0;
+    PLSA_SECURITY_OBJECT* ppGroups = NULL;
+    PLSA_HASH_TABLE   pGroupHash = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY*   pHashEntry = NULL;
+    DWORD dwIndex = 0;
+
+    dwError = LsaHashCreate(
+        29,
+        LsaHashCaselessStringCompare,
+        LsaHashCaselessStringHash,
+        AD_OnlineFreeMemberOfHashEntry,
+        NULL,
+        &pGroupHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = AD_OnlineGetObjectGroupObjectMembershipInternal(
+        hProvider,
+        pObject,
+        bIsCacheOnlyMode,
+        pGroupHash,
+        0);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwGroupCount = (DWORD) LsaHashGetKeyCount(pGroupHash);
+
+    if (dwGroupCount)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*ppGroups) * dwGroupCount,
+            OUT_PPVOID(&ppGroups));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaHashGetIterator(pGroupHash, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (dwIndex = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; dwIndex++)
+        {
+            ppGroups[dwIndex] = pHashEntry->pValue;
+            pHashEntry->pValue = NULL;
+        }
+    }
+
+    *psCount = dwGroupCount;
+    *pppResults = ppGroups;
+
+cleanup:
+    LsaHashSafeFree(&pGroupHash);
+
+    return dwError;
+
+error:
+
+    *psCount = 0;
+    *pppResults = NULL;
 
     goto cleanup;
 }

@@ -1127,7 +1127,14 @@ AD_DsEnumerateDomainTrusts(
     {
         LSA_LOG_DEBUG("Failed to enumerate trusts at %s (error %d)",
                       pszDomainControllerName, winError);
-        dwError = LW_ERROR_ENUM_DOMAIN_TRUSTS_FAILED;
+        switch (winError)
+        {
+        case ERROR_ACCESS_DENIED:
+            dwError = winError;
+            break;
+        default:
+            dwError = LW_ERROR_ENUM_DOMAIN_TRUSTS_FAILED;
+        }
 
         if (AD_WinErrorIsConnectionError(winError))
         {

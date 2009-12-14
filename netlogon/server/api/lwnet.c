@@ -50,6 +50,23 @@
 
 static
 DWORD
+LWNetFindServersInDomain(
+    IN PDNS_SERVER_INFO pServerArray,
+    IN DWORD dwServerCount,
+    IN PCSTR pszDomainName,
+    OUT PDNS_SERVER_INFO* ppServersInDomain,
+    OUT PDWORD pdwServersInDomainCount
+    );
+
+static
+BOOL
+LWNetServerIsInDomain(
+    IN PDNS_SERVER_INFO pServerInfo,
+    IN PCSTR pszDomainName
+    );
+
+static
+DWORD
 LWNetSrvPingCLdap(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszAddress,
@@ -613,6 +630,7 @@ DWORD
 LWNetSrvGetDCNameDiscoverInternal(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
+    IN OPTIONAL PCSTR pszPrimaryDomain,
     IN DWORD dwDsFlags,
     IN DWORD dwBlackListCount,
     IN OPTIONAL PSTR* ppszAddressBlackList,
@@ -627,6 +645,7 @@ DWORD
 LWNetSrvGetDCNameDiscover(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
+    IN OPTIONAL PCSTR pszPrimaryDomain,
     IN DWORD dwDsFlags,
     IN DWORD dwBlackListCount,
     IN OPTIONAL PSTR* ppszAddressBlackList,
@@ -643,6 +662,7 @@ LWNetSrvGetDCNameDiscover(
     dwError = LWNetSrvGetDCNameDiscoverInternal(
                   pszDnsDomainName,
                   pszSiteName,
+                  pszPrimaryDomain,
                   dwDsFlags,
                   dwBlackListCount,
                   ppszAddressBlackList,
@@ -661,6 +681,7 @@ LWNetSrvGetDCNameDiscover(
     dwError = LWNetSrvGetDCNameDiscoverInternal(
                   pszDnsDomainName,
                   pszSiteName,
+                  pszPrimaryDomain,
                   dwDsFlags,
                   dwBlackListCount,
                   ppszAddressBlackList,
@@ -685,6 +706,7 @@ DWORD
 LWNetSrvGetDCNameDiscoverInternal(
     IN PCSTR pszDnsDomainName,
     IN OPTIONAL PCSTR pszSiteName,
+    IN OPTIONAL PCSTR pszPrimaryDomain,
     IN DWORD dwDsFlags,
     IN DWORD dwBlackListCount,
     IN OPTIONAL PSTR* ppszAddressBlackList,
@@ -709,6 +731,8 @@ LWNetSrvGetDCNameDiscoverInternal(
     DWORD dwError = 0;
     PLWNET_DC_INFO pDcInfo = NULL;
     PDNS_SERVER_INFO pServerArray = NULL;
+    PDNS_SERVER_INFO pServersInPrimaryDomain = NULL;
+    DWORD dwServersInPrimaryDomainCount = 0;
     DWORD dwServerCount = 0;
     PLWNET_DC_INFO pSiteDcInfo = NULL;
     PDNS_SERVER_INFO pSiteServerArray = NULL;
@@ -734,12 +758,44 @@ LWNetSrvGetDCNameDiscoverInternal(
         BAIL_ON_LWNET_ERROR(dwError);
     }
 
-    // Do CLDAP
-    dwError = LWNetSrvPingCLdapArray(pszDnsDomainName,
-                                     dwDsFlags,
-                                     pServerArray, dwServerCount,
-                                     0, 0, &pDcInfo, &bFailedFindWritable);
-    BAIL_ON_LWNET_ERROR(dwError);
+    if (pszPrimaryDomain)
+    {
+        dwError = LWNetFindServersInDomain(
+            pServerArray,
+            dwServerCount,
+            pszPrimaryDomain,
+            &pServersInPrimaryDomain,
+            &dwServersInPrimaryDomainCount);
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        if (dwServersInPrimaryDomainCount > 0)
+        {
+            dwError = LWNetSrvPingCLdapArray(pszDnsDomainName,
+                                             dwDsFlags,
+                                             pServersInPrimaryDomain,
+                                             dwServersInPrimaryDomainCount,
+                                             0, 0, &pDcInfo, &bFailedFindWritable);
+        }
+
+        if (dwServersInPrimaryDomainCount == 0 ||
+            dwError == NERR_DCNotFound)
+        {
+            dwError = LWNetSrvPingCLdapArray(pszDnsDomainName,
+                                             dwDsFlags,
+                                             pServerArray, dwServerCount,
+                                             0, 0, &pDcInfo, &bFailedFindWritable);
+            BAIL_ON_LWNET_ERROR(dwError);
+        }
+    }
+    else
+    {
+        // Do CLDAP
+        dwError = LWNetSrvPingCLdapArray(pszDnsDomainName,
+                                         dwDsFlags,
+                                         pServerArray, dwServerCount,
+                                         0, 0, &pDcInfo, &bFailedFindWritable);
+        BAIL_ON_LWNET_ERROR(dwError);
+    }
 
     // If there is no client site, then we are done (though we do not
     // expect this to ever happen).
@@ -771,6 +827,7 @@ LWNetSrvGetDCNameDiscoverInternal(
     // Now we need to use the client site to find a site-specific DC.
     dwError = LWNetSrvGetDCNameDiscover(pszDnsDomainName,
                                         pDcInfo->pszClientSiteName,
+                                        pszPrimaryDomain,
                                         dwDsFlags,
                                         dwBlackListCount,
                                         ppszAddressBlackList,
@@ -808,6 +865,7 @@ error:
 cleanup:
     LWNET_SAFE_FREE_DC_INFO(pSiteDcInfo);
     LWNET_SAFE_FREE_MEMORY(pSiteServerArray);
+    LWNET_SAFE_FREE_MEMORY(pServersInPrimaryDomain);
     dwSiteServerCount = 0;
 
     if (dwError)
@@ -830,6 +888,80 @@ cleanup:
     *pbFailedFindWritable = bFailedFindWritable;
 
     return dwError;
+}
+
+static
+DWORD
+LWNetFindServersInDomain(
+    IN PDNS_SERVER_INFO pServerArray,
+    IN DWORD dwServerCount,
+    IN PCSTR pszDomainName,
+    OUT PDNS_SERVER_INFO* ppServersInDomain,
+    OUT PDWORD pdwServersInDomainCount
+    )
+{
+    DWORD dwError = 0;
+    DWORD i = 0;
+    DWORD dwServersInDomainCount = 0;
+    DWORD dwServerIndex = 0;
+    PDNS_SERVER_INFO pServersInDomain;
+
+    for (i = 0; i < dwServerCount; i++)
+    {
+        if (LWNetServerIsInDomain(&pServerArray[i], pszDomainName))
+        {
+            dwServersInDomainCount++;
+        }
+    }
+
+    if (dwServersInDomainCount)
+    {
+        dwError = LWNetAllocateMemory(dwServersInDomainCount * sizeof(*pServerArray), OUT_PPVOID(&pServersInDomain));
+        BAIL_ON_LWNET_ERROR(dwError);
+
+        for (i = 0; i < dwServerCount; i++)
+        {
+            if (LWNetServerIsInDomain(&pServerArray[i], pszDomainName))
+            {
+                pServersInDomain[dwServerIndex++] = pServerArray[i];
+            }
+        }
+    }
+
+    *ppServersInDomain = pServersInDomain;
+    *pdwServersInDomainCount = dwServersInDomainCount;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppServersInDomain = NULL;
+    *pdwServersInDomainCount = 0;
+
+    LWNET_SAFE_FREE_MEMORY(pServersInDomain);
+
+    goto cleanup;
+}
+
+static
+BOOL
+LWNetServerIsInDomain(
+    IN PDNS_SERVER_INFO pServerInfo,
+    IN PCSTR pszDomainName
+    )
+{
+    PSTR pszDot = strchr(pServerInfo->pszName, '.');
+
+    if (!pszDot)
+    {
+        return FALSE;
+    }
+    else
+    {
+        return !strcasecmp(pszDot + 1, pszDomainName);
+    }
 }
 
 DWORD

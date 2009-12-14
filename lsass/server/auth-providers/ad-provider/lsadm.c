@@ -368,6 +368,14 @@ LsaDmIsDomainOffline(
     return LsaDmpIsDomainOffline(gLsaDmState, pszDomainName, FALSE);
 }
 
+DWORD
+LsaDmGetPrimaryDomainName(
+    OUT PSTR* ppszPrimaryDomain
+    )
+{
+    return LsaDmpGetPrimaryDomainName(gLsaDmState, ppszPrimaryDomain);
+}
+
 BOOLEAN
 LsaDmIsForestGcOffline(
     IN OPTIONAL PCSTR pszForestName
@@ -803,6 +811,7 @@ LsaDmConnectDomain(
     BOOLEAN bIsNetworkError = FALSE;
     BOOLEAN bUseGc = IsSetFlag(dwConnectFlags, LSA_DM_CONNECT_DOMAIN_FLAG_GC);
     BOOLEAN bUseDcInfo = IsSetFlag(dwConnectFlags, LSA_DM_CONNECT_DOMAIN_FLAG_DC_INFO);
+    PSTR pszPrimaryDomain = NULL;
 
     if (bUseGc)
     {
@@ -830,6 +839,9 @@ LsaDmConnectDomain(
         }
         pszDnsDomainOrForestName = pszDnsForestName;
         dwGetDcNameFlags |= DS_GC_SERVER_REQUIRED;
+
+        dwError = LsaDmGetPrimaryDomainName(&pszPrimaryDomain);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     if ( (!bUseGc && LsaDmIsDomainOffline(pszDnsDomainOrForestName)) ||
@@ -847,11 +859,15 @@ LsaDmConnectDomain(
 
     if (bUseDcInfo && !pActualDcInfo)
     {
-        dwError = LWNetGetDCName(NULL,
-                                 pszDnsDomainOrForestName,
-                                 NULL,
-                                 dwGetDcNameFlags,
-                                 &pLocalDcInfo);
+        dwError = LWNetGetDCNameExt(
+            NULL,
+            pszDnsDomainOrForestName,
+            NULL,
+            pszPrimaryDomain,
+            dwGetDcNameFlags,
+            0,
+            NULL,
+            &pLocalDcInfo);
         bIsNetworkError = LsaDmpIsNetworkError(dwError);
         BAIL_ON_LSA_ERROR(dwError);
         pActualDcInfo = pLocalDcInfo;
@@ -876,11 +892,15 @@ LsaDmConnectDomain(
 
     LWNET_SAFE_FREE_DC_INFO(pLocalDcInfo);
     pActualDcInfo = NULL;
-    dwError = LWNetGetDCName(NULL,
-                             pszDnsDomainOrForestName,
-                             NULL,
-                             dwGetDcNameFlags | DS_FORCE_REDISCOVERY,
-                             &pLocalDcInfo);
+    dwError = LWNetGetDCNameExt(
+        NULL,
+        pszDnsDomainOrForestName,
+        NULL,
+        pszPrimaryDomain,
+        dwGetDcNameFlags | DS_FORCE_REDISCOVERY,
+        0,
+        NULL,
+        &pLocalDcInfo);
     bIsNetworkError = LsaDmpIsNetworkError(dwError);
     BAIL_ON_LSA_ERROR(dwError);
     pActualDcInfo = pLocalDcInfo;
@@ -894,6 +914,7 @@ LsaDmConnectDomain(
 cleanup:
     LWNET_SAFE_FREE_DC_INFO(pLocalDcInfo);
     LW_SAFE_FREE_STRING(pszDnsForestName);
+    LW_SAFE_FREE_MEMORY(pszPrimaryDomain);
     return dwError;
 
 error:

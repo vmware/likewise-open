@@ -2431,6 +2431,44 @@ error:
     goto cleanup;
 }
 
+DWORD
+LsaDmpGetPrimaryDomainName(
+    IN LSA_DM_STATE_HANDLE Handle,
+    OUT PSTR* ppszPrimaryDomain
+    )
+{
+    DWORD dwError = 0;
+    BOOLEAN bIsAcquired = FALSE;
+
+    LsaDmpAcquireMutex(Handle->pMutex);
+    bIsAcquired = TRUE;
+
+    if (Handle->pPrimaryDomain)
+    {
+        dwError = LwAllocateString(Handle->pPrimaryDomain->pszDnsName, ppszPrimaryDomain);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        *ppszPrimaryDomain = NULL;
+    }
+
+cleanup:
+
+    if (bIsAcquired)
+    {
+        LsaDmpReleaseMutex(Handle->pMutex);
+    }
+
+    return dwError;
+
+error:
+
+    *ppszPrimaryDomain = NULL;
+
+    goto cleanup;
+}
+
 static
 DWORD
 LsaDmpDetectTransitionOnlineDomain(
@@ -2700,8 +2738,12 @@ LsaDmpLdapReconnectCallback(
     PLSA_DM_LDAP_RECONNECT_CONTEXT pCtx =
         (PLSA_DM_LDAP_RECONNECT_CONTEXT)pContext;
     PLSA_DM_LDAP_CONNECTION pLdap = pCtx->pLdap;
+    PSTR pszPrimaryDomain = NULL;
 
     *pbIsNetworkError = FALSE;
+
+    dwError = LsaDmpGetPrimaryDomainName(pCtx->Handle, &pszPrimaryDomain);
+    BAIL_ON_LSA_ERROR(dwError);
 
     if (AD_GetLDAPSignAndSeal())
     {
@@ -2712,6 +2754,7 @@ LsaDmpLdapReconnectCallback(
     {
         dwError = LsaLdapOpenDirectoryGc(
                         pLdap->pszDnsDomainName,
+                        pszPrimaryDomain,
                         dwFlags,
                         &hNew);
     }
@@ -2719,6 +2762,7 @@ LsaDmpLdapReconnectCallback(
     {
         dwError = LsaLdapOpenDirectoryDomain(
                         pLdap->pszDnsDomainName,
+                        pszPrimaryDomain,
                         dwFlags,
                         &hNew);
     }
@@ -2787,6 +2831,8 @@ cleanup:
     {
         LsaDmpReleaseMutex(pCtx->Handle->pMutex);
     }
+
+    LW_SAFE_FREE_MEMORY(pszPrimaryDomain);
 
     return dwError;
 

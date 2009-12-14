@@ -806,7 +806,6 @@ cleanup:
 struct _DaemonList daemonList[] = {
     { "com.likewisesoftware.lsassd", {NULL}, TRUE, 21, 9 },
     { "com.likewisesoftware.gpagentd", {NULL}, FALSE, 22, 9 },
-    { "com.likewisesoftware.lwmgmtd", {NULL}, FALSE, 21, 9 },
     //{ "com.likewisesoftware.eventfwdd", {NULL}, FALSE, 21, 9 },
     //{ "com.likewisesoftware.reapsysld", {NULL}, FALSE, 12, 9 },
     { NULL, {NULL}, FALSE, 0, 0 },

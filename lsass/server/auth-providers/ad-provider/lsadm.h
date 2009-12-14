@@ -414,6 +414,11 @@ LsaDmIsDomainOffline(
 ///
 
 DWORD
+LsaDmGetPrimaryDomainName(
+    OUT PSTR* ppszPrimaryDomain
+    );
+
+DWORD
 LsaDmDetectTransitionOnline(
     IN OPTIONAL PCSTR pszDomainName
     );

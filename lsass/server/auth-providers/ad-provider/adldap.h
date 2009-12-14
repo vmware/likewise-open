@@ -156,9 +156,9 @@ ADLdap_GetGroupMembers(
     );
 
 DWORD
-ADLdap_GetUserGroupMembership(
+ADLdap_GetObjectGroupMembership(
     IN HANDLE hProvider,
-    IN PLSA_SECURITY_OBJECT pUserInfo,
+    IN PLSA_SECURITY_OBJECT pObject,
     OUT int* piPrimaryGroupIndex,
     OUT size_t* psNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppGroupInfoList
