@@ -238,8 +238,15 @@ AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h])
 AC_CHECK_HEADERS([stdlib.h string.h strings.h sys/socket.h syslog.h unistd.h])
 AC_CHECK_HEADERS([sys/types.h fcntl.h iconv.h sys/stat.h time.h sys/time.h])
 AC_CHECK_HEADERS([synch.h pthread.h wc16str.h wc16printf.h res_init res_query])
-AC_CHECK_HEADERS([net/if.h ifaddrs.h arpa/nameser.h resolv.h sys/sockio.h])
+AC_CHECK_HEADERS([net/if.h ifaddrs.h arpa/nameser.h sys/sockio.h])
 AC_CHECK_HEADERS([sys/ioctl.h net/if_dl.h])
+
+AC_CHECK_HEADERS([resolv.h],[],[],
+[[#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+]])
+
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
