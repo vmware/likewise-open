@@ -466,7 +466,7 @@ LsaHashCaselessStringHash(
         // rotate result to the left 3 bits with wrap around
         result = (result << 3) | (result >> (sizeof(size_t)*8 - 3));
 
-        lowerChar = tolower(*pos);
+        lowerChar = tolower((int)*pos);
         result += lowerChar;
         pos++;
     }

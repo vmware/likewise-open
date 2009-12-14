@@ -1283,7 +1283,7 @@ NtlmBuildLmResponse(
         // convert the password to upper case
         for (dwIndex = 0; dwIndex < NTLM_LM_MAX_PASSWORD_SIZE; dwIndex++)
         {
-            LmHash[dwIndex] = toupper(pPassword[dwIndex]);
+            LmHash[dwIndex] = toupper((int)pPassword[dwIndex]);
 
             if (!pPassword[dwIndex])
             {
@@ -1847,7 +1847,7 @@ NtlmCreateNtlmV2Hash(
     // remember that the user name is converted to upper case
     while (*pUserName)
     {
-        *pTrav = toupper(*pUserName);
+        *pTrav = toupper((int)*pUserName);
         pTrav++;
         pUserName++;
     }
