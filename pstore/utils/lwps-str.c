@@ -285,7 +285,7 @@ LwpsStrToUpper(
         return;
 
     while (*pszString != '\0') {
-        *pszString = toupper(*pszString);
+        *pszString = toupper((int)*pszString);
         pszString++;
     }
 }
@@ -299,7 +299,7 @@ LwpsStrToLower(
         return;
 
     while (*pszString != '\0') {
-        *pszString = tolower(*pszString);
+        *pszString = tolower((int)*pszString);
         pszString++;
     }
 }
