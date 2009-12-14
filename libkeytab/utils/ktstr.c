@@ -178,7 +178,7 @@ KtStrToUpper(
     }
 
     while (*pszString != '\0') {
-        *pszString = toupper(*pszString);
+        *pszString = toupper((int)*pszString);
         pszString++;
     }
 }
@@ -194,7 +194,7 @@ KtStrToLower(
     }
 
     while (*pszString != '\0') {
-        *pszString = tolower(*pszString);
+        *pszString = tolower((int)*pszString);
         pszString++;
     }
 }
