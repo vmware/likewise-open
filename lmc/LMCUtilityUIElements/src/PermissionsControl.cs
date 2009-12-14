@@ -146,7 +146,16 @@ namespace Likewise.LMC.UtilityUIElements
 
             if (daclInfo != null)
             {
-                _removedObjects.Add(lvItem.Text, daclInfo);
+                string name = lvItem.Text.Substring(0, lvItem.Text.IndexOf('('));
+
+                _removedObjects.Add(name, daclInfo);
+
+                if (_addedObjects.ContainsKey(name))
+                    _addedObjects.Remove(name);
+
+                if (_editedObjects.ContainsKey(name))
+                    _editedObjects.Remove(name);
+
                 lvGroupOrUserNames.SelectedItems[0].Remove();
             }
         }
@@ -161,6 +170,9 @@ namespace Likewise.LMC.UtilityUIElements
 
                 ListViewItem lvItem = lvGroupOrUserNames.SelectedItems[0];
                 Dictionary<string, string> daclInfo = lvItem.Tag as Dictionary<string, string>;
+                string sobjectname = lvItem.Text.Substring(0, lvItem.Text.IndexOf('('));
+
+                iAceType = Convert.ToUInt32(daclInfo["AceType"]);
 
                 //Update the the AceType object with modified access modes
                 if (dgRow.Cells[1].Value.ToString().Equals("True"))
@@ -176,20 +188,31 @@ namespace Likewise.LMC.UtilityUIElements
                     aceType = 1;
                     _securityDescriptor.GetAceType(aceType, ref iAceType);
                 }
-                else if (dgRow.Cells[1].Value.ToString().Equals("False"))
+                else if (dgRow.Cells[2].Value.ToString().Equals("False"))
                     iAceType -= 1;
 
                 daclInfo["AceType"] = iAceType.ToString();
 
-                if (_addedObjects.ContainsKey(lvItem.Text))
-                    _addedObjects.Remove(lvItem.Text);
-                _editedObjects.Add(lvItem.Text, daclInfo);
+                if (_addedObjects.ContainsKey(sobjectname))
+                    _addedObjects[sobjectname] = daclInfo;
+                else if(_editedObjects.ContainsKey(sobjectname))
+                    _editedObjects[sobjectname] = daclInfo;
+                else
+                    _editedObjects.Add(sobjectname, daclInfo);
             }
         }
 
         #endregion
 
         #region Helper functions
+
+        public bool OnApply()
+        {
+            if((_securityDescriptor.EditAce(_editedObjects, _addedObjects, _removedObjects)!=0))
+                return false;
+
+            return true;
+        }
 
         private void InitailizeData()
         {
@@ -233,6 +256,7 @@ namespace Likewise.LMC.UtilityUIElements
                         }
 
                         lvGroupOrUserNames.Items[0].Selected = true;
+                        lvGroupOrUserNames.SelectedIndexChanged += new EventHandler(lvGroupOrUserNames_SelectedIndexChanged);
                     }
                 }
             }
