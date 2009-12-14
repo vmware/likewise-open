@@ -277,7 +277,7 @@ SMBStrToUpper(
         return;
 
     while (*pszString != '\0') {
-        *pszString = toupper(*pszString);
+        *pszString = toupper((int)*pszString);
         pszString++;
     }
 }
@@ -293,7 +293,7 @@ SMBStrnToUpper(
        DWORD iCh = 0;
 
        while (*pszString != '\0' && (iCh++ < dwLen)) {
-           *pszString = toupper(*pszString);
+           *pszString = toupper((int)*pszString);
            pszString++;
        }
     }
@@ -308,7 +308,7 @@ SMBStrToLower(
         return;
 
     while (*pszString != '\0') {
-        *pszString = tolower(*pszString);
+        *pszString = tolower((int)*pszString);
         pszString++;
     }
 }
@@ -325,7 +325,7 @@ SMBStrnToLower(
         DWORD iCh = 0;
     
         while (*pszString != '\0' && (iCh++ < dwLen)) {
-            *pszString = tolower(*pszString);
+            *pszString = tolower((int)*pszString);
             pszString++;
         }
     }

@@ -58,7 +58,7 @@ LsaPrincipalNonRealmToLower(
 
     while (pszAt && *pszAt && (*pszAt != '@'))
     {
-        *pszAt = tolower(*pszAt);
+        *pszAt = tolower((int)*pszAt);
         pszAt++;
     }
 }

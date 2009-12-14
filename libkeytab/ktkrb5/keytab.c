@@ -545,7 +545,7 @@ KtKrb5FormatPrincipal(
 
     for (i = 0; i < strlen(realm); i++)
     {
-        *(realm+i) = toupper(*(realm+i));
+        *(realm+i) = toupper((int)*(realm+i));
     }
 
     dwError = KtAllocateStringPrintf(ppszPrincipal, "%s@%s",

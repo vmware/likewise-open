@@ -59,7 +59,7 @@ StrUpper(
     CHAR *p = pszString;
 
     while (p && *p) {
-        *p = toupper(*p);
+        *p = toupper((int)*p);
         p++;
     }
 

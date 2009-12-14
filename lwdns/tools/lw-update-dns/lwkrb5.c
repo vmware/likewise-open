@@ -44,12 +44,12 @@ DNSKrb5Init(
 
         for (i = 0; i < strlen(pszAccountName); i++)
         {
-            pszUsername[i] = toupper(pszAccountName[i]);
+            pszUsername[i] = toupper((int)pszAccountName[i]);
         }
         pszUsername[i++] = '@';
         for (; j  < strlen(pszDomain); j++)
         {
-             pszUsername[i++] = toupper(pszDomain[j]);
+             pszUsername[i++] = toupper((int)pszDomain[j]);
         }
 
         dwError = DNSKrb5GetTGTFromKeytab(
