@@ -598,7 +598,7 @@ LwIoCreateKrb5Cache(
     // upper case the realm
     while (pszIter && *pszIter)
     {
-        *pszIter = toupper(*pszIter);
+        *pszIter = toupper((int)*pszIter);
         pszIter++;
     }
 

@@ -62,7 +62,7 @@ PvfsCStringUpper(
     PSTR p = pszString;
 
     while (PVFS_CSTRING_NON_NULL(p)) {
-        *p = toupper(*p);
+        *p = toupper((int)*p);
         p++;
     }
 
