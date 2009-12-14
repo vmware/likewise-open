@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
+using Likewise.LMC.SecurityDesriptor;
 
 namespace Likewise.LMC.FileClient
 {
-#region File Client error, type, and structure definitions
+    #region File Client error, type, and structure definitions
     public enum WinError
     {
         NO_ERROR = 0,
@@ -155,7 +156,7 @@ namespace Likewise.LMC.FileClient
         public Int16 wMilliseconds;
     };
 
-#endregion
+    #endregion
 
     public class FileClient
     {
@@ -933,8 +934,8 @@ namespace Likewise.LMC.FileClient
 
                 if (useWindowsDlls)
                 {
-                    size = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296)/1024;
-                    extra = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296)%1024;
+                    size = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296) / 1024;
+                    extra = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296) % 1024;
 
                     if ((WinFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
                     {
@@ -943,8 +944,8 @@ namespace Likewise.LMC.FileClient
                 }
                 else
                 {
-                    size = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296)/1024;
-                    extra = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296)%1024;
+                    size = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296) / 1024;
+                    extra = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296) % 1024;
 
                     if ((LwFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
                     {
@@ -1125,7 +1126,7 @@ namespace Likewise.LMC.FileClient
 
             if (error == WinError.ERROR_EXTENDED_ERROR)
             {
-                error = (WinError) Marshal.GetLastWin32Error();
+                error = (WinError)Marshal.GetLastWin32Error();
             }
 
             return error;
@@ -1146,7 +1147,7 @@ namespace Likewise.LMC.FileClient
             IntPtr ptrBuffer = Marshal.AllocHGlobal(bufferSize);
             NETRESOURCE nr;
 
-            for ( ; ; )
+            for (; ; )
             {
                 cEntries = -1;
                 bufferSize = 16384;
@@ -1211,6 +1212,98 @@ namespace Likewise.LMC.FileClient
             return error;
         }
 
+        /*
+         * GetFileSecurity - Get the file security descriptor object
+         */
+        public static WinError GetFileSecurity(
+               string lpFilename
+               )
+        {
+            WinError Winerror = WinError.ERROR_SUCCESS;
+            IntPtr pSecurityDescriptor = new IntPtr(0);
+            uint lpnLengthNeeded = 0;
+
+            if (useWindowsDlls)
+            {
+                Winerror = InteropWindows.GetFileSecurity(lpFilename,
+                        SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
+                        SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
+                        SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
+                        ref pSecurityDescriptor,
+                        0,
+                        out lpnLengthNeeded);
+
+                if ((int)Winerror == 122) //Insufficient buffer
+                {
+                    Winerror = InteropWindows.GetFileSecurity(lpFilename,
+                       SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
+                       SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
+                       SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
+                       ref pSecurityDescriptor,
+                       lpnLengthNeeded,
+                       out lpnLengthNeeded);
+
+                    if (Winerror != 0)
+                    {
+                        goto error;
+                    }
+                }
+            }
+            else
+            {
+                Winerror = WinError.ERROR_INVALID_PARAMETER;
+            }
+
+            if (Winerror == WinError.ERROR_EXTENDED_ERROR)
+            {
+                Winerror = (WinError)Marshal.GetLastWin32Error();
+            }
+
+        cleanup:
+
+            if (pSecurityDescriptor != IntPtr.Zero)
+            {
+                SecurityDescriptorApi.CloseHandle(pSecurityDescriptor);
+            }
+
+            return Winerror;
+
+        error:
+
+            goto cleanup;
+        }
+
+        public static WinError SetFileSecurity(
+                string lpFilename,
+                IntPtr pSecurityDescriptor)
+        {
+            WinError Winerror = WinError.ERROR_SUCCESS;
+
+            if (useWindowsDlls)
+            {
+                Winerror = InteropWindows.SetFileSecurity(
+                                lpFilename,
+                                SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION |
+                                SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
+                                SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION,
+                                pSecurityDescriptor);
+
+                if (Winerror != 0)
+                {
+                    goto cleanup;
+                }
+            }
+
+        error:
+
+            return Winerror;
+
+        cleanup:
+
+            goto error;
+        }
+
         #endregion
+
     }
 }

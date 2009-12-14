@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
+using Likewise.LMC.SecurityDesriptor;
 
 namespace Likewise.LMC.FileClient
 {
@@ -121,6 +122,26 @@ namespace Likewise.LMC.FileClient
 
         [DllImport("mpr.dll")]
         public static extern WinError WNetCloseEnum(IntPtr hEnum);
+
+        #endregion
+
+        #region File Security Descriptor Apis
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode)]
+        public static extern WinError GetFileSecurity(
+            [MarshalAs(UnmanagedType.LPWStr)] string lpFileName,
+            SecurityDescriptorApi.SECURITY_INFORMATION RequestedInformation,
+            ref IntPtr pSecurityDescriptor,
+            uint nLength,
+            out uint lpnLengthNeeded
+        );
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode)]
+        public static extern WinError SetFileSecurity(
+            [MarshalAs(UnmanagedType.LPWStr)] string lpFileName,
+            SecurityDescriptorApi.SECURITY_INFORMATION SecurityInformation,
+            IntPtr pSecurityDescriptor
+        );
 
         #endregion
     }
