@@ -184,7 +184,7 @@ CTStrToUpper(
 
     if (pszString != NULL) {
         while (*pszString != '\0') {
-            *pszString = toupper(*pszString);
+            *pszString = toupper((int)*pszString);
             pszString++;
         }
     }
@@ -199,7 +199,7 @@ CTStrToLower(
 
     if (pszString != NULL) {
         while (*pszString != '\0') {
-            *pszString = tolower(*pszString);
+            *pszString = tolower((int)*pszString);
             pszString++;
         }
     }
