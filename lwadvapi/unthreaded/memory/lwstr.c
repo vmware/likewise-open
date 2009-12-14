@@ -360,7 +360,7 @@ LwStrToUpper(
         return;
 
     while (*pszString != '\0') {
-        *pszString = toupper(*pszString);
+        *pszString = toupper((int)*pszString);
         pszString++;
     }
 }
@@ -376,7 +376,7 @@ LwStrnToUpper(
        DWORD iCh = 0;
 
        while (*pszString != '\0' && (iCh++ < dwLen)) {
-           *pszString = toupper(*pszString);
+           *pszString = toupper((int)*pszString);
            pszString++;
        }
     }
@@ -391,7 +391,7 @@ LwStrToLower(
         return;
 
     while (*pszString != '\0') {
-        *pszString = tolower(*pszString);
+        *pszString = tolower((int)*pszString);
         pszString++;
     }
 }
@@ -408,7 +408,7 @@ LwStrnToLower(
         DWORD iCh = 0;
 
         while (*pszString != '\0' && (iCh++ < dwLen)) {
-            *pszString = tolower(*pszString);
+            *pszString = tolower((int)*pszString);
             pszString++;
         }
     }
