@@ -499,14 +499,36 @@ RegShellImportDwordString(
     DWORD dwBase = 10;
     PDWORD pdwValue = NULL;
     PSTR pszEndValue = NULL;
+    PSTR pszPtr = NULL;
     DWORD dwErrno = 0;
     unsigned long int ulValue = 0;
 
     BAIL_ON_INVALID_POINTER(pszHexString);
 
+    /* Ignore leading/trailing whitespace */
     while (*pszHexString && isspace((int) *pszHexString))
     {
         pszHexString++;
+    }
+    strtoul(pszHexString, &pszEndValue, dwBase);
+
+    pszPtr = pszEndValue;
+    while (pszPtr && *pszPtr)
+    {
+        if (!isspace((int) *pszPtr))
+        {
+            /*
+             * Trap an invalid character was present in the string
+             * number value, ignore trailing white space.
+             */
+            dwError = RegMapErrnoToLwRegError(EINVAL);
+            BAIL_ON_REG_ERROR(dwError);
+        }
+        pszPtr++;
+    }
+    if (pszEndValue)
+    {
+        *pszEndValue = '\0';
     }
 
     if (strncmp(pszHexString, "0x", 2) == 0)
@@ -534,12 +556,6 @@ RegShellImportDwordString(
     errno = 0;
     ulValue = strtoul(pszHexString, &pszEndValue, dwBase);
     dwErrno = errno;
-    if (pszEndValue && *pszEndValue)
-    {
-        /* Trap an invalid character was present in the string number value */
-        dwError = RegMapErrnoToLwRegError(EINVAL);
-        BAIL_ON_REG_ERROR(dwError);
-    }
     if (ulValue == ULONG_MAX && dwErrno == ERANGE)
     {
         dwError = RegMapErrnoToLwRegError(dwErrno);
