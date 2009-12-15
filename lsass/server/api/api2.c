@@ -210,11 +210,17 @@ LsaSrvMakeMemberOfFirstPass(
             ppszSids,
             &pPass->pResults[dwIndex].dwSidCount,
             &pPass->pResults[dwIndex].ppszSids);
-        if (dwError == LW_ERROR_NOT_HANDLED)
+        switch (dwError)
         {
+        case LW_ERROR_NOT_HANDLED:
+        case LW_ERROR_NO_SUCH_OBJECT:
+        case LW_ERROR_NO_SUCH_USER:
+        case LW_ERROR_NO_SUCH_GROUP:
             dwError = LW_ERROR_SUCCESS;
+            break;
+        default:
+            BAIL_ON_LSA_ERROR(dwError);
         }
-        BAIL_ON_LSA_ERROR(dwError);
 
         pPass->dwTotalSidCount += pPass->pResults[dwIndex].dwSidCount;
 
@@ -304,12 +310,17 @@ LsaSrvMakeMemberOfTransferPass(
                 ppszBatchedSids,
                 &pOut->pResults[dwIndex].dwSidCount,
                 &pOut->pResults[dwIndex].ppszSids);
-
-            if (dwError == LW_ERROR_NOT_HANDLED)
+            switch (dwError)
             {
+            case LW_ERROR_NOT_HANDLED:
+            case LW_ERROR_NO_SUCH_OBJECT:
+            case LW_ERROR_NO_SUCH_USER:
+            case LW_ERROR_NO_SUCH_GROUP:
                 dwError = LW_ERROR_SUCCESS;
+                break;
+            default:
+                BAIL_ON_LSA_ERROR(dwError);
             }
-            BAIL_ON_LSA_ERROR(dwError);
 
             pOut->dwTotalSidCount += pOut->pResults[dwIndex].dwSidCount;
 
