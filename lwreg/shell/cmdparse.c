@@ -510,7 +510,7 @@ RegShellImportDwordString(
     {
         pszHexString++;
     }
-    strtoul(pszHexString, &pszEndValue, dwBase);
+    ulValue = strtoul(pszHexString, &pszEndValue, dwBase);
 
     pszPtr = pszEndValue;
     while (pszPtr && *pszPtr)
