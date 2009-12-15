@@ -166,24 +166,28 @@ SrvQueryInfo(
     switch (*pTrans2State->pSmbInfoLevel)
     {
         case SMB_QUERY_FILE_BASIC_INFO :
+        case SMB_QUERY_FILE_BASIC_INFO_ALIAS :
 
             ntStatus = SrvQueryBasicInfo(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_STANDARD_INFO :
+        case SMB_QUERY_FILE_STANDARD_INFO_ALIAS :
 
             ntStatus = SrvQueryStandardInfo(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_EA_INFO :
+        case SMB_QUERY_FILE_EA_INFO_ALIAS :
 
             ntStatus = SrvQueryEAInfo(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_STREAM_INFO :
+        case SMB_QUERY_FILE_STREAM_INFO_ALIAS :
 
             ntStatus = SrvQueryStreamInfo(pExecContext);
 
@@ -197,12 +201,14 @@ SrvQueryInfo(
             break;
 
         case SMB_QUERY_FILE_NAME_INFO :
+        case SMB_QUERY_FILE_NAME_INFO_ALIAS :
 
             ntStatus = SrvQueryNameInfo(pExecContext);
 
             break;
 
         case SMB_QUERY_FILE_ALT_NAME_INFO :
+        case SMB_QUERY_FILE_ALT_NAME_INFO_ALIAS :
 
             ntStatus = SrvQueryAltNameInfo(pExecContext);
 
@@ -214,8 +220,16 @@ SrvQueryInfo(
         case SMB_INFO_QUERY_ALL_EAS :
         case SMB_INFO_IS_NAME_VALID :
         case SMB_QUERY_FILE_COMPRESSION_INFO :
+        case SMB_QUERY_FILE_COMPRESSION_INFO_ALIAS :
         case SMB_QUERY_FILE_UNIX_BASIC :
         case SMB_QUERY_FILE_UNIX_LINK :
+        case SMB_QUERY_FILE_INTERNAL_INFO :
+        case SMB_QUERY_FILE_ACCESS_INFO :
+        case SMB_QUERY_FILE_POSITION_INFO :
+        case SMB_QUERY_FILE_MODE_INFO :
+        case SMB_QUERY_FILE_ALIGNMENT_INFO :
+        case SMB_QUERY_FILE_NETWORK_OPEN_INFO :
+        case SMB_QUERY_FILE_ATTRIBUTE_TAG_INFO :
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
@@ -300,8 +314,16 @@ SrvBuildQueryInfoResponse(
         case SMB_INFO_QUERY_ALL_EAS :
         case SMB_INFO_IS_NAME_VALID :
         case SMB_QUERY_FILE_COMPRESSION_INFO :
+        case SMB_QUERY_FILE_COMPRESSION_INFO_ALIAS :
         case SMB_QUERY_FILE_UNIX_BASIC :
         case SMB_QUERY_FILE_UNIX_LINK :
+        case SMB_QUERY_FILE_INTERNAL_INFO :
+        case SMB_QUERY_FILE_ACCESS_INFO :
+        case SMB_QUERY_FILE_POSITION_INFO :
+        case SMB_QUERY_FILE_MODE_INFO :
+        case SMB_QUERY_FILE_ALIGNMENT_INFO :
+        case SMB_QUERY_FILE_NETWORK_OPEN_INFO :
+        case SMB_QUERY_FILE_ATTRIBUTE_TAG_INFO :
 
             ntStatus = STATUS_NOT_SUPPORTED;
 

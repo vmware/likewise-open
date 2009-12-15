@@ -207,6 +207,7 @@ SamrSrvDecodePasswordBuffer(
     DWORD dwError = ERROR_SUCCESS;
     DWORD dwPasswordLen = 0;
     DWORD iByte = dwBlobSize;
+    PWSTR pwszPasswordLE = NULL;
     PWSTR pwszPassword = NULL;
 
     /*
@@ -217,8 +218,8 @@ SamrSrvDecodePasswordBuffer(
     dwPasswordLen |= pBlob[--iByte] << 8;
     dwPasswordLen |= pBlob[--iByte];
 
-    dwError = LwAllocateMemory(dwPasswordLen + sizeof(pwszPassword[0]),
-                               OUT_PPVOID(&pwszPassword));
+    dwError = LwAllocateMemory(dwPasswordLen + sizeof(pwszPasswordLE[0]),
+                               OUT_PPVOID(&pwszPasswordLE));
     BAIL_ON_LSA_ERROR(dwError);
 
     if (dwPasswordLen > iByte)
@@ -231,12 +232,28 @@ SamrSrvDecodePasswordBuffer(
      * Copy the password - it's right before the length bytes
      */
     iByte -= dwPasswordLen;
-    memcpy(pwszPassword, &(pBlob[iByte]), dwPasswordLen);
+    memcpy(pwszPasswordLE, &(pBlob[iByte]), dwPasswordLen);
+
+    dwError = LwAllocateMemory(dwPasswordLen + sizeof(pwszPassword[0]),
+                               OUT_PPVOID(&pwszPassword));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /*
+     * Copied password is a 2-byte little-endian string. Make
+     * sure we return a string in native endianness
+     */
+    wc16lestowc16s(pwszPassword, pwszPasswordLE, dwPasswordLen);
 
     *ppwszPassword  = pwszPassword;
     *pdwPasswordLen = dwPasswordLen / 2;
 
 cleanup:
+    if (pwszPasswordLE)
+    {
+        memset(pwszPasswordLE, 0, dwPasswordLen);
+        LW_SAFE_FREE_MEMORY(pwszPasswordLE);
+    }
+
     if (ntStatus == STATUS_SUCCESS &&
         dwError != ERROR_SUCCESS)
     {
@@ -248,7 +265,7 @@ cleanup:
 error:
     if (pwszPassword)
     {
-        memset(pwszPassword, 0, dwPasswordLen * sizeof(pwszPassword[0]));
+        memset(pwszPassword, 0, dwPasswordLen);
         LW_SAFE_FREE_MEMORY(pwszPassword);
     }
 

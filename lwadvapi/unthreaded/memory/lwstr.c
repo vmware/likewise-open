@@ -592,6 +592,34 @@ LwStrChr(
     }
 }
 
+void
+LwStrStr(
+    PCSTR  pszInputString,
+    PCSTR  pszSubstr,
+    PSTR  *ppszOutputString
+    )
+{
+    PSTR pszFound = NULL;
+
+    if (ppszOutputString == NULL) return;
+
+    if (pszInputString == NULL)
+    {
+        *ppszOutputString = NULL;
+        return;
+    }
+
+    pszFound = strstr(pszInputString, pszSubstr);
+    if (pszFound == NULL)
+    {
+        *ppszOutputString = NULL;
+    }
+    else
+    {
+        *ppszOutputString = pszFound;
+    }
+}
+
 DWORD
 LwHexCharToByte(
     CHAR cHexChar,

@@ -1446,25 +1446,31 @@ LsaGetMetrics(
 
 LW_DWORD
 LsaGetStatus(
-   LW_HANDLE hLsaConnection,
-   PLSASTATUS* ppLsaStatus
-   );
+    LW_HANDLE hLsaConnection,
+    PLSASTATUS* ppLsaStatus
+    );
 
 LW_DWORD
 LsaRefreshConfiguration(
-   LW_HANDLE hLsaConnection
-   );
+    LW_HANDLE hLsaConnection
+    );
 
 LW_DWORD
 LsaSetMachineSid(
-   LW_IN LW_HANDLE hLsaConnection,
-   LW_IN LW_PCSTR pszSid
-   );
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_IN LW_PCSTR  pszSid
+    );
+
+LW_DWORD
+LsaSetMachineName(
+    LW_IN LW_HANDLE hLsaConnection,
+    LW_IN LW_PCSTR  pszMachineName
+    );
 
 LW_VOID
 LsaFreeStatus(
-   PLSASTATUS pLsaStatus
-   );
+    PLSASTATUS pLsaStatus
+    );
 
 /**
  * @ingroup connection

@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\AdvancedPermissions.cs" />
     <Compile Include="src\SecurityDescriptor.cs" />
     <Compile Include="src\SecurityDescriptorApi.cs" />
     <Compile Include="src\SecurityDescriptorWrapper.cs" />

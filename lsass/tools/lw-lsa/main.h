@@ -161,6 +161,12 @@ set_machine_sid_main(
     );
 
 int
+set_machine_name_main(
+    int argc,
+    char* argv[]
+    );
+
+int
 trace_info_main(
     int argc,
     char* argv[]

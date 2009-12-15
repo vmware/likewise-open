@@ -22,6 +22,8 @@
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewise.com
  */
+#ifndef __UPGRADEUTILS_H__
+#define __UPGRADEUTILS_H__
 
 #include <lw/types.h>
 #include <lw/attrs.h>
@@ -168,3 +170,14 @@ UpFreeMachineInformationContentsW(
     PLWPS_PASSWORD_INFO pInfo
     );
 
+#if !defined(HAVE_STRTOLL)
+long long int
+strtoll(
+    const char *nptr,
+    char** endptr,
+    int base
+    );
+
+#endif /* defined(HAVE_STRTOLL) */
+
+#endif

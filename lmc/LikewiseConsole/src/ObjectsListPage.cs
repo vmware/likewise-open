@@ -43,7 +43,6 @@ using Likewise.LMC.Utilities;
 using Likewise.LMC.ServerControl;
 using Likewise.LMC.Krb5;
 
-
 namespace Likewise.LMC
 {
     public partial class ObjectsListPage : Form
@@ -77,7 +76,7 @@ namespace Likewise.LMC
             InitializeComponent();
         }
 
-        #endregion        
+        #endregion
 
         #region Helper functions
 
@@ -97,12 +96,12 @@ namespace Likewise.LMC
         }
 
         /// <summary>
-        /// List the all children for the selected distinguished name 
+        /// List the all children for the selected distinguished name
         /// Adds the all children to the node
         /// </summary>
         public void ListOUChildren(string distinguishedName)
         {
-            Items = new List<LACTreeNode>();            
+            Items = new List<LACTreeNode>();
             Logger.Log("ObjectsListPage.ListOUChildren() called", Logger.ldapLogLevel);
             int ret = -1;
 
@@ -126,8 +125,8 @@ namespace Likewise.LMC
                         ret = (int)ErrorCodes.LDAPEnum.LDAP_TIMEOUT;
                         Logger.LogMsgBox(ErrorCodes.LDAPString(ret));
                     }
-                }               
-            }   
+                }
+            }
 
             foreach (LdapEntry ldapNextEntry in ldapEntries)
             {
@@ -135,12 +134,12 @@ namespace Likewise.LMC
 
                 if (!String.IsNullOrEmpty(currentDN))
                 {
-                    LACTreeNode newNode = new LACTreeNode(currentDN, Properties.Resources.addserver.ToBitmap(), null, plugin);                   
+                    LACTreeNode newNode = new LACTreeNode(currentDN, Properties.Resources.addserver.ToBitmap(), null, plugin);
                     newNode.Tag = currentDN;
 
                     Logger.Log(String.Format("new Entry: {0}", currentDN), Logger.ldapLogLevel);
 
-                    Items.Add(newNode); 
+                    Items.Add(newNode);
                 }
             }
             DirectoryEntry rootDE = new DirectoryEntry(distinguishedName);
@@ -182,11 +181,11 @@ namespace Likewise.LMC
                         }
                     }
                 }
-            }           
+            }
         }
 
         /// <summary>
-        /// List the all children for the selected distinguished name 
+        /// List the all children for the selected distinguished name
         /// Adds the all children to the node
         /// </summary>
         public void ListGPOChildren(string distinguishedName)
@@ -214,9 +213,9 @@ namespace Likewise.LMC
                     {
                         ret = (int)ErrorCodes.LDAPEnum.LDAP_TIMEOUT;
                         Logger.LogMsgBox(ErrorCodes.LDAPString(ret));
-                    }                   
-                }            
-            }         
+                    }
+                }
+            }
 
             foreach (LdapEntry ldapNextEntry in ldapEntries)
             {
@@ -246,14 +245,14 @@ namespace Likewise.LMC
                         Logger.Log(String.Format("new Entry: {0}", currentDN), Logger.ldapLogLevel);
                     }
                 }
-            } 
+            }
         }
 
         private void RefreshlvItems()
         {
             lvItems.Clear();
             if (Items != null && Items.Count != 0)
-            {                
+            {
                 foreach (LACTreeNode node in Items)
                 {
                     string sName = "";
@@ -294,7 +293,7 @@ namespace Likewise.LMC
                         lvItem.Tag = DN;
                         lvItem.ImageIndex = imageindex;
                         lvItems.Add(lvItem);
-                        
+
                     }
                 }
                 ListViewItem[] lvItemArry = new ListViewItem[lvItems.Count];
@@ -315,9 +314,9 @@ namespace Likewise.LMC
         public bool AddNewGPO(string DN, bool bIsLinkable)
         {
             string baseDn = "CN=Policies,CN=System,";
-            baseDn = string.Concat(baseDn, dirContext.RootDN);           
+            baseDn = string.Concat(baseDn, dirContext.RootDN);
 
-            List<LDAPMod> listattr = new List<LDAPMod>();          
+            List<LDAPMod> listattr = new List<LDAPMod>();
             Guid guid = Guid.NewGuid();
 
             string[] attr_values = { "groupPolicyContainer", null };
@@ -350,7 +349,7 @@ namespace Likewise.LMC
             ouinfo_attr =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "gPCFileSysPath", attr_values);
             listattr.Add(ouinfo_attr);
-           
+
             string ldapDN = "CN={" + guid.ToString() + "}," + baseDn;
 
             if (bIsLinkable)
@@ -406,7 +405,7 @@ namespace Likewise.LMC
                 #region Linking to slected OU
                 if (bIsLinkable)
                 {
-                    DirectoryEntry rootDE = new DirectoryEntry(sParentDN);                  
+                    DirectoryEntry rootDE = new DirectoryEntry(sParentDN);
                     if (rootDE != null)
                     {
                         Dictionary<string, string> gpoLinksList = new Dictionary<string, string>();
@@ -426,7 +425,7 @@ namespace Likewise.LMC
 
                                 gpoLinksList.Add(gpoLink.Trim().ToLower(), gpLink + "]");
                             }
-                        }                        
+                        }
                         if (!gpoLinksList.ContainsKey(ldapDN.Trim().ToLower()))
                         {
                             string newgpoLink = "[LDAP://" + ldapDN.ToUpper() + ";1]";
@@ -434,7 +433,7 @@ namespace Likewise.LMC
                         }
 
                         if (gpoLinksList.Count != 0)
-                        {                                                   
+                        {
                             string gpLink_Value = "";
                             foreach (string key in gpoLinksList.Keys)
                                 gpLink_Value += gpoLinksList[key];
@@ -464,7 +463,7 @@ namespace Likewise.LMC
                 }
                 #endregion
             }
-                
+
             else
             {
                 container.ShowMessage(Utilities.ErrorCodes.LDAPString(ret));
@@ -568,13 +567,13 @@ namespace Likewise.LMC
         }
 
         /// <summary>
-        /// Build Context menu for OU/GPOs in listview 
+        /// Build Context menu for OU/GPOs in listview
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
         private ContextMenu GetListViewMouseUpContextMenu(string distinguishedName)
         {
-            ContextMenu cm = new ContextMenu();           
+            ContextMenu cm = new ContextMenu();
 
             MenuItem m_item = new MenuItem("&Delete", new EventHandler(cm_OnMenuClick));
             cm.Tag = distinguishedName;
@@ -622,7 +621,7 @@ namespace Likewise.LMC
                         lvGPOs.LabelEdit = true;
                         lvGPOs.SelectedItems[0].BeginEdit();
                     }
-                }                
+                }
             }
 
              //Refresh
@@ -665,7 +664,7 @@ namespace Likewise.LMC
                         {
                             DeleteGPOLink(DistinguishedName);
                         }
-                    } 
+                    }
                 }
                 else if (tabControl.SelectedTab == tabPageAll)
                 {
@@ -673,16 +672,16 @@ namespace Likewise.LMC
                         return;
 
                     ListViewItem selectedItem = lvGPOs.SelectedItems[0];
-                    
+
                     string DistinguishedName = selectedItem.Tag as string;
 
                     if (DistinguishedName != null)
                     {
                         string sMessage = string.Format("Are you sure wish to permanently delete {0}?", selectedItem.Text);
                         DialogResult dlg = container.ShowMessage(
-                                            sMessage, 
-                                            MessageBoxButtons.OKCancel, 
-                                            MessageBoxIcon.Exclamation); 
+                                            sMessage,
+                                            MessageBoxButtons.OKCancel,
+                                            MessageBoxIcon.Exclamation);
 
                         if (dlg == DialogResult.OK)
                         {
@@ -859,7 +858,7 @@ namespace Likewise.LMC
                     return;
                 }
             }
-        }        
+        }
 
         public void SetNavState(bool bCanBack)
         {
@@ -867,8 +866,8 @@ namespace Likewise.LMC
                 "SetNavState(canBack={0}",
                 bCanBack),
                 Logger.manageLogLevel);
-           
-            btnBack.Enabled = bCanBack;         
+
+            btnBack.Enabled = bCanBack;
 
             for (int i = 0; i < navigationHistory.Count; i++)
             {
@@ -890,7 +889,7 @@ namespace Likewise.LMC
                 }
             }
         }
-        
+
         #endregion
 
         #region event handlers
@@ -926,7 +925,7 @@ namespace Likewise.LMC
             ListViewItem selectedItem = lvGPOs.SelectedItems[0];
             sDistinguishedName = selectedItem.Tag as string;
             sGPODisplayName = selectedItem.Text;
-           
+
             btnOk_Click(sender, e);
         }
 
@@ -938,7 +937,7 @@ namespace Likewise.LMC
             ListViewItem selectedItem = lvDomainOUs.SelectedItems[0];
             sDistinguishedName = selectedItem.Tag as string;
             string sDN = sDistinguishedName.Substring(sDistinguishedName.IndexOf(',') + 1);
-            
+
             //only modify the nav history if the selected node is newly selected
             if (!navigationHistory.Contains(sDN))
             {
@@ -948,7 +947,7 @@ namespace Likewise.LMC
             }
 
             DirectoryEntry de = new DirectoryEntry(sDistinguishedName, dirContext.UserName, dirContext.Password);
-            
+
             if (de != null)
             {
                 object[] asProp = de.Properties["objectClass"].Value as object[];
@@ -977,13 +976,13 @@ namespace Likewise.LMC
         private void btnOk_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.OK;
-            Close();            
+            Close();
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
         {
             Close();
-        }        
+        }
 
         private void lvDomainOUs_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -1015,7 +1014,7 @@ namespace Likewise.LMC
                         btnOk.Enabled = false;
                 }
             }
-        }       
+        }
 
         private void lvGPOs_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -1029,7 +1028,7 @@ namespace Likewise.LMC
             sGPODisplayName = selectedItem.Text;
 
             btnOk.Enabled = true;
-        }        
+        }
 
         private void lvDomainOUs_AfterLabelEdit(object sender, LabelEditEventArgs e)
         {
@@ -1098,7 +1097,7 @@ namespace Likewise.LMC
                     if (lvDomainOUs.Items[lvDomainOUs.Items.Count - 1].Text.Trim().Equals(string.Empty))
                         lvDomainOUs.Items[lvDomainOUs.Items.Count - 1].Text = "New Group Policy Object";
 
-                    sNewGPODN = lvDomainOUs.Items[lvDomainOUs.Items.Count - 1].Text;                    
+                    sNewGPODN = lvDomainOUs.Items[lvDomainOUs.Items.Count - 1].Text;
 
                     if (!AddNewGPO(sNewGPODN, true))
                     {
@@ -1111,11 +1110,11 @@ namespace Likewise.LMC
                     if (lvDomainOUs.SelectedItems.Count == 0)
                         return;
 
-                    ListViewItem selectedItem = lvDomainOUs.SelectedItems[0];                   
+                    ListViewItem selectedItem = lvDomainOUs.SelectedItems[0];
                     sDistinguishedName = selectedItem.Tag as string;
                     sGPODisplayName = selectedItem.Text;
 
-                    btnOk.Enabled = true;                   
+                    btnOk.Enabled = true;
                 }
                 else if (bIsRenameEdited && lvDomainOUs.Items.Count != 0)
                 {
@@ -1146,7 +1145,7 @@ namespace Likewise.LMC
 
                     btnOk.Enabled = true;
                 }
-            }            
+            }
         }
 
         private void lvGPOs_MouseUp(object sender, MouseEventArgs e)
@@ -1197,7 +1196,7 @@ namespace Likewise.LMC
                     sDistinguishedName = selectedItem.Tag as string;
                     sGPODisplayName = selectedItem.Text;
 
-                    btnOk.Enabled = true;  
+                    btnOk.Enabled = true;
                 }
                 else if (bIsRenameEdited && lvGPOs.Items.Count != 0)
                 {
@@ -1239,12 +1238,12 @@ namespace Likewise.LMC
             {
                 bCreateGPO = false;
                 bIsLabelEdited = true;
-                lvGPOs.Items[lvGPOs.Items.Count - 1].Selected = true;             
+                lvGPOs.Items[lvGPOs.Items.Count - 1].Selected = true;
             }
             else if (bRenameGPO)
             {
                 bRenameGPO = false;
-                bIsRenameEdited = true;             
+                bIsRenameEdited = true;
             }
         }
 
@@ -1310,6 +1309,6 @@ namespace Likewise.LMC
             }
         }
 
-        #endregion 
+        #endregion
     }
 }

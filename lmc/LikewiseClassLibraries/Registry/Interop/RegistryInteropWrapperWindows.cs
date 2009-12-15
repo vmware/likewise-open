@@ -306,10 +306,7 @@ namespace Likewise.LMC.Registry
                                          pSecurityDescriptor,
                                          ref lpcbSecurityDescriptor);
                         }
-                        //iRet = SecurityDescriptorWrapper.ApiGetNamedSecurityInfo(
-                        //                "HKEY_CURRENT_USER\\AppEvents1",
-                        //                SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_WOW64_32KEY,
-                        //                out sSECURITY_DESCRIPTOR);
+                        SecurityDescriptor.objectType = SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_KEY;
                         if (iRet != 0)
                         {
                             Logger.Log(string.Format("RegistryInteropWrapperWindows.ApiRegGetKeySecurity returns error code; " + iRet), Logger.LogLevel.Verbose);

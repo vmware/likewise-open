@@ -759,7 +759,7 @@ LwpsBuiltInProviders(
     if (!bHasProviderPath)
     {
         dwError = LwpsAllocateString(
-                      "/opt/likewise/lib/liblwps-regdb.so",
+                      LIBDIR "/liblwps-regdb" MOD_EXT,
                       &pProvider->pszLibPath);
         BAIL_ON_LWPS_ERROR(dwError);
     }

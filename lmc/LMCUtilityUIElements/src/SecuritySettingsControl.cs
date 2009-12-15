@@ -17,6 +17,8 @@ namespace Likewise.LMC.UtilityUIElements
         private SecurityDescriptor _securityDescriptor = null;
         private string _objectPath = string.Empty;
 
+        private Dictionary<string, object> _editedObjects = new Dictionary<string, object>();
+
         #endregion
 
         #region Constructors
@@ -41,8 +43,7 @@ namespace Likewise.LMC.UtilityUIElements
         {
             this.lblObjectName.Text = string.Format(lblObjectName.Text, _objectPath);
 
-            List<ListViewItem> lvItems = new List<ListViewItem>();
-            List<string> possiblePermissions = new List<string>();
+            List<object> possiblePermissions = new List<object>();
 
             if (_securityDescriptor != null)
             {
@@ -57,22 +58,42 @@ namespace Likewise.LMC.UtilityUIElements
                         foreach (string key in SdDacls.Keys)
                         {
                             Dictionary<string, string> daclInfo = SdDacls[key];
-                            int daclCount = daclInfo.Count;
 
                             ListViewItem lvItem = new ListViewItem(new string[] { SdDacls[key]["Username"] });
                             lvItem.Tag = daclInfo;
-                            lvItems.Add(lvItem);
+                            lvGroupOrUserNames.Items.Add(lvItem);
 
-                            List<object[]> permissions = _securityDescriptor.GetPermissionsFromAccessMask(
-                                                         _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask") as string);
-                            foreach (object[] arry in permissions)
+                            List<string> permissions = _securityDescriptor.GetUserOrGroupPermissions(
+                                                       _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask") as string);
+
+                            foreach (string per in permissions)
                             {
-                                DgPermissions.Rows.Add(arry);
+                                if (!possiblePermissions.Contains(per))
+                                    possiblePermissions.Add(per);
                             }
                         }
                     }
+
+                    if (possiblePermissions.Count != 0)
+                    {
+                        foreach (string permission in possiblePermissions)
+                        {
+                            DgPermissions.Rows.Add(new object[] { permission, false, false });
+                        }
+
+                        lvGroupOrUserNames.Items[0].Selected = true;
+                        lvGroupOrUserNames.SelectedIndexChanged += new EventHandler(lvGroupOrUserNames_SelectedIndexChanged);
+                    }
                 }
             }
+        }
+
+        public bool OnApply()
+        {
+            if (_securityDescriptor.EditAce(_editedObjects, null, null) != 0)
+                return false;
+
+            return true;
         }
 
         #endregion
@@ -87,7 +108,7 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void btnAdvanced_Click(object sender, EventArgs e)
         {
-            AdvancedPermissionsControlDlg advancedPermissionsControlDlg = new AdvancedPermissionsControlDlg();
+            AdvancedPermissionsControlDlg advancedPermissionsControlDlg = new AdvancedPermissionsControlDlg(_securityDescriptor, _objectPath);
             advancedPermissionsControlDlg.ShowDialog(this);
         }
 
@@ -106,19 +127,68 @@ namespace Likewise.LMC.UtilityUIElements
                     ListViewItem lvItem = listview.SelectedItems[0];
                     if (lvItem.Tag != null)
                     {
+                        lblPermissions.Text = string.Format("Permissions for {0}", lvItem.Text);
                         Dictionary<string, string> daclInfo = lvItem.Tag as Dictionary<string, string>;
                         if (daclInfo != null)
                         {
-                            List<object[]> permissions = _securityDescriptor.GetPermissionsFromAccessMask(
-                                                         _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask") as string);
+                            List<string> permissions = _securityDescriptor.GetUserOrGroupPermissions(
+                                                       _securityDescriptor.GetUserOrGroupSecurityInfo(daclInfo, "AceMask") as string);
 
-                            foreach (object[] arry in permissions)
+                            foreach (string permission in permissions)
                             {
-                                DgPermissions.Rows.Add(arry);
+                                DataGridViewRowCollection dgRows = DgPermissions.Rows;
+                                foreach (DataGridViewRow dgRow in dgRows)
+                                {
+                                    if (dgRow.Cells[0].Value.ToString().Equals(permission))
+                                    {
+                                        dgRow.Cells[1].Value = _securityDescriptor.CheckAccessMaskExists(daclInfo["AceType"], 0);
+                                        dgRow.Cells[2].Value = _securityDescriptor.CheckAccessMaskExists(daclInfo["AceType"], 1);
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
+
+        private void DgPermissions_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            DataGridViewRow dgRow = DgPermissions.Rows[e.RowIndex];
+            if (dgRow != null)
+            {
+                uint iAceType = 0;
+                uint aceType = 0;
+
+                ListViewItem lvItem = lvGroupOrUserNames.SelectedItems[0];
+                Dictionary<string, string> daclInfo = lvItem.Tag as Dictionary<string, string>;
+                string sobjectname = lvItem.Text.Substring(0, lvItem.Text.IndexOf('('));
+
+                iAceType = Convert.ToUInt32(daclInfo["AceType"]);
+
+                //Update the the AceType object with modified access modes
+                if (dgRow.Cells[1].Value.ToString().Equals("True"))
+                {
+                    aceType = 0;
+                    _securityDescriptor.GetAceType(aceType, ref iAceType);
+                }
+                else if (dgRow.Cells[1].Value.ToString().Equals("False"))
+                    iAceType -= 0;
+
+                if (dgRow.Cells[2].Value.ToString().Equals("True"))
+                {
+                    aceType = 1;
+                    _securityDescriptor.GetAceType(aceType, ref iAceType);
+                }
+                else if (dgRow.Cells[2].Value.ToString().Equals("False"))
+                    iAceType -= 1;
+
+                daclInfo["AceType"] = iAceType.ToString();
+
+                if (_editedObjects.ContainsKey(sobjectname))
+                    _editedObjects[sobjectname] = daclInfo;
+                else
+                    _editedObjects.Add(sobjectname, daclInfo);
             }
         }
 

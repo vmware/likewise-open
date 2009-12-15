@@ -122,9 +122,9 @@ namespace Likewise.LMC.UtilityUIElements
                         daclInfo.Add("Sid", sSID);
                         daclInfo.Add("Username", sAMAccountName);
                         daclInfo.Add("AceType", "0");
-                        daclInfo.Add("AccessMask", SecurityDescriptorApi.ACCESS_MASK.READ_CONTROL.ToString());
+                        daclInfo.Add("AccessMask", SecurityDescriptorApi.ACCESS_MASK.Special_Permissions.ToString());
 
-                        ListViewItem lvItem = new ListViewItem();
+                        ListViewItem lvItem = new ListViewItem(sAMAccountName);
                         lvItem.Tag = daclInfo; //Need to initialize the DaclInfo for the object
                         lvGroupOrUserNames.Items.Add(lvItem);
 

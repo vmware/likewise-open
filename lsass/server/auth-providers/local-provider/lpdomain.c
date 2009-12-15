@@ -78,12 +78,9 @@ LocalGetDomainInfo(
     )
 {
     DWORD  dwError = 0;
-    PSTR   pszHostname = NULL;
     HANDLE hDirectory  = NULL;
     DWORD  objectClass = LOCAL_OBJECT_CLASS_DOMAIN;
-    PCSTR  pszFilterTemplate = LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d"  \
-                               "   AND " LOCAL_DB_DIR_ATTR_COMMON_NAME \
-                               " = \"%s\"";
+    PCSTR  pszFilterTemplate = LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
     PSTR   pszFilter = NULL;
     PWSTR  pwszFilter = NULL;
     wchar16_t wszAttrNameDomain[]      = LOCAL_DIR_ATTR_DOMAIN;
@@ -95,7 +92,7 @@ LocalGetDomainInfo(
     {
             &wszAttrNameDomain[0],
             &wszAttrNameNetBIOSName[0],
-	    &wszAttrNameObjectSID[0],
+            &wszAttrNameObjectSID[0],
             &wszAttrNameMaxPwdAge[0],
             &wszAttrNamePwdChangeTime[0],
             NULL
@@ -113,16 +110,10 @@ LocalGetDomainInfo(
     LONG64 llMaxPwdAge = 0;
     LONG64 llPwdChangeTime = 0;
 
-    dwError = LsaDnsGetHostInfo(&pszHostname);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LwStrToUpper(pszHostname);
-
     dwError = LwAllocateStringPrintf(
                     &pszFilter,
                     pszFilterTemplate,
-                    objectClass,
-                    pszHostname);
+                    objectClass);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
@@ -244,7 +235,6 @@ cleanup:
     }
 
     LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_STRING(pszHostname);
     LW_SAFE_FREE_STRING(pszDomainSID);
     LW_SAFE_FREE_STRING(pszFilter);
     LW_SAFE_FREE_MEMORY(pwszFilter);

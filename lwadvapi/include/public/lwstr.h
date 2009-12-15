@@ -198,6 +198,13 @@ LwStrChr(
     );
 
 void
+LwStrStr(
+    PCSTR  pszInputString,
+    PCSTR  pszSubstr,
+    PSTR  *ppszOutputString
+    );
+
+void
 LwFreeNullTerminatedStringArray(
     PSTR * ppStringArray
     );

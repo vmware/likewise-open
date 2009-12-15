@@ -1,6 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = utils     \
+SUBDIRS = etc       \
+          utils     \
           providers \
           api       \
 	  tools     \

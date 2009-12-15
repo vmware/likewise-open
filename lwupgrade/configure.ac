@@ -15,7 +15,6 @@ case "$host_os:$host_cpu" in
         ;;
     solaris*:*)
         AC_DEFINE([__LWI_SOLARIS__], [], [Define if OS is Solaris])
-        AC_DEFINE([_XOPEN_SOURCE], [500], [Define to desired XOPEN compliance level]
         ;;
     darwin*:*)
         AC_DEFINE([__LWI_DARWIN__], [], [Define if OS is Darwin])
@@ -244,7 +243,7 @@ AM_LDFLAGS="$AM_LDFLAGS $LWREG_LDFLAGS $LWREG_LIBS"
 
 # Checks for library functions
 AC_FUNC_MALLOC
-AC_CHECK_FUNCS([strndup strncasecmp strtoul])
+AC_CHECK_FUNCS([strndup strncasecmp strtoul strtoll __strtoll])
 
 # Checks for header files.
 AC_CHECK_HEADERS([string.h strings.h sys/types.h sys/socket.h sys/varargs.h pthread.h])
