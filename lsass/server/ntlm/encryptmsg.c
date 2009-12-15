@@ -98,14 +98,12 @@ NtlmServerEncryptMessage(
                 pSignature);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (bEncrypt)
-    {
-        RC4(
-            pContext->pSealKey,
-            pData->cbBuffer,
-            pData->pvBuffer,
-            pData->pvBuffer);
-    }
+    // Always encrypt the message to match Windows' behavior
+    RC4(
+        pContext->pSealKey,
+        pData->cbBuffer,
+        pData->pvBuffer,
+        pData->pvBuffer);
 
     NtlmFinalizeSignature(pContext, pSignature);
 

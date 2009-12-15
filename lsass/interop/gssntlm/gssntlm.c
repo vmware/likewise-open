@@ -498,7 +498,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     ntlm_gss_verify_mic,
     ntlm_gss_wrap,
     ntlm_gss_unwrap,
-    NULL, //ntlm_gss_display_status,
+    ntlm_gss_display_status,
     NULL, //ntlm_gss_indicate_mechs,
     NULL, //ntlm_gss_compare_name,
     ntlm_gss_display_name,
@@ -770,20 +770,6 @@ ntlm_gss_init_sec_context(
     if( pContextHandle)
     {
         hContext = (NTLM_CONTEXT_HANDLE)*pContextHandle;
-    }
-
-    if (nReqFlags & GSS_C_CONF_FLAG)
-    {
-        dwNtlmFlags |= NTLM_FLAG_SEAL;
-    }
-
-    if (nReqFlags & GSS_C_INTEG_FLAG)
-    {
-        dwNtlmFlags |= NTLM_FLAG_SIGN;
-    }
-    else
-    {
-        dwNtlmFlags |= NTLM_FLAG_ALWAYS_SIGN;
     }
 
     // if no credentials are passed in, create default creds
@@ -1609,6 +1595,88 @@ cleanup:
 
 error:
     if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+    goto cleanup;
+}
+
+OM_uint32
+ntlm_gss_display_status(
+    OM_uint32* pMinorStatus,
+    OM_uint32 dwConvertStatus,
+    INT dwStatusType,
+    gss_OID pMechType,
+    OM_uint32* pdwContinueNeeded,
+    gss_buffer_t pMsg
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    PCSTR pszCommonStr = NULL;
+
+    if (pdwContinueNeeded)
+    {
+        *pdwContinueNeeded = 0;
+    }
+    if (pMechType != GSS_C_NULL_OID)
+    {
+        BOOLEAN bEqual = FALSE;
+        MajorStatus = ntlm_gss_compare_oid(
+                &MinorStatus,
+                pMechType,
+                gGssNtlmOid,
+                &bEqual);
+        BAIL_ON_LSA_ERROR(MinorStatus);
+
+        if (!bEqual)
+        {
+            MinorStatus = LW_ERROR_BAD_MECH;
+            MajorStatus = GSS_S_BAD_MECH;
+            BAIL_ON_LSA_ERROR(MinorStatus);
+        }
+    }
+    if (dwStatusType != GSS_C_MECH_CODE)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        MajorStatus = GSS_S_BAD_MECH;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+    pszCommonStr = LwWin32ExtErrorToName(dwConvertStatus);
+    if (!pszCommonStr)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        MajorStatus = GSS_S_UNAVAILABLE;
+    }
+
+    if (!pMsg)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        MajorStatus = GSS_S_FAILURE;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    MinorStatus = LwAllocateString(
+        pszCommonStr,
+        (PSTR*)(PSTR)(&pMsg->value));
+    BAIL_ON_LSA_ERROR(MinorStatus);
+
+    pMsg->length = strlen(pszCommonStr);
+
+cleanup:
+    if (*pMinorStatus)
+    {
+        *pMinorStatus = MinorStatus;
+    }
+    return MajorStatus;
+
+error:
+    if (pMsg)
+    {
+        LW_SAFE_FREE_STRING(pMsg->value);
+        pMsg->length = 0;
+    }
+    if (!MajorStatus)
     {
         MajorStatus = GSS_S_FAILURE;
     }
