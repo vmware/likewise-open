@@ -599,6 +599,68 @@ size_t wc16stowc16les(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
 #endif
 }
 
+size_t wc16lestowc16s(wchar16_t *dest, const wchar16_t *src, size_t cchcopy)
+{
+#ifdef WCHAR16_IS_WCHAR
+    size_t sPos = 0;
+    wchar16_t wcCurrent = 0;
+
+    for (sPos = 0; sPos < cchcopy; sPos++)
+    {
+        wcCurrent  = ((char*)&src[sPos])[0];
+        wcCurrent |= ((char*)&src[sPos])[1] << 8;
+        dest[sPos] = wcCurrent;
+
+        if (!wcCurrent)
+        {
+            // return the number of non-null characters that were copied (even
+            // though the null was copied).
+            break;
+        }
+    }
+
+    return sPos;
+#else
+    iconv_t handle = iconv_open("UCS-2LE", WINDOWS_ENCODING);
+    char *inbuf = (char *)src;
+    char *outbuf = (char *)dest;
+    size_t cbin = 0;
+    size_t cbout = cchcopy * sizeof(dest[0]);
+    size_t converted = 0;
+    size_t i = 0;
+
+    /* "endian safe" version of wc16slen since
+       BigEndian(0) == LittleEndian(0) */
+    if (src)
+    {
+        for (i = 0; src[i] != 0; i++);
+        cbin = i * sizeof(src[0]);
+    }
+    else
+    {
+        cbin = 0;
+    }
+
+    converted = iconv(handle, (ICONV_IN_TYPE) &inbuf, &cbin, &outbuf, &cbout);
+
+    if(cbout >= sizeof(dest[0]))
+    {
+        *(wchar16_t *)outbuf = 0;
+    }
+
+    iconv_close(handle);
+
+    if(converted == (size_t)-1 && cbout != 0)
+    {
+        return (size_t)-1;
+    }
+    else
+    {
+        return cchcopy - cbout/sizeof(dest[0]);
+    }
+#endif
+}
+
 wchar16_t *ambstowc16s(const char *input)
 {
     size_t cchlen;
