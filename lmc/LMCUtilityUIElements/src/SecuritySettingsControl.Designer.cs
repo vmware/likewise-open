@@ -38,7 +38,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.label3 = new System.Windows.Forms.Label();
             this.lblObjectName = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
-            this.label4 = new System.Windows.Forms.Label();
+            this.lblPermissions = new System.Windows.Forms.Label();
             this.DgPermissions = new System.Windows.Forms.DataGridView();
             this.colPermission = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.colAllow = new System.Windows.Forms.DataGridViewCheckBoxColumn();
@@ -134,14 +134,14 @@ namespace Likewise.LMC.UtilityUIElements
             this.textBox1.TabIndex = 11;
             this.textBox1.Text = "For special permissions or advanced settings click Advanced.";
             //
-            // label4
+            // lblPermissions
             //
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(6, 197);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(97, 13);
-            this.label4.TabIndex = 14;
-            this.label4.Text = "Permissions for {0}.";
+            this.lblPermissions.AutoSize = true;
+            this.lblPermissions.Location = new System.Drawing.Point(6, 197);
+            this.lblPermissions.Name = "lblPermissions";
+            this.lblPermissions.Size = new System.Drawing.Size(97, 13);
+            this.lblPermissions.TabIndex = 14;
+            this.lblPermissions.Text = "Permissions for {0}.";
             //
             // DgPermissions
             //
@@ -159,6 +159,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.DgPermissions.Name = "DgPermissions";
             this.DgPermissions.Size = new System.Drawing.Size(345, 127);
             this.DgPermissions.TabIndex = 15;
+            this.DgPermissions.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.DgPermissions_CellEndEdit);
             //
             // colPermission
             //
@@ -185,7 +186,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.DgPermissions);
-            this.Controls.Add(this.label4);
+            this.Controls.Add(this.lblPermissions);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.lblObjectName);
             this.Controls.Add(this.label3);
@@ -215,7 +216,7 @@ namespace Likewise.LMC.UtilityUIElements
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label lblObjectName;
         private System.Windows.Forms.TextBox textBox1;
-        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label lblPermissions;
         private System.Windows.Forms.DataGridView DgPermissions;
         private System.Windows.Forms.DataGridViewTextBoxColumn colPermission;
         private System.Windows.Forms.DataGridViewCheckBoxColumn colAllow;
