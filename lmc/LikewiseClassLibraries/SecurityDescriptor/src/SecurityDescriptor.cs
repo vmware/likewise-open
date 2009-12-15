@@ -17,6 +17,8 @@ namespace Likewise.LMC.SecurityDesriptor
 
         //Read the security Descriptor object for editing the Aces list and for adding the new Aces to the selected object.
         public IntPtr pSecurityDescriptor = IntPtr.Zero;
+        public static SecurityDescriptorApi.SE_OBJECT_TYPE objectType = SecurityDescriptorApi.SE_OBJECT_TYPE.SE_FILE_OBJECT;
+
         private bool _disposed = false;
 
         private uint _revision;
@@ -209,6 +211,22 @@ namespace Likewise.LMC.SecurityDesriptor
             }
 
             return permissions;
+        }
+
+        public string GetKeyPermissionName(string accessMask)
+        {
+            //Still needs to find the AccessMask enum mapping with string values
+            uint iAccessMask = Convert.ToUInt32(accessMask);
+
+            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
+            {
+                if (iAccessMask == (uint)accesskmask)
+                {
+                    return PermissionsSet.PermissionSet[accesskmask];
+                }
+            }
+
+            return "";
         }
 
         public bool CheckAccessMaskExists(
@@ -419,8 +437,28 @@ namespace Likewise.LMC.SecurityDesriptor
             get
             {
                 if (permissionSet == null || permissionSet.Count == 0)
-                    FillRegistryPermissionSet();
+                {
+                    switch (SecurityDescriptor.objectType)
+                    {
+                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_FILE_OBJECT:
+                            FillFilePermissionSet();
+                            break;
 
+                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_KEY:
+                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_WOW64_32KEY:
+                            FillRegistryPermissionSet();
+                            break;
+
+                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_DS_OBJECT:
+                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_DS_OBJECT_ALL:
+                            FillAdsPermissionSet();
+                            break;
+
+                        default:
+                            FillPermissionSet();
+                            break;
+                    }
+                }
                 return permissionSet;
             }
         }
@@ -474,6 +512,17 @@ namespace Likewise.LMC.SecurityDesriptor
         {
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
+        }
+
+        public static void FillAdsPermissionSet()
+        {
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Ds_Create_Child, "Create All Child Objects");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Ds_Delete_Child, "Delete All Child Objects");
+            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Ds_List_Object, "Write");
             permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
         }
     }

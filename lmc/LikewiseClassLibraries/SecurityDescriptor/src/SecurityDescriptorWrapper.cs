@@ -405,6 +405,16 @@ namespace Likewise.LMC.SecurityDesriptor
 
                     GetObjectLookUpName(iter, out sUsername, out sDomain);
 
+                    if (deleteAces != null && deleteAces.Count != 0)
+                    {
+                        if (deleteAces.ContainsKey(sUsername))
+                        {
+                            bRet = SecurityDescriptorApi.DeleteAce(pDaclOffset, (uint)idx);
+                            Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.DeleteAce return code :" + Marshal.GetLastWin32Error());
+                            continue;
+                        }
+                    }
+
                     if (editAces != null && editAces.Count != 0)
                     {
                         if (editAces.ContainsKey(sUsername))
@@ -425,15 +435,6 @@ namespace Likewise.LMC.SecurityDesriptor
 
                                 explicitAccesslist.Add(ex);
                             }
-                        }
-                    }
-
-                    if (deleteAces != null && deleteAces.Count != 0)
-                    {
-                        if (deleteAces.ContainsKey(sUsername))
-                        {
-                            bRet = SecurityDescriptorApi.DeleteAce(pDaclOffset, (uint)idx);
-                            Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.DeleteAce return code :" + Marshal.GetLastWin32Error());
                         }
                     }
                 }
@@ -458,7 +459,6 @@ namespace Likewise.LMC.SecurityDesriptor
                     Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.SetEntriesInAcl return code :" + Marshal.GetLastWin32Error());
                 }
 
-
                 //Adding new Aces to the Security Descriptor
                 int indx = 0;
                 uint AceIndex = AclSize.AceCount;
@@ -469,7 +469,7 @@ namespace Likewise.LMC.SecurityDesriptor
                     Dictionary<string, string> attributes = newAces[key] as Dictionary<string, string>;
 
                     SecurityDescriptorApi.ACE ace = new SecurityDescriptorApi.ACE();
-                    ace.AccessMask = Convert.ToUInt32(attributes["AccessMask"]);
+                    ace.AccessMask = Convert.ToUInt32(attributes["AceMask"]);
                     ace.AceFlags = Convert.ToUInt32(attributes["AceFlags"]);
                     ace.AceType = Convert.ToUInt32(attributes["AceType"]);
                     ace.Trustee = attributes["Username"];
