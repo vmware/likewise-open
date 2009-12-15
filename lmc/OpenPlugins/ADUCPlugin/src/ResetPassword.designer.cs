@@ -72,44 +72,44 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lblNewPassword
-            // 
+            //
             this.lblNewPassword.Location = new System.Drawing.Point(13, 13);
             this.lblNewPassword.Name = "lblNewPassword";
             this.lblNewPassword.Size = new System.Drawing.Size(127, 20);
             this.lblNewPassword.TabIndex = 0;
             this.lblNewPassword.Text = "&New password:";
             this.lblNewPassword.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lblNewPassword_MouseClick);
-            // 
+            //
             // contextMenuStrip1
-            // 
+            //
             this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.whatsThisToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
             this.contextMenuStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
             this.contextMenuStrip1.ShowImageMargin = false;
             this.contextMenuStrip1.Size = new System.Drawing.Size(122, 26);
-            // 
+            //
             // whatsThisToolStripMenuItem
-            // 
+            //
             this.whatsThisToolStripMenuItem.Name = "whatsThisToolStripMenuItem";
             this.whatsThisToolStripMenuItem.Size = new System.Drawing.Size(121, 22);
             this.whatsThisToolStripMenuItem.Text = "What\'s this ?";
             this.whatsThisToolStripMenuItem.TextDirection = System.Windows.Forms.ToolStripTextDirection.Horizontal;
             this.whatsThisToolStripMenuItem.Click += new System.EventHandler(this.whatsThisToolStripMenuItem_Click);
-            // 
+            //
             // lblConfirmPassword
-            // 
+            //
             this.lblConfirmPassword.Location = new System.Drawing.Point(13, 49);
             this.lblConfirmPassword.Name = "lblConfirmPassword";
             this.lblConfirmPassword.Size = new System.Drawing.Size(127, 17);
             this.lblConfirmPassword.TabIndex = 1;
             this.lblConfirmPassword.Text = "&Confirm password:";
             this.lblConfirmPassword.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lblConfirmPassword_MouseClick);
-            // 
+            //
             // txtNewpassword
-            // 
+            //
             this.txtNewpassword.Location = new System.Drawing.Point(146, 13);
             this.txtNewpassword.MaxLength = 255;
             this.txtNewpassword.Name = "txtNewpassword";
@@ -117,9 +117,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtNewpassword.Size = new System.Drawing.Size(238, 20);
             this.txtNewpassword.TabIndex = 0;
             this.txtNewpassword.TextChanged += new System.EventHandler(this.txtNewpassword_TextChanged);
-            // 
+            //
             // txtConfirmpassword
-            // 
+            //
             this.txtConfirmpassword.Location = new System.Drawing.Point(146, 46);
             this.txtConfirmpassword.MaxLength = 255;
             this.txtConfirmpassword.Name = "txtConfirmpassword";
@@ -127,9 +127,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtConfirmpassword.Size = new System.Drawing.Size(238, 20);
             this.txtConfirmpassword.TabIndex = 2;
             this.txtConfirmpassword.TextChanged += new System.EventHandler(this.txtConfirmpassword_TextChanged);
-            // 
+            //
             // checkBox
-            // 
+            //
             this.checkBox.Location = new System.Drawing.Point(13, 72);
             this.checkBox.Name = "checkBox";
             this.checkBox.Size = new System.Drawing.Size(371, 18);
@@ -138,17 +138,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.checkBox.UseVisualStyleBackColor = true;
             this.checkBox.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
             this.checkBox.MouseUp += new System.Windows.Forms.MouseEventHandler(this.checkBox_MouseUp);
-            // 
+            //
             // lbllogoffdisplay
-            // 
+            //
             this.lbllogoffdisplay.Location = new System.Drawing.Point(13, 93);
             this.lbllogoffdisplay.Name = "lbllogoffdisplay";
             this.lbllogoffdisplay.Size = new System.Drawing.Size(372, 30);
             this.lbllogoffdisplay.TabIndex = 4;
             this.lbllogoffdisplay.Text = "The user must logoff and then logon again for the changes to take effect.";
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Location = new System.Drawing.Point(229, 130);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -157,9 +157,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
             this.btnOk.MouseUp += new System.Windows.Forms.MouseEventHandler(this.btnOk_MouseUp);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(310, 130);
             this.btnCancel.Name = "btnCancel";
@@ -169,16 +169,16 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             this.btnCancel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.btnCancel_MouseUp);
-            // 
+            //
             // toolTip1
-            // 
+            //
             this.toolTip1.AutoPopDelay = 100;
             this.toolTip1.InitialDelay = 100;
             this.toolTip1.ReshowDelay = 100;
             this.toolTip1.Tag = "";
-            // 
+            //
             // ResetPassword
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;

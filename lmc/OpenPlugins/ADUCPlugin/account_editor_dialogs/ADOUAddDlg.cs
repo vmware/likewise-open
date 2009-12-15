@@ -121,8 +121,8 @@ public partial class ADOUAddDlg : Form
     private void btnOK_Click(object sender, EventArgs e)
     {
         if (_dirnode != null)
-        {           
-            string filterquery = string.Format("(&(objectClass=*)(name={0}))", txtName.Text.Trim());           
+        {
+            string filterquery = string.Format("(&(objectClass=*)(name={0}))", txtName.Text.Trim());
             List<LdapEntry> ldapEntries = null;
             int ret = _dirnode.LdapContext.ListChildEntriesSynchronous
             (_dirnode.DistinguishedName,

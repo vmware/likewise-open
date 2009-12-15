@@ -48,7 +48,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private SubKeyValueInfo ValueInfo = null;
         private RegistryValueInfo regValueInfo = null;
         private RegistryViewerPlugin plugin = null;
-        private string sOutValue = string.Empty;        
+        private string sOutValue = string.Empty;
         private bool bIsAdd = false;
         private string sKey = string.Empty;
 
@@ -61,7 +61,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         #endregion
 
         #region Properties
-       
+
         #endregion
 
         #region Constructors
@@ -89,14 +89,14 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 this.sKey = key;
                 this.LWDataBinarydata.EditMode = DataGridViewEditMode.EditProgrammatically;
             }
-           
+
             this.txtValuename.ReadOnly = !IsAdd;
-            this.bIsAdd = IsAdd;       
+            this.bIsAdd = IsAdd;
 
             foreach (DataGridViewColumn column in LWDataBinarydata.Columns)
             {
-                column.CellTemplate.KeyEntersEditMode(new KeyEventArgs(Keys.A | Keys.B | Keys.C | Keys.D | Keys.E | Keys.F));                  
-            }           
+                column.CellTemplate.KeyEntersEditMode(new KeyEventArgs(Keys.A | Keys.B | Keys.C | Keys.D | Keys.E | Keys.F));
+            }
 
             SetInputData();
         }
@@ -283,14 +283,14 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private void ParseDWordData(object data)
         {
             string stringData = string.Empty;
-            
+
             Logger.Log("BinaryValueEditorDialog.ParseDWordData - Given string - " + stringData, Logger.RegistryViewerLoglevel);
 
             if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                 stringData = string.Format("{0:X8}", (uint)(int)data);
             else
                 stringData = string.Format("{0:X8}", (uint)BitConverter.ToInt32(data as byte[], 0));
-           
+
             string[] listOfItems = new string[columnLength];
             listOfItems[0] = "0000";
 
@@ -364,8 +364,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             for (int rows = 1; rows <= numOfRows; rows++)
             {
                 string[] listOfItems = new string[columnLength];
-                listOfItems[0] = string.Format("{0:X4}", intStartIndex); 
-               
+                listOfItems[0] = string.Format("{0:X4}", intStartIndex);
+
                 for (int i = 1; i <= byteLength; i++)
                 {
                     try
@@ -425,7 +425,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     }
                     index++;
                 }
-                
+
                 LWDataBinarydata.Rows.Add(listOfItems);
                 intStartIndex += byteLength;
             }
@@ -645,7 +645,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             sCellValue += "0";
                 }
             }
-        }     
+        }
 
 
         /*private void ParseBinaryData(object data)
@@ -754,7 +754,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             ASCIIEncoding encoder = new ASCIIEncoding();
             byte[] sBinarydata = encoder.GetBytes(stringData);
             int cellCount = this.numOfCells = (stringData.Length * 2) + 2;
-            int numOfRows = (cellCount / byteLength) + 1;       
+            int numOfRows = (cellCount / byteLength) + 1;
             int index = 0;
             int intStartIndex = 0;
             for (int rows = 1; rows <= numOfRows; rows++)
@@ -762,7 +762,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 string[] listOfItems;
                 if (rows <= numOfRows)
                 {
-                    listOfItems = new string[19];                    
+                    listOfItems = new string[19];
                 }
                 else
                     listOfItems = new string[17];
@@ -837,7 +837,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     if (cell.ColumnIndex <= byteLength)
                     {
                         SendKeys.Send("{INSERT}");
-                        cell.Selected = true;                        
+                        cell.Selected = true;
                         drRow.Cells[cell.ColumnIndex + byteLength].Selected = true;
                     }
                     else
@@ -848,9 +848,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     }
                     break;
             }
-        }     
-           
-#endregion 
+        }
+
+#endregion
 
         #region Event Handlers
 
@@ -859,7 +859,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             if (!ValidateInputData())
                 return;
 
-            FormatOutputData();  
+            FormatOutputData();
 
             this.btnOk.Enabled = false;
             this.DialogResult = DialogResult.OK;
@@ -912,11 +912,11 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         {
             switch (e.ColumnIndex)
             {
-                case 0:                    
+                case 0:
                     break;
 
                 default:
-                    DataGridViewCell cell = LWDataBinarydata.Rows[e.RowIndex].Cells[e.ColumnIndex]; 
+                    DataGridViewCell cell = LWDataBinarydata.Rows[e.RowIndex].Cells[e.ColumnIndex];
                     if (cell.Value != null)
                     {
                         if (cell.Value.ToString().Length < 2)
@@ -927,7 +927,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             int iCellValue = RegistryUtils.BaseToDecimal(sStartIndex, 10);
                             sStartIndex = iCellValue.ToString().PadLeft(2, '0');
                             LWDataBinarydata.Rows.Add(new string[] { sStartIndex });
-                        }                      
+                        }
                     }
                     break;
             }
@@ -938,7 +938,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             e.Control.KeyPress += new KeyPressEventHandler(this.LWDataBinarydata_KeyPress);
         }
 
-        #endregion  
-        
+        #endregion
+
     }
 }

@@ -81,17 +81,17 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.panel1.SuspendLayout();
             this.contextMenuStrip.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // picture
-            // 
+            //
             this.picture.Image = ((System.Drawing.Image)(resources.GetObject("picture.Image")));
             this.picture.Location = new System.Drawing.Point(14, 11);
-            // 
+            //
             // lblCaption
-            // 
+            //
             this.lblCaption.AutoSize = false;
             this.lblCaption.Size = new System.Drawing.Size(470, 23);
-            // 
+            //
             // pnlActions
             //
             this.pnlActions.Size = new System.Drawing.Size(131, 238);
@@ -101,7 +101,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.pnlHeader.Size = new System.Drawing.Size(538, 59);
             //
             // panel1
-            // 
+            //
             this.panel1.Controls.Add(this.lblFiltered);
             this.panel1.Controls.Add(this.label1);
             this.panel1.Controls.Add(this.cbLog);
@@ -112,9 +112,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(407, 35);
             this.panel1.TabIndex = 5;
-            // 
+            //
             // lblFiltered
-            // 
+            //
             this.lblFiltered.AutoSize = true;
             this.lblFiltered.Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblFiltered.ForeColor = System.Drawing.SystemColors.ControlText;
@@ -124,9 +124,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.lblFiltered.TabIndex = 2;
             this.lblFiltered.Text = "(filtered)";
             this.lblFiltered.Visible = false;
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.SystemColors.WindowText;
@@ -135,9 +135,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label1.Size = new System.Drawing.Size(110, 16);
             this.label1.TabIndex = 1;
             this.label1.Text = "Page Number:";
-            // 
+            //
             // cbLog
-            // 
+            //
             this.cbLog.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbLog.FormattingEnabled = true;
             this.cbLog.Location = new System.Drawing.Point(133, 8);
@@ -145,36 +145,36 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.cbLog.Size = new System.Drawing.Size(125, 21);
             this.cbLog.TabIndex = 0;
             this.cbLog.SelectedIndexChanged += new System.EventHandler(this.cbLog_SelectedIndexChanged);
-            // 
+            //
             // panel3
-            // 
+            //
             this.panel3.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel3.Location = new System.Drawing.Point(131, 94);
             this.panel3.Margin = new System.Windows.Forms.Padding(2);
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(8, 203);
             this.panel3.TabIndex = 6;
-            // 
+            //
             // panel4
-            // 
+            //
             this.panel4.Dock = System.Windows.Forms.DockStyle.Right;
             this.panel4.Location = new System.Drawing.Point(530, 94);
             this.panel4.Margin = new System.Windows.Forms.Padding(2);
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(8, 203);
             this.panel4.TabIndex = 7;
-            // 
+            //
             // panel5
-            // 
+            //
             this.panel5.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel5.Location = new System.Drawing.Point(139, 287);
             this.panel5.Margin = new System.Windows.Forms.Padding(2);
             this.panel5.Name = "panel5";
             this.panel5.Size = new System.Drawing.Size(391, 10);
             this.panel5.TabIndex = 7;
-            // 
+            //
             // contextMenuStrip
-            // 
+            //
             this.contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.miEventProperties,
             this.miHelp});
@@ -182,30 +182,30 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.contextMenuStrip.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
             this.contextMenuStrip.ShowImageMargin = false;
             this.contextMenuStrip.Size = new System.Drawing.Size(141, 48);
-            // 
+            //
             // miEventProperties
-            // 
+            //
             this.miEventProperties.Name = "miEventProperties";
             this.miEventProperties.Size = new System.Drawing.Size(140, 22);
             this.miEventProperties.Text = "Event Prop&erties";
-            // 
+            //
             // miHelp
-            // 
+            //
             this.miHelp.Name = "miHelp";
             this.miHelp.Size = new System.Drawing.Size(140, 22);
             this.miHelp.Text = "&Help";
-            // 
+            //
             // imageList
-            // 
+            //
             this.imageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList.ImageStream")));
             this.imageList.TransparentColor = System.Drawing.Color.Magenta;
             this.imageList.Images.SetKeyName(0, "");
             this.imageList.Images.SetKeyName(1, "");
             this.imageList.Images.SetKeyName(2, "");
             this.imageList.Images.SetKeyName(3, "EventViewer_48.ico");
-            // 
+            //
             // lvEvents
-            // 
+            //
             this.lvEvents.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvEvents.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lvEvents.FullRowSelect = true;
@@ -225,13 +225,13 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.lvEvents.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvEvents_MouseUp);
             this.lvEvents.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvEvents_ColumnClick);
             this.lvEvents.KeyDown += new System.Windows.Forms.KeyEventHandler(this.lvEvents_KeyDown);
-            // 
+            //
             // exportLogsaveFileDialog
-            // 
+            //
             this.exportLogsaveFileDialog.Filter = "Text (Tab delimited) (*.txt)|*.txt|CSV (Comma delimited) (*.csv)|*.csv";
-            // 
+            //
             // EventViewerControl
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvEvents);
             this.Controls.Add(this.panel5);

@@ -74,55 +74,55 @@ namespace Likewise.LMC.Plugins.FileShareManager
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lblCaption
-            // 
+            //
             this.lblCaption.Size = new System.Drawing.Size(168, 23);
             this.lblCaption.Text = "Sessions on {0}";
-            // 
+            //
             // pnlActions
             //
             this.pnlActions.Location = new System.Drawing.Point(8, 67);
             this.pnlActions.Size = new System.Drawing.Size(131, 235);
             //
             // panel1
-            // 
+            //
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 59);
             this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(547, 8);
             this.panel1.TabIndex = 5;
-            // 
+            //
             // panel3
-            // 
+            //
             this.panel3.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel3.Location = new System.Drawing.Point(0, 302);
             this.panel3.Margin = new System.Windows.Forms.Padding(2);
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(547, 8);
             this.panel3.TabIndex = 5;
-            // 
+            //
             // panel4
-            // 
+            //
             this.panel4.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel4.Location = new System.Drawing.Point(0, 67);
             this.panel4.Margin = new System.Windows.Forms.Padding(2);
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(8, 235);
             this.panel4.TabIndex = 5;
-            // 
+            //
             // panel5
-            // 
+            //
             this.panel5.Dock = System.Windows.Forms.DockStyle.Right;
             this.panel5.Location = new System.Drawing.Point(539, 67);
             this.panel5.Margin = new System.Windows.Forms.Padding(2);
             this.panel5.Name = "panel5";
             this.panel5.Size = new System.Drawing.Size(8, 235);
             this.panel5.TabIndex = 5;
-            // 
+            //
             // lvSessionPage
-            // 
+            //
             this.lvSessionPage.BackColor = System.Drawing.SystemColors.Window;
             this.lvSessionPage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvSessionPage.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -147,39 +147,39 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.lvSessionPage.SelectedIndexChanged += new System.EventHandler(this.lvSessionPage_SelectedIndexChanged);
             this.lvSessionPage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvSessionPage_MouseUp);
             this.lvSessionPage.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvSessionPage_ColumnClick);
-            // 
+            //
             // User
-            // 
+            //
             this.User.Text = "User";
             this.User.Width = 85;
-            // 
+            //
             // Server
-            // 
+            //
             this.Server.Text = "Server";
             this.Server.Width = 78;
-            // 
+            //
             // NumOpenFiles
-            // 
+            //
             this.NumOpenFiles.Text = "# Open Files";
             this.NumOpenFiles.Width = 69;
-            // 
+            //
             // TimeConnected
-            // 
+            //
             this.TimeConnected.Text = "Connected Time";
             this.TimeConnected.Width = 70;
-            // 
+            //
             // TimeIdle
-            // 
+            //
             this.TimeIdle.Text = "Idle Time";
             this.TimeIdle.Width = 58;
-            // 
+            //
             // IsGuest
-            // 
+            //
             this.IsGuest.Text = "Guest";
             this.IsGuest.Width = 39;
-            // 
+            //
             // SessionPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvSessionPage);
             this.Controls.Add(this.panel5);

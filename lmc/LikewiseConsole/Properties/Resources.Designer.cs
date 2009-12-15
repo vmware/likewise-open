@@ -30,8 +30,8 @@
 
 namespace Likewise.LMC.Properties {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -43,15 +43,15 @@ namespace Likewise.LMC.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -65,7 +65,7 @@ namespace Likewise.LMC.Properties {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -79,14 +79,14 @@ namespace Likewise.LMC.Properties {
                 resourceCulture = value;
             }
         }
-        
+
         internal static System.Drawing.Icon addserver {
             get {
                 object obj = ResourceManager.GetObject("addserver", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to It greatly simplifies user account management by allowing administrators to manage users and computers for all systems in their mixed network through a single identity management system..
         /// </summary>
@@ -95,14 +95,14 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("ADUC_Desc", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap back {
             get {
                 object obj = ResourceManager.GetObject("back", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Add Server.
         /// </summary>
@@ -111,7 +111,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Caption_AddServer", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Export Favorites.
         /// </summary>
@@ -120,7 +120,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Caption_FavoritesExport", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Import Favorites.
         /// </summary>
@@ -129,7 +129,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Caption_FavoritesImport", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise License Key Error.
         /// </summary>
@@ -138,7 +138,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Caption_LicenseError", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to License Terms Exceeded.
         /// </summary>
@@ -147,7 +147,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Caption_LicenseTermsExceeded", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to  Manages Likewise Enterprise Cells.
         /// </summary>
@@ -156,7 +156,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("CellManager_Desc", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Connected as {0} @ {1}.
         /// </summary>
@@ -165,7 +165,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Connected_as", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to ** Evaluation Copy **.
         /// </summary>
@@ -174,7 +174,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("DefaultAvnetCompany", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to D4879-02130-E6E19-2DC80-00100-010E9-8E1D704.
         /// </summary>
@@ -183,7 +183,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("DefaultAvnetKey", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to ** Evaluation Copy **.
         /// </summary>
@@ -192,7 +192,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("DefaultCompany", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to DDB79-0E233-D601E-2DC80-00300-010E9-8E1D704.
         /// </summary>
@@ -201,7 +201,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("DefaultKey", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The current selection has already been added to the favorites..
         /// </summary>
@@ -210,7 +210,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_AlreadyDefined", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The license key you entered is not a valid license key.  Please reenter the license key.
         ///
@@ -221,7 +221,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_BadKey", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The remote installer could not be found.\n\nPlease reinstall the product on this computer..
         /// </summary>
@@ -230,7 +230,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_CannotFindInstaller", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Failed to resolve the computer name [{0}] into an IP address.
         ///
@@ -241,7 +241,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_CannotResolve", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to show the release notes file: {0}.
         /// </summary>
@@ -250,7 +250,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_CannotShowReadme", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Could not verify software license.
         ///
@@ -261,7 +261,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_CannotVerify_License", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Error: Favorite [{0}] was not found in the favorite list..
         /// </summary>
@@ -270,7 +270,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_FavoriteNotFound", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The address {0} is invalid. Please enter a valid IP address..
         /// </summary>
@@ -279,7 +279,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_InvalidAddress", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Please enter a valid name or IP address for the computer you wish to manage..
         /// </summary>
@@ -288,7 +288,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_InvalidComputerName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Error: Computer name is invalid..
         /// </summary>
@@ -297,7 +297,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_InvalidComputerName2", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Error: Computer type is invalid..
         /// </summary>
@@ -306,7 +306,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_InvalidComputerType", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to An invalid domain name [{0}] was selected.
         ///
@@ -317,7 +317,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_InvalidDomainName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The existing favorite name is invalid..
         /// </summary>
@@ -326,7 +326,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_InvalidExistingFavorite", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The new favorite name in invalid..
         /// </summary>
@@ -335,7 +335,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_InvalidFavorite", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to More computers have been added to the favorites list than are allowed with your current license.
         ///
@@ -348,7 +348,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_LicenseTermsExceeded", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You have not added any computers to your favorites list..
         /// </summary>
@@ -357,7 +357,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_NoFavorites", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The company name you entered does not correspond to the license key.  Please reenter the company name that you used to purchase the license key.
         ///
@@ -368,7 +368,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Error_WrongCompanyName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to  Lets administrators and users view the event logs on a local or remote machine..
         /// </summary>
@@ -377,7 +377,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("EventViewer_Desc", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to File and Print Services in Likewise Software enable professionals to create advanced and cost-effective information networks that help maintain data availability and security, ease deployment and management, and integrate well with existing infrastructure..
         /// </summary>
@@ -386,7 +386,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("FilePrint_Desc", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Enterprise allows you to extend Active Directory group policies and security settings to non-Windows systems including - Linux, UNIX, and Mac. Now administrators can specify Cron policies on hundreds of machines without having to maintain them individually.
         /// </summary>
@@ -395,10 +395,10 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("GPM_Desc", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Group Policy Object Editor will help users to Create, modify, and manage your Active Directory group policies from a Linux or Mac computer
-        /// 
+        ///
         ///.
         /// </summary>
         internal static string GPOE_Desc {
@@ -406,7 +406,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("GPOE_Desc", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Usage: lacconsole [--loglevel  (Silent,Panic,Error,Normal,Verbose,Debug)]
         ///		  [--plugin (aduc,cellmanager,eventviewer,gpmc,fileandprint,lsa,auth,kerberos,lug)]
@@ -418,7 +418,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("HelpMsg", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Allows the user to manage the principal names and service keys stored in a local key table. Principal and key pairs listed in the keytab allow services running on a host to authenticate themselves to the Key Distribution Center (KDC).
         /// </summary>
@@ -427,7 +427,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("KTAB_Desc", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to ({0} days remaining).
         /// </summary>
@@ -436,7 +436,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Label_DaysRemaining", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Licensed to {0}.
         /// </summary>
@@ -445,7 +445,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Label_Licensee", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Version {0}.
         /// </summary>
@@ -454,21 +454,21 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Label_Version", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap likewise {
             get {
                 object obj = ResourceManager.GetObject("likewise", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         internal static System.Drawing.Bitmap likewise_splash_screen {
             get {
                 object obj = ResourceManager.GetObject("likewise_splash_screen", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Likewise Management Console allows you to view the status of your Active Directory domains, to run diagnostics and repair tools, and to manage your Likewise Enterprise licenses..
         /// </summary>
@@ -477,21 +477,21 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("LikewiseIConsole_Desc", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap likewiselogoV3 {
             get {
                 object obj = ResourceManager.GetObject("likewiselogoV3", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         internal static System.Drawing.Bitmap likewiselogoV31 {
             get {
                 object obj = ResourceManager.GetObject("likewiselogoV31", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Use Local Users and Groups to create and manage users and groups that are stored locally on a computer. .
         /// </summary>
@@ -500,7 +500,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("LUGDesc_Desc", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Likewise Identity Service, or LWIS, is a next-generation authentication engine for Linux, Unix, and Mac OS X. A highly reliable and industrial-strength application, LWIS gives non-Windows computers advanced capabilities..
         /// </summary>
@@ -509,42 +509,42 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("LWIS_Desc", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap LWlogo {
             get {
                 object obj = ResourceManager.GetObject("LWlogo", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon next {
             get {
                 object obj = ResourceManager.GetObject("next", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon reload {
             get {
                 object obj = ResourceManager.GetObject("reload", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Bitmap rgb_lw_ent {
             get {
                 object obj = ResourceManager.GetObject("rgb_lw_ent", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         internal static System.Drawing.Bitmap rgb_lw_ent1 {
             get {
                 object obj = ResourceManager.GetObject("rgb_lw_ent1", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Do you want save LMC Console settings to {0}.
         /// </summary>
@@ -553,28 +553,28 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("SaveSettingsMessage", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap small_logoGIF {
             get {
                 object obj = ResourceManager.GetObject("small_logoGIF", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon small_logoICON {
             get {
                 object obj = ResourceManager.GetObject("small_logoICON", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Bitmap small_logoPNG {
             get {
                 object obj = ResourceManager.GetObject("small_logoPNG", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Error: Unrecognized command line option [{0}]
         ///Usage: lacconsole [--loglevel  (Silent,Panic,Error,Normal,Verbose,Debug)]
@@ -587,7 +587,7 @@ namespace Likewise.LMC.Properties {
                 return ResourceManager.GetString("Usage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to No favorites found..
         /// </summary>

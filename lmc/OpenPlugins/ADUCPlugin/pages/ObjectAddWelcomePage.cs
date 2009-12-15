@@ -103,7 +103,7 @@ public partial class ObjectAddWelcomePage : WizardPage
     
     #region Override Methods
     public override string OnWizardNext()
-    {       
+    {
         if (_objectAddDlg.objectInfo.addedPages.Count != 0 &&
             _objectAddDlg.objectInfo.addedPages.Count > ObjectInfo.PageIndex)
         {
@@ -204,7 +204,7 @@ public partial class ObjectAddWelcomePage : WizardPage
     {
         treeView1.HideSelection = false;
         _objectAddDlg.choosenClass = nodeText;
-        _objectAddDlg.objectInfo.htMandatoryAttrList = new Hashtable();        
+        _objectAddDlg.objectInfo.htMandatoryAttrList = new Hashtable();
 
         List<string> attrlist = new List<string>();
         _objectAddDlg.ClassAttributeList = new List<LdapAttributeType>();
@@ -233,14 +233,14 @@ public partial class ObjectAddWelcomePage : WizardPage
                 }
             }
         }
-        
+
         LdapClassType classtype = _objectAddDlg.schemaCache.GetSchemaTypeByObjectClass(_objectAddDlg.choosenClass) as LdapClassType;
 
         AttributeMap attr_map = classtype.Tag as AttributeMap;
         LdapEntry ldapentry = attr_map.Tag as LdapEntry;
 
         string DN = ldapentry.GetDN();
-        string[] attrs = { "name", "allowedAttributes", null };       
+        string[] attrs = { "name", "allowedAttributes", null };
 
         List<LdapEntry> innerLdapEntries = null;
         int ret = dirnode.LdapContext.ListChildEntriesSynchronous
@@ -256,7 +256,7 @@ public partial class ObjectAddWelcomePage : WizardPage
         LdapValue[] ldapValues = ldapentry.GetAttributeValues("allowedAttributes", dirnode.LdapContext);
         if (ldapValues != null && ldapValues.Length > 0)
         {
-            string[] optionalAttrs = new string[ldapValues.Length];           
+            string[] optionalAttrs = new string[ldapValues.Length];
             foreach (LdapValue Oclass in ldapValues)
             {
                 string attrValue = Oclass.stringData;
@@ -276,9 +276,9 @@ public partial class ObjectAddWelcomePage : WizardPage
                     schematype.AttributeType = "Mandatory";
                     _objectAddDlg.ClassAttributeList.Add(schematype as LdapAttributeType);
                 }
-            }           
+            }
         }
-       
+
         if (_objectAddDlg.ClassAttributeList != null && _objectAddDlg.ClassAttributeList.Count != 0)
         {
             foreach (LdapAttributeType Attribute in _objectAddDlg.ClassAttributeList)
@@ -294,7 +294,7 @@ public partial class ObjectAddWelcomePage : WizardPage
                     _objectAddDlg.objectInfo._AttributesList.Add(Attribute.AttributeDisplayName, attributeInfo);
                 }
             }
-        }      
+        }
         ObjectAddSinglePage ObjectAddSinglePage = null;
         _objectAddDlg.objectInfo.addedPages = new List<string>();
         ObjectInfo.PageIndex = 0;
@@ -311,7 +311,7 @@ public partial class ObjectAddWelcomePage : WizardPage
             _objectAddDlg.AddPage(ObjectAddSinglePage);
             _objectAddDlg.objectInfo.addedPages.Add("cn");
         }
-       
+
         if (mandatoryAttributes != null && mandatoryAttributes.Length != 0)
         {
             for (int i = 0; i < mandatoryAttributes.Length; i++)
@@ -324,7 +324,7 @@ public partial class ObjectAddWelcomePage : WizardPage
                 }
             }
         }
-        
+
         if (_objectAddDlg.choosenClass.Equals("computer", StringComparison.InvariantCultureIgnoreCase)
         ||
         _objectAddDlg.choosenClass.Equals("user", StringComparison.InvariantCultureIgnoreCase)
@@ -335,9 +335,9 @@ public partial class ObjectAddWelcomePage : WizardPage
             _objectAddDlg.AddPage(ObjectAddSinglePage);
             _objectAddDlg.objectInfo.addedPages.Add("sAMAccountName");
         }
-    
+
         //for all objects they all come to the end of final page
-        _objectAddDlg.AddPage(new ObjectAddFinalPage(_objectAddDlg, _container, _parentPage));       
+        _objectAddDlg.AddPage(new ObjectAddFinalPage(_objectAddDlg, _container, _parentPage));
 
         Wizard.enableButton(WizardDialog.WizardButton.Start);
     }

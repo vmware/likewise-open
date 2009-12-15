@@ -46,7 +46,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         #region Class data
         private OUGenerelEditObject _editObject = null;
         private OUGenerelEditObject _originalObject = null;
-        private ADUCDirectoryNode dirnode = null;        
+        private ADUCDirectoryNode dirnode = null;
         #endregion
 
         #region Constructors
@@ -171,7 +171,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                             {
                                 cbcountry.Items.Add(sValue);
                                 cbcountry.SelectedIndex = cbcountry.Items.Count - 1;
-                            }                           
+                            }
                             _editObject.Country = sValue;
                         }
 
@@ -203,7 +203,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         {
             if ((_originalObject == null && _editObject == null) ||
             (_editObject != null && _editObject.Equals(_originalObject)))
-            {                
+            {
                 ParentContainer.btnApply.Enabled = ParentContainer.DataChanged;
             }
             else
@@ -231,7 +231,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             {
                 cbcountry.Items.Clear();
             }
-                       
+
             List<string> list = new List<string>();
             foreach (CultureInfo info in CultureInfo.GetCultures(CultureTypes.SpecificCultures))
             {

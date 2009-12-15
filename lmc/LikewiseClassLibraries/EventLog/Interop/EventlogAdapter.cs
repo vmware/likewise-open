@@ -40,56 +40,56 @@ public class EventlogAdapter
     {
         IntPtr pEventLogHandle;
         UInt32 dwError = EventAPI.OpenEventLog(hostname, out pEventLogHandle);
-        
+
         if (dwError == 0)
         {
             return new EventlogHandle(pEventLogHandle);
         }
         else
         {
-            
+
             throw new Exception(String.Format(
             "Error: OpenEventLog [Code:{0}]", dwError));
         }
     }
-    
+
     public static EventLogRecord[] ReadEventLog(EventlogHandle handle,
     UInt32 dwLastRecordId,
     UInt32 nMaxRecords,
     string sqlQuery)
     {
-        
+
         EventLogRecord[] result = null;
         EventAPI.EventLogRecord[] records = null; // new EventAPI.EventLogRecord[nMaxRecords];
-        
+
         UInt32 nRecordsReturned = 0;
         UInt32 dwError =
         EventAPI.ReadEventLog(handle.Handle, dwLastRecordId, nMaxRecords, sqlQuery,
-        out nRecordsReturned,  out records);        
+        out nRecordsReturned,  out records);
         if (dwError != 0)
         {
             Logger.Log(String.Format("Error: ReadEventLog [Code:{0}]", dwError), Logger.eventLogLogLevel);
         }
         if (nRecordsReturned > 0)
-        {            
+        {
             result = new EventLogRecord[nRecordsReturned];
             int iRecord = 0;
             foreach (EventAPI.EventLogRecord record in records)
             {
-                result[iRecord++] = new EventLogRecord(record);                
+                result[iRecord++] = new EventLogRecord(record);
             }
         }
         return result;
-        
-    }   
-    
-    
+
+    }
+
+
     public static UInt32 CountLogs(EventlogHandle handle,
     string sqlQuery)
     {
-        
+
         UInt32 nRecordsMatched = 0;
-        
+
         UInt32 dwError =
         EventAPI.CountEventLog(handle.Handle, sqlQuery, out nRecordsMatched);
         if (dwError != 0)
@@ -97,7 +97,7 @@ public class EventlogAdapter
             Logger.Log(String.Format("Error: CountEventLog [Code:{0}]", dwError), Logger.eventLogLogLevel);
         }
         return nRecordsMatched;
-        
+
     }
 
     public static UInt32 GetCategoryCount(EventlogHandle handle)
@@ -119,7 +119,7 @@ public class EventlogAdapter
                                                  UInt32 pdwNumMatched)
     {
         string[] EventCategories = null;
-        
+
         UInt32 dwError =
                EventAPI.GetDistinctCategories(handle.Handle, pdwNumMatched, out EventCategories);
         if (dwError != 0)
@@ -142,7 +142,7 @@ public class EventlogAdapter
 
         return dwError;
     }
-                                          
-    
+
+
 }
 }

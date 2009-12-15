@@ -78,9 +78,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.pnlAttributes.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.btnEdit);
             this.pnlData.Controls.Add(this.pnlAttributes);
             this.pnlData.Controls.Add(this.cbMandatoryAttr);
@@ -88,22 +88,22 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.cbOptionalAttr);
             this.pnlData.Controls.Add(this.cbValueAttr);
             this.pnlData.Size = new System.Drawing.Size(373, 411);
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // pnlAttributes
-            // 
+            //
             this.pnlAttributes.Controls.Add(this.lvAttrs);
             this.pnlAttributes.Location = new System.Drawing.Point(15, 105);
             this.pnlAttributes.Name = "pnlAttributes";
             this.pnlAttributes.Size = new System.Drawing.Size(343, 255);
             this.pnlAttributes.TabIndex = 37;
-            // 
+            //
             // lvAttrs
-            // 
+            //
             this.lvAttrs.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
                         | System.Windows.Forms.AnchorStyles.Left)));
             this.lvAttrs.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -125,34 +125,34 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lvAttrs.SelectedIndexChanged += new System.EventHandler(this.lvAttrs_SelectedIndexChanged);
             this.lvAttrs.DoubleClick += new System.EventHandler(this.btnEdit_Click);
             this.lvAttrs.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvAttrs_ColumnClick);
-            // 
+            //
             // colAttr
-            // 
+            //
             this.colAttr.Text = "Attribute";
             this.colAttr.Width = 115;
-            // 
+            //
             // colSyntax
-            // 
+            //
             this.colSyntax.Text = "Syntax";
             this.colSyntax.Width = 96;
-            // 
+            //
             // colValue
-            // 
+            //
             this.colValue.Text = "Value";
             this.colValue.Width = 300;
-            // 
+            //
             // colAttrType
-            // 
+            //
             this.colAttrType.Text = "";
             this.colAttrType.Width = 0;
-            // 
+            //
             // colAttrModified
-            // 
+            //
             this.colAttrModified.Text = "";
             this.colAttrModified.Width = 0;
-            // 
+            //
             // btnEdit
-            // 
+            //
             this.btnEdit.Enabled = false;
             this.btnEdit.Location = new System.Drawing.Point(15, 374);
             this.btnEdit.Name = "btnEdit";
@@ -161,18 +161,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnEdit.Text = "&Edit";
             this.btnEdit.UseVisualStyleBackColor = true;
             this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click);
-            // 
+            //
             // lblAttr
-            // 
+            //
             this.lblAttr.AutoSize = true;
             this.lblAttr.Location = new System.Drawing.Point(12, 89);
             this.lblAttr.Name = "lblAttr";
             this.lblAttr.Size = new System.Drawing.Size(54, 13);
             this.lblAttr.TabIndex = 35;
             this.lblAttr.Text = "Attri&butes:";
-            // 
+            //
             // cbValueAttr
-            // 
+            //
             this.cbValueAttr.Location = new System.Drawing.Point(15, 65);
             this.cbValueAttr.Name = "cbValueAttr";
             this.cbValueAttr.Size = new System.Drawing.Size(338, 23);
@@ -181,9 +181,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 "  ";
             this.cbValueAttr.UseVisualStyleBackColor = true;
             this.cbValueAttr.CheckedChanged += new System.EventHandler(this.cbValueAttr_CheckedChanged);
-            // 
+            //
             // cbOptionalAttr
-            // 
+            //
             this.cbOptionalAttr.Checked = true;
             this.cbOptionalAttr.CheckState = System.Windows.Forms.CheckState.Checked;
             this.cbOptionalAttr.Location = new System.Drawing.Point(15, 41);
@@ -194,9 +194,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 "           ";
             this.cbOptionalAttr.UseVisualStyleBackColor = true;
             this.cbOptionalAttr.CheckedChanged += new System.EventHandler(this.cbOptionalAttr_CheckedChanged);
-            // 
+            //
             // cbMandatoryAttr
-            // 
+            //
             this.cbMandatoryAttr.Checked = true;
             this.cbMandatoryAttr.CheckState = System.Windows.Forms.CheckState.Checked;
             this.cbMandatoryAttr.Location = new System.Drawing.Point(15, 13);
@@ -207,9 +207,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 "         ";
             this.cbMandatoryAttr.UseVisualStyleBackColor = true;
             this.cbMandatoryAttr.CheckedChanged += new System.EventHandler(this.cbMandatoryAttr_CheckedChanged);
-            // 
+            //
             // ADEditPage
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.Name = "ADEditPage";
             this.Size = new System.Drawing.Size(373, 411);

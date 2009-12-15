@@ -37,7 +37,7 @@ namespace System.DirectoryServices.ActiveDirectory
     public enum DirectoryContextType
     {
         Domain = 0,        //needs domain name
-        Forest = 1,        //needs forest name(root domain name) 
+        Forest = 1,        //needs forest name(root domain name)
         DirectoryServer = 2,  //needs domain controllre name such as corpqa-dc2.corpqa.centeris.com
         ConfigurationSet = 3,
         ApplicationPartition = 4

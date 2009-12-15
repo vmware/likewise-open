@@ -74,34 +74,34 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnEdit = new System.Windows.Forms.Button();
             this.chValues = new System.Windows.Forms.ColumnHeader();
             this.SuspendLayout();
-            // 
+            //
             // AttributeSelectionLabel
-            // 
+            //
             this.AttributeSelectionLabel.AutoSize = true;
             this.AttributeSelectionLabel.Location = new System.Drawing.Point(61, 13);
             this.AttributeSelectionLabel.Name = "AttributeSelectionLabel";
             this.AttributeSelectionLabel.Size = new System.Drawing.Size(0, 13);
             this.AttributeSelectionLabel.TabIndex = 1;
-            // 
+            //
             // lblAttrValue
-            // 
+            //
             this.lblAttrValue.AutoSize = true;
             this.lblAttrValue.Location = new System.Drawing.Point(6, 10);
             this.lblAttrValue.Name = "lblAttrValue";
             this.lblAttrValue.Size = new System.Drawing.Size(62, 13);
             this.lblAttrValue.TabIndex = 3;
             this.lblAttrValue.Text = "&New Value:";
-            // 
+            //
             // txtAttrValue
-            // 
+            //
             this.txtAttrValue.Location = new System.Drawing.Point(9, 29);
             this.txtAttrValue.Name = "txtAttrValue";
             this.txtAttrValue.Size = new System.Drawing.Size(262, 20);
             this.txtAttrValue.TabIndex = 4;
             this.txtAttrValue.TextChanged += new System.EventHandler(this.txtAttrValue_TextChanged);
-            // 
+            //
             // btnAdd
-            // 
+            //
             this.btnAdd.Enabled = false;
             this.btnAdd.Location = new System.Drawing.Point(279, 27);
             this.btnAdd.Name = "btnAdd";
@@ -110,18 +110,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnAdd.Text = "A&dd";
             this.btnAdd.UseVisualStyleBackColor = true;
             this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
-            // 
+            //
             // lblValues
-            // 
+            //
             this.lblValues.AutoSize = true;
             this.lblValues.Location = new System.Drawing.Point(8, 58);
             this.lblValues.Name = "lblValues";
             this.lblValues.Size = new System.Drawing.Size(45, 13);
             this.lblValues.TabIndex = 6;
             this.lblValues.Text = "Val&ues :";
-            // 
+            //
             // buttonOk
-            // 
+            //
             this.buttonOk.Enabled = false;
             this.buttonOk.Location = new System.Drawing.Point(202, 263);
             this.buttonOk.Name = "buttonOk";
@@ -130,9 +130,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.buttonOk.Text = "&OK";
             this.buttonOk.UseVisualStyleBackColor = true;
             this.buttonOk.Click += new System.EventHandler(this.buttonOk_Click);
-            // 
+            //
             // buttonCancel
-            // 
+            //
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.buttonCancel.Location = new System.Drawing.Point(279, 264);
             this.buttonCancel.Name = "buttonCancel";
@@ -141,9 +141,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.buttonCancel.Text = "&Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
             this.buttonCancel.Click += new System.EventHandler(this.buttonCancel_Click);
-            // 
+            //
             // btnRemove
-            // 
+            //
             this.btnRemove.Enabled = false;
             this.btnRemove.Location = new System.Drawing.Point(279, 102);
             this.btnRemove.Name = "btnRemove";
@@ -152,17 +152,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnRemove.Text = "&Remove";
             this.btnRemove.UseVisualStyleBackColor = true;
             this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
-            // 
+            //
             // lblselectedAttr
-            // 
+            //
             this.lblselectedAttr.AutoSize = true;
             this.lblselectedAttr.Location = new System.Drawing.Point(65, 10);
             this.lblselectedAttr.Name = "lblselectedAttr";
             this.lblselectedAttr.Size = new System.Drawing.Size(0, 13);
             this.lblselectedAttr.TabIndex = 2;
-            // 
+            //
             // listViewAttrValues
-            // 
+            //
             this.listViewAttrValues.AutoArrange = false;
             this.listViewAttrValues.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.chValues});
@@ -177,17 +177,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.listViewAttrValues.View = System.Windows.Forms.View.Details;
             this.listViewAttrValues.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.listViewAttrValues_AfterLabelEdit);
             this.listViewAttrValues.SelectedIndexChanged += new System.EventHandler(this.listViewAttrValues_SelectedIndexChanged);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(9, 249);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(343, 5);
             this.groupBox1.TabIndex = 11;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // btnEdit
-            // 
+            //
             this.btnEdit.Enabled = false;
             this.btnEdit.Location = new System.Drawing.Point(279, 74);
             this.btnEdit.Name = "btnEdit";
@@ -196,14 +196,14 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnEdit.Text = "&Edit";
             this.btnEdit.UseVisualStyleBackColor = true;
             this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click);
-            // 
+            //
             // chValues
-            // 
+            //
             this.chValues.Text = "values";
             this.chValues.Width = 250;
-            // 
+            //
             // OthersStringEditor
-            // 
+            //
             this.AcceptButton = this.buttonOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;

@@ -182,7 +182,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         private void rbtn_CheckedChanged(object sender, EventArgs e)
         {
-            groupInfo.groupType = Checkgroup_Type();  
+            groupInfo.groupType = Checkgroup_Type();
         }
 
         #endregion
@@ -235,7 +235,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             public bool commit = false;
             public string groupType = "";
             #endregion
-        }           
+        }
     }
 }
 

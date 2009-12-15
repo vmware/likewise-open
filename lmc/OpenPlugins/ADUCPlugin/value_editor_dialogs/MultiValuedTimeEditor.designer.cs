@@ -76,60 +76,60 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.listViewAttrValues = new Likewise.LMC.ServerControl.LWListView();
             this.chAttributeValues = new System.Windows.Forms.ColumnHeader();
             this.SuspendLayout();
-            // 
+            //
             // lblAttr
-            // 
+            //
             this.lblAttr.AutoSize = true;
             this.lblAttr.Location = new System.Drawing.Point(13, 12);
             this.lblAttr.Name = "lblAttr";
             this.lblAttr.Size = new System.Drawing.Size(49, 13);
             this.lblAttr.TabIndex = 1;
             this.lblAttr.Text = "&Attribute:";
-            // 
+            //
             // AttributeSelectionLabel
-            // 
+            //
             this.AttributeSelectionLabel.AutoSize = true;
             this.AttributeSelectionLabel.Location = new System.Drawing.Point(61, 14);
             this.AttributeSelectionLabel.Name = "AttributeSelectionLabel";
             this.AttributeSelectionLabel.Size = new System.Drawing.Size(0, 13);
             this.AttributeSelectionLabel.TabIndex = 2;
-            // 
+            //
             // lblDate
-            // 
+            //
             this.lblDate.AutoSize = true;
             this.lblDate.Location = new System.Drawing.Point(12, 56);
             this.lblDate.Name = "lblDate";
             this.lblDate.Size = new System.Drawing.Size(33, 13);
             this.lblDate.TabIndex = 4;
             this.lblDate.Text = "Dat&e:";
-            // 
+            //
             // dtPickerDate
-            // 
+            //
             this.dtPickerDate.Location = new System.Drawing.Point(15, 74);
             this.dtPickerDate.Name = "dtPickerDate";
             this.dtPickerDate.Size = new System.Drawing.Size(240, 20);
             this.dtPickerDate.TabIndex = 5;
-            // 
+            //
             // lblTime
-            // 
+            //
             this.lblTime.AutoSize = true;
             this.lblTime.Location = new System.Drawing.Point(12, 106);
             this.lblTime.Name = "lblTime";
             this.lblTime.Size = new System.Drawing.Size(33, 13);
             this.lblTime.TabIndex = 6;
             this.lblTime.Text = "Ti&me:";
-            // 
+            //
             // dtPickerTime
-            // 
+            //
             this.dtPickerTime.Format = System.Windows.Forms.DateTimePickerFormat.Time;
             this.dtPickerTime.Location = new System.Drawing.Point(15, 123);
             this.dtPickerTime.Name = "dtPickerTime";
             this.dtPickerTime.ShowUpDown = true;
             this.dtPickerTime.Size = new System.Drawing.Size(240, 20);
             this.dtPickerTime.TabIndex = 7;
-            // 
+            //
             // btnAdd
-            // 
+            //
             this.btnAdd.Location = new System.Drawing.Point(265, 122);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(75, 22);
@@ -137,18 +137,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnAdd.Text = "A&dd";
             this.btnAdd.UseVisualStyleBackColor = true;
             this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
-            // 
+            //
             // ValueTextLabel
-            // 
+            //
             this.ValueTextLabel.AutoSize = true;
             this.ValueTextLabel.Location = new System.Drawing.Point(14, 155);
             this.ValueTextLabel.Name = "ValueTextLabel";
             this.ValueTextLabel.Size = new System.Drawing.Size(42, 13);
             this.ValueTextLabel.TabIndex = 9;
             this.ValueTextLabel.Text = "Val&ues:";
-            // 
+            //
             // btnRemove
-            // 
+            //
             this.btnRemove.Enabled = false;
             this.btnRemove.Location = new System.Drawing.Point(265, 172);
             this.btnRemove.Name = "btnRemove";
@@ -157,18 +157,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnRemove.Text = "&Remove";
             this.btnRemove.UseVisualStyleBackColor = true;
             this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Location = new System.Drawing.Point(180, 328);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 22);
             this.btnOk.TabIndex = 12;
             this.btnOk.Text = "&OK";
             this.btnOk.UseVisualStyleBackColor = true;
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(265, 328);
             this.btnCancel.Name = "btnCancel";
@@ -177,26 +177,26 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // lblGMTTime
-            // 
+            //
             this.lblGMTTime.AutoSize = true;
             this.lblGMTTime.Location = new System.Drawing.Point(12, 34);
             this.lblGMTTime.Name = "lblGMTTime";
             this.lblGMTTime.Size = new System.Drawing.Size(214, 13);
             this.lblGMTTime.TabIndex = 3;
             this.lblGMTTime.Text = "All times are in Greenwich Mean Time[GMT]";
-            // 
+            //
             // lblselectedAttr
-            // 
+            //
             this.lblselectedAttr.AutoSize = true;
             this.lblselectedAttr.Location = new System.Drawing.Point(67, 14);
             this.lblselectedAttr.Name = "lblselectedAttr";
             this.lblselectedAttr.Size = new System.Drawing.Size(0, 13);
             this.lblselectedAttr.TabIndex = 14;
-            // 
+            //
             // listViewAttrValues
-            // 
+            //
             this.listViewAttrValues.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.chAttributeValues});
             this.listViewAttrValues.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
@@ -209,14 +209,14 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.listViewAttrValues.UseCompatibleStateImageBehavior = false;
             this.listViewAttrValues.View = System.Windows.Forms.View.Details;
             this.listViewAttrValues.SelectedIndexChanged += new System.EventHandler(this.listViewAttrValues_SelectedIndexChanged);
-            // 
+            //
             // chAttributeValues
-            // 
+            //
             this.chAttributeValues.Text = "AttributeValues";
             this.chAttributeValues.Width = 232;
-            // 
+            //
             // MultiValuedTimeEditor
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;

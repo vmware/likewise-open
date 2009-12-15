@@ -123,7 +123,7 @@ public partial class ContainerGeneralEditPage : MPPage, IDirectoryPropertiesPage
                     }
                     
                     if (string.Compare(attr, "description") == 0)
-                    {               
+                    {
                         this.txtDescription.Text = attrValues[0].stringData;
                         _editObject.Description = sValue;
                     }

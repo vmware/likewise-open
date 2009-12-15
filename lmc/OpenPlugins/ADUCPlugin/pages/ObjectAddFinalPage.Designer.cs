@@ -62,27 +62,27 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.label2 = new System.Windows.Forms.Label();
             this.MoreAttrbutton = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(12, 29);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(300, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "To complete the creation of this object, click Finish.";
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(12, 58);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(263, 13);
             this.label2.TabIndex = 1;
             this.label2.Text = "To set more attributes, click more attributes.";
-            // 
+            //
             // MoreAttrbutton
-            // 
+            //
             this.MoreAttrbutton.Location = new System.Drawing.Point(281, 53);
             this.MoreAttrbutton.Name = "MoreAttrbutton";
             this.MoreAttrbutton.Size = new System.Drawing.Size(134, 23);
@@ -90,9 +90,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.MoreAttrbutton.Text = "&More attributes";
             this.MoreAttrbutton.UseVisualStyleBackColor = true;
             this.MoreAttrbutton.Click += new System.EventHandler(this.MoreAttrbutton_Click);
-            // 
+            //
             // ObjectAddFinalPage
-            // 
+            //
             this.Controls.Add(this.MoreAttrbutton);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);

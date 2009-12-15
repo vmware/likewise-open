@@ -77,9 +77,9 @@ namespace Likewise.LMC.Plugins.LUG
             // btnApply
             //
             this.btnApply.Location = new System.Drawing.Point(298, 6);
-            // 
+            //
             // btnOK
-            // 
+            //
             this.btnOK.Enabled = false;
             this.btnOK.Location = new System.Drawing.Point(138, 6);
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
@@ -87,41 +87,41 @@ namespace Likewise.LMC.Plugins.LUG
             // btnCancel
             //
             this.btnCancel.Location = new System.Drawing.Point(219, 6);
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // lGroupName
-            // 
+            //
             this.lGroupName.AutoSize = true;
             this.lGroupName.Location = new System.Drawing.Point(12, 16);
             this.lGroupName.Name = "lGroupName";
             this.lGroupName.Size = new System.Drawing.Size(68, 13);
             this.lGroupName.TabIndex = 1;
             this.lGroupName.Text = "&Group name:";
-            // 
+            //
             // lDescription
-            // 
+            //
             this.lDescription.AutoSize = true;
             this.lDescription.Location = new System.Drawing.Point(12, 49);
             this.lDescription.Name = "lDescription";
             this.lDescription.Size = new System.Drawing.Size(63, 13);
             this.lDescription.TabIndex = 3;
             this.lDescription.Text = "&Description:";
-            // 
+            //
             // lMembers
-            // 
+            //
             this.lMembers.AutoSize = true;
             this.lMembers.Location = new System.Drawing.Point(12, 81);
             this.lMembers.Name = "lMembers";
             this.lMembers.Size = new System.Drawing.Size(53, 13);
             this.lMembers.TabIndex = 5;
             this.lMembers.Text = "&Members:";
-            // 
+            //
             // btnAdd
-            // 
+            //
             this.btnAdd.Location = new System.Drawing.Point(15, 273);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(75, 23);
@@ -129,9 +129,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.btnAdd.Text = "&Add...";
             this.btnAdd.UseVisualStyleBackColor = true;
             this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
-            // 
+            //
             // btnRemove
-            // 
+            //
             this.btnRemove.Enabled = false;
             this.btnRemove.Location = new System.Drawing.Point(96, 273);
             this.btnRemove.Name = "btnRemove";
@@ -140,24 +140,24 @@ namespace Likewise.LMC.Plugins.LUG
             this.btnRemove.Text = "&Remove";
             this.btnRemove.UseVisualStyleBackColor = true;
             this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
-            // 
+            //
             // tbGroupName
-            // 
+            //
             this.tbGroupName.Location = new System.Drawing.Point(86, 13);
             this.tbGroupName.Name = "tbGroupName";
             this.tbGroupName.Size = new System.Drawing.Size(268, 20);
             this.tbGroupName.TabIndex = 2;
             this.tbGroupName.TextChanged += new System.EventHandler(this.tbGroupName_TextChanged);
-            // 
+            //
             // tbDescription
-            // 
+            //
             this.tbDescription.Location = new System.Drawing.Point(86, 46);
             this.tbDescription.Name = "tbDescription";
             this.tbDescription.Size = new System.Drawing.Size(268, 20);
             this.tbDescription.TabIndex = 4;
-            // 
+            //
             // lvMembers
-            // 
+            //
             this.lvMembers.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.lvMembers.Location = new System.Drawing.Point(15, 97);
             this.lvMembers.MultiSelect = false;
@@ -170,9 +170,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.lvMembers.View = System.Windows.Forms.View.List;
             this.lvMembers.SelectedIndexChanged += new System.EventHandler(this.lvMembers_SelectedIndexChanged);
             this.lvMembers.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvMembers_ColumnClick);
-            // 
+            //
             // NewGroupDlg
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(376, 352);
             this.Controls.Add(this.tbDescription);

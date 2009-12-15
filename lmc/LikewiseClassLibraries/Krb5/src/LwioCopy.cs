@@ -50,7 +50,7 @@ namespace Likewise.LMC.Krb5
 
         //Sample : @"-r -k /tmp/krb5cc_901776502 /tmp/PARENT4\\luser1/parent4.likewiseqa.com/SysVol/Policies/\{596B7C4F-3FA5-41F3-9D0A-D99B83A159CD\} //centerisone.parent4.likewiseqa.com/sysvol/parent4.likewiseqa.com/policies";
         private static string argFormat =
-            "-r -k {0} {1} {2}";   
+            "-r -k {0} {1} {2}";
 
         private string localPath = null;
         private string remotePath = null;
@@ -59,10 +59,10 @@ namespace Likewise.LMC.Krb5
         private string sSourcePath = null;
         private string sTargetPath = null;
         private IntPtr CrdesCache = IntPtr.Zero;
-        private string sUserUPN = string.Empty;        
+        private string sUserUPN = string.Empty;
 
         public LwioCopy(CredentialEntry creds, string localPath, string remotePath)
-        {            
+        {
             string sRealm=string.Empty;
 
             Logger.Log(String.Format(
@@ -77,20 +77,20 @@ namespace Likewise.LMC.Krb5
             {
                 string UserID = DetermineUserID();
 
-                sCredsPath = string.Format("/tmp/krb5cc_{0}", UserID);                
+                sCredsPath = string.Format("/tmp/krb5cc_{0}", UserID);
 
                 Environment.SetEnvironmentVariable("KRB5CCNAME", sCredsPath.Trim());
             }
             else
             {
-                //int ret = Krb5CredsCache.BuildCredsContext(creds.UserName, 
+                //int ret = Krb5CredsCache.BuildCredsContext(creds.UserName,
                 //                                           creds.Password,
-                //                                           creds.Domain, 
+                //                                           creds.Domain,
                 //                                           out CrdesCache);
                 uint ret = Krb5CredsCache.Krb5GetDomainPrincipalRealm(creds.Domain, out sRealm);
                 if (ret != 0)
                 {
-                    Logger.Log("Krb5CredsCache.Krb5GetDomainPrincipalRealm failed" + ret.ToString());                    
+                    Logger.Log("Krb5CredsCache.Krb5GetDomainPrincipalRealm failed" + ret.ToString());
                 }
                 sUserUPN = string.Concat(creds.UserName.ToLower(), "@", String.IsNullOrEmpty(sRealm) ? creds.Domain.ToUpper() : sRealm.ToUpper());
             }
@@ -101,10 +101,10 @@ namespace Likewise.LMC.Krb5
             {
                 int ibackwhack = this.cCreds.UserName.LastIndexOf(@"\");
                 this.cCreds.UserName = this.cCreds.UserName.Substring(ibackwhack + 1);
-            }  
+            }
 
             this.localPath = localPath;
-            this.remotePath = remotePath;           
+            this.remotePath = remotePath;
         }
 
         public string DetermineUserID()
@@ -135,7 +135,7 @@ namespace Likewise.LMC.Krb5
             catch (IOException)
             {
                 UserIdResult = "0";
-            }            
+            }
 
             return UserIdResult;
         }
@@ -150,7 +150,7 @@ namespace Likewise.LMC.Krb5
                 localPath = value;
             }
         }
-        
+
         public string RemotePath
         {
             set
@@ -200,7 +200,7 @@ namespace Likewise.LMC.Krb5
             if (Configurations.SSOFailed)
             {
                 arguments = String.Format(argFormatSSOFailed,
-                    sUserUPN,                    
+                    sUserUPN,
                     sSourcePath,
                     sTargetPath);
             }
@@ -263,7 +263,7 @@ namespace Likewise.LMC.Krb5
                 fileName), Logger.LWIOCopy);
 
             string arguments = string.Empty;
-           
+
             SourcePath = string.Concat(remotePath, @"\\", fileName);
 
             if (Configurations.SSOFailed)
@@ -283,8 +283,8 @@ namespace Likewise.LMC.Krb5
 
             Logger.Log(arguments, Logger.LWIOCopy);
 
-            Process proc = new Process();           
-         
+            Process proc = new Process();
+
             proc.StartInfo.FileName = smbclientPath;
             proc.StartInfo.Arguments = arguments;
 

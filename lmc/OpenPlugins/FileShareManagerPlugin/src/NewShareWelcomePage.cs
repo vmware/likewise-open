@@ -68,9 +68,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
 
         #region Override Methods
 
-        
+
         public override string OnWizardBack()
-        {            
+        {
             return "";
         }
 
@@ -80,7 +80,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
         }
 
         public override bool OnWizardCancel()
-        {            
+        {
             return base.OnWizardCancel();
         }
 
@@ -102,15 +102,15 @@ namespace Likewise.LMC.Plugins.FileShareManager
             Wizard.disableButton(WizardDialog.WizardButton.Finish);
             Wizard.hideButton(WizardDialog.WizardButton.Start);
             Wizard.showButton(WizardDialog.WizardButton.Next);
-            Wizard.enableButton(WizardDialog.WizardButton.Next);           
+            Wizard.enableButton(WizardDialog.WizardButton.Next);
 
             return true;
         }
 
-        #endregion             
+        #endregion
 
-        #region Events     
-  
+        #region Events
+
         private void FirewallLinklabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             ProcessStartInfo psi = new ProcessStartInfo();
@@ -122,6 +122,6 @@ namespace Likewise.LMC.Plugins.FileShareManager
             return;
         }
 
-        #endregion        
+        #endregion
     }
 }

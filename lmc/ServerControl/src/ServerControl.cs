@@ -81,7 +81,7 @@ namespace Likewise.LMC.ServerControl
                 return controlManage;
             }
         }
-        #endregion 
+        #endregion
 
         public CServerControl()
         {
@@ -121,7 +121,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         /// <summary>
-        /// Shows the Manage form and directs it at a particular 
+        /// Shows the Manage form and directs it at a particular
         /// machine.
         /// </summary>
         /// <param name="sHostname">The machine to manage</param>
@@ -163,7 +163,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         /// <summary>
-        /// Shows the Manage form and directs it at a particular 
+        /// Shows the Manage form and directs it at a particular
         /// machine.
         /// </summary>
         /// <param name="sHostname">The machine to manage</param>
@@ -195,11 +195,11 @@ namespace Likewise.LMC.ServerControl
         {
             controlManage.ShowControl(node);
         }
-        
+
         public void SetLWTreeView(LWTreeView tv)
         {
             controlManage.SetLWTreeView(tv);
-           
+
         }
 
         /// <summary>
@@ -217,7 +217,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         /// <summary>
-        /// Called by the container of ServerControl to retrieve a Hashtable representing 
+        /// Called by the container of ServerControl to retrieve a Hashtable representing
         /// the ServerControl persistent store. The container (e.g. CESM) uses this method
         /// to retrieve the store and save it somewhere (e.g. in a file or in the registry).
         /// </summary>
@@ -232,13 +232,13 @@ namespace Likewise.LMC.ServerControl
         /// Refreshes displayed information
         /// </summary>
         public override void Refresh()
-        {  
+        {
             if (controlShown == controlManage)
             {
                 controlManage.Refresh();
             }
             else
-                base.Refresh();                
+                base.Refresh();
         }
 
         /// <summary>
@@ -269,8 +269,8 @@ namespace Likewise.LMC.ServerControl
         {
             // use standard MessageBox for now
             MessageBox.Show(
-                Logger.limitLineLength(sMessage), 
-                Resources.Caption_Console, 
+                Logger.limitLineLength(sMessage),
+                Resources.Caption_Console,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
@@ -287,8 +287,8 @@ namespace Likewise.LMC.ServerControl
 
             // use standard MessageBox for now
             result = MessageBox.Show(
-                    Logger.limitLineLength(sMessage), 
-                    Resources.Caption_Console, buttons, 
+                    Logger.limitLineLength(sMessage),
+                    Resources.Caption_Console, buttons,
                     MessageBoxIcon.Error);
 
             return result;
@@ -306,9 +306,9 @@ namespace Likewise.LMC.ServerControl
 
             // use standard MessageBox for now
             result = MessageBox.Show(
-                Logger.limitLineLength(sMessage), 
-                Resources.Caption_Console, 
-                buttons, 
+                Logger.limitLineLength(sMessage),
+                Resources.Caption_Console,
+                buttons,
                 icon);
 
             return result;
@@ -320,14 +320,14 @@ namespace Likewise.LMC.ServerControl
 
             // use standard MessageBox for now
             Logger.Log(String.Format(
-                "ServerControl.ShowError({0})", 
-                sMessage), 
+                "ServerControl.ShowError({0})",
+                sMessage),
                 Logger.LogLevel.Error);
 
             result = MessageBox.Show(
-                    Logger.limitLineLength(sMessage), 
-                    Resources.Caption_Console, 
-                    MessageBoxButtons.OK, 
+                    Logger.limitLineLength(sMessage),
+                    Resources.Caption_Console,
+                    MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
 
             return result;

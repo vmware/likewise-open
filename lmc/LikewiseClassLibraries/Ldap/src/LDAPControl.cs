@@ -36,13 +36,13 @@ namespace Likewise.LMC.LDAP
 	/// <summary>rol
 	/// Summary description for LDAPControl.
 	/// </summary>
-    
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]        
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 	public struct LDAPControlInner
     {
         #region Variables
 
-        public string oid;       
+        public string oid;
         //public bool isCritical;
         public char ldctl_iscritical;
         public IntPtr ptrberVal;
@@ -64,7 +64,7 @@ namespace Likewise.LMC.LDAP
         public LDAPControl(LDAPControlInner ldapControl)
         {
             this.ldapControl = ldapControl;
-        }        
+        }
 
         public LDAPControl(Berval berVal, string oid, char isCritical)
         {
@@ -85,8 +85,8 @@ namespace Likewise.LMC.LDAP
         {
             IntPtr ptrC = IntPtr.Zero;
             ptrC = Marshal.AllocHGlobal(Marshal.SizeOf(ldapControl));
-            Marshal.StructureToPtr(ldapControl, ptrC, false);            
-            
+            Marshal.StructureToPtr(ldapControl, ptrC, false);
+
             return ptrC;
         }
 
@@ -95,18 +95,18 @@ namespace Likewise.LMC.LDAP
 }
 
 #region Commented Code
-        /*  
+        /*
         public LDAPControl(LDAPControlInner ldapControl)
         {
 
             this.ldapControl = ldapControl;
-            
+
             if (ldapControl.ptrberVal != IntPtr.Zero)
             {
                 this._value = new Berval();
                 this._value = (Berval)Marshal.PtrToStructure(ldapControl.ptrberVal, typeof(Berval));
-            }            
-        }			 
+            }
+        }
 
 	    public Berval Value
 	    {
@@ -122,9 +122,9 @@ namespace Likewise.LMC.LDAP
 
 
 		public IntPtr ConvertToUM()
-		{          
-            
+		{
+
             return IntPtr.Zero;
-		} 
+		}
         */
 #endregion

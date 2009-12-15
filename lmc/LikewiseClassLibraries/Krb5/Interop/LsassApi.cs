@@ -39,7 +39,7 @@ namespace Likewise.LMC.Krb5
 {
     public class PrivateLsassApi
     {
-        private const string LSASS_DLL_PATH = "liblsakrb5.so";   
+        private const string LSASS_DLL_PATH = "liblsakrb5.so";
 
         //12 hours in seconds
         public static double KRB5_DEFAULT_TKT_LIFE = (12 * 60 * 60);
@@ -59,7 +59,7 @@ namespace Likewise.LMC.Krb5
         public static extern int LsaKrb5GetTgs(
                                  [MarshalAs(UnmanagedType.LPWStr)] string pszCliPrincipal,
                                  [MarshalAs(UnmanagedType.LPWStr)] string pszPassword,
-                                 [MarshalAs(UnmanagedType.LPWStr)] string pszCcPath                                 
+                                 [MarshalAs(UnmanagedType.LPWStr)] string pszCcPath
                                  );
 
         [DllImport(LSASS_DLL_PATH)]
@@ -104,7 +104,7 @@ namespace Likewise.LMC.Krb5
         [DllImport(LSASS_DLL_PATH)]
         public static extern int LsaKrb5GetSystemCachePath(
                                  int cacheType,
-                                 [MarshalAs(UnmanagedType.LPWStr)] out string ppszCachePath                                
+                                 [MarshalAs(UnmanagedType.LPWStr)] out string ppszCachePath
                                  );
 
         [DllImport(LSASS_DLL_PATH)]
@@ -114,14 +114,14 @@ namespace Likewise.LMC.Krb5
                                  [MarshalAs(UnmanagedType.LPWStr)] out string ppszCachePath
                                  );
         [DllImport(LSASS_DLL_PATH)]
-        public static extern int LsaKrb5SetDefaultCachePath(                                 
+        public static extern int LsaKrb5SetDefaultCachePath(
                                  [MarshalAs(UnmanagedType.LPWStr)] string pszCachePath,
                                  [MarshalAs(UnmanagedType.LPWStr)] out string ppszOriginalCachePath
                                  );
 
         [DllImport(LSASS_DLL_PATH)]
         public static extern int LsaKrb5SetProcessDefaultCachePath(
-                                 [MarshalAs(UnmanagedType.LPWStr)] string pszCachePath                                 
+                                 [MarshalAs(UnmanagedType.LPWStr)] string pszCachePath
                                  );
 
         [DllImport(LSASS_DLL_PATH)]

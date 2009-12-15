@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 {
     partial class ComputerAddManagedPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -68,36 +68,36 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtCreatein = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(38, 77);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(410, 2);
             this.groupBox1.TabIndex = 29;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "groupBox1";
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(41, 24);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(47, 48);
             this.pictureBox1.TabIndex = 28;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(38, 95);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(418, 39);
             this.label2.TabIndex = 30;
             this.label2.Text = resources.GetString("label2.Text");
-            // 
+            //
             // checkBox
-            // 
+            //
             this.checkBox.Location = new System.Drawing.Point(41, 151);
             this.checkBox.Name = "checkBox";
             this.checkBox.Size = new System.Drawing.Size(243, 22);
@@ -105,9 +105,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.checkBox.Text = "This is a managed computer";
             this.checkBox.UseVisualStyleBackColor = true;
             this.checkBox.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoSize = true;
             this.label3.Enabled = false;
             this.label3.Location = new System.Drawing.Point(60, 184);
@@ -115,18 +115,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.label3.Size = new System.Drawing.Size(224, 13);
             this.label3.TabIndex = 32;
             this.label3.Text = "Computers\'s &unique ID (GUID/UUID):";
-            // 
+            //
             // textBoxGUID
-            // 
+            //
             this.textBoxGUID.Enabled = false;
             this.textBoxGUID.Location = new System.Drawing.Point(63, 202);
             this.textBoxGUID.Name = "textBoxGUID";
             this.textBoxGUID.Size = new System.Drawing.Size(370, 21);
             this.textBoxGUID.TabIndex = 33;
             this.textBoxGUID.TextChanged += new System.EventHandler(this.textBoxGUID_TextChanged);
-            // 
+            //
             // txtCreatein
-            // 
+            //
             this.txtCreatein.BackColor = System.Drawing.SystemColors.Control;
             this.txtCreatein.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtCreatein.Location = new System.Drawing.Point(98, 41);
@@ -134,9 +134,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtCreatein.ReadOnly = true;
             this.txtCreatein.Size = new System.Drawing.Size(352, 14);
             this.txtCreatein.TabIndex = 42;
-            // 
+            //
             // ComputerAddManagedPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.txtCreatein);
             this.Controls.Add(this.textBoxGUID);

@@ -66,48 +66,48 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnCancel = new System.Windows.Forms.Button();
             this.txtValueData = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             resources.ApplyResources(this.label1, "label1");
             this.label1.Name = "label1";
-            // 
+            //
             // txtValueName
-            // 
+            //
             this.txtValueName.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             resources.ApplyResources(this.txtValueName, "txtValueName");
             this.txtValueName.Name = "txtValueName";
             this.txtValueName.ReadOnly = true;
             this.txtValueName.TextChanged += new System.EventHandler(this.txtValueName_TextChanged);
-            // 
+            //
             // ValueData
-            // 
+            //
             resources.ApplyResources(this.ValueData, "ValueData");
             this.ValueData.Name = "ValueData";
-            // 
+            //
             // btnOk
-            // 
+            //
             resources.ApplyResources(this.btnOk, "btnOk");
             this.btnOk.Name = "btnOk";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             resources.ApplyResources(this.btnCancel, "btnCancel");
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // txtValueData
-            // 
+            //
             resources.ApplyResources(this.txtValueData, "txtValueData");
             this.txtValueData.Name = "txtValueData";
             this.txtValueData.TextChanged += new System.EventHandler(this.txtValueData_TextChanged);
-            // 
+            //
             // StringEditorDialog
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;

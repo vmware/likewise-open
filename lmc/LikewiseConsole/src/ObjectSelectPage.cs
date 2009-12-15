@@ -67,13 +67,13 @@ namespace Likewise.LMC
 
         #region Override Methods
 
-        
+
         public override string OnWizardBack()
         {
             //return DomainConnectPage.PAGENAME;
             return "";
         }
-         
+
 
         public override bool OnWizardFinish()
         {
@@ -110,7 +110,7 @@ namespace Likewise.LMC
         #region Events
 
         private void btnBrowse_Click(object sender, EventArgs e)
-        {  
+        {
             LACTreeNode PluginNode = plugin.GetPlugInNode();
             LACTreeNode rootDNnode = PluginNode.Tag as LACTreeNode;
             dirContext = rootDNnode.Tag as DirectoryContext;
@@ -126,6 +126,6 @@ namespace Likewise.LMC
             }
         }
 
-        #endregion        
+        #endregion
     }
 }

@@ -133,7 +133,7 @@ public partial class ObjectAddSinglePage : Likewise.LMC.ServerControl.WizardPage
     }
 
     public override string OnWizardBack()
-    {               
+    {
         try
         {
             string sCurrentPage = _objectAddDlg.objectInfo.addedPages[ObjectInfo.PageIndex - 1];
@@ -141,12 +141,12 @@ public partial class ObjectAddSinglePage : Likewise.LMC.ServerControl.WizardPage
             if (this.Name.Trim().Equals(sCurrentPage))
             {
                 --ObjectInfo.PageIndex;
-            } 
+            }
 
             return _objectAddDlg.objectInfo.addedPages[--ObjectInfo.PageIndex];
         }
         catch
-        { 
+        {
             return ObjectAddWelcomePage.PAGENAME;
         }
     }

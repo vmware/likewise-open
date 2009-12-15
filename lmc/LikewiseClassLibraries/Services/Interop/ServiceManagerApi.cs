@@ -211,5 +211,5 @@ namespace Likewise.LMC.Services
             /** @brief Service is running directly in the service manager */
             LW_SERVICE_HOME_SERVICE_MANAGER
         }
-    }    
+    }
 }

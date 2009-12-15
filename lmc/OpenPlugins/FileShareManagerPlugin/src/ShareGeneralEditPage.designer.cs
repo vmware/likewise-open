@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.FileShareManager
 {
     partial class ShareGeneralEditPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.FileShareManager
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -75,14 +75,14 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.groupBox1);
             this.pnlData.Size = new System.Drawing.Size(375, 385);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.buttonCaching);
             this.groupBox1.Controls.Add(this.groupBox2);
             this.groupBox1.Controls.Add(this.textBoxComment);
@@ -96,18 +96,18 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.groupBox1.Size = new System.Drawing.Size(358, 373);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // buttonCaching
-            // 
+            //
             this.buttonCaching.Location = new System.Drawing.Point(258, 234);
             this.buttonCaching.Name = "buttonCaching";
             this.buttonCaching.Size = new System.Drawing.Size(87, 23);
             this.buttonCaching.TabIndex = 15;
             this.buttonCaching.Text = "Caching";
             this.buttonCaching.UseVisualStyleBackColor = true;
-            // 
+            //
             // groupBox2
-            // 
+            //
             this.groupBox2.Controls.Add(this.numericUpDown);
             this.groupBox2.Controls.Add(this.radioButtonAllowedNum);
             this.groupBox2.Controls.Add(this.radioButtonMaxAllowed);
@@ -117,18 +117,18 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.groupBox2.TabIndex = 14;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "User limit";
-            // 
+            //
             // numericUpDown
-            // 
+            //
             this.numericUpDown.Enabled = false;
             this.numericUpDown.Location = new System.Drawing.Point(174, 41);
             this.numericUpDown.Name = "numericUpDown";
             this.numericUpDown.Size = new System.Drawing.Size(95, 20);
             this.numericUpDown.TabIndex = 2;
             this.numericUpDown.ValueChanged += new System.EventHandler(this.numericUpDown_ValueChanged);
-            // 
+            //
             // radioButtonAllowedNum
-            // 
+            //
             this.radioButtonAllowedNum.AutoEllipsis = true;
             this.radioButtonAllowedNum.Location = new System.Drawing.Point(17, 42);
             this.radioButtonAllowedNum.Name = "radioButtonAllowedNum";
@@ -138,9 +138,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.radioButtonAllowedNum.Text = "Allow this number of users.";
             this.radioButtonAllowedNum.UseVisualStyleBackColor = true;
             this.radioButtonAllowedNum.CheckedChanged += new System.EventHandler(this.radioButtonAllowedNum_CheckedChanged);
-            // 
+            //
             // radioButtonMaxAllowed
-            // 
+            //
             this.radioButtonMaxAllowed.AutoEllipsis = true;
             this.radioButtonMaxAllowed.Location = new System.Drawing.Point(17, 20);
             this.radioButtonMaxAllowed.Name = "radioButtonMaxAllowed";
@@ -149,35 +149,35 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.radioButtonMaxAllowed.TabStop = true;
             this.radioButtonMaxAllowed.Text = "Maximum allowed";
             this.radioButtonMaxAllowed.UseVisualStyleBackColor = true;
-            // 
+            //
             // textBoxComment
-            // 
+            //
             this.textBoxComment.Location = new System.Drawing.Point(79, 83);
             this.textBoxComment.Name = "textBoxComment";
             this.textBoxComment.Size = new System.Drawing.Size(268, 20);
             this.textBoxComment.TabIndex = 13;
             this.textBoxComment.TextChanged += new System.EventHandler(this.textBoxComment_TextChanged);
-            // 
+            //
             // textBoxPath
-            // 
+            //
             this.textBoxPath.BackColor = System.Drawing.SystemColors.Window;
             this.textBoxPath.Location = new System.Drawing.Point(79, 54);
             this.textBoxPath.Name = "textBoxPath";
             this.textBoxPath.ReadOnly = true;
             this.textBoxPath.Size = new System.Drawing.Size(268, 20);
             this.textBoxPath.TabIndex = 12;
-            // 
+            //
             // textBoxSharename
-            // 
+            //
             this.textBoxSharename.BackColor = System.Drawing.SystemColors.Window;
             this.textBoxSharename.Location = new System.Drawing.Point(79, 25);
             this.textBoxSharename.Name = "textBoxSharename";
             this.textBoxSharename.ReadOnly = true;
             this.textBoxSharename.Size = new System.Drawing.Size(268, 20);
             this.textBoxSharename.TabIndex = 11;
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoEllipsis = true;
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(7, 85);
@@ -185,9 +185,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.label3.Size = new System.Drawing.Size(54, 13);
             this.label3.TabIndex = 10;
             this.label3.Text = "Comment:";
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoEllipsis = true;
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(5, 57);
@@ -195,9 +195,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.label2.Size = new System.Drawing.Size(32, 13);
             this.label2.TabIndex = 9;
             this.label2.Text = "Path:";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoEllipsis = true;
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(5, 28);
@@ -205,9 +205,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.label1.Size = new System.Drawing.Size(67, 13);
             this.label1.TabIndex = 8;
             this.label1.Text = "Share name:";
-            // 
+            //
             // ShareGeneralEditPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "ShareGeneralEditPage";
             this.Size = new System.Drawing.Size(375, 385);

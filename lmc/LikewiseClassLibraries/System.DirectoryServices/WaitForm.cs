@@ -39,7 +39,7 @@ using System.Windows.Forms;
 namespace System.DirectoryServices
 {
     /// <summary>
-    /// 
+    ///
     /// </summary>
     public partial class WaitForm : Form
     {
@@ -51,7 +51,7 @@ namespace System.DirectoryServices
         #endregion
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         public WaitForm(BackgroundWorker backgroundWorker,Timer timer, DirectoryEntry de)
         {
@@ -66,22 +66,22 @@ namespace System.DirectoryServices
         private void btnCancel_Click(object sender, EventArgs e)
         {
             bIsInterrupted = true;
-            Close();          
+            Close();
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         public ProgressBar pb
         {
             get
             {
-                return progressBar;            
+                return progressBar;
             }
         }
-        
+
         /// <summary>
-        /// 
+        ///
         /// </summary>
         public Label labelStatus
         {
@@ -95,7 +95,7 @@ namespace System.DirectoryServices
         private void WaitForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (e.CloseReason == CloseReason.UserClosing && backgroundWorker.IsBusy)
-            {                
+            {
                 timer.Stop();
                 bIsInterrupted = true;
 
@@ -104,8 +104,8 @@ namespace System.DirectoryServices
                     de.DirContext.Ldap_CancelSynchronous();
                 }
 
-                backgroundWorker.ReportProgress(0); 
-                //backgroundWorker.CancelAsync();            
+                backgroundWorker.ReportProgress(0);
+                //backgroundWorker.CancelAsync();
             }
         }
     }

@@ -143,14 +143,14 @@ namespace Likewise.LMC.ServerControl
             LACTreeNode clone = new LACTreeNode(this.Name, this._image, this._t,this._plugin);
 
             clone.PluginPage = this.PluginPage;
-            clone.IsPluginNode = this.IsPluginNode;           
+            clone.IsPluginNode = this.IsPluginNode;
 
             return clone;
-            
+
         }
 
         /// <summary>
-        /// Recursively calls SetContext on the plugin page associated with this LACTreeNode, 
+        /// Recursively calls SetContext on the plugin page associated with this LACTreeNode,
         /// and does the same to all descendents of this LACTreeNode
         /// </summary>
         /// <param name="hn">Hostinfo to assign to this LACTreeNode and its descendents.  May be null.</param>
@@ -216,7 +216,7 @@ namespace Likewise.LMC.ServerControl
             }
             set
             {
-                _t = value; 
+                _t = value;
             }
         }
 

@@ -74,7 +74,7 @@ namespace Likewise.LMC.Netlogon.Implementation
                 if (error != 0)
                 {
                     return (uint)error;
-                }               
+                }
 
                 DCInfoWindows = (NetlogonWindowsAPI.DOMAIN_CONTROLLER_INFO)Marshal.PtrToStructure(pDCInfo, typeof(NetlogonWindowsAPI.DOMAIN_CONTROLLER_INFO));
 

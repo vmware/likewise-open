@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -58,12 +58,12 @@ namespace Likewise.LMC.ServerControl
     /// <summary>
     /// This class handles the bulk of the UI composition when
     /// ServerControl has been told to manage a particular host.
-    /// It iterates through the various IPlugIns and asks them to 
-    /// manifest their UI artifacts (typically, Tabs for the 
-    /// navigation control and Role objects). When tabs are 
+    /// It iterates through the various IPlugIns and asks them to
+    /// manifest their UI artifacts (typically, Tabs for the
+    /// navigation control and Role objects). When tabs are
     /// selected, it instantiates and activates the necessary
     /// visual elements.
-    /// 
+    ///
     /// The class is also the "container" backreference for all
     /// IPlugIn's and IPlugInPages. Through its implementation of
     /// the IPlugInContainer interface, it provides services to
@@ -74,7 +74,7 @@ namespace Likewise.LMC.ServerControl
 
         #region Constants
 
-        private const int ERROR_ACCESS_DENIED = 5;        
+        private const int ERROR_ACCESS_DENIED = 5;
 
 #if !QUARTZ
         private const string sRootPluginName = @"Likewise.LMC.Plugins.RootPlugin.dll";
@@ -89,11 +89,11 @@ namespace Likewise.LMC.ServerControl
 #else
         private bool _bShowActionPane = false;
 #endif
-        private LACTreeNode _rootNode = null;        
+        private LACTreeNode _rootNode = null;
 
         private LACTreeNode currentShownNode = null;
-        public static bool bSSOFailed = false;       
-        
+        public static bool bSSOFailed = false;
+
         public LACTreeNode rootNode
         {
             get
@@ -182,8 +182,8 @@ namespace Likewise.LMC.ServerControl
             DisabledUser = 7,//DisabledUser.ico
             DisabledComputer = 8,//DisabledUser.ico
             ContainerOpen = 9,     //FolderOpen.ico
-            EventLog = 10,  //EventViewer_48.ico  
-            CellManager = 11,   //Cell_48.ico 
+            EventLog = 10,  //EventViewer_48.ico
+            CellManager = 11,   //Cell_48.ico
             LikewiseIconsole = 12, //identity.ico
             BlockedOrganizationalUnit = 13
         }
@@ -225,7 +225,7 @@ namespace Likewise.LMC.ServerControl
 
         private IPlugIn getTargetMachineRequestor;
 
-        private string sLDAPPath;                
+        private string sLDAPPath;
 
         public LWTreeView lmcLWTreeView
         {
@@ -255,7 +255,7 @@ namespace Likewise.LMC.ServerControl
             manageStaticLargeImageList = this.manageLargeImageList;
 
             this.sc = sc;
-        }           
+        }
 
         #endregion
 
@@ -266,7 +266,7 @@ namespace Likewise.LMC.ServerControl
         /// form, e.g.) indicates that the user wants to manage
         /// a particular machine.
         /// </summary>
-        /// <param name="hn">A Hostinfo object that identifies the 
+        /// <param name="hn">A Hostinfo object that identifies the
         ///                  machine to be managed.</param>
         /// <returns>False if user cancelled out of creds form</returns>
         public bool ManageHost(Hostinfo hn)
@@ -276,7 +276,7 @@ namespace Likewise.LMC.ServerControl
             string saveLdapPath = this.sLDAPPath;
 
 #if !QUARTZ
-            this.sLDAPPath = Util.GetLdapDomainPath(null, null);           
+            this.sLDAPPath = Util.GetLdapDomainPath(null, null);
 
             try
             {
@@ -313,7 +313,7 @@ namespace Likewise.LMC.ServerControl
             sLDAPPath = _hn.domainName;
 #endif
             return true;
-        }       
+        }
 
         public void LoadRootPlugin(LACTreeNode consoleRootPlugin)
         {
@@ -505,7 +505,7 @@ namespace Likewise.LMC.ServerControl
         private LACTreeNode GetRootNode()
         {
             Logger.Log("Manage.GetRootNode", Logger.manageLogLevel);
-                                                                                                        
+
             LACTreeNode rootNode = null;
 
             try
@@ -594,8 +594,8 @@ namespace Likewise.LMC.ServerControl
                         else if (pi.GetContextType() == IContextType.Hostinfo)
                         {
                             pi.SetContext(new Hostinfo());
-                        }   
-                        
+                        }
+
                         LACTreeNode pluginNode = pi.GetPlugInNode();
                         if (pluginNode != null)
                         {
@@ -621,7 +621,7 @@ namespace Likewise.LMC.ServerControl
             }
             catch (Exception e)
             {
-                Debugger.Log(9, "Exception", e.ToString());                
+                Debugger.Log(9, "Exception", e.ToString());
             }
 
             return nodeList;
@@ -636,7 +636,7 @@ namespace Likewise.LMC.ServerControl
             }
 
             Logger.Log(String.Format("Manage.ShowControl{0}", node.Name), Logger.manageLogLevel);
-            
+
             // zap the old node's control
             if (currentShownNode!=null)
                 currentShownNode.PluginPage = null;
@@ -649,9 +649,9 @@ namespace Likewise.LMC.ServerControl
 
             DateTime start = DateTime.Now;
             node.sc = sc;
-           
-            // create an object of the designated type  
-            //System.Runtime.Remoting.ObjectHandle o1 = Activator.CreateInstance(type.Assembly.FullName, type.FullName);            
+
+            // create an object of the designated type
+            //System.Runtime.Remoting.ObjectHandle o1 = Activator.CreateInstance(type.Assembly.FullName, type.FullName);
             //object o = o1.Unwrap();
             object o = null;
             try {
@@ -906,11 +906,11 @@ namespace Likewise.LMC.ServerControl
               !String.IsNullOrEmpty(_hn.domainName))
             {
                 try
-                {                    
+                {
                     CNetlogon.LWNET_DC_INFO DCInfo;
-                    uint netlogonError = CNetlogon.GetDCName(_hn.domainName, 0, out DCInfo);                   
+                    uint netlogonError = CNetlogon.GetDCName(_hn.domainName, 0, out DCInfo);
                     if (netlogonError == 0 && !String.IsNullOrEmpty(DCInfo.DomainControllerName))
-                    {                        
+                    {
                         _hn.domainControllerName = DCInfo.DomainControllerName;
                         if (String.IsNullOrEmpty(_hn.creds.Domain))
                         {
@@ -922,7 +922,7 @@ namespace Likewise.LMC.ServerControl
                         _hn.domainControllerName = _hn.domainName;
                     }
                     if (netlogonError == 0 && !String.IsNullOrEmpty(DCInfo.NetBIOSDomainName))
-                    {                        
+                    {
                         if (shortDomainName != null)
                         {
                             if (!shortDomainName.Trim().ToUpper().Equals(DCInfo.NetBIOSDomainName.Trim().ToUpper()))
@@ -934,7 +934,7 @@ namespace Likewise.LMC.ServerControl
                             }
                         }
                         else
-                        {                            
+                        {
                             _hn.creds.Domain = DCInfo.NetBIOSDomainName;
                         }
                     }
@@ -945,16 +945,16 @@ namespace Likewise.LMC.ServerControl
                     return false;
                 }
             }
-            
+
             SaveTargetMachineInfoToIni(_hn);
 
-            getTargetMachineRequestor.SetContext(_hn);            
-           
+            getTargetMachineRequestor.SetContext(_hn);
+
             if (_hn.IsConnectionSuccess == false)
             {
                 return false;
             }
-           
+
             return true;
         }
 
@@ -1007,7 +1007,7 @@ namespace Likewise.LMC.ServerControl
             string sPlugInName = GetPlugInName(getTargetMachineRequestor);
 
             Logger.Log(String.Format(
-                "Manage.SaveTargetMachineInfoToIni: plugin name={0}", 
+                "Manage.SaveTargetMachineInfoToIni: plugin name={0}",
                 sPlugInName==null ? "<null>" : sPlugInName),
                 Logger.manageLogLevel);
 
@@ -1038,7 +1038,7 @@ namespace Likewise.LMC.ServerControl
                 if (_hn.creds != null && !String.IsNullOrEmpty(_hn.creds.Domain))
                 {
                     writer.WriteLine("domainShort=" + _hn.creds.Domain.Trim());
-                }                
+                }
                 writer.WriteLine("");
 
                 //make sure the remainder of the old file is present in the new one.
@@ -1102,7 +1102,7 @@ namespace Likewise.LMC.ServerControl
                         currentLine = currentLine.Trim();
                         index = (currentLine.IndexOf('=') + 1);
                         _hn.hostName = currentLine.Substring(index, (currentLine.Length - index));
-                        currentLine = reader.ReadLine();                        
+                        currentLine = reader.ReadLine();
                     }
 
                     if (currentLine != null && currentLine.Trim().IndexOf("username=") >= 0 &&
@@ -1138,14 +1138,14 @@ namespace Likewise.LMC.ServerControl
 
         // public string SaveConsoleSettingsToXml(bool staturbar, Size maxPos, Size minPos)
         public string SaveConsoleSettingsToXml( FrameState state )
-        {            
+        {
             XmlDocument XmlDoc = new XmlDocument();
 
             string filePath = Path.Combine(Configurations.tempDirectory, "Console1.lmc");
 
             try
             {
-                XmlDoc.LoadXml(Resources.ConsoleSettings);                
+                XmlDoc.LoadXml(Resources.ConsoleSettings);
 
                 if (XmlDoc == null)
                 {
@@ -1191,7 +1191,7 @@ namespace Likewise.LMC.ServerControl
                 XmlElement ViewsNode = (XmlElement)XmlDoc.GetElementsByTagName("Views")[0];
                 if (ViewsNode != null)
                 {
-                    int Id = 0; 
+                    int Id = 0;
                     XmlElement viewElement = null;
                     TreeNodeCollection childNodes = lmcLWTreeView.Nodes[0].Nodes;
 
@@ -1212,7 +1212,7 @@ namespace Likewise.LMC.ServerControl
             }
 
             return filePath;
-        }       
+        }
 
         private void RecursivePluginNodeInfo(XmlNode node, ref LACTreeNode pluginNode, string nodepath)
         {
@@ -1251,7 +1251,7 @@ namespace Likewise.LMC.ServerControl
                         nodename = nodename.Substring(0, nodename.IndexOf('('));
                 }
                 pluginNode.Name = pluginNode.Text = nodename;
-                
+
                 pi.DeserializePluginInfo(node, ref pluginNode, nodepath);
 
                 if (node.ChildNodes.Count != 0)
@@ -1277,7 +1277,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         public void ReadPluginNodeInfoFromConsoleSettings(string filePath, FrameState state)
-        {  
+        {
             XmlDocument xmldoc = new XmlDocument();
 
             try
@@ -1335,14 +1335,14 @@ namespace Likewise.LMC.ServerControl
                 nodepath = "LMC_ConsoleFile/Views";
                 XmlNode ViewsNode = xmldoc.SelectSingleNode(nodepath);
                 if (ViewsNode != null && ViewsNode.ChildNodes.Count != 0)
-                {  
+                {
                     foreach (XmlNode node in ViewsNode.ChildNodes)
                     {
                         LACTreeNode pluginnode = null;
                         RecursivePluginNodeInfo(node, ref pluginnode, nodepath);
 
                         if (pluginnode != null)
-                        {                               
+                        {
                             rootNode.Nodes.Add(pluginnode);
                         }
                     }
@@ -1353,7 +1353,7 @@ namespace Likewise.LMC.ServerControl
                 Logger.LogException("Manage.ReadPluginNodeInfoFromConsoleSettings()", ex);
             }
         }
-        
+
         private void SetSelectedNodeToTreeView(LACTreeNode pluginNode)
         {
             if (pluginNode.IsSelected)
@@ -1369,7 +1369,7 @@ namespace Likewise.LMC.ServerControl
                         SetSelectedNodeToTreeView(node);
                     }
                 }
-            }            
+            }
         }
 
         #endregion
@@ -1401,8 +1401,8 @@ namespace Likewise.LMC.ServerControl
 
 
         public bool GetConnectionInfoFromNetlogon(
-                        IPlugIn requestor, 
-                        Hostinfo hn, 
+                        IPlugIn requestor,
+                        Hostinfo hn,
                         uint fieldsRequested,
                         out uint fieldsFilled)
         {
@@ -1416,8 +1416,8 @@ namespace Likewise.LMC.ServerControl
             if (!String.IsNullOrEmpty(hn.domainName))
             {
                 return result;
-            }               
-            
+            }
+
             error = CNetlogon.GetCurrentDomain(out hn.domainName);
 
             if (error == 0 && !String.IsNullOrEmpty(hn.domainName))
@@ -1641,15 +1641,15 @@ namespace Likewise.LMC.ServerControl
                 }
 
                 dlg.ShowDialog();
-                
+
                 if(!dlg.bDialogResult)
                 {
                     hn.IsConnectionSuccess = false;
                     return false;
-                }                                           
+                }
             }
             catch
-            {                
+            {
                 hn.IsConnectionSuccess = false;
                 return true;
             }
@@ -1770,7 +1770,7 @@ namespace Likewise.LMC.ServerControl
         public DialogResult ShowError(Control ctl, string sMessage)
         {
             return sc.ShowError(ctl, sMessage);
-        }       
+        }
 
         /// <summary>
         /// Displays a message in standard Likewise form
@@ -1827,7 +1827,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         /// <summary>
-        /// Saves binary array data associated with the given name. Care should be taken to assure 
+        /// Saves binary array data associated with the given name. Care should be taken to assure
         /// that sName is unique
         /// </summary>
         /// <param name="sName">The name to associate with the data</param>
@@ -1848,7 +1848,7 @@ namespace Likewise.LMC.ServerControl
         /// Retrieves the data associated with a name.
         /// </summary>
         /// <param name="sName">The name whose data should be returned</param>
-        /// <returns>An object representing the data. The caller should test the return type 
+        /// <returns>An object representing the data. The caller should test the return type
         /// to assure that it is as expected.</returns>
         public object LoadState(string sName)
         {
@@ -1862,7 +1862,7 @@ namespace Likewise.LMC.ServerControl
             List<string> sKeyList = new List<string>();
 
             foreach (DictionaryEntry deEntry in htState)
-            {                   
+            {
                 sKey = deEntry.Key.ToString();
                 if (sKey.Contains(sFolderName) && sKey.Contains(sSubName))
                 {
@@ -1922,7 +1922,7 @@ namespace Likewise.LMC.ServerControl
         public static void InitSerializePluginInfo(LACTreeNode pluginNode, IPlugIn ip, ref int Id, out XmlElement viewElement, XmlElement ViewsNode, TreeNode SelectedNode)
         {
             viewElement = null;
-            
+
             viewElement = ViewsNode.OwnerDocument.CreateElement("View");
             viewElement.SetAttribute("NodeID", Id.ToString());
             viewElement.SetAttribute("NodeName", pluginNode.Name);
@@ -1939,8 +1939,8 @@ namespace Likewise.LMC.ServerControl
             HostInfoElement = parentElement.OwnerDocument.CreateElement("HostInfo");
 
             if (hn == null)
-                return;                      
-            
+                return;
+
             XmlElement DomainShortEle, DomainFQDNEle, HostnameEle, usernameEle;
 
             if (!String.IsNullOrEmpty(hn.domainName))
@@ -1993,7 +1993,7 @@ namespace Likewise.LMC.ServerControl
                 DbConnInfoElement.AppendChild(DbConnStrEle);
             }
 
-            parentElement.AppendChild(DbConnInfoElement);          
+            parentElement.AppendChild(DbConnInfoElement);
         }
 
         public static void CreateAppendGPOInfoElement(GPObjectInfo gpoInfo, ref XmlElement parentElement, out XmlElement gpoInfoElement)
@@ -2003,20 +2003,20 @@ namespace Likewise.LMC.ServerControl
             if (gpoInfo == null)
                 return;
 
-            XmlElement gpoEle; 
-            
+            XmlElement gpoEle;
+
             gpoEle = gpoInfoElement.OwnerDocument.CreateElement("GPODistinguishedName");
             gpoEle.InnerXml = gpoInfo.DistinguishedName;
             gpoInfoElement.AppendChild(gpoEle);
 
             gpoEle = gpoInfoElement.OwnerDocument.CreateElement("GPODisplayName");
             gpoEle.InnerXml = gpoInfo.DisplayName;
-            gpoInfoElement.AppendChild(gpoEle);            
+            gpoInfoElement.AppendChild(gpoEle);
         }
 
         public static void DeserializeHostInfo(XmlNode node, ref LACTreeNode pluginNode, string nodepath, ref Hostinfo hn, bool bIsGPOPlugin)
         {
-            XmlNode hostnode = node.SelectSingleNode("HostInfo");   
+            XmlNode hostnode = node.SelectSingleNode("HostInfo");
 
             if (hostnode == null) return;
 
@@ -2028,7 +2028,7 @@ namespace Likewise.LMC.ServerControl
                 if (child.Name.Trim().Equals("DomainFQDN"))
                 {
                     hn.domainName = child.InnerXml;
-                    hn.domainControllerName = child.InnerXml;                     
+                    hn.domainControllerName = child.InnerXml;
                     // split the provided name into parts
                     string[] aparts = child.InnerXml.Split(new char[] { '.' });
                     hn.creds.Domain = aparts[0];
@@ -2047,7 +2047,7 @@ namespace Likewise.LMC.ServerControl
                 }
                 else if (bIsGPOPlugin && child.Name.Trim().Equals("GPOInfo"))
                 {
-                    string sDN = null; 
+                    string sDN = null;
                     string sDisplayname = null;
                     foreach (XmlNode gpoNode in child.ChildNodes)
                     {
@@ -2064,7 +2064,7 @@ namespace Likewise.LMC.ServerControl
                     hn.Tag = gpoInfo;
                 }
             }
-            pluginNode.Tag = hn;           
+            pluginNode.Tag = hn;
         }
 
         public static void DeserializeDbConnInfo(XmlNode node, ref LACTreeNode pluginNode, string nodepath, ref DbConnInfo DbConnInfo)
@@ -2087,11 +2087,11 @@ namespace Likewise.LMC.ServerControl
                     DbConnInfo.sConnString = child.InnerXml;
                 }
             }
-            pluginNode.Tag = DbConnInfo;            
+            pluginNode.Tag = DbConnInfo;
         }
 
         /// <summary>
-        /// Called when state has changed significantly and we need to reestablish the 
+        /// Called when state has changed significantly and we need to reestablish the
         /// UI composition.
         /// </summary>
         public void Reinitialize()
@@ -2152,14 +2152,14 @@ namespace Likewise.LMC.ServerControl
         #endregion
 
         // Extra interface implementation
-        #region 
+        #region
         /// <summary>
         /// Returns the application directory.
         /// </summary>
         /// <returns></returns>
         public string ApplicationDirectory()
         {
-            string  applicationPath = null;            
+            string  applicationPath = null;
 
             // get the ApplicationPath
 #if !QUARTZ
@@ -2169,8 +2169,8 @@ namespace Likewise.LMC.ServerControl
                 applicationPath = (string)hklmApp.GetValue("ApplicationPath");
             else
 #endif
-                applicationPath = Environment.CurrentDirectory;  
-            
+                applicationPath = Environment.CurrentDirectory;
+
             return applicationPath;
         }
 
@@ -2198,7 +2198,7 @@ namespace Likewise.LMC.ServerControl
                 }
             }
 
-            return _hn.domainName;                
+            return _hn.domainName;
         }
 
         /// <summary>
@@ -2212,7 +2212,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         /// <summary>
-        /// Called to perform logging. 
+        /// Called to perform logging.
         /// </summary>
         /// <param name="sMessage">Message to be logged</param>
         /// <param name="tet">Type of message</param>
@@ -2223,7 +2223,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         public string GetDomainName()
-        {   
+        {
             if (_hn == null || _hn.domainName == null || _hn.domainName == "")
             {
                 _hn = new Hostinfo();
@@ -2242,7 +2242,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         public NetworkCredential GetCredentials()
-        {         
+        {
             if (_hn == null)
                 return null;
             return _hn.creds;
@@ -2261,7 +2261,7 @@ namespace Likewise.LMC.ServerControl
             }
         }
 #endif
-       
+
         public string GetLDAPPath()
         {
             return sLDAPPath;
@@ -2293,13 +2293,13 @@ namespace Likewise.LMC.ServerControl
                 applicationPath = (string)hklmApp.GetValue("ApplicationPath");
             else
 #endif
-                applicationPath = Environment.CurrentDirectory;   
+                applicationPath = Environment.CurrentDirectory;
 
             return applicationPath + "\\Resources";
         }
 
 
-        
+
 
         #endregion
 

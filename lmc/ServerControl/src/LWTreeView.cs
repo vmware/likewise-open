@@ -74,7 +74,7 @@ namespace Likewise.LMC.ServerControl
 
                 this.NodeMouseClick += new TreeNodeMouseClickEventHandler(LWTreeView_NodeMouseClick);
                 this.NodeMouseDoubleClick += new TreeNodeMouseClickEventHandler(LWTreeView_NodeMouseDoubleClick);
-                this.NodeMouseHover += new TreeNodeMouseHoverEventHandler(LWTreeView_NodeMouseHover);  
+                this.NodeMouseHover += new TreeNodeMouseHoverEventHandler(LWTreeView_NodeMouseHover);
             }
         }
 
@@ -87,12 +87,12 @@ namespace Likewise.LMC.ServerControl
             Logger.Log("LWTreeView.TreeView_MouseDown", Logger.manageLogLevel);
 
             Refresh();
-            
+
             foreach (TreeNode node in Nodes)
             {
                 node.NodeFont = new Font(this.originalFont, this.originalFontStyle);
             }
-             
+
         }
 
         private void LWTreeView_MouseCaptureChanged(object sender, EventArgs e)

@@ -67,18 +67,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel = new System.Windows.Forms.Button();
             this.treeView1 = new Likewise.LMC.ServerControl.LWTreeView();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(10, 9);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(140, 13);
             this.label1.TabIndex = 1;
             this.label1.Text = "Container to move object to:";
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Location = new System.Drawing.Point(193, 305);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -86,9 +86,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOk.Text = "OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(275, 305);
             this.btnCancel.Name = "btnCancel";
@@ -97,17 +97,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // treeView1
-            // 
+            //
             this.treeView1.Location = new System.Drawing.Point(12, 25);
             this.treeView1.Name = "treeView1";
             this.treeView1.Size = new System.Drawing.Size(338, 269);
             this.treeView1.TabIndex = 4;
             this.treeView1.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView1_NodeMouseClick);
-            // 
+            //
             // ADMoveObjectPage
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;
@@ -128,7 +128,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         }
 
-      
+
 
 
         #endregion

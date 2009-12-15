@@ -93,7 +93,7 @@ public partial class ADMoveObjectPage : Form
             ADUCDirectoryNode.GetDirectoryRoot(_addplugin.GetpluginContext(),          
             _addplugin.GetRootDN(),
             Resources.ADUC, typeof (ADUCPage), _addplugin);
-            
+
             if (rootNode != null)
             {
                 treeView1.Nodes.Add(rootNode);
@@ -159,7 +159,7 @@ public partial class ADMoveObjectPage : Form
         {
             // When a Node is selected, ShowNode already gets called because of LWTreeView1_NodeMouseClick
             LACTreeNode node = e.Node as LACTreeNode;
-            
+
             if (node is ADUCDirectoryNode)
             {
                 ADUCDirectoryNode dirnode = node as ADUCDirectoryNode;
@@ -190,7 +190,7 @@ public partial class ADMoveObjectPage : Form
                     
                     
                     ADUCDirectoryNode dirnode = node as ADUCDirectoryNode;
-                    
+
                     if (dirnode != null)
                     {
                         // dirnode.ListChildren();

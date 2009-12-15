@@ -43,9 +43,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 public partial class ADOUPropertiesDlg : MPContainer
 {
     #region Class Data
-    
+
     private ADUCPlugin _plugin;
-    private IPlugInContainer _container; 
+    private IPlugInContainer _container;
     private ObjectPropertyInfo objInfo;
 
     public static bool Applied = false;
@@ -99,7 +99,7 @@ public partial class ADOUPropertiesDlg : MPContainer
     /// <param name="ldapSchemaCache"></param>
     public void SetData(CredentialEntry ce, string servername, string sOU, ADUCDirectoryNode dirnode, LDAPSchemaCache ldapSchemaCache)
     {
-        Applied = false;       
+        Applied = false;
         _plugin = dirnode.Plugin as ADUCPlugin;
         this.Text = String.Format(this.Text, sOU);
 

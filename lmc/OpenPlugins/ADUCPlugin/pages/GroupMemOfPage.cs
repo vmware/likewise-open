@@ -551,6 +551,3 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         #endregion
     }
 }
-
-
-

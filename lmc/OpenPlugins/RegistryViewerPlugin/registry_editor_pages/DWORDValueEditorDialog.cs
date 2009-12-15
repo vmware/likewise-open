@@ -50,7 +50,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         #endregion
 
-        #region Properties       
+        #region Properties
 
         #endregion
 
@@ -70,7 +70,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 this.regValueInfo = valueInfo as RegistryValueInfo;
 
             this.txtValuename.ReadOnly = !bIsAdd;
-            this.bIsAdd = bIsAdd;            
+            this.bIsAdd = bIsAdd;
 
             SetInputData();
         }
@@ -80,7 +80,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         #region Event Handlers
 
         private void btnOk_Click(object sender, EventArgs e)
-        {  
+        {
             if (!ValidateInputData())
                 return;
 
@@ -193,7 +193,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             }
             else if (radioButtonHexno.Checked)
             {
-                if ((Char.IsDigit(e.KeyChar)) ||                  
+                if ((Char.IsDigit(e.KeyChar)) ||
                     (e.KeyChar == 8) ||
                     (e.KeyChar.ToString().Equals("A", StringComparison.InvariantCultureIgnoreCase)) ||
                     (e.KeyChar.ToString().Equals("B", StringComparison.InvariantCultureIgnoreCase)) ||
@@ -217,8 +217,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             btnOk.Enabled = !String.IsNullOrEmpty(txtValuename.Text.Trim());
         }
 
-        #endregion               
-      
+        #endregion
+
         #region Helper functions
 
         private void SetInputData()
@@ -245,14 +245,14 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     txtValuedata.Text = String.Format("{0:X}", sInputVal);
                 }
                 else
-                    txtValuedata.Text = sInputVal = String.Format("{0:X}", sData);               
+                    txtValuedata.Text = sInputVal = String.Format("{0:X}", sData);
             }
         }
 
         private string FormatDWORDData()
-        { 
+        {
             string sOvalue = string.Empty;
-           
+
             if (radioButtonDecimal.Checked)
             {
                 string sTemp = String.Format("{0:X}", UInt32.Parse(txtValuedata.Text));
@@ -295,7 +295,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             return true;
         }
 
-        #endregion          
-        
+        #endregion
+
     }
 }

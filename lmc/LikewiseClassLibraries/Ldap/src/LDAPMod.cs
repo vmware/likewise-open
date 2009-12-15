@@ -65,10 +65,10 @@ namespace Likewise.LMC.LDAP
 
         public LDAPModInner ldapmod;
 
-        //Pointer to a null-terminated array of null-terminated strings. 
+        //Pointer to a null-terminated array of null-terminated strings.
         //The last element of the array must be a NULL pointer.
         public string[] modv_strvals;
-        //Pointer to a NULL terminated array of berval pointers. 
+        //Pointer to a NULL terminated array of berval pointers.
         //The last element of the array must be a NULL pointer.
         public ArrayList modv_bvals;
 
@@ -129,7 +129,7 @@ namespace Likewise.LMC.LDAP
 
             // Stuff the struct into pMod
             Marshal.StructureToPtr(ldapmod, pMods, false);
-            
+
             return pMods;
 
             //return IntPtr.Zero;

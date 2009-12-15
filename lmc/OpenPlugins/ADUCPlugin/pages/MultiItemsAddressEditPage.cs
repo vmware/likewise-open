@@ -191,7 +191,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 street = street.Replace("\n", "\r\n");
             }
 
-            objectClass_values = street == string.Empty ? new string[] { null } : new string[] { street, null };                
+            objectClass_values = street == string.Empty ? new string[] { null } : new string[] { street, null };
             attr =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "streetAddress",
             objectClass_values);
@@ -204,10 +204,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 attrlist.Add(attr);
             }
 
-            objectClass_values = txtPOBox.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtPOBox.Text.Trim(), null };                
+            objectClass_values = txtPOBox.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtPOBox.Text.Trim(), null };
             attr =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "postOfficeBox",
-            objectClass_values);           
+            objectClass_values);
             if (bMultiUserSelected && chkPO.Checked)
             {
                 attrlist.Add(attr);
@@ -217,10 +217,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 attrlist.Add(attr);
             }
 
-            objectClass_values = txtCity.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtCity.Text.Trim(), null };                
+            objectClass_values = txtCity.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtCity.Text.Trim(), null };
             attr =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "l",
-            objectClass_values);           
+            objectClass_values);
             if (bMultiUserSelected && chkCity.Checked)
             {
                 attrlist.Add(attr);
@@ -230,10 +230,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 attrlist.Add(attr);
             }
 
-            objectClass_values = txtState.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtState.Text.Trim(), null };                
+            objectClass_values = txtState.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtState.Text.Trim(), null };
             attr =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "st",
-            objectClass_values);           
+            objectClass_values);
             if (bMultiUserSelected && chkState.Checked)
             {
                 attrlist.Add(attr);
@@ -243,10 +243,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 attrlist.Add(attr);
             }
 
-            objectClass_values = txtZip.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtZip.Text.Trim(), null };                
+            objectClass_values = txtZip.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtZip.Text.Trim(), null };
             attr =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "postalCode",
-            objectClass_values);           
+            objectClass_values);
             if (bMultiUserSelected && chkZip.Checked)
             {
                 attrlist.Add(attr);
@@ -256,10 +256,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 attrlist.Add(attr);
             }
 
-            objectClass_values = cbCountry.Text.Trim() == string.Empty ? new string[] { null } : new string[] { cbCountry.Text.Trim(), null };                
+            objectClass_values = cbCountry.Text.Trim() == string.Empty ? new string[] { null } : new string[] { cbCountry.Text.Trim(), null };
             attr =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "co",
-            objectClass_values);           
+            objectClass_values);
             if (bMultiUserSelected && chkCountry.Checked)
             {
                 attrlist.Add(attr);
@@ -278,7 +278,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 List<object> dirnodes = new List<object>();
                 if (parentDlg is MultiItemPropertiesDlg)
                 {
-                    MPContainer _MultiItemPropertiesDlg = parentDlg as MPContainer;                    
+                    MPContainer _MultiItemPropertiesDlg = parentDlg as MPContainer;
                     dirnodes = _MultiItemPropertiesDlg.ObjectCounts;
                 }
                 else
@@ -294,7 +294,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     }
                     if (ret != 0)
                     {
-                        string sMsg = ErrorCodes.LDAPString(ret);                        
+                        string sMsg = ErrorCodes.LDAPString(ret);
                         container.ShowError(sMsg);
                         return false;
                     }
@@ -388,7 +388,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             }
         }
 
-     
+
         private void UpdateApplyButton()
         {
             ParentContainer.DataChanged = true;
@@ -463,7 +463,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             }
             else
                 cbCountry.Enabled = false;
-        }        
+        }
 
         private void txtStreet_TextChanged(object sender, EventArgs e)
         {

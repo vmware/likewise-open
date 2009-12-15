@@ -32,12 +32,12 @@ namespace Likewise.LMC.ServerControl
 {
     partial class LMCCustomView
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.ServerControl
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -68,14 +68,14 @@ namespace Likewise.LMC.ServerControl
             this.pnlData.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.groupBox2);
             this.pnlData.Size = new System.Drawing.Size(325, 186);
-            // 
+            //
             // groupBox2
-            // 
+            //
             this.groupBox2.Controls.Add(this.cbActionPane);
             this.groupBox2.Controls.Add(this.cbTaskPad);
             this.groupBox2.Controls.Add(this.cbStatusbar);
@@ -88,9 +88,9 @@ namespace Likewise.LMC.ServerControl
             this.groupBox2.TabIndex = 2;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "LMC";
-            // 
+            //
             // cbActionPane
-            // 
+            //
             this.cbActionPane.AutoSize = true;
             this.cbActionPane.Location = new System.Drawing.Point(21, 136);
             this.cbActionPane.Name = "cbActionPane";
@@ -99,9 +99,9 @@ namespace Likewise.LMC.ServerControl
             this.cbActionPane.Text = "&Action pane";
             this.cbActionPane.UseVisualStyleBackColor = true;
             this.cbActionPane.CheckedChanged += new System.EventHandler(this.SettingsChanged);
-            // 
+            //
             // cbTaskPad
-            // 
+            //
             this.cbTaskPad.AutoSize = true;
             this.cbTaskPad.Checked = true;
             this.cbTaskPad.CheckState = System.Windows.Forms.CheckState.Checked;
@@ -112,9 +112,9 @@ namespace Likewise.LMC.ServerControl
             this.cbTaskPad.Text = "Taskpad &navigation tabs";
             this.cbTaskPad.UseVisualStyleBackColor = true;
             this.cbTaskPad.CheckedChanged += new System.EventHandler(this.SettingsChanged);
-            // 
+            //
             // cbStatusbar
-            // 
+            //
             this.cbStatusbar.AutoSize = true;
             this.cbStatusbar.Checked = true;
             this.cbStatusbar.CheckState = System.Windows.Forms.CheckState.Checked;
@@ -125,9 +125,9 @@ namespace Likewise.LMC.ServerControl
             this.cbStatusbar.Text = "&Status bar";
             this.cbStatusbar.UseVisualStyleBackColor = true;
             this.cbStatusbar.CheckedChanged += new System.EventHandler(this.SettingsChanged);
-            // 
+            //
             // cbToolBar
-            // 
+            //
             this.cbToolBar.AutoSize = true;
             this.cbToolBar.Checked = true;
             this.cbToolBar.CheckState = System.Windows.Forms.CheckState.Checked;
@@ -138,9 +138,9 @@ namespace Likewise.LMC.ServerControl
             this.cbToolBar.Text = "Standard tool&bar";
             this.cbToolBar.UseVisualStyleBackColor = true;
             this.cbToolBar.CheckedChanged += new System.EventHandler(this.SettingsChanged);
-            // 
+            //
             // cbStandardMenus
-            // 
+            //
             this.cbStandardMenus.AutoSize = true;
             this.cbStandardMenus.Checked = true;
             this.cbStandardMenus.CheckState = System.Windows.Forms.CheckState.Checked;
@@ -151,9 +151,9 @@ namespace Likewise.LMC.ServerControl
             this.cbStandardMenus.Text = "Standard m&enus (Action and View)";
             this.cbStandardMenus.UseVisualStyleBackColor = true;
             this.cbStandardMenus.CheckedChanged += new System.EventHandler(this.SettingsChanged);
-            // 
+            //
             // cbConsoleTree
-            // 
+            //
             this.cbConsoleTree.AutoSize = true;
             this.cbConsoleTree.Checked = true;
             this.cbConsoleTree.CheckState = System.Windows.Forms.CheckState.Checked;
@@ -164,9 +164,9 @@ namespace Likewise.LMC.ServerControl
             this.cbConsoleTree.Text = "&Console tree";
             this.cbConsoleTree.UseVisualStyleBackColor = true;
             this.cbConsoleTree.CheckedChanged += new System.EventHandler(this.SettingsChanged);
-            // 
+            //
             // LMCCustomView
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "LMCCustomView";
             this.Size = new System.Drawing.Size(325, 186);
@@ -178,7 +178,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         #endregion
-              
+
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.CheckBox cbActionPane;
         private System.Windows.Forms.CheckBox cbTaskPad;

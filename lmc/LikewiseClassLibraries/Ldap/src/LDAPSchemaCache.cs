@@ -50,7 +50,7 @@ namespace Likewise.LMC.LDAP
     public class LDAPSchemaCache
     {
         #region Class data
-        
+
         private static Mutex instanceMtx = new Mutex();
 
         //maps the common name ('cn') of an attribute to its type (SchemaType)
@@ -62,7 +62,7 @@ namespace Likewise.LMC.LDAP
         //maps the common name 'cn' of an ObjectClass to its definition (SchemaType)
         private readonly Dictionary<string, SchemaType> _classTypeLookup;
 
-        public string rootDN = null; 
+        public string rootDN = null;
 
         private const string CN_TAG                  = "cn";
         private const string OBJECT_CATEGORY_TAG     = "objectCategory";
@@ -81,10 +81,10 @@ namespace Likewise.LMC.LDAP
         {
             _attrTypeLookup = new Dictionary<string, SchemaType>();
             _classTypeLookup = new Dictionary<string, SchemaType>();
-            _dnTypeLookup = new Dictionary<string, SchemaType>();                                                              
+            _dnTypeLookup = new Dictionary<string, SchemaType>();
         }
 
-        #endregion       
+        #endregion
 
         #region Public methods
 
@@ -103,7 +103,7 @@ namespace Likewise.LMC.LDAP
 
             return result;
         }
-         
+
         public LdapAttributeType[] GetAttributesForClass(string objectClassName)
         {
             List<LdapAttributeType> result = new List<LdapAttributeType>();
@@ -188,7 +188,7 @@ namespace Likewise.LMC.LDAP
             {
                 attributeDisplayName = ldapvalues[0].stringData;
             }
-            
+
 
             if ((attributeSyntax == null) || (isSingleValued == null))
             {
@@ -259,7 +259,7 @@ namespace Likewise.LMC.LDAP
 
             string[] systemMustContain = GetAttrsWithTag(attribute_map, SYSTEM_MUST_CONTAIN_TAG);
             string[] systemMayContain = GetAttrsWithTag(attribute_map, SYSTEM_MAY_CONTAIN_TAG);
-           
+
             //5th Parameter is Mandatory and 6th Parameter is Optional atrributes.
             LdapClassType schemaType = new LdapClassType(
                                                    cName,
@@ -267,7 +267,7 @@ namespace Likewise.LMC.LDAP
                                                    attributeDisplayName,
                                                    superClassName,
                                                    systemMustContain,
-                                                   systemMayContain                                                  
+                                                   systemMayContain
                                                    );
             schemaType.Tag = attribute_map;
 
@@ -296,7 +296,7 @@ namespace Likewise.LMC.LDAP
         protected bool AddSchemaType(AttributeMap attribute_map)
         {
             LdapValue[] ldapValues = getFirstValue(attribute_map, OBJECT_CATEGORY_TAG);
-            
+
             if (ldapValues == null ||
                 ldapValues.Length == 0)
             {
@@ -340,7 +340,7 @@ namespace Likewise.LMC.LDAP
                     return values;
                 }
             }
-            
+
             return null;
         }
 
@@ -377,7 +377,7 @@ namespace Likewise.LMC.LDAP
                     Logger.Log("              ::AttributeDisplayName   = " + schemaType.AttributeDisplayName, logLevel);
                 }
             }
-            
+
             foreach (KeyValuePair<string, SchemaType> entry in _dnTypeLookup)
             {
                 string key = entry.Key as string;
@@ -391,7 +391,7 @@ namespace Likewise.LMC.LDAP
                     Logger.Log("              ::AttributeDisplayName   = " + schemaType.AttributeDisplayName, logLevel);
                 }
             }
-             
+
         }
 
         public static LDAPSchemaCache Build(DirectoryContext ldapContext)
@@ -408,7 +408,7 @@ namespace Likewise.LMC.LDAP
             DateTime timer = Logger.StartTimer();
 
             Logger.Log(
-                "Started building schema cache", 
+                "Started building schema cache",
                 Logger.ldapLogLevel);
 
             int ret = ldapContext.ListChildEntriesSynchronous(
@@ -445,11 +445,11 @@ namespace Likewise.LMC.LDAP
                     string dn = ldapNextEntry.GetDN();
 
                     Logger.Log(String.Format(
-                        "LDAPSchemaCache.Build: ldapEntry[{0}]: DN = " + dn, 
+                        "LDAPSchemaCache.Build: ldapEntry[{0}]: DN = " + dn,
                         entryIndex++),
                         Logger.ldapLogLevel);
 
-                    //Getting 'objectClasss' value instead 'subClassOf' attribute 
+                    //Getting 'objectClasss' value instead 'subClassOf' attribute
                     //becuase 'subClassOf' attribute is not giving the all mandatory attribute for the selected object.
                     LdapValue[] objectClasses = ldapNextEntry.GetAttributeValues("objectClass", ldapContext);
                     foreach (LdapValue Oclass in objectClasses)
@@ -479,7 +479,7 @@ namespace Likewise.LMC.LDAP
                         "LDAPSchemaCache.Build({0})-- finished building the schemaCache",
                         ldapContext.RootDN));
 
-                result.reportSchemaCache(Logger.ldapLogLevel);               
+                result.reportSchemaCache(Logger.ldapLogLevel);
             }
 
 
@@ -514,7 +514,7 @@ namespace Likewise.LMC.LDAP
             string key = DN.ToLower();
 
             try
-            {               
+            {
                 //foundType = _dnTypeLookup[key];
                 foreach (string Class in this._dnTypeLookup.Keys)
                 {
@@ -564,7 +564,7 @@ namespace Likewise.LMC.LDAP
         }
 
         #endregion
-        
+
         #region helper methods
 
         /// Getting attributes with give tag from all parent classes
@@ -603,4 +603,3 @@ namespace Likewise.LMC.LDAP
 
     }
 }
-

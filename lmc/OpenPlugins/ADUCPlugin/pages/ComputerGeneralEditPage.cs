@@ -46,25 +46,25 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
 {
     #region Class region
-    
+
     private ComputerGenerelEditObject _editObject = null;
     private ComputerGenerelEditObject _originalObject = null;
     private ADUCDirectoryNode dirnode = null;
-    
+
     #endregion
-    
+
     public ComputerGeneralEditPage()
     {
         pageID = "ComputerGeneralEditProperities";
         InitializeComponent();
         SetPageTitle("General");
-        
+
         _editObject = new ComputerGenerelEditObject();
         _originalObject = new ComputerGenerelEditObject();
     }
-    
+
     #region Private Methods
-    
+
     /// <summary>
     /// Queries and fills the ldap message for the selected computer
     /// Gets the attribute list from AD for computer schema attribute.
@@ -81,7 +81,7 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
             this.dirnode = dirnode;
             int ret = -1;
             List<LdapEntry> ldapEntries = null;
-            
+
             ret = dirnode.LdapContext.ListChildEntriesSynchronous
             (dirnode.DistinguishedName,
             LdapAPI.LDAPSCOPE.BASE,
@@ -89,50 +89,50 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
             null,
             false,
             out ldapEntries);
-            
+
             if (ldapEntries == null || ldapEntries.Count == 0)
             {
                 return;
             }
-            
+
             LdapEntry ldapNextEntry = ldapEntries[0];
-            
+
             string[] attrsList = ldapNextEntry.GetAttributeNames();
-            
+
             if (attrsList != null)
             {
                 foreach (string attr in attrsList)
                 {
                     string sValue = "";
-                    
+
                     LdapValue[] attrValues = ldapNextEntry.GetAttributeValues(attr, dirnode.LdapContext);
-                    
+
                     if (attrValues != null && attrValues.Length > 0)
                     {
                         foreach (LdapValue value in attrValues)
                         {
                             sValue = sValue + "," + value.stringData;
                         }
-                        
+
                     }
-                    
+
                     if (sValue.StartsWith(","))
                     {
                         sValue = sValue.Substring(1);
                     }
-                    
+
                     sValue = sValue.Substring(0, sValue.Length );
-                    
+
                     if (string.Compare(sValue, "") == 0)
                     {
                         sValue = "<Not Set>";
                     }
-                    
+
                     if (string.Compare(attr, "cn") == 0)
                     {
                         this.lblComputerName.Text = sValue;
                     }
-                    
+
                     if (string.Compare(attr, "sAMAccountName") == 0)
                     {
                         if (sValue.EndsWith("$"))
@@ -144,18 +144,18 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
                             this.txtCName.Text = sValue;
                         }
                     }
-                    
+
                     if (string.Compare(attr, "description") == 0)
                     {
                         this.txtDescription.Text = sValue;
                         _editObject.Description = sValue;
                     }
-                    
+
                     if (string.Compare(attr, "dNSHostName") == 0)
                     {
                         this.txtDNSName.Text = sValue;
                     }
-                    
+
                     if (string.Compare(attr, "userAccountControl") == 0)
                     {
                         int userCtrlVal = 0;
@@ -165,7 +165,7 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
                         }
                         string userCtrlBinStr = UserGroupUtils.DecimalToBase(userCtrlVal, 16);
                         _editObject.UserCtrlBinStr = userCtrlVal;
-                        
+
                         this.txtRole.Text = "Workstation or server";
                         if (userCtrlBinStr.Length >= 3)
                         {
@@ -177,7 +177,7 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
                                 {
                                     this.txtRole.Text = "Normal computer";
                                 }
-                                
+
                                 //examine the third position from the left (2=INTERDOMAIN_TRUST_ACCOUNT)
                                 if (userCtrlBinStr[0] == '8')
                                 {
@@ -218,7 +218,7 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
                         {
                             checkBoxTrust.Checked = false;
                         }
-                        
+
                         _editObject.DelegateTrust = checkBoxTrust.Checked;
                     }
                 }
@@ -231,7 +231,7 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
             container.ShowError(e.Message);
         }
     }
-    
+
     private void UpdateApplyButton()
     {
         if ((_originalObject == null && _editObject == null) ||
@@ -246,7 +246,7 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
             ParentContainer.btnApply.Enabled = true;
         }
     }
-    
+
     private void UpdateOriginalData()
     {
         if (_editObject != null)
@@ -258,7 +258,7 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
             _originalObject = new ComputerGenerelEditObject();
         }
     }
-    
+
     /// <summary>
     /// Modifies the specified attributes for the selected AD Object either "user" to AD Schema template
     /// </summary>
@@ -283,11 +283,11 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
             objectClass_values);
             attrlist.Add(attr);
         }
-        
+
         if (!_editObject.DelegateTrust.Equals(_originalObject.DelegateTrust))
         {
             int userCtrlBinStr = _editObject.UserCtrlBinStr;
-            
+
             if (_editObject.DelegateTrust)
             {
                 userCtrlBinStr += 524288;
@@ -296,14 +296,14 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
             {
                 userCtrlBinStr -= 524288;
             }
-            
+
             string[] userControl_values = { userCtrlBinStr.ToString(), null };
             LDAPMod userControl_Info =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "userAccountControl", userControl_values);
-            
+
             attrlist.Add(userControl_Info);
         }
-        
+
         LDAPMod[] attrArry = attrlist.ToArray();
         int ret = -1;
         if (attrArry != null && attrArry.Length != 0)
@@ -323,11 +323,11 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
         UpdateOriginalData();
         return true;
     }
-    
+
     #endregion
-    
+
     #region Events
-    
+
     private void checkBoxTrust_CheckedChanged(object sender, EventArgs e)
     {
         _editObject.DelegateTrust = checkBoxTrust.Checked;
@@ -342,13 +342,13 @@ public partial class ComputerGeneralEditPage : MPPage, IDirectoryPropertiesPage
         }
         UpdateApplyButton();
     }
-    
+
     private void txtDescription_TextChanged(object sender, EventArgs e)
     {
         _editObject.Description = txtDescription.Text;
         UpdateApplyButton();
     }
-    
+
     #endregion
 }
 
@@ -357,7 +357,7 @@ public class ComputerGenerelEditObject : ICloneable
     public string Description = string.Empty;
     public bool DelegateTrust = false;
     public int UserCtrlBinStr = 0;
-    
+
     #region override Methods
     public override bool Equals(object obj)
     {
@@ -371,7 +371,7 @@ public class ComputerGenerelEditObject : ICloneable
         }
         return GetHashCode() == (obj as ComputerGenerelEditObject).GetHashCode();
     }
-    
+
     public virtual object Clone()
     {
         // Create a shallow copy first
@@ -381,7 +381,7 @@ public class ComputerGenerelEditObject : ICloneable
         other.UserCtrlBinStr = UserCtrlBinStr;
         return other;
     }
-    
+
     public override int GetHashCode()
     {
         StringBuilder sb = new StringBuilder();
@@ -391,6 +391,6 @@ public class ComputerGenerelEditObject : ICloneable
         return sb.ToString().GetHashCode();
     }
     #endregion
-    
+
 }
 }

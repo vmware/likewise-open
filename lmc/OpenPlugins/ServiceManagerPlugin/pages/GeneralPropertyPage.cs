@@ -52,7 +52,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         private ServiceManagerPlugin _plugin = null;
         private ServicePropertiesDlg _parentDlg = null;
 
-        #endregion               
+        #endregion
 
         #region Construtcors
 

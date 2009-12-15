@@ -53,7 +53,7 @@ namespace System.DirectoryServices
             if (allowedAttributes != null && allowedAttributes.Length > 0)
             {
                 foreach (string attr in allowedAttributes)
-                {                    
+                {
                     if (attr != null)
                     {
                         try
@@ -123,7 +123,7 @@ namespace System.DirectoryServices
         {
             get
             {
-                Dictionary<string, PropertyValueCollection> dic = this as Dictionary<string, PropertyValueCollection>;             
+                Dictionary<string, PropertyValueCollection> dic = this as Dictionary<string, PropertyValueCollection>;
 
                 try
                 {

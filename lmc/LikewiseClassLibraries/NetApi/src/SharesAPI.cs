@@ -140,7 +140,7 @@ namespace Likewise.LMC.NETAPI
 
         [DllImport(libsrvsvcDllPath, SetLastError = true, CharSet = CharSet.Unicode)]
         static extern int NetFileClose(
-                                       IntPtr handle_b, 
+                                       IntPtr handle_b,
                                        string strServer,
                                        int nFileId
                                       );
@@ -212,7 +212,7 @@ namespace Likewise.LMC.NETAPI
             {
                 Dictionary<int, string[]> ShareList = new Dictionary<int, string[]>();
 
-                IntPtr pBuf = IntPtr.Zero;                
+                IntPtr pBuf = IntPtr.Zero;
                 int cRead = 0;
                 int cTotal = 0;
                 int hResume = 0;
@@ -248,7 +248,7 @@ namespace Likewise.LMC.NETAPI
                                             ref cTotal,
                                             ref hResume);
                 }
-                
+
                 Logger.Log(String.Format(
                         "NetShareEnum(); result={0}, pBuf={1}, cRead={2}, cTotal={3}, hResume={4}",
                     nret, pBuf, cRead, cTotal, hResume));
@@ -257,7 +257,7 @@ namespace Likewise.LMC.NETAPI
                 IntPtr pCur = pBuf;
                 for (int i = 0; i < cRead; i++)
                 {
-                    // marshal the entry into 
+                    // marshal the entry into
                     SHARE_INFO_2 si2 = (SHARE_INFO_2)Marshal.PtrToStructure(pCur, typeof(SHARE_INFO_2));
 
                     // only allow regular diskshares
@@ -304,7 +304,7 @@ namespace Likewise.LMC.NETAPI
             {
                 Dictionary<int, string[]> UserList = new Dictionary<int, string[]>();
 
-                IntPtr pBuf = IntPtr.Zero;                                
+                IntPtr pBuf = IntPtr.Zero;
                 int cRead = 0;
                 int cTotal = 0;
                 int hResume = 0;
@@ -348,7 +348,7 @@ namespace Likewise.LMC.NETAPI
                 IntPtr pCur = pBuf;
                 for (int i = 0; i < cRead; i++)
                 {
-                    // marshal the entry into 
+                    // marshal the entry into
                     FILE_INFO_3 fi3 = (FILE_INFO_3)Marshal.PtrToStructure(pCur, typeof(FILE_INFO_3));
 
                     // create a row
@@ -416,10 +416,10 @@ namespace Likewise.LMC.NETAPI
 
                 if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                 {
-                    nret = NetFileClose(sHostname, nFileId);                    
+                    nret = NetFileClose(sHostname, nFileId);
                 }
                 else
-                {                    
+                {
                     nret = NetFileClose(handle_b, sHostname, nFileId);
                 }
 
@@ -450,7 +450,7 @@ namespace Likewise.LMC.NETAPI
                     nret = NetShareDel(sHostname, sShareName, 0);
                 }
                 else
-                {                    
+                {
                     nret = NetShareDel(handle_b, sHostname, sShareName, 0);
                 }
 
@@ -510,7 +510,7 @@ namespace Likewise.LMC.NETAPI
             int nret = -1;
 
             try
-            {                
+            {
                 handle_b = IntPtr.Zero;
 
                 Logger.Log(String.Format("OpenHandle(sHostname={0} called",
@@ -519,7 +519,7 @@ namespace Likewise.LMC.NETAPI
                 if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows)
                 {
                     nret = InitSrvSvcBindingDefault(out handle_b, sHostname);
-                }                     
+                }
 
                 Logger.Log(String.Format(
                       "OpenHandle(); result={0}, handle={1:x}",
@@ -554,11 +554,11 @@ namespace Likewise.LMC.NETAPI
 
                 if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
                 {
-                    nret = NetShareGetInfo(                                           
+                    nret = NetShareGetInfo(
                                            sHostname,
                                            sharename,
                                            2,
-                                           out pBuf                                           
+                                           out pBuf
                                           );
                 }
                 else
@@ -580,7 +580,7 @@ namespace Likewise.LMC.NETAPI
                 // now, iterate through the data in pBuf
                 IntPtr pCur = pBuf;
 
-                // marshal the entry into 
+                // marshal the entry into
                 SHARE_INFO_2 si2 = (SHARE_INFO_2)Marshal.PtrToStructure(pCur, typeof(SHARE_INFO_2));
 
                 // only allow regular diskshares

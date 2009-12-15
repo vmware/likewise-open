@@ -79,9 +79,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.SuspendLayout();
             this.groupBox.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.AutoSize = true;
             this.pnlData.Controls.Add(this.lbClass);
             this.pnlData.Controls.Add(this.lbSyntax);
@@ -94,45 +94,45 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.lbPath);
             this.pnlData.Dock = System.Windows.Forms.DockStyle.None;
             this.pnlData.Size = new System.Drawing.Size(396, 447);
-            // 
+            //
             // lbPath
-            // 
+            //
             this.lbPath.AutoSize = true;
             this.lbPath.Location = new System.Drawing.Point(11, 30);
             this.lbPath.Name = "lbPath";
             this.lbPath.Size = new System.Drawing.Size(32, 13);
             this.lbPath.TabIndex = 0;
             this.lbPath.Text = "&Path:";
-            // 
+            //
             // label
-            // 
+            //
             this.label.AutoSize = true;
             this.label.Location = new System.Drawing.Point(11, 58);
             this.label.Name = "label";
             this.label.Size = new System.Drawing.Size(35, 13);
             this.label.TabIndex = 1;
             this.label.Text = "C&lass:";
-            // 
+            //
             // lbWhichProperty
-            // 
+            //
             this.lbWhichProperty.AutoSize = true;
             this.lbWhichProperty.Location = new System.Drawing.Point(11, 89);
             this.lbWhichProperty.Name = "lbWhichProperty";
             this.lbWhichProperty.Size = new System.Drawing.Size(157, 13);
             this.lbWhichProperty.TabIndex = 2;
             this.lbWhichProperty.Text = "Select &which properties to view:";
-            // 
+            //
             // lbPropertyview
-            // 
+            //
             this.lbPropertyview.AutoSize = true;
             this.lbPropertyview.Location = new System.Drawing.Point(11, 125);
             this.lbPropertyview.Name = "lbPropertyview";
             this.lbPropertyview.Size = new System.Drawing.Size(135, 13);
             this.lbPropertyview.TabIndex = 3;
             this.lbPropertyview.Text = "Select a properties to &view:";
-            // 
+            //
             // groupBox
-            // 
+            //
             this.groupBox.Controls.Add(this.txtValues);
             this.groupBox.Controls.Add(this.listboxValues);
             this.groupBox.Controls.Add(this.txtEditAttribute);
@@ -147,17 +147,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox.TabIndex = 4;
             this.groupBox.TabStop = false;
             this.groupBox.Text = "Attributes Values";
-            // 
+            //
             // txtValues
-            // 
+            //
             this.txtValues.ReadOnly = true;
             this.txtValues.Location = new System.Drawing.Point(104, 117);
             this.txtValues.Name = "txtValues";
             this.txtValues.Size = new System.Drawing.Size(250, 20);
-            this.txtValues.TabIndex = 8;           
-            // 
+            this.txtValues.TabIndex = 8;
+            //
             // listboxValues
-            // 
+            //
             this.listboxValues.FormattingEnabled = true;
             this.listboxValues.Location = new System.Drawing.Point(104, 118);
             this.listboxValues.Name = "listboxValues";
@@ -165,44 +165,44 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.listboxValues.TabIndex = 10;
             this.listboxValues.Visible = false;
             this.listboxValues.SelectedIndexChanged += new System.EventHandler(this.listboxValues_SelectedIndexChanged);
-            // 
+            //
             // txtEditAttribute
-            // 
+            //
             this.txtEditAttribute.Location = new System.Drawing.Point(103, 73);
             this.txtEditAttribute.Name = "txtEditAttribute";
             this.txtEditAttribute.Size = new System.Drawing.Size(250, 20);
             this.txtEditAttribute.TabIndex = 8;
             this.txtEditAttribute.TextChanged += new System.EventHandler(this.txtEditAttribute_TextChanged);
-            // 
+            //
             // lbValues
-            // 
+            //
             this.lbValues.AutoSize = true;
             this.lbValues.Location = new System.Drawing.Point(20, 120);
             this.lbValues.Name = "lbValues";
             this.lbValues.Size = new System.Drawing.Size(48, 13);
             this.lbValues.TabIndex = 9;
             this.lbValues.Text = "V&alue(s):";
-            // 
+            //
             // lbEdit
-            // 
+            //
             this.lbEdit.AutoSize = true;
             this.lbEdit.Location = new System.Drawing.Point(20, 76);
             this.lbEdit.Name = "lbEdit";
             this.lbEdit.Size = new System.Drawing.Size(70, 13);
             this.lbEdit.TabIndex = 9;
             this.lbEdit.Text = "&Edit Attribute:";
-            // 
+            //
             // txtSyntax
-            // 
+            //
             this.txtSyntax.Enabled = false;
             this.txtSyntax.Location = new System.Drawing.Point(103, 38);
             this.txtSyntax.Name = "txtSyntax";
             this.txtSyntax.ReadOnly = true;
             this.txtSyntax.Size = new System.Drawing.Size(250, 20);
             this.txtSyntax.TabIndex = 2;
-            // 
+            //
             // btnClear
-            // 
+            //
             this.btnClear.Enabled = false;
             this.btnClear.Location = new System.Drawing.Point(270, 222);
             this.btnClear.Name = "btnClear";
@@ -211,9 +211,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnClear.Text = "&Clear";
             this.btnClear.UseVisualStyleBackColor = true;
             this.btnClear.Click += new System.EventHandler(this.btnClear_Click);
-            // 
+            //
             // btnSet
-            // 
+            //
             this.btnSet.Enabled = false;
             this.btnSet.Location = new System.Drawing.Point(179, 222);
             this.btnSet.Name = "btnSet";
@@ -222,9 +222,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnSet.Text = "&Set";
             this.btnSet.UseVisualStyleBackColor = true;
             this.btnSet.Click += new System.EventHandler(this.btnSet_Click);
-            // 
+            //
             // cbProOptionorMandatory
-            // 
+            //
             this.cbProOptionorMandatory.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbProOptionorMandatory.FormattingEnabled = true;
             this.cbProOptionorMandatory.Items.AddRange(new object[] {
@@ -236,9 +236,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbProOptionorMandatory.Size = new System.Drawing.Size(181, 21);
             this.cbProOptionorMandatory.TabIndex = 5;
             this.cbProOptionorMandatory.SelectedIndexChanged += new System.EventHandler(this.cbProOptionorMandatory_SelectedIndexChanged);
-            // 
+            //
             // cbProperty
-            // 
+            //
             this.cbProperty.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbProperty.FormattingEnabled = true;
             this.cbProperty.Location = new System.Drawing.Point(179, 122);
@@ -246,26 +246,26 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbProperty.Size = new System.Drawing.Size(184, 21);
             this.cbProperty.TabIndex = 6;
             this.cbProperty.SelectedIndexChanged += new System.EventHandler(this.cbProperty_SelectedIndexChanged);
-            // 
+            //
             // lbSyntax
-            // 
+            //
             this.lbSyntax.AutoSize = true;
             this.lbSyntax.Location = new System.Drawing.Point(50, 201);
             this.lbSyntax.Name = "lbSyntax";
             this.lbSyntax.Size = new System.Drawing.Size(42, 13);
             this.lbSyntax.TabIndex = 7;
             this.lbSyntax.Text = "Synta&x:";
-            // 
+            //
             // lbClass
-            // 
+            //
             this.lbClass.AutoSize = true;
             this.lbClass.Location = new System.Drawing.Point(49, 58);
             this.lbClass.Name = "lbClass";
             this.lbClass.Size = new System.Drawing.Size(0, 13);
             this.lbClass.TabIndex = 8;
-            // 
+            //
             // ObjectAddAttributesTab
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.Name = "ObjectAddAttributesTab";
             this.Size = new System.Drawing.Size(396, 447);

@@ -69,26 +69,26 @@ namespace Likewise.LMC
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
             this.DescipGroupbox.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pictureBox
-            // 
+            //
             this.pictureBox.Location = new System.Drawing.Point(15, 27);
             this.pictureBox.Name = "pictureBox";
             this.pictureBox.Size = new System.Drawing.Size(44, 39);
             this.pictureBox.TabIndex = 0;
             this.pictureBox.TabStop = false;
-            // 
+            //
             // lblCorporation
-            // 
+            //
             this.lblCorporation.AutoSize = true;
             this.lblCorporation.Location = new System.Drawing.Point(69, 30);
             this.lblCorporation.Name = "lblCorporation";
             this.lblCorporation.Size = new System.Drawing.Size(93, 26);
             this.lblCorporation.TabIndex = 1;
             this.lblCorporation.Text = "{0}\r\nLikewise Software";
-            // 
+            //
             // imageList
-            // 
+            //
             this.imageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList.ImageStream")));
             this.imageList.TransparentColor = System.Drawing.Color.Transparent;
             this.imageList.Images.SetKeyName(0, "FolderOpen_32.ico");
@@ -99,9 +99,9 @@ namespace Likewise.LMC
             this.imageList.Images.SetKeyName(5, "ADUC_32.ico");
             this.imageList.Images.SetKeyName(6, "ADUC.ico");
             this.imageList.Images.SetKeyName(7, "Admin.ico");
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.btnOk.Location = new System.Drawing.Point(246, 196);
             this.btnOk.Name = "btnOk";
@@ -110,9 +110,9 @@ namespace Likewise.LMC
             this.btnOk.Text = "&OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // DescipGroupbox
-            // 
+            //
             this.DescipGroupbox.Controls.Add(this.lblAboutPlugin);
             this.DescipGroupbox.Location = new System.Drawing.Point(12, 80);
             this.DescipGroupbox.Name = "DescipGroupbox";
@@ -120,16 +120,16 @@ namespace Likewise.LMC
             this.DescipGroupbox.TabIndex = 6;
             this.DescipGroupbox.TabStop = false;
             this.DescipGroupbox.Text = "Description";
-            // 
+            //
             // lblAboutPlugin
-            // 
+            //
             this.lblAboutPlugin.Location = new System.Drawing.Point(6, 17);
             this.lblAboutPlugin.Name = "lblAboutPlugin";
             this.lblAboutPlugin.Size = new System.Drawing.Size(297, 78);
             this.lblAboutPlugin.TabIndex = 0;
-            // 
+            //
             // AboutPluginForm
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(333, 229);

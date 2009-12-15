@@ -56,7 +56,7 @@ namespace Likewise.LMC.LDAP
         // This type should be used when talking to NT5.
 
         //0x04FFU), //Windows SSO support value
-        //0x0400), //Linux SSO support value         
+        //0x0400), //Linux SSO support value
         LDAP_AUTH_NEGOTIATE = (int)(LDAP_AUTH_OTHERKIND | 0x04FFU),
 
         LDAP_AUTH_MSN = (int)(LDAP_AUTH_OTHERKIND | 0x800U),
@@ -83,7 +83,7 @@ namespace Likewise.LMC.LDAP
         // This type should be used when talking to NT5.
 
         //0x04FFU), //Windows SSO support value
-        //0x0400), //Linux SSO support value           
+        //0x0400), //Linux SSO support value
         LDAP_AUTH_NEGOTIATE = (int)(LDAP_AUTH_OTHERKIND | 0x0400),
 
         LDAP_AUTH_MSN = (int)(LDAP_AUTH_OTHERKIND | 0x800U),
@@ -138,7 +138,7 @@ namespace Likewise.LMC.LDAP
         private const int ISC_REQ_CONFIDENTIALITY = 0x00000010;//GSS_C_CONF_FLAG;
 
         private const int LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL = 0x6201;
-        
+
         private string _domainControllerName;
         private string _domainName;
         private string _rootDN;
@@ -161,7 +161,7 @@ namespace Likewise.LMC.LDAP
 
         private IntPtr[] ServerCtrls = new IntPtr[2];
 
-        //this is in order to keep track of the aducPlugin treeview in lmc main form so that when connection has timed out, 
+        //this is in order to keep track of the aducPlugin treeview in lmc main form so that when connection has timed out,
         //we can prompt to clear the current deadtree and ask user to reconnect
         //private LWTreeView _lmcLWTreeView;
         //private ListView _lvChildNodes;
@@ -171,7 +171,7 @@ namespace Likewise.LMC.LDAP
         private System.Object lockThis_searchExtsyn = new System.Object();
         private System.Object lockThis_addSyn = new System.Object();
         private System.Object lockThis_delSyn = new System.Object();
-        private System.Object lockThis_modSyn = new System.Object();        
+        private System.Object lockThis_modSyn = new System.Object();
         private System.Object lockThis_ldapCancel = new System.Object();
         private System.Object lockThis_ldapAbandon = new System.Object();
 
@@ -249,7 +249,7 @@ namespace Likewise.LMC.LDAP
                                  string filter,
                                  string[] search_attrs,
                                  bool attrsonly,
-                                 out List<LdapEntry> ldapEntries   
+                                 out List<LdapEntry> ldapEntries
                                  )
          {
              int ret = 0;
@@ -289,7 +289,7 @@ namespace Likewise.LMC.LDAP
          }
 
          /// <summary>
-         /// SearchSynchronous function    
+         /// SearchSynchronous function
          /// </summary>
          /// <param name="basedn"></param>
          /// <param name="scope"></param>
@@ -303,7 +303,7 @@ namespace Likewise.LMC.LDAP
                                  string filter,
                                  string[] search_attrs,
                                  bool attrsonly,
-                                 out LdapMessage message 
+                                 out LdapMessage message
                                  )
         {
             int ret = 0;
@@ -312,14 +312,14 @@ namespace Likewise.LMC.LDAP
             lock (lockThis_searchsyn)
             {
                 ret = _ldapHandle.Ldap_Search_S(
-                    basedn, 
-                    (int)scope, 
-                    filter, 
-                    search_attrs, 
-                    0, 
+                    basedn,
+                    (int)scope,
+                    filter,
+                    search_attrs,
+                    0,
                     out message);
 
-                ret = handleSearchError("SearchSynchronous", basedn, ret); 
+                ret = handleSearchError("SearchSynchronous", basedn, ret);
             }
             return ret;
         }
@@ -346,7 +346,7 @@ namespace Likewise.LMC.LDAP
 
             return message;
         }
- 
+
 
         /// <summary>
         /// SearchExtSynchronous
@@ -408,7 +408,7 @@ namespace Likewise.LMC.LDAP
         {
             ldapEntries = new List<LdapEntry>();
 
-            //Set up LDAP_OPT_SERVER_CONTROLS option so that server can respond with message that contains page control information            
+            //Set up LDAP_OPT_SERVER_CONTROLS option so that server can respond with message that contains page control information
             LdapTimeVal timeout = new LdapTimeVal(600, 0);
             IntPtr page_cookiePtr = IntPtr.Zero;
             Berval cookie = new Berval(0, IntPtr.Zero);
@@ -433,8 +433,8 @@ namespace Likewise.LMC.LDAP
                 {
                     //Create page control, the initial page control is created using a cookie  with Berval of {0,null}
 
-                    //if the page size is set to be larger than the default page size in server, 
-                    //the actual page size will still be the default page size set in server.                
+                    //if the page size is set to be larger than the default page size in server,
+                    //the actual page size will still be the default page size set in server.
                     int pagedRet = Ldap_Create_Page_Control((int)PageSize, page_cookiePtr, 'T', out pagedControlPtr);
                     Logger.Log("CreatePageControl return is " + pagedRet);
                     if (pagedControlPtr == IntPtr.Zero)
@@ -584,7 +584,7 @@ namespace Likewise.LMC.LDAP
             return ret;
         }
 
-        #endregion 
+        #endregion
 
         #region public methods
 
@@ -603,7 +603,7 @@ namespace Likewise.LMC.LDAP
             errorMessage = null;
 
             string sDomainControllerIP = null;
-            IPHostEntry domainControllerEntry=null;           
+            IPHostEntry domainControllerEntry=null;
 
             try
             {
@@ -617,7 +617,7 @@ namespace Likewise.LMC.LDAP
                 }
             }
             catch(Exception ex)
-            {               
+            {
                 errorMessage =
                     String.Format(
                     "The specified domain either does not exist or DNS could not resolve the address of the domain controller : {0}",
@@ -630,11 +630,11 @@ namespace Likewise.LMC.LDAP
 
             if (domainControllerEntry != null && domainControllerEntry.AddressList.Length > 0)
             {
-                sDomainControllerIP = domainControllerEntry.AddressList[0].ToString();                
+                sDomainControllerIP = domainControllerEntry.AddressList[0].ToString();
             }
             else
             {
-                errorMessage = 
+                errorMessage =
                     String.Format(
                     "DirectoryContext.CreateDirectoryContext(): Could not resolve address of domain controller : {0}",
                     DomainControllerName);
@@ -643,18 +643,18 @@ namespace Likewise.LMC.LDAP
                 errorMessage = "";
                 return null;
             }
-            
-            IntPtr ld = LdapAPI.ldap_open(sDomainControllerIP, portNumber);            
+
+            IntPtr ld = LdapAPI.ldap_open(sDomainControllerIP, portNumber);
             if (ld == IntPtr.Zero)
-            {                
-                errorMessage = 
-                    "The specified domain either does not exist or could not be contacted.  " + 
+            {
+                errorMessage =
+                    "The specified domain either does not exist or could not be contacted.  " +
                     "Please contact your system administrator to verify that your domain is " +
                     "properly configured and is currently online.";
                 Logger.Log("DirectoryContext.CreateDirectoryContext(): " + errorMessage);
                 errorMessage = "";
                 //Logger.ShowUserError(errorMessage);
-                return null; 
+                return null;
             }
 
             //LdapTimeVal timeout = new LdapTimeVal(1, 0);
@@ -671,7 +671,7 @@ namespace Likewise.LMC.LDAP
 
             LdapHandle ldapHandle = new LdapHandle(ld);
 
-            string distinguishedName = string.Format("cn={0},cn=Users,{1}", UserName, rootDN);            
+            string distinguishedName = string.Format("cn={0},cn=Users,{1}", UserName, rootDN);
 
             int version = LDAP_VERSION3;
             IntPtr ptrVersion = IntPtr.Zero;
@@ -709,7 +709,7 @@ namespace Likewise.LMC.LDAP
                     ret = LdapAPI.ldap_bind_s(ld, distinguishedName, Password, (ulong)LDAP_AUTHLinux.LDAP_AUTH_SIMPLE);
                 }
                 if (BailOnLdapError("", ret, out errorMessage))
-                {                    
+                {
                     Logger.Log("DirectoryContext.CreateDirectoryContext(): " + errorMessage);
                     return null;
                 }
@@ -718,13 +718,13 @@ namespace Likewise.LMC.LDAP
             {
                 if (Configurations.currentPlatform != LikewiseTargetPlatform.Windows)
                 {
-                    //set GSS-Remote Principal Name 
+                    //set GSS-Remote Principal Name
 
                     //char ber_pvt_opt_on;    /* used to get a non-NULL address for *_OPT_ON */
                     ///* option on/off values */
                     //#define LDAP_OPT_ON           ((void *) &ber_pvt_opt_on)
                     //#define LDAP_OPT_OFF    ((void *) 0)
-                    //status = ldap_set_option(ld, LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL, LDAP_OPT_ON);   
+                    //status = ldap_set_option(ld, LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL, LDAP_OPT_ON);
 
                     char ber_pvt_opt_on = '1';
                     IntPtr ptrRemotePrincipalflags = IntPtr.Zero;
@@ -799,11 +799,11 @@ namespace Likewise.LMC.LDAP
                     errorMessage = "";
                     return null;
                 }
-            }  
+            }
 
-            //try to figure out the DC that serves as GC            
-            string configurationName = null;            
-            //searching with baseDn="" allows ldap to access the domain “RootDSE”.  
+            //try to figure out the DC that serves as GC
+            string configurationName = null;
+            //searching with baseDn="" allows ldap to access the domain “RootDSE”.
             //Without passing that, it cannot access the configurationNamingContext
             DirectoryContext dirContext = new DirectoryContext(
                                 DomainControllerName,
@@ -817,7 +817,7 @@ namespace Likewise.LMC.LDAP
             dirContext._domainControllerIP = sDomainControllerIP;
             LdapMessage ldapMessage;
             string gcServer = DomainControllerName;
-           
+
             Logger.Log("root query is started querying ", Logger.ldapLogLevel);
             IntPtr MessagePtr;
             ret = LdapAPI.ldap_search_s(ld,
@@ -828,7 +828,7 @@ namespace Likewise.LMC.LDAP
                                         0,
                                         out MessagePtr);
 
-            ldapMessage = new LdapMessage(ldapHandle, MessagePtr);            
+            ldapMessage = new LdapMessage(ldapHandle, MessagePtr);
             Logger.Log("root query is finished querying " + ret, Logger.ldapLogLevel);
 
             List<LdapEntry> ldapEntries = (ldapMessage != null ? ldapMessage.Ldap_Get_Entries() : null);
@@ -878,7 +878,7 @@ namespace Likewise.LMC.LDAP
                     configurationName = values[0].stringData;
                 }
                 Logger.Log(
-                    "configurationNamingContext is " + configurationName, 
+                    "configurationNamingContext is " + configurationName,
                     Logger.ldapLogLevel);
 
                 values = rootDseEntry.GetAttributeValues("SupportedSASLMechanisms", dirContext);
@@ -890,14 +890,14 @@ namespace Likewise.LMC.LDAP
 
                     foreach (LdapValue value in values)
                     {
-                        _supportedSASLMechanisms[index] = value.stringData;                       
+                        _supportedSASLMechanisms[index] = value.stringData;
 
                         Logger.Log(
                                     "SupportedSASLMechanisms is " + value.stringData,
                                     Logger.ldapLogLevel);
                         index++;
                     }
-                }   
+                }
 
                 dirContext.ConfigurationNamingContext = configurationName;
 
@@ -911,7 +911,7 @@ namespace Likewise.LMC.LDAP
                                         0,
                                         out MessagePtr);
 
-                ldapMessage = new LdapMessage(ldapHandle, MessagePtr);      
+                ldapMessage = new LdapMessage(ldapHandle, MessagePtr);
 
                 if(BailOnLdapError("ldap_search_s :", ret, out errorMessage))
                 {
@@ -940,9 +940,9 @@ namespace Likewise.LMC.LDAP
                             gcServer = string.Concat(gcServer, ".", str.Substring(3).ToLower());
 
                         Logger.Log(
-                            "global catelog server is " + gcServer, 
-                            Logger.ldapLogLevel);                                           
-                    }                   
+                            "global catelog server is " + gcServer,
+                            Logger.ldapLogLevel);
+                    }
                 }
             }
 
@@ -1017,7 +1017,7 @@ namespace Likewise.LMC.LDAP
                 Ldap_AbandonSynchronous();
 
                 ret = _ldapHandle.Ldap_Cancel(
-                                    ServerCtrls                                    
+                                    ServerCtrls
                                     );
             }
 
@@ -1187,21 +1187,21 @@ namespace Likewise.LMC.LDAP
 
             LdapMessage result = null;
             ret = SearchSynchronous(
-                    _args.basedn, 
-                    _args.scope, 
+                    _args.basedn,
+                    _args.scope,
                     _args.filter,
-                    _args.search_attrs, 
+                    _args.search_attrs,
                     _args.attrsonly,
                     out result);
 
 
 
             if (_args.ldapMsgCallback != null)
-            {              
+            {
                 Logger.Log("pass the result to delegate", Logger.ldapLogLevel);
                 _args.ldapMsgCallback(result);
             }
-        } 
+        }
 
         #endregion
 
@@ -1336,7 +1336,7 @@ namespace Likewise.LMC.LDAP
             }
         }
 
-        
+
         public string GCServername
         {
             get
@@ -1348,7 +1348,7 @@ namespace Likewise.LMC.LDAP
                 _gcServerName = value;
             }
         }
-         
+
         public bool BindMethod
         {
             get
@@ -1449,4 +1449,3 @@ namespace Likewise.LMC.LDAP
 
     }
 }
-

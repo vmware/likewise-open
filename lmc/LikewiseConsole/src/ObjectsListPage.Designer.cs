@@ -86,9 +86,9 @@ namespace Likewise.LMC
             this.tabPageDomainOUs.SuspendLayout();
             this.tabPageAll.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // tabControl
-            // 
+            //
             this.tabControl.Controls.Add(this.tabPageDomainOUs);
             this.tabControl.Controls.Add(this.tabPageAll);
             this.tabControl.Location = new System.Drawing.Point(1, 2);
@@ -97,9 +97,9 @@ namespace Likewise.LMC
             this.tabControl.Size = new System.Drawing.Size(469, 280);
             this.tabControl.TabIndex = 0;
             this.tabControl.SelectedIndexChanged += new System.EventHandler(this.tabControl_SelectedIndexChanged);
-            // 
+            //
             // tabPageDomainOUs
-            // 
+            //
             this.tabPageDomainOUs.Controls.Add(this.btnBack);
             this.tabPageDomainOUs.Controls.Add(this.btnCreateLinkGPO);
             this.tabPageDomainOUs.Controls.Add(this.cbDomainOUs);
@@ -113,9 +113,9 @@ namespace Likewise.LMC
             this.tabPageDomainOUs.TabIndex = 0;
             this.tabPageDomainOUs.Text = "Domain/OUs";
             this.tabPageDomainOUs.UseVisualStyleBackColor = true;
-            // 
+            //
             // btnBack
-            // 
+            //
             this.btnBack.Image = global::Likewise.LMC.Properties.Resources.back;
             this.btnBack.Location = new System.Drawing.Point(355, 8);
             this.btnBack.Name = "btnBack";
@@ -123,9 +123,9 @@ namespace Likewise.LMC
             this.btnBack.TabIndex = 10;
             this.btnBack.UseVisualStyleBackColor = true;
             this.btnBack.Click += new System.EventHandler(this.btnBack_Click);
-            // 
+            //
             // btnCreateLinkGPO
-            // 
+            //
             this.btnCreateLinkGPO.AccessibleRole = System.Windows.Forms.AccessibleRole.ToolTip;
             this.btnCreateLinkGPO.Location = new System.Drawing.Point(385, 8);
             this.btnCreateLinkGPO.Name = "btnCreateLinkGPO";
@@ -134,36 +134,36 @@ namespace Likewise.LMC
             this.btnCreateLinkGPO.Text = "Create GPO";
             this.btnCreateLinkGPO.UseVisualStyleBackColor = true;
             this.btnCreateLinkGPO.Click += new System.EventHandler(this.btnCreateLinkGPO_Click);
-            // 
+            //
             // cbDomainOUs
-            // 
+            //
             this.cbDomainOUs.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbDomainOUs.FormattingEnabled = true;
             this.cbDomainOUs.Location = new System.Drawing.Point(57, 8);
             this.cbDomainOUs.Name = "cbDomainOUs";
             this.cbDomainOUs.Size = new System.Drawing.Size(294, 21);
             this.cbDomainOUs.TabIndex = 8;
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(6, 36);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(232, 13);
             this.label3.TabIndex = 7;
             this.label3.Text = "Domains, OUs and linked Group Policy Objects:";
-            // 
+            //
             // label4
-            // 
+            //
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(6, 11);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(45, 13);
             this.label4.TabIndex = 6;
             this.label4.Text = "Look &in:";
-            // 
+            //
             // lvDomainOUs
-            // 
+            //
             this.lvDomainOUs.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader1,
             this.columnHeader2});
@@ -180,19 +180,19 @@ namespace Likewise.LMC
             this.lvDomainOUs.SelectedIndexChanged += new System.EventHandler(this.lvDomainOUs_SelectedIndexChanged);
             this.lvDomainOUs.DoubleClick += new System.EventHandler(this.lvDomainOUs_DoubleClick);
             this.lvDomainOUs.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvDomainOUs_MouseUp);
-            // 
+            //
             // columnHeader1
-            // 
+            //
             this.columnHeader1.Text = "Name";
             this.columnHeader1.Width = 200;
-            // 
+            //
             // columnHeader2
-            // 
+            //
             this.columnHeader2.Text = "Domain";
             this.columnHeader2.Width = 200;
-            // 
+            //
             // ObjectSmallImageList
-            // 
+            //
             this.ObjectSmallImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("ObjectSmallImageList.ImageStream")));
             this.ObjectSmallImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.ObjectSmallImageList.Images.SetKeyName(0, "computer.ico");
@@ -205,9 +205,9 @@ namespace Likewise.LMC
             this.ObjectSmallImageList.Images.SetKeyName(7, "DisabledUser.ico");
             this.ObjectSmallImageList.Images.SetKeyName(8, "DisabledComputer.ico");
             this.ObjectSmallImageList.Images.SetKeyName(9, "FolderOpen.ico");
-            // 
+            //
             // tabPageAll
-            // 
+            //
             this.tabPageAll.Controls.Add(this.btnCreateGPO);
             this.tabPageAll.Controls.Add(this.cbDomainAll);
             this.tabPageAll.Controls.Add(this.label2);
@@ -220,9 +220,9 @@ namespace Likewise.LMC
             this.tabPageAll.TabIndex = 1;
             this.tabPageAll.Text = "All";
             this.tabPageAll.UseVisualStyleBackColor = true;
-            // 
+            //
             // btnCreateGPO
-            // 
+            //
             this.btnCreateGPO.AccessibleRole = System.Windows.Forms.AccessibleRole.ToolTip;
             this.btnCreateGPO.Location = new System.Drawing.Point(361, 9);
             this.btnCreateGPO.Name = "btnCreateGPO";
@@ -231,36 +231,36 @@ namespace Likewise.LMC
             this.btnCreateGPO.Text = "Create GPO";
             this.btnCreateGPO.UseVisualStyleBackColor = true;
             this.btnCreateGPO.Click += new System.EventHandler(this.btnCreateGPO_Click);
-            // 
+            //
             // cbDomainAll
-            // 
+            //
             this.cbDomainAll.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbDomainAll.FormattingEnabled = true;
             this.cbDomainAll.Location = new System.Drawing.Point(58, 9);
             this.cbDomainAll.Name = "cbDomainAll";
             this.cbDomainAll.Size = new System.Drawing.Size(295, 21);
             this.cbDomainAll.TabIndex = 4;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(7, 37);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(222, 13);
             this.label2.TabIndex = 3;
             this.label2.Text = "All Group Policy Objects stored in this domain:";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(7, 12);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(45, 13);
             this.label1.TabIndex = 2;
             this.label1.Text = "Look &in:";
-            // 
+            //
             // lvGPOs
-            // 
+            //
             this.lvGPOs.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colName});
             this.lvGPOs.FullRowSelect = true;
@@ -276,14 +276,14 @@ namespace Likewise.LMC
             this.lvGPOs.SelectedIndexChanged += new System.EventHandler(this.lvGPOs_SelectedIndexChanged);
             this.lvGPOs.DoubleClick += new System.EventHandler(this.lvGPOs_DoubleClick);
             this.lvGPOs.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvGPOs_MouseUp);
-            // 
+            //
             // colName
-            // 
+            //
             this.colName.Text = "Name";
             this.colName.Width = 425;
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Enabled = false;
             this.btnOk.Location = new System.Drawing.Point(308, 291);
             this.btnOk.Name = "btnOk";
@@ -292,9 +292,9 @@ namespace Likewise.LMC
             this.btnOk.Text = "&OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.Location = new System.Drawing.Point(395, 291);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
@@ -302,9 +302,9 @@ namespace Likewise.LMC
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // ObjectsListPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(472, 322);
             this.Controls.Add(this.btnCancel);

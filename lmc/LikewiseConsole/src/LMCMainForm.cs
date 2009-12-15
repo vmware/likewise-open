@@ -51,7 +51,7 @@ namespace Likewise.LMC
         private string sConsoleFile = null;
         private string _fileName = "LMCConsole1";
         private bool IsFileOpened = false;
-        private bool IsSetingsCanSave = false;        
+        private bool IsSetingsCanSave = false;
 
         #region delegates
         delegate void SetCursorCallback(System.Windows.Forms.Cursor cursor);
@@ -112,7 +112,7 @@ namespace Likewise.LMC
             //
             // Required for Windows Form Designer support
             //
-            InitializeComponent();      
+            InitializeComponent();
 
             Closed += new EventHandler(MainForm_Closed);
 
@@ -151,7 +151,7 @@ namespace Likewise.LMC
         {
             base.OnLoad(e);
             sc.SetLWTreeView(navTree);
-            
+
             sc.LoadPlugins();
 
             if (sConsoleFile != null && File.Exists(sConsoleFile))
@@ -212,15 +212,15 @@ namespace Likewise.LMC
             this.sc = new Likewise.LMC.ServerControl.CServerControl();
             this.pivotPanel.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // mainMenu1
-            // 
+            //
             this.mainMenu1.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this.menuItem_File,
             this.menuItem_Help});
-            // 
+            //
             // menuItem_File
-            // 
+            //
             this.menuItem_File.Index = 0;
             this.menuItem_File.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this.menuItem_New,
@@ -230,72 +230,72 @@ namespace Likewise.LMC
             this.addremove_plugin,
             this.menuItem_Close});
             this.menuItem_File.Text = "&File";
-            // 
+            //
             // menuItem_New
-            // 
+            //
             this.menuItem_New.Index = 0;
             this.menuItem_New.Shortcut = System.Windows.Forms.Shortcut.CtrlN;
             this.menuItem_New.Text = "&New";
             this.menuItem_New.Click += new System.EventHandler(this.menuItem_New_Click);
-            // 
+            //
             // menuItem_Open
-            // 
+            //
             this.menuItem_Open.Index = 1;
             this.menuItem_Open.Shortcut = System.Windows.Forms.Shortcut.CtrlO;
             this.menuItem_Open.Text = "&Open...";
             this.menuItem_Open.Click += new System.EventHandler(this.menuItem_Open_Click);
-            // 
+            //
             // menuItem_Save
-            // 
+            //
             this.menuItem_Save.Index = 2;
             this.menuItem_Save.Shortcut = System.Windows.Forms.Shortcut.CtrlS;
             this.menuItem_Save.Text = "&Save";
             this.menuItem_Save.Click += new System.EventHandler(this.menuItem_Save_Click);
-            // 
+            //
             // menuItem_SaveAs
-            // 
+            //
             this.menuItem_SaveAs.Index = 3;
             this.menuItem_SaveAs.Text = "Save &As...";
             this.menuItem_SaveAs.Click += new System.EventHandler(this.menuItem_SaveAs_Click);
-            // 
+            //
             // addremove_plugin
-            // 
+            //
             this.addremove_plugin.Index = 4;
             this.addremove_plugin.Text = "Add/Re&move Plug-in...";
             this.addremove_plugin.Click += new System.EventHandler(this.Menu_addremoveplugin_clicked);
-            // 
+            //
             // menuItem_Close
-            // 
+            //
             this.menuItem_Close.Index = 5;
             this.menuItem_Close.Text = "E&xit";
             this.menuItem_Close.Click += new System.EventHandler(this.menuItem_Exit_Click);
-            // 
+            //
             // menuItem_Help
-            // 
+            //
             this.menuItem_Help.Index = 1;
             this.menuItem_Help.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
             this.menuItem3,
             this.menuItem12,
             this.menuItem_About});
             this.menuItem_Help.Text = "&Help";
-            // 
+            //
             // menuItem3
-            // 
+            //
             this.menuItem3.Index = 0;
             this.menuItem3.Text = "&Technical Support";
             this.menuItem3.Click += new System.EventHandler(this.menuItem3_Click);
-            // 
+            //
             // menuItem12
-            // 
+            //
             this.menuItem12.Index = 1;
             this.menuItem12.Text = "-";
-            // 
+            //
             // menuItem_About
-            // 
+            //
             this.menuItem_About.Index = 2;
             this.menuItem_About.Text = "&About Likewise Management Console";
             this.menuItem_About.Click += new System.EventHandler(this.menuItem_About_Click);
-            // 
+            //
             // statusBar1
             //
             this.statusBar1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
@@ -325,9 +325,9 @@ namespace Likewise.LMC
             this.imageList1.Images.SetKeyName(13, "");
             this.imageList1.Images.SetKeyName(14, "");
             this.imageList1.Images.SetKeyName(15, "BlockedOrganizationalUnit.ico");
-            // 
+            //
             // pivotPanel
-            // 
+            //
             this.pivotPanel.AutoScroll = true;
             this.pivotPanel.Controls.Add(this.navTree);
             this.pivotPanel.Controls.Add(this.panel1);
@@ -338,7 +338,7 @@ namespace Likewise.LMC
             this.pivotPanel.TabIndex = 0;
             //
             // navTree
-            // 
+            //
             this.navTree.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.navTree.Dock = System.Windows.Forms.DockStyle.Fill;
             this.navTree.HideSelection = false;
@@ -350,26 +350,26 @@ namespace Likewise.LMC
             this.navTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterSelect);
             this.navTree.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView1_NodeMouseClick);
             this.navTree.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterExpand);
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.BackColor = System.Drawing.SystemColors.Window;
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(231, 16);
             this.panel1.TabIndex = 1;
-            // 
+            //
             // imageListLarge24
-            // 
+            //
             this.imageListLarge24.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageListLarge24.ImageStream")));
             this.imageListLarge24.TransparentColor = System.Drawing.SystemColors.MenuBar;
             this.imageListLarge24.Images.SetKeyName(0, "back-lgr.ico");
             this.imageListLarge24.Images.SetKeyName(1, "next-lgr.ico");
             this.imageListLarge24.Images.SetKeyName(2, "reload-lgr.ico");
-            // 
+            //
             // splitter1
-            // 
+            //
             this.splitter1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.splitter1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.splitter1.Location = new System.Drawing.Point(231, 0);
@@ -378,25 +378,25 @@ namespace Likewise.LMC
             this.splitter1.TabIndex = 2;
             this.splitter1.TabStop = false;
             this.splitter1.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitter1_SplitterMoved);
-            // 
+            //
             // imageListLarge32
-            // 
+            //
             this.imageListLarge32.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageListLarge32.ImageStream")));
             this.imageListLarge32.TransparentColor = System.Drawing.SystemColors.MenuBar;
             this.imageListLarge32.Images.SetKeyName(0, "back-lgr.ico");
             this.imageListLarge32.Images.SetKeyName(1, "next-lgr.ico");
             this.imageListLarge32.Images.SetKeyName(2, "reload-lgr.ico");
-            // 
+            //
             // openFileDialog
-            // 
+            //
             this.openFileDialog.DefaultExt = "lmc";
             this.openFileDialog.FileName = "openFileDialog";
             this.openFileDialog.Filter = "Likewise Management Cosole(*.lmc)|*.lmc";
             this.openFileDialog.ReadOnlyChecked = true;
             this.openFileDialog.ShowReadOnly = true;
-            // 
+            //
             // sc
-            // 
+            //
             this.sc.ApplicationDirectory = "C:\\Program Files\\Likewise\\Enterprise";
             this.sc.AutoScroll = true;
             this.sc.BackColor = System.Drawing.SystemColors.Window;
@@ -432,20 +432,20 @@ namespace Likewise.LMC
 
         #endregion
 
-        #region Helper functions  
+        #region Helper functions
 
         private void MainForm_Closed(object sender, EventArgs e)
         {
             //Hide();
             //Application.Exit();
         }
-         
+
         private void handleRefresh()
         {
             if (sc.manage.NodeShown != null)
             {
-                sc.manage.Refresh();                
-            }            
+                sc.manage.Refresh();
+            }
         }
 
         private string GetDefaultConsoleDirectory()
@@ -734,11 +734,11 @@ namespace Likewise.LMC
             {
 
                 Logger.Log(String.Format(
-                    "treeView1_AfterSelect({0})", 
+                    "treeView1_AfterSelect({0})",
                     node.Name),
                     Logger.manageLogLevel);
             }
-        }       
+        }
 
         private void splitter1_SplitterMoved(object sender, SplitterEventArgs e)
         {
@@ -797,7 +797,7 @@ namespace Likewise.LMC
                 }
                 else
                 {
-                    this.FormClosing -= new System.Windows.Forms.FormClosingEventHandler(this.LMCMainForm_FormClosing);                    
+                    this.FormClosing -= new System.Windows.Forms.FormClosingEventHandler(this.LMCMainForm_FormClosing);
                     Application.Exit();
                 }
             }
@@ -877,7 +877,7 @@ namespace Likewise.LMC
                     node.Expand();
                     navTree.SelectedNode = node;
                 }
-                navTree.Select();                
+                navTree.Select();
                 IsFileOpened = true;
             }
         }
@@ -926,14 +926,14 @@ namespace Likewise.LMC
         {
             IsSetingsCanSave = true;
             OpenSaveDialogToSaveSettings();
-        }         
+        }
 
         private void menuItem_Save_Click(object sender, EventArgs e)
         {
             try
             {
                 if (sc.manage.rootNode.Nodes.Count == 0)
-                    return; 
+                    return;
 
                 if (!IsFileOpened)
                 {
@@ -941,8 +941,8 @@ namespace Likewise.LMC
                 }
                 else
                 {
-                    IsSetingsCanSave = false;      
-                    
+                    IsSetingsCanSave = false;
+
                     _fileName = Path.Combine(GetDefaultConsoleDirectory(), _fileName);
                     FrameState fs = GetFrameState();
                     string tempFile = sc.manage.SaveConsoleSettingsToXml(fs);
@@ -950,7 +950,7 @@ namespace Likewise.LMC
                     if (File.Exists(_fileName))
                         File.Delete(_fileName);
                     File.Move(tempFile, _fileName);
-                    
+
                 }
             }
             catch (Exception ex)

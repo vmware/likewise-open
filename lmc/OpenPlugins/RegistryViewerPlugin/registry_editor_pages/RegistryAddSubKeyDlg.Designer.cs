@@ -64,27 +64,27 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnOk = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(5, 8);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(97, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "Registry key name:";
-            // 
+            //
             // txtKeyname
-            // 
+            //
             this.txtKeyname.Location = new System.Drawing.Point(5, 26);
             this.txtKeyname.MaxLength = 255;
             this.txtKeyname.Name = "txtKeyname";
             this.txtKeyname.Size = new System.Drawing.Size(279, 20);
             this.txtKeyname.TabIndex = 1;
             this.txtKeyname.TextChanged += new System.EventHandler(this.txtKeyname_TextChanged);
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Enabled = false;
             this.btnOk.Location = new System.Drawing.Point(124, 58);
             this.btnOk.Name = "btnOk";
@@ -93,9 +93,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnOk.Text = "&Ok";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(209, 58);
             this.btnCancel.Name = "btnCancel";
@@ -104,9 +104,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // RegistryAddSubKeyDlg
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;

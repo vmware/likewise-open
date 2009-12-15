@@ -55,7 +55,7 @@ namespace System.DirectoryServices.ActiveDirectory
         {
             trustCollection = null;
             parent = null;
-            children = new DomainCollection();            
+            children = new DomainCollection();
         }
 
         public Domain(string dName)
@@ -71,13 +71,13 @@ namespace System.DirectoryServices.ActiveDirectory
             domain.dName = dc.Name;
             domain.DC = dc;
 
-            return domain;           
+            return domain;
 
         }
 
-        //Retrieves a DirectoryEntry object that represents the default naming context of the domain.         
+        //Retrieves a DirectoryEntry object that represents the default naming context of the domain.
         public DirectoryEntry GetDirectoryEntry()
-        {  
+        {
             return new DirectoryEntry(string.Format("LDAP://{0}/Domain", this.dName));
         }
 
@@ -116,7 +116,7 @@ namespace System.DirectoryServices.ActiveDirectory
                             /*Console.WriteLine("sProtocol " + sProtocol);
                             Console.WriteLine("sServer " + sServer);
                             Console.WriteLine("sCNs " + sCNs);
-                            Console.WriteLine("sDCs " + sDCs);*/                          
+                            Console.WriteLine("sDCs " + sDCs);*/
 
                             string sourcename, targetname;
                             TrustDirection trustdirection;
@@ -201,7 +201,7 @@ namespace System.DirectoryServices.ActiveDirectory
                                     break;
                             }
 
-                            TrustRelationshipInformation trustinfo = new TrustRelationshipInformation(sourcename, targetname, trusttype, trustdirection);                      
+                            TrustRelationshipInformation trustinfo = new TrustRelationshipInformation(sourcename, targetname, trusttype, trustdirection);
                             trustCollection.Add(trustinfo);
                         }
                     }
@@ -211,8 +211,8 @@ namespace System.DirectoryServices.ActiveDirectory
                     return null;
                 }
             }
-            
-            return trustCollection;            
+
+            return trustCollection;
         }
 
         public string Name
@@ -246,8 +246,8 @@ namespace System.DirectoryServices.ActiveDirectory
             {
                 if (parent == null)
                 {
-                    FindParentDomain();                   
-                }                                               
+                    FindParentDomain();
+                }
 
                 return parent;
             }
@@ -270,7 +270,7 @@ namespace System.DirectoryServices.ActiveDirectory
         #region //helper functions
 
         private void FindParentDomain()
-        {   
+        {
             DirectoryEntry rootDse = new DirectoryEntry(string.Format("LDAP://{0}/RootDSE", dName), dc.UserName, dc.Password);
 
             string configureName = rootDse.DirContext.ConfigurationNamingContext;
@@ -282,7 +282,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
 
             DirectoryEntry sys = new DirectoryEntry(string.Format("LDAP://{0}/CN=Partitions,{1}", SDSUtils.DNToDomainName(configureName), configureName), dc.UserName, dc.Password);
-            
+
             DirectorySearcher ds = new DirectorySearcher(sys);
 
             ds.Filter = "(objectClass=crossRef)";
@@ -320,14 +320,14 @@ namespace System.DirectoryServices.ActiveDirectory
         }
 
         private void FindChildrenDomains()
-        {               
+        {
 
             DirectoryEntry rootDse = new DirectoryEntry(string.Format("LDAP://{0}/RootDSE", dName), dc.UserName, dc.Password);
 
             string configureName = rootDse.DirContext.ConfigurationNamingContext;
 
             if (configureName == null || configureName == "")
-            {                   
+            {
                 return;
             }
 
@@ -355,7 +355,7 @@ namespace System.DirectoryServices.ActiveDirectory
                     if (parentDomainDN != null && parentDomainDN != "" &&
                         dName.Equals(SDSUtils.DNToDomainName(parentDomainDN), StringComparison.InvariantCultureIgnoreCase))
                     {
-                        children.Add(new Domain(SDSUtils.DNToDomainName(partEntry.Properties["nCName"].Value as string)));                        
+                        children.Add(new Domain(SDSUtils.DNToDomainName(partEntry.Properties["nCName"].Value as string)));
                     }
                 }
             }

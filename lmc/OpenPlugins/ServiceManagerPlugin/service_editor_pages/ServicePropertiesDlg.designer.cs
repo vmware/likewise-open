@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 {
     partial class ServicePropertiesDlg
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -75,9 +75,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // ServicePropertiesDlg
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(390, 440);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;

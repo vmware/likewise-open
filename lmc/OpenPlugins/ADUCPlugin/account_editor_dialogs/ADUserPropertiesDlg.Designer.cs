@@ -62,30 +62,30 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ADUserPropertiesDlg));
             this.errorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
-            this.SuspendLayout();           
-            // 
+            this.SuspendLayout();
+            //
             // btnOK
-            //           
+            //
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            // 
+            //
             // btnCancel
-            //            
+            //
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // ADUserPropertiesDlg
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.ClientSize = new System.Drawing.Size(390, 440);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MinimumSize = new System.Drawing.Size(123, 88);
             this.Name = "ADUserPropertiesDlg";
-            this.Text = "{0} Properties";            
+            this.Text = "{0} Properties";
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).EndInit();
             this.ResumeLayout(false);
 

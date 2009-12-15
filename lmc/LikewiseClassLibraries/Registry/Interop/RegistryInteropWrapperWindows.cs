@@ -59,11 +59,11 @@ namespace Likewise.LMC.Registry
         REG_FULL_RESOURCE_DESCRIPTOR,
         REG_RESOURCE_REQUIREMENTS_LIST,
         REG_QUADWORD,
-        REG_KEY,                        
-        REG_KEY_DEFAULT,                
+        REG_KEY,
+        REG_KEY_DEFAULT,
         REG_PLAIN_TEXT,
         REG_UNKNOWN
-    } 
+    }
      //Key types
     public enum HKEY : long
     {
@@ -78,11 +78,11 @@ namespace Likewise.LMC.Registry
         //for specific to likewise
         HKEY_LIKEWISE = 0x80000007,
         HKEY_LIKEWISE_SUBKEY = 0x80000008
-    }   
+    }
 
     public class RegistryInteropWrapperWindows
     {
-        public static uint MAX_REG_KEYNAME_SIZE = ((102 * 1024) * 1024);           
+        public static uint MAX_REG_KEYNAME_SIZE = ((102 * 1024) * 1024);
 
         //Registry datatypes
         public static long REG_DWORD = 4;
@@ -95,7 +95,7 @@ namespace Likewise.LMC.Registry
         private static string sHostName = string.Empty;
 
         #region ADVAPI32 Wrapper implementation
-       
+
         // If you incorporate this code into a DLL, be sure to demand that it
         // runs with FullTrust.
         [PermissionSetAttribute(SecurityAction.Demand, Name = "FullTrust")]
@@ -170,7 +170,7 @@ namespace Likewise.LMC.Registry
             }
 
             return true;
-        }        
+        }
 
         public static object RegGetValue(RegistryHive hive, string key, string sValue, out int type)
         {
@@ -386,7 +386,7 @@ namespace Likewise.LMC.Registry
             }
             Key = hKey;
         }
-        
+
         public static void Win32RegSubKeyList(RegistryKey hKey, out Array sKeys)
         {
             sKeys = null;
@@ -424,7 +424,7 @@ namespace Likewise.LMC.Registry
             RegistryKey sInnerKey = null;
             try
             {
-                sInnerKey = hKey.OpenSubKey(sSubKey, true);           
+                sInnerKey = hKey.OpenSubKey(sSubKey, true);
             }
             catch
             {
@@ -543,19 +543,19 @@ namespace Likewise.LMC.Registry
                     {
                         keyValueInfo.sData = sDataBuf.ToString();
                     }
-                    break;              
-               
+                    break;
+
                 default:
-                    keyValueInfo.RegDataType = LWRegistryValueKind.REG_NONE;               
+                    keyValueInfo.RegDataType = LWRegistryValueKind.REG_NONE;
                     sDataBuf = hKey.GetValue(sValue, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
-                    if (sDataBuf != null)                 
-                        keyValueInfo.sData = sDataBuf.ToString();                   
+                    if (sDataBuf != null)
+                        keyValueInfo.sData = sDataBuf.ToString();
                     else
-                        keyValueInfo.sData = "(zero-length binary value)";  
+                        keyValueInfo.sData = "(zero-length binary value)";
                     break;
             }
         }
-        
+
         public static void Win32RegKeyValueData(RegistryKey hKey, string sValue, out object DataBuf)
         {
             DataBuf = hKey.GetValue(sValue, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
@@ -771,7 +771,7 @@ namespace Likewise.LMC.Registry
             }
             catch (Exception ex)
             {
-                Logger.LogException("Win32CreateSubKey : ", ex); 
+                Logger.LogException("Win32CreateSubKey : ", ex);
 
                 return false;
             }
@@ -823,8 +823,8 @@ namespace Likewise.LMC.Registry
 
         #endregion
 
-        #region Helper functions 
-       
+        #region Helper functions
+
         #endregion
     }
 }

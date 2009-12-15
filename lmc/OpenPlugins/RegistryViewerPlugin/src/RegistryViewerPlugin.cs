@@ -56,7 +56,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             HKEY_LIKEWISE,
             HKEY_LIKEWISE_SUBKEY,
             NONE
-        }        
+        }
 
         #endregion
 
@@ -254,7 +254,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
             if (_pluginNode == nodeClicked)
             {
-                m_item = new MenuItem("&Import...", new EventHandler(editorPage.On_MenuClick));                
+                m_item = new MenuItem("&Import...", new EventHandler(editorPage.On_MenuClick));
                 m_item.Tag = _pluginNode;
                 contextMenu.MenuItems.Add(m_item);
             }
@@ -324,9 +324,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 }
 
                 m_item = new MenuItem("-");
-                contextMenu.MenuItems.Add(m_item);               
+                contextMenu.MenuItems.Add(m_item);
 
-                m_item = new MenuItem("&Export...", new EventHandler(editorPage.On_MenuClick));              
+                m_item = new MenuItem("&Export...", new EventHandler(editorPage.On_MenuClick));
                 m_item.Tag = nodeClicked;
                 contextMenu.MenuItems.Add(m_item);
 
@@ -535,6 +535,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             }
         }
 
-        #endregion     
-    }     
+        #endregion
+    }
 }

@@ -87,9 +87,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.label2);
             this.pnlData.Controls.Add(this.txtDescription);
             this.pnlData.Controls.Add(this.checkBox);
@@ -114,178 +114,178 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.LNameLabel);
             this.pnlData.Controls.Add(this.FNamelabel);
             this.pnlData.Size = new System.Drawing.Size(348, 385);
-            // 
+            //
             // FNamelabel
-            // 
+            //
             this.FNamelabel.Location = new System.Drawing.Point(19, 84);
             this.FNamelabel.Name = "FNamelabel";
             this.FNamelabel.Size = new System.Drawing.Size(94, 19);
             this.FNamelabel.TabIndex = 0;
             this.FNamelabel.Text = "Object type";
-            // 
+            //
             // LNameLabel
-            // 
+            //
             this.LNameLabel.Location = new System.Drawing.Point(19, 118);
             this.LNameLabel.Name = "LNameLabel";
             this.LNameLabel.Size = new System.Drawing.Size(107, 16);
             this.LNameLabel.TabIndex = 2;
             this.LNameLabel.Text = "Organization units:";
-            // 
+            //
             // Initiallabel
-            // 
+            //
             this.Initiallabel.Location = new System.Drawing.Point(154, 84);
             this.Initiallabel.Name = "Initiallabel";
             this.Initiallabel.Size = new System.Drawing.Size(137, 17);
             this.Initiallabel.TabIndex = 4;
             this.Initiallabel.Text = "Number Selected:";
-            // 
+            //
             // Displaynamelabel
-            // 
+            //
             this.Displaynamelabel.Location = new System.Drawing.Point(19, 136);
             this.Displaynamelabel.Name = "Displaynamelabel";
             this.Displaynamelabel.Size = new System.Drawing.Size(87, 15);
             this.Displaynamelabel.TabIndex = 9;
             this.Displaynamelabel.Text = "Users:";
-            // 
+            //
             // descriplabel
-            // 
+            //
             this.descriplabel.Location = new System.Drawing.Point(18, 153);
             this.descriplabel.Name = "descriplabel";
             this.descriplabel.Size = new System.Drawing.Size(88, 16);
             this.descriplabel.TabIndex = 10;
             this.descriplabel.Text = "Groups:";
-            // 
+            //
             // Officelabel
-            // 
+            //
             this.Officelabel.Location = new System.Drawing.Point(18, 171);
             this.Officelabel.Name = "Officelabel";
             this.Officelabel.Size = new System.Drawing.Size(88, 16);
             this.Officelabel.TabIndex = 11;
             this.Officelabel.Text = "Computers:";
-            // 
+            //
             // telelabel
-            // 
+            //
             this.telelabel.Location = new System.Drawing.Point(19, 232);
             this.telelabel.Name = "telelabel";
             this.telelabel.Size = new System.Drawing.Size(87, 16);
             this.telelabel.TabIndex = 15;
             this.telelabel.Text = "Summary";
-            // 
+            //
             // UserGeneralimageList
-            // 
+            //
             this.UserGeneralimageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("UserGeneralimageList.ImageStream")));
             this.UserGeneralimageList.TransparentColor = System.Drawing.Color.Transparent;
             this.UserGeneralimageList.Images.SetKeyName(0, "User_24.ico");
             this.UserGeneralimageList.Images.SetKeyName(1, "User.ico");
             this.UserGeneralimageList.Images.SetKeyName(2, "User_16.ico");
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(16, 23);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(40, 35);
             this.pictureBox1.TabIndex = 21;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(3, 64);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(325, 2);
             this.groupBox1.TabIndex = 22;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // groupBox2
-            // 
+            //
             this.groupBox2.Location = new System.Drawing.Point(4, 227);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(325, 2);
             this.groupBox2.TabIndex = 23;
             this.groupBox2.TabStop = false;
-            // 
+            //
             // lblUserName
-            // 
+            //
             this.lblUserName.Location = new System.Drawing.Point(67, 34);
             this.lblUserName.Name = "lblUserName";
             this.lblUserName.Size = new System.Drawing.Size(262, 19);
             this.lblUserName.TabIndex = 24;
             this.lblUserName.Text = "The  following objects types are selected.";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.Location = new System.Drawing.Point(19, 190);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(87, 15);
             this.label1.TabIndex = 27;
             this.label1.Text = "Contacts:";
-            // 
+            //
             // lblComputers
-            // 
+            //
             this.lblComputers.AutoSize = true;
             this.lblComputers.Location = new System.Drawing.Point(153, 171);
             this.lblComputers.Name = "lblComputers";
             this.lblComputers.Size = new System.Drawing.Size(0, 13);
             this.lblComputers.TabIndex = 31;
-            // 
+            //
             // lblGroups
-            // 
+            //
             this.lblGroups.AutoSize = true;
             this.lblGroups.Location = new System.Drawing.Point(153, 153);
             this.lblGroups.Name = "lblGroups";
             this.lblGroups.Size = new System.Drawing.Size(0, 13);
             this.lblGroups.TabIndex = 30;
-            // 
+            //
             // lblUsers
-            // 
+            //
             this.lblUsers.AutoSize = true;
             this.lblUsers.Location = new System.Drawing.Point(154, 135);
             this.lblUsers.Name = "lblUsers";
             this.lblUsers.Size = new System.Drawing.Size(0, 13);
             this.lblUsers.TabIndex = 29;
-            // 
+            //
             // lblOUs
-            // 
+            //
             this.lblOUs.AutoSize = true;
             this.lblOUs.Location = new System.Drawing.Point(154, 118);
             this.lblOUs.Name = "lblOUs";
             this.lblOUs.Size = new System.Drawing.Size(0, 13);
             this.lblOUs.TabIndex = 28;
-            // 
+            //
             // lblContacts
-            // 
+            //
             this.lblContacts.AutoSize = true;
             this.lblContacts.Location = new System.Drawing.Point(153, 189);
             this.lblContacts.Name = "lblContacts";
             this.lblContacts.Size = new System.Drawing.Size(0, 13);
             this.lblContacts.TabIndex = 32;
-            // 
+            //
             // lblOthers
-            // 
+            //
             this.lblOthers.AutoSize = true;
             this.lblOthers.Location = new System.Drawing.Point(153, 208);
             this.lblOthers.Name = "lblOthers";
             this.lblOthers.Size = new System.Drawing.Size(0, 13);
             this.lblOthers.TabIndex = 33;
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.Location = new System.Drawing.Point(18, 208);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(78, 16);
             this.label3.TabIndex = 34;
             this.label3.Text = "Others:";
-            // 
+            //
             // lblSummary
-            // 
+            //
             this.lblSummary.Location = new System.Drawing.Point(153, 232);
             this.lblSummary.Name = "lblSummary";
             this.lblSummary.Size = new System.Drawing.Size(50, 13);
             this.lblSummary.TabIndex = 35;
             this.lblSummary.Text = "Summary";
-            // 
+            //
             // checkBox
-            // 
+            //
             this.checkBox.Location = new System.Drawing.Point(16, 268);
             this.checkBox.Name = "checkBox";
             this.checkBox.Size = new System.Drawing.Size(312, 23);
@@ -293,27 +293,27 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.checkBox.Text = "Change the description text for all the selected objects.";
             this.checkBox.UseVisualStyleBackColor = true;
             this.checkBox.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
-            // 
+            //
             // txtDescription
-            // 
+            //
             this.txtDescription.Enabled = false;
             this.txtDescription.Location = new System.Drawing.Point(32, 318);
             this.txtDescription.MaxLength = 1024;
             this.txtDescription.Name = "txtDescription";
             this.txtDescription.Size = new System.Drawing.Size(259, 20);
             this.txtDescription.TabIndex = 37;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.Enabled = false;
             this.label2.Location = new System.Drawing.Point(30, 300);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(76, 14);
             this.label2.TabIndex = 38;
             this.label2.Text = "&Description:";
-            // 
+            //
             // MultiItemsGeneralEditPage
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.Name = "MultiItemsGeneralEditPage";
             this.Size = new System.Drawing.Size(348, 385);

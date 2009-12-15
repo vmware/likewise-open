@@ -73,9 +73,9 @@ namespace System.DirectoryServices.Misc
             this.backgroundWorker = new System.ComponentModel.BackgroundWorker();
             this.timer = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
-            // 
+            //
             // CancelBtn
-            // 
+            //
             this.CancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.CancelBtn.Enabled = false;
             this.CancelBtn.Location = new System.Drawing.Point(388, 247);
@@ -85,9 +85,9 @@ namespace System.DirectoryServices.Misc
             this.CancelBtn.Text = "&Cancel";
             this.CancelBtn.UseVisualStyleBackColor = true;
             this.CancelBtn.Click += new System.EventHandler(this.CancelBtn_Click);
-            // 
+            //
             // Okbtn
-            // 
+            //
             this.Okbtn.Enabled = false;
             this.Okbtn.Location = new System.Drawing.Point(307, 247);
             this.Okbtn.Name = "Okbtn";
@@ -96,43 +96,43 @@ namespace System.DirectoryServices.Misc
             this.Okbtn.Text = "&OK";
             this.Okbtn.UseVisualStyleBackColor = true;
             this.Okbtn.Click += new System.EventHandler(this.Okbtn_Click);
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(3, 12);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(110, 13);
             this.label1.TabIndex = 7;
             this.label1.Text = "Selected object type :";
-            // 
+            //
             // textBoxObjectType
-            // 
+            //
             this.textBoxObjectType.Location = new System.Drawing.Point(136, 9);
             this.textBoxObjectType.Name = "textBoxObjectType";
             this.textBoxObjectType.ReadOnly = true;
             this.textBoxObjectType.Size = new System.Drawing.Size(335, 20);
             this.textBoxObjectType.TabIndex = 8;
-            // 
+            //
             // textBoxDomain
-            // 
+            //
             this.textBoxDomain.Location = new System.Drawing.Point(136, 38);
             this.textBoxDomain.Name = "textBoxDomain";
             this.textBoxDomain.ReadOnly = true;
             this.textBoxDomain.Size = new System.Drawing.Size(335, 20);
             this.textBoxDomain.TabIndex = 9;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(3, 40);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(95, 13);
             this.label2.TabIndex = 10;
             this.label2.Text = "From the Location:";
-            // 
+            //
             // lvUserToGroup
-            // 
+            //
             this.lvUserToGroup.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colName,
             this.colEmail,
@@ -149,42 +149,42 @@ namespace System.DirectoryServices.Misc
             this.lvUserToGroup.View = System.Windows.Forms.View.Details;
             this.lvUserToGroup.SelectedIndexChanged += new System.EventHandler(this.lvUserToGroup_SelectedIndexChanged);
             this.lvUserToGroup.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvUserToGroup_ColumnClick);
-            // 
+            //
             // colName
-            // 
+            //
             this.colName.Text = "Name [RDN]";
             this.colName.Width = 110;
-            // 
+            //
             // colEmail
-            // 
+            //
             this.colEmail.Text = "E-Mail Address";
             this.colEmail.Width = 110;
-            // 
+            //
             // colDesc
-            // 
+            //
             this.colDesc.Text = "Description";
             this.colDesc.Width = 110;
-            // 
+            //
             // colPath
-            // 
+            //
             this.colPath.Text = "In Folder";
             this.colPath.Width = 130;
-            // 
+            //
             // backgroundWorker
-            // 
+            //
             this.backgroundWorker.WorkerReportsProgress = true;
             this.backgroundWorker.WorkerSupportsCancellation = true;
             this.backgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorker_DoWork);
             this.backgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorker_RunWorkerCompleted);
             this.backgroundWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorker_ProgressChanged);
-            // 
+            //
             // timer
-            // 
+            //
             this.timer.Interval = 300;
             this.timer.Tick += new System.EventHandler(this.timer_Tick);
-            // 
+            //
             // DsPicker
-            // 
+            //
             this.AcceptButton = this.Okbtn;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.CancelBtn;

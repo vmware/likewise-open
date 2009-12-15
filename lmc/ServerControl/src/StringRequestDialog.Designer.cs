@@ -63,24 +63,24 @@ namespace Likewise.LMC.ServerControl
             this.okButton = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.SuspendLayout();
-            // 
+            //
             // cancelButton
-            // 
+            //
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.cancelButton.Location = new System.Drawing.Point(0, 0);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(75, 23);
             this.cancelButton.TabIndex = 0;
-            // 
+            //
             // okButton
-            // 
+            //
             this.okButton.Location = new System.Drawing.Point(0, 0);
             this.okButton.Name = "okButton";
             this.okButton.Size = new System.Drawing.Size(75, 23);
             this.okButton.TabIndex = 0;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(0, 0);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(200, 100);

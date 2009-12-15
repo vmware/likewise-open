@@ -66,7 +66,7 @@ namespace Likewise.LMC.LDAP
 	    ADSTYPE_DN_WITH_STRING,
         ADSTYPE_DERIVED
     }
-   
+
 
     /// <summary>
     /// Summary description for ADType.

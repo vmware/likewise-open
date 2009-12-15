@@ -59,23 +59,23 @@ namespace Likewise.LMC
         private void InitializeComponent()
         {
             this.SuspendLayout();
-            // 
+            //
             // btnApply
-            // 
+            //
             this.btnApply.Location = new System.Drawing.Point(314, 6);
-            // 
+            //
             // btnOK
-            // 
+            //
             this.btnOK.Location = new System.Drawing.Point(154, 6);
             this.btnOK.Click += new System.EventHandler(this.OkBtn_clicked);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.Location = new System.Drawing.Point(235, 6);
             this.btnCancel.Click += new System.EventHandler(this.cancelBtn_clicked);
-            // 
+            //
             // AddRemovePluginDlg
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(398, 406);
             this.MinimumSize = new System.Drawing.Size(123, 88);

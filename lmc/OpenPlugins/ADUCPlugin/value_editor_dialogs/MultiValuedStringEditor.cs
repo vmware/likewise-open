@@ -106,12 +106,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                             return;
                         }
                     }
-                }                
+                }
                 string[] values = { txtAttrValue.Text.ToString().Trim() };
                 lviArr = new ListViewItem(values);
-                this.listViewAttrValues.Items.Add(lviArr);              
+                this.listViewAttrValues.Items.Add(lviArr);
             }
-            txtAttrValue.Text = "";   
+            txtAttrValue.Text = "";
         }
 
         private void listViewAttrValues_SelectedIndexChanged(object sender, EventArgs e)
@@ -220,7 +220,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     {
                         string[] values = { sTempArr[i].ToString() };
                         lviArr = new ListViewItem(values);
-                        this.listViewAttrValues.Items.Add(lviArr);                
+                        this.listViewAttrValues.Items.Add(lviArr);
                     }
                     origsMultiValuedStringAttrValue += (";" + sTempArr[i].ToString());
                 }
@@ -229,9 +229,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     origsMultiValuedStringAttrValue = origsMultiValuedStringAttrValue.Substring(1);
                 }
                 txtAttrValue.Focus();
-            }  
+            }
         }
 
-        #endregion Events 
+        #endregion Events
     }
 }

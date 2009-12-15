@@ -60,7 +60,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         //Set columns to Listview as per the node type
         private int numColumns = 0;
         private string[] columnLabels = null;
-        private ColumnHeader[] columnHeaders = null;      
+        private ColumnHeader[] columnHeaders = null;
 
         #endregion
 
@@ -279,7 +279,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 return;
 
             List<RegistryEnumKeyInfo> keys = null;
-            List<RegistryValueInfo> values = null;           
+            List<RegistryValueInfo> values = null;
 
             int ret = RegistryInteropWrapper.ApiRegQueryInfoEx(
                                     plugin.handle.Handle,
@@ -288,15 +288,15 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                     out KeyInfo.sValueCount);
 
             if (KeyInfo.sSubKeyCount != 0)
-            {                   
+            {
                 ret = RegistryInteropWrapper.ApiRegEnumKeyEx(
                                         plugin.handle.Handle,
                                         pRootKey,
                                         KeyInfo.sSubKeyCount,
-                                        out keys);              
+                                        out keys);
 
             }
-            
+
             if (KeyInfo.sValueCount != 0)
             {
                 ret = RegistryInteropWrapper.ApiRegEnumValues(
@@ -364,9 +364,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                                             "(Default)"
                                                             : value.pValueName;
 
-                    ListViewItem lvItem = new ListViewItem(new string[] { 
-                                sValuename, 
-                                GetRegLinuxValueKindType(value.pType), 
+                    ListViewItem lvItem = new ListViewItem(new string[] {
+                                sValuename,
+                                GetRegLinuxValueKindType(value.pType),
                                 ((value.bDataBuf == null) || (String.IsNullOrEmpty(value.bDataBuf.ToString()))) ? "(value not set)" :  value.bDataBuf.ToString() });
 
                     lvItem.Tag = value;
@@ -543,7 +543,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 case RegistryViewerPlugin.NodeType.HKEY_CURRENT_USER:
                 case RegistryViewerPlugin.NodeType.HKEY_LOCAL_MACHINE:
                 case RegistryViewerPlugin.NodeType.HKEY_USERS:
-                case RegistryViewerPlugin.NodeType.HKEY_CLASSES_ROOT:               
+                case RegistryViewerPlugin.NodeType.HKEY_CLASSES_ROOT:
                 case RegistryViewerPlugin.NodeType.HKEY_SUBKEY:
                 case RegistryViewerPlugin.NodeType.HKEY_LIKEWISE:
                 case RegistryViewerPlugin.NodeType.HKEY_LIKEWISE_SUBKEY:
@@ -600,7 +600,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             ContextMenu cm = new ContextMenu();
 
             MenuItem m_item = new MenuItem("&New", new EventHandler(On_MenuClick));
-            m_item.Tag = treeNode;           
+            m_item.Tag = treeNode;
 
             MenuItem m_Inneritem = new MenuItem("Key", new EventHandler(On_MenuClick));
             m_Inneritem.Tag = treeNode;
@@ -739,8 +739,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             tempValueInfo.sValue = valueInfo.sValue;
                             DoEditorWork(tempValueInfo, false, (ulong)tempValueInfo.RegDataType);
                         }
-                        else if (regValueInfo != null)                       
-                            DoEditorWork(regValueInfo, false, (ulong)RegistryApi.REG_BINARY);                      
+                        else if (regValueInfo != null)
+                            DoEditorWork(regValueInfo, false, (ulong)RegistryApi.REG_BINARY);
                         break;
 
                     //Delete
@@ -780,7 +780,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         break;
 
                     //&Import...
-                    case "&Import...":                      
+                    case "&Import...":
                         Do_ImportRegistry();
                         break;
 
@@ -1144,7 +1144,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         {
                             RegistryInteropWrapperWindows.Win32RegKeyValueData(valueInfo.sParentKey, valueInfo.sValue, out valueInfo.sDataBuf);
                             RegistryInteropWrapperWindows.Win32DeleteSubKeyValue(valueInfo.sParentKey, valueInfo.sValue);
-                            valueInfo.sValue = renameDlg.KeyName;                          
+                            valueInfo.sValue = renameDlg.KeyName;
                             RegistryInteropWrapperWindows.Win32ModifySubKeyValue(valueInfo);
                         }
                     }
@@ -1262,7 +1262,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         if (!string.IsNullOrEmpty(renameDlg.KeyName))
                         {
                             // Create a key with the new Name
-                            RegistryKey newKey = RegistryInteropWrapperWindows.Win32CreateSubKey(parentKey, renameDlg.KeyName);                           
+                            RegistryKey newKey = RegistryInteropWrapperWindows.Win32CreateSubKey(parentKey, renameDlg.KeyName);
 
                             // Move the old key values & subkeys to new key
                             Do_MoveSubKeys(keyInfo.sSubKey, newKey);
@@ -1346,7 +1346,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             }
             else if (objInfo != null && objInfo is RegistryValueInfo)
             {
-                byte[] pData = null;               
+                byte[] pData = null;
                 RegistryValueInfo valueInfo = objInfo as RegistryValueInfo;
 
                 RegistryInteropWrapper.RegModifyKeyValue(valueInfo, out pData);
@@ -1364,7 +1364,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             }
 
             return bSuccess;
-        }     
+        }
 
         private void Do_ImportRegistry()
         {
@@ -1584,7 +1584,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                             RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
                                                                                     IntPtr.Zero,
                                                                                     plugin.RegRootKeySelected,
-                                                                                    out pRootKey);                                       
+                                                                                    out pRootKey);
                                     }
                                     else
                                     {
@@ -1645,7 +1645,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                     splits[1] += currentLine;
                                     currentLine = reader.ReadLine();
                                 }
-                                splits[1] += currentLine;                              
+                                splits[1] += currentLine;
                                 splits[1] = splits[1].Replace('\\', ',');
                                 splits[1] = splits[1].Replace(" ", "");
                                 splits[1] = splits[1].EndsWith(",") ? splits[1].Substring(0, splits[1].Length - 1) : splits[1];
@@ -1676,12 +1676,12 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                 while (!reader.EndOfStream && currentLine.Contains(@"\"))
                                 {
                                     splits[1] += currentLine;
-                                    currentLine = reader.ReadLine();                                   
+                                    currentLine = reader.ReadLine();
                                 }
                                 splits[1] += currentLine;
                                 splits[1] = splits[1].Replace('\\', ',');
                                 splits[1] = splits[1].Replace(" ", "");
-                                splits[1] = splits[1].EndsWith(",") ? splits[1].Substring(0, splits[1].Length - 1) : splits[1];                               
+                                splits[1] = splits[1].EndsWith(",") ? splits[1].Substring(0, splits[1].Length - 1) : splits[1];
                             }
 
                             RegistryHelper.GetValueData(regValueInfo, splits[1]);
@@ -1692,8 +1692,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                                                     regValueInfo.bDataBuf as byte[]);
                         }
                     }
-                }                
-            }            
+                }
+            }
         }
 
         private void Do_RecursiveExportKey(StreamWriter writer, object phKey)
@@ -1849,7 +1849,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     }
                 }
             }
-        }  
+        }
 
         private bool Do_AddKeyValue(SubKeyValueInfo valueInfo)
         {
@@ -2018,7 +2018,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
                             if (keyInfo.sSubKeyCount != 0)
                                 Do_DeleteTree(key);
-                           
+
                             RegistryInteropWrapper.ApiRegDeleteKey(
                                         plugin.handle.Handle,
                                         key.pRootKey,
@@ -2056,7 +2056,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 }
 
             }
-        }       
+        }
 
         private void Do_CloseRegTree(RegistryEnumKeyInfo keyInfo)
         {
@@ -2092,7 +2092,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
                             if (keyInfo.sSubKeyCount != 0)
                                 Do_DeleteTree(key);
-                          
+
                             RegistryInteropWrapper.ApiRegDeleteKey(
                                         plugin.handle.Handle,
                                         key.pRootKey,
@@ -2105,14 +2105,14 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         }
 
         private void Do_CreateKey(RegistryEnumKeyInfo keyInfo, LACTreeNode node)
-        {            
+        {
             if (keyInfo != null)
             {
                 RegistryAddSubKeyDlg addDlg = new RegistryAddSubKeyDlg(string.Empty, true, keyInfo);
                 if (addDlg.ShowDialog(this) == DialogResult.OK)
                 {
                     IntPtr phkResult = IntPtr.Zero;
-                    int ret = RegistryInteropWrapper.ApiRegCreateKeyEx(plugin.handle.Handle, keyInfo.pKey, Marshal.StringToHGlobalUni(addDlg.KeyName), out phkResult);                    
+                    int ret = RegistryInteropWrapper.ApiRegCreateKeyEx(plugin.handle.Handle, keyInfo.pKey, Marshal.StringToHGlobalUni(addDlg.KeyName), out phkResult);
                     if (ret == 0)
                     {
                         if (phkResult != IntPtr.Zero)
@@ -2129,7 +2129,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         container.ShowError(this, "Registry cannot create the key with the name specified.\n It is because of either the name exists or parent key info is wrong");
                     }
                 }
-            }           
+            }
         }
 
         #endregion
@@ -2261,9 +2261,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             //this.lvRegistryPage.Sort();
             this.lvRegistryPage.Sorting = SortOrder.None;
         }
-       
-        #endregion  
-      
+
+        #endregion
+
     }
 
     public class RegistryViewerClassesPage : RegistryEditorPage
@@ -2332,5 +2332,5 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
     public interface IDirectoryPropertiesPage
     {
         void SetData(Likewise.LMC.Utilities.CredentialEntry ce, string sharename, object Object);
-    }   
+    }
 }

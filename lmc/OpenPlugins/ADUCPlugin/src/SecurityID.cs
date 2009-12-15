@@ -248,5 +248,3 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
     }
 }
-
-

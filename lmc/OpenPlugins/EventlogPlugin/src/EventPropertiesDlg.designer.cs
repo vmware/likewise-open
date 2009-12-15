@@ -59,7 +59,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
         private void InitializeComponent()
         {
             this.SuspendLayout();
-            // 
+            //
             // btnOK
             //
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
@@ -67,9 +67,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             // btnCancel
             //
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // EventPropertiesDlg
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(372, 387);
             this.MinimumSize = new System.Drawing.Size(112, 81);

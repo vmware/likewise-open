@@ -35,11 +35,11 @@ using System.Text;
 namespace System.DirectoryServices
 {
     public class SearchResultCollection: List<SearchResult>, IDisposable
-    {        
+    {
 
         public SearchResultCollection()
             :base()
-        {               
+        {
         }
 
         #region IDisposable Members

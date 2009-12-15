@@ -128,9 +128,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
             public PARTIAL_RESOURCE_LIST PartialResourceList;
         }
-      
+
         public class PARTIAL_RESOURCE_DESCRIPTOR
-        {          
+        {
             public class GenericResource
             {
                 public ulong Start;
@@ -151,52 +151,52 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 public uint Vector;
                 public uint Affinity;
             }
-         
+
             public class PortResource
             {
                 public ulong Start;
                 public uint Length;
             }
-          
+
             public class MemoryResource
             {
                 public ulong Start;
                 public uint Length;
             }
-         
+
             public class DevicePrivateResource
             {
                 // DevicePrivate;
                 [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
                 public uint[] Data;
             }
-          
+
             public class BusNumberResource
             {
                 public uint Start;
                 public uint Length;
                 public uint Reserved;
             }
-       
+
             public class DeviceSpecificDataResource
             {
                 public uint DataSize;
                 public uint Reserved1;
                 public uint Reserved2;
             }
-          
+
             public byte Type;
             public byte ShareDisposition;
-            public ushort Flags;           
-        
-            public GenericResource Generic;        
-            public PortResource Port;     
-            public MemoryResource Memory;     
-            public DmaResource Dma;   
-            public InterruptResource Interrupt;      
-            public DevicePrivateResource DevicePrivate; 
-            public BusNumberResource BusNumber;       
-            public DeviceSpecificDataResource DeviceSpecificData;           
+            public ushort Flags;
+
+            public GenericResource Generic;
+            public PortResource Port;
+            public MemoryResource Memory;
+            public DmaResource Dma;
+            public InterruptResource Interrupt;
+            public DevicePrivateResource DevicePrivate;
+            public BusNumberResource BusNumber;
+            public DeviceSpecificDataResource DeviceSpecificData;
         }
 
         public class ResourceList

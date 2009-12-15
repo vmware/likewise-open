@@ -61,27 +61,27 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.treeView1 = new Likewise.LMC.ServerControl.LWTreeView();
             this.newobjectlabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
-            // 
+            //
             // treeView1
-            // 
+            //
             this.treeView1.Location = new System.Drawing.Point(20, 31);
             this.treeView1.Name = "treeView1";
             this.treeView1.Size = new System.Drawing.Size(391, 177);
             this.treeView1.TabIndex = 1;
             this.treeView1.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterSelect);
             this.treeView1.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView1_NodeMouseClick);
-            // 
+            //
             // newobjectlabel
-            // 
+            //
             this.newobjectlabel.AutoSize = true;
             this.newobjectlabel.Location = new System.Drawing.Point(17, 12);
             this.newobjectlabel.Name = "newobjectlabel";
             this.newobjectlabel.Size = new System.Drawing.Size(90, 13);
             this.newobjectlabel.TabIndex = 0;
             this.newobjectlabel.Text = "Select a class:";
-            // 
+            //
             // ObjectAddWelcomePage
-            // 
+            //
             this.Controls.Add(this.newobjectlabel);
             this.Controls.Add(this.treeView1);
             this.MaximumSize = new System.Drawing.Size(430, 270);

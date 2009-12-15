@@ -40,7 +40,7 @@ namespace Likewise.LMC.ServerControl
     /// This class handles the enabling and disabling of the buttons depending
     /// on the state of the child controls.
     /// </summary>
-    /// 
+    ///
     public partial class EditDialog : Form
     {
         #region Class data
@@ -98,8 +98,8 @@ namespace Likewise.LMC.ServerControl
 
         /// <summary>
         /// This property reflects a state of the data displayed in the dialog.
-        /// It is set to true if any data was changed. 
-        /// 
+        /// It is set to true if any data was changed.
+        ///
         /// Some controls (ListBox) do not provide an event handler that can be used to detect
         /// if a control data was changed. For these controls set this value directly
         /// when the control data is modified programatically.
@@ -221,7 +221,7 @@ namespace Likewise.LMC.ServerControl
         /// <summary>
         /// Override this in subclass to validate all the dialog data.
         /// </summary>
-        /// <param name="actionCause">indicates the action causing data to be validated</param>        
+        /// <param name="actionCause">indicates the action causing data to be validated</param>
         protected virtual bool ValidateAllData(EditDialogAction actionCause)
         {
             // do nothing
@@ -388,7 +388,7 @@ namespace Likewise.LMC.ServerControl
                     this.DialogResult = DialogResult.None;
                 }
             }
-            
+
             EndApply();
         }
 

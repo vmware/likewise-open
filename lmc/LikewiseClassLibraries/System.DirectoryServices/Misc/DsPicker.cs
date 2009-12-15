@@ -55,7 +55,7 @@ namespace System.DirectoryServices.Misc
             SELECT_ONLY_DOMAIN_USERS = 32,
             SELECT_USERS_OR_GROUPS = 64,
             SELECT_ONLY_DOMAIN_USERS_OR_GROUPS = 128,
-            SELECT_USERS_COMPUTERS = 256,            
+            SELECT_USERS_COMPUTERS = 256,
         }
 
         //To specify AD object type
@@ -75,13 +75,13 @@ namespace System.DirectoryServices.Misc
 
         string sDomainName = string.Empty;
 
-        //private System.Object lockThis_setData = new System.Object(); 
+        //private System.Object lockThis_setData = new System.Object();
         // Used to display progress to user...
         public WaitForm waitForm = null;
         int Count = 0;
         int percentDone = 0;
-        private BackgroundWorker bw = null;      
-       
+        private BackgroundWorker bw = null;
+
         private DirectoryEntry de = null;
         private Dictionary<string, DirectoryEntry> deList = null;
         private DialogType dt = DialogType.SELECT_USERS_OR_GROUPS;
@@ -89,7 +89,7 @@ namespace System.DirectoryServices.Misc
         public string groupScope = string.Empty;
         private Form parentHandle = null;
         private bool formResult = false;
-             
+
         #endregion
 
         #region Accessors
@@ -126,16 +126,16 @@ namespace System.DirectoryServices.Misc
         {
 
             //MessageBox.Show("Please wait while ADUC-plugin is loading users/groups information.", "Likewise Administrative Console", MessageBoxButtons.OK,
-                           //MessageBoxIcon.Information);  
-            InitializeComponent();             
+                           //MessageBoxIcon.Information);
+            InitializeComponent();
 
-            // Create an instance of a ListView column sorter and assign it 
+            // Create an instance of a ListView column sorter and assign it
             // to the ListView control.
             lvwColumnSorter = new ListViewColumnSorter();
             this.lvUserToGroup.ListViewItemSorter = lvwColumnSorter;
             lvwColumnSorter.Order = SortOrder.Ascending;
 
-           
+
         }
 
         public DsPicker(Form HWND)
@@ -160,7 +160,7 @@ namespace System.DirectoryServices.Misc
                 timer.Enabled = true;
                 timer.Start();
             }
-            lvUserToGroup.MultiSelect = allowMultiSelect;           
+            lvUserToGroup.MultiSelect = allowMultiSelect;
             // if no server specified, try to synthesize it from the dc's
             if (targetServer == null && sDCs != null)
                 targetServer = SDSUtils.DNToDomainName(sDCs);
@@ -175,7 +175,7 @@ namespace System.DirectoryServices.Misc
 
             try
             {
-                waitForm = new WaitForm(backgroundWorker, timer, de);               
+                waitForm = new WaitForm(backgroundWorker, timer, de);
                 backgroundWorker.RunWorkerAsync(null);
 
                 //System.Threading.Thread.Sleep(1000);
@@ -187,7 +187,7 @@ namespace System.DirectoryServices.Misc
             {
                 MessageBox.Show(this, ex.Message, "Likewise Administrator Console",
                                     MessageBoxButtons.OK);
-            } 
+            }
 
             this.CancelBtn.Enabled = true;
             lvUserToGroup.Enabled = true;
@@ -211,7 +211,7 @@ namespace System.DirectoryServices.Misc
         private void Okbtn_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.OK;
-            
+
             this.Close();
             if (lvUserToGroup.SelectedItems.Count == 0)
                 return;
@@ -233,8 +233,8 @@ namespace System.DirectoryServices.Misc
         }
 
         private void CancelBtn_Click(object sender, EventArgs e)
-        {  
-          
+        {
+
 
             this.Close();
         }
@@ -301,8 +301,8 @@ namespace System.DirectoryServices.Misc
 
             if (waitForm.bIsInterrupted && this.backgroundWorker.CancellationPending)
             {
-                timer.Stop();               
-                this.backgroundWorker.CancelAsync();                              
+                timer.Stop();
+                this.backgroundWorker.CancelAsync();
                 waitForm.Close();
                 waitForm = null;
                 return;
@@ -313,7 +313,7 @@ namespace System.DirectoryServices.Misc
                 if (ex != null)
                 {
                     timer.Stop();
-                    this.backgroundWorker.CancelAsync();                  
+                    this.backgroundWorker.CancelAsync();
                     return;
                 }
 
@@ -328,14 +328,14 @@ namespace System.DirectoryServices.Misc
         }
 
         private void backgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {           
+        {
             timer.Stop();
             timer.Enabled = false;
             if (waitForm != null)
             {
                 waitForm.Close();
                 waitForm = null;
-            }           
+            }
         }
 
         private void timer_Tick(object sender, EventArgs e)
@@ -383,7 +383,7 @@ namespace System.DirectoryServices.Misc
             {
                 columnLabels = new string[] { "Name(RDN)", "E-Mail Address", "Description", "In Folder", "Logon Name" };
             }
-                       
+
             int numColumns = columnLabels.Length;
             ColumnHeader[] columnHeaders = new ColumnHeader[numColumns];
             for (int i = 0; i < numColumns; i++)
@@ -396,7 +396,7 @@ namespace System.DirectoryServices.Misc
             this.lvUserToGroup.Columns.AddRange(columnHeaders);
 
             if (this.lvUserToGroup.Columns.Count == 1)
-                lvUserToGroup.Columns[numColumns - 1].Width = this.Width;            
+                lvUserToGroup.Columns[numColumns - 1].Width = this.Width;
             lvUserToGroup.Show();
         }
 
@@ -407,7 +407,7 @@ namespace System.DirectoryServices.Misc
                 return;
             }
             bw = args as BackgroundWorker;
-            
+
             bw.ReportProgress(percentDone, (Object)"Please wait while plugin is loading users/groups information");
             SetListviewColumns();
             switch (dt)
@@ -478,7 +478,7 @@ namespace System.DirectoryServices.Misc
                              dt == DialogType.SELECT_ONLY_DOMAIN_USERS_OR_GROUPS ||
                              dt == DialogType.SELECT_USERS ||
                              dt == DialogType.SELECT_USERS_COMPUTERS)
-                             
+
                     {
                         itemsTodisplay = new string[] { sItems[0], email, desc, sItems[1] };
                     }
@@ -491,7 +491,7 @@ namespace System.DirectoryServices.Misc
                     lvitems[index++] = lvItem;
                 }
                 lvUserToGroup.Items.AddRange(lvitems);
-            }          
+            }
         }
 
         public DirectoryEntry GetRootDSE(string serverOrDomain)
@@ -595,7 +595,7 @@ namespace System.DirectoryServices.Misc
 
             try
             {
-                src = dsT.FindAll();              
+                src = dsT.FindAll();
 
                 foreach (SearchResult sr in src)
                 {
@@ -634,7 +634,7 @@ namespace System.DirectoryServices.Misc
                             adUserGroupMap.Add(o.Properties["distinguishedName"].Value as string, o);
                             count++;
                         }
-                    }                  
+                    }
                 }
             }
             catch (Exception aex)
@@ -665,7 +665,7 @@ namespace System.DirectoryServices.Misc
                 if (count == maxResultSetSize)
                     return objectlist;
 
-                // only tweak if we need to                   
+                // only tweak if we need to
                 if (o != null && !o.Properties["objectClass"].Contains("user"))
                 {
                     objectlist.Add(o.Properties["distinguishedName"].Value as string, o);
@@ -673,7 +673,7 @@ namespace System.DirectoryServices.Misc
                 }
                 else if (o.Children.Count > 0)
                     GetAllUserGroupList(Chnode, maxResultSetSize);
-            }           
+            }
         }*/
 
         /// <summary>
@@ -711,7 +711,7 @@ namespace System.DirectoryServices.Misc
             return slvItem;
         }
 
-        #endregion   
+        #endregion
     }
 
     //ADObject used to make SDS ADObject to send as result from the dailogue
@@ -830,5 +830,5 @@ namespace System.DirectoryServices.Misc
             }
         }
         #endregion
-    }    
+    }
 }

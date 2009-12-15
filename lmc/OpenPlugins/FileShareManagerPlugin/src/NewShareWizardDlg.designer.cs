@@ -61,9 +61,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
         private void InitializeComponent()
         {
             this.SuspendLayout();
-            // 
+            //
             // NewShareWizardDlg
-            // 
+            //
             this.ClientSize = new System.Drawing.Size(492, 366);
             this.MaximumSize = new System.Drawing.Size(500, 400);
             this.MinimumSize = new System.Drawing.Size(500, 400);
@@ -74,5 +74,5 @@ namespace Likewise.LMC.Plugins.FileShareManager
         }
 
         #endregion
-    }   
+    }
 }

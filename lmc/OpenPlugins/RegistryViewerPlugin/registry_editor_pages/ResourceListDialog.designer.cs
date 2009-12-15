@@ -66,9 +66,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnOK = new System.Windows.Forms.Button();
             this.btnDisplay = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // LWlvResourceList
-            // 
+            //
             this.LWlvResourceList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colBusNum,
             this.colIntType,
@@ -80,23 +80,23 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.LWlvResourceList.TabIndex = 0;
             this.LWlvResourceList.UseCompatibleStateImageBehavior = false;
             this.LWlvResourceList.View = System.Windows.Forms.View.Details;
-            // 
+            //
             // colBusNum
-            // 
+            //
             this.colBusNum.Text = "Bus Number";
             this.colBusNum.Width = 95;
-            // 
+            //
             // colIntType
-            // 
+            //
             this.colIntType.Text = "Interface Type";
             this.colIntType.Width = 118;
-            // 
+            //
             // colResourceList
-            // 
+            //
             this.colResourceList.Text = "";
-            // 
+            //
             // btnOK
-            // 
+            //
             this.btnOK.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnOK.Location = new System.Drawing.Point(76, 161);
             this.btnOK.Name = "btnOK";
@@ -105,9 +105,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnOK.Text = "&OK";
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            // 
+            //
             // btnDisplay
-            // 
+            //
             this.btnDisplay.Enabled = false;
             this.btnDisplay.Location = new System.Drawing.Point(160, 161);
             this.btnDisplay.Name = "btnDisplay";
@@ -116,9 +116,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnDisplay.Text = "&Display...";
             this.btnDisplay.UseVisualStyleBackColor = true;
             this.btnDisplay.Click += new System.EventHandler(this.btnDisplay_Click);
-            // 
+            //
             // ResourceListDialog
-            // 
+            //
             this.AcceptButton = this.btnDisplay;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnOK;

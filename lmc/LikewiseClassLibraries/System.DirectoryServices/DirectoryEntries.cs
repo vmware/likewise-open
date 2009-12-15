@@ -52,7 +52,7 @@ namespace System.DirectoryServices
         {
             this.parentDN = parentDN;
             this.sServer = sServer;
-            this.dirContext = dirContext;        
+            this.dirContext = dirContext;
         }
 
         public DirectoryEntry Add(string sName, string sClass)
@@ -62,8 +62,8 @@ namespace System.DirectoryServices
             string newChildDN = string.Concat(sName,",", parentDN);
             newChildLdapPath = string.Concat(newChildLdapPath, "/", newChildDN);
 
-            //Console.WriteLine("In DirectoryEntries:Add: newChildLdapPath is " + newChildLdapPath);      
-            
+            //Console.WriteLine("In DirectoryEntries:Add: newChildLdapPath is " + newChildLdapPath);
+
           //  DirectoryEntry parent = new DirectoryEntry(string.Format("LDAP://{0}/{1}",sServer,parentDN));
 
           //  Console.WriteLine("parent's DN is " + parent.Name);
@@ -75,15 +75,15 @@ namespace System.DirectoryServices
             newChild.SchemaClassName = sClass;
 
             //Console.WriteLine("dirContext is " + dirContext.DomainName + " dirContext portNumber is " + dirContext.PortNumber + " sClass is " + sClass
-            //    + " newchildDN is " + newChildDN );            
+            //    + " newchildDN is " + newChildDN );
 
-            
+
 
             int ret = SDSUtils.AddNewObj(dirContext, sClass, newChildDN);
 
             //System.Threading.Thread.Sleep(5000);
 
-            //Console.WriteLine("addnew obj returned " + ret);        
+            //Console.WriteLine("addnew obj returned " + ret);
 
             if (ret == 0)
             {
@@ -107,7 +107,7 @@ namespace System.DirectoryServices
                 if (entryTodelete.Path.Equals(entry.Path, StringComparison.InvariantCultureIgnoreCase))
                 {
                     entry.ToBeDeleted = true;
-                    //Console.WriteLine("In DirectoryEntries:Remove: removedChildLpath is " + entryTodelete.Path); 
+                    //Console.WriteLine("In DirectoryEntries:Remove: removedChildLpath is " + entryTodelete.Path);
                     break;
                 }
             }

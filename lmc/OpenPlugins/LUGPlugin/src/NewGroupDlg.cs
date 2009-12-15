@@ -92,13 +92,13 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
     #endregion
     
     #region Interfaces Implementation
-    
+
     public void SetData(string servername, string username)
     {
         Applied = false;
         _servername = servername;
     }
-    
+
     private bool ProcessMembers(CredentialEntry ce, string domain)
     {
         bool retVal = true;
@@ -144,7 +144,7 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
     }
     
     #endregion
-    
+
     #region Event Handlers
     protected override bool Apply(EditDialogAction actionCause)
     {
@@ -168,7 +168,7 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
             Hostinfo hn = localParent.GetContext() as Hostinfo;
 
             bRet = bRet && hn != null && hn.creds != null &&
-                   ProcessMembers(hn.creds, localParent.GetDomain());            
+                   ProcessMembers(hn.creds, localParent.GetDomain());
         }
         catch (Exception e)
         {            
@@ -180,7 +180,7 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
         {
             Applied = true;
             Close();
-        }        
+        }
        
         return bRet;
     }
@@ -345,7 +345,7 @@ public partial class NewGroupDlg : EditDialog, IUIInitialize
         if (!Applied)
         {
             Apply(EditDialogAction.ACTION_OK);
-        }       
+        }
     }
     
 }

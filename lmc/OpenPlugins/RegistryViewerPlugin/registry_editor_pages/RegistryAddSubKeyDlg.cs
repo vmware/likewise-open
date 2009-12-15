@@ -52,7 +52,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         #region Access Specifiers
 
-        public string KeyName 
+        public string KeyName
         {
             get
             {
@@ -70,7 +70,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         public RegistryAddSubKeyDlg()
         {
-            InitializeComponent();            
+            InitializeComponent();
         }
 
         public RegistryAddSubKeyDlg(string oldKey, bool bIsKey, object sKey)
@@ -114,8 +114,8 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         {
             this.DialogResult = DialogResult.Cancel;
             this.Close();
-        }       
-       
+        }
+
         #endregion
 
         #region Helper functions

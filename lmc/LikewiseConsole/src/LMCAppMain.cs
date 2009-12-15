@@ -126,10 +126,10 @@ namespace Likewise.LMC
                 mf.Activate();
 
                 // start running
-                Application.Run(mf);      
+                Application.Run(mf);
             }
             catch (ShowUsageException)
-            {                  
+            {
             }
             catch (DllNotFoundException ex)
             {
@@ -163,14 +163,14 @@ namespace Likewise.LMC
 
             return;
         }
-        
+
 
         /// <summary>
         /// Assimilates the command line arguments.
         /// </summary>
         /// <param name="args">command line arguments</param>
         private static void parseCommandLineArgs(string[] args, out string sConsoleFile)
-        {            
+        {
             if (args.Length == 0)
             {
                 sConsoleFile = null;
@@ -289,7 +289,7 @@ namespace Likewise.LMC
                                 string str = string.Format(Properties.Resources.Usage, arg);
                                 Console.WriteLine(str);
                                 throw new ShowUsageException();
-                            }                            
+                            }
                     }
                 }
                 catch (ShowWrongArgException)
@@ -311,7 +311,7 @@ namespace Likewise.LMC
                         "Error: An invalid log level was specified. Expecting one of {Silent,Panic,Error,Normal,Verbose,Debug}",
                         Logger.LogLevel.Error);
                     return;
-                }               
+                }
                 sOption = arg;
             }
 

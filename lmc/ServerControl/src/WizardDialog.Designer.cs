@@ -69,17 +69,17 @@ namespace Likewise.LMC.ServerControl
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.panel_controls.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // panel_content
-            // 
+            //
             this.panel_content.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel_content.Location = new System.Drawing.Point(0, 0);
             this.panel_content.Name = "panel_content";
             this.panel_content.Size = new System.Drawing.Size(495, 358);
             this.panel_content.TabIndex = 0;
-            // 
+            //
             // panel_controls
-            // 
+            //
             this.panel_controls.Controls.Add(this.m_buttonStart);
             this.panel_controls.Controls.Add(this.m_buttonFinish);
             this.panel_controls.Controls.Add(this.m_buttonNext);
@@ -91,9 +91,9 @@ namespace Likewise.LMC.ServerControl
             this.panel_controls.Name = "panel_controls";
             this.panel_controls.Size = new System.Drawing.Size(495, 54);
             this.panel_controls.TabIndex = 1;
-            // 
+            //
             // m_buttonStart
-            // 
+            //
             this.m_buttonStart.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.m_buttonStart.Location = new System.Drawing.Point(296, 19);
             this.m_buttonStart.Name = "m_buttonStart";
@@ -102,9 +102,9 @@ namespace Likewise.LMC.ServerControl
             this.m_buttonStart.Text = "Start";
             this.m_buttonStart.UseVisualStyleBackColor = true;
             this.m_buttonStart.Click += new System.EventHandler(this.m_buttonStart_Click);
-            // 
+            //
             // m_buttonFinish
-            // 
+            //
             this.m_buttonFinish.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.m_buttonFinish.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.m_buttonFinish.Location = new System.Drawing.Point(296, 19);
@@ -114,9 +114,9 @@ namespace Likewise.LMC.ServerControl
             this.m_buttonFinish.Text = "&Finish";
             this.m_buttonFinish.UseVisualStyleBackColor = true;
             this.m_buttonFinish.Click += new System.EventHandler(this.OnClickFinish);
-            // 
+            //
             // m_buttonNext
-            // 
+            //
             this.m_buttonNext.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.m_buttonNext.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.m_buttonNext.Location = new System.Drawing.Point(296, 19);
@@ -126,9 +126,9 @@ namespace Likewise.LMC.ServerControl
             this.m_buttonNext.Text = "&Next >";
             this.m_buttonNext.UseVisualStyleBackColor = true;
             this.m_buttonNext.Click += new System.EventHandler(this.OnClickNext);
-            // 
+            //
             // m_buttonBack
-            // 
+            //
             this.m_buttonBack.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.m_buttonBack.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.m_buttonBack.Location = new System.Drawing.Point(203, 19);
@@ -138,9 +138,9 @@ namespace Likewise.LMC.ServerControl
             this.m_buttonBack.Text = "< &Back";
             this.m_buttonBack.UseVisualStyleBackColor = true;
             this.m_buttonBack.Click += new System.EventHandler(this.OnClickBack);
-            // 
+            //
             // m_buttonCancel
-            // 
+            //
             this.m_buttonCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.m_buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.m_buttonCancel.FlatStyle = System.Windows.Forms.FlatStyle.System;
@@ -151,9 +151,9 @@ namespace Likewise.LMC.ServerControl
             this.m_buttonCancel.Text = "&Cancel";
             this.m_buttonCancel.UseVisualStyleBackColor = true;
             this.m_buttonCancel.Click += new System.EventHandler(this.OnClickCancel);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Top;
             this.groupBox1.Location = new System.Drawing.Point(0, 0);
             this.groupBox1.Name = "groupBox1";
@@ -161,9 +161,9 @@ namespace Likewise.LMC.ServerControl
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "groupBox1";
-            // 
+            //
             // WizardDialog
-            // 
+            //
             this.AcceptButton = this.m_buttonNext;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.m_buttonCancel;

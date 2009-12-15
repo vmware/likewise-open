@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 {
     partial class UserAccountPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -76,9 +76,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.groupBox1);
             this.pnlData.Controls.Add(this.ListUserOptions);
             this.pnlData.Controls.Add(this.cbAccLocked);
@@ -92,9 +92,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.label2);
             this.pnlData.Controls.Add(this.label1);
             this.pnlData.Size = new System.Drawing.Size(374, 444);
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoEllipsis = true;
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(12, 14);
@@ -102,9 +102,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.label1.Size = new System.Drawing.Size(90, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "&User logon name:";
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoEllipsis = true;
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(12, 61);
@@ -112,9 +112,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.label2.Size = new System.Drawing.Size(188, 13);
             this.label2.TabIndex = 1;
             this.label2.Text = "User logon name (pre-&Windows 2000):";
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoEllipsis = true;
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(15, 169);
@@ -122,42 +122,42 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.label3.Size = new System.Drawing.Size(87, 13);
             this.label3.TabIndex = 2;
             this.label3.Text = "Account &options.";
-            // 
+            //
             // txtlogon
-            // 
+            //
             this.txtlogon.Location = new System.Drawing.Point(15, 30);
             this.txtlogon.Name = "txtlogon";
             this.txtlogon.Size = new System.Drawing.Size(165, 20);
             this.txtlogon.TabIndex = 3;
             this.txtlogon.TextChanged += new System.EventHandler(this.txtlogon_TextChanged);
-            // 
+            //
             // cbDomain
-            // 
+            //
             this.cbDomain.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbDomain.FormattingEnabled = true;
             this.cbDomain.Location = new System.Drawing.Point(186, 30);
             this.cbDomain.Name = "cbDomain";
             this.cbDomain.Size = new System.Drawing.Size(170, 21);
             this.cbDomain.TabIndex = 4;
-            // 
+            //
             // txtpreLogonname
-            // 
+            //
             this.txtpreLogonname.Location = new System.Drawing.Point(186, 77);
             this.txtpreLogonname.Name = "txtpreLogonname";
             this.txtpreLogonname.Size = new System.Drawing.Size(170, 20);
             this.txtpreLogonname.TabIndex = 5;
             this.txtpreLogonname.TextChanged += new System.EventHandler(this.txtpreLogonname_TextChanged);
-            // 
+            //
             // txtDomian
-            // 
+            //
             this.txtDomian.Location = new System.Drawing.Point(15, 77);
             this.txtDomian.Name = "txtDomian";
             this.txtDomian.ReadOnly = true;
             this.txtDomian.Size = new System.Drawing.Size(165, 20);
             this.txtDomian.TabIndex = 6;
-            // 
+            //
             // btnLogonHours
-            // 
+            //
             this.btnLogonHours.AutoEllipsis = true;
             this.btnLogonHours.Location = new System.Drawing.Point(15, 106);
             this.btnLogonHours.Name = "btnLogonHours";
@@ -166,9 +166,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnLogonHours.Text = "Logon Hours...";
             this.btnLogonHours.UseVisualStyleBackColor = true;
             this.btnLogonHours.Click += new System.EventHandler(this.btnLogonHours_Click);
-            // 
+            //
             // btnLogonTo
-            // 
+            //
             this.btnLogonTo.AutoEllipsis = true;
             this.btnLogonTo.Location = new System.Drawing.Point(116, 107);
             this.btnLogonTo.Name = "btnLogonTo";
@@ -177,9 +177,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnLogonTo.Text = "Log On &To...";
             this.btnLogonTo.UseVisualStyleBackColor = true;
             this.btnLogonTo.Click += new System.EventHandler(this.btnLogonTo_Click);
-            // 
+            //
             // cbAccLocked
-            // 
+            //
             this.cbAccLocked.AutoSize = true;
             this.cbAccLocked.Enabled = false;
             this.cbAccLocked.Location = new System.Drawing.Point(15, 144);
@@ -189,9 +189,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbAccLocked.Text = "A&ccount is Locked";
             this.cbAccLocked.UseVisualStyleBackColor = true;
             this.cbAccLocked.CheckedChanged += new System.EventHandler(this.cbAccLocked_CheckedChanged);
-            // 
+            //
             // ListUserOptions
-            // 
+            //
             this.ListUserOptions.BackColor = System.Drawing.SystemColors.Control;
             this.ListUserOptions.FormattingEnabled = true;
             this.ListUserOptions.HorizontalScrollbar = true;
@@ -200,9 +200,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.ListUserOptions.Size = new System.Drawing.Size(341, 94);
             this.ListUserOptions.TabIndex = 10;
             this.ListUserOptions.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.ListUserOptions_ItemCheck);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.dateTimePicker);
             this.groupBox1.Controls.Add(this.rbEndOf);
             this.groupBox1.Controls.Add(this.rbNever);
@@ -212,7 +212,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox1.TabIndex = 11;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Account expires";
-            // 
+            //
             // dateTimePicker
             //
             this.dateTimePicker.Enabled = false;
@@ -223,7 +223,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.dateTimePicker.ValueChanged += new System.EventHandler(this.dateTimePicker_ValueChanged);
             //
             // rbEndOf
-            // 
+            //
             this.rbEndOf.AutoSize = true;
             this.rbEndOf.Location = new System.Drawing.Point(10, 39);
             this.rbEndOf.Name = "rbEndOf";
@@ -232,9 +232,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbEndOf.Text = "&End of..";
             this.rbEndOf.UseVisualStyleBackColor = true;
             this.rbEndOf.CheckedChanged += new System.EventHandler(this.rbEndOf_CheckedChanged);
-            // 
+            //
             // rbNever
-            // 
+            //
             this.rbNever.AutoSize = true;
             this.rbNever.Checked = true;
             this.rbNever.Location = new System.Drawing.Point(10, 19);
@@ -245,9 +245,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbNever.Text = "Ne&ver";
             this.rbNever.UseVisualStyleBackColor = true;
             this.rbNever.CheckedChanged += new System.EventHandler(this.rbNever_CheckedChanged);
-            // 
+            //
             // UserAccountPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "UserAccountPage";
             this.Size = new System.Drawing.Size(374, 444);

@@ -64,11 +64,11 @@ namespace System.DirectoryServices
         }
 
         public SecurityIdentifier(WellKnownSidType sidType, SecurityIdentifier domainSid)
-        {                 
+        {
             switch (sidType)
             {
                 case WellKnownSidType.AccountComputersSid: //append 515
-                    _sidStr = string.Concat(domainSid.Value, "-515");                  
+                    _sidStr = string.Concat(domainSid.Value, "-515");
 
                     break;
 
@@ -84,7 +84,7 @@ namespace System.DirectoryServices
             }
             _AccountDomainSid = domainSid.Value;
             _sidbytes = this.StringToBytes();
-            _bytelength = _sidbytes.Length;            
+            _bytelength = _sidbytes.Length;
         }
 
         /// <summary>
@@ -93,14 +93,14 @@ namespace System.DirectoryServices
         /// <returns></returns>
         public override string ToString()
         {
-            return _sidStr;            
+            return _sidStr;
         }
         #endregion
 
 
         public override string Value
         {
-            get 
+            get
             {
                 return _sidStr;
             }
@@ -144,11 +144,11 @@ namespace System.DirectoryServices
             }
         }
 
-        //before call this function, memory is allocated for binaryForm 
+        //before call this function, memory is allocated for binaryForm
         public void GetBinaryForm(byte[] binaryForm, int offset)
         {
             if (_sidbytes != null && _sidbytes.Length > 0)
-            {                   
+            {
                 for (int i = offset; i < _sidbytes.Length + offset; i++)
                     binaryForm[i] = _sidbytes[i - offset];
             }
@@ -180,7 +180,7 @@ namespace System.DirectoryServices
                         (Int16)_sidbytes[2], (Int16)_sidbytes[3], (Int16)_sidbytes[4],
                         (Int16)_sidbytes[5], (Int16)_sidbytes[6], (Int16)_sidbytes[7]);
 
-                    int firstIndex = 0;  
+                    int firstIndex = 0;
                     for (int i = 0;i<strAuth.Length;i++)
                     {
                         if (strAuth[i] == '0') continue;
@@ -243,16 +243,16 @@ namespace System.DirectoryServices
             int NumberDashes = splits.Length - 1;
 
             List<byte> sidByte = new List<byte>();
-            
+
             //revision
             byte revision = Convert.ToByte(uint.Parse(splits[1]));
             sidByte.Add(revision);
-            
+
             //number of dashes minus two
             byte dashes = Convert.ToByte(Convert.ToString(NumberDashes-2));
             sidByte.Add(dashes);
 
-            //six bytes (48-bit)  in big-endian format            
+            //six bytes (48-bit)  in big-endian format
             uint big_edian_number = uint.Parse(splits[2]);
             big_edian_number = endian_swap(big_edian_number);
 
@@ -266,9 +266,9 @@ namespace System.DirectoryServices
 
             //four bytes treated as 32-bit number in little-endian format until we finish splits str array
             for (int i = 3; i < splits.Length; i++)
-            {   
+            {
                 //uint big_edians = uint.Parse(splits[i]);
-                uint little_edian_number = uint.Parse(splits[i]);                                                              
+                uint little_edian_number = uint.Parse(splits[i]);
 
                 byte[] little_endianBytes = BitConverter.GetBytes(little_edian_number);
                 if (little_endianBytes.Length < 4)
@@ -276,14 +276,14 @@ namespace System.DirectoryServices
                         sidByte.Add(new byte());
 
                 foreach (byte b in little_endianBytes)
-                    sidByte.Add(b); 
+                    sidByte.Add(b);
             }
 
             byte[] results = new byte[sidByte.Count];
             sidByte.CopyTo(results);
 
             return results;
-        }   
+        }
 
 
         // C# to convert a string to a byte array.
@@ -296,12 +296,12 @@ namespace System.DirectoryServices
         //swap big endian to little endian rep
         public static uint endian_swap(uint x)
         {
-            return 
+            return
                 (x >> 24) |
                 ((x << 8) & 0x00FF0000) |
                 ((x >> 8) & 0x0000FF00) |
                 (x << 24);
-        } 
+        }
 
         //convert a hex string to byte array
         public static byte[] HexStrToByteArray(string HexString)
@@ -311,7 +311,7 @@ namespace System.DirectoryServices
 
             byte[] bytes = new byte[NumberChars / 2];
 
-            for (int i = 0; i < NumberChars; i += 2)           
+            for (int i = 0; i < NumberChars; i += 2)
                 bytes[i / 2] = Convert.ToByte(HexString.Substring(i, 2), 16);
 
             return bytes;
@@ -319,5 +319,5 @@ namespace System.DirectoryServices
         }
     }
 
-    
+
 }

@@ -80,72 +80,72 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupboxGroupScope.SuspendLayout();
             this.groupBoxGroupType.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // groupBox2
-            // 
+            //
             this.groupBox2.Location = new System.Drawing.Point(8, 281);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(450, 2);
             this.groupBox2.TabIndex = 34;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "groupBox2";
-            // 
+            //
             // pictureBox
-            // 
+            //
             this.pictureBox.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox.Image")));
             this.pictureBox.Location = new System.Drawing.Point(12, 17);
             this.pictureBox.Name = "pictureBox";
             this.pictureBox.Size = new System.Drawing.Size(24, 24);
             this.pictureBox.TabIndex = 33;
             this.pictureBox.TabStop = false;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(11, 54);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(445, 2);
             this.groupBox1.TabIndex = 1;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "groupBox2";
-            // 
+            //
             // lblGroupName
-            // 
+            //
             this.lblGroupName.AutoSize = true;
             this.lblGroupName.Location = new System.Drawing.Point(15, 69);
             this.lblGroupName.Name = "lblGroupName";
             this.lblGroupName.Size = new System.Drawing.Size(68, 13);
             this.lblGroupName.TabIndex = 2;
             this.lblGroupName.Text = "Group n&ame:";
-            // 
+            //
             // txtGroupname
-            // 
+            //
             this.txtGroupname.Location = new System.Drawing.Point(18, 89);
             this.txtGroupname.MaxLength = 64;
             this.txtGroupname.Name = "txtGroupname";
             this.txtGroupname.Size = new System.Drawing.Size(438, 20);
             this.txtGroupname.TabIndex = 3;
             this.txtGroupname.TextChanged += new System.EventHandler(this.txtGroupname_TextChanged);
-            // 
+            //
             // lblGroupNamePrewin
-            // 
+            //
             this.lblGroupNamePrewin.AutoSize = true;
             this.lblGroupNamePrewin.Location = new System.Drawing.Point(16, 119);
             this.lblGroupNamePrewin.Name = "lblGroupNamePrewin";
             this.lblGroupNamePrewin.Size = new System.Drawing.Size(163, 13);
             this.lblGroupNamePrewin.TabIndex = 4;
             this.lblGroupNamePrewin.Text = "Group name(pre-&Windows 2000):";
-            // 
+            //
             // txtprewin
-            // 
+            //
             this.txtprewin.Location = new System.Drawing.Point(18, 141);
             this.txtprewin.MaxLength = 256;
             this.txtprewin.Name = "txtprewin";
             this.txtprewin.Size = new System.Drawing.Size(438, 20);
             this.txtprewin.TabIndex = 5;
             this.txtprewin.TextChanged += new System.EventHandler(this.txtprewin_TextChanged);
-            // 
+            //
             // groupboxGroupScope
-            // 
+            //
             this.groupboxGroupScope.Controls.Add(this.rbtnUniversal);
             this.groupboxGroupScope.Controls.Add(this.rbtnGlobal);
             this.groupboxGroupScope.Controls.Add(this.rbtnDomainLocal);
@@ -155,18 +155,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupboxGroupScope.TabIndex = 6;
             this.groupboxGroupScope.TabStop = false;
             this.groupboxGroupScope.Text = "Group scope";
-            // 
+            //
             // rbtnUniversal
-            // 
+            //
             this.rbtnUniversal.Location = new System.Drawing.Point(7, 66);
             this.rbtnUniversal.Name = "rbtnUniversal";
             this.rbtnUniversal.Size = new System.Drawing.Size(143, 17);
             this.rbtnUniversal.TabIndex = 2;
             this.rbtnUniversal.Text = "&Universal";
             this.rbtnUniversal.UseVisualStyleBackColor = true;
-            // 
+            //
             // rbtnGlobal
-            // 
+            //
             this.rbtnGlobal.Checked = true;
             this.rbtnGlobal.Location = new System.Drawing.Point(7, 43);
             this.rbtnGlobal.Name = "rbtnGlobal";
@@ -175,9 +175,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbtnGlobal.TabStop = true;
             this.rbtnGlobal.Text = "&Global";
             this.rbtnGlobal.UseVisualStyleBackColor = true;
-            // 
+            //
             // rbtnDomainLocal
-            // 
+            //
             this.rbtnDomainLocal.Location = new System.Drawing.Point(7, 20);
             this.rbtnDomainLocal.Name = "rbtnDomainLocal";
             this.rbtnDomainLocal.Size = new System.Drawing.Size(143, 17);
@@ -185,9 +185,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbtnDomainLocal.Text = "D&omain local";
             this.rbtnDomainLocal.UseVisualStyleBackColor = true;
             this.rbtnDomainLocal.CheckedChanged += new System.EventHandler(this.rbtn_CheckedChanged);
-            // 
+            //
             // groupBoxGroupType
-            // 
+            //
             this.groupBoxGroupType.Controls.Add(this.rbtnDistribution);
             this.groupBoxGroupType.Controls.Add(this.rbtnSecurity);
             this.groupBoxGroupType.Location = new System.Drawing.Point(249, 168);
@@ -196,18 +196,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBoxGroupType.TabIndex = 7;
             this.groupBoxGroupType.TabStop = false;
             this.groupBoxGroupType.Text = "Group type";
-            // 
+            //
             // rbtnDistribution
-            // 
+            //
             this.rbtnDistribution.Location = new System.Drawing.Point(7, 43);
             this.rbtnDistribution.Name = "rbtnDistribution";
             this.rbtnDistribution.Size = new System.Drawing.Size(142, 17);
             this.rbtnDistribution.TabIndex = 1;
             this.rbtnDistribution.Text = "&Distribution";
             this.rbtnDistribution.UseVisualStyleBackColor = true;
-            // 
+            //
             // rbtnSecurity
-            // 
+            //
             this.rbtnSecurity.Checked = true;
             this.rbtnSecurity.Location = new System.Drawing.Point(7, 20);
             this.rbtnSecurity.Name = "rbtnSecurity";
@@ -216,9 +216,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbtnSecurity.TabStop = true;
             this.rbtnSecurity.Text = "&Security";
             this.rbtnSecurity.UseVisualStyleBackColor = true;
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Enabled = false;
             this.btnOk.Location = new System.Drawing.Point(302, 289);
             this.btnOk.Name = "btnOk";
@@ -227,9 +227,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOk.Text = "OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(383, 289);
             this.btnCancel.Name = "btnCancel";
@@ -238,9 +238,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // txtcreatein
-            // 
+            //
             this.txtcreatein.BackColor = System.Drawing.SystemColors.Control;
             this.txtcreatein.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtcreatein.Location = new System.Drawing.Point(45, 24);
@@ -248,9 +248,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtcreatein.ReadOnly = true;
             this.txtcreatein.Size = new System.Drawing.Size(413, 13);
             this.txtcreatein.TabIndex = 35;
-            // 
+            //
             // ADGroupAddDlg
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;

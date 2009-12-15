@@ -95,8 +95,8 @@ public partial class GroupPropertiesDlg : MPContainer
                 Logger.LogException("GroupPropertiesDlg.Apply", e);
             }
         }
-        
-        
+
+
         return b;
     }
 
@@ -109,7 +109,7 @@ public partial class GroupPropertiesDlg : MPContainer
     {
         Close();
     }
-    
+
     #endregion
     
     #region Helper Methods
@@ -131,7 +131,7 @@ public partial class GroupPropertiesDlg : MPContainer
         
     }
     
-    
+
     public string GetGroupDescription()
     {
         string description;
@@ -143,7 +143,7 @@ public partial class GroupPropertiesDlg : MPContainer
 
         return "";
     }
-    
+
     public string[] GetUserList()
     {
         string[] members;

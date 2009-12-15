@@ -52,7 +52,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         #region Constructors
 
-        public ServicePropertiesDlg(IPlugInContainer container, StandardPage parentPage, 
+        public ServicePropertiesDlg(IPlugInContainer container, StandardPage parentPage,
                                     ServiceManagerPlugin plugin, string serviceName)
                                     : base(container, parentPage)
         {
@@ -61,7 +61,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.Text = serviceName;
             _container = container;
             _plugin = plugin;
-           
+
             InitializePages(serviceName);
         }
 
@@ -96,7 +96,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 if (ppage != null)
                     ppage.SetData();
             }
-        } 
+        }
 
         #endregion
 

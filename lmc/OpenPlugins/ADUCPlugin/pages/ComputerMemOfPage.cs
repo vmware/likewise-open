@@ -50,31 +50,31 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
     ADUCPlugin _plugin;
     IPlugInContainer _container;
     ADUCDirectoryNode _dirnode = null;
-    
+
     bool memListchanged = false;
-    
+
     List<string> MemofDnList;
     List<string> AddedGroups;
     List<string> RemovedGroups;
-    
+
     private ListViewColumnSorter lvwColumnSorter;
     private string sPrimayGroup = string.Empty;
     private bool IsPrimaryGroupChanged = false;
     private string ChangedPrimaryGroup = "";
 
     #endregion
-    
+
     #region Constructor
     public ComputerMemOfPage(IPlugInContainer container, ADUCPlugin plugin)
     {
         this.pageID = "ComputerMemofEditProperities";
         InitializeComponent();
-        
+
         // Create an instance of a ListView column sorter and assign it
         // to the ListView control.
         lvwColumnSorter = new ListViewColumnSorter();
         this.MemoflistView.ListViewItemSorter = lvwColumnSorter;
-        
+
         SetPageTitle("Member of");
         _plugin = plugin;
         _container = container;
@@ -83,9 +83,9 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
         RemovedGroups = new List<string>();
     }
     #endregion
-    
+
     #region Initialization Methods
-    
+
     /// <summary>
     /// Gets all groups for the selected computer AD Object is member of
     /// Add groups to the Member Of page listview
@@ -99,8 +99,8 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
         _servername = servername;
         _dirnode = dirnode;
         string[] groupDns = UserGroupUtils.GetGroupsforUser(dirnode);
-        
-        
+
+
         MemoflistView.Items.Clear();
         //show a list of group names in the member of page
         Logger.Log("user member of contains: ", Logger.ldapLogLevel);
@@ -124,7 +124,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                 lvItem.ImageIndex = MemOfPages.GetIndexForADObject(entry);
                 MemoflistView.Items.Add(lvItem);
                 lvItem.Tag = groupDn;
-                
+
                 if (!slvItem[0].Equals("Domain Users", StringComparison.InvariantCultureIgnoreCase))
                 {
                     MemofDnList.Add(groupDn);
@@ -137,7 +137,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
             {
                 DomainUserlabel.Text = Items[0];
             }
-            
+
             if (MemoflistView.Items.Count > 0)
             {
                 MemoflistView.Items[0].Selected = true;
@@ -145,9 +145,9 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
         }
     }
     #endregion
-    
+
     #region Helper Methods
-    
+
     private void UpdateApplyButton()
     {
         if (!memListchanged)
@@ -161,7 +161,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
             ParentContainer.btnApply.Enabled = true;
         }
     }
-    
+
     /// <summary>
     /// Method to find the duplicate entry from the list
     /// </summary>
@@ -180,11 +180,11 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
         }
         return bIsFound;
     }
-    
+
     #endregion
-    
+
     #region Event Handlers
-    
+
     /// <summary>
     /// Populate the AddUsertoGroup model dialog
     /// AddUsertoGroup.MEMOF_PAGE is parameter which filter only the groups
@@ -200,7 +200,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
         string sServer;
         string sCNs;
         string sDCs;
-        
+
         System.DirectoryServices.SDSUtils.CrackPath(sLdapPath, out sProtocol, out sServer, out sCNs, out sDCs);
         System.DirectoryServices.Misc.DsPicker f = new System.DirectoryServices.Misc.DsPicker();
         f.SetData(System.DirectoryServices.Misc.DsPicker.DialogType.SELECT_GROUPS, sProtocol, sServer, sDCs, true);
@@ -239,7 +239,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                         lvItem.ImageIndex = MemOfPages.GetIndexForADObject(entry);
                         MemoflistView.Items.Add(lvItem);
                         lvItem.Tag = sDN;
-                        
+
                         if (!slvItem[0].Equals("Domain Users", StringComparison.InvariantCultureIgnoreCase))
                         {
                             MemofDnList.Add(sDN);
@@ -247,12 +247,12 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                             foreach (string str in RemovedGroups)
                             {
                                 if (str.Equals(sDN, StringComparison.InvariantCultureIgnoreCase))
-                                
+
 {
-                                
+
 }
 
-                                
+
                                 // Remove the selected group from the list, if it is exists
                                 RemovedGroups.Remove(sDN);
                                 break;
@@ -267,10 +267,10 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
         {
             memListchanged = false;
         }
-        
+
         UpdateApplyButton();
     }
-    
+
     /// <summary>
     /// Removes the selected group from the Member of listview
     /// </summary>
@@ -280,7 +280,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
     {
         if (MemoflistView.SelectedItems.Count > 0)
         {
-            
+
             DialogResult dlg =
             MessageBox.Show(this, "Do you want to remove " + _dirnode.Text + " from the selected group(s)?",
             "Remove user from group", MessageBoxButtons.YesNo,
@@ -309,12 +309,12 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                         foreach (string str in AddedGroups)
                         {
                             if (str.Equals(removeDn, StringComparison.InvariantCultureIgnoreCase))
-                            
+
 {
-                            
+
 }
 
-                            
+
                             AddedGroups.Remove(removeDn);
                             RemovedGroups.Remove(removeDn);
                             break;
@@ -322,7 +322,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                     }
                 }
                 RemoveButton.Enabled = false;
-                
+
                 memListchanged = true;
             }
         }
@@ -330,7 +330,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
         {
             memListchanged = false;
         }
-        
+
         UpdateApplyButton();
     }
 
@@ -355,16 +355,16 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
             ParentContainer.btnApply.Enabled = ParentContainer.DataChanged = true;
         }
     }
-    
+
     private void MemoflistView_SelectedIndexChanged(object sender, EventArgs e)
     {
         RemoveButton.Enabled = MemoflistView.SelectedItems.Count != 0;
-        
+
         if (MemoflistView.SelectedItems.Count == 0)
         {
             return;
         }
-        
+
         if (MemoflistView.SelectedItems.Count > 1)
         {
             SetPrimaryGroupbutton.Enabled = false;
@@ -388,7 +388,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                     {
                         return;
                     }
-                    
+
                     object[] asProp = entry.Properties["objectClass"].Value as object[];
                     // poke these in a list for easier reference
                     List<string> liClasses = new List<string>();
@@ -396,7 +396,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                     {
                         liClasses.Add(s);
                     }
-                    
+
                     if (liClasses.Contains("group"))
                     {
                         string primaryGpToken = string.Empty;
@@ -420,9 +420,9 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                 }
             }
         }
-        
+
     }
-    
+
     //when adding a user to a new group, we need modify the group's "member" attribute to include this user,
     // we cannot modify the user's "memberof" attribute
     public bool OnApply()
@@ -466,10 +466,10 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
         }
 
         retVal = MemOfPages.OnApply_helper(MemofDnList, AddedGroups, RemovedGroups, _dirnode, this);
-        
+
         return retVal;
     }
-    
+
     private void MemoflistView_ColumnClick(object sender, ColumnClickEventArgs e)
     {
         // Determine if clicked column is already the column that is being sorted.
@@ -491,11 +491,11 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
             lvwColumnSorter.SortColumn = e.Column;
             lvwColumnSorter.Order = SortOrder.Ascending;
         }
-        
+
         // Perform the sort with these new sort options.
         this.MemoflistView.Sort();
     }
-    
+
     private void MemoflistView_MouseDoubleClick(object sender, MouseEventArgs e)
     {
         if (MemoflistView.SelectedItems.Count > 0)
@@ -521,16 +521,16 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                 {
                     return;
                 }
-                
+
                 object[] asProp = entry.Properties["objectClass"].Value as object[];
-                
+
                 // poke these in a list for easier reference
                 List<string> liClasses = new List<string>();
                 foreach (string s in asProp)
                 {
                     liClasses.Add(s);
                 }
-                
+
                 if (liClasses.Contains("computer"))
                 {
                     ADUCDirectoryNode dirnode = new ADUCDirectoryNode(distinguishedName,
@@ -585,7 +585,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
             }
         }
     }
-    
+
     #endregion
 }
 }

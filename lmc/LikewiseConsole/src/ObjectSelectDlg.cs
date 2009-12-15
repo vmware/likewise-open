@@ -44,7 +44,7 @@ namespace Likewise.LMC
     public partial class ObjectSelectDlg : WizardDialog
     {
         #region Class Data
-      
+
         public WizardPage _WizardPage = null;
         public static string PAGENAME = "ObjectSelectDlg";
         public string distinguishedName = null;
@@ -57,8 +57,8 @@ namespace Likewise.LMC
 
         public ObjectSelectDlg()
         {
-            InitializeComponent();          
-            
+            InitializeComponent();
+
             this.Text = "Select Group Policy Object";
 
         }
@@ -67,9 +67,9 @@ namespace Likewise.LMC
             : this()
         {
             this.IPlugInContainer = container;
-            //this.AddPage(new DomainConnectPage(this, hn, plugin, container));   
+            //this.AddPage(new DomainConnectPage(this, hn, plugin, container));
             this.AddPage(new ObjectSelectPage(this, plugin, container));
         }
         #endregion
-    }    
+    }
 }

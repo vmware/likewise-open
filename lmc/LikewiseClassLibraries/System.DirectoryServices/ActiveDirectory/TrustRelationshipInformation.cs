@@ -48,7 +48,7 @@ namespace System.DirectoryServices.ActiveDirectory
             this.trusttype = trusttype;
             this.trustdirection = trustdirection;
         }
-        
+
         public string SourceName
         {
             get

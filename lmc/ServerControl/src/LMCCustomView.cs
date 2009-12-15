@@ -106,7 +106,7 @@ namespace Likewise.LMC.ServerControl
             {
                 this.cbStatusbar.Checked = value;
             }
-        }      
+        }
 
         public bool TaskpadNavigationpads
         {
@@ -134,8 +134,8 @@ namespace Likewise.LMC.ServerControl
         #endregion
 
         private void SettingsChanged(object sender, EventArgs e)
-        { 
+        {
             bDefaults = false;
-        }       
+        }
     }
 }

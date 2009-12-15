@@ -77,9 +77,9 @@ namespace Likewise.LMC.Plugins.LUG
             ((System.ComponentModel.ISupportInitialize)(this.pbUser)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.lbUser);
             this.pnlData.Controls.Add(this.pbUser);
             this.pnlData.Controls.Add(this.gbSeparator);
@@ -94,9 +94,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.pnlData.Controls.Add(this.tbFullName);
             this.pnlData.Dock = System.Windows.Forms.DockStyle.None;
             this.pnlData.Size = new System.Drawing.Size(386, 380);
-            // 
+            //
             // cbIsDisabled
-            // 
+            //
             this.cbIsDisabled.Location = new System.Drawing.Point(17, 205);
             this.cbIsDisabled.Name = "cbIsDisabled";
             this.cbIsDisabled.Size = new System.Drawing.Size(300, 17);
@@ -113,9 +113,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.cbNeverExpires.Text = "Pass&word never expires";
             this.cbNeverExpires.UseVisualStyleBackColor = true;
             this.cbNeverExpires.CheckedChanged += new System.EventHandler(this.cbNeverExpirers_CheckedChanged);
-            // 
+            //
             // cbCannotChange
-            // 
+            //
             this.cbCannotChange.Location = new System.Drawing.Point(17, 159);
             this.cbCannotChange.Name = "cbCannotChange";
             this.cbCannotChange.Size = new System.Drawing.Size(300, 17);
@@ -123,9 +123,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.cbCannotChange.Text = "U&ser cannot change password";
             this.cbCannotChange.UseVisualStyleBackColor = true;
             this.cbCannotChange.CheckedChanged += new System.EventHandler(this.cbCannotChange_CheckedChanged);
-            // 
+            //
             // cbMustChange
-            // 
+            //
             this.cbMustChange.Location = new System.Drawing.Point(17, 136);
             this.cbMustChange.Name = "cbMustChange";
             this.cbMustChange.Size = new System.Drawing.Size(300, 17);
@@ -133,27 +133,27 @@ namespace Likewise.LMC.Plugins.LUG
             this.cbMustChange.Text = "User &must change password at next logon";
             this.cbMustChange.UseVisualStyleBackColor = true;
             this.cbMustChange.CheckedChanged += new System.EventHandler(this.cbMustChange_CheckedChanged);
-            // 
+            //
             // lbDescription
-            // 
+            //
             this.lbDescription.AutoSize = true;
             this.lbDescription.Location = new System.Drawing.Point(14, 101);
             this.lbDescription.Name = "lbDescription";
             this.lbDescription.Size = new System.Drawing.Size(63, 13);
             this.lbDescription.TabIndex = 17;
             this.lbDescription.Text = "&Description:";
-            // 
+            //
             // lbFullName
-            // 
+            //
             this.lbFullName.AutoSize = true;
             this.lbFullName.Location = new System.Drawing.Point(14, 68);
             this.lbFullName.Name = "lbFullName";
             this.lbFullName.Size = new System.Drawing.Size(57, 13);
             this.lbFullName.TabIndex = 15;
             this.lbFullName.Text = "&Full Name:";
-            // 
+            //
             // tbDescription
-            // 
+            //
             this.tbDescription.Location = new System.Drawing.Point(98, 97);
             this.tbDescription.Name = "tbDescription";
             this.tbDescription.Size = new System.Drawing.Size(270, 20);
@@ -185,9 +185,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.gbSeparator.Size = new System.Drawing.Size(351, 1);
             this.gbSeparator.TabIndex = 24;
             this.gbSeparator.TabStop = false;
-            // 
+            //
             // pbUser
-            // 
+            //
             this.pbUser.Image = ((System.Drawing.Image)(resources.GetObject("pbUser.Image")));
             this.pbUser.Location = new System.Drawing.Point(17, 8);
             this.pbUser.Name = "pbUser";
@@ -195,23 +195,23 @@ namespace Likewise.LMC.Plugins.LUG
             this.pbUser.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.pbUser.TabIndex = 26;
             this.pbUser.TabStop = false;
-            // 
+            //
             // lbUser
-            // 
+            //
             this.lbUser.AutoSize = true;
             this.lbUser.Location = new System.Drawing.Point(64, 18);
             this.lbUser.Name = "lbUser";
             this.lbUser.Size = new System.Drawing.Size(21, 13);
             this.lbUser.TabIndex = 27;
             this.lbUser.Text = "{0}";
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // EditUserPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "EditUserPage";
             this.Size = new System.Drawing.Size(386, 380);

@@ -61,9 +61,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         private void InitializeComponent()
         {
             this.SuspendLayout();
-            // 
+            //
             // ADObjectAddDlg
-            // 
+            //
             this.ClientSize = new System.Drawing.Size(432, 266);
             this.MaximumSize = new System.Drawing.Size(440, 300);
             this.MinimumSize = new System.Drawing.Size(440, 300);
@@ -73,5 +73,5 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         }
 
         #endregion
-    }   
+    }
 }

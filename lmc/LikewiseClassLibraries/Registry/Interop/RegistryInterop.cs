@@ -71,8 +71,8 @@ namespace Likewise.LMC.Registry
         public const uint RRF_RT_QWORD = RRF_RT_REG_BINARY | RRF_RT_REG_QWORD;
         public const uint RRF_RT_ANY = 0x0000FFFF; //No type restriction.
         public const uint RRF_NOEXPAND = 0x10000000;
-        public const uint RRF_ZEROONFAILURE = 0x20000000;        
-        
+        public const uint RRF_ZEROONFAILURE = 0x20000000;
+
         //REG_DATA_TYPE
         public const ulong REG_NONE = 0; // No value type
         public const ulong REG_SZ = 1;   // Unicode null terminated string
@@ -168,7 +168,7 @@ namespace Likewise.LMC.Registry
             public uint ve_valuelen;
             public IntPtr ve_valueptr;
             public ulong ve_type;
-        };      
+        };
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public struct SECURITY_ATTRIBUTES
@@ -214,7 +214,7 @@ namespace Likewise.LMC.Registry
             IntPtr hRegConnection,
             IntPtr hKey,
             IntPtr pSubKey,
-            int Reserved,            
+            int Reserved,
             IntPtr pClass,
             int dwOptions,
             RegistryApi.RegSAM samDesired,
@@ -256,7 +256,7 @@ namespace Likewise.LMC.Registry
             IntPtr hRegConnection,
             IntPtr hKey,
             [MarshalAs(UnmanagedType.LPWStr)] string pSubKey);
-         
+
         //DWORD
         //RegDeleteKeyValue(
         //    HANDLE hRegConnection,
@@ -452,7 +452,7 @@ namespace Likewise.LMC.Registry
             out uint lpcbMaxValueNameLen,
             out uint lpcbMaxValueLen,
             out IntPtr lpcbSecurityDescriptor,
-            out RegistryApi.FILETIME pftLastWriteTime);     
+            out RegistryApi.FILETIME pftLastWriteTime);
 
         //DWORD
         //RegSetValueEx(
@@ -489,10 +489,10 @@ namespace Likewise.LMC.Registry
             IntPtr hRegConnection,
             IntPtr hKey,
             [MarshalAs(UnmanagedType.LPWStr)] StringBuilder lpSubKey,
-            [MarshalAs(UnmanagedType.LPWStr)] StringBuilder lpValueName,           
+            [MarshalAs(UnmanagedType.LPWStr)] StringBuilder lpValueName,
             int dwType,
             [MarshalAs(UnmanagedType.LPWStr)] string pData,
-            uint pcbData);              
+            uint pcbData);
 
         //RPC Server Api calls
 

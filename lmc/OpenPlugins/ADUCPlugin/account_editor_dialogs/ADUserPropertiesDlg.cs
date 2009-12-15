@@ -45,12 +45,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
     public partial class ADUserPropertiesDlg : MPContainer
     {
         #region Class Data
-       
+
         private ADUCPlugin _plugin;
         private IPlugInContainer _container;
         private ObjectPropertyInfo objInfo;
         private bool IsCanceled = false;
-        public static bool Applied = false;        
+        public static bool Applied = false;
 
         #endregion
 
@@ -62,8 +62,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.Text = "{0} Properties";
             _plugin = plugin;
             this.ObjectCounts = ObjectCounts;
-            _container = container;            
-           
+            _container = container;
+
             InitializePages();
         }
         #endregion
@@ -97,7 +97,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.AddPage(page,
                              new MPMenuItem(page.PageID, "Profile", "Profile"),
                              MPMenu.POSITION_BEGINING
-                             );          
+                             );
 
             page = new UserMemOfPage(this._container, this._plugin);
             this.AddPage(page,
@@ -122,9 +122,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         /// <param name="ldapSchemaCache"></param>
         public void SetData(CredentialEntry ce, string servername, string user, ADUCDirectoryNode dirnode, LDAPSchemaCache ldapSchemaCache)
         {
-            Applied = false;         
-            _plugin = dirnode.Plugin as ADUCPlugin;          
-            this.Text = String.Format(this.Text, user);            
+            Applied = false;
+            _plugin = dirnode.Plugin as ADUCPlugin;
+            this.Text = String.Format(this.Text, user);
 
             objInfo = new ObjectPropertyInfo
                                       (ce,
@@ -141,7 +141,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         }
 
         private void AddPagesToThread()
-        {            
+        {
             if (this.GetPages() != null)
             {
                 ThreadsInner = new List<Thread>();
@@ -151,7 +151,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         break;
 
                     if (page != null && page is IDirectoryPropertiesPage)
-                    {  
+                    {
                         ObjectPropertyInfo objInformation = new ObjectPropertyInfo
                                                             (objInfo.ce,
                                                              objInfo.servername,
@@ -163,8 +163,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         threadInner.Start(objInformation);
                         threadInner.Join();
                         ThreadsInner.Add(threadInner);
-                    }                   
-                }     
+                    }
+                }
             }
         }
 
@@ -181,7 +181,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             {
                 page.SetData(info.ce, info.servername, info.objectName, info.dirnode);
             }
-        }        
+        }
 
         #endregion
 
@@ -211,7 +211,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         ADEditPage _editPage = (ADEditPage)page;
                         if (!_editPage.OnApply())
                         {
-                            return false;                            
+                            return false;
                         }
                     }
                     if (page.PageID.Trim().Equals("UserMemofEditProperities"))
@@ -221,7 +221,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         {
                             return false;
                         }
-                    }                    
+                    }
                     if (page.PageID.Trim().Equals("UserGeneralEditProperities"))
                     {
                         UserGeneralEditPage _editPage = (UserGeneralEditPage)page;
@@ -261,7 +261,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             }
             Applied = true;
             return true;
-        }        
+        }
 
         private void btnCancel_Click(object sender, EventArgs e)
         {
@@ -276,7 +276,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         private void btnOK_Click(object sender, EventArgs e)
         {
             if (Applied || !bDataWasChanged)
-            {               
+            {
                 StopThreads();
                 this.Close();
             }
@@ -294,4 +294,3 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         #endregion
     }
 }
-

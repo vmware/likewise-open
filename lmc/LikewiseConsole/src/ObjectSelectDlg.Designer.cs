@@ -59,9 +59,9 @@ namespace Likewise.LMC
         private void InitializeComponent()
         {
             this.SuspendLayout();
-            // 
+            //
             // ObjectSelectDlg
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(487, 354);
             this.Name = "ObjectSelectDlg";

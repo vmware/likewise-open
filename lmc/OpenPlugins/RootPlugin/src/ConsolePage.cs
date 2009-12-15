@@ -42,9 +42,9 @@ public partial class ConsolePage : ServerControl.StandardPage
     public ConsolePage()
     {
         InitializeComponent();
-        
+
     }
-    
+
     /// <summary>
     /// Sets the Plugin information to base
     /// List the all child nodes, then refreshes the listview with the all child treenodes.
@@ -60,7 +60,7 @@ public partial class ConsolePage : ServerControl.StandardPage
             smallimagelist = treeNode.sc.manage.manageImageList as ImageList;
             Lagreimagelist = treeNode.sc.manage.manageLargeImageList as ImageList;
         }
-        
+
         base.SetPlugInInfo(ccontainer, pi, treeNode, lmctreeview, sc);
 
         if (treeNode != null)
@@ -74,13 +74,13 @@ public partial class ConsolePage : ServerControl.StandardPage
     public override void Refresh()
     {
         Logger.Log("RootPlugin: ConsolePage.Refresh", Logger.manageLogLevel);
-        
+
         //don't actually refresh if the only thing that has changed is the view style.
         if (currentViewStyleChanged)
         {
             currentViewStyleChanged = false;
         }
-        
+
         if (treeNode != null)
         {
             RefreshListview(treeNode);
@@ -90,11 +90,11 @@ public partial class ConsolePage : ServerControl.StandardPage
             base.Refresh();
         }
     }
-    
+
     private void RefreshListview(LACTreeNode lacnode)
     {
         lacnode.Expand();
-        
+
         List<ListViewItem> nodelist = new List<ListViewItem>();
         foreach (LACTreeNode node in lacnode.Nodes)
         {
@@ -114,9 +114,9 @@ public partial class ConsolePage : ServerControl.StandardPage
         ListViewItem[] lvItems = new ListViewItem[nodelist.Count];
         nodelist.CopyTo(lvItems);
     }
-    
+
     #endregion
-    
+
     private void lvChildNodes_MouseDoubleClick(object sender, MouseEventArgs e)
     {
         ListView lvSender = sender as ListView;
@@ -126,12 +126,12 @@ public partial class ConsolePage : ServerControl.StandardPage
             if (hti != null && hti.Item != null)
             {
                 ListViewItem lvItem = hti.Item;
-                
+
                 if (!lvItem.Selected)
                 {
                     lvItem.Selected = true;
                 }
-                
+
                 if (lvItem.Tag != null)
                 {
                     LACTreeNode pluginnode = lvItem.Tag as LACTreeNode;
@@ -172,7 +172,7 @@ public partial class ConsolePage : ServerControl.StandardPage
             }
         }
     }
-    
+
     private void lvChildNodes_MouseUp(object sender, MouseEventArgs e)
     {
         ListView lvSender = sender as ListView;
@@ -183,12 +183,12 @@ public partial class ConsolePage : ServerControl.StandardPage
             {
                 ListViewItem lvItem = hti.Item;
                 ContextMenu menu = null;
-                
+
                 if (!lvItem.Selected)
                 {
                     lvItem.Selected = true;
                 }
-                
+
                 if (lvItem.Tag != null)
                 {
                     if (e.Button == MouseButtons.Right)
@@ -213,4 +213,3 @@ public partial class ConsolePage : ServerControl.StandardPage
     }
 }
 }
-

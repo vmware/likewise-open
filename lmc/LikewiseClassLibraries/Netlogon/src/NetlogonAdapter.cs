@@ -128,7 +128,7 @@ namespace Likewise.LMC.Netlogon
             public const uint DS_TIMESERV_FLAG = 0x00000040; //DC is running the time service
             public const uint DS_CLOSEST_FLAG = 0x00000080; //DC is the closest one to the client.
             public const uint DS_WRITEABLE_FLAG = 0x00000100; //DC has a writable DS
-            public const uint DS_GOOD_TIMESERV_FLAG = 0x00000200; //DC is running time service and has clock hardware 
+            public const uint DS_GOOD_TIMESERV_FLAG = 0x00000200; //DC is running time service and has clock hardware
             public const uint DS_NDNC_FLAG = 0x00000400; //Non-Domain NC
             public const uint DS_PING_FLAGS = 0x0000FFFF; //bitmask of flags returned on ping
 
@@ -254,7 +254,7 @@ namespace Likewise.LMC.Netlogon
             else
             {
                 _netlogonImplementation = new WindowsNetlogon() as INetlogon;
-            }        
+            }
         }
 
         #endregion
@@ -398,77 +398,77 @@ namespace Likewise.LMC.Netlogon
 
             StringBuilder sb = new StringBuilder();
 
-            if(((uint) Definitions.DS_PDC_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_PDC_FLAG & Flags) > 0)
             {
                 sb.Append("DS_PDC_FLAG,");
             }
 
-            if(((uint) Definitions.DS_BIT1_RESERVED_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_BIT1_RESERVED_FLAG & Flags) > 0)
             {
                 sb.Append("DS_BIT1_RESERVED_FLAG,");
             }
 
-            if(((uint) Definitions.DS_GC_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_GC_FLAG & Flags) > 0)
             {
                 sb.Append("DS_GC_FLAG,");
             }
 
-            if(((uint) Definitions.DS_LDAP_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_LDAP_FLAG & Flags) > 0)
             {
                 sb.Append("DS_LDAP_FLAG,");
             }
 
-            if(((uint) Definitions.DS_DS_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_DS_FLAG & Flags) > 0)
             {
                 sb.Append("DS_DS_FLAG,");
             }
 
-            if(((uint) Definitions.DS_KDC_FLAG & Flags) > 0) 
+            if(((uint) Definitions.DS_KDC_FLAG & Flags) > 0)
             {
                 sb.Append("DS_KDC_FLAG,");
             }
 
-            if(((uint) Definitions.DS_TIMESERV_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_TIMESERV_FLAG & Flags) > 0)
             {
                 sb.Append("DS_TIMESERV_FLAG,");
             }
 
-            if(((uint) Definitions.DS_CLOSEST_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_CLOSEST_FLAG & Flags) > 0)
             {
                 sb.Append("DS_CLOSEST_FLAG,");
             }
 
-            if(((uint) Definitions.DS_WRITEABLE_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_WRITEABLE_FLAG & Flags) > 0)
             {
                 sb.Append("DS_WRITEABLE_FLAG,");
             }
 
-            if(((uint) Definitions.DS_GOOD_TIMESERV_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_GOOD_TIMESERV_FLAG & Flags) > 0)
             {
                 sb.Append("DS_GOOD_TIMESERV_FLAG,");
             }
 
-            if(((uint) Definitions.DS_NDNC_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_NDNC_FLAG & Flags) > 0)
             {
                 sb.Append("DS_NDNC_FLAG,");
             }
 
-            if(((uint) Definitions.DS_PING_FLAGS & Flags) > 0)  
+            if(((uint) Definitions.DS_PING_FLAGS & Flags) > 0)
             {
                 sb.Append("DS_PING_FLAGS,");
             }
 
-            if(((uint) Definitions.DS_DNS_CONTROLLER_FLAG & Flags) > 0) 
+            if(((uint) Definitions.DS_DNS_CONTROLLER_FLAG & Flags) > 0)
             {
                 sb.Append("DS_DNS_CONTROLLER_FLAG,");
             }
 
-            if(((uint) Definitions.DS_DOMAIN_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_DOMAIN_FLAG & Flags) > 0)
             {
                 sb.Append("DS_DOMAIN_FLAG,");
             }
 
-            if(((uint) Definitions.DS_DNS_FOREST_FLAG & Flags) > 0)  
+            if(((uint) Definitions.DS_DNS_FOREST_FLAG & Flags) > 0)
             {
                 sb.Append("DS_DNS_FOREST_FLAG,");
             }

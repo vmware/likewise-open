@@ -44,7 +44,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
     public partial class MultiItemPropertiesDlg : MPContainer
     {
         #region Class Data
-           
+
         private ADUCPlugin _plugin;
         private IPlugInContainer _container;
         private ObjectPropertyInfo objInfo;
@@ -74,10 +74,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         /// </summary>
         private void InitializePages()
         {
-            MPPage page = null;   
+            MPPage page = null;
 
             if (ADUCPage.ADObjectType == "user")
-            {                
+            {
                 page = new UserMultiselectGeneralEditPage(this);
                 this.AddPage(page,
                 new MPMenuItem(page.PageID, "General", "General"),
@@ -88,7 +88,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 this.AddPage(page,
                 new MPMenuItem(page.PageID, "Address", "Address"),
                 MPMenu.POSITION_BEGINING
-                );               
+                );
             }
             else if (ADUCPage.ADObjectType == "group")
             {
@@ -96,7 +96,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 this.AddPage(page,
                 new MPMenuItem(page.PageID, "General", "General"),
                 MPMenu.POSITION_BEGINING
-                );               
+                );
             }
             else if (ADUCPage.ADObjectType == "organizationalUnit")
             {
@@ -104,7 +104,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 this.AddPage(page,
                 new MPMenuItem(page.PageID, "General", "General"),
                 MPMenu.POSITION_BEGINING
-                );                                         
+                );
             }
             else
             {
@@ -128,7 +128,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         /// <param name="ldapSchemaCache"></param>
         public void SetData(CredentialEntry ce, string servername, string sOU, ADUCDirectoryNode dirnode, LDAPSchemaCache ldapSchemaCache)
         {
-            Applied = false;          
+            Applied = false;
             _plugin = dirnode.Plugin as ADUCPlugin;
 
             objInfo = new ObjectPropertyInfo
@@ -139,7 +139,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                                      null);
 
             threadMain = new Thread(new ThreadStart(AddPagesToThread));
-            threadMain.Start();            
+            threadMain.Start();
         }
 
         private void AddPagesToThread()
@@ -183,7 +183,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             {
                 page.SetData(info.ce, info.servername, info.objectName, info.dirnode);
             }
-        }        
+        }
 
         #endregion
 
@@ -223,7 +223,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         {
                             return false;
                         }
-                    }                    
+                    }
                     if (page.PageID.Trim().Equals("MultiItemsGeneralEditPage"))
                     {
                         MultiItemsGeneralEditPage _editPage = (MultiItemsGeneralEditPage)page;
@@ -231,7 +231,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         {
                             return false;
                         }
-                    } 
+                    }
                 }
             }
             Applied = true;
@@ -265,4 +265,3 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
     }
 }
-

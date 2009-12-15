@@ -42,10 +42,10 @@ namespace Likewise.LMC.ServerControl
     /// This class represents a machine to which the user
     /// is trying/has connected to. It bundles a variety of
     /// useful data:
-    ///     
+    ///
     ///     It's host name and domain name
     ///     A set of credentials that can be used with the machine
-    /// 
+    ///
     /// </summary>
     public class Hostinfo : IContext
     {
@@ -105,7 +105,7 @@ namespace Likewise.LMC.ServerControl
             {
                 //this is commented out, since spinning off a new process
                 //will under some circumstances result in an unhandled exception
-                //within libdcerpc::rpc__timer_fork_handler which will bring down 
+                //within libdcerpc::rpc__timer_fork_handler which will bring down
                 //the application in dcerpc/exc_handling::dce_ptdexc_abort
                 //see bug# 4882
                 //TODO: this should be re-written to use Kerberos API calls.
@@ -114,7 +114,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         /// <summary>
-        /// Simple constructor given only a name. All 
+        /// Simple constructor given only a name. All
         /// other properties must be set later as their
         /// values become available.
         /// </summary>
@@ -149,7 +149,7 @@ namespace Likewise.LMC.ServerControl
                 return tag;
             }
         }
-      
+
         #endregion
 
         #region operator overloads
@@ -246,7 +246,7 @@ namespace Likewise.LMC.ServerControl
             {
                 return true;
             }
-            
+
         }
 
         private void Canonize(string inputHostName)
@@ -282,7 +282,7 @@ namespace Likewise.LMC.ServerControl
                 }
             }
 
-            Logger.Log(String.Format("Hostinfo.Canonize({0}) = host:{1}, short:{2}, domain:{3}", 
+            Logger.Log(String.Format("Hostinfo.Canonize({0}) = host:{1}, short:{2}, domain:{3}",
                 inputHostName, hostName, shortName, domainName), Logger.manageLogLevel);
 
         }
@@ -320,13 +320,13 @@ namespace Likewise.LMC.ServerControl
             }
 
             try
-            {               
+            {
                 IPAddress ipAddr = null;
                 if (IPAddress.TryParse(hostName, out ipAddr))
                 {
                     errorMessage = "When connecting to a remote host, please use an qualified host name instead of IP addresses.";
                     return false;
-                }             
+                }
             }
             catch (Exception)
             {

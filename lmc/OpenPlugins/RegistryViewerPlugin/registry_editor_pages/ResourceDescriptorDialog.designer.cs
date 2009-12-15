@@ -101,18 +101,18 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.RevisionAnsLabel = new System.Windows.Forms.Label();
             this.ShareGrpBox.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // DMALable
-            // 
+            //
             this.DMALable.Location = new System.Drawing.Point(5, 1);
             this.DMALable.Name = "DMALable";
             this.DMALable.Size = new System.Drawing.Size(38, 20);
             this.DMALable.TabIndex = 0;
             this.DMALable.Text = "DMA:";
             this.DMALable.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // LWlvDMA
-            // 
+            //
             this.LWlvDMA.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colChannel,
             this.colPort});
@@ -127,19 +127,19 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.LWlvDMA.View = System.Windows.Forms.View.Details;
             this.LWlvDMA.Resize += new System.EventHandler(this.LWlv_Resize);
             this.LWlvDMA.SelectedIndexChanged += new System.EventHandler(this.LWlv_SelectedIndexChanged);
-            // 
+            //
             // colChannel
-            // 
+            //
             this.colChannel.Text = "Channel";
             this.colChannel.Width = 200;
-            // 
+            //
             // colPort
-            // 
+            //
             this.colPort.Text = "Port";
             this.colPort.Width = 200;
-            // 
+            //
             // LWlvInterrupt
-            // 
+            //
             this.LWlvInterrupt.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colVector,
             this.colLevel,
@@ -156,38 +156,38 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.LWlvInterrupt.View = System.Windows.Forms.View.Details;
             this.LWlvInterrupt.Resize += new System.EventHandler(this.LWlv_Resize);
             this.LWlvInterrupt.SelectedIndexChanged += new System.EventHandler(this.LWlv_SelectedIndexChanged);
-            // 
+            //
             // colVector
-            // 
+            //
             this.colVector.Text = "Vector";
             this.colVector.Width = 100;
-            // 
+            //
             // colLevel
-            // 
+            //
             this.colLevel.Text = "Level";
             this.colLevel.Width = 100;
-            // 
+            //
             // colAffinity
-            // 
+            //
             this.colAffinity.Text = "Affinity";
             this.colAffinity.Width = 100;
-            // 
+            //
             // colType
-            // 
+            //
             this.colType.Text = "Type";
             this.colType.Width = 100;
-            // 
+            //
             // InterruptLabel
-            // 
+            //
             this.InterruptLabel.Location = new System.Drawing.Point(3, 87);
             this.InterruptLabel.Name = "InterruptLabel";
             this.InterruptLabel.Size = new System.Drawing.Size(51, 20);
             this.InterruptLabel.TabIndex = 2;
             this.InterruptLabel.Text = "Interrupt:";
             this.InterruptLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // LWlvMemory
-            // 
+            //
             this.LWlvMemory.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colAddress,
             this.colLength,
@@ -203,33 +203,33 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.LWlvMemory.View = System.Windows.Forms.View.Details;
             this.LWlvMemory.Resize += new System.EventHandler(this.LWlv_Resize);
             this.LWlvMemory.SelectedIndexChanged += new System.EventHandler(this.LWlv_SelectedIndexChanged);
-            // 
+            //
             // colAddress
-            // 
+            //
             this.colAddress.Text = "Physical Address";
             this.colAddress.Width = 120;
-            // 
+            //
             // colLength
-            // 
+            //
             this.colLength.Text = "Length";
             this.colLength.Width = 120;
-            // 
+            //
             // colAccess
-            // 
+            //
             this.colAccess.Text = "Access";
             this.colAccess.Width = 160;
-            // 
+            //
             // MemoryLabel
-            // 
+            //
             this.MemoryLabel.Location = new System.Drawing.Point(4, 173);
             this.MemoryLabel.Name = "MemoryLabel";
             this.MemoryLabel.Size = new System.Drawing.Size(51, 20);
             this.MemoryLabel.TabIndex = 4;
             this.MemoryLabel.Text = "Memory";
             this.MemoryLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // LWlvPort
-            // 
+            //
             this.LWlvPort.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colPortAddress,
             this.colPortLength,
@@ -245,33 +245,33 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.LWlvPort.View = System.Windows.Forms.View.Details;
             this.LWlvPort.Resize += new System.EventHandler(this.LWlv_Resize);
             this.LWlvPort.SelectedIndexChanged += new System.EventHandler(this.LWlv_SelectedIndexChanged);
-            // 
+            //
             // colPortAddress
-            // 
+            //
             this.colPortAddress.Text = "Physical Address";
             this.colPortAddress.Width = 120;
-            // 
+            //
             // colPortLength
-            // 
+            //
             this.colPortLength.Text = "Length";
             this.colPortLength.Width = 120;
-            // 
+            //
             // colPortType
-            // 
+            //
             this.colPortType.Text = "Type";
             this.colPortType.Width = 160;
-            // 
+            //
             // PortLabel
-            // 
+            //
             this.PortLabel.Location = new System.Drawing.Point(5, 256);
             this.PortLabel.Name = "PortLabel";
             this.PortLabel.Size = new System.Drawing.Size(51, 20);
             this.PortLabel.TabIndex = 6;
             this.PortLabel.Text = "Port";
             this.PortLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // LWlvData
-            // 
+            //
             this.LWlvData.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colReservedOne,
             this.colReservedTwo,
@@ -287,33 +287,33 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.LWlvData.View = System.Windows.Forms.View.Details;
             this.LWlvData.Resize += new System.EventHandler(this.LWlv_Resize);
             this.LWlvData.SelectedIndexChanged += new System.EventHandler(this.LWlv_SelectedIndexChanged);
-            // 
+            //
             // colReservedOne
-            // 
+            //
             this.colReservedOne.Text = "Reserved1";
             this.colReservedOne.Width = 130;
-            // 
+            //
             // colReservedTwo
-            // 
+            //
             this.colReservedTwo.Text = "Reserved2";
             this.colReservedTwo.Width = 130;
-            // 
+            //
             // colDataSize
-            // 
+            //
             this.colDataSize.Text = "Data Size";
             this.colDataSize.Width = 140;
-            // 
+            //
             // DataLebel
-            // 
+            //
             this.DataLebel.Location = new System.Drawing.Point(3, 337);
             this.DataLebel.Name = "DataLebel";
             this.DataLebel.Size = new System.Drawing.Size(114, 20);
             this.DataLebel.TabIndex = 8;
             this.DataLebel.Text = "Device Specific Data:";
             this.DataLebel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // ShareGrpBox
-            // 
+            //
             this.ShareGrpBox.Controls.Add(this.DriverLabel);
             this.ShareGrpBox.Controls.Add(this.DeviceLabel);
             this.ShareGrpBox.Controls.Add(this.SharedLabel);
@@ -324,9 +324,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.ShareGrpBox.TabIndex = 10;
             this.ShareGrpBox.TabStop = false;
             this.ShareGrpBox.Text = "Share Disposition";
-            // 
+            //
             // DriverLabel
-            // 
+            //
             this.DriverLabel.Enabled = false;
             this.DriverLabel.Location = new System.Drawing.Point(100, 38);
             this.DriverLabel.Name = "DriverLabel";
@@ -334,9 +334,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.DriverLabel.TabIndex = 12;
             this.DriverLabel.Text = "Driver Exclusive";
             this.DriverLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // DeviceLabel
-            // 
+            //
             this.DeviceLabel.Enabled = false;
             this.DeviceLabel.Location = new System.Drawing.Point(100, 17);
             this.DeviceLabel.Name = "DeviceLabel";
@@ -344,9 +344,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.DeviceLabel.TabIndex = 11;
             this.DeviceLabel.Text = "Device Exclusive";
             this.DeviceLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // SharedLabel
-            // 
+            //
             this.SharedLabel.Enabled = false;
             this.SharedLabel.Location = new System.Drawing.Point(6, 38);
             this.SharedLabel.Name = "SharedLabel";
@@ -354,9 +354,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.SharedLabel.TabIndex = 10;
             this.SharedLabel.Text = "Shared";
             this.SharedLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // UndeterminedLabel
-            // 
+            //
             this.UndeterminedLabel.Enabled = false;
             this.UndeterminedLabel.Location = new System.Drawing.Point(6, 17);
             this.UndeterminedLabel.Name = "UndeterminedLabel";
@@ -364,45 +364,45 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.UndeterminedLabel.TabIndex = 9;
             this.UndeterminedLabel.Text = "Undetermined";
             this.UndeterminedLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // IntTypeLabel
-            // 
+            //
             this.IntTypeLabel.Location = new System.Drawing.Point(266, 430);
             this.IntTypeLabel.Name = "IntTypeLabel";
             this.IntTypeLabel.Size = new System.Drawing.Size(85, 20);
             this.IntTypeLabel.TabIndex = 11;
             this.IntTypeLabel.Text = "Interface Type:";
             this.IntTypeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            // 
+            //
             // BusNumLabel
-            // 
+            //
             this.BusNumLabel.Location = new System.Drawing.Point(274, 450);
             this.BusNumLabel.Name = "BusNumLabel";
             this.BusNumLabel.Size = new System.Drawing.Size(77, 20);
             this.BusNumLabel.TabIndex = 12;
             this.BusNumLabel.Text = "Bus Number:";
             this.BusNumLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            // 
+            //
             // VersionLabel
-            // 
+            //
             this.VersionLabel.Location = new System.Drawing.Point(300, 470);
             this.VersionLabel.Name = "VersionLabel";
             this.VersionLabel.Size = new System.Drawing.Size(51, 20);
             this.VersionLabel.TabIndex = 13;
             this.VersionLabel.Text = "Version:";
             this.VersionLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            // 
+            //
             // RevisionLabel
-            // 
+            //
             this.RevisionLabel.Location = new System.Drawing.Point(300, 490);
             this.RevisionLabel.Name = "RevisionLabel";
             this.RevisionLabel.Size = new System.Drawing.Size(51, 20);
             this.RevisionLabel.TabIndex = 14;
             this.RevisionLabel.Text = "Revision:";
             this.RevisionLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnOk.Location = new System.Drawing.Point(126, 502);
             this.btnOk.Name = "btnOk";
@@ -411,9 +411,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnOk.Text = "OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // btnData
-            // 
+            //
             this.btnData.Enabled = false;
             this.btnData.Location = new System.Drawing.Point(209, 502);
             this.btnData.Name = "btnData";
@@ -421,45 +421,45 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnData.TabIndex = 16;
             this.btnData.Text = "&Data...";
             this.btnData.UseVisualStyleBackColor = true;
-            // 
+            //
             // IntTypeAnsLabel
-            // 
+            //
             this.IntTypeAnsLabel.Location = new System.Drawing.Point(357, 430);
             this.IntTypeAnsLabel.Name = "IntTypeAnsLabel";
             this.IntTypeAnsLabel.Size = new System.Drawing.Size(51, 20);
             this.IntTypeAnsLabel.TabIndex = 17;
             this.IntTypeAnsLabel.Text = "Internal";
             this.IntTypeAnsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // BusNumAnsLabel
-            // 
+            //
             this.BusNumAnsLabel.Location = new System.Drawing.Point(357, 450);
             this.BusNumAnsLabel.Name = "BusNumAnsLabel";
             this.BusNumAnsLabel.Size = new System.Drawing.Size(51, 20);
             this.BusNumAnsLabel.TabIndex = 18;
             this.BusNumAnsLabel.Text = "0";
             this.BusNumAnsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // VersionAnsLabel
-            // 
+            //
             this.VersionAnsLabel.Location = new System.Drawing.Point(357, 470);
             this.VersionAnsLabel.Name = "VersionAnsLabel";
             this.VersionAnsLabel.Size = new System.Drawing.Size(51, 20);
             this.VersionAnsLabel.TabIndex = 19;
             this.VersionAnsLabel.Text = "0";
             this.VersionAnsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // RevisionAnsLabel
-            // 
+            //
             this.RevisionAnsLabel.Location = new System.Drawing.Point(357, 490);
             this.RevisionAnsLabel.Name = "RevisionAnsLabel";
             this.RevisionAnsLabel.Size = new System.Drawing.Size(51, 20);
             this.RevisionAnsLabel.TabIndex = 20;
             this.RevisionAnsLabel.Text = "0";
             this.RevisionAnsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // ResourceDescriptorDialog
-            // 
+            //
             this.AcceptButton = this.btnData;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnOk;

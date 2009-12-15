@@ -67,9 +67,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel = new System.Windows.Forms.Button();
             this.lblselectedValue = new System.Windows.Forms.Label();
             this.SuspendLayout();
-            // 
+            //
             // lblAttribute
-            // 
+            //
             this.lblAttribute.AutoSize = true;
             this.lblAttribute.BackColor = System.Drawing.Color.Transparent;
             this.lblAttribute.Location = new System.Drawing.Point(13, 13);
@@ -77,9 +77,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lblAttribute.Size = new System.Drawing.Size(49, 13);
             this.lblAttribute.TabIndex = 0;
             this.lblAttribute.Text = "&Attribute:";
-            // 
+            //
             // lblValue
-            // 
+            //
             this.lblValue.AutoSize = true;
             this.lblValue.BackColor = System.Drawing.Color.Transparent;
             this.lblValue.Location = new System.Drawing.Point(13, 40);
@@ -87,9 +87,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lblValue.Size = new System.Drawing.Size(37, 13);
             this.lblValue.TabIndex = 1;
             this.lblValue.Text = "&Value:";
-            // 
+            //
             // rbtnTrue
-            // 
+            //
             this.rbtnTrue.AutoSize = true;
             this.rbtnTrue.Location = new System.Drawing.Point(16, 68);
             this.rbtnTrue.Name = "rbtnTrue";
@@ -97,9 +97,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbtnTrue.TabIndex = 2;
             this.rbtnTrue.Text = "&True";
             this.rbtnTrue.UseVisualStyleBackColor = true;
-            // 
+            //
             // rbtnFalse
-            // 
+            //
             this.rbtnFalse.AutoSize = true;
             this.rbtnFalse.Location = new System.Drawing.Point(16, 91);
             this.rbtnFalse.Name = "rbtnFalse";
@@ -107,9 +107,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbtnFalse.TabIndex = 3;
             this.rbtnFalse.Text = "&False";
             this.rbtnFalse.UseVisualStyleBackColor = true;
-            // 
+            //
             // rbtnNotSet
-            // 
+            //
             this.rbtnNotSet.AutoSize = true;
             this.rbtnNotSet.Checked = true;
             this.rbtnNotSet.Location = new System.Drawing.Point(16, 114);
@@ -119,9 +119,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbtnNotSet.TabStop = true;
             this.rbtnNotSet.Text = "&Not set";
             this.rbtnNotSet.UseVisualStyleBackColor = true;
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Location = new System.Drawing.Point(101, 138);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -129,9 +129,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOk.Text = "OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(182, 138);
             this.btnCancel.Name = "btnCancel";
@@ -140,17 +140,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // lblselectedValue
-            // 
+            //
             this.lblselectedValue.AutoSize = true;
             this.lblselectedValue.Location = new System.Drawing.Point(69, 13);
             this.lblselectedValue.Name = "lblselectedValue";
             this.lblselectedValue.Size = new System.Drawing.Size(0, 13);
             this.lblselectedValue.TabIndex = 7;
-            // 
+            //
             // BooleanAttributeEditor
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;

@@ -46,24 +46,24 @@ public partial class FilesPage : StandardPage
 {
     #region Class data
     private ListViewColumnSorter lvwColumnSorter;
-    private FileShareManagerIPlugIn plugin; 
+    private FileShareManagerIPlugIn plugin;
     #endregion
-    
+
     #region Constructor
     public FilesPage()
     {
         InitializeComponent();
-        
+
         // Create an instance of a ListView column sorter and assign it
         // to the ListView control.
         lvwColumnSorter = new ListViewColumnSorter();
         this.lvFilePage.ListViewItemSorter = lvwColumnSorter;
-        
+
         Icon ic = new Icon(Resources.SharedFolder, 48, 48);
         this.picture.Image = ic.ToBitmap();
     }
     #endregion
-    
+
     #region IPlugInPage Members
     public override void SetPlugInInfo(IPlugInContainer container, IPlugIn pi, LACTreeNode treeNode, LWTreeView lmctreeview, CServerControl sc)
     {
@@ -71,22 +71,22 @@ public partial class FilesPage : StandardPage
 
         base.SetPlugInInfo(container, pi, treeNode, lmctreeview, sc);
         bEnableActionMenu = false;
-        plugin = pi as FileShareManagerIPlugIn;        
+        plugin = pi as FileShareManagerIPlugIn;
         hn = plugin.HostInfo;
 
         Refresh();
     }
-    
+
     public override void Refresh()
     {
         base.Refresh();
         Hostinfo hn = ctx as Hostinfo;
-        
+
         const int NUM_COLUMNS = 5;
-        
+
         //pixels to use to give a visible margin between columns
         const int MARGIN = 10;
-        
+
         if (lvFilePage.Items.Count != 0)
         {
             lvFilePage.Items.Clear();
@@ -110,19 +110,19 @@ public partial class FilesPage : StandardPage
         }
         else
             FileList = SharesAPI.EnumFiles(IntPtr.Zero, hn.creds, hn.hostName);
-        
+
         if (FileList == null)
         {
             Logger.Log("FilesPage.Refresh: FileList == null", Logger.LogLevel.Error);
             return;
         }
-        
+
         foreach (int i in FileList.Keys)
         {
             ListViewItem lvItem = new ListViewItem(FileList[i]);
             lvFilePage.Items.Add(lvItem);
         }
-        
+
         int minColumnWidth = (this.Width / NUM_COLUMNS) / 2;
         foreach (ColumnHeader ch in lvFilePage.Columns)
         {
@@ -138,7 +138,7 @@ public partial class FilesPage : StandardPage
                 }
             }
         }
-        
+
         //HACK: make sure that rightmost column is always covers
         //any remaining space on the right side of the list view
         lvFilePage.Columns[NUM_COLUMNS - 2].Width = this.Width;
@@ -245,11 +245,11 @@ public partial class FilesPage : StandardPage
         {
             return;
         }
-        
+
         // get the accessing machine and user name of the session to close
         ListViewItem Item = lvFilePage.SelectedItems[0];
         string sFileId = (string)Item.SubItems[4].Text;
-        
+
         try
         {
             int nFileId = int.Parse(sFileId);
@@ -268,11 +268,11 @@ public partial class FilesPage : StandardPage
             container.ShowError(sMsg);
         }
     }
-    
+
     private void lvFilePage_SelectedIndexChanged(object sender, EventArgs e)
     {
     }
-    
+
     private void lvFilePage_MouseUp(object sender, MouseEventArgs e)
     {
         ListView lvSender = sender as ListView;
@@ -289,7 +289,7 @@ public partial class FilesPage : StandardPage
             }
         }
     }
-    
+
     private void lvFilePage_ColumnClick(object sender, ColumnClickEventArgs e)
     {
         // Determine if clicked column is already the column that is being sorted.
@@ -311,11 +311,10 @@ public partial class FilesPage : StandardPage
             lvwColumnSorter.SortColumn = e.Column;
             lvwColumnSorter.Order = SortOrder.Ascending;
         }
-        
+
         // Perform the sort with these new sort options.
         this.lvFilePage.Sort();
     }
     #endregion
 }
 }
-

@@ -46,7 +46,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
 
         public static string PAGENAME = "NewSharePermissionsPage";
         private IPlugIn plugin = null;
-        private IPlugInContainer container = null;        
+        private IPlugInContainer container = null;
         private NewShareWizardDlg parentDlg = null;
 
         #endregion
@@ -72,7 +72,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
         }
 
         public override string OnWizardNext()
-        { 
+        {
             return base.OnWizardNext();
         }
 

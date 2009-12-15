@@ -48,7 +48,7 @@ public partial class SharesPage : StandardPage
     #region Class data
     private ListViewColumnSorter lvwColumnSorter;
     private FileShareManagerIPlugIn.PluginNodeType nodeType;
-    private FileShareManagerIPlugIn plugin; 
+    private FileShareManagerIPlugIn plugin;
 
     //Set columns to Listview as per the node type
     private int numColumns = 0;
@@ -56,7 +56,7 @@ public partial class SharesPage : StandardPage
     private ColumnHeader[] columnHeaders = null;
 
     #endregion
-    
+
     #region Constructor
 
     public SharesPage()
@@ -83,7 +83,7 @@ public partial class SharesPage : StandardPage
         this.nodeType = nodetype;
     }
     #endregion
-    
+
     #region IPlugInPage Members
 
     public override void SetPlugInInfo(IPlugInContainer container, IPlugIn pi, LACTreeNode treeNode, LWTreeView lmctreeview, CServerControl sc)
@@ -190,7 +190,7 @@ public partial class SharesPage : StandardPage
 
         //HACK: make sure that rightmost column is always covers
         //any remaining space on the right side of the list view
-        lvSharePage.Columns[NUM_COLUMNS - 1].Width = this.Width;        
+        lvSharePage.Columns[NUM_COLUMNS - 1].Width = this.Width;
     }
 
     private void SetListviewColumns()
@@ -210,7 +210,7 @@ public partial class SharesPage : StandardPage
         {
             Hostinfo hn = ctx as Hostinfo;
 
-            this.lvSharePage.MultiSelect = true;            
+            this.lvSharePage.MultiSelect = true;
 
             if (!String.IsNullOrEmpty(hn.hostName))
             {
@@ -251,7 +251,7 @@ public partial class SharesPage : StandardPage
         MenuItem innerM_Item = new MenuItem("New File &Share", new EventHandler(acNewShare_LinkClicked));
         m_Item.MenuItems.Add(innerM_Item);
         cm.MenuItems.Add(m_Item);
-      
+
         m_Item = new MenuItem("-");
         cm.MenuItems.Add(m_Item);
 
@@ -323,7 +323,7 @@ public partial class SharesPage : StandardPage
     }
 
     #endregion
-    
+
     #region Event handlers
     private ListViewItem GetSelectedItem()
     {
@@ -331,7 +331,7 @@ public partial class SharesPage : StandardPage
         {
             return null;
         }
-        
+
         return lvSharePage.SelectedItems[0];
     }
 
@@ -361,19 +361,19 @@ public partial class SharesPage : StandardPage
         //}
         treeNode.sc.ShowControl(treeNode);
     }
-    
+
     private void WizardDone(int nExitCode)
     {
         //Refresh();
         treeNode.sc.ShowControl(treeNode);
     }
-    
+
     private void acLaunchMMC_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
         Hostinfo hn = ctx as Hostinfo;
         SharesAPI.RunMMC(hn.creds, hn.hostName);
     }
-    
+
     private void acViewShare_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
         ListViewItem Item = GetSelectedItem();
@@ -412,13 +412,13 @@ public partial class SharesPage : StandardPage
         }
         string sShareName = (string)Item.SubItems[0].Text;
         Hostinfo hn = ctx as Hostinfo;
-        
+
         // first, prompt for confirmation
         string sMsg = string.Format(Resources.Prompt_DeleteShare, sShareName);
         if (container.Prompt(sMsg, MessageBoxButtons.OKCancel) != DialogResult.OK)
         {
             return;
-        }        
+        }
         // delete and refresh
         if (Configurations.currentPlatform == LikewiseTargetPlatform.Windows)
         {
@@ -428,14 +428,14 @@ public partial class SharesPage : StandardPage
         {
             SharesAPI.DeleteShare(plugin.fileHandle.Handle, hn.creds, hn.hostName, sShareName);
         }
-        
+
         Refresh();
     }
-    
+
     private void lvSharePage_SelectedIndexChanged(object sender, EventArgs e)
     {
     }
-    
+
     private void lvSharePage_MouseUp(object sender, MouseEventArgs e)
     {
         ListView lvSender = sender as ListView;
@@ -449,7 +449,7 @@ public partial class SharesPage : StandardPage
                 {
                     lvitem.Selected = true;
                 }
-                ContextMenu cm = new ContextMenu();               
+                ContextMenu cm = new ContextMenu();
                 MenuItem m_item = new MenuItem("&Properties", new EventHandler(On_MenuClick));
                 cm.MenuItems.Add(m_item);
 
@@ -457,7 +457,7 @@ public partial class SharesPage : StandardPage
             }
         }
     }
-    
+
     private void lvSharePage_ColumnClick(object sender, ColumnClickEventArgs e)
     {
         // Determine if clicked column is already the column that is being sorted.
@@ -479,11 +479,10 @@ public partial class SharesPage : StandardPage
             lvwColumnSorter.SortColumn = e.Column;
             lvwColumnSorter.Order = SortOrder.Ascending;
         }
-        
+
         // Perform the sort with these new sort options.
         this.lvSharePage.Sort();
     }
-    #endregion          
+    #endregion
 }
 }
-

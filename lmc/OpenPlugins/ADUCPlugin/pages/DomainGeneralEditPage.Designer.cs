@@ -73,9 +73,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.textBoxDomainName);
             this.pnlData.Controls.Add(this.lblForestLevel);
             this.pnlData.Controls.Add(this.label4);
@@ -88,34 +88,34 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.txtDescription);
             this.pnlData.Controls.Add(this.lbDescription);
             this.pnlData.Size = new System.Drawing.Size(386, 472);
-            // 
+            //
             // txtDescription
-            // 
+            //
             this.txtDescription.Location = new System.Drawing.Point(16, 150);
             this.txtDescription.Name = "txtDescription";
             this.txtDescription.Size = new System.Drawing.Size(354, 20);
             this.txtDescription.TabIndex = 3;
             this.txtDescription.TextChanged += new System.EventHandler(this.txtDescription_TextChanged);
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(21, 16);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(48, 48);
             this.pictureBox1.TabIndex = 21;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(13, 79);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(361, 2);
             this.groupBox1.TabIndex = 22;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // Namelabel
-            // 
+            //
             this.Namelabel.AutoSize = true;
             this.Namelabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.25F);
             this.Namelabel.Location = new System.Drawing.Point(85, 36);
@@ -123,69 +123,69 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.Namelabel.Size = new System.Drawing.Size(128, 17);
             this.Namelabel.TabIndex = 24;
             this.Namelabel.Text = "                              ";
-            // 
+            //
             // lbDescription
-            // 
+            //
             this.lbDescription.AutoSize = true;
             this.lbDescription.Location = new System.Drawing.Point(13, 132);
             this.lbDescription.Name = "lbDescription";
             this.lbDescription.Size = new System.Drawing.Size(63, 13);
             this.lbDescription.TabIndex = 2;
             this.lbDescription.Text = "&Description:";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(13, 95);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(173, 13);
             this.label1.TabIndex = 25;
             this.label1.Text = "Domain &name (pre-Windows 2000):";
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(13, 194);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(120, 13);
             this.label2.TabIndex = 27;
             this.label2.Text = "Do&main functional level:";
-            // 
+            //
             // labelDomainLevel
-            // 
+            //
             this.labelDomainLevel.AutoSize = true;
             this.labelDomainLevel.Location = new System.Drawing.Point(13, 213);
             this.labelDomainLevel.Name = "labelDomainLevel";
             this.labelDomainLevel.Size = new System.Drawing.Size(0, 13);
             this.labelDomainLevel.TabIndex = 28;
-            // 
+            //
             // label4
-            // 
+            //
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(11, 255);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(113, 13);
             this.label4.TabIndex = 29;
             this.label4.Text = "&Forest functional level:";
-            // 
+            //
             // lblForestLevel
-            // 
+            //
             this.lblForestLevel.AutoSize = true;
             this.lblForestLevel.Location = new System.Drawing.Point(13, 274);
             this.lblForestLevel.Name = "lblForestLevel";
             this.lblForestLevel.Size = new System.Drawing.Size(0, 13);
             this.lblForestLevel.TabIndex = 30;
-            // 
+            //
             // textBoxDomainName
-            // 
+            //
             this.textBoxDomainName.Location = new System.Drawing.Point(190, 92);
             this.textBoxDomainName.Name = "textBoxDomainName";
             this.textBoxDomainName.ReadOnly = true;
             this.textBoxDomainName.Size = new System.Drawing.Size(184, 20);
             this.textBoxDomainName.TabIndex = 31;
-            // 
+            //
             // DomainGeneralEditPage
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.Name = "DomainGeneralEditPage";
             this.Size = new System.Drawing.Size(386, 472);

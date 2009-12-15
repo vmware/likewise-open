@@ -71,13 +71,13 @@ namespace System.DirectoryServices.ActiveDirectory
             {
                 return dirPassword;
             }
-        }           
+        }
 
-        
+
         public DirectoryContext(DirectoryContextType dcType, string sName)
         {
             this.dcType = dcType;
-            this.dirContextName = sName;            
+            this.dirContextName = sName;
         }
 
         public DirectoryContext(DirectoryContextType dcType, string sName, string sUsername, string sPassword)

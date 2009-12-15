@@ -33,7 +33,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace Likewise.LMC.LSAMgmt
-{    
+{
     public enum LsaAuthProviderMode
     {
         LSA_PROVIDER_MODE_UNKNOWN = 0,

@@ -126,7 +126,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         #region Event Handlers
         private void LWlv_SelectedIndexChanged(object sender, EventArgs e)
-        {   
+        {
             ListView lv = (ListView)sender;
             switch (lv.Name)
             {

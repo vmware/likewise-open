@@ -59,9 +59,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         private void InitializeComponent()
         {
             this.SuspendLayout();
-            // 
+            //
             // ADComputerAddDlg
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(495, 358);
             this.Name = "ADComputerAddDlg";

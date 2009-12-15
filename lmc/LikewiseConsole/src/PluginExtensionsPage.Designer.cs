@@ -71,9 +71,9 @@ namespace Likewise.LMC
             this.pnlData.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.DownloadBtn);
             this.pnlData.Controls.Add(this.AboutBtn);
             this.pnlData.Controls.Add(this.groupBox1);
@@ -84,36 +84,36 @@ namespace Likewise.LMC
             this.pnlData.Controls.Add(this.ExtendablePlugincomboBox);
             this.pnlData.Controls.Add(this.label1);
             this.pnlData.Size = new System.Drawing.Size(364, 472);
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.Location = new System.Drawing.Point(13, 12);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(335, 29);
             this.label1.TabIndex = 0;
             this.label1.Text = "Use this page to enable plug-in extensions. To add a particular extension, select" +
                 " the check box next to it.";
-            // 
+            //
             // ExtendablePlugincomboBox
-            // 
+            //
             this.ExtendablePlugincomboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.ExtendablePlugincomboBox.FormattingEnabled = true;
             this.ExtendablePlugincomboBox.Location = new System.Drawing.Point(16, 69);
             this.ExtendablePlugincomboBox.Name = "ExtendablePlugincomboBox";
             this.ExtendablePlugincomboBox.Size = new System.Drawing.Size(332, 21);
             this.ExtendablePlugincomboBox.TabIndex = 1;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(16, 50);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(151, 13);
             this.label2.TabIndex = 2;
             this.label2.Text = "Plug-ins that can be extended:";
-            // 
+            //
             // AddAddExtscheckBox
-            // 
+            //
             this.AddAddExtscheckBox.AutoSize = true;
             this.AddAddExtscheckBox.Location = new System.Drawing.Point(16, 102);
             this.AddAddExtscheckBox.Name = "AddAddExtscheckBox";
@@ -121,26 +121,26 @@ namespace Likewise.LMC
             this.AddAddExtscheckBox.TabIndex = 3;
             this.AddAddExtscheckBox.Text = "Add all extensions";
             this.AddAddExtscheckBox.UseVisualStyleBackColor = true;
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(16, 131);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(106, 13);
             this.label3.TabIndex = 4;
             this.label3.Text = "Available extensions:";
-            // 
+            //
             // AvailableExtscheckedListBox
-            // 
+            //
             this.AvailableExtscheckedListBox.FormattingEnabled = true;
             this.AvailableExtscheckedListBox.Location = new System.Drawing.Point(16, 149);
             this.AvailableExtscheckedListBox.Name = "AvailableExtscheckedListBox";
             this.AvailableExtscheckedListBox.Size = new System.Drawing.Size(332, 169);
             this.AvailableExtscheckedListBox.TabIndex = 5;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.descriptionLabel);
             this.groupBox1.Location = new System.Drawing.Point(16, 324);
             this.groupBox1.Name = "groupBox1";
@@ -148,34 +148,34 @@ namespace Likewise.LMC
             this.groupBox1.TabIndex = 6;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Description";
-            // 
+            //
             // descriptionLabel
-            // 
+            //
             this.descriptionLabel.Location = new System.Drawing.Point(6, 20);
             this.descriptionLabel.Name = "descriptionLabel";
             this.descriptionLabel.Size = new System.Drawing.Size(312, 64);
             this.descriptionLabel.TabIndex = 0;
-            // 
+            //
             // AboutBtn
-            // 
+            //
             this.AboutBtn.Location = new System.Drawing.Point(16, 431);
             this.AboutBtn.Name = "AboutBtn";
             this.AboutBtn.Size = new System.Drawing.Size(75, 23);
             this.AboutBtn.TabIndex = 7;
             this.AboutBtn.Text = "About...";
             this.AboutBtn.UseVisualStyleBackColor = true;
-            // 
+            //
             // DownloadBtn
-            // 
+            //
             this.DownloadBtn.Location = new System.Drawing.Point(97, 432);
             this.DownloadBtn.Name = "DownloadBtn";
             this.DownloadBtn.Size = new System.Drawing.Size(75, 23);
             this.DownloadBtn.TabIndex = 8;
             this.DownloadBtn.Text = "Download";
             this.DownloadBtn.UseVisualStyleBackColor = true;
-            // 
+            //
             // PluginExtensionsPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "PluginExtensionsPage";
             this.Size = new System.Drawing.Size(364, 472);

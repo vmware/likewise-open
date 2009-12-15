@@ -55,9 +55,9 @@ public class EventlogPlugin: IPlugIn
     public string[] logs = null;
 
     private List<IPlugIn> _extPlugins = null;
-    
+
     #region IPlugIn Members
-    
+
     public Hostinfo HostInfo
     {
         get
@@ -65,11 +65,11 @@ public class EventlogPlugin: IPlugIn
             return _hn;
         }
     }
-    
+
     public string GetName()
     {
         Logger.Log("EventlogPlugin.GetName", Logger.eventLogLogLevel);
-        
+
         return Properties.Resources.sTitleEventsPage;
     }
 
@@ -86,12 +86,12 @@ public class EventlogPlugin: IPlugIn
     public IContextType GetContextType()
     {
         return IContextType.Hostinfo;
-    }    
-    
+    }
+
     void IPlugIn.Initialize(IPlugInContainer container)
     {
         Logger.Log("EventlogPlugin.Initialize", Logger.eventLogLogLevel);
-        
+
         _container = container;
     }
 
@@ -162,8 +162,8 @@ public class EventlogPlugin: IPlugIn
                 _pluginNode.Nodes.Remove(node);
             }
             deadTree = true;
-        }       
-        
+        }
+
         _hn = hn;
 
         if (HostInfo == null)
@@ -181,34 +181,34 @@ public class EventlogPlugin: IPlugIn
             _pluginNode.SetContext(_hn);
         }
     }
-    
+
     public IContext GetContext()
     {
         return _hn;
     }
-    
+
     public LACTreeNode GetPlugInNode()
     {
         Logger.Log("EventlogPlugin.GetPluginNode", Logger.eventLogLogLevel);
-        
+
         if (_pluginNode == null)
         {
-            
+
             Logger.Log("EventlogPlugin.GetPluginNode: running Manage.CreateIconNode(EventViewerControl)",
             Logger.eventLogLogLevel);
             _pluginNode = Manage.CreateIconNode(Properties.Resources.sTitleEventsPage,
             Properties.Resources.EventViewer_48,
             typeof(PluginNodePage),
             this);
-            
+
             _pluginNode.ImageIndex = (int)Manage.ManageImageType.EventLog;
             _pluginNode.SelectedImageIndex = (int)Manage.ManageImageType.EventLog;
             _pluginNode.IsPluginNode = true;
         }
-        
+
         return _pluginNode;
     }
-    
+
     public void EnumChildren(LACTreeNode parentNode)
     {
         Logger.Log("EventlogPlugin.EnumChildren", Logger.eventLogLogLevel);
@@ -219,21 +219,21 @@ public class EventlogPlugin: IPlugIn
         }
         return;
     }
-    
+
     public void SetCursor(Cursor cursor)
     {
         Logger.Log("EventlogPlugin.SetCursor", Logger.eventLogLogLevel);
-        
+
         if (_container != null)
         {
             _container.SetCursor(cursor);
         }
     }
-    
+
     public ContextMenu GetTreeContextMenu(LACTreeNode nodeClicked)
     {
         Logger.Log("EventlogPlugin.GetTreeContextMenu", Logger.eventLogLogLevel);
-        
+
         if (nodeClicked == null)
         {
             return null;
@@ -244,14 +244,14 @@ public class EventlogPlugin: IPlugIn
             if (eventlogPage == null)
             {
                 Type type = nodeClicked.NodeType;
-                
+
                 object o = Activator.CreateInstance(type);
                 if (o is IPlugInPage)
                 {
                     ((IPlugInPage)o).SetPlugInInfo(_container, nodeClicked.Plugin, nodeClicked, (LWTreeView) nodeClicked.TreeView, nodeClicked.sc);
                     eventlogPage = (EventViewerControl)nodeClicked.PluginPage;
                 }
-                
+
             }
             ContextMenu eventlogContextMenu = null;
             if (eventlogPage != null)
@@ -261,36 +261,36 @@ public class EventlogPlugin: IPlugIn
             if (_pluginNode == nodeClicked)
             {
                 eventlogContextMenu = new ContextMenu();
-                
+
                 MenuItem m_item = new MenuItem("Set Target Machine", new EventHandler(cm_OnConnect));
                 eventlogContextMenu.MenuItems.Add(0, m_item);
-                
+
                 m_item = new MenuItem("-");
                 eventlogContextMenu.MenuItems.Add(1, m_item);
-                
+
                 m_item = new MenuItem("&View");
-                
+
                 MenuItem subm_item = new MenuItem("&Add/Remove Columns...", new EventHandler(cm_OnMenuClick));
                 m_item.MenuItems.Add(subm_item);
-                
+
                 subm_item = new MenuItem("-");
                 m_item.MenuItems.Add(subm_item);
-                
+
                 subm_item = new MenuItem("C&ustomize View...", new EventHandler(cm_OnMenuClick));
                 m_item.MenuItems.Add(subm_item);
-                
+
                 eventlogContextMenu.MenuItems.Add(2, m_item);
-                
+
                 m_item = new MenuItem("-");
                 eventlogContextMenu.MenuItems.Add(3,m_item);
-                
+
                 m_item = new MenuItem("&Help", new EventHandler(cm_OnMenuClick));
                 eventlogContextMenu.MenuItems.Add(eventlogContextMenu.MenuItems.Count, m_item);
             }
             return eventlogContextMenu;
         }
     }
-    
+
     public void SetSingleSignOn(bool useSingleSignOn)
     {
         // do nothing
@@ -312,9 +312,9 @@ public class EventlogPlugin: IPlugIn
     }
 
     #endregion
-    
+
     #region eventlog API wrappers
-    
+
     public bool OpenEventLog(string hostname)
     {
         try
@@ -331,9 +331,9 @@ public class EventlogPlugin: IPlugIn
             Logger.LogException("EventViewerPlugin.OpenEventLog", e);
             eventLogHandle = null;
             return false;
-        }        
+        }
     }
-    
+
     public bool EventLogIsOpen()
     {
         if (eventLogHandle == null)
@@ -345,51 +345,51 @@ public class EventlogPlugin: IPlugIn
             return true;
         }
     }
-    
+
     public EventLogRecord[] ReadEventLog(UInt32 dwLastRecordId,
     UInt32 nMaxRecords,
     string sqlQuery)
     {
         EventLogRecord[] result = null;
-        
+
         if (eventLogHandle == null)
         {
             return null;
         }
-        
+
         result = EventlogAdapter.ReadEventLog(eventLogHandle,
         dwLastRecordId,
         nMaxRecords,
         sqlQuery);
-        
+
         return result;
     }
-    
+
     public UInt32 CountEventLog(string sqlQuery)
     {
         UInt32 result = EventlogAdapter.CountLogs(eventLogHandle, sqlQuery);
         return result;
     }
-    
+
     public void CloseEventLog()
     {
         if (eventLogHandle == null)
         {
             return;
         }
-        
+
         eventLogHandle.Dispose();
-        
+
         eventLogHandle = null;
-        
+
     }
-    
-    
-    
+
+
+
     #endregion
-    
+
     #region HelperFunctions
-    
+
     private void cm_OnConnect(object sender, EventArgs e)
     {
         //check if we are joined to a domain -- if not, use simple bind
@@ -400,12 +400,12 @@ public class EventlogPlugin: IPlugIn
         {
             _hn = new Hostinfo();
         }
-        
+
         //TODO: kerberize eventlog, so that creds are meaningful.
         //for now, there's no reason to attempt single sign-on
         requestedFields |= (uint)Hostinfo.FieldBitmaskBits.FORCE_USER_PROMPT;
-        
-        
+
+
         if (_hn != null)
         {
             if (!_container.GetTargetMachineInfo(this, _hn, requestedFields))
@@ -417,7 +417,7 @@ public class EventlogPlugin: IPlugIn
                     _hn.IsConnectionSuccess = true;
             }
             else
-            {                
+            {
                 if (_pluginNode != null && !String.IsNullOrEmpty(_hn.hostName))
                 {
                     logs = null;
@@ -426,7 +426,7 @@ public class EventlogPlugin: IPlugIn
                     {
                         _container.ShowError("Unable to open the event log; eventlog server may be disabled");
                         _pluginNode.sc.ShowControl(_pluginNode);
-                    }                                  
+                    }
                 }
             }
         }
@@ -479,7 +479,7 @@ public class EventlogPlugin: IPlugIn
                 eventlogPage.LoadData(EventViewerControl.EventViewerNodeType.PLUGIN);
         }
     }
-    
+
     private void cm_OnMenuClick(object sender, EventArgs e)
     {
         MenuItem mi = sender as MenuItem;
@@ -539,12 +539,12 @@ public class EventlogPlugin: IPlugIn
                         _pluginNode.Nodes.Clear();
                 }
                 _currentHost = _hn.hostName;
-            }            
-            _hn.IsConnectionSuccess = true;            
+            }
+            _hn.IsConnectionSuccess = true;
         }
         else
         {
-            _hn.IsConnectionSuccess = false;            
+            _hn.IsConnectionSuccess = false;
         }
     }
 
@@ -596,9 +596,9 @@ public class EventlogPlugin: IPlugIn
 
         return false;
     }
-    
+
     #endregion
-    
+
 }
 
 #region derived classes
@@ -609,7 +609,7 @@ public class PluginNodePage : EventViewerControl
     public PluginNodePage()
     : base(EventViewerNodeType.PLUGIN)
     {
-        
+
     }
     #endregion
 }
@@ -620,7 +620,7 @@ public class LogNodePage : EventViewerControl
     public LogNodePage()
     : base(EventViewerNodeType.LOG)
     {
-        
+
     }
     #endregion
 }

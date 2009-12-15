@@ -32,12 +32,12 @@ namespace Likewise.LMC.ServerControl
 {
     partial class MPPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,26 +52,26 @@ namespace Likewise.LMC.ServerControl
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
         {
             this.pnlData = new System.Windows.Forms.Panel();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.BackColor = System.Drawing.Color.Transparent;
             this.pnlData.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlData.Location = new System.Drawing.Point(0, 0);
             this.pnlData.Name = "pnlData";
             this.pnlData.Size = new System.Drawing.Size(624, 510);
             this.pnlData.TabIndex = 1;
-            // 
+            //
             // MPPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.Transparent;
             this.Controls.Add(this.pnlData);

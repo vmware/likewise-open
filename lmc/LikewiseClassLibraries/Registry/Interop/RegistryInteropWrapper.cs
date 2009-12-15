@@ -44,15 +44,15 @@ namespace Likewise.LMC.Registry
     {
         public enum LogonType : int
         {
-            //'This logon type is intended for batch servers, where processes may be executing on behalf of a user without 
+            //'This logon type is intended for batch servers, where processes may be executing on behalf of a user without
             //'their direct intervention. This type is also for higher performance servers that process many plaintext
-            //'authentication attempts at a time, such as mail or Web servers. 
+            //'authentication attempts at a time, such as mail or Web servers.
             //'The LogonUser function does not cache credentials for this logon type.
             LOGON32_LOGON_BATCH = 4,
 
-            //'This logon type is intended for users who will be interactively using the computer, such as a user being logged on 
+            //'This logon type is intended for users who will be interactively using the computer, such as a user being logged on
             //'by a terminal server, remote shell, or similar process.
-            //'This logon type has the additional expense of caching logon information for disconnected operations; 
+            //'This logon type has the additional expense of caching logon information for disconnected operations;
             //'therefore, it is inappropriate for some client/server applications,
             //'such as a mail server.
             LOGON32_LOGON_INTERACTIVE = 2,
@@ -61,33 +61,33 @@ namespace Likewise.LMC.Registry
             //'The LogonUser function does not cache credentials for this logon type.
             LOGON32_LOGON_NETWORK = 3,
 
-            //'This logon type preserves the name and password in the authentication package, which allows the server to make 
-            //'connections to other network servers while impersonating the client. A server can accept plaintext credentials 
-            //'from a client, call LogonUser, verify that the user can access the system across the network, and still 
+            //'This logon type preserves the name and password in the authentication package, which allows the server to make
+            //'connections to other network servers while impersonating the client. A server can accept plaintext credentials
+            //'from a client, call LogonUser, verify that the user can access the system across the network, and still
             //'communicate with other servers.
-            //'NOTE: Windows NT:  This value is not supported. 
+            //'NOTE: Windows NT:  This value is not supported.
             LOGON32_LOGON_NETWORK_CLEARTEXT = 8,
 
             //'This logon type allows the caller to clone its current token and specify new credentials for outbound connections.
-            //'The new logon session has the same local identifier but uses different credentials for other network connections. 
+            //'The new logon session has the same local identifier but uses different credentials for other network connections.
             //'NOTE: This logon type is supported only by the LOGON32_PROVIDER_WINNT50 logon provider.
-            //'NOTE: Windows NT:  This value is not supported. 
+            //'NOTE: Windows NT:  This value is not supported.
             LOGON32_LOGON_NEW_CREDENTIALS = 9,
 
-            //'Indicates a service-type logon. The account provided must have the service privilege enabled. 
+            //'Indicates a service-type logon. The account provided must have the service privilege enabled.
             LOGON32_LOGON_SERVICE = 5,
 
-            //'This logon type is for GINA DLLs that log on users who will be interactively using the computer. 
-            //'This logon type can generate a unique audit record that shows when the workstation was unlocked. 
+            //'This logon type is for GINA DLLs that log on users who will be interactively using the computer.
+            //'This logon type can generate a unique audit record that shows when the workstation was unlocked.
             LOGON32_LOGON_UNLOCK = 7
         }
 
         public enum LogonProvider : int
         {
             /// <summary>
-            /// Use the standard logon provider for the system. 
-            /// The default security provider is negotiate, unless you pass NULL for the domain name and the user name 
-            /// is not in UPN format. In this case, the default provider is NTLM. 
+            /// Use the standard logon provider for the system.
+            /// The default security provider is negotiate, unless you pass NULL for the domain name and the user name
+            /// is not in UPN format. In this case, the default provider is NTLM.
             /// NOTE: Windows 2000/NT:   The default security provider is NTLM.
             /// </summary>
             LOGON32_PROVIDER_DEFAULT = 0,
@@ -162,7 +162,7 @@ namespace Likewise.LMC.Registry
             Logger.Log("RegistryInteropWrapper.RegCloseServer is successfull handle = {0}" + hRegConnection.ToInt32().ToString(), Logger.RegistryViewerLoglevel);
 
             return iResult;
-        }      
+        }
 
         public static int ApiRegEnumRootKeys(IntPtr hRegConnection, out string[] sRootKeyEnum, out int pRootKeyEnumCount)
         {
@@ -233,26 +233,26 @@ namespace Likewise.LMC.Registry
         public static int ApiRegEnumKeyEx(
                                 IntPtr handle_t,
                                 IntPtr pParentKey,
-                                uint dwSubKeyCount,                              
+                                uint dwSubKeyCount,
                                // ulong dwMaxSubKeyLen,
-                                out List<RegistryEnumKeyInfo> enumKeys)                                
+                                out List<RegistryEnumKeyInfo> enumKeys)
         {
-            uint idx = 0;                                      
+            uint idx = 0;
             int iResult = 0;
-            enumKeys = new List<RegistryEnumKeyInfo>();           
+            enumKeys = new List<RegistryEnumKeyInfo>();
 
             try
             {
                 while (idx < dwSubKeyCount)
                 {
                     long pcClass = 0;
-                    string sValue = string.Empty;                    
+                    string sValue = string.Empty;
                     string classname = string.Empty;
                     RegistryApi.FILETIME lastWriteTime;
                     RegistryEnumKeyInfo KeyInfo = new RegistryEnumKeyInfo();
                     StringBuilder pNameBuf = new StringBuilder(MAX_KEY_LENGTH);
-                    uint pcName = (uint)MAX_KEY_LENGTH;     
-          
+                    uint pcName = (uint)MAX_KEY_LENGTH;
+
                     /*IntPtr pFileTime = IntPtr.Zero;
                     pFileTime = Marshal.AllocHGlobal(Marshal.SizeOf(lastWriteTime));
                     Marshal.StructureToPtr(lastWriteTime, pFileTime, false);*/
@@ -280,9 +280,9 @@ namespace Likewise.LMC.Registry
                         Logger.Log(string.Format("RegistryInteropWrapper.RegEnumKeyExW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
                         break;
                     }
-                       
+
                     Logger.Log(string.Format("RegistryInteropWrapper.RegEnumKeyExW returns iResult={0}  \n" +
-                        "out keyname={1}", iResult.ToString(), pNameBuf.ToString()), Logger.RegistryViewerLoglevel);                    
+                        "out keyname={1}", iResult.ToString(), pNameBuf.ToString()), Logger.RegistryViewerLoglevel);
 
                     /*Logger.Log(string.Format("RegistryInteropWrapper.RegEnumKeyEx returns iResult={0}  \n" +
                                         "out keyname={1},\nref NameSize={2},\n ref classname={3},\n" +
@@ -297,10 +297,10 @@ namespace Likewise.LMC.Registry
                     KeyInfo.sClassName = classname;
                     KeyInfo.filetime = lastWriteTime;
 
-                    enumKeys.Add(KeyInfo);                                        
+                    enumKeys.Add(KeyInfo);
                     idx++;
                     pNameBuf = new StringBuilder(MAX_KEY_LENGTH);
-                    pcName = (uint)MAX_KEY_LENGTH; 
+                    pcName = (uint)MAX_KEY_LENGTH;
                 }
             }
             catch (Exception ex)
@@ -321,16 +321,16 @@ namespace Likewise.LMC.Registry
             enumValues = new List<RegistryValueInfo>();
 
             while (idx < dwValueCount)
-            {                
+            {
                 uint dwValueLen = (uint)MAX_VALUE_LENGTH;
                 uint dwValueNameLen = (uint)MAX_KEY_LENGTH;
                 byte[] pData = new byte[MAX_VALUE_LENGTH];
                 ulong dwDataType = RegistryApi.REG_UNKNOWN;
 
-                StringBuilder pValueNameBuf = new StringBuilder(MAX_KEY_LENGTH);              
+                StringBuilder pValueNameBuf = new StringBuilder(MAX_KEY_LENGTH);
                 RegistryValueInfo valueInfo = new RegistryValueInfo();
 
-                valueInfo.initializeToNull();                
+                valueInfo.initializeToNull();
 
                 Logger.Log(string.Format("RegistryInteropWrapper.RegEnumValueW(hRegConnection={0}, pParentKey={1}) is called ", handle_t.ToInt32().ToString(), pParentKey.ToInt32().ToString()));
 
@@ -349,13 +349,13 @@ namespace Likewise.LMC.Registry
                     Logger.Log(string.Format("RegistryInteropWrapper.RegEnumValueW is returns ret={0}", iResult));
                     if (idx++ < dwValueCount)
                         break;
-                }              
+                }
 
                 Logger.Log(string.Format("RegistryInteropWrapper.RegEnumValueW returns iResult={0},\n" +
                                         "ref valuename={1},\nref=dwValueNameLen={2},\nout dType={3},\n" +
                                         "out pData={4},\nref pcData={5}", iResult.ToString(), pValueNameBuf.ToString(), dwValueNameLen.ToString(),
                                         dwDataType.ToString(), (pData != null) ? pData.ToString() : "null", dwValueLen.ToString()), Logger.RegistryViewerLoglevel);
-                
+
                 valueInfo.maxKeyLength = 0;
                 valueInfo.pcchValueName = dwValueNameLen;
                 valueInfo.pValueName = pValueNameBuf.ToString().Substring(pValueNameBuf.ToString().LastIndexOf(@"\") + 1);
@@ -388,7 +388,7 @@ namespace Likewise.LMC.Registry
             RegistryApi.FILETIME filetime;
 
             dwSubKeyCount = 0;
-            dwValueCount = 0;              
+            dwValueCount = 0;
 
             try
             {
@@ -487,13 +487,13 @@ namespace Likewise.LMC.Registry
                             uint dwType,
                             byte[] pData)
         {
-            int iResult = 0;           
-           
+            int iResult = 0;
+
             try
             {
                 uint pcData = (uint)pData.Length;
                 StringBuilder pValueNameBuf = new StringBuilder();
-                pValueNameBuf.Append(sValuename.Trim());              
+                pValueNameBuf.Append(sValuename.Trim());
 
                 Logger.Log(string.Format("RegistryInteropWrapper.RegSetValueExW(hRegConnection={0}, hKey={1} sValuename={2}),  is called ", hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString(), String.IsNullOrEmpty(sValuename) ? "" : sValuename), Logger.RegistryViewerLoglevel);
 
@@ -593,9 +593,9 @@ namespace Likewise.LMC.Registry
                 {
                     Logger.Log(string.Format("RegistryInteropWrapper.RegGetValueW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
                     return iResult;
-                }               
+                }
 
-                Array.Resize<byte>(ref pData, (int)dwValueLen);          
+                Array.Resize<byte>(ref pData, (int)dwValueLen);
 
                 //Since for the default value the dwValueLen is 1024 even if the value not set
                 if (dwType == RegistryApi.REG_SZ)
@@ -633,9 +633,9 @@ namespace Likewise.LMC.Registry
             int iResult = 0;
             uint dwTotalSize = (uint)(MAX_VALUE_LENGTH * dwValueNum);
             RegistryValueInfo[] valueList = null;
-            RegistryApi.VALENT Val_list = new RegistryApi.VALENT();            
+            RegistryApi.VALENT Val_list = new RegistryApi.VALENT();
             IntPtr pVal_list = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(RegistryApi.VALENT)));
-            StringBuilder pValueNameBuf = new StringBuilder(MAX_KEY_LENGTH);  
+            StringBuilder pValueNameBuf = new StringBuilder(MAX_KEY_LENGTH);
 
             try
             {
@@ -655,18 +655,18 @@ namespace Likewise.LMC.Registry
                 }
 
                 if (pVal_list != IntPtr.Zero)
-                { 
+                {
                     IntPtr pCur = pVal_list;
                     valueList = new RegistryValueInfo[dwValueNum];
                     for (int idx = 0; idx < dwValueNum; idx++)
                     {
-                        Marshal.PtrToStructure(pCur, Val_list);                       
+                        Marshal.PtrToStructure(pCur, Val_list);
                         RegistryValueInfo valueInfo = new RegistryValueInfo();
                         valueInfo.pParentKey = hKey;
                         valueInfo.pValueName = Val_list.ve_valuename.ToString(); ;
                         valueInfo.bDataBuf = Val_list.ve_valueptr;
                         valueList[idx] = valueInfo;
-                      
+
                         pCur = (IntPtr)((int)pCur + Marshal.SizeOf(Val_list));
                     }
                 }
@@ -720,7 +720,7 @@ namespace Likewise.LMC.Registry
                 valueInfo.pType = (ulong)dwType;
 
                 Array.Resize<byte>(ref pData, (int)dwValueLen);
-               
+
 
                 pbData = pData;
             }
@@ -731,7 +731,7 @@ namespace Likewise.LMC.Registry
             }
             return iResult;
         }
-        
+
         public static int ApiRegDeleteTree(
                            IntPtr hRegConnection,
                            IntPtr pParentKey,
@@ -806,7 +806,7 @@ namespace Likewise.LMC.Registry
 
         public static int ApiRegCloseKey(
                          IntPtr hRegConnection,
-                         IntPtr hKey)                         
+                         IntPtr hKey)
         {
             int iResult = 0;
 
@@ -816,7 +816,7 @@ namespace Likewise.LMC.Registry
                     hRegConnection.ToInt32().ToString(), hKey.ToInt32().ToString()), Logger.RegistryViewerLoglevel);
 
                 iResult = RegistryInterop.LwRegCloseKey(hRegConnection,
-                                                hKey);                                                
+                                                hKey);
                 if (iResult != 0)
                 {
                     Logger.Log(string.Format("RegistryInteropWrapper.ApiRegCloseKey is returns ret={0}", iResult.ToString()), Logger.RegistryViewerLoglevel);
@@ -872,7 +872,7 @@ namespace Likewise.LMC.Registry
 
         public static int ApiRegDeleteValue(
                         IntPtr hRegConnection,
-                        IntPtr hKey,                   
+                        IntPtr hKey,
                         string sValuename)
         {
             int iResult = 0;
@@ -888,7 +888,7 @@ namespace Likewise.LMC.Registry
                 if (iResult != 0)
                 {
                     Logger.Log(string.Format("RegistryInteropWrapper.ApiRegDeleteValueW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
-                }               
+                }
 
                 Logger.Log(string.Format("RegistryInterop.ApiRegDeleteValueW() is returns iResult={0}",
                                 iResult.ToString()), Logger.RegistryViewerLoglevel);
@@ -959,7 +959,7 @@ namespace Likewise.LMC.Registry
                             Array.Resize<byte>(ref pData, pData.Length + 1);
                         else
                             pData[MAX_VALUE_LENGTH - 1] = 0;
-                       
+
                         break;
 
                     case (ulong)RegistryApi.REG_MULTI_SZ:
@@ -999,7 +999,7 @@ namespace Likewise.LMC.Registry
                     case (ulong)RegistryApi.REG_FULL_RESOURCE_DESCRIPTOR:
                     case (ulong)RegistryApi.REG_RESOURCE_LIST:
                     case (ulong)RegistryApi.REG_RESOURCE_REQUIREMENTS_LIST:
-                    case (ulong)RegistryApi.REG_NONE:                      
+                    case (ulong)RegistryApi.REG_NONE:
                         byte[] DataArry = ValueInfo.bDataBuf as byte[];
                         pData = DataArry;
                         break;
@@ -1041,8 +1041,8 @@ namespace Likewise.LMC.Registry
                         break;
 
                     case (ulong)RegistryApi.REG_DWORD:
-                        string sDTemp = BitConverter.ToUInt32(pData, 0).ToString();                       
-                        ValueInfo.bDataBuf = string.Concat("0x" + RegistryUtils.DecimalToBase(BitConverter.ToUInt32(pData, 0), 16).PadLeft(8, '0'), "(" + sDTemp + ")");                        
+                        string sDTemp = BitConverter.ToUInt32(pData, 0).ToString();
+                        ValueInfo.bDataBuf = string.Concat("0x" + RegistryUtils.DecimalToBase(BitConverter.ToUInt32(pData, 0), 16).PadLeft(8, '0'), "(" + sDTemp + ")");
                         break;
 
                     case (ulong)RegistryApi.REG_QWORD:
@@ -1120,15 +1120,15 @@ namespace Likewise.LMC.Registry
 
         public static byte[] RegParseBinaryData(IntPtr pData, ulong pDataLen)
         {
-            int size = Marshal.SizeOf(pData);           
-            byte[] binaryValue = new byte[pDataLen];    
-        
+            int size = Marshal.SizeOf(pData);
+            byte[] binaryValue = new byte[pDataLen];
+
             for (ulong i = 0; i < pDataLen; i++)
                 binaryValue[i] = Marshal.ReadByte(pData, (int)i);
 
             return binaryValue;
         }
-       
+
         public static IntPtr GethKeyPTR(long keyType)
         {
             IntPtr pHkey = Marshal.AllocHGlobal(sizeof(long));

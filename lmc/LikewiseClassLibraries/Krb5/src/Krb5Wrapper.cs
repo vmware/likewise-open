@@ -52,7 +52,7 @@ namespace Likewise.LMC.Krb5
         #region Class Data
 
         //Iniialization of kerebros ticket expiration time
-        public static UInt32 KrbTicketExpiryTime = 0;     
+        public static UInt32 KrbTicketExpiryTime = 0;
 
         private static System.Object lockThis_InitKRB5 = new System.Object();
 
@@ -77,8 +77,8 @@ namespace Likewise.LMC.Krb5
             lock (lockThis_InitKRB5)
             {
                 //Check for expired time if kerebros TGT
-                if (Krb5TicketHasExpired())                
-                    krb5HostName = string.Empty;              
+                if (Krb5TicketHasExpired())
+                    krb5HostName = string.Empty;
                 else
                     return ret;
 
@@ -132,8 +132,8 @@ namespace Likewise.LMC.Krb5
         /// <returns></returns>
         public static UInt32 Krb5GetSystemCachePath(out string krb5CachePath)
         {
-            UInt32 ret = 0;           
-           
+            UInt32 ret = 0;
+
             try
             {
                 if (!(Directory.Exists(PrivateKrb5Api.ADMIN_CACHE_DIR)))
@@ -141,9 +141,9 @@ namespace Likewise.LMC.Krb5
                     Directory.CreateDirectory(PrivateKrb5Api.ADMIN_CACHE_DIR);
                 }
 
-                krb5CachePath = Path.Combine(PrivateKrb5Api.ADMIN_CACHE_DIR, PrivateKrb5Api.KRB5_CACHEPATH);           
+                krb5CachePath = Path.Combine(PrivateKrb5Api.ADMIN_CACHE_DIR, PrivateKrb5Api.KRB5_CACHEPATH);
                 krb5CachePath = string.Concat("FILE:", krb5CachePath);
-               
+
                 Logger.Log(string.Format("Krb5Wrapper.Krb5GetSystemCachePath krb5CachePath = {0} ", krb5CachePath));
             }
             catch (Exception ex)
@@ -162,7 +162,7 @@ namespace Likewise.LMC.Krb5
                                             out UInt32 ticketExpiryTime)
         {
             UInt32 ret = 0;
-            IntPtr iRet = IntPtr.Zero;     //krb5_error_code            
+            IntPtr iRet = IntPtr.Zero;     //krb5_error_code
             KRB5API.krb5_ccache stcc = new KRB5API.krb5_ccache();
             KRB5API.krb5_context stCtx = new KRB5API.krb5_context();
 
@@ -259,7 +259,7 @@ namespace Likewise.LMC.Krb5
                 if (iRet != IntPtr.Zero)
                 {
                     Logger.Log(string.Format("krb5_get_init_creds_keytab( in_Stcreds={0}, iRet={1}", in_Stcreds.ToString(), iRet.ToString()));
-                }              
+                }
 
                 if (in_Stcreds != null)
                 {
@@ -305,7 +305,7 @@ namespace Likewise.LMC.Krb5
             ret = PrivateKrb5Api.krb5_init_context(out ctx);
             Logger.Log(string.Format("Krb5Wrapper.Kerb5DestroyCache.krb5_init_context(ctx = {0},iRet= {1}", ctx.ToString(),iRet.ToString()), Logger.Krb5LogLevel);
             if (iRet != IntPtr.Zero) {
-                Logger.Log(string.Format("krb5_init_context returns non-zero ret value iRet= {0}", iRet.ToString()), Logger.Krb5LogLevel);                             
+                Logger.Log(string.Format("krb5_init_context returns non-zero ret value iRet= {0}", iRet.ToString()), Logger.Krb5LogLevel);
             }
 
             /* use krb5_cc_resolve to get an alternate cache */
@@ -321,7 +321,7 @@ namespace Likewise.LMC.Krb5
                 if (iRet.ToInt32() != (int)Krb5ErrorCodes.KRB5_FCC_NOFILE)
                 {
                     iRet = IntPtr.Zero;
-                }               
+                }
             }
 
             if (ctx != IntPtr.Zero)
@@ -331,7 +331,7 @@ namespace Likewise.LMC.Krb5
 
             return ret;
         }
-        
+
         #endregion
 
     }

@@ -42,7 +42,7 @@ using Marshal = Likewise.LMC.Utilities.DebugMarshal;
 namespace Likewise.LMC.Services
 {
     class ServiceManagerInteropWindows
-    {       
+    {
         private const string advapiDllPath = "advapi32.dll";
 
         public const long SERVICE_STATE_ALL = 0x00000003;//&H3;
@@ -89,7 +89,7 @@ namespace Likewise.LMC.Services
                             SERVICE_INTERROGATE |
                             SERVICE_USER_DEFINED_CONTROL);
 
-        public static Int32 SC_MANAGER_ALL_ACCESS = 0x000F003F;        
+        public static Int32 SC_MANAGER_ALL_ACCESS = 0x000F003F;
         public static UInt32 SERVICE_CONFIG_DESCRIPTION = 0x01;
         public static UInt32 SERVICE_CONFIG_FAILURE_ACTIONS = 0x02;
 
@@ -110,10 +110,10 @@ namespace Likewise.LMC.Services
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseServiceHandle(IntPtr hSCObject);
 
-        //The ChangeServiceConfig function changes the configuration parameters of a service. 
-        //To change the optional configuration parameters, use the ChangeServiceConfig2 function. 
-        //The ChangeServiceConfig function changes the configuration information for the specified 
-        //service in the service control manager database. You can obtain the current configuration 
+        //The ChangeServiceConfig function changes the configuration parameters of a service.
+        //To change the optional configuration parameters, use the ChangeServiceConfig2 function.
+        //The ChangeServiceConfig function changes the configuration information for the specified
+        //service in the service control manager database. You can obtain the current configuration
         //information by using the QueryServiceConfig function.
 
         [DllImport(advapiDllPath, CharSet = CharSet.Unicode, SetLastError = true)]
@@ -128,7 +128,7 @@ namespace Likewise.LMC.Services
         public static extern bool ChangeServiceConfig2(
             IntPtr hService,
             int dwInfoLevel,
-            IntPtr lpInfo);      
+            IntPtr lpInfo);
 
         [DllImport(advapiDllPath, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -154,7 +154,7 @@ namespace Likewise.LMC.Services
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DeleteService(IntPtr hService);
 
-        //The EnumDependentServices function retrieves the name and status of each service that depends on the specified service; 
+        //The EnumDependentServices function retrieves the name and status of each service that depends on the specified service;
         //that is, the specified service must be running before the dependent services can run.
         [DllImport(advapiDllPath, EntryPoint = "EnumDependentServicesW", ExactSpelling = true, SetLastError = true)]
         public static extern bool EnumDependentServices(IntPtr hService,
@@ -183,7 +183,7 @@ namespace Likewise.LMC.Services
         [DllImport(advapiDllPath, CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "QueryServiceConfig2W")]
         public static extern Boolean QueryServiceConfig2(IntPtr hService, UInt32 dwInfoLevel, IntPtr buffer, UInt32 cbBufSize, out UInt32 pcbBytesNeeded);
 
-        //The QueryServiceObjectSecurity function retrieves a copy of the security descriptor associated with a service object. 
+        //The QueryServiceObjectSecurity function retrieves a copy of the security descriptor associated with a service object.
         //You can also use the GetNamedSecurityInfo function to retrieve a security descriptor.
         [DllImport(advapiDllPath, SetLastError = true)]
         public static extern bool QueryServiceObjectSecurity(IntPtr serviceHandle, System.Security.AccessControl.SecurityInfos secInfo, ref IntPtr lpSecDesrBuf, uint bufSize, out uint bufSizeNeeded);

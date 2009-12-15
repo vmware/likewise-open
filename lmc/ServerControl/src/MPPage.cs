@@ -36,7 +36,7 @@ namespace Likewise.LMC.ServerControl
 {
     public partial class MPPage : UserControl, IMPPageInterface
     {
-        #region Class data        
+        #region Class data
         private EditDialog mpContainer = null;
         protected IPlugInContainer container = null;
         protected String pageID = null;

@@ -36,9 +36,9 @@ namespace Likewise.LMC
 	/// Exception prompting to show usage information.
 	/// </summary>
 	public class ShowUsageException : ApplicationException
-	{        
+	{
         public ShowUsageException()
-        {     
+        {
         }
 	}
 

@@ -32,7 +32,7 @@ using System.Resources;
 using System.Runtime.InteropServices;
 
 #if VSTUDIO_BUILD
-// General Information about an assembly is controlled through the following 
+// General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Likewise Management Console - Server Controls")]
@@ -40,8 +40,8 @@ using System.Runtime.InteropServices;
 #endif
 
 //
-// Setting ComVisible to false makes the types in this assembly not visible 
-// to COM components.  If you need to access a type in this assembly from 
+// Setting ComVisible to false makes the types in this assembly not visible
+// to COM components.  If you need to access a type in this assembly from
 // COM, set the ComVisible attribute to true on that type.
 [assembly: ComVisible(false)]
 

@@ -47,16 +47,16 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
 {
     #region Class Data
     private ADObjectAddDlg _objectAddDlg;
-    
+
     private Dictionary<string, AttributeInfo> _newAttributesList = new Dictionary<string, AttributeInfo>();
-    
+
     private static Regex regNum = new Regex("^[-]?[0-9]+(\\.?[0-9]+)?$");
-    
+
     private static Regex regDateTime = new Regex("^(?=\\d)((?<month>(0?[13578])|1[02]|(0?[469]|11)(?!.31)|0?2(?(.29)(?=.29.((1[6-9]|[2-9]\\d)(0[48]|[2468][048]|[13579][26])|(16|[2468][048]|[3579][26])00))|(?!.3[01])))(?<sep>[-./])(?<day>0?[1-9]|[12]\\d|3[01])\\k<sep>(?<year>(1[6-9]|[2-9]\\d)\\d{2})(?(?=\x20\\d)\x20|$))?(?<time>((0?[1-9]|1[012])(:[0-5]\\d){0,2}(?i:\x20[AP]M))|([01]\\d|2[0-3])(:[0-5]\\d){1,2})?$");
-    
+
     private static Regex regHexaPrefixed = new Regex("^(0[xX])[0-9A-Fa-f]{1,2}$");
     #endregion
-    
+
     #region Constructors
     public ObjectAddAttributesTab()
     {
@@ -64,23 +64,23 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
         pageID = "ObjectAddAttributesTab";
         SetPageTitle("Attributes");
     }
-    
+
     public ObjectAddAttributesTab(ADObjectAddDlg objectAddDlg)
     : this()
     {
         this._objectAddDlg = objectAddDlg;
         _newAttributesList = _objectAddDlg.objectInfo._AttributesList;
     }
-    
+
     #endregion
-    
+
     #region Events
     private void cbProOptionorMandatory_SelectedIndexChanged(object sender, EventArgs e)
     {
         this.chooseMandOrOptionList();
     }
-    
-    
+
+
     /// <summary>
     /// Enables/Disables the controls based on the attribute selection
     /// </summary>
@@ -98,7 +98,7 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
         {
             return;
         }
-        
+
         string selectedAttr = cbProperty.SelectedItem.ToString();
         if (_newAttributesList.ContainsKey(selectedAttr))
         {
@@ -130,7 +130,7 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
             }
         }
     }
-    
+
     private void txtEditAttribute_TextChanged(object sender, EventArgs e)
     {
         if (txtEditAttribute.Text.Trim() == "")
@@ -142,8 +142,8 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
             btnSet.Enabled = true;
         }
     }
-    
-    
+
+
     /// <summary>
     /// Set the value to the selected attribute
     /// </summary>
@@ -171,7 +171,7 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
         string sAttribute = cbProperty.SelectedItem.ToString();
         string sAttributeType = cbProOptionorMandatory.SelectedItem.ToString();
         string sAttributeValue = "";
-        
+
         if (btnSet.Text.Trim().Equals("A&dd"))
         {
             if (listboxValues.Items.Contains("<not set>".Trim()))
@@ -184,7 +184,7 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
         {
             txtValues.Text = txtEditAttribute.Text.Trim();
         }
-        
+
         if (_newAttributesList.ContainsKey(sAttribute))
         {
             AttributeInfo AttrInfo = _newAttributesList[sAttribute];
@@ -207,7 +207,7 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
                 AttrInfo.sAttributeValue = sAttributeValue;
             }
             _newAttributesList[sAttribute] = AttrInfo;
-            
+
             if (_objectAddDlg.objectInfo.htMandatoryAttrList.Contains(sAttribute))
             {
                 _objectAddDlg.objectInfo.htMandatoryAttrList[sAttribute] = AttrInfo.sAttributeValue;
@@ -220,12 +220,12 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
         btnClear.Enabled = listboxValues.SelectedItems.Count != 0 || txtValues.Text.Trim() != string.Empty;
         ParentContainer.DataChanged = true;
         ParentContainer.btnApply.Enabled = true;
-        
+
         txtEditAttribute.Text = "";
         txtEditAttribute.Focus();
     }
-    
-    
+
+
     /// <summary>
     /// Clears the attribute value for the selected attribute to undefine it
     /// </summary>
@@ -258,14 +258,14 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
             {
                 AttrInfo = _newAttributesList[cbProperty.SelectedItem.ToString()];
             }
-            
+
             int idx = listboxValues.SelectedIndex;
             if (idx >= 0)
             {
                 txtEditAttribute.Text = listboxValues.Items[idx].ToString();
                 List<Object> ItemList = new List<Object>();
                 int index = 0;
-                
+
                 for (index = 0; index < listboxValues.Items.Count; index++)
                 {
                     if (index != idx)
@@ -280,10 +280,10 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
                     ItemsArr[index] = item;
                     index++;
                 }
-                
+
                 listboxValues.Items.Clear();
                 listboxValues.Items.AddRange(ItemsArr);
-                
+
                 btnClear.Enabled = false;
             }
             if (listboxValues.Items.Count == 1 && listboxValues.Items[0].ToString().Trim().Equals("<not set>".Trim()))
@@ -292,7 +292,7 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
                 {
                     _objectAddDlg.objectInfo.htMandatoryAttrList.Remove(cbProperty.SelectedItem.ToString());
                 }
-                
+
                 AttrInfo.sAttributeValue = "<not set>";
                 _newAttributesList[cbProperty.SelectedItem.ToString()] = AttrInfo;
             }
@@ -311,8 +311,8 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
             }
         }
     }
-    
-    
+
+
     /// <summary>
     /// For each attribute selection set the attribute values
     /// If it is not defined set attribute values with "<Not Set">
@@ -334,22 +334,22 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
             listboxValues.Items.Add("<not set>");
         }
     }
-    
+
     #endregion
-    
+
     #region Overriden Methods
-    
+
     public bool OnApply()
     {
         _objectAddDlg.objectInfo._AttributesList = _newAttributesList;
         return true;
     }
-    
+
     #endregion
-    
+
     #region IDirectoryPropertiesPage Members
-    
-    
+
+
     /// <summary>
     /// initializes the Mandatory and Optional list objects with respect to the attribute types
     /// </summary>
@@ -360,12 +360,12 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
     public void SetData(CredentialEntry ce, string servername, string name, ADUCDirectoryNode node)
     {
         string initialSelectedAttrSyntax = "";
-        
+
         if (_newAttributesList == null)
         {
             return;
         }
-        
+
         foreach (AttributeInfo attrInfo in _newAttributesList.Values)
         {
             if (_objectAddDlg.objectInfo.htMandatoryAttrList != null && !_objectAddDlg.objectInfo.htMandatoryAttrList.Contains(attrInfo.sAttributename))
@@ -382,7 +382,7 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
                 }
             }
         }
-        
+
             /*foreach (string Attr in _newAttributesList.Keys)
             {
                 if (_objectAddDlg.objectInfo.htMandatoryAttrList != null)
@@ -393,22 +393,22 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
                 else
                     cbProperty.Items.Add(Attr);
             }*/
-        
+
         {
             this.chooseMandOrOptionList();
         }
-        
+
         initialSelectedAttrSyntax = _objectAddDlg.ClassAttributeList[0].AttributeSyntax;
-        
+
         cbProOptionorMandatory.SelectedIndex = 1;
         lbClass.Text = _objectAddDlg.choosenClass;
     }
-    
+
     #endregion
-    
+
     #region Helper Methods
-    
-    
+
+
     /// <summary>
     /// Validate the all form controls
     /// </summary>
@@ -458,8 +458,8 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
         }
         return true;
     }
-    
-    
+
+
     /// <summary>
     /// Returns the attribute type based on attribute syntax
     /// </summary>
@@ -514,18 +514,18 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
             return "";
         }
     }
-    
+
     /// <summary>
     /// Method which gives the list with either "Mandatory", "Optional", or "both"
     /// </summary>
     private void chooseMandOrOptionList()
     {
         cbProperty.Items.Clear();
-        
+
         if (cbProOptionorMandatory.SelectedItem != null)
         {
             string selected = cbProOptionorMandatory.SelectedItem.ToString();
-            
+
             if (selected.Equals("Mandatory", StringComparison.InvariantCultureIgnoreCase))
             {
                 foreach (string str in cbMandProperty)
@@ -547,16 +547,15 @@ public partial class ObjectAddAttributesTab : MPPage, IDirectoryPropertiesPage
                     cbProperty.Items.Add(str);
                 }
             }
-            
+
             if (cbProperty.Items.Count > 0)
             {
                 cbProperty.SelectedIndex = 0;
             }
-            
+
         }
     }
     #endregion
-    
-}
-}
 
+}
+}

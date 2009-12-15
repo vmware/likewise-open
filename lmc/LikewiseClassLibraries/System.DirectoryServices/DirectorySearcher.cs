@@ -45,11 +45,11 @@ namespace System.DirectoryServices
         private string[] propertiesToLoad;
 
         public DirectorySearcher()
-        {                
+        {
             pageSize = 1000;
             propertiesToLoad = null;
             searchScope = SearchScope.OneLevel;
-            sFilter = "";           
+            sFilter = "";
         }
 
         public DirectorySearcher(string sFilter) : this()
@@ -61,12 +61,12 @@ namespace System.DirectoryServices
             : this()
         {
             this.deSearchRoot = deSearchRoot;
-        }        
-       
+        }
+
         public DirectorySearcher(DirectoryEntry deSearchRoot, string sFilter)
             : this(deSearchRoot)
         {
-            this.sFilter = sFilter;            
+            this.sFilter = sFilter;
         }
 
         public DirectorySearcher(DirectoryEntry deSearchRoot, string sFilter, SearchScope searchScope)
@@ -142,7 +142,7 @@ namespace System.DirectoryServices
         }
 
         public SearchResult FindOne()
-        {             
+        {
             string sPath = deSearchRoot.FindFirstChild(sFilter, searchScope, propertiesToLoad);
 
             if (sPath == null) return null;
@@ -152,12 +152,12 @@ namespace System.DirectoryServices
 
         public SearchResultCollection FindAll()
         {
-            List<string> sPaths = deSearchRoot.FindAllChild(sFilter, searchScope, propertiesToLoad);            
+            List<string> sPaths = deSearchRoot.FindAllChild(sFilter, searchScope, propertiesToLoad);
 
             SearchResultCollection collectionResult = new SearchResultCollection();
 
             if (sPaths != null && sPaths.Count > 0)
-            { 
+            {
                 foreach (string path in sPaths)
                 {
                     collectionResult.Add(new SearchResult(path));
@@ -181,7 +181,7 @@ namespace System.DirectoryServices
                 if (propertiesToLoad != null && propertiesToLoad.Length > 0)
                     properties.AddRange(propertiesToLoad);
 
-                return properties;                
+                return properties;
             }
 
             set
@@ -194,7 +194,7 @@ namespace System.DirectoryServices
                 }
             }
         }
-    
+
 
     }
 }

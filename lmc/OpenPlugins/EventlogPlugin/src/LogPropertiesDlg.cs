@@ -44,7 +44,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 public partial class LogPropertiesDlg : MPContainer
 {
     #region class data
-    
+
     private EventlogPlugin _plugin;
     private IPlugInContainer _container;
     private EventFilter _ef = null;
@@ -52,14 +52,14 @@ public partial class LogPropertiesDlg : MPContainer
     private bool Applied = false;
     private string sShowPage;
     private StandardPage _parentPage = null;
-    
+
     // back reference to the log being viewed and the
     // datagrid that is viewing it (so that we can
     // navigate up and down on it)
     private ListView _eventsListView;
-    
+
     #endregion
-    
+
     #region Constructors
 
     public LogPropertiesDlg(IPlugInContainer container, StandardPage parentPage, EventlogPlugin plugin,
@@ -85,11 +85,11 @@ public partial class LogPropertiesDlg : MPContainer
         }
         InitializePages();
     }
-    
+
     #endregion
-    
+
     #region Initialization Methods
-    
+
     /// <summary>
     /// Method to initailize the tab pages for the property sheet
     /// </summary>
@@ -106,13 +106,13 @@ public partial class LogPropertiesDlg : MPContainer
         this.AddPage(page,
         new MPMenuItem(page.PageID, "Filter", "Filter"),
         MPMenu.POSITION_END);
-        
+
         if (sShowPage != null && sShowPage != "")
         {
             ShowPage(sShowPage);
         }
     }
-    
+
     public void SetData()
     {
         if (this.GetPages() != null)
@@ -131,9 +131,9 @@ public partial class LogPropertiesDlg : MPContainer
         }
     }
     #endregion
-    
+
     #region Event Handlers
-    
+
     /// <summary>
     /// Method to call the Apply functionality for each of tab pages of type MPage.
     /// </summary>
@@ -143,9 +143,9 @@ public partial class LogPropertiesDlg : MPContainer
     {
         //bool b = base.Apply(actionCause);
         bool retVal = false;
-        
+
         Applied = true;
-        
+
         foreach (MPPage page in this.GetPages())
         {
             if (page != null)
@@ -177,10 +177,10 @@ public partial class LogPropertiesDlg : MPContainer
                 }
             }
         }
-     
+
         return retVal;
     }
-    
+
     private void btnOK_Click(object sender, EventArgs e)
     {
         if (!Applied)

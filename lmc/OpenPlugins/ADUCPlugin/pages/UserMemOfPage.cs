@@ -51,31 +51,31 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
     ADUCPlugin _plugin;
     IPlugInContainer _container;
     ADUCDirectoryNode _dirnode = null;
-    
+
     bool memListchanged = false;
-    
+
     List<string> MemofDnList;
     List<string> AddedGroups;
     List<string> RemovedGroups;
-    
+
     private ListViewColumnSorter lvwColumnSorter;
     private string sPrimayGroup = string.Empty;
     private bool IsPrimaryGroupChanged = false;
     private string ChangedPrimaryGroup = "";
 
     #endregion
-    
+
     #region Constructors
     public UserMemOfPage(IPlugInContainer container, ADUCPlugin plugin)
     {
         this.pageID = "UserMemofEditProperities";
         InitializeComponent();
-        
+
         // Create an instance of a ListView column sorter and assign it
         // to the ListView control.
         lvwColumnSorter = new ListViewColumnSorter();
         this.MemoflistView.ListViewItemSorter = lvwColumnSorter;
-        
+
         SetPageTitle("Member of");
         _plugin = plugin;
         _container = container;
@@ -83,11 +83,11 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
         AddedGroups = new List<string>();
         RemovedGroups = new List<string>();
     }
-    
+
     #endregion
-    
+
     #region Initialization Methods
-    
+
     /// <summary>
     /// Gets all groups for the selected user AD Object is member of
     /// Add groups to the Member Of page listview
@@ -154,7 +154,7 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
         }
     }
     #endregion
-    
+
     #region Methods
     private void UpdateApplyButton()
     {
@@ -169,7 +169,7 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
             ParentContainer.btnApply.Enabled = true;
         }
     }
-    
+
     /// <summary>
     /// when adding a user to a new group, we need modify the group's "member" attribute to include this user,
     /// we cannot modify the user's "memberof" attribute
@@ -214,10 +214,10 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
         }
 
         retVal = MemOfPages.OnApply_helper(MemofDnList, AddedGroups, RemovedGroups, _dirnode, this);
-        
+
         return retVal;
     }
-    
+
     /// <summary>
     /// Method to find the duplicate entry from the list
     /// </summary>
@@ -236,11 +236,11 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
         }
         return bIsFound;
     }
-    
+
     #endregion
-    
+
     #region Events
-    
+
     /// <summary>
     /// Populate the DsPicker model dialog
     /// Gets the selected group and add it to the list, removed from the RemovedGroups list if it is exists
@@ -255,11 +255,11 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
         string sServer;
         string sCNs;
         string sDCs;
-        
+
         System.DirectoryServices.SDSUtils.CrackPath(sLdapPath, out sProtocol, out sServer, out sCNs, out sDCs);
         System.DirectoryServices.Misc.DsPicker f = new System.DirectoryServices.Misc.DsPicker();
         f.SetData(System.DirectoryServices.Misc.DsPicker.DialogType.SELECT_GROUPS, sProtocol, sServer, sDCs, true);
-        
+
         if (f.waitForm != null && f.waitForm.bIsInterrupted)
         {
             return;
@@ -292,11 +292,11 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                         {
                             return;
                         }
-                        
+
                         lvItem.ImageIndex = MemOfPages.GetIndexForADObject(entry);
                         MemoflistView.Items.Add(lvItem);
                         lvItem.Tag = sDN;
-                        
+
                         if (!slvItem[0].Equals("Domain Users", StringComparison.InvariantCultureIgnoreCase))
                         {
                             MemofDnList.Add(sDN);
@@ -319,11 +319,11 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
         {
             memListchanged = false;
         }
-        
+
         UpdateApplyButton();
-        
+
     }
-    
+
     /// <summary>
     /// Removes the selected user from the Member of listview
     /// </summary>
@@ -355,11 +355,11 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                     }
                     if (!bIsPrimaryGroup)
                     {
-                        
+
                         ListViewItem[] lvItemArr = new ListViewItem[MemoflistView.Items.Count - 1];
                         List<ListViewItem> lvItemList = new List<ListViewItem>();
                         int i = 0;
-                        
+
                         foreach (ListViewItem lvitem in MemoflistView.Items)
                         {
                             if (!lvitem.Equals(item))
@@ -371,21 +371,21 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                         {
                             lvItemArr[i++] = lvitem;
                         }
-                        
+
                         MemoflistView.Items.Clear();
                         MemoflistView.Items.AddRange(lvItemArr);
-                        
+
                         RemovedGroups.Add(removeDn);
                         //remove the dn from added group list
                         foreach (string str in AddedGroups)
                         {
                             if (str.Equals(removeDn, StringComparison.InvariantCultureIgnoreCase))
-                            
+
 {
-                            
+
 }
 
-                            
+
                             AddedGroups.Remove(removeDn);
                             RemovedGroups.Remove(removeDn);
                             break;
@@ -393,7 +393,7 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                     }
                 }
                 RemoveButton.Enabled = false;
-                
+
                 memListchanged = true;
             }
         }
@@ -401,17 +401,17 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
         {
             memListchanged = false;
         }
-        
+
         UpdateApplyButton();
     }
-    
+
     private void SetPrimaryGroupbutton_Click(object sender, EventArgs e)
     {
         if (MemoflistView.SelectedItems.Count == 0)
         {
             return;
         }
-        
+
         string DN = MemoflistView.SelectedItems[0].Tag.ToString();
         if (DN == null)
         {
@@ -423,19 +423,19 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
             ChangedPrimaryGroup = DN;
             DomainUserlabel.Text = MemoflistView.SelectedItems[0].Text;
 
-            ParentContainer.btnApply.Enabled = ParentContainer.DataChanged = true;            
+            ParentContainer.btnApply.Enabled = ParentContainer.DataChanged = true;
         }
     }
-    
+
     private void MemoflistView_SelectedIndexChanged(object sender, EventArgs e)
     {
         RemoveButton.Enabled = MemoflistView.SelectedItems.Count != 0;
-        
+
         if (MemoflistView.SelectedItems.Count == 0)
         {
             return;
         }
-        
+
         if (MemoflistView.SelectedItems.Count > 1)
         {
             SetPrimaryGroupbutton.Enabled = false;
@@ -459,7 +459,7 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                     {
                         return;
                     }
-                    
+
                     object[] asProp = entry.Properties["objectClass"].Value as object[];
                     // poke these in a list for easier reference
                     List<string> liClasses = new List<string>();
@@ -467,7 +467,7 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                     {
                         liClasses.Add(s);
                     }
-                    
+
                     if (liClasses.Contains("group"))
                     {
                         string primaryGpToken = string.Empty;
@@ -491,9 +491,9 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                 }
             }
         }
-        
+
     }
-    
+
     private void MemoflistView_ColumnClick(object sender, ColumnClickEventArgs e)
     {
         // Determine if clicked column is already the column that is being sorted.
@@ -515,11 +515,11 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
             lvwColumnSorter.SortColumn = e.Column;
             lvwColumnSorter.Order = SortOrder.Ascending;
         }
-        
+
         // Perform the sort with these new sort options.
         this.MemoflistView.Sort();
     }
-    
+
     private void MemoflistView_MouseDoubleClick(object sender, MouseEventArgs e)
     {
         if (MemoflistView.SelectedItems.Count > 0)
@@ -539,23 +539,23 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                     f.BringToFront();
                     return;
                 }
-                
+
                 string sLDAPPath = string.Format("LDAP://{0}/{1}", _dirnode.LdapContext.DomainName, distinguishedName);
                 DirectoryEntry entry = new DirectoryEntry(sLDAPPath);
                 if (entry == null)
                 {
                     return;
                 }
-                
+
                 object[] asProp = entry.Properties["objectClass"].Value as object[];
-                
+
                 // poke these in a list for easier reference
                 List<string> liClasses = new List<string>();
                 foreach (string s in asProp)
                 {
                     liClasses.Add(s);
                 }
-                
+
                 if (liClasses.Contains("computer"))
                 {
                     ADUCDirectoryNode dirnode = new ADUCDirectoryNode(distinguishedName,
@@ -613,5 +613,3 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
     #endregion
 }
 }
-
-

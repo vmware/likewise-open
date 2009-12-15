@@ -76,8 +76,8 @@ public partial class ADGroupPropertiesDlg : MPContainer
     /// </summary>
     private void InitializePages()
     {
-        MPPage page = null;        
-       
+        MPPage page = null;
+
         if (_dirnode.ObjectClass.Equals("foreignSecurityPrincipal"))
         {
             page = new BuiltinGroupGeneralEditPage();
@@ -101,7 +101,7 @@ public partial class ADGroupPropertiesDlg : MPContainer
             this.AddPage(page,
                          new MPMenuItem(page.PageID, "General", "General"),
                          MPMenu.POSITION_END);
-           
+
             page = new GroupMembersPage(this._container, this._plugin);
             this.AddPage(page,
                          new MPMenuItem(page.PageID, "Members", "Members"),

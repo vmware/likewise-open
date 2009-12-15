@@ -60,7 +60,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         #region Initialize Methods
         /// <summary>
-        /// 
+        ///
         /// </summary>
         public void SetData(CredentialEntry ce, string servername, string name, ADUCDirectoryNode dirnode)
         {
@@ -92,7 +92,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
                 if (chkEmail.Checked)
                 {
-                    objectClass_values = txtEmail.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtEmail.Text.Trim(), null };                        
+                    objectClass_values = txtEmail.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtEmail.Text.Trim(), null };
                     attr =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "mail",
                     objectClass_values);
@@ -100,7 +100,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 }
                 if (chkOffice.Checked)
                 {
-                    objectClass_values = txtOffice.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtOffice.Text.Trim(), null };                        
+                    objectClass_values = txtOffice.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtOffice.Text.Trim(), null };
                     attr =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "physicalDeliveryOfficeName",
                     objectClass_values);
@@ -108,7 +108,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 }
                 if (chkTelephone.Checked)
                 {
-                    objectClass_values = txtTelephone.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtTelephone.Text.Trim(), null };                       
+                    objectClass_values = txtTelephone.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtTelephone.Text.Trim(), null };
                     attr =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "telephoneNumber",
                     objectClass_values);
@@ -117,7 +117,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
                 if (chkWebpage.Checked)
                 {
-                    objectClass_values = txtWebpage.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtWebpage.Text.Trim(), null };                        
+                    objectClass_values = txtWebpage.Text.Trim() == string.Empty ? new string[] { null } : new string[] { txtWebpage.Text.Trim(), null };
                     attr =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "wWWHomePage",
                     objectClass_values);
@@ -146,7 +146,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 {
                     return true;
                 }
-            
+
             return true;
         }
 

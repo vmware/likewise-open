@@ -118,17 +118,17 @@ public class ADUCDomain
         _hn.creds.Password,
         389,
         usingSimpleBind,
-        out errorMessage);        
-        
+        out errorMessage);
+
         if (String.IsNullOrEmpty(errorMessage))
-        {            
+        {
             Logger.Log("ADUCDomain: Built directory context", Logger.ADUCLogLevel);
         }
         else
         {
             Logger.ShowUserError(errorMessage);
         }
-        
+
         if (_adContext != null && !BuildSchemaCache(usingSimpleBind))
         {
             Logger.Log("BuildSchemaCache() failed!");

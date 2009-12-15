@@ -54,10 +54,10 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 
         // back reference to the event log being viewed and the plugin container
         private EventLogRecord el;
-        private IPlugInContainer _container;       
+        private IPlugInContainer _container;
         private EventlogPlugin _plugin;
         private StandardPage _parentPage;
-    
+
         #endregion
 
         #region Constructors
@@ -112,8 +112,8 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
         private void btnClearEvtlog_Click(object sender, EventArgs e)
         {
             if (_plugin == null)
-                return;           
-            
+                return;
+
             UInt32 ret;
 
             string sMsg = string.Format("Are you sure do you want to clear the EventLog database?\n" +
@@ -138,7 +138,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             }
             else if (dlg == DialogResult.No)
             {
-                ret = EventAPI.DeleteFromEventLog(this._plugin.eventLogHandle.Handle, string.Format("(EventTableCategoryId = '{0}')", _parentPage.TreeNode.Text));                
+                ret = EventAPI.DeleteFromEventLog(this._plugin.eventLogHandle.Handle, string.Format("(EventTableCategoryId = '{0}')", _parentPage.TreeNode.Text));
                 if (ret != 0)
                 {
                     Logger.Log(string.Format("Unable to delete the events for the current log {0}", _parentPage.TreeNode.Text));
@@ -182,7 +182,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
         /// </summary>
         private void SetButtonState()
         {
-            
+
         }
 
         /*private void ReadEventLogConfEntries()
@@ -198,9 +198,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 
                     foreach (string key in logentries.Keys)
                     {
-                        string strSource = string.Format("^{0} = (.*)$", key); // exp to find 1st arg               
+                        string strSource = string.Format("^{0} = (.*)$", key); // exp to find 1st arg
 
-                        // look for 2nd arg first 
+                        // look for 2nd arg first
                         bool found = Regex.IsMatch(text, strSource, RegexOptions.IgnoreCase);
                         if (found)
                         {
@@ -221,7 +221,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                                 }
                             }
 
-                            File.WriteAllText(eventlogfilePath, text); // write back to file   
+                            File.WriteAllText(eventlogfilePath, text); // write back to file
                         }
                     }
                 }
@@ -229,9 +229,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                 {
                     string text = File.ReadAllText(lsassdFilePath); // read file
 
-                    string strSource = string.Format("^enable-eventlog = (.*)$"); // exp to find 1st arg               
+                    string strSource = string.Format("^enable-eventlog = (.*)$"); // exp to find 1st arg
 
-                    // look for 2nd arg first 
+                    // look for 2nd arg first
                     bool found = Regex.IsMatch(text, strSource, RegexOptions.IgnoreCase);
                     if (found)
                     {
@@ -252,7 +252,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                             }
                         }
 
-                        File.WriteAllText(lsassdFilePath, text); // write back to file   
+                        File.WriteAllText(lsassdFilePath, text); // write back to file
                     }
                 }
                 txtDeleteEvents.Text = logentries["allow-delete-to"];
@@ -297,16 +297,16 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                         string strSource = string.Format("^{0} = (.*)$", key); // exp to find 1st arg
                         string strDest = string.Format("    {0} = {1}", key, logentries[key]);
 
-                        // look for 2nd arg first 
+                        // look for 2nd arg first
                         bool found = Regex.IsMatch(text, strSource, RegexOptions.IgnoreCase);
                         if (found)
                         {
                             // now look for 1st arg and replace with 3rd arg
                             text = Regex.Replace(text, strSource, strDest, RegexOptions.IgnoreCase);
 
-                            File.WriteAllText(eventlogfilePath, text); // write back to file   
+                            File.WriteAllText(eventlogfilePath, text); // write back to file
                         }
-                    }    
+                    }
                 }
             }
             catch(Exception ex)

@@ -328,7 +328,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             {
                 e.Handled = true;
             }
-        }       
+        }
 
         private void dtStart_ValueChanged(object sender, EventArgs e)
         {

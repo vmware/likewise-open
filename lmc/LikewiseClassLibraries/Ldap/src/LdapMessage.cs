@@ -40,7 +40,7 @@ namespace Likewise.LMC.LDAP
 	/// <summary>
 	/// Summary description for LdapMessage.
 	/// </summary>
-	/// 
+	///
     public class LdapMessage
     {
 
@@ -50,7 +50,7 @@ namespace Likewise.LMC.LDAP
         public static Int32 LBER_ERROR = (Int32) (- 1);
         private const int LDAP_RES_SEARCH_ENTRY = 100; //(Int32)0x64U;
         private const int LDAP_RES_SEARCH_RESULT = 101;// (Int32)0x65U;
-        
+
         private IntPtr     _ldapMessage;
 		private LdapHandle _ldapHandle;
 	    private DirectoryContext _dircontext;
@@ -157,7 +157,7 @@ namespace Likewise.LMC.LDAP
         public LdapValue[] GetBervals(IntPtr ldapEntry, string attrName)
         {
             Logger.Log(string.Format("Calling GetBervals(ldapEntry{0},attrName{1})", ldapEntry, attrName), Logger.ldapTracingLevel);
-             Monitor.Enter(Ldap_ApiCallSync);   
+             Monitor.Enter(Ldap_ApiCallSync);
             try
             {
                 unsafe
@@ -226,7 +226,7 @@ namespace Likewise.LMC.LDAP
                 Monitor.Exit(Ldap_ApiCallSync);
             }
         }
-        
+
         public LdapValue[] GetNonBervals(IntPtr ldapEntry, string attrName)
         {
             Logger.Log(string.Format("Calling GetNonBervals(ldapEntry{0},attrName{1})",
@@ -297,7 +297,7 @@ namespace Likewise.LMC.LDAP
             finally
             {
                 Monitor.Exit(Ldap_ApiCallSync);
-            }           
+            }
         }
 
 
@@ -388,7 +388,7 @@ namespace Likewise.LMC.LDAP
 
 	    public void FreeMessage()
 		{
-            Logger.Log(string.Format("Calling FreeMessage()"), Logger.ldapTracingLevel);           
+            Logger.Log(string.Format("Calling FreeMessage()"), Logger.ldapTracingLevel);
             try
             {
                 Logger.Log(String.Format("FreeMessage :{0}"), Logger.ldapTracingLevel);
@@ -396,11 +396,11 @@ namespace Likewise.LMC.LDAP
                 if (ret != 0)
                 {
                     Logger.Log(ErrorCodes.LDAPString(ret), Logger.ldapTracingLevel);
-                }          
+                }
             }
             catch (Exception ex)
             {
-                Logger.LogException("LdapMessage.FreeMessage", ex);        
+                Logger.LogException("LdapMessage.FreeMessage", ex);
             }
 		}
 
@@ -530,11 +530,11 @@ namespace Likewise.LMC.LDAP
             get
             {
                 return _ldapMessage;
-            }           
+            }
         }
-        
+
         #endregion
 
     }
-	
+
 }
