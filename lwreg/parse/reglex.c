@@ -75,6 +75,7 @@ RegLexOpen(
     pLexHandle->parseFuncArray[REGLEX_CHAR_INDEX('\n')] = RegLexParseNewline;
     pLexHandle->parseFuncArray[REGLEX_CHAR_INDEX(' ')]  = RegLexParseWhitespace;
     pLexHandle->parseFuncArray[REGLEX_CHAR_INDEX('\t')] = RegLexParseWhitespace;
+    pLexHandle->parseFuncArray[REGLEX_CHAR_INDEX('#')]  = RegLexParseComment;
 
     *ppLexHandle = pLexHandle;
 cleanup:
@@ -716,6 +717,36 @@ RegLexParseNewline(
 
 
 DWORD
+RegLexParseComment(
+    PREGLEX_ITEM lexHandle,
+    HANDLE ioHandle,
+    CHAR inC)
+{
+    DWORD dwError = 0;
+    BOOLEAN eof = FALSE;
+
+    if (lexHandle->state == REGLEX_STATE_IN_QUOTE ||
+        lexHandle->state == REGLEX_STATE_IN_KEY)
+    {
+        RegLexAppendChar(lexHandle, inC);
+    }
+    else
+    {
+        do
+        {
+            dwError = RegIOGetChar(ioHandle, &inC, &eof);
+        } while (dwError == 0 && !eof && inC != '\n' && inC != '\r');
+
+        if (!eof && (inC == '\n' || inC == '\r'))
+        {
+            dwError = RegIOUnGetChar(ioHandle, NULL);
+        }
+    }
+    return dwError;
+}
+
+
+DWORD
 RegLexParseWhitespace(
     PREGLEX_ITEM lexHandle,
     HANDLE ioHandle,
@@ -848,6 +879,7 @@ RegLexResetToken(
     lexHandle->state = REGLEX_FIRST;
     lexHandle->tokenDataType = REGLEX_FIRST;
     lexHandle->isToken = FALSE;
+    memset(&lexHandle->curToken, 0, sizeof(lexHandle->curToken));
 
 cleanup:
     return dwError;
