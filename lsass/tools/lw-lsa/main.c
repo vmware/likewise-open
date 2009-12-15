@@ -40,6 +40,7 @@ static main_entry entry_list[] =
     {"refresh-configuration", refresh_configuration_main},
     {"set-log-level", set_log_level_main},
     {"set-machine-sid", set_machine_sid_main},
+    {"set-machine-name", set_machine_name_main},
     {"trace-info", trace_info_main},
     {"find-objects", FindObjectsMain},
     {"enum-objects", EnumObjectsMain},

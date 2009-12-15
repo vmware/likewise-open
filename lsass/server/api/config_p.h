@@ -100,4 +100,11 @@ LsaSrvSetMachineSid(
     );
 
 
+DWORD
+LsaSrvSetMachineName(
+    HANDLE hServer,
+    PCSTR  pszNewMachineName
+    );
+
+
 #endif /* __CONFIG_P_H__ */

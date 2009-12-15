@@ -49,6 +49,13 @@
  */
 #include "includes.h"
 
+static
+VOID
+DirectoryInitializeOutputValue(
+    IN DIRECTORY_ATTR_TYPE AttrType,
+    OUT PVOID pValue
+    );
+
 VOID
 DirectoryFreeEntries(
     PDIRECTORY_ENTRY pEntries,
@@ -292,6 +299,7 @@ DirectoryGetEntryAttrValueByName(
     PSTR *ppszValue = NULL;
     POCTET_STRING *ppBlob = NULL;
     BOOLEAN bTypeIsCorrect = FALSE;
+    BOOLEAN bUseResult = FALSE;
 
     dwError = DirectoryGetEntryAttributeByName(pEntry,
                                                pwszAttrName,
@@ -308,7 +316,8 @@ DirectoryGetEntryAttrValueByName(
 
     bTypeIsCorrect = (pAttrVal->Type == AttrType);
 
-    switch (pAttrVal->Type) {
+    switch (AttrType)
+    {
     case DIRECTORY_ATTR_TYPE_BOOLEAN:
         pbValue = (BOOLEAN*)pValue;
         *pbValue = (bTypeIsCorrect) ? pAttrVal->data.bBooleanValue : FALSE;
@@ -346,12 +355,22 @@ DirectoryGetEntryAttrValueByName(
 
     default:
         dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
+    bUseResult = TRUE;
+
 cleanup:
+    if (!bUseResult)
+    {
+        DirectoryInitializeOutputValue(AttrType, pValue);
+    }
+
     return dwError;
 
 error:
+    // Make sure to not use result
+    bUseResult = FALSE;
     goto cleanup;
 }
 
@@ -384,6 +403,53 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+
+static
+VOID
+DirectoryInitializeOutputValue(
+    IN DIRECTORY_ATTR_TYPE AttrType,
+    OUT PVOID pValue
+    )
+{
+    size_t size = 0;
+
+    switch (AttrType)
+    {
+    case DIRECTORY_ATTR_TYPE_BOOLEAN:
+        size = sizeof(BOOLEAN);
+        break;
+
+    case DIRECTORY_ATTR_TYPE_INTEGER:
+        size = sizeof(ULONG);
+        break;
+
+    case DIRECTORY_ATTR_TYPE_LARGE_INTEGER:
+        size = sizeof(LONG64);
+        break;
+
+    case DIRECTORY_ATTR_TYPE_OCTET_STREAM:
+        size = sizeof(POCTET_STRING);
+        break;
+
+    case DIRECTORY_ATTR_TYPE_UNICODE_STRING:
+        size = sizeof(PWSTR);
+        break;
+
+    case DIRECTORY_ATTR_TYPE_ANSI_STRING:
+        size = sizeof(PSTR);
+        break;
+
+    default:
+        // nothing can be done
+        break;
+    }
+
+    if (pValue)
+    {
+        memset(pValue, 0, size);
+    }
 }
 
 

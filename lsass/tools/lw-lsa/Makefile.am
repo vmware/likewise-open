@@ -25,6 +25,7 @@ MODE_NAMES = \
 	refresh-configuration \
 	set-log-level \
 	set-machine-sid \
+	set-machine-name \
 	trace-info \
 	find-objects \
 	enum-objects \
@@ -61,6 +62,7 @@ lw_lsa_SOURCES = \
 	refresh_configuration_main.c \
 	set_log_level_main.c \
 	set_machine_sid_main.c \
+	set_machine_name_main.c \
 	trace_info_main.c \
 	find_objects.c \
 	enum_objects.c \

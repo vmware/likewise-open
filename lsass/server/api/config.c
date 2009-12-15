@@ -43,9 +43,20 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "api.h"
+
+
+static
+DWORD
+LsaSrvModifyMachineDC(
+    PCSTR pszDN,
+    PCSTR pszMachineName,
+    PCSTR pszNewMachineName,
+    PSTR  *ppszNewDN
+    );
 
 
 DWORD
@@ -699,6 +710,529 @@ error:
 
     goto cleanup;
 }
+
+
+DWORD
+LsaSrvSetMachineName(
+    HANDLE hServer,
+    PCSTR  pszNewMachineName
+    )
+{
+    const wchar_t wszDomainFilterFmt[] = L"%ws=%d";
+    const wchar_t wszAccountFilterFmt[] = L"%ws='%ws' AND (%ws=%d OR %ws=%d)";
+    const wchar_t wszAnyObjectFilterFmt[] = L"%ws>0";
+    const DWORD dwInt32StrSize = 10;
+
+    DWORD dwError = 0;
+    PLSA_SRV_API_STATE pSrvState = (PLSA_SRV_API_STATE)hServer;
+    PWSTR pwszNewMachineName = NULL;
+    PWSTR pwszMachineName = NULL;
+    PWSTR pwszDomainObjectDN = NULL;
+    HANDLE hDirectory = (HANDLE)NULL;
+    PWSTR pwszDomainFilter = NULL;
+    DWORD dwDomainFilterLen = 0;
+    PWSTR pwszBase = NULL;
+    ULONG ulScope = 0;
+    ULONG ulAttributesOnly = 0;
+    PDIRECTORY_ENTRY pDomainEntries = NULL;
+    PDIRECTORY_ENTRY pDomainEntry = NULL;
+    DWORD dwNumDomainEntries = 0;
+    DWORD iEntry = 0;
+    DWORD iMod = 0;
+    PWSTR pwszAccountFilter = NULL;
+    DWORD dwAccountFilterLen = 0;
+    PDIRECTORY_ENTRY pAccountEntries = NULL;
+    PDIRECTORY_ENTRY pAccountEntry = NULL;
+    DWORD dwNumAccountEntries = 0;
+    PWSTR pwszAccountObjectDN = NULL;
+    PWSTR pwszAnyObjectFilter = NULL;
+    DWORD dwAnyObjectFilterLen = 0;
+    PDIRECTORY_ENTRY pObjectEntries = NULL;
+    PDIRECTORY_ENTRY pObjectEntry = NULL;
+    DWORD dwNumObjectEntries = 0;
+    PSTR pszMachineName = NULL;
+    PWSTR pwszObjectDN = NULL;
+    PSTR pszObjectDN = NULL;
+    PSTR pszNewObjectDN = NULL;
+    PWSTR pwszParentDN = NULL;
+    PSTR pszParentDN = NULL;
+    PSTR pszNewParentDN = NULL;
+
+    WCHAR wszAttrRecordId[] = DIRECTORY_ATTR_RECORD_ID;
+    WCHAR wszAttrObjectClass[] = DIRECTORY_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrObjectDN[] = DIRECTORY_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrParentDN[] = DIRECTORY_ATTR_PARENT_DN;
+    WCHAR wszAttrDomainName[] = DIRECTORY_ATTR_DOMAIN_NAME;
+    WCHAR wszAttrNetbiosName[] = DIRECTORY_ATTR_NETBIOS_NAME;
+    WCHAR wszAttrCommonName[] = DIRECTORY_ATTR_COMMON_NAME;
+    WCHAR wszAttrSamAccountName[] = DIRECTORY_ATTR_SAM_ACCOUNT_NAME;
+
+    PWSTR wszAttributes[] = {
+        &wszAttrObjectDN[0],
+        &wszAttrParentDN[0],
+        &wszAttrDomainName[0],
+        NULL
+    };
+
+    enum AttrValueIndex {
+        ATTR_IDX_DOMAIN_NAME  = 0,
+        ATTR_IDX_NETBIOS_NAME,
+        ATTR_IDX_COMMON_NAME,
+        ATTR_IDX_SAM_ACCOUNT_NAME,
+        ATTR_IDX_OBJECT_DN,
+        ATTR_IDX_PARENT_DN,
+        ATTR_IDX_SENTINEL
+    };
+
+    ATTRIBUTE_VALUE AttrValues[] = {
+        {   /* ATTR_IDX_DOMAIN_NAME */
+            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            .data.pwszStringValue = NULL
+        },
+        {   /* ATTR_IDX_NETBIOS_NAME */
+            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            .data.pwszStringValue = NULL
+        },
+        {   /* ATTR_IDX_COMMON_NAME */
+            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            .data.pwszStringValue = NULL
+        },
+        {   /* ATTR_IDX_SAM_ACCOUNT_NAME */
+            .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+            .data.pwszStringValue = NULL
+        },
+        {   /* ATTR_IDX_OBJECT_DN */
+            .Type = DIRECTORY_ATTR_TYPE_ANSI_STRING,
+            .data.pszStringValue = NULL
+        },
+        {   /* ATTR_IDX_PARENT_DN */
+            .Type = DIRECTORY_ATTR_TYPE_ANSI_STRING,
+            .data.pszStringValue = NULL
+        }
+    };
+
+    DIRECTORY_MOD modDomainName = {
+        DIR_MOD_FLAGS_REPLACE,
+        &wszAttrDomainName[0],
+        1,
+        &AttrValues[ATTR_IDX_DOMAIN_NAME]
+    };
+
+    DIRECTORY_MOD modNetbiosName = {
+        DIR_MOD_FLAGS_REPLACE,
+        &wszAttrNetbiosName[0],
+        1,
+        &AttrValues[ATTR_IDX_NETBIOS_NAME]
+    };
+
+    DIRECTORY_MOD modCommonName = {
+        DIR_MOD_FLAGS_REPLACE,
+        &wszAttrCommonName[0],
+        1,
+        &AttrValues[ATTR_IDX_COMMON_NAME]
+    };
+
+    DIRECTORY_MOD modSamAccountName = {
+        DIR_MOD_FLAGS_REPLACE,
+        &wszAttrSamAccountName[0],
+        1,
+        &AttrValues[ATTR_IDX_SAM_ACCOUNT_NAME]
+    };
+
+    DIRECTORY_MOD modObjectDN = {
+        DIR_MOD_FLAGS_REPLACE,
+        &wszAttrObjectDN[0],
+        1,
+        &AttrValues[ATTR_IDX_OBJECT_DN]
+    };
+
+    DIRECTORY_MOD modParentDN = {
+        DIR_MOD_FLAGS_REPLACE,
+        &wszAttrParentDN[0],
+        1,
+        &AttrValues[ATTR_IDX_PARENT_DN]
+    };
+
+    DIRECTORY_MOD mods[ATTR_IDX_SENTINEL + 1];
+
+    if (pSrvState->peerUID)
+    {
+        dwError = ERROR_ACCESS_DENIED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaMbsToWc16s(pszNewMachineName,
+                            &pwszNewMachineName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectoryOpen(&hDirectory);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /*
+     * Search and modify MACHINE domain object first
+     */
+
+    dwDomainFilterLen = ((sizeof(wszAttrObjectClass)/sizeof(WCHAR) - 1) +
+                         dwInt32StrSize +
+                         (sizeof(wszAttrObjectClass)/sizeof(WCHAR) - 1) +
+                         dwInt32StrSize +
+                         (sizeof(wszDomainFilterFmt)/
+                          sizeof(wszDomainFilterFmt[0])));
+    dwError = LwAllocateMemory(dwDomainFilterLen * sizeof(WCHAR),
+                               (PVOID*)&pwszDomainFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sw16printfw(pwszDomainFilter, dwDomainFilterLen, wszDomainFilterFmt,
+                &wszAttrObjectClass[0],
+                DIR_OBJECT_CLASS_DOMAIN,
+                &wszAttrObjectClass[0],
+                DIR_OBJECT_CLASS_BUILTIN_DOMAIN);
+
+    dwError = DirectorySearch(hDirectory,
+                              pwszBase,
+                              ulScope,
+                              pwszDomainFilter,
+                              wszAttributes,
+                              ulAttributesOnly,
+                              &pDomainEntries,
+                              &dwNumDomainEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumDomainEntries != 1)
+    {
+        dwError = LW_ERROR_SAM_DATABASE_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pDomainEntry = &(pDomainEntries[0]);
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                                pDomainEntry,
+                                wszAttrObjectDN,
+                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                &pwszDomainObjectDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                                pDomainEntry,
+                                wszAttrDomainName,
+                                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                &pwszMachineName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    iMod = 0;
+    memset(&mods[0], 0, sizeof(mods));
+
+    AttrValues[ATTR_IDX_DOMAIN_NAME].data.pwszStringValue  = pwszNewMachineName;
+    AttrValues[ATTR_IDX_NETBIOS_NAME].data.pwszStringValue = pwszNewMachineName;
+    AttrValues[ATTR_IDX_COMMON_NAME].data.pwszStringValue  = pwszNewMachineName;
+    AttrValues[ATTR_IDX_SAM_ACCOUNT_NAME].data.pwszStringValue
+        = pwszNewMachineName;
+
+    mods[iMod++] = modDomainName;
+    mods[iMod++] = modNetbiosName;
+    mods[iMod++] = modCommonName;
+    mods[iMod++] = modSamAccountName;
+
+    dwError = DirectoryModifyObject(hDirectory,
+                                    pwszDomainObjectDN,
+                                    mods);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /*
+     * Search and modify local domain accounts
+     */
+
+    dwAccountFilterLen = ((sizeof(wszAttrDomainName)/sizeof(WCHAR) - 1) +
+                          wc16slen(pwszMachineName) +
+                          (sizeof(wszAttrObjectClass)/sizeof(WCHAR) - 1) +
+                          dwInt32StrSize +
+                          (sizeof(wszAttrObjectClass)/sizeof(WCHAR) - 1) +
+                          dwInt32StrSize +
+                          (sizeof(wszAccountFilterFmt)/
+                           sizeof(wszAccountFilterFmt[0])));
+    dwError = LwAllocateMemory(dwAccountFilterLen * sizeof(WCHAR),
+                               (PVOID*)&pwszAccountFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sw16printfw(pwszAccountFilter, dwAccountFilterLen, wszAccountFilterFmt,
+                &wszAttrDomainName[0],
+                pwszMachineName,
+                &wszAttrObjectClass[0],
+                DIR_OBJECT_CLASS_USER,
+                &wszAttrObjectClass[0],
+                DIR_OBJECT_CLASS_LOCAL_GROUP);
+
+    dwError = DirectorySearch(hDirectory,
+                              pwszBase,
+                              ulScope,
+                              pwszAccountFilter,
+                              wszAttributes,
+                              ulAttributesOnly,
+                              &pAccountEntries,
+                              &dwNumAccountEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumAccountEntries == 0)
+    {
+        dwError = LW_ERROR_SAM_DATABASE_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (iEntry = 0; iEntry < dwNumAccountEntries; iEntry++)
+    {
+        pAccountEntry = &(pAccountEntries[iEntry]);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                    pAccountEntry,
+                                    wszAttrObjectDN,
+                                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                    &pwszAccountObjectDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        iMod = 0;
+        memset(&mods[0], 0, sizeof(mods));
+
+        AttrValues[ATTR_IDX_DOMAIN_NAME].data.pwszStringValue
+            = pwszNewMachineName;
+        AttrValues[ATTR_IDX_NETBIOS_NAME].data.pwszStringValue
+            = pwszNewMachineName;
+
+        mods[iMod++] = modDomainName;
+        mods[iMod++] = modNetbiosName;
+
+        dwError = DirectoryModifyObject(hDirectory,
+                                        pwszAccountObjectDN,
+                                        mods);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    /*
+     * Get all objects and update DN wherever it includes "DN=MACHINE"
+     */
+
+    dwAnyObjectFilterLen = ((sizeof(wszAttrRecordId)/sizeof(WCHAR) - 1) +
+                            dwInt32StrSize +
+                            (sizeof(wszAnyObjectFilterFmt)/
+                             sizeof(wszAnyObjectFilterFmt[0])));
+    dwError = LwAllocateMemory(dwAnyObjectFilterLen * sizeof(WCHAR),
+                               (PVOID*)&pwszAnyObjectFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sw16printfw(pwszAnyObjectFilter, dwAnyObjectFilterLen,
+                wszAnyObjectFilterFmt,
+                &wszAttrRecordId[0]);
+
+    dwError = DirectorySearch(hDirectory,
+                              pwszBase,
+                              ulScope,
+                              pwszAnyObjectFilter,
+                              wszAttributes,
+                              ulAttributesOnly,
+                              &pObjectEntries,
+                              &dwNumObjectEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumObjectEntries == 0)
+    {
+        dwError = LW_ERROR_SAM_DATABASE_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (iEntry = 0; iEntry < dwNumObjectEntries; iEntry++)
+    {
+        pObjectEntry = &(pObjectEntries[iEntry]);
+
+        dwError = LsaWc16sToMbs(pwszMachineName, &pszMachineName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                    pObjectEntry,
+                                    wszAttrObjectDN,
+                                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                    &pwszObjectDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaWc16sToMbs(pwszObjectDN, &pszObjectDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaSrvModifyMachineDC(pszObjectDN,
+                                        pszMachineName,
+                                        pszNewMachineName,
+                                        &pszNewObjectDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                                    pObjectEntry,
+                                    wszAttrParentDN,
+                                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                                    &pwszParentDN);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pwszParentDN)
+        {
+            dwError = LsaWc16sToMbs(pwszParentDN, &pszParentDN);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LsaSrvModifyMachineDC(pszParentDN,
+                                            pszMachineName,
+                                            pszNewMachineName,
+                                            &pszNewParentDN);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (pszNewObjectDN || pszNewParentDN)
+        {
+            iMod = 0;
+            memset(&mods[0], 0, sizeof(mods));
+
+            AttrValues[ATTR_IDX_OBJECT_DN].data.pszStringValue = pszNewObjectDN;
+            AttrValues[ATTR_IDX_PARENT_DN].data.pszStringValue = pszNewParentDN;
+
+            if (pszNewObjectDN)
+            {
+                mods[iMod++] = modObjectDN;
+            }
+            if (pszNewParentDN)
+            {
+                mods[iMod++] = modParentDN;
+            }
+
+            dwError = DirectoryModifyObject(hDirectory,
+                                            pwszObjectDN,
+                                            mods);
+            BAIL_ON_LSA_ERROR(dwError);
+
+        }
+
+        if (pszMachineName)
+        {
+            LW_SAFE_FREE_STRING(pszMachineName);
+            pszMachineName = NULL;
+        }
+
+        if (pszObjectDN)
+        {
+            LW_SAFE_FREE_STRING(pszObjectDN);
+            pszObjectDN = NULL;
+        }
+
+        if (pszNewObjectDN)
+        {
+            LW_SAFE_FREE_STRING(pszNewObjectDN);
+            pszNewObjectDN = NULL;
+        }
+
+        if (pszParentDN)
+        {
+            LW_SAFE_FREE_STRING(pszParentDN);
+            pszParentDN = NULL;
+        }
+
+        if (pszNewParentDN)
+        {
+            LW_SAFE_FREE_STRING(pszNewParentDN);
+            pszNewParentDN = NULL;
+        }
+    }
+
+cleanup:
+    if (pDomainEntries)
+    {
+        DirectoryFreeEntries(pDomainEntries,
+                             dwNumDomainEntries);
+    }
+
+    if (pAccountEntries)
+    {
+        DirectoryFreeEntries(pAccountEntries,
+                             dwNumAccountEntries);
+    }
+
+    if (pObjectEntries)
+    {
+        DirectoryFreeEntries(pObjectEntries,
+                             dwNumObjectEntries);
+    }
+
+    if (hDirectory)
+    {
+        DirectoryClose(hDirectory);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszNewMachineName);
+    LW_SAFE_FREE_MEMORY(pwszDomainFilter);
+    LW_SAFE_FREE_MEMORY(pwszAccountFilter);
+    LW_SAFE_FREE_MEMORY(pwszAnyObjectFilter);
+    LW_SAFE_FREE_STRING(pszMachineName);
+    LW_SAFE_FREE_STRING(pszObjectDN);
+    LW_SAFE_FREE_STRING(pszNewObjectDN);
+    LW_SAFE_FREE_STRING(pszParentDN);
+    LW_SAFE_FREE_STRING(pszNewParentDN);
+
+    return dwError;
+
+error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "set machine name (new name = '%s')", LSA_SAFE_LOG_STRING(pszNewMachineName));
+    goto cleanup;
+}
+
+
+static
+DWORD
+LsaSrvModifyMachineDC(
+    PCSTR pszDN,
+    PCSTR pszMachineName,
+    PCSTR pszNewMachineName,
+    PSTR  *ppszNewDN
+    )
+{
+    DWORD dwError = 0;
+    PSTR pszToken = NULL;
+    PSTR pszPreToken = NULL;
+    PSTR pszPostToken = NULL;
+    PSTR pszObjectDN = NULL;
+    PSTR pszNewObjectDN = NULL;
+    DWORD dwTokenLen = 0;
+    DWORD dwPreTokenLen = 0;
+
+    dwError = LwStrDupOrNull(pszDN, &pszObjectDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    LwStrStr(pszObjectDN, pszMachineName, &pszToken);
+
+    if (pszToken)
+    {
+        pszToken[0]   = '\0';
+        pszPreToken   = pszObjectDN;
+        dwPreTokenLen = strlen(pszPreToken);
+        dwTokenLen    = strlen(pszMachineName);
+        pszPostToken  = &pszObjectDN[dwPreTokenLen + dwTokenLen];
+
+        dwError = LwAllocateStringPrintf(&pszNewObjectDN,
+                                         "%s%s%s",
+                                         pszPreToken,
+                                         pszNewMachineName,
+                                         pszPostToken);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppszNewDN = pszNewObjectDN;
+
+cleanup:
+    LW_SAFE_FREE_STRING(pszObjectDN);
+
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pszNewObjectDN);
+
+    *ppszNewDN = NULL;
+
+    goto cleanup;
+}
+
+
 
 
 /*

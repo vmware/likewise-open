@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -43,6 +43,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
 #include "client.h"
 
@@ -153,6 +154,61 @@ error:
 
 LSASS_API
 DWORD
+LsaSetMachineName(
+    HANDLE hLsaConnection,
+    PCSTR pszMachineName
+    )
+{
+    DWORD dwError = 0;
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext =
+                     (PLSA_CLIENT_CONNECTION_CONTEXT)hLsaConnection;
+    LSA_IPC_SET_MACHINE_NAME SetMachineName = {0};
+    PLSA_IPC_ERROR pError = NULL;
+
+    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+
+    SetMachineName.pszMachineName = pszMachineName;
+
+    request.tag    = LSA_Q_SET_MACHINE_NAME;
+    request.object = &SetMachineName;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
+                              pContext->pAssoc,
+                              &request,
+                              &response));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (response.tag)
+    {
+    case LSA_R_SET_MACHINE_NAME_SUCCESS:
+        break;
+
+    case LSA_R_SET_MACHINE_NAME_FAILURE:
+        pError = (PLSA_IPC_ERROR) response.object;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+
+    default:
+        dwError = EINVAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+    if (response.object)
+    {
+        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+LSASS_API
+DWORD
 LsaGetPamConfig(
     IN HANDLE hLsaConnection,
     OUT PLSA_PAM_CONFIG *ppPamConfig
@@ -215,6 +271,7 @@ LsaFreePamConfig(
         LW_SAFE_FREE_MEMORY(pConfig);
     }
 }
+
 
 /*
 local variables:
