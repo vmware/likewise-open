@@ -60,6 +60,7 @@ typedef UCHAR SMB_OPLOCK_LEVEL;
 #define SMB_OPLOCK_LEVEL_II    0x03
 
 typedef VOID (*PFN_LWIO_SRV_FREE_OPLOCK_STATE)(HANDLE hOplockState);
+typedef VOID (*PFN_LWIO_SRV_FREE_BRL_STATE)(HANDLE hByteRangeLockState);
 typedef VOID (*PFN_LWIO_SRV_FREE_ASYNC_STATE)(HANDLE hAsyncState);
 
 typedef struct _LWIO_ASYNC_STATE
@@ -99,6 +100,9 @@ typedef struct _LWIO_SRV_FILE
 
     HANDLE                         hOplockState;
     PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
+
+    HANDLE                         hByteRangeLockState;
+    PFN_LWIO_SRV_FREE_BRL_STATE    pfnFreeByteRangeLockState;
 
 } LWIO_SRV_FILE, *PLWIO_SRV_FILE;
 

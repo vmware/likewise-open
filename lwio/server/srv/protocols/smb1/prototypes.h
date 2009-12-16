@@ -222,6 +222,16 @@ SrvBuildErrorResponse_SMB_V1(
 // lockx.c
 
 NTSTATUS
+SrvCreatePendingLockStateList(
+    PSRV_PENDING_LOCK_STATE_LIST* ppLockStateList
+    );
+
+VOID
+SrvFreePendingLockStateListHandle(
+    HANDLE hLockStateList
+    );
+
+NTSTATUS
 SrvProcessLockAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );

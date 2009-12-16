@@ -361,7 +361,18 @@ typedef struct _SRV_LOCK_STATE_SMB_V1
 
     PSRV_TIMER_REQUEST               pTimerRequest;
 
+    struct _SRV_LOCK_STATE_SMB_V1*   pNext;
+
 } SRV_LOCK_STATE_SMB_V1, *PSRV_LOCK_STATE_SMB_V1;
+
+typedef struct _SRV_PENDING_LOCK_STATE_LIST
+{
+    pthread_mutex_t        mutex;
+    pthread_mutex_t*       pMutex;
+
+    PSRV_LOCK_STATE_SMB_V1 pLockState;
+
+} SRV_PENDING_LOCK_STATE_LIST, *PSRV_PENDING_LOCK_STATE_LIST;
 
 typedef enum
 {

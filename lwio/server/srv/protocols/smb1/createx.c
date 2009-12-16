@@ -254,6 +254,20 @@ SrvProcessNTCreateAndX(
             ntStatus = pCreateState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
+            if (!pCreateState->pFile->hByteRangeLockState)
+            {
+                PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList = NULL;
+
+                ntStatus = SrvCreatePendingLockStateList(&pPendingLockStateList);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                pCreateState->pFile->hByteRangeLockState =
+                                (HANDLE)pPendingLockStateList;
+
+                pCreateState->pFile->pfnFreeByteRangeLockState =
+                                &SrvFreePendingLockStateListHandle;
+            }
+
             ntStatus = SrvBuildNTCreateResponse_inlock(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
