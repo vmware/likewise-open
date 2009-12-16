@@ -141,6 +141,9 @@
 #define LW_DBG_EXCEPTION_HANDLED                      ((LW_NTSTATUS)0x00010001)
 #define LW_DBG_CONTINUE                               ((LW_NTSTATUS)0x00010002)
 
+// DOS error codes
+#define LW_STATUS_CANCEL_VIOLATION                    ((LW_NTSTATUS)0x00AD0001)
+
 // Informational status codes
 #define LW_STATUS_OBJECT_NAME_EXISTS                  ((LW_NTSTATUS)0x40000000)
 #define LW_STATUS_THREAD_WAS_SUSPENDED                ((LW_NTSTATUS)0x40000001)
@@ -1173,6 +1176,7 @@
 #define STATUS_WAIT_3                                      LW_STATUS_WAIT_3
 #define STATUS_WAIT_63                                     LW_STATUS_WAIT_63
 #define STATUS_ABANDONED_WAIT_0                            LW_STATUS_ABANDONED_WAIT_0
+#define STATUS_CANCEL_VIOLATION                            LW_STATUS_CANCEL_VIOLATION
 #define STATUS_ABANDONED_WAIT_63                           LW_STATUS_ABANDONED_WAIT_63
 #define STATUS_USER_APC                                    LW_STATUS_USER_APC
 #define STATUS_KERNEL_APC                                  LW_STATUS_KERNEL_APC
