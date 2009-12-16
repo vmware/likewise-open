@@ -55,6 +55,11 @@ namespace Likewise.LMC.SecurityDesriptor
             [MarshalAs(UnmanagedType.LPArray)] byte[] pSID,
             out IntPtr ptrSid);
 
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool ConvertStringSidToSid(
+            [MarshalAs(UnmanagedType.LPWStr)] string sSID,
+            out IntPtr ptrSid);
+
         [DllImport(LibADVAPIPath, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool OpenProcessToken(IntPtr ProcessHandle,

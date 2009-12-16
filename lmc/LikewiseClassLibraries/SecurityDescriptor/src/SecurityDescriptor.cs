@@ -121,47 +121,6 @@ namespace Likewise.LMC.SecurityDesriptor
         }
 
         /// <summary>
-        /// Function to read the DACL data with the given key value
-        /// </summary>
-        /// <param name="daclInfo"></param>
-        /// <param name="sKey"></param>
-        /// <returns>Object: Value for the given key</returns>
-        public object GetUserOrGroupSecurityInfo(
-                            Dictionary<string, string> daclInfo,
-                            string sKey)
-        {
-            object value = null;
-            switch (sKey)
-            {
-                case "Sid":
-                    //Can use this sid for editing the permission set
-                    break;
-
-                case "AceType":
-                    if (Convert.ToUInt32(daclInfo[sKey]) == 0)
-                        value = true;
-                    else if (Convert.ToUInt32(daclInfo[sKey]) == 1)
-                        value = true;
-                    else if (Convert.ToUInt32(daclInfo[sKey]) == 2)
-                        value = true;
-                    break;
-
-                case "AceMask":
-                    value = daclInfo[sKey];
-                    break;
-
-                case "AceFlags":
-                    //Can use these flags for editing the permission set
-                    break;
-
-                case "AceSize":
-                    //Can use for editing the security descriptor value back
-                    break;
-            }
-            return value;
-        }
-
-        /// <summary>
         /// Function to read the mapped strings for the given AccessMask value
         /// </summary>
         /// <param name="accessMask"></param>
@@ -184,6 +143,23 @@ namespace Likewise.LMC.SecurityDesriptor
 
                     permissions.Add(sPermissionname);
                 }
+            }
+
+            return permissions;
+        }
+
+        /// <summary>
+        /// Function to read the mapped strings for the given AccessMask value
+        /// </summary>
+        /// <param name="accessMask"></param>
+        /// <param name="sPermissionname"></param>
+        public List<string> GetObjectPermissionSet()
+        {
+            List<string> permissions = new List<string>();
+
+            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
+            {
+                permissions.Add(PermissionsSet.PermissionSet[accesskmask]);
             }
 
             return permissions;
@@ -227,16 +203,6 @@ namespace Likewise.LMC.SecurityDesriptor
             }
 
             return "";
-        }
-
-        public bool CheckAccessMaskExists(
-                        string inputMask,
-                        uint AccessMaskType)
-        {
-            if ((Convert.ToUInt32(inputMask) & AccessMaskType) > 0)
-                return true;
-
-            return false;
         }
 
         public string GetDCInfo(string domain)
@@ -294,12 +260,39 @@ namespace Likewise.LMC.SecurityDesriptor
             }
         }
 
+        public void GetIntAccessMaskFromStringAceMask(string sAcePermission, ref int oAceMask)
+        {
+            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
+            {
+                if (PermissionsSet.PermissionSet[accesskmask].Equals(sAcePermission))
+                {
+                    oAceMask = oAceMask | (int)accesskmask;
+                }
+            }
+        }
+
         public uint EditAce(object editAceslist,
                             object addedAceslist,
                             object deletedAceslist)
         {
             return SecurityDescriptorWrapper.ApiSetSecurityDescriptorDacl(
                                     editAceslist, addedAceslist, deletedAceslist, pSecurityDescriptor);
+        }
+
+        public string CovertStringSidToLookupName(string sSID)
+        {
+            string sUsername = string.Empty;
+            string sDomain = string.Empty;
+            IntPtr pSid=IntPtr.Zero;
+
+            SecurityDescriptorApi.ConvertStringSidToSid(sSID, out pSid);
+            if (pSid != IntPtr.Zero)
+            {
+                SecurityDescriptorWrapper.GetObjectLookUpName(pSid, out sUsername, out sDomain);
+                sUsername = string.Concat(sUsername, "(", sUsername, "@", sDomain, ")");
+            }
+
+            return sUsername;
         }
 
         #endregion
