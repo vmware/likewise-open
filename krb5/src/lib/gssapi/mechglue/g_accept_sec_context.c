@@ -185,7 +185,19 @@ gss_cred_id_t *		d_cred;
      */
     union_cred = (gss_union_cred_t) verifier_cred_handle;
     input_cred_handle = gssint_get_mechanism_cred(union_cred, token_mech_type);
-    
+
+    /*
+     * If the mechanism is SPNEGO, and a SPNEGO specific cred could not be
+     * found, then pass the entire cred list through. SPNEGO will send the
+     * right creds to the correct mechanism.
+     */
+    if (input_cred_handle == NULL &&
+        token_mech_type->length == 6 &&
+        !memcmp(token_mech_type->elements, "\x2b\x06\x01\x05\x05\x02", 6))
+    {
+        input_cred_handle = (gss_cred_id_t) union_cred;
+    }
+
     /*
      * now select the approprate underlying mechanism routine and
      * call it.

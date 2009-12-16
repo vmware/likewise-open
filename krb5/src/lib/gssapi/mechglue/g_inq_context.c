@@ -116,7 +116,7 @@ gss_inquire_context(
 			(src_name ? &localSourceName : NULL),
 			(targ_name ? &localTargName : NULL),
 			lifetime_rec,
-			NULL,
+			mech_type,
 			ctx_flags,
 			locally_initiated,
 			opened);
@@ -140,7 +140,8 @@ gss_inquire_context(
 
     }
 
-    if (targ_name) {
+    if (targ_name ) {
+        if (localTargName) {
 	    status = gssint_convert_name_to_union_name(minor_status, mech,
 						      localTargName, targ_name);
 
@@ -150,11 +151,12 @@ gss_inquire_context(
 
 		return (status);
 	    }
+        }
+        else {
+            *targ_name = GSS_C_NO_NAME;
+        }
     }
 
-    /* spec says mech type must point to static storage */
-    if (mech_type)
-	*mech_type = &mech->mech_type;
     return(GSS_S_COMPLETE);
 }
 

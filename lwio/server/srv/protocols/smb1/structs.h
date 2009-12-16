@@ -370,7 +370,8 @@ typedef struct _SRV_PENDING_LOCK_STATE_LIST
     pthread_mutex_t        mutex;
     pthread_mutex_t*       pMutex;
 
-    PSRV_LOCK_STATE_SMB_V1 pLockState;
+    PSRV_LOCK_STATE_SMB_V1 pLockStateHead;
+    PSRV_LOCK_STATE_SMB_V1 pLockStateTail;
 
 } SRV_PENDING_LOCK_STATE_LIST, *PSRV_PENDING_LOCK_STATE_LIST;
 

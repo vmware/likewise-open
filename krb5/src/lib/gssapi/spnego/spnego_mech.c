@@ -252,7 +252,7 @@ static struct gss_config spnego_mechanism =
 	spnego_gss_inquire_sec_context_by_oid, /* gss_inquire_sec_context_by_oid */
 	spnego_gss_inquire_cred_by_oid,	/* gss_inquire_cred_by_oid */
 	spnego_gss_set_sec_context_option, /* gss_set_sec_context_option */
-	NULL,				/* gssspi_set_cred_option */
+	spnego_gssspi_set_cred_option,	/* gssspi_set_cred_option */
 	NULL,				/* gssspi_mech_invoke */
 	spnego_gss_wrap_aead,
 	spnego_gss_unwrap_aead,
@@ -716,8 +716,9 @@ init_ctx_cont(OM_uint32 *minor_status, gss_ctx_id_t *ctx, gss_buffer_t buf,
 		 * mech not finished and mech token missing
 		 */
 		ret = GSS_S_DEFECTIVE_TOKEN;
-	} else if (sc->mic_reqd &&
-		   (sc->ctx_flags & GSS_C_INTEG_FLAG)) {
+	} else if (*acc_negState == ACCEPT_INCOMPLETE ||
+	           (sc->mic_reqd &&
+		    (sc->ctx_flags & GSS_C_INTEG_FLAG))) {
 		*negState = ACCEPT_INCOMPLETE;
 		*tokflag = CONT_TOKEN_SEND;
 		ret = GSS_S_CONTINUE_NEEDED;
@@ -1041,8 +1042,15 @@ cleanup:
 		 */
 		if (peerState == ACCEPT_COMPLETE) {
 		    *context_handle = (gss_ctx_id_t)spnego_ctx->ctx_handle;
-		    if (actual_mech != NULL)
-			    *actual_mech = spnego_ctx->actual_mech;
+		    if (actual_mech != NULL) {
+                        /*
+                         * krb5 can set actual_mech to the
+                         * requested mechanism which may be
+                         * spnego_ctx->internal_mech which
+                         * causes a segfault when spnego_ctx is freed
+                         */
+			*actual_mech = (*context_handle)->mech_type;
+		    }
 		    if (ret_flags != NULL)
 			    *ret_flags = spnego_ctx->ctx_flags;
 		    release_spnego_ctx(&spnego_ctx);
@@ -1611,6 +1619,11 @@ acc_ctx_call_acc(OM_uint32 *minor_status, spnego_gss_ctx_id_t sc,
 			sc->mic_reqd = 0;
 		}
 #endif
+
+		if (sc->mic_reqd && !(sc->ctx_flags & GSS_C_INTEG_FLAG)) {
+			sc->mic_reqd = 0;
+		}
+
 		sc->mech_complete = 1;
 		if (ret_flags != NULL)
 			*ret_flags = sc->ctx_flags;
@@ -2165,10 +2178,13 @@ spnego_gss_inquire_context(
 				src_name,
 				targ_name,
 				lifetime_rec,
-				mech_type,
+				NULL,
 				ctx_flags,
 				locally_initiated,
 				opened);
+
+    if (mech_type)
+        *mech_type = context_handle->mech_type;
 
 	return (ret);
 }
@@ -2266,6 +2282,20 @@ spnego_gss_set_sec_context_option(
 	OM_uint32 ret;
 	ret = gss_set_sec_context_option(minor_status,
 			    context_handle,
+			    desired_object,
+			    value);
+	return (ret);
+}
+
+OM_uint32
+spnego_gssspi_set_cred_option(OM_uint32 *minor_status,
+                       gss_cred_id_t cred_handle,
+                       const gss_OID desired_object,
+                       const gss_buffer_t value)
+{
+	OM_uint32 ret;
+	ret = gssspi_set_cred_option(minor_status,
+			    cred_handle,
 			    desired_object,
 			    value);
 	return (ret);

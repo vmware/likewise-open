@@ -543,7 +543,7 @@ static CENTERROR UpdateSkipCounts(
         goto done;
 
     /* Skip the leading whitespace in the control */
-    while (isblank(*inputPos)) inputPos++;
+    while (isblank((int) *inputPos)) inputPos++;
 
     if (*inputPos != '[')
     {
@@ -551,7 +551,7 @@ static CENTERROR UpdateSkipCounts(
         goto done;
     }
 
-    *inputPos++;
+    inputPos++;
 
     while (*inputPos != 0)
     {
@@ -561,7 +561,7 @@ static CENTERROR UpdateSkipCounts(
             break;
 
         // Skip the =
-        *inputPos++;
+        inputPos++;
 
         parsedSkipCount = strtoul(inputPos, &parsedSkipCountEnd, 10);
 
