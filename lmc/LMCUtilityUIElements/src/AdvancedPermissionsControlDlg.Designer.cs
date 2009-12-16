@@ -34,7 +34,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.panel1 = new System.Windows.Forms.Panel();
             this.label2 = new System.Windows.Forms.Label();
             this.cbInherit = new System.Windows.Forms.CheckBox();
-            this.button2 = new System.Windows.Forms.Button();
+            this.btnPermissionsRemove = new System.Windows.Forms.Button();
             this.btnPermissionsEdit = new System.Windows.Forms.Button();
             this.btnPermissionsAdd = new System.Windows.Forms.Button();
             this.lvPermissions = new System.Windows.Forms.ListView();
@@ -67,13 +67,13 @@ namespace Likewise.LMC.UtilityUIElements
             this.tabPageEffectivePermissions = new System.Windows.Forms.TabPage();
             this.checkedListviewPermissions = new System.Windows.Forms.CheckedListBox();
             this.label11 = new System.Windows.Forms.Label();
-            this.button6 = new System.Windows.Forms.Button();
+            this.btnEffectivePermissions = new System.Windows.Forms.Button();
             this.lblUserorGroup = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
-            this.OKBtn = new System.Windows.Forms.Button();
-            this.CancelBtn = new System.Windows.Forms.Button();
+            this.btnOK = new System.Windows.Forms.Button();
+            this.btnCancel = new System.Windows.Forms.Button();
             this.btnApply = new System.Windows.Forms.Button();
             this.tabControl.SuspendLayout();
             this.tabPagePermissions.SuspendLayout();
@@ -112,7 +112,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             this.panel1.Controls.Add(this.label2);
             this.panel1.Controls.Add(this.cbInherit);
-            this.panel1.Controls.Add(this.button2);
+            this.panel1.Controls.Add(this.btnPermissionsRemove);
             this.panel1.Controls.Add(this.btnPermissionsEdit);
             this.panel1.Controls.Add(this.btnPermissionsAdd);
             this.panel1.Controls.Add(this.lvPermissions);
@@ -143,14 +143,15 @@ namespace Likewise.LMC.UtilityUIElements
                 "hese with entries explicitly defined here.";
             this.cbInherit.UseVisualStyleBackColor = true;
             //
-            // button2
+            // btnPermissionsRemove
             //
-            this.button2.Location = new System.Drawing.Point(233, 242);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(102, 23);
-            this.button2.TabIndex = 4;
-            this.button2.Text = "&Remove...";
-            this.button2.UseVisualStyleBackColor = true;
+            this.btnPermissionsRemove.Location = new System.Drawing.Point(233, 242);
+            this.btnPermissionsRemove.Name = "btnPermissionsRemove";
+            this.btnPermissionsRemove.Size = new System.Drawing.Size(102, 23);
+            this.btnPermissionsRemove.TabIndex = 4;
+            this.btnPermissionsRemove.Text = "&Remove...";
+            this.btnPermissionsRemove.UseVisualStyleBackColor = true;
+            this.btnPermissionsRemove.Click += new System.EventHandler(this.btnPermissionsRemove_Click);
             //
             // btnPermissionsEdit
             //
@@ -186,6 +187,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.lvPermissions.TabIndex = 1;
             this.lvPermissions.UseCompatibleStateImageBehavior = false;
             this.lvPermissions.View = System.Windows.Forms.View.Details;
+            this.lvPermissions.SelectedIndexChanged += new System.EventHandler(this.lvPermissions_SelectedIndexChanged);
             //
             // colType
             //
@@ -409,7 +411,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             this.tabPageEffectivePermissions.Controls.Add(this.checkedListviewPermissions);
             this.tabPageEffectivePermissions.Controls.Add(this.label11);
-            this.tabPageEffectivePermissions.Controls.Add(this.button6);
+            this.tabPageEffectivePermissions.Controls.Add(this.btnEffectivePermissions);
             this.tabPageEffectivePermissions.Controls.Add(this.lblUserorGroup);
             this.tabPageEffectivePermissions.Controls.Add(this.label10);
             this.tabPageEffectivePermissions.Controls.Add(this.label9);
@@ -438,14 +440,15 @@ namespace Likewise.LMC.UtilityUIElements
             this.label11.TabIndex = 9;
             this.label11.Text = "&Effective permissions:";
             //
-            // button6
+            // btnEffectivePermissions
             //
-            this.button6.Location = new System.Drawing.Point(523, 69);
-            this.button6.Name = "button6";
-            this.button6.Size = new System.Drawing.Size(75, 25);
-            this.button6.TabIndex = 8;
-            this.button6.Text = "&Select...";
-            this.button6.UseVisualStyleBackColor = true;
+            this.btnEffectivePermissions.Location = new System.Drawing.Point(523, 69);
+            this.btnEffectivePermissions.Name = "btnEffectivePermissions";
+            this.btnEffectivePermissions.Size = new System.Drawing.Size(75, 25);
+            this.btnEffectivePermissions.TabIndex = 8;
+            this.btnEffectivePermissions.Text = "&Select...";
+            this.btnEffectivePermissions.UseVisualStyleBackColor = true;
+            this.btnEffectivePermissions.Click += new System.EventHandler(this.btnEffectivePermissions_Click);
             //
             // lblUserorGroup
             //
@@ -483,24 +486,24 @@ namespace Likewise.LMC.UtilityUIElements
             this.label8.Text = "The following list displays the permissions that would be granted to the selected" +
                 " group or user, based on all relevent \r\npermissions.";
             //
-            // OKBtn
+            // btnOK
             //
-            this.OKBtn.Location = new System.Drawing.Point(384, 396);
-            this.OKBtn.Name = "OKBtn";
-            this.OKBtn.Size = new System.Drawing.Size(75, 23);
-            this.OKBtn.TabIndex = 7;
-            this.OKBtn.Text = "&OK";
-            this.OKBtn.UseVisualStyleBackColor = true;
+            this.btnOK.Location = new System.Drawing.Point(384, 396);
+            this.btnOK.Name = "btnOK";
+            this.btnOK.Size = new System.Drawing.Size(75, 23);
+            this.btnOK.TabIndex = 7;
+            this.btnOK.Text = "&OK";
+            this.btnOK.UseVisualStyleBackColor = true;
             //
-            // CancelBtn
+            // btnCancel
             //
-            this.CancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.CancelBtn.Location = new System.Drawing.Point(465, 396);
-            this.CancelBtn.Name = "CancelBtn";
-            this.CancelBtn.Size = new System.Drawing.Size(75, 23);
-            this.CancelBtn.TabIndex = 6;
-            this.CancelBtn.Text = "&Cancel";
-            this.CancelBtn.UseVisualStyleBackColor = true;
+            this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.btnCancel.Location = new System.Drawing.Point(465, 396);
+            this.btnCancel.Name = "btnCancel";
+            this.btnCancel.Size = new System.Drawing.Size(75, 23);
+            this.btnCancel.TabIndex = 6;
+            this.btnCancel.Text = "&Cancel";
+            this.btnCancel.UseVisualStyleBackColor = true;
             //
             // btnApply
             //
@@ -516,8 +519,8 @@ namespace Likewise.LMC.UtilityUIElements
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(627, 430);
             this.Controls.Add(this.btnApply);
-            this.Controls.Add(this.OKBtn);
-            this.Controls.Add(this.CancelBtn);
+            this.Controls.Add(this.btnOK);
+            this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.tabControl);
             this.HelpButton = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -546,8 +549,8 @@ namespace Likewise.LMC.UtilityUIElements
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabPagePermissions;
         private System.Windows.Forms.TabPage tabPageAuditing;
-        public System.Windows.Forms.Button OKBtn;
-        private System.Windows.Forms.Button CancelBtn;
+        public System.Windows.Forms.Button btnOK;
+        private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.TabPage tabPageOwner;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.ListView lvPermissions;
@@ -558,7 +561,7 @@ namespace Likewise.LMC.UtilityUIElements
         private System.Windows.Forms.ColumnHeader colPermissions;
         private System.Windows.Forms.ColumnHeader colinheritedForm;
         private System.Windows.Forms.CheckBox cbInherit;
-        private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button btnPermissionsRemove;
         private System.Windows.Forms.Button btnPermissionsEdit;
         private System.Windows.Forms.Button btnPermissionsAdd;
         private System.Windows.Forms.Label label2;
@@ -582,7 +585,7 @@ namespace Likewise.LMC.UtilityUIElements
         private System.Windows.Forms.ColumnHeader colOwnerName;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label11;
-        public System.Windows.Forms.Button button6;
+        public System.Windows.Forms.Button btnEffectivePermissions;
         private System.Windows.Forms.Label lblUserorGroup;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.CheckedListBox checkedListviewPermissions;
