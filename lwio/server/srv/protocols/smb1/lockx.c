@@ -71,6 +71,20 @@ SrvBuildLockState(
 
 static
 NTSTATUS
+SrvRegisterPendingLockState(
+    PSRV_PENDING_LOCK_STATE_LIST pLockStateList,
+    PSRV_LOCK_STATE_SMB_V1       pLockState
+    );
+
+static
+NTSTATUS
+SrvUnregisterPendingLockState(
+    PSRV_PENDING_LOCK_STATE_LIST pLockStateList,
+    PSRV_LOCK_STATE_SMB_V1       pLockState
+    );
+
+static
+NTSTATUS
 SrvExecuteLockRequest(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -119,6 +133,13 @@ SrvReleaseLockStateHandle(
     HANDLE hState
     );
 
+static
+PSRV_LOCK_STATE_SMB_V1
+SrvAcquireLockState(
+    PSRV_LOCK_STATE_SMB_V1 pLockState
+    );
+
+static
 VOID
 SrvReleaseLockState(
     PSRV_LOCK_STATE_SMB_V1 pLockState
@@ -178,11 +199,11 @@ SrvFreePendingLockStateList(
     PSRV_PENDING_LOCK_STATE_LIST pLockStateList
     )
 {
-    while (pLockStateList->pLockState)
+    while (pLockStateList->pLockStateHead)
     {
-        PSRV_LOCK_STATE_SMB_V1 pLockState = pLockStateList->pLockState;
+        PSRV_LOCK_STATE_SMB_V1 pLockState = pLockStateList->pLockStateHead;
 
-        pLockStateList->pLockState = pLockStateList->pLockState->pNext;
+        pLockStateList->pLockStateHead = pLockStateList->pLockStateHead->pNext;
 
         SrvReleaseLockState(pLockState);
     }
@@ -324,6 +345,14 @@ SrvProcessLockAndX(
             }
             else
             {
+                PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList =
+                        (PSRV_PENDING_LOCK_STATE_LIST)pCtxSmb1->pFile->hByteRangeLockState;
+
+                ntStatus = SrvRegisterPendingLockState(
+                                pPendingLockStateList,
+                                pLockState);
+                BAIL_ON_NT_STATUS(ntStatus);
+
                 switch (pLockState->pRequestHeader->ulTimeout)
                 {
                     case 0:           /* don't wait i.e. fail immediately */
@@ -369,6 +398,16 @@ SrvProcessLockAndX(
             // Intentional fall through
 
         case SRV_LOCK_STAGE_SMB_V1_DONE:
+
+            {
+                NTSTATUS ntStatus2 = STATUS_SUCCESS;
+                PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList =
+                        (PSRV_PENDING_LOCK_STATE_LIST)pCtxSmb1->pFile->hByteRangeLockState;
+
+                ntStatus2 = SrvUnregisterPendingLockState(
+                                    pPendingLockStateList,
+                                    pLockState);
+            }
 
             ntStatus = SrvBuildLockingAndXResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -423,6 +462,14 @@ error:
 
             if (pLockState)
             {
+                NTSTATUS ntStatus3 = STATUS_SUCCESS;
+                PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList =
+                        (PSRV_PENDING_LOCK_STATE_LIST)pCtxSmb1->pFile->hByteRangeLockState;
+
+                ntStatus3 = SrvUnregisterPendingLockState(
+                                    pPendingLockStateList,
+                                    pLockState);
+
                 SrvReleaseLockStateAsync(pLockState);
 
                 SrvClearLocks(pLockState);
@@ -513,6 +560,95 @@ error:
     {
         SrvFreeLockState(pLockState);
     }
+
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SrvRegisterPendingLockState(
+    PSRV_PENDING_LOCK_STATE_LIST pLockStateList,
+    PSRV_LOCK_STATE_SMB_V1       pLockState
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pLockStateList->mutex);
+
+    if (!pLockStateList->pLockStateHead)
+    {
+        pLockStateList->pLockStateHead = pLockStateList->pLockStateTail =
+                                                SrvAcquireLockState(pLockState);
+    }
+    else
+    {
+        pLockStateList->pLockStateTail->pNext = SrvAcquireLockState(pLockState);
+        pLockStateList->pLockStateTail = pLockState;
+    }
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockStateList->mutex);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvUnregisterPendingLockState(
+    PSRV_PENDING_LOCK_STATE_LIST pLockStateList,
+    PSRV_LOCK_STATE_SMB_V1       pLockState
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    PSRV_LOCK_STATE_SMB_V1 pCursor = NULL;
+    PSRV_LOCK_STATE_SMB_V1 pPrev   = NULL;
+
+    LWIO_LOCK_MUTEX(bInLock, &pLockStateList->mutex);
+
+    pCursor = pLockStateList->pLockStateHead;
+    while (pCursor && (pCursor != pLockState))
+    {
+        pPrev   = pCursor;
+        pCursor = pCursor->pNext;
+    }
+
+    if (!pCursor)
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pCursor == pLockStateList->pLockStateHead)
+    {
+        pLockStateList->pLockStateHead = pCursor->pNext;
+
+        if (!pLockStateList->pLockStateHead)
+        {
+            pLockStateList->pLockStateTail = NULL;
+        }
+    }
+    else if (pCursor == pLockStateList->pLockStateTail)
+    {
+        pLockStateList->pLockStateTail = pPrev;
+    }
+    else
+    {
+        pPrev->pNext = pCursor->pNext;
+    }
+
+    pCursor->pNext = NULL;
+
+    SrvReleaseLockState(pCursor);
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockStateList->mutex);
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
@@ -962,6 +1098,18 @@ SrvReleaseLockStateHandle(
     SrvReleaseLockState((PSRV_LOCK_STATE_SMB_V1)hState);
 }
 
+static
+PSRV_LOCK_STATE_SMB_V1
+SrvAcquireLockState(
+    PSRV_LOCK_STATE_SMB_V1 pLockState
+    )
+{
+    InterlockedIncrement(&pLockState->refCount);
+
+    return pLockState;
+}
+
+static
 VOID
 SrvReleaseLockState(
     PSRV_LOCK_STATE_SMB_V1 pLockState
