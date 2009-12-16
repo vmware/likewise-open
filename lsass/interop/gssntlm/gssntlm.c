@@ -886,7 +886,7 @@ ntlm_gss_accept_sec_context(
     const gss_cred_id_t AcceptorCredHandle,
     const gss_buffer_t pInputTokenBuffer,
     const gss_channel_bindings_t pInputChanBindings,
-    gss_name_t* pSrcName,
+    gss_name_t* ppSrcName,
     gss_OID* pMechType,
     gss_buffer_t pOutputToken,
     OM_uint32* pRetFlags,
@@ -903,6 +903,7 @@ ntlm_gss_accept_sec_context(
     SecBuffer InputToken = {0};
     SecBuffer OutputToken = {0};
     TimeStamp tsExpiry = 0;
+    gss_name_t pSrcName = NULL;
     NTLM_CONTEXT_HANDLE NewCtxtHandle = NULL;
     gss_cred_id_t LocalCreds = NULL;
     // Do not free
@@ -910,9 +911,9 @@ ntlm_gss_accept_sec_context(
 
     *pMinorStatus = LW_ERROR_SUCCESS;
 
-    if (pSrcName)
+    if (ppSrcName)
     {
-        *pSrcName = NULL;
+        *ppSrcName = NULL;
     }
     if (pMechType)
     {
@@ -1005,23 +1006,76 @@ ntlm_gss_accept_sec_context(
     else
     {
         BAIL_ON_LSA_ERROR(MinorStatus);
+
+        if (dwFinalFlags & NTLM_FLAG_SEAL)
+        {
+            dwRetFlags |= GSS_C_CONF_FLAG;
+        }
+        if (dwFinalFlags & NTLM_FLAG_SIGN)
+        {
+            dwRetFlags |= GSS_C_INTEG_FLAG;
+        }
+
+        MajorStatus = ntlm_gss_inquire_context(
+                          &MinorStatus,
+                          (gss_ctx_id_t)NewCtxtHandle,
+                          &pSrcName,
+                          NULL,
+                          NULL,
+                          NULL,
+                          NULL,
+                          NULL,
+                          NULL
+                          );
+        BAIL_ON_LSA_ERROR(MinorStatus);
     }
 
-    pOutputToken->length = OutputToken.cbBuffer;
-    pOutputToken->value = OutputToken.pvBuffer;
+cleanup:
+
+    *pMinorStatus = MinorStatus;
+
+    if (pOutputToken)
+    {
+        pOutputToken->length = OutputToken.cbBuffer;
+        pOutputToken->value = OutputToken.pvBuffer;
+    }
 
     *pContextHandle = (gss_ctx_id_t)NewCtxtHandle;
-cleanup:
+
     ntlm_gss_release_cred(
             NULL,
             &LocalCreds);
-    *pMinorStatus = MinorStatus;
+
+    if (pMechType)
+    {
+        *pMechType = gGssNtlmOid;
+    }
+
+    if (ppSrcName)
+    {
+        *ppSrcName = pSrcName;
+    }
+
+    if (pRetFlags)
+    {
+        *pRetFlags = dwRetFlags;
+    }
+
+    if (pTimeRec)
+    {
+        *pTimeRec = GSS_C_INDEFINITE;
+    }
+
     return MajorStatus;
 error:
+
     if (MajorStatus == GSS_S_COMPLETE)
     {
         MajorStatus = GSS_S_FAILURE;
     }
+
+    ntlm_gss_release_name(NULL, &pSrcName);
+
     goto cleanup;
 }
 
@@ -1912,10 +1966,15 @@ ntlm_gss_inquire_context(
     gss_name_t pSourceName = NULL;
     PNTLM_GSS_NAME pUserName = NULL;
 
-    if (ppTargetName || pCtxtFlags || pLocal || pOpen)
+    if (pCtxtFlags || pLocal || pOpen)
     {
         MinorStatus = LW_ERROR_NOT_SUPPORTED;
         BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    if (ppTargetName)
+    {
+        *ppTargetName = GSS_C_NO_NAME;
     }
 
     if (ppSourceName)
@@ -1943,6 +2002,9 @@ ntlm_gss_inquire_context(
     }
 
 cleanup:
+
+    *pMinorStatus = MinorStatus;
+
     if(Names.pUserName)
     {
         NtlmFreeContextBuffer(Names.pUserName);
@@ -1950,7 +2012,7 @@ cleanup:
 
     if (pUserName)
     {
-        ntlm_gss_release_name(&MinorStatus, (gss_name_t *)&pUserName);
+        ntlm_gss_release_name(NULL, (gss_name_t *)&pUserName);
     }
 
     if (ppSourceName)
@@ -1976,7 +2038,7 @@ error:
         MajorStatus = GSS_S_FAILURE;
     }
 
-    ntlm_gss_release_name(&MinorStatus, &pSourceName);
+    ntlm_gss_release_name(NULL, &pSourceName);
 
     goto cleanup;
 }
@@ -2073,7 +2135,7 @@ ntlm_gssspi_set_cred_option(
     const gss_buffer_t Buffer
     )
 {
-    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MajorStatus = GSS_S_UNAVAILABLE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     PNTLM_GSS_CREDS pCreds = (PNTLM_GSS_CREDS)GssCredHandle;
     PSEC_WINNT_AUTH_IDENTITY pAuthData = NULL;
@@ -2084,6 +2146,8 @@ ntlm_gssspi_set_cred_option(
             gGssCredOptionPasswordOid->elements,
             OptionOid->length))
     {
+        MajorStatus = GSS_S_COMPLETE;
+
         if (!Buffer || Buffer->length != sizeof(SEC_WINNT_AUTH_IDENTITY) ||
                 !Buffer->value)
         {
@@ -2110,11 +2174,6 @@ ntlm_gssspi_set_cred_option(
             &pCreds->CredHandle,
             &pCreds->tsExpiry
             );
-        BAIL_ON_LSA_ERROR(MinorStatus);
-    }
-    else
-    {
-        MinorStatus = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(MinorStatus);
     }
 
