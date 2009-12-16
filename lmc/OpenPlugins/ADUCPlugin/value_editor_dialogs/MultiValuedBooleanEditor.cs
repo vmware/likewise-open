@@ -62,20 +62,20 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         #region Events
         private void btnAdd_Click(object sender, EventArgs e)
         {
-            ListViewItem lviArr = null;          
-            
+            ListViewItem lviArr = null;
+
             if (rbtnTrue.Checked)
             {
                 string[] values = { "TRUE" };
-                lviArr = new ListViewItem(values);               
+                lviArr = new ListViewItem(values);
             }
             else if (rbtnFalse.Checked)
             {
                 string[] values = { "FALSE" };
-                lviArr = new ListViewItem(values);      
+                lviArr = new ListViewItem(values);
             }
 
-            this.listViewAttrValues.Items.Add(lviArr);   
+            this.listViewAttrValues.Items.Add(lviArr);
         }
 
         private void listViewAttrValues_SelectedIndexChanged(object sender, EventArgs e)
@@ -164,10 +164,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 for (int i = 0; i < sTempArr.Length; i++)
                 {
                     if (!sTempArr[i].Equals("<Not Set>"))
-                    {                        
+                    {
                         string[] values = { sTempArr[i].ToString() };
                         lviArr = new ListViewItem(values);
-                        this.listViewAttrValues.Items.Add(lviArr);  
+                        this.listViewAttrValues.Items.Add(lviArr);
                     }
                     origsMultiValuedBooleanAttrValue += (";" + sTempArr[i].ToString());
                 }

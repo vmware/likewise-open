@@ -163,12 +163,12 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             cbSubsquentFailure.SelectedIndexChanged += new EventHandler(this.cbFirstfailure_SelectedIndexChanged);
         }
 
-        #endregion  
+        #endregion
 
         #region Helper functions
 
         private void SetControlStates(string sFailureText)
-        {  
+        {
             switch (sFailureText)
             {
                 case "Take No Action":
@@ -256,8 +256,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             }
         }
 
-        #endregion   
-        
+        #endregion
+
         #region Overriden functions
 
         public bool OnApply()

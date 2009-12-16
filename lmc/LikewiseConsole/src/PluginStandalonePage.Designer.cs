@@ -75,9 +75,9 @@ namespace Likewise.LMC
             this.pnlData.SuspendLayout();
             this.DescipGroupbox.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.Aboutbtn);
             this.pnlData.Controls.Add(this.Removebtn);
             this.pnlData.Controls.Add(this.Addbtn);
@@ -87,26 +87,26 @@ namespace Likewise.LMC
             this.pnlData.Controls.Add(this.label2);
             this.pnlData.Controls.Add(this.label1);
             this.pnlData.Size = new System.Drawing.Size(364, 472);
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.Location = new System.Drawing.Point(9, 16);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(340, 32);
             this.label1.TabIndex = 0;
             this.label1.Text = "Use this page to add or remove a stand-alone plug-in from the console.";
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(9, 76);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(95, 13);
             this.label2.TabIndex = 1;
             this.label2.Text = "Plug-ins added to: ";
-            // 
+            //
             // PluginComboBox
-            // 
+            //
             this.PluginComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.PluginComboBox.FormattingEnabled = true;
             this.PluginComboBox.Location = new System.Drawing.Point(124, 73);
@@ -114,9 +114,9 @@ namespace Likewise.LMC
             this.PluginComboBox.Size = new System.Drawing.Size(228, 21);
             this.PluginComboBox.TabIndex = 2;
             this.PluginComboBox.SelectedIndexChanged += new System.EventHandler(this.pluginComboBox_selectedIndexChanged);
-            // 
+            //
             // ChosenPluginlistView
-            // 
+            //
             this.ChosenPluginlistView.Alignment = System.Windows.Forms.ListViewAlignment.SnapToGrid;
             this.ChosenPluginlistView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.chPlugin});
@@ -132,14 +132,14 @@ namespace Likewise.LMC
             this.ChosenPluginlistView.View = System.Windows.Forms.View.Details;
             this.ChosenPluginlistView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.ChosenPluginlistView_MouseDoubleClick);
             this.ChosenPluginlistView.SelectedIndexChanged += new System.EventHandler(this.ChosenPluginlistView_SelectedIndexChanged);
-            // 
+            //
             // chPlugin
-            // 
+            //
             this.chPlugin.Text = "Plugin";
             this.chPlugin.Width = 330;
-            // 
+            //
             // imageList
-            // 
+            //
             this.imageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList.ImageStream")));
             this.imageList.TransparentColor = System.Drawing.Color.Transparent;
             this.imageList.Images.SetKeyName(0, "");
@@ -155,9 +155,9 @@ namespace Likewise.LMC
             this.imageList.Images.SetKeyName(10, "");
             this.imageList.Images.SetKeyName(11, "Cell_32.ico");
             this.imageList.Images.SetKeyName(12, "Admin.ico");
-            // 
+            //
             // DescipGroupbox
-            // 
+            //
             this.DescipGroupbox.Controls.Add(this.lblDescription);
             this.DescipGroupbox.Location = new System.Drawing.Point(12, 316);
             this.DescipGroupbox.Name = "DescipGroupbox";
@@ -165,16 +165,16 @@ namespace Likewise.LMC
             this.DescipGroupbox.TabIndex = 5;
             this.DescipGroupbox.TabStop = false;
             this.DescipGroupbox.Text = "Description";
-            // 
+            //
             // lblDescription
-            // 
+            //
             this.lblDescription.Location = new System.Drawing.Point(7, 20);
             this.lblDescription.Name = "lblDescription";
             this.lblDescription.Size = new System.Drawing.Size(327, 77);
             this.lblDescription.TabIndex = 0;
-            // 
+            //
             // Addbtn
-            // 
+            //
             this.Addbtn.Location = new System.Drawing.Point(12, 437);
             this.Addbtn.Name = "Addbtn";
             this.Addbtn.Size = new System.Drawing.Size(75, 23);
@@ -182,9 +182,9 @@ namespace Likewise.LMC
             this.Addbtn.Text = "A&dd";
             this.Addbtn.UseVisualStyleBackColor = true;
             this.Addbtn.Click += new System.EventHandler(this.Addbtn_Click);
-            // 
+            //
             // Removebtn
-            // 
+            //
             this.Removebtn.Enabled = false;
             this.Removebtn.Location = new System.Drawing.Point(93, 437);
             this.Removebtn.Name = "Removebtn";
@@ -193,9 +193,9 @@ namespace Likewise.LMC
             this.Removebtn.Text = "&Remove";
             this.Removebtn.UseVisualStyleBackColor = true;
             this.Removebtn.Click += new System.EventHandler(this.Removebtn_Click);
-            // 
+            //
             // Aboutbtn
-            // 
+            //
             this.Aboutbtn.Enabled = false;
             this.Aboutbtn.Location = new System.Drawing.Point(174, 437);
             this.Aboutbtn.Name = "Aboutbtn";
@@ -204,9 +204,9 @@ namespace Likewise.LMC
             this.Aboutbtn.Text = "A&bout...";
             this.Aboutbtn.UseVisualStyleBackColor = true;
             this.Aboutbtn.Click += new System.EventHandler(this.Aboutbtn_Click);
-            // 
+            //
             // PluginStandalonePage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "PluginStandalonePage";
             this.Size = new System.Drawing.Size(364, 472);

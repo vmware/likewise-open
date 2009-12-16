@@ -46,7 +46,7 @@ namespace Likewise.LMC.ServerControl
         {
             InitializeComponent();
         }
-        
+
         public WizardPage(WizardDialog wizard)
         : this()
         {
@@ -66,7 +66,7 @@ namespace Likewise.LMC.ServerControl
                 _container = value;
             }
         }
-        
+
         public WizardDialog Wizard
         {
             get
@@ -171,10 +171,10 @@ namespace Likewise.LMC.ServerControl
 
         /// <summary>
         /// Called when the user clicks the Start button in a wizard.
-        /// </summary>        
+        /// </summary>
         /// <remarks>
         /// Override this method to specify some action the user must take
-        /// when the Start button is pressed. 
+        /// when the Start button is pressed.
         /// </remarks>
         public virtual string OnWizardStart()
         {

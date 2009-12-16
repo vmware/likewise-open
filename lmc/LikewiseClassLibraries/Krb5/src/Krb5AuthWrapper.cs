@@ -76,7 +76,7 @@ namespace Likewise.LMC.Krb5
                 krb5HostName = username;
 
                 if (!Configurations.SSOFailed)
-                {                    
+                {
                     ret = PrivateLsassApi.LsaKrb5GetUserCachePath(
                                           Convert.ToInt32(Configurations.GetUID),
                                           (int)Krb5CacheType.KRB5_File_Cache,
@@ -89,7 +89,7 @@ namespace Likewise.LMC.Krb5
                     }
 
                     ret = PrivateLsassApi.LsaKrb5GetTgt(
-                                          krb5HostName,                  
+                                          krb5HostName,
                                           null,
                                           krb5CachePath,
                                           out ticketExpiryTime);
@@ -143,7 +143,7 @@ namespace Likewise.LMC.Krb5
 
             return Convert.ToUInt32(ret);
         }
-        
+
         #endregion
 
     }

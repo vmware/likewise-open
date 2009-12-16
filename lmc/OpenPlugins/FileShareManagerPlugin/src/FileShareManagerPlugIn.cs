@@ -318,8 +318,8 @@ namespace Likewise.LMC.Plugins.FileShareManager
                 Icon ic = Resources.SharedFolder2;
                 _pluginNode = Manage.CreateIconNode("File Browser", ic, typeof(FilesBrowserPluginPage), this);
                 _pluginNode.ImageIndex = (int)Manage.ManageImageType.Generic;
-                _pluginNode.SelectedImageIndex = (int)Manage.ManageImageType.Generic;    
-               
+                _pluginNode.SelectedImageIndex = (int)Manage.ManageImageType.Generic;
+
                 _pluginNode.IsPluginNode = true;
             }
 
@@ -396,7 +396,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
                 {
                     Logger.Log(
                     "Could not find information about target machine",
-                    Logger.FileShareManagerLogLevel);                   
+                    Logger.FileShareManagerLogLevel);
                 }
                 else
                 {
@@ -443,7 +443,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             {
                 return true;
             }
-        }       
+        }
 
         public void CloseEventLog()
         {

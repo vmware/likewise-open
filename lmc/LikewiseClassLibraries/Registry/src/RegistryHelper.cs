@@ -42,7 +42,7 @@ namespace Likewise.LMC.Registry
     public class RegistryEnumKeyInfo
     {
         public int totalEntries;
-        public int maxKeyLength;        
+        public int maxKeyLength;
         public string sKeyname;
         public string sClassName;
         public string OrigKey;
@@ -51,7 +51,7 @@ namespace Likewise.LMC.Registry
         public uint sValueCount;
         public RegistryApi.FILETIME filetime;
         public IntPtr pRootKey;
-        public IntPtr pKey;      
+        public IntPtr pKey;
 
         public void initializeToNull()
         {
@@ -73,7 +73,7 @@ namespace Likewise.LMC.Registry
     {
         public bool bIsDefault = false;
         public string sKeyname;
-        public int maxKeyLength;        
+        public int maxKeyLength;
         public string pValueName;
         public ulong pcchValueName;
         public ulong pType;
@@ -94,19 +94,19 @@ namespace Likewise.LMC.Registry
     }
 
     public class SubKeyInfo
-    {       
+    {
         public string sKey;
         public string sData;
         public string sValue;
         public HKEY hKey;
         public RegistryKey sSubKey;
-        public LWRegistryValueKind RegDataType;      
+        public LWRegistryValueKind RegDataType;
     }
 
     public class SubKeyValueInfo
-    {     
+    {
         public string sData;
-        public string sValue;       
+        public string sValue;
         public object sDataBuf;
         public bool IsDefaultValue = false;
         public int intDataType;
@@ -131,7 +131,7 @@ namespace Likewise.LMC.Registry
             {
                 string sMsg = "The LAC cannot rename the key. The specified Key name already exists. Type another name and try again.";
                 MessageBox.Show(sMsg, "Error Renaming Key", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }          
+            }
 
             return retValue;
         }
@@ -223,7 +223,7 @@ namespace Likewise.LMC.Registry
                 case (ulong)LWRegistryValueKind.REG_UNKNOWN:
                     sType = "hex(8):";
                     break;
-                
+
                 case (ulong)RegistryApi.REG_FULL_RESOURCE_DESCRIPTOR:
                 case (ulong)RegistryApi.REG_RESOURCE_REQUIREMENTS_LIST:
                     sType = "hex(9):";
@@ -432,7 +432,7 @@ namespace Likewise.LMC.Registry
                             bytlist.Add(Convert.ToByte(sDataArray[idx], 16));
                         byte[] mbyts = new byte[bytlist.Count];
                         bytlist.CopyTo(mbyts);
-                        valueInfo.bDataBuf = encoder.GetString(mbyts).Split(new char[] { '\0' }, StringSplitOptions.RemoveEmptyEntries); 
+                        valueInfo.bDataBuf = encoder.GetString(mbyts).Split(new char[] { '\0' }, StringSplitOptions.RemoveEmptyEntries);
                         RegistryInteropWrapper.RegModifyKeyValue(valueInfo, out mbyts);
                         valueInfo.bDataBuf = mbyts;
                         break;
@@ -550,7 +550,7 @@ namespace Likewise.LMC.Registry
                 case (ulong)RegistryApi.REG_RESOURCE_LIST:
                 case (ulong)RegistryApi.REG_UNKNOWN:
                 case (ulong)RegistryApi.REG_FULL_RESOURCE_DESCRIPTOR:
-                case (ulong)RegistryApi.REG_RESOURCE_REQUIREMENTS_LIST:               
+                case (ulong)RegistryApi.REG_RESOURCE_REQUIREMENTS_LIST:
                     byte[] byts = valueInfo.bDataBuf as byte[];
                     Array.Resize<byte>(ref byts, (int)valueInfo.pcData);
                     sData = GetBinaryData(byts);

@@ -68,57 +68,57 @@ namespace Likewise.LMC.Plugins.Root
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel1.Location = new System.Drawing.Point(131, 59);
             this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(8, 251);
             this.panel1.TabIndex = 12;
-            // 
+            //
             // panel3
-            // 
+            //
             this.panel3.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel3.Location = new System.Drawing.Point(139, 59);
             this.panel3.Margin = new System.Windows.Forms.Padding(2);
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(408, 8);
             this.panel3.TabIndex = 13;
-            // 
+            //
             // panel5
-            // 
+            //
             this.panel5.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel5.Location = new System.Drawing.Point(139, 302);
             this.panel5.Margin = new System.Windows.Forms.Padding(2);
             this.panel5.Name = "panel5";
             this.panel5.Size = new System.Drawing.Size(408, 8);
             this.panel5.TabIndex = 14;
-            // 
+            //
             // panel4
-            // 
+            //
             this.panel4.Dock = System.Windows.Forms.DockStyle.Right;
             this.panel4.Location = new System.Drawing.Point(539, 67);
             this.panel4.Margin = new System.Windows.Forms.Padding(2);
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(8, 235);
             this.panel4.TabIndex = 15;
-            // 
+            //
             // Lagreimagelist
-            // 
+            //
             this.Lagreimagelist.ColorDepth = System.Windows.Forms.ColorDepth.Depth24Bit;
             this.Lagreimagelist.ImageSize = new System.Drawing.Size(48, 48);
             this.Lagreimagelist.TransparentColor = System.Drawing.Color.Transparent;
-            // 
+            //
             // smallimagelist
-            // 
+            //
             this.smallimagelist.ColorDepth = System.Windows.Forms.ColorDepth.Depth24Bit;
             this.smallimagelist.ImageSize = new System.Drawing.Size(16, 16);
             this.smallimagelist.TransparentColor = System.Drawing.Color.Transparent;
-            // 
+            //
             // ConsolePage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.panel4);
             this.Controls.Add(this.panel5);

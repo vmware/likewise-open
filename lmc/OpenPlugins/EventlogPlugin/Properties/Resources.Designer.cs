@@ -30,8 +30,8 @@
 
 namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -43,15 +43,15 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -65,7 +65,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -79,7 +79,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 resourceCulture = value;
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Cl&amp;ose.
         /// </summary>
@@ -88,7 +88,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("Close", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Cr&amp;eate.
         /// </summary>
@@ -97,7 +97,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("Create", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You are about to DELETE a group. Once deleted, group members will no longer be able to authenticate or access resources controlled by the group. Are you sure you want to delete group {0}?.
         /// </summary>
@@ -106,7 +106,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("DeleteGroupMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You are about to DELETE a user account. Once deleted, the user will no longer be able to authenticate or access resources. Are you sure you want to delete user {0}?.
         /// </summary>
@@ -115,14 +115,14 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("DeleteUserMessage", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap down {
             get {
                 object obj = ResourceManager.GetObject("down", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid Group.
         /// </summary>
@@ -131,7 +131,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("DsPickerReturnInValidGroup", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Access Denied.
         /// </summary>
@@ -140,7 +140,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("ERROR_ACCESS_DENIED", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to One or more of the members cannot be added because their account type is invalid. No new members were added..
         /// </summary>
@@ -149,7 +149,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("ERROR_INVALID_MEMBER", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid Parameter.
         /// </summary>
@@ -158,7 +158,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("ERROR_INVALID_PARAMETER", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to One or more of the members specified were already members of the local group. No new members were added..
         /// </summary>
@@ -167,7 +167,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("ERROR_MEMBER_IN_ALIAS", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to One or more of the members specified were not members of the local group. No members were deleted..
         /// </summary>
@@ -176,7 +176,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("ERROR_MEMBER_NOT_IN_ALIAS", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The specified local group does not exist..
         /// </summary>
@@ -185,7 +185,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("ERROR_NO_SUCH_ALIAS", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to One or more of the members specified do not exist. Therefore, no new members were added..
         /// </summary>
@@ -194,14 +194,14 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("ERROR_NO_SUCH_MEMBER", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon EventViewer_48 {
             get {
                 object obj = ResourceManager.GetObject("EventViewer_48", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to An error occured while performing the operation..
         /// </summary>
@@ -210,7 +210,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("GenericError", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Maximum log file size must be in multiples of 64..
         /// </summary>
@@ -219,7 +219,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("MaxLogSize64Multiples", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The password parameter is invalid..
         /// </summary>
@@ -228,7 +228,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_BadPassword", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The return buffer is too small..
         /// </summary>
@@ -237,7 +237,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_BufTooSmall", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The group already exists..
         /// </summary>
@@ -246,7 +246,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_GroupExists", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The local group specified by the groupname parameter does not exist..
         /// </summary>
@@ -255,7 +255,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_GroupNotFound", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This computer name is invalid..
         /// </summary>
@@ -264,7 +264,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_InvalidComputer", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This operation is not allowed on the last administrative account..
         /// </summary>
@@ -273,7 +273,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_LastAdmin", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This operation is only allowed on the primary domain controller of the domain..
         /// </summary>
@@ -282,7 +282,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_NotPrimary", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The password does not meet the password policy requirements. Check the minimum password length, password complexity and password history requirements..
         /// </summary>
@@ -291,7 +291,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_PasswordTooShort", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This operation is not allowed on this special group..
         /// </summary>
@@ -300,7 +300,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_SpeGroupOp", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The user account already exists..
         /// </summary>
@@ -309,7 +309,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_UserExists", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The user name could not be found..
         /// </summary>
@@ -318,7 +318,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NERR_UserNotFound", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to &amp;Please provide new group name:.
         /// </summary>
@@ -327,7 +327,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("NewGroupNameText", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The password and confirmation need to exactly match..
         /// </summary>
@@ -336,7 +336,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("PasswordValidator_NoMatch", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Lets you view and manage the Likewise event log..
         /// </summary>
@@ -345,7 +345,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("PluginDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Failed to rename group - .
         /// </summary>
@@ -354,7 +354,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("RenameGroupError", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Failed to rename user - .
         /// </summary>
@@ -363,7 +363,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("RenameUserError", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Event Viewer.
         /// </summary>
@@ -372,7 +372,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin.Properties {
                 return ResourceManager.GetString("sTitleEventsPage", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap up {
             get {
                 object obj = ResourceManager.GetObject("up", resourceCulture);

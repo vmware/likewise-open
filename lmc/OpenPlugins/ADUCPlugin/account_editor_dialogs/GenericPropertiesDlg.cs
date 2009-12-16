@@ -41,8 +41,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 {
 public partial class GenericPropertiesDlg : MPContainer
 {
-    #region Class Data    
-    
+    #region Class Data
+
     private ADUCPlugin _plugin = null;
     private bool bIsGeneralpageReq = false;
     private ObjectPropertyInfo objInfo;

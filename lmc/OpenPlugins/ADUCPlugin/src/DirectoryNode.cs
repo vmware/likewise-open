@@ -47,7 +47,7 @@ public class DirectoryNode: LACTreeNode
 {
     #region data
 
-    protected DirectoryContext dirContext;   
+    protected DirectoryContext dirContext;
     protected string distinguishedName;
     protected string _objectClass;
     public bool haveRetrievedChildren = false;
@@ -826,7 +826,7 @@ public class DirectoryNode: LACTreeNode
             //haveRetrievedChildren = true;
             //return;
 
-            //clears the domian level node, if the ldap connection timed out or disconnected                        
+            //clears the domian level node, if the ldap connection timed out or disconnected
             haveRetrievedChildren = true;
             this.IsModified = true;
             if (ret == (int)Likewise.LMC.LMConsoleUtils.ErrorCodes.LDAPEnum.LDAP_SERVER_DOWN ||

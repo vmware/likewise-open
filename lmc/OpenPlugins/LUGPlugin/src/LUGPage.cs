@@ -87,7 +87,7 @@ public partial class LUGPage : StandardPage
     
     public LUGPage()
     {
-        
+
     }
 
     public LUGPage(LUGAPI.LUGType type)
@@ -157,7 +157,7 @@ public partial class LUGPage : StandardPage
 
         this.lvLUGBETA.Columns.AddRange(columnHeaders);
     }
-    
+
     #endregion
     
     #region IPlugInPage Members
@@ -312,11 +312,11 @@ public partial class LUGPage : StandardPage
         
         return retValue;
     }
-    
+
     public uint AddLUG(object o)
     {
         uint result = (uint)LUGAPI.WinError.ERROR_SUCCESS;
-        
+
         try
         {
             if (memberType == LUGAPI.LUGType.User)
@@ -335,7 +335,7 @@ public partial class LUGPage : StandardPage
                     flags |= nu.MustChange ? LUGAPI.UF_PASSWORD_EXPIRED : 0;
                     
                     flags |= nu.CannotChange ? LUGAPI.UF_PASSWD_CANT_CHANGE : 0;
-                    
+
                     flags |= nu.IsDisabled ? LUGAPI.UF_ACCOUNTDISABLE : 0;
 
                     flags |= nu.NeverExpires ? LUGAPI.UF_DONT_EXPIRE_PASSWD : 0;
@@ -420,12 +420,12 @@ public partial class LUGPage : StandardPage
                     {
                         lvitem.ImageIndex = 2;
                     }
-                    lvitem.Tag = node;                    
+                    lvitem.Tag = node;
                     nodelist.Add(lvitem);
                 }
                 ListViewItem[] lvItems = new ListViewItem[nodelist.Count];
                 nodelist.CopyTo(lvItems);
-                lvLUGBETA.Items.AddRange(lvItems);                 
+                lvLUGBETA.Items.AddRange(lvItems);
                 return;
             }
             else
@@ -436,7 +436,7 @@ public partial class LUGPage : StandardPage
                 }
                 Hostinfo hn = ctx as Hostinfo;
 
-                //GetMachineInfo(); 
+                //GetMachineInfo();
                 if (lblCaption.Text.IndexOf("{0}") >= 0)
                 {
                     if (!String.IsNullOrEmpty(hn.hostName))
@@ -467,7 +467,7 @@ public partial class LUGPage : StandardPage
                 }
             }
         }
-        
+
         catch (Exception e)
         {
             String sMsg = "Unknown LUG Type!";
@@ -511,7 +511,7 @@ public partial class LUGPage : StandardPage
             this.lvLUGBETA.Items.AddRange(lvArr);
 
             this.AutoResizePage();
-            
+
             if (enumStatus.moreEntries)
             {
                 try
@@ -677,7 +677,7 @@ public partial class LUGPage : StandardPage
         {
             return;
         }
-        
+
         try
         {
             ListViewItem item = lvLUGBETA.SelectedItems[0];
@@ -816,19 +816,19 @@ public partial class LUGPage : StandardPage
         {
             if (memberType == LUGAPI.LUGType.User)
                 m_item = new MenuItem("New &User...", new EventHandler(On_MenuClick));
-            else 
+            else
                 m_item = new MenuItem("New &Group...", new EventHandler(On_MenuClick));
             cm.MenuItems.Add(0, m_item);
         }
         else
         {
-            if (memberType == LUGAPI.LUGType.User)  
+            if (memberType == LUGAPI.LUGType.User)
                 m_item = new MenuItem("&Set Password...", new EventHandler(On_MenuClick));
             else
                 m_item = new MenuItem("&Add to Group...", new EventHandler(On_MenuClick));
             cm.MenuItems.Add(0, m_item);
-            
-            m_item = new MenuItem("&Rename...", new EventHandler(On_MenuClick));           
+
+            m_item = new MenuItem("&Rename...", new EventHandler(On_MenuClick));
             cm.MenuItems.Add(m_item);
 
             m_item = new MenuItem("&Properties...", new EventHandler(On_MenuClick));
@@ -841,7 +841,7 @@ public partial class LUGPage : StandardPage
         m_item = new MenuItem("-");
         cm.MenuItems.Add(m_item);
 
-        m_item = new MenuItem("&Refresh", new EventHandler(On_MenuClick));        
+        m_item = new MenuItem("&Refresh", new EventHandler(On_MenuClick));
         cm.MenuItems.Add(m_item);
 
         m_item = new MenuItem("-");
@@ -850,7 +850,7 @@ public partial class LUGPage : StandardPage
         m_item = new MenuItem("&Help", new EventHandler(On_MenuClick));
         cm.MenuItems.Add(cm.MenuItems.Count, m_item);
 
-        return cm;       
+        return cm;
     }
 
     private void On_MenuClick(object sender, EventArgs args)
@@ -886,7 +886,7 @@ public partial class LUGPage : StandardPage
 
             case "&Refresh":
                 treeNode.IsModified = true;
-                treeNode.sc.ShowControl(treeNode);               
+                treeNode.sc.ShowControl(treeNode);
                 break;
 
             case "&Help":
@@ -895,12 +895,12 @@ public partial class LUGPage : StandardPage
                 psi.FileName = CommonResources.GetString("LAC_Help");
                 psi.Verb = "open";
                 psi.WindowStyle = ProcessWindowStyle.Normal;
-                Process.Start(psi);               
+                Process.Start(psi);
                 break;
         }
     }
 
-    #endregion    
+    #endregion
 
     #region Events
     
@@ -955,7 +955,7 @@ public partial class LUGPage : StandardPage
                 }
             }
         }
-        else 
+        else
         {
             ShowLUGPropertiesDlg();
         }
@@ -983,7 +983,7 @@ public partial class LUGPage : StandardPage
                 }
             }
             else  {
-                cm = BuildLUGContextMenu();      
+                cm = BuildLUGContextMenu();
             } 
             cm.Show(lvSender, new Point(e.X, e.Y));
         }

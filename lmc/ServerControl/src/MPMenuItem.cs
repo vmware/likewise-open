@@ -35,12 +35,12 @@ namespace Likewise.LMC.ServerControl
 {
     public class MPMenuItem
     {
-        #region Class data members        
+        #region Class data members
         public String pageID;
         public String menuText;
         public String toolTipText;
-        #endregion 
-      
+        #endregion
+
         #region Constructor
         public MPMenuItem( String pageID, String menuText, String toolTipText)
         {

@@ -62,10 +62,10 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this._servicename = servicename;
         }
 
-        #endregion        
+        #endregion
 
-        #region Event Hadlers  
-     
+        #region Event Hadlers
+
         private void btnOk_Click(object sender, EventArgs e)
         {
             if(String.IsNullOrEmpty(txtMinutes.Text.Trim()))
@@ -103,7 +103,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
         private void btnCancel_Click(object sender, EventArgs e)
         {
             Close();
-        }      
+        }
 
         private void ServicesComputerOptionsPage_Load(object sender, EventArgs e)
         {

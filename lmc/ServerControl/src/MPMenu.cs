@@ -31,10 +31,10 @@
 namespace Likewise.LMC.ServerControl
 {
     public partial class MPMenu
-    {       
+    {
         #region Menu item position constants
         public const int POSITION_END = -1;
         public const int POSITION_BEGINING = 0;
-        #endregion       
+        #endregion
     }
 }

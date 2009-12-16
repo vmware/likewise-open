@@ -37,7 +37,7 @@ namespace System.DirectoryServices.ActiveDirectory
 {
     public class Forest
     {
-        private string fName; //name of the forest         
+        private string fName; //name of the forest
         private DirectoryContext dc;
 
         private DomainCollection domains = null;
@@ -50,7 +50,7 @@ namespace System.DirectoryServices.ActiveDirectory
             : base()
         {
         }
-        
+
         public static Forest GetForest(DirectoryContext dc)
         {
             Forest fr = new Forest();
@@ -75,7 +75,7 @@ namespace System.DirectoryServices.ActiveDirectory
                         confName = rootDse.Properties["configurationNamingContext"].Value.ToString();
                     }
                     else
-                    {                        
+                    {
                         confName = string.Concat("CN=Configuration,", DomainNameToDN(fName));
                     }
 
@@ -97,7 +97,7 @@ namespace System.DirectoryServices.ActiveDirectory
                         globalcatalogs = new GlobalCatalogCollection();
 
                         foreach (SearchResult sr in src)
-                        {      
+                        {
                             string sProtocol, sServer, sCNs, sDCs;
                             SDSUtils.CrackPath(sr.Path, out sProtocol, out sServer, out sCNs, out sDCs);
 
@@ -111,7 +111,7 @@ namespace System.DirectoryServices.ActiveDirectory
                           /*  if (sCNs != null)
                             {
                                 string[] splits = sCNs.Split(',');
-                                gcName = string.Format("{0}.{1}", splits[1].Substring(3).ToLower(), sServer);                                
+                                gcName = string.Format("{0}.{1}", splits[1].Substring(3).ToLower(), sServer);
                             }*/
                             GlobalCatalog gc = GlobalCatalog.GetGlobalCatalog(
                                 new DirectoryContext(DirectoryContextType.DirectoryServer, gcName, dc.UserName, dc.Password));
@@ -154,7 +154,7 @@ namespace System.DirectoryServices.ActiveDirectory
                 if (domains == null)
                 {
                     string sPath = string.Format("LDAP://{0}/RootDSE", fName);
-                    DirectoryEntry rootDse = new DirectoryEntry(sPath, dc.UserName, dc.Password);                
+                    DirectoryEntry rootDse = new DirectoryEntry(sPath, dc.UserName, dc.Password);
 
                     string rootDomainName = rootDse.Properties["rootDomainNamingContext"].Value as string;
 
@@ -166,12 +166,12 @@ namespace System.DirectoryServices.ActiveDirectory
                         rootDomainName = rootDse.Properties["distinguishedName"].Value as string;
                     }
 
-                    GlobalCatalog gc = GlobalCatalog.GetGlobalCatalog(new DirectoryContext(DirectoryContextType.Forest, SDSUtils.DNToDomainName(rootDomainName).ToLower(), dc.UserName, dc.Password));                    
+                    GlobalCatalog gc = GlobalCatalog.GetGlobalCatalog(new DirectoryContext(DirectoryContextType.Forest, SDSUtils.DNToDomainName(rootDomainName).ToLower(), dc.UserName, dc.Password));
                     DirectorySearcher gc_ds = gc.GetDirectorySearcher();
 
                     gc_ds.Filter = "(objectcategory=domainDNS)";
                     gc_ds.SearchScope = SearchScope.Subtree;
-                    
+
                     StringCollection attrs = new StringCollection();
                     attrs.Add("name");
                     attrs.Add("distinguishedName");
@@ -187,7 +187,7 @@ namespace System.DirectoryServices.ActiveDirectory
                         foreach (SearchResult sr in src)
                         {
                             string sProtocol, sServer, sCNs, sDCs;
-                                                                                                                         
+
                             SDSUtils.CrackPath(sr.Path, out sProtocol, out sServer, out sCNs, out sDCs);
                             /*Console.WriteLine("sProtocol " + sProtocol);
                             Console.WriteLine("sServer " + sServer);
@@ -228,7 +228,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
                     string rootDomainName = rootDse.Properties["rootDomainNamingContext"].Value.ToString();
 
-                    rootdomain = Domain.GetDomain(new DirectoryContext(DirectoryContextType.Domain, 
+                    rootdomain = Domain.GetDomain(new DirectoryContext(DirectoryContextType.Domain,
                         SDSUtils.DNToDomainName(rootDomainName), dc.UserName, dc.Password));
                 }
 

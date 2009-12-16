@@ -58,18 +58,18 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
         /// </summary>
         private void InitializeComponent()
         {
-            this.SuspendLayout();            
-            // 
+            this.SuspendLayout();
+            //
             // btnOK
             //
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
             //
             // btnCancel
-            //             
+            //
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // LogPropertiesDlg
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(372, 387);
             this.MinimumSize = new System.Drawing.Size(112, 81);

@@ -62,15 +62,15 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ObjectAddMoreAttributesDlg));
             this.errorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
-            this.SuspendLayout();            
-            // 
+            this.SuspendLayout();
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // ObjectAddMoreAttributesDlg
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.ClientSize = new System.Drawing.Size(390, 422);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;

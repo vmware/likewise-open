@@ -48,8 +48,8 @@ namespace Likewise.LMC.Services
         public bool IsPaused = false;
         public bool IsAcceptStop = false;
         public bool IsAcceptPause = false;
-    }    
-    
+    }
+
     public class ServiceManagerWindowsWrapper
     {
         #region WMI Api wrapper implementations
@@ -381,7 +381,7 @@ namespace Likewise.LMC.Services
                 }
 
                 phService = IntPtr.Zero;
-                Logger.Log("ServiceManagerWindowsWrapper.ApiCloseServiceHandle is Success", Logger.ServiceManagerLoglevel);               
+                Logger.Log("ServiceManagerWindowsWrapper.ApiCloseServiceHandle is Success", Logger.ServiceManagerLoglevel);
             }
             catch (Exception ex)
             {
@@ -439,7 +439,7 @@ namespace Likewise.LMC.Services
 
                 IntPtr lpInfo = Marshal.AllocHGlobal(Marshal.SizeOf(failureActions));
                 if (lpInfo == IntPtr.Zero)
-                {                    
+                {
                     throw new Exception(String.Format("Unable to allocate memory, error was: 0x{0:X}", Marshal.GetLastWin32Error()));
                 }
 
@@ -447,19 +447,19 @@ namespace Likewise.LMC.Services
 
                 if (!ServiceManagerInteropWindows.ChangeServiceConfig2(phService, (int)ServiceManagerInteropWindows.SERVICE_CONFIG_FAILURE_ACTIONS, lpInfo))
                 {
-                    Marshal.FreeHGlobal(lpInfo);                    
+                    Marshal.FreeHGlobal(lpInfo);
                     Logger.Log(String.Format("Error setting service config, error was: 0x{0:X}", Marshal.GetLastWin32Error()));
                     return false;
                 }
 
-                Marshal.FreeHGlobal(lpInfo);               
+                Marshal.FreeHGlobal(lpInfo);
 
                 Logger.Log("MyService: Service modification completed");
 
                 ApiCloseServiceHandle(phService);
             }
             catch (Exception ex)
-            {               
+            {
                 Logger.LogException("ApiChangeServiceConfig2()", ex);
                 return false;
             }

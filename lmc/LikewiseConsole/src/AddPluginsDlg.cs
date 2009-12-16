@@ -102,7 +102,7 @@ namespace Likewise.LMC
 
                 try
                 {
-                    Assembly pluginDll = Assembly.LoadFile(dllPath);                   
+                    Assembly pluginDll = Assembly.LoadFile(dllPath);
 
                     LACTreeNodeList nodesInAssembly = _controlManage.LoadPlugInsFromAssembly(pluginDll);
 
@@ -113,9 +113,9 @@ namespace Likewise.LMC
 
                         il.Images.Add(node.image);
                         lvi.ImageIndex = il.Images.Count - 1;
-                        lvi.StateImageIndex = il.Images.Count - 1; 
+                        lvi.StateImageIndex = il.Images.Count - 1;
 
-                        // PluginlistView.Items.Add(lviArr);                       
+                        // PluginlistView.Items.Add(lviArr);
                         liItems.Add(lvi);
                     }
                 }
@@ -127,12 +127,12 @@ namespace Likewise.LMC
                 }
                 catch (Exception e)
                 {
-                    Debugger.Log(9, "Exception", e.ToString());                 
+                    Debugger.Log(9, "Exception", e.ToString());
                 }
             }
 
             // set the image list
-            PluginlistView.SmallImageList = il;            
+            PluginlistView.SmallImageList = il;
 
             // sort the items
             liItems.Sort(this);
@@ -161,7 +161,7 @@ namespace Likewise.LMC
             LACTreeNode node = PluginlistView.SelectedItems[0].Tag as LACTreeNode;
             if (node != null)
                 lblDescription.Text = node.Plugin.GetDescription();
-        }      
+        }
 
         private void AddBtn_Click(object sender, EventArgs e)
         {
@@ -191,8 +191,8 @@ namespace Likewise.LMC
 #if QUARTZ
                 #if LMC_ENTERPRISE
                 if (node.Plugin is GPOEPlugin)
-                {                    
-                    GPOEPlugin gPlugin = node.Plugin as GPOEPlugin;                    
+                {
+                    GPOEPlugin gPlugin = node.Plugin as GPOEPlugin;
 
                     uint requestedFields = (uint)Hostinfo.FieldBitmaskBits.FQDN;
 
@@ -218,7 +218,7 @@ namespace Likewise.LMC
                         return;
                     }
                     else
-                    {   
+                    {
                         if (!gPlugin._usingSimpleBind && !gPlugin._hn.IsConnectionSuccess)
                         {
                             gPlugin._usingSimpleBind = true;
@@ -253,7 +253,7 @@ namespace Likewise.LMC
                         lviArr = new ListViewItem(values);
                         lviArr.ImageIndex = node.ImageIndex;
                         lviArr.Tag = node;
-                        ListViewItem item = _standalonePage.ChosenPlugins.Items.Add(lviArr);                      
+                        ListViewItem item = _standalonePage.ChosenPlugins.Items.Add(lviArr);
                     }
                 }
                 else  //Not a GPOEPlugin
@@ -280,13 +280,13 @@ namespace Likewise.LMC
                 }
             }
         }
-     
+
         private void CloseBtn_Click(object sender, EventArgs e)
         {
             if (_standalonePage.ChosenPlugins.Items.Count > 0 && _standalonePage.dummy.Count > 0)
             {
                 //foreach (LACTreeNode node in _addedPlugins)
-                //  _rootNode.Nodes.Add(node); 
+                //  _rootNode.Nodes.Add(node);
 
                 _standalonePage.addedPlugins = _standalonePage.dummy;
             }

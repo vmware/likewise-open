@@ -401,7 +401,7 @@ namespace Likewise.LMC.LDAP
                                           ret), Logger.ldapLogLevel);
                 if (ret != 0)
                 {
-                    Logger.Log(ErrorCodes.LDAPString(ret), Logger.ldapLogLevel);                
+                    Logger.Log(ErrorCodes.LDAPString(ret), Logger.ldapLogLevel);
                 }
                 return ret;
             }
@@ -436,7 +436,7 @@ namespace Likewise.LMC.LDAP
                                           ret), Logger.ldapLogLevel);
                 if (ret != 0)
                 {
-                    Logger.Log(ErrorCodes.LDAPString(ret), Logger.ldapLogLevel);             
+                    Logger.Log(ErrorCodes.LDAPString(ret), Logger.ldapLogLevel);
                 }
                 return ret;
             }
@@ -578,7 +578,7 @@ namespace Likewise.LMC.LDAP
             {
                 //Catching this exception type separately is a workaround HACK for bug# 4878.
                 Logger.Log(String.Format(
-                    "LdapHandle.LdapSearch_S: Caught AccessViolationException, possibly due to MS Windows LDAP Bug.  baseDN={0}", 
+                    "LdapHandle.LdapSearch_S: Caught AccessViolationException, possibly due to MS Windows LDAP Bug.  baseDN={0}",
                     basedn), Logger.ldapLogLevel);
                 return ret;
             }
@@ -590,7 +590,7 @@ namespace Likewise.LMC.LDAP
             finally
             {
                 afterSearch = DateTime.Now;
-                Logger.Log(String.Format("ldap_search_s complete.  Time elapsed: {0}", 
+                Logger.Log(String.Format("ldap_search_s complete.  Time elapsed: {0}",
                     afterSearch - beforeSearch), Logger.ldapLogLevel);
 
                 Monitor.Exit(Ldap_ApiCallSync);
@@ -785,7 +785,7 @@ namespace Likewise.LMC.LDAP
                 ret = Ldap_Rebind_S();
                 if (ret != 0)
                 {
-                    Logger.Log(ErrorCodes.LDAPString(ret), Logger.ldapLogLevel);                    
+                    Logger.Log(ErrorCodes.LDAPString(ret), Logger.ldapLogLevel);
                     return ret;
                 }
 
@@ -1187,7 +1187,7 @@ namespace Likewise.LMC.LDAP
             {
                 Monitor.Exit(Ldap_ApiCallSync);
             }
-        }        
+        }
 
         public int Ldap_Delete(
             string basedn,
@@ -1238,15 +1238,15 @@ namespace Likewise.LMC.LDAP
 
         /// <summary>
         /// Rename an LDAP entry.
-        /// 
-        /// Note on newSuperior: 
-        /// The newparent parameter should always be NULL when using version 2 of the LDAP protocol; 
-        /// otherwise the server's behavior is undefined. If this parameter is NULL, only the RDN of the entry is changed. 
-        /// The root DN may be specified by passing a zero length string, "". 
-        /// 
+        ///
+        /// Note on newSuperior:
+        /// The newparent parameter should always be NULL when using version 2 of the LDAP protocol;
+        /// otherwise the server's behavior is undefined. If this parameter is NULL, only the RDN of the entry is changed.
+        /// The root DN may be specified by passing a zero length string, "".
+        ///
         /// Note on deleteOldRdn:
-        /// When set to 1, the old RDN value is to be deleted from the entry. 
-        /// When set to 0, the old RDN value should be retained as a non-distinguished value. 
+        /// When set to 1, the old RDN value is to be deleted from the entry.
+        /// When set to 0, the old RDN value should be retained as a non-distinguished value.
         /// This parameter only has meaning if newrdn is different from the old RDN.
         /// </summary>
         /// <param name="basedn">Specifies the DN of the entry whose DN is to be changed.</param>
@@ -1255,8 +1255,8 @@ namespace Likewise.LMC.LDAP
         /// <param name="deleteOldRdn">Specifies a boolean value; 1=delete the old rdn; 0=retain the old rdn</param>
         /// <returns>The error code (0 for success)</returns>
         public int Ldap_Rename_S(
-            string basedn, 
-            string newdn,  
+            string basedn,
+            string newdn,
             string newSuperior,
             int deleteOldRdn
             )
@@ -1304,15 +1304,15 @@ namespace Likewise.LMC.LDAP
 
         /// <summary>
         /// Rename an LDAP entry.
-        /// 
-        /// Note on newSuperior: 
-        /// The newparent parameter should always be NULL when using version 2 of the LDAP protocol; 
-        /// otherwise the server's behavior is undefined. If this parameter is NULL, only the RDN of the entry is changed. 
-        /// The root DN may be specified by passing a zero length string, "". 
-        /// 
+        ///
+        /// Note on newSuperior:
+        /// The newparent parameter should always be NULL when using version 2 of the LDAP protocol;
+        /// otherwise the server's behavior is undefined. If this parameter is NULL, only the RDN of the entry is changed.
+        /// The root DN may be specified by passing a zero length string, "".
+        ///
         /// Note on deleteOldRdn:
-        /// When set to 1, the old RDN value is to be deleted from the entry. 
-        /// When set to 0, the old RDN value should be retained as a non-distinguished value. 
+        /// When set to 1, the old RDN value is to be deleted from the entry.
+        /// When set to 0, the old RDN value should be retained as a non-distinguished value.
         /// This parameter only has meaning if newrdn is different from the old RDN.
         /// </summary>
         /// <param name="basedn">Specifies the DN of the entry whose DN is to be changed.</param>
@@ -1389,7 +1389,7 @@ namespace Likewise.LMC.LDAP
             IntPtr ptrberVal = IntPtr.Zero;
 
             ptrberVal = Marshal.AllocHGlobal(Marshal.SizeOf(berVal));
-            
+
             Marshal.StructureToPtr(berVal, ptrberVal, false);
 
             return LdapAPI.ber_init(out ptrberVal);
@@ -1398,7 +1398,7 @@ namespace Likewise.LMC.LDAP
 
         public int setserver_pageControloption()
         {
-            //set server control LDAP_OPT_SERVER_CONTROLS      
+            //set server control LDAP_OPT_SERVER_CONTROLS
             Berval berVal = new Berval(0, IntPtr.Zero);
             LDAPControl c = new LDAPControl(berVal, LdapMessage.LDAP_CONTROL_PAGEDRESULTS, 'F');
             IntPtr[] ctrls = new IntPtr[2];
@@ -1415,7 +1415,7 @@ namespace Likewise.LMC.LDAP
             for (int counter = 0; counter < ctrls.Length; counter++)
                 Marshal.WriteIntPtr(arrayCtrls, counter * sizeOfIntPtr, ctrls[counter]);
 
-            int ret = Ldap_Set_Option(LDAP_OPT_SERVER_CONTROLS, arrayCtrls);            
+            int ret = Ldap_Set_Option(LDAP_OPT_SERVER_CONTROLS, arrayCtrls);
 
             return ret;
         }
@@ -1423,8 +1423,8 @@ namespace Likewise.LMC.LDAP
 
         public int unsetserver_pageControloption()
         {
-            //unset server control LDAP_OPT_SERVER_CONTROLS      
-            IntPtr[] ctrls = new IntPtr[1];            
+            //unset server control LDAP_OPT_SERVER_CONTROLS
+            IntPtr[] ctrls = new IntPtr[1];
             ctrls[0] = IntPtr.Zero;
 
             IntPtr arrayCtrls = IntPtr.Zero;
@@ -1437,7 +1437,7 @@ namespace Likewise.LMC.LDAP
             for (int counter = 0; counter < ctrls.Length; counter++)
                 Marshal.WriteIntPtr(arrayCtrls, counter * sizeOfIntPtr, ctrls[counter]);
 
-            int ret = Ldap_Set_Option(LDAP_OPT_SERVER_CONTROLS, arrayCtrls);            
+            int ret = Ldap_Set_Option(LDAP_OPT_SERVER_CONTROLS, arrayCtrls);
 
             return ret;
         }
@@ -1581,7 +1581,7 @@ namespace Likewise.LMC.LDAP
             try
             {
                 unsafe
-                {                   
+                {
                     if (_ld != IntPtr.Zero)
                     {
                         rv = Ldap_Unbind_S();
@@ -1715,7 +1715,7 @@ namespace Likewise.LMC.LDAP
             }
 
             return rv;
-        }        
-        
+        }
+
     }
 }

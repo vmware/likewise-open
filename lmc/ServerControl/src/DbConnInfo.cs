@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -42,10 +42,10 @@ namespace Likewise.LMC.ServerControl
     /// This class represents a machine to which the user
     /// is trying/has connected to. It bundles a variety of
     /// useful data:
-    ///     
+    ///
     ///     It's host name and domain name
     ///     A set of credentials that can be used with the machine
-    /// 
+    ///
     /// </summary>
     public class DbConnInfo : IContext
     {
@@ -75,7 +75,7 @@ namespace Likewise.LMC.ServerControl
         }
 
         /// <summary>
-        /// Simple constructor given only a name. All 
+        /// Simple constructor given only a name. All
         /// other properties must be set later as their
         /// values become available.
         /// </summary>
@@ -83,7 +83,7 @@ namespace Likewise.LMC.ServerControl
         public DbConnInfo(string sDbProvider, string sConnString)
         {
            this.sDbProvider = sDbProvider.Trim().ToLower();
-           this.sConnString = sConnString.Trim().ToLower();               
+           this.sConnString = sConnString.Trim().ToLower();
         }
 
         #endregion
@@ -125,8 +125,8 @@ namespace Likewise.LMC.ServerControl
             else if (lhsObj != null && rhsObj == null) return false;
 
             else if (lhs.sDbProvider != rhs.sDbProvider) return false;
-            else if (lhs.sConnString != rhs.sConnString) return false;            
-            else return true;      
+            else if (lhs.sConnString != rhs.sConnString) return false;
+            else return true;
         }
 
         public static bool operator !=(DbConnInfo lhs, DbConnInfo rhs)
@@ -177,7 +177,7 @@ namespace Likewise.LMC.ServerControl
             DbConnInfo result = new DbConnInfo(this.sDbProvider, this.sConnString);
 
             result.sDbProvider = this.sDbProvider;
-            result.sConnString = this.sConnString;           
+            result.sConnString = this.sConnString;
 
             return result;
         }
@@ -186,10 +186,10 @@ namespace Likewise.LMC.ServerControl
         {
             if (!String.IsNullOrEmpty(sDbProvider))
                 this.sDbProvider = sDbProvider;
-            if (!String.IsNullOrEmpty(sDbConnString))   
+            if (!String.IsNullOrEmpty(sDbConnString))
                 this.sConnString = sDbConnString;
         }
 
-        #endregion     
+        #endregion
     }
 }

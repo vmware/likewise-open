@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 {
     partial class EventPropertiesPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -81,9 +81,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnCopy = new System.Windows.Forms.Button();
             this.pnlData.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.BackColor = System.Drawing.SystemColors.Control;
             this.pnlData.Controls.Add(this.btnCopy);
             this.pnlData.Controls.Add(this.tbDate);
@@ -97,9 +97,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.pnlData.Controls.Add(this.tbTime);
             this.pnlData.Size = new System.Drawing.Size(437, 411);
             this.pnlData.TabIndex = 0;
-            // 
+            //
             // btnNext
-            // 
+            //
             this.btnNext.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnNext.Font = new System.Drawing.Font("Wingdings", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
             this.btnNext.Image = global::Likewise.LMC.Plugins.EventlogPlugin.Properties.Resources.down;
@@ -109,9 +109,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnNext.TabIndex = 10;
             this.btnNext.UseVisualStyleBackColor = true;
             this.btnNext.Click += new System.EventHandler(this.btnNext_Click);
-            // 
+            //
             // btnPrev
-            // 
+            //
             this.btnPrev.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnPrev.Font = new System.Drawing.Font("Wingdings", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
             this.btnPrev.Image = global::Likewise.LMC.Plugins.EventlogPlugin.Properties.Resources.up;
@@ -121,9 +121,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnPrev.TabIndex = 9;
             this.btnPrev.UseVisualStyleBackColor = true;
             this.btnPrev.Click += new System.EventHandler(this.btnPrev_Click);
-            // 
+            //
             // tbDescription
-            // 
+            //
             this.tbDescription.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
                         | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
@@ -135,9 +135,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbDescription.Size = new System.Drawing.Size(414, 224);
             this.tbDescription.TabIndex = 12;
             this.tbDescription.TabStop = false;
-            // 
+            //
             // label9
-            // 
+            //
             this.label9.AutoSize = true;
             this.label9.BackColor = System.Drawing.SystemColors.Control;
             this.label9.Location = new System.Drawing.Point(10, 158);
@@ -145,9 +145,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label9.Size = new System.Drawing.Size(63, 13);
             this.label9.TabIndex = 11;
             this.label9.Text = "&Description:";
-            // 
+            //
             // label5
-            // 
+            //
             this.label5.AutoEllipsis = true;
             this.label5.AutoSize = true;
             this.label5.BackColor = System.Drawing.SystemColors.Control;
@@ -156,9 +156,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label5.Size = new System.Drawing.Size(55, 13);
             this.label5.TabIndex = 5;
             this.label5.Text = "C&omputer:";
-            // 
+            //
             // label4
-            // 
+            //
             this.label4.AutoEllipsis = true;
             this.label4.AutoSize = true;
             this.label4.BackColor = System.Drawing.SystemColors.Control;
@@ -167,9 +167,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label4.Size = new System.Drawing.Size(32, 13);
             this.label4.TabIndex = 4;
             this.label4.Text = "&User:";
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoEllipsis = true;
             this.label3.AutoSize = true;
             this.label3.BackColor = System.Drawing.SystemColors.Control;
@@ -178,9 +178,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label3.Size = new System.Drawing.Size(34, 13);
             this.label3.TabIndex = 3;
             this.label3.Text = "Typ&e:";
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoEllipsis = true;
             this.label2.AutoSize = true;
             this.label2.BackColor = System.Drawing.SystemColors.Control;
@@ -189,9 +189,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label2.Size = new System.Drawing.Size(33, 13);
             this.label2.TabIndex = 2;
             this.label2.Text = "Ti&me:";
-            // 
+            //
             // label10
-            // 
+            //
             this.label10.AutoEllipsis = true;
             this.label10.AutoSize = true;
             this.label10.BackColor = System.Drawing.SystemColors.Control;
@@ -200,9 +200,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label10.Size = new System.Drawing.Size(52, 13);
             this.label10.TabIndex = 7;
             this.label10.Text = "Catego&ry:";
-            // 
+            //
             // label8
-            // 
+            //
             this.label8.AutoEllipsis = true;
             this.label8.AutoSize = true;
             this.label8.BackColor = System.Drawing.SystemColors.Control;
@@ -211,9 +211,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label8.Size = new System.Drawing.Size(52, 13);
             this.label8.TabIndex = 8;
             this.label8.Text = "Event &ID:";
-            // 
+            //
             // label6
-            // 
+            //
             this.label6.AutoEllipsis = true;
             this.label6.AutoSize = true;
             this.label6.BackColor = System.Drawing.SystemColors.Control;
@@ -222,9 +222,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label6.Size = new System.Drawing.Size(44, 13);
             this.label6.TabIndex = 6;
             this.label6.Text = "&Source:";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoEllipsis = true;
             this.label1.AutoSize = true;
             this.label1.BackColor = System.Drawing.SystemColors.Control;
@@ -233,9 +233,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label1.Size = new System.Drawing.Size(33, 13);
             this.label1.TabIndex = 1;
             this.label1.Text = "D&ate:";
-            // 
+            //
             // tbTime
-            // 
+            //
             this.tbTime.BackColor = System.Drawing.SystemColors.Control;
             this.tbTime.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbTime.Location = new System.Drawing.Point(70, 39);
@@ -244,9 +244,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbTime.ReadOnly = true;
             this.tbTime.Size = new System.Drawing.Size(104, 20);
             this.tbTime.TabIndex = 1;
-            // 
+            //
             // tbType
-            // 
+            //
             this.tbType.BackColor = System.Drawing.SystemColors.Control;
             this.tbType.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbType.Location = new System.Drawing.Point(70, 67);
@@ -255,9 +255,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbType.ReadOnly = true;
             this.tbType.Size = new System.Drawing.Size(104, 20);
             this.tbType.TabIndex = 2;
-            // 
+            //
             // tbUser
-            // 
+            //
             this.tbUser.BackColor = System.Drawing.SystemColors.Control;
             this.tbUser.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbUser.Location = new System.Drawing.Point(70, 96);
@@ -266,9 +266,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbUser.ReadOnly = true;
             this.tbUser.Size = new System.Drawing.Size(318, 20);
             this.tbUser.TabIndex = 3;
-            // 
+            //
             // tbComputer
-            // 
+            //
             this.tbComputer.BackColor = System.Drawing.SystemColors.Control;
             this.tbComputer.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbComputer.Location = new System.Drawing.Point(83, 127);
@@ -277,9 +277,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbComputer.ReadOnly = true;
             this.tbComputer.Size = new System.Drawing.Size(287, 20);
             this.tbComputer.TabIndex = 4;
-            // 
+            //
             // tbSource
-            // 
+            //
             this.tbSource.BackColor = System.Drawing.SystemColors.Control;
             this.tbSource.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbSource.Location = new System.Drawing.Point(250, 9);
@@ -288,9 +288,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbSource.ReadOnly = true;
             this.tbSource.Size = new System.Drawing.Size(177, 20);
             this.tbSource.TabIndex = 5;
-            // 
+            //
             // tbCategory
-            // 
+            //
             this.tbCategory.BackColor = System.Drawing.SystemColors.Control;
             this.tbCategory.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbCategory.Location = new System.Drawing.Point(250, 40);
@@ -299,9 +299,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbCategory.ReadOnly = true;
             this.tbCategory.Size = new System.Drawing.Size(138, 20);
             this.tbCategory.TabIndex = 6;
-            // 
+            //
             // tbEventId
-            // 
+            //
             this.tbEventId.BackColor = System.Drawing.SystemColors.Control;
             this.tbEventId.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbEventId.Location = new System.Drawing.Point(250, 69);
@@ -310,9 +310,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbEventId.ReadOnly = true;
             this.tbEventId.Size = new System.Drawing.Size(139, 20);
             this.tbEventId.TabIndex = 7;
-            // 
+            //
             // tbDate
-            // 
+            //
             this.tbDate.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbDate.Location = new System.Drawing.Point(70, 9);
             this.tbDate.Multiline = true;
@@ -320,9 +320,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.tbDate.ReadOnly = true;
             this.tbDate.Size = new System.Drawing.Size(104, 20);
             this.tbDate.TabIndex = 0;
-            // 
+            //
             // btnCopy
-            // 
+            //
             this.btnCopy.Location = new System.Drawing.Point(380, 149);
             this.btnCopy.Name = "btnCopy";
             this.btnCopy.Size = new System.Drawing.Size(47, 22);
@@ -330,9 +330,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnCopy.Text = "Co&py";
             this.btnCopy.UseVisualStyleBackColor = true;
             this.btnCopy.Click += new System.EventHandler(this.btnCopy_Click);
-            // 
+            //
             // EventPropertiesPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.btnNext);
             this.Controls.Add(this.btnPrev);

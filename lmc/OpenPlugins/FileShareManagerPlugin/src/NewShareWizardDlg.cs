@@ -48,16 +48,16 @@ public partial class NewShareWizardDlg : Likewise.LMC.ServerControl.WizardDialog
     public ShareInfo shareInfo;
     private FileShareManagerIPlugIn plugin;
     public List<ShareInfo> sharedFolderList;
-    
+
     #endregion
-    
-    #region Constructors  
-    
+
+    #region Constructors
+
     public NewShareWizardDlg()
     {
         InitializeComponent();
     }
-    
+
     /// <summary>
     /// Overriden constructor gets all class schema attributes from AD Schema template
     /// </summary>
@@ -68,7 +68,7 @@ public partial class NewShareWizardDlg : Likewise.LMC.ServerControl.WizardDialog
     public NewShareWizardDlg(IPlugInContainer container, StandardPage parentPage, IPlugIn plugin)
         : this()
     {
-        this.plugin = plugin as FileShareManagerIPlugIn;      
+        this.plugin = plugin as FileShareManagerIPlugIn;
         this.shareInfo = new ShareInfo();
         shareInfo.hostName = this.plugin.HostInfo.hostName;
         sharedFolderList = new List<ShareInfo>();
@@ -102,4 +102,3 @@ public partial class NewShareWizardDlg : Likewise.LMC.ServerControl.WizardDialog
         #endregion
     }
 }
-

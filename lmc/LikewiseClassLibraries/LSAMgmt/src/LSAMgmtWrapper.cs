@@ -128,7 +128,7 @@ namespace Likewise.LMC.LSAMgmt
                     return ret;
                 }
                 */
-                 
+
                 successfulAuthentications = metrics.successfulAuthentications;
                 failedAuthentications = metrics.failedAuthentications;
                 rootUserAuthentications = metrics.rootUserAuthentications;
@@ -179,21 +179,21 @@ namespace Likewise.LMC.LSAMgmt
         public override string ToString()
         {
             string[] components = new string[] {
-                "\nsuccessfulAuthentications:          ", successfulAuthentications.ToString(), 
-                "\nfailedAuthentications:              ", failedAuthentications.ToString(), 
-                "\nrootUserAuthentications:            ", rootUserAuthentications.ToString(), 
-                "\nsuccessfulUserLookupsByName:        ", successfulUserLookupsByName.ToString(), 
-                "\nfailedUserLookupsByName:            ", failedUserLookupsByName.ToString(), 
+                "\nsuccessfulAuthentications:          ", successfulAuthentications.ToString(),
+                "\nfailedAuthentications:              ", failedAuthentications.ToString(),
+                "\nrootUserAuthentications:            ", rootUserAuthentications.ToString(),
+                "\nsuccessfulUserLookupsByName:        ", successfulUserLookupsByName.ToString(),
+                "\nfailedUserLookupsByName:            ", failedUserLookupsByName.ToString(),
                 "\nsuccessfulUserLookupsById:          ", successfulUserLookupsById.ToString(),
-                "\nfailedUserLookupsById:              ", failedUserLookupsById.ToString(), 
+                "\nfailedUserLookupsById:              ", failedUserLookupsById.ToString(),
                 "\nsuccessfulGroupLookupsByName:       ", successfulGroupLookupsByName.ToString(),
                 "\nfailedGroupLookupsByName:           ", failedGroupLookupsByName.ToString(),
-                "\nsuccessfulGroupLookupsById:         ", successfulGroupLookupsById.ToString(), 
+                "\nsuccessfulGroupLookupsById:         ", successfulGroupLookupsById.ToString(),
                 "\nfailedGroupLookupsById:             ", failedGroupLookupsById.ToString(),
                 "\nsuccessfulOpenSession:              ", successfulOpenSession.ToString(),
-                "\nfailedOpenSession:                  ", failedOpenSession.ToString(), 
+                "\nfailedOpenSession:                  ", failedOpenSession.ToString(),
                 "\nsuccessfulCloseSession:             ", successfulCloseSession.ToString(),
-                "\nfailedCloseSession:                 ", failedCloseSession.ToString(), 
+                "\nfailedCloseSession:                 ", failedCloseSession.ToString(),
                 "\nsuccessfulChangePassword:           ", successfulChangePassword.ToString(),
                 "\nfailedChangePassword:               ", failedChangePassword.ToString(),
                 "\nunauthorizedAccesses:               ", unauthorizedAccesses.ToString()
@@ -223,9 +223,9 @@ namespace Likewise.LMC.LSAMgmt
                 {
                     //return null;
                     throw new ApplicationException("Failed to query LSA Agent status");
-                }                
+                }
 
-                Marshal.PtrToStructure(pLsaStatus, LsaStatus);               
+                Marshal.PtrToStructure(pLsaStatus, LsaStatus);
 
                 agentStatus = new LsaAgentStatus();
 
@@ -275,7 +275,7 @@ namespace Likewise.LMC.LSAMgmt
                         authProviderStatus.Submode = (LsaAuthProviderSubMode)Enum.Parse(typeof(LsaAuthProviderSubMode), pProviderStatus.subMode.ToString());
                         authProviderStatus.State = (LsaAuthProviderState)Enum.Parse(typeof(LsaAuthProviderState), pProviderStatus.status.ToString());
 
-                        GetLSAMgmtTrustedDomainInfo(pProviderStatus, ref authProviderStatus); 
+                        GetLSAMgmtTrustedDomainInfo(pProviderStatus, ref authProviderStatus);
 
                         agentStatus.AuthProviderList.Add(authProviderStatus);
 
@@ -284,7 +284,7 @@ namespace Likewise.LMC.LSAMgmt
                 }
             }
             catch (Exception e)
-            {               
+            {
                 //Logger.ShowUserError(e.Message.ToString());
                 Logger.LogException("LSAMgmtStatus.GetLSAMgmtStatus", e);
                 agentStatus = null;
@@ -313,7 +313,7 @@ namespace Likewise.LMC.LSAMgmt
 
                 LSAMgmtAPI.LSA_TRUSTED_DOMAIN_INFO pTrustedDomainInfoArray = new LSAMgmtAPI.LSA_TRUSTED_DOMAIN_INFO();
 
-                Marshal.PtrToStructure(pTrustedDomainInfoCur, pTrustedDomainInfoArray);                
+                Marshal.PtrToStructure(pTrustedDomainInfoCur, pTrustedDomainInfoArray);
 
                 if (pTrustedDomainInfoArray != null)
                 {

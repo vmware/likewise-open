@@ -85,7 +85,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
                 container.ShowError(errorMsg);
                 return WizardDialog.NoPageChange;
             }
-             
+
             if(!bIsValidData)
                 return WizardDialog.NoPageChange;
 
@@ -103,7 +103,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
             textBoxComputername.Text = parentDlg.shareInfo.hostName;
             textBoxSharename.Text = parentDlg.shareInfo.shareName;
             textBoxShareDesc.Text = parentDlg.shareInfo.shareDesc;
-            
+
             Wizard.enableButton(WizardDialog.WizardButton.Cancel);
             Wizard.enableButton(WizardDialog.WizardButton.Back);
             Wizard.hideButton(WizardDialog.WizardButton.Start);
@@ -155,7 +155,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
                 {
                     return false;
                 }
-            }  
+            }
 
             if (String.IsNullOrEmpty(textBoxSharename.Text.Trim()))
             {

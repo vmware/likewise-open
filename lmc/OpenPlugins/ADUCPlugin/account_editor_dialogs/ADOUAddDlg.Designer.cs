@@ -67,18 +67,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtcreatein = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pictureBox
-            // 
+            //
             this.pictureBox.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox.Image")));
             this.pictureBox.Location = new System.Drawing.Point(29, 16);
             this.pictureBox.Name = "pictureBox";
             this.pictureBox.Size = new System.Drawing.Size(32, 32);
             this.pictureBox.TabIndex = 25;
             this.pictureBox.TabStop = false;
-            // 
+            //
             // btnOK
-            // 
+            //
             this.btnOK.Location = new System.Drawing.Point(270, 127);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(75, 23);
@@ -86,9 +86,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOK.Text = "&OK";
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(361, 127);
             this.btnCancel.Name = "btnCancel";
@@ -97,27 +97,27 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // txtName
-            // 
+            //
             this.txtName.Location = new System.Drawing.Point(25, 92);
             this.txtName.MaxLength = 64;
             this.txtName.Name = "txtName";
             this.txtName.Size = new System.Drawing.Size(411, 20);
             this.txtName.TabIndex = 2;
             this.txtName.TextChanged += new System.EventHandler(this.txtName_TextChanged);
-            // 
+            //
             // lbName
-            // 
+            //
             this.lbName.AutoSize = true;
             this.lbName.Location = new System.Drawing.Point(25, 72);
             this.lbName.Name = "lbName";
             this.lbName.Size = new System.Drawing.Size(35, 13);
             this.lbName.TabIndex = 1;
             this.lbName.Text = "N&ame";
-            // 
+            //
             // txtcreatein
-            // 
+            //
             this.txtcreatein.BackColor = System.Drawing.SystemColors.Control;
             this.txtcreatein.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtcreatein.Location = new System.Drawing.Point(68, 27);
@@ -125,9 +125,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtcreatein.ReadOnly = true;
             this.txtcreatein.Size = new System.Drawing.Size(368, 13);
             this.txtcreatein.TabIndex = 26;
-            // 
+            //
             // ADOUAddDlg
-            // 
+            //
             this.AcceptButton = this.btnOK;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;

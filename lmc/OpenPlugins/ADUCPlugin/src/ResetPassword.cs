@@ -48,15 +48,15 @@ public partial class ResetPassword : Form
     private string tooltipMessage = string.Empty;
     //  private string Nstr = "Normal";
     #endregion
-    
+
     #region Constructors
     public ResetPassword()
     {
         InitializeComponent();
         passwordinfo = new PasswordInfo();
     }
-    
-    
+
+
     public ResetPassword(IPlugInContainer container, StandardPage parentPage, bool bPwdNeverExpires, string user)
     : this()
     {
@@ -65,7 +65,7 @@ public partial class ResetPassword : Form
         this.sUser = user;
     }
     #endregion
-    
+
     #region Events
     private void btnOk_Click(object sender, EventArgs e)
     {
@@ -76,7 +76,7 @@ public partial class ResetPassword : Form
             MessageBoxButtons.OK, MessageBoxIcon.Error);
             this.txtNewpassword.Text = "";
             this.txtConfirmpassword.Text = "";
-            
+
             return;
         }
         else if (this.txtNewpassword.Text != "" && this.txtNewpassword.Text.Length < passwordinfo.PasswordMaxLength)
@@ -96,23 +96,23 @@ public partial class ResetPassword : Form
             this.DialogResult = DialogResult.OK;
         }
     }
-    
+
     private void btnCancel_Click(object sender, EventArgs e)
     {
         this.Close();
     }
     #endregion
-    
+
     private void txtConfirmpassword_TextChanged(object sender, EventArgs e)
     {
         this.passwordinfo.retypedpassword = this.txtConfirmpassword.Text;
     }
-    
+
     private void txtNewpassword_TextChanged(object sender, EventArgs e)
     {
         this.passwordinfo.password = this.txtNewpassword.Text;
     }
-    
+
     private void checkBox_CheckedChanged(object sender, EventArgs e)
     {
         if (this.checkBox.Checked)
@@ -124,7 +124,7 @@ public partial class ResetPassword : Form
             this.passwordinfo.MustChangePwNextLogon = false;
         }
     }
-    
+
     private void ResetPassword_Load(object sender, EventArgs e)
     {
         if (bNeverExpiresPwd)
@@ -136,7 +136,7 @@ public partial class ResetPassword : Form
             this.checkBox.Enabled = true;
         }
     }
-    
+
     private void ShowUserMessage()
     {
         string sMsg = string.Format("LAC cannot complete the password change for user {0} because : \n" +
@@ -146,7 +146,7 @@ public partial class ResetPassword : Form
         MessageBoxButtons.OK, MessageBoxIcon.Error);
         return;
     }
-    
+
     private void whatsThisToolStripMenuItem_Click(object sender, EventArgs e)
     {
         toolTip1.Show(tooltipMessage, this, new Point(30, 80));
@@ -249,9 +249,9 @@ public class PasswordInfo
     public string password;
     public string retypedpassword;
     public int PasswordMaxLength = 7;
-    
+
     public bool MustChangePwNextLogon = false;
-    
+
     #endregion
 }
 }

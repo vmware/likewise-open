@@ -73,7 +73,7 @@ namespace Likewise.LMC.Eventlog
             [MarshalAs(UnmanagedType.LPStr)]
             public string pszDescription;
             [MarshalAs(UnmanagedType.LPStr)]
-            public string pszData;     
+            public string pszData;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
@@ -94,7 +94,7 @@ namespace Likewise.LMC.Eventlog
         #endregion
 
         #region definitions
-       
+
         private const string clientLibPath = "eventlog.dll";
 
         #endregion
@@ -102,7 +102,7 @@ namespace Likewise.LMC.Eventlog
         #region public interface
 
         //.NET appears to lack these very elementary interoperability
-        //functions for reading UNIX timestamps, even though 
+        //functions for reading UNIX timestamps, even though
         //this capability is available in C/C++ in Windows.
         public static DateTime ConvertFromUnixTimestamp(UInt32 unixTimestamp)
         {
@@ -113,7 +113,7 @@ namespace Likewise.LMC.Eventlog
 
             DateTime present = origin.AddSeconds((double) unixTimestamp);
 
-            Logger.Log(String.Format("ConvertFromUnixTimeStamp: {0} --> {1}", 
+            Logger.Log(String.Format("ConvertFromUnixTimeStamp: {0} --> {1}",
                 unixTimestamp, present), Logger.eventLogLogLevel);
 
             return present;
@@ -144,13 +144,13 @@ namespace Likewise.LMC.Eventlog
 
             try
             {
-                ReadRemoteHostFQDN(serverName, out hostFQDN);                 
+                ReadRemoteHostFQDN(serverName, out hostFQDN);
 
                 if (!String.IsNullOrEmpty(hostFQDN))
                 {
                     Logger.Log(String.Format("OpenEventLog(serverName={0}) called",
                     hostFQDN), Logger.eventLogLogLevel);
-      
+
                     result = PrivateEventAPI.LWIOpenEventLog(
                         hostFQDN.ToLower(), out hEventLog);
                 }
@@ -190,15 +190,15 @@ namespace Likewise.LMC.Eventlog
         }
 
         public static void ReadRemoteHostFQDN(string hostname, out string hostFQDN)
-        {           
+        {
             hostFQDN = string.Empty; string domain = string.Empty;
 
             uint error = CNetlogon.GetCurrentDomain(out domain);
-            
+
             if (error != 0 && String.IsNullOrEmpty(domain))
             {
                 return;
-            }           
+            }
 
             string[] rootDNcom = domain.Split('.');
 
@@ -288,8 +288,8 @@ namespace Likewise.LMC.Eventlog
                 uint netlogonError = CNetlogon.GetDCName(domainName, 0, out DCInfo);
                 if (netlogonError == 0 && !String.IsNullOrEmpty(DCInfo.DomainControllerName))
                 {
-                    domain = DCInfo.FullyQualifiedDomainName;                    
-                }               
+                    domain = DCInfo.FullyQualifiedDomainName;
+                }
             }
             catch (Exception ex)
             {
@@ -299,7 +299,7 @@ namespace Likewise.LMC.Eventlog
         }
 
 
-        public static UInt32 ReadEventLog(IntPtr hEventLog, UInt32 dwLastRecordId, 
+        public static UInt32 ReadEventLog(IntPtr hEventLog, UInt32 dwLastRecordId,
             UInt32 nRecordsPerPage, string sqlQuery, out UInt32 pdwNumReturned, out EventLogRecord[] records)
         {
 
@@ -314,7 +314,7 @@ namespace Likewise.LMC.Eventlog
                 Logger.Log(String.Format(
                  "ReadEventLog(hEventLog={0:X}, dwLastRecordId={1}, nRecordsPerPage={2}) called",
                  hEventLog.ToInt32(), dwLastRecordId, nRecordsPerPage), Logger.eventLogLogLevel);
-                
+
                 result = PrivateEventAPI.LWIReadEventLog(hEventLog, dwLastRecordId,
                     nRecordsPerPage, sqlQuery, out pdwNumReturned, out bufPtr);
 
@@ -346,13 +346,13 @@ namespace Likewise.LMC.Eventlog
                 {
                     result = 0xFFFFFFFF;
                 }
-            }            
+            }
             //Marshal.FreeHGlobal(bufPtr);
             return result;
 
         }
 
-        public static UInt32 CountEventLog(IntPtr hEventLog, 
+        public static UInt32 CountEventLog(IntPtr hEventLog,
             string sqlQuery, out UInt32 pdwNumMatched)
         {
 
@@ -366,7 +366,7 @@ namespace Likewise.LMC.Eventlog
                  "CountEventLog(hEventLog={0}) called",
                  hEventLog), Logger.eventLogLogLevel);
 
-                result = PrivateEventAPI.LWICountEventLog(hEventLog, 
+                result = PrivateEventAPI.LWICountEventLog(hEventLog,
                     sqlQuery, out pdwNumMatched);
 
                 Logger.Log(String.Format(
@@ -624,7 +624,7 @@ namespace Likewise.LMC.Eventlog
                 // keep going to replace other occurrences
             }
             return s;
-            
+
         }
 
         /// <summary>
@@ -665,7 +665,7 @@ namespace Likewise.LMC.Eventlog
             return null;
 
         }
-       
+
         #endregion
 
         #region API functions
@@ -720,7 +720,7 @@ namespace Likewise.LMC.Eventlog
                                             );
             [DllImport(clientLibPath)]
             public extern static UInt32 LWIClearEventLog(
-                                            IntPtr hEventLog                                           
+                                            IntPtr hEventLog
                                             );
 
         }
@@ -765,7 +765,7 @@ namespace Likewise.LMC.Eventlog
                     i++;
                 }
             }
-            
+
             Logger.Log(result, level);
         }
 

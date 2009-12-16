@@ -212,6 +212,12 @@ RegLexParseWhitespace(
     CHAR inC);
 
 DWORD
+RegLexParseComment(
+    PREGLEX_ITEM lexHandle,
+    HANDLE ioHandle,
+    CHAR inC);
+
+DWORD
 RegLexParseDefaultState(
     PREGLEX_ITEM lexHandle,
     HANDLE ioHandle,

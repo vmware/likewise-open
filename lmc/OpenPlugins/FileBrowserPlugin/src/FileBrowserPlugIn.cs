@@ -521,7 +521,7 @@ namespace Likewise.LMC.Plugins.FileBrowser
                 _pluginNode.ImageIndex = (int)Manage.ManageImageType.Generic;
                 _pluginNode.SelectedImageIndex = (int)Manage.ManageImageType.Generic;
                 _pluginNode.FBNodeType = FileBrowserNode.FileBrowserNopeType.ROOT;
-               
+
                 _pluginNode.IsPluginNode = true;
             }
 

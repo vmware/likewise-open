@@ -40,7 +40,7 @@ namespace Likewise.LMC.ServerControl
     {
         # region Public Constants
         /// <summary>
-        /// Used to identify the various buttons that may appear within the wizard dialog.  
+        /// Used to identify the various buttons that may appear within the wizard dialog.
         /// </summary>
         [Flags]
         public enum WizardButton
@@ -72,12 +72,12 @@ namespace Likewise.LMC.ServerControl
         /// pressed.
         /// </summary>
         public const string NoPageChange = null;
-        
+
         #endregion
 
         #region Class data
         private IPlugInContainer _IPlugInContainer = null;
-        
+
         /// <summary>
         /// Array of wizard pages.
         /// </summary>
@@ -92,7 +92,7 @@ namespace Likewise.LMC.ServerControl
             InitializeComponent();
             _wizardPages = new ArrayList();
         }
-        
+
         public WizardDialog(IPlugInContainer container)
         : this()
         {
@@ -153,7 +153,7 @@ namespace Likewise.LMC.ServerControl
               (flags & WizardButton.Start) == WizardButton.Start;
             m_buttonNext.Enabled =
                 (flags & WizardButton.Finish) == WizardButton.Finish;
-            
+
             SetAcceptButton();
         }
 
@@ -168,7 +168,7 @@ namespace Likewise.LMC.ServerControl
             if (WizardButton.Finish == (flags & WizardButton.Finish))
                 m_buttonFinish.Enabled = false;
             if (WizardButton.Cancel == (flags & WizardButton.Cancel))
-                m_buttonCancel.Enabled = false;  
+                m_buttonCancel.Enabled = false;
             SetAcceptButton();
         }
 
@@ -278,7 +278,7 @@ namespace Likewise.LMC.ServerControl
             }
             return originalLocation;
         }
-        
+
         protected void SetAcceptButton()
         {
             // Set the AcceptButton depending on whether or not the Finish
@@ -362,10 +362,10 @@ namespace Likewise.LMC.ServerControl
 
         public bool ConfirmCancel(string caption, string message)
         {
-            DialogResult result = MessageBox.Show(this, 
-                                    message, 
+            DialogResult result = MessageBox.Show(this,
+                                    message,
                                     caption,
-                                    MessageBoxButtons.YesNo, 
+                                    MessageBoxButtons.YesNo,
                                     MessageBoxIcon.Question);
 
             if (result == DialogResult.Yes)
@@ -377,7 +377,7 @@ namespace Likewise.LMC.ServerControl
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Handles the Click event for the Cancel button.
         /// </summary>
@@ -500,6 +500,6 @@ namespace Likewise.LMC.ServerControl
             {
                 ActivatePage(0);
             }
-        }       
+        }
     }
 }

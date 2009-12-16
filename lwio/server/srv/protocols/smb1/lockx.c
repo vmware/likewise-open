@@ -52,6 +52,12 @@
 //         timer.
 
 static
+VOID
+SrvFreePendingLockStateList(
+    PSRV_PENDING_LOCK_STATE_LIST pLockStateList
+    );
+
+static
 NTSTATUS
 SrvBuildLockState(
     PSMB_LOCKING_ANDX_REQUEST_HEADER pRequestHeader,
@@ -123,6 +129,71 @@ VOID
 SrvFreeLockState(
     PSRV_LOCK_STATE_SMB_V1 pLockState
     );
+
+NTSTATUS
+SrvCreatePendingLockStateList(
+    PSRV_PENDING_LOCK_STATE_LIST* ppLockStateList
+    )
+{
+    NTSTATUS                     ntStatus       = STATUS_SUCCESS;
+    PSRV_PENDING_LOCK_STATE_LIST pLockStateList = NULL;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_PENDING_LOCK_STATE_LIST),
+                    (PVOID*)&pLockStateList);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pthread_mutex_init(&pLockStateList->mutex, NULL);
+    pLockStateList->pMutex = &pLockStateList->mutex;
+
+    *ppLockStateList = pLockStateList;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppLockStateList = NULL;
+
+    if (pLockStateList)
+    {
+        SrvFreePendingLockStateList(pLockStateList);
+    }
+
+    goto cleanup;
+}
+
+VOID
+SrvFreePendingLockStateListHandle(
+    HANDLE hLockStateList
+    )
+{
+    SrvFreePendingLockStateList((PSRV_PENDING_LOCK_STATE_LIST)hLockStateList);
+}
+
+static
+VOID
+SrvFreePendingLockStateList(
+    PSRV_PENDING_LOCK_STATE_LIST pLockStateList
+    )
+{
+    while (pLockStateList->pLockState)
+    {
+        PSRV_LOCK_STATE_SMB_V1 pLockState = pLockStateList->pLockState;
+
+        pLockStateList->pLockState = pLockStateList->pLockState->pNext;
+
+        SrvReleaseLockState(pLockState);
+    }
+
+    if (pLockStateList->pMutex)
+    {
+        pthread_mutex_destroy(&pLockStateList->mutex);
+    }
+
+    SrvFreeMemory(pLockStateList);
+}
 
 NTSTATUS
 SrvProcessLockAndX(
@@ -212,7 +283,12 @@ SrvProcessLockAndX(
     {
         case SRV_LOCK_STAGE_SMB_V1_INITIAL:
 
-            if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_OPLOCK_RELEASE)
+            if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_CANCEL_LOCK)
+            {
+                ntStatus = STATUS_NOT_SUPPORTED;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_OPLOCK_RELEASE)
             {
                 pOplockState =
                     (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pLockState->pFile);

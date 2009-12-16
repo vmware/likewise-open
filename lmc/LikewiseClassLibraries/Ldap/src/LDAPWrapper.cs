@@ -38,7 +38,7 @@ namespace Likewise.LMC.LDAP
 {
     public class LDAPWrapper
     {
-        public delegate void ldapMsgDelegate(LdapMessage ldapmessage);             
+        public delegate void ldapMsgDelegate(LdapMessage ldapmessage);
 
     }
 
@@ -63,5 +63,5 @@ namespace Likewise.LMC.LDAP
 
             ldapMsgCallback = null;
         }
-    }   
+    }
 }

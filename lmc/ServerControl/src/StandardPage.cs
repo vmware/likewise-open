@@ -75,8 +75,8 @@ namespace Likewise.LMC.ServerControl
         protected bool validHandle = false;
 
         //For GPOE Editor
-        public static bool bshowHeaderPane = true;         
-        
+        public static bool bshowHeaderPane = true;
+
 
         #endregion
 
@@ -140,7 +140,7 @@ namespace Likewise.LMC.ServerControl
             this.pbHelp.Visible = false;
             this.lnkHelp.Visible = false;
 #endif
-            
+
             ShowActionPane(bshowActionPane);
             ShowHeaderPane(bshowHeaderPane);
 
@@ -244,7 +244,7 @@ namespace Likewise.LMC.ServerControl
             }
 
         }
-    
+
 
         #endregion
 
@@ -267,9 +267,9 @@ namespace Likewise.LMC.ServerControl
         public virtual void SetPlugInInfo(IPlugInContainer container, IPlugIn pi, LACTreeNode treeNode, LWTreeView lmcTreeview, CServerControl sc)
         {
             this.container = container;
-            this.pi = pi;            
+            this.pi = pi;
             this.treeNode = treeNode;
-            this.lmctreeview = lmcTreeview;         
+            this.lmctreeview = lmcTreeview;
 
             if (treeNode != null)
             {
@@ -288,7 +288,7 @@ namespace Likewise.LMC.ServerControl
         {
             this.container = container;
             this.pi = pi;
-            
+
             // disable if necessary
             if (ShowInDisabledState)
             {
@@ -342,7 +342,7 @@ namespace Likewise.LMC.ServerControl
 
         public virtual void PropertyPageProxy(object o)
         {
-            
+
         }
 
         public void ShowActionPane(bool bShowActionPane)

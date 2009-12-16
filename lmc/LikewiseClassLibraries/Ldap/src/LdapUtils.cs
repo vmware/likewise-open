@@ -100,7 +100,7 @@ namespace Likewise.LMC.LDAP
                                         null,
                                         false,
                                         out ldapEntries);
-            
+
             if (ldapEntries == null || ldapEntries.Count == 0)
             {
                 Logger.Log("ldapEntries.Count == 0");

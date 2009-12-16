@@ -47,7 +47,7 @@ namespace Likewise.LMC.Krb5
 
         #endregion
 
-        #region public methods      
+        #region public methods
 
         public static int BuildCredsContext(string sUPNName,
                                             string sPassword,
@@ -163,14 +163,14 @@ namespace Likewise.LMC.Krb5
                                                out UInt32 ticketExpiryTime)
         {
             int ret = 0;
-            IntPtr iRet = IntPtr.Zero;             
+            IntPtr iRet = IntPtr.Zero;
             KRB5API.krb5_ccache stcc = new KRB5API.krb5_ccache();
             KRB5API.krb5_context stCtx = new KRB5API.krb5_context();
 
             ticketExpiryTime = 0;
 
             try
-            {  
+            {
                 stCtx.db_context = IntPtr.Zero;
                 stCtx.default_realm = IntPtr.Zero;
                 stCtx.in_tkt_ktypes = IntPtr.Zero;
@@ -269,7 +269,7 @@ namespace Likewise.LMC.Krb5
                 if (iRet != IntPtr.Zero)
                 {
                     Logger.Log(string.Format("krb5_cc_store_cred( in_Stcreds={0}, iRet={1}", in_Stcreds.ToString(), iRet.ToString()));
-                }                
+                }
 
                 if (in_Stcreds != null)
                 {
@@ -450,7 +450,7 @@ namespace Likewise.LMC.Krb5
             KRB5API.krb5_context stCtx = new KRB5API.krb5_context();
 
             sPrincipalRealm = string.Empty;
-            
+
             try
             {
                 stCtx.db_context = IntPtr.Zero;

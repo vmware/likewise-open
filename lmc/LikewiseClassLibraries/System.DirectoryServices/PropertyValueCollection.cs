@@ -60,7 +60,7 @@ namespace System.DirectoryServices
         {
             get
             {
-                if (valueCollection == null) return null;                
+                if (valueCollection == null) return null;
                 else if (valueCollection.Count == 0) return null;
                 else if (valueCollection.Count == 1) return valueCollection[0];
                 else
@@ -71,7 +71,7 @@ namespace System.DirectoryServices
                 }
             }
             set
-            {   
+            {
                 modified = true;
 
                 if (value == null)
@@ -92,10 +92,10 @@ namespace System.DirectoryServices
                     object[] values = value as object[];
                     valueCollection = new List<object>();
                     if (values != null && values.Length > 0)
-                        foreach (object val in values)                 
+                        foreach (object val in values)
                             valueCollection.Add(val);
                     return;
-                }           
+                }
             }
         }
 
@@ -126,14 +126,14 @@ namespace System.DirectoryServices
                     else if (ldapvalue.stringData.Equals("TRUE", StringComparison.InvariantCultureIgnoreCase))
                     {
                         bool val = true;
-                        valueCollection.Add(val as object);                        
+                        valueCollection.Add(val as object);
                     }
                     else if (ldapvalue.stringData.Equals("FALSE", StringComparison.InvariantCultureIgnoreCase))
                     {
                         bool val = false;
                         valueCollection.Add(val as object);
                     }
-                    else valueCollection.Add(ldapvalue.stringData as object);                    
+                    else valueCollection.Add(ldapvalue.stringData as object);
                 }
             }
         }
@@ -149,7 +149,7 @@ namespace System.DirectoryServices
                 if (obj.GetType() == o.GetType())
                 {
                     Type t = obj.GetType();
-                    
+
                     if (obj is string)
                     {
                         string obj_str = obj as string;
@@ -170,7 +170,7 @@ namespace System.DirectoryServices
                         }
                         else continue;
                     }
-                    else 
+                    else
                     {
                         if (t == typeof(int))
                             if ((int)obj == (int)o) return true;
@@ -181,26 +181,26 @@ namespace System.DirectoryServices
                         if (t == typeof(bool))
                             if ((bool)obj == (bool)o) return true;
                             else continue;
-                    }                       
-                }                   
+                    }
+                }
             }
 
             return false;
-        }  
+        }
 
         public new void Add(object o)
         {
           //  Console.WriteLine("add an object " + o.ToString());
-            
+
             if (valueCollection == null)
             {
-                valueCollection = new List<object>();           
-            }                                                             
+                valueCollection = new List<object>();
+            }
 
             valueCollection.Add(o);
 
             modified = true;
-            
+
         }
 
         public new int Count
@@ -210,8 +210,8 @@ namespace System.DirectoryServices
                 if (valueCollection == null || (valueCollection != null && valueCollection.Count == 0))
                     return 0;
                 else return valueCollection.Count;
-            }    
-              
+            }
+
         }
     }
 }

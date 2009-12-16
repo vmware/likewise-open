@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.FileShareManager
 {
     partial class NewShareFolderSetUpPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.FileShareManager
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -75,9 +75,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.BackColor = System.Drawing.SystemColors.Window;
             this.panel1.Controls.Add(this.pictureBox1);
             this.panel1.Controls.Add(this.label2);
@@ -87,27 +87,27 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(490, 72);
             this.panel1.TabIndex = 0;
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = global::Likewise.LMC.Plugins.FileShareManager.Properties.Resources.shared_folders;
             this.pictureBox1.Location = new System.Drawing.Point(430, 12);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(42, 50);
             this.pictureBox1.TabIndex = 2;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(52, 29);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(269, 13);
             this.label2.TabIndex = 1;
             this.label2.Text = "Specify a name and description for the share.";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.Location = new System.Drawing.Point(31, 12);
@@ -115,74 +115,74 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.label1.Size = new System.Drawing.Size(158, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "Set Up A Shared Folder";
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(34, 93);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(109, 13);
             this.label3.TabIndex = 2;
             this.label3.Text = "&Computer name: ";
-            // 
+            //
             // label4
-            // 
+            //
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(34, 152);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(82, 13);
             this.label4.TabIndex = 3;
             this.label4.Text = "&Share name:";
-            // 
+            //
             // label5
-            // 
+            //
             this.label5.AutoSize = true;
             this.label5.Location = new System.Drawing.Point(34, 122);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(98, 13);
             this.label5.TabIndex = 4;
             this.label5.Text = "&Folder to share:";
-            // 
+            //
             // label6
-            // 
+            //
             this.label6.AutoSize = true;
             this.label6.Location = new System.Drawing.Point(32, 183);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(112, 13);
             this.label6.TabIndex = 5;
             this.label6.Text = "&Share description:";
-            // 
+            //
             // textBoxComputername
-            // 
+            //
             this.textBoxComputername.Location = new System.Drawing.Point(164, 89);
             this.textBoxComputername.Name = "textBoxComputername";
             this.textBoxComputername.ReadOnly = true;
             this.textBoxComputername.Size = new System.Drawing.Size(308, 21);
             this.textBoxComputername.TabIndex = 6;
-            // 
+            //
             // textBoxFoldername
-            // 
+            //
             this.textBoxFoldername.Location = new System.Drawing.Point(165, 119);
             this.textBoxFoldername.Name = "textBoxFoldername";
             this.textBoxFoldername.Size = new System.Drawing.Size(222, 21);
             this.textBoxFoldername.TabIndex = 8;
-            // 
+            //
             // textBoxSharename
-            // 
+            //
             this.textBoxSharename.Location = new System.Drawing.Point(164, 149);
             this.textBoxSharename.Name = "textBoxSharename";
             this.textBoxSharename.Size = new System.Drawing.Size(308, 21);
             this.textBoxSharename.TabIndex = 9;
-            // 
+            //
             // textBoxShareDesc
-            // 
+            //
             this.textBoxShareDesc.Location = new System.Drawing.Point(164, 179);
             this.textBoxShareDesc.Name = "textBoxShareDesc";
             this.textBoxShareDesc.Size = new System.Drawing.Size(308, 21);
             this.textBoxShareDesc.TabIndex = 10;
-            // 
+            //
             // buttonBrowse
-            // 
+            //
             this.buttonBrowse.Location = new System.Drawing.Point(396, 117);
             this.buttonBrowse.Name = "buttonBrowse";
             this.buttonBrowse.Size = new System.Drawing.Size(76, 24);
@@ -190,9 +190,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.buttonBrowse.Text = "&Browse";
             this.buttonBrowse.UseVisualStyleBackColor = true;
             this.buttonBrowse.Click += new System.EventHandler(this.buttonBrowse_Click);
-            // 
+            //
             // NewShareFolderSetUpPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.buttonBrowse);
             this.Controls.Add(this.textBoxShareDesc);

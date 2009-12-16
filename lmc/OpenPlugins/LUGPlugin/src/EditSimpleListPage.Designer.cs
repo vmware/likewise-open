@@ -76,9 +76,9 @@ namespace Likewise.LMC.Plugins.LUG
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbSubjectImage)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.gbSeparator);
             this.pnlData.Controls.Add(this.lbSubjectListRelationship);
             this.pnlData.Controls.Add(this.btnRemove);
@@ -91,14 +91,14 @@ namespace Likewise.LMC.Plugins.LUG
             this.pnlData.Dock = System.Windows.Forms.DockStyle.None;
             this.pnlData.Size = new System.Drawing.Size(386, 380);
             this.pnlData.TabIndex = 0;
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // pbSubjectImage
-            // 
+            //
             this.pbSubjectImage.Image = ((System.Drawing.Image)(resources.GetObject("pbSubjectImage.Image")));
             this.pbSubjectImage.Location = new System.Drawing.Point(17, 8);
             this.pbSubjectImage.Name = "pbSubjectImage";
@@ -106,9 +106,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.pbSubjectImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.pbSubjectImage.TabIndex = 0;
             this.pbSubjectImage.TabStop = false;
-            // 
+            //
             // gbSeparator
-            // 
+            //
             this.gbSeparator.BackColor = System.Drawing.Color.Black;
             this.gbSeparator.Location = new System.Drawing.Point(17, 50);
             this.gbSeparator.Margin = new System.Windows.Forms.Padding(1);
@@ -116,34 +116,34 @@ namespace Likewise.LMC.Plugins.LUG
             this.gbSeparator.Size = new System.Drawing.Size(352, 1);
             this.gbSeparator.TabIndex = 1;
             this.gbSeparator.TabStop = false;
-            // 
+            //
             // lbSubject
-            // 
+            //
             this.lbSubject.AutoSize = true;
             this.lbSubject.Location = new System.Drawing.Point(64, 18);
             this.lbSubject.Name = "lbSubject";
             this.lbSubject.Size = new System.Drawing.Size(21, 13);
             this.lbSubject.TabIndex = 0;
             this.lbSubject.Text = "{0}";
-            // 
+            //
             // lbDescription
-            // 
+            //
             this.lbDescription.AutoSize = true;
             this.lbDescription.Location = new System.Drawing.Point(14, 67);
             this.lbDescription.Name = "lbDescription";
             this.lbDescription.Size = new System.Drawing.Size(63, 13);
             this.lbDescription.TabIndex = 2;
             this.lbDescription.Text = "D&escription:";
-            // 
+            //
             // tbDescription
-            // 
+            //
             this.tbDescription.Location = new System.Drawing.Point(98, 64);
             this.tbDescription.Name = "tbDescription";
             this.tbDescription.Size = new System.Drawing.Size(271, 20);
             this.tbDescription.TabIndex = 3;
-            // 
+            //
             // lvMembers
-            // 
+            //
             this.lvMembers.FullRowSelect = true;
             this.lvMembers.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.lvMembers.HideSelection = false;
@@ -157,9 +157,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.lvMembers.UseCompatibleStateImageBehavior = false;
             this.lvMembers.View = System.Windows.Forms.View.List;
             this.lvMembers.SelectedIndexChanged += new System.EventHandler(this.lvMembers_SelectedIndexChanged);
-            // 
+            //
             // btnAdd
-            // 
+            //
             this.btnAdd.Location = new System.Drawing.Point(17, 343);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(75, 23);
@@ -167,9 +167,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.btnAdd.Text = "A&dd...";
             this.btnAdd.UseVisualStyleBackColor = true;
             this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
-            // 
+            //
             // btnRemove
-            // 
+            //
             this.btnRemove.Enabled = false;
             this.btnRemove.Location = new System.Drawing.Point(98, 343);
             this.btnRemove.Name = "btnRemove";
@@ -178,18 +178,18 @@ namespace Likewise.LMC.Plugins.LUG
             this.btnRemove.Text = "&Remove";
             this.btnRemove.UseVisualStyleBackColor = true;
             this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
-            // 
+            //
             // lbSubjectListRelationship
-            // 
+            //
             this.lbSubjectListRelationship.AutoSize = true;
             this.lbSubjectListRelationship.Location = new System.Drawing.Point(14, 94);
             this.lbSubjectListRelationship.Name = "lbSubjectListRelationship";
             this.lbSubjectListRelationship.Size = new System.Drawing.Size(21, 13);
             this.lbSubjectListRelationship.TabIndex = 4;
             this.lbSubjectListRelationship.Text = "{0}";
-            // 
+            //
             // EditSimpleListPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "EditSimpleListPage";
             this.Size = new System.Drawing.Size(386, 380);

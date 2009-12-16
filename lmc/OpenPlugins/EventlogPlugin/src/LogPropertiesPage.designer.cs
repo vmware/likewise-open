@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 {
     partial class LogPropertiesPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -66,14 +66,14 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.pnlData.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.groupBox1);
             this.pnlData.Size = new System.Drawing.Size(409, 442);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.label4);
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.btnClearEvtlog);
@@ -82,9 +82,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.groupBox1.Size = new System.Drawing.Size(391, 428);
             this.groupBox1.TabIndex = 42;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // label4
-            // 
+            //
             this.label4.AutoEllipsis = true;
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(12, 121);
@@ -92,9 +92,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label4.Size = new System.Drawing.Size(339, 52);
             this.label4.TabIndex = 70;
             this.label4.Text = resources.GetString("label4.Text");
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoEllipsis = true;
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(12, 22);
@@ -103,9 +103,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.label2.TabIndex = 69;
             this.label2.Text = "Click on Clear Event Log button clears the entire database for all the \r\nTableCat" +
                 "egories.";
-            // 
+            //
             // btnClearEvtlog
-            // 
+            //
             this.btnClearEvtlog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.btnClearEvtlog.Location = new System.Drawing.Point(245, 51);
             this.btnClearEvtlog.Name = "btnClearEvtlog";
@@ -114,9 +114,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnClearEvtlog.Text = "Clear EventLog";
             this.btnClearEvtlog.UseVisualStyleBackColor = true;
             this.btnClearEvtlog.Click += new System.EventHandler(this.btnClearEvtlog_Click);
-            // 
+            //
             // LogPropertiesPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "LogPropertiesPage";
             this.Size = new System.Drawing.Size(409, 442);

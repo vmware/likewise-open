@@ -128,7 +128,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 }
 
                 txtProfilePath.Text = profilePath;
-                txtLogonScript.Text = scriptPath;   
+                txtLogonScript.Text = scriptPath;
 
                 ParentContainer.DataChanged = false;
 
@@ -138,7 +138,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             {
                 Logger.LogException("UserGeneralEditPage.SetData", e);
             }
-        }       
+        }
 
         #endregion
 
@@ -287,12 +287,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     }
 
                     MessageBox.Show(this, sMsg,
-                       CommonResources.GetString("Caption_Console"), MessageBoxButtons.OK, MessageBoxIcon.Exclamation);                   
+                       CommonResources.GetString("Caption_Console"), MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 }
             }
 
             return true;
-        }       
+        }
 
         #endregion
 
@@ -320,7 +320,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         {
             ParentContainer.DataChanged = txtConnect.Text.Trim().Length > 0;
             UpdateApplyButton();
-        }        
+        }
 
         private void rbLocalPath_CheckedChanged(object sender, EventArgs e)
         {
@@ -328,7 +328,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
             ParentContainer.DataChanged = true;
             UpdateApplyButton();
-        }       
+        }
 
         private void rbConnect_CheckedChanged(object sender, EventArgs e)
         {
@@ -336,7 +336,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
             ParentContainer.DataChanged = true;
             UpdateApplyButton();
-        }       
+        }
 
         private void cbDrive_SelectedIndexChanged(object sender, EventArgs e)
         {

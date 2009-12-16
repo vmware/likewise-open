@@ -108,14 +108,14 @@ namespace Likewise.LMC.Plugins.FileShareManager
         private void radioButtonAllowedNum_CheckedChanged(object sender, EventArgs e)
         {
             numericUpDown.Enabled = radioButtonAllowedNum.Checked;
-        }        
+        }
 
         private void numericUpDown_ValueChanged(object sender, EventArgs e)
         {
             this.ParentContainer.DataChanged = true;
             this.ParentContainer.btnApply.Enabled = true;
         }
-        
+
         private void textBoxComment_TextChanged(object sender, EventArgs e)
         {
             this.ParentContainer.DataChanged = true;

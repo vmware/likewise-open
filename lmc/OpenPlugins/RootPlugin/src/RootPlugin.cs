@@ -62,7 +62,7 @@ public class RootPlugin: IPlugIn
     {
 #if !QUARTZ
         return "Likewise.LMC.Plugins.RootPlugin.dll";
-#else 
+#else
         return "Likewise.LMC.Plugins.RootPlugin.unix.dll";
 #endif
     }

@@ -70,14 +70,14 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         private void btnAdd_Click(object sender, EventArgs e)
         {
             string sDtm = dtPickerDate.Value.Date.ToShortDateString();
-            sDtm += " " + dtPickerTime.Value.ToLongTimeString();           
+            sDtm += " " + dtPickerTime.Value.ToLongTimeString();
 
             ListViewItem lviArr = null;
             string[] values = { sDtm };
             lviArr = new ListViewItem(values);
-            this.listViewAttrValues.Items.Add(lviArr); 
+            this.listViewAttrValues.Items.Add(lviArr);
         }
-       
+
         private void listViewAttrValues_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (listViewAttrValues.SelectedItems.Count == 0)
@@ -170,10 +170,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 listViewAttrValues.Items.Clear();
                 ListViewItem lviArr = null;
                 for (int i = 0; i < sTempArr.Length; i++)
-                {                    
+                {
                     string[] values = { sTempArr[i].ToString() };
                     lviArr = new ListViewItem(values);
-                    this.listViewAttrValues.Items.Add(lviArr); 
+                    this.listViewAttrValues.Items.Add(lviArr);
                 }
                 dtPickerDate.Focus();
             }

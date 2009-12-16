@@ -2527,7 +2527,7 @@ error:
     *psCount = 0;
     *pppResults = NULL;
 
-    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE )
+    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE && pUserInfo )
     {
         LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %d)",
                       pUserInfo->pszNetbiosDomainName,
@@ -3804,16 +3804,17 @@ AD_FindObjectBySid(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     PLSA_SECURITY_OBJECT* ppResultArray = NULL;
+    size_t objectCount = 0;
 
     dwError = AD_FindObjectsBySidList(
                     hProvider,
                     1,
                     (PSTR*)&pszSid,
-                    NULL,
+                    &objectCount,
                     &ppResultArray);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (ppResultArray && !ppResultArray[0])
+    if (objectCount < 1)
     {
         dwError = LW_ERROR_NO_SUCH_OBJECT;
         BAIL_ON_LSA_ERROR(dwError);
@@ -3827,7 +3828,7 @@ cleanup:
 
 error:
     *ppResult = NULL;
-    ADCacheSafeFreeObjectList(1, &ppResultArray);
+    ADCacheSafeFreeObjectList(objectCount, &ppResultArray);
     goto cleanup;
 }
 
@@ -5125,7 +5126,7 @@ cleanup:
 
 error:
 
-    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE )
+    if ( dwError != LW_ERROR_DOMAIN_IS_OFFLINE && pUserInfo )
     {
         LSA_LOG_ERROR("Failed to find memberships for user '%s\\%s' (error = %d)",
                       pUserInfo->pszNetbiosDomainName,

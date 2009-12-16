@@ -43,7 +43,7 @@ namespace Likewise.LMC
     {
         public AboutPluginForm()
         {
-            InitializeComponent();           
+            InitializeComponent();
         }
         public void SetData(LACTreeNode node)
         {
@@ -59,6 +59,6 @@ namespace Likewise.LMC
         private void btnOk_Click(object sender, EventArgs e)
         {
             this.Close();
-        }        
+        }
     }
 }

@@ -77,9 +77,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.setPrimaryGrouplabel = new System.Windows.Forms.Label();
             this.pnlData.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.setPrimaryGrouplabel);
             this.pnlData.Controls.Add(this.SetPrimaryGroupbutton);
             this.pnlData.Controls.Add(this.DomainUserlabel);
@@ -90,18 +90,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.MemoflistView);
             this.pnlData.Controls.Add(this.MemOflabel);
             this.pnlData.Size = new System.Drawing.Size(386, 411);
-            // 
+            //
             // MemOflabel
-            // 
+            //
             this.MemOflabel.AutoSize = true;
             this.MemOflabel.Location = new System.Drawing.Point(18, 18);
             this.MemOflabel.Name = "MemOflabel";
             this.MemOflabel.Size = new System.Drawing.Size(60, 13);
             this.MemOflabel.TabIndex = 0;
             this.MemOflabel.Text = "Member of:";
-            // 
+            //
             // MemoflistView
-            // 
+            //
             this.MemoflistView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.Namecolumn,
             this.ACFolerColumn});
@@ -119,19 +119,19 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.MemoflistView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.MemoflistView_MouseDoubleClick);
             this.MemoflistView.SelectedIndexChanged += new System.EventHandler(this.MemoflistView_SelectedIndexChanged);
             this.MemoflistView.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.MemoflistView_ColumnClick);
-            // 
+            //
             // Namecolumn
-            // 
+            //
             this.Namecolumn.Text = "Name";
             this.Namecolumn.Width = 158;
-            // 
+            //
             // ACFolerColumn
-            // 
+            //
             this.ACFolerColumn.Text = "Active Directory Folder";
             this.ACFolerColumn.Width = 274;
-            // 
+            //
             // LargeImageList
-            // 
+            //
             this.LargeImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("LargeImageList.ImageStream")));
             this.LargeImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.LargeImageList.Images.SetKeyName(0, "computer_48.bmp");
@@ -143,9 +143,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.LargeImageList.Images.SetKeyName(6, "ADUC.ico");
             this.LargeImageList.Images.SetKeyName(7, "DisabledUser.ico");
             this.LargeImageList.Images.SetKeyName(8, "DisabledComp.ico");
-            // 
+            //
             // smallImageList
-            // 
+            //
             this.smallImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("smallImageList.ImageStream")));
             this.smallImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.smallImageList.Images.SetKeyName(0, "computer_16.bmp");
@@ -157,9 +157,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.smallImageList.Images.SetKeyName(6, "ADUC.ico");
             this.smallImageList.Images.SetKeyName(7, "DisabledUser.ico");
             this.smallImageList.Images.SetKeyName(8, "DisabledComp.ico");
-            // 
+            //
             // Addbutton
-            // 
+            //
             this.Addbutton.Location = new System.Drawing.Point(21, 231);
             this.Addbutton.Name = "Addbutton";
             this.Addbutton.Size = new System.Drawing.Size(75, 23);
@@ -167,9 +167,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.Addbutton.Text = "A&dd...";
             this.Addbutton.UseVisualStyleBackColor = true;
             this.Addbutton.Click += new System.EventHandler(this.Addbutton_Click);
-            // 
+            //
             // RemoveButton
-            // 
+            //
             this.RemoveButton.Enabled = false;
             this.RemoveButton.Location = new System.Drawing.Point(110, 231);
             this.RemoveButton.Name = "RemoveButton";
@@ -178,34 +178,34 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.RemoveButton.Text = "&Remove";
             this.RemoveButton.UseVisualStyleBackColor = true;
             this.RemoveButton.Click += new System.EventHandler(this.RemoveButton_Click);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(24, 271);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(339, 2);
             this.groupBox1.TabIndex = 4;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "groupBox1";
-            // 
+            //
             // PrimaryGrouplabel
-            // 
+            //
             this.PrimaryGrouplabel.AutoSize = true;
             this.PrimaryGrouplabel.Location = new System.Drawing.Point(24, 291);
             this.PrimaryGrouplabel.Name = "PrimaryGrouplabel";
             this.PrimaryGrouplabel.Size = new System.Drawing.Size(74, 13);
             this.PrimaryGrouplabel.TabIndex = 5;
             this.PrimaryGrouplabel.Text = "Primary group:";
-            // 
+            //
             // DomainUserlabel
-            // 
+            //
             this.DomainUserlabel.Location = new System.Drawing.Point(123, 291);
             this.DomainUserlabel.Name = "DomainUserlabel";
             this.DomainUserlabel.Size = new System.Drawing.Size(240, 13);
             this.DomainUserlabel.TabIndex = 6;
-            // 
+            //
             // SetPrimaryGroupbutton
-            // 
+            //
             this.SetPrimaryGroupbutton.Enabled = false;
             this.SetPrimaryGroupbutton.Location = new System.Drawing.Point(21, 324);
             this.SetPrimaryGroupbutton.Name = "SetPrimaryGroupbutton";
@@ -214,18 +214,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.SetPrimaryGroupbutton.Text = "&Set Primary Group";
             this.SetPrimaryGroupbutton.UseVisualStyleBackColor = true;
             this.SetPrimaryGroupbutton.Click += new System.EventHandler(this.SetPrimaryGroupbutton_Click);
-            // 
+            //
             // setPrimaryGrouplabel
-            // 
+            //
             this.setPrimaryGrouplabel.Location = new System.Drawing.Point(156, 324);
             this.setPrimaryGrouplabel.Name = "setPrimaryGrouplabel";
             this.setPrimaryGrouplabel.Size = new System.Drawing.Size(207, 61);
             this.setPrimaryGrouplabel.TabIndex = 8;
             this.setPrimaryGrouplabel.Text = "There is no need to change Primary group unless you have Macintosh clients or POS" +
                 "IX-compliant applications.";
-            // 
+            //
             // UserMemOfPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "UserMemOfPage";
             this.Size = new System.Drawing.Size(386, 411);

@@ -46,24 +46,24 @@ public partial class SessionPage : StandardPage
 {
     #region Class data
     private ListViewColumnSorter lvwColumnSorter;
-    private FileShareManagerIPlugIn plugin; 
+    private FileShareManagerIPlugIn plugin;
     #endregion
-    
+
     #region Constructor
     public SessionPage()
     {
         InitializeComponent();
-        
+
         // Create an instance of a ListView column sorter and assign it
         // to the ListView control.
         lvwColumnSorter = new ListViewColumnSorter();
         this.lvSessionPage.ListViewItemSorter = lvwColumnSorter;
-        
+
         Icon ic = new Icon(Resources.SharedFolder, 48, 48);
         this.picture.Image = ic.ToBitmap();
     }
     #endregion
-    
+
     #region IPlugInPage Members
     public override void SetPlugInInfo(IPlugInContainer container, IPlugIn pi, LACTreeNode treeNode, LWTreeView lmctreeview, CServerControl sc)
     {
@@ -77,13 +77,13 @@ public partial class SessionPage : StandardPage
 
         Refresh();
     }
-    
+
     public override void Refresh()
     {
         base.Refresh();
-        
+
         const int NUM_COLUMNS = 6;
-        
+
         //pixels to use to give a visible margin between columns
         const int MARGIN = 10;
 
@@ -93,26 +93,26 @@ public partial class SessionPage : StandardPage
         {
             this.lblCaption.Text = string.Format(this.lblCaption.Text, hn.hostName);
         }
-        
+
         if (lvSessionPage.Items.Count != 0)
         {
             lvSessionPage.Items.Clear();
         }
 
         Dictionary<int, string[]> SessionList = Session.EnumSessions(hn.creds, hn.hostName);
-        
+
         if (SessionList == null)
         {
             Logger.Log("SessionPage.Refresh: SessionList == null");
             return;
         }
-        
+
         foreach (int i in SessionList.Keys)
         {
             ListViewItem lvItem = new ListViewItem(SessionList[i]);
             lvSessionPage.Items.Add(lvItem);
         }
-        
+
         int minColumnWidth = (this.Width / NUM_COLUMNS) / 2;
         foreach (ColumnHeader ch in lvSessionPage.Columns)
         {
@@ -128,7 +128,7 @@ public partial class SessionPage : StandardPage
                 }
             }
         }
-        
+
         //HACK: make sure that rightmost column is always covers
         //any remaining space on the right side of the list view
         lvSessionPage.Columns[NUM_COLUMNS - 1].Width = this.Width;
@@ -181,7 +181,7 @@ public partial class SessionPage : StandardPage
             psi.WindowStyle = ProcessWindowStyle.Normal;
             Process.Start(psi);
             return;
-        }       
+        }
 
         if (m != null && m.Text.Trim().Equals("&Refresh"))
         {
@@ -229,22 +229,22 @@ public partial class SessionPage : StandardPage
         {
             return;
         }
-        
+
         // get the accessing machine and user name of the session to close
         ListViewItem Item = lvSessionPage.SelectedItems[0];
         string sUserMachine = (string)Item.SubItems[1].Text;
         string sUser = (string)Item.SubItems[0].Text;
         Hostinfo hn = ctx as Hostinfo;
-        
+
         Session.DeleteSession(hn.creds, hn.hostName, sUserMachine, sUser);
 
         treeNode.sc.ShowControl(treeNode);
     }
-    
+
     private void lvSessionPage_SelectedIndexChanged(object sender, EventArgs e)
     {
     }
-    
+
     private void lvSessionPage_MouseUp(object sender, MouseEventArgs e)
     {
         ListView lvSender = sender as ListView;
@@ -261,7 +261,7 @@ public partial class SessionPage : StandardPage
             }
         }
     }
-    
+
     private void lvSessionPage_ColumnClick(object sender, ColumnClickEventArgs e)
     {
         // Determine if clicked column is already the column that is being sorted.
@@ -283,11 +283,10 @@ public partial class SessionPage : StandardPage
             lvwColumnSorter.SortColumn = e.Column;
             lvwColumnSorter.Order = SortOrder.Ascending;
         }
-        
+
         // Perform the sort with these new sort options.
         this.lvSessionPage.Sort();
     }
     #endregion
 }
 }
-

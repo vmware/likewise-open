@@ -304,9 +304,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lblAttr = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // btnEdit
-            // 
+            //
             this.btnEdit.Enabled = false;
             this.btnEdit.Location = new System.Drawing.Point(276, 52);
             this.btnEdit.Name = "btnEdit";
@@ -315,16 +315,16 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnEdit.Text = "&Edit";
             this.btnEdit.UseVisualStyleBackColor = true;
             this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click);
-            // 
+            //
             // txtAttrValue
-            // 
+            //
             this.txtAttrValue.Location = new System.Drawing.Point(12, 26);
             this.txtAttrValue.Name = "txtAttrValue";
             this.txtAttrValue.Size = new System.Drawing.Size(254, 20);
             this.txtAttrValue.TabIndex = 10;
-            // 
+            //
             // btnRemove
-            // 
+            //
             this.btnRemove.Enabled = false;
             this.btnRemove.Location = new System.Drawing.Point(276, 80);
             this.btnRemove.Name = "btnRemove";
@@ -333,9 +333,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnRemove.Text = "&Remove";
             this.btnRemove.UseVisualStyleBackColor = true;
             this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
-            // 
+            //
             // btnAdd
-            // 
+            //
             this.btnAdd.Location = new System.Drawing.Point(276, 24);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(75, 22);
@@ -343,9 +343,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnAdd.Text = "A&dd";
             this.btnAdd.UseVisualStyleBackColor = true;
             this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.btnEdit);
             this.groupBox1.Controls.Add(this.listViewAttrValues);
             this.groupBox1.Controls.Add(this.btnRemove);
@@ -358,9 +358,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox1.Size = new System.Drawing.Size(365, 263);
             this.groupBox1.TabIndex = 21;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // listViewAttrValues
-            // 
+            //
             this.listViewAttrValues.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.chAttributeValue});
             this.listViewAttrValues.Enabled = false;
@@ -374,14 +374,14 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.listViewAttrValues.UseCompatibleStateImageBehavior = false;
             this.listViewAttrValues.View = System.Windows.Forms.View.Details;
             this.listViewAttrValues.SelectedIndexChanged += new System.EventHandler(this.listViewAttrValues_SelectedIndexChanged);
-            // 
+            //
             // chAttributeValue
-            // 
+            //
             this.chAttributeValue.Text = "AttributeValue";
             this.chAttributeValue.Width = 250;
-            // 
+            //
             // lblAttrValue
-            // 
+            //
             this.lblAttrValue.AutoEllipsis = true;
             this.lblAttrValue.AutoSize = true;
             this.lblAttrValue.Location = new System.Drawing.Point(9, 10);
@@ -389,9 +389,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lblAttrValue.Size = new System.Drawing.Size(84, 13);
             this.lblAttrValue.TabIndex = 9;
             this.lblAttrValue.Text = "Computer name:";
-            // 
+            //
             // rbSelectedComp
-            // 
+            //
             this.rbSelectedComp.AutoEllipsis = true;
             this.rbSelectedComp.Location = new System.Drawing.Point(14, 92);
             this.rbSelectedComp.Name = "rbSelectedComp";
@@ -401,9 +401,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbSelectedComp.Text = "&The following computers";
             this.rbSelectedComp.UseVisualStyleBackColor = true;
             this.rbSelectedComp.CheckedChanged += new System.EventHandler(this.rbSelectedComp_CheckedChanged);
-            // 
+            //
             // rbAllComp
-            // 
+            //
             this.rbAllComp.Location = new System.Drawing.Point(14, 69);
             this.rbAllComp.Name = "rbAllComp";
             this.rbAllComp.Size = new System.Drawing.Size(140, 17);
@@ -412,9 +412,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.rbAllComp.Text = "All &computers";
             this.rbAllComp.UseVisualStyleBackColor = true;
             this.rbAllComp.CheckedChanged += new System.EventHandler(this.rbAllComp_CheckedChanged);
-            // 
+            //
             // lblselectedAttr
-            // 
+            //
             this.lblselectedAttr.AutoEllipsis = true;
             this.lblselectedAttr.AutoSize = true;
             this.lblselectedAttr.Location = new System.Drawing.Point(10, 47);
@@ -422,9 +422,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lblselectedAttr.Size = new System.Drawing.Size(118, 13);
             this.lblselectedAttr.TabIndex = 16;
             this.lblselectedAttr.Text = "This user can log on to:";
-            // 
+            //
             // buttonCancel
-            // 
+            //
             this.buttonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.buttonCancel.Location = new System.Drawing.Point(300, 386);
             this.buttonCancel.Name = "buttonCancel";
@@ -433,9 +433,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.buttonCancel.Text = "Cancel";
             this.buttonCancel.UseVisualStyleBackColor = true;
             this.buttonCancel.Click += new System.EventHandler(this.buttonCancel_Click);
-            // 
+            //
             // buttonOk
-            // 
+            //
             this.buttonOk.Location = new System.Drawing.Point(216, 386);
             this.buttonOk.Name = "buttonOk";
             this.buttonOk.Size = new System.Drawing.Size(75, 22);
@@ -443,17 +443,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.buttonOk.Text = "OK";
             this.buttonOk.UseVisualStyleBackColor = true;
             this.buttonOk.Click += new System.EventHandler(this.buttonOk_Click);
-            // 
+            //
             // AttributeSelectionLabel
-            // 
+            //
             this.AttributeSelectionLabel.AutoSize = true;
             this.AttributeSelectionLabel.Location = new System.Drawing.Point(65, 12);
             this.AttributeSelectionLabel.Name = "AttributeSelectionLabel";
             this.AttributeSelectionLabel.Size = new System.Drawing.Size(0, 13);
             this.AttributeSelectionLabel.TabIndex = 15;
-            // 
+            //
             // lblAttr
-            // 
+            //
             this.lblAttr.AutoEllipsis = true;
             this.lblAttr.AutoSize = true;
             this.lblAttr.Location = new System.Drawing.Point(9, 8);
@@ -462,9 +462,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lblAttr.TabIndex = 14;
             this.lblAttr.Text = "This feature requires the NetBIOS protocol. In Computer name, type the \r\npre-Wind" +
                 "ows 2000 computer name.";
-            // 
+            //
             // LogOnWorkStationsEditor
-            // 
+            //
             this.ClientSize = new System.Drawing.Size(386, 419);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.rbSelectedComp);

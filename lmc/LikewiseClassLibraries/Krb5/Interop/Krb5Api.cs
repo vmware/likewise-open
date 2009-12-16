@@ -42,7 +42,7 @@ namespace Likewise.LMC.Krb5
         //#define KRB5_GC_CACHED (1U << 0)
         KRB5_GC_CACHED = 1,
 
-        //#define KRB5_GC_USER_USER (1U << 1) 
+        //#define KRB5_GC_USER_USER (1U << 1)
         KRB5_GC_USER_USER = 2
     }
 
@@ -118,7 +118,7 @@ namespace Likewise.LMC.Krb5
 
         [DllImport(Krb5_DLL_PATH)]
         public static extern IntPtr krb5_unparse_name(IntPtr ctx,
-                             IntPtr principal,                            
+                             IntPtr principal,
                              out string principal_name);
 
         [DllImport(Krb5_DLL_PATH)]
@@ -178,7 +178,7 @@ namespace Likewise.LMC.Krb5
         //[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         //public class krb5_creds
         //{
-        //    public IntPtr client;           
+        //    public IntPtr client;
         //    public IntPtr server;
         //    public IntPtr session;
         //    public krb5_times times;
@@ -189,12 +189,12 @@ namespace Likewise.LMC.Krb5
         //    public IntPtr flags;
         //}
 
-        //typedef struct krb5_times 
-        //{ 
+        //typedef struct krb5_times
+        //{
         //   krb5_timestamp authtime;
-        //   krb5_timestamp starttime; 
-        //   krb5_timestamp endtime; 
-        //   krb5_timestamp renew_till; 
+        //   krb5_timestamp starttime;
+        //   krb5_timestamp endtime;
+        //   krb5_timestamp renew_till;
         //}
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public class krb5_times

@@ -61,15 +61,15 @@ public class ADUCPlugin: IPlugIn
     
     private Dictionary<string, ADUCDomain> _domainList = new Dictionary<string, ADUCDomain>();
     private ADUCDomain _currentDomain = null;
-    
+
     private bool _usingSimpleBind = false;
     public bool bIsNetInitCalled = false;
     private ListView _aducPagelvChildNodes;
-    
+
     public Dictionary<string, Form> Propertywindowhandles = new Dictionary<string, Form>();
 
     private List<IPlugIn> _extPlugins = null;
-    
+
     #endregion
     
     #region IPlugIn Members
@@ -84,7 +84,7 @@ public class ADUCPlugin: IPlugIn
         {
             _hn = value;
         }
-    }                              
+    }
 
     public List<IPlugIn> ExtPlugins
     {
@@ -134,7 +134,7 @@ public class ADUCPlugin: IPlugIn
 
     public string GetPluginDllName()
     {
-        return "Likewise.LMC.Plugins.ADUCPlugin.dll";        
+        return "Likewise.LMC.Plugins.ADUCPlugin.dll";
     }
 
     public IContextType GetContextType()
@@ -151,10 +151,10 @@ public class ADUCPlugin: IPlugIn
             if (pluginNode == null || !pluginNode._IsPlugIn)
                 return;
 
-            XmlElement HostInfoElement = null;            
+            XmlElement HostInfoElement = null;
 
             Manage.InitSerializePluginInfo(pluginNode, this, ref Id, out viewElement, ViewsNode, SelectedNode);
-            Manage.CreateAppendHostInfoElement(_hn, ref viewElement, out HostInfoElement);            
+            Manage.CreateAppendHostInfoElement(_hn, ref viewElement, out HostInfoElement);
 
             if (pluginNode != null && pluginNode.Nodes.Count != 0)
             {
@@ -539,14 +539,14 @@ public class ADUCPlugin: IPlugIn
             _hn.IsConnectionSuccess = false;
             return _hn.IsConnectionSuccess;
         }
-        
+
         //Make sure one ADUC plugin only hosts one domain
 
         if (_aducPagelvChildNodes != null)
         {
             _aducPagelvChildNodes.Items.Clear();
         }
-        
+
         if (_pluginNode != null && _pluginNode.Nodes.Count != 0)
         {
             foreach (TreeNode treeNode in _pluginNode.Nodes)

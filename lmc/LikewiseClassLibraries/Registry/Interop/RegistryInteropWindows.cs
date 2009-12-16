@@ -80,12 +80,12 @@ namespace Likewise.LMC.Registry
             uint Reserved);
 
         [DllImport(advapiDllPath, CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern int RegDisableReflectionKey(IntPtr hBase);      
+        public static extern int RegDisableReflectionKey(IntPtr hBase);
 
         [DllImport(advapiDllPath, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int RegEnableReflectionKey(IntPtr hBase);
 
-        [DllImport(advapiDllPath, EntryPoint = "RegEnumKeyEx", CharSet = CharSet.Unicode, SetLastError = true)]       
+        [DllImport(advapiDllPath, EntryPoint = "RegEnumKeyEx", CharSet = CharSet.Unicode, SetLastError = true)]
         public extern static int RegEnumKeyEx(
             long hkey,
             long index,
@@ -125,10 +125,10 @@ namespace Likewise.LMC.Registry
 
         [DllImport(advapiDllPath, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int RegNotifyChangeKeyValue(IntPtr hKey, bool watchSubtree,
-            int dwNotifyFilter, 
-            IntPtr hEvent, 
+            int dwNotifyFilter,
+            IntPtr hEvent,
             bool fAsynchronous);
-        
+
         [DllImport(advapiDllPath, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int RegisterTraceGuids(); //TODO
 
@@ -137,7 +137,7 @@ namespace Likewise.LMC.Registry
 
         [DllImport(advapiDllPath, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int RegOpenKeyA(int hKey, string lpSubKey, ref int phkResult);
-       
+
         [DllImport(advapiDllPath, EntryPoint = "RegOpenKeyEx", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern int RegOpenKeyEx(
             IntPtr hKey, //Intptr
@@ -146,7 +146,7 @@ namespace Likewise.LMC.Registry
             uint sam,
             out IntPtr phkResult);
 
-        [DllImport(advapiDllPath, EntryPoint = "RegQueryInfoKey", CallingConvention = CallingConvention.Winapi, SetLastError = true, CharSet = CharSet.Unicode)]        
+        [DllImport(advapiDllPath, EntryPoint = "RegQueryInfoKey", CallingConvention = CallingConvention.Winapi, SetLastError = true, CharSet = CharSet.Unicode)]
         public extern static int RegQueryInfoKey(
             UIntPtr hkey,
             out StringBuilder lpClass,

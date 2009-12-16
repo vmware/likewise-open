@@ -30,8 +30,8 @@
 
 namespace Likewise.LMC.Plugins.ADUCPlugin.Properties {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -43,15 +43,15 @@ namespace Likewise.LMC.Plugins.ADUCPlugin.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -65,7 +65,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin.Properties {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -79,14 +79,14 @@ namespace Likewise.LMC.Plugins.ADUCPlugin.Properties {
                 resourceCulture = value;
             }
         }
-        
+
         internal static System.Drawing.Icon ADUC {
             get {
                 object obj = ResourceManager.GetObject("ADUC", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Lets you manage users, groups and computers in Active Directory..
         /// </summary>
@@ -95,7 +95,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin.Properties {
                 return ResourceManager.GetString("ADUCDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Active Directory Users &amp; Computers.
         /// </summary>
@@ -104,84 +104,84 @@ namespace Likewise.LMC.Plugins.ADUCPlugin.Properties {
                 return ResourceManager.GetString("ADUCTitle", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap ArrowRed_32 {
             get {
                 object obj = ResourceManager.GetObject("ArrowRed_32", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon computer {
             get {
                 object obj = ResourceManager.GetObject("computer", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon Folder {
             get {
                 object obj = ResourceManager.GetObject("Folder", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon FolderOpen {
             get {
                 object obj = ResourceManager.GetObject("FolderOpen", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon Group_16 {
             get {
                 object obj = ResourceManager.GetObject("Group_16", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon Group_24 {
             get {
                 object obj = ResourceManager.GetObject("Group_24", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon Group_32 {
             get {
                 object obj = ResourceManager.GetObject("Group_32", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon Group_48 {
             get {
                 object obj = ResourceManager.GetObject("Group_48", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon OrganizationalUnit {
             get {
                 object obj = ResourceManager.GetObject("OrganizationalUnit", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon User {
             get {
                 object obj = ResourceManager.GetObject("User", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon User_16 {
             get {
                 object obj = ResourceManager.GetObject("User_16", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon User_24 {
             get {
                 object obj = ResourceManager.GetObject("User_24", resourceCulture);

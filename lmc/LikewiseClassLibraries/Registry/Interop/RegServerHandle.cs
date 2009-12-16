@@ -73,7 +73,7 @@ namespace Likewise.LMC.Registry
         private void CloseHandle()
         {
             try
-            {                
+            {
                 _handle = IntPtr.Zero;
             }
             catch { _handle = IntPtr.Zero; }

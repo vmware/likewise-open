@@ -70,18 +70,18 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.radioButtonHexno = new System.Windows.Forms.RadioButton();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lblValuename
-            // 
+            //
             this.lblValuename.AutoSize = true;
             this.lblValuename.Location = new System.Drawing.Point(4, 8);
             this.lblValuename.Name = "lblValuename";
             this.lblValuename.Size = new System.Drawing.Size(66, 13);
             this.lblValuename.TabIndex = 0;
             this.lblValuename.Text = "Value name:";
-            // 
+            //
             // txtValuename
-            // 
+            //
             this.txtValuename.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtValuename.Location = new System.Drawing.Point(7, 25);
             this.txtValuename.MaxLength = 255;
@@ -90,18 +90,18 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.txtValuename.Size = new System.Drawing.Size(287, 20);
             this.txtValuename.TabIndex = 1;
             this.txtValuename.TextChanged += new System.EventHandler(this.txtValuename_TextChanged);
-            // 
+            //
             // lblValuedata
-            // 
+            //
             this.lblValuedata.AutoSize = true;
             this.lblValuedata.Location = new System.Drawing.Point(5, 60);
             this.lblValuedata.Name = "lblValuedata";
             this.lblValuedata.Size = new System.Drawing.Size(61, 13);
             this.lblValuedata.TabIndex = 2;
             this.lblValuedata.Text = "Value data:";
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(219, 149);
             this.btnCancel.Name = "btnCancel";
@@ -110,9 +110,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Location = new System.Drawing.Point(138, 149);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -120,9 +120,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnOk.Text = "&Ok";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // txtValuedata
-            // 
+            //
             this.txtValuedata.Location = new System.Drawing.Point(8, 78);
             this.txtValuedata.MaxLength = 8;
             this.txtValuedata.Name = "txtValuedata";
@@ -130,9 +130,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.txtValuedata.TabIndex = 8;
             this.txtValuedata.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtValuedata_KeyUp);
             this.txtValuedata.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtValuedata_KeyPress);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.radioButtonDecimal);
             this.groupBox1.Controls.Add(this.radioButtonHexno);
             this.groupBox1.Location = new System.Drawing.Point(129, 60);
@@ -141,9 +141,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.groupBox1.TabIndex = 9;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Base";
-            // 
+            //
             // radioButtonDecimal
-            // 
+            //
             this.radioButtonDecimal.AutoSize = true;
             this.radioButtonDecimal.Location = new System.Drawing.Point(9, 44);
             this.radioButtonDecimal.Name = "radioButtonDecimal";
@@ -152,9 +152,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.radioButtonDecimal.Text = "Decimal";
             this.radioButtonDecimal.UseVisualStyleBackColor = true;
             this.radioButtonDecimal.CheckedChanged += new System.EventHandler(this.radioButtonDecimal_CheckedChanged);
-            // 
+            //
             // radioButtonHexno
-            // 
+            //
             this.radioButtonHexno.AutoSize = true;
             this.radioButtonHexno.Checked = true;
             this.radioButtonHexno.Location = new System.Drawing.Point(9, 21);
@@ -165,9 +165,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.radioButtonHexno.Text = "Hexadecimal";
             this.radioButtonHexno.UseVisualStyleBackColor = true;
             this.radioButtonHexno.CheckedChanged += new System.EventHandler(this.radioButtonHexno_CheckedChanged);
-            // 
+            //
             // DWORDValueEditorDialog
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;
@@ -196,7 +196,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         private System.Windows.Forms.Label lblValuename;
         private System.Windows.Forms.TextBox txtValuename;
-        private System.Windows.Forms.Label lblValuedata;       
+        private System.Windows.Forms.Label lblValuedata;
         private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.Button btnOk;
         private System.Windows.Forms.TextBox txtValuedata;

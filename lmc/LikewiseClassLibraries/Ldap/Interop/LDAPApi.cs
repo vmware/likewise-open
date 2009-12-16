@@ -62,7 +62,7 @@ namespace Likewise.LMC.LDAP.Interop
 
         [DllImport(LDAP_DLL_PATH)]
         public static extern int ldap_get_option(IntPtr ld,
-                                                 int option,    
+                                                 int option,
                                                 //const void *optdata );
                                                  IntPtr optdata);
 
@@ -93,7 +93,7 @@ namespace Likewise.LMC.LDAP.Interop
                                         IntPtr[] ClientControls,
                                         out int msgidp
                                         );
-          
+
         /*LDAP_F( int ) in cancel.c
         ldap_cancel_s LDAP_P(( LDAP *ld,
 	    int msgidp,
@@ -104,10 +104,10 @@ namespace Likewise.LMC.LDAP.Interop
                                         IntPtr ld,
                                         int cancelid,
                                         IntPtr[] ServerControls,
-                                        IntPtr[] ClientControls                                       
-                                        );   
+                                        IntPtr[] ClientControls
+                                        );
 
-        /*in abandon.c: 
+        /*in abandon.c:
         LDAP_F( int )
         ldap_abandon_ext LDAP_P((
         LDAP			*ld,
@@ -119,15 +119,15 @@ namespace Likewise.LMC.LDAP.Interop
                                         IntPtr ld,
                                         int msgidp,
                                         IntPtr[] ServerControls,
-                                        IntPtr[] ClientControls                                       
+                                        IntPtr[] ClientControls
                                         );
 
-        /*ldap_abandon LDAP_P((	/* deprecated, use ldap_abandon_ext 
+        /*ldap_abandon LDAP_P((	/* deprecated, use ldap_abandon_ext
 	    LDAP *ld,
 	    int msgid ));*/
         [DllImport(LDAP_DLL_PATH)]
         public static extern int ldap_abandon(
-                                        IntPtr ld,                                        
+                                        IntPtr ld,
                                         int msgidp
                                         );
 
@@ -201,7 +201,7 @@ namespace Likewise.LMC.LDAP.Interop
             );
 
         /*
-        *in getentry.c: 
+        *in getentry.c:
         LDAP_F( LDAPMessage * )
         ldap_first_entry LDAP_P((
         LDAP *ld,
@@ -267,7 +267,7 @@ namespace Likewise.LMC.LDAP.Interop
             );
 
         /*LDAP_F( int )
-        ldap_unbind_s LDAP_P(( /* deprecated, use ldap_unbind_ext_s 
+        ldap_unbind_s LDAP_P(( /* deprecated, use ldap_unbind_ext_s
 	    LDAP *ld ));*/
         [DllImport(LDAP_DLL_PATH)]
         public static extern int ldap_unbind_s(
@@ -431,7 +431,7 @@ namespace Likewise.LMC.LDAP.Interop
 
 
         /*
-         * in error.c: 
+         * in error.c:
          LDAP_F( int )
          ldap_parse_result LDAP_P((
          LDAP			*ld,
@@ -455,7 +455,7 @@ namespace Likewise.LMC.LDAP.Interop
 
 
         /*ldap_parse_page_control LDAP_P((
-        /* deprecated, use ldap_parse_pageresponse_control 
+        /* deprecated, use ldap_parse_pageresponse_control
         LDAP *ld,
         LDAPControl **ctrls,
         ber_int_t *count,
@@ -484,13 +484,13 @@ namespace Likewise.LMC.LDAP.Interop
         /*BerElement * ber_init (struct berval *bv)*/
         [DllImport(LDAP_DLL_PATH)]
         public static extern IntPtr ber_init(
-            out IntPtr bv);        
+            out IntPtr bv);
 
 
         /*ber_tag_t ber_scanf(
-         * BerElement *ber, 
-         * LDAP_CONST char *fmt, 
-         * ber_int_t* entriesLeft, 
+         * BerElement *ber,
+         * LDAP_CONST char *fmt,
+         * ber_int_t* entriesLeft,
          * struct berVal *cookie)***/
         [DllImport(LDAP_DLL_PATH)]
         public static extern Int32 ber_scanf(
@@ -563,8 +563,8 @@ namespace Likewise.LMC.LDAP.Interop
         /*int ber_flatten(BerElement *ber, struct berval **bvPtr)*/
         [DllImport(LDAP_DLL_PATH)]
         public static extern int ber_flatten(
-            IntPtr berPtr,                                         
-            IntPtr bvPtrStarStar);  
+            IntPtr berPtr,
+            IntPtr bvPtrStarStar);
 
     }
 }

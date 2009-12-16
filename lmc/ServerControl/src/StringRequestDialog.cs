@@ -67,11 +67,11 @@ namespace Likewise.LMC.ServerControl
         #region constructors
 
         public StringRequestDialog(
-            stringArrContextDelegate result, 
-            string caption, 
+            stringArrContextDelegate result,
+            string caption,
             string groupBoxCaption,
-            string[] descriptions, 
-            string[] hints,  
+            string[] descriptions,
+            string[] hints,
             string[] fieldContents,
             Object context)
         {
@@ -160,7 +160,7 @@ namespace Likewise.LMC.ServerControl
             {
                 textBoxes[0].Select();
             }
-            
+
         }
 
         private void InitializeCustomComponents()
@@ -194,9 +194,9 @@ namespace Likewise.LMC.ServerControl
             this.ClientSize = new System.Drawing.Size(sizeX, windowSizeY);
             this.MinimumSize = new System.Drawing.Size(sizeX, windowSizeY);
 
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(9, 8);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(sizeX - 22, groupBoxY);
@@ -210,9 +210,9 @@ namespace Likewise.LMC.ServerControl
                 this.textBoxes[i] = new TextBox();
                 this.lblDescriptions[i] = new Label();
 
-                // 
+                //
                 // lblHints
-                // 
+                //
                 this.lblHints[i].AutoSize = true;
                 this.lblHints[i].BackColor = System.Drawing.SystemColors.MenuBar;
                 this.lblHints[i].Font = new System.Drawing.Font("Arial", 8.25F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -223,9 +223,9 @@ namespace Likewise.LMC.ServerControl
                 this.lblHints[i].TabIndex = (3*i)+2;
                 this.lblHints[i].Text = hints[i];
 
-                // 
+                //
                 // textBoxes
-                // 
+                //
                 this.textBoxes[i].Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                             | System.Windows.Forms.AnchorStyles.Right)));
                 this.textBoxes[i].Location = new System.Drawing.Point(textBoxLocationX, textBoxBaseY + (i*offsetY));
@@ -234,9 +234,9 @@ namespace Likewise.LMC.ServerControl
                 this.textBoxes[i].TabIndex = (3*i)+1;
                 this.textBoxes[i].KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBox_KeyPress);
 
-                // 
+                //
                 // lblDescriptions
-                // 
+                //
                 this.lblDescriptions[i].AutoSize = true;
                 this.lblDescriptions[i].Location = new System.Drawing.Point(1, descriptionBaseY + (i * offsetY));
                 this.lblDescriptions[i].Name = String.Format("lblDescription{0}", i);
@@ -247,12 +247,12 @@ namespace Likewise.LMC.ServerControl
                 this.groupBox1.Controls.Add(this.lblDescriptions[i]);
                 this.groupBox1.Controls.Add(this.lblHints[i]);
                 this.groupBox1.Controls.Add(this.textBoxes[i]);
-                
+
             }
 
-            // 
+            //
             // okButton
-            // 
+            //
             this.okButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.okButton.Location = new System.Drawing.Point(sizeX - 250, buttonY);
             this.okButton.Name = "okButton";
@@ -261,11 +261,11 @@ namespace Likewise.LMC.ServerControl
             this.okButton.Text = "OK";
             this.okButton.UseVisualStyleBackColor = true;
             this.okButton.Click += new System.EventHandler(this.connectButton_Click);
-            
 
-            // 
+
+            //
             // cancelButton
-            // 
+            //
             this.cancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.cancelButton.Location = new System.Drawing.Point(sizeX - 150, buttonY);
@@ -274,11 +274,11 @@ namespace Likewise.LMC.ServerControl
             this.cancelButton.TabIndex = ((numTextBoxes) * 3) + 2;
             this.cancelButton.Text = "Cancel";
             this.cancelButton.UseVisualStyleBackColor = true;
-            this.cancelButton.Click += new System.EventHandler(this.cancelButton_Click);            
+            this.cancelButton.Click += new System.EventHandler(this.cancelButton_Click);
 
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.cancelButton);
-            this.Controls.Add(this.okButton);          
+            this.Controls.Add(this.okButton);
 
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -310,7 +310,7 @@ namespace Likewise.LMC.ServerControl
             {
                 this.textBoxes[fieldIndex].PasswordChar = (char) 0;
             }
-            
+
 
         }
 
@@ -413,7 +413,7 @@ namespace Likewise.LMC.ServerControl
             if (!validData)
             {
                 MessageBox.Show(
-                    "Please modify one of the fields before clicking OK.", "Likewise Management Console", 
+                    "Please modify one of the fields before clicking OK.", "Likewise Management Console",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Exclamation);
                 okButton.Enabled = true;
@@ -434,8 +434,8 @@ namespace Likewise.LMC.ServerControl
             if (!validData)
             {
                 MessageBox.Show(
-                    "Please enter data in each of the fields before clicking OK.", 
-                    "Likewise Management Console", 
+                    "Please enter data in each of the fields before clicking OK.",
+                    "Likewise Management Console",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Exclamation);
                 okButton.Enabled = true;
@@ -443,7 +443,7 @@ namespace Likewise.LMC.ServerControl
             }
 
             //for ADUC only need provide hostname and domain name, using GSS binding
-            if (result.Length == 2) 
+            if (result.Length == 2)
             {
                 string[] tempRes = new string[result.Length + 2];
                 tempRes[0] = result[0];
@@ -456,7 +456,7 @@ namespace Likewise.LMC.ServerControl
 
             if (validData && reportResult(result))
             {
-                Close();           
+                Close();
             }
             else
             {
@@ -466,7 +466,7 @@ namespace Likewise.LMC.ServerControl
 
         private bool reportResult(string[] result)
         {
-            return resultReportArrContextDelegate(result, context); 
+            return resultReportArrContextDelegate(result, context);
         }
 
         #endregion

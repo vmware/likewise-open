@@ -154,7 +154,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                             _editObject.GroupType = sValue;
                         }
 
-                      
+
                         if (string.Compare(attr, "info") == 0)
                         {
                             this.txtNotes.Text = sValue;
@@ -333,7 +333,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         private void rbtn_CheckedChanged(object sender, EventArgs e)
         {
-            _editObject.GroupType = Checkgroup_Type();          
+            _editObject.GroupType = Checkgroup_Type();
             UpdateApplyButton();
         }
 
@@ -356,7 +356,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 case "-2147483644":
                     rbtnDomainLocal.Checked = true;
                     rbtnSecurity.Checked = true;
-                    rbtnGlobal.Enabled = false;                  
+                    rbtnGlobal.Enabled = false;
                     break;
 
                 case "-2147483646":
@@ -373,7 +373,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 case "4":
                     rbtnDomainLocal.Checked = true;
                     rbtnDistribution.Checked = true;
-                    rbtnGlobal.Enabled = false; 
+                    rbtnGlobal.Enabled = false;
                     break;
 
                 case "2":
@@ -392,7 +392,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     rbtnSecurity.Checked = true;
                     rbtnDomainLocal.Enabled = false;
                     break;
-            }          
+            }
         }
 
         private string Checkgroup_Type()
@@ -431,7 +431,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             return gType;
         }
 
-        #endregion        
+        #endregion
     }
 
     public class GroupGenerelEditObject : ICloneable

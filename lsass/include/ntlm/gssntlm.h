@@ -206,6 +206,16 @@ ntlm_gss_unwrap_iov(
     );
 
 OM_uint32
+ntlm_gss_display_status(
+    OM_uint32* pMinorStatus,
+    OM_uint32 dwConvertStatus,
+    INT dwStatusType,
+    gss_OID pMechType,
+    OM_uint32* pdwContinueNeeded,
+    gss_buffer_t pMsg
+    );
+
+OM_uint32
 ntlm_gss_compare_oid(
     OM_uint32* pMinorStatus,
     const gss_OID a,

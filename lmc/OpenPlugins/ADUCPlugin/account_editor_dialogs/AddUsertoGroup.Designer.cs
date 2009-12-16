@@ -63,26 +63,26 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.Okbtn = new System.Windows.Forms.Button();
             this.CancelBtn = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(9, 11);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(147, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "Select a group to add user to:";
-            // 
+            //
             // treeView1
-            // 
+            //
             this.treeView1.Location = new System.Drawing.Point(12, 32);
             this.treeView1.Name = "treeView1";
             this.treeView1.Size = new System.Drawing.Size(324, 282);
             this.treeView1.TabIndex = 1;
             this.treeView1.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView1_NodeMouseClick);
-            // 
+            //
             // Okbtn
-            // 
+            //
             this.Okbtn.Enabled = false;
             this.Okbtn.Location = new System.Drawing.Point(179, 329);
             this.Okbtn.Name = "Okbtn";
@@ -91,9 +91,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.Okbtn.Text = "&OK";
             this.Okbtn.UseVisualStyleBackColor = true;
             this.Okbtn.Click += new System.EventHandler(this.Okbtn_Click);
-            // 
+            //
             // CancelBtn
-            // 
+            //
             this.CancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.CancelBtn.Location = new System.Drawing.Point(261, 329);
             this.CancelBtn.Name = "CancelBtn";
@@ -102,9 +102,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.CancelBtn.Text = "&Cancel";
             this.CancelBtn.UseVisualStyleBackColor = true;
             this.CancelBtn.Click += new System.EventHandler(this.CancelBtn_Click);
-            // 
+            //
             // AddUsertoGroup
-            // 
+            //
             this.AcceptButton = this.Okbtn;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.CancelBtn;

@@ -72,9 +72,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lblCaption
-            // 
+            //
             this.lblCaption.Size = new System.Drawing.Size(149, 23);
             this.lblCaption.Text = "Shares on {0}";
             //
@@ -82,45 +82,45 @@ namespace Likewise.LMC.Plugins.FileShareManager
             //
             this.pnlActions.Location = new System.Drawing.Point(8, 67);
             this.pnlActions.Size = new System.Drawing.Size(131, 235);
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 59);
             this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(547, 8);
             this.panel1.TabIndex = 5;
-            // 
+            //
             // panel3
-            // 
+            //
             this.panel3.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel3.Location = new System.Drawing.Point(0, 302);
             this.panel3.Margin = new System.Windows.Forms.Padding(2);
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(547, 8);
             this.panel3.TabIndex = 5;
-            // 
+            //
             // panel4
-            // 
+            //
             this.panel4.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel4.Location = new System.Drawing.Point(0, 67);
             this.panel4.Margin = new System.Windows.Forms.Padding(2);
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(8, 235);
             this.panel4.TabIndex = 5;
-            // 
+            //
             // panel5
-            // 
+            //
             this.panel5.Dock = System.Windows.Forms.DockStyle.Right;
             this.panel5.Location = new System.Drawing.Point(539, 67);
             this.panel5.Margin = new System.Windows.Forms.Padding(2);
             this.panel5.Name = "panel5";
             this.panel5.Size = new System.Drawing.Size(8, 235);
             this.panel5.TabIndex = 5;
-            // 
+            //
             // lvSharePage
-            // 
+            //
             this.lvSharePage.BackColor = System.Drawing.SystemColors.Window;
             this.lvSharePage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvSharePage.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -143,29 +143,29 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.lvSharePage.SelectedIndexChanged += new System.EventHandler(this.lvSharePage_SelectedIndexChanged);
             this.lvSharePage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvSharePage_MouseUp);
             this.lvSharePage.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvSharePage_ColumnClick);
-            // 
+            //
             // Share
-            // 
+            //
             this.Share.Text = "Share";
             this.Share.Width = 80;
-            // 
+            //
             // Path
-            // 
+            //
             this.Path.Text = "Path";
             this.Path.Width = 120;
-            // 
+            //
             // Comment
-            // 
+            //
             this.Comment.Text = "Description";
             this.Comment.Width = 119;
-            // 
+            //
             // CurrentUses
-            // 
+            //
             this.CurrentUses.Text = "Current Users";
             this.CurrentUses.Width = 80;
-            // 
+            //
             // SharesPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvSharePage);
             this.Controls.Add(this.panel5);
@@ -193,7 +193,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Panel panel3;
         private System.Windows.Forms.Panel panel4;
-        private System.Windows.Forms.Panel panel5;          
+        private System.Windows.Forms.Panel panel5;
         private Likewise.LMC.ServerControl.LWListView lvSharePage;
         private System.Windows.Forms.ColumnHeader Share;
         private System.Windows.Forms.ColumnHeader Path;

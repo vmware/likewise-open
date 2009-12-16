@@ -68,35 +68,35 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lbEdit = new System.Windows.Forms.Label();
             this.cbEditValue = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
-            // 
+            //
             // lblAttr
-            // 
+            //
             this.lblAttr.AutoSize = true;
             this.lblAttr.Location = new System.Drawing.Point(13, 9);
             this.lblAttr.Name = "lblAttr";
             this.lblAttr.Size = new System.Drawing.Size(52, 13);
             this.lblAttr.TabIndex = 0;
             this.lblAttr.Text = "&Attribute :";
-            // 
+            //
             // lblselectedAttr
-            // 
+            //
             this.lblselectedAttr.AutoSize = true;
             this.lblselectedAttr.Location = new System.Drawing.Point(65, 10);
             this.lblselectedAttr.Name = "lblselectedAttr";
             this.lblselectedAttr.Size = new System.Drawing.Size(0, 13);
             this.lblselectedAttr.TabIndex = 1;
-            // 
+            //
             // lblValue
-            // 
+            //
             this.lblValue.AutoSize = true;
             this.lblValue.Location = new System.Drawing.Point(13, 73);
             this.lblValue.Name = "lblValue";
             this.lblValue.Size = new System.Drawing.Size(40, 13);
             this.lblValue.TabIndex = 2;
             this.lblValue.Text = "&Value :";
-            // 
+            //
             // btnClear
-            // 
+            //
             this.btnClear.Location = new System.Drawing.Point(15, 308);
             this.btnClear.Name = "btnClear";
             this.btnClear.Size = new System.Drawing.Size(75, 23);
@@ -104,9 +104,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnClear.Text = "&Clear";
             this.btnClear.UseVisualStyleBackColor = true;
             this.btnClear.Click += new System.EventHandler(this.btnClear_Click_1);
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Location = new System.Drawing.Point(200, 308);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -114,9 +114,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOk.Text = "OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click_1);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(282, 308);
             this.btnCancel.Name = "btnCancel";
@@ -125,26 +125,26 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // rtbAttr
-            // 
+            //
             this.rtbAttr.Location = new System.Drawing.Point(16, 99);
             this.rtbAttr.Name = "rtbAttr";
             this.rtbAttr.Size = new System.Drawing.Size(340, 195);
             this.rtbAttr.TabIndex = 7;
             this.rtbAttr.Text = "";
-            // 
+            //
             // lbEdit
-            // 
+            //
             this.lbEdit.AutoSize = true;
             this.lbEdit.Location = new System.Drawing.Point(12, 41);
             this.lbEdit.Name = "lbEdit";
             this.lbEdit.Size = new System.Drawing.Size(74, 13);
             this.lbEdit.TabIndex = 8;
             this.lbEdit.Text = "E&dit value as :";
-            // 
+            //
             // cbEditValue
-            // 
+            //
             this.cbEditValue.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbEditValue.FormattingEnabled = true;
             this.cbEditValue.Items.AddRange(new object[] {
@@ -157,9 +157,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbEditValue.Size = new System.Drawing.Size(273, 21);
             this.cbEditValue.TabIndex = 9;
             this.cbEditValue.SelectedIndexChanged += new System.EventHandler(this.cbEditValue_SelectedIndexChanged);
-            // 
+            //
             // OctetStringAttributeEditor
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;

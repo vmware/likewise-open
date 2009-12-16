@@ -78,7 +78,7 @@ namespace Likewise.LMC
             {
                 string[] aParts = buildversion.Split('.');
 
-                string version = string.Format("Version {0}.{1} (Build {2}.{3})", 
+                string version = string.Format("Version {0}.{1} (Build {2}.{3})",
                                                 aParts[0],
                                                 aParts[1],
                                                 aParts[2],
@@ -86,7 +86,7 @@ namespace Likewise.LMC
 
                 labelVersion.Text = version;
                 splashControl1.label1.Text = string.Concat(splashControl1.label1.Text, " ", string.Format("{0}.{1}", aParts[0], aParts[1]));
-            } 
+            }
         }
         #endregion
 
@@ -138,9 +138,9 @@ namespace Likewise.LMC
             this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.splashControl1 = new Likewise.LMC.SplashControl();
             this.SuspendLayout();
-            // 
+            //
             // button1
-            // 
+            //
             this.button1.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.button1.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.button1.Location = new System.Drawing.Point(408, 334);
@@ -148,9 +148,9 @@ namespace Likewise.LMC
             this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 0;
             this.button1.Text = "OK";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.ForeColor = System.Drawing.SystemColors.ControlText;
             this.label1.Location = new System.Drawing.Point(4, 332);
@@ -159,33 +159,33 @@ namespace Likewise.LMC
             this.label1.TabIndex = 2;
             this.label1.Text = "For technical support, visit:";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // labelVersion
-            // 
+            //
             this.labelVersion.Location = new System.Drawing.Point(4, 297);
             this.labelVersion.Name = "labelVersion";
             this.labelVersion.Size = new System.Drawing.Size(488, 34);
             this.labelVersion.TabIndex = 4;
             this.labelVersion.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // linkLabel1
-            // 
+            //
             this.linkLabel1.Location = new System.Drawing.Point(167, 340);
             this.linkLabel1.Name = "linkLabel1";
             this.linkLabel1.Size = new System.Drawing.Size(224, 24);
             this.linkLabel1.TabIndex = 6;
             this.linkLabel1.TabStop = true;
             this.linkLabel1.Text = "www.likewise.com";
-            // 
+            //
             // splashControl1
-            // 
+            //
             this.splashControl1.Location = new System.Drawing.Point(5, 4);
             this.splashControl1.Name = "splashControl1";
             this.splashControl1.Size = new System.Drawing.Size(487, 292);
             this.splashControl1.TabIndex = 5;
-            // 
+            //
             // AboutForm
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(292, 266);
             this.Name = "AboutForm";

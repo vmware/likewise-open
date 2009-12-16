@@ -36,7 +36,7 @@ namespace Likewise.LMC.LDAP
 	/// <summary>
 	/// Summary description for Berval.
 	/// </summary>
-	/// 
+	///
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 	public struct Berval
     {
@@ -54,7 +54,7 @@ namespace Likewise.LMC.LDAP
             this.bv_len = 0;
             this.bv_val = IntPtr.Zero;
         }*/
-        
+
         public Berval(int bv_len, IntPtr bv_val)
         {
             this.bv_len = bv_len;

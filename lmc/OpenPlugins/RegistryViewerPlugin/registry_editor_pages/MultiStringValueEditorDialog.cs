@@ -53,7 +53,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         #endregion
 
         #region Properties
-      
+
         #endregion
 
         #region Constructors
@@ -97,7 +97,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 regValueInfo.pValueName = txtValuename.Text.Trim();
                 regValueInfo.bDataBuf = String.IsNullOrEmpty(richTextBoxValueData.Text.Trim()) ? new string[] { "(value not set)" } : FormatMulitString();
             }
-            
+
             this.DialogResult = DialogResult.OK;
 
             this.Close();
@@ -178,7 +178,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                         sValueBuf[index++] = sTempArray[i];
                     }
                 }
-            }           
+            }
 
             if (bIsEmptyFound)
                 MessageBox.Show("Data of type REG_MULTI_SZ cannot contain empty strings.\nRegistry Viewer will remove all empty strings found.",
@@ -203,7 +203,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             return true;
         }
 
-        #endregion      
-        
+        #endregion
+
     }
 }

@@ -68,7 +68,7 @@ namespace Likewise.LMC.LSAMgmt
         LSA_DM_DOMAIN_FLAG_OFFLINE = 0x00000002,
         LSA_DM_DOMAIN_FLAG_FORCE_OFFLINE = 0x00000004,
         LSA_DM_DOMAIN_FLAG_TRANSITIVE_1WAY_CHILD = 0x00000008,
-        LSA_DM_DOMAIN_FLAG_FOREST_ROOT = 0x00000010  
+        LSA_DM_DOMAIN_FLAG_FOREST_ROOT = 0x00000010
     }
 
     public enum LSA_DS_FLAGS : uint
@@ -100,7 +100,7 @@ namespace Likewise.LMC.LSAMgmt
         private LSA_DM_DOMAIN_FLAGS _domainFlags;
         public LsaDCInfo pDCInfo = null;
         public LsaDCInfo pGCInfo = null;
-        
+
         public string DnsDomain
         {
             get

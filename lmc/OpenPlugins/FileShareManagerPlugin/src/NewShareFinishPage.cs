@@ -68,12 +68,12 @@ namespace Likewise.LMC.Plugins.FileShareManager
 
         #region Override Methods
 
-        
+
         public override string OnWizardBack()
-        {            
+        {
             return "";
         }
-         
+
 
         public override bool OnWizardFinish()
         {
@@ -93,7 +93,7 @@ namespace Likewise.LMC.Plugins.FileShareManager
         }
 
         public override bool OnWizardCancel()
-        {            
+        {
             return base.OnWizardCancel();
         }
 
@@ -117,10 +117,10 @@ namespace Likewise.LMC.Plugins.FileShareManager
             return true;
         }
 
-        #endregion  
-      
-        #region Events  
- 
-        #endregion        
+        #endregion
+
+        #region Events
+
+        #endregion
     }
 }

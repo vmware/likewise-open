@@ -10,8 +10,8 @@
 
 namespace Likewise.LMC.ServerControl.Properties {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Likewise.LMC.ServerControl.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,35 +59,35 @@ namespace Likewise.LMC.ServerControl.Properties {
                 resourceCulture = value;
             }
         }
-        
+
         internal static System.Drawing.Icon Admin {
             get {
                 object obj = ResourceManager.GetObject("Admin", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon Admin_White {
             get {
                 object obj = ResourceManager.GetObject("Admin_White", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon agent_lgr {
             get {
                 object obj = ResourceManager.GetObject("agent_lgr", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Bitmap BlueArrows {
             get {
                 object obj = ResourceManager.GetObject("BlueArrows", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Cancelling operation....
         /// </summary>
@@ -96,7 +96,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("CancellingOperation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Cancelling the report. Please wait ....
         /// </summary>
@@ -105,7 +105,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("CancellingReport", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Console.
         /// </summary>
@@ -114,7 +114,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Caption", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Management Console.
         /// </summary>
@@ -123,7 +123,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Caption_Console", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Tasks.
         /// </summary>
@@ -132,7 +132,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Caption_Tasks", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Management Console.
         /// </summary>
@@ -141,7 +141,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Caption_Wait", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Exception error: {0}.
         /// </summary>
@@ -150,7 +150,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("CaughtException", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Remove license: {0}?.
         /// </summary>
@@ -159,7 +159,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ConfirmDelete", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Import {0} licenses ({1})?.
         /// </summary>
@@ -168,7 +168,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ConfirmImport", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Revoke license: {0}?.
         /// </summary>
@@ -177,7 +177,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ConfirmRevoke", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Connected as: {0} \ {1}.
         /// </summary>
@@ -186,7 +186,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Connected_As", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Connecting to {0}.
         /// </summary>
@@ -195,7 +195,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ConnectingTo", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
         ///&lt;LMC_ConsoleFile ConsoleVersion=&quot;5.5&quot; ProgramMode=&quot;Author&quot;&gt;
@@ -205,7 +205,7 @@ namespace Likewise.LMC.ServerControl.Properties {
         ///  &lt;/FrameState&gt;
         ///  &lt;State&gt;
         ///  &lt;/State&gt;
-        ///  &lt;Views&gt;  
+        ///  &lt;Views&gt;
         ///  &lt;/Views&gt;
         ///&lt;/LMC_ConsoleFile&gt;
         ///.
@@ -215,7 +215,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ConsoleSettings", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The report could not be completed due to the following error.
         ///Unable to login to the domain controller..
@@ -225,7 +225,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ControllerLogonFailure", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to |CSV files (*.csv)|*.csv.
         /// </summary>
@@ -234,7 +234,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("CSVFilter", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Diagnostics &amp; Migration.
         /// </summary>
@@ -243,7 +243,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("DiagnosticsAndRepairTabTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to run your e-mail client..
         /// </summary>
@@ -252,7 +252,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_CannotEMail", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to show the registration web page..
         /// </summary>
@@ -261,7 +261,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_CannotShowRegistrationPage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to show the support web page..
         /// </summary>
@@ -270,7 +270,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_CannotShowSupportPage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to start the agent installer: {0}.
         /// </summary>
@@ -279,7 +279,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_CannotStartInstaller", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise encountered an error while establishing a connection to {0}.
         ///
@@ -290,7 +290,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_Credentials", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise encountered an error while establishing a network session with {0}.
         ///Unknown username or incorrect password..
@@ -300,7 +300,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_Credentials2", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise encountered an error while establishing a network session with {0}.
         ///
@@ -311,7 +311,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_FailedToConnect", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Error connecting to machine..
         /// </summary>
@@ -320,7 +320,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_FailedToConnect2", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise encountered an error while establishing a network session with {0}.
         ///
@@ -331,7 +331,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_FailedToConnect3", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid computer name..
         /// </summary>
@@ -340,7 +340,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_InvalidComputerName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise cannot connect to {0}..
         /// </summary>
@@ -349,7 +349,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_InvalidComputerType", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Likewise agent is installed on {0} but the Samba service is not running.
         ///
@@ -362,7 +362,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_NoSamba", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Likewise Agent on {0} needs to be updated.  It has version {1} and requires version {2} or greater.
         ///
@@ -373,7 +373,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_OldAgent", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The Likewise Agent on {0} is a newer version.  It has version {1}, and the Likewise client is version {2}.
         ///
@@ -384,10 +384,10 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_OldClient", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise encountered an error while establishing a network session with {0}.
-        ///Multiple connections to a server or shared resource by the same user, using more than one user name, are not 
+        ///Multiple connections to a server or shared resource by the same user, using more than one user name, are not
         ///allowed. Disconnect all previous connections to the server or shared resource and try again..
         /// </summary>
         internal static string Error_TooManySesssions {
@@ -395,7 +395,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_TooManySesssions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to assign license: {0}.
         /// </summary>
@@ -404,7 +404,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_UnableToAssignLicense", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to delete license: {0}.
         /// </summary>
@@ -413,7 +413,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_UnableToDeleteLicense", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to revoke license: {0}.
         /// </summary>
@@ -422,7 +422,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_UnableToRevokeLicense", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You do not have sufficient priviliges to perform this operation..
         /// </summary>
@@ -431,7 +431,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Error_Unauthorized", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Console.
         /// </summary>
@@ -440,7 +440,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ErrorCaption", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This computer already has a license assigned to it: {0}.
         /// </summary>
@@ -449,7 +449,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ErrorComputerAlreadyHasAssignedLicense", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to run migration tool: {0}.
         /// </summary>
@@ -458,7 +458,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ErrorRunningMigration", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon Folder {
             get {
                 object obj = ResourceManager.GetObject("Folder", resourceCulture);
@@ -472,7 +472,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Generating Report.
         /// </summary>
@@ -481,7 +481,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("GeneratingReportCaption", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Report: {0}.
         /// </summary>
@@ -490,14 +490,14 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("GeneratingReportMessage", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon GenericServer {
             get {
                 object obj = ResourceManager.GetObject("GenericServer", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Good.
         /// </summary>
@@ -506,14 +506,14 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Good", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap Help {
             get {
                 object obj = ResourceManager.GetObject("Help", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon Home {
             get {
                 object obj = ResourceManager.GetObject("Home", resourceCulture);
@@ -529,7 +529,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("HomeDirectoryNotPerUser", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to |HTML files (*.html)|*.html.
         /// </summary>
@@ -538,7 +538,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("HTMLFilter", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Imported on {0}.
         /// </summary>
@@ -547,7 +547,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ImportDate", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Console.
         /// </summary>
@@ -556,7 +556,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("InfoPrompt", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to System.
         /// </summary>
@@ -565,7 +565,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("InitialTabName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid computer!.
         /// </summary>
@@ -574,7 +574,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("InvalidComputer", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid default home directory prefix.
         /// </summary>
@@ -583,7 +583,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("InvalidHomeDirectory", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid license!.
         /// </summary>
@@ -592,7 +592,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("InvalidLicense", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid License File.
         /// </summary>
@@ -601,7 +601,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("InvalidLicenseFile", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid login shell.
         /// </summary>
@@ -610,14 +610,14 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("InvalidLoginShell", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon keys {
             get {
                 object obj = ResourceManager.GetObject("keys", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Add/Remove Roles.
         /// </summary>
@@ -626,7 +626,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Label_AddRemoveRoles", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Connecting to {0}....
         /// </summary>
@@ -635,7 +635,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Label_ConnectingTo", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Manage.
         /// </summary>
@@ -644,7 +644,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Label_Manage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Security.
         /// </summary>
@@ -653,7 +653,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Label_Security", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to System.
         /// </summary>
@@ -662,7 +662,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Label_System", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Utilities.
         /// </summary>
@@ -671,7 +671,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Label_Utilities", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Version.
         /// </summary>
@@ -680,7 +680,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Label_Version", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2926175.
         /// </summary>
@@ -689,7 +689,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("LAC_Help", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon Library {
             get {
                 object obj = ResourceManager.GetObject("Library", resourceCulture);
@@ -705,7 +705,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("LicenseCountMismatch", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to License Management.
         /// </summary>
@@ -714,14 +714,14 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("LicenseTabTitle", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon likewise {
             get {
                 object obj = ResourceManager.GetObject("likewise", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2829393.
         /// </summary>
@@ -730,7 +730,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("LMC_CellManager_Help", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2895771.
         /// </summary>
@@ -739,7 +739,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("LMC_GPMC_Help", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2895771.
         /// </summary>
@@ -748,7 +748,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("LMC_GPOE_Help", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to http://www.likewise.com/resources/documentation_library/manuals/lwe/likewise-enterprise-guide.html#id2926175.
         /// </summary>
@@ -757,7 +757,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("LMC_Help", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to localhost.
         /// </summary>
@@ -766,7 +766,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Localhost", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Event Log.
         /// </summary>
@@ -775,28 +775,28 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("LWEventLogTabTitle", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon ManageServer {
             get {
                 object obj = ResourceManager.GetObject("ManageServer", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon navtriangle {
             get {
                 object obj = ResourceManager.GetObject("navtriangle", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon navtriangle_hover {
             get {
                 object obj = ResourceManager.GetObject("navtriangle_hover", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to No.
         /// </summary>
@@ -805,7 +805,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("No", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Non-Schema.
         /// </summary>
@@ -814,7 +814,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("NonSchemaMode", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to No {0} have been specified to show on the report..
         /// </summary>
@@ -823,7 +823,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("NoObjectsInFilter", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You must select at least one domain to run a report..
         /// </summary>
@@ -832,7 +832,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("NoReportDomainsSelected", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Not consistent!.
         /// </summary>
@@ -841,7 +841,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("NotConsistent", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to This domain contains data created with an older version of Likewise. Consult the documentation to learn how to upgrade this information to the form used by Likewise Enterprise 4.0..
         /// </summary>
@@ -850,7 +850,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("Note_OldDataPresent", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to A computer can only be assigned licenses from the domain to which it is joined. The computer &quot;{0}&quot; is not joined to domain {1}..
         /// </summary>
@@ -859,7 +859,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("NotSameDomain", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Not set.
         /// </summary>
@@ -868,7 +868,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("NotSet", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The selected orphaned objects were deleted successfully..
         /// </summary>
@@ -877,7 +877,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("OrphanForm_CleanCompletedNoErrors", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Not all orphaned objects were deleted due to errors..
         /// </summary>
@@ -886,7 +886,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("OrphanForm_CleanCompletedWithErrors", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to cancel the current operation?.
         /// </summary>
@@ -895,7 +895,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("OrphanForm_ConfirmCancel", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to delete {0} orphaned object(s)?.
         /// </summary>
@@ -904,7 +904,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("OrphanForm_ConfirmDelete", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Scanning for orphaned objects completed successfully..
         /// </summary>
@@ -913,7 +913,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("OrphanForm_ScanCompleteNoErrors", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Scanning for orphaned objects completed with errors..
         /// </summary>
@@ -922,7 +922,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("OrphanForm_ScanCompleteWithErrors", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The report could not be completed due to the following error.
         ///{0}.
@@ -932,7 +932,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ReportFailed", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The computer does not have enough memory to generate this report. Try reducing the scope of the report by adjusting the report parameters..
         /// </summary>
@@ -941,14 +941,14 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ReportOutOfMemory", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon Reports {
             get {
                 object obj = ResourceManager.GetObject("Reports", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Reports.
         /// </summary>
@@ -957,7 +957,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ReportsTabTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Report - {0}.
         /// </summary>
@@ -966,14 +966,14 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ReportTitle_Header", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon RoleConfigure {
             get {
                 object obj = ResourceManager.GetObject("RoleConfigure", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Sample Report - {0}.
         /// </summary>
@@ -982,7 +982,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("SampleReport", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to &lt;report&gt;
         ///    &lt;date&gt;Todays date&lt;/date&gt;
@@ -1005,7 +1005,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("SampleReportXML", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Schema.
         /// </summary>
@@ -1014,7 +1014,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("SchemaMode", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Please select one or more domains to scan.
         /// </summary>
@@ -1023,7 +1023,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("SelectDomains", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Server.
         /// </summary>
@@ -1032,7 +1032,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ServerLicenseType", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to The report could not be completed due to the following error.
         ///The domain controller cannot be contacted..
@@ -1042,7 +1042,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("ServerNotOperationalMessage", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon Share {
             get {
                 object obj = ResourceManager.GetObject("Share", resourceCulture);
@@ -1058,14 +1058,14 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("SiteLicenseType", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap SplashScreen {
             get {
                 object obj = ResourceManager.GetObject("SplashScreen", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Status of {0}.
         /// </summary>
@@ -1074,7 +1074,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("StatusPage_Caption", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to AD objects.
         /// </summary>
@@ -1083,7 +1083,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("StatusPage_StoreDataInObjects", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Shadow AD objects.
         /// </summary>
@@ -1092,7 +1092,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("StatusPage_StoreDataInPartition", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Status.
         /// </summary>
@@ -1101,14 +1101,14 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("StatusTabTitle", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap toCOMP_02 {
             get {
                 object obj = ResourceManager.GetObject("toCOMP_02", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise.
         /// </summary>
@@ -1117,7 +1117,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("TopTabTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to load license file:
         ///
@@ -1128,7 +1128,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("UnableToLoadLicenseFile", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unified.
         /// </summary>
@@ -1137,7 +1137,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("UnifiedMode", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Likewise Console.
         /// </summary>
@@ -1146,7 +1146,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("WaitCaption", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Importing licenses....
         /// </summary>
@@ -1155,7 +1155,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("WaitMessage", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Welcome.
         /// </summary>
@@ -1164,7 +1164,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("WelcomeTabTitle", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Workstation.
         /// </summary>
@@ -1173,7 +1173,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("WorkstationLicenseType", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Licenses are for a different domain ({0}).
         /// </summary>
@@ -1182,7 +1182,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("WrongDomain", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to XML files (*.xml)|*.xml.
         /// </summary>
@@ -1191,7 +1191,7 @@ namespace Likewise.LMC.ServerControl.Properties {
                 return ResourceManager.GetString("XMLFilter", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Yes.
         /// </summary>

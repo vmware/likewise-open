@@ -46,11 +46,11 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private SubKeyValueInfo ValueInfo = null;
         private RegistryValueInfo regValueInfo = null;
         private bool bIsAdd = false;
-       
+
         #endregion
 
         #region Properties
-               
+
         #endregion
 
         #region Constructors
@@ -75,7 +75,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         }
 
         #endregion
-       
+
         #region Event Handlers
 
         private void btnOk_Click(object sender, EventArgs e)
@@ -101,7 +101,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         private void btnCancel_Click(object sender, EventArgs e)
         {
             this.Close();
-        }     
+        }
 
         private void txtValueName_TextChanged(object sender, EventArgs e)
         {
@@ -116,7 +116,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
         }
 
         #endregion
-               
+
         #region Helper functions
 
         private void SetInputData()
@@ -154,6 +154,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             return true;
         }
 
-        #endregion   
+        #endregion
     }
 }

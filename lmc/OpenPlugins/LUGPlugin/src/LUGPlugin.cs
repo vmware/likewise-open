@@ -188,7 +188,7 @@ class LUGPlugIn: IPlugIn
             _pluginNode.SetContext(_hn);
         }
     }
-    
+
     public IContext GetContext()
     {
         return _hn;
@@ -265,7 +265,7 @@ class LUGPlugIn: IPlugIn
     }
 
     #endregion
-    
+
     #region context menus
     private void cm_OnConnect(object sender, EventArgs e)
     {
@@ -338,7 +338,7 @@ class LUGPlugIn: IPlugIn
             }
         }
     }
-    
+
     #endregion
     
     #region Private helper functions

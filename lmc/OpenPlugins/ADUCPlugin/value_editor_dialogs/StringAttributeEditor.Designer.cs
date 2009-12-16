@@ -66,43 +66,43 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOk = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // lblAttr
-            // 
+            //
             this.lblAttr.AutoSize = true;
             this.lblAttr.Location = new System.Drawing.Point(13, 9);
             this.lblAttr.Name = "lblAttr";
             this.lblAttr.Size = new System.Drawing.Size(52, 13);
             this.lblAttr.TabIndex = 0;
             this.lblAttr.Text = "&Attribute :";
-            // 
+            //
             // lblselectedAttr
-            // 
+            //
             this.lblselectedAttr.AutoSize = true;
             this.lblselectedAttr.Location = new System.Drawing.Point(65, 10);
             this.lblselectedAttr.Name = "lblselectedAttr";
             this.lblselectedAttr.Size = new System.Drawing.Size(0, 13);
             this.lblselectedAttr.TabIndex = 1;
-            // 
+            //
             // lblValue
-            // 
+            //
             this.lblValue.AutoSize = true;
             this.lblValue.Location = new System.Drawing.Point(13, 34);
             this.lblValue.Name = "lblValue";
             this.lblValue.Size = new System.Drawing.Size(40, 13);
             this.lblValue.TabIndex = 2;
             this.lblValue.Text = "&Value :";
-            // 
+            //
             // txtAttrValue
-            // 
+            //
             this.txtAttrValue.Location = new System.Drawing.Point(15, 51);
             this.txtAttrValue.Name = "txtAttrValue";
             this.txtAttrValue.Size = new System.Drawing.Size(342, 20);
             this.txtAttrValue.TabIndex = 3;
             this.txtAttrValue.Text = "<not set>";
-            // 
+            //
             // btnClear
-            // 
+            //
             this.btnClear.Location = new System.Drawing.Point(15, 79);
             this.btnClear.Name = "btnClear";
             this.btnClear.Size = new System.Drawing.Size(75, 23);
@@ -110,9 +110,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnClear.Text = "&Clear";
             this.btnClear.UseVisualStyleBackColor = true;
             this.btnClear.Click += new System.EventHandler(this.btnClear_Click_1);
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Location = new System.Drawing.Point(201, 79);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -120,9 +120,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOk.Text = "OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click_1);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(282, 79);
             this.btnCancel.Name = "btnCancel";
@@ -131,9 +131,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // StringAttributeEditor
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;

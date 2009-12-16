@@ -66,18 +66,18 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnOk = new System.Windows.Forms.Button();
             this.richTextBoxValueData = new System.Windows.Forms.RichTextBox();
             this.SuspendLayout();
-            // 
+            //
             // lblValuename
-            // 
+            //
             this.lblValuename.AutoSize = true;
             this.lblValuename.Location = new System.Drawing.Point(4, 8);
             this.lblValuename.Name = "lblValuename";
             this.lblValuename.Size = new System.Drawing.Size(66, 13);
             this.lblValuename.TabIndex = 0;
             this.lblValuename.Text = "Value name:";
-            // 
+            //
             // txtValuename
-            // 
+            //
             this.txtValuename.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtValuename.Location = new System.Drawing.Point(7, 25);
             this.txtValuename.MaxLength = 255;
@@ -86,18 +86,18 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.txtValuename.Size = new System.Drawing.Size(300, 20);
             this.txtValuename.TabIndex = 1;
             this.txtValuename.TextChanged += new System.EventHandler(this.txtValuename_TextChanged);
-            // 
+            //
             // lblValuedata
-            // 
+            //
             this.lblValuedata.AutoSize = true;
             this.lblValuedata.Location = new System.Drawing.Point(5, 55);
             this.lblValuedata.Name = "lblValuedata";
             this.lblValuedata.Size = new System.Drawing.Size(61, 13);
             this.lblValuedata.TabIndex = 2;
             this.lblValuedata.Text = "Value data:";
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(227, 257);
             this.btnCancel.Name = "btnCancel";
@@ -106,9 +106,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Location = new System.Drawing.Point(146, 257);
             this.btnOk.Name = "btnOk";
             this.btnOk.Size = new System.Drawing.Size(75, 23);
@@ -116,9 +116,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.btnOk.Text = "&Ok";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // richTextBoxValueData
-            // 
+            //
             this.richTextBoxValueData.AcceptsTab = true;
             this.richTextBoxValueData.Location = new System.Drawing.Point(8, 71);
             this.richTextBoxValueData.Name = "richTextBoxValueData";
@@ -126,9 +126,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.richTextBoxValueData.Size = new System.Drawing.Size(299, 178);
             this.richTextBoxValueData.TabIndex = 9;
             this.richTextBoxValueData.Text = "";
-            // 
+            //
             // MultiStringValueEditorDialog
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;
@@ -154,7 +154,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         private System.Windows.Forms.Label lblValuename;
         private System.Windows.Forms.TextBox txtValuename;
-        private System.Windows.Forms.Label lblValuedata;       
+        private System.Windows.Forms.Label lblValuedata;
         private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.Button btnOk;
         private System.Windows.Forms.RichTextBox richTextBoxValueData;

@@ -35,12 +35,12 @@ using System.Text;
 namespace Likewise.LMC.LSAMgmt
 {
     public class KerberosKeyTabEntry
-    {        
+    {
         private UInt32 timestamp;
         private UInt32 keyversionNo;
-        private UInt32 enctype;        
+        private UInt32 enctype;
         private string pszPrincipal;
-        private string pszPassword;       
+        private string pszPassword;
 
         public KerberosKeyTabEntry()
         {
@@ -84,7 +84,7 @@ namespace Likewise.LMC.LSAMgmt
                 enctype = value;
             }
         }
-       
+
         public string PrincipalName
         {
             get

@@ -77,9 +77,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.groupBox3.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.groupBox2);
             this.groupBox1.Location = new System.Drawing.Point(41, 88);
             this.groupBox1.Name = "groupBox1";
@@ -87,45 +87,45 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox1.TabIndex = 28;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "groupBox1";
-            // 
+            //
             // groupBox2
-            // 
+            //
             this.groupBox2.Location = new System.Drawing.Point(0, 31);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(414, 2);
             this.groupBox2.TabIndex = 29;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "groupBox2";
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(45, 39);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(24, 24);
             this.pictureBox1.TabIndex = 27;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(42, 114);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(66, 13);
             this.label1.TabIndex = 29;
             this.label1.Text = "Password:";
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(42, 141);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(116, 13);
             this.label3.TabIndex = 30;
             this.label3.Text = "Confirm password:";
-            // 
+            //
             // pwtextBox
-            // 
+            //
             this.pwtextBox.Location = new System.Drawing.Point(182, 109);
             this.pwtextBox.Name = "pwtextBox";
             this.pwtextBox.PasswordChar = '*';
@@ -134,9 +134,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pwtextBox.UseSystemPasswordChar = true;
             this.pwtextBox.TextChanged += new System.EventHandler(this.pwtextBox_TextChanged);
             this.pwtextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.pwtextBox_KeyDown);
-            // 
+            //
             // confirmpwtextBox
-            // 
+            //
             this.confirmpwtextBox.Location = new System.Drawing.Point(182, 136);
             this.confirmpwtextBox.Name = "confirmpwtextBox";
             this.confirmpwtextBox.PasswordChar = '*';
@@ -145,9 +145,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.confirmpwtextBox.UseSystemPasswordChar = true;
             this.confirmpwtextBox.TextChanged += new System.EventHandler(this.confirmpwtextBox_TextChanged);
             this.confirmpwtextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.pwtextBox_KeyDown);
-            // 
+            //
             // cbMustChangePwd
-            // 
+            //
             this.cbMustChangePwd.Checked = true;
             this.cbMustChangePwd.CheckState = System.Windows.Forms.CheckState.Checked;
             this.cbMustChangePwd.Location = new System.Drawing.Point(42, 173);
@@ -157,9 +157,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbMustChangePwd.Text = "User must change password at next logon";
             this.cbMustChangePwd.UseVisualStyleBackColor = true;
             this.cbMustChangePwd.CheckedChanged += new System.EventHandler(this.cbMustChangePwd_CheckedChanged);
-            // 
+            //
             // cbCannotChangePwd
-            // 
+            //
             this.cbCannotChangePwd.Location = new System.Drawing.Point(42, 202);
             this.cbCannotChangePwd.Name = "cbCannotChangePwd";
             this.cbCannotChangePwd.Size = new System.Drawing.Size(393, 23);
@@ -167,9 +167,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbCannotChangePwd.Text = "User cannot change password";
             this.cbCannotChangePwd.UseVisualStyleBackColor = true;
             this.cbCannotChangePwd.CheckedChanged += new System.EventHandler(this.cbCannotChangePwd_CheckedChanged);
-            // 
+            //
             // cbNeverExpiresPwd
-            // 
+            //
             this.cbNeverExpiresPwd.Location = new System.Drawing.Point(42, 227);
             this.cbNeverExpiresPwd.Name = "cbNeverExpiresPwd";
             this.cbNeverExpiresPwd.Size = new System.Drawing.Size(393, 24);
@@ -177,9 +177,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbNeverExpiresPwd.Text = "Password never expires";
             this.cbNeverExpiresPwd.UseVisualStyleBackColor = true;
             this.cbNeverExpiresPwd.CheckedChanged += new System.EventHandler(this.cbNeverExpiresPwd_CheckedChanged);
-            // 
+            //
             // cbAccountDisable
-            // 
+            //
             this.cbAccountDisable.Location = new System.Drawing.Point(42, 251);
             this.cbAccountDisable.Name = "cbAccountDisable";
             this.cbAccountDisable.Size = new System.Drawing.Size(393, 20);
@@ -187,9 +187,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbAccountDisable.Text = "Account is disabled";
             this.cbAccountDisable.UseVisualStyleBackColor = true;
             this.cbAccountDisable.CheckedChanged += new System.EventHandler(this.cbAccountDisable_CheckedChanged);
-            // 
+            //
             // groupBox3
-            // 
+            //
             this.groupBox3.Controls.Add(this.groupBox4);
             this.groupBox3.Location = new System.Drawing.Point(41, 277);
             this.groupBox3.Name = "groupBox3";
@@ -197,18 +197,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox3.TabIndex = 37;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "groupBox3";
-            // 
+            //
             // groupBox4
-            // 
+            //
             this.groupBox4.Location = new System.Drawing.Point(0, 31);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(414, 2);
             this.groupBox4.TabIndex = 29;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "groupBox4";
-            // 
+            //
             // txtcreatein
-            // 
+            //
             this.txtcreatein.BackColor = System.Drawing.SystemColors.Control;
             this.txtcreatein.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtcreatein.Location = new System.Drawing.Point(77, 45);
@@ -216,9 +216,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtcreatein.ReadOnly = true;
             this.txtcreatein.Size = new System.Drawing.Size(381, 14);
             this.txtcreatein.TabIndex = 38;
-            // 
+            //
             // UserAddpasswordPage
-            // 
+            //
             this.Controls.Add(this.txtcreatein);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.cbAccountDisable);

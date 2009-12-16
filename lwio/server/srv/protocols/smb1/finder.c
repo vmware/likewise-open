@@ -266,6 +266,14 @@ SrvFinderGetSearchResults(
     PSRV_SEARCH_SPACE pSearchSpace = (PSRV_SEARCH_SPACE)hSearchSpace;
     BOOLEAN bInLock = FALSE;
 
+    /*
+     * If the DesiredSeachCount is 0 Windows returns 1 entry! Reset the
+     * DesiredSearchCount to 1 to match Windows behavior.
+     */
+    if (usDesiredSearchCount == 0) {
+        usDesiredSearchCount = 1;
+    }
+
     LWIO_LOCK_MUTEX(bInLock, &pSearchSpace->mutex);
 
     switch (pSearchSpace->infoLevel)

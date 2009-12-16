@@ -68,14 +68,14 @@ public partial class ComputerAddWelcomepage : WizardPage
     #region Override Methods
     public override string OnWizardNext()
     {
-        string logonname = txtCompName.Text.Trim();  
+        string logonname = txtCompName.Text.Trim();
         bool IsInvalidDigit = false;
         int index = 0;
         while (index < logonname.Length)
         {
             if (!Char.IsLetterOrDigit(logonname[index]) &&
                 logonname[index] != '-')
-            {                
+            {
                 IsInvalidDigit = true;
                 break;
             }
@@ -83,8 +83,8 @@ public partial class ComputerAddWelcomepage : WizardPage
             {
                 index++;
             }
-        }        
-      
+        }
+
         if (IsInvalidDigit)
         {
             DialogResult dlg = MessageBox.Show(
@@ -104,7 +104,7 @@ public partial class ComputerAddWelcomepage : WizardPage
             }
         }
 
-        string filterquery = string.Empty;      
+        string filterquery = string.Empty;
 
         if (!String.IsNullOrEmpty(txtWindowsCompName.Text.Trim()))
         {

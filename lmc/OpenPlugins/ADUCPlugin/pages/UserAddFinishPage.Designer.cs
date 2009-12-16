@@ -77,53 +77,53 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.groupBox4.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(45, 31);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(24, 24);
             this.pictureBox1.TabIndex = 24;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(98, 35);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(185, 13);
             this.label2.TabIndex = 23;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(41, 80);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(414, 2);
             this.groupBox1.TabIndex = 25;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "groupBox1";
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(41, 101);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(339, 13);
             this.label3.TabIndex = 26;
             this.label3.Text = "When you click Finish, the following object will be created.";
-            // 
+            //
             // NewUserrichTextBox
-            // 
+            //
             this.NewUserrichTextBox.Location = new System.Drawing.Point(41, 126);
             this.NewUserrichTextBox.Name = "NewUserrichTextBox";
             this.NewUserrichTextBox.ReadOnly = true;
             this.NewUserrichTextBox.Size = new System.Drawing.Size(414, 146);
             this.NewUserrichTextBox.TabIndex = 27;
             this.NewUserrichTextBox.Text = "";
-            // 
+            //
             // groupBox2
-            // 
+            //
             this.groupBox2.Controls.Add(this.groupBox3);
             this.groupBox2.Location = new System.Drawing.Point(41, 82);
             this.groupBox2.Name = "groupBox2";
@@ -131,45 +131,45 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox2.TabIndex = 31;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "groupBox2";
-            // 
+            //
             // groupBox3
-            // 
+            //
             this.groupBox3.Location = new System.Drawing.Point(0, 31);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(414, 2);
             this.groupBox3.TabIndex = 29;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "groupBox3";
-            // 
+            //
             // pictureBox2
-            // 
+            //
             this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
             this.pictureBox2.Location = new System.Drawing.Point(45, 45);
             this.pictureBox2.Name = "pictureBox2";
             this.pictureBox2.Size = new System.Drawing.Size(24, 24);
             this.pictureBox2.TabIndex = 30;
             this.pictureBox2.TabStop = false;
-            // 
+            //
             // label4
-            // 
+            //
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(41, 91);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(339, 13);
             this.label4.TabIndex = 32;
             this.label4.Text = "When you click Finish, the following object will be created.";
-            // 
+            //
             // SummeryrichTextBox
-            // 
+            //
             this.SummeryrichTextBox.Location = new System.Drawing.Point(44, 109);
             this.SummeryrichTextBox.Name = "SummeryrichTextBox";
             this.SummeryrichTextBox.ReadOnly = true;
             this.SummeryrichTextBox.Size = new System.Drawing.Size(411, 148);
             this.SummeryrichTextBox.TabIndex = 33;
             this.SummeryrichTextBox.Text = "";
-            // 
+            //
             // groupBox4
-            // 
+            //
             this.groupBox4.Controls.Add(this.groupBox5);
             this.groupBox4.Location = new System.Drawing.Point(41, 273);
             this.groupBox4.Name = "groupBox4";
@@ -177,18 +177,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox4.TabIndex = 32;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "groupBox4";
-            // 
+            //
             // groupBox5
-            // 
+            //
             this.groupBox5.Location = new System.Drawing.Point(0, 31);
             this.groupBox5.Name = "groupBox5";
             this.groupBox5.Size = new System.Drawing.Size(414, 2);
             this.groupBox5.TabIndex = 29;
             this.groupBox5.TabStop = false;
             this.groupBox5.Text = "groupBox5";
-            // 
+            //
             // txtcreatein
-            // 
+            //
             this.txtcreatein.BackColor = System.Drawing.SystemColors.Control;
             this.txtcreatein.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtcreatein.Location = new System.Drawing.Point(79, 50);
@@ -196,9 +196,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtcreatein.ReadOnly = true;
             this.txtcreatein.Size = new System.Drawing.Size(376, 14);
             this.txtcreatein.TabIndex = 34;
-            // 
+            //
             // UserAddFinishPage
-            // 
+            //
             this.Controls.Add(this.txtcreatein);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.SummeryrichTextBox);

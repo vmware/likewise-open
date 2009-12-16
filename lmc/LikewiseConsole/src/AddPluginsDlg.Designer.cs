@@ -71,18 +71,18 @@ namespace Likewise.LMC
             this.CloseBtn = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(2, 9);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(92, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "Available plug-ins:";
-            // 
+            //
             // PluginlistView
-            // 
+            //
             this.PluginlistView.AutoArrange = false;
             this.PluginlistView.Location = new System.Drawing.Point(8, 25);
             this.PluginlistView.MultiSelect = false;
@@ -94,9 +94,9 @@ namespace Likewise.LMC
             this.PluginlistView.SelectedIndexChanged += new System.EventHandler(this.pluginListview_selectedindexChanged);
             this.PluginlistView.DoubleClick += new System.EventHandler(this.AddBtn_Click);
             this.PluginlistView.Click += new System.EventHandler(this.pluginListViewClicked);
-            // 
+            //
             // imageList
-            // 
+            //
             this.imageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList.ImageStream")));
             this.imageList.TransparentColor = System.Drawing.Color.Transparent;
             this.imageList.Images.SetKeyName(0, "computer_16.bmp");
@@ -112,9 +112,9 @@ namespace Likewise.LMC
             this.imageList.Images.SetKeyName(10, "EventViewer_48.ico");
             this.imageList.Images.SetKeyName(11, "Cell_32.ico");
             this.imageList.Images.SetKeyName(12, "Admin.ico");
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.lblDescription);
             this.groupBox1.Location = new System.Drawing.Point(8, 242);
             this.groupBox1.Name = "groupBox1";
@@ -122,16 +122,16 @@ namespace Likewise.LMC
             this.groupBox1.TabIndex = 2;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Description";
-            // 
+            //
             // lblDescription
-            // 
+            //
             this.lblDescription.Location = new System.Drawing.Point(6, 16);
             this.lblDescription.Name = "lblDescription";
             this.lblDescription.Size = new System.Drawing.Size(299, 71);
             this.lblDescription.TabIndex = 6;
-            // 
+            //
             // AddBtn
-            // 
+            //
             this.AddBtn.Location = new System.Drawing.Point(163, 358);
             this.AddBtn.Name = "AddBtn";
             this.AddBtn.Size = new System.Drawing.Size(75, 23);
@@ -139,9 +139,9 @@ namespace Likewise.LMC
             this.AddBtn.Text = "A&dd";
             this.AddBtn.UseVisualStyleBackColor = true;
             this.AddBtn.Click += new System.EventHandler(this.AddBtn_Click);
-            // 
+            //
             // CloseBtn
-            // 
+            //
             this.CloseBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.CloseBtn.Location = new System.Drawing.Point(244, 358);
             this.CloseBtn.Name = "CloseBtn";
@@ -150,9 +150,9 @@ namespace Likewise.LMC
             this.CloseBtn.Text = "&Close";
             this.CloseBtn.UseVisualStyleBackColor = true;
             this.CloseBtn.Click += new System.EventHandler(this.CloseBtn_Click);
-            // 
+            //
             // AddPluginsDlg
-            // 
+            //
             this.AcceptButton = this.AddBtn;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.CloseBtn;

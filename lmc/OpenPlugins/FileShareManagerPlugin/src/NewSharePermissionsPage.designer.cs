@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.FileShareManager
 {
     partial class NewSharePermissionsPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.FileShareManager
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -73,9 +73,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.BackColor = System.Drawing.SystemColors.Window;
             this.panel1.Controls.Add(this.pictureBox1);
             this.panel1.Controls.Add(this.label2);
@@ -85,18 +85,18 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(490, 72);
             this.panel1.TabIndex = 0;
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = global::Likewise.LMC.Plugins.FileShareManager.Properties.Resources.shared_folders;
             this.pictureBox1.Location = new System.Drawing.Point(430, 12);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(42, 50);
             this.pictureBox1.TabIndex = 2;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(52, 29);
             this.label2.Name = "label2";
@@ -104,9 +104,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.label2.TabIndex = 1;
             this.label2.Text = "Permissions let you control who can see the folder and the \r\nlevel of access they" +
                 " have.";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.Location = new System.Drawing.Point(31, 12);
@@ -114,17 +114,17 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.label1.Size = new System.Drawing.Size(182, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "Shared Folder Permissions";
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.Location = new System.Drawing.Point(9, 86);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(420, 13);
             this.label3.TabIndex = 2;
             this.label3.Text = "Set the kind of permissions you want for the shared folder.";
-            // 
+            //
             // radioButtonUsersReadyOnly
-            // 
+            //
             this.radioButtonUsersReadyOnly.Checked = true;
             this.radioButtonUsersReadyOnly.Location = new System.Drawing.Point(33, 111);
             this.radioButtonUsersReadyOnly.Name = "radioButtonUsersReadyOnly";
@@ -133,9 +133,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.radioButtonUsersReadyOnly.TabStop = true;
             this.radioButtonUsersReadyOnly.Text = "&Allow users have ready-only access.";
             this.radioButtonUsersReadyOnly.UseVisualStyleBackColor = true;
-            // 
+            //
             // radioButtonAdminAccess
-            // 
+            //
             this.radioButtonAdminAccess.Location = new System.Drawing.Point(33, 136);
             this.radioButtonAdminAccess.Name = "radioButtonAdminAccess";
             this.radioButtonAdminAccess.Size = new System.Drawing.Size(437, 17);
@@ -143,9 +143,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.radioButtonAdminAccess.TabStop = true;
             this.radioButtonAdminAccess.Text = "Administrator have full access; other users have &read-only access.";
             this.radioButtonAdminAccess.UseVisualStyleBackColor = true;
-            // 
+            //
             // radioButtonCustomPer
-            // 
+            //
             this.radioButtonCustomPer.Location = new System.Drawing.Point(33, 183);
             this.radioButtonCustomPer.Name = "radioButtonCustomPer";
             this.radioButtonCustomPer.Size = new System.Drawing.Size(279, 17);
@@ -153,9 +153,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.radioButtonCustomPer.TabStop = true;
             this.radioButtonCustomPer.Text = "&Customize permissions";
             this.radioButtonCustomPer.UseVisualStyleBackColor = true;
-            // 
+            //
             // radioButtonUsernoAccess
-            // 
+            //
             this.radioButtonUsernoAccess.Location = new System.Drawing.Point(33, 158);
             this.radioButtonUsernoAccess.Name = "radioButtonUsernoAccess";
             this.radioButtonUsernoAccess.Size = new System.Drawing.Size(396, 17);
@@ -163,9 +163,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.radioButtonUsernoAccess.TabStop = true;
             this.radioButtonUsernoAccess.Text = "Administrator have full access; other users &no access.";
             this.radioButtonUsernoAccess.UseVisualStyleBackColor = true;
-            // 
+            //
             // btnCustom
-            // 
+            //
             this.btnCustom.Enabled = false;
             this.btnCustom.Location = new System.Drawing.Point(73, 208);
             this.btnCustom.Name = "btnCustom";
@@ -173,9 +173,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.btnCustom.TabIndex = 8;
             this.btnCustom.Text = "C&ustom..";
             this.btnCustom.UseVisualStyleBackColor = true;
-            // 
+            //
             // label4
-            // 
+            //
             this.label4.AutoEllipsis = true;
             this.label4.Location = new System.Drawing.Point(3, 240);
             this.label4.Name = "label4";
@@ -183,9 +183,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.label4.TabIndex = 9;
             this.label4.Text = "When you set custom permissions, you are only setting them for the folder itself." +
                 "";
-            // 
+            //
             // label5
-            // 
+            //
             this.label5.AutoEllipsis = true;
             this.label5.Location = new System.Drawing.Point(8, 271);
             this.label5.Name = "label5";
@@ -193,9 +193,9 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.label5.TabIndex = 10;
             this.label5.Text = "It is suggested that you set specific permissions on the folder items themselves\r" +
                 "\nif desired.";
-            // 
+            //
             // NewSharePermissionsPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.label5);
             this.Controls.Add(this.label4);

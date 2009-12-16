@@ -44,7 +44,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
     {
         #region Class Data
 
-        private ADUCDirectoryNode dirnode = null;        
+        private ADUCDirectoryNode dirnode = null;
         private MultiItemPropertiesDlg parentDlg = null;
 
         #endregion
@@ -84,9 +84,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 int iOtherCount = 0; int iTotalSummary = 0;
 
                 foreach (ADUCDirectoryNode dn in this.parentDlg.ObjectCounts)
-                {                    
+                {
                     if (dn != null)
-                    {                        
+                    {
                         if (dn.ObjectClass.Trim().Equals("OrganizationalUnit", StringComparison.InvariantCultureIgnoreCase))
                         {
                             iOuCount++;
@@ -177,7 +177,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             {
                 List<LDAPMod> ldapAttrlist = new List<LDAPMod>();
                 List<LDAPMod> attrlist = new List<LDAPMod>();
-                //the following portion of code uses openldap "ldap_Modify_s"               
+                //the following portion of code uses openldap "ldap_Modify_s"
                 DirectoryContext dirContext = dirnode.LdapContext;
                 string[] objectClass_values = null;
 
@@ -192,7 +192,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 if (attrArry != null && attrArry.Length != 0)
                 {
                     foreach (ADUCDirectoryNode dn in this.parentDlg.ObjectCounts)
-                    {                        
+                    {
                         if (dn != null)
                         {
                             ret = dirContext.ModifySynchronous(dn.DistinguishedName, attrArry);

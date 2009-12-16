@@ -66,27 +66,27 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnDelete = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.Location = new System.Drawing.Point(4, 17);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(369, 32);
             this.label1.TabIndex = 0;
             this.label1.Text = "The computer object you want to delete represents Active Directory domain control" +
                 "ler {0}.";
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.Location = new System.Drawing.Point(4, 62);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(366, 32);
             this.label2.TabIndex = 1;
             this.label2.Text = "Which of the following statements best describes the reason for deleting this obj" +
                 "ect?";
-            // 
+            //
             // radioButton1
-            // 
+            //
             this.radioButton1.Checked = true;
             this.radioButton1.Location = new System.Drawing.Point(15, 107);
             this.radioButton1.Name = "radioButton1";
@@ -97,9 +97,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 "s a computer.";
             this.radioButton1.UseVisualStyleBackColor = true;
             this.radioButton1.CheckedChanged += new System.EventHandler(this.radioButton1_CheckedChanged);
-            // 
+            //
             // radioButton2
-            // 
+            //
             this.radioButton2.Location = new System.Drawing.Point(15, 151);
             this.radioButton2.Name = "radioButton2";
             this.radioButton2.Size = new System.Drawing.Size(356, 17);
@@ -107,9 +107,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.radioButton2.Text = "I want to &restart Active Directory replication for this domain controller.";
             this.radioButton2.UseVisualStyleBackColor = true;
             this.radioButton2.CheckedChanged += new System.EventHandler(this.radioButton2_CheckedChanged);
-            // 
+            //
             // radioButton3
-            // 
+            //
             this.radioButton3.Location = new System.Drawing.Point(15, 176);
             this.radioButton3.Name = "radioButton3";
             this.radioButton3.Size = new System.Drawing.Size(356, 44);
@@ -118,9 +118,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 "tive Directory Installation Wizard [DCPROMO].";
             this.radioButton3.UseVisualStyleBackColor = true;
             this.radioButton3.CheckedChanged += new System.EventHandler(this.radioButton3_CheckedChanged);
-            // 
+            //
             // btnDelete
-            // 
+            //
             this.btnDelete.Location = new System.Drawing.Point(199, 232);
             this.btnDelete.Name = "btnDelete";
             this.btnDelete.Size = new System.Drawing.Size(75, 23);
@@ -128,9 +128,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnDelete.Text = "D&elete";
             this.btnDelete.UseVisualStyleBackColor = true;
             this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(285, 232);
             this.btnCancel.Name = "btnCancel";
@@ -139,9 +139,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // ADDeleteComputerConfirmDialog
-            // 
+            //
             this.AcceptButton = this.btnDelete;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;

@@ -63,27 +63,27 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.errorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // GroupPropertiesDlg
-            // 
+            //
             resources.ApplyResources(this, "$this");
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "OrganizationalUnitDlg";
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).EndInit();
             this.ResumeLayout(false);
 
-            // 
+            //
             // btnOK
-            //            
+            //
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            // 
+            //
             // btnCancel
-            //           
+            //
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
 
         }

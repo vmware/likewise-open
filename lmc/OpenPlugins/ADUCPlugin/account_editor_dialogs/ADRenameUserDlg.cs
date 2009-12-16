@@ -264,7 +264,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         }
 
         private void fullnametextBox_TextChanged(object sender, EventArgs e)
-        { 
+        {
             setButtonState();
         }
 
@@ -273,7 +273,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             if (this.logonNametextBox.Text.Trim().Length <= 20)
             {
                 this.userlogonPretextBox.Text = this.logonNametextBox.Text.Trim();
-            }           
+            }
         }
 
         private void userlogonPretextBox_TextChanged(object sender, EventArgs e)
@@ -433,7 +433,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
     public class RenameUserInfo
     {
-        #region Class Data    
+        #region Class Data
 
         public string fName = string.Empty;
         public string lName = string.Empty;

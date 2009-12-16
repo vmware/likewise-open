@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 {
     partial class RegistryEditorPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -69,50 +69,50 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lblCaption
-            // 
+            //
             this.lblCaption.Size = new System.Drawing.Size(151, 23);
             this.lblCaption.Text = "Registry editor";
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(131, 59);
             this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(416, 8);
             this.panel1.TabIndex = 5;
-            // 
+            //
             // panel3
-            // 
+            //
             this.panel3.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel3.Location = new System.Drawing.Point(131, 302);
             this.panel3.Margin = new System.Windows.Forms.Padding(2);
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(416, 8);
             this.panel3.TabIndex = 5;
-            // 
+            //
             // panel4
-            // 
+            //
             this.panel4.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel4.Location = new System.Drawing.Point(131, 67);
             this.panel4.Margin = new System.Windows.Forms.Padding(2);
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(8, 235);
             this.panel4.TabIndex = 5;
-            // 
+            //
             // panel5
-            // 
+            //
             this.panel5.Dock = System.Windows.Forms.DockStyle.Right;
             this.panel5.Location = new System.Drawing.Point(539, 67);
             this.panel5.Margin = new System.Windows.Forms.Padding(2);
             this.panel5.Name = "panel5";
             this.panel5.Size = new System.Drawing.Size(8, 235);
             this.panel5.TabIndex = 5;
-            // 
+            //
             // lvRegistryPage
-            // 
+            //
             this.lvRegistryPage.BackColor = System.Drawing.SystemColors.Window;
             this.lvRegistryPage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvRegistryPage.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -134,24 +134,24 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             this.lvRegistryPage.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.lvRegistryPage_MouseDoubleClick);
             this.lvRegistryPage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvRegistryPage_MouseUp);
             this.lvRegistryPage.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvRegistryPage_ColumnClick);
-            // 
+            //
             // name
-            // 
+            //
             this.name.Text = "Name";
             this.name.Width = 80;
-            // 
+            //
             // Type
-            // 
+            //
             this.Type.Text = "Type";
             this.Type.Width = 120;
-            // 
+            //
             // Data
-            // 
+            //
             this.Data.Text = "Data";
             this.Data.Width = 119;
-            // 
+            //
             // RegistryEditorPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvRegistryPage);
             this.Controls.Add(this.panel5);

@@ -73,14 +73,14 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.groupBox1);
             this.pnlData.Size = new System.Drawing.Size(370, 364);
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.RemoveButton);
             this.groupBox1.Controls.Add(this.Addbutton);
             this.groupBox1.Controls.Add(this.MemoflistView);
@@ -90,9 +90,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Members:";
-            // 
+            //
             // RemoveButton
-            // 
+            //
             this.RemoveButton.Enabled = false;
             this.RemoveButton.Location = new System.Drawing.Point(104, 292);
             this.RemoveButton.Name = "RemoveButton";
@@ -101,9 +101,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.RemoveButton.Text = "&Remove";
             this.RemoveButton.UseVisualStyleBackColor = true;
             this.RemoveButton.Click += new System.EventHandler(this.RemoveButton_Click);
-            // 
+            //
             // Addbutton
-            // 
+            //
             this.Addbutton.Location = new System.Drawing.Point(21, 292);
             this.Addbutton.Name = "Addbutton";
             this.Addbutton.Size = new System.Drawing.Size(75, 23);
@@ -111,9 +111,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.Addbutton.Text = "A&dd...";
             this.Addbutton.UseVisualStyleBackColor = true;
             this.Addbutton.Click += new System.EventHandler(this.Addbutton_Click);
-            // 
+            //
             // MemoflistView
-            // 
+            //
             this.MemoflistView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.Namecolumn,
             this.ACFolerColumn});
@@ -132,19 +132,19 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.MemoflistView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.MemoflistView_MouseDoubleClick);
             this.MemoflistView.SelectedIndexChanged += new System.EventHandler(this.MemoflistView_SelectedIndexChanged);
             this.MemoflistView.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.MemoflistView_ColumnClick);
-            // 
+            //
             // Namecolumn
-            // 
+            //
             this.Namecolumn.Text = "Name";
             this.Namecolumn.Width = 158;
-            // 
+            //
             // ACFolerColumn
-            // 
+            //
             this.ACFolerColumn.Text = "Active Directory Folder";
             this.ACFolerColumn.Width = 274;
-            // 
+            //
             // LargeImageList
-            // 
+            //
             this.LargeImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("LargeImageList.ImageStream")));
             this.LargeImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.LargeImageList.Images.SetKeyName(0, "computer_48.bmp");
@@ -156,9 +156,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.LargeImageList.Images.SetKeyName(6, "ADUC.ico");
             this.LargeImageList.Images.SetKeyName(7, "DisabledUser.ico");
             this.LargeImageList.Images.SetKeyName(8, "DisabledComp.ico");
-            // 
+            //
             // smallImageList
-            // 
+            //
             this.smallImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("smallImageList.ImageStream")));
             this.smallImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.smallImageList.Images.SetKeyName(0, "computer_16.bmp");
@@ -170,9 +170,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.smallImageList.Images.SetKeyName(6, "ADUC.ico");
             this.smallImageList.Images.SetKeyName(7, "DisabledUser.ico");
             this.smallImageList.Images.SetKeyName(8, "DisabledComp.ico");
-            // 
+            //
             // GroupMembersPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "GroupMembersPage";
             this.Size = new System.Drawing.Size(370, 364);

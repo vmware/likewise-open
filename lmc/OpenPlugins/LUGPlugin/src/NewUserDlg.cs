@@ -90,7 +90,7 @@ public partial class NewUserDlg : EditDialog
     }
     
     #endregion
-    
+
     #region EventHandlers
     protected override bool Apply(EditDialogAction actionCause)
     {

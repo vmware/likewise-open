@@ -67,7 +67,7 @@ namespace Likewise.LMC.SecurityDesriptor
         {
             Logger.Log(string.Format("SecurityDescriptorWrapper.ReadSecurityDescriptor()"), Logger.SecurityDescriptorLogLevel);
 
-            Dictionary<string, Dictionary<string, string>> SdDacls = new Dictionary<string, Dictionary<string, string>>();
+            Dictionary<string, List<LwAccessControlEntry>> SdDacls = new Dictionary<string, List<LwAccessControlEntry>>();
             IntPtr ptrSid;
             uint errorReturn = 0;
             bool bRet = false;
@@ -91,6 +91,7 @@ namespace Likewise.LMC.SecurityDesriptor
                                     ((uint)Marshal.SizeOf(typeof(SecurityDescriptorApi.ACL_SIZE_INFORMATION))),
                                     SecurityDescriptorApi.ACL_INFORMATION_CLASS.AclSizeInformation);
 
+                    List<LwAccessControlEntry> daclInfo = new List<LwAccessControlEntry>();
                     for (int idx = 0; idx < AclSize.AceCount; idx++)
                     {
                         IntPtr pAce;
@@ -117,17 +118,36 @@ namespace Likewise.LMC.SecurityDesriptor
                                             ace.Mask.ToString(),
                                             ace.Header.AceFlags.ToString()), Logger.SecurityDescriptorLogLevel);
 
-                        Dictionary<string, string> AceProperties = new Dictionary<string, string>();
-                        AceProperties.Add("Username", sUsername + "(" + sUsername + "@" + sDomain + ")");
-                        AceProperties.Add("Sid", strSID);
-                        AceProperties.Add("AceType", ace.Header.AceType.ToString());
-                        AceProperties.Add("AceMask", ace.Mask.ToString());
-                        AceProperties.Add("AceFlags", ace.Header.AceFlags.ToString());
-                        AceProperties.Add("AceSize", ace.Header.AceSize.ToString());
+                        LwAccessControlEntry Ace = new LwAccessControlEntry();
+                        Ace.Username = sUsername + "(" + sUsername + "@" + sDomain + ")";
+                        Ace.SID = strSID;
+                        Ace.AceType = Convert.ToInt32(ace.Header.AceType);
+                        Ace.AccessMask = ace.Mask.ToString();
+                        Ace.AceFlags = Convert.ToInt32(ace.Header.AceFlags.ToString());
+                        Ace.AceSize = Convert.ToInt32(ace.Header.AceSize.ToString());
 
-                        if (!SdDacls.ContainsKey(sUsername))
-                            SdDacls.Add(sUsername, AceProperties);
+                        daclInfo.Add(Ace);
                     }
+
+                    if (daclInfo != null && daclInfo.Count != 0)
+                    {
+                        List<LwAccessControlEntry> objectDacl = new List<LwAccessControlEntry>();
+                        foreach (LwAccessControlEntry Ace in daclInfo)
+                        {
+                            if (!SdDacls.ContainsKey(Ace.Username))
+                            {
+                                objectDacl.Add(Ace);
+                                SdDacls.Add(Ace.Username, objectDacl);
+                            }
+                            else
+                            {
+                                objectDacl = SdDacls[Ace.Username];
+                                objectDacl.Add(Ace);
+                                SdDacls.Add(Ace.Username, objectDacl);
+                            }
+                        }
+                    }
+
                     ObjSecurityDescriptor.Descretionary_Access_Control_List = SdDacls;
                 }
 
@@ -419,21 +439,27 @@ namespace Likewise.LMC.SecurityDesriptor
                     {
                         if (editAces.ContainsKey(sUsername))
                         {
-                            Dictionary<string, string> attributes = editAces[sUsername] as Dictionary<string, string>;
+                            List<LwAccessControlEntry> attributes = editAces[sUsername] as List<LwAccessControlEntry>;
                             if (attributes != null)
                             {
-                                ace.Mask = Convert.ToInt32(attributes["AceMask"]);
+                                foreach (LwAccessControlEntry lwAce in attributes)
+                                {
+                                    if ((int)ace.Header.AceType == lwAce.AceType)
+                                    {
+                                        ace.Mask = Convert.ToInt32(lwAce.AccessMask);
 
-                                SecurityDescriptorApi.EXPLICIT_ACCESS ex = new SecurityDescriptorApi.EXPLICIT_ACCESS();
-                                ex.grfAccessMode = GetAccessMode(ace.Header.AceType);
-                                ex.grfAccessPermissions = (uint)ace.Mask;
-                                ex.grfInheritance = ace.Header.AceFlags;
+                                        SecurityDescriptorApi.EXPLICIT_ACCESS ex = new SecurityDescriptorApi.EXPLICIT_ACCESS();
+                                        ex.grfAccessMode = GetAccessMode(ace.Header.AceType);
+                                        ex.grfAccessPermissions = (uint)ace.Mask;
+                                        ex.grfInheritance = ace.Header.AceFlags;
 
-                                SecurityDescriptorApi.TRUSTEE sTrustee = new SecurityDescriptorApi.TRUSTEE();
-                                Marshal.PtrToStructure(pTrustee, sTrustee);
-                                ex.Trustee = sTrustee;
+                                        SecurityDescriptorApi.TRUSTEE sTrustee = new SecurityDescriptorApi.TRUSTEE();
+                                        Marshal.PtrToStructure(pTrustee, sTrustee);
+                                        ex.Trustee = sTrustee;
 
-                                explicitAccesslist.Add(ex);
+                                        explicitAccesslist.Add(ex);
+                                    }
+                                }
                             }
                         }
                     }
@@ -466,16 +492,19 @@ namespace Likewise.LMC.SecurityDesriptor
 
                 foreach (string key in newAces.Keys)
                 {
-                    Dictionary<string, string> attributes = newAces[key] as Dictionary<string, string>;
+                    List<LwAccessControlEntry> attributes = newAces[key] as List<LwAccessControlEntry>;
 
-                    SecurityDescriptorApi.ACE ace = new SecurityDescriptorApi.ACE();
-                    ace.AccessMask = Convert.ToUInt32(attributes["AceMask"]);
-                    ace.AceFlags = Convert.ToUInt32(attributes["AceFlags"]);
-                    ace.AceType = Convert.ToUInt32(attributes["AceType"]);
-                    ace.Trustee = attributes["Username"];
+                    foreach (LwAccessControlEntry lwAce in attributes)
+                    {
+                        SecurityDescriptorApi.ACE ace = new SecurityDescriptorApi.ACE();
+                        ace.AccessMask = Convert.ToUInt32(lwAce.AccessMask);
+                        ace.AceFlags = Convert.ToUInt32(lwAce.AceFlags);
+                        ace.AceType = Convert.ToUInt32(lwAce.AceType);
+                        ace.Trustee = lwAce.Username;
 
-                    Aces[indx] = ace;
-                    indx++;
+                        Aces[indx] = ace;
+                        indx++;
+                    }
                 }
 
                 bRet = SecurityDescriptorApi.AddAce(

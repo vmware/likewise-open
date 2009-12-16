@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 {
     partial class UserMultiselectGeneralEditPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -80,61 +80,61 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.labelText);
             this.pnlData.Controls.Add(this.txtTelephone);
             this.pnlData.Controls.Add(this.txtEmail);
             this.pnlData.Controls.Add(this.groupBox2);
             this.pnlData.Controls.Add(this.txtWebpage);
             this.pnlData.Size = new System.Drawing.Size(385, 371);
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(15, 16);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(24, 24);
             this.pictureBox1.TabIndex = 22;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(15, 55);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(361, 2);
             this.groupBox1.TabIndex = 23;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // lbldisplayprop
-            // 
+            //
             this.lbldisplayprop.Location = new System.Drawing.Point(18, 62);
             this.lbldisplayprop.Name = "lbldisplayprop";
             this.lbldisplayprop.Size = new System.Drawing.Size(333, 39);
             this.lbldisplayprop.TabIndex = 25;
             this.lbldisplayprop.Text = "To change a property for multiple objects, first select the checkbox to enable th" +
                 "e change, and then type the change.";
-            // 
+            //
             // lbldisplay
-            // 
+            //
             this.lbldisplay.Location = new System.Drawing.Point(18, 107);
             this.lbldisplay.Name = "lbldisplay";
             this.lbldisplay.Size = new System.Drawing.Size(333, 36);
             this.lbldisplay.TabIndex = 26;
             this.lbldisplay.Text = "Depending on the number of objects selected, you might have to wait while changes" +
                 " are applied.";
-            // 
+            //
             // groupBox2
-            // 
+            //
             this.groupBox2.Location = new System.Drawing.Point(15, 224);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(361, 2);
             this.groupBox2.TabIndex = 27;
             this.groupBox2.TabStop = false;
-            // 
+            //
             // chkDescription
-            // 
+            //
             this.chkDescription.Location = new System.Drawing.Point(15, 148);
             this.chkDescription.Name = "chkDescription";
             this.chkDescription.Size = new System.Drawing.Size(84, 29);
@@ -142,9 +142,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkDescription.Text = "&Description:";
             this.chkDescription.UseVisualStyleBackColor = true;
             this.chkDescription.CheckedChanged += new System.EventHandler(this.chkDescription_CheckedChanged);
-            // 
+            //
             // chkOffice
-            // 
+            //
             this.chkOffice.Location = new System.Drawing.Point(15, 183);
             this.chkOffice.Name = "chkOffice";
             this.chkOffice.Size = new System.Drawing.Size(84, 20);
@@ -152,26 +152,26 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkOffice.Text = "Offi&ce:";
             this.chkOffice.UseVisualStyleBackColor = true;
             this.chkOffice.CheckedChanged += new System.EventHandler(this.chkOffice_CheckedChanged);
-            // 
+            //
             // txtDescription
-            // 
+            //
             this.txtDescription.Enabled = false;
             this.txtDescription.Location = new System.Drawing.Point(105, 155);
             this.txtDescription.Name = "txtDescription";
             this.txtDescription.Size = new System.Drawing.Size(271, 20);
             this.txtDescription.TabIndex = 30;
-            // 
+            //
             // txtOffice
-            // 
+            //
             this.txtOffice.Enabled = false;
             this.txtOffice.Location = new System.Drawing.Point(105, 183);
             this.txtOffice.MaxLength = 128;
             this.txtOffice.Name = "txtOffice";
             this.txtOffice.Size = new System.Drawing.Size(271, 20);
             this.txtOffice.TabIndex = 31;
-            // 
+            //
             // chkTelephone
-            // 
+            //
             this.chkTelephone.Location = new System.Drawing.Point(15, 241);
             this.chkTelephone.Name = "chkTelephone";
             this.chkTelephone.Size = new System.Drawing.Size(136, 17);
@@ -179,9 +179,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkTelephone.Text = "&Telephone number:";
             this.chkTelephone.UseVisualStyleBackColor = true;
             this.chkTelephone.CheckedChanged += new System.EventHandler(this.chkTelephone_CheckedChanged);
-            // 
+            //
             // chkWebpage
-            // 
+            //
             this.chkWebpage.Location = new System.Drawing.Point(15, 304);
             this.chkWebpage.Name = "chkWebpage";
             this.chkWebpage.Size = new System.Drawing.Size(118, 18);
@@ -189,9 +189,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkWebpage.Text = "&Web page:";
             this.chkWebpage.UseVisualStyleBackColor = true;
             this.chkWebpage.CheckedChanged += new System.EventHandler(this.chkWebpage_CheckedChanged);
-            // 
+            //
             // chkEmail
-            // 
+            //
             this.chkEmail.Location = new System.Drawing.Point(15, 336);
             this.chkEmail.Name = "chkEmail";
             this.chkEmail.Size = new System.Drawing.Size(118, 17);
@@ -199,53 +199,53 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkEmail.Text = "E-&mail:";
             this.chkEmail.UseVisualStyleBackColor = true;
             this.chkEmail.CheckedChanged += new System.EventHandler(this.chkEmail_CheckedChanged);
-            // 
+            //
             // txtTelephone
-            // 
+            //
             this.txtTelephone.Enabled = false;
             this.txtTelephone.Location = new System.Drawing.Point(157, 241);
             this.txtTelephone.MaxLength = 64;
             this.txtTelephone.Name = "txtTelephone";
             this.txtTelephone.Size = new System.Drawing.Size(219, 20);
             this.txtTelephone.TabIndex = 35;
-            // 
+            //
             // txtWebpage
-            // 
+            //
             this.txtWebpage.Enabled = false;
             this.txtWebpage.Location = new System.Drawing.Point(139, 303);
             this.txtWebpage.Name = "txtWebpage";
             this.txtWebpage.Size = new System.Drawing.Size(237, 20);
             this.txtWebpage.TabIndex = 36;
-            // 
+            //
             // txtEmail
-            // 
+            //
             this.txtEmail.Enabled = false;
             this.txtEmail.Location = new System.Drawing.Point(139, 333);
             this.txtEmail.MaxLength = 258;
             this.txtEmail.Name = "txtEmail";
             this.txtEmail.Size = new System.Drawing.Size(237, 20);
             this.txtEmail.TabIndex = 37;
-            // 
+            //
             // labelText
-            // 
+            //
             this.labelText.AutoSize = true;
             this.labelText.Location = new System.Drawing.Point(48, 24);
             this.labelText.Name = "labelText";
             this.labelText.Size = new System.Drawing.Size(114, 13);
             this.labelText.TabIndex = 38;
             this.labelText.Text = "Multiple users selected";
-            // 
+            //
             // txtFax
-            // 
+            //
             this.txtFax.Enabled = false;
             this.txtFax.Location = new System.Drawing.Point(139, 271);
             this.txtFax.MaxLength = 64;
             this.txtFax.Name = "txtFax";
             this.txtFax.Size = new System.Drawing.Size(237, 20);
             this.txtFax.TabIndex = 39;
-            // 
+            //
             // chkFax
-            // 
+            //
             this.chkFax.Location = new System.Drawing.Point(14, 274);
             this.chkFax.Name = "chkFax";
             this.chkFax.Size = new System.Drawing.Size(119, 17);
@@ -253,9 +253,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkFax.Text = "&Fax:";
             this.chkFax.UseVisualStyleBackColor = true;
             this.chkFax.CheckedChanged += new System.EventHandler(this.chkFax_CheckedChanged);
-            // 
+            //
             // UserMultiselectGeneralEditPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.Transparent;
             this.Controls.Add(this.txtFax);

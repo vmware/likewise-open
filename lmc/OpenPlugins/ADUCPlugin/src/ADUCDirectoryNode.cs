@@ -53,7 +53,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 /// </summary>
 public class ADUCDirectoryNode: DirectoryNode
 {
-    #region data    
+    #region data
 
     public bool _IsDisabled = false;
     public bool _IsDomainController = false;
@@ -213,8 +213,8 @@ public class ADUCDirectoryNode: DirectoryNode
         {
             "dummy", 
             "objectClass", 
-            "distinguishedName", 
-            "userAccountControl", 
+            "distinguishedName",
+            "userAccountControl",
             null
         };
 
@@ -404,7 +404,7 @@ public class ADUCDirectoryNode: DirectoryNode
         this.IsModified = false;
         haveRetrievedChildren = true;
     }
-    
+
     /// <summary>
     /// List the all children for the selected distinguished name
     /// Adds the all children to the node
@@ -416,7 +416,7 @@ public class ADUCDirectoryNode: DirectoryNode
 
         string[] attrList = new string[]
         {
-            "dummy", 
+            "dummy",
             "objectClass", 
             "distinguishedName",
             "userAccountControl",
@@ -541,7 +541,7 @@ public class ADUCDirectoryNode: DirectoryNode
 
         return nodesToAddRecast;
     }
-    
+
     /// <summary>
     /// Getting added all children to the selected node that are of type ObjectClass="group"
     /// </summary>

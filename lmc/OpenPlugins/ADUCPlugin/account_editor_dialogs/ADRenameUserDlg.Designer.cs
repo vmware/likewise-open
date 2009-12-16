@@ -77,35 +77,35 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lbFullName = new System.Windows.Forms.Label();
             this.FullNametextbox = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
-            // 
+            //
             // userlogonPretextBox
-            // 
+            //
             this.userlogonPretextBox.Location = new System.Drawing.Point(219, 207);
             this.userlogonPretextBox.MaxLength = 20;
             this.userlogonPretextBox.Name = "userlogonPretextBox";
             this.userlogonPretextBox.Size = new System.Drawing.Size(187, 20);
             this.userlogonPretextBox.TabIndex = 45;
             this.userlogonPretextBox.TextChanged += new System.EventHandler(this.userlogonPretextBox_TextChanged);
-            // 
+            //
             // prelogontextBox
-            // 
+            //
             this.prelogontextBox.Location = new System.Drawing.Point(14, 207);
             this.prelogontextBox.Name = "prelogontextBox";
             this.prelogontextBox.ReadOnly = true;
             this.prelogontextBox.Size = new System.Drawing.Size(191, 20);
             this.prelogontextBox.TabIndex = 44;
-            // 
+            //
             // Userlogonglabel
-            // 
+            //
             this.Userlogonglabel.AutoSize = true;
             this.Userlogonglabel.Location = new System.Drawing.Point(12, 189);
             this.Userlogonglabel.Name = "Userlogonglabel";
             this.Userlogonglabel.Size = new System.Drawing.Size(185, 13);
             this.Userlogonglabel.TabIndex = 43;
             this.Userlogonglabel.Text = "User logon name (pre-windows 2000):";
-            // 
+            //
             // domainNamecomboBox
-            // 
+            //
             this.domainNamecomboBox.DropDownHeight = 120;
             this.domainNamecomboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.domainNamecomboBox.FormattingEnabled = true;
@@ -114,90 +114,90 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.domainNamecomboBox.Name = "domainNamecomboBox";
             this.domainNamecomboBox.Size = new System.Drawing.Size(187, 21);
             this.domainNamecomboBox.TabIndex = 42;
-            // 
+            //
             // logonNametextBox
-            // 
+            //
             this.logonNametextBox.Location = new System.Drawing.Point(15, 158);
             this.logonNametextBox.MaxLength = 256;
             this.logonNametextBox.Name = "logonNametextBox";
             this.logonNametextBox.Size = new System.Drawing.Size(190, 20);
             this.logonNametextBox.TabIndex = 41;
             this.logonNametextBox.TextChanged += new System.EventHandler(this.logonNametextBox_TextChanged);
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(12, 136);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(90, 13);
             this.label3.TabIndex = 40;
             this.label3.Text = "User logon name:";
-            // 
+            //
             // displaynametextBox
-            // 
+            //
             this.displaynametextBox.Location = new System.Drawing.Point(91, 104);
             this.displaynametextBox.MaxLength = 64;
             this.displaynametextBox.Name = "displaynametextBox";
             this.displaynametextBox.Size = new System.Drawing.Size(315, 20);
             this.displaynametextBox.TabIndex = 39;
             this.displaynametextBox.TextChanged += new System.EventHandler(this.displaynametextBox_TextChanged);
-            // 
+            //
             // InitialtextBox
-            // 
+            //
             this.InitialtextBox.Location = new System.Drawing.Point(306, 45);
             this.InitialtextBox.MaxLength = 6;
             this.InitialtextBox.Name = "InitialtextBox";
             this.InitialtextBox.Size = new System.Drawing.Size(100, 20);
             this.InitialtextBox.TabIndex = 35;
             this.InitialtextBox.TextChanged += new System.EventHandler(this.InitialtextBox_TextChanged);
-            // 
+            //
             // Initiallabel
-            // 
+            //
             this.Initiallabel.AutoSize = true;
             this.Initiallabel.Location = new System.Drawing.Point(250, 48);
             this.Initiallabel.Name = "Initiallabel";
             this.Initiallabel.Size = new System.Drawing.Size(39, 13);
             this.Initiallabel.TabIndex = 34;
             this.Initiallabel.Text = "Initials:";
-            // 
+            //
             // LnametextBox
-            // 
+            //
             this.LnametextBox.Location = new System.Drawing.Point(91, 74);
             this.LnametextBox.MaxLength = 64;
             this.LnametextBox.Name = "LnametextBox";
             this.LnametextBox.Size = new System.Drawing.Size(315, 20);
             this.LnametextBox.TabIndex = 37;
             this.LnametextBox.TextChanged += new System.EventHandler(this.LnametextBox_TextChanged);
-            // 
+            //
             // FnametextBox
-            // 
+            //
             this.FnametextBox.Location = new System.Drawing.Point(91, 45);
             this.FnametextBox.MaxLength = 64;
             this.FnametextBox.Name = "FnametextBox";
             this.FnametextBox.Size = new System.Drawing.Size(148, 20);
             this.FnametextBox.TabIndex = 33;
             this.FnametextBox.TextChanged += new System.EventHandler(this.FnametextBox_TextChanged);
-            // 
+            //
             // LNamelabel
-            // 
+            //
             this.LNamelabel.AutoSize = true;
             this.LNamelabel.Location = new System.Drawing.Point(12, 77);
             this.LNamelabel.Name = "LNamelabel";
             this.LNamelabel.Size = new System.Drawing.Size(59, 13);
             this.LNamelabel.TabIndex = 36;
             this.LNamelabel.Text = "Last name:";
-            // 
+            //
             // Fnamelabel
-            // 
+            //
             this.Fnamelabel.AutoSize = true;
             this.Fnamelabel.Location = new System.Drawing.Point(12, 48);
             this.Fnamelabel.Name = "Fnamelabel";
             this.Fnamelabel.Size = new System.Drawing.Size(58, 13);
             this.Fnamelabel.TabIndex = 32;
             this.Fnamelabel.Text = "First name:";
-            // 
+            //
             // btkcancel
-            // 
+            //
             this.btkcancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btkcancel.Location = new System.Drawing.Point(331, 238);
             this.btkcancel.Name = "btkcancel";
@@ -206,9 +206,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btkcancel.Text = "Cancel";
             this.btkcancel.UseVisualStyleBackColor = true;
             this.btkcancel.Click += new System.EventHandler(this.btkcancel_Click);
-            // 
+            //
             // btnOK
-            // 
+            //
             this.btnOK.Enabled = false;
             this.btnOK.Location = new System.Drawing.Point(250, 238);
             this.btnOK.Name = "btnOK";
@@ -217,35 +217,35 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOK.Text = "OK";
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            // 
+            //
             // lDisplayName
-            // 
+            //
             this.lDisplayName.AutoSize = true;
             this.lDisplayName.Location = new System.Drawing.Point(12, 107);
             this.lDisplayName.Name = "lDisplayName";
             this.lDisplayName.Size = new System.Drawing.Size(73, 13);
             this.lDisplayName.TabIndex = 38;
             this.lDisplayName.Text = "Display name:";
-            // 
+            //
             // lbFullName
-            // 
+            //
             this.lbFullName.AutoSize = true;
             this.lbFullName.Location = new System.Drawing.Point(13, 19);
             this.lbFullName.Name = "lbFullName";
             this.lbFullName.Size = new System.Drawing.Size(55, 13);
             this.lbFullName.TabIndex = 46;
             this.lbFullName.Text = "Full name:";
-            // 
+            //
             // FullNametextbox
-            // 
+            //
             this.FullNametextbox.Location = new System.Drawing.Point(91, 16);
             this.FullNametextbox.Name = "FullNametextbox";
             this.FullNametextbox.Size = new System.Drawing.Size(315, 20);
             this.FullNametextbox.TabIndex = 47;
             this.FullNametextbox.TextChanged += new System.EventHandler(this.fullnametextBox_TextChanged);
-            // 
+            //
             // ADRenameUserDlg
-            // 
+            //
             this.AcceptButton = this.btnOK;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btkcancel;

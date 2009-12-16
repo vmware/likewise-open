@@ -58,7 +58,7 @@ namespace Likewise.LMC.Netlogon.Implementation
                 Logger.Log(String.Format("GetDCName({0}, {1}) called",
                     domainFQDN,
                     flags),
-                    Logger.NetlogonLogLevel);               
+                    Logger.NetlogonLogLevel);
 
                 error = NetlogonAPI.LWNetGetDCName(
                             null,

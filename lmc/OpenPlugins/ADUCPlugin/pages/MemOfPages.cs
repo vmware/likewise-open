@@ -46,8 +46,8 @@ public class MemOfPages
     const int ADDING = 1;
     const int REMOVING = 2;
     #endregion
-    
-    
+
+
     #region Methods
 
     public static int GetIndexForADObject(System.DirectoryServices.DirectoryEntry de)
@@ -107,8 +107,8 @@ public class MemOfPages
 
         return (int)ADUCDirectoryNode.GetNodeType("group");
     }
-    
-    
+
+
     /// <summary>
     /// Gets the list of groups those are all of members to the selected node
     /// </summary>
@@ -121,18 +121,18 @@ public class MemOfPages
         List<string> member = new List<string>();
 
         ADUCDirectoryNode newGroupnode = new ADUCDirectoryNode(_dirnode, "group", groupDn);
-        
+
         List<LdapEntry> ldapEntries = UserGroupUtils.getLdapEntries(false, newGroupnode, search_attrs, "(objectClass=*)", LdapAPI.LDAPSCOPE.BASE);
-        
+
         if (ldapEntries != null && ldapEntries.Count > 0)
         {
             LdapEntry ldapNextEntry = ldapEntries[0];
             if (ldapNextEntry != null)
             {
-                
+
                 string[] attrsList = ldapNextEntry.GetAttributeNames();
-                
-                
+
+
                 if (attrsList != null)
                 {
                     foreach (string attr in attrsList)
@@ -152,7 +152,7 @@ public class MemOfPages
         return member;
     }
     #endregion
-    
+
     /// <summary>
     /// Modifies the "member" attribute for the selected "user" or "group" in AD schema template
     /// </summary>
@@ -171,11 +171,11 @@ public class MemOfPages
         {
             foreach (string newGroupname in changedGroups)
             {
-                List<string> members = new List<string>();               
+                List<string> members = new List<string>();
                 members = GetMemberAttrofGroup(newGroupname.Trim(), _dirnode);
-                
+
                 bool existingMember = false;
-                
+
                 //if we want to add, we need check whether it is already a member of the group
                 if (operation == ADDING)
                 {
@@ -185,10 +185,10 @@ public class MemOfPages
                         {
                             existingMember = true;
                             break;
-                        }                        
+                        }
                     }
                 }
-                
+
                 if (!existingMember)
                 {
                     if (operation == ADDING)
@@ -197,9 +197,9 @@ public class MemOfPages
                     }
                     if (operation == REMOVING)
                     {
-                        members.Remove(_dirnode.DistinguishedName);                        
+                        members.Remove(_dirnode.DistinguishedName);
                     }
-                    
+
                     if (newGroupname.Trim().ToLower().Equals(AdminGroupDN.Trim().ToLower()))
                     {
                         string userlogonName = OnApply_GetObjectRealmName(_dirnode);
@@ -311,13 +311,13 @@ public class MemOfPages
         }
         return realmName;
     }
-    
+
     #region Helper functions
 
     public static bool OnApply_helper(List<string> MemofDnList, List<string> AddedGroups, List<string> RemovedGroups, ADUCDirectoryNode _dirnode, MPPage page)
     {
         bool retVal = true;
-        
+
         if (MemofDnList != null && MemofDnList.Count > 0)
         {
             retVal = OnApply_inner(AddedGroups, _dirnode, page, ADDING);
@@ -338,6 +338,6 @@ public class MemOfPages
         return retVal;
     }
     #endregion
-    
+
 }
 }

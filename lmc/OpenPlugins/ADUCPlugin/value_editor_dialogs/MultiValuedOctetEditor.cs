@@ -76,10 +76,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     ListViewItem lviArr = null;
                     string[] values = { _octStringAttrForm.sOctextStringAttrValue };
                     lviArr = new ListViewItem(values);
-                    this.listViewAttrValues.Items.Add(lviArr);  
+                    this.listViewAttrValues.Items.Add(lviArr);
                 }
             }
-        }       
+        }
 
         private void listViewAttrValues_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -213,7 +213,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     {
                         string[] values = { sTempArr[i].ToString() };
                         lviArr = new ListViewItem(values);
-                        this.listViewAttrValues.Items.Add(lviArr);  
+                        this.listViewAttrValues.Items.Add(lviArr);
                     }
                     origsMultiValuedOctetAttrValue += (";" + sTempArr[i].ToString());
                 }

@@ -41,7 +41,7 @@ namespace System.DirectoryServices
     {
         private const int GC_PORT = 3268;
         private const int LDAP_PORT = 389;
-        
+
         private PropertyCollection propertyCollection;
         private object nativeObject;
         private string sLDAPPath;
@@ -60,7 +60,7 @@ namespace System.DirectoryServices
         private string sCNs = null;
         private string sDCs = null;
         private string baseDn = null;
-        private string rootDN = null; //domain DN         
+        private string rootDN = null; //domain DN
 
         public static List<DirectoryContext> exisitngDirContext = new List<DirectoryContext>();
         public static List<LDAPSchemaCache> existingSchemaCache = new List<LDAPSchemaCache>();
@@ -69,11 +69,11 @@ namespace System.DirectoryServices
         private string objectClassType;
 
         private bool tobedeleted = false;
-     
-        private bool get_baseDnFor_guidOrsid_called = false;
-       
 
-        public DirectoryEntry(string sLDAPPath)            
+        private bool get_baseDnFor_guidOrsid_called = false;
+
+
+        public DirectoryEntry(string sLDAPPath)
         {
             this.sLDAPPath = sLDAPPath;
             propertyCollection = null;
@@ -85,8 +85,8 @@ namespace System.DirectoryServices
             parent = null;
             objectClassType = null;
 
-            SDSUtils.CrackPath(sLDAPPath, out sProtocol, out sServer, out sCNs, out sDCs);            
-            
+            SDSUtils.CrackPath(sLDAPPath, out sProtocol, out sServer, out sCNs, out sDCs);
+
             /*if (sProtocol != null) Console.WriteLine("sProtocol is " + sProtocol);
             if (sServer != null) Console.WriteLine("sServer is " + sServer);
             if (sCNs != null) Console.WriteLine("sCNs is " + sCNs);
@@ -107,12 +107,12 @@ namespace System.DirectoryServices
                 }
 
                 rootDN = rootDN.Substring(0, rootDN.Length - 1);
-            }           
+            }
             //beacuse rootDN is nothing but collection of all DC's from DN
             if (sDCs != null)
                 rootDN = sDCs;
 
-            baseDn = "";                 
+            baseDn = "";
 
             //sCNs = RootDSE, Configuration, Schema, Domain
             if (sCNs != null && sDCs == null)
@@ -127,11 +127,11 @@ namespace System.DirectoryServices
                  sCNs.Equals("", StringComparison.InvariantCultureIgnoreCase) ||
                  sCNs.StartsWith("<"))
                 {
-                    if (rootDN != null) 
+                    if (rootDN != null)
                         baseDn = rootDN;
                 }
-                else baseDn = string.Concat(sCNs, ",", rootDN);                
-                
+                else baseDn = string.Concat(sCNs, ",", rootDN);
+
             }
 
             if (sCNs != null && sDCs != null)
@@ -141,7 +141,7 @@ namespace System.DirectoryServices
                 baseDn = sDCs;
 
             if (sCNs == null && sDCs == null)
-                baseDn = rootDN;        
+                baseDn = rootDN;
 
             //assign sName value using the dN of this node
             if (baseDn.Equals("", StringComparison.InvariantCultureIgnoreCase))
@@ -152,9 +152,9 @@ namespace System.DirectoryServices
 
         public DirectoryEntry(string sLDAPPath, string sUsername, string sPassword)
             :this(sLDAPPath)
-        {               
+        {
             this.sUsername = sUsername;
-            this.sPassword = sPassword;    
+            this.sPassword = sPassword;
         }
 
         public object NativeObject
@@ -191,7 +191,7 @@ namespace System.DirectoryServices
             {
                 Assign_dirContext();
 
-                if (dirContext == null) 
+                if (dirContext == null)
                     return sName;
 
                 if (!get_baseDnFor_guidOrsid_called)
@@ -204,7 +204,7 @@ namespace System.DirectoryServices
         public PropertyCollection Properties
         {
             get
-            {                   
+            {
                 if (propertyCollection == null)
                 {
                     Assign_dirContext();
@@ -218,10 +218,10 @@ namespace System.DirectoryServices
                     if (baseDn == null)
                         return null;
 
-                    //do the ldap search here to obtain the value of _properties             
+                    //do the ldap search here to obtain the value of _properties
 
-                    //searching with baseDn="" allows ldap to access the domain “RootDSE”.    
-                    //First get base which returns the information of this node 
+                    //searching with baseDn="" allows ldap to access the domain “RootDSE”.
+                    //First get base which returns the information of this node
                     List<string> allowedAttributes = SDSUtils.InitLdapMessageFilterForProperties(dirContext, baseDn);
                     string[] search_attrs;
 
@@ -238,21 +238,21 @@ namespace System.DirectoryServices
                     else
                     {
                         search_attrs = new string[] { null };
-                    }                    
+                    }
 
                     LdapMessage ldapMessage = dirContext.SearchSynchronous(
                                                 baseDn,
-                                                LdapAPI.LDAPSCOPE.BASE,                                         
+                                                LdapAPI.LDAPSCOPE.BASE,
                                                 "ObjectClass=*",
-                                                search_attrs,                                                
-                                                false);                                                         
+                                                search_attrs,
+                                                false);
 
                     List<LdapEntry> ldapEntries = (ldapMessage != null ? ldapMessage.Ldap_Get_Entries() : null);
 
                     if (ldapEntries != null && ldapEntries.Count > 0)
                     {
                         LdapEntry entry = ldapEntries[0];
-                        //construct and initialize propertyCollection with the information from entry 
+                        //construct and initialize propertyCollection with the information from entry
 
                         if (allowedAttributes != null && allowedAttributes.Count > 0)
                         {
@@ -288,7 +288,7 @@ namespace System.DirectoryServices
                         #endregion
 
                     }
-                    else propertyCollection = new PropertyCollection();                       
+                    else propertyCollection = new PropertyCollection();
                 }
 
                 return propertyCollection;
@@ -334,7 +334,7 @@ namespace System.DirectoryServices
                         Get_baseDn_Guid_Or_sid();
 
                     children = new DirectoryEntries(sName, sServer, dirContext);
-                    
+
                     string[] search_attrs = { null };
                     //second get "one-level" returns the information of this node's children
                     LdapMessage ldapMessage = dirContext.SearchSynchronous(
@@ -343,10 +343,10 @@ namespace System.DirectoryServices
                                                 "(objectClass=*)",
                                                 search_attrs,
                                                 false);
-                    List<LdapEntry> ldapEntries = (ldapMessage != null ? ldapMessage.Ldap_Get_Entries() : null);                    
+                    List<LdapEntry> ldapEntries = (ldapMessage != null ? ldapMessage.Ldap_Get_Entries() : null);
 
                     if (ldapEntries != null && ldapEntries.Count > 0)
-                    {     
+                    {
                         foreach (LdapEntry entry in ldapEntries)
                         {
                              //obtain the distinguishedName so that to construct DirectoryEntry for this child
@@ -358,7 +358,7 @@ namespace System.DirectoryServices
                                 children.Add(new DirectoryEntry(childLdapPath));
                             }
                         }
-                    }    
+                    }
                 }
 
                 return children;
@@ -368,7 +368,7 @@ namespace System.DirectoryServices
         public DirectoryEntry Parent
         {
             get
-            {   
+            {
                 if (parent == null)
                 {
                     Assign_dirContext();
@@ -378,10 +378,10 @@ namespace System.DirectoryServices
 
                     //e.g: RootDSE,configuration,Schema, Domain, then parent is rootDN
                     //sLdapPath should be something like LDAP://corpqa.centeris.com/
-                    string parentLdapPath; 
+                    string parentLdapPath;
                     if (sDCs == null)
                     {
-                        parentLdapPath = string.Concat("LDAP://", sServer, "/");                         
+                        parentLdapPath = string.Concat("LDAP://", sServer, "/");
                     }
                     else
                     {
@@ -389,14 +389,14 @@ namespace System.DirectoryServices
                         if (firstCNend > 0)
                         {
                             string parentsCNs = sCNs.Substring(firstCNend + 1);
-                            parentLdapPath = string.Concat("LDAP://", sServer, "/", parentsCNs, ",", sDCs); 
+                            parentLdapPath = string.Concat("LDAP://", sServer, "/", parentsCNs, ",", sDCs);
                         }
                         else
                         {
-                           parentLdapPath = string.Concat("LDAP://", sServer, "/", sDCs);                            
+                           parentLdapPath = string.Concat("LDAP://", sServer, "/", sDCs);
                         }
                     }
-                    parent = new DirectoryEntry(parentLdapPath, this.sUsername, this.sPassword);                    
+                    parent = new DirectoryEntry(parentLdapPath, this.sUsername, this.sPassword);
                 }
 
                 return parent;
@@ -416,7 +416,7 @@ namespace System.DirectoryServices
 
                     if (!get_baseDnFor_guidOrsid_called)
                         Get_baseDn_Guid_Or_sid();
-                  
+
                     LdapMessage ldapMessage = dirContext.SearchSynchronous(
                                                 baseDn,
                                                 LdapAPI.LDAPSCOPE.BASE,
@@ -436,7 +436,7 @@ namespace System.DirectoryServices
                         }
                     }
                 }
-                
+
                 return guid;
             }
         }
@@ -448,7 +448,7 @@ namespace System.DirectoryServices
                 return objectSecurity;
             }
         }
-     
+
 
 
         public string SchemaClassName
@@ -487,7 +487,7 @@ namespace System.DirectoryServices
 
                 return objectClassType;
             }
-                
+
             set
             {
                 objectClassType = value;
@@ -502,7 +502,7 @@ namespace System.DirectoryServices
 
                 return dirContext;
             }
-        }        
+        }
 
         public void CommitChanges()
         {
@@ -513,18 +513,18 @@ namespace System.DirectoryServices
 
             if (!get_baseDnFor_guidOrsid_called)
                 Get_baseDn_Guid_Or_sid();
-            
-            string[] search_attrs = { null };    
+
+            string[] search_attrs = { null };
             LdapMessage ldapMessage = dirContext.SearchSynchronous(
                                         baseDn,
                                         LdapAPI.LDAPSCOPE.BASE,
                                         "(objectClass=*)",
                                         search_attrs,
-                                        false);  
+                                        false);
             List<LdapEntry> ldapEntries = (ldapMessage != null ? ldapMessage.Ldap_Get_Entries() : null);
             //if this object does not exist in AD, we need create it first
             if (ldapEntries == null || ldapEntries.Count == 0)
-            {                   
+            {
                 int ret = SDSUtils.AddNewObj(dirContext, objectClassType, baseDn);
                 if (ret != 0)
                 {
@@ -534,11 +534,11 @@ namespace System.DirectoryServices
             }
 
             //go through the properties to check whether there is PropertyValueCollection has been modified
-            //PropertyCollection: Dictionary<string, PropertyValueCollection>    
+            //PropertyCollection: Dictionary<string, PropertyValueCollection>
             if (propertyCollection != null && propertyCollection.Count > 0)
-            { 
+            {
                 foreach (KeyValuePair<string, PropertyValueCollection> kvp in propertyCollection)
-                {                       
+                {
                     if (kvp.Value.Modified)
                     {
                         //Console.WriteLine("BaseDN is " + baseDn + " Modified key value pair: " + kvp.Key );
@@ -557,8 +557,8 @@ namespace System.DirectoryServices
                 {
                     if (child.ToBeDeleted) //delete this DE
                     {
-                        int ret = SDSUtils.DeleteObj(dirContext, child.Name);                 
-                    }                    
+                        int ret = SDSUtils.DeleteObj(dirContext, child.Name);
+                    }
                 }
 
                 //reflect the changes to children collection
@@ -577,7 +577,7 @@ namespace System.DirectoryServices
         {
             if (!get_baseDnFor_guidOrsid_called)
                 Get_baseDn_Guid_Or_sid();
-            
+
             DirectoryEntries oneLevel_children = this.Children;
 
             if (oneLevel_children != null && oneLevel_children.Count > 0)
@@ -586,7 +586,7 @@ namespace System.DirectoryServices
                     entry.DeleteTree();
             }
 
-            int ret = SDSUtils.DeleteObj(dirContext, baseDn);            
+            int ret = SDSUtils.DeleteObj(dirContext, baseDn);
         }
 
         public void RefreshCache()
@@ -609,7 +609,7 @@ namespace System.DirectoryServices
 
             if (searchScope == SearchScope.Base) ldapscope = LdapAPI.LDAPSCOPE.BASE;
             else if (searchScope == SearchScope.OneLevel) ldapscope = LdapAPI.LDAPSCOPE.ONE_LEVEL;
-            else if (searchScope == SearchScope.Subtree) ldapscope = LdapAPI.LDAPSCOPE.SUB_TREE;            
+            else if (searchScope == SearchScope.Subtree) ldapscope = LdapAPI.LDAPSCOPE.SUB_TREE;
 
             LdapMessage ldapMessage = dirContext.SearchSynchronous(
                                                 baseDn,
@@ -632,14 +632,14 @@ namespace System.DirectoryServices
                     {
                         LdapValue[] values = entry.GetAttributeValues("distinguishedName", dirContext);
                         if (values != null && values.Length > 0)
-                        {                          
+                        {
                             return string.Concat("LDAP://", sServer, "/", values[0].stringData);
                         }
                     }
                 }
                 else return null;
             }
-            
+
             return null;
         }
 
@@ -672,7 +672,7 @@ namespace System.DirectoryServices
             List<LdapEntry> ldapEntries = (ldapMessage != null ? ldapMessage.Ldap_Get_Entries() : null);
             if (ldapEntries != null && ldapEntries.Count > 0)
             {
-                ldapPaths = new List<string>();               
+                ldapPaths = new List<string>();
 
                 foreach (LdapEntry entry in ldapEntries)
                 {
@@ -717,8 +717,8 @@ namespace System.DirectoryServices
                 //else return null;
             }
         }
-        
-        private bool HasCreds()            
+
+        private bool HasCreds()
         {
             return !(this.Username == null || this.Username == "" || this.Password == null || this.Password == "");
         }
@@ -726,7 +726,7 @@ namespace System.DirectoryServices
         private bool findDircontext(int portNumber)
         {
             bool FindDirContext = false;
-             
+
             if (exisitngDirContext.Count > 0)
             {
                 foreach (DirectoryContext context in exisitngDirContext)
@@ -753,7 +753,7 @@ namespace System.DirectoryServices
                             break;
                         }
                     }
-                }                
+                }
             }
 
             return FindDirContext;
@@ -835,12 +835,12 @@ namespace System.DirectoryServices
         private void Get_baseDn_Guid_Or_sid()
         {
             if (sCNs != null && sCNs.StartsWith("<")) //for instance, LDAP://corpqa.centeris.com/<GUID=***> <GUID...> part will be used as filter to search the whole domain
-            {   
+            {
                 //GUID=\XX\XX\XX...
                 if (sCNs.Substring(1, 4).Equals("GUID", StringComparison.InvariantCultureIgnoreCase))
-                {                
+                {
                     string guidstr = sCNs.Substring(6);
-                    guidstr = guidstr.Substring(0, guidstr.Length - 1);                 
+                    guidstr = guidstr.Substring(0, guidstr.Length - 1);
 
                     Guid myguid = new Guid(guidstr);
 
@@ -918,28 +918,28 @@ namespace System.DirectoryServices
         }
 
         private DirectoryContext Assign_dirContext()
-        {               
+        {
             if (dirContext == null)
-            {   
+            {
                 if (sProtocol.Equals("GC", StringComparison.InvariantCultureIgnoreCase))
-                {                                        
+                {
                     if (!findDircontext(GC_PORT))
                     {
-                        //Console.WriteLine("****************Creating GC directoryContext*******************");                 
-                        
+                        //Console.WriteLine("****************Creating GC directoryContext*******************");
+
                         if (findGCServer() != null)
                             sServer = findGCServer();
 
                         string errorMessage = null;
 
                         dirContext = DirectoryContext.CreateDirectoryContext(
-                                        sServer, 
-                                        rootDN, 
-                                        this.sUsername, 
-                                        this.sPassword, 
-                                        GC_PORT, 
-                                        findBindingMethod(), 
-                                        out errorMessage);                       
+                                        sServer,
+                                        rootDN,
+                                        this.sUsername,
+                                        this.sPassword,
+                                        GC_PORT,
+                                        findBindingMethod(),
+                                        out errorMessage);
 
                         if (dirContext != null)
                         {
@@ -961,11 +961,11 @@ namespace System.DirectoryServices
 
                         //Console.WriteLine("****************Creating Normal Ldap directoryContext*******************");
                         dirContext = DirectoryContext.CreateDirectoryContext(
-                                        sServer, 
-                                        rootDN, 
-                                        this.sUsername, 
-                                        this.sPassword, 
-                                        LDAP_PORT, 
+                                        sServer,
+                                        rootDN,
+                                        this.sUsername,
+                                        this.sPassword,
+                                        LDAP_PORT,
                                         findBindingMethod(),
                                         out errorMessage);
 
@@ -979,13 +979,13 @@ namespace System.DirectoryServices
                                 dirContext.SchemaCache = LDAPSchemaCache.Build(dirContext);
                                 existingSchemaCache.Add(dirContext.SchemaCache);
                             }
-                        }                                                                                                                          
-                    }                    
-                }    
+                        }
+                    }
+                }
             }
 
             if (dirContext == null)
-                throw new Exception("Create DirectoryContext Failed - logon failure: Unknown Username or Bad password.");  
+                throw new Exception("Create DirectoryContext Failed - logon failure: Unknown Username or Bad password.");
             else
                 return dirContext;
         }
@@ -1000,7 +1000,7 @@ namespace System.DirectoryServices
                 {
                     if (dirCon.RootDN.Equals(rootDN, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        int ret = dirCon.LdapHandle.Ldap_Unbind_S();// DirContext_unbind();                       
+                        int ret = dirCon.LdapHandle.Ldap_Unbind_S();// DirContext_unbind();
                         if (ret == 0)
                         {
                             //Console.WriteLine("Unbind existing dirContext " + dirCon.PortNumber);
@@ -1013,7 +1013,7 @@ namespace System.DirectoryServices
                   exisitngDirContext.RemoveAt(index);
             }
         }
-    
+
         public static void ObtainCreds(out string username, out string password, string rootDN)
         {
             username = string.Empty;
@@ -1029,8 +1029,8 @@ namespace System.DirectoryServices
                         password = context.Password;
                         break;
                     }
-                }                
-            }            
+                }
+            }
         }
 
         public static int CheckLdapTimedOut(string sDN, string sRootDN)
@@ -1108,7 +1108,7 @@ namespace System.DirectoryServices
                 if (values != null && values.Length > 0)
                 {
                     configurationName = values[0].stringData;
-                }               
+                }
             }
             //by default, if we couldn't find configurateName we use CN=configuration + rootDN as one
             if (configurationName == null)
@@ -1145,12 +1145,12 @@ namespace System.DirectoryServices
             {
                 string[] rootDns = dircontext.RootDN.Split(',');
                 netbiosName = rootDns[0].Substring(3).ToUpper();
-            }            
+            }
 
             return netbiosName;
 
         }
-        
+
         #endregion
     }
 }

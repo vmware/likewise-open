@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 {
     partial class ServiceManagerEditorPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -67,14 +67,14 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lblCaption
-            // 
+            //
             this.lblCaption.Size = new System.Drawing.Size(245, 23);
             this.lblCaption.Text = "Service Control Manager";
-            // 
+            //
             // lvService
-            // 
+            //
             this.lvService.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvService.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.clmName,
@@ -93,34 +93,34 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.lvService.UseCompatibleStateImageBehavior = false;
             this.lvService.View = System.Windows.Forms.View.Details;
             this.lvService.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvService_MouseUp);
-            // 
+            //
             // clmName
-            // 
+            //
             this.clmName.Text = "Name";
             this.clmName.Width = 150;
-            // 
+            //
             // clmDescription
-            // 
+            //
             this.clmDescription.Text = "Description";
             this.clmDescription.Width = 135;
-            // 
+            //
             // clmStatus
-            // 
+            //
             this.clmStatus.Text = "Status";
             this.clmStatus.Width = 70;
-            // 
+            //
             // clmStartupType
-            // 
+            //
             this.clmStartupType.Text = "Startup Type";
             this.clmStartupType.Width = 80;
-            // 
+            //
             // clmLogOnAs
-            // 
+            //
             this.clmLogOnAs.Text = "Log On As";
             this.clmLogOnAs.Width = 100;
-            // 
+            //
             // ServiceManagerEditorPage
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.lvService);

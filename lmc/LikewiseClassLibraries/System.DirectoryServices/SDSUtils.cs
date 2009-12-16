@@ -91,7 +91,7 @@ namespace System.DirectoryServices
                 return true;
             }
 
-            // set the cn part 
+            // set the cn part
 
             // Only grab CNs if there's anything to grab
             if (ichNext > ich)
@@ -190,12 +190,12 @@ namespace System.DirectoryServices
         {
             if (dirContext != null)
             {
-                LDAPMod[] info = new LDAPMod[1];         
+                LDAPMod[] info = new LDAPMod[1];
 
                 string[] objectClass_values = new string[] { choosenclass, null };
                 info[0] = new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
 
-                return dirContext.AddSynchronous(nodeDN, info);                           
+                return dirContext.AddSynchronous(nodeDN, info);
             }
 
             return -1;
@@ -221,7 +221,7 @@ namespace System.DirectoryServices
                 values = new string[] { null };
             else if (valueObjects.Count == 1)
             {
-                values = new string[] { ParsingValueObj(valueObjects[0]), null };                          
+                values = new string[] { ParsingValueObj(valueObjects[0]), null };
                 //Console.WriteLine("In SDSUtils::modifyPropertyvalue is " + ParsingValueObj(valueObjects[0]));
             }
             else
@@ -234,7 +234,7 @@ namespace System.DirectoryServices
                     //Console.WriteLine("In SDSUtils::modifyPropertyvalue " + i + "is " + values[i]);
                 }
                 values[i] = null;
-            }                     
+            }
 
             LDAPMod[] attrinfo = new LDAPMod[] { new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, propertyName, values) };
 
@@ -270,10 +270,10 @@ namespace System.DirectoryServices
             //Todo: if val is byte[] needs use \XX\XX formatting rule Wei think
         }
 
-        //this function will return a ldapMessage that contains all the attributes that are available for an object 
-        //use this to populate DirectoryEntry's properties 
+        //this function will return a ldapMessage that contains all the attributes that are available for an object
+        //use this to populate DirectoryEntry's properties
         public static List<string> InitLdapMessageFilterForProperties(Likewise.LMC.LDAP.DirectoryContext dirContext, string nodeDN)
-        {             
+        {
             LdapMessage ldapMessagetemp = null;
 
             string[] attrs = { "name", "allowedAttributes", null };
@@ -291,7 +291,7 @@ namespace System.DirectoryServices
             if (ldapMessagetemp == null)
                 return null;
 
-            List<LdapEntry> ldapEntries = ldapMessagetemp.Ldap_Get_Entries();            
+            List<LdapEntry> ldapEntries = ldapMessagetemp.Ldap_Get_Entries();
 
             if (ldapEntries == null || ldapEntries.Count == 0)
             {
@@ -299,17 +299,17 @@ namespace System.DirectoryServices
             }
 
             LdapEntry ldapNextEntry = ldapEntries[0];
-         
-            List<string> allowedAttributes = new List<string>(); 
+
+            List<string> allowedAttributes = new List<string>();
 
             LdapValue[] attrValues = ldapNextEntry.GetAttributeValues("allowedAttributes", dirContext);
             if (attrValues != null && attrValues.Length > 0)
                 foreach (LdapValue attrValue in attrValues)
-                    allowedAttributes.Add(attrValue.stringData);                                    
-           
+                    allowedAttributes.Add(attrValue.stringData);
+
             return allowedAttributes;
 
-           
+
         }
 
         //find the DN of given the groupsid
@@ -326,14 +326,14 @@ namespace System.DirectoryServices
                        false);
 
             if (ldapMessage == null)
-            {                 
+            {
                 return null;
             }
             else
             {
                 List<LdapEntry> ldapEntries = ldapMessage.Ldap_Get_Entries();
                 if (ldapEntries == null || ldapEntries.Count == 0)
-                {                     
+                {
                     return null;
                 }
 
@@ -435,7 +435,7 @@ namespace System.DirectoryServices
             string username = string.Empty;
             string password = string.Empty;
 
-            DirectoryEntry.ObtainCreds(out username, out password, contextSystem.ToLower());                                                                                   
+            DirectoryEntry.ObtainCreds(out username, out password, contextSystem.ToLower());
 
             GlobalCatalog gc = GlobalCatalog.GetGlobalCatalog(
                 new System.DirectoryServices.ActiveDirectory.DirectoryContext(DirectoryContextType.Domain, contextSystem.ToLower(),
@@ -489,6 +489,6 @@ namespace System.DirectoryServices
 
 
 
-       
+
     }
 }

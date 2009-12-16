@@ -97,13 +97,13 @@ public partial class UserPropertiesDlg : MPContainer
     #endregion
     
     #region override methods
-    
+
     protected override void ValueChangedHandler(object sender, EventArgs e)
     {
         bDataWasChanged = true;
         base.ValueChangedHandler(sender, e);
     }
-    
+
     #endregion
     
     #region Events
@@ -137,8 +137,8 @@ public partial class UserPropertiesDlg : MPContainer
                 Logger.LogException("UserPropertiesDlg.Apply", e);
             }
         }
-        
-        
+
+
         return b;
     }
 
@@ -196,7 +196,7 @@ public partial class UserPropertiesDlg : MPContainer
     {
         return userProperties.description;
     }
-    
+
     public string[] GetGroupList()
     {
         if (ParentPage == null)

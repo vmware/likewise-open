@@ -10,8 +10,8 @@
 
 namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,21 +59,21 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 resourceCulture = value;
             }
         }
-        
+
         internal static System.Drawing.Icon agent_lgr {
             get {
                 object obj = ResourceManager.GetObject("agent_lgr", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Bitmap folder {
             get {
                 object obj = ResourceManager.GetObject("folder", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to HKEY_CLASSES_ROOT.
         /// </summary>
@@ -82,7 +82,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("HKEY_CLASSES_ROOT", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to HKEY_CURRENT_CONFIG.
         /// </summary>
@@ -91,7 +91,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("HKEY_CURRENT_CONFIG", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to HKEY_CURRENT_USER.
         /// </summary>
@@ -100,7 +100,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("HKEY_CURRENT_USER", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to HKEY_LIKEWISE.
         /// </summary>
@@ -109,7 +109,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("HKEY_LIKEWISE", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to HKEY_LIKEWISE_IMPORT.
         /// </summary>
@@ -118,7 +118,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("HKEY_LIKEWISE_IMPORT", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to HKEY_LOCAL_MACHINE.
         /// </summary>
@@ -127,7 +127,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("HKEY_LOCAL_MACHINE", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to HKEY_THIS_MACHINE.
         /// </summary>
@@ -145,7 +145,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("HKEY_USERS", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Registry Viewer.
         /// </summary>
@@ -154,7 +154,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("RegistryViewer", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Registry Editor is an advanced tool for viewing and changing settings in your system registry. It contains information and settings for hardware, operating system software, most non-operating system software, and per-user settings. .
         /// </summary>
@@ -163,7 +163,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin.Properties {
                 return ResourceManager.GetString("RegistryViewerDesc", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Icon Reports {
             get {
                 object obj = ResourceManager.GetObject("Reports", resourceCulture);

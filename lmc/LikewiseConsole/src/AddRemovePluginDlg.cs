@@ -50,7 +50,7 @@ namespace Likewise.LMC
         private LWTreeView _lmcTreeview = null;
         private List<LACTreeNode> _addedplugins = new List<LACTreeNode>();
         private List<LACTreeNode> _removedplugings = new List<LACTreeNode>();
-        private PluginStandalonePage _pluginStandalonePage;      
+        private PluginStandalonePage _pluginStandalonePage;
         public bool addPluginDlg_closeClicked = false;
         public bool addPluginDlg_hasbeenOpened = false;
 
@@ -90,8 +90,8 @@ namespace Likewise.LMC
             Text = "Add/Remove Plug-in...";
             _controlManage = controlManage;
             _rootNode = rootNode;
-            _lmcTreeview = lmcTreeview;         
-         
+            _lmcTreeview = lmcTreeview;
+
             ((EditDialog)this).ShowApplyButton = false;
 
             InitializePages();
@@ -102,13 +102,13 @@ namespace Likewise.LMC
         {
             MPPage page = null;
 
-            page = new PluginStandalonePage(this, _controlManage, _rootNode, _lmcTreeview);                
+            page = new PluginStandalonePage(this, _controlManage, _rootNode, _lmcTreeview);
             this.AddPage(page,
                          new MPMenuItem(page.PageID, "Standalone", "Standalone"),
                          MPMenu.POSITION_BEGINING
                 );
 
-            
+
             this._pluginStandalonePage = page as PluginStandalonePage;
 
             /*
@@ -118,7 +118,7 @@ namespace Likewise.LMC
                          MPMenu.POSITION_END
             );
              */
-             
+
         }
 
         private void cancelBtn_clicked(object sender, EventArgs e)
@@ -127,12 +127,12 @@ namespace Likewise.LMC
         }
 
         private void OkBtn_clicked(object sender, EventArgs e)
-        {             
+        {
             //check whether the AddpluginDlg has been opened and close before commit the result
             if (addPluginDlg_hasbeenOpened && !addPluginDlg_closeClicked)
             {
                 MessageBox.Show(
-                    "Please close the 'Add Plug-in dialog' before you click Ok", 
+                    "Please close the 'Add Plug-in dialog' before you click Ok",
                     CommonResources.GetString("Caption_Console"),
                     MessageBoxButtons.OK);
 
@@ -140,8 +140,8 @@ namespace Likewise.LMC
             }
 
             if (!addPluginDlg_hasbeenOpened || (addPluginDlg_hasbeenOpened && addPluginDlg_closeClicked))
-            //go through lmcTreeview to locate the correct place that we want to create this plug-in at 
-            //based on pluginCombobox_selectedIndex             
+            //go through lmcTreeview to locate the correct place that we want to create this plug-in at
+            //based on pluginCombobox_selectedIndex
             {
                 insertNode(_rootNode);
                 //foreach (string node_text in _removedplugings)
@@ -150,7 +150,7 @@ namespace Likewise.LMC
 
                 return;
             }
-        }         
+        }
 
 
         #region helper_functions
@@ -173,7 +173,7 @@ namespace Likewise.LMC
                             if (node.t.Namespace.Equals("Likewise.LMC.Plugins.GPOEPlugin", StringComparison.InvariantCultureIgnoreCase))
                             {
                                 node.Text = lacnode.Text;
-                                node.Tag = lacnode.Tag;                                
+                                node.Tag = lacnode.Tag;
                             }
                             node.SetContext(lacnode.Plugin.GetContext());
                             node.Plugin.SetContext(lacnode.Plugin.GetContext());
@@ -182,10 +182,10 @@ namespace Likewise.LMC
                             rootnode.Plugin.AddExtPlugin(node.Plugin);
                             if (_removedplugings.Contains(lacnode))
                             {
-                                _removedplugings.Remove(lacnode);                                
+                                _removedplugings.Remove(lacnode);
                                 _removedplugings.Add(node);
                             }
-                        }                        
+                        }
                     }
                 return;
             }
@@ -210,7 +210,7 @@ namespace Likewise.LMC
                         node.Nodes.Remove(lacnode);
                         if (LMCMainForm.navigationHistory.Contains(lacnode))
                         {
-                            LMCMainForm.navigationHistory.Remove(lacnode);                            
+                            LMCMainForm.navigationHistory.Remove(lacnode);
                         }
                     }
                 return;
@@ -226,4 +226,3 @@ namespace Likewise.LMC
         #endregion
     }
 }
-

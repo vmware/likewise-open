@@ -44,27 +44,27 @@ public partial class IntegerAttributeEditor : Form
 {
     #region Class Data
     ListViewItem lvSelectedItem;
-    
+
     public string IntAttrValue = "";
     public string OrigIntAttrValue = "";
     Regex regNum = new Regex("^[-]?([0-9])+$");
     #endregion
-    
+
     #region Constructors
     public IntegerAttributeEditor()
     {
         InitializeComponent();
     }
-    
+
     public IntegerAttributeEditor(ListViewItem lvItem)
     : this()
     {
         this.lvSelectedItem = lvItem;
     }
     #endregion
-    
+
     #region Events
-    
+
     /// <summary>
     /// Loads the data
     /// </summary>
@@ -112,15 +112,15 @@ public partial class IntegerAttributeEditor : Form
     {
         txtAttrValue.Text = "<not set>";
     }
-    
+
     private void btnCancel_Click(object sender, EventArgs e)
     {
         this.Close();
     }
     #endregion
-    
+
     #region helper functions
-    
+
     /// <summary>
     /// Validate the data
     /// </summary>

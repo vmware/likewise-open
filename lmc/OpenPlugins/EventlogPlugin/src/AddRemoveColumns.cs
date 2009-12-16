@@ -47,16 +47,16 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 public partial class AddRemoveColumnsForm : Form
 {
     #region Class Data
-    
+
     private static List<string> displayedcolumns = new List<string>();
     public static List<string> pluginDisplayedcolumns = new List<string>();
     public static List<string> logDisplayedcolumns = new List<string>();
     public static EventViewerControl.EventViewerNodeType nodeType;
-    
+
     #endregion
-    
+
     #region Accessors
-    
+
     public static List<string> Diplayedcolumns
     {
         get
@@ -68,11 +68,11 @@ public partial class AddRemoveColumnsForm : Form
             displayedcolumns = value;
         }
     }
-    
+
     #endregion
-    
+
     #region Constructors
-    
+
     public AddRemoveColumnsForm()
     {
         InitializeComponent();
@@ -111,11 +111,11 @@ public partial class AddRemoveColumnsForm : Form
         btnAdd.Enabled = btnRestoredefaults.Enabled = lbAvailableColumns.Items.Count != 0;
         btnMovedown.Enabled = (lbDisplayedColumns.Items.Count - 1) != (lbDisplayedColumns.SelectedIndex);
     }
-    
+
     #endregion
-    
+
     #region Event Handlers
-    
+
     private void btnOk_Click(object sender, EventArgs e)
     {
         if (nodeType == EventViewerControl.EventViewerNodeType.PLUGIN)
@@ -134,15 +134,15 @@ public partial class AddRemoveColumnsForm : Form
                 logDisplayedcolumns.Add(item.ToString());
             }
         }
-        
+
         this.DialogResult = DialogResult.OK;
     }
-    
+
     private void btnCancel_Click(object sender, EventArgs e)
     {
         this.Close();
     }
-    
+
     private void btnMoveup_Click(object sender, EventArgs e)
     {
         int idx = lbDisplayedColumns.SelectedIndex;
@@ -155,7 +155,7 @@ public partial class AddRemoveColumnsForm : Form
                 Object[] lvItemArr = new Object[lbDisplayedColumns.Items.Count - 1];
                 List<Object> lvItemList = new List<Object>();
                 int i = 0;
-                
+
                 foreach (Object lvitem in lbDisplayedColumns.Items)
                 {
                     if (!lvitem.Equals(lvSelectedItem))
@@ -168,36 +168,36 @@ public partial class AddRemoveColumnsForm : Form
                     lvItemArr[i] = lvitem;
                     i++;
                 }
-                
+
                 lbDisplayedColumns.Items.Clear();
                 lbDisplayedColumns.Items.AddRange(lvItemArr);
-                
+
                 lbDisplayedColumns.Items.Insert(newIdx, lvSelectedItem);
                 lbDisplayedColumns.SelectedIndex = newIdx;
 
                 btnRemove.Enabled = lbDisplayedColumns.Items.Count > 1 && !(lbDisplayedColumns.Items[newIdx].ToString().Equals("Name"));
             }
         }
-        btnRestoredefaults.Enabled = true;        
+        btnRestoredefaults.Enabled = true;
         AdjustButtons();
     }
-    
+
     private void btnMovedown_Click(object sender, EventArgs e)
     {
         int idx = lbDisplayedColumns.SelectedIndex;
         if (idx >= 0)
         {
             int nItems = lbDisplayedColumns.Items.Count;
-            
+
             int newIdx = idx + 1;
             if (newIdx <= nItems - 1)
             {
                 Object lvSelectedItem = lbDisplayedColumns.Items[idx];
-                
+
                 Object[] lvItemArr = new Object[lbDisplayedColumns.Items.Count -1];
                 List<Object> lvItemList = new List<Object>();
                 int i = 0;
-                
+
                 foreach (Object lvitem in lbDisplayedColumns.Items)
                 {
                     if (!lvitem.Equals(lvSelectedItem))
@@ -210,10 +210,10 @@ public partial class AddRemoveColumnsForm : Form
                     lvItemArr[i] = lvitem;
                     i++;
                 }
-                
+
                 lbDisplayedColumns.Items.Clear();
                 lbDisplayedColumns.Items.AddRange(lvItemArr);
-                
+
                 lbDisplayedColumns.Items.Insert(newIdx, lvSelectedItem);
                 lbDisplayedColumns.SelectedIndex = newIdx;
             }
@@ -222,7 +222,7 @@ public partial class AddRemoveColumnsForm : Form
 
         AdjustButtons();
     }
-    
+
     private void btnRestoredefaults_Click(object sender, EventArgs e)
     {
         if (nodeType.Equals(EventViewerControl.EventViewerNodeType.LOG))
@@ -242,12 +242,12 @@ public partial class AddRemoveColumnsForm : Form
         btnMovedown.Enabled = (lbDisplayedColumns.Items.Count - 1) != (lbDisplayedColumns.SelectedIndex);
         btnAdd.Enabled = btnRestoredefaults.Enabled = false;
     }
-    
+
     private void btnAdd_Click(object sender, EventArgs e)
     {
         handle_add(sender, e);
     }
-    
+
     private void btnRemove_Click(object sender, EventArgs e)
     {
         if (!btnRemove.Enabled)
@@ -255,21 +255,21 @@ public partial class AddRemoveColumnsForm : Form
 
         handle_remove(sender, e);
     }
-    
+
     private void lbAvailableColumns_DoubleClick(object sender, EventArgs e)
     {
         handle_add(sender, e);
     }
-    
+
     private void lbDisplayedColumns_DoubleClick(object sender, EventArgs e)
     {
         handle_remove(sender, e);
     }
-    
+
     #endregion
-    
+
     #region Helper functions
-    
+
     private void AdjustButtons()
     {
         btnMoveup.Enabled = lbDisplayedColumns.Items.Count > 1;
@@ -287,7 +287,7 @@ public partial class AddRemoveColumnsForm : Form
             {
                 btnMoveup.Enabled = false;
             }
-            
+
             if (nItems > 1 && idx != nItems - 1)
             {
                 btnMovedown.Enabled = true;
@@ -306,7 +306,7 @@ public partial class AddRemoveColumnsForm : Form
 
     private void lbDisplayedColumns_SelectedIndexChanged(object sender, EventArgs e)
     {
-        int idx = lbDisplayedColumns.SelectedIndex;        
+        int idx = lbDisplayedColumns.SelectedIndex;
 
         if (idx >= 0)
         {
@@ -333,20 +333,20 @@ public partial class AddRemoveColumnsForm : Form
         }
         AdjustButtons();
     }
-    
-    
+
+
     private void handle_add(object sender, EventArgs e)
-    { 
+    {
         int idx = lbAvailableColumns.SelectedIndex;
         if (idx >= 0)
         {
             Object lvSelectedItem = lbAvailableColumns.Items[idx];
             lbDisplayedColumns.Items.Add(lvSelectedItem);
-            
+
             Object[] lvItemArr = new Object[lbAvailableColumns.Items.Count - 1];
             List<Object> lvItemList = new List<Object>();
             int i = 0;
-            
+
             foreach (Object lvitem in lbAvailableColumns.Items)
             {
                 if (!lvitem.Equals(lvSelectedItem))
@@ -359,7 +359,7 @@ public partial class AddRemoveColumnsForm : Form
                 lvItemArr[i] = lvitem;
                 i++;
             }
-            
+
             lbAvailableColumns.Items.Clear();
             lbAvailableColumns.Items.AddRange(lvItemArr);
             lbAvailableColumns.SelectedIndex = idx - 1;
@@ -382,7 +382,7 @@ public partial class AddRemoveColumnsForm : Form
     }
 
     private void handle_remove(object sender, EventArgs e)
-    {        
+    {
         int idx = lbDisplayedColumns.SelectedIndex;
         if (idx >= 0)
         {
@@ -430,8 +430,8 @@ public partial class AddRemoveColumnsForm : Form
         btnAdd.Enabled = btnRestoredefaults.Enabled = lbAvailableColumns.Items.Count != 0;
         btnMovedown.Enabled = (lbDisplayedColumns.Items.Count - 1) != (lbDisplayedColumns.SelectedIndex);
     }
-    
+
     #endregion
-    
+
 }
 }

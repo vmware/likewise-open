@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 {
     partial class MultiItemsAddressEditPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -79,9 +79,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtStreet = new System.Windows.Forms.RichTextBox();
             this.pnlData.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.txtStreet);
             this.pnlData.Controls.Add(this.lbCountry);
             this.pnlData.Controls.Add(this.lbZip);
@@ -91,18 +91,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.lbStreet);
             this.pnlData.Controls.Add(this.cbCountry);
             this.pnlData.Size = new System.Drawing.Size(392, 345);
-            // 
+            //
             // lblDisplay
-            // 
+            //
             this.lblDisplay.Location = new System.Drawing.Point(20, 16);
             this.lblDisplay.Name = "lblDisplay";
             this.lblDisplay.Size = new System.Drawing.Size(363, 31);
             this.lblDisplay.TabIndex = 0;
             this.lblDisplay.Text = "To change a property for multiple objects, first select the checkbox to enable th" +
                 "e change, and then type the change.";
-            // 
+            //
             // chkStreet
-            // 
+            //
             this.chkStreet.Location = new System.Drawing.Point(7, 86);
             this.chkStreet.Name = "chkStreet";
             this.chkStreet.Size = new System.Drawing.Size(84, 16);
@@ -110,9 +110,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkStreet.Text = "&Street:";
             this.chkStreet.UseVisualStyleBackColor = true;
             this.chkStreet.CheckedChanged += new System.EventHandler(this.chkStreet_CheckedChanged);
-            // 
+            //
             // chkPO
-            // 
+            //
             this.chkPO.Location = new System.Drawing.Point(7, 170);
             this.chkPO.Name = "chkPO";
             this.chkPO.Size = new System.Drawing.Size(84, 17);
@@ -120,9 +120,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkPO.Text = "P.O. &Box:";
             this.chkPO.UseVisualStyleBackColor = true;
             this.chkPO.CheckedChanged += new System.EventHandler(this.chkPO_CheckedChanged);
-            // 
+            //
             // chkCity
-            // 
+            //
             this.chkCity.Location = new System.Drawing.Point(7, 202);
             this.chkCity.Name = "chkCity";
             this.chkCity.Size = new System.Drawing.Size(78, 19);
@@ -130,9 +130,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkCity.Text = "&City:";
             this.chkCity.UseVisualStyleBackColor = true;
             this.chkCity.CheckedChanged += new System.EventHandler(this.chkCity_CheckedChanged);
-            // 
+            //
             // chkState
-            // 
+            //
             this.chkState.Location = new System.Drawing.Point(7, 230);
             this.chkState.Name = "chkState";
             this.chkState.Size = new System.Drawing.Size(104, 30);
@@ -140,9 +140,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkState.Text = "State/pro&vince:";
             this.chkState.UseVisualStyleBackColor = true;
             this.chkState.CheckedChanged += new System.EventHandler(this.chkState_CheckedChanged);
-            // 
+            //
             // chkZip
-            // 
+            //
             this.chkZip.Location = new System.Drawing.Point(7, 263);
             this.chkZip.Name = "chkZip";
             this.chkZip.Size = new System.Drawing.Size(106, 27);
@@ -150,9 +150,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkZip.Text = "&Zip/Postal Code:";
             this.chkZip.UseVisualStyleBackColor = true;
             this.chkZip.CheckedChanged += new System.EventHandler(this.chkZip_CheckedChanged);
-            // 
+            //
             // chkCountry
-            // 
+            //
             this.chkCountry.Location = new System.Drawing.Point(7, 296);
             this.chkCountry.Name = "chkCountry";
             this.chkCountry.Size = new System.Drawing.Size(104, 28);
@@ -160,9 +160,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.chkCountry.Text = "C&ountry/region:";
             this.chkCountry.UseVisualStyleBackColor = true;
             this.chkCountry.CheckedChanged += new System.EventHandler(this.chkCountry_CheckedChanged);
-            // 
+            //
             // txtPOBox
-            // 
+            //
             this.txtPOBox.Enabled = false;
             this.txtPOBox.Location = new System.Drawing.Point(112, 170);
             this.txtPOBox.MaxLength = 40;
@@ -170,9 +170,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtPOBox.Size = new System.Drawing.Size(269, 20);
             this.txtPOBox.TabIndex = 8;
             this.txtPOBox.TextChanged += new System.EventHandler(this.txtPOBox_TextChanged);
-            // 
+            //
             // txtCity
-            // 
+            //
             this.txtCity.Enabled = false;
             this.txtCity.Location = new System.Drawing.Point(112, 202);
             this.txtCity.MaxLength = 128;
@@ -180,9 +180,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtCity.Size = new System.Drawing.Size(269, 20);
             this.txtCity.TabIndex = 9;
             this.txtCity.TextChanged += new System.EventHandler(this.txtCity_TextChanged);
-            // 
+            //
             // txtState
-            // 
+            //
             this.txtState.Enabled = false;
             this.txtState.Location = new System.Drawing.Point(112, 237);
             this.txtState.MaxLength = 128;
@@ -190,9 +190,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtState.Size = new System.Drawing.Size(269, 20);
             this.txtState.TabIndex = 10;
             this.txtState.TextChanged += new System.EventHandler(this.txtState_TextChanged);
-            // 
+            //
             // txtZip
-            // 
+            //
             this.txtZip.Enabled = false;
             this.txtZip.Location = new System.Drawing.Point(112, 270);
             this.txtZip.MaxLength = 40;
@@ -200,9 +200,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtZip.Size = new System.Drawing.Size(269, 20);
             this.txtZip.TabIndex = 11;
             this.txtZip.TextChanged += new System.EventHandler(this.txtZip_TextChanged);
-            // 
+            //
             // cbCountry
-            // 
+            //
             this.cbCountry.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbCountry.Enabled = false;
             this.cbCountry.FormattingEnabled = true;
@@ -212,9 +212,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.cbCountry.Sorted = true;
             this.cbCountry.TabIndex = 0;
             this.cbCountry.SelectedIndexChanged += new System.EventHandler(this.cbCountry_SelectedIndexChanged);
-            // 
+            //
             // lbStreet
-            // 
+            //
             this.lbStreet.AutoSize = true;
             this.lbStreet.Location = new System.Drawing.Point(4, 84);
             this.lbStreet.Name = "lbStreet";
@@ -222,9 +222,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lbStreet.TabIndex = 12;
             this.lbStreet.Text = "&Street:";
             this.lbStreet.Visible = false;
-            // 
+            //
             // lbPOBox
-            // 
+            //
             this.lbPOBox.AutoSize = true;
             this.lbPOBox.Location = new System.Drawing.Point(4, 171);
             this.lbPOBox.Name = "lbPOBox";
@@ -232,9 +232,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lbPOBox.TabIndex = 13;
             this.lbPOBox.Text = "P.O. &Box:";
             this.lbPOBox.Visible = false;
-            // 
+            //
             // lbCity
-            // 
+            //
             this.lbCity.AutoSize = true;
             this.lbCity.Location = new System.Drawing.Point(4, 205);
             this.lbCity.Name = "lbCity";
@@ -242,9 +242,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lbCity.TabIndex = 14;
             this.lbCity.Text = "&City:";
             this.lbCity.Visible = false;
-            // 
+            //
             // lbState
-            // 
+            //
             this.lbState.AutoSize = true;
             this.lbState.Location = new System.Drawing.Point(4, 240);
             this.lbState.Name = "lbState";
@@ -252,9 +252,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lbState.TabIndex = 12;
             this.lbState.Text = "State/pro&vince:";
             this.lbState.Visible = false;
-            // 
+            //
             // lbZip
-            // 
+            //
             this.lbZip.AutoSize = true;
             this.lbZip.Location = new System.Drawing.Point(4, 274);
             this.lbZip.Name = "lbZip";
@@ -262,9 +262,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lbZip.TabIndex = 15;
             this.lbZip.Text = "&Zip/Postal Code:";
             this.lbZip.Visible = false;
-            // 
+            //
             // lbCountry
-            // 
+            //
             this.lbCountry.AutoSize = true;
             this.lbCountry.Location = new System.Drawing.Point(5, 308);
             this.lbCountry.Name = "lbCountry";
@@ -272,9 +272,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lbCountry.TabIndex = 16;
             this.lbCountry.Text = "C&ountry/region:";
             this.lbCountry.Visible = false;
-            // 
+            //
             // txtStreet
-            // 
+            //
             this.txtStreet.AcceptsTab = true;
             this.txtStreet.Enabled = false;
             this.txtStreet.Location = new System.Drawing.Point(112, 84);
@@ -284,9 +284,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.txtStreet.TabIndex = 17;
             this.txtStreet.Text = "";
             this.txtStreet.TextChanged += new System.EventHandler(this.txtStreet_TextChanged);
-            // 
+            //
             // MultiItemsAddressEditPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.txtZip);
             this.Controls.Add(this.txtState);

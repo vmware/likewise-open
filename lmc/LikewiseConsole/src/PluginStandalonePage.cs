@@ -49,7 +49,7 @@ namespace Likewise.LMC
         private List<LACTreeNode> _removedPlugins = new List<LACTreeNode>();
         private AddRemovePluginDlg _parentDlg = null;
         private LWTreeView _lmcTreeview = null;
-        public int pluginCombobox_selectedIndex = 0;    
+        public int pluginCombobox_selectedIndex = 0;
         public ListView PluginslistView = null;
         private int nodeindex = 0;
 
@@ -61,7 +61,7 @@ namespace Likewise.LMC
                 return this.ChosenPluginlistView;
             }
         }
-  
+
         public List<LACTreeNode> addedPlugins
         {
             get
@@ -162,7 +162,7 @@ namespace Likewise.LMC
                     ChosenPluginlistView.Items.AddRange(lvItemArr);
                     Removebtn.Enabled = false;
                     Aboutbtn.Enabled = false;
-                }                
+                }
 
                 foreach (AddedPluginInfo obj in PluginComboBox.Items)
                 {
@@ -263,8 +263,8 @@ namespace Likewise.LMC
 
             AddedPluginInfo pluginInfo = null;
 
-            //Tried to avoid referring the tree node from the Console Root. 
-            LACTreeNode pluginnode = node.DeepCopy() as LACTreeNode;               
+            //Tried to avoid referring the tree node from the Console Root.
+            LACTreeNode pluginnode = node.DeepCopy() as LACTreeNode;
 
             if (level > 0)
             {
@@ -281,7 +281,7 @@ namespace Likewise.LMC
                 this.PluginComboBox.Items.Add(pluginInfo);
             }
             nodeindex++;
-            node.Tag = pluginnode.Tag = this.PluginComboBox.Items.Count - 1;       
+            node.Tag = pluginnode.Tag = this.PluginComboBox.Items.Count - 1;
 
             foreach (LACTreeNode n in node.Nodes)
             {
@@ -303,7 +303,7 @@ namespace Likewise.LMC
 
             int index = (int)node.Tag;
             if (index == this.pluginCombobox_selectedIndex)
-            {                
+            {
                 foreach (LACTreeNode n in node.Nodes)
                 {
                     if (!n.IsPluginNode)
@@ -363,11 +363,11 @@ namespace Likewise.LMC
             {
                 if (type.Equals("Event Viewer", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    return Manage.ManageImageType.EventLog; 
+                    return Manage.ManageImageType.EventLog;
                 }
                 else if (type.Equals("Active Directory Users & Computers", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    return Manage.ManageImageType.Generic; 
+                    return Manage.ManageImageType.Generic;
                 }
                 else if (type.Equals("Local Users and Groups", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -390,7 +390,7 @@ namespace Likewise.LMC
             return Manage.ManageImageType.Generic;
         }
 
-        #endregion            
+        #endregion
 
         private void ChosenPluginlistView_MouseDoubleClick(object sender, MouseEventArgs e)
         {
@@ -416,7 +416,7 @@ namespace Likewise.LMC
                 }
             }
         }
-      
+
 
     }
 
@@ -445,4 +445,3 @@ namespace Likewise.LMC
         }
     }
 }
-

@@ -43,7 +43,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
 {
     #region Class Data
-    
+
     // dialog actions
     public enum EditDialogAction { ACTION_OK, ACTION_APPLY, ACTION_CANCEL };
     private ADUCDirectoryNode dirnode = null;
@@ -51,41 +51,41 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
     private ADEditPageObject _modifiedPageObject = null;
     public EditPageObject _EditPageObject = null;
     private MPContainer _parentDlg = null;
-    
+
     private ListViewColumnSorter lvwColumnSorter;
     private List<ListViewItem> attributeList = null;
-    
+
     public List<string> allowedAttributes = null;
 
-    private List<LdapEntry> ldapEntries = null;    
+    private List<LdapEntry> ldapEntries = null;
     private LDAPSchemaCache schemaCache = null;
 
     private string[] objectClasses = null;
     private List<string> MandatoryAttributes = null;
     private delegate void AddRangeDelegate(ListViewItem[] range);
-    
+
     #endregion
-    
+
     #region Constructors
     public ADEditPage(MPContainer parentDlg)
     {
         pageID = "EditProperitiesAdvanced";
         InitializeComponent();
-        
+
         // Create an instance of a ListView column sorter and assign it
         // to the ListView control.
         lvwColumnSorter = new ListViewColumnSorter();
         this.lvAttrs.ListViewItemSorter = lvwColumnSorter;
-        
+
         SetPageTitle("Advanced");
         _modifiedPageObject = new ADEditPageObject();
         _EditPageObject = new EditPageObject(lvAttrs);
         _parentDlg = parentDlg;
     }
     #endregion
-    
+
     #region Initialization Methods
-    
+
     /// <summary>
     /// Method to load data to the tab pages while loading
     /// Gets the all attribute list for the selected AD object by querying the Ldap Message.
@@ -127,8 +127,8 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                         MandatoryAttributes.Add("cn");
                     }
                 }
-            }            
-         
+            }
+
             FillAttributeList(true, out _modifiedPageObject);
             ParentContainer.DataChanged = false;
             if (_modifiedPageObject != null)
@@ -146,7 +146,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             Logger.LogException("ADEditPage.SetData", e);
         }
     }
-    
+
     /// <summary>
     /// Method to query and initialize the LdapMessage
     /// </summary>
@@ -238,7 +238,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             }
         }
     }
-    
+
     /// <summary>
     /// Method to set the Enable/Disable state to the Appy button.
     /// </summary>
@@ -246,7 +246,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
     {
         if ((_OriginalPageObject == null && _modifiedPageObject == null) ||
         (_modifiedPageObject != null && _modifiedPageObject.Equals(_OriginalPageObject)))
-        {            
+        {
             ParentContainer.btnApply.Enabled = ParentContainer.DataChanged;
         }
         else
@@ -255,7 +255,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             ParentContainer.btnApply.Enabled = true;
         }
     }
-    
+
     /// <summary>
     /// Method to get all attributes to the specified AD Object.
     /// </summary>
@@ -278,7 +278,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         string[] attrsFullList = new string[allowedAttributes.Count];
 
         allowedAttributes.CopyTo(attrsFullList);
-       
+
         attributeList = new List<ListViewItem>();
 
         foreach (string attr in attrsFullList)
@@ -330,11 +330,11 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             {
                 string[] addItem = null;
                 string[] slvItem = {
-                        attr, 
-                        "", 
-                        sValue, 
-                        sAttrType, 
-                        "false" 
+                        attr,
+                        "",
+                        sValue,
+                        sAttrType,
+                        "false"
                     };
                 if (String.Equals(attr, "objectGUID", StringComparison.InvariantCultureIgnoreCase) ||
                     String.Equals(attr, "objectSid", StringComparison.InvariantCultureIgnoreCase))
@@ -364,12 +364,12 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                     sValue = Convert.ToDateTime(sDate).ToShortDateString();
                     sValue += " " + Convert.ToDateTime(sTime).ToLongTimeString();
                 }
-                string[] slvItem = { 
-                        attr, 
-                        sADSType, 
-                        sValue, 
-                        sAttrType, 
-                        "false" 
+                string[] slvItem = {
+                        attr,
+                        sADSType,
+                        sValue,
+                        sAttrType,
+                        "false"
                     };
                 ListViewItem lvItem = new ListViewItem(slvItem);
                 lvItem.Tag = schemaType;
@@ -380,7 +380,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         PopulateListView();
         _EditPageObject = new EditPageObject(lvAttrs);
     }
-    
+
     /// <summary>
     /// Method to fill the listview with the attribute list
     /// </summary>
@@ -391,14 +391,14 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         {
             ListViewItem[] lvItemArr = new ListViewItem[attributeList.Count];
             int i = 0;
-            
+
             foreach (ListViewItem lvitem in attributeList)
             {
-                
+
                 lvItemArr[i] = lvitem;
                 i++;
             }
-            
+
             //lvAttrs.Items.AddRange(lvItemArr);
             AddRangeDelegate d = ThreadSafeAddRange;
             this.Invoke(d, new object[]
@@ -422,7 +422,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             this.lvAttrs.Items.AddRange(range);
         }
     }
-    
+
     /// <summary>
     /// Method that returns the string specified based on Attribute syntax
     /// </summary>
@@ -494,7 +494,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             return "";
         }
     }
-    
+
     /// <summary>
     /// Method to fill the attribute list
     /// </summary>
@@ -507,7 +507,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         {
             return;
         }
-        
+
         if (cbMandatoryAttr.Checked && cbOptionalAttr.Checked)
         {
             if (AddNotset)
@@ -569,7 +569,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             lvAttrs.Items.Clear();
         }
     }
-    
+
     /// <summary>
     /// Method to find the specified item from the list view.
     /// </summary>
@@ -586,7 +586,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         }
         return null;
     }
-    
+
     /// <summary>
     /// Saves the modified attribute values in AD Schema template
     /// </summary>
@@ -602,7 +602,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
 
         foreach (ListViewItem lvItem in lvAttrs.Items)
         {
-            if (lvItem.SubItems == null || 
+            if (lvItem.SubItems == null ||
                 lvItem.SubItems.Count < 5 ||
                 lvItem.SubItems[4].Text != "true")
             {
@@ -695,7 +695,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             {
                 container.ShowError(ErrorCodes.LDAPString(ret));
             }
-           
+
             return true;
         }
 
@@ -758,7 +758,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         {
             if (!dnIsChanged)
             {
-                ret = dirContext.RenameSynchronous(basedn, newRDn, null);                
+                ret = dirContext.RenameSynchronous(basedn, newRDn, null);
                 _parentDlg.newDn = newRDn;
                 dnIsChanged = true;
                 ListViewItem dnItem = FindlvItem("distinguishedName");
@@ -1024,7 +1024,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
     #endregion
 
     #region Events
-    
+
     /// <summary>
     /// Shows the specified editor control based on the selected attribute syntax from the listview.
     /// </summary>
@@ -1089,7 +1089,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                                 lvAttrs.SelectedItems[0].SubItems[2].Text = _IntForm.IntAttrValue;
                                 lvAttrs.SelectedItems[0].SubItems[2].Tag = _IntForm.OrigIntAttrValue;
                                 lvAttrs.SelectedItems[0].SubItems[4].Text = "true";
-                                
+
                                 if (!_modifiedPageObject.IsListItemChanged)
                                 {
                                     _modifiedPageObject.IsListItemChanged = true;
@@ -1115,7 +1115,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                     }
                     break;
                     case ADSType.ADSTYPE_OCTET_STRING:
-                    
+
                     if (schemaType.IsSingleValued)
                     {
                         OctetStringAttributeEditor _octStringAttrForm = new OctetStringAttributeEditor(selectedItem);
@@ -1209,7 +1209,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                                     _modifiedPageObject.IsListItemChanged = true;
                                 }
                             }
-                            
+
                         }
                     }
                     else
@@ -1263,7 +1263,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                             }
                         }
                     }
-                    
+
                     break;
                 }
             }
@@ -1271,7 +1271,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         UpdateApplyButton();
         lvAttrs.Focus();
     }
-    
+
     private void cbMandatoryAttr_CheckedChanged(object sender, EventArgs e)
     {
         if (cbValueAttr.Checked)
@@ -1284,7 +1284,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         }
         UpdateApplyButton();
     }
-    
+
     private void cbOptionalAttr_CheckedChanged(object sender, EventArgs e)
     {
         if (cbValueAttr.Checked)
@@ -1297,14 +1297,14 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         }
         UpdateApplyButton();
     }
-    
+
     private void cbValueAttr_CheckedChanged(object sender, EventArgs e)
     {
         if (!cbMandatoryAttr.Checked && !cbOptionalAttr.Checked)
         {
             lvAttrs.Items.Clear();
         }
-        
+
         if (cbValueAttr.Checked)
         {
             FillAttributeList(false, out _modifiedPageObject);
@@ -1315,7 +1315,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         }
         UpdateApplyButton();
     }
-    
+
     private void lvAttrs_SelectedIndexChanged(object sender, EventArgs e)
     {
         if (lvAttrs.SelectedItems.Count > 0)
@@ -1327,7 +1327,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             btnEdit.Enabled = false;
         }
     }
-    
+
     private void lvAttrs_ColumnClick(object sender, ColumnClickEventArgs e)
     {
         // Determine if clicked column is already the column that is being sorted.
@@ -1349,11 +1349,11 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
             lvwColumnSorter.SortColumn = e.Column;
             lvwColumnSorter.Order = SortOrder.Ascending;
         }
-        
+
         // Perform the sort with these new sort options.
         this.lvAttrs.Sort();
     }
-    
+
     #endregion
 }
 
@@ -1365,7 +1365,7 @@ public class ADEditPageObject : ICloneable
     private bool _sIsAttributeValues;
     private bool _bIsListItemChanged;
     #endregion
-    
+
     #region Constructors
     public ADEditPageObject()
     {
@@ -1375,7 +1375,7 @@ public class ADEditPageObject : ICloneable
         _bIsListItemChanged = false;
     }
     #endregion
-    
+
     #region Initialization Methods
     public override bool Equals(object obj)
     {
@@ -1389,7 +1389,7 @@ public class ADEditPageObject : ICloneable
         }
         return GetHashCode() == (obj as ADEditPageObject).GetHashCode();
     }
-    
+
     public virtual object Clone()
     {
         // Create a shallow copy first
@@ -1400,8 +1400,8 @@ public class ADEditPageObject : ICloneable
         other._bIsListItemChanged = _bIsListItemChanged;
         return other;
     }
-    
-    
+
+
     public override int GetHashCode()
     {
         StringBuilder sb = new StringBuilder();
@@ -1412,7 +1412,7 @@ public class ADEditPageObject : ICloneable
         return sb.ToString().GetHashCode();
     }
     #endregion
-    
+
     #region accessor functions
     public bool IsMandatory
     {
@@ -1467,14 +1467,14 @@ public class EditPageObject : ADEditPageObject
     private ListView _AttributeList = null;
     public ADEditPageObject _ADEditPageObject = null;
     #endregion
-    
+
     #region Constructors
     public EditPageObject(ListView _ListView)
     {
         _AttributeList = _ListView;
     }
     #endregion
-    
+
     #region accessor functions
     public ListView AttributeList
     {
@@ -1491,4 +1491,3 @@ public class EditPageObject : ADEditPageObject
 }
 
 }
-

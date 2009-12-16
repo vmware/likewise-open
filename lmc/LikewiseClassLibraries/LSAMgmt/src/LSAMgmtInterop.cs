@@ -120,7 +120,7 @@ namespace Likewise.LMC.LSAMgmt
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public class LSA_STATUS
         {
-            public LsaAgentVersion version;           
+            public LsaAgentVersion version;
             [MarshalAs(UnmanagedType.U4)]
             public UInt32 dwUptime;
             [MarshalAs(UnmanagedType.U4)]
@@ -578,30 +578,30 @@ namespace Likewise.LMC.LSAMgmt
         public static string MetricsToString_0(LsaMetricPack_0 metrics)
         {
             string[] parts = new string[] {
-                "\nfailedAuthentications: ", 
+                "\nfailedAuthentications: ",
                 metrics.failedAuthentications.ToString(),
-                "\nfailedUserLookupsByName:  ", 
+                "\nfailedUserLookupsByName:  ",
                 metrics.failedUserLookupsByName.ToString(),
-                "\nfailedUserLookupsById:  ", 
+                "\nfailedUserLookupsById:  ",
                 metrics.failedUserLookupsById.ToString(),
-                "\nfailedGroupLookupsByName:  ", 
+                "\nfailedGroupLookupsByName:  ",
                 metrics.failedGroupLookupsByName.ToString(),
-                "\nfailedGroupLookupsById:  ", 
+                "\nfailedGroupLookupsById:  ",
                 metrics.failedGroupLookupsById.ToString(),
-                "\nfailedOpenSession:  ", 
+                "\nfailedOpenSession:  ",
                 metrics.failedOpenSession.ToString(),
-                "\nfailedCloseSession:  ", 
+                "\nfailedCloseSession:  ",
                 metrics.failedCloseSession.ToString(),
-                "\nfailedChangePassword:  ", 
+                "\nfailedChangePassword:  ",
                 metrics.failedChangePassword.ToString(),
-                "\nunauthorizedAccesses:  ", 
+                "\nunauthorizedAccesses:  ",
                 metrics.unauthorizedAccesses.ToString(),
                 "\n"
             };
 
             string result = String.Concat(parts);
             return result;
-        }       
+        }
 
         #endregion
 

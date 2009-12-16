@@ -73,50 +73,50 @@ namespace Likewise.LMC.Plugins.FileShareManager
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lblCaption
-            // 
+            //
             this.lblCaption.Size = new System.Drawing.Size(185, 23);
             this.lblCaption.Text = "Open Files on {0}";
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(131, 59);
             this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(416, 8);
             this.panel1.TabIndex = 5;
-            // 
+            //
             // panel3
-            // 
+            //
             this.panel3.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel3.Location = new System.Drawing.Point(131, 302);
             this.panel3.Margin = new System.Windows.Forms.Padding(2);
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(416, 8);
             this.panel3.TabIndex = 5;
-            // 
+            //
             // panel4
-            // 
+            //
             this.panel4.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel4.Location = new System.Drawing.Point(131, 67);
             this.panel4.Margin = new System.Windows.Forms.Padding(2);
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(8, 235);
             this.panel4.TabIndex = 5;
-            // 
+            //
             // panel5
-            // 
+            //
             this.panel5.Dock = System.Windows.Forms.DockStyle.Right;
             this.panel5.Location = new System.Drawing.Point(539, 67);
             this.panel5.Margin = new System.Windows.Forms.Padding(2);
             this.panel5.Name = "panel5";
             this.panel5.Size = new System.Drawing.Size(8, 235);
             this.panel5.TabIndex = 5;
-            // 
+            //
             // lvFilePage
-            // 
+            //
             this.lvFilePage.BackColor = System.Drawing.SystemColors.Window;
             this.lvFilePage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvFilePage.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -140,34 +140,34 @@ namespace Likewise.LMC.Plugins.FileShareManager
             this.lvFilePage.SelectedIndexChanged += new System.EventHandler(this.lvFilePage_SelectedIndexChanged);
             this.lvFilePage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvFilePage_MouseUp);
             this.lvFilePage.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvFilePage_ColumnClick);
-            // 
+            //
             // File
-            // 
+            //
             this.File.Text = "Open File";
             this.File.Width = 160;
-            // 
+            //
             // Opener
-            // 
+            //
             this.Opener.Text = "Accessed By";
             this.Opener.Width = 79;
-            // 
+            //
             // NumLocks
-            // 
+            //
             this.NumLocks.Text = "# of Locks";
             this.NumLocks.Width = 80;
-            // 
+            //
             // OpenMode
-            // 
+            //
             this.OpenMode.Text = "Open Mode";
             this.OpenMode.Width = 80;
-            // 
+            //
             // FileId
-            // 
+            //
             this.FileId.Text = "FileId";
             this.FileId.Width = 0;
-            // 
+            //
             // FilesPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lvFilePage);
             this.Controls.Add(this.panel5);

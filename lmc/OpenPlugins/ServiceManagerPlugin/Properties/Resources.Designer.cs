@@ -30,8 +30,8 @@
 
 namespace Likewise.LMC.Plugins.ServiceManagerPlugin.Properties {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -43,15 +43,15 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -65,7 +65,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin.Properties {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -79,7 +79,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin.Properties {
                 resourceCulture = value;
             }
         }
-        
+
         internal static System.Drawing.Icon agent_lgr {
             get {
                 object obj = ResourceManager.GetObject("agent_lgr", resourceCulture);
@@ -95,7 +95,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin.Properties {
                 return ResourceManager.GetString("ServiceManager", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Service Control Manager is an advanced tool for viewing and changing settings in your system services. It contains information and settings to start and stop services..
         /// </summary>
@@ -104,7 +104,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin.Properties {
                 return ResourceManager.GetString("ServiceManagerDesc", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Your computer is connected to the computer named {0}.
         ///The {1} on {2} has ended unexpectedly. {3} will restart automaically, and then

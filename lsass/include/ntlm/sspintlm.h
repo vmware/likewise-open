@@ -241,6 +241,8 @@ typedef struct
 #define NTLM_FLAG_56                    0x80000000  /* 56-bit encryption */
 
 #define NTLM_FLAG_NEGOTIATE_DEFAULT ( \
+    NTLM_FLAG_SIGN                  | \
+    NTLM_FLAG_SEAL                  | \
     NTLM_FLAG_OEM                   | \
     NTLM_FLAG_REQUEST_TARGET        | \
     NTLM_FLAG_NTLM                  | \

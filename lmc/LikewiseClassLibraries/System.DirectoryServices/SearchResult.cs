@@ -42,7 +42,7 @@ namespace System.DirectoryServices
         public SearchResult(string sPath)
         {
             this.sPath = sPath;
-            this.foundEntry = new DirectoryEntry(sPath);            
+            this.foundEntry = new DirectoryEntry(sPath);
         }
 
         public DirectoryEntry GetDirectoryEntry()

@@ -69,51 +69,51 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.userNamelabel);
             this.pnlData.Controls.Add(this.groupBox1);
             this.pnlData.Controls.Add(this.pictureBox1);
             this.pnlData.Controls.Add(this.txtDescription);
             this.pnlData.Controls.Add(this.lbDescription);
             this.pnlData.Size = new System.Drawing.Size(386, 411);
-            // 
+            //
             // txtDescription
-            // 
+            //
             this.txtDescription.Location = new System.Drawing.Point(82, 108);
             this.txtDescription.Name = "txtDescription";
             this.txtDescription.Size = new System.Drawing.Size(292, 20);
             this.txtDescription.TabIndex = 3;
             this.txtDescription.TextChanged += new System.EventHandler(this.txtDescription_TextChanged);
-            // 
+            //
             // UserGeneralimageList
-            // 
+            //
             this.UserGeneralimageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("UserGeneralimageList.ImageStream")));
             this.UserGeneralimageList.TransparentColor = System.Drawing.Color.Transparent;
             this.UserGeneralimageList.Images.SetKeyName(0, "User_24.ico");
             this.UserGeneralimageList.Images.SetKeyName(1, "User.ico");
             this.UserGeneralimageList.Images.SetKeyName(2, "User_16.ico");
-            // 
+            //
             // pictureBox1
-            // 
+            //
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(18, 18);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(33, 32);
             this.pictureBox1.TabIndex = 21;
             this.pictureBox1.TabStop = false;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Location = new System.Drawing.Point(13, 88);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(361, 2);
             this.groupBox1.TabIndex = 22;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // userNamelabel
-            // 
+            //
             this.userNamelabel.AutoSize = true;
             this.userNamelabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.25F);
             this.userNamelabel.Location = new System.Drawing.Point(67, 26);
@@ -121,18 +121,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.userNamelabel.Size = new System.Drawing.Size(128, 17);
             this.userNamelabel.TabIndex = 24;
             this.userNamelabel.Text = "                              ";
-            // 
+            //
             // lbDescription
-            // 
+            //
             this.lbDescription.AutoSize = true;
             this.lbDescription.Location = new System.Drawing.Point(13, 111);
             this.lbDescription.Name = "lbDescription";
             this.lbDescription.Size = new System.Drawing.Size(63, 13);
             this.lbDescription.TabIndex = 2;
             this.lbDescription.Text = "&Description:";
-            // 
+            //
             // ContainerGeneralEditPage
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.Name = "ContainerGeneralEditPage";
             this.Size = new System.Drawing.Size(386, 411);

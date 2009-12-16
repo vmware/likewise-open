@@ -80,7 +80,7 @@ namespace Likewise.LMC.LDAP
             get
             {
                 return _adsType;
-            }   
+            }
         }
 
         public bool IsSingleValued

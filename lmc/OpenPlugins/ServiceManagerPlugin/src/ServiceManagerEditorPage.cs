@@ -159,9 +159,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                                 }
 
                                 ListViewItem lvItem = new ListViewItem(new string[] { name,
-                                                serviceInfo.pwszDescription, 
+                                                serviceInfo.pwszDescription,
                                                 serviceState,
-                                                (serviceInfo.bAutostart)?"Automatic": "Manual", 
+                                                (serviceInfo.bAutostart)?"Automatic": "Manual",
                                                 "root" });
                                 lvItem.Tag = name;
                                 lvService.Items.Add(lvItem);
@@ -348,7 +348,7 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 if (ServiceAction == "StartService" || (ServiceAction == "ResumeService"))
                     lvService.SelectedItems[0].SubItems[2].Text = "Started";
                 else if (ServiceAction == "PauseService")
-                    lvService.SelectedItems[0].SubItems[2].Text = "Paused";             
+                    lvService.SelectedItems[0].SubItems[2].Text = "Paused";
                 else
                     lvService.SelectedItems[0].SubItems[2].Text = string.Empty;
             }

@@ -65,9 +65,9 @@ namespace Likewise.LMC.ServerControl
             this.btnOK = new System.Windows.Forms.Button();
             this.pnlControls.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlControls
-            // 
+            //
             this.pnlControls.Controls.Add(this.btnApply);
             this.pnlControls.Controls.Add(this.btnCancel);
             this.pnlControls.Controls.Add(this.btnOK);
@@ -76,9 +76,9 @@ namespace Likewise.LMC.ServerControl
             this.pnlControls.Name = "pnlControls";
             this.pnlControls.Size = new System.Drawing.Size(472, 34);
             this.pnlControls.TabIndex = 0;
-            // 
+            //
             // btnApply
-            // 
+            //
             this.btnApply.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnApply.Location = new System.Drawing.Point(394, 6);
             this.btnApply.Name = "btnApply";
@@ -87,9 +87,9 @@ namespace Likewise.LMC.ServerControl
             this.btnApply.Text = "&Apply";
             this.btnApply.UseVisualStyleBackColor = true;
             this.btnApply.Click += new System.EventHandler(this.btnApply_Click);
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(315, 6);
@@ -99,9 +99,9 @@ namespace Likewise.LMC.ServerControl
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // btnOK
-            // 
+            //
             this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.btnOK.Location = new System.Drawing.Point(234, 6);
@@ -112,9 +112,9 @@ namespace Likewise.LMC.ServerControl
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
             this.btnOK.EnabledChanged += new System.EventHandler(this.btnOK_EnabledChanged);
-            // 
+            //
             // EditDialog
-            // 
+            //
             this.AcceptButton = this.btnOK;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;

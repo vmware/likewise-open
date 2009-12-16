@@ -60,7 +60,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         {
             this.components = new System.ComponentModel.Container();
             this.userInfo = new UserInfo();
-            
+
         }
 
         #endregion

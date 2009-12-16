@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 {
     partial class ComputerGeneralEditPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -77,9 +77,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox4)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.pictureBox3);
             this.pnlData.Controls.Add(this.label1);
             this.pnlData.Controls.Add(this.checkBoxTrust);
@@ -95,9 +95,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pnlData.Controls.Add(this.pictureBox4);
             this.pnlData.Controls.Add(this.lblComputerName);
             this.pnlData.Size = new System.Drawing.Size(379, 378);
-            // 
+            //
             // pictureBox3
-            // 
+            //
             this.pictureBox3.Image = global::Likewise.LMC.Plugins.ADUCPlugin.Properties.Resources.ArrowRed_32;
             this.pictureBox3.Location = new System.Drawing.Point(34, 263);
             this.pictureBox3.Name = "pictureBox3";
@@ -105,9 +105,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.pictureBox3.TabIndex = 63;
             this.pictureBox3.TabStop = false;
             this.pictureBox3.Visible = false;
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(66, 263);
             this.label1.Name = "label1";
@@ -116,9 +116,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.label1.Text = "This security-sensitive option means that services\r\nrunning as localsystem on thi" +
                 "s computer can request\r\nservices from other servers.";
             this.label1.Visible = false;
-            // 
+            //
             // checkBoxTrust
-            // 
+            //
             this.checkBoxTrust.Location = new System.Drawing.Point(15, 239);
             this.checkBoxTrust.Name = "checkBoxTrust";
             this.checkBoxTrust.Size = new System.Drawing.Size(208, 17);
@@ -127,103 +127,103 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.checkBoxTrust.UseVisualStyleBackColor = true;
             this.checkBoxTrust.Visible = false;
             this.checkBoxTrust.CheckedChanged += new System.EventHandler(this.checkBoxTrust_CheckedChanged);
-            // 
+            //
             // txtDescription
-            // 
+            //
             this.txtDescription.Location = new System.Drawing.Point(84, 191);
             this.txtDescription.Name = "txtDescription";
             this.txtDescription.Size = new System.Drawing.Size(278, 20);
             this.txtDescription.TabIndex = 60;
             this.txtDescription.TextChanged += new System.EventHandler(this.txtDescription_TextChanged);
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(12, 191);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(63, 13);
             this.label2.TabIndex = 59;
             this.label2.Text = "&Description:";
-            // 
+            //
             // txtRole
-            // 
+            //
             this.txtRole.Location = new System.Drawing.Point(84, 158);
             this.txtRole.Name = "txtRole";
             this.txtRole.ReadOnly = true;
             this.txtRole.Size = new System.Drawing.Size(278, 20);
             this.txtRole.TabIndex = 58;
-            // 
+            //
             // label7
-            // 
+            //
             this.label7.AutoSize = true;
             this.label7.Location = new System.Drawing.Point(13, 158);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(32, 13);
             this.label7.TabIndex = 57;
             this.label7.Text = "&Role:";
-            // 
+            //
             // txtDNSName
-            // 
+            //
             this.txtDNSName.Location = new System.Drawing.Point(84, 128);
             this.txtDNSName.Name = "txtDNSName";
             this.txtDNSName.ReadOnly = true;
             this.txtDNSName.Size = new System.Drawing.Size(278, 20);
             this.txtDNSName.TabIndex = 56;
-            // 
+            //
             // label8
-            // 
+            //
             this.label8.AutoSize = true;
             this.label8.Location = new System.Drawing.Point(12, 128);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(62, 13);
             this.label8.TabIndex = 55;
             this.label8.Text = "D&NS name:";
-            // 
+            //
             // txtCName
-            // 
+            //
             this.txtCName.Location = new System.Drawing.Point(227, 94);
             this.txtCName.MaxLength = 64;
             this.txtCName.Name = "txtCName";
             this.txtCName.ReadOnly = true;
             this.txtCName.Size = new System.Drawing.Size(135, 20);
             this.txtCName.TabIndex = 54;
-            // 
+            //
             // label9
-            // 
+            //
             this.label9.Location = new System.Drawing.Point(13, 96);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(182, 29);
             this.label9.TabIndex = 53;
             this.label9.Text = "Computer name (pre-&Windows 2000):";
-            // 
+            //
             // groupBox2
-            // 
+            //
             this.groupBox2.Location = new System.Drawing.Point(12, 86);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(350, 2);
             this.groupBox2.TabIndex = 52;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "groupBox2";
-            // 
+            //
             // pictureBox4
-            // 
+            //
             this.pictureBox4.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox4.Image")));
             this.pictureBox4.Location = new System.Drawing.Point(15, 19);
             this.pictureBox4.Name = "pictureBox4";
             this.pictureBox4.Size = new System.Drawing.Size(47, 48);
             this.pictureBox4.TabIndex = 51;
             this.pictureBox4.TabStop = false;
-            // 
+            //
             // lblComputerName
-            // 
+            //
             this.lblComputerName.Location = new System.Drawing.Point(100, 35);
             this.lblComputerName.Name = "lblComputerName";
             this.lblComputerName.Size = new System.Drawing.Size(136, 32);
             this.lblComputerName.TabIndex = 50;
             this.lblComputerName.Text = "Computer";
-            // 
+            //
             // ComputerGeneralEditPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.Transparent;
             this.Name = "ComputerGeneralEditPage";

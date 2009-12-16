@@ -816,7 +816,6 @@ LocalMarshallAccountFlagsToSecurityObject(
     pObject->userInfo.bPasswordNeverExpires  = bPasswordNeverExpires;
     pObject->userInfo.bPromptPasswordChange  = bPromptPasswordChange;
     pObject->userInfo.bUserCanChangePassword = bUserCanChangePassword;
-    pObject->enabled = TRUE;
 
 error:
 
@@ -1579,6 +1578,7 @@ LocalMarshalEntryToSecurityObject(
     BAIL_ON_LSA_ERROR(dwError);
 
     pObject->bIsLocal = TRUE;
+    pObject->enabled = TRUE;
 
     switch (dwObjectClass)
     {

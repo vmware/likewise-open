@@ -38,10 +38,10 @@ using Likewise.LMC.Utilities;
 using System.Threading;
 
 namespace Likewise.LMC.ServerControl
-{    
+{
     public partial class MPContainer : EditDialog
     {
-        #region Class data       
+        #region Class data
         private const String errorImageKey = "MPContainerErrorImage";
         private Hashtable htPages = new Hashtable();
         private Hashtable htTabPages = new Hashtable();
@@ -53,7 +53,7 @@ namespace Likewise.LMC.ServerControl
         private Size origTabControlSize;
 
         //in order to retrieve information from inside tabs
-        private bool _attrModified = false;  
+        private bool _attrModified = false;
         private string _newDn = null;
         private bool _foundGid = false;
         private bool _foundUid = false;
@@ -125,7 +125,7 @@ namespace Likewise.LMC.ServerControl
             }
         }
 
-        #endregion                      
+        #endregion
 
         #region Constructor
 
@@ -140,12 +140,12 @@ namespace Likewise.LMC.ServerControl
         {
             Initialize();
             this.Icon = Resources.likewise;
-        }        
+        }
 
-        #endregion 
-        
+        #endregion
+
         #region Class data access
-       
+
         /// <summary>
         /// Gets the currently shown control
         /// </summary>
@@ -155,10 +155,10 @@ namespace Likewise.LMC.ServerControl
             {
                 return this.controlShown;
             }
-        }        
+        }
 
         /// <summary>
-        /// Set this to true to automatically make all pages 
+        /// Set this to true to automatically make all pages
         /// the same size as the largest page.
         /// </summary>
         public bool PagesSizable
@@ -177,7 +177,7 @@ namespace Likewise.LMC.ServerControl
         /// Set the selected tab page pageID
         /// </summary>
         public string SelectedTabPageID
-        {         
+        {
             get
             {
                 return this.tabControl.SelectedTab.Name;
@@ -194,7 +194,7 @@ namespace Likewise.LMC.ServerControl
         /// <returns>ICollection of MPPage objects</returns>
         public ICollection GetPages()
         {
-            ICollection pages = htPages.Values;            
+            ICollection pages = htPages.Values;
             return pages;
         }
 
@@ -215,19 +215,19 @@ namespace Likewise.LMC.ServerControl
         public void ShowPage(String pageID)
         {
             TabPage tabPage = (TabPage)htTabPages[pageID];
-            if ( tabPage != null )                                 
+            if ( tabPage != null )
                 tabControl.SelectedTab = tabPage;
         }
 
         /// <summary>
-        /// Adds a new page to the container.       
+        /// Adds a new page to the container.
         /// </summary>
         /// <param name="page">The page </param>
         /// <param name="menuItem"></param>
         /// <param name="position">zero based position of the page</param>
         public void AddPage(MPPage page, MPMenuItem menuItem, int position)
         {
-            htPages.Add(menuItem.pageID, page);                        
+            htPages.Add(menuItem.pageID, page);
 
             if (page.Size.Width > largestPageSize.Width)
                 largestPageSize.Width = page.Size.Width;
@@ -292,7 +292,7 @@ namespace Likewise.LMC.ServerControl
         /// </summary>
         public override void RefreshErrorState()
         {
-            bool bErrors = false;                 
+            bool bErrors = false;
 
             foreach (MPPage page in htPages.Values)
             {
@@ -302,22 +302,22 @@ namespace Likewise.LMC.ServerControl
                 // set or clear the page error image
                 TabPage tabPage = (TabPage)htTabPages[page.PageID];
                 if (tabPage != null && tabControl.ImageList != null)
-                {                    
-                    String tabImageKey = bPageError ? errorImageKey : page.PageID;                                       
+                {
+                    String tabImageKey = bPageError ? errorImageKey : page.PageID;
 
                     tabPage.ImageIndex =
                         tabControl.ImageList.Images.IndexOfKey(tabImageKey);
                 }
-            }            
-           
+            }
+
             base.HasErrors = bErrors;
-        }        
+        }
 
         /// <summary>
         /// Selects the first tab that has an error.
         /// If the currently selected tab has an error this function will do nothing.
         /// </summary>
-        public void ShowFirstPageWithError()        
+        public void ShowFirstPageWithError()
         {
             TabPage selectedTab = tabControl.SelectedTab;
             if (selectedTab != null && ((MPPage)htPages[selectedTab.Name]).HasError())
@@ -357,7 +357,7 @@ namespace Likewise.LMC.ServerControl
                 tabControl.ImageList = new ImageList();
                 tabControl.ImageList.ColorDepth = ColorDepth.Depth24Bit;
                 tabControl.ImageList.Images.Add(errorImageKey, errorProvider.Icon);
-            }                    
+            }
         }
 
         /// <summary>
@@ -370,7 +370,7 @@ namespace Likewise.LMC.ServerControl
         {
             smallImageList.Images.Add(errorImageKey, errorProvider.Icon);
             tabControl.ImageList = smallImageList;
-        }             
+        }
 
         /// <summary>
         /// Resize the dialog to fit the largest page.
@@ -391,13 +391,13 @@ namespace Likewise.LMC.ServerControl
             foreach (MPPage page in htPages.Values)
             {
                 // make all pages the size of the biggest page if they are sizable
-                if (bPagesSizable)                
+                if (bPagesSizable)
                     page.Size = largestPageSize;
 
                 SetAllValueChangedHandlers(page);
             }
 
-            
+
             // change the size of the container to fit the largest of the pages
             Size currentPageSize = tabControl.DisplayRectangle.Size;
             this.ClientSize = new Size(
@@ -418,7 +418,7 @@ namespace Likewise.LMC.ServerControl
 
             BackColor = tabControl.BackColor;
             //END HACK
- 
+
 
 
             SetContainerState();
@@ -433,7 +433,7 @@ namespace Likewise.LMC.ServerControl
             base.OnCancel(sender, e);
             StopThreads();
         }
-        
+
         public void StopThreads()
         {
             if (ThreadsInner != null && ThreadsInner.Count != 0)
@@ -461,7 +461,7 @@ namespace Likewise.LMC.ServerControl
                     threadMain.Interrupt();
                 }
             }
-            catch(Exception ex) 
+            catch(Exception ex)
             {
                 Logger.LogException("MPContainer.StopThreads", ex);
             }

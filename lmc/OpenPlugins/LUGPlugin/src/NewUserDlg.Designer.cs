@@ -89,135 +89,135 @@ namespace Likewise.LMC.Plugins.LUG
             // btnCancel
             //
             this.btnCancel.Location = new System.Drawing.Point(230, 6);
-            // 
+            //
             // lbUserName
-            // 
+            //
             this.lbUserName.AutoSize = true;
             this.lbUserName.Location = new System.Drawing.Point(12, 17);
             this.lbUserName.Name = "lbUserName";
             this.lbUserName.Size = new System.Drawing.Size(63, 13);
             this.lbUserName.TabIndex = 1;
             this.lbUserName.Text = "&User Name:";
-            // 
+            //
             // tbUserName
-            // 
+            //
             this.tbUserName.Location = new System.Drawing.Point(91, 13);
             this.tbUserName.MaxLength = 255;
             this.tbUserName.Name = "tbUserName";
             this.tbUserName.Size = new System.Drawing.Size(270, 20);
             this.tbUserName.TabIndex = 3;
-            // 
+            //
             // tbFullName
-            // 
+            //
             this.tbFullName.Location = new System.Drawing.Point(91, 39);
             this.tbFullName.Name = "tbFullName";
             this.tbFullName.Size = new System.Drawing.Size(270, 20);
             this.tbFullName.TabIndex = 4;
-            // 
+            //
             // tbDescription
-            // 
+            //
             this.tbDescription.Location = new System.Drawing.Point(91, 65);
             this.tbDescription.Name = "tbDescription";
             this.tbDescription.Size = new System.Drawing.Size(270, 20);
             this.tbDescription.TabIndex = 5;
-            // 
+            //
             // lbFullName
-            // 
+            //
             this.lbFullName.AutoSize = true;
             this.lbFullName.Location = new System.Drawing.Point(12, 43);
             this.lbFullName.Name = "lbFullName";
             this.lbFullName.Size = new System.Drawing.Size(57, 13);
             this.lbFullName.TabIndex = 3;
             this.lbFullName.Text = "&Full Name:";
-            // 
+            //
             // lbDescription
-            // 
+            //
             this.lbDescription.AutoSize = true;
             this.lbDescription.Location = new System.Drawing.Point(12, 65);
             this.lbDescription.Name = "lbDescription";
             this.lbDescription.Size = new System.Drawing.Size(63, 13);
             this.lbDescription.TabIndex = 5;
             this.lbDescription.Text = "&Description:";
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(12, 119);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(56, 13);
             this.label1.TabIndex = 7;
             this.label1.Text = "&Password:";
-            // 
+            //
             // tbPassword
-            // 
+            //
             this.tbPassword.Location = new System.Drawing.Point(120, 115);
             this.tbPassword.Name = "tbPassword";
             this.tbPassword.PasswordChar = '*';
             this.tbPassword.Size = new System.Drawing.Size(240, 20);
             this.tbPassword.TabIndex = 6;
             this.tbPassword.WordWrap = false;
-            // 
+            //
             // label3
-            // 
+            //
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(12, 145);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(93, 13);
             this.label3.TabIndex = 9;
             this.label3.Text = "&Confirm password:";
-            // 
+            //
             // tbConfirmPassword
-            // 
+            //
             this.tbConfirmPassword.Location = new System.Drawing.Point(120, 141);
             this.tbConfirmPassword.Name = "tbConfirmPassword";
             this.tbConfirmPassword.PasswordChar = '*';
             this.tbConfirmPassword.Size = new System.Drawing.Size(240, 20);
             this.tbConfirmPassword.TabIndex = 7;
             this.tbConfirmPassword.WordWrap = false;
-            // 
+            //
             // cbMustChange
-            // 
+            //
             this.cbMustChange.Location = new System.Drawing.Point(15, 191);
             this.cbMustChange.Name = "cbMustChange";
             this.cbMustChange.Size = new System.Drawing.Size(300, 17);
             this.cbMustChange.TabIndex = 8;
             this.cbMustChange.Text = "User &must change password at next logon";
             this.cbMustChange.UseVisualStyleBackColor = true;
-            // 
+            //
             // cbCannotChange
-            // 
+            //
             this.cbCannotChange.Location = new System.Drawing.Point(15, 214);
             this.cbCannotChange.Name = "cbCannotChange";
             this.cbCannotChange.Size = new System.Drawing.Size(300, 17);
             this.cbCannotChange.TabIndex = 9;
             this.cbCannotChange.Text = "U&ser cannot change password";
             this.cbCannotChange.UseVisualStyleBackColor = true;
-            // 
+            //
             // cbNeverExpires
-            // 
+            //
             this.cbNeverExpires.Location = new System.Drawing.Point(15, 237);
             this.cbNeverExpires.Name = "cbNeverExpires";
             this.cbNeverExpires.Size = new System.Drawing.Size(300, 17);
             this.cbNeverExpires.TabIndex = 10;
             this.cbNeverExpires.Text = "Pass&word never expires";
             this.cbNeverExpires.UseVisualStyleBackColor = true;
-            // 
+            //
             // cbIsDisabled
-            // 
+            //
             this.cbIsDisabled.Location = new System.Drawing.Point(15, 260);
             this.cbIsDisabled.Name = "cbIsDisabled";
             this.cbIsDisabled.Size = new System.Drawing.Size(300, 17);
             this.cbIsDisabled.TabIndex = 11;
             this.cbIsDisabled.Text = "Account is disa&bled";
             this.cbIsDisabled.UseVisualStyleBackColor = true;
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // NewUserDlg
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(387, 338);
             this.Controls.Add(this.label3);

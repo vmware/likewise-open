@@ -72,43 +72,43 @@ namespace Likewise.LMC.Plugins.LUG
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lblCaption
-            // 
+            //
             this.lblCaption.Size = new System.Drawing.Size(177, 23);
             this.lblCaption.Text = "Local {0} on {1}";
-            // 
+            //
             // pnlHeader
-            // 
+            //
             this.pnlHeader.Size = new System.Drawing.Size(574, 59);
-            // 
+            //
             // Image
-            // 
+            //
             this.Image.Text = "";
             this.Image.Width = 18;
-            // 
+            //
             // Disabled
-            // 
+            //
             this.Disabled.Text = "";
             this.Disabled.Width = 0;
-            // 
+            //
             // LUGName
-            // 
+            //
             this.LUGName.Text = "Name";
             this.LUGName.Width = 82;
-            // 
+            //
             // FullName
-            // 
+            //
             this.FullName.Text = "Full Name";
             this.FullName.Width = 144;
-            // 
+            //
             // Description
-            // 
+            //
             this.Description.Text = "Description";
             this.Description.Width = 184;
-            // 
+            //
             // lvLUGBETA
-            // 
+            //
             this.lvLUGBETA.AutoArrange = false;
             this.lvLUGBETA.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvLUGBETA.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -127,9 +127,9 @@ namespace Likewise.LMC.Plugins.LUG
             this.lvLUGBETA.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvLUGBETA_MouseUp);
             this.lvLUGBETA.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvLUGBETA_ColumnClick);
             this.lvLUGBETA.KeyDown += new System.Windows.Forms.KeyEventHandler(this.lvLUGBETA_KeyDown);
-            // 
+            //
             // statusImageList
-            // 
+            //
             this.statusImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("statusImageList.ImageStream")));
             this.statusImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.statusImageList.Images.SetKeyName(0, "LocalUser_16.ico");

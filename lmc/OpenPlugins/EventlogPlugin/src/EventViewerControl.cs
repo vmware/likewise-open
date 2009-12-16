@@ -192,13 +192,13 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
         /// </summary>
         public override void SetPlugInInfo(IPlugInContainer ccontainer, IPlugIn ppi, LACTreeNode ttreeNode, LWTreeView llmctreeview, CServerControl sc)
         {
-            treeNode = ttreeNode;            
+            treeNode = ttreeNode;
             // let the base do its thing
             base.SetPlugInInfo(ccontainer, ppi, ttreeNode, llmctreeview, sc);
-         
-            plugin = ppi as EventlogPlugin;           
+
+            plugin = ppi as EventlogPlugin;
             ctx = (IContext)plugin.HostInfo;
-           
+
             lactreeNode = ttreeNode;
 
             Hostinfo hn = ctx as Hostinfo;
@@ -207,7 +207,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                 this.lblCaption.Text = String.Format("EventViewer for {0}", hn.hostName);
             }
             else
-            {               
+            {
                 this.lblCaption.Text = Properties.Resources.sTitleEventsPage;
                 return;
             }
@@ -216,7 +216,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                 !String.IsNullOrEmpty(hn.hostName))
             {
                 try
-                {                    
+                {
                     FillComboWithLogCount();
                 }
                 catch (Exception e)
@@ -227,7 +227,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             }
             else if (memberType == EventViewerNodeType.PLUGIN &&
                 !String.IsNullOrEmpty(hn.hostName) && hn.IsConnectionSuccess)
-            {               
+            {
                 InitializePluginNodeControl();
             }
         }
@@ -294,7 +294,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 
             if (plugin.logs == null)
                 return;
-            
+
             string[][] sArray = new string[plugin.logs.Length][];
             int idx = 0;
 
@@ -386,7 +386,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                         {
                             if (log != null)
                             {
-                                EventAPI.EventLogRecord record = log.Record;                                
+                                EventAPI.EventLogRecord record = log.Record;
                                 DateTime eventTime = EventUtils.Time_T2DateTime(record.dwEventDateTime);
                                 eventTime = eventTime.ToLocalTime();
                                 string[] values = new string[lvEvents.Columns.Count];
@@ -486,7 +486,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 
             sqlQuery = FilterSQLQuery(lactreeNode);
 
-            Logger.Log(String.Format("SQL Filter: {0}", sqlQuery), Logger.eventLogLogLevel);           
+            Logger.Log(String.Format("SQL Filter: {0}", sqlQuery), Logger.eventLogLogLevel);
 
             if (!eventLogPlugin.EventLogIsOpen())
             {
@@ -695,7 +695,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                     }
 
                 case "&Clear all Events":
-                    {                                   
+                    {
                         break;
                     }
 
@@ -909,11 +909,11 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             if (lpDlg.DialogResult == DialogResult.OK)
             {
                 EventFilterControl filterform = (EventFilterControl)lpDlg.GetPage("FilterProperities");
-                ef = filterform.Filter;                
+                ef = filterform.Filter;
                 lblFiltered.Visible = true;
                 lactreeNode.Tag = ef;
                 FillComboWithLogCount();
-            }           
+            }
         }
 
         /// <summary>
@@ -947,7 +947,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             else if (dlg == DialogResult.No)
             {
                 ClearAllLogEvents();
-            }             
+            }
         }
 
         /// <summary>
@@ -1011,7 +1011,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                     if (lvItem.Tag != null)
                     {
                         //EventLog log = lvItem.Tag as EventLog;
-                        //if (log != null)                       
+                        //if (log != null)
                         EventLogRecord eventLogRecord = lvItem.Tag as EventLogRecord;
                         if (eventLogRecord != null) {
                             eventpropertyContextMenu = GetPropertyContextMenu();
@@ -1076,7 +1076,7 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                 if (memberType == EventViewerNodeType.LOG)
                 {
                     ShowEventProperties();
-                   
+
                 }
                 else if (memberType == EventViewerNodeType.PLUGIN)
                 {
@@ -1399,4 +1399,3 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 
     }
 }
-

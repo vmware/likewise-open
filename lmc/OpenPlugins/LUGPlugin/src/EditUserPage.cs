@@ -64,7 +64,7 @@ public partial class EditUserPage : MPPage, IPropertiesPage
         _username = username;
         
         this.lbUser.Text = String.Format(this.lbUser.Text, username);
-        
+
         try
         {
             LUGAPI.LUGInfo userInfo;
@@ -97,7 +97,7 @@ public partial class EditUserPage : MPPage, IPropertiesPage
         this.cbMustChange.Checked = (userInfo.flags & LUGAPI.UF_PASSWORD_EXPIRED) == 0 ? false : true;
     }
     #endregion
-    
+
     #region accessor functions
     
     public UserProperties userProperties

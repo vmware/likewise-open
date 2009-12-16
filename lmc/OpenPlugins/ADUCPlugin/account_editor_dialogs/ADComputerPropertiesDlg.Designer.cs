@@ -63,26 +63,26 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.errorProvider = new System.Windows.Forms.ErrorProvider(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider)).BeginInit();
             this.SuspendLayout();
-            // 
+            //
             // btnApply
-            // 
-            this.btnApply.DialogResult = System.Windows.Forms.DialogResult.Cancel;          
-            // 
+            //
+            this.btnApply.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            //
             // btnOK
-            //           
+            //
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            // 
+            //
             // btnCancel
-            //            
+            //
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.BlinkStyle = System.Windows.Forms.ErrorBlinkStyle.NeverBlink;
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // ADComputerPropertiesDlg
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.ClientSize = new System.Drawing.Size(390, 440);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;

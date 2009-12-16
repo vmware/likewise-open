@@ -74,13 +74,13 @@ namespace Likewise.LMC.ServerControl
             this.tabControl.Size = new System.Drawing.Size(615, 493);
             this.tabControl.TabIndex = 0;
             this.tabControl.SelectedIndexChanged += new System.EventHandler(this.tabControl_SelectedIndexChanged);
-            // 
+            //
             // errorProvider
-            // 
+            //
             this.errorProvider.ContainerControl = this;
-            // 
+            //
             // MPContainer
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(621, 533);
             this.Controls.Add(this.tabControl);

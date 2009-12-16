@@ -65,17 +65,17 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.colError = new System.Windows.Forms.ColumnHeader();
             this.btnOk = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.Location = new System.Drawing.Point(7, 9);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(363, 37);
             this.label1.TabIndex = 0;
             this.label1.Text = "Multiple errors occured while trying to add the selected objects to the group.";
-            // 
+            //
             // listView
-            // 
+            //
             this.listView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colName,
             this.colError});
@@ -85,19 +85,19 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.listView.TabIndex = 1;
             this.listView.UseCompatibleStateImageBehavior = false;
             this.listView.View = System.Windows.Forms.View.Details;
-            // 
+            //
             // colName
-            // 
+            //
             this.colName.Text = "Name";
             this.colName.Width = 108;
-            // 
+            //
             // colError
-            // 
+            //
             this.colError.Text = "Error";
             this.colError.Width = 300;
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.btnOk.Location = new System.Drawing.Point(311, 261);
             this.btnOk.Name = "btnOk";
@@ -105,9 +105,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.btnOk.TabIndex = 2;
             this.btnOk.Text = "&OK";
             this.btnOk.UseVisualStyleBackColor = true;
-            // 
+            //
             // ADAddtoGroupErrorEditor
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(405, 293);

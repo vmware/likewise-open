@@ -57,33 +57,33 @@ public partial class ADUCPage : StandardPage
     private const string OU_PREFIX = "ou=";
     private const string DN_SEPARATOR = ",";
     private const string CN_COMPUTER = "cn=computer,";
-    
+
     private ListViewColumnSorter lvwColumnSorter;
-    
+
     private ADUCDirectoryNode[] ChildNodes = null;
     public int Count = 0;
     public static string ADObjectType = string.Empty;
     ADUCPlugin plugin = null;
-       
+
     #endregion
-    
+
     #region Constructors
-    
+
     public ADUCPage()
     {
         InitializeComponent();
         // Create an instance of a ListView column sorter and assign it
         // to the ListView control.
-        lvChildNodes.Scrollable = Configurations.useListScrolling;        
+        lvChildNodes.Scrollable = Configurations.useListScrolling;
         lvwColumnSorter = new ListViewColumnSorter();
         this.lvChildNodes.ListViewItemSorter = lvwColumnSorter;
         lvwColumnSorter.Order = SortOrder.Ascending;
     }
-    
+
     #endregion
-    
+
     #region overrides
-    
+
     /// <summary>
     /// Sets the Plugin information to base
     /// List the all child nodes, then refreshes the listview with the all child treenodes.
@@ -117,14 +117,14 @@ public partial class ADUCPage : StandardPage
             SetCaption(sADUC);
         }
     }
-    
+
     /// <summary>
     /// Method to change the listview view style.
     /// </summary>
     public override void Refresh()
     {
         Logger.Log("ADUCPage.Refresh");
-        
+
         //don't actually refresh if the only thing that has changed is the view style.
         if (currentViewStyleChanged)
         {
@@ -148,7 +148,7 @@ public partial class ADUCPage : StandardPage
         else if (treeNode is ADUCDirectoryNode)
         {
             Logger.Log("ADUCPage.Refresh: refreshing directory node");
-            
+
             ADUCDirectoryNode dn = treeNode as ADUCDirectoryNode;
             if (dn != null)
             {
@@ -161,11 +161,11 @@ public partial class ADUCPage : StandardPage
             base.Refresh();
         }
     }
-    
+
     #endregion
-    
+
     #region events
-    
+
     /// <summary>
     /// Get initializes the contextmenu for selected treenode on right click of mouse
     /// </summary>
@@ -231,7 +231,7 @@ public partial class ADUCPage : StandardPage
                                     Logger.ldapLogLevel);
                                 }
                             }
-                        }                       
+                        }
                     }
                 }
                 else
@@ -258,7 +258,7 @@ public partial class ADUCPage : StandardPage
             MessageBox.Show(ex.Message.ToString());
         }
     }
-    
+
     /// <summary>
     /// Expands the selected node with all its chidren on mouse left click
     /// Else gets the contextmenu and initializes the menu items for selected object
@@ -277,12 +277,12 @@ public partial class ADUCPage : StandardPage
             if (hti != null && hti.Item != null)
             {
                 ListViewItem lvItem = hti.Item;
-                
+
                 if (!lvItem.Selected)
                 {
                     lvItem.Selected = true;
                 }
-                
+
                 if (lvItem.Tag != null)
                 {
                     if (e.Button == MouseButtons.Right)
@@ -332,8 +332,8 @@ public partial class ADUCPage : StandardPage
                                 treeNode = lacNode;
 
                                 if (lacNode.Nodes.Count > 0)
-                                {                                    
-                                    lacNode.sc.ShowControl(lacNode);                               
+                                {
+                                    lacNode.sc.ShowControl(lacNode);
                                 }
                                 else
                                 {
@@ -350,8 +350,8 @@ public partial class ADUCPage : StandardPage
                 }
             }
         }
-    }   
-    
+    }
+
     private void lvChildNodes_ColumnClick(object sender, ColumnClickEventArgs e)
     {
         // Determine if clicked column is already the column that is being sorted.
@@ -373,16 +373,16 @@ public partial class ADUCPage : StandardPage
             lvwColumnSorter.SortColumn = e.Column;
             lvwColumnSorter.Order = SortOrder.Ascending;
         }
-        
+
         // Perform the sort with these new sort options.
         this.lvChildNodes.Sort();
     }
-    
-    
+
+
     #endregion
-    
+
     #region context menus
-    
+
     /// <summary>
     /// Method to call building contextmenus for each selected AD Objects
     /// </summary>
@@ -456,7 +456,7 @@ public partial class ADUCPage : StandardPage
                 return buildMultiGroupContextMenu();
             }
             if (bIsOthers)
-            {                
+            {
                 return buildMultiGroupContextMenu();
             }
         }
@@ -508,7 +508,7 @@ public partial class ADUCPage : StandardPage
                     else if (obj_type.Equals("organizationalUnit", StringComparison.InvariantCultureIgnoreCase))
                     {
                         return buildOUContextMenu(dirnode);
-                    }                   
+                    }
 
                     else if ((obj_type.Equals("container", StringComparison.InvariantCultureIgnoreCase)) ||
                     (obj_type.Equals("lostAndFound", StringComparison.InvariantCultureIgnoreCase)) ||
@@ -547,7 +547,7 @@ public partial class ADUCPage : StandardPage
         }
         return null;
     }
-    
+
     /// <summary>
     /// Method to call building contextmenus for each selected AD Objects
     /// </summary>
@@ -687,7 +687,7 @@ public partial class ADUCPage : StandardPage
                     else if ((obj_type.Equals("classSchema", StringComparison.InvariantCultureIgnoreCase)) ||
                     (obj_type.Equals("subSchema", StringComparison.InvariantCultureIgnoreCase)) ||
                     (obj_type.Equals("attributeSchema", StringComparison.InvariantCultureIgnoreCase)))
-                   
+
                     {
                         return buildSchemaAttrContextMenu(dirnode);
                     }
@@ -717,7 +717,7 @@ public partial class ADUCPage : StandardPage
     }
 
     /// <summary>
-    /// Check whether the selected AD object is from the allowedchild objects list, if So build the context menu 
+    /// Check whether the selected AD object is from the allowedchild objects list, if So build the context menu
     /// according to that object
     /// </summary>
     /// <param name="dirnode"></param>
@@ -763,13 +763,13 @@ public partial class ADUCPage : StandardPage
                             return buildSchemaAttrContextMenu(dirnode);
                         }
                     }
-                }               
-            }           
-        }        
+                }
+            }
+        }
 
         return buildGenericContextMenu(dirnode);
     }
-    
+
 
     /// <summary>
     /// Builds the contextmenu for the Multi Group objects
@@ -811,7 +811,7 @@ public partial class ADUCPage : StandardPage
         MenuItem m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));
         cm.MenuItems.Add(m_item);
 
-        cm.MenuItems.Add(new MenuItem("-"));       
+        cm.MenuItems.Add(new MenuItem("-"));
 
         m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));
         cm.MenuItems.Add(m_item);
@@ -852,7 +852,7 @@ public partial class ADUCPage : StandardPage
 
         return cm;
     }
-    
+
     /// <summary>
     /// Builds genereic contextmenu with items "Refresh", "Properties" for each selected object
     /// that will be shown when we mouse right clicked on any object in left hand pane of the ADUC Plugin tree in LMC
@@ -862,19 +862,19 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildGenericContextMenu(ADUCDirectoryNode dirnode)
     {
         ContextMenu cm = new ContextMenu();
-        
+
         MenuItem m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
         return cm;
     }
-    
+
     /// <summary>
     /// Builds the contextmenu for the computer objectclass
     /// </summary>
@@ -891,41 +891,41 @@ public partial class ADUCPage : StandardPage
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
         }
-        
+
         //Commenting this option for 4.1 release as per Glenn Suggestion
         m_item = new MenuItem("Reset Account", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Move...", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         return cm;
     }
-    
+
     /// <summary>
     /// Builds the contextmenu for the configuration and dMD objectclass
     /// </summary>
@@ -934,24 +934,24 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildconfigurationdMDContextMenu(ADUCDirectoryNode dirnode)
     {
         ContextMenu cm = new ContextMenu();
-        
+
         MenuItem m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Rename", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         return cm;
     }
-    
+
     /// <summary>
     /// Builds the contextmenu for the computer objectclass
     /// </summary>
@@ -960,30 +960,30 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildSchemaAttrContextMenu(ADUCDirectoryNode dirnode)
     {
         ContextMenu cm = new ContextMenu();
-        
+
         MenuItem m_item = new MenuItem("Move...", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Rename", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         return cm;
     }
-    
+
     /// <summary>
     /// Builds the contextmenu for the user objectclass
     /// </summary>
@@ -992,53 +992,53 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildUserContextMenu(ADUCDirectoryNode dirnode, string enableOrdisable)
     {
         ContextMenu cm = new ContextMenu();
-        
+
         MenuItem m_item = new MenuItem("Add to Group", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Copy...", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Move...", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem(enableOrdisable, new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Reset Password", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Rename", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         return cm;
     }
     /// <summary>
@@ -1050,19 +1050,19 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildMultiUserContextMenu()
     {
         ContextMenu cm = new ContextMenu();
-        MenuItem m_item = new MenuItem("Add to Group", new EventHandler(cm_OnMenuClick));       
+        MenuItem m_item = new MenuItem("Add to Group", new EventHandler(cm_OnMenuClick));
         cm.MenuItems.Add(m_item);
 
-        m_item = new MenuItem("Move...", new EventHandler(cm_OnMenuClick));      
+        m_item = new MenuItem("Move...", new EventHandler(cm_OnMenuClick));
         cm.MenuItems.Add(m_item);
 
-        m_item = new MenuItem("Enable Account", new EventHandler(cm_OnMenuClick));       
+        m_item = new MenuItem("Enable Account", new EventHandler(cm_OnMenuClick));
         cm.MenuItems.Add(m_item);
 
-        m_item = new MenuItem("Disable Account", new EventHandler(cm_OnMenuClick));        
+        m_item = new MenuItem("Disable Account", new EventHandler(cm_OnMenuClick));
         cm.MenuItems.Add(m_item);
 
-        m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));      
+        m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));
         cm.MenuItems.Add(m_item);
 
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
@@ -1070,13 +1070,13 @@ public partial class ADUCPage : StandardPage
 
         cm.MenuItems.Add(new MenuItem("-"));
 
-        m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));       
+        m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));
         cm.MenuItems.Add(m_item);
         return cm;
 
     }
-    
-    
+
+
     /// <summary>
     /// Builds the contextmenu for the OU objectclass
     /// </summary>
@@ -1085,33 +1085,33 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildOUContextMenu(ADUCDirectoryNode dirnode)
     {
         ContextMenu cm = new ContextMenu();
-        
+
         MenuItem m_item = new MenuItem("New", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         MenuItem newSubMenuItem = new MenuItem("User", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         newSubMenuItem = new MenuItem("Group", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         newSubMenuItem = new MenuItem("Computer", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         newSubMenuItem = new MenuItem("Organizational Unit", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         m_item.MenuItems.Add(new MenuItem("-"));
-        
+
         newSubMenuItem = new MenuItem("Other", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         m_item = new MenuItem("Move...", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
@@ -1126,28 +1126,28 @@ public partial class ADUCPage : StandardPage
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
         }
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         return cm;
     }
-    
+
     /// <summary>
     /// Builds the contextmenu for the Conatiner objectclass
     /// </summary>
@@ -1159,73 +1159,73 @@ public partial class ADUCPage : StandardPage
         if (dirnode != null)
         {
             string obj_type = dirnode.ObjectClass;
-            
+
             MenuItem m_item = new MenuItem("Move...", new EventHandler(cm_OnMenuClick));
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
-            
+
             cm.MenuItems.Add(new MenuItem("-"));
-            
+
             m_item = new MenuItem("New", new EventHandler(cm_OnMenuClick));
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
-            
+
             MenuItem newSubMenuItem = null;
-            
+
             if ((obj_type.Equals("container", StringComparison.InvariantCultureIgnoreCase)) ||
             (obj_type.Equals("lostAndFound", StringComparison.InvariantCultureIgnoreCase)) ||
             (obj_type.Equals("builtinDomain", StringComparison.InvariantCultureIgnoreCase)) ||
             (obj_type.Equals("rpcContainer", StringComparison.InvariantCultureIgnoreCase)))
             {
-                
+
                 newSubMenuItem = new MenuItem("User", new EventHandler(cm_OnMenuClick));
                 newSubMenuItem.Tag = dirnode;
                 m_item.MenuItems.Add(newSubMenuItem);
-                
+
                 newSubMenuItem = new MenuItem("Group", new EventHandler(cm_OnMenuClick));
                 newSubMenuItem.Tag = dirnode;
                 m_item.MenuItems.Add(newSubMenuItem);
-                
+
                 newSubMenuItem = new MenuItem("Computer", new EventHandler(cm_OnMenuClick));
                 newSubMenuItem.Tag = dirnode;
                 m_item.MenuItems.Add(newSubMenuItem);
-                
+
                 m_item.MenuItems.Add(new MenuItem("-"));
             }
-            
+
             newSubMenuItem = new MenuItem("Other", new EventHandler(cm_OnMenuClick));
             newSubMenuItem.Tag = dirnode;
             m_item.MenuItems.Add(newSubMenuItem);
-            
+
             cm.MenuItems.Add(new MenuItem("-"));
-            
+
             m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
-            
+
             m_item = new MenuItem("Rename", new EventHandler(cm_OnMenuClick));
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
-            
+
             m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
-            
+
             cm.MenuItems.Add(new MenuItem("-"));
-            
+
             m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
-            
+
             cm.MenuItems.Add(new MenuItem("-"));
-            
+
             m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));
             m_item.Tag = dirnode;
             cm.MenuItems.Add(m_item);
         }
         return cm;
     }
-    
+
     /// <summary>
     /// Builds the contextmenu for the Configuration objectclass
     /// </summary>
@@ -1234,31 +1234,31 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildConfigurationContextMenu(ADUCDirectoryNode dirnode)
     {
         ContextMenu cm = new ContextMenu();
-        
+
         MenuItem m_item = new MenuItem("New", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         MenuItem newSubMenuItem = new MenuItem("Other", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         return cm;
     }
-    
-    
+
+
     /// <summary>
     /// Builds the contextmenu for the domain
     /// </summary>
@@ -1267,55 +1267,55 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildDomainContextMenu(ADUCDirectoryNode dirnode)
     {
         ContextMenu cm = new ContextMenu();
-        
+
         MenuItem m_item = new MenuItem("New", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         MenuItem newSubMenuItem = new MenuItem("User", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         newSubMenuItem = new MenuItem("Group", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         newSubMenuItem = new MenuItem("Computer", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         newSubMenuItem = new MenuItem("Organizational Unit", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         m_item.MenuItems.Add(new MenuItem("-"));
-        
+
         newSubMenuItem = new MenuItem("Other", new EventHandler(cm_OnMenuClick));
         newSubMenuItem.Tag = dirnode;
         m_item.MenuItems.Add(newSubMenuItem);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         return cm;
-        
+
     }
-    
+
     /// <summary>
     /// Builds the contextmenu for the group objectclass
     /// </summary>
@@ -1324,40 +1324,40 @@ public partial class ADUCPage : StandardPage
     private ContextMenu buildGroupContextMenu(ADUCDirectoryNode dirnode)
     {
         ContextMenu cm = new ContextMenu();
-        
+
         MenuItem m_item = new MenuItem("Move...", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Delete", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         m_item = new MenuItem("Rename", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Refresh", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Properties", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         cm.MenuItems.Add(new MenuItem("-"));
-        
+
         m_item = new MenuItem("Help", new EventHandler(cm_OnMenuClick));
         m_item.Tag = dirnode;
         cm.MenuItems.Add(m_item);
-        
+
         return cm;
     }
-    
+
     /// <summary>
     /// Method that refreshes the selected node when we click on 'refresh' menu item
     /// </summary>
@@ -1367,7 +1367,7 @@ public partial class ADUCPage : StandardPage
     {
         // assure that the sender is a MenuItem
         MenuItem mi = sender as MenuItem;
-        
+
         //Refresh the dirnode (redo a ldap query at the current dirnode)
         if (mi != null && mi.Text.Equals("Refresh"))
         {
@@ -1379,7 +1379,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Event raises when we click on any contextmenu item
     /// And then performs the specified action
@@ -1390,7 +1390,7 @@ public partial class ADUCPage : StandardPage
     {
         // assure that the sender is a MenuItem
         MenuItem mi = sender as MenuItem;
-        
+
         //Help
         if (mi != null && mi.Text.Equals("Help"))
         {
@@ -1402,19 +1402,19 @@ public partial class ADUCPage : StandardPage
             Process.Start(psi);
             return;
         }
-        
+
         ADUCDirectoryNode dirnode = mi.Tag as ADUCDirectoryNode;
-        
+
         if (dirnode == null && lvChildNodes.SelectedItems.Count == 1)
         {
             return;
         }
-        
+
         //if (CheckLdapTimedOut(treeNode as DirectoryNode))
         //{
         //    return;
         //}
-        
+
         int ret = -1;
 
         if (dirnode != null)
@@ -1436,7 +1436,7 @@ public partial class ADUCPage : StandardPage
                 return;
             }
         }
-        
+
         //Refresh the dirnode (redo a ldap query at the current dirnode)
         if (mi != null && mi.Text.Equals("Refresh"))
         {
@@ -1451,7 +1451,7 @@ public partial class ADUCPage : StandardPage
                 base.treeNode = dirnode;
             }
         }
-        
+
         //Add New User
         if (mi != null && mi.Text.Equals("User"))
         {
@@ -1484,7 +1484,7 @@ public partial class ADUCPage : StandardPage
                 AddNewOU(dirnode);
             }
         }
-        
+
         //Add a generic Object
         if (mi != null && mi.Text.Equals("Other"))
         {
@@ -1493,7 +1493,7 @@ public partial class ADUCPage : StandardPage
                 AddNewObject(dirnode);
             }
         }
-        
+
         //Delete an object (user, computer, group and OU
         if (mi != null && mi.Text.Equals("Delete"))
         {
@@ -1552,7 +1552,7 @@ public partial class ADUCPage : StandardPage
                 }
             }
         }
-        
+
         //Copy ...
         if (mi != null && mi.Text.Equals("Copy..."))
         {
@@ -1593,10 +1593,10 @@ public partial class ADUCPage : StandardPage
                         {
                             bUserCannotChange = true;
                         }
-                        if (userCtrlBinStr.Length >= 10 && userCtrlBinStr[userCtrlBinStr.Length - 2] == '1')                         
+                        if (userCtrlBinStr.Length >= 10 && userCtrlBinStr[userCtrlBinStr.Length - 2] == '1')
                         {
                             bAcountDisable = true;
-                        } 
+                        }
 
                         ADUserAddDlg f = new ADUserAddDlg(base.container, this, sText, dirnode.Parent as ADUCDirectoryNode, bAcountDisable, bNeverExpiresPwd, bMustChangePwd, bUserCannotChange, copyfrom);
 
@@ -1705,7 +1705,7 @@ public partial class ADUCPage : StandardPage
                 }
             }
         }
-        
+
         //Rename
         if (mi != null && mi.Text.Equals("Rename"))
         {
@@ -1728,7 +1728,7 @@ public partial class ADUCPage : StandardPage
                         ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
                         string newdn = f.renameUserInfo.fullName;
 
-                        newdn = string.Concat(CN_PREFIX, newdn); 
+                        newdn = string.Concat(CN_PREFIX, newdn);
 
                         ret = dirContext.RenameSynchronous(basedn, newdn, null);
 
@@ -1746,7 +1746,7 @@ public partial class ADUCPage : StandardPage
                             if (f.renameUserInfo.lName != "")
                             {
                                 htUserInfo.Add("sn", f.renameUserInfo.lName);
-                            }                          
+                            }
                             if (f.renameUserInfo.displayName != "")
                             {
                                 htUserInfo.Add("displayName", f.renameUserInfo.displayName);
@@ -1866,7 +1866,7 @@ public partial class ADUCPage : StandardPage
                     }
                 }//if f.name == null, there is no rename performed
             }
-        }        
+        }
 
         //in Computer Or user
         if (mi != null && mi.Text.Equals("Disable Account"))
@@ -1895,7 +1895,7 @@ public partial class ADUCPage : StandardPage
                         MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
                     }
                     if (dlg == DialogResult.Yes || dlg == DialogResult.OK)
-                    {                        
+                    {
                         ret = DoDisableADObjects(dirnode);
                     }
                     if (ret == 0)
@@ -2037,7 +2037,7 @@ public partial class ADUCPage : StandardPage
                     parentNode.IsModified = true;
                     base.treeNode = parentNode;
                 }
-            }            
+            }
             else if (ret == -2)
             {
                 string sMsg = string.Format("Windows cannot enable object {0} becuase\n" +
@@ -2051,14 +2051,14 @@ public partial class ADUCPage : StandardPage
                 container.ShowMessage(sMsg);
             }
         }
-        
+
         //in User only
         if (mi != null && mi.Text.Equals("Reset Password"))
         {
             if (dirnode != null)
             {
                 DirectoryContext dirContext = dirnode.LdapContext;
-                
+
                 //first obtain the current userAccountControl value
                 DirectoryEntry de = new DirectoryEntry(string.Format("LDAP://{0}/{1}", dirContext.DomainName, dirnode.DistinguishedName));
                 int userCtrlInt = int.Parse(de.Properties["userAccountControl"].Value.ToString());
@@ -2072,8 +2072,8 @@ public partial class ADUCPage : StandardPage
                     (userCtrlBinStr.Length >= 10 && userCtrlBinStr[userCtrlBinStr.Length - 7] == '1'))
                 {
                     bNeverExpiresPwd = true;
-                }                            
-                
+                }
+
                 ResetPassword f = new ResetPassword(base.container, this, bNeverExpiresPwd, dirnode.Text);
                 if (f.ShowDialog(this) == DialogResult.OK)
                 {
@@ -2096,14 +2096,14 @@ public partial class ADUCPage : StandardPage
                     catch (Exception)
                     {
                         retValue = false;
-                    }                   
+                    }
                     List<LDAPMod> attrlist = new List<LDAPMod>();
 
                     //second, we need to set up to make sure that user shall change his password next time he logs in.
                     if (f.passwordinfo.MustChangePwNextLogon && !bNeverExpiresPwd && retValue)
-                    {                       
+                    {
                         //int userCtrlInt = (int)de.Properties["msDS-User-Account-Control-Computed"].Value;
-                        //userCtrlInt = Convert.ToInt32(de.Properties["userAccountControl"].Value.ToString());   
+                        //userCtrlInt = Convert.ToInt32(de.Properties["userAccountControl"].Value.ToString());
                         if (userCtrlInt != 546)
                         {
                             string newUserCtrl_val = Convert.ToString(useraccountCtr_decimalVal + 8388608);
@@ -2116,15 +2116,15 @@ public partial class ADUCPage : StandardPage
 
                         string[] pwdLastSet_values = { "0", null };
                         LDAPMod pwdLastSet_attr = new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_REPLACE, "pwdLastSet", pwdLastSet_values);
-                        attrlist.Add(pwdLastSet_attr);                       
-                    }                  
+                        attrlist.Add(pwdLastSet_attr);
+                    }
 
                     if (attrlist.Count != 0)
                     {
                         LDAPMod[] attrinfo = new LDAPMod[attrlist.Count];
                         attrlist.CopyTo(attrinfo);
 
-                        ret = dirnode.LdapContext.ModifySynchronous(dirnode.DistinguishedName, attrinfo);                        
+                        ret = dirnode.LdapContext.ModifySynchronous(dirnode.DistinguishedName, attrinfo);
                     }
 
                     if (retValue && ret == 0)
@@ -2150,7 +2150,7 @@ public partial class ADUCPage : StandardPage
                 }
             }
         }
-        
+
         //Add to Group
         if (mi != null && mi.Text.Equals("Add to Group"))
         {
@@ -2217,9 +2217,9 @@ public partial class ADUCPage : StandardPage
                 }
             }
         }
-        
+
         //Reset Computer Account
-        
+
         if (mi != null && mi.Text.Equals("Reset Account"))
         {
             DirectoryContext dirContext = dirnode.LdapContext;
@@ -2282,13 +2282,13 @@ public partial class ADUCPage : StandardPage
                 }
             }
         }
-		RefreshPluginPage();      
+		RefreshPluginPage();
         //Properties...
         if (mi != null && mi.Text.Equals("Properties"))
         {
             //Thread newThread = new Thread(this.DoPropertyPagesWork);
             //newThread.Start(mi);
-            
+
             //Not using threading
 
             if (lvChildNodes.SelectedItems.Count > 1)
@@ -2298,7 +2298,7 @@ public partial class ADUCPage : StandardPage
 
                 List<object> dirnodes = new List<object>();
                 bool bIsuserType = false;
-                bool bIsgroupType = false;               
+                bool bIsgroupType = false;
                 bool bIsOUType = false;
                 bool bIsOthers = false;
                 ADObjectType = string.Empty;
@@ -2339,7 +2339,7 @@ public partial class ADUCPage : StandardPage
                 else if (bIsOUType && !bIsOthers && !bIsuserType && !bIsgroupType)
                 {
                     ADObjectType = "organizationalUnit";
-                }              
+                }
                 MultiItemPropertiesDlg propertiesDlg = new MultiItemPropertiesDlg(base.container, this, base.pi as ADUCPlugin, dirnodes);
                 propertiesDlg.SetData(plugin.HostInfo.creds, plugin.HostInfo.hostName, "", dnNode, dnNode.LdapContext.SchemaCache);
                 propertiesDlg.Show();
@@ -2348,27 +2348,27 @@ public partial class ADUCPage : StandardPage
             {
                 DoPropertyPagesWork(dirnode);
             }
-        } 
+        }
     }
-    
+
     #endregion
-    
+
     #region helper_functions
 
-    private int DoAddtoGroup(ADUCDirectoryNode dirnode, 
-                             string sDN, 
-                             bool IsSingleObject, 
+    private int DoAddtoGroup(ADUCDirectoryNode dirnode,
+                             string sDN,
+                             bool IsSingleObject,
                              string group,
                              ref List<ListViewItem> itemsList)
     {
         int ret = -1;
         string errorMsg = "The specified account name is already a member of the local group";
-        
+
         string[] groupDns = UserGroupUtils.GetGroupsforUser(dirnode);
 
         foreach (string dn in groupDns)
         {
-            string aPartName = string.Empty;                      
+            string aPartName = string.Empty;
             if (dn.Trim().ToLower().Equals(sDN.Trim().ToLower()))
             {
                 if (IsSingleObject)
@@ -2438,7 +2438,7 @@ public partial class ADUCPage : StandardPage
             {
                 //first obtain the current userAccountControl value
                 DirectoryEntry de = new DirectoryEntry(string.Format("LDAP://{0}/{1}", dirContext.DomainName, dirnode.DistinguishedName));
-                int userCtrlInt = Convert.ToInt32(de.Properties["userAccountControl"].Value.ToString());              
+                int userCtrlInt = Convert.ToInt32(de.Properties["userAccountControl"].Value.ToString());
 
                 string newUserCtrl_val = Convert.ToString(userCtrlInt - 2);
                 //in order to disable an user, we need to add 2 to the existing userControl value
@@ -2525,7 +2525,7 @@ public partial class ADUCPage : StandardPage
                 }
             }
             else if (obj_type.Equals("organizationalUnit", StringComparison.InvariantCultureIgnoreCase))
-            {                
+            {
                 string Msg = "The object {0} is a conatiner and contains other objects.\n" +
                 "Are you sure want to delete the object {1} and the objects it contains?\n" +
                 "This operation could take a long time if {2} contains a large number of objects.";
@@ -2581,7 +2581,7 @@ public partial class ADUCPage : StandardPage
                 }
             }
             ret = dirnode.LdapContext.DeleteSynchronous(dirnode.DistinguishedName);
-            
+
             if(ret!=0)
             {
                 if (ret == (int)0x42)
@@ -2652,7 +2652,7 @@ public partial class ADUCPage : StandardPage
         }
 
         return ret;
-    }   
+    }
 
     public void DoPropertyPagesWork(ADUCDirectoryNode dirnode)
     {
@@ -2685,7 +2685,7 @@ public partial class ADUCPage : StandardPage
                     plugin.HostInfo.hostName,
                     dirnode.Text,
                     dirnode,
-                    dirContext.SchemaCache);     
+                    dirContext.SchemaCache);
                     f.Show();
                     if (f.AttrModified && f.newDn != null)
                     {
@@ -2772,7 +2772,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Refreshes the child nodes when we click of refresh menu item on any selected node
     /// </summary>
@@ -2856,17 +2856,17 @@ public partial class ADUCPage : StandardPage
         {
             return;
         }
-        
+
         //tells the no.of columns that the listview contains
         const int NUM_COLUMNS = 3;
-        
+
         //pixels to use to give a visible margin between columns
         const int MARGIN = 10;
-        
+
         int minColumnWidth = (lvChildNodes.Width / NUM_COLUMNS);
-        
+
         lvChildNodes.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-        
+
         foreach (ColumnHeader ch in lvChildNodes.Columns)
         {
             if (ch.Width + MARGIN < minColumnWidth)
@@ -2879,7 +2879,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Resets the contextmenu on mouse right click of any selected node
     /// </summary>
@@ -2897,9 +2897,9 @@ public partial class ADUCPage : StandardPage
             Logger.Log("ADUCPage::lvChildNodes_MouseUp, menu == null",
             Logger.LogLevel.Error);
         }
-        
+
     }
-    
+
     /// <summary>
     /// Helper function that is used to add new user when we click of 'New - User' menu item
     /// </summary>
@@ -2910,7 +2910,7 @@ public partial class ADUCPage : StandardPage
         {
             string sText = "New Object - User";
             ADUserAddDlg f = new ADUserAddDlg(base.container, this, sText, dirnode, false, false, true, false, "");
-            
+
             f.ShowDialog(this);
             //the user information is gather in f.userInfo before "finish" button is clicked
             if (f.userInfo.commit == true)
@@ -2947,7 +2947,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Helper function that is used to add new computer when we click of 'New - Computer' menu item
     /// </summary>
@@ -2958,10 +2958,10 @@ public partial class ADUCPage : StandardPage
         if (dirnode != null)
         {
             string obj_type = dirnode.ObjectClass;
-            
+
             ADComputerAddDlg f = new ADComputerAddDlg(base.container, this, dirnode);
             f.ShowDialog(this);
-            
+
             if (f.computerInfo.commit == true)
             {
                 Hashtable htCompInfo = new Hashtable();
@@ -2980,7 +2980,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Helper function that is used to add new group when we click of 'New - Group' menu item
     /// </summary>
@@ -2991,7 +2991,7 @@ public partial class ADUCPage : StandardPage
         {
             ADGroupAddDlg f = new ADGroupAddDlg(base.container, this,dirnode);
             f.ShowDialog(this);
-            
+
             if (f.groupInfo.commit == true)
             {
                 Hashtable htgroupInfo = new Hashtable();
@@ -3012,7 +3012,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Helper function that is used to add new OU when we click of 'New - Organizational Unit' menu item
     /// </summary>
@@ -3023,14 +3023,14 @@ public partial class ADUCPage : StandardPage
         {
             ADOUAddDlg f = new ADOUAddDlg(base.container, this, dirnode);
             f.ShowDialog(this);
-            
+
             if (f.ouInfo.commit == true)
             {
                 AddNewObj_OU(dirnode, f.ouInfo.OUName, null, false);
             }
         }
     }
-    
+
     /// <summary>
     /// Helper function that is used to add new object when we click of 'New - Object' menu item
     /// </summary>
@@ -3046,7 +3046,7 @@ public partial class ADUCPage : StandardPage
 
             ADObjectAddDlg f = new ADObjectAddDlg(base.container, this, sText, schemaCache, dirnode);
             f.ShowDialog(this);
-            
+
             if (f.objectInfo.commit)
             {
                 //create an new object
@@ -3073,7 +3073,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Helper function that saves the new computer information in AD by
     /// defining the attributes "cn", "ObjectClass" as computer for the new object
@@ -3093,7 +3093,7 @@ public partial class ADUCPage : StandardPage
             DirectoryContext dirContext = dirnode.LdapContext;
             string[] objectClass_values = { "computer", null };
             int ret = 0;
-            
+
             if (IsObjectItem)
             {
                 foreach (string key in htAttributesList.Keys)
@@ -3107,18 +3107,18 @@ public partial class ADUCPage : StandardPage
                     {
                         continue;
                     }
-                    
+
                     objectClass_values = new string[] { htAttributesList[key].ToString(), null };
                     LDAPMod ouinfo_attr1 =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, key, objectClass_values);
                     ldapattrlst.Add(ouinfo_attr1);
                 }
-                
+
                 objectClass_values = new string[] { "computer", null };
                 LDAPMod ouinfo_attr =
                 new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
                 ldapattrlst.Add(ouinfo_attr);
-                
+
                 string compuserAccountControl = Convert.ToString(546);
                 objectClass_values = new string[] { compuserAccountControl, null };
                 ouinfo_attr =
@@ -3130,7 +3130,7 @@ public partial class ADUCPage : StandardPage
                 LDAPMod userinfo_attr1 =
                 new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
                 ldapattrlst.Add(userinfo_attr1);
-                
+
                 foreach (string key in htAttributesList.Keys)
                 {
                     if (key.Trim().ToLower().Equals("cn"))
@@ -3138,26 +3138,26 @@ public partial class ADUCPage : StandardPage
                         cn = htAttributesList[key].ToString();
                     }
                     objectClass_values = new string[] { htAttributesList[key].ToString(), null };
-                    
+
                     userinfo_attr1 =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, key, objectClass_values);
                     ldapattrlst.Add(userinfo_attr1);
                 }
             }
-            
+
             string dn = string.Concat(CN_PREFIX, cn, DN_SEPARATOR);
             string ou = dirnode.DistinguishedName;
             dn = string.Concat(dn, ou);
-            
+
             LDAPMod[] computerinfo = new LDAPMod[ldapattrlst.Count];
             ldapattrlst.CopyTo(computerinfo);
-            
+
             //returns ret=0 if adding computer is successfull
             ret = dirContext.AddSynchronous(dn, computerinfo);
             if (ret == 0)
             {
                 container.ShowMessage("New Computer Object is added!");
-                
+
                 dirnode.Refresh();
                 dirnode.IsModified = true;
                 base.treeNode = dirnode;
@@ -3248,7 +3248,7 @@ public partial class ADUCPage : StandardPage
                     userinfo.Add(userinfo_attr1);
                 }
             }
-            
+
             int useraccountCtr_decimalVal = 512;
 
             if (IsObjectItem)
@@ -3269,7 +3269,7 @@ public partial class ADUCPage : StandardPage
                 ////user password needs to be set in another way instead of using "userPassword" attribute
                 //if (MustChangePWNxtLogon)
                 //{
-                //    useraccountCtr_decimalVal += 8388608;                   
+                //    useraccountCtr_decimalVal += 8388608;
                 //}
                 if (CannotChangePW)
                 {
@@ -3280,7 +3280,7 @@ public partial class ADUCPage : StandardPage
             string useraccountCtr_decimalStr = Convert.ToString(useraccountCtr_decimalVal);
 
             string[] useraccountCtr_values = { useraccountCtr_decimalStr, null };
-           
+
             LDAPMod[] userinfos = new LDAPMod[userinfo.Count];
             userinfo.CopyTo(userinfos);
 
@@ -3394,8 +3394,8 @@ public partial class ADUCPage : StandardPage
                 else
                 {
                     de.Properties["pwdLastSet"].Value = ConvertToUnixTimestamp(DateTime.Now).ToString();
-                    de.CommitChanges();                    
-                }               
+                    de.CommitChanges();
+                }
 
                 dirnode.Refresh();
                 dirnode.IsModified = true;
@@ -3418,7 +3418,7 @@ public partial class ADUCPage : StandardPage
         }
         return unixTimestamp;
     }
-    
+
     /// <summary>
     /// Helper function that saves the new group information in AD by
     /// defining the attributes "cn", "grouptype", "ObjectClass" as user for the new object
@@ -3450,14 +3450,14 @@ public partial class ADUCPage : StandardPage
                     {
                         continue;
                     }
-                    
+
                     objectClass_values = new string[] { htAttributesList[key].ToString(), null };
-                    
+
                     LDAPMod groupinfo_attr1 =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, key, objectClass_values);
                     ldapAttrlist.Add(groupinfo_attr1);
                 }
-                
+
                 objectClass_values = new string[] { "group", null };
                 LDAPMod groupinfo_attr =
                 new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
@@ -3468,32 +3468,32 @@ public partial class ADUCPage : StandardPage
                 LDAPMod groupinfo_attr1 =
                 new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
                 ldapAttrlist.Add(groupinfo_attr1);
-                
+
                 foreach (string key in htAttributesList.Keys)
                 {
                     if (key.Trim().ToLower().Equals("cn"))
                     {
                         cn = htAttributesList[key].ToString();
                     }
-                    
+
                     objectClass_values = new string[] { htAttributesList[key].ToString(), null };
-                    
+
                     groupinfo_attr1 =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, key, objectClass_values);
                     ldapAttrlist.Add(groupinfo_attr1);
                 }
-            }           
+            }
 
             LDAPMod[] groupinfo = new LDAPMod[ldapAttrlist.Count];
             ldapAttrlist.CopyTo(groupinfo);
-            
+
             string dn = string.Concat(CN_PREFIX, cn, DN_SEPARATOR);
             string ou = dirnode.DistinguishedName;
             dn = string.Concat(dn, ou);
-            
+
             //Returns ret=0 if adding group is successfull
             int ret = dirContext.AddSynchronous(dn, groupinfo);
-            
+
             if (ret == 0)
             {
                 container.ShowMessage("New Group Object is added!");
@@ -3512,7 +3512,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Helper function that saves the new OU information in AD by
     /// defining the attributes "ou", "ObjectClass" as user for the new object
@@ -3529,7 +3529,7 @@ public partial class ADUCPage : StandardPage
             DirectoryContext dirContext = dirnode.LdapContext;
             List<LDAPMod> listattr = new List<LDAPMod>();
             string[] objectClass_values = { "organizationalUnit", null };
-            
+
             if (IsObjectItem)
             {
                 foreach (string key in htAttributesList.Keys)
@@ -3542,7 +3542,7 @@ public partial class ADUCPage : StandardPage
                     {
                         continue;
                     }
-                    
+
                     objectClass_values = new string[] { htAttributesList[key].ToString(), null };
                     LDAPMod ouinfo_attr1 =
                     new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, key, objectClass_values);
@@ -3560,17 +3560,17 @@ public partial class ADUCPage : StandardPage
                 new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
                 listattr.Add(ouinfo_attr1);
             }
-            
+
             LDAPMod[] ouinfo = new LDAPMod[listattr.Count];
             listattr.CopyTo(ouinfo);
-            
+
             string dn = string.Concat(OU_PREFIX, cn, DN_SEPARATOR);
             string ou = dirnode.DistinguishedName;
             dn = string.Concat(dn, ou);
-            
+
             //Returns the ret=0 if adding new OU is successfull
             int ret = dirContext.AddSynchronous(dn, ouinfo);
-            
+
             if (ret == 0)
             {
                 //int length = CommonResources.GetString("Caption_Console").Length + 24;
@@ -3581,7 +3581,7 @@ public partial class ADUCPage : StandardPage
                 //    msgToDisplay = msgToDisplay.PadRight(length - msgToDisplay.Length, ' ');
                 //}
                 //container.ShowMessage(msgToDisplay);
-                
+
                 dirnode.Refresh();
                 dirnode.IsModified = true;
                 base.treeNode = dirnode;
@@ -3592,8 +3592,8 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
-    
+
+
     /// <summary>
     /// Helper function that saves the new object information in AD by
     /// defining the attributes "ObjectClass" as selected object type for the new object
@@ -3609,16 +3609,16 @@ public partial class ADUCPage : StandardPage
         if (dirnode != null)
         {
             LDAPMod[] info = null;
-            
+
             DirectoryContext dirContext = dirnode.LdapContext;
-            
+
             string[] objectClass_values = { choosenclass, null };
-            
+
             if (htAttributesList != null)
             {
                 info = new LDAPMod[htAttributesList.Count];
             }
-            
+
             int i = 0;
             foreach (string key in htAttributesList.Keys)
             {
@@ -3628,10 +3628,10 @@ public partial class ADUCPage : StandardPage
                     continue;
                 }
                 objectClass_values = new string[] { htAttributesList[key].ToString(), null };
-                
+
                 LDAPMod info_attr1 =
                 new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, key, objectClass_values);
-                
+
                 info[i] = info_attr1;
                 i++;
             }
@@ -3640,16 +3640,16 @@ public partial class ADUCPage : StandardPage
                 objectClass_values = new string[] { choosenclass, null };
                 LDAPMod info_attr1 =
                 new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
-                
+
                 info[i] = info_attr1;
             }
-            
+
             string dn = string.Concat(CN_PREFIX, cn, DN_SEPARATOR);
             string ou = dirnode.DistinguishedName;
             dn = string.Concat(dn, ou);
-            
+
             int ret = dirContext.AddSynchronous(dn, info);
-            
+
             if (ret == 0)
             {
                 container.ShowMessage("New Object is added!");
@@ -3668,7 +3668,7 @@ public partial class ADUCPage : StandardPage
             }
         }
     }
-    
+
     /// <summary>
     /// Updates the listview with newly added/modified/deleted object on right hand side of the ADUCPlugin
     /// </summary>
@@ -3680,20 +3680,20 @@ public partial class ADUCPage : StandardPage
     {
         ADUCDirectoryNode dtn = new ADUCDirectoryNode(dn, dirContext, objectClass,
         Resources.Group_16, dirnode.NodeType, this.pi, dirnode.IsDisabled);
-        
+
         ListViewItem lviArr;
-        
+
         string[] parts = dtn.DistinguishedName.Split(',');
         string[] values = { parts.Length > 0 ? parts[0] : "", dtn.ObjectClass, dtn.DistinguishedName };
-        
+
         lviArr = new ListViewItem(values);
         lviArr.Tag = dtn;
         lviArr.ImageIndex = (int)ADUCDirectoryNode.GetNodeType(dtn);
-        
+
         lvChildNodes.Items.Add(lviArr);
-        
+
     }
-    
+
     /// <summary>
     /// takes a leaf node as input, perform a rename operation (delete and then add)
     /// </summary>
@@ -3702,15 +3702,15 @@ public partial class ADUCPage : StandardPage
     private void DelAndAddLeaf(ADUCDirectoryNode dirnode, string newName)
     {
         int ret;
-        
+
         LACTreeNode parentnode = (LACTreeNode) dirnode.Parent;
-        
+
         ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
-        
+
         string newDn = parentdirnode.DistinguishedName;
-        
+
         string obj_type = dirnode.ObjectClass;
-        
+
         DirectoryContext dirContext = dirnode.LdapContext;
         //rename leaf user
         if (obj_type.Equals("top", StringComparison.InvariantCultureIgnoreCase) ||
@@ -3720,122 +3720,122 @@ public partial class ADUCPage : StandardPage
         }
         {
             ret = dirContext.DeleteSynchronous(dirnode.DistinguishedName);
-            
+
             if (ret!=0)
             {
-                
+
                 container.ShowError(ErrorCodes.LDAPString(ret));
                 return;
             }
-            
+
             string[] objectClass_values = { "user", null };
-            
+
             LDAPMod userinfo_attr1 =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
-            
+
             LDAPMod[] userinfo = new LDAPMod[] { userinfo_attr1 };
-            
+
             newDn = string.Concat(CN_PREFIX, newName, DN_SEPARATOR, newDn);
-            
+
             ret = dirContext.AddSynchronous(newDn, userinfo);
-            
+
             if (ret != 0)
             {
                 container.ShowError(ErrorCodes.LDAPString(ret));
             }
         }
-        
+
         //rename leaf computer
         if (obj_type.Equals("computer", StringComparison.InvariantCultureIgnoreCase))
         {
             ret = dirContext.DeleteSynchronous(dirnode.DistinguishedName);
-            
+
             if (ret != 0)
             {
                 container.ShowError(ErrorCodes.LDAPString(ret));
                 return;
             }
-            
+
             string[] objectClass_values = { "user", null }; //need to be fixed, computer is now treated as user (person)
-            
+
             LDAPMod userinfo_attr1 =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
-            
+
             LDAPMod[] userinfo = new LDAPMod[] { userinfo_attr1 };
-            
+
             newDn = string.Concat(CN_PREFIX, newName, DN_SEPARATOR, newDn);
-            
+
             ret = dirContext.AddSynchronous(newDn, userinfo);
-            
+
             if (ret != 0)
             {
                 container.ShowError(ErrorCodes.LDAPString(ret));
             }
         }
-        
+
         //rename leaf ou
         if (obj_type.Equals("organizationalUnit", StringComparison.InvariantCultureIgnoreCase))
         {
-            
+
         }
         {
             ret = dirContext.DeleteSynchronous(dirnode.DistinguishedName);
-            
+
             if (ret != 0)
             {
                 container.ShowError(ErrorCodes.LDAPString(ret));
                 return;
             }
-            
+
             string[] objectClass_values = { "organizationalUnit", null };
-            
+
             LDAPMod userinfo_attr1 =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
-            
+
             LDAPMod[] userinfo = new LDAPMod[] { userinfo_attr1 };
-            
+
             newDn = string.Concat(OU_PREFIX, newName, DN_SEPARATOR, newDn);
-            
+
             ret = dirContext.AddSynchronous(newDn, userinfo);
-            
+
             if (ret != 0)
             {
                 container.ShowError(ErrorCodes.LDAPString(ret));
             }
         }
-        
+
         //rename a group
         if (obj_type.Equals("group", StringComparison.InvariantCultureIgnoreCase))
         {
             ret = dirContext.DeleteSynchronous(dirnode.DistinguishedName);
-            
+
             if (ret != 0)
             {
                 container.ShowError(ErrorCodes.LDAPString(ret));
                 return;
             }
-            
+
             string[] objectClass_values = { "group", null };
-            
+
             LDAPMod userinfo_attr1 =
             new LDAPMod((int)LDAPMod.mod_ops.LDAP_MOD_ADD, "ObjectClass", objectClass_values);
-            
+
             LDAPMod[] userinfo = new LDAPMod[] { userinfo_attr1 };
-            
+
             newDn = string.Concat(CN_PREFIX, newName, DN_SEPARATOR, newDn);
-            
+
             ret = dirContext.AddSynchronous(newDn, userinfo);
-            
+
             if (ret != 0)
             {
                 container.ShowError(ErrorCodes.LDAPString(ret));
             }
         }
-        
+
         parentdirnode.Refresh();
-        
+
     }
-    
+
     private void RefreshModifiedNode(LACTreeNode dirnode, ADUCDirectoryNode newParentDirnode)
     {
         ADUCDirectoryNode newParentnode = newParentDirnode as ADUCDirectoryNode;
@@ -3889,7 +3889,7 @@ public partial class ADUCPage : StandardPage
             {
                 ret = (int)ErrorCodes.LDAPEnum.LDAP_TIMEOUT;
                 Logger.ShowUserError(ErrorCodes.LDAPString(ret));
-            }           
+            }
 
             string sPluginName = plugin._pluginNode.Text.Trim();
             if (sPluginName.Contains("["))
@@ -3905,9 +3905,9 @@ public partial class ADUCPage : StandardPage
         }
         return false;
     }
-    
+
     #endregion
-    
+
 
 }
 
@@ -3932,6 +3932,6 @@ public partial class ADUCPage : StandardPage
             objectName = name;
             dirnode = node;
             page = pp;
-        }      
+        }
     }
 }

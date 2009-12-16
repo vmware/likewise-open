@@ -56,14 +56,14 @@ namespace Likewise.LMC.ServerControl
         LACTreeNode GetPlugInNode();
         void EnumChildren(LACTreeNode parentNode);
         void SetCursor(System.Windows.Forms.Cursor cursor);
-        void SetSingleSignOn(bool useSingleSignOn);  
+        void SetSingleSignOn(bool useSingleSignOn);
         ContextMenu GetTreeContextMenu(LACTreeNode nodeClicked);
         void AddExtPlugin(IPlugIn extPlugin);
         bool PluginSelected();
 
         void SerializePluginInfo(LACTreeNode pluginNode, ref int Id, out XmlElement viewElement, XmlElement ViewsNode, TreeNode SelectedNode);
         void DeserializePluginInfo(XmlNode node, ref LACTreeNode pluginnode, string nodepath);
-        
+
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ namespace Likewise.LMC.ServerControl
 
         void Clear();
 
-        void RefreshPluginPage();        
+        void RefreshPluginPage();
 
         void PropertyPageProxy(object o);
     }
@@ -99,7 +99,7 @@ namespace Likewise.LMC.ServerControl
     /// </summary>
     public interface IPlugInContainer
     {
-        bool GetTargetMachineInfo(IPlugIn requestor, IContext ctx, uint fieldsRequested);             
+        bool GetTargetMachineInfo(IPlugIn requestor, IContext ctx, uint fieldsRequested);
 
         // display prompts, notes and error forms
         DialogResult Prompt(string sMessage, MessageBoxButtons buttons);
@@ -140,9 +140,9 @@ namespace Likewise.LMC.ServerControl
 
         void SetCursor(System.Windows.Forms.Cursor cursor);
 
-        #region 
+        #region
        // Extra interface definition to be able to load Likewise iConsole as plugin
-        
+
         string ApplicationDirectory();
 
         string GetRootDomainName();
@@ -168,8 +168,8 @@ namespace Likewise.LMC.ServerControl
 
         string LogsDirectory();
 
-        string ResourcesDirectory();      
-  
+        string ResourcesDirectory();
+
 
         #endregion
     }
@@ -207,7 +207,7 @@ namespace Likewise.LMC.ServerControl
         /// Get the page ID.
         /// </summary>
         String PageID
-        {          
+        {
             get;
         }
     }
@@ -222,7 +222,7 @@ namespace Likewise.LMC.ServerControl
         /// Set the handler to call when objects data is modified.
         /// </summary>
         /// <param name="eh"></param>
-        void AddDataModifiedHandler(EventHandler eh);        
+        void AddDataModifiedHandler(EventHandler eh);
     }
 
     /// <summary>
@@ -275,7 +275,7 @@ namespace Likewise.LMC.ServerControl
         // Writes an entry to the log file
         void Log(string sMessage, System.Diagnostics.TraceEventType tet, int nLevel);
 
-        // Returns the application directory 
+        // Returns the application directory
         string ApplicationDirectory();
 
         // Returns the log directory
@@ -319,11 +319,10 @@ namespace Likewise.LMC.ServerControl
         }
     }
 
-    public enum IContextType 
-    { 
-        Rootinfo, 
-        Hostinfo, 
-        DbConninfo 
+    public enum IContextType
+    {
+        Rootinfo,
+        Hostinfo,
+        DbConninfo
     };
 }
-

@@ -139,7 +139,7 @@ namespace Likewise.LMC.Services
         //DWORD
         //LwSmAcquireServiceHandle(
         //        PCWSTR pwszName,
-        //        PLW_SERVICE_HANDLE phHandle);       
+        //        PLW_SERVICE_HANDLE phHandle);
         [DllImport(advapiDllPath)]
         public static extern int LwSmAcquireServiceHandle(
                 [MarshalAs(UnmanagedType.LPWStr)] string pName,
@@ -148,35 +148,35 @@ namespace Likewise.LMC.Services
         //VOID
         //LwSmReleaseServiceHandle(
         //    LW_SERVICE_HANDLE hHandle
-        //    );       
+        //    );
         [DllImport(advapiDllPath)]
         public static extern int LwSmReleaseServiceHandle(IntPtr phHandle);
 
         //VOID
         //LwSmStartService(
         //    LW_SERVICE_HANDLE hHandle
-        //    );       
+        //    );
         [DllImport(advapiDllPath)]
         public static extern int LwSmStartService(IntPtr phHandle);
 
         //VOID
         //LwSmStopService(
         //    LW_SERVICE_HANDLE hHandle
-        //    );       
+        //    );
         [DllImport(advapiDllPath)]
         public static extern int LwSmStopService(IntPtr phHandle);
 
         //VOID
         //LwSmRefreshService(
         //    LW_SERVICE_HANDLE hHandle
-        //    );       
+        //    );
         [DllImport(advapiDllPath)]
         public static extern int LwSmRefreshService(IntPtr phHandle);
 
         //VOID
         //LwSmQueryServiceStatus(
         //    LW_SERVICE_HANDLE hHandle
-        //    );       
+        //    );
         [DllImport(advapiDllPath)]
         public static extern int LwSmQueryServiceStatus(IntPtr phHandle, out ServiceManagerApi.LW_SERVICE_STATUS pStatus);
 

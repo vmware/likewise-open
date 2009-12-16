@@ -42,7 +42,7 @@ namespace Likewise.LMC
     public class SplashControl : UserControl
     {
         #region Class Data
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private Container components = null;
@@ -63,7 +63,7 @@ namespace Likewise.LMC
         #endregion
 
         #region Override Methods
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
 
@@ -82,8 +82,8 @@ namespace Likewise.LMC
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -93,9 +93,9 @@ namespace Likewise.LMC
             this.label1 = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // panel1
-            // 
+            //
             this.panel1.BackColor = System.Drawing.Color.Black;
             this.panel1.BackgroundImage = global::Likewise.LMC.Properties.Resources.likewise_splash_screen;
             this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
@@ -106,9 +106,9 @@ namespace Likewise.LMC
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(500, 300);
             this.panel1.TabIndex = 1;
-            // 
+            //
             // label2
-            // 
+            //
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label2.AutoSize = true;
             this.label2.BackColor = System.Drawing.Color.Transparent;
@@ -119,9 +119,9 @@ namespace Likewise.LMC
             this.label2.TabIndex = 2;
             this.label2.Text = "© Likewise Software, 2008";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F);
             this.label1.ForeColor = System.Drawing.Color.White;
@@ -131,9 +131,9 @@ namespace Likewise.LMC
             this.label1.TabIndex = 1;
             this.label1.Text = "Likewise Management Console ";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
+            //
             // SplashControl
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.panel1);
             this.Name = "SplashControl";

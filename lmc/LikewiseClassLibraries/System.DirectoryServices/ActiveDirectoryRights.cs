@@ -54,6 +54,6 @@ namespace System.DirectoryServices
         Synchronize = 1048576,
         WriteDacl = 262144,
         WriteOwner = 524288,
-        WriteProperty = 32 
+        WriteProperty = 32
     }
 }

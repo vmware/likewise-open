@@ -98,7 +98,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 sKey = regValueInfo.sKeyname.ToString().Split(new char[] { '\\' } , 2);
                 data = regValueInfo.bDataBuf;
             }
-            
+
             if (data == null)
             {
                 Logger.Log("ResourceListDialog.SetInputData - RegistryKey.GetValue returns null", Logger.RegistryViewerLoglevel);
@@ -264,7 +264,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
         private void btnOK_Click(object sender, EventArgs e)
         {
-            this.Close();            
+            this.Close();
         }
 
         private void btnDisplay_Click(object sender, EventArgs e)

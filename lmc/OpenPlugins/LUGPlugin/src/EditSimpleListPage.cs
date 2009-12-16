@@ -67,16 +67,16 @@ namespace Likewise.LMC.Plugins.LUG
         #region Constructors
 
         public EditSimpleListPage(
-                string pageID, 
+                string pageID,
                 string subjectName,
                 Icon displayIcon,
-                string ownerType, 
-                string subjectListRelationship, 
-                string memberType, 
+                string ownerType,
+                string subjectListRelationship,
+                string memberType,
                 GetSubjectDescriptionDelegate getSubjectDescription,
                 GetListMembersDelegate getListMembers,
-                DoAddMemberDelegate addMember, 
-                DoDelMemberDelegate delMember, 
+                DoAddMemberDelegate addMember,
+                DoDelMemberDelegate delMember,
                 EditDialog editDialog)
         {
             this.pageID = pageID;
@@ -122,14 +122,14 @@ namespace Likewise.LMC.Plugins.LUG
                         {
                             Logger.Log(String.Format(
                                 "EditSimpleListPage.SetData: cannot add duplicate member!: {0}",
-                                member), 
+                                member),
                                 Logger.LogLevel.Error);
                         }
                         else
                         {
                             members.Add(member, 0);
                         }
-                    }    
+                    }
                 }
             }
 
@@ -220,7 +220,7 @@ namespace Likewise.LMC.Plugins.LUG
                 container.ShowError(exp.Message);
             }
             return false;
-        }        
+        }
 
         private void PopulateListView()
         {
@@ -240,7 +240,7 @@ namespace Likewise.LMC.Plugins.LUG
 
                 lvMembers.Items.AddRange(lvItemArr);
             }
-            
+
         }
 
         #endregion
@@ -300,7 +300,7 @@ namespace Likewise.LMC.Plugins.LUG
 
                 editDialog.bDataWasChanged = (membersAdded.Count + membersDeleted.Count + Description.Length > 0);
                 editDialog.btnApply.Enabled = editDialog.bDataWasChanged;
-                
+
             }
             catch (Exception exp)
             {
@@ -359,11 +359,10 @@ namespace Likewise.LMC.Plugins.LUG
                 else
                 {
                     btnRemove.Enabled = false;
-                } 
+                }
             }
         }
 
         #endregion
     }
 }
-

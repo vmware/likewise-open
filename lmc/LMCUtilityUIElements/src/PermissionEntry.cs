@@ -14,9 +14,10 @@ namespace Likewise.LMC.UtilityUIElements
     {
         #region Class Data
 
-        public Dictionary<string, string> daclInfo = null;
         public bool IsCommit = false;
         public Dictionary<int, string> AceTypes = new Dictionary<int, string>();
+        public List<LwAccessControlEntry> _daclInfo = null;
+        public SecurityDescriptor _securityDescriptor = null;
 
         #endregion
 
@@ -40,50 +41,76 @@ namespace Likewise.LMC.UtilityUIElements
 
         #region Helper functions
 
-        public void InitializeData(Dictionary<string, string> _daclInfo)
+        /// <summary>
+        /// Initialize the DACL info to null in add mode and to object in edit mode
+        /// </summary>
+        /// <param name="daclInfo"></param>
+        /// <param name="securityDescriptor"></param>
+        public void InitializeData(List<LwAccessControlEntry> daclInfo, SecurityDescriptor securityDescriptor)
         {
-           this.daclInfo = _daclInfo;
+           this._daclInfo = daclInfo;
+           this._securityDescriptor = securityDescriptor;
            FillRowPermissions();
         }
 
         private void FillRowPermissions()
         {
+            string[] possiblePermissions = null;
+
+            //Read all possibel permissions based on type of object
             switch (SecurityDescriptor.objectType)
             {
                 case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_FILE_OBJECT:
-                    foreach (string permission in AdvancedPermissions.DirectoryPermissionSet)
-                    {
-                        dgPermissions.Rows.Add(new object[]{
-                                                permission,
-                                                true, //Need to set the value depends on the
-                                                false});
-                    }
+                    possiblePermissions = AdvancedPermissions.DirectoryPermissionSet;
                     break;
 
                 case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_KEY:
                 case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_WOW64_32KEY:
-                    foreach (string permission in AdvancedPermissions.RegistryPermissionSet)
-                    {
-                        dgPermissions.Rows.Add(new object[]{
-                                                permission,
-                                                true,
-                                                false});
-                    }
+                    possiblePermissions = AdvancedPermissions.RegistryPermissionSet;
                     break;
 
                 case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_DS_OBJECT:
                 case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_DS_OBJECT_ALL:
-                    foreach (string permission in AdvancedPermissions.AdsPermissionSet)
-                    {
-                        dgPermissions.Rows.Add(new object[]{
-                                                permission,
-                                                true,
-                                                false});
-                    }
+                    possiblePermissions = AdvancedPermissions.AdsPermissionSet;
                     break;
 
                 default:
                     break;
+            }
+            //Read all allowed/Denied permissions from the dacl list
+            List<string> AllowedPermissions = new List<string>();
+            List<string> DeniedPermissions = new List<string>();
+            if (_daclInfo != null && _daclInfo.Count != 0)
+            {
+                foreach (LwAccessControlEntry ace in _daclInfo)
+                {
+                    if (ace.AceType == 0) {
+                        AllowedPermissions = _securityDescriptor.GetUserOrGroupPermissions(ace.AccessMask);
+                    }
+                    else if (ace.AceType == 1) {
+                        DeniedPermissions = _securityDescriptor.GetUserOrGroupPermissions(ace.AccessMask);
+                    }
+                }
+            }
+
+            //Check for the acetype for each permission in a set
+            foreach (string permission in possiblePermissions)
+            {
+                bool IsAllowed = false;
+                bool IsDenied = false;
+
+                if (AllowedPermissions.Contains(permission)) {
+                    IsAllowed = true;
+                }
+                if (DeniedPermissions.Contains(permission)) {
+                    IsDenied = true;
+                }
+
+                //Need to set the the values depends on the data from the security descriptor
+                dgPermissions.Rows.Add(new object[]{
+                                                permission,
+                                                IsAllowed,
+                                                IsDenied});
             }
         }
 
@@ -91,29 +118,56 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void btnOK_Click(object sender, EventArgs e)
         {
-            //TODO : Need to check with the existing AceMask and then add a
+            //Need to check with the existing AceMask and then add a
             //new entry to the Advanced permissions dialog if it varies
-            int iOldAceMask = Convert.ToInt32(daclInfo["AceMask"]);
-            int iNewAceMask = -1;
 
-            foreach (DataGridViewRow dgRow in dgPermissions.Rows)
+             //Check for the edit mode or add mode. Since in the add mode user should send the null for daclInfo object
+            if (_daclInfo == null)
             {
-                //Need to calculate the each rows AceMask value
-                if (dgRow.Cells[1].Value.ToString().Equals("True"))
-                { }
+                _daclInfo = new List<LwAccessControlEntry>();
 
-                //if (dgRow.Cells[2].Value.ToString().Equals("True"))
-                //{
-                //    if(AceTypes.ContainsKey(1))
-                //        AceTypes[1] =
-                //}
+                LwAccessControlEntry ace = new LwAccessControlEntry();
+                ace.AccessMask = "-1";
+                ace.AceType = 0;
+                _daclInfo.Add(ace);
+
+                ace = new LwAccessControlEntry();
+                ace.AccessMask = "-1";
+                ace.AceType = 1;
+                _daclInfo.Add(ace);
+            }
+            //Need to calculate the access mask for the Allow and deny permission sets.
+            foreach (LwAccessControlEntry ace in _daclInfo)
+            {
+                int iAceMask = Convert.ToInt32(ace.AccessMask);
+                //Validation for the AceType = Allow
+                //Update the the AceType object with modified access modes
+                if (ace.AceType == 0)
+                {
+                    foreach (DataGridViewRow dgRow in dgPermissions.Rows)
+                    {
+                        if (dgRow.Cells[1].Value.ToString().Equals("True"))
+                            _securityDescriptor.GetIntAccessMaskFromStringAceMask(dgRow.Cells[0].Value.ToString(), ref iAceMask);
+                    }
+                }
+
+                //Validation for the AceType = Deny
+                if (ace.AceType == 1)
+                {
+                    foreach (DataGridViewRow dgRow in dgPermissions.Rows)
+                    {
+                        if (dgRow.Cells[2].Value.ToString().Equals("True"))
+                            _securityDescriptor.GetIntAccessMaskFromStringAceMask(dgRow.Cells[0].Value.ToString(), ref iAceMask);
+                    }
+                }
+                //Check for the edit values
+                if (Convert.ToInt32(ace.AccessMask) != Convert.ToInt32(iAceMask))
+                {
+                    ace.AccessMask = iAceMask.ToString();
+                    IsCommit = true;
+                }
             }
 
-            if (iOldAceMask != iNewAceMask)
-            {
-                daclInfo["AceMask"] = iNewAceMask.ToString();
-                IsCommit = true;
-            }
             this.DialogResult = DialogResult.OK;
             Close();
         }

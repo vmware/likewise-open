@@ -35,9 +35,9 @@ using System.Text;
 namespace System.DirectoryServices
 {
    public enum WellKnownSidType
-   { 
+   {
        AccountDomainUsersSid = 42,
        AccountComputersSid = 44
    }
-   
+
 }

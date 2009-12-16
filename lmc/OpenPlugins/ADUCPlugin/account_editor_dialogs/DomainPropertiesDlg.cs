@@ -47,7 +47,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
     public partial class DomainPropertiesDlg : Likewise.LMC.ServerControl.MPContainer
     {
         #region Class Data
-          
+
         private ADUCPlugin _plugin;
         private IPlugInContainer _container;
         private ObjectPropertyInfo objInfo;
@@ -82,13 +82,13 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         /// </summary>
         private void InitializePages()
         {
-            MPPage page = null;          
+            MPPage page = null;
 
             page = new DomainGeneralEditPage();
             this.AddPage(page,
             new MPMenuItem(page.PageID, "General", "General"),
             MPMenu.POSITION_END
-            );           
+            );
 
             page = new ADEditPage(this);
             this.AddPage(page,
@@ -110,8 +110,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         /// <param name="ldapSchemaCache"></param>
         public void SetData(CredentialEntry ce, string servername, string sDomain, ADUCDirectoryNode dirnode, LDAPSchemaCache ldapSchemaCache)
         {
-            Applied = false;           
-            _plugin = dirnode.Plugin as ADUCPlugin; 
+            Applied = false;
+            _plugin = dirnode.Plugin as ADUCPlugin;
             this.Text = String.Format(this.Text, sDomain);
 
             objInfo = new ObjectPropertyInfo
@@ -169,7 +169,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             {
                 page.SetData(info.ce, info.servername, info.objectName, info.dirnode);
             }
-        }        
+        }
 
         /// <summary>
         /// Method to call the Apply functionality for each of tab pages of type MPage.
@@ -195,7 +195,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         {
                             return false;
                         }
-                    }                   
+                    }
                     if (page.PageID.Trim().Equals("EditProperitiesAdvanced"))
                     {
                         ADEditPage _editPage = (ADEditPage)page;
@@ -218,7 +218,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
             objInfo.dirnode.LdapContext.Ldap_CancelSynchronous();
             base.OnCancel(sender, e);
-                        
+
             this.Close();
         }
 

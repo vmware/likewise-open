@@ -126,11 +126,11 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         }
                     }
                 }
-               
+
                 string[] values = { txtAttrValue.Text.ToString().Trim() };
                 lviArr = new ListViewItem(values);
-                this.listViewAttrValues.Items.Add(lviArr);  
-                
+                this.listViewAttrValues.Items.Add(lviArr);
+
                 this.buttonOk.Enabled = true;
             }
             txtAttrValue.Text = "";
@@ -218,10 +218,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             for (int i = 0; i < sTempArr.Length; i++)
             {
                 if (sTempArr[i] != string.Empty && !sTempArr[i].Equals("<Not Set>"))
-                {                  
+                {
                     string[] strvalues = { sTempArr[i].ToString() };
                     lviArr = new ListViewItem(strvalues);
-                    this.listViewAttrValues.Items.Add(lviArr); 
+                    this.listViewAttrValues.Items.Add(lviArr);
                 }
                 origsMultiValuedStringAttrValue += (";" + sTempArr[i].ToString());
             }

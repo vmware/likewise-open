@@ -58,18 +58,18 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         /// </summary>
         private void InitializeComponent()
         {
-            this.SuspendLayout();            
-            // 
+            this.SuspendLayout();
+            //
             // btnOK
-            //             
+            //
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            // 
+            //
             // btnCancel
-            //            
+            //
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // DomainPropertiesDlg
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.ClientSize = new System.Drawing.Size(395, 446);
             this.MinimumSize = new System.Drawing.Size(123, 88);

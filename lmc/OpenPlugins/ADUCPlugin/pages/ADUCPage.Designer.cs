@@ -74,9 +74,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             ((System.ComponentModel.ISupportInitialize)(this.picture)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // lvChildNodes
-            // 
+            //
             this.lvChildNodes.BackColor = System.Drawing.SystemColors.Window;
             this.lvChildNodes.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lvChildNodes.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -99,24 +99,24 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lvChildNodes.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.lvChildNodes_MouseDoubleClick);
             this.lvChildNodes.MouseUp += new System.Windows.Forms.MouseEventHandler(this.lvChildNodes_MouseUp);
             this.lvChildNodes.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.lvChildNodes_ColumnClick);
-            // 
+            //
             // NodeName
-            // 
+            //
             this.NodeName.Text = "Name";
             this.NodeName.Width = 142;
-            // 
+            //
             // NodeClass
-            // 
+            //
             this.NodeClass.Text = "Class";
             this.NodeClass.Width = 71;
-            // 
+            //
             // DN
-            // 
+            //
             this.DN.Text = "Distinguished name";
             this.DN.Width = 177;
-            // 
+            //
             // aducLargeImageList
-            // 
+            //
             this.aducLargeImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("aducLargeImageList.ImageStream")));
             this.aducLargeImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.aducLargeImageList.Images.SetKeyName(0, "computer_48.bmp");
@@ -126,9 +126,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.aducLargeImageList.Images.SetKeyName(4, "aduc_48.bmp");
             this.aducLargeImageList.Images.SetKeyName(5, "DisabledUser.ico");
             this.aducLargeImageList.Images.SetKeyName(6, "DisabledComp.ico");
-            // 
+            //
             // aducImageList
-            // 
+            //
             this.aducImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("aducImageList.ImageStream")));
             this.aducImageList.TransparentColor = System.Drawing.Color.Transparent;
             this.aducImageList.Images.SetKeyName(0, "computer_16.bmp");
@@ -143,9 +143,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.aducImageList.Images.SetKeyName(9, "folderopen.ico");
             this.aducImageList.Images.SetKeyName(10, "EventViewer_48.ico");
             this.aducImageList.Images.SetKeyName(11, "Cell.ico");
-            // 
+            //
             // lblNoitemstodisplay
-            // 
+            //
             this.lblNoitemstodisplay.AutoSize = true;
             this.lblNoitemstodisplay.Location = new System.Drawing.Point(229, 91);
             this.lblNoitemstodisplay.Name = "lblNoitemstodisplay";
@@ -153,9 +153,9 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             this.lblNoitemstodisplay.TabIndex = 5;
             this.lblNoitemstodisplay.Text = "There are no items to show in this view.";
             this.lblNoitemstodisplay.Visible = false;
-            // 
+            //
             // ADUCPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.lblNoitemstodisplay);
             this.Controls.Add(this.lvChildNodes);

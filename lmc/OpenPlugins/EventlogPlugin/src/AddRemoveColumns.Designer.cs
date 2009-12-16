@@ -71,9 +71,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.btnRemove = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(435, 266);
@@ -83,9 +83,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // btnOk
-            // 
+            //
             this.btnOk.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnOk.Location = new System.Drawing.Point(338, 266);
             this.btnOk.Name = "btnOk";
@@ -94,9 +94,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnOk.Text = "&OK";
             this.btnOk.UseVisualStyleBackColor = true;
             this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
-            // 
+            //
             // lbAvailableColumns
-            // 
+            //
             this.lbAvailableColumns.FormattingEnabled = true;
             this.lbAvailableColumns.HorizontalScrollbar = true;
             this.lbAvailableColumns.Location = new System.Drawing.Point(16, 39);
@@ -105,9 +105,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.lbAvailableColumns.Size = new System.Drawing.Size(137, 199);
             this.lbAvailableColumns.TabIndex = 17;
             this.lbAvailableColumns.DoubleClick += new System.EventHandler(this.lbAvailableColumns_DoubleClick);
-            // 
+            //
             // lbDisplayedColumns
-            // 
+            //
             this.lbDisplayedColumns.FormattingEnabled = true;
             this.lbDisplayedColumns.HorizontalScrollbar = true;
             this.lbDisplayedColumns.Location = new System.Drawing.Point(258, 39);
@@ -117,9 +117,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.lbDisplayedColumns.TabIndex = 18;
             this.lbDisplayedColumns.SelectedIndexChanged += new System.EventHandler(this.lbDisplayedColumns_SelectedIndexChanged);
             this.lbDisplayedColumns.DoubleClick += new System.EventHandler(this.lbDisplayedColumns_DoubleClick);
-            // 
+            //
             // btnAdd
-            // 
+            //
             this.btnAdd.Location = new System.Drawing.Point(161, 92);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(91, 28);
@@ -127,9 +127,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnAdd.Text = "A&dd ->";
             this.btnAdd.UseVisualStyleBackColor = true;
             this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
-            // 
+            //
             // btnMoveup
-            // 
+            //
             this.btnMoveup.Location = new System.Drawing.Point(406, 53);
             this.btnMoveup.Name = "btnMoveup";
             this.btnMoveup.Size = new System.Drawing.Size(118, 28);
@@ -137,9 +137,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnMoveup.Text = "M&ove Up";
             this.btnMoveup.UseVisualStyleBackColor = true;
             this.btnMoveup.Click += new System.EventHandler(this.btnMoveup_Click);
-            // 
+            //
             // btnRestoredefaults
-            // 
+            //
             this.btnRestoredefaults.Location = new System.Drawing.Point(406, 130);
             this.btnRestoredefaults.Name = "btnRestoredefaults";
             this.btnRestoredefaults.Size = new System.Drawing.Size(118, 28);
@@ -147,9 +147,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnRestoredefaults.Text = "Re&store Defaults";
             this.btnRestoredefaults.UseVisualStyleBackColor = true;
             this.btnRestoredefaults.Click += new System.EventHandler(this.btnRestoredefaults_Click);
-            // 
+            //
             // btnMovedown
-            // 
+            //
             this.btnMovedown.Location = new System.Drawing.Point(406, 92);
             this.btnMovedown.Name = "btnMovedown";
             this.btnMovedown.Size = new System.Drawing.Size(118, 28);
@@ -157,27 +157,27 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnMovedown.Text = "Mo&ve Down";
             this.btnMovedown.UseVisualStyleBackColor = true;
             this.btnMovedown.Click += new System.EventHandler(this.btnMovedown_Click);
-            // 
+            //
             // labelAvacol
-            // 
+            //
             this.labelAvacol.AutoSize = true;
             this.labelAvacol.Location = new System.Drawing.Point(17, 21);
             this.labelAvacol.Name = "labelAvacol";
             this.labelAvacol.Size = new System.Drawing.Size(95, 13);
             this.labelAvacol.TabIndex = 24;
             this.labelAvacol.Text = "&Available columns:";
-            // 
+            //
             // lableDiscol
-            // 
+            //
             this.lableDiscol.AutoSize = true;
             this.lableDiscol.Location = new System.Drawing.Point(258, 22);
             this.lableDiscol.Name = "lableDiscol";
             this.lableDiscol.Size = new System.Drawing.Size(98, 13);
             this.lableDiscol.TabIndex = 25;
             this.lableDiscol.Text = "Display&ed columns:";
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.BackColor = System.Drawing.Color.Transparent;
@@ -186,9 +186,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.groupBox1.Size = new System.Drawing.Size(508, 5);
             this.groupBox1.TabIndex = 26;
             this.groupBox1.TabStop = false;
-            // 
+            //
             // btnRemove
-            // 
+            //
             this.btnRemove.Location = new System.Drawing.Point(162, 128);
             this.btnRemove.Name = "btnRemove";
             this.btnRemove.Size = new System.Drawing.Size(91, 28);
@@ -196,9 +196,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             this.btnRemove.Text = "<- &Remove";
             this.btnRemove.UseVisualStyleBackColor = true;
             this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
-            // 
+            //
             // AddRemoveColumnsForm
-            // 
+            //
             this.AcceptButton = this.btnOk;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.CancelButton = this.btnCancel;

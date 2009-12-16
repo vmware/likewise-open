@@ -63,18 +63,18 @@ namespace System.DirectoryServices
             this.btnCancel = new System.Windows.Forms.Button();
             this.lbStatus = new System.Windows.Forms.Label();
             this.SuspendLayout();
-            // 
+            //
             // progressBar
-            // 
+            //
             this.progressBar.Location = new System.Drawing.Point(10, 30);
             this.progressBar.MarqueeAnimationSpeed = 120;
             this.progressBar.Maximum = 120;
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(357, 20);
             this.progressBar.TabIndex = 1;
-            // 
+            //
             // btnCancel
-            // 
+            //
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(292, 56);
             this.btnCancel.Name = "btnCancel";
@@ -84,16 +84,16 @@ namespace System.DirectoryServices
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Visible = false;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
+            //
             // lbStatus
-            // 
+            //
             this.lbStatus.Location = new System.Drawing.Point(10, 10);
             this.lbStatus.Name = "lbStatus";
             this.lbStatus.Size = new System.Drawing.Size(357, 13);
             this.lbStatus.TabIndex = 0;
-            // 
+            //
             // WaitForm
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(376, 93);

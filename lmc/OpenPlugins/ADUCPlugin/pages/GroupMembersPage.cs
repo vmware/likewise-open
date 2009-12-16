@@ -265,7 +265,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             System.DirectoryServices.DirectoryEntry deLocal = new System.DirectoryServices.DirectoryEntry(sLdapPath, _dirnode.LdapContext.UserName, _dirnode.LdapContext.Password);
             if (deLocal.Properties["groupType"].Value != null)
             {
-                groupScope = deLocal.Properties["groupType"].Value.ToString();                
+                groupScope = deLocal.Properties["groupType"].Value.ToString();
             }
             return groupScope;
         }
@@ -339,7 +339,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                                 {
                                     found = true;
                                     break;
-                                }                               
+                                }
                             }
                             //do not add duplicate objects
                             if (!found)
@@ -387,7 +387,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         }
                         ADUCDirectoryNode dn = new ADUCDirectoryNode(
                         sDn,
-                        _dirnode.LdapContext,                       
+                        _dirnode.LdapContext,
                         _dirnode.ObjectClass,
                         Properties.Resources.computer,
                         _dirnode.t,

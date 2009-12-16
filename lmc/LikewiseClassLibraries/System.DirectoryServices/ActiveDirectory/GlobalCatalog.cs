@@ -45,7 +45,7 @@ namespace System.DirectoryServices.ActiveDirectory
 
         public GlobalCatalog()
             :base()
-        {               
+        {
         }
 
         public string IPAddress
@@ -87,7 +87,7 @@ namespace System.DirectoryServices.ActiveDirectory
         //before this gets called, the dc should be assigned, hence name, username, password should be set.
         public DirectorySearcher GetDirectorySearcher()
         {
-            string gcLdapPath = string.Format("GC://{0}/", dc.Name);            
+            string gcLdapPath = string.Format("GC://{0}/", dc.Name);
 
             DirectoryEntry deSearchRoot = new DirectoryEntry(gcLdapPath, dc.UserName, dc.Password);
 
@@ -113,8 +113,8 @@ namespace System.DirectoryServices.ActiveDirectory
            /* string sPath = string.Format("LDAP://{0}/RootDSE", dc.Name);
             DirectoryEntry rootDse = new DirectoryEntry(sPath, dc.UserName,dc.Password);
             bool gcEnabled = false;
-            //gcEnabled = (bool)rootDse.Properties["isGlobalCatalogReady"].Value;   
-            string ntdsdsaPath = string.Format("LDAP://{0}/{1}/", dc.Name, rootDse.Properties["configurationNamingContext"].Value.ToString());            
+            //gcEnabled = (bool)rootDse.Properties["isGlobalCatalogReady"].Value;
+            string ntdsdsaPath = string.Format("LDAP://{0}/{1}/", dc.Name, rootDse.Properties["configurationNamingContext"].Value.ToString());
             Console.WriteLine("ntdsdsaPath is " + ntdsdsaPath);
             DirectorySearcher ds = new DirectorySearcher(new DirectoryEntry(ntdsdsaPath, dc.UserName, dc.Password));
             ds.Filter = "(&(objectcategory=ntdsdsa)(options=1))";

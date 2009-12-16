@@ -64,7 +64,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                                     "User cannot change password",
                                     "Password never expires",
                                     "Store password using reversible encryption",
-                                    "Account is disabled",      
+                                    "Account is disabled",
                                     "Smart card is required for interactive logon",
                                     "Account is sensitive and cannot be delegated",
                                     "Use DES encryption types for this account",
@@ -111,7 +111,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 int userCtrlInt = Convert.ToInt32(de.Properties["userAccountControl"].Value.ToString());
                 long pwdLastSet = Convert.ToInt64(de.Properties["pwdLastSet"].Value.ToString());
                 sUserWorkStations = de.Properties["userWorkstations"].Value as string;
-                
+
                 if (de.Properties["userPrincipalName"].Value != null)
                 {
                     Logonname = de.Properties["userPrincipalName"].Value as string;
@@ -137,11 +137,11 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 }
                 try
                 {
-                    string userCtrlBinStr = UserGroupUtils.DecimalToBase(userCtrlInt, 2);                   
+                    string userCtrlBinStr = UserGroupUtils.DecimalToBase(userCtrlInt, 2);
 
-                    if (userCtrlBinStr.Length >= 10 && userCtrlBinStr[userCtrlBinStr.Length - 10] == '1')                        
+                    if (userCtrlBinStr.Length >= 10 && userCtrlBinStr[userCtrlBinStr.Length - 10] == '1')
                     {
-                        bMustChangePwd = true;                       
+                        bMustChangePwd = true;
                     }
                     if (userCtrlBinStr.Length >= 10 && userCtrlBinStr[userCtrlBinStr.Length - 2] == '1')
                     {
@@ -193,7 +193,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             {
                 Logger.LogException("UserAccountPage.SetData", e);
             }
-        } 
+        }
 
 #endregion
 
@@ -251,7 +251,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         }
 
         //.NET appears to lack these very elementary interoperability
-        //functions for reading UNIX timestamps, even though 
+        //functions for reading UNIX timestamps, even though
         //this capability is available in C/C++ in Windows.
         private void ConvertFromUnixTimestamp(double unixTimestamp)
         {
@@ -269,13 +269,13 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         private long CalculateUserAccountControl()
         {
             long userAccCtrl = 512;
-           
+
             foreach (string option in OptionsList)
             {
                 int i = ListUserOptions.Items.IndexOf(option);
 
                 if (ListUserOptions.GetItemChecked(i))
-                {                    
+                {
                     switch (i)
                     {
                         case 0:
@@ -336,7 +336,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 ListUserOptions.SetItemChecked(1, false);
                 return false;
             }
-            
+
             if (ListUserOptions.GetItemChecked(0) && ListUserOptions.GetItemChecked(2))
             {
                 string Msg = "You have selected 'Password never expires'. \nThe user will not be required to change the password at next logon.";
@@ -483,7 +483,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         {
             this.ParentContainer.DataChanged = true;
             UpdateApplyButton();
-        }       
+        }
 
         private void txtlogon_TextChanged(object sender, EventArgs e)
         {
@@ -496,7 +496,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
         {
             this.ParentContainer.DataChanged = txtpreLogonname.Text.Trim().Length > 0;
             UpdateApplyButton();
-        } 
+        }
 
         private void dateTimePicker_ValueChanged(object sender, EventArgs e)
         {

@@ -32,12 +32,12 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 {
     partial class GeneralPropertyPage
     {
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -52,8 +52,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
 
         #region Component Designer generated code
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -79,9 +79,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.txtStartParameters = new System.Windows.Forms.TextBox();
             this.pnlData.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // pnlData
-            // 
+            //
             this.pnlData.Controls.Add(this.txtStartParameters);
             this.pnlData.Controls.Add(this.lblStartParameters);
             this.pnlData.Controls.Add(this.lblMessage);
@@ -102,33 +102,33 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.pnlData.Controls.Add(this.lblServiceNameValue);
             this.pnlData.Controls.Add(this.lblServiceName);
             this.pnlData.Size = new System.Drawing.Size(406, 371);
-            // 
+            //
             // lblServiceName
-            // 
+            //
             this.lblServiceName.Location = new System.Drawing.Point(13, 10);
             this.lblServiceName.Name = "lblServiceName";
             this.lblServiceName.Size = new System.Drawing.Size(100, 23);
             this.lblServiceName.TabIndex = 0;
             this.lblServiceName.Text = "Service name:";
             this.lblServiceName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // lblServiceNameValue
-            // 
+            //
             this.lblServiceNameValue.Location = new System.Drawing.Point(120, 9);
             this.lblServiceNameValue.Name = "lblServiceNameValue";
             this.lblServiceNameValue.Size = new System.Drawing.Size(111, 23);
             this.lblServiceNameValue.TabIndex = 1;
             this.lblServiceNameValue.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // lblDisplayName
-            // 
+            //
             this.lblDisplayName.Location = new System.Drawing.Point(13, 44);
             this.lblDisplayName.Name = "lblDisplayName";
             this.lblDisplayName.Size = new System.Drawing.Size(81, 23);
             this.lblDisplayName.TabIndex = 2;
             this.lblDisplayName.Text = "Display name:";
             this.lblDisplayName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // txtDisplayName
             //
             this.txtDisplayName.Location = new System.Drawing.Point(103, 45);
@@ -137,18 +137,18 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.txtDisplayName.Size = new System.Drawing.Size(293, 20);
             this.txtDisplayName.TabIndex = 3;
             this.txtDisplayName.TextChanged += new System.EventHandler(this.txtDisplayName_TextChanged);
-            // 
+            //
             // lblDescription
-            // 
+            //
             this.lblDescription.Location = new System.Drawing.Point(13, 74);
             this.lblDescription.Name = "lblDescription";
             this.lblDescription.Size = new System.Drawing.Size(81, 23);
             this.lblDescription.TabIndex = 4;
             this.lblDescription.Text = "Description:";
             this.lblDescription.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // txtDescription
-            // 
+            //
             this.txtDescription.Location = new System.Drawing.Point(103, 76);
             this.txtDescription.Multiline = true;
             this.txtDescription.Name = "txtDescription";
@@ -156,36 +156,36 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.txtDescription.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.txtDescription.Size = new System.Drawing.Size(293, 41);
             this.txtDescription.TabIndex = 5;
-            // 
+            //
             // lblPath
-            // 
+            //
             this.lblPath.Location = new System.Drawing.Point(13, 122);
             this.lblPath.Name = "lblPath";
             this.lblPath.Size = new System.Drawing.Size(100, 23);
             this.lblPath.TabIndex = 6;
             this.lblPath.Text = "Path to execute:";
             this.lblPath.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // txtPathToExecute
-            // 
+            //
             this.txtPathToExecute.Location = new System.Drawing.Point(16, 146);
             this.txtPathToExecute.Name = "txtPathToExecute";
             this.txtPathToExecute.ReadOnly = true;
             this.txtPathToExecute.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.txtPathToExecute.Size = new System.Drawing.Size(377, 20);
             this.txtPathToExecute.TabIndex = 7;
-            // 
+            //
             // lblStartupType
-            // 
+            //
             this.lblStartupType.Location = new System.Drawing.Point(13, 183);
             this.lblStartupType.Name = "lblStartupType";
             this.lblStartupType.Size = new System.Drawing.Size(81, 23);
             this.lblStartupType.TabIndex = 8;
             this.lblStartupType.Text = "Startup Type";
             this.lblStartupType.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // cmbStartupType
-            // 
+            //
             this.cmbStartupType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbStartupType.FormattingEnabled = true;
             this.cmbStartupType.Items.AddRange(new object[] {
@@ -196,26 +196,26 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.cmbStartupType.Name = "cmbStartupType";
             this.cmbStartupType.Size = new System.Drawing.Size(293, 21);
             this.cmbStartupType.TabIndex = 9;
-            // 
+            //
             // lblServiceStatusValue
-            // 
+            //
             this.lblServiceStatusValue.Location = new System.Drawing.Point(123, 225);
             this.lblServiceStatusValue.Name = "lblServiceStatusValue";
             this.lblServiceStatusValue.Size = new System.Drawing.Size(198, 23);
             this.lblServiceStatusValue.TabIndex = 11;
             this.lblServiceStatusValue.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // lblServiceStatus
-            // 
+            //
             this.lblServiceStatus.Location = new System.Drawing.Point(13, 222);
             this.lblServiceStatus.Name = "lblServiceStatus";
             this.lblServiceStatus.Size = new System.Drawing.Size(100, 23);
             this.lblServiceStatus.TabIndex = 10;
             this.lblServiceStatus.Text = "Service Status";
             this.lblServiceStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // btnStart
-            // 
+            //
             this.btnStart.Enabled = false;
             this.btnStart.Location = new System.Drawing.Point(16, 255);
             this.btnStart.Name = "btnStart";
@@ -224,9 +224,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.btnStart.Text = "Start";
             this.btnStart.UseVisualStyleBackColor = true;
             this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
-            // 
+            //
             // btnStop
-            // 
+            //
             this.btnStop.Enabled = false;
             this.btnStop.Location = new System.Drawing.Point(100, 254);
             this.btnStop.Name = "btnStop";
@@ -235,9 +235,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.btnStop.Text = "Stop";
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
-            // 
+            //
             // btnPause
-            // 
+            //
             this.btnPause.Enabled = false;
             this.btnPause.Location = new System.Drawing.Point(184, 254);
             this.btnPause.Name = "btnPause";
@@ -246,9 +246,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.btnPause.Text = "Pause";
             this.btnPause.UseVisualStyleBackColor = true;
             this.btnPause.Click += new System.EventHandler(this.btnPause_Click);
-            // 
+            //
             // btnResume
-            // 
+            //
             this.btnResume.Enabled = false;
             this.btnResume.Location = new System.Drawing.Point(273, 253);
             this.btnResume.Name = "btnResume";
@@ -257,9 +257,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.btnResume.Text = "Resume";
             this.btnResume.UseVisualStyleBackColor = true;
             this.btnResume.Click += new System.EventHandler(this.btnResume_Click);
-            // 
+            //
             // lblMessage
-            // 
+            //
             this.lblMessage.Location = new System.Drawing.Point(13, 294);
             this.lblMessage.Name = "lblMessage";
             this.lblMessage.Size = new System.Drawing.Size(347, 34);
@@ -267,16 +267,16 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.lblMessage.Text = "You can specify the start parameters that apply when you start the service from h" +
                 "ere.";
             this.lblMessage.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // lblStartParameters
-            // 
+            //
             this.lblStartParameters.Location = new System.Drawing.Point(14, 330);
             this.lblStartParameters.Name = "lblStartParameters";
             this.lblStartParameters.Size = new System.Drawing.Size(99, 23);
             this.lblStartParameters.TabIndex = 17;
             this.lblStartParameters.Text = "Start Parameters";
             this.lblStartParameters.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
+            //
             // txtStartParameters
             //
             this.txtStartParameters.Location = new System.Drawing.Point(119, 332);
@@ -285,9 +285,9 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
             this.txtStartParameters.Size = new System.Drawing.Size(274, 20);
             this.txtStartParameters.TabIndex = 18;
             this.txtStartParameters.TextChanged += new System.EventHandler(this.txtStartParameters_TextChanged);
-            // 
+            //
             // GeneralPropertyPage
-            // 
+            //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Name = "GeneralPropertyPage";
             this.Size = new System.Drawing.Size(406, 371);

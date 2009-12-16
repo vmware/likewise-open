@@ -288,5 +288,10 @@ SrvFileFree(
         pFile->pfnFreeOplockState(pFile->hOplockState);
     }
 
+    if (pFile->hByteRangeLockState && pFile->pfnFreeByteRangeLockState)
+    {
+        pFile->pfnFreeByteRangeLockState(pFile->hByteRangeLockState);
+    }
+
     SrvFreeMemory(pFile);
 }

@@ -46,20 +46,20 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
 {
     #region Class data
-    
+
     // back reference to the log being viewed and the
     // datagrid that is viewing it (so that we can
     // navigate up and down on it)
     private ListView _eventsListView;
-    
+
     #endregion
-    
+
     #region Constructors
     public EventPropertiesPage()
     {
         InitializeComponent();
     }
-    
+
     /// <summary>
     /// This is the preferred constructor.
     /// </summary>
@@ -70,25 +70,25 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
         _eventsListView = lvEvents;
     }
     #endregion
-    
+
     #region IDirectoryPropertiesPage Members
-    
+
     void IDirectoryPropertiesPage.SetData()
     {
         // load the data for the current event
         LoadData();
-        
+
         // update the next/prev button state
         SetButtonState();
     }
-    
+
     #endregion
-    
+
     /// <summary>
     /// Handles the prev button
     /// </summary>
     private void btnPrev_Click(object sender, EventArgs e)
-    {  
+    {
         if (_eventsListView == null ||
         _eventsListView.Items.Count == 0 ||
         _eventsListView.SelectedItems.Count != 1 ||
@@ -96,7 +96,7 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
         {
             return;
         }
-        
+
         int iEntry = _eventsListView.SelectedItems[0].Index;
 
         if (iEntry == 0)
@@ -118,20 +118,20 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
         if (iEntry != 0)
             // bump the count
             iEntry--;
-        
+
         // change the selection
         _eventsListView.SelectedItems[0].Selected = false;
         _eventsListView.Items[iEntry].Selected = true;
-        
+
         // scroll into view if necessary
         ScrollIntoView(iEntry);
-        
+
         // update the button state
         SetButtonState();
-        
+
         LoadData();
     }
-    
+
     /// <summary>
     /// Handles the next button
     /// </summary>
@@ -144,7 +144,7 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
         {
             return;
         }
-        
+
         int iEntry = _eventsListView.SelectedItems[0].Index;
 
         if (iEntry == _eventsListView.Items.Count - 1)
@@ -162,22 +162,22 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
                 return;
             }
         }
-        
+
         iEntry++;
-        
+
         // change the selection
         _eventsListView.SelectedItems[0].Selected = false;
         _eventsListView.Items[iEntry].Selected = true;
-        
+
         // scroll into view if necessary
         ScrollIntoView(iEntry);
-        
+
         // update the button state
         SetButtonState();
-        
+
         LoadData();
     }
-    
+
     private void btnCopy_Click(object sender, EventArgs e)
     {
         try
@@ -185,21 +185,21 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
             string eventData = "Event Type:    {0}" + "\n" + "Event Source:    {1}" + "\n" + "Event Category:    {2}" + "\n" + "Event ID:    {3}" + "\n" +
             "Date:        {4}" + "\n" + "Time:        {5}" + "\n" + "User:        {6}" + "\n" + "Computer:    {7}" + "\n" +
             "Description:" + "\n" + "{8}";
-            
+
             string clipBoardData = string.Empty;
             // load the selected row
             if (_eventsListView.SelectedItems.Count == 0)
             {
                 return;
             }
-            
+
             EventLogRecord el = _eventsListView.SelectedItems[0].Tag as EventLogRecord;
             if (el != null)
             {
                 EventAPI.EventLogRecord eventRecord = el.Record;
                 DateTime eventTime = EventUtils.Time_T2DateTime(eventRecord.dwEventDateTime);
                 eventTime = eventTime.ToLocalTime();
-                
+
                 // copy fields to clipboard
                 clipBoardData = string.Format(eventData, eventRecord.pszEventType, eventRecord.pszEventSource, eventRecord.pszEventCategory, eventRecord.dwEventSourceId.ToString(),
                 eventTime.ToString("MM/dd/yyyy"), eventTime.ToString("hh:mm:ss"), eventRecord.pszUser, eventRecord.pszComputer, eventRecord.pszDescription);
@@ -218,7 +218,7 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
             Logger.Log(ex.ToString(), Logger.LogLevel.Error);
         }
     }
-    
+
     /// <summary>
     /// Assures that the indicated row is visible
     /// </summary>
@@ -227,9 +227,9 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
     {
         _eventsListView.EnsureVisible(iEntry);
     }
-    
+
     #region Helper functions
-    
+
     /// <summary>
     /// Updates the prev/next buttons as per the current selection in the datagridview
     /// </summary>
@@ -239,7 +239,7 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
         if (_eventsListView.SelectedItems.Count == 1)
         {
             int iEntry = _eventsListView.SelectedItems[0].Index;
-            
+
             // enable disable as needed
             btnPrev.Enabled = iEntry >= 0;
             btnNext.Enabled = (iEntry <= (_eventsListView.Items.Count - 1));
@@ -250,7 +250,7 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
             btnNext.Enabled = false;
         }
     }
-    
+
     /// <summary>
     /// Loads data into the properties controls
     /// </summary>
@@ -263,7 +263,7 @@ public partial class EventPropertiesPage : MPPage, IDirectoryPropertiesPage
             {
                 return;
             }
-            
+
             EventLogRecord el = _eventsListView.SelectedItems[0].Tag as EventLogRecord;
             if (el != null)
             {

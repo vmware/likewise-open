@@ -10,8 +10,8 @@
 
 namespace Likewise.LMC.Plugins.FileShareManager.Properties {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -23,15 +23,15 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,14 +59,14 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 resourceCulture = value;
             }
         }
-        
+
         internal static System.Drawing.Bitmap BlueArrows {
             get {
                 object obj = ResourceManager.GetObject("BlueArrows", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to close the session {0}.
         ///Error: {1} .
@@ -76,7 +76,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Error_DeleteSessionError", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Error: {0}.
         /// </summary>
@@ -85,7 +85,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Error_PrintersError", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to close file:{0}.
         /// </summary>
@@ -94,7 +94,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Error_UnableToCloseFile", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to close the file {0}.
         ///Error: {1} .
@@ -104,7 +104,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Error_UnableToCloseFileSelected", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to delete printer the printer:{0}.
         /// </summary>
@@ -113,7 +113,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Error_UnableToDelete", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to get the list of shared printers: {0}.
         /// </summary>
@@ -122,7 +122,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Error_UnableToGetPrinterList", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to get the list of shared printers..
         /// </summary>
@@ -131,7 +131,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Error_UnableToGetPrinterList2", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to File Shares.
         /// </summary>
@@ -140,14 +140,14 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("FileShares", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap likewise_splash_screen {
             get {
                 object obj = ResourceManager.GetObject("likewise_splash_screen", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Open Files.
         /// </summary>
@@ -156,7 +156,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("OpenFiles", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Open Sessions.
         /// </summary>
@@ -165,7 +165,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("OpenSessions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Lets you manage File shares..
         /// </summary>
@@ -174,7 +174,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("PluginDescription", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Delete shared printer:{0}?.
         /// </summary>
@@ -183,7 +183,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Prompt_DeletePrinter", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you wish to stop sharing {0}?.
         /// </summary>
@@ -192,28 +192,28 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("Prompt_DeleteShare", resourceCulture);
             }
         }
-        
+
         internal static System.Drawing.Bitmap shared_folders {
             get {
                 object obj = ResourceManager.GetObject("shared_folders", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon SharedFolder {
             get {
                 object obj = ResourceManager.GetObject("SharedFolder", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         internal static System.Drawing.Icon SharedFolder2 {
             get {
                 object obj = ResourceManager.GetObject("SharedFolder2", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Shared Printers.
         /// </summary>
@@ -222,7 +222,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("SharedPrinters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Open Files.
         /// </summary>
@@ -231,7 +231,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("sOpenFiles", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Printers.
         /// </summary>
@@ -240,7 +240,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("sPrinters", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Sessions.
         /// </summary>
@@ -249,7 +249,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("sSessions", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Shares.
         /// </summary>
@@ -258,7 +258,7 @@ namespace Likewise.LMC.Plugins.FileShareManager.Properties {
                 return ResourceManager.GetString("sShares", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to File Share Manager.
         /// </summary>
