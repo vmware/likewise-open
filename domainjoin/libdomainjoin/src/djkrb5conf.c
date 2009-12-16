@@ -205,7 +205,7 @@ static CENTERROR CopyEntry(const Krb5Entry *source, Krb5Entry **copy)
     Krb5Entry *created = NULL;
     Krb5Entry *copiedChild = NULL;
     size_t i;
-    GCE(ceError = CTAllocateMemory(sizeof(*created), (void **)&created));
+    GCE(ceError = CTAllocateMemory(sizeof(*created), (void **) (void*)&created));
     GCE(ceError = CTDupOrNullStr(source->leadingWhiteSpace, &created->leadingWhiteSpace));
     GCE(ceError = CTCopyTokenContents(&created->name, &source->name));
     GCE(ceError = CTCopyTokenContents(&created->beginSeparator, &source->beginSeparator));
@@ -259,7 +259,7 @@ static CENTERROR ParseLine(Krb5Entry **parent, const char *linestr, const char *
     Krb5Entry *line = NULL;
     BOOLEAN expectChildren = FALSE;
 
-    GCE(ceError = CTAllocateMemory(sizeof(*line), (void **)&line));
+    GCE(ceError = CTAllocateMemory(sizeof(*line), (void**) (void*)&line));
 
     /* Find the leading whitespace in the line */
     token_start = pos;
@@ -491,9 +491,9 @@ static CENTERROR CreateValueNode(Krb5Entry *conf, int depth, const char *name, c
     if(existing == NULL)
     {
         //Couldn't find a template. Got to create it from scratch
-        GCE(ceError = CTAllocateMemory(sizeof(*created), (void **)&created));
+        GCE(ceError = CTAllocateMemory(sizeof(*created), (void**) (void*)&created));
         //Use one space to indent everything past the stanza level
-        GCE(ceError = CTAllocateMemory(depth + 1, (void **)&created->leadingWhiteSpace));
+        GCE(ceError = CTAllocateMemory(depth + 1, (void**) (void*)&created->leadingWhiteSpace));
         memset(created->leadingWhiteSpace, ' ', depth);
         created->leadingWhiteSpace[depth] = 0;
         GCE(ceError = CTStrdup(" ", &created->name.trailingSeparator));
@@ -533,9 +533,9 @@ static CENTERROR CreateGroupNode(Krb5Entry *conf, int depth, const char *name, K
     if(existing == NULL)
     {
         //Couldn't find a template. Got to create it from scratch
-        GCE(ceError = CTAllocateMemory(sizeof(*created), (void **)&created));
+        GCE(ceError = CTAllocateMemory(sizeof(*created), (void**) (void*)&created));
         //Use one space to indent everything past the stanza level
-        GCE(ceError = CTAllocateMemory(depth + 1, (void **)&created->leadingWhiteSpace));
+        GCE(ceError = CTAllocateMemory(depth + 1, (void**) (void*)&created->leadingWhiteSpace));
         memset(created->leadingWhiteSpace, ' ', depth);
         created->leadingWhiteSpace[depth] = 0;
         GCE(ceError = CTStrdup(" ", &created->name.trailingSeparator));
@@ -574,7 +574,7 @@ static CENTERROR CreateStanzaNode(Krb5Entry *conf, const char *name, Krb5Entry *
     if(existing == NULL)
     {
         //Couldn't find a template. Got to create it from scratch
-        GCE(ceError = CTAllocateMemory(sizeof(*created), (void **)&created));
+        GCE(ceError = CTAllocateMemory(sizeof(*created), (void**) (void*)&created));
     }
     else
     {

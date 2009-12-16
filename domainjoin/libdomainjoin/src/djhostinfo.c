@@ -584,6 +584,7 @@ error:
     return ceError;
 }
 
+#if 0
 static
 CENTERROR
 DJFixNetworkManagerOnlineTimeout(
@@ -648,6 +649,7 @@ cleanup:
 
     return ceError;
 }
+#endif
 
 static
 CENTERROR

@@ -256,7 +256,7 @@ DJParseHostsFile(
         CTStripWhitespace(szBuf);
 
         ceError = CTAllocateMemory(sizeof(HOSTSFILELINE),
-                                   (PVOID*)&pHostsLine);
+                                   (PVOID*)(PVOID)&pHostsLine);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
         pHostsLine->pEntry = NULL;
@@ -273,7 +273,7 @@ DJParseHostsFile(
         if(szBuf[0] != '\0')
         {
             ceError = CTAllocateMemory(sizeof(HOSTSFILEENTRY),
-                                       (PVOID*)&pHostsLine->pEntry);
+                                       (PVOID*)(PVOID)&pHostsLine->pEntry);
             BAIL_ON_CENTERIS_ERROR(ceError);
 
 
@@ -296,7 +296,7 @@ DJParseHostsFile(
                 } else {
 
                     ceError = CTAllocateMemory(sizeof(HOSTFILEALIAS),
-                                               (PVOID*)&pAlias);
+                                               (PVOID*)(PVOID)&pAlias);
                     BAIL_ON_CENTERIS_ERROR(ceError);
 
                     ceError = CTAllocateString(pszTmp, &pAlias->pszAlias);
@@ -386,7 +386,7 @@ DJAddAlias(
 
     if (alwaysAdd || !DJEntryHasAlias(pLine->pEntry->pAliasList, pszName)) {
 
-        ceError = CTAllocateMemory(sizeof(HOSTFILEALIAS), (PVOID*)&pAlias);
+        ceError = CTAllocateMemory(sizeof(HOSTFILEALIAS), (PVOID*)(PVOID)&pAlias);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
         ceError = CTAllocateString(pszName, &pAlias->pszAlias);
@@ -739,7 +739,7 @@ DJReplaceHostnameInMemory(
         CTStripWhitespace(pszDomainName);
         CTStrToLower(pszDomainName);
         ceError = CTAllocateMemory(strlen(pszHostName)+strlen(pszDomainName)+2,
-                                   (PVOID*)&pszCanonicalName);
+                                   (PVOID*)(PVOID)&pszCanonicalName);
         BAIL_ON_CENTERIS_ERROR(ceError);
 
         sprintf(pszCanonicalName, "%s.%s", pszHostName, pszDomainName);
@@ -792,11 +792,11 @@ DJReplaceHostnameInMemory(
             if(pLine == NULL)
             {
                 //We have to create the 127.0.0.1 address
-                ceError = CTAllocateMemory(sizeof(HOSTSFILELINE), (PVOID*)&pCreatedLine);
+                ceError = CTAllocateMemory(sizeof(HOSTSFILELINE), (PVOID*)(PVOID)&pCreatedLine);
                 BAIL_ON_CENTERIS_ERROR(ceError);
 
                 ceError = CTAllocateMemory(sizeof(HOSTSFILEENTRY),
-                                           (PVOID*)&pCreatedLine->pEntry);
+                                           (PVOID*)(PVOID)&pCreatedLine->pEntry);
 
                 ceError = CTAllocateString("127.0.0.1",
                                            &pCreatedLine->pEntry->pszIpAddress);
@@ -840,11 +840,11 @@ DJCopyLine(
         PHOSTSFILELINE *ppDest)
 {
     PHOSTSFILELINE ret = NULL;
-    PHOSTFILEALIAS srcAlias = NULL, *destAlias;
+    PHOSTFILEALIAS srcAlias = NULL, *destAlias = NULL;
     CENTERROR ceError = CENTERROR_SUCCESS;
 
     ceError = CTAllocateMemory(sizeof(HOSTSFILELINE),
-                               (PVOID*)&ret);
+                               (PVOID*)(PVOID)&ret);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ret->bModified = pSrc->bModified;
@@ -854,7 +854,7 @@ DJCopyLine(
     if(pSrc->pEntry != NULL)
     {
         ceError = CTAllocateMemory(sizeof(HOSTSFILEENTRY),
-                                   (PVOID*)&ret->pEntry);
+                                   (PVOID*)(PVOID)&ret->pEntry);
         BAIL_ON_CENTERIS_ERROR(ceError);
         ceError = CTDupOrNullStr(pSrc->pEntry->pszIpAddress, &ret->pEntry->pszIpAddress);
         BAIL_ON_CENTERIS_ERROR(ceError);
@@ -868,7 +868,7 @@ DJCopyLine(
     while(srcAlias != NULL)
     {
         ceError = CTAllocateMemory(sizeof(HOSTFILEALIAS),
-                                   (PVOID*)destAlias);
+                                   (PVOID*)(PVOID)destAlias);
         BAIL_ON_CENTERIS_ERROR(ceError);
         ceError = CTDupOrNullStr(srcAlias->pszAlias, &(*destAlias)->pszAlias);
         BAIL_ON_CENTERIS_ERROR(ceError);
