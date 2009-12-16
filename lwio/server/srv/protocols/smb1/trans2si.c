@@ -665,21 +665,8 @@ SrvUnmarshalRenameInformation(
 
     if (pFileRenameInfo->ulRootDir)
     {
-        if (pFileRenameInfo->ulRootDir >= UINT16_MAX)
-        {
-            ntStatus = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb1->pTree->mutex);
-
-        ntStatus = SrvTreeFindFile(
-                        pCtxSmb1->pTree,
-                        (USHORT)pFileRenameInfo->ulRootDir,
-                        &pTrans2State->pRootDir);
+        ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
     }
 
     pwszFilename = (PWSTR)pDataCursor;
