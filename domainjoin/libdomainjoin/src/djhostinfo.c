@@ -268,7 +268,7 @@ WriteHostnameToSunFiles(
     DWORD nPaths = 0;
     DWORD iPath = 0;
     PSTR contents = NULL;
-    long fileLen;
+    LONG fileLen;
 
     DJ_LOG_INFO("Setting hostname to [%s]", pszComputerName);
 
@@ -584,7 +584,7 @@ error:
     return ceError;
 }
 
-#if 0
+#if !defined(HAVE_SETHOSTNAME) || ! HAVE_DECL_SETHOSTNAME
 static
 CENTERROR
 DJFixNetworkManagerOnlineTimeout(

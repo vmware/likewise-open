@@ -1207,7 +1207,7 @@ Krb5JoinDomain(Krb5Entry *conf,
     GCE(ceError = SetNodeValue( httpdGroup, "reverse_mappings", mappingString ));
 
     /* Enable SSO for Mac platforms, by creating a suitable /Library/Preferences/edu.mit.Kerberos file */
-    GCE(ceError = CreateMacKeberosFile(pszDomainName, domainUpper));
+    GCE(ceError = CreateMacKeberosFile((PSTR) pszDomainName, domainUpper));
 
 cleanup:
     CT_SAFE_FREE_STRING(mappingString);

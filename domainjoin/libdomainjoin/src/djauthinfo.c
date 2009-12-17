@@ -1116,7 +1116,6 @@ void DJCreateComputerAccount(
     PSTR dnsDomain = NULL;
     CHAR krb5ConfEnv[256];
     DWORD dwFlags = 0;
-    DWORD err = 0;
 
     PSTR likewiseVersion = NULL;
     PSTR likewiseBuild = NULL;
