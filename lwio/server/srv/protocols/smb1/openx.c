@@ -884,11 +884,7 @@ SrvBuildOpenResponse(
     else
     {
         pResponseHeader->usFileType = 0;
-
-        // TODO: Get these values from the driver
-        pResponseHeader->usDeviceState = (SMB_DEVICE_STATE_NO_EAS |
-                                          SMB_DEVICE_STATE_NO_SUBSTREAMS |
-                                          SMB_DEVICE_STATE_NO_REPARSE_TAG);
+        pResponseHeader->usDeviceState = 0;
     }
     pResponseHeader->usByteCount = 0;
 
