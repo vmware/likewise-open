@@ -436,9 +436,57 @@ SrvBuildOpenState(
             break;
     }
 
+    /* desired access mask */
+    switch (pRequestHeader->usDesiredAccess & 0x7)
+    {
+        case 0x00:
+
+            pOpenState->ulDesiredAccessMask = GENERIC_READ;
+
+            break;
+
+        case 0x01:
+
+            pOpenState->ulDesiredAccessMask = GENERIC_WRITE;
+
+            break;
+
+        case 0x02:
+
+            pOpenState->ulDesiredAccessMask = GENERIC_READ | GENERIC_WRITE;
+
+            break;
+
+        case 0x03:
+
+            pOpenState->ulDesiredAccessMask = (GENERIC_READ  |
+                                               GENERIC_WRITE |
+                                               GENERIC_EXECUTE);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
     /* action to take if the file exists */
     switch (pRequestHeader->usOpenFunction)
     {
+        case 0x0000: /* Weird EXECUTE -> OPEN_IF semantics */
+
+            if ((pOpenState->ulDesiredAccessMask & GENERIC_EXECUTE) == 0) {
+                ntStatus = STATUS_INVALID_DISPOSITION;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pOpenState->ulCreateDisposition = FILE_OPEN_IF;
+
+            break;
+
         case 0x0001: /* Open file */
 
             pOpenState->ulCreateDisposition = FILE_OPEN;
@@ -472,43 +520,6 @@ SrvBuildOpenState(
         default:
 
             ntStatus = STATUS_INVALID_DISPOSITION;
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            break;
-    }
-
-    /* desired access mask */
-    switch (pRequestHeader->usDesiredAccess & 0x7)
-    {
-        case 0x00:
-
-            pOpenState->ulDesiredAccessMask = GENERIC_READ;
-
-            break;
-
-        case 0x01:
-
-            pOpenState->ulDesiredAccessMask = GENERIC_WRITE;
-
-            break;
-
-        case 0x02:
-
-            pOpenState->ulDesiredAccessMask = GENERIC_READ | GENERIC_WRITE;
-
-            break;
-
-        case 0x03:
-
-            pOpenState->ulDesiredAccessMask = (GENERIC_READ  |
-                                               GENERIC_WRITE |
-                                               GENERIC_EXECUTE);
-
-            break;
-
-        default:
-
-            ntStatus = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntStatus);
 
             break;
@@ -1087,3 +1098,12 @@ SrvFreeOpenState(
 
     SrvFreeMemory(pOpenState);
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
