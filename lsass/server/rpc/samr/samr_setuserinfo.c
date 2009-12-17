@@ -556,6 +556,8 @@ SamrSrvSetUserInfo(
         dwPasswordLen = pInfo->info26.password_len;
         ntStatus = SamrSrvDecryptPasswordBlobEx(pConnCtx,
                                                 &pInfo->info26.password,
+                                                NULL,
+                                                0,
                                                 dwPasswordLen,
                                                 &pwszPassword);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
@@ -571,10 +573,13 @@ SamrSrvSetUserInfo(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    dwError = DirectoryModifyObject(hDirectory,
-                                    pwszAccountDn,
-                                    Mods);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (i > 0)
+    {
+        dwError = DirectoryModifyObject(hDirectory,
+                                        pwszAccountDn,
+                                        Mods);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 cleanup:
     if (pwszPassword)
