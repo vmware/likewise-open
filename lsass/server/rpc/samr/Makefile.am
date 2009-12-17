@@ -52,6 +52,7 @@ libsamr_la_SOURCES = \
     samr_deletealiasmember.c     \
     samr_getmembersinalias.c     \
     samr_getaliasmembership.c    \
+    samr_changepassworduser2.c   \
     samr_accesstoken.c           \
     samr_crypto.c                \
     samr_contexthandle.c
@@ -60,8 +61,6 @@ DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS) \
     $(NETAPI_INCLUDES) \
     $(LWBASE_INCLUDES)
-
-FEATURETEST_FLAGS="-D__EXTENSIONS__ -D_REENTRANT"
 
 libsamr_la_CFLAGS = \
     $(AM_CFLAGS)            \
