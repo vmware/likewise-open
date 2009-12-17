@@ -49,38 +49,40 @@
 
 NTSTATUS
 SamrSrvConnect3(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ UINT32 size,
-    /* [in] */ const wchar16_t *system_name,
-    /* [in] */ UINT32 unknown1,
-    /* [in] */ UINT32 access_mask,
+    /* [in] */  handle_t        hBinding,
+    /* [in] */  DWORD           dwSize,
+    /* [in] */  PCWSTR          pwszSystemName,
+    /* [in] */  DWORD           dwUnknown1,
+    /* [in] */  DWORD           dwAccessMask,
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    PCONNECT_CONTEXT pConn = NULL;
+    const DWORD dwConnectVersion = 3;
 
-    ntStatus = RTL_ALLOCATE(&pConn, CONNECT_CONTEXT, sizeof(*pConn));
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PCONNECT_CONTEXT pConnCtx = NULL;
+
+    ntStatus = SamrSrvConnectInternal(hBinding,
+                                      pwszSystemName,
+                                      dwAccessMask,
+                                      dwConnectVersion,
+                                      0,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      &pConnCtx);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    dwError = DirectoryOpen(&pConn->hDirectory);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pConn->Type     = SamrContextConnect;
-    pConn->refcount = 1;
-
-    InterlockedIncrement(&pConn->refcount);
-
-    *hConn = (CONNECT_HANDLE)pConn;
+    *hConn = (CONNECT_HANDLE)pConnCtx;
 
 cleanup:
     return ntStatus;
 
 error:
-    if (pConn) {
-        InterlockedDecrement(&pConn->refcount);
-        CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConn);
+    if (pConnCtx)
+    {
+        InterlockedDecrement(&pConnCtx->refcount);
+        CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConnCtx);
     }
 
     *hConn = NULL;
