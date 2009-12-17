@@ -863,10 +863,9 @@ SrvBuildOpenResponse(
     // TODO:
     // pResponseHeader->usGrantedAccess = 0;
 
-    ntStatus = WireNTTimeToSMBDateTime(
+    ntStatus = WireNTTimeToSMBUTime(
                     pOpenState->fileBasicInfo.LastWriteTime,
-                    &pResponseHeader->lastWriteDate,
-                    &pResponseHeader->lastWriteTime);
+                    &pResponseHeader->ulLastWriteTime);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseHeader->ulDataSize = SMB_MIN(  UINT32_MAX,

@@ -903,8 +903,7 @@ typedef struct
     USHORT   usDesiredAccess;
     USHORT   usSearchAttributes;
     USHORT   usFileAttributes;
-    SMB_TIME creationTime;
-    SMB_DATE creationDate;
+    ULONG    ulCreationTime;
     USHORT   usOpenFunction;
     ULONG    ulAllocationSize;
     ULONG    ulReserved[2];
@@ -917,10 +916,9 @@ typedef struct
 
 typedef struct
 {
-    USHORT usFid;
-    USHORT usFileAttributes;
-    SMB_TIME lastWriteTime;
-    SMB_DATE lastWriteDate;
+    USHORT   usFid;
+    USHORT   usFileAttributes;
+    ULONG    ulLastWriteTime;
     ULONG    ulDataSize; /* file size */
     USHORT   usGrantedAccess;
     USHORT   usFileType;
@@ -2653,6 +2651,18 @@ WireSMBDateTimeToNTTime(
     PSMB_DATE pSmbDate,
     PSMB_TIME pSmbTime,
     PLONG64   pllNTTime
+    );
+
+NTSTATUS
+WireNTTimeToSMBUTime(
+    LONG64 llNTTime,
+    PULONG pulSmbUTime
+    );
+
+NTSTATUS
+WireSMBUTimetoNTTime(
+    ULONG   ulSmbUTime,
+    PLONG64 pllNTTime
     );
 
 #endif /* __SMBWIRE_H__ */
