@@ -460,7 +460,6 @@ SrvBuildOpenState(
         case 0x03:
 
             pOpenState->ulDesiredAccessMask = (GENERIC_READ  |
-                                               GENERIC_WRITE |
                                                GENERIC_EXECUTE);
 
             break;
