@@ -67,7 +67,7 @@ SamrSrvQuerySecurity(
     PWSTR pwszBaseDn = NULL;
     DWORD dwScope = 0;
     WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
-    WCHAR wszAttrSecDesc[] = DS_DIR_ATTR_SECURITY_DESCRIPTOR;
+    WCHAR wszAttrSecDesc[] = DS_ATTR_SECURITY_DESCRIPTOR;
     size_t sDnLen = 0;
     DWORD dwFilterLen = 0;
     PWSTR pwszFilter = NULL;
