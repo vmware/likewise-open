@@ -406,6 +406,217 @@ error:
 }
 
 
+DWORD
+DirectoryGetEntrySecurityDescriptor(
+    PDIRECTORY_ENTRY               pEntry,
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PDIRECTORY_ATTRIBUTE pAttr = NULL;
+    POCTET_STRING pSecDescBlob = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
+    DWORD dwSecDescSize = 32;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    DWORD dwDaclSize = 512;
+    PACL pDacl = NULL;
+    DWORD dwSaclSize = 0;
+    PACL pSacl = NULL;
+    DWORD dwOwnerSize = 34;
+    PSID pOwnerSid = NULL;
+    DWORD dwPrimaryGroupSize = 34;
+    PSID pPrimaryGroupSid = NULL;
+    DWORD i = 0;
+
+    if (pEntry == NULL ||
+        ppSecDesc == NULL)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    /*
+     * Look for security descriptor value
+     */
+    for (i = 0; i < pEntry->ulNumAttributes; i++)
+    {
+        pAttr = &(pEntry->pAttributes[i]);
+
+        /* Security descriptor is a single-value attribute */
+        if (pAttr->ulNumValues &&
+            pAttr->pValues[0].Type == DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR)
+        {
+            pSecDescBlob = pAttr->pValues[0].data.pOctetString;
+        }
+    }
+
+    /*
+     * Make sure there actually is anything that could
+     * be a security descriptor
+     */
+    if (pSecDescBlob == NULL ||
+        pSecDescBlob->pBytes == NULL ||
+        pSecDescBlob->ulNumBytes == 0)
+    {
+        dwError = ERROR_NO_SECURITY_ON_OBJECT;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(pSecDescBlob->ulNumBytes,
+                               OUT_PPVOID(&pSecDescRel));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memcpy(pSecDescRel, pSecDescBlob->pBytes, pSecDescBlob->ulNumBytes);
+
+    do
+    {
+        if (dwSecDescSize)
+        {
+            dwError = LwReallocMemory(pSecDesc,
+                                      OUT_PPVOID(&pSecDesc),
+                                      dwSecDescSize);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (dwDaclSize)
+        {
+            dwError = LwReallocMemory(pDacl,
+                                      OUT_PPVOID(&pDacl),
+                                      dwDaclSize);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (dwSaclSize)
+        {
+            dwError = LwReallocMemory(pSacl,
+                                      OUT_PPVOID(&pSacl),
+                                      dwSaclSize);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (dwOwnerSize)
+        {
+            dwError = LwReallocMemory(pOwnerSid,
+                                      OUT_PPVOID(&pOwnerSid),
+                                      dwOwnerSize);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (dwPrimaryGroupSize)
+        {
+            dwError = LwReallocMemory(pPrimaryGroupSid,
+                                      OUT_PPVOID(&pPrimaryGroupSid),
+                                      dwPrimaryGroupSize);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        ntStatus = RtlSelfRelativeToAbsoluteSD(pSecDescRel,
+                                               pSecDesc,
+                                               &dwSecDescSize,
+                                               pDacl,
+                                               &dwDaclSize,
+                                               pSacl,
+                                               &dwSaclSize,
+                                               pOwnerSid,
+                                               &dwOwnerSize,
+                                               pPrimaryGroupSid,
+                                               &dwPrimaryGroupSize);
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_BUFFER_TOO_SMALL)
+        {
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+    }
+    while (ntStatus == STATUS_BUFFER_TOO_SMALL &&
+           dwSecDescSize <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE);
+
+    *ppSecDesc = pSecDesc;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pSecDescRel);
+
+    if (dwError == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pSecDesc);
+
+    *ppSecDesc = NULL;
+
+    goto cleanup;
+}
+
+
+VOID
+DirectoryFreeEntrySecurityDescriptor(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    PSID pOwnerSid = NULL;
+    BOOLEAN bOwnerDefaulted = FALSE;
+    PSID pPrimaryGroupSid = NULL;
+    BOOLEAN bPrimaryGroupDefaulted = FALSE;
+    PACL pDacl = NULL;
+    BOOLEAN bDaclPresent = FALSE;
+    BOOLEAN bDaclDefaulted = FALSE;
+    PACL pSacl = NULL;
+    BOOLEAN bSaclPresent = FALSE;
+    BOOLEAN bSaclDefaulted = FALSE;
+
+    if (ppSecDesc == NULL &&
+        *ppSecDesc == NULL)
+    {
+        return;
+    }
+
+    pSecDesc = *ppSecDesc;
+
+    ntStatus = RtlGetOwnerSecurityDescriptor(pSecDesc,
+                                             &pOwnerSid,
+                                             &bOwnerDefaulted);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = RtlGetGroupSecurityDescriptor(pSecDesc,
+                                             &pPrimaryGroupSid,
+                                             &bPrimaryGroupDefaulted);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = RtlGetDaclSecurityDescriptor(pSecDesc,
+                                            &bDaclPresent,
+                                            &pDacl,
+                                            &bDaclDefaulted);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    ntStatus = RtlGetSaclSecurityDescriptor(pSecDesc,
+                                            &bSaclPresent,
+                                            &pSacl,
+                                            &bSaclDefaulted);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    LW_SAFE_FREE_MEMORY(pOwnerSid);
+    LW_SAFE_FREE_MEMORY(pPrimaryGroupSid);
+    LW_SAFE_FREE_MEMORY(pDacl);
+    LW_SAFE_FREE_MEMORY(pSacl);
+
+    LW_SAFE_FREE_MEMORY(pSecDesc);
+    *ppSecDesc = NULL;
+
+cleanup:
+    return;
+
+error:
+    goto cleanup;
+}
+
+
 static
 VOID
 DirectoryInitializeOutputValue(
