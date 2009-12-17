@@ -142,8 +142,19 @@ SrvMarshalHeader_SMB_V1(
     pHeader->flags |= FLAG_CASELESS_PATHS | FLAG_OBSOLETE_2;
     pHeader->flags2 = ((bIsResponse ? 0 : FLAG2_KNOWS_LONG_NAMES) |
                        (bIsResponse ? 0 : FLAG2_IS_LONG_NAME) |
-                       FLAG2_KNOWS_EAS | FLAG2_EXT_SEC |
-                       FLAG2_ERR_STATUS | FLAG2_UNICODE);
+                       FLAG2_KNOWS_EAS | FLAG2_EXT_SEC | FLAG2_UNICODE);
+    switch (ulError)
+    {
+        case LW_STATUS_CANCEL_VIOLATION:
+
+            break;
+
+        default:
+
+            pHeader->flags2 |= FLAG2_ERR_STATUS;
+
+            break;
+    }
     memset(pHeader->pad, 0, sizeof(pHeader->pad));
     pHeader->extra.pidHigh = ulPid >> 16;
     pHeader->tid = usTid;

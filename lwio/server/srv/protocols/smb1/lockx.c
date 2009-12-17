@@ -437,6 +437,9 @@ SrvProcessLockAndX(
 
         case SRV_LOCK_STAGE_SMB_V1_ATTEMPT_LOCK:
 
+            ntStatus = pLockState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
             if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_CANCEL_LOCK)
             {
                 ntStatus = SrvExecuteLockCancellation(pExecContext);
@@ -511,6 +514,12 @@ error:
             //       files involved have to be closed
 
             break;
+
+        case STATUS_CANCELLED:
+
+            ntStatus = STATUS_FILE_LOCK_CONFLICT;
+
+            // intentional fall through
 
         default:
 
@@ -920,6 +929,7 @@ SrvExecuteLockCancellation(
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_LOCK_STATE_SMB_V1     pLockState   = NULL;
     USHORT                     usLockIndex  = 0;
+    BOOLEAN                    bInLock      = FALSE;
     PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList = NULL;
     PSRV_LOCK_STATE_SMB_V1       pLockStateToCancel    = NULL;
 
@@ -947,9 +957,53 @@ SrvExecuteLockCancellation(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = STATUS_NOT_SUPPORTED;
+    LWIO_LOCK_MUTEX(bInLock, &pLockStateToCancel->mutex);
+
+    if (pLockStateToCancel->pTimerRequest)
+    {
+        PSRV_EXEC_CONTEXT pExecContext = NULL;
+
+        SrvTimerCancelRequest(pLockStateToCancel->pTimerRequest, (PVOID*)&pExecContext);
+        if (pExecContext)
+        {
+            SrvReleaseExecContext(pExecContext);
+        }
+
+        SrvTimerRelease(pLockStateToCancel->pTimerRequest);
+        pLockStateToCancel->pTimerRequest = NULL;
+    }
+
+    if (pLockStateToCancel->bExpired)
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (!pLockStateToCancel->bCompleted)
+    {
+        if (pLockStateToCancel->pAcb &&
+            pLockStateToCancel->pAcb->AsyncCancelContext)
+        {
+            IoCancelAsyncCancelContext(
+                            pLockStateToCancel->pAcb->AsyncCancelContext);
+        }
+
+        pLockStateToCancel->bCancelled = TRUE;
+    }
+    else
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
+
+    if (pLockStateToCancel)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pLockStateToCancel->mutex);
+
+        SrvReleaseLockState(pLockStateToCancel);
+    }
 
     return ntStatus;
 
@@ -988,7 +1042,7 @@ SrvExecuteLockRequest(
     bFailImmediately  = (pLockState->pRequestHeader->ulTimeout == 0);
     bWaitIndefinitely = (pLockState->pRequestHeader->ulTimeout == (ULONG)-1);
 
-    if (pLockState->bExpired)
+    if (pLockState->bCancelled || pLockState->bExpired)
     {
         SrvReleaseLockStateAsync(pLockState);
 

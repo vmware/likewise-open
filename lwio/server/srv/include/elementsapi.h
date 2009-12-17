@@ -982,6 +982,7 @@ SrvFinderCreateSearchSpace(
     IN  ULONG          ulSearchStorageType,
     IN  SMB_INFO_LEVEL infoLevel,
     IN  BOOLEAN        bUseLongFilenames,
+    IN  ACCESS_MASK    accessMask,
     OUT PHANDLE        phFinder,
     OUT PUSHORT        pusSearchId
     );

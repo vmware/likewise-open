@@ -358,6 +358,7 @@ typedef struct _SRV_LOCK_STATE_SMB_V1
 
     BOOLEAN                          bExpired;
     BOOLEAN                          bCompleted;
+    BOOLEAN                          bCancelled;
 
     PSRV_TIMER_REQUEST               pTimerRequest;
 
