@@ -390,7 +390,7 @@ SrvExecuteNtRename(
         pRenameState->pFileRenameInfo =
                     (PFILE_RENAME_INFORMATION)pRenameState->pData;
 
-        pRenameState->pFileRenameInfo->ReplaceIfExists = TRUE;
+        pRenameState->pFileRenameInfo->ReplaceIfExists = FALSE;
         pRenameState->pFileRenameInfo->RootDirectory   = pRenameState->hDir;
         pRenameState->pFileRenameInfo->FileNameLength  =
                 wc16slen(pRenameState->newName.FileName) * sizeof(wchar16_t);
