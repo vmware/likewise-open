@@ -137,7 +137,6 @@ SrvMarshalHeader_SMB_V1(
 
     memcpy(&pHeader->smb, &smbMagic[0], sizeof(smbMagic));
     pHeader->command = ucCommand;
-    pHeader->error = ulError;
     pHeader->flags = bIsResponse ? FLAG_RESPONSE : 0;
     pHeader->flags |= FLAG_CASELESS_PATHS | FLAG_OBSOLETE_2;
     pHeader->flags2 = ((bIsResponse ? 0 : FLAG2_KNOWS_LONG_NAMES) |
@@ -145,12 +144,33 @@ SrvMarshalHeader_SMB_V1(
                        FLAG2_KNOWS_EAS | FLAG2_EXT_SEC | FLAG2_UNICODE);
     switch (ulError)
     {
-        case LW_STATUS_CANCEL_VIOLATION:
+        case ERROR_CANCEL_VIOLATION:
+
+            {
+                union
+                {
+                    struct
+                    {
+                        UCHAR  ucErrorClass; // Error class
+                        UCHAR  ucReserved;   // Reserved for future use
+                        USHORT usError;      // Error code
+                    } dosError;
+                    ULONG ntStatus;
+                } smb_command_status =
+                {
+                   .dosError.ucErrorClass = 0x1,
+                   .dosError.ucReserved   = 0,
+                   .dosError.usError      = ulError & 0xFFFF
+                };
+
+                pHeader->error = smb_command_status.ntStatus;
+            }
 
             break;
 
         default:
 
+            pHeader->error = ulError;
             pHeader->flags2 |= FLAG2_ERR_STATUS;
 
             break;

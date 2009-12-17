@@ -1013,7 +1013,7 @@ error:
     {
         case STATUS_NOT_FOUND:
 
-            ntStatus = LW_STATUS_CANCEL_VIOLATION;
+            ntStatus = ERROR_CANCEL_VIOLATION;
 
             break;
 
