@@ -300,6 +300,7 @@ SrvFinderCreateSearchSpace(
     IN  ULONG          ulSearchStorageType,
     IN  SMB_INFO_LEVEL infoLevel,
     IN  BOOLEAN        bUseLongFilenames,
+    IN  ACCESS_MASK    accessMask,
     OUT PHANDLE        phFinder,
     OUT PUSHORT        pusSearchId
     )
@@ -315,7 +316,6 @@ SrvFinderCreateSearchSpace(
     USHORT   usCandidateSearchId = 0;
     BOOLEAN  bFound = FALSE;
     BOOLEAN  bInLock = FALSE;
-
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
     fileName.FileName = pwszFilesystemPath;
@@ -328,7 +328,7 @@ SrvFinderCreateSearchSpace(
                     &fileName,
                     pSecurityDescriptor,
                     pSecurityQOS,
-                    GENERIC_READ,
+                    accessMask,
                     0,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ,

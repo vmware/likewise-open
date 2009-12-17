@@ -311,6 +311,7 @@ SrvBuildFindFirst2Response(
                     ulSearchStorageType,
                     infoLevel,
                     (pSmbRequest->pHeader->flags2 & FLAG2_KNOWS_LONG_NAMES ? TRUE : FALSE),
+                    FILE_LIST_DIRECTORY,
                     &hSearchSpace,
                     &usSearchId);
     BAIL_ON_NT_STATUS(ntStatus);

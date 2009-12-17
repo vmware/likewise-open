@@ -195,6 +195,7 @@ SrvProcessDelete(
                             pDeleteState->ulSearchStorageType,
                             SMB_FIND_FILE_BOTH_DIRECTORY_INFO,
                             pDeleteState->bUseLongFilenames,
+                            SYNCHRONIZE,
                             &pDeleteState->hSearchSpace,
                             &pDeleteState->usSearchId);
             BAIL_ON_NT_STATUS(ntStatus);
