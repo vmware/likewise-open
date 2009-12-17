@@ -306,6 +306,8 @@ typedef struct _SRV_OPEN_STATE_SMB_V1
     FILE_PIPE_LOCAL_INFORMATION  filePipeLocalInfo;
     PFILE_PIPE_LOCAL_INFORMATION pFilePipeLocalInfo;
 
+    FILE_CREATE_RESULT           ulCreateAction;
+
     UCHAR                        ucOplockLevel;
 
     PLWIO_SRV_TREE               pTree;

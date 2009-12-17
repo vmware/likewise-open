@@ -201,6 +201,9 @@ SrvProcessOpenAndX(
             ntStatus = pOpenState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
+            pOpenState->ulCreateAction =
+                            pOpenState->ioStatusBlock.CreateResult;
+
             ntStatus = SrvTreeCreateFile(
                             pOpenState->pTree,
                             pOpenState->pwszFilename,
@@ -853,7 +856,7 @@ SrvBuildOpenResponse(
     pResponseHeader->usFid        = pOpenState->pFile->fid;
     pResponseHeader->ulServerFid  = pOpenState->pFile->fid;
 
-    pResponseHeader->usOpenAction = pOpenState->ioStatusBlock.CreateResult;
+    pResponseHeader->usOpenAction = pOpenState->ulCreateAction;
     switch (pOpenState->ucOplockLevel)
     {
         case SMB_OPLOCK_LEVEL_I:
