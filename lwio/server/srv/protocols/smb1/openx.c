@@ -863,6 +863,8 @@ SrvBuildOpenResponse(
     // TODO:
     // pResponseHeader->usGrantedAccess = 0;
 
+    pResponseHeader->usFileAttributes = pOpenState->fileBasicInfo.FileAttributes;
+
     ntStatus = WireNTTimeToSMBUTime(
                     pOpenState->fileBasicInfo.LastWriteTime,
                     &pResponseHeader->ulLastWriteTime);
