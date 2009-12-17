@@ -873,8 +873,8 @@ SrvBuildOpenResponse(
             break;
     }
 
-    // TODO:
-    // pResponseHeader->usGrantedAccess = 0;
+    // TODO: Mirroring this field is close, but probably not exactly correct
+    pResponseHeader->usGrantedAccess = pOpenState->pRequestHeader->usDesiredAccess;
 
     pResponseHeader->usFileAttributes = pOpenState->fileBasicInfo.FileAttributes;
 
