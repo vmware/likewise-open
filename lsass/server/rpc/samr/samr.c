@@ -811,7 +811,16 @@ NTSTATUS __SamrChangePasswordUser2(
     /* [in] */ HashPassword *lm_verifier
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvChangePasswordUser2(IDL_handle,
+                                        server,
+                                        account_name,
+                                        nt_password,
+                                        nt_verifier,
+                                        lm_change,
+                                        lm_password,
+                                        lm_verifier);
     return status;
 }
 
