@@ -346,7 +346,8 @@ SrvProcessLockAndX(
 
             if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_CANCEL_LOCK)
             {
-                if (pLockState->pRequestHeader->usNumLocks != 1)
+                if (!pLockState->pRequestHeader->usNumLocks ||
+                    (pLockState->pRequestHeader->usNumLocks == 0xFFFF))
                 {
                     ntStatus = STATUS_INVALID_PARAMETER;
                     BAIL_ON_NT_STATUS(ntStatus);
