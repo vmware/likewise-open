@@ -269,6 +269,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.btnAuditRemove.TabIndex = 11;
             this.btnAuditRemove.Text = "&Remove...";
             this.btnAuditRemove.UseVisualStyleBackColor = true;
+            this.btnAuditRemove.Click += new System.EventHandler(this.btnAuditRemove_Click);
             //
             // btnAuditEdit
             //
@@ -278,6 +279,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.btnAuditEdit.TabIndex = 10;
             this.btnAuditEdit.Text = "&Edit...";
             this.btnAuditEdit.UseVisualStyleBackColor = true;
+            this.btnAuditEdit.Click += new System.EventHandler(this.btnAuditEdit_Click);
             //
             // btnAuditAdd
             //
@@ -287,6 +289,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.btnAuditAdd.TabIndex = 9;
             this.btnAuditAdd.Text = "A&dd...";
             this.btnAuditAdd.UseVisualStyleBackColor = true;
+            this.btnAuditAdd.Click += new System.EventHandler(this.btnAuditAdd_Click);
             //
             // label4
             //
@@ -494,6 +497,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.btnOK.TabIndex = 7;
             this.btnOK.Text = "&OK";
             this.btnOK.UseVisualStyleBackColor = true;
+            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
             //
             // btnCancel
             //
@@ -504,15 +508,18 @@ namespace Likewise.LMC.UtilityUIElements
             this.btnCancel.TabIndex = 6;
             this.btnCancel.Text = "&Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
+            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             //
             // btnApply
             //
+            this.btnApply.Enabled = false;
             this.btnApply.Location = new System.Drawing.Point(546, 395);
             this.btnApply.Name = "btnApply";
             this.btnApply.Size = new System.Drawing.Size(75, 23);
             this.btnApply.TabIndex = 8;
             this.btnApply.Text = "&Apply";
             this.btnApply.UseVisualStyleBackColor = true;
+            this.btnApply.Click += new System.EventHandler(this.btnApply_Click);
             //
             // AdvancedPermissionsControlDlg
             //

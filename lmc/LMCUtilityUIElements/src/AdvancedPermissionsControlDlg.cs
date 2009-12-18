@@ -14,7 +14,7 @@ namespace Likewise.LMC.UtilityUIElements
     {
         #region Class Data
 
-        //private bool DataChanged = false;
+        private bool dataChanged = false;
         private string _objectPath = null;
         private SecurityDescriptor _securityDescriptor = null;
 
@@ -33,6 +33,19 @@ namespace Likewise.LMC.UtilityUIElements
             get
             {
                 return _securityDescriptor;
+            }
+        }
+
+        public bool DataChanged
+        {
+            set
+            {
+                dataChanged = value;
+                btnApply.Enabled = dataChanged;
+            }
+            get
+            {
+                return dataChanged;
             }
         }
 
@@ -59,6 +72,8 @@ namespace Likewise.LMC.UtilityUIElements
         private void AdvancedPermissionsControlDlg_Load(object sender, EventArgs e)
         {
             InitializeData();
+            this.Text = string.Format(Properties.Resources.AdvancedSecurityDialogText, _objectPath);
+            DataChanged = false;
         }
 
         private void tabControl_SelectedIndexChanged(object sender, EventArgs e)
@@ -116,6 +131,8 @@ namespace Likewise.LMC.UtilityUIElements
                     {
                         Do_PermissionsEdit(permissionEntryDlg._daclInfo, sSID, UPN);
                         _addedObjects.Add(sAMAccountName, permissionEntryDlg._daclInfo);
+
+                        DataChanged = true;
                     }
                 }
             }
@@ -144,6 +161,8 @@ namespace Likewise.LMC.UtilityUIElements
                         _editedObjects[name] = permissionEntryDlg._daclInfo;
                     else
                         _editedObjects.Add(name, permissionEntryDlg._daclInfo);
+
+                    DataChanged = true;
                 }
             }
         }
@@ -172,6 +191,8 @@ namespace Likewise.LMC.UtilityUIElements
                     _editedObjects.Remove(name);
 
                 lvPermissions.SelectedItems[0].Remove();
+
+                DataChanged = true;
             }
         }
 
@@ -200,6 +221,58 @@ namespace Likewise.LMC.UtilityUIElements
                     lblUserorGroup.Text = UPN;
                 }
             }
+        }
+
+        private void btnApply_Click(object sender, EventArgs e)
+        {
+            if (CheckForDeniedPermissions() &&  DataChanged)
+            {
+                DialogResult Dlg = MessageBox.Show(this, Properties.Resources.PermissionsWarningMsg,
+                    Properties.Resources.Console_Caption, MessageBoxButtons.OKCancel);
+                if (Dlg == DialogResult.OK)
+                {
+                    //Edit the DACL entries filled by the Permissions tab page
+                    if (_securityDescriptor.EditAce(_editedObjects, _addedObjects, _removedObjects) != 0)
+                    {
+                        MessageBox.Show(this, Properties.Resources.EditPermissionErrorDisplay, Properties.Resources.PermissionsWarningMsg,
+                                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    //TODO: Edit the SACL entries filled by the Audit tab page
+
+                    dataChanged = false;
+                }
+            }
+        }
+
+        private void btnOK_Click(object sender, EventArgs e)
+        {
+            if (!DataChanged)
+                btnApply_Click(sender, e);
+
+            this.DialogResult = DialogResult.OK;
+            Close();
+        }
+
+        private void btnCancel_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        private void btnAuditAdd_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnAuditEdit_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnAuditRemove_Click(object sender, EventArgs e)
+        {
+
         }
 
         private void InitializeData()
@@ -365,6 +438,17 @@ namespace Likewise.LMC.UtilityUIElements
                     }
                 }
             }
+        }
+
+        private bool CheckForDeniedPermissions()
+        {
+            foreach (ListViewItem lvItem in lvPermissions.Items)
+            {
+                if (lvItem.SubItems[0].Text.Equals("Deny"))
+                    return true;
+            }
+
+            return false;
         }
     }
 }

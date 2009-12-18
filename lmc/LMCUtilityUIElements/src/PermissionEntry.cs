@@ -139,7 +139,7 @@ namespace Likewise.LMC.UtilityUIElements
             //Need to calculate the access mask for the Allow and deny permission sets.
             foreach (LwAccessControlEntry ace in _daclInfo)
             {
-                int iAceMask = Convert.ToInt32(ace.AccessMask);
+                long iAceMask = Convert.ToInt64(ace.AccessMask);
                 //Validation for the AceType = Allow
                 //Update the the AceType object with modified access modes
                 if (ace.AceType == 0)

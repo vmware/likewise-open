@@ -61,11 +61,12 @@ namespace Likewise.LMC.UtilityUIElements
                         List<LwAccessControlEntry> daclInfo = lvItem.Tag as List<LwAccessControlEntry>;
                         List<string> AllowedPermissions = new List<string>();
                         List<string> DeniedPermissions = new List<string>();
+
                         if (daclInfo != null)
                         {
                             foreach (LwAccessControlEntry ace in daclInfo)
                             {
-                                if (ace.AceType == 0) {
+                                if (ace.AceType == 0 && ace.AceFlags == 16) {
                                     AllowedPermissions = _securityDescriptor.GetUserOrGroupPermissions(ace.AccessMask);
                                 }
                                 else if (ace.AceType == 1) {
@@ -75,14 +76,47 @@ namespace Likewise.LMC.UtilityUIElements
                             DataGridViewRowCollection dgRows = DgPermissions.Rows;
                             foreach (DataGridViewRow dgRow in dgRows)
                             {
+                                if (AllowedPermissions.Count == 0 && dgRow.Cells[0].Value.ToString().Equals("Special Permissions")) {
+                                    dgRow.Cells[1].Value = true;
+                                    continue;
+                                }
                                 if (AllowedPermissions.Contains(dgRow.Cells[0].Value.ToString())) {
                                     dgRow.Cells[1].Value = true;
                                 }
-                                else if (DeniedPermissions.Contains(dgRow.Cells[0].Value.ToString())) {
+                                else
+                                    dgRow.Cells[1].Value = false;
+
+                                if (DeniedPermissions.Contains(dgRow.Cells[0].Value.ToString())) {
                                     dgRow.Cells[2].Value = true;
                                 }
+                                else
+                                    dgRow.Cells[2].Value = false;
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        private void DgPermissions_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex == 0 && e.ColumnIndex != 0)
+            {
+                DataGridViewRow Row = DgPermissions.Rows[e.RowIndex];
+                if (Row.Cells[e.ColumnIndex].Value.ToString().Equals("True"))
+                {
+                    DataGridViewRowCollection dgRows = DgPermissions.Rows;
+                    foreach (DataGridViewRow dgRow in dgRows)
+                    {
+                        dgRow.Cells[e.ColumnIndex].Value = true;
+                        dgRow.Cells[e.ColumnIndex].ReadOnly = true;
+                    }
+                }
+                else
+                {
+                    foreach (DataGridViewRow dgRow in DgPermissions.Rows)
+                    {
+                        dgRow.Cells[e.ColumnIndex].ReadOnly = false;
                     }
                 }
             }
@@ -129,7 +163,7 @@ namespace Likewise.LMC.UtilityUIElements
                         Ace.SID = sSID;
                         Ace.Username = sAMAccountName;
                         Ace.AceType = 0;
-                        Ace.AccessMask = SecurityDescriptorApi.ACCESS_MASK.Special_Permissions.ToString();
+                        Ace.AccessMask = LwAccessMask.ACCESS_MASK.Special_Permissions.ToString();
 
                         bool bIsEntryFound = false;
                         List<LwAccessControlEntry> acelist = null;
@@ -141,8 +175,7 @@ namespace Likewise.LMC.UtilityUIElements
                                 acelist = item.Tag as List<LwAccessControlEntry>;
                                 foreach (LwAccessControlEntry aceEntry in acelist)
                                 {
-                                    if (aceEntry.AceType == 0)
-                                    {
+                                    if (aceEntry.AceType == 0) {
                                         aceEntry.AccessMask = Ace.AccessMask;
                                         item.Tag = acelist;
                                         item.Selected = true;
@@ -201,11 +234,14 @@ namespace Likewise.LMC.UtilityUIElements
 
                 foreach (LwAccessControlEntry ace in daclInfo)
                 {
-                    int iAceMask = Convert.ToInt32(ace.AccessMask);
+                    long iAceMask = Convert.ToInt64(ace.AccessMask);
+                    if (iAceMask < 0)
+                        iAceMask = 0;
 
                     //Validation for the AceType = Allow
                     //Update the the AceType object with modified access modes
-                    if (ace.AceType == 0) {
+                    //AceFlags = 16 is the inherited permission
+                    if (ace.AceType == 0 && ace.AceFlags != 16) {
                         if (dgRow.Cells[1].Value.ToString().Equals("True"))
                         {
                             _securityDescriptor.GetIntAccessMaskFromStringAceMask(dgRow.Cells[0].Value.ToString(), ref iAceMask);

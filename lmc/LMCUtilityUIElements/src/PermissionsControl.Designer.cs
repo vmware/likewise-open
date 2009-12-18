@@ -175,6 +175,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.DgPermissions.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
             this.DgPermissions.Size = new System.Drawing.Size(345, 141);
             this.DgPermissions.TabIndex = 16;
+            this.DgPermissions.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.DgPermissions_CellValueChanged);
             this.DgPermissions.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.DgPermissions_CellEndEdit);
             //
             // colPermission

@@ -120,11 +120,23 @@
   <data name="AdvancedSecurityDialogText" xml:space="preserve">
     <value>Advanced Security Settings for {0}</value>
   </data>
+  <data name="Console_Caption" xml:space="preserve">
+    <value>Likewise Administrative Console</value>
+  </data>
+  <data name="EditPermissionErrorDisplay" xml:space="preserve">
+    <value>Unable to edit the permissions for the object.</value>
+  </data>
   <data name="FolderApplyToText" xml:space="preserve">
     <value>This folders, subfolders and files</value>
   </data>
   <data name="PermissionEntryText" xml:space="preserve">
     <value>Permission Entry for {0}</value>
+  </data>
+  <data name="PermissionsWarningMsg" xml:space="preserve">
+    <value>You are setting a deny permissions entry. Deny entries take precedence over allow entries.
+This means that if a user is a member of two groups, one that is allowed a permission another
+that is denied the same permission, the user is denied that permission.
+Do you want to continue?</value>
   </data>
   <data name="RegistryApplyToText" xml:space="preserve">
     <value>This key and subkeys</value>
