@@ -30,6 +30,8 @@
 
 #include "includes.h"
 
+#define EPOCH_DIFFERENCE_SECS 11644473600LL
+
 NTSTATUS
 WireNTTimeToSMBDateTime(
     LONG64    llNTTime,
@@ -41,7 +43,7 @@ WireNTTimeToSMBDateTime(
     time_t   timeUnix = 0;
     struct tm stTime = {0};
 
-    timeUnix = (llNTTime /  10000000LL) - 11644473600LL;
+    timeUnix = (llNTTime /  10000000LL) - EPOCH_DIFFERENCE_SECS;
 
     gmtime_r(&timeUnix, &stTime);
 
@@ -103,7 +105,7 @@ WireSMBDateTimeToNTTime(
 
         timeUnix = mktime(&stTime);
 
-        llNTTime = (timeUnix + 11644473600LL) * 10000000LL;
+        llNTTime = (timeUnix + EPOCH_DIFFERENCE_SECS) * 10000000LL;
     }
 
     *pllNTTime = llNTTime;
@@ -117,6 +119,38 @@ error:
     *pllNTTime = 0LL;
 
     goto cleanup;
+}
+
+NTSTATUS
+WireNTTimeToSMBUTime(
+    LONG64 llNTTime,
+    PULONG pulSmbUTime
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    /**
+     * @todo - Handle overflow
+     */
+    *pulSmbUTime = (llNTTime / 10000000LL) - EPOCH_DIFFERENCE_SECS;
+
+    return ntStatus;
+}
+
+NTSTATUS
+WireSMBUTimetoNTTime(
+    ULONG   ulSmbUTime,
+    PLONG64 pllNTTime
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    /**
+     * @todo - Handle overflow
+     */
+    *pllNTTime = (ulSmbUTime + EPOCH_DIFFERENCE_SECS) * 10000000LL;
+
+    return ntStatus;
 }
 
 /*

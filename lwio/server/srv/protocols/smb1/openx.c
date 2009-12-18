@@ -201,6 +201,9 @@ SrvProcessOpenAndX(
             ntStatus = pOpenState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
+            pOpenState->ulCreateAction =
+                            pOpenState->ioStatusBlock.CreateResult;
+
             ntStatus = SrvTreeCreateFile(
                             pOpenState->pTree,
                             pOpenState->pwszFilename,
@@ -436,9 +439,56 @@ SrvBuildOpenState(
             break;
     }
 
+    /* desired access mask */
+    switch (pRequestHeader->usDesiredAccess & 0x7)
+    {
+        case 0x00:
+
+            pOpenState->ulDesiredAccessMask = GENERIC_READ;
+
+            break;
+
+        case 0x01:
+
+            pOpenState->ulDesiredAccessMask = GENERIC_WRITE;
+
+            break;
+
+        case 0x02:
+
+            pOpenState->ulDesiredAccessMask = GENERIC_READ | GENERIC_WRITE;
+
+            break;
+
+        case 0x03:
+
+            pOpenState->ulDesiredAccessMask = (GENERIC_READ  |
+                                               GENERIC_EXECUTE);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
     /* action to take if the file exists */
     switch (pRequestHeader->usOpenFunction)
     {
+        case 0x0000: /* Weird EXECUTE -> OPEN_IF semantics */
+
+            if ((pOpenState->ulDesiredAccessMask & GENERIC_EXECUTE) == 0) {
+                ntStatus = STATUS_INVALID_DISPOSITION;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pOpenState->ulCreateDisposition = FILE_OPEN_IF;
+
+            break;
+
         case 0x0001: /* Open file */
 
             pOpenState->ulCreateDisposition = FILE_OPEN;
@@ -472,43 +522,6 @@ SrvBuildOpenState(
         default:
 
             ntStatus = STATUS_INVALID_DISPOSITION;
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            break;
-    }
-
-    /* desired access mask */
-    switch (pRequestHeader->usDesiredAccess & 0x7)
-    {
-        case 0x00:
-
-            pOpenState->ulDesiredAccessMask = GENERIC_READ;
-
-            break;
-
-        case 0x01:
-
-            pOpenState->ulDesiredAccessMask = GENERIC_WRITE;
-
-            break;
-
-        case 0x02:
-
-            pOpenState->ulDesiredAccessMask = GENERIC_READ | GENERIC_WRITE;
-
-            break;
-
-        case 0x03:
-
-            pOpenState->ulDesiredAccessMask = (GENERIC_READ  |
-                                               GENERIC_WRITE |
-                                               GENERIC_EXECUTE);
-
-            break;
-
-        default:
-
-            ntStatus = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntStatus);
 
             break;
@@ -843,7 +856,7 @@ SrvBuildOpenResponse(
     pResponseHeader->usFid        = pOpenState->pFile->fid;
     pResponseHeader->ulServerFid  = pOpenState->pFile->fid;
 
-    pResponseHeader->usOpenAction = pOpenState->ioStatusBlock.CreateResult;
+    pResponseHeader->usOpenAction = pOpenState->ulCreateAction;
     switch (pOpenState->ucOplockLevel)
     {
         case SMB_OPLOCK_LEVEL_I:
@@ -860,13 +873,14 @@ SrvBuildOpenResponse(
             break;
     }
 
-    // TODO:
-    // pResponseHeader->usGrantedAccess = 0;
+    // TODO: Mirroring this field is close, but probably not exactly correct
+    pResponseHeader->usGrantedAccess = pOpenState->pRequestHeader->usDesiredAccess;
 
-    ntStatus = WireNTTimeToSMBDateTime(
+    pResponseHeader->usFileAttributes = pOpenState->fileBasicInfo.FileAttributes;
+
+    ntStatus = WireNTTimeToSMBUTime(
                     pOpenState->fileBasicInfo.LastWriteTime,
-                    &pResponseHeader->lastWriteDate,
-                    &pResponseHeader->lastWriteTime);
+                    &pResponseHeader->ulLastWriteTime);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseHeader->ulDataSize = SMB_MIN(  UINT32_MAX,
@@ -885,11 +899,7 @@ SrvBuildOpenResponse(
     else
     {
         pResponseHeader->usFileType = 0;
-
-        // TODO: Get these values from the driver
-        pResponseHeader->usDeviceState = (SMB_DEVICE_STATE_NO_EAS |
-                                          SMB_DEVICE_STATE_NO_SUBSTREAMS |
-                                          SMB_DEVICE_STATE_NO_REPARSE_TAG);
+        pResponseHeader->usDeviceState = 0;
     }
     pResponseHeader->usByteCount = 0;
 
@@ -1090,3 +1100,12 @@ SrvFreeOpenState(
 
     SrvFreeMemory(pOpenState);
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

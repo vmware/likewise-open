@@ -59,6 +59,7 @@
 #include <lwnet.h>
 
 #include <lw/ntstatus.h>
+#include <lw/winerror.h>
 
 #include <lwio/lmshare.h>
 #include <lwio/lwshareinfo.h>

@@ -1242,7 +1242,9 @@ namespace Likewise.LMC.FileClient
                        ref pSecurityDescriptor,
                        lpnLengthNeeded,
                        out lpnLengthNeeded);
-                    SecurityDescriptor.objectType = SecurityDescriptorApi.SE_OBJECT_TYPE.SE_FILE_OBJECT;
+                    SecurityDescriptor.objectType = System.IO.File.Exists(lpFilename) ?
+                                        SecurityDescriptorApi.SE_OBJECT_TYPE.SE_FILE_OBJECT :
+                                        SecurityDescriptorApi.SE_OBJECT_TYPE.SE_DIR_OBJECT;
 
                     if (Winerror != 0)
                     {

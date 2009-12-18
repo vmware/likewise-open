@@ -122,26 +122,37 @@ namespace Likewise.LMC.UtilityUIElements
                         List<string> AllowedPermissions = new List<string>();
                         List<string> DeniedPermissions = new List<string>();
 
-                        if (daclInfo != null) {
+                        if (daclInfo != null)
+                        {
                             foreach (LwAccessControlEntry ace in daclInfo)
                             {
-                                if (ace.AceType == 0) {
+                                if (ace.AceType == 0 && ace.AceFlags == 16) {
                                     AllowedPermissions = _securityDescriptor.GetUserOrGroupPermissions(ace.AccessMask);
                                 }
                                 else if (ace.AceType == 1) {
                                     DeniedPermissions = _securityDescriptor.GetUserOrGroupPermissions(ace.AccessMask);
                                 }
-                                DataGridViewRowCollection dgRows = DgPermissions.Rows;
-                                foreach (DataGridViewRow dgRow in dgRows)
-                                {
-                                    if (AllowedPermissions.Contains(dgRow.Cells[0].Value.ToString())) {
-                                        dgRow.Cells[1].Value = true;
-                                    }
-                                    if (DeniedPermissions.Contains(dgRow.Cells[0].Value.ToString()))  {
-                                        dgRow.Cells[2].Value = true;
-                                    }
-                                }
                             }
+                            DataGridViewRowCollection dgRows = DgPermissions.Rows;
+                            foreach (DataGridViewRow dgRow in dgRows)
+                            {
+                                if (AllowedPermissions.Count == 0 && dgRow.Cells[0].Value.ToString().Equals("Special Permissions")) {
+                                    dgRow.Cells[1].Value = true;
+                                    continue;
+                                }
+                                if (AllowedPermissions.Contains(dgRow.Cells[0].Value.ToString())) {
+                                    dgRow.Cells[1].Value = true;
+                                }
+                                else
+                                    dgRow.Cells[1].Value = false;
+
+                                if (DeniedPermissions.Contains(dgRow.Cells[0].Value.ToString())) {
+                                    dgRow.Cells[2].Value = true;
+                                }
+                                else
+                                    dgRow.Cells[2].Value = false;
+                            }
+
                         }
                     }
                 }
@@ -159,7 +170,7 @@ namespace Likewise.LMC.UtilityUIElements
 
                 foreach (LwAccessControlEntry ace in daclInfo)
                 {
-                    int iAceMask = Convert.ToInt32(ace.AccessMask);
+                    long iAceMask = Convert.ToInt64(ace.AccessMask);
 
                     //Validation for the AceType = Allow
                     //Update the the AceType object with modified access modes

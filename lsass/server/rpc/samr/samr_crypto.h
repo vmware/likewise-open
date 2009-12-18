@@ -52,6 +52,19 @@ NTSTATUS
 SamrSrvDecryptPasswordBlobEx(
     IN  PCONNECT_CONTEXT  pConnCtx,
     IN  CryptPasswordEx  *pPassBlob,
+    IN  PBYTE             pCryptKey,
+    IN  DWORD             dwCryptKeyLen,
+    IN  UINT8             PassLen,
+    OUT PWSTR            *ppwszPassword
+    );
+
+
+NTSTATUS
+SamrSrvDecryptPasswordBlob(
+    IN  PCONNECT_CONTEXT  pConnCtx,
+    IN  CryptPassword    *pPassBlob,
+    IN  PBYTE             pCryptKey,
+    IN  DWORD             dwCryptKeyLen,
     IN  UINT8             PassLen,
     OUT PWSTR            *ppwszPassword
     );
@@ -61,10 +74,48 @@ NTSTATUS
 SamrSrvEncryptPasswordBlobEx(
     IN  PCONNECT_CONTEXT  pConnCtx,
     IN  PCWSTR            pwszPassword,
+    IN  PBYTE             pCryptoKey,
+    IN  DWORD             dwCryptoKeyLen,
     IN  PBYTE             pKeyInit,
     IN  DWORD             dwKeyInitLen,
     IN  PBYTE             pBlobInit,
     OUT CryptPasswordEx  *pEncryptedPassBlob
+    );
+
+
+NTSTATUS
+SamrSrvEncryptPasswordBlob(
+    IN  PCONNECT_CONTEXT  pConnCtx,
+    IN  PCWSTR            pwszPassword,
+    IN  PBYTE             pCryptoKey,
+    IN  DWORD             dwCryptoKeyLen,
+    IN  PBYTE             pBlobInit,
+    OUT CryptPassword    *pEncryptedPassBlob
+    );
+
+
+NTSTATUS
+SamrSrvGetNtPasswordHash(
+    IN  PCWSTR  pwszPassword,
+    OUT PBYTE  *ppNtHash,
+    OUT PDWORD  pdwNtHashLen
+    );
+
+
+NTSTATUS
+SamrSrvPrepareDesKey(
+    IN  PBYTE  pInput,
+    OUT PBYTE  pOutput
+    );
+
+
+NTSTATUS
+SamrSrvVerifyNewNtPasswordHash(
+    IN  PBYTE         pNewNtHash,
+    IN  DWORD         dwNewNtHashLen,
+    IN  PBYTE         pOldNtHash,
+    IN  DWORD         dwOldNtHashLen,
+    IN  HashPassword *pNtVerifier
     );
 
 

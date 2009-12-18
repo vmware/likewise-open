@@ -447,6 +447,12 @@ DirectoryGetEntryAttrValueByNameA(
     );
 
 DWORD
+DirectoryGetEntrySecurityDescriptor(
+    PDIRECTORY_ENTRY               pEntry,
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
+
+DWORD
 DirectoryAllocateMemory(
     size_t sSize,
     PVOID* ppMemory
@@ -491,6 +497,12 @@ DirectoryFreeStringArray(
     PWSTR* ppStringArray,
     DWORD  dwCount
     );
+
+VOID
+DirectoryFreeEntrySecurityDescriptor(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
+
 
 #endif /* __DIRECTORY_H__ */
 

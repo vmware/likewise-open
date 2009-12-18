@@ -71,6 +71,8 @@ NTSTATUS
 SamrSrvDecryptPasswordBlobEx(
     IN  PCONNECT_CONTEXT  pConnCtx,
     IN  CryptPasswordEx  *pPassBlob,
+    IN  PBYTE             pCryptKey,
+    IN  DWORD             dwCryptKeyLen,
     IN  UINT8             PassLen,
     OUT PWSTR            *ppwszPassword
     )
@@ -81,6 +83,8 @@ SamrSrvDecryptPasswordBlobEx(
     DWORD dwPlainTextBlobSize = 0;
     DWORD dwPasswordSize = 0;
     DWORD dwPassBlobSize = 0;
+    PBYTE pKey = NULL;
+    DWORD dwKeyLen = 0;
     BYTE KeyInit[16] = {0};
     BYTE DigestedSessionKey[16] = {0};
     MD5_CTX ctx;
@@ -101,11 +105,22 @@ SamrSrvDecryptPasswordBlobEx(
     memset(&PassBlobVerifier, 0, sizeof(PassBlobVerifier));
 
     /*
-     * Allocate memory for plain text password
+     * Allocate memory for plain text password blob
      */
     dwError = LwAllocateMemory(dwPlainTextBlobSize,
                                OUT_PPVOID(&pPlainTextBlob));
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (pCryptKey)
+    {
+        pKey     = pCryptKey;
+        dwKeyLen = dwCryptKeyLen;
+    }
+    else
+    {
+        pKey     = pConnCtx->pSessionKey;
+        dwKeyLen = pConnCtx->dwSessionKeyLen;
+    }
 
     /*
      * Copy crypto key initialisator
@@ -119,7 +134,7 @@ SamrSrvDecryptPasswordBlobEx(
      */
     MD5_Init(&ctx);
     MD5_Update(&ctx, KeyInit, sizeof(KeyInit));
-    MD5_Update(&ctx, pConnCtx->pSessionKey, pConnCtx->dwSessionKeyLen);
+    MD5_Update(&ctx, pKey, dwKeyLen);
     MD5_Final(DigestedSessionKey, &ctx);
 
     /*
@@ -144,8 +159,10 @@ SamrSrvDecryptPasswordBlobEx(
 
     /*
      * Basic check if the password has been decrypted correctly
+     * (if password length has been passed)
      */
-    if (PassLen != dwPasswordLen)
+    if (PassLen &&
+        PassLen != dwPasswordLen)
     {
         ntStatus = STATUS_WRONG_PASSWORD;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
@@ -153,14 +170,139 @@ SamrSrvDecryptPasswordBlobEx(
 
     /*
      * More careful check - password, key init and blob init should
-     * yield the same encrypted blob as the function input
+     * yield the same encrypted blob as passed in the function input
      */
     ntStatus = SamrSrvEncryptPasswordBlobEx(pConnCtx,
                                             pwszPassword,
+                                            pKey,
+                                            dwKeyLen,
                                             KeyInit,
                                             sizeof(KeyInit),
                                             pPlainTextBlob,
                                             &PassBlobVerifier);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    if (memcmp(pPassBlob->data, PassBlobVerifier.data,
+               sizeof(pPassBlob->data)))
+    {
+        ntStatus = STATUS_WRONG_PASSWORD;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    *ppwszPassword = pwszPassword;
+
+cleanup:
+    if (pPlainTextBlob)
+    {
+        memset(pPlainTextBlob, 0, dwPlainTextBlobSize);
+        LW_SAFE_FREE_MEMORY(pPlainTextBlob);
+    }
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    *ppwszPassword = NULL;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvDecryptPasswordBlob(
+    IN  PCONNECT_CONTEXT  pConnCtx,
+    IN  CryptPassword    *pPassBlob,
+    IN  PBYTE             pCryptKey,
+    IN  DWORD             dwCryptKeyLen,
+    IN  UINT8             PassLen,
+    OUT PWSTR            *ppwszPassword
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PBYTE pPlainTextBlob = NULL;
+    DWORD dwPlainTextBlobSize = 0;
+    DWORD dwPassBlobSize = 0;
+    PBYTE pKey = NULL;
+    DWORD dwKeyLen = 0;
+    RC4_KEY key;
+    PWSTR pwszPassword = NULL;
+    DWORD dwPasswordLen = 0;
+    CryptPassword PassBlobVerifier;
+
+    BAIL_ON_INVALID_PTR(pConnCtx);
+    BAIL_ON_INVALID_PTR(pPassBlob);
+    BAIL_ON_INVALID_PTR(ppwszPassword);
+
+    dwPassBlobSize      = sizeof(pPassBlob->data);
+    dwPlainTextBlobSize = dwPassBlobSize - dwKeyLen;
+    memset(&key, 0, sizeof(key));
+    memset(&PassBlobVerifier, 0, sizeof(PassBlobVerifier));
+
+    /*
+     * Allocate memory for plain text password blob
+     */
+    dwError = LwAllocateMemory(dwPlainTextBlobSize,
+                               OUT_PPVOID(&pPlainTextBlob));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pCryptKey)
+    {
+        pKey     = pCryptKey;
+        dwKeyLen = dwCryptKeyLen;
+    }
+    else
+    {
+        pKey     = pConnCtx->pSessionKey;
+        dwKeyLen = pConnCtx->dwSessionKeyLen;
+    }
+
+    /*
+     * Set the key and decrypt the plain text password buffer
+     */
+    RC4_set_key(&key,
+                (int)dwKeyLen,
+                (unsigned char*)pKey);
+    RC4(&key,
+        dwPlainTextBlobSize,
+        (const unsigned char*)pPassBlob->data,
+        (unsigned char*)pPlainTextBlob);
+
+    /*
+     * Get the unicode password from plain text blob
+     */
+    ntStatus = SamrSrvDecodePasswordBuffer(pPlainTextBlob,
+                                           dwPlainTextBlobSize,
+                                           &pwszPassword,
+                                           &dwPasswordLen);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    /*
+     * Basic check if the password has been decrypted correctly
+     * (if password length has been passed)
+     */
+    if (PassLen &&
+        PassLen != dwPasswordLen)
+    {
+        ntStatus = STATUS_WRONG_PASSWORD;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    /*
+     * More careful check - password, key init and blob init should
+     * yield the same encrypted blob as passed in the function input
+     */
+    ntStatus = SamrSrvEncryptPasswordBlob(pConnCtx,
+                                          pwszPassword,
+                                          pKey,
+                                          dwKeyLen,
+                                          pPlainTextBlob,
+                                          &PassBlobVerifier);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     if (memcmp(pPassBlob->data, PassBlobVerifier.data,
@@ -279,6 +421,8 @@ NTSTATUS
 SamrSrvEncryptPasswordBlobEx(
     IN  PCONNECT_CONTEXT  pConnCtx,
     IN  PCWSTR            pwszPassword,
+    IN  PBYTE             pCryptoKey,
+    IN  DWORD             dwCryptoKeyLen,
     IN  PBYTE             pKeyInit,
     IN  DWORD             dwKeyInitLen,
     IN  PBYTE             pBlobInit,
@@ -289,6 +433,8 @@ SamrSrvEncryptPasswordBlobEx(
     DWORD dwError = ERROR_SUCCESS;
     PBYTE pPassBlob = NULL;
     DWORD dwPassBlobLen = 0;
+    PBYTE pKey = NULL;
+    DWORD dwKeyLen = 0;
     BYTE DigestedSessionKey[16] = {0};
     MD5_CTX ctx;
     RC4_KEY key;
@@ -307,12 +453,23 @@ SamrSrvEncryptPasswordBlobEx(
                                OUT_PPVOID(&pEncryptedBlob));
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (pCryptoKey)
+    {
+        pKey     = pCryptoKey;
+        dwKeyLen = dwCryptoKeyLen;
+    }
+    else
+    {
+        pKey     = pConnCtx->pSessionKey;
+        dwKeyLen = pConnCtx->dwSessionKeyLen;
+    }
+
     /*
      * Prepare the session key digested with key initialisator
      */
     MD5_Init(&ctx);
     MD5_Update(&ctx, pKeyInit, dwKeyInitLen);
-    MD5_Update(&ctx, pConnCtx->pSessionKey, pConnCtx->dwSessionKeyLen);
+    MD5_Update(&ctx, pKey, dwKeyLen);
     MD5_Final(DigestedSessionKey, &ctx);
 
     /*
@@ -339,6 +496,100 @@ SamrSrvEncryptPasswordBlobEx(
     memcpy(&(pEncryptedPassBlob->data[dwPassBlobLen]),
            pKeyInit,
            dwKeyInitLen);
+
+cleanup:
+    if (pPassBlob)
+    {
+        memset(pPassBlob, 0, dwPassBlobLen);
+        LW_SAFE_FREE_MEMORY(pPassBlob);
+    }
+
+    if (pEncryptedBlob)
+    {
+        memset(pEncryptedBlob, 0, dwPassBlobLen);
+        LW_SAFE_FREE_MEMORY(pEncryptedBlob);
+    }
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    memset(pEncryptedBlob, 0, sizeof(*pEncryptedBlob));
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvEncryptPasswordBlob(
+    IN  PCONNECT_CONTEXT  pConnCtx,
+    IN  PCWSTR            pwszPassword,
+    IN  PBYTE             pCryptoKey,
+    IN  DWORD             dwCryptoKeyLen,
+    IN  PBYTE             pBlobInit,
+    OUT CryptPassword    *pEncryptedPassBlob
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PBYTE pPassBlob = NULL;
+    DWORD dwPassBlobLen = 0;
+    PBYTE pKey = NULL;
+    DWORD dwKeyLen = 0;
+    MD5_CTX ctx;
+    RC4_KEY key;
+    PBYTE pEncryptedBlob = NULL;
+
+    memset(&ctx, 0, sizeof(ctx));
+    memset(&key, 0, sizeof(key));
+
+    ntStatus = SamrSrvEncodePasswordBuffer(pwszPassword,
+                                           pBlobInit,
+                                           &pPassBlob,
+                                           &dwPassBlobLen);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    dwError = LwAllocateMemory(dwPassBlobLen,
+                               OUT_PPVOID(&pEncryptedBlob));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pCryptoKey)
+    {
+        pKey     = pCryptoKey;
+        dwKeyLen = dwCryptoKeyLen;
+    }
+    else
+    {
+        pKey     = pConnCtx->pSessionKey;
+        dwKeyLen = pConnCtx->dwSessionKeyLen;
+    }
+
+    /*
+     * Set the key and encrypt the plain text password buffer
+     */
+    RC4_set_key(&key,
+                (int)dwKeyLen,
+                (unsigned char*)pKey);
+
+    RC4(&key,
+        dwPassBlobLen,
+        (const unsigned char*)pPassBlob,
+        (unsigned char*)pEncryptedBlob);
+
+    if (dwPassBlobLen > sizeof(pEncryptedPassBlob->data))
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    memcpy(pEncryptedPassBlob->data,
+           pEncryptedBlob,
+           dwPassBlobLen);
 
 cleanup:
     if (pPassBlob)
@@ -466,6 +717,171 @@ error:
     goto cleanup;
 }
 
+
+NTSTATUS
+SamrSrvGetNtPasswordHash(
+    IN  PCWSTR  pwszPassword,
+    OUT PBYTE  *ppNtHash,
+    OUT PDWORD  pdwNtHashLen
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    size_t sPasswordLen = 0;
+    BYTE Hash[16] = {0};
+    PBYTE pNtHash = NULL;
+    DWORD dwNtHashLen = 0;
+
+    BAIL_ON_INVALID_PTR(pwszPassword);
+    BAIL_ON_INVALID_PTR(ppNtHash);
+
+    dwError = LwWc16sLen(pwszPassword, &sPasswordLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    MD4((PBYTE)pwszPassword,
+        sPasswordLen * sizeof(pwszPassword[0]),
+        Hash);
+
+    dwNtHashLen = sizeof(Hash);
+    dwError = LwAllocateMemory(dwNtHashLen,
+                               OUT_PPVOID(&pNtHash));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memcpy(pNtHash, (void*)Hash, dwNtHashLen);
+
+    *ppNtHash     = pNtHash;
+    *pdwNtHashLen = dwNtHashLen;
+
+cleanup:
+    memset((void*)Hash, 0, sizeof(Hash));
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    if (pNtHash)
+    {
+        memset(pNtHash, 0, dwNtHashLen);
+        LW_SAFE_FREE_MEMORY(pNtHash);
+    }
+
+    *ppNtHash     = NULL;
+    *pdwNtHashLen = 0;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvPrepareDesKey(
+    IN  PBYTE  pInput,
+    OUT PBYTE  pOutput
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD i = 0;
+
+    BAIL_ON_INVALID_PTR(pInput);
+    BAIL_ON_INVALID_PTR(pOutput);
+
+    /*
+     * Expand the input 7x8 bits so that each 7 bits are
+     * appended with 1 bit space for parity bit and yield
+     * 8x8 bits ready to become a DES key
+     */
+    pOutput[0] = pInput[0] >> 1;
+    pOutput[1] = ((pInput[0]&0x01) << 6) | (pInput[1] >> 2);
+    pOutput[2] = ((pInput[1]&0x03) << 5) | (pInput[2] >> 3);
+    pOutput[3] = ((pInput[2]&0x07) << 4) | (pInput[3] >> 4);
+    pOutput[4] = ((pInput[3]&0x0F) << 3) | (pInput[4] >> 5);
+    pOutput[5] = ((pInput[4]&0x1F) << 2) | (pInput[5] >> 6);
+    pOutput[6] = ((pInput[5]&0x3F) << 1) | (pInput[6] >> 7);
+    pOutput[7] = pInput[6]&0x7F;
+
+    for (i = 0; i < 8; i++)
+    {
+        pOutput[i] = pOutput[i] << 1;
+    }
+
+cleanup:
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvVerifyNewNtPasswordHash(
+    IN  PBYTE         pNewNtHash,
+    IN  DWORD         dwNewNtHashLen,
+    IN  PBYTE         pOldNtHash,
+    IN  DWORD         dwOldNtHashLen,
+    IN  HashPassword *pNtVerifier
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DES_cblock KeyBlockLo;
+    DES_cblock KeyBlockHi;
+    DES_key_schedule KeyLo;
+    DES_key_schedule KeyHi;
+    BYTE Verifier[16];
+
+    BAIL_ON_INVALID_PTR(pNewNtHash);
+    BAIL_ON_INVALID_PTR(pOldNtHash);
+    BAIL_ON_INVALID_PTR(pNtVerifier);
+
+    memset(&KeyBlockLo, 0, sizeof(KeyBlockLo));
+    memset(&KeyBlockHi, 0, sizeof(KeyBlockHi));
+    memset(&KeyLo, 0, sizeof(KeyLo));
+    memset(&KeyHi, 0, sizeof(KeyHi));
+
+    ntStatus = SamrSrvPrepareDesKey(&pNewNtHash[0],
+                                    (PBYTE)KeyBlockLo);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    DES_set_odd_parity(&KeyBlockLo);
+    DES_set_key_unchecked(&KeyBlockLo, &KeyLo);
+
+    ntStatus = SamrSrvPrepareDesKey(&pNewNtHash[7],
+                                    (PBYTE)KeyBlockHi);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    DES_set_odd_parity(&KeyBlockHi);
+    DES_set_key_unchecked(&KeyBlockHi, &KeyHi);
+
+    DES_ecb_encrypt((DES_cblock*)&pOldNtHash[0],
+                    (DES_cblock*)&Verifier[0],
+                    &KeyLo,
+                    DES_ENCRYPT);
+    DES_ecb_encrypt((DES_cblock*)&pOldNtHash[8],
+                    (DES_cblock*)&Verifier[8],
+                    &KeyHi,
+                    DES_ENCRYPT);
+
+    if (memcmp((void*)Verifier,
+               (void*)pNtVerifier->data,
+               sizeof(Verifier)))
+    {
+        ntStatus = STATUS_WRONG_PASSWORD;
+    }
+
+cleanup:
+    memset(&KeyBlockLo, 0, sizeof(KeyBlockLo));
+    memset(&KeyBlockHi, 0, sizeof(KeyBlockHi));
+    memset(&KeyLo, 0, sizeof(KeyLo));
+    memset(&KeyHi, 0, sizeof(KeyHi));
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
 
 
 /*

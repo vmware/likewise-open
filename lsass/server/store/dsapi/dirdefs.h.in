@@ -66,6 +66,16 @@ typedef enum
 #define BAIL_ON_DIRECTORY_ERROR(dwError) \
     if (dwError) goto error;
 
+#define BAIL_ON_NTSTATUS_ERROR(ntStatus) \
+    if (ntStatus) goto error;
+
+#define BAIL_ON_INVALIR_PTR(ptr)              \
+    if ((ptr) == NULL)                        \
+    {                                         \
+        dwError = ERROR_INVALID_PARAMETER;    \
+	BAIL_ON_DIRECTORY_ERROR(dwError);     \
+    };
+
 #define DIRECTORY_LOCK_MUTEX(bInLock, mutex) \
 	if (!bInLock) { \
 	   int thr_err = pthread_mutex_lock(mutex); \

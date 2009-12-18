@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
-
 using Likewise.LMC.Netlogon;
 
 namespace Likewise.LMC.SecurityDesriptor
@@ -102,7 +101,7 @@ namespace Likewise.LMC.SecurityDesriptor
         /// </summary>
         public void CloseHandle()
         {
-            if(pSecurityDescriptor!=IntPtr.Zero)
+            if (pSecurityDescriptor != IntPtr.Zero)
                 SecurityDescriptorApi.CloseHandle(pSecurityDescriptor);
         }
 
@@ -129,21 +128,27 @@ namespace Likewise.LMC.SecurityDesriptor
                         string accessMask)
         {
             //TO DO: Still needs to find the AccessMask enum mapping with string values
-            uint iAccessMask = Convert.ToUInt32(accessMask);
+            long iAccessMask = Convert.ToInt64(accessMask);
+            long specialPermissionMask = 0;
 
             List<string> permissions = new List<string>();
 
-            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
+            foreach (object accessmask in PermissionsSet.PermissionSet.Keys)
             {
                 string sPermissionname = string.Empty;
 
-                if ((iAccessMask & (uint)accesskmask) > 0)
+                if ((iAccessMask & Convert.ToInt64(accessmask)) == Convert.ToInt64(accessmask))
                 {
-                    sPermissionname = PermissionsSet.PermissionSet[accesskmask];
-
-                    permissions.Add(sPermissionname);
+                    sPermissionname = PermissionsSet.PermissionSet[accessmask];
+                    if (!sPermissionname.Equals("Special Permissions"))
+                        permissions.Add(sPermissionname);
+                    else
+                        specialPermissionMask = Convert.ToInt64(accessmask);
                 }
             }
+
+            if (permissions.Count == 0)
+                permissions.Add(PermissionsSet.PermissionSet[specialPermissionMask]);
 
             return permissions;
         }
@@ -157,7 +162,7 @@ namespace Likewise.LMC.SecurityDesriptor
         {
             List<string> permissions = new List<string>();
 
-            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
+            foreach (object accesskmask in PermissionsSet.PermissionSet.Keys)
             {
                 permissions.Add(PermissionsSet.PermissionSet[accesskmask]);
             }
@@ -168,16 +173,16 @@ namespace Likewise.LMC.SecurityDesriptor
         public List<object[]> GetPermissionsFromAccessMask(string accessMask)
         {
             //TO DO: Still needs to find the AccessMask enum mapping with string values
-            uint iAccessMask = Convert.ToUInt32(accessMask);
+            long iAccessMask = Convert.ToInt64(accessMask);
 
             List<object[]> permissions = new List<object[]>();
 
-            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
+            foreach (object accesskmask in PermissionsSet.PermissionSet.Keys)
             {
                 string sPermissionname = string.Empty;
                 bool AccessType = false;
 
-                if ((iAccessMask & (uint)accesskmask) > 0)
+                if ((iAccessMask & Convert.ToInt64(accesskmask)) == Convert.ToInt64(accesskmask))
                 {
                     sPermissionname = PermissionsSet.PermissionSet[accesskmask];
                     AccessType = true;
@@ -192,11 +197,11 @@ namespace Likewise.LMC.SecurityDesriptor
         public string GetKeyPermissionName(string accessMask)
         {
             //Still needs to find the AccessMask enum mapping with string values
-            uint iAccessMask = Convert.ToUInt32(accessMask);
+            long iAccessMask = Convert.ToInt64(accessMask);
 
-            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
+            foreach (object accesskmask in PermissionsSet.PermissionSet.Keys)
             {
-                if (iAccessMask == (uint)accesskmask)
+                if (iAccessMask == Convert.ToInt64(accesskmask))
                 {
                     return PermissionsSet.PermissionSet[accesskmask];
                 }
@@ -260,13 +265,13 @@ namespace Likewise.LMC.SecurityDesriptor
             }
         }
 
-        public void GetIntAccessMaskFromStringAceMask(string sAcePermission, ref int oAceMask)
+        public void GetIntAccessMaskFromStringAceMask(string sAcePermission, ref long oAceMask)
         {
-            foreach (SecurityDescriptorApi.ACCESS_MASK accesskmask in PermissionsSet.PermissionSet.Keys)
+            foreach (object accesskmask in PermissionsSet.PermissionSet.Keys)
             {
                 if (PermissionsSet.PermissionSet[accesskmask].Equals(sAcePermission))
                 {
-                    oAceMask = oAceMask | (int)accesskmask;
+                    oAceMask = oAceMask | Convert.ToInt64(accesskmask);
                 }
             }
         }
@@ -283,7 +288,7 @@ namespace Likewise.LMC.SecurityDesriptor
         {
             string sUsername = string.Empty;
             string sDomain = string.Empty;
-            IntPtr pSid=IntPtr.Zero;
+            IntPtr pSid = IntPtr.Zero;
 
             SecurityDescriptorApi.ConvertStringSidToSid(sSID, out pSid);
             if (pSid != IntPtr.Zero)
@@ -383,140 +388,6 @@ namespace Likewise.LMC.SecurityDesriptor
             }
         }
 
-
         #endregion
-    }
-
-    public class PermissionsSet
-    {
-        public static Dictionary<SecurityDescriptorApi.ACCESS_MASK, string> permissionSet
-                            = new Dictionary<SecurityDescriptorApi.ACCESS_MASK, string>();
-
-        public string[] permissionsSet = new string[]{
-                        "Delete",
-                        "Read",
-                        "Modify user attributes",
-                        "Modify",
-                        "Full Control",
-                        "Read & Execute",
-                        "Write",
-                        "Special Permissions",
-                        "Create All Child Objects",
-                        "Delete All Child Objects",
-                        "Add GUID",
-                        "Add Replica In Domain",
-                        "Change PDC",
-                        "Create Inbound Forest Trust",
-                        "Enable Per User Reversibly Encrypted Password",
-                        "Genetate Resultant Set of Policy(Logging)",
-                        "Genetate Resultant Set of Policy(Planning)",
-                        "Manage Replication Topology",
-                        "Migrate SID History",
-                        "Monitor Active Directory Replication",
-                        "Reanimate Tombstones",
-                        "Replicate Directory Changes",
-                        "Replicate Directory Changes All",
-                        "Replication Synchronization",
-                        "Unexpire Password",
-                        "Update Password Not Required Bit",
-                        "Read Domain Password & Lockout Policies",
-                        "Write Domain Password & Lockout Policies",
-                        "Read Other Domain Parameters (for use bt SAMS)",
-                        "Write Other Domain Parameters (for use bt SAMS)"
-                        };
-
-        public static Dictionary<SecurityDescriptorApi.ACCESS_MASK, string> PermissionSet
-        {
-            get
-            {
-                if (permissionSet == null || permissionSet.Count == 0)
-                {
-                    switch (SecurityDescriptor.objectType)
-                    {
-                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_FILE_OBJECT:
-                            FillFilePermissionSet();
-                            break;
-
-                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_KEY:
-                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_REGISTRY_WOW64_32KEY:
-                            FillRegistryPermissionSet();
-                            break;
-
-                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_DS_OBJECT:
-                        case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_DS_OBJECT_ALL:
-                            FillAdsPermissionSet();
-                            break;
-
-                        default:
-                            FillPermissionSet();
-                            break;
-                    }
-                }
-                return permissionSet;
-            }
-        }
-
-        public static void FillPermissionSet()
-        {
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DELETE, "Delete");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.READ_CONTROL, "Full Control");//Read
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_DAC, "Modify");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.SPECIFIC_RIGHTS_ALL, "Specific Rights");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_CREATEMENU, "Create Menu");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_CREATEWINDOW, "Create Window");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_ENUMERATE, "Desktop Enumerate");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_HOOKCONTROL, "Hook Control");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_JOURNALPLAYBACK, "Journal Playback");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_JOURNALRECORD, "Journal Record");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_READOBJECTS, "Read Objects");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_SWITCHDESKTOP, "Switch Desktop");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.DESKTOP_WRITEOBJECTS, "Write Objects");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_ALL, "Generic All");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_EXECUTE, "Generic Execute");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_READ, "Generic Read");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.GENERIC_WRITE, "Generic Write");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.MAXIMUM_ALLOWED, "Maximum allowed");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.ACCESS_SYSTEM_SECURITY, "Special Permissions");
-        }
-
-        public static void FillFilePermissionSet()
-        {
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Modify, "Modify");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read_And_Execute, "Read & Execute");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
-        }
-
-        public static void FillDirectiryPermissionSet()
-        {
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Modify, "Modify");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read_And_Execute, "Read & Execute");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Ds_Delete_Child, "List Folder Contents");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
-        }
-
-        public static void FillRegistryPermissionSet()
-        {
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
-        }
-
-        public static void FillAdsPermissionSet()
-        {
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Full_Control, "Full Control");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Read, "Read");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.WRITE_OWNER, "Write");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Ds_Create_Child, "Create All Child Objects");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Ds_Delete_Child, "Delete All Child Objects");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Ds_List_Object, "Write");
-            permissionSet.Add(SecurityDescriptorApi.ACCESS_MASK.Special_Permissions, "Special Permissions");
-        }
     }
 }

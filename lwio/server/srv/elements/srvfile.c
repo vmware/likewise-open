@@ -273,11 +273,6 @@ SrvFileFree(
         SrvFreeMemory(pFile->pFilename);
     }
 
-    if (pFile->hFile)
-    {
-        IoCloseFile(pFile->hFile);
-    }
-
     if (pFile->pwszFilename)
     {
         SrvFreeMemory(pFile->pwszFilename);
@@ -291,6 +286,11 @@ SrvFileFree(
     if (pFile->hByteRangeLockState && pFile->pfnFreeByteRangeLockState)
     {
         pFile->pfnFreeByteRangeLockState(pFile->hByteRangeLockState);
+    }
+
+    if (pFile->hFile)
+    {
+        IoCloseFile(pFile->hFile);
     }
 
     SrvFreeMemory(pFile);

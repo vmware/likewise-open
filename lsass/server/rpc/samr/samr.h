@@ -40,10 +40,10 @@
 
 NTSTATUS
 SamrSrvConnect(
-    handle_t hBinding,
-    const wchar16_t *system_name,
-    UINT32 access_mask,
-    CONNECT_HANDLE *hConn
+    IN  handle_t        hBinding,
+    IN  PCWSTR          pwszSystemName,
+    IN  DWORD           dwAccessMask,
+    OUT CONNECT_HANDLE *hConn
     );
 
 
@@ -319,12 +319,25 @@ SamrSrvCreateUser2(
 
 
 NTSTATUS
+SamrSrvChangePasswordUser2(
+    IN  handle_t       hBinding,
+    IN  UnicodeString *pDomainName,
+    IN  UnicodeString *pAccountName,
+    IN  CryptPassword *pNtPasswordBlob,
+    IN  HashPassword  *pNtVerifier,
+    IN  UINT8          ussLmChange,
+    IN  CryptPassword *pLmPasswordBlob,
+    IN  HashPassword  *pLmVerifier
+    );
+
+
+NTSTATUS
 SamrSrvConnect2(
-    handle_t hBinding,
-    UINT32 size,
-    const wchar16_t *sysname,
-    UINT32 access_mask,
-    CONNECT_HANDLE *hConn
+    IN  handle_t        hBinding,
+    IN  DWORD           dwSize,
+    IN  PCWSTR          pwszSystemName,
+    IN  DWORD           dwAccessMask,
+    OUT CONNECT_HANDLE *hConn
     );
 
 
@@ -368,37 +381,37 @@ SamrSrvCreateAccount(
 
 NTSTATUS
 SamrSrvConnect3(
-    handle_t hBinding,
-    UINT32 size,
-    const wchar16_t *system_name,
-    UINT32 unknown1,
-    UINT32 access_mask,
-    CONNECT_HANDLE *hConn
+    IN  handle_t        hBinding,
+    IN  DWORD           dwSize,
+    IN  PCWSTR          pwszSystemName,
+    IN  DWORD           dwUnknown1,
+    IN  DWORD           dwAccessMask,
+    OUT CONNECT_HANDLE *hConn
     );
 
 
 NTSTATUS
 SamrSrvConnect4(
-    handle_t hBinding,
-    UINT32 size,
-    wchar16_t *system_name,
-    UINT32 unknown,
-    UINT32 access_mask,
-    CONNECT_HANDLE *hConn
+    IN  handle_t         hBinding,
+    IN  DWORD            dwSize,
+    IN  PCWSTR           pwszSystemName,
+    IN  DWORD            dwUnknown1,
+    IN  DWORD            dwAccessMask,
+    OUT CONNECT_HANDLE  *hConn
     );
 
 
 NTSTATUS
 SamrSrvConnect5(
-    handle_t hBinding,
-    UINT32 size,
-    wchar16_t *system_name,
-    UINT32 access_mask,
-    UINT32 level_in,
-    SamrConnectInfo *info_in,
-    UINT32 *level_out,
-    SamrConnectInfo *info_out,
-    CONNECT_HANDLE *hConn
+    IN  handle_t             hBinding,
+    IN  DWORD                dwSize,
+    IN  PCWSTR               pwszSystemName,
+    IN  DWORD                dwAccessMask,
+    IN  DWORD                dwLevelIn,
+    IN  PSAMR_CONNECT_INFO   pInfoIn,
+    OUT PDWORD              pdwLevelOut,
+    OUT PSAMR_CONNECT_INFO  pInfoOut,
+    OUT CONNECT_HANDLE     *hConn
     );
 
 
@@ -406,6 +419,20 @@ NTSTATUS
 SamrSrvRenameAccount(
     IN  ACCOUNT_HANDLE  hAccount,
     IN  UnicodeString  *pAccountName
+    );
+
+
+NTSTATUS
+SamrSrvConnectInternal(
+    IN  handle_t          hBinding,
+    IN  PCWSTR            pwszSystemName,
+    IN  DWORD             dwAccessMask,
+    IN  DWORD             dwConnectVersion,
+    IN  DWORD             dwLevelIn,
+    IN  SamrConnectInfo  *pInfoIn,
+    OUT PDWORD            pdwLevelOut,
+    OUT SamrConnectInfo  *pInfoOut,
+    OUT PCONNECT_CONTEXT *ppConnCtx
     );
 
 

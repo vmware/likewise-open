@@ -52,6 +52,7 @@
 #include <openssl/md4.h>
 #include <openssl/md5.h>
 #include <openssl/rc4.h>
+#include <openssl/des.h>
 #include <lw/base.h>
 #include <lw/winerror.h>
 #include <lwrpc/allocate.h>

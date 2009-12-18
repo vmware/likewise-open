@@ -110,6 +110,8 @@ namespace Likewise.LMC.SecurityDesriptor
                         //Marshal.PtrToStructure(pTrustee, trustee);
 
                         GetObjectLookUpName(iter, out sUsername, out sDomain);
+                        if (String.IsNullOrEmpty(sUsername))
+                            sUsername = strSID;
 
                         Logger.Log("Trustee = " + sUsername, Logger.SecurityDescriptorLogLevel);
                         Logger.Log(string.Format("SID={0} : AceType={1}/ AceMask={2}/ AceFlags={3}",
@@ -136,6 +138,7 @@ namespace Likewise.LMC.SecurityDesriptor
                         {
                             if (!SdDacls.ContainsKey(Ace.Username))
                             {
+                                objectDacl = new List<LwAccessControlEntry>();
                                 objectDacl.Add(Ace);
                                 SdDacls.Add(Ace.Username, objectDacl);
                             }
@@ -143,7 +146,7 @@ namespace Likewise.LMC.SecurityDesriptor
                             {
                                 objectDacl = SdDacls[Ace.Username];
                                 objectDacl.Add(Ace);
-                                SdDacls.Add(Ace.Username, objectDacl);
+                                SdDacls[Ace.Username] = objectDacl;
                             }
                         }
                     }
@@ -271,7 +274,7 @@ namespace Likewise.LMC.SecurityDesriptor
                                     out IreturnLength);
                 Logger.Log("Error at SecurityDescriptorApi.GetTokenInformation: " + Marshal.GetLastWin32Error(), Logger.SecurityDescriptorLogLevel);
 
-                uint privilige = SecurityDescriptorApi.SE_PRIVILEGE_ENABLED;
+                uint privilige = SecurityDescriptorApi.SE_PRIVILEGE_ENABLED ;//| SecurityDescriptorApi.SE_SECURITY_NAME;
                 pPreviousTpStruct.Attributes = (int)privilige;
                 pPreviousTpStruct.PrivilegeCount = 1;
 
@@ -379,7 +382,7 @@ namespace Likewise.LMC.SecurityDesriptor
             Dictionary<string, object> newAces = addedObjects as Dictionary<string, object>;
             Dictionary<string, object> deleteAces = deletedObjects as Dictionary<string, object>;
 
-            List<SecurityDescriptorApi.EXPLICIT_ACCESS> explicitAccesslist = new List<SecurityDescriptorApi.EXPLICIT_ACCESS>();
+            List<IntPtr> explicitAccesslist = new List<IntPtr>();
 
             try
             {
@@ -404,6 +407,7 @@ namespace Likewise.LMC.SecurityDesriptor
                 {
                     IntPtr pAce; IntPtr ptrSid;
                     string sUsername, sDomain;
+                    SecurityDescriptorApi.TRUSTEE trustee=new SecurityDescriptorApi.TRUSTEE();
 
                     int err = SecurityDescriptorApi.GetAce(pDaclOffset, idx, out pAce);
                     SecurityDescriptorApi.ACCESS_ALLOWED_ACE ace = (SecurityDescriptorApi.ACCESS_ALLOWED_ACE)Marshal.PtrToStructure(pAce, typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE));
@@ -414,14 +418,6 @@ namespace Likewise.LMC.SecurityDesriptor
                     byte[] bSID = new byte[size];
                     Marshal.Copy(iter, bSID, 0, size);
                     SecurityDescriptorApi.ConvertSidToStringSid(bSID, out ptrSid);
-
-                    //Commented this, to use it in feature
-                    IntPtr pTrustee = IntPtr.Zero;
-                    SecurityDescriptorApi.TRUSTEE trustee = new SecurityDescriptorApi.TRUSTEE();
-                    pTrustee = Marshal.AllocHGlobal(Marshal.SizeOf(trustee));
-                    SecurityDescriptorApi.BuildTrusteeWithSid(out pTrustee, iter);
-                    Console.WriteLine("Build trustee " + Marshal.GetLastWin32Error());
-                    Marshal.PtrToStructure(pTrustee, trustee);
 
                     GetObjectLookUpName(iter, out sUsername, out sDomain);
 
@@ -446,18 +442,9 @@ namespace Likewise.LMC.SecurityDesriptor
                                 {
                                     if ((int)ace.Header.AceType == lwAce.AceType)
                                     {
-                                        ace.Mask = Convert.ToInt32(lwAce.AccessMask);
-
-                                        SecurityDescriptorApi.EXPLICIT_ACCESS ex = new SecurityDescriptorApi.EXPLICIT_ACCESS();
-                                        ex.grfAccessMode = GetAccessMode(ace.Header.AceType);
-                                        ex.grfAccessPermissions = (uint)ace.Mask;
-                                        ex.grfInheritance = ace.Header.AceFlags;
-
-                                        SecurityDescriptorApi.TRUSTEE sTrustee = new SecurityDescriptorApi.TRUSTEE();
-                                        Marshal.PtrToStructure(pTrustee, sTrustee);
-                                        ex.Trustee = sTrustee;
-
-                                        explicitAccesslist.Add(ex);
+                                        IntPtr pExplicitAccess = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.EXPLICIT_ACCESS)));
+                                        SecurityDescriptorApi.BuildExplicitAccessWithName(ref pExplicitAccess, sUsername, Convert.ToUInt32(lwAce.AccessMask), GetAccessMode(ace.Header.AceType), ace.Header.AceFlags);
+                                        explicitAccesslist.Add(pExplicitAccess);
                                     }
                                 }
                             }
@@ -468,7 +455,8 @@ namespace Likewise.LMC.SecurityDesriptor
                 if (explicitAccesslist != null && explicitAccesslist.Count != 0)
                 {
                     IntPtr pNewDacl = IntPtr.Zero;
-                    SecurityDescriptorApi.EXPLICIT_ACCESS[] explicitAccessArry = new SecurityDescriptorApi.EXPLICIT_ACCESS[explicitAccesslist.Count];
+                    IntPtr[] explicitAccessArry = new IntPtr[explicitAccesslist.Count];
+                    explicitAccesslist.CopyTo(explicitAccessArry);
 
                     errorReturn = SecurityDescriptorApi.SetEntriesInAcl(
                                     (ulong)explicitAccesslist.Count,
@@ -519,6 +507,45 @@ namespace Likewise.LMC.SecurityDesriptor
             {
                 errorReturn = (uint)Marshal.GetLastWin32Error();
                 Logger.LogException("SecurityDescriptorWrapper.ApiGetLogOnUserHandle()", ex);
+            }
+
+            return errorReturn;
+        }
+
+        public static uint ApiBuildTrusteeWithSid(IntPtr pSid, out SecurityDescriptorApi.TRUSTEE Trustee)
+        {
+            uint errorReturn = 0;
+            IntPtr pTrustee = IntPtr.Zero;
+            Trustee = null;
+
+            try
+            {
+                Logger.Log("SecurityDescriptorWrapper.ApiBuildTrusteeWithSid() called", Logger.SecurityDescriptorLogLevel);
+
+
+                pTrustee = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.TRUSTEE)));
+                bool bRet = SecurityDescriptorApi.BuildTrusteeWithSid(ref pTrustee, pSid);
+
+                //pTrustee = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.TRUSTEE)));
+                //bRet = SecurityDescriptorApi.BuildTrusteeWithSid(ref pTrustee, pSid);
+
+                //pTrustee = Marshal.AllocHGlobal(Marshal.SizeOf(Trustee));
+                //bRet = SecurityDescriptorApi.BuildTrusteeWithSid(ref pTrustee, pSid);
+
+                errorReturn = (uint)Marshal.GetLastWin32Error();
+
+                Logger.Log("Build trustee returns" + errorReturn);
+                if (pTrustee != IntPtr.Zero)
+                {
+                    Trustee = new SecurityDescriptorApi.TRUSTEE();
+                    Marshal.PtrToStructure(pTrustee, Trustee);
+                }
+            }
+            catch (Exception ex)
+            {
+                errorReturn = (uint)Marshal.GetLastWin32Error();
+                Logger.LogException("SecurityDescriptorWrapper.ApiBuildTrusteeWithSid()", ex);
+                Logger.Log("Build trustee " + Marshal.GetLastWin32Error());
             }
 
             return errorReturn;

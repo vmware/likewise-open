@@ -517,14 +517,14 @@ AD_ReadRegistry(
 
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters\\Providers\\ActiveDirectory",
-                "PolicyServices\\lsass\\Parameters\\Providers\\ActiveDirectory",
+                "Policy\\Services\\lsass\\Parameters\\Providers\\ActiveDirectory",
                 ADConfigDescription,
                 sizeof(ADConfigDescription)/sizeof(ADConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaProcessConfig(
                 "Services\\lsass\\Parameters",
-                "PolicyServices\\lsass\\Parameters",
+                "Policy\\Services\\lsass\\Parameters",
                 LsaConfigDescription,
                 sizeof(LsaConfigDescription)/sizeof(LsaConfigDescription[0]));
     BAIL_ON_LSA_ERROR(dwError);

@@ -48,16 +48,19 @@
 #define _SAMR_CONTEXT_HANDLE_H_
 
 
-enum SamrContextType {
+enum SamrContextType
+{
     SamrContextConnect = 0,
     SamrContextDomain,
     SamrContextAccount
 };
 
 
-typedef struct samr_generic_context {
+typedef struct samr_generic_context
+{
     enum SamrContextType    Type;
     LONG                    refcount;
+
 } SAMR_GENERIC_CONTEXT, *PSAMR_GENERIC_CONTEXT;
 
 
@@ -65,33 +68,46 @@ typedef struct samr_connect_context
 {
     enum SamrContextType    Type;
     LONG                    refcount;
+
     PACCESS_TOKEN           pUserToken;
     PBYTE                   pSessionKey;
     DWORD                   dwSessionKeyLen;
+    DWORD                   dwAccessGranted;
+
+    DWORD                   dwConnectVersion;
+    DWORD                   dwLevel;
+    SamrConnectInfo         Info;
+
     HANDLE                  hDirectory;
-}
-CONNECT_CONTEXT, *PCONNECT_CONTEXT;
+
+} CONNECT_CONTEXT, *PCONNECT_CONTEXT;
 
 
-typedef struct samr_domain_context {
+typedef struct samr_domain_context
+{
     enum SamrContextType Type;
     LONG                 refcount;
+    DWORD                dwAccessGranted;
     PWSTR                pwszDn;
     PWSTR                pwszDomainName;
     PSID                 pDomainSid;
     PCONNECT_CONTEXT     pConnCtx;
+
 } DOMAIN_CONTEXT, *PDOMAIN_CONTEXT;
 
 
-typedef struct samr_account_context {
+typedef struct samr_account_context
+{
     enum SamrContextType Type;
     LONG                 refcount;
+    DWORD                dwAccessGranted;
     PWSTR                pwszDn;
     PWSTR                pwszName;
     DWORD                dwRid;
     DWORD                dwAccountType;
     PSID                 pSid;
     PDOMAIN_CONTEXT      pDomCtx;
+
 } ACCOUNT_CONTEXT, *PACCOUNT_CONTEXT;
 
 

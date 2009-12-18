@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: SamrConnect function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_connect.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrConnect function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -39,30 +49,30 @@
 
 NTSTATUS
 SamrSrvConnect(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ const wchar16_t *system_name,
-    /* [in] */ UINT32 access_mask,
+    /* [in] */  handle_t        hBinding,
+    /* [in] */  PCWSTR          pwszSystemName,
+    /* [in] */  DWORD           dwAccessMask,
     /* [out] */ CONNECT_HANDLE *hConn
     )
 {
+    const DWORD dwConnectVersion = 2;
+
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
-    PCONNECT_CONTEXT pConn = NULL;
+    PCONNECT_CONTEXT pConnCtx = NULL;
 
-    ntStatus = RTL_ALLOCATE(&pConn, CONNECT_CONTEXT, sizeof(*pConn));
+    ntStatus = SamrSrvConnectInternal(hBinding,
+                                      pwszSystemName,
+                                      dwAccessMask,
+                                      dwConnectVersion,
+                                      0,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      &pConnCtx);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    dwError = DirectoryOpen(&pConn->hDirectory);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pConn->Type     = SamrContextConnect;
-    pConn->refcount = 1;
-
-    /* Increase ref count because DCE/RPC runtime is about to use this
-       pointer as well */
-    InterlockedIncrement(&pConn->refcount);
-
-    *hConn = (CONNECT_HANDLE)pConn;
+    *hConn = (CONNECT_HANDLE)pConnCtx;
 
 cleanup:
     if (ntStatus == STATUS_SUCCESS &&
@@ -74,12 +84,121 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pConn) {
-        InterlockedDecrement(&pConn->refcount);
-        CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConn);
+    if (pConnCtx)
+    {
+        InterlockedDecrement(&pConnCtx->refcount);
+        CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConnCtx);
     }
 
     *hConn = NULL;
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrSrvConnectInternal(
+    IN  handle_t            hBinding,
+    IN  PCWSTR              pwszSystemName,
+    IN  DWORD               dwAccessMask,
+    IN  DWORD               dwConnectVersion,
+    IN  DWORD               dwLevelIn,
+    IN  PSAMR_CONNECT_INFO  pInfoIn,
+    OUT PDWORD              pdwLevelOut,
+    OUT PSAMR_CONNECT_INFO  pInfoOut,
+    OUT PCONNECT_CONTEXT   *ppConnCtx
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = 0;
+    PCONNECT_CONTEXT pConnCtx = NULL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = gpSamrSecDesc;
+    GENERIC_MAPPING GenericMapping = {0};
+    DWORD dwAccessGranted = 0;
+
+    BAIL_ON_INVALID_PTR(hBinding);
+    BAIL_ON_INVALID_PTR(pwszSystemName);
+    BAIL_ON_INVALID_PTR(ppConnCtx);
+
+    ntStatus = LwAllocateMemory(sizeof(*pConnCtx),
+                                OUT_PPVOID(&pConnCtx));
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    pConnCtx->Type     = SamrContextConnect;
+    pConnCtx->refcount = 1;
+
+    ntStatus = SamrSrvInitAuthInfo(hBinding, pConnCtx);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    if (!RtlAccessCheck(pSecDesc,
+                        pConnCtx->pUserToken,
+                        dwAccessMask,
+                        pConnCtx->dwAccessGranted,
+                        &GenericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    pConnCtx->dwAccessGranted = dwAccessGranted;
+
+    dwError = DirectoryOpen(&pConnCtx->hDirectory);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pConnCtx->dwConnectVersion = dwConnectVersion;
+
+    if (dwConnectVersion == 5)
+    {
+        BAIL_ON_INVALID_PTR(pInfoIn);
+        BAIL_ON_INVALID_PTR(pInfoOut);
+        BAIL_ON_INVALID_PTR(pdwLevelOut);
+
+        pConnCtx->dwLevel = dwLevelIn;
+        pConnCtx->Info    = *pInfoIn;
+    }
+
+    if (pdwLevelOut)
+    {
+        *pdwLevelOut = pConnCtx->dwLevel;
+    }
+
+    if (pInfoOut)
+    {
+        *pInfoOut = pConnCtx->Info;
+    }
+
+    /* Increase ref count because DCE/RPC runtime is about to use this
+       pointer as well */
+    InterlockedIncrement(&pConnCtx->refcount);
+
+    *ppConnCtx = pConnCtx;
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    if (pdwLevelOut)
+    {
+        *pdwLevelOut = 0;
+    }
+
+    if (pInfoOut)
+    {
+        memset(pInfoOut, 0, sizeof(*pInfoOut));
+    }
+
+    if (pConnCtx)
+    {
+        CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConnCtx);
+    }
+
+    *ppConnCtx = NULL;
     goto cleanup;
 }
 

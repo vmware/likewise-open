@@ -70,6 +70,24 @@ namespace Likewise.LMC.UtilityUIElements.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Likewise Administrative Console.
+        /// </summary>
+        internal static string Console_Caption {
+            get {
+                return ResourceManager.GetString("Console_Caption", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to edit the permissions for the object..
+        /// </summary>
+        internal static string EditPermissionErrorDisplay {
+            get {
+                return ResourceManager.GetString("EditPermissionErrorDisplay", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to This folders, subfolders and files.
         /// </summary>
         internal static string FolderApplyToText {
@@ -84,6 +102,18 @@ namespace Likewise.LMC.UtilityUIElements.Properties {
         internal static string PermissionEntryText {
             get {
                 return ResourceManager.GetString("PermissionEntryText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to You are setting a deny permissions entry. Deny entries take precedence over allow entries.
+        ///This means that if a user is a member of two groups, one that is allowed a permission another
+        ///that is denied the same permission, the user is denied that permission.
+        ///Do you want to continue?.
+        /// </summary>
+        internal static string PermissionsWarningMsg {
+            get {
+                return ResourceManager.GetString("PermissionsWarningMsg", resourceCulture);
             }
         }
 
