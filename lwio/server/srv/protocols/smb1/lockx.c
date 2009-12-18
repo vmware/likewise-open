@@ -80,7 +80,6 @@ static
 NTSTATUS
 SrvFindLargePendingLockState(
     PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
-    ULONG                          ulKey,
     PLOCKING_ANDX_RANGE_LARGE_FILE pRangeLarge,
     PSRV_LOCK_STATE_SMB_V1*        ppLockState,
     PUSHORT                        pusLockIndex
@@ -89,7 +88,6 @@ SrvFindLargePendingLockState(
 static
 BOOLEAN
 SrvMatchesPendingLargeLockState(
-    ULONG                          ulKey,
     PLOCKING_ANDX_RANGE_LARGE_FILE pCandidateRange,
     PSRV_LOCK_STATE_SMB_V1         pLockState,
     PUSHORT                        pusLockIndex
@@ -99,7 +97,6 @@ static
 NTSTATUS
 SrvFindPendingLockState(
     PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
-    ULONG                          ulKey,
     PLOCKING_ANDX_RANGE            pRange,
     PSRV_LOCK_STATE_SMB_V1*        ppLockState,
     PUSHORT                        pusLockIndex
@@ -108,7 +105,6 @@ SrvFindPendingLockState(
 static
 BOOLEAN
 SrvMatchesPendingLockState(
-    ULONG                  ulKey,
     PLOCKING_ANDX_RANGE    pCandidateRange,
     PSRV_LOCK_STATE_SMB_V1 pLockState,
     PUSHORT                pusLockIndex
@@ -638,6 +634,10 @@ SrvRegisterPendingLockState(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock  = FALSE;
 
+    LWIO_LOG_ALWAYS("Registering lock state 0x%x with lock state list 0x%x",
+                    pLockState,
+                    pLockStateList);
+
     LWIO_LOCK_MUTEX(bInLock, &pLockStateList->mutex);
 
     if (!pLockStateList->pLockStateHead)
@@ -660,7 +660,6 @@ static
 NTSTATUS
 SrvFindLargePendingLockState(
     PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
-    ULONG                          ulKey,
     PLOCKING_ANDX_RANGE_LARGE_FILE pRangeLarge,
     PSRV_LOCK_STATE_SMB_V1*        ppLockState,
     PUSHORT                        pusLockIndex
@@ -676,11 +675,7 @@ SrvFindLargePendingLockState(
 
     pCursor = pLockStateList->pLockStateHead;
     while (pCursor &&
-           !SrvMatchesPendingLargeLockState(
-                           ulKey,
-                           pRangeLarge,
-                           pCursor,
-                           &usLockIdx))
+           !SrvMatchesPendingLargeLockState(pRangeLarge, pCursor, &usLockIdx))
     {
         pCursor = pCursor->pNext;
     }
@@ -716,7 +711,6 @@ error:
 static
 BOOLEAN
 SrvMatchesPendingLargeLockState(
-    ULONG                          ulKey,
     PLOCKING_ANDX_RANGE_LARGE_FILE pCandidateRange,
     PSRV_LOCK_STATE_SMB_V1         pLockState,
     PUSHORT                        pusLockIndex
@@ -725,7 +719,7 @@ SrvMatchesPendingLargeLockState(
     BOOLEAN bResult     = FALSE;
     USHORT  usLockIndex = 0;
 
-    if ((pLockState->ulKey == ulKey) && pLockState->pLockRangeLarge)
+    if (pLockState->pLockRangeLarge)
     {
         USHORT iLock             = 0;
         LONG64 llCandidateOffset = 0LL;
@@ -750,7 +744,8 @@ SrvMatchesPendingLargeLockState(
             llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
                                    ((LONG64)pLockInfo->ulLengthLow);
 
-            if ((llCandidateOffset == llOffset) &&
+            if ((pCandidateRange->usPid == pLockInfo->usPid) &&
+                (llCandidateOffset == llOffset) &&
                 (llCandidateLength == llLength))
             {
                 usLockIndex = iLock;
@@ -769,7 +764,6 @@ static
 NTSTATUS
 SrvFindPendingLockState(
     PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
-    ULONG                          ulKey,
     PLOCKING_ANDX_RANGE            pRange,
     PSRV_LOCK_STATE_SMB_V1*        ppLockState,
     PUSHORT                        pusLockIndex
@@ -785,11 +779,7 @@ SrvFindPendingLockState(
 
     pCursor = pLockStateList->pLockStateHead;
     while (pCursor &&
-           !SrvMatchesPendingLockState(
-                           ulKey,
-                           pRange,
-                           pCursor,
-                           &usLockIdx))
+           !SrvMatchesPendingLockState(pRange, pCursor, &usLockIdx))
     {
         pCursor = pCursor->pNext;
     }
@@ -825,7 +815,6 @@ error:
 static
 BOOLEAN
 SrvMatchesPendingLockState(
-    ULONG                  ulKey,
     PLOCKING_ANDX_RANGE    pCandidateRange,
     PSRV_LOCK_STATE_SMB_V1 pLockState,
     PUSHORT                pusLockIndex
@@ -834,7 +823,7 @@ SrvMatchesPendingLockState(
     BOOLEAN bResult     = FALSE;
     USHORT  usLockIndex = 0;
 
-    if ((pLockState->ulKey == ulKey) && pLockState->pLockRange)
+    if (pLockState->pLockRange)
     {
         USHORT iLock = 0;
 
@@ -843,7 +832,8 @@ SrvMatchesPendingLockState(
             PLOCKING_ANDX_RANGE pLockInfo =
                         &pLockState->pLockRange[iLock];
 
-            if ((pCandidateRange->ulOffset == pLockInfo->ulOffset) &&
+            if ((pCandidateRange->usPid == pLockInfo->usPid) &&
+                (pCandidateRange->ulOffset == pLockInfo->ulOffset) &&
                 (pCandidateRange->ulLength == pLockInfo->ulLength))
             {
                 usLockIndex = iLock;
@@ -869,6 +859,10 @@ SrvUnregisterPendingLockState(
     BOOLEAN  bInLock  = FALSE;
     PSRV_LOCK_STATE_SMB_V1 pCursor = NULL;
     PSRV_LOCK_STATE_SMB_V1 pPrev   = NULL;
+
+    LWIO_LOG_ALWAYS("Unregistering lock state 0x%x with lock state list 0x%x",
+                    pLockState,
+                    pLockStateList);
 
     LWIO_LOCK_MUTEX(bInLock, &pLockStateList->mutex);
 
@@ -941,7 +935,6 @@ SrvExecuteLockCancellation(
     {
         ntStatus = SrvFindLargePendingLockState(
                         pPendingLockStateList,
-                        pLockState->ulKey,
                         &pLockState->pLockRangeLarge[0],
                         &pLockStateToCancel,
                         &usLockIndex);
@@ -950,7 +943,6 @@ SrvExecuteLockCancellation(
     {
         ntStatus = SrvFindPendingLockState(
                         pPendingLockStateList,
-                        pLockState->ulKey,
                         &pLockState->pLockRange[0],
                         &pLockStateToCancel,
                         &usLockIndex);
