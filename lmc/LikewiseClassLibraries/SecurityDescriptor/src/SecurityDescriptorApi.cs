@@ -118,10 +118,15 @@ namespace Likewise.LMC.SecurityDesriptor
             TOKEN_PRIVILEGES TokenInformation,
             uint TokenInformationLength);
 
-        [DllImport(LibADVAPIPath, SetLastError = true)]
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool BuildTrusteeWithSid(
-             out IntPtr pTrustee,
+             ref IntPtr pTrustee,
              IntPtr pSid);
+
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool BuildTrusteeWithName(
+             ref IntPtr pTrustee,
+             string pSid);
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern bool LogonUser(
@@ -197,7 +202,7 @@ namespace Likewise.LMC.SecurityDesriptor
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern uint SetEntriesInAcl(
         ulong cCountOfExplicitEntries,
-        EXPLICIT_ACCESS[] pListOfExplicitEntries,
+        IntPtr[] pListOfExplicitEntries,
         IntPtr OldAcl,
         out IntPtr NewAcl
         );
@@ -212,6 +217,16 @@ namespace Likewise.LMC.SecurityDesriptor
             IntPtr pDacl,
             IntPtr pSacl
         );
+
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern uint BuildExplicitAccessWithName(
+        ref IntPtr pExplicitAccess,
+        string pTrusteeName,
+        uint AccessPermissions,
+        ACCESS_MODE AccessMode,
+        uint Inheritance
+        );
+
 
 
         #endregion
@@ -315,6 +330,7 @@ namespace Likewise.LMC.SecurityDesriptor
             public int MultipleTrusteeOperation;
             public int TrusteeForm;
             public int TrusteeType;
+            [MarshalAs(UnmanagedType.LPWStr)]
             public string ptstrName;
         }
 
@@ -458,80 +474,6 @@ namespace Likewise.LMC.SecurityDesriptor
             SidTypeComputer
         }
 
-        [Flags]
-        public enum ACCESS_MASK : uint
-        {
-            DELETE = 0x00010000,
-            READ_CONTROL = 0x00020000,
-            WRITE_DAC = 0x00040000,
-            WRITE_OWNER = 0x00080000,
-            SYNCHRONIZE = 0x00100000,
-
-            STANDARD_RIGHTS_REQUIRED = 0x000f0000,
-
-            STANDARD_RIGHTS_READ = 0x00020000,
-            STANDARD_RIGHTS_WRITE = 0x00020000,
-            STANDARD_RIGHTS_EXECUTE = 0x00020000,
-
-            STANDARD_RIGHTS_ALL = 0x001f0000,
-
-            SPECIFIC_RIGHTS_ALL = 0x0000ffff,
-
-            ACCESS_SYSTEM_SECURITY = 0x01000000,
-
-            MAXIMUM_ALLOWED = 0x02000000,
-
-            GENERIC_READ = 0x80000000,
-            GENERIC_WRITE = 0x40000000,
-            GENERIC_EXECUTE = 0x20000000,
-            GENERIC_ALL = 0x10000000,
-
-            DESKTOP_READOBJECTS = 0x00000001,
-            DESKTOP_CREATEWINDOW = 0x00000002,
-            DESKTOP_CREATEMENU = 0x00000004,
-            DESKTOP_HOOKCONTROL = 0x00000008,
-            DESKTOP_JOURNALRECORD = 0x00000010,
-            DESKTOP_JOURNALPLAYBACK = 0x00000020,
-            DESKTOP_ENUMERATE = 0x00000040,
-            DESKTOP_WRITEOBJECTS = 0x00000080,
-            DESKTOP_SWITCHDESKTOP = 0x00000100,
-
-            WINSTA_ENUMDESKTOPS = 0x00000001,
-            WINSTA_READATTRIBUTES = 0x00000002,
-            WINSTA_ACCESSCLIPBOARD = 0x00000004,
-            WINSTA_CREATEDESKTOP = 0x00000008,
-            WINSTA_WRITEATTRIBUTES = 0x00000010,
-            WINSTA_ACCESSGLOBALATOMS = 0x00000020,
-            WINSTA_EXITWINDOWS = 0x00000040,
-            WINSTA_ENUMERATE = 0x00000100,
-            WINSTA_READSCREEN = 0x00000200,
-
-            WINSTA_ALL_ACCESS = 0x0000037f,
-
-            Full_Control = 983103,
-            Read   = 131097,
-            Special_Permissions = 131072,
-            Read_And_Execute = 1179817,
-            Read_And_Write = 1180095,
-            Modify = 1245631,
-
-            Actrl_Ds_list = 4,
-            Delete = 65536,
-            Ds_Control_Access = 256,
-            Ds_Create_Child = 1,
-            Ds_Delete_Child = 2,
-            Ds_List_Object = 128,
-            Ds_Self = 8,
-            Ds_Read_Properties = 16,
-            Ds_Write_Properties = 32,
-            Sychronize = 1048576,
-
-            Generic_All = 268435456,
-            Generic_Execute = 536870912,
-            Generic_Read = 2147483648,
-            Generic_write = 1073741824
-        }
-
         public enum SE_OBJECT_TYPE : uint
         {
             SE_UNKNOWN_OBJECT_TYPE = 0,
@@ -546,7 +488,8 @@ namespace Likewise.LMC.SecurityDesriptor
             SE_DS_OBJECT_ALL,
             SE_PROVIDER_DEFINED_OBJECT,
             SE_WMIGUID_OBJECT,
-            SE_REGISTRY_WOW64_32KEY
+            SE_REGISTRY_WOW64_32KEY,
+            SE_DIR_OBJECT
         }
 
         [Flags]

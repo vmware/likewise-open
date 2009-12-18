@@ -38,6 +38,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\AdvancedPermissions.cs" />
     <Compile Include="src\LwAccessControlEntry.cs" />
+    <Compile Include="src\LwAccessMask.cs" />
+    <Compile Include="src\PermissionsSet.cs" />
     <Compile Include="src\SecurityDescriptor.cs" />
     <Compile Include="src\SecurityDescriptorApi.cs" />
     <Compile Include="src\SecurityDescriptorWrapper.cs" />
