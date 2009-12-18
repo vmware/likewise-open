@@ -78,6 +78,23 @@ SrvRegisterPendingLockState(
 
 static
 NTSTATUS
+SrvFindLargePendingUnlockState(
+    PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
+    PLOCKING_ANDX_RANGE_LARGE_FILE pRangeLarge,
+    PSRV_LOCK_STATE_SMB_V1*        ppLockState,
+    PUSHORT                        pusLockIndex
+    );
+
+static
+BOOLEAN
+SrvMatchesPendingLargeUnlockState(
+    PLOCKING_ANDX_RANGE_LARGE_FILE pCandidateRange,
+    PSRV_LOCK_STATE_SMB_V1         pLockState,
+    PUSHORT                        pusLockIndex
+    );
+
+static
+NTSTATUS
 SrvFindLargePendingLockState(
     PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
     PLOCKING_ANDX_RANGE_LARGE_FILE pRangeLarge,
@@ -91,6 +108,23 @@ SrvMatchesPendingLargeLockState(
     PLOCKING_ANDX_RANGE_LARGE_FILE pCandidateRange,
     PSRV_LOCK_STATE_SMB_V1         pLockState,
     PUSHORT                        pusLockIndex
+    );
+
+static
+NTSTATUS
+SrvFindPendingUnlockState(
+    PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
+    PLOCKING_ANDX_RANGE            pRange,
+    PSRV_LOCK_STATE_SMB_V1*        ppLockState,
+    PUSHORT                        pusLockIndex
+    );
+
+static
+BOOLEAN
+SrvMatchesPendingUnlockState(
+    PLOCKING_ANDX_RANGE    pCandidateRange,
+    PSRV_LOCK_STATE_SMB_V1 pLockState,
+    PUSHORT                pusLockIndex
     );
 
 static
@@ -346,8 +380,8 @@ SrvProcessLockAndX(
 
             if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_CANCEL_LOCK)
             {
-                if (!pLockState->pRequestHeader->usNumLocks ||
-                    (pLockState->pRequestHeader->usNumLocks == 0xFFFF))
+                if (!pLockState->pRequestHeader->usNumLocks &&
+                    !pLockState->pRequestHeader->usNumUnlocks)
                 {
                     ntStatus = STATUS_INVALID_PARAMETER;
                     BAIL_ON_NT_STATUS(ntStatus);
@@ -659,6 +693,110 @@ SrvRegisterPendingLockState(
 
 static
 NTSTATUS
+SrvFindLargePendingUnlockState(
+    PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
+    PLOCKING_ANDX_RANGE_LARGE_FILE pRangeLarge,
+    PSRV_LOCK_STATE_SMB_V1*        ppLockState,
+    PUSHORT                        pusLockIndex
+    )
+{
+    NTSTATUS               ntStatus   = STATUS_SUCCESS;
+    PSRV_LOCK_STATE_SMB_V1 pLockState = NULL;
+    BOOLEAN                bInLock    = FALSE;
+    PSRV_LOCK_STATE_SMB_V1 pCursor    = NULL;
+    USHORT                 usLockIdx  = 0;
+
+    LWIO_LOCK_MUTEX(bInLock, &pLockStateList->mutex);
+
+    pCursor = pLockStateList->pLockStateHead;
+    while (pCursor &&
+           !SrvMatchesPendingLargeUnlockState(pRangeLarge, pCursor, &usLockIdx))
+    {
+        pCursor = pCursor->pNext;
+    }
+
+    if (!pCursor)
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppLockState  = SrvAcquireLockState(pCursor);
+    *pusLockIndex = usLockIdx;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockStateList->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppLockState  = NULL;
+    *pusLockIndex = 0;
+
+    if (pLockState)
+    {
+        SrvReleaseLockState(pLockState);
+    }
+
+    goto cleanup;
+}
+
+static
+BOOLEAN
+SrvMatchesPendingLargeUnlockState(
+    PLOCKING_ANDX_RANGE_LARGE_FILE pCandidateRange,
+    PSRV_LOCK_STATE_SMB_V1         pLockState,
+    PUSHORT                        pusLockIndex
+    )
+{
+    BOOLEAN bResult     = FALSE;
+    USHORT  usLockIndex = 0;
+
+    if (pLockState->pUnlockRangeLarge)
+    {
+        USHORT iLock             = 0;
+        LONG64 llCandidateOffset = 0LL;
+        LONG64 llCandidateLength = 0LL;
+
+        llCandidateOffset = (((LONG64)pCandidateRange->ulOffsetHigh) << 32) |
+                            ((LONG64)pCandidateRange->ulOffsetLow);
+
+        llCandidateLength = (((LONG64)pCandidateRange->ulLengthHigh) << 32) |
+                            ((LONG64)pCandidateRange->ulLengthLow);
+
+        for (iLock = 0; iLock < pLockState->pRequestHeader->usNumUnlocks; iLock++)
+        {
+            PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
+                        &pLockState->pUnlockRangeLarge[iLock];
+            LONG64 llOffset = 0LL;
+            LONG64 llLength = 0LL;
+
+            llOffset = (((LONG64)pLockInfo->ulOffsetHigh) << 32) |
+                       ((LONG64)pLockInfo->ulOffsetLow);
+
+            llLength = (((LONG64)pLockInfo->ulLengthHigh) << 32) |
+                                   ((LONG64)pLockInfo->ulLengthLow);
+
+            if ((pCandidateRange->usPid == pLockInfo->usPid) &&
+                (llCandidateOffset == llOffset) &&
+                (llCandidateLength == llLength))
+            {
+                usLockIndex = iLock;
+                bResult = TRUE;
+                break;
+            }
+        }
+    }
+
+    *pusLockIndex = usLockIndex;
+
+    return bResult;
+}
+
+static
+NTSTATUS
 SrvFindLargePendingLockState(
     PSRV_PENDING_LOCK_STATE_LIST   pLockStateList,
     PLOCKING_ANDX_RANGE_LARGE_FILE pRangeLarge,
@@ -760,6 +898,95 @@ SrvMatchesPendingLargeLockState(
 
     return bResult;
 }
+
+static
+NTSTATUS
+SrvFindPendingUnlockState(
+    PSRV_PENDING_LOCK_STATE_LIST pLockStateList,
+    PLOCKING_ANDX_RANGE          pRange,
+    PSRV_LOCK_STATE_SMB_V1*      ppLockState,
+    PUSHORT                      pusLockIndex
+    )
+{
+    NTSTATUS               ntStatus   = STATUS_SUCCESS;
+    PSRV_LOCK_STATE_SMB_V1 pLockState = NULL;
+    BOOLEAN                bInLock    = FALSE;
+    PSRV_LOCK_STATE_SMB_V1 pCursor    = NULL;
+    USHORT                 usLockIdx  = 0;
+
+    LWIO_LOCK_MUTEX(bInLock, &pLockStateList->mutex);
+
+    pCursor = pLockStateList->pLockStateHead;
+    while (pCursor &&
+           !SrvMatchesPendingUnlockState(pRange, pCursor, &usLockIdx))
+    {
+        pCursor = pCursor->pNext;
+    }
+
+    if (!pCursor)
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppLockState  = SrvAcquireLockState(pCursor);
+    *pusLockIndex = usLockIdx;
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pLockStateList->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppLockState  = NULL;
+    *pusLockIndex = 0;
+
+    if (pLockState)
+    {
+        SrvReleaseLockState(pLockState);
+    }
+
+    goto cleanup;
+}
+
+static
+BOOLEAN
+SrvMatchesPendingUnlockState(
+    PLOCKING_ANDX_RANGE    pCandidateRange,
+    PSRV_LOCK_STATE_SMB_V1 pLockState,
+    PUSHORT                pusLockIndex
+    )
+{
+    BOOLEAN bResult     = FALSE;
+    USHORT  usLockIndex = 0;
+
+    if (pLockState->pUnlockRange)
+    {
+        USHORT iLock = 0;
+
+        for (iLock = 0; iLock < pLockState->pRequestHeader->usNumUnlocks; iLock++)
+        {
+            PLOCKING_ANDX_RANGE pLockInfo =
+                        &pLockState->pUnlockRange[iLock];
+
+            if ((pCandidateRange->usPid == pLockInfo->usPid) &&
+                (pCandidateRange->ulOffset == pLockInfo->ulOffset) &&
+                (pCandidateRange->ulLength == pLockInfo->ulLength))
+            {
+                usLockIndex = iLock;
+                bResult = TRUE;
+                break;
+            }
+        }
+    }
+
+    *pusLockIndex = usLockIndex;
+
+    return bResult;
+}
+
 
 static
 NTSTATUS
@@ -932,21 +1159,52 @@ SrvExecuteLockCancellation(
     pPendingLockStateList =
             (PSRV_PENDING_LOCK_STATE_LIST)pCtxSmb1->pFile->hByteRangeLockState;
 
-    if (pLockState->pLockRangeLarge)
+
+    if (pLockState->pRequestHeader->ucLockType & LWIO_LOCK_TYPE_LARGE_FILES)
     {
-        ntStatus = SrvFindLargePendingLockState(
-                        pPendingLockStateList,
-                        &pLockState->pLockRangeLarge[0],
-                        &pLockStateToCancel,
-                        &usLockIndex);
+        if (pLockState->pUnlockRangeLarge)
+        {
+            ntStatus = SrvFindLargePendingUnlockState(
+                            pPendingLockStateList,
+                            &pLockState->pUnlockRangeLarge[0],
+                            &pLockStateToCancel,
+                            &usLockIndex);
+        }
+        else if (pLockState->pLockRangeLarge)
+        {
+            ntStatus = SrvFindLargePendingLockState(
+                            pPendingLockStateList,
+                            &pLockState->pLockRangeLarge[0],
+                            &pLockStateToCancel,
+                            &usLockIndex);
+        }
+        else
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+        }
     }
     else
     {
-        ntStatus = SrvFindPendingLockState(
-                        pPendingLockStateList,
-                        &pLockState->pLockRange[0],
-                        &pLockStateToCancel,
-                        &usLockIndex);
+        if (pLockState->pUnlockRange)
+        {
+            ntStatus = SrvFindPendingUnlockState(
+                            pPendingLockStateList,
+                            &pLockState->pUnlockRange[0],
+                            &pLockStateToCancel,
+                            &usLockIndex);
+        }
+        else if (pLockState->pLockRange)
+        {
+            ntStatus = SrvFindPendingLockState(
+                            pPendingLockStateList,
+                            &pLockState->pLockRange[0],
+                            &pLockStateToCancel,
+                            &usLockIndex);
+        }
+        else
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+        }
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
