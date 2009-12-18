@@ -293,6 +293,7 @@ namespace Likewise.LMC.Registry
                                          SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
                                          SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
                                          SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
+                                         //SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION, //Commented this since the Api is returning the Access denied error code=5
                                          IntPtr.Zero,
                                          ref lpcbSecurityDescriptor);
 
@@ -303,6 +304,7 @@ namespace Likewise.LMC.Registry
                                          SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION |
                                          SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
                                          SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION,
+                                         //SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION,
                                          pSecurityDescriptor,
                                          ref lpcbSecurityDescriptor);
                         }
