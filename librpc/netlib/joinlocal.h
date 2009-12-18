@@ -35,7 +35,8 @@
 NTSTATUS
 ResetAccountPasswordTimer(
     handle_t samr_b,
-    ACCOUNT_HANDLE hAccount
+    ACCOUNT_HANDLE hAccount,
+    UINT32 account_flags
     );
 
 
