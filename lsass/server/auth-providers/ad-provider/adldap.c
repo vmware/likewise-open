@@ -534,7 +534,7 @@ ADGetConfigurationMode(
                     szAttributeList,
                     &hDirectory,
                     &pMessage);
-    if (dwError == LDAP_NO_SUCH_OBJECT){
+    if (dwError == LW_ERROR_LDAP_NO_SUCH_OBJECT){
         dwError = LW_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS;
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1786,7 +1786,7 @@ cleanup:
 
 error:
 
-    if (dwError == LDAP_NO_SUCH_OBJECT)
+    if (dwError == LW_ERROR_LDAP_NO_SUCH_OBJECT)
     {
         dwError = 0;
     }
