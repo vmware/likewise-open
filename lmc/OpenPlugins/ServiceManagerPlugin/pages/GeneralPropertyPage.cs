@@ -169,6 +169,8 @@ namespace Likewise.LMC.Plugins.ServiceManagerPlugin
                 txtStartParameters.Text = txtStartParameters.Text.Trim();
                 btnPause.Visible = btnResume.Visible = false;
 
+                cmbStartupType.SelectedIndex = serviceInfo.bAutostart ? 0 : 1;
+
                 switch (serviceStatus.state)
                 {
                     case ServiceManagerApi.LW_SERVICE_STATE.LW_SERVICE_STATE_DEAD:
