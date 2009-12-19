@@ -1041,7 +1041,7 @@ cleanup:
 		 * But only if the peer is also happy
 		 */
 		if (peerState == ACCEPT_COMPLETE) {
-		    *context_handle = (gss_ctx_id_t)spnego_ctx->ctx_handle;
+		    *context_handle = (gss_union_ctx_id_t)(spnego_ctx->ctx_handle)->internal_ctx_id;
 		    if (actual_mech != NULL) {
                         /*
                          * krb5 can set actual_mech to the
@@ -1049,10 +1049,16 @@ cleanup:
                          * spnego_ctx->internal_mech which
                          * causes a segfault when spnego_ctx is freed
                          */
-			*actual_mech = (*context_handle)->mech_type;
+			*actual_mech = spnego_ctx->actual_mech;
+                        if (spnego_ctx->actual_mech == spnego_ctx->internal_mech) {
+                            spnego_ctx->internal_mech = NULL;
+                        }
 		    }
 		    if (ret_flags != NULL)
 			    *ret_flags = spnego_ctx->ctx_flags;
+		    free(((gss_union_ctx_id_t)spnego_ctx->ctx_handle)->mech_type->elements);
+		    free(((gss_union_ctx_id_t)spnego_ctx->ctx_handle)->mech_type);
+		    free(spnego_ctx->ctx_handle);
 		    release_spnego_ctx(&spnego_ctx);
 		} else {
 			ret = GSS_S_CONTINUE_NEEDED;
@@ -1776,11 +1782,14 @@ cleanup:
 			ret = GSS_S_FAILURE;
 	}
 	if (ret == GSS_S_COMPLETE) {
-		*context_handle = (gss_ctx_id_t)sc->ctx_handle;
+		*context_handle = (gss_union_ctx_id_t)(sc->ctx_handle)->internal_ctx_id;
 		if (sc->internal_name != GSS_C_NO_NAME &&
 		    src_name != NULL) {
 			*src_name = sc->internal_name;
 		}
+		free(((gss_union_ctx_id_t)sc->ctx_handle)->mech_type->elements);
+		free(((gss_union_ctx_id_t)sc->ctx_handle)->mech_type);
+		free(sc->ctx_handle);
 		release_spnego_ctx(&sc);
 	}
 	gss_release_buffer(&tmpmin, &mechtok_out);
