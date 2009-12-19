@@ -79,7 +79,6 @@ extern PCSTR gpszADProviderName;
 
 extern PAD_PROVIDER_DATA  gpADProviderData;
 
-extern LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable;
 extern LSA_PROVIDER_FUNCTION_TABLE_2 gADProviderAPITable2;
 extern PLSA_HASH_TABLE gpAllowedSIDs;
 

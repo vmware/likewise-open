@@ -100,6 +100,7 @@ error:
 
 VOID
 LsaDmCleanup(
+    VOID
     )
 {
     if (gLsaDmState)
@@ -388,6 +389,7 @@ LsaDmGetPrimaryDomainName(
     return LsaDmpGetPrimaryDomainName(gLsaDmState, ppszPrimaryDomain);
 }
 
+static
 BOOLEAN
 LsaDmIsForestGcOffline(
     IN OPTIONAL PCSTR pszForestName
@@ -406,6 +408,7 @@ LsaDmDetectTransitionOnline(
 
 VOID
 LsaDmTriggerOnlindeDetectionThread(
+    VOID
     )
 {
     LsaDmpTriggerOnlindeDetectionThread(gLsaDmState);

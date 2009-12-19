@@ -131,6 +131,7 @@ DirectoryFreeAttributeValues(
                 break;
 
             case DIRECTORY_ATTR_TYPE_OCTET_STREAM:
+            case DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR:
 
                 if (pAttrValue->data.pOctetString)
                 {

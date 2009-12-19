@@ -83,6 +83,7 @@
  * @ingroup public
  */
 
+#include <inttypes.h>
 #include <lw/types.h>
 #include <lw/attrs.h>
 
@@ -514,14 +515,14 @@ typedef struct __LSA_NSS_ARTEFACT_INFO_LIST
 
 typedef LW_UINT8 ADAccountType;
 
-#define AccountType_NotFound 0
-#define AccountType_Group 1
-#define AccountType_User 2
-#define AccountType_Domain 3
+#define AccountType_NotFound LSA_OBJECT_TYPE_UNDEFINED
+#define AccountType_Group    LSA_OBJECT_TYPE_GROUP
+#define AccountType_User     LSA_OBJECT_TYPE_USER
+#define AccountType_Domain   LSA_OBJECT_TYPE_DOMAIN
 
 typedef struct __LSA_SID_INFO
 {
-    ADAccountType accountType;
+    LW_UINT8 accountType;
     LW_PSTR pszSamAccountName;
     LW_PSTR pszDomainName;
 } LSA_SID_INFO, *PLSA_SID_INFO;
@@ -1617,6 +1618,322 @@ LsaGetPamConfig(
 LW_VOID
 LsaFreePamConfig(
     LW_IN PLSA_PAM_CONFIG pPamConfig
+    );
+
+typedef LW_UINT8 LSA_QUERY_TYPE, *PLSA_QUERY_TYPE;
+#define LSA_QUERY_TYPE_UNDEFINED      0
+#define LSA_QUERY_TYPE_BY_DN          1
+#define LSA_QUERY_TYPE_BY_SID         2
+#define LSA_QUERY_TYPE_BY_NT4         3
+#define LSA_QUERY_TYPE_BY_UPN         4
+#define LSA_QUERY_TYPE_BY_ALIAS       5
+#define LSA_QUERY_TYPE_BY_UNIX_ID     6
+#define LSA_QUERY_TYPE_BY_NAME        7
+
+typedef LW_UINT8 LSA_OBJECT_TYPE, *PLSA_OBJECT_TYPE;
+#define LSA_OBJECT_TYPE_UNDEFINED 0
+#define LSA_OBJECT_TYPE_USER      2
+#define LSA_OBJECT_TYPE_GROUP     1
+#define LSA_OBJECT_TYPE_COMPUTER  4
+#define LSA_OBJECT_TYPE_DOMAIN    3
+
+typedef struct __LSA_SECURITY_OBJECT_VERSION_INFO
+{
+    // This value is set to -1 if the value is not stored in the
+    // database (it only exists in memory). Otherwise, this is an index into
+    // the database.
+    int64_t qwDbId;
+    time_t tLastUpdated;
+    // Sum of the size of all objects that use this version info (only used by
+    // memory backend)
+    LW_DWORD dwObjectSize;
+    // Importance of this object (for internal use by the memory backend)
+    float fWeight;
+} LSA_SECURITY_OBJECT_VERSION_INFO, *PLSA_SECURITY_OBJECT_VERSION_INFO;
+
+typedef struct _LSA_SECURITY_OBJECT_USER_INFO
+{
+    /* Windows-like attributes */
+    LW_PSTR pszPrimaryGroupSid;
+    LW_PSTR pszUPN;
+    LW_PSTR pszAliasName;
+    uint64_t qwPwdLastSet;
+    uint64_t qwMaxPwdAge;
+    uint64_t qwAccountExpires;
+
+    LW_BOOLEAN bIsGeneratedUPN;
+    LW_BOOLEAN bIsAccountInfoKnown;
+    // Calculated from userAccountControl, accountExpires, and pwdLastSet
+    // attributes from AD.
+    LW_BOOLEAN bPasswordExpired;
+    LW_BOOLEAN bPasswordNeverExpires;
+    LW_BOOLEAN bPromptPasswordChange;
+    LW_BOOLEAN bUserCanChangePassword;
+    LW_BOOLEAN bAccountDisabled;
+    LW_BOOLEAN bAccountExpired;
+    LW_BOOLEAN bAccountLocked;
+
+    LW_DWORD dwLmHashLen;
+    LW_PBYTE pLmHash;
+    LW_DWORD dwNtHashLen;
+    LW_PBYTE pNtHash;
+
+    /* UNIX-like attributes */
+    uid_t uid;
+    gid_t gid;
+    LW_PSTR pszUnixName;
+    LW_PSTR pszPasswd;
+    LW_PSTR pszGecos;
+    LW_PSTR pszShell;
+    LW_PSTR pszHomedir;
+} LSA_SECURITY_OBJECT_USER_INFO, *PLSA_SECURITY_OBJECT_USER_INFO;
+
+typedef struct _LSA_SECURITY_OBJECT_GROUP_INFO
+{
+    gid_t gid;
+    LW_PSTR pszAliasName;
+    LW_PSTR pszUnixName;
+    LW_PSTR pszPasswd;
+} LSA_SECURITY_OBJECT_GROUP_INFO, *PLSA_SECURITY_OBJECT_GROUP_INFO;
+
+typedef struct __LSA_SECURITY_OBJECT
+{
+    LSA_SECURITY_OBJECT_VERSION_INFO version;
+    LW_PSTR    pszDN;
+    // The object SID is stored in printed form
+    LW_PSTR    pszObjectSid;
+    //This is false if the object has not been enabled in the cell
+    LW_BOOLEAN enabled;
+    LW_BOOLEAN bIsLocal;
+
+    LW_PSTR    pszNetbiosDomainName;
+    LW_PSTR    pszSamAccountName;
+
+    LSA_OBJECT_TYPE type;
+
+    // These fields are only set if the object is enabled base on the type.
+    union
+    {
+        LSA_SECURITY_OBJECT_USER_INFO userInfo;
+        LSA_SECURITY_OBJECT_GROUP_INFO groupInfo;
+        union
+        {
+            LSA_SECURITY_OBJECT_USER_INFO userInfo;
+            LSA_SECURITY_OBJECT_GROUP_INFO groupInfo;
+        } typeInfo;
+    };
+} LSA_SECURITY_OBJECT, *PLSA_SECURITY_OBJECT;
+
+typedef const LSA_SECURITY_OBJECT * PCLSA_SECURITY_OBJECT;
+
+typedef union _LSA_QUERY_ITEM {
+    LW_PCSTR pszString;
+    LW_DWORD dwId;
+} LSA_QUERY_ITEM, *PLSA_QUERY_ITEM;
+
+typedef union _LSA_QUERY_LIST {
+    LW_PCSTR* ppszStrings;
+    LW_PDWORD pdwIds;
+} LSA_QUERY_LIST, *PLSA_QUERY_LIST;
+
+typedef struct __LSA_USER_MOD_INFO_2
+{
+    LW_PSTR pszSid;
+
+    struct _usermod_actions_2 {
+        LW_BOOLEAN bEnableUser;
+        LW_BOOLEAN bDisableUser;
+        LW_BOOLEAN bUnlockUser;
+        LW_BOOLEAN bSetChangePasswordOnNextLogon;
+        LW_BOOLEAN bSetPasswordNeverExpires;
+        LW_BOOLEAN bSetPasswordMustExpire;
+        LW_BOOLEAN bAddToGroups;
+        LW_BOOLEAN bRemoveFromGroups;
+        LW_BOOLEAN bSetAccountExpiryDate;
+        LW_BOOLEAN bSetHomedir;
+        LW_BOOLEAN bSetShell;
+        LW_BOOLEAN bSetGecos;
+        LW_BOOLEAN bSetPrimaryGroup;
+        LW_BOOLEAN bSetNtPasswordHash;
+        LW_BOOLEAN bSetLmPasswordHash;
+        LW_BOOLEAN bSetPassword;
+    } actions;
+
+    LW_PSTR pszPrimaryGroupSid;
+    LW_PSTR pszAddToGroups;
+    LW_PSTR pszRemoveFromGroups;
+    LW_PSTR pszExpiryDate;
+    LW_PSTR pszHomedir;
+    LW_PSTR pszShell;
+    LW_PSTR pszGecos;
+    LW_PSTR pszPassword;
+    PLW_LSA_DATA_BLOB pNtPasswordHash;
+    PLW_LSA_DATA_BLOB pLmPasswordHash;
+
+} LSA_USER_MOD_INFO_2, *PLSA_USER_MOD_INFO_2;
+
+typedef struct __LSA_GROUP_MOD_INFO_2
+{
+    LW_PSTR pszSid;
+
+    struct _groupmod_actions_2 {
+        LW_BOOLEAN bAddMembers;
+        LW_BOOLEAN bRemoveMembers;
+    } actions;
+
+    LW_DWORD dwAddMembersNum;
+    LW_PSTR* ppszAddMembers;
+
+    LW_DWORD dwRemoveMembersNum;
+    LW_PSTR* ppszRemoveMembers;
+} LSA_GROUP_MOD_INFO_2, *PLSA_GROUP_MOD_INFO_2;
+
+typedef struct _LSA_USER_ADD_INFO
+{
+    LW_PSTR pszName;
+    uid_t uid;
+    LW_PSTR pszPrimaryGroupSid;
+    LW_PSTR pszPassword;
+    LW_PSTR pszGecos;
+    LW_PSTR pszShell;
+    LW_PSTR pszHomedir;
+} LSA_USER_ADD_INFO, *PLSA_USER_ADD_INFO;
+
+typedef struct _LSA_GROUP_ADD_INFO
+{
+    LW_PSTR pszName;
+    gid_t gid;
+    LW_DWORD dwMemberCount;
+    LW_PSTR* ppszMemberSids;
+} LSA_GROUP_ADD_INFO, *PLSA_GROUP_ADD_INFO;
+
+LW_DWORD
+LsaFindObjects(
+    LW_IN LW_HANDLE hLsa,
+    LW_IN LW_PCSTR pszTargetProvider,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LW_OPTIONAL LSA_OBJECT_TYPE ObjectType,
+    LW_IN LSA_QUERY_TYPE QueryType,
+    LW_IN LW_DWORD dwCount,
+    LW_IN LSA_QUERY_LIST QueryList,
+    LW_OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+LW_DWORD
+LsaOpenEnumObjects(
+    LW_IN LW_HANDLE hLsa,
+    LW_IN LW_PCSTR pszTargetProvider,
+    LW_OUT LW_PHANDLE phEnum,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LSA_OBJECT_TYPE ObjectType,
+    LW_IN LW_OPTIONAL LW_PCSTR pszDomainName
+    );
+
+LW_DWORD
+LsaEnumObjects(
+    LW_IN LW_HANDLE hLsa,
+    LW_IN LW_HANDLE hEnum,
+    LW_IN LW_DWORD dwMaxObjectsCount,
+    LW_OUT LW_PDWORD pdwObjectsCount,
+    LW_OUT PLSA_SECURITY_OBJECT** pppObjects
+    );
+
+LW_DWORD
+LsaOpenEnumMembers(
+    LW_IN LW_HANDLE hLsa,
+    LW_IN LW_PCSTR pszTargetProvider,
+    LW_OUT LW_PHANDLE phEnum,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LW_PCSTR pszSid
+    );
+
+LW_DWORD
+LsaEnumMembers(
+    LW_IN LW_HANDLE hLsa,
+    LW_IN LW_HANDLE hEnum,
+    LW_IN LW_DWORD dwMaxObjectsCount,
+    LW_OUT LW_PDWORD pdwObjectsCount,
+    LW_OUT LW_PSTR** pppszMember
+    );
+
+LW_DWORD
+LsaQueryMemberOf(
+    LW_IN LW_HANDLE hLsa,
+    LW_IN LW_PCSTR pszTargetProvider,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_DWORD dwSidCount,
+    LW_IN LW_PSTR* ppszSids,
+    LW_OUT LW_PDWORD pdwGroupSidCount,
+    LW_OUT LW_PSTR** pppszGroupSids
+    );
+
+LW_DWORD
+LsaCloseEnum(
+    LW_IN LW_HANDLE hLsa,
+    LW_IN LW_OUT LW_HANDLE hEnum
+    );
+
+LW_VOID
+LsaFreeSidList(
+    LW_IN LW_DWORD dwSidCount,
+    LW_IN LW_OUT LW_PSTR* ppszSids
+    );
+
+LW_VOID
+LsaFreeSecurityObjectList(
+    LW_IN LW_DWORD dwObjectCount,
+    LW_IN LW_OUT PLSA_SECURITY_OBJECT* ppObjects
+    );
+
+LW_VOID
+LsaFreeSecurityObject(
+    LW_IN LW_OUT PLSA_SECURITY_OBJECT pObject
+    );
+
+LW_DWORD
+LsaQueryExpandedGroupMembers(
+    LW_IN LW_HANDLE hLsa,
+    LW_PCSTR pszTargetProvider,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LSA_OBJECT_TYPE ObjectType,
+    LW_IN LW_PCSTR pszSid,
+    LW_OUT LW_PDWORD pdwMemberCount,
+    LW_OUT PLSA_SECURITY_OBJECT** pppMembers
+    );
+
+LW_DWORD
+LsaModifyUser2(
+    LW_HANDLE hLsaConnection,
+    LW_PCSTR pszTargetProvider,
+    PLSA_USER_MOD_INFO_2 pUserModInfo
+    );
+
+LW_DWORD
+LsaDeleteObject(
+    LW_HANDLE hLsaConnection,
+    LW_PCSTR pszTargetProvider,
+    LW_PCSTR pszSid
+    );
+
+LW_DWORD
+LsaModifyGroup2(
+    LW_HANDLE hLsaConnection,
+    LW_PCSTR pszTargetProvider,
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
+    );
+
+LW_DWORD
+LsaAddGroup2(
+    LW_HANDLE hLsaConnection,
+    LW_PCSTR pszTargetProvider,
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
+    );
+
+LW_DWORD
+LsaAddUser2(
+    LW_HANDLE hLsaConnection,
+    LW_PCSTR pszTargetProvider,
+    PLSA_USER_ADD_INFO pUserAddInfo
     );
 
 #endif /* __LSA_H__ */

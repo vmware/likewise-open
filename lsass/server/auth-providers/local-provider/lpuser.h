@@ -50,76 +50,6 @@
 #define __LP_USER_H__
 
 DWORD
-LocalDirFindUserByName(
-    HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszUserName,
-    DWORD  dwUserInfoLevel,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LocalDirFindUserByName_0(
-    HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszUserName,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LocalDirFindUserByName_1(
-    HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszUserName,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LocalDirFindUserByName_2(
-    HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszUserName,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LocalDirFindUserById(
-    HANDLE hProvider,
-    uid_t  uid,
-    DWORD  dwUserInfoLevel,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LocalDirFindUserById_0(
-    HANDLE hProvider,
-    uid_t  uid,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LocalDirFindUserById_1(
-    HANDLE hProvider,
-    uid_t  uid,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LocalDirFindUserById_2(
-    HANDLE hProvider,
-    uid_t  uid,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    );
-
-DWORD
 LocalDirGetUserInfoFlags(
     HANDLE hProvider,
     uid_t  uid,
@@ -127,50 +57,15 @@ LocalDirGetUserInfoFlags(
     );
 
 DWORD
-LocalDirBeginEnumUsers(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    PHANDLE phResume
-    );
-
-DWORD
-LocalDirEnumUsers(
-    HANDLE  hProvider,
-    HANDLE  hResume,
-    DWORD   nMaxUsers,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
 LocalDirAddUser(
-    HANDLE hProvider,
-    DWORD  dwInfoLevel,
-    PVOID  pUserInfo
-    );
-
-DWORD
-LocalDirAddUser_0(
     HANDLE           hProvider,
-    PLSA_USER_INFO_0 pUserInfo
-    );
-
-DWORD
-LocalDirAddUser_1(
-    HANDLE           hProvider,
-    PLSA_USER_INFO_1 pUserInfo
-    );
-
-DWORD
-LocalDirAddUser_2(
-    HANDLE           hProvider,
-    PLSA_USER_INFO_2 pUserInfo
+    PLSA_USER_ADD_INFO pUserInfo
     );
 
 DWORD
 LocalDirModifyUser(
     HANDLE             hProvider,
-    PLSA_USER_MOD_INFO pUserModInfo
+    PLSA_USER_MOD_INFO_2 pUserModInfo
     );
 
 DWORD
@@ -196,7 +91,7 @@ LocalDirSetPassword(
 
 DWORD
 LocalCreateHomeDirectory(
-    PLSA_USER_INFO_0 pUserInfo
+    PLSA_SECURITY_OBJECT pObject
     );
 
 DWORD
@@ -208,7 +103,7 @@ LocalProvisionHomeDir(
 
 DWORD
 LocalCheckAccountFlags(
-    PLSA_USER_INFO_2 pUserInfo2
+    PLSA_SECURITY_OBJECT pObject
     );
 
 DWORD

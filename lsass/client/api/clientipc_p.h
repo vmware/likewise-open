@@ -70,121 +70,24 @@ LsaIpcUnregisterHandle(
     );
 
 DWORD
-LsaTransactFindGroupByName(
-   HANDLE hServer,
-   PCSTR pszGroupName,
-   LSA_FIND_FLAGS FindFlags,
-   DWORD dwGroupInfoLevel,
-   PVOID* ppGroupInfo
-   );
-
-DWORD
-LsaTransactFindGroupById(
-   HANDLE hServer,
-   DWORD id,
-   LSA_FIND_FLAGS FindFlags,
-   DWORD dwGroupInfoLevel,
-   PVOID* ppGroupInfo
-   );
-
-DWORD
-LsaTransactBeginEnumGroups(
+LsaTransactAddGroup2(
     HANDLE hServer,
-    DWORD dwGroupInfoLevel,
-    DWORD dwMaxNumGroups,
-    BOOLEAN bCheckGroupMembersOnline,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
     );
 
 DWORD
-LsaTransactEnumGroups(
+LsaTransactDeleteObject(
     HANDLE hServer,
-    HANDLE hResume,
-    PDWORD pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
+    PCSTR pszTargetProvider,
+    PCSTR pszSid
     );
 
 DWORD
-LsaTransactEndEnumGroups(
+LsaTransactAddUser2(
     HANDLE hServer,
-    HANDLE hResume
-    );
-
-DWORD
-LsaTransactAddGroup(
-    HANDLE hServer,
-    PVOID  pGroupInfo,
-    DWORD  dwGroupInfoLevel
-    );
-
-DWORD
-LsaTransactDeleteGroupById(
-    HANDLE hServer,
-    gid_t  gid
-    );
-
-DWORD
-LsaTransactGetGroupsForUser(
-    IN HANDLE hServer,
-    IN OPTIONAL PCSTR pszUserName,
-    IN OPTIONAL uid_t uid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PDWORD pdwGroupsFound,
-    OUT PVOID** pppGroupInfoList
-    );
-
-DWORD
-LsaTransactFindUserByName(
-    HANDLE hServer,
-    PCSTR  pszName,
-    DWORD  dwUserInfoLevel,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LsaTransactFindUserById(
-    HANDLE hServer,
-    uid_t uid,
-    DWORD  dwUserInfoLevel,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LsaTransactBeginEnumUsers(
-    HANDLE hServer,
-    DWORD   dwUserInfoLevel,
-    DWORD   dwMaxNumUsers,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
-    );
-
-DWORD
-LsaTransactEnumUsers(
-    HANDLE hServer,
-    HANDLE hResume,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-LsaTransactEndEnumUsers(
-    HANDLE hServer,
-    HANDLE hResume
-    );
-
-DWORD
-LsaTransactAddUser(
-    HANDLE hServer,
-    PVOID  pUserInfo,
-    DWORD  dwUserInfoLevel
-    );
-
-DWORD
-LsaTransactDeleteUserById(
-    HANDLE hServer,
-    uid_t  uid
+    PCSTR pszTargetProvider,
+    PLSA_USER_ADD_INFO pUserAddInfo2
     );
 
 DWORD
@@ -224,24 +127,17 @@ LsaTransactSetPassword(
     );
 
 DWORD
-LsaTransactModifyUser(
+LsaTransactModifyUser2(
     HANDLE hServer,
-    PLSA_USER_MOD_INFO pUserModInfo
+    PCSTR pszTargetProvider,
+    PLSA_USER_MOD_INFO_2 pUserModInfo
     );
 
 DWORD
-LsaTransactGetNamesBySidList(
-    IN HANDLE hServer,
-    IN size_t sCount,
-    IN PSTR* ppszSidList,
-    OUT PLSA_SID_INFO* ppSIDInfoList,
-    OUT OPTIONAL CHAR *pchDomainSeparator
-    );
-
-DWORD
-LsaTransactModifyGroup(
+LsaTransactModifyGroup2(
     HANDLE hServer,
-    PLSA_GROUP_MOD_INFO pGroupModInfo
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
     );
 
 DWORD

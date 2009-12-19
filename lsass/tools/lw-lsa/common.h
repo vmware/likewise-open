@@ -43,11 +43,12 @@
 
 #include <lsa/lsa.h>
 #include <lsa/lsa2.h>
-#include "common.h"
 
 VOID
 PrintSecurityObject(
-    PLSA_SECURITY_OBJECT pObject
+    PLSA_SECURITY_OBJECT pObject,
+    DWORD dwObjectNumber,
+    DWORD dwObjectTotal
     );
 
 PCSTR

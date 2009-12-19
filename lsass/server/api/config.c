@@ -106,7 +106,7 @@ LsaSrvRefreshConfiguration(
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = pProvider->pFnTable->pfnRefreshConfiguration(
+        dwError = pProvider->pFnTable2->pfnRefreshConfiguration(
                                         hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 

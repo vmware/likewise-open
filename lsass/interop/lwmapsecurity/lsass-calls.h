@@ -52,66 +52,18 @@
  * internal plugin and with client side calls (Lsa*) for public plugin
  * enables using lwmapsecurity inside lsass without having a server
  * calling itself via client calls.
- * The exceptions are LsaGetNamesBySidList and LsaCloseServer functions
- * which are slightly different in client and server APIs, so they need
- * a wrapper implementation.
  */
 
 #ifdef LSASS_INTERNAL_PLUGIN
 
 #include <lwsecurityidentifier.h>
 #include <lsasrvapi.h>
+#include <lsasrvapi2.h>
 
-
-#define LsaOpenServer(phConnection)                                    \
-    LsaSrvOpenServer(0, 0, getpid(), (phConnection))
-
-#define LsaFindUserByName(hConnection, pszName, dwLevel, ppInfo)       \
-    LsaSrvFindUserByName((hConnection), (pszName), (dwLevel),          \
-                         (ppInfo))
-
-#define LsaFindUserById(hConnection, dwId, dwLevel, ppInfo)            \
-    LsaSrvFindUserById((hConnection), (dwId), (dwLevel), (ppInfo))
-
-#define LsaFindGroupByName(hConnection, pszName, Flags, dwLevel, ppInfo)\
-    LsaSrvFindGroupByName((hConnection), (pszName), (Flags),           \
-                          (dwLevel), (ppInfo))
-
-#define LsaFindGroupById(hConnection, dwId, Flags, dwLevel, ppInfo)    \
-    LsaSrvFindGroupById((hConnection), (dwId), (Flags), (dwLevel),     \
-                       (ppInfo))
-
-#define LsaGetGroupsForUserById(hConnection, dwUid, Flags, dwLevel,    \
-                                pdwNumGroups, pppGroups)               \
-    LsaSrvGetGroupsForUser((hConnection), NULL, (dwUid),               \
-                           (Flags), (dwLevel),                         \
-                           (pdwNumGroups), (pppGroups))
-
-#else
-
-#define LsaOpenServer(phConnection)                                    \
-    LsaOpenServer((phConnection));
-
-#define LsaFindUserByName(hConnection, pszName, dwLevel, ppInfo)       \
-    LsaFindUserByName((hConnection), (pszName),                        \
-                      (dwLevel), (ppInfo))
-
-#define LsaFindUserById(hConnection, dwId, dwLevel, ppInfo)            \
-    LsaFindUserById((hConnection), (dwId), (dwLevel), (ppInfo))
-
-#define LsaFindGroupByName(hConnection, pszName, dwFlags, dwLevel,     \
-                           ppInfo)                                     \
-    LsaFindGroupByName((hConnection), (pszName), (dwFlags),            \
-                      (dwLevel), (ppInfo))
-
-#define LsaFindGroupById(hConnection, dwId, dwFlags, dwLevel, ppInfo)  \
-    LsaFindGroupById((hConnection), (dwId), (dwFlags),                 \
-                    (dwLevel), (ppInfo))
-
-#define LsaGetGroupsForUserById(hConnection, dwUid, Flags, dwLevel,    \
-                                dwNumGroups, pppGroups)                \
-    LsaGetGroupsForUserById((hConnection), (dwUid), (Flags),           \
-                            (dwLevel), (dwNumGroups), (pppGroups))
+#define LsaOpenServer(phConnection) LsaSrvOpenServer(0, 0, getpid(), (phConnection))
+#define LsaCloseServer(hLsa) (LsaSrvCloseServer((hLsa)), 0)
+#define LsaFindObjects LsaSrvFindObjects
+#define LsaQueryMemberOf LsaSrvQueryMemberOf
 
 #endif /* LSASS_INTERNAL_PLUGIN */
 

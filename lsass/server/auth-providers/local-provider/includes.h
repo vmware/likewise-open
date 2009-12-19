@@ -65,6 +65,7 @@
 
 #include "lsaprovider.h"
 #include "lsaprovider2.h"
+#include "lsasrvapi.h"
 #include "directory.h"
 
 #include "lpdefs.h"

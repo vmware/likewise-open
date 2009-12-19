@@ -182,7 +182,7 @@ DWORD
 ADLdap_GetAccountType(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
-    OUT ADAccountType* pAccountType
+    OUT LSA_OBJECT_TYPE* pAccountType
     );
 
 #endif

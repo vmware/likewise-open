@@ -1435,7 +1435,7 @@ error:
     goto cleanup;
 }
 
-
+static
 DWORD
 ADState_ReadRegProviderDataValue(
     HANDLE hReg,
@@ -1484,7 +1484,7 @@ error:
 
 }
 
-
+static
 DWORD
 ADState_WriteRegProviderDataValue(
     HANDLE hReg,

@@ -15,6 +15,7 @@ liblsaclient_api_la_SOURCES = \
     status.c    \
     tracing.c   \
     users.c     \
+    marshal.c   \
     api2.c
 
 liblsaclient_api_la_CPPFLAGS = \

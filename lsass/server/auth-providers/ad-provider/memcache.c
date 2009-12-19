@@ -52,7 +52,7 @@ typedef enum __MemCachePersistTag
     MEM_CACHE_PASSWORD,
 } MemCachePersistTag;
 
-static LWMsgTypeSpec gLsaSecurityObjectVersionSpec[] =
+static LWMsgTypeSpec gLsaCacheSecurityObjectVersionSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_SECURITY_OBJECT_VERSION_INFO),
     LWMSG_MEMBER_INT64(LSA_SECURITY_OBJECT_VERSION_INFO, qwDbId),
@@ -66,7 +66,7 @@ static LWMsgTypeSpec gLsaSecurityObjectVersionSpec[] =
 static LWMsgTypeSpec gLsaGroupMembershipSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_GROUP_MEMBERSHIP),
-    LWMSG_MEMBER_TYPESPEC(LSA_GROUP_MEMBERSHIP, version, gLsaSecurityObjectVersionSpec),
+    LWMSG_MEMBER_TYPESPEC(LSA_GROUP_MEMBERSHIP, version, gLsaCacheSecurityObjectVersionSpec),
     LWMSG_MEMBER_PSTR(LSA_GROUP_MEMBERSHIP, pszParentSid),
     LWMSG_MEMBER_PSTR(LSA_GROUP_MEMBERSHIP, pszChildSid),
     LWMSG_MEMBER_UINT8(LSA_GROUP_MEMBERSHIP, bIsInPac),
@@ -80,14 +80,14 @@ static LWMsgTypeSpec gLsaGroupMembershipSpec[] =
 static LWMsgTypeSpec gLsaPasswordVerifierSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_PASSWORD_VERIFIER),
-    LWMSG_MEMBER_TYPESPEC(LSA_PASSWORD_VERIFIER, version, gLsaSecurityObjectVersionSpec),
+    LWMSG_MEMBER_TYPESPEC(LSA_PASSWORD_VERIFIER, version, gLsaCacheSecurityObjectVersionSpec),
     LWMSG_MEMBER_PSTR(LSA_PASSWORD_VERIFIER, pszObjectSid),
     LWMSG_MEMBER_PSTR(LSA_PASSWORD_VERIFIER, pszPasswordVerifier),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaSecurityObjectUserInfoSpec[] =
+static LWMsgTypeSpec gLsaCacheSecurityObjectUserInfoSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_SECURITY_OBJECT_USER_INFO),
     LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_USER_INFO, uid),
@@ -115,7 +115,7 @@ static LWMsgTypeSpec gLsaSecurityObjectUserInfoSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaSecurityObjectGroupInfoSpec[] =
+static LWMsgTypeSpec gLsaCacheSecurityObjectGroupInfoSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_SECURITY_OBJECT_GROUP_INFO),
     LWMSG_MEMBER_UINT32(LSA_SECURITY_OBJECT_GROUP_INFO, gid),
@@ -125,11 +125,11 @@ static LWMsgTypeSpec gLsaSecurityObjectGroupInfoSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaSecurityObjectSpec[] =
+static LWMsgTypeSpec gLsaCacheSecurityObjectSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_SECURITY_OBJECT),
 
-    LWMSG_MEMBER_TYPESPEC(LSA_SECURITY_OBJECT, version, gLsaSecurityObjectVersionSpec),
+    LWMSG_MEMBER_TYPESPEC(LSA_SECURITY_OBJECT, version, gLsaCacheSecurityObjectVersionSpec),
     LWMSG_MEMBER_PSTR(LSA_SECURITY_OBJECT, pszDN),
     LWMSG_MEMBER_PSTR(LSA_SECURITY_OBJECT, pszObjectSid),
     LWMSG_MEMBER_UINT8(LSA_SECURITY_OBJECT, enabled),
@@ -138,10 +138,10 @@ static LWMsgTypeSpec gLsaSecurityObjectSpec[] =
 
     LWMSG_MEMBER_UINT8(LSA_SECURITY_OBJECT, type),
     LWMSG_MEMBER_UNION_BEGIN(LSA_SECURITY_OBJECT, typeInfo),
-    LWMSG_MEMBER_TYPESPEC(LSA_SECURITY_OBJECT, userInfo, gLsaSecurityObjectUserInfoSpec),
-    LWMSG_ATTR_TAG(AccountType_User),
-    LWMSG_MEMBER_TYPESPEC(LSA_SECURITY_OBJECT, groupInfo, gLsaSecurityObjectGroupInfoSpec),
-    LWMSG_ATTR_TAG(AccountType_Group),
+    LWMSG_MEMBER_TYPESPEC(LSA_SECURITY_OBJECT, userInfo, gLsaCacheSecurityObjectUserInfoSpec),
+    LWMSG_ATTR_TAG(LSA_OBJECT_TYPE_USER),
+    LWMSG_MEMBER_TYPESPEC(LSA_SECURITY_OBJECT, groupInfo, gLsaCacheSecurityObjectGroupInfoSpec),
+    LWMSG_ATTR_TAG(LSA_OBJECT_TYPE_GROUP),
     LWMSG_UNION_END,
     LWMSG_ATTR_DISCRIM(LSA_SECURITY_OBJECT, type),
 
@@ -151,7 +151,7 @@ static LWMsgTypeSpec gLsaSecurityObjectSpec[] =
 
 static LWMsgProtocolSpec gMemCachePersistence[] =
 {
-    LWMSG_MESSAGE(MEM_CACHE_OBJECT, gLsaSecurityObjectSpec),
+    LWMSG_MESSAGE(MEM_CACHE_OBJECT, gLsaCacheSecurityObjectSpec),
     LWMSG_MESSAGE(MEM_CACHE_MEMBERSHIP, gLsaGroupMembershipSpec),
     LWMSG_MESSAGE(MEM_CACHE_PASSWORD, gLsaPasswordVerifierSpec),
     LWMSG_PROTOCOL_END
@@ -183,6 +183,7 @@ MemCacheFreePasswordVerifier(
     }
 }
 
+static
 void *
 MemCacheBackupRoutine(
     void* pDb
@@ -877,7 +878,7 @@ MemCacheFindUserByName(
                     (PLSA_SECURITY_OBJECT)pListEntry->pItem);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type != AccountType_User)
+    if (pObject->type != LSA_OBJECT_TYPE_USER)
     {
         dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -934,7 +935,7 @@ MemCacheFindUserById(
                     (PLSA_SECURITY_OBJECT)pListEntry->pItem);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type != AccountType_User)
+    if (pObject->type != LSA_OBJECT_TYPE_USER)
     {
         dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -1014,7 +1015,7 @@ MemCacheFindGroupByName(
                     (PLSA_SECURITY_OBJECT)pListEntry->pItem);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type != AccountType_Group)
+    if (pObject->type != LSA_OBJECT_TYPE_GROUP)
     {
         dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
@@ -1070,7 +1071,7 @@ MemCacheFindGroupById(
                     (PLSA_SECURITY_OBJECT)pListEntry->pItem);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type != AccountType_Group)
+    if (pObject->type != LSA_OBJECT_TYPE_GROUP)
     {
         dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -1332,7 +1333,7 @@ MemCacheRemoveObjectByHashKey(
                     pObject->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->enabled && pObject->type == AccountType_User)
+    if (pObject->enabled && pObject->type == LSA_OBJECT_TYPE_USER)
     {
         dwError = LsaHashRemoveKey(
                         pConn->pUIDToSecurityObject,
@@ -1355,7 +1356,7 @@ MemCacheRemoveObjectByHashKey(
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
-    else if (pObject->enabled && pObject->type == AccountType_Group)
+    else if (pObject->enabled && pObject->type == LSA_OBJECT_TYPE_GROUP)
     {
         dwError = LsaHashRemoveKey(
                         pConn->pGIDToSecurityObject,
@@ -1435,7 +1436,7 @@ MemCacheClearExistingObjectKeys(
                     pObject->pszObjectSid);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->enabled && pObject->type == AccountType_User)
+    if (pObject->enabled && pObject->type == LSA_OBJECT_TYPE_USER)
     {
         dwError = MemCacheRemoveObjectByHashKey(
                         pConn,
@@ -1455,7 +1456,7 @@ MemCacheClearExistingObjectKeys(
                         pObject->userInfo.pszUPN);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if (pObject->enabled && pObject->type == AccountType_Group)
+    else if (pObject->enabled && pObject->type == LSA_OBJECT_TYPE_GROUP)
     {
         dwError = MemCacheRemoveObjectByHashKey(
                         pConn,
@@ -1985,6 +1986,7 @@ MemCacheAddPinnedObject(
     }
 }
 
+static
 DWORD
 MemCacheSetPinnedObjectWeights(
     IN PMEM_DB_CONNECTION pConn,
@@ -2239,14 +2241,14 @@ MemCacheMaintainSizeCap(
         pObject = (PLSA_SECURITY_OBJECT)pConn->pObjects->pItem;
         pszSid = pObject->pszObjectSid;
 
-        if (pObject->type == AccountType_User)
+        if (pObject->type == LSA_OBJECT_TYPE_USER)
         {
             LSA_LOG_VERBOSE("Evicting user %s\\%s (sid %s)",
                     pObject->pszNetbiosDomainName,
                     pObject->pszSamAccountName,
                     pszSid);
         }
-        else if (pObject->type == AccountType_Group)
+        else if (pObject->type == LSA_OBJECT_TYPE_GROUP)
         {
             LSA_LOG_VERBOSE("Evicting group %s\\%s (sid %s)",
                     pObject->pszNetbiosDomainName,
@@ -2386,7 +2388,7 @@ MemCacheStoreObjectEntryInLock(
 
     switch(pObject->type)
     {
-        case AccountType_Group:
+        case LSA_OBJECT_TYPE_GROUP:
             sObjectSize += HASH_ENTRY_SPACE;
             dwError = LsaHashSetValue(
                             pConn->pGIDToSecurityObject,
@@ -2408,7 +2410,7 @@ MemCacheStoreObjectEntryInLock(
 
             sObjectSize += MemCacheGetStringSpace(pObject->groupInfo.pszPasswd);
             break;
-        case AccountType_User:
+        case LSA_OBJECT_TYPE_USER:
             sObjectSize += HASH_ENTRY_SPACE;
             dwError = LsaHashSetValue(
                             pConn->pUIDToSecurityObject,
@@ -3269,7 +3271,7 @@ MemCacheEnumUsersCache(
         pListEntry = pListEntry->pNext)
     {
         pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
-        if (pObject->type == AccountType_User)
+        if (pObject->type == LSA_OBJECT_TYPE_USER)
         {
             dwError = ADCacheDuplicateObject(
                             &ppObjects[dwOut],
@@ -3359,7 +3361,7 @@ MemCacheEnumGroupsCache(
         pListEntry = pListEntry->pNext)
     {
         pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
-        if (pObject->type == AccountType_Group)
+        if (pObject->type == LSA_OBJECT_TYPE_GROUP)
         {
             dwError = ADCacheDuplicateObject(
                             &ppObjects[dwOut],

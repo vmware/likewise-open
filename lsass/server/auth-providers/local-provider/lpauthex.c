@@ -52,7 +52,7 @@ static DWORD
 FillAuthUserInfo(
     HANDLE hProvider,
     PLSA_AUTH_USER_INFO pAuthInfo,
-    PLSA_USER_INFO_2 pLsaUserInfo2,
+    PLSA_SECURITY_OBJECT pObject,
     PCSTR pszMachineName
     );
 
@@ -65,14 +65,14 @@ SidSplitString(
 static DWORD
 AuthenticateNTLMv1(
     IN PLSA_AUTH_USER_PARAMS pUserParams,
-    IN PLSA_USER_INFO_2 pUserInfo2,
+    IN PLSA_SECURITY_OBJECT pObject,
     OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     );
 
 static DWORD
 AuthenticateNTLMv2(
     IN PLSA_AUTH_USER_PARAMS pUserParams,
-    IN PLSA_USER_INFO_2 pUserInfo2,
+    IN PLSA_SECURITY_OBJECT pObject,
     OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     );
 
@@ -90,13 +90,13 @@ LocalAuthenticateUserExInternal(
 {
     DWORD    dwError = LW_ERROR_INTERNAL;
     PCSTR    pszDomain = NULL;
-    DWORD    dwUserInfoLevel = 2;
     PSTR     pszAccountName = NULL;
-    PLSA_USER_INFO_2 pUserInfo2 = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PLSA_AUTH_USER_INFO pUserInfo = NULL;
     BOOLEAN bUsingNTLMv2 = FALSE;
     BOOLEAN bAcceptNTLMv1 = TRUE;
     PLSA_DATA_BLOB pSessionKey = NULL;
+    LSA_QUERY_LIST QueryList;
 
     BAIL_ON_INVALID_POINTER(pUserParams->pszAccountName);
 
@@ -125,14 +125,25 @@ LocalAuthenticateUserExInternal(
                                       pUserParams->pszAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByNameEx(hProvider,
-                                    pszAccountName,
-                                    dwUserInfoLevel,
-                                    NULL,
-                                    (PVOID*)&pUserInfo2);
+    QueryList.ppszStrings = (PCSTR*) &pszAccountName;
+
+    dwError = LocalFindObjects(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        LSA_QUERY_TYPE_BY_NAME,
+        1,
+        QueryList,
+        &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalCheckAccountFlags(pUserInfo2);
+    if (ppObjects[0] == NULL)
+    {
+        dwError = LW_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LocalCheckAccountFlags(ppObjects[0]);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgAcceptNTLMv1(&bAcceptNTLMv1);
@@ -151,7 +162,7 @@ LocalAuthenticateUserExInternal(
         }
 
         dwError = AuthenticateNTLMv1(pUserParams,
-                                     pUserInfo2,
+                                     ppObjects[0],
                                      &pSessionKey);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -160,7 +171,7 @@ LocalAuthenticateUserExInternal(
         bUsingNTLMv2 = TRUE;
 
         dwError = AuthenticateNTLMv2(pUserParams,
-                                     pUserInfo2,
+                                     ppObjects[0],
                                      &pSessionKey);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -171,7 +182,7 @@ LocalAuthenticateUserExInternal(
                                 (PVOID*)&pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = FillAuthUserInfo(hProvider, pUserInfo, pUserInfo2, pszDomain);
+    dwError = FillAuthUserInfo(hProvider, pUserInfo, ppObjects[0], pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     pUserInfo->pSessionKey = pSessionKey;
@@ -182,14 +193,12 @@ LocalAuthenticateUserExInternal(
 
 cleanup:
 
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
+
     LsaFreeAuthUserInfo(&pUserInfo);
 
     if (pSessionKey) {
         LsaDataBlobFree(&pSessionKey);
-    }
-
-    if (pUserInfo2) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo2);
     }
 
     LW_SAFE_FREE_MEMORY(pszAccountName);
@@ -207,7 +216,7 @@ error:
 static DWORD
 AuthenticateNTLMv1(
     IN PLSA_AUTH_USER_PARAMS pUserParams,
-    IN PLSA_USER_INFO_2 pUserInfo2,
+    IN PLSA_SECURITY_OBJECT pObject,
     OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     )
 {
@@ -226,7 +235,7 @@ AuthenticateNTLMv1(
 
     ntError = NTLMv1EncryptChallenge(pChal,
                                      NULL,     /* ignore LM hash */
-                                     pUserInfo2->info1.pNTHash,
+                                     pObject->userInfo.pNtHash,
                                      NULL,
                                      NTResponse);
     if (ntError != STATUS_SUCCESS) {
@@ -250,7 +259,7 @@ AuthenticateNTLMv1(
 
     pSessKeyBuf = LsaDataBlobBuffer(pSessKeyBlob);
 
-    MD4(pUserInfo2->info1.pNTHash, 16, pSessKeyBuf);
+    MD4(pObject->userInfo.pNtHash, 16, pSessKeyBuf);
 
     *ppSessionKeyBlob = pSessKeyBlob;
     pSessKeyBlob = NULL;
@@ -280,7 +289,7 @@ error:
 static DWORD
 AuthenticateNTLMv2(
     IN PLSA_AUTH_USER_PARAMS pUserParams,
-    IN PLSA_USER_INFO_2 pUserInfo2,
+    IN PLSA_SECURITY_OBJECT pObject,
     OUT PLSA_DATA_BLOB *ppSessionKeyBlob
     )
 {
@@ -347,7 +356,7 @@ AuthenticateNTLMv2(
     memcpy(pBuffer+dwAcctNameSize, pwszDestination, dwDestNameSize);
 
     HMAC(EVP_md5(),
-         pUserInfo2->info1.pNTHash, 16,
+         pObject->userInfo.pNtHash, 16,
          pBuffer, dwBufferLen,
          pNTLMv2Hash, &dwNTLMv2HashLen);
 
@@ -471,62 +480,45 @@ static DWORD
 FillAuthUserInfo(
     HANDLE hProvider,
     OUT PLSA_AUTH_USER_INFO pAuthInfo,
-    IN PLSA_USER_INFO_2 pLsaUserInfo2,
+    IN PLSA_SECURITY_OBJECT pObject,
     IN PCSTR pszMachineName
     )
 {
     DWORD dwError = LW_ERROR_INTERNAL;
-    PLSA_GROUP_INFO_0 *ppGroupList0 = NULL;
-    PLSA_GROUP_INFO_0 pPrimaryGroup0 = NULL;
-    PVOID *ppListBuffer = NULL;
-    PVOID pGroupBuffer = NULL;
     DWORD dwNumGroups = 0;
+    PSTR* ppszGroups = NULL;
     int i = 0;
 
     /* Find the user's groups */
-
-    dwError = LocalGetGroupsForUser(hProvider,
-                                    NULL,
-                                    pLsaUserInfo2->info1.uid,
-                                    0,   /* Flags */
-                                    0,   /* Level */
-                                    &dwNumGroups,
-                                    &ppListBuffer);
+    dwError = LocalQueryMemberOf(
+        hProvider,
+        0,
+        1,
+        &pObject->pszObjectSid,
+        &dwNumGroups,
+        &ppszGroups);
     BAIL_ON_LSA_ERROR(dwError);
-    ppGroupList0 = (PLSA_GROUP_INFO_0 *)ppListBuffer;
-    ppListBuffer = NULL;
-
-    /* Primary Group */
-
-    dwError = LocalFindGroupById(hProvider,
-                                 pLsaUserInfo2->info1.gid,
-                                 0,
-                                 0,
-                                 &pGroupBuffer);
-    BAIL_ON_LSA_ERROR(dwError);
-    pPrimaryGroup0 = (PLSA_GROUP_INFO_0)pGroupBuffer;
-    pGroupBuffer = NULL;
 
     /* leave user flags empty for now.  But fill in account flags */
 
     pAuthInfo->dwAcctFlags = ACB_NORMAL;
-    if (pLsaUserInfo2->bAccountDisabled) {
+    if (pObject->userInfo.bAccountDisabled) {
         pAuthInfo->dwAcctFlags |= ACB_DISABLED;
     }
-    if (pLsaUserInfo2->bAccountExpired) {
+    if (pObject->userInfo.bAccountExpired) {
         pAuthInfo->dwAcctFlags |= ACB_PW_EXPIRED;
     }
-    if (pLsaUserInfo2->bPasswordNeverExpires) {
+    if (pObject->userInfo.bPasswordNeverExpires) {
         pAuthInfo->dwAcctFlags |= ACB_PWNOEXP;
     }
 
     /* Copy strings */
 
-    dwError = LwStrDupOrNull(pLsaUserInfo2->info1.pszName,
+    dwError = LwStrDupOrNull(pObject->userInfo.pszUnixName,
                               &pAuthInfo->pszAccount);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwStrDupOrNull(pLsaUserInfo2->info1.pszGecos,
+    dwError = LwStrDupOrNull(pObject->userInfo.pszGecos,
                               &pAuthInfo->pszFullName);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -534,7 +526,7 @@ FillAuthUserInfo(
                               &pAuthInfo->pszDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwStrDupOrNull(pLsaUserInfo2->info1.pszSid,
+    dwError = LwStrDupOrNull(pObject->pszObjectSid,
                               &pAuthInfo->pszDomainSid);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -545,7 +537,7 @@ FillAuthUserInfo(
     /* This really needs a check to ensure that the
        primaryGroup SID is in the machine's domain */
 
-    dwError = SidSplitString(pPrimaryGroup0->pszSid,
+    dwError = SidSplitString(pObject->userInfo.pszPrimaryGroupSid,
                              &pAuthInfo->dwPrimaryGroupRid);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -563,7 +555,7 @@ FillAuthUserInfo(
 
     for (i=0; i<pAuthInfo->dwNumSids; i++)
     {
-        dwError = LwStrDupOrNull(ppGroupList0[i]->pszSid,
+        dwError = LwStrDupOrNull(ppszGroups[i],
                                   &pAuthInfo->pSidAttribList[i].pszSid);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -577,13 +569,7 @@ FillAuthUserInfo(
 
 cleanup:
 
-    if (ppGroupList0) {
-        LsaFreeGroupInfoList(0, (PVOID*)ppGroupList0, dwNumGroups);
-    }
-
-    if (pPrimaryGroup0) {
-        LsaFreeGroupInfo(0, pPrimaryGroup0);
-    }
+    LwFreeStringArray(ppszGroups, dwNumGroups);
 
     return dwError;
 

@@ -70,7 +70,7 @@ LsaSrvAuthenticateUser(
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = pProvider->pFnTable->pfnAuthenticateUser(
+        dwError = pProvider->pFnTable2->pfnAuthenticateUser(
                                             hProvider,
                                             pszLoginId,
                                             pszPassword);
@@ -229,7 +229,7 @@ LsaSrvAuthenticateUserEx(
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = pProvider->pFnTable->pfnAuthenticateUserEx(
+        dwError = pProvider->pFnTable2->pfnAuthenticateUserEx(
                                             hProvider,
                                             pUserParams,
                                             ppUserInfo);
@@ -343,7 +343,7 @@ LsaSrvValidateUser(
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = pProvider->pFnTable->pfnValidateUser(
+        dwError = pProvider->pFnTable2->pfnValidateUser(
                                             hProvider,
                                             pszLoginId,
                                             pszPassword);
@@ -410,7 +410,7 @@ LsaSrvCheckUserInList(
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = pProvider->pFnTable->pfnCheckUserInList(
+        dwError = pProvider->pFnTable2->pfnCheckUserInList(
                                             hProvider,
                                             pszLoginId,
                                             pszListName);
@@ -492,7 +492,7 @@ LsaSrvChangePassword(
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = pProvider->pFnTable->pfnChangePassword(
+        dwError = pProvider->pFnTable2->pfnChangePassword(
                                         hProvider,
                                         pszLoginId,
                                         pszPassword,
@@ -580,7 +580,7 @@ LsaSrvSetPassword(
         dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = pProvider->pFnTable->pfnSetPassword(
+        dwError = pProvider->pFnTable2->pfnSetPassword(
                                         hProvider,
                                         pszLoginId,
                                         pszPassword);

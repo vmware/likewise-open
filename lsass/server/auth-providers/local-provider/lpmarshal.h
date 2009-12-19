@@ -51,58 +51,6 @@
 #define __LP_MARSHAL_H__
 
 DWORD
-LocalMarshalEntryToUserInfo_0(
-    PDIRECTORY_ENTRY  pEntry,
-    PWSTR*            ppwszUserDN,
-    PLSA_USER_INFO_0* ppUserInfo
-    );
-
-DWORD
-LocalMarshalEntryToUserInfo_1(
-    PDIRECTORY_ENTRY  pEntry,
-    PCSTR             pszDomainName,
-    PWSTR*            ppwszUserDN,
-    PLSA_USER_INFO_1* ppUserInfo
-    );
-
-DWORD
-LocalMarshalEntryToUserInfo_2(
-    PDIRECTORY_ENTRY  pEntry,
-    PCSTR             pszDomainName,
-    PWSTR*            ppwszUserDN,
-    PLSA_USER_INFO_2* ppUserInfo
-    );
-
-DWORD
-LocalMarshallAccountFlags(
-    PLSA_USER_INFO_2 pUserInfo,
-    DWORD            dwUserInfoFlags,
-    LONG64           llPwdLastSet,
-    LONG64           llAcctExpiry
-    );
-
-DWORD
-LocalMarshalEntryToGroupInfo_0(
-    PDIRECTORY_ENTRY   pEntry,
-    PWSTR*             ppwszGroupDN,
-    PLSA_GROUP_INFO_0* ppGroupInfo
-    );
-
-DWORD
-LocalMarshalEntryToGroupInfo_1(
-    PDIRECTORY_ENTRY   pEntry,
-    PWSTR*             ppwszGroupDN,
-    PLSA_GROUP_INFO_1* ppGroupInfo
-    );
-
-DWORD
-LocalMarshalEntryToGroupInfoMembers_1(
-    PLOCAL_PROVIDER_GROUP_MEMBER* ppMemberEntries,
-    DWORD                         dwNumMemberEntries,
-    PSTR**                        pppszMembers
-    );
-
-DWORD
 LocalMarshalAttrToInteger(
     PDIRECTORY_ENTRY pEntry,
     PWSTR            pwszAttrName,

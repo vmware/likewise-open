@@ -219,7 +219,7 @@ LsaAdBatchQueryTermDebugInfo(
 
 DWORD
 LsaAdBatchAccountTypeToObjectType(
-    IN ADAccountType AccountType,
+    IN LSA_OBJECT_TYPE AccountType,
     OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType
     );
 

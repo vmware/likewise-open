@@ -552,7 +552,7 @@ LsaAdBatchMarshal(
     switch (pItem->ObjectType)
     {
         case LSA_AD_BATCH_OBJECT_TYPE_USER:
-            pObject->type = AccountType_User;
+            pObject->type = LSA_OBJECT_TYPE_USER;
             dwError = LsaAdBatchMarshalUserInfo(
                             &pItem->UserInfo,
                             &pObject->userInfo,
@@ -567,7 +567,7 @@ LsaAdBatchMarshal(
             break;
 
         case LSA_AD_BATCH_OBJECT_TYPE_GROUP:
-            pObject->type = AccountType_Group;
+            pObject->type = LSA_OBJECT_TYPE_GROUP;
             dwError = LsaAdBatchMarshalGroupInfo(
                             &pItem->GroupInfo,
                             &pObject->groupInfo,

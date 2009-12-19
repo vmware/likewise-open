@@ -53,6 +53,7 @@
 #include "lsaclient.h"
 #include "lsaadprovider.h"
 #include "lsaipc.h"
+#include "common.h"
 
 #define ACTION_NONE          0
 #define ACTION_DELETE_ALL    1
@@ -78,7 +79,6 @@ ParseArgs(
     PSTR*  ppszName,
     uid_t* pUID,
     gid_t* pGID,
-    DWORD* pdwLevel,
     DWORD* pdwBatchSize
     );
 
@@ -92,7 +92,6 @@ static
 DWORD
 EnumerateUsers(
     HANDLE hLsaConnection,
-    DWORD  dwUserInfoLevel,
     DWORD  dwBatchSize
     );
 
@@ -100,38 +99,7 @@ static
 DWORD
 EnumerateGroups(
     HANDLE hLsaConnection,
-    DWORD  dwGroupInfoLevel,
     DWORD  dwBatchSize
-    );
-
-static
-VOID
-PrintUserInfo_0(
-    PLSA_USER_INFO_0 pUserInfo
-    );
-
-static
-VOID
-PrintUserInfo_1(
-    PLSA_USER_INFO_1 pUserInfo
-    );
-
-static
-VOID
-PrintUserInfo_2(
-    PLSA_USER_INFO_2 pUserInfo
-    );
-
-static
-VOID
-PrintGroupInfo_0(
-    PLSA_GROUP_INFO_0 pGroupInfo
-    );
-
-static
-VOID
-PrintGroupInfo_1(
-    PLSA_GROUP_INFO_1 pGroupInfo
     );
 
 static
@@ -161,7 +129,6 @@ ad_cache_main(
     PSTR    pszName = NULL;
     uid_t   uid = 0;
     gid_t   gid = 0;
-    DWORD   dwInfoLevel = 0;
     DWORD   dwBatchSize = 10;
 
     if (argc < 2 ||
@@ -179,7 +146,6 @@ ad_cache_main(
                   &pszName,
                   &uid,
                   &gid,
-                  &dwInfoLevel,
                   &dwBatchSize);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -247,7 +213,6 @@ ad_cache_main(
 
             dwError = EnumerateUsers(
                           hLsaConnection,
-                          dwInfoLevel,
                           dwBatchSize);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -258,7 +223,6 @@ ad_cache_main(
 
             dwError = EnumerateGroups(
                           hLsaConnection,
-                          dwInfoLevel,
                           dwBatchSize);
             BAIL_ON_LSA_ERROR(dwError);
 
@@ -352,7 +316,6 @@ ParseArgs(
     PSTR*  ppszName,
     uid_t* pUID,
     gid_t* pGID,
-    DWORD* pdwInfoLevel,
     DWORD* pdwBatchSize
     )
 {
@@ -361,7 +324,6 @@ ParseArgs(
             PARSE_MODE_NAME,
             PARSE_MODE_UID,
             PARSE_MODE_GID,
-            PARSE_MODE_LEVEL,
             PARSE_MODE_BATCHSIZE,
             PARSE_MODE_DONE
     } ParseMode;
@@ -374,7 +336,6 @@ ParseArgs(
     PSTR  pszName = NULL;
     uid_t uid = 0;
     gid_t gid = 0;
-    DWORD dwInfoLevel = 0;
     DWORD dwBatchSize = 10;
 
     do {
@@ -419,9 +380,6 @@ ParseArgs(
                 else if (!strcmp(pszArg, "--gid")) {
                     parseMode = PARSE_MODE_GID;
                 }
-                else if (!strcmp(pszArg, "--level")) {
-                    parseMode = PARSE_MODE_LEVEL;
-                }
                 else if (!strcmp(pszArg, "--batchsize")) {
                     parseMode = PARSE_MODE_BATCHSIZE;
                 }
@@ -459,18 +417,6 @@ ParseArgs(
                     exit(1);
                 }
                 gid = atoi(pszArg);
-                parseMode = PARSE_MODE_OPEN;
-
-                break;
-
-            case PARSE_MODE_LEVEL:
-                if (!IsUnsignedInteger(pszArg))
-                {
-                    fprintf(stderr, "Please enter a valid level.\n");
-                    ShowUsage(GetProgramName(argv[0]));
-                    exit(1);
-                }
-                dwInfoLevel = atoi(pszArg);
                 parseMode = PARSE_MODE_OPEN;
 
                 break;
@@ -537,7 +483,6 @@ ParseArgs(
     *ppszName = pszName;
     *pUID = uid;
     *pGID = gid;
-    *pdwInfoLevel = dwInfoLevel;
     *pdwBatchSize = dwBatchSize;
 
 cleanup:
@@ -566,8 +511,8 @@ ShowUsage(
     fprintf(stdout, "Usage: %s --delete-all\n", pszProgramName);
     fprintf(stdout, "       %s --delete-user {--name <user login id> | --uid <uid>} \n", pszProgramName);
     fprintf(stdout, "       %s --delete-group {--name <group name> | --gid <gid>} \n", pszProgramName);
-    fprintf(stdout, "       %s --enum-users {--level [0, 1, 2]} {--batchsize [1..1000]}\n", pszProgramName);
-    fprintf(stdout, "       %s --enum-groups {--level [0, 1]} {--batchsize [1..1000]}\n\n", pszProgramName);
+    fprintf(stdout, "       %s --enum-users {--batchsize [1..1000]}\n", pszProgramName);
+    fprintf(stdout, "       %s --enum-groups {--batchsize [1..1000]}\n\n", pszProgramName);
     fprintf(stdout, "\t--delete-all        Deletes everything from the cache\n");
     fprintf(stdout, "\t--delete-user       Deletes one user from the cache\n");
     fprintf(stdout, "\t--delete-group      Deletes one group from the cache\n");
@@ -579,14 +524,13 @@ static
 DWORD
 EnumerateUsers(
     HANDLE hLsaConnection,
-    DWORD  dwUserInfoLevel,
     DWORD  dwBatchSize
     )
 {
     DWORD dwError = 0;
 
     PSTR   pszResume = NULL;
-    PVOID* ppUserInfoList = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD  dwNumUsersFound = 0;
     DWORD  dwTotalUsersFound = 0;
 
@@ -594,58 +538,36 @@ EnumerateUsers(
     {
         DWORD iUser = 0;
 
-        if (ppUserInfoList) {
-           LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
-           ppUserInfoList = NULL;
-        }
+        LsaFreeSecurityObjectList(dwNumUsersFound, ppObjects);
+        ppObjects = NULL;
 
         dwError = LsaAdEnumUsersFromCache(
                     hLsaConnection,
                     &pszResume,
-                    dwUserInfoLevel,
                     dwBatchSize,
                     &dwNumUsersFound,
-                    &ppUserInfoList);
+                    &ppObjects);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!dwNumUsersFound) {
+        if (!dwNumUsersFound)
+        {
             break;
         }
 
-        dwTotalUsersFound+=dwNumUsersFound;
-
         for (iUser = 0; iUser < dwNumUsersFound; iUser++)
         {
-            PVOID pUserInfo = *(ppUserInfoList + iUser);
-
-            switch(dwUserInfoLevel)
-            {
-                case 0:
-                    PrintUserInfo_0((PLSA_USER_INFO_0)pUserInfo);
-                    break;
-                case 1:
-                    PrintUserInfo_1((PLSA_USER_INFO_1)pUserInfo);
-                    break;
-                case 2:
-                    PrintUserInfo_2((PLSA_USER_INFO_2)pUserInfo);
-                    break;
-                default:
-
-                    fprintf(stderr,
-                            "Error: Invalid user info level [%d]\n",
-                            dwUserInfoLevel);
-                    break;
-            }
+            PrintSecurityObject(ppObjects[iUser], iUser + dwTotalUsersFound, 0);
+            fprintf(stdout, "\n");
         }
+
+        dwTotalUsersFound += dwNumUsersFound;
     } while (pszResume);
 
-    fprintf(stdout, "TotalNumUsersFound:      %u\n", dwTotalUsersFound);
+    fprintf(stdout, "Total users found: %u\n", dwTotalUsersFound);
 
 cleanup:
 
-    if (ppUserInfoList) {
-       LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
-    }
+    LsaFreeSecurityObjectList(dwNumUsersFound, ppObjects);
 
     LW_SAFE_FREE_STRING(pszResume);
 
@@ -660,14 +582,13 @@ static
 DWORD
 EnumerateGroups(
     HANDLE hLsaConnection,
-    DWORD  dwGroupInfoLevel,
     DWORD  dwBatchSize
     )
 {
     DWORD dwError = 0;
 
     PSTR   pszResume = NULL;
-    PVOID* ppGroupInfoList = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
     DWORD  dwNumGroupsFound = 0;
     DWORD  dwTotalGroupsFound = 0;
 
@@ -675,55 +596,35 @@ EnumerateGroups(
     {
         DWORD iGroup = 0;
 
-        if (ppGroupInfoList) {
-           LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
-           ppGroupInfoList = NULL;
-        }
+        LsaFreeSecurityObjectList(dwNumGroupsFound, ppObjects);
+        ppObjects = NULL;
 
         dwError = LsaAdEnumGroupsFromCache(
                     hLsaConnection,
                     &pszResume,
-                    dwGroupInfoLevel,
                     dwBatchSize,
                     &dwNumGroupsFound,
-                    &ppGroupInfoList);
+                    &ppObjects);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (!dwNumGroupsFound) {
+        if (!dwNumGroupsFound)
+        {
             break;
         }
 
-        dwTotalGroupsFound+=dwNumGroupsFound;
-
         for (iGroup = 0; iGroup < dwNumGroupsFound; iGroup++)
         {
-            PVOID pGroupInfo = *(ppGroupInfoList + iGroup);
-
-            switch(dwGroupInfoLevel)
-            {
-                case 0:
-                    PrintGroupInfo_0((PLSA_GROUP_INFO_0)pGroupInfo);
-                    break;
-                case 1:
-                    PrintGroupInfo_1((PLSA_GROUP_INFO_1)pGroupInfo);
-                    break;
-                default:
-
-                    fprintf(stderr,
-                            "Error: Invalid Group info level [%d]\n",
-                            dwGroupInfoLevel);
-                    break;
-            }
+            PrintSecurityObject(ppObjects[iGroup], iGroup + dwTotalGroupsFound, 0);
         }
+
+        dwTotalGroupsFound += dwNumGroupsFound;
     } while (pszResume);
 
-    fprintf(stdout, "TotalNumGroupsFound:      %d\n", dwTotalGroupsFound);
+    fprintf(stdout, "Total groups found: %u\n", dwTotalGroupsFound);
 
 cleanup:
 
-    if (ppGroupInfoList) {
-       LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
-    }
+    LsaFreeSecurityObjectList(dwNumGroupsFound, ppObjects);
 
     LW_SAFE_FREE_STRING(pszResume);
 
@@ -732,154 +633,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-static
-VOID
-PrintUserInfo_0(
-    PLSA_USER_INFO_0 pUserInfo
-    )
-{
-    fprintf(stdout, "User info (Level-0):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
-    fprintf(stdout, "Uid:      %u\n", (unsigned int)pUserInfo->uid);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pUserInfo->gid);
-    fprintf(stdout, "Gecos:    %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
-    fprintf(stdout, "Shell:    %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
-    fprintf(stdout, "Home dir: %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
-    fprintf(stdout, "\n");
-}
-
-static
-VOID
-PrintUserInfo_1(
-    PLSA_USER_INFO_1 pUserInfo
-    )
-{
-    fprintf(stdout, "User info (Level-1):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:          %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
-    fprintf(stdout, "UPN:          %s\n",
-                    LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
-    fprintf(stdout, "Generated UPN: %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
-    fprintf(stdout, "Uid:           %u\n", (unsigned int)pUserInfo->uid);
-    fprintf(stdout, "Gid:           %u\n", (unsigned int)pUserInfo->gid);
-    fprintf(stdout, "Gecos:         %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
-    fprintf(stdout, "Shell:         %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
-    fprintf(stdout, "Home dir:      %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
-    fprintf(stdout, "LMHash length: %d\n", pUserInfo->dwLMHashLen);
-    fprintf(stdout, "NTHash length: %d\n", pUserInfo->dwNTHashLen);
-    fprintf(stdout, "Local User:    %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
-    fprintf(stdout, "\n");
-}
-
-static
-VOID
-PrintUserInfo_2(
-    PLSA_USER_INFO_2 pUserInfo
-    )
-{
-    fprintf(stdout, "User info (Level-2):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:                       %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszName) ? "<null>" : pUserInfo->pszName);
-    fprintf(stdout, "UPN:                        %s\n",
-                    LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
-    fprintf(stdout, "Generated UPN:              %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
-    fprintf(stdout, "Uid:                        %u\n", (unsigned int)pUserInfo->uid);
-    fprintf(stdout, "Gid:                        %u\n", (unsigned int)pUserInfo->gid);
-    fprintf(stdout, "Gecos:                      %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszGecos) ? "<null>" : pUserInfo->pszGecos);
-    fprintf(stdout, "Shell:                      %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszShell) ? "<null>" : pUserInfo->pszShell);
-    fprintf(stdout, "Home dir:                   %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir) ? "<null>" : pUserInfo->pszHomedir);
-    fprintf(stdout, "LMHash length:              %d\n", pUserInfo->dwLMHashLen);
-    fprintf(stdout, "NTHash length:              %d\n", pUserInfo->dwNTHashLen);
-    fprintf(stdout, "Local User:                 %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
-    fprintf(stdout, "Account disabled:           %s\n",
-            pUserInfo->bAccountDisabled ? "TRUE" : "FALSE");
-    fprintf(stdout, "Account Expired:            %s\n",
-            pUserInfo->bAccountExpired ? "TRUE" : "FALSE");
-    fprintf(stdout, "Account Locked:             %s\n",
-            pUserInfo->bAccountLocked ? "TRUE" : "FALSE");
-    fprintf(stdout, "Password never expires:     %s\n",
-            pUserInfo->bPasswordNeverExpires ? "TRUE" : "FALSE");
-    fprintf(stdout, "Password Expired:           %s\n",
-            pUserInfo->bPasswordExpired ? "TRUE" : "FALSE");
-    fprintf(stdout, "Prompt for password change: %s\n",
-            pUserInfo->bPromptPasswordChange ? "YES" : "NO");
-    fprintf(stdout, "User can change password:   %s\n",
-            pUserInfo->bUserCanChangePassword ? "YES" : "NO");
-    fprintf(stdout, "Days till password expires: %d\n",
-            pUserInfo->dwDaysToPasswordExpiry);
-    fprintf(stdout, "\n");
-}
-
-static
-VOID
-PrintGroupInfo_0(
-    PLSA_GROUP_INFO_0 pGroupInfo
-    )
-{
-    fprintf(stdout, "Group info (Level-0):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-                LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
-    fprintf(stdout, "SID:      %s\n",
-                    LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
-    fprintf(stdout, "\n");
-}
-
-static
-VOID
-PrintGroupInfo_1(
-    PLSA_GROUP_INFO_1 pGroupInfo
-    )
-{
-    PSTR* ppszMembers = NULL;
-    DWORD iMember = 0;
-
-    fprintf(stdout, "Group info (Level-1):\n");
-    fprintf(stdout, "====================\n");
-    fprintf(stdout, "Name:     %s\n",
-            LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszName) ? "<null>" : pGroupInfo->pszName);
-    fprintf(stdout, "Gid:      %u\n", (unsigned int)pGroupInfo->gid);
-    fprintf(stdout, "SID:      %s\n",
-                        LW_IS_NULL_OR_EMPTY_STR(pGroupInfo->pszSid) ? "<null>" : pGroupInfo->pszSid);
-    fprintf(stdout, "Members:");
-
-    ppszMembers = pGroupInfo->ppszMembers;
-
-    if (ppszMembers){
-        while (!LW_IS_NULL_OR_EMPTY_STR(*ppszMembers)) {
-            if (iMember) {
-                fprintf(stdout, "\n          %s", *ppszMembers);
-            }
-            else
-            {
-                fprintf(stdout, "  %s", *ppszMembers);
-            }
-            iMember++;
-            ppszMembers++;
-        }
-        fprintf(stdout, "\n");
-    }
-    else
-    {
-        fprintf(stdout, "\n");
-    }
-    fprintf(stdout, "\n");
 }
 
 static

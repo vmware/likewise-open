@@ -1395,6 +1395,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 AD_OnlineCachePasswordVerifier(
     IN PLSA_SECURITY_OBJECT pUserInfo,
@@ -2319,7 +2320,7 @@ AD_OnlineFindUserObjectById(
         dwError = AD_FindObjectByIdTypeNoCache(
                     hProvider,
                     uid,
-                    AccountType_User,
+                    LSA_OBJECT_TYPE_USER,
                     &pCachedUser);
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -2542,78 +2543,6 @@ error:
 }
 
 DWORD
-AD_OnlineEnumUsers(
-    HANDLE  hProvider,
-    HANDLE  hResume,
-    DWORD   dwMaxNumUsers,
-    PDWORD  pdwUsersFound,
-    PVOID** pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-    PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
-    DWORD dwObjectsCount = 0;
-    PLSA_SECURITY_OBJECT* ppObjects = NULL;
-    PVOID* ppInfoList = NULL;
-    DWORD dwInfoCount = 0;
-    BOOLEAN bIsEnumerationEnabled = TRUE;
-    LSA_FIND_FLAGS FindFlags = pEnumState->FindFlags;
-
-    if (FindFlags & LSA_FIND_FLAGS_NSS)
-    {
-        bIsEnumerationEnabled = AD_GetNssEnumerationEnabled();
-    }
-
-    if (!bIsEnumerationEnabled)
-    {
-        dwError = LW_ERROR_NO_MORE_USERS;
-        goto cleanup;
-    }
-
-    dwError = LsaAdBatchEnumObjects(
-                    &pEnumState->Cookie,
-                    AccountType_User,
-                    dwMaxNumUsers,
-                    &dwObjectsCount,
-                    &ppObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(sizeof(*ppInfoList) * dwObjectsCount,
-                                (PVOID*)&ppInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (dwInfoCount = 0; dwInfoCount < dwObjectsCount; dwInfoCount++)
-    {
-        dwError = ADMarshalFromUserCache(
-                        ppObjects[dwInfoCount],
-                        pEnumState->dwInfoLevel,
-                        &ppInfoList[dwInfoCount]);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        ADCacheSafeFreeObject(&ppObjects[dwInfoCount]);
-    }
-
-cleanup:
-    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
-
-    *pdwUsersFound = dwInfoCount;
-    *pppUserInfoList = ppInfoList;
-
-    return dwError;
-
-error:
-    // need to set OUT params in cleanup due to goto cleanup.
-    if (ppInfoList)
-    {
-        LsaFreeUserInfoList(pEnumState->dwInfoLevel, ppInfoList, dwInfoCount);
-        ppInfoList = NULL;
-        dwInfoCount = 0;
-    }
-
-    goto cleanup;
-}
-
-DWORD
 AD_OnlineFindGroupObjectByName(
     HANDLE  hProvider,
     PCSTR   pszGroupName,
@@ -2669,7 +2598,7 @@ AD_OnlineFindGroupObjectByName(
                     hProvider,
                     pszGroupName_copy,
                     pGroupNameInfo->nameType,
-                    AccountType_Group,
+                    LSA_OBJECT_TYPE_GROUP,
                     &pCachedGroup);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2700,159 +2629,6 @@ error:
 }
 
 DWORD
-AD_OnlineFindGroupById(
-    IN HANDLE hProvider,
-    IN gid_t gid,
-    IN BOOLEAN bIsCacheOnlyMode,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError =  0;
-    PLSA_SECURITY_OBJECT pCachedGroup = NULL;
-
-    if (gid == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = ADCacheFindGroupById(
-                    gpLsaAdProviderState->hCacheConnection,
-                    gid,
-                    &pCachedGroup);
-    if (dwError == LW_ERROR_SUCCESS)
-    {
-        dwError = AD_CheckExpiredObject(&pCachedGroup);
-    }
-
-    if (dwError == LW_ERROR_NOT_HANDLED)
-    {
-        // It wasn't in the cache, or it is expired.
-        dwError = AD_FindObjectByIdTypeNoCache(
-                        hProvider,
-                        gid,
-                        AccountType_Group,
-                        &pCachedGroup);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = ADCacheStoreObjectEntry(
-                        gpLsaAdProviderState->hCacheConnection,
-                        pCachedGroup);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = AD_GroupObjectToGroupInfo(
-                hProvider,
-                pCachedGroup,
-                bIsCacheOnlyMode,
-                dwGroupInfoLevel,
-                ppGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    ADCacheSafeFreeObject(&pCachedGroup);
-
-    return dwError;
-
-error:
-
-    *ppGroupInfo = NULL;
-
-    LSA_REMAP_FIND_GROUP_BY_ID_ERROR(dwError, FALSE, gid);
-
-    goto cleanup;
-}
-
-DWORD
-AD_OnlineEnumGroups(
-    HANDLE  hProvider,
-    HANDLE  hResume,
-    DWORD   dwMaxNumGroups,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-    PAD_ENUM_STATE pEnumState = (PAD_ENUM_STATE)hResume;
-    DWORD dwObjectsCount = 0;
-    PLSA_SECURITY_OBJECT* ppObjects = NULL;
-    PVOID* ppInfoList = NULL;
-    DWORD dwInfoCount = 0;
-    BOOLEAN bIsEnumerationEnabled = TRUE;
-    LSA_FIND_FLAGS FindFlags = pEnumState->FindFlags;
-    DWORD dwTotalCount = 0;
-
-    if (FindFlags & LSA_FIND_FLAGS_NSS)
-    {
-        bIsEnumerationEnabled = AD_GetNssEnumerationEnabled();
-    }
-
-    if (!bIsEnumerationEnabled)
-    {
-        dwError = LW_ERROR_NO_MORE_GROUPS;
-        goto cleanup;
-    }
-
-    dwError = LsaAdBatchEnumObjects(
-                    &pEnumState->Cookie,
-                    AccountType_Group,
-                    dwMaxNumGroups,
-                    &dwObjectsCount,
-                    &ppObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(sizeof(*ppInfoList) * dwObjectsCount,
-                                (PVOID*)&ppInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (dwInfoCount = 0; dwInfoCount < dwObjectsCount; dwInfoCount++)
-    {
-        LSA_ASSERT(ppObjects[dwInfoCount] != NULL);
-        dwError = AD_GroupObjectToGroupInfo(
-                        hProvider,
-                        ppObjects[dwInfoCount],
-                        !pEnumState->bCheckGroupMembersOnline, //if Do not bCheckGroupMembersOnline, then bIsCacheOnlyMode == TRUE
-                        pEnumState->dwInfoLevel,
-                        &ppInfoList[dwTotalCount]);
-        if (!dwError)
-        {
-            dwTotalCount++;
-        }
-        else if (LW_ERROR_OBJECT_NOT_ENABLED == dwError)
-        {
-            dwError = 0;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        ADCacheSafeFreeObject(&ppObjects[dwInfoCount]);
-    }
-
-cleanup:
-    ADCacheSafeFreeObjectList(dwObjectsCount, &ppObjects);
-
-    *pdwGroupsFound = dwTotalCount;
-    *pppGroupInfoList = ppInfoList;
-
-    return dwError;
-
-error:
-    // need to set OUT params in cleanup due to goto cleanup.
-    if (ppInfoList)
-    {
-        LsaFreeGroupInfoList(pEnumState->dwInfoLevel, ppInfoList, dwInfoCount);
-        ppInfoList = NULL;
-        dwInfoCount = 0;
-    }
-
-    goto cleanup;
-}
-
-DWORD
 AD_OnlineChangePassword(
     HANDLE hProvider,
     PCSTR pszLoginId,
@@ -2862,9 +2638,7 @@ AD_OnlineChangePassword(
 {
     DWORD dwError = 0;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-    DWORD dwUserInfoLevel = 2;
     PLSA_SECURITY_OBJECT pCachedUser = NULL;
-    PLSA_USER_INFO_2 pUserInfo = NULL;
     PSTR pszFullDomainName = NULL;
     BOOLEAN bFoundDomain = FALSE;
     LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
@@ -2893,37 +2667,25 @@ AD_OnlineChangePassword(
                      &pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = ADMarshalFromUserCache(
-            pCachedUser,
-            dwUserInfoLevel,
-            (PVOID*)&pUserInfo);
+    dwError = AD_UpdateObject(pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
-    //
-    // TODO: Check if the peer uid belongs in the
-    //       Domain Admins groups in which case, we
-    //       should allow the password change
-   /* if (pContext->uid != pUserInfo->uid) {
-        dwError = EACCES;
-        BAIL_ON_LSA_ERROR(dwError);
-    }*/
-
-    if (!pUserInfo->bUserCanChangePassword) {
+    if (!pCachedUser->userInfo.bUserCanChangePassword) {
         dwError = LW_ERROR_USER_CANNOT_CHANGE_PASSWD;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo->bAccountDisabled) {
+    if (pCachedUser->userInfo.bAccountDisabled) {
         dwError = LW_ERROR_ACCOUNT_DISABLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo->bAccountExpired) {
+    if (pCachedUser->userInfo.bAccountExpired) {
         dwError = LW_ERROR_ACCOUNT_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo->bAccountLocked) {
+    if (pCachedUser->userInfo.bAccountLocked) {
         dwError = LW_ERROR_ACCOUNT_LOCKED;
         BAIL_ON_LSA_ERROR(dwError);
     }
@@ -2966,7 +2728,7 @@ AD_OnlineChangePassword(
 
     // Ignore errors because password change succeeded
     LsaUmModifyUser(
-        pUserInfo->uid,
+        pCachedUser->userInfo.uid,
         pszPassword);
 
 cleanup:
@@ -2974,10 +2736,6 @@ cleanup:
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
-    }
-
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, (PVOID)pUserInfo);
     }
 
     ADCacheSafeFreeObject(&pCachedUser);
@@ -2994,24 +2752,24 @@ error:
 
 DWORD
 AD_CreateHomeDirectory(
-    PLSA_USER_INFO_1 pUserInfo
+    PLSA_SECURITY_OBJECT pObject
     )
 {
     DWORD dwError = 0;
     BOOLEAN bExists = FALSE;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir)) {
+    if (LW_IS_NULL_OR_EMPTY_STR(pObject->userInfo.pszHomedir)) {
         dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaCheckDirectoryExists(
-                    pUserInfo->pszHomedir,
+                    pObject->userInfo.pszHomedir,
                     &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (!bExists && AD_ShouldCreateHomeDir()) {
-        dwError = AD_CreateHomeDirectory_Generic(pUserInfo);
+        dwError = AD_CreateHomeDirectory_Generic(pObject);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3021,7 +2779,7 @@ cleanup:
 
 error:
 
-    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", LSA_SAFE_LOG_STRING(pUserInfo->pszName), dwError);
+    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", LSA_SAFE_LOG_STRING(pObject->userInfo.pszUnixName), dwError);
     dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
 
     goto cleanup;
@@ -3029,7 +2787,7 @@ error:
 
 DWORD
 AD_CreateHomeDirectory_Generic(
-    PLSA_USER_INFO_1 pUserInfo
+    PLSA_SECURITY_OBJECT pObject
     )
 {
     DWORD dwError = 0;
@@ -3040,29 +2798,29 @@ AD_CreateHomeDirectory_Generic(
     umask = AD_GetUmask();
 
     dwError = LsaCreateDirectory(
-                 pUserInfo->pszHomedir,
+                 pObject->userInfo.pszHomedir,
                  perms);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaChangePermissions(
-                 pUserInfo->pszHomedir,
+                 pObject->userInfo.pszHomedir,
                  perms & (~umask));
     BAIL_ON_LSA_ERROR(dwError);
 
     bRemoveDir = TRUE;
 
     dwError = LsaChangeOwner(
-                 pUserInfo->pszHomedir,
-                 pUserInfo->uid,
-                 pUserInfo->gid);
+                 pObject->userInfo.pszHomedir,
+                 pObject->userInfo.uid,
+                 pObject->userInfo.gid);
     BAIL_ON_LSA_ERROR(dwError);
 
     bRemoveDir = FALSE;
 
     dwError = AD_ProvisionHomeDir(
-                    pUserInfo->uid,
-                    pUserInfo->gid,
-                    pUserInfo->pszHomedir);
+                    pObject->userInfo.uid,
+                    pObject->userInfo.gid,
+                    pObject->userInfo.pszHomedir);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -3072,10 +2830,10 @@ cleanup:
 error:
 
     if (bRemoveDir) {
-       LsaRemoveDirectory(pUserInfo->pszHomedir);
+       LsaRemoveDirectory(pObject->userInfo.pszHomedir);
     }
 
-    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", pUserInfo->pszName, dwError);
+    LSA_LOG_ERROR("Failed to create home directory for user (%s), actual error %d", pObject->userInfo.pszUnixName, dwError);
     dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
 
     goto cleanup;
@@ -3190,7 +2948,7 @@ error:
 
 DWORD
 AD_CreateK5Login(
-    PLSA_USER_INFO_1 pUserInfo
+    PLSA_SECURITY_OBJECT pObject
     )
 {
     DWORD   dwError = 0;
@@ -3203,13 +2961,13 @@ AD_CreateK5Login(
     int     fd = -1;
     BOOLEAN bRemoveFile = FALSE;
 
-    BAIL_ON_INVALID_STRING(pUserInfo->pszHomedir);
-    BAIL_ON_INVALID_STRING(pUserInfo->pszUPN);
+    BAIL_ON_INVALID_STRING(pObject->userInfo.pszHomedir);
+    BAIL_ON_INVALID_STRING(pObject->userInfo.pszUPN);
 
     dwError = LwAllocateStringPrintf(
                     &pszK5LoginPath,
                     "%s/.k5login",
-                    pUserInfo->pszHomedir);
+                    pObject->userInfo.pszHomedir);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaCheckFileExists(
@@ -3224,7 +2982,7 @@ AD_CreateK5Login(
     // Create a copy of the UPN to make sure that the realm is uppercase,
     // but preserving the case of the non-realm part.
     dwError = LwAllocateString(
-                    pUserInfo->pszUPN,
+                    pObject->userInfo.pszUPN,
                     &pszUpnCopy);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -3307,8 +3065,8 @@ AD_CreateK5Login(
 
     dwError = LsaChangeOwnerAndPermissions(
                     pszK5LoginPath,
-                    pUserInfo->uid,
-                    pUserInfo->gid,
+                    pObject->userInfo.uid,
+                    pObject->userInfo.gid,
                     S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH
                     );
     BAIL_ON_LSA_ERROR(dwError);
@@ -3640,7 +3398,7 @@ AD_FindObjectByNameTypeNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszName,
     IN ADLogInNameType NameType,
-    IN ADAccountType AccountType,
+    IN LSA_OBJECT_TYPE AccountType,
     OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
@@ -3650,10 +3408,10 @@ AD_FindObjectByNameTypeNoCache(
 
     switch (AccountType)
     {
-        case AccountType_User:
+        case LSA_OBJECT_TYPE_USER:
             bIsUser = TRUE;
             break;
-        case AccountType_Group:
+        case LSA_OBJECT_TYPE_GROUP:
             bIsUser = FALSE;
             break;
         default:
@@ -3696,7 +3454,7 @@ AD_FindObjectByNameTypeNoCache(
     }
 
     // Check whether the object we find is correct type or not
-    if (AccountType != AccountType_NotFound && AccountType != pObject->type)
+    if (AccountType != LSA_OBJECT_TYPE_UNDEFINED && AccountType != pObject->type)
     {
         dwError = bIsUser ? LW_ERROR_NO_SUCH_USER : LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
@@ -3720,7 +3478,7 @@ DWORD
 AD_FindObjectByIdTypeNoCache(
     IN HANDLE hProvider,
     IN DWORD dwId,
-    IN ADAccountType AccountType,
+    IN LSA_OBJECT_TYPE AccountType,
     OUT PLSA_SECURITY_OBJECT* ppObject
     )
 {
@@ -3730,7 +3488,7 @@ AD_FindObjectByIdTypeNoCache(
 
     switch (AccountType)
     {
-        case AccountType_User:
+        case LSA_OBJECT_TYPE_USER:
             bIsUser = TRUE;
             dwError = LsaAdBatchFindSingleObject(
                            LSA_AD_BATCH_QUERY_TYPE_BY_UID,
@@ -3740,7 +3498,7 @@ AD_FindObjectByIdTypeNoCache(
             BAIL_ON_LSA_ERROR(dwError);
             break;
 
-        case AccountType_Group:
+        case LSA_OBJECT_TYPE_GROUP:
             bIsUser = FALSE;
             dwError = LsaAdBatchFindSingleObject(
                            LSA_AD_BATCH_QUERY_TYPE_BY_GID,
@@ -3777,6 +3535,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 AD_FindObjectsByListNoCache(
     IN LSA_AD_BATCH_QUERY_TYPE QueryType,
@@ -4017,96 +3776,6 @@ AD_FindObjectsByDNList(
 }
 
 DWORD
-AD_OnlineGetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes)
-{
-    DWORD dwError = LW_ERROR_SUCCESS;
-    PSTR* ppszDomainNames = NULL;
-    PSTR* ppszSamAccounts = NULL;
-    ADAccountType* pTypes = NULL;
-    PLSA_SECURITY_OBJECT* ppObjects = NULL;
-    size_t sIndex = 0;
-    size_t sReturnCount = 0;
-
-    dwError = LwAllocateMemory(
-                    sizeof(*ppszDomainNames) * sCount,
-                    (PVOID*)&ppszDomainNames);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(
-                    sizeof(*ppszSamAccounts) * sCount,
-                    (PVOID*)&ppszSamAccounts);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(
-                    sizeof(*pTypes) * sCount,
-                    (PVOID*)&pTypes);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = AD_FindObjectsBySidList(
-                    hProvider,
-                    sCount,
-                    ppszSidList,
-                    &sReturnCount,
-                    &ppObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (sIndex = 0; sIndex < sReturnCount; sIndex++)
-    {
-        if (ppObjects[sIndex] == NULL)
-        {
-            pTypes[sIndex] = AccountType_NotFound;
-            continue;
-        }
-
-        if (!LW_IS_NULL_OR_EMPTY_STR(ppObjects[sIndex]->pszNetbiosDomainName))
-        {
-            dwError = LwAllocateString(
-                        ppObjects[sIndex]->pszNetbiosDomainName,
-                        &ppszDomainNames[sIndex]);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        if (!LW_IS_NULL_OR_EMPTY_STR(ppObjects[sIndex]->pszSamAccountName))
-        {
-            dwError = LwAllocateString(
-                        ppObjects[sIndex]->pszSamAccountName,
-                        &ppszSamAccounts[sIndex]);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pTypes[sIndex] = ppObjects[sIndex]->type;
-    }
-
-    *pppszDomainNames = ppszDomainNames;
-    *pppszSamAccounts = ppszSamAccounts;
-    *ppTypes = pTypes;
-
-cleanup:
-
-    ADCacheSafeFreeObjectList(sReturnCount, &ppObjects);
-
-    return dwError;
-
-error:
-
-    *pppszDomainNames = NULL;
-    *pppszSamAccounts = NULL;
-    *ppTypes = NULL;
-
-    LwFreeStringArray(ppszDomainNames, sCount);
-    LwFreeStringArray(ppszSamAccounts, sCount);
-    LW_SAFE_FREE_MEMORY(pTypes);
-
-    goto cleanup;
-}
-
-DWORD
 AD_OnlineFindUserObjectByName(
     HANDLE  hProvider,
     PCSTR   pszLoginId,
@@ -4156,7 +3825,7 @@ AD_OnlineFindUserObjectByName(
                     hProvider,
                     pszLoginId_copy,
                     pUserNameInfo->nameType,
-                    AccountType_User,
+                    LSA_OBJECT_TYPE_USER,
                     &pCachedUser);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -4424,7 +4093,6 @@ AD_OnlineFindObjectsByName(
     DWORD dwIndex = 0;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     LSA_QUERY_TYPE type = LSA_QUERY_TYPE_UNDEFINED;
-    ADAccountType accountType = 0;
 
     dwError = LwAllocateMemory(sizeof(*ppObjects) * dwCount, OUT_PPVOID(&ppObjects));
     BAIL_ON_LSA_ERROR(dwError);
@@ -4469,21 +4137,18 @@ AD_OnlineFindObjectsByName(
         switch(ObjectType)
         {
         case LSA_OBJECT_TYPE_USER:
-            accountType = AccountType_User;
             dwError = ADCacheFindUserByName(
                 gpLsaAdProviderState->hCacheConnection,
                 pUserNameInfo,
                 &pCachedUser);
             break;
         case LSA_OBJECT_TYPE_GROUP:
-            accountType = AccountType_Group;
             dwError = ADCacheFindGroupByName(
                 gpLsaAdProviderState->hCacheConnection,
                 pUserNameInfo,
                 &pCachedUser);
             break;
         default:
-            accountType = AccountType_NotFound;
             dwError = ADCacheFindUserByName(
                 gpLsaAdProviderState->hCacheConnection,
                 pUserNameInfo,
@@ -4518,7 +4183,7 @@ AD_OnlineFindObjectsByName(
                 hProvider,
                 pszLoginId_copy,
                 pUserNameInfo->nameType,
-                accountType,
+                ObjectType,
                 &pCachedUser);
             switch (dwError)
             {
@@ -4590,7 +4255,6 @@ AD_OnlineFindObjectsById(
     PLSA_SECURITY_OBJECT pCachedUser = NULL;
     DWORD dwIndex = 0;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
-    ADAccountType accountType = 0;
 
     dwError = LwAllocateMemory(sizeof(*ppObjects) * dwCount, OUT_PPVOID(&ppObjects));
     BAIL_ON_LSA_ERROR(dwError);
@@ -4600,14 +4264,12 @@ AD_OnlineFindObjectsById(
         switch(ObjectType)
         {
         case LSA_OBJECT_TYPE_USER:
-            accountType = AccountType_User;
             dwError = ADCacheFindUserById(
                 gpLsaAdProviderState->hCacheConnection,
                 QueryList.pdwIds[dwIndex],
                 &pCachedUser);
             break;
         case LSA_OBJECT_TYPE_GROUP:
-            accountType = AccountType_Group;
             dwError = ADCacheFindGroupById(
                 gpLsaAdProviderState->hCacheConnection,
                 QueryList.pdwIds[dwIndex],
@@ -4635,7 +4297,7 @@ AD_OnlineFindObjectsById(
             dwError = AD_FindObjectByIdTypeNoCache(
                 hProvider,
                 QueryList.pdwIds[dwIndex],
-                accountType,
+                ObjectType,
                 &pCachedUser);
             switch (dwError)
             {
@@ -4680,6 +4342,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 AD_OnlineDistributeObjects(
     BOOLEAN bByDn,
@@ -4820,14 +4483,14 @@ AD_OnlineFindObjects(
         {
             switch (ppObjects[dwIndex]->type)
             {
-            case AccountType_Group:
+            case LSA_OBJECT_TYPE_GROUP:
                 type = LSA_OBJECT_TYPE_GROUP;
                 break;
-            case AccountType_User:
+            case LSA_OBJECT_TYPE_USER:
                 type = LSA_OBJECT_TYPE_USER;
                 break;
                 /*
-            case AccountType_Domain:
+            case LSA_OBJECT_TYPE_DOMAIN:
                 type = LSA_OBJECT_TYPE_DOMAIN;
                 break;
                 */
@@ -4888,7 +4551,7 @@ AD_OnlineEnumObjects(
         case LSA_OBJECT_TYPE_USER:
             dwError = LsaAdBatchEnumObjects(
                 &pEnum->Cookie,
-                AccountType_User,
+                LSA_OBJECT_TYPE_USER,
                 dwMaxObjectsCount,
                 pdwObjectsCount,
                 pppObjects);
@@ -4896,7 +4559,7 @@ AD_OnlineEnumObjects(
         case LSA_OBJECT_TYPE_GROUP:
             dwError = LsaAdBatchEnumObjects(
                 &pEnum->Cookie,
-                AccountType_Group,
+                LSA_OBJECT_TYPE_GROUP,
                 dwMaxObjectsCount,
                 pdwObjectsCount,
                 pppObjects);

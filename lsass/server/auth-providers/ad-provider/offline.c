@@ -248,51 +248,6 @@ error:
 }
 
 DWORD
-AD_OfflineFindGroupById(
-    IN HANDLE hProvider,
-    IN gid_t gid,
-    IN BOOLEAN bIsCacheOnlyMode,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PLSA_SECURITY_OBJECT pGroupObject = NULL;
-
-    if (gid == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = ADCacheFindGroupById(
-                gpLsaAdProviderState->hCacheConnection,
-                gid,
-                &pGroupObject);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = AD_GroupObjectToGroupInfo(
-                hProvider,
-                pGroupObject,
-                bIsCacheOnlyMode,
-                dwGroupInfoLevel,
-                ppGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-    ADCacheSafeFreeObject(&pGroupObject);
-
-    return dwError;
-
-error:
-    *ppGroupInfo = NULL;
-
-    LSA_REMAP_FIND_GROUP_BY_ID_ERROR(dwError, TRUE, gid);
-
-    goto cleanup;
-}
-
-DWORD
 AD_OfflineGetUserGroupObjectMembership(
     IN HANDLE hProvider,
     IN PLSA_SECURITY_OBJECT pUserInfo,
@@ -389,19 +344,6 @@ AD_OfflineChangePassword(
     PCSTR pszUserName,
     PCSTR pszPassword,
     PCSTR pszOldPassword
-    )
-{
-    return LW_ERROR_NOT_HANDLED;
-}
-
-DWORD
-AD_OfflineGetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes
     )
 {
     return LW_ERROR_NOT_HANDLED;
@@ -576,22 +518,6 @@ AD_OfflineFindObjectsByName(
     DWORD dwIndex = 0;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     LSA_QUERY_TYPE type = LSA_QUERY_TYPE_UNDEFINED;
-    ADAccountType accountType = 0;
-
-    switch(ObjectType)
-    {
-    case LSA_OBJECT_TYPE_USER:
-        accountType = AccountType_User;
-        break;
-    case LSA_OBJECT_TYPE_GROUP:
-        accountType = AccountType_Group;
-        break;
-    default:
-        accountType = AccountType_NotFound;
-        break;
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     dwError = LwAllocateMemory(sizeof(*ppObjects) * dwCount, OUT_PPVOID(&ppObjects));
     BAIL_ON_LSA_ERROR(dwError);
@@ -636,21 +562,18 @@ AD_OfflineFindObjectsByName(
         switch(ObjectType)
         {
         case LSA_OBJECT_TYPE_USER:
-            accountType = AccountType_User;
             dwError = ADCacheFindUserByName(
                 gpLsaAdProviderState->hCacheConnection,
                 pUserNameInfo,
                 &pCachedUser);
             break;
         case LSA_OBJECT_TYPE_GROUP:
-            accountType = AccountType_Group;
             dwError = ADCacheFindGroupByName(
                 gpLsaAdProviderState->hCacheConnection,
                 pUserNameInfo,
                 &pCachedUser);
             break;
         default:
-            accountType = AccountType_NotFound;
             dwError = ADCacheFindUserByName(
                 gpLsaAdProviderState->hCacheConnection,
                 pUserNameInfo,
@@ -731,7 +654,6 @@ AD_OfflineFindObjectsById(
     PLSA_SECURITY_OBJECT pCachedUser = NULL;
     DWORD dwIndex = 0;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
-    ADAccountType accountType = 0;
 
     dwError = LwAllocateMemory(sizeof(*ppObjects) * dwCount, OUT_PPVOID(&ppObjects));
     BAIL_ON_LSA_ERROR(dwError);
@@ -741,14 +663,12 @@ AD_OfflineFindObjectsById(
         switch(ObjectType)
         {
         case LSA_OBJECT_TYPE_USER:
-            accountType = AccountType_User;
             dwError = ADCacheFindUserById(
                 gpLsaAdProviderState->hCacheConnection,
                 QueryList.pdwIds[dwIndex],
                 &pCachedUser);
             break;
         case LSA_OBJECT_TYPE_GROUP:
-            accountType = AccountType_Group;
             dwError = ADCacheFindGroupById(
                 gpLsaAdProviderState->hCacheConnection,
                 QueryList.pdwIds[dwIndex],
@@ -865,14 +785,14 @@ AD_OfflineFindObjects(
         {
             switch (ppObjects[dwIndex]->type)
             {
-            case AccountType_Group:
+            case LSA_OBJECT_TYPE_GROUP:
                 type = LSA_OBJECT_TYPE_GROUP;
                 break;
-            case AccountType_User:
+            case LSA_OBJECT_TYPE_USER:
                 type = LSA_OBJECT_TYPE_USER;
                 break;
                 /*
-            case AccountType_Domain:
+            case LSA_OBJECT_TYPE_DOMAIN:
                 type = LSA_OBJECT_TYPE_DOMAIN;
                 break;
                 */

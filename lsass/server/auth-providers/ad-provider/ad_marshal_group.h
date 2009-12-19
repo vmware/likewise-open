@@ -52,14 +52,5 @@ ADMarshalGetCanonicalName(
     PLSA_SECURITY_OBJECT     pObject,
     PSTR*                   ppszResult);
 
-DWORD
-ADMarshalFromGroupCache(
-    PLSA_SECURITY_OBJECT pGroup,
-    size_t                  sMembers,
-    PLSA_SECURITY_OBJECT*    ppMembers,
-    DWORD               dwGroupInfoLevel,
-    PVOID*              ppGroupInfo
-    );
-
 #endif //__LSALDAP_MARSHAL_GROUP_H__
 

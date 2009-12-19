@@ -51,6 +51,7 @@ LsaDbStoreObjectEntries(
     PLSA_SECURITY_OBJECT* ppObjects
     );
 
+static
 DWORD
 LsaDbSetup(
     IN sqlite3* pSqlHandle
@@ -77,6 +78,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbOpen(
     IN PCSTR pszDbPath,
@@ -575,6 +577,7 @@ error:
     goto cleanup;
 }
 
+static
 void
 LsaDbSafeClose(
     PLSA_DB_HANDLE phDb
@@ -625,6 +628,7 @@ cleanup:
 }
 
 // returns LW_ERROR_NOT_HANDLED if the user is not in the database
+static
 DWORD
 LsaDbFindUserByName(
     LSA_DB_HANDLE hDb,
@@ -702,7 +706,7 @@ LsaDbFindUserByName(
     dwError = LsaDbQueryObject(pstQuery, &pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type != AccountType_User)
+    if (pObject->type != LSA_OBJECT_TYPE_USER)
     {
         dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -722,6 +726,7 @@ error:
 }
 
 // returns LW_ERROR_NOT_HANDLED if the user is not in the database
+static
 DWORD
 LsaDbFindUserById(
     LSA_DB_HANDLE hDb,
@@ -749,7 +754,7 @@ LsaDbFindUserById(
     dwError = LsaDbQueryObject(pstQuery, &pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type != AccountType_User)
+    if (pObject->type != LSA_OBJECT_TYPE_USER)
     {
         dwError = LW_ERROR_NO_SUCH_USER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -768,6 +773,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbFindGroupByName(
     LSA_DB_HANDLE hDb,
@@ -825,7 +831,7 @@ LsaDbFindGroupByName(
     dwError = LsaDbQueryObject(pstQuery, &pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type != AccountType_Group)
+    if (pObject->type != LSA_OBJECT_TYPE_GROUP)
     {
         dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
@@ -844,6 +850,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbFindGroupById(
     LSA_DB_HANDLE hDb,
@@ -871,7 +878,7 @@ LsaDbFindGroupById(
     dwError = LsaDbQueryObject(pstQuery, &pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type != AccountType_Group)
+    if (pObject->type != LSA_OBJECT_TYPE_GROUP)
     {
         dwError = LW_ERROR_NO_SUCH_GROUP;
         BAIL_ON_LSA_ERROR(dwError);
@@ -890,6 +897,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbRemoveUserBySid(
     IN LSA_DB_HANDLE hDb,
@@ -948,6 +956,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbRemoveGroupBySid(
     IN LSA_DB_HANDLE hDb,
@@ -1006,6 +1015,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbEmptyCache(
     IN LSA_DB_HANDLE hDb
@@ -1037,7 +1047,6 @@ error:
 
     goto cleanup;
 }
-
 
 DWORD
 LsaDbUnpackCacheInfo(
@@ -1128,7 +1137,6 @@ LsaDbUnpackObjectInfo(
 error:
     return dwError;
 }
-
 
 DWORD
 LsaDbUnpackUserInfo(
@@ -1293,7 +1301,6 @@ error:
     return dwError;
 }
 
-
 DWORD
 LsaDbUnpackGroupInfo(
     sqlite3_stmt *pstQuery,
@@ -1334,7 +1341,7 @@ error:
     return dwError;
 }
 
-
+static
 DWORD
 LsaDbUnpackGroupMembershipInfo(
     IN sqlite3_stmt* pstQuery,
@@ -1580,7 +1587,7 @@ LsaDbStoreObjectEntries(
         {
             switch (ppObjects[sIndex]->type)
             {
-                case AccountType_User:
+                case LSA_OBJECT_TYPE_USER:
                     pszNewStatement = sqlite3_mprintf(
                         ";\n"
                         "replace into " LSA_DB_TABLE_NAME_USERS " ("
@@ -1653,7 +1660,7 @@ LsaDbStoreObjectEntries(
                         ppObjects[sIndex]->userInfo.bAccountLocked
                         );
                     break;
-                case AccountType_Group:
+                case LSA_OBJECT_TYPE_GROUP:
                     pszNewStatement = sqlite3_mprintf(
                         ";\n"
                         "replace into " LSA_DB_TABLE_NAME_GROUPS " ("
@@ -1795,7 +1802,6 @@ error:
     goto cleanup;
 }
 
-
 DWORD
 LsaDbUpdateMembership(
     IN sqlite3_stmt* pstQuery,
@@ -1835,7 +1841,6 @@ error:
     }
     goto cleanup;
 }
-
 
 DWORD
 LsaDbAddMembership(
@@ -1895,7 +1900,6 @@ error:
     }
     goto cleanup;
 }
-
 
 DWORD
 LsaDbStoreGroupMembershipCallback(
@@ -2013,6 +2017,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbStoreGroupMembership(
     IN LSA_DB_HANDLE hDb,
@@ -2240,6 +2245,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbStoreGroupsForUser(
     IN LSA_DB_HANDLE hDb,
@@ -2298,7 +2304,7 @@ error:
     goto cleanup;
 }
 
-
+static
 DWORD
 LsaDbGetMemberships(
     IN LSA_DB_HANDLE hDb,
@@ -2429,6 +2435,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbQueryObjectMulti(
     IN sqlite3_stmt* pstQuery,
@@ -2480,7 +2487,7 @@ LsaDbQueryObjectMulti(
                   pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type == AccountType_User && pObject->enabled)
+    if (pObject->type == LSA_OBJECT_TYPE_USER && pObject->enabled)
     {
         dwError = LsaDbUnpackUserInfo(pstQuery,
                       &iColumnPos,
@@ -2492,7 +2499,7 @@ LsaDbQueryObjectMulti(
         iColumnPos += 20; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
     }
 
-    if (pObject->type == AccountType_Group && pObject->enabled)
+    if (pObject->type == LSA_OBJECT_TYPE_GROUP && pObject->enabled)
     {
         dwError = LsaDbUnpackGroupInfo(pstQuery,
                       &iColumnPos,
@@ -2516,6 +2523,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbEnumUsersCache(
     IN LSA_DB_HANDLE           hDb,
@@ -2598,6 +2606,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbEnumGroupsCache(
     IN LSA_DB_HANDLE           hDb,
@@ -2679,7 +2688,6 @@ error:
     goto cleanup;
 }
 
-
 DWORD
 LsaDbQueryObject(
     IN sqlite3_stmt* pstQuery,
@@ -2731,7 +2739,7 @@ LsaDbQueryObject(
             pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type == AccountType_User && pObject->enabled)
+    if (pObject->type == LSA_OBJECT_TYPE_USER && pObject->enabled)
     {
         dwError = LsaDbUnpackUserInfo(pstQuery,
                 &iColumnPos,
@@ -2751,7 +2759,7 @@ LsaDbQueryObject(
         iColumnPos += 20; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
     }
 
-    if (pObject->type == AccountType_Group && pObject->enabled)
+    if (pObject->type == LSA_OBJECT_TYPE_GROUP && pObject->enabled)
     {
         dwError = LsaDbUnpackGroupInfo(pstQuery,
                 &iColumnPos,
@@ -2762,7 +2770,7 @@ LsaDbQueryObject(
     dwError = (DWORD)sqlite3_step(pstQuery);
     if (dwError == SQLITE_ROW)
     {
-        if (pObject->type == AccountType_Group)
+        if (pObject->type == LSA_OBJECT_TYPE_GROUP)
         {
             dwError = LW_ERROR_DUPLICATE_GROUPNAME;
         }
@@ -2798,7 +2806,6 @@ error:
 
     goto cleanup;
 }
-
 
 PCSTR
 LsaDbGetObjectFieldList(
@@ -2839,6 +2846,7 @@ LsaDbGetObjectFieldList(
         LSA_DB_TABLE_NAME_GROUPS ".Passwd";
 }
 
+static
 DWORD
 LsaDbFindObjectByDN(
     LSA_DB_HANDLE hDb,
@@ -2878,6 +2886,7 @@ error:
 
 // Leaves NULLs in pppResults for the objects which can't be found in the
 // version.
+static
 DWORD
 LsaDbFindObjectsByDNList(
     IN LSA_DB_HANDLE hDb,
@@ -2916,6 +2925,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbFindObjectBySid(
     LSA_DB_HANDLE hDb,
@@ -2955,6 +2965,7 @@ error:
 
 // Leaves NULLs in pppResults for the objects which can't be found in the
 // version.
+static
 DWORD
 LsaDbFindObjectsBySidList(
     IN LSA_DB_HANDLE hDb,
@@ -2994,6 +3005,7 @@ error:
 }
 
 // returns LW_ERROR_NOT_HANDLED if the user is not in the database
+static
 DWORD
 LsaDbGetPasswordVerifier(
     IN LSA_DB_HANDLE hDb,
@@ -3106,16 +3118,7 @@ error:
     goto cleanup;
 }
 
-void
-LsaDbFreePasswordVerifier(
-    IN OUT PLSA_PASSWORD_VERIFIER pVerifier
-    )
-{
-    LW_SAFE_FREE_STRING(pVerifier->pszObjectSid);
-    LW_SAFE_FREE_STRING(pVerifier->pszPasswordVerifier);
-    LW_SAFE_FREE_MEMORY(pVerifier);
-}
-
+static
 DWORD
 LsaDbStorePasswordVerifier(
     LSA_DB_HANDLE hDb,
@@ -3196,6 +3199,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaDbFlushNOP(
     LSA_DB_HANDLE hDb

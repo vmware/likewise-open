@@ -151,11 +151,12 @@ LsaMapSecurityResolveObjectInfo(
 {
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = LW_ERROR_SUCCESS;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
     ULONG id = Id ? *Id : (ULONG) -1;
     HANDLE hConnection = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+    LSA_OBJECT_TYPE ObjectType = LSA_OBJECT_TYPE_UNDEFINED;
 
     if (IS_BOTH_OR_NEITHER(pszName, Id))
     {
@@ -164,31 +165,52 @@ LsaMapSecurityResolveObjectInfo(
         GOTO_CLEANUP();
     }
 
+    if (IsUser)
+    {
+        ObjectType = LSA_OBJECT_TYPE_USER;
+    }
+    else
+    {
+        ObjectType = LSA_OBJECT_TYPE_GROUP;
+    }
+
     status = LsaMapSecurityOpenConnection(Context, &hConnection);
     if (NT_SUCCESS(status))
     {
-        if (IsUser)
+        if (pszName)
         {
-            if (pszName)
-            {
-                dwError = LsaFindUserByName(hConnection, pszName, 0, OUT_PPVOID(&pUserInfo));
-            }
-            else
-            {
-                dwError = LsaFindUserById(hConnection, id, 0, OUT_PPVOID(&pUserInfo));
-            }
+            QueryList.ppszStrings = (PCSTR*) &pszName;
+
+            dwError = LsaFindObjects(
+                hConnection,
+                NULL,
+                0,
+                ObjectType,
+                LSA_QUERY_TYPE_BY_NAME,
+                1,
+                QueryList,
+                &ppObjects);
         }
         else
         {
-            if (pszName)
-            {
-                dwError = LsaFindGroupByName(hConnection, pszName, 0, 0, OUT_PPVOID(&pGroupInfo));
-            }
-            else
-            {
-                dwError = LsaFindGroupById(hConnection, id, 0, 0, OUT_PPVOID(&pGroupInfo));
-            }
+            QueryList.pdwIds = &id;
+
+            dwError = LsaFindObjects(
+                hConnection,
+                NULL,
+                0,
+                ObjectType,
+                LSA_QUERY_TYPE_BY_UNIX_ID,
+                1,
+                QueryList,
+                &ppObjects);
         }
+
+        if (dwError == LW_ERROR_SUCCESS && ppObjects[0] == NULL)
+        {
+            dwError = LW_ERROR_NO_SUCH_OBJECT;
+        }
+
         LsaMapSecurityCloseConnection(Context, &hConnection);
     }
     else
@@ -240,44 +262,38 @@ LsaMapSecurityResolveObjectInfo(
 
     if (IsUser)
     {
-        assert(pszName || (id == pUserInfo->uid));
+        assert(pszName || ppObjects[0]->userInfo.uid);
 
         SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER);
         SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_UID);
         SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
 
-        objectInfo.Uid = pUserInfo->uid;
-        objectInfo.Gid = pUserInfo->gid;
+        objectInfo.Uid = ppObjects[0]->userInfo.uid;
+        objectInfo.Gid = ppObjects[0]->userInfo.gid;
 
-        status = RtlAllocateSidFromCString(&objectInfo.Sid, pUserInfo->pszSid);
+        status = RtlAllocateSidFromCString(&objectInfo.Sid, ppObjects[0]->pszObjectSid);
         GOTO_CLEANUP_ON_STATUS(status);
     }
     else
     {
-        assert(pszName || (id == pGroupInfo->gid));
+        assert(pszName || ppObjects[0]->groupInfo.gid);
 
         SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
 
-        objectInfo.Gid = pGroupInfo->gid;
+        objectInfo.Gid = ppObjects[0]->groupInfo.gid;
 
-        status = RtlAllocateSidFromCString(&objectInfo.Sid, pGroupInfo->pszSid);
+        status = RtlAllocateSidFromCString(&objectInfo.Sid, ppObjects[0]->pszObjectSid);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
 cleanup:
+
     if (!NT_SUCCESS(status))
     {
         LsaMapSecurityFreeObjectInfo(&objectInfo);
     }
 
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(0, pUserInfo);
-    }
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(0, pGroupInfo);
-    }
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
 
     *pObjectInfo = objectInfo;
 
@@ -296,10 +312,8 @@ LsaMapSecurityResolveObjectInfoBySid(
     DWORD dwError = LW_ERROR_SUCCESS;
     LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
     PSTR pszSid = NULL;
-    PLSA_SID_INFO sidInfoList = NULL;
-    CHAR separator = 0;
-    BOOLEAN isUser = FALSE;
-    PSTR pszName = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
     HANDLE hConnection = NULL;
 
     status = RtlAllocateCStringFromSid(&pszSid, Sid);
@@ -308,68 +322,61 @@ LsaMapSecurityResolveObjectInfoBySid(
     status = LsaMapSecurityOpenConnection(Context, &hConnection);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    // TODO-Add LSA client API that allows lookup of user/group
-    // info by SID directly as the provider can handle that internally.
-    dwError = LsaGetNamesBySidList(
+    QueryList.ppszStrings = (PCSTR*) &pszSid;
+
+    dwError = LsaFindObjects(
                     hConnection,
+                    NULL,
+                    0,
+                    LSA_OBJECT_TYPE_UNDEFINED,
+                    LSA_QUERY_TYPE_BY_SID,
                     1,
-                    &pszSid,
-                    &sidInfoList,
-                    &separator);
+                    QueryList,
+                    &ppObjects);
+
+    if (dwError == LW_ERROR_SUCCESS && ppObjects[0] == NULL)
+    {
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
+    }
+
     status = LsaLsaErrorToNtStatus(dwError);
     assert(STATUS_NOT_FOUND != status);
     GOTO_CLEANUP_ON_STATUS(status);
 
     LsaMapSecurityCloseConnection(Context, &hConnection);
 
-    // ISSUE-Does the code really distinguish error codes
-    // properly?  Would LsaGetNamesBySidList() just
-    // return AccountType_NotFound if there were a memory
-    // error, for instance?
-
-    switch (sidInfoList[0].accountType)
+    if (ppObjects[0]->type == LSA_OBJECT_TYPE_USER)
     {
-        case AccountType_User:
-            isUser = TRUE;
-            break;
-        case AccountType_Group:
-            isUser = FALSE;
-            break;
-        case AccountType_NotFound:
-            status = STATUS_NOT_FOUND;
-            GOTO_CLEANUP();
-        default:
-            status = STATUS_NOT_FOUND;
-            GOTO_CLEANUP();
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER);
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_UID);
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
+
+        objectInfo.Uid = ppObjects[0]->userInfo.uid;
+        objectInfo.Gid = ppObjects[0]->userInfo.gid;
+
+        status = RtlAllocateSidFromCString(&objectInfo.Sid, ppObjects[0]->pszObjectSid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+    else
+    {
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
+
+        objectInfo.Gid = ppObjects[0]->groupInfo.gid;
+
+        status = RtlAllocateSidFromCString(&objectInfo.Sid, ppObjects[0]->pszObjectSid);
+        GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    dwError = LwAllocateStringPrintf(
-                    &pszName,
-                    "%s%c%s",
-                    sidInfoList[0].pszDomainName,
-                    separator,
-                    sidInfoList[0].pszSamAccountName);
-    status = LsaLsaErrorToNtStatus(dwError);
-    GOTO_CLEANUP_ON_STATUS(status);
-
-    status = LsaMapSecurityResolveObjectInfo(
-                    Context,
-                    isUser,
-                    pszName,
-                    NULL,
-                    &objectInfo);
-    GOTO_CLEANUP_ON_STATUS(status);
-
 cleanup:
+
     if (!NT_SUCCESS(status))
     {
         LsaMapSecurityFreeObjectInfo(&objectInfo);
     }
 
-    if (sidInfoList)
-    {
-        LsaFreeSIDInfoList(sidInfoList, 1);
-    }
+    LW_SAFE_FREE_STRING(pszSid);
+
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
 
     *pObjectInfo = objectInfo;
 
@@ -593,7 +600,7 @@ BOOLEAN
 LsaMapSecurityIsGidInGroupInfoList(
     IN ULONG Gid,
     IN ULONG GroupInfoCount,
-    IN PLSA_GROUP_INFO_0* ppGroupInfoList
+    IN PLSA_SECURITY_OBJECT* ppGroupObjects
     )
 {
     BOOLEAN isFound = FALSE;
@@ -601,7 +608,7 @@ LsaMapSecurityIsGidInGroupInfoList(
 
     for (i = 0; i < GroupInfoCount; i++)
     {
-        if (Gid == ppGroupInfoList[i]->gid)
+        if (ppGroupObjects[i] && Gid == ppGroupObjects[i]->groupInfo.gid)
         {
             isFound = TRUE;
             break;
@@ -619,7 +626,7 @@ LsaMapSecurityAddExtraGid(
     IN OUT PULONG ExtraGidList,
     IN ULONG ExtraGidMaximumCount,
     IN ULONG GroupInfoCount,
-    IN PLSA_GROUP_INFO_0* ppGroupInfoList
+    IN PLSA_SECURITY_OBJECT* ppGroupObjects
     )
 {
     ULONG extraGidCount = *ExtraGidCount;
@@ -627,7 +634,7 @@ LsaMapSecurityAddExtraGid(
     if (extraGidCount < ExtraGidMaximumCount)
     {
         if (!LsaMapSecurityIsGidInGidList(Gid, extraGidCount, ExtraGidList) &&
-            !LsaMapSecurityIsGidInGroupInfoList(Gid, GroupInfoCount, ppGroupInfoList))
+            !LsaMapSecurityIsGidInGroupInfoList(Gid, GroupInfoCount, ppGroupObjects))
         {
             ExtraGidList[extraGidCount] = Gid;
             *ExtraGidCount = extraGidCount + 1;
@@ -647,32 +654,56 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwError = LW_ERROR_SUCCESS;
     PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
-    ULONG groupInfoCount = 0;
-    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
     ULONG i = 0;
     ULONG gid = Gid ? *Gid : 0;
     ULONG extraGidList[2] = { 0 };
     PSID extraGidSidList[LW_ARRAY_SIZE(extraGidList)] = { 0 };
     ULONG extraGidCount = 0;
     HANDLE hConnection = NULL;
+    DWORD dwGroupCount = 0;
+    PSTR* ppszGroupSids = NULL;
+    PSTR pszSid = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+
+    status = RtlAllocateCStringFromSid(&pszSid, pObjectInfo->Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
 
     status = LsaMapSecurityOpenConnection(Context, &hConnection);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    dwError = LsaGetGroupsForUserById(
+    dwError = LsaQueryMemberOf(
                     hConnection,
-                    pObjectInfo->Uid,
+                    NULL,
                     0,
-                    0,
-                    &groupInfoCount,
-                    (PVOID**)OUT_PPVOID(&ppGroupInfoList));
+                    1,
+                    &pszSid,
+                    &dwGroupCount,
+                    &ppszGroupSids);
     if (IS_NOT_FOUND_ERROR(dwError))
     {
         dwError = 0;
-        groupInfoCount = 0;
+        dwGroupCount = 0;
     }
     else
     {
+        status = LsaLsaErrorToNtStatus(dwError);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    if (dwGroupCount)
+    {
+        QueryList.ppszStrings = (PCSTR*) ppszGroupSids;
+
+        dwError = LsaFindObjects(
+            hConnection,
+            NULL,
+            0,
+            LSA_OBJECT_TYPE_GROUP,
+            LSA_QUERY_TYPE_BY_SID,
+            dwGroupCount,
+            QueryList,
+            &ppObjects);
         status = LsaLsaErrorToNtStatus(dwError);
         GOTO_CLEANUP_ON_STATUS(status);
     }
@@ -691,8 +722,8 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
                 &extraGidCount,
                 extraGidList,
                 LW_ARRAY_SIZE(extraGidList),
-                groupInfoCount,
-                ppGroupInfoList);
+                dwGroupCount,
+                ppObjects);
     }
 
     if (Gid)
@@ -702,8 +733,8 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
                 &extraGidCount,
                 extraGidList,
                 LW_ARRAY_SIZE(extraGidList),
-                groupInfoCount,
-                ppGroupInfoList);
+                dwGroupCount,
+                ppObjects);
     }
 
     //
@@ -727,7 +758,7 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
 
     status = LsaMapSecurityAllocateAccessTokenCreateInformation(
                     &createInformation,
-                    groupInfoCount + extraGidCount);
+                    dwGroupCount + extraGidCount);
     GOTO_CLEANUP_ON_STATUS(status);
 
     //
@@ -768,18 +799,21 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     // TOKEN_GROUPS
     //
 
-    for (i = 0; i < groupInfoCount; i++)
+    for (i = 0; i < dwGroupCount; i++)
     {
         PSID_AND_ATTRIBUTES group = &createInformation->Groups->Groups[createInformation->Groups->GroupCount];
 
-        status = RtlAllocateSidFromCString(
-                        &group->Sid,
-                        ppGroupInfoList[i]->pszSid);
-        GOTO_CLEANUP_ON_STATUS(status);
+        if (ppObjects[i])
+        {
+            status = RtlAllocateSidFromCString(
+                &group->Sid,
+                ppObjects[i]->pszObjectSid);
+            GOTO_CLEANUP_ON_STATUS(status);
 
-        group->Attributes = SE_GROUP_ENABLED;
+            group->Attributes = SE_GROUP_ENABLED;
 
-        createInformation->Groups->GroupCount++;
+            createInformation->Groups->GroupCount++;
+        }
     }
 
     for (i = 0; i < extraGidCount; i++)
@@ -824,7 +858,8 @@ cleanup:
         LsaMapSecurityFreeAccessTokenCreateInformation(Context, &createInformation);
     }
 
-    LsaFreeGroupInfoList(0, (PVOID*)ppGroupInfoList, groupInfoCount);
+    LwFreeStringArray(ppszGroupSids, dwGroupCount);
+    LsaUtilFreeSecurityObjectList(dwGroupCount, ppObjects);
 
     for (i = 0; i < extraGidCount; i++)
     {

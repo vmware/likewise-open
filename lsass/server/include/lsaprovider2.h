@@ -123,6 +123,36 @@ typedef VOID (*PFN_LSA_PROVIDER_CLOSE_ENUM)(
     IN OUT HANDLE hEnum
     );
 
+typedef DWORD (*PFNMODIFYUSER_2)(
+    HANDLE hProvider,
+    PLSA_USER_MOD_INFO_2 pUserModInfo
+    );
+
+typedef DWORD (*PFNDELETEOBJECT) (
+    HANDLE hProvider,
+    PCSTR pszSid
+    );
+
+typedef DWORD (*PFNMODIFYGROUP_2) (
+    HANDLE hProvider,
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
+    );
+
+typedef DWORD (*PFNADDUSER_2) (
+    HANDLE hProvider,
+    PLSA_USER_ADD_INFO pUserInfo
+    );
+
+typedef DWORD (*PFNADDGROUP_2) (
+    HANDLE hProvider,
+    PLSA_GROUP_ADD_INFO pGroupInfo
+    );
+
+typedef DWORD (*PFNOPENHANDLE_2)(
+    HANDLE hServer,
+    PHANDLE phProvider
+    );
+
 typedef struct _LSA_PROVIDER_FUNCTION_TABLE_2 {
 
     PFN_LSA_PROVIDER_FIND_OBJECTS pfnFindObjects;
@@ -194,7 +224,7 @@ typedef struct _LSA_PROVIDER_FUNCTION_TABLE_2 {
     // Untouched for now -- will at least change type names for readability/consistency.
     //
     PFNSHUTDOWNPROVIDER            pfnShutdownProvider; // ok
-    PFNOPENHANDLE                  pfnOpenHandle; // we should be able to get rid of this and just pass in a LSA_PROVIDER_HANDLE that is created by SRV/API but that provider can attach context.
+    PFNOPENHANDLE_2                pfnOpenHandle; // we should be able to get rid of this and just pass in a LSA_PROVIDER_HANDLE that is created by SRV/API but that provider can attach context.
     PFNCLOSEHANDLE                 pfnCloseHandle; // "
     PFNSERVICESDOMAIN              pfnServicesDomain; // is it necessary?  if we can lookup domains, it is not.
     PFNAUTHENTICATEUSER            pfnAuthenticateUser; // ok
@@ -205,12 +235,11 @@ typedef struct _LSA_PROVIDER_FUNCTION_TABLE_2 {
     PFNSETPASSWORD                 pfnSetPassword; // ok -- local only unless we support set password protocol to set password as domain admin
 
     // local only?:
-    PFNADDUSER                     pfnAddUser; // remove info level
-    PFNMODIFYUSER                  pfnModifyUser; // tweak interface -- SID is primary
-    PFNDELETEUSER                  pfnDeleteUser; // tweak interface -- SID is primary
-    PFNADDGROUP                    pfnAddGroup; // remove info level
-    PFNMODIFYGROUP                 pfnModifyGroup; // tweak interface -- SID is primary
-    PFNDELETEGROUP                 pfnDeleteGroup; // tweak interface -- SID is primary
+    PFNADDUSER_2                   pfnAddUser;
+    PFNMODIFYUSER_2                pfnModifyUser;
+    PFNDELETEOBJECT                pfnDeleteObject;
+    PFNADDGROUP_2                  pfnAddGroup;
+    PFNMODIFYGROUP_2               pfnModifyGroup;
 
     // PAM
     PFNOPENSESSION                 pfnOpenSession;
@@ -230,6 +259,16 @@ typedef struct _LSA_PROVIDER_FUNCTION_TABLE_2 {
 #endif
 
 } LSA_PROVIDER_FUNCTION_TABLE_2, *PLSA_PROVIDER_FUNCTION_TABLE_2;
+
+typedef DWORD (*PFNINITIALIZEPROVIDER_2)(
+    OUT PCSTR* ppszProviderName,
+    OUT PLSA_PROVIDER_FUNCTION_TABLE_2* ppFnTable
+    );
+
+typedef struct _LSA_STATIC_PROVIDER {
+    PCSTR pszId;
+    PFNINITIALIZEPROVIDER_2 pInitialize;
+} LSA_STATIC_PROVIDER, *PLSA_STATIC_PROVIDER;
 
 #endif /* __LSAPROVIDER_2_H__ */
 

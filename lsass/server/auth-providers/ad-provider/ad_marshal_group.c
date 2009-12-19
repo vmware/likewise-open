@@ -58,7 +58,7 @@ ADMarshalGetCanonicalName(
     DWORD dwError = LW_ERROR_SUCCESS;
     PSTR    pszResult = NULL;
 
-    if(pObject->type == AccountType_Group &&
+    if(pObject->type == LSA_OBJECT_TYPE_GROUP &&
             !LW_IS_NULL_OR_EMPTY_STR(pObject->groupInfo.pszAliasName))
     {
         dwError = LwAllocateString(
@@ -66,7 +66,7 @@ ADMarshalGetCanonicalName(
             &pszResult);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if(pObject->type == AccountType_User &&
+    else if(pObject->type == LSA_OBJECT_TYPE_USER &&
             !LW_IS_NULL_OR_EMPTY_STR(pObject->userInfo.pszAliasName))
     {
         dwError = LwAllocateString(
@@ -107,166 +107,6 @@ error:
     LW_SAFE_FREE_STRING(pszResult);
     goto cleanup;
 }
-
-DWORD
-ADMarshalFromGroupCache(
-    PLSA_SECURITY_OBJECT     pGroup,
-    size_t                  sMembers,
-    PLSA_SECURITY_OBJECT*    ppMembers,
-    DWORD                   dwGroupInfoLevel,
-    PVOID*                  ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pGroupInfo = NULL;
-    /* The variable represents pGroupInfo casted to different types. Do not
-     * free these values directly, free pGroupInfo instead.
-     */   
-    size_t sIndex = 0;
-    size_t sEnabled = 0;
-
-    *ppGroupInfo = NULL;
-
-    BAIL_ON_INVALID_POINTER(pGroup);
-
-    if(pGroup->type != AccountType_Group)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    if (!pGroup->enabled)
-    {
-        /* Unenabled groups can be represented in cache format, but not in
-         * group info format. So when marshalling an unenabled group, pretend
-         * like it doesn't exist.
-         */
-        dwError = LW_ERROR_OBJECT_NOT_ENABLED;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    switch(dwGroupInfoLevel)
-    {
-        case 0:
-        {
-            PLSA_GROUP_INFO_0 pGroupInfo0 = NULL;
-
-            dwError = LwAllocateMemory(
-                            sizeof(LSA_GROUP_INFO_0),
-                            (PVOID*)&pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            pGroupInfo0 = (PLSA_GROUP_INFO_0) pGroupInfo;
-            
-            pGroupInfo0->gid = pGroup->groupInfo.gid;
-            
-            dwError = ADMarshalGetCanonicalName(
-                            pGroup,
-                            &pGroupInfo0->pszName);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            dwError = LwAllocateString(
-                                pGroup->pszObjectSid,
-                                &pGroupInfo0->pszSid);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            break;
-        }
-        case 1:
-        {
-            PLSA_GROUP_INFO_1 pGroupInfo1 = NULL; 
-
-            dwError = LwAllocateMemory(
-                            sizeof(LSA_GROUP_INFO_1),
-                            (PVOID*)&pGroupInfo);
-            BAIL_ON_LSA_ERROR(dwError);
-            
-            pGroupInfo1 = (PLSA_GROUP_INFO_1) pGroupInfo;
-     
-            pGroupInfo1->gid = pGroup->groupInfo.gid;
-            dwError = ADMarshalGetCanonicalName(
-                            pGroup,
-                            &pGroupInfo1->pszName);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            // Optional values use LwStrDupOrNull. Required values use
-            // LwAllocateString.
-            dwError = LwStrDupOrNull(
-                        pGroup->groupInfo.pszPasswd,
-                        &pGroupInfo1->pszPasswd);
-            BAIL_ON_LSA_ERROR(dwError);        
-
-            dwError = LwAllocateString(
-                                pGroup->pszObjectSid,
-                                &pGroupInfo1->pszSid);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            if (pGroup->pszDN)
-            {
-                dwError = LwAllocateString(
-                                    pGroup->pszDN,
-                                    &pGroupInfo1->pszDN);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            for (sIndex = 0; sIndex < sMembers; sIndex++)
-            {
-                if (ppMembers[sIndex]->enabled)
-                {
-                    sEnabled++;
-                }
-
-                if (ppMembers[sIndex]->type != AccountType_User)
-                {
-                    dwError = LW_ERROR_INVALID_PARAMETER;
-                    BAIL_ON_LSA_ERROR(dwError);
-                }
-            }
-
-            dwError = LwAllocateMemory(
-                            //Leave room for terminating null pointer
-                            sizeof(PSTR) * (sEnabled+1),
-                            (PVOID*)&pGroupInfo1->ppszMembers);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            sEnabled = 0;
-
-            for (sIndex = 0; sIndex < sMembers; sIndex++)
-            {
-                if (ppMembers[sIndex]->enabled)
-                {
-                    dwError = ADMarshalGetCanonicalName(
-                            ppMembers[sIndex],
-                            &pGroupInfo1->ppszMembers[sEnabled++]);
-                    BAIL_ON_LSA_ERROR(dwError);
-                }
-            }
-            
-            break;
-        }
-
-        default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-    }
-    
-    *ppGroupInfo = pGroupInfo;
-    
-cleanup:
-    
-    return dwError;
-    
-error:
-    if (pGroupInfo) {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
-        pGroupInfo = NULL;
-    }
-    
-    *ppGroupInfo = NULL;
-    
-    goto cleanup;
-}
-
 
 /*
 local variables:

@@ -47,17 +47,28 @@
 #include <lwmem.h>
 #include <lwerror.h>
 
+#include "common.h"
+
 #define SAFE_STRING(x) ((x) == NULL ? "<null>" : (x))
 
 VOID
 PrintSecurityObject(
-    PLSA_SECURITY_OBJECT pObject
+    PLSA_SECURITY_OBJECT pObject,
+    DWORD dwObjectNumber,
+    DWORD dwObjectTotal
     )
 {
     switch (pObject->type)
     {
-    case AccountType_Group:
-        printf("Group object (%s)\n", SAFE_STRING(pObject->pszObjectSid));
+    case LSA_OBJECT_TYPE_GROUP:
+        if (dwObjectTotal)
+        {
+            printf("Group object [%d of %d] (%s)\n", dwObjectNumber+1, dwObjectTotal, SAFE_STRING(pObject->pszObjectSid));
+        }
+        else
+        {
+            printf("Group object [%d] (%s)\n", dwObjectNumber+1, SAFE_STRING(pObject->pszObjectSid));
+        }
         printf("============\n");
         printf("Enabled: %s\n", pObject->enabled ? "yes" : "no");
         printf("Distinguished name: %s\n", SAFE_STRING(pObject->pszDN));
@@ -67,8 +78,15 @@ PrintSecurityObject(
         printf("UNIX name: %s\n", SAFE_STRING(pObject->groupInfo.pszUnixName));
         printf("GID: %lu\n", (unsigned long) pObject->groupInfo.gid);
         break;
-    case AccountType_User:
-        printf("User object (%s)\n", SAFE_STRING(pObject->pszObjectSid));
+    case LSA_OBJECT_TYPE_USER:
+        if (dwObjectTotal)
+        {
+            printf("User object [%d of %d] (%s)\n", dwObjectNumber+1, dwObjectTotal, SAFE_STRING(pObject->pszObjectSid));
+        }
+        else
+        {
+            printf("User object [%d] (%s)\n", dwObjectNumber+1, SAFE_STRING(pObject->pszObjectSid));
+        }
         printf("============\n");
         printf("Enabled: %s\n", pObject->enabled ? "yes" : "no");
         printf("Distinguished name: %s\n", SAFE_STRING(pObject->pszDN));

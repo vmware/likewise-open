@@ -638,7 +638,7 @@ LsaDmEngineGetDomainNameWithDiscovery(
     PSTR pszDomainSid = NULL;
     PSTR pszDnsForestName = NULL;
     PSID pDomainSid = NULL;
-    ADAccountType accountType = AccountType_NotFound;
+    LSA_OBJECT_TYPE accountType = LSA_OBJECT_TYPE_UNDEFINED;
     BOOLEAN bIsLocalDomain = FALSE;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszDomainName) ||
@@ -708,7 +708,7 @@ LsaDmEngineGetDomainNameWithDiscovery(
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if (AccountType_Domain != accountType)
+    else if (LSA_OBJECT_TYPE_DOMAIN != accountType)
     {
         LSA_LOG_ERROR("Non-domain account type %d for name '%s'",
                 accountType, pszDomainName);
@@ -803,7 +803,7 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
     PSTR pszNetbiosDomainName = NULL;
     PSTR pszDomainSid = NULL;
     PSTR pszDnsForestName = NULL;
-    ADAccountType accountType = AccountType_NotFound;
+    LSA_OBJECT_TYPE accountType = LSA_OBJECT_TYPE_UNDEFINED;
     PSID pDomainSid = NULL;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszObjectSid) ||
@@ -870,7 +870,7 @@ LsaDmEngineGetDomainNameAndSidByObjectSidWithDiscovery(
         dwError = LW_ERROR_NO_SUCH_DOMAIN;
         BAIL_ON_LSA_ERROR(dwError);
     }
-    else if (AccountType_Domain != accountType)
+    else if (LSA_OBJECT_TYPE_DOMAIN != accountType)
     {
         LSA_LOG_ERROR("Non-domain account type %d for SID '%s'",
                 accountType, pszDomainSid);

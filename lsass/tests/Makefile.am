@@ -11,7 +11,6 @@ SUBDIRS = \
 	test_LsaAllocSecurityIdentifierFromString \
 	test_getpwent \
 	test_getpwnam \
-        test_stress_ad_provider \
         test_bitvector \
         test_perf \
 	test_memcache \

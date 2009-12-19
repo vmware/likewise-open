@@ -212,33 +212,6 @@ AD_OnlineGetUserGroupObjectMembership(
     );
 
 DWORD
-AD_OnlineEnumUsers(
-    HANDLE  hProvider,
-    HANDLE  hResume,
-    DWORD   dwMaxNumUsers,
-    PDWORD  pdwUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-DWORD
-AD_OnlineFindGroupById(
-    IN HANDLE hProvider,
-    IN gid_t gid,
-    IN BOOLEAN bIsCacheOnlyMode,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
-AD_OnlineEnumGroups(
-    HANDLE  hProvider,
-    HANDLE  hResume,
-    DWORD   dwMaxNumGroups,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    );
-
-DWORD
 AD_OnlineChangePassword(
     HANDLE hProvider,
     PCSTR pszUserName,
@@ -248,12 +221,12 @@ AD_OnlineChangePassword(
 
 DWORD
 AD_CreateHomeDirectory(
-    PLSA_USER_INFO_1 pUserInfo
+    PLSA_SECURITY_OBJECT pObject
     );
 
 DWORD
 AD_CreateHomeDirectory_Generic(
-    PLSA_USER_INFO_1 pUserInfo
+    PLSA_SECURITY_OBJECT pObject
     );
 
 DWORD
@@ -265,7 +238,7 @@ AD_ProvisionHomeDir(
 
 DWORD
 AD_CreateK5Login(
-    PLSA_USER_INFO_1 pUserInfo
+    PLSA_SECURITY_OBJECT pObject
     );
 
 DWORD
@@ -318,7 +291,7 @@ AD_FindObjectByNameTypeNoCache(
     IN HANDLE hProvider,
     IN PCSTR pszName,
     IN ADLogInNameType NameType,
-    IN ADAccountType AccountType,
+    IN LSA_OBJECT_TYPE AccountType,
     OUT PLSA_SECURITY_OBJECT* ppObject
     );
 
@@ -326,7 +299,7 @@ DWORD
 AD_FindObjectByIdTypeNoCache(
     IN HANDLE hProvider,
     IN DWORD dwId,
-    IN ADAccountType AccountType,
+    IN LSA_OBJECT_TYPE AccountType,
     OUT PLSA_SECURITY_OBJECT* ppObject
     );
 
@@ -345,15 +318,6 @@ AD_FindObjectsBySidList(
     OUT OPTIONAL size_t* psResultsCount,
     OUT PLSA_SECURITY_OBJECT** pppResults
     );
-
-DWORD
-AD_OnlineGetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes);
 
 DWORD
 AD_GetLinkedCellInfo(

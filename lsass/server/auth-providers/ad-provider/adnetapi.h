@@ -61,7 +61,7 @@
 
 typedef struct _LSA_TRANSLATED_NAME_OR_SID {
     PSTR pszNT4NameOrSid;
-    ADAccountType ObjectType;
+    LSA_OBJECT_TYPE ObjectType;
 } LSA_TRANSLATED_NAME_OR_SID, *PLSA_TRANSLATED_NAME_OR_SID;
 
 DWORD
@@ -94,7 +94,7 @@ AD_NetLookupObjectSidByName(
     IN PCSTR pszHostname,
     IN PCSTR pszObjectName,
     OUT PSTR* ppszObjectSid,
-    OUT ADAccountType* pObjectType,
+    OUT LSA_OBJECT_TYPE* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     );
 
@@ -113,7 +113,7 @@ AD_NetLookupObjectNameBySid(
     IN PCSTR pszHostname,
     IN PCSTR pszObjectSid,
     OUT PSTR* ppszNT4Name,
-    OUT ADAccountType* pObjectType,
+    OUT LSA_OBJECT_TYPE* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     );
 

@@ -190,3 +190,290 @@ LsaFreeSecurityObject(
 {
     LsaUtilFreeSecurityObject(pObject);
 }
+
+static
+VOID
+LsaFreeMemberHashEntry(
+    const LSA_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        LsaFreeSecurityObject(pEntry->pValue);
+    }
+}
+
+static
+DWORD
+LsaQueryExpandedGroupMembersInternal(
+    IN HANDLE hLsa,
+    PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN PCSTR pszSid,
+    IN OUT PLSA_HASH_TABLE pHash
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hEnum = NULL;
+    static const DWORD dwMaxEnumCount = 128;
+    DWORD dwEnumCount = 0;
+    PSTR* ppszSids = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+    DWORD dwIndex = 0;
+
+    dwError = LsaOpenEnumMembers(
+        hLsa,
+        pszTargetProvider,
+        &hEnum,
+        FindFlags,
+        pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (;;)
+    {
+        dwError = LsaEnumMembers(
+            hLsa,
+            hEnum,
+            dwMaxEnumCount,
+            &dwEnumCount,
+            &ppszSids);
+        if (dwError == ERROR_NO_MORE_ITEMS)
+        {
+            dwError = 0;
+            break;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        QueryList.ppszStrings = (PCSTR*) ppszSids;
+
+        dwError = LsaFindObjects(
+            hLsa,
+            pszTargetProvider,
+            FindFlags,
+            LSA_OBJECT_TYPE_UNDEFINED,
+            LSA_QUERY_TYPE_BY_SID,
+            dwEnumCount,
+            QueryList,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (dwIndex = 0; dwIndex < dwEnumCount; dwIndex++)
+        {
+            if (ppObjects[dwIndex] && !LsaHashExists(pHash, ppObjects[dwIndex]->pszObjectSid))
+            {
+                dwError = LsaHashSetValue(
+                    pHash,
+                    ppObjects[dwIndex]->pszObjectSid,
+                    ppObjects[dwIndex]);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                if (ppObjects[dwIndex]->type == LSA_OBJECT_TYPE_GROUP)
+                {
+                    dwError = LsaQueryExpandedGroupMembersInternal(
+                        hLsa,
+                        pszTargetProvider,
+                        FindFlags,
+                        ObjectType,
+                        ppObjects[dwIndex]->pszObjectSid,
+                        pHash);
+                    ppObjects[dwIndex] = NULL;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+                else
+                {
+                    ppObjects[dwIndex] = NULL;
+                }
+            }
+        }
+
+        if (ppszSids)
+        {
+            LwFreeStringArray(ppszSids, dwEnumCount);
+        }
+
+        if (ppObjects)
+        {
+            LsaFreeSecurityObjectList(dwEnumCount, ppObjects);
+            ppObjects = NULL;
+        }
+    }
+
+cleanup:
+
+    if (ppszSids)
+    {
+        LwFreeStringArray(ppszSids, dwEnumCount);
+    }
+
+    if (ppObjects)
+    {
+        LsaFreeSecurityObjectList(dwEnumCount, ppObjects);
+        ppObjects = NULL;
+    }
+
+    if (hEnum)
+    {
+        LsaCloseEnum(hLsa, hEnum);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LsaQueryExpandedGroupMembers(
+    IN HANDLE hLsa,
+    PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN PCSTR pszSid,
+    OUT PDWORD pdwMemberCount,
+    OUT PLSA_SECURITY_OBJECT** pppMembers
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwIndex = 0;
+    PLSA_HASH_TABLE pHash = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY* pHashEntry = NULL;
+    DWORD dwMemberCount = 0;
+    DWORD dwFilteredMemberCount = 0;
+    PLSA_SECURITY_OBJECT* ppMembers = NULL;
+    PLSA_SECURITY_OBJECT pMember = NULL;
+
+    dwError = LsaHashCreate(
+        29,
+        LsaHashCaselessStringCompare,
+        LsaHashCaselessStringHash,
+        LsaFreeMemberHashEntry,
+        NULL,
+        &pHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaQueryExpandedGroupMembersInternal(
+        hLsa,
+        pszTargetProvider,
+        FindFlags,
+        ObjectType,
+        pszSid,
+        pHash);
+
+    dwMemberCount = (DWORD) LsaHashGetKeyCount(pHash);
+
+    if (dwMemberCount)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*ppMembers) * dwMemberCount,
+            OUT_PPVOID(&ppMembers));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaHashGetIterator(pHash, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (dwIndex = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; dwIndex++)
+        {
+            pMember = pHashEntry->pValue;
+
+            if (ObjectType == LSA_OBJECT_TYPE_UNDEFINED ||
+                pMember->type == ObjectType)
+            {
+                ppMembers[dwFilteredMemberCount++] = pMember;
+                pHashEntry->pValue = NULL;
+            }
+        }
+    }
+
+    *pppMembers = ppMembers;
+    *pdwMemberCount = dwFilteredMemberCount;
+
+cleanup:
+
+    LsaHashSafeFree(&pHash);
+
+    return dwError;
+
+error:
+
+    *pppMembers = NULL;
+    *pdwMemberCount = 0;
+
+    if (ppMembers)
+    {
+        LsaFreeSecurityObjectList(dwMemberCount, ppMembers);
+    }
+
+    goto cleanup;
+}
+
+LW_DWORD
+LsaDeleteObject(
+    LW_HANDLE hLsaConnection,
+    PCSTR pszTargetProvider,
+    LW_PCSTR pszSid
+    )
+{
+    return LsaTransactDeleteObject(
+        hLsaConnection,
+        pszTargetProvider,
+        pszSid);
+}
+
+LSASS_API
+DWORD
+LsaModifyUser2(
+    HANDLE hLsaConnection,
+    PCSTR pszTargetProvider,
+    PLSA_USER_MOD_INFO_2 pUserModInfo
+    )
+{
+    return LsaTransactModifyUser2(
+        hLsaConnection,
+        pszTargetProvider,
+        pUserModInfo);
+}
+
+LSASS_API
+DWORD
+LsaAddUser2(
+    HANDLE hLsaConnection,
+    PCSTR pszTargetProvider,
+    PLSA_USER_ADD_INFO pUserAddInfo
+    )
+{
+    return LsaTransactAddUser2(
+            hLsaConnection,
+            pszTargetProvider,
+            pUserAddInfo);
+}
+LSASS_API
+DWORD
+LsaAddGroup2(
+    HANDLE hLsaConnection,
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
+    )
+{
+    return LsaTransactAddGroup2(
+            hLsaConnection,
+            pszTargetProvider,
+            pGroupAddInfo);
+}
+
+LSASS_API
+DWORD
+LsaModifyGroup2(
+    HANDLE hLsaConnection,
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
+    )
+{
+    return LsaTransactModifyGroup2(
+        hLsaConnection,
+        pszTargetProvider,
+        pGroupModInfo);
+}

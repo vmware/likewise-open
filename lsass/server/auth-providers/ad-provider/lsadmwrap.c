@@ -324,13 +324,13 @@ typedef struct _LSA_DM_WRAP_LDAP_OPEN_DIRECORY_CALLBACK_CONTEXT {
 typedef struct _LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT {
     IN PCSTR pszName;
     OUT PSTR pszSid;
-    OUT ADAccountType ObjectType;
+    OUT LSA_OBJECT_TYPE ObjectType;
 } LSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_SID_BY_NAME_CALLBACK_CONTEXT;
 
 typedef struct _LSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT {
     IN PCSTR pszSid;
     OUT PSTR pszNT4Name;
-    OUT ADAccountType ObjectType;
+    OUT LSA_OBJECT_TYPE ObjectType;
 } LSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT, *PLSA_DM_WRAP_LOOKUP_NAME_BY_SID_CALLBACK_CONTEXT;
 
 typedef struct _LSA_DM_WRAP_LOOKUP_NAMES_BY_SIDS_CALLBACK_CONTEXT {
@@ -529,7 +529,7 @@ LsaDmWrapNetLookupObjectSidByName(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszName,
     OUT PSTR* ppszSid,
-    OUT OPTIONAL ADAccountType* pAccountType
+    OUT OPTIONAL LSA_OBJECT_TYPE* pAccountType
     )
 {
     DWORD dwError = 0;
@@ -559,7 +559,7 @@ LsaDmWrapNetLookupNameByObjectSid(
     IN  PCSTR pszDnsDomainName,
     IN  PCSTR pszSid,
     OUT PSTR* ppszName,
-    OUT OPTIONAL ADAccountType* pAccountType
+    OUT OPTIONAL LSA_OBJECT_TYPE* pAccountType
     )
 {
     DWORD dwError = 0;

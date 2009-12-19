@@ -1,4 +1,5 @@
 AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+AM_CFLAGS = @AM_CFLAGS@ -Wmissing-prototypes
 
 ADDITIONAL_LIBS =
 NOINST_DEP_LIBS = \

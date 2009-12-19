@@ -266,7 +266,7 @@ ADCacheStoreGroupsForUser(
     return dwError;
 }
 
-
+static
 DWORD
 ADCacheGetMemberships(
     IN LSA_DB_HANDLE hDb,
@@ -551,7 +551,7 @@ ADCacheDuplicateObject(
 
     pDest->type = pSrc->type;
 
-    if (pDest->type == AccountType_User)
+    if (pDest->type == LSA_OBJECT_TYPE_USER)
     {
         pDest->userInfo.uid = pSrc->userInfo.uid;
         pDest->userInfo.gid = pSrc->userInfo.gid;
@@ -603,7 +603,7 @@ ADCacheDuplicateObject(
         pDest->userInfo.bAccountExpired = pSrc->userInfo.bAccountExpired;
         pDest->userInfo.bAccountLocked = pSrc->userInfo.bAccountLocked;
     }
-    else if (pDest->type == AccountType_Group)
+    else if (pDest->type == LSA_OBJECT_TYPE_GROUP)
     {
         pDest->groupInfo.gid = pSrc->groupInfo.gid;
 

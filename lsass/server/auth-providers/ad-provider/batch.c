@@ -1474,7 +1474,7 @@ LsaAdBatchFilterMisTypeObjects(
         switch (QueryType)
         {
             case LSA_AD_BATCH_QUERY_TYPE_BY_UID:
-                if (AccountType_User == ppObjects[i]->type)
+                if (LSA_OBJECT_TYPE_USER == ppObjects[i]->type)
                 {
                     ppRemainingObjects[dwRemainingObjectsCount++] = ppObjects[i];
                     ppObjects[i] = NULL;
@@ -1482,7 +1482,7 @@ LsaAdBatchFilterMisTypeObjects(
                 break;
 
             case LSA_AD_BATCH_QUERY_TYPE_BY_GID:
-                if (AccountType_Group == ppObjects[i]->type)
+                if (LSA_OBJECT_TYPE_GROUP == ppObjects[i]->type)
                 {
                     ppRemainingObjects[dwRemainingObjectsCount++] = ppObjects[i];
                     ppObjects[i] = NULL;
@@ -3941,7 +3941,7 @@ LsaAdBatchQueryTermDebugInfo(
 
 DWORD
 LsaAdBatchAccountTypeToObjectType(
-    IN ADAccountType AccountType,
+    IN LSA_OBJECT_TYPE AccountType,
     OUT PLSA_AD_BATCH_OBJECT_TYPE pObjectType
     )
 {
@@ -3950,10 +3950,10 @@ LsaAdBatchAccountTypeToObjectType(
 
     switch (AccountType)
     {
-        case AccountType_User:
+        case LSA_OBJECT_TYPE_USER:
             objectType = LSA_AD_BATCH_OBJECT_TYPE_USER;
             break;
-        case AccountType_Group:
+        case LSA_OBJECT_TYPE_GROUP:
             objectType = LSA_AD_BATCH_OBJECT_TYPE_GROUP;
             break;
         default:

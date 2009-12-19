@@ -172,6 +172,7 @@ EnumObjects(
     const DWORD dwMaxCount = 512;
     DWORD dwCount = 0;
     DWORD dwIndex = 0;
+    DWORD dwTotalIndex = 0;
 
     dwError = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERROR(dwError);
@@ -185,7 +186,7 @@ EnumObjects(
         gState.pszDomainName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    for (;;)
+    for (dwTotalIndex = 0;;)
     {
         dwError = LsaEnumObjects(
             hLsa,
@@ -200,11 +201,11 @@ EnumObjects(
         }
         BAIL_ON_LSA_ERROR(dwError);
 
-        for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+        for (dwIndex = 0; dwIndex < dwCount; dwIndex++, dwTotalIndex++)
         {
             if (ppObjects[dwIndex])
             {
-                PrintSecurityObject(ppObjects[dwIndex]);
+                PrintSecurityObject(ppObjects[dwIndex], dwTotalIndex, 0);
                 printf("\n");
             }
         }

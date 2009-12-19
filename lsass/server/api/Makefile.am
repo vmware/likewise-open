@@ -29,7 +29,6 @@ liblsaserverapi_la_SOURCES = \
        credentials.c   \
        event.c         \
        globals.c       \
-       groups.c        \
        ipc_dispatch.c  \
        ipc_error.c     \
        ipc_state.c     \
@@ -45,7 +44,6 @@ liblsaserverapi_la_SOURCES = \
        status.c        \
        systemcache.c   \
        traceinfo.c     \
-       users.c         \
        rpc_server.c    \
        svc_register.c  \
        svc_unregister.c \

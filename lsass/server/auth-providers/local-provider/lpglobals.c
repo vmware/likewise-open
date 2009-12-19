@@ -50,50 +50,6 @@
 
 PCSTR gpszLocalProviderName = LOCAL_CFG_TAG_LOCAL_PROVIDER;
 
-LSA_PROVIDER_FUNCTION_TABLE gLocalProviderAPITable =
-{
-    .pfnShutdownProvider             = &LocalShutdownProvider,
-    .pfnOpenHandle                   = &LocalOpenHandle,
-    .pfnServicesDomain               = &LocalServicesDomain,
-    .pfnCheckUserInList              = &LocalCheckUserInList,
-    .pfnLookupUserByName             = &LocalFindUserByName,
-    .pfnLookupUserById               = &LocalFindUserById,
-    .pfnBeginEnumUsers               = &LocalBeginEnumUsers,
-    .pfnEnumUsers                    = &LocalEnumUsers,
-    .pfnEndEnumUsers                 = &LocalEndEnumUsers,
-    .pfnLookupGroupByName            = &LocalFindGroupByName,
-    .pfnLookupGroupById              = &LocalFindGroupById,
-    .pfnGetGroupsForUser             = &LocalGetGroupsForUser,
-    .pfnBeginEnumGroups              = &LocalBeginEnumGroups,
-    .pfnEnumGroups                   = &LocalEnumGroups,
-    .pfnEndEnumGroups                = &LocalEndEnumGroups,
-    .pfnAuthenticateUser             = &LocalAuthenticateUser,
-    .pfnAuthenticateUserEx           = &LocalAuthenticateUserEx,
-    .pfnValidateUser                 = &LocalValidateUser,
-    .pfnChangePassword               = &LocalChangePassword,
-    .pfnSetPassword                  = &LocalSetPassword,
-    .pfnAddUser                      = &LocalAddUser,
-    .pfnModifyUser                   = &LocalModifyUser,
-    .pfnDeleteUser                   = &LocalDeleteUser,
-    .pfnAddGroup                     = &LocalAddGroup,
-    .pfnModifyGroup                  = &LocalModifyGroup,
-    .pfnDeleteGroup                  = &LocalDeleteGroup,
-    .pfnOpenSession                  = &LocalOpenSession,
-    .pfnCloseSession                 = &LocalCloseSession,
-    .pfnGetNamesBySidList            = &LocalGetNamesBySidList,
-    .pfnLookupNSSArtefactByKey       = &LocalFindNSSArtefactByKey,
-    .pfnBeginEnumNSSArtefacts        = &LocalBeginEnumNSSArtefacts,
-    .pfnEnumNSSArtefacts             = &LocalEnumNSSArtefacts,
-    .pfnEndEnumNSSArtefacts          = &LocalEndEnumNSSArtefacts,
-    .pfnGetStatus                    = &LocalGetStatus,
-    .pfnFreeStatus                   = &LocalFreeStatus,
-    .pfnRefreshConfiguration         = &LocalRefreshConfiguration,
-    .pfnProviderIoControl            = &LocalIoControl,
-    .pfnCloseHandle                  = &LocalCloseHandle,
-    .pfnGetGroupMembershipByProvider = &LocalGetGroupMembershipByProvider,
-    .pFnTable2 = &gLocalProviderAPITable2
-};
-
 LSA_PROVIDER_FUNCTION_TABLE_2 gLocalProviderAPITable2 =
 {
     .pfnFindObjects = LocalFindObjects,
@@ -105,6 +61,31 @@ LSA_PROVIDER_FUNCTION_TABLE_2 gLocalProviderAPITable2 =
     .pfnQueryMemberOf = LocalQueryMemberOf,
     .pfnOpenHandle = LocalOpenHandle,
     .pfnCloseHandle = LocalCloseHandle,
+    .pfnShutdownProvider             = &LocalShutdownProvider,
+    .pfnOpenHandle                   = &LocalOpenHandle,
+    .pfnServicesDomain               = &LocalServicesDomain,
+    .pfnCheckUserInList              = &LocalCheckUserInList,
+    .pfnAuthenticateUser             = &LocalAuthenticateUser,
+    .pfnAuthenticateUserEx           = &LocalAuthenticateUserEx,
+    .pfnValidateUser                 = &LocalValidateUser,
+    .pfnChangePassword               = &LocalChangePassword,
+    .pfnSetPassword                  = &LocalSetPassword,
+    .pfnAddUser                      = &LocalAddUser,
+    .pfnModifyUser                   = &LocalModifyUser,
+    .pfnDeleteObject                 = LocalDeleteObject,
+    .pfnAddGroup                     = &LocalAddGroup,
+    .pfnModifyGroup                  = &LocalModifyGroup,
+    .pfnOpenSession                  = &LocalOpenSession,
+    .pfnCloseSession                 = &LocalCloseSession,
+    .pfnLookupNSSArtefactByKey       = &LocalFindNSSArtefactByKey,
+    .pfnBeginEnumNSSArtefacts        = &LocalBeginEnumNSSArtefacts,
+    .pfnEnumNSSArtefacts             = &LocalEnumNSSArtefacts,
+    .pfnEndEnumNSSArtefacts          = &LocalEndEnumNSSArtefacts,
+    .pfnGetStatus                    = &LocalGetStatus,
+    .pfnFreeStatus                   = &LocalFreeStatus,
+    .pfnRefreshConfiguration         = &LocalRefreshConfiguration,
+    .pfnProviderIoControl            = &LocalIoControl,
+    .pfnCloseHandle                  = &LocalCloseHandle
 };
 
 LOCAL_PROVIDER_GLOBALS gLPGlobals =

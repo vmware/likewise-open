@@ -365,7 +365,7 @@ AD_GroupExpansionDataAddExpansionResults(
             continue;
         }
 
-        if (pCurrentMember->type == AccountType_User)
+        if (pCurrentMember->type == LSA_OBJECT_TYPE_USER)
         {
             if (!LsaHashExists(pExpansionData->pUsers,
                                ppMembers[sMembersCount-1]))
@@ -382,7 +382,7 @@ AD_GroupExpansionDataAddExpansionResults(
                 ADCacheSafeFreeObject(&ppMembers[sMembersCount-1]);
             }
         }
-        else if (pCurrentMember->type == AccountType_Group)
+        else if (pCurrentMember->type == LSA_OBJECT_TYPE_GROUP)
         {
             if (dwExpandedGroupDepth >= pExpansionData->dwMaxDepth)
             {

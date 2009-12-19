@@ -53,13 +53,6 @@ typedef DWORD (*PFNSHUTDOWNPROVIDER)(
     VOID
     );
 
-typedef DWORD (*PFNOPENHANDLE)(
-                    uid_t peerUID,
-                    gid_t peerGID,
-                    pid_t peerPID,
-                    PHANDLE phProvider
-                    );
-
 typedef VOID  (*PFNCLOSEHANDLE)(HANDLE hProvider);
 
 typedef BOOLEAN (*PFNSERVICESDOMAIN)(PCSTR pszDomain);
@@ -87,87 +80,6 @@ typedef DWORD (*PFNCHECKUSERINLIST)(
                         PCSTR  pszLoginId,
                         PCSTR  pszListName);
 
-typedef DWORD (*PFNLOOKUPUSERBYNAME)(
-                        HANDLE  hProvider,
-                        PCSTR   pszLoginId,
-                        DWORD   dwUserInfoLevel,
-                        PVOID*  ppUserInfo
-                        );
-
-typedef DWORD (*PFNLOOKUPUSERBYID)(
-                        HANDLE  hProvider,
-                        uid_t   uid,
-                        DWORD   dwUserInfoLevel,
-                        PVOID*  ppUserInfo
-                        );
-
-typedef DWORD (*PFNLOOKUPGROUPBYNAME)(
-                        HANDLE  hProvider,
-                        PCSTR   pszLoginId,
-                        LSA_FIND_FLAGS FindFlags,
-                        DWORD   dwUserInfoLevel,
-                        PVOID*  ppGroupInfo
-                        );
-
-typedef DWORD (*PFNLOOKUPGROUPBYID)(
-                        HANDLE  hProvider,
-                        gid_t   gid,
-                        LSA_FIND_FLAGS FindFlags,
-                        DWORD   dwGroupInfoLevel,
-                        PVOID*  ppGroupInfo
-                        );
-
-typedef DWORD (*PFNGETGROUPSFORUSER)(
-                        IN HANDLE hProvider,
-                        IN OPTIONAL PCSTR pszUserName,
-                        IN OPTIONAL uid_t uid,
-                        IN LSA_FIND_FLAGS FindFlags,
-                        IN DWORD dwGroupInfoLevel,
-                        IN PDWORD pdwGroupsFound,
-                        IN PVOID** pppGroupInfoList
-                        );
-
-typedef DWORD (*PFNBEGIN_ENUM_USERS)(
-                        HANDLE  hProvider,
-                        DWORD   dwInfoLevel,
-                        LSA_FIND_FLAGS FindFlags,
-                        PHANDLE phResume
-                        );
-
-typedef DWORD (*PFNENUMUSERS) (
-                        HANDLE  hProvider,
-                        HANDLE  hResume,
-                        DWORD   dwMaxUsers,
-                        PDWORD  pdwUsersFound,
-                        PVOID** pppUserInfoList
-                        );
-
-typedef VOID (*PFNEND_ENUM_USERS)(
-                        HANDLE hProvider,
-                        HANDLE hResume
-                        );
-
-typedef DWORD (*PFNBEGIN_ENUM_GROUPS)(
-                        HANDLE  hProvider,
-                        DWORD   dwInfoLevel,
-                        BOOLEAN bCheckGroupMembersOnline,
-                        LSA_FIND_FLAGS FindFlags,
-                        PHANDLE phResume
-                        );
-
-typedef DWORD (*PFNENUMGROUPS) (
-                        HANDLE  hProvider,
-                        HANDLE  hResume,
-                        DWORD   dwMaxNumGroups,
-                        PDWORD  pdwGroupsFound,
-                        PVOID** pppGroupInfoList
-                        );
-
-typedef VOID (*PFNEND_ENUM_GROUPS)(
-                        HANDLE hProvider,
-                        HANDLE hResume
-                        );
-
 typedef DWORD (*PFNCHANGEPASSWORD) (
                         HANDLE hProvider,
                         PCSTR  pszLoginId,
@@ -181,38 +93,6 @@ typedef DWORD (*PFNSETPASSWORD) (
                         PCSTR  pszPassword
                         );
 
-typedef DWORD (*PFNADDUSER) (
-                        HANDLE hProvider,
-                        DWORD  dwUserInfoLevel,
-                        PVOID  pUserInfo
-                        );
-
-typedef DWORD (*PFNMODIFYUSER)(
-                        HANDLE hProvider,
-                        PLSA_USER_MOD_INFO pUserModInfo
-                        );
-
-typedef DWORD (*PFNDELETEUSER) (
-                        HANDLE hProvider,
-                        uid_t  uid
-                        );
-
-typedef DWORD (*PFNADDGROUP) (
-                        HANDLE hProvider,
-                        DWORD  dwGroupInfoLevel,
-                        PVOID  pGroupInfo
-                        );
-
-typedef DWORD (*PFNMODIFYGROUP) (
-                        HANDLE hProvider,
-                        PLSA_GROUP_MOD_INFO pGroupModInfo
-                        );
-
-typedef DWORD (*PFNDELETEGROUP) (
-                        HANDLE hProvider,
-                        gid_t  gid
-                        );
-
 typedef DWORD (*PFNOPENSESSION) (
                         HANDLE hProvider,
                         PCSTR  pszLoginId
@@ -221,15 +101,6 @@ typedef DWORD (*PFNOPENSESSION) (
 typedef DWORD (*PFNCLOSESESSION) (
                         HANDLE hProvider,
                         PCSTR  pszLoginId
-                        );
-
-typedef DWORD (*PFNGETNAMESBYSIDLIST) (
-                        HANDLE          hProvider,
-                        size_t          sCount,
-                        PSTR*           ppszSidList,
-                        PSTR**          pppszDomainNames,
-                        PSTR**          pppszSamAccounts,
-                        ADAccountType** ppTypes
                         );
 
 typedef DWORD (*PFNLOOKUP_NSS_ARTEFACT_BY_KEY)(
@@ -284,68 +155,7 @@ typedef DWORD (*PFNPROVIDER_IO_CONTROL) (
                 PVOID* ppOutputBuffer
                 );
 
-typedef DWORD (*PFNGETGROUPMEMBERSHIPBYPROV)(
-                IN HANDLE     hProvider,
-                IN PCSTR      pszSid,
-                IN DWORD      dwGroupInfoLevel,
-                OUT PDWORD    pdwGroupsCount,
-                OUT PVOID   **pppMembershipInfo
-                );
-
-typedef struct _LSA_PROVIDER_FUNCTION_TABLE {
-    PFNSHUTDOWNPROVIDER            pfnShutdownProvider;
-    PFNOPENHANDLE                  pfnOpenHandle;
-    PFNCLOSEHANDLE                 pfnCloseHandle;
-    PFNSERVICESDOMAIN              pfnServicesDomain;
-    PFNAUTHENTICATEUSER            pfnAuthenticateUser;
-    PFNAUTHENTICATEUSEREX          pfnAuthenticateUserEx;
-    PFNVALIDATEUSER                pfnValidateUser;
-    PFNCHECKUSERINLIST             pfnCheckUserInList;
-    PFNLOOKUPUSERBYNAME            pfnLookupUserByName;
-    PFNLOOKUPUSERBYID              pfnLookupUserById;
-    PFNBEGIN_ENUM_USERS            pfnBeginEnumUsers;
-    PFNENUMUSERS                   pfnEnumUsers;
-    PFNEND_ENUM_USERS              pfnEndEnumUsers;
-    PFNLOOKUPGROUPBYNAME           pfnLookupGroupByName;
-    PFNLOOKUPGROUPBYID             pfnLookupGroupById;
-    PFNGETGROUPSFORUSER            pfnGetGroupsForUser;
-    PFNBEGIN_ENUM_GROUPS           pfnBeginEnumGroups;
-    PFNENUMGROUPS                  pfnEnumGroups;
-    PFNEND_ENUM_GROUPS             pfnEndEnumGroups;
-    PFNCHANGEPASSWORD              pfnChangePassword;
-    PFNSETPASSWORD                 pfnSetPassword;
-    PFNADDUSER                     pfnAddUser;
-    PFNMODIFYUSER                  pfnModifyUser;
-    PFNDELETEUSER                  pfnDeleteUser;
-    PFNADDGROUP                    pfnAddGroup;
-    PFNMODIFYGROUP                 pfnModifyGroup;
-    PFNDELETEGROUP                 pfnDeleteGroup;
-    PFNOPENSESSION                 pfnOpenSession;
-    PFNCLOSESESSION                pfnCloseSession;
-    PFNGETNAMESBYSIDLIST           pfnGetNamesBySidList;
-    PFNLOOKUP_NSS_ARTEFACT_BY_KEY  pfnLookupNSSArtefactByKey;
-    PFNBEGIN_ENUM_NSS_ARTEFACTS    pfnBeginEnumNSSArtefacts;
-    PFNENUMNSS_ARTEFACTS           pfnEnumNSSArtefacts;
-    PFNEND_ENUM_NSS_ARTEFACTS      pfnEndEnumNSSArtefacts;
-    PFNGET_STATUS                  pfnGetStatus;
-    PFNFREE_STATUS                 pfnFreeStatus;
-    PFNREFRESH_CONFIGURATION       pfnRefreshConfiguration;
-    PFNPROVIDER_IO_CONTROL         pfnProviderIoControl;
-    PFNGETGROUPMEMBERSHIPBYPROV    pfnGetGroupMembershipByProvider;
-    struct _LSA_PROVIDER_FUNCTION_TABLE_2* pFnTable2;
-} LSA_PROVIDER_FUNCTION_TABLE, *PLSA_PROVIDER_FUNCTION_TABLE;
-
-#define LSA_SYMBOL_NAME_INITIALIZE_PROVIDER "LsaInitializeProvider"
-
-typedef DWORD (*PFNINITIALIZEPROVIDER)(
-    OUT PCSTR* ppszProviderName,
-    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFnTable
-    );
-
-typedef struct _LSA_STATIC_PROVIDER {
-    PCSTR pszId;
-    PFNINITIALIZEPROVIDER pInitialize;
-} LSA_STATIC_PROVIDER, *PLSA_STATIC_PROVIDER;
+#define LSA_SYMBOL_NAME_INITIALIZE_PROVIDER "LsaInitializeProvider2"
 
 #endif /* __LSAPROVIDER_H__ */
 

@@ -327,30 +327,30 @@ error:
 #endif
 
 static
-ADAccountType
+LSA_OBJECT_TYPE
 GetObjectType(
     IN LsaSidType Type
     )
 {
-    ADAccountType ObjectType = AccountType_NotFound;
+    LSA_OBJECT_TYPE ObjectType = LSA_OBJECT_TYPE_UNDEFINED;
 
     switch(Type)
     {
         case SID_TYPE_USER:
-            ObjectType = AccountType_User;
+            ObjectType = LSA_OBJECT_TYPE_USER;
             break;
 
         case SID_TYPE_DOM_GRP:
         case SID_TYPE_ALIAS:
         case SID_TYPE_WKN_GRP:
-            ObjectType = AccountType_Group;
+            ObjectType = LSA_OBJECT_TYPE_GROUP;
             break;
         case SID_TYPE_DOMAIN:
-            ObjectType = AccountType_Domain;
+            ObjectType = LSA_OBJECT_TYPE_DOMAIN;
             break;
 
         default:
-            ObjectType = AccountType_NotFound;
+            ObjectType = LSA_OBJECT_TYPE_UNDEFINED;
     }
 
     return ObjectType;
@@ -361,7 +361,7 @@ AD_NetLookupObjectSidByName(
     IN PCSTR pszHostname,
     IN PCSTR pszObjectName,
     OUT PSTR* ppszObjectSid,
-    OUT ADAccountType* pObjectType,
+    OUT LSA_OBJECT_TYPE* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     )
 {
@@ -405,7 +405,7 @@ cleanup:
 error:
     *ppszObjectSid = NULL;
     LW_SAFE_FREE_STRING(pszObjectSid);
-    *pObjectType = AccountType_NotFound;
+    *pObjectType = LSA_OBJECT_TYPE_UNDEFINED;
     LSA_LOG_ERROR("Failed to find user, group, or domain by name (name = '%s', searched host = '%s') -> error = %d, symbol = %s",
             LSA_SAFE_LOG_STRING(pszObjectName),
             LSA_SAFE_LOG_STRING(pszHostname),
@@ -578,11 +578,11 @@ AD_NetLookupObjectSidsByNames(
 
     for (i = 0; i < dwNamesCount; i++)
     {
-        ADAccountType ObjectType = AccountType_NotFound;
+        LSA_OBJECT_TYPE ObjectType = LSA_OBJECT_TYPE_UNDEFINED;
         DWORD dwDomainSid_index = 0;
 
         ObjectType = GetObjectType(pSids[i].type);
-        if (ObjectType == AccountType_NotFound)
+        if (ObjectType == LSA_OBJECT_TYPE_UNDEFINED)
         {
             continue;
         }
@@ -604,7 +604,7 @@ AD_NetLookupObjectSidsByNames(
 
         LW_SAFE_FREE_MEMORY(pObject_sid);
 
-        if (AccountType_Domain == ObjectType)
+        if (LSA_OBJECT_TYPE_DOMAIN == ObjectType)
         {
             dwError = LsaAllocateCStringFromSid(
                             &ppTranslatedSids[i]->pszNT4NameOrSid,
@@ -699,7 +699,7 @@ AD_NetLookupObjectNameBySid(
     IN PCSTR pszHostname,
     IN PCSTR pszObjectSid,
     OUT PSTR* ppszNT4Name,
-    OUT ADAccountType* pObjectType,
+    OUT LSA_OBJECT_TYPE* pObjectType,
     OUT PBOOLEAN pbIsNetworkError
     )
 {
@@ -744,7 +744,7 @@ cleanup:
 error:
     *ppszNT4Name = NULL;
     LW_SAFE_FREE_STRING(pszNT4Name);
-    *pObjectType = AccountType_NotFound;
+    *pObjectType = LSA_OBJECT_TYPE_UNDEFINED;
 
     LSA_LOG_ERROR("Failed to find user, group, or domain by sid (sid = '%s', searched host = '%s') -> error = %d, symbol = %s",
             LSA_SAFE_LOG_STRING(pszObjectSid),
@@ -942,11 +942,11 @@ AD_NetLookupObjectNamesBySids(
 
     for (i = 0; i < dwSidsCount; i++)
     {
-        ADAccountType ObjectType = AccountType_NotFound;
+        LSA_OBJECT_TYPE ObjectType = LSA_OBJECT_TYPE_UNDEFINED;
         PCSTR pszDomainName = NULL;
 
         ObjectType = GetObjectType(name_array[i].type);
-        if (ObjectType == AccountType_NotFound)
+        if (ObjectType == LSA_OBJECT_TYPE_UNDEFINED)
         {
             continue;
         }
@@ -970,8 +970,8 @@ AD_NetLookupObjectNamesBySids(
         }
 
         if (LW_IS_NULL_OR_EMPTY_STR(pszDomainName) ||
-            ((ObjectType != AccountType_Domain) && LW_IS_NULL_OR_EMPTY_STR(pszUsername)) ||
-            ((ObjectType == AccountType_Domain) && !LW_IS_NULL_OR_EMPTY_STR(pszUsername)))
+            ((ObjectType != LSA_OBJECT_TYPE_DOMAIN) && LW_IS_NULL_OR_EMPTY_STR(pszUsername)) ||
+            ((ObjectType == LSA_OBJECT_TYPE_DOMAIN) && !LW_IS_NULL_OR_EMPTY_STR(pszUsername)))
         {
             dwError = LW_ERROR_RPC_LSA_LOOKUPSIDS_NOT_FOUND;
             BAIL_ON_LSA_ERROR(dwError);
@@ -984,7 +984,7 @@ AD_NetLookupObjectNamesBySids(
 
         ppTranslatedNames[i]->ObjectType = ObjectType;
 
-        if (ObjectType != AccountType_Domain)
+        if (ObjectType != LSA_OBJECT_TYPE_DOMAIN)
         {
             dwError = ADGetDomainQualifiedString(
                             pszDomainName,
