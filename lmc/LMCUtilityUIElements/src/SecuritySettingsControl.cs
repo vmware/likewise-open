@@ -86,6 +86,35 @@ namespace Likewise.LMC.UtilityUIElements
             return true;
         }
 
+        private void CheckPemissions(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.RowIndex == 0 && e.ColumnIndex != 0)
+            {
+                DataGridViewRow Row = DgPermissions.Rows[e.RowIndex];
+                if (Row.Cells[e.ColumnIndex].Value.ToString().Equals("True"))
+                {
+                    DataGridViewRowCollection dgRows = DgPermissions.Rows;
+                    foreach (DataGridViewRow dgRow in dgRows)
+                    {
+                        dgRow.Cells[e.ColumnIndex].Value = true;
+                        dgRow.Cells[e.ColumnIndex].ReadOnly = true;
+                    }
+                }
+                else
+                {
+                    foreach (DataGridViewRow dgRow in DgPermissions.Rows)
+                    {
+                        dgRow.Cells[e.ColumnIndex].ReadOnly = false;
+                    }
+                }
+            }
+            else
+            {
+                foreach (DataGridViewRow dgRow in DgPermissions.Rows)
+                    dgRow.Cells[e.ColumnIndex].ReadOnly = false;
+            }
+        }
+
         #endregion
 
         #region Events
@@ -159,7 +188,7 @@ namespace Likewise.LMC.UtilityUIElements
             }
         }
 
-        private void DgPermissions_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        private void DgPermissions_CellMouseUp(object sender, DataGridViewCellMouseEventArgs e)
         {
             DataGridViewRow dgRow = DgPermissions.Rows[e.RowIndex];
             if (dgRow != null)
@@ -197,6 +226,7 @@ namespace Likewise.LMC.UtilityUIElements
                 else
                     _editedObjects.Add(sobjectname, daclInfo);
             }
+            CheckPemissions(sender, e);
         }
 
         #endregion
