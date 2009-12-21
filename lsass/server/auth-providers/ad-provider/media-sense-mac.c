@@ -435,6 +435,7 @@ MediaSenseCreateDynamicStoreCFRunLoopSource(
 
 #define CASE_TO_STR(x) case x: return #x
 
+static
 const char*
 MediaSenseRunLoopResultToString(
     IN SInt32 RunLoopResultCode
@@ -813,6 +814,7 @@ cleanup:
     return error;
 }
 
+static
 int
 MediaSenseStart_Mac(
     OUT MEDIA_SENSE_HANDLE* MediaSenseContext,
@@ -829,6 +831,7 @@ MediaSenseStart_Mac(
                              Monitor);
 }
 
+static
 void
 MediaSenseStop_Mac(
     IN OUT MEDIA_SENSE_HANDLE* MediaSenseContext
