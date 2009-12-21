@@ -47,7 +47,7 @@
 #ifndef __LSASRVAPI_H__
 #define __LSASRVAPI_H__
 
-#include "lsaprovider.h"
+#include "lsaprovider2.h"
 
 DWORD
 LsaSrvApiInit(
@@ -73,9 +73,11 @@ LsaSrvOpenServerEnum(
     );
 
 VOID
-LsaSrvGetUid(
+LsaSrvGetClientId(
     HANDLE hServer,
-    uid_t* pUid
+    uid_t* pUid,
+    gid_t* pGid,
+    pid_t* pPid
     );
 
 void
@@ -133,135 +135,38 @@ LsaSrvSetPassword(
     );
 
 DWORD
-LsaSrvFindGroupByName(
-    IN HANDLE hServer,
-    IN PCSTR pszGroup,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
-LsaSrvFindGroupById(
-    IN HANDLE hServer,
-    IN gid_t gid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
-LsaSrvGetGroupsForUser(
-    IN HANDLE hServer,
-    IN OPTIONAL PCSTR pszUserName,
-    IN OPTIONAL uid_t uid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PDWORD pdwGroupsFound,
-    OUT PVOID** pppGroupInfoList
-    );
-
-DWORD
-LsaSrvFindUserByName(
-    HANDLE  hServer,
-    PCSTR   pszUsername,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    );
-
-DWORD
-LsaSrvAddGroup(
+LsaSrvAddGroup2(
     HANDLE hServer,
-    DWORD  dwGroupInfoLevel,
-    PVOID  pGroupInfo
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
     );
 
 DWORD
-LsaSrvModifyGroup(
+LsaSrvModifyGroup2(
     HANDLE hServer,
-    PLSA_GROUP_MOD_INFO pGroupModInfo
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
     );
 
 DWORD
-LsaSrvDeleteGroup(
+LsaSrvDeleteObject(
     HANDLE hServer,
-    gid_t  gid
+    PCSTR pszTargetProvider,
+    PCSTR pszSid
     );
 
 DWORD
-LsaSrvAddUser(
+LsaSrvAddUser2(
     HANDLE hServer,
-    DWORD  dwUserInfoLevel,
-    PVOID  pUserInfo
+    PCSTR pszTargetProvider,
+    PLSA_USER_ADD_INFO pUserAddInfo
     );
 
 DWORD
-LsaSrvModifyUser(
+LsaSrvModifyUser2(
     HANDLE hServer,
-    PLSA_USER_MOD_INFO pUserModInfo
-    );
-
-DWORD
-LsaSrvDeleteUser(
-    HANDLE hServer,
-    uid_t  uid
-    );
-
-DWORD
-LsaSrvFindUserById(
-    HANDLE hServer,
-    uid_t  uid,
-    DWORD  dwUserInfoLevel,
-    PVOID* ppUserInfo
-    );
-
-DWORD
-LsaSrvBeginEnumUsers(
-    HANDLE hServer,
-    DWORD  dwUserInfoLevel,
-    DWORD  dwMaxNumUsers,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phState
-    );
-
-DWORD
-LsaSrvEnumUsers(
-    HANDLE  hServer,
-    HANDLE  hState,
-    PDWORD  pdwUserInfoLevel,
-    PVOID** pppUserInfoList,
-    PDWORD  pdwNumUsersFound
-    );
-
-DWORD
-LsaSrvEndEnumUsers(
-    HANDLE hServer,
-    HANDLE hState
-    );
-
-DWORD
-LsaSrvBeginEnumGroups(
-    HANDLE hServer,
-    DWORD  dwGroupInfoLevel,
-    DWORD  dwMaxNumGroups,
-    BOOLEAN bCheckGroupMembersOnline,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phState
-    );
-
-DWORD
-LsaSrvEnumGroups(
-    HANDLE  hServer,
-    HANDLE  hState,
-    PDWORD  pdwGroupInfoLevel,
-    PVOID** pppGroupInfoList,
-    PDWORD  pdwNumGroupsFound
-    );
-
-DWORD
-LsaSrvEndEnumGroups(
-    HANDLE hServer,
-    HANDLE hState
+    PCSTR pszTargetProvider,
+    PLSA_USER_MOD_INFO_2 pUserModInfo
     );
 
 DWORD
@@ -323,17 +228,6 @@ DWORD
 LsaSrvCloseSession(
     HANDLE hServer,
     PCSTR  pszLoginId
-    );
-
-DWORD
-LsaSrvGetNamesBySidList(
-    IN HANDLE hServer,
-    IN size_t sCount,
-    IN PSTR* ppszSidList,
-    OUT PSTR** pppszDomainNames,
-    OUT PSTR** pppszSamAccounts,
-    OUT ADAccountType **ppTypes,
-    OUT CHAR* pchDomainSeparator
     );
 
 DWORD
@@ -411,16 +305,6 @@ LsaSrvProviderServicesDomain(
     IN PCSTR pszProvider,
     IN PCSTR pszDomainName,
     OUT PBOOLEAN pbServicesDomain
-    );
-
-DWORD
-LsaSrvGetGroupMembershipByProvider(
-    IN  HANDLE hServer,
-    IN  PCSTR  pszProvider,
-    IN  PCSTR  pszSid,
-    IN  DWORD  dwGroupInfoLevel,
-    OUT PDWORD pdwGroupsCount,
-    OUT PVOID  **pppMembershipInfo
     );
 
 DWORD

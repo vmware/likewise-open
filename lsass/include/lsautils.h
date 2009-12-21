@@ -1099,6 +1099,16 @@ LsaFreeUserModInfo(
     PLSA_USER_MOD_INFO pUserModInfo
     );
 
+void
+LsaFreeUserModInfo2(
+    PLSA_USER_MOD_INFO_2 pUserModInfo
+    );
+
+void
+LsaFreeUserAddInfo(
+    PLSA_USER_ADD_INFO pUserAddInfo
+    );
+
 DWORD
 LsaBuildGroupModInfo(
     gid_t gid,
@@ -1120,6 +1130,16 @@ LsaModifyGroup_RemoveMembers(
 void
 LsaFreeGroupModInfo(
     PLSA_GROUP_MOD_INFO pGroupModInfo
+    );
+
+void
+LsaFreeGroupModInfo2(
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
+    );
+
+void
+LsaFreeGroupAddInfo(
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
     );
 
 void

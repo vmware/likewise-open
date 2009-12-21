@@ -106,7 +106,7 @@ LsaSrvCloseProvider(
     )
 {
     if (pProvider) {
-        pProvider->pFnTable->pfnCloseHandle(hProvider);
+        pProvider->pFnTable2->pfnCloseHandle(hProvider);
     }
 }
 
@@ -119,13 +119,8 @@ LsaSrvOpenProvider(
 {
     DWORD dwError = 0;
     HANDLE hProvider = (HANDLE)NULL;
-    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
 
-    dwError = pProvider->pFnTable->pfnOpenHandle(
-                                        pServerState->peerUID,
-                                        pServerState->peerGID,
-                                        pServerState->peerPID,
-                                        &hProvider);
+    dwError = pProvider->pFnTable2->pfnOpenHandle(hServer, &hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
     *phProvider = hProvider;
@@ -179,230 +174,29 @@ error:
 }
 
 VOID
-LsaSrvGetUid(
+LsaSrvGetClientId(
     HANDLE hServer,
-    uid_t* pUid
+    uid_t* pUid,
+    gid_t* pGid,
+    pid_t* pPid
     )
 {
     PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
 
-    *pUid = pServerState->peerUID;
-}
-
-DWORD
-LsaSrvCreateUserEnumState(
-    HANDLE  hServer,
-    DWORD   dwUserInfoLevel,
-    DWORD   dwMaxNumUsers,
-    LSA_FIND_FLAGS FindFlags,
-    PLSA_SRV_ENUM_STATE* ppEnumState
-    )
-{
-    DWORD dwError = 0;
-    PLSA_SRV_ENUM_STATE pEnumState = NULL;
-    PLSA_SRV_PROVIDER_STATE pProviderStateList = NULL;
-    PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
-    PLSA_AUTH_PROVIDER pProvider = NULL;
-
-    dwError = LwAllocateMemory(
-                       sizeof(LSA_SRV_ENUM_STATE),
-                       (PVOID*)&pEnumState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEnumState->dwInfoLevel = dwUserInfoLevel;
-    pEnumState->dwNumMaxRecords = dwMaxNumUsers;
-    pEnumState->FindFlags = FindFlags;
-
-    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(pEnumState->bInLock);
-
-    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    if (pUid)
     {
-        dwError = LwAllocateMemory(
-                            sizeof(LSA_SRV_PROVIDER_STATE),
-                            (PVOID*)&pProviderState);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pProviderState->pProvider = pProvider;
-
-        dwError = LsaSrvOpenProvider(
-                            hServer,
-                            pProvider,
-                            &pProviderState->hProvider);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = pProvider->pFnTable->pfnBeginEnumUsers(
-                                            pProviderState->hProvider,
-                                            pEnumState->dwInfoLevel,
-                                            pEnumState->FindFlags,
-                                            &pProviderState->hResume);
-        if (!dwError) {
-
-           pProviderState->pNext = pProviderStateList;
-           pProviderStateList = pProviderState;
-           pProviderState = NULL;
-
-        } else if (dwError == LW_ERROR_NOT_HANDLED) {
-
-           if (pProviderState) {
-               LsaSrvFreeProviderStateList(pProviderState);
-               pProviderState = NULL;
-           }
-
-           dwError = 0;
-
-           continue;
-
-        } else {
-
-           BAIL_ON_LSA_ERROR(dwError);
-
-        }
+        *pUid = pServerState->peerUID;
     }
 
-    pEnumState->pProviderStateList =
-               LsaSrvReverseProviderStateList(pProviderStateList);
-    pProviderStateList = NULL;
-    pEnumState->pCurProviderState = pEnumState->pProviderStateList;
-
-
-    *ppEnumState = pEnumState;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *ppEnumState = NULL;
-
-    if (pProviderState) {
-        LsaSrvFreeProviderStateList(pProviderState);
-    }
-    if (pProviderStateList)
+    if (pGid)
     {
-        pEnumState->pProviderStateList = pProviderStateList;
-        pProviderStateList = NULL;
-        LsaSrvEndEnumUsers(hServer, pEnumState);
-        pEnumState = NULL;
+        *pGid = pServerState->peerGID;
     }
-    else
+
+    if (pPid)
     {
-        if (pEnumState)
-        {
-            LsaSrvFreeEnumState(pEnumState);
-        }
+        *pPid = pServerState->peerPID;
     }
-
-    goto cleanup;
-}
-
-DWORD
-LsaSrvCreateGroupEnumState(
-    HANDLE  hServer,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwMaxNumGroups,
-    BOOLEAN bCheckOnline,
-    LSA_FIND_FLAGS FindFlags,
-    PLSA_SRV_ENUM_STATE* ppEnumState
-    )
-{
-    DWORD dwError = 0;
-    PLSA_SRV_ENUM_STATE pEnumState = NULL;
-    PLSA_SRV_PROVIDER_STATE pProviderStateList = NULL;
-    PLSA_SRV_PROVIDER_STATE pProviderState = NULL;
-    PLSA_AUTH_PROVIDER pProvider = NULL;
-
-    dwError = LwAllocateMemory(
-                       sizeof(LSA_SRV_ENUM_STATE),
-                       (PVOID*)&pEnumState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEnumState->dwInfoLevel = dwGroupInfoLevel;
-    pEnumState->dwNumMaxRecords = dwMaxNumGroups;
-    pEnumState->bCheckOnline = bCheckOnline;
-    pEnumState->FindFlags = FindFlags;
-
-    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(pEnumState->bInLock);
-
-    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
-    {
-        dwError = LwAllocateMemory(
-                            sizeof(LSA_SRV_PROVIDER_STATE),
-                            (PVOID*)&pProviderState);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pProviderState->pProvider = pProvider;
-
-        dwError = LsaSrvOpenProvider(
-                            hServer,
-                            pProvider,
-                            &pProviderState->hProvider);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = pProvider->pFnTable->pfnBeginEnumGroups(
-                                            pProviderState->hProvider,
-                                            pEnumState->dwInfoLevel,
-                                            pEnumState->bCheckOnline,
-                                            pEnumState->FindFlags,
-                                            &pProviderState->hResume);
-        if (!dwError) {
-
-           pProviderState->pNext = pProviderStateList;
-           pProviderStateList = pProviderState;
-           pProviderState = NULL;
-
-        } else if (dwError == LW_ERROR_NOT_HANDLED) {
-
-           if (pProviderState) {
-               LsaSrvFreeProviderStateList(pProviderState);
-               pProviderState = NULL;
-           }
-
-           dwError = 0;
-
-           continue;
-
-        } else {
-
-           BAIL_ON_LSA_ERROR(dwError);
-
-        }
-    }
-
-    pEnumState->pProviderStateList =
-               LsaSrvReverseProviderStateList(pProviderStateList);
-    pProviderStateList = NULL;
-    pEnumState->pCurProviderState = pEnumState->pProviderStateList;
-
-    *ppEnumState = pEnumState;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *ppEnumState = NULL;
-
-    if (pProviderState) {
-        LsaSrvFreeProviderStateList(pProviderState);
-    }
-    if (pProviderStateList)
-    {
-        pEnumState->pProviderStateList = pProviderStateList;
-        pProviderStateList = NULL;
-        LsaSrvEndEnumGroups(hServer, pEnumState);
-        pEnumState = NULL;
-    }
-    else
-    {
-        if (pEnumState)
-        {
-            LsaSrvFreeEnumState(pEnumState);
-        }
-    }
-
-    goto cleanup;
 }
 
 DWORD
@@ -452,7 +246,7 @@ LsaSrvCreateNSSArtefactEnumState(
                             &pProviderState->hProvider);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = pProvider->pFnTable->pfnBeginEnumNSSArtefacts(
+        dwError = pProvider->pFnTable2->pfnBeginEnumNSSArtefacts(
                                             pProviderState->hProvider,
                                             pEnumState->dwInfoLevel,
                                             pEnumState->pszMapName,
@@ -528,7 +322,7 @@ LsaSrvFreeProviderStateList(
         pStateList = pStateList->pNext;
 
         if (pState->pProvider && (pState->hProvider != (HANDLE)NULL)) {
-            pState->pProvider->pFnTable->pfnCloseHandle(pState->hProvider);
+            pState->pProvider->pFnTable2->pfnCloseHandle(pState->hProvider);
         }
         LwFreeMemory(pState);
     }

@@ -109,7 +109,7 @@ LsaSrvGetStatus(
                         &pAuthProviderStatus->pszId);
         BAIL_ON_LSA_ERROR(dwError);
         
-        dwError = pProvider->pFnTable->pfnGetStatus(
+        dwError = pProvider->pFnTable2->pfnGetStatus(
                                             hProvider,
                                             &pProviderOwnedStatus);
         if (dwError == LW_ERROR_NOT_HANDLED)
@@ -125,7 +125,7 @@ LsaSrvGetStatus(
                             pAuthProviderStatus);
             BAIL_ON_LSA_ERROR(dwError);
 
-            pProvider->pFnTable->pfnFreeStatus(
+            pProvider->pFnTable2->pfnFreeStatus(
                             pProviderOwnedStatus);
 
             pProviderOwnedStatus = NULL;
@@ -143,7 +143,7 @@ cleanup:
 
     if (pProvider != NULL && pProviderOwnedStatus)
     {
-        pProvider->pFnTable->pfnFreeStatus(
+        pProvider->pFnTable2->pfnFreeStatus(
                         pProviderOwnedStatus);
     }
         

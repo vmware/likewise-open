@@ -52,7 +52,7 @@ static
 DWORD
 LocalInitializeProvider(
     OUT PCSTR* ppszProviderName,
-    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    OUT PLSA_PROVIDER_FUNCTION_TABLE_2* ppFunctionTable
     )
 {
     DWORD dwError = 0;
@@ -95,7 +95,7 @@ LocalInitializeProvider(
     }
 
     *ppszProviderName = gpszLocalProviderName;
-    *ppFunctionTable = &gLocalProviderAPITable;
+    *ppFunctionTable = &gLocalProviderAPITable2;
 
 cleanup:
 
@@ -118,9 +118,7 @@ error:
 
 DWORD
 LocalOpenHandle(
-    uid_t uid,
-    gid_t gid,
-    pid_t pid,
+    HANDLE hServer,
     PHANDLE phProvider
     )
 {
@@ -135,9 +133,12 @@ LocalOpenHandle(
     pthread_mutex_init(&pContext->mutex, NULL);
     pContext->pMutex = &pContext->mutex;
 
-    pContext->uid = uid;
-    pContext->gid = gid;
-    pContext->pid = pid;
+    LsaSrvGetClientId(
+        hServer,
+        &pContext->uid,
+        &pContext->gid,
+        &pContext->pid);
+
     pContext->localAdminState = LOCAL_ADMIN_STATE_NOT_DETERMINED;
 
     dwError = DirectoryOpen(&pContext->hDirectory);
@@ -211,25 +212,29 @@ LocalAuthenticateUser(
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    DWORD dwUserInfoLevel = 2;
-    PLSA_USER_INFO_2 pUserInfo = NULL;
     PWSTR pwszUserDN = NULL;
     PWSTR pwszPassword = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByNameEx(
-                    hProvider,
-                    pszLoginId,
-                    dwUserInfoLevel,
-                    &pwszUserDN,
-                    (PVOID*)&pUserInfo);
+    dwError = LocalDirFindObjectByGenericName(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        pszLoginId,
+        &pObject);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwMbsToWc16s(
+        pObject->pszDN,
+        &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Check for disable, expired, etc..  accounts */
 
-    dwError = LocalCheckAccountFlags(pUserInfo);
+    dwError = LocalCheckAccountFlags(pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
     if (pszPassword)
@@ -248,10 +253,7 @@ LocalAuthenticateUser(
 
 cleanup:
 
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
+    LsaUtilFreeSecurityObject(pObject);
 
     LW_SAFE_FREE_MEMORY(pwszUserDN);
     LW_SAFE_FREE_MEMORY(pwszPassword);
@@ -284,21 +286,18 @@ LocalValidateUser(
     )
 {
     DWORD dwError = 0;
-    DWORD dwUserInfoLevel = 2;
-    PLSA_USER_INFO_2 pUserInfo = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByName(
-                    hProvider,
-                    pszLoginId,
-                    dwUserInfoLevel,
-                    (PVOID*)&pUserInfo);
-    /* Map any failures to find the user to 'user not found'. This way if the
-     * unknown_ok option is specified for the pam module, this error will be
-     * ignored instead of blocking all logins.
-     */
+    dwError = LocalDirFindObjectByGenericName(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        pszLoginId,
+        &pObject);
+
     if (dwError != LW_ERROR_SUCCESS)
     {
         LSA_LOG_DEBUG(
@@ -310,13 +309,15 @@ LocalValidateUser(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo->bPasswordExpired)
+    if (pObject->userInfo.bPasswordExpired)
     {
         dwError = LW_ERROR_PASSWORD_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
+
+    LsaUtilFreeSecurityObject(pObject);
 
     return dwError;
 
@@ -339,580 +340,6 @@ LocalCheckUserInList(
 }
 
 DWORD
-LocalFindUserByName(
-    HANDLE  hProvider,
-    PCSTR   pszLoginId,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    )
-{
-    DWORD dwError = STATUS_SUCCESS;
-    PVOID pUserInfo = NULL;
-    PWSTR pwszUserDN = NULL;
-
-    dwError = LocalFindUserByNameEx(
-                hProvider,
-                pszLoginId,
-                dwUserInfoLevel,
-                &pwszUserDN,
-                &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch(dwUserInfoLevel)
-    {
-        /* Add any info levels that contain the NT/LM hash here */
-        case 2:
-        {
-            PLSA_USER_INFO_2 pUserInfo2 = (PLSA_USER_INFO_2)pUserInfo;
-
-            if (pUserInfo2->pNTHash)
-            {
-                memset(pUserInfo2->pNTHash, 0, pUserInfo2->dwNTHashLen);
-            }
-
-            if (pUserInfo2->pLMHash)
-            {
-                memset(pUserInfo2->pLMHash, 0, pUserInfo2->dwLMHashLen);
-            }
-        }
-        break;
-    }
-
-    /* give the memory away now */
-
-    *ppUserInfo = pUserInfo;
-    pUserInfo = NULL;
-
-cleanup:
-
-    return dwError;
-
-error:
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalFindUserByNameEx(
-    HANDLE  hProvider,
-    PCSTR   pszLoginId,
-    DWORD   dwUserInfoLevel,
-    PWSTR*  ppwszUserDN,
-    PVOID*  ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pUserInfo = NULL;
-    PWSTR pwszUserDN = NULL;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-
-    BAIL_ON_INVALID_HANDLE(hProvider);
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalCrackDomainQualifiedName(
-                    pszLoginId,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!LocalServicesDomain(pLoginInfo->pszFullDomainName))
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (!strcasecmp(pLoginInfo->pszName, "root"))
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalDirFindUserByName(
-                    hProvider,
-                    pLoginInfo->pszFullDomainName,
-                    pLoginInfo->pszName,
-                    dwUserInfoLevel,
-                    ppwszUserDN ? &pwszUserDN : NULL,
-                    &pUserInfo
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = pwszUserDN;
-    }
-    *ppUserInfo = pUserInfo;
-
-cleanup:
-
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = pwszUserDN;
-    }
-    *ppUserInfo = NULL;
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
-
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalFindUserById(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pUserInfo = NULL;
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirFindUserById(
-                    hProvider,
-                    uid,
-                    dwUserInfoLevel,
-                    NULL,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch(dwUserInfoLevel)
-    {
-        /* Add any info levels that contain the NT/LM hash here */
-        case 2:
-        {
-            PLSA_USER_INFO_2 pUserInfo2 = (PLSA_USER_INFO_2)pUserInfo;
-
-            if (pUserInfo2->pNTHash)
-            {
-                memset(pUserInfo2->pNTHash, 0, pUserInfo2->dwNTHashLen);
-            }
-
-            if (pUserInfo2->pLMHash)
-            {
-                memset(pUserInfo2->pLMHash, 0, pUserInfo2->dwLMHashLen);
-            }
-        }
-        break;
-    }
-
-    *ppUserInfo = pUserInfo;
-    pUserInfo = NULL;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalGetGroupsForUser(
-    IN HANDLE hProvider,
-    IN OPTIONAL PCSTR pszUserName,
-    IN OPTIONAL uid_t uid,
-    IN LSA_FIND_FLAGS dwFindFlags,
-    IN DWORD dwGroupInfoLevel,
-    IN PDWORD pdwNumGroupsFound,
-    IN PVOID** pppGroupInfoList
-    )
-{
-    DWORD             dwError = 0;
-    PWSTR             pwszUserDN = NULL;
-    DWORD             dwUserInfoLevel = 0;
-    PLSA_USER_INFO_0  pUserInfo = NULL;
-    PVOID*            ppGroupInfoList = NULL;
-    DWORD             dwNumGroupsFound = 0;
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (pszUserName)
-    {
-        dwError = LocalFindUserByNameEx(
-                        hProvider,
-                        pszUserName,
-                        dwUserInfoLevel,
-                        &pwszUserDN,
-                        (PVOID*)&pUserInfo);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        dwError = LocalDirFindUserById(
-                        hProvider,
-                        uid,
-                        dwUserInfoLevel,
-                        &pwszUserDN,
-                        (PVOID*)&pUserInfo);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalDirGetGroupsForUser(
-                    hProvider,
-                    pwszUserDN,
-                    dwGroupInfoLevel,
-                    &dwNumGroupsFound,
-                    &ppGroupInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *pppGroupInfoList = ppGroupInfoList;
-    *pdwNumGroupsFound = dwNumGroupsFound;
-
-cleanup:
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
-
-    return dwError;
-
-error:
-
-    *pppGroupInfoList = NULL;
-    *pdwNumGroupsFound = dwNumGroupsFound;
-
-    if (ppGroupInfoList)
-    {
-        LsaFreeGroupInfoList(
-                dwGroupInfoLevel,
-                ppGroupInfoList,
-                dwNumGroupsFound);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalBeginEnumUsers(
-    HANDLE         hProvider,
-    DWORD          dwInfoLevel,
-    LSA_FIND_FLAGS dwFindFlags,
-    PHANDLE        phResume
-    )
-{
-    DWORD  dwError = 0;
-    HANDLE hResume = (HANDLE)NULL;
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirBeginEnumUsers(
-                        hProvider,
-                        dwInfoLevel,
-                        &hResume);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *phResume = hResume;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *phResume = (HANDLE)NULL;
-
-    if (hResume)
-    {
-        LocalFreeEnumState(hResume);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalEnumUsers(
-    HANDLE   hProvider,
-    HANDLE   hResume,
-    DWORD    dwMaxNumRecords,
-    PDWORD   pdwUsersFound,
-    PVOID**  pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError =  LocalDirEnumUsers(
-                    hProvider,
-                    hResume,
-                    dwMaxNumRecords,
-                    pdwUsersFound,
-                    pppUserInfoList
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-
-error:
-
-    return dwError;
-}
-
-VOID
-LocalEndEnumUsers(
-    HANDLE hProvider,
-    HANDLE hResume
-    )
-{
-    LocalFreeUserState(
-            hProvider,
-            (PLOCAL_PROVIDER_ENUM_STATE)hResume);
-}
-
-DWORD
-LocalFindGroupByName(
-    IN HANDLE         hProvider,
-    IN PCSTR          pszGroupName,
-    IN LSA_FIND_FLAGS dwFindFlags,
-    IN DWORD          dwInfoLevel,
-    OUT PVOID*        ppGroupInfo
-    )
-{
-    return LocalFindGroupByNameEx(
-                hProvider,
-                pszGroupName,
-                dwFindFlags,
-                dwInfoLevel,
-                NULL,
-                ppGroupInfo);
-}
-
-DWORD
-LocalFindGroupByNameEx(
-    IN  HANDLE         hProvider,
-    IN  PCSTR          pszGroupName,
-    IN  LSA_FIND_FLAGS dwFindFlags,
-    IN  DWORD          dwInfoLevel,
-    OUT PWSTR*         ppwszGroupDN,
-    OUT PVOID*         ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pGroupInfo = NULL;
-    PWSTR pwszGroupDN = NULL;
-    PCSTR pszDomainName = NULL;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
-
-    BAIL_ON_INVALID_HANDLE(hProvider);
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalCrackDomainQualifiedName(
-                    pszGroupName,
-                    &pLoginInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!strcasecmp(pLoginInfo->pszName, "root"))
-    {
-        dwError = LW_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (!LocalServicesDomain(pLoginInfo->pszDomainNetBiosName))
-    {
-        dwError = LW_ERROR_NO_SUCH_GROUP;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pLoginInfo->pszFullDomainName)
-    {
-        pszDomainName = pLoginInfo->pszFullDomainName;
-    }
-    else
-    {
-        pszDomainName = gLPGlobals.pszLocalDomain;
-    }
-
-    dwError = LocalDirFindGroupByName(
-                    hProvider,
-                    pszDomainName,
-                    pLoginInfo->pszName,
-                    dwInfoLevel,
-                    (ppwszGroupDN ? &pwszGroupDN : NULL),
-                    &pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppwszGroupDN)
-    {
-        *ppwszGroupDN = pwszGroupDN;
-    }
-    *ppGroupInfo = pGroupInfo;
-
-cleanup:
-
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppwszGroupDN)
-    {
-        *ppwszGroupDN = NULL;
-    }
-    *ppGroupInfo = NULL;
-
-    LW_SAFE_FREE_MEMORY(pwszGroupDN);
-
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalFindGroupById(
-    IN HANDLE hProvider,
-    IN gid_t gid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwInfoLevel,
-    OUT PVOID* ppGroupInfo
-    )
-{
-    DWORD dwError = 0;
-    PVOID pGroupInfo = NULL;
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirFindGroupById(
-                    hProvider,
-                    gid,
-                    dwInfoLevel,
-                    NULL,
-                    &pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppGroupInfo = pGroupInfo;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalBeginEnumGroups(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    BOOLEAN bCheckOnline,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
-    )
-{
-    DWORD  dwError = 0;
-    HANDLE hResume = NULL;
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirBeginEnumGroups(
-                        hProvider,
-                        dwInfoLevel,
-                        &hResume);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *phResume = hResume;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *phResume = (HANDLE)NULL;
-
-    if (hResume)
-    {
-        LocalFreeEnumState(hResume);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalEnumGroups(
-    HANDLE   hProvider,
-    HANDLE   hResume,
-    DWORD    dwMaxGroups,
-    PDWORD   pdwGroupsFound,
-    PVOID**  pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirEnumGroups(
-                    hProvider,
-                    hResume,
-                    dwMaxGroups,
-                    pdwGroupsFound,
-                    pppGroupInfoList
-                    );
-    BAIL_ON_LSA_ERROR(dwError);
-
-error:
-
-    return dwError;
-}
-
-VOID
-LocalEndEnumGroups(
-    HANDLE hProvider,
-    HANDLE hResume
-    )
-{
-    LocalFreeGroupState(hProvider, (PLOCAL_PROVIDER_ENUM_STATE)hResume);
-}
-
-DWORD
 LocalChangePassword(
     HANDLE hProvider,
     PCSTR  pszLoginId,
@@ -921,28 +348,32 @@ LocalChangePassword(
     )
 {
     DWORD dwError = 0;
-    DWORD dwInfoLevel = 0;
     PWSTR pwszUserDN  = NULL;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
     PWSTR pwszOldPassword = NULL;
     PWSTR pwszNewPassword = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByNameEx(
-                    hProvider,
-                    pszLoginId,
-                    dwInfoLevel,
-                    &pwszUserDN,
-                    (PVOID*)&pUserInfo);
+    dwError = LocalDirFindObjectByGenericName(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        pszLoginId,
+        &pObject);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwMbsToWc16s(
+        pObject->pszDN,
+        &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCheckForPasswordChangeAccess(
                     hProvider,
-                    pUserInfo->uid);
+                    pObject->userInfo.uid);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
@@ -964,10 +395,7 @@ LocalChangePassword(
 
 cleanup:
 
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
+    LsaUtilFreeSecurityObject(pObject);
 
     LW_SAFE_FREE_MEMORY(pwszNewPassword);
     LW_SAFE_FREE_MEMORY(pwszOldPassword);
@@ -988,19 +416,23 @@ LocalSetPassword(
     )
 {
     DWORD dwError = 0;
-    DWORD dwInfoLevel = 0;
     PWSTR pwszUserDN = NULL;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
     PWSTR pwszNewPassword = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
 
-    dwError = LocalFindUserByNameEx(
-                    hProvider,
-                    pszLoginId,
-                    dwInfoLevel,
-                    &pwszUserDN,
-                    (PVOID*)&pUserInfo);
+    dwError = LocalDirFindObjectByGenericName(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        pszLoginId,
+        &pObject);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwMbsToWc16s(
+        pObject->pszDN,
+        &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
@@ -1015,10 +447,8 @@ LocalSetPassword(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
+
+    LsaUtilFreeSecurityObject(pObject);
 
     LW_SAFE_FREE_MEMORY(pwszNewPassword);
     LW_SAFE_FREE_MEMORY(pwszUserDN);
@@ -1032,22 +462,20 @@ error:
 DWORD
 LocalAddUser(
     HANDLE hProvider,
-    DWORD  dwUserInfoLevel,
-    PVOID  pUserInfo
+    PLSA_USER_ADD_INFO pUserAddInfo
     )
 {
     DWORD dwError = 0;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
-    BAIL_ON_INVALID_POINTER(pUserInfo);
+    BAIL_ON_INVALID_POINTER(pUserAddInfo);
 
     dwError = LocalCheckForAddAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalDirAddUser(
                     hProvider,
-                    dwUserInfoLevel,
-                    pUserInfo);
+                    pUserAddInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -1062,7 +490,7 @@ error:
 DWORD
 LocalModifyUser(
     HANDLE hProvider,
-    PLSA_USER_MOD_INFO pUserModInfo
+    PLSA_USER_MOD_INFO_2 pUserModInfo
     )
 {
     DWORD   dwError = 0;
@@ -1081,42 +509,69 @@ error:
 }
 
 DWORD
-LocalDeleteUser(
+LocalDeleteObject(
     HANDLE hProvider,
-    uid_t  uid
+    PCSTR pszSid
     )
 {
     DWORD dwError = 0;
-    DWORD dwInfoLevel = 0;
-    PWSTR pwszUserDN  = NULL;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
+    PWSTR pwszDN  = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
 
     dwError = LocalCheckForDeleteAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDirFindUserById(
-                    hProvider,
-                    uid,
-                    dwInfoLevel,
-                    &pwszUserDN,
-                    (PVOID*)&pUserInfo);
+    QueryList.ppszStrings = &pszSid;
+
+    dwError = LocalFindObjects(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_UNDEFINED,
+        LSA_QUERY_TYPE_BY_SID,
+        1,
+        QueryList,
+        &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalDirDeleteUser(
-                    hProvider,
-                    pwszUserDN);
+    if (ppObjects[0] == NULL)
+    {
+        dwError = LW_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwMbsToWc16s(
+        ppObjects[0]->pszDN,
+        &pwszDN);
     BAIL_ON_LSA_ERROR(dwError);
+
+
+    switch (ppObjects[0]->type)
+    {
+    case LSA_OBJECT_TYPE_USER:
+        dwError = LocalDirDeleteUser(
+            hProvider,
+            pwszDN);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    case LSA_OBJECT_TYPE_GROUP:
+        dwError = LocalDirDeleteGroup(
+            hProvider,
+            pwszDN);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 cleanup:
 
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
 
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszDN);
 
     return dwError;
 
@@ -1128,22 +583,20 @@ error:
 DWORD
 LocalAddGroup(
     HANDLE hProvider,
-    DWORD  dwGroupInfoLevel,
-    PVOID  pGroupInfo
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
     )
 {
     DWORD dwError = 0;
 
     BAIL_ON_INVALID_HANDLE(hProvider);
-    BAIL_ON_INVALID_POINTER(pGroupInfo);
+    BAIL_ON_INVALID_POINTER(pGroupAddInfo);
 
     dwError = LocalCheckForAddAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalDirAddGroup(
                     hProvider,
-                    dwGroupInfoLevel,
-                    pGroupInfo);
+                    pGroupAddInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -1158,7 +611,7 @@ error:
 DWORD
 LocalModifyGroup(
     HANDLE hProvider,
-    PLSA_GROUP_MOD_INFO pGroupModInfo
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
     )
 {
     DWORD dwError = 0;
@@ -1177,85 +630,41 @@ error:
 }
 
 DWORD
-LocalDeleteGroup(
-    HANDLE hProvider,
-    gid_t  gid
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwInfoLevel = 0;
-    PWSTR pwszGroupDN  = NULL;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-
-    BAIL_ON_INVALID_HANDLE(hProvider);
-
-    dwError = LocalCheckForDeleteAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirFindGroupById(
-                    hProvider,
-                    gid,
-                    dwInfoLevel,
-                    &pwszGroupDN,
-                    (PVOID*)&pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirDeleteGroup(
-                    hProvider,
-                    pwszGroupDN);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
-    }
-
-    LW_SAFE_FREE_MEMORY(pwszGroupDN);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
 LocalOpenSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
     )
 {
     DWORD dwError = 0;
-    PVOID pUserInfo = NULL;
-    DWORD dwUserInfoLevel = 0;
     BOOLEAN bCreateHomedir = FALSE;
-    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
     PWSTR pwszUserDN = NULL;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalCrackDomainQualifiedName(
-                    pszLoginId,
-                    &pLoginInfo);
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    dwError = LocalDirFindObjectByGenericName(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        pszLoginId,
+        &pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByNameEx(
-                    hProvider,
-                    pszLoginId,
-                    dwUserInfoLevel,
-                    &pwszUserDN,
-                    &pUserInfo);
+    dwError = LwMbsToWc16s(
+        pObject->pszDN,
+        &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Allow directory creation only if this is
     //
     if ((pContext->uid != 0) &&
-        (pContext->uid != ((PLSA_USER_INFO_0)(pUserInfo))->uid)) {
-        dwError = EACCES;
+        (pContext->uid != (pObject->userInfo.uid)))
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1264,7 +673,7 @@ LocalOpenSession(
 
     if (bCreateHomedir)
     {
-        dwError = LocalCreateHomeDirectory((PLSA_USER_INFO_0)pUserInfo);
+        dwError = LocalCreateHomeDirectory(pObject);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1275,14 +684,7 @@ LocalOpenSession(
 
 cleanup:
 
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
-
-    if (pLoginInfo)
-    {
-        LsaFreeNameInfo(pLoginInfo);
-    }
+    LsaUtilFreeSecurityObject(pObject);
 
     LW_SAFE_FREE_MEMORY(pwszUserDN);
 
@@ -1300,19 +702,23 @@ LocalCloseSession(
     )
 {
     DWORD dwError = 0;
-    DWORD dwUserInfoLevel = 0;
-    PVOID pUserInfo = NULL;
     PWSTR pwszUserDN = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalFindUserByNameEx(
-                    hProvider,
-                    pszLoginId,
-                    dwUserInfoLevel,
-                    &pwszUserDN,
-                    (PVOID*)&pUserInfo);
+    dwError = LocalDirFindObjectByGenericName(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        pszLoginId,
+        &pObject);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwMbsToWc16s(
+        pObject->pszDN,
+        &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalUpdateUserLogoffTime(
@@ -1322,65 +728,13 @@ LocalCloseSession(
 
 cleanup:
 
-    if (pUserInfo) {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
+    LsaUtilFreeSecurityObject(pObject);
 
     LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
 error:
-
-    goto cleanup;
-}
-
-DWORD
-LocalGetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes
-    )
-{
-    DWORD dwError = 0;
-    PSTR* ppszDomainNames = NULL;
-    PSTR* ppszSamAccounts = NULL;
-    ADAccountType* pTypes = NULL;
-
-    BAIL_ON_INVALID_HANDLE(hProvider);
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirGetNamesBySidList(
-                        hProvider,
-                        sCount,
-                        ppszSidList,
-                        &ppszDomainNames,
-                        &ppszSamAccounts,
-                        &pTypes);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *pppszDomainNames = ppszDomainNames;
-    *pppszSamAccounts = ppszSamAccounts;
-    *ppTypes = pTypes;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *pppszDomainNames = NULL;
-    *pppszSamAccounts = NULL;
-    *ppTypes = NULL;
-
-    LwFreeStringArray(ppszDomainNames, sCount);
-    LwFreeStringArray(ppszSamAccounts, sCount);
-    LW_SAFE_FREE_MEMORY(pTypes);
 
     goto cleanup;
 }
@@ -1570,45 +924,6 @@ error:
 }
 
 DWORD
-LocalGetGroupMembershipByProvider(
-    IN HANDLE    hProvider,
-    IN PCSTR     pszSid,
-    IN DWORD     dwGroupInfoLevel,
-    OUT PDWORD   pdwGroupsCount,
-    OUT PVOID  **pppMembershipInfo
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwGroupsCount = 0;
-    PVOID *ppMembershipInfo = NULL;
-
-    BAIL_ON_INVALID_HANDLE(hProvider);
-
-    dwError = LocalCheckForQueryAccess(hProvider);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalDirGetGroupMembershipByProvider(
-                         hProvider,
-                         pszSid,
-                         dwGroupInfoLevel,
-                         &dwGroupsCount,
-                         &ppMembershipInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *pdwGroupsCount    = dwGroupsCount;
-    *pppMembershipInfo = ppMembershipInfo;
-
-cleanup:
-    return dwError;
-
-error:
-    *pdwGroupsCount    = 0;
-    *pppMembershipInfo = NULL;
-
-    goto cleanup;
-}
-
-DWORD
 LocalFindObjects(
     IN HANDLE hProvider,
     IN LSA_FIND_FLAGS FindFlags,
@@ -1741,9 +1056,9 @@ LocalShutdownProvider(
 }
 
 DWORD
-LsaInitializeProvider(
+LsaInitializeProvider2(
     OUT PCSTR* ppszProviderName,
-    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    OUT PLSA_PROVIDER_FUNCTION_TABLE_2* ppFunctionTable
     )
 {
     return LocalInitializeProvider(ppszProviderName, ppFunctionTable);

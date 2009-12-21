@@ -233,6 +233,36 @@ LWMsgTypeSpec gLsaUserInfoListSpec[] =
     LWMSG_TYPE_END
 };
 
+LWMsgTypeSpec gLsaGroupAddInfoSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_GROUP_ADD_INFO),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_ADD_INFO, pszName),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_ADD_INFO, gid),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_ADD_INFO, dwMemberCount),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_ADD_INFO, ppszMemberSids),
+    LWMSG_PSTR,
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_ADD_INFO, dwMemberCount),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsaUserAddInfoSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA_USER_ADD_INFO),
+    LWMSG_MEMBER_PSTR(LSA_USER_ADD_INFO, pszName),
+    LWMSG_MEMBER_UINT32(LSA_USER_ADD_INFO, uid),
+    LWMSG_MEMBER_PSTR(LSA_USER_ADD_INFO, pszPrimaryGroupSid),
+    LWMSG_MEMBER_PSTR(LSA_USER_ADD_INFO, pszPassword),
+    LWMSG_MEMBER_PSTR(LSA_USER_ADD_INFO, pszGecos),
+    LWMSG_MEMBER_PSTR(LSA_USER_ADD_INFO, pszShell),
+    LWMSG_MEMBER_PSTR(LSA_USER_ADD_INFO, pszHomedir),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaNssArtefactInfo0Spec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_NSS_ARTEFACT_INFO_0),
@@ -276,40 +306,41 @@ static LWMsgTypeSpec gLsaIPCDataBlobSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaIPCUserModInfoSpec[] =
+static LWMsgTypeSpec gLsaIPCUserModInfo2Spec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_USER_MOD_INFO),
-    LWMSG_MEMBER_UINT32(LSA_USER_MOD_INFO, uid),
-    LWMSG_MEMBER_STRUCT_BEGIN(LSA_USER_MOD_INFO, actions),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bEnableUser),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bDisableUser),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bUnlockUser),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetChangePasswordOnNextLogon),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetPasswordNeverExpires),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetPasswordMustExpire),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bAddToGroups),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bRemoveFromGroups),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetAccountExpiryDate),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetHomedir),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetShell),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetGecos),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetPassword),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetPrimaryGroup),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetNtPasswordHash),
-    LWMSG_MEMBER_INT8(struct _usermod_actions, bSetLmPasswordHash),
+    LWMSG_STRUCT_BEGIN(LSA_USER_MOD_INFO_2),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszSid),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_STRUCT_BEGIN(LSA_USER_MOD_INFO_2, actions),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bEnableUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bDisableUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bUnlockUser),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetChangePasswordOnNextLogon),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetPasswordNeverExpires),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetPasswordMustExpire),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bAddToGroups),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bRemoveFromGroups),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetAccountExpiryDate),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetHomedir),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetShell),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetGecos),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetPassword),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetPrimaryGroup),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetNtPasswordHash),
+    LWMSG_MEMBER_INT8(struct _usermod_actions_2, bSetLmPasswordHash),
     LWMSG_STRUCT_END,
-    LWMSG_MEMBER_UINT32(LSA_USER_MOD_INFO, gid),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszAddToGroups),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszRemoveFromGroups),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszExpiryDate),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszHomedir),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszShell),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszGecos),
-    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO, pszPassword),
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_USER_MOD_INFO, pNtPasswordHash),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszPrimaryGroupSid),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszAddToGroups),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszRemoveFromGroups),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszExpiryDate),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszHomedir),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszShell),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszGecos),
+    LWMSG_MEMBER_PSTR(LSA_USER_MOD_INFO_2, pszPassword),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_USER_MOD_INFO_2, pNtPasswordHash),
     LWMSG_TYPESPEC(gLsaIPCDataBlobSpec),
     LWMSG_POINTER_END,
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_USER_MOD_INFO, pLmPasswordHash),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_USER_MOD_INFO_2, pLmPasswordHash),
     LWMSG_TYPESPEC(gLsaIPCDataBlobSpec),
     LWMSG_POINTER_END,
     LWMSG_STRUCT_END,
@@ -325,47 +356,29 @@ static LWMsgTypeSpec gLsaIPCGroupMemberInfoSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaIPCGroupModInfoSpec[] =
+static LWMsgTypeSpec gLsaIPCGroupModInfo2Spec[] =
 {
-    LWMSG_STRUCT_BEGIN(LSA_GROUP_MOD_INFO),
-    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, gid),
-    LWMSG_MEMBER_STRUCT_BEGIN(LSA_GROUP_MOD_INFO, actions),
-    LWMSG_MEMBER_INT8(struct _groupmod_actions, bAddMembers),
-    LWMSG_MEMBER_INT8(struct _groupmod_actions, bRemoveMembers),
+    LWMSG_STRUCT_BEGIN(LSA_GROUP_MOD_INFO_2),
+    LWMSG_MEMBER_PSTR(LSA_GROUP_MOD_INFO_2, pszSid),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_STRUCT_BEGIN(LSA_GROUP_MOD_INFO_2, actions),
+    LWMSG_MEMBER_INT8(struct _groupmod_actions_2, bAddMembers),
+    LWMSG_MEMBER_INT8(struct _groupmod_actions_2, bRemoveMembers),
     LWMSG_STRUCT_END,
-    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, dwAddMembersNum),
-    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO, dwRemoveMembersNum),
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_MOD_INFO, pAddMembers),
-    LWMSG_TYPESPEC(gLsaIPCGroupMemberInfoSpec),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO_2, dwAddMembersNum),
+    LWMSG_MEMBER_UINT32(LSA_GROUP_MOD_INFO_2, dwRemoveMembersNum),
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_MOD_INFO_2, ppszAddMembers),
+    LWMSG_PSTR,
+    LWMSG_ATTR_NOT_NULL,
     LWMSG_POINTER_END,
-    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_MOD_INFO, dwAddMembersNum),
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_MOD_INFO, pRemoveMembers),
-    LWMSG_TYPESPEC(gLsaIPCGroupMemberInfoSpec),
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_MOD_INFO_2, dwAddMembersNum),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_MEMBER_POINTER_BEGIN(LSA_GROUP_MOD_INFO_2, ppszRemoveMembers),
+    LWMSG_PSTR,
+    LWMSG_ATTR_NOT_NULL,
     LWMSG_POINTER_END,
-    LWMSG_STRUCT_END,
-    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_MOD_INFO, dwRemoveMembersNum),
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaSidInfoSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_SID_INFO),
-    LWMSG_MEMBER_UINT8(LSA_SID_INFO, accountType),
-    LWMSG_MEMBER_PSTR(LSA_SID_INFO, pszSamAccountName),
-    LWMSG_MEMBER_PSTR(LSA_SID_INFO, pszDomainName),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaNamesBySidsSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_FIND_NAMES_BY_SIDS),
-    LWMSG_MEMBER_UINT32(LSA_FIND_NAMES_BY_SIDS, sCount),
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_FIND_NAMES_BY_SIDS, pSIDInfoList),
-    LWMSG_TYPESPEC(gLsaSidInfoSpec),
-    LWMSG_POINTER_END,
-    LWMSG_ATTR_LENGTH_MEMBER(LSA_FIND_NAMES_BY_SIDS, sCount),
-    LWMSG_MEMBER_INT8(LSA_FIND_NAMES_BY_SIDS, chDomainSeparator),
+    LWMSG_ATTR_LENGTH_MEMBER(LSA_GROUP_MOD_INFO_2, dwRemoveMembersNum),
+    LWMSG_ATTR_NOT_NULL,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -589,17 +602,6 @@ static LWMsgTypeSpec gLsaIpcEnumArtefactsHandleNewSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaIPCFindObjectByNameReqSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_IPC_FIND_OBJECT_BY_NAME_REQ),
-    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_NAME_REQ, FindFlags),
-    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_NAME_REQ, dwInfoLevel),
-    LWMSG_MEMBER_PSTR(LSA_IPC_FIND_OBJECT_BY_NAME_REQ, pszName),
-    LWMSG_ATTR_NOT_NULL,
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
 static LWMsgTypeSpec gLsaIPCFindNssArtefactByKeyReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ),
@@ -607,54 +609,6 @@ static LWMsgTypeSpec gLsaIPCFindNssArtefactByKeyReqSpec[] =
     LWMSG_MEMBER_UINT32(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ, dwInfoLevel),
     LWMSG_MEMBER_PSTR(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ, pszKeyName),
     LWMSG_MEMBER_PSTR(LSA_IPC_FIND_NSSARTEFACT_BY_KEY_REQ, pszMapName),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCFindObjectByIdReqSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_IPC_FIND_OBJECT_BY_ID_REQ),
-    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_ID_REQ, FindFlags),
-    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_ID_REQ, dwInfoLevel),
-    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_ID_REQ, id),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCFindObjectReqSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_IPC_FIND_OBJECT_REQ),
-    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_REQ, FindFlags),
-    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_REQ, dwInfoLevel),
-    LWMSG_MEMBER_UINT8(LSA_IPC_FIND_OBJECT_REQ, ByType),
-    LWMSG_MEMBER_UNION_BEGIN(LSA_IPC_FIND_OBJECT_REQ, ByData),
-    LWMSG_MEMBER_PSTR(LSA_IPC_FIND_OBJECT_BY_DATA, pszName),
-    LWMSG_ATTR_TAG(LSA_IPC_FIND_OBJECT_BY_TYPE_NAME),
-    LWMSG_MEMBER_UINT32(LSA_IPC_FIND_OBJECT_BY_DATA, dwId),
-    LWMSG_ATTR_TAG(LSA_IPC_FIND_OBJECT_BY_TYPE_ID),
-    LWMSG_UNION_END,
-    LWMSG_ATTR_DISCRIM(LSA_IPC_FIND_OBJECT_REQ, ByType),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCBeginUserEnumReqSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_USERS_REQ),
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, dwInfoLevel),
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, dwNumMaxRecords),
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_USERS_REQ, FindFlags),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCBeginGroupEnumReqSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_IPC_BEGIN_ENUM_GROUPS_REQ),
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, dwInfoLevel),
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, dwNumMaxRecords),
-    LWMSG_MEMBER_INT8(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, bCheckGroupMembersOnline),
-    LWMSG_MEMBER_UINT32(LSA_IPC_BEGIN_ENUM_GROUPS_REQ, FindFlags),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -670,26 +624,9 @@ static LWMsgTypeSpec gLsaIPCBeginNssArtefactEnumReqSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaIPCAddGroupInfoReqSpec[] =
-{
-    LWMSG_POINTER_BEGIN,
-    LWMSG_TYPESPEC(gLsaGroupInfoListSpec),
-    LWMSG_POINTER_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCAddUserInfoReqSpec[] =
-{
-    LWMSG_POINTER_BEGIN,
-    LWMSG_TYPESPEC(gLsaUserInfoListSpec),
-    LWMSG_POINTER_END,
-    LWMSG_TYPE_END
-};
-
 static LWMsgTypeSpec gLsaIPCDelObjectInfoReqSpec[] =
 {
-    LWMSG_POINTER_BEGIN,
-    LWMSG_UINT32(DWORD),
+    LWMSG_PSTR,
     LWMSG_TYPE_END
 };
 
@@ -730,35 +667,6 @@ static LWMsgTypeSpec gLsaIPCOpenOrCloseSessionReqSpec[] =
 {
     LWMSG_PSTR,
     LWMSG_ATTR_NOT_NULL,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCModUserInfoReqSpec[] =
-{
-    LWMSG_POINTER_BEGIN,
-    LWMSG_TYPESPEC(gLsaIPCUserModInfoSpec),
-    LWMSG_POINTER_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCModGroupInfoReqSpec[] =
-{
-    LWMSG_POINTER_BEGIN,
-    LWMSG_TYPESPEC(gLsaIPCGroupModInfoSpec),
-    LWMSG_POINTER_END,
-    LWMSG_TYPE_END
-};
-
-static LWMsgTypeSpec gLsaIPCFindNamesBySidListReqSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(LSA_IPC_NAMES_BY_SIDS_REQ),
-    LWMSG_MEMBER_UINT32(LSA_IPC_NAMES_BY_SIDS_REQ, sCount),
-    LWMSG_MEMBER_POINTER_BEGIN(LSA_IPC_NAMES_BY_SIDS_REQ, ppszSidList),
-    LWMSG_PSTR,
-    LWMSG_POINTER_END,
-    LWMSG_ATTR_ZERO_TERMINATED,
-    LWMSG_ATTR_LENGTH_MEMBER(LSA_IPC_NAMES_BY_SIDS_REQ, sCount),
-    LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
@@ -1069,7 +977,7 @@ static LWMsgTypeSpec gLsaSecurityObjectGroupInfoSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsaSecurityObjectSpec[] =
+LWMsgTypeSpec gLsaSecurityObjectSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA_SECURITY_OBJECT),
     LWMSG_MEMBER_PSTR(LSA_SECURITY_OBJECT, pszDN),
@@ -1079,19 +987,19 @@ static LWMsgTypeSpec gLsaSecurityObjectSpec[] =
     LWMSG_MEMBER_PSTR(LSA_SECURITY_OBJECT, pszNetbiosDomainName),
     LWMSG_MEMBER_PSTR(LSA_SECURITY_OBJECT, pszSamAccountName),
     LWMSG_MEMBER_UINT8(LSA_SECURITY_OBJECT, type),
-    LWMSG_ATTR_RANGE(AccountType_NotFound, AccountType_Domain),
+    LWMSG_ATTR_RANGE(LSA_OBJECT_TYPE_UNDEFINED, LSA_OBJECT_TYPE_COMPUTER),
     LWMSG_MEMBER_UNION_BEGIN(LSA_SECURITY_OBJECT, typeInfo),
     LWMSG_MEMBER_TYPESPEC(LSA_SECURITY_OBJECT, userInfo, gLsaSecurityObjectUserInfoSpec),
-    LWMSG_ATTR_TAG(AccountType_User),
+    LWMSG_ATTR_TAG(LSA_OBJECT_TYPE_USER),
     LWMSG_MEMBER_TYPESPEC(LSA_SECURITY_OBJECT, groupInfo, gLsaSecurityObjectGroupInfoSpec),
-    LWMSG_ATTR_TAG(AccountType_Group),
+    LWMSG_ATTR_TAG(LSA_OBJECT_TYPE_GROUP),
     LWMSG_UNION_END,
     LWMSG_ATTR_DISCRIM(LSA_SECURITY_OBJECT, type),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcFindObjectsReq[] =
+static LWMsgTypeSpec gLsa2IpcFindObjectsReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_FIND_OBJECTS_REQ),
     LWMSG_MEMBER_PSTR(LSA2_IPC_FIND_OBJECTS_REQ, pszTargetProvider),
@@ -1118,7 +1026,7 @@ static LWMsgTypeSpec gLsa2IpcFindObjectsReq[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcFindObjectsRes[] =
+static LWMsgTypeSpec gLsa2IpcFindObjectsResSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_FIND_OBJECTS_RES),
     LWMSG_MEMBER_UINT32(LSA2_IPC_FIND_OBJECTS_RES, dwCount),
@@ -1131,7 +1039,7 @@ static LWMsgTypeSpec gLsa2IpcFindObjectsRes[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcOpenEnumObjectsReq[] =
+static LWMsgTypeSpec gLsa2IpcOpenEnumObjectsReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_OPEN_ENUM_OBJECTS_REQ),
     LWMSG_MEMBER_PSTR(LSA2_IPC_OPEN_ENUM_OBJECTS_REQ, pszTargetProvider),
@@ -1142,14 +1050,14 @@ static LWMsgTypeSpec gLsa2IpcOpenEnumObjectsReq[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcOpenEnumObjectsRes[] =
+static LWMsgTypeSpec gLsa2IpcOpenEnumObjectsResSpec[] =
 {
     LWMSG_HANDLE(LSA2_IPC_ENUM_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcEnumObjectsReq[] =
+static LWMsgTypeSpec gLsa2IpcEnumObjectsReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_ENUM_OBJECTS_REQ),
     LWMSG_MEMBER_HANDLE(LSA2_IPC_ENUM_OBJECTS_REQ, hEnum, LSA2_IPC_ENUM_HANDLE),
@@ -1159,7 +1067,7 @@ static LWMsgTypeSpec gLsa2IpcEnumObjectsReq[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcEnumObjectsRes[] =
+static LWMsgTypeSpec gLsa2IpcEnumObjectsResSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_ENUM_OBJECTS_RES),
     LWMSG_MEMBER_UINT32(LSA2_IPC_ENUM_OBJECTS_RES, dwObjectsCount),
@@ -1172,7 +1080,7 @@ static LWMsgTypeSpec gLsa2IpcEnumObjectsRes[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcOpenEnumMembersReq[] =
+static LWMsgTypeSpec gLsa2IpcOpenEnumMembersReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_OPEN_ENUM_MEMBERS_REQ),
     LWMSG_MEMBER_PSTR(LSA2_IPC_OPEN_ENUM_MEMBERS_REQ, pszTargetProvider),
@@ -1183,14 +1091,14 @@ static LWMsgTypeSpec gLsa2IpcOpenEnumMembersReq[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcOpenEnumMembersRes[] =
+static LWMsgTypeSpec gLsa2IpcOpenEnumMembersResSpec[] =
 {
     LWMSG_HANDLE(LSA2_IPC_ENUM_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_SENDER,
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcEnumMembersReq[] =
+static LWMsgTypeSpec gLsa2IpcEnumMembersReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_ENUM_MEMBERS_REQ),
     LWMSG_MEMBER_HANDLE(LSA2_IPC_ENUM_MEMBERS_REQ, hEnum, LSA2_IPC_ENUM_HANDLE),
@@ -1200,7 +1108,7 @@ static LWMsgTypeSpec gLsa2IpcEnumMembersReq[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcEnumMembersRes[] =
+static LWMsgTypeSpec gLsa2IpcEnumMembersResSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_ENUM_MEMBERS_RES),
     LWMSG_MEMBER_UINT32(LSA2_IPC_ENUM_MEMBERS_RES, dwSidCount),
@@ -1214,7 +1122,7 @@ static LWMsgTypeSpec gLsa2IpcEnumMembersRes[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcQueryMemberOfReq[] =
+static LWMsgTypeSpec gLsa2IpcQueryMemberOfReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_QUERY_MEMBER_OF_REQ),
     LWMSG_MEMBER_PSTR(LSA2_IPC_QUERY_MEMBER_OF_REQ, pszTargetProvider),
@@ -1230,7 +1138,7 @@ static LWMsgTypeSpec gLsa2IpcQueryMemberOfReq[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcQueryMemberOfRes[] =
+static LWMsgTypeSpec gLsa2IpcQueryMemberOfResSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_QUERY_MEMBER_OF_RES),
     LWMSG_MEMBER_UINT32(LSA2_IPC_QUERY_MEMBER_OF_RES, dwGroupSidCount),
@@ -1244,44 +1152,64 @@ static LWMsgTypeSpec gLsa2IpcQueryMemberOfRes[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gLsa2IpcCloseEnumReq[] =
+static LWMsgTypeSpec gLsa2IpcCloseEnumReqSpec[] =
 {
     LWMSG_HANDLE(LSA2_IPC_ENUM_HANDLE),
     LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER
 };
 
+static LWMsgTypeSpec gLsa2IpcModifyUserReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA2_IPC_MODIFY_USER_REQ),
+    LWMSG_MEMBER_PSTR(LSA2_IPC_MODIFY_USER_REQ, pszTargetProvider),
+    LWMSG_MEMBER_POINTER(LSA2_IPC_MODIFY_USER_REQ, pUserModInfo, LWMSG_TYPESPEC(gLsaUserAddInfoSpec)),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsa2IpcModifyGroupReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA2_IPC_MODIFY_GROUP_REQ),
+    LWMSG_MEMBER_PSTR(LSA2_IPC_MODIFY_GROUP_REQ, pszTargetProvider),
+    LWMSG_MEMBER_POINTER(LSA2_IPC_MODIFY_GROUP_REQ, pGroupModInfo, LWMSG_TYPESPEC(gLsaGroupAddInfoSpec)),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsa2IpcAddUserReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA2_IPC_ADD_USER_REQ),
+    LWMSG_MEMBER_PSTR(LSA2_IPC_ADD_USER_REQ, pszTargetProvider),
+    LWMSG_MEMBER_POINTER(LSA2_IPC_ADD_USER_REQ, pUserAddInfo, LWMSG_TYPESPEC(gLsaUserAddInfoSpec)),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsa2IpcAddGroupReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA2_IPC_ADD_GROUP_REQ),
+    LWMSG_MEMBER_PSTR(LSA2_IPC_ADD_GROUP_REQ, pszTargetProvider),
+    LWMSG_MEMBER_POINTER(LSA2_IPC_ADD_GROUP_REQ, pGroupAddInfo, LWMSG_TYPESPEC(gLsaGroupAddInfoSpec)),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gLsa2IpcDeleteObjectReqSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSA2_IPC_DELETE_OBJECT_REQ),
+    LWMSG_MEMBER_PSTR(LSA2_IPC_DELETE_OBJECT_REQ, pszTargetProvider),
+    LWMSG_MEMBER_PSTR(LSA2_IPC_DELETE_OBJECT_REQ, pszSid),
+    LWMSG_ATTR_NOT_NULL,
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgProtocolSpec gLsaIPCSpec[] =
 {
-    LWMSG_MESSAGE(LSA_Q_GROUP_BY_NAME, gLsaIPCFindObjectByNameReqSpec),
-    LWMSG_MESSAGE(LSA_R_GROUP_BY_NAME_SUCCESS, gLsaGroupInfoListSpec),
-    LWMSG_MESSAGE(LSA_R_GROUP_BY_NAME_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_GROUP_BY_ID, gLsaIPCFindObjectByIdReqSpec),
-    LWMSG_MESSAGE(LSA_R_GROUP_BY_ID_SUCCESS, gLsaGroupInfoListSpec),
-    LWMSG_MESSAGE(LSA_R_GROUP_BY_ID_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_GROUPS, gLsaIPCBeginGroupEnumReqSpec),
-    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_SUCCESS, gLsaIpcEnumGroupsHandleNewSpec),
-    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_ENUM_GROUPS, gLsaIpcEnumGroupsHandleExistingSpec),
-    LWMSG_MESSAGE(LSA_R_ENUM_GROUPS_SUCCESS, gLsaGroupInfoListSpec),
-    LWMSG_MESSAGE(LSA_R_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_END_ENUM_GROUPS, gLsaIpcEnumGroupsHandleExistingSpec),
-    LWMSG_MESSAGE(LSA_R_END_ENUM_GROUPS_SUCCESS, NULL),
-    LWMSG_MESSAGE(LSA_R_END_ENUM_GROUPS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_USER_BY_NAME, gLsaIPCFindObjectByNameReqSpec),
-    LWMSG_MESSAGE(LSA_R_USER_BY_NAME_SUCCESS, gLsaUserInfoListSpec),
-    LWMSG_MESSAGE(LSA_R_USER_BY_NAME_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_USER_BY_ID, gLsaIPCFindObjectByIdReqSpec),
-    LWMSG_MESSAGE(LSA_R_USER_BY_ID_SUCCESS, gLsaUserInfoListSpec),
-    LWMSG_MESSAGE(LSA_R_USER_BY_ID_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_BEGIN_ENUM_USERS, gLsaIPCBeginUserEnumReqSpec),
-    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_SUCCESS, gLsaIpcEnumUsersHandleNewSpec),
-    LWMSG_MESSAGE(LSA_R_BEGIN_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_ENUM_USERS, gLsaIpcEnumUsersHandleExistingSpec),
-    LWMSG_MESSAGE(LSA_R_ENUM_USERS_SUCCESS, gLsaUserInfoListSpec),
-    LWMSG_MESSAGE(LSA_R_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_END_ENUM_USERS, gLsaIpcEnumUsersHandleExistingSpec),
-    LWMSG_MESSAGE(LSA_R_END_ENUM_USERS_SUCCESS, NULL),
-    LWMSG_MESSAGE(LSA_R_END_ENUM_USERS_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_AUTH_USER, gLsaIPCAuthUserReqSpec),
     LWMSG_MESSAGE(LSA_R_AUTH_USER_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_AUTH_USER_FAILURE, gLsaIPCErrorSpec),
@@ -1291,21 +1219,6 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_VALIDATE_USER, gLsaIPCAuthUserReqSpec),
     LWMSG_MESSAGE(LSA_R_VALIDATE_USER_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_VALIDATE_USER_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_ADD_GROUP, gLsaIPCAddGroupInfoReqSpec),
-    LWMSG_MESSAGE(LSA_R_ADD_GROUP_SUCCESS, NULL),
-    LWMSG_MESSAGE(LSA_R_ADD_GROUP_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_MODIFY_GROUP, gLsaIPCModGroupInfoReqSpec),
-    LWMSG_MESSAGE(LSA_R_MODIFY_GROUP_SUCCESS, NULL),
-    LWMSG_MESSAGE(LSA_R_MODIFY_GROUP_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_DELETE_GROUP, gLsaIPCDelObjectInfoReqSpec),
-    LWMSG_MESSAGE(LSA_R_DELETE_GROUP_SUCCESS, NULL),
-    LWMSG_MESSAGE(LSA_R_DELETE_GROUP_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_ADD_USER, gLsaIPCAddUserInfoReqSpec),
-    LWMSG_MESSAGE(LSA_R_ADD_USER_SUCCESS, NULL),
-    LWMSG_MESSAGE(LSA_R_ADD_USER_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_DELETE_USER, gLsaIPCDelObjectInfoReqSpec),
-    LWMSG_MESSAGE(LSA_R_DELETE_USER_SUCCESS, NULL),
-    LWMSG_MESSAGE(LSA_R_DELETE_USER_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_CHANGE_PASSWORD, gLsaIPCChangePasswordReqSpec),
     LWMSG_MESSAGE(LSA_R_CHANGE_PASSWORD_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_CHANGE_PASSWORD_FAILURE, gLsaIPCErrorSpec),
@@ -1318,18 +1231,9 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_Q_CLOSE_SESSION, gLsaIPCOpenOrCloseSessionReqSpec),
     LWMSG_MESSAGE(LSA_R_CLOSE_SESSION_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_CLOSE_SESSION_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_MODIFY_USER, gLsaIPCModUserInfoReqSpec),
-    LWMSG_MESSAGE(LSA_R_MODIFY_USER_SUCCESS, NULL),
-    LWMSG_MESSAGE(LSA_R_MODIFY_USER_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_NAMES_BY_SID_LIST, gLsaIPCFindNamesBySidListReqSpec),
-    LWMSG_MESSAGE(LSA_R_NAMES_BY_SID_LIST_SUCCESS, gLsaNamesBySidsSpec),
-    LWMSG_MESSAGE(LSA_R_NAMES_BY_SID_LIST_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_CHECK_USER_IN_LIST, gLsaIPCCheckUserInListReqSpec),
     LWMSG_MESSAGE(LSA_R_CHECK_USER_IN_LIST_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_CHECK_USER_IN_LIST_FAILURE, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA_Q_GROUPS_FOR_USER, gLsaIPCFindObjectReqSpec),
-    LWMSG_MESSAGE(LSA_R_GROUPS_FOR_USER_SUCCESS, gLsaGroupInfoListSpec),
-    LWMSG_MESSAGE(LSA_R_GROUPS_FOR_USER_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA_Q_SET_LOGINFO, gLsaIPCSetLoginfoReqSpec),
     LWMSG_MESSAGE(LSA_R_SET_LOGINFO_SUCCESS, NULL),
     LWMSG_MESSAGE(LSA_R_SET_LOGINFO_FAILURE, gLsaIPCErrorSpec),
@@ -1380,20 +1284,30 @@ static LWMsgProtocolSpec gLsaIPCSpec[] =
     LWMSG_MESSAGE(LSA_R_GET_PAM_CONFIG_SUCCESS, gLsaIPCGetPamConfigSpec),
     LWMSG_MESSAGE(LSA_R_GET_PAM_CONFIG_FAILURE, gLsaIPCErrorSpec),
     LWMSG_MESSAGE(LSA2_R_ERROR, gLsaIPCErrorSpec),
-    LWMSG_MESSAGE(LSA2_Q_FIND_OBJECTS, gLsa2IpcFindObjectsReq),
-    LWMSG_MESSAGE(LSA2_R_FIND_OBJECTS, gLsa2IpcFindObjectsRes),
-    LWMSG_MESSAGE(LSA2_Q_OPEN_ENUM_OBJECTS, gLsa2IpcOpenEnumObjectsReq),
-    LWMSG_MESSAGE(LSA2_R_OPEN_ENUM_OBJECTS, gLsa2IpcOpenEnumObjectsRes),
-    LWMSG_MESSAGE(LSA2_Q_ENUM_OBJECTS, gLsa2IpcEnumObjectsReq),
-    LWMSG_MESSAGE(LSA2_R_ENUM_OBJECTS, gLsa2IpcEnumObjectsRes),
-    LWMSG_MESSAGE(LSA2_Q_OPEN_ENUM_MEMBERS, gLsa2IpcOpenEnumMembersReq),
-    LWMSG_MESSAGE(LSA2_R_OPEN_ENUM_MEMBERS, gLsa2IpcOpenEnumMembersRes),
-    LWMSG_MESSAGE(LSA2_Q_ENUM_MEMBERS, gLsa2IpcEnumMembersReq),
-    LWMSG_MESSAGE(LSA2_R_ENUM_MEMBERS, gLsa2IpcEnumMembersRes),
-    LWMSG_MESSAGE(LSA2_Q_CLOSE_ENUM, gLsa2IpcCloseEnumReq),
+    LWMSG_MESSAGE(LSA2_Q_FIND_OBJECTS, gLsa2IpcFindObjectsReqSpec),
+    LWMSG_MESSAGE(LSA2_R_FIND_OBJECTS, gLsa2IpcFindObjectsResSpec),
+    LWMSG_MESSAGE(LSA2_Q_OPEN_ENUM_OBJECTS, gLsa2IpcOpenEnumObjectsReqSpec),
+    LWMSG_MESSAGE(LSA2_R_OPEN_ENUM_OBJECTS, gLsa2IpcOpenEnumObjectsResSpec),
+    LWMSG_MESSAGE(LSA2_Q_ENUM_OBJECTS, gLsa2IpcEnumObjectsReqSpec),
+    LWMSG_MESSAGE(LSA2_R_ENUM_OBJECTS, gLsa2IpcEnumObjectsResSpec),
+    LWMSG_MESSAGE(LSA2_Q_OPEN_ENUM_MEMBERS, gLsa2IpcOpenEnumMembersReqSpec),
+    LWMSG_MESSAGE(LSA2_R_OPEN_ENUM_MEMBERS, gLsa2IpcOpenEnumMembersResSpec),
+    LWMSG_MESSAGE(LSA2_Q_ENUM_MEMBERS, gLsa2IpcEnumMembersReqSpec),
+    LWMSG_MESSAGE(LSA2_R_ENUM_MEMBERS, gLsa2IpcEnumMembersResSpec),
+    LWMSG_MESSAGE(LSA2_Q_CLOSE_ENUM, gLsa2IpcCloseEnumReqSpec),
     LWMSG_MESSAGE(LSA2_R_CLOSE_ENUM, NULL),
-    LWMSG_MESSAGE(LSA2_Q_QUERY_MEMBER_OF, gLsa2IpcQueryMemberOfReq),
-    LWMSG_MESSAGE(LSA2_R_QUERY_MEMBER_OF, gLsa2IpcQueryMemberOfRes),
+    LWMSG_MESSAGE(LSA2_Q_QUERY_MEMBER_OF, gLsa2IpcQueryMemberOfReqSpec),
+    LWMSG_MESSAGE(LSA2_R_QUERY_MEMBER_OF, gLsa2IpcQueryMemberOfResSpec),
+    LWMSG_MESSAGE(LSA2_Q_ADD_GROUP, gLsa2IpcAddGroupReqSpec),
+    LWMSG_MESSAGE(LSA2_R_ADD_GROUP, NULL),
+    LWMSG_MESSAGE(LSA2_Q_MODIFY_GROUP, gLsa2IpcModifyGroupReqSpec),
+    LWMSG_MESSAGE(LSA2_R_MODIFY_GROUP, NULL),
+    LWMSG_MESSAGE(LSA2_Q_DELETE_OBJECT, gLsa2IpcDeleteObjectReqSpec),
+    LWMSG_MESSAGE(LSA2_R_DELETE_OBJECT, NULL),
+    LWMSG_MESSAGE(LSA2_Q_ADD_USER, gLsa2IpcAddUserReqSpec),
+    LWMSG_MESSAGE(LSA2_R_ADD_USER, NULL),
+    LWMSG_MESSAGE(LSA2_Q_MODIFY_USER, gLsa2IpcModifyUserReqSpec),
+    LWMSG_MESSAGE(LSA2_R_MODIFY_USER, NULL),
     LWMSG_PROTOCOL_END
 };
 

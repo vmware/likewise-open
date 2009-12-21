@@ -167,6 +167,7 @@ LsaDmInitialize(
 
 VOID
 LsaDmCleanup(
+    VOID
     );
 ///<
 /// Cleanup state for domain manager.
@@ -437,6 +438,7 @@ LsaDmDetectTransitionOnline(
 
 VOID
 LsaDmTriggerOnlindeDetectionThread(
+    VOID
     );
 
 // TODO-inline these?

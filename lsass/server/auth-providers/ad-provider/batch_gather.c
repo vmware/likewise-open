@@ -270,6 +270,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaAdBatchGatherSchemaMode(
     IN OUT PLSA_AD_BATCH_ITEM pItem,
@@ -464,6 +465,7 @@ error:
     goto cleanup;
 }
 
+static
 DWORD
 LsaAdBatchGatherNonSchemaMode(
     IN OUT PLSA_AD_BATCH_ITEM pItem,

@@ -104,7 +104,7 @@ LsaDmWrapNetLookupObjectSidByName(
     IN PCSTR pszDnsDomainName,
     IN PCSTR pszName,
     OUT PSTR* ppszSid,
-    OUT OPTIONAL ADAccountType* pAccountType
+    OUT OPTIONAL LSA_OBJECT_TYPE* pAccountType
     );
 
 DWORD
@@ -130,7 +130,7 @@ LsaDmWrapNetLookupNameByObjectSid(
     IN  PCSTR pszDnsDomainName,
     IN  PCSTR pszSid,
     OUT PSTR* ppszName,
-    OUT OPTIONAL ADAccountType* pAccountType
+    OUT OPTIONAL LSA_OBJECT_TYPE* pAccountType
     );
 
 DWORD

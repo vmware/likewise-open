@@ -74,12 +74,5 @@
 #define LSA_ACB_PW_EXPIRED               0x00020000 /* 1 Password Expired */
 #define LSA_ACB_NO_AUTH_DATA_REQD        0x00080000 /* 1 No authorization data required */
 
-DWORD
-ADMarshalFromUserCache(
-    PLSA_SECURITY_OBJECT pUser,
-    DWORD       dwUserInfoLevel,
-    PVOID*      ppUserInfo
-    );
-
 #endif //__LSALDAP_MARSHAL_USER_H__
 

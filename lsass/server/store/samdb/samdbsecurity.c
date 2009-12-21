@@ -1119,6 +1119,10 @@ SamDbCreateNewLocalAccountDacl(
     *ppDacl = pDacl;
 
 cleanup:
+
+    RTL_FREE(&pBuiltinAdminsSid);
+    RTL_FREE(&pWorldSid);
+
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)
     {

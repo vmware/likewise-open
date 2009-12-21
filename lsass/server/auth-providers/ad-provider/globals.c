@@ -54,50 +54,6 @@ PCSTR gpszADProviderName = "lsa-activedirectory-provider";
 
 PAD_PROVIDER_DATA gpADProviderData = NULL;
 
-LSA_PROVIDER_FUNCTION_TABLE gADProviderAPITable =
-    {
-            &AD_ShutdownProvider,
-            &AD_OpenHandle,
-            &AD_CloseHandle,
-            &AD_ServicesDomain,
-            &AD_AuthenticateUser,
-            &AD_AuthenticateUserEx,
-            &AD_ValidateUser,
-            &AD_CheckUserInList,
-            &AD_FindUserByName,
-            &AD_FindUserById,
-            &AD_BeginEnumUsers,
-            &AD_EnumUsers,
-            &AD_EndEnumUsers,
-            &AD_FindGroupByName,
-            &AD_FindGroupById,
-            &AD_GetGroupsForUser,
-            &AD_BeginEnumGroups,
-            &AD_EnumGroups,
-            &AD_EndEnumGroups,
-            &AD_ChangePassword,
-            &AD_SetPassword,
-            &AD_AddUser,
-            &AD_ModifyUser,
-            &AD_DeleteUser,
-            &AD_AddGroup,
-            &AD_ModifyGroup,
-            &AD_DeleteGroup,
-            &AD_OpenSession,
-            &AD_CloseSession,
-            &AD_GetNamesBySidList,
-            &AD_FindNSSArtefactByKey,
-            &AD_BeginEnumNSSArtefacts,
-            &AD_EnumNSSArtefacts,
-            &AD_EndEnumNSSArtefacts,
-            &AD_GetStatus,
-            &AD_FreeStatus,
-            &AD_RefreshConfiguration,
-            &AD_ProviderIoControl,
-            &AD_GetGroupMembershipByProvider,
-            &gADProviderAPITable2
-    };
-
 LSA_PROVIDER_FUNCTION_TABLE_2 gADProviderAPITable2 =
 {
     .pfnFindObjects = AD_FindObjects,
@@ -109,6 +65,31 @@ LSA_PROVIDER_FUNCTION_TABLE_2 gADProviderAPITable2 =
     .pfnQueryMemberOf = AD_QueryMemberOf,
     .pfnOpenHandle = AD_OpenHandle,
     .pfnCloseHandle = AD_CloseHandle,
+    .pfnShutdownProvider = AD_ShutdownProvider,
+    .pfnOpenHandle = AD_OpenHandle,
+    .pfnCloseHandle = AD_CloseHandle,
+    .pfnServicesDomain = AD_ServicesDomain,
+    .pfnAuthenticateUser = AD_AuthenticateUser,
+    .pfnAuthenticateUserEx = AD_AuthenticateUserEx,
+    .pfnValidateUser = AD_ValidateUser,
+    .pfnCheckUserInList = AD_CheckUserInList,
+    .pfnChangePassword = AD_ChangePassword,
+    .pfnSetPassword = AD_SetPassword,
+    .pfnAddUser = AD_AddUser,
+    .pfnModifyUser = AD_ModifyUser,
+    .pfnAddGroup = AD_AddGroup,
+    .pfnModifyGroup = AD_ModifyGroup,
+    .pfnDeleteObject = AD_DeleteObject,
+    .pfnOpenSession = AD_OpenSession,
+    .pfnCloseSession = AD_CloseSession,
+    .pfnLookupNSSArtefactByKey = AD_FindNSSArtefactByKey,
+    .pfnBeginEnumNSSArtefacts = AD_BeginEnumNSSArtefacts,
+    .pfnEnumNSSArtefacts = AD_EnumNSSArtefacts,
+    .pfnEndEnumNSSArtefacts = AD_EndEnumNSSArtefacts,
+    .pfnGetStatus = AD_GetStatus,
+    .pfnFreeStatus = AD_FreeStatus,
+    .pfnRefreshConfiguration = AD_RefreshConfiguration,
+    .pfnProviderIoControl = AD_ProviderIoControl
 };
 
 

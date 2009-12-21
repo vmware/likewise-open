@@ -46,6 +46,7 @@
  */
 
 #define _POSIX_PTHREAD_SEMANTICS 1
+#define LSA_ENABLE_DEPRECATED
 
 #include "config.h"
 #include "lsasystem.h"

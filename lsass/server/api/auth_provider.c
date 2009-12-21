@@ -86,9 +86,9 @@ LsaSrvFreeAuthProvider(
 {
     if (pProvider)
     {
-        if (pProvider->pFnTable && pProvider->pFnTable->pfnShutdownProvider)
+        if (pProvider->pFnTable2 && pProvider->pFnTable2->pfnShutdownProvider)
         {
-           pProvider->pFnTable->pfnShutdownProvider();
+           pProvider->pFnTable2->pfnShutdownProvider();
         }
 
         if (pProvider->pLibHandle)
@@ -108,44 +108,7 @@ LsaSrvValidateProvider(
     PLSA_AUTH_PROVIDER pProvider
     )
 {
-    if (!pProvider ||
-        !pProvider->pFnTable ||
-        !pProvider->pFnTable->pfnShutdownProvider ||
-        !pProvider->pFnTable->pfnOpenHandle ||
-        !pProvider->pFnTable->pfnCloseHandle ||
-        !pProvider->pFnTable->pfnServicesDomain ||
-        !pProvider->pFnTable->pfnAuthenticateUser ||
-        !pProvider->pFnTable->pfnValidateUser ||
-        !pProvider->pFnTable->pfnCheckUserInList ||
-        !pProvider->pFnTable->pfnLookupUserByName ||
-        !pProvider->pFnTable->pfnLookupUserById ||
-        !pProvider->pFnTable->pfnBeginEnumUsers ||
-        !pProvider->pFnTable->pfnEnumUsers ||
-        !pProvider->pFnTable->pfnEndEnumUsers ||
-        !pProvider->pFnTable->pfnLookupGroupByName ||
-        !pProvider->pFnTable->pfnLookupGroupById ||
-        !pProvider->pFnTable->pfnGetGroupsForUser ||
-        !pProvider->pFnTable->pfnBeginEnumGroups ||
-        !pProvider->pFnTable->pfnEnumGroups ||
-        !pProvider->pFnTable->pfnEndEnumGroups ||
-        !pProvider->pFnTable->pfnChangePassword ||
-        !pProvider->pFnTable->pfnAddUser ||
-        !pProvider->pFnTable->pfnModifyUser ||
-        !pProvider->pFnTable->pfnDeleteUser ||
-        !pProvider->pFnTable->pfnAddGroup ||
-        !pProvider->pFnTable->pfnDeleteGroup ||
-        !pProvider->pFnTable->pfnOpenSession ||
-        !pProvider->pFnTable->pfnCloseSession ||
-        !pProvider->pFnTable->pfnGetNamesBySidList ||
-        !pProvider->pFnTable->pfnLookupNSSArtefactByKey ||
-        !pProvider->pFnTable->pfnBeginEnumNSSArtefacts ||
-        !pProvider->pFnTable->pfnEnumNSSArtefacts ||
-        !pProvider->pFnTable->pfnEndEnumNSSArtefacts ||
-        !pProvider->pFnTable->pfnGetStatus ||
-        !pProvider->pFnTable->pfnFreeStatus ||
-        !pProvider->pFnTable->pfnRefreshConfiguration ||
-        !pProvider->pFnTable->pfnProviderIoControl
-        )
+    if (!pProvider || !pProvider->pFnTable2)
     {
         return LW_ERROR_INVALID_AUTH_PROVIDER;
     }
@@ -160,7 +123,7 @@ LsaSrvInitAuthProvider(
     )
 {
     DWORD dwError = 0;
-    PFNINITIALIZEPROVIDER pfnInitProvider = NULL;
+    PFNINITIALIZEPROVIDER_2 pfnInitProvider = NULL;
     PCSTR pszError = NULL;
     PSTR pszProviderLibpath = NULL;
     int i = 0;
@@ -207,7 +170,7 @@ LsaSrvInitAuthProvider(
         }
 
         dlerror();
-        pfnInitProvider = (PFNINITIALIZEPROVIDER)dlsym(
+        pfnInitProvider = (PFNINITIALIZEPROVIDER_2) dlsym(
             pProvider->pLibHandle,
             LSA_SYMBOL_NAME_INITIALIZE_PROVIDER);
         if (!pfnInitProvider)
@@ -227,10 +190,8 @@ LsaSrvInitAuthProvider(
 
     dwError = pfnInitProvider(
                     &pProvider->pszName,
-                    &pProvider->pFnTable);
+                    &pProvider->pFnTable2);
     BAIL_ON_LSA_ERROR(dwError);
-
-    pProvider->pFnTable2 = pProvider->pFnTable->pFnTable2;
 
     dwError = LsaSrvValidateProvider(pProvider);
     BAIL_ON_LSA_ERROR(dwError);

@@ -118,10 +118,9 @@ DWORD
 LsaAdEnumUsersFromCache(
     IN HANDLE   hLsaConnection,
     IN PSTR*    ppszResume,
-    IN DWORD    dwInfoLevel,
     IN DWORD    dwMaxNumUsers,
     OUT PDWORD  pdwUsersFound,
-    OUT PVOID** pppUserInfoList
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
@@ -133,7 +132,6 @@ LsaAdEnumUsersFromCache(
     LWMsgDataContext* pDataContext = NULL;
     LSA_AD_IPC_ENUM_USERS_FROM_CACHE_REQ request;
     PLSA_AD_IPC_ENUM_USERS_FROM_CACHE_RESP response = NULL;
-    PLSA_USER_INFO_LIST pResultList = NULL;
 
     memset(&request, 0, sizeof(request));
 
@@ -145,7 +143,6 @@ LsaAdEnumUsersFromCache(
 
     // marshal the request
     request.pszResume = *ppszResume;
-    request.dwInfoLevel = dwInfoLevel;
     request.dwMaxNumUsers = dwMaxNumUsers;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
@@ -180,30 +177,9 @@ LsaAdEnumUsersFromCache(
                               (PVOID*)&response));
     BAIL_ON_LSA_ERROR(dwError);
 
-    pResultList = response->pUserInfoList;
-    *pdwUsersFound = pResultList->dwNumUsers;
-    switch (pResultList->dwUserInfoLevel)
-    {
-        case 0:
-            *pppUserInfoList = (PVOID*)pResultList->ppUserInfoList.ppInfoList0;
-            pResultList->ppUserInfoList.ppInfoList0 = NULL;
-            pResultList->dwNumUsers = 0;
-            break;
-        case 1:
-            *pppUserInfoList = (PVOID*)pResultList->ppUserInfoList.ppInfoList1;
-            pResultList->ppUserInfoList.ppInfoList1 = NULL;
-            pResultList->dwNumUsers = 0;
-            break;
-        case 2:
-            *pppUserInfoList = (PVOID*)pResultList->ppUserInfoList.ppInfoList2;
-            pResultList->ppUserInfoList.ppInfoList2 = NULL;
-            pResultList->dwNumUsers = 0;
-            break;
-        default:
-           dwError = LW_ERROR_INVALID_PARAMETER;
-           BAIL_ON_LSA_ERROR(dwError);
-    }
-
+    *pdwUsersFound = response->dwNumUsers;
+    *pppObjects = response->ppObjects;
+    response->ppObjects = NULL;
     if ( *ppszResume )
     {
         LwFreeMemory(*ppszResume);
@@ -253,7 +229,7 @@ error:
     }
 
     *pdwUsersFound = 0;
-    *pppUserInfoList = NULL;
+    *pppObjects = NULL;
 
     goto cleanup;
 }

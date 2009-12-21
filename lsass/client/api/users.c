@@ -45,7 +45,20 @@
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Kyle Stemen (kstemen@likewisesoftware.com)
  */
+
+#define LSA_ENABLE_DEPRECATED
+
 #include "client.h"
+
+typedef struct __LSA_CLIENT_ENUM_USERS_HANDLE
+{
+    DWORD  dwUserInfoLevel;
+    DWORD  dwMaxNumUsers;
+    DWORD dwObjectCount;
+    DWORD dwObjectIndex;
+    PLSA_SECURITY_OBJECT* ppObjects;
+    HANDLE hEnum;
+} LSA_CLIENT_ENUM_USERS_HANDLE, *PLSA_CLIENT_ENUM_USERS_HANDLE;
 
 LSASS_API
 DWORD
@@ -55,10 +68,42 @@ LsaAddUser(
     DWORD  dwUserInfoLevel
     )
 {
-    return LsaTransactAddUser(
+    DWORD dwError = 0;
+    PLSA_USER_ADD_INFO pAddInfo = NULL;
+
+    switch (dwUserInfoLevel)
+    {
+    case 0:
+        dwError = LsaMarshalUserInfo0ToUserAddInfo(
             hLsaConnection,
             pUserInfo,
-            dwUserInfoLevel);
+            &pAddInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    case 1:
+    case 2:
+        dwError = LW_ERROR_NOT_SUPPORTED;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaTransactAddUser2(
+        hLsaConnection,
+        NULL,
+        pAddInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    if (pAddInfo)
+    {
+        LsaFreeUserAddInfo(pAddInfo);
+    }
+
+    return dwError;
 }
 
 LSASS_API
@@ -68,9 +113,29 @@ LsaModifyUser(
     PLSA_USER_MOD_INFO pUserModInfo
     )
 {
-    return LsaTransactModifyUser(
+    DWORD dwError = 0;
+    PLSA_USER_MOD_INFO_2 pUserModInfo2 = NULL;
+
+    dwError = LsaMarshalUserModInfoToUserModInfo2(
+        hLsaConnection,
+        pUserModInfo,
+        &pUserModInfo2);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaTransactModifyUser2(
             hLsaConnection,
-            pUserModInfo);
+            NULL,
+            pUserModInfo2);
+    BAIL_ON_LSA_ERROR(dwError);
+
+error:
+
+    if (pUserModInfo2)
+    {
+        LsaFreeUserModInfo2(pUserModInfo2);
+    }
+
+    return dwError;
 }
 
 LSASS_API
@@ -84,6 +149,8 @@ LsaFindUserByName(
 {
     DWORD dwError = 0;
     PVOID pUserInfo = NULL;
+    LSA_QUERY_LIST QueryList;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
 
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_STRING(pszName);
@@ -93,11 +160,29 @@ LsaFindUserByName(
 
     BAIL_ON_INVALID_POINTER(ppUserInfo);
 
-    dwError = LsaTransactFindUserByName(
-                hLsaConnection,
-                pszName,
-                dwUserInfoLevel,
-                &pUserInfo);
+    QueryList.ppszStrings = &pszName;
+
+    dwError = LsaFindObjects(
+        hLsaConnection,
+        NULL,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        LSA_QUERY_TYPE_BY_NAME,
+        1,
+        QueryList,
+        &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppObjects[0] == NULL)
+    {
+        dwError = LW_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaMarshalUserInfo(
+        ppObjects[0],
+        dwUserInfoLevel,
+        &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
 error:
@@ -105,6 +190,11 @@ error:
     if (ppUserInfo)
     {
         *ppUserInfo = pUserInfo;
+    }
+
+    if (ppObjects)
+    {
+        LsaFreeSecurityObjectList(1, ppObjects);
     }
 
     return dwError;
@@ -121,6 +211,9 @@ LsaFindUserById(
 {
     DWORD dwError = 0;
     PVOID pUserInfo = NULL;
+    LSA_QUERY_LIST QueryList;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    DWORD dwUid = (DWORD) uid;
 
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
 
@@ -129,11 +222,29 @@ LsaFindUserById(
 
     BAIL_ON_INVALID_POINTER(ppUserInfo);
 
-    dwError = LsaTransactFindUserById(
-                hLsaConnection,
-                uid,
-                dwUserInfoLevel,
-                &pUserInfo);
+    QueryList.pdwIds = &dwUid;
+
+    dwError = LsaFindObjects(
+        hLsaConnection,
+        NULL,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        LSA_QUERY_TYPE_BY_UNIX_ID,
+        1,
+        QueryList,
+        &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppObjects[0] == NULL)
+    {
+        dwError = LW_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaMarshalUserInfo(
+        ppObjects[0],
+        dwUserInfoLevel,
+        &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
 error:
@@ -141,6 +252,11 @@ error:
     if (ppUserInfo)
     {
         *ppUserInfo = pUserInfo;
+    }
+
+    if (ppObjects)
+    {
+        LsaFreeSecurityObjectList(1, ppObjects);
     }
 
     return dwError;
@@ -157,20 +273,37 @@ LsaBeginEnumUsers(
     )
 {
     DWORD dwError = 0;
+    PLSA_CLIENT_ENUM_USERS_HANDLE pEnum = NULL;
 
-    dwError = LsaTransactBeginEnumUsers(
-                hLsaConnection,
-                dwUserInfoLevel,
-                dwMaxNumUsers,
-                FindFlags,
-                phResume);
+    dwError = LwAllocateMemory(sizeof(*pEnum), OUT_PPVOID(&pEnum));
     BAIL_ON_LSA_ERROR(dwError);
 
+    pEnum->dwUserInfoLevel = dwUserInfoLevel;
+    pEnum->dwMaxNumUsers = dwMaxNumUsers;
+
+    dwError = LsaOpenEnumObjects(
+        hLsaConnection,
+        NULL,
+        &pEnum->hEnum,
+        FindFlags,
+        LSA_OBJECT_TYPE_USER,
+        NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *phResume = pEnum;
+
 cleanup:
+
     return dwError;
 
 error:
-    *phResume = (HANDLE)NULL;
+
+    *phResume = NULL;
+
+    if (pEnum)
+    {
+        LsaEndEnumUsers(hLsaConnection, pEnum);
+    }
 
     goto cleanup;
 }
@@ -185,20 +318,90 @@ LsaEnumUsers(
     )
 {
     DWORD dwError = 0;
+    PLSA_CLIENT_ENUM_USERS_HANDLE pEnum = hResume;
+    DWORD dwTotalInfoCount = 0;
+    DWORD dwInfoCount = 0;
+    DWORD dwObjectsUsed = 0;
+    PVOID* ppUserInfo = NULL;
 
-    dwError = LsaTransactEnumUsers(
-                hLsaConnection,
-                hResume,
-                pdwNumUsersFound,
-                pppUserInfoList);
+    if (!pEnum->hEnum)
+    {
+        dwError = LW_ERROR_NO_MORE_USERS;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(sizeof(*ppUserInfo) * pEnum->dwMaxNumUsers, OUT_PPVOID(&ppUserInfo));
     BAIL_ON_LSA_ERROR(dwError);
 
+    while (dwTotalInfoCount < pEnum->dwMaxNumUsers)
+    {
+        if (!pEnum->ppObjects)
+        {
+            dwError = LsaEnumObjects(
+                hLsaConnection,
+                pEnum->hEnum,
+                pEnum->dwMaxNumUsers,
+                &pEnum->dwObjectCount,
+                &pEnum->ppObjects);
+            if (dwError == ERROR_NO_MORE_ITEMS)
+            {
+                dwError = 0;
+                break;
+            }
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        while (pEnum->dwObjectIndex < pEnum->dwObjectCount)
+        {
+            dwError = LsaMarshalUserInfoList(
+                pEnum->dwObjectCount - pEnum->dwObjectIndex,
+                pEnum->ppObjects + pEnum->dwObjectIndex,
+                pEnum->dwUserInfoLevel,
+                pEnum->dwMaxNumUsers - dwTotalInfoCount,
+                ppUserInfo + dwTotalInfoCount,
+                &dwObjectsUsed,
+                &dwInfoCount);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            pEnum->dwObjectIndex += dwObjectsUsed;
+            dwTotalInfoCount += dwInfoCount;
+        }
+
+        LsaUtilFreeSecurityObjectList(pEnum->dwObjectCount, pEnum->ppObjects);
+        pEnum->ppObjects = NULL;
+        pEnum->dwObjectIndex = 0;
+    }
+
+    if (dwTotalInfoCount == 0)
+    {
+        dwError = LsaCloseEnum(hLsaConnection, pEnum->hEnum);
+        pEnum->hEnum = NULL;
+        BAIL_ON_LSA_ERROR(dwError);
+
+        *pdwNumUsersFound = 0;
+        *pppUserInfoList = NULL;
+
+        LW_SAFE_FREE_MEMORY(ppUserInfo);
+    }
+    else
+    {
+        *pdwNumUsersFound = dwTotalInfoCount;
+        *pppUserInfoList = ppUserInfo;
+    }
+
 cleanup:
+
     return dwError;
 
 error:
+
     *pdwNumUsersFound = 0;
     *pppUserInfoList = NULL;
+
+    if (ppUserInfo)
+    {
+        LsaFreeUserInfoList(pEnum->dwUserInfoLevel, ppUserInfo, dwTotalInfoCount);
+    }
 
     goto cleanup;
 }
@@ -210,9 +413,25 @@ LsaEndEnumUsers(
     HANDLE hResume
     )
 {
-    return LsaTransactEndEnumUsers(
-                hLsaConnection,
-                hResume);
+    DWORD dwError = 0;
+    PLSA_CLIENT_ENUM_USERS_HANDLE pEnum = hResume;
+
+    if (pEnum)
+    {
+        if (pEnum->hEnum)
+        {
+            dwError = LsaCloseEnum(hLsaConnection, pEnum->hEnum);
+        }
+
+        if (pEnum->ppObjects)
+        {
+            LsaUtilFreeSecurityObjectList(pEnum->dwObjectCount, pEnum->ppObjects);
+        }
+
+        LwFreeMemory(pEnum);
+    }
+
+    return dwError;
 }
 
 LSASS_API
@@ -222,9 +441,45 @@ LsaDeleteUserById(
     uid_t  uid
     )
 {
-    return LsaTransactDeleteUserById(
-            hLsaConnection,
-            uid);
+    DWORD dwError = 0;
+    LSA_QUERY_LIST QueryList;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    DWORD dwUid = (DWORD) uid;
+
+    QueryList.pdwIds = &dwUid;
+
+    dwError = LsaFindObjects(
+        hLsaConnection,
+        NULL,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        LSA_QUERY_TYPE_BY_UNIX_ID,
+        1,
+        QueryList,
+        &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppObjects[0] == NULL)
+    {
+        dwError = LW_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaTransactDeleteObject(
+        hLsaConnection,
+        NULL,
+        ppObjects[0]->pszObjectSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 LSASS_API
@@ -283,20 +538,66 @@ LsaGetNamesBySidList(
     )
 {
     DWORD dwError = 0;
+    LSA_QUERY_LIST QueryList;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SID_INFO pSidInfo = NULL;
+    DWORD dwIndex = 0;
 
-    dwError = LsaTransactGetNamesBySidList(
-                hLsaConnection,
-                sCount,
-                ppszSidList,
-                ppSIDInfoList,
-                pchDomainSeparator);
+    BAIL_ON_INVALID_HANDLE(hLsaConnection);
+
+    QueryList.ppszStrings = (PCSTR*) ppszSidList;
+
+    dwError = LsaFindObjects(
+        hLsaConnection,
+        NULL,
+        0,
+        LSA_OBJECT_TYPE_UNDEFINED,
+        LSA_QUERY_TYPE_BY_SID,
+        (DWORD) sCount,
+        QueryList,
+        &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LwAllocateMemory(sizeof(*pSidInfo) * sCount, OUT_PPVOID(&pSidInfo));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (dwIndex = 0; dwIndex < sCount; dwIndex++)
+    {
+        pSidInfo[dwIndex].accountType = ppObjects[dwIndex]->type;
+
+        if (pSidInfo[dwIndex].accountType != AccountType_NotFound)
+        {
+            dwError = LwAllocateString(
+                ppObjects[dwIndex]->pszSamAccountName,
+                &pSidInfo[dwIndex].pszSamAccountName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LwAllocateString(
+                ppObjects[dwIndex]->pszNetbiosDomainName,
+                &pSidInfo[dwIndex].pszDomainName);
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    *ppSIDInfoList = pSidInfo;
+
+    if (pchDomainSeparator)
+    {
+        *pchDomainSeparator = '\\';
+    }
+
 cleanup:
+
     return dwError;
 
 error:
+
     *ppSIDInfoList = NULL;
+
+    if (pSidInfo)
+    {
+        LsaFreeSIDInfoList(pSidInfo, sCount);
+    }
 
     goto cleanup;
 }

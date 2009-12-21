@@ -415,12 +415,13 @@ QueryMemberOf(
     {
         if (ppObjects[dwIndex])
         {
-            PrintSecurityObject(ppObjects[dwIndex]);
+            PrintSecurityObject(ppObjects[dwIndex], dwIndex, dwGroupSidCount);
             printf("\n");
         }
         else
         {
-            printf("Unresolvable SID (%s)\n\n", ppszMembers[dwIndex]);
+            printf("Unresolvable SID [%d of %d] (%s)\n\n",
+                   dwIndex + 1, dwGroupSidCount, ppszMembers[dwIndex]);
         }
     }
 

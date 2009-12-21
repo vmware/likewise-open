@@ -100,25 +100,6 @@ LsaSrvCloseProvider(
     );
 
 DWORD
-LsaSrvCreateUserEnumState(
-    HANDLE  hServer,
-    DWORD   dwUserInfoLevel,
-    DWORD   dwMaxNumUsers,
-    LSA_FIND_FLAGS FindFlags,
-    PLSA_SRV_ENUM_STATE* ppEnumState
-    );
-
-DWORD
-LsaSrvCreateGroupEnumState(
-    HANDLE  hServer,
-    DWORD   dwGroupInfoLevel,
-    DWORD   dwMaxNumGroups,
-    BOOLEAN bCheckOnline,
-    LSA_FIND_FLAGS FindFlags,
-    PLSA_SRV_ENUM_STATE* ppEnumState
-    );
-
-DWORD
 LsaSrvCreateNSSArtefactEnumState(
     HANDLE  hServer,
     PCSTR   pszMapName,

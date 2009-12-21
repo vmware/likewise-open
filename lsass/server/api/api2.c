@@ -1295,3 +1295,423 @@ LsaSrvCloseEnum(
         LwFreeMemory(pEnum);
     }
 }
+
+DWORD
+LsaSrvAddUser2(
+    HANDLE hServer,
+    PCSTR pszTargetProvider,
+    PLSA_USER_ADD_INFO pUserAddInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bFoundProvider = FALSE;
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));;
+
+    if (pServerState->peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LW_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList;
+         pProvider;
+         pProvider = pProvider->pNext)
+    {
+        if (pszTargetProvider && strcmp(pProvider->pszName, pszTargetProvider))
+        {
+            continue;
+        }
+
+        bFoundProvider = TRUE;
+
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable2->pfnAddUser(
+                                        hProvider,
+                                        pUserAddInfo);
+        if (dwError == LW_ERROR_SUCCESS)
+        {
+            break;
+        }
+        else if (dwError == LW_ERROR_NOT_HANDLED && !pszTargetProvider)
+        {
+            dwError = 0;
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = NULL;
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (pszTargetProvider && !bFoundProvider)
+    {
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL) {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return(dwError);
+
+error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "add user");
+
+    goto cleanup;
+}
+
+DWORD
+LsaSrvModifyUser2(
+    HANDLE hServer,
+    PCSTR pszTargetProvider,
+    PLSA_USER_MOD_INFO_2 pUserModInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bFoundProvider = FALSE;
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    if (pServerState->peerUID)
+    {
+        dwError = EACCES;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LW_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList;
+         pProvider;
+         pProvider = pProvider->pNext)
+    {
+        if (pszTargetProvider && strcmp(pProvider->pszName, pszTargetProvider))
+        {
+            continue;
+        }
+
+        bFoundProvider = TRUE;
+
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable2->pfnModifyUser(
+                                        hProvider,
+                                        pUserModInfo);
+        if (dwError == LW_ERROR_SUCCESS)
+        {
+            break;
+        }
+        else if ((dwError == LW_ERROR_NOT_HANDLED ||
+                  dwError == LW_ERROR_NO_SUCH_USER) &&
+                 !pszTargetProvider)
+        {
+            dwError = 0;
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = NULL;
+        } else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (pszTargetProvider && !bFoundProvider)
+    {
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL) {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return(dwError);
+
+error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "modify user (sid %s)", pUserModInfo->pszSid);
+
+    goto cleanup;
+}
+
+DWORD
+LsaSrvAddGroup2(
+    HANDLE hServer,
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bFoundProvider = TRUE;
+    HANDLE hProvider = (HANDLE)NULL;
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    if (pServerState->peerUID)
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LW_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        if (pszTargetProvider && strcmp(pProvider->pszName, pszTargetProvider))
+        {
+            continue;
+        }
+
+        bFoundProvider = TRUE;
+
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable2->pfnAddGroup(
+                                        hProvider,
+                                        pGroupAddInfo);
+        if (dwError == LW_ERROR_SUCCESS)
+        {
+            break;
+        }
+        else if (dwError == LW_ERROR_NOT_HANDLED && !pszTargetProvider)
+        {
+            dwError = 0;
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = NULL;
+            continue;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (pszTargetProvider && !bFoundProvider)
+    {
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (hProvider != NULL)
+    {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return(dwError);
+
+error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "add group");
+
+    goto cleanup;
+}
+
+DWORD
+LsaSrvModifyGroup2(
+    HANDLE hServer,
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bFoundProvider = FALSE;
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    if (pServerState->peerUID)
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LW_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        if (pszTargetProvider && strcmp(pProvider->pszName, pszTargetProvider))
+        {
+            continue;
+        }
+
+        bFoundProvider = TRUE;
+
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable2->pfnModifyGroup(
+                                        hProvider,
+                                        pGroupModInfo);
+        if (dwError == LW_ERROR_SUCCESS)
+        {
+            break;
+        }
+        else if ((dwError == LW_ERROR_NOT_HANDLED ||
+             dwError == LW_ERROR_NO_SUCH_GROUP) &&
+            !pszTargetProvider)
+        {
+            dwError = 0;
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = NULL;
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (pszTargetProvider && !bFoundProvider)
+    {
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL)
+    {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return dwError;
+
+error:
+
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "modify group (sid %s)", pGroupModInfo->pszSid);
+
+    goto cleanup;
+}
+
+DWORD
+LsaSrvDeleteObject(
+    HANDLE hServer,
+    PCSTR pszTargetProvider,
+    PCSTR pszSid
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwTraceFlags[] = {LSA_TRACE_FLAG_USER_GROUP_ADMINISTRATION};
+    PLSA_AUTH_PROVIDER pProvider = NULL;
+    HANDLE hProvider = (HANDLE)NULL;
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bFoundProvider = FALSE;
+    PLSA_SRV_API_STATE pServerState = (PLSA_SRV_API_STATE)hServer;
+
+    LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    if (pServerState->peerUID)
+    {
+        dwError = LW_ERROR_ACCESS_DENIED;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ENTER_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    dwError = LW_ERROR_NOT_HANDLED;
+
+    for (pProvider = gpAuthProviderList; pProvider; pProvider = pProvider->pNext)
+    {
+        if (pszTargetProvider && strcmp(pProvider->pszName, pszTargetProvider))
+        {
+            continue;
+        }
+
+        bFoundProvider = TRUE;
+
+        dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = pProvider->pFnTable2->pfnDeleteObject(hProvider, pszSid);
+        if (dwError == LW_ERROR_SUCCESS)
+        {
+            break;
+        }
+        else if ((dwError == LW_ERROR_NOT_HANDLED ||
+                  dwError == LW_ERROR_NO_SUCH_OBJECT ||
+                  dwError == LW_ERROR_NO_SUCH_USER ||
+                  dwError == LW_ERROR_NO_SUCH_GROUP) &&
+                 !pszTargetProvider)
+        {
+            dwError = 0;
+            LsaSrvCloseProvider(pProvider, hProvider);
+            hProvider = (HANDLE)NULL;
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+    if (pszTargetProvider && !bFoundProvider)
+    {
+        dwError = LW_ERROR_INVALID_AUTH_PROVIDER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (hProvider != (HANDLE)NULL) {
+        LsaSrvCloseProvider(pProvider, hProvider);
+    }
+
+    LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
+
+    LSA_TRACE_END_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    return(dwError);
+
+error:
+    LSA_LOG_ERROR_API_FAILED(hServer, dwError, "delete object (sid %s)", pszSid);
+
+    goto cleanup;
+}

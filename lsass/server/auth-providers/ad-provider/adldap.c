@@ -534,7 +534,7 @@ ADGetConfigurationMode(
                     szAttributeList,
                     &hDirectory,
                     &pMessage);
-    if (dwError == LDAP_NO_SUCH_OBJECT){
+    if (dwError == LW_ERROR_LDAP_NO_SUCH_OBJECT){
         dwError = LW_ERROR_INCOMPATIBLE_MODES_BETWEEN_TRUSTEDDOMAINS;
     }
     BAIL_ON_LSA_ERROR(dwError);
@@ -1579,7 +1579,7 @@ ADLdap_GetGroupMembers(
                     &pGroupObj);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pGroupObj->type != AccountType_Group)
+    if (pGroupObj->type != LSA_OBJECT_TYPE_GROUP)
     {
         dwError = LW_ERROR_DATA_ERROR;
         BAIL_ON_LSA_ERROR(dwError);
@@ -1672,7 +1672,7 @@ ADLdap_GetObjectGroupMembership(
                     &ppszLDAPValues);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pObject->type == AccountType_User && pObject->userInfo.pszPrimaryGroupSid)
+    if (pObject->type == LSA_OBJECT_TYPE_USER && pObject->userInfo.pszPrimaryGroupSid)
     {
         dwError = LwReallocMemory(
             ppszLDAPValues,
@@ -1701,7 +1701,7 @@ ADLdap_GetObjectGroupMembership(
     BAIL_ON_LSA_ERROR(dwError);
 
     // Determine primary group index
-    if (pObject->type == AccountType_User &&
+    if (pObject->type == LSA_OBJECT_TYPE_USER &&
         pObject->userInfo.pszPrimaryGroupSid &&
         ppGroupInfoList &&
         sNumGroupsFound)
@@ -1786,7 +1786,7 @@ cleanup:
 
 error:
 
-    if (dwError == LDAP_NO_SUCH_OBJECT)
+    if (dwError == LW_ERROR_LDAP_NO_SUCH_OBJECT)
     {
         dwError = 0;
     }
@@ -1849,11 +1849,11 @@ DWORD
 ADLdap_GetAccountType(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
-    OUT ADAccountType* pAccountType
+    OUT LSA_OBJECT_TYPE* pAccountType
     )
 {
     DWORD dwError = 0;
-    ADAccountType accountType = AccountType_NotFound;
+    LSA_OBJECT_TYPE accountType = LSA_OBJECT_TYPE_UNDEFINED;
     PSTR* ppszValues = NULL;
     DWORD dwNumValues = 0;
     DWORD iValue = 0;
@@ -1872,12 +1872,12 @@ ADLdap_GetAccountType(
     {
         if (!strncasecmp(ppszValues[iValue], "user", sizeof("user")-1))
         {
-            accountType = AccountType_User;
+            accountType = LSA_OBJECT_TYPE_USER;
             break;
         }
         else if (!strncasecmp(ppszValues[iValue], "group", sizeof("group")-1))
         {
-            accountType = AccountType_Group;
+            accountType = LSA_OBJECT_TYPE_GROUP;
             break;
         }
     }

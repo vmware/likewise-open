@@ -50,6 +50,8 @@ namespace Likewise.LMC.UtilityUIElements
         private void lvGroupOrUserNames_SelectedIndexChanged(object sender, EventArgs e)
         {
             ListView listview = sender as ListView;
+            btnRemove.Enabled = listview.SelectedItems.Count != 0;
+
             if (listview != null)
             {
                 if (listview.SelectedItems.Count != 0)
@@ -93,30 +95,6 @@ namespace Likewise.LMC.UtilityUIElements
                                     dgRow.Cells[2].Value = false;
                             }
                         }
-                    }
-                }
-            }
-        }
-
-        private void DgPermissions_CellValueChanged(object sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex == 0 && e.ColumnIndex != 0)
-            {
-                DataGridViewRow Row = DgPermissions.Rows[e.RowIndex];
-                if (Row.Cells[e.ColumnIndex].Value.ToString().Equals("True"))
-                {
-                    DataGridViewRowCollection dgRows = DgPermissions.Rows;
-                    foreach (DataGridViewRow dgRow in dgRows)
-                    {
-                        dgRow.Cells[e.ColumnIndex].Value = true;
-                        dgRow.Cells[e.ColumnIndex].ReadOnly = true;
-                    }
-                }
-                else
-                {
-                    foreach (DataGridViewRow dgRow in DgPermissions.Rows)
-                    {
-                        dgRow.Cells[e.ColumnIndex].ReadOnly = false;
                     }
                 }
             }
@@ -223,7 +201,7 @@ namespace Likewise.LMC.UtilityUIElements
             }
         }
 
-        private void DgPermissions_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        private void DgPermissions_CellMouseUp(object sender, DataGridViewCellMouseEventArgs e)
         {
             DataGridViewRow dgRow = DgPermissions.Rows[e.RowIndex];
             if (dgRow != null)
@@ -241,7 +219,8 @@ namespace Likewise.LMC.UtilityUIElements
                     //Validation for the AceType = Allow
                     //Update the the AceType object with modified access modes
                     //AceFlags = 16 is the inherited permission
-                    if (ace.AceType == 0 && ace.AceFlags != 16) {
+                    if (ace.AceType == 0 && ace.AceFlags != 16)
+                    {
                         if (dgRow.Cells[1].Value.ToString().Equals("True"))
                         {
                             _securityDescriptor.GetIntAccessMaskFromStringAceMask(dgRow.Cells[0].Value.ToString(), ref iAceMask);
@@ -249,7 +228,8 @@ namespace Likewise.LMC.UtilityUIElements
                     }
 
                     //Validation for the AceType = Deny
-                    if (ace.AceType == 1) {
+                    if (ace.AceType == 1)
+                    {
                         if (dgRow.Cells[2].Value.ToString().Equals("True"))
                         {
                             _securityDescriptor.GetIntAccessMaskFromStringAceMask(dgRow.Cells[0].Value.ToString(), ref iAceMask);
@@ -267,11 +247,41 @@ namespace Likewise.LMC.UtilityUIElements
                 else
                     _editedObjects.Add(sobjectname, daclInfo);
             }
+            CheckPemissions(sender, e);
         }
 
         #endregion
 
         #region Helper functions
+
+        private void CheckPemissions(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.RowIndex == 0 && e.ColumnIndex != 0)
+            {
+                DataGridViewRow Row = DgPermissions.Rows[e.RowIndex];
+                if (Row.Cells[e.ColumnIndex].Value.ToString().Equals("True"))
+                {
+                    DataGridViewRowCollection dgRows = DgPermissions.Rows;
+                    foreach (DataGridViewRow dgRow in dgRows)
+                    {
+                        dgRow.Cells[e.ColumnIndex].Value = true;
+                        dgRow.Cells[e.ColumnIndex].ReadOnly = true;
+                    }
+                }
+                else
+                {
+                    foreach (DataGridViewRow dgRow in DgPermissions.Rows)
+                    {
+                        dgRow.Cells[e.ColumnIndex].ReadOnly = false;
+                    }
+                }
+            }
+            else
+            {
+                foreach (DataGridViewRow dgRow in DgPermissions.Rows)
+                    dgRow.Cells[e.ColumnIndex].ReadOnly = false;
+            }
+        }
 
         public bool OnApply()
         {

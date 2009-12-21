@@ -56,9 +56,9 @@
 #endif
 
 DWORD
-LsaInitializeProvider(
+LsaInitializeProvider2(
     OUT PCSTR* ppszProviderName,
-    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    OUT PLSA_PROVIDER_FUNCTION_TABLE_2* ppFunctionTable
     );
 
 DWORD
@@ -68,9 +68,7 @@ AD_ShutdownProvider(
 
 DWORD
 AD_OpenHandle(
-    uid_t   uid,
-    gid_t   gid,
-    pid_t   pid,
+    HANDLE hServer,
     PHANDLE phProvider
     );
 
@@ -119,49 +117,10 @@ AD_CheckUserInList(
     );
 
 DWORD
-AD_FindUserByName(
-    HANDLE  hProvider,
-    PCSTR   pszLoginId,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    );
-
-DWORD
-AD_FindUserById(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    );
-
-DWORD
 AD_FindUserObjectById(
     IN HANDLE  hProvider,
     IN uid_t uid,
     OUT PLSA_SECURITY_OBJECT* ppResult
-    );
-
-DWORD
-AD_BeginEnumUsers(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
-    );
-
-DWORD
-AD_EnumUsers(
-    HANDLE  hProvider,
-    HANDLE  hResume,
-    DWORD   dwMaxNumUsers,
-    PDWORD  pdwUsersFound,
-    PVOID** pppUserInfoList
-    );
-
-VOID
-AD_EndEnumUsers(
-    HANDLE hProvider,
-    HANDLE hResume
     );
 
 DWORD
@@ -192,74 +151,12 @@ AD_RemoveUserByIdFromCache(
     );
 
 DWORD
-AD_FindGroupByName(
-    IN HANDLE hProvider,
-    IN PCSTR pszGroupName,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
-AD_FindGroupByNameWithCacheMode(
-    IN HANDLE hProvider,
-    IN PCSTR pszGroupName,
-    IN BOOLEAN bIsCacheOnlyMode,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
-AD_FindGroupById(
-    IN HANDLE hProvider,
-    IN gid_t gid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
 AD_GetUserGroupObjectMembership(
     IN HANDLE hProvider,
     IN PLSA_SECURITY_OBJECT pUserInfo,
     IN BOOLEAN bIsCacheOnlyMode,
     OUT size_t* psNumGroupsFound,
     OUT PLSA_SECURITY_OBJECT** pppResult
-    );
-
-DWORD
-AD_GetGroupsForUser(
-    IN HANDLE hProvider,
-    IN OPTIONAL PCSTR pszUserName,
-    IN OPTIONAL uid_t uid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    IN PDWORD pdwNumGroupsFound,
-    IN PVOID** pppGroupInfoList
-    );
-
-DWORD
-AD_BeginEnumGroups(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    BOOLEAN bCheckGroupMembersOnline,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
-    );
-
-DWORD
-AD_EnumGroups(
-    HANDLE  hProvider,
-    HANDLE  hResume,
-    DWORD   dwMaxGroups,
-    PDWORD  pdwGroupsFound,
-    PVOID** pppGroupInfoList
-    );
-
-VOID
-AD_EndEnumGroups(
-    HANDLE hProvider,
-    HANDLE hResume
     );
 
 DWORD
@@ -307,39 +204,31 @@ AD_SetPassword(
 DWORD
 AD_AddUser(
     HANDLE hProvider,
-    DWORD  dwUserInfoLevel,
-    PVOID  pUserInfo
+    PLSA_USER_ADD_INFO pInfo
     );
 
 DWORD
 AD_ModifyUser(
     HANDLE hProvider,
-    PLSA_USER_MOD_INFO pUserModInfo
+    PLSA_USER_MOD_INFO_2 pUserModInfo
     );
 
 DWORD
-AD_DeleteUser(
+AD_DeleteObject(
     HANDLE hProvider,
-    uid_t  uid
+    PCSTR pszSid
     );
 
 DWORD
 AD_AddGroup(
     HANDLE hProvider,
-    DWORD dwGroupInfoLevel,
-    PVOID pGroupInfo
+    PLSA_GROUP_ADD_INFO pInfo
     );
 
 DWORD
 AD_ModifyGroup(
     HANDLE hProvider,
-    PLSA_GROUP_MOD_INFO pGroupModInfo
-    );
-
-DWORD
-AD_DeleteGroup(
-    HANDLE hProvider,
-    gid_t  gid
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
     );
 
 DWORD
@@ -359,16 +248,6 @@ DWORD
 AD_CloseSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
-    );
-
-DWORD
-AD_GetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes
     );
 
 DWORD
@@ -458,15 +337,6 @@ AD_ProviderIoControl(
     );
 
 DWORD
-AD_GetGroupMembershipByProvider(
-    IN HANDLE     hProvider,
-    IN PCSTR      pszSid,
-    IN DWORD      dwGroupInfoLevel,
-    OUT PDWORD    pdwGroupsCount,
-    OUT PVOID   **pppMembershipInfo
-    );
-
-DWORD
 AD_FindUserObjectByName(
     IN HANDLE  hProvider,
     IN PCSTR   pszLoginId,
@@ -502,15 +372,6 @@ AD_GetExpandedGroupUsers(
     OUT BOOLEAN* pbAllExpanded,
     OUT size_t* psCount,
     OUT PLSA_SECURITY_OBJECT** pppResults
-    );
-
-DWORD
-AD_GroupObjectToGroupInfo(
-    IN HANDLE hProvider,
-    IN PLSA_SECURITY_OBJECT pGroupObject,
-    IN BOOLEAN bIsCacheOnlyMode,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
     );
 
 DWORD
@@ -570,6 +431,11 @@ AD_QueryMemberOf(
 VOID
 AD_CloseEnum(
     IN OUT HANDLE hEnum
+    );
+
+DWORD
+AD_UpdateObject(
+    IN OUT PLSA_SECURITY_OBJECT pObject
     );
 
 #endif /* __PROVIDER_MAIN_H__ */

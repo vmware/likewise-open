@@ -118,10 +118,9 @@ DWORD
 LsaAdEnumGroupsFromCache(
     IN HANDLE   hLsaConnection,
     IN PSTR*    ppszResume,
-    IN DWORD    dwInfoLevel,
     IN DWORD    dwMaxNumGroups,
     OUT PDWORD  pdwGroupsFound,
-    OUT PVOID** pppGroupInfoList
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     )
 {
     DWORD dwError = 0;
@@ -133,7 +132,6 @@ LsaAdEnumGroupsFromCache(
     LWMsgDataContext* pDataContext = NULL;
     LSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_REQ request;
     PLSA_AD_IPC_ENUM_GROUPS_FROM_CACHE_RESP response = NULL;
-    PLSA_GROUP_INFO_LIST pResultList = NULL;
 
     memset(&request, 0, sizeof(request));
 
@@ -145,7 +143,6 @@ LsaAdEnumGroupsFromCache(
 
     // marshal the request
     request.pszResume = *ppszResume;
-    request.dwInfoLevel = dwInfoLevel;
     request.dwMaxNumGroups = dwMaxNumGroups;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &context));
@@ -180,30 +177,16 @@ LsaAdEnumGroupsFromCache(
                                   (PVOID*)&response));
     BAIL_ON_LSA_ERROR(dwError);
 
-    pResultList = response->pGroupInfoList;
-    *pdwGroupsFound = pResultList->dwNumGroups;
-    switch (pResultList->dwGroupInfoLevel)
-    {
-        case 0:
-            *pppGroupInfoList = (PVOID*)pResultList->ppGroupInfoList.ppInfoList0;
-            pResultList->ppGroupInfoList.ppInfoList0 = NULL;
-            pResultList->dwNumGroups = 0;
-            break;
-        case 1:
-            *pppGroupInfoList = (PVOID*)pResultList->ppGroupInfoList.ppInfoList1;
-            pResultList->ppGroupInfoList.ppInfoList1 = NULL;
-            pResultList->dwNumGroups = 0;
-            break;
-        default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
+    *pdwGroupsFound = response->dwNumGroups;
+    *pppObjects = response->ppObjects;
+    response->ppObjects = NULL;
 
     if ( *ppszResume )
     {
         LwFreeMemory(*ppszResume);
         *ppszResume = NULL;
     }
+
     *ppszResume = response->pszResume;
     response->pszResume = NULL;
 
@@ -248,7 +231,7 @@ error:
     }
 
     *pdwGroupsFound = 0;
-    *pppGroupInfoList = NULL;
+    *pppObjects = NULL;
 
     goto cleanup;
 }

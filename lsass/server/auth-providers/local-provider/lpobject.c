@@ -49,16 +49,6 @@
 
 #include "includes.h"
 
-static
-DWORD
-LocalDirFindObjectBySID(
-    HANDLE hProvider,
-    PCSTR  pszSID,
-    PDWORD pdwObjectClass,
-    PSTR*  ppszNetBIOSDomain,
-    PSTR*  ppszName
-    );
-
 DWORD
 LocalFindObjectByName(
     HANDLE hProvider,
@@ -167,229 +157,6 @@ error:
     goto cleanup;
 }
 
-DWORD
-LocalDirGetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes
-    )
-{
-    DWORD dwError = 0;
-    PSTR* ppszDomainNames = NULL;
-    PSTR* ppszSamAccounts = NULL;
-    ADAccountType* pTypes = NULL;
-    size_t iSid = 0;
-
-    dwError = LwAllocateMemory(
-                        sizeof(PSTR) * sCount,
-                        (PVOID*)&ppszDomainNames);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(
-                    sizeof(PSTR) * sCount,
-                    (PVOID*)&ppszSamAccounts);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(
-                    sizeof(ADAccountType*) * sCount,
-                    (PVOID*)&pTypes);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (; iSid < sCount; iSid++)
-    {
-        DWORD dwObjectClass = LOCAL_OBJECT_CLASS_UNKNOWN;
-        PCSTR pszSID = ppszSidList[iSid];
-
-        dwError = LocalDirFindObjectBySID(
-                        hProvider,
-                        pszSID,
-                        &dwObjectClass,
-                        &ppszDomainNames[iSid],
-                        &ppszSamAccounts[iSid]);
-        if (dwError == LW_ERROR_NO_SUCH_OBJECT)
-        {
-            dwError = LW_ERROR_SUCCESS;
-
-            pTypes[iSid] = AccountType_NotFound;
-            continue;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        switch (dwObjectClass)
-        {
-            case LOCAL_OBJECT_CLASS_DOMAIN:
-
-                pTypes[iSid] = AccountType_Domain;
-
-                break;
-
-            case LOCAL_OBJECT_CLASS_GROUP:
-
-                pTypes[iSid] = AccountType_Group;
-
-                break;
-
-            case LOCAL_OBJECT_CLASS_USER:
-
-                pTypes[iSid] = AccountType_User;
-
-                break;
-
-            default:
-
-                dwError = LW_ERROR_DATA_ERROR;
-                BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-
-    *pppszDomainNames = ppszDomainNames;
-    *pppszSamAccounts = ppszSamAccounts;
-    *ppTypes = pTypes;
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    *pppszDomainNames = NULL;
-    *pppszSamAccounts = NULL;
-    *ppTypes = NULL;
-
-    LwFreeStringArray(ppszDomainNames, sCount);
-    LwFreeStringArray(ppszSamAccounts, sCount);
-    LW_SAFE_FREE_MEMORY(pTypes);
-
-    goto cleanup;
-}
-
-static
-DWORD
-LocalDirFindObjectBySID(
-    HANDLE hProvider,
-    PCSTR  pszSID,
-    PDWORD pdwObjectClass,
-    PSTR*  ppszNetBIOSDomain,
-    PSTR*  ppszName
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameObjectClass[] = LOCAL_DIR_ATTR_OBJECT_CLASS;
-    wchar16_t wszAttrSamAccountName[]  = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNetBIOSDomain[]   = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameObjectClass[0],
-        &wszAttrSamAccountName[0],
-        &wszAttrNetBIOSDomain[0],
-        NULL
-    };
-    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    DWORD dwNumEntries = 0;
-    PCSTR pszFilterTemplate = LOCAL_DB_DIR_ATTR_OBJECT_SID " = \"%s\"";
-    PSTR  pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    DWORD dwObjectClass = LOCAL_OBJECT_CLASS_UNKNOWN;
-    PSTR  pszSamAccountName = NULL;
-    PSTR  pszNetBIOSDomain = NULL;
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    pszSID);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEntries,
-                    &dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwNumEntries == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_OBJECT;
-    }
-    else if (dwNumEntries != 1)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEntry = &pEntries[0];
-    if (pEntry->ulNumAttributes != dwNumAttrs)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalMarshalAttrToInteger(
-                    pEntry,
-                    &wszAttrNameObjectClass[0],
-                    &dwObjectClass);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalMarshalAttrToANSIFromUnicodeString(
-                    pEntry,
-                    &wszAttrSamAccountName[0],
-                    &pszSamAccountName);
-    if (dwError == LW_ERROR_NO_ATTRIBUTE_VALUE)
-    {
-        // This is just a stub object used for group membership. A complete
-        // record of the object does not exist in this database.
-        dwError = LW_ERROR_NO_SUCH_OBJECT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalMarshalAttrToANSIFromUnicodeString(
-                    pEntry,
-                    &wszAttrNetBIOSDomain[0],
-                    &pszNetBIOSDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *pdwObjectClass = dwObjectClass;
-    *ppszNetBIOSDomain = pszNetBIOSDomain;
-    *ppszName = pszSamAccountName;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-
-    if (pEntries)
-    {
-        DirectoryFreeEntries(pEntries, dwNumEntries);
-    }
-
-    return dwError;
-
-error:
-
-    *pdwObjectClass = LOCAL_OBJECT_CLASS_UNKNOWN;
-    *ppszName = NULL;
-    *ppszNetBIOSDomain = NULL;
-
-    LW_SAFE_FREE_MEMORY(pszNetBIOSDomain);
-    LW_SAFE_FREE_MEMORY(pszSamAccountName);
-
-    goto cleanup;
-}
-
 static
 DWORD
 LocalDirResolveUserObjectPrimaryGroupSid(
@@ -399,7 +166,7 @@ LocalDirResolveUserObjectPrimaryGroupSid(
 {
     DWORD dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    static WCHAR wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
+    static WCHAR wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
     static PWSTR wszAttrs[] =
     {
         wszAttrNameObjectSID,
@@ -411,7 +178,7 @@ LocalDirResolveUserObjectPrimaryGroupSid(
     PDIRECTORY_ENTRY pEntry = NULL;
     DWORD dwNumEntries = 0;
 
-    if (pUserObject->type != AccountType_User)
+    if (pUserObject->type != LSA_OBJECT_TYPE_USER)
     {
         goto cleanup;
     }
@@ -1478,6 +1245,91 @@ error:
     {
         LwFreeStringArray(ppszGroupSids, dwGroupSidCount);
     }
+
+    goto cleanup;
+}
+
+DWORD
+LocalDirFindObjectByGenericName(
+    HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    PCSTR pszName,
+    PLSA_SECURITY_OBJECT* ppObject
+    )
+{
+    DWORD dwError = 0;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+    LSA_QUERY_TYPE QueryType = 0;
+    PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+
+    BAIL_ON_INVALID_HANDLE(hProvider);
+
+    dwError = LocalCrackDomainQualifiedName(
+        pszName,
+        &pLoginInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (pLoginInfo->nameType)
+    {
+    case NameType_NT4:
+        QueryType = LSA_QUERY_TYPE_BY_NT4;
+        break;
+    case NameType_UPN:
+        QueryType = LSA_QUERY_TYPE_BY_UPN;
+        break;
+    case NameType_Alias:
+        QueryType = LSA_QUERY_TYPE_BY_ALIAS;
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    QueryList.ppszStrings = &pszName;
+
+    dwError = LocalFindObjects(
+        hProvider,
+        FindFlags,
+        ObjectType,
+        QueryType,
+        1,
+        QueryList,
+        &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppObjects[0] == NULL)
+    {
+        switch (ObjectType)
+        {
+        case LSA_OBJECT_TYPE_USER:
+            dwError = LW_ERROR_NO_SUCH_USER;
+            break;
+        case LSA_OBJECT_TYPE_GROUP:
+            dwError = LW_ERROR_NO_SUCH_GROUP;
+            break;
+        default:
+            dwError = LW_ERROR_NO_SUCH_OBJECT;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    *ppObject = ppObjects[0];
+    ppObjects[0] = NULL;
+
+cleanup:
+
+    if (pLoginInfo)
+    {
+        LsaFreeNameInfo(pLoginInfo);
+    }
+
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
+
+    return dwError;
+
+error:
 
     goto cleanup;
 }

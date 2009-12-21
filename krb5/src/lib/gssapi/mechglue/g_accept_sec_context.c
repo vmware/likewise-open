@@ -345,6 +345,23 @@ gss_cred_id_t *		d_cred;
 		}
 	    }
 
+            if (status == GSS_S_COMPLETE && actual_mech) {
+                gss_OID temp_mech_type = union_ctx_id->mech_type;
+
+                status = generic_gss_copy_oid(minor_status, actual_mech,
+                                              &union_ctx_id->mech_type);
+                if (status != GSS_S_COMPLETE) {
+                    gssint_delete_internal_sec_context(&temp_minor_status,
+                                                       actual_mech,
+                                                       &union_ctx_id->internal_ctx_id,
+                                                       NULL);
+                    free(union_ctx_id);
+                    *context_handle = GSS_C_NO_CONTEXT;
+                }
+                free(temp_mech_type->elements);
+                free(temp_mech_type);
+            }
+
 	    if (mech_type != NULL)
 		*mech_type = actual_mech;
 	    else

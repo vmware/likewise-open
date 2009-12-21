@@ -93,15 +93,6 @@ AD_OfflineFindGroupObjectByName(
     );
 
 DWORD
-AD_OfflineFindGroupById(
-    IN HANDLE hProvider,
-    IN gid_t gid,
-    IN BOOLEAN bIsCacheOnlyMode,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
 AD_OfflineGetUserGroupObjectMembership(
     IN HANDLE hProvider,
     IN PLSA_SECURITY_OBJECT pUserInfo,
@@ -124,16 +115,6 @@ AD_OfflineChangePassword(
     PCSTR pszUserName,
     PCSTR pszPassword,
     PCSTR pszOldPassword
-    );
-
-DWORD
-AD_OfflineGetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes
     );
 
 DWORD

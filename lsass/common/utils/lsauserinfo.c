@@ -795,6 +795,48 @@ LsaFreeUserModInfo(
 }
 
 void
+LsaFreeUserModInfo2(
+    PLSA_USER_MOD_INFO_2 pUserModInfo
+    )
+{
+    LW_SAFE_FREE_STRING(pUserModInfo->pszSid);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszPrimaryGroupSid);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszAddToGroups);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszRemoveFromGroups);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszExpiryDate);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszHomedir);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszShell);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszGecos);
+    LW_SAFE_FREE_STRING(pUserModInfo->pszPassword);
+
+    if (pUserModInfo->pNtPasswordHash) {
+        LW_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash->pData);
+    }
+    LW_SAFE_FREE_MEMORY(pUserModInfo->pNtPasswordHash);
+
+    if (pUserModInfo->pLmPasswordHash) {
+        LW_SAFE_FREE_MEMORY(pUserModInfo->pLmPasswordHash->pData);
+    }
+    LW_SAFE_FREE_MEMORY(pUserModInfo->pLmPasswordHash);
+
+    LwFreeMemory(pUserModInfo);
+}
+
+void
+LsaFreeUserAddInfo(
+    PLSA_USER_ADD_INFO pUserAddInfo
+    )
+{
+    LW_SAFE_FREE_STRING(pUserAddInfo->pszName);
+    LW_SAFE_FREE_STRING(pUserAddInfo->pszPrimaryGroupSid);
+    LW_SAFE_FREE_STRING(pUserAddInfo->pszPassword);
+    LW_SAFE_FREE_STRING(pUserAddInfo->pszGecos);
+    LW_SAFE_FREE_STRING(pUserAddInfo->pszShell);
+    LW_SAFE_FREE_STRING(pUserAddInfo->pszHomedir);
+}
+
+
+void
 LsaFreeUserInfoList(
     DWORD  dwLevel,
     PVOID* ppUserInfoList,

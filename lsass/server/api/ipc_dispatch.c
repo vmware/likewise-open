@@ -708,7 +708,6 @@ error:
     goto cleanup;
 }
 
-
 static LWMsgStatus
 LsaSrvIpcSetMachineName(
     LWMsgCall *pCall,
@@ -744,19 +743,8 @@ error:
     goto cleanup;
 }
 
-
-static void
-LsaSrvCleanupGroupEnumHandle(
-    void* pData
-    )
-{
-    LsaSrvEndEnumGroups(
-        NULL,
-        (HANDLE) pData);
-}
-
 static LWMsgStatus
-LsaSrvIpcAddGroup(
+LsaSrvIpcAddGroup2(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,
@@ -765,537 +753,16 @@ LsaSrvIpcAddGroup(
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
-    // Do not free pGroupInfoList
-    PLSA_GROUP_INFO_LIST pGroupInfoList = (PLSA_GROUP_INFO_LIST)pIn->data;
+    PLSA2_IPC_ADD_GROUP_REQ pReq = pIn->data;
 
-    switch (pGroupInfoList->dwGroupInfoLevel)
-    {
-        case 0:
-            dwError = LsaSrvAddGroup(
-                            LsaSrvIpcGetSessionData(pCall),
-                            0,
-                            pGroupInfoList->ppGroupInfoList.ppInfoList0[0]);
-            break;
-        case 1:
-            dwError = LsaSrvAddGroup(
-                            LsaSrvIpcGetSessionData(pCall),
-                            1,
-                            pGroupInfoList->ppGroupInfoList.ppInfoList1[0]);
-            break;
-        default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-    }
-
-    if (!dwError)
-    {
-        pOut->tag = LSA_R_ADD_GROUP_SUCCESS;
-        pOut->data = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_ADD_GROUP_FAILURE;;
-        pOut->data = pError;
-    }
-
-cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcModifyGroup(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvModifyGroup(
-                    LsaSrvIpcGetSessionData(pCall),
-                    (PLSA_GROUP_MOD_INFO)pIn->data);
-    if (!dwError)
-    {
-        pOut->tag    = LSA_R_MODIFY_GROUP_SUCCESS;
-        pOut->data = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag    = LSA_R_MODIFY_GROUP_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcFindGroupByName(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    // Do not free pGroupInfo
-    PVOID pGroupInfo = NULL;
-    PVOID* ppGroupInfoList = NULL;
-    PLSA_GROUP_INFO_LIST pResult = NULL;
-    PLSA_IPC_FIND_OBJECT_BY_NAME_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvFindGroupByName(
-                       LsaSrvIpcGetSessionData(pCall),
-                       pReq->pszName,
-                       pReq->FindFlags,
-                       pReq->dwInfoLevel,
-                       &pGroupInfo);
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(sizeof(*pResult),
-                                        (PVOID)&pResult);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResult->dwGroupInfoLevel = pReq->dwInfoLevel;
-        pResult->dwNumGroups = 1;
-        dwError = LwAllocateMemory(
-                        sizeof(*ppGroupInfoList) * 1,
-                        (PVOID*)&ppGroupInfoList);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        ppGroupInfoList[0] = pGroupInfo;
-        pGroupInfo = NULL;
-
-        switch (pResult->dwGroupInfoLevel)
-        {
-            case 0:
-                pResult->ppGroupInfoList.ppInfoList0 = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
-                ppGroupInfoList = NULL;
-                break;
-            case 1:
-                pResult->ppGroupInfoList.ppInfoList1 = (PLSA_GROUP_INFO_1*)ppGroupInfoList;
-                ppGroupInfoList = NULL;
-                break;
-            default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pOut->tag = LSA_R_GROUP_BY_NAME_SUCCESS;
-        pOut->data = pResult;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_GROUP_BY_NAME_FAILURE;;
-        pOut->data = pError;
-    }
-
-cleanup:
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(pReq->dwInfoLevel, pGroupInfo);
-    }
-    if(ppGroupInfoList)
-    {
-        LsaFreeGroupInfoList(pReq->dwInfoLevel, ppGroupInfoList, 1);
-    }
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    if(pResult)
-    {
-        LsaFreeIpcGroupInfoList(pResult);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcFindGroupById(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PVOID pGroupInfo = NULL;
-    PVOID* ppGroupInfoList = NULL;
-    PLSA_GROUP_INFO_LIST pResult = NULL;
-    PLSA_IPC_FIND_OBJECT_BY_ID_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvFindGroupById(
-                       LsaSrvIpcGetSessionData(pCall),
-                       pReq->id,
-                       pReq->FindFlags,
-                       pReq->dwInfoLevel,
-                       &pGroupInfo);
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(sizeof(*pResult),
-                                    (PVOID)&pResult);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResult->dwGroupInfoLevel = pReq->dwInfoLevel;
-        pResult->dwNumGroups = 1;
-        dwError = LwAllocateMemory(
-                        sizeof(*ppGroupInfoList) * 1,
-                        (PVOID*)&ppGroupInfoList);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        ppGroupInfoList[0] = pGroupInfo;
-        pGroupInfo = NULL;
-
-        switch (pResult->dwGroupInfoLevel)
-        {
-            case 0:
-                pResult->ppGroupInfoList.ppInfoList0 = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
-                ppGroupInfoList = NULL;
-                break;
-            case 1:
-                pResult->ppGroupInfoList.ppInfoList1 = (PLSA_GROUP_INFO_1*)ppGroupInfoList;
-                ppGroupInfoList = NULL;
-                break;
-            default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pOut->tag = LSA_R_GROUP_BY_ID_SUCCESS;
-        pOut->data = pResult;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_GROUP_BY_ID_FAILURE;;
-        pOut->data = pError;
-    }
-
-cleanup:
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(pReq->dwInfoLevel, pGroupInfo);
-    }
-    if(ppGroupInfoList)
-    {
-        LsaFreeGroupInfoList(pReq->dwInfoLevel, ppGroupInfoList, 1);
-    }
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    if(pResult)
-    {
-        LsaFreeIpcGroupInfoList(pResult);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcGetGroupsForUser(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PVOID* ppGroupInfoList = NULL;
-    DWORD dwNumGroupsFound = 0;
-    PLSA_GROUP_INFO_LIST pResult = NULL;
-    PLSA_IPC_FIND_OBJECT_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-
-    switch (pReq->ByType)
-    {
-        case LSA_IPC_FIND_OBJECT_BY_TYPE_NAME:
-            dwError = LsaSrvGetGroupsForUser(
-                               LsaSrvIpcGetSessionData(pCall),
-                               pReq->ByData.pszName,
-                               0,
-                               pReq->FindFlags,
-                               pReq->dwInfoLevel,
-                               &dwNumGroupsFound,
-                               &ppGroupInfoList);
-            break;
-        case LSA_IPC_FIND_OBJECT_BY_TYPE_ID:
-            dwError = LsaSrvGetGroupsForUser(
-                               LsaSrvIpcGetSessionData(pCall),
-                               NULL,
-                               pReq->ByData.dwId,
-                               pReq->FindFlags,
-                               pReq->dwInfoLevel,
-                               &dwNumGroupsFound,
-                               &ppGroupInfoList);
-            break;
-        default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(sizeof(*pResult),
-                                        (PVOID)&pResult);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResult->dwGroupInfoLevel = pReq->dwInfoLevel;
-        pResult->dwNumGroups = dwNumGroupsFound;
-
-        switch (pResult->dwGroupInfoLevel)
-        {
-            case 0:
-                pResult->ppGroupInfoList.ppInfoList0 = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
-                ppGroupInfoList = NULL;
-                break;
-            case 1:
-                pResult->ppGroupInfoList.ppInfoList1 = (PLSA_GROUP_INFO_1*)ppGroupInfoList;
-                ppGroupInfoList = NULL;
-                break;
-            default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pOut->tag = LSA_R_GROUPS_FOR_USER_SUCCESS;
-        pOut->data = pResult;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_GROUPS_FOR_USER_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-    if(ppGroupInfoList)
-    {
-        LsaFreeGroupInfoList(pReq->dwInfoLevel, ppGroupInfoList, dwNumGroupsFound);
-    }
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    if(pResult)
-    {
-        LsaFreeIpcGroupInfoList(pResult);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcBeginEnumGroups(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_BEGIN_ENUM_GROUPS_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-    PVOID hResume = NULL;
-
-    dwError = LsaSrvBeginEnumGroups(
-                        LsaSrvIpcGetSessionData(pCall),
-                        pReq->dwInfoLevel,
-                        pReq->dwNumMaxRecords,
-                        pReq->bCheckGroupMembersOnline,
-                        pReq->FindFlags,
-                        &hResume);
-
-    if (!dwError)
-    {
-        dwError = LsaSrvIpcRegisterHandle(
-                                      pCall,
-                                      "EnumGroups",
-                                      hResume,
-                                      LsaSrvCleanupGroupEnumHandle);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_BEGIN_ENUM_GROUPS_SUCCESS;
-        pOut->data = hResume;
-        hResume = NULL;
-
-        dwError = LsaSrvIpcRetainHandle(pCall, pOut->data);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_BEGIN_ENUM_GROUPS_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-
-    if(hResume)
-    {
-        LsaSrvCleanupGroupEnumHandle(hResume);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcEnumGroups(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PVOID* ppGroupInfoList = NULL;
-    DWORD  dwGroupInfoLevel = 0;
-    DWORD  dwNumGroupsFound = 0;
-    PLSA_GROUP_INFO_LIST pResult = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvEnumGroups(
+    dwError = LsaSrvAddGroup2(
         LsaSrvIpcGetSessionData(pCall),
-        (HANDLE) pIn->data,
-        &dwGroupInfoLevel,
-        &ppGroupInfoList,
-        &dwNumGroupsFound);
+        pReq->pszTargetProvider,
+        pReq->pGroupAddInfo);
 
     if (!dwError)
     {
-        dwError = LwAllocateMemory(sizeof(*pResult),
-                                    (PVOID)&pResult);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResult->dwGroupInfoLevel = dwGroupInfoLevel;
-        pResult->dwNumGroups = dwNumGroupsFound;
-        switch (pResult->dwGroupInfoLevel)
-        {
-            case 0:
-                pResult->ppGroupInfoList.ppInfoList0 = (PLSA_GROUP_INFO_0*)ppGroupInfoList;
-                ppGroupInfoList = NULL;
-                break;
-
-            case 1:
-                pResult->ppGroupInfoList.ppInfoList1 = (PLSA_GROUP_INFO_1*)ppGroupInfoList;
-                ppGroupInfoList = NULL;
-                break;
-
-            default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pOut->tag = LSA_R_ENUM_GROUPS_SUCCESS;
-        pOut->data = pResult;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_ENUM_GROUPS_FAILURE;;
-        pOut->data = pError;
-    }
-
-cleanup:
-    if(ppGroupInfoList)
-    {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, ppGroupInfoList, dwNumGroupsFound);
-    }
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    if(pResult)
-    {
-        LsaFreeIpcGroupInfoList(pResult);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcEndEnumGroups(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvIpcUnregisterHandle(pCall, pIn->data);
-    if (!dwError)
-    {
-        pOut->tag = LSA_R_END_ENUM_GROUPS_SUCCESS;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_END_ENUM_GROUPS_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcDeleteGroup(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvDeleteGroup(
-                        LsaSrvIpcGetSessionData(pCall),
-                        *((PDWORD)pIn->data));
-
-    if (!dwError)
-    {
-        pOut->tag = LSA_R_DELETE_GROUP_SUCCESS;
+        pOut->tag = LSA2_R_ADD_GROUP;
         pOut->data = NULL;
     }
     else
@@ -1303,7 +770,83 @@ LsaSrvIpcDeleteGroup(
         dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pOut->tag = LSA_R_DELETE_GROUP_FAILURE;
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+static LWMsgStatus
+LsaSrvIpcModifyGroup2(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    PLSA2_IPC_MODIFY_GROUP_REQ pReq = pIn->data;
+
+    dwError = LsaSrvModifyGroup2(
+                    LsaSrvIpcGetSessionData(pCall),
+                    pReq->pszTargetProvider,
+                    pReq->pGroupModInfo);
+
+    if (!dwError)
+    {
+        pOut->tag = LSA2_R_MODIFY_GROUP;
+        pOut->data = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+    goto cleanup;
+}
+
+static LWMsgStatus
+LsaSrvIpcDeleteObject(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    PLSA2_IPC_DELETE_OBJECT_REQ pReq = pIn->data;
+
+    dwError = LsaSrvDeleteObject(
+                        LsaSrvIpcGetSessionData(pCall),
+                        pReq->pszTargetProvider,
+                        pReq->pszSid);
+
+    if (!dwError)
+    {
+        pOut->tag = LSA2_R_DELETE_OBJECT;
+        pOut->data = NULL;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
         pOut->data = pError;
     }
 
@@ -1789,16 +1332,6 @@ error:
 }
 
 static void
-LsaSrvCleanupUserEnumHandle(
-    void* pData
-    )
-{
-    LsaSrvEndEnumUsers(
-        NULL,
-        (HANDLE) pData);
-}
-
-static void
 LsaSrvCleanupEnumHandle(
     void* pData
     )
@@ -1807,7 +1340,7 @@ LsaSrvCleanupEnumHandle(
 }
 
 static LWMsgStatus
-LsaSrvIpcAddUser(
+LsaSrvIpcAddUser2(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,
@@ -1816,460 +1349,16 @@ LsaSrvIpcAddUser(
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
-    // Do not free pUserInfoList
-    PLSA_USER_INFO_LIST pUserInfoList = (PLSA_USER_INFO_LIST)pIn->data;
+    PLSA2_IPC_ADD_USER_REQ pReq = pIn->data;
 
-    switch (pUserInfoList->dwUserInfoLevel)
-    {
-        case 0:
-            dwError = LsaSrvAddUser(
-                            LsaSrvIpcGetSessionData(pCall),
-                            0,
-                            pUserInfoList->ppUserInfoList.ppInfoList0[0]);
-            break;
-        case 1:
-            dwError = LsaSrvAddUser(
-                            LsaSrvIpcGetSessionData(pCall),
-                            1,
-                            pUserInfoList->ppUserInfoList.ppInfoList1[0]);
-            break;
-        case 2:
-            dwError = LsaSrvAddUser(
-                            LsaSrvIpcGetSessionData(pCall),
-                            2,
-                            pUserInfoList->ppUserInfoList.ppInfoList2[0]);
-            break;
-        default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-    }
-
-    if (!dwError)
-    {
-        pOut->tag = LSA_R_ADD_USER_SUCCESS;
-        pOut->data = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_ADD_USER_FAILURE;;
-        pOut->data = pError;
-    }
-
-cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcModifyUser(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvModifyUser(
-                    LsaSrvIpcGetSessionData(pCall),
-                    (PLSA_USER_MOD_INFO)pIn->data);
-
-    if (!dwError)
-    {
-        pOut->tag = LSA_R_MODIFY_USER_SUCCESS;
-        pOut->data = NULL;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_MODIFY_USER_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcFindUserByName(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    // Do not free pUserInfo
-    PVOID pUserInfo = NULL;
-    PVOID* ppUserInfoList = NULL;
-    PLSA_USER_INFO_LIST pResult = NULL;
-    PLSA_IPC_FIND_OBJECT_BY_NAME_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvFindUserByName(
-                       LsaSrvIpcGetSessionData(pCall),
-                       pReq->pszName,
-                       pReq->dwInfoLevel,
-                       &pUserInfo);
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(sizeof(*pResult),
-                                        (PVOID)&pResult);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResult->dwUserInfoLevel = pReq->dwInfoLevel;
-        pResult->dwNumUsers = 1;
-        dwError = LwAllocateMemory(
-                        sizeof(*ppUserInfoList) * 1,
-                        (PVOID*)&ppUserInfoList);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        ppUserInfoList[0] = pUserInfo;
-        pUserInfo = NULL;
-
-        switch (pResult->dwUserInfoLevel)
-        {
-            case 0:
-                pResult->ppUserInfoList.ppInfoList0 = (PLSA_USER_INFO_0*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-            case 1:
-                pResult->ppUserInfoList.ppInfoList1 = (PLSA_USER_INFO_1*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-            case 2:
-                pResult->ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-            default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pOut->tag = LSA_R_USER_BY_NAME_SUCCESS;
-        pOut->data = pResult;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_USER_BY_NAME_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(pReq->dwInfoLevel, pUserInfo);
-    }
-    if(ppUserInfoList)
-    {
-        LsaFreeUserInfoList(pReq->dwInfoLevel, ppUserInfoList, 1);
-    }
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    if(pResult)
-    {
-        LsaFreeIpcUserInfoList(pResult);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcFindUserById(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    // Do not free pUserInfo
-    PVOID pUserInfo = NULL;
-    PVOID* ppUserInfoList = NULL;
-    PLSA_USER_INFO_LIST pResult = NULL;
-    PLSA_IPC_FIND_OBJECT_BY_ID_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvFindUserById(
-                       LsaSrvIpcGetSessionData(pCall),
-                       pReq->id,
-                       pReq->dwInfoLevel,
-                       &pUserInfo);
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(sizeof(*pResult),
-                                        (PVOID)&pResult);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResult->dwUserInfoLevel = pReq->dwInfoLevel;
-        pResult->dwNumUsers = 1;
-        dwError = LwAllocateMemory(
-                        sizeof(*ppUserInfoList) * 1,
-                        (PVOID*)&ppUserInfoList);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        ppUserInfoList[0] = pUserInfo;
-        pUserInfo = NULL;
-
-        switch (pResult->dwUserInfoLevel)
-        {
-            case 0:
-                pResult->ppUserInfoList.ppInfoList0 = (PLSA_USER_INFO_0*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-            case 1:
-                pResult->ppUserInfoList.ppInfoList1 = (PLSA_USER_INFO_1*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-            case 2:
-                pResult->ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-            default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pOut->tag = LSA_R_USER_BY_ID_SUCCESS;
-        pOut->data = pResult;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_USER_BY_ID_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(pReq->dwInfoLevel, pUserInfo);
-    }
-    if(ppUserInfoList)
-    {
-        LsaFreeUserInfoList(pReq->dwInfoLevel, ppUserInfoList, 1);
-    }
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    if(pResult)
-    {
-        LsaFreeIpcUserInfoList(pResult);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcBeginEnumUsers(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_BEGIN_ENUM_USERS_REQ pReq = pIn->data;
-    PLSA_IPC_ERROR pError = NULL;
-    HANDLE hResume = NULL;
-
-    dwError = LsaSrvBeginEnumUsers(
+    dwError = LsaSrvAddUser2(
         LsaSrvIpcGetSessionData(pCall),
-        pReq->dwInfoLevel,
-        pReq->dwNumMaxRecords,
-        pReq->FindFlags,
-        &hResume);
+        pReq->pszTargetProvider,
+        pReq->pUserAddInfo);
 
     if (!dwError)
     {
-        dwError = LsaSrvIpcRegisterHandle(
-                                      pCall,
-                                      "EnumUsers",
-                                      hResume,
-                                      LsaSrvCleanupUserEnumHandle);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_BEGIN_ENUM_USERS_SUCCESS;
-        pOut->data = hResume;
-        hResume = NULL;
-
-        dwError = LsaSrvIpcRetainHandle(pCall, pOut->data);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_BEGIN_ENUM_USERS_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-
-    if(hResume)
-    {
-        LsaSrvCleanupUserEnumHandle(hResume);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcEnumUsers(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PVOID* ppUserInfoList = NULL;
-    DWORD  dwUserInfoLevel = 0;
-    DWORD  dwNumUsersFound = 0;
-    PLSA_USER_INFO_LIST pResult = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvEnumUsers(
-                       LsaSrvIpcGetSessionData(pCall),
-                       pIn->data,
-                       &dwUserInfoLevel,
-                       &ppUserInfoList,
-                       &dwNumUsersFound);
-
-    if (!dwError)
-    {
-        dwError = LwAllocateMemory(sizeof(*pResult),
-                                   (PVOID)&pResult);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResult->dwUserInfoLevel = dwUserInfoLevel;
-        pResult->dwNumUsers = dwNumUsersFound;
-        switch (pResult->dwUserInfoLevel)
-        {
-            case 0:
-                pResult->ppUserInfoList.ppInfoList0 = (PLSA_USER_INFO_0*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-
-            case 1:
-                pResult->ppUserInfoList.ppInfoList1 = (PLSA_USER_INFO_1*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-
-            case 2:
-                pResult->ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)ppUserInfoList;
-                ppUserInfoList = NULL;
-                break;
-
-            default:
-                dwError = LW_ERROR_INVALID_PARAMETER;
-                BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        pOut->tag = LSA_R_ENUM_USERS_SUCCESS;
-        pOut->data = pResult;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_ENUM_USERS_FAILURE;;
-        pOut->data = pError;
-    }
-
-cleanup:
-    if(ppUserInfoList)
-    {
-        LsaFreeUserInfoList(dwUserInfoLevel, ppUserInfoList, dwNumUsersFound);
-    }
-
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    if(pResult)
-    {
-        LsaFreeIpcUserInfoList(pResult);
-    }
-
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcEndEnumUsers(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvIpcUnregisterHandle(pCall, pIn->data);
-    if (!dwError)
-    {
-        pOut->tag = LSA_R_END_ENUM_USERS_SUCCESS;
-    }
-    else
-    {
-        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pOut->tag = LSA_R_END_ENUM_USERS_FAILURE;
-        pOut->data = pError;
-    }
-
-cleanup:
-    return MAP_LW_ERROR_IPC(dwError);
-
-error:
-    goto cleanup;
-}
-
-static LWMsgStatus
-LsaSrvIpcDeleteUser(
-    LWMsgCall* pCall,
-    const LWMsgParams* pIn,
-    LWMsgParams* pOut,
-    void* data
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    dwError = LsaSrvDeleteUser(
-                        LsaSrvIpcGetSessionData(pCall),
-                        *((PDWORD)pIn->data));
-
-    if (!dwError)
-    {
-        pOut->tag = LSA_R_DELETE_USER_SUCCESS;
+        pOut->tag = LSA2_R_ADD_USER;
         pOut->data = NULL;
     }
     else
@@ -2277,7 +1366,7 @@ LsaSrvIpcDeleteUser(
         dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pOut->tag = LSA_R_DELETE_USER_FAILURE;
+        pOut->tag = LSA2_R_ERROR;
         pOut->data = pError;
     }
 
@@ -2289,7 +1378,7 @@ error:
 }
 
 static LWMsgStatus
-LsaSrvIpcGetNamesBySidList(
+LsaSrvIpcModifyUser2(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
     LWMsgParams* pOut,
@@ -2297,79 +1386,32 @@ LsaSrvIpcGetNamesBySidList(
     )
 {
     DWORD dwError = 0;
-    PSTR* ppszDomainNames = NULL;
-    PSTR* ppszSamAccounts = NULL;
-    ADAccountType* pTypes = NULL;
-    CHAR chDomainSeparator = 0;
-    PLSA_FIND_NAMES_BY_SIDS pResult = NULL;
-    PLSA_IPC_NAMES_BY_SIDS_REQ pReq = pIn->data;
     PLSA_IPC_ERROR pError = NULL;
-    DWORD i = 0;
+    PLSA2_IPC_MODIFY_USER_REQ pReq = pIn->data;
 
-    dwError = LsaSrvGetNamesBySidList(
+    dwError = LsaSrvModifyUser2(
                     LsaSrvIpcGetSessionData(pCall),
-                    pReq->sCount,
-                    pReq->ppszSidList,
-                    &ppszDomainNames,
-                    &ppszSamAccounts,
-                    &pTypes,
-                    &chDomainSeparator);
+                    pReq->pszTargetProvider,
+                    pReq->pUserModInfo);
 
     if (!dwError)
     {
-        dwError = LwAllocateMemory(sizeof(*pResult),
-                                    (PVOID)&pResult);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        pResult->sCount = pReq->sCount;
-        pResult->chDomainSeparator = chDomainSeparator;
-
-        dwError = LwAllocateMemory(sizeof(*(pResult->pSIDInfoList)) * pResult->sCount,
-                                    (PVOID*)&pResult->pSIDInfoList);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        for (i = 0; i < pResult->sCount; i++)
-        {
-            pResult->pSIDInfoList[i].accountType = pTypes[i];
-            pResult->pSIDInfoList[i].pszDomainName = ppszDomainNames[i];
-            ppszDomainNames[i] = NULL;
-            pResult->pSIDInfoList[i].pszSamAccountName = ppszSamAccounts[i];
-            ppszSamAccounts[i] = NULL;
-        }
-
-        pOut->tag = LSA_R_NAMES_BY_SID_LIST_SUCCESS;
-        pOut->data = pResult;
+        pOut->tag = LSA2_R_MODIFY_USER;
+        pOut->data = NULL;
     }
     else
     {
         dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
         BAIL_ON_LSA_ERROR(dwError);
 
-        pOut->tag = LSA_R_NAMES_BY_SID_LIST_FAILURE;
+        pOut->tag = LSA2_R_ERROR;
         pOut->data = pError;
     }
 
 cleanup:
-
-    if (ppszDomainNames)
-    {
-        LwFreeStringArray(ppszDomainNames, pReq->sCount);
-    }
-
-    if (ppszSamAccounts)
-    {
-        LwFreeStringArray(ppszSamAccounts, pReq->sCount);
-    }
-    LW_SAFE_FREE_MEMORY(pTypes);
-
     return MAP_LW_ERROR_IPC(dwError);
 
 error:
-    if(pResult)
-    {
-        LsaFreeIpcNameSidsList(pResult);
-    }
-
     goto cleanup;
 }
 
@@ -2817,16 +1859,6 @@ error:
 
 static LWMsgDispatchSpec gMessageHandlers[] =
 {
-    LWMSG_DISPATCH_BLOCK(LSA_Q_GROUP_BY_NAME, LsaSrvIpcFindGroupByName),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_GROUP_BY_ID, LsaSrvIpcFindGroupById),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_BEGIN_ENUM_GROUPS, LsaSrvIpcBeginEnumGroups),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_ENUM_GROUPS, LsaSrvIpcEnumGroups),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_END_ENUM_GROUPS, LsaSrvIpcEndEnumGroups),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_USER_BY_NAME, LsaSrvIpcFindUserByName),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_USER_BY_ID, LsaSrvIpcFindUserById),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_BEGIN_ENUM_USERS, LsaSrvIpcBeginEnumUsers),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_ENUM_USERS, LsaSrvIpcEnumUsers),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_END_ENUM_USERS, LsaSrvIpcEndEnumUsers),
     LWMSG_DISPATCH_BLOCK(LSA_Q_AUTH_USER, LsaSrvIpcAuthenticateUser),
     LWMSG_DISPATCH_BLOCK(LSA_Q_AUTH_USER_EX, LsaSrvIpcAuthenticateUserEx),
     LWMSG_DISPATCH_BLOCK(LSA_Q_VALIDATE_USER, LsaSrvIpcValidateUser),
@@ -2834,14 +1866,6 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(LSA_Q_SET_PASSWORD, LsaSrvIpcSetPassword),
     LWMSG_DISPATCH_BLOCK(LSA_Q_OPEN_SESSION, LsaSrvIpcOpenSession),
     LWMSG_DISPATCH_BLOCK(LSA_Q_CLOSE_SESSION, LsaSrvIpcCloseSession),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_MODIFY_USER, LsaSrvIpcModifyUser),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_NAMES_BY_SID_LIST, LsaSrvIpcGetNamesBySidList),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_ADD_GROUP, LsaSrvIpcAddGroup),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_MODIFY_GROUP, LsaSrvIpcModifyGroup),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_DELETE_GROUP, LsaSrvIpcDeleteGroup),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_ADD_USER, LsaSrvIpcAddUser),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_DELETE_USER, LsaSrvIpcDeleteUser),
-    LWMSG_DISPATCH_BLOCK(LSA_Q_GROUPS_FOR_USER, LsaSrvIpcGetGroupsForUser),
     LWMSG_DISPATCH_BLOCK(LSA_Q_GET_METRICS, LsaSrvIpcGetMetrics),
     LWMSG_DISPATCH_BLOCK(LSA_Q_SET_LOGINFO, LsaSrvIpcSetLogInfo),
     LWMSG_DISPATCH_BLOCK(LSA_Q_GET_LOGINFO, LsaSrvIpcGetLogInfo),
@@ -2866,6 +1890,11 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(LSA2_Q_ENUM_MEMBERS, LsaSrvIpcEnumMembers),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_QUERY_MEMBER_OF, LsaSrvIpcQueryMemberOf),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_CLOSE_ENUM, LsaSrvIpcCloseEnum),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_MODIFY_USER, LsaSrvIpcModifyUser2),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_ADD_GROUP, LsaSrvIpcAddGroup2),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_MODIFY_GROUP, LsaSrvIpcModifyGroup2),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_DELETE_OBJECT, LsaSrvIpcDeleteObject),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_ADD_USER, LsaSrvIpcAddUser2),
     LWMSG_DISPATCH_END
 };
 

@@ -349,6 +349,42 @@
 #define LW_ERROR_LDAP_CONSTRAINT_VIOLATION                 40315
 #define LW_ERROR_LDAP_TYPE_OR_VALUE_EXISTS                 40316
 #define LW_ERROR_LDAP_INVALID_SYNTAX                       40317
+#define LW_ERROR_LDAP_NO_SUCH_OBJECT                       40318
+#define LW_ERROR_LDAP_ALIAS_PROBLEM                        40319
+#define LW_ERROR_LDAP_INVALID_DN_SYNTAX                    40320
+#define LW_ERROR_LDAP_IS_LEAF                              40321
+#define LW_ERROR_LDAP_ALIAS_DEREF_PROBLEM                  40322
+#define LW_ERROR_LDAP_REFERRAL                             40323
+#define LW_ERROR_LDAP_ADMINLIMIT_EXCEEDED                  40324
+#define LW_ERROR_LDAP_UNAVAILABLE_CRITICAL_EXTENSION       40325
+#define LW_ERROR_LDAP_CONFIDENTIALITY_REQUIRED             40326
+#define LW_ERROR_LDAP_SASL_BIND_IN_PROGRESS                40327
+#define LW_ERROR_LDAP_X_PROXY_AUTHZ_FAILURE                40328
+#define LW_ERROR_LDAP_INAPPROPRIATE_AUTH                   40329
+#define LW_ERROR_LDAP_INVALID_CREDENTIALS                  40330
+#define LW_ERROR_LDAP_INSUFFICIENT_ACCESS                  40331
+#define LW_ERROR_LDAP_BUSY                                 40332
+#define LW_ERROR_LDAP_UNAVAILABLE                          40333
+#define LW_ERROR_LDAP_UNWILLING_TO_PERFORM                 40334
+#define LW_ERROR_LDAP_LOOP_DETECT                          40335
+#define LW_ERROR_LDAP_NAMING_VIOLATION                     40336
+#define LW_ERROR_LDAP_OBJECT_CLASS_VIOLATION               40337
+#define LW_ERROR_LDAP_NOT_ALLOWED_ON_NONLEAF               40338
+#define LW_ERROR_LDAP_NOT_ALLOWED_ON_RDN                   40339
+#define LW_ERROR_LDAP_ALREADY_EXISTS                       40340
+#define LW_ERROR_LDAP_NO_OBJECT_CLASS_MODS                 40341
+#define LW_ERROR_LDAP_RESULTS_TOO_LARGE                    40342
+#define LW_ERROR_LDAP_AFFECTS_MULTIPLE_DSAS                40343
+#define LW_ERROR_LDAP_CUP_RESOURCES_EXHAUSTED              40344
+#define LW_ERROR_LDAP_CUP_SECURITY_VIOLATION               40345
+#define LW_ERROR_LDAP_CUP_INVALID_DATA                     40346
+#define LW_ERROR_LDAP_CUP_UNSUPPORTED_SCHEME               40347
+#define LW_ERROR_LDAP_CUP_RELOAD_REQUIRED                  40348
+#define LW_ERROR_LDAP_CANCELLED                            40349
+#define LW_ERROR_LDAP_NO_SUCH_OPERATION                    40350
+#define LW_ERROR_LDAP_TOO_LATE                             40351
+#define LW_ERROR_LDAP_CANNOT_CANCEL                        40352
+#define LW_ERROR_LDAP_ASSERTION_FAILED                     40353
 
 
 /* range 40500 - 40600 are reserved for GSS specific errors */

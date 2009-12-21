@@ -59,16 +59,6 @@ LocalFindObjectByName(
     );
 
 DWORD
-LocalDirGetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes
-    );
-
-DWORD
 LocalDirFindObjects(
     IN HANDLE hProvider,
     IN LSA_FIND_FLAGS FindFlags,
@@ -125,6 +115,15 @@ LocalDirQueryMemberOf(
     IN PSTR* ppszSids,
     OUT PDWORD pdwGroupSidCount,
     OUT PSTR** pppszGroupSids
+    );
+
+DWORD
+LocalDirFindObjectByGenericName(
+    HANDLE hProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    PCSTR pszName,
+    PLSA_SECURITY_OBJECT* ppObject
     );
 
 #endif /* __LP_OBJECT_H__ */

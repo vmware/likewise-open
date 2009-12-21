@@ -40,12 +40,12 @@ LsaUtilFreeSecurityObject(
 
         switch(pObject->type)
         {
-        case AccountType_Group:
+        case LSA_OBJECT_TYPE_GROUP:
             LW_SAFE_FREE_STRING(pObject->groupInfo.pszAliasName);
             LW_SAFE_FREE_STRING(pObject->groupInfo.pszUnixName);
             LW_SAFE_FREE_STRING(pObject->groupInfo.pszPasswd);
             break;
-        case AccountType_User:
+        case LSA_OBJECT_TYPE_USER:
             LW_SAFE_FREE_STRING(pObject->userInfo.pszPrimaryGroupSid);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszUPN);
             LW_SAFE_FREE_STRING(pObject->userInfo.pszAliasName);

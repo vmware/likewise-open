@@ -286,17 +286,21 @@ FindObjects(
     {
         if (ppObjects[dwIndex])
         {
-            PrintSecurityObject(ppObjects[dwIndex]);
+            PrintSecurityObject(ppObjects[dwIndex], dwIndex, gState.dwCount);
         }
         else
         {
             switch (gState.QueryType)
             {
             case LSA_QUERY_TYPE_BY_UNIX_ID:
-                printf("Not found: %lu\n", (unsigned long) gState.QueryList.pdwIds[dwIndex]);
+                printf("Not found [%d of %d]: %lu\n",
+                       dwIndex + 1, gState.dwCount,
+                       (unsigned long) gState.QueryList.pdwIds[dwIndex]);
                 break;
             default:
-                printf("Not found: %s\n", gState.QueryList.ppszStrings[dwIndex]);
+                printf("Not found [%d of %d]: %s\n",
+                       dwIndex + 1, gState.dwCount,
+                       gState.QueryList.ppszStrings[dwIndex]);
                 break;
             }
         }

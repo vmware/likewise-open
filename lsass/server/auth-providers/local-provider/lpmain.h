@@ -54,9 +54,9 @@
 #endif
 
 DWORD
-LsaInitializeProvider(
+LsaInitializeProvider2(
     OUT PCSTR* ppszProviderName,
-    OUT PLSA_PROVIDER_FUNCTION_TABLE* ppFunctionTable
+    OUT PLSA_PROVIDER_FUNCTION_TABLE_2* ppFunctionTable
     );
 
 DWORD
@@ -66,9 +66,7 @@ LocalShutdownProvider(
 
 DWORD
 LocalOpenHandle(
-    uid_t uid,
-    gid_t gid,
-    pid_t pid,
+    HANDLE hServer,
     PHANDLE phProvider
     );
 
@@ -111,117 +109,6 @@ LocalCheckUserInList(
     );
 
 DWORD
-LocalFindUserByName(
-    HANDLE  hProvider,
-    PCSTR   pszLoginId,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    );
-
-DWORD
-LocalFindUserByNameEx(
-    HANDLE  hProvider,
-    PCSTR   pszLoginId,
-    DWORD   dwUserInfoLevel,
-    PWSTR*  ppwszUserDN,
-    PVOID*  ppUserInfo
-    );
-
-DWORD
-LocalFindUserById(
-    HANDLE  hProvider,
-    uid_t   uid,
-    DWORD   dwUserInfoLevel,
-    PVOID*  ppUserInfo
-    );
-
-DWORD
-LocalBeginEnumUsers(
-    HANDLE         hProvider,
-    DWORD          dwInfoLevel,
-    LSA_FIND_FLAGS dwFindFlags,
-    PHANDLE        phResume
-    );
-
-DWORD
-LocalEnumUsers(
-    HANDLE   hProvider,
-    HANDLE   hResume,
-    DWORD    dwMaxNumRecords,
-    PDWORD   pdwUsersFound,
-    PVOID**  pppUserInfoList
-    );
-
-VOID
-LocalEndEnumUsers(
-    HANDLE hProvider,
-    HANDLE hResume
-    );
-
-DWORD
-LocalFindGroupByName(
-    IN  HANDLE         hProvider,
-    IN  PCSTR          pszGroupName,
-    IN  LSA_FIND_FLAGS dwFindFlags,
-    IN  DWORD          dwGroupInfoLevel,
-    OUT PVOID*         ppGroupInfo
-    );
-
-DWORD
-LocalFindGroupByNameEx(
-    IN  HANDLE         hProvider,
-    IN  PCSTR          pszGroupName,
-    IN  LSA_FIND_FLAGS dwFindFlags,
-    IN  DWORD          dwGroupInfoLevel,
-    OUT PWSTR*         ppwszGroupDN,
-    OUT PVOID*         ppGroupInfo
-    );
-
-DWORD
-LocalFindGroupById(
-    IN HANDLE hProvider,
-    IN gid_t gid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PVOID* ppGroupInfo
-    );
-
-DWORD
-LocalGetGroupsForUser(
-    IN HANDLE hProvider,
-    IN OPTIONAL PCSTR pszUserName,
-    IN OPTIONAL uid_t uid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    IN PDWORD pdwGroupsFound,
-    IN PVOID** pppGroupInfoList
-    );
-
-DWORD
-LocalBeginEnumGroups(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    BOOLEAN bCheckOnline,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
-    );
-
-DWORD
-LocalEnumGroups(
-    HANDLE   hProvider,
-    HANDLE   hResume,
-    DWORD    dwMaxGroups,
-    PDWORD   pdwGroupsFound,
-    PVOID**  pppGroupInfoList
-    );
-
-VOID
-LocalEndEnumGroups(
-    HANDLE hProvider,
-    HANDLE hResume
-    );
-
-DWORD
 LocalChangePassword(
     HANDLE hProvider,
     PCSTR  pszLoginId,
@@ -239,39 +126,31 @@ LocalSetPassword(
 DWORD
 LocalAddUser(
     HANDLE hProvider,
-    DWORD  dwUserInfoLevel,
-    PVOID  pUserInfo
+    PLSA_USER_ADD_INFO pUserAddInfo
     );
 
 DWORD
 LocalModifyUser(
     HANDLE hProvider,
-    PLSA_USER_MOD_INFO pUserModInfo
+    PLSA_USER_MOD_INFO_2 pUserModInfo
     );
 
 DWORD
-LocalDeleteUser(
+LocalDeleteObject(
     HANDLE hProvider,
-    uid_t  uid
+    PCSTR pszSid
     );
 
 DWORD
 LocalAddGroup(
     HANDLE hProvider,
-    DWORD  dwGroupInfoLevel,
-    PVOID  pGroupInfo
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
     );
 
 DWORD
 LocalModifyGroup(
     HANDLE hProvider,
-    PLSA_GROUP_MOD_INFO pGroupModInfo
-    );
-
-DWORD
-LocalDeleteGroup(
-    HANDLE hProvider,
-    gid_t  gid
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
     );
 
 DWORD
@@ -285,15 +164,6 @@ LocalCloseSession(
     HANDLE hProvider,
     PCSTR  pszLoginId
     );
-
-DWORD
-LocalGetNamesBySidList(
-    HANDLE          hProvider,
-    size_t          sCount,
-    PSTR*           ppszSidList,
-    PSTR**          pppszDomainNames,
-    PSTR**          pppszSamAccounts,
-    ADAccountType** ppTypes);
 
 DWORD
 LocalFindNSSArtefactByKey(
@@ -355,15 +225,6 @@ LocalIoControl(
     IN PVOID   pInputBuffer,
     OUT DWORD* pdwOutputBufferSize,
     OUT PVOID* ppOutputBuffer
-    );
-
-DWORD
-LocalGetGroupMembershipByProvider(
-    IN HANDLE     hProvider,
-    IN PCSTR      pszSid,
-    IN DWORD      dwGroupInfoLevel,
-    OUT PDWORD    pdwGroupsCount,
-    OUT PVOID   **ppMembershipInfo
     );
 
 DWORD

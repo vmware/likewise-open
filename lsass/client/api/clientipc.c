@@ -178,187 +178,15 @@ error:
 }
 
 DWORD
-LsaTransactFindGroupByName(
-   HANDLE hServer,
-   PCSTR pszGroupName,
-   LSA_FIND_FLAGS FindFlags,
-   DWORD dwGroupInfoLevel,
-   PVOID* ppGroupInfo
-   )
-{
-    DWORD dwError = 0;
-    LSA_IPC_FIND_OBJECT_BY_NAME_REQ findObjectByNameReq;
-    // Do not free pResult and pError
-    PLSA_GROUP_INFO_LIST pResultList = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    findObjectByNameReq.FindFlags = FindFlags;
-    findObjectByNameReq.dwInfoLevel = dwGroupInfoLevel;
-    findObjectByNameReq.pszName = pszGroupName;
-
-    in.tag = LSA_Q_GROUP_BY_NAME;
-    in.data = &findObjectByNameReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_GROUP_BY_NAME_SUCCESS:
-            pResultList = (PLSA_GROUP_INFO_LIST)out.data;
-
-            if (pResultList->dwNumGroups != 1)
-            {
-                dwError = LW_ERROR_INTERNAL;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            switch (pResultList->dwGroupInfoLevel)
-            {
-                case 0:
-                    *ppGroupInfo = pResultList->ppGroupInfoList.ppInfoList0[0];
-                    pResultList->ppGroupInfoList.ppInfoList0[0] = NULL;
-                    pResultList->dwNumGroups = 0;
-                    break;
-                case 1:
-                    *ppGroupInfo = pResultList->ppGroupInfoList.ppInfoList1[0];
-                    pResultList->ppGroupInfoList.ppInfoList1[0] = NULL;
-                    pResultList->dwNumGroups = 0;
-                    break;
-                default:
-                    dwError = LW_ERROR_INVALID_PARAMETER;
-                    BAIL_ON_LSA_ERROR(dwError);
-            }
-            break;
-        case LSA_R_GROUP_BY_NAME_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    *ppGroupInfo = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactFindGroupById(
-   HANDLE hServer,
-   DWORD id,
-   LSA_FIND_FLAGS FindFlags,
-   DWORD dwGroupInfoLevel,
-   PVOID* ppGroupInfo
-   )
-{
-    DWORD dwError = 0;
-    LSA_IPC_FIND_OBJECT_BY_ID_REQ findObjectByIdReq;
-    // Do not free pResult and pError
-    PLSA_GROUP_INFO_LIST pResultList = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    findObjectByIdReq.FindFlags = FindFlags;
-    findObjectByIdReq.dwInfoLevel = dwGroupInfoLevel;
-    findObjectByIdReq.id = id;
-
-    in.tag = LSA_Q_GROUP_BY_ID;
-    in.data = &findObjectByIdReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_GROUP_BY_ID_SUCCESS:
-            pResultList = (PLSA_GROUP_INFO_LIST)out.data;
-            switch (pResultList->dwGroupInfoLevel)
-            {
-                case 0:
-                    *ppGroupInfo = pResultList->ppGroupInfoList.ppInfoList0[0];
-                    pResultList->ppGroupInfoList.ppInfoList0[0] = NULL;
-                    pResultList->dwNumGroups = 0;
-                    break;
-                case 1:
-                    *ppGroupInfo = pResultList->ppGroupInfoList.ppInfoList1[0];
-                    pResultList->ppGroupInfoList.ppInfoList1[0] = NULL;
-                    pResultList->dwNumGroups = 0;
-                    break;
-                default:
-                    dwError = LW_ERROR_INVALID_PARAMETER;
-                    BAIL_ON_LSA_ERROR(dwError);
-            }
-            break;
-        case LSA_R_GROUP_BY_ID_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    *ppGroupInfo = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactBeginEnumGroups(
+LsaTransactAddGroup2(
     HANDLE hServer,
-    DWORD dwGroupInfoLevel,
-    DWORD dwMaxNumGroups,
-    BOOLEAN bCheckGroupMembersOnline,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
     )
 {
     DWORD dwError = 0;
-    LSA_IPC_BEGIN_ENUM_GROUPS_REQ beginGroupEnumReq;
-    // Do not free pResult and pError
     PLSA_IPC_ERROR pError = NULL;
-
+    LSA2_IPC_ADD_GROUP_REQ req = {0};
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
@@ -366,24 +194,130 @@ LsaTransactBeginEnumGroups(
     dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    beginGroupEnumReq.dwInfoLevel = dwGroupInfoLevel;
-    beginGroupEnumReq.dwNumMaxRecords = dwMaxNumGroups;
-    beginGroupEnumReq.bCheckGroupMembersOnline = bCheckGroupMembersOnline;
-    beginGroupEnumReq.FindFlags = FindFlags;
+    req.pszTargetProvider = pszTargetProvider;
+    req.pGroupAddInfo = pGroupAddInfo;
 
-    in.tag = LSA_Q_BEGIN_ENUM_GROUPS;
-    in.data = &beginGroupEnumReq;
+    in.tag = LSA2_Q_ADD_GROUP;
+    in.data = &req;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
     switch (out.tag)
     {
-    case LSA_R_BEGIN_ENUM_GROUPS_SUCCESS:
-        *phResume = out.data;
-        out.data = NULL;
+        case LSA2_R_ADD_GROUP:
+            break;
+        case LSA2_R_ERROR:
+            pError = (PLSA_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LsaTransactDeleteObject(
+    HANDLE hServer,
+    PCSTR pszTargetProvider,
+    PCSTR pszSid
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    LSA2_IPC_DELETE_OBJECT_REQ req = {0};
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.pszTargetProvider = pszTargetProvider;
+    req.pszSid = pszSid;
+
+    in.tag = LSA2_Q_DELETE_OBJECT;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+        case LSA2_R_DELETE_OBJECT:
+            break;
+        case LSA2_R_ERROR:
+            pError = (PLSA_IPC_ERROR) out.data;
+            dwError = pError->dwError;
+            BAIL_ON_LSA_ERROR(dwError);
+            break;
+        default:
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+LsaTransactAddUser2(
+    HANDLE hServer,
+    PCSTR pszTargetProvider,
+    PLSA_USER_ADD_INFO pUserAddInfo
+    )
+{
+    DWORD dwError = 0;
+    PLSA_IPC_ERROR pError = NULL;
+    LSA2_IPC_ADD_USER_REQ req = {0};
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hServer, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.pszTargetProvider = pszTargetProvider;
+    req.pUserAddInfo = pUserAddInfo;
+
+    in.tag = LSA2_Q_ADD_USER;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_ADD_USER:
         break;
-    case LSA_R_BEGIN_ENUM_GROUPS_FAILURE:
+    case LSA2_R_ERROR:
         pError = (PLSA_IPC_ERROR) out.data;
         dwError = pError->dwError;
         BAIL_ON_LSA_ERROR(dwError);
@@ -391,850 +325,6 @@ LsaTransactBeginEnumGroups(
     default:
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    *phResume = (HANDLE)NULL;
-
-    goto cleanup;
-
-}
-
-DWORD
-LsaTransactEnumGroups(
-    HANDLE hServer,
-    HANDLE hResume,
-    PDWORD pdwNumGroupsFound,
-    PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-    // Do not free pResultList and pError
-    PLSA_GROUP_INFO_LIST pResultList = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    in.tag = LSA_Q_ENUM_GROUPS;
-    in.data = hResume;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_ENUM_GROUPS_SUCCESS:
-            pResultList = (PLSA_GROUP_INFO_LIST)out.data;
-            *pdwNumGroupsFound = pResultList->dwNumGroups;
-            switch (pResultList->dwGroupInfoLevel)
-            {
-                case 0:
-                    *pppGroupInfoList = (PVOID*)pResultList->ppGroupInfoList.ppInfoList0;
-                    pResultList->ppGroupInfoList.ppInfoList0 = NULL;
-                    pResultList->dwNumGroups = 0;
-                    break;
-                case 1:
-                    *pppGroupInfoList = (PVOID*)pResultList->ppGroupInfoList.ppInfoList1;
-                    pResultList->ppGroupInfoList.ppInfoList1 = NULL;
-                    pResultList->dwNumGroups = 0;
-                    break;
-                default:
-                   dwError = LW_ERROR_INVALID_PARAMETER;
-                   BAIL_ON_LSA_ERROR(dwError);
-            }
-            break;
-        case LSA_R_ENUM_GROUPS_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    *pdwNumGroupsFound = 0;
-    *pppGroupInfoList = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactEndEnumGroups(
-    HANDLE hServer,
-    HANDLE hResume
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    in.tag = LSA_Q_END_ENUM_GROUPS;
-    in.data = hResume;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_END_ENUM_GROUPS_SUCCESS:
-            dwError = LsaIpcUnregisterHandle(pCall, hResume);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case LSA_R_END_ENUM_GROUPS_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactAddGroup(
-    HANDLE hServer,
-    PVOID  pGroupInfo,
-    DWORD  dwGroupInfoLevel
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-    LSA_GROUP_INFO_LIST addGroupInfoReq;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    addGroupInfoReq.dwGroupInfoLevel = dwGroupInfoLevel;
-    addGroupInfoReq.dwNumGroups = 1;
-
-    switch (dwGroupInfoLevel)
-    {
-        case 0:
-            addGroupInfoReq.ppGroupInfoList.ppInfoList0 = (PLSA_GROUP_INFO_0*)&pGroupInfo;
-            break;
-        case 1:
-            addGroupInfoReq.ppGroupInfoList.ppInfoList1 = (PLSA_GROUP_INFO_1*)&pGroupInfo;
-            break;
-        default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    in.tag = LSA_Q_ADD_GROUP;
-    in.data = &addGroupInfoReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_ADD_GROUP_SUCCESS:
-            break;
-        case LSA_R_ADD_GROUP_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactDeleteGroupById(
-    HANDLE hServer,
-    gid_t  gid
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    in.tag = LSA_Q_DELETE_GROUP;
-    in.data = &gid;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_DELETE_GROUP_SUCCESS:
-            break;
-        case LSA_R_DELETE_GROUP_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactGetGroupsForUser(
-    IN HANDLE hServer,
-    IN OPTIONAL PCSTR pszUserName,
-    IN OPTIONAL uid_t uid,
-    IN LSA_FIND_FLAGS FindFlags,
-    IN DWORD dwGroupInfoLevel,
-    OUT PDWORD pdwGroupsFound,
-    OUT PVOID** pppGroupInfoList
-    )
-{
-    DWORD dwError = 0;
-    LSA_IPC_FIND_OBJECT_REQ userGroupsReq;
-    // Do not free pResultList and pError
-    PLSA_GROUP_INFO_LIST pResultList = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    userGroupsReq.FindFlags = FindFlags;
-    userGroupsReq.dwInfoLevel = dwGroupInfoLevel;
-
-    if (pszUserName)
-    {
-        userGroupsReq.ByType = LSA_IPC_FIND_OBJECT_BY_TYPE_NAME;
-        userGroupsReq.ByData.pszName = pszUserName;
-    }
-    else
-    {
-        userGroupsReq.ByType = LSA_IPC_FIND_OBJECT_BY_TYPE_ID;
-        userGroupsReq.ByData.dwId = uid;
-    }
-
-    in.tag = LSA_Q_GROUPS_FOR_USER;
-    in.data = &userGroupsReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_GROUPS_FOR_USER_SUCCESS:
-            pResultList = (PLSA_GROUP_INFO_LIST)out.data;
-            *pdwGroupsFound = pResultList->dwNumGroups;
-            switch (pResultList->dwGroupInfoLevel)
-            {
-                case 0:
-                    *pppGroupInfoList = (PVOID*)pResultList->ppGroupInfoList.ppInfoList0;
-                    pResultList->ppGroupInfoList.ppInfoList0 = NULL;
-                    pResultList->dwNumGroups = 0;
-                    break;
-                case 1:
-                    *pppGroupInfoList = (PVOID*)pResultList->ppGroupInfoList.ppInfoList1;
-                    pResultList->ppGroupInfoList.ppInfoList1 = NULL;
-                    pResultList->dwNumGroups = 0;
-                    break;
-                default:
-                   dwError = LW_ERROR_INVALID_PARAMETER;
-                   BAIL_ON_LSA_ERROR(dwError);
-            }
-            break;
-        case LSA_R_GROUPS_FOR_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    *pdwGroupsFound = 0;
-    *pppGroupInfoList = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactFindUserByName(
-    HANDLE hServer,
-    PCSTR  pszName,
-    DWORD  dwUserInfoLevel,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    LSA_IPC_FIND_OBJECT_BY_NAME_REQ findObjectByNameReq;
-    // Do not free pResultList and pError
-    PLSA_USER_INFO_LIST pResultList = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    findObjectByNameReq.dwInfoLevel = dwUserInfoLevel;
-    findObjectByNameReq.pszName = pszName;
-    findObjectByNameReq.FindFlags = 0;
-
-    in.tag = LSA_Q_USER_BY_NAME;
-    in.data = &findObjectByNameReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_USER_BY_NAME_SUCCESS:
-            pResultList = (PLSA_USER_INFO_LIST)out.data;
-
-            if (pResultList->dwNumUsers != 1)
-            {
-                dwError = LW_ERROR_INTERNAL;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            switch (pResultList->dwUserInfoLevel)
-            {
-                case 0:
-                    *ppUserInfo = pResultList->ppUserInfoList.ppInfoList0[0];
-                    pResultList->ppUserInfoList.ppInfoList0[0] = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                case 1:
-                    *ppUserInfo = pResultList->ppUserInfoList.ppInfoList1[0];
-                    pResultList->ppUserInfoList.ppInfoList1[0] = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                case 2:
-                    *ppUserInfo = pResultList->ppUserInfoList.ppInfoList2[0];
-                    pResultList->ppUserInfoList.ppInfoList2[0] = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                default:
-                    dwError = LW_ERROR_INVALID_PARAMETER;
-                    BAIL_ON_LSA_ERROR(dwError);
-            }
-            break;
-        case LSA_R_USER_BY_NAME_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    *ppUserInfo = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactFindUserById(
-    HANDLE hServer,
-    uid_t uid,
-    DWORD  dwUserInfoLevel,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    LSA_IPC_FIND_OBJECT_BY_ID_REQ findObjectByIdReq;
-    // Do not free pResultList and pError
-    PLSA_USER_INFO_LIST pResultList = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    findObjectByIdReq.dwInfoLevel = dwUserInfoLevel;
-    findObjectByIdReq.id = uid;
-
-    in.tag = LSA_Q_USER_BY_ID;
-    in.data = &findObjectByIdReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_USER_BY_ID_SUCCESS:
-            pResultList = (PLSA_USER_INFO_LIST)out.data;
-
-            if (pResultList->dwNumUsers != 1)
-            {
-                dwError = LW_ERROR_INTERNAL;
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-
-            switch (pResultList->dwUserInfoLevel)
-            {
-                case 0:
-                    *ppUserInfo = pResultList->ppUserInfoList.ppInfoList0[0];
-                    pResultList->ppUserInfoList.ppInfoList0[0] = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                case 1:
-                    *ppUserInfo = pResultList->ppUserInfoList.ppInfoList1[0];
-                    pResultList->ppUserInfoList.ppInfoList1[0] = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                case 2:
-                    *ppUserInfo = pResultList->ppUserInfoList.ppInfoList2[0];
-                    pResultList->ppUserInfoList.ppInfoList2[0] = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                default:
-                    dwError = LW_ERROR_INVALID_PARAMETER;
-                    BAIL_ON_LSA_ERROR(dwError);
-            }
-            break;
-        case LSA_R_USER_BY_ID_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    *ppUserInfo = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactBeginEnumUsers(
-    HANDLE hServer,
-    DWORD   dwUserInfoLevel,
-    DWORD   dwMaxNumUsers,
-    LSA_FIND_FLAGS FindFlags,
-    PHANDLE phResume
-    )
-{
-    DWORD dwError = 0;
-    LSA_IPC_BEGIN_ENUM_USERS_REQ beginUserEnumReq;
-    // Do not free pResult and pError
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    beginUserEnumReq.dwInfoLevel = dwUserInfoLevel;
-    beginUserEnumReq.dwNumMaxRecords = dwMaxNumUsers;
-    beginUserEnumReq.FindFlags = FindFlags;
-
-    in.tag = LSA_Q_BEGIN_ENUM_USERS;
-    in.data = &beginUserEnumReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_BEGIN_ENUM_USERS_SUCCESS:
-            *phResume = out.data;
-            out.data = NULL;
-            break;
-        case LSA_R_BEGIN_ENUM_USERS_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    *phResume = (HANDLE)NULL;
-
-    goto cleanup;
-
-}
-
-DWORD
-LsaTransactEnumUsers(
-    HANDLE hServer,
-    HANDLE hResume,
-    PDWORD pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-    // Do not free pResultList and pError
-    PLSA_USER_INFO_LIST pResultList = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    in.tag = LSA_Q_ENUM_USERS;
-    in.data = hResume;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_ENUM_USERS_SUCCESS:
-            pResultList = (PLSA_USER_INFO_LIST)out.data;
-            *pdwNumUsersFound = pResultList->dwNumUsers;
-            switch (pResultList->dwUserInfoLevel)
-            {
-                case 0:
-                    *pppUserInfoList = (PVOID*)pResultList->ppUserInfoList.ppInfoList0;
-                    pResultList->ppUserInfoList.ppInfoList0 = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                case 1:
-                    *pppUserInfoList = (PVOID*)pResultList->ppUserInfoList.ppInfoList1;
-                    pResultList->ppUserInfoList.ppInfoList1 = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                case 2:
-                    *pppUserInfoList = (PVOID*)pResultList->ppUserInfoList.ppInfoList2;
-                    pResultList->ppUserInfoList.ppInfoList2 = NULL;
-                    pResultList->dwNumUsers = 0;
-                    break;
-                default:
-                   dwError = LW_ERROR_INVALID_PARAMETER;
-                   BAIL_ON_LSA_ERROR(dwError);
-            }
-            break;
-        case LSA_R_ENUM_USERS_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-    *pdwNumUsersFound = 0;
-    *pppUserInfoList = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactEndEnumUsers(
-    HANDLE hServer,
-    HANDLE hResume
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    in.tag = LSA_Q_END_ENUM_USERS;
-    in.data = hResume;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_END_ENUM_USERS_SUCCESS:
-            dwError = LsaIpcUnregisterHandle(pCall, hResume);
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        case LSA_R_END_ENUM_USERS_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactAddUser(
-    HANDLE hServer,
-    PVOID  pUserInfo,
-    DWORD  dwUserInfoLevel
-    )
-{
-    DWORD dwError = 0;
-    LSA_USER_INFO_LIST addUserInfoReq;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    addUserInfoReq.dwUserInfoLevel = dwUserInfoLevel;
-    addUserInfoReq.dwNumUsers = 1;
-
-    switch (dwUserInfoLevel)
-    {
-        case 0:
-            addUserInfoReq.ppUserInfoList.ppInfoList0 = (PLSA_USER_INFO_0*)&pUserInfo;
-            break;
-        case 1:
-            addUserInfoReq.ppUserInfoList.ppInfoList1 = (PLSA_USER_INFO_1*)&pUserInfo;
-            break;
-        case 2:
-            addUserInfoReq.ppUserInfoList.ppInfoList2 = (PLSA_USER_INFO_2*)&pUserInfo;
-            break;
-        default:
-            dwError = LW_ERROR_INVALID_PARAMETER;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    in.tag = LSA_Q_ADD_USER;
-    in.data = &addUserInfoReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_ADD_USER_SUCCESS:
-            break;
-        case LSA_R_ADD_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactDeleteUserById(
-    HANDLE hServer,
-    uid_t  uid
-    )
-{
-    DWORD dwError = 0;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    in.tag = LSA_Q_DELETE_USER;
-    in.data = &uid;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_DELETE_USER_SUCCESS:
-            break;
-        case LSA_R_DELETE_USER_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
     }
 
 cleanup:
@@ -1540,14 +630,15 @@ error:
 }
 
 DWORD
-LsaTransactModifyUser(
+LsaTransactModifyUser2(
     HANDLE hServer,
-    PLSA_USER_MOD_INFO pUserModInfo
+    PCSTR pszTargetProvider,
+    PLSA_USER_MOD_INFO_2 pUserModInfo
     )
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
-
+    LSA2_IPC_MODIFY_USER_REQ req = {0};
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
@@ -1555,17 +646,20 @@ LsaTransactModifyUser(
     dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    in.tag = LSA_Q_MODIFY_USER;
-    in.data = pUserModInfo;
+    req.pszTargetProvider = pszTargetProvider;
+    req.pUserModInfo = pUserModInfo;
+
+    in.tag = LSA2_Q_MODIFY_USER;
+    in.data = &req;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
     switch (out.tag)
     {
-        case LSA_R_MODIFY_USER_SUCCESS:
+        case LSA2_R_MODIFY_USER:
             break;
-        case LSA_R_MODIFY_USER_FAILURE:
+        case LSA2_R_ERROR:
             pError = (PLSA_IPC_ERROR) out.data;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);
@@ -1591,81 +685,15 @@ error:
 }
 
 DWORD
-LsaTransactGetNamesBySidList(
-    IN HANDLE hServer,
-    IN size_t sCount,
-    IN PSTR* ppszSidList,
-    OUT PLSA_SID_INFO* ppSIDInfoList,
-    OUT OPTIONAL CHAR *pchDomainSeparator
-    )
-{
-    DWORD dwError = 0;
-    LSA_IPC_NAMES_BY_SIDS_REQ getNamesBySidsReq;
-    PLSA_FIND_NAMES_BY_SIDS pResult = NULL;
-    PLSA_IPC_ERROR pError = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    dwError = LsaIpcAcquireCall(hServer, &pCall);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    getNamesBySidsReq.sCount = sCount;
-    getNamesBySidsReq.ppszSidList = ppszSidList;
-
-    in.tag = LSA_Q_NAMES_BY_SID_LIST;
-    in.data = &getNamesBySidsReq;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    switch (out.tag)
-    {
-        case LSA_R_NAMES_BY_SID_LIST_SUCCESS:
-            pResult = (PLSA_FIND_NAMES_BY_SIDS)out.data;
-            *ppSIDInfoList = pResult->pSIDInfoList;
-            pResult->pSIDInfoList = NULL;
-            if (pchDomainSeparator)
-            {
-                *pchDomainSeparator = pResult->chDomainSeparator;
-            }
-
-            break;
-        case LSA_R_NAMES_BY_SID_LIST_FAILURE:
-            pError = (PLSA_IPC_ERROR) out.data;
-            dwError = pError->dwError;
-            BAIL_ON_LSA_ERROR(dwError);
-            break;
-        default:
-            dwError = LW_ERROR_INTERNAL;
-            BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LsaTransactModifyGroup(
+LsaTransactModifyGroup2(
     HANDLE hServer,
-    PLSA_GROUP_MOD_INFO pGroupModInfo
+    PCSTR pszTargetProvider,
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
     )
 {
     DWORD dwError = 0;
     PLSA_IPC_ERROR pError = NULL;
-
+    LSA2_IPC_MODIFY_GROUP_REQ req = {0};
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
@@ -1673,16 +701,19 @@ LsaTransactModifyGroup(
     dwError = LsaIpcAcquireCall(hServer, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
-    in.tag    = LSA_Q_MODIFY_GROUP;
-    in.data = pGroupModInfo;
+    req.pszTargetProvider = pszTargetProvider;
+    req.pGroupModInfo = pGroupModInfo;
+
+    in.tag = LSA2_Q_MODIFY_GROUP;
+    in.data = &req;
 
     dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_LSA_ERROR(dwError);
 
     switch (out.tag) {
-    case LSA_R_MODIFY_GROUP_SUCCESS:
+    case LSA2_R_MODIFY_GROUP:
         break;
-    case LSA_R_MODIFY_GROUP_FAILURE:
+    case LSA2_R_ERROR:
         pError = (PLSA_IPC_ERROR)out.data;
         dwError = pError->dwError;
         BAIL_ON_LSA_ERROR(dwError);

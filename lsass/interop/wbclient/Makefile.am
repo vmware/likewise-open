@@ -1,4 +1,4 @@
-AM_CPPFLAGS = @AM_CPPFLAGS@ -I$(top_srcdir)/include
+AM_CPPFLAGS = @AM_CPPFLAGS@ -DLSA_ENABLE_DEPRECATED -I$(top_srcdir)/include
 
 lib_LTLIBRARIES = libwbclient.la
 

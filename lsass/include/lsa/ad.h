@@ -48,6 +48,7 @@
 #ifndef __LSACLIENT_AD_H__
 #define __LSACLIENT_AD_H__
 
+#include <lsa/lsa2.h>
 #include <sys/types.h>
 
 DWORD
@@ -71,10 +72,9 @@ DWORD
 LsaAdEnumUsersFromCache(
     IN HANDLE   hLsaConnection,
     IN PSTR*    ppszResume,
-    IN DWORD    dwInfoLevel,
     IN DWORD    dwMaxNumUsers,
     OUT PDWORD  pdwUsersFound,
-    OUT PVOID** pppUserInfoList
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
 DWORD
@@ -93,10 +93,9 @@ DWORD
 LsaAdEnumGroupsFromCache(
     IN HANDLE   hLsaConnection,
     IN PSTR*    ppszResume,
-    IN DWORD    dwInfoLevel,
     IN DWORD    dwMaxNumGroups,
     OUT PDWORD  pdwGroupsFound,
-    OUT PVOID** pppGroupInfoList
+    OUT PLSA_SECURITY_OBJECT** pppObjects
     );
 
 DWORD

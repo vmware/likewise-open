@@ -50,1018 +50,16 @@
 
 static
 DWORD
-LocalDirBeginEnumUsers_0(
-    HANDLE  hProvider,
-    PHANDLE phResume
-    );
-
-static
-DWORD
-LocalDirBeginEnumUsers_1(
-    HANDLE  hProvider,
-    PHANDLE phResume
-    );
-
-static
-DWORD
-LocalDirBeginEnumUsers_2(
-    HANDLE  hProvider,
-    PHANDLE phResume
-    );
-
-static
-DWORD
-LocalDirEnumUsers_0(
-    HANDLE                     hProvider,
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
-    DWORD                      dwNumMaxUsers,
-    PDWORD                     pdwNumUsersFound,
-    PVOID**                    pppUserInfoList
-    );
-
-static
-DWORD
-LocalDirEnumUsers_1(
-    HANDLE                     hProvider,
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
-    DWORD                      dwNumMaxUsers,
-    PDWORD                     pdwNumUsersFound,
-    PVOID**                    pppUserInfoList
-    );
-
-static
-DWORD
-LocalDirEnumUsers_2(
-    HANDLE                     hProvider,
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
-    DWORD                      dwNumMaxUsers,
-    PDWORD                     pdwNumUsersFound,
-    PVOID**                    pppUserInfoList
-    );
-
-static
-DWORD
 LocalDirValidateUID(
     uid_t uid
     );
 
 static
 DWORD
-LocalDirGetBuiltinAdministratorsGID(
+LocalDirGetBuiltinAdministratorsSid(
     HANDLE hProvider,
-    gid_t* pGID
+    PSTR* ppszSid
     );
-
-DWORD
-LocalDirFindUserByName(
-    HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszUserName,
-    DWORD  dwUserInfoLevel,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-
-    switch(dwUserInfoLevel)
-    {
-        case 0:
-
-            dwError = LocalDirFindUserByName_0(
-                            hProvider,
-                            pszDomainName,
-                            pszUserName,
-                            ppwszUserDN,
-                            ppUserInfo
-                            );
-            break;
-
-        case 1:
-
-            dwError = LocalDirFindUserByName_1(
-                            hProvider,
-                            pszDomainName,
-                            pszUserName,
-                            ppwszUserDN,
-                            ppUserInfo
-                            );
-            break;
-
-        case 2:
-
-            dwError = LocalDirFindUserByName_2(
-                            hProvider,
-                            pszDomainName,
-                            pszUserName,
-                            ppwszUserDN,
-                            ppUserInfo
-                            );
-            break;
-
-        default:
-
-            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
-
-            break;
-    }
-
-    return dwError;
-}
-
-DWORD
-LocalDirFindUserByName_0(
-    HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszUserName,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameDN[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    DWORD dwNumEntries = 0;
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME " = \"%s\"" \
-                    " AND " LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PWSTR pwszUserDN = NULL;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    pszUserName,
-                    pszDomainName,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEntries,
-                    &dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwNumEntries == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-    }
-    else if (dwNumEntries != 1)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEntry = &pEntries[0];
-    if (pEntry->ulNumAttributes != dwNumAttrs)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalMarshalEntryToUserInfo_0(
-                    pEntry,
-                    ppwszUserDN ? &pwszUserDN : NULL,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = pwszUserDN;
-    }
-    *ppUserInfo = pUserInfo;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-
-    if (pEntries)
-    {
-        DirectoryFreeEntries(pEntries, dwNumEntries);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = NULL;
-    }
-    *ppUserInfo = pUserInfo;
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(0, pUserInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalDirFindUserByName_1(
-    HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszUserName,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[] = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[] = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]  = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[]     = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]     = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]   = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameUPN[]       = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
-    wchar16_t wszAttrNameObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameDN[]        = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
-    wchar16_t wszAttrNameNetBIOSDomain[] = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameUPN[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameDN[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    DWORD dwNumEntries = 0;
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME " = \"%s\"" \
-                    " AND " LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR  pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PWSTR pwszUserDN = NULL;
-    DWORD dwInfoLevel = 1;
-    PLSA_USER_INFO_1 pUserInfo = NULL;
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    pszUserName,
-                    pszDomainName,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEntries,
-                    &dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwNumEntries == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-    }
-    else if (dwNumEntries != 1)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEntry = &pEntries[0];
-    if (pEntry->ulNumAttributes != dwNumAttrs)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalMarshalEntryToUserInfo_1(
-                    pEntry,
-                    pszDomainName,
-                    ppwszUserDN ? &pwszUserDN : NULL,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = pwszUserDN;
-    }
-    *ppUserInfo = pUserInfo;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-
-    if (pEntries)
-    {
-        DirectoryFreeEntries(pEntries, dwNumEntries);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = NULL;
-    }
-    *ppUserInfo = pUserInfo;
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalDirFindUserByName_2(
-    HANDLE hProvider,
-    PCSTR  pszDomainName,
-    PCSTR  pszUserName,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
-    wchar16_t wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
-    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
-    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
-    wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
-    wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
-    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameNTHash[0],
-        &wszAttrNameLMHash[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameUPN[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameUserInfoFlags[0],
-        &wszAttrNameAccountExpiry[0],
-        &wszAttrNamePasswdLastSet[0],
-        &wszAttrNameDN[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    DWORD dwNumEntries = 0;
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_SAM_ACCOUNT_NAME " = \"%s\"" \
-                    " AND " LOCAL_DB_DIR_ATTR_DOMAIN   " = \"%s\"" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR   pszFilter = NULL;
-    PWSTR  pwszFilter = NULL;
-    PWSTR  pwszUserDN = NULL;
-    DWORD  dwInfoLevel = 2;
-    PLSA_USER_INFO_2 pUserInfo = NULL;
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    pszUserName,
-                    pszDomainName,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEntries,
-                    &dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwNumEntries == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-    }
-    else if (dwNumEntries != 1)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEntry = &pEntries[0];
-    if (pEntry->ulNumAttributes != dwNumAttrs)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalMarshalEntryToUserInfo_2(
-                    pEntry,
-                    pszDomainName,
-                    ppwszUserDN ? &pwszUserDN : NULL,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = pwszUserDN;
-    }
-    *ppUserInfo = pUserInfo;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-
-    if (pEntries)
-    {
-        DirectoryFreeEntries(pEntries, dwNumEntries);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = NULL;
-    }
-    *ppUserInfo = pUserInfo;
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalDirFindUserById(
-    HANDLE hProvider,
-    uid_t  uid,
-    DWORD  dwInfoLevel,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-
-    if (uid == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    switch(dwInfoLevel)
-    {
-        case 0:
-
-            dwError = LocalDirFindUserById_0(
-                            hProvider,
-                            uid,
-                            ppwszUserDN,
-                            ppUserInfo);
-
-            break;
-
-        case 1:
-
-            dwError = LocalDirFindUserById_1(
-                            hProvider,
-                            uid,
-                            ppwszUserDN,
-                            ppUserInfo);
-
-            break;
-
-        case 2:
-
-            dwError = LocalDirFindUserById_2(
-                            hProvider,
-                            uid,
-                            ppwszUserDN,
-                            ppUserInfo);
-
-            break;
-
-        default:
-
-            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
-
-            break;
-    }
-
-error:
-
-    return dwError;
-}
-
-DWORD
-LocalDirFindUserById_0(
-    HANDLE hProvider,
-    uid_t  uid,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameDN[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    DWORD dwNumEntries = 0;
-    PCSTR pszFilterTemplate = LOCAL_DB_DIR_ATTR_UID " = %u" \
-                              " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
-    PWSTR pwszUserDN = NULL;
-
-    // Should we include the domain also?
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    uid,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEntries,
-                    &dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwNumEntries == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-    }
-    else if (dwNumEntries != 1)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEntry = &pEntries[0];
-    if (pEntry->ulNumAttributes != dwNumAttrs)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalMarshalEntryToUserInfo_0(
-                    pEntry,
-                    ppwszUserDN ? &pwszUserDN : NULL,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = pwszUserDN;
-    }
-    *ppUserInfo = pUserInfo;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-
-    if (pEntries)
-    {
-        DirectoryFreeEntries(pEntries, dwNumEntries);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = NULL;
-    }
-    *ppUserInfo = NULL;
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(0, pUserInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalDirFindUserById_1(
-    HANDLE hProvider,
-    uid_t  uid,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
-    wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
-    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameUPN[0],
-        &wszAttrNameDomain[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameDN[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    DWORD dwNumEntries = 0;
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_UID " = %u" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR  pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PSTR  pszDomain = NULL;
-    DWORD dwInfoLevel = 1;
-    PLSA_USER_INFO_1 pUserInfo = NULL;
-    PWSTR pwszUserDN = NULL;
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    uid,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEntries,
-                    &dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwNumEntries == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-    }
-    else if (dwNumEntries != 1)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEntry = &pEntries[0];
-    if (pEntry->ulNumAttributes != dwNumAttrs)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalMarshalAttrToANSIFromUnicodeString(
-                    pEntry,
-                    &wszAttrNameDomain[0],
-                    &pszDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalMarshalEntryToUserInfo_1(
-                    pEntry,
-                    pszDomain,
-                    ppwszUserDN ? &pwszUserDN : NULL,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = pwszUserDN;
-    }
-    *ppUserInfo = pUserInfo;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-    LW_SAFE_FREE_STRING(pszDomain);
-
-    if (pEntries)
-    {
-        DirectoryFreeEntries(pEntries, dwNumEntries);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = NULL;
-    }
-    *ppUserInfo = NULL;
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalDirFindUserById_2(
-    HANDLE hProvider,
-    uid_t  uid,
-    PWSTR* ppwszUserDN,
-    PVOID* ppUserInfo
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
-    wchar16_t wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
-    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
-    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
-    wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
-    wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
-    wchar16_t wszAttrNameDomain[]         = LOCAL_DIR_ATTR_DOMAIN;
-    wchar16_t wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameNTHash[0],
-        &wszAttrNameLMHash[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameUPN[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameUserInfoFlags[0],
-        &wszAttrNameAccountExpiry[0],
-        &wszAttrNamePasswdLastSet[0],
-        &wszAttrNameDomain[0],
-        &wszAttrNameDN[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    DWORD dwNumAttrs = (sizeof(wszAttrs)/sizeof(wszAttrs[0])) - 1;
-    PDIRECTORY_ENTRY pEntries = NULL;
-    PDIRECTORY_ENTRY pEntry = NULL;
-    DWORD dwNumEntries = 0;
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_UID " = %u" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR  pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PSTR  pszDomain = NULL;
-    DWORD dwInfoLevel = 2;
-    PLSA_USER_INFO_2 pUserInfo = NULL;
-    PWSTR pwszUserDN = NULL;
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    uid,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEntries,
-                    &dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (dwNumEntries == 0)
-    {
-        dwError = LW_ERROR_NO_SUCH_USER;
-    }
-    else if (dwNumEntries != 1)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pEntry = &pEntries[0];
-    if (pEntry->ulNumAttributes != dwNumAttrs)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LocalMarshalAttrToANSIFromUnicodeString(
-                    pEntry,
-                    &wszAttrNameDomain[0],
-                    &pszDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LocalMarshalEntryToUserInfo_2(
-                    pEntry,
-                    pszDomain,
-                    ppwszUserDN ? &pwszUserDN : NULL,
-                    &pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = pwszUserDN;
-    }
-    *ppUserInfo = pUserInfo;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-    LW_SAFE_FREE_STRING(pszDomain);
-
-    if (pEntries)
-    {
-        DirectoryFreeEntries(pEntries, dwNumEntries);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppwszUserDN)
-    {
-        *ppwszUserDN = NULL;
-    }
-    *ppUserInfo = NULL;
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwInfoLevel, pUserInfo);
-    }
-
-    goto cleanup;
-}
 
 DWORD
 LocalDirGetUserInfoFlags(
@@ -1157,692 +155,9 @@ error:
 }
 
 DWORD
-LocalDirBeginEnumUsers(
-    HANDLE  hProvider,
-    DWORD   dwInfoLevel,
-    PHANDLE phResume
-    )
-{
-    DWORD dwError = 0;
-
-    switch (dwInfoLevel)
-    {
-        case 0:
-
-            dwError = LocalDirBeginEnumUsers_0(
-                            hProvider,
-                            phResume);
-
-            break;
-
-        case 1:
-
-            dwError = LocalDirBeginEnumUsers_1(
-                            hProvider,
-                            phResume);
-
-            break;
-
-        case 2:
-
-            dwError = LocalDirBeginEnumUsers_2(
-                            hProvider,
-                            phResume);
-
-            break;
-
-        default:
-
-            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
-
-            break;
-    }
-
-    return dwError;
-}
-
-static
-DWORD
-LocalDirBeginEnumUsers_0(
-    HANDLE  hProvider,
-    PHANDLE phResume
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwInfoLevel = 0;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_DOMAIN   " IN (\"%s\", \"%s\")" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
-
-    dwError = LocalCreateUserState(
-                        hProvider,
-                        dwInfoLevel,
-                        &pEnumState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    gLPGlobals.pszLocalDomain,
-                    gLPGlobals.pszBuiltinDomain,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEnumState->pEntries,
-                    &pEnumState->dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *phResume = (HANDLE)pEnumState;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-
-    return dwError;
-
-error:
-
-    *phResume = (HANDLE)NULL;
-
-    if (pEnumState)
-    {
-        LocalFreeEnumState(pEnumState);
-    }
-
-    goto cleanup;
-}
-
-static
-DWORD
-LocalDirBeginEnumUsers_1(
-    HANDLE  hProvider,
-    PHANDLE phResume
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwInfoLevel = 1;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
-    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameUPN[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_DOMAIN   " IN (\"%s\", \"%s\")" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
-
-    dwError = LocalCreateUserState(
-                        hProvider,
-                        dwInfoLevel,
-                        &pEnumState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    gLPGlobals.pszLocalDomain,
-                    gLPGlobals.pszBuiltinDomain,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEnumState->pEntries,
-                    &pEnumState->dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *phResume = (HANDLE)pEnumState;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-
-    return dwError;
-
-error:
-
-    *phResume = (HANDLE)NULL;
-
-    if (pEnumState)
-    {
-        LocalFreeEnumState(pEnumState);
-    }
-
-    goto cleanup;
-}
-
-static
-DWORD
-LocalDirBeginEnumUsers_2(
-    HANDLE  hProvider,
-    PHANDLE phResume
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwInfoLevel = 2;
-    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    wchar16_t wszAttrNameUID[]            = LOCAL_DIR_ATTR_UID;
-    wchar16_t wszAttrNameGID[]            = LOCAL_DIR_ATTR_PRIMARY_GROUP;
-    wchar16_t wszAttrNameSamAccountName[] = LOCAL_DIR_ATTR_SAM_ACCOUNT_NAME;
-    wchar16_t wszAttrNamePassword[]       = LOCAL_DIR_ATTR_PASSWORD;
-    wchar16_t wszAttrNameNTHash[]         = LOCAL_DIR_ATTR_NT_HASH;
-    wchar16_t wszAttrNameLMHash[]         = LOCAL_DIR_ATTR_LM_HASH;
-    wchar16_t wszAttrNameGecos[]          = LOCAL_DIR_ATTR_GECOS;
-    wchar16_t wszAttrNameShell[]          = LOCAL_DIR_ATTR_SHELL;
-    wchar16_t wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
-    wchar16_t wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
-    wchar16_t wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    wchar16_t wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
-    wchar16_t wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
-    wchar16_t wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
-    wchar16_t wszAttrNameNetBIOSDomain[]      = LOCAL_DIR_ATTR_NETBIOS_NAME;
-    PWSTR wszAttrs[] =
-    {
-        &wszAttrNameUID[0],
-        &wszAttrNameGID[0],
-        &wszAttrNameSamAccountName[0],
-        &wszAttrNamePassword[0],
-        &wszAttrNameNTHash[0],
-        &wszAttrNameLMHash[0],
-        &wszAttrNameGecos[0],
-        &wszAttrNameShell[0],
-        &wszAttrNameHomedir[0],
-        &wszAttrNameUPN[0],
-        &wszAttrNameObjectSID[0],
-        &wszAttrNameUserInfoFlags[0],
-        &wszAttrNameAccountExpiry[0],
-        &wszAttrNamePasswdLastSet[0],
-        &wszAttrNameNetBIOSDomain[0],
-        NULL
-    };
-    PCSTR pszFilterTemplate =
-                    LOCAL_DB_DIR_ATTR_DOMAIN   " IN (\"%s\", \"%s\")" \
-                    " AND " LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
-    PSTR pszFilter = NULL;
-    PWSTR pwszFilter = NULL;
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = NULL;
-
-    dwError = LocalCreateUserState(
-                        hProvider,
-                        dwInfoLevel,
-                        &pEnumState);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateStringPrintf(
-                    &pszFilter,
-                    pszFilterTemplate,
-                    gLPGlobals.pszLocalDomain,
-                    gLPGlobals.pszBuiltinDomain,
-                    LOCAL_OBJECT_CLASS_USER);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMbsToWc16s(
-                    pszFilter,
-                    &pwszFilter);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = DirectorySearch(
-                    pContext->hDirectory,
-                    NULL,
-                    0,
-                    pwszFilter,
-                    wszAttrs,
-                    FALSE,
-                    &pEnumState->pEntries,
-                    &pEnumState->dwNumEntries);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *phResume = (HANDLE)pEnumState;
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(pszFilter);
-    LW_SAFE_FREE_MEMORY(pwszFilter);
-
-    return dwError;
-
-error:
-
-    *phResume = (HANDLE)NULL;
-
-    if (pEnumState)
-    {
-        LocalFreeEnumState(pEnumState);
-    }
-
-    goto cleanup;
-}
-
-DWORD
-LocalDirEnumUsers(
-    HANDLE  hProvider,
-    HANDLE  hResume,
-    DWORD   nMaxUsers,
-    PDWORD  pdwNumUsersFound,
-    PVOID** pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState = (PLOCAL_PROVIDER_ENUM_STATE)hResume;
-
-    BAIL_ON_INVALID_POINTER(pEnumState);
-
-    switch (pEnumState->dwInfoLevel)
-    {
-        case 0:
-
-            dwError = LocalDirEnumUsers_0(
-                                hProvider,
-                                pEnumState,
-                                nMaxUsers,
-                                pdwNumUsersFound,
-                                pppUserInfoList
-                                );
-            break;
-
-        case 1:
-
-            dwError = LocalDirEnumUsers_1(
-                                hProvider,
-                                pEnumState,
-                                nMaxUsers,
-                                pdwNumUsersFound,
-                                pppUserInfoList
-                                );
-            break;
-
-        case 2:
-
-            dwError = LocalDirEnumUsers_2(
-                                hProvider,
-                                pEnumState,
-                                nMaxUsers,
-                                pdwNumUsersFound,
-                                pppUserInfoList
-                                );
-            break;
-
-        default:
-
-            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
-
-            break;
-    }
-
-error:
-
-    return dwError;
-}
-
-static
-DWORD
-LocalDirEnumUsers_0(
-    HANDLE                     hProvider,
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
-    DWORD                      dwNumMaxUsers,
-    PDWORD                     pdwNumUsersFound,
-    PVOID**                    pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwNumUsersAvailable = 0;
-    DWORD dwNumUsersFound = 0;
-    PLSA_USER_INFO_0* ppUserInfoList = NULL;
-    DWORD iUser = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LOCAL_LOCK_MUTEX(bInLock, &pEnumState->mutex);
-
-    if (pEnumState->dwInfoLevel != 0)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwNumUsersAvailable = pEnumState->dwNumEntries - pEnumState->dwNextStartingId;
-
-    dwNumUsersFound = LSA_MIN(dwNumMaxUsers, dwNumUsersAvailable);
-
-    if (!dwNumUsersFound)
-    {
-        dwError = LW_ERROR_NO_MORE_USERS;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LwAllocateMemory(
-                    dwNumUsersFound * sizeof(PLSA_USER_INFO_0),
-                    (PVOID*)&ppUserInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (; iUser < dwNumUsersFound; iUser++)
-    {
-        PDIRECTORY_ENTRY pEntry = NULL;
-
-        pEntry = &pEnumState->pEntries[pEnumState->dwNextStartingId + iUser];
-
-        dwError = LocalMarshalEntryToUserInfo_0(
-                        pEntry,
-                        NULL,
-                        &ppUserInfoList[iUser]);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pEnumState->dwNextStartingId += dwNumUsersFound;
-
-    *pdwNumUsersFound = dwNumUsersFound;
-    *pppUserInfoList = (PVOID*)ppUserInfoList;
-
-cleanup:
-
-    LOCAL_UNLOCK_MUTEX(bInLock, &pEnumState->mutex);
-
-    return dwError;
-
-error:
-
-    *pdwNumUsersFound = 0;
-    *pppUserInfoList = NULL;
-
-    if (ppUserInfoList)
-    {
-        LsaFreeUserInfoList(
-                pEnumState->dwInfoLevel,
-                (PVOID*)ppUserInfoList,
-                dwNumUsersFound);
-    }
-
-    goto cleanup;
-}
-
-static
-DWORD
-LocalDirEnumUsers_1(
-    HANDLE                     hProvider,
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
-    DWORD                      dwNumMaxUsers,
-    PDWORD                     pdwNumUsersFound,
-    PVOID**                    pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwNumUsersAvailable = 0;
-    DWORD dwNumUsersFound = 0;
-    PLSA_USER_INFO_1* ppUserInfoList = NULL;
-    DWORD iUser = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LOCAL_LOCK_MUTEX(bInLock, &pEnumState->mutex);
-
-    if (pEnumState->dwInfoLevel != 1)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwNumUsersAvailable = pEnumState->dwNumEntries - pEnumState->dwNextStartingId;
-
-    dwNumUsersFound = LSA_MIN(dwNumMaxUsers, dwNumUsersAvailable);
-
-    if (!dwNumUsersFound)
-    {
-        dwError = LW_ERROR_NO_MORE_USERS;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LwAllocateMemory(
-                    dwNumUsersFound * sizeof(PLSA_USER_INFO_1),
-                    (PVOID*)&ppUserInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (; iUser < dwNumUsersFound; iUser++)
-    {
-        PDIRECTORY_ENTRY pEntry = NULL;
-
-        pEntry = &pEnumState->pEntries[pEnumState->dwNextStartingId + iUser];
-
-        dwError = LocalMarshalEntryToUserInfo_1(
-                        pEntry,
-                        gLPGlobals.pszLocalDomain,
-                        NULL,
-                        &ppUserInfoList[iUser]);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pEnumState->dwNextStartingId += dwNumUsersFound;
-
-    *pdwNumUsersFound = dwNumUsersFound;
-    *pppUserInfoList = (PVOID*)ppUserInfoList;
-
-cleanup:
-
-    LOCAL_UNLOCK_MUTEX(bInLock, &pEnumState->mutex);
-
-    return dwError;
-
-error:
-
-    *pdwNumUsersFound = 0;
-    *pppUserInfoList = NULL;
-
-    if (ppUserInfoList)
-    {
-        LsaFreeUserInfoList(
-                pEnumState->dwInfoLevel,
-                (PVOID*)ppUserInfoList,
-                dwNumUsersFound);
-    }
-
-    goto cleanup;
-}
-
-static
-DWORD
-LocalDirEnumUsers_2(
-    HANDLE                     hProvider,
-    PLOCAL_PROVIDER_ENUM_STATE pEnumState,
-    DWORD                      dwNumMaxUsers,
-    PDWORD                     pdwNumUsersFound,
-    PVOID**                    pppUserInfoList
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwNumUsersAvailable = 0;
-    DWORD dwNumUsersFound = 0;
-    PLSA_USER_INFO_2* ppUserInfoList = NULL;
-    DWORD iUser = 0;
-    BOOLEAN bInLock = FALSE;
-
-    LOCAL_LOCK_MUTEX(bInLock, &pEnumState->mutex);
-
-    if (pEnumState->dwInfoLevel != 2)
-    {
-        dwError = LW_ERROR_DATA_ERROR;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwNumUsersAvailable = pEnumState->dwNumEntries - pEnumState->dwNextStartingId;
-
-    dwNumUsersFound = LSA_MIN(dwNumMaxUsers, dwNumUsersAvailable);
-
-    if (!dwNumUsersFound)
-    {
-        dwError = LW_ERROR_NO_MORE_USERS;
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LwAllocateMemory(
-                    dwNumUsersFound * sizeof(PLSA_USER_INFO_2),
-                    (PVOID*)&ppUserInfoList);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (; iUser < dwNumUsersFound; iUser++)
-    {
-        PDIRECTORY_ENTRY pEntry = NULL;
-
-        pEntry = &pEnumState->pEntries[pEnumState->dwNextStartingId + iUser];
-
-        dwError = LocalMarshalEntryToUserInfo_2(
-                        pEntry,
-                        gLPGlobals.pszLocalDomain,
-                        NULL,
-                        &ppUserInfoList[iUser]);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    pEnumState->dwNextStartingId += dwNumUsersFound;
-
-    *pdwNumUsersFound = dwNumUsersFound;
-    *pppUserInfoList = (PVOID*)ppUserInfoList;
-
-cleanup:
-
-    LOCAL_UNLOCK_MUTEX(bInLock, &pEnumState->mutex);
-
-    return dwError;
-
-error:
-
-    *pdwNumUsersFound = 0;
-    *pppUserInfoList = NULL;
-
-    if (ppUserInfoList)
-    {
-        LsaFreeUserInfoList(
-                pEnumState->dwInfoLevel,
-                (PVOID*)ppUserInfoList,
-                dwNumUsersFound);
-    }
-
-    goto cleanup;
-}
-
-DWORD
 LocalDirAddUser(
-    HANDLE hProvider,
-    DWORD  dwInfoLevel,
-    PVOID  pUserInfo
-    )
-{
-    DWORD dwError = 0;
-
-    switch(dwInfoLevel)
-    {
-        case 0:
-
-            dwError = LocalDirAddUser_0(
-                            hProvider,
-                            (PLSA_USER_INFO_0)pUserInfo);
-            break;
-
-        case 1:
-
-            dwError = LocalDirAddUser_1(
-                            hProvider,
-                            (PLSA_USER_INFO_1)pUserInfo);
-
-            break;
-
-        case 2:
-
-            dwError = LocalDirAddUser_2(
-                            hProvider,
-                            (PLSA_USER_INFO_2)pUserInfo);
-
-            break;
-
-        default:
-
-            dwError = LW_ERROR_UNSUPPORTED_USER_LEVEL;
-
-            break;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-DWORD
-LocalDirAddUser_0(
     HANDLE           hProvider,
-    PLSA_USER_INFO_0 pUserInfo
+    PLSA_USER_ADD_INFO pUserInfo
     )
 {
     DWORD dwError = 0;
@@ -1869,7 +184,7 @@ LocalDirAddUser_0(
     {
             {       /* LOCAL_DIR_ADD_USER_0_IDX_GID */
                     .Type = DIRECTORY_ATTR_TYPE_INTEGER,
-                    .data.ulValue = pUserInfo->gid
+                    .data.ulValue = -1
             },
             {       /* LOCAL_DIR_ADD_USER_0_IDX_OBJECTCLASS */
                     .Type = DIRECTORY_ATTR_TYPE_INTEGER,
@@ -2019,8 +334,6 @@ LocalDirAddUser_0(
     PWSTR pwszPassword = NULL;
     PWSTR pwszDomain        = NULL;
     PWSTR pwszNetBIOSDomain = NULL;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-    DWORD dwGroupInfoLevel = 0;
     PWSTR pwszGroupDN = NULL;
     PWSTR pwszBase = NULL;
     ULONG ulScope = 0;
@@ -2032,6 +345,9 @@ LocalDirAddUser_0(
     BOOLEAN bUserAdded = FALSE;
     gid_t gid = 0;
     PSID pGroupSID = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+    DWORD dwGid = -1;
 
     PWSTR wszMemberAttrs[] = {
         wszAttrObjectClass,
@@ -2061,18 +377,28 @@ LocalDirAddUser_0(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo->gid) {
-        dwError = LocalDirFindGroupById(
-                        hProvider,
-                        pUserInfo->gid,
-                        dwGroupInfoLevel,
-                        &pwszGroupDN,
-                        (PVOID*)&pGroupInfo);
-        BAIL_ON_LSA_ERROR(dwError);
+    if (pUserInfo->pszPrimaryGroupSid)
+    {
+        QueryList.ppszStrings = (PCSTR*) &pUserInfo->pszPrimaryGroupSid;
+
+        dwError = LocalDirFindObjects(
+            hProvider,
+            0,
+            LSA_OBJECT_TYPE_GROUP,
+            LSA_QUERY_TYPE_BY_SID,
+            1,
+            QueryList,
+            &ppObjects);
+
+        if (ppObjects[0] == NULL)
+        {
+            dwError = LW_ERROR_NO_SUCH_GROUP;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         dwError = RtlAllocateSidFromCString(
                         &pGroupSID,
-                        pGroupInfo->pszSid);
+                        ppObjects[0]->pszObjectSid);
         BAIL_ON_LSA_ERROR(dwError);
 
         if (!RtlIsPrefixSid(
@@ -2082,6 +408,11 @@ LocalDirAddUser_0(
             dwError = LW_ERROR_INVALID_GROUP;
             BAIL_ON_LSA_ERROR(dwError);
         }
+
+        attrValues[LOCAL_DAU0_IDX_GID].data.ulValue = ppObjects[0]->groupInfo.gid;
+
+        LsaUtilFreeSecurityObjectList(1, ppObjects);
+        ppObjects = NULL;
     }
 
     dwError = LsaMbsToWc16s(
@@ -2167,7 +498,7 @@ LocalDirAddUser_0(
 
     attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue = LOCAL_ACB_NORMAL;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszPasswd))
+    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszPassword))
     {
         attrValues[LOCAL_DAU0_IDX_ACCOUNT_FLAGS].data.ulValue |= LOCAL_ACB_DISABLED;
     }
@@ -2177,7 +508,7 @@ LocalDirAddUser_0(
     {
         mods[iMod++] = modUID;
     }
-    if (pUserInfo->gid)
+    if (pUserInfo->pszPrimaryGroupSid)
     {
         mods[iMod++] = modGID;
     }
@@ -2229,17 +560,32 @@ LocalDirAddUser_0(
                         &gid);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LocalDirFindGroupById(
-                        hProvider,
-                        gid,
-                        dwGroupInfoLevel,
-                        &pwszGroupDN,
-                        (PVOID*)&pGroupInfo);
+        dwGid = (DWORD) gid;
+        QueryList.pdwIds = &dwGid;
+
+        dwError = LocalDirFindObjects(
+            hProvider,
+            0,
+            LSA_OBJECT_TYPE_GROUP,
+            LSA_QUERY_TYPE_BY_UNIX_ID,
+            1,
+            QueryList,
+            &ppObjects);
+
+        if (ppObjects[0] == NULL)
+        {
+            dwError = LW_ERROR_NO_SUCH_GROUP;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = LwMbsToWc16s(
+            ppObjects[0]->pszDN,
+            &pwszGroupDN);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = RtlAllocateSidFromCString(
                         &pGroupSID,
-                        pGroupInfo->pszSid);
+                        ppObjects[0]->pszObjectSid);
         BAIL_ON_LSA_ERROR(dwError);
 
         if (!RtlIsPrefixSid(
@@ -2257,9 +603,9 @@ LocalDirAddUser_0(
                     pMember);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pUserInfo->pszPasswd)
+    if (pUserInfo->pszPassword)
     {
-        pszPassword = pUserInfo->pszPasswd;
+        pszPassword = pUserInfo->pszPassword;
     }
 
     dwError = LsaMbsToWc16s(
@@ -2279,19 +625,16 @@ LocalDirAddUser_0(
     if (bEventlogEnabled)
     {
         LocalEventLogUserAdd(pLoginInfo->pszName,
-                             ((PLSA_USER_INFO_0)pUserInfo)->uid);
+                             pUserInfo->uid);
     }
 
 cleanup:
 
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
+
     if (pLoginInfo)
     {
         LsaFreeNameInfo(pLoginInfo);
-    }
-
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
     }
 
     LW_SAFE_FREE_MEMORY(pwszUserDN);
@@ -2334,24 +677,6 @@ error:
     goto cleanup;
 }
 
-DWORD
-LocalDirAddUser_1(
-    HANDLE           hProvider,
-    PLSA_USER_INFO_1 pUserInfo
-    )
-{
-    return LW_ERROR_NOT_SUPPORTED;
-}
-
-DWORD
-LocalDirAddUser_2(
-    HANDLE           hProvider,
-    PLSA_USER_INFO_2 pUserInfo
-    )
-{
-    return LW_ERROR_NOT_SUPPORTED;
-}
-
 static
 DWORD
 LocalDirValidateUID(
@@ -2377,14 +702,12 @@ error:
 DWORD
 LocalDirModifyUser(
     HANDLE             hProvider,
-    PLSA_USER_MOD_INFO pUserModInfo
+    PLSA_USER_MOD_INFO_2 pUserModInfo
     )
 {
     DWORD   dwError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
-    DWORD   dwUserInfoLevel = 2;
     PWSTR   pwszUserDN = NULL;
-    PLSA_USER_INFO_2 pUserInfo = NULL;
     DWORD   dwUserInfoFlags = 0;
     DWORD   dwOrigUserInfoFlags = 0;
     WCHAR   wszAttrDN[] = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
@@ -2434,30 +757,48 @@ LocalDirModifyUser(
     ATTRIBUTE_VALUE avGecos = {0};
     ATTRIBUTE_VALUE avHomedir = {0};
     DWORD             dwNumMods = 0;
-    DWORD             dwGroupInfoLevel = 0;
     PWSTR             pwszGroupDN_remove = NULL;
-    PLSA_GROUP_INFO_0 pGroupInfo_remove = NULL;
     PWSTR             pwszGroupDN_add   = NULL;
-    PLSA_GROUP_INFO_0 pGroupInfo_add    = NULL;
     PWSTR             pwszPassword      = NULL;
     OCTET_STRING NtHashBlob = {0};
     OCTET_STRING LmHashBlob = {0};
+    LSA_QUERY_LIST QueryList;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT pObject = NULL;
 
-    dwError = LocalDirFindUserById(
-                    hProvider,
-                    pUserModInfo->uid,
-                    dwUserInfoLevel,
-                    &pwszUserDN,
-                    (PVOID*)&pUserInfo);
+    QueryList.ppszStrings = (PCSTR*) &pUserModInfo->pszSid;
+
+    dwError = LocalDirFindObjects(
+        hProvider,
+        0,
+        LSA_OBJECT_TYPE_USER,
+        LSA_QUERY_TYPE_BY_SID,
+        1,
+        QueryList,
+        &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ppObjects[0] == NULL)
+    {
+        dwError = LW_ERROR_NO_SUCH_USER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwMbsToWc16s(
+        ppObjects[0]->pszDN,
+        &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     UserAttr[0].pValues[0].data.pwszStringValue = pwszUserDN;
 
     dwError = LocalDirGetUserInfoFlags(
                     hProvider,
-                    pUserModInfo->uid,
+                    ppObjects[0]->userInfo.uid,
                     &dwOrigUserInfoFlags);
     BAIL_ON_LSA_ERROR(dwError);
+
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
+    ppObjects = NULL;
 
     dwUserInfoFlags = dwOrigUserInfoFlags;
 
@@ -2553,11 +894,29 @@ LocalDirModifyUser(
 
     if (pUserModInfo->actions.bSetPrimaryGroup)
     {
+        QueryList.ppszStrings = (PCSTR*) &pUserModInfo->pszPrimaryGroupSid;
+
+        dwError = LocalDirFindObjects(
+            hProvider,
+            0,
+            LSA_OBJECT_TYPE_GROUP,
+            LSA_QUERY_TYPE_BY_SID,
+            1,
+            QueryList,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (ppObjects[0] == NULL)
+        {
+            dwError = LW_ERROR_NO_SUCH_GROUP;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
         mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
         mods[dwNumMods].pwszAttrName = &wszAttrNamePrimaryGroup[0];
         mods[dwNumMods].ulNumValues = 1;
         avPrimaryGroup.Type = DIRECTORY_ATTR_TYPE_INTEGER;
-        avPrimaryGroup.data.ulValue = pUserModInfo->gid;
+        avPrimaryGroup.data.ulValue = ppObjects[0]->groupInfo.gid;
         mods[dwNumMods].pAttrValues = &avPrimaryGroup;
 
         dwNumMods++;
@@ -2608,32 +967,46 @@ LocalDirModifyUser(
 
     if (pUserModInfo->actions.bRemoveFromGroups)
     {
-        dwError = LocalFindGroupByNameEx(
-                        hProvider,
-                        pUserModInfo->pszRemoveFromGroups,
-                        0,
-                        dwGroupInfoLevel,
-                        &pwszGroupDN_remove,
-                        (PVOID*)&pGroupInfo_remove);
+        dwError = LocalDirFindObjectByGenericName(
+            hProvider,
+            0,
+            LSA_OBJECT_TYPE_GROUP,
+            pUserModInfo->pszRemoveFromGroups,
+            &pObject);
         BAIL_ON_LSA_ERROR(dwError);
 
+        dwError = LwMbsToWc16s(
+            pObject->pszDN,
+            &pwszGroupDN_remove);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LsaUtilFreeSecurityObject(pObject);
+        ppObjects = NULL;
+
         dwError = DirectoryRemoveFromGroup(
-                        pContext->hDirectory,
-                        pwszGroupDN_remove,
-                        UserEntry);
+            pContext->hDirectory,
+            pwszGroupDN_remove,
+            UserEntry);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (pUserModInfo->actions.bAddToGroups)
     {
-        dwError = LocalFindGroupByNameEx(
-                        hProvider,
-                        pUserModInfo->pszAddToGroups,
-                        0,
-                        dwGroupInfoLevel,
-                        &pwszGroupDN_add,
-                        (PVOID*)&pGroupInfo_add);
+        dwError = LocalDirFindObjectByGenericName(
+            hProvider,
+            0,
+            LSA_OBJECT_TYPE_GROUP,
+            pUserModInfo->pszAddToGroups,
+            &pObject);
         BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwMbsToWc16s(
+            pObject->pszDN,
+            &pwszGroupDN_add);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LsaUtilFreeSecurityObject(pObject);
+        pObject = NULL;
 
         dwError = DirectoryAddToGroup(
                         pContext->hDirectory,
@@ -2658,25 +1031,12 @@ LocalDirModifyUser(
 
 cleanup:
 
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(dwUserInfoLevel, pUserInfo);
-    }
+    LsaUtilFreeSecurityObject(pObject);
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
 
     LW_SAFE_FREE_MEMORY(pwszGroupDN_remove);
-    if (pGroupInfo_remove)
-    {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo_remove);
-    }
-
     LW_SAFE_FREE_MEMORY(pwszGroupDN_add);
-    if (pGroupInfo_add)
-    {
-        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo_add);
-    }
-
     LW_SAFE_FREE_MEMORY(pwszPassword);
-
     LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
@@ -2767,7 +1127,7 @@ error:
 
 DWORD
 LocalCreateHomeDirectory(
-    PLSA_USER_INFO_0 pUserInfo
+    PLSA_SECURITY_OBJECT pObject
     )
 {
     DWORD dwError = 0;
@@ -2776,16 +1136,16 @@ LocalCreateHomeDirectory(
     mode_t  perms = (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     BOOLEAN bRemoveDir = FALSE;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszHomedir))
+    if (LW_IS_NULL_OR_EMPTY_STR(pObject->userInfo.pszHomedir))
     {
        LSA_LOG_ERROR("The user's [Uid:%ld] home directory is not defined",
-                     (long)pUserInfo->uid);
+                     (long)pObject->userInfo.uid);
        dwError = LW_ERROR_FAILED_CREATE_HOMEDIR;
        BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = LsaCheckDirectoryExists(
-                    pUserInfo->pszHomedir,
+                    pObject->userInfo.pszHomedir,
                     &bExists);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -2795,24 +1155,24 @@ LocalCreateHomeDirectory(
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LsaCreateDirectory(
-                    pUserInfo->pszHomedir,
+                    pObject->userInfo.pszHomedir,
                     perms & (~umask));
         BAIL_ON_LSA_ERROR(dwError);
 
         bRemoveDir = TRUE;
 
         dwError = LsaChangeOwner(
-                    pUserInfo->pszHomedir,
-                    pUserInfo->uid,
-                    pUserInfo->gid);
+                    pObject->userInfo.pszHomedir,
+                    pObject->userInfo.uid,
+                    pObject->userInfo.gid);
         BAIL_ON_LSA_ERROR(dwError);
 
         bRemoveDir = FALSE;
 
         dwError = LocalProvisionHomeDir(
-                       pUserInfo->uid,
-                       pUserInfo->gid,
-                       pUserInfo->pszHomedir);
+                       pObject->userInfo.uid,
+                       pObject->userInfo.gid,
+                       pObject->userInfo.pszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -2823,7 +1183,7 @@ cleanup:
 error:
 
     if (bRemoveDir) {
-       LsaRemoveDirectory(pUserInfo->pszHomedir);
+       LsaRemoveDirectory(pObject->userInfo.pszHomedir);
     }
 
     goto cleanup;
@@ -2904,32 +1264,32 @@ error:
 
 DWORD
 LocalCheckAccountFlags(
-    PLSA_USER_INFO_2 pUserInfo2
+    PLSA_SECURITY_OBJECT pObject
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
 
-    BAIL_ON_INVALID_POINTER(pUserInfo2);
+    BAIL_ON_INVALID_POINTER(pObject);
 
-    if (pUserInfo2->bAccountDisabled)
+    if (pObject->userInfo.bAccountDisabled)
     {
         dwError = LW_ERROR_ACCOUNT_DISABLED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo2->bAccountLocked)
+    if (pObject->userInfo.bAccountLocked)
     {
         dwError = LW_ERROR_ACCOUNT_LOCKED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo2->bAccountExpired)
+    if (pObject->userInfo.bAccountExpired)
     {
         dwError = LW_ERROR_ACCOUNT_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo2->bPasswordExpired)
+    if (pObject->userInfo.bPasswordExpired)
     {
         dwError = LW_ERROR_PASSWORD_EXPIRED;
         BAIL_ON_LSA_ERROR(dwError);
@@ -3042,10 +1402,14 @@ LocalDirCheckIfAdministrator(
     )
 {
     DWORD dwError = 0;
-    DWORD dwGroupInfoLevel = 0;
-    PLSA_GROUP_INFO_0* ppGroupInfoList = NULL;
+    LSA_QUERY_LIST QueryList;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PSTR* ppszGroupSids = NULL;
     DWORD dwNumGroups = 0;
     BOOLEAN bIsAdmin = FALSE;
+    DWORD dwUid = (DWORD) uid;
+    PSTR pszBuiltinAdminSid = NULL;
+    DWORD iGroup = 0;
 
     if (uid == 0)
     {
@@ -3053,39 +1417,43 @@ LocalDirCheckIfAdministrator(
     }
     else
     {
-        dwError = LocalGetGroupsForUser(
-                        hProvider,
-                        NULL,
-                        uid,
-                        0,
-                        dwGroupInfoLevel,
-                        &dwNumGroups,
-                        (PVOID**)&ppGroupInfoList);
-        if (dwError == LW_ERROR_NO_SUCH_USER)
-        {
-            dwError = LW_ERROR_SUCCESS;
-        }
+        QueryList.pdwIds = &dwUid;
+
+        dwError = LocalDirFindObjects(
+            hProvider,
+            0,
+            LSA_OBJECT_TYPE_USER,
+            LSA_QUERY_TYPE_BY_UNIX_ID,
+            1,
+            QueryList,
+            &ppObjects);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (dwNumGroups)
+        if (ppObjects[0])
         {
-            DWORD iGroup = 0;
-            gid_t gid_BuiltinAdmin = 0;
-
-            dwError = LocalDirGetBuiltinAdministratorsGID(
-                            hProvider,
-                            &gid_BuiltinAdmin);
+            dwError = LocalQueryMemberOf(
+                hProvider,
+                0,
+                1,
+                &ppObjects[0]->pszObjectSid,
+                &dwNumGroups,
+                &ppszGroupSids);
             BAIL_ON_LSA_ERROR(dwError);
 
-            for (; iGroup < dwNumGroups; iGroup++)
+            if (dwNumGroups)
             {
-                PLSA_GROUP_INFO_0 pGroupInfo = ppGroupInfoList[iGroup];
+                dwError = LocalDirGetBuiltinAdministratorsSid(
+                    hProvider,
+                    &pszBuiltinAdminSid);
+                BAIL_ON_LSA_ERROR(dwError);
 
-                if (pGroupInfo->gid == gid_BuiltinAdmin)
+                for (; iGroup < dwNumGroups; iGroup++)
                 {
-                    bIsAdmin = TRUE;
-
-                    break;
+                    if (!strcmp(ppszGroupSids[iGroup], pszBuiltinAdminSid))
+                    {
+                        bIsAdmin = TRUE;
+                        break;
+                    }
                 }
             }
         }
@@ -3095,10 +1463,8 @@ LocalDirCheckIfAdministrator(
 
 cleanup:
 
-    if (ppGroupInfoList)
-    {
-        LsaFreeGroupInfoList(dwGroupInfoLevel, (PVOID*)ppGroupInfoList, dwNumGroups);
-    }
+    LwFreeStringArray(ppszGroupSids, dwNumGroups);
+    LW_SAFE_FREE_STRING(pszBuiltinAdminSid);
 
     return dwError;
 
@@ -3111,42 +1477,50 @@ error:
 
 static
 DWORD
-LocalDirGetBuiltinAdministratorsGID(
+LocalDirGetBuiltinAdministratorsSid(
     HANDLE hProvider,
-    gid_t* pGID
+    PSTR* ppszSid
     )
 {
     DWORD dwError = 0;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-    DWORD  dwInfoLevel = 0;
     static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-    static gid_t gid_BuiltinAdmin = 0;
+    static PSTR pszBuiltinAdminSid = 0;
+    LSA_QUERY_LIST QueryList;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PCSTR pszGroupName = "BUILTIN\\Administrators";
 
     pthread_mutex_lock(&mutex);
 
-    if (!gid_BuiltinAdmin)
+    if (!pszBuiltinAdminSid)
     {
-        dwError = LocalDirFindGroupByName(
-                        hProvider,
-                        "BUILTIN",
-                        "Administrators",
-                        dwInfoLevel,
-                        NULL,
-                        (PVOID*)&pGroupInfo);
+        QueryList.ppszStrings = &pszGroupName;
+
+        dwError = LocalDirFindObjects(
+            hProvider,
+            0,
+            LSA_OBJECT_TYPE_GROUP,
+            LSA_QUERY_TYPE_BY_NT4,
+            1,
+            QueryList,
+            &ppObjects);
         BAIL_ON_LSA_ERROR(dwError);
 
-        gid_BuiltinAdmin = pGroupInfo->gid;
+        if (ppObjects[0] == NULL)
+        {
+            dwError = LW_ERROR_NO_SUCH_GROUP;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = LwAllocateString(ppObjects[0]->pszObjectSid, &pszBuiltinAdminSid);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
-    *pGID = gid_BuiltinAdmin;
+    dwError = LwAllocateString(pszBuiltinAdminSid, ppszSid);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(dwInfoLevel, pGroupInfo);
-        pGroupInfo = NULL;
-    }
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
 
     pthread_mutex_unlock(&mutex);
 
@@ -3154,11 +1528,10 @@ cleanup:
 
 error:
 
-    *pGID = 0;
+    *ppszSid = NULL;
 
     goto cleanup;
 }
-
 
 /*
 local variables:

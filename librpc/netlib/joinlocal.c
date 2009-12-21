@@ -34,11 +34,12 @@
 NTSTATUS
 ResetAccountPasswordTimer(
     handle_t samr_b,
-    ACCOUNT_HANDLE hAccount
+    ACCOUNT_HANDLE hAccount,
+    UINT32 account_flags
     )
 {
-    const UINT32 flags_enable  = ACB_WSTRUST;
-    const UINT32 flags_disable = ACB_WSTRUST | ACB_DISABLED;
+    UINT32 flags_enable  = account_flags & (~ACB_DISABLED);
+    UINT32 flags_disable = account_flags | ACB_DISABLED;
     const UINT32 level = 16;
 
     NTSTATUS status = STATUS_SUCCESS;
@@ -103,7 +104,8 @@ ResetWksAccount(
         goto error;
     }
 
-    status = ResetAccountPasswordTimer(samr_b, hAccount);
+    status = ResetAccountPasswordTimer(samr_b, hAccount,
+                                       info->info16.account_flags);
     BAIL_ON_NTSTATUS_ERROR(status);
 
 cleanup:

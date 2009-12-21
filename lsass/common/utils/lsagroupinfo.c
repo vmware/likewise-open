@@ -393,6 +393,37 @@ LsaFreeGroupModInfo(
 }
 
 void
+LsaFreeGroupModInfo2(
+    PLSA_GROUP_MOD_INFO_2 pGroupModInfo
+    )
+{
+    LW_SAFE_FREE_STRING(pGroupModInfo->pszSid);
+    LwFreeStringArray(pGroupModInfo->ppszAddMembers, pGroupModInfo->dwAddMembersNum);
+    LwFreeStringArray(pGroupModInfo->ppszRemoveMembers, pGroupModInfo->dwRemoveMembersNum);
+    LwFreeMemory(pGroupModInfo);
+}
+
+void
+LsaFreeGroupAddInfo(
+    PLSA_GROUP_ADD_INFO pGroupAddInfo
+    )
+{
+    DWORD i = 0;
+
+    LW_SAFE_FREE_STRING(pGroupAddInfo->pszName);
+
+    if (pGroupAddInfo->ppszMemberSids)
+    {
+        for (i = 0; i < pGroupAddInfo->dwMemberCount; i++)
+        {
+            LW_SAFE_FREE_STRING(pGroupAddInfo->ppszMemberSids[i]);
+        }
+    }
+
+    LwFreeMemory(pGroupAddInfo);
+}
+
+void
 LsaFreeIpcGroupInfoList(
     PLSA_GROUP_INFO_LIST pGroupIpcInfoList
     )

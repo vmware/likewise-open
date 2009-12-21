@@ -364,6 +364,7 @@ EnumMembers(
     const DWORD dwMaxCount = 512;
     DWORD dwCount = 0;
     DWORD dwIndex = 0;
+    DWORD dwTotalIndex = 0;
     DWORD dwSidIndex = 0;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PSTR pszSid = NULL;
@@ -371,7 +372,7 @@ EnumMembers(
     dwError = LsaOpenServer(&hLsa);
     BAIL_ON_LSA_ERROR(dwError);
 
-    for (dwSidIndex = 0; dwSidIndex < gState.dwCount; dwSidIndex++)
+    for (dwSidIndex = 0, dwTotalIndex = 0; dwSidIndex < gState.dwCount; dwSidIndex++)
     {
         dwError = ResolveSid(hLsa, gState.QueryType, gState.QueryList, dwSidIndex, &pszSid);
         BAIL_ON_LSA_ERROR(dwError);
@@ -416,31 +417,19 @@ EnumMembers(
                 dwError = ResolveMembers(hLsa, dwCount, ppszMembers, &ppObjects);
                 BAIL_ON_LSA_ERROR(dwError);
 
-                for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+                for (dwIndex = 0; dwIndex < dwCount; dwIndex++, dwTotalIndex++)
                 {
                     if (ppObjects[dwIndex])
                     {
-                        LSA_OBJECT_TYPE type = LSA_OBJECT_TYPE_UNDEFINED;
-
-                        switch(ppObjects[dwIndex]->type)
+                        if (ppObjects[dwIndex]->type == gState.ObjectType || gState.ObjectType == LSA_OBJECT_TYPE_UNDEFINED)
                         {
-                        case AccountType_Group:
-                            type = LSA_OBJECT_TYPE_GROUP;
-                            break;
-                        case AccountType_User:
-                            type = LSA_OBJECT_TYPE_USER;
-                            break;
-                        }
-
-                        if (type == gState.ObjectType || gState.ObjectType == LSA_OBJECT_TYPE_UNDEFINED)
-                        {
-                            PrintSecurityObject(ppObjects[dwIndex]);
+                            PrintSecurityObject(ppObjects[dwIndex], dwTotalIndex, 0);
                             printf("\n");
                         }
                     }
                     else
                     {
-                        printf("Unresolvable SID (%s)\n\n", ppszMembers[dwIndex]);
+                        printf("Unresolvable SID [%d] (%s)\n\n", dwTotalIndex + 1, ppszMembers[dwIndex]);
                     }
                 }
 

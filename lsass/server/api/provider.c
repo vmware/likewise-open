@@ -74,7 +74,7 @@ LsaSrvProviderIoControl(
             dwError = LsaSrvOpenProvider(hServer, pProvider, &hProvider);
             BAIL_ON_LSA_ERROR(dwError);
 
-            dwError = pProvider->pFnTable->pfnProviderIoControl(
+            dwError = pProvider->pFnTable2->pfnProviderIoControl(
                                             hProvider,
                                             pServerState->peerUID,
                                             pServerState->peerGID,
@@ -134,7 +134,7 @@ LsaSrvProviderServicesDomain(
     dwError = LsaSrvFindProviderByName(pszProvider, &pProvider);
     BAIL_ON_LSA_ERROR(dwError);
 
-    bServicesDomain = pProvider->pFnTable->pfnServicesDomain(pszDomainName);
+    bServicesDomain = pProvider->pFnTable2->pfnServicesDomain(pszDomainName);
 
 cleanup:
 
