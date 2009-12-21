@@ -31,6 +31,12 @@ namespace Likewise.LMC.SecurityDesriptor
             out IntPtr pSacl,
             out IntPtr pSecurityDescriptor);
 
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto)]
+        public static extern uint InitializeSecurityDescriptor(
+            ref IntPtr pSecurityDescriptor,
+            uint dwRevision
+        );
+
         [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool LookupAccountSid(
             string lpSystemName,
@@ -199,12 +205,12 @@ namespace Likewise.LMC.SecurityDesriptor
             IntPtr pSid
         );
 
-        [DllImport(LibADVAPIPath, SetLastError = true)]
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern uint SetEntriesInAcl(
         ulong cCountOfExplicitEntries,
-        IntPtr[] pListOfExplicitEntries,
+        IntPtr pListOfExplicitEntries,
         IntPtr OldAcl,
-        out IntPtr NewAcl
+        ref IntPtr NewAcl
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
@@ -227,6 +233,10 @@ namespace Likewise.LMC.SecurityDesriptor
         uint Inheritance
         );
 
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern uint LocalFree(
+        IntPtr phMem
+        );
 
 
         #endregion
@@ -256,6 +266,7 @@ namespace Likewise.LMC.SecurityDesriptor
         public const UInt32 SE_PRIVILEGE_ENABLED = 0x00000002;
         public const UInt32 SE_PRIVILEGE_REMOVED = 0x00000004;
         public const UInt32 SE_PRIVILEGE_USED_FOR_ACCESS = 0x80000000;
+        public const UInt32 PRIVILEGE_SET_ALL_NECESSARY = 1;
 
 
         public const string SE_ASSIGNPRIMARYTOKEN_NAME = "SeAssignPrimaryTokenPrivilege";
@@ -299,6 +310,15 @@ namespace Likewise.LMC.SecurityDesriptor
         #region Structures
 
         [StructLayoutAttribute(LayoutKind.Sequential)]
+        public class PRIVILEGE_SET
+        {
+            public long PrivilegeCount;
+            public long Control;
+            public LUID_AND_ATTRIBUTES[]  Privileges;
+
+        }
+
+        [StructLayoutAttribute(LayoutKind.Sequential)]
         public class TOKEN_PRIVILEGES
         {
             public UInt32 PrivilegeCount;
@@ -326,10 +346,10 @@ namespace Likewise.LMC.SecurityDesriptor
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 4)]
         public class TRUSTEE
         {
-            public IntPtr pMultipleTrustee; // must be null
-            public int MultipleTrusteeOperation;
-            public int TrusteeForm;
-            public int TrusteeType;
+            public TRUSTEE pMultipleTrustee; // must be null
+            public MULTIPLE_TRUSTEE_OPERATION MultipleTrusteeOperation;
+            public TRUSTEE_FORM TrusteeForm;
+            public TRUSTEE_TYPE TrusteeType;
             [MarshalAs(UnmanagedType.LPWStr)]
             public string ptstrName;
         }
@@ -442,6 +462,34 @@ namespace Likewise.LMC.SecurityDesriptor
             SE_DACL_PROTECTED = 0x1000,//4096
             SE_SACL_PROTECTED = 0x2000, //8192
             SE_SELF_RELATIVE = 0x8000, //32768
+        }
+
+        public enum TRUSTEE_FORM
+        {
+            TRUSTEE_IS_SID,
+            TRUSTEE_IS_NAME,
+            TRUSTEE_BAD_FORM,
+            TRUSTEE_IS_OBJECTS_AND_SID,
+            TRUSTEE_IS_OBJECTS_AND_NAME
+        }
+
+        public enum TRUSTEE_TYPE
+        {
+            TRUSTEE_IS_UNKNOWN,
+            TRUSTEE_IS_USER,
+            TRUSTEE_IS_GROUP,
+            TRUSTEE_IS_DOMAIN,
+            TRUSTEE_IS_ALIAS,
+            TRUSTEE_IS_WELL_KNOWN_GROUP,
+            TRUSTEE_IS_DELETED,
+            TRUSTEE_IS_INVALID,
+            TRUSTEE_IS_COMPUTER
+        }
+
+        public enum MULTIPLE_TRUSTEE_OPERATION
+        {
+            NO_MULTIPLE_TRUSTEE,
+            TRUSTEE_IS_IMPERSONATE
         }
 
         public enum ACL_INFORMATION_CLASS
