@@ -902,7 +902,7 @@ static size_t wc16stombs_fast(char* dest, const wchar16_t *src, size_t cbcopy)
 
 size_t wc16stombs(char *dest, const wchar16_t *src, size_t cbcopy)
 {
-    char* lcname = setlocale(LC_CTYPE, "en_US.UTF-8");
+    char* lcname = setlocale(LC_CTYPE, NULL);
 
     if (strstr (lcname, ".UTF-8") ||
         !strcmp (lcname, "C") ||
