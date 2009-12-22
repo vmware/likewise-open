@@ -55,14 +55,6 @@ lwmsg_task_delete(
     SelectTask* task
     )
 {
-    if (task->group)
-    {
-        LOCK_GROUP(task->group);
-        lwmsg_ring_remove(&task->group_ring);
-        pthread_cond_broadcast(&task->group->event);
-        UNLOCK_GROUP(task->group);
-    }
-
     free(task);
 }
 
@@ -391,27 +383,25 @@ lwmsg_task_event_loop(
             }
             else
             {
-                /* Task is complete, notify waiters or delete if we held
-                   the last reference */
+                /* Task is complete, notify and remove from task group
+                   if it is in one */
+                group = task->group;
+
+                if (group)
+                {
+                    LOCK_GROUP(group);
+                    task->group = NULL;
+                    lwmsg_ring_remove(&task->group_ring);
+                    pthread_cond_broadcast(&group->event);
+                    UNLOCK_GROUP(group);
+                }
+
                 LOCK_THREAD(thread);
                 if (--task->refs)
                 {
-                    /* Save a reference to the task's group, if any,
-                       because we can't safely access the task structure
-                       after unlocking the thread (we dropped our reference
-                       so it could be freed by another thread) */
-                    group = task->group;
-
                     task->trigger_set = TASK_COMPLETE_MASK;
                     pthread_cond_broadcast(&thread->event);
                     UNLOCK_THREAD(thread);
-
-                    if (group)
-                    {
-                        LOCK_GROUP(group);
-                        pthread_cond_broadcast(&group->event);
-                        UNLOCK_GROUP(group);
-                    }
                 }
                 else
                 {
