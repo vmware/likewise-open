@@ -299,6 +299,7 @@ lwmsg_task_event_loop(
     char c = 0;
     int res = 0;
     LWMsgBool shutdown = LWMSG_FALSE;
+    LWMsgTaskGroup* group = NULL;
 
     lwmsg_clock_init(&clock);
 
@@ -395,14 +396,21 @@ lwmsg_task_event_loop(
                 LOCK_THREAD(thread);
                 if (--task->refs)
                 {
+                    /* Save a reference to the task's group, if any,
+                       because we can't safely access the task structure
+                       after unlocking the thread (we dropped our reference
+                       so it could be freed by another thread) */
+                    group = task->group;
+
                     task->trigger_set = TASK_COMPLETE_MASK;
                     pthread_cond_broadcast(&thread->event);
                     UNLOCK_THREAD(thread);
-                    if (task->group)
+
+                    if (group)
                     {
-                        LOCK_GROUP(task->group);
-                        pthread_cond_broadcast(&task->group->event);
-                        UNLOCK_GROUP(task->group);
+                        LOCK_GROUP(group);
+                        pthread_cond_broadcast(&group->event);
+                        UNLOCK_GROUP(group);
                     }
                 }
                 else
