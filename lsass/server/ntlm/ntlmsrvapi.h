@@ -74,6 +74,7 @@
 #include <lwdef.h>
 #include <lwkrb5.h>
 #include <lwmem.h>
+#include <lwps/lwps.h>
 #include <lwstr.h>
 #include <wc16str.h>
 

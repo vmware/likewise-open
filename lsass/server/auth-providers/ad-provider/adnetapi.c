@@ -1563,6 +1563,7 @@ AD_NetlogonAuthenticationUserEx(
     PWSTR pwszShortDomain = NULL;
     PWSTR pwszPrimaryShortDomain = NULL;
     PWSTR pwszUsername = NULL;
+    PWSTR pwszComputer = NULL;
     PSTR pszHostname = NULL;
     HANDLE hPwdDb = (HANDLE)NULL;
     RPCSTATUS status = 0;
@@ -1615,6 +1616,16 @@ AD_NetlogonAuthenticationUserEx(
     dwError = LsaMbsToWc16s(pUserParams->pszDomain, &pwszShortDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
+    pwszComputer = wc16sdup(pMachAcctInfo->pwszMachineAccount);
+    if (!pwszComputer)
+    {
+        dwError = LW_ERROR_OUT_OF_MEMORY;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Remove $ from account name
+    pwszComputer[wc16slen(pwszComputer) - 1] = 0;
+
     if (!ghSchannelBinding)
     {
         dwError = LsaMbsToWc16s(pszDomainController, &pwszDomainController);
@@ -1651,7 +1662,7 @@ AD_NetlogonAuthenticationUserEx(
                                      pwszDomainController,
                                      pwszServerName,
                                      pwszPrimaryShortDomain,
-                                     pMachAcctInfo->pwszHostname,
+                                     pwszComputer,
                                      pMachAcctInfo->pwszMachinePassword,
                                      &gSchannelCreds,
                                      &ghSchannelBinding);
@@ -1690,7 +1701,7 @@ AD_NetlogonAuthenticationUserEx(
                                     &gSchannelCreds,
                                     pwszServerName,
                                     pwszShortDomain,
-                                    pMachAcctInfo->pwszHostname,
+                                    pwszComputer,
                                     pwszUsername,
                                     pChal,
                                     pLMResp, LMRespLen,
@@ -1758,6 +1769,7 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pwszServerName);
     LW_SAFE_FREE_MEMORY(pwszShortDomain);
     LW_SAFE_FREE_MEMORY(pwszPrimaryShortDomain);
+    LW_SAFE_FREE_MEMORY(pwszComputer);
 
     pthread_mutex_unlock(&gSchannelLock);
 
