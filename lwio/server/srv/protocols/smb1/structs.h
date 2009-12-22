@@ -799,6 +799,8 @@ typedef struct _SRV_DELETE_STATE_SMB_V1
     PLWIO_SRV_SESSION           pSession;
     PLWIO_SRV_TREE              pTree;
 
+    BOOLEAN                     bPathHasWildCards;
+
     PWSTR                       pwszFilesystemPath;
     PWSTR                       pwszSearchPattern2;
     HANDLE                      hSearchSpace;

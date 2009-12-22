@@ -297,7 +297,8 @@ SrvBuildFindFirst2Response(
                     pTree->pShareInfo->pwszPath,
                     pwszSearchPattern,
                     &pwszFilesystemPath,
-                    &pwszSearchPattern2);
+                    &pwszSearchPattern2,
+                    NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);

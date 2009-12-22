@@ -345,7 +345,8 @@ SrvProcessFind_SMB_V2(
                         pwszFilePath,
                         pFile->searchSpace.pwszSearchPatternRef,
                         &pwszFilesystemPath,
-                        &pFile->searchSpace.pwszSearchPattern);
+                        &pFile->searchSpace.pwszSearchPattern,
+                        NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
