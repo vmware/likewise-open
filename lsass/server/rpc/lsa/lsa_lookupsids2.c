@@ -349,7 +349,7 @@ LsaSrvLookupSids2(
             PSID pSid = BuiltinAccounts.ppSids[i];
             DWORD iSubAuthority = pSid->SubAuthorityCount - 1;
 
-            if (pSid->SubAuthorityCount == 5)
+            if (pSid->SubAuthorityCount == 2)
             {
                 pdwBuiltinRids[i] = pSid->SubAuthority[iSubAuthority];
             }
