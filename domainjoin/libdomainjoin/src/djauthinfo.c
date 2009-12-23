@@ -260,7 +260,7 @@ DeletePolicyTreeFromRegistry()
                 NULL,
                 HKEY_THIS_MACHINE,
                 0,
-                0,
+                KEY_ALL_ACCESS,
                 &pRootKey);
     if (ceError)
     {
