@@ -39,7 +39,7 @@
  *
  *        Wrapper functions for sqlite
  *
- * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ * Authors: Wei Fu (wfu@likewise.com)
  *
  */
 #include "includes.h"
@@ -273,6 +273,38 @@ RegSqliteReadUInt64(
     }
 
     (*piColumnPos)++;
+
+error:
+    return status;
+}
+
+NTSTATUS
+RegSqliteReadInt32(
+    sqlite3_stmt *pstQuery,
+    int *piColumnPos,
+    PCSTR name,
+    int *piResult
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    int64_t qwTemp;
+    int iColumnPos = *piColumnPos;
+
+    status = RegSqliteReadInt64(
+        pstQuery,
+        &iColumnPos,
+        name,
+        &qwTemp);
+    BAIL_ON_NT_STATUS(status);
+
+    if (qwTemp > INT_MAX || qwTemp < INT_MIN)
+    {
+        status = STATUS_RANGE_NOT_FOUND;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    *piResult = (int)qwTemp;
+    *piColumnPos = iColumnPos;
 
 error:
     return status;

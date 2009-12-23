@@ -57,8 +57,9 @@ SqliteCreateKeyEx(
     IN DWORD Reserved,
     IN OPTIONAL PWSTR pClass,
     IN DWORD dwOptions,
-    IN REGSAM samDesired,
-    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+    IN ULONG ulSecDescLen,
     OUT PHKEY phkResult,
     OUT OPTIONAL PDWORD pdwDisposition
     );
@@ -69,7 +70,17 @@ SqliteOpenKeyEx(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pwszSubKey,
     IN DWORD ulOptions,
-    IN REGSAM samDesired,
+    IN ACCESS_MASK AccessDesired,
+    OUT PHKEY phkResult
+    );
+
+NTSTATUS
+SqliteOpenKeyEx_inDblock(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pwszSubKey,
+    IN DWORD ulOptions,
+    IN ACCESS_MASK AccessDesired,
     OUT PHKEY phkResult
     );
 
@@ -86,7 +97,27 @@ SqliteDeleteKey(
     );
 
 NTSTATUS
+SqliteDeleteKey_inDblock(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN PCWSTR pSubKey
+    );
+
+NTSTATUS
 SqliteEnumKeyEx(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pName, /*buffer to hold keyName*/
+    IN OUT PDWORD pcName,/*When the function returns, the variable receives the number of characters stored in the buffer,not including the terminating null character.*/
+    IN PDWORD pReserved,
+    IN OUT PWSTR pClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    OUT PFILETIME pftLastWriteTime
+    );
+
+NTSTATUS
+SqliteEnumKeyEx_inDblock(
     IN HANDLE Handle,
     IN HKEY hKey,
     IN DWORD dwIndex,
@@ -171,6 +202,24 @@ SqliteEnumValue(
     OUT OPTIONAL PDWORD pType,
     OUT OPTIONAL PBYTE pData,/*buffer hold value content*/
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
+    );
+
+NTSTATUS
+SqliteSetKeySecurity(
+    IN HANDLE hNtRegConnection,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+    IN ULONG ulSecDescRel
+    );
+
+NTSTATUS
+SqliteGetKeySecurity(
+    IN HANDLE hNtRegConnection,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+    IN OUT PULONG pulSecDescRelLen
     );
 
 /* Obsolete API */

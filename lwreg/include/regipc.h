@@ -85,6 +85,10 @@ typedef enum __REG_IPC_TAG
     REG_R_OPEN_KEYW_EX,
     REG_Q_SET_VALUEW_EX,
     REG_R_SET_VALUEW_EX,
+    REG_Q_SET_KEY_SECURITY,
+    REG_R_SET_KEY_SECURITY,
+    REG_Q_GET_KEY_SECURITY,
+    REG_R_GET_KEY_SECURITY
 } REG_IPC_TAG;
 
 /* Opaque type -- actual definition in state_p.h - LSA_SRV_ENUM_STATE */
@@ -102,8 +106,8 @@ typedef struct __REG_IPC_STATUS
 // IN DWORD Reserved,
 // IN OPTIONAL PWSTR pClass,
 // IN DWORD dwOptions,
-// IN REGSAM samDesired,
-// IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+// IN ACCESS_MASK AccessDesired,
+// IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor,
 // OUT PHKEY phkResult,
 // OUT OPTIONAL PDWORD pdwDisposition
 
@@ -113,8 +117,9 @@ typedef struct __REG_IPC_CREATE_KEY_EX_REQ
     PCWSTR pSubKey;
     PWSTR pClass;
     DWORD dwOptions;
-    REGSAM samDesired;
-    PSECURITY_ATTRIBUTES pSecurityAttributes;
+    ACCESS_MASK AccessDesired;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel;
+    ULONG ulSecDescLen;
 } REG_IPC_CREATE_KEY_EX_REQ, *PREG_IPC_CREATE_KEY_EX_REQ;
 
 typedef struct __REG_IPC_CREATE_KEY_EX_RESPONSE
@@ -282,13 +287,13 @@ typedef struct __REG_IPC_GET_VALUE_RESPONSE
 // IN HKEY hKey,
 // IN OPTIONAL PCWSTR pSubKey,
 // RESERVED DWORD ulOptions,
-// IN REGSAM samDesired,
+// IN ACCESS_MASK AccessDesired,
 // OUT HKEY hkResult
 typedef struct __REG_IPC_OPEN_KEY_EX_REQ
 {
     HKEY hKey;
     PCWSTR pSubKey;
-    REGSAM samDesired;
+    ACCESS_MASK AccessDesired;
 } REG_IPC_OPEN_KEY_EX_REQ, *PREG_IPC_OPEN_KEY_EX_REQ;
 
 typedef struct __REG_IPC_OPEN_KEY_EX_RESPONSE
@@ -425,6 +430,27 @@ typedef struct __REG_IPC_SET_VALUE_EX_REQ
 // NO RESPONSE
 
 /******************************************************************************/
+
+//IN HKEY hKey,
+//IN SECURITY_INFORMATION SecurityInformation,
+//IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+//IN ULONG Length
+typedef struct __REG_IPC_KEY_SECURITY_REQ
+{
+    HKEY hKey;
+    SECURITY_INFORMATION SecurityInformation;
+    PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor;
+    ULONG Length;
+} REG_IPC_KEY_SECURITY_REQ, *PREG_IPC_KEY_SECURITY_REQ;
+
+// No RESPONSE of SetKeySecurity
+
+typedef struct __REG_IPC_GET_KEY_SECURITY_RES
+{
+    PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor;
+    ULONG Length;
+} REG_IPC_GET_KEY_SECURITY_RES, *PREG_IPC_GET_KEY_SECURITY_RES;
+
 
 #define MAP_LWMSG_ERROR(_e_) (RegMapLwmsgStatus(_e_))
 #define MAP_REG_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)

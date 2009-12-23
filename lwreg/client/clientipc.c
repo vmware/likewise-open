@@ -238,7 +238,7 @@ RegTransactEnumRootKeysW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-		status = LwErrnoToNtStatus(LwErrnoToNtStatus(EINVAL));
+		status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -263,8 +263,8 @@ RegTransactCreateKeyExW(
     IN DWORD Reserved,
     IN OPTIONAL PWSTR pClass,
     IN DWORD dwOptions,
-    IN REGSAM samDesired,
-    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor,
     OUT PHKEY phkResult,
     OUT OPTIONAL PDWORD pdwDisposition
     )
@@ -274,6 +274,9 @@ RegTransactCreateKeyExW(
     PREG_IPC_CREATE_KEY_EX_RESPONSE pCreateKeyExResp = NULL;
     // Do not free pStatus
     PREG_IPC_STATUS pStatus = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
+    ULONG ulSecDescLen = 0;
+
 
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
@@ -282,12 +285,42 @@ RegTransactCreateKeyExW(
     status = RegIpcAcquireCall(hConnection, &pCall);
     BAIL_ON_NT_STATUS(status);
 
+    if (pSecurityDescriptor)
+    {
+	ulSecDescLen = 1024;
+
+	do
+	{
+	    status = NtRegReallocMemory(pSecDescRel,
+								    (PVOID*)&pSecDescRel,
+									ulSecDescLen);
+		BAIL_ON_NT_STATUS(status);
+
+	    memset(pSecDescRel, 0, ulSecDescLen);
+
+		status = RtlAbsoluteToSelfRelativeSD(pSecurityDescriptor,
+											 pSecDescRel,
+											 &ulSecDescLen);
+		if (STATUS_BUFFER_TOO_SMALL  == status)
+		{
+		    ulSecDescLen *= 2;
+		}
+		else
+		{
+			BAIL_ON_NT_STATUS(status);
+		}
+	}
+	while((status != STATUS_SUCCESS) &&
+		  (ulSecDescLen <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE));
+    }
+
     CreateKeyExReq.hKey = hKey;
     CreateKeyExReq.pSubKey = pSubKey;
     CreateKeyExReq.pClass = pClass;
     CreateKeyExReq.dwOptions = dwOptions;
-    CreateKeyExReq.samDesired = samDesired;
-    CreateKeyExReq.pSecurityAttributes = pSecurityAttributes;
+    CreateKeyExReq.AccessDesired = AccessDesired;
+    CreateKeyExReq.pSecDescRel = pSecDescRel;
+    CreateKeyExReq.ulSecDescLen = ulSecDescLen;
 
     in.tag = REG_Q_CREATE_KEY_EX;
     in.data = &CreateKeyExReq;
@@ -314,7 +347,7 @@ RegTransactCreateKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-		status = LwErrnoToNtStatus(LwErrnoToNtStatus(EINVAL));
+		status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -324,6 +357,8 @@ cleanup:
         lwmsg_call_destroy_params(pCall, &out);
         lwmsg_call_release(pCall);
     }
+
+    LWREG_SAFE_FREE_MEMORY(pSecDescRel);
 
     return status;
 
@@ -337,7 +372,7 @@ RegTransactOpenKeyExW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pwszSubKey,
     IN DWORD ulOptions,
-    IN REGSAM samDesired,
+    IN ACCESS_MASK AccessDesired,
     OUT PHKEY phkResult
     )
 {
@@ -356,7 +391,7 @@ RegTransactOpenKeyExW(
 
     OpenKeyExReq.hKey = hKey;
     OpenKeyExReq.pSubKey = pwszSubKey;
-    OpenKeyExReq.samDesired = samDesired;
+    OpenKeyExReq.AccessDesired = AccessDesired;
 
     in.tag = REG_Q_OPEN_KEYW_EX;
     in.data = &OpenKeyExReq;
@@ -379,7 +414,7 @@ RegTransactOpenKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-		status = LwErrnoToNtStatus(LwErrnoToNtStatus(EINVAL));
+		status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -437,7 +472,7 @@ RegTransactCloseKey(
             break;
 
         default:
-            status = LwErrnoToNtStatus(LwErrnoToNtStatus(EINVAL));
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -494,7 +529,7 @@ RegTransactDeleteKeyW(
             break;
 
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -583,7 +618,7 @@ RegTransactQueryInfoKeyW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -656,7 +691,7 @@ RegTransactEnumKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -739,7 +774,7 @@ RegTransactGetValueW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -798,7 +833,7 @@ RegTransactDeleteKeyValueW(
             break;
 
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -853,7 +888,7 @@ RegTransactDeleteTreeW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -908,7 +943,7 @@ RegTransactDeleteValueW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -996,7 +1031,7 @@ RegTransactEnumValueW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1091,71 +1126,7 @@ RegTransactQueryMultipleValues(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = LwErrnoToNtStatus(EINVAL);
-            BAIL_ON_NT_STATUS(status);
-    }
-
-cleanup:
-    if (pCall)
-    {
-        lwmsg_call_destroy_params(pCall, &out);
-        lwmsg_call_release(pCall);
-    }
-
-    return status;
-
-error:
-    goto cleanup;
-}
-
-NTSTATUS
-RegTransactSetKeyValue(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR pSubKey,
-    IN OPTIONAL PCWSTR pValueName,
-    IN DWORD dwType,
-    IN OPTIONAL PCVOID pData,
-    IN DWORD cbData
-    )
-{
-	NTSTATUS status = 0;
-    REG_IPC_SET_KEY_VALUE_REQ SetValueExReq;
-    // Do not free pStatus
-    PREG_IPC_STATUS pStatus = NULL;
-
-    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
-    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgCall* pCall = NULL;
-
-    status = RegIpcAcquireCall(hConnection, &pCall);
-    BAIL_ON_NT_STATUS(status);
-
-    SetValueExReq.hKey = hKey;
-    SetValueExReq.pValueName = pValueName;
-    SetValueExReq.dwType = dwType;
-    SetValueExReq.pData = pData;
-    SetValueExReq.cbData = cbData;
-
-    in.tag = REG_Q_SET_KEY_VALUE;
-    in.data = &SetValueExReq;
-
-    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
-    BAIL_ON_NT_STATUS(status);
-
-    switch (out.tag)
-    {
-        case REG_R_SET_KEY_VALUE:
-            break;
-
-        case REG_R_ERROR:
-            pStatus = (PREG_IPC_STATUS) out.data;
-            status = pStatus->status;
-            BAIL_ON_NT_STATUS(status);
-            break;
-
-        default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1184,15 +1155,16 @@ RegTransactSetValueExW(
     )
 {
 	NTSTATUS status = 0;
-    PREG_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PREG_CLIENT_CONNECTION_CONTEXT)hConnection;
-
     REG_IPC_SET_VALUE_EX_REQ SetValueExReq;
     // Do not free pStatus
     PREG_IPC_STATUS pStatus = NULL;
 
-    LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+	LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+	LWMsgCall* pCall = NULL;
+
+	status = RegIpcAcquireCall(hConnection, &pCall);
+	BAIL_ON_NT_STATUS(status);
 
     SetValueExReq.hKey = hKey;
     SetValueExReq.pValueName = pValueName;
@@ -1200,42 +1172,166 @@ RegTransactSetValueExW(
     SetValueExReq.pData = pData;
     SetValueExReq.cbData = cbData;
 
-    request.tag = REG_Q_SET_VALUEW_EX;
-    request.object = &SetValueExReq;
+    in.tag = REG_Q_SET_VALUEW_EX;
+    in.data = &SetValueExReq;
 
-    status = MAP_LWMSG_ERROR(lwmsg_assoc_send_message_transact(
-                              pContext->pAssoc,
-                              &request,
-                              &response));
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
     BAIL_ON_NT_STATUS(status);
 
-    switch (response.tag)
+    switch (out.tag)
     {
         case REG_R_SET_VALUEW_EX:
             break;
 
         case REG_R_ERROR:
-            pStatus = (PREG_IPC_STATUS) response.object;
+            pStatus = (PREG_IPC_STATUS) out.data;
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
 
         default:
-            status = LwErrnoToNtStatus(EINVAL);
+            status = EINVAL;
             BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
+	if (pCall)
+	{
+		lwmsg_call_destroy_params(pCall, &out);
+		lwmsg_call_release(pCall);
+	}
 
-    return status;
+	return status;
 
 error:
+	goto cleanup;
+}
 
-    if (response.object)
+NTSTATUS
+RegTransactSetKeySecurity(
+	IN HANDLE hConnection,
+	IN HKEY hKey,
+	IN SECURITY_INFORMATION SecurityInformation,
+	IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+	IN ULONG Length
+	)
+{
+	NTSTATUS status = 0;
+    REG_IPC_KEY_SECURITY_REQ SetKeySecurityReq;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
+
+    SetKeySecurityReq.hKey = hKey;
+    SetKeySecurityReq.SecurityInformation = SecurityInformation;
+    SetKeySecurityReq.SecurityDescriptor = SecurityDescriptor;
+    SetKeySecurityReq.Length = Length;
+
+    in.tag = REG_Q_SET_KEY_SECURITY;
+    in.data = &SetKeySecurityReq;
+
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
+
+    switch (out.tag)
     {
-        lwmsg_assoc_free_message(pContext->pAssoc, &response);
+        case REG_R_SET_KEY_SECURITY:
+            break;
+
+        case REG_R_ERROR:
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
+            break;
+
+        default:
+            status = EINVAL;
+            BAIL_ON_NT_STATUS(status);
     }
 
+cleanup:
+	if (pCall)
+	{
+		lwmsg_call_destroy_params(pCall, &out);
+		lwmsg_call_release(pCall);
+	}
+
+	return status;
+
+error:
+	goto cleanup;
+}
+
+NTSTATUS
+RegTransactGetKeySecurity(
+	IN HANDLE hConnection,
+	IN HKEY hKey,
+	IN SECURITY_INFORMATION SecurityInformation,
+	OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+	IN OUT PULONG lpcbSecurityDescriptor
+	)
+{
+	NTSTATUS status = 0;
+    REG_IPC_KEY_SECURITY_REQ GetKeySecurityReq;
+    PREG_IPC_GET_KEY_SECURITY_RES pGetKeySecurityResp = NULL;
+    // Do not free pStatus
+    PREG_IPC_STATUS pStatus = NULL;
+
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    status = RegIpcAcquireCall(hConnection, &pCall);
+    BAIL_ON_NT_STATUS(status);
+
+    GetKeySecurityReq.hKey = hKey;
+    GetKeySecurityReq.SecurityInformation = SecurityInformation;
+    GetKeySecurityReq.SecurityDescriptor = SecurityDescriptor;
+    GetKeySecurityReq.Length = *lpcbSecurityDescriptor;
+
+    in.tag = REG_Q_GET_KEY_SECURITY;
+    in.data = &GetKeySecurityReq;
+
+    status = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_NT_STATUS(status);
+
+    switch (out.tag)
+    {
+        case REG_R_GET_KEY_SECURITY:
+		pGetKeySecurityResp = (PREG_IPC_GET_KEY_SECURITY_RES) out.data;
+
+		*lpcbSecurityDescriptor = pGetKeySecurityResp->Length;
+		memcpy(SecurityDescriptor, pGetKeySecurityResp->SecurityDescriptor, pGetKeySecurityResp->Length);
+
+            break;
+
+        case REG_R_ERROR:
+            pStatus = (PREG_IPC_STATUS) out.data;
+            status = pStatus->status;
+            BAIL_ON_NT_STATUS(status);
+            break;
+
+        default:
+            status = EINVAL;
+            BAIL_ON_NT_STATUS(status);
+    }
+
+cleanup:
+	if (pCall)
+    {
+		lwmsg_call_destroy_params(pCall, &out);
+		lwmsg_call_release(pCall);
+    }
+
+	return status;
+
+error:
     goto cleanup;
 }
 

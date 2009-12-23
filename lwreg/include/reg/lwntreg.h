@@ -48,10 +48,7 @@
 #ifndef __LWNTREG_H__
 #define __LWNTREG_H__
 
-#include <lw/types.h>
-#include <lw/attrs.h>
 #include <reg/reg.h>
-
 
 NTSTATUS
 LwNtRegOpenServer(
@@ -79,30 +76,30 @@ LwNtRegEnumRootKeysW(
 
 NTSTATUS
 LwNtRegCreateKeyExA(
-    HANDLE hNtRegConnection,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    DWORD Reserved,
-    PWSTR pClass,
-    DWORD dwOptions,
-    REGSAM samDesired,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    PHKEY phkResult,
-    PDWORD pdwDisposition
+	IN HANDLE hRegConnection,
+	IN HKEY hKey,
+	IN PCSTR pszSubKey,
+	IN DWORD Reserved,
+	IN OPTIONAL PWSTR pClass,
+	IN DWORD dwOptions,
+	IN ACCESS_MASK AccessDesired,
+	IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor,
+	OUT PHKEY phkResult,
+	OUT OPTIONAL PDWORD pdwDisposition
     );
 
 NTSTATUS
 LwNtRegCreateKeyExW(
-    HANDLE hNtRegConnection,
-    HKEY hKey,
-    PCWSTR pSubKey,
-    DWORD Reserved,
-    PWSTR pClass,
-    DWORD dwOptions,
-    REGSAM samDesired,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    PHKEY phkResult,
-    PDWORD pdwDisposition
+	IN HANDLE hRegConnection,
+	IN HKEY hKey,
+	IN PCWSTR pSubKey,
+	IN DWORD Reserved,
+	IN OPTIONAL PWSTR pClass,
+	IN DWORD dwOptions,
+	IN ACCESS_MASK AccessDesired,
+	IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor,
+	OUT PHKEY phkResult,
+	OUT OPTIONAL PDWORD pdwDisposition
     );
 
 NTSTATUS
@@ -251,7 +248,7 @@ LwNtRegOpenKeyExA(
     HKEY hKey,
     PCSTR pszSubKey,
     DWORD ulOptions,
-    REGSAM samDesired,
+    ACCESS_MASK AccessDesired,
     PHKEY phkResult
     );
 
@@ -261,7 +258,7 @@ LwNtRegOpenKeyExW(
     HKEY hKey,
     PCWSTR pwszSubKey,
     DWORD ulOptions,
-    REGSAM samDesired,
+    ACCESS_MASK AccessDesired,
     PHKEY phkResult
     );
 
@@ -278,7 +275,7 @@ LwNtRegQueryInfoKeyA(
     PDWORD pcValues,
     PDWORD pcMaxValueNameLen,
     PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
+    PULONG pulSecDescLen,
     PFILETIME pftLastWriteTime
     );
 
@@ -295,7 +292,7 @@ LwNtRegQueryInfoKeyW(
     PDWORD pcValues,
     PDWORD pcMaxValueNameLen,
     PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
+    PULONG pulSecDescLen,
     PFILETIME pftLastWriteTime
     );
 
@@ -352,6 +349,27 @@ LwNtRegQueryMultipleValues(
     PWSTR pValueBuf,
     PDWORD dwTotsize
     );
+
+
+// Registry ACL APIs
+NTSTATUS
+LwNtRegSetKeySecurity(
+    IN HANDLE hNtRegConnection,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN ULONG Length
+    );
+
+NTSTATUS
+LwNtRegGetKeySecurity(
+    IN HANDLE hNtRegConnection,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    IN OUT PULONG lpcbSecurityDescriptor
+    );
+
 
 /* NtRegistry multi-str data type conversion functions */
 NTSTATUS
@@ -452,6 +470,8 @@ LwNtRegConvertByteStreamW2A(
 #define NtRegConvertByteStreamA2W LwNtRegConvertByteStreamA2W
 #define NtRegConvertByteStreamW2A LwNtRegConvertByteStreamW2A
 #define NtRegQueryMultipleValues LwNtRegQueryMultipleValues
+#define NtRegSetKeySecurity LwNtRegSetKeySecurity
+#define NtRegGetKeySecurity LwNtRegGetKeySecurity
 
 #endif /* ! LW_STRICT_NAMESPACE */
 
@@ -461,8 +481,8 @@ LwNtRegConvertByteStreamW2A(
 #define LwNtRegEnumRootKeys(hNtRegConnection, pppwszRootKeyNames, pdwNumRootKeys) \
     LwNtRegEnumRootKeysW(hNtRegConnection, pppwszRootKeyNames, pdwNumRootKeys)
 
-#define LwNtRegCreateKeyEx(hNtRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
-    LwNtRegCreateKeyExW(hNtRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
+#define LwNtRegCreateKeyEx(hNtRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, AccessDesired, pSecurityAttributes, phkResult, pdwDisposition) \
+    LwNtRegCreateKeyExW(hNtRegConnection, hKey, pwszSubKey, Reserved, pClass, dwOptions, AccessDesired, pSecurityAttributes, phkResult, pdwDisposition)
 
 #define LwNtRegEnumKeyEx(hNtRegConnection, hKey, dwIndex, pName, pcName, pReserved, pClass, pcClass,pftLastWriteTime) \
     LwNtRegEnumKeyExW(hNtRegConnection, hKey, dwIndex, pName, pcName, pReserved, pClass, pcClass,pftLastWriteTime) \
@@ -479,8 +499,8 @@ LwNtRegConvertByteStreamW2A(
 #define LwNtRegSetValueEx(hNtRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData) \
     LwNtRegSetValueExW(hNtRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
 
-#define LwNtRegOpenKeyEx(hNtRegConnection, hKey, pwszSubKey, ulOptions, samDesired, phkResult) \
-    LwNtRegOpenKeyExW(hNtRegConnection, hKey, pwszSubKey, ulOptions, samDesired, phkResult)
+#define LwNtRegOpenKeyEx(hNtRegConnection, hKey, pwszSubKey, ulOptions, AccessDesired, phkResult) \
+    LwNtRegOpenKeyExW(hNtRegConnection, hKey, pwszSubKey, ulOptions, AccessDesired, phkResult)
 
 #define LwNtRegMultiStrsToByteArray(ppszInMultiSz, outBuf, outBufLen) \
     LwNtRegMultiStrsToByteArrayW(ppszInMultiSz, outBuf, outBufLen)
@@ -508,8 +528,8 @@ LwNtRegConvertByteStreamW2A(
 #define LwNtRegEnumRootKeys(hNtRegConnection, pppszRootKeyNames, pdwNumRootKeys) \
 	LwNtRegEnumRootKeysA(hNtRegConnection, pppszRootKeyNames, pdwNumRootKeys)
 
-#define LwNtRegCreateKeyEx(hNtRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition) \
-    LwNtRegCreateKeyExA(hNtRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, samDesired, pSecurityAttributes, phkResult, pdwDisposition)
+#define LwNtRegCreateKeyEx(hNtRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, AccessDesired, pSecurityAttributes, phkResult, pdwDisposition) \
+    LwNtRegCreateKeyExA(hNtRegConnection, hKey, pszSubKey, Reserved, pClass, dwOptions, AccessDesired, pSecurityAttributes, phkResult, pdwDisposition)
 
 #define LwNtRegEnumKeyEx(hNtRegConnection, hKey, dwIndex, pName, pcName, pReserved, pClass, pcClass,pftLastWriteTime) \
     LwNtRegEnumKeyExA(hNtRegConnection, hKey, dwIndex, pName, pcName, pReserved, pClass, pcClass,pftLastWriteTime) \
@@ -526,8 +546,8 @@ LwNtRegConvertByteStreamW2A(
 #define LwNtRegSetValueEx(hNtRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData) \
     LwNtRegSetValueExA(hNtRegConnection, hKey, pValueName, Reserved, dwType, pData, cbData)
 
-#define LwNtRegOpenKeyEx(hNtRegConnection, hKey, pszSubKey, ulOptions, samDesired, phkResult) \
-    LwNtRegOpenKeyExA(hNtRegConnection, hKey, pszSubKey, ulOptions, samDesired, phkResult)
+#define LwNtRegOpenKeyEx(hNtRegConnection, hKey, pszSubKey, ulOptions, AccessDesired, phkResult) \
+    LwNtRegOpenKeyExA(hNtRegConnection, hKey, pszSubKey, ulOptions, AccessDesired, phkResult)
 
 #define LwNtRegMultiStrsToByteArray(ppszInMultiSz, outBuf, outBufLen) \
     LwNtRegMultiStrsToByteArrayA(ppszInMultiSz, outBuf, outBufLen)

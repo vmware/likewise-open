@@ -218,6 +218,18 @@ static struct
     {
 	LWREG_ERROR_KEYNAME_EXIST,
         "The key already exists in the registry"
+    },
+    {
+	LWREG_ERROR_NO_SECURITY_ON_KEY,
+        "The key has no security descriptor stored"
+    },
+    {
+	LWREG_ERROR_INVALID_SECURITY_DESCR,
+        "Invalid security descriptor"
+    },
+    {
+	LWREG_ERROR_INVALID_ACCESS_TOKEN,
+	"Failure creating access token"
     }
 };
 

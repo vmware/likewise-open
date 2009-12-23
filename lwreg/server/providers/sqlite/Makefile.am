@@ -6,8 +6,10 @@ PROVIDER_LDFLAGS = @SQLITE_LDFLAGS@
 
 libregserver_provider_sqlite_la_SOURCES = \
     sqliteapi.c    \
+    sqliteacl.c   \
     sqliteapi_p.c    \
     sqldb.c     \
+    sqldb_p.c     \
     sqlitecache.c     \
     regsqlite.c    \
     globals.c

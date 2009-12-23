@@ -52,6 +52,8 @@
 #include <lw/rtlstring.h>
 #include <lw/rtlmemory.h>
 #include <lw/ntstatus.h>
+#include <lw/security-types.h>
+#include <lw/safeint.h>
 #include <lwmsg/lwmsg.h>
 
 #include <reg/lwntreg.h>

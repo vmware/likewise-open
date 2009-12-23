@@ -325,7 +325,7 @@ RegShellCmdParseKeyName(
                              NULL,
                              pszRootKey,
                              0,
-                             0,
+                             KEY_READ,
                              &hRootKey);
         if (dwRootKeyError == 0)
         {

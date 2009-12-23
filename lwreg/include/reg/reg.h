@@ -52,6 +52,7 @@
 
 #include <lw/types.h>
 #include <lw/attrs.h>
+#include <lw/security-types.h>
 /*
  * Logging
  */
@@ -87,11 +88,49 @@ typedef struct __REG_LOG_INFO {
     PSTR         pszPath;
 } REG_LOG_INFO, *PREG_LOG_INFO;
 
-typedef struct __REG_KEY_CONTEXT *HKEY, **PHKEY;
+typedef struct __REG_KEY_HANDLE *HKEY, **PHKEY;
 
-typedef DWORD REG_ACCESS_MASK;
-typedef REG_ACCESS_MASK REGSAM;
+typedef ACCESS_MASK REGSAM;
 
+#define KEY_QUERY_VALUE         0x0001 //Required to query the values of a registry key
+#define KEY_SET_VALUE           0x0002 //Required to create, delete, or set a registry value
+#define KEY_CREATE_SUB_KEY      0x0004 //Required to create, delete, or rename a subkey of a registry key
+#define KEY_ENUMERATE_SUB_KEYS  0x0008 //Required to enumerate the subkeys of a registry key
+#define KEY_NOTIFY              0x0010 //Required to request change notifications for a registry key or for subkeys of a registry key.
+#define KEY_CREATE_LINK         0x0020 //Reserved for system use
+
+
+#define KEY_ALL_ACCESS ( \
+	    (~SYNCHRONIZE) & \
+	    (STANDARD_RIGHTS_REQUIRED | \
+	    KEY_QUERY_VALUE |\
+		KEY_SET_VALUE |\
+		KEY_CREATE_SUB_KEY |\
+		KEY_ENUMERATE_SUB_KEYS |\
+		KEY_NOTIFY |\
+		KEY_CREATE_LINK) \
+		)
+
+#define KEY_READ ( \
+		(~SYNCHRONIZE) & \
+	    (STANDARD_RIGHTS_READ | \
+	    KEY_QUERY_VALUE |\
+	    KEY_ENUMERATE_SUB_KEYS |\
+	    KEY_NOTIFY) \
+		)
+
+
+#define KEY_WRITE ( \
+		(~SYNCHRONIZE) & \
+	    (STANDARD_RIGHTS_WRITE | \
+	    KEY_SET_VALUE |\
+	    KEY_CREATE_SUB_KEY) \
+		)
+
+#define KEY_EXECUTE ( \
+		(~SYNCHRONIZE) & \
+        (KEY_READ)\
+        )
 
 typedef DWORD REG_DATA_TYPE;
 typedef DWORD *PREG_DATA_TYPE;
@@ -224,15 +263,18 @@ RegFreeMemory(
 #define LWREG_ERROR_INVALID_NAME                              40707
 #define LWREG_ERROR_INVALID_CONTEXT                           40708
 #define LWREG_ERROR_KEYNAME_EXIST                             40709
+#define LWREG_ERROR_NO_SECURITY_ON_KEY                        40710
+#define LWREG_ERROR_INVALID_SECURITY_DESCR                    40711
+#define LWREG_ERROR_INVALID_ACCESS_TOKEN                      40712
 
-#define LWREG_ERROR_INVALID_CACHE_PATH                        40712 //LWERROR VALUE 40001
-#define LWREG_ERROR_INVALID_PREFIX_PATH                       40713 //40003
-#define LWREG_ERROR_NOT_IMPLEMENTED                           40714 //40010
-#define LWREG_ERROR_REGEX_COMPILE_FAILED                      40715 //40013
-#define LWREG_ERROR_INVALID_LOG_LEVEL                         40716 //40112
-#define LWREG_ERROR_NOT_HANDLED                               40717 //40017
-#define LWREG_ERROR_UNEXPECTED_TOKEN                          40718 //40062
-#define LWREG_ERROR_UNKNOWN                                   40719 //40188
+#define LWREG_ERROR_INVALID_CACHE_PATH                        40720 //LWERROR VALUE 40001
+#define LWREG_ERROR_INVALID_PREFIX_PATH                       40721 //40003
+#define LWREG_ERROR_NOT_IMPLEMENTED                           40722 //40010
+#define LWREG_ERROR_REGEX_COMPILE_FAILED                      40723 //40013
+#define LWREG_ERROR_INVALID_LOG_LEVEL                         40724 //40112
+#define LWREG_ERROR_NOT_HANDLED                               40725 //40017
+#define LWREG_ERROR_UNEXPECTED_TOKEN                          40726 //40062
+#define LWREG_ERROR_UNKNOWN                                   40727 //40188
 
 /*
 local variables:

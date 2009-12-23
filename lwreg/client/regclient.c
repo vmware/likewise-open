@@ -87,8 +87,8 @@ RegCreateKeyExA(
     IN DWORD Reserved,
     IN OPTIONAL PWSTR pClass,
     IN DWORD dwOptions,
-    IN REGSAM samDesired,
-    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs,
     OUT PHKEY phkResult,
     OUT OPTIONAL PDWORD pdwDisposition
     )
@@ -101,8 +101,8 @@ RegCreateKeyExA(
 		    Reserved,
 		    pClass,
 		    dwOptions,
-		    samDesired,
-		    pSecurityAttributes,
+		    AccessDesired,
+		    pSecDescAbs,
 		    phkResult,
 		    pdwDisposition
 		    )
@@ -118,8 +118,8 @@ RegCreateKeyExW(
     IN DWORD Reserved,
     IN OPTIONAL PWSTR pClass,
     IN DWORD dwOptions,
-    IN REGSAM samDesired,
-    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs,
     OUT PHKEY phkResult,
     OUT OPTIONAL PDWORD pdwDisposition
     )
@@ -132,8 +132,8 @@ RegCreateKeyExW(
 		    Reserved,
 		    pClass,
 		    dwOptions,
-		    samDesired,
-		    pSecurityAttributes,
+		    AccessDesired,
+		    pSecDescAbs,
 		    phkResult,
 		    pdwDisposition
 		    )
@@ -469,7 +469,7 @@ RegOpenKeyExA(
     IN HKEY hKey,
     IN OPTIONAL PCSTR pszSubKey,
     IN DWORD ulOptions,
-    IN REGSAM samDesired,
+    IN ACCESS_MASK AccessDesired,
     OUT PHKEY phkResult
     )
 {
@@ -479,7 +479,7 @@ RegOpenKeyExA(
 			 hKey,
 			 pszSubKey,
 			 ulOptions,
-			 samDesired,
+			 AccessDesired,
 			 phkResult)
 		    );
 }
@@ -491,7 +491,7 @@ RegOpenKeyExW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN DWORD ulOptions,
-    IN REGSAM samDesired,
+    IN ACCESS_MASK AccessDesired,
     OUT PHKEY phkResult
     )
 {
@@ -501,7 +501,7 @@ RegOpenKeyExW(
 			 hKey,
 			 pSubKey,
 			 ulOptions,
-			 samDesired,
+			 AccessDesired,
 			 phkResult)
 		    );
 }
@@ -520,7 +520,7 @@ RegQueryInfoKeyA(
     OUT OPTIONAL PDWORD pcValues,
     OUT OPTIONAL PDWORD pcMaxValueNameLen,
     OUT OPTIONAL PDWORD pcMaxValueLen,
-    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PULONG pulSecDescLen,
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
@@ -537,7 +537,7 @@ RegQueryInfoKeyA(
 			 pcValues,
 			 pcMaxValueNameLen,
 			 pcMaxValueLen,
-			 pcbSecurityDescriptor,
+			 pulSecDescLen,
 			 pftLastWriteTime)
 		    );
 }
@@ -556,7 +556,7 @@ RegQueryInfoKeyW(
     OUT OPTIONAL PDWORD pcValues,
     OUT OPTIONAL PDWORD pcMaxValueNameLen,
     OUT OPTIONAL PDWORD pcMaxValueLen,
-    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PULONG pulSecDescLen,
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
@@ -573,7 +573,7 @@ RegQueryInfoKeyW(
 			 pcValues,
 			 pcMaxValueNameLen,
 			 pcMaxValueLen,
-			 pcbSecurityDescriptor,
+			 pulSecDescLen,
 			 pftLastWriteTime)
 		    );
 }
@@ -696,30 +696,43 @@ RegSetValueExW(
 		    );
 }
 
-//Obsolete API
-#if 0
 REG_API
 DWORD
-RegSetKeyValue(
+RegSetKeySecurity(
     IN HANDLE hRegConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR lpSubKey,
-    IN OPTIONAL PCWSTR lpValueName,
-    IN DWORD dwType,
-    IN OPTIONAL PCVOID lpData,
-    IN DWORD cbData
+    IN SECURITY_INFORMATION SecurityInformation,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+    IN ULONG ulSecDescLen
     )
 {
     return RegNtStatusToWin32Error(
-		NtRegSetKeyValue(
+		NtRegSetKeySecurity(
 	         hRegConnection,
 			 hKey,
-			 lpSubKey,
-			 lpValueName,
-			 dwType,
-			 lpData,
-			 cbData)
+			 SecurityInformation,
+			 pSecDescRel,
+			 ulSecDescLen)
 		    );
 }
-#endif
+
+REG_API
+DWORD
+RegGetKeySecurity(
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    OUT OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+    IN OUT PULONG pulSecDescLen
+    )
+{
+    return RegNtStatusToWin32Error(
+		NtRegGetKeySecurity(
+	         hRegConnection,
+			 hKey,
+			 SecurityInformation,
+			 pSecDescRel,
+			 pulSecDescLen)
+		    );
+}
 

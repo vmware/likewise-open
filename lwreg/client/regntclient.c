@@ -126,8 +126,8 @@ NtRegCreateKeyExA(
     IN DWORD Reserved,
     IN OPTIONAL PWSTR pClass,
     IN DWORD dwOptions,
-    IN REGSAM samDesired,
-    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs,
     OUT PHKEY phkResult,
     OUT OPTIONAL PDWORD pdwDisposition
     )
@@ -149,8 +149,8 @@ NtRegCreateKeyExA(
         Reserved,
         pClass,
         dwOptions,
-        samDesired,
-        pSecurityAttributes,
+        AccessDesired,
+        pSecDescAbs,
         phkResult,
         pdwDisposition
         );
@@ -174,8 +174,8 @@ NtRegCreateKeyExW(
     IN DWORD Reserved,
     IN OPTIONAL PWSTR pClass,
     IN DWORD dwOptions,
-    IN REGSAM samDesired,
-    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs,
     OUT PHKEY phkResult,
     OUT OPTIONAL PDWORD pdwDisposition
     )
@@ -187,8 +187,8 @@ NtRegCreateKeyExW(
         Reserved,
         pClass,
         dwOptions,
-        samDesired,
-        pSecurityAttributes,
+        AccessDesired,
+        pSecDescAbs,
         phkResult,
         pdwDisposition
         );
@@ -552,15 +552,19 @@ NtRegEnumValueA(
 
     if (pData && pcbData)
     {
-	cTempData = (*pcbData)*sizeof(WCHAR);
+	status = RtlSafeMultiplyULONG(&cTempData, *pcbData, sizeof(WCHAR));
+	BAIL_ON_NT_STATUS(status);
 
 	if (cTempData > MAX_VALUE_LENGTH)
 	{
 		cTempData = MAX_VALUE_LENGTH;
 	}
 
-        status = LW_RTL_ALLOCATE(&pTempData, VOID, cTempData*sizeof(WCHAR));
-        BAIL_ON_NT_STATUS(status);
+	if (cTempData)
+	{
+            status = LW_RTL_ALLOCATE(&pTempData, VOID, cTempData*sizeof(WCHAR));
+            BAIL_ON_NT_STATUS(status);
+	}
     }
 
 	status = RegTransactEnumValueW(
@@ -575,7 +579,7 @@ NtRegEnumValueA(
 	        &cTempData);
 	BAIL_ON_NT_STATUS(status);
 
-	if (!pTempData)
+	if (!pTempData || !cTempData)
 	{
 		goto done;
 	}
@@ -836,7 +840,7 @@ NtRegOpenKeyExA(
     IN HKEY hKey,
     IN OPTIONAL PCSTR pszSubKey,
     IN DWORD ulOptions,
-    IN REGSAM samDesired,
+    IN ACCESS_MASK AccessDesired,
     OUT PHKEY phkResult
     )
 {
@@ -855,7 +859,7 @@ NtRegOpenKeyExA(
         hKey,
         pwszSubKey,
         ulOptions,
-        samDesired,
+        AccessDesired,
         phkResult);
 	BAIL_ON_NT_STATUS(status);
 
@@ -875,7 +879,7 @@ NtRegOpenKeyExW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pSubKey,
     IN DWORD ulOptions,
-    IN REGSAM samDesired,
+    IN ACCESS_MASK AccessDesired,
     OUT PHKEY phkResult
     )
 {
@@ -884,7 +888,7 @@ NtRegOpenKeyExW(
         hKey,
         pSubKey,
         ulOptions,
-        samDesired,
+        AccessDesired,
         phkResult
         );
 }
@@ -903,7 +907,7 @@ NtRegQueryInfoKeyA(
     OUT OPTIONAL PDWORD pcValues,
     OUT OPTIONAL PDWORD pcMaxValueNameLen,
     OUT OPTIONAL PDWORD pcMaxValueLen,
-    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PULONG pulSecDescLen,
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
@@ -940,7 +944,7 @@ NtRegQueryInfoKeyA(
         &cValues,
         pcMaxValueNameLen,
         NULL,
-        pcbSecurityDescriptor,
+        pulSecDescLen,
         pftLastWriteTime);
 	BAIL_ON_NT_STATUS(status);
 
@@ -1010,7 +1014,7 @@ NtRegQueryInfoKeyW(
     OUT OPTIONAL PDWORD pcValues,
     OUT OPTIONAL PDWORD pcMaxValueNameLen,
     OUT OPTIONAL PDWORD pcMaxValueLen,
-    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PULONG pulSecDescLen,
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
@@ -1026,7 +1030,7 @@ NtRegQueryInfoKeyW(
         pcValues,
         pcMaxValueNameLen,
         pcMaxValueLen,
-        pcbSecurityDescriptor,
+        pulSecDescLen,
         pftLastWriteTime
         );
 }
@@ -1187,29 +1191,41 @@ NtRegSetValueExW(
         );
 }
 
-//Obsolete API
-#if 0
 REG_API
 NTSTATUS
-NtRegSetKeyValue(
-    IN HANDLE hRegConnection,
+NtRegSetKeySecurity(
+	IN HANDLE hNtRegConnection,
+	IN HKEY hKey,
+	IN SECURITY_INFORMATION SecurityInformation,
+	IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+	IN ULONG pSecDescLen
+	)
+{
+    return RegTransactSetKeySecurity(
+	    hNtRegConnection,
+	    hKey,
+	    SecurityInformation,
+	    pSecDescRel,
+	    pSecDescLen
+	    );
+}
+
+REG_API
+NTSTATUS
+NtRegGetKeySecurity(
+    IN HANDLE hNtRegConnection,
     IN HKEY hKey,
-    IN OPTIONAL PCWSTR lpSubKey,
-    IN OPTIONAL PCWSTR lpValueName,
-    IN DWORD dwType,
-    IN OPTIONAL PCVOID lpData,
-    IN DWORD cbData
+    IN SECURITY_INFORMATION SecurityInformation,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+    IN OUT PULONG pulSecDescLen
     )
 {
-    return RegTransactSetKeyValue(
-        hRegConnection,
-        hKey,
-        lpSubKey,
-        lpValueName,
-        dwType,
-        lpData,
-        cbData
-        );
+	return RegTransactGetKeySecurity(
+		    hNtRegConnection,
+		    hKey,
+		    SecurityInformation,
+		    pSecDescRel,
+		    pulSecDescLen
+		    );
 }
-#endif
 

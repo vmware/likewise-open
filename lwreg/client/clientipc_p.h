@@ -71,22 +71,22 @@ RegTransactOpenKeyExW(
     HKEY hKey,
     PCWSTR pwszSubKey,
     DWORD ulOptions,
-    REGSAM samDesired,
+    ACCESS_MASK AccessDesired,
     PHKEY phkResult
     );
 
 NTSTATUS
 RegTransactCreateKeyExW(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pSubKey,
-    DWORD Reserved,
-    PWSTR pClass,
-    DWORD dwOptions,
-    REGSAM samDesired,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
-    PHKEY phkResult,
-    PDWORD pdwDisposition
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN PCWSTR pSubKey,
+    IN DWORD Reserved,
+    IN OPTIONAL PWSTR pClass,
+    IN DWORD dwOptions,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor,
+    OUT PHKEY phkResult,
+    OUT OPTIONAL PDWORD pdwDisposition
     );
 
 NTSTATUS
@@ -190,17 +190,6 @@ RegTransactQueryMultipleValues(
     );
 
 NTSTATUS
-RegTransactSetKeyValue(
-    IN HANDLE hConnection,
-    IN HKEY hKey,
-    IN OPTIONAL PCWSTR lpSubKey,
-    IN OPTIONAL PCWSTR lpValueName,
-    IN DWORD dwType,
-    IN OPTIONAL PCVOID lpData,
-    IN DWORD cbData
-    );
-
-NTSTATUS
 RegTransactSetValueExW(
     HANDLE Handle,
     HKEY hKey,
@@ -210,6 +199,24 @@ RegTransactSetValueExW(
     const BYTE *pData,
     DWORD cbData
     );
+
+NTSTATUS
+RegTransactSetKeySecurity(
+	IN HANDLE hNtRegConnection,
+	IN HKEY hKey,
+	IN SECURITY_INFORMATION SecurityInformation,
+	IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+	IN ULONG Length
+	);
+
+NTSTATUS
+RegTransactGetKeySecurity(
+	IN HANDLE hNtRegConnection,
+	IN HKEY hKey,
+	IN SECURITY_INFORMATION SecurityInformation,
+	OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+	IN OUT PULONG lpcbSecurityDescriptor
+	);
 
 #endif /* __CLIENTIPC_P_H__ */
 

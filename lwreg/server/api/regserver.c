@@ -48,19 +48,6 @@
 
 #include "api.h"
 
-typedef enum __REG_ACCESS_RIGHT
-{
-    REG_WRITE = 0,
-    REG_READ,
-} REG_ACCESS_RIGHT, *PREG_ACCESS_RIGHT;
-
-static
-BOOLEAN
-RegSrvCheckAccessRight(
-    HANDLE handle,
-    REG_ACCESS_RIGHT access
-    );
-
 BOOLEAN
 RegSrvIsValidKeyName(
     PCWSTR pwszKeyName
@@ -132,37 +119,25 @@ RegSrvCreateKeyEx(
     IN DWORD Reserved,
     IN OPTIONAL PWSTR pClass,
     IN DWORD dwOptions,
-    IN REGSAM samDesired,
-    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescLen,
     OUT PHKEY phkResult,
     OUT OPTIONAL PDWORD pdwDisposition
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvCreateKeyEx(
+    return gpRegProvider->pfnRegSrvCreateKeyEx(
                                            Handle,
                                            hKey,
                                            pSubKey,
                                            Reserved,
                                            pClass,
                                            dwOptions,
-                                           samDesired,
-                                           pSecurityAttributes,
+                                           AccessDesired,
+                                           pSecurityDescriptor,
+                                           ulSecDescLen,
                                            phkResult,
                                            pdwDisposition);
-    BAIL_ON_NT_STATUS(status);
-
-
-error:
-
-    return status;
 }
 
 NTSTATUS
@@ -171,30 +146,17 @@ RegSrvOpenKeyExW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pwszSubKey,
     IN DWORD ulOptions,
-    IN REGSAM samDesired,
+    IN ACCESS_MASK AccessDesired,
     OUT PHKEY phkResult
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvOpenKeyExW(
+	return gpRegProvider->pfnRegSrvOpenKeyExW(
                                  Handle,
                                  hKey,
                                  pwszSubKey,
                                  ulOptions,
-                                 samDesired,
+                                 AccessDesired,
                                  phkResult);
-    BAIL_ON_NT_STATUS(status);
-
-
-error:
-    return status;
 }
 
 VOID
@@ -212,22 +174,9 @@ RegSrvDeleteKey(
     PCWSTR pSubKey
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvDeleteKey(Handle,
-                                                hKey,
-                                                pSubKey);
-    BAIL_ON_NT_STATUS(status);
-
-
-error:
-    return status;
+	return gpRegProvider->pfnRegSrvDeleteKey(Handle,
+											 hKey,
+											 pSubKey);
 }
 
 NTSTATUS
@@ -238,23 +187,10 @@ RegSrvDeleteKeyValue(
     PCWSTR pValueName
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvDeleteKeyValue(Handle,
-                                                     hKey,
-                                                     pSubKey,
-                                                     pValueName);
-    BAIL_ON_NT_STATUS(status);
-
-
-error:
-    return status;
+	return gpRegProvider->pfnRegSrvDeleteKeyValue(Handle,
+												  hKey,
+												  pSubKey,
+												  pValueName);
 }
 
 NTSTATUS
@@ -264,21 +200,9 @@ RegSrvDeleteValue(
     PCWSTR pValueName
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvDeleteValue(Handle,
-                                                  hKey,
-                                                  pValueName);
-    BAIL_ON_NT_STATUS(status);
-
-error:
-    return status;
+	return gpRegProvider->pfnRegSrvDeleteValue(Handle,
+                                               hKey,
+                                               pValueName);
 }
 
 NTSTATUS
@@ -294,15 +218,7 @@ RegSrvEnumKeyExW(
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvEnumKeyExW(
+    return gpRegProvider->pfnRegSrvEnumKeyExW(
             Handle,
             hKey,
             dwIndex,
@@ -312,10 +228,6 @@ RegSrvEnumKeyExW(
             pClass,
             pcClass,
             pftLastWriteTime);
-    BAIL_ON_NT_STATUS(status);
-
-error:
-    return status;
 }
 
 NTSTATUS
@@ -329,15 +241,7 @@ RegSrvSetValueExW(
     DWORD cbData
     )
 {
-    DWORD status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvSetValueExW(
+   return gpRegProvider->pfnRegSrvSetValueExW(
             Handle,
             hKey,
             pValueName,
@@ -345,11 +249,6 @@ RegSrvSetValueExW(
             dwType,
             pData,
             cbData);
-    BAIL_ON_NT_STATUS(status);
-
-
-error:
-    return status;
 }
 
 NTSTATUS
@@ -364,15 +263,7 @@ RegSrvGetValueW(
     IN OUT PDWORD pcbData
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvGetValueW(
+    return gpRegProvider->pfnRegSrvGetValueW(
             Handle,
             hKey,
             pSubKey,
@@ -381,11 +272,6 @@ RegSrvGetValueW(
             pdwType,
             pData,
             pcbData);
-    BAIL_ON_NT_STATUS(status);
-
-
-error:
-    return status;
 }
 
 NTSTATUS
@@ -401,15 +287,7 @@ RegSrvEnumValueW(
     IN OUT OPTIONAL PDWORD pcbData /*input - buffer pData length*/
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvEnumValueW(
+    return gpRegProvider->pfnRegSrvEnumValueW(
             Handle,
             hKey,
             dwIndex,
@@ -419,11 +297,6 @@ RegSrvEnumValueW(
             pType,
             pData,
             pcbData);
-    BAIL_ON_NT_STATUS(status);
-
-
-error:
-    return status;
 }
 
 NTSTATUS
@@ -443,15 +316,7 @@ RegSrvQueryInfoKeyW(
     PFILETIME pftLastWriteTime
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvQueryInfoKeyW(
+    return gpRegProvider->pfnRegSrvQueryInfoKeyW(
             Handle,
             hKey,
             pClass,
@@ -465,11 +330,19 @@ RegSrvQueryInfoKeyW(
             pcMaxValueLen,
             pcbSecurityDescriptor,
             pftLastWriteTime);
-    BAIL_ON_NT_STATUS(status);
+}
 
-
-error:
-    return status;
+NTSTATUS
+RegSrvDeleteTree(
+    HANDLE Handle,
+    HKEY hKey,
+    PCWSTR pSubKey
+    )
+{
+	return gpRegProvider->pfnRegSrvDeleteTree(
+            Handle,
+            hKey,
+            pSubKey);
 }
 
 NTSTATUS
@@ -482,52 +355,49 @@ RegSrvQueryMultipleValues(
     OUT OPTIONAL PDWORD pdwTotalsize
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_READ))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvQueryMultipleValues(
+    return gpRegProvider->pfnRegSrvQueryMultipleValues(
             Handle,
             hKey,
             pVal_list,
             num_vals,
             pValue,
             pdwTotalsize);
-    BAIL_ON_NT_STATUS(status);
+}
 
-error:
-    return status;
+
+NTSTATUS
+RegSrvSetKeySecurity(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescLength
+    )
+{
+    return gpRegProvider->pfnRegSrvSetKeySecurity(
+		Handle,
+		hKey,
+		SecurityInformation,
+		pSecurityDescriptor,
+		ulSecDescLength);
 }
 
 NTSTATUS
-RegSrvDeleteTree(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pSubKey
+RegSrvGetKeySecurity(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN OUT PULONG pulSecDescLength
     )
 {
-	NTSTATUS status = 0;
-
-    if (!RegSrvCheckAccessRight(Handle, REG_WRITE))
-    {
-        status = STATUS_ACCESS_DENIED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = gpRegProvider->pfnRegSrvDeleteTree(
-            Handle,
-            hKey,
-            pSubKey);
-    BAIL_ON_NT_STATUS(status);
-
-error:
-    return status;
+    return gpRegProvider->pfnRegSrvGetKeySecurity(
+		Handle,
+		hKey,
+		SecurityInformation,
+		pSecurityDescriptor,
+		pulSecDescLength);
 }
-
 
 // Key Context (key handle) helper utility functions
 void
@@ -544,18 +414,14 @@ RegSrvSafeFreeKeyContext(
 
         LWREG_SAFE_FREE_MEMORY(pKeyResult->pwszKeyName);
         LWREG_SAFE_FREE_MEMORY(pKeyResult->pwszParentKeyName);
-
-        pKeyResult->bHasSubKeyInfo = FALSE;
         RegFreeWC16StringArray(pKeyResult->ppwszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
-
-        pKeyResult->bHasValueInfo = FALSE;
         RegFreeWC16StringArray(pKeyResult->ppwszValueNames, pKeyResult->dwNumCacheValues);
         RegFreeValueByteArray(pKeyResult->ppValues, pKeyResult->dwNumCacheValues);
         LWREG_SAFE_FREE_MEMORY(pKeyResult->pdwValueLen);
         LWREG_SAFE_FREE_MEMORY(pKeyResult->pTypes);
+        LWREG_SAFE_FREE_MEMORY(pKeyResult->pSecurityDescriptor);
 
         memset(pKeyResult, 0, sizeof(*pKeyResult));
-
         LWREG_SAFE_FREE_MEMORY(pKeyResult);
     }
 }
@@ -668,6 +534,148 @@ RegSrvSubKeyName(
     return pwszSubKeyName;
 }
 
+BOOLEAN
+RegSrvHasSecurityDescriptor(
+    IN PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    BOOLEAN bHasSdInfo = FALSE;
+
+    LWREG_LOCK_RWMUTEX_SHARED(bInLock, &pKeyResult->mutex);
+
+    bHasSdInfo = pKeyResult->bHasSdInfo;
+
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return bHasSdInfo;
+}
+
+ULONG
+RegSrvGetKeySecurityDescriptorSize(
+    IN PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    ULONG ulSecDescRelLen = 0;
+
+    LWREG_LOCK_RWMUTEX_SHARED(bInLock, &pKeyResult->mutex);
+
+    ulSecDescRelLen = pKeyResult->ulSecDescLength;
+
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return ulSecDescRelLen;
+}
+
+NTSTATUS
+RegSrvGetKeySecurityDescriptor_inlock(
+    IN PREG_KEY_CONTEXT pKeyResult,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen
+    )
+{
+    NTSTATUS status = 0;
+
+    if (ulSecDescRelLen < pKeyResult->ulSecDescLength)
+    {
+	status = STATUS_BUFFER_TOO_SMALL;
+	BAIL_ON_NT_STATUS(status);
+    }
+
+    memcpy(pSecurityDescriptor, pKeyResult->pSecurityDescriptor, pKeyResult->ulSecDescLength);
+
+cleanup:
+
+    return status;
+
+error:
+    goto cleanup;
+}
+
+
+NTSTATUS
+RegSrvGetKeySecurityDescriptor(
+    IN PREG_KEY_CONTEXT pKeyResult,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    NTSTATUS status = 0;
+
+    LWREG_LOCK_RWMUTEX_SHARED(bInLock, &pKeyResult->mutex);
+
+    status = RegSrvGetKeySecurityDescriptor_inlock(pKeyResult, pSecurityDescriptor, ulSecDescRelLen);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return status;
+
+error:
+    goto cleanup;
+}
+
+NTSTATUS
+RegSrvSetKeySecurityDescriptor_inlock(
+    IN PREG_KEY_CONTEXT pKeyResult,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen
+    )
+{
+    NTSTATUS status = 0;
+
+    LWREG_SAFE_FREE_MEMORY(pKeyResult->pSecurityDescriptor);
+
+    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->pSecurityDescriptor, VOID, ulSecDescRelLen);
+    BAIL_ON_NT_STATUS(status);
+
+    memcpy(pKeyResult->pSecurityDescriptor, pSecurityDescriptor, ulSecDescRelLen);
+
+    pKeyResult->ulSecDescLength = ulSecDescRelLen;
+
+    pKeyResult->bHasSdInfo = TRUE;
+
+cleanup:
+
+    return status;
+
+error:
+    pKeyResult->bHasSdInfo = FALSE;
+
+    goto cleanup;
+}
+
+
+NTSTATUS
+RegSrvSetKeySecurityDescriptor(
+    IN PREG_KEY_CONTEXT pKeyResult,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen
+    )
+{
+    NTSTATUS status = 0;
+	BOOLEAN bInLock = FALSE;
+
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
+    status = RegSrvSetKeySecurityDescriptor_inlock(pKeyResult, pSecurityDescriptor,ulSecDescRelLen);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return status;
+
+error:
+    pKeyResult->bHasSdInfo = FALSE;
+
+    goto cleanup;
+}
+
 void
 RegSrvResetValueInfo(
     IN OUT PREG_KEY_CONTEXT pKeyResult
@@ -691,11 +699,6 @@ RegSrvResetValueInfo(
     pKeyResult->dwNumValues = 0;
 
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
-
-    void
-    RegSrvSafeFreeKeyContext(
-        IN PREG_KEY_CONTEXT pKeyResult
-        );return;
 }
 
 BOOLEAN
@@ -820,24 +823,24 @@ RegSrvValueType(
     return type;
 }
 
-
-
-
-
-static
-BOOLEAN
-RegSrvCheckAccessRight(
-    HANDLE handle,
-    REG_ACCESS_RIGHT access
+void
+RegSrvReferenceKeyContext(
+    IN OUT PREG_KEY_CONTEXT pKey
     )
 {
-    PREG_SRV_API_STATE pServerState = (PREG_SRV_API_STATE)handle;
-    BOOLEAN bIsAccessible = TRUE;
+	if (pKey)
+	{
+		LwInterlockedIncrement(&pKey->refCount);
+	}
+}
 
-    if (!(pServerState->peerGID == 0 || pServerState->peerUID == 0) && REG_WRITE == access)
-    {
-        bIsAccessible = FALSE;
-    }
-
-    return bIsAccessible;
+void
+RegSrvReleaseKeyContext(
+    IN OUT PREG_KEY_CONTEXT pKey
+    )
+{
+	if (pKey)
+	{
+		InterlockedDecrement(&pKey->refCount);
+	}
 }

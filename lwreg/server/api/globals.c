@@ -52,3 +52,12 @@ PREGPROV_PROVIDER_FUNCTION_TABLE gpRegProvider = NULL;
 const wchar16_t wszRootKey[] = HKEY_THIS_MACHINE_W;
 
 const PWSTR ROOT_KEYS[NUM_ROOTKEY] = {(PWSTR)&wszRootKey[0]};
+
+GENERIC_MAPPING gRegKeyGenericMapping = {
+    .GenericRead    = KEY_READ,
+    .GenericWrite   = KEY_WRITE,
+    .GenericExecute = KEY_EXECUTE,
+    .GenericAll     = KEY_ALL_ACCESS
+};
+
+PLW_MAP_SECURITY_CONTEXT gpRegLwMapSecurityCtx = NULL;

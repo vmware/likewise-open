@@ -4,16 +4,19 @@ libregserverapi_la_SOURCES = \
     main.c                \
     globals.c             \
     ipc_registry.c        \
-    regserver.c
+    regserver.c           \
+    regsecurity.c
 
 libregserverapi_la_CPPFLAGS =        \
 	-DLW_ENABLE_THREADS=1         \
 	$(AM_CPPFLAGS)                \
 	-I@top_srcdir@/server/include \
 	@LWBASE_INCLUDES@ \
-	@REG_BACKEND_DEFINES@
+	@REG_BACKEND_DEFINES@ \
+	@LWMAPSECURITY_INCLUDES@
 
-libregserverapi_la_LDFLAGS = @LWBASE_LDFLAGS@
+libregserverapi_la_LDFLAGS = @LWBASE_LDFLAGS@ \
+                             @LWMAPSECURITY_LDFLAGS@
 
 if USE_SQLITE_BACKEND
 
@@ -34,4 +37,5 @@ libregserverapi_la_LIBADD = \
     @LWBASE_LIBS@ \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@ \
-    @LWBASE_NOTHR_LIBS@
+    @LWBASE_NOTHR_LIBS@ \
+    @LWMAPSECURITY_LIBS@

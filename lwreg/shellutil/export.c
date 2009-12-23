@@ -623,7 +623,7 @@ ProcessSubKeys(
             hKey,
             pSubKey,
             0,
-            0,
+            KEY_READ,
             &hSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
@@ -715,7 +715,7 @@ ProcessRootKeys(
                                  NULL,
                                  ppszRootKeyNames[iCount],
                                  0,
-                                 0,
+                                 KEY_READ,
                                  &hRootKey);
         BAIL_ON_REG_ERROR(dwError);
 

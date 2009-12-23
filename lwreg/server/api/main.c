@@ -64,6 +64,8 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(REG_Q_ENUM_KEYW_EX, RegSrvIpcEnumKeyExW),
     LWMSG_DISPATCH_BLOCK(REG_Q_QUERY_INFO_KEYW, RegSrvIpcQueryInfoKeyW),
     LWMSG_DISPATCH_BLOCK(REG_Q_QUERY_MULTIPLE_VALUES, RegSrvIpcQueryMultipleValues),
+    LWMSG_DISPATCH_BLOCK(REG_Q_SET_KEY_SECURITY, RegSrvIpcSetKeySecurity),
+    LWMSG_DISPATCH_BLOCK(REG_Q_GET_KEY_SECURITY, RegSrvIpcGetKeySecurity),
     LWMSG_DISPATCH_END
 };
 
@@ -74,6 +76,12 @@ RegSrvApiInit(
     )
 {
     DWORD dwError = 0;
+
+    dwError = LwNtStatusToWin32Error(LwMapSecurityInitialize());
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(LwMapSecurityCreateContext(&gpRegLwMapSecurityCtx));
+    BAIL_ON_REG_ERROR(dwError);
 
 #if defined(REG_USE_FILE)
     dwError = FileProvider_Initialize(&gpRegProvider);
@@ -103,7 +111,6 @@ static
 void
 RegSrvFreeProviders()
 {
-    //To be implemented
     return;
 }
 
@@ -119,6 +126,9 @@ RegSrvApiShutdown(
 #elif defined(REG_USE_SQLITE)
     SqliteProvider_Shutdown(gpRegProvider);
 #endif
+
+    LwMapSecurityFreeContext(&gpRegLwMapSecurityCtx);
+    LwMapSecurityCleanup();
 
     return 0;
 }

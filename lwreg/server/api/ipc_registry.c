@@ -330,7 +330,7 @@ RegSrvIpcCreateKeyEx(
     void* data
     )
 {
-	NTSTATUS status = 0;
+    NTSTATUS status = 0;
     PREG_IPC_CREATE_KEY_EX_REQ pReq = pIn->data;
     PREG_IPC_CREATE_KEY_EX_RESPONSE pRegResp = NULL;
     PREG_IPC_STATUS pStatus = NULL;
@@ -344,8 +344,9 @@ RegSrvIpcCreateKeyEx(
         0,
         pReq->pClass,
         pReq->dwOptions,
-        pReq->samDesired,
-        pReq->pSecurityAttributes,
+        pReq->AccessDesired,
+        pReq->pSecDescRel,
+        pReq->ulSecDescLen,
         &hkResult,
         &dwDisposition
         );
@@ -409,7 +410,7 @@ RegSrvIpcOpenKeyExW(
         pReq->hKey,
         pReq->pSubKey,
         0,
-        pReq->samDesired,
+        pReq->AccessDesired,
         &hkResult
         );
 
@@ -480,6 +481,7 @@ RegSrvIpcCloseKey(
     }
 
 cleanup:
+
     return MAP_REG_ERROR_IPC(status);
 
 error:
@@ -519,6 +521,7 @@ RegSrvIpcDeleteKey(
     }
 
 cleanup:
+
     return MAP_REG_ERROR_IPC(status);
 
 error:
@@ -555,6 +558,7 @@ RegSrvIpcEnumKeyExW(
         BAIL_ON_NT_STATUS(status);
 
         pRegResp->pName= pReq->pName;
+        pReq->pName = NULL;
         pRegResp->cName = pReq->cName;
 
         pOut->tag = REG_R_ENUM_KEYW_EX;
@@ -568,8 +572,6 @@ RegSrvIpcEnumKeyExW(
         pOut->tag = REG_R_ERROR;
         pOut->data = pStatus;
     }
-
-    pReq->pName = NULL;
 
 cleanup:
     return MAP_REG_ERROR_IPC(status);
@@ -673,6 +675,7 @@ RegSrvIpcGetValueW(
 
         pRegResp->cbData = pReq->cbData;
         pRegResp->pvData = pReq->pData;
+        pReq->pData = NULL;
         pRegResp->dwType = dwType;
 
         pOut->tag = REG_R_GET_VALUEW;
@@ -686,7 +689,6 @@ RegSrvIpcGetValueW(
         pOut->tag = REG_R_ERROR;
         pOut->data = pStatus;
     }
-    pReq->pData = NULL;
 
 cleanup:
     return MAP_REG_ERROR_IPC(status);
@@ -844,8 +846,10 @@ RegSrvIpcEnumValueW(
         BAIL_ON_NT_STATUS(status);
 
         pRegResp->pName= pReq->pName;
+        pReq->pName = NULL;
         pRegResp->cName = pReq->cName;
         pRegResp->pValue = pReq->pValue;
+        pReq->pValue = NULL;
         pRegResp->cValue = pReq->cValue;
         pRegResp->type = type;
 
@@ -860,9 +864,6 @@ RegSrvIpcEnumValueW(
         pOut->tag = REG_R_ERROR;
         pOut->data = pStatus;
     }
-
-    pReq->pName = NULL;
-    pReq->pValue = NULL;
 
 cleanup:
     return MAP_REG_ERROR_IPC(status);
@@ -901,9 +902,8 @@ RegSrvIpcQueryMultipleValues(
         pRegResp->dwTotalsize = pReq->dwTotalsize;
         pRegResp->num_vals = pReq->num_vals;
         pRegResp->val_list = pReq->val_list;
-        pRegResp->pValue = pReq->pValue;
-
         pReq->val_list = NULL;
+        pRegResp->pValue = pReq->pValue;
         pReq->pValue = NULL;
 
         pOut->tag = REG_R_QUERY_MULTIPLE_VALUES;
@@ -968,3 +968,88 @@ cleanup:
 error:
     goto cleanup;
 }
+
+LWMsgStatus
+RegSrvIpcSetKeySecurity(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+	NTSTATUS status = 0;
+    PREG_IPC_KEY_SECURITY_REQ pReq = pIn->data;
+    PREG_IPC_STATUS pStatus = NULL;
+
+    status = RegSrvSetKeySecurity(RegSrvIpcGetSessionData(pCall),
+		                      pReq->hKey,
+		                      pReq->SecurityInformation,
+		                      pReq->SecurityDescriptor,
+		                      pReq->Length);
+    if (!status)
+    {
+        pOut->tag = REG_R_SET_KEY_SECURITY;
+        pOut->data = NULL;
+    }
+    else
+    {
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
+
+        pOut->tag = REG_R_ERROR;
+        pOut->data = pStatus;
+    }
+
+cleanup:
+    return MAP_REG_ERROR_IPC(status);
+
+error:
+    goto cleanup;
+}
+
+LWMsgStatus
+RegSrvIpcGetKeySecurity(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+	NTSTATUS status = 0;
+    PREG_IPC_KEY_SECURITY_REQ pReq = pIn->data;
+    PREG_IPC_GET_KEY_SECURITY_RES pRegResp = NULL;
+    PREG_IPC_STATUS pStatus = NULL;
+
+    status = RegSrvGetKeySecurity(RegSrvIpcGetSessionData(pCall),
+		                      pReq->hKey,
+		                      pReq->SecurityInformation,
+		                      pReq->SecurityDescriptor,
+		                      &pReq->Length);
+	if (!status)
+	{
+		status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_GET_KEY_SECURITY_RES, sizeof(*pRegResp));
+		BAIL_ON_NT_STATUS(status);
+
+		pRegResp->SecurityDescriptor = pReq->SecurityDescriptor;
+		pReq->SecurityDescriptor = NULL;
+		pRegResp->Length = pReq->Length;
+
+		pOut->tag = REG_R_GET_KEY_SECURITY;
+		pOut->data = pRegResp;
+	}
+    else
+    {
+        status = RegSrvIpcCreateError(status, &pStatus);
+        BAIL_ON_NT_STATUS(status);
+
+        pOut->tag = REG_R_ERROR;
+        pOut->data = pStatus;
+    }
+
+cleanup:
+    return MAP_REG_ERROR_IPC(status);
+
+error:
+    goto cleanup;
+}
+

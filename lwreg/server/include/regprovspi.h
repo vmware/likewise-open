@@ -56,8 +56,9 @@ NTSTATUS
     DWORD Reserved,
     PWSTR pClass,
     DWORD dwOptions,
-    REGSAM samDesired,
-    PSECURITY_ATTRIBUTES pSecurityAttributes,
+    ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescLen,
     PHKEY phkResult,
     PDWORD pdwDisposition
     );
@@ -149,7 +150,7 @@ NTSTATUS
     HKEY hKey,
     PCWSTR pwszSubKey,
     DWORD ulOptions,
-    REGSAM samDesired,
+    ACCESS_MASK AccessDesired,
     PHKEY phkResult
     );
 
@@ -194,6 +195,26 @@ NTSTATUS
     DWORD cbData
     );
 
+typedef
+NTSTATUS
+(*PFNRegSrvSetKeySecurity)(
+    HANDLE hNtRegConnection,
+    HKEY hKey,
+    SECURITY_INFORMATION SecurityInformation,
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    ULONG SDLength
+    );
+
+typedef
+NTSTATUS
+(*PFNRegSrvGetKeySecurity)(
+    HANDLE hNtRegConnection,
+    HKEY hKey,
+    SECURITY_INFORMATION SecurityInformation,
+    PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    PULONG lpcbSecurityDescriptor
+    );
+
 typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
 {
     PFNRegSrvCreateKeyEx         pfnRegSrvCreateKeyEx;
@@ -209,6 +230,8 @@ typedef struct __REGPROV_PROVIDER_FUNCTION_TABLE
     PFNRegSrvQueryInfoKeyW       pfnRegSrvQueryInfoKeyW;
     PFNRegSrvQueryMultipleValues pfnRegSrvQueryMultipleValues;
     PFNRegSrvSetValueExW         pfnRegSrvSetValueExW;
+    PFNRegSrvSetKeySecurity      pfnRegSrvSetKeySecurity;
+    PFNRegSrvGetKeySecurity      pfnRegSrvGetKeySecurity;
 } REGPROV_PROVIDER_FUNCTION_TABLE, *PREGPROV_PROVIDER_FUNCTION_TABLE;
 
 typedef

@@ -43,7 +43,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Marc Guy (mguy@likewisesoftware.com)
+ *          Wei Fu (wfu@likewise.com)
  */
 
 #ifndef __REGSERVER_H_
@@ -63,7 +63,15 @@ typedef struct __REG_KEY_CONTEXT
     pthread_rwlock_t mutex;
     pthread_rwlock_t* pMutex;
 
+    int64_t qwId;
     PWSTR pwszKeyName;
+
+    int64_t qwSdId;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor;
+    ULONG ulSecDescLength;
+    BOOLEAN bHasSdInfo;
+
+
     PWSTR pwszParentKeyName;
 
     DWORD dwNumSubKeys;
@@ -83,6 +91,15 @@ typedef struct __REG_KEY_CONTEXT
     BOOLEAN bHasValueInfo;
 
 } REG_KEY_CONTEXT, *PREG_KEY_CONTEXT;
+
+
+typedef struct __REG_KEY_HANDLE
+{
+	ACCESS_MASK AccessGranted;
+	PREG_KEY_CONTEXT pKey;
+
+} REG_KEY_HANDLE, *PREG_KEY_HANDLE;
+
 
 #define LWREG_LOCK_MUTEX(bInLock, mutex) \
     if (!bInLock) { \
@@ -191,8 +208,9 @@ RegSrvCreateKeyEx(
     IN DWORD Reserved,
     IN OPTIONAL PWSTR pClass,
     IN DWORD dwOptions,
-    IN REGSAM samDesired,
-    IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescLen,
     OUT PHKEY phkResult,
     OUT OPTIONAL PDWORD pdwDisposition
     );
@@ -203,7 +221,7 @@ RegSrvOpenKeyExW(
     IN HKEY hKey,
     IN OPTIONAL PCWSTR pwszSubKey,
     IN DWORD ulOptions,
-    IN REGSAM samDesired,
+    IN ACCESS_MASK AccessDesired,
     OUT PHKEY phkResult
     );
 
@@ -317,14 +335,33 @@ RegSrvSetValueExW(
     DWORD cbData
     );
 
+NTSTATUS
+RegSrvSetKeySecurity(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescLength
+    );
+
+NTSTATUS
+RegSrvGetKeySecurity(
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN SECURITY_INFORMATION SecurityInformation,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN OUT PULONG pulSecDescLength
+    );
+
+
+
+
+// Key context (key handle) utility functions
 BOOLEAN
 RegSrvIsValidKeyName(
     PCWSTR pwszKeyName
     );
 
-
-
-// Key context (key handle) utility functions
 void
 RegSrvSafeFreeKeyContext(
     IN PREG_KEY_CONTEXT pKeyResult
@@ -361,9 +398,57 @@ RegSrvSubKeyName(
     IN DWORD dwIndex
     );
 
+BOOLEAN
+RegSrvHasSecurityDescriptor(
+    IN PREG_KEY_CONTEXT pKeyResult
+    );
+
+ULONG
+RegSrvGetKeySecurityDescriptorSize(
+    IN PREG_KEY_CONTEXT pKeyResult
+    );
+
+NTSTATUS
+RegSrvGetKeySecurityDescriptor_inlock(
+    IN PREG_KEY_CONTEXT pKeyResult,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen
+    );
+
+NTSTATUS
+RegSrvGetKeySecurityDescriptor(
+    IN PREG_KEY_CONTEXT pKeyResult,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen
+    );
+
+NTSTATUS
+RegSrvSetKeySecurityDescriptor_inlock(
+    IN PREG_KEY_CONTEXT pKeyResult,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen
+    );
+
+NTSTATUS
+RegSrvSetKeySecurityDescriptor(
+    IN PREG_KEY_CONTEXT pKeyResult,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen
+    );
+
+void
+RegSrvReleaseKeyContext(
+    IN OUT PREG_KEY_CONTEXT hkey
+    );
+
+void
+RegSrvReferenceKeyContext(
+    IN OUT PREG_KEY_CONTEXT pKey
+    );
+
 void
 RegSrvResetValueInfo(
-    IN OUT PREG_KEY_CONTEXT pKeyResult
+    IN OUT PREG_KEY_CONTEXT pKey
     );
 
 BOOLEAN
@@ -404,6 +489,36 @@ REG_DATA_TYPE
 RegSrvValueType(
     IN PREG_KEY_CONTEXT pKeyResult,
     DWORD dwIndex
+    );
+
+//Registry ACL check
+
+NTSTATUS
+RegSrvAccessCheckKey(
+	IN ULONG uid,
+	IN ULONG gid,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN ULONG ulSecDescRelLen,
+    IN ACCESS_MASK AccessDesired,
+    OUT ACCESS_MASK *psamGranted
+    );
+
+NTSTATUS
+RegSrvAccessCheckKeyHandle(
+    IN PREG_KEY_HANDLE pKeyHandle,
+    IN ACCESS_MASK AccessRequired
+    );
+
+NTSTATUS
+RegSrvCreateDefaultSecDescRel(
+	IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+	IN OUT PULONG pulSecDescLen
+	);
+
+// Registry Security related utility functions
+VOID
+RegSrvFreeAbsoluteSecurityDescriptor(
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
 #endif // __REGSERVER_H_
