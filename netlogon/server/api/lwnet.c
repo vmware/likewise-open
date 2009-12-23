@@ -904,7 +904,7 @@ LWNetFindServersInDomain(
     DWORD i = 0;
     DWORD dwServersInDomainCount = 0;
     DWORD dwServerIndex = 0;
-    PDNS_SERVER_INFO pServersInDomain;
+    PDNS_SERVER_INFO pServersInDomain = NULL;
 
     for (i = 0; i < dwServerCount; i++)
     {
