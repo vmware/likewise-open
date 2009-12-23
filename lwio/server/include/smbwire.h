@@ -1525,6 +1525,49 @@ typedef struct _SMB_NOTIFY_INFO_HEADER
 
 } __attribute__((__packed__)) SMB_NOTIFY_INFO_HEADER, *PSMB_NOTIFY_INFO_HEADER;
 
+typedef struct _SMB_NT_TRANSACT_CREATE_REQUEST_HEADER
+{
+    ULONG       ulFlags;
+    ULONG       ulRootDirectoryFid;
+    ACCESS_MASK ulDesiredAccess;
+    ULONG64     ullAllocationSize;
+    ULONG       ulExtFileAttributes;
+    ULONG       ulShareAccess;
+    ULONG       ulCreateDisposition;
+    ULONG       ulCreateOptions;
+    ULONG       ulSecurityDescLength;
+    ULONG       ulEALength;
+    ULONG       ulNameLength;
+    ULONG       ulImpersonationLevel;
+    UCHAR       ucSecurityFlags;
+
+    // WCHAR       pwszName[ulNameLength]; not null terminated
+
+} __attribute__((__packed__))  SMB_NT_TRANSACT_CREATE_REQUEST_HEADER,
+                             *PSMB_NT_TRANSACT_CREATE_REQUEST_HEADER;
+
+typedef struct _SMB_NT_TRANSACT_CREATE_RESPONSE_HEADER
+{
+    UCHAR   ucOplockLevel;
+    UCHAR   ucReserved;
+    USHORT  usFid;
+    ULONG   ulCreateAction;
+    ULONG   ulEaErrorOffset;
+    LONG64  llCreationTime;
+    LONG64  llLastAccessTime;
+    LONG64  llLastWriteTime;
+    LONG64  llChangeTime;
+    ULONG   ulExtFileAttributes;
+    ULONG64 ullAllocationSize;
+    ULONG64 ullEndOfFile;
+    USHORT  usFileType;
+    USHORT  usDeviceState;
+    BOOLEAN bDirectory;
+    UCHAR   ucReserved2[3];
+
+} __attribute__((__packed__))  SMB_NT_TRANSACT_CREATE_RESPONSE_HEADER,
+                             *PSMB_NT_TRANSACT_CREATE_RESPONSE_HEADER;
+
 typedef struct _SMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER
 {
     ULONG     NextEntryOffset;
