@@ -73,6 +73,8 @@ namespace Likewise.LMC.UtilityUIElements
         {
             InitializeData();
             this.Text = string.Format(Properties.Resources.AdvancedSecurityDialogText, _objectPath);
+            tabControl_SelectedIndexChanged(sender, e);
+
             DataChanged = false;
         }
 
@@ -283,23 +285,29 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void FillPermissionsPage(Dictionary<string, List<LwAccessControlEntry>> SdDacls)
         {
+            if (lvPermissions.Items.Count != 0)
+                return;
+
             foreach (string key in SdDacls.Keys)
             {
                 List<LwAccessControlEntry> daclInfo = SdDacls[key];
 
                 foreach (LwAccessControlEntry ace in daclInfo)
                 {
-                    string[] strItems = new string[]{
+                    string sAccessString = _securityDescriptor.GetKeyPermissionName(ace.AccessMask);
+                    if (!String.IsNullOrEmpty(sAccessString))
+                    {
+                        string[] strItems = new string[]{
                                                 Convert.ToInt32(ace.AceType) == 0 ? "Allow" : "Deny",
                                                 ace.Username,
-                                                _securityDescriptor.GetKeyPermissionName(ace.AccessMask),
+                                                sAccessString,
                                                 "",
                                                 Properties.Resources.FolderApplyToText
                                                 };
-
-                    ListViewItem lvItem = new ListViewItem(strItems);
-                    lvItem.Tag = daclInfo;
-                    lvPermissions.Items.Add(lvItem);
+                        ListViewItem lvItem = new ListViewItem(strItems);
+                        lvItem.Tag = daclInfo;
+                        lvPermissions.Items.Add(lvItem);
+                    }
                 }
             }
         }
@@ -311,6 +319,9 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void FillOwnerPage()
         {
+            if (LWlvOwner.Items.Count != 0)
+                return;
+
             string sUsername = _securityDescriptor.CovertStringSidToLookupName(securityDescriptor.Owner);
             this.lblUsername.Text = sUsername;
 
@@ -326,6 +337,9 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void FillEffectivePermissionsPage()
         {
+            if (checkedListviewPermissions.Items.Count != 0)
+                return;
+
             switch (SecurityDescriptor.objectType)
             {
                 case SecurityDescriptorApi.SE_OBJECT_TYPE.SE_FILE_OBJECT:
