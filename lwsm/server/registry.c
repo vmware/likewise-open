@@ -100,11 +100,11 @@ LwSmRegistryEnumServices(
             NULL,
             HKEY_THIS_MACHINE,
             0,
-            0,
+            KEY_READ,
             &pRootKey);
     BAIL_ON_ERROR(dwError);
 
-    dwError = RegOpenKeyExW(hReg, pRootKey, pwszParentPath, 0, 0, &pParentKey);
+    dwError = RegOpenKeyExW(hReg, pRootKey, pwszParentPath, 0, KEY_READ, &pParentKey);
     BAIL_ON_ERROR(dwError);
 
     dwError = RegQueryInfoKeyW(
@@ -220,7 +220,7 @@ LwSmRegistryReadServiceInfo(
             NULL,
             HKEY_THIS_MACHINE,
             0,
-            0,
+            KEY_READ,
             &pRootKey);
     BAIL_ON_ERROR(dwError);
 
