@@ -2122,10 +2122,7 @@ SrvParseNtTransactCreateParameters(
 
     if (pNTTransactState->pNtTransactCreateHeader->ulSecurityDescLength)
     {
-        SECURITY_INFORMATION secInfoAll = (OWNER_SECURITY_INFORMATION |
-                                           GROUP_SECURITY_INFORMATION |
-                                           DACL_SECURITY_INFORMATION |
-                                           SACL_SECURITY_INFORMATION);
+        SECURITY_INFORMATION secInfoAll = DACL_SECURITY_INFORMATION;
 
         if (ulBytesAvailable <
                 pNTTransactState->pNtTransactCreateHeader->ulSecurityDescLength)
