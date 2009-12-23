@@ -164,7 +164,7 @@ EVTOpenConfig(
             NULL,
             HKEY_THIS_MACHINE,
             0,
-            0,
+            KEY_READ,
             &(pReg->hKey));
     if (dwError)
     {
