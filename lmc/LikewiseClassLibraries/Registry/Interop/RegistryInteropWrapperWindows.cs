@@ -266,7 +266,7 @@ namespace Likewise.LMC.Registry
 
             Logger.Log(string.Format("RegistryInteropWrapperWindows.ApiRegGetKeySecurity(_sObjectname = {0})", _sObjectname), Logger.LogLevel.Verbose);
 
-            IntPtr hKey = (IntPtr)0, phSubKey = (IntPtr)0;
+            IntPtr hKey = (IntPtr)0, phSubKey = (IntPtr)0; IntPtr hProv = (IntPtr)0;
             IntPtr pSecurityDescriptor = IntPtr.Zero;
             IntPtr pProcessHandle = IntPtr.Zero;
             ulong lpcbSecurityDescriptor = 0;
@@ -287,6 +287,8 @@ namespace Likewise.LMC.Registry
                                          0,
                                          (uint)(RegistryApi.RegSAM.AllAccess),
                                          out phSubKey);
+                    SecurityDescriptorWrapper.ApiGetHandleToCSP(_sObjectname, out hProv);
+
                     if ((iRet) == 0)
                     {
                         iRet = RegistryInteropWindows.RegGetKeySecurity(phSubKey,
@@ -331,8 +333,11 @@ namespace Likewise.LMC.Registry
                         RegistryInteropWindows.RegCloseKey(hKey);
                     }
 
-                    if (pProcessHandle != IntPtr.Zero)
-                        SecurityDescriptorApi.CloseHandle(pProcessHandle);
+                    //if (hProv != IntPtr.Zero)
+                    //    SecurityDescriptorApi.CloseHandle(hProv);
+
+                    //if (pProcessHandle != IntPtr.Zero)
+                    //    SecurityDescriptorApi.CloseHandle(pProcessHandle);
                 }
             }
 
