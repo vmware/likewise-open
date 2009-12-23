@@ -708,7 +708,7 @@ LWNetCacheDbReadFromRegistry(
                       NULL,
                       ppSubKeys[i],
                       0,
-                      0,
+                      KEY_READ,
                       &pNetLogonKey);
         BAIL_ON_LWNET_ERROR(dwError);
 
