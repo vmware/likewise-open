@@ -3003,7 +3003,7 @@ MemCacheStoreGroupsForUser(
 
         while(pPos != pGuardian)
         {
-            pExistingMembership = CHILD_NODE_TO_MEMBERSHIP(pPos);
+            pExistingMembership = PARENT_NODE_TO_MEMBERSHIP(pPos);
             if (pExistingMembership->membership.bIsInPac ||
                 pExistingMembership->membership.bIsDomainPrimaryGroup)
             {
