@@ -287,21 +287,6 @@ WireUnmarshallNtTransactionParameterData(
 
     if (dataLen)
     {
-        if (ulOffset % 4)
-        {
-            USHORT usAlignment = (4 - (ulOffset % 4));
-
-            if (ulNumBytesAvailable < usAlignment)
-            {
-                ntStatus = STATUS_INVALID_BUFFER_SIZE;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-
-            pDataCursor += usAlignment;
-            ulNumBytesAvailable -= usAlignment;
-            ulOffset += usAlignment;
-        }
-
         if (ulOffset > ulDataOffset)
         {
             ntStatus = STATUS_DATA_ERROR;
