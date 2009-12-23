@@ -112,7 +112,7 @@ SrvShareRegFindByName(
                     NULL,
                     &wszHKTM[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -121,7 +121,7 @@ SrvShareRegFindByName(
                     hRootKey,
                     &wszSharesKey[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -130,7 +130,7 @@ SrvShareRegFindByName(
                     hRootKey,
                     &wszShareSecKey[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hSecKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -238,7 +238,7 @@ SrvShareRegAdd(
                     NULL,
                     &wszHKTM[0],
                     0,
-                    0,
+                    KEY_ALL_ACCESS,
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -247,7 +247,7 @@ SrvShareRegAdd(
                     hRootKey,
                     &wszSharesKey[0],
                     0,
-                    0,
+                    KEY_ALL_ACCESS,
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -329,7 +329,7 @@ SrvShareRegAdd(
                     hRootKey,
                     &wszShareSecKey[0],
                     0,
-                    0,
+                    KEY_ALL_ACCESS,
                     &hSecKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -398,7 +398,7 @@ SrvShareRegBeginEnum(
                     NULL,
                     &wszHKTM[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -407,7 +407,7 @@ SrvShareRegBeginEnum(
                     hRootKey,
                     &wszSharesKey[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -498,7 +498,7 @@ SrvShareRegEnum(
                     NULL,
                     &wszHKTM[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -507,7 +507,7 @@ SrvShareRegEnum(
                     hRootKey,
                     &wszSharesKey[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -516,7 +516,7 @@ SrvShareRegEnum(
                     hRootKey,
                     &wszShareSecKey[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hSecKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -657,7 +657,7 @@ SrvShareRegDelete(
                     NULL,
                     &wszHKTM[0],
                     0,
-                    0,
+                    KEY_ALL_ACCESS,
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -711,7 +711,7 @@ SrvShareRegGetCount(
                     NULL,
                     &wszHKTM[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hRootKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -720,7 +720,7 @@ SrvShareRegGetCount(
                     hRootKey,
                     &wszSharesKey[0],
                     0,
-                    0,
+                    KEY_READ,
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
