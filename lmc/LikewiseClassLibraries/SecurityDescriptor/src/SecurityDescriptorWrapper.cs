@@ -5,6 +5,11 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Likewise.LMC.Utilities;
 
+////Use the DebugMarshal for Debug builds, and the standard Marshal in release builds
+//#if DEBUG
+//using Marshal = Likewise.LMC.Utilities.DebugMarshal;
+//#endif
+
 namespace Likewise.LMC.SecurityDesriptor
 {
     public class SecurityDescriptorWrapper
@@ -25,7 +30,7 @@ namespace Likewise.LMC.SecurityDesriptor
             IntPtr pSacl = pZero;
             IntPtr pSecurityDescriptor = pZero;
             uint errorReturn = 0;
-            pSECURITY_DESCRIPTOR = null;
+            pSECURITY_DESCRIPTOR = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
 
             try
             {
@@ -50,7 +55,7 @@ namespace Likewise.LMC.SecurityDesriptor
                 if (pSecurityDescriptor != IntPtr.Zero)
                 {
                     pSECURITY_DESCRIPTOR = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
-                    Marshal.PtrToStructure(pSecurityDescriptor, pSECURITY_DESCRIPTOR);
+                    pSECURITY_DESCRIPTOR = (SecurityDescriptorApi.SECURITY_DESCRIPTOR)Marshal.PtrToStructure(pSecurityDescriptor, typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
                 }
             }
             catch (Exception ex)
@@ -67,11 +72,12 @@ namespace Likewise.LMC.SecurityDesriptor
         {
             Logger.Log(string.Format("SecurityDescriptorWrapper.ReadSecurityDescriptor()"), Logger.SecurityDescriptorLogLevel);
 
-            Dictionary<string, List<LwAccessControlEntry>> SdDacls = new Dictionary<string, List<LwAccessControlEntry>>();
+            Dictionary<string, List<LwAccessControlEntry>> SdDacls = null;
             IntPtr ptrSid;
             uint errorReturn = 0;
             bool bRet = false;
             ObjSecurityDescriptor = new SecurityDescriptor();
+            ObjSecurityDescriptor.InitailizeToNull();
 
             SecurityDescriptorApi.SECURITY_DESCRIPTOR sSECURITY_DESCRIPTOR = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
 
@@ -79,6 +85,7 @@ namespace Likewise.LMC.SecurityDesriptor
             {
                 if (pSECURITY_DESCRIPTOR != IntPtr.Zero)
                 {
+                    SdDacls = new Dictionary<string, List<LwAccessControlEntry>>();
                     IntPtr pDaclOffset;
                     bool lpbDaclPresent = false;
                     bool lpbDaclDefaulted = false;
@@ -150,38 +157,37 @@ namespace Likewise.LMC.SecurityDesriptor
                             }
                         }
                     }
-
                     ObjSecurityDescriptor.Descretionary_Access_Control_List = SdDacls;
+
+                    sSECURITY_DESCRIPTOR = (SecurityDescriptorApi.SECURITY_DESCRIPTOR)Marshal.PtrToStructure(pSECURITY_DESCRIPTOR, typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
+
+                    //Get Security Descriptor Control
+                    uint dwRevision;
+                    SecurityDescriptorApi.SECURITY_DESCRIPTOR_CONTROL pControl;
+                    SecurityDescriptorApi.GetSecurityDescriptorControl(pSECURITY_DESCRIPTOR, out pControl, out dwRevision);
+                    ObjSecurityDescriptor.Control = (uint)pControl;
+                    ObjSecurityDescriptor.Revision = dwRevision;
+
+                    //Get Security Descriptor Owner
+                    bool lpbOwnerDefaulted = false;
+                    ptrSid = IntPtr.Zero;
+                    bRet = SecurityDescriptorApi.GetSecurityDescriptorOwner(pSECURITY_DESCRIPTOR, out ptrSid, out lpbOwnerDefaulted);
+                    Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorOwner iRet value: " + Marshal.GetLastWin32Error());
+                    ObjSecurityDescriptor.Owner = GetObjectStringSid(ptrSid);
+                    SecurityDescriptorApi.FreeSid(ptrSid);
+
+                    //Get Security Descriptor Group
+                    bool lpbGroupDefaulted = false;
+                    ptrSid = IntPtr.Zero;
+                    bRet = SecurityDescriptorApi.GetSecurityDescriptorGroup(pSECURITY_DESCRIPTOR, out ptrSid, out lpbGroupDefaulted);
+                    Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorGroup iRet value: " + Marshal.GetLastWin32Error());
+                    ObjSecurityDescriptor.PrimaryGroupID = GetObjectStringSid(ptrSid);
+                    SecurityDescriptorApi.FreeSid(ptrSid);
+
+                    ObjSecurityDescriptor.Size = SecurityDescriptorApi.GetSecurityDescriptorLength(pSECURITY_DESCRIPTOR);
+
+                    ObjSecurityDescriptor.pSecurityDescriptor = pSECURITY_DESCRIPTOR;
                 }
-
-                Marshal.PtrToStructure(pSECURITY_DESCRIPTOR, sSECURITY_DESCRIPTOR);
-
-                //Get Security Descriptor Control
-                uint dwRevision;
-                SecurityDescriptorApi.SECURITY_DESCRIPTOR_CONTROL pControl;
-                SecurityDescriptorApi.GetSecurityDescriptorControl(pSECURITY_DESCRIPTOR, out pControl, out dwRevision);
-                ObjSecurityDescriptor.Control = (uint)pControl;
-                ObjSecurityDescriptor.Revision = dwRevision;
-
-                //Get Security Descriptor Owner
-                bool lpbOwnerDefaulted = false;
-                ptrSid = IntPtr.Zero;
-                bRet = SecurityDescriptorApi.GetSecurityDescriptorOwner(pSECURITY_DESCRIPTOR, out ptrSid, out lpbOwnerDefaulted);
-                Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorOwner iRet value: " + Marshal.GetLastWin32Error());
-                ObjSecurityDescriptor.Owner = GetObjectStringSid(ptrSid);
-                SecurityDescriptorApi.FreeSid(ptrSid);
-
-                //Get Security Descriptor Group
-                bool lpbGroupDefaulted = false;
-                ptrSid = IntPtr.Zero;
-                bRet = SecurityDescriptorApi.GetSecurityDescriptorGroup(pSECURITY_DESCRIPTOR, out ptrSid, out lpbGroupDefaulted);
-                Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorGroup iRet value: " + Marshal.GetLastWin32Error());
-                ObjSecurityDescriptor.PrimaryGroupID = GetObjectStringSid(ptrSid);
-                SecurityDescriptorApi.FreeSid(ptrSid);
-
-                ObjSecurityDescriptor.Size = SecurityDescriptorApi.GetSecurityDescriptorLength(pSECURITY_DESCRIPTOR);
-
-                ObjSecurityDescriptor.pSecurityDescriptor = pSECURITY_DESCRIPTOR;
             }
             catch (Exception ex)
             {
@@ -261,7 +267,7 @@ namespace Likewise.LMC.SecurityDesriptor
                 bIsSuccess = SecurityDescriptorApi.GetTokenInformation(
                                     pProcessTokenHandle,
                                     SecurityDescriptorApi.TOKEN_INFORMATION_CLASS.TokenPrivileges,
-                                    null,
+                                    pPreviousTpStruct,
                                     0,
                                     out returnLength);
                 Logger.Log("Error at SecurityDescriptorApi.GetTokenInformation: " + Marshal.GetLastWin32Error(), Logger.SecurityDescriptorLogLevel);
@@ -287,7 +293,7 @@ namespace Likewise.LMC.SecurityDesriptor
                                     false,
                                     pPreviousTpStruct,
                                     0,
-                                    null,
+                                    IntPtr.Zero,
                                     0);
                 Logger.Log("Error at SecurityDescriptorApi.AdjustTokenPrivileges: " + Marshal.GetLastWin32Error(), Logger.SecurityDescriptorLogLevel);
                 if (!bIsSuccess)
@@ -382,18 +388,17 @@ namespace Likewise.LMC.SecurityDesriptor
                     IntPtr pSecurityDesriptor)
         {
             uint errorReturn = 0;
+            int AceIdx = 0;
 
             Dictionary<string, object> editAces = editedObjects as Dictionary<string, object>;
             Dictionary<string, object> newAces = addedObjects as Dictionary<string, object>;
             Dictionary<string, object> deleteAces = deletedObjects as Dictionary<string, object>;
 
-            //List<IntPtr> explicitAccesslist = new List<IntPtr>();
-
             try
             {
                 Logger.Log("SecurityDescriptorWrapper.ApiSetSecurityDescriptorDacl", Logger.SecurityDescriptorLogLevel);
 
-                IntPtr pDaclOffset;
+                IntPtr pNewSd; IntPtr pDaclOffset; IntPtr pNewDacl; IntPtr ptrSid;
                 bool lpbDaclPresent = false;
                 bool lpbDaclDefaulted = false;
                 SecurityDescriptorApi.LwACL acl = new SecurityDescriptorApi.LwACL();
@@ -402,9 +407,8 @@ namespace Likewise.LMC.SecurityDesriptor
                 bool bRet = SecurityDescriptorApi.GetSecurityDescriptorDacl(pSecurityDesriptor, out lpbDaclPresent, out pDaclOffset, out lpbDaclDefaulted);
                 Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorDacl iRet value", Logger.SecurityDescriptorLogLevel);
 
-                if (pDaclOffset != IntPtr.Zero)
-                {
-                    Marshal.PtrToStructure(pDaclOffset, acl);
+                if (pDaclOffset != IntPtr.Zero) {
+                    acl = (SecurityDescriptorApi.LwACL)Marshal.PtrToStructure(pDaclOffset, typeof(SecurityDescriptorApi.LwACL));
                 }
 
                 SecurityDescriptorApi.ACL_SIZE_INFORMATION AclSize = new SecurityDescriptorApi.ACL_SIZE_INFORMATION();
@@ -413,14 +417,19 @@ namespace Likewise.LMC.SecurityDesriptor
                                 SecurityDescriptorApi.ACL_INFORMATION_CLASS.AclSizeInformation);
 
                 SecurityDescriptorApi.SECURITY_DESCRIPTOR sSECURITY_DESCRIPTOR = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
-                Marshal.PtrToStructure(pSecurityDesriptor, sSECURITY_DESCRIPTOR);
+                sSECURITY_DESCRIPTOR = (SecurityDescriptorApi.SECURITY_DESCRIPTOR)Marshal.PtrToStructure(pSecurityDesriptor, typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
+
+                uint totalCount = (uint)(newAces.Count - deleteAces.Count);
+                uint cbNewACL = AclSize.AclBytesInUse + (uint)((Marshal.SizeOf(typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE)) - IntPtr.Size) * totalCount);
+
+                // Create new ACL
+                bRet = SecurityDescriptorApi.InitializeAcl(out pNewDacl, cbNewACL, acl.AclRevision);
 
                 //Delete/Editing the Ace entry from the ACl
                 for (int idx = 0; idx < AclSize.AceCount; idx++)
                 {
-                    IntPtr pAce; IntPtr ptrSid;
+                    IntPtr pAce; ptrSid = IntPtr.Zero;
                     string sUsername, sDomain;
-                    SecurityDescriptorApi.TRUSTEE trustee = new SecurityDescriptorApi.TRUSTEE();
 
                     int err = SecurityDescriptorApi.GetAce(pDaclOffset, idx, out pAce);
                     SecurityDescriptorApi.ACCESS_ALLOWED_ACE ace = (SecurityDescriptorApi.ACCESS_ALLOWED_ACE)Marshal.PtrToStructure(pAce, typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE));
@@ -431,124 +440,100 @@ namespace Likewise.LMC.SecurityDesriptor
                     byte[] bSID = new byte[size];
                     Marshal.Copy(iter, bSID, 0, size);
                     SecurityDescriptorApi.ConvertSidToStringSid(bSID, out ptrSid);
-
                     GetObjectLookUpName(iter, out sUsername, out sDomain);
 
-                    if (deleteAces != null && deleteAces.Count != 0)
-                    {
-                        if (deleteAces.ContainsKey(sUsername))
-                        {
-                            bRet = SecurityDescriptorApi.DeleteAce(pDaclOffset, (uint)idx);
-                            Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.DeleteAce return code :" + Marshal.GetLastWin32Error());
-                            continue;
-                        }
-                    }
+                    if (deleteAces != null && deleteAces.Count != 0 && deleteAces.ContainsKey(sUsername))
+                        continue;
 
-                    if (editAces != null && editAces.Count != 0)
+                    if (editAces != null && editAces.Count != 0 && editAces.ContainsKey(sUsername))
                     {
-                        if (editAces.ContainsKey(sUsername))
+                        List<LwAccessControlEntry> attributes = editAces[sUsername] as List<LwAccessControlEntry>;
+                        if (attributes != null)
                         {
-                            List<LwAccessControlEntry> attributes = editAces[sUsername] as List<LwAccessControlEntry>;
-                            if (attributes != null)
+                            foreach (LwAccessControlEntry lwAce in attributes)
                             {
-                                foreach (LwAccessControlEntry lwAce in attributes)
+                                if ((int)ace.Header.AceType == lwAce.AceType)
                                 {
-                                    if ((int)ace.Header.AceType == lwAce.AceType)
-                                    {
-                                        IntPtr pNewDacl = IntPtr.Zero;
-                                        IntPtr pNewSD = IntPtr.Zero;
+                                    bRet = SecurityDescriptorApi.AddAccessAllowedAceEx(
+                                         ref pNewDacl,
+                                         acl.AclRevision,
+                                         Convert.ToInt32(lwAce.AccessMask),
+                                         Convert.ToByte(ace.Header.AceFlags),
+                                         ptrSid);
 
-                                        IntPtr pExplicitAccess = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.EXPLICIT_ACCESS)));
-                                        SecurityDescriptorApi.BuildExplicitAccessWithName(ref pExplicitAccess,
-                                                                    sUsername,
-                                                                    Convert.ToUInt32(lwAce.AccessMask),
-                                                                    SecurityDescriptorApi.ACCESS_MODE.GRANT_ACCESS,
-                                                                    (uint)SecurityDescriptorApi.ACEFlags.CONTAINER_INHERIT_ACE);
-
-                                        //SecurityDescriptorApi.EXPLICIT_ACCESS[] explicitAccess = new SecurityDescriptorApi.EXPLICIT_ACCESS[1];
-                                        //explicitAccess[0] = new SecurityDescriptorApi.EXPLICIT_ACCESS();
-                                        //explicitAccess[0].grfAccessMode = SecurityDescriptorApi.ACCESS_MODE.SET_ACCESS;
-                                        //explicitAccess[0].grfAccessPermissions = Convert.ToUInt32(Convert.ToUInt32(lwAce.AccessMask) | (uint)LwAccessMask.ACCESS_MASK.ACCESS_SYSTEM_SECURITY);
-                                        //explicitAccess[0].grfInheritance = 0;
-                                        //explicitAccess[0].Trustee = new SecurityDescriptorApi.TRUSTEE();
-                                        //explicitAccess[0].Trustee.ptstrName = lwAce.Username.Substring(0, lwAce.Username.IndexOf("("));
-                                        //explicitAccess[0].Trustee.TrusteeForm = SecurityDescriptorApi.TRUSTEE_FORM.TRUSTEE_IS_NAME;
-                                        //explicitAccess[0].Trustee.TrusteeType = SecurityDescriptorApi.TRUSTEE_TYPE.TRUSTEE_IS_USER;
-
-                                        //IntPtr pexplicitAccess = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.EXPLICIT_ACCESS)));
-                                        //Marshal.StructureToPtr(explicitAccess[0], pexplicitAccess, true);
-
-                                        int iSdSize = Marshal.SizeOf(typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
-                                        pNewDacl = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.LwACL)));
-                                        pNewSD = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR)));
-
-                                        errorReturn = SecurityDescriptorApi.SetEntriesInAcl(
-                                                            1,
-                                                            pExplicitAccess,
-                                                            pDaclOffset,
-                                                            ref pNewDacl);
-                                        Logger.Log("SecurityDescriptorApi.SetEntriesInAcl returns errorcode: " + errorReturn);
-
-                                        errorReturn = SecurityDescriptorApi.InitializeSecurityDescriptor(ref pNewSD, (uint)iSdSize);
-                                        Logger.Log("SecurityDescriptorApi.InitializeSecurityDescriptor returns errorcode: " + errorReturn);
-
-                                        SecurityDescriptorApi.SECURITY_DESCRIPTOR newSd = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
-                                        newSd.revision = sSECURITY_DESCRIPTOR.revision;
-                                        Marshal.StructureToPtr(newSd, pNewSD, true);
-                                        bRet = SecurityDescriptorApi.SetSecurityDescriptorDacl(
-                                                        pNewSD,
-                                                        true,
-                                                        pNewDacl,
-                                                        false);
-                                        Logger.Log("SecurityDescriptorApi.InitializeSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
-
-                                        if (pNewDacl != IntPtr.Zero)
-                                        {
-                                            SecurityDescriptorApi.LocalFree(pNewDacl);
-                                        }
-
-                                        if (pNewSD != IntPtr.Zero)
-                                        {
-                                            SecurityDescriptorApi.LocalFree(pNewSD);
-                                        }
-
-                                    }
+                                    Console.WriteLine(Marshal.GetLastWin32Error());
+                                    Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.AddAce return code :" + Marshal.GetLastWin32Error());
                                 }
                             }
                         }
                     }
+                    else
+                    {
+                        bRet = SecurityDescriptorApi.AddAccessAllowedAceEx(
+                                       ref pNewDacl,
+                                       acl.AclRevision,
+                                       ace.Mask,
+                                       ace.Header.AceFlags,
+                                       iter);
+
+                        Console.WriteLine(Marshal.GetLastWin32Error());
+                    }
+                    SecurityDescriptorApi.FreeSid(ptrSid);
                 }
 
-
                 //Adding new Aces to the Security Descriptor
-                int indx = 0;
-                uint AceIndex = AclSize.AceCount;
-                SecurityDescriptorApi.ACE[] Aces = new SecurityDescriptorApi.ACE[newAces.Count];
-
                 foreach (string key in newAces.Keys)
                 {
                     List<LwAccessControlEntry> attributes = newAces[key] as List<LwAccessControlEntry>;
-
                     foreach (LwAccessControlEntry lwAce in attributes)
                     {
-                        SecurityDescriptorApi.ACE ace = new SecurityDescriptorApi.ACE();
-                        ace.AccessMask = Convert.ToUInt32(lwAce.AccessMask);
-                        ace.AceFlags = Convert.ToUInt32(lwAce.AceFlags);
-                        ace.AceType = Convert.ToUInt32(lwAce.AceType);
-                        ace.Trustee = lwAce.Username;
+                        SecurityDescriptorApi.ACCESS_ALLOWED_ACE Nace = new SecurityDescriptorApi.ACCESS_ALLOWED_ACE();
+                        Nace.Mask = Convert.ToInt32(lwAce.AccessMask);
+                        Nace.Header = new SecurityDescriptorApi.ACE_HEADER();
+                        Nace.Header.AceFlags = Convert.ToByte(lwAce.AceFlags);
+                        Nace.Header.AceType = Convert.ToByte(lwAce.AceType);
+                        SecurityDescriptorApi.ConvertStringSidToSid(lwAce.SID, out ptrSid);
+                        uint dwSidSize = SecurityDescriptorApi.GetLengthSid(ptrSid);
+                        uint dwAceSize = (uint)(Marshal.SizeOf(typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE)));// + dwSidSize - IntPtr.Size);
+                        SecurityDescriptorApi.CopySid(dwSidSize, out Nace.SidStart, ptrSid);
+                        Nace.Header.AceSize = (short)dwAceSize;
+                        IntPtr phNAce = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE)));
+                        Marshal.StructureToPtr(Nace, phNAce, true);
 
-                        Aces[indx] = ace;
-                        indx++;
+                        bRet = SecurityDescriptorApi.AddAce(
+                               pNewDacl,
+                               acl.AclRevision,
+                               AceIdx++,
+                               phNAce,
+                               dwAceSize);
+                        Console.WriteLine(Marshal.GetLastWin32Error());
+                        Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.AddAce return code :" + Marshal.GetLastWin32Error());
                     }
                 }
 
-                bRet = SecurityDescriptorApi.AddAce(
-                                pDaclOffset,
-                                sSECURITY_DESCRIPTOR.revision,
-                                AceIndex,
-                                Aces,
-                                (uint)Aces.Length);
-                Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.AddAce return code :" + Marshal.GetLastWin32Error());
+                pNewSd = IntPtr.Zero;
+                int iSdRevision = (int)SecurityDescriptorApi.SECURITY_DESCRIPTOR_REVISION;
+                errorReturn = SecurityDescriptorApi.InitializeSecurityDescriptor(out pNewSd, (uint)iSdRevision);
+                Logger.Log("SecurityDescriptorApi.InitializeSecurityDescriptor returns errorcode: " + errorReturn);
+
+                SecurityDescriptorApi.SECURITY_DESCRIPTOR newSd = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
+                newSd.revision = sSECURITY_DESCRIPTOR.revision;
+                bRet = SecurityDescriptorApi.SetSecurityDescriptorDacl(
+                                pNewSd,
+                                lpbDaclPresent,
+                                pNewDacl,
+                                lpbDaclDefaulted);
+                Logger.Log("SecurityDescriptorApi.InitializeSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
+
+                if (pNewDacl != IntPtr.Zero)
+                {
+                    SecurityDescriptorApi.LocalFree(pNewDacl);
+                }
+
+                if (pNewSd != IntPtr.Zero)
+                {
+                    SecurityDescriptorApi.LocalFree(pNewSd);
+                }
             }
             catch (Exception ex)
             {
@@ -563,7 +548,7 @@ namespace Likewise.LMC.SecurityDesriptor
         {
             uint errorReturn = 0;
             IntPtr pTrustee = IntPtr.Zero;
-            Trustee = null;
+            Trustee = new SecurityDescriptorApi.TRUSTEE();
 
             try
             {
@@ -579,7 +564,7 @@ namespace Likewise.LMC.SecurityDesriptor
                 if (pTrustee != IntPtr.Zero)
                 {
                     Trustee = new SecurityDescriptorApi.TRUSTEE();
-                    Marshal.PtrToStructure(pTrustee, Trustee);
+                    Trustee = (SecurityDescriptorApi.TRUSTEE)Marshal.PtrToStructure(pTrustee, typeof(SecurityDescriptorApi.TRUSTEE));
                 }
             }
             catch (Exception ex)
@@ -602,6 +587,79 @@ namespace Likewise.LMC.SecurityDesriptor
 
             ApiAdjustTokenPrivileges(pToken);
 
+            return errorReturn;
+        }
+
+        #endregion
+
+        #region CSP (cryptographic service provider) wrapper implementations
+
+        public static int ApiGetHandleToCSP(string _objectPath, out IntPtr hProv)
+        {
+            int errorReturn = 0;
+            bool bRet = false;
+            IntPtr hSigKey = IntPtr.Zero;
+            IntPtr hExchKey = IntPtr.Zero;
+            hProv = IntPtr.Zero;
+
+            Logger.Log("SecurityDescriptorWrapper.ApiGetHandleToCSP called", Logger.SecurityDescriptorLogLevel);
+
+            try
+            {
+                //Acquire a handle to the cryptographic service provider.
+                bRet = SecurityDescriptorApi.CryptAcquireContext(
+                                    ref hProv,
+                                    _objectPath,
+                                    SecurityDescriptorApi.MS_STRONG_PROV,
+                                    SecurityDescriptorApi.PROV_RSA_FULL,
+                                    SecurityDescriptorApi.CRYPT_NEWKEYSET | SecurityDescriptorApi.CRYPT_MACHINE_KEYSET);
+                if (!bRet)
+                {
+                    errorReturn = Marshal.GetLastWin32Error();
+                    Logger.Log("SecurityDescriptorApi.CryptAcquireContext is failed to open OpenCtxHandle handle :errorReturn = " + errorReturn, Logger.SecurityDescriptorLogLevel);
+                    return errorReturn;
+                }
+                Logger.Log("SecurityDescriptorApi.CryptAcquireContext success", Logger.SecurityDescriptorLogLevel);
+
+                /*****Generates a signature and a key exchange key. *****/
+                // Generate the signature key.
+                bRet = SecurityDescriptorApi.CryptGenKey(hProv,
+                                    SecurityDescriptorApi.AT_SIGNATURE,
+                                    0,
+                                    ref hSigKey);
+                if (!bRet)
+                {
+                    errorReturn = Marshal.GetLastWin32Error();
+                    Logger.Log("SecurityDescriptorApi.CryptGenKey is failed to get signature key :errorReturn = " + errorReturn, Logger.SecurityDescriptorLogLevel);
+                    return errorReturn;
+                }
+                Logger.Log("SecurityDescriptorApi.CryptGenKey for signature key success", Logger.SecurityDescriptorLogLevel);
+
+                // Generate the key exchange key.
+                bRet = SecurityDescriptorApi.CryptGenKey(hProv,
+                                    SecurityDescriptorApi.AT_KEYEXCHANGE,
+                                    0,
+                                    ref hExchKey);
+                if (!bRet)
+                {
+                    errorReturn = Marshal.GetLastWin32Error();
+                    Logger.Log("SecurityDescriptorApi.CryptGenKey is failed to get exchange key :errorReturn = " + errorReturn, Logger.SecurityDescriptorLogLevel);
+                    return errorReturn;
+                }
+                Logger.Log("SecurityDescriptorApi.CryptGenKey for exchange key success", Logger.SecurityDescriptorLogLevel);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException("SecurityDescriptorWrapper.ApiGetHandleToCSP", ex);
+            }
+            finally
+            {
+                if (hSigKey != IntPtr.Zero)
+                    SecurityDescriptorApi.CryptDestroyKey(hSigKey);
+
+                if (hExchKey != IntPtr.Zero)
+                    SecurityDescriptorApi.CryptDestroyKey(hExchKey);
+            }
             return errorReturn;
         }
 

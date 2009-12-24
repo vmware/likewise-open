@@ -799,6 +799,8 @@ typedef struct _SRV_DELETE_STATE_SMB_V1
     PLWIO_SRV_SESSION           pSession;
     PLWIO_SRV_TREE              pTree;
 
+    BOOLEAN                     bPathHasWildCards;
+
     PWSTR                       pwszFilesystemPath;
     PWSTR                       pwszSearchPattern2;
     HANDLE                      hSearchSpace;
@@ -907,6 +909,9 @@ typedef struct _SRV_NT_RENAME_STATE_SMB_V1
 typedef enum
 {
     SRV_NTTRANSACT_STAGE_SMB_V1_INITIAL = 0,
+    SRV_NTTRANSACT_STAGE_SMB_V1_CREATE_COMPLETED,
+    SRV_NTTRANSACT_STAGE_SMB_V1_QUERY_INFO,
+    SRV_NTTRANSACT_STAGE_SMB_V1_GET_OPLOCKS,
     SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO,
     SRV_NTTRANSACT_STAGE_SMB_V1_BUILD_RESPONSE,
     SRV_NTTRANSACT_STAGE_SMB_V1_DONE
@@ -926,7 +931,6 @@ typedef struct _SRV_NTTRANSACT_STATE_SMB_V1
     IO_ASYNC_CONTROL_BLOCK         acb;
     PIO_ASYNC_CONTROL_BLOCK        pAcb;
 
-    PVOID                          pSecurityDescriptor;
     PVOID                          pSecurityQOS;
 
     PNT_TRANSACTION_REQUEST_HEADER pRequestHeader; // Do not free
@@ -934,10 +938,33 @@ typedef struct _SRV_NTTRANSACT_STATE_SMB_V1
     PUSHORT                        pSetup;         // Do not free
     PBYTE                          pParameters;    // Do not free
     PBYTE                          pData;          // Do not free
+    PWSTR                          pwszFilename;   // Do not free
+    PBYTE                          pSecDesc;       // Do not free
+    PBYTE                          pEA;            // Do not free
 
     PLWIO_SRV_SESSION              pSession;
     PLWIO_SRV_TREE                 pTree;
     PLWIO_SRV_FILE                 pFile;
+
+    IO_FILE_HANDLE                 hFile;
+    PIO_FILE_NAME                  pFilename;
+    PLWIO_SRV_FILE                 pRootDirectory;
+    PIO_ECP_LIST                   pEcpList;
+    ULONG                          ulCreateAction;
+    UCHAR                          ucOplockLevel;
+    BOOLEAN                        bRemoveFileFromTree;
+
+    FILE_BASIC_INFORMATION         fileBasicInfo;
+    PFILE_BASIC_INFORMATION        pFileBasicInfo;
+
+    FILE_STANDARD_INFORMATION      fileStdInfo;
+    PFILE_STANDARD_INFORMATION     pFileStdInfo;
+
+    FILE_PIPE_INFORMATION          filePipeInfo;
+    PFILE_PIPE_INFORMATION         pFilePipeInfo;
+
+    FILE_PIPE_LOCAL_INFORMATION    filePipeLocalInfo;
+    PFILE_PIPE_LOCAL_INFORMATION   pFilePipeLocalInfo;
 
     PBYTE                          pSecurityDescriptor2;
     ULONG                          ulSecurityDescAllocLen;
@@ -950,6 +977,7 @@ typedef struct _SRV_NTTRANSACT_STATE_SMB_V1
 
     PSMB_SECURITY_INFORMATION_HEADER pSecurityRequestHeader;
     PSMB_NOTIFY_CHANGE_HEADER        pNotifyChangeHeader;
+    PSMB_NT_TRANSACT_CREATE_REQUEST_HEADER   pNtTransactCreateHeader;
 
 } SRV_NTTRANSACT_STATE_SMB_V1, *PSRV_NTTRANSACT_STATE_SMB_V1;
 

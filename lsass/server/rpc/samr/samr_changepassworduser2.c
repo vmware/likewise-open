@@ -260,6 +260,8 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pwszUserName);
     LW_SAFE_FREE_MEMORY(pwszFilter);
 
+    DirectoryFreeEntrySecurityDescriptor(&pSecDesc);
+
     if (pwszNewPassword)
     {
         memset(pwszNewPassword,

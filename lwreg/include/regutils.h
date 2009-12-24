@@ -120,7 +120,7 @@
            BAIL_ON_NT_STATUS(status);            \
         }
 
-#define BAIL_ON_INVALID_KEY(pKey)                 \
+#define BAIL_ON_INVALID_KEY_CONTEXT(pKey)                 \
         BAIL_ON_NT_INVALID_POINTER(pKey);            \
         if (LW_IS_NULL_OR_EMPTY_STR(pKey->pwszKeyName)) \
         { \
@@ -891,6 +891,18 @@ RegCStringAllocatePrintf(
     OUT PSTR* ppszString,
     IN PCSTR pszFormat,
     IN ...
+    );
+
+PCWSTR
+RegStrrchr(
+    PCWSTR pwszStr,
+    wchar16_t wch
+    );
+
+PCWSTR
+RegStrchr(
+    PCWSTR pwszStr,
+    wchar16_t wch
     );
 
 #endif /* __REG_UTILS_H__ */

@@ -126,8 +126,9 @@ static LWMsgTypeSpec gRegCreateKeyExSpec[] =
     // IN DWORD Reserved,
     // IN OPTIONAL PWSTR pClass,
     // IN DWORD dwOptions,
-    // IN REGSAM samDesired,
-    // IN OPTIONAL PSECURITY_ATTRIBUTES pSecurityAttributes,
+    // IN ACCESS_MASK AccessDesired,
+    // IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+    // ULONG ulSecDescLen;
 
     LWMSG_STRUCT_BEGIN(REG_IPC_CREATE_KEY_EX_REQ),
 
@@ -140,12 +141,9 @@ static LWMsgTypeSpec gRegCreateKeyExSpec[] =
 
     LWMSG_MEMBER_UINT32(REG_IPC_CREATE_KEY_EX_REQ, dwOptions),
 
-    LWMSG_MEMBER_UINT32(REG_IPC_CREATE_KEY_EX_REQ, samDesired),
-
-    // This member may be off... see the comments for the gRegSecAttrSpec above
-    LWMSG_MEMBER_POINTER_BEGIN(REG_IPC_CREATE_KEY_EX_REQ, pSecurityAttributes),
-    LWMSG_TYPESPEC(gRegSecAttrSpec),
-    LWMSG_POINTER_END,
+    LWMSG_MEMBER_UINT32(REG_IPC_CREATE_KEY_EX_REQ, AccessDesired),
+    LWMSG_MEMBER_PBYTE(REG_IPC_CREATE_KEY_EX_REQ, pSecDescRel),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_CREATE_KEY_EX_REQ, ulSecDescLen),
 
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -425,7 +423,7 @@ static LWMsgTypeSpec gRegOpenKeyExSpec[] =
 {
     // HKEY hKey;
     // PCTSTR pSubKey;
-    // REGSAM samDesired;
+    // ACCESS_MASK AccessDesired;
 
     LWMSG_STRUCT_BEGIN(REG_IPC_OPEN_KEY_EX_REQ),
 
@@ -434,7 +432,7 @@ static LWMsgTypeSpec gRegOpenKeyExSpec[] =
 
     LWMSG_MEMBER_PWSTR(REG_IPC_OPEN_KEY_EX_REQ, pSubKey),
 
-    LWMSG_MEMBER_UINT32(REG_IPC_OPEN_KEY_EX_REQ, samDesired),
+    LWMSG_MEMBER_UINT32(REG_IPC_OPEN_KEY_EX_REQ, AccessDesired),
 
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -631,6 +629,45 @@ static LWMsgTypeSpec gRegSetValueExSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gRegKeySecuritySpec[] =
+{
+    //HKEY hKey;
+    //SECURITY_INFORMATION SecurityInformation;
+    //PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor;
+    //ULONG Length;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_KEY_SECURITY_REQ),
+
+    LWMSG_MEMBER_HANDLE(REG_IPC_KEY_SECURITY_REQ, hKey, HKEY),
+    LWMSG_ATTR_HANDLE_LOCAL_FOR_RECEIVER,
+
+    LWMSG_MEMBER_UINT32(REG_IPC_KEY_SECURITY_REQ, SecurityInformation),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_KEY_SECURITY_REQ, Length),
+    LWMSG_MEMBER_PBYTE(REG_IPC_KEY_SECURITY_REQ, SecurityDescriptor),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_KEY_SECURITY_REQ, Length),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gRegGetKeySecurityResp[] =
+{
+    //PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor;
+    //ULONG Length;
+
+    LWMSG_STRUCT_BEGIN(REG_IPC_GET_KEY_SECURITY_RES),
+
+    LWMSG_MEMBER_UINT32(REG_IPC_GET_KEY_SECURITY_RES, Length),
+    LWMSG_MEMBER_PBYTE(REG_IPC_GET_KEY_SECURITY_RES, SecurityDescriptor),
+    LWMSG_ATTR_LENGTH_MEMBER(REG_IPC_GET_KEY_SECURITY_RES, Length),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+
+
 /******************************************************************************/
 
 static LWMsgProtocolSpec gRegIPCSpec[] =
@@ -668,6 +705,11 @@ static LWMsgProtocolSpec gRegIPCSpec[] =
     LWMSG_MESSAGE(REG_R_QUERY_MULTIPLE_VALUES, gRegQueryMultipleValuesRespSpec),
     LWMSG_MESSAGE(REG_Q_SET_KEY_VALUE, gRegSetKeyValueSpec),
     LWMSG_MESSAGE(REG_R_SET_KEY_VALUE, NULL),
+    /*Key Security Operation APIs*/
+    LWMSG_MESSAGE(REG_Q_SET_KEY_SECURITY, gRegKeySecuritySpec),
+    LWMSG_MESSAGE(REG_R_SET_KEY_SECURITY, NULL),
+    LWMSG_MESSAGE(REG_Q_GET_KEY_SECURITY, gRegKeySecuritySpec),
+    LWMSG_MESSAGE(REG_R_GET_KEY_SECURITY, gRegGetKeySecurityResp),
     LWMSG_PROTOCOL_END
 };
 

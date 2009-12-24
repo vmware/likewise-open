@@ -966,10 +966,11 @@ SrvFinderCreateRepository(
 
 NTSTATUS
 SrvFinderBuildSearchPath(
-    IN  PWSTR  pwszPath,
-    IN  PWSTR  pwszSearchPattern,
-    OUT PWSTR* ppwszFilesystemPath,
-    OUT PWSTR* ppwszSearchPattern
+    IN              PWSTR    pwszPath,
+    IN              PWSTR    pwszSearchPattern,
+       OUT          PWSTR*   ppwszFilesystemPath,
+       OUT          PWSTR*   ppwszSearchPattern,
+    IN OUT OPTIONAL PBOOLEAN pbPathHasWildCards
     );
 
 NTSTATUS

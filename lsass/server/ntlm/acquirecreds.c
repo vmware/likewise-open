@@ -196,6 +196,7 @@ NtlmGetNameInformation(
     DWORD dwError = LW_ERROR_SUCCESS;
     CHAR FullDomainName[HOST_NAME_MAX + 1];
     PCHAR pSymbol = NULL;
+    PSTR pHostName = NULL;
     PSTR pServerName = NULL;
     PSTR pDomainName = NULL;
     PSTR pDnsServerName = NULL;
@@ -203,69 +204,120 @@ NtlmGetNameInformation(
     PSTR pName = NULL;
     struct hostent* pHost = NULL;
     DWORD dwHostSize = 0;
+    PLWPS_PASSWORD_INFO pMachineAcctInfo = NULL;
+    HANDLE hPasswordStore = NULL;
 
-    dwError = gethostname(FullDomainName, HOST_NAME_MAX);
-    if (dwError)
+    // First try pstore
+    dwError = LwpsOpenPasswordStore(
+                  LWPS_PASSWORD_STORE_DEFAULT,
+                  &hPasswordStore);
+
+    if (dwError == LW_ERROR_SUCCESS)
     {
-        dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwpsGetPasswordByCurrentHostName(
+                      hPasswordStore,
+                      &pMachineAcctInfo);
     }
 
-    // There must be a better way to get this information.
-    pHost = gethostbyname(FullDomainName);
-    if (pHost)
+    if (dwError == LW_ERROR_SUCCESS)
     {
-        dwHostSize = strlen((PSTR)pHost->h_name);
-        if (dwHostSize > HOST_NAME_MAX)
+        dwError = LwWc16sToMbs(
+            pMachineAcctInfo->pwszMachineAccount,
+            &pServerName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pServerName[strlen(pServerName) - 1] = 0;
+
+        dwError = LwWc16sToMbs(
+            pMachineAcctInfo->pwszHostname,
+            &pHostName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwWc16sToMbs(
+            pMachineAcctInfo->pwszDomainName,
+            &pDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwWc16sToMbs(
+            pMachineAcctInfo->pwszHostDnsDomain,
+            &pDnsDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwAllocateStringPrintf(
+                       &pDnsServerName,
+                       "%s.%s",
+                       pHostName,
+                       pDnsDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LwStrToLower(pDnsServerName);
+    }
+    else
+    {
+        // Fall back to DNS
+        dwError = gethostname(FullDomainName, HOST_NAME_MAX);
+        if (dwError)
         {
-            dwHostSize = HOST_NAME_MAX;
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
         }
 
-        memcpy(
-            FullDomainName,
-            (PSTR)pHost->h_name,
-            dwHostSize);
-        FullDomainName[dwHostSize] = 0;
+        // There must be a better way to get this information.
+        pHost = gethostbyname(FullDomainName);
+        if (pHost)
+        {
+            dwHostSize = strlen((PSTR)pHost->h_name);
+            if (dwHostSize > HOST_NAME_MAX)
+            {
+                dwHostSize = HOST_NAME_MAX;
+            }
+
+            memcpy(
+                FullDomainName,
+                (PSTR)pHost->h_name,
+                dwHostSize);
+            FullDomainName[dwHostSize] = 0;
+        }
+
+        // This is a horrible fall back, but it's all we've got
+        pName = (PSTR)FullDomainName;
+
+        dwError = LwAllocateString(pName, &pDnsServerName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pSymbol = strchr(pName, '.');
+
+        if (pSymbol)
+        {
+            *pSymbol = '\0';
+        }
+
+        dwError = LwAllocateString(pName, &pServerName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LwStrToUpper(pServerName);
+
+        if (pSymbol)
+        {
+            pSymbol++;
+            pName = (PSTR)pSymbol;
+        }
+
+        dwError = LwAllocateString(pName, &pDnsDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pSymbol = strchr(pName, '.');
+
+        if (pSymbol)
+        {
+            *pSymbol = '\0';
+        }
+
+        dwError = LwAllocateString(pName, &pDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        LwStrToUpper(pDomainName);
     }
-
-    // This is a horrible fall back, but it's all we've got
-    pName = (PSTR)FullDomainName;
-
-    dwError = LwAllocateString(pName, &pDnsServerName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pSymbol = strchr(pName, '.');
-
-    if (pSymbol)
-    {
-        *pSymbol = '\0';
-    }
-
-    dwError = LwAllocateString(pName, &pServerName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LwStrToUpper(pServerName);
-
-    if (pSymbol)
-    {
-        pSymbol++;
-        pName = (PSTR)pSymbol;
-    }
-
-    dwError = LwAllocateString(pName, &pDnsDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pSymbol = strchr(pName, '.');
-
-    if (pSymbol)
-    {
-        *pSymbol = '\0';
-    }
-
-    dwError = LwAllocateString(pName, &pDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    LwStrToUpper(pDomainName);
 
 cleanup:
     if (ppszServerName)
@@ -299,6 +351,18 @@ cleanup:
     else
     {
         LW_SAFE_FREE_STRING(pDnsDomainName);
+    }
+
+    LW_SAFE_FREE_STRING(pHostName);
+
+    if (pMachineAcctInfo)
+    {
+        LwpsFreePasswordInfo(hPasswordStore, pMachineAcctInfo);
+    }
+
+    if (hPasswordStore)
+    {
+        LwpsClosePasswordStore(hPasswordStore);
     }
 
     return dwError;

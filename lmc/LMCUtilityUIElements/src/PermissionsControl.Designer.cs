@@ -176,6 +176,7 @@ namespace Likewise.LMC.UtilityUIElements
             this.DgPermissions.Size = new System.Drawing.Size(345, 141);
             this.DgPermissions.TabIndex = 16;
             this.DgPermissions.CellMouseUp += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.DgPermissions_CellMouseUp);
+            this.DgPermissions.CellMouseDown += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.DgPermissions_CellMouseDown);
             //
             // colPermission
             //

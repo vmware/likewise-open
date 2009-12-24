@@ -1796,6 +1796,9 @@ ADState_ReadRegDomainEntry(
 
     for (i=0; i<dwSubKeysLen; i++)
     {
+        LW_SAFE_FREE_STRING(pszSID);
+        LW_SAFE_FREE_STRING(pszGUID);
+
         dwError = LwWc16sToMbs(ppwszSubKeys[i], &pszSubKey);
         BAIL_ON_LSA_ERROR(dwError);
         pszSubKeyPtr = strrchr(pszSubKey, '\\');
@@ -2008,7 +2011,18 @@ ADState_ReadRegDomainEntry(
     }
 
 cleanup:
+    if (hReg)
+    {
+        RegCloseServer(hReg);
+    }
     LW_SAFE_FREE_STRING(pszSubKey);
+    LW_SAFE_FREE_STRING(pszSID);
+    LW_SAFE_FREE_STRING(pszGUID);
+    for (i = 0; i < dwSubKeysLen; i++)
+    {
+        LW_SAFE_FREE_MEMORY(ppwszSubKeys[i]);
+    }
+    LW_SAFE_FREE_MEMORY(ppwszSubKeys);
     return dwError;
 
 error:
@@ -2209,6 +2223,7 @@ ADState_WriteRegDomainEntry(
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
+    LW_SAFE_FREE_STRING(pszSid);
 
     RegCloseServer(hReg);
     return dwError;

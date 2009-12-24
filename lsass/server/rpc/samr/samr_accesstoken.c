@@ -55,6 +55,14 @@ SamrSrvInitNpAuthInfo(
     );
 
 
+static
+NTSTATUS
+SamrSrvInitLpcAuthInfo(
+    IN  handle_t          hBinding,
+    OUT PCONNECT_CONTEXT  pConnCtx
+    );
+
+
 NTSTATUS
 SamrSrvInitAuthInfo(
     IN  handle_t          hBinding,
@@ -98,8 +106,13 @@ SamrSrvInitAuthInfo(
         {
             ntStatus = SamrSrvInitNpAuthInfo(hTransportInfo,
                                              pConnCtx);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
+        else
+        {
+            ntStatus = SamrSrvInitLpcAuthInfo(hBinding,
+                                              pConnCtx);
+        }
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
     else if (rpcStatus)
     {
@@ -182,6 +195,39 @@ error:
     goto cleanup;
 }
 
+
+static
+NTSTATUS
+SamrSrvInitLpcAuthInfo(
+    IN  handle_t          hBinding,
+    OUT PCONNECT_CONTEXT  pConnCtx
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
+    uid_t uid = 0;
+    gid_t gid = 0;
+    PACCESS_TOKEN pToken = NULL;
+
+    /*
+     * We assume now the request coming via ncalrpc
+     * has been sent by root
+     */
+    ntStatus = LwMapSecurityCreateAccessTokenFromUidGid(
+                                   pSecCtx,
+                                   &pToken,
+                                   uid,
+                                   gid);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    pConnCtx->pUserToken = pToken;
+
+cleanup:
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
 
 
 VOID

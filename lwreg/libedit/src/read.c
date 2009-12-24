@@ -59,6 +59,10 @@ private int	read_char(EditLine *, char *);
 private int	read_getcmd(EditLine *, el_action_t *, char *);
 private void	read_pop(c_macro_t *);
 
+#ifdef __LW_MULTIBYTE__
+private int	read_wchar(EditLine *, char *);
+#endif
+
 /* read_init():
  *	Initialize the read stuff
  */
@@ -66,7 +70,11 @@ protected int
 read_init(EditLine *el)
 {
 	/* builtin read_char */
+#ifdef __LW_MULTIBYTE__
+	el->el_read.read_char = read_wchar;
+#else
 	el->el_read.read_char = read_char;
+#endif
 	return 0;
 }
 
@@ -311,6 +319,75 @@ read_char(EditLine *el, char *cp)
 	}
 	return (int)num_read;
 }
+
+
+#ifdef __LW_MULTIBYTE__
+/* read_wchar():
+ *	Read a wide character from the tty.
+ *	This is wedged in. The idea is to read a sequence of bytes
+ *	from the tty, and try to convert the data read into a valid multi-byte
+ *	character. Once enough bytes have been read, start returning the
+ *	buffered characters one at a time until the buffered characters have
+ *	been exhausted.
+ */
+private int
+read_wchar(EditLine *el, char *cp)
+{
+	size_t mbsize = 0;
+	wchar_t wc = {0};
+
+	ssize_t num_read;
+	int tried = 0;
+
+	if (el->el_multibyte.have_wchar &&
+		el->el_multibyte.bufindx < el->el_multibyte.buflen)
+	{
+		*cp = el->el_multibyte.buf[el->el_multibyte.bufindx++];
+		num_read = 1;
+		if (el->el_multibyte.bufindx == el->el_multibyte.buflen) {
+			el->el_multibyte.have_wchar = 0;
+		}
+		return (int)num_read;
+	}
+	el->el_multibyte.buflen = 0;
+	el->el_multibyte.bufindx = 0;
+	el->el_multibyte.have_wchar = 0;
+	memset(el->el_multibyte.buf, 0, sizeof(el->el_multibyte.buf));
+ again:
+	el->el_signal->sig_no = 0;
+	while ((num_read = read(el->el_infd, cp, 1)) == -1 || num_read == 1) {
+		if (num_read == -1) {
+			if (el->el_signal->sig_no == SIGCONT) {
+				sig_set(el);
+				el_set(el, EL_REFRESH);
+				goto again;
+			}
+			if (!tried && read__fixio(el->el_infd, errno) == 0)
+				tried = 1;
+			else {
+				*cp = '\0';
+				return (-1);
+	                }
+		}
+		else {
+			el->el_multibyte.buf[el->el_multibyte.buflen++] =
+				(unsigned char) *cp;
+			mbsize = mbtowc(&wc,
+					el->el_multibyte.buf,
+					el->el_multibyte.buflen+1);
+			if (mbsize != -1) {
+				*cp = (char) el->el_multibyte.buf[
+						el->el_multibyte.bufindx++];
+				el->el_multibyte.have_wchar = 1;
+				num_read = 1;
+				break;
+			}
+		}
+	}
+	return (int)num_read;
+}
+#endif
+
 
 /* read_pop():
  *	Pop a macro from the stack
@@ -565,7 +642,18 @@ el_gets(EditLine *el, int *nread)
 			else
 				*el->el_chared.c_redo.pos++ = ch;
 		}
+#ifndef __LW_MULTIBYTE__
 		retval = (*el->el_map.func[cmdnum]) (el, ch);
+#else
+		if ((ch & 0200)) {
+			ed_insert(el, ch);
+			retval = CC_NORM;
+		}
+		else {
+			retval = (*el->el_map.func[cmdnum]) (el, ch);
+		}
+#endif
+
 #ifdef DEBUG_READ
 		(void) fprintf(el->el_errfile,
 			"Returned state %d\n", retval );

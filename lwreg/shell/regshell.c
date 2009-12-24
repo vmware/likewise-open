@@ -723,7 +723,7 @@ RegShellProcessCmd(
                                   NULL,
                                   pszToken,
                                   0,
-                                  0,
+                                  KEY_READ,
                                   &hRootKey);
                     if (dwOpenRootKeyError == 0)
                     {

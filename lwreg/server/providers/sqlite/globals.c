@@ -67,6 +67,8 @@ REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
         &SqliteQueryInfoKey,
         &SqliteQueryMultipleValues,
         &SqliteSetValueEx,
+        &SqliteSetKeySecurity,
+        &SqliteGetKeySecurity
 };
 
 REG_SRV_API_KEYLOOKUP gActiveKeyList =

@@ -117,26 +117,28 @@ error:
 
 NTSTATUS
 SrvFinderBuildSearchPath(
-    IN  PWSTR  pwszPath,
-    IN  PWSTR  pwszSearchPattern,
-    OUT PWSTR* ppwszFilesystemPath,
-    OUT PWSTR* ppwszSearchPattern
+    IN              PWSTR    pwszPath,
+    IN              PWSTR    pwszSearchPattern,
+       OUT          PWSTR*   ppwszFilesystemPath,
+       OUT          PWSTR*   ppwszSearchPattern,
+    IN OUT OPTIONAL PBOOLEAN pbPathHasWildCards
     )
 {
     NTSTATUS ntStatus = 0;
-    wchar16_t wszStar[2] = {0, 0};
-    wchar16_t wszBackslash[2] = {0, 0};
-    wchar16_t wszQuestionMark[2] = {0, 0};
-    wchar16_t wszQuote[2] = {0, 0};
-    wchar16_t wszGT[2] = {0, 0};
-    wchar16_t wszLT[2] = {0, 0};
-    wchar16_t wszDot[2] = {0, 0};
+    wchar16_t wszStar[]         = {'*',  0};
+    wchar16_t wszBackslash[]    = {'\\', 0};
+    wchar16_t wszQuestionMark[] = {'?',  0};
+    wchar16_t wszQuote[]        = {'\"', 0};
+    wchar16_t wszGT[]           = {'>',  0};
+    wchar16_t wszLT[]           = {'<',  0};
+    wchar16_t wszDot[]          = {'.',  0};
     size_t    sLen = 0;
     PWSTR     pwszCursor = NULL;
     PWSTR     pwszLastSlash = NULL;
     PWSTR     pwszFilesystemPath = NULL;
     PWSTR     pwszSearchPattern3 = NULL;
     PWSTR     pwszSearchPattern2 = NULL;
+    BOOLEAN   bPathHasWildCards  = FALSE;
 
     if (!pwszPath || !*pwszPath)
     {
@@ -144,24 +146,16 @@ SrvFinderBuildSearchPath(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    wcstowc16s(&wszStar[0], L"*", 1);
-    wcstowc16s(&wszBackslash[0], L"\\", 1);
-    wcstowc16s(&wszQuestionMark[0], L"?", 1);
-    wcstowc16s(&wszQuote[0], L"\"", 1);
-    wcstowc16s(&wszGT[0], L">", 1);
-    wcstowc16s(&wszLT[0], L"<", 1);
-    wcstowc16s(&wszDot[0], L".", 1);
-
     sLen = wc16slen(pwszPath);
 
-    while (pwszSearchPattern && *pwszSearchPattern && (*pwszSearchPattern == wszBackslash[0]))
+    while (pwszSearchPattern && *pwszSearchPattern &&
+           (*pwszSearchPattern == wszBackslash[0]))
     {
           pwszSearchPattern++;
     }
 
     if (pwszSearchPattern && *pwszSearchPattern)
     {
-
         ntStatus = SrvAllocateStringW(pwszSearchPattern, &pwszSearchPattern3);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -171,6 +165,7 @@ SrvFinderBuildSearchPath(
     {
         if (*pwszCursor == wszGT[0])
         {
+            bPathHasWildCards = TRUE;
             *pwszCursor = wszQuestionMark[0];
         }
         else if (*pwszCursor == wszQuote[0])
@@ -186,12 +181,15 @@ SrvFinderBuildSearchPath(
                   *pwszNext == wszLT[0] ||
                   *pwszNext == wszQuote[0])))
             {
+                bPathHasWildCards = TRUE;
                 *pwszCursor = wszDot[0];
             }
         }
         else if (*pwszCursor == wszLT[0])
         {
             PWSTR pwszNext = pwszCursor;
+
+            bPathHasWildCards = TRUE;
 
             pwszNext++;
 
@@ -247,44 +245,47 @@ SrvFinderBuildSearchPath(
     }
     else
     {
-        ntStatus = SrvAllocateStringW(
-                        pwszPath,
-                        &pwszFilesystemPath);
+        ntStatus = SrvAllocateStringW(pwszPath, &pwszFilesystemPath);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pwszCursor = (pwszLastSlash ? ++pwszLastSlash : pwszSearchPattern3);
     if (pwszCursor && *pwszCursor)
     {
-        ntStatus = SrvAllocateStringW(
-                        pwszCursor,
-                        &pwszSearchPattern2);
-        BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvAllocateStringW(pwszCursor, &pwszSearchPattern2);
     }
     else
     {
-        ntStatus = SrvAllocateStringW(
-                        wszStar,
-                        &pwszSearchPattern2);
-        BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SrvAllocateStringW(wszStar, &pwszSearchPattern2);
     }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppwszFilesystemPath = pwszFilesystemPath;
-    pwszFilesystemPath = NULL;
+    *ppwszSearchPattern  = pwszSearchPattern2;
 
-    *ppwszSearchPattern = pwszSearchPattern2;
-    pwszSearchPattern2 = NULL;
+    if (pbPathHasWildCards)
+    {
+        *pbPathHasWildCards  = bPathHasWildCards;
+    }
 
 cleanup:
-    RTL_FREE(&pwszFilesystemPath);
-    RTL_FREE(&pwszSearchPattern2);
-    RTL_FREE(&pwszSearchPattern3);
+
+    SRV_SAFE_FREE_MEMORY(pwszSearchPattern3);
 
     return ntStatus;
 
 error:
+
     *ppwszFilesystemPath = NULL;
-    *ppwszSearchPattern = NULL;
+    *ppwszSearchPattern  = NULL;
+
+    if (pbPathHasWildCards)
+    {
+        *pbPathHasWildCards  = FALSE;
+    }
+
+    SRV_SAFE_FREE_MEMORY(pwszFilesystemPath);
+    SRV_SAFE_FREE_MEMORY(pwszSearchPattern2);
 
     goto cleanup;
 }

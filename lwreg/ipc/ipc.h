@@ -58,6 +58,7 @@
 #include <lw/ntstatus.h>
 #include <lw/rtlstring.h>
 #include <lw/rtlmemory.h>
+#include <lw/security-types.h>
 
 #include <regdef.h>
 #include <regutils.h>

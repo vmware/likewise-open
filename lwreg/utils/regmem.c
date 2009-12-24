@@ -559,6 +559,44 @@ RegCStringAllocatePrintf(
     return dwError;
 }
 
+PCWSTR
+RegStrrchr(
+    PCWSTR pwszStr,
+    wchar16_t wch
+    )
+{
+	int iIndex = RtlWC16StringNumChars(pwszStr);
+
+	for (; iIndex >= 0; iIndex--)
+	{
+		if (pwszStr[iIndex] == wch)
+		{
+			return &pwszStr[iIndex];
+		}
+	}
+
+	return NULL;
+}
+
+PCWSTR
+RegStrchr(
+    PCWSTR pwszStr,
+    wchar16_t wch
+    )
+{
+	int iIndex = 0;
+
+	for (; pwszStr[iIndex] != (wchar16_t)'\0'; iIndex++)
+	{
+		if (pwszStr[iIndex] == wch)
+		{
+			return &pwszStr[iIndex];
+		}
+	}
+
+	return NULL;
+}
+
 static
 NTSTATUS
 RegHexCharToByte(
@@ -644,3 +682,4 @@ RegStripTrailingWhitespace(
         *pszLastSpace = '\0';
     }
 }
+

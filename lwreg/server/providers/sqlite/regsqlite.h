@@ -110,17 +110,26 @@ typedef struct __REG_ENTRY_VERSION_INFO
     time_t tLastUpdated;
 } REG_ENTRY_VERSION_INFO, *PREG_ENTRY_VERSION_INFO;
 
-typedef struct __REG_ENTRY
+typedef struct __REG_DB_KEY
 {
    REG_ENTRY_VERSION_INFO version;
+   int64_t qwParentId;
+   PWSTR pwszFullKeyName; //Full Key Path
    PWSTR pwszKeyName;
-   REG_DATA_TYPE type;
+   int64_t qwAclIndex;
+   PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel;
+   ULONG ulSecDescLen;
+} REG_DB_KEY, *PREG_DB_KEY;
+
+typedef struct __REG_DB_VALUE
+{
+   time_t tLastUpdated;
+   int64_t qwParentId;
    PWSTR pwszValueName;
+   REG_DATA_TYPE type;
    PBYTE pValue;
    DWORD dwValueLen;
-  // PSTR pszValue;
-} REG_ENTRY, *PREG_ENTRY;
-
+} REG_DB_VALUE, *PREG_DB_VALUE;
 
 NTSTATUS
 RegSqliteReadUInt64(
@@ -135,6 +144,14 @@ RegSqliteReadInt64(
     int *piColumnPos,
     PCSTR name,
     int64_t *pqwResult);
+
+NTSTATUS
+RegSqliteReadInt32(
+    sqlite3_stmt *pstQuery,
+    int *piColumnPos,
+    PCSTR name,
+    int *piResult
+    );
 
 NTSTATUS
 RegSqliteReadUInt32(

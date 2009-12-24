@@ -48,6 +48,13 @@
 #define SQLITEAPI_P_H_
 
 NTSTATUS
+SqliteGetKeyToken(
+    PCWSTR pwszInputString,
+    wchar16_t c,
+    PWSTR *ppwszOutputString
+    );
+
+NTSTATUS
 SqliteGetParentKeyName(
     PCWSTR pwszInputString,
     wchar16_t c,
@@ -56,26 +63,70 @@ SqliteGetParentKeyName(
 
 NTSTATUS
 SqliteCreateKeyHandle(
-    IN PREG_ENTRY pRegEntry,
-    OUT PHKEY phkResult
+    IN ACCESS_MASK samGranted,
+    IN PREG_KEY_CONTEXT pKey,
+    OUT PREG_KEY_HANDLE* ppKeyHandle
+    );
+
+NTSTATUS
+SqliteCreateKeyContext(
+    IN ACCESS_MASK samGranted,
+    IN PREG_DB_KEY pRegEntry,
+    OUT PREG_KEY_CONTEXT* ppKeyResult
     );
 
 NTSTATUS
 SqliteCreateKeyInternal(
-    IN PWSTR pwszKeyName,
-    IN OPTIONAL PCWSTR pSubKey, //pSubKey is null only when creating HKEY_LIKEWISE
-    OUT OPTIONAL PHKEY ppKeyResult
+    IN OPTIONAL HANDLE handle,
+    IN OPTIONAL PREG_KEY_CONTEXT pParentKeyCtx,
+    IN PWSTR pwszFullKeyName, // Full Key Path
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
+    IN ULONG ulSecDescLen,
+    OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle
     );
 
 NTSTATUS
 SqliteOpenKeyInternal(
-    IN PCWSTR pwszKeyName,
-    IN OPTIONAL PCWSTR pSubKey,
-    OUT PHKEY phkResult
+	IN OPTIONAL HANDLE handle,
+    IN PCWSTR pwszFullKeyName, // Full Key Path
+    IN ACCESS_MASK AccessDesired,
+    OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle
     );
 
 NTSTATUS
+SqliteOpenKeyInternal_inDblock(
+	IN OPTIONAL HANDLE handle,
+    IN PCWSTR pwszFullKeyName, // Full Key Path
+    IN ACCESS_MASK AccessDesired,
+    OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle
+    );
+
+NTSTATUS
+SqliteOpenKeyInternal_inlock(
+	IN OPTIONAL HANDLE handle,
+    IN PCWSTR pwszFullKeyName, // Full Key Path
+    IN ACCESS_MASK AccessDesired,
+    OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle
+    );
+
+NTSTATUS
+SqliteOpenKeyInternal_inlock_inDblock(
+	IN OPTIONAL HANDLE handle,
+	IN PCWSTR pwszFullKeyName, // Full Key Path
+	IN ACCESS_MASK AccessDesired,
+	OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle
+	);
+
+NTSTATUS
 SqliteDeleteKeyInternal(
+	IN HANDLE handle,
+    IN PCWSTR pwszKeyName
+    );
+
+NTSTATUS
+SqliteDeleteKeyInternal_inDblock(
+	IN HANDLE handle,
     IN PCWSTR pwszKeyName
     );
 
@@ -85,7 +136,7 @@ SqliteDeleteActiveKey(
     );
 
 NTSTATUS
-SqliteDeleteTreeInternal(
+SqliteDeleteTreeInternal_inDblock(
     IN HANDLE Handle,
     IN HKEY hKey
     );

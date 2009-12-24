@@ -45,35 +45,35 @@ namespace Likewise.LMC.UtilityUIElements
 
             List<string> possiblePermissions = new List<string>();
 
-            if (_securityDescriptor != null)
+            if (_securityDescriptor != null && _securityDescriptor.Descretionary_Access_Control_List != null)
             {
-                if (_securityDescriptor.Descretionary_Access_Control_List != null)
+                Dictionary<string, List<LwAccessControlEntry>> SdDacls =
+                                            _securityDescriptor.Descretionary_Access_Control_List as
+                                            Dictionary<string, List<LwAccessControlEntry>>;
+
+                if (SdDacls != null && SdDacls.Count != 0)
                 {
-                    Dictionary<string, List<LwAccessControlEntry>> SdDacls =
-                                                _securityDescriptor.Descretionary_Access_Control_List as
-                                                Dictionary<string, List<LwAccessControlEntry>>;
-
-                    if (SdDacls != null && SdDacls.Count != 0)
+                    foreach (string key in SdDacls.Keys)
                     {
-                        foreach (string key in SdDacls.Keys)
-                        {
-                            List<LwAccessControlEntry> daclInfo = SdDacls[key];
-                            ListViewItem lvItem = new ListViewItem(new string[] { key });
-                            lvItem.Tag = daclInfo;
-                            lvGroupOrUserNames.Items.Add(lvItem);
-                        }
+                        List<LwAccessControlEntry> daclInfo = SdDacls[key];
+                        ListViewItem lvItem = new ListViewItem(new string[] { key });
+                        lvItem.Tag = daclInfo;
+                        lvGroupOrUserNames.Items.Add(lvItem);
                     }
+                }
 
-                    possiblePermissions = _securityDescriptor.GetObjectPermissionSet();
-                    if (possiblePermissions.Count != 0)
+                possiblePermissions = _securityDescriptor.GetObjectPermissionSet();
+                if (possiblePermissions.Count != 0)
+                {
+                    foreach (string permission in possiblePermissions)
                     {
-                        foreach (string permission in possiblePermissions)
-                        {
-                            DgPermissions.Rows.Add(new object[] { permission, false, false });
-                        }
-                        lvGroupOrUserNames.Items[0].Selected = true;
-                        lvGroupOrUserNames.SelectedIndexChanged += new EventHandler(lvGroupOrUserNames_SelectedIndexChanged);
+                        DgPermissions.Rows.Add(new object[] { permission, false, false });
                     }
+                }
+                if (lvGroupOrUserNames.Items.Count != 0)
+                {
+                    lvGroupOrUserNames.Items[0].Selected = true;
+                    lvGroupOrUserNames.SelectedIndexChanged += new EventHandler(lvGroupOrUserNames_SelectedIndexChanged);
                 }
             }
         }
@@ -94,16 +94,13 @@ namespace Likewise.LMC.UtilityUIElements
                 if (Row.Cells[e.ColumnIndex].Value.ToString().Equals("True"))
                 {
                     DataGridViewRowCollection dgRows = DgPermissions.Rows;
-                    foreach (DataGridViewRow dgRow in dgRows)
-                    {
+                    foreach (DataGridViewRow dgRow in dgRows) {
                         dgRow.Cells[e.ColumnIndex].Value = true;
-                        dgRow.Cells[e.ColumnIndex].ReadOnly = true;
                     }
                 }
                 else
                 {
-                    foreach (DataGridViewRow dgRow in DgPermissions.Rows)
-                    {
+                    foreach (DataGridViewRow dgRow in DgPermissions.Rows) {
                         dgRow.Cells[e.ColumnIndex].ReadOnly = false;
                     }
                 }
@@ -190,6 +187,7 @@ namespace Likewise.LMC.UtilityUIElements
 
         private void DgPermissions_CellMouseUp(object sender, DataGridViewCellMouseEventArgs e)
         {
+            DgPermissions.EndEdit();
             DataGridViewRow dgRow = DgPermissions.Rows[e.RowIndex];
             if (dgRow != null)
             {
@@ -227,6 +225,11 @@ namespace Likewise.LMC.UtilityUIElements
                     _editedObjects.Add(sobjectname, daclInfo);
             }
             CheckPemissions(sender, e);
+        }
+
+        private void DgPermissions_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            DgPermissions.BeginEdit(false);
         }
 
         #endregion

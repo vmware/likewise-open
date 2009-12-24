@@ -145,6 +145,11 @@ re_addc(EditLine *el, int c)
 			if ((el->el_refresh.r_cursor.h & 07) == 0)
 				break;			/* go until tab stop */
 		}
+#ifdef __LW_MULTIBYTE__
+        } else if (c & 0200) {
+		re_putc(el, c, 1);
+		return;
+#endif
 	} else if (iscntrl(c)) {
 		re_putc(el, '^', 1);
 		if (c == '\177')
@@ -1096,6 +1101,10 @@ re_fastaddc(EditLine *el)
 		char mc = (c == '\177') ? '?' : (c | 0100);
 		re_fastputc(el, '^');
 		re_fastputc(el, mc);
+#ifdef __LW_MULTIBYTE__
+        } else if (c & 0200) {
+		re_fastputc(el, c);
+#endif
 	} else if (isprint((unsigned char) c)) {	/* normal char */
 		re_fastputc(el, c);
 	} else {

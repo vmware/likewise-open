@@ -62,6 +62,8 @@
 #include <lw/ntstatus.h>
 #include <lw/rtlstring.h>
 #include <lw/rtlmemory.h>
+#include <lw/security-types.h>
+#include <lwmapsecurity/lwmapsecurity.h>
 
 //#include <eventlog.h>
 #include <regdef.h>

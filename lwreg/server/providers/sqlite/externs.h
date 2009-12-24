@@ -55,5 +55,7 @@ extern REG_SRV_API_KEYLOOKUP gActiveKeyList;
 
 extern const DWORD dwDefaultCacheSize;
 
+extern GENERIC_MAPPING gRegKeyGenericMapping;
+
 #endif /* __EXTERNS_H__ */
 

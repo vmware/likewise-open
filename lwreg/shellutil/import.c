@@ -86,7 +86,7 @@ ProcessImportedKeyName(
                            NULL,
                            HKEY_THIS_MACHINE,
                            0,
-                           0,
+                           KEY_ALL_ACCESS,
                            &hRootKey);
                 BAIL_ON_REG_ERROR(dwError);
             }
@@ -107,26 +107,26 @@ ProcessImportedKeyName(
 	BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegCreateKeyExW(
-            (HANDLE) hReg,
-            (HKEY) hCurrKey,
+            hReg,
+            hCurrKey,
             pSubKey,
-            (DWORD) 0,
-            (PWSTR) "",
-            (DWORD) 0,
-            (REGSAM) 0,
-            (PSECURITY_ATTRIBUTES) NULL,
-            (PHKEY) &pNewKey,
-            (PDWORD) NULL
+            0,
+            NULL,
+            0,
+            KEY_ALL_ACCESS,
+            NULL,
+            &pNewKey,
+            NULL
             );
         if (LWREG_ERROR_KEYNAME_EXIST == dwError)
         {
 		// Key has already been created (open it).
-		dwError = RegOpenKeyExW((HANDLE)hReg,
-				                hCurrKey,
+		dwError = RegOpenKeyExW(hReg,
+			                    hCurrKey,
 		                        pSubKey,
 		                        0,
-		                        (REGSAM)0,
-		                        (PHKEY) &pNewKey);
+		                        KEY_ALL_ACCESS,
+		                        &pNewKey);
 		BAIL_ON_REG_ERROR(dwError);
         }
         BAIL_ON_REG_ERROR(dwError);
@@ -221,7 +221,7 @@ ProcessImportedValue(
                           NULL,
                           HKEY_THIS_MACHINE,
                           0,
-                          0,
+                          KEY_ALL_ACCESS,
                           &hRootKey);
             BAIL_ON_REG_ERROR(dwError);
         }
@@ -248,7 +248,7 @@ ProcessImportedValue(
             hCurrRootKey,
             pSubKey,
             0,
-            0,
+            KEY_ALL_ACCESS,
             &hSubKey);
         BAIL_ON_REG_ERROR(dwError);
 

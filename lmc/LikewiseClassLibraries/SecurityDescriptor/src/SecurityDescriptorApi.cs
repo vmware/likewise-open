@@ -33,7 +33,7 @@ namespace Likewise.LMC.SecurityDesriptor
 
         [DllImport(LibADVAPIPath, CharSet = CharSet.Auto)]
         public static extern uint InitializeSecurityDescriptor(
-            ref IntPtr pSecurityDescriptor,
+            out IntPtr pSecurityDescriptor,
             uint dwRevision
         );
 
@@ -84,7 +84,7 @@ namespace Likewise.LMC.SecurityDesriptor
            [MarshalAs(UnmanagedType.Bool)]bool DisableAllPrivileges,
            TOKEN_PRIVILEGES NewState,
            UInt32 BufferLengthInBytes,
-           TOKEN_PRIVILEGES PreviousState,
+           IntPtr PreviousState,
            UInt32 ReturnLengthInBytes);
 
         // Use this signature if you do not want the previous state
@@ -181,15 +181,15 @@ namespace Likewise.LMC.SecurityDesriptor
         public static extern bool AddAce(
             IntPtr pAcl,
             byte dwAceRevision,
-            uint dwStartingAceIndex,
-            ACE[] pAceList,
+            int dwStartingAceIndex,
+            IntPtr pAceList,
             uint nAceListLength
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern bool DeleteAce(
             IntPtr pAcl,
-            uint dwAceIndex
+            int dwAceIndex
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
@@ -208,9 +208,9 @@ namespace Likewise.LMC.SecurityDesriptor
         [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern uint SetEntriesInAcl(
         ulong cCountOfExplicitEntries,
-        IntPtr pListOfExplicitEntries,
-        IntPtr OldAcl,
-        ref IntPtr NewAcl
+        EXPLICIT_ACCESS[] pListOfExplicitEntries,
+        LwACL OldAcl,
+        ref LwACL NewAcl
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
@@ -226,7 +226,7 @@ namespace Likewise.LMC.SecurityDesriptor
 
         [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern uint BuildExplicitAccessWithName(
-        ref IntPtr pExplicitAccess,
+        out IntPtr pExplicitAccess,
         string pTrusteeName,
         uint AccessPermissions,
         ACCESS_MODE AccessMode,
@@ -238,10 +238,75 @@ namespace Likewise.LMC.SecurityDesriptor
         IntPtr phMem
         );
 
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool CopySid(
+        uint nDestinationSidLength,
+        out IntPtr pDestinationSid,
+        IntPtr pSourceSid
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool InitializeAcl(out IntPtr pAcl, uint nAclLength, uint dwAclRevision);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool AddAccessAllowedAce(ref IntPtr pAcl, uint dwAceRevision, int AccessMask, IntPtr pSid);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool AddAccessAllowedAceEx(ref IntPtr pAcl, uint dwAceRevision, int AccessMask, byte AceFlags, IntPtr pSid);
+
+        #region CSP (cryptographic service provider) Apis
+
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CryptAcquireContext(ref IntPtr hProv, string pszContainer,
+        string pszProvider, uint dwProvType, uint dwFlags);
+
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CryptGenKey(IntPtr hProv, uint Algid, uint dwFlags, ref IntPtr phKey);
+
+        [DllImport(LibADVAPIPath, CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool CryptDestroyKey(IntPtr phKey);
+
+        #endregion
 
         #endregion
 
         #region Class Data
+
+        #region  definitions for CryptAcquireContext
+        // dwFlags
+        public static UInt32 CRYPT_VERIFYCONTEXT = 0xF0000000;
+        public static UInt32 CRYPT_NEWKEYSET = 0x00000008;
+        public static UInt32 CRYPT_DELETEKEYSET = 0x00000010;
+        public static UInt32 CRYPT_MACHINE_KEYSET = 0x00000020;
+        public static UInt32 CRYPT_SILENT = 0x00000040;
+        public static string MS_STRONG_PROV = "Microsoft Strong Cryptographic Provider";
+
+        public static UInt32 PROV_RSA_FULL = 1;
+        public static UInt32 PROV_RSA_SIG = 2;
+        public static UInt32 PROV_DSS = 3;
+        public static UInt32 PROV_FORTEZZA = 4;
+        public static UInt32 PROV_MS_EXCHANGE = 5;
+        public static UInt32 PROV_SSL = 6;
+        public static UInt32 PROV_RSA_SCHANNEL = 12;
+        public static UInt32 PROV_DSS_DH = 13;
+        public static UInt32 PROV_EC_ECDSA_SIG = 14;
+        public static UInt32 PROV_EC_ECNRA_SIG = 15;
+        public static UInt32 PROV_EC_ECDSA_FULL = 16;
+        public static UInt32 PROV_DH_SCHANNEL = 18;
+        public static UInt32 PROV_SPYRUS_LYNKS = 20;
+        public static UInt32 PROV_RNG = 21;
+        public static UInt32 PROV_INTEL_SEC = 22;
+        public static UInt32 PROV_REPLACE_OWF = 23;
+        public static UInt32 PROV_RSA_AES = 24;
+
+        public static UInt32 AT_KEYEXCHANGE = 1;
+        public static UInt32 AT_SIGNATURE = 2;
+
+        #endregion
+
+        public static UInt32 SECURITY_DESCRIPTOR_REVISION = 1;
 
         //Use these for DesiredAccess
         public static UInt32 STANDARD_RIGHTS_REQUIRED = 0x000F0000;
@@ -309,17 +374,17 @@ namespace Likewise.LMC.SecurityDesriptor
 
         #region Structures
 
-        [StructLayoutAttribute(LayoutKind.Sequential)]
-        public class PRIVILEGE_SET
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PRIVILEGE_SET
         {
             public long PrivilegeCount;
             public long Control;
-            public LUID_AND_ATTRIBUTES[]  Privileges;
+            public LUID_AND_ATTRIBUTES[] Privileges;
 
         }
 
-        [StructLayoutAttribute(LayoutKind.Sequential)]
-        public class TOKEN_PRIVILEGES
+        [StructLayout(LayoutKind.Sequential)]
+        public struct TOKEN_PRIVILEGES
         {
             public UInt32 PrivilegeCount;
             //[MarshalAs(UnmanagedType.ByValArray)]
@@ -329,14 +394,14 @@ namespace Likewise.LMC.SecurityDesriptor
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        public class LwLUID
+        public struct LwLUID
         {
             public Int32 LowPart;
             public Int32 HighPart;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        public class LUID_AND_ATTRIBUTES
+        public struct LUID_AND_ATTRIBUTES
         {
             //public LwLUID Luid;
             public IntPtr Luid;
@@ -344,18 +409,18 @@ namespace Likewise.LMC.SecurityDesriptor
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 4)]
-        public class TRUSTEE
+        public struct TRUSTEE
         {
-            public TRUSTEE pMultipleTrustee; // must be null
-            public MULTIPLE_TRUSTEE_OPERATION MultipleTrusteeOperation;
-            public TRUSTEE_FORM TrusteeForm;
-            public TRUSTEE_TYPE TrusteeType;
-            [MarshalAs(UnmanagedType.LPWStr)]
-            public string ptstrName;
+            public IntPtr pMultipleTrustee; // must be null
+            public UInt32 MultipleTrusteeOperation;
+            public UInt32 TrusteeForm;
+            public UInt32 TrusteeType;
+            [MarshalAs(UnmanagedType.LPStr)]
+            public IntPtr ptstrName;
         }
 
-        [StructLayoutAttribute(LayoutKind.Sequential)]
-        public class SECURITY_DESCRIPTOR
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SECURITY_DESCRIPTOR
         {
             public byte revision;
             public byte size;
@@ -367,40 +432,50 @@ namespace Likewise.LMC.SecurityDesriptor
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public class ACE
+        public struct ACE
         {
             public uint AccessMask;
             public uint AceFlags;
             public uint AceType;
-            [MarshalAs(UnmanagedType.LPWStr)]
+            [MarshalAs(UnmanagedType.LPStr)]
             public string GuidInheritedObjectType;
-            [MarshalAs(UnmanagedType.LPWStr)]
+            [MarshalAs(UnmanagedType.LPStr)]
             public string GuidObjectType;
-            [MarshalAs(UnmanagedType.LPWStr)]
+            [MarshalAs(UnmanagedType.LPStr)]
             public string Trustee;
         };
 
         [StructLayout(LayoutKind.Sequential)]
-        public class LwACL
+        public struct SID
         {
-            public uint AclRevision;
-            public uint Sbz1; // Padding (should be 0)
+            byte Revision;
+            byte SubAuthorityCount;
+            SID_IDENTIFIER_AUTHORITY IdentifierAuthority;
+            //[MarshalAs(UnmanagedType.ByValArray, SizeConst = ANYSIZE_ARRAY)]
+            IntPtr SubAuthority;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct LwACL
+        {
+            public byte AclRevision;
+            public byte Sbz1; // Padding (should be 0)
             public short AclSize;
             public short AceCount;
             public short Sbz2; // Padding (should be 0)
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        public class EXPLICIT_ACCESS
+        [StructLayout(LayoutKind.Sequential, Size = 32)]
+        public struct EXPLICIT_ACCESS
         {
-            public uint grfAccessPermissions;
-            public ACCESS_MODE grfAccessMode;
-            public uint grfInheritance;
+            public UInt32 grfAccessPermissions;
+            public UInt32 grfAccessMode;
+            public UInt32 grfInheritance;
             public TRUSTEE Trustee;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public class ACL_REVISION_INFORMATION
+        public struct ACL_REVISION_INFORMATION
         {
             public uint AclRevision;
         }
@@ -414,23 +489,23 @@ namespace Likewise.LMC.SecurityDesriptor
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public class ACE_HEADER
+        public struct ACE_HEADER
         {
             public byte AceType;
             public byte AceFlags;
             public short AceSize;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Size = 36)]
         public struct ACCESS_ALLOWED_ACE
         {
             public ACE_HEADER Header;
             public int Mask;
-            public int SidStart;
+            public IntPtr SidStart;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public class SECURITY_ATTRIBUTES
+        public struct SECURITY_ATTRIBUTES
         {
             public int nLength;
             public unsafe byte* lpSecurityDescriptor;
@@ -438,7 +513,7 @@ namespace Likewise.LMC.SecurityDesriptor
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public class SID_IDENTIFIER_AUTHORITY
+        public struct SID_IDENTIFIER_AUTHORITY
         {
             byte Value;
         }
@@ -464,7 +539,7 @@ namespace Likewise.LMC.SecurityDesriptor
             SE_SELF_RELATIVE = 0x8000, //32768
         }
 
-        public enum TRUSTEE_FORM
+        public enum TRUSTEE_FORM : uint
         {
             TRUSTEE_IS_SID,
             TRUSTEE_IS_NAME,
@@ -473,7 +548,7 @@ namespace Likewise.LMC.SecurityDesriptor
             TRUSTEE_IS_OBJECTS_AND_NAME
         }
 
-        public enum TRUSTEE_TYPE
+        public enum TRUSTEE_TYPE : uint
         {
             TRUSTEE_IS_UNKNOWN,
             TRUSTEE_IS_USER,
@@ -486,7 +561,7 @@ namespace Likewise.LMC.SecurityDesriptor
             TRUSTEE_IS_COMPUTER
         }
 
-        public enum MULTIPLE_TRUSTEE_OPERATION
+        public enum MULTIPLE_TRUSTEE_OPERATION :uint
         {
             NO_MULTIPLE_TRUSTEE,
             TRUSTEE_IS_IMPERSONATE
@@ -498,7 +573,7 @@ namespace Likewise.LMC.SecurityDesriptor
             AclSizeInformation
         }
 
-        public enum ACCESS_MODE : int
+        public enum ACCESS_MODE : uint
         {
             NOT_USED_ACCESS = 0,
             GRANT_ACCESS,

@@ -56,9 +56,13 @@ LsaSrvOpenPolicy2(
     /* [out] */ POLICY_HANDLE *hPolicy
     )
 {
-    const DWORD dwSamrConnAccess     = SAMR_ACCESS_CONNECT_TO_SERVER;
+    const DWORD dwSamrConnAccess     = SAMR_ACCESS_CONNECT_TO_SERVER |
+                                       SAMR_ACCESS_ENUM_DOMAINS |
+                                       SAMR_ACCESS_OPEN_DOMAIN;
     const DWORD dwSamrDomainAccess   = DOMAIN_ACCESS_LOOKUP_INFO_1 |
-                                       DOMAIN_ACCESS_LOOKUP_ALIAS;
+                                       DOMAIN_ACCESS_LOOKUP_ALIAS |
+                                       DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                       DOMAIN_ACCESS_OPEN_ACCOUNT;
 
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;

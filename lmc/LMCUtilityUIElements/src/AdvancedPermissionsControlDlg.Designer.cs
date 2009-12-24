@@ -346,7 +346,6 @@ namespace Likewise.LMC.UtilityUIElements
             //
             // tabPageOwner
             //
-            this.tabPageOwner.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.tabPageOwner.Controls.Add(this.LWlvOwner);
             this.tabPageOwner.Controls.Add(this.label7);
             this.tabPageOwner.Controls.Add(this.lblUsername);
@@ -386,7 +385,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             // lblUsername
             //
-            this.lblUsername.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lblUsername.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.lblUsername.Location = new System.Drawing.Point(13, 65);
             this.lblUsername.Name = "lblUsername";
             this.lblUsername.Size = new System.Drawing.Size(563, 23);
@@ -455,7 +454,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             // lblUserorGroup
             //
-            this.lblUserorGroup.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lblUserorGroup.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.lblUserorGroup.Location = new System.Drawing.Point(14, 70);
             this.lblUserorGroup.Name = "lblUserorGroup";
             this.lblUserorGroup.Size = new System.Drawing.Size(503, 23);

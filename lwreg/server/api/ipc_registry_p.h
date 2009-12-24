@@ -160,6 +160,22 @@ RegSrvIpcSetValueExW(
     void* data
     );
 
+LWMsgStatus
+RegSrvIpcSetKeySecurity(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    );
+
+LWMsgStatus
+RegSrvIpcGetKeySecurity(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    );
+
 VOID
 RegSrvFreeHandle(
     PVOID pData

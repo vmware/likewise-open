@@ -100,13 +100,23 @@ SqliteCacheResetKeyValueInfo_inlock(
     IN PCWSTR pwszKeyName
     );
 
+void
+SqliteSafeFreeKeyHandle(
+	PREG_KEY_HANDLE pKeyHandle
+	);
+
+void
+SqliteSafeFreeKeyHandle_inlock(
+	PREG_KEY_HANDLE pKeyHandle
+	);
+
 VOID
-SqliteCacheReleaseKey(
+SqliteReleaseKeyContext(
     PREG_KEY_CONTEXT pKeyResult
     );
 
 VOID
-SqliteCacheReleaseKey_inlock(
+SqliteReleaseKeyContext_inlock(
     PREG_KEY_CONTEXT pKeyResult
     );
 
@@ -117,6 +127,11 @@ SqliteCacheFreeHashEntry(
 
 NTSTATUS
 SqliteCacheSubKeysInfo_inlock(
+    IN OUT PREG_KEY_CONTEXT pKeyResult
+    );
+
+NTSTATUS
+SqliteCacheSubKeysInfo_inlock_inDblock(
     IN OUT PREG_KEY_CONTEXT pKeyResult
     );
 

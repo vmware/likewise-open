@@ -38,6 +38,12 @@ SrvDeleteFiles(
 
 static
 NTSTATUS
+SrvDeleteSingleFile(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildDeleteResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -183,22 +189,26 @@ SrvProcessDelete(
                             pwszFilesystemPath,
                             pDeleteState->pwszSearchPattern,
                             &pDeleteState->pwszFilesystemPath,
-                            &pDeleteState->pwszSearchPattern2);
+                            &pDeleteState->pwszSearchPattern2,
+                            &pDeleteState->bPathHasWildCards);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvFinderCreateSearchSpace(
-                            pDeleteState->pSession->pIoSecurityContext,
-                            pDeleteState->pSession->hFinderRepository,
-                            pDeleteState->pwszFilesystemPath,
-                            pDeleteState->pwszSearchPattern2,
-                            pDeleteState->pRequestHeader->usSearchAttributes,
-                            pDeleteState->ulSearchStorageType,
-                            SMB_FIND_FILE_BOTH_DIRECTORY_INFO,
-                            pDeleteState->bUseLongFilenames,
-                            SYNCHRONIZE,
-                            &pDeleteState->hSearchSpace,
-                            &pDeleteState->usSearchId);
-            BAIL_ON_NT_STATUS(ntStatus);
+            if (pDeleteState->bPathHasWildCards)
+            {
+                ntStatus = SrvFinderCreateSearchSpace(
+                                pDeleteState->pSession->pIoSecurityContext,
+                                pDeleteState->pSession->hFinderRepository,
+                                pDeleteState->pwszFilesystemPath,
+                                pDeleteState->pwszSearchPattern2,
+                                pDeleteState->pRequestHeader->usSearchAttributes,
+                                pDeleteState->ulSearchStorageType,
+                                SMB_FIND_FILE_BOTH_DIRECTORY_INFO,
+                                pDeleteState->bUseLongFilenames,
+                                FILE_LIST_DIRECTORY,
+                                &pDeleteState->hSearchSpace,
+                                &pDeleteState->usSearchId);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pDeleteState->stage = SRV_DELETE_STAGE_SMB_V1_DELETE_FILES;
 
@@ -206,7 +216,14 @@ SrvProcessDelete(
 
         case SRV_DELETE_STAGE_SMB_V1_DELETE_FILES:
 
-            ntStatus = SrvDeleteFiles(pExecContext);
+            if (pDeleteState->bPathHasWildCards)
+            {
+                ntStatus = SrvDeleteFiles(pExecContext);
+            }
+            else
+            {
+                ntStatus = SrvDeleteSingleFile(pExecContext);
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             pDeleteState->stage = SRV_DELETE_STAGE_SMB_V1_BUILD_RESPONSE;
@@ -438,6 +455,97 @@ cleanup:
     {
         SrvFreeMemory(pwszFilename);
     }
+
+    return ntStatus;
+
+error:
+
+    /* Have to do some error mapping here to match WinXP */
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+        case STATUS_FILE_IS_A_DIRECTORY:
+        case STATUS_SHARING_VIOLATION:
+
+            break;
+
+        case STATUS_OBJECT_NAME_NOT_FOUND:
+        case STATUS_NO_SUCH_FILE:
+
+            ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_CANNOT_DELETE;
+
+            break;
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvDeleteSingleFile(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_DELETE_STATE_SMB_V1   pDeleteState = NULL;
+
+    pDeleteState = (PSRV_DELETE_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pDeleteState->bPendingCreate)
+    {
+        ntStatus = SrvBuildFilePath(
+                        pDeleteState->pwszFilesystemPath,
+                        pDeleteState->pwszSearchPattern2,
+                        &pDeleteState->fileName.FileName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvPrepareDeleteStateAsync(pDeleteState, pExecContext);
+
+        pDeleteState->bPendingCreate = TRUE;
+
+        ntStatus = IoCreateFile(
+                        &pDeleteState->hFile,
+                        pDeleteState->pAcb,
+                        &pDeleteState->ioStatusBlock,
+                        pDeleteState->pSession->pIoSecurityContext,
+                        &pDeleteState->fileName,
+                        pDeleteState->pSecurityDescriptor,
+                        pDeleteState->pSecurityQOS,
+                        DELETE,
+                        0,
+                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_NO_SHARE,
+                        FILE_OPEN,
+                        pDeleteState->ulCreateOptions,
+                        NULL,
+                        0,
+                        NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseDeleteStateAsync(pDeleteState); // completed sync
+    }
+
+    pDeleteState->bPendingCreate = FALSE;
+
+    ntStatus = pDeleteState->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pDeleteState->hFile)
+    {
+        IoCloseFile(pDeleteState->hFile);
+        pDeleteState->hFile = NULL;
+    }
+
+cleanup:
 
     return ntStatus;
 

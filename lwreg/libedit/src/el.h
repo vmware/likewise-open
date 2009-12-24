@@ -45,6 +45,7 @@
 #define	KSHVI
 #define	VIDEFAULT
 #define	ANCHOR
+#define __LW_MULTIBYTE__
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -85,6 +86,18 @@ typedef struct el_state_t {
 	char		thisch;		/* char that generated it	*/
 } el_state_t;
 
+#ifdef __LW_MULTIBYTE__
+/*
+ * Multibyte character handling state and buffer
+ */
+typedef struct el_multibyte_t {
+	int buflen;
+	int bufindx;
+	int have_wchar;
+	unsigned char buf[7];
+} el_multibyte_t;
+#endif
+
 /*
  * Until we come up with something better...
  */
@@ -107,6 +120,7 @@ typedef struct el_state_t {
 #include "sig.h"
 #include "help.h"
 #include "read.h"
+
 
 struct editline {
 	char		 *el_prog;	/* the program name		*/
@@ -134,6 +148,9 @@ struct editline {
 	el_search_t	  el_search;	/* Search stuff			*/
 	el_signal_t	  el_signal;	/* Signal handling stuff	*/
 	el_read_t	  el_read;	/* Character reading stuff	*/
+#ifdef __LW_MULTIBYTE__
+	el_multibyte_t    el_multibyte; /* Multibyte state buffer       */
+#endif
 };
 
 protected int	el_editmode(EditLine *, int, const char **);

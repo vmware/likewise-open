@@ -72,7 +72,7 @@ function setup_environment
 	    export LD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}
 	    ;;
 	Darwin)
-	    export DYLD_LIBRARY_PATH=/usr/lib:${LWDIR}/${LWLIB}:${MONO_LIBS}
+	    export DYLD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}:/usr/lib
 	    ;;
         *)
 	    export LD_LIBRARY_PATH=${LWDIR}/${LWLIB}:${MONO_LIBS}
