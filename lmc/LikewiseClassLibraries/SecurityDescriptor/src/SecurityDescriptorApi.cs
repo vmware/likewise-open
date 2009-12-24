@@ -238,6 +238,25 @@ namespace Likewise.LMC.SecurityDesriptor
         IntPtr phMem
         );
 
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern IntPtr GetCurrentThread();
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr OpenThread(ThreadAccess dwDesiredAccess, bool bInheritHandle,
+           uint dwThreadId);
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetCurrentProcessId();
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetCurrentThreadId();
+
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool SetThreadToken(
+        IntPtr Thread,
+        IntPtr Token
+        );
+
         [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool CopySid(
         uint nDestinationSidLength,
@@ -246,13 +265,23 @@ namespace Likewise.LMC.SecurityDesriptor
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
-        public static extern bool InitializeAcl(out IntPtr pAcl, uint nAclLength, uint dwAclRevision);
+        public static extern bool OpenThreadToken(
+            IntPtr ThreadHandle,
+            uint DesiredAccess,
+            bool OpenAsSelf,
+            out IntPtr TokenHandle);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool InitializeAcl(IntPtr pAcl, int nAclLength, uint dwAclRevision);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool IsValidAcl(IntPtr pAcl);
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern bool AddAccessAllowedAce(ref IntPtr pAcl, uint dwAceRevision, int AccessMask, IntPtr pSid);
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
-        public static extern bool AddAccessAllowedAceEx(ref IntPtr pAcl, uint dwAceRevision, int AccessMask, byte AceFlags, IntPtr pSid);
+        public static extern bool AddAccessAllowedAceEx(ref IntPtr pAcl, uint dwAceRevision, byte AceFlags, int AccessMask, IntPtr pSid);
 
         #region CSP (cryptographic service provider) Apis
 
@@ -918,6 +947,23 @@ namespace Likewise.LMC.SecurityDesriptor
             LOGON32_PROVIDER_DEFAULT = 0,
             LOGON32_PROVIDER_WINNT50,
             LOGON32_PROVIDER_WINNT40
+        }
+
+        [Flags]
+        public enum ThreadAccess : int
+        {
+            TERMINATE = (0x0001),
+            SUSPEND_RESUME = (0x0002),
+            GET_CONTEXT = (0x0008),
+            SET_CONTEXT = (0x0010),
+            SET_INFORMATION = (0x0020),
+            QUERY_INFORMATION = (0x0040),
+            SET_THREAD_TOKEN = (0x0080),
+            IMPERSONATE = (0x0100),
+            DIRECT_IMPERSONATION = (0x0200),
+            ALL_ACCESS = TERMINATE | SUSPEND_RESUME | GET_CONTEXT | SET_CONTEXT |
+                         SET_INFORMATION | QUERY_INFORMATION | SET_THREAD_TOKEN |
+                         IMPERSONATE | DIRECT_IMPERSONATION
         }
 
         #endregion

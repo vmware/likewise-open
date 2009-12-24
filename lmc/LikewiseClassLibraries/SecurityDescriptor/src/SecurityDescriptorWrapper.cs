@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Likewise.LMC.Utilities;
 
 ////Use the DebugMarshal for Debug builds, and the standard Marshal in release builds
@@ -251,7 +252,7 @@ namespace Likewise.LMC.SecurityDesriptor
             return iReturn;
         }
 
-        public static bool ApiAdjustTokenPrivileges(IntPtr pProcessTokenHandle)
+        public static bool ApiAdjustTokenPrivileges(ref IntPtr pProcessTokenHandle)
         {
             Logger.Log(string.Format("SecurityDescriptorWrapper.ApiAdjustTokenPrivileges()"), Logger.SecurityDescriptorLogLevel);
 
@@ -301,7 +302,6 @@ namespace Likewise.LMC.SecurityDesriptor
                     Logger.Log(string.Format("SecurityDescriptorWrapper.ApiAdjustTokenPrivileges:bIsSuccess()" + bIsSuccess), Logger.SecurityDescriptorLogLevel);
                     Logger.Log("Error code: " + Marshal.GetLastWin32Error());
                 }
-
             }
             catch(Exception ex)
             {
@@ -318,6 +318,7 @@ namespace Likewise.LMC.SecurityDesriptor
 
         public static uint ApiGetCurrentProcessHandle(uint DesiredAccess, out IntPtr pTokenHandle)
         {
+            bool bSuccess = false;
             uint errorReturn = 0;
             IntPtr pProcessHandle = IntPtr.Zero;
             pTokenHandle = IntPtr.Zero;
@@ -326,8 +327,24 @@ namespace Likewise.LMC.SecurityDesriptor
 
             try
             {
-                pProcessHandle = Process.GetCurrentProcess().Handle;
-                bool bSuccess = SecurityDescriptorApi.OpenProcessToken(pProcessHandle, DesiredAccess, out pTokenHandle); ;
+                uint iThreadId = SecurityDescriptorApi.GetCurrentThreadId();
+                pProcessHandle = SecurityDescriptorApi.OpenThread(SecurityDescriptorApi.ThreadAccess.ALL_ACCESS, false, iThreadId);
+
+                bSuccess = SecurityDescriptorApi.OpenThreadToken(pProcessHandle, DesiredAccess, false, out pTokenHandle);
+                errorReturn = (uint)Marshal.GetLastWin32Error();
+                if (errorReturn == (uint)ErrorCodes.WIN32Enum.ERROR_NO_TOKEN)
+                {
+                    pProcessHandle = Process.GetCurrentProcess().Handle;
+                    bSuccess = SecurityDescriptorApi.OpenProcessToken(pProcessHandle, DesiredAccess, out pTokenHandle);
+                }
+                if (pTokenHandle != null)
+                {
+                    SecurityDescriptorWrapper.ApiAdjustTokenPrivileges(ref pTokenHandle);
+                    //bSuccess = SecurityDescriptorApi.SetThreadToken(pProcessHandle, pTokenHandle);
+                    //errorReturn = (uint)Marshal.GetLastWin32Error();
+                    //Logger.Log("SecurityDescriptorApi.SetThreadToken()");
+                }
+
                 if (!bSuccess)
                 {
                     errorReturn = (uint)Marshal.GetLastWin32Error();
@@ -388,7 +405,6 @@ namespace Likewise.LMC.SecurityDesriptor
                     IntPtr pSecurityDesriptor)
         {
             uint errorReturn = 0;
-            int AceIdx = 0;
 
             Dictionary<string, object> editAces = editedObjects as Dictionary<string, object>;
             Dictionary<string, object> newAces = addedObjects as Dictionary<string, object>;
@@ -405,7 +421,7 @@ namespace Likewise.LMC.SecurityDesriptor
 
                 pDaclOffset = Marshal.AllocHGlobal(Marshal.SizeOf(acl));
                 bool bRet = SecurityDescriptorApi.GetSecurityDescriptorDacl(pSecurityDesriptor, out lpbDaclPresent, out pDaclOffset, out lpbDaclDefaulted);
-                Logger.Log("SecurityDescriptorApi.GetSecurityDescriptorDacl iRet value", Logger.SecurityDescriptorLogLevel);
+                Logger.Log("SecurityDescriptorApi.ApiSetSecurityDescriptorDacl iRet value", Logger.SecurityDescriptorLogLevel);
 
                 if (pDaclOffset != IntPtr.Zero) {
                     acl = (SecurityDescriptorApi.LwACL)Marshal.PtrToStructure(pDaclOffset, typeof(SecurityDescriptorApi.LwACL));
@@ -420,10 +436,15 @@ namespace Likewise.LMC.SecurityDesriptor
                 sSECURITY_DESCRIPTOR = (SecurityDescriptorApi.SECURITY_DESCRIPTOR)Marshal.PtrToStructure(pSecurityDesriptor, typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
 
                 uint totalCount = (uint)(newAces.Count - deleteAces.Count);
-                uint cbNewACL = AclSize.AclBytesInUse + (uint)((Marshal.SizeOf(typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE)) - IntPtr.Size) * totalCount);
+                int cbNewACL = (int)AclSize.AclBytesInUse + (int)((Marshal.SizeOf(typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE)) - IntPtr.Size) * totalCount);
 
                 // Create new ACL
-                bRet = SecurityDescriptorApi.InitializeAcl(out pNewDacl, cbNewACL, acl.AclRevision);
+                pNewDacl = Marshal.AllocHGlobal(cbNewACL);
+                bRet = SecurityDescriptorApi.InitializeAcl(pNewDacl, cbNewACL, acl.AclRevision);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+
+                bRet = SecurityDescriptorApi.IsValidAcl(pNewDacl);
+                Console.WriteLine(Marshal.GetLastWin32Error());
 
                 //Delete/Editing the Ace entry from the ACl
                 for (int idx = 0; idx < AclSize.AceCount; idx++)
@@ -454,26 +475,28 @@ namespace Likewise.LMC.SecurityDesriptor
                             {
                                 if ((int)ace.Header.AceType == lwAce.AceType)
                                 {
+                                    SecurityDescriptorApi.ConvertStringSidToSid(lwAce.SID, out ptrSid);
                                     bRet = SecurityDescriptorApi.AddAccessAllowedAceEx(
                                          ref pNewDacl,
                                          acl.AclRevision,
-                                         Convert.ToInt32(lwAce.AccessMask),
                                          Convert.ToByte(ace.Header.AceFlags),
+                                         Convert.ToInt32(lwAce.AccessMask),
                                          ptrSid);
 
                                     Console.WriteLine(Marshal.GetLastWin32Error());
-                                    Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.AddAce return code :" + Marshal.GetLastWin32Error());
+                                    Logger.Log("SecurityDescriptorWrapper.ApiSetSecurityDescriptorDacl() : SecurityDescriptorApi.AddAccessAllowedAceEx return code :" + Marshal.GetLastWin32Error());
                                 }
                             }
                         }
                     }
                     else
                     {
+                        Logger.Log("Adding new Ace from existing one: " + sUsername, Logger.SecurityDescriptorLogLevel);
                         bRet = SecurityDescriptorApi.AddAccessAllowedAceEx(
                                        ref pNewDacl,
                                        acl.AclRevision,
-                                       ace.Mask,
                                        ace.Header.AceFlags,
+                                       ace.Mask,
                                        iter);
 
                         Console.WriteLine(Marshal.GetLastWin32Error());
@@ -487,27 +510,17 @@ namespace Likewise.LMC.SecurityDesriptor
                     List<LwAccessControlEntry> attributes = newAces[key] as List<LwAccessControlEntry>;
                     foreach (LwAccessControlEntry lwAce in attributes)
                     {
-                        SecurityDescriptorApi.ACCESS_ALLOWED_ACE Nace = new SecurityDescriptorApi.ACCESS_ALLOWED_ACE();
-                        Nace.Mask = Convert.ToInt32(lwAce.AccessMask);
-                        Nace.Header = new SecurityDescriptorApi.ACE_HEADER();
-                        Nace.Header.AceFlags = Convert.ToByte(lwAce.AceFlags);
-                        Nace.Header.AceType = Convert.ToByte(lwAce.AceType);
                         SecurityDescriptorApi.ConvertStringSidToSid(lwAce.SID, out ptrSid);
-                        uint dwSidSize = SecurityDescriptorApi.GetLengthSid(ptrSid);
-                        uint dwAceSize = (uint)(Marshal.SizeOf(typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE)));// + dwSidSize - IntPtr.Size);
-                        SecurityDescriptorApi.CopySid(dwSidSize, out Nace.SidStart, ptrSid);
-                        Nace.Header.AceSize = (short)dwAceSize;
-                        IntPtr phNAce = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(SecurityDescriptorApi.ACCESS_ALLOWED_ACE)));
-                        Marshal.StructureToPtr(Nace, phNAce, true);
+                        bRet = SecurityDescriptorApi.AddAccessAllowedAceEx(
+                             ref pNewDacl,
+                             acl.AclRevision,
+                             Convert.ToByte(lwAce.AceFlags),
+                             Convert.ToInt32(lwAce.AccessMask),
+                             ptrSid);
 
-                        bRet = SecurityDescriptorApi.AddAce(
-                               pNewDacl,
-                               acl.AclRevision,
-                               AceIdx++,
-                               phNAce,
-                               dwAceSize);
                         Console.WriteLine(Marshal.GetLastWin32Error());
-                        Logger.Log("SecurityDescriptorWrapper.ApiGetLogOnUserHandle() : SecurityDescriptorApi.AddAce return code :" + Marshal.GetLastWin32Error());
+                        Logger.Log("Adding new Ace : " + lwAce.Username, Logger.SecurityDescriptorLogLevel);
+                        Logger.Log("SecurityDescriptorWrapper.ApiSetSecurityDescriptorDacl() : SecurityDescriptorApi.AddAccessAllowedAceEx return code :" + Marshal.GetLastWin32Error());
                     }
                 }
 
@@ -585,7 +598,7 @@ namespace Likewise.LMC.SecurityDesriptor
             uint errorReturn = ApiGetCurrentProcessHandle(SecurityDescriptorApi.TOKEN_ALL_ACCESS, out pProcessToken);
             Logger.Log("SecurityDescriptorWrapper.ApiGetCurrentProcessHandle() returns: " + errorReturn);
 
-            ApiAdjustTokenPrivileges(pToken);
+            ApiAdjustTokenPrivileges(ref pToken);
 
             return errorReturn;
         }
