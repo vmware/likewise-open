@@ -279,8 +279,6 @@ namespace Likewise.LMC.Registry
                                           SecurityDescriptorApi.TOKEN_ALL_ACCESS,
                                           out pProcessHandle);
 
-                    SecurityDescriptorWrapper.ApiAdjustTokenPrivileges(pProcessHandle);
-
                     iRet = (uint)RegistryInteropWindows.RegOpenKeyEx(
                                          hKey,
                                          _sObjectname,
