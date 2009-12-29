@@ -18,6 +18,9 @@ namespace Likewise.LMC.SecurityDesriptor
         public IntPtr pSecurityDescriptor = IntPtr.Zero;
         public static SecurityDescriptorApi.SE_OBJECT_TYPE objectType = SecurityDescriptorApi.SE_OBJECT_TYPE.SE_FILE_OBJECT;
 
+        //Initialize the SecurityDescriptor out param to edit in the corresponding Apis list
+        public IntPtr pSecurityDescriptorOut = IntPtr.Zero;
+
         private bool _disposed = false;
 
         private uint _revision;
@@ -278,10 +281,11 @@ namespace Likewise.LMC.SecurityDesriptor
 
         public uint EditAce(object editAceslist,
                             object addedAceslist,
-                            object deletedAceslist)
+                            object deletedAceslist,
+                            ref IntPtr pSecurityDescriptorOut)
         {
             return SecurityDescriptorWrapper.ApiSetSecurityDescriptorDacl(
-                                    editAceslist, addedAceslist, deletedAceslist, pSecurityDescriptor);
+                                    editAceslist, addedAceslist, deletedAceslist, pSecurityDescriptor, out pSecurityDescriptorOut);
         }
 
         public string CovertStringSidToLookupName(string sSID)

@@ -33,7 +33,7 @@ namespace Likewise.LMC.SecurityDesriptor
 
         [DllImport(LibADVAPIPath, CharSet = CharSet.Auto)]
         public static extern uint InitializeSecurityDescriptor(
-            out IntPtr pSecurityDescriptor,
+            IntPtr pSecurityDescriptor,
             uint dwRevision
         );
 
@@ -281,7 +281,14 @@ namespace Likewise.LMC.SecurityDesriptor
         public static extern bool AddAccessAllowedAce(ref IntPtr pAcl, uint dwAceRevision, int AccessMask, IntPtr pSid);
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
-        public static extern bool AddAccessAllowedAceEx(ref IntPtr pAcl, uint dwAceRevision, byte AceFlags, int AccessMask, IntPtr pSid);
+        public static extern bool AddAccessAllowedAceEx(IntPtr pAcl, int dwAceRevision, byte AceFlags, int AccessMask, IntPtr pSid);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetAclInformation(
+            IntPtr pAcl,
+            IntPtr pAclInformation,
+            uint nAclInformationLength,
+            ACL_INFORMATION_CLASS dwAclInformationClass);
 
         #region CSP (cryptographic service provider) Apis
 
