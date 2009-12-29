@@ -293,7 +293,8 @@ namespace Likewise.LMC.UtilityUIElements
 
         public bool OnApply()
         {
-            if ((_securityDescriptor.EditAce(_editedObjects, _addedObjects, _removedObjects) != 0))
+            _securityDescriptor.EditAce(_editedObjects, _addedObjects, _removedObjects, ref _securityDescriptor.pSecurityDescriptorOut);
+            if (_securityDescriptor.pSecurityDescriptorOut == IntPtr.Zero)
                 return false;
 
             return true;

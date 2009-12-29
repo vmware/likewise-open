@@ -234,7 +234,8 @@ namespace Likewise.LMC.UtilityUIElements
                 if (Dlg == DialogResult.OK)
                 {
                     //Edit the DACL entries filled by the Permissions tab page
-                    if (_securityDescriptor.EditAce(_editedObjects, _addedObjects, _removedObjects) != 0)
+                    _securityDescriptor.EditAce(_editedObjects, _addedObjects, _removedObjects, ref _securityDescriptor.pSecurityDescriptorOut);
+                    if (_securityDescriptor.pSecurityDescriptorOut == IntPtr.Zero)
                     {
                         MessageBox.Show(this, Properties.Resources.EditPermissionErrorDisplay, Properties.Resources.PermissionsWarningMsg,
                                         MessageBoxButtons.OK, MessageBoxIcon.Error);
