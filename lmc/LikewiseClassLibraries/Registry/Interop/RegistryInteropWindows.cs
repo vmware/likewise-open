@@ -252,5 +252,15 @@ namespace Likewise.LMC.Registry
             IntPtr pSecurityDescriptor,
             ref ulong lpcbSecurityDescriptor);
 
+        /*     LONG WINAPI RegSetKeySecurity(
+       __in  HKEY hKey,
+       __in  SECURITY_INFORMATION SecurityInformation,
+       __in  PSECURITY_DESCRIPTOR pSecurityDescriptor
+         );*/
+        [DllImport("advapi32", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern uint RegSetKeySecurity(
+            IntPtr hKey,
+            SecurityDescriptorApi.SECURITY_INFORMATION SecurityInformation,
+            IntPtr pSecurityDescriptor);
     }
 }
