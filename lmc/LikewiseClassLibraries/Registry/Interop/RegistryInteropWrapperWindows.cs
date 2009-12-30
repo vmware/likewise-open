@@ -279,8 +279,6 @@ namespace Likewise.LMC.Registry
                                           SecurityDescriptorApi.TOKEN_ALL_ACCESS,
                                           out pProcessHandle);
 
-                    SecurityDescriptorWrapper.ApiAdjustTokenPrivileges(pProcessHandle);
-
                     iRet = (uint)RegistryInteropWindows.RegOpenKeyEx(
                                          hKey,
                                          _sObjectname,
@@ -332,16 +330,70 @@ namespace Likewise.LMC.Registry
                         // Attempt to dispose of hive
                         RegistryInteropWindows.RegCloseKey(hKey);
                     }
-
-                    //if (hProv != IntPtr.Zero)
-                    //    SecurityDescriptorApi.CloseHandle(hProv);
-
-                    //if (pProcessHandle != IntPtr.Zero)
-                    //    SecurityDescriptorApi.CloseHandle(pProcessHandle);
                 }
             }
 
             return pSecurityDescriptor;
+        }
+
+        public static uint ApiRegSetKeySecurity(RegistryHive hive,
+                                        string _sObjectname,
+                                        IntPtr pSecurityDescriptor)
+        {
+            uint iRet = 0;
+
+            Logger.Log(string.Format("RegistryInteropWrapperWindows.ApiRegSetKeySecurity() is called", Logger.LogLevel.Verbose));
+
+            IntPtr hKey = (IntPtr)0, phSubKey = (IntPtr)0; IntPtr hProv = (IntPtr)0;
+            if ((RegistryInteropWindows.RegConnectRegistry(RegistryInteropWrapperWindows.sHostName, hive, out hKey)) == 0)
+            {
+                try
+                {
+                    iRet = (uint)RegistryInteropWindows.RegOpenKeyEx(
+                                       hKey,
+                                       _sObjectname,
+                                       0,
+                                       (uint)(RegistryApi.RegSAM.AllAccess),
+                                       out phSubKey);
+
+                    SecurityDescriptorApi.SECURITY_DESCRIPTOR sSECURITY_DESCRIPTOR = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
+                    sSECURITY_DESCRIPTOR = (SecurityDescriptorApi.SECURITY_DESCRIPTOR)Marshal.PtrToStructure(pSecurityDescriptor, typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
+                    iRet = RegistryInteropWindows.RegSetKeySecurity(phSubKey,
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION |
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION|
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.PROTECTED_DACL_SECURITY_INFORMATION |
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.PROTECTED_SACL_SECURITY_INFORMATION |
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION |
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.UNPROTECTED_DACL_SECURITY_INFORMATION |
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.UNPROTECTED_SACL_SECURITY_INFORMATION,
+                                        //SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION, //Commented this since the Api is returning the Access denied error code=5
+                                        pSecurityDescriptor);
+                }
+                catch (Exception ex) { Logger.LogException("RegistryInteropWrapperWindows.ApiRegSetKeySecurity()", ex); }
+                finally
+                {
+                    if ((int)phSubKey > 0)
+                    {
+                        // Attempt to dispose of key
+                        RegistryInteropWindows.RegCloseKey(phSubKey);
+                    }
+
+                    if ((int)hKey > 0)
+                    {
+                        // Attempt to dispose of hive
+                        RegistryInteropWindows.RegCloseKey(hKey);
+                    }
+
+                    if ((int)pSecurityDescriptor > 0)
+                    {
+                        // Attempt to dispose of hive
+                        SecurityDescriptorApi.CloseHandle(pSecurityDescriptor);
+                    }
+                }
+            }
+
+            return iRet;
         }
 
         #endregion

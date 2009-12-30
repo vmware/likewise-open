@@ -32,8 +32,8 @@ namespace Likewise.LMC.SecurityDesriptor
             out IntPtr pSecurityDescriptor);
 
         [DllImport(LibADVAPIPath, CharSet = CharSet.Auto)]
-        public static extern uint InitializeSecurityDescriptor(
-            out IntPtr pSecurityDescriptor,
+        public static extern bool InitializeSecurityDescriptor(
+            IntPtr pSecurityDescriptor,
             uint dwRevision
         );
 
@@ -201,6 +201,48 @@ namespace Likewise.LMC.SecurityDesriptor
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorControl(
+            IntPtr pSecurityDescriptor,
+            uint ControlBitsOfInterest,
+            uint ControlBitsToSet
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetSecurityDescriptorControl(
+            IntPtr pSecurityDescriptor,
+            out uint pControl,
+            out uint lpdwRevision
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorGroup(
+            IntPtr pSecurityDescriptor,
+            IntPtr pGroup,
+            bool bGroupDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorOwner(
+            IntPtr pSecurityDescriptor,
+            IntPtr pOwner,
+            bool bOwnerDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorOwner(
+            IntPtr pSecurityDescriptor,
+            IntPtr RMControl
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorSacl(
+            IntPtr pSecurityDescriptor,
+            bool bSaclPresent,
+            IntPtr pSacl,
+            bool bSaclDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern void FreeSid(
             IntPtr pSid
         );
@@ -226,16 +268,50 @@ namespace Likewise.LMC.SecurityDesriptor
 
         [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern uint BuildExplicitAccessWithName(
-        out IntPtr pExplicitAccess,
-        string pTrusteeName,
-        uint AccessPermissions,
-        ACCESS_MODE AccessMode,
-        uint Inheritance
+            out IntPtr pExplicitAccess,
+            string pTrusteeName,
+            uint AccessPermissions,
+            ACCESS_MODE AccessMode,
+            uint Inheritance
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool MakeAbsoluteSD(
+            IntPtr pSelfRelativeSD,
+            out IntPtr pAbsoluteSD,
+            uint lpdwAbsoluteSDSize,
+            out IntPtr pDacl,
+            ref uint lpdwDaclSize,
+            out IntPtr pSacl,
+            ref uint lpdwSaclSize,
+            out IntPtr pOwner,
+            ref uint lpdwOwnerSize,
+            out IntPtr pPrimaryGroup,
+            ref uint lpdwPrimaryGroupSize
         );
 
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         public static extern uint LocalFree(
         IntPtr phMem
+        );
+
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern IntPtr GetCurrentThread();
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr OpenThread(ThreadAccess dwDesiredAccess, bool bInheritHandle,
+           uint dwThreadId);
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetCurrentProcessId();
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetCurrentThreadId();
+
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool SetThreadToken(
+        IntPtr Thread,
+        IntPtr Token
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
@@ -246,13 +322,33 @@ namespace Likewise.LMC.SecurityDesriptor
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
-        public static extern bool InitializeAcl(out IntPtr pAcl, uint nAclLength, uint dwAclRevision);
+        public static extern bool OpenThreadToken(
+            IntPtr ThreadHandle,
+            uint DesiredAccess,
+            bool OpenAsSelf,
+            out IntPtr TokenHandle);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool InitializeAcl(IntPtr pAcl, int nAclLength, uint dwAclRevision);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool IsValidAcl(IntPtr pAcl);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool IsValidSecurityDescriptor(IntPtr pSecurityDescriptor);
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern bool AddAccessAllowedAce(ref IntPtr pAcl, uint dwAceRevision, int AccessMask, IntPtr pSid);
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
-        public static extern bool AddAccessAllowedAceEx(ref IntPtr pAcl, uint dwAceRevision, int AccessMask, byte AceFlags, IntPtr pSid);
+        public static extern bool AddAccessAllowedAceEx(IntPtr pAcl, int dwAceRevision, byte AceFlags, int AccessMask, IntPtr pSid);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetAclInformation(
+            IntPtr pAcl,
+            IntPtr pAclInformation,
+            uint nAclInformationLength,
+            ACL_INFORMATION_CLASS dwAclInformationClass);
 
         #region CSP (cryptographic service provider) Apis
 
@@ -515,7 +611,7 @@ namespace Likewise.LMC.SecurityDesriptor
         [StructLayout(LayoutKind.Sequential)]
         public struct SID_IDENTIFIER_AUTHORITY
         {
-            byte Value;
+            byte[] Value;
         }
 
         #endregion
@@ -918,6 +1014,23 @@ namespace Likewise.LMC.SecurityDesriptor
             LOGON32_PROVIDER_DEFAULT = 0,
             LOGON32_PROVIDER_WINNT50,
             LOGON32_PROVIDER_WINNT40
+        }
+
+        [Flags]
+        public enum ThreadAccess : int
+        {
+            TERMINATE = (0x0001),
+            SUSPEND_RESUME = (0x0002),
+            GET_CONTEXT = (0x0008),
+            SET_CONTEXT = (0x0010),
+            SET_INFORMATION = (0x0020),
+            QUERY_INFORMATION = (0x0040),
+            SET_THREAD_TOKEN = (0x0080),
+            IMPERSONATE = (0x0100),
+            DIRECT_IMPERSONATION = (0x0200),
+            ALL_ACCESS = TERMINATE | SUSPEND_RESUME | GET_CONTEXT | SET_CONTEXT |
+                         SET_INFORMATION | QUERY_INFORMATION | SET_THREAD_TOKEN |
+                         IMPERSONATE | DIRECT_IMPERSONATION
         }
 
         #endregion

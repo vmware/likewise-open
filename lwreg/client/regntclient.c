@@ -427,14 +427,16 @@ NtRegEnumKeyExA(
     PWSTR pwszName = NULL;
     PSTR pszKeyName = NULL;
     PWSTR pwszClass = NULL;
+    DWORD cName = *pcName;
+    DWORD cTempName = *pcName;
 
-    if (*pcName == 0)
+    if (cName == 0)
     {
 		status = STATUS_BUFFER_TOO_SMALL;
 		BAIL_ON_NT_STATUS(status);
     }
 
-    status = LW_RTL_ALLOCATE(&pwszName, WCHAR, sizeof(*pwszName)*(*pcName));
+    status = LW_RTL_ALLOCATE(&pwszName, WCHAR, sizeof(*pwszName)*(cName));
     BAIL_ON_NT_STATUS(status);
 
     if (pcClass)
@@ -454,7 +456,7 @@ NtRegEnumKeyExA(
         hKey,
         dwIndex,
         pwszName,
-        pcName,
+        &cTempName,
         pReserved,
         pwszClass,
         pcClass,
@@ -465,7 +467,7 @@ NtRegEnumKeyExA(
 	status = LwRtlCStringAllocateFromWC16String(&pszKeyName, (PCWSTR)pwszName);
 	BAIL_ON_NT_STATUS(status);
 
-	if (*pcName < strlen(pszKeyName))
+	if (cName < strlen(pszKeyName))
 	{
 		status = STATUS_BUFFER_TOO_SMALL;
 		BAIL_ON_NT_STATUS(status);
@@ -533,6 +535,7 @@ NtRegEnumValueA(
     PSTR pszTempValueName = NULL;
     PVOID pTempData = NULL;
     DWORD cTempData = 0;
+    DWORD dwValueNameLen = 0;
     PBYTE pValue = NULL;
 
     if (*pcchValueName == 0)
@@ -546,8 +549,9 @@ NtRegEnumValueA(
 	status = STATUS_INVALID_PARAMETER;
 	BAIL_ON_NT_STATUS(status);
     }
+    dwValueNameLen = *pcchValueName;
 
-    status = LW_RTL_ALLOCATE(&pwszValueName, WCHAR, sizeof(*pwszValueName)*(*pcchValueName));
+    status = LW_RTL_ALLOCATE(&pwszValueName, WCHAR, sizeof(*pwszValueName)*(dwValueNameLen));
     BAIL_ON_NT_STATUS(status);
 
     if (pData && pcbData)
@@ -562,7 +566,7 @@ NtRegEnumValueA(
 
 	if (cTempData)
 	{
-            status = LW_RTL_ALLOCATE(&pTempData, VOID, cTempData*sizeof(WCHAR));
+            status = LW_RTL_ALLOCATE(&pTempData, VOID, cTempData);
             BAIL_ON_NT_STATUS(status);
 	}
     }
@@ -572,14 +576,39 @@ NtRegEnumValueA(
 	        hKey,
 	        dwIndex,
 	        pwszValueName,
-	        pcchValueName,
+	        &dwValueNameLen,
 	        pReserved,
 	        &dwType,
 	        pTempData,
 	        &cTempData);
 	BAIL_ON_NT_STATUS(status);
 
-	if (!pTempData || !cTempData)
+	if (!cTempData)
+	{
+		goto done;
+	}
+
+    /* Don't really know size of REG_SZ data, so must retrieve it */
+    if (dwType == REG_SZ)
+    {
+        cTempData *= sizeof(WCHAR);
+        dwValueNameLen = *pcchValueName;
+        status = LW_RTL_ALLOCATE(&pTempData, BYTE, cTempData);
+        BAIL_ON_NT_STATUS(status);
+	status = RegTransactEnumValueW(
+                    hRegConnection,
+                    hKey,
+                    dwIndex,
+                    pwszValueName,
+                    &dwValueNameLen,
+                    pReserved,
+                    &dwType,
+                    pTempData,
+                    &cTempData);
+        BAIL_ON_NT_STATUS(status);
+    }
+
+	if (!pTempData)
 	{
 		goto done;
 	}
@@ -741,6 +770,24 @@ NtRegGetValueA(
         pTempData,
         &cTempData);
 	BAIL_ON_NT_STATUS(status);
+
+    /* Don't really know size of REG_SZ data, so must retrieve it */
+    if (dwType == REG_SZ)
+    {
+        cTempData *= sizeof(WCHAR);
+        status = LW_RTL_ALLOCATE(&pTempData, BYTE, cTempData);
+        BAIL_ON_NT_STATUS(status);
+	status = RegTransactGetValueW(
+                    hRegConnection,
+                    hKey,
+                    pwszSubKey,
+                    pwszValueName,
+                    Flags,
+                    &dwType,
+                    pTempData,
+                    &cTempData);
+                    BAIL_ON_NT_STATUS(status);
+    }
 
 	if (!pTempData)
 	{
@@ -948,6 +995,24 @@ NtRegQueryInfoKeyA(
         pftLastWriteTime);
 	BAIL_ON_NT_STATUS(status);
 
+    /*
+     * This is a work-around for the fact we don't exactly know the
+     * multibyte size for these paramters. The only way we can determine
+     * this correctly is to actually enumerate the key/values and
+     * find the maximum multibyte string length. This is a lot of work,
+     * which isn't really necessary. These sizes are used for memory
+     * allocation purposes normally, so as long as these are at least
+     * as big as the longest multibyte value, this is good enough.
+     */
+    if (pcMaxSubKeyLen)
+    {
+        *pcMaxSubKeyLen *= 4;
+    }
+    if (pcMaxValueNameLen)
+    {
+        *pcMaxValueNameLen *= 4;
+    }
+
 	for (; dwIndex < cValues; dwIndex++)
 	{
 		memset(valueName, 0, MAX_KEY_LENGTH);
@@ -965,7 +1030,7 @@ NtRegQueryInfoKeyA(
 		                        &cbData);
 		BAIL_ON_NT_STATUS(status);
 
-		if (cMaxValueLen < cbData)
+        if (cMaxValueLen < cbData)
 		{
 			cMaxValueLen = cbData;
 		}
@@ -1139,12 +1204,18 @@ NtRegSetValueExA(
 	}
 	else if (REG_SZ == dwType)
 	{
+            /* Verify correct null termination of input data */
+            if (strlen((char *) pData) != (cbData-1))
+            {
+                status = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(status);
+            }
+
 		status = LwRtlWC16StringAllocateFromCString((PWSTR*)&pOutData,
 				                                     (PCSTR)pData);
 		BAIL_ON_NT_STATUS(status);
 
-		cbOutDataLen = cbData*sizeof(WCHAR);
-
+            cbOutDataLen = (mbstrlen(pData)+1) * sizeof(WCHAR);
 		bIsStrType = TRUE;
 	}
     }

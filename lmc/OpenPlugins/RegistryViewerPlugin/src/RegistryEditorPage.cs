@@ -41,8 +41,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Likewise.LMC.Registry;
-//using Likewise.LMC.UtilityUIElements;
-//using Likewise.LMC.SecurityDesriptor;
+using Likewise.LMC.UtilityUIElements;
+using Likewise.LMC.SecurityDesriptor;
 
 using Microsoft.Win32;
 
@@ -161,9 +161,19 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     //SecurityDescriptor SecurityDescriptor = new SecurityDescriptor();
                     //SecurityDescriptorWrapper.ReadSecurityDescriptor(pSD, ref SecurityDescriptor);
 
+                    //if (SecurityDescriptor.IsAccessDenied)
+                    //{
+                    //    MessageBox.Show("Access Denied", "Likewise Administrative Console", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    //    return;
+                    //}
                     //PermissionsControlDlg dlg = new PermissionsControlDlg(SecurityDescriptor, "AppEvent1");
-                    //dlg.Show();
-
+                    //if (dlg.ShowDialog(this) == DialogResult.OK)
+                    //{
+                    //    RegistryInteropWrapperWindows.ApiRegSetKeySecurity(
+                    //            RegistryInteropWrapperWindows.GetRegistryHive(HKEY.HEKY_CURRENT_USER),
+                    //            "AppEvents1",
+                    //            SecurityDescriptor.pSecurityDescriptorOut);
+                    //}
                     break;
 
                 case RegistryViewerPlugin.NodeType.HKEY_LOCAL_MACHINE:
@@ -1003,7 +1013,6 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
             return sRegType;
         }
 
-
         private void DoEditorWork(object valueInfo, bool bIsAdd, ulong dwType)
         {
             DialogResult dlg;
@@ -1376,7 +1385,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                 string _fileName = string.Empty;
                 string _fullPath = string.Empty;
 
-                if (plugin.IsConnectionSuccess)
+                if (!plugin.IsConnectionSuccess)
                 {
                     container.ShowMessage(string.Format("Registry plugin has not connected to any machine. " +
                                                         "Please connect to the host and try again"),

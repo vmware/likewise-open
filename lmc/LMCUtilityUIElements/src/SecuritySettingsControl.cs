@@ -80,7 +80,8 @@ namespace Likewise.LMC.UtilityUIElements
 
         public bool OnApply()
         {
-            if (_securityDescriptor.EditAce(_editedObjects, null, null) != 0)
+            _securityDescriptor.EditAce(_editedObjects, null, null, ref _securityDescriptor.pSecurityDescriptorOut);
+            if (_securityDescriptor.pSecurityDescriptorOut == IntPtr.Zero)
                 return false;
 
             return true;
