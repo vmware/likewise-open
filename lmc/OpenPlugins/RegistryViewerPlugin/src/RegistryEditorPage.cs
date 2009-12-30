@@ -161,6 +161,11 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     //SecurityDescriptor SecurityDescriptor = new SecurityDescriptor();
                     //SecurityDescriptorWrapper.ReadSecurityDescriptor(pSD, ref SecurityDescriptor);
 
+                    //if (SecurityDescriptor.IsAccessDenied)
+                    //{
+                    //    MessageBox.Show("Access Denied", "Likewise Administrative Console", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    //    return;
+                    //}
                     //PermissionsControlDlg dlg = new PermissionsControlDlg(SecurityDescriptor, "AppEvent1");
                     //if (dlg.ShowDialog(this) == DialogResult.OK)
                     //{
