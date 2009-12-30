@@ -31,6 +31,9 @@ namespace Likewise.LMC.SecurityDesriptor
         private object _descretionary_access_control_list = null;
         private object _system_access_control_list = null;
 
+        //Check for DACL is empty or null
+        public bool IsAccessDenied = false;
+
         #endregion
 
         #region Constructors

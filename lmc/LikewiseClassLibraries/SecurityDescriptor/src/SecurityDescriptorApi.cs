@@ -32,7 +32,7 @@ namespace Likewise.LMC.SecurityDesriptor
             out IntPtr pSecurityDescriptor);
 
         [DllImport(LibADVAPIPath, CharSet = CharSet.Auto)]
-        public static extern uint InitializeSecurityDescriptor(
+        public static extern bool InitializeSecurityDescriptor(
             IntPtr pSecurityDescriptor,
             uint dwRevision
         );
@@ -201,6 +201,48 @@ namespace Likewise.LMC.SecurityDesriptor
         );
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorControl(
+            IntPtr pSecurityDescriptor,
+            uint ControlBitsOfInterest,
+            uint ControlBitsToSet
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool GetSecurityDescriptorControl(
+            IntPtr pSecurityDescriptor,
+            out uint pControl,
+            out uint lpdwRevision
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorGroup(
+            IntPtr pSecurityDescriptor,
+            IntPtr pGroup,
+            bool bGroupDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorOwner(
+            IntPtr pSecurityDescriptor,
+            IntPtr pOwner,
+            bool bOwnerDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorOwner(
+            IntPtr pSecurityDescriptor,
+            IntPtr RMControl
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool SetSecurityDescriptorSacl(
+            IntPtr pSecurityDescriptor,
+            bool bSaclPresent,
+            IntPtr pSacl,
+            bool bSaclDefaulted
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern void FreeSid(
             IntPtr pSid
         );
@@ -226,11 +268,26 @@ namespace Likewise.LMC.SecurityDesriptor
 
         [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern uint BuildExplicitAccessWithName(
-        out IntPtr pExplicitAccess,
-        string pTrusteeName,
-        uint AccessPermissions,
-        ACCESS_MODE AccessMode,
-        uint Inheritance
+            out IntPtr pExplicitAccess,
+            string pTrusteeName,
+            uint AccessPermissions,
+            ACCESS_MODE AccessMode,
+            uint Inheritance
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool MakeAbsoluteSD(
+            IntPtr pSelfRelativeSD,
+            out IntPtr pAbsoluteSD,
+            uint lpdwAbsoluteSDSize,
+            out IntPtr pDacl,
+            ref uint lpdwDaclSize,
+            out IntPtr pSacl,
+            ref uint lpdwSaclSize,
+            out IntPtr pOwner,
+            ref uint lpdwOwnerSize,
+            out IntPtr pPrimaryGroup,
+            ref uint lpdwPrimaryGroupSize
         );
 
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -276,6 +333,9 @@ namespace Likewise.LMC.SecurityDesriptor
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern bool IsValidAcl(IntPtr pAcl);
+
+        [DllImport(LibADVAPIPath, SetLastError = true)]
+        public static extern bool IsValidSecurityDescriptor(IntPtr pSecurityDescriptor);
 
         [DllImport(LibADVAPIPath, SetLastError = true)]
         public static extern bool AddAccessAllowedAce(ref IntPtr pAcl, uint dwAceRevision, int AccessMask, IntPtr pSid);
@@ -551,7 +611,7 @@ namespace Likewise.LMC.SecurityDesriptor
         [StructLayout(LayoutKind.Sequential)]
         public struct SID_IDENTIFIER_AUTHORITY
         {
-            byte Value;
+            byte[] Value;
         }
 
         #endregion
