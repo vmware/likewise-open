@@ -1,0 +1,17 @@
+etc/init.d/srvsvcd
+
+usr/sbin/srvsvcd
+
+usr/lib/likewise-open/libsrvsvc_cs.so*
+usr/lib/likewise-open/libsrvsvc.so*
+usr/lib/likewise-open/libsrvsvc_ss.so*
+usr/lib/likewise-open/libsrvsvcutils.so*
+usr/lib/likewise-open/libwinreg_ss.so*
+usr/lib/likewise-open/libwkssvc_ss.so*
+
+usr/lib/likewise-open/libsamr_srv.so*
+usr/lib/likewise-open/liblsa_srv.so*
+usr/lib/likewise-open/libdssetup_srv.so*
+
+usr/lib/likewise-open/libpvfs.sys.so*
+usr/lib/likewise-open/libsrv.sys.so*

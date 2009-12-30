@@ -1,0 +1,12 @@
+diff -Nurp old/build/components/krb5.comp new/build/components/krb5.comp
+--- old/build/components/krb5.comp	2009-11-03 10:53:44.000000000 -0800
++++ new/build/components/krb5.comp	2009-11-03 17:06:44.000000000 -0800
+@@ -93,7 +93,7 @@ function component_install
+     mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/{bin,include,${_lib}}
+     mkdir -m 0755 -p ${STAGING_SYSCONF_DIR}
+ 
+-    for file in kinit klist kdestroy kpasswd kvno ksu krb5-config; do
++    for file in kinit klist kdestroy kpasswd kvno ksu krb5-config ktutil; do
+         cp ${INSTALL_PREFIX_DIR}/bin/${file} ${STAGING_PREFIX_DIR}/bin/.
+     done
+ 

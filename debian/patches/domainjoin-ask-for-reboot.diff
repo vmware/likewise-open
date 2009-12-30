@@ -1,0 +1,11 @@
+diff -Nurb likewise-open/domainjoin/domainjoin-cli/src/main.c likewise-open.new/domainjoin/domainjoin-cli/src/main.c
+--- likewise-open/domainjoin/domainjoin-cli/src/main.c	2009-11-12 11:38:04.000000000 -0800
++++ likewise-open.new/domainjoin/domainjoin-cli/src/main.c	2009-11-12 15:56:15.000000000 -0800
+@@ -464,6 +464,7 @@
+ 
+     LW_TRY(exc, DJRunJoinProcess(&options, &LW_EXC));
+     fprintf(stdout, "SUCCESS\n");
++    fprintf(stdout, "You should reboot this system before attempting GUI logins as a domain user.\n");
+ 
+ cleanup:
+     DJFreeJoinProcessOptions(&options);

@@ -1,0 +1,49 @@
+#!/bin/sh
+
+set -e
+
+UPGRADEDIR4="/etc/likewise-open/4_1_upgrade"
+
+save_4_1_files()
+{
+    if [ -f /etc/samba/lwiauthd.conf -a -f /etc/samba/secrets.tdb ]
+    then
+        mkdir -p ${UPGRADEDIR4}
+        cp /etc/samba/lwiauthd.conf ${UPGRADEDIR4}
+        cp /etc/samba/secrets.tdb ${UPGRADEDIR4}
+    fi
+
+    if [ -x /usr/sbin/pam-auth-update ]; then
+       /usr/sbin/pam-auth-update --package --remove likewise-open
+    fi
+}
+
+case "$1" in
+    abort-upgrade)
+    ;;
+
+    upgrade)
+    pam-auth-update --package
+
+    if dpkg --compare-versions "$2" le "4.1.2982-0ubuntu3"; then
+        # Shutdown old daemons (if running)
+        if [ -f /etc/init.d/likewise-open ]
+        then
+            /etc/init.d/likewise-open stop || true
+        fi
+
+        save_4_1_files
+
+        if [ -x /usr/sbin/pam-auth-update ]; then
+           /usr/sbin/pam-auth-update --package --remove likewise-open
+        fi
+
+        if [ -x /usr/bin/domainjoin-cli ]; then
+            /usr/bin/domainjoin-cli leave || true
+        fi
+    fi
+    ;;
+
+esac
+
+#DEBHELPER#

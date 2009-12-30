@@ -1,0 +1,4 @@
+var/lib/likewise-open/db
+var/lib/likewise-open/run
+var/lib/likewise-open/rpc
+var/rpc
