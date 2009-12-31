@@ -279,7 +279,7 @@ namespace Likewise.LMC.SecurityDesriptor
         public static extern bool MakeAbsoluteSD(
             IntPtr pSelfRelativeSD,
             out IntPtr pAbsoluteSD,
-            uint lpdwAbsoluteSDSize,
+            ref uint lpdwAbsoluteSDSize,
             out IntPtr pDacl,
             ref uint lpdwDaclSize,
             out IntPtr pSacl,
@@ -288,6 +288,13 @@ namespace Likewise.LMC.SecurityDesriptor
             ref uint lpdwOwnerSize,
             out IntPtr pPrimaryGroup,
             ref uint lpdwPrimaryGroupSize
+        );
+
+        [DllImport(LibADVAPIPath, SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern bool MakeSelfRelativeSD(
+            IntPtr pAbsoluteSD,
+            out IntPtr pSelfRelativeSD,
+            ref uint lpdwBufferLength
         );
 
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]

@@ -434,7 +434,8 @@ namespace Likewise.LMC.SecurityDesriptor
                 bool bRet = SecurityDescriptorApi.GetSecurityDescriptorDacl(pSecurityDesriptorIn, out lpbDaclPresent, out pDaclOffset, out lpbDaclDefaulted);
                 Logger.Log("SecurityDescriptorApi.ApiSetSecurityDescriptorDacl iRet value", Logger.SecurityDescriptorLogLevel);
 
-                if (pDaclOffset != IntPtr.Zero) {
+                if (pDaclOffset != IntPtr.Zero)
+                {
                     acl = (SecurityDescriptorApi.LwACL)Marshal.PtrToStructure(pDaclOffset, typeof(SecurityDescriptorApi.LwACL));
                 }
 
@@ -552,6 +553,10 @@ namespace Likewise.LMC.SecurityDesriptor
                 Console.WriteLine(Marshal.GetLastWin32Error());
                 Logger.Log("SecurityDescriptorApi.InitializeSecurityDescriptor returns errorcode: " + errorReturn);
 
+                bRet = SecurityDescriptorApi.IsValidSecurityDescriptor(pNewSd);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+                Logger.Log("SecurityDescriptorApi.IsValidSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
+
                 bRet = SecurityDescriptorApi.SetSecurityDescriptorDacl(
                                 pNewSd,
                                 lpbDaclPresent,
@@ -560,19 +565,44 @@ namespace Likewise.LMC.SecurityDesriptor
                 Console.WriteLine(Marshal.GetLastWin32Error());
                 Logger.Log("SecurityDescriptorApi.SetSecurityDescriptorDacl returns errorcode: " + Marshal.GetLastWin32Error());
 
-                bRet = SecurityDescriptorApi.SetSecurityDescriptorGroup(
+                bRet = SecurityDescriptorApi.IsValidSecurityDescriptor(pNewSd);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+                Logger.Log("SecurityDescriptorApi.IsValidSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
+
+                pSecurityDescriptorOut = IntPtr.Zero;
+                uint lpdwBufferLength = (uint)Marshal.SizeOf(typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
+
+                bRet = SecurityDescriptorApi.MakeSelfRelativeSD(pNewSd, out pSecurityDescriptorOut, ref lpdwBufferLength);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+
+                bRet = SecurityDescriptorApi.MakeSelfRelativeSD(pNewSd, out pSecurityDescriptorOut, ref lpdwBufferLength);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+
+                bRet = SecurityDescriptorApi.IsValidSecurityDescriptor(pNewSd);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+                Logger.Log("SecurityDescriptorApi.IsValidSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
+
+                /*bRet = SecurityDescriptorApi.SetSecurityDescriptorGroup(
                                pNewSd,
                                sSECURITY_DESCRIPTOR.group,
-                               true);
+                               false);
                 Console.WriteLine(Marshal.GetLastWin32Error());
                 Logger.Log("SecurityDescriptorApi.SetSecurityDescriptorGroup returns errorcode: " + Marshal.GetLastWin32Error());
+
+                bRet = SecurityDescriptorApi.IsValidSecurityDescriptor(pNewSd);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+                Logger.Log("SecurityDescriptorApi.IsValidSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
 
                 bRet = SecurityDescriptorApi.SetSecurityDescriptorOwner(
                               pNewSd,
                               sSECURITY_DESCRIPTOR.owner,
-                              true);
+                              false);
                 Console.WriteLine(Marshal.GetLastWin32Error());
                 Logger.Log("SecurityDescriptorApi.SetSecurityDescriptorOwner returns errorcode: " + Marshal.GetLastWin32Error());
+
+                bRet = SecurityDescriptorApi.IsValidSecurityDescriptor(pNewSd);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+                Logger.Log("SecurityDescriptorApi.IsValidSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
 
                 uint pControl; uint lpdwRevision;
                 bRet = SecurityDescriptorApi.GetSecurityDescriptorControl(
@@ -582,10 +612,6 @@ namespace Likewise.LMC.SecurityDesriptor
                 Console.WriteLine(Marshal.GetLastWin32Error());
                 Logger.Log("SecurityDescriptorApi.SetSecurityDescriptorControl returns errorcode: " + Marshal.GetLastWin32Error());
 
-                bRet = SecurityDescriptorApi.IsValidSecurityDescriptor(pNewSd);
-                Console.WriteLine(Marshal.GetLastWin32Error());
-                Logger.Log("SecurityDescriptorApi.IsValidSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
-
                 bRet = SecurityDescriptorApi.SetSecurityDescriptorControl(
                              pNewSd,
                              pControl,
@@ -593,17 +619,28 @@ namespace Likewise.LMC.SecurityDesriptor
                 Console.WriteLine(Marshal.GetLastWin32Error());
                 Logger.Log("SecurityDescriptorApi.SetSecurityDescriptorControl returns errorcode: " + Marshal.GetLastWin32Error());
 
+                bRet = SecurityDescriptorApi.IsValidSecurityDescriptor(pNewSd);
+                Console.WriteLine(Marshal.GetLastWin32Error());
+                Logger.Log("SecurityDescriptorApi.IsValidSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
+
                 if (pNewDacl != IntPtr.Zero)
                 {
                     SecurityDescriptorApi.LocalFree(pNewDacl);
                 }
 
-                bRet = SecurityDescriptorApi.IsValidSecurityDescriptor(pNewSd);
+                uint lpdwAbsoluteSDSize = 0, lpdwDaclSize = 0, lpdwSaclSize = 0, lpdwOwnerSize = 0, lpdwPrimaryGroupSize = 0;
+                IntPtr pAbsoluteSD, pDacl, pSacl, pOwner, pPrimaryGroup;
+                lpdwAbsoluteSDSize = (uint)Marshal.SizeOf(typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
+                bRet = SecurityDescriptorApi.MakeAbsoluteSD(pNewSd, out pAbsoluteSD,
+                                                ref lpdwAbsoluteSDSize, out pDacl, ref lpdwDaclSize,
+                                                out pSacl, ref lpdwSaclSize,
+                                                out pOwner, ref lpdwOwnerSize,
+                                                out pPrimaryGroup, ref lpdwPrimaryGroupSize);
                 Console.WriteLine(Marshal.GetLastWin32Error());
-                Logger.Log("SecurityDescriptorApi.IsValidSecurityDescriptor returns errorcode: " + Marshal.GetLastWin32Error());
+                Logger.Log("SecurityDescriptorApi.MakeAbsoluteSD returns errorcode: " + Marshal.GetLastWin32Error()); */
 
-                if (bRet)
-                    pSecurityDescriptorOut = pNewSd;
+                if (!bRet)
+                    pSecurityDescriptorOut = IntPtr.Zero;
             }
             catch (Exception ex)
             {
