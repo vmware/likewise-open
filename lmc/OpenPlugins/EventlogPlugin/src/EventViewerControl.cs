@@ -202,8 +202,15 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
             lactreeNode = ttreeNode;
 
             Hostinfo hn = ctx as Hostinfo;
+
             if (hn != null && !String.IsNullOrEmpty(hn.hostName) && hn.IsConnectionSuccess)
             {
+                if (plugin.eventLogHandle == null ||
+                    plugin.eventLogHandle.Handle == IntPtr.Zero)
+                {
+                    plugin.OpenEventLog(hn.hostName);
+                }
+
                 this.lblCaption.Text = String.Format("EventViewer for {0}", hn.hostName);
             }
             else
