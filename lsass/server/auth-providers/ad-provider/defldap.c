@@ -242,7 +242,7 @@ error:
 
     *ppNSSArtefactInfo = NULL;
 
-    if (dwError == LDAP_NO_SUCH_OBJECT)
+    if (dwError == LW_ERROR_LDAP_NO_SUCH_OBJECT)
     {
         dwError = LW_ERROR_NO_SUCH_NSS_KEY;
     }
@@ -370,7 +370,7 @@ error:
 
     *ppNSSArtefactInfo = NULL;
 
-    if (dwError == LDAP_NO_SUCH_OBJECT)
+    if (dwError == LW_ERROR_LDAP_NO_SUCH_OBJECT)
     {
         dwError = LW_ERROR_NO_SUCH_NSS_KEY;
     }
@@ -558,7 +558,7 @@ error:
           LsaFreeNSSArtefactInfoList(pEnumState->dwInfoLevel, ppNSSArtefactInfoList, dwNumNSSArtefactsFound);
     }
 
-    if (dwError == LDAP_NO_SUCH_OBJECT)
+    if (dwError == LW_ERROR_LDAP_NO_SUCH_OBJECT)
     {
         dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
     }
@@ -695,7 +695,7 @@ error:
         LsaFreeNSSArtefactInfoList(dwNSSArtefactInfoLevel, ppNSSArtefactInfoList_accumulate, dwTotalNumNSSArtefactsFound);
     }
 
-    if (dwError == LDAP_NO_SUCH_OBJECT)
+    if (dwError == LW_ERROR_LDAP_NO_SUCH_OBJECT)
     {
         dwError = LW_ERROR_NO_MORE_NSS_ARTEFACTS;
     }
