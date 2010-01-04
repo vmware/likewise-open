@@ -1,3 +1,9 @@
+likewise-open (5.4.0.39929-1) lucid; urgency=low
+
+  * New upstream release
+
+ -- Gerald Carter <jerry@plainjoe.org>  Mon, 04 Jan 2010 15:40:45 -0600
+
 likewise-open (5.4.0.39905-2) lucid; urgency=low
 
   [ Gerald Carter ]
