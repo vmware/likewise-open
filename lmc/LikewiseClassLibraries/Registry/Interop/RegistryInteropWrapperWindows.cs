@@ -353,20 +353,13 @@ namespace Likewise.LMC.Registry
                                        hKey,
                                        _sObjectname,
                                        0,
-                                       (uint)(RegistryApi.RegSAM.AllAccess),
+                                       (uint)(RegistryApi.RegSAM.Execute),
                                        out phSubKey);
 
-                    SecurityDescriptorApi.SECURITY_DESCRIPTOR sSECURITY_DESCRIPTOR = new SecurityDescriptorApi.SECURITY_DESCRIPTOR();
-                    sSECURITY_DESCRIPTOR = (SecurityDescriptorApi.SECURITY_DESCRIPTOR)Marshal.PtrToStructure(pSecurityDescriptor, typeof(SecurityDescriptorApi.SECURITY_DESCRIPTOR));
                     iRet = RegistryInteropWindows.RegSetKeySecurity(phSubKey,
                                         SecurityDescriptorApi.SECURITY_INFORMATION.DACL_SECURITY_INFORMATION |
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION |
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION|
                                         SecurityDescriptorApi.SECURITY_INFORMATION.PROTECTED_DACL_SECURITY_INFORMATION |
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.PROTECTED_SACL_SECURITY_INFORMATION |
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION |
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.UNPROTECTED_DACL_SECURITY_INFORMATION |
-                                        SecurityDescriptorApi.SECURITY_INFORMATION.UNPROTECTED_SACL_SECURITY_INFORMATION,
+                                        SecurityDescriptorApi.SECURITY_INFORMATION.UNPROTECTED_DACL_SECURITY_INFORMATION,
                                         //SecurityDescriptorApi.SECURITY_INFORMATION.SACL_SECURITY_INFORMATION, //Commented this since the Api is returning the Access denied error code=5
                                         pSecurityDescriptor);
                 }

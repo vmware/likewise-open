@@ -290,9 +290,8 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                 foreach (ListViewItem item in MemoflistView.SelectedItems)
                 {
                     bool bIsPrimaryGroup = false;
-                    string aPartName = string.Empty;
                     string removeDn = item.Tag as string;
-                    string[] slvItem = UserGroupUtils.splitDn(removeDn, aPartName);
+                    string[] slvItem = UserGroupUtils.splitDn(removeDn);
                     if (!string.IsNullOrEmpty(slvItem[0]) && DomainUserlabel.Text.Trim().Equals(slvItem[0]))
                     {
                         bIsPrimaryGroup = true;

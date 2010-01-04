@@ -344,32 +344,38 @@ namespace Likewise.LMC.Services
             return iReturn;
         }
 
-		public static int StopServiceRecursive(IntPtr pHandle)
-		{
-			int iRet = 0;
-			try
-			{
-				iRet = ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
-				if(iRet == (int)41205)
-				{
-					string[] servicelist = null;
-					iRet = ApiLwSmQueryServiceReverseDependencyClosure(pHandle, out servicelist);
-					if(servicelist != null  && servicelist.Length !=0)
-					{
-						foreach(string service in servicelist)
-						{
-							IntPtr pDHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(service);
-							StopServiceRecursive(pDHandle);
-						}
-					}
-				}
-			}
-			catch (Exception ex)
+        public static int StopServiceRecursive(IntPtr pHandle)
+        {
+            int iRet = 0;
+            bool bIsDependenciesStopped = false;
+            try
+            {
+                iRet = ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
+                if (iRet == (int)41205)
+                {
+                    string[] servicelist = null;
+                    iRet = ApiLwSmQueryServiceReverseDependencyClosure(pHandle, out servicelist);
+                    if (servicelist != null && servicelist.Length != 0)
+                    {
+                        foreach (string service in servicelist)
+                        {
+                            IntPtr pDHandle = ServiceManagerInteropWrapper.ApiLwSmAcquireServiceHandle(service);
+                            StopServiceRecursive(pDHandle);
+                        }
+                        bIsDependenciesStopped = true;
+                    }
+                }
+
+                if (bIsDependenciesStopped)
+                {
+                    iRet = ServiceManagerInteropWrapper.ApiLwSmStopService(pHandle);
+                }
+            }
+            catch (Exception ex)
             {
                 Logger.LogException("ServiceManagerInteropWrapper:StartAllServiceDependencies", ex);
             }
-
-			return iRet;
-		}
+            return iRet;
+        }
     }
 }
