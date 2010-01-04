@@ -50,6 +50,9 @@ struct PamLine
     int optionCount;
     CTParseToken *options;
     char *comment;
+
+    // Filled in only for pam_per_user.so (read only)
+    char *defaultInclude;
 };
 
 struct PamConf
@@ -128,6 +131,8 @@ static CENTERROR WritePamConfiguration(const char *rootPrefix, struct PamConf *c
 static CENTERROR FindModulePath(const char *testPrefix, const char *basename, char **destName, DWORD *moduleFlags);
 
 static BOOLEAN IsRequiredService(PCSTR service, const struct PamConf *conf);
+
+static BOOLEAN NormalizeModuleName( char *destName, const char *srcName, size_t bufferSize);
 
 static int NextLine(const struct PamConf *conf, int line)
 {
@@ -312,6 +317,7 @@ static void FreePamLineContents(struct PamLine *line)
     int i;
     CT_SAFE_FREE_STRING(line->fromFile);
     CT_SAFE_FREE_STRING(line->leadingWhiteSpace);
+    CT_SAFE_FREE_STRING(line->defaultInclude);
     CTFreeParseToken(&line->service);
     CTFreeParseToken(&line->phase);
     CTFreeParseToken(&line->control);
@@ -489,6 +495,7 @@ static CENTERROR CopyLine(struct PamConf *conf, int oldLine, int *newLine)
 
     BAIL_ON_CENTERIS_ERROR(ceError = CTStrdup(oldObj->fromFile, &lineObj.fromFile));
     BAIL_ON_CENTERIS_ERROR(ceError = CTStrdup(oldObj->leadingWhiteSpace, &lineObj.leadingWhiteSpace));
+    BAIL_ON_CENTERIS_ERROR(ceError = CTDupOrNullStr(oldObj->defaultInclude, &lineObj.defaultInclude));
     BAIL_ON_CENTERIS_ERROR(ceError = CTCopyToken(oldObj->service, &lineObj.service));
     BAIL_ON_CENTERIS_ERROR(ceError = CTCopyToken(oldObj->phase, &lineObj.phase));
     BAIL_ON_CENTERIS_ERROR(ceError = CTCopyToken(oldObj->control, &lineObj.control));
@@ -784,6 +791,8 @@ error:
     return ceError;
 }
 
+void GetModuleControl(struct PamLine *lineObj, const char **module, const char **control);
+
 static CENTERROR ReadPamFile(struct PamConf *conf, const char *rootPrefix, const char *filename)
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
@@ -792,6 +801,14 @@ static CENTERROR ReadPamFile(struct PamConf *conf, const char *rootPrefix, const
     PSTR buffer = NULL;
     char *fullPath = NULL;
     BOOLEAN endOfFile = FALSE;
+    // Do not free
+    struct PamLine *parsedLine = NULL;
+    const char *module;
+    const char *control;
+    char normalizedModule[256];
+    FILE *loginMapFile = NULL;
+    // Do no free
+    char *defaultInclude = NULL;
 
     BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(
             &fullPath, "%s%s", rootPrefix, filename));
@@ -817,13 +834,54 @@ static CENTERROR ReadPamFile(struct PamConf *conf, const char *rootPrefix, const
         if(endOfFile)
             break;
         BAIL_ON_CENTERIS_ERROR(ceError = AddFormattedLine(conf, filename, buffer, NULL));
+
+        // If the line is a pam_per_user, determine what the default include
+        // name is.
+        parsedLine = &conf->lines[conf->lineCount - 1];
+        GetModuleControl(parsedLine, &module, &control);
+        NormalizeModuleName( normalizedModule, module, sizeof(normalizedModule));
+        if (!strcmp(normalizedModule, "pam_per_user") &&
+                parsedLine->optionCount >= 1)
+        {
+            CT_SAFE_FREE_STRING(fullPath);
+            BAIL_ON_CENTERIS_ERROR(ceError = CTAllocateStringPrintf(
+                    &fullPath, "%s%s",
+                    rootPrefix,
+                    parsedLine->options[0].value));
+            BAIL_ON_CENTERIS_ERROR(ceError = CTOpenFile(fullPath, "r",
+                    &loginMapFile));
+            while (!parsedLine->defaultInclude)
+            {
+                CT_SAFE_FREE_STRING(buffer);
+                BAIL_ON_CENTERIS_ERROR(ceError = CTReadNextLine(loginMapFile,
+                            &buffer, &endOfFile));
+                if (endOfFile)
+                {
+                    break;
+                }
+                if (buffer[0] == '*')
+                {
+                    // This is the default entry
+                    defaultInclude = strrchr(buffer, ':');
+                    if (defaultInclude)
+                    {
+                        // Skip the :
+                        defaultInclude++;
+                        CTStripWhitespace(defaultInclude);
+                        BAIL_ON_CENTERIS_ERROR(ceError = CTStrdup(
+                                defaultInclude,
+                                &parsedLine->defaultInclude));
+                    }
+                }
+            }
+            BAIL_ON_CENTERIS_ERROR(ceError = CTSafeCloseFile(&loginMapFile));
+        }
     }
-    BAIL_ON_CENTERIS_ERROR(ceError = CTCloseFile(file));
-    file = NULL;
+    BAIL_ON_CENTERIS_ERROR(ceError = CTSafeCloseFile(&file));
 
 error:
-    if(file != NULL)
-        CTCloseFile(file);
+    CTSafeCloseFile(&file);
+    CTSafeCloseFile(&loginMapFile);
     CT_SAFE_FREE_STRING(fullPath);
     CT_SAFE_FREE_STRING(buffer);
     return ceError;
@@ -1641,6 +1699,10 @@ static CENTERROR GetIncludeName(struct PamLine *lineObj, PSTR *includeService)
             }
         }
     }
+    if (!strcmp(buffer, "pam_per_user") && lineObj->defaultInclude)
+    {
+        return CTStrdup(lineObj->defaultInclude, includeService);
+    }
     *includeService = NULL;
     return CENTERROR_SUCCESS;
 }
@@ -1677,8 +1739,6 @@ struct ConfigurePamModuleState
 
     int includeLevel;
 };
-
-void GetModuleControl(struct PamLine *lineObj, const char **module, const char **control);
 
 static CENTERROR PamOldCenterisDisable(struct PamConf *conf, const char *service, const char * phase, struct ConfigurePamModuleState *state)
 {

@@ -3041,8 +3041,6 @@ LsaDmpLdapIsRetryError(
 {
     switch((int)dwError)
     {
-        case LDAP_TIMEOUT:
-        case LDAP_SERVER_DOWN:
         case LW_ERROR_LDAP_SERVER_UNAVAILABLE:
         case LW_ERROR_LDAP_SERVER_DOWN:
         case LW_ERROR_LDAP_TIMEOUT:
