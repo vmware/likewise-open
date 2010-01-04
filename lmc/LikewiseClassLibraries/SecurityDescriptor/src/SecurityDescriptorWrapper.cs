@@ -336,17 +336,19 @@ namespace Likewise.LMC.SecurityDesriptor
             try
             {
                 uint iThreadId = SecurityDescriptorApi.GetCurrentThreadId();
-                pProcessHandle = SecurityDescriptorApi.OpenThread(SecurityDescriptorApi.ThreadAccess.ALL_ACCESS, false, iThreadId);
+                pProcessHandle = SecurityDescriptorApi.OpenThread(SecurityDescriptorApi.ThreadAccess.ALL_ACCESS, true, iThreadId);
 
                 bSuccess = SecurityDescriptorApi.OpenThreadToken(pProcessHandle, DesiredAccess, false, out pTokenHandle);
                 errorReturn = (uint)Marshal.GetLastWin32Error();
-                if (errorReturn == (uint)ErrorCodes.WIN32Enum.ERROR_NO_TOKEN)
+                if (errorReturn == (uint)ErrorCodes.WIN32Enum.ERROR_NO_TOKEN ||
+                    errorReturn != 0)
                 {
                     pProcessHandle = Process.GetCurrentProcess().Handle;
                     bSuccess = SecurityDescriptorApi.OpenProcessToken(pProcessHandle, DesiredAccess, out pTokenHandle);
                 }
                 if (pTokenHandle != null)
                 {
+                    SecurityDescriptorWrapper.ApiAdjustTokenPrivileges(ref pTokenHandle, "SeTakeOwnershipPrivilege");
                     SecurityDescriptorWrapper.ApiAdjustTokenPrivileges(ref pTokenHandle, "SeSecurityPrivilege");
                     SecurityDescriptorWrapper.ApiAdjustTokenPrivileges(ref pTokenHandle, "SeBackupPrivilege");
                     SecurityDescriptorWrapper.ApiAdjustTokenPrivileges(ref pTokenHandle, "SeRestorePrivilege");
@@ -693,9 +695,10 @@ namespace Likewise.LMC.SecurityDesriptor
             uint errorReturn = ApiGetCurrentProcessHandle(SecurityDescriptorApi.TOKEN_ALL_ACCESS, out pProcessToken);
             Logger.Log("SecurityDescriptorWrapper.ApiGetCurrentProcessHandle() returns: " + errorReturn);
 
+            ApiAdjustTokenPrivileges(ref pToken, "SeTakeOwnershipPrivilege");
             ApiAdjustTokenPrivileges(ref pToken, "SeSecurityPrivilege");
-            ApiAdjustTokenPrivileges(ref pToken, "SeSecurityPrivilege");
-            ApiAdjustTokenPrivileges(ref pToken, "SeSecurityPrivilege");
+            ApiAdjustTokenPrivileges(ref pToken, "SeBackupPrivilege");
+            ApiAdjustTokenPrivileges(ref pToken, "SeRestorePrivilege");
 
             return errorReturn;
         }

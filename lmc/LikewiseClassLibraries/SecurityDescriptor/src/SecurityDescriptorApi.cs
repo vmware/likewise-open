@@ -1042,4 +1042,134 @@ namespace Likewise.LMC.SecurityDesriptor
 
         #endregion
     }
+
+    /// <summary>
+    /// Well-known SIDs identify generic groups and generic users.
+    /// </summary>
+    public class Well_Known_SID
+    {
+
+        #region SID strings for Well-Known SIDs
+
+        //Account operators.  The corresponding RID is DOMAIN_ALIAS_RID_ACCOUNT_OPS.
+        public static string SDDL_ACCOUNT_OPERATORS = "AO";
+
+        //lias to grant permissions to accounts that use applications compatible with Windows NT 4.0 operating systems.
+        //The corresponding RID is DOMAIN_ALIAS_RID_PREW2KCOMPACCESS.
+        public static string SDDL_ALIAS_PREW2KCOMPACC = "RU";
+
+        //Anonymous logon.  The corresponding RID is SECURITY_ANONYMOUS_LOGON_RID.
+        public static string SDDL_ANONYMOUS = "AN";
+
+        //Authenticated users.  The corresponding RID is SECURITY_AUTHENTICATED_USER_RID.
+        public static string SDDL_AUTHENTICATED_USERS = "AU";
+
+        //Built-in administrators.  The corresponding RID is DOMAIN_ALIAS_RID_ADMINS.
+        public static string SDDL_BUILTIN_ADMINISTRATORS = "BA";
+
+        //Built-in guests.  The corresponding RID is DOMAIN_ALIAS_RID_GUESTS.
+        public static string SDDL_BUILTIN_GUESTS = "BG";
+
+        //Backup operators.  The corresponding RID is DOMAIN_ALIAS_RID_BACKUP_OPS.
+        public static string SDDL_BACKUP_OPERATORS = "BO";
+
+        //Built-in users.  The corresponding RID is DOMAIN_ALIAS_RID_USERS.
+        public static string SDDL_BUILTIN_USERS = "BU";
+
+        //Certificate publishers.  The corresponding RID is DOMAIN_GROUP_RID_CERT_ADMINS.
+        public static string SDDL_CERT_SERV_ADMINISTRATORS = "CA";
+
+        //Creator group.  The corresponding RID is SECURITY_CREATOR_GROUP_RID.
+        public static string SDDL_CREATOR_GROUP = "CG";
+
+        //Creator owner.  The corresponding RID is SECURITY_CREATOR_OWNER_RID.
+        public static string SDDL_CREATOR_OWNER = "CO";
+
+        //Domain administrators.  The corresponding RID is DOMAIN_GROUP_RID_ADMINS.
+        public static string SDDL_DOMAIN_ADMINISTRATORS = "DA";
+
+        //Domain computers.  The corresponding RID is DOMAIN_GROUP_RID_COMPUTERS.s
+        public static string SDDL_DOMAIN_COMPUTERS = "DC";
+
+        //Domain controllers.  The corresponding RID is DOMAIN_GROUP_RID_CONTROLLERS.
+        public static string SDDL_DOMAIN_DOMAIN_CONTROLLERS = "DD";
+
+        //Domain guests.  The corresponding RID is DOMAIN_GROUP_RID_GUESTS.
+        public static string SDDL_DOMAIN_GUESTS = "DG";
+
+        //Domain users.  The corresponding RID is DOMAIN_GROUP_RID_USERS.
+        public static string SDDL_DOMAIN_USERS = "DU";
+
+        //Enterprise administrators.  The corresponding RID is DOMAIN_GROUP_RID_ENTERPRISE_ADMINS.
+        public static string SDDL_ENTERPRISE_ADMINS = "EA";
+
+        //Enterprise domain controllers.  The corresponding RID is SECURITY_SERVER_LOGON_RID.
+        public static string SDDL_ENTERPRISE_DOMAIN_CONTROLLERS = "ED";
+
+        //Everyone.  The corresponding RID is SECURITY_WORLD_RID.
+        public static string SDDL_EVERYONE = "WD";
+
+        //Group Policy administrators.  The corresponding RID is DOMAIN_GROUP_RID_POLICY_ADMINS.
+        public static string SDDL_GROUP_POLICY_ADMINS = "PA";
+
+        //Interactively logged-on user.  This is a group identifier added to the token of a process when it was logged on interactively.
+        //The corresponding logon type is LOGON32_LOGON_INTERACTIVE. The corresponding RID is SECURITY_INTERACTIVE_RID.
+        public static string SDDL_INTERACTIVE = "IU";
+
+        //Local administrator.  The corresponding RID is DOMAIN_USER_RID_ADMIN.
+        public static string SDDL_LOCAL_ADMIN = "LA";
+
+        //Local guest.  The corresponding RID is DOMAIN_USER_RID_GUEST.
+        public static string SDDL_LOCAL_GUEST = "LG";
+
+        //Local service account.  The corresponding RID is SECURITY_LOCAL_SERVICE_RID.
+        public static string SDDL_LOCAL_SERVICE = "LS";
+
+        //Local system.  The corresponding RID is SECURITY_LOCAL_SYSTEM_RID.
+        public static string SDDL_LOCAL_SYSTEM = "SY";
+
+        //Network logon user.  This is a group identifier added to the token of a process when it was logged on across a network.
+        //The corresponding logon type is LOGON32_LOGON_NETWORK.  The corresponding RID is SECURITY_NETWORK_RID.
+        public static string SDDL_NETWORK = "NU";
+
+        //Network configuration operators.  The corresponding RID is DOMAIN_ALIAS_RID_NETWORK_CONFIGURATION_OPS.
+        public static string SDDL_NETWORK_CONFIGURATION_OPS = "NO";
+
+        //Network service account.  The corresponding RID is SECURITY_NETWORK_SERVICE_RID.
+        public static string SDDL_NETWORK_SERVICE = "NS";
+
+        //Printer operators.  The corresponding RID is DOMAIN_ALIAS_RID_PRINT_OPS.
+        public static string SDDL_PRINTER_OPERATORS = "PO";
+
+        //Principal self.  The corresponding RID is SECURITY_PRINCIPAL_SELF_RID.
+        public static string SDDL_PERSONAL_SELF = "PS";
+
+        //Power users.  The corresponding RID is DOMAIN_ALIAS_RID_POWER_USERS.
+        public static string SDDL_POWER_USERS = "PU";
+
+        //RAS servers group.  The corresponding RID is DOMAIN_ALIAS_RID_RAS_SERVERS.
+        public static string SDDL_RAS_SERVERS = "RS";
+
+        //Terminal server users.  The corresponding RID is DOMAIN_ALIAS_RID_REMOTE_DESKTOP_USERS.
+        public static string SDDL_REMOTE_DESKTOP = "RS";
+
+        //Replicator.  The corresponding RID is DOMAIN_ALIAS_RID_REPLICATOR.
+        public static string SDDL_REPLICATOR = "RE";
+
+        //Restricted code.  This is a restricted token created using the CreateRestrictedToken() function.
+        //The corresponding RID is SECURITY_RESTRICTED_CODE_RID.
+        public static string SDDL_RESTRICTED_CODE = "RC";
+
+        //Schema administrators.  The corresponding RID is DOMAIN_GROUP_RID_SCHEMA_ADMINS.
+        public static string SDDL_SCHEMA_ADMINISTRATORS = "SA";
+
+        //Server operators.  The corresponding RID is DOMAIN_ALIAS_RID_SYSTEM_OPS.
+        public static string SDDL_SERVER_OPERATORS = "SO";
+
+        //Service logon user.  This is a group identifier added to the token of a process when it was logged as a service.
+        //The corresponding logon type is LOGON32_LOGON_SERVICE.  The corresponding RID is SECURITY_SERVICE_RID.
+        public static string SDDL_SERVICE = "SU";
+
+        #endregion
+    }
 }
