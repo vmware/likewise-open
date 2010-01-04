@@ -1215,7 +1215,7 @@ NtRegSetValueExA(
 				                                     (PCSTR)pData);
 		BAIL_ON_NT_STATUS(status);
 
-            cbOutDataLen = (mbstrlen(pData)+1) * sizeof(WCHAR);
+                cbOutDataLen = (mbstrlen((const char*) pData)+1) * sizeof(WCHAR);
 		bIsStrType = TRUE;
 	}
     }
