@@ -1,3 +1,18 @@
+likewise-open (5.4.0.39905-2) lucid; urgency=low
+
+  [ Gerald Carter ]
+  * debian/control: Re-add krb5-user to the Depends for likewise-open
+
+  [ Martin Pitt ]
+  * debian/control: Fix section and description of transitional dummy
+    packages.
+  * debian/control: Fix version of Conflicts/Replaces.
+  * debian/control: Fix likewise-open-{gui,server} conflicting/replacing
+    itself.
+  * Remove empty debian/likewise-open-server.postinst.
+
+ -- Gerald Carter <jerry@plainjoe.org>  Mon, 04 Jan 2010 11:54:25 -0600
+
 likewise-open (5.4.0.39905-1) lucid; urgency=low
 
   * New upstream release

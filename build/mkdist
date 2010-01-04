@@ -45,6 +45,7 @@ find ${TARGET} -name "*.sh" | xargs chmod u+x
     /bin/mv -f build/lib/VARS.new build/lib/VARS \
 )
 
+find ${TARGET} -type d -name autom4te.cache | xargs /bin/rm -rf
 tar cf - ${TARGET} | gzip -9 > likewise-open-$VERSION.tar.gz
 [ "${TARGET}" != "/" ] && /bin/rm -rf ${TARGET}
 
