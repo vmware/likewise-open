@@ -6,4 +6,3 @@ domainjoin-version-in-share.diff
 krb5-copy-ktutil.diff
 librpc-rename-endpoints.diff
 lsass-mods-for-apparmor-rename-homedir.diff
-reg_mbstowc_cast.diff
