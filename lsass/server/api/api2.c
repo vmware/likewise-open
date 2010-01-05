@@ -1129,6 +1129,8 @@ LsaSrvQueryMemberOfMerged(
 
 cleanup:
 
+    LsaSrvDestroyMemberOfPass(&pass1);
+    LsaSrvDestroyMemberOfPass(&pass2);
     LsaHashSafeFree(&pHash);
 
     LEAVE_AUTH_PROVIDER_LIST_READER_LOCK(bInLock);
