@@ -695,7 +695,7 @@ namespace Likewise.LMC.LDAP
 
             if (!String.IsNullOrEmpty(Password))
             {
-                usingSimpleBind = true;
+                usingSimpleBind = Configurations.SSOFailed = true;
             }
 
             if (usingSimpleBind)

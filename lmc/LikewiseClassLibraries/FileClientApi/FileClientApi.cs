@@ -864,49 +864,176 @@ namespace Likewise.LMC.FileClient
             UInt64 size = 0;
             UInt64 extra = 0;
 
-            if (useWindowsDlls)
+            try
             {
-                search = filepath + "\\*";
-            }
-            else
-            {
-                search = filepath + "/*";
-            }
-
-            IntPtr handle = INVALID_HANDLE_VALUE;
-
-            if (useWindowsDlls)
-            {
-                handle = InteropWindows.FindFirstFileW(search, ref WinFindFileData);
-            }
-            else
-            {
-                handle = InteropLikewise.FindFirstFile(search, ref LwFindFileData);
-            }
-
-            if (handle != INVALID_HANDLE_VALUE)
-            {
-                success = true;
-            }
-
-            while (success)
-            {
-                FileItem file = new FileItem();
-
                 if (useWindowsDlls)
                 {
-                    file.FileName = WinFindFileData.cFileName;
-                    file.Alternate = WinFindFileData.cAlternate;
+                    search = filepath + "\\*";
                 }
                 else
                 {
-                    file.FileName = LwFindFileData.FileName;
-                    file.Alternate = LwFindFileData.Alternate;
+                    search = filepath + "/*";
                 }
 
-                if (String.Compare(file.FileName, ".") == 0 ||
-                    String.Compare(file.FileName, "..") == 0)
+                IntPtr handle = INVALID_HANDLE_VALUE;
+
+                if (useWindowsDlls)
                 {
+                    handle = InteropWindows.FindFirstFileW(search, ref WinFindFileData);
+                }
+                else
+                {
+                    handle = InteropLikewise.FindFirstFile(search, ref LwFindFileData);
+                }
+
+                if (handle != INVALID_HANDLE_VALUE)
+                {
+                    success = true;
+                }
+
+                while (success)
+                {
+                    FileItem file = new FileItem();
+
+                    if (useWindowsDlls)
+                    {
+                        file.FileName = WinFindFileData.cFileName;
+                        file.Alternate = WinFindFileData.cAlternate;
+                    }
+                    else
+                    {
+                        file.FileName = LwFindFileData.FileName;
+                        file.Alternate = LwFindFileData.Alternate;
+                    }
+
+                    if (String.Compare(file.FileName, ".") == 0 ||
+                        String.Compare(file.FileName, "..") == 0)
+                    {
+                        if (useWindowsDlls)
+                        {
+                            success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
+                        }
+                        else
+                        {
+                            success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
+                        }
+                        continue;
+                    }
+
+                    if (!showHiddenFiles &&
+                        file.FileName[0] == '.')
+                    {
+                        if (useWindowsDlls)
+                        {
+                            success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
+                        }
+                        else
+                        {
+                            success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
+                        }
+                        continue;
+                    }
+
+                    if (useWindowsDlls)
+                    {
+                        size = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296) / 1024;
+                        extra = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296) % 1024;
+
+                        if ((WinFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
+                        {
+                            file.IsDirectory = true;
+                        }
+                    }
+                    else
+                    {
+                        size = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296) / 1024;
+                        extra = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296) % 1024;
+
+                        if ((LwFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
+                        {
+                            file.IsDirectory = true;
+                        }
+                    }
+
+                    SYSTEMTIME created = new SYSTEMTIME();
+                    SYSTEMTIME modified = new SYSTEMTIME();
+                    SYSTEMTIME accessed = new SYSTEMTIME();
+                    DateTime Created = new DateTime();
+                    DateTime Modified = new DateTime();
+                    DateTime Accessed = new DateTime();
+
+                    if (size != 0 && extra != 0)
+                    {
+                        size++;
+                    }
+
+                    if (useWindowsDlls)
+                    {
+                        if (WinFindFileData.ftCreationTime.dwHighDateTime != 0 &&
+                            WinFindFileData.ftCreationTime.dwLowDateTime != 0)
+                        {
+                            InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftCreationTime, ref created);
+                        }
+                    }
+                    else
+                    {
+                        if (LwFindFileData.time_tCreationTime != 0)
+                        {
+                            InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tCreationTime, ref created);
+                        }
+                    }
+                    Created = new DateTime(created.wYear, created.wMonth, created.wDay, created.wHour, created.wMinute, created.wSecond).ToLocalTime();
+
+                    if (useWindowsDlls)
+                    {
+                        if (WinFindFileData.ftLastWriteTime.dwHighDateTime != 0 &&
+                            WinFindFileData.ftLastWriteTime.dwLowDateTime != 0)
+                        {
+                            InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftLastWriteTime, ref modified);
+                        }
+                    }
+                    else
+                    {
+                        if (LwFindFileData.time_tLastWriteTime != 0)
+                        {
+                            InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tLastWriteTime, ref modified);
+                        }
+                    }
+                    Modified = new DateTime(modified.wYear, modified.wMonth, modified.wDay, modified.wHour, modified.wMinute, modified.wSecond).ToLocalTime();
+
+                    if (useWindowsDlls)
+                    {
+                        if (WinFindFileData.ftLastAccessTime.dwHighDateTime != 0 &&
+                            WinFindFileData.ftLastAccessTime.dwLowDateTime != 0)
+                        {
+                            InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftLastAccessTime, ref accessed);
+                        }
+                    }
+                    else
+                    {
+                        if (LwFindFileData.time_tLastAccessTime != 0)
+                        {
+                            InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tLastAccessTime, ref accessed);
+                        }
+                    }
+                    Accessed = new DateTime(accessed.wYear, accessed.wMonth, accessed.wDay, accessed.wHour, accessed.wMinute, accessed.wSecond).ToLocalTime();
+
+                    file.CreationTime = Created;
+                    file.LastWriteTime = Modified;
+                    file.LastAccessTime = Accessed;
+                    if (size > 0)
+                    {
+                        file.FileSizeInKB = size;
+                        file.FileSmallSizeInBytes = 0;
+                    }
+                    else
+                    {
+                        file.FileSizeInKB = 0;
+                        file.FileSmallSizeInBytes = extra;
+                    }
+
+                    Files.Add(file);
+
                     if (useWindowsDlls)
                     {
                         success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
@@ -915,131 +1042,11 @@ namespace Likewise.LMC.FileClient
                     {
                         success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
                     }
-                    continue;
                 }
-
-                if (!showHiddenFiles &&
-                    file.FileName[0] == '.')
-                {
-                    if (useWindowsDlls)
-                    {
-                        success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
-                    }
-                    else
-                    {
-                        success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
-                    }
-                    continue;
-                }
-
-                if (useWindowsDlls)
-                {
-                    size = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296) / 1024;
-                    extra = ((UInt64)WinFindFileData.nFileSizeLow + (UInt64)WinFindFileData.nFileSizeHigh * 4294967296) % 1024;
-
-                    if ((WinFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
-                    {
-                        file.IsDirectory = true;
-                    }
-                }
-                else
-                {
-                    size = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296) / 1024;
-                    extra = ((UInt64)LwFindFileData.nFileSizeLow + (UInt64)LwFindFileData.nFileSizeHigh * 4294967296) % 1024;
-
-                    if ((LwFindFileData.dwFileAttributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY)
-                    {
-                        file.IsDirectory = true;
-                    }
-                }
-
-                SYSTEMTIME created = new SYSTEMTIME();
-                SYSTEMTIME modified = new SYSTEMTIME();
-                SYSTEMTIME accessed = new SYSTEMTIME();
-                DateTime Created = new DateTime();
-                DateTime Modified = new DateTime();
-                DateTime Accessed = new DateTime();
-
-                if (size != 0 && extra != 0)
-                {
-                    size++;
-                }
-
-                if (useWindowsDlls)
-                {
-                    if (WinFindFileData.ftCreationTime.dwHighDateTime != 0 &&
-                        WinFindFileData.ftCreationTime.dwLowDateTime != 0)
-                    {
-                        InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftCreationTime, ref created);
-                    }
-                }
-                else
-                {
-                    if (LwFindFileData.time_tCreationTime != 0)
-                    {
-                        InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tCreationTime, ref created);
-                    }
-                }
-                Created = new DateTime(created.wYear, created.wMonth, created.wDay, created.wHour, created.wMinute, created.wSecond).ToLocalTime();
-
-                if (useWindowsDlls)
-                {
-                    if (WinFindFileData.ftLastWriteTime.dwHighDateTime != 0 &&
-                        WinFindFileData.ftLastWriteTime.dwLowDateTime != 0)
-                    {
-                        InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftLastWriteTime, ref modified);
-                    }
-                }
-                else
-                {
-                    if (LwFindFileData.time_tLastWriteTime != 0)
-                    {
-                        InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tLastWriteTime, ref modified);
-                    }
-                }
-                Modified = new DateTime(modified.wYear, modified.wMonth, modified.wDay, modified.wHour, modified.wMinute, modified.wSecond).ToLocalTime();
-
-                if (useWindowsDlls)
-                {
-                    if (WinFindFileData.ftLastAccessTime.dwHighDateTime != 0 &&
-                        WinFindFileData.ftLastAccessTime.dwLowDateTime != 0)
-                    {
-                        InteropWindows.FileTimeToSystemTime(ref WinFindFileData.ftLastAccessTime, ref accessed);
-                    }
-                }
-                else
-                {
-                    if (LwFindFileData.time_tLastAccessTime != 0)
-                    {
-                        InteropLikewise.FileTimeToSystemTime(ref LwFindFileData.time_tLastAccessTime, ref accessed);
-                    }
-                }
-                Accessed = new DateTime(accessed.wYear, accessed.wMonth, accessed.wDay, accessed.wHour, accessed.wMinute, accessed.wSecond).ToLocalTime();
-
-                file.CreationTime = Created;
-                file.LastWriteTime = Modified;
-                file.LastAccessTime = Accessed;
-                if (size > 0)
-                {
-                    file.FileSizeInKB = size;
-                    file.FileSmallSizeInBytes = 0;
-                }
-                else
-                {
-                    file.FileSizeInKB = 0;
-                    file.FileSmallSizeInBytes = extra;
-                }
-
-                Files.Add(file);
-
-                if (useWindowsDlls)
-                {
-                    success = InteropWindows.FindNextFileW(handle, ref WinFindFileData);
-                }
-                else
-                {
-                    success = InteropLikewise.FindNextFile(handle, ref LwFindFileData);
-                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Exception in Likewise.LMC.FileClient.FileClient.EnumFiles " + ex.StackTrace);
             }
 
             return Files;

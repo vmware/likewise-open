@@ -667,7 +667,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                      treeNode.sc.ShowControl(treeNode);
                      return;
 				}
-				else if(mi.Text.Trim().Equals("&Refresh"))
+				else if(mi.Text.Trim().Equals("&Help"))
 				{
                      ProcessStartInfo psi = new ProcessStartInfo();
                      psi.UseShellExecute = true;
@@ -688,8 +688,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 					{
 		                regKeyInfo = node == null ? null : node.Tag as RegistryEnumKeyInfo;
 		                regValueInfo = node == null ? mi.Tag as RegistryValueInfo : null;
+                        node = node == null ? treeNode : node;
 
-                        if (!node.Text.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE, StringComparison.InvariantCultureIgnoreCase))
+                        if(!treeNode.Text.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE, StringComparison.InvariantCultureIgnoreCase))
                         {
 			                if (regKeyInfo != null)
 			                {
@@ -700,11 +701,10 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 		                    }
 							else  if (regValueInfo != null)
 		                    {
-								RegistryEnumKeyInfo valueKeyInfo = treeNode.Tag as RegistryEnumKeyInfo;
-
+                                RegistryEnumKeyInfo subKeyInfo = treeNode.Tag as RegistryEnumKeyInfo;
 		                        RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
 	                                               plugin.pRootHandle,
-	                                               valueKeyInfo.sKeyname,
+                                                   subKeyInfo.sKeyname,
 	                                               out regValueInfo.pParentKey);
 							}
 						}
@@ -731,7 +731,9 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                             }
                         }
                         else if (regValueInfo != null)
+                        {
                             DoEditorWork(regValueInfo, false, regValueInfo.pType);
+                        }
 
                         break;
 

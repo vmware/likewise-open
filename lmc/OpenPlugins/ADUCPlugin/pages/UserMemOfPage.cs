@@ -110,7 +110,6 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
             Logger.Log("user member of contains: ");
             if (groupDns != null && groupDns.Length > 0)
             {
-                string aPartName = string.Empty;
                 //populate the data in usermemberOf page using groupDns
                 foreach (string groupDn in groupDns)
                 {
@@ -136,7 +135,7 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                 }
                 //settings primary group to user
                 sPrimayGroup = UserGroupUtils.GetPrimaryGroup(_dirnode);
-                string[] Items = UserGroupUtils.splitDn(sPrimayGroup, aPartName);
+                string[] Items = UserGroupUtils.splitDn(sPrimayGroup);
                 if (!string.IsNullOrEmpty(Items[0]))
                 {
                     DomainUserlabel.Text = Items[0];
@@ -201,8 +200,7 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                 Logger.Log("Modify primaryGroupID returns " + ret);
                 if (ret == 0)
                 {
-                    string aPartName = string.Empty;
-                    string[] Items = UserGroupUtils.splitDn(ChangedPrimaryGroup, aPartName);
+                    string[] Items = UserGroupUtils.splitDn(ChangedPrimaryGroup);
                     if (!string.IsNullOrEmpty(Items[0]))
                     {
                         DomainUserlabel.Text = Items[0];
@@ -342,9 +340,8 @@ public partial class UserMemOfPage : MPPage, IDirectoryPropertiesPage
                 foreach (ListViewItem item in MemoflistView.SelectedItems)
                 {
                     bool bIsPrimaryGroup = false;
-                    string aPartName = string.Empty;
                     string removeDn = item.Tag as string;
-                    string[] slvItem = UserGroupUtils.splitDn(removeDn, aPartName);
+                    string[] slvItem = UserGroupUtils.splitDn(removeDn);
                     if (!string.IsNullOrEmpty(slvItem[0]) && DomainUserlabel.Text.Trim().Equals(slvItem[0]))
                     {
                         bIsPrimaryGroup = true;

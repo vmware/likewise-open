@@ -668,7 +668,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
         if (ret == 0)
         {
             lvItem.SubItems[4].Text = "false";
-            LACTreeNode parentnode = (LACTreeNode)dirnode.Parent;
+            LACTreeNode parentnode = (LACTreeNode)dirnode.Tag;
 
             ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
 
@@ -764,7 +764,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                 ListViewItem dnItem = FindlvItem("distinguishedName");
                 if (dnItem != null)
                 {
-                    LACTreeNode parentnode = (LACTreeNode)dirnode.Parent;
+                    LACTreeNode parentnode = (LACTreeNode)dirnode.Tag;
                     ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
                     if (parentdirnode != null)
                     {
@@ -803,7 +803,7 @@ public partial class ADEditPage : MPPage, IDirectoryPropertiesPage
                 if (dnItem != null)
                 {
                     string oldDn = dirnode.DistinguishedName;
-                    LACTreeNode parentnode = (LACTreeNode)dirnode.Parent;
+                    LACTreeNode parentnode = (LACTreeNode)dirnode.Tag;
                     ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
                     if (parentdirnode != null)
                     {
