@@ -375,7 +375,8 @@ LwStrnToUpper(
     {
        DWORD iCh = 0;
 
-       while (*pszString != '\0' && (iCh++ < dwLen)) {
+       while ((iCh++ < dwLen) && *pszString != '\0')
+       {
            *pszString = toupper((int)*pszString);
            pszString++;
        }
@@ -407,7 +408,8 @@ LwStrnToLower(
     {
         DWORD iCh = 0;
 
-        while (*pszString != '\0' && (iCh++ < dwLen)) {
+        while ((iCh++ < dwLen) && *pszString != '\0')
+        {
             *pszString = tolower((int)*pszString);
             pszString++;
         }
