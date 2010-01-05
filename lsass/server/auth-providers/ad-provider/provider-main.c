@@ -3760,8 +3760,8 @@ AD_EnumMembers(
        OUT_PPVOID(&ppszMemberSids));
    BAIL_ON_LSA_ERROR(dwError);
 
-   memcpy(ppszMemberSids, pEnum->ppszSids + pEnum->dwSidIndex, sizeof(*ppszMemberSids) * dwMemberSidCount);
-   memset(pEnum->ppszSids, 0, sizeof(*ppszMemberSids) * dwMemberSidCount);
+   memcpy(ppszMemberSids, &pEnum->ppszSids[pEnum->dwSidIndex], sizeof(*ppszMemberSids) * dwMemberSidCount);
+   memset(&pEnum->ppszSids[pEnum->dwSidIndex], 0, sizeof(*ppszMemberSids) * dwMemberSidCount);
 
    pEnum->dwSidIndex += dwMemberSidCount;
 
