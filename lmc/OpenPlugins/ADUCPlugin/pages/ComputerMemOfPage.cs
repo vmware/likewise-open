@@ -452,8 +452,7 @@ public partial class ComputerMemOfPage : MPPage, IDirectoryPropertiesPage
                 Logger.Log("Modify primaryGroupID returns " + ret);
                 if (ret == 0)
                 {
-                    string aPartName = string.Empty;
-                    string[] Items = UserGroupUtils.splitDn(ChangedPrimaryGroup, aPartName);
+                    string[] Items = UserGroupUtils.splitDn(ChangedPrimaryGroup);
                     if (!string.IsNullOrEmpty(Items[0]))
                     {
                         DomainUserlabel.Text = Items[0];

@@ -119,7 +119,6 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
             if (groupDns != null && groupDns.Length > 0)
             {
-                string aPartName = string.Empty;
                 //populate the data in usermemberOf page using groupDns
                 foreach (string groupDn in groupDns)
                 {
@@ -147,7 +146,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
                 if (sPrimayGroup != null)
                 {
-                    string[] Items = UserGroupUtils.splitDn(sPrimayGroup, aPartName);
+                    string[] Items = UserGroupUtils.splitDn(sPrimayGroup);
                     if (!string.IsNullOrEmpty(Items[0]))
                     {
                         DomainUserlabel.Text = Items[0];
@@ -357,9 +356,8 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                     foreach (ListViewItem item in MemoflistView.SelectedItems)
                     {
                         bool bIsPrimaryGroup = false;
-                        string aPartName = string.Empty;
                         string removeDn = item.Tag as string;
-                        string[] slvItem = UserGroupUtils.splitDn(removeDn, aPartName);
+                        string[] slvItem = UserGroupUtils.splitDn(removeDn);
                         if (!string.IsNullOrEmpty(slvItem[0]) && DomainUserlabel.Text.Trim().Equals(slvItem[0]))
                         {
                             bIsPrimaryGroup = true;

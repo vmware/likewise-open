@@ -725,7 +725,7 @@ public partial class ADUCPage : StandardPage
     private ContextMenu GetContextMenuForADObject(ADUCDirectoryNode dirnode)
     {
         List<LdapEntry> ldapEntries = null;
-        ADUCDirectoryNode dn = dirnode.Parent as ADUCDirectoryNode;
+        ADUCDirectoryNode dn = dirnode.Parent == null ? treeNode as ADUCDirectoryNode : dirnode.Parent as ADUCDirectoryNode;
 
         if (dn != null)
         {
@@ -1410,11 +1410,6 @@ public partial class ADUCPage : StandardPage
             return;
         }
 
-        //if (CheckLdapTimedOut(treeNode as DirectoryNode))
-        //{
-        //    return;
-        //}
-
         int ret = -1;
 
         if (dirnode != null)
@@ -1509,7 +1504,7 @@ public partial class ADUCPage : StandardPage
             {
                 if (mi.Tag != null)
                 {
-                    parentNode = dirnode.Parent as ADUCDirectoryNode;
+                    parentNode = dirnode.Parent == null ? treeNode as ADUCDirectoryNode : dirnode.Parent as ADUCDirectoryNode;
 
                     ret = DODeleteADObjects(dirnode);
                 }
@@ -1598,7 +1593,7 @@ public partial class ADUCPage : StandardPage
                             bAcountDisable = true;
                         }
 
-                        ADUserAddDlg f = new ADUserAddDlg(base.container, this, sText, dirnode.Parent as ADUCDirectoryNode, bAcountDisable, bNeverExpiresPwd, bMustChangePwd, bUserCannotChange, copyfrom);
+                        ADUserAddDlg f = new ADUserAddDlg(base.container, this, sText, treeNode as ADUCDirectoryNode, bAcountDisable, bNeverExpiresPwd, bMustChangePwd, bUserCannotChange, copyfrom);
 
                         f.ShowDialog(this);
                         //the user information is gather in f.userInfo before "finish" button is clicked
@@ -1632,7 +1627,7 @@ public partial class ADUCPage : StandardPage
                                 htUserInfo.Add("sAMAccountName", f.userInfo.userPrelogonname);
                             }
                             //use logon name to set "sAMAaccountname"
-                            AddNewObj_User(dirnode.Parent as ADUCDirectoryNode, htUserInfo, false, f.userInfo.passWord, f.userInfo.bAcountDisable, f.userInfo.bNeverExpiresPwd, f.userInfo.bMustChangePwd, f.userInfo.bCannotChangePwd);
+                            AddNewObj_User(treeNode as ADUCDirectoryNode, htUserInfo, false, f.userInfo.passWord, f.userInfo.bAcountDisable, f.userInfo.bNeverExpiresPwd, f.userInfo.bMustChangePwd, f.userInfo.bCannotChangePwd);
                         }
                     }
                     catch (Exception ex)
@@ -1646,64 +1641,7 @@ public partial class ADUCPage : StandardPage
         //Move...
         if (mi != null && mi.Text.Equals("Move..."))
         {
-            ADUCDirectoryNode oldparentdirnode = null;
-            ret = -1;
-
-            ADMoveObjectPage f = new ADMoveObjectPage(base.container, this, base.pi as ADUCPlugin, lmctreeview);
-            if (f.ShowDialog(this) == DialogResult.OK)
-            {
-                if (mi.Tag != null)
-                {
-                    oldparentdirnode = dirnode.Parent as ADUCDirectoryNode;
-                    ret = DoMoveADObject(dirnode, f.moveInfo.newParentDn);
-                }
-                else
-                {
-                    oldparentdirnode = (ADUCDirectoryNode)treeNode;
-
-                    foreach (ListViewItem item in lvChildNodes.SelectedItems)
-                    {
-                        ADUCDirectoryNode dn = item.Tag as ADUCDirectoryNode;
-                        if (dn != null)
-                        {
-                            ret = DoMoveADObject(dn, f.moveInfo.newParentDn);
-                            if (ret != 0)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                }
-                //refresh both old parent and new parent
-                if (ret == 0)
-                {
-                    container.ShowMessage("Object(s) was moved successfully!");
-
-                    ADUCPlugin plugin = treeNode.Plugin as ADUCPlugin;
-                    ADUCDirectoryNode newParentDirnode = f.moveInfo.newParentDirnode;
-                    newParentDirnode.DistinguishedName = f.moveInfo.newParentDn;
-
-                    oldparentdirnode.Refresh();
-                    RefreshModifiedNode(plugin._pluginNode, newParentDirnode);
-                    oldparentdirnode.IsModified = true;
-                    base.treeNode = oldparentdirnode;
-                }
-                else if (ret != 0)
-                {
-                    if (ret == 64)
-                    {
-                        container.ShowError(this, "The object cannot be added because the parent is not on the list of possible superirors");
-                    }
-                    else if (ret == 53)
-                    {
-                        string sMsg = string.Format("Windows cannot move object {0} because:\nIllegal modify operation. Some aspect of the modification is not permitted", dirnode.Text);
-                        container.ShowError(this, sMsg);
-                    }
-                    else
-                        container.ShowError(ErrorCodes.LDAPString(ret));
-                    return;
-                }
-            }
+            DoMoveObjectWork(dirnode);
         }
 
         //Rename
@@ -1717,15 +1655,15 @@ public partial class ADUCPage : StandardPage
                 if (obj_type.Equals("top", StringComparison.InvariantCultureIgnoreCase) ||
                     obj_type.Equals("user", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    ADRenameUserDlg f = new ADRenameUserDlg(dirnode);
+                    LACTreeNode parentnode = dirnode.Parent == null ? treeNode as LACTreeNode : dirnode.Parent as LACTreeNode;
+                    ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
+
+                    ADRenameUserDlg f = new ADRenameUserDlg(dirnode, parentdirnode.DistinguishedName);
                     f.ShowDialog(this);
 
                     if (f.renameUserInfo.commit == true)
                     {
                         string basedn = dirnode.DistinguishedName;
-                        LACTreeNode parentnode = (LACTreeNode)dirnode.Parent;
-
-                        ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
                         string newdn = f.renameUserInfo.fullName;
 
                         newdn = string.Concat(CN_PREFIX, newdn);
@@ -1823,7 +1761,7 @@ public partial class ADUCPage : StandardPage
                     {
                         //the following portion of code uses openldap "ldap_rename_s"
                         string basedn = dirnode.DistinguishedName;
-                        LACTreeNode parentnode = (LACTreeNode)dirnode.Parent;
+                        LACTreeNode parentnode = dirnode.Parent == null ? treeNode as LACTreeNode : dirnode.Parent as LACTreeNode;
 
                         ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
                         string newdn = f.rename;
@@ -1875,7 +1813,7 @@ public partial class ADUCPage : StandardPage
             ADUCDirectoryNode parentNode = null;
             if (mi.Tag != null)
             {
-                parentNode = dirnode.Parent as ADUCDirectoryNode;
+                parentNode = dirnode.Parent == null ? treeNode as ADUCDirectoryNode : dirnode.Parent as ADUCDirectoryNode;
                 string obj_type = dirnode.ObjectClass;
                 DialogResult dlg =
                 MessageBox.Show(this, "Are you sure you want to disable this account?",
@@ -1971,7 +1909,7 @@ public partial class ADUCPage : StandardPage
             ADUCDirectoryNode parentNode = null;
             if (mi.Tag != null)
             {
-                parentNode = dirnode.Parent as ADUCDirectoryNode;
+                parentNode = dirnode.Parent == null ? treeNode as ADUCDirectoryNode : dirnode.Parent as ADUCDirectoryNode;
                 DialogResult dlg =
                 MessageBox.Show(this, "Are you sure you want to enable this account?",
                 CommonResources.GetString("Caption_Console"), MessageBoxButtons.YesNo,
@@ -2181,7 +2119,7 @@ public partial class ADUCPage : StandardPage
 
                 if (mi.Tag != null)
                 {
-                    parentNode = dirnode.Parent as ADUCDirectoryNode;
+                    parentNode = dirnode.Parent == null ? treeNode as ADUCDirectoryNode : dirnode.Parent as ADUCDirectoryNode;
                     ret = DoAddtoGroup(dirnode, sDN, true, f.ADobjectsArray[0].Name, ref itemlist);
                     if (ret == 0)
                     {
@@ -2282,14 +2220,13 @@ public partial class ADUCPage : StandardPage
                 }
             }
         }
+
+        //Refreshing the Aduc page after performing any of the aduc functionalities
 		RefreshPluginPage();
+
         //Properties...
         if (mi != null && mi.Text.Equals("Properties"))
         {
-            //Thread newThread = new Thread(this.DoPropertyPagesWork);
-            //newThread.Start(mi);
-
-            //Not using threading
 
             if (lvChildNodes.SelectedItems.Count > 1)
             {
@@ -2354,6 +2291,83 @@ public partial class ADUCPage : StandardPage
     #endregion
 
     #region helper_functions
+
+    private void DoMoveObjectWork(ADUCDirectoryNode dirnode)
+    {
+        ADUCDirectoryNode oldparentdirnode = null;
+        int ret = -1;
+
+        ADMoveObjectPage f = new ADMoveObjectPage(base.container, this, base.pi as ADUCPlugin, lmctreeview);
+        if (f.ShowDialog(this) == DialogResult.OK)
+        {
+            if (dirnode != null)
+            {
+                if (dirnode.DistinguishedName.Equals(f.moveInfo.newParentDn, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    string sMsg = "The source and destination of the move operation cannot be the same object.\n" +
+                                  "Would you like to select another destination?";
+                    DialogResult dlg = MessageBox.Show(this, sMsg, CommonResources.GetString("Caption_Console"),
+                                    MessageBoxButtons.YesNo, MessageBoxIcon.Error,
+                                    MessageBoxDefaultButton.Button1);
+                    if (dlg == DialogResult.Yes)
+                    {
+                        DoMoveObjectWork(dirnode);
+                    }
+                    else
+                        return;
+                }
+
+                oldparentdirnode = dirnode.Parent == null ? treeNode as ADUCDirectoryNode : dirnode.Parent as ADUCDirectoryNode;
+                ret = DoMoveADObject(dirnode, f.moveInfo.newParentDn);
+            }
+            else
+            {
+                oldparentdirnode = (ADUCDirectoryNode)treeNode;
+
+                foreach (ListViewItem item in lvChildNodes.SelectedItems)
+                {
+                    ADUCDirectoryNode dn = item.Tag as ADUCDirectoryNode;
+                    if (dn != null)
+                    {
+                        ret = DoMoveADObject(dn, f.moveInfo.newParentDn);
+                        if (ret != 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            //refresh both old parent and new parent
+            if (ret == 0)
+            {
+                container.ShowMessage("Object(s) was moved successfully!");
+
+                ADUCPlugin plugin = treeNode.Plugin as ADUCPlugin;
+                ADUCDirectoryNode newParentDirnode = f.moveInfo.newParentDirnode;
+                newParentDirnode.DistinguishedName = f.moveInfo.newParentDn;
+
+                oldparentdirnode.Refresh();
+                RefreshModifiedNode(plugin._pluginNode, newParentDirnode);
+                oldparentdirnode.IsModified = true;
+                base.treeNode = oldparentdirnode;
+            }
+            else if (ret != 0)
+            {
+                if (ret == 64)
+                {
+                    container.ShowError(this, "The object cannot be added because the parent is not on the list of possible superirors");
+                }
+                else if (ret == 53)
+                {
+                    string sMsg = string.Format("Windows cannot move object {0} because:\nIllegal modify operation. Some aspect of the modification is not permitted", dirnode.Text);
+                    container.ShowError(this, sMsg);
+                }
+                else
+                    container.ShowError(ErrorCodes.LDAPString(ret));
+                return;
+            }
+        }
+    }
 
     private int DoAddtoGroup(ADUCDirectoryNode dirnode,
                              string sDN,
@@ -2636,7 +2650,7 @@ public partial class ADUCPage : StandardPage
 
             //the following portion of code uses openldap "ldap_rename_s"
             string fullDn = dirnode.DistinguishedName;
-            LACTreeNode oldparentnode = dirnode.Parent as LACTreeNode;
+            LACTreeNode oldparentnode = dirnode.Parent == null ? treeNode as LACTreeNode : dirnode.Parent as LACTreeNode;
             ADUCDirectoryNode oldparentdirnode = oldparentnode as ADUCDirectoryNode;
             string parentDn = oldparentdirnode.DistinguishedName;
 
@@ -3576,11 +3590,6 @@ public partial class ADUCPage : StandardPage
                 //int length = CommonResources.GetString("Caption_Console").Length + 24;
                 string msgToDisplay = "New OrganizationalUnit Object is added!";
                 MessageBox.Show(this, msgToDisplay, CommonResources.GetString("Caption_Console"), MessageBoxButtons.OK);
-                //if (length > msgToDisplay.Length)
-                //{
-                //    msgToDisplay = msgToDisplay.PadRight(length - msgToDisplay.Length, ' ');
-                //}
-                //container.ShowMessage(msgToDisplay);
 
                 dirnode.Refresh();
                 dirnode.IsModified = true;
@@ -3703,7 +3712,7 @@ public partial class ADUCPage : StandardPage
     {
         int ret;
 
-        LACTreeNode parentnode = (LACTreeNode) dirnode.Parent;
+        LACTreeNode parentnode = dirnode.Parent == null ? treeNode as LACTreeNode : dirnode.Parent as LACTreeNode;
 
         ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
 
@@ -3849,7 +3858,6 @@ public partial class ADUCPage : StandardPage
                     if (dn.DistinguishedName.Trim().ToLower().Equals(dn.LdapContext.RootDN.ToLower()))
                     {
                         dn.Refresh();
-                        //RefreshlvChildNodes(dn);
                     }
                     else
                     {
