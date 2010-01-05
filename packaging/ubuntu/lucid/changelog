@@ -1,3 +1,10 @@
+likewise-open (5.4.0.39949-2) lucid; urgency=low
+
+  [Scott Salley]
+  * likewise-open.postinit: Fix upgrades when host is not joined to AD
+
+ -- Gerald Carter <jerry@plainjoe.org>  Tue, 05 Jan 2010 16:21:34 -0600
+
 likewise-open (5.4.0.39949-1) lucid; urgency=low
 
   * New upstream release to fix memory leaks

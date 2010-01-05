@@ -14,19 +14,20 @@ REGSHELL=/usr/bin/lwregshell
 import_machine_account_4_1()
 {
     $CONVERT --lwiauth "${UPGRADEDIR4}/lwiauthd.conf" \
-        "${UPGRADEDIR4}/secrets.tdb" /etc/likewise-open/lwiauthd.reg
+        "${UPGRADEDIR4}/secrets.tdb" \
+        /etc/likewise-open/lwiauthd.reg > /dev/null 2>&1 || true
 
     rm -rf "${UPGRADEDIR4}"
 
-    $REGSHELL import /etc/likewise-open/lwiauthd.reg
+    if [ -f /etc/likewise-open/lwiauthd.reg ]; then
+        $REGSHELL import /etc/likewise-open/lwiauthd.reg
 
-    ## Handled by pam-auth-update
-    ## $DOMAINJOIN configure --enable pam > /dev/null 2>&1
-    $DOMAINJOIN configure --enable nsswitch > /dev/null 2>&1
-    $DOMAINJOIN configure --enable ssh > /dev/null 2>&1
-    $DOMAINJOIN configure --long `hostname --long` --short `hostname --short` \
-        --enable krb5 > /dev/null 2>&1
-    #$DOMAINJOIN configure --enable firewall
+        $DOMAINJOIN configure --enable nsswitch > /dev/null 2>&1
+        $DOMAINJOIN configure --enable ssh > /dev/null 2>&1
+        $DOMAINJOIN configure --long `hostname --long` \
+                              --short `hostname --short` \
+                              --enable krb5 > /dev/null 2>&1
+    fi
 }
 
 convert_import()
@@ -37,12 +38,9 @@ convert_import()
     DEST=$3
 
     if [ -f $SOURCE ]; then
-        $CONVERT $COMMAND $SOURCE $DEST
-        if [ $? -eq 0 ]; then
-            if [ -n "$3" ]; then
-                $REGSHELL import $DEST
-            fi
-            rm -f $SOURCE
+        $CONVERT $COMMAND $SOURCE $DEST > /dev/null 2>&1 || true
+        if [ -n "$DEST" -a -f "$DEST" ]; then
+            $REGSHELL import $DEST
         fi
     fi
 }
