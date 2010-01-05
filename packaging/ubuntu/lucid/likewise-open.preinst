@@ -4,6 +4,23 @@ set -e
 
 UPGRADEDIR4="/etc/likewise-open/4_1_upgrade"
 
+rm_conffile() {
+    CONFFILE="$1"
+
+    if [ -e "$CONFFILE" ]; then
+        md5sum="`md5sum \"$CONFFILE\" | sed -e \"s/ .*//\"`"
+        old_md5sum="`sed -n -e \"/^Conffiles:/,/^[^ ]/{\\\\' $CONFFILE'{s/.* //;p}}\" /var/lib/dpkg/status`"
+        if [ "$md5sum" != "$old_md5sum" ]; then
+            echo "Obsolete conffile $CONFFILE has been modified by you."
+            echo "Saving as $CONFFILE.dpkg-bak ..."
+            mv -f "$CONFFILE" "$CONFFILE".dpkg-bak
+        else
+            echo "Removing obsolete conffile $CONFFILE ..."
+            rm -f "$CONFFILE"
+        fi
+    fi
+}
+
 save_4_1_files()
 {
     if [ -f /etc/samba/lwiauthd.conf -a -f /etc/samba/secrets.tdb ]
@@ -41,6 +58,17 @@ case "$1" in
         if [ -x /usr/bin/domainjoin-cli ]; then
             /usr/bin/domainjoin-cli leave || true
         fi
+    fi
+
+    # remove obsolete conffiles from previous versions
+    if dpkg --compare-versions "$2" lt-nl "5.4.0"; then
+	# from 4.1
+	rm_conffile /etc/samba/lwiauthd.conf
+	rm_conffile /etc/security/pam_lwidentity.conf
+	rm_conffile /etc/default/likewise-open
+	rm_conffile /etc/init.d/likewise-open
+	# from 5.0
+	rm_conffile /etc/init.d/npcmuxd
     fi
     ;;
 

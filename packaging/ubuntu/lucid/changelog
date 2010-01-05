@@ -1,3 +1,17 @@
+likewise-open (5.4.0.39949-1) lucid; urgency=low
+
+  * New upstream release to fix memory leaks
+
+ -- Gerald Carter <jerry@plainjoe.org>  Tue, 05 Jan 2010 13:32:04 -0600
+
+likewise-open (5.4.0.39929-2) lucid; urgency=low
+
+  [ Martin Pitt ]
+  * debian/likewise-open.preinst: Remove obsolete conffiles from 4.1 and 5.0
+    on upgrade.
+
+ -- Gerald Carter <jerry@plainjoe.org>  Tue, 05 Jan 2010 13:28:37 -0600
+
 likewise-open (5.4.0.39929-1) lucid; urgency=low
 
   * New upstream release
