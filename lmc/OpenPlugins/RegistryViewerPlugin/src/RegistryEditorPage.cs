@@ -174,7 +174,7 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
                     //            "AppEvents1",
                     //            SecurityDescriptor.pSecurityDescriptorOut);
                     //}
-                    //break;
+                    break;
 
                 case RegistryViewerPlugin.NodeType.HKEY_LOCAL_MACHINE:
 
