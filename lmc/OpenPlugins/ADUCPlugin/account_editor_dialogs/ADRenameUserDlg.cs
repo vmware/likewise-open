@@ -44,9 +44,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
     public partial class ADRenameUserDlg : Form
     {
         #region Class Data
+
         private ADUCDirectoryNode _dirnode;
-        public string logonname = "";
         public RenameUserInfo renameUserInfo;
+        public string logonname = "";
+        private string ParentDN = "";
+
         #endregion
 
         #region Constructors
@@ -56,13 +59,12 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             InitializeComponent();
         }
 
-        public ADRenameUserDlg(ADUCDirectoryNode dirnode)
+        public ADRenameUserDlg(ADUCDirectoryNode dirnode, string parentDN)
             : this()
         {
+            this.ParentDN = parentDN;
             this._dirnode = dirnode;
-
             this.renameUserInfo = new RenameUserInfo();
-
             int ret = -1;
 
             List<LdapEntry> ldapEntries = null;
@@ -383,10 +385,6 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
 
             if (string.Compare(this.renameUserInfo.fullName, this.FullNametextbox.Text.Trim()) != 0)
             {
-                LACTreeNode parentnode = (LACTreeNode)_dirnode.Parent;
-
-                ADUCDirectoryNode parentdirnode = parentnode as ADUCDirectoryNode;
-
                 string filterqry = string.Format("(&(objectClass=user)(name={0}))", this.FullNametextbox.Text.Trim());
                 List<LdapEntry> ldapEntry = null;
 
@@ -396,7 +394,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 };
 
                 ret = _dirnode.LdapContext.ListChildEntriesSynchronous(
-                parentdirnode.DistinguishedName,
+                ParentDN,
                 Likewise.LMC.LDAP.Interop.LdapAPI.LDAPSCOPE.ONE_LEVEL,
                 filterqry,
                 attrLists,
