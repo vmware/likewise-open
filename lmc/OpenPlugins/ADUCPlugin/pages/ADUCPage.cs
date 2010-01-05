@@ -1641,64 +1641,7 @@ public partial class ADUCPage : StandardPage
         //Move...
         if (mi != null && mi.Text.Equals("Move..."))
         {
-            ADUCDirectoryNode oldparentdirnode = null;
-            ret = -1;
-
-            ADMoveObjectPage f = new ADMoveObjectPage(base.container, this, base.pi as ADUCPlugin, lmctreeview);
-            if (f.ShowDialog(this) == DialogResult.OK)
-            {
-                if (mi.Tag != null)
-                {
-                    oldparentdirnode = dirnode.Parent == null ? treeNode as ADUCDirectoryNode : dirnode.Parent as ADUCDirectoryNode;
-                    ret = DoMoveADObject(dirnode, f.moveInfo.newParentDn);
-                }
-                else
-                {
-                    oldparentdirnode = (ADUCDirectoryNode)treeNode;
-
-                    foreach (ListViewItem item in lvChildNodes.SelectedItems)
-                    {
-                        ADUCDirectoryNode dn = item.Tag as ADUCDirectoryNode;
-                        if (dn != null)
-                        {
-                            ret = DoMoveADObject(dn, f.moveInfo.newParentDn);
-                            if (ret != 0)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                }
-                //refresh both old parent and new parent
-                if (ret == 0)
-                {
-                    container.ShowMessage("Object(s) was moved successfully!");
-
-                    ADUCPlugin plugin = treeNode.Plugin as ADUCPlugin;
-                    ADUCDirectoryNode newParentDirnode = f.moveInfo.newParentDirnode;
-                    newParentDirnode.DistinguishedName = f.moveInfo.newParentDn;
-
-                    oldparentdirnode.Refresh();
-                    RefreshModifiedNode(plugin._pluginNode, newParentDirnode);
-                    oldparentdirnode.IsModified = true;
-                    base.treeNode = oldparentdirnode;
-                }
-                else if (ret != 0)
-                {
-                    if (ret == 64)
-                    {
-                        container.ShowError(this, "The object cannot be added because the parent is not on the list of possible superirors");
-                    }
-                    else if (ret == 53)
-                    {
-                        string sMsg = string.Format("Windows cannot move object {0} because:\nIllegal modify operation. Some aspect of the modification is not permitted", dirnode.Text);
-                        container.ShowError(this, sMsg);
-                    }
-                    else
-                        container.ShowError(ErrorCodes.LDAPString(ret));
-                    return;
-                }
-            }
+            DoMoveObjectWork(dirnode);
         }
 
         //Rename
@@ -2280,7 +2223,6 @@ public partial class ADUCPage : StandardPage
 
         //Refreshing the Aduc page after performing any of the aduc functionalities
 		RefreshPluginPage();
-        return;
 
         //Properties...
         if (mi != null && mi.Text.Equals("Properties"))
@@ -2349,6 +2291,83 @@ public partial class ADUCPage : StandardPage
     #endregion
 
     #region helper_functions
+
+    private void DoMoveObjectWork(ADUCDirectoryNode dirnode)
+    {
+        ADUCDirectoryNode oldparentdirnode = null;
+        int ret = -1;
+
+        ADMoveObjectPage f = new ADMoveObjectPage(base.container, this, base.pi as ADUCPlugin, lmctreeview);
+        if (f.ShowDialog(this) == DialogResult.OK)
+        {
+            if (dirnode != null)
+            {
+                if (dirnode.DistinguishedName.Equals(f.moveInfo.newParentDn, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    string sMsg = "The source and destination of the move operation cannot be the same object.\n" +
+                                  "Would you like to select another destination?";
+                    DialogResult dlg = MessageBox.Show(this, sMsg, CommonResources.GetString("Caption_Console"),
+                                    MessageBoxButtons.YesNo, MessageBoxIcon.Error,
+                                    MessageBoxDefaultButton.Button1);
+                    if (dlg == DialogResult.Yes)
+                    {
+                        DoMoveObjectWork(dirnode);
+                    }
+                    else
+                        return;
+                }
+
+                oldparentdirnode = dirnode.Parent == null ? treeNode as ADUCDirectoryNode : dirnode.Parent as ADUCDirectoryNode;
+                ret = DoMoveADObject(dirnode, f.moveInfo.newParentDn);
+            }
+            else
+            {
+                oldparentdirnode = (ADUCDirectoryNode)treeNode;
+
+                foreach (ListViewItem item in lvChildNodes.SelectedItems)
+                {
+                    ADUCDirectoryNode dn = item.Tag as ADUCDirectoryNode;
+                    if (dn != null)
+                    {
+                        ret = DoMoveADObject(dn, f.moveInfo.newParentDn);
+                        if (ret != 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            //refresh both old parent and new parent
+            if (ret == 0)
+            {
+                container.ShowMessage("Object(s) was moved successfully!");
+
+                ADUCPlugin plugin = treeNode.Plugin as ADUCPlugin;
+                ADUCDirectoryNode newParentDirnode = f.moveInfo.newParentDirnode;
+                newParentDirnode.DistinguishedName = f.moveInfo.newParentDn;
+
+                oldparentdirnode.Refresh();
+                RefreshModifiedNode(plugin._pluginNode, newParentDirnode);
+                oldparentdirnode.IsModified = true;
+                base.treeNode = oldparentdirnode;
+            }
+            else if (ret != 0)
+            {
+                if (ret == 64)
+                {
+                    container.ShowError(this, "The object cannot be added because the parent is not on the list of possible superirors");
+                }
+                else if (ret == 53)
+                {
+                    string sMsg = string.Format("Windows cannot move object {0} because:\nIllegal modify operation. Some aspect of the modification is not permitted", dirnode.Text);
+                    container.ShowError(this, sMsg);
+                }
+                else
+                    container.ShowError(ErrorCodes.LDAPString(ret));
+                return;
+            }
+        }
+    }
 
     private int DoAddtoGroup(ADUCDirectoryNode dirnode,
                              string sDN,
