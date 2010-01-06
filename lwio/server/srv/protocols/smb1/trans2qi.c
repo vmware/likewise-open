@@ -61,10 +61,11 @@ SrvMarshallFileAllInfo(
 static
 NTSTATUS
 SrvMarshallFileNameInfo(
-    PBYTE   pInfoBuffer,
-    USHORT  usBytesAvailable,
-    PBYTE*  ppData,
-    PUSHORT pusDataLen
+    PLWIO_SRV_TREE pTree,
+    PBYTE          pInfoBuffer,
+    USHORT         usBytesAvailable,
+    PBYTE*         ppData,
+    PUSHORT        pusDataLen
     );
 
 static
@@ -137,6 +138,21 @@ static
 NTSTATUS
 SrvBuildQueryNameInfoResponse(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvGetSpecificTreePath(
+    PWSTR  pwszOriginalPath,
+    PWSTR* ppwszSpecificPath
+    );
+
+static
+NTSTATUS
+SrvMatchPathPrefix(
+    PWSTR pwszPath,
+    ULONG ulPathLength,
+    PWSTR pwszPrefix
     );
 
 static
@@ -1674,6 +1690,7 @@ SrvBuildQueryNameInfoResponse(
     *pSmbResponse->pWordCount = 10 + setupCount;
 
     ntStatus = SrvMarshallFileNameInfo(
+                    pTrans2State->pTree,
                     pTrans2State->pData2,
                     pTrans2State->usBytesUsed,
                     &pData,
@@ -1728,36 +1745,63 @@ error:
 static
 NTSTATUS
 SrvMarshallFileNameInfo(
-    PBYTE   pInfoBuffer,
-    USHORT  usBytesAvailable,
-    PBYTE*  ppData,
-    PUSHORT pusDataLen
+    PLWIO_SRV_TREE pTree,
+    PBYTE          pInfoBuffer,
+    USHORT         usBytesAvailable,
+    PBYTE*         ppData,
+    PUSHORT        pusDataLen
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PBYTE    pData = NULL;
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+    PBYTE    pData           = NULL;
     USHORT   usBytesRequired = 0;
+    BOOLEAN  bInLock         = FALSE;
+    PWSTR     pwszTreePath   = NULL; // Do not free
     PFILE_NAME_INFORMATION pFileNameInfo =
                                         (PFILE_NAME_INFORMATION)pInfoBuffer;
     PTRANS2_FILE_NAME_INFORMATION pFileNameInfoPacked = NULL;
 
-    usBytesRequired = sizeof(TRANS2_FILE_NAME_INFORMATION) +
-                      pFileNameInfo->FileNameLength;
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
-    ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
+    ntStatus = SrvGetSpecificTreePath(
+                    pTree->pShareInfo->pwszPath,
+                    &pwszTreePath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pFileNameInfoPacked = (PTRANS2_FILE_NAME_INFORMATION)pData;
+    if (STATUS_SUCCESS != SrvMatchPathPrefix(
+                                pFileNameInfo->FileName,
+                                pFileNameInfo->FileNameLength/sizeof(wchar16_t),
+                                pwszTreePath))
+    {
+        ntStatus = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ULONG ulPrefixLength = wc16slen(pwszTreePath) * sizeof(wchar16_t);
 
-    pFileNameInfoPacked->ulFileNameLength = pFileNameInfo->FileNameLength;
-    memcpy(pFileNameInfoPacked->FileName,
-           pFileNameInfo->FileName,
-           pFileNameInfo->FileNameLength);
+        usBytesRequired = sizeof(TRANS2_FILE_NAME_INFORMATION) +
+                              pFileNameInfo->FileNameLength - ulPrefixLength;
+
+        ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pFileNameInfoPacked = (PTRANS2_FILE_NAME_INFORMATION)pData;
+
+        pFileNameInfoPacked->ulFileNameLength =
+                    pFileNameInfo->FileNameLength - ulPrefixLength;
+
+        memcpy((PBYTE)pFileNameInfoPacked->FileName,
+               (PBYTE)pFileNameInfo->FileName + ulPrefixLength,
+               pFileNameInfoPacked->ulFileNameLength);
+    }
 
     *ppData = pData;
     *pusDataLen = usBytesRequired;
 
 cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 
     return ntStatus;
 
@@ -1772,6 +1816,90 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvGetSpecificTreePath(
+    PWSTR  pwszOriginalPath,
+    PWSTR* ppwszSpecificPath
+    )
+{
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+    wchar16_t wszBackSlash[] = { '\\', 0 };
+    wchar16_t wszFwdSlash[]  = { '/',  0 };
+
+    if ((*pwszOriginalPath != wszBackSlash[0]) &&
+         (*pwszOriginalPath != wszFwdSlash[0]))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    pwszOriginalPath++;
+
+    // Skip the device name
+    while (!IsNullOrEmptyString(pwszOriginalPath) &&
+           (*pwszOriginalPath != wszBackSlash[0]) &&
+           (*pwszOriginalPath != wszFwdSlash[0]))
+    {
+        pwszOriginalPath++;
+    }
+
+    if (IsNullOrEmptyString(pwszOriginalPath) ||
+        ((*pwszOriginalPath != wszBackSlash[0]) &&
+         (*pwszOriginalPath != wszFwdSlash[0])))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppwszSpecificPath = pwszOriginalPath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszSpecificPath = NULL;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvMatchPathPrefix(
+    PWSTR pwszPath,
+    ULONG ulPathLength,
+    PWSTR pwszPrefix
+    )
+{
+    NTSTATUS ntStatus = STATUS_NO_MATCH;
+    ULONG   ulPrefixLength = wc16slen(pwszPrefix);
+    PWSTR   pwszTmp = NULL;
+
+    if (ulPathLength >= ulPrefixLength)
+    {
+        ntStatus = SrvAllocateMemory(
+                        (ulPrefixLength + 1) * sizeof(wchar16_t),
+                        (PVOID*)&pwszTmp);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        memcpy( (PBYTE)pwszTmp,
+                (PBYTE)pwszPath,
+                ulPrefixLength * sizeof(wchar16_t));
+
+        if (!SMBWc16sCaseCmp(pwszTmp, pwszPrefix))
+        {
+            ntStatus = STATUS_SUCCESS;
+        }
+    }
+
+error:
+
+    SRV_SAFE_FREE_MEMORY(pwszTmp);
+
+    return ntStatus;
 }
 
 static

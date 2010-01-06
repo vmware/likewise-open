@@ -64,7 +64,7 @@ SqliteSetKeySecurity(
 	ULONG ulCurrSecDescLen = 0;
 	PSECURITY_DESCRIPTOR_RELATIVE pNewSecDescRel = NULL;
 	ULONG ulNewSecDescLen = 0;
-	//Do not free
+	// Do not free
 	PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelToSet = NULL;
 	ULONG ulSecDescToSetLen = 0;
 	PREG_KEY_CONTEXT pKeyCtx = NULL;
@@ -94,8 +94,6 @@ SqliteSetKeySecurity(
 
     pKeyCtx = pKeyHandle->pKey;
     BAIL_ON_INVALID_KEY_CONTEXT(pKeyCtx);
-
-	RegSrvReferenceKeyContext(pKeyCtx);
 
 	/* Sanity checks */
 	if (SecurityInformation == 0)
@@ -172,7 +170,6 @@ SqliteSetKeySecurity(
 
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyCtx->mutex);
-    RegSrvReleaseKeyContext(pKeyCtx);
 
     LWREG_SAFE_FREE_MEMORY(pCurrSecDescRel);
     LWREG_SAFE_FREE_MEMORY(pNewSecDescRel);
@@ -206,8 +203,6 @@ SqliteGetKeySecurity(
 
     pKeyCtx = pKeyHandle->pKey;
     BAIL_ON_INVALID_KEY_CONTEXT(pKeyCtx);
-
-    RegSrvReferenceKeyContext(pKeyCtx);
 
     LWREG_LOCK_RWMUTEX_SHARED(bInLock, &pKeyCtx->mutex);
 
@@ -250,7 +245,6 @@ SqliteGetKeySecurity(
 
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyCtx->mutex);
-    RegSrvReleaseKeyContext(pKeyCtx);
 
     LWREG_SAFE_FREE_MEMORY(pCurrSecDescRel);
 

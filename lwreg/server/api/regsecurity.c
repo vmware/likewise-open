@@ -225,7 +225,7 @@ RegSrvFreeAbsoluteSecurityDescriptor(
 NTSTATUS
 RegSrvCreateDefaultSecDescRel(
 	IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
-	IN OUT PULONG pulSecDescLen
+	IN OUT PULONG pulSecDescLength
 	)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -278,7 +278,7 @@ RegSrvCreateDefaultSecDescRel(
 
     status = RtlAbsoluteToSelfRelativeSD(pSecDescAbs,
                                          pSecDescRel,
-                                         pulSecDescLen);
+                                         pulSecDescLength);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:

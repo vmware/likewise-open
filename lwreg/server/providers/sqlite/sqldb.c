@@ -408,7 +408,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstOpenKeyEx,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -422,7 +422,7 @@ RegDbOpen(
 	status = sqlite3_prepare16_v2(
 			pConn->pDb,
 			pwszQueryStatement,
-			-1, //search for null termination in szQuery to get length
+			-1, // search for null termination in szQuery to get length
 			&pConn->pstQuerySubKeys,
 			NULL);
 	BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -436,7 +436,7 @@ RegDbOpen(
 	status = sqlite3_prepare16_v2(
 			pConn->pDb,
 			pwszQueryStatement,
-			-1, //search for null termination in szQuery to get length
+			-1, // search for null termination in szQuery to get length
 			&pConn->pstQuerySubKeysCount,
 			NULL);
 	BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -450,7 +450,7 @@ RegDbOpen(
 	status = sqlite3_prepare16_v2(
 			pConn->pDb,
 			pwszQueryStatement,
-			-1, //search for null termination in szQuery to get length
+			-1, // search for null termination in szQuery to get length
 			&pConn->pstQueryValuesCount,
 			NULL);
 	BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -464,7 +464,7 @@ RegDbOpen(
 	status = sqlite3_prepare16_v2(
 			pConn->pDb,
 			pwszQueryStatement,
-			-1, //search for null termination in szQuery to get length
+			-1, // search for null termination in szQuery to get length
 			&pConn->pstQueryAclRefCount,
 			NULL);
 	BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -479,7 +479,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstDeleteKey,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -493,7 +493,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstDeleteAllKeyValues,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -507,7 +507,7 @@ RegDbOpen(
 	status = sqlite3_prepare16_v2(
 			pConn->pDb,
 			pwszQueryStatement,
-			-1, //search for null termination in szQuery to get length
+			-1, // search for null termination in szQuery to get length
 			&pConn->pstQueryKeyValue,
 			NULL);
 	BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -521,7 +521,7 @@ RegDbOpen(
 	status = sqlite3_prepare16_v2(
 			pConn->pDb,
 			pwszQueryStatement,
-			-1, //search for null termination in szQuery to get length
+			-1, // search for null termination in szQuery to get length
 			&pConn->pstQueryKeyValueWithType,
 			NULL);
 	BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -535,7 +535,7 @@ RegDbOpen(
 	status = sqlite3_prepare16_v2(
 			pConn->pDb,
 			pwszQueryStatement,
-			-1, //search for null termination in szQuery to get length
+			-1, // search for null termination in szQuery to get length
 			&pConn->pstQueryKeyValueWithWrongType,
 			NULL);
 	BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -549,7 +549,7 @@ RegDbOpen(
 	status = sqlite3_prepare16_v2(
 			pConn->pDb,
 			pwszQueryStatement,
-			-1, //search for null termination in szQuery to get length
+			-1, // search for null termination in szQuery to get length
 			&pConn->pstQueryValues,
 			NULL);
 	BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -563,7 +563,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstDeleteKeyValue,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -577,7 +577,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstDeleteAcl,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -591,7 +591,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstUpdateRegValue,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -605,7 +605,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstQueryKeyAclIndex,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -619,7 +619,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstQueryKeyAclIndexByKeyId,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -633,7 +633,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstUpdateKeyAclIndexByKeyId,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -647,7 +647,7 @@ RegDbOpen(
     status = sqlite3_prepare16_v2(
             pConn->pDb,
             pwszQueryStatement,
-            -1, //search for null termination in szQuery to get length
+            -1, // search for null termination in szQuery to get length
             &pConn->pstQueryKeyAcl,
             NULL);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
@@ -697,7 +697,7 @@ RegDbStoreRegKeys(
     sqlite3_stmt *pstCreateKeyAcl = NULL;
     PREG_DB_CONNECTION pConn = (PREG_DB_CONNECTION)hDB;
     int iColumnPos = 1;
-    //Do not free pEntry
+    // Do not free pEntry
     PREG_DB_KEY pEntry = NULL;
     DWORD dwIndex = 0;
     PSTR pszError = NULL;
@@ -735,7 +735,7 @@ RegDbStoreRegKeys(
         status = RegDbGetKeyAclIndexByKeyAcl_inlock(
 			                            hDB,
 		                                pEntry->pSecDescRel,
-		                                pEntry->ulSecDescLen,
+		                                pEntry->ulSecDescLength,
 		                                &pEntry->qwAclIndex);
         BAIL_ON_NT_STATUS(status);
 
@@ -747,7 +747,7 @@ RegDbStoreRegKeys(
 					   pstCreateKeyAcl,
 					   1,
 					   (BYTE*)pEntry->pSecDescRel,
-					   pEntry->ulSecDescLen);
+					   pEntry->ulSecDescLength);
 			BAIL_ON_SQLITE3_ERROR_STMT(status, pstCreateKeyAcl);
 
 			status = (DWORD)sqlite3_step(pstCreateKeyAcl);
@@ -1163,7 +1163,7 @@ RegDbCreateKey(
     IN REG_DB_HANDLE hDb,
     IN PCWSTR pwszFullKeyName,
     IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
-    IN ULONG ulSecDescLen,
+    IN ULONG ulSecDescLength,
     OUT PREG_DB_KEY* ppRegKey
     )
 {
@@ -1199,13 +1199,13 @@ RegDbCreateKey(
     pRegKey->version.qwDbId = -1;
     pRegKey->qwAclIndex = -1;
 
-    status = LW_RTL_ALLOCATE((PVOID*)&pRegKey->pSecDescRel, VOID, ulSecDescLen);
+    status = LW_RTL_ALLOCATE((PVOID*)&pRegKey->pSecDescRel, VOID, ulSecDescLength);
     BAIL_ON_NT_STATUS(status);
 
-    memset(pRegKey->pSecDescRel, 0, ulSecDescLen);
+    memset(pRegKey->pSecDescRel, 0, ulSecDescLength);
 
-    memcpy(pRegKey->pSecDescRel, pSecDescRel, ulSecDescLen);
-    pRegKey->ulSecDescLen = ulSecDescLen;
+    memcpy(pRegKey->pSecDescRel, pSecDescRel, ulSecDescLength);
+    pRegKey->ulSecDescLength = ulSecDescLength;
 
     status = RegDbStoreRegKeys(
                  hDb,
@@ -1442,7 +1442,7 @@ RegDbGetKeyValue(
 
         if (sResultCount >= 1)
         {
-            //Duplicate key value records are found
+            // Duplicate key value records are found
 		status = STATUS_DUPLICATE_NAME;
             BAIL_ON_NT_STATUS(status);
         }
@@ -2130,7 +2130,7 @@ RegDbFlushNOP(
 
 
 #if 0
-//Obsolete code, leave for now as future reference
+// Obsolete code, leave for now as future reference
 NTSTATUS
 RegDbStoreEntries(
     IN HANDLE hDB,

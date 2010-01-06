@@ -237,8 +237,9 @@ RegTransactEnumRootKeysW(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-		status = EINVAL;
+		status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -347,7 +348,7 @@ RegTransactCreateKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-		status = EINVAL;
+		status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -414,7 +415,7 @@ RegTransactOpenKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-		status = EINVAL;
+		status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -472,7 +473,7 @@ RegTransactCloseKey(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -529,7 +530,7 @@ RegTransactDeleteKeyW(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -618,7 +619,7 @@ RegTransactQueryInfoKeyW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -691,7 +692,7 @@ RegTransactEnumKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -774,7 +775,7 @@ RegTransactGetValueW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -833,7 +834,7 @@ RegTransactDeleteKeyValueW(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -887,8 +888,9 @@ RegTransactDeleteTreeW(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -942,8 +944,9 @@ RegTransactDeleteValueW(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1030,8 +1033,9 @@ RegTransactEnumValueW(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1125,8 +1129,9 @@ RegTransactQueryMultipleValues(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1190,7 +1195,7 @@ RegTransactSetValueExW(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1251,7 +1256,7 @@ RegTransactSetKeySecurity(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1318,7 +1323,7 @@ RegTransactGetKeySecurity(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 

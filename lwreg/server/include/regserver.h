@@ -437,16 +437,6 @@ RegSrvSetKeySecurityDescriptor(
     );
 
 void
-RegSrvReleaseKeyContext(
-    IN OUT PREG_KEY_CONTEXT hkey
-    );
-
-void
-RegSrvReferenceKeyContext(
-    IN OUT PREG_KEY_CONTEXT pKey
-    );
-
-void
 RegSrvResetValueInfo(
     IN OUT PREG_KEY_CONTEXT pKey
     );

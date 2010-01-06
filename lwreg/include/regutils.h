@@ -89,6 +89,17 @@
         }                                                                            \
     } while (0)
 
+#define BAIL_ON_INVALID_RESERVED_VALUE(dwReserved)      \
+        if (0 != dwReserved) {                          \
+           status = STATUS_INVALID_PARAMETER; \
+           BAIL_ON_NT_STATUS(status);            \
+        }
+
+#define BAIL_ON_INVALID_RESERVED_POINTER(pdwReserved)      \
+        if (NULL != pdwReserved) {                          \
+           status = STATUS_INVALID_PARAMETER; \
+           BAIL_ON_NT_STATUS(status);            \
+        }
 
 #define BAIL_ON_INVALID_STRING(pszParam)          \
         if (IsNullOrEmptyString(pszParam)) {      \
