@@ -641,6 +641,11 @@ cleanup:
     return ntError;
 
 error:
+    if ((ntError == STATUS_LOCK_NOT_GRANTED) && (Offset >= 0xEF000000))
+    {
+        ntError = STATUS_FILE_LOCK_CONFLICT;
+    }
+
     goto cleanup;
 }
 
