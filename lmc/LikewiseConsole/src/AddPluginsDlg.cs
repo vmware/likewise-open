@@ -110,12 +110,8 @@ namespace Likewise.LMC
                     {
                         ListViewItem lvi = new ListViewItem(node.Text);
                         lvi.Tag = node;
+                        lvi.ImageIndex = node.ImageIndex;
 
-                        il.Images.Add(node.image);
-                        lvi.ImageIndex = il.Images.Count - 1;
-                        lvi.StateImageIndex = il.Images.Count - 1;
-
-                        // PluginlistView.Items.Add(lviArr);
                         liItems.Add(lvi);
                     }
                 }
@@ -130,9 +126,6 @@ namespace Likewise.LMC
                     Debugger.Log(9, "Exception", e.ToString());
                 }
             }
-
-            // set the image list
-            PluginlistView.SmallImageList = il;
 
             // sort the items
             liItems.Sort(this);
