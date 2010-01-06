@@ -629,7 +629,7 @@ CanLock(
 
     /* Fast path.  No Exclusive locks */
 
-    if (pExclLocks->NumberOfLocks == 0) {
+    if ((pExclLocks->NumberOfLocks == 0) && (!bExclusive)) {
         ntError = STATUS_SUCCESS;
         goto cleanup;
     }
