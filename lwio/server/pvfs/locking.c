@@ -128,7 +128,16 @@ PvfsLockFile(
     PVFS_LOCK_ENTRY RangeLock = {0};
     PPVFS_CCB pCurrentCcb = NULL;
 
-    if (Flags & PVFS_LOCK_EXCLUSIVE) {
+    /* Negative locks cannot cross the 0 offset boundary */
+
+    if ((Offset < 0) && (Length != 0) && ((Offset + Length - 1) >= 0))
+    {
+        ntError = STATUS_INVALID_LOCK_RANGE;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (Flags & PVFS_LOCK_EXCLUSIVE)
+    {
         bExclusive = TRUE;
     }
 
