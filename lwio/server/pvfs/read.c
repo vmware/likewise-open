@@ -249,9 +249,16 @@ PvfsReadFileWithContext(
 
     pIrp->IoStatusBlock.BytesTransferred = totalBytesRead;
 
-    ntError = (totalBytesRead > 0) ?
-        STATUS_SUCCESS :
-        STATUS_END_OF_FILE;
+    if (bufLen == 0)
+    {
+        ntError = STATUS_SUCCESS;
+    }
+    else
+    {
+        ntError = (totalBytesRead > 0) ?
+                  STATUS_SUCCESS :
+                  STATUS_END_OF_FILE;
+    }
 
     pCcb->ChangeEvent |= FILE_NOTIFY_CHANGE_LAST_ACCESS;
 

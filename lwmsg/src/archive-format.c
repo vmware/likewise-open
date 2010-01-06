@@ -203,10 +203,10 @@ lwmsg_archive_populate_message_header(
     ArchiveMessage* header
     )
 {
-    header->flags = LWMSG_SWAP32((uint16_t) message->flags, LWMSG_NATIVE_ENDIAN, archive->byte_order);
+    header->flags = LWMSG_SWAP16((uint16_t) message->flags, LWMSG_NATIVE_ENDIAN, archive->byte_order);
     header->status = LWMSG_SWAP32((uint32_t) message->status, LWMSG_NATIVE_ENDIAN, archive->byte_order);
-    header->cookie = LWMSG_SWAP32((uint16_t) message->cookie, LWMSG_NATIVE_ENDIAN, archive->byte_order);
-    header->tag = LWMSG_SWAP32((int16_t) message->tag, LWMSG_NATIVE_ENDIAN, archive->byte_order);
+    header->cookie = LWMSG_SWAP16((uint16_t) message->cookie, LWMSG_NATIVE_ENDIAN, archive->byte_order);
+    header->tag = LWMSG_SWAP16((int16_t) message->tag, LWMSG_NATIVE_ENDIAN, archive->byte_order);
     header->size = LWMSG_SWAP32((uint32_t) data_size, LWMSG_NATIVE_ENDIAN, archive->byte_order);
 }
 

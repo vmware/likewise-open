@@ -231,19 +231,11 @@ extern pthread_mutex_t gLogLock;
 #define REG_LOCK_LOGGER   pthread_mutex_lock(&gLogLock)
 #define REG_UNLOCK_LOGGER pthread_mutex_unlock(&gLogLock)
 
-#if defined (__LWI_DARWIN_X64__)
 #define _REG_LOG_WITH_THREAD(Level, Format, ...)   \
     _REG_LOG_MESSAGE(Level,                        \
-                     "%zd:" Format,                \
-                     (size_t)pthread_self(),       \
+                     "0x%lx:" Format,              \
+                     (unsigned long)pthread_self(),\
                      ## __VA_ARGS__)
-#else
-#define _REG_LOG_WITH_THREAD(Level, Format, ...)   \
-    _REG_LOG_MESSAGE(Level,                        \
-                     "0x%x:" Format,               \
-                     (unsigned int)pthread_self(), \
-                     ## __VA_ARGS__)
-#endif
 
 #else
 

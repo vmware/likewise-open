@@ -88,6 +88,7 @@ namespace Likewise.LMC
             this.PluginlistView.MultiSelect = false;
             this.PluginlistView.Name = "PluginlistView";
             this.PluginlistView.Size = new System.Drawing.Size(311, 211);
+            this.PluginlistView.SmallImageList = this.imageList;
             this.PluginlistView.TabIndex = 1;
             this.PluginlistView.UseCompatibleStateImageBehavior = false;
             this.PluginlistView.View = System.Windows.Forms.View.List;

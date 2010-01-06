@@ -397,6 +397,8 @@ AD_FreeConfigContents(
     LW_SAFE_FREE_STRING(pConfig->pszHomedirTemplate);
     LW_SAFE_FREE_STRING(pConfig->pszShell);
     LW_SAFE_FREE_STRING(pConfig->pszSkelDirs);
+    LW_SAFE_FREE_STRING(pConfig->pszCellSupport);
+    LW_SAFE_FREE_STRING(pConfig->pszCacheBackend);
 
     if (pConfig->pszUnresolvedMemberList)
     {

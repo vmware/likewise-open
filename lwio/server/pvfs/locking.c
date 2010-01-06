@@ -128,15 +128,16 @@ PvfsLockFile(
     PVFS_LOCK_ENTRY RangeLock = {0};
     PPVFS_CCB pCurrentCcb = NULL;
 
-    /* Sanity check -- WIll probably have to go back and determine
-       the semantics of 0 byte locks */
+    /* Negative locks cannot cross the 0 offset boundary */
 
-    if (Length == 0) {
-        ntError = STATUS_INVALID_PARAMETER;
+    if ((Offset < 0) && (Length != 0) && ((Offset + Length - 1) >= 0))
+    {
+        ntError = STATUS_INVALID_LOCK_RANGE;
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    if (Flags & PVFS_LOCK_EXCLUSIVE) {
+    if (Flags & PVFS_LOCK_EXCLUSIVE)
+    {
         bExclusive = TRUE;
     }
 
@@ -420,7 +421,6 @@ PvfsProcessPendingLocks(
     PVFS_LOCK_FLAGS Flags = 0;
     ULONG Key = 0;
     PIRP pIrp = NULL;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
     PPVFS_CCB pCcb = NULL;
     BOOLEAN bBrlWriteLocked = FALSE;
 
@@ -462,16 +462,15 @@ PvfsProcessPendingLocks(
                            PVFS_PENDING_LOCK,
                            LockList);
 
-        pIrpContext = pPendingLock->pIrpContext;
         pCcb        = pPendingLock->pCcb;
-        pIrp        = pIrpContext->pIrp;
+        pIrp        = pPendingLock->pIrpContext->pIrp;
 
-        if (pIrpContext->bIsCancelled)
+        if (pPendingLock->pIrpContext->bIsCancelled)
         {
             pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-            PvfsAsyncIrpComplete(pIrpContext);
-            PvfsFreeIrpContext(&pIrpContext);
+            PvfsAsyncIrpComplete(pPendingLock->pIrpContext);
+            PvfsFreeIrpContext(&pPendingLock->pIrpContext);
 
             PvfsFreePendingLock(&pPendingLock);
 
@@ -492,25 +491,31 @@ PvfsProcessPendingLocks(
            is too late to cancel and we are not in the worker
            thread queue. */
 
-        ntError = PvfsLockFile(pIrpContext,
+        ntError = PvfsLockFile(pPendingLock->pIrpContext,
                                pCcb,
                                Key,
                                ByteOffset,
                                Length,
                                Flags);
-        PvfsFreePendingLock(&pPendingLock);
-        if (ntError == STATUS_PENDING) {
-            continue;
+
+        if (ntError != STATUS_PENDING)
+        {
+            /* We've processed the lock (to success or failure) */
+
+            pIrp->IoStatusBlock.Status = ntError;
+
+            PvfsAsyncIrpComplete(pPendingLock->pIrpContext);
+            PvfsFreeIrpContext(&pPendingLock->pIrpContext);
         }
 
-        /* We've processed the lock (to success or failure) */
+        /* If the lock was pended again, it ahs a new record, so
+           free this one.  But avoid Freeing the IrpContext here.
+           This should probably be using a ref count.  But because of
+           the relationship between completing an Irp and an IrpContext,
+           we do not.  */
 
-        pIrp->IoStatusBlock.Status = ntError;
-
-        PvfsAsyncIrpComplete(pIrpContext);
-        PvfsFreeIrpContext(&pIrpContext);
-
-        PvfsReleaseCCB(pCcb);
+        pPendingLock->pIrpContext = NULL;
+        PvfsFreePendingLock(&pPendingLock);
     }
 
 cleanup:
@@ -525,10 +530,8 @@ error:
     goto cleanup;
 }
 
-/**************************************************************
- *************************************************************/
-
-/* Does Lock #1 overlap with Lock #2? */
+/***********************************************************************
+ **********************************************************************/
 
 static BOOLEAN
 DoRangesOverlap(
@@ -540,16 +543,43 @@ DoRangesOverlap(
 {
     LONG64 Start1, Start2, End1, End2;
 
-    Start1 = Offset1;
-    End1   = Offset1 + Length1 - 1;
+    /* Zero byte locks form a boundary that overlaps when crossed */
 
-    Start2 = Offset2;
-    End2   = Offset2 + Length2 - 1;
-
-    if (((Start1 >= Start2) && (Start1 <= End2)) ||
-        ((End1 >= Start2) && (End1 <= End2)))
+    if ((Length1 == 0) && (Length2 == 0))
     {
-        return TRUE;
+        /* Two Zero byte locks never conflict with each other */
+
+        return FALSE;
+    }
+    else if (Length1 == 0)
+    {
+        Start2 = Offset2;
+        End2   = Offset2 + Length2 - 1;
+
+        return ((Offset1 > Start2) && (Offset1 <= End2)) ?
+               TRUE : FALSE;
+    }
+    else if (Length2 == 0)
+    {
+        Start1 = Offset1;
+        End1   = Offset1 + Length1 - 1;
+
+        return ((Offset2 > Start1) && (Offset2 <= End1)) ?
+               TRUE : FALSE;
+    }
+    else
+    {
+        Start1 = Offset1;
+        End1   = Offset1 + Length1 - 1;
+
+        Start2 = Offset2;
+        End2   = Offset2 + Length2 - 1;
+
+        if (((Start1 >= Start2) && (Start1 <= End2)) ||
+            ((End1 >= Start2) && (End1 <= End2)))
+        {
+            return TRUE;
+        }
     }
 
     return FALSE;
@@ -599,7 +629,7 @@ CanLock(
 
     /* Fast path.  No Exclusive locks */
 
-    if (pExclLocks->NumberOfLocks == 0) {
+    if ((pExclLocks->NumberOfLocks == 0) && (!bExclusive)) {
         ntError = STATUS_SUCCESS;
         goto cleanup;
     }
@@ -622,7 +652,13 @@ CanLock(
 
 cleanup:
     return ntError;
+
 error:
+    if ((ntError == STATUS_LOCK_NOT_GRANTED) && (Offset >= 0xEF000000))
+    {
+        ntError = STATUS_FILE_LOCK_CONFLICT;
+    }
+
     goto cleanup;
 }
 
@@ -823,6 +859,15 @@ PvfsCheckLockedRegion(
         break;
     }
     BAIL_ON_NT_STATUS(ntError);
+
+    /* Zero byte reads and writes don't conflict */
+
+    if (Length == 0)
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
 
     /* Read locks so no one can add a CCB to the list,
        or add a new BRL. */

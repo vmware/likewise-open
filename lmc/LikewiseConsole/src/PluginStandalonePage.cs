@@ -96,6 +96,7 @@ namespace Likewise.LMC
             _lmcTreeview = lmcTreeview;
 
             TreeNode node = lmcTreeview.Nodes[0];
+            ImageList il = new ImageList();
             this.ChosenPluginlistView.Items.Clear();
 
             foreach (TreeNode n in node.Nodes)
@@ -107,7 +108,7 @@ namespace Likewise.LMC
                 string[] values = { str };
                 lviArr = new ListViewItem(values);
                 lviArr.Tag = n;
-                lviArr.ImageIndex = (int)PluginStandalonePage.GetNodeType(n.Name);
+                lviArr.ImageIndex = n.ImageIndex;// (int)PluginStandalonePage.GetNodeType(n.Name);
                 this.ChosenPluginlistView.Items.Add(lviArr);
             }
 
