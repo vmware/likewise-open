@@ -55,7 +55,7 @@ SqliteGetKeyToken(
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
-    //Do not free
+    // Do not free
     PCWSTR pwszFound = NULL;
     PWSTR pwszOutputString = NULL;
 
@@ -91,7 +91,7 @@ SqliteGetParentKeyName(
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
-    //Do not free
+    // Do not free
     PCWSTR pwszFound = NULL;
     PWSTR pwszOutputString = NULL;
 
@@ -179,13 +179,13 @@ SqliteCreateKeyContext(
     pKeyResult->qwSdId = pRegEntry->qwAclIndex;
 
     // Cache ACL
-    if (pRegEntry->ulSecDescLen)
+    if (pRegEntry->ulSecDescLength)
     {
-        status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->pSecurityDescriptor, VOID, pRegEntry->ulSecDescLen);
+        status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->pSecurityDescriptor, VOID, pRegEntry->ulSecDescLength);
         BAIL_ON_NT_STATUS(status);
 
-        memcpy(pKeyResult->pSecurityDescriptor, pRegEntry->pSecDescRel, pRegEntry->ulSecDescLen);
-        pKeyResult->ulSecDescLength = pRegEntry->ulSecDescLen;
+        memcpy(pKeyResult->pSecurityDescriptor, pRegEntry->pSecDescRel, pRegEntry->ulSecDescLength);
+        pKeyResult->ulSecDescLength = pRegEntry->ulSecDescLength;
         pKeyResult->bHasSdInfo = TRUE;
     }
 
@@ -211,7 +211,7 @@ SqliteCreateKeyInternal(
     IN PWSTR pwszFullKeyName, // Full Key Path
     IN ACCESS_MASK AccessDesired,
     IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
-    IN ULONG ulSecDescLen,
+    IN ULONG ulSecDescLength,
     OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle
     )
 {
@@ -225,11 +225,10 @@ SqliteCreateKeyInternal(
     PSECURITY_DESCRIPTOR_RELATIVE pParentSecDescRel = NULL;
     ULONG ulParentSecDescLen = 0;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelToSet = NULL;
-    ULONG ulSecDescLenToSet = 0;
+    ULONG ulSecDescLengthToSet = 0;
 
-
-
-    BAIL_ON_NT_INVALID_STRING(pwszFullKeyName); //Full key path
+    // Full key path
+    BAIL_ON_NT_INVALID_STRING(pwszFullKeyName);
 
     LWREG_LOCK_MUTEX(bInLock, &gActiveKeyList.mutex);
 
@@ -265,7 +264,7 @@ SqliteCreateKeyInternal(
 
 	// Get key's security descriptor
 	// Inherit from its direct parent or given by caller
-	if (!pSecDescRel || !ulSecDescLen)
+	if (!pSecDescRel || !ulSecDescLength)
 	{
 		BAIL_ON_INVALID_KEY_CONTEXT(pParentKeyCtx);
 
@@ -285,17 +284,17 @@ SqliteCreateKeyInternal(
 		}
 
 		pSecDescRelToSet = pParentKeyCtx->pSecurityDescriptor;
-		ulSecDescLenToSet = pParentKeyCtx->ulSecDescLength;
+		ulSecDescLengthToSet = pParentKeyCtx->ulSecDescLength;
 	}
 	else
 	{
 		pSecDescRelToSet = pSecDescRel;
-		ulSecDescLenToSet = ulSecDescLen;
+		ulSecDescLengthToSet = ulSecDescLength;
 	}
 
 	// Make sure SD has at least owner information
 	if (!RtlValidRelativeSecurityDescriptor(pSecDescRelToSet,
-			                                ulSecDescLenToSet,
+			                                ulSecDescLengthToSet,
 			                                OWNER_SECURITY_INFORMATION))
 	{
 		status = STATUS_INVALID_SECURITY_DESCR;
@@ -309,17 +308,17 @@ SqliteCreateKeyInternal(
 	    status = RegSrvAccessCheckKey(pServerState->peerUID,
 			                      pServerState->peerGID,
 			                      pSecDescRelToSet,
-			                      ulSecDescLenToSet,
+			                      ulSecDescLengthToSet,
 	                                  AccessDesired,
 	                                  &AccessGranted);
 	    BAIL_ON_NT_STATUS(status);
     }
 
-	//Create key with SD
+	// Create key with SD
 	status = RegDbCreateKey(ghCacheConnection,
 							pwszFullKeyName,
 							pSecDescRelToSet,
-							ulSecDescLenToSet,
+							ulSecDescLengthToSet,
 							&pRegEntry);
 	BAIL_ON_NT_STATUS(status);
 
@@ -559,7 +558,7 @@ SqliteDeleteKeyInternal(
     size_t sSubkeyCount = 0;
     PWSTR pwszParentKeyName = NULL;
     PREG_KEY_HANDLE pKeyHandle = NULL;
-    //Do not free
+    // Do not free
     PREG_KEY_CONTEXT pKeyCtx = NULL;
 
     status = SqliteOpenKeyInternal(handle,
@@ -572,9 +571,9 @@ SqliteDeleteKeyInternal(
     pKeyCtx = pKeyHandle->pKey;
     BAIL_ON_INVALID_KEY_CONTEXT(pKeyCtx);
 
-    //Delete key from DB
-    //Make sure this key does not have subkey before go ahead and delete it
-    //Also need to delete the all of this subkey's values
+    // Delete key from DB
+    // Make sure this key does not have subkey before go ahead and delete it
+    // Also need to delete the all of this subkey's values
     status = RegDbQueryInfoKeyCount(ghCacheConnection,
 		                        pKeyCtx->qwId,
                                     QuerySubKeys,
@@ -583,7 +582,7 @@ SqliteDeleteKeyInternal(
 
     if (sSubkeyCount == 0)
     {
-        //Delete all the values of this key
+        // Delete all the values of this key
         status = RegDbDeleteKey(ghCacheConnection, pKeyCtx->qwId, pKeyCtx->qwSdId, pwszKeyName);
         BAIL_ON_NT_STATUS(status);
 
@@ -612,7 +611,7 @@ error:
     goto cleanup;
 }
 
-//This can be called when a DB lock is already in held
+// This can be called when a DB lock is already in held
 NTSTATUS
 SqliteDeleteKeyInternal_inDblock(
 	IN HANDLE handle,
@@ -623,7 +622,7 @@ SqliteDeleteKeyInternal_inDblock(
     size_t sSubkeyCount = 0;
     PWSTR pwszParentKeyName = NULL;
     PREG_KEY_HANDLE pKeyHandle = NULL;
-    //Do not free
+    // Do not free
     PREG_KEY_CONTEXT pKeyCtx = NULL;
 
     status = SqliteOpenKeyInternal_inDblock(handle,
@@ -636,9 +635,9 @@ SqliteDeleteKeyInternal_inDblock(
     pKeyCtx = pKeyHandle->pKey;
     BAIL_ON_INVALID_KEY_CONTEXT(pKeyCtx);
 
-    //Delete key from DB
-    //Make sure this key does not have subkey before go ahead and delete it
-    //Also need to delete the all of this subkey's values
+    // Delete key from DB
+    // Make sure this key does not have subkey before go ahead and delete it
+    // Also need to delete the all of this subkey's values
     status = RegDbQueryInfoKeyCount_inlock(ghCacheConnection,
 		                        pKeyCtx->qwId,
                                     QuerySubKeys,
@@ -647,7 +646,7 @@ SqliteDeleteKeyInternal_inDblock(
 
     if (sSubkeyCount == 0)
     {
-        //Delete all the values of this key
+        // Delete all the values of this key
         status = RegDbDeleteKey_inlock(ghCacheConnection, pKeyCtx->qwId, pKeyCtx->qwSdId, pwszKeyName);
         BAIL_ON_NT_STATUS(status);
 
@@ -718,7 +717,7 @@ SqliteDeleteTreeInternal_inDblock(
     LW_WCHAR psubKeyName[MAX_KEY_LENGTH];
     DWORD dwSubKeyLen = 0;
     PSTR* ppszSubKey = NULL;
-    //Do not free
+    // Do not free
     PSTR pszSubKeyName = NULL;
     PWSTR pwszSubKey = NULL;
     PREG_KEY_HANDLE pKeyHandle = (PREG_KEY_HANDLE)hKey;
@@ -728,17 +727,11 @@ SqliteDeleteTreeInternal_inDblock(
     pKeyCtx = pKeyHandle->pKey;
     BAIL_ON_INVALID_KEY_CONTEXT(pKeyCtx);
 
-    RegSrvReferenceKeyContext(pKeyCtx);
-
     status = RegDbQueryInfoKeyCount_inlock(ghCacheConnection,
 		                               pKeyCtx->qwId,
                                            QuerySubKeys,
                                            (size_t*)&dwSubKeyCount);
     BAIL_ON_NT_STATUS(status);
-
-    RegSrvReleaseKeyContext(pKeyCtx);
-    pKeyCtx = NULL;
-
 
     if (dwSubKeyCount)
     {
@@ -800,7 +793,6 @@ SqliteDeleteTreeInternal_inDblock(
     }
 
 cleanup:
-    RegSrvReleaseKeyContext(pKeyCtx);
     if (hCurrKey)
     {
         SqliteCloseKey(hCurrKey);

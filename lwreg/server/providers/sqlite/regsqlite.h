@@ -118,7 +118,7 @@ typedef struct __REG_DB_KEY
    PWSTR pwszKeyName;
    int64_t qwAclIndex;
    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel;
-   ULONG ulSecDescLen;
+   ULONG ulSecDescLength;
 } REG_DB_KEY, *PREG_DB_KEY;
 
 typedef struct __REG_DB_VALUE

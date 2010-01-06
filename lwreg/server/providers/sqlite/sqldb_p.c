@@ -91,7 +91,7 @@ RegDbOpenKey_inlock(
 	status = RegDbGetKeyAclByAclIndex_inlock(hDb,
 			                             pRegKey->qwAclIndex,
 			                             &pRegKey->pSecDescRel,
-			                             &pRegKey->ulSecDescLen);
+			                             &pRegKey->ulSecDescLength);
 	BAIL_ON_NT_STATUS(status);
     }
 
@@ -786,7 +786,7 @@ RegDbGetKeyAclByAclIndex_inlock(
     // qwAclIndex should not be -1 (pre-check is done before call this function)
     IN int64_t qwAclIndex,
     OUT PSECURITY_DESCRIPTOR_RELATIVE* ppSecDescRel,
-    OUT PULONG pulSecDescLen
+    OUT PULONG pulSecDescLength
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -824,7 +824,7 @@ RegDbGetKeyAclByAclIndex_inlock(
 		status = RegDbUnpackAclInfo(pstQuery,
 				                     &iColumnPos,
 				                     ppSecDescRel,
-		                             pulSecDescLen);
+		                             pulSecDescLength);
 		BAIL_ON_NT_STATUS(status);
 
 		sResultCount++;
@@ -852,7 +852,7 @@ cleanup:
 
 error:
     *ppSecDescRel = NULL;
-    *pulSecDescLen = 0;
+    *pulSecDescLength = 0;
 
     goto cleanup;
 }
@@ -861,7 +861,7 @@ NTSTATUS
 RegDbGetKeyAclIndexByKeyAcl_inlock(
 	IN REG_DB_HANDLE hDb,
 	IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
-    IN ULONG ulSecDescLen,
+    IN ULONG ulSecDescLength,
 	OUT int64_t* pqwAclIndex
 	)
 {
@@ -878,7 +878,7 @@ RegDbGetKeyAclIndexByKeyAcl_inlock(
 			   pstQuery,
 			   1,
 			   (BYTE*)pSecurityDescriptor,
-			   ulSecDescLen);
+			   ulSecDescLength);
 	BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
     while ((status = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)

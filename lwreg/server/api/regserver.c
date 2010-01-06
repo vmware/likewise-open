@@ -822,25 +822,3 @@ RegSrvValueType(
 
     return type;
 }
-
-void
-RegSrvReferenceKeyContext(
-    IN OUT PREG_KEY_CONTEXT pKey
-    )
-{
-	if (pKey)
-	{
-		LwInterlockedIncrement(&pKey->refCount);
-	}
-}
-
-void
-RegSrvReleaseKeyContext(
-    IN OUT PREG_KEY_CONTEXT pKey
-    )
-{
-	if (pKey)
-	{
-		InterlockedDecrement(&pKey->refCount);
-	}
-}
