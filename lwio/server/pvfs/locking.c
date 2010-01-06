@@ -421,7 +421,6 @@ PvfsProcessPendingLocks(
     PVFS_LOCK_FLAGS Flags = 0;
     ULONG Key = 0;
     PIRP pIrp = NULL;
-    PPVFS_IRP_CONTEXT pIrpContext = NULL;
     PPVFS_CCB pCcb = NULL;
     BOOLEAN bBrlWriteLocked = FALSE;
 
@@ -463,16 +462,15 @@ PvfsProcessPendingLocks(
                            PVFS_PENDING_LOCK,
                            LockList);
 
-        pIrpContext = pPendingLock->pIrpContext;
         pCcb        = pPendingLock->pCcb;
-        pIrp        = pIrpContext->pIrp;
+        pIrp        = pPendingLock->pIrpContext->pIrp;
 
-        if (pIrpContext->bIsCancelled)
+        if (pPendingLock->pIrpContext->bIsCancelled)
         {
             pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
-            PvfsAsyncIrpComplete(pIrpContext);
-            PvfsFreeIrpContext(&pIrpContext);
+            PvfsAsyncIrpComplete(pPendingLock->pIrpContext);
+            PvfsFreeIrpContext(&pPendingLock->pIrpContext);
 
             PvfsFreePendingLock(&pPendingLock);
 
@@ -493,25 +491,31 @@ PvfsProcessPendingLocks(
            is too late to cancel and we are not in the worker
            thread queue. */
 
-        ntError = PvfsLockFile(pIrpContext,
+        ntError = PvfsLockFile(pPendingLock->pIrpContext,
                                pCcb,
                                Key,
                                ByteOffset,
                                Length,
                                Flags);
-        PvfsFreePendingLock(&pPendingLock);
-        if (ntError == STATUS_PENDING) {
-            continue;
+
+        if (ntError != STATUS_PENDING)
+        {
+            /* We've processed the lock (to success or failure) */
+
+            pIrp->IoStatusBlock.Status = ntError;
+
+            PvfsAsyncIrpComplete(pPendingLock->pIrpContext);
+            PvfsFreeIrpContext(&pPendingLock->pIrpContext);
         }
 
-        /* We've processed the lock (to success or failure) */
+        /* If the lock was pended again, it ahs a new record, so
+           free this one.  But avoid Freeing the IrpContext here.
+           This should probably be using a ref count.  But because of
+           the relationship between completing an Irp and an IrpContext,
+           we do not.  */
 
-        pIrp->IoStatusBlock.Status = ntError;
-
-        PvfsAsyncIrpComplete(pIrpContext);
-        PvfsFreeIrpContext(&pIrpContext);
-
-        PvfsReleaseCCB(pCcb);
+        pPendingLock->pIrpContext = NULL;
+        PvfsFreePendingLock(&pPendingLock);
     }
 
 cleanup:
