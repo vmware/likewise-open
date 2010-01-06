@@ -128,6 +128,7 @@ LsaSrvApiFreeConfigContents(
     PLSA_SRV_API_CONFIG pConfig
     )
 {
+    LW_SAFE_FREE_STRING(pConfig->pszLogLevel);
     memset(pConfig, 0, sizeof(*pConfig));
 }
 
