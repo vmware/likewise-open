@@ -223,7 +223,8 @@ UpFormatMultiString(
 
         pszMultiStringSegment += strlen(pszMultiStringSegment) + 1;
     }
-    dwNeededLength += strlen("\"") + strlen(pszName) + strlen("\"=sza:\"\"");
+    dwNeededLength += strlen("\"") + strlen(pszName) + strlen("\"=sza:\"\"") +
+        strlen("\"\"") + strlen("\n") + 1;
 
     dwError = LwAllocateMemory(dwNeededLength, (PVOID*)&pszEscapedMultiString);
     BAIL_ON_UP_ERROR(dwError);
