@@ -827,14 +827,8 @@ ntlm_gss_init_sec_context(
         BAIL_ON_LSA_ERROR(MinorStatus);
     }
 
-    if (dwOutNtlmFlags & NTLM_FLAG_SEAL)
-    {
-        RetFlags |= GSS_C_CONF_FLAG;
-    }
-    if (dwOutNtlmFlags & NTLM_FLAG_SIGN)
-    {
-        RetFlags |= GSS_C_INTEG_FLAG;
-    }
+    RetFlags |= GSS_C_CONF_FLAG;
+    RetFlags |= GSS_C_INTEG_FLAG;
 
 cleanup:
     *pMinorStatus = MinorStatus;
@@ -1007,14 +1001,8 @@ ntlm_gss_accept_sec_context(
     {
         BAIL_ON_LSA_ERROR(MinorStatus);
 
-        if (dwFinalFlags & NTLM_FLAG_SEAL)
-        {
-            dwRetFlags |= GSS_C_CONF_FLAG;
-        }
-        if (dwFinalFlags & NTLM_FLAG_SIGN)
-        {
-            dwRetFlags |= GSS_C_INTEG_FLAG;
-        }
+        dwRetFlags |= GSS_C_CONF_FLAG;
+        dwRetFlags |= GSS_C_INTEG_FLAG;
 
         MajorStatus = ntlm_gss_inquire_context(
                           &MinorStatus,
@@ -1966,10 +1954,15 @@ ntlm_gss_inquire_context(
     gss_name_t pSourceName = NULL;
     PNTLM_GSS_NAME pUserName = NULL;
 
-    if (pCtxtFlags || pLocal || pOpen)
+    if (pLocal || pOpen)
     {
         MinorStatus = LW_ERROR_NOT_SUPPORTED;
         BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    if (pCtxtFlags)
+    {
+        *pCtxtFlags = GSS_C_CONF_FLAG | GSS_C_INTEG_FLAG;
     }
 
     if (ppTargetName)
