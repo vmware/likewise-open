@@ -1006,8 +1006,7 @@ spnego_gss_init_sec_context(
 	}
 	/* create mic/check mic */
 	if (!HARD_ERROR(ret) && spnego_ctx->mech_complete &&
-	    (spnego_ctx->ctx_flags & GSS_C_INTEG_FLAG) &&
-	    (peerState != ACCEPT_COMPLETE)) {
+	    (spnego_ctx->ctx_flags & GSS_C_INTEG_FLAG)) {
 		ret = handle_mic(minor_status,
 				 mechListMIC_in,
 				 (mechtok_out.length != 0),
