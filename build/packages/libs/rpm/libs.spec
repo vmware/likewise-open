@@ -38,6 +38,7 @@ rsync -a __PKG_POPULATE_DIR/ ${RPM_BUILD_ROOT}/
 
 %{_sysconfdir}/likewise/krb5.conf
 %{_sysconfdir}/krb5.conf.default
+%dir /var/lib/likewise/run
 
 %{PrefixDir}/%{_lib}/*
 %if !%{Compat32}
