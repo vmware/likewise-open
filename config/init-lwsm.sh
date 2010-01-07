@@ -108,6 +108,75 @@ service_start()
     return $status
 }
 
+service_restart()
+{
+    status=""
+
+    case "${PLATFORM}" in
+	REDHAT)
+	    printf "%s" "Restarting `service_progname $1`: " 
+	    daemon ${LWSM} -q restart "${1}"
+	    status=$?
+	    if [ $status -eq 0 ]
+	    then
+		echo_success
+		echo
+	    else
+		echo_failure
+		echo
+	    fi
+	    ;;
+	SUSE)
+	    printf "%s" "Restarting `service_description $1`"
+	    startproc ${LWSM} -q restart "${1}"
+	    status=$?
+	    if [ $status -eq 0 ]
+	    then
+		rc_reset
+		rc_status -v
+	    else
+		rc_failed $status
+		rc_status -v
+	    fi
+	    ;;
+	DEBIAN)
+	    log_daemon_msg "Restarting `service_description $1`: `service_progname $1`"
+	    start-stop-daemon --start --exec ${LWSM} -- -q restart "${1}"
+	    status=$?
+	    log_end_msg $status
+	    ;;
+	AIX)
+	    printf "%s" "Restarting `service_description $1`"
+            if (lssrc -s dhcpcd | grep active >/dev/null); then
+                # Wait up to 30 seconds for an ip address
+                for i in `seq 30`; do
+                    ifconfig -a | grep inet | grep -v 127.0.0 | grep -v 0.0.0.0 | grep -v ::1/0 >/dev/null && break
+                    sleep 1
+                done
+            fi
+            ${LWSM} -q restart "${1}"
+            status=$?
+            ;;
+	 HP-UX | SOLARIS | FREEBSD | ESXI)
+            printf "%s" "Restarting `service_description $1`"
+            ${LWSM} -q restart "${1}"
+            status=$?
+	    if [ $status -eq 0 ]
+	    then
+		echo " ...ok"
+	    else
+		echo " ...failed"
+	    fi
+	    ;;
+        UNKNOWN)
+            ${LWSM} -q restart "${1}"
+            status=$?
+            ;;
+    esac
+
+    return $status
+}
+
 service_stop()
 {
     status=""
@@ -260,8 +329,7 @@ case "$1" in
 	exit $?
 	;;
     restart)
-	service_stop "$SERVICE_NAME" || exit $?
-	service_start "$SERVICE_NAME"
+	service_restart "$SERVICE_NAME"
 	exit $?
 	;;
     refresh|reload)
