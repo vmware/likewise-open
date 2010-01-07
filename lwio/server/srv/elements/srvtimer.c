@@ -150,8 +150,10 @@ SrvTimerMain(
         {
             if (llCurTime >= pTimerRequest->llExpiry)
             {
+                BOOLEAN bInLock2 = FALSE;
+
                 LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
-                LWIO_LOCK_MUTEX(bInLock, &pTimerRequest->mutex);
+                LWIO_LOCK_MUTEX(bInLock2, &pTimerRequest->mutex);
 
                 if (pTimerRequest->pfnTimerExpiredCB)
                 {
@@ -161,7 +163,7 @@ SrvTimerMain(
                                         pTimerRequest->pUserData);
                 }
 
-                LWIO_UNLOCK_MUTEX(bInLock, &pTimerRequest->mutex);
+                LWIO_UNLOCK_MUTEX(bInLock2, &pTimerRequest->mutex);
                 LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
 
                 SrvTimerDetachRequest_inlock(pContext, pTimerRequest);

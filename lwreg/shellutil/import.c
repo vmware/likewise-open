@@ -329,9 +329,11 @@ error:
 }
 
 
-DWORD RegShellUtilImportCallback(
-          PREG_PARSE_ITEM pItem,
-          HANDLE hUserCtx)
+DWORD
+RegShellUtilImportCallback(
+    PREG_PARSE_ITEM pItem,
+    HANDLE hUserCtx
+    )
 {
     DWORD dwError = 0;
     HKEY pRootKey = NULL;

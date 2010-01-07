@@ -1109,16 +1109,17 @@ SrvUnregisterPendingLockState(
 
     if (pCursor == pLockStateList->pLockStateHead)
     {
-        pLockStateList->pLockStateHead = pCursor->pNext;
-
-        if (!pLockStateList->pLockStateHead)
+        if (pLockStateList->pLockStateHead == pLockStateList->pLockStateTail)
         {
             pLockStateList->pLockStateTail = NULL;
         }
+
+        pLockStateList->pLockStateHead = pLockStateList->pLockStateHead->pNext;
     }
     else if (pCursor == pLockStateList->pLockStateTail)
     {
         pLockStateList->pLockStateTail = pPrev;
+        pPrev->pNext = NULL;
     }
     else
     {
