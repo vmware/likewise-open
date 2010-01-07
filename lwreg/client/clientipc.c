@@ -644,7 +644,7 @@ RegTransactEnumKeyExW(
     IN OUT PWSTR pName,
     IN OUT PDWORD pcName,
     IN PDWORD pReserved,
-    IN OUT PWSTR pClass,
+    IN OUT OPTIONAL PWSTR pClass,
     IN OUT OPTIONAL PDWORD pcClass,
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
@@ -665,10 +665,8 @@ RegTransactEnumKeyExW(
 
     EnumKeyExReq.hKey = hKey;
     EnumKeyExReq.dwIndex = dwIndex;
-    EnumKeyExReq.pName = pName;
     EnumKeyExReq.cName = *pcName;
-    EnumKeyExReq.pClass = pClass;
-    EnumKeyExReq.pcClass = pcClass;
+    EnumKeyExReq.cClass = pcClass ? *pcClass : 0;
 
     in.tag = REG_Q_ENUM_KEYW_EX;
     in.data = &EnumKeyExReq;
@@ -683,6 +681,15 @@ RegTransactEnumKeyExW(
 
             memcpy(pName, pEnumKeyExResp->pName, (pEnumKeyExResp->cName+1)*sizeof(*pName));
             *pcName = pEnumKeyExResp->cName;
+
+            if (pClass)
+            {
+                memcpy(pClass, pEnumKeyExResp->pClass, (pEnumKeyExResp->cClass+1)*sizeof(*pClass));
+                if (pcClass)
+                {
+			*pcClass = pEnumKeyExResp->cClass;
+                }
+            }
 
             break;
 
@@ -1222,7 +1229,7 @@ RegTransactSetKeySecurity(
 	)
 {
 	NTSTATUS status = 0;
-    REG_IPC_KEY_SECURITY_REQ SetKeySecurityReq;
+    REG_IPC_SET_KEY_SECURITY_REQ SetKeySecurityReq;
     // Do not free pStatus
     PREG_IPC_STATUS pStatus = NULL;
 
@@ -1283,7 +1290,7 @@ RegTransactGetKeySecurity(
 	)
 {
 	NTSTATUS status = 0;
-    REG_IPC_KEY_SECURITY_REQ GetKeySecurityReq;
+    REG_IPC_GET_KEY_SECURITY_REQ GetKeySecurityReq;
     PREG_IPC_GET_KEY_SECURITY_RES pGetKeySecurityResp = NULL;
     // Do not free pStatus
     PREG_IPC_STATUS pStatus = NULL;
@@ -1297,7 +1304,6 @@ RegTransactGetKeySecurity(
 
     GetKeySecurityReq.hKey = hKey;
     GetKeySecurityReq.SecurityInformation = SecurityInformation;
-    GetKeySecurityReq.SecurityDescriptor = SecurityDescriptor;
     GetKeySecurityReq.Length = *lpcbSecurityDescriptor;
 
     in.tag = REG_Q_GET_KEY_SECURITY;
