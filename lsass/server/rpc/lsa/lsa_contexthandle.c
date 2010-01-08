@@ -57,13 +57,7 @@ POLICY_HANDLE_rundown(
     InterlockedDecrement(&pPolCtx->refcount);
     if (pPolCtx->refcount) return;
 
-    if (pPolCtx->hDirectory) {
-        DirectoryClose(pPolCtx->hDirectory);
-    }
-
-    /*
-      free access token
-    */
+    LsaSrvFreeAuthInfo(pPolCtx);
 }
 
 

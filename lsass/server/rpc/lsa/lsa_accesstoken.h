@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,31 +29,45 @@
  */
 
 /*
- * Abstract: Lsa interface (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        lsa_accesstoken.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        Access token handling functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _EXTERNS_H_
-#define _EXTERNS_H_
+#ifndef _LSA_ACCESSTOKEN_H_
+#define _LSA_ACCESSTOKEN_H_
 
-extern pthread_mutex_t gLsaSrvDataMutex;
 
-extern int bLsaSrvInitialised;
+NTSTATUS
+LsaSrvInitAuthInfo(
+    IN  handle_t          hBinding,
+    OUT PPOLICY_CONTEXT   pConnCtx
+    );
 
-extern PCSTR gpszLsaRpcSrvName;
 
-extern LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable;
+VOID
+LsaSrvFreeAuthInfo(
+    IN  PPOLICY_CONTEXT   pConnCtx
+    );
 
-extern rpc_binding_vector_p_t gpLsaSrvBinding;
 
-extern LSA_SRV_CONFIG gLsaSrvConfig;
+NTSTATUS
+LsaSrvGetSystemCreds(
+    OUT LW_PIO_CREDS *ppCreds
+    );
 
-extern PSECURITY_DESCRIPTOR_ABSOLUTE gpLsaSecDesc;
 
-extern PLW_MAP_SECURITY_CONTEXT gpLsaSecCtx;
-
-#endif /* _EXTERNS_H_ */
+#endif /* _LSA_ACCESSTOKEN_H_ */
 
 
 /*

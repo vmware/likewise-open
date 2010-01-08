@@ -27,14 +27,13 @@ liblsa_la_SOURCES = \
     lsa_domaincache.c           \
     lsa_accounts.c              \
     lsa_accesstoken.c           \
+    lsa_security.c              \
     lsa_contexthandle.c
 
 DCEIDL_PASS_INCLUDES = \
     $(CPPFLAGS)        \
     $(NETAPI_INCLUDES) \
     $(LWBASE_INCLUDES)
-
-FEATURETEST_FLAGS="-D__EXTENSIONS__ -D_REENTRANT"
 
 liblsa_la_CFLAGS = \
     $(AM_CFLAGS)             \

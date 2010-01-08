@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,31 +29,42 @@
  */
 
 /*
- * Abstract: Lsa interface (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        lsa_security.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        Lsa rpc server security descriptor functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _EXTERNS_H_
-#define _EXTERNS_H_
+#ifndef _LSA_SECURITY_H_
+#define _LSA_SECURITY_H_
 
-extern pthread_mutex_t gLsaSrvDataMutex;
 
-extern int bLsaSrvInitialised;
+typedef struct _ACCESS_LIST
+{
+    PSID        *ppSid;
+    ACCESS_MASK AccessMask;
+    ULONG       ulAccessType;
 
-extern PCSTR gpszLsaRpcSrvName;
+} ACCESS_LIST, *PACCESS_LIST;
 
-extern LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable;
 
-extern rpc_binding_vector_p_t gpLsaSrvBinding;
+NTSTATUS
+LsaSrvCreateDacl(
+    OUT PACL *ppDacl,
+    IN  PACCESS_LIST pList
+    );
 
-extern LSA_SRV_CONFIG gLsaSrvConfig;
 
-extern PSECURITY_DESCRIPTOR_ABSOLUTE gpLsaSecDesc;
-
-extern PLW_MAP_SECURITY_CONTEXT gpLsaSecCtx;
-
-#endif /* _EXTERNS_H_ */
+#endif /* _LSA_SECURITY_H_ */
 
 
 /*

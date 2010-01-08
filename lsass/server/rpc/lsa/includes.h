@@ -45,9 +45,12 @@
 #include <pthread.h>
 
 #include <dce/rpc.h>
+#include <dce/smb.h>
+#include <dce/lrpc.h>
 #include <dce/dcethread.h>
 #include <wc16str.h>
 #include <lw/base.h>
+#include <lwsid.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
@@ -56,6 +59,7 @@
 #include <lwnet.h>
 #include <lwps/lwps.h>
 #include <lwkrb5.h>
+#include <lwmapsecurity/lwmapsecurity.h>
 
 #include <lsa/lsa.h>
 #include <lsaunistr.h>
@@ -70,6 +74,8 @@
 #include "lsa_srv.h"
 #include "lsadefs.h"
 #include "lsa_contexthandle.h"
+#include "lsa_accesstoken.h"
+#include "lsa_security.h"
 #include "lsa_memory.h"
 #include "lsa.h"
 #include "lsa_h.h"

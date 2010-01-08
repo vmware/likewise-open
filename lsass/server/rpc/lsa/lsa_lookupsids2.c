@@ -100,8 +100,15 @@ LsaSrvLookupSids2(
 
     pPolCtx = (PPOLICY_CONTEXT)hPolicy;
 
-    if (pPolCtx == NULL || pPolCtx->Type != LsaContextPolicy) {
+    if (pPolCtx == NULL || pPolCtx->Type != LsaContextPolicy)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    if (!(pPolCtx->dwAccessGranted & LSA_ACCESS_LOOKUP_NAMES_SIDS))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
