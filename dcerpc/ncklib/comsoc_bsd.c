@@ -39,6 +39,7 @@
 **
 */
 
+#include <config.h>
 #include <dce/lrpc.h>
 #include <commonp.h>
 #include <com.h>
