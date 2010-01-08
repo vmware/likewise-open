@@ -136,6 +136,13 @@ SrvProtocolExecute(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
+    // Cleanup any protocol state before sending a response.
+    if (pContext->pProtocolContext)
+    {
+        pContext->pfnFreeContext(pContext->pProtocolContext);
+        pContext->pProtocolContext = NULL;
+    }
+
     if (pContext->pSmbResponse && pContext->pSmbResponse->pNetBIOSHeader->len)
     {
         ULONG iRepeat = 0;
