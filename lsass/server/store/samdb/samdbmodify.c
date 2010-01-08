@@ -650,6 +650,7 @@ SamDbUpdateBindValues(
                 break;
 
             case SAMDB_ATTR_TYPE_BLOB:
+            case SAMDB_ATTR_TYPE_SECURITY_DESCRIPTOR:
             {
                 POCTET_STRING pOctetString = NULL;
 
