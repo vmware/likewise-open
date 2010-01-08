@@ -1,9 +1,10 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
- * Copyright (c) Likewise Software.  All rights Reserved.
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,59 +28,43 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __INCLUDES_H__
-#define __INCLUDES_H__
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lwsid.h
+ *
+ * Abstract:
+ *
+ *        Likewise Security and Authentication Subsystem (LSASS)
+ *
+ *        SID handling functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
 
-#include "config.h"
-#include <stdarg.h>
-#include <krb5.h>
-#include <gssapi.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <assert.h>
-#include <pthread.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <time.h>
-#include <sys/time.h>
+#ifndef __LWSID_H__
+#define __LWSID_H__
 
-#include <lwps/lwps.h>
-#include <lw/rtlmemory.h>
-#include <lw/security-types.h>
-#include <lw/security-api.h>
-#include <lw/attrs.h>
 
-#include "lwdef.h"
-#include "lwmem.h"
-#include "lwfile.h"
-#include "lwstr.h"
-#include "lwldap.h"
-#include "lwerror.h"
-#include "krb5error-table.h"
-#include "lwkrb5.h"
-#include "bail.h"
-#include "externs.h"
+DWORD
+LwCreateWellKnownSid(
+    IN  WELL_KNOWN_SID_TYPE  WellKnownSidType,
+    IN  OPTIONAL PSID        pDomainOrComputerSid,
+    OUT PSID                *ppSid,
+    OUT OPTIONAL PDWORD      pdwSidSize
+    );
 
-#include "lwldap_p.h"
-#include "lwkrb5_p.h"
-#include "lwtime.h"
-#include "lwsecurityidentifier.h"
 
-#if !defined(HAVE_STRTOLL) && defined(HAVE___STRTOLL)
-#define strtoll __strtoll
-#endif
+#endif /* __LWSID_H__ */
 
-#if !defined(HAVE_STRTOULL) && defined(HAVE___STRTOULL)
-#define strtoull __strtoull
-#endif
 
-#endif /* __INCLUDES_H__ */
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

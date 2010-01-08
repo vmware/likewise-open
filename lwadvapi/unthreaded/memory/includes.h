@@ -32,6 +32,8 @@
 
 #include "config.h"
 #include <lw/rtlmemory.h>
+#include <lw/security-types.h>
+#include <lw/security-api.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>

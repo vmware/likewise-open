@@ -8,6 +8,7 @@ include_HEADERS = \
 	lwsecurityidentifier.h \
 	lwstr.h \
 	lwtime.h \
+        lwsid.h \
 	ldaperror-table.h \
 	lwldap-error.h \
 	lwdscache.h
