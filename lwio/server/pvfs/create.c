@@ -156,7 +156,7 @@ PvfsCreateFileDoSysOpen(
     ntError = MapPosixOpenFlags(&unixFlags, pCreateContext->GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysOpen(&fd, pCreateContext->pszDiskFilename, unixFlags, 0600);
+    ntError = PvfsSysOpen(&fd, pCreateContext->pszDiskFilename, unixFlags, 0700);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */
