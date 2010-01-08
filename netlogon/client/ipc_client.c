@@ -52,8 +52,8 @@ static LWNET_CLIENT_CONNECTION_CONTEXT gContext = {0};
 static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
 #else
 static pthread_once_t gOnceControl = PTHREAD_ONCE_INIT;
-static DWORD gdwOnceError = 0;
 #endif
+static DWORD gdwOnceError = 0;
 
 VOID
 LWNetOpenServerOnce(
