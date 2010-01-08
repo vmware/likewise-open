@@ -89,7 +89,6 @@ cleanup:
 error:
     if (pConnCtx)
     {
-        InterlockedDecrement(&pConnCtx->refcount);
         CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConnCtx);
     }
 

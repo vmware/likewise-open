@@ -363,7 +363,13 @@ cpp_quote("#endif")
         [out] CONNECT_HANDLE *hConn
         );
 
-    NTSTATUS _samr_Function3a();
+    /* function 0x3a */
+    NTSTATUS __SamrSetUserInfo2(
+        [in] ACCOUNT_HANDLE hAccount,
+        [in] UINT16 level,
+        [in,ref,switch_is(level)] UserInfo *info
+        );
+
     NTSTATUS _samr_Function3b();
     NTSTATUS _samr_Function3c();
 

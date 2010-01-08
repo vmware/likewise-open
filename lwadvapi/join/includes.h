@@ -54,6 +54,8 @@
 
 #include <lwps/lwps.h>
 #include <lw/rtlmemory.h>
+#include <lw/security-types.h>
+#include <lw/security-api.h>
 #include <lw/attrs.h>
 
 #include "lwdef.h"

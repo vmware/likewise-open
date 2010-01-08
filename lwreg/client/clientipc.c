@@ -745,7 +745,6 @@ RegTransactGetValueW(
     GetValueReq.pSubKey = pSubKey;
     GetValueReq.pValue = pValue;
     GetValueReq.Flags = Flags;
-    GetValueReq.pData = pvData;
     GetValueReq.cbData = *pcbData;
 
     in.tag = REG_Q_GET_VALUEW;
@@ -998,9 +997,7 @@ RegTransactEnumValueW(
 
     EnumValueReq.hKey = hKey;
     EnumValueReq.dwIndex = dwIndex;
-    EnumValueReq.pName = pValueName;
     EnumValueReq.cName = *pcchValueName;
-    EnumValueReq.pValue = pData;
     EnumValueReq.cValue = pcbData == NULL ? 0 : *pcbData;
 
 

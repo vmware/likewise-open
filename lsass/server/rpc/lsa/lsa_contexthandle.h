@@ -47,26 +47,36 @@
 #ifndef _LSA_CONTEXT_HANDLE_H_
 #define _LSA_CONTEXT_HANDLE_H_
 
-enum LsaContextType {
+
+enum LsaContextType
+{
     LsaContextPolicy = 0,
 };
 
 
-typedef struct lsa_generic_context {
+typedef struct lsa_generic_context
+{
     enum LsaContextType  Type;
     LONG                 refcount;
+
 } LSA_GENERIC_CONTEXT, *PLSA_GENERIC_CONTEXT;
 
 
-typedef struct lsa_policy_context {
+typedef struct lsa_policy_context
+{
     enum LsaContextType  Type;
     LONG                 refcount;
+
     PACCESS_TOKEN        pUserToken;
-    HANDLE               hDirectory;
+    PBYTE                pSessionKey;
+    DWORD                dwSessionKeyLen;
+    DWORD                dwAccessGranted;
+
     handle_t             hSamrBinding;
     CONNECT_HANDLE       hConn;
     PLSA_HASH_TABLE      pDomains;
     DWORD                dwSamrDomainsNum;
+
 } POLICY_CONTEXT, *PPOLICY_CONTEXT;
 
 
@@ -74,6 +84,7 @@ void
 POLICY_HANDLE_rundown(
     void *hContext
     );
+
 
 #endif /* _LSA_CONTEXT_HANDLE_H_ */
 

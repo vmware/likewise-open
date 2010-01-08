@@ -128,8 +128,15 @@ SamrSrvQueryAliasInfo(
 
     pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
 
-    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    if (!(pAcctCtx->dwAccessGranted & ALIAS_ACCESS_LOOKUP_INFO))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
@@ -146,8 +153,12 @@ SamrSrvQueryAliasInfo(
                                    dwFilterLen * sizeof(WCHAR));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
-                wszAttrDn, pAcctCtx->pwszDn);
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrDn, pAcctCtx->pwszDn) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = DirectorySearch(pConnCtx->hDirectory,
                               pwszBase,
@@ -159,16 +170,20 @@ SamrSrvQueryAliasInfo(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (dwEntriesNum == 0) {
+    if (dwEntriesNum == 0)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
 
-    } else if (dwEntriesNum > 1) {
+    }
+    else if (dwEntriesNum > 1)
+    {
         ntStatus = STATUS_INTERNAL_ERROR;
     }
 
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    if (level == ALIAS_INFO_ALL) {
+    if (level == ALIAS_INFO_ALL)
+    {
         dwError = DirectoryGetGroupMembers(pConnCtx->hDirectory,
                                            pAcctCtx->pwszDn,
                                            wszMemberAttributes,
@@ -178,10 +193,11 @@ SamrSrvQueryAliasInfo(
     }
 
     ntStatus = SamrSrvAllocateMemory((void**)&pAliasInfo,
-                                   sizeof(*pAliasInfo));
+                                     sizeof(*pAliasInfo));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    switch (level) {
+    switch (level)
+    {
     case ALIAS_INFO_ALL:
         ntStatus = SamrFillAliasInfo1(pEntry, dwNumMembers, pAliasInfo);
         break;
@@ -203,11 +219,13 @@ SamrSrvQueryAliasInfo(
     *info = pAliasInfo;
 
 cleanup:
-    if (pwszFilter) {
+    if (pwszFilter)
+    {
         SamrSrvFreeMemory(pwszFilter);
     }
 
-    if (pEntry) {
+    if (pEntry)
+    {
         DirectoryFreeEntries(pEntry, dwEntriesNum);
     }
 
@@ -220,7 +238,8 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pAliasInfo) {
+    if (pAliasInfo)
+    {
         SamrSrvFreeMemory(pAliasInfo);
     }
 

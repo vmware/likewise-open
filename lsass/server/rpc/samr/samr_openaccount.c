@@ -49,19 +49,20 @@
 
 NTSTATUS
 SamrSrvOpenAccount(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ UINT32 access_mask,
-    /* [in] */ UINT32 rid,
-    /* [in] */ UINT32 objectClass,
-    /* [out] */ ACCOUNT_HANDLE *hAccount
+    IN  handle_t         hBinding,
+    IN  DOMAIN_HANDLE    hDomain,
+    IN  DWORD            dwAccessMask,
+    IN  DWORD            dwRid,
+    IN  DWORD            dwObjectClass,
+    OUT ACCOUNT_HANDLE  *phAccount
     )
 {
     const ULONG ulSubAuthCount = 5;
     const wchar_t wszFilterFmt[] = L"(%ws=%d AND %ws='%ws')";
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
     PDOMAIN_CONTEXT pDomCtx = NULL;
+    PCONNECT_CONTEXT pConnCtx = NULL;
     PACCOUNT_CONTEXT pAcctCtx = NULL;
     HANDLE hDirectory = NULL;
     PWSTR pwszBaseDn = NULL;
@@ -69,33 +70,48 @@ SamrSrvOpenAccount(
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
     WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrSecurityDescriptor[] = DS_ATTR_SECURITY_DESCRIPTOR;
     DWORD dwScope = 0;
+    ULONG ulSidLength = 0;
+    PSID pSid = NULL;
+    size_t sAccountSidStrLen = 0;
+    PWSTR pwszAccountSid = NULL;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
-    PWSTR wszAttributes[4];
     PSID pDomainSid = NULL;
-    PSID pAccountSid = NULL;
-    ULONG ulSidLength = 0;
-    PWSTR pwszAccountSid = NULL;
-    PDIRECTORY_ENTRY pEntries = NULL;
     PDIRECTORY_ENTRY pEntry = NULL;
-    PDIRECTORY_ATTRIBUTE pAttr = NULL;
-    PATTRIBUTE_VALUE pAttrVal = NULL;
-    DWORD dwEntriesNum = 0;
-    DWORD i = 0;
+    DWORD dwNumEntries = 0;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    GENERIC_MAPPING GenericMapping = {0};
+    DWORD dwAccessGranted = 0;
     PWSTR pwszName = NULL;
-    DWORD dwNameLen = 0;
+    PWSTR pwszAccountName = NULL;
+    PWSTR pwszDn = NULL;
     PWSTR pwszAccountDn = NULL;
-    DWORD dwDnLen = 0;
-    PSID pSid = NULL;
-    DWORD dwRid = 0;
+    PWSTR pwszSid = NULL;
+    PSID pAccountSid = NULL;
+    DWORD dwAccountRid = 0;
 
-    memset(wszAttributes, 0, sizeof(wszAttributes));
+    PWSTR wszAttributes[] = {
+        wszAttrDn,
+        wszAttrSamAccountName,
+        wszAttrObjectSid,
+        wszAttrSecurityDescriptor,
+        NULL
+    };
 
-    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+    pDomCtx  = (PDOMAIN_CONTEXT)hDomain;
+    pConnCtx = pDomCtx->pConnCtx;
 
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    if (!(pDomCtx->dwAccessGranted & DOMAIN_ACCESS_OPEN_ACCOUNT))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
@@ -103,41 +119,45 @@ SamrSrvOpenAccount(
     pwszBaseDn = pDomCtx->pwszDn;
     pDomainSid = pDomCtx->pDomainSid;
 
-    ntStatus = RTL_ALLOCATE(&pAcctCtx, ACCOUNT_CONTEXT, sizeof(*pAcctCtx));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(sizeof(*pAcctCtx),
+                                OUT_PPVOID(&pAcctCtx));
+    BAIL_ON_LSA_ERROR(dwError);
 
     ulSidLength = RtlLengthRequiredSid(ulSubAuthCount);
-    ntStatus = RTL_ALLOCATE(&pAccountSid, SID, ulSidLength);
+    dwError = LwAllocateMemory(ulSidLength,
+                                OUT_PPVOID(&pSid));
+    BAIL_ON_NTSTATUS_ERROR(dwError);
+
+    ntStatus = RtlCopySid(ulSidLength, pSid, pDomainSid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    ntStatus = RtlCopySid(ulSidLength, pAccountSid, pDomainSid);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = RtlAppendRidSid(ulSidLength, pAccountSid, rid);
+    ntStatus = RtlAppendRidSid(ulSidLength, pSid, dwRid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     ntStatus = RtlAllocateWC16StringFromSid(&pwszAccountSid,
-                                          pAccountSid);
+                                            pSid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    dwError = LwWc16sLen(pwszAccountSid, &sAccountSidStrLen);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwFilterLen = ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
                   10 +
                   ((sizeof(wszAttrObjectSid) / sizeof(WCHAR)) - 1) +
-                  wc16slen(pwszAccountSid) +
+                  sAccountSidStrLen +
                   (sizeof(wszFilterFmt) / sizeof(wszFilterFmt[0]));
 
-    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(WCHAR));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(dwFilterLen * sizeof(WCHAR),
+                               OUT_PPVOID(&pwszFilter));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
-                wszAttrObjectClass, objectClass,
-                wszAttrObjectSid, pwszAccountSid);
-
-    wszAttributes[0] = wszAttrDn;
-    wszAttributes[1] = wszAttrSamAccountName;
-    wszAttributes[2] = wszAttrObjectSid;
-    wszAttributes[3] = NULL;
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrObjectClass, dwObjectClass,
+                    wszAttrObjectSid, pwszAccountSid) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = DirectorySearch(hDirectory,
                               pwszBaseDn,
@@ -145,105 +165,117 @@ SamrSrvOpenAccount(
                               pwszFilter,
                               wszAttributes,
                               FALSE,
-                              &pEntries,
-                              &dwEntriesNum);
+                              &pEntry,
+                              &dwNumEntries);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (dwEntriesNum == 1) {
-        pEntry = &(pEntries[0]);
-
-        for (i = 0; i < pEntry->ulNumAttributes; i++) {
-            pAttr = &(pEntry->pAttributes[i]);
-
-            dwError = DirectoryGetAttributeValue(pAttr,
-                                                 &pAttrVal);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            if (pAttrVal == NULL) {
-                ntStatus = STATUS_INTERNAL_ERROR;
-                BAIL_ON_NTSTATUS_ERROR(ntStatus);
-            }
-
-            if (!wc16scmp(pAttr->pwszName, wszAttrSamAccountName) &&
-                pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-
-                dwNameLen = wc16slen(pAttrVal->data.pwszStringValue);
-
-                ntStatus = RTL_ALLOCATE(&pwszName, WCHAR, (dwNameLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-                wc16sncpy(pwszName, pAttrVal->data.pwszStringValue, dwNameLen);
-
-            } else if (!wc16scmp(pAttr->pwszName, wszAttrObjectSid) &&
-                       pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-
-                ntStatus = RtlAllocateSidFromWC16String(
-                                            &pSid,
-                                            pAttrVal->data.pwszStringValue);
-                BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-                if (!RtlEqualSid(pSid, pAccountSid)) {
-                    ntStatus = STATUS_INTERNAL_ERROR;
-                    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-                }
-
-                dwRid = pSid->SubAuthority[pSid->SubAuthorityCount - 1];
-
-            } else if (!wc16scmp(pAttr->pwszName, wszAttrDn) &&
-                       pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-
-                dwDnLen = wc16slen(pAttrVal->data.pwszStringValue);
-
-                ntStatus = RTL_ALLOCATE(&pwszAccountDn,
-                                      WCHAR,
-                                      (dwDnLen + 1) * sizeof(WCHAR));
-                BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-                wc16sncpy(pwszAccountDn, pAttrVal->data.pwszStringValue, dwDnLen);
-            }
-        }
-
-    } else if (dwEntriesNum == 0) {
+    if (dwNumEntries == 0)
+    {
         ntStatus = STATUS_NO_SUCH_USER;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    } else {
+    }
+    else if (dwNumEntries > 1)
+    {
         ntStatus = STATUS_INTERNAL_ERROR;
+    }
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    /*
+     * Perform an access check using domain object security descriptor
+     */
+    dwError = DirectoryGetEntrySecurityDescriptor(
+                              pEntry,
+                              &pSecDesc);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!RtlAccessCheck(pSecDesc,
+                        pConnCtx->pUserToken,
+                        dwAccessMask,
+                        pAcctCtx->dwAccessGranted,
+                        &GenericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    pAcctCtx->Type          = SamrContextAccount;
-    pAcctCtx->refcount      = 1;
-    pAcctCtx->pwszDn        = pwszAccountDn;
-    pAcctCtx->pwszName      = pwszName;
-    pAcctCtx->pSid          = pSid;
-    pAcctCtx->dwRid         = dwRid;
-    pAcctCtx->pDomCtx       = pDomCtx;
+    /*
+     * Get account name
+     */
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrSamAccountName,
+                              DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                              &pwszName);
+    BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LwAllocateWc16String(&pwszAccountName,
+                                   pwszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /*
+     * Get account SID
+     */
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrObjectSid,
+                              DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                              &pwszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = RtlAllocateSidFromWC16String(
+                              &pAccountSid,
+                              pwszSid);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    dwAccountRid = pAccountSid->SubAuthority[pAccountSid->SubAuthorityCount - 1];
+
+    /*
+     * Get domain object DN
+     */
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrDn,
+                              DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                              &pwszDn);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateWc16String(&pwszAccountDn,
+                                   pwszDn);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pAcctCtx->Type             = SamrContextAccount;
+    pAcctCtx->refcount         = 1;
+    pAcctCtx->dwAccessGranted  = dwAccessGranted;
+    pAcctCtx->pwszDn           = pwszAccountDn;
+    pAcctCtx->pwszName         = pwszAccountName;
+    pAcctCtx->pSid             = pAccountSid;
+    pAcctCtx->dwRid            = dwAccountRid;
+
+    pAcctCtx->pDomCtx          = pDomCtx;
     InterlockedIncrement(&pDomCtx->refcount);
 
     /* Increase ref count because DCE/RPC runtime is about to use this
        pointer as well */
     InterlockedIncrement(&pAcctCtx->refcount);
 
-    *hAccount = (ACCOUNT_HANDLE)pAcctCtx;
+    *phAccount = (ACCOUNT_HANDLE)pAcctCtx;
 
 cleanup:
-    if (pwszFilter) {
-        SamrSrvFreeMemory(pwszFilter);
-    }
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_MEMORY(pSid);
 
-    if (pAccountSid) {
-        RTL_FREE(&pAccountSid);
-    }
-
-    if (pwszAccountSid) {
+    if (pwszAccountSid)
+    {
         RTL_FREE(&pwszAccountSid);
     }
 
-    if (pEntries) {
-        DirectoryFreeEntries(pEntries, dwEntriesNum);
+    if (pEntry)
+    {
+        DirectoryFreeEntries(pEntry, dwNumEntries);
     }
+
+    DirectoryFreeEntrySecurityDescriptor(&pSecDesc);
 
     if (ntStatus == STATUS_SUCCESS &&
         dwError != ERROR_SUCCESS)
@@ -254,12 +286,12 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pAcctCtx) {
-        InterlockedDecrement(&pAcctCtx->refcount);
+    if (pAcctCtx)
+    {
         ACCOUNT_HANDLE_rundown((ACCOUNT_HANDLE)pAcctCtx);
     }
 
-    *hAccount = NULL;
+    *phAccount = NULL;
     goto cleanup;
 }
 

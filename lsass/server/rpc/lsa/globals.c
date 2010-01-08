@@ -49,8 +49,10 @@ LSA_RPCSRV_FUNCTION_TABLE gLsaRpcFuncTable = {
 
 rpc_binding_vector_p_t gpLsaSrvBinding = NULL;
 
-
 LSA_SRV_CONFIG gLsaSrvConfig;
+
+/* lsarpc server security descriptor */
+PSECURITY_DESCRIPTOR_ABSOLUTE gpLsaSecDesc = NULL;
 
 
 /*

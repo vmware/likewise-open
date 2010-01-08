@@ -83,8 +83,15 @@ SamrSrvDeleteAliasMember(
 
     pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
 
-    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    if (!(pAcctCtx->dwAccessGranted & ALIAS_ACCESS_REMOVE_MEMBER))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 

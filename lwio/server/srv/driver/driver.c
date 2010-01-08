@@ -65,7 +65,7 @@ SrvDriverShutdown(
 static
 NTSTATUS
 SrvInitialize(
-    VOID
+    IO_DEVICE_HANDLE hDevice
     );
 
 static
@@ -95,6 +95,7 @@ IO_DRIVER_ENTRY(srv)(
     NTSTATUS ntStatus = 0;
     PCSTR    pszName  = "srv";
     PVOID    pDeviceContext = NULL;
+    IO_DEVICE_HANDLE hDevice = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != ulInterfaceVersion)
     {
@@ -110,17 +111,29 @@ IO_DRIVER_ENTRY(srv)(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoDeviceCreate(
-                    &gSMBSrvGlobals.hDevice,
+                    &hDevice,
                     hDriver,
                     pszName,
                     pDeviceContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvInitialize();
+    ntStatus = SrvInitialize(hDevice);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    hDevice = NULL;
+
+cleanup:
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
+    if (hDevice)
+    {
+        IoDeviceDelete(&hDevice);
+    }
+
+    goto cleanup;
 }
 
 static
@@ -249,7 +262,7 @@ error:
 static
 NTSTATUS
 SrvInitialize(
-    VOID
+    IO_DEVICE_HANDLE hDevice
     )
 {
     NTSTATUS ntStatus = 0;
@@ -316,6 +329,8 @@ SrvInitialize(
         ntStatus = SrvWorkerInit(pWorker);
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    gSMBSrvGlobals.hDevice = hDevice;
 
 error:
 
@@ -468,6 +483,9 @@ SrvShutdown(
     )
 {
     NTSTATUS ntStatus = 0;
+
+    // TODO: All existing requests must be waited on to be completed before
+    //       shutting down the worker queues.
 
     if (gSMBSrvGlobals.pMutex)
     {

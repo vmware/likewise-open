@@ -337,7 +337,7 @@ SrvExecuteRename(
                         GENERIC_READ,
                         0,
                         FILE_ATTRIBUTE_NORMAL,
-                        0,
+                        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                         FILE_OPEN,
                         FILE_DIRECTORY_FILE,
                         NULL, /* EA Buffer */
@@ -364,7 +364,7 @@ SrvExecuteRename(
                         DELETE,
                         0,
                         FILE_ATTRIBUTE_NORMAL,
-                        FILE_SHARE_READ,
+                        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                         FILE_OPEN,
                         0,
                         NULL, /* EA Buffer */

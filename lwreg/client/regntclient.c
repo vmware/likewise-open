@@ -775,6 +775,7 @@ NtRegGetValueA(
     if (dwType == REG_SZ)
     {
         cTempData *= sizeof(WCHAR);
+        LWREG_SAFE_FREE_MEMORY(pTempData);
         status = LW_RTL_ALLOCATE(&pTempData, BYTE, cTempData);
         BAIL_ON_NT_STATUS(status);
 	status = RegTransactGetValueW(

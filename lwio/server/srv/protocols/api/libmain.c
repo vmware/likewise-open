@@ -110,6 +110,16 @@ SrvProtocolExecute(
         pContext->pfnFreeContext = &SrvProtocolFreeExecContext;
     }
 
+    if ((pContext->pSmbRequest->pSMBHeader->command == COM_NEGOTIATE) &&
+        (SrvConnectionGetState(pContext->pConnection) !=
+                                        LWIO_SRV_CONN_STATE_INITIAL))
+    {
+        SrvConnectionSetInvalid(pContext->pConnection);
+
+        ntStatus = STATUS_CONNECTION_RESET;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     switch (pContext->pSmbRequest->protocolVer)
     {
         case SMB_PROTOCOL_VERSION_1:
@@ -198,19 +208,6 @@ SrvProtocolExecute_SMB_V1_Filter(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pSmbRequest;
-
-    switch (pContext->pSmbRequest->pSMBHeader->command)
-    {
-        case COM_NEGOTIATE:
-
-            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_INITIAL)
-            {
-                ntStatus = STATUS_INVALID_SERVER_STATE;
-            }
-
-            break;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
 
     switch (pSmbRequest->pSMBHeader->command)
     {

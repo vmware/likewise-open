@@ -102,7 +102,8 @@ SamDbAddLocalDomain(
     PCSTR  pszNetBIOSName,
     PCSTR  pszMachineSID,
     LONG64 llMaxPwdAge,
-    LONG64 llPwdChangeTime
+    LONG64 llPwdChangeTime,
+    LONG64 llMinPwdLength
     );
 
 static
@@ -445,6 +446,7 @@ SamDbAddMachineDomain(
     SID_IDENTIFIER_AUTHORITY AuthId = { SECURITY_NT_AUTHORITY };
     LONG64 llMaxPwdAge = SAMDB_MAX_PWD_AGE_DEFAULT * 10000000LL;
     LONG64 llPwdPromptTime = SAMDB_PASSWD_PROMPT_TIME_DEFAULT * 10000000LL;
+    LONG64 llMinPwdLength = 0;
 
     uuid_generate(GUID);
 
@@ -489,7 +491,8 @@ SamDbAddMachineDomain(
                     pszNetBIOSName,
                     pszMachineSID,
                     llMaxPwdAge,
-                    llPwdPromptTime);
+                    llPwdPromptTime,
+                    llMinPwdLength);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppMachineSid = pMachineSid;
@@ -517,7 +520,8 @@ SamDbAddLocalDomain(
     PCSTR  pszNetBIOSName,
     PCSTR  pszMachineSID,
     LONG64 llMaxPwdAge,
-    LONG64 llPwdChangeTime
+    LONG64 llPwdChangeTime,
+    LONG64 llMinPwdLength
     )
 {
     DWORD dwError = 0;
@@ -530,6 +534,7 @@ SamDbAddLocalDomain(
     WCHAR wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrNameMaxPwdAge[]      = SAM_DB_DIR_ATTR_MAX_PWD_AGE;
     WCHAR wszAttrNamePwdChangeTime[]  = SAM_DB_DIR_ATTR_PWD_PROMPT_TIME;
+    WCHAR wszAttrNameMinPwdLength[]   = SAM_DB_DIR_ATTR_MIN_PWD_LENGTH;
     WCHAR wszAttrNameSecDesc[]        = SAM_DB_DIR_ATTR_SECURITY_DESCRIPTOR;
     PWSTR pwszObjectDN    = NULL;
     PWSTR pwszMachineSID  = NULL;
@@ -545,8 +550,9 @@ SamDbAddLocalDomain(
     ATTRIBUTE_VALUE avNetBIOSName = {0};
     ATTRIBUTE_VALUE avMaxPwdAge   = {0};
     ATTRIBUTE_VALUE avPwdChangeTime = {0};
+    ATTRIBUTE_VALUE avMinPwdLength = {0};
     ATTRIBUTE_VALUE avSecDesc = {0};
-    DIRECTORY_MOD mods[11];
+    DIRECTORY_MOD mods[12];
     ULONG     iMod = 0;
 
     memset(mods, 0, sizeof(mods));
@@ -622,6 +628,13 @@ SamDbAddLocalDomain(
     avPwdChangeTime.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
     avPwdChangeTime.data.llValue = llPwdChangeTime;
     mods[iMod].pAttrValues = &avPwdChangeTime;
+
+    mods[++iMod].pwszAttrName = &wszAttrNameMinPwdLength[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avMinPwdLength.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+    avMinPwdLength.data.llValue = llMinPwdLength;
+    mods[iMod].pAttrValues = &avMinPwdLength;
 
     ntStatus = RtlAllocateSidFromWC16String(&pMachineSID,
                                             pwszMachineSID);

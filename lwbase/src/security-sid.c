@@ -923,6 +923,7 @@ RtlCreateWellKnownSid(
     } sidBuffer = { .Buffer = { 0 } };
     ULONG size = *SidSize;
     ULONG sizeRequired = 0;
+    ULONG i = 0;
 
     switch (WellKnownSidType)
     {
@@ -983,7 +984,7 @@ RtlCreateWellKnownSid(
         {
             // S-1-5-32-544
             SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
-            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 2);
             GOTO_CLEANUP_ON_STATUS(status);
             sidBuffer.Sid.SubAuthority[0] = SECURITY_BUILTIN_DOMAIN_RID;
             sidBuffer.Sid.SubAuthority[1] = DOMAIN_ALIAS_RID_ADMINS;
@@ -993,7 +994,7 @@ RtlCreateWellKnownSid(
         {
             // S-1-5-32-545
             SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
-            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 2);
             GOTO_CLEANUP_ON_STATUS(status);
             sidBuffer.Sid.SubAuthority[0] = SECURITY_BUILTIN_DOMAIN_RID;
             sidBuffer.Sid.SubAuthority[1] = DOMAIN_ALIAS_RID_USERS;
@@ -1003,7 +1004,7 @@ RtlCreateWellKnownSid(
         {
             // S-1-5-32-546
             SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
-            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 2);
             GOTO_CLEANUP_ON_STATUS(status);
             sidBuffer.Sid.SubAuthority[0] = SECURITY_BUILTIN_DOMAIN_RID;
             sidBuffer.Sid.SubAuthority[1] = DOMAIN_ALIAS_RID_GUESTS;
@@ -1013,7 +1014,7 @@ RtlCreateWellKnownSid(
         {
             // S-1-5-32-545
             SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
-            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 2);
             GOTO_CLEANUP_ON_STATUS(status);
             sidBuffer.Sid.SubAuthority[0] = SECURITY_BUILTIN_DOMAIN_RID;
             sidBuffer.Sid.SubAuthority[1] = DOMAIN_ALIAS_RID_POWER_USERS;
@@ -1023,7 +1024,7 @@ RtlCreateWellKnownSid(
         {
             // S-1-5-32-550
             SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
-            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 2);
             GOTO_CLEANUP_ON_STATUS(status);
             sidBuffer.Sid.SubAuthority[0] = SECURITY_BUILTIN_DOMAIN_RID;
             sidBuffer.Sid.SubAuthority[1] = DOMAIN_ALIAS_RID_PRINT_OPS;
@@ -1033,12 +1034,56 @@ RtlCreateWellKnownSid(
         {
             // S-1-5-32-551
             SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
-            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 2);
             GOTO_CLEANUP_ON_STATUS(status);
             sidBuffer.Sid.SubAuthority[0] = SECURITY_BUILTIN_DOMAIN_RID;
             sidBuffer.Sid.SubAuthority[1] = DOMAIN_ALIAS_RID_BACKUP_OPS;
             break;
-       }
+        }
+        case WinAccountAdministratorSid:
+        {
+            // S-1-5-21-X-Y-Z-500
+            SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
+            status = RtlInitializeSid(&sidBuffer.Sid,
+                                      &identifierAuthority,
+                                      DomainOrComputerSid->SubAuthorityCount + 1);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            if (DomainOrComputerSid == NULL)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                GOTO_CLEANUP_ON_STATUS(status);
+            }
+
+            for (i = 0; i < DomainOrComputerSid->SubAuthorityCount; i++)
+            {
+                sidBuffer.Sid.SubAuthority[i] = DomainOrComputerSid->SubAuthority[i];
+            }
+            sidBuffer.Sid.SubAuthority[i] = DOMAIN_USER_RID_ADMIN;
+            break;
+        }
+        case WinAccountGuestSid:
+        {
+            // S-1-5-21-X-Y-Z-501
+            SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
+            status = RtlInitializeSid(&sidBuffer.Sid,
+                                      &identifierAuthority,
+                                      DomainOrComputerSid->SubAuthorityCount + 1);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            if (DomainOrComputerSid == NULL)
+            {
+                status = STATUS_INVALID_PARAMETER;
+                GOTO_CLEANUP_ON_STATUS(status);
+            }
+
+            for (i = 0; i < DomainOrComputerSid->SubAuthorityCount; i++)
+            {
+                sidBuffer.Sid.SubAuthority[i] = DomainOrComputerSid->SubAuthority[i];
+            }
+            sidBuffer.Sid.SubAuthority[i] = DOMAIN_USER_RID_GUEST;
+            break;
+        }
         default:
             status = STATUS_NOT_IMPLEMENTED;
             GOTO_CLEANUP();

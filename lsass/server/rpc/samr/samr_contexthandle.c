@@ -77,8 +77,8 @@ DOMAIN_HANDLE_rundown(
     if (pDomCtx->refcount) return;
 
     RTL_FREE(&pDomCtx->pDomainSid);
-    RTL_FREE(&pDomCtx->pwszDomainName);
-    RTL_FREE(&pDomCtx->pwszDn);
+    LW_SAFE_FREE_MEMORY(pDomCtx->pwszDomainName);
+    LW_SAFE_FREE_MEMORY(pDomCtx->pwszDn);
 
     CONNECT_HANDLE_rundown((CONNECT_HANDLE)pDomCtx->pConnCtx);
 }
@@ -94,8 +94,8 @@ ACCOUNT_HANDLE_rundown(
     InterlockedDecrement(&pAcctCtx->refcount);
     if (pAcctCtx->refcount) return;
 
-    RTL_FREE(&pAcctCtx->pwszDn);
-    RTL_FREE(&pAcctCtx->pwszName);
+    LW_SAFE_FREE_MEMORY(pAcctCtx->pwszDn);
+    LW_SAFE_FREE_MEMORY(pAcctCtx->pwszName);
     RTL_FREE(&pAcctCtx->pSid);
 
     DOMAIN_HANDLE_rundown((DOMAIN_HANDLE)pAcctCtx->pDomCtx);

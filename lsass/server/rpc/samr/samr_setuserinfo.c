@@ -47,6 +47,24 @@
 #include "includes.h"
 
 
+NTSTATUS
+SamrSrvSetUserInfo(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          usLevel,
+    IN  UserInfo       *pInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = SamrSrvSetUserInfoInternal(hBinding,
+                                          hUser,
+                                          usLevel,
+                                          pInfo);
+    return ntStatus;
+}
+
+
 #define SET_UNICODE_STRING_VALUE(var, idx, mod)                   \
     do {                                                          \
         PWSTR pwszValue = NULL;                                   \
@@ -99,33 +117,33 @@
 #define SET_UNICODE_STRING_VALUE_BY_FLAG(pinfo, field, flag,      \
                                          idx, mod)                \
     do {                                                          \
-        TEST_ACCOUNT_FIELD_FLAG((pinfo)->info21.fields_present,   \
+        TEST_ACCOUNT_FIELD_FLAG((pinfo)->fields_present,          \
                                 (flag));                          \
-        SET_UNICODE_STRING_VALUE((pinfo)->info21.field,           \
+        SET_UNICODE_STRING_VALUE((pinfo)->field,                  \
                                  (idx), (mod));                   \
     } while (0);
 
 #define SET_UINT32_VALUE_BY_FLAG(pinfo, field, flag, idx, mod)    \
     do {                                                          \
-        TEST_ACCOUNT_FIELD_FLAG((pinfo)->info21.fields_present,   \
+        TEST_ACCOUNT_FIELD_FLAG((pinfo)->fields_present,          \
                                 (flag));                          \
-        SET_UINT32_VALUE((pinfo)->info21.field, (idx), (mod));    \
+        SET_UINT32_VALUE((pinfo)->field, (idx), (mod));           \
     } while (0);
 
 #define SET_NTTIME_VALUE_BY_FLAG(pinfo, field, flag, idx, mod)    \
     do {                                                          \
-        TEST_ACCOUNT_FIELD_FLAG((pinfo)->info21.fields_present,   \
+        TEST_ACCOUNT_FIELD_FLAG((pinfo)->fields_present,          \
                                 (flag));                          \
-        SET_NTTIME_VALUE((pinfo)->info21.field, (idx), (mod));  \
+        SET_NTTIME_VALUE((pinfo)->field, (idx), (mod));           \
     } while (0);
 
 
 NTSTATUS
-SamrSrvSetUserInfo(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ ACCOUNT_HANDLE hUser,
-    /* [in] */ UINT16 level,
-    /* [in] */ UserInfo *pInfo
+SamrSrvSetUserInfoInternal(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          level,
+    IN  UserInfo       *pInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -407,8 +425,52 @@ SamrSrvSetUserInfo(
     }
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
+    switch (level)
+    {
+    case 6:
+    case 8:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_SET_LOC_COM) ||
+            !(pAcctCtx->dwAccessGranted & USER_ACCESS_SET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+        }
+        break;
+
+    case 25:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_SET_PASSWORD) ||
+            !(pAcctCtx->dwAccessGranted & USER_ACCESS_SET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+        }
+        break;
+
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 16:
+    case 17:
+    case 20:
+    case 21:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_SET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+        }
+        break;
+
+    case 26:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_SET_PASSWORD))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+        }
+        break;
+    }
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
     /*
-     * Now update the other fields
+     * Now update other fields
      */
     switch (level)
     {
@@ -482,74 +544,159 @@ SamrSrvSetUserInfo(
         break;
 
     case 21:
-        SET_NTTIME_VALUE_BY_FLAG(pInfo, account_expiry,
+        SET_NTTIME_VALUE_BY_FLAG(&pInfo->info21, account_expiry,
                                  SAMR_FIELD_ACCT_EXPIRY,
                                  ATTR_VAL_IDX_ACCOUNT_EXPIRY,
                                  ModAccountExpiry);
-        SET_NTTIME_VALUE_BY_FLAG(pInfo, allow_password_change,
+        SET_NTTIME_VALUE_BY_FLAG(&pInfo->info21, allow_password_change,
                                  SAMR_FIELD_ALLOW_PWD_CHANGE,
                                  ATTR_VAL_IDX_ALLOW_PASSWORD_CHANGE,
                                  ModAllowPasswordChange);
-        SET_NTTIME_VALUE_BY_FLAG(pInfo, force_password_change,
+        SET_NTTIME_VALUE_BY_FLAG(&pInfo->info21, force_password_change,
                                  SAMR_FIELD_FORCE_PWD_CHANGE,
                                  ATTR_VAL_IDX_FORCE_PASSWORD_CHANGE,
                                  ModForcePasswordChange);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, full_name,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, full_name,
                                          SAMR_FIELD_FULL_NAME,
                                          ATTR_VAL_IDX_FULL_NAME,
                                          ModFullName);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, home_directory,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, home_directory,
                                          SAMR_FIELD_HOME_DIRECTORY,
                                          ATTR_VAL_IDX_HOME_DIRECTORY,
                                          ModHomeDirectory);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, home_drive,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, home_drive,
                                          SAMR_FIELD_HOME_DRIVE,
                                          ATTR_VAL_IDX_HOME_DRIVE,
                                          ModHomeDrive);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, logon_script,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, logon_script,
                                          SAMR_FIELD_LOGON_SCRIPT,
                                          ATTR_VAL_IDX_LOGON_SCRIPT,
                                          ModLogonScript);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, profile_path,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, profile_path,
                                          SAMR_FIELD_PROFILE_PATH,
                                          ATTR_VAL_IDX_PROFILE_PATH,
                                          ModProfilePath);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, description,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, description,
                                          SAMR_FIELD_DESCRIPTION,
                                          ATTR_VAL_IDX_DESCRIPTION,
                                          ModDescription);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, workstations,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, workstations,
                                          SAMR_FIELD_WORKSTATIONS,
                                          ATTR_VAL_IDX_WORKSTATIONS,
                                          ModWorkstations);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, comment,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, comment,
                                          SAMR_FIELD_COMMENT,
                                          ATTR_VAL_IDX_COMMENT,
                                          ModComment);
-        SET_UNICODE_STRING_VALUE_BY_FLAG(pInfo, parameters,
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info21, parameters,
                                          SAMR_FIELD_PARAMETERS,
                                          ATTR_VAL_IDX_PARAMETERS,
                                          ModLogonScript);
-        SET_UINT32_VALUE_BY_FLAG(pInfo, primary_gid,
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info21, primary_gid,
                                  SAMR_FIELD_PRIMARY_GID,
                                  ATTR_VAL_IDX_PRIMARY_GROUP,
                                  ModPrimaryGroup);
-        SET_UINT32_VALUE_BY_FLAG(pInfo, account_flags,
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info21, account_flags,
                                  SAMR_FIELD_ACCT_FLAGS,
                                  ATTR_VAL_IDX_ACCOUNT_FLAGS,
                                  ModAccountFlags);
-        SET_UINT32_VALUE_BY_FLAG(pInfo, bad_password_count,
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info21, bad_password_count,
                                  SAMR_FIELD_BAD_PWD_COUNT,
                                  ATTR_VAL_IDX_BAD_PASSWORD_COUNT,
                                  ModBadPasswordCount);
-        SET_UINT32_VALUE_BY_FLAG(pInfo, country_code,
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info21, country_code,
                                  SAMR_FIELD_COUNTRY_CODE,
                                  ATTR_VAL_IDX_COUNTRY_CODE,
                                  ModCountryCode);
-        SET_UINT32_VALUE_BY_FLAG(pInfo, code_page,
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info21, code_page,
                                  SAMR_FIELD_CODE_PAGE,
                                  ATTR_VAL_IDX_CODE_PAGE,
                                  ModCodePage);
+        break;
+
+    case 25:
+        SET_NTTIME_VALUE_BY_FLAG(&pInfo->info25.info, account_expiry,
+                                 SAMR_FIELD_ACCT_EXPIRY,
+                                 ATTR_VAL_IDX_ACCOUNT_EXPIRY,
+                                 ModAccountExpiry);
+        SET_NTTIME_VALUE_BY_FLAG(&pInfo->info25.info, allow_password_change,
+                                 SAMR_FIELD_ALLOW_PWD_CHANGE,
+                                 ATTR_VAL_IDX_ALLOW_PASSWORD_CHANGE,
+                                 ModAllowPasswordChange);
+        SET_NTTIME_VALUE_BY_FLAG(&pInfo->info25.info, force_password_change,
+                                 SAMR_FIELD_FORCE_PWD_CHANGE,
+                                 ATTR_VAL_IDX_FORCE_PASSWORD_CHANGE,
+                                 ModForcePasswordChange);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, full_name,
+                                         SAMR_FIELD_FULL_NAME,
+                                         ATTR_VAL_IDX_FULL_NAME,
+                                         ModFullName);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, home_directory,
+                                         SAMR_FIELD_HOME_DIRECTORY,
+                                         ATTR_VAL_IDX_HOME_DIRECTORY,
+                                         ModHomeDirectory);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, home_drive,
+                                         SAMR_FIELD_HOME_DRIVE,
+                                         ATTR_VAL_IDX_HOME_DRIVE,
+                                         ModHomeDrive);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, logon_script,
+                                         SAMR_FIELD_LOGON_SCRIPT,
+                                         ATTR_VAL_IDX_LOGON_SCRIPT,
+                                         ModLogonScript);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, profile_path,
+                                         SAMR_FIELD_PROFILE_PATH,
+                                         ATTR_VAL_IDX_PROFILE_PATH,
+                                         ModProfilePath);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, description,
+                                         SAMR_FIELD_DESCRIPTION,
+                                         ATTR_VAL_IDX_DESCRIPTION,
+                                         ModDescription);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, workstations,
+                                         SAMR_FIELD_WORKSTATIONS,
+                                         ATTR_VAL_IDX_WORKSTATIONS,
+                                         ModWorkstations);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, comment,
+                                         SAMR_FIELD_COMMENT,
+                                         ATTR_VAL_IDX_COMMENT,
+                                         ModComment);
+        SET_UNICODE_STRING_VALUE_BY_FLAG(&pInfo->info25.info, parameters,
+                                         SAMR_FIELD_PARAMETERS,
+                                         ATTR_VAL_IDX_PARAMETERS,
+                                         ModLogonScript);
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info25.info, primary_gid,
+                                 SAMR_FIELD_PRIMARY_GID,
+                                 ATTR_VAL_IDX_PRIMARY_GROUP,
+                                 ModPrimaryGroup);
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info25.info, account_flags,
+                                 SAMR_FIELD_ACCT_FLAGS,
+                                 ATTR_VAL_IDX_ACCOUNT_FLAGS,
+                                 ModAccountFlags);
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info25.info, bad_password_count,
+                                 SAMR_FIELD_BAD_PWD_COUNT,
+                                 ATTR_VAL_IDX_BAD_PASSWORD_COUNT,
+                                 ModBadPasswordCount);
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info25.info, country_code,
+                                 SAMR_FIELD_COUNTRY_CODE,
+                                 ATTR_VAL_IDX_COUNTRY_CODE,
+                                 ModCountryCode);
+        SET_UINT32_VALUE_BY_FLAG(&pInfo->info25.info, code_page,
+                                 SAMR_FIELD_CODE_PAGE,
+                                 ATTR_VAL_IDX_CODE_PAGE,
+                                 ModCodePage);
+
+        ntStatus = SamrSrvDecryptPasswordBlobEx(pConnCtx,
+                                                &pInfo->info25.password,
+                                                NULL,
+                                                0,
+                                                0,
+                                                &pwszPassword);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        dwError = DirectorySetPassword(hDirectory,
+                                       pwszAccountDn,
+                                       pwszPassword);
+        BAIL_ON_LSA_ERROR(dwError);
+
         break;
 
     case 26:

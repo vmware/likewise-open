@@ -49,11 +49,11 @@
 
 NTSTATUS
 SamrSrvOpenUser(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ UINT32 access_mask,
-    /* [in] */ UINT32 rid,
-    /* [out] */ ACCOUNT_HANDLE *phUser
+    IN  handle_t         hBinding,
+    IN  DOMAIN_HANDLE    hDomain,
+    IN  DWORD            dwAccessMask,
+    IN  DWORD            dwRid,
+    OUT ACCOUNT_HANDLE  *phUser
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -62,8 +62,8 @@ SamrSrvOpenUser(
 
     ntStatus = SamrSrvOpenAccount(hBinding,
                                   hDomain,
-                                  access_mask,
-                                  rid,
+                                  dwAccessMask,
+                                  dwRid,
                                   DS_OBJECT_CLASS_USER,
                                   &hUser);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);

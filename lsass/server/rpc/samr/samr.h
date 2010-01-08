@@ -276,10 +276,10 @@ SamrSrvQueryUserInfo(
 
 NTSTATUS
 SamrSrvSetUserInfo(
-    handle_t hBinding,
-    ACCOUNT_HANDLE hUser,
-    UINT16 level,
-    UserInfo *pInfo
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          usLevel,
+    IN  UserInfo       *pInfo
     );
 
 
@@ -294,6 +294,14 @@ SamrSrvQueryDisplayInfo(
     UINT32 *total_size,
     UINT32 *returned_size,
     SamrDisplayInfo *info
+    );
+
+
+NTSTATUS
+SamrSrvGetUserPwInfo(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    OUT PwInfo         *pInfo
     );
 
 
@@ -338,6 +346,15 @@ SamrSrvConnect2(
     IN  PCWSTR          pwszSystemName,
     IN  DWORD           dwAccessMask,
     OUT CONNECT_HANDLE *hConn
+    );
+
+
+NTSTATUS
+SamrSrvSetUserInfo2(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          usLevel,
+    IN  UserInfo       *pInfo
     );
 
 
@@ -433,6 +450,15 @@ SamrSrvConnectInternal(
     OUT PDWORD            pdwLevelOut,
     OUT SamrConnectInfo  *pInfoOut,
     OUT PCONNECT_CONTEXT *ppConnCtx
+    );
+
+
+NTSTATUS
+SamrSrvSetUserInfoInternal(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          level,
+    IN  UserInfo       *pInfo
     );
 
 

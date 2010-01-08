@@ -282,13 +282,15 @@ error:
 
 DWORD
 SamDbCreateLocalUserSecDesc(
-    PSID pSid,
+    PSID pUserSid,
     PSECURITY_DESCRIPTOR_RELATIVE *ppSecDescRel,
     PULONG pulSecDescLen
     )
 {
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSID pBuiltinAdminsSid = NULL;
+    DWORD dwBuiltinAdminsSidSize = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
     ULONG ulSecDescLen = 1024;
@@ -303,11 +305,28 @@ SamDbCreateLocalUserSecDesc(
                                     SECURITY_DESCRIPTOR_REVISION);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* don't set the owner and group SID */
+    /*
+     * Set owner and group (BUILTIN\Administrators)
+     */
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &pBuiltinAdminsSid,
+                                   &dwBuiltinAdminsSidSize);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    ntStatus = RtlSetOwnerSecurityDescriptor(pSecDesc,
+                                             pBuiltinAdminsSid,
+                                             FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlSetGroupSecurityDescriptor(pSecDesc,
+                                             pBuiltinAdminsSid,
+                                             FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     /* create default DACL */
-    dwError = SamDbCreateLocalUserDacl(pSid,
-                                   &pDacl);
+    dwError = SamDbCreateLocalUserDacl(pUserSid,
+                                       &pDacl);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     ntStatus = RtlSetDaclSecurityDescriptor(
@@ -788,22 +807,29 @@ error:
 static
 DWORD
 SamDbCreateLocalUserDacl(
-    PSID pSid,
+    PSID pAccountSid,
     PACL *ppDacl
     )
 {
-    ACCESS_MASK AdminAccessMask = STANDARD_RIGHTS_READ |
-                                  USER_ACCESS_GET_NAME_ETC |
-                                  USER_ACCESS_GET_LOCALE |
-                                  USER_ACCESS_SET_LOC_COM |
-                                  USER_ACCESS_GET_LOGONINFO |
-                                  USER_ACCESS_GET_ATTRIBUTES |
-                                  USER_ACCESS_SET_ATTRIBUTES |
-                                  USER_ACCESS_CHANGE_PASSWORD |
-                                  USER_ACCESS_SET_PASSWORD |
-                                  USER_ACCESS_GET_GROUPS |
-                                  USER_ACCESS_GET_GROUP_MEMBERSHIP |
-                                  USER_ACCESS_CHANGE_GROUP_MEMBERSHIP;
+    ACCESS_MASK AdminsAccessMask = STANDARD_RIGHTS_READ |
+                                   WRITE_DAC |
+                                   WRITE_OWNER |
+                                   DELETE |
+                                   USER_ACCESS_GET_NAME_ETC |
+                                   USER_ACCESS_GET_LOCALE |
+                                   USER_ACCESS_SET_LOC_COM |
+                                   USER_ACCESS_GET_LOGONINFO |
+                                   USER_ACCESS_GET_ATTRIBUTES |
+                                   USER_ACCESS_SET_ATTRIBUTES |
+                                   USER_ACCESS_CHANGE_PASSWORD |
+                                   USER_ACCESS_SET_PASSWORD |
+                                   USER_ACCESS_GET_GROUPS |
+                                   USER_ACCESS_GET_GROUP_MEMBERSHIP |
+                                   USER_ACCESS_CHANGE_GROUP_MEMBERSHIP;
+
+    ACCESS_MASK AccountAccessMask = STANDARD_RIGHTS_READ |
+                                    USER_ACCESS_SET_LOC_COM |
+                                    USER_ACCESS_CHANGE_PASSWORD;
 
     ACCESS_MASK AllAccessMask = STANDARD_RIGHTS_READ |
                                 USER_ACCESS_GET_NAME_ETC |
@@ -814,28 +840,26 @@ SamDbCreateLocalUserDacl(
                                 USER_ACCESS_GET_GROUPS |
                                 USER_ACCESS_GET_GROUP_MEMBERSHIP;
 
-
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PACL pDacl = NULL;
-    PSID pOwnerSid = NULL;
     PSID pBuiltinAdminsSid = NULL;
     PSID pWorldSid = NULL;
 
     ACCESS_LIST AccessList[] = {
         {
-            .ppSid        = &pOwnerSid,
-            .AccessMask   = AdminAccessMask,
+            .ppSid        = &pWorldSid,
+            .AccessMask   = AllAccessMask,
             .ulAccessType = ACCESS_ALLOWED_ACE_TYPE
         },
         {
             .ppSid        = &pBuiltinAdminsSid,
-            .AccessMask   = AdminAccessMask,
+            .AccessMask   = AdminsAccessMask,
             .ulAccessType = ACCESS_ALLOWED_ACE_TYPE
         },
         {
-            .ppSid        = &pWorldSid,
-            .AccessMask   = AllAccessMask,
+            .ppSid        = &pAccountSid,
+            .AccessMask   = AccountAccessMask,
             .ulAccessType = ACCESS_ALLOWED_ACE_TYPE
         },
         {
@@ -845,18 +869,17 @@ SamDbCreateLocalUserDacl(
         }
     };
 
-    ntStatus = RtlDuplicateSid(&pOwnerSid, pSid);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &pBuiltinAdminsSid,
+                                   NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
-    ntStatus = RtlAllocateSidFromCString(&pBuiltinAdminsSid,
-                                         "S-1-5-32-544");
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = RtlAllocateSidFromCString(&pWorldSid,
-                                         "S-1-1-0");
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pWorldSid = NULL;
+    dwError = LwCreateWellKnownSid(WinWorldSid,
+                                   NULL,
+                                   &pWorldSid,
+                                   NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
 
     dwError = SamDbCreateDacl(&pDacl, &AccessList[0]);
     BAIL_ON_LSA_ERROR(dwError);

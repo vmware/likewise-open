@@ -80,8 +80,8 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pConnCtx) {
-        InterlockedDecrement(&pConnCtx->refcount);
+    if (pConnCtx)
+    {
         CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConnCtx);
     }
 

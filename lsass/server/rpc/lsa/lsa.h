@@ -229,10 +229,14 @@ LsaSrvFreeAccountSids(
     );
 
 
-NTSTATUS
-LsaSrvGetSystemCreds(
-    LW_PIO_CREDS *ppCreds
-    );
-
-
 #endif /* _LSASRV_H_ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -49,10 +49,10 @@
 
 NTSTATUS
 SamrSrvQuerySecurity(
-    handle_t hBinding,
-    void *hObject,
-    UINT32 security_info,
-    PSECURITY_DESCRIPTOR_BUFFER *ppSecDescBuf
+    IN  handle_t                     hBinding,
+    IN  void                        *hObject,
+    IN  DWORD                        dwSecurityInfo,
+    OUT PSECURITY_DESCRIPTOR_BUFFER *ppSecDescBuf
     )
 {
     const wchar_t wszFilterFmt[] = L"%ws='%ws'";
@@ -82,26 +82,37 @@ SamrSrvQuerySecurity(
         NULL
     };
 
-    switch (pCtx->Type)
+    /*
+     * Only querying security descriptor on an account is allowed
+     */
+    if (pCtx->Type == SamrContextAccount)
     {
-    case SamrContextDomain:
-        pDomCtx     = (PDOMAIN_CONTEXT)hObject;
-        pwszDn      = pDomCtx->pwszDn;
-        hDirectory  = pDomCtx->pConnCtx->hDirectory;
-        break;
-
-    case SamrContextAccount:
         pAcctCtx    = (PACCOUNT_CONTEXT)hObject;
+        pDomCtx     = pAcctCtx->pDomCtx;
         pwszDn      = pAcctCtx->pwszDn;
-        hDirectory  = pAcctCtx->pDomCtx->pConnCtx->hDirectory;
-        break;
-
-    case SamrContextConnect:
-    default:
+        hDirectory  = pDomCtx->pConnCtx->hDirectory;
+    }
+    else if (pCtx->Type == SamrContextConnect ||
+             pCtx->Type == SamrContextDomain)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+    }
+    else
+    {
         ntStatus = STATUS_INVALID_HANDLE;
-        break;
     }
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    /*
+     * 1) READ_CONTROL right is required to read a security descriptor
+     * 2) Querying SACL part of the SD is not permitted over rpc
+     */
+    if (!(pAcctCtx->dwAccessGranted & READ_CONTROL) ||
+        dwSecurityInfo & SACL_SECURITY_INFORMATION)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = LwWc16sLen(pwszDn, &sDnLen);
     BAIL_ON_LSA_ERROR(dwError);
@@ -114,9 +125,13 @@ SamrSrvQuerySecurity(
                                OUT_PPVOID(&pwszFilter));
     BAIL_ON_LSA_ERROR(dwError);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
-                wszAttrDn,
-                pwszDn);
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrDn,
+                    pwszDn) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = DirectorySearch(hDirectory,
                               pwszBaseDn,
@@ -131,28 +146,27 @@ SamrSrvQuerySecurity(
     if (dwNumEntries == 0)
     {
         ntStatus = STATUS_INVALID_HANDLE;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
     else if (dwNumEntries > 1)
     {
         ntStatus = STATUS_INTERNAL_ERROR;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
-    else
-    {
-        pObjectEntry = &(pEntries[0]);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        dwError = DirectoryGetEntryAttrValueByName(
-                                 pObjectEntry,
-                                 wszAttrSecDesc,
-                                 DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
-                                 &pSecDescBlob);
-        BAIL_ON_LSA_ERROR(dwError);
+    pObjectEntry = &(pEntries[0]);
 
-        ntStatus = SamrSrvAllocateSecDescBuffer(&pSecDescBuf,
-                                                pSecDescBlob);
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pObjectEntry,
+                              wszAttrSecDesc,
+                              DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
+                              &pSecDescBlob);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = SamrSrvAllocateSecDescBuffer(
+                              &pSecDescBuf,
+                              (SECURITY_INFORMATION)dwSecurityInfo,
+                              pSecDescBlob);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     *ppSecDescBuf = pSecDescBuf;
 

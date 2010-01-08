@@ -72,11 +72,19 @@ LsaPamConverse(
     pMsg->msg_style = messageStyle;
     pMsg->msg       = (PAM_MESSAGE_MSG_TYPE)pszPrompt;
 
-    dwError = pConv->conv(1,
-            (PAM_CONV_2ND_ARG_TYPE)&pMsg,
-            &pResponse,
-            pConv->appdata_ptr);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pConv->conv)
+    {
+        dwError = pConv->conv(1,
+                (PAM_CONV_2ND_ARG_TYPE)&pMsg,
+                &pResponse,
+                pConv->appdata_ptr);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else
+    {
+        LSA_LOG_PAM_INFO("Unable to send prompt to user from PAM. Most likely the calling program is non-interactive");
+        // Leave pResponse as NULL.
+    }
 
     switch (messageStyle)
     {

@@ -1019,6 +1019,16 @@ SrvBuildExecContext(
    OUT PSRV_EXEC_CONTEXT*   ppContext
    );
 
+NTSTATUS
+SrvBuildEmptyExecContext(
+   OUT PSRV_EXEC_CONTEXT* ppContext
+   );
+
+BOOLEAN
+SrvIsValidExecContext(
+   IN PSRV_EXEC_CONTEXT pExecContext
+   );
+
 VOID
 SrvReleaseExecContextHandle(
    IN HANDLE hExecContext

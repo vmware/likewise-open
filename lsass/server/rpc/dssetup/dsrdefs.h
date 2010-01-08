@@ -18,7 +18,27 @@
 #define BAIL_ON_NO_MEMORY(ptr)                           \
     do {                                                 \
         if ((ptr) == NULL) {                             \
-            status = STATUS_NO_MEMORY;                   \
+            ntStatus = STATUS_NO_MEMORY;                 \
+            goto error;                                  \
+        }                                                \
+    } while (0)
+
+
+#define BAIL_ON_INVALID_PTR(ptr)                         \
+    do {                                                 \
+        if (ptr == NULL) {                               \
+            ntStatus = STATUS_INVALID_PARAMETER;         \
+            LSA_LOG_ERROR("Error: invalid pointer");     \
+            goto error;                                  \
+        }                                                \
+    } while (0)
+
+
+#define BAIL_ON_INVALID_PARAMETER(cond)                  \
+    do {                                                 \
+        if (!(cond)) {                                   \
+            ntStatus = STATUS_INVALID_PARAMETER;         \
+            LSA_LOG_ERROR("Error: invalid parameter");   \
             goto error;                                  \
         }                                                \
     } while (0)

@@ -554,6 +554,164 @@ error:
 }
 
 
+DWORD
+DirectorySetEntrySecurityDescriptor(
+    HANDLE                         hDirectory,
+    PCWSTR                         pwszDn,
+    PSECURITY_DESCRIPTOR_ABSOLUTE  pSecDesc
+    )
+{
+    const wchar_t wszFilterFmt[] = L"%ws='%ws'";
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    WCHAR wszAttrDn[] = DIRECTORY_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrSecurityDescriptor[] = DIRECTORY_ATTR_SECURITY_DESCRIPTOR;
+    PWSTR pwszBase = NULL;
+    DWORD dwScope = 0;
+    size_t sDnLen = 0;
+    DWORD dwFilterLen = 0;
+    PWSTR pwszFilter = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    PWSTR pwszObjectDn = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
+    ULONG ulSecDescLen = 1024;
+    OCTET_STRING SecDescBlob = {0};
+    DWORD iMod = 0;
+
+    PWSTR wszAttributes[] = {
+        wszAttrDn,
+        NULL
+    };
+
+    enum AttrValueIndex {
+        ATTR_VAL_IDX_SECURITY_DESCRIPTOR = 0,
+        ATTR_VAL_IDX_SENTINEL
+    };
+
+    ATTRIBUTE_VALUE AttrValues[] = {
+        {   /* ATTR_VAL_IDX_SECURITY_DESCRIPTOR */
+            .Type = DIRECTORY_ATTR_TYPE_NT_SECURITY_DESCRIPTOR,
+            .data.pOctetString = NULL
+        }
+    };
+
+    DIRECTORY_MOD ModSecDesc = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrSecurityDescriptor,
+        1,
+        &AttrValues[ATTR_VAL_IDX_SECURITY_DESCRIPTOR]
+    };
+
+    DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1];
+    memset(&Mods, 0, sizeof(Mods));
+
+    if (pwszDn == NULL ||
+        pSecDesc == NULL)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    dwError = LwWc16sLen(pwszDn, &sDnLen);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    dwFilterLen = ((sizeof(wszAttrDn) / sizeof(WCHAR)) - 1) +
+                  sDnLen +
+                  (sizeof(wszFilterFmt) / sizeof(wszFilterFmt[0]));
+
+    dwError = LwAllocateMemory(dwFilterLen * sizeof(pwszFilter[0]),
+                               OUT_PPVOID(&pwszFilter));
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrDn,
+                    pwszDn) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    dwError = DirectorySearch(hDirectory,
+                              pwszBase,
+                              dwScope,
+                              pwszFilter,
+                              wszAttributes,
+                              FALSE,
+                              &pEntry,
+                              &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = ERROR_DS_NO_SUCH_OBJECT;
+    }
+    else if (dwNumEntries > 1)
+    {
+        dwError = ERROR_INTERNAL_DB_ERROR;
+    }
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrDn,
+                              DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                              &pwszObjectDn);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    do
+    {
+        dwError = LwReallocMemory(pSecDescRel,
+                                  OUT_PPVOID(&pSecDescRel),
+                                  ulSecDescLen);
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+
+        ntStatus = RtlAbsoluteToSelfRelativeSD(
+                                    pSecDesc,
+                                    pSecDescRel,
+                                    &ulSecDescLen);
+        if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+        {
+            ulSecDescLen *= 2;
+        }
+
+    } while (ntStatus != STATUS_SUCCESS &&
+             ulSecDescLen <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE);
+
+    SecDescBlob.pBytes     = (PBYTE)pSecDescRel;
+    SecDescBlob.ulNumBytes = ulSecDescLen;
+
+    AttrValues[ATTR_VAL_IDX_SECURITY_DESCRIPTOR].data.pOctetString =
+        &SecDescBlob;
+    Mods[iMod++] = ModSecDesc;
+
+    dwError = DirectoryModifyObject(hDirectory,
+                                    pwszObjectDn,
+                                    Mods);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_MEMORY(pSecDescRel);
+
+    if (pEntry)
+    {
+        DirectoryFreeEntries(pEntry, dwNumEntries);
+    }
+
+    if (dwError == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
 VOID
 DirectoryFreeEntrySecurityDescriptor(
     PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
@@ -572,7 +730,7 @@ DirectoryFreeEntrySecurityDescriptor(
     BOOLEAN bSaclPresent = FALSE;
     BOOLEAN bSaclDefaulted = FALSE;
 
-    if (ppSecDesc == NULL &&
+    if (ppSecDesc == NULL ||
         *ppSecDesc == NULL)
     {
         return;

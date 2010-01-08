@@ -1,0 +1,255 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ */
+
+/*
+ * Copyright Likewise Software    2004-2009
+ * All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the license, or (at
+ * your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.  You should have received a copy
+ * of the GNU Lesser General Public License along with this program.  If
+ * not, see <http://www.gnu.org/licenses/>.
+ *
+ * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
+ * TERMS AS WELL.  IF YOU HAVE ENTERED INTO A SEPARATE LICENSE AGREEMENT
+ * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
+ * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
+ * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
+ * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
+ * license@likewisesoftware.com
+ */
+
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        dsr_accesstoken.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        Access token handling functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+#include "includes.h"
+
+
+static
+NTSTATUS
+DsrSrvInitNpAuthInfo(
+    IN  rpc_transport_info_handle_t  hTransportInfo,
+    OUT PACCESS_TOKEN               *ppToken
+    );
+
+
+static
+NTSTATUS
+DsrSrvInitLpcAuthInfo(
+    IN  rpc_transport_info_handle_t  hTransportInfo,
+    OUT PACCESS_TOKEN               *ppToken
+    );
+
+
+NTSTATUS
+DsrSrvInitAuthInfo(
+    IN  handle_t        hBinding,
+    OUT PACCESS_TOKEN  *ppAccessToken
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = 0;
+    DWORD dwAuthentication = 0;
+    PVOID pAuthCtx = NULL;
+    rpc_transport_info_handle_t hTransportInfo = NULL;
+    DWORD dwProtSeq = rpc_c_invalid_protseq_id;
+    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
+    PACCESS_TOKEN pToken = NULL;
+
+    if (!pSecCtx)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    rpc_binding_inq_security_context(hBinding,
+                                     (unsigned32*)&dwAuthentication,
+                                     (PVOID*)&pAuthCtx,
+                                     &rpcStatus);
+    if (rpcStatus == rpc_s_binding_has_no_auth)
+    {
+        /*
+         * There's no DCE/RPC authentication info so check
+         * the transport layer.
+         */
+        rpcStatus = 0;
+        rpc_binding_inq_transport_info(hBinding,
+                                       &hTransportInfo,
+                                       &rpcStatus);
+        if (rpcStatus)
+        {
+            ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        if (hTransportInfo)
+        {
+            rpcStatus = 0;
+            rpc_binding_inq_prot_seq(hBinding,
+                                     &dwProtSeq,
+                                     &rpcStatus);
+            if (rpcStatus)
+            {
+                ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            }
+
+            switch (dwProtSeq)
+            {
+            case rpc_c_protseq_id_ncacn_np:
+                ntStatus = DsrSrvInitNpAuthInfo(hTransportInfo,
+                                                &pToken);
+                break;
+
+            case rpc_c_protseq_id_ncalrpc:
+                ntStatus = DsrSrvInitLpcAuthInfo(hTransportInfo,
+                                                 &pToken);
+                break;
+            }
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+    }
+    else if (rpcStatus)
+    {
+        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    *ppAccessToken = pToken;
+
+cleanup:
+    return ntStatus;
+
+error:
+    if (pToken)
+    {
+        RtlReleaseAccessToken(&pToken);
+    }
+
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+DsrSrvInitNpAuthInfo(
+    IN  rpc_transport_info_handle_t  hTransportInfo,
+    OUT PACCESS_TOKEN               *ppToken
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
+    PSTR pszPrincipalName = NULL;
+    PACCESS_TOKEN pToken = NULL;
+
+    if (!pSecCtx)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    rpc_smb_transport_info_inq_peer_principal_name(
+                                   hTransportInfo,
+                                   (unsigned char**)&pszPrincipalName);
+
+    ntStatus = LwMapSecurityCreateAccessTokenFromCStringUsername(
+                                   pSecCtx,
+                                   &pToken,
+                                   pszPrincipalName);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    *ppToken = pToken;
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+DsrSrvInitLpcAuthInfo(
+    IN  rpc_transport_info_handle_t  hTransportInfo,
+    OUT PACCESS_TOKEN               *ppToken
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
+    uid_t uid = 0;
+    gid_t gid = 0;
+    PACCESS_TOKEN pToken = NULL;
+
+    if (!pSecCtx)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    rpc_lrpc_transport_info_inq_peer_eid(
+                                   hTransportInfo,
+                                   (unsigned32*)&uid,
+                                   (unsigned32*)&gid);
+
+    ntStatus = LwMapSecurityCreateAccessTokenFromUidGid(
+                                   pSecCtx,
+                                   &pToken,
+                                   uid,
+                                   gid);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    *ppToken = pToken;
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

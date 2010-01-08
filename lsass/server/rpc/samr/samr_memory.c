@@ -315,6 +315,7 @@ SamrSrvFreeUnicodeStringEx(
 NTSTATUS
 SamrSrvAllocateSecDescBuffer(
     PSECURITY_DESCRIPTOR_BUFFER *ppBuffer,
+    SECURITY_INFORMATION         SecInfo,
     POCTET_STRING                pBlob
     )
 {
@@ -333,9 +334,12 @@ SamrSrvAllocateSecDescBuffer(
                                          pBlob->ulNumBytes);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        memcpy(pBuffer->pBuffer,
-               pBlob->pBytes,
-               pBuffer->ulBufferLen);
+        ntStatus = RtlQuerySecurityDescriptorInfo(
+                            SecInfo,
+                            (PSECURITY_DESCRIPTOR_RELATIVE)pBuffer->pBuffer,
+                            &pBuffer->ulBufferLen,
+                            (PSECURITY_DESCRIPTOR_RELATIVE)pBlob->pBytes);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     *ppBuffer = pBuffer;

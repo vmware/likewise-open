@@ -86,7 +86,6 @@ cleanup:
 error:
     if (pConnCtx)
     {
-        InterlockedDecrement(&pConnCtx->refcount);
         CONNECT_HANDLE_rundown((CONNECT_HANDLE)pConnCtx);
     }
 
@@ -119,9 +118,9 @@ SamrSrvConnectInternal(
     BAIL_ON_INVALID_PTR(pwszSystemName);
     BAIL_ON_INVALID_PTR(ppConnCtx);
 
-    ntStatus = LwAllocateMemory(sizeof(*pConnCtx),
-                                OUT_PPVOID(&pConnCtx));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(sizeof(*pConnCtx),
+                               OUT_PPVOID(&pConnCtx));
+    BAIL_ON_LSA_ERROR(dwError);
 
     pConnCtx->Type     = SamrContextConnect;
     pConnCtx->refcount = 1;

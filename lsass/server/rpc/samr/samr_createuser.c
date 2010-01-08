@@ -49,12 +49,12 @@
 
 NTSTATUS
 SamrSrvCreateUser(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ UnicodeString *account_name,
-    /* [in] */ UINT32 access_mask,
-    /* [out] */ ACCOUNT_HANDLE *hUser,
-    /* [out] */ UINT32 *rid
+    IN  handle_t        hBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN  UnicodeString  *pAccountName,
+    IN  DWORD           dwAccessMask,
+    OUT ACCOUNT_HANDLE *phUser,
+    OUT PDWORD          pdwRid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -71,8 +71,14 @@ SamrSrvCreateUser(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
+    if (!(pDomCtx->dwAccessGranted & DOMAIN_ACCESS_CREATE_USER))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
     ntStatus = SamrSrvGetFromUnicodeString(&pwszUserName,
-                                           account_name);
+                                           pAccountName);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     ntStatus = SamrSrvInitUnicodeStringEx(&UserName,
@@ -84,10 +90,10 @@ SamrSrvCreateUser(
                                     &UserName,
                                     DS_OBJECT_CLASS_USER,
                                     ACB_NORMAL,
-                                    access_mask,
-                                    hUser,
+                                    dwAccessMask,
+                                    phUser,
                                     &ulAccessGranted,
-                                    rid);
+                                    pdwRid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
@@ -101,8 +107,8 @@ cleanup:
     return ntStatus;
 
 error:
-    *hUser          = NULL;
-    *rid            = 0;
+    *phUser    = NULL;
+    *pdwRid    = 0;
     goto cleanup;
 }
 

@@ -678,6 +678,13 @@ RegSrvIpcGetValueW(
     PREG_IPC_GET_VALUE_RESPONSE pRegResp = NULL;
     PREG_IPC_STATUS pStatus = NULL;
     DWORD dwType = 0;
+    PBYTE pData = NULL;
+
+    if (pReq->cbData)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pData, BYTE, pReq->cbData*sizeof(*pData));
+        BAIL_ON_NT_STATUS(status);
+    }
 
     status = RegSrvGetValueW(
         RegSrvIpcGetSessionData(pCall),
@@ -686,18 +693,17 @@ RegSrvIpcGetValueW(
         pReq->pValue,
         pReq->Flags,
         &dwType,
-        pReq->pData,
+        pData,
         &pReq->cbData
         );
-
     if (!status)
     {
         status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_GET_VALUE_RESPONSE, sizeof(*pRegResp));
         BAIL_ON_NT_STATUS(status);
 
         pRegResp->cbData = pReq->cbData;
-        pRegResp->pvData = pReq->pData;
-        pReq->pData = NULL;
+        pRegResp->pvData = pData;
+        pData = NULL;
         pRegResp->dwType = dwType;
 
         pOut->tag = REG_R_GET_VALUEW;
@@ -713,6 +719,8 @@ RegSrvIpcGetValueW(
     }
 
 cleanup:
+    LWREG_SAFE_FREE_MEMORY(pData);
+
     return MAP_REG_ERROR_IPC(status);
 
 error:
@@ -848,18 +856,32 @@ RegSrvIpcEnumValueW(
 	NTSTATUS status = 0;
     PREG_IPC_ENUM_VALUE_REQ pReq = pIn->data;
     PREG_IPC_ENUM_VALUE_RESPONSE pRegResp = NULL;
+    PWSTR pValueName = NULL;
+    PBYTE pValue = NULL;
     PREG_IPC_STATUS pStatus = NULL;
     REG_DATA_TYPE type = REG_UNKNOWN;
+
+    if (pReq->cName)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pValueName, WCHAR, pReq->cName*sizeof(*pValueName));
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    if (pReq->cValue)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pValue, BYTE, pReq->cValue*sizeof(*pValue));
+        BAIL_ON_NT_STATUS(status);
+    }
 
     status = RegSrvEnumValueW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->dwIndex,
-        pReq->pName,
+        pValueName,
         &pReq->cName,
         NULL,
         &type,
-        pReq->pValue,
+        pValue,
         &pReq->cValue);
 
     if (!status)
@@ -867,11 +889,11 @@ RegSrvIpcEnumValueW(
         status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_VALUE_RESPONSE, sizeof(*pRegResp));
         BAIL_ON_NT_STATUS(status);
 
-        pRegResp->pName= pReq->pName;
-        pReq->pName = NULL;
+        pRegResp->pName= pValueName;
+        pValueName = NULL;
         pRegResp->cName = pReq->cName;
-        pRegResp->pValue = pReq->pValue;
-        pReq->pValue = NULL;
+        pRegResp->pValue = pValue;
+        pValue = NULL;
         pRegResp->cValue = pReq->cValue;
         pRegResp->type = type;
 
@@ -888,6 +910,9 @@ RegSrvIpcEnumValueW(
     }
 
 cleanup:
+    LWREG_SAFE_FREE_MEMORY(pValueName);
+    LWREG_SAFE_FREE_MEMORY(pValue);
+
     return MAP_REG_ERROR_IPC(status);
 
 error:

@@ -49,11 +49,11 @@
 
 NTSTATUS
 LsaSrvOpenPolicy2(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ wchar16_t *system_name,
-    /* [in] */ ObjectAttribute *attrib,
-    /* [in] */ UINT32 access_mask,
-    /* [out] */ POLICY_HANDLE *hPolicy
+    IN  handle_t          hBinding,
+    IN  PWSTR             pwszSysName,
+    IN  ObjectAttribute  *pAttrib,
+    IN  DWORD             dwAccessMask,
+    OUT POLICY_HANDLE    *phPolicy
     )
 {
     const DWORD dwSamrConnAccess     = SAMR_ACCESS_CONNECT_TO_SERVER |
@@ -65,10 +65,12 @@ LsaSrvOpenPolicy2(
                                        DOMAIN_ACCESS_OPEN_ACCOUNT;
 
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
     RPCSTATUS rpcStatus = 0;
     PPOLICY_CONTEXT pPolCtx = NULL;
-    HANDLE hDirectory = NULL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = gpLsaSecDesc;
+    GENERIC_MAPPING GenericMapping = {0};
+    DWORD dwAccessGranted = 0;
     PSTR pszSamrLpcSocketPath = NULL;
     handle_t hSamrBinding = NULL;
     CHAR szHostname[64] = {0};
@@ -84,15 +86,28 @@ LsaSrvOpenPolicy2(
     DOMAIN_HANDLE hDomain = (DOMAIN_HANDLE)NULL;
     SAM_DOMAIN_ENTRY Domain = {0};
 
-    ntStatus = RTL_ALLOCATE(&pPolCtx, POLICY_CONTEXT, sizeof(*pPolCtx));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    dwError = DirectoryOpen(&hDirectory);
+    dwError = LwAllocateMemory(sizeof(*pPolCtx),
+                               OUT_PPVOID(&pPolCtx));
     BAIL_ON_LSA_ERROR(dwError);
 
     pPolCtx->Type        = LsaContextPolicy;
     pPolCtx->refcount    = 1;
-    pPolCtx->hDirectory  = hDirectory;
+
+    ntStatus = LsaSrvInitAuthInfo(hBinding, pPolCtx);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    if (!RtlAccessCheck(pSecDesc,
+                        pPolCtx->pUserToken,
+                        dwAccessMask,
+                        pPolCtx->dwAccessGranted,
+                        &GenericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    pPolCtx->dwAccessGranted = dwAccessGranted;
 
     ntStatus = LsaSrvCreateSamDomainsTable(&pPolCtx->pDomains);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
@@ -176,7 +191,7 @@ LsaSrvOpenPolicy2(
        pointer as well */
     InterlockedIncrement(&pPolCtx->refcount);
 
-    *hPolicy = (POLICY_HANDLE)pPolCtx;
+    *phPolicy = (POLICY_HANDLE)pPolCtx;
 
 cleanup:
     if (pDomainSid)
@@ -201,12 +216,12 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pPolCtx) {
-        InterlockedDecrement(&pPolCtx->refcount);
+    if (pPolCtx)
+    {
         POLICY_HANDLE_rundown((POLICY_HANDLE)pPolCtx);
     }
 
-    *hPolicy = NULL;
+    *phPolicy = NULL;
     goto cleanup;
 }
 
