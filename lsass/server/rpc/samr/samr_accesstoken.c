@@ -58,8 +58,8 @@ SamrSrvInitNpAuthInfo(
 static
 NTSTATUS
 SamrSrvInitLpcAuthInfo(
-    IN  handle_t          hBinding,
-    OUT PCONNECT_CONTEXT  pConnCtx
+    IN  rpc_transport_info_handle_t hTransportInfo,
+    OUT PCONNECT_CONTEXT            pConnCtx
     );
 
 
@@ -74,6 +74,7 @@ SamrSrvInitAuthInfo(
     DWORD dwAuthentication = 0;
     PVOID pAuthCtx = NULL;
     rpc_transport_info_handle_t hTransportInfo = NULL;
+    DWORD dwProtSeq = rpc_c_invalid_protseq_id;
     PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
 
     if (!pSecCtx)
@@ -89,7 +90,7 @@ SamrSrvInitAuthInfo(
     if (rpcStatus == rpc_s_binding_has_no_auth)
     {
         /*
-         * There's no  DCE/RPC authentication info so check
+         * There's no DCE/RPC authentication info so check
          * the transport layer.
          */
         rpcStatus = 0;
@@ -104,15 +105,30 @@ SamrSrvInitAuthInfo(
 
         if (hTransportInfo)
         {
-            ntStatus = SamrSrvInitNpAuthInfo(hTransportInfo,
-                                             pConnCtx);
+            rpcStatus = 0;
+            rpc_binding_inq_prot_seq(hBinding,
+                                     &dwProtSeq,
+                                     &rpcStatus);
+            if (rpcStatus)
+            {
+                ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            }
+
+            switch (dwProtSeq)
+            {
+            case rpc_c_protseq_id_ncacn_np:
+                ntStatus = SamrSrvInitNpAuthInfo(hTransportInfo,
+                                                 pConnCtx);
+                break;
+
+            case rpc_c_protseq_id_ncalrpc:
+                ntStatus = SamrSrvInitLpcAuthInfo(hTransportInfo,
+                                                  pConnCtx);
+                break;
+            }
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
-        else
-        {
-            ntStatus = SamrSrvInitLpcAuthInfo(hBinding,
-                                              pConnCtx);
-        }
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
     else if (rpcStatus)
     {
@@ -199,20 +215,28 @@ error:
 static
 NTSTATUS
 SamrSrvInitLpcAuthInfo(
-    IN  handle_t          hBinding,
-    OUT PCONNECT_CONTEXT  pConnCtx
+    IN  rpc_transport_info_handle_t hTransportInfo,
+    OUT PCONNECT_CONTEXT            pConnCtx
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
     uid_t uid = 0;
     gid_t gid = 0;
     PACCESS_TOKEN pToken = NULL;
 
-    /*
-     * We assume now the request coming via ncalrpc
-     * has been sent by root
-     */
+    if (!pSecCtx)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    rpc_lrpc_transport_info_inq_peer_eid(
+                                   hTransportInfo,
+                                   (unsigned32*)&uid,
+                                   (unsigned32*)&gid);
+
     ntStatus = LwMapSecurityCreateAccessTokenFromUidGid(
                                    pSecCtx,
                                    &pToken,
@@ -223,6 +247,12 @@ SamrSrvInitLpcAuthInfo(
     pConnCtx->pUserToken = pToken;
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
