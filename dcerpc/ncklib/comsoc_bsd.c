@@ -1499,8 +1499,8 @@ gid_t		    *egid;
 #endif
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
-    rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
 #if defined(SO_PEERCRED)
+    rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
     struct ucred peercred = {0};
     socklen_t peercredlen = sizeof(peercred);
 
@@ -1518,6 +1518,7 @@ gid_t		    *egid;
         RPC_DBG_GPRINTF(("(rpc__bsd_socket_getpeereid) error=%d\n", serr));
     }
 #elif defined(HAVE_GETPEERID)
+    rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
     uid_t uid = -1;
     gid_t gid = -1;
 
