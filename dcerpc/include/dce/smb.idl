@@ -24,7 +24,7 @@
 **
 **  NAME:
 **
-**      schannel.idl
+**      smb.idl
 **
 **  FACILITY:
 **
@@ -32,7 +32,7 @@
 **
 **  ABSTRACT:
 **
-**  Netlogon/Schannel types.
+**  SMB (ncacn_np) transport-specific functions
 **
 **
 */

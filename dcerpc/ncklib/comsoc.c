@@ -448,13 +448,41 @@ rpc_binding_inq_transport_info(
     CODING_ERROR (st);
     RPC_VERIFY_INIT ();
 
-    if (binding_r->transport_info)
+    if (binding_r && binding_r->transport_info)
     {
         *info = binding_r->transport_info->handle;
     }
     else
     {
         *info = NULL;
+    }
+
+    *st = rpc_s_ok;
+}
+
+void
+rpc_binding_inq_prot_seq(
+    rpc_binding_handle_t  binding_handle,
+    unsigned32            *prot_seq,
+    unsigned32            *st
+    )
+{
+    rpc_binding_rep_p_t binding_r = (rpc_binding_rep_p_t) binding_handle;
+
+    CODING_ERROR (st);
+    RPC_VERIFY_INIT ();
+
+    if (binding_r && binding_r->transport_info)
+    {
+        *prot_seq = (unsigned32)binding_r->transport_info->protseq;
+    }
+    else if (binding_r)
+    {
+        *prot_seq = (unsigned32)binding_r->rpc_addr->rpc_protseq_id;
+    }
+    else
+    {
+        *prot_seq = (unsigned32)RPC_C_INVALID_PROTSEQ_ID;
     }
 
     *st = rpc_s_ok;

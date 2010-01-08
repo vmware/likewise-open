@@ -738,6 +738,7 @@ rpc__transport_info_equal(
                                                 /* progress */
 #define RPC_C_SOCKET_EISCONN      EISCONN       /* socket is already */
                                                 /* connected */
+#define RPC_C_SOCKET_ENOTSUP      ENOTSUP       /* operation not supported */
 #ifdef ETIME
 #define RPC_C_SOCKET_ETIME        ETIME         /* A time skew occurred */
 #else
