@@ -116,10 +116,13 @@ SrvWorkerMain(
 
         if (pExecContext)
         {
-            NTSTATUS ntStatus2 = SrvProtocolExecute(pExecContext);
-            if (ntStatus2)
+            if (SrvIsValidExecContext(pExecContext))
             {
-                LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
+                NTSTATUS ntStatus2 = SrvProtocolExecute(pExecContext);
+                if (ntStatus2)
+                {
+                    LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
+                }
             }
 
             SrvReleaseExecContext(pExecContext);
@@ -228,12 +231,32 @@ SrvWorkerStop(
     PLWIO_SRV_WORKER_CONTEXT pContext
     )
 {
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT pExecContext = NULL;
+
     pthread_mutex_lock(&pContext->mutex);
 
     pContext->bStop = TRUE;
 
     pthread_mutex_unlock(&pContext->mutex);
 
-    return 0;
+    ntStatus = SrvBuildEmptyExecContext(&pExecContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProdConsEnqueue(&gSMBSrvGlobals.workQueue, pExecContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pExecContext)
+    {
+        SrvReleaseExecContext(pExecContext);
+    }
+
+    goto cleanup;
 }
 

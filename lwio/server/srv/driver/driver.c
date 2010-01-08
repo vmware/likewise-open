@@ -484,6 +484,9 @@ SrvShutdown(
 {
     NTSTATUS ntStatus = 0;
 
+    // TODO: All existing requests must be waited on to be completed before
+    //       shutting down the worker queues.
+
     if (gSMBSrvGlobals.pMutex)
     {
         pthread_mutex_lock(gSMBSrvGlobals.pMutex);
