@@ -225,9 +225,7 @@ typedef struct __REG_IPC_ENUM_VALUE_REQ
 {
     HKEY hKey;
     DWORD dwIndex;
-    PWSTR pName;
     DWORD cName;
-    PBYTE pValue;
     DWORD cValue;
 } REG_IPC_ENUM_VALUE_REQ, *PREG_IPC_ENUM_VALUE_REQ;
 
@@ -260,7 +258,6 @@ typedef struct __REG_IPC_GET_VALUE_REQ
     PCWSTR pSubKey;
     PCWSTR pValue;
     REG_DATA_TYPE_FLAGS Flags;
-    PBYTE pData;
     DWORD cbData;
 } REG_IPC_GET_VALUE_REQ, *PREG_IPC_GET_VALUE_REQ;
 
