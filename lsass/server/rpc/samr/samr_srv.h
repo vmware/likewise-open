@@ -42,12 +42,6 @@ typedef struct samr_rpc_context {
 } SamrRpcContext, SAMR_RPC_CONTEXT, *PSAMR_RPC_CONTEXT;
 
 
-typedef struct samr_rpc_worker {
-    pthread_t         worker;
-    SAMR_RPC_CONTEXT  context;
-} SamrRpcWorker, SAMR_RPC_WORKER, *PSAMR_RPC_WORKER;
-
-
 DWORD
 SamrRpcRegisterRpcInterface(
     rpc_binding_vector_p_t pSrvBinding
