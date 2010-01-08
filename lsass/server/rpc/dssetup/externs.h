@@ -49,6 +49,10 @@ extern rpc_binding_vector_p_t gpDsrSrvBinding;
 
 extern DSSETUP_SRV_CONFIG gDsrSrvConfig;
 
+extern PSECURITY_DESCRIPTOR_ABSOLUTE gpDsrSecDesc;
+
+extern PLW_MAP_SECURITY_CONTEXT gpLsaSecCtx;
+
 #endif /* _EXTERNS_H_ */
 
 

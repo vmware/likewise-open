@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,46 +33,29 @@
  *
  * Module Name:
  *
- *        dssetup_srv.c
+ *        dsr_accesstoken.h
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        DsSetup server management functions
+ *        Access token handling functions
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _DSSETUP_SRV_H_
-#define _DSSETUP_SRV_H_
+#ifndef _DSR_ACCESSTOKEN_H_
+#define _DSR_ACCESSTOKEN_H_
 
 
-DWORD
-DsrRpcStartServer(
-    VOID
+NTSTATUS
+DsrSrvInitAuthInfo(
+    IN  handle_t        hBinding,
+    OUT PACCESS_TOKEN  *ppAccessToken
     );
 
 
-DWORD
-DsrRpcStopServer(
-    VOID
-    );
-
-
-DWORD
-DsrSrvInitServerSecurityDescriptor(
-    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
-    );
-
-
-DWORD
-DsrSrvDestroyServerSecurityDescriptor(
-    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
-    );
-
-
-#endif /* _DSSETUP_SRV_H_ */
+#endif /* _DSR_ACCESSTOKEN_H_ */
 
 
 /*

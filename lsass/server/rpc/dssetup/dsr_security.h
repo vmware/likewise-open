@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,46 +33,38 @@
  *
  * Module Name:
  *
- *        dssetup_srv.c
+ *        dsr_security.h
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        DsSetup server management functions
+ *        DsSetup server security descriptor functions
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _DSSETUP_SRV_H_
-#define _DSSETUP_SRV_H_
+#ifndef _DSR_SECURITY_H_
+#define _DSR_SECURITY_H_
 
 
-DWORD
-DsrRpcStartServer(
-    VOID
+typedef struct _ACCESS_LIST
+{
+    PSID        *ppSid;
+    ACCESS_MASK AccessMask;
+    ULONG       ulAccessType;
+
+} ACCESS_LIST, *PACCESS_LIST;
+
+
+NTSTATUS
+DsrSrvCreateDacl(
+    OUT PACL *ppDacl,
+    IN  PACCESS_LIST pList
     );
 
 
-DWORD
-DsrRpcStopServer(
-    VOID
-    );
-
-
-DWORD
-DsrSrvInitServerSecurityDescriptor(
-    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
-    );
-
-
-DWORD
-DsrSrvDestroyServerSecurityDescriptor(
-    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
-    );
-
-
-#endif /* _DSSETUP_SRV_H_ */
+#endif /* _LSA_SECURITY_H_ */
 
 
 /*
