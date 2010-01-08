@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: SamrGetUserPwInfo function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_getuserpwinfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrGetUserPwInfo function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -38,17 +48,50 @@
 
 
 NTSTATUS
-SamrGetUserPwInfo(
-    /* [in] */  ACCOUNT_HANDLE hUser,
-    /* [out] */ PwInfo *pInfo
+SamrSrvGetUserPwInfo(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    OUT PwInfo         *pInfo
     )
 {
-    NTSTATUS ntStatus = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PACCOUNT_CONTEXT pAcctCtx = NULL;
+    PDOMAIN_CONTEXT pDomCtx = NULL;
+
+    BAIL_ON_INVALID_PTR(hBinding);
+    BAIL_ON_INVALID_PTR(hUser);
+    BAIL_ON_INVALID_PTR(pInfo);
+
+    pAcctCtx = (PACCOUNT_CONTEXT)hUser;
+    pDomCtx  = pAcctCtx->pDomCtx;
+
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    /* Check access rights required */
+    if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    /*
+     * This is in fact returning domain- not user-specific
+     * settings
+     */
+    pInfo->min_password_length = pDomCtx->dwMinPasswordLen;
+    pInfo->password_properties = pDomCtx->dwPasswordProperties;
 
 cleanup:
     return ntStatus;
 
 error:
+    pInfo->min_password_length = 0;
+    pInfo->password_properties = 0;
+
     goto cleanup;
 }
 

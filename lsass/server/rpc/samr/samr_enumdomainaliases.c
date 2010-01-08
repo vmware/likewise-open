@@ -49,28 +49,47 @@
 
 NTSTATUS
 SamrSrvEnumDomainAliases(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in, out] */ UINT32 *resume,
-    /* [in] */ UINT32 account_flags,
-    /* [out] */ RidNameArray **names,
-    /* [out] */ UINT32 *num_entries
+    IN  handle_t        hBinding,
+    IN  DOMAIN_HANDLE   hDomain,
+    IN OUT PDWORD       pdwResume,
+    IN  DWORD           dwAccountFlags,
+    OUT RidNameArray  **ppNames,
+    OUT PDWORD          pdwNumEntries
     )
 {
     /* this should be reasonable value to send over 50 aliases */
-    const DWORD max_size = 2048;
+    const DWORD dwMaxSize = 2048;
 
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PDOMAIN_CONTEXT pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     ntStatus = SamrSrvEnumDomainAccounts(hBinding,
-                                       hDomain,
-                                       resume,
-                                       DS_OBJECT_CLASS_LOCAL_GROUP,
-      /* account flags are ignored */  0,
-                                       max_size,
-                                       names,
-                                       num_entries);
+                                         hDomain,
+                                         pdwResume,
+                                         DS_OBJECT_CLASS_LOCAL_GROUP,
+        /* account flags are ignored */  0,
+                                         dwMaxSize,
+                                         ppNames,
+                                         pdwNumEntries);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
+
+error:
+    goto cleanup;
 }
 
 

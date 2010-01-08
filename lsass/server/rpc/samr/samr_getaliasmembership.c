@@ -63,15 +63,17 @@ SetRidsArray(
     );
 
 
-NTSTATUS SamrSrvGetAliasMembership(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ SidArray *pSids,
-    /* [out] */ Ids *pRids
+NTSTATUS
+SamrSrvGetAliasMembership(
+    IN  handle_t       hBinding,
+    IN  DOMAIN_HANDLE  hDomain,
+    IN  SidArray      *pSids,
+    OUT Ids           *pRids
     )
 {
     wchar_t wszFilterFmt[] = L"%ws='%ws'";
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PCONNECT_CONTEXT pConnCtx = NULL;
     PDOMAIN_CONTEXT pDomCtx = NULL;
     DWORD dwError = 0;
     DWORD dwDnNum = 0;
@@ -89,6 +91,8 @@ NTSTATUS SamrSrvGetAliasMembership(
     PWSTR pwszFilter = NULL;
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
     WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
+    WCHAR wszAttrSecurityDesc[] = DS_ATTR_SECURITY_DESCRIPTOR;
     PDIRECTORY_ENTRY pEntry = NULL;
     DWORD dwEntriesNum = 0;
     PDIRECTORY_ENTRY pLocalGroupEntries = NULL;
@@ -96,11 +100,17 @@ NTSTATUS SamrSrvGetAliasMembership(
     PDIRECTORY_ENTRY pLocalGroupEntry = NULL;
     PWSTR pwszLocalGroupSid = NULL;
     PWSTR pwszDn = NULL;
+    DWORD dwObjectClass = DS_OBJECT_CLASS_UNKNOWN;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    GENERIC_MAPPING GenericMapping = {0};
+    DWORD dwAccessGranted = 0;
     DWORD dwSidCount = 0;
     Ids Rids = {0};
 
     PWSTR wszMemberAttributes[] = {
         wszAttrDn,
+        wszAttrObjectClass,
+        wszAttrSecurityDesc,
         NULL
     };
 
@@ -109,8 +119,23 @@ NTSTATUS SamrSrvGetAliasMembership(
         NULL
     };
 
-    pDomCtx    = (PDOMAIN_CONTEXT)hDomain;
-    hDirectory = pDomCtx->pConnCtx->hDirectory;
+    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    /* Check access rights required */
+    if (!(pDomCtx->dwAccessGranted & DOMAIN_ACCESS_OPEN_ACCOUNT))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    pConnCtx   = pDomCtx->pConnCtx;
+    hDirectory = pConnCtx->hDirectory;
     dwDnNum    = pSids->num_sids;
 
     dwError = LwAllocateMemory(sizeof(PWSTR) * dwDnNum,
@@ -134,9 +159,13 @@ NTSTATUS SamrSrvGetAliasMembership(
                                    OUT_PPVOID(&pwszFilter));
         BAIL_ON_LSA_ERROR(dwError);
 
-        sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
-                    wszAttrObjectSid,
-                    pwszSid);
+        if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                        wszAttrObjectSid,
+                        pwszSid) < 0)
+        {
+            ntStatus = LwErrnoToNtStatus(errno);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
 
         dwError = DirectorySearch(hDirectory,
                                   pwszBase,
@@ -155,6 +184,37 @@ NTSTATUS SamrSrvGetAliasMembership(
         }
         else if (dwEntriesNum == 1)
         {
+            dwError = DirectoryGetEntryAttrValueByName(
+                                      pEntry,
+                                      wszAttrObjectClass,
+                                      DIRECTORY_ATTR_TYPE_INTEGER,
+                                      &dwObjectClass);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            if (dwObjectClass == DS_OBJECT_CLASS_USER)
+            {
+
+                /*
+                 * Access check if requesting user is allowed to lookup
+                 * alias membership
+                 */
+                dwError = DirectoryGetEntrySecurityDescriptor(
+                                          pEntry,
+                                          &pSecDesc);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                if (!RtlAccessCheck(pSecDesc,
+                                    pConnCtx->pUserToken,
+                                    USER_ACCESS_GET_GROUP_MEMBERSHIP,
+                                    0,
+                                    &GenericMapping,
+                                    &dwAccessGranted,
+                                    &ntStatus))
+                {
+                    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+                }
+            }
+
             dwError = DirectoryGetEntryAttrValueByName(
                                       pEntry,
                                       wszAttrDn,

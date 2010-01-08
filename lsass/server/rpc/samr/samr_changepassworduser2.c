@@ -87,6 +87,8 @@ SamrSrvChangePasswordUser2(
     CONNECT_HANDLE hConnClosed = NULL;
     DWORD dwObjectClass = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    GENERIC_MAPPING GenericMapping = {0};
+    DWORD dwAccessGranted = 0;
     POCTET_STRING pOldNtHashBlob = NULL;
     PWSTR pwszNewPassword = NULL;
     size_t sNewPasswordLen = 0;
@@ -191,6 +193,17 @@ SamrSrvChangePasswordUser2(
                                   &(pEntries[0]),
                                   &pSecDesc);
     BAIL_ON_LSA_ERROR(dwError);
+
+    if (!RtlAccessCheck(pSecDesc,
+                        pConnCtx->pUserToken,
+                        USER_ACCESS_CHANGE_PASSWORD,
+                        0,
+                        &GenericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     /*
      * Get current NT hash

@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        samr_queryuserinfo.c
+ *        samr_rmfromforeigndomain.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        SamrQueryUserInfo function
+ *        SamrRemoveFromForeignDomain function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -88,7 +88,8 @@ SamrSrvRemoveMemberFromForeignDomain(
 
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
@@ -107,11 +108,15 @@ SamrSrvRemoveMemberFromForeignDomain(
                                OUT_PPVOID(&pwszFilter));
     BAIL_ON_LSA_ERROR(dwError);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
-                wszAttrObjectClass,
-                dwObjectClass,
-                wszAttrDomainName,
-                pwszDomainName);
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrObjectClass,
+                    dwObjectClass,
+                    wszAttrDomainName,
+                    pwszDomainName) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = DirectorySearch(hDirectory,
                               pwszBase,
@@ -123,6 +128,9 @@ SamrSrvRemoveMemberFromForeignDomain(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
+    /*
+     * Attempt to remove the SID from any alias it might be a member of
+     */
     for (i = 0; i < dwEntriesNum; i++)
     {
         PDIRECTORY_ENTRY pEntry = &(pEntries[i]);

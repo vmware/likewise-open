@@ -36,6 +36,7 @@ libsamr_la_SOURCES = \
     samr_queryuserinfo.c         \
     samr_renameaccount.c         \
     samr_setuserinfo.c           \
+    samr_setuserinfo2.c          \
     samr_queryaliasinfo.c        \
     samr_setaliasinfo.c          \
     samr_createaccount.c         \
@@ -45,6 +46,7 @@ libsamr_la_SOURCES = \
     samr_deleteaccount.c         \
     samr_deletedomalias.c        \
     samr_deleteuser.c            \
+    samr_getuserpwinfo.c         \
     samr_rmfromforeigndomain.c   \
     samr_querydisplayinfo.c      \
     samr_querydomaininfo.c       \
@@ -54,6 +56,7 @@ libsamr_la_SOURCES = \
     samr_getaliasmembership.c    \
     samr_changepassworduser2.c   \
     samr_accesstoken.c           \
+    samr_security.c              \
     samr_crypto.c                \
     samr_contexthandle.c
 

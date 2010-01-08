@@ -49,36 +49,52 @@
 
 NTSTATUS
 SamrSrvCreateUser2(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ UnicodeStringEx *account_name,
-    /* [in] */ UINT32 account_flags,
-    /* [in] */ UINT32 access_mask,
-    /* [out] */ ACCOUNT_HANDLE *hUser,
-    /* [out] */ UINT32 *access_granted,
-    /* [out] */ UINT32 *rid
+    IN  handle_t         hBinding,
+    IN  DOMAIN_HANDLE    hDomain,
+    IN  UnicodeStringEx *pAccountName,
+    IN  DWORD            dwAccountFlags,
+    IN  DWORD            dwAccessMask,
+    OUT ACCOUNT_HANDLE  *phUser,
+    OUT PDWORD           pdwAccessGranted,
+    OUT PDWORD           pdwRid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PDOMAIN_CONTEXT pDomCtx = NULL;
+
+    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    if (!(pDomCtx->dwAccessGranted & DOMAIN_ACCESS_CREATE_USER))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     ntStatus = SamrSrvCreateAccount(hBinding,
-                                  hDomain,
-                                  account_name,
-                                  DS_OBJECT_CLASS_USER,
-                                  account_flags,
-                                  access_mask,
-                                  hUser,
-                                  access_granted,
-                                  rid);
+                                    hDomain,
+                                    pAccountName,
+                                    DS_OBJECT_CLASS_USER,
+                                    dwAccountFlags,
+                                    dwAccessMask,
+                                    phUser,
+                                    pdwAccessGranted,
+                                    pdwRid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
 cleanup:
     return ntStatus;
 
 error:
-    *hUser          = NULL;
-    *access_granted = 0;
-    *rid            = 0;
+    *phUser           = NULL;
+    *pdwAccessGranted = 0;
+    *pdwRid           = 0;
+
     goto cleanup;
 }
 

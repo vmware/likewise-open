@@ -683,7 +683,11 @@ NTSTATUS __SamrGetUserPwInfo(
     /* [out] */ PwInfo *info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvGetUserPwInfo(IDL_handle,
+                                  hUser,
+                                  info);
     return status;
 }
 
@@ -849,6 +853,23 @@ NTSTATUS __SamrConnect2(
                              system_name,
                              access_mask,
                              hConn);
+    return status;
+}
+
+
+NTSTATUS __SamrSetUserInfo2(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ ACCOUNT_HANDLE hUser,
+    /* [in] */ UINT16 level,
+    /* [in] */ UserInfo *info
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvSetUserInfo2(IDL_handle,
+                                 hUser,
+                                 level,
+                                 info);
     return status;
 }
 

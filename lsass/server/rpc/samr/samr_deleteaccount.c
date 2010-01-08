@@ -63,10 +63,23 @@ SamrSrvDeleteAccount(
     PWSTR pwszAccountDn = NULL;
 
     pAcctCtx = (PACCOUNT_CONTEXT)hAccountIn;
+
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
     pDomCtx  = pAcctCtx->pDomCtx;
     pConnCtx = pDomCtx->pConnCtx;
 
-    hDirectory = pConnCtx->hDirectory;
+    if (!(pAcctCtx->dwAccessGranted & DELETE))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    hDirectory    = pConnCtx->hDirectory;
     pwszAccountDn = pAcctCtx->pwszDn;
 
     dwError = DirectoryDeleteObject(hDirectory,

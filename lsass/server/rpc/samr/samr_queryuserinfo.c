@@ -500,12 +500,14 @@ SamrSrvQueryUserInfo(
 
     pAcctCtx = (PACCOUNT_CONTEXT)hUser;
 
-    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    switch (level) {
+    switch (level)
+    {
     case 15:
     case 18:
     case 19:
@@ -542,18 +544,73 @@ SamrSrvQueryUserInfo(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (dwEntriesNum == 0) {
+    if (dwEntriesNum == 0)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
 
-    } else if (dwEntriesNum > 1) {
+    }
+    else if (dwEntriesNum > 1)
+    {
         ntStatus = STATUS_INTERNAL_ERROR;
     }
 
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     ntStatus = SamrSrvAllocateMemory((void**)&pUserInfo,
-                                   sizeof(*pUserInfo));
+                                     sizeof(*pUserInfo));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    switch (level)
+    {
+    case 1:
+    case 6:
+    case 7:
+    case 8:
+    case 13:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_NAME_ETC) ||
+            !(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+        break;
+
+    case 2:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_LOCALE) ||
+            !(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+        break;
+
+    case 4:
+    case 5:
+    case 10:
+    case 11:
+    case 12:
+    case 14:
+    case 17:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_LOGONINFO) ||
+            !(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+        break;
+
+    case 3:
+    case 9:
+    case 16:
+    case 20:
+    case 21:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+        break;
+    }
 
     switch (level) {
     case 1:
