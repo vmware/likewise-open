@@ -1966,7 +1966,7 @@ ifflags_again:
          */
         memcpy(&ifreq, ifr, sizeof(ifreq));
     ifaddr_again:
-        if (ioctl(bds->fd, SIOCGIFADDR, &ifreq) < 0)
+        if (ioctl(lrpc->fd, SIOCGIFADDR, &ifreq) < 0)
         {
             /*
              * UP but no ip address, skip it
