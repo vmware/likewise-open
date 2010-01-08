@@ -41,9 +41,14 @@ WireNTTimeToSMBDateTime(
 {
     NTSTATUS ntStatus = 0;
     time_t   timeUnix = 0;
+    time_t   curTime = 0;
     struct tm stTime = {0};
 
     timeUnix = (llNTTime /  10000000LL) - EPOCH_DIFFERENCE_SECS;
+
+    /* Adjust to local time zone */
+    curTime = time(NULL);
+    timeUnix -= (mktime(gmtime_r(&curTime, &stTime)) - curTime);
 
     gmtime_r(&timeUnix, &stTime);
 
