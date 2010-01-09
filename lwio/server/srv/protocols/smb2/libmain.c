@@ -51,8 +51,15 @@
 
 static
 NTSTATUS
-SrvBuildStatusPendingResponse_SMB_V2(
+SrvBuildConditionalInterimResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildInterimResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext,
+    ULONG64           ullAsyncId
     );
 
 static
@@ -349,17 +356,16 @@ SrvProtocolExecute_SMB_V2(
         {
             case STATUS_PENDING:
 
-                // TODO
-                if (0)
                 {
                     NTSTATUS ntStatus2 = STATUS_SUCCESS;
 
-                    ntStatus2 = SrvBuildStatusPendingResponse_SMB_V2(
-                                    pExecContext
-                                    );
+                    ntStatus2 = SrvBuildConditionalInterimResponse_SMB_V2(
+                                    pExecContext);
                     if (ntStatus2)
                     {
-                        LWIO_LOG_ERROR("Failed to build status pending response [0x%08x]", ntStatus2);
+                        LWIO_LOG_ERROR("Failed to build interim "
+                                       "response [0x%08x]",
+                                       ntStatus2);
                     }
                 }
 
@@ -454,8 +460,53 @@ SrvProtocolFreeContext_SMB_V2(
 
 static
 NTSTATUS
-SrvBuildStatusPendingResponse_SMB_V2(
+SrvBuildConditionalInterimResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    ULONG64                    ullAsyncId    = 0LL;
+    BOOLEAN                    bAsyncIdCreated = FALSE;
+
+    switch (pSmbRequest->pHeader->command)
+    {
+        case COM2_CREATE:
+
+            ntStatus = SrvSetExecContextAsyncId(
+                            pExecContext,
+                            &ullAsyncId,
+                            &bAsyncIdCreated);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            if (bAsyncIdCreated)
+            {
+                ntStatus = SrvBuildInterimResponse_SMB_V2(
+                                pExecContext,
+                                ullAsyncId);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildInterimResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext,
+    ULONG64           ullAsyncId
     )
 {
     NTSTATUS                   ntStatus      = STATUS_SUCCESS;
@@ -465,31 +516,31 @@ SrvBuildStatusPendingResponse_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSMB2_HEADER               pHeader       = NULL;
     NTSTATUS                   errorStatus   = STATUS_PENDING;
-    PSMB_PACKET pSmbAuxResponse = NULL;
-    PBYTE pOutBuffer            = NULL;
-    ULONG ulOffset              = 0;
-    ULONG ulBytesAvailable      = 0;
-    ULONG ulBytesUsed           = 0;
-    ULONG ulTotalBytesUsed      = 0;
-    ULONG ulHeaderSize          = 0;
+    PSMB_PACKET pInterimResponse = NULL;
+    PBYTE pOutBuffer             = NULL;
+    ULONG ulOffset               = 0;
+    ULONG ulBytesAvailable       = 0;
+    ULONG ulBytesUsed            = 0;
+    ULONG ulTotalBytesUsed       = 0;
+    ULONG ulHeaderSize           = 0;
 
     ntStatus = SMBPacketAllocate(
                     pExecContext->pConnection->hPacketAllocator,
-                    &pSmbAuxResponse);
+                    &pInterimResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
                     pExecContext->pConnection->hPacketAllocator,
                     (64 * 1024) + 4096,
-                    &pSmbAuxResponse->pRawBuffer,
-                    &pSmbAuxResponse->bufferLen);
+                    &pInterimResponse->pRawBuffer,
+                    &pInterimResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2InitPacket(pSmbAuxResponse, TRUE);
+    ntStatus = SMB2InitPacket(pInterimResponse, TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pOutBuffer = pSmbAuxResponse->pRawBuffer + sizeof(NETBIOS_HEADER);
-    ulBytesAvailable = pSmbAuxResponse->bufferLen - sizeof(NETBIOS_HEADER);
+    pOutBuffer = pInterimResponse->pRawBuffer + sizeof(NETBIOS_HEADER);
+    ulBytesAvailable = pInterimResponse->bufferLen - sizeof(NETBIOS_HEADER);
 
     ntStatus = SMB2MarshalHeader(
                 pOutBuffer,
@@ -502,6 +553,7 @@ SrvBuildStatusPendingResponse_SMB_V2(
                 pSmbRequest->pHeader->ullCommandSequence,
                 pSmbRequest->pHeader->ulTid,
                 pSmbRequest->pHeader->ullSessionId,
+                ullAsyncId,
                 errorStatus,
                 TRUE,
                 pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
@@ -530,21 +582,21 @@ SrvBuildStatusPendingResponse_SMB_V2(
     // ulBytesAvailable -= ulBytesUsed;
     ulTotalBytesUsed += ulBytesUsed;
 
-    pSmbAuxResponse->bufferUsed += ulTotalBytesUsed;
+    pInterimResponse->bufferUsed += ulTotalBytesUsed;
 
-    ntStatus = SMB2MarshalFooter(pSmbAuxResponse);
+    ntStatus = SMB2MarshalFooter(pInterimResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pExecContext->pSmbAuxResponse)
+    if (pExecContext->pInterimResponse)
     {
         SMBPacketRelease(
                 pExecContext->pConnection->hPacketAllocator,
-                pExecContext->pSmbAuxResponse);
+                pExecContext->pInterimResponse);
 
-        pExecContext->pSmbAuxResponse = NULL;
+        pExecContext->pInterimResponse = NULL;
     }
 
-    pExecContext->pSmbAuxResponse = pSmbAuxResponse;
+    pExecContext->pInterimResponse = pInterimResponse;
 
 cleanup:
 
@@ -552,11 +604,11 @@ cleanup:
 
 error:
 
-    if (pSmbAuxResponse)
+    if (pInterimResponse)
     {
         SMBPacketRelease(
             pExecContext->pConnection->hPacketAllocator,
-            pSmbAuxResponse);
+            pInterimResponse);
     }
 
     goto cleanup;

@@ -107,6 +107,7 @@ SrvBuildErrorResponse_SMB_V2(
                 pSmbRequest->pHeader->ullCommandSequence,
                 pSmbRequest->pHeader->ulTid,
                 pSmbRequest->pHeader->ullSessionId,
+                0LL, /* Async Id */
                 errorStatus,
                 TRUE,
                 pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,

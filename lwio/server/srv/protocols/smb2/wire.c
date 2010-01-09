@@ -157,6 +157,7 @@ SMB2MarshalHeader(
     IN              ULONG64       ullMid,
     IN              ULONG         ulTid,
     IN              ULONG64       ullSessionId,
+    IN              ULONG64       ullAsyncId,
     IN              NTSTATUS      status,
     IN              BOOLEAN       bIsResponse,
     IN              BOOLEAN       bIsPartOfCompoundMessage,
@@ -187,9 +188,22 @@ SMB2MarshalHeader(
     pSMB2Header->command        = usCommand;
     pSMB2Header->usEpoch        = usEpoch;
     pSMB2Header->usCredits      = usCredits;
-    pSMB2Header->ulPid          = ulPid;
     pSMB2Header->ullCommandSequence = ullMid;
-    pSMB2Header->ulTid          = ulTid;
+
+    if (!ullAsyncId)
+    {
+        pSMB2Header->ulPid = ulPid;
+        pSMB2Header->ulTid = ulTid;
+    }
+    else
+    {
+        memcpy( (PBYTE)&pSMB2Header->ulPid,
+                (PBYTE)&ullAsyncId,
+                sizeof(ullAsyncId));
+
+        pSMB2Header->ulFlags |= SMB2_FLAGS_ASYNC_COMMAND;
+    }
+
     pSMB2Header->ullSessionId   = ullSessionId;
     pSMB2Header->error         = status;
     pSMB2Header->usHeaderLen = sizeof(SMB2_HEADER);
@@ -1972,6 +1986,19 @@ SMB2MarshalError(
 
         pHeader->ulByteCount = ulMessageLength;
         memcpy(pDataCursor, pMessage, ulMessageLength);
+    }
+    else
+    {
+        if (ulBytesAvailable < 1)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ulBytesUsed++;
+        pHeader->usLength++;
+
+        pHeader->ulByteCount = 0;
     }
 
     *pulBytesUsed = ulBytesUsed;

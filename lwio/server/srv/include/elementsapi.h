@@ -438,6 +438,9 @@ typedef struct _SRV_EXEC_CONTEXT
 {
     LONG                               refCount;
 
+    pthread_mutex_t                    mutex;
+    pthread_mutex_t*                   pMutex;
+
     PLWIO_SRV_CONNECTION               pConnection;
     PSMB_PACKET                        pSmbRequest;
 
@@ -447,9 +450,11 @@ typedef struct _SRV_EXEC_CONTEXT
     PSMB_PACKET                        pSmbResponse;
     ULONG                              ulNumDuplicates;
 
-    PSMB_PACKET                        pSmbAuxResponse;
+    PSMB_PACKET                        pInterimResponse;
 
     BOOLEAN                            bInternal;
+
+    ULONG64                            ullAsyncId;
 
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
 
@@ -1027,6 +1032,19 @@ SrvBuildEmptyExecContext(
 BOOLEAN
 SrvIsValidExecContext(
    IN PSRV_EXEC_CONTEXT pExecContext
+   );
+
+NTSTATUS
+SrvSetExecContextAsyncId(
+   PSRV_EXEC_CONTEXT pContext,
+   PULONG64          pullAsyncId,
+   PBOOLEAN          pbAsyncIdCreated
+   );
+
+NTSTATUS
+SrvGetExecContextAsyncId(
+   PSRV_EXEC_CONTEXT pContext,
+   PULONG64          pullAsyncId
    );
 
 VOID
