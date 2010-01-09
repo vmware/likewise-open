@@ -63,3 +63,5 @@ LWPS_PROVIDER_FUNC_TABLE gRegDBProviderAPITable =
     &RegDB_FreePassword,
     &RegDB_CloseProvider
 };
+
+PLW_MAP_SECURITY_CONTEXT gpRegLwMapSecurityCtx = NULL;
