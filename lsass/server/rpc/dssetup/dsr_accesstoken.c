@@ -108,7 +108,7 @@ DsrSrvInitAuthInfo(
         {
             rpcStatus = 0;
             rpc_binding_inq_prot_seq(hBinding,
-                                     &dwProtSeq,
+                                     (unsigned32*)&dwProtSeq,
                                      &rpcStatus);
             if (rpcStatus)
             {
