@@ -143,7 +143,6 @@ SrvSetExecContextAsyncId(
 
     if (!pContext->ullAsyncId)
     {
-#if 0
         ULONG    iCount     = 0;
 
         for (; iCount < 2; iCount++)
@@ -154,9 +153,6 @@ SrvSetExecContextAsyncId(
 
             pContext->ullAsyncId |= ((ULONG64)uuid) << (iCount * sizeof(uuid));
         }
-#else
-        pContext->ullAsyncId = 0xF0035;
-#endif
 
         bAsyncIdCreated = TRUE;
     }
