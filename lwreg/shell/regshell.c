@@ -587,6 +587,7 @@ RegShellProcessCmd(
     PSTR pszFullKeyName = NULL;
     BOOLEAN bChdirOk = TRUE;
     HKEY hRootKey = NULL;
+    CHAR szError[128] = {0};
 
     dwError = RegShellCmdParse(pParseState, argc, argv, &rsItem);
     if (dwError == 0)
@@ -790,11 +791,15 @@ RegShellProcessCmd(
                                       pszPwd);
                         if (dwError)
                         {
-                            dwError = 0;
-                            printf("cd: key not valid '%s'\n", pszPwd);
+                            LwRegGetErrorString(dwError,
+                                                szError,
+                                                sizeof(szError)-1);
+                            printf("cd: key not valid '%s' [%s]\n",
+                                   pszToken, szError);
                             LWREG_SAFE_FREE_MEMORY(pszPwd);
                             pszPwd = NULL;
                             bChdirOk = FALSE;
+                            dwError = 0;
                             break;
                         }
                         else
@@ -812,15 +817,22 @@ RegShellProcessCmd(
                                       pszToken);
                         if (dwError)
                         {
-                            dwError = 0;
-                            printf("cd: key not valid '%s'\n", pszToken);
+                            LwRegGetErrorString(dwError,
+                                                szError,
+                                                sizeof(szError)-1);
+                            printf("cd: key not valid '%s' [%s]\n",
+                                   pszToken, szError);
+
                             bChdirOk = FALSE;
+                            dwError = 0;
                             break;
                         }
                         else
                         {
                             LWREG_SAFE_FREE_MEMORY(pszNewDefaultKey);
-                            dwError = LwRtlCStringDuplicate(&pszNewDefaultKey, pszToken);
+                            dwError = LwRtlCStringDuplicate(
+                                          &pszNewDefaultKey,
+                                          pszToken);
                             BAIL_ON_REG_ERROR(dwError);
                         }
                     }

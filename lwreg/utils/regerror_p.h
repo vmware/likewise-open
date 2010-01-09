@@ -33,38 +33,58 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        regerror_p.h
  *
  * Abstract:
  *
  *        Registry
  *
- *        Private Includes (Utils)
+ *        Registry error API
  *
  * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *          Marc Guy (mguy@likewisesoftware.com)
  *
  */
 
-#include <config.h>
+#ifndef __REGERROR_P_H__
+#define __REGERROR_P_H__
 
-#include <regsystem.h>
+size_t
+LwRegGetErrorString(
+    DWORD  dwError,
+    PSTR   pszBuffer,
+    size_t stBufSize
+    );
 
-#include <reg/lwreg.h>
+DWORD
+RegGetErrorMessageForLoggingEvent(
+    DWORD dwErrCode,
+    PSTR* ppszErrorMsg
+    );
 
-#include <lw/base.h>
-#include <lw/winerror.h>
-#include <lw/ntstatus.h>
-#include <lw/rtlstring.h>
-#include <lw/rtlmemory.h>
+VOID
+RegPrintError(
+    IN OPTIONAL PCSTR pszErrorPrefix,
+    IN DWORD dwError
+    );
 
-#include <regdef.h>
-#include <regutils.h>
+DWORD
+RegMapErrnoToLwRegError(
+    DWORD dwErrno
+    );
 
-#include "reglogger_p.h"
-#include "sysfuncs_p.h"
-#include "filelog_p.h"
-#include "consolelog_p.h"
-#include "syslog_p.h"
-#include "regerror_p.h"
-#include "externs.h"
+DWORD
+RegMapErrnoToLwRegError(
+    DWORD dwErrno
+    );
+
+LW_WINERROR
+RegNtStatusToWin32Error(
+    LW_NTSTATUS ntStatus
+    );
+
+PCSTR
+RegNtStatusToName(
+    IN NTSTATUS status
+    );
+#endif

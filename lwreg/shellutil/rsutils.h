@@ -71,6 +71,16 @@ RegShellUtilAddKey(
     );
 
 DWORD
+RegShellUtilAddKeySecDesc(
+    HANDLE hReg,
+    PSTR pszRootKeyName,
+    PSTR pszDefaultKey,
+    PSTR pszKeyName,
+    BOOLEAN bDoBail,
+    ACCESS_MASK AccessDesired,
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor);
+
+DWORD
 RegShellUtilDeleteKey(
     HANDLE hReg,
     PSTR pszRootKeyName,

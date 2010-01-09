@@ -63,6 +63,7 @@
 #include <regdef.h>
 #include <regclient.h>
 #include <regparse_r.h>
+#include "../utils/includes.h"
 
 #include "rsutils.h"
 #include "../parse/regio.h"
