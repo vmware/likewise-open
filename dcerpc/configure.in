@@ -163,6 +163,11 @@ RPC_ARG_DEFINE(dcom, ENABLE_DCOM, no,[Enable experimental DCOM support])
 AM_CONDITIONAL(ENABLE_DCOM, test x$rpc_arg_dcom = yes)
 AM_CONDITIONAL(TARGET_OS_LINUX, test x$target_os = xlinux-gnu)
 
+
+AS_AC_EXPAND(rpc_dir, ["$localstatedir/rpc"])
+AC_DEFINE_UNQUOTED([RPC_C_NP_DIR], ["$rpc_dir"], [named pipes directory])
+AC_DEFINE_UNQUOTED([RPC_C_UXD_DIR], ["$rpc_dir"], [unix domain sockets directory])
+
 #####################################################################
 ## COMPONENT: threads
 
