@@ -702,7 +702,7 @@ SrvSetFileRenameInfo_SMB_V2(
                                 &pSetInfoState->ioStatusBlock,
                                 pCtxSmb2->pSession->pIoSecurityContext,
                                 &pSetInfoState->dirPath,
-                                pSetInfoState->pSecurityDescriptor,
+                                (PSECURITY_DESCRIPTOR_RELATIVE)pSetInfoState->pSecurityDescriptor,
                                 pSetInfoState->pSecurityQOS,
                                 GENERIC_READ,
                                 0,

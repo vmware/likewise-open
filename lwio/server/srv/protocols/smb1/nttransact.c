@@ -1926,7 +1926,7 @@ SrvProcessNtTransactCreate(
                             &pNTTransactState->ioStatusBlock,
                             pNTTransactState->pSession->pIoSecurityContext,
                             pNTTransactState->pFilename,
-                            pNTTransactState->pSecDesc,
+                            (PSECURITY_DESCRIPTOR_RELATIVE)pNTTransactState->pSecDesc,
                             pNTTransactState->pSecurityQOS,
                             pNTTransactState->pNtTransactCreateHeader->ulDesiredAccess,
                             pNTTransactState->pNtTransactCreateHeader->ullAllocationSize,
