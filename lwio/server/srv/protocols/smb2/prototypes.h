@@ -288,6 +288,7 @@ SMB2MarshalHeader(
     ULONG64       ullMid,
     ULONG         ulTid,
     ULONG64       ullSessionId,
+    ULONG64       ullAsyncId,
     NTSTATUS      status,
     BOOLEAN       bIsResponse,
     BOOLEAN       bIsPartOfCompoundMessage,

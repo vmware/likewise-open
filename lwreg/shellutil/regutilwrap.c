@@ -79,6 +79,26 @@ RegUtilAddKey(
 
 
 DWORD
+RegUtilAddKeySecDesc(
+    IN OPTIONAL HANDLE hReg,
+    IN PSTR pszRootKeyName,
+    IN PSTR pszSubKeyPath,
+    IN PSTR pszKeyName,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor)
+{
+    return RegShellUtilAddKeySecDesc(
+               hReg,
+               pszRootKeyName,
+               pszSubKeyPath,
+               pszKeyName,
+               FALSE,
+               AccessDesired,
+               pSecurityDescriptor);
+}
+
+
+DWORD
 RegUtilDeleteKey(
     IN OPTIONAL HANDLE hReg,
     IN PSTR pszRootKeyName,

@@ -243,6 +243,7 @@ SrvMarshalNegotiateResponse_SMB_V2(
                 0, /* ullMid       */
                 0, /* usTid        */
                 0, /* ullSessionId */
+                0, /* Async Id     */
                 0, /* status       */
                 TRUE, /* response */
                 FALSE,

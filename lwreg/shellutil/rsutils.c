@@ -250,13 +250,16 @@ error:
     goto cleanup;
 }
 
+
 DWORD
-RegShellUtilAddKey(
+RegShellUtilAddKeySecDesc(
     HANDLE hReg,
     PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR pszKeyName,
-    BOOLEAN bDoBail
+    BOOLEAN bDoBail,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor
     )
 {
     DWORD dwError = 0;
@@ -305,8 +308,8 @@ RegShellUtilAddKey(
                       0,
                       NULL,
                       0,
-                      KEY_ALL_ACCESS,
-                      NULL,
+                      AccessDesired,
+                      pSecurityDescriptor,
                       &pNextKey,
                       NULL);
         if (LWREG_ERROR_KEYNAME_EXIST == dwError)
@@ -356,6 +359,26 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+
+DWORD
+RegShellUtilAddKey(
+    HANDLE hReg,
+    PSTR pszRootKeyName,
+    PSTR pszDefaultKey,
+    PSTR pszKeyName,
+    BOOLEAN bDoBail
+    )
+{
+    return RegShellUtilAddKeySecDesc(
+               hReg,
+               pszRootKeyName,
+               pszDefaultKey,
+               pszKeyName,
+               bDoBail,
+               KEY_ALL_ACCESS,
+               NULL);
 }
 
 

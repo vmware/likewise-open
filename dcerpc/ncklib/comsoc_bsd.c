@@ -39,6 +39,7 @@
 **
 */
 
+#include <config.h>
 #include <dce/lrpc.h>
 #include <commonp.h>
 #include <com.h>
@@ -168,6 +169,30 @@ int ioctl(int d, int request, ...);
   #else*/
 #define RPC_SOCKET_FIX_ADDRLEN(addrp) do { } while (0)
 /*#endif*/
+
+
+#ifndef CMSG_ALIGN
+#if defined(_CMSG_DATA_ALIGN)
+#define CMSG_ALIGN _CMSG_DATA_ALIGN
+
+#elif defined(_CMSG_ALIGN)
+#define CMSG_ALIGN _CMSG_ALIGN
+
+#elif defined(__DARWIN_ALIGN32)
+#define CMSG_ALIGN __DARWIN_ALIGN32
+
+#elif defined(ALIGN)
+#define CMSG_ALIGN ALIGN
+#endif
+#endif /* CMSG_ALIGN */
+
+#ifndef CMSG_SPACE
+#define CMSG_SPACE(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
+#endif
+
+#ifndef CMSG_LEN
+#define CMSG_LEN(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
+#endif
 
 /*
  * BSD socket transport layer info structures
@@ -1965,7 +1990,7 @@ ifflags_again:
          */
         memcpy(&ifreq, ifr, sizeof(ifreq));
     ifaddr_again:
-        if (ioctl(bds->fd, SIOCGIFADDR, &ifreq) < 0)
+        if (ioctl(lrpc->fd, SIOCGIFADDR, &ifreq) < 0)
         {
             /*
              * UP but no ip address, skip it

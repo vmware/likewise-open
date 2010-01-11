@@ -58,7 +58,12 @@
 #include <reg/reg.h>
 #include <reg/regutil.h>
 #include "provider-main_p.h"
-#include "externs.h"
 
+#include <lw/base.h>
+#include <lw/ntstatus.h>
+#include <lw/security-types.h>
+#include <lwmapsecurity/lwmapsecurity.h>
+
+#include "externs.h"
 
 #endif /* __INCLUDES_H__ */

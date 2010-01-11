@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2009
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,35 +33,58 @@
  *
  * Module Name:
  *
- *        globals.c
+ *        regerror_p.h
  *
  * Abstract:
  *
- *        Likewise Password Storage (LWPS)
+ *        Registry
  *
- *        Registry Storage Provider
+ *        Registry error API
  *
- *        Global Variables
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Marc Guy (mguy@likewisesoftware.com)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Adam Bernstein(abernstein@likewise.com)
  */
-#include "includes.h"
 
-PCSTR gpszRegDBProviderName = "likewise-registrydb-password-provider";
+#ifndef __REGERROR_P_H__
+#define __REGERROR_P_H__
 
-LWPS_PROVIDER_FUNC_TABLE gRegDBProviderAPITable =
-{
-    &RegDB_OpenProvider,
-    &RegDB_ReadPasswordByHostName,
-    &RegDB_ReadPasswordByDomainName,
-    &RegDB_ReadHostListByDomainName,
-    &RegDB_WritePassword,
-    &RegDB_DeleteAllEntries,
-    &RegDB_DeleteHostEntry,
-    &RegDB_FreePassword,
-    &RegDB_CloseProvider
-};
+size_t
+LwRegGetErrorString(
+    DWORD  dwError,
+    PSTR   pszBuffer,
+    size_t stBufSize
+    );
 
-PLW_MAP_SECURITY_CONTEXT gpRegLwMapSecurityCtx = NULL;
+DWORD
+RegGetErrorMessageForLoggingEvent(
+    DWORD dwErrCode,
+    PSTR* ppszErrorMsg
+    );
+
+VOID
+RegPrintError(
+    IN OPTIONAL PCSTR pszErrorPrefix,
+    IN DWORD dwError
+    );
+
+DWORD
+RegMapErrnoToLwRegError(
+    DWORD dwErrno
+    );
+
+DWORD
+RegMapErrnoToLwRegError(
+    DWORD dwErrno
+    );
+
+LW_WINERROR
+RegNtStatusToWin32Error(
+    LW_NTSTATUS ntStatus
+    );
+
+PCSTR
+RegNtStatusToName(
+    IN NTSTATUS status
+    );
+#endif

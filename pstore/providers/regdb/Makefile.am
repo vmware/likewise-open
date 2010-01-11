@@ -14,11 +14,13 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 
 liblwps_regdb_la_CPPFLAGS = \
         $(AM_CPPFLAGS) \
-        @LWREG_INCLUDES@
+        @LWREG_INCLUDES@ \
+        @LWMAPSECURITY_INCLUDES@
 
 liblwps_regdb_la_SOURCES = \
 	globals.c          \
-	provider-main.c
+	provider-main.c \
+    pstoresec.c
 
 liblwps_regdb_la_CFLAGS = \
 	$(AM_CFLAGS) \
@@ -26,9 +28,17 @@ liblwps_regdb_la_CFLAGS = \
 	@LWMSG_INCLUDES@ \
 	$(PROVIDER_CFLAGS)
 
-liblwps_regdb_la_LIBADD = @LIBUNISTR_LIBS@ @LWMSG_LIBS@ @LWREG_LIBS@ $(PROVIDER_LIBADD) @PTHREAD_LIBS@
+liblwps_regdb_la_LIBADD = @LIBUNISTR_LIBS@ \
+                          @LWMSG_LIBS@ \
+                          @LWREG_LIBS@ \
+                          $(PROVIDER_LIBADD) \
+                          @PTHREAD_LIBS@ \
+                          @LWMAPSECURITY_LIBS@
 
-liblwps_regdb_la_LDFLAGS = $(PROVIDER_LDFLAGS) @LIBUNISTR_LDFLAGS@
+liblwps_regdb_la_LDFLAGS = $(AM_LDFLAGS) \
+                           $(PROVIDER_LDFLAGS) \
+                           @LIBUNISTR_LDFLAGS@ \
+                           @LWMAPSECURITY_LDFLAGS@
 
 noinst_HEADERS = \
 	 externs.h \

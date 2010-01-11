@@ -127,6 +127,67 @@ SrvIsValidExecContext(
             pExecContext->pSmbRequest);
 }
 
+NTSTATUS
+SrvSetExecContextAsyncId(
+   PSRV_EXEC_CONTEXT pContext,
+   PULONG64          pullAsyncId,
+   PBOOLEAN          pbAsyncIdCreated
+   )
+{
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+    BOOLEAN  bInLock         = FALSE;
+    BOOLEAN  bAsyncIdCreated = FALSE;
+    ULONG64  ullAsyncId      = 0LL;
+
+    LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
+
+    if (!pContext->ullAsyncId)
+    {
+        ULONG    iCount     = 0;
+
+        for (; iCount < 2; iCount++)
+        {
+            uuid_t uuid;
+
+            uuid_generate(uuid);
+
+            pContext->ullAsyncId |= ((ULONG64)uuid) << (iCount * sizeof(uuid));
+        }
+
+        bAsyncIdCreated = TRUE;
+    }
+
+    ullAsyncId = pContext->ullAsyncId;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
+
+    *pullAsyncId      = ullAsyncId;
+    *pbAsyncIdCreated = bAsyncIdCreated;
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvGetExecContextAsyncId(
+   PSRV_EXEC_CONTEXT pContext,
+   PULONG64          pullAsyncId
+   )
+{
+    NTSTATUS ntStatus   = STATUS_SUCCESS;
+    BOOLEAN  bInLock    = FALSE;
+    ULONG64  ullAsyncId = 0LL;
+
+    LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
+
+    ullAsyncId = pContext->ullAsyncId;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
+
+    *pullAsyncId = ullAsyncId;
+
+    return ntStatus;
+}
+
 VOID
 SrvReleaseExecContextHandle(
    IN HANDLE hExecContext
@@ -171,16 +232,21 @@ SrvFreeExecContext(
             pContext->pSmbResponse);
     }
 
-    if (pContext->pSmbAuxResponse)
+    if (pContext->pInterimResponse)
     {
         SMBPacketRelease(
             pContext->pConnection->hPacketAllocator,
-            pContext->pSmbAuxResponse);
+            pContext->pInterimResponse);
     }
 
     if (pContext->pConnection)
     {
         SrvConnectionRelease(pContext->pConnection);
+    }
+
+    if (pContext->pMutex)
+    {
+        pthread_mutex_destroy(&pContext->mutex);
     }
 
     SrvFreeMemory(pContext);

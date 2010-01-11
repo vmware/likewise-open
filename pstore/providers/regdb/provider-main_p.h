@@ -141,6 +141,23 @@ RegDB_FreePasswordInfo(
     PLWPS_PASSWORD_INFO pInfo
     );
 
+
+NTSTATUS
+RegDB_CreateRestrictedSecDescAbs(
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDescAbs
+    );
+
+VOID
+RegDB_FreeAbsoluteSecurityDescriptor(
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
+
+PCSTR
+RegDB_NtStatusToName(
+    IN NTSTATUS status
+    );
+
+
 DWORD
 LwpsShutdownProvider(
     PSTR pszName,

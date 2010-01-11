@@ -664,6 +664,7 @@ SrvBuildLockResponse_SMB_V2(
                 pSmbRequest->pHeader->ullCommandSequence,
                 pCtxSmb2->pTree->ulTid,
                 pCtxSmb2->pSession->ullUid,
+                0LL, /* Async Id */
                 STATUS_SUCCESS,
                 TRUE,
                 pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,

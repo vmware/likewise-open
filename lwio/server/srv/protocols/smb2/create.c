@@ -973,8 +973,14 @@ SrvBuildCreateResponse_SMB_V2(
     ULONG ulOffset         = 0;
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
+    ULONG64 ullAsyncId     = 0LL;
 
     pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+
+    ntStatus = SrvGetExecContextAsyncId(
+                    pExecContext,
+                    &ullAsyncId);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
@@ -987,6 +993,7 @@ SrvBuildCreateResponse_SMB_V2(
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
                     pCtxSmb2->pSession->ullUid,
+                    ullAsyncId,
                     STATUS_SUCCESS,
                     TRUE,
                     pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,

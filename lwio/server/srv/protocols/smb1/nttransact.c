@@ -1581,6 +1581,8 @@ SrvProcessChangeNotifyCompletion(
         case STATUS_NOTIFY_ENUM_DIR:
         case STATUS_SUCCESS:
 
+            pNotifyState->ulBytesUsed =
+                                pNotifyState->ioStatusBlock.BytesTransferred;
             ntStatus = SrvBuildChangeNotifyResponse(pExecContext, pNotifyState);
 
             break;
@@ -1822,7 +1824,7 @@ SrvMarshalChangeNotifyResponse(
     pNotifyCursor = (PFILE_NOTIFY_INFORMATION)pNotifyResponse;
     pDataCursor   = pBuffer;
 
-    for (; iRecord < ulNumRecords++; iRecord++)
+    for (; iRecord < ulNumRecords; iRecord++)
     {
         pPrevHeader = pCurHeader;
         pCurHeader = (PFILE_NOTIFY_INFORMATION)pDataCursor;
