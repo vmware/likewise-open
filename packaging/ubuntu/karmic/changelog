@@ -1,17 +1,26 @@
-likewise-open (5.4.0.39949-2) lucid; urgency=low
+likewise-open (5.4.0.39949-3) karmic; urgency=low
+
+  * control: Fix build dependencies for Karmic
+  * rules: Add krb5 and openldap components to the build
+  * likewise-open.install: Add krb5 and openldap libs (requires
+    uuencoded tarballs in debian/patches/)
+
+ -- Gerald Carter <jerry@plainjoe.org>  Mon, 11 Jan 2010 00:18:39 -0500
+
+likewise-open (5.4.0.39949-2) karmic; urgency=low
 
   [Scott Salley]
   * likewise-open.postinit: Fix upgrades when host is not joined to AD
 
  -- Gerald Carter <jerry@plainjoe.org>  Tue, 05 Jan 2010 16:21:34 -0600
 
-likewise-open (5.4.0.39949-1) lucid; urgency=low
+likewise-open (5.4.0.39949-1) karmic; urgency=low
 
   * New upstream release to fix memory leaks
 
  -- Gerald Carter <jerry@plainjoe.org>  Tue, 05 Jan 2010 13:32:04 -0600
 
-likewise-open (5.4.0.39929-2) lucid; urgency=low
+likewise-open (5.4.0.39929-2) karmic; urgency=low
 
   [ Martin Pitt ]
   * debian/likewise-open.preinst: Remove obsolete conffiles from 4.1 and 5.0
@@ -19,13 +28,13 @@ likewise-open (5.4.0.39929-2) lucid; urgency=low
 
  -- Gerald Carter <jerry@plainjoe.org>  Tue, 05 Jan 2010 13:28:37 -0600
 
-likewise-open (5.4.0.39929-1) lucid; urgency=low
+likewise-open (5.4.0.39929-1) karmic; urgency=low
 
   * New upstream release
 
  -- Gerald Carter <jerry@plainjoe.org>  Mon, 04 Jan 2010 15:40:45 -0600
 
-likewise-open (5.4.0.39905-2) lucid; urgency=low
+likewise-open (5.4.0.39905-2) karmic; urgency=low
 
   [ Gerald Carter ]
   * debian/control: Re-add krb5-user to the Depends for likewise-open
@@ -40,28 +49,24 @@ likewise-open (5.4.0.39905-2) lucid; urgency=low
 
  -- Gerald Carter <jerry@plainjoe.org>  Mon, 04 Jan 2010 11:54:25 -0600
 
-likewise-open (5.4.0.39905-1) lucid; urgency=low
+likewise-open (5.4.0.39905-1) karmic; urgency=low
 
   * New upstream release
 
  -- Gerald Carter <jerry@plainjoe.org>  Wed, 30 Dec 2009 09:33:19 -0600
 
-likewise-open (5.4.0.39743-2) lucid; urgency=low
+likewise-open (5.4.0.39743-2) karmic; urgency=low
 
   * Make upgrades from likewise-open5 work
-
   * Make it possibile to 'purge'
 
  -- Scott Salley <ssalley@likewise.com>  Wed, 16 Dec 2009 16:50:00 -0800
 
-likewise-open (5.4.0.39743-1) lucid; urgency=low
+likewise-open (5.4.0.39743-1) karmic; urgency=low
 
   * Removed krb5 from build; use system version
-
   * Removed openldap from build; use system version
-
   * Added server package
-
   * Building for lucid
 
  -- Scott Salley <ssalley@likewise.com>  Tue, 15 Dec 2009 10:34:00 -0800

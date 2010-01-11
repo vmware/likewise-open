@@ -97,6 +97,11 @@ usr/bin/lw-refresh-configuration
 usr/bin/lw-find-user-by-id
 usr/bin/lw-list-groups-for-user
 usr/bin/lw-trace-info
+usr/bin/lw-find-objects
+usr/bin/lw-enum-members
+usr/bin/lw-set-machine-name
+usr/bin/lw-enum-objects
+usr/bin/lw-query-member-of
 
 usr/lib/likewise-open/libdsapi.so*
 usr/lib/likewise-open/liblsaaccess.so*
@@ -181,4 +186,17 @@ usr/lib/likewise-open/liblwnetclientapi.so*
 usr/lib/likewise-open/liblwnetcommon.so*
 usr/sbin/netlogond
 
+
+## OpenLDAP
+usr/lib/likewise-open/libldap*.so*
+usr/lib/likewise-open/liblber*.so*
+
+## MIT Krb5
+usr/lib/likewise-open/libkrb5.so*
+usr/lib/likewise-open/libk5crypto.so*
+usr/lib/likewise-open/libkrb5support.so*
+usr/lib/likewise-open/libgssapi_krb5.so*
+usr/lib/likewise-open/libcom_err.so*
+usr/lib/likewise-open/libk5crypto.so*
+usr/lib/likewise-open/gss/libgssapi_ntlm.so
 

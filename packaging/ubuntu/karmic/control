@@ -2,10 +2,9 @@ Source: likewise-open
 Section: net
 Priority: optional
 Maintainer: Scott Salley <ssalley@likewise.com>
-Build-Depends: autoconf (>=2.53), automake, bison, debhelper (>= 7),
+Build-Depends: autoconf (>=2.61), automake, libtool, bison, debhelper (>= 7),
  libglade2-dev, libncurses5-dev, libpam0g-dev, libpam-runtime,
- libssl-dev, libtool, libsqlite3-dev, uuid-dev, quilt, rsync, libxml2,
- libkrb5-dev, libldap2-dev, tdb-dev
+ libssl-dev, libsqlite3-dev, uuid-dev, quilt, rsync, sharutils
 Standards-Version: 3.8.1
 Vcs-Browser: http://lobugs.likewiseopen.org/
 Homepage: http://www.likewiseopen.org/

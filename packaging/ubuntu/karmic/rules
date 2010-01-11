@@ -52,18 +52,21 @@ build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-	for comp in libunistr lwbase lwmapsecurity lwmsg centutils libtdb \
-		        lwreg pstore lwadvapi netlogon lwio lwsm libkeytab \
-				libgss dcerpc lwrpcrt librpc eventlog lsass lwdns \
-				domainjoin srvsvc lwupgrade; do \
-	env BUILD_LOCALSTATEDIR=$(LOCALSTATEDIR) \
-	    BUILD_SYSCONFDIR=$(SYSCONFDIR) \
-	    BUILD_LIBDIR="lib/$(PKGNAME)" \
-	    BUILD_PREFIXDIR=$(PREFIX) \
-	    BUILD_LIBEXECDIR=$(LIBEXECDIR) \
-	    BUILD_MAKE_FLAGS="SCRIPTDIR=$(LIBEXECDIR)" \
-	    BUILD_STAGE_INSTALL_DIR=$(UPSTREAM) \
-	         build/mkcomp $$comp || exit 1;\
+	uudecode -o - debian/patches/krb5.tgz.uu | tar zxf -
+	uudecode -o - debian/patches/openldap.tgz.uu | tar zxf -
+
+	for comp in libunistr krb5 openldap lwbase lwmapsecurity lwmsg centutils libtdb \
+	    lwreg pstore lwadvapi netlogon lwio lwsm libkeytab \
+	    libgss dcerpc lwrpcrt librpc eventlog lsass lwdns \
+		domainjoin srvsvc lwupgrade; do \
+	    env BUILD_LOCALSTATEDIR=$(LOCALSTATEDIR) \
+	        BUILD_SYSCONFDIR=$(SYSCONFDIR) \
+	        BUILD_LIBDIR="lib/$(PKGNAME)" \
+	        BUILD_PREFIXDIR=$(PREFIX) \
+	        BUILD_LIBEXECDIR=$(LIBEXECDIR) \
+	        BUILD_MAKE_FLAGS="SCRIPTDIR=$(LIBEXECDIR)" \
+	        BUILD_STAGE_INSTALL_DIR=$(UPSTREAM) \
+	             build/mkcomp $$comp || exit 1;\
 	done
 
 	## Generate VERSION
@@ -78,6 +81,8 @@ clean-patched:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
+
+	/bin/rm -rf krb5 openldap
 
 	dh_clean
 
