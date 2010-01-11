@@ -119,7 +119,6 @@ IoCreateFile(
     }
 
     if (EaBuffer ||
-        SecurityDescriptor ||
         SecurityQualityOfService)
     {
         // Not yet implemented.
