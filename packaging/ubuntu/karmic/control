@@ -1,0 +1,100 @@
+Source: likewise-open
+Section: net
+Priority: optional
+Maintainer: Scott Salley <ssalley@likewise.com>
+Build-Depends: autoconf (>=2.53), automake, bison, debhelper (>= 7),
+ libglade2-dev, libncurses5-dev, libpam0g-dev, libpam-runtime,
+ libssl-dev, libtool, libsqlite3-dev, uuid-dev, quilt, rsync, libxml2,
+ libkrb5-dev, libldap2-dev, tdb-dev
+Standards-Version: 3.8.1
+Vcs-Browser: http://lobugs.likewiseopen.org/
+Homepage: http://www.likewiseopen.org/
+
+Package: likewise-open5
+Section: oldlibs
+Depends: likewise-open
+Architecture: all
+Description: transitional dummy package
+ This is a dummy package to faciliate clean upgrades. You can savely remove
+ this package after the upgrade.
+
+Package: likewise-open5-libs
+Section: oldlibs
+Depends: likewise-open
+Architecture: all
+Description: transitional dummy package
+ This is a dummy package to faciliate clean upgrades. You can savely remove
+ this package after the upgrade.
+
+Package: likewise-open5-lsass
+Section: oldlibs
+Depends: likewise-open
+Architecture: all
+Description: transitional dummy package
+ This is a dummy package to faciliate clean upgrades. You can savely remove
+ this package after the upgrade.
+
+Package: likewise-open5-eventlog
+Section: oldlibs
+Depends: likewise-open
+Architecture: all
+Description: transitional dummy package
+ This is a dummy package to faciliate clean upgrades. You can savely remove
+ this package after the upgrade.
+
+Package: likewise-open5-netlogon
+Section: oldlibs
+Depends: likewise-open
+Architecture: all
+Description: transitional dummy package
+ This is a dummy package to faciliate clean upgrades. You can savely remove
+ this package after the upgrade.
+
+Package: likewise-open5-rpc
+Section: oldlibs
+Depends: likewise-open
+Architecture: all
+Description: transitional dummy package
+ This is a dummy package to faciliate clean upgrades. You can savely remove
+ this package after the upgrade.
+
+Package: likewise-open
+Architecture: any
+Depends: ${shlibs:Depends}, krb5-user
+Suggests: likewise-open-gui
+Provides: likewise-open, likewise-open5
+Conflicts: likewise-open,
+ likewise-open5 (<< 5.4.0.39115-3),
+ likewise-open5-libs (<< 5.4.0.39115-3),
+ likewise-open5-lsass (<< 5.4.0.39115-3),
+ likewise-open5-eventlog (<< 5.4.0.39115-3),
+ likewise-open5-netlogon (<< 5.4.0.39115-3),
+ likewise-open5-rpc (<< 5.4.0.39115-3),
+Replaces: likewise-open,
+ likewise-open5 (<< 5.4.0.39115-3),
+ likewise-open5-libs (<< 5.4.0.39115-3),
+ likewise-open5-lsass (<< 5.4.0.39115-3),
+ likewise-open5-eventlog (<< 5.4.0.39115-3),
+ likewise-open5-netlogon (<< 5.4.0.39115-3),
+ likewise-open5-rpc (<< 5.4.0.39115-3),
+Description: Authentication services for Active Directory Domains
+ Likewise Open 5.4 provides a means of integrating Unix desktops and servers
+ into an Active Directory (AD) environment by providing a means for hosts
+ to join the domain as member servers and make the Windows users and groups
+ available to other Unix applications and services via the PAM and Name
+ Service Switch libraries.
+
+Package: likewise-open-gui
+Architecture: any
+Depends: likewise-open, ${shlibs:Depends}
+Description: Desktop utility for joining Active Directory domains
+ Likewise Open 5.4 graphical desktop utility you can use to join Active
+ Directory domains.
+
+Package: likewise-open-server
+Architecture: any
+Depends: likewise-open, ${shlibs:Depends}
+Description: Likewise-CIFS and related server components
+ Likewise-CIFS is a Windows-compatible SMB/CIFS file server for Linux
+ and Unix computers.
+

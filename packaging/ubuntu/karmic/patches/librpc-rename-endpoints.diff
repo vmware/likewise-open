@@ -1,0 +1,24 @@
+diff -Nurp old/librpc/include/lwrpc/lsabinding.h new/librpc/include/lwrpc/lsabinding.h
+--- old/librpc/include/lwrpc/lsabinding.h	2009-11-03 10:53:45.000000000 -0800
++++ new/librpc/include/lwrpc/lsabinding.h	2009-11-03 17:01:25.000000000 -0800
+@@ -42,7 +42,7 @@
+ 
+ #define LSA_DEFAULT_PROT_SEQ   "ncacn_np"
+ #define LSA_DEFAULT_ENDPOINT   "\\PIPE\\lsarpc"
+-#define LSA_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/lsass"
++#define LSA_LOCAL_ENDPOINT     "/var/lib/likewise-open/rpc/lsass"
+ 
+ 
+ RPCSTATUS
+diff -Nurp old/librpc/include/lwrpc/samrbinding.h new/librpc/include/lwrpc/samrbinding.h
+--- old/librpc/include/lwrpc/samrbinding.h	2009-11-03 10:53:45.000000000 -0800
++++ new/librpc/include/lwrpc/samrbinding.h	2009-11-03 17:01:12.000000000 -0800
+@@ -42,7 +42,7 @@
+ 
+ #define SAMR_DEFAULT_PROT_SEQ   "ncacn_np"
+ #define SAMR_DEFAULT_ENDPOINT   "\\pipe\\samr"
+-#define SAMR_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/lsass"
++#define SAMR_LOCAL_ENDPOINT     "/var/lib/likewise-open/rpc/lsass"
+ 
+ 
+ RPCSTATUS
