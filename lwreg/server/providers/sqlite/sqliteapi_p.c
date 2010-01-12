@@ -783,13 +783,13 @@ SqliteDeleteTreeInternal_inDblock(
         if (hCurrKey)
         {
             SqliteCloseKey(hCurrKey);
+            hCurrKey = NULL;
         }
 
         status = SqliteDeleteKey_inDblock(Handle, hKey, pwszSubKey);
         BAIL_ON_NT_STATUS(status);
 
         LWREG_SAFE_FREE_MEMORY(pwszSubKey);
-        hCurrKey = NULL;
     }
 
 cleanup:

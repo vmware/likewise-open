@@ -1169,6 +1169,7 @@ RegDbCreateKey(
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	PREG_DB_KEY pRegKey = NULL;
+	PREG_DB_KEY pRegKeyFull = NULL;
 	PREG_DB_KEY pRegParentKey = NULL;
     PWSTR pwszParentKeyName = NULL;
     PCWSTR pwszKeyName = RegStrrchr(pwszFullKeyName, '\\');
@@ -1213,15 +1214,20 @@ RegDbCreateKey(
                  &pRegKey);
     BAIL_ON_NT_STATUS(status);
 
-    *ppRegKey = pRegKey;
+	status = RegDbOpenKey(hDb, pRegKey->pwszFullKeyName, &pRegKeyFull);
+	BAIL_ON_NT_STATUS(status);
+
+    *ppRegKey = pRegKeyFull;
 
 cleanup:
     LWREG_SAFE_FREE_MEMORY(pwszParentKeyName);
     RegDbSafeFreeEntryKey(&pRegParentKey);
+    RegDbSafeFreeEntryKey(&pRegKey);
+
     return status;
 
 error:
-    RegDbSafeFreeEntryKey(&pRegKey);
+    RegDbSafeFreeEntryKey(&pRegKeyFull);
     *ppRegKey = NULL;
 
     goto cleanup;
