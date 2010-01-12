@@ -319,7 +319,7 @@ LwMapSecurityFreeContext(
         if ((0 == gLwMapSecurityState.RefCount) &&
             (0 == gLwMapSecurityState.InitCount))
         {
-            LwMapSecurityFreeContextInternal(&gLwMapSecurityState.Context);
+            LwMapSecurityFreeContext(&gLwMapSecurityState.Context);
         }
 
         UNLOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
