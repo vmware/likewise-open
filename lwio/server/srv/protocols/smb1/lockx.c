@@ -1294,14 +1294,6 @@ SrvExecuteLockRequest(
     bFailImmediately  = (pLockState->pRequestHeader->ulTimeout == 0);
     bWaitIndefinitely = (pLockState->pRequestHeader->ulTimeout == (ULONG)-1);
 
-    if (pLockState->bCancelled || pLockState->bExpired)
-    {
-        SrvReleaseLockStateAsync(pLockState);
-
-        ntStatus = STATUS_FILE_LOCK_CONFLICT;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     if (pLockState->bUnlockPending)
     {
         ntStatus = pLockState->ioStatusBlock.Status; // async response status
@@ -1309,6 +1301,23 @@ SrvExecuteLockRequest(
 
         pLockState->iUnlock++;
         pLockState->bUnlockPending = FALSE;
+    }
+
+    if (pLockState->bLockPending)
+    {
+        ntStatus = pLockState->ioStatusBlock.Status; // async response status
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pLockState->iLock++;
+        pLockState->bLockPending = FALSE;
+    }
+
+    if (pLockState->bCancelled || pLockState->bExpired)
+    {
+        SrvReleaseLockStateAsync(pLockState);
+
+        ntStatus = STATUS_FILE_LOCK_CONFLICT;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     for (; pLockState->iUnlock < pLockState->pRequestHeader->usNumUnlocks;
@@ -1359,15 +1368,6 @@ SrvExecuteLockRequest(
         {
             SrvReleaseLockStateAsync(pLockState); // completed synchronously
         }
-    }
-
-    if (pLockState->bLockPending)
-    {
-        ntStatus = pLockState->ioStatusBlock.Status; // async response status
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pLockState->iLock++;
-        pLockState->bLockPending = FALSE;
     }
 
     for (; pLockState->iLock < pLockState->pRequestHeader->usNumLocks;
