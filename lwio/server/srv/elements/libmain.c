@@ -55,6 +55,20 @@ SrvElementsInit(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    int      iIter = 0;
+
+    while (!RAND_status() && (iIter++ < 10))
+    {
+        uuid_t uuid;
+        CHAR   szUUID[37];
+
+        memset(szUUID, 0, sizeof(szUUID));
+
+        uuid_generate(uuid);
+        uuid_unparse(uuid, szUUID);
+
+        RAND_seed(szUUID, sizeof(szUUID));
+    }
 
     status = SrvTimerInit(&gSrvElements.timer);
     BAIL_ON_NT_STATUS(status);

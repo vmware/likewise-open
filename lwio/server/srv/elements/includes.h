@@ -51,6 +51,9 @@
 
 #include <uuid/uuid.h>
 
+#include <openssl/rand.h>
+#include <openssl/hmac.h>
+
 #include <krb5.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_generic.h>
