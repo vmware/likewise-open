@@ -487,6 +487,8 @@ SrvProcessLockAndX(
 
         case SRV_LOCK_STAGE_SMB_V1_DONE:
 
+            if (!(pLockState->pRequestHeader->ucLockType &
+                LWIO_LOCK_TYPE_CANCEL_LOCK))
             {
                 NTSTATUS ntStatus2 = STATUS_SUCCESS;
                 PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList =
