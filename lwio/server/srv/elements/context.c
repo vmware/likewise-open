@@ -143,20 +143,33 @@ SrvSetExecContextAsyncId(
 
     if (!pContext->ullAsyncId)
     {
-#if 0
-        ULONG    iCount     = 0;
-
-        for (; iCount < 2; iCount++)
+        if (!RAND_bytes((PBYTE)&pContext->ullAsyncId,
+                        sizeof(pContext->ullAsyncId)))
         {
             uuid_t uuid;
+            CHAR   szUUID[37] = "";
+            UCHAR  ucDigest[EVP_MAX_MD_SIZE];
+            ULONG  ulDigest = 0;
+
+            memset(&szUUID, 0, sizeof(szUUID));
 
             uuid_generate(uuid);
+            uuid_unparse(uuid, szUUID);
 
-            pContext->ullAsyncId |= ((ULONG64)uuid) << (iCount * sizeof(uuid));
+            HMAC(EVP_sha512(),
+                 &szUUID[0],
+                 sizeof(szUUID),
+                 pContext->pSmbRequest->pRawBuffer,
+                 pContext->pSmbRequest->bufferUsed,
+                 &ucDigest[0],
+                 &ulDigest);
+
+            assert (ulDigest == sizeof(ULONG64));
+
+            memcpy( (PBYTE)&pContext->ullAsyncId,
+                    &ucDigest[0],
+                    sizeof(pContext->ullAsyncId));
         }
-#else
-        pContext->ullAsyncId = 0xF0035;
-#endif
 
         bAsyncIdCreated = TRUE;
     }

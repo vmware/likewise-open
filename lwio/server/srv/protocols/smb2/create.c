@@ -988,7 +988,7 @@ SrvBuildCreateResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_CREATE,
                     pSmbRequest->pHeader->usEpoch,
-                    pSmbRequest->pHeader->usCredits,
+                    (ullAsyncId ? 0 : pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
