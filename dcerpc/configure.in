@@ -482,6 +482,17 @@ AC_CONFIG_SUBDIRS(flex-2.5.4)
 FLEX='${top_builddir}/flex-2.5.4/flex'
 AC_SUBST(FLEX)
 
+for i in ${CPPFLAGS} ${AM_CPPFLAGS}; do
+    j=`echo $i | grep '^-I'`
+    if test x != x"$j"
+    then
+        IDL_FLAGS="$IDL_FLAGS $j"
+    fi
+done
+
+AC_SUBST(IDL_FLAGS)
+
+
 AC_OUTPUT(
 Makefile
 dnl freedce.spec
@@ -535,5 +546,6 @@ demos/echo_server/Makefile
 demos/echo_number/Makefile
 demos/echo_union/Makefile
 demos/samr_test/Makefile
+demos/access/Makefile
 perf/Makefile
 )
