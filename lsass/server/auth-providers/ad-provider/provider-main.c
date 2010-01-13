@@ -3372,7 +3372,6 @@ AD_UpdateObject(
     DWORD dwError = LW_ERROR_SUCCESS;
     struct timeval current_tv = {0};
     UINT64 u64current_NTtime = 0;
-    int64_t qwNanosecsToPasswordExpiry = 0;
 
     switch(pObject->type)
     {
@@ -3394,21 +3393,14 @@ AD_UpdateObject(
                 pObject->userInfo.bAccountExpired = TRUE;
             }
 
-            if (gpADProviderData->adMaxPwdAge != 0)
+            pObject->userInfo.qwMaxPwdAge = gpADProviderData->adMaxPwdAge;
+
+            if ((!pObject->userInfo.bPasswordNeverExpires &&
+                  u64current_NTtime >= pObject->userInfo.qwPwdExpires) ||
+                pObject->userInfo.qwPwdLastSet == 0)
             {
-                pObject->userInfo.qwMaxPwdAge = gpADProviderData->adMaxPwdAge;
-
-                qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-                    (u64current_NTtime - pObject->userInfo.qwPwdLastSet);
-
-                if ((!pObject->userInfo.bPasswordNeverExpires &&
-                     gpADProviderData->adMaxPwdAge != 0 &&
-                     qwNanosecsToPasswordExpiry < 0) ||
-                    pObject->userInfo.qwPwdLastSet == 0)
-                {
-                    //password is expired already
-                    pObject->userInfo.bPasswordExpired = TRUE;
-                }
+                //password is expired already
+                pObject->userInfo.bPasswordExpired = TRUE;
             }
         }
 

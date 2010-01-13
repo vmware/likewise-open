@@ -141,6 +141,7 @@ typedef struct _LSA_AD_BATCH_ITEM_USER_INFO {
     UINT32 UserAccountControl;
     UINT64 AccountExpires;
     UINT64 PasswordLastSet;
+    UINT64 PasswordExpires;
 } LSA_AD_BATCH_ITEM_USER_INFO, *PLSA_AD_BATCH_ITEM_USER_INFO;
 
 typedef struct _LSA_AD_BATCH_ITEM_GROUP_INFO {

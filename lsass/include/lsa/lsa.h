@@ -1659,11 +1659,12 @@ typedef struct _LSA_SECURITY_OBJECT_USER_INFO
     LW_PSTR pszAliasName;
     uint64_t qwPwdLastSet;
     uint64_t qwMaxPwdAge;
+    uint64_t qwPwdExpires;
     uint64_t qwAccountExpires;
 
     LW_BOOLEAN bIsGeneratedUPN;
     LW_BOOLEAN bIsAccountInfoKnown;
-    // Calculated from userAccountControl, accountExpires, and pwdLastSet
+    // Calculated from userAccountControl, accountExpires, and pwdExpires
     // attributes from AD.
     LW_BOOLEAN bPasswordExpired;
     LW_BOOLEAN bPasswordNeverExpires;
