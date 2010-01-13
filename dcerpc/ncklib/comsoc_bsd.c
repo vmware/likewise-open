@@ -1718,7 +1718,7 @@ gid_t		    *egid;
     }
 
     if (msg.msg_controllen == 0 ||
-        msg.msg_controllen >= sizeof(cm_un))
+        msg.msg_controllen > sizeof(cm_un))
     {
         serr = RPC_C_SOCKET_EACCESS;
         goto error;
