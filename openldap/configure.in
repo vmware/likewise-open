@@ -1175,12 +1175,12 @@ case $ol_with_gssapi in yes | auto)
 	if test $ol_header_gssapi = yes ; then
 		dnl## we check for gss_wrap
 		dnl## as it's new to the GSSAPI V2 API
-		AC_CHECK_LIB(gssapi, gss_wrap,
-		             [ol_link_gssapi=yes;GSSAPI_LIBS="-lgssapi"],
+		AC_CHECK_LIB(gssapi_krb5, gss_wrap,
+		             [ol_link_gssapi=yes;GSSAPI_LIBS="-lgssapi_krb5"],
 		             [ol_link_gssapi=no])
 		if test $ol_link_gssapi != yes ; then
-			AC_CHECK_LIB(gssapi_krb5, gss_wrap,
-			             [ol_link_gssapi=yes;GSSAPI_LIBS="-lgssapi_krb5"],
+			AC_CHECK_LIB(gssapi, gss_wrap,
+				     [ol_link_gssapi=yes;GSSAPI_LIBS="-lgssapi"],
 			             [ol_link_gssapi=no])
 		fi
 		if test $ol_link_gssapi != yes ; then
