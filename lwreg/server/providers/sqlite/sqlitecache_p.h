@@ -136,6 +136,16 @@ SqliteCacheSubKeysInfo_inlock_inDblock(
     );
 
 NTSTATUS
+SqliteCacheKeySecurityDescriptor(
+    IN OUT PREG_KEY_CONTEXT pKeyResult
+    );
+
+NTSTATUS
+SqliteCacheKeySecurityDescriptor_inlock(
+    IN OUT PREG_KEY_CONTEXT pKeyResult
+    );
+
+NTSTATUS
 SqliteCacheSubKeysInfo(
     IN OUT PREG_KEY_CONTEXT pKeyResult
     );

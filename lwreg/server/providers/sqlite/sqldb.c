@@ -1203,8 +1203,6 @@ RegDbCreateKey(
     status = LW_RTL_ALLOCATE((PVOID*)&pRegKey->pSecDescRel, VOID, ulSecDescLength);
     BAIL_ON_NT_STATUS(status);
 
-    memset(pRegKey->pSecDescRel, 0, ulSecDescLength);
-
     memcpy(pRegKey->pSecDescRel, pSecDescRel, ulSecDescLength);
     pRegKey->ulSecDescLength = ulSecDescLength;
 

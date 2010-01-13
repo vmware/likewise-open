@@ -222,8 +222,6 @@ SqliteCreateKeyInternal(
     BOOLEAN bInLock = FALSE;
     PREG_SRV_API_STATE pServerState = (PREG_SRV_API_STATE)handle;
     ACCESS_MASK AccessGranted = 0;
-    PSECURITY_DESCRIPTOR_RELATIVE pParentSecDescRel = NULL;
-    ULONG ulParentSecDescLen = 0;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelToSet = NULL;
     ULONG ulSecDescLengthToSet = 0;
 
@@ -268,20 +266,8 @@ SqliteCreateKeyInternal(
 	{
 		BAIL_ON_INVALID_KEY_CONTEXT(pParentKeyCtx);
 
-		if (!RegSrvHasSecurityDescriptor(pParentKeyCtx))
-		{
-			status = RegDbGetKeyAclByKeyId(ghCacheConnection,
-					                       pParentKeyCtx->qwId,
-					                       &pParentKeyCtx->qwSdId,
-					                       &pParentSecDescRel,
-					                       &ulParentSecDescLen);
-			BAIL_ON_NT_STATUS(status);
-
-		status = RegSrvSetKeySecurityDescriptor_inlock(pParentKeyCtx,
-				                                       pParentSecDescRel,
-				                                       ulParentSecDescLen);
+		status = SqliteCacheKeySecurityDescriptor(pParentKeyCtx);
 		BAIL_ON_NT_STATUS(status);
-		}
 
 		pSecDescRelToSet = pParentKeyCtx->pSecurityDescriptor;
 		ulSecDescLengthToSet = pParentKeyCtx->ulSecDescLength;
@@ -354,8 +340,6 @@ cleanup:
     LWREG_UNLOCK_MUTEX(bInLock, &gActiveKeyList.mutex);
 
     RegDbSafeFreeEntryKey(&pRegEntry);
-    LWREG_SAFE_FREE_MEMORY(pParentSecDescRel);
-
 
     return status;
 

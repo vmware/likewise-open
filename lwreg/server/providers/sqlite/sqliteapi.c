@@ -454,7 +454,6 @@ SqliteQueryInfoKey(
     PREG_KEY_HANDLE pKeyHandle = (PREG_KEY_HANDLE)hKey;
     PREG_KEY_CONTEXT pKeyCtx = NULL;
 
-
     BAIL_ON_NT_INVALID_POINTER(pKeyHandle);
     BAIL_ON_INVALID_RESERVED_POINTER(pdwReserved);
 
@@ -503,6 +502,9 @@ SqliteQueryInfoKey(
         } while (sNumValues);
     }
 
+    status = SqliteCacheKeySecurityDescriptor_inlock(pKeyCtx);
+    BAIL_ON_NT_STATUS(status);
+
     if (pcSubKeys)
     {
         *pcSubKeys = pKeyCtx->dwNumSubKeys;
@@ -522,6 +524,10 @@ SqliteQueryInfoKey(
     if (pcMaxValueLen)
     {
         *pcMaxValueLen = pKeyCtx->sMaxValueLen;
+    }
+    if (pcbSecurityDescriptor)
+    {
+        *pcbSecurityDescriptor = (DWORD)pKeyCtx->ulSecDescLength;
     }
 
 cleanup:

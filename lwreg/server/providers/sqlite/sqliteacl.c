@@ -192,8 +192,6 @@ SqliteGetKeySecurity(
     NTSTATUS status = STATUS_SUCCESS;
     PREG_KEY_HANDLE pKeyHandle = (PREG_KEY_HANDLE)hKey;
     PREG_KEY_CONTEXT pKeyCtx = NULL;
-    PSECURITY_DESCRIPTOR_RELATIVE pCurrSecDescRel = NULL;
-    ULONG ulCurrSecDescLen = 0;
     BOOLEAN bInLock = FALSE;
 
     BAIL_ON_NT_INVALID_POINTER(pKeyHandle);
@@ -213,40 +211,18 @@ SqliteGetKeySecurity(
 	BAIL_ON_NT_STATUS(status);
     }
 
-    if (!pKeyCtx->bHasSdInfo)
-    {
-		status = RegDbGetKeyAclByKeyId(ghCacheConnection,
-				                       pKeyCtx->qwId,
-				                       &pKeyCtx->qwSdId,
-				                       &pCurrSecDescRel,
-				                       &ulCurrSecDescLen);
-		BAIL_ON_NT_STATUS(status);
-
-	status = RegSrvSetKeySecurityDescriptor_inlock(pKeyCtx, pCurrSecDescRel, ulCurrSecDescLen);
-	BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-	    status = LW_RTL_ALLOCATE((PVOID*)&pCurrSecDescRel, VOID, pKeyCtx->ulSecDescLength);
-	    BAIL_ON_NT_STATUS(status);
-
-	    status = RegSrvGetKeySecurityDescriptor_inlock(pKeyCtx,
-							            pCurrSecDescRel,
-							            pKeyCtx->ulSecDescLength);
-	    BAIL_ON_NT_STATUS(status);
-    }
+    status = SqliteCacheKeySecurityDescriptor_inlock(pKeyCtx);
+    BAIL_ON_NT_STATUS(status);
 
 	status = RtlQuerySecurityDescriptorInfo(
 				  SecurityInformation,
 				  pSecDescRel,
 				  pulSecDescRelLen,
-				  pCurrSecDescRel);
+				  pKeyCtx->pSecurityDescriptor);
 	BAIL_ON_NT_STATUS(status);
 
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyCtx->mutex);
-
-    LWREG_SAFE_FREE_MEMORY(pCurrSecDescRel);
 
     return status;
 
