@@ -99,6 +99,12 @@ ntlm_gss_release_cred(
     );
 
 OM_uint32
+ntlm_gss_release_oid(
+    OM_uint32* MinorStatus,
+    gss_OID *pOid
+    );
+
+OM_uint32
 ntlm_gss_init_sec_context(
     OM_uint32* pMinorStatus,
     const gss_cred_id_t InitiatorCredHandle,
