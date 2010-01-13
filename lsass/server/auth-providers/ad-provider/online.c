@@ -1290,6 +1290,8 @@ AD_CacheUserRealInfoFromPac(
 
     pUserInfo->userInfo.qwPwdLastSet =
                (uint64_t)WinTimeToInt64(pPac->info3.base.last_password_change);
+    pUserInfo->userInfo.qwPwdExpires =
+               (uint64_t)WinTimeToInt64(pPac->info3.base.force_password_change);
     pUserInfo->userInfo.qwAccountExpires =
                (uint64_t)WinTimeToInt64(pPac->info3.base.acct_expiry);
 
@@ -1303,8 +1305,8 @@ AD_CacheUserRealInfoFromPac(
                pUserInfo->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError =  LsaAdBatchMarshalUserInfoPasswordLastSet(
-               pUserInfo->userInfo.qwPwdLastSet,
+    dwError = LsaAdBatchMarshalUserInfoPasswordExpires(
+               pUserInfo->userInfo.qwPwdExpires,
                &pUserInfo->userInfo,
                pUserInfo->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3992,7 +3994,6 @@ AD_UpdateUserObjectFlags(
     DWORD dwError = LW_ERROR_SUCCESS;
     struct timeval current_tv = {0};
     UINT64 u64current_NTtime = 0;
-    int64_t qwNanosecsToPasswordExpiry = 0;
 
     if (gettimeofday(&current_tv, NULL) < 0)
     {
@@ -4011,19 +4012,12 @@ AD_UpdateUserObjectFlags(
             pUser->userInfo.bAccountExpired = TRUE;
         }
 
-        if (gpADProviderData->adMaxPwdAge != 0)
+        if ((!pUser->userInfo.bPasswordNeverExpires &&
+             u64current_NTtime >= pUser->userInfo.qwPwdExpires) ||
+            pUser->userInfo.qwPwdLastSet == 0)
         {
-            qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-                (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
-
-            if ((!pUser->userInfo.bPasswordNeverExpires &&
-                 gpADProviderData->adMaxPwdAge != 0 &&
-                 qwNanosecsToPasswordExpiry < 0) ||
-                pUser->userInfo.qwPwdLastSet == 0)
-            {
-                //password is expired already
-                pUser->userInfo.bPasswordExpired = TRUE;
-            }
+            //password is expired already
+            pUser->userInfo.bPasswordExpired = TRUE;
         }
     }
 

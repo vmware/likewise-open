@@ -105,6 +105,7 @@
     "    Shell text,\n" \
     "    Homedir text,\n" \
     "    PwdLastSet integer,\n" \
+    "    PwdExpires integer,\n" \
     "    GeneratedUPN integer,\n" \
     "    IsAccountInfoKnown integer,\n" \
     "    AccountExpires integer,\n" \

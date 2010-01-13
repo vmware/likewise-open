@@ -39,6 +39,13 @@
 #ifndef __LWBASE_SECURITY_TYPES_H__
 #define __LWBASE_SECURITY_TYPES_H__
 
+#ifdef _DCE_IDL_
+
+cpp_quote("#include <lw/security-types.h>")
+cpp_quote("#if 0")
+
+#endif
+
 #include <lw/types.h>
 #include <lw/attrs.h>
 
@@ -1044,6 +1051,10 @@ typedef struct _TOKEN_UNIX {
     ULONG Umask;
 } TOKEN_UNIX, *PTOKEN_UNIX;
 
+#else
+
+typedef void *PACCESS_TOKEN;
+
 #endif // _DCE_IDL_
 
 //
@@ -1286,6 +1297,12 @@ typedef struct _SECURITY_QUALITY_OF_SERVICE {
     SECURITY_CONTEXT_TRACKING_MODE ContextTrackingMode;
     BOOLEAN EffectiveOnly;
 } SECURITY_QUALITY_OF_SERVICE, *PSECURITY_QUALITY_OF_SERVICE;
+
+#ifdef _DCE_IDL_
+
+cpp_quote("#endif")
+
+#endif
 
 #endif /* __LWBASE_SECURITY_TYPES_H__ */
 

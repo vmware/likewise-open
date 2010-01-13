@@ -629,7 +629,7 @@ static
 NTSTATUS
 RtlpSetSidSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE SecurityDescriptor,
-    IN PSID* SidLocation,
+    OUT PSID* SidLocation,
     IN SECURITY_DESCRIPTOR_CONTROL DefaultedBit,
     IN PSID Sid,
     IN BOOLEAN IsSidDefaulted
@@ -647,6 +647,7 @@ RtlpSetSidSecurityDescriptor(
     GOTO_CLEANUP_ON_STATUS(status);
 
     *SidLocation = Sid;
+
     if (IsSidDefaulted)
     {
         SetFlag(SecurityDescriptor->Control, DefaultedBit);

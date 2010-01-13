@@ -75,6 +75,7 @@ LocalMarshallAccountFlagsToSecurityObject(
     BOOLEAN bPasswordExpired = FALSE;
     BOOLEAN bPromptPasswordChange = FALSE;
     LONG64 llMaxPwdAge = 0;
+    LONG64 llTimeToExpiry = 0;
 
     dwError = LocalCfgGetMaxPasswordAge(&llMaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
@@ -114,7 +115,6 @@ LocalMarshallAccountFlagsToSecurityObject(
 
             LONG64 llPwdChangeTime = 0;
             LONG64 llCurTime = 0;
-            LONG64 llTimeToExpiry = 0;
 
             dwError = LocalCfgGetPasswordChangeWarningTime(&llPwdChangeTime);
             BAIL_ON_LSA_ERROR(dwError);
@@ -150,6 +150,7 @@ LocalMarshallAccountFlagsToSecurityObject(
 
     pObject->userInfo.qwPwdLastSet = llPwdLastSet;
     pObject->userInfo.qwMaxPwdAge = llMaxPwdAge;
+    pObject->userInfo.qwPwdExpires = llTimeToExpiry;
     pObject->userInfo.qwAccountExpires = llAcctExpiry;
     pObject->userInfo.bIsAccountInfoKnown    = TRUE;
     pObject->userInfo.bAccountDisabled       = bAccountDisabled;
