@@ -114,7 +114,6 @@ typedef struct LWMsgTaskManager
     int next_event_thread;
     WorkItemThread* work_threads;
     int work_threads_count;
-    int volatile work_threads_free_count;
     LWMsgRing work_items;
     LWMsgBool volatile shutdown;
     pthread_mutex_t lock;
