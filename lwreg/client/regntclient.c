@@ -604,6 +604,7 @@ NtRegEnumValueA(
     {
         cTempData *= sizeof(WCHAR);
         dwValueNameLen = *pcchValueName;
+        LWREG_SAFE_FREE_MEMORY(pTempData);
         status = LW_RTL_ALLOCATE(&pTempData, BYTE, cTempData);
         BAIL_ON_NT_STATUS(status);
 	status = RegTransactEnumValueW(
