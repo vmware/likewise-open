@@ -2683,6 +2683,17 @@ WireUnmarshalQueryInfo2Request(
     );
 
 NTSTATUS
+WireGetCurrentNTTime(
+    PLONG64 pllCurTime
+    );
+
+NTSTATUS
+WireNTTimeToTimeSpec(
+    LONG64 llCurTime,
+    struct timespec* pTimeSpec
+    );
+
+NTSTATUS
 WireNTTimeToSMBDateTime(
     LONG64    llNTTime,
     PSMB_DATE pSmbDate,

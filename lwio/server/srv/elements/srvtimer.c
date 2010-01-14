@@ -134,6 +134,7 @@ SrvTimerMain(
     NTSTATUS status = 0;
     PSRV_TIMER_CONTEXT pContext = (PSRV_TIMER_CONTEXT)pData;
     PSRV_TIMER_REQUEST pTimerRequest = NULL;
+    LONG64 llCurTime = 0LL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOG_DEBUG("Srv timer starting");
@@ -144,10 +145,13 @@ SrvTimerMain(
     {
         int errCode = 0;
         BOOLEAN bRetryWait = FALSE;
-        LONG64 llCurTime = (time(NULL) + 11644473600LL) * 10000000LL;
 
+        // If we have a current timer request, check if it is time to service it
         if (pTimerRequest)
         {
+            status = WireGetCurrentNTTime(&llCurTime);
+            BAIL_ON_NT_STATUS(status);
+
             if (llCurTime >= pTimerRequest->llExpiry)
             {
                 BOOLEAN bInLock2 = FALSE;
@@ -173,9 +177,11 @@ SrvTimerMain(
             pTimerRequest = NULL;
         }
 
+        // Get the next timer request in queue
         status = SrvTimerGetNextRequest_inlock(pContext, &pTimerRequest);
         if (status == STATUS_NOT_FOUND)
         {
+            // If the queue is empty wait for a day or until a request arrives
             struct timespec tsLong = { .tv_sec = time(NULL) + 86400,
                                        .tv_nsec = 0 };
 
@@ -210,12 +216,14 @@ SrvTimerMain(
         }
         BAIL_ON_NT_STATUS(status);
 
+        // At this point, we have a timer request - wait for its specified time
         do
         {
             struct timespec ts = {.tv_sec = 0, .tv_nsec = 0};
             bRetryWait = FALSE;
 
-            ts.tv_sec = (pTimerRequest->llExpiry/10000000LL) - 11644473600LL;
+            status = WireNTTimeToTimeSpec(pTimerRequest->llExpiry, &ts);
+            BAIL_ON_NT_STATUS(status);
 
             errCode = pthread_cond_timedwait(
                             &pContext->event,
@@ -223,7 +231,10 @@ SrvTimerMain(
                             &ts);
             if (errCode == ETIMEDOUT)
             {
-                if (time(NULL) < ts.tv_sec)
+                status = WireGetCurrentNTTime(&llCurTime);
+                BAIL_ON_NT_STATUS(status);
+
+                if (llCurTime < pTimerRequest->llExpiry)
                 {
                     bRetryWait = TRUE;
                     continue;

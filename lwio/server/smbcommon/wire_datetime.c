@@ -33,6 +33,46 @@
 #define EPOCH_DIFFERENCE_SECS 11644473600LL
 
 NTSTATUS
+WireGetCurrentNTTime(
+    PLONG64 pllCurTime
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    struct timeval tv = {0};
+
+    if (gettimeofday(&tv, NULL) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pllCurTime = (tv.tv_sec + EPOCH_DIFFERENCE_SECS) * 10000000LL +
+                  tv.tv_usec * 10;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pllCurTime = 0LL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+WireNTTimeToTimeSpec(
+    LONG64 llCurTime,
+    struct timespec* pTimeSpec
+    )
+{
+    pTimeSpec->tv_sec = (llCurTime/10000000LL) - EPOCH_DIFFERENCE_SECS;
+    pTimeSpec->tv_nsec = (llCurTime % 10000000LL) * 100;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
 WireNTTimeToSMBDateTime(
     LONG64    llNTTime,
     PSMB_DATE pSmbDate,
