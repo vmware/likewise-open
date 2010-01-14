@@ -72,6 +72,8 @@ typedef struct _SM_TABLE_ENTRY
     BOOL volatile bValid;
     /* Are dependencies marked? */
     BOOL volatile bDepsMarked;
+    /* Has pInfo been changed since the service was last constructed? */
+    BOOL volatile bDirty;
     /* Lock controlling access to entry */
     pthread_mutex_t lock;
     pthread_mutex_t* pLock;
