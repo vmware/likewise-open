@@ -54,6 +54,12 @@
 #include <lwsecurityidentifier.h>
 #include <lsautils.h>
 
+UINT32 ntlm_gss_duplicate_oid(
+    UINT32 MinorStatus,
+    const gss_OID_desc *const Oid,
+    gss_OID *NewOid
+    );
+
 gss_OID_desc gGssNtlmOidDesc = {
     .length = GSS_MECH_NTLM_LEN,
     .elements = GSS_MECH_NTLM
@@ -511,7 +517,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gss_inquire_cred_by_mech,
     NULL, //ntlm_gss_inquire_names_for_mech,
     ntlm_gss_inquire_context,
-    NULL, // ntlm_gss_release_oid,
+    ntlm_gss_release_oid,
     NULL, //ntlm_gss_wrap_size_limit,
     NULL, //ntlm_gss_export_name,
     NULL, //ntlm_gss_store_cred,
@@ -2183,3 +2189,34 @@ error:
 
     goto cleanup;
 }
+
+OM_uint32
+ntlm_gss_release_oid(
+    OM_uint32* MinorStatus,
+    gss_OID *pOid
+    )
+{
+    /* Don't free the global static OID */
+
+    if ((pOid &&
+         ((*pOid == gGssNtlmOid) || (*pOid == GSS_C_NO_OID))))
+    {
+
+        *MinorStatus = 0;
+        return GSS_S_COMPLETE;
+    }
+
+    return GSS_S_FAILURE;
+}
+
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

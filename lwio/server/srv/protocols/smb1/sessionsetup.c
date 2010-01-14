@@ -164,6 +164,15 @@ cleanup:
 
 error:
 
+    if (pConnection->hGssNegotiate)
+    {
+        SrvGssEndNegotiate(
+                pConnection->hGssContext,
+                pConnection->hGssNegotiate);
+
+        pConnection->hGssNegotiate = NULL;
+    }
+
     goto cleanup;
 }
 

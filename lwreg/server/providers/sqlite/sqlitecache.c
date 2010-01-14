@@ -451,6 +451,65 @@ error:
 }
 
 NTSTATUS
+SqliteCacheKeySecurityDescriptor_inlock(
+    IN PREG_KEY_CONTEXT pKeyResult
+    )
+{
+    NTSTATUS status = 0;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor = NULL;
+    ULONG ulSecDescRelLen = 0;
+
+    if (pKeyResult->bHasSdInfo)
+	goto cleanup;
+
+    status = RegDbGetKeyAclByKeyId(ghCacheConnection,
+			                       pKeyResult->qwId,
+			                       &pKeyResult->qwSdId,
+			                       &pSecurityDescriptor,
+		                           &ulSecDescRelLen);
+	BAIL_ON_NT_STATUS(status);
+
+    status = RegSrvSetKeySecurityDescriptor_inlock(pKeyResult,
+                                                   pSecurityDescriptor,
+                                                   ulSecDescRelLen);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+    LWREG_SAFE_FREE_MEMORY(pSecurityDescriptor);
+
+    return status;
+
+error:
+    pKeyResult->bHasSdInfo = FALSE;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SqliteCacheKeySecurityDescriptor(
+    IN OUT PREG_KEY_CONTEXT pKeyResult
+    )
+{
+	NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    BAIL_ON_NT_INVALID_POINTER(pKeyResult);
+
+    LWREG_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pKeyResult->mutex);
+
+    status = SqliteCacheKeySecurityDescriptor_inlock(pKeyResult);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+    LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyResult->mutex);
+
+    return status;
+
+error:
+    goto cleanup;
+}
+
+NTSTATUS
 SqliteCacheUpdateSubKeysInfo_inlock(
     IN DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,

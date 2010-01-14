@@ -53,6 +53,7 @@ typedef struct __REG_SRV_API_STATE
 {
     uid_t  peerUID;
     gid_t  peerGID;
+    PACCESS_TOKEN pToken;
     HANDLE hEventLog;
 } REG_SRV_API_STATE, *PREG_SRV_API_STATE;
 
@@ -484,10 +485,16 @@ RegSrvValueType(
 //Registry ACL check
 
 NTSTATUS
+RegSrvCreateAccessToken(
+    uid_t uid,
+    gid_t gid,
+    PACCESS_TOKEN* ppToken
+    );
+
+NTSTATUS
 RegSrvAccessCheckKey(
-	IN ULONG uid,
-	IN ULONG gid,
-    IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+	IN PACCESS_TOKEN pToken,
+    IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
     IN ULONG ulSecDescRelLen,
     IN ACCESS_MASK AccessDesired,
     OUT ACCESS_MASK *psamGranted

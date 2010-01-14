@@ -43,7 +43,7 @@
 #include "task-select-private.h"
 
 #define EVENT_THREAD_COUNT 1
-#define WORK_THREAD_COUNT 4
+#define WORK_THREAD_COUNT 8
 #define TASK_COMPLETE_MASK 0xFFFFFFFF
 
 static pthread_mutex_t global_manager_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -500,8 +500,6 @@ lwmsg_task_work_loop(
             pthread_cond_wait(&thread->manager->event, &thread->manager->lock);
         }
 
-        thread->manager->work_threads_free_count--;
-
         if (thread->manager->shutdown)
         {
             break;
@@ -517,8 +515,6 @@ lwmsg_task_work_loop(
         free(item);
 
         LOCK_MANAGER(thread->manager);
-
-        thread->manager->work_threads_free_count++;
     }
 
     UNLOCK_MANAGER(thread->manager);
@@ -533,21 +529,6 @@ lwmsg_task_work_thread(
     )
 {
     lwmsg_task_work_loop((WorkItemThread*) data);
-
-    return NULL;
-}
-
-static
-void*
-lwmsg_task_temporary_work_thread(
-    void* data
-    )
-{
-    WorkItem* item = (WorkItem*) data;
-
-    item->func(item->data);
-
-    free(item);
 
     return NULL;
 }
@@ -865,7 +846,6 @@ lwmsg_task_select_manager_new(
     }
 
     my_manager->work_threads_count = WORK_THREAD_COUNT;
-    my_manager->work_threads_free_count = WORK_THREAD_COUNT;
     BAIL_ON_ERROR(status = LWMSG_ALLOC_ARRAY(my_manager->work_threads_count, &my_manager->work_threads));
 
     for (i = 0; i < my_manager->work_threads_count; i++)
@@ -936,7 +916,6 @@ lwmsg_task_dispatch_work_item(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     WorkItem* item = NULL;
-    pthread_t thread;
 
     BAIL_ON_ERROR(status = LWMSG_ALLOC(&item));
     lwmsg_ring_init(&item->ring);
@@ -945,24 +924,9 @@ lwmsg_task_dispatch_work_item(
 
     LOCK_MANAGER(manager);
 
-    if (manager->work_threads_free_count == 0)
-    {
-        BAIL_ON_ERROR(status = lwmsg_error_map_errno(
-                          pthread_create(
-                              &thread,
-                              NULL,
-                              lwmsg_task_temporary_work_thread,
-                              item)));
-        item = NULL;
-        BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_detach(thread)));
-
-    }
-    else
-    {
-        lwmsg_ring_enqueue(&manager->work_items, &item->ring);
-        pthread_cond_signal(&manager->event);
-        item = NULL;
-    }
+    lwmsg_ring_enqueue(&manager->work_items, &item->ring);
+    pthread_cond_signal(&manager->event);
+    item = NULL;
 
 error:
 

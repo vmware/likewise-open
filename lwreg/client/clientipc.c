@@ -611,6 +611,10 @@ RegTransactQueryInfoKeyW(
             {
                 *pcMaxValueLen = pQueryInfoKeyResp->cMaxValueLen;
             }
+            if (pcbSecurityDescriptor)
+            {
+		*pcbSecurityDescriptor = pQueryInfoKeyResp->cSecurityDescriptor;
+            }
 
             break;
         case REG_R_ERROR:

@@ -1127,6 +1127,7 @@ int main(int argc, char *argv[])
     dcethread* listen_thread = NULL;
     dcethread* network_thread = NULL;
     boolean32 is_listening = false;
+    const static mode_t np_dir_mode = 0755;
 
     /* begin */
 
@@ -1170,12 +1171,12 @@ int main(int argc, char *argv[])
     if (! STATUS_OK(&status)) exit(1);
 
     /*
-     * Ensure permissions on /var/rpc directory
+     * Ensure existence/permissions on named pipe socket directory
      */
-    if (chmod(RPC_C_NP_DIR, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
+    if (chmod(RPC_C_NP_DIR, np_dir_mode) != 0)
     {
         if (errno != ENOENT ||
-            mkdir(RPC_C_NP_DIR, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
+            mkdir(RPC_C_NP_DIR, np_dir_mode) != 0)
         {
 
             printf("(rpcd) could not change permissions on " RPC_C_NP_DIR " directory...\n");

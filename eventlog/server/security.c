@@ -163,6 +163,8 @@ LWICheckSecurity(
     unsigned char* pszProtocol = NULL;
     DWORD dwAuthnProtocol = 0;
     PVOID pMechCtx = NULL;
+    unsigned32 uid = -1, gid = -1;
+    rpc_transport_info_handle_t info = NULL;
 
     TRY
     {
@@ -218,7 +220,19 @@ LWICheckSecurity(
         /* Always allow in local rpc */
         if (!strcmp((char*) pszProtocol, "ncalrpc"))
         {
-            dwError = EVT_ERROR_SUCCESS;
+            rpc_binding_inq_transport_info(hBindingHandle, &info, (unsigned32*) &rpcError);
+            BAIL_ON_DCE_ERROR(dwError, rpcError);
+
+            rpc_lrpc_transport_info_inq_peer_eid(info, &uid, &gid);
+
+            if (uid == 0)
+            {
+                dwError = EVT_ERROR_SUCCESS;
+            }
+            else
+            {
+                dwError = EVT_ERROR_ACCESS_DENIED;
+            }
         }
         else
         {

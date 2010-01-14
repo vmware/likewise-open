@@ -212,6 +212,9 @@ RegSrvOpenServer(
     pServerState->peerUID = peerUID;
     pServerState->peerGID = peerGID;
 
+    status = RegSrvCreateAccessToken(peerUID, peerGID, &pServerState->pToken);
+    BAIL_ON_NT_STATUS(status);
+
     *phServer = (HANDLE)pServerState;
 
 cleanup:
@@ -239,6 +242,11 @@ RegSrvCloseServer(
     if (pServerState->hEventLog != (HANDLE)NULL)
     {
        //RegSrvCloseEventLog(pServerState->hEventLog);
+    }
+
+    if (pServerState->pToken)
+    {
+        RtlReleaseAccessToken(&pServerState->pToken);
     }
 
     LwRtlMemoryFree(pServerState);
@@ -619,6 +627,7 @@ RegSrvIpcQueryInfoKeyW(
     DWORD dwValueCount = 0;
     DWORD dwMaxValueNameLen = 0;
     DWORD dwMaxValueLen = 0;
+    DWORD dwSecurityDescriptorLen = 0;
 
     status = RegSrvQueryInfoKeyW(
         RegSrvIpcGetSessionData(pCall),
@@ -632,7 +641,7 @@ RegSrvIpcQueryInfoKeyW(
         &dwValueCount,
         &dwMaxValueNameLen,
         &dwMaxValueLen,
-        NULL,
+        &dwSecurityDescriptorLen,
         NULL
         );
     if (!status)
@@ -645,6 +654,7 @@ RegSrvIpcQueryInfoKeyW(
         pRegResp->cValues = dwValueCount;
         pRegResp->cMaxValueNameLen = dwMaxValueNameLen;
         pRegResp->cMaxValueLen = dwMaxValueLen;
+        pRegResp->cSecurityDescriptor = dwSecurityDescriptorLen;
 
         pOut->tag = REG_R_QUERY_INFO_KEYW;
         pOut->data = pRegResp;

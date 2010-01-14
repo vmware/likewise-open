@@ -528,6 +528,7 @@ static LWMsgTypeSpec gRegQueryInfoKeyRespSpec[] =
      //DWORD cValues;
      //DWORD cMaxValueNameLen;
      //DWORD cMaxValueLen;
+	 //DWORD cSecurityDescriptor;
 
 
     LWMSG_STRUCT_BEGIN(REG_IPC_QUERY_INFO_KEY_RESPONSE),
@@ -539,6 +540,7 @@ static LWMsgTypeSpec gRegQueryInfoKeyRespSpec[] =
     LWMSG_MEMBER_UINT32(REG_IPC_QUERY_INFO_KEY_RESPONSE, cValues),
     LWMSG_MEMBER_UINT32(REG_IPC_QUERY_INFO_KEY_RESPONSE, cMaxValueNameLen),
     LWMSG_MEMBER_UINT32(REG_IPC_QUERY_INFO_KEY_RESPONSE, cMaxValueLen),
+    LWMSG_MEMBER_UINT32(REG_IPC_QUERY_INFO_KEY_RESPONSE, cSecurityDescriptor),
 
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END

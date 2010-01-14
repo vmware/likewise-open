@@ -311,18 +311,15 @@ typedef struct __REG_IPC_QUERY_INFO_KEY_REQ
 typedef struct __REG_IPC_QUERY_INFO_KEY_RESPONSE
 {
     PWSTR pClass;
-    //PDWORD pcClass;
     DWORD cSubKeys;
     DWORD cMaxSubKeyLen;
 
     DWORD cValues;
     DWORD cMaxValueNameLen;
     DWORD cMaxValueLen;
+
+    DWORD cSecurityDescriptor;
   //  PDWORD pcMaxClassLen;
-  //  PDWORD pcValues;
-  //  PDWORD pcMaxValueNameLen;
-  //  PDWORD pcMaxValueLen;
-  //  PDWORD pcbSecurityDescriptor;
   //  PFILETIME pftLastWriteTime;
 } REG_IPC_QUERY_INFO_KEY_RESPONSE, *PREG_IPC_QUERY_INFO_KEY_RESPONSE;
 
