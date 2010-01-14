@@ -73,9 +73,46 @@ RegSrvAccessCheckKeyHandle(
 }
 
 NTSTATUS
+RegSrvCreateAccessToken(
+    uid_t uid,
+    gid_t gid,
+    PACCESS_TOKEN* ppToken
+    )
+{
+    NTSTATUS status = 0;
+    PACCESS_TOKEN pToken = NULL;
+
+	status = LwMapSecurityCreateAccessTokenFromUidGid(gpRegLwMapSecurityCtx,
+		                                          &pToken,
+		                                          uid,
+		                                          gid);
+    if (status || !pToken)
+    {
+	status = STATUS_NO_TOKEN;
+    }
+    BAIL_ON_NT_STATUS(status);
+
+    *ppToken = pToken;
+
+cleanup:
+
+    return status;
+
+error:
+
+    if (pToken)
+    {
+        RtlReleaseAccessToken(&pToken);
+    }
+
+    *ppToken = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 RegSrvAccessCheckKey(
-	IN ULONG uid,
-	IN ULONG gid,
+	IN PACCESS_TOKEN pToken,
     IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
     IN ULONG ulSecDescRelLen,
     IN ACCESS_MASK AccessDesired,
@@ -83,7 +120,6 @@ RegSrvAccessCheckKey(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PACCESS_TOKEN pToken = NULL;
     ACCESS_MASK AccessMask = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs = NULL;
     ULONG ulSecDescAbsLen = 0;
@@ -99,15 +135,11 @@ RegSrvAccessCheckKey(
 
     BAIL_ON_NT_INVALID_POINTER(psamGranted);
 
-    status = LwMapSecurityCreateAccessTokenFromUidGid(gpRegLwMapSecurityCtx,
-		                                          &pToken,
-		                                          uid,
-		                                          gid);
-    if (status || !pToken)
+    if (!pToken)
     {
 	status = STATUS_NO_TOKEN;
+	BAIL_ON_NT_STATUS(status);
     }
-    BAIL_ON_NT_STATUS(status);
 
     // Get sizes
     status = RtlSelfRelativeToAbsoluteSD(pSecDescRel,
@@ -172,10 +204,6 @@ RegSrvAccessCheckKey(
     *psamGranted = AccessMask;
 
 cleanup:
-    if (pToken)
-    {
-        RtlReleaseAccessToken(&pToken);
-    }
 
     RegSrvFreeAbsoluteSecurityDescriptor(&pSecDescAbs);
 

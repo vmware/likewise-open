@@ -291,8 +291,15 @@ SqliteCreateKeyInternal(
 	// creating root key can skip ACL check
     if (pServerState)
     {
-	    status = RegSrvAccessCheckKey(pServerState->peerUID,
-			                      pServerState->peerGID,
+        if (!pServerState->pToken)
+        {
+	    status = RegSrvCreateAccessToken(pServerState->peerUID,
+			                         pServerState->peerGID,
+			                         &pServerState->pToken);
+            BAIL_ON_NT_STATUS(status);
+        }
+
+	status = RegSrvAccessCheckKey(pServerState->pToken,
 			                      pSecDescRelToSet,
 			                      ulSecDescLengthToSet,
 	                                  AccessDesired,
@@ -443,12 +450,19 @@ SqliteOpenKeyInternal_inlock(
 
     if (pServerState)
     {
-	    status = RegSrvAccessCheckKey(pServerState->peerUID,
-			                   pServerState->peerGID,
-	                               pKeyCtx->pSecurityDescriptor,
-	                               pKeyCtx->ulSecDescLength,
-	                               AccessDesired,
-	                               &AccessGranted);
+        if (!pServerState->pToken)
+        {
+	    status = RegSrvCreateAccessToken(pServerState->peerUID,
+			                         pServerState->peerGID,
+			                         &pServerState->pToken);
+            BAIL_ON_NT_STATUS(status);
+        }
+
+	status = RegSrvAccessCheckKey(pServerState->pToken,
+	                                  pKeyCtx->pSecurityDescriptor,
+	                                  pKeyCtx->ulSecDescLength,
+	                                  AccessDesired,
+	                                  &AccessGranted);
 	    BAIL_ON_NT_STATUS(status);
     }
 
@@ -504,12 +518,19 @@ SqliteOpenKeyInternal_inlock_inDblock(
 
 	if (pServerState)
 	{
-		status = RegSrvAccessCheckKey(pServerState->peerUID,
-								   pServerState->peerGID,
-								   pKeyCtx->pSecurityDescriptor,
-								   pKeyCtx->ulSecDescLength,
-								   AccessDesired,
-								   &AccessGranted);
+        if (!pServerState->pToken)
+        {
+	    status = RegSrvCreateAccessToken(pServerState->peerUID,
+			                         pServerState->peerGID,
+			                         &pServerState->pToken);
+            BAIL_ON_NT_STATUS(status);
+        }
+
+		status = RegSrvAccessCheckKey(pServerState->pToken,
+								      pKeyCtx->pSecurityDescriptor,
+								      pKeyCtx->ulSecDescLength,
+								      AccessDesired,
+								      &AccessGranted);
 		BAIL_ON_NT_STATUS(status);
 	}
 

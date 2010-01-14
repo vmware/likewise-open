@@ -212,6 +212,9 @@ RegSrvOpenServer(
     pServerState->peerUID = peerUID;
     pServerState->peerGID = peerGID;
 
+    status = RegSrvCreateAccessToken(peerUID, peerGID, &pServerState->pToken);
+    BAIL_ON_NT_STATUS(status);
+
     *phServer = (HANDLE)pServerState;
 
 cleanup:
@@ -239,6 +242,11 @@ RegSrvCloseServer(
     if (pServerState->hEventLog != (HANDLE)NULL)
     {
        //RegSrvCloseEventLog(pServerState->hEventLog);
+    }
+
+    if (pServerState->pToken)
+    {
+        RtlReleaseAccessToken(&pServerState->pToken);
     }
 
     LwRtlMemoryFree(pServerState);
