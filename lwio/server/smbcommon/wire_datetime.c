@@ -30,8 +30,6 @@
 
 #include "includes.h"
 
-#define EPOCH_DIFFERENCE_SECS 11644473600LL
-
 NTSTATUS
 WireGetCurrentNTTime(
     PLONG64 pllCurTime
@@ -46,8 +44,10 @@ WireGetCurrentNTTime(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *pllCurTime = (tv.tv_sec + EPOCH_DIFFERENCE_SECS) * 10000000LL +
-                  tv.tv_usec * 10;
+    *pllCurTime =
+        ((tv.tv_sec + WIRE_NTTIME_EPOCH_DIFFERENCE_SECS) *
+                    WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) +
+        tv.tv_usec * WIRE_FACTOR_MICROSECS_TO_HUNDREDS_OF_NANOSECS;
 
 cleanup:
 
@@ -66,8 +66,12 @@ WireNTTimeToTimeSpec(
     struct timespec* pTimeSpec
     )
 {
-    pTimeSpec->tv_sec = (llCurTime/10000000LL) - EPOCH_DIFFERENCE_SECS;
-    pTimeSpec->tv_nsec = (llCurTime % 10000000LL) * 100;
+    pTimeSpec->tv_sec =
+            (llCurTime/WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) -
+                            WIRE_NTTIME_EPOCH_DIFFERENCE_SECS;
+
+    pTimeSpec->tv_nsec =
+            (llCurTime % WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) * 100;
 
     return STATUS_SUCCESS;
 }
@@ -84,7 +88,8 @@ WireNTTimeToSMBDateTime(
     time_t   curTime = 0;
     struct tm stTime = {0};
 
-    timeUnix = (llNTTime /  10000000LL) - EPOCH_DIFFERENCE_SECS;
+    timeUnix = (llNTTime /  WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) -
+                    WIRE_NTTIME_EPOCH_DIFFERENCE_SECS;
 
     /* Adjust to local time zone */
     curTime = time(NULL);
@@ -150,7 +155,9 @@ WireSMBDateTimeToNTTime(
 
         timeUnix = mktime(&stTime);
 
-        llNTTime = (timeUnix + EPOCH_DIFFERENCE_SECS) * 10000000LL;
+        llNTTime =
+                (timeUnix + WIRE_NTTIME_EPOCH_DIFFERENCE_SECS) *
+                            WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS;
     }
 
     *pllNTTime = llNTTime;
@@ -177,7 +184,8 @@ WireNTTimeToSMBUTime(
     /**
      * @todo - Handle overflow
      */
-    *pulSmbUTime = (llNTTime / 10000000LL) - EPOCH_DIFFERENCE_SECS;
+    *pulSmbUTime = (llNTTime / WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) -
+                                            WIRE_NTTIME_EPOCH_DIFFERENCE_SECS;
 
     return ntStatus;
 }
@@ -193,7 +201,8 @@ WireSMBUTimetoNTTime(
     /**
      * @todo - Handle overflow
      */
-    *pllNTTime = (ulSmbUTime + EPOCH_DIFFERENCE_SECS) * 10000000LL;
+    *pllNTTime = (ulSmbUTime + WIRE_NTTIME_EPOCH_DIFFERENCE_SECS) *
+                                    WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS;
 
     return ntStatus;
 }

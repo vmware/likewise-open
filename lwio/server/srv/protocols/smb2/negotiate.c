@@ -230,7 +230,6 @@ SrvMarshalNegotiateResponse_SMB_V2(
     ULONG  ulBytesUsed      = 0;
     ULONG  ulTotalBytesUsed = 0;
     LONG64 llCurTime        = 0LL;
-    time_t curTime          = 0;
 
     ntStatus = SMB2MarshalHeader(
                 pOutBuffer,
@@ -289,9 +288,8 @@ SrvMarshalNegotiateResponse_SMB_V2(
     pNegotiateHeader->ulCapabilities = 0;
     pNegotiateHeader->ulMaxTxSize = pServerProperties->MaxBufferSize;
 
-    curTime = time(NULL);
-
-    llCurTime = (curTime + 11644473600LL) * 10000000LL;
+    ntStatus = WireGetCurrentNTTime(&llCurTime);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pNegotiateHeader->ullCurrentTime = llCurTime;
     // TODO: Figure out boot time

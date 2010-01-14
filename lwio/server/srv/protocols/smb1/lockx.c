@@ -443,10 +443,12 @@ SrvProcessLockAndX(
                         {
                             LONG64 llExpiry = 0LL;
 
-                            llExpiry =
-                                (time(NULL) +
-                                 (pLockState->pRequestHeader->ulTimeout/1000) +
-                                 11644473600LL) * 10000000LL;
+                            ntStatus = WireGetCurrentNTTime(&llExpiry);
+                            BAIL_ON_NT_STATUS(ntStatus);
+
+                            llExpiry +=
+                                (pLockState->pRequestHeader->ulTimeout *
+                                 WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS);
 
                             ntStatus = SrvTimerPostRequest(
                                             llExpiry,
