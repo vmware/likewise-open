@@ -383,8 +383,16 @@ RegShellExportFile(
     )
 {
     DWORD dwError = 0;
+    DWORD dwSubKeysCount = 0;
     char szRegFileName[PATH_MAX + 1];
     FILE* fp = NULL;
+    HKEY hSubKey = NULL;
+    HKEY hRootKey = NULL;
+    PSTR pszFullPath = NULL;
+    PSTR pszRootFullPath = NULL;
+    PSTR pszDefaultKey = NULL;
+    PSTR pszRootKey = NULL;
+    PSTR pszTemp = NULL;
 
 
     strcpy(szRegFileName, rsItem->args[0]);
@@ -397,14 +405,120 @@ RegShellExportFile(
         goto error;
     }
 
+    if (rsItem->keyName && *rsItem->keyName)
+    {
+        dwError = LwRtlCStringDuplicate(
+                      &pszRootKey,
+                      rsItem->keyName);
+        BAIL_ON_REG_ERROR(dwError);
+        pszTemp = strchr(pszRootKey, '\\');
+        if (pszTemp)
+        {
+            *pszTemp = '\0';
+        }
+        dwError = RegOpenKeyExA(hReg,
+                                NULL,
+                                pszRootKey,
+                                0,
+                                KEY_READ,
+                                &hRootKey);
+        if (dwError)
+        {
+            dwError = RegOpenKeyExA(hReg,
+                                    NULL,
+                                    HKEY_THIS_MACHINE,
+                                    0,
+                                    KEY_READ,
+                                    &hRootKey);
+            BAIL_ON_REG_ERROR(dwError);
+            LWREG_SAFE_FREE_STRING(pszRootKey);
+            dwError = LwRtlCStringDuplicate(
+                          &pszRootKey,
+                          HKEY_THIS_MACHINE);
+            BAIL_ON_REG_ERROR(dwError);
+            pszDefaultKey = strchr(rsItem->keyName, '\\');
+            if (pszDefaultKey)
+            {
+                pszDefaultKey++;
+            }
+            else
+            {
+                pszDefaultKey = rsItem->keyName;
+            }
+        }
+        else
+        {
+            pszDefaultKey = pszTemp + 1;
+        }
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = RegShellCanonicalizePath(pszDefaultKey,
+                                           NULL,
+                                           &pszFullPath,
+                                           NULL,
+                                           NULL);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (pszFullPath && strcmp(pszFullPath, "\\") != 0)
+        {
+            dwError = RegOpenKeyExA(
+                          hReg,
+                          hRootKey,
+                          pszFullPath+1,
+                          0,
+                          KEY_READ,
+                          &hSubKey);
+            BAIL_ON_REG_ERROR(dwError);
+
+        }
+        else
+        {
+            hSubKey = hRootKey;
+            hRootKey = NULL;
+        }
+    }
+
+    dwError = LwRtlCStringAllocatePrintf(
+                  &pszRootFullPath,
+                  "%s%s",
+                  pszRootKey,
+                  pszFullPath);
+    BAIL_ON_REG_ERROR(dwError);
+    dwError = RegQueryInfoKeyA(
+                  hReg,
+                  hSubKey,
+                  NULL,
+                  NULL,
+                  NULL,
+                  &dwSubKeysCount,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL);
+
     dwError = RegShellUtilExport(hReg,
                                  fp,
-                                 NULL,
-                                 NULL,
-                                 0);
+                                 hSubKey,
+                                 pszRootFullPath,
+                                 dwSubKeysCount);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
+    if (hSubKey)
+    {
+        RegCloseKey(hReg, hSubKey);
+    }
+    if (hRootKey)
+    {
+        RegCloseKey(hReg, hRootKey);
+    }
+    LWREG_SAFE_FREE_STRING(pszRootKey);
+    LWREG_SAFE_FREE_STRING(pszFullPath);
+    LWREG_SAFE_FREE_STRING(pszRootFullPath);
+
     if (fp)
     {
         fclose(fp);
