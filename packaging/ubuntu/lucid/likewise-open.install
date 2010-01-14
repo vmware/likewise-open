@@ -181,4 +181,5 @@ usr/lib/likewise-open/liblwnetclientapi.so*
 usr/lib/likewise-open/liblwnetcommon.so*
 usr/sbin/netlogond
 
-
+# apparmor HOMEDIRS tunable
+etc/apparmor.d/tunables/home.d/likewise-open

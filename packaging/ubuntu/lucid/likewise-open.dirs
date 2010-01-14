@@ -2,3 +2,4 @@ var/lib/likewise-open/db
 var/lib/likewise-open/run
 var/lib/likewise-open/rpc
 var/rpc
+etc/apparmor.d/tunables/home.d

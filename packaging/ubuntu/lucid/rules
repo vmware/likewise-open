@@ -145,6 +145,10 @@ install: build
 	# Fix configuration files
 	install -m644 config/likewise-krb5-ad.conf $(DESTDIR)$(SYSCONFDIR)/
 
+	# AppArmor HOMEDIRS tunable
+	mkdir -p $(DESTDIR)/etc/apparmor.d/tunables/home.d
+	cp debian/apparmor.homedirs $(DESTDIR)/etc/apparmor.d/tunables/home.d/likewise-open
+
 	dh_install --sourcedir=$(DESTDIR) --list-missing
 
 # Build architecture-independent files here.

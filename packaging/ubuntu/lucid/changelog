@@ -1,3 +1,21 @@
+likewise-open (5.4.0.39949-5~ppa1~lucid1) lucid; urgency=low
+
+  * New package release to sync version number with Karmic/Jaunty/Lucid
+
+ -- Gerald Carter <jerry@plainjoe.org>  Thu, 14 Jan 2010 13:05:16 -0600
+
+likewise-open (5.4.0.39949-3) lucid; urgency=low
+
+  * add /etc/apparmor.d/tunables/home.d/likewise-open to adjust HOMEDIRS.
+    - add debian/apparmor.homedirs
+    - debian/rules: install apparmor.homedirs
+    - debian/likewise-open.dirs: create etc/apparmor.d/tunables/home.d
+    - debian/likewise-open.install: add tunables/home.d/likewise-open to
+      likewise-open package
+    - LP: #274350
+
+ -- Jamie Strandboge <jamie@ubuntu.com>  Fri, 08 Jan 2010 08:56:39 -0600
+
 likewise-open (5.4.0.39949-2) lucid; urgency=low
 
   [Scott Salley]

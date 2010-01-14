@@ -1,0 +1,3 @@
+# Update HOMEDIRS for likewise-open
+@{HOMEDIRS}+=/home/likewise-open/*/
+
