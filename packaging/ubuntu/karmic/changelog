@@ -1,3 +1,15 @@
+likewise-open (5.4.0.39949-5~ppa1~karmic1) karmic; urgency=low
+
+  - Setting distro suffix
+
+ -- Gerald Carter <jerry@plainjoe.org>  Thu, 14 Jan 2010 12:49:47 -0600
+
+likewise-open (5.4.0.39949-4) karmic; urgency=low
+
+  * control: Add sharutils to the build dependencies
+
+ -- Gerald Carter <jerry@plainjoe.org>  Thu, 14 Jan 2010 11:51:35 -0600
+
 likewise-open (5.4.0.39949-3) karmic; urgency=low
 
   * control: Fix build dependencies for Karmic

@@ -1,3 +1,9 @@
+likewise-open (5.4.0.39949-5~ppa1~jaunty1) jaunty; urgency=low
+
+  - Setting distro suffix
+
+ -- Gerald Carter <jerry@plainjoe.org>  Thu, 14 Jan 2010 12:49:47 -0600
+
 likewise-open (5.4.0.39949-3) jaunty; urgency=low
 
   * control: Fix build dependencies for Jaunty
