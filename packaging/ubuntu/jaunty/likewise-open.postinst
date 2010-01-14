@@ -1,0 +1,115 @@
+#!/bin/sh
+
+set -e
+
+UPGRADEDIR4="/etc/likewise-open/4_1_upgrade"
+UPGRADEDIR5="/etc/likewise-open/5_0_upgrade"
+
+CONVERT=/usr/bin/conf2reg
+DOMAINJOIN=/usr/bin/domainjoin-cli
+LWSM=/usr/bin/lwsm
+LWSMD=/etc/init.d/lwsmd
+REGSHELL=/usr/bin/lwregshell
+
+import_machine_account_4_1()
+{
+    $CONVERT --lwiauth "${UPGRADEDIR4}/lwiauthd.conf" \
+        "${UPGRADEDIR4}/secrets.tdb" \
+        /etc/likewise-open/lwiauthd.reg > /dev/null 2>&1 || true
+
+    rm -rf "${UPGRADEDIR4}"
+
+    if [ -f /etc/likewise-open/lwiauthd.reg ]; then
+        $REGSHELL import /etc/likewise-open/lwiauthd.reg
+
+        $DOMAINJOIN configure --enable nsswitch > /dev/null 2>&1
+        $DOMAINJOIN configure --enable ssh > /dev/null 2>&1
+        $DOMAINJOIN configure --long `hostname --long` \
+                              --short `hostname --short` \
+                              --enable krb5 > /dev/null 2>&1
+    fi
+}
+
+convert_import()
+{
+    COMMAND=$1
+    SOURCE=$2
+    # DEST is not necessary for some commands.
+    DEST=$3
+
+    if [ -f $SOURCE ]; then
+        $CONVERT $COMMAND $SOURCE $DEST > /dev/null 2>&1 || true
+        if [ -n "$DEST" -a -f "$DEST" ]; then
+            $REGSHELL import $DEST
+        fi
+    fi
+}
+
+import_machine_account_5_0()
+{
+    convert_import --lsass "${UPGRADEDIR5}/lsassd.conf" \
+        "/etc/likewise-open/lsassd.conf.reg"
+
+    convert_import --eventlog "${UPGRADEDIR5}/eventlogd.conf" \
+        "/etc/likewise-open/eventlogd.conf.reg"
+
+    convert_import --netlogon "${UPGRADEDIR5}/netlogon.conf" \
+        "/etc/likewise-open/netlogon.conf.reg"
+
+    # Bring machine account into registry
+    convert_import --pstore-sqlite "${UPGRADEDIR5}/pstore.db"
+
+    rm -rf "${UPGRADEDIR5}"
+
+    $DOMAINJOIN configure --enable nsswitch > /dev/null 2>&1
+    $DOMAINJOIN configure --enable ssh > /dev/null 2>&1
+    $DOMAINJOIN configure --long `hostname --long` --short `hostname --short` \
+        --enable krb5 > /dev/null 2>&1
+}
+
+case "$1" in
+    abort-upgrade)
+        if dpkg --compare-versions "$2" le "4.1.2982-0ubuntu3"; then
+            if [ -f /etc/init.d/likewise-open ]; then
+                /etc/init.d/likewise-open start || true
+            fi
+
+            rm -rf "${UPGRADEDIR4}"
+        fi
+    ;;
+
+    configure)
+        $LWSMD start
+
+        $REGSHELL import /etc/likewise-open/dcerpcd.reg
+        $REGSHELL import /etc/likewise-open/eventlogd.reg
+        $REGSHELL import /etc/likewise-open/lwreg.reg
+        $REGSHELL import /etc/likewise-open/lsassd.reg
+        $REGSHELL import /etc/likewise-open/lwiod.reg
+        $REGSHELL import /etc/likewise-open/netlogond.reg
+        $REGSHELL import /etc/likewise-open/pstore.reg
+        $REGSHELL import /etc/likewise-open/srvsvcd.reg
+
+        $LWSMD reload
+
+        if [ -n "$2" ]; then
+            if dpkg --compare-versions "$2" le "4.1.2982-0ubuntu3"; then
+                if [ -f "${UPGRADEDIR4}/lwiauthd.conf" -a \
+                     -f "${UPGRADEDIR4}/secrets.tdb" ]; then
+                    import_machine_account_4_1
+                fi
+            fi
+        else
+            if [ -d "${UPGRADEDIR5}" ]; then
+                import_machine_account_5_0
+            fi
+       fi
+
+        # This will start all the sevices and hook things up in /etc/rc[0-6].d
+        $DOMAINJOIN query > /dev/null 2>&1
+
+        pam-auth-update --package
+    ;;
+esac
+
+#DEBHELPER#

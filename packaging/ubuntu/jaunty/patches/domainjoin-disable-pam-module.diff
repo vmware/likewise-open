@@ -1,0 +1,19 @@
+diff -Nurb likewise-open/domainjoin/libdomainjoin/src/djmodule.c likewise-open.new/domainjoin/libdomainjoin/src/djmodule.c
+--- likewise-open/domainjoin/libdomainjoin/src/djmodule.c	2009-11-12 11:38:04.000000000 -0800
++++ likewise-open.new/domainjoin/libdomainjoin/src/djmodule.c	2009-11-12 16:25:21.000000000 -0800
+@@ -75,7 +75,6 @@
+     &DJBashPrompt,
+     &DJGdmPresession,
+     &DJPamMode,
+-    &DJPamModule,
+     &DJLamAuth,
+     &DJSshModule,
+     &DJDSPlugin,
+@@ -87,7 +86,6 @@
+     &DJDSPlugin,
+     &DJSshModule,
+     &DJLamAuth,
+-    &DJPamModule,
+     &DJPamMode,
+     &DJGdmPresession,
+     &DJBashPrompt,

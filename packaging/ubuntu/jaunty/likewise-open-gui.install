@@ -1,0 +1,10 @@
+usr/bin/domainjoin-gui
+
+usr/share/icons/likewise-gui.xpm
+usr/share/applications/likewise-open-gui.desktop
+usr/share/applications/likewise-open-gui-kde.desktop
+
+usr/share/likewise-open/domainjoin-logo.png
+usr/share/likewise-open/likewise-logo.png
+usr/share/likewise-open/domainjoin-gtk.glade
+

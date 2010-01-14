@@ -1,0 +1,69 @@
+diff -Nurp likewise-open-5.4.0.39717/lsass/etc/lsassd.reg.in likewise-open-5.4.0.39717.new/lsass/etc/lsassd.reg.in
+--- likewise-open-5.4.0.39717/lsass/etc/lsassd.reg.in	2009-12-14 08:49:51.000000000 -0800
++++ likewise-open-5.4.0.39717.new/lsass/etc/lsassd.reg.in	2009-12-14 10:31:18.000000000 -0800
+@@ -32,9 +32,9 @@
+ "Id"="lsa-activedirectory-provider"
+ "Path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
+ "LogNetworkConnectionEvents"=dword:00000001
+-"LoginShellTemplate"="/bin/sh"
++"LoginShellTemplate"="/bin/bash"
+ "HomeDirPrefix"="@default_homedir_prefix@"
+-"HomeDirTemplate"="%H/local/%D/%U"
++"HomeDirTemplate"="%H/likewise-open/%D/%U"
+ "LdapSignAndSeal"=dword:00000000
+ "CacheEntryExpiry"=dword:00003840
+ "MachinePasswordLifespan"=dword:00278D00
+@@ -49,7 +49,7 @@
+ "HomeDirUmask"="022"
+ "SkeletonDirs"="@default_skeldirs@"
+ "RefreshUserCredentials"=dword:00000001
+-"CellSupport"="full"
++"CellSupport"="unprovisioned"
+ "TrimUserMembership"=dword:00000001
+ "NssGroupMembersQueryCacheOnly"=dword:00000001
+ "NssUserMembershipQueryCacheOnly"=dword:00000000
+@@ -62,9 +62,9 @@
+ [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Local]
+ "Id"="lsa-local-provider"
+ "Path"="@providerdir@/liblsass_auth_provider_local@MOD_EXT@"
+-"LoginShellTemplate"="/bin/sh"
++"LoginShellTemplate"="/bin/bash"
+ "HomeDirPrefix"="@default_homedir_prefix@"
+-"HomeDirTemplate"="%H/local/%D/%U"
++"HomeDirTemplate"="%H/likewise-open/%D/%U"
+ "CreateHomeDir"=dword:00000001
+ "HomeDirUmask"="022"
+ "SkeletonDirs"="@default_skeldirs@"
+@@ -80,9 +80,9 @@
+ [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\samr]
+ "Path"="@rpcserverdir@/libsamr_srv@MOD_EXT@"
+ "LpcSocketPath"="@CACHEDIR@/rpc/lsass"
+-"LoginShellTemplate"="/bin/sh"
++"LoginShellTemplate"="/bin/bash"
+ "HomeDirPrefix"="@default_homedir_prefix@"
+-"HomeDirTemplate"="%H/local/%D/%U"
++"HomeDirTemplate"="%H/likewise-open/%D/%U"
+ 
+ [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\dssetup]
+ "Path"="@rpcserverdir@/libdssetup_srv@MOD_EXT@"
+diff -Nurp likewise-open-5.4.0.39717/lsass/server/auth-providers/ad-provider/addef.h.in likewise-open-5.4.0.39717.new/lsass/server/auth-providers/ad-provider/addef.h.in
+--- likewise-open-5.4.0.39717/lsass/server/auth-providers/ad-provider/addef.h.in	2009-12-14 08:49:51.000000000 -0800
++++ likewise-open-5.4.0.39717.new/lsass/server/auth-providers/ad-provider/addef.h.in	2009-12-14 10:29:28.000000000 -0800
+@@ -53,7 +53,7 @@
+ 
+ #define AD_BUILTIN_GROUP_SID_PREFIX "S-1-5-32-"
+ 
+-#define AD_DEFAULT_SHELL            "/bin/sh"
++#define AD_DEFAULT_SHELL            "/bin/bash"
+ 
+ #define AD_DEFAULT_UMASK            022
+ 
+@@ -61,7 +61,7 @@
+ 
+ #define AD_DEFAULT_SKELDIRS       "@default_skeldirs@"
+ 
+-#define AD_DEFAULT_HOMEDIR_TEMPLATE "%H/local/%D/%U"
++#define AD_DEFAULT_HOMEDIR_TEMPLATE "%H/likewise-open/%D/%U"
+ 
+ #define AD_CACHE_REAPER_TIMEOUT_MINIMUM_SECS (5 * LSA_SECONDS_IN_MINUTE)
+ #define AD_CACHE_REAPER_TIMEOUT_DEFAULT_SECS (30 * LSA_SECONDS_IN_DAY)

@@ -1,0 +1,8 @@
+domainjoin-ask-for-reboot.diff
+domainjoin-disable-pam-module.diff
+domainjoin-gui-path.diff
+domainjoin-mods-for-apparmor-abstractions-nsswitch.diff
+domainjoin-version-in-share.diff
+krb5-copy-ktutil.diff
+librpc-rename-endpoints.diff
+lsass-mods-for-apparmor-rename-homedir.diff
