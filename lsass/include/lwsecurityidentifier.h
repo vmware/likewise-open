@@ -55,121 +55,115 @@ typedef struct __LSA_SECURITY_IDENTIFIER {
     UCHAR* pucSidBytes;  //byte representation of multi-byte Security Identification Descriptor
     DWORD dwByteLength;
 } LSA_SECURITY_IDENTIFIER, *PLSA_SECURITY_IDENTIFIER;
+
 DWORD
-LwAllocSecurityIdentifierFromBinary(
-    UCHAR* pucSidBytes,
+LsaAllocSecurityIdentifierFromBinary(
+    UCHAR* sidBytes,
     DWORD dwSidBytesLength,
     PLSA_SECURITY_IDENTIFIER* ppSecurityIdentifier
     );
 
 DWORD
-LwAllocSecurityIdentifierFromString(
+LsaAllocSecurityIdentifierFromString(
     PCSTR pszSidString,
     PLSA_SECURITY_IDENTIFIER* ppSecurityIdentifier
     );
 
 VOID
-LwFreeSecurityIdentifier(
+LsaFreeSecurityIdentifier(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier
     );
 
 DWORD
-LwGetSecurityIdentifierRid(
+LsaGetSecurityIdentifierRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PDWORD pdwRid
     );
 
 DWORD
-LwSetSecurityIdentifierRid(
+LsaSetSecurityIdentifierRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     DWORD dwRid
     );
 
 DWORD
-LwReplaceSidRid(
+LsaReplaceSidRid(
     IN PCSTR pszSid,
     IN DWORD dwNewRid,
     OUT PSTR* ppszNewSid
     );
 
 DWORD
-LwGetSecurityIdentifierHashedRid(
+LsaGetSecurityIdentifierHashedRid(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PDWORD dwHashedRid
     );
 
+// The UID is a DWORD constructued using a non-cryptographic hash
+// of the User's domain SID and user RID.
 DWORD
-LwHashSecurityIdentifierToId(
+LsaHashSecurityIdentifierToId(
     IN PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     OUT PDWORD pdwId
     );
 
 DWORD
-LwHashSidStringToId(
+LsaHashSidStringToId(
     IN PCSTR pszSidString,
     OUT PDWORD pdwId
     );
 
 DWORD
-LwGetSecurityIdentifierBinary(
+LsaGetSecurityIdentifierBinary(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     UCHAR** ppucSidBytes,
     DWORD* pdwSidBytesLength
     );
 
 DWORD
-LwGetSecurityIdentifierString(
+LsaGetSecurityIdentifierString(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PSTR* ppszSidStr
     );
 
 DWORD
-LwGetDomainSecurityIdentifier(
+LsaSidBytesToString(
+    UCHAR* pucSidBytes,
+    DWORD dwSidBytesLength,
+    PSTR* pszSidString
+    );
+
+DWORD
+LsaGetDomainSecurityIdentifier(
     PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
     PLSA_SECURITY_IDENTIFIER* ppDomainSID
     );
 
 DWORD
-LwByteArrayToLdapFormatHexStr(
+LsaHexStrToByteArray(
+    IN PCSTR pszHexString,
+    IN OPTIONAL DWORD* pdwHexStringLength,
+    OUT UCHAR** ppucByteArray,
+    OUT DWORD* pdwByteArrayLength
+    );
+
+DWORD
+LsaByteArrayToLdapFormatHexStr(
     IN UCHAR* pucByteArray,
     IN DWORD dwByteArrayLength,
     OUT PSTR* ppszHexString
     );
 
 DWORD
-LwSidStrToLdapFormatHexStr(
+LsaSidStrToLdapFormatHexStr(
     IN PCSTR pszSid,
     OUT PSTR* ppszHexSid
     );
 
-void
-LwUidHashCalc(
-    PDWORD pdwAuthorities,
-    DWORD dwAuthorityCount,
-    PDWORD pdwHash
-    );
-
 DWORD
-LwSidStringToBytes(
-    IN PCSTR pszSidString,
-    OUT UCHAR** ppucSidBytes,
-    OUT DWORD* pdwSidBytesLength
-    );
-
-DWORD
-LwSidBytesToString(
-    UCHAR* pucSidBytes,
-    DWORD  dwSidBytesLength,
-    PSTR*  ppszSidString
-    );
-
-DWORD
-LwBuildSIDString(
-    PCSTR pszRevision,
-    PCSTR pszAuth,
-    PBYTE pucSidBytes,
-    DWORD dwWordCount,
-    PSTR* ppszSidString
+LsaHexCharToByte(
+    CHAR cHexChar,
+    UCHAR* pucByte
     );
 
 #endif /* __LWSECURITY_IDENTIFIER_H__ */

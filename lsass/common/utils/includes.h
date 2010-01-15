@@ -56,9 +56,9 @@
 #include <lwstr.h>
 #include <reg/lwreg.h>
 
-#include "lsadef.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
+#include <lsadef.h>
+#include <lwsecurityidentifier.h>
+#include <lsautils.h>
 
 #include "lsalogger_p.h"
 #include "lsahash_p.h"
