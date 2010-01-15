@@ -1,4 +1,5 @@
 bin_PROGRAMS = lwregshell
+bin_SCRIPTS = lw-edit-reg
 
 #lwregshell
 lwregshell_SOURCES = \
@@ -20,3 +21,7 @@ lwregshell_CPPFLAGS = \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/libedit/src \
     @LWBASE_INCLUDES@
+
+lw-edit-reg: lw-edit-reg.sh
+	cp $< $@
+	chmod +x $@
