@@ -570,9 +570,7 @@ ProcessSubKeys(
     HANDLE hReg,
     FILE* fp,
     HKEY hKey,
-    PSTR pszKeyName,
-    DWORD dwNumSubKeys,
-    PREG_DATA_TYPE pPrevType
+    DWORD dwNumSubKeys
     )
 {
     DWORD dwError = 0;
@@ -608,7 +606,7 @@ ProcessSubKeys(
 
         pszSubKeyName = strrchr(pszSubKey, c);
 
-        if (LW_IS_NULL_OR_EMPTY_STR(pszSubKeyName+1))
+        if (!pszSubKeyName || LW_IS_NULL_OR_EMPTY_STR(pszSubKeyName+1))
         {
             continue;
         }
@@ -792,9 +790,7 @@ RegShellUtilExport(
         dwError = ProcessSubKeys(hReg,
                                  fp,
                                  hKey,
-                                 pszKeyName,
-                                 dwNumSubKeys,
-                                 &prevType);
+                                 dwNumSubKeys);
         BAIL_ON_REG_ERROR(dwError);
     }
     else if (hKey == NULL && dwNumSubKeys == 0)
