@@ -680,7 +680,7 @@ INTERNAL rpc_socket_error_t rpc__bsd_socket_getpeereid
 );
 
 
-#if !defined(SO_PEERCRED) && !defined(HAVE_GETPEERID)
+#if !defined(SO_PEERCRED) && !defined(HAVE_GETPEEREID)
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendpeereid
 (
@@ -757,7 +757,7 @@ connect_again:
         goto error;
     }
 
-#if !defined(SO_PEERCRED) && !defined(HAVE_GETPEERID)
+#if !defined(SO_PEERCRED) && !defined(HAVE_GETPEEREID)
     serr = rpc__bsd_socket_sendpeereid(sock, addr);
 #endif
 
@@ -1546,13 +1546,13 @@ gid_t		    *egid;
     {
         RPC_DBG_GPRINTF(("(rpc__bsd_socket_getpeereid) error=%d\n", serr));
     }
-#elif defined(HAVE_GETPEERID)
+#elif defined(HAVE_GETPEEREID)
     rpc_bsd_socket_p_t lrpc = (rpc_bsd_socket_p_t) sock->data.pointer;
     uid_t uid = -1;
     gid_t gid = -1;
 
     RPC_SOCKET_DISABLE_CANCEL;
-    serr = (getpeerid(lrpc->fd, &uid, &gid)) ? errno : RPC_C_SOCKET_OK;
+    serr = (getpeereid(lrpc->fd, &uid, &gid)) ? errno : RPC_C_SOCKET_OK;
     RPC_SOCKET_RESTORE_CANCEL;
     if (serr == RPC_C_SOCKET_OK)
     {
@@ -1571,7 +1571,7 @@ gid_t		    *egid;
 }
 
 
-#if !defined(SO_PEERCRED) && !defined(HAVE_GETPEERID)
+#if !defined(SO_PEERCRED) && !defined(HAVE_GETPEEREID)
 
 INTERNAL rpc_socket_error_t rpc__bsd_socket_sendpeereid
 #ifdef _DCE_PROTO_
