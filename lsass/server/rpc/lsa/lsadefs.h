@@ -57,18 +57,21 @@
     {'B','U','I','L','T','I','N',0}
 
 
-typedef struct account_names {
-    PWSTR  *ppwszNames;
-    PDWORD pdwIndices;
-    DWORD  dwCount;
-} ACCOUNT_NAMES, *PACCOUNT_NAMES;
+/*
+ * Indices of an array returned from LsaSrvSelectAccountsByDomainName
+ * and LsaSrvSelectAccountsByDomainSid
+ */
 
+typedef enum _LSA_ACCOUNT_TYPE
+{
+    LSA_DOMAIN_ACCOUNTS              = 0,
+    LSA_FOREIGN_DOMAIN_ACCOUNTS,
+    LSA_LOCAL_DOMAIN_ACCOUNTS,
+    LSA_BUILTIN_DOMAIN_ACCOUNTS,
+    LSA_OTHER_ACCOUNTS,
+    LSA_ACCOUNT_TYPE_SENTINEL
 
-typedef struct account_sids {
-    PSID   *ppSids;
-    PDWORD  pdwIndices;
-    DWORD   dwCount;
-} ACCOUNT_SIDS, *PACCOUNT_SIDS;
+} LSA_ACCOUNT_TYPE;
 
 
 #define BAIL_ON_NTSTATUS_ERROR(status)                   \
