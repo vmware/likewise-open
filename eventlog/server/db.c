@@ -135,16 +135,30 @@
                                         ?10)"
 
 //Delete the record over 'n' entries
-#define DB_QUERY_DELETE_AT_LIMIT    "DELETE FROM     lwievents    \
-                                     WHERE  EventRecordId >= (%d)"
+#define DB_QUERY_DELETE_AT_LIMIT    "DELETE FROM     lwievents      \
+                                     WHERE  EventRecordId NOT IN (  \
+                                       SELECT EventRecordId         \
+                                       FROM     lwievents           \
+                                       ORDER BY EventRecordId DESC  \
+                                       LIMIT %lu                    \
+                                     )"
+
+//Delete the first 'n' entries
+#define DB_QUERY_DELETE_COUNT       "DELETE FROM     lwievents      \
+                                     WHERE  EventRecordId IN (      \
+                                       SELECT EventRecordId         \
+                                       FROM     lwievents           \
+                                       ORDER BY EventRecordId ASC   \
+                                       LIMIT %lu                    \
+                                     )"
 
 //To delete records 'n' days older than current date.
 #define DB_QUERY_DELETE_OLDER_THAN  "DELETE FROM     lwievents    \
-                                     WHERE  (datetime(EventDateTime,'unixepoch','localtime') < datetime('now','-%d day'))"
+                                     WHERE  (EventDateTime < strftime('%%s', 'now', '-%d day'))"
 
 //To get count of records that are older  than 'n' days
 #define DB_QUERY_COUNT_OLDER_THAN  "SELECT COUNT (EventRecordId) FROM  lwievents    \
-                                     WHERE  (datetime(EventDateTime,'unixepoch','localtime') < datetime('now','-%d day'))"
+                                     WHERE  (EventDateTime < strftime('%%s', 'now','-%d day'))"
 
 //To sort the record depending upon the date
 #define DB_QUERY_SORT_ON_DATE       "SELECT (*) FROM  lwievents    \
@@ -152,7 +166,7 @@
 
 //To get records 'n' days older than current date
 #define DB_QUERY_GET_OLDER_THAN  "SELECT (*) FROM  lwievents    \
-                                    WHERE  (datetime(EventDateTime,'unixepoch','localtime') < datetime('now','-%d day'))"
+                                    WHERE  (EventDateTime < strftime('%%s', 'now','-%d day'))"
 //Function prototype
 static
 DWORD
@@ -696,9 +710,11 @@ SrvMaintainDB(
         BAIL_ON_EVT_ERROR(dwError);
     }
 
-    if(dwActualSize >= dwMaxLogSize) {
+    if (dwActualSize >= dwMaxLogSize)
+    {
         EVT_LOG_VERBOSE("Log Size is exceeds the maximum limit set");
-        goto error;
+        dwError = SrvLimitDatabaseSize(hDB, dwMaxLogSize);
+        BAIL_ON_EVT_ERROR(dwError);
     }
 
     //Safe to insert record,set bSafeInsert to TRUE
@@ -730,19 +746,21 @@ SrvWriteToDB(
     dwError = EVTGetRemoveAsNeeded(&bRemoveAsNeeded);
     BAIL_ON_EVT_ERROR(dwError);
 
-    if(bRemoveAsNeeded) {
-        //Trim the DB
-        EVT_LOG_VERBOSE("Going to trim database .....");
-        dwError = SrvMaintainDB(hDB,&bSafeInsert);
-        BAIL_ON_EVT_ERROR(dwError);
-    }
-
-    if(bSafeInsert) {
+    if (bSafeInsert)
+    {
         //Write the eventlog
         dwError = SrvWriteEventLog(
                         hDB,
                         cRecords,
                         pEventRecords);
+        BAIL_ON_EVT_ERROR(dwError);
+    }
+
+    if (bRemoveAsNeeded)
+    {
+        //Trim the DB
+        EVT_LOG_VERBOSE("Going to trim database .....");
+        dwError = SrvMaintainDB(hDB,&bSafeInsert);
         BAIL_ON_EVT_ERROR(dwError);
     }
 
@@ -857,6 +875,103 @@ SrvEventLogCountOlderThan(
 
 }
 
+DWORD
+SrvLimitDatabaseSize(
+    HANDLE hDB,
+    DWORD dwMaxLogSize
+    )
+{
+    DWORD dwError = 0;
+    CHAR  szQuery[8092];
+    DWORD nRows = 0;
+    DWORD nCols = 0;
+    PSTR* ppszResult = NULL;
+    DWORD dwCurrentCount = 0;
+    DWORD dwActualSize = 0;
+    DWORD dwDeleteCount = 0;
+
+    ENTER_RW_WRITER_LOCK;
+
+    while (1)
+    {
+        dwError = EVTGetFileSize(EVENTLOG_DB, &dwActualSize);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        if (dwActualSize < dwMaxLogSize)
+        {
+            // The file size is now acceptable
+            break;
+        }
+
+        if (ppszResult) {
+            sqlite3_free_table(ppszResult);
+        }
+
+        dwError = SrvQueryEventLog(
+                        hDB,
+                        DB_QUERY_COUNT_ALL,
+                        &nRows,
+                        &nCols,
+                        &ppszResult);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        if (nRows == 1)
+        {
+            dwCurrentCount = (DWORD) atoi(ppszResult[1]);
+        }
+        else
+        {
+            dwError = EINVAL;
+            BAIL_ON_EVT_ERROR(dwError);
+        }
+
+        if (dwCurrentCount == 0)
+        {
+            EVT_LOG_ERROR("evtdb: The current database size ( %d ) is larger than the max ( %d ), but since it contains no records, it cannot be further trimmed.", dwActualSize, dwMaxLogSize);
+            break;
+        }
+
+        // Assume every record takes the same amount of space and figure out
+        // how many need to be cleared. Also, clear 10% more than necessary so
+        // this delete operation is not run every time.
+
+        dwDeleteCount = dwCurrentCount -
+                        9 * dwCurrentCount * dwMaxLogSize / dwActualSize / 10;
+        if (dwDeleteCount < 1)
+        {
+            // This breaks an infinite loop that might be caused from rounding
+            // errors
+            dwDeleteCount = 1;
+        }
+        EVT_LOG_INFO("evtdb: Deleting %d record(s) (out of %d) in an attempt to lower the current database size ( %d ), to lower than %d", dwDeleteCount, dwCurrentCount, dwActualSize, dwMaxLogSize);
+
+        if (ppszResult) {
+            sqlite3_free_table(ppszResult);
+        }
+        sprintf(szQuery, DB_QUERY_DELETE_COUNT, (unsigned long)dwDeleteCount);
+
+        dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        // Run the vacuum command so the filesize actually shrinks
+        if (ppszResult) {
+            sqlite3_free_table(ppszResult);
+        }
+        dwError = SrvQueryEventLog(hDB, "VACUUM", &nRows, &nCols, &ppszResult);
+        BAIL_ON_EVT_ERROR(dwError);
+    }
+
+cleanup:
+    if (ppszResult) {
+        sqlite3_free_table(ppszResult);
+    }
+    LEAVE_RW_WRITER_LOCK;
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 //Delete the record over 'n' entries
 DWORD
 SrvDeleteIfCountExceeds(
@@ -873,7 +988,13 @@ SrvDeleteIfCountExceeds(
 
     ENTER_RW_WRITER_LOCK;
 
-    sprintf(szQuery, DB_QUERY_DELETE_AT_LIMIT, dwOlderThan);
+    // Delete 10 extra records so we only need to trim on 1/10 of the runs.
+    if (dwOlderThan > 10)
+    {
+        dwOlderThan -= 10;
+    }
+
+    sprintf(szQuery, DB_QUERY_DELETE_AT_LIMIT, (unsigned long)dwOlderThan);
 
     dwError = SrvQueryEventLog(hDB, szQuery, &nRows, &nCols, &ppszResult);
     BAIL_ON_EVT_ERROR(dwError);

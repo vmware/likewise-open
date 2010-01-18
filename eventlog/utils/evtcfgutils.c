@@ -85,22 +85,23 @@ EVTParseDiskUsage(
     else if(*pszUnitCode == 'k' || *pszUnitCode == 'K') 
     {
         dwUnitMultiplier = EVT_BYTES_IN_KB;
+        *pszUnitCode = ' ';
     }
     else if(*pszUnitCode == 'm' || *pszUnitCode == 'M') 
     {
         dwUnitMultiplier = EVT_BYTES_IN_MB;
+        *pszUnitCode = ' ';
     }
     else if(*pszUnitCode == 'g' || *pszUnitCode == 'G') 
     {
         dwUnitMultiplier = EVT_BYTES_IN_GB;
+        *pszUnitCode = ' ';
     }
     else 
     {
         dwError = EVT_ERROR_INVALID_PARAMETER;
         BAIL_ON_EVT_ERROR(dwError);
-    }	
-
-    *pszUnitCode = ' ';
+    }
 
     EVTStripWhitespace(pszDiskUsageLocal, TRUE, TRUE);
     
