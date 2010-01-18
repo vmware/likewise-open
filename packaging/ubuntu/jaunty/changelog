@@ -1,3 +1,9 @@
+likewise-open (5.4.0.39949-5~ppa2~jaunty1) jaunty; urgency=low
+
+  * rules: Fix path to uuencoded krb5 and openldap tgz files
+
+ -- Gerald Carter <jerry@plainjoe.org>  Mon, 18 Jan 2010 07:46:31 -0600
+
 likewise-open (5.4.0.39949-5~ppa1~jaunty1) jaunty; urgency=low
 
   - Setting distro suffix

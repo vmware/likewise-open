@@ -52,8 +52,8 @@ build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-	uudecode -o - debian/patches/krb5.tgz.uu | tar zxf -
-	uudecode -o - debian/patches/openldap.tgz.uu | tar zxf -
+	uudecode -o - debian/krb5.tgz.uu | tar zxf -
+	uudecode -o - debian/openldap.tgz.uu | tar zxf -
 
 	for comp in libunistr krb5 openldap lwbase lwmapsecurity lwmsg centutils libtdb \
 	    lwreg pstore lwadvapi netlogon lwio lwsm libkeytab \
