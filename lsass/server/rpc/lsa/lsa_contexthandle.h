@@ -58,6 +58,7 @@ typedef struct lsa_generic_context
 {
     enum LsaContextType  Type;
     LONG                 refcount;
+    BOOLEAN              bCleanClose;
 
 } LSA_GENERIC_CONTEXT, *PLSA_GENERIC_CONTEXT;
 
@@ -66,6 +67,7 @@ typedef struct lsa_policy_context
 {
     enum LsaContextType  Type;
     LONG                 refcount;
+    BOOLEAN              bCleanClose;
 
     PACCESS_TOKEN        pUserToken;
     PBYTE                pSessionKey;
@@ -74,8 +76,16 @@ typedef struct lsa_policy_context
 
     handle_t             hSamrBinding;
     CONNECT_HANDLE       hConn;
+    DOMAIN_HANDLE        hBuiltinDomain;
+    DOMAIN_HANDLE        hLocalDomain;
+    PSID                 pLocalDomainSid;
+    PWSTR                pwszLocalDomainName;
+    PWSTR                pwszDomainName;
+    PSID                 pDomainSid;
+    PWSTR                pwszDcName;
+
     PLSA_HASH_TABLE      pDomains;
-    DWORD                dwSamrDomainsNum;
+    DWORD                dwDomainsNum;
 
 } POLICY_CONTEXT, *PPOLICY_CONTEXT;
 
