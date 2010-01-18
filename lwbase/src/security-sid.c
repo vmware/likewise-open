@@ -980,6 +980,15 @@ RtlCreateWellKnownSid(
             sidBuffer.Sid.SubAuthority[0] = SECURITY_LOCAL_SERVICE_RID;
             break;
         }
+        case WinBuiltinDomainSid:
+        {
+            // S-1-5-32
+            SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_NT_AUTHORITY };
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            GOTO_CLEANUP_ON_STATUS(status);
+            sidBuffer.Sid.SubAuthority[0] = SECURITY_BUILTIN_DOMAIN_RID;
+            break;
+        }
         case WinBuiltinAdministratorsSid:
         {
             // S-1-5-32-544
