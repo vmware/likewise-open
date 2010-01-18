@@ -40,19 +40,20 @@ NetrCleanStubDomainTrustList(
     NetrDomainTrustList *pTrustList
     )
 {
+    RPCSTATUS rpcStatus = 0;
     UINT32 i = 0;
 
     for (i = 0; i < pTrustList->count; i++) {
         NetrDomainTrust *pTrust = &pTrustList->array[i];
 
-        SAFE_FREE(pTrust->netbios_name);
-        SAFE_FREE(pTrust->dns_name);
+        rpc_sm_client_free(pTrust->netbios_name, &rpcStatus);
+        rpc_sm_client_free(pTrust->dns_name, &rpcStatus);
         if (pTrust->sid) {
-            MsRpcFreeSid(pTrust->sid);
+            rpc_sm_client_free(pTrust->sid, &rpcStatus);
         }
     }
 
-    free(pTrustList->array);
+    rpc_sm_client_free(pTrustList->array, &rpcStatus);
 }
 
 
@@ -62,22 +63,23 @@ NetrCleanSamBaseInfo(
     NetrSamBaseInfo *pInfo
     )
 {
-    FreeUnicodeStringEx(&pInfo->account_name);
-    FreeUnicodeStringEx(&pInfo->full_name);
-    FreeUnicodeStringEx(&pInfo->logon_script);
-    FreeUnicodeStringEx(&pInfo->profile_path);
-    FreeUnicodeStringEx(&pInfo->home_directory);
-    FreeUnicodeStringEx(&pInfo->home_drive);
+    RPCSTATUS rpcStatus = 0;
+
+    rpc_sm_client_free(pInfo->account_name.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->full_name.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->logon_script.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->profile_path.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->home_directory.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->home_drive.string, &rpcStatus);
 
     pInfo->groups.count = 0;
-    SAFE_FREE(pInfo->groups.rids);
+    rpc_sm_client_free(pInfo->groups.rids, &rpcStatus);
 
-    FreeUnicodeStringEx(&pInfo->logon_server);
-    FreeUnicodeStringEx(&pInfo->domain);
+    rpc_sm_client_free(pInfo->logon_server.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->domain.string, &rpcStatus);
 
     if (pInfo->domain_sid) {
-        MsRpcFreeSid(pInfo->domain_sid);
-        pInfo->domain_sid = NULL;
+        rpc_sm_client_free(pInfo->domain_sid, &rpcStatus);
     }
 }
 
@@ -98,10 +100,12 @@ NetrFreeSamInfo2(
     NetrSamInfo2 *pInfo
     )
 {
+    RPCSTATUS rpcStatus = 0;
+
     if (pInfo == NULL) return;
 
     NetrCleanSamInfo2(pInfo);
-    free(pInfo);
+    rpc_sm_client_free(pInfo, &rpcStatus);
 }
 
 
@@ -112,12 +116,12 @@ NetrCleanSidAttr(
     UINT32 Count
     )
 {
+    RPCSTATUS rpcStatus = 0;
     UINT32 i = 0;
 
     for (i = 0; pSidAttr && i < Count; i++) {
         if (pSidAttr[i].sid) {
-            MsRpcFreeSid(pSidAttr[i].sid);
-            pSidAttr[i].sid = NULL;
+            rpc_sm_client_free(pSidAttr[i].sid, &rpcStatus);
         }
     }
 }
@@ -129,8 +133,10 @@ NetrFreeSidAttr(
     NetrSidAttr *pSidAttr,
     UINT32 Count)
 {
+    RPCSTATUS rpcStatus = 0;
+
     NetrCleanSidAttr(pSidAttr, Count);
-    free(pSidAttr);
+    rpc_sm_client_free(pSidAttr, &rpcStatus);
 }
 
 
@@ -155,10 +161,12 @@ NetrFreeSamInfo3(
     NetrSamInfo3 *pInfo
     )
 {
+    RPCSTATUS rpcStatus = 0;
+
     if (pInfo == NULL) return;
 
     NetrCleanSamInfo3(pInfo);
-    free(pInfo);
+    rpc_sm_client_free(pInfo, &rpcStatus);
 }
 
 
@@ -168,6 +176,8 @@ NetrCleanSamInfo6(
     NetrSamInfo6 *pInfo
     )
 {
+    RPCSTATUS rpcStatus = 0;
+
     NetrCleanSamBaseInfo(&pInfo->base);
 
     if (pInfo->sids) {
@@ -175,8 +185,8 @@ NetrCleanSamInfo6(
                         pInfo->sidcount);
     }
 
-    FreeUnicodeString(&pInfo->forest);
-    FreeUnicodeString(&pInfo->principal);
+    rpc_sm_client_free(&pInfo->forest.string, &rpcStatus);
+    rpc_sm_client_free(&pInfo->principal.string, &rpcStatus);
 }
 
 
@@ -186,10 +196,12 @@ NetrFreeSamInfo6(
     NetrSamInfo6 *pInfo
     )
 {
+    RPCSTATUS rpcStatus = 0;
+
     if (pInfo == NULL) return;
 
     NetrCleanSamInfo6(pInfo);
-    free(pInfo);
+    rpc_sm_client_free(pInfo, &rpcStatus);
 }
 
 
@@ -199,16 +211,18 @@ NetrCleanPacInfo(
     NetrPacInfo *pInfo
     )
 {
-    SAFE_FREE(pInfo->pac);
-    SAFE_FREE(pInfo->auth);
+    RPCSTATUS rpcStatus = 0;
 
-    FreeUnicodeString(&pInfo->logon_domain);
-    FreeUnicodeString(&pInfo->logon_server);
-    FreeUnicodeString(&pInfo->principal_name);
-    FreeUnicodeString(&pInfo->unknown1);
-    FreeUnicodeString(&pInfo->unknown2);
-    FreeUnicodeString(&pInfo->unknown3);
-    FreeUnicodeString(&pInfo->unknown4);
+    rpc_sm_client_free(pInfo->pac, &rpcStatus);
+    rpc_sm_client_free(pInfo->auth, &rpcStatus);
+
+    rpc_sm_client_free(pInfo->logon_domain.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->logon_server.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->principal_name.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->unknown1.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->unknown2.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->unknown3.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->unknown4.string, &rpcStatus);
 }
 
 
@@ -218,10 +232,12 @@ NetrFreePacInfo(
     NetrPacInfo *pInfo
     )
 {
+    RPCSTATUS rpcStatus = 0;
+
     if (pInfo == NULL) return;
 
     NetrCleanPacInfo(pInfo);
-    free(pInfo);
+    rpc_sm_client_free(pInfo, &rpcStatus);
 }
 
 
@@ -259,20 +275,21 @@ NetrCleanDomainTrustInfo(
     NetrDomainTrustInfo *pInfo
     )
 {
+    RPCSTATUS rpcStatus = 0;
     UINT32 i = 0;
 
     if (pInfo == NULL) return;
 
-    FreeUnicodeString(&pInfo->domain_name);
-    FreeUnicodeString(&pInfo->full_domain_name);
-    FreeUnicodeString(&pInfo->forest);
-    MsRpcFreeSid(pInfo->sid);
+    rpc_sm_client_free(pInfo->domain_name.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->full_domain_name.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->forest.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->sid, &rpcStatus);
 
     for (i = 0;
          i < sizeof(pInfo->unknown1)/sizeof(pInfo->unknown1[0]);
          i++)
     {
-        FreeUnicodeString(&pInfo->unknown1[i]);
+        rpc_sm_client_free(pInfo->unknown1[i].string, &rpcStatus);
     }
 }
 
@@ -283,6 +300,7 @@ NetrFreeDomainInfo1(
     NetrDomainInfo1 *pInfo
     )
 {
+    RPCSTATUS rpcStatus = 0;
     UINT32 i = 0;
 
     if (pInfo == NULL) return;
@@ -293,8 +311,8 @@ NetrFreeDomainInfo1(
         NetrCleanDomainTrustInfo(&pInfo->trusts[i]);
     }
 
-    free(pInfo->trusts);
-    free(pInfo);
+    rpc_sm_client_free(pInfo->trusts, &rpcStatus);
+    rpc_sm_client_free(pInfo, &rpcStatus);
 }
 
 
@@ -322,12 +340,14 @@ NetrCleanStubDcNameInfo(
     DsrDcNameInfo *pInfo
     )
 {
-    SAFE_FREE(pInfo->dc_name);
-    SAFE_FREE(pInfo->dc_address);
-    SAFE_FREE(pInfo->domain_name);
-    SAFE_FREE(pInfo->forest_name);
-    SAFE_FREE(pInfo->dc_site_name);
-    SAFE_FREE(pInfo->cli_site_name);
+    RPCSTATUS rpcStatus = 0;
+
+    rpc_sm_client_free(pInfo->dc_name, &rpcStatus);
+    rpc_sm_client_free(pInfo->dc_address, &rpcStatus);
+    rpc_sm_client_free(pInfo->domain_name, &rpcStatus);
+    rpc_sm_client_free(pInfo->forest_name, &rpcStatus);
+    rpc_sm_client_free(pInfo->dc_site_name, &rpcStatus);
+    rpc_sm_client_free(pInfo->cli_site_name, &rpcStatus);
 }
 
 
@@ -336,10 +356,12 @@ NetrFreeStubDcNameInfo(
     DsrDcNameInfo *pInfo
     )
 {
+    RPCSTATUS rpcStatus = 0;
+
     if (pInfo == NULL) return;
 
     NetrCleanStubDcNameInfo(pInfo);
-    SAFE_FREE(pInfo);
+    rpc_sm_client_free(pInfo, &rpcStatus);
 }
 
 

@@ -38,11 +38,13 @@ DsrCleanStubDsRoleInfo(
     UINT16 uiLevel
     )
 {
+    RPCSTATUS rpcStatus = 0;
+
     switch (uiLevel) {
     case DS_ROLE_BASIC_INFORMATION:
-        SAFE_FREE(pInfo->basic.pwszDomain);
-        SAFE_FREE(pInfo->basic.pwszDnsDomain);
-        SAFE_FREE(pInfo->basic.pwszForest);
+        rpc_sm_client_free(pInfo->basic.pwszDomain, &rpcStatus);
+        rpc_sm_client_free(pInfo->basic.pwszDnsDomain, &rpcStatus);
+        rpc_sm_client_free(pInfo->basic.pwszForest, &rpcStatus);
         break;
 
     case DS_ROLE_UPGRADE_STATUS:
@@ -59,8 +61,10 @@ DsrFreeStubDsRoleInfo(
     UINT16 uiLevel
     )
 {
+    RPCSTATUS rpcStatus = 0;
+
     DsrCleanStubDsRoleInfo(pInfo, uiLevel);
-    SAFE_FREE(pInfo);
+    rpc_sm_client_free(pInfo, &rpcStatus);
 }
 
 
