@@ -59,6 +59,8 @@ LsaSrvClose(
 
     pContext = (PLSA_GENERIC_CONTEXT)hIn;
 
+    pContext->bCleanClose = TRUE;
+
     switch (pContext->Type) {
     case LsaContextPolicy:
         POLICY_HANDLE_rundown(hIn);
