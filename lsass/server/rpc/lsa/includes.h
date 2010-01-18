@@ -55,6 +55,7 @@
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/samr.h>
 #include <lwrpc/lsa.h>
+#include <lwrpc/netlogon.h>
 #include <lwio/lwio.h>
 #include <lwnet.h>
 #include <lwps/lwps.h>
@@ -69,14 +70,16 @@
 #include <directory.h>
 #include <samr_srv.h>
 
-#include "structs.h"
 #include "lsa_cfg.h"
 #include "lsa_srv.h"
 #include "lsadefs.h"
+#include "structs.h"
 #include "lsa_contexthandle.h"
 #include "lsa_accesstoken.h"
 #include "lsa_security.h"
 #include "lsa_memory.h"
+#include "lsa_accounts.h"
+#include "lsa_domaincache.h"
 #include "lsa.h"
 #include "lsa_h.h"
 
