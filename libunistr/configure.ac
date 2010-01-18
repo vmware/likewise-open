@@ -9,6 +9,9 @@ AC_CONFIG_HEADER([config.h])
 
 AC_C_BIGENDIAN
 
+AC_DEFINE([_REENTRANT], [1], [Use the thread specific errno])
+AC_DEFINE([_THREAD_SAFE], [1], [Use the thread specific errno])
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
