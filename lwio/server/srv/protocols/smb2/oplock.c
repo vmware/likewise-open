@@ -254,7 +254,15 @@ SrvProcessOplock_SMB_V2(
 
                 case SMB_OPLOCK_LEVEL_II:
 
-                    /* We're done.  No Ack needed for level2 breaks */
+                    /* Level2 can only break to none. No Ack needed.
+                       Remove any remaining oplock state */
+
+                    pOplockState = (PSRV_OPLOCK_STATE_SMB_V2)SrvFile2RemoveOplockState(pFile);
+                    if (pOplockState)
+                    {
+                        SrvReleaseOplockState_SMB_V2(pOplockState);
+                        pOplockState = NULL;
+                    }
 
                     ntStatus = STATUS_SUCCESS;
 
@@ -362,6 +370,25 @@ SrvProcessOplockBreak_SMB_V2(
     if (pOplockState)
     {
         UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+
+        // Release the timer on the break ack now
+
+        if (pOplockState->pTimerRequest)
+        {
+            PSRV_OPLOCK_STATE_SMB_V2 pOplockState2 = NULL;
+
+            SrvTimerCancelRequest(
+                pOplockState->pTimerRequest,
+                (PVOID*)&pOplockState2);
+
+            if (pOplockState2)
+            {
+                SrvReleaseOplockState_SMB_V2(pOplockState2);
+            }
+
+            SrvTimerRelease(pOplockState->pTimerRequest);
+            pOplockState->pTimerRequest = NULL;
+        }
 
         ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState, FALSE);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1039,3 +1066,13 @@ SrvReleaseOplockStateAsync_SMB_V2(
         pOplockState->pAcb = NULL;
     }
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
