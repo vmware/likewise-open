@@ -216,6 +216,8 @@ SrvFinderBuildSearchPath(
         else if ((*pwszCursor == wszStar[0]) ||
                  (*pwszCursor == wszQuestionMark[0]))
         {
+            bPathHasWildCards = TRUE;
+
             break;
         }
 
