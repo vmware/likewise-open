@@ -238,3 +238,55 @@ cleanup:
 
     return status;
 }
+
+NTSTATUS
+IoSecurityCreateSecurityContextFromGssContext(
+    OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
+    IN LW_MAP_SECURITY_GSS_CONTEXT hGssContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PLW_MAP_SECURITY_CONTEXT context = NULL;
+    PACCESS_TOKEN accessToken = NULL;
+    PIO_CREATE_SECURITY_CONTEXT securityContext = NULL;
+    TOKEN_UNIX tokenUnix = { 0 };
+
+    // do not free this context
+    status = IopGetMapSecurityContext(&context);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LwMapSecurityCreateAccessTokenFromGssContext(
+                    context,
+                    &accessToken,
+                    hGssContext);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    // TODO-Do we want to keep process information as the
+    // current process or just take TOKEN_UNIX info?
+
+    status = RtlQueryAccessTokenUnixInformation(
+                    accessToken,
+                    &tokenUnix);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = IopSecurityCreateSecurityContext(
+                    &securityContext,
+                    tokenUnix.Uid,
+                    tokenUnix.Gid,
+                    accessToken,
+                    NULL);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        IoSecurityDereferenceSecurityContext(&securityContext);
+    }
+
+    RtlReleaseAccessToken(&accessToken);
+
+    *SecurityContext = securityContext;
+
+    return status;
+}
+
