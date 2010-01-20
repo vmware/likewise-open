@@ -282,4 +282,16 @@ ntlm_gssspi_set_cred_option(
     const gss_buffer_t Buffer
     );
 
+OM_uint32
+ntlm_gss_get_name_attribute(
+    OM_uint32* pMinorStatus,
+    gss_name_t pName,
+    gss_buffer_t pAttr,
+    int* pAuthenticate,
+    int* pComplete,
+    gss_buffer_t pValue,
+    gss_buffer_t pDisplayValue,
+    int* pMore
+    );
+
 #endif /* __GSSNTLM_H__ */

@@ -53,6 +53,7 @@
 #include <assert.h>
 #include <lwsecurityidentifier.h>
 #include <lsautils.h>
+#include <errno.h>
 
 UINT32 ntlm_gss_duplicate_oid(
     UINT32 MinorStatus,
@@ -444,19 +445,102 @@ typedef struct _GSS_MECH_CONFIG
         );
 
     OM_uint32
-    (*gss_inquire_context2)(
-        OM_uint32*,
-        gss_ctx_id_t,
-        gss_name_t*,
-        gss_name_t*,
-        OM_uint32*,
-        gss_OID*,
-        OM_uint32*,
-        PINT,
-        PINT,
+    (*gss_acquire_cred_impersonate_name)(
+        OM_uint32 *,
+        const gss_cred_id_t,
+        const gss_name_t,
+        OM_uint32,
+        const gss_OID_set,
+        gss_cred_usage_t,
+        gss_cred_id_t *,
+        gss_OID_set *,
+        OM_uint32 *
+        );
+
+    OM_uint32
+    (*gss_add_cred_impersonate_name)(
+        OM_uint32 *,
+        gss_cred_id_t,
+        const gss_cred_id_t,
+        const gss_name_t,
+        const gss_OID,
+        gss_cred_usage_t,
+        OM_uint32,
+        OM_uint32,
+        gss_cred_id_t *,
+        gss_OID_set *,
+        OM_uint32 *,
+        OM_uint32 *
+        );
+
+    OM_uint32
+    (*gss_display_name_ext)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_OID,
         gss_buffer_t
         );
 
+    OM_uint32
+    (*gss_inquire_name)(
+        OM_uint32 *,
+        gss_name_t,
+        int *,
+        gss_OID *,
+        gss_buffer_set_t *
+        );
+
+    OM_uint32
+    (*gss_get_name_attribute)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_buffer_t,
+        int *,
+        int *,
+        gss_buffer_t,
+        gss_buffer_t,
+        int *
+        );
+
+    OM_uint32
+    (*gss_set_name_attribute)(
+        OM_uint32 *,
+        gss_name_t,
+        int,
+        gss_buffer_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_delete_name_attribute)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_export_name_composite)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_map_name_to_any)(
+        OM_uint32 *,
+        gss_name_t,
+        int,
+        gss_buffer_t,
+        gss_any_t *
+        );
+
+    OM_uint32
+    (*gss_release_any_name_mapping)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_buffer_t,
+        gss_any_t *
+        );
 } GSS_MECH_CONFIG, *PGSS_MECH_CONFIG;
 
 typedef struct _NTLM_GSS_NAME
@@ -464,6 +548,7 @@ typedef struct _NTLM_GSS_NAME
     // This always points to a static global structure
     gss_OID NameType;
     PSTR pszName;
+    NTLM_CONTEXT_HANDLE hContext;
 } NTLM_GSS_NAME, *PNTLM_GSS_NAME;
 
 typedef struct _NTLM_GSS_CREDS
@@ -533,6 +618,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gss_wrap_iov_length,
     NULL, //ntlm_gss_complete_auth_token,
     NULL, //ntlm_gss_inquire_context2
+    .gss_get_name_attribute = ntlm_gss_get_name_attribute
 };
 
 //
@@ -1990,6 +2076,7 @@ ntlm_gss_inquire_context(
         BAIL_ON_LSA_ERROR(MinorStatus);
 
         pUserName->NameType = GSS_C_NT_USER_NAME;
+        pUserName->hContext = NtlmCtxtHandle;
 
         MinorStatus = LwAllocateString(
             Names.pUserName,
@@ -2120,6 +2207,80 @@ error:
     goto cleanup;
 }
 
+OM_uint32
+ntlm_gss_get_name_attribute(
+    OM_uint32* pMinorStatus,
+    gss_name_t pName,
+    gss_buffer_t pAttr,
+    int* pAuthenticate,
+    int* pComplete,
+    gss_buffer_t pValue,
+    gss_buffer_t pDisplayValue,
+    int* pMore
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    SecPkgContext_PacLogonInfo LogonInfo = {0};
+    PNTLM_GSS_NAME pUserName = (PNTLM_GSS_NAME) pName;
+
+    if (pMore && *pMore != -1)
+    {
+        MinorStatus = ERROR_NO_MORE_ITEMS;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    if (!strncmp("urn:mspac:logon-info", (char*) pAttr->value, pAttr->length))
+    {
+        if (pValue)
+        {
+            MinorStatus = NtlmClientQueryContextAttributes(
+                &pUserName->hContext,
+                SECPKG_ATTR_PAC_LOGON_INFO,
+                &LogonInfo);
+            BAIL_ON_LSA_ERROR(MinorStatus);
+
+            pValue->value = LogonInfo.pLogonInfo;
+            pValue->length = LogonInfo.LogonInfoLength;
+        }
+
+        if (pAuthenticate)
+        {
+            *pAuthenticate = 1;
+        }
+
+        if (pComplete)
+        {
+            *pComplete = 1;
+        }
+
+        if (pMore)
+        {
+            *pMore = 0;
+        }
+    }
+    else
+    {
+        MinorStatus = LW_ERROR_NO_SUCH_ATTRIBUTE;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+cleanup:
+
+    *pMinorStatus = MinorStatus;
+
+    return MajorStatus;
+
+error:
+
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+
+    goto cleanup;
+}
+
 PGSS_MECH_CONFIG
 gss_mech_initialize(void)
 {
@@ -2208,8 +2369,6 @@ ntlm_gss_release_oid(
 
     return GSS_S_FAILURE;
 }
-
-
 
 
 /*
