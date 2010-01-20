@@ -75,6 +75,19 @@ SrvSession2Free(
     PLWIO_SRV_SESSION_2 pSession
     );
 
+static
+int
+SrvSession2AsyncStateCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    );
+
+static
+VOID
+SrvSession2AsyncStateRelease(
+    PVOID pAsyncState
+    );
+
 NTSTATUS
 SrvSession2Create(
     ULONG64              ullUid,
@@ -107,6 +120,13 @@ SrvSession2Create(
                     NULL,
                     &SrvSession2TreeRelease,
                     &pSession->pTreeCollection);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlRBTreeCreate(
+                    &SrvSession2AsyncStateCompare,
+                    NULL,
+                    &SrvSession2AsyncStateRelease,
+                    &pSession->pAsyncStateCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFinderCreateRepository(&pSession->hFinderRepository);
@@ -262,6 +282,109 @@ error:
     }
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvSession2AddAsyncState(
+    PLWIO_SRV_SESSION_2 pSession,
+    PLWIO_ASYNC_STATE   pAsyncState
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    PLWIO_ASYNC_STATE pAsyncState1 = NULL;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    ntStatus = LwRtlRBTreeFind(
+                    pSession->pAsyncStateCollection,
+                    &pAsyncState->ullAsyncId,
+                    (PVOID*)&pAsyncState1);
+    switch (ntStatus)
+    {
+        case STATUS_NOT_FOUND:
+
+            ntStatus = LwRtlRBTreeAdd(
+                            pSession->pAsyncStateCollection,
+                            &pAsyncState->ullAsyncId,
+                            pAsyncState);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvAsyncStateAcquire(pAsyncState);
+
+            break;
+
+        case STATUS_SUCCESS:
+
+            ntStatus = STATUS_DUPLICATE_OBJECTID;
+
+            break;
+
+        default:
+
+            ;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+error:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvSession2FindAsyncState(
+    PLWIO_SRV_SESSION_2 pSession,
+    ULONG64             ullAsyncId,
+    PLWIO_ASYNC_STATE*  ppAsyncState
+    )
+{
+    NTSTATUS          ntStatus = STATUS_SUCCESS;
+    PLWIO_ASYNC_STATE pAsyncState = NULL;
+    BOOLEAN           bInLock     = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    ntStatus = LwRtlRBTreeFind(
+                    pSession->pAsyncStateCollection,
+                    &ullAsyncId,
+                    (PVOID*)&pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppAsyncState = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvSession2RemoveAsyncState(
+    PLWIO_SRV_SESSION_2 pSession,
+    ULONG64             ullAsyncId
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    ntStatus = LwRtlRBTreeRemove(
+                    pSession->pAsyncStateCollection,
+                    &ullAsyncId);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
 }
 
 NTSTATUS
@@ -446,7 +569,45 @@ SrvSession2Free(
         IoSecurityDereferenceSecurityContext(&pSession->pIoSecurityContext);
     }
 
+    if (pSession->pAsyncStateCollection)
+    {
+        LwRtlRBTreeFree(pSession->pAsyncStateCollection);
+    }
+
     SrvFreeMemory(pSession);
+}
+
+static
+int
+SrvSession2AsyncStateCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    )
+{
+    PULONG64 pAsyncId1 = (PULONG64)pKey1;
+    PULONG64 pAsyncId2 = (PULONG64)pKey2;
+
+    if (*pAsyncId1 > *pAsyncId2)
+    {
+        return 1;
+    }
+    else if (*pAsyncId1 < *pAsyncId2)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+static
+VOID
+SrvSession2AsyncStateRelease(
+    PVOID pAsyncState
+    )
+{
+    SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
 }
 
 

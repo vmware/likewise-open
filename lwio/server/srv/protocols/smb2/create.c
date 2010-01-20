@@ -106,6 +106,12 @@ SrvReleaseCreateStateHandle_SMB_V2(
     );
 
 static
+PSRV_CREATE_STATE_SMB_V2
+SrvAcquireCreateState_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    );
+
+static
 VOID
 SrvReleaseCreateState_SMB_V2(
     PSRV_CREATE_STATE_SMB_V2 pCreateState
@@ -150,6 +156,8 @@ SrvProcessCreate_SMB_V2(
     PLWIO_SRV_SESSION_2        pSession = NULL;
     PLWIO_SRV_TREE_2           pTree = NULL;
     PSRV_CREATE_STATE_SMB_V2   pCreateState = NULL;
+    PLWIO_ASYNC_STATE          pAsyncState  = NULL;
+    BOOLEAN                    bUnregisterAsync = FALSE;
     PSRV_CREATE_CONTEXT        pCreateContexts = NULL;
     ULONG                      ulNumContexts = 0;
     BOOLEAN                    bInLock = FALSE;
@@ -214,6 +222,28 @@ SrvProcessCreate_SMB_V2(
         pCtxSmb2->hState = pCreateState;
         InterlockedIncrement(&pCreateState->refCount);
         pCtxSmb2->pfnStateRelease = &SrvReleaseCreateStateHandle_SMB_V2;
+
+        ntStatus = SrvAsyncBuildUniqueId(
+                        pExecContext,
+                        &pCreateState->ullAsyncId);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvAsyncStateCreate(
+                     pCreateState->ullAsyncId,
+                     COM2_CREATE,
+                     pCreateState,
+                     &SrvReleaseCreateStateHandle_SMB_V2,
+                     &pAsyncState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvAcquireCreateState_SMB_V2(pCreateState);
+
+        ntStatus = SrvSession2AddAsyncState(
+                     pCtxSmb2->pSession,
+                     pAsyncState);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        bUnregisterAsync = TRUE;
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
@@ -243,6 +273,43 @@ SrvProcessCreate_SMB_V2(
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
                             pCreateState->pEcpList);
+            switch (ntStatus)
+            {
+                case STATUS_PENDING:
+                {
+                    // TODO: Might have to cancel the entire operation
+                    //
+                    NTSTATUS ntStatus2 = SrvBuildInterimResponse_SMB_V2(
+                                                pExecContext,
+                                                pCreateState->ullAsyncId);
+                    if (ntStatus2 != STATUS_SUCCESS)
+                    {
+                        LWIO_LOG_ERROR(
+                                "Failed to create interim response [code:0x%8x]",
+                                ntStatus2);
+                    }
+
+                    bUnregisterAsync = FALSE;
+                }
+                    break;
+
+                case STATUS_SUCCESS:
+
+                    // completed synchronously; remove asynchronous state
+                    //
+                    ntStatus = SrvSession2RemoveAsyncState(
+                                    pCtxSmb2->pSession,
+                                    pCreateState->ullAsyncId);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    pCreateState->ullAsyncId = 0LL;
+
+                    bUnregisterAsync = FALSE;
+
+                default:
+
+                    break;
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
@@ -318,6 +385,14 @@ SrvProcessCreate_SMB_V2(
 
         case SRV_CREATE_STAGE_SMB_V2_DONE:
 
+            if (pCreateState->ullAsyncId)
+            {
+                ntStatus = SrvSession2RemoveAsyncState(
+                                pCtxSmb2->pSession,
+                                pCreateState->ullAsyncId);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
             pCreateState->bRemoveFileFromTree = FALSE;
 
             pCtxSmb2->pFile = SrvFile2Acquire(pCreateState->pFile);
@@ -341,7 +416,19 @@ cleanup:
     {
         LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
 
+        if (bUnregisterAsync)
+        {
+            SrvSession2RemoveAsyncState(
+                    pCtxSmb2->pSession,
+                    pCreateState->ullAsyncId);
+        }
+
         SrvReleaseCreateState_SMB_V2(pCreateState);
+    }
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
     }
 
     SRV_SAFE_FREE_MEMORY(pCreateContexts);
@@ -369,6 +456,69 @@ error:
 
             break;
     }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvCancelCreate_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg         = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PLWIO_SRV_SESSION_2        pSession     = NULL;
+    BOOLEAN                    bInLock      = FALSE;
+    PLWIO_ASYNC_STATE          pAsyncState  = NULL;
+    ULONG64                    ullAsyncId   = 0LL;
+    PSRV_CREATE_STATE_SMB_V2   pCreateState = NULL;
+
+    ntStatus = SrvConnection2FindSession_SMB_V2(
+                            pCtxSmb2,
+                            pConnection,
+                            pSmbRequest->pHeader->ullSessionId,
+                            &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSession2FindAsyncState(pSession, ullAsyncId, &pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pAsyncState->hAsyncState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
+
+    if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
+    {
+        IoCancelAsyncCancelContext(pCreateState->pAcb->AsyncCancelContext);
+    }
+
+cleanup:
+
+    if (pCreateState)
+    {
+        LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
+    }
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
+    }
+
+    if (pSession)
+    {
+        SrvSession2Release(pSession);
+    }
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
@@ -864,6 +1014,17 @@ SrvReleaseCreateStateHandle_SMB_V2(
 }
 
 static
+PSRV_CREATE_STATE_SMB_V2
+SrvAcquireCreateState_SMB_V2(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    )
+{
+    InterlockedIncrement(&pCreateState->refCount);
+
+    return pCreateState;
+}
+
+static
 VOID
 SrvReleaseCreateState_SMB_V2(
     PSRV_CREATE_STATE_SMB_V2 pCreateState
@@ -973,14 +1134,8 @@ SrvBuildCreateResponse_SMB_V2(
     ULONG ulOffset         = 0;
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
-    ULONG64 ullAsyncId     = 0LL;
 
     pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
-
-    ntStatus = SrvGetExecContextAsyncId(
-                    pExecContext,
-                    &ullAsyncId);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
@@ -988,12 +1143,12 @@ SrvBuildCreateResponse_SMB_V2(
                     ulBytesAvailable,
                     COM2_CREATE,
                     pSmbRequest->pHeader->usEpoch,
-                    (ullAsyncId ? 0 : pSmbRequest->pHeader->usCredits),
+                    (pCreateState->ullAsyncId ? 0 : pSmbRequest->pHeader->usCredits),
                     pSmbRequest->pHeader->ulPid,
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
                     pCtxSmb2->pSession->ullUid,
-                    ullAsyncId,
+                    pCreateState->ullAsyncId,
                     STATUS_SUCCESS,
                     TRUE,
                     pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
@@ -1063,9 +1218,6 @@ SrvBuildCreateResponse_SMB_V2(
                                 pCreateState->pFileStdInfo->AllocationSize;
     pResponseHeader->ullEndOfFile      = pCreateState->pFileStdInfo->EndOfFile;
     pResponseHeader->usLength          = ulBytesUsed + 1;
-
-    // TODO:
-    iContext = pCreateState->ulNumContexts;
 
     for (; iContext < pCreateState->ulNumContexts; iContext++)
     {

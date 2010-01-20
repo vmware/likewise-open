@@ -244,6 +244,36 @@ error:
 }
 
 NTSTATUS
+SMB2GetAsyncId(
+    PSMB2_HEADER pHeader,
+    PULONG64     pullAsyncId
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG64  ullAsyncId = 0LL;
+
+    if (!(pHeader->ulFlags & SMB2_FLAGS_ASYNC_COMMAND))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    memcpy((PBYTE)&ullAsyncId, (PBYTE)&pHeader->ulPid, sizeof(ullAsyncId));
+
+    *pullAsyncId = ullAsyncId;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pullAsyncId = 0LL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SMB2UnmarshalNegotiateRequest(
     PSRV_MESSAGE_SMB_V2             pRequest,
     PSMB2_NEGOTIATE_REQUEST_HEADER* ppHeader,
@@ -1926,6 +1956,135 @@ SMB2MarshalFindResponse(
     *pulDataOffset = ulDataOffset;
     *ppHeader = pResponseHeader;
     *pulBytesUsed = ulBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulDataOffset = 0;
+    *ppHeader = NULL;
+    *pulBytesUsed = 0;
+
+    if (ulBytesUsed)
+    {
+        memset(pOutBufferRef, 0, ulBytesUsed);
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2UnmarshalNotifyRequest(
+    IN     PSRV_MESSAGE_SMB_V2         pSmbRequest,
+    IN OUT PSMB2_NOTIFY_CHANGE_HEADER* ppNotifyRequestHeader
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pDataCursor = pSmbRequest->pBuffer + pSmbRequest->ulHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->ulHeaderSize;
+    PSMB2_NOTIFY_CHANGE_HEADER pNotifyRequestHeader = NULL; // Do not free
+
+    if (ulBytesAvailable < sizeof(SMB2_NOTIFY_CHANGE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pNotifyRequestHeader = (PSMB2_NOTIFY_CHANGE_HEADER)pDataCursor;
+
+    if (pNotifyRequestHeader->usLength != sizeof(SMB2_NOTIFY_CHANGE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppNotifyRequestHeader = pNotifyRequestHeader;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppNotifyRequestHeader = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SMB2MarshalNotifyResponse(
+    IN OUT PBYTE                         pBuffer,
+    IN     ULONG                         ulOffset,
+    IN     ULONG                         ulBytesAvailable,
+    IN OUT PBYTE                         pData,
+    IN     ULONG                         ulDataLength,
+    IN OUT PULONG                        pulDataOffset,
+    IN OUT PSMB2_NOTIFY_RESPONSE_HEADER* ppHeader,
+    IN OUT PULONG                        pulBytesUsed
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSMB2_NOTIFY_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
+    ULONG  ulBytesUsed = 0;
+    ULONG  ulDataOffset = ulOffset;
+    PBYTE  pOutBufferRef = pBuffer;
+    PBYTE  pDataCursor = pBuffer;
+
+    if (ulBytesAvailable < sizeof(SMB2_NOTIFY_RESPONSE_HEADER))
+    {
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pResponseHeader = (PSMB2_NOTIFY_RESPONSE_HEADER)pDataCursor;
+    ulBytesUsed      += sizeof(SMB2_NOTIFY_RESPONSE_HEADER);
+    ulDataOffset     += sizeof(SMB2_NOTIFY_RESPONSE_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_NOTIFY_RESPONSE_HEADER);
+    pDataCursor      += sizeof(SMB2_NOTIFY_RESPONSE_HEADER);
+
+    pResponseHeader->usLength = sizeof(SMB2_NOTIFY_RESPONSE_HEADER) + 1;
+
+    if (ulDataOffset % 8)
+    {
+        USHORT usAlign =  8 - (ulDataOffset % 8);
+
+        if (ulBytesAvailable < ulDataLength)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ulBytesUsed      += usAlign;
+        ulDataOffset     += usAlign;
+        ulBytesAvailable -= usAlign;
+        pDataCursor      += usAlign;
+    }
+
+    // TODO: Check against max buffer size
+    if (pData)
+    {
+        if (ulBytesAvailable < ulDataLength)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(pDataCursor, pData, ulDataLength);
+
+        ulBytesUsed += ulDataLength;
+        // ulBytesAvailable -= ulDataLength;
+        // pDataCursor += ulDataLength;
+    }
+
+
+    pResponseHeader->ulOutBufferLength = ulDataLength;
+    pResponseHeader->usOutBufferOffset = (USHORT)ulDataOffset;
+
+    *pulDataOffset = ulDataOffset;
+    *ppHeader      = pResponseHeader;
+    *pulBytesUsed  = ulBytesUsed;
 
 cleanup:
 

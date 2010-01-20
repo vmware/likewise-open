@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsrv.protocols.smb2.la
 
 libsrv_protocols_smb2_la_SOURCES = \
+    cancel.c         \
     close.c          \
     connection.c     \
     config.c         \
@@ -16,6 +17,8 @@ libsrv_protocols_smb2_la_SOURCES = \
     lock.c           \
     logoff.c         \
     negotiate.c      \
+    notify_request.c \
+    notify_state.c   \
     oplock.c         \
     read.c           \
     session.c        \

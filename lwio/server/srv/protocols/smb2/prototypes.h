@@ -50,6 +50,12 @@
 #ifndef __PROTOTYPES_H__
 #define __PROTOTYPES_H__
 
+// cancel.c
+
+NTSTATUS
+SrvProcessCancel_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
 
 // close.c
 
@@ -79,6 +85,11 @@ SrvConfigGetOplockTimeout_SMB_V2(
 
 NTSTATUS
 SrvProcessCreate_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvCancelCreate_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
@@ -116,6 +127,14 @@ SrvProcessIOCTL_SMB_V2(
     PSRV_EXEC_CONTEXT pContext
     );
 
+// libmain.c
+
+NTSTATUS
+SrvBuildInterimResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext,
+    ULONG64           ullAsyncId
+    );
+
 // lock.c
 
 NTSTATUS
@@ -135,6 +154,66 @@ SrvProcessLogoff_SMB_V2(
 NTSTATUS
 SrvProcessNegotiate_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// notify_request.c
+
+NTSTATUS
+SrvProcessNotify_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvProcessNotifyCompletion_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvCancelChangeNotify_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// notify_state.c
+
+NTSTATUS
+SrvNotifyCreateState_SMB_V2(
+    ULONG64                   ullAsyncId,
+    PLWIO_SRV_CONNECTION      pConnection,
+    PLWIO_SRV_SESSION_2       pSession,
+    PLWIO_SRV_TREE_2          pTree,
+    PLWIO_SRV_FILE_2          pFile,
+    USHORT                    usEpoch,
+    ULONG64                   ullCommandSequence,
+    ULONG                     ulPid,
+    ULONG                     ulCompletionFilter,
+    BOOLEAN                   bWatchTree,
+    ULONG                     ulMaxBufferSize,
+    PSRV_NOTIFY_STATE_SMB_V2* ppNotifyState
+    );
+
+VOID
+SrvPrepareNotifyStateAsync_SMB_V2(
+    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+    );
+
+VOID
+SrvReleaseNotifyStateAsync_SMB_V2(
+    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+    );
+
+PSRV_NOTIFY_STATE_SMB_V2
+SrvNotifyStateAcquire_SMB_V2(
+    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+    );
+
+VOID
+SrvNotifyStateReleaseHandle_SMB_V2(
+    HANDLE hNotifyState
+    );
+
+VOID
+SrvNotifyStateRelease_SMB_V2(
+    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
     );
 
 // oplock.c
@@ -225,6 +304,7 @@ SrvFreeErrorMessage_SMB_V2(
 NTSTATUS
 SrvBuildErrorResponse_SMB_V2(
     PSRV_EXEC_CONTEXT    pExecContext,
+    ULONG64              ullAsyncId,
     NTSTATUS             errorStatus
     );
 
@@ -294,6 +374,12 @@ SMB2MarshalHeader(
     BOOLEAN       bIsPartOfCompoundMessage,
     PSMB2_HEADER* ppSMB2Header,
     PULONG        pulBytesUsed
+    );
+
+NTSTATUS
+SMB2GetAsyncId(
+    PSMB2_HEADER pHeader,
+    PULONG64     pUllAsyncId
     );
 
 NTSTATUS
@@ -527,6 +613,24 @@ SMB2MarshalFindResponse(
     PULONG                      pulDataOffset,
     PSMB2_FIND_RESPONSE_HEADER* ppHeader,
     PULONG                      pulBytesUsed
+    );
+
+NTSTATUS
+SMB2UnmarshalNotifyRequest(
+    IN     PSRV_MESSAGE_SMB_V2         pSmbRequest,
+    IN OUT PSMB2_NOTIFY_CHANGE_HEADER* ppNotifyRequestHeader
+    );
+
+NTSTATUS
+SMB2MarshalNotifyResponse(
+    IN OUT PBYTE                         pBuffer,
+    IN     ULONG                         ulOffset,
+    IN     ULONG                         ulBytesAvailable,
+    IN OUT PBYTE                         pData,
+    IN     ULONG                         ulDataLength,
+    IN OUT PULONG                        pulDataOffset,
+    IN OUT PSMB2_NOTIFY_RESPONSE_HEADER* ppHeader,
+    IN OUT PULONG                        pulBytesUsed
     );
 
 NTSTATUS
