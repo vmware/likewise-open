@@ -3788,7 +3788,8 @@ AD_QueryMemberOf(
 
     LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
 
-    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED ||
+        FindFlags & LSA_FIND_FLAGS_LOCAL)
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);
