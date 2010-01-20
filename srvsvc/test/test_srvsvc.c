@@ -918,6 +918,144 @@ done:
 }
 
 
+static
+BOOLEAN
+CallNetShareGetInfo(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel,
+    PWSTR  pwszShareName
+    )
+{
+    BOOLEAN ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+
+    err = NetShareGetInfo(pwszHostname,
+                          pwszShareName,
+                          dwLevel,
+                          &pBuffer);
+    if (err == ERROR_SUCCESS)
+    {
+        switch (dwLevel)
+        {
+        case 0:
+            RESULT_WSTR(((PSHARE_INFO_0)pBuffer)->shi0_netname);
+            break;
+
+        case 1:
+            RESULT_WSTR(((PSHARE_INFO_1)pBuffer)->shi1_netname);
+            RESULT_UINT(((PSHARE_INFO_1)pBuffer)->shi1_type);
+            RESULT_WSTR(((PSHARE_INFO_1)pBuffer)->shi1_remark);
+            break;
+
+        case 2:
+            RESULT_WSTR(((PSHARE_INFO_2)pBuffer)->shi2_netname);
+            RESULT_UINT(((PSHARE_INFO_2)pBuffer)->shi2_type);
+            RESULT_WSTR(((PSHARE_INFO_2)pBuffer)->shi2_remark);
+            RESULT_WSTR(((PSHARE_INFO_2)pBuffer)->shi2_path);
+            break;
+
+        case 501:
+            RESULT_WSTR(((PSHARE_INFO_501)pBuffer)->shi501_netname);
+            RESULT_UINT(((PSHARE_INFO_501)pBuffer)->shi501_type);
+            RESULT_WSTR(((PSHARE_INFO_501)pBuffer)->shi501_remark);
+            RESULT_WSTR(((PSHARE_INFO_501)pBuffer)->shi501_netname);
+            break;
+
+        case 502:
+            RESULT_WSTR(((PSHARE_INFO_502)pBuffer)->shi502_netname);
+            RESULT_UINT(((PSHARE_INFO_502)pBuffer)->shi502_type);
+            RESULT_WSTR(((PSHARE_INFO_502)pBuffer)->shi502_remark);
+            RESULT_WSTR(((PSHARE_INFO_502)pBuffer)->shi502_path);
+            break;
+        }
+    }
+    else
+    {
+        ret = FALSE;
+    }
+
+    if (pBuffer)
+    {
+        SrvSvcFreeMemory(pBuffer);
+    }
+
+    return ret;
+}
+
+
+static
+BOOLEAN
+CallNetShareSetInfo(
+    PCWSTR pwszHostname,
+    DWORD  dwLevel,
+    PWSTR  pwszShareName,
+    DWORD  dwType,
+    PWSTR  pwszComment,
+    PWSTR  pwszPath,
+    DWORD  dwFlags
+    )
+{
+    BOOLEAN ret = TRUE;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PVOID pBuffer = NULL;
+    SHARE_INFO_0 Info0 = {0};
+    SHARE_INFO_1 Info1 = {0};
+    SHARE_INFO_2 Info2 = {0};
+    SHARE_INFO_501 Info501 = {0};
+    SHARE_INFO_502 Info502 = {0};
+    DWORD dwParmErr = 0;
+
+    switch (dwLevel)
+    {
+    case 0:
+        Info0.shi0_netname = pwszShareName;
+
+        pBuffer = (PVOID)&Info0;
+        break;
+
+    case 1:
+        Info1.shi1_netname = pwszShareName;
+        Info1.shi1_type    = dwType;
+        Info1.shi1_remark  = pwszComment;
+
+        pBuffer = (PVOID)&Info1;
+        break;
+
+    case 2:
+        Info2.shi2_netname = pwszShareName;
+        Info2.shi2_type    = dwType;
+        Info2.shi2_remark  = pwszComment;
+        Info2.shi2_path    = pwszPath;
+
+        pBuffer = (PVOID)&Info2;
+        break;
+
+    case 501:
+        Info501.shi501_netname = pwszShareName;
+        Info501.shi501_type    = dwType;
+        Info501.shi501_remark  = pwszComment;
+        Info501.shi501_flags   = dwFlags;
+
+        pBuffer = (PVOID)&Info501;
+        break;
+
+    case 502:
+        pBuffer = (PVOID)&Info502;
+        break;
+    }
+
+    err = NetShareSetInfo(pwszHostname,
+                          pwszShareName,
+                          dwLevel,
+                          pBuffer,
+                          &dwParmErr);
+    ret = (err == ERROR_SUCCESS);
+
+    return ret;
+}
+
+
 int
 TestNetShareAdd(
     struct test *t,
@@ -1054,7 +1192,7 @@ TestNetShareEnum(
         dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
     }
 
-    for (i= 0; i < dwNumLevels; i++)
+    for (i = 0; i < dwNumLevels; i++)
     {
         dwLevel = pdwLevels[i];
 
@@ -1071,234 +1209,159 @@ done:
 }
 
 
-int TestNetShareGetInfo(struct test *t, const wchar16_t *hostname,
-                        const wchar16_t *user, const wchar16_t *pass,
-                        struct parameter *options, int optcount)
+int
+TestNetShareGetInfo(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
 {
-    const UINT32 def_infolevel = 0;
-    const char *def_sharename = "TEST";
+    const DWORD dwDefaultLevel = (DWORD)(-1);
+    const PSTR pszDefaultName = "TEST";
 
-    NET_API_STATUS err = ERROR_SUCCESS;
-    handle_t srvsvc_binding;
+    BOOLEAN ret = TRUE;
     enum param_err perr = perr_success;
-    UINT8 *bufptr = NULL;
-    UINT32 entriesread = 0;
-    UINT32 totalentries = 0;
-    UINT32 resume_handle = 0;
-    UINT32 i;
-    UINT32 infolevel = 0;
-    wchar16_t *sharename = NULL;
+    DWORD i = 0;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1, 2, 501, 502 };
+    DWORD dwLevel = 0;
+    PWSTR pwszShareName = NULL;
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
 
     TESTINFO(t, hostname, user, pass);
 
-    SET_SESSION_CREDS(hCreds);
-
-    perr = fetch_value(options, optcount, "infolevel", pt_uint32, &infolevel,
-                       &def_infolevel);
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       &dwLevel, &dwDefaultLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "sharename", pt_w16string,
-                       &sharename, &def_sharename);
+                       &pwszShareName, &pszDefaultName);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
-    if (srvsvc_binding == NULL) goto done;
+    SET_SESSION_CREDS(hCreds);
 
-    INPUT_ARG_PTR(srvsvc_binding);
-    INPUT_ARG_WSTR(hostname);
-    INPUT_ARG_WSTR(sharename);
-    INPUT_ARG_UINT(infolevel);
-
-    bufptr = NULL;
-    CALL_NETAPI(err = NetShareGetInfo(srvsvc_binding,
-                                      hostname,/*servername*/
-                                      sharename,/*netname*/
-                                      infolevel,/*level*/
-                                      &bufptr/*bufptr*/
-                                      ));
-    if (err != ERROR_SUCCESS) netapi_fail(err);
-
-    switch (infolevel) {
-    case 0:
-        RESULT_WSTR(((PSHARE_INFO_0)bufptr)->shi0_netname);
-        break;
-
-    case 1:
-        RESULT_WSTR(((PSHARE_INFO_1)bufptr)->shi1_netname);
-        RESULT_UINT(((PSHARE_INFO_1)bufptr)->shi1_type);
-        RESULT_WSTR(((PSHARE_INFO_1)bufptr)->shi1_remark);
-        break;
-
-    case 2:
-        RESULT_WSTR(((PSHARE_INFO_2)bufptr)->shi2_netname);
-        RESULT_UINT(((PSHARE_INFO_2)bufptr)->shi2_type);
-        RESULT_WSTR(((PSHARE_INFO_2)bufptr)->shi2_remark);
-        RESULT_WSTR(((PSHARE_INFO_2)bufptr)->shi2_path);
-        break;
-
-    case 501:
-        RESULT_WSTR(((PSHARE_INFO_501)bufptr)->shi501_netname);
-        RESULT_UINT(((PSHARE_INFO_501)bufptr)->shi501_type);
-        RESULT_WSTR(((PSHARE_INFO_501)bufptr)->shi501_remark);
-        RESULT_WSTR(((PSHARE_INFO_501)bufptr)->shi501_netname);
-        break;
-
-    case 502:
-        RESULT_WSTR(((PSHARE_INFO_502)bufptr)->shi502_netname);
-        RESULT_UINT(((PSHARE_INFO_502)bufptr)->shi502_type);
-        RESULT_WSTR(((PSHARE_INFO_502)bufptr)->shi502_remark);
-        RESULT_WSTR(((PSHARE_INFO_502)bufptr)->shi502_path);
-        break;
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
     }
 
-    FreeSrvSvcBinding(&srvsvc_binding);
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
 
+        ret &= CallNetShareGetInfo(hostname,
+                                   dwLevel,
+                                   pwszShareName);
+    }
+
+done:
     RELEASE_SESSION_CREDS;
 
     SrvSvcDestroyMemory();
-    return TRUE;
 
-done:
-    SrvSvcDestroyMemory();
-    return FALSE;
+    return ret;
 }
+
 
 int TestNetShareSetInfo(struct test *t, const wchar16_t *hostname,
                         const wchar16_t *user, const wchar16_t *pass,
                         struct parameter *options, int optcount)
 {
-    const UINT32 def_infolevel = 0;
-    const UINT32 def_type = 0;
-    const char *def_sharename = "TEST";
-    const char *def_path = "/tmp";
-    const char *def_comment = "";
+    PCSTR pszDefaultShareName = "TEST";
+    PCSTR pszDefaultPath = "c:/tmp";
+    PCSTR pszDefaultComment = "Testing comment";
+    const DWORD dwDefaultType = 0;
+    const DWORD dwDefaultFlags = 0;
+    const DWORD dwDefaultLevel = (DWORD)(-1);
 
+    BOOLEAN ret = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
-    handle_t srvsvc_binding;
     enum param_err perr = perr_success;
-    SHARE_INFO_0 info0;
-    SHARE_INFO_1 info1;
-    SHARE_INFO_2 info2;
-    SHARE_INFO_501 info501;
-    SHARE_INFO_502 info502;
-    SHARE_INFO_1004 info1004;
-    SHARE_INFO_1005 info1005;
-    SHARE_INFO_1006 info1006;
-    SHARE_INFO_1501 info1501;
-    PSHARE_INFO_502 shi502_enum;
-    PSHARE_INFO_502 ginfo502 = NULL;
-    UINT8 *bufptr = NULL;
-    UINT32 parm_err = 0;
-    UINT32 entriesread = 0;
-    UINT32 totalentries = 0;
-    UINT32 i;
-    UINT32 infolevel = 0;
-    wchar16_t *sharename = NULL;
-    UINT32 type = 0;
-    wchar16_t *path = NULL;
-    wchar16_t *comment = NULL;
+    DWORD dwSelectedLevels[] = { 0 };
+    DWORD dwAvailableLevels[] = { 0, 1, 2, 501, 502 };
+    DWORD dwLevel = 0;
+    PDWORD pdwLevels = NULL;
+    DWORD dwNumLevels = 0;
+    PWSTR pwszShareName = NULL;
+    DWORD dwType = 0;
+    PWSTR pwszPath = NULL;
+    PWSTR pwszComment = NULL;
+    DWORD dwFlags = 0;
+    DWORD i = 0;
 
     TESTINFO(t, hostname, user, pass);
 
-    perr = fetch_value(options, optcount, "infolevel", pt_uint32, &infolevel,
-                       &def_infolevel);
+    perr = fetch_value(options, optcount, "level", pt_uint32,
+                       &dwLevel, &dwDefaultLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "sharename", pt_w16string,
-                       &sharename, &def_sharename);
+                       &pwszShareName, &pszDefaultShareName);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "path", pt_w16string,
-                       &path, &def_path);
+                       &pwszPath, &pszDefaultPath);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "comment", pt_w16string,
-                       &comment, &def_comment);
+                       &pwszComment, &pszDefaultComment);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "type", pt_uint32, &type,
-                       &def_type);
+    perr = fetch_value(options, optcount, "type", pt_uint32,
+                       &dwType, &dwDefaultType);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "flags", pt_uint32,
+                       &dwFlags, &dwDefaultFlags);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     SET_SESSION_CREDS(hCreds);
 
-    srvsvc_binding = CreateSrvSvcBinding(&srvsvc_binding, hostname);
-    if (srvsvc_binding == NULL) goto done;
-
-    INPUT_ARG_PTR(srvsvc_binding);
-    INPUT_ARG_WSTR(hostname);
-    INPUT_ARG_WSTR(sharename);
-    INPUT_ARG_UINT(infolevel);
-    INPUT_ARG_UINT(type);
-    INPUT_ARG_WSTR(path);
-    INPUT_ARG_WSTR(comment);
-
-    switch (infolevel) {
-    case 0:
-        memset((void*)&info0, 0, sizeof(info0));
-        info0.shi0_netname = sharename;
-
-        bufptr = (UINT8*)&info0;
-        break;
-
-    case 1:
-        memset((void*)&info1, 0, sizeof(info1));
-        info1.shi1_netname = sharename;
-        info1.shi1_type = type;
-        info1.shi1_remark = comment;
-
-        bufptr = (UINT8*)&info1;
-       break;
-
-    case 2:
-        memset((void*)&info2, 0, sizeof(info2));
-        info2.shi2_netname = sharename;
-        info2.shi2_type = type;
-        info2.shi2_remark = comment;
-        info2.shi2_path = path;
-
-        bufptr = (UINT8*)&info2;
-        break;
-
-    case 501:
-        memset((void*)&info501, 0, sizeof(info501));
-        info501.shi501_netname = sharename;
-        info501.shi501_type = type;
-        info501.shi501_remark = comment;
-
-        bufptr = (UINT8*)&info501;
-        break;
-
-    case 502:
-        memset((void*)&info502, 0, sizeof(info502));
-        info502.shi502_netname = sharename;
-        info502.shi502_type = type;
-        info502.shi502_remark = comment;
-        info502.shi502_path = path;
-
-        bufptr = (UINT8*)&info502;
-        break;
+    if (dwLevel == (DWORD)(-1))
+    {
+        pdwLevels   = dwAvailableLevels;
+        dwNumLevels = sizeof(dwAvailableLevels)/sizeof(dwAvailableLevels[0]);
+    }
+    else
+    {
+        dwSelectedLevels[0] = dwLevel;
+        pdwLevels   = dwSelectedLevels;
+        dwNumLevels = sizeof(dwSelectedLevels)/sizeof(dwSelectedLevels[0]);
     }
 
-    parm_err = 0;
-    CALL_NETAPI(err = NetShareSetInfo(srvsvc_binding,
-                                      hostname,/*servername*/
-                                      sharename,/*netname*/
-                                      infolevel,/*level*/
-                                      bufptr,/*bufptr*/
-                                      NULL/*parm_err*/
-                                      ));
-    if (err != ERROR_INVALID_PARAMETER) netapi_fail(err);
+    for (i = 0; i < dwNumLevels; i++)
+    {
+        dwLevel = pdwLevels[i];
 
-    FreeSrvSvcBinding(&srvsvc_binding);
+        ret &= CallNetShareSetInfo(hostname,
+                                   dwLevel,
+                                   pwszShareName,
+                                   dwType,
+                                   pwszComment,
+                                   pwszPath,
+                                   dwFlags);
+    }
 
+done:
     RELEASE_SESSION_CREDS;
 
+    LW_SAFE_FREE_MEMORY(pwszShareName);
+    LW_SAFE_FREE_MEMORY(pwszComment);
+    LW_SAFE_FREE_MEMORY(pwszPath);
+
     SrvSvcDestroyMemory();
-    return TRUE;
-done:
-    SrvSvcDestroyMemory();
-    return FALSE;
+    return ret;
 }
 
 
