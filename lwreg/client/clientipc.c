@@ -67,7 +67,7 @@ error:
 
 DWORD
 RegOpenServer(
-	PHANDLE phConnection
+	OUT PHANDLE phConnection
 	)
 {
     return RegNtStatusToWin32Error(
@@ -76,7 +76,7 @@ RegOpenServer(
 
 NTSTATUS
 NtRegOpenServer(
-    PHANDLE phConnection
+    OUT PHANDLE phConnection
     )
 {
     NTSTATUS status = 0;
@@ -148,7 +148,7 @@ error:
 
 VOID
 RegCloseServer(
-    HANDLE hConnection
+    IN HANDLE hConnection
     )
 {
 	NtRegCloseServer(hConnection);
@@ -157,7 +157,7 @@ RegCloseServer(
 
 VOID
 NtRegCloseServer(
-    HANDLE hConnection
+    IN HANDLE hConnection
     )
 {
     PREG_CLIENT_CONNECTION_CONTEXT pContext =

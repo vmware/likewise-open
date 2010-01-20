@@ -455,16 +455,6 @@ RegIPCGetProtocolSpec(
     void
     );
 
-DWORD
-RegOpenServer(
-    PHANDLE phConnection
-    );
-
-VOID
-RegCloseServer(
-    HANDLE hConnection
-    );
-
 NTSTATUS
 RegIpcAcquireCall(
     HANDLE hConnection,

@@ -56,12 +56,12 @@
 // Registry Client Side APIs
 DWORD
 LwRegOpenServer(
-    PHANDLE phConnection
+    OUT PHANDLE phConnection
     );
 
 VOID
 LwRegCloseServer(
-    HANDLE hConnection
+    IN HANDLE hConnection
     );
 
 DWORD
@@ -211,15 +211,15 @@ LwRegEnumValueA(
 
 DWORD
 LwRegEnumValueW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    DWORD dwIndex,
-    PWSTR pValueName,
-    PDWORD pcchValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN DWORD dwIndex,
+    OUT PWSTR pValueName,
+    IN OUT PDWORD pcchValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
     );
 
 DWORD
@@ -248,78 +248,78 @@ LwRegGetValueW(
 
 DWORD
 LwRegOpenKeyExA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCSTR pszSubKey,
-    DWORD ulOptions,
-    ACCESS_MASK AccessDesired,
-    PHKEY phkResult
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszSubKey,
+    IN DWORD ulOptions,
+    IN ACCESS_MASK AccessDesired,
+    OUT PHKEY phkResult
     );
 
 DWORD
 LwRegOpenKeyExW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pwszSubKey,
-    DWORD ulOptions,
-    ACCESS_MASK AccessDesired,
-    PHKEY phkResult
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pSubKey,
+    IN DWORD ulOptions,
+    IN ACCESS_MASK AccessDesired,
+    OUT PHKEY phkResult
     );
 
 DWORD
 LwRegQueryInfoKeyA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PSTR pszClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PULONG pulSecDescLen,
-    PFILETIME pftLastWriteTime
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    OUT OPTIONAL PSTR pszClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pcSubKeys,
+    OUT OPTIONAL PDWORD pcMaxSubKeyLen,
+    OUT OPTIONAL PDWORD pcMaxClassLen,
+    OUT OPTIONAL PDWORD pcValues,
+    OUT OPTIONAL PDWORD pcMaxValueNameLen,
+    OUT OPTIONAL PDWORD pcMaxValueLen,
+    OUT OPTIONAL PULONG pulSecDescLen,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
     );
 
 DWORD
 LwRegQueryInfoKeyW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PWSTR pClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PULONG pulSecDescLen,
-    PFILETIME pftLastWriteTime
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    OUT PWSTR pClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pcSubKeys,
+    OUT OPTIONAL PDWORD pcMaxSubKeyLen,
+    OUT OPTIONAL PDWORD pcMaxClassLen,
+    OUT OPTIONAL PDWORD pcValues,
+    OUT OPTIONAL PDWORD pcMaxValueNameLen,
+    OUT OPTIONAL PDWORD pcMaxValueLen,
+    OUT OPTIONAL PULONG pulSecDescLen,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
     );
 
 DWORD
 LwRegQueryValueExA(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCSTR pszValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCSTR pszValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
     );
 
 DWORD
 LwRegQueryValueExW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pValueName,
-    PDWORD pReserved,
-    PDWORD pType,
-    PBYTE pData,
-    PDWORD pcbData
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pType,
+    OUT OPTIONAL PBYTE pData,
+    IN OUT OPTIONAL PDWORD pcbData
     );
 
 DWORD
@@ -335,68 +335,68 @@ LwRegSetValueExA(
 
 DWORD
 LwRegSetValueExW(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PCWSTR pValueName,
-    DWORD Reserved,
-    DWORD dwType,
-    const BYTE *pData,
-    DWORD cbData
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN OPTIONAL const BYTE *pData,
+    IN DWORD cbData
     );
 
 DWORD
 LwRegQueryMultipleValues(
-    HANDLE hRegConnection,
-    HKEY hKey,
-    PVALENT val_list,
-    DWORD num_vals,
-    PWSTR pValueBuf,
-    PDWORD dwTotsize
+    IN HANDLE hRegConnection,
+    IN HKEY hKey,
+    OUT PVALENT val_list,
+    IN DWORD num_vals,
+    OUT OPTIONAL PWSTR pValueBuf,
+    IN OUT OPTIONAL PDWORD dwTotsize
     );
 
 /* registry multi-str data type conversion functions */
 DWORD
 LwRegMultiStrsToByteArrayW(
-    PWSTR*   ppwszInMultiSz,
-    PBYTE*   ppOutBuf,
-    SSIZE_T* pOutBufLen
+    IN PWSTR*   ppwszInMultiSz,
+    OUT PBYTE*   ppOutBuf,
+    OUT SSIZE_T* pOutBufLen
     );
 
 DWORD
 LwRegMultiStrsToByteArrayA(
-    PSTR*    ppszInMultiSz,
-    PBYTE*   ppOutBuf,
-    SSIZE_T* pOutBufLen
+    IN PSTR*    ppszInMultiSz,
+    OUT PBYTE*   ppOutBuf,
+    OUT SSIZE_T* pOutBufLen
     );
 
 DWORD
 LwRegByteArrayToMultiStrsW(
-    PBYTE   pInBuf,
-    SSIZE_T bufLen,
-    PWSTR** pppwszStrings
+    IN PBYTE   pInBuf,
+    IN SSIZE_T bufLen,
+    OUT PWSTR** pppwszStrings
     );
 
 DWORD
 LwRegByteArrayToMultiStrsA(
-    PBYTE   pInBuf,
-    SSIZE_T bufLen,
-    PSTR**  pppszStrings
+    IN PBYTE   pInBuf,
+    IN SSIZE_T bufLen,
+    OUT PSTR**  pppszStrings
     );
 
 DWORD
 LwRegConvertByteStreamA2W(
-    const PBYTE pData,
-    DWORD       cbData,
-    PBYTE*      ppOutData,
-    PDWORD      pcbOutDataLen
+    IN const PBYTE pData,
+    IN DWORD       cbData,
+    OUT PBYTE*      ppOutData,
+    OUT PDWORD      pcbOutDataLen
     );
 
 DWORD
 LwRegConvertByteStreamW2A(
-    const PBYTE pData,
-    DWORD       cbData,
-    PBYTE*      ppOutData,
-    PDWORD      pcbOutDataLen
+    IN const PBYTE pData,
+    IN DWORD       cbData,
+    OUT PBYTE*      ppOutData,
+    OUT PDWORD      pcbOutDataLen
     );
 
 // Registry ACL APIs
