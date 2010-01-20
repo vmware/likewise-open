@@ -67,6 +67,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <lsa/lsa.h>
 #include <lsasrvcred.h>
 #include <lsalist.h>
 #include <lwsecurityidentifier.h>
@@ -77,6 +78,8 @@
 #include <lwps/lwps.h>
 #include <lwstr.h>
 #include <wc16str.h>
+#include <uuid/uuid.h>
+#include <lwrpc/krb5pac.h>
 
 #include "defines.h"
 #include "structs.h"

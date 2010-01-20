@@ -93,11 +93,18 @@ typedef struct _SecPkgContext_Sizes
     DWORD cbSecurityTrailer;
 } SecPkgContext_Sizes, *PSecPkgContext_Sizes;
 
+typedef struct _SecPkgContext_PacLogonInfo
+{
+    ULONG LogonInfoLength;
+    PBYTE pLogonInfo;
+} SecPkgContext_PacLogonInfo, *PSecPkgContext_PacLogonInfo;
+
 typedef union _SecPkgContext
 {
     PSecPkgContext_Names pNames;
     PSecPkgContext_SessionKey pSessionKey;
     PSecPkgContext_Sizes pSizes;
+    PSecPkgContext_PacLogonInfo pLogonInfo;
 } SecPkgContext, *PSecPkgContext;
 
 typedef struct _SecPkgCred_Names
@@ -278,6 +285,7 @@ typedef struct
 #define SECPKG_ATTR_SUPPORTED_ALGS              20
 #define SECPKG_ATTR_CIPHER_STRENGTHS            21
 #define SECPKG_ATTR_SUPPORTED_PROTOCOLS         22
+#define SECPKG_ATTR_PAC_LOGON_INFO              100
 
 //******************************************************************************
 //
