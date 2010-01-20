@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -32,47 +32,79 @@
 
 
 NET_API_STATUS
-NetrShareGetInfo(
-    IN  handle_t     hBinding,
-    IN  PWSTR        pwszServername,
-    IN  PWSTR        pwszNetname,
-    IN  DWORD        dwLevel,
-    OUT PVOID       *ppBuffer
+NetShareGetInfo(
+    IN  PCWSTR  pwszServername,
+    IN  PCWSTR  pwszNetname,
+    IN  DWORD   dwLevel,
+    OUT PVOID  *ppBuffer
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
-    srvsvc_NetShareInfo Info;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    handle_t hBinding = NULL;
+    PSTR pszServername = NULL;
+    PIO_CREDS pCreds = NULL;
+    PWSTR pwszServer = NULL;
+    PWSTR pwszShare = NULL;
     PVOID pBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(hBinding, err);
     BAIL_ON_INVALID_PTR(pwszNetname, err);
     BAIL_ON_INVALID_PTR(ppBuffer, err);
 
-    memset(&Info, 0, sizeof(Info));
+    if (pwszServername)
+    {
+        err = LwWc16sToMbs(pwszServername, &pszServername);
+        BAIL_ON_WIN_ERROR(err);
 
-    DCERPC_CALL(err,
-                _NetrShareGetInfo(hBinding,
-                                  pwszServername,
-                                  pwszNetname,
-                                  dwLevel,
-                                  &Info));
+        err = LwAllocateWc16String(&pwszServer, pwszServername);
+        BAIL_ON_WIN_ERROR(err);
 
-    err = SrvSvcCopyNetShareInfo(dwLevel, &Info, &pBuffer);
+    }
+
+    err = LwAllocateWc16String(&pwszShare, pwszNetname);
+    BAIL_ON_WIN_ERROR(err);
+
+    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
+                                         pszServername,
+                                         pCreds);
+    if (rpcStatus)
+    {
+        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    err = NetrShareGetInfo(hBinding,
+                           pwszServer,
+                           pwszShare,
+                           dwLevel,
+                           &pBuffer);
     BAIL_ON_WIN_ERROR(err);
 
     *ppBuffer = pBuffer;
 
 cleanup:
-    SrvSvcClearNetShareInfo(dwLevel, &Info);
+    if (hBinding)
+    {
+        FreeSrvSvcBinding(&hBinding);
+    }
+
+    LW_SAFE_FREE_MEMORY(pszServername);
+    LW_SAFE_FREE_MEMORY(pwszServer);
+    LW_SAFE_FREE_MEMORY(pwszShare);
+
+    if (err == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(ntStatus);
+    }
 
     return err;
 
 error:
-    if (pBuffer)
-    {
-        SrvSvcFreeMemory(pBuffer);
-    }
-
     *ppBuffer = NULL;
 
     goto cleanup;

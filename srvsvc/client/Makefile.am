@@ -23,6 +23,8 @@ libsrvsvc_la_SOURCES =        \
     net_shareadd.c            \
     net_sharedel.c            \
     net_shareenum.c           \
+    net_sharegetinfo.c        \
+    net_sharesetinfo.c        \
     srvsvc_memory.c           \
     srvsvc_stubmemory.c       \
     memptr.c                  \
