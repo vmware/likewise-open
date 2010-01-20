@@ -797,21 +797,24 @@ SMB2UnmarshalCreateRequest(
 
     if (pHeader->usLength & 0x1)
     {
-        if ((pHeader->usNameOffset < ulOffset) ||
-            (pHeader->usNameOffset % 2) ||
-            (pHeader->usNameLength % 2) ||
-            (pHeader->usNameOffset > ulPacketSize) ||
-            (pHeader->usNameLength + pHeader->usNameOffset) > ulPacketSize)
+        if (pHeader->usNameOffset)
         {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
+           if ( (pHeader->usNameOffset < ulOffset) ||
+                (pHeader->usNameOffset % 2) ||
+                (pHeader->usNameLength % 2) ||
+                (pHeader->usNameOffset > ulPacketSize) ||
+                (pHeader->usNameLength + pHeader->usNameOffset) > ulPacketSize)
+            {
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
-        wszFileName.Buffer = (PWSTR)(pSmbRequest->pBuffer +
+            wszFileName.Buffer = (PWSTR)(pSmbRequest->pBuffer +
                                      pHeader->usNameOffset);
-        wszFileName.Length = wszFileName.MaximumLength = pHeader->usNameLength;
+            wszFileName.Length = wszFileName.MaximumLength = pHeader->usNameLength;
 
-        ulOffset = pHeader->usNameOffset + pHeader->usNameLength;
+            ulOffset = pHeader->usNameOffset + pHeader->usNameLength;
+        }
     }
 
     if (pHeader->ulCreateContextOffset && pHeader->ulCreateContextLength)
