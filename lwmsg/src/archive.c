@@ -456,6 +456,7 @@ lwmsg_archive_close(
     if (archive->fd != -1)
     {
         close(archive->fd);
+        archive->fd = -1;
     }
 
     return status;
