@@ -158,6 +158,12 @@ static LWMsgProtocolSpec gMemCachePersistence[] =
     LWMSG_PROTOCOL_END
 };
 
+static
+DWORD
+MemCacheCheckSizeInLock(
+    IN PMEM_DB_CONNECTION pConn
+    );
+
 void
 MemCacheFreeGuardian(
     IN const LSA_HASH_ENTRY* pEntry
@@ -1180,6 +1186,8 @@ MemCacheEmptyCache(
         ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
     }
 
+    MemCacheCheckSizeInLock(pConn);
+
     if (pConn->pDNToSecurityObject)
     {
         LsaHashRemoveAll(pConn->pDNToSecurityObject);
@@ -1280,6 +1288,83 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+static
+DWORD
+MemCacheCheckSizeInLock(
+    IN PMEM_DB_CONNECTION pConn
+    )
+{
+    DWORD dwError = 0;
+    size_t sCacheSize = 0;
+    // Do not free
+    PLSA_SECURITY_OBJECT pObject = NULL;
+    // Do not free
+    PLSA_HASH_TABLE pIndex = NULL;
+    // Do not free
+    PDLINKEDLIST pListEntry = NULL;
+    // DWORD dwOut = 0;
+    LSA_HASH_ITERATOR iterator = {0};
+    // Do not free
+    PMEM_GROUP_MEMBERSHIP pMembership = NULL;
+    // Do not free
+    PLSA_PASSWORD_VERIFIER pFromHash = NULL;
+    // Do not free
+    LSA_HASH_ENTRY *pEntry = NULL;
+    // Do not free
+    PLSA_LIST_LINKS pGuardian = NULL;
+    // Do not free
+    PLSA_LIST_LINKS pMemPos = NULL;
+
+    pIndex = pConn->pSIDToSecurityObject;
+
+    // Start at the beginning of the list
+    pListEntry = pConn->pObjects;
+
+    for (pListEntry = pConn->pObjects;
+        pListEntry != NULL;
+        pListEntry = pListEntry->pNext)
+    {
+        pObject = (PLSA_SECURITY_OBJECT)pListEntry->pItem;
+        sCacheSize += pObject->version.dwObjectSize;
+    }
+
+    dwError = LsaHashGetIterator(
+                    pConn->pParentSIDToMembershipList,
+                    &iterator);
+    BAIL_ON_LSA_ERROR(dwError);
+    while ((pEntry = LsaHashNext(&iterator)) != NULL)
+    {
+        pGuardian = (PLSA_LIST_LINKS) pEntry->pValue;
+        pMemPos = pGuardian->Next;
+        while (pMemPos != pGuardian)
+        {
+            pMembership = PARENT_NODE_TO_MEMBERSHIP(pMemPos);
+            sCacheSize += pMembership->membership.version.dwObjectSize;
+
+            pMemPos = pMemPos->Next;
+        }
+    }
+
+    dwError = LsaHashGetIterator(
+                    pConn->pSIDToPasswordVerifier,
+                    &iterator);
+    BAIL_ON_LSA_ERROR(dwError);
+    while ((pEntry = LsaHashNext(&iterator)) != NULL)
+    {
+        pFromHash = (PLSA_PASSWORD_VERIFIER)pEntry->pValue;
+        sCacheSize += pFromHash->version.dwObjectSize;
+    }
+
+    if (pConn->sCacheSize != sCacheSize)
+    {
+        LSA_LOG_ERROR("Recorded cache size not equal calculated size: %d, $d", pConn->sCacheSize, sCacheSize);
+    }
+
+error:
+
+    return dwError;
 }
 
 DWORD
@@ -3642,13 +3727,31 @@ MemCacheStorePasswordVerifier(
     PLSA_PASSWORD_VERIFIER pCopy = NULL;
     // Do not free
     PLSA_HASH_TABLE pIndex = NULL;
+    // Do not free
+    PLSA_PASSWORD_VERIFIER pFromHash = NULL;
     BOOLEAN bMutexLocked = FALSE;
     size_t sObjectSize = sizeof(*pVerifier) + HEAP_HEADER_SIZE;
+    size_t sOldObjectSize = 0;
 
     ENTER_MUTEX(&pConn->backupMutex, bMutexLocked);
     ENTER_WRITER_RW_LOCK(&pConn->lock, bInLock);
 
     pIndex = pConn->pSIDToPasswordVerifier;
+
+    dwError = LsaHashGetValue(
+                    pIndex,
+                    pVerifier->pszObjectSid,
+                    (PVOID*)&pFromHash);
+    if (dwError == ENOENT)
+    {
+        dwError = 0;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pFromHash)
+    {
+        sOldObjectSize = pFromHash->version.dwObjectSize;
+    }
 
     dwError = ADCacheDuplicatePasswordVerifier(
                     &pCopy,
@@ -3669,6 +3772,7 @@ MemCacheStorePasswordVerifier(
     // This is now owned by the hash
     pCopy = NULL;
 
+    pConn->sCacheSize -= sOldObjectSize;
     pConn->sCacheSize += sObjectSize;
 
     dwError = MemCacheMaintainSizeCap(pConn);
