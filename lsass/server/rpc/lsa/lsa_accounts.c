@@ -56,6 +56,7 @@ LsaSrvParseAccountName(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PWSTR pwszCursor = NULL;
     PWSTR pwszDomainName = NULL;
     DWORD dwDomainNameLen = 0;
@@ -67,23 +68,26 @@ LsaSrvParseAccountName(
     while ((*pwszCursor) &&
            (*pwszCursor) != (WCHAR)'\\') pwszCursor++;
 
-    if ((*pwszCursor) == (WCHAR)'\\') {
+    if ((*pwszCursor) == (WCHAR)'\\')
+    {
         dwDomainNameLen = (DWORD)(pwszCursor - pwszName);
-        ntStatus = LsaSrvAllocateMemory((PVOID*)&pwszDomainName,
-					(dwDomainNameLen + 1) * sizeof(WCHAR));
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        dwError = LwAllocateMemory((dwDomainNameLen + 1) * sizeof(WCHAR),
+                                   OUT_PPVOID(&pwszDomainName));
+        BAIL_ON_LSA_ERROR(dwError);
 
         wc16sncpy(pwszDomainName, pwszName, dwDomainNameLen);
         pwszCursor++;
 
-    } else {
+    }
+    else
+    {
         pwszCursor = pwszName;
     }
 
     dwAcctNameLen = wc16slen(pwszCursor);
-    ntStatus = LsaSrvAllocateMemory((void**)&pwszAcctName,
-                                   (dwAcctNameLen + 1) * sizeof(WCHAR));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory((dwAcctNameLen + 1) * sizeof(WCHAR),
+                               OUT_PPVOID(&pwszAcctName));
+    BAIL_ON_LSA_ERROR(dwError);
 
     wc16sncpy(pwszAcctName, pwszCursor, dwAcctNameLen);
 
@@ -91,381 +95,224 @@ LsaSrvParseAccountName(
     *ppwszAcctName   = pwszAcctName;
 
 cleanup:
+    if (dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pwszDomainName) {
-        LsaSrvFreeMemory(pwszDomainName);
-    }
-
-    if (pwszAcctName) {
-        LsaSrvFreeMemory(pwszAcctName);
-    }
+    LW_SAFE_FREE_MEMORY(pwszDomainName);
+    LW_SAFE_FREE_MEMORY(pwszAcctName);
 
     *ppwszDomainName = NULL;
     *ppwszAcctName = NULL;
+
     goto cleanup;
 }
 
 
 NTSTATUS
 LsaSrvSelectAccountsByDomainName(
-    PPOLICY_CONTEXT pPolCtx,
-    UnicodeStringEx *pNames,
-    DWORD dwNumNames,
-    PACCOUNT_NAMES pDomainAccounts,
-    PACCOUNT_NAMES pLocalAccounts,
-    PACCOUNT_NAMES pBuiltinAccounts,
-    PACCOUNT_NAMES pOtherAccounts
+    PPOLICY_CONTEXT   pPolCtx,
+    UnicodeStringEx  *pNames,
+    DWORD             dwNumNames,
+    PACCOUNT_NAMES   *ppAccountNames
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
     ACCOUNT_NAMES DomainAccounts = {0};
+    ACCOUNT_NAMES ForDomainAccounts = {0};
     ACCOUNT_NAMES LocalAccounts = {0};
     ACCOUNT_NAMES BuiltinAccounts = {0};
     ACCOUNT_NAMES OtherAccounts = {0};
     DWORD dwDomainNamesNum = 0;
+    DWORD dwForDomainNamesNum = 0;
     DWORD dwLocalNamesNum = 0;
     DWORD dwBuiltinNamesNum = 0;
     DWORD dwOtherNamesNum = 0;
+    PACCOUNT_NAMES pAccountNames = NULL;
+    DWORD dwAccountTypesNum = LSA_ACCOUNT_TYPE_SENTINEL;
     DWORD i = 0;
     PWSTR pwszName = NULL;
     PWSTR pwszDomainName = NULL;
+    WCHAR wszBuiltinDomainName[] = LSA_BUILTIN_DOMAIN_NAME;
     PWSTR pwszAcctName = NULL;
-    WCHAR wszBuiltin[] = LSA_BUILTIN_DOMAIN_NAME;
-    PSAM_DOMAIN_ENTRY pDomain = NULL;
 
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&DomainAccounts.ppwszNames,
-                            sizeof(*DomainAccounts.ppwszNames) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(sizeof(*pAccountNames) * dwAccountTypesNum,
+                               OUT_PPVOID(&pAccountNames));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&DomainAccounts.pdwIndices,
-                            sizeof(*DomainAccounts.pdwIndices) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(sizeof(*DomainAccounts.ppwszNames) * dwNumNames,
+                               OUT_PPVOID(&DomainAccounts.ppwszNames));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*DomainAccounts.pdwIndices) * dwNumNames,
+                               OUT_PPVOID(&DomainAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(DomainAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
 
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&LocalAccounts.ppwszNames,
-                            sizeof(*LocalAccounts.ppwszNames) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(
+                             sizeof(*ForDomainAccounts.ppwszNames) * dwNumNames,
+                             OUT_PPVOID(&ForDomainAccounts.ppwszNames));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&LocalAccounts.pdwIndices,
-                            sizeof(*LocalAccounts.pdwIndices) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(
+                             sizeof(*ForDomainAccounts.pdwIndices) * dwNumNames,
+                             OUT_PPVOID(&ForDomainAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memset(ForDomainAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
+
+    dwError = LwAllocateMemory(sizeof(*LocalAccounts.ppwszNames) * dwNumNames,
+                               OUT_PPVOID(&LocalAccounts.ppwszNames));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*LocalAccounts.pdwIndices) * dwNumNames,
+                               OUT_PPVOID(&LocalAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(LocalAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
 
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&BuiltinAccounts.ppwszNames,
-                            sizeof(*BuiltinAccounts.ppwszNames) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(sizeof(*BuiltinAccounts.ppwszNames) * dwNumNames,
+                               OUT_PPVOID(&BuiltinAccounts.ppwszNames));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&BuiltinAccounts.pdwIndices,
-                            sizeof(*BuiltinAccounts.pdwIndices) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(sizeof(*BuiltinAccounts.pdwIndices) * dwNumNames,
+                               OUT_PPVOID(&BuiltinAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(BuiltinAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
 
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&OtherAccounts.ppwszNames,
-                            sizeof(*OtherAccounts.ppwszNames) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(sizeof(*OtherAccounts.ppwszNames) * dwNumNames,
+                               OUT_PPVOID(&OtherAccounts.ppwszNames));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&OtherAccounts.pdwIndices,
-                            sizeof(*OtherAccounts.pdwIndices) * dwNumNames);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(sizeof(*OtherAccounts.pdwIndices) * dwNumNames,
+                               OUT_PPVOID(&OtherAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
 
     memset(OtherAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumNames);
 
 
-    for (i = 0; i < dwNumNames; i++) {
-        UnicodeStringEx *name = &(pNames[i]);
+    for (i = 0; i < dwNumNames; i++)
+    {
+        UnicodeStringEx *pName = &(pNames[i]);
 
-        ntStatus = LsaSrvGetFromUnicodeStringEx(&pwszName, name);
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        dwError = LwAllocateWc16StringFromUnicodeString(
+                                          &pwszName,
+                                          (PUNICODE_STRING)pName);
+        BAIL_ON_NTSTATUS_ERROR(dwError);
 
         ntStatus = LsaSrvParseAccountName(pwszName,
-                                        &pwszDomainName,
-                                        &pwszAcctName);
+                                          &pwszDomainName,
+                                          &pwszAcctName);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        if (pwszDomainName)
+        if (pwszDomainName &&
+            !wc16scasecmp(pwszDomainName, pPolCtx->pwszLocalDomainName))
         {
-            pDomain = NULL;
+            /*
+             * Local (MACHINE) domain accounts
+             */
+            ntStatus = LwAllocateWc16String(
+                             &(LocalAccounts.ppwszNames[dwLocalNamesNum]),
+                             pwszAcctName);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-            ntStatus = LsaSrvGetSamDomainByName(pPolCtx,
-                                               pwszDomainName,
-                                               &pDomain);
-            if (ntStatus == STATUS_NO_SUCH_DOMAIN)
-            {
-                dwError = LwAllocateMemory(sizeof(*pDomain),
-                                           OUT_PPVOID(&pDomain));
-                BAIL_ON_LSA_ERROR(dwError);
-
-                pDomain->pwszName = pwszDomainName;
-                pDomain->pSid     = NULL;
-                pDomain->bLocal   = FALSE;
-            }
-            else if (ntStatus != STATUS_SUCCESS)
-            {
-                BAIL_ON_NTSTATUS_ERROR(ntStatus);
-            }
-
-            if (pDomain->bLocal)
-            {
-                if (!wc16scasecmp(pDomain->pwszName, wszBuiltin))
-                {
-                    ntStatus = LsaSrvDuplicateWC16String(
+            LocalAccounts.pdwIndices[dwLocalNamesNum++] = i;
+            LocalAccounts.dwCount = dwLocalNamesNum;
+        }
+        else if (pwszDomainName &&
+                 !wc16scasecmp(pwszDomainName, wszBuiltinDomainName))
+        {
+            /*
+             * BUILTIN domain accounts
+             */
+            ntStatus = LwAllocateWc16String(
                              &(BuiltinAccounts.ppwszNames[dwBuiltinNamesNum]),
-                            pwszAcctName);
-                    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+                             pwszAcctName);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-                    BuiltinAccounts.pdwIndices[dwBuiltinNamesNum++] = i;
-                }
-                else
-                {
-                    ntStatus = LsaSrvDuplicateWC16String(
-                                 &(LocalAccounts.ppwszNames[dwLocalNamesNum]),
-                                 pwszAcctName);
-                    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            BuiltinAccounts.pdwIndices[dwBuiltinNamesNum++] = i;
+            BuiltinAccounts.dwCount = dwBuiltinNamesNum;
+        }
+        else if (pwszDomainName &&
+                 pPolCtx->pwszDomainName &&
+                 !wc16scasecmp(pwszDomainName, pPolCtx->pwszDomainName))
+        {
+            /*
+             * Domain accounts (only if LSASS is a domain member)
+             */
+            ntStatus = LwAllocateWc16String(
+                             &(DomainAccounts.ppwszNames[dwDomainNamesNum]),
+                             pwszName);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-                    LocalAccounts.pdwIndices[dwLocalNamesNum++] = i;
-                }
-            }
-            else
-            {
-                ntStatus = LsaSrvDuplicateWC16String(
-                               &(DomainAccounts.ppwszNames[dwDomainNamesNum]),
-                               pwszName);
-                BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            DomainAccounts.pdwIndices[dwDomainNamesNum++] = i;
+            DomainAccounts.dwCount = dwDomainNamesNum;
+        }
+        else if (pwszDomainName &&
+                 pPolCtx->pwszDomainName)
+        {
+            /*
+             * Foreign (or any other we going to ask other DCs about)
+             * domain accounts. Only considered if LSASS is a domain member.
+             */
+            ntStatus = LwAllocateWc16String(
+                           &(ForDomainAccounts.ppwszNames[dwForDomainNamesNum]),
+                           pwszName);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-                DomainAccounts.pdwIndices[dwDomainNamesNum++] = i;
-            }
+            ForDomainAccounts.pdwIndices[dwForDomainNamesNum++] = i;
+            ForDomainAccounts.dwCount = dwForDomainNamesNum;
         }
         else
         {
-            /* If the account name isn't prepended with domain name
-               we're going to give local and buitin domain a try and
-               then decide */
-            ntStatus = LsaSrvDuplicateWC16String(
+            /*
+             * If the account name isn't prepended with a domain name we're going
+             * to give the local and bulitin domain a try and then decide.
+             */
+            ntStatus = LwAllocateWc16String(
                          &(OtherAccounts.ppwszNames[dwOtherNamesNum]),
                          pwszName);
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
             OtherAccounts.pdwIndices[dwOtherNamesNum++] = i;
+            OtherAccounts.dwCount = dwOtherNamesNum;
         }
 
-        if (pwszName)
-        {
-            LsaSrvFreeMemory(pwszName);
-            pwszName = NULL;
-        }
+        LW_SAFE_FREE_MEMORY(pwszName);
+        LW_SAFE_FREE_MEMORY(pwszDomainName);
+        LW_SAFE_FREE_MEMORY(pwszAcctName);
 
-        if (pwszDomainName)
-        {
-            LsaSrvFreeMemory(pwszDomainName);
-            pwszDomainName = NULL;
-        }
-
-        if (pwszAcctName)
-        {
-            LsaSrvFreeMemory(pwszAcctName);
-            pwszAcctName = NULL;
-        }
+        pwszName       = NULL;
+        pwszDomainName = NULL;
+        pwszAcctName   = NULL;
     }
 
-    pDomainAccounts->dwCount     = dwDomainNamesNum;
-    pDomainAccounts->ppwszNames  = DomainAccounts.ppwszNames;
-    pDomainAccounts->pdwIndices  = DomainAccounts.pdwIndices;
-    pLocalAccounts->dwCount      = dwLocalNamesNum;
-    pLocalAccounts->ppwszNames   = LocalAccounts.ppwszNames;
-    pLocalAccounts->pdwIndices   = LocalAccounts.pdwIndices;
-    pBuiltinAccounts->dwCount    = dwBuiltinNamesNum;
-    pBuiltinAccounts->ppwszNames = BuiltinAccounts.ppwszNames;
-    pBuiltinAccounts->pdwIndices = BuiltinAccounts.pdwIndices;
-    pOtherAccounts->dwCount      = dwOtherNamesNum;
-    pOtherAccounts->ppwszNames   = OtherAccounts.ppwszNames;
-    pOtherAccounts->pdwIndices   = OtherAccounts.pdwIndices;
+    pAccountNames[LSA_DOMAIN_ACCOUNTS]         = DomainAccounts;
+    pAccountNames[LSA_FOREIGN_DOMAIN_ACCOUNTS] = ForDomainAccounts;
+    pAccountNames[LSA_LOCAL_DOMAIN_ACCOUNTS]   = LocalAccounts;
+    pAccountNames[LSA_BUILTIN_DOMAIN_ACCOUNTS] = BuiltinAccounts;
+    pAccountNames[LSA_OTHER_ACCOUNTS]          = OtherAccounts;
+
+    *ppAccountNames = pAccountNames;
 
 cleanup:
-    return ntStatus;
-
-error:
-    pDomainAccounts->dwCount     = 0;
-
-    if (pDomainAccounts->ppwszNames) {
-        LsaSrvFreeMemory(pDomainAccounts->ppwszNames);
-        pDomainAccounts->ppwszNames  = NULL;
-    }
-
-    if (pDomainAccounts->pdwIndices) {
-        LsaSrvFreeMemory(pDomainAccounts->pdwIndices);
-        pDomainAccounts->pdwIndices  = NULL;
-    }
-
-    pLocalAccounts->dwCount      = 0;
-
-    if (pLocalAccounts->ppwszNames) {
-        LsaSrvFreeMemory(pLocalAccounts->ppwszNames);
-        pLocalAccounts->ppwszNames  = NULL;
-    }
-
-    if (pLocalAccounts->pdwIndices) {
-        LsaSrvFreeMemory(pLocalAccounts->pdwIndices);
-        pLocalAccounts->pdwIndices  = NULL;
-    }
-
-    pBuiltinAccounts->dwCount    = 0;
-
-    if (pBuiltinAccounts->ppwszNames) {
-        LsaSrvFreeMemory(pBuiltinAccounts->ppwszNames);
-        pBuiltinAccounts->ppwszNames  = NULL;
-    }
-
-    if (pBuiltinAccounts->pdwIndices) {
-        LsaSrvFreeMemory(pBuiltinAccounts->pdwIndices);
-        pBuiltinAccounts->pdwIndices  = NULL;
-    }
-
-    pOtherAccounts->dwCount      = 0;
-
-    if (pOtherAccounts->ppwszNames) {
-        LsaSrvFreeMemory(pOtherAccounts->ppwszNames);
-        pOtherAccounts->ppwszNames  = NULL;
-    }
-
-    if (pOtherAccounts->pdwIndices) {
-        LsaSrvFreeMemory(pOtherAccounts->pdwIndices);
-        pOtherAccounts->pdwIndices  = NULL;
-    }
-
-    goto cleanup;
-}
-
-
-NTSTATUS
-LsaSrvSelectAccountsByDomainSid(
-    PPOLICY_CONTEXT pPolCtx,
-    SidArray *pSids,
-    DWORD dwNumSids,
-    PACCOUNT_SIDS pDomainAccounts,
-    PACCOUNT_SIDS pLocalAccounts,
-    PACCOUNT_SIDS pBuiltinAccounts
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD i = 0;
-    PSID pSid = NULL;
-    PSAM_DOMAIN_ENTRY pLocalDomain = NULL;
-    PSAM_DOMAIN_ENTRY pBuiltinDomain = NULL;
-    ACCOUNT_SIDS DomainAccounts = {0};
-    ACCOUNT_SIDS LocalAccounts = {0};
-    ACCOUNT_SIDS BuiltinAccounts = {0};
-    DWORD dwDomainSidsNum = 0;
-    DWORD dwLocalSidsNum = 0;
-    DWORD dwBuiltinSidsNum = 0;
-
-    ntStatus = LsaSrvAllocateMemory(
-                            OUT_PPVOID(&DomainAccounts.ppSids),
-                            sizeof(DomainAccounts.ppSids[0]) * dwNumSids);
-
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&DomainAccounts.pdwIndices,
-                            sizeof(*DomainAccounts.pdwIndices) * dwNumSids);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = LsaSrvAllocateMemory(
-                            OUT_PPVOID(&LocalAccounts.ppSids),
-                            sizeof(LocalAccounts.ppSids[0]) * dwNumSids);
-
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&LocalAccounts.pdwIndices,
-                            sizeof(*LocalAccounts.pdwIndices) * dwNumSids);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = LsaSrvAllocateMemory(
-                            OUT_PPVOID(&BuiltinAccounts.ppSids),
-                            sizeof(BuiltinAccounts.ppSids[0]) * dwNumSids);
-
-    ntStatus = LsaSrvAllocateMemory(
-                            (void**)&BuiltinAccounts.pdwIndices,
-                            sizeof(*BuiltinAccounts.pdwIndices) * dwNumSids);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-
-    ntStatus = LsaSrvGetLocalSamDomain(pPolCtx,
-                                       FALSE,   /* !BUILTIN */
-                                       &pLocalDomain);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    ntStatus = LsaSrvGetLocalSamDomain(pPolCtx,
-                                       TRUE,   /* BUILTIN */
-                                       &pBuiltinDomain);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    for (i = 0; i < dwNumSids; i++)
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
     {
-        pSid = pSids->sids[i].sid;
-
-        if (RtlIsPrefixSid(pLocalDomain->pSid,
-                           pSid))
-        {
-            ntStatus = RtlDuplicateSid(
-                                &LocalAccounts.ppSids[dwLocalSidsNum],
-                                pSid);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-            LocalAccounts.pdwIndices[dwLocalSidsNum++] = i;
-        }
-        else if (RtlIsPrefixSid(pBuiltinDomain->pSid,
-                                pSid))
-        {
-            ntStatus = RtlDuplicateSid(
-                                &BuiltinAccounts.ppSids[dwBuiltinSidsNum],
-                                pSid);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-            BuiltinAccounts.pdwIndices[dwBuiltinSidsNum++] = i;
-        }
-        else
-        {
-            ntStatus = RtlDuplicateSid(
-                                &DomainAccounts.ppSids[dwDomainSidsNum],
-                                pSid);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-            DomainAccounts.pdwIndices[dwDomainSidsNum++] = i;
-        }
+        ntStatus = LwWin32ErrorToNtStatus(ntStatus);
     }
-
-    pDomainAccounts->dwCount     = dwDomainSidsNum;
-    pDomainAccounts->ppSids      = DomainAccounts.ppSids;
-    pDomainAccounts->pdwIndices  = DomainAccounts.pdwIndices;
-    pLocalAccounts->dwCount      = dwLocalSidsNum;
-    pLocalAccounts->ppSids       = LocalAccounts.ppSids;
-    pLocalAccounts->pdwIndices   = LocalAccounts.pdwIndices;
-    pBuiltinAccounts->dwCount    = dwBuiltinSidsNum;
-    pBuiltinAccounts->ppSids     = BuiltinAccounts.ppSids;
-    pBuiltinAccounts->pdwIndices = BuiltinAccounts.pdwIndices;
-
-
-cleanup:
-    LsaSrvSamDomainEntryFree(&pLocalDomain);
-    LsaSrvSamDomainEntryFree(&pBuiltinDomain);
 
     return ntStatus;
 
 error:
-    LsaSrvFreeAccountSids(&DomainAccounts);
-    LsaSrvFreeAccountSids(&LocalAccounts);
-    LsaSrvFreeAccountSids(&BuiltinAccounts);
+    LsaSrvFreeAccountNames(pAccountNames);
 
     goto cleanup;
 }
@@ -473,33 +320,216 @@ error:
 
 VOID
 LsaSrvFreeAccountNames(
-    PACCOUNT_NAMES pAccountNames
+    PACCOUNT_NAMES pAccounts
     )
 {
+    DWORD iType = 0;
+    DWORD iTypesNum = LSA_ACCOUNT_TYPE_SENTINEL;
     DWORD iName = 0;
 
-    for (iName = 0; iName < pAccountNames->dwCount; iName++)
+    for (iType = 0; iType < iTypesNum; iType++)
     {
-        LsaSrvFreeMemory(pAccountNames->ppwszNames[iName]);
+        for (iName = 0;
+             iName < pAccounts[iType].dwCount;
+             iName++)
+       {
+            PWSTR pwszName = pAccounts[iType].ppwszNames[iName];
+            LW_SAFE_FREE_MEMORY(pwszName);
+        }
+
+        LW_SAFE_FREE_MEMORY(pAccounts[iType].ppwszNames);
+        LW_SAFE_FREE_MEMORY(pAccounts[iType].pdwIndices);
     }
 
-    LsaSrvFreeMemory(pAccountNames->ppwszNames);
+    LW_SAFE_FREE_MEMORY(pAccounts);
+}
+
+
+NTSTATUS
+LsaSrvSelectAccountsByDomainSid(
+    PPOLICY_CONTEXT   pPolCtx,
+    SidArray         *pSids,
+    DWORD             dwNumSids,
+    PACCOUNT_SIDS    *ppAccountSids
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD i = 0;
+    PSID pSid = NULL;
+    ACCOUNT_SIDS DomainAccounts = {0};
+    ACCOUNT_SIDS ForDomainAccounts = {0};
+    ACCOUNT_SIDS LocalAccounts = {0};
+    ACCOUNT_SIDS BuiltinAccounts = {0};
+    DWORD dwDomainSidsNum = 0;
+    DWORD dwForDomainSidsNum = 0;
+    DWORD dwLocalSidsNum = 0;
+    DWORD dwBuiltinSidsNum = 0;
+    PACCOUNT_SIDS pAccountSids = NULL;
+    DWORD dwAccountTypesNum = LSA_ACCOUNT_TYPE_SENTINEL;
+    PSID pBuiltinDomainSid = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pAccountSids) * dwAccountTypesNum,
+                               OUT_PPVOID(&pAccountSids));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(DomainAccounts.ppSids[0]) * dwNumSids,
+                               OUT_PPVOID(&DomainAccounts.ppSids));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*DomainAccounts.pdwIndices) * dwNumSids,
+                               OUT_PPVOID(&DomainAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memset(DomainAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumSids);
+
+    dwError = LwAllocateMemory(sizeof(ForDomainAccounts.ppSids[0]) * dwNumSids,
+                               OUT_PPVOID(&ForDomainAccounts.ppSids));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*ForDomainAccounts.pdwIndices) * dwNumSids,
+                               OUT_PPVOID(&ForDomainAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memset(ForDomainAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumSids);
+
+    dwError = LwAllocateMemory(sizeof(LocalAccounts.ppSids[0]) * dwNumSids,
+                               OUT_PPVOID(&LocalAccounts.ppSids));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*LocalAccounts.pdwIndices) * dwNumSids,
+                               OUT_PPVOID(&LocalAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memset(LocalAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumSids);
+
+    dwError = LwAllocateMemory(sizeof(BuiltinAccounts.ppSids[0]) * dwNumSids,
+                               OUT_PPVOID(&BuiltinAccounts.ppSids));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(*BuiltinAccounts.pdwIndices) * dwNumSids,
+                               OUT_PPVOID(&BuiltinAccounts.pdwIndices));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    memset(BuiltinAccounts.pdwIndices, -1, sizeof(DWORD) * dwNumSids);
+
+    dwError = LwCreateWellKnownSid(WinBuiltinDomainSid,
+                                   NULL,
+                                   &pBuiltinDomainSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (i = 0; i < dwNumSids; i++)
+    {
+        pSid = pSids->sids[i].sid;
+
+        if (pPolCtx->pDomainSid &&
+            RtlIsPrefixSid(pPolCtx->pDomainSid, pSid))
+        {
+            /*
+             * Domain accounts (only if LSASS is a domain member)
+             */
+            ntStatus = RtlDuplicateSid(
+                                &DomainAccounts.ppSids[dwDomainSidsNum],
+                                pSid);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+            DomainAccounts.pdwIndices[dwDomainSidsNum++] = i;
+            DomainAccounts.dwCount = dwDomainSidsNum;
+        }
+        else if (RtlIsPrefixSid(pPolCtx->pLocalDomainSid,
+                                pSid))
+        {
+            /*
+             * Local (MACHINE) domain accounts
+             */
+            ntStatus = RtlDuplicateSid(
+                                &LocalAccounts.ppSids[dwLocalSidsNum],
+                                pSid);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+            LocalAccounts.pdwIndices[dwLocalSidsNum++] = i;
+            LocalAccounts.dwCount = dwLocalSidsNum;
+        }
+        else if (RtlIsPrefixSid(pBuiltinDomainSid,
+                                pSid))
+        {
+            /*
+             * BUILTIN domain accounts
+             */
+            ntStatus = RtlDuplicateSid(
+                                &BuiltinAccounts.ppSids[dwBuiltinSidsNum],
+                                pSid);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+            BuiltinAccounts.pdwIndices[dwBuiltinSidsNum++] = i;
+            BuiltinAccounts.dwCount = dwBuiltinSidsNum;
+        }
+        else if (pPolCtx->pDomainSid)
+        {
+            /*
+             * Foreign (or any other we going to ask other DCs about)
+             * domain accounts. Only considered if LSASS is a domain member.
+             */
+            ntStatus = RtlDuplicateSid(
+                                &ForDomainAccounts.ppSids[dwForDomainSidsNum],
+                                pSid);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+            ForDomainAccounts.pdwIndices[dwForDomainSidsNum++] = i;
+            ForDomainAccounts.dwCount = dwForDomainSidsNum;
+        }
+    }
+
+    pAccountSids[LSA_DOMAIN_ACCOUNTS]         = DomainAccounts;
+    pAccountSids[LSA_FOREIGN_DOMAIN_ACCOUNTS] = ForDomainAccounts;
+    pAccountSids[LSA_LOCAL_DOMAIN_ACCOUNTS]   = LocalAccounts;
+    pAccountSids[LSA_BUILTIN_DOMAIN_ACCOUNTS] = BuiltinAccounts;
+
+    *ppAccountSids = pAccountSids;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pBuiltinDomainSid);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(ntStatus);
+    }
+
+    return ntStatus;
+
+error:
+    LsaSrvFreeAccountSids(pAccountSids);
+
+    goto cleanup;
 }
 
 
 VOID
 LsaSrvFreeAccountSids(
-    PACCOUNT_SIDS pAccountSids
+    PACCOUNT_SIDS pAccounts
     )
 {
+    DWORD iType = 0;
+    DWORD iTypesNum = LSA_ACCOUNT_TYPE_SENTINEL;
     DWORD iSid = 0;
 
-    for (iSid = 0; iSid < pAccountSids->dwCount; iSid++)
+    for (iType = 0; iType < iTypesNum; iType++)
     {
-        RTL_FREE(&pAccountSids->ppSids[iSid]);
+        for (iSid = 0;
+             iSid < pAccounts[iType].dwCount;
+             iSid++)
+        {
+            PSID pSid = pAccounts[iType].ppSids[iSid];
+            RTL_FREE(&pSid);
+        }
+
+        LW_SAFE_FREE_MEMORY(pAccounts[iType].ppSids);
+        LW_SAFE_FREE_MEMORY(pAccounts[iType].pdwIndices);
     }
 
-    LsaSrvFreeMemory(&pAccountSids->ppSids);
+    LW_SAFE_FREE_MEMORY(pAccounts);
 }
 
 

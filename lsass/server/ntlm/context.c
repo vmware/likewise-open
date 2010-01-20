@@ -161,6 +161,11 @@ NtlmFreeContext(
     }
     LW_SAFE_FREE_MEMORY(pContext->pdwRecvMsgSeq);
 
+    if (pContext->pUserInfo)
+    {
+        LsaFreeAuthUserInfo(&pContext->pUserInfo);
+    }
+
     LW_SAFE_FREE_MEMORY(pContext);
     *ppContext = NULL;
 }

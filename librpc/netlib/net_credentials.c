@@ -138,17 +138,38 @@ NetCreateNtlmCredentialsW(
     NET_CREDS_HANDLE  *phCreds
     )
 {
-    DWORD err = ERROR_NOT_SUPPORTED;
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    DWORD err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    LW_PIO_CREDS pCreds = NULL;
 
+    BAIL_ON_INVALID_PTR(pwszUsername);
+    BAIL_ON_INVALID_PTR(pwszPassword);
+    BAIL_ON_INVALID_PTR(pwszDomainName);
     BAIL_ON_INVALID_PTR(phCreds);
 
-    *phCreds = NULL;
+    status = LwIoCreatePlainCredsW(pwszUsername,
+                                   pwszDomainName,
+                                   pwszPassword,
+                                   &pCreds);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *phCreds = pCreds;
 
 cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(status);
+    }
+
     return err;
 
 error:
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     goto cleanup;
 }
 
@@ -162,17 +183,38 @@ NetCreateNtlmCredentialsA(
     NET_CREDS_HANDLE  *phCreds
     )
 {
-    DWORD err = ERROR_NOT_SUPPORTED;
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    DWORD err = ERROR_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+    LW_PIO_CREDS pCreds = NULL;
 
+    BAIL_ON_INVALID_PTR(pszUsername);
+    BAIL_ON_INVALID_PTR(pszPassword);
+    BAIL_ON_INVALID_PTR(pszDomainName);
     BAIL_ON_INVALID_PTR(phCreds);
 
-    *phCreds = NULL;
+    status = LwIoCreatePlainCredsA(pszUsername,
+                                   pszDomainName,
+                                   pszPassword,
+                                   &pCreds);
+    BAIL_ON_NTSTATUS_ERROR(status);
+
+    *phCreds = pCreds;
 
 cleanup:
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(status);
+    }
+
     return err;
 
 error:
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     goto cleanup;
 }
 

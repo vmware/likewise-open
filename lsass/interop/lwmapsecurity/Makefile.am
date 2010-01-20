@@ -17,7 +17,8 @@ liblwmapsecurity_lsass_la_CPPFLAGS = \
 liblwmapsecurity_lsass_la_LIBADD = \
 	$(top_builddir)/client/liblsaclient.la \
 	$(LWMAPSECURITY_LIBS) \
-	$(LWBASE_NOTHR_LIBS)
+	$(LWBASE_NOTHR_LIBS) \
+	@NETAPI_LIBS@
 
 liblwmapsecurity_lsass_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -36,7 +37,8 @@ liblwmapsecurity_internal_lsass_la_CPPFLAGS = \
 	-I$(top_srcdir)/server/include
 
 liblwmapsecurity_internal_lsass_la_LIBADD = \
-	$(LWBASE_NOTHR_LIBS)
+	$(LWBASE_NOTHR_LIBS) \
+	@NETAPI_LIBS@
 
 liblwmapsecurity_internal_lsass_la_LDFLAGS = \
 	$(AM_LDFLAGS)

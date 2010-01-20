@@ -52,12 +52,80 @@ POLICY_HANDLE_rundown(
     void *hContext
     )
 {
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PPOLICY_CONTEXT pPolCtx = (PPOLICY_CONTEXT)hContext;
 
     InterlockedDecrement(&pPolCtx->refcount);
+    if (pPolCtx->refcount > 1) return;
+
+    /*
+     * Close local SAM domain handle
+     */
+    if (pPolCtx->bCleanClose &&
+        pPolCtx->hSamrBinding &&
+        pPolCtx->hLocalDomain)
+    {
+        ntStatus = SamrClose(pPolCtx->hSamrBinding,
+                             pPolCtx->hLocalDomain);
+
+        pPolCtx->hLocalDomain = NULL;
+    }
+
+    /*
+     * Close builtin SAM domain handle and close
+     * the samr rpc server connection
+     */
+    if (pPolCtx->bCleanClose &&
+        pPolCtx->hSamrBinding &&
+        pPolCtx->hBuiltinDomain)
+    {
+        ntStatus = SamrClose(pPolCtx->hSamrBinding,
+                             pPolCtx->hBuiltinDomain);
+
+        pPolCtx->hBuiltinDomain = NULL;
+    }
+
+    if (pPolCtx->bCleanClose &&
+        pPolCtx->hSamrBinding &&
+        pPolCtx->hConn)
+    {
+        ntStatus = SamrClose(pPolCtx->hSamrBinding,
+                             pPolCtx->hConn);
+
+        pPolCtx->hConn = NULL;
+    }
+
+    if (pPolCtx->bCleanClose &&
+        pPolCtx->hSamrBinding)
+    {
+        FreeSamrBinding(&pPolCtx->hSamrBinding);
+        pPolCtx->hSamrBinding = NULL;
+    }
+
+    /*
+     * Free domain connections cache
+     */
+    if (pPolCtx->pDomains)
+    {
+        LsaSrvDestroyDomainsTable(pPolCtx->pDomains,
+                                  pPolCtx->bCleanClose);
+        pPolCtx->pDomains = NULL;
+    }
+
+    pPolCtx->bCleanClose = FALSE;
+
+    /*
+     * Free access token
+     */
+    LsaSrvFreeAuthInfo(pPolCtx);
+
     if (pPolCtx->refcount) return;
 
-    LsaSrvFreeAuthInfo(pPolCtx);
+    RTL_FREE(&pPolCtx->pLocalDomainSid);
+    LW_SAFE_FREE_MEMORY(pPolCtx->pwszLocalDomainName);
+    LW_SAFE_FREE_MEMORY(pPolCtx->pwszDomainName);
+    RTL_FREE(&pPolCtx->pDomainSid);
+    LW_SAFE_FREE_MEMORY(pPolCtx->pwszDcName);
 }
 
 

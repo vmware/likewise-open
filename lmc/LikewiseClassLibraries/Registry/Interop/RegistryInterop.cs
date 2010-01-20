@@ -154,7 +154,7 @@ namespace Likewise.LMC.Registry
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct FILETIME
+        public class FILETIME
         {
             public long dwLowDateTime;
             public long dwHighDateTime;
@@ -314,11 +314,11 @@ namespace Likewise.LMC.Registry
             IntPtr hKey,
             uint dwIndex,
             [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pName,
-            out uint pcName,
-            uint pReserved,
-            [MarshalAs(UnmanagedType.LPWStr)] ref string pClass,
-            ref long pcClass,
-            out RegistryApi.FILETIME pftLastWriteTime);
+            ref uint pcName,
+            IntPtr pReserved,
+            [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pClass,
+            ref uint pcClass,
+            RegistryApi.FILETIME pftLastWriteTime);
 
         //DWORD
         //RegEnumValue(

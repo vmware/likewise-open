@@ -245,17 +245,13 @@ namespace Likewise.LMC.Registry
             {
                 while (idx < dwSubKeyCount)
                 {
-                    long pcClass = 0;
+                    uint pcClass = (uint)MAX_KEY_LENGTH;
                     string sValue = string.Empty;
-                    string classname = string.Empty;
-                    RegistryApi.FILETIME lastWriteTime;
+                    RegistryApi.FILETIME lastWriteTime = null;
                     RegistryEnumKeyInfo KeyInfo = new RegistryEnumKeyInfo();
                     StringBuilder pNameBuf = new StringBuilder(MAX_KEY_LENGTH);
+                    StringBuilder pClassBuf = new StringBuilder(MAX_KEY_LENGTH);
                     uint pcName = (uint)MAX_KEY_LENGTH;
-
-                    /*IntPtr pFileTime = IntPtr.Zero;
-                    pFileTime = Marshal.AllocHGlobal(Marshal.SizeOf(lastWriteTime));
-                    Marshal.StructureToPtr(lastWriteTime, pFileTime, false);*/
 
                     KeyInfo.initializeToNull();
 
@@ -270,11 +266,11 @@ namespace Likewise.LMC.Registry
                                             pParentKey,
                                             idx,
                                             pNameBuf,
-                                            out pcName,
-                                            0,
-                                            ref classname,
+                                            ref pcName,
+                                            IntPtr.Zero,
+                                            pClassBuf,
                                             ref pcClass,
-                                            out lastWriteTime);
+                                            null);
                     if (iResult != 0)
                     {
                         Logger.Log(string.Format("RegistryInteropWrapper.RegEnumKeyExW is returns ret={0}", iResult), Logger.RegistryViewerLoglevel);
@@ -294,7 +290,7 @@ namespace Likewise.LMC.Registry
                     KeyInfo.nameSize = pcName;
                     KeyInfo.sKeyname = pNameBuf.ToString().Substring(pNameBuf.ToString().IndexOf(@"\") + 1);
                     KeyInfo.OrigKey = pNameBuf.ToString();
-                    KeyInfo.sClassName = classname;
+                    KeyInfo.sClassName = pClassBuf.ToString();
                     KeyInfo.filetime = lastWriteTime;
 
                     enumKeys.Add(KeyInfo);

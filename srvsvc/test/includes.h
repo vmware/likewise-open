@@ -13,6 +13,7 @@
 #include <lw/base.h>
 #include <lw/ntstatus.h>
 #include <lw/winerror.h>
+#include <lwmem.h>
 #include <lwstr.h>
 #include <lwio/lwio.h>
 

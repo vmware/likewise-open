@@ -111,6 +111,7 @@ LsaLookupNames3(
 
     *ppSids    = pOutSids;
     *ppDomList = pOutDomains;
+    *Count     = sid_array.count;
 
 cleanup:
     FreeUnicodeStringExArray(pLsaNames, NumNames);

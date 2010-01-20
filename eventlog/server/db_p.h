@@ -130,6 +130,12 @@ SrvEventLogCountOlderThan(
     );
 
 DWORD
+SrvLimitDatabaseSize(
+    HANDLE hDB,
+    DWORD dwMaxLogSize
+    );
+
+DWORD
 SrvDeleteIfCountExceeds(
     HANDLE hDB,
     DWORD  dwOlderThan

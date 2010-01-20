@@ -50,6 +50,7 @@
 #include <lw/winerror.h>
 #include <wc16str.h>
 #include <lwio/io-types.h>
+#include <lwmem.h>
 
 #include <srvsvc/srvsvc.h>
 #include <memptr.h>

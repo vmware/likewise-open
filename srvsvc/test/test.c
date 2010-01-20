@@ -96,7 +96,7 @@ int StartTest(struct test *t, const wchar16_t *hostname,
 {
     int ret;
 
-    if (t == NULL || hostname == NULL) return -1;
+    if (t == NULL) return -1;
 
     ret = t->function(t, hostname, username, password,
 		      options, optcount);
@@ -202,89 +202,9 @@ int main(int argc, char *argv[])
     tests->function = NULL;
     tests->next     = NULL;
 
-    if (host == NULL) {
-        printf("Error: no hostname specified\n\n");
-        display_usage();
-        return -1;
+    if (host) {
+        hostname = ambstowc16s(host);
     }
-
-    hostname = ambstowc16s(host);
-    if (host && hostname == NULL) {
-        printf("Failed to allocate hostname\n");
-        goto done;
-    }
-
-#if 0
-    pCreds = malloc(sizeof(UserCreds));
-    if (pCreds == NULL) {
-        printf("Failed to allocate UserCreds\n");
-        goto done;
-    }
-
-    memset(pCreds, 0, sizeof(*pCreds));
-
-    if (user) {
-        pCreds->username = malloc(strlen(user) + 1);
-        if (pCreds->username == NULL) {
-            printf("Failed to allocate username for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->username, user);
-    }
-
-    if (pass) {
-        pCreds->password = malloc(strlen(pass) + 1);
-        if (pCreds->password == NULL) {
-            printf("Failed to allocate password for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->password, pass);
-    }
-
-    if (dom) {
-        pCreds->domain = malloc(strlen(dom) + 1);
-        if (pCreds->domain == NULL) {
-            printf("Failed to allocate domain for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->domain, dom);
-    }
-
-    if (wks) {
-        pCreds->workstation = malloc(strlen(wks) + 1);
-        if (pCreds->workstation == NULL) {
-            printf("Failed to allocate workstation for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->workstation, wks);
-    }
-
-    if (princ) {
-        pCreds->principal = malloc(strlen(princ) + 1);
-        if (pCreds->principal == NULL) {
-            printf("Failed to allocate principal for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->principal, princ);
-    }
-
-    if (cache) {
-        pCreds->ccache = malloc(strlen(cache) + 1);
-        if (pCreds->ccache == NULL) {
-            printf("Failed to allocate credentials cache for user credentials\n");
-            goto done;
-        }
-
-        strcpy(pCreds->ccache, cache);
-    }
-
-    pCreds->use_kerberos = krb5_auth;
-#endif
 
     if (user && pass) {
         dwError = NetCreateNtlmCredentialsA(user,

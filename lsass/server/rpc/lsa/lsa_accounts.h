@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,62 +28,63 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
-
-
-NET_API_STATUS
-NetrShareGetInfo(
-    IN  handle_t     hBinding,
-    IN  PWSTR        pwszServername,
-    IN  PWSTR        pwszNetname,
-    IN  DWORD        dwLevel,
-    OUT PVOID       *ppBuffer
-    )
-{
-    NET_API_STATUS err = ERROR_SUCCESS;
-    srvsvc_NetShareInfo Info;
-    PVOID pBuffer = NULL;
-
-    BAIL_ON_INVALID_PTR(hBinding, err);
-    BAIL_ON_INVALID_PTR(pwszNetname, err);
-    BAIL_ON_INVALID_PTR(ppBuffer, err);
-
-    memset(&Info, 0, sizeof(Info));
-
-    DCERPC_CALL(err,
-                _NetrShareGetInfo(hBinding,
-                                  pwszServername,
-                                  pwszNetname,
-                                  dwLevel,
-                                  &Info));
-
-    err = SrvSvcCopyNetShareInfo(dwLevel, &Info, &pBuffer);
-    BAIL_ON_WIN_ERROR(err);
-
-    *ppBuffer = pBuffer;
-
-cleanup:
-    SrvSvcClearNetShareInfo(dwLevel, &Info);
-
-    return err;
-
-error:
-    if (pBuffer)
-    {
-        SrvSvcFreeMemory(pBuffer);
-    }
-
-    *ppBuffer = NULL;
-
-    goto cleanup;
-}
-
-
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsa_accounts.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        Accounts selection functions (by name or SID) for use before
+ *        doing lookups in remote lsa or local samr rpc servers
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+#ifndef _LSASRV_ACCOUNTS_H_
+#define _LSASRV_ACCOUNTS_H_
+
+
+NTSTATUS
+LsaSrvParseAccountName(
+    PWSTR pwszName,
+    PWSTR *ppwszDomainName,
+    PWSTR *ppwszAcctName
+    );
+
+
+NTSTATUS
+LsaSrvSelectAccountsByDomainName(
+    PPOLICY_CONTEXT   pPolCtx,
+    UnicodeStringEx  *pNames,
+    DWORD             dwNumNames,
+    PACCOUNT_NAMES   *ppAccountNames
+    );
+
+
+NTSTATUS
+LsaSrvSelectAccountsByDomainSid(
+    PPOLICY_CONTEXT   pPolCtx,
+    SidArray         *pSids,
+    DWORD             dwNumSids,
+    PACCOUNT_SIDS    *ppAccountSids
+    );
+
+
+VOID
+LsaSrvFreeAccountNames(
+    PACCOUNT_NAMES pAccountNames
+    );
+
+
+VOID
+LsaSrvFreeAccountSids(
+    PACCOUNT_SIDS pAccountSids
+    );
+
+
+#endif /* _LSASRV_ACCOUNTS_H_ */

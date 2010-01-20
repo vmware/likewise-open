@@ -741,55 +741,24 @@ INTERNAL void rpc__gssauth_inq_access_token(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PLW_MAP_SECURITY_CONTEXT context = NULL;
-    OM_uint32 minor_status = 0;
-    int gss_rc = 0;
     rpc_gssauth_info_p_t gssauth_info = NULL;
     rpc_gssauth_cn_info_p_t gssauth_cn_info = NULL;
-    gss_name_t src = GSS_C_NO_NAME;
-    gss_OID src_type = GSS_C_NULL_OID;
-    gss_buffer_desc src_name = GSS_C_EMPTY_BUFFER;
-    PSTR principal = NULL;
 
     gssauth_info = (rpc_gssauth_info_p_t)auth_info;
     gssauth_cn_info = gssauth_info->cn_info;
 
-    gss_rc = gss_inquire_context(
-        &minor_status,
-        gssauth_cn_info->gss_ctx,
-        &src,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL);
-    if (gss_rc != GSS_S_COMPLETE) goto error;
-
-    gss_rc = gss_display_name(&minor_status, src, &src_name, &src_type);
-    if (gss_rc != GSS_S_COMPLETE) goto error;
-
     status = LwMapSecurityCreateContext(&context);
     if (status) goto error;
 
-    status = LwMapSecurityCreateAccessTokenFromCStringUsername(
+    status = LwMapSecurityCreateAccessTokenFromGssContext(
         context,
         token,
-        src_name.value);
+        gssauth_cn_info->gss_ctx);
     if (status) goto error;
 
     *stp = rpc_s_ok;
 
 cleanup:
-
-    if (src_name.value)
-    {
-        gss_release_buffer(&minor_status, &src_name);
-    }
-
-    if (src)
-    {
-        gss_release_name(&minor_status, &src);
-    }
 
     return;
 

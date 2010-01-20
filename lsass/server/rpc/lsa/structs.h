@@ -29,7 +29,7 @@
  *
  * Module Name:
  *
- *        structs.c
+ *        structs.h
  *
  * Abstract:
  *
@@ -45,32 +45,56 @@
 
 
 /*
- * SAM domains cache types
+ * Domain cache entry types
  */
 typedef enum {
-    eSamDomainSid   = 1,
-    eSamDomainName
+    eDomainSid   = 1,
+    eDomainName
 
-} SAM_DOMAIN_KEY_TYPE;
+} DOMAIN_KEY_TYPE;
 
 
-typedef struct _SAM_DOMAIN_KEY
+typedef struct _DOMAIN_KEY
 {
-    SAM_DOMAIN_KEY_TYPE eType;
-    PSID                pSid;
-    PWSTR               pwszName;
+    DOMAIN_KEY_TYPE  eType;
+    PSID             pSid;
+    PWSTR            pwszName;
 
-} SAM_DOMAIN_KEY, *PSAM_DOMAIN_KEY;
+} DOMAIN_KEY, *PDOMAIN_KEY;
 
 
-typedef struct _SAMR_DOMAIN
+typedef struct _DOMAIN_ENTRY
 {
-    PWSTR         pwszName;
-    PSID          pSid;
-    BOOLEAN       bLocal;
-    DOMAIN_HANDLE hDomain;
+    PWSTR          pwszName;
+    PSID           pSid;
+    handle_t       hLsaBinding;
+    POLICY_HANDLE  hPolicy;
 
-} SAM_DOMAIN_ENTRY, *PSAM_DOMAIN_ENTRY;
+} DOMAIN_ENTRY, *PDOMAIN_ENTRY;
+
+
+/*
+ * Account names to lookup
+ */
+typedef struct _ACCOUNT_NAMES
+{
+    PWSTR  *ppwszNames;
+    PDWORD  pdwIndices;
+    DWORD   dwCount;
+
+} ACCOUNT_NAMES, *PACCOUNT_NAMES;
+
+
+/*
+ * Account sids to lookup
+ */
+typedef struct _ACCOUNT_SIDS
+{
+    PSID   *ppSids;
+    PDWORD  pdwIndices;
+    DWORD   dwCount;
+
+} ACCOUNT_SIDS, *PACCOUNT_SIDS;
 
 
 #endif /* _LSASRV_STRUCTS_H_ */

@@ -310,23 +310,42 @@ NetShareEnum(
 
 
 NET_API_STATUS
+NetrShareGetInfo(
+    IN  handle_t  hBinding,
+    IN  PWSTR     pwszServername,
+    IN  PWSTR     pwszNetname,
+    IN  DWORD     dwLevel,
+    OUT PVOID    *ppBuffer
+    );
+
+
+NET_API_STATUS
 NetShareGetInfo(
-    handle_t b,
-    const wchar16_t *servername,
-    const wchar16_t *netname,
-    UINT32 level,
-    UINT8 **bufptr
+    IN  PCWSTR    pwszServername,
+    IN  PCWSTR    pwszNetname,
+    IN  DWORD     dwLevel,
+    OUT PVOID    *ppBuffer
+    );
+
+
+NET_API_STATUS
+NetrShareSetInfo(
+    IN  handle_t  hBinding,
+    IN  PWSTR     pwszServername,
+    IN  PWSTR     pwszNetname,
+    IN  DWORD     dwLevel,
+    IN  PVOID     pBuffer,
+    OUT PDWORD    pdwParmErr
     );
 
 
 NET_API_STATUS
 NetShareSetInfo(
-    handle_t b,
-    const wchar16_t *servername,
-    const wchar16_t *netname,
-    UINT32 level,
-    UINT8 *bufptr,
-    UINT32 *parm_err
+    IN  PCWSTR    pwszServername,
+    IN  PCWSTR    pwszNetname,
+    IN  DWORD     dwLevel,
+    IN  PVOID     pBuffer,
+    OUT PDWORD    pdwParmErr
     );
 
 

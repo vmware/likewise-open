@@ -79,12 +79,16 @@ LsaSrvOpenPolicy2(
     DWORD dwResume = 0;
     DWORD dwMaxSize = -1;
     DWORD dwCount = 0;
-    PWSTR *ppwszLocalDomainNames = NULL;
+    PWSTR *ppwszDomainNames = NULL;
     DWORD i = 0;
     PWSTR pwszDomainName = NULL;
+    DWORD dwSidLength = 0;
     PSID pDomainSid = NULL;
     DOMAIN_HANDLE hDomain = (DOMAIN_HANDLE)NULL;
-    SAM_DOMAIN_ENTRY Domain = {0};
+    PSTR pszDomainFqdn = NULL;
+    PSTR pszDcFqdn = NULL;
+    HANDLE hPassStore = NULL;
+    PLWPS_PASSWORD_INFO pPassInfo = NULL;
 
     dwError = LwAllocateMemory(sizeof(*pPolCtx),
                                OUT_PPVOID(&pPolCtx));
@@ -108,9 +112,6 @@ LsaSrvOpenPolicy2(
     }
 
     pPolCtx->dwAccessGranted = dwAccessGranted;
-
-    ntStatus = LsaSrvCreateSamDomainsTable(&pPolCtx->pDomains);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /*
      * Connect samr rpc server and get basic domain info
@@ -152,14 +153,13 @@ LsaSrvOpenPolicy2(
                                hConn,
                                &dwResume,
                                dwMaxSize,
-                               &ppwszLocalDomainNames,
+                               &ppwszDomainNames,
                                &dwCount);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     for (i = 0; i < dwCount; i++)
     {
-        pwszDomainName = ppwszLocalDomainNames[i];
-        memset(&Domain, 0, sizeof(Domain));
+        pwszDomainName = ppwszDomainNames[i];
 
         ntStatus = SamrLookupDomain(hSamrBinding,
                                     hConn,
@@ -174,18 +174,90 @@ LsaSrvOpenPolicy2(
                                   &hDomain);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-        Domain.pwszName = pwszDomainName;
-        Domain.pSid     = pDomainSid;
-        Domain.bLocal   = TRUE;
-        Domain.hDomain  = hDomain;
+        if (pDomainSid &&
+            pDomainSid->SubAuthorityCount == 1)
+        {
+            pPolCtx->hBuiltinDomain = hDomain;
+        }
+        else if (pDomainSid)
+        {
+            pPolCtx->hLocalDomain = hDomain;
 
-        ntStatus = LsaSrvSetSamDomain(pPolCtx,
-                                      &Domain);
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            dwError = LwAllocateWc16String(&pPolCtx->pwszLocalDomainName,
+                                           pwszDomainName);
+            BAIL_ON_LSA_ERROR(dwError);
 
-        SamrFreeMemory(pDomainSid);
-        pDomainSid = NULL;
+            dwSidLength = RtlLengthSid(pDomainSid);
+            dwError = LwAllocateMemory(dwSidLength,
+                                       OUT_PPVOID(&pPolCtx->pLocalDomainSid));
+            BAIL_ON_LSA_ERROR(dwError);
+
+            ntStatus = RtlCopySid(dwSidLength,
+                                  pPolCtx->pLocalDomainSid,
+                                  pDomainSid);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        if (pDomainSid)
+        {
+            SamrFreeMemory(pDomainSid);
+            pDomainSid = NULL;
+        }
     }
+
+    dwError = LWNetGetCurrentDomain(&pszDomainFqdn);
+    if (dwError == ERROR_SUCCESS)
+    {
+        /*
+         * LSASS is a domain member so get some basic information
+         * about the domain
+         */
+        dwError = LWNetGetDomainController(pszDomainFqdn,
+                                           &pszDcFqdn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwMbsToWc16s(pszDcFqdn,
+                               &pPolCtx->pwszDcName);
+        BAIL_ON_LSA_ERROR(dwError)
+
+            dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT,
+                                            &hPassStore);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwpsGetPasswordByCurrentHostName(
+                                            hPassStore,
+                                            &pPassInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (pPassInfo)
+        {
+            dwError = LwAllocateWc16String(&pPolCtx->pwszDomainName,
+                                           pPassInfo->pwszDomainName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            ntStatus = RtlAllocateSidFromWC16String(&pPolCtx->pDomainSid,
+                                                    pPassInfo->pwszSID);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+    }
+    else if (dwError == ERROR_NOT_JOINED)
+    {
+        /*
+         * LSASS is a standalone server
+         */
+        dwError = ERROR_SUCCESS;
+
+        pPolCtx->pwszDcName     = NULL;
+        pPolCtx->pwszDomainName = NULL;
+        pPolCtx->pDomainSid     = NULL;
+    }
+    else
+    {
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    ntStatus = LsaSrvCreateDomainsTable(&pPolCtx->pDomains);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     /* Increase ref count because DCE/RPC runtime is about to use this
        pointer as well */
@@ -199,9 +271,30 @@ cleanup:
         SamrFreeMemory(pDomainSid);
     }
 
-    if (ppwszLocalDomainNames)
+    if (ppwszDomainNames)
     {
-        SamrFreeMemory(ppwszLocalDomainNames);
+        SamrFreeMemory(ppwszDomainNames);
+    }
+
+    if (pszDcFqdn)
+    {
+        LWNetFreeString(pszDcFqdn);
+    }
+
+    if (pszDomainFqdn)
+    {
+        LWNetFreeString(pszDomainFqdn);
+    }
+
+    if (hPassStore && pPassInfo)
+    {
+        LwpsFreePasswordInfo(hPassStore,
+                             pPassInfo);
+    }
+
+    if (hPassStore)
+    {
+        LwpsClosePasswordStore(hPassStore);
     }
 
     LW_SAFE_FREE_MEMORY(pwszSystemName);

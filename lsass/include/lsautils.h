@@ -88,7 +88,7 @@
     do { \
         if ((err) != STATUS_SUCCESS) { \
             LSA_LOG_DEBUG("Error at %s:%d [code: %d]", \
-                            __FILE__, __LINE__, dwError); \
+                          __FILE__, __LINE__, (err));  \
 		    goto error; \
 	    } \
     } while (0);

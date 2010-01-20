@@ -47,6 +47,21 @@
 
 #include "ntlmsrvapi.h"
 
+static
+DWORD
+NtlmServerQueryCtxtPacLogonInfoAttribute(
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    OUT PSecPkgContext_PacLogonInfo *ppLogonInfo
+    );
+
+static
+DWORD
+NtlmServerMarshalUserInfoToEncodedPac(
+    IN PLSA_AUTH_USER_INFO pUserInfo,
+    OUT PDWORD pdwEncodedPacSize,
+    OUT PBYTE* ppEncodedPac
+    );
+
 DWORD
 NtlmServerQueryContextAttributes(
     IN PNTLM_CONTEXT_HANDLE phContext,
@@ -75,6 +90,12 @@ NtlmServerQueryContextAttributes(
         dwError = NtlmServerQueryCtxtSizeAttribute(
             phContext,
             &pContext->pSizes);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    case SECPKG_ATTR_PAC_LOGON_INFO:
+        dwError = NtlmServerQueryCtxtPacLogonInfoAttribute(
+            phContext,
+            &pContext->pLogonInfo);
         BAIL_ON_LSA_ERROR(dwError);
         break;
     case SECPKG_ATTR_ACCESS_TOKEN:
@@ -194,6 +215,59 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+NtlmServerQueryCtxtPacLogonInfoAttribute(
+    IN PNTLM_CONTEXT_HANDLE phContext,
+    OUT PSecPkgContext_PacLogonInfo *ppLogonInfo
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    NTLM_STATE State = NtlmStateBlank;
+    PBYTE pKey = NULL;
+    PSecPkgContext_PacLogonInfo pLogonInfo = NULL;
+
+    *ppLogonInfo = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pLogonInfo), OUT_PPVOID(&pLogonInfo));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    NtlmGetContextInfo(
+        *phContext,
+        &State,
+        NULL,
+        &pKey,
+        NULL);
+
+    if (State != NtlmStateResponse)
+    {
+        dwError = LW_ERROR_INVALID_CONTEXT;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = NtlmServerMarshalUserInfoToEncodedPac(
+        ((PNTLM_CONTEXT) *phContext)->pUserInfo,
+        &pLogonInfo->LogonInfoLength,
+        &pLogonInfo->pLogonInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppLogonInfo = pLogonInfo;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    if (pLogonInfo)
+    {
+        LW_SAFE_FREE_MEMORY(pLogonInfo->pLogonInfo);
+        LW_SAFE_FREE_MEMORY(pLogonInfo);
+    }
+
+    goto cleanup;
+}
+
 DWORD
 NtlmServerQueryCtxtSizeAttribute(
     IN PNTLM_CONTEXT_HANDLE phContext,
@@ -229,3 +303,191 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+NtlmSetUnicodeStringEx(
+    UnicodeStringEx* pUnicode,
+    PCSTR pszStr
+    )
+{
+    DWORD dwError = 0;
+    size_t len = 0;
+
+    if (pszStr)
+    {
+        dwError = LwMbsToWc16s(pszStr, &pUnicode->string);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwWc16sLen(pUnicode->string, &len);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pUnicode->len = (UINT16) (len * sizeof(WCHAR));
+        pUnicode->size = (UINT16) ((len + 1) * sizeof(WCHAR));
+    }
+
+error:
+
+    return dwError;
+}
+
+static
+VOID
+NtlmFreeUnicodeStringEx(
+    UnicodeStringEx* pUnicode
+    )
+{
+    if (pUnicode->string)
+    {
+        LwFreeMemory(pUnicode->string);
+    }
+
+    memset(pUnicode, 0, sizeof(*pUnicode));
+}
+
+static
+VOID
+NtlmSetWinNtTime(
+    WinNtTime* pTime,
+    INT64 time
+    )
+{
+    pTime->high = (time >> 32);
+    pTime->low = time & 0xFFFFFFFF;
+}
+
+static
+DWORD
+NtlmServerMarshalUserInfoToEncodedPac(
+    IN PLSA_AUTH_USER_INFO pUserInfo,
+    OUT PDWORD pdwEncodedPacSize,
+    OUT PBYTE* ppEncodedPac
+    )
+{
+    DWORD dwError = 0;
+    PAC_LOGON_INFO pac;
+    NetrSamInfo3* pInfo3 = &pac.info3;
+    DWORD i = 0;
+
+    memset(&pac, 0, sizeof(pac));
+
+    NtlmSetWinNtTime(&pInfo3->base.last_logon, pUserInfo->LogonTime);
+    NtlmSetWinNtTime(&pInfo3->base.last_logoff, pUserInfo->LogoffTime);
+    NtlmSetWinNtTime(&pInfo3->base.acct_expiry, pUserInfo->KickoffTime);
+    NtlmSetWinNtTime(&pInfo3->base.last_password_change, pUserInfo->LastPasswordChange);
+    NtlmSetWinNtTime(&pInfo3->base.allow_password_change, pUserInfo->CanChangePassword);
+    NtlmSetWinNtTime(&pInfo3->base.force_password_change, pUserInfo->MustChangePassword);
+    pInfo3->base.logon_count = pUserInfo->LogonCount;
+    pInfo3->base.bad_password_count = pUserInfo->BadPasswordCount;
+    pInfo3->base.rid = pUserInfo->dwUserRid;
+    pInfo3->base.primary_gid = pUserInfo->dwPrimaryGroupRid;
+    pInfo3->base.user_flags = pUserInfo->dwUserFlags;
+    pInfo3->base.acct_flags = pUserInfo->dwAcctFlags;
+
+    pInfo3->base.groups.count = pUserInfo->dwNumRids;
+    pInfo3->base.groups.rids = (RidWithAttribute*) pUserInfo->pRidAttribList;
+
+    memcpy(pInfo3->base.key.key, pUserInfo->pSessionKey->pData, sizeof(pInfo3->base.key.key));
+    memcpy(pInfo3->base.lmkey.key, pUserInfo->pLmSessionKey->pData, sizeof(pInfo3->base.lmkey.key));
+
+    dwError = NtlmSetUnicodeStringEx(
+        &pInfo3->base.account_name,
+        pUserInfo->pszAccount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmSetUnicodeStringEx(
+        &pInfo3->base.full_name,
+        pUserInfo->pszFullName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmSetUnicodeStringEx(
+        &pInfo3->base.logon_script,
+        pUserInfo->pszLogonScript);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmSetUnicodeStringEx(
+        &pInfo3->base.profile_path,
+        pUserInfo->pszProfilePath);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmSetUnicodeStringEx(
+        &pInfo3->base.home_directory,
+        pUserInfo->pszHomeDirectory);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmSetUnicodeStringEx(
+        &pInfo3->base.home_drive,
+        pUserInfo->pszHomeDrive);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmSetUnicodeStringEx(
+        &pInfo3->base.logon_server,
+        pUserInfo->pszLogonServer);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = NtlmSetUnicodeStringEx(
+        &pInfo3->base.domain,
+        pUserInfo->pszDomain);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(
+        RtlAllocateSidFromCString(
+            &pInfo3->base.domain_sid,
+            pUserInfo->pszDomainSid));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pInfo3->sidcount = pUserInfo->dwNumSids;
+
+    if (pInfo3->sidcount)
+    {
+        dwError = LwAllocateMemory(pInfo3->sidcount * sizeof(NetrSidAttr), OUT_PPVOID(&pInfo3->sids));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (i = 0; i < pInfo3->sidcount; i++)
+        {
+            pInfo3->sids[i].attribute = pUserInfo->pSidAttribList[i].dwAttrib;
+            dwError = LwNtStatusToWin32Error(
+                RtlAllocateSidFromCString(
+                    &pInfo3->sids[i].sid,
+                    pUserInfo->pSidAttribList[i].pszSid));
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        if (EncodePacLogonInfo(
+                &pac,
+                pdwEncodedPacSize,
+                ppEncodedPac) != 0)
+        {
+            dwError = LW_ERROR_INTERNAL;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+    }
+
+cleanup:
+
+    NtlmFreeUnicodeStringEx(&pInfo3->base.account_name);
+    NtlmFreeUnicodeStringEx(&pInfo3->base.full_name);
+    NtlmFreeUnicodeStringEx(&pInfo3->base.logon_script);
+    NtlmFreeUnicodeStringEx(&pInfo3->base.profile_path);
+    NtlmFreeUnicodeStringEx(&pInfo3->base.home_directory);
+    NtlmFreeUnicodeStringEx(&pInfo3->base.home_drive);
+    NtlmFreeUnicodeStringEx(&pInfo3->base.logon_server);
+    NtlmFreeUnicodeStringEx(&pInfo3->base.domain);
+
+    RTL_FREE(&pInfo3->base.domain_sid);
+
+    for (i = 0; i < pInfo3->sidcount; i++)
+    {
+        RTL_FREE(&pInfo3->sids[i].sid);
+    }
+
+    RTL_FREE(&pInfo3->sids);
+
+    return dwError;
+
+error:
+
+    *pdwEncodedPacSize = 0;
+    *ppEncodedPac = NULL;
+
+    goto cleanup;
+}

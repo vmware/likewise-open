@@ -232,7 +232,48 @@ error:
     goto cleanup;
 }
 
+error_status_t
+EncodePacLogonInfo(
+    PAC_LOGON_INFO* pLogonInfo,
+    PDWORD pdwEncodedSize,
+    PBYTE* ppEncodedBuffer
+    )
+{
+    idl_es_handle_t decodingHandle = NULL;
+    error_status_t status;
+    error_status_t status2;
 
+    idl_es_encode_dyn_buffer(
+        (idl_byte**) (void*) ppEncodedBuffer,
+        (idl_ulong_int*) pdwEncodedSize,
+        &decodingHandle,
+        &status);
+    BAIL_ON_ERR_STATUS(status);
+
+    idl_es_set_attrs(decodingHandle, IDL_ES_MIDL_COMPAT, &status);
+    BAIL_ON_ERR_STATUS(status);
+
+    PAC_LOGON_INFO_Encode(decodingHandle, pLogonInfo);
+    BAIL_ON_ERR_STATUS(status);
+
+    idl_es_handle_free(&decodingHandle, &status);
+    decodingHandle = NULL;
+    BAIL_ON_ERR_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+
+    if (decodingHandle != NULL)
+    {
+        // Do not return status2
+        idl_es_handle_free(&decodingHandle, &status2);
+    }
+
+    goto cleanup;
+}
 
 /*
 local variables:

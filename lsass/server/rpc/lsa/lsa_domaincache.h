@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -28,62 +28,82 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
-
-
-NET_API_STATUS
-NetrShareGetInfo(
-    IN  handle_t     hBinding,
-    IN  PWSTR        pwszServername,
-    IN  PWSTR        pwszNetname,
-    IN  DWORD        dwLevel,
-    OUT PVOID       *ppBuffer
-    )
-{
-    NET_API_STATUS err = ERROR_SUCCESS;
-    srvsvc_NetShareInfo Info;
-    PVOID pBuffer = NULL;
-
-    BAIL_ON_INVALID_PTR(hBinding, err);
-    BAIL_ON_INVALID_PTR(pwszNetname, err);
-    BAIL_ON_INVALID_PTR(ppBuffer, err);
-
-    memset(&Info, 0, sizeof(Info));
-
-    DCERPC_CALL(err,
-                _NetrShareGetInfo(hBinding,
-                                  pwszServername,
-                                  pwszNetname,
-                                  dwLevel,
-                                  &Info));
-
-    err = SrvSvcCopyNetShareInfo(dwLevel, &Info, &pBuffer);
-    BAIL_ON_WIN_ERROR(err);
-
-    *ppBuffer = pBuffer;
-
-cleanup:
-    SrvSvcClearNetShareInfo(dwLevel, &Info);
-
-    return err;
-
-error:
-    if (pBuffer)
-    {
-        SrvSvcFreeMemory(pBuffer);
-    }
-
-    *ppBuffer = NULL;
-
-    goto cleanup;
-}
-
-
 /*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        lsa_domaincache.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SAM domains cache for use with samr rpc client calls
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+#ifndef _LSASRV_DOMAINCACHE_H_
+#define _LSASRV_DOMAINCACHE_H_
+
+
+NTSTATUS
+LsaSrvCreateDomainsTable(
+    PLSA_HASH_TABLE *ppDomains
+    );
+
+
+NTSTATUS
+LsaSrvGetDomainByName(
+    PPOLICY_CONTEXT pPolCtx,
+    PCWSTR pwszDomainName,
+    PDOMAIN_ENTRY *ppDomain
+    );
+
+
+NTSTATUS
+LsaSrvGetDomainBySid(
+    PPOLICY_CONTEXT pPolCtx,
+    const PSID pSid,
+    PDOMAIN_ENTRY *ppDomain
+    );
+
+
+NTSTATUS
+LsaSrvSetDomain(
+    PPOLICY_CONTEXT pPolCtx,
+    const PDOMAIN_ENTRY pDomain
+    );
+
+
+VOID
+LsaSrvDomainEntryFree(
+    PDOMAIN_ENTRY *ppEntry
+    );
+
+
+VOID
+LsaSrvDestroyDomainsTable(
+    PLSA_HASH_TABLE  pDomains,
+    BOOLEAN          bCleanClose
+    );
+
+
+NTSTATUS
+LsaSrvConnectDomainByName(
+    PPOLICY_CONTEXT   pPolCtx,
+    PCWSTR            pwszDomainName,
+    PDOMAIN_ENTRY    *ppDomEntry
+    );
+
+
+NTSTATUS
+LsaSrvConnectDomainBySid(
+    PPOLICY_CONTEXT   pPolCtx,
+    PSID              pDomainSid,
+    PDOMAIN_ENTRY    *ppDomEntry
+    );
+
+
+#endif /* _LSASRV_DOMAINCACHE_H_ */

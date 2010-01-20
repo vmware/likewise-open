@@ -1786,8 +1786,8 @@ SrvMarshalChangeNotifyResponse(
             }
         }
 
-        ulInfoBytesRequired  = sizeof(SMB_NOTIFY_CHANGE_HEADER);
-        ulOffset            += sizeof(SMB_NOTIFY_CHANGE_HEADER);
+        ulInfoBytesRequired  = offsetof(FILE_NOTIFY_INFORMATION, FileName);
+        ulOffset            += offsetof(FILE_NOTIFY_INFORMATION, FileName);
 
         if (!pNotifyCursor->FileNameLength)
         {
@@ -1841,8 +1841,8 @@ SrvMarshalChangeNotifyResponse(
         pCurHeader->Action = pNotifyCursor->Action;
         pCurHeader->FileNameLength = pNotifyCursor->FileNameLength;
 
-        pDataCursor += sizeof(SMB_NOTIFY_CHANGE_HEADER);
-        ulOffset    += sizeof(SMB_NOTIFY_CHANGE_HEADER);
+        pDataCursor += offsetof(FILE_NOTIFY_INFORMATION, FileName);
+        ulOffset    += offsetof(FILE_NOTIFY_INFORMATION, FileName);
 
         if (pNotifyCursor->FileNameLength)
         {

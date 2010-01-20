@@ -67,12 +67,12 @@ RegTransactEnumRootKeysW(
 
 NTSTATUS
 RegTransactOpenKeyExW(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pwszSubKey,
-    DWORD ulOptions,
-    ACCESS_MASK AccessDesired,
-    PHKEY phkResult
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pwszSubKey,
+    IN DWORD ulOptions,
+    IN ACCESS_MASK AccessDesired,
+    OUT PHKEY phkResult
     );
 
 NTSTATUS
@@ -91,32 +91,32 @@ RegTransactCreateKeyExW(
 
 NTSTATUS
 RegTransactCloseKey(
-    HANDLE Handle,
-    HKEY hKey
+    IN HANDLE Handle,
+    IN HKEY hKey
     );
 
 NTSTATUS
 RegTransactDeleteKeyW(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pSubKey
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    IN PCWSTR pSubKey
     );
 
 NTSTATUS
 RegTransactQueryInfoKeyW(
-    HANDLE Handle,
-    HKEY hKey,
-    PWSTR pClass,
-    PDWORD pcClass,
-    PDWORD pReserved,
-    PDWORD pcSubKeys,
-    PDWORD pcMaxSubKeyLen,
-    PDWORD pcMaxClassLen,
-    PDWORD pcValues,
-    PDWORD pcMaxValueNameLen,
-    PDWORD pcMaxValueLen,
-    PDWORD pcbSecurityDescriptor,
-    PFILETIME pftLastWriteTime
+    IN HANDLE Handle,
+    IN HKEY hKey,
+    OUT PWSTR pClass,
+    IN OUT OPTIONAL PDWORD pcClass,
+    IN PDWORD pReserved,
+    OUT OPTIONAL PDWORD pcSubKeys,
+    OUT OPTIONAL PDWORD pcMaxSubKeyLen,
+    OUT OPTIONAL PDWORD pcMaxClassLen,
+    OUT OPTIONAL PDWORD pcValues,
+    OUT OPTIONAL PDWORD pcMaxValueNameLen,
+    OUT OPTIONAL PDWORD pcMaxValueLen,
+    OUT OPTIONAL PDWORD pcbSecurityDescriptor,
+    OUT OPTIONAL PFILETIME pftLastWriteTime
     );
 
 NTSTATUS
@@ -180,24 +180,14 @@ RegTransactGetValueW(
     );
 
 NTSTATUS
-RegTransactQueryMultipleValues(
-    HANDLE Handle,
-    HKEY hKey,
-    PVALENT val_list,
-    DWORD num_vals,
-    PWSTR pValueBuf,
-    PDWORD dwTotsize
-    );
-
-NTSTATUS
 RegTransactSetValueExW(
-    HANDLE Handle,
-    HKEY hKey,
-    PCWSTR pValueName,
-    DWORD Reserved,
-    DWORD dwType,
-    const BYTE *pData,
-    DWORD cbData
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    IN OPTIONAL PCWSTR pValueName,
+    IN DWORD Reserved,
+    IN DWORD dwType,
+    IN OPTIONAL const BYTE *pData,
+    IN DWORD cbData
     );
 
 NTSTATUS
@@ -217,6 +207,16 @@ RegTransactGetKeySecurity(
 	OUT PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
 	IN OUT PULONG lpcbSecurityDescriptor
 	);
+
+NTSTATUS
+RegTransactQueryMultipleValues(
+    IN HANDLE hConnection,
+    IN HKEY hKey,
+    OUT PVALENT val_list,
+    IN DWORD num_vals,
+    OUT OPTIONAL PWSTR pValueBuf,
+    IN OUT OPTIONAL PDWORD pdwTotsize
+    );
 
 #endif /* __CLIENTIPC_P_H__ */
 
