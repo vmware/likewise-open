@@ -241,6 +241,7 @@ SrvProcessCloseAndX(
 
             if (pCtxSmb1->pFile)
             {
+                SrvFileRundown(pCtxSmb1->pFile);
                 SrvFileRelease(pCtxSmb1->pFile);
                 pCtxSmb1->pFile = NULL;
             }

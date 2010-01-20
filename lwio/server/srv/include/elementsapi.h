@@ -707,6 +707,11 @@ SrvSessionRelease(
     PLWIO_SRV_SESSION pSession
     );
 
+VOID
+SrvSessionRundown(
+    PLWIO_SRV_SESSION pSession
+    );
+
 NTSTATUS
 SrvSession2AddAsyncState(
     PLWIO_SRV_SESSION_2 pSession,
@@ -837,6 +842,11 @@ SrvTreeRelease(
     PLWIO_SRV_TREE pTree
     );
 
+VOID
+SrvTreeRundown(
+    PLWIO_SRV_TREE pTree
+    );
+
 NTSTATUS
 SrvTree2Create(
     ULONG             ulTid,
@@ -937,6 +947,11 @@ SrvFileAcquire(
 
 VOID
 SrvFileRelease(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileRundown(
     PLWIO_SRV_FILE pFile
     );
 
