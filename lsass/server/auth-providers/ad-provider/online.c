@@ -4912,7 +4912,7 @@ AD_OnlineGetGroupMemberSids(
 
     if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
-        bIsCacheOnlyMode = AD_GetNssUserMembershipCacheOnlyEnabled();
+        bIsCacheOnlyMode = AD_GetNssGroupMembersCacheOnlyEnabled();
     }
 
     dwError = AD_FindObjectBySid(hProvider, pszSid, &pGroupInfo);
