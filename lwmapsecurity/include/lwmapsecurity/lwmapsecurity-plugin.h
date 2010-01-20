@@ -28,6 +28,8 @@
 
 #include <lw/security-types.h>
 #include <lw/ntstatus.h>
+/* FIXME: separate types out into separate header? */
+#include <lwmapsecurity/lwmapsecurity.h>
 
 NTSTATUS
 LwMapSecurityInitializeSidFromUnmappedId(
@@ -110,6 +112,14 @@ NTSTATUS
     );
 
 typedef
+NTSTATUS
+(*LWMSP_GET_ACCESS_TOKEN_CREATE_INFORMATION_FROM_GSS_CONTEXT_CALLBACK)(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
+    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
+    );
+
+typedef
 VOID
 (*LWMSP_FREE_ACCESS_TOKEN_CREATE_INFORMATION_CALLBACK)(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
@@ -124,6 +134,7 @@ typedef struct _LW_MAP_SECURITY_PLUGIN_INTERFACE {
     LWMSP_FREE_SID_CALLBACK FreeSid;
     LWMSP_GET_ACCESS_TOKEN_CREATE_INFORMATION_FROM_UID_CALLBACK GetAccessTokenCreateInformationFromUid;
     LWMSP_GET_ACCESS_TOKEN_CREATE_INFORMATION_FROM_USERNAME_CALLBACK GetAccessTokenCreateInformationFromUsername;
+    LWMSP_GET_ACCESS_TOKEN_CREATE_INFORMATION_FROM_GSS_CONTEXT_CALLBACK GetAccessTokenCreateInformationFromGssContext;
     LWMSP_FREE_ACCESS_TOKEN_CREATE_INFORMATION_CALLBACK FreeAccessTokenCreateInformation;
 } LW_MAP_SECURITY_PLUGIN_INTERFACE, *PLW_MAP_SECURITY_PLUGIN_INTERFACE;
 

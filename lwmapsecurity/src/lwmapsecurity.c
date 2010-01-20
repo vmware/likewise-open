@@ -853,6 +853,49 @@ cleanup:
 }
 
 NTSTATUS
+LwMapSecurityCreateAccessTokenFromGssContext(
+    IN PLW_MAP_SECURITY_CONTEXT Context,
+    OUT PACCESS_TOKEN* AccessToken,
+    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
+    )
+{
+       NTSTATUS status = STATUS_SUCCESS;
+    PACCESS_TOKEN accessToken = NULL;
+    PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
+
+    status = Context->PluginInterface->GetAccessTokenCreateInformationFromGssContext(
+                    Context->PluginContext,
+                    &createInformation,
+                    GssContext);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LwMapSecurityCreateExtendedAccessToken(
+                    &accessToken,
+                    createInformation->User,
+                    createInformation->Groups,
+                    createInformation->Owner,
+                    createInformation->PrimaryGroup,
+                    createInformation->DefaultDacl,
+                    createInformation->Unix);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        if (accessToken)
+        {
+            RtlReleaseAccessToken(&accessToken);
+        }
+    }
+
+    LwMapSecurityFreeAccessTokenCreateInformation(Context, &createInformation);
+
+    *AccessToken = accessToken;
+
+    return status;
+}
+
+NTSTATUS
 LwMapSecurityCreateAccessTokenFromAnsiStringUsername(
     IN PLW_MAP_SECURITY_CONTEXT Context,
     OUT PACCESS_TOKEN* AccessToken,
