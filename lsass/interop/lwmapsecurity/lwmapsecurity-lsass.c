@@ -217,7 +217,7 @@ LsaMapSecurityResolveObjectInfo(
                 &ppObjects);
         }
 
-        if (dwError == LW_ERROR_SUCCESS && ppObjects[0] == NULL)
+        if (dwError == LW_ERROR_SUCCESS && (ppObjects[0] == NULL || !ppObjects[0]->enabled))
         {
             dwError = LW_ERROR_NO_SUCH_OBJECT;
         }
@@ -350,7 +350,7 @@ LsaMapSecurityResolveObjectInfoBySid(
                     QueryList,
                     &ppObjects);
 
-    if (dwError == LW_ERROR_SUCCESS && ppObjects[0] == NULL)
+    if (dwError == LW_ERROR_SUCCESS && (ppObjects[0] == NULL || !ppObjects[0]->enabled))
     {
         dwError = LW_ERROR_NO_SUCH_OBJECT;
     }
@@ -481,7 +481,7 @@ LsaMapSecurityResolveObjectInfoFromPac(
 
     SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER);
 
-    if (ppObjects[0])
+    if (ppObjects[0] && ppObjects[0]->enabled)
     {
         assert(ppObjects[0]->type == LSA_OBJECT_TYPE_USER);
 
