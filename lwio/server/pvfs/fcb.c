@@ -1178,32 +1178,52 @@ PvfsRenameFCB(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
 
-    ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
-    BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
+        BAIL_ON_NT_STATUS(ntError);
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbLocked, &pFcb->rwFileName);
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbLocked, &pFcb->rwFileName);
 
-    ntError = PvfsSysRename(pCcb->pszFilename, pszNewFilename);
-    BAIL_ON_NT_STATUS(ntError);
+            ntError = PvfsSysRename(pCcb->pszFilename, pszNewFilename);
+            BAIL_ON_NT_STATUS(ntError);
 
-    PVFS_FREE(&pFcb->pszFilename);
-    ntError = LwRtlCStringDuplicate(&pFcb->pszFilename, pszNewFilename);
-    BAIL_ON_NT_STATUS(ntError);
+            /* Remove the FCB from the table, update the lookup key,
+               and then re-add.  Otherwise you will get memory corruption
+               as a freed pointer gets left in the Table because if
+               cannot be located using the current (updated) filename.
+               Another reason to use the dev/inode pair instead if
+               we could solve the "Create New File" issue.  */
+
+            ntError = PvfsRemoveFCB(pFcb);
+            BAIL_ON_NT_STATUS(ntError);
+
+            PVFS_FREE(&pFcb->pszFilename);
+            ntError = LwRtlCStringDuplicate(&pFcb->pszFilename, pszNewFilename);
+            BAIL_ON_NT_STATUS(ntError);
+
+            ntError = PvfsAddFCB(pFcb);
+            BAIL_ON_NT_STATUS(ntError);
+
+        LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
+
+    LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
 
     LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
-    PVFS_FREE(&pCcb->pszFilename);
-    ntError = LwRtlCStringDuplicate(&pCcb->pszFilename, pszNewFilename);
-    BAIL_ON_NT_STATUS(ntError);
+        PVFS_FREE(&pCcb->pszFilename);
+        ntError = LwRtlCStringDuplicate(&pCcb->pszFilename, pszNewFilename);
+        BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
-    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
-    LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
 
     return ntError;
 
 error:
+    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
+    LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
+
     goto cleanup;
 }
 
