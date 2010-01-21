@@ -126,8 +126,7 @@ SrvProtocolExecute_SMB_V1(
 
             if (pPrevResponse->pAndXHeader)
             {
-                pPrevResponse->pAndXHeader->andXCommand =
-                                        pRequest->pHeader->command;
+                pPrevResponse->pAndXHeader->andXCommand = pRequest->ucCommand;
             }
 
             if (pPrevResponse->ulMessageSize % 4)
@@ -160,8 +159,10 @@ SrvProtocolExecute_SMB_V1(
             pResponse->pHeader = pSmb1Context->pResponses[0].pHeader;
         }
 
+        pResponse->ulOffset = pExecContext->pSmbResponse->bufferUsed -
+                              sizeof(NETBIOS_HEADER);
         pResponse->pBuffer =  pExecContext->pSmbResponse->pRawBuffer +
-                              pExecContext->pSmbResponse->bufferUsed;
+                              sizeof(NETBIOS_HEADER) + pResponse->ulOffset;
 
         pResponse->ulMessageSize = 0;
         pResponse->ulBytesAvailable =   pExecContext->pSmbResponse->bufferLen -
@@ -169,8 +170,8 @@ SrvProtocolExecute_SMB_V1(
                                         sizeof(NETBIOS_HEADER);
 
         LWIO_LOG_VERBOSE("Executing command [%s:%d]",
-                         SrvGetCommandDescription_SMB_V1(pRequest->pHeader->command),
-                         pRequest->pHeader->command);
+                         SrvGetCommandDescription_SMB_V1(pRequest->ucCommand),
+                         pRequest->ucCommand);
 
         switch (pRequest->ucCommand)
         {
@@ -420,7 +421,10 @@ SrvProtocolExecute_SMB_V1(
 
             default:
 
-                if (!pExecContext->bInternal)
+                if (pExecContext->bInternal)
+                    break;
+
+                if (iMsg == 0)
                 {
                     ntStatus = SrvBuildErrorResponse_SMB_V1(
                                     pExecContext->pConnection,
@@ -428,12 +432,31 @@ SrvProtocolExecute_SMB_V1(
                                     ntStatus,
                                     pResponse);
                 }
+                else
+                {
+                    /* Set the status for the whole chain */
+                    pExecContext->pSmbResponse->pSMBHeader->error = ntStatus;
+
+                    /* Terminate the chain */
+                    if (pPrevResponse->pAndXHeader)
+                    {
+                        pPrevResponse->pAndXHeader->andXCommand = 0xFF;
+                        pPrevResponse->pAndXHeader->andXOffset = 0;
+                    }
+
+                    /* Ensure we don't send any part of this AndX */
+                    pResponse->ulMessageSize = 0;
+                }
+
+                /* Terminate loop */
+                pSmb1Context->iMsg = pSmb1Context->ulNumRequests;
+                ntStatus = 0;
 
                 break;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-	/* Don't set ANDX offsets for failure responses */
+        /* Don't set ANDX offsets for failure responses */
 
         if (pResponse->pHeader &&
 	        (pResponse->pHeader->error == STATUS_SUCCESS) &&
@@ -469,6 +492,7 @@ SrvBuildExecContext_SMB_V1(
     ULONG    iRequest         = 0;
     ULONG    ulBytesAvailable = pSmbRequest->bufferUsed;
     PBYTE    pBuffer          = pSmbRequest->pRawBuffer;
+    UCHAR    ucAndXCommand    = 0xFF;
     PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context = NULL;
 
     if (ulBytesAvailable < sizeof(NETBIOS_HEADER))
@@ -492,7 +516,6 @@ SrvBuildExecContext_SMB_V1(
         PANDX_HEADER pAndXHeader = NULL; // Do not free
         ULONG        ulOffset    = 0;
         USHORT       usBytesUsed = 0;
-        UCHAR        ucAndXCommand = 0xFF;
 
         ulNumRequests++;
 
@@ -516,7 +539,6 @@ SrvBuildExecContext_SMB_V1(
                                 pBuffer,
                                 ulOffset,
                                 ulBytesAvailable,
-                                ucAndXCommand,
                                 &pWordCount,
                                 &pAndXHeader,
                                 &usBytesUsed);
@@ -528,9 +550,7 @@ SrvBuildExecContext_SMB_V1(
 
         if (pAndXHeader)
         {
-            ucAndXCommand = pAndXHeader->andXCommand;
-
-            switch (ucAndXCommand)
+            switch (pAndXHeader->andXCommand)
             {
                 case 0xFF:
 
@@ -541,7 +561,8 @@ SrvBuildExecContext_SMB_V1(
                 default:
 
                     if (!pAndXHeader->andXOffset ||
-                        (ulBytesAvailable < pAndXHeader->andXOffset))
+                        (ulBytesAvailable < pAndXHeader->andXOffset) ||
+                        !SMBIsAndXCommand(pAndXHeader->andXCommand))
                     {
                         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
                         BAIL_ON_NT_STATUS(ntStatus);
@@ -579,10 +600,10 @@ SrvBuildExecContext_SMB_V1(
     for (; iRequest < ulNumRequests; iRequest++)
     {
         PSRV_MESSAGE_SMB_V1 pMessage      = &pSmb1Context->pRequests[iRequest];
-        UCHAR               ucAndXCommand = 0xFF;
+        PSRV_MESSAGE_SMB_V1 pResponse     = &pSmb1Context->pResponses[iRequest];
         ULONG               ulOffset      = 0;
 
-        pMessage->ulSerialNum = iRequest;
+        pMessage->ulSerialNum = pResponse->ulSerialNum = iRequest;
         pMessage->pBuffer     = pBuffer;
 
         switch (iRequest)
@@ -614,7 +635,6 @@ SrvBuildExecContext_SMB_V1(
                                 pMessage->pBuffer,
                                 ulOffset,
                                 ulBytesAvailable,
-                                ucAndXCommand,
                                 &pMessage->pWordCount,
                                 &pMessage->pAndXHeader,
                                 &pMessage->usHeaderSize);
@@ -1171,3 +1191,11 @@ SrvGetCommandDescription_SMB_V1(
 }
 
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -56,8 +56,48 @@ SrvAsyncStateFree(
     );
 
 NTSTATUS
+SrvAsyncBuildUniqueId(
+    PSRV_EXEC_CONTEXT pContext,
+    PULONG64          pullAsyncId
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG64  ullAsyncId = 0LL;
+
+    if (!RAND_bytes((PBYTE)&ullAsyncId, sizeof(ullAsyncId)))
+    {
+        uuid_t uuid;
+        CHAR   szUUID[37] = "";
+        UCHAR  ucDigest[EVP_MAX_MD_SIZE];
+        ULONG  ulDigest = 0;
+
+        memset(&szUUID, 0, sizeof(szUUID));
+
+        uuid_generate(uuid);
+        uuid_unparse(uuid, szUUID);
+
+        HMAC(EVP_sha512(),
+             &szUUID[0],
+             sizeof(szUUID),
+             pContext->pSmbRequest->pRawBuffer,
+             pContext->pSmbRequest->bufferUsed,
+             &ucDigest[0],
+             &ulDigest);
+
+        assert (ulDigest == sizeof(ULONG64));
+
+        memcpy((PBYTE)&ullAsyncId, &ucDigest[0], sizeof(ullAsyncId));
+    }
+
+    *pullAsyncId = ullAsyncId;
+
+    return ntStatus;
+}
+
+NTSTATUS
 SrvAsyncStateCreate(
     ULONG64                       ullAsyncId,
+    USHORT                        usCommand,
     HANDLE                        hAsyncState,
     PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*            ppAsyncState
@@ -77,6 +117,7 @@ SrvAsyncStateCreate(
     pAsyncState->pMutex = &pAsyncState->mutex;
 
     pAsyncState->ullAsyncId        = ullAsyncId;
+    pAsyncState->usCommand         = usCommand;
     pAsyncState->hAsyncState       = hAsyncState;
     pAsyncState->pfnFreeAsyncState = pfnFreeAsyncState;
 

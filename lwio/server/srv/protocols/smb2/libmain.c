@@ -51,19 +51,6 @@
 
 static
 NTSTATUS
-SrvBuildConditionalInterimResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
-    );
-
-static
-NTSTATUS
-SrvBuildInterimResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext,
-    ULONG64           ullAsyncId
-    );
-
-static
-NTSTATUS
 SrvBuildExecContext_SMB_V2(
     PLWIO_SRV_CONNECTION      pConnection,
     PSMB_PACKET               pSmbRequest,
@@ -315,6 +302,12 @@ SrvProtocolExecute_SMB_V2(
 
                 break;
 
+            case COM2_CANCEL:
+
+                ntStatus = SrvProcessCancel_SMB_V2(pExecContext);
+
+                break;
+
             case COM2_ECHO:
 
                 ntStatus = SrvProcessEcho_SMB_V2(pExecContext);
@@ -324,6 +317,19 @@ SrvProtocolExecute_SMB_V2(
             case COM2_FIND:
 
                 ntStatus = SrvProcessFind_SMB_V2(pExecContext);
+
+                break;
+
+            case COM2_NOTIFY:
+
+                if (pExecContext->bInternal)
+                {
+                    ntStatus = SrvProcessNotifyCompletion_SMB_V2(pExecContext);
+                }
+                else
+                {
+                    ntStatus = SrvProcessNotify_SMB_V2(pExecContext);
+                }
 
                 break;
 
@@ -356,19 +362,6 @@ SrvProtocolExecute_SMB_V2(
         {
             case STATUS_PENDING:
 
-                {
-                    NTSTATUS ntStatus2 = STATUS_SUCCESS;
-
-                    ntStatus2 = SrvBuildConditionalInterimResponse_SMB_V2(
-                                    pExecContext);
-                    if (ntStatus2)
-                    {
-                        LWIO_LOG_ERROR("Failed to build interim "
-                                       "response [0x%08x]",
-                                       ntStatus2);
-                    }
-                }
-
                 break;
 
             case STATUS_SUCCESS:
@@ -384,17 +377,36 @@ SrvProtocolExecute_SMB_V2(
 
             default:
 
-                if (!pExecContext->bInternal)
+                if (pExecContext->bInternal)
+                {
+                    break;
+                }
+
+                if (iMsg == 0)
                 {
                     ntStatus = SrvBuildErrorResponse_SMB_V2(
                                     pExecContext,
+                                    0LL, /* Async Id */
                                     ntStatus);
                 }
+                else
+                {
+                    pExecContext->pSmbResponse->pSMB2Header->error = ntStatus;
+
+                    pResponse->ulMessageSize = 0L;
+                }
+
+                pSmb2Context->iMsg = pSmb2Context->ulNumRequests;
+
+                ntStatus = STATUS_SUCCESS;
+
                 break;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pPrevResponse && pPrevResponse->pHeader)
+        if (pPrevResponse &&
+            (pPrevResponse->pHeader->error == STATUS_SUCCESS) &&
+            pPrevResponse->pHeader)
         {
             pPrevResponse->pHeader->ulChainOffset =
                                     pPrevResponse->ulMessageSize;
@@ -458,51 +470,6 @@ SrvProtocolFreeContext_SMB_V2(
     SrvFreeMemory(pProtocolContext);
 }
 
-static
-NTSTATUS
-SrvBuildConditionalInterimResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
-    )
-{
-    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    ULONG64                    ullAsyncId    = 0LL;
-    BOOLEAN                    bAsyncIdCreated = FALSE;
-
-    switch (pSmbRequest->pHeader->command)
-    {
-        case COM2_CREATE:
-
-            ntStatus = SrvSetExecContextAsyncId(
-                            pExecContext,
-                            &ullAsyncId,
-                            &bAsyncIdCreated);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            if (bAsyncIdCreated)
-            {
-                ntStatus = SrvBuildInterimResponse_SMB_V2(
-                                pExecContext,
-                                ullAsyncId);
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-
-            break;
-
-        default:
-
-            break;
-    }
-
-error:
-
-    return ntStatus;
-}
-
-static
 NTSTATUS
 SrvBuildInterimResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext,

@@ -517,6 +517,17 @@ typedef struct __SMB2_FIND_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_FIND_RESPONSE_HEADER,
                              *PSMB2_FIND_RESPONSE_HEADER;
 
+typedef struct __SMB2_NOTIFY_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usOutBufferOffset;
+    ULONG    ulOutBufferLength;
+
+    /* Notify results follow */
+
+} __attribute__((__packed__)) SMB2_NOTIFY_RESPONSE_HEADER,
+                             *PSMB2_NOTIFY_RESPONSE_HEADER;
+
 typedef struct __SMB2_OPLOCK_BREAK_HEADER
 {
     USHORT   usLength;
@@ -685,6 +696,17 @@ typedef struct _SMB2_FILE_COMPRESSION_INFORMATION_HEADER
 } __attribute__((__packed__)) SMB2_FILE_COMPRESSION_INFORMATION_HEADER,
                              *PSMB2_FILE_COMPRESSION_INFORMATION_HEADER;
 
+typedef struct
+{
+    USHORT   usLength;
+    USHORT   usFlags;
+    ULONG    ulOutputBufferLength;
+    SMB2_FID fid;
+    ULONG    ulCompletionFilter;
+    ULONG    ulReserved;
+} __attribute__((__packed__)) SMB2_NOTIFY_CHANGE_HEADER,
+                             *PSMB2_NOTIFY_CHANGE_HEADER;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
 typedef struct _SRV_OPLOCK_INFO
@@ -781,6 +803,8 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     PLWIO_SRV_TREE_2             pTree;
     PLWIO_SRV_FILE_2             pFile;
     BOOLEAN                      bRemoveFileFromTree;
+
+    ULONG64                      ullAsyncId;
 
 } SRV_CREATE_STATE_SMB_V2, *PSRV_CREATE_STATE_SMB_V2;
 
@@ -989,6 +1013,76 @@ typedef struct _SRV_IOCTL_STATE_SMB_V2
     ULONG                      ulResponseBufferLen;
 
 } SRV_IOCTL_STATE_SMB_V2, *PSRV_IOCTL_STATE_SMB_V2;
+
+typedef struct _SRV_NOTIFY_STATE_SMB_V2
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    ULONG64                 ullAsyncId;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    ULONG                   ulCompletionFilter;
+    BOOLEAN                 bWatchTree;
+
+    PLWIO_SRV_CONNECTION    pConnection;
+
+    USHORT                  usEpoch;
+    ULONG64                 ullSessionId;
+    ULONG                   ulTid;
+    SMB2_FID                fid;
+    ULONG                   ulPid;
+    ULONG64                 ullCommandSequence;
+
+    PBYTE                   pBuffer;
+    ULONG                   ulBufferLength;
+    ULONG                   ulBytesUsed;
+
+    ULONG                   ulMaxBufferSize;
+
+    ULONG                   ulRequestSequence;
+
+} SRV_NOTIFY_STATE_SMB_V2, *PSRV_NOTIFY_STATE_SMB_V2;
+
+typedef enum
+{
+    SRV_NOTIFY_STAGE_SMB_V2_INITIAL = 0,
+    SRV_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO,
+    SRV_NOTIFY_STAGE_SMB_V2_BUILD_RESPONSE,
+    SRV_NOTIFY_STAGE_SMB_V2_DONE
+} SRV_NOTIFY_STAGE_SMB_V2;
+
+typedef struct _SRV_NOTIFY_REQUEST_STATE_SMB_V2
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_NOTIFY_STAGE_SMB_V2    stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PSMB2_NOTIFY_CHANGE_HEADER pRequestHeader; // Do not free
+
+    PLWIO_SRV_FILE_2           pFile;
+
+    ULONG64                    ullAsyncId;
+
+    PBYTE                      pResponseBuffer;
+    size_t                     sResponseBufferLen;
+    ULONG                      ulResponseBufferLen;
+
+} SRV_NOTIFY_REQUEST_STATE_SMB_V2, *PSRV_NOTIFY_REQUEST_STATE_SMB_V2;
 
 typedef enum
 {

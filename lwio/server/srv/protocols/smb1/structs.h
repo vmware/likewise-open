@@ -1061,6 +1061,7 @@ typedef struct __SRV_MESSAGE_SMB_V1
     ULONG        ulSerialNum;       // Sequence # in packet; starts from 0
 
     PBYTE        pBuffer;           // Raw packet buffer
+    ULONG        ulOffset;          // Offset of packet buffer within message
 
     UCHAR        ucCommand;         // andx or SMB command
     PSMB_HEADER  pHeader;           // header corresponding to serial 0 message

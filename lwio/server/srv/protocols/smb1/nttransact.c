@@ -1392,6 +1392,7 @@ SrvProcessNotifyChange(
 
             ntStatus = SrvAsyncStateCreate(
                             pNotifyState->ullNotifyId,
+                            SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE,
                             pNotifyState,
                             &SrvNotifyStateReleaseHandle,
                             &pAsyncState);

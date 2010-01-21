@@ -247,6 +247,17 @@ SrvFileRelease(
     }
 }
 
+VOID
+SrvFileRundown(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    if (pFile->hFile)
+    {
+        IoCancelFile(pFile->hFile);
+    }
+}
+
 static
 VOID
 SrvFileFree(

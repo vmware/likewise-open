@@ -600,7 +600,6 @@ SrvUnmarshalHeaderAndX_SMB_V1(
     PBYTE         pBuffer,
     ULONG         ulOffset,
     ULONG         ulBytesAvailable,
-    UCHAR         ucCommand,
     PBYTE*        ppWordCount,
     PANDX_HEADER* ppAndXHeader,
     PUSHORT       pusBytesUsed

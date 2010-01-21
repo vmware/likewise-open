@@ -165,6 +165,12 @@ PvfsScheduleCancelPendingOp(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsRenameFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb,
+    PCSTR pszNewFilename
+    );
 
 #endif   /* _PVFS_FCB_H */
 

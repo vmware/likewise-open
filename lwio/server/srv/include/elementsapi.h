@@ -71,6 +71,7 @@ typedef struct _LWIO_ASYNC_STATE
     LONG                           refcount;
 
     ULONG64                        ullAsyncId;
+    USHORT                         usCommand;
 
     HANDLE                         hAsyncState;
     PFN_LWIO_SRV_FREE_ASYNC_STATE  pfnFreeAsyncState;
@@ -233,6 +234,8 @@ typedef struct _LWIO_SRV_SESSION_2
     ULONG             ulNextAvailableTid;
 
     PSTR              pszClientPrincipalName;
+
+    PLWRTL_RB_TREE    pAsyncStateCollection;
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
@@ -539,8 +542,15 @@ SrvGssNegHints(
     );
 
 NTSTATUS
+SrvAsyncBuildUniqueId(
+    PSRV_EXEC_CONTEXT pContext,
+    PULONG64          pullAsyncId
+    );
+
+NTSTATUS
 SrvAsyncStateCreate(
     ULONG64                       ullAsyncId,
+    USHORT                        usCommand,
     HANDLE                        hAsyncState,
     PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*            ppAsyncState
@@ -697,6 +707,30 @@ SrvSessionRelease(
     PLWIO_SRV_SESSION pSession
     );
 
+VOID
+SrvSessionRundown(
+    PLWIO_SRV_SESSION pSession
+    );
+
+NTSTATUS
+SrvSession2AddAsyncState(
+    PLWIO_SRV_SESSION_2 pSession,
+    PLWIO_ASYNC_STATE   pAsyncState
+    );
+
+NTSTATUS
+SrvSession2FindAsyncState(
+    PLWIO_SRV_SESSION_2 pSession,
+    ULONG64             ullAsyncId,
+    PLWIO_ASYNC_STATE*  ppAsyncState
+    );
+
+NTSTATUS
+SrvSession2RemoveAsyncState(
+    PLWIO_SRV_SESSION_2 pSession,
+    ULONG64             ullAsyncId
+    );
+
 NTSTATUS
 SrvSession2Create(
     ULONG64              ullUid,
@@ -808,6 +842,11 @@ SrvTreeRelease(
     PLWIO_SRV_TREE pTree
     );
 
+VOID
+SrvTreeRundown(
+    PLWIO_SRV_TREE pTree
+    );
+
 NTSTATUS
 SrvTree2Create(
     ULONG             ulTid,
@@ -908,6 +947,11 @@ SrvFileAcquire(
 
 VOID
 SrvFileRelease(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileRundown(
     PLWIO_SRV_FILE pFile
     );
 
@@ -1032,19 +1076,6 @@ SrvBuildEmptyExecContext(
 BOOLEAN
 SrvIsValidExecContext(
    IN PSRV_EXEC_CONTEXT pExecContext
-   );
-
-NTSTATUS
-SrvSetExecContextAsyncId(
-   PSRV_EXEC_CONTEXT pContext,
-   PULONG64          pullAsyncId,
-   PBOOLEAN          pbAsyncIdCreated
-   );
-
-NTSTATUS
-SrvGetExecContextAsyncId(
-   PSRV_EXEC_CONTEXT pContext,
-   PULONG64          pullAsyncId
    );
 
 VOID

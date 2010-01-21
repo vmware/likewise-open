@@ -128,17 +128,20 @@ error:
 
 NTSTATUS
 PvfsValidatePath(
-    PCSTR pszFilename,
+    PPVFS_FCB pFcb,
     PPVFS_FILE_ID pFileId
     )
 {
-    NTSTATUS ntError= STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN bFcbLocked = FALSE;
     PVFS_STAT Stat = {0};
+
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwFileName);
 
     /* Verify that the dev/inode pair is the same on the pathname
        and the fd */
 
-    ntError = PvfsSysStat(pszFilename, &Stat);
+    ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
     if ((pFileId->Device != Stat.s_dev) || (pFileId->Inode != Stat.s_ino))
@@ -148,6 +151,8 @@ PvfsValidatePath(
     }
 
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
+
     return ntError;
 
 error:

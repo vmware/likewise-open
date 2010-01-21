@@ -272,7 +272,7 @@ PvfsWC16CanonicalPathName(
 
 NTSTATUS
 PvfsValidatePath(
-    PCSTR pszFilename,
+    PPVFS_FCB pFcb,
     PPVFS_FILE_ID pFileId
     );
 

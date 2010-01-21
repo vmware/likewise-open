@@ -3941,7 +3941,6 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
     PFILE_FS_VOLUME_INFORMATION    pFSVolInfo             = NULL;
     PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
     PSMB_FS_VOLUME_INFO_HEADER     pFSVolInfoHeader       = NULL;
-    USHORT                         usVolumeLabelLen       = 0;
 
     pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
@@ -3986,10 +3985,9 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
     pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
 
     pFSVolInfo = (PFILE_FS_VOLUME_INFORMATION)pGetInfoState->pResponseBuffer;
-    usVolumeLabelLen = wc16slen(pFSVolInfo->VolumeLabel) * sizeof(wchar16_t);
 
     pGetInfoResponseHeader->ulOutBufferLength = sizeof(SMB_FS_VOLUME_INFO_HEADER);
-    pGetInfoResponseHeader->ulOutBufferLength += usVolumeLabelLen;
+    pGetInfoResponseHeader->ulOutBufferLength += pFSVolInfo->VolumeLabelLength;
 
     if (ulBytesAvailable < pGetInfoResponseHeader->ulOutBufferLength)
     {
@@ -4006,11 +4004,13 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
     pFSVolInfoHeader->bSupportsObjects     = pFSVolInfo->SupportsObjects;
     pFSVolInfoHeader->llVolumeCreationTime = pFSVolInfo->VolumeCreationTime;
     pFSVolInfoHeader->ulVolumeSerialNumber = pFSVolInfo->VolumeSerialNumber;
-    pFSVolInfoHeader->ulVolumeLabelLength  = usVolumeLabelLen;
+    pFSVolInfoHeader->ulVolumeLabelLength  = pFSVolInfo->VolumeLabelLength;
 
-    if (usVolumeLabelLen)
+    if (pFSVolInfo->VolumeLabelLength)
     {
-        memcpy(pOutBuffer, (PBYTE)pFSVolInfo->VolumeLabel, usVolumeLabelLen);
+        memcpy( pOutBuffer,
+                (PBYTE)pFSVolInfo->VolumeLabel,
+                pFSVolInfo->VolumeLabelLength);
     }
 
     ulTotalBytesUsed += pGetInfoResponseHeader->ulOutBufferLength;
@@ -4105,7 +4105,6 @@ SrvBuildFileSystemAttributeInfoResponse_SMB_V2(
     PFILE_FS_ATTRIBUTE_INFORMATION pFSAttrInfo = NULL;
     PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
     PSMB_FS_ATTRIBUTE_INFO_HEADER  pFSAttrInfoHeader = NULL;
-    USHORT                         usVolumeLabelLen = 0;
 
     pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
@@ -4150,10 +4149,9 @@ SrvBuildFileSystemAttributeInfoResponse_SMB_V2(
     pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
 
     pFSAttrInfo = (PFILE_FS_ATTRIBUTE_INFORMATION)pGetInfoState->pResponseBuffer;
-    usVolumeLabelLen = wc16slen(pFSAttrInfo->FileSystemName) * sizeof(wchar16_t);
 
     pGetInfoResponseHeader->ulOutBufferLength = sizeof(SMB_FS_ATTRIBUTE_INFO_HEADER);
-    pGetInfoResponseHeader->ulOutBufferLength += usVolumeLabelLen;
+    pGetInfoResponseHeader->ulOutBufferLength += pFSAttrInfo->FileSystemNameLength;
 
     if (ulBytesAvailable < pGetInfoResponseHeader->ulOutBufferLength)
     {
@@ -4169,11 +4167,13 @@ SrvBuildFileSystemAttributeInfoResponse_SMB_V2(
 
     pFSAttrInfoHeader->ulFSAttributes = pFSAttrInfo->FileSystemAttributes;
     pFSAttrInfoHeader->lMaxFilenameLen = pFSAttrInfo->MaximumComponentNameLength;
-    pFSAttrInfoHeader->ulFileSystemNameLen = usVolumeLabelLen;
+    pFSAttrInfoHeader->ulFileSystemNameLen = pFSAttrInfo->FileSystemNameLength;
 
-    if (usVolumeLabelLen)
+    if (pFSAttrInfo->FileSystemNameLength)
     {
-        memcpy(pOutBuffer, (PBYTE)pFSAttrInfo->FileSystemName, usVolumeLabelLen);
+        memcpy( pOutBuffer,
+                (PBYTE)pFSAttrInfo->FileSystemName,
+                pFSAttrInfo->FileSystemNameLength);
     }
 
     ulTotalBytesUsed += pGetInfoResponseHeader->ulOutBufferLength;

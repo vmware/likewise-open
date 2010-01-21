@@ -70,8 +70,6 @@ typedef struct _LW_MAP_SECURITY_PLUGIN_CONTEXT {
     // LsaDmConnectDomain() so we can automatically retry on
     // connection-type errors.
     HANDLE hUnusedConnection;
-    uid_t NobodyUid;
-    gid_t NobodyGid;
 } LW_MAP_SECURITY_PLUGIN_CONTEXT;
 
 typedef UCHAR LSA_MAP_SECURITY_OBJECT_INFO_FLAGS, *PLSA_MAP_SECURITY_OBJECT_INFO_FLAGS;
@@ -1172,10 +1170,6 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     {
         createInformation->Unix->Uid = pObjectInfo->Uid;
     }
-    else if (Context->NobodyUid)
-    {
-        createInformation->Unix->Uid = Context->NobodyUid;
-    }
     else
     {
         status = STATUS_NO_SUCH_USER;
@@ -1185,10 +1179,6 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     if (IsSetFlag(pObjectInfo->Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID))
     {
         createInformation->Unix->Gid = pObjectInfo->Gid;
-    }
-    else if (Context->NobodyGid)
-    {
-        createInformation->Unix->Gid = pObjectInfo->Gid = Context->NobodyGid;
     }
     else
     {
@@ -1598,31 +1588,11 @@ MapSecurityPluginCreateContext(
     PLW_MAP_SECURITY_PLUGIN_CONTEXT context = NULL;
     // compiler type check for this function
     LWMSP_CREATE_CONTEXT_CALLBACK unused = MapSecurityPluginCreateContext;
-    struct passwd* pNobodyUser = NULL;
-    struct group* pNobodyGroup = NULL;
 
     assert(unused);
 
     status = RTL_ALLOCATE(&context, LW_MAP_SECURITY_PLUGIN_CONTEXT, sizeof(*context));
     GOTO_CLEANUP_ON_STATUS(status);
-
-    pNobodyUser = getpwnam("nobody");
-    pNobodyGroup = getgrnam("nobody");
-
-    if (!pNobodyGroup)
-    {
-        pNobodyGroup = getgrnam("nogroup");
-    }
-
-    if (pNobodyUser)
-    {
-        context->NobodyUid = pNobodyUser->pw_uid;
-    }
-
-    if (pNobodyGroup)
-    {
-        context->NobodyGid = pNobodyGroup->gr_gid;
-    }
 
 cleanup:
     if (!NT_SUCCESS(status))

@@ -195,15 +195,8 @@ PvfsSetFileRenameInfo(
         }
     }
 
-    ntError = PvfsValidatePath(pCcb->pFcb->pszFilename, &pCcb->FileId);
+    ntError = PvfsRenameFCB(pCcb->pFcb, pCcb, pszNewPathname);
     BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysRename(pCcb->pszFilename, pszNewPathname);
-    BAIL_ON_NT_STATUS(ntError);
-
-    PVFS_FREE(&pCcb->pszFilename);
-    pCcb->pszFilename = pszNewPathname;
-    pszNewPathname = NULL;
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;

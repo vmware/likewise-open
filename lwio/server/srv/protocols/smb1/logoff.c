@@ -47,6 +47,15 @@ SrvProcessLogoffAndX(
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
     ULONG ulTotalBytesUsed = 0;
+    PLWIO_SRV_SESSION pSession = NULL;
+
+    ntStatus = SrvConnectionFindSession(
+                    pConnection,
+                    pSmbRequest->pHeader->uid,
+                    &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvSessionRundown(pSession);
 
     ntStatus = SrvConnectionRemoveSession(
                     pConnection,
@@ -110,6 +119,10 @@ SrvProcessLogoffAndX(
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
+    if (pSession)
+    {
+        SrvSessionRelease(pSession);
+    }
 
     return ntStatus;
 

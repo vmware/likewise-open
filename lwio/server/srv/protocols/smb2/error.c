@@ -81,6 +81,7 @@ SrvFreeErrorMessage_SMB_V2(
 NTSTATUS
 SrvBuildErrorResponse_SMB_V2(
     PSRV_EXEC_CONTEXT    pExecContext,
+    ULONG64              ullAsyncId,
     NTSTATUS             errorStatus
     )
 {
@@ -107,7 +108,7 @@ SrvBuildErrorResponse_SMB_V2(
                 pSmbRequest->pHeader->ullCommandSequence,
                 pSmbRequest->pHeader->ulTid,
                 pSmbRequest->pHeader->ullSessionId,
-                0LL, /* Async Id */
+                ullAsyncId,
                 errorStatus,
                 TRUE,
                 pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
