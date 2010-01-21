@@ -166,7 +166,9 @@ PvfsCreateDirCreate(
                   FILE_ADD_SUBDIRECTORY,
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
-    pCreateCtx->GrantedAccess = Args.DesiredAccess;
+
+    pCreateCtx->GrantedAccess = PvfsGetGrantedAccessForNewObject(
+                                        Args.DesiredAccess);
 
     ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
     BAIL_ON_NT_STATUS(ntError);
@@ -341,7 +343,8 @@ PvfsCreateDirOpenIf(
                       &pCreateCtx->GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
 
-        pCreateCtx->GrantedAccess = Args.DesiredAccess;
+        pCreateCtx->GrantedAccess = PvfsGetGrantedAccessForNewObject(
+                                            Args.DesiredAccess);
     }
     else
     {

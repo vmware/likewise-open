@@ -266,7 +266,27 @@ error:
     goto cleanup;
 }
 
+/***********************************************************
+ **********************************************************/
 
+ACCESS_MASK
+PvfsGetGrantedAccessForNewObject(
+    ACCESS_MASK DesiredAccess
+    )
+{
+    ACCESS_MASK GrantedAccess = DesiredAccess;
+
+    // TODO: This function probably needs to be more complicated.
+
+    if (IsSetFlag(DesiredAccess, MAXIMUM_ALLOWED))
+    {
+        GrantedAccess = FILE_ALL_ACCESS;
+    }
+
+    RtlMapGenericMask(&GrantedAccess, &gPvfsFileGenericMapping);
+
+    return GrantedAccess;
+}
 
 /*
 local variables:

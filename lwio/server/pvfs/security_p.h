@@ -81,6 +81,10 @@ PvfsAccessCheckFile(
     ACCESS_MASK Desired,
     ACCESS_MASK *pGranted);
 
+ACCESS_MASK
+PvfsGetGrantedAccessForNewObject(
+    ACCESS_MASK DesiredAccess
+    );
 
 
 #endif    /* _PVFS_SECURITY_P_H */
