@@ -247,12 +247,17 @@ struct _PVFS_FCB
     /* ControlBlock */
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
                                        on an individual FCB */
-    PSTR pszFilename;
     PPVFS_FCB pParentFcb;
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
     /* End ControlBlock */
+
+    /* rwlockFileName */
+    pthread_rwlock_t rwFileName;
+
+    PSTR pszFilename;
+    /* End rwlockFileName */
 
 
     /* rwCcbLock */

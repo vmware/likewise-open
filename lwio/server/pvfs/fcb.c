@@ -136,6 +136,7 @@ PvfsFreeFCB(
         pthread_mutex_destroy(&pFcb->mutexNotify);
         pthread_rwlock_destroy(&pFcb->rwCcbLock);
         pthread_rwlock_destroy(&pFcb->rwBrlLock);
+        pthread_rwlock_destroy(&pFcb->rwFileName);
 
         PvfsListDestroy(&pFcb->pPendingLockQueue);
         PvfsListDestroy(&pFcb->pOplockPendingOpsQueue);
@@ -192,6 +193,7 @@ PvfsAllocateFCB(
     pthread_mutex_init(&pFcb->mutexNotify, NULL);
     pthread_rwlock_init(&pFcb->rwCcbLock, NULL);
     pthread_rwlock_init(&pFcb->rwBrlLock, NULL);
+    pthread_rwlock_init(&pFcb->rwFileName, NULL);
 
     pFcb->RefCount = 1;
 
@@ -345,7 +347,7 @@ PvfsExecuteDeleteOnClose(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
 
-    ntError = PvfsValidatePath(pFcb->pszFilename, &pFcb->FileId);
+    ntError = PvfsValidatePath(pFcb, &pFcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysRemove(pFcb->pszFilename);
@@ -1158,6 +1160,52 @@ PvfsOplockCleanPendingOpFree(
     return;
 }
 
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsRenameFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb,
+    PCSTR pszNewFilename
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    BOOLEAN bTableLocked = FALSE;
+    BOOLEAN bFcbLocked = FALSE;
+    BOOLEAN bCcbLocked = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
+
+    ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbLocked, &pFcb->rwFileName);
+
+    ntError = PvfsSysRename(pCcb->pszFilename, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    PVFS_FREE(&pFcb->pszFilename);
+    ntError = LwRtlCStringDuplicate(&pFcb->pszFilename, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_LOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+
+    PVFS_FREE(&pCcb->pszFilename);
+    ntError = LwRtlCStringDuplicate(&pCcb->pszFilename, pszNewFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
+    LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 /*
 local variables:
