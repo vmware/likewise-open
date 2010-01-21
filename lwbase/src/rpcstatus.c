@@ -413,6 +413,8 @@ LwRpcStatusToNtStatus(
 {
     switch(status)
     {
+        case 0:
+            return LW_STATUS_SUCCESS;
         case LW_ERROR_RPC_S_CANT_CREATE_SOCKET:
             return LW_STATUS_CONNECTION_REFUSED;
         case LW_ERROR_RPC_S_CANT_BIND_SOCKET:
