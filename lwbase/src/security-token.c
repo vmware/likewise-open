@@ -728,3 +728,322 @@ cleanup:
 
     return NT_SUCCESS(status) ? TRUE : FALSE;
 }
+
+static
+inline
+VOID
+Align32(
+    PULONG ulValue
+    )
+{
+    ULONG ulRem = *ulValue % 32;
+
+    if (ulRem) *ulValue += (32 - ulRem);
+}
+
+static
+inline
+NTSTATUS
+CheckOffset(
+    ULONG ulOffset,
+    ULONG ulSize,
+    ULONG ulMaxSize
+    )
+{
+    if (ulMaxSize - ulOffset < ulSize)
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+    else
+    {
+        return STATUS_SUCCESS;
+    }
+}
+
+static
+inline
+NTSTATUS
+AdvanceTo(
+    PULONG ulValue,
+    ULONG ulPosition,
+    ULONG ulSize
+    )
+{
+    if (ulPosition >= ulSize)
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+    else
+    {
+        *ulValue = ulPosition;
+        return STATUS_SUCCESS;
+    }
+}
+
+static
+ULONG
+RtlAccessTokenRelativeSize(
+    PACCESS_TOKEN pToken
+    )
+{
+    ULONG ulRelativeSize = 0;
+    ULONG i = 0;
+
+    ulRelativeSize += sizeof(ACCESS_TOKEN_SELF_RELATIVE);
+    Align32(&ulRelativeSize);
+
+    ulRelativeSize += RtlLengthSid(pToken->User.Sid);
+    Align32(&ulRelativeSize);
+
+    if (pToken->Groups);
+    {
+        ulRelativeSize += sizeof(SID_AND_ATTRIBUTES_SELF_RELATIVE) * pToken->GroupCount;
+        Align32(&ulRelativeSize);
+
+        for (i = 0; i < pToken->GroupCount; i++)
+        {
+            ulRelativeSize += RtlLengthSid(pToken->Groups[i].Sid);
+            Align32(&ulRelativeSize);
+        }
+    }
+
+    if (pToken->Owner)
+    {
+        ulRelativeSize += RtlLengthSid(pToken->Owner);
+        Align32(&ulRelativeSize);
+    }
+
+    if (pToken->PrimaryGroup)
+    {
+        ulRelativeSize += RtlLengthSid(pToken->PrimaryGroup);
+        Align32(&ulRelativeSize);
+    }
+
+    return ulRelativeSize;
+}
+
+NTSTATUS
+RtlAccessTokenToSelfRelativeAccessToken(
+    IN PACCESS_TOKEN pToken,
+    OUT OPTIONAL PACCESS_TOKEN_SELF_RELATIVE pRelative,
+    IN OUT PULONG pulSize
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG ulRelativeSize = RtlAccessTokenRelativeSize(pToken);
+    PSID_AND_ATTRIBUTES_SELF_RELATIVE pGroups = NULL;
+    PBYTE pBuffer = NULL;
+    ULONG ulOffset = 0;
+    ULONG i = 0;
+
+    if (pRelative)
+    {
+        if (*pulSize < ulRelativeSize)
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
+
+        pBuffer = (PBYTE) pRelative;
+
+        pRelative->Flags = pToken->Flags;
+        pRelative->User.Attributes = pToken->User.Attributes;
+        pRelative->GroupCount = pToken->GroupCount;
+        pRelative->Uid = pToken->Uid;
+        pRelative->Gid = pToken->Gid;
+        pRelative->Umask = pToken->Umask;
+
+        ulOffset += sizeof(*pRelative);
+        Align32(&ulOffset);
+
+        pRelative->User.SidOffset = ulOffset;
+        memcpy(pBuffer + ulOffset, pToken->User.Sid, RtlLengthSid(pToken->User.Sid));
+        ulOffset += RtlLengthSid(pToken->User.Sid);
+        Align32(&ulOffset);
+
+        if (pToken->Groups)
+        {
+            pRelative->GroupsOffset = ulOffset;
+            pGroups = (PSID_AND_ATTRIBUTES_SELF_RELATIVE) (pBuffer + ulOffset);
+            ulOffset += sizeof(SID_AND_ATTRIBUTES_SELF_RELATIVE) * pToken->GroupCount;
+            Align32(&ulOffset);
+
+            for (i = 0; i < pToken->GroupCount; i++)
+            {
+                pGroups[i].Attributes = pToken->Groups[i].Attributes;
+                pGroups[i].SidOffset = ulOffset;
+                memcpy(pBuffer + ulOffset, pToken->Groups[i].Sid, RtlLengthSid(pToken->Groups[i].Sid));
+                ulOffset += RtlLengthSid(pToken->Groups[i].Sid);
+                Align32(&ulOffset);
+            }
+        }
+        else
+        {
+            pRelative->GroupsOffset = 0;
+        }
+
+        if (pToken->Owner)
+        {
+            pRelative->OwnerOffset = ulOffset;
+            memcpy(pBuffer + ulOffset, pToken->Owner, RtlLengthSid(pToken->Owner));
+            ulOffset += RtlLengthSid(pToken->Owner);
+            Align32(&ulOffset);
+        }
+        else
+        {
+            pRelative->OwnerOffset = 0;
+        }
+
+        if (pToken->PrimaryGroup)
+        {
+            pRelative->PrimaryGroupOffset = ulOffset;
+            memcpy(pBuffer + ulOffset, pToken->PrimaryGroup, RtlLengthSid(pToken->PrimaryGroup));
+            ulOffset += RtlLengthSid(pToken->PrimaryGroup);
+            Align32(&ulOffset);
+        }
+        else
+        {
+            pRelative->PrimaryGroupOffset = 0;
+        }
+
+        assert(ulOffset == ulRelativeSize);
+    }
+
+cleanup:
+
+    *pulSize = ulRelativeSize;
+
+    return status;
+}
+
+static
+NTSTATUS
+RtlValidateSelfRelativeSid(
+    PSID pSid,
+    ULONG ulOffset,
+    ULONG ulRelativeSize
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = CheckOffset(ulOffset, SID_MIN_SIZE, ulRelativeSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = CheckOffset(ulOffset, RtlLengthSid(pSid), ulRelativeSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+
+    return status;
+}
+
+NTSTATUS
+RtlSelfRelativeAccessTokenToAccessToken(
+    IN PACCESS_TOKEN_SELF_RELATIVE pRelative,
+    IN ULONG ulRelativeSize,
+    OUT PACCESS_TOKEN* ppToken
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PACCESS_TOKEN pToken = NULL;
+    ULONG ulOffset = 0;
+    PBYTE pBuffer = (PBYTE) pRelative;
+    PSID pSid = NULL;
+    PSID_AND_ATTRIBUTES_SELF_RELATIVE pGroups = NULL;
+    ULONG ulSize = 0;
+    ULONG ulRealSize = 0;
+    ULONG i = 0;
+
+    status = RTL_ALLOCATE(&pToken, ACCESS_TOKEN, sizeof(*pToken));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    pToken->ReferenceCount = 1;
+
+    status = CheckOffset(0, sizeof(*pRelative), ulRelativeSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    pToken->Flags = pRelative->Flags;
+    pToken->User.Attributes = pRelative->User.Attributes;
+    pToken->GroupCount = pRelative->GroupCount;
+    pToken->Uid = pRelative->Uid;
+    pToken->Gid = pRelative->Gid;
+    pToken->Umask = pRelative->Umask;
+
+    ulOffset = pRelative->User.SidOffset;
+    pSid = (PSID) (pBuffer + ulOffset);
+    status = RtlValidateSelfRelativeSid(pSid, ulOffset, ulRelativeSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlDuplicateSid(&pToken->User.Sid, pSid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    ulOffset = pRelative->GroupsOffset;
+    if (ulOffset)
+    {
+        status = LwRtlSafeMultiplyULONG(
+            &ulSize,
+            sizeof(SID_AND_ATTRIBUTES_SELF_RELATIVE),
+            pRelative->GroupCount);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = LwRtlSafeMultiplyULONG(
+            &ulRealSize,
+            sizeof(SID_AND_ATTRIBUTES),
+            pRelative->GroupCount);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = CheckOffset(ulOffset, ulSize, ulRelativeSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        pGroups = (PSID_AND_ATTRIBUTES_SELF_RELATIVE) (pBuffer + ulOffset);
+
+        status = RTL_ALLOCATE(&pToken->Groups, SID_AND_ATTRIBUTES, ulRealSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        for (i = 0; i < pRelative->GroupCount; i++)
+        {
+            pToken->Groups[i].Attributes = pGroups[i].Attributes;
+
+            ulOffset = pGroups[i].SidOffset;
+            pSid = (PSID) (pBuffer + ulOffset);
+            status = RtlValidateSelfRelativeSid(pSid, ulOffset, ulRelativeSize);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            status = RtlDuplicateSid(&pToken->Groups[i].Sid, pSid);
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
+    }
+
+    ulOffset = pRelative->OwnerOffset;
+    if (ulOffset)
+    {
+        pSid = (PSID) (pBuffer + ulOffset);
+        status = RtlValidateSelfRelativeSid(pSid, ulOffset, ulRelativeSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlDuplicateSid(&pToken->Owner, pSid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    ulOffset = pRelative->PrimaryGroupOffset;
+    if (ulOffset)
+    {
+        pSid = (PSID) (pBuffer + ulOffset);
+        status = RtlValidateSelfRelativeSid(pSid, ulOffset, ulRelativeSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlDuplicateSid(&pToken->PrimaryGroup, pSid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    *ppToken = pToken;
+
+cleanup:
+
+    if (!NT_SUCCESS(status))
+    {
+        RtlReleaseAccessToken(&pToken);
+    }
+
+    return status;
+}
