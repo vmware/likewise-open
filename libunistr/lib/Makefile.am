@@ -2,7 +2,7 @@ lib_LTLIBRARIES = libunistr.la
 
 bin_SCRIPTS = parse_WC16STR.sh
 
-AM_CFLAGS=-fPIC -Werror -Wall
+AM_CFLAGS=-Werror -Wall
 AM_CPPFLAGS=-I$(top_srcdir)/include
 
 libunistr_la_SOURCES = wc16str.c wc16printf.c
