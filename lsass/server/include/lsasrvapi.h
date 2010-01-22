@@ -67,22 +67,12 @@ LsaSrvOpenServer(
     PHANDLE phServer
     );
 
-DWORD
-LsaSrvOpenServerEnum(
-    PHANDLE phServer
-    );
-
 VOID
 LsaSrvGetClientId(
     HANDLE hServer,
     uid_t* pUid,
     gid_t* pGid,
     pid_t* pPid
-    );
-
-void
-LsaSrvCloseServerEnum(
-    HANDLE hServer
     );
 
 void

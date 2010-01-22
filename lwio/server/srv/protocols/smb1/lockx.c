@@ -225,6 +225,12 @@ SrvFreeLockState(
     PSRV_LOCK_STATE_SMB_V1 pLockState
     );
 
+static
+VOID
+SrvConvertLockTimeout(
+    PSRV_LOCK_STATE_SMB_V1 pLockState
+    );
+
 NTSTATUS
 SrvCreatePendingLockStateList(
     PSRV_PENDING_LOCK_STATE_LIST* ppLockStateList
@@ -431,6 +437,8 @@ SrvProcessLockAndX(
                                 pLockState);
                 BAIL_ON_NT_STATUS(ntStatus);
 
+                SrvConvertLockTimeout(pLockState);
+
                 switch (pLockState->pRequestHeader->ulTimeout)
                 {
                     case 0:           /* don't wait i.e. fail immediately */
@@ -556,6 +564,18 @@ error:
 
             // intentional fall through
 
+        case STATUS_LOCK_NOT_GRANTED:
+
+            if (pLockState->pRequestHeader->ulTimeout != 0)
+            {
+                ntStatus = STATUS_FILE_LOCK_CONFLICT;
+            }
+
+            SrvFileSetLastFailedLockOffset(pLockState->pFile,
+                    pLockState->llOffset);
+
+            // intentional fall through
+
         default:
 
             if (pLockState)
@@ -572,8 +592,6 @@ error:
 
                 SrvClearLocks(pLockState);
             }
-
-            // ntStatus = STATUS_LOCK_NOT_GRANTED;
 
             break;
     }
@@ -1785,6 +1803,66 @@ SrvFreeLockState(
     }
 
     SrvFreeMemory(pLockState);
+}
+
+
+static
+VOID
+SrvConvertLockTimeout(
+    PSRV_LOCK_STATE_SMB_V1 pLockState
+    )
+{
+        int i = 0;
+        ULONG64 ullOffset = 0;
+        const ULONG64 ullMaxNonBlockingLockOffset = 0xEF000000;
+        const ULONG ulLockConflictTimeout = 250;
+        ULONG64 ullLastFailedLockOffset = -1;
+
+        // If a requested lock has previously conflicted with a held lock
+        // we save the offset. If it is requested again in a non-blocking
+        // manner we instead give it a small timeout. This throttles clients
+        // which are repeatedly polling for the same lock and overloading the
+        // server. In addition locks over a certain offset, when the 64-bit is
+        // not set, are always given a short timeout.
+
+        if (pLockState->pRequestHeader->ulTimeout != 0)
+        {
+                goto cleanup;
+        }
+
+        ullLastFailedLockOffset =
+                SrvFileGetLastFailedLockOffset(pLockState->pFile);
+
+        for (i = 0; i < pLockState->pRequestHeader->usNumLocks; i++)
+        {
+            if (pLockState->pRequestHeader->ucLockType &
+                LWIO_LOCK_TYPE_LARGE_FILES)
+            {
+                PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
+                            &pLockState->pLockRangeLarge[i];
+
+                ullOffset = (((ULONG64)pLockInfo->ulOffsetHigh) << 32) |
+                            ((ULONG64)pLockInfo->ulOffsetLow);
+            }
+            else
+            {
+                PLOCKING_ANDX_RANGE pLockInfo = &pLockState->pLockRange[i];
+
+                ullOffset = pLockInfo->ulOffset;
+            }
+
+            if (ullOffset == ullLastFailedLockOffset ||
+                (ullOffset >= ullMaxNonBlockingLockOffset &&
+                (ullOffset & 0x8000000000000000LL) == 0))
+
+            {
+                pLockState->pRequestHeader->ulTimeout = ulLockConflictTimeout;
+                break;
+            }
+        }
+
+cleanup:
+        return;
 }
 
 /*
