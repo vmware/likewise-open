@@ -71,7 +71,13 @@ REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable =
         &SqliteGetKeySecurity
 };
 
-REG_SRV_API_KEYLOOKUP gActiveKeyList =
+REG_SRV_SQLITE_KEYLOOKUP gActiveKeyList =
+    {
+            .mutex    = PTHREAD_MUTEX_INITIALIZER,
+            .pKeyList = NULL
+    };
+
+REG_SRV_SQLITE_KEYLOOKUP gRegDbKeyList =
     {
             .mutex    = PTHREAD_MUTEX_INITIALIZER,
             .pKeyList = NULL

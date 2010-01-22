@@ -121,7 +121,7 @@ SqliteReleaseKeyContext_inlock(
     );
 
 void
-SqliteCacheFreeHashEntry(
+SqliteCacheFreeKeyCtxHashEntry(
     IN const REG_HASH_ENTRY* pEntry
     );
 
@@ -186,6 +186,48 @@ SqliteCacheUpdateValuesInfo(
     DWORD dwOffSet,
     IN OUT PREG_KEY_CONTEXT pKeyResult,
     OUT size_t* psNumValues
+    );
+
+// Sqlite DB Key Index and ACL Index mapping cache
+void
+SqliteCacheFreeDbKeyHashEntry(
+    IN const REG_HASH_ENTRY* pEntry
+    );
+
+NTSTATUS
+SqliteCacheGetDbKeyInfo(
+    IN PCWSTR pwszKeyName,
+    OUT PREG_DB_KEY* ppRegKey
+    );
+
+VOID
+SqliteCacheDeleteDbKeyInfo(
+    IN PCWSTR pwszKeyName
+    );
+
+VOID
+SqliteCacheDeleteDbKeyInfo_inlock(
+    IN PCWSTR pwszKeyName
+    );
+
+NTSTATUS
+SqliteCacheInsertDbKeyInfo(
+    IN PREG_DB_KEY pRegKey
+    );
+
+NTSTATUS
+SqliteCacheInsertDbKeyInfo_inlock(
+    IN PREG_DB_KEY pRegKey
+    );
+
+VOID
+SqliteReleaseDbKeyInfo(
+    PREG_DB_KEY pRegKey
+    );
+
+VOID
+SqliteReleaseDbKeyInfo_inlock(
+    PREG_DB_KEY pRegKey
     );
 
 

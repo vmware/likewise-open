@@ -158,7 +158,7 @@ SqliteCacheDeleteActiveKey_inlock(
     status = RegHashGetValue(gActiveKeyList.pKeyList,
 		                 pwszKeyName,
 		                 (PVOID*)&pKeyResult);
-    if (ENOENT == LwNtStatusToErrno(status))
+    if (STATUS_OBJECT_NAME_NOT_FOUND == status)
     {
         return;
     }
@@ -313,7 +313,7 @@ SqliteReleaseKeyContext_inlock(
 }
 
 void
-SqliteCacheFreeHashEntry(
+SqliteCacheFreeKeyCtxHashEntry(
     IN const REG_HASH_ENTRY* pEntry
     )
 {
@@ -321,7 +321,7 @@ SqliteCacheFreeHashEntry(
 
     if (pKeyResult)
     {
-	RegSrvSafeFreeKeyContext((PREG_KEY_CONTEXT)pEntry->pValue);
+	RegSrvSafeFreeKeyContext(pKeyResult);
     }
 }
 
@@ -741,4 +741,177 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+// Sqlite DB Key Index and ACL Index mapping cache
+void
+SqliteCacheFreeDbKeyHashEntry(
+    IN const REG_HASH_ENTRY* pEntry
+    )
+{
+	PREG_DB_KEY pRegKey = (PREG_DB_KEY)pEntry->pValue;
+
+    if (pRegKey)
+    {
+	RegDbSafeFreeEntryKey(&pRegKey);
+    }
+}
+
+NTSTATUS
+SqliteCacheGetDbKeyInfo(
+    IN PCWSTR pwszKeyName,
+    OUT PREG_DB_KEY* ppRegKey
+    )
+{
+	NTSTATUS status = 0;
+    BOOLEAN bInLock = FALSE;
+    //Do not free
+    PREG_DB_KEY pRegKeyRef = NULL;
+    PREG_DB_KEY pRegKey = NULL;
+
+    LWREG_LOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+    status = RegHashGetValue(gRegDbKeyList.pKeyList,
+		                 pwszKeyName,
+                             (PVOID*)&pRegKeyRef);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RegDbDuplicateDbKeyEntry(pRegKeyRef, &pRegKey);
+    BAIL_ON_NT_STATUS(status);
+
+    *ppRegKey = pRegKey;
+
+cleanup:
+
+    LWREG_UNLOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+    return status;
+
+error:
+
+    *ppRegKey = NULL;
+    RegDbSafeFreeEntryKey(&pRegKey);
+
+    goto cleanup;
+}
+
+NTSTATUS
+SqliteCacheInsertDbKeyInfo(
+    IN PREG_DB_KEY pRegKey
+    )
+{
+    NTSTATUS status = 0;
+	BOOLEAN bInLock = FALSE;
+
+    LWREG_LOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+    status = SqliteCacheInsertDbKeyInfo_inlock(pRegKey);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    LWREG_UNLOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SqliteCacheInsertDbKeyInfo_inlock(
+    IN PREG_DB_KEY pRegKey
+    )
+{
+	NTSTATUS status = STATUS_SUCCESS;
+
+	BAIL_ON_NT_INVALID_POINTER(pRegKey);
+
+    status = RegHashSetValue(gRegDbKeyList.pKeyList,
+                             (PVOID)pRegKey->pwszFullKeyName,
+                             (PVOID)pRegKey);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    return status;
+
+error:
+    goto cleanup;
+}
+
+VOID
+SqliteCacheDeleteDbKeyInfo(
+    IN PCWSTR pwszKeyName
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWREG_LOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+    SqliteCacheDeleteDbKeyInfo_inlock(pwszKeyName);
+
+    LWREG_UNLOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+    return;
+}
+
+VOID
+SqliteCacheDeleteDbKeyInfo_inlock(
+    IN PCWSTR pwszKeyName
+    )
+{
+	NTSTATUS status = 0;
+	REG_HASH_ITERATOR hashIterator;
+    REG_HASH_ENTRY* pHashEntry = NULL;
+    PREG_DB_KEY pRegKey = NULL;
+    int iCount = 0;
+
+    status = RegHashGetValue(gRegDbKeyList.pKeyList,
+		                 (PCVOID)pwszKeyName,
+		                 (PVOID*)&pRegKey);
+    if (STATUS_OBJECT_NAME_NOT_FOUND == status)
+    {
+        return;
+    }
+
+    RegHashGetIterator(gRegDbKeyList.pKeyList, &hashIterator);
+
+    for (iCount = 0; (pHashEntry = RegHashNext(&hashIterator)) != NULL; iCount++)
+    {
+	if (LwRtlWC16StringIsEqual((PCWSTR)pHashEntry->pKey, pwszKeyName, FALSE))
+	{
+		RegHashRemoveKey(gRegDbKeyList.pKeyList, pHashEntry->pKey);
+
+            break;
+        }
+    }
+
+    return;
+}
+
+VOID
+SqliteReleaseDbKeyInfo(
+    PREG_DB_KEY pRegKey
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWREG_LOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+    SqliteReleaseDbKeyInfo_inlock(pRegKey);
+
+    LWREG_UNLOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+}
+
+VOID
+SqliteReleaseDbKeyInfo_inlock(
+    PREG_DB_KEY pRegKey
+    )
+{
+    if (pRegKey)
+    {
+	SqliteCacheDeleteDbKeyInfo_inlock(pRegKey->pwszFullKeyName);
+    }
 }

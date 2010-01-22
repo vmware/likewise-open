@@ -76,9 +76,18 @@ SqliteProvider_Initialize(
                     2 * 1024,
                     RegHashCaselessWC16StringCompare,
                     RegHashCaselessWc16String,
-                    SqliteCacheFreeHashEntry,
+                    SqliteCacheFreeKeyCtxHashEntry,
                     NULL,
                     &gActiveKeyList.pKeyList);
+    BAIL_ON_REG_ERROR(dwError);
+
+    dwError = RegHashCreate(
+                    2 * 1024,
+                    RegHashCaselessWC16StringCompare,
+                    RegHashCaselessWc16String,
+                    SqliteCacheFreeDbKeyHashEntry,
+                    NULL,
+                    &gRegDbKeyList.pKeyList);
     BAIL_ON_REG_ERROR(dwError);
 
     // Creating default SD to create registry root key(s)
@@ -127,7 +136,7 @@ SqliteProvider_Shutdown(
         RegHashGetIterator(gActiveKeyList.pKeyList, &hashIterator);
         while ((pHashEntry = RegHashNext(&hashIterator)) != NULL)
         {
-            SqliteCacheFreeHashEntry(pHashEntry);
+            SqliteCacheFreeKeyCtxHashEntry(pHashEntry);
         }
 
         RegHashSafeFree(&gActiveKeyList.pKeyList);

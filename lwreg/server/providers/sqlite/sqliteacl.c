@@ -159,6 +159,7 @@ SqliteSetKeySecurity(
     }
 
     status = RegDbUpdateKeyAcl(ghCacheConnection,
+		                   (PCWSTR)pKeyCtx->pwszKeyName,
 							   pKeyCtx->qwId,
 							   pKeyCtx->qwSdId,
 							   pSecDescRelToSet,

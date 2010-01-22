@@ -176,7 +176,7 @@ error:
     goto cleanup;
 }
 
-//Returns ENOENT if pKey is not in the table
+//Returns STATUS_OBJECT_NAME_NOT_FOUND if pKey is not in the table
 NTSTATUS
 RegHashGetValue(
     REG_HASH_TABLE *pTable,
@@ -209,7 +209,7 @@ RegHashGetValue(
         pExamine = pExamine->pNext;
     }
 
-    status = ENOENT;
+    status = STATUS_OBJECT_NAME_NOT_FOUND;
 
 cleanup:
 
@@ -413,7 +413,7 @@ RegHashRemoveKey(
     }
 
     //The key isn't in the table yet.
-    status = ENOENT;
+    status = STATUS_OBJECT_NAME_NOT_FOUND;
 
 cleanup:
     return status;
