@@ -3396,6 +3396,7 @@ AD_UpdateObject(
             pObject->userInfo.qwMaxPwdAge = gpADProviderData->adMaxPwdAge;
 
             if ((!pObject->userInfo.bPasswordNeverExpires &&
+                  pObject->userInfo.qwPwdExpires != 0 &&
                   u64current_NTtime >= pObject->userInfo.qwPwdExpires) ||
                 pObject->userInfo.qwPwdLastSet == 0)
             {
