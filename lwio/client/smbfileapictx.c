@@ -139,6 +139,8 @@ cleanup:
 
 error:
 
+    *ppToken = NULL;
+
     goto cleanup;
 }
 
