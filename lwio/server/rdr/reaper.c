@@ -194,7 +194,8 @@ static
 NTSTATUS
 RdrReaperSnapshotHashValues(
     PSMB_HASH_TABLE pHash,
-    void*** pppSnapshot
+    void*** pppSnapshot,
+    PULONG pulSnapshotCount
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -244,6 +245,7 @@ RdrReaperSnapshotHashValues(
     } while (pEntry != NULL);
 
     *pppSnapshot = ppSnapshot;
+    *pulSnapshotCount = ulIndex;
 
 cleanup:
 
@@ -295,31 +297,33 @@ RdrReaperReapGlobal(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_SOCKET* pSocketList = NULL;
-    PSMB_SOCKET* pSocketIter = NULL;
     PSMB_SOCKET pSocket = NULL;
     BOOLEAN bInHashLock = FALSE;
     time_t expirationTime = pRuntime->expirationTime;
+    ULONG ulSocketCount = 0;
+    ULONG ulIndex = 0;
 
     /* Within lock, obtain a snapshot of all sockets and take a reference to each */
     LWIO_LOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
 
     ntStatus = RdrReaperSnapshotHashValues(
         pRuntime->pSocketHashByName,
-        (void***) (void*) &pSocketList);
+        (void***) (void*) &pSocketList,
+        &ulSocketCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    for (pSocketIter = pSocketList; *pSocketIter; pSocketIter++)
+    for (ulIndex = 0; ulIndex < ulSocketCount; ulIndex++)
     {
-         pSocket = *pSocketIter;
-         pSocket->refCount++;
+        pSocket = pSocketList[ulIndex];
+        pSocket->refCount++;
     }
 
     LWIO_UNLOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
 
     /* Reap sessions within each socket */
-    for (pSocketIter = pSocketList; *pSocketIter; pSocketIter++)
+    for (ulIndex = 0; ulIndex < ulSocketCount; ulIndex++)
     {
-        pSocket = *pSocketIter;
+        pSocket = pSocketList[ulIndex];
 
         ntStatus = RdrReaperReapSocket(
             pRuntime,
@@ -338,9 +342,9 @@ cleanup:
            time we should next wake at */
         LWIO_LOCK_MUTEX(bInHashLock, &pRuntime->socketHashLock);
 
-        for (pSocketIter = pSocketList; *pSocketIter; pSocketIter++)
+        for (ulIndex = 0; ulIndex < ulSocketCount; ulIndex++)
         {
-            pSocket = *pSocketIter;
+            pSocket = pSocketList[ulIndex];
 
             if (--pSocket->refCount == 0)
             {
@@ -364,7 +368,7 @@ cleanup:
                     /* Ref count is 0 but the socket has not expired,
                        so take it out of the list so it is not freed
                        and calculate when it will expire */
-                    *pSocketIter = NULL;
+                    pSocketList[ulIndex] = NULL;
 
                     RdrReaperUpdateNextWakeTime(
                         pSocket->lastActiveTime,
@@ -377,7 +381,7 @@ cleanup:
             {
                 /* Ref count is not 0, so take it out of list
                    so it it not freed */
-                *pSocketIter = NULL;
+                pSocketList[ulIndex] = NULL;
             }
         }
 
@@ -385,9 +389,9 @@ cleanup:
     }
 
     /* Free everything that was left in the list */
-    for (pSocketIter = pSocketList; *pSocketIter; pSocketIter++)
+    for (ulIndex = 0; ulIndex < ulSocketCount; ulIndex++)
     {
-        pSocket = *pSocketIter;
+        pSocket = pSocketList[ulIndex];
         if (pSocket)
         {
             SMBSocketFree(pSocket);
@@ -416,31 +420,33 @@ RdrReaperReapSocket(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_SESSION* pSessionList = NULL;
-    PSMB_SESSION* pSessionIter = NULL;
     PSMB_SESSION pSession = NULL;
     BOOLEAN bInSocketLock = FALSE;
     time_t expirationTime = pRuntime->expirationTime;
+    ULONG ulSessionCount = 0;
+    ULONG ulIndex = 0;
 
     /* Within lock, obtain a snapshot of all sessions and take a reference to each */
     LWIO_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
     ntStatus = RdrReaperSnapshotHashValues(
         pSocket->pSessionHashByUID,
-        (void***) (void*) &pSessionList);
+        (void***) (void*) &pSessionList,
+        &ulSessionCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    for (pSessionIter = pSessionList; *pSessionIter; pSessionIter++)
+    for (ulIndex = 0; ulIndex < ulSessionCount; ulIndex++)
     {
-         pSession = *pSessionIter;
+        pSession = pSessionList[ulIndex];
          pSession->refCount++;
     }
 
     LWIO_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
     /* Reap trees within each session */
-    for (pSessionIter = pSessionList; *pSessionIter; pSessionIter++)
+    for (ulIndex = 0; ulIndex < ulSessionCount; ulIndex++)
     {
-        pSession = *pSessionIter;
+        pSession = pSessionList[ulIndex];
 
         ntStatus = RdrReaperReapSession(
             pRuntime,
@@ -459,9 +465,9 @@ cleanup:
            time we should next wake at */
         LWIO_LOCK_MUTEX(bInSocketLock, &pSocket->mutex);
 
-        for (pSessionIter = pSessionList; *pSessionIter; pSessionIter++)
+        for (ulIndex = 0; ulIndex < ulSessionCount; ulIndex++)
         {
-            pSession = *pSessionIter;
+            pSession = pSessionList[ulIndex];
 
             if (--pSession->refCount == 0)
             {
@@ -484,7 +490,7 @@ cleanup:
                 {
                     LWIO_LOG_VERBOSE("Session %p is not expired, waiting", pSession);
 
-                    *pSessionIter = NULL;
+                    pSessionList[ulIndex] = NULL;
 
                     RdrReaperUpdateNextWakeTime(
                         pSession->lastActiveTime,
@@ -494,16 +500,16 @@ cleanup:
             }
             else
             {
-                *pSessionIter = NULL;
+                pSessionList[ulIndex] = NULL;
             }
         }
 
         LWIO_UNLOCK_MUTEX(bInSocketLock, &pSocket->mutex);
     }
 
-    for (pSessionIter = pSessionList; *pSessionIter; pSessionIter++)
+    for (ulIndex = 0; ulIndex < ulSessionCount; ulIndex++)
     {
-        pSession = *pSessionIter;
+        pSession = pSessionList[ulIndex];
         if (pSession)
         {
             /* Attempt to log off session, ignoring errors */
@@ -534,25 +540,27 @@ RdrReaperReapSession(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSMB_TREE* pTreeList = NULL;
-    PSMB_TREE* pTreeIter = NULL;
     PSMB_TREE pTree = NULL;
     BOOLEAN bInSessionLock = FALSE;
     time_t expirationTime = pRuntime->expirationTime;
+    ULONG ulTreeCount = 0;
+    ULONG ulIndex = 0;
 
     LWIO_LOCK_MUTEX(bInSessionLock, &pSession->mutex);
 
     ntStatus = RdrReaperSnapshotHashValues(
         pSession->pTreeHashByPath,
-        (void***) (void*) &pTreeList);
+        (void***) (void*) &pTreeList,
+        &ulTreeCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     if (pTreeList)
     {
-        for (pTreeIter = pTreeList; *pTreeIter; pTreeIter++)
+        for (ulIndex = 0; ulIndex < ulTreeCount; ulIndex++)
         {
-            pTree = *pTreeIter;
+            pTree = pTreeList[ulIndex];
 
             if (pTree->refCount == 0)
             {
@@ -579,7 +587,7 @@ cleanup:
                 {
                     LWIO_LOG_VERBOSE("Tree %p is not expired, waiting", pTree);
 
-                    *pTreeIter = NULL;
+                    pTreeList[ulIndex] = NULL;
 
                     RdrReaperUpdateNextWakeTime(
                         pTree->lastActiveTime,
@@ -589,7 +597,7 @@ cleanup:
             }
             else
             {
-                *pTreeIter = NULL;
+                pTreeList[ulIndex] = NULL;
             }
         }
     }
@@ -599,9 +607,9 @@ cleanup:
     /* Pass one -- disconnect each tree outside the lock.
        We can't free or remove the tree from the session
        TID hash until we have received the disconnect reply */
-    for (pTreeIter = pTreeList; *pTreeIter; pTreeIter++)
+    for (ulIndex = 0; ulIndex < ulTreeCount; ulIndex++)
     {
-        pTree = *pTreeIter;
+        pTree = pTreeList[ulIndex];
         if (pTree)
         {
             TreeDisconnect(pTree);
@@ -612,9 +620,9 @@ cleanup:
 
     /* Pass two -- remove and free each tree now that they
        are all disconnected */
-    for (pTreeIter = pTreeList; *pTreeIter; pTreeIter++)
+    for (ulIndex = 0; ulIndex < ulTreeCount; ulIndex++)
     {
-        pTree = *pTreeIter;
+        pTree = pTreeList[ulIndex];
         if (pTree)
         {
             SMBHashRemoveKey(

@@ -94,11 +94,19 @@ _RegOpenHKLM(
     )
 {
     WINERR dwError = ERROR_SUCCESS;
+    UINT32 *h = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*h), OUT_PPVOID(&h));
+    BAIL_ON_ERROR(dwError);
+
+    *handle = h;
 
 cleanup:
+
     return dwError;
 
 error:
+
     goto cleanup;
 }
 
@@ -132,17 +140,21 @@ _RegCloseKey(
     )
 {
     WINERR dwError = ERROR_SUCCESS;
-    UINT32 *h = NULL;
+    UINT32* h = *handle;
 
-    dwError = LwAllocateMemory(sizeof(UINT32), &h);
-    BAIL_ON_ERROR(dwError);
+    if (h)
+    {
+        LwFreeMemory(h);
+    }
 
-    *handle = (REGISTRY_HANDLE)h;
+    *handle = NULL;
 
 cleanup:
+
     return dwError;
 
 error:
+
     goto cleanup;
 }
 

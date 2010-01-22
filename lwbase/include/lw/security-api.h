@@ -467,6 +467,20 @@ RtlAccessCheck(
     OUT PNTSTATUS AccessStatus
     );
 
+NTSTATUS
+RtlAccessTokenToSelfRelativeAccessToken(
+    IN PACCESS_TOKEN pToken,
+    OUT OPTIONAL PACCESS_TOKEN_SELF_RELATIVE pRelative,
+    IN OUT PULONG ulSize
+    );
+
+NTSTATUS
+RtlSelfRelativeAccessTokenToAccessToken(
+    PACCESS_TOKEN_SELF_RELATIVE pRelative,
+    ULONG ulRelativeSize,
+    PACCESS_TOKEN* ppToken
+    );
+
 //
 // SID <-> String Conversion Functions
 //

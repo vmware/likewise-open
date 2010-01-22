@@ -377,36 +377,22 @@ SrvProtocolExecute_SMB_V2(
 
             default:
 
-                if (pExecContext->bInternal)
-                {
-                    break;
-                }
-
-                if (iMsg == 0)
+                if (!pExecContext->bInternal)
                 {
                     ntStatus = SrvBuildErrorResponse_SMB_V2(
                                     pExecContext,
                                     0LL, /* Async Id */
                                     ntStatus);
                 }
-                else
-                {
-                    pExecContext->pSmbResponse->pSMB2Header->error = ntStatus;
 
-                    pResponse->ulMessageSize = 0L;
-                }
-
+                // Stop processing
                 pSmb2Context->iMsg = pSmb2Context->ulNumRequests;
-
-                ntStatus = STATUS_SUCCESS;
 
                 break;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pPrevResponse &&
-            (pPrevResponse->pHeader->error == STATUS_SUCCESS) &&
-            pPrevResponse->pHeader)
+        if (pPrevResponse && pPrevResponse->pHeader)
         {
             pPrevResponse->pHeader->ulChainOffset =
                                     pPrevResponse->ulMessageSize;

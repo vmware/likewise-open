@@ -449,6 +449,96 @@ MU_TEST(Security, 0003_AccessCheck)
     MU_INFO("status = 0x%08x, granted = 0x%08x (%c)", status, granted, isGranted ? 'Y' : 'N');
 }
 
+MU_TEST(Security, 0004_AccessMarshal)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID sid = NULL;
+    TOKEN_USER tokenUser = { { 0 } };
+    union {
+        TOKEN_GROUPS tokenGroups;
+        struct {
+            ULONG GroupCount;
+            SID_AND_ATTRIBUTES Groups[10];
+        };
+    } tokenGroupsUnion = { .tokenGroups = { 0 } };
+    TOKEN_OWNER tokenOwner = { 0 };
+    TOKEN_PRIMARY_GROUP tokenPrimaryGroup = { 0 };
+    TOKEN_DEFAULT_DACL tokenDefaultDacl = { 0 };
+    PACCESS_TOKEN token = NULL;
+    PACCESS_TOKEN token2 = NULL;
+    PACCESS_TOKEN_SELF_RELATIVE relative = NULL;
+    ULONG ulRelativeSize = 0;
+    //PSID primaryGroup = NULL;
+
+    // SID present in an ACE
+    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-1805");
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    tokenUser.User.Sid = sid;
+
+    // Bogus SID
+    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-12345678");
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Sid = sid;
+    SetFlag(tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Attributes, SE_GROUP_ENABLED);
+    tokenGroupsUnion.GroupCount++;
+
+    // Bogus SID
+    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-87654321");
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Sid = sid;
+    tokenGroupsUnion.GroupCount++;
+
+    // SID present in an ACE
+    status = RtlAllocateSidFromCString(&sid, "S-1-5-21-418081286-1191099226-2202501032-1773");
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Sid = sid;
+    SetFlag(tokenGroupsUnion.Groups[tokenGroupsUnion.GroupCount].Attributes, SE_GROUP_ENABLED);
+    tokenGroupsUnion.GroupCount++;
+
+    status = RtlCreateAccessToken(
+                    &token,
+                    &tokenUser,
+                    &tokenGroupsUnion.tokenGroups,
+                    &tokenOwner,
+                    &tokenPrimaryGroup,
+                    &tokenDefaultDacl,
+                    NULL);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    MU_INFO("Original token:");
+
+    DumpToken(token);
+
+    status = RtlAccessTokenToSelfRelativeAccessToken(
+        token,
+        NULL,
+        &ulRelativeSize);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    status = RTL_ALLOCATE(&relative, struct _ACCESS_TOKEN_SELF_RELATIVE, ulRelativeSize);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    status = RtlAccessTokenToSelfRelativeAccessToken(
+        token,
+        relative,
+        &ulRelativeSize);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    status = RtlSelfRelativeAccessTokenToAccessToken(
+        relative,
+        ulRelativeSize,
+        &token2);
+    MU_ASSERT_STATUS_SUCCESS(status);
+
+    MU_INFO("Reconstructed token:");
+
+    DumpToken(token2);
+}
+
 /*
 local variables:
 mode: c

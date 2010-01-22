@@ -58,10 +58,10 @@
 
 #ifdef ENABLE_STATIC_PROVIDERS
 #ifdef ENABLE_AD
-extern DWORD LsaInitializeProvider_ActiveDirectory(PCSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
+extern DWORD LsaInitializeProvider_ActiveDirectory(PCSTR*, PLSA_PROVIDER_FUNCTION_TABLE_2*);
 #endif
 #ifdef ENABLE_LOCAL
-extern DWORD LsaInitializeProvider_Local(PSTR*, PLSA_PROVIDER_FUNCTION_TABLE*);
+extern DWORD LsaInitializeProvider_Local(PCSTR*, PLSA_PROVIDER_FUNCTION_TABLE_2*);
 #endif
 
 static LSA_STATIC_PROVIDER gStaticProviders[] =
