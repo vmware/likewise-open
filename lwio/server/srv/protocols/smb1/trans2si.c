@@ -88,6 +88,7 @@ SrvSetFileInfo(
             break;
 
         case SMB_SET_FILE_DISPOSITION_INFO :
+        case SMB_SET_FILE_DISPOSITION_INFO_ALIAS :
 
             ntStatus = SrvSetDispositionInfo(pExecContext);
 
@@ -118,6 +119,8 @@ SrvSetFileInfo(
         case SMB_SET_FILE_UNIX_BASIC :
         case SMB_SET_FILE_UNIX_LINK :
         case SMB_SET_FILE_UNIX_HLINK :
+        case SMB_SET_FILE_POSITION_INFO :
+        case SMB_SET_FILE_MODE_INFO :
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
@@ -155,6 +158,7 @@ SrvSetPathInfo(
             break;
 
         case SMB_SET_FILE_DISPOSITION_INFO :
+        case SMB_SET_FILE_DISPOSITION_INFO_ALIAS :
 
             ntStatus = SrvSetDispositionInfo(pExecContext);
 
@@ -190,6 +194,8 @@ SrvSetPathInfo(
         case SMB_SET_FILE_UNIX_BASIC :
         case SMB_SET_FILE_UNIX_LINK :
         case SMB_SET_FILE_UNIX_HLINK :
+        case SMB_SET_FILE_POSITION_INFO :
+        case SMB_SET_FILE_MODE_INFO :
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
