@@ -477,9 +477,9 @@ SMB2MarshalCreateContext(
 
 NTSTATUS
 SMB2UnmarshalCloseRequest(
-    PSRV_MESSAGE_SMB_V2 pSmbRequest,
-    PSMB2_FID*          ppFid
-    );
+   IN     PSRV_MESSAGE_SMB_V2         pSmbRequest,
+   IN OUT PSMB2_CLOSE_REQUEST_HEADER* ppHeader
+   );
 
 NTSTATUS
 SMB2UnmarshalFlushRequest(

@@ -1097,8 +1097,8 @@ error:
 
 NTSTATUS
 SMB2UnmarshalCloseRequest(
-   IN     PSRV_MESSAGE_SMB_V2 pSmbRequest,
-   IN OUT PSMB2_FID*          ppFid
+   IN     PSRV_MESSAGE_SMB_V2         pSmbRequest,
+   IN OUT PSMB2_CLOSE_REQUEST_HEADER* ppHeader
    )
 {
     NTSTATUS ntStatus      = STATUS_SUCCESS;
@@ -1114,7 +1114,7 @@ SMB2UnmarshalCloseRequest(
 
     pHeader = (PSMB2_CLOSE_REQUEST_HEADER)pDataCursor;
 
-    *ppFid = &pHeader->fid;
+    *ppHeader = pHeader;
 
 cleanup:
 
@@ -1122,7 +1122,7 @@ cleanup:
 
 error:
 
-    *ppFid = NULL;
+    *ppHeader = NULL;
 
     goto cleanup;
 }

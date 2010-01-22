@@ -1106,7 +1106,7 @@ typedef struct _SRV_CLOSE_STATE_SMB_V2
     IO_ASYNC_CONTROL_BLOCK     acb;
     PIO_ASYNC_CONTROL_BLOCK    pAcb;
 
-    PSMB2_FID                  pFid; // Do not free
+    PSMB2_CLOSE_REQUEST_HEADER pRequestHeader; // Do not free
 
     FILE_BASIC_INFORMATION     fileBasicInfo;
     PFILE_BASIC_INFORMATION    pFileBasicInfo;

@@ -54,10 +54,10 @@
 static
 NTSTATUS
 SrvBuildCloseState_SMB_V2(
-    PSMB2_FID                pFid,
-    PLWIO_SRV_TREE_2         pTree,
-    PLWIO_SRV_FILE_2         pFile,
-    PSRV_CLOSE_STATE_SMB_V2* ppCloseState
+    PSMB2_CLOSE_REQUEST_HEADER pRequestHeader,
+    PLWIO_SRV_TREE_2           pTree,
+    PLWIO_SRV_FILE_2           pFile,
+    PSRV_CLOSE_STATE_SMB_V2*   ppCloseState
     );
 
 static
@@ -131,9 +131,9 @@ SrvProcessClose_SMB_V2(
     }
     else
     {
-        ULONG               iMsg           = pCtxSmb2->iMsg;
-        PSRV_MESSAGE_SMB_V2 pSmbRequest    = &pCtxSmb2->pRequests[iMsg];
-        PSMB2_FID           pFid     = NULL; // Do not free
+        ULONG               iMsg         = pCtxSmb2->iMsg;
+        PSRV_MESSAGE_SMB_V2 pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+        PSMB2_CLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
 
         ntStatus = SrvConnection2FindSession_SMB_V2(
                         pCtxSmb2,
@@ -149,18 +149,18 @@ SrvProcessClose_SMB_V2(
                         &pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SMB2UnmarshalCloseRequest(pSmbRequest, &pFid);
+        ntStatus = SMB2UnmarshalCloseRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvTree2FindFile_SMB_V2(
                         pCtxSmb2,
                         pTree,
-                        pFid,
+                        &pRequestHeader->fid,
                         &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvBuildCloseState_SMB_V2(
-                        pFid,
+                        pRequestHeader,
                         pTree,
                         pFile,
                         &pCloseState);
@@ -177,8 +177,12 @@ SrvProcessClose_SMB_V2(
     {
         case SRV_CLOSE_STAGE_SMB_V2_INITIAL:
 
-            ntStatus = SrvGetFileInformation_SMB_V2(pExecContext);
-            BAIL_ON_NT_STATUS(ntStatus);
+            if (pCloseState->pRequestHeader->usFlags &
+                    SMB2_CLOSE_FLAGS_GET_FILE_ATTRIBUTES)
+            {
+                ntStatus = SrvGetFileInformation_SMB_V2(pExecContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pCloseState->stage = SRV_CLOSE_STAGE_SMB_V2_ATTEMPT_IO;
 
@@ -271,10 +275,10 @@ error:
 static
 NTSTATUS
 SrvBuildCloseState_SMB_V2(
-    PSMB2_FID                pFid,
-    PLWIO_SRV_TREE_2         pTree,
-    PLWIO_SRV_FILE_2         pFile,
-    PSRV_CLOSE_STATE_SMB_V2* ppCloseState
+    PSMB2_CLOSE_REQUEST_HEADER pRequestHeader,
+    PLWIO_SRV_TREE_2           pTree,
+    PLWIO_SRV_FILE_2           pFile,
+    PSRV_CLOSE_STATE_SMB_V2*   ppCloseState
     )
 {
     NTSTATUS                ntStatus    = STATUS_SUCCESS;
@@ -290,7 +294,7 @@ SrvBuildCloseState_SMB_V2(
     pthread_mutex_init(&pCloseState->mutex, NULL);
     pCloseState->pMutex = &pCloseState->mutex;
 
-    pCloseState->pFid = pFid;
+    pCloseState->pRequestHeader = pRequestHeader;
 
     pCloseState->pTree = SrvTree2Acquire(pTree);
 
@@ -431,20 +435,27 @@ SrvBuildCloseResponse_SMB_V2(
     ulBytesAvailable -= sizeof(SMB2_CLOSE_RESPONSE_HEADER);
     ulTotalBytesUsed += sizeof(SMB2_CLOSE_RESPONSE_HEADER);
 
-    pResponseHeader->ullCreationTime   =
-                    pCloseState->fileBasicInfo.CreationTime;
-    pResponseHeader->ullLastAccessTime =
-                    pCloseState->fileBasicInfo.LastAccessTime;
-    pResponseHeader->ullLastWriteTime  =
-                    pCloseState->fileBasicInfo.LastWriteTime;
-    pResponseHeader->ullLastChangeTime =
-                    pCloseState->fileBasicInfo.ChangeTime;
-    pResponseHeader->ulFileAttributes  =
-                    pCloseState->fileBasicInfo.FileAttributes;
-    pResponseHeader->ullAllocationSize =
-                    pCloseState->fileStdInfo.AllocationSize;
-    pResponseHeader->ullEndOfFile      =
-                    pCloseState->fileStdInfo.EndOfFile;
+    if (pCloseState->pRequestHeader->usFlags &
+            SMB2_CLOSE_FLAGS_GET_FILE_ATTRIBUTES)
+    {
+        pResponseHeader->ullCreationTime   =
+                        pCloseState->fileBasicInfo.CreationTime;
+        pResponseHeader->ullLastAccessTime =
+                        pCloseState->fileBasicInfo.LastAccessTime;
+        pResponseHeader->ullLastWriteTime  =
+                        pCloseState->fileBasicInfo.LastWriteTime;
+        pResponseHeader->ullLastChangeTime =
+                        pCloseState->fileBasicInfo.ChangeTime;
+        pResponseHeader->ulFileAttributes  =
+                        pCloseState->fileBasicInfo.FileAttributes;
+        pResponseHeader->ullAllocationSize =
+                        pCloseState->fileStdInfo.AllocationSize;
+        pResponseHeader->ullEndOfFile      =
+                        pCloseState->fileStdInfo.EndOfFile;
+
+        pResponseHeader->usFlags |= SMB2_CLOSE_FLAGS_GET_FILE_ATTRIBUTES;
+    }
+
     pResponseHeader->usLength          = ulBytesUsed;
 
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
