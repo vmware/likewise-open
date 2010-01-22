@@ -1173,6 +1173,7 @@ RegDbCreateKey(
 	PREG_DB_KEY pRegParentKey = NULL;
     PWSTR pwszParentKeyName = NULL;
     PCWSTR pwszKeyName = RegStrrchr(pwszFullKeyName, '\\');
+    BOOLEAN bInLock = FALSE;
 
     if (pwszKeyName)
     {
@@ -1215,12 +1216,24 @@ RegDbCreateKey(
 	status = RegDbOpenKey(hDb, pRegKey->pwszFullKeyName, &pRegKeyFull);
 	BAIL_ON_NT_STATUS(status);
 
+	pRegKey->qwAclIndex = pRegKeyFull->qwAclIndex;
+	pRegKey->qwParentId = pRegKeyFull->qwParentId;
+	pRegKey->version.qwDbId = pRegKeyFull->version.qwDbId;
+
+    LWREG_LOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+	status = SqliteCacheInsertDbKeyInfo_inlock(pRegKey);
+	BAIL_ON_NT_STATUS(status);
+	pRegKey = NULL;
+
     *ppRegKey = pRegKeyFull;
 
 cleanup:
+    SqliteReleaseDbKeyInfo_inlock(pRegKey);
+    LWREG_UNLOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
     LWREG_SAFE_FREE_MEMORY(pwszParentKeyName);
     RegDbSafeFreeEntryKey(&pRegParentKey);
-    RegDbSafeFreeEntryKey(&pRegKey);
 
     return status;
 
@@ -1819,6 +1832,7 @@ error:
 NTSTATUS
 RegDbUpdateKeyAcl(
 	IN REG_DB_HANDLE hDb,
+	IN PCWSTR pwszFullKeyPath,
 	IN int64_t qwKeyDbId,
 	IN int64_t qwKeyCurrSdId,
 	IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelToSet,
@@ -1903,6 +1917,8 @@ RegDbUpdateKeyAcl(
     BAIL_ON_SQLITE3_ERROR(status, pszError);
 
     REG_LOG_VERBOSE("Registry::sqldb.c RegDbUpdateKeyAcl() finished\n");
+
+    SqliteCacheDeleteDbKeyInfo(pwszFullKeyPath);
 
 cleanup:
 

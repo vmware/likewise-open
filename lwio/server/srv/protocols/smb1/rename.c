@@ -362,9 +362,9 @@ SrvExecuteRename(
                         pRenameState->pSecurityDescriptor,
                         pRenameState->pSecurityQOS,
                         DELETE,
-                        FILE_SHARE_READ,
-                        FILE_ATTRIBUTE_NORMAL,
                         0,
+                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_SHARE_READ,
                         FILE_OPEN,
                         0,
                         NULL, /* EA Buffer */

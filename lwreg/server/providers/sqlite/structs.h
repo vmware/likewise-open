@@ -46,10 +46,11 @@
  * Authors: Wei Fu (wfu@likewise.com)
  */
 
-typedef struct _REG_SRV_API_KEYLOOKUP {
+typedef struct _REG_SRV_SQLITE_KEYLOOKUP {
 
     pthread_mutex_t mutex;
 
     PREG_HASH_TABLE pKeyList;
 
-} REG_SRV_API_KEYLOOKUP, *PREG_SRV_API_KEYLOOKUP;
+} REG_SRV_SQLITE_KEYLOOKUP, *PREG_SRV_SQLITE_KEYLOOKUP;
+

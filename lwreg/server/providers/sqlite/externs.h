@@ -51,7 +51,9 @@ extern REG_DB_HANDLE ghCacheConnection;
 
 extern REGPROV_PROVIDER_FUNCTION_TABLE gRegSqliteProviderAPITable;
 
-extern REG_SRV_API_KEYLOOKUP gActiveKeyList;
+extern REG_SRV_SQLITE_KEYLOOKUP gActiveKeyList;
+
+extern REG_SRV_SQLITE_KEYLOOKUP gRegDbKeyList;
 
 extern const DWORD dwDefaultCacheSize;
 
