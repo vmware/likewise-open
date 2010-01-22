@@ -126,10 +126,12 @@ SrvProcessSessionSetup(
 
         /* Generate and store the IoSecurityContext */
 
-        ntStatus = IoSecurityCreateSecurityContextFromGssContext(
-                       &pCtxSmb1->pSession->pIoSecurityContext,
-                       hContextHandle);
-        BAIL_ON_NT_STATUS(ntStatus);
+        if (NT_SUCCESS(ntStatus))
+        {
+            ntStatus = IoSecurityCreateSecurityContextFromGssContext(
+                &pCtxSmb1->pSession->pIoSecurityContext,
+                hContextHandle);
+        }
 
         // Go ahead and close out this GSS negotiate state so we can
         // handle another Session setup.  Then call BAIL_ON_XXX to handle
