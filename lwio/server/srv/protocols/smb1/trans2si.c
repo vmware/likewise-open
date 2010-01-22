@@ -226,6 +226,7 @@ SrvGetPathAccessMask(
             return FILE_WRITE_DATA;
 
         case SMB_SET_FILE_DISPOSITION_INFO:
+        case SMB_SET_FILE_DISPOSITION_INFO_ALIAS:
         case SMB_SET_FILE_RENAME_INFO:
 
             return DELETE;
