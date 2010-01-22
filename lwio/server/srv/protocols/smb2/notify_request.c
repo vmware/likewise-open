@@ -730,7 +730,7 @@ SrvMarshalNotifyResponse_SMB_V2(
             }
         }
 
-        ulInfoBytesRequired  = offsetof(FILE_NOTIFY_INFORMATION, FileName);
+        ulInfoBytesRequired += offsetof(FILE_NOTIFY_INFORMATION, FileName);
         ulOffset            += offsetof(FILE_NOTIFY_INFORMATION, FileName);
 
         if (!pNotifyCursor->FileNameLength)
