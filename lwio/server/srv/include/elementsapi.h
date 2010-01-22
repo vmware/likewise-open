@@ -104,6 +104,7 @@ typedef struct _LWIO_SRV_FILE
 
     HANDLE                         hByteRangeLockState;
     PFN_LWIO_SRV_FREE_BRL_STATE    pfnFreeByteRangeLockState;
+    ULONG64                        ullLastFailedLockOffset;
 
 } LWIO_SRV_FILE, *PLWIO_SRV_FILE;
 
@@ -937,6 +938,17 @@ SrvFileSetOplockLevel(
 
 UCHAR
 SrvFileGetOplockLevel(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileSetLastFailedLockOffset(
+    PLWIO_SRV_FILE pFile,
+    ULONG64        ullLastFailedLockOffset
+    );
+
+ULONG64
+SrvFileGetLastFailedLockOffset(
     PLWIO_SRV_FILE pFile
     );
 
