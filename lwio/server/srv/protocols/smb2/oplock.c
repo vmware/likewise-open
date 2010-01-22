@@ -217,6 +217,12 @@ SrvProcessOplock_SMB_V2(
                     break;
             }
 
+
+            /* These should be 0 in the initial oplock break response */
+
+            pSmbRequest->pHeader->ulTid = 0;
+            pSmbRequest->pHeader->ullSessionId = 0;
+
             ntStatus = SrvBuildOplockBreakResponse_SMB_V2(
                             pExecContext,
                             pOplockState,
