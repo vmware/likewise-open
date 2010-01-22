@@ -141,6 +141,17 @@ SqliteProvider_Shutdown(
 
         RegHashSafeFree(&gActiveKeyList.pKeyList);
     }
+
+    if (gRegDbKeyList.pKeyList)
+    {
+        RegHashGetIterator(gRegDbKeyList.pKeyList, &hashIterator);
+        while ((pHashEntry = RegHashNext(&hashIterator)) != NULL)
+        {
+		SqliteCacheFreeDbKeyHashEntry(pHashEntry);
+        }
+
+        RegHashSafeFree(&gRegDbKeyList.pKeyList);
+    }
 }
 
 NTSTATUS
