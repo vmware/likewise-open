@@ -703,8 +703,9 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
 
                 case "&Clear all Events":
                     {
-                        break;
+                        OnClear_Clicked(sender, null);
                     }
+                    break;
 
                 case "&Filter...":
                     {
@@ -782,7 +783,6 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
         /// <param name="filePath">the target file path</param>
         private void ExportLogFile(int fileType, string filePath)
         {
-
             FileStream fileStream = null;
             try
             {
@@ -948,8 +948,8 @@ namespace Likewise.LMC.Plugins.EventlogPlugin
                             ExportLogFile(2, exportLogsaveFileDialog.FileName.ToString());
                             break;
                     }
+                    ClearAllLogEvents();
                 }
-                ClearAllLogEvents();
             }
             else if (dlg == DialogResult.No)
             {
