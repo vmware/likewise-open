@@ -387,32 +387,6 @@ SrvSession2RemoveAsyncState(
     return ntStatus;
 }
 
-NTSTATUS
-SrvSession2GetNamedPipeClientPrincipal(
-    IN     PLWIO_SRV_SESSION_2 pSession,
-    IN OUT PIO_ECP_LIST     pEcpList
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSTR pszClientPrincipalName = pSession->pszClientPrincipalName;
-    ULONG ulEcpLength = strlen(pszClientPrincipalName) + 1;
-
-    ntStatus = IoRtlEcpListInsert(pEcpList,
-                                  IO_ECP_TYPE_PEER_PRINCIPAL,
-                                  pszClientPrincipalName,
-                                  ulEcpLength,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
 PLWIO_SRV_SESSION_2
 SrvSession2Acquire(
     PLWIO_SRV_SESSION_2 pSession

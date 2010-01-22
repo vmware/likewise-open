@@ -598,11 +598,6 @@ SrvBuildCreateState_SMB_V2(
                        pCreateState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSession2GetNamedPipeClientPrincipal(
-                       pCtxSmb2->pSession,
-                       pCreateState->pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
         ntStatus = SrvConnectionGetNamedPipeClientAddress(
                        pConnection,
                        pCreateState->pEcpList);

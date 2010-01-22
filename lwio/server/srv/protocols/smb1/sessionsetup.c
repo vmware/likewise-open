@@ -58,11 +58,11 @@ SrvProcessSessionSetup(
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1      = pCtxProtocol->pSmb1Context;
     ULONG                      iMsg          = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1        pSmbRequest   = &pCtxSmb1->pRequests[iMsg];
-    UNICODE_STRING             uniUsername   = {0};
     PBYTE                      pSecurityBlob        = NULL; // Do Not Free
     ULONG                      ulSecurityBlobLength = 0;
     PBYTE                      pInitSecurityBlob        = NULL;
     ULONG                      ulInitSecurityBlobLength = 0;
+    LW_MAP_SECURITY_GSS_CONTEXT hContextHandle = NULL;
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
@@ -110,7 +110,8 @@ SrvProcessSessionSetup(
                              pConnection->hGssNegotiate,
                              &pConnection->pSessionKey,
                              &pConnection->ulSessionKeyLength,
-                             &pCtxSmb1->pSession->pszClientPrincipalName);
+                             &pCtxSmb1->pSession->pszClientPrincipalName,
+                             &hContextHandle);
         }
         else
         {
@@ -119,8 +120,16 @@ SrvProcessSessionSetup(
                             pConnection->hGssNegotiate,
                             NULL,
                             NULL,
-                            &pCtxSmb1->pSession->pszClientPrincipalName);
+                            &pCtxSmb1->pSession->pszClientPrincipalName,
+                            &hContextHandle);
         }
+
+        /* Generate and store the IoSecurityContext */
+
+        ntStatus = IoSecurityCreateSecurityContextFromGssContext(
+                       &pCtxSmb1->pSession->pIoSecurityContext,
+                       hContextHandle);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         // Go ahead and close out this GSS negotiate state so we can
         // handle another Session setup.  Then call BAIL_ON_XXX to handle
@@ -131,18 +140,6 @@ SrvProcessSessionSetup(
             pConnection->hGssNegotiate);
         pConnection->hGssNegotiate = NULL;
 
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        /* Generate and store the IoSecurityContext */
-
-        ntStatus = RtlUnicodeStringAllocateFromCString(
-                       &uniUsername,
-                       pCtxSmb1->pSession->pszClientPrincipalName);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = IoSecurityCreateSecurityContextFromUsername(
-                       &pCtxSmb1->pSession->pIoSecurityContext,
-                       &uniUsername);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
@@ -156,9 +153,6 @@ cleanup:
     {
         SrvFreeMemory(pInitSecurityBlob);
     }
-
-
-    RtlUnicodeStringFree(&uniUsername);
 
     return ntStatus;
 

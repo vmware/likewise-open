@@ -165,6 +165,9 @@ NpfsCommonCreate(
 
     pPipe->PipeClientState = PIPE_CLIENT_CONNECTED;
 
+    pPipe->pClientAccessToken = IoSecurityGetAccessToken(pIrp->Args.Create.SecurityContext);
+    RtlReferenceAccessToken(pPipe->pClientAccessToken);
+
     ntStatus = NpfsCommonProcessCreateEcp(pIrpContext, pIrp, pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -261,8 +264,6 @@ NpfsCommonProcessCreateEcp(
     PNPFS_PIPE pPipe = pCCB->pPipe;
     PBYTE pSessionKey = NULL;
     ULONG ulSessionKeyLength = 0;
-    PSTR pszClientPrincipalName = NULL;
-    ULONG ulPrincipalLength = 0;
     PULONG pulAddr = NULL;
     ULONG ulAddrLen = 0;
 
@@ -281,22 +282,6 @@ NpfsCommonProcessCreateEcp(
 
         memcpy(pPipe->pSessionKey, pSessionKey, ulSessionKeyLength);
         pPipe->ulSessionKeyLength = ulSessionKeyLength;
-    }
-
-    ntStatus = IoRtlEcpListFind(
-        pIrp->Args.Create.EcpList,
-        IO_ECP_TYPE_PEER_PRINCIPAL,
-        OUT_PPVOID(&pszClientPrincipalName),
-        &ulPrincipalLength);
-
-    if (ntStatus != STATUS_NOT_FOUND)
-    {
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = LwRtlCStringDuplicate(
-            &pPipe->pszClientPrincipalName,
-            pszClientPrincipalName);
-        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     ntStatus = IoRtlEcpListFind(

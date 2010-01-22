@@ -52,10 +52,10 @@ LwIoCtxGetSessionKey(
     );
 
 LW_NTSTATUS
-LwIoCtxGetPeerPrincipalName(
+LwIoCtxGetPeerAccessToken(
     LW_PIO_CONTEXT pContext,
     IO_FILE_HANDLE File,
-    LW_PSTR* ppszPrincipalName
+    PACCESS_TOKEN* ppToken
     );
 
 LW_NTSTATUS
@@ -84,9 +84,9 @@ LwIoGetSessionKey(
     );
 
 LW_NTSTATUS
-LwIoGetPeerPrincipalName(
+LwIoGetPeerAccessToken(
     IO_FILE_HANDLE File,
-    LW_PSTR* ppszPrincipalName
+    PACCESS_TOKEN* ppToken
     );
 
 LW_NTSTATUS

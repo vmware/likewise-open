@@ -247,7 +247,8 @@ SrvGssGetSessionDetails(
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
     PULONG pulSessionKeyLength,
-    PSTR* ppszClientPrincipalName
+    PSTR* ppszClientPrincipalName,
+    LW_MAP_SECURITY_GSS_CONTEXT* pContextHandle
     )
 {
     NTSTATUS ntStatus = 0;
@@ -288,6 +289,11 @@ SrvGssGetSessionDetails(
     {
         *ppSessionKey = pSessionKey;
         *pulSessionKeyLength = dwSessionKeyLength;
+    }
+
+    if (pContextHandle)
+    {
+        *pContextHandle = *pGssNegotiate->pGssContext;
     }
 
 cleanup:

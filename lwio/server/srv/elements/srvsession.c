@@ -272,32 +272,6 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
-SrvSessionGetNamedPipeClientPrincipal(
-    IN     PLWIO_SRV_SESSION pSession,
-    IN OUT PIO_ECP_LIST     pEcpList
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSTR pszClientPrincipalName = pSession->pszClientPrincipalName;
-    ULONG ulEcpLength = strlen(pszClientPrincipalName) + 1;
-
-    ntStatus = IoRtlEcpListInsert(pEcpList,
-                                  IO_ECP_TYPE_PEER_PRINCIPAL,
-                                  pszClientPrincipalName,
-                                  ulEcpLength,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
 PLWIO_SRV_SESSION
 SrvSessionAcquire(
     PLWIO_SRV_SESSION pSession
