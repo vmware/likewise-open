@@ -85,12 +85,6 @@ InitLockEntry(
     IN  PVFS_LOCK_FLAGS Flags
     );
 
-static BOOLEAN
-LockEntryEqual(
-    PPVFS_LOCK_ENTRY pEntry1,
-    PPVFS_LOCK_ENTRY pEntry2
-    );
-
 static NTSTATUS
 PvfsAddPendingLock(
     PPVFS_FCB pFcb,
@@ -199,23 +193,6 @@ error:
         if (ntErrorPending == STATUS_PENDING) {
             ntError = STATUS_PENDING;
         }
-    }
-
-    /* Windows 2003 & XP return FILE_LOCK_CONFLICT for all
-       lock failures following the first.  The state machine
-       resets every time a new lock range (on a new handle) is
-       requested.  Pass all errors other than LOCK_NOT_GRANTED
-       on through. */
-
-    if (ntError == STATUS_LOCK_NOT_GRANTED)
-    {
-        if (LockEntryEqual(&pFcb->LastFailedLock, &RangeLock) &&
-           (pFcb->pLastFailedLockOwner == pCcb))
-        {
-            ntError = STATUS_FILE_LOCK_CONFLICT;
-        }
-        InitLockEntry(&pFcb->LastFailedLock, Key, Offset, Length, Flags);
-        pFcb->pLastFailedLockOwner = pCcb;
     }
 
     LWIO_UNLOCK_RWMUTEX(bBrlWriteLocked, &pFcb->rwBrlLock);
@@ -775,36 +752,6 @@ InitLockEntry(
     pEntry->Length = Length;
 
     return;
-}
-
-
-/**************************************************************
- *************************************************************/
-
-static BOOLEAN
-LockEntryEqual(
-    PPVFS_LOCK_ENTRY pEntry1,
-    PPVFS_LOCK_ENTRY pEntry2
-    )
-{
-    if (pEntry1 == pEntry2) {
-        return TRUE;
-    }
-
-    if ((pEntry1 == NULL) || (pEntry2 == NULL)) {
-        return FALSE;
-    }
-
-    /* According to tests, the lock type is ignored */
-
-    if ((pEntry1->Key == pEntry2->Key) &&
-        (pEntry1->Offset == pEntry2->Offset) &&
-        (pEntry1->Length == pEntry2->Length))
-    {
-        return TRUE;
-    }
-
-    return FALSE;
 }
 
 

@@ -270,9 +270,6 @@ struct _PVFS_FCB
     pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in
                                        the CCB list, the pendingLockqueue,
                                        and the LastFailedLock entry */
-    PVFS_LOCK_ENTRY LastFailedLock;
-    PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used
-                                         to match pointer */
     PPVFS_LIST pPendingLockQueue;
     /* End rwBrlLock */
 
