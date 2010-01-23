@@ -88,6 +88,15 @@ SrvSession2AsyncStateRelease(
     PVOID pAsyncState
     );
 
+static
+NTSTATUS
+SrvSession2RundownTreeRbTreeVisit(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
 NTSTATUS
 SrvSession2Create(
     ULONG64              ullUid,
@@ -412,6 +421,24 @@ SrvSession2Release(
     }
 }
 
+VOID
+SrvSession2Rundown(
+    PLWIO_SRV_SESSION_2 pSession
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    LwRtlRBTreeTraverse(
+            pSession->pTreeCollection,
+            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+            SrvSession2RundownTreeRbTreeVisit,
+            NULL);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+}
+
 static
 NTSTATUS
 SrvSession2AcquireTreeId_inlock(
@@ -582,6 +609,27 @@ SrvSession2AsyncStateRelease(
     )
 {
     SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
+}
+
+static
+NTSTATUS
+SrvSession2RundownTreeRbTreeVisit(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_TREE_2 pTree = (PLWIO_SRV_TREE_2)pData;
+
+    if (pTree)
+    {
+        SrvTree2Rundown(pTree);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
 }
 
 

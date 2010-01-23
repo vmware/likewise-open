@@ -90,6 +90,8 @@ SrvProcessTreeDisconnect_SMB_V2(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SrvTree2Rundown(pTree);
+
     ntStatus = SrvSession2RemoveTree(
                     pSession,
                     pSmbRequest->pHeader->ulTid);

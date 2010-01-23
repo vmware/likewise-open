@@ -763,6 +763,11 @@ SrvSession2Release(
     PLWIO_SRV_SESSION_2 pSession
     );
 
+VOID
+SrvSession2Rundown(
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
 NTSTATUS
 SrvTreeCreate(
     USHORT            tid,
@@ -887,6 +892,11 @@ SrvTree2Release(
     PLWIO_SRV_TREE_2 pTree
     );
 
+VOID
+SrvTree2Rundown(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
 NTSTATUS
 SrvFileCreate(
     USHORT                  fid,
@@ -1006,6 +1016,11 @@ SrvFile2Acquire(
 
 VOID
 SrvFile2Release(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2Rundown(
     PLWIO_SRV_FILE_2 pFile
     );
 
