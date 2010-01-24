@@ -67,12 +67,12 @@ SrvProcessSessionSetup_SMB_V2(
     ULONG       ulReplySecurityBlobLength = 0;
     PBYTE       pInitSecurityBlob         = NULL;
     ULONG       ulInitSecurityBlobLength  = 0;
-    UNICODE_STRING uniUsername = {0};
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset    = 0;
     ULONG ulBytesUsed = 0;
     ULONG ulTotalBytesUsed = 0;
+    LW_MAP_SECURITY_GSS_CONTEXT hContextHandle = NULL;
 
     if (pCtxSmb2->pSession)
     {
@@ -156,7 +156,8 @@ SrvProcessSessionSetup_SMB_V2(
                              pConnection->hGssNegotiate,
                              &pConnection->pSessionKey,
                              &pConnection->ulSessionKeyLength,
-                             &pCtxSmb2->pSession->pszClientPrincipalName);
+                             &pCtxSmb2->pSession->pszClientPrincipalName,
+                             &hContextHandle);
         }
         else
         {
@@ -165,20 +166,14 @@ SrvProcessSessionSetup_SMB_V2(
                              pConnection->hGssNegotiate,
                              NULL,
                              NULL,
-                             &pCtxSmb2->pSession->pszClientPrincipalName);
+                             &pCtxSmb2->pSession->pszClientPrincipalName,
+                             &hContextHandle);
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        /* Generate and store the IoSecurityContext */
-
-        ntStatus = RtlUnicodeStringAllocateFromCString(
-                       &uniUsername,
-                       pCtxSmb2->pSession->pszClientPrincipalName);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = IoSecurityCreateSecurityContextFromUsername(
+        ntStatus = IoSecurityCreateSecurityContextFromGssContext(
                        &pCtxSmb2->pSession->pIoSecurityContext,
-                       &uniUsername);
+                       hContextHandle);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pSmbResponse->pHeader->ullSessionId = pCtxSmb2->pSession->ullUid;
@@ -209,8 +204,6 @@ cleanup:
     {
         SrvFreeMemory(pInitSecurityBlob);
     }
-
-    RtlUnicodeStringFree(&uniUsername);
 
     SRV_SAFE_FREE_MEMORY(pReplySecurityBlob);
 

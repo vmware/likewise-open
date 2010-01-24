@@ -75,6 +75,15 @@ SrvTree2Free(
     PLWIO_SRV_TREE_2 pTree
     );
 
+static
+NTSTATUS
+SrvTree2RundownFileRbTreeVisit(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
 NTSTATUS
 SrvTree2Create(
     ULONG             ulTid,
@@ -321,6 +330,24 @@ SrvTree2Release(
     }
 }
 
+VOID
+SrvTree2Rundown(
+    PLWIO_SRV_TREE_2 pTree
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+
+    LwRtlRBTreeTraverse(
+            pTree->pFileCollection,
+            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+            SrvTree2RundownFileRbTreeVisit,
+            NULL);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+}
+
 static
 NTSTATUS
 SrvTree2AcquireFileId_inlock(
@@ -444,6 +471,27 @@ SrvTree2Free(
     }
 
     SrvFreeMemory(pTree);
+}
+
+static
+NTSTATUS
+SrvTree2RundownFileRbTreeVisit(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_FILE_2 pFile = (PLWIO_SRV_FILE_2)pData;
+
+    if (pFile)
+    {
+        SrvFile2Rundown(pFile);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
 }
 
 

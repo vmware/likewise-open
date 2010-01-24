@@ -213,8 +213,9 @@ LsaAdBatchMarshalUserInfoPasswordExpires(
 
     // ISSUE-2008/11/18-dalmeida -- The number of days
     // should be a setting.
-    if (currentNtTime >= PasswordExpires ||
-        (PasswordExpires - currentNtTime) / (10000000LL * 24*60*60) <= 14)
+    if (PasswordExpires != 0 &&
+        (currentNtTime >= PasswordExpires ||
+        (PasswordExpires - currentNtTime) / (10000000LL * 24*60*60) <= 14))
     {
         //The password will expire in 14 days or less
         pObjectUserInfo->bPromptPasswordChange = TRUE;

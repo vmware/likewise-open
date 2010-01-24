@@ -22,7 +22,7 @@
 
 typedef struct rpc_smb_transport_info_s
 {
-    char* peer_principal;
+    rpc_access_token_p_t access_token;
     struct
     {
         unsigned16 length;
@@ -126,10 +126,7 @@ rpc__smb_transport_info_destroy(
         free(smb_info->session_key.data);
     }
 
-    if (smb_info->peer_principal)
-    {
-        free(smb_info->peer_principal);
-    }
+    RtlReleaseAccessToken(&smb_info->access_token);
 }
 
 void
@@ -158,20 +155,6 @@ rpc_smb_transport_info_inq_session_key(
     if (sess_key_len)
     {
         *sess_key_len = (unsigned32) smb_info->session_key.length;
-    }
-}
-
-void
-rpc_smb_transport_info_inq_peer_principal_name(
-    rpc_transport_info_handle_t info,
-    unsigned char** principal
-    )
-{
-    rpc_smb_transport_info_p_t smb_info = (rpc_smb_transport_info_p_t) info;
-
-    if (principal)
-    {
-        *principal = (unsigned char*) smb_info->peer_principal;
     }
 }
 
@@ -865,10 +848,10 @@ rpc__smb_socket_accept(
     }
 
      serr = NtStatusToErrno(
-        LwIoCtxGetPeerPrincipalName(
+        LwIoCtxGetPeerAccessToken(
             npsmb->context,
             npsmb->np,
-            &npsmb->info.peer_principal));
+            &npsmb->info.access_token));
     if (serr)
     {
         goto error;
@@ -1604,14 +1587,10 @@ rpc__smb_socket_inq_transport_info(
         }
     }
 
-    if (smb->info.peer_principal)
+    if (smb->info.access_token)
     {
-        smb_info->peer_principal = strdup(smb->info.peer_principal);
-        if (!smb_info->peer_principal)
-        {
-            serr = ENOMEM;
-            goto error;
-        }
+        smb_info->access_token = smb->info.access_token;
+        RtlReferenceAccessToken(smb_info->access_token);
     }
 
     if (smb->info.session_key.data)
@@ -1653,20 +1632,9 @@ rpc__smb_socket_transport_inq_access_token(
 {
     rpc_smb_transport_info_p_t smb_info = (rpc_smb_transport_info_p_t) info;
     NTSTATUS status = STATUS_SUCCESS;
-    PLW_MAP_SECURITY_CONTEXT context = NULL;
 
-    status = LwMapSecurityCreateContext(&context);
-    if (status) goto error;
-
-    status = LwMapSecurityCreateAccessTokenFromCStringUsername(
-        context,
-        token,
-        smb_info->peer_principal);
-    if (status) goto error;
-
-error:
-
-    LwMapSecurityFreeContext(&context);
+    RtlReferenceAccessToken(smb_info->access_token);
+    *token = smb_info->access_token;
 
     return LwNtStatusToErrno(status);
 }

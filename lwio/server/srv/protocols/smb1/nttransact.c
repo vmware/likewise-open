@@ -2230,11 +2230,6 @@ SrvParseNtTransactCreateParameters(
                        pNTTransactState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSessionGetNamedPipeClientPrincipal(
-                        pNTTransactState->pSession,
-                        pNTTransactState->pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
         ntStatus = SrvConnectionGetNamedPipeClientAddress(
                        pConnection,
                        pNTTransactState->pEcpList);

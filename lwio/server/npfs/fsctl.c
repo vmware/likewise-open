@@ -58,7 +58,7 @@ NpfsCommonGetSessionKey(
 
 static
 NTSTATUS
-NpfsCommonGetPeerPrincipal(
+NpfsCommonGetPeerAccessToken(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     );
@@ -122,8 +122,8 @@ NpfsCommonFsCtl(
     case IO_FSCTL_SMB_GET_SESSION_KEY:
         ntStatus = NpfsCommonGetSessionKey(pIrpContext, pIrp);
         break;
-    case IO_FSCTL_SMB_GET_PEER_PRINCIPAL:
-        ntStatus = NpfsCommonGetPeerPrincipal(pIrpContext, pIrp);
+    case IO_FSCTL_SMB_GET_PEER_ACCESS_TOKEN:
+        ntStatus = NpfsCommonGetPeerAccessToken(pIrpContext, pIrp);
         break;
     case IO_FSCTL_SMB_GET_PEER_ADDRESS:
         ntStatus = NpfsCommonGetPeerAddress(pIrpContext, pIrp);
@@ -203,7 +203,7 @@ error:
 
 static
 NTSTATUS
-NpfsCommonGetPeerPrincipal(
+NpfsCommonGetPeerAccessToken(
     PNPFS_IRP_CONTEXT pIrpContext,
     PIRP pIrp
     )
@@ -214,7 +214,7 @@ NpfsCommonGetPeerPrincipal(
     PNPFS_CCB pCCB = NULL;
     PNPFS_PIPE pPipe = NULL;
     BOOL bReleasePipeLock = FALSE;
-    ULONG ulPrincipalLength = 0;
+    ULONG ulLength = OutLength;
 
     ntStatus = NpfsGetCCB(pIrpContext->pIrp->FileHandle, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -224,25 +224,18 @@ NpfsCommonGetPeerPrincipal(
     ENTER_MUTEX(&pPipe->PipeMutex);
     bReleasePipeLock = TRUE;
 
-    /* Ensure we actually have a client principal */
-    if (pPipe->pszClientPrincipalName != NULL)
+    if (pPipe->pClientAccessToken)
     {
-        ulPrincipalLength = strlen(pPipe->pszClientPrincipalName) + 1;
+        ntStatus = RtlAccessTokenToSelfRelativeAccessToken(
+            pPipe->pClientAccessToken,
+            (PACCESS_TOKEN_SELF_RELATIVE) pOutBuffer,
+            &ulLength);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        /* Ensure there is enough space in the output buffer */
-        if (ulPrincipalLength > OutLength)
-        {
-            ntStatus = STATUS_BUFFER_TOO_SMALL;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-           memcpy(pOutBuffer, pPipe->pszClientPrincipalName, ulPrincipalLength);
-
-        pIrp->IoStatusBlock.BytesTransferred = ulPrincipalLength;
+        pIrp->IoStatusBlock.BytesTransferred = ulLength;
     }
     else
     {
-        /* Return 0 byte result to indicate no principal name */
         pIrp->IoStatusBlock.BytesTransferred = 0;
     }
 

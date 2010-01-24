@@ -138,6 +138,7 @@ find_user_by_name_main(
     if (dwError)
     {
         bAllowedLogon = FALSE;
+        dwError = 0;
     }
 
     switch(dwInfoLevel)

@@ -54,15 +54,6 @@ SamrSrvInitNpAuthInfo(
     OUT PCONNECT_CONTEXT            pConnCtx
     );
 
-
-static
-NTSTATUS
-SamrSrvInitLpcAuthInfo(
-    IN  rpc_transport_info_handle_t hTransportInfo,
-    OUT PCONNECT_CONTEXT            pConnCtx
-    );
-
-
 NTSTATUS
 SamrSrvInitAuthInfo(
     IN  handle_t          hBinding,
@@ -71,69 +62,40 @@ SamrSrvInitAuthInfo(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     RPCSTATUS rpcStatus = 0;
-    DWORD dwAuthentication = 0;
-    PVOID pAuthCtx = NULL;
     rpc_transport_info_handle_t hTransportInfo = NULL;
     DWORD dwProtSeq = rpc_c_invalid_protseq_id;
-    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
 
-    if (!pSecCtx)
+    rpc_binding_inq_access_token_caller(
+        hBinding,
+        &pConnCtx->pUserToken,
+        &rpcStatus);
+
+    ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    rpc_binding_inq_transport_info(hBinding,
+                                   &hTransportInfo,
+                                   &rpcStatus);
+
+    ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    if (hTransportInfo)
     {
-        ntStatus = STATUS_ACCESS_DENIED;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
-
-    rpc_binding_inq_security_context(hBinding,
-                                     (unsigned32*)&dwAuthentication,
-                                     (PVOID*)&pAuthCtx,
-                                     &rpcStatus);
-    if (rpcStatus == rpc_s_binding_has_no_auth)
-    {
-        /*
-         * There's no DCE/RPC authentication info so check
-         * the transport layer.
-         */
-        rpcStatus = 0;
-        rpc_binding_inq_transport_info(hBinding,
-                                       &hTransportInfo,
-                                       &rpcStatus);
-        if (rpcStatus)
-        {
-            ntStatus = LwRpcStatusToNtStatus(rpcStatus);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
-        }
-
-        if (hTransportInfo)
-        {
-            rpcStatus = 0;
-            rpc_binding_inq_prot_seq(hBinding,
-                                     (unsigned32*)&dwProtSeq,
-                                     &rpcStatus);
-            if (rpcStatus)
-            {
-                ntStatus = LwRpcStatusToNtStatus(rpcStatus);
-                BAIL_ON_NTSTATUS_ERROR(ntStatus);
-            }
-
-            switch (dwProtSeq)
-            {
-            case rpc_c_protseq_id_ncacn_np:
-                ntStatus = SamrSrvInitNpAuthInfo(hTransportInfo,
-                                                 pConnCtx);
-                break;
-
-            case rpc_c_protseq_id_ncalrpc:
-                ntStatus = SamrSrvInitLpcAuthInfo(hTransportInfo,
-                                                  pConnCtx);
-                break;
-            }
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
-        }
-    }
-    else if (rpcStatus)
-    {
+        rpc_binding_inq_prot_seq(hBinding,
+                                 (unsigned32*)&dwProtSeq,
+                                 &rpcStatus);
         ntStatus = LwRpcStatusToNtStatus(rpcStatus);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        switch (dwProtSeq)
+        {
+        case rpc_c_protseq_id_ncacn_np:
+            ntStatus = SamrSrvInitNpAuthInfo(hTransportInfo,
+                                             pConnCtx);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            break;
+        }
     }
 
 cleanup:
@@ -155,34 +117,15 @@ SamrSrvInitNpAuthInfo(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
-    PSTR pszPrincipalName = NULL;
     PUCHAR pucSessionKey = NULL;
     USHORT usSessionKeyLen = 0;
-    PACCESS_TOKEN pToken = NULL;
     PBYTE pSessionKey = NULL;
     DWORD dwSessionKeyLen = 0;
-
-    if (!pSecCtx)
-    {
-        ntStatus = STATUS_ACCESS_DENIED;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
-
-    rpc_smb_transport_info_inq_peer_principal_name(
-                                   hTransportInfo,
-                                   (unsigned char**)&pszPrincipalName);
 
     rpc_smb_transport_info_inq_session_key(
                                    hTransportInfo,
                                    (unsigned char**)&pucSessionKey,
                                    (unsigned16*)&usSessionKeyLen);
-
-    ntStatus = LwMapSecurityCreateAccessTokenFromCStringUsername(
-                                   pSecCtx,
-                                   &pToken,
-                                   pszPrincipalName);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwSessionKeyLen = usSessionKeyLen;
     if (dwSessionKeyLen)
@@ -194,7 +137,6 @@ SamrSrvInitNpAuthInfo(
         memcpy(pSessionKey, pucSessionKey, dwSessionKeyLen);
     }
 
-    pConnCtx->pUserToken      = pToken;
     pConnCtx->pSessionKey     = pSessionKey;
     pConnCtx->dwSessionKeyLen = dwSessionKeyLen;
 
@@ -210,55 +152,6 @@ cleanup:
 error:
     goto cleanup;
 }
-
-
-static
-NTSTATUS
-SamrSrvInitLpcAuthInfo(
-    IN  rpc_transport_info_handle_t hTransportInfo,
-    OUT PCONNECT_CONTEXT            pConnCtx
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwError = ERROR_SUCCESS;
-    PLW_MAP_SECURITY_CONTEXT pSecCtx = gpLsaSecCtx;
-    uid_t uid = 0;
-    gid_t gid = 0;
-    PACCESS_TOKEN pToken = NULL;
-
-    if (!pSecCtx)
-    {
-        ntStatus = STATUS_ACCESS_DENIED;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
-
-    rpc_lrpc_transport_info_inq_peer_eid(
-                                   hTransportInfo,
-                                   (unsigned32*)&uid,
-                                   (unsigned32*)&gid);
-
-    ntStatus = LwMapSecurityCreateAccessTokenFromUidGid(
-                                   pSecCtx,
-                                   &pToken,
-                                   uid,
-                                   gid);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    pConnCtx->pUserToken = pToken;
-
-cleanup:
-    if (ntStatus == STATUS_SUCCESS &&
-        dwError != ERROR_SUCCESS)
-    {
-        ntStatus = LwWin32ErrorToNtStatus(dwError);
-    }
-
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
 
 VOID
 SamrSrvFreeAuthInfo(

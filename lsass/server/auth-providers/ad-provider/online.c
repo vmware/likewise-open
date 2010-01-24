@@ -4013,6 +4013,7 @@ AD_UpdateUserObjectFlags(
         }
 
         if ((!pUser->userInfo.bPasswordNeverExpires &&
+             pUser->userInfo.qwPwdExpires != 0 &&
              u64current_NTtime >= pUser->userInfo.qwPwdExpires) ||
             pUser->userInfo.qwPwdLastSet == 0)
         {

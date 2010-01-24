@@ -505,7 +505,8 @@ SrvGssGetSessionDetails(
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
     PULONG pulSessionKeyLength,
-    PSTR* ppszClientPrincipalName
+    PSTR* ppszClientPrincipalName,
+    LW_MAP_SECURITY_GSS_CONTEXT* pContextHandle
     );
 
 NTSTATUS
@@ -692,12 +693,6 @@ SrvSessionCreateTree(
     PLWIO_SRV_TREE*   ppTree
     );
 
-NTSTATUS
-SrvSessionGetNamedPipeClientPrincipal(
-    PLWIO_SRV_SESSION pSession,
-    PIO_ECP_LIST     pEcpList
-    );
-
 PLWIO_SRV_SESSION
 SrvSessionAcquire(
     PLWIO_SRV_SESSION pSession
@@ -758,12 +753,6 @@ SrvSession2CreateTree(
     PLWIO_SRV_TREE_2*   ppTree
     );
 
-NTSTATUS
-SrvSession2GetNamedPipeClientPrincipal(
-    PLWIO_SRV_SESSION_2 pSession,
-    PIO_ECP_LIST        pEcpList
-    );
-
 PLWIO_SRV_SESSION_2
 SrvSession2Acquire(
     PLWIO_SRV_SESSION_2 pSession
@@ -771,6 +760,11 @@ SrvSession2Acquire(
 
 VOID
 SrvSession2Release(
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
+VOID
+SrvSession2Rundown(
     PLWIO_SRV_SESSION_2 pSession
     );
 
@@ -898,6 +892,11 @@ SrvTree2Release(
     PLWIO_SRV_TREE_2 pTree
     );
 
+VOID
+SrvTree2Rundown(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
 NTSTATUS
 SrvFileCreate(
     USHORT                  fid,
@@ -1017,6 +1016,11 @@ SrvFile2Acquire(
 
 VOID
 SrvFile2Release(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2Rundown(
     PLWIO_SRV_FILE_2 pFile
     );
 

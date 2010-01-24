@@ -212,7 +212,8 @@ LsaMarshalUserInfo(
             LsaConvertTimeUnix2Nt(current_tv.tv_sec,
                                  &u64current_NTtime);
 
-            if (pUser->userInfo.bPasswordNeverExpires)
+            if (pUser->userInfo.bPasswordNeverExpires ||
+                pUser->userInfo.qwPwdExpires == 0)
             {
                 //password never expires
                 pUserInfo2->dwDaysToPasswordExpiry = 0LL;

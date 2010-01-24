@@ -922,7 +922,10 @@ LWNetCacheDbWriteToRegistry(
     }
 
 cleanup:
-    RegCloseKey(hReg, pRootKey);
+    if (pRootKey)
+    {
+        RegCloseKey(hReg, pRootKey);
+    }
     RegCloseServer(hReg);
     LWNET_SAFE_FREE_MEMORY(pData);
     LWNET_SAFE_FREE_MEMORY(pszNewCacheKey);

@@ -40,7 +40,7 @@
 #include "includes.h"
 
 #define MAX_KEY_LENGTH (1024*10)
-#define MAX_PRINCIPAL_NAME_LENGTH (2048)
+#define MAX_ACCESS_TOKEN_LENGTH (8192)
 
 LW_NTSTATUS
 LwIoCtxGetSessionKey(
@@ -97,16 +97,15 @@ error:
 }
 
 LW_NTSTATUS
-LwIoCtxGetPeerPrincipalName(
+LwIoCtxGetPeerAccessToken(
     LW_PIO_CONTEXT pContext,
     IO_FILE_HANDLE File,
-    LW_PSTR* ppszPrincipalName
+    PACCESS_TOKEN* ppToken
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
     IO_STATUS_BLOCK IoStatus;
-    CHAR Buffer[MAX_PRINCIPAL_NAME_LENGTH];
-    PSTR pszPrincipalName = NULL;
+    CHAR Buffer[MAX_ACCESS_TOKEN_LENGTH];
 
     Status =
         LwNtCtxFsControlFile(
@@ -114,7 +113,7 @@ LwIoCtxGetPeerPrincipalName(
             File,
             NULL,
             &IoStatus,
-            IO_FSCTL_SMB_GET_PEER_PRINCIPAL,
+            IO_FSCTL_SMB_GET_PEER_ACCESS_TOKEN,
             NULL,
             0,
             Buffer,
@@ -123,13 +122,16 @@ LwIoCtxGetPeerPrincipalName(
     
     if (IoStatus.BytesTransferred > 0)
     {
-        Status = LwIoAllocateMemory(IoStatus.BytesTransferred, OUT_PPVOID(&pszPrincipalName));
+        Status = RtlSelfRelativeAccessTokenToAccessToken(
+            (PACCESS_TOKEN_SELF_RELATIVE) Buffer,
+            IoStatus.BytesTransferred,
+            ppToken);
         BAIL_ON_NT_STATUS(Status);
-        memcpy(pszPrincipalName, Buffer, IoStatus.BytesTransferred);
-        pszPrincipalName[IoStatus.BytesTransferred-1] = '\0';
     }
-
-    *ppszPrincipalName = pszPrincipalName;
+    else
+    {
+        *ppToken = NULL;
+    }
 
 cleanup:
 
@@ -137,9 +139,7 @@ cleanup:
 
 error:
 
-    *ppszPrincipalName = NULL;
-
-    IO_SAFE_FREE_MEMORY(pszPrincipalName);
+    *ppToken = NULL;
 
     goto cleanup;
 }

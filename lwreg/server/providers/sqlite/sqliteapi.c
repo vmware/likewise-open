@@ -126,30 +126,15 @@ SqliteProvider_Shutdown(
     PREGPROV_PROVIDER_FUNCTION_TABLE pFnTable
     )
 {
-    REG_HASH_ITERATOR hashIterator = {0};
-    REG_HASH_ENTRY*   pHashEntry = NULL;
-
     RegDbSafeClose(&ghCacheConnection);
 
     if (gActiveKeyList.pKeyList)
     {
-        RegHashGetIterator(gActiveKeyList.pKeyList, &hashIterator);
-        while ((pHashEntry = RegHashNext(&hashIterator)) != NULL)
-        {
-            SqliteCacheFreeKeyCtxHashEntry(pHashEntry);
-        }
-
         RegHashSafeFree(&gActiveKeyList.pKeyList);
     }
 
     if (gRegDbKeyList.pKeyList)
     {
-        RegHashGetIterator(gRegDbKeyList.pKeyList, &hashIterator);
-        while ((pHashEntry = RegHashNext(&hashIterator)) != NULL)
-        {
-		SqliteCacheFreeDbKeyHashEntry(pHashEntry);
-        }
-
         RegHashSafeFree(&gRegDbKeyList.pKeyList);
     }
 }

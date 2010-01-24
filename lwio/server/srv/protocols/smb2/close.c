@@ -214,6 +214,7 @@ SrvProcessClose_SMB_V2(
 
             if (pCtxSmb2->pFile)
             {
+                SrvFile2Rundown(pCtxSmb2->pFile);
                 SrvFile2Release(pCtxSmb2->pFile);
                 pCtxSmb2->pFile = NULL;
             }
