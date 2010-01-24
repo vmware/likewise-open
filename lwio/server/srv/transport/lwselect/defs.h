@@ -49,7 +49,7 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define SMB_LISTEN_Q                          5
-#define LWIO_SRV_DEFAULT_NUM_READERS          2
+#define SMB_LISTEN_Q                          32
+#define LWIO_SRV_DEFAULT_NUM_READERS          8
 
 #endif /* __DEFS_H__ */
