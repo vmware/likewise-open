@@ -2229,11 +2229,13 @@ namespace Likewise.LMC.Plugins.RegistryViewerPlugin
 
                         if (regValueInfo != null)
                         {
+                            RegistryEnumKeyInfo keyInfo = treeNode.Tag as RegistryEnumKeyInfo;
+                            string keyname = keyInfo.OrigKey.ToString().Substring(keyInfo.OrigKey.ToString().IndexOf(@"\") + 1);
                             if (!treeNode.Text.Trim().Equals(Properties.Resources.HKEY_THIS_MACHINE, StringComparison.InvariantCultureIgnoreCase))
                             {
                                 RegistryInteropWrapper.ApiRegOpenKeyExW(plugin.handle.Handle,
                                                    plugin.pRootHandle,
-                                                   regValueInfo.sKeyname,
+                                                   keyname,
                                                    out regValueInfo.pParentKey);
                             }
                             else {
