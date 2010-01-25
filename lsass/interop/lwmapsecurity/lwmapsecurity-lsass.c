@@ -1380,6 +1380,12 @@ LsaMapSecurityGetPacInfoFromGssContext(
         BAIL_ON_NT_STATUS(status);
     }
 
+    if (pacData.value == NULL)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(status);
+    }
+
     dceStatus = DecodePacLogonInfo(
         pacData.value,
         pacData.length,
@@ -1537,7 +1543,7 @@ cleanup:
         RTL_FREE(&ppInputSids[dwIndex]);
     }
 
-    RTL_FREE(ppInputSids);
+    RTL_FREE(&ppInputSids);
 
     if (pPac)
     {
