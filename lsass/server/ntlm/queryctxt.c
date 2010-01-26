@@ -387,7 +387,10 @@ NtlmServerMarshalUserInfoToEncodedPac(
     pInfo3->base.groups.rids = (RidWithAttribute*) pUserInfo->pRidAttribList;
 
     memcpy(pInfo3->base.key.key, pUserInfo->pSessionKey->pData, sizeof(pInfo3->base.key.key));
-    memcpy(pInfo3->base.lmkey.key, pUserInfo->pLmSessionKey->pData, sizeof(pInfo3->base.lmkey.key));
+    if (pUserInfo->pLmSessionKey)
+        memcpy(pInfo3->base.lmkey.key, pUserInfo->pLmSessionKey->pData, sizeof(pInfo3->base.lmkey.key));
+    else
+        memset(pInfo3->base.lmkey.key, 0, sizeof(pInfo3->base.lmkey.key));
 
     dwError = NtlmSetUnicodeStringEx(
         &pInfo3->base.account_name,
@@ -452,14 +455,15 @@ NtlmServerMarshalUserInfoToEncodedPac(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (EncodePacLogonInfo(
-                &pac,
-                pdwEncodedPacSize,
-                ppEncodedPac) != 0)
-        {
+    }
+
+    if (EncodePacLogonInfo(
+            &pac,
+            pdwEncodedPacSize,
+            ppEncodedPac) != 0)
+    {
             dwError = LW_ERROR_INTERNAL;
             BAIL_ON_LSA_ERROR(dwError);
-        }
     }
 
 cleanup:

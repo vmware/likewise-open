@@ -95,12 +95,11 @@ LsaSrvApiInit(
                     &gAPIConfig);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LsaSrvInitAuthProviders(pStaticProviders);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaSrvInitRpcServers();
-    BAIL_ON_LSA_ERROR(dwError);
-
+    /*
+     * We must initialize lwmapsecurity before the auth providers
+     * because the pstore calls LwMapSecurityInitialize which
+     * causes us to use the external plugin
+     */
     LwMapSecurityUseInternalPlugin(MapSecurityPluginCreateContext);
 
     ntStatus = LwMapSecurityCreateContext(&gpLsaSecCtx);
@@ -109,6 +108,13 @@ LsaSrvApiInit(
         dwError = LwNtStatusToWin32Error(ntStatus);
     }
     BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvInitAuthProviders(pStaticProviders);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvInitRpcServers();
+    BAIL_ON_LSA_ERROR(dwError);
+
 
 cleanup:
 
