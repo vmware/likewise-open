@@ -113,6 +113,8 @@ SrvTree2Create(
     pTree->pShareInfo = pShareInfo;
     InterlockedIncrement(&pShareInfo->refcount);
 
+    pTree->ullNextAvailableFid = 0xFFFFFFFF00000001LL;
+
     ntStatus = LwRtlRBTreeCreate(
                     &SrvTree2FileCompare,
                     NULL,
