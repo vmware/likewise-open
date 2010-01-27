@@ -92,7 +92,7 @@ SrvTree2FindFile_SMB_V2(
     }
     else
     {
-        ntStatus = STATUS_NOT_FOUND;
+        ntStatus = STATUS_INVALID_HANDLE;
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
