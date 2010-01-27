@@ -446,6 +446,13 @@ SrvProcessGetInfo_SMB_V2(
         ntStatus = SMB2UnmarshalGetInfoRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        if ((pRequestHeader->fid.ullPersistentId == 0xFFFFFFFFFFFFFFFFLL) &&
+            (pRequestHeader->fid.ullVolatileId == 0xFFFFFFFFFFFFFFFFLL))
+        {
+           ntStatus = STATUS_FILE_CLOSED;
+           BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         ntStatus = SrvTree2FindFile_SMB_V2(
                             pCtxSmb2,
                             pTree,
