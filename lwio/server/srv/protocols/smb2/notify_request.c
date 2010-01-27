@@ -629,7 +629,7 @@ SrvBuildNotifyResponse_SMB_V2(
                 pCtxSmb2->pTree->ulTid,
                 pCtxSmb2->pSession->ullUid,
                 pNotifyState->ullAsyncId,
-                STATUS_SUCCESS,
+                pSmbRequest->pHeader->error,
                 TRUE,
                 pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
                 &pSmbResponse->pHeader,
