@@ -158,11 +158,30 @@ SrvProcessIOCTL_SMB_V2(
                         &pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvTree2FindFile_SMB_V2(
-                        pCtxSmb2,
-                        pTree,
-                        &pRequestHeader->fid,
-                        &pFile);
+        switch (pRequestHeader->ulFunctionCode)
+        {
+            case IO_FSCTL_GET_DFS_REFERRALS:
+
+                ntStatus = STATUS_FS_DRIVER_REQUIRED;
+
+                break;
+
+            case IO_FSCTL_PIPE_WAIT:
+
+                ntStatus = STATUS_NOT_SUPPORTED;
+
+                break;
+
+            default:
+
+                ntStatus = SrvTree2FindFile_SMB_V2(
+                                pCtxSmb2,
+                                pTree,
+                                &pRequestHeader->fid,
+                                &pFile);
+
+                break;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvBuildIOCTLState_SMB_V2(
@@ -374,9 +393,26 @@ SrvExecuteIOCTL_SMB_V2(
     pIOCTLState->ulResponseBufferLen =
                                     pIOCTLState->ioStatusBlock.BytesTransferred;
 
-error:
+cleanup:
 
     return ntStatus;
+
+error:
+
+    switch (ntStatus)
+    {
+        case STATUS_NOT_SUPPORTED:
+
+            ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    goto cleanup;
 }
 
 static
