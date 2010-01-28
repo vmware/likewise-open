@@ -547,7 +547,7 @@ typedef struct __SMB2_ERROR_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
                              *PSMB2_ERROR_RESPONSE_HEADER;
 
-typedef struct _SMB2_FILE_ID_BOTH_DIR_INFORMATION
+typedef struct _SMB2_FILE_ID_BOTH_DIR_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
     ULONG           ulFileIndex;
@@ -570,7 +570,7 @@ typedef struct _SMB2_FILE_ID_BOTH_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_ID_BOTH_DIR_INFO_HEADER,
                              *PSMB2_FILE_ID_BOTH_DIR_INFO_HEADER;
 
-typedef struct _SMB2_FILE_ID_FULL_DIR_INFORMATION
+typedef struct _SMB2_FILE_ID_FULL_DIR_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
     ULONG           ulFileIndex;
@@ -590,7 +590,7 @@ typedef struct _SMB2_FILE_ID_FULL_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_ID_FULL_DIR_INFO_HEADER,
                              *PSMB2_FILE_ID_FULL_DIR_INFO_HEADER;
 
-typedef struct _SMB2_FILE_BOTH_DIR_INFORMATION
+typedef struct _SMB2_FILE_BOTH_DIR_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
     ULONG           ulFileIndex;
@@ -610,7 +610,7 @@ typedef struct _SMB2_FILE_BOTH_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_BOTH_DIR_INFO_HEADER,
                              *PSMB2_FILE_BOTH_DIR_INFO_HEADER;
 
-typedef struct _SMB2_FILE_FULL_DIR_INFORMATION
+typedef struct _SMB2_FILE_FULL_DIR_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
     ULONG           ulFileIndex;
@@ -627,6 +627,16 @@ typedef struct _SMB2_FILE_FULL_DIR_INFORMATION
 
 } __attribute__((__packed__)) SMB2_FILE_FULL_DIR_INFO_HEADER,
                              *PSMB2_FILE_FULL_DIR_INFO_HEADER;
+
+typedef struct _SMB2_FILE_NAMES_INFO_HEADER
+{
+    ULONG           ulNextEntryOffset;
+    ULONG           ulFileIndex;
+    ULONG           ulFileNameLength;
+    // WCHAR           wszFileName[1];
+
+} __attribute__((__packed__)) SMB2_FILE_NAMES_INFO_HEADER,
+                             *PSMB2_FILE_NAMES_INFO_HEADER;
 
 typedef struct _SMB2_FILE_ALL_INFORMATION_HEADER
 {
