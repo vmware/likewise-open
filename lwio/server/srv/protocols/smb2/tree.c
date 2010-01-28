@@ -90,6 +90,11 @@ SrvTree2FindFile_SMB_V2(
     {
         pFile = SrvFile2Acquire(pSmb2Context->pFile);
     }
+    else if ((pFid->ullPersistentId == 0xFFFFFFFFFFFFFFFFLL) &&
+             (pFid->ullVolatileId == 0xFFFFFFFFFFFFFFFFLL))
+    {
+        ntStatus = STATUS_FILE_CLOSED;
+    }
     else
     {
         ntStatus = STATUS_INVALID_HANDLE;

@@ -166,17 +166,22 @@ SrvProcessIOCTL_SMB_V2(
 
                 break;
 
+            case IO_FSCTL_PIPE_WAIT:
+
+                ntStatus = STATUS_NOT_SUPPORTED;
+
+                break;
+
             default:
+
+                ntStatus = SrvTree2FindFile_SMB_V2(
+                                pCtxSmb2,
+                                pTree,
+                                &pRequestHeader->fid,
+                                &pFile);
 
                 break;
         }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvTree2FindFile_SMB_V2(
-                        pCtxSmb2,
-                        pTree,
-                        &pRequestHeader->fid,
-                        &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvBuildIOCTLState_SMB_V2(
