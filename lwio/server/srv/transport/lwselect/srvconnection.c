@@ -272,6 +272,25 @@ SrvConnectionReadPacket(
                 break;
         }
 
+        switch (pConnection->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_UNKNOWN:
+
+                pConnection->protocolVer = pPacket->protocolVer;
+
+                break;
+
+            default:
+
+                if (pConnection->protocolVer != pPacket->protocolVer)
+                {
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+
+                break;
+        }
+
         *ppPacket = pConnection->readerState.pRequestPacket;
 
         pConnection->readerState.pRequestPacket = NULL;

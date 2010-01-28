@@ -575,7 +575,7 @@ SrvVerifyContext(
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
 
-    switch (pConnection->protocolVer)
+    switch (SrvConnectionGetProtocolVersion(pConnection))
     {
         case SMB_PROTOCOL_VERSION_1:
 
@@ -596,7 +596,7 @@ SrvVerifyContext(
     if (pConnection->serverProperties.bRequireSecuritySignatures &&
         pConnection->pSessionKey)
     {
-        switch (pConnection->protocolVer)
+        switch (SrvConnectionGetProtocolVersion(pConnection))
         {
             case SMB_PROTOCOL_VERSION_1:
 
