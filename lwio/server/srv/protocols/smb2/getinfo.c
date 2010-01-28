@@ -536,6 +536,18 @@ error:
 
             break;
 
+        case STATUS_INVALID_HANDLE:
+
+            if (pGetInfoState &&
+                pGetInfoState->pRequestHeader &&
+                (pGetInfoState->pRequestHeader->fid.ullPersistentId == 0xFFFFFFFFFFFFFFFFLL) &&
+                (pGetInfoState->pRequestHeader->fid.ullVolatileId   == 0xFFFFFFFFFFFFFFFFLL))
+            {
+                ntStatus = STATUS_FILE_CLOSED;
+            }
+
+            // intentional fall through
+
         default:
 
             if (pGetInfoState)
