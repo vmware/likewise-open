@@ -230,7 +230,8 @@ SrvProcessFind_SMB_V2(
                     pCtxSmb2,
                     pTree,
                     &pRequestHeader->fid,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(pSmbRequest->pHeader->ulFlags,
+                                SMB2_FLAGS_RELATED_OPERATION),
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -238,11 +239,11 @@ SrvProcessFind_SMB_V2(
 
     if (pFile->pSearchSpace)
     {
-        if (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_REOPEN)
+        if (LwIsSetFlag(pRequestHeader->ucSearchFlags,SMB2_SEARCH_FLAGS_REOPEN))
         {
             bReopenSearch = TRUE;
         }
-        else if (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN)
+        else if (LwIsSetFlag(pRequestHeader->ucSearchFlags,SMB2_SEARCH_FLAGS_RESTART_SCAN))
         {
             bRestartScan = TRUE;
 
@@ -395,7 +396,8 @@ SrvProcessFind_SMB_V2(
                     0LL, /* Async Id */
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(pSmbRequest->pHeader->ulFlags,
+                                SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -630,10 +632,12 @@ SrvFindIdBothDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                                pRequestHeader->ucSearchFlags,
+                                SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                    pRequestHeader->ucSearchFlags,
+                                    SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_ID_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_ID_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
@@ -965,10 +969,12 @@ SrvFindBothDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                                pRequestHeader->ucSearchFlags,
+                                SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                       pRequestHeader->ucSearchFlags,
+                                       SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
@@ -1295,10 +1301,12 @@ SrvFindIdFullDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                                pRequestHeader->ucSearchFlags,
+                                SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                       pRequestHeader->ucSearchFlags,
+                                       SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_ID_FULL_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_ID_FULL_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
@@ -1605,10 +1613,12 @@ SrvFindFullDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                               pRequestHeader->ucSearchFlags,
+                               SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                       pRequestHeader->ucSearchFlags,
+                                       SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_FULL_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_FULL_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
@@ -1914,10 +1924,12 @@ SrvFindNamesInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                               pRequestHeader->ucSearchFlags,
+                               SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                       pRequestHeader->ucSearchFlags,
+                                       SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_NAMES_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_NAMES_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;

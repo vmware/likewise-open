@@ -178,7 +178,9 @@ SrvProcessLock_SMB_V2(
                             pCtxSmb2,
                             pTree,
                             &pRequestHeader->fid,
-                            pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                            LwIsSetFlag(
+                                pSmbRequest->pHeader->ulFlags,
+                                SMB2_FLAGS_RELATED_OPERATION),
                             &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -675,7 +677,9 @@ SrvBuildLockResponse_SMB_V2(
                 0LL, /* Async Id */
                 STATUS_SUCCESS,
                 TRUE,
-                pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                LwIsSetFlag(
+                    pSmbRequest->pHeader->ulFlags,
+                    SMB2_FLAGS_RELATED_OPERATION),
                 &pSmbResponse->pHeader,
                 &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);

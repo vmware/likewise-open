@@ -127,8 +127,9 @@ SrvProcessClose_SMB_V2(
     PLWIO_SRV_FILE_2           pFile            = NULL;
     BOOLEAN                    bInLock          = FALSE;
 
-    bRelated = ((pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION)
-                        == SMB2_FLAGS_RELATED_OPERATION);
+    bRelated = LwIsSetFlag(
+                    pSmbRequest->pHeader->ulFlags,
+                    SMB2_FLAGS_RELATED_OPERATION);
 
     pCloseState = (PSRV_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
     if (pCloseState)
@@ -456,7 +457,9 @@ SrvBuildCloseResponse_SMB_V2(
                     0LL, /* Async Id */
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                            pSmbRequest->pHeader->ulFlags,
+                            SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
