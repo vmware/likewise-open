@@ -1090,6 +1090,7 @@ error:
 
     if (dwError)
     {
+        fprintf(stderr, "%s\n", LwWin32ExtErrorToName(dwError));
         return 1;
     }
     else
