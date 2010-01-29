@@ -48,8 +48,11 @@ NetShareAdd(
 
     BAIL_ON_INVALID_PTR(pBuffer, ntStatus);
 
-    err = LwWc16sToMbs(pwszServername, &pszServername);
-    BAIL_ON_WIN_ERROR(err);
+    if (pwszServername)
+    {
+        err = LwWc16sToMbs(pwszServername, &pszServername);
+        BAIL_ON_WIN_ERROR(err);
+    }
 
     ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
     BAIL_ON_NT_STATUS(ntStatus);
