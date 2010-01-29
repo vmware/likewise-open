@@ -107,14 +107,13 @@ error:
 static
 NTSTATUS
 Load(
-    int argc,
-    PSTR* ppszArgv
+    PCSTR pszDriverName
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PWSTR pwszDriverName = NULL;
 
-    status = LwRtlWC16StringAllocateFromCString(&pwszDriverName, ppszArgv[1]);
+    status = LwRtlWC16StringAllocateFromCString(&pwszDriverName, pszDriverName);
     BAIL_ON_NT_STATUS(status);
 
     status = LwIoLoadDriver(pwszDriverName);
@@ -125,7 +124,7 @@ Load(
     }
     else
     {
-        printf("Driver loaded successfully\n");
+        printf("Driver [%s] loaded successfully\n", pszDriverName);
     }
     BAIL_ON_NT_STATUS(status);
 
@@ -143,14 +142,13 @@ error:
 static
 NTSTATUS
 Unload(
-    int argc,
-    PSTR* ppszArgv
+    PCSTR pszDriverName
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PWSTR pwszDriverName = NULL;
 
-    status = LwRtlWC16StringAllocateFromCString(&pwszDriverName, ppszArgv[1]);
+    status = LwRtlWC16StringAllocateFromCString(&pwszDriverName, pszDriverName);
     BAIL_ON_NT_STATUS(status);
 
     status = LwIoUnloadDriver(pwszDriverName);
@@ -161,7 +159,7 @@ Unload(
     }
     else
     {
-        printf("Driver unloaded successfully\n");
+        printf("Driver [%s] unloaded successfully\n", pszDriverName);
     }
     BAIL_ON_NT_STATUS(status);
 
@@ -193,13 +191,23 @@ main(
         }
         else if (LwRtlCStringIsEqual(ppszArgv[1], "load", TRUE))
         {
-            status = Load(argc - 1, ppszArgv + 1);
-            BAIL_ON_NT_STATUS(status);
+            int iArg = 2;
+
+            for (; iArg < argc; iArg++)
+            {
+                status = Load(ppszArgv[iArg]);
+                BAIL_ON_NT_STATUS(status);
+            }
         }
         else if (LwRtlCStringIsEqual(ppszArgv[1], "unload", TRUE))
         {
-            status = Unload(argc - 1, ppszArgv + 1);
-            BAIL_ON_NT_STATUS(status);
+            int iArg = 2;
+
+            for (; iArg < argc; iArg++)
+            {
+                status = Unload(ppszArgv[iArg]);
+                BAIL_ON_NT_STATUS(status);
+            }
         }
         else
         {
