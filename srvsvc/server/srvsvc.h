@@ -48,6 +48,10 @@
 #ifndef _SRVSVCSRV_H_
 #define _SRVSVCSRV_H_
 
+NET_API_STATUS
+SrvSvcInitSecurity(
+    void
+    );
 
 NET_API_STATUS
 SrvSvcNetShareAdd(
