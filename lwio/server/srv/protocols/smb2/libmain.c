@@ -51,6 +51,12 @@
 
 static
 NTSTATUS
+SrvProcessRequestSpecific_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildExecContext_SMB_V2(
     PLWIO_SRV_CONNECTION      pConnection,
     PSMB_PACKET               pSmbRequest,
@@ -122,7 +128,6 @@ SrvProtocolExecute_SMB_V2(
          pSmb2Context->iMsg++)
     {
         ULONG iMsg = pSmb2Context->iMsg;
-        PSRV_MESSAGE_SMB_V2 pRequest = &pSmb2Context->pRequests[iMsg];
         PSRV_MESSAGE_SMB_V2 pResponse = &pSmb2Context->pResponses[iMsg];
         PSRV_MESSAGE_SMB_V2 pPrevResponse = NULL;
 
@@ -161,202 +166,7 @@ SrvProtocolExecute_SMB_V2(
                                         pExecContext->pSmbResponse->bufferUsed -
                                         sizeof(NETBIOS_HEADER);
 
-        LWIO_LOG_VERBOSE("Executing command [%s:%d]",
-                         SrvGetCommandDescription_SMB_V2(pRequest->pHeader->command),
-                         pRequest->pHeader->command);
-
-        switch (pRequest->pHeader->command)
-        {
-            case COM2_NEGOTIATE:
-
-                ntStatus = SrvProcessNegotiate_SMB_V2(pExecContext);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                ntStatus = SrvConnectionSetProtocolVersion(
-                                pExecContext->pConnection,
-                                SMB_PROTOCOL_VERSION_2);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                SrvConnectionSetState(
-                        pExecContext->pConnection,
-                        LWIO_SRV_CONN_STATE_NEGOTIATE);
-
-                break;
-
-            case COM2_ECHO:
-            case COM2_SESSION_SETUP:
-
-                {
-                    switch (SrvConnectionGetState(pExecContext->pConnection))
-                    {
-                        case LWIO_SRV_CONN_STATE_NEGOTIATE:
-                        case LWIO_SRV_CONN_STATE_READY:
-
-                            break;
-
-                        default:
-
-                            ntStatus = STATUS_INVALID_SERVER_STATE;
-
-                            break;
-                    }
-                }
-
-                break;
-
-            default:
-
-                switch (SrvConnectionGetState(pExecContext->pConnection))
-                {
-                    case LWIO_SRV_CONN_STATE_READY:
-
-                        break;
-
-                    default:
-
-                        ntStatus = STATUS_INVALID_SERVER_STATE;
-
-                        break;
-                }
-
-                break;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        switch (pRequest->pHeader->command)
-        {
-            case COM2_NEGOTIATE:
-
-                break;
-
-            case COM2_SESSION_SETUP:
-
-                ntStatus = SrvProcessSessionSetup_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_LOGOFF:
-
-                ntStatus = SrvProcessLogoff_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_TREE_CONNECT:
-
-                ntStatus = SrvProcessTreeConnect_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_TREE_DISCONNECT:
-
-                ntStatus = SrvProcessTreeDisconnect_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_CREATE:
-
-                ntStatus = SrvProcessCreate_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_CLOSE:
-
-                ntStatus = SrvProcessClose_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_FLUSH:
-
-                ntStatus = SrvProcessFlush_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_READ:
-
-                ntStatus = SrvProcessRead_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_WRITE:
-
-                ntStatus = SrvProcessWrite_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_LOCK:
-
-                if (pExecContext->bInternal)
-                {
-                    ntStatus = SrvProcessOplock_SMB_V2(pExecContext);
-                }
-                else
-                {
-                    ntStatus = SrvProcessLock_SMB_V2(pExecContext);
-                }
-
-                break;
-
-            case COM2_IOCTL:
-
-                ntStatus = SrvProcessIOCTL_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_CANCEL:
-
-                ntStatus = SrvProcessCancel_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_ECHO:
-
-                ntStatus = SrvProcessEcho_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_FIND:
-
-                ntStatus = SrvProcessFind_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_NOTIFY:
-
-                if (pExecContext->bInternal)
-                {
-                    ntStatus = SrvProcessNotifyCompletion_SMB_V2(pExecContext);
-                }
-                else
-                {
-                    ntStatus = SrvProcessNotify_SMB_V2(pExecContext);
-                }
-
-                break;
-
-            case COM2_GETINFO:
-
-                ntStatus = SrvProcessGetInfo_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_SETINFO:
-
-                ntStatus = SrvProcessSetInfo_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_BREAK:
-
-                ntStatus = SrvProcessOplockBreak_SMB_V2(pExecContext);
-
-                break;
-
-            default:
-
-                ntStatus = STATUS_NOT_SUPPORTED;
-
-                break;
-        }
+        ntStatus = SrvProcessRequestSpecific_SMB_V2(pExecContext);
 
         switch (ntStatus)
         {
@@ -385,9 +195,6 @@ SrvProtocolExecute_SMB_V2(
                                     ntStatus);
                 }
 
-                // Stop processing
-                pSmb2Context->iMsg = pSmb2Context->ulNumRequests;
-
                 break;
         }
         BAIL_ON_NT_STATUS(ntStatus);
@@ -411,6 +218,226 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProcessRequestSpecific_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg         = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+
+    LWIO_LOG_VERBOSE("Executing command [%s:%d]",
+                     SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
+                     pSmbRequest->pHeader->command);
+
+    if (!iMsg && (pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    switch (pSmbRequest->pHeader->command)
+    {
+        case COM2_NEGOTIATE:
+
+            ntStatus = SrvProcessNegotiate_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvConnectionSetProtocolVersion(
+                            pExecContext->pConnection,
+                            SMB_PROTOCOL_VERSION_2);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvConnectionSetState(
+                    pExecContext->pConnection,
+                    LWIO_SRV_CONN_STATE_NEGOTIATE);
+
+            break;
+
+        case COM2_ECHO:
+        case COM2_SESSION_SETUP:
+
+            {
+                switch (SrvConnectionGetState(pExecContext->pConnection))
+                {
+                    case LWIO_SRV_CONN_STATE_NEGOTIATE:
+                    case LWIO_SRV_CONN_STATE_READY:
+
+                        break;
+
+                    default:
+
+                        ntStatus = STATUS_INVALID_SERVER_STATE;
+
+                        break;
+                }
+            }
+
+            break;
+
+        default:
+
+            switch (SrvConnectionGetState(pExecContext->pConnection))
+            {
+                case LWIO_SRV_CONN_STATE_READY:
+
+                    break;
+
+                default:
+
+                    ntStatus = STATUS_INVALID_SERVER_STATE;
+
+                    break;
+            }
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pSmbRequest->pHeader->command)
+    {
+        case COM2_NEGOTIATE:
+
+            break;
+
+        case COM2_SESSION_SETUP:
+
+            ntStatus = SrvProcessSessionSetup_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_LOGOFF:
+
+            ntStatus = SrvProcessLogoff_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_TREE_CONNECT:
+
+            ntStatus = SrvProcessTreeConnect_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_TREE_DISCONNECT:
+
+            ntStatus = SrvProcessTreeDisconnect_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_CREATE:
+
+            ntStatus = SrvProcessCreate_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_CLOSE:
+
+            ntStatus = SrvProcessClose_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_FLUSH:
+
+            ntStatus = SrvProcessFlush_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_READ:
+
+            ntStatus = SrvProcessRead_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_WRITE:
+
+            ntStatus = SrvProcessWrite_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_LOCK:
+
+            if (pExecContext->bInternal)
+            {
+                ntStatus = SrvProcessOplock_SMB_V2(pExecContext);
+            }
+            else
+            {
+                ntStatus = SrvProcessLock_SMB_V2(pExecContext);
+            }
+
+            break;
+
+        case COM2_IOCTL:
+
+            ntStatus = SrvProcessIOCTL_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_CANCEL:
+
+            ntStatus = SrvProcessCancel_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_ECHO:
+
+            ntStatus = SrvProcessEcho_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_FIND:
+
+            ntStatus = SrvProcessFind_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_NOTIFY:
+
+            if (pExecContext->bInternal)
+            {
+                ntStatus = SrvProcessNotifyCompletion_SMB_V2(pExecContext);
+            }
+            else
+            {
+                ntStatus = SrvProcessNotify_SMB_V2(pExecContext);
+            }
+
+            break;
+
+        case COM2_GETINFO:
+
+            ntStatus = SrvProcessGetInfo_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_SETINFO:
+
+            ntStatus = SrvProcessSetInfo_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_BREAK:
+
+            ntStatus = SrvProcessOplockBreak_SMB_V2(pExecContext);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+    }
+
+error:
+
+    return ntStatus;
 }
 
 VOID

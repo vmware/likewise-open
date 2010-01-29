@@ -174,6 +174,23 @@ error:
     goto cleanup;
 }
 
+SMB_PROTOCOL_VERSION
+SrvConnectionGetProtocolVersion(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    SMB_PROTOCOL_VERSION protocolVersion = SMB_PROTOCOL_VERSION_UNKNOWN;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    protocolVersion = pConnection->protocolVer;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return protocolVersion;
+}
+
 NTSTATUS
 SrvConnectionSetProtocolVersion(
     PLWIO_SRV_CONNECTION pConnection,

@@ -580,6 +580,11 @@ SrvConnectionCreate(
     PLWIO_SRV_CONNECTION*           ppConnection
     );
 
+SMB_PROTOCOL_VERSION
+SrvConnectionGetProtocolVersion(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
 NTSTATUS
 SrvConnectionSetProtocolVersion(
     PLWIO_SRV_CONNECTION pConnection,

@@ -105,7 +105,7 @@ SrvProtocolExecute(
         BAIL_ON_NT_STATUS(ntStatus);
 
         pContext->pProtocolContext->protocolVersion =
-                            pContext->pConnection->protocolVer;
+                        SrvConnectionGetProtocolVersion(pContext->pConnection);
 
         pContext->pfnFreeContext = &SrvProtocolFreeExecContext;
     }
@@ -131,6 +131,12 @@ SrvProtocolExecute(
         case SMB_PROTOCOL_VERSION_2:
 
             ntStatus = SrvProtocolExecute_SMB_V2(pContext);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
 
             break;
     }
@@ -272,6 +278,10 @@ SrvProtocolFreeExecContext(
             {
                 SrvProtocolFreeContext_SMB_V2(pProtocolContext->pSmb2Context);
             }
+
+            break;
+
+        default:
 
             break;
     }
