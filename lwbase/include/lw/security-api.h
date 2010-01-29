@@ -194,6 +194,11 @@ RtlGetAce(
     OUT PVOID* Ace
     );
 
+USHORT
+RtlGetAclAceCount(
+    IN PACL Acl
+    );
+
 NTSTATUS
 RtlAddAccessAllowedAceEx(
     IN PACL Acl,
