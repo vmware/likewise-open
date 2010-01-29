@@ -2,6 +2,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 
 lib_LTLIBRARIES = libsrvsvc_cs.la libsrvsvc.la
 
+bin_PROGRAMS = lw-share
+
 idl_srcdir = $(top_srcdir)/idl
 include_srcdir = $(top_srcdir)/include
 
@@ -59,6 +61,11 @@ libsrvsvc_la_LIBADD = \
     $(DCERPC_LIBS)    \
     $(LIBUNISTR_LIBS) \
     libsrvsvc_cs.la
+
+lw_share_SOURCES = \
+    main.c
+
+lw_share_LDADD = libsrvsvc.la -llwadvapi -llsaclient
 
 CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c
 
