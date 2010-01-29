@@ -733,6 +733,10 @@ NET_API_STATUS SrvSvcCopyNetShareInfo(UINT32 level, srvsvc_NetShareInfo *info,
                                               e->shi502_reserved,
                                               a502);
                 BAIL_ON_WIN_ERROR(status);
+
+                memcpy(a502->shi502_security_descriptor,
+                       e->shi502_security_descriptor,
+                       e->shi502_reserved);
             }
 
             DUP_WC16S(a502, a502->shi502_netname);
