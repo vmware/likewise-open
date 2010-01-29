@@ -178,6 +178,7 @@ SrvProcessIOCTL_SMB_V2(
                                 pCtxSmb2,
                                 pTree,
                                 &pRequestHeader->fid,
+                                pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
                                 &pFile);
 
                 break;

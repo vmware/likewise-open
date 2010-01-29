@@ -156,6 +156,7 @@ SrvProcessNotify_SMB_V2(
                         pCtxSmb2,
                         pTree,
                         &pRequestHeader->fid,
+                        pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
                         &pNotifyRequestState->pFile);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -548,13 +549,11 @@ SrvExecuteChangeNotify_SMB_V2(
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
 
     SrvPrepareNotifyStateAsync_SMB_V2(pNotifyState);
 
     ntStatus = IoReadDirectoryChangeFile(
-                    pCtxSmb2->pFile->hFile,
+                    pNotifyState->pFile->hFile,
                     pNotifyState->pAcb,
                     &pNotifyState->ioStatusBlock,
                     pNotifyState->pBuffer,
@@ -570,7 +569,7 @@ SrvExecuteChangeNotify_SMB_V2(
         // to keep accumulating file change notifications
         //
         ntStatus = IoReadDirectoryChangeFile(
-                        pCtxSmb2->pFile->hFile,
+                        pNotifyState->pFile->hFile,
                         pNotifyState->pAcb,
                         &pNotifyState->ioStatusBlock,
                         pNotifyState->pBuffer,

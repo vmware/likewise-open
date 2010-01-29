@@ -244,6 +244,7 @@ SrvProcessSetInfo_SMB_V2(
                             pCtxSmb2,
                             pTree,
                             &pRequestHeader->fid,
+                            pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
                             &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -603,7 +604,7 @@ SrvSetFileEOFInfo_SMB_V2(
         SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
         ntStatus = IoSetInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pSetInfoState->pFile->hFile,
                         pSetInfoState->pAcb,
                         &pSetInfoState->ioStatusBlock,
                         (PFILE_END_OF_FILE_INFORMATION)pSetInfoState->pData,
@@ -641,7 +642,7 @@ SrvSetFileDispositionInfo_SMB_V2(
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
                     (PFILE_DISPOSITION_INFORMATION)pSetInfoState->pData,
@@ -728,7 +729,7 @@ SrvSetFileRenameInfo_SMB_V2(
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
                     (PFILE_RENAME_INFORMATION)pSetInfoState->pData2,
@@ -840,7 +841,7 @@ SrvSetFileBasicInfo_SMB_V2(
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
                     (PFILE_BASIC_INFORMATION)pSetInfoState->pData,
@@ -878,7 +879,7 @@ SrvSetFileAllocationInfo_SMB_V2(
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
                     (PFILE_ALLOCATION_INFORMATION)pSetInfoState->pData,

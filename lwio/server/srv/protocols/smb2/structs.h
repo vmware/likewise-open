@@ -1046,9 +1046,10 @@ typedef struct _SRV_NOTIFY_STATE_SMB_V2
     USHORT                  usEpoch;
     ULONG64                 ullSessionId;
     ULONG                   ulTid;
-    SMB2_FID                fid;
     ULONG                   ulPid;
     ULONG64                 ullCommandSequence;
+
+    PLWIO_SRV_FILE_2        pFile;
 
     PBYTE                   pBuffer;
     ULONG                   ulBufferLength;
@@ -1149,6 +1150,9 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V2
     PLWIO_SRV_SESSION_2                  pSession;
     PLWIO_SRV_TREE_2                     pTree;
     PLWIO_SRV_FILE_2                     pFile;
+
+    LONG                                 llNumSuccessfulCreates;
+    NTSTATUS                             lastCloseStatus;
 
     HANDLE                               hState;
     PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2 pfnStateRelease;

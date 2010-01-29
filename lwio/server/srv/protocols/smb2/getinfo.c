@@ -450,6 +450,7 @@ SrvProcessGetInfo_SMB_V2(
                             pCtxSmb2,
                             pTree,
                             &pRequestHeader->fid,
+                            pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
                             &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1005,7 +1006,7 @@ SrvGetFileInternalInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1152,7 +1153,7 @@ SrvGetFileEAInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1298,7 +1299,7 @@ SrvGetFileBasicInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1439,7 +1440,7 @@ SrvGetFileStandardInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1581,7 +1582,7 @@ SrvGetFileNetworkOpenInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1723,7 +1724,7 @@ SrvGetFileAccessInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1864,7 +1865,7 @@ SrvGetFilePositionInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -2006,7 +2007,7 @@ SrvGetFileModeInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -2170,7 +2171,7 @@ SrvGetFileAllInfo_SMB_V2(
                                     pExecContext);
 
                     ntStatus = IoQueryInformationFile(
-                                            pCtxSmb2->pFile->hFile,
+                                            pGetInfoState->pFile->hFile,
                                             pGetInfoState->pAcb,
                                             &pGetInfoState->ioStatusBlock,
                                             pGetInfoState->pData2,
@@ -2404,7 +2405,7 @@ SrvGetFileAlignmentInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -2761,7 +2762,7 @@ SrvGetFileAttrTagInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -3688,7 +3689,7 @@ SrvGetFileCompressionInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -3902,7 +3903,7 @@ SrvGetFileSystemVolumeInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                                pCtxSmb2->pFile->hFile,
+                                pGetInfoState->pFile->hFile,
                                 pGetInfoState->pAcb,
                                 &pGetInfoState->ioStatusBlock,
                                 pGetInfoState->pResponseBuffer,
@@ -4066,7 +4067,7 @@ SrvGetFileSystemAttributeInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                                pCtxSmb2->pFile->hFile,
+                                pGetInfoState->pFile->hFile,
                                 pGetInfoState->pAcb,
                                 &pGetInfoState->ioStatusBlock,
                                 pGetInfoState->pResponseBuffer,
@@ -4226,7 +4227,7 @@ SrvGetFileSystemFullInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                                pCtxSmb2->pFile->hFile,
+                                pGetInfoState->pFile->hFile,
                                 pGetInfoState->pAcb,
                                 &pGetInfoState->ioStatusBlock,
                                 pGetInfoState->pData2,
@@ -4381,7 +4382,7 @@ SrvGetFileSystemSizeInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                                pCtxSmb2->pFile->hFile,
+                                pGetInfoState->pFile->hFile,
                                 pGetInfoState->pAcb,
                                 &pGetInfoState->ioStatusBlock,
                                 pGetInfoState->pData2,

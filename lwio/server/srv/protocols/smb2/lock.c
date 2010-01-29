@@ -81,6 +81,7 @@ static
 NTSTATUS
 SrvExecuteLockRequest_SMB_V2(
     PSRV_EXEC_CONTEXT      pExecContext,
+    PLWIO_SRV_FILE_2       pFile,
     PSRV_SMB2_LOCK_REQUEST pLockRequest
     );
 
@@ -93,25 +94,29 @@ SrvExecuteLockContextAsyncCB_SMB_V2(
 static
 VOID
 SrvClearLocks_SMB_V2(
-    PSRV_SMB2_LOCK_REQUEST pLockRequest
+    PSRV_SMB2_LOCK_REQUEST pLockRequest,
+    PLWIO_SRV_FILE_2       pFile
     );
 
 static
 VOID
 SrvClearLocks_SMB_V2_inlock(
-    PSRV_SMB2_LOCK_REQUEST pLockRequest
+    PSRV_SMB2_LOCK_REQUEST pLockRequest,
+    PLWIO_SRV_FILE_2       pFile
     );
 
 static
 NTSTATUS
 SrvLockFile_SMB_V2_inlock(
-    PSRV_SMB2_LOCK_CONTEXT pLockContext
+    PSRV_SMB2_LOCK_CONTEXT pLockContext,
+    PLWIO_SRV_FILE_2       pFile
     );
 
 static
 NTSTATUS
 SrvUnlockFile_SMB_V2_inlock(
-    PSRV_SMB2_LOCK_CONTEXT pLockContext
+    PSRV_SMB2_LOCK_CONTEXT pLockContext,
+    PLWIO_SRV_FILE_2       pFile
     );
 
 static
@@ -173,6 +178,7 @@ SrvProcessLock_SMB_V2(
                             pCtxSmb2,
                             pTree,
                             &pRequestHeader->fid,
+                            pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
                             &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -186,7 +192,10 @@ SrvProcessLock_SMB_V2(
         pCtxSmb2->pfnStateRelease = &SrvReleaseLockRequestHandle_SMB_V2;
         InterlockedIncrement(&pLockRequest->refCount);
 
-        ntStatus = SrvExecuteLockRequest_SMB_V2(pExecContext, pLockRequest);
+        ntStatus = SrvExecuteLockRequest_SMB_V2(
+                        pExecContext,
+                        pFile,
+                        pLockRequest);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -351,6 +360,7 @@ static
 NTSTATUS
 SrvExecuteLockRequest_SMB_V2(
     PSRV_EXEC_CONTEXT      pExecContext,
+    PLWIO_SRV_FILE_2       pFile,
     PSRV_SMB2_LOCK_REQUEST pLockRequest
     )
 {
@@ -373,7 +383,7 @@ SrvExecuteLockRequest_SMB_V2(
 
         if (pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_UNLOCK)
         {
-            ntStatus = SrvUnlockFile_SMB_V2_inlock(pContext);
+            ntStatus = SrvUnlockFile_SMB_V2_inlock(pContext, pFile);
         }
         if (ntStatus == STATUS_PENDING)
         {
@@ -399,7 +409,7 @@ SrvExecuteLockRequest_SMB_V2(
 
         if (!(pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_UNLOCK))
         {
-            ntStatus = SrvLockFile_SMB_V2_inlock(pContext);
+            ntStatus = SrvLockFile_SMB_V2_inlock(pContext, pFile);
         }
         if (ntStatus == STATUS_PENDING)
         {
@@ -433,7 +443,7 @@ error:
 
     if (!bAsync)
     {
-        SrvClearLocks_SMB_V2(pLockRequest);
+        SrvClearLocks_SMB_V2(pLockRequest, pFile);
     }
 
     goto cleanup;
@@ -497,14 +507,15 @@ SrvExecuteLockContextAsyncCB_SMB_V2(
 static
 VOID
 SrvClearLocks_SMB_V2(
-    PSRV_SMB2_LOCK_REQUEST pLockRequest
+    PSRV_SMB2_LOCK_REQUEST pLockRequest,
+    PLWIO_SRV_FILE_2       pFile
     )
 {
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pLockRequest->mutex);
 
-    SrvClearLocks_SMB_V2_inlock(pLockRequest);
+    SrvClearLocks_SMB_V2_inlock(pLockRequest, pFile);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pLockRequest->mutex);
 }
@@ -512,7 +523,8 @@ SrvClearLocks_SMB_V2(
 static
 VOID
 SrvClearLocks_SMB_V2_inlock(
-    PSRV_SMB2_LOCK_REQUEST pLockRequest
+    PSRV_SMB2_LOCK_REQUEST pLockRequest,
+    PLWIO_SRV_FILE_2       pFile
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -538,7 +550,7 @@ SrvClearLocks_SMB_V2_inlock(
 
             pLockContext->pAcb = NULL; // make it synchronous
 
-            ntStatus1 = SrvUnlockFile_SMB_V2_inlock(pLockContext);
+            ntStatus1 = SrvUnlockFile_SMB_V2_inlock(pLockContext, pFile);
             if (ntStatus1)
             {
                 LWIO_LOG_ERROR("Failed in unlock. error code [%d]", ntStatus1);
@@ -554,18 +566,16 @@ error:
 static
 NTSTATUS
 SrvLockFile_SMB_V2_inlock(
-    PSRV_SMB2_LOCK_CONTEXT pLockContext
+    PSRV_SMB2_LOCK_CONTEXT pLockContext,
+    PLWIO_SRV_FILE_2       pFile
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_EXEC_CONTEXT pExecContext = pLockContext->pExecContext;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     LONG64   llOffset = pLockContext->lockInfo.ullFileOffset;
     LONG64   llLength = pLockContext->lockInfo.ullByteRange;
 
     ntStatus = IoLockFile(
-                    pCtxSmb2->pFile->hFile,
+                    pFile->hFile,
                     pLockContext->pAcb,
                     &pLockContext->ioStatusBlock,
                     llOffset,
@@ -598,18 +608,16 @@ error:
 static
 NTSTATUS
 SrvUnlockFile_SMB_V2_inlock(
-    PSRV_SMB2_LOCK_CONTEXT pLockContext
+    PSRV_SMB2_LOCK_CONTEXT pLockContext,
+    PLWIO_SRV_FILE_2       pFile
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_EXEC_CONTEXT pExecContext = pLockContext->pExecContext;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     LONG64   llOffset = pLockContext->lockInfo.ullFileOffset;
     LONG64   llLength = pLockContext->lockInfo.ullByteRange;
 
     ntStatus = IoUnlockFile(
-                    pCtxSmb2->pFile->hFile,
+                    pFile->hFile,
                     pLockContext->pAcb,
                     &pLockContext->ioStatusBlock,
                     llOffset,

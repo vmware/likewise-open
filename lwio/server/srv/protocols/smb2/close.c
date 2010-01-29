@@ -118,11 +118,17 @@ SrvProcessClose_SMB_V2(
     PLWIO_SRV_CONNECTION       pConnection      = pExecContext->pConnection;
     PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2         = pProtocolContext->pSmb2Context;
+    ULONG                      iMsg             = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest      = &pCtxSmb2->pRequests[iMsg];
+    BOOLEAN                    bRelated         = FALSE;
     PSRV_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
     PLWIO_SRV_SESSION_2        pSession         = NULL;
     PLWIO_SRV_TREE_2           pTree            = NULL;
     PLWIO_SRV_FILE_2           pFile            = NULL;
     BOOLEAN                    bInLock          = FALSE;
+
+    bRelated = ((pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION)
+                        == SMB2_FLAGS_RELATED_OPERATION);
 
     pCloseState = (PSRV_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
     if (pCloseState)
@@ -131,8 +137,6 @@ SrvProcessClose_SMB_V2(
     }
     else
     {
-        ULONG               iMsg         = pCtxSmb2->iMsg;
-        PSRV_MESSAGE_SMB_V2 pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
         PSMB2_CLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
 
         ntStatus = SrvConnection2FindSession_SMB_V2(
@@ -152,11 +156,47 @@ SrvProcessClose_SMB_V2(
         ntStatus = SMB2UnmarshalCloseRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        if (bRelated && !pCtxSmb2->llNumSuccessfulCreates)
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         ntStatus = SrvTree2FindFile_SMB_V2(
                         pCtxSmb2,
                         pTree,
                         &pRequestHeader->fid,
+                        bRelated,
                         &pFile);
+        if ((ntStatus == STATUS_FILE_CLOSED) && bRelated)
+        {
+            switch (pCtxSmb2->lastCloseStatus)
+            {
+                case STATUS_SUCCESS:
+
+                    // File was closed successfully
+                    // Another Close request was chained
+                    pCtxSmb2->lastCloseStatus = STATUS_FILE_CLOSED;
+
+                    break;
+
+                case STATUS_FILE_CLOSED:
+
+                    // This is the second chained close request after
+                    // a successful close followed by a chained close request.
+                    pCtxSmb2->lastCloseStatus = STATUS_INVALID_PARAMETER;
+
+                    ntStatus = STATUS_INVALID_PARAMETER;
+
+                    break;
+
+                default:
+
+                    ntStatus = pCtxSmb2->lastCloseStatus;
+
+                    break;
+            }
+        }
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvBuildCloseState_SMB_V2(
@@ -212,9 +252,13 @@ SrvProcessClose_SMB_V2(
 
         case SRV_CLOSE_STAGE_SMB_V2_DONE:
 
-            if (pCtxSmb2->pFile)
+            if (pCloseState->pFile)
             {
-                SrvFile2Rundown(pCtxSmb2->pFile);
+                SrvFile2Rundown(pCloseState->pFile);
+            }
+
+            if (bRelated && pCtxSmb2->pFile)
+            {
                 SrvFile2Release(pCtxSmb2->pFile);
                 pCtxSmb2->pFile = NULL;
             }

@@ -100,6 +100,7 @@ SrvNotifyCreateState_SMB_V2(
     pNotifyState->ullAsyncId = ullAsyncId;
 
     pNotifyState->pConnection = SrvConnectionAcquire(pConnection);
+    pNotifyState->pFile       = SrvFile2Acquire(pFile);
 
     pNotifyState->ulCompletionFilter = ulCompletionFilter;
     pNotifyState->bWatchTree         = bWatchTree;
@@ -109,7 +110,6 @@ SrvNotifyCreateState_SMB_V2(
     pNotifyState->ulTid        = pTree->ulTid;
     pNotifyState->ulPid        = ulPid;
 
-    pNotifyState->fid.ullVolatileId  = pFile->ullFid;
     pNotifyState->ullCommandSequence = ullCommandSequence;
 
     pNotifyState->ulMaxBufferSize   = ulMaxBufferSize;
@@ -297,7 +297,7 @@ SrvNotifyBuildExecContext_SMB_V2(
     ulTotalBytesUsed += ulHeaderSize;
 
     notifyRequestHeader.usLength = sizeof(notifyRequestHeader);
-    notifyRequestHeader.fid = pNotifyState->fid;
+    notifyRequestHeader.fid.ullVolatileId = pNotifyState->pFile->ullFid;
 
     if (ulBytesAvailable < sizeof(notifyRequestHeader))
     {
@@ -412,6 +412,11 @@ SrvNotifyStateFree_SMB_V2(
     if (pNotifyState->pConnection)
     {
         SrvConnectionRelease(pNotifyState->pConnection);
+    }
+
+    if (pNotifyState->pFile)
+    {
+        SrvFile2Release(pNotifyState->pFile);
     }
 
     if (pNotifyState->pBuffer)
