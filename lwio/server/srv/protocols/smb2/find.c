@@ -754,6 +754,11 @@ SrvFindIdBothDirInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -1090,6 +1095,11 @@ SrvFindBothDirInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -1422,6 +1432,11 @@ SrvFindIdFullDirInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -1734,6 +1749,11 @@ SrvFindFullDirInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -2046,6 +2066,11 @@ SrvFindNamesInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
