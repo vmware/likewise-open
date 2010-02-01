@@ -236,7 +236,8 @@ SrvProcessRequestSpecific_SMB_V2(
                      SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
                      pSmbRequest->pHeader->command);
 
-    if (!iMsg && (pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION))
+    if (!iMsg &&
+        LwIsSetFlag(pSmbRequest->pHeader->ulFlags,SMB2_FLAGS_RELATED_OPERATION))
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -536,7 +537,9 @@ SrvBuildInterimResponse_SMB_V2(
                 ullAsyncId,
                 errorStatus,
                 TRUE,
-                pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                LwIsSetFlag(
+                    pSmbRequest->pHeader->ulFlags,
+                    SMB2_FLAGS_RELATED_OPERATION),
                 &pHeader,
                 &ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);

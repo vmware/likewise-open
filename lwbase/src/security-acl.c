@@ -237,13 +237,32 @@ RtlInitializeAccessDeniedAce(
     IN PSID Sid
     )
 {
-    // ACCESS_DENIED_ACE is isomorphic wrt ACCESS_ALLOWED_ACE
-    return RtlInitializeAccessAllowedAce(
-                (PACCESS_ALLOWED_ACE) Ace,
-                AceLength,
-                AceFlags,
-                AccessMask,
-                Sid);
+    NTSTATUS status = STATUS_SUCCESS;
+    USHORT size = RtlLengthAccessDeniedAce(Sid);
+
+    if (!LW_IS_VALID_FLAGS(AceFlags, VALID_ACE_FLAGS_MASK) ||
+        !LW_IS_VALID_FLAGS(AccessMask, VALID_DACL_ACCESS_MASK) ||
+        !RtlValidSid(Sid))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    if (AceLength < size)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        GOTO_CLEANUP();
+    }
+
+    Ace->Header.AceType = ACCESS_DENIED_ACE_TYPE;
+    Ace->Header.AceFlags = AceFlags;
+    Ace->Header.AceSize = size;
+    Ace->Mask = AccessMask;
+    // We already know the size is sufficient
+    RtlCopyMemory(&Ace->SidStart, Sid, RtlLengthSid(Sid));
+
+cleanup:
+    return status;
 }
 
 //
@@ -546,15 +565,55 @@ RtlInsertAccessDeniedAce(
     OUT OPTIONAL PACCESS_DENIED_ACE* Ace
     )
 {
-    // ACCESS_DENIED_ACE is isomorphic wrt ACCESS_ALLOWED_ACE
-    return RtlInsertAccessAllowedAce(
-                Acl,
-                AclSizeUsed,
-                AceOffset,
-                AceFlags,
-                AccessMask,
-                Sid,
-                (PACCESS_ALLOWED_ACE*) Ace);
+    NTSTATUS status = STATUS_SUCCESS;
+    USHORT sizeUsed = *AclSizeUsed;
+    PACCESS_DENIED_ACE aceLocation = NULL;
+    USHORT aceSize = 0;
+
+    if (!RtlValidSid(Sid))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    status = RtlpGetAceLocationFromOffset(
+                    Acl,
+                    sizeUsed,
+                    AceOffset,
+                    OUT_PPVOID(&aceLocation));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    aceSize = RtlLengthAccessDeniedAce(Sid);
+
+    status = RtlpMakeRoomForAceAtLocation(Acl, sizeUsed, aceLocation, aceSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    // We know we have at least aceSize bytes available.
+    status = RtlInitializeAccessDeniedAce(
+                    aceLocation,
+                    aceSize,
+                    AceFlags,
+                    AccessMask,
+                    Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    assert(aceSize == aceLocation->Header.AceSize);
+    sizeUsed += aceSize;
+    Acl->AceCount++;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        aceLocation = NULL;
+    }
+    else
+    {
+        *AclSizeUsed = sizeUsed;
+    }
+
+    *Ace = aceLocation;
+
+    return status;
 }
 
 static
@@ -1236,13 +1295,59 @@ RtlAddAccessDeniedAceEx(
     IN PSID Sid
     )
 {
-    // ACCESS_DENIED_ACE is isomorphic wrt ACCESS_ALLOWED_ACE
-    return RtlAddAccessAllowedAceEx(
-                Acl,
-                AceRevision,
-                AceFlags,
-                AccessMask,
-                Sid);
+    NTSTATUS status = STATUS_SUCCESS;
+    USHORT sizeUsed = 0;
+    USHORT aceOffset = 0;
+    PACCESS_DENIED_ACE aceLocation = NULL;
+    USHORT aceSize = 0;
+
+    if (!RtlpValidAclHeader(Acl))
+    {
+        status = STATUS_INVALID_ACL;
+        GOTO_CLEANUP();
+    }
+
+    if (!RtlpValidAclRevision(AceRevision) ||
+        (AceRevision > Acl->AclRevision))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    if (!RtlValidSid(Sid))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    status = RtlpGetAceLocationFromIndex(
+                    Acl,
+                    ((ULONG)-1),
+                    &sizeUsed,
+                    &aceOffset,
+                    OUT_PPVOID(&aceLocation));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    aceSize = RtlLengthAccessDeniedAce(Sid);
+
+    status = RtlpMakeRoomForAceAtLocation(Acl, sizeUsed, aceLocation, aceSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    // We know we have at least aceSize bytes available.
+    status = RtlInitializeAccessDeniedAce(
+                    aceLocation,
+                    aceSize,
+                    AceFlags,
+                    AccessMask,
+                    Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    assert(aceSize == aceLocation->Header.AceSize);
+    sizeUsed += aceSize;
+    Acl->AceCount++;
+
+cleanup:
+    return status;
 }
 
 BOOLEAN

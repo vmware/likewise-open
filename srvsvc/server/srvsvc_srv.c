@@ -228,7 +228,8 @@ SrvSvcRegisterForRPC(
     {
         {"ncacn_ip_tcp", NULL},
         {"ncacn_np"    , "\\\\pipe\\\\srvsvc"},
-        {NULL          , NULL}
+        {"ncalrpc", "srvsvc"},
+        {NULL, NULL}
     };
 
     DCETHREAD_TRY

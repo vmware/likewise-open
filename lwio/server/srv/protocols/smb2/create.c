@@ -177,7 +177,7 @@ SrvProcessCreate_SMB_V2(
 
         if (pCtxSmb2->pFile)
         {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            ntStatus = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -396,6 +396,7 @@ SrvProcessCreate_SMB_V2(
             pCreateState->bRemoveFileFromTree = FALSE;
 
             pCtxSmb2->pFile = SrvFile2Acquire(pCreateState->pFile);
+            pCtxSmb2->llNumSuccessfulCreates++;
 
             break;
     }
@@ -1146,7 +1147,9 @@ SrvBuildCreateResponse_SMB_V2(
                     pCreateState->ullAsyncId,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                            pSmbRequest->pHeader->ulFlags,
+                            SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);

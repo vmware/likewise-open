@@ -55,6 +55,7 @@ static
 NTSTATUS
 SrvFindIdBothDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -78,6 +79,7 @@ static
 NTSTATUS
 SrvFindBothDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -101,6 +103,7 @@ static
 NTSTATUS
 SrvFindIdFullDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -124,6 +127,7 @@ static
 NTSTATUS
 SrvFindFullDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -147,6 +151,7 @@ static
 NTSTATUS
 SrvFindNamesInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -225,6 +230,8 @@ SrvProcessFind_SMB_V2(
                     pCtxSmb2,
                     pTree,
                     &pRequestHeader->fid,
+                    LwIsSetFlag(pSmbRequest->pHeader->ulFlags,
+                                SMB2_FLAGS_RELATED_OPERATION),
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -232,11 +239,11 @@ SrvProcessFind_SMB_V2(
 
     if (pFile->pSearchSpace)
     {
-        if (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_REOPEN)
+        if (LwIsSetFlag(pRequestHeader->ucSearchFlags,SMB2_SEARCH_FLAGS_REOPEN))
         {
             bReopenSearch = TRUE;
         }
-        else if (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN)
+        else if (LwIsSetFlag(pRequestHeader->ucSearchFlags,SMB2_SEARCH_FLAGS_RESTART_SCAN))
         {
             bRestartScan = TRUE;
 
@@ -389,7 +396,8 @@ SrvProcessFind_SMB_V2(
                     0LL, /* Async Id */
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(pSmbRequest->pHeader->ulFlags,
+                                SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -426,6 +434,7 @@ SrvProcessFind_SMB_V2(
 
             ntStatus = SrvFindIdBothDirInformation(
                             pExecContext,
+                            pFile,
                             pRequestHeader,
                             pData,
                             ulDataOffset,
@@ -438,6 +447,7 @@ SrvProcessFind_SMB_V2(
 
             ntStatus = SrvFindIdFullDirInformation(
                             pExecContext,
+                            pFile,
                             pRequestHeader,
                             pData,
                             ulDataOffset,
@@ -450,6 +460,7 @@ SrvProcessFind_SMB_V2(
 
             ntStatus = SrvFindBothDirInformation(
                             pExecContext,
+                            pFile,
                             pRequestHeader,
                             pData,
                             ulDataOffset,
@@ -462,6 +473,7 @@ SrvProcessFind_SMB_V2(
 
             ntStatus = SrvFindFullDirInformation(
                             pExecContext,
+                            pFile,
                             pRequestHeader,
                             pData,
                             ulDataOffset,
@@ -474,6 +486,7 @@ SrvProcessFind_SMB_V2(
 
             ntStatus = SrvFindNamesInformation(
                             pExecContext,
+                            pFile,
                             pRequestHeader,
                             pData,
                             ulDataOffset,
@@ -602,6 +615,7 @@ static
 NTSTATUS
 SrvFindIdBothDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -611,8 +625,6 @@ SrvFindIdBothDirInformation(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PBYTE    pData = pDataBuffer;
     ULONG    ulDataLength = 0;
     ULONG    ulSearchResultCount = 0;
@@ -620,17 +632,19 @@ SrvFindIdBothDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                                pRequestHeader->ucSearchFlags,
+                                SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                    pRequestHeader->ucSearchFlags,
+                                    SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_ID_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_ID_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
-    pSearchSpace = pCtxSmb2->pFile->pSearchSpace;
+    pSearchSpace = pFile->pSearchSpace;
 
     if (!pSearchSpace->pFileInfo)
     {
@@ -653,7 +667,7 @@ SrvFindIdBothDirInformation(
         pFileInfoCursor = (PFILE_ID_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -669,7 +683,7 @@ SrvFindIdBothDirInformation(
                 memset(pSearchSpace->pFileInfo, 0x0, pSearchSpace->usFileInfoLen);
 
                 ntStatus = IoQueryDirectoryFile(
-                                pCtxSmb2->pFile->hFile,
+                                pFile->hFile,
                                 NULL,
                                 &ioStatusBlock,
                                 pSearchSpace->pFileInfo,
@@ -740,6 +754,11 @@ SrvFindIdBothDirInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -758,7 +777,7 @@ SrvFindIdBothDirInformation(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
     return ntStatus;
 
@@ -938,6 +957,7 @@ static
 NTSTATUS
 SrvFindBothDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -947,8 +967,6 @@ SrvFindBothDirInformation(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PBYTE    pData = pDataBuffer;
     ULONG    ulDataLength = 0;
     ULONG    ulSearchResultCount = 0;
@@ -956,17 +974,19 @@ SrvFindBothDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                                pRequestHeader->ucSearchFlags,
+                                SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                       pRequestHeader->ucSearchFlags,
+                                       SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
-    pSearchSpace = pCtxSmb2->pFile->pSearchSpace;
+    pSearchSpace = pFile->pSearchSpace;
 
     if (!pSearchSpace->pFileInfo)
     {
@@ -989,7 +1009,7 @@ SrvFindBothDirInformation(
         pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -1005,7 +1025,7 @@ SrvFindBothDirInformation(
                 memset(pSearchSpace->pFileInfo, 0x0, pSearchSpace->usFileInfoLen);
 
                 ntStatus = IoQueryDirectoryFile(
-                                pCtxSmb2->pFile->hFile,
+                                pFile->hFile,
                                 NULL,
                                 &ioStatusBlock,
                                 pSearchSpace->pFileInfo,
@@ -1075,6 +1095,11 @@ SrvFindBothDirInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -1093,7 +1118,7 @@ SrvFindBothDirInformation(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
     return ntStatus;
 
@@ -1269,6 +1294,7 @@ static
 NTSTATUS
 SrvFindIdFullDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -1278,8 +1304,6 @@ SrvFindIdFullDirInformation(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PBYTE    pData = pDataBuffer;
     ULONG    ulDataLength = 0;
     ULONG    ulSearchResultCount = 0;
@@ -1287,17 +1311,19 @@ SrvFindIdFullDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                                pRequestHeader->ucSearchFlags,
+                                SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                       pRequestHeader->ucSearchFlags,
+                                       SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_ID_FULL_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_ID_FULL_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
-    pSearchSpace = pCtxSmb2->pFile->pSearchSpace;
+    pSearchSpace = pFile->pSearchSpace;
 
     if (!pSearchSpace->pFileInfo)
     {
@@ -1320,7 +1346,7 @@ SrvFindIdFullDirInformation(
         pFileInfoCursor = (PFILE_ID_FULL_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -1336,7 +1362,7 @@ SrvFindIdFullDirInformation(
                 memset(pSearchSpace->pFileInfo, 0x0, pSearchSpace->usFileInfoLen);
 
                 ntStatus = IoQueryDirectoryFile(
-                                pCtxSmb2->pFile->hFile,
+                                pFile->hFile,
                                 NULL,
                                 &ioStatusBlock,
                                 pSearchSpace->pFileInfo,
@@ -1406,6 +1432,11 @@ SrvFindIdFullDirInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -1424,7 +1455,7 @@ SrvFindIdFullDirInformation(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
     return ntStatus;
 
@@ -1580,6 +1611,7 @@ static
 NTSTATUS
 SrvFindFullDirInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -1589,8 +1621,6 @@ SrvFindFullDirInformation(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PBYTE    pData = pDataBuffer;
     ULONG    ulDataLength = 0;
     ULONG    ulSearchResultCount = 0;
@@ -1598,17 +1628,19 @@ SrvFindFullDirInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                               pRequestHeader->ucSearchFlags,
+                               SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                       pRequestHeader->ucSearchFlags,
+                                       SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_FULL_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_FULL_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
-    pSearchSpace = pCtxSmb2->pFile->pSearchSpace;
+    pSearchSpace = pFile->pSearchSpace;
 
     if (!pSearchSpace->pFileInfo)
     {
@@ -1631,7 +1663,7 @@ SrvFindFullDirInformation(
         pFileInfoCursor = (PFILE_FULL_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -1647,7 +1679,7 @@ SrvFindFullDirInformation(
                 memset(pSearchSpace->pFileInfo, 0x0, pSearchSpace->usFileInfoLen);
 
                 ntStatus = IoQueryDirectoryFile(
-                                pCtxSmb2->pFile->hFile,
+                                pFile->hFile,
                                 NULL,
                                 &ioStatusBlock,
                                 pSearchSpace->pFileInfo,
@@ -1717,6 +1749,11 @@ SrvFindFullDirInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -1735,7 +1772,7 @@ SrvFindFullDirInformation(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
     return ntStatus;
 
@@ -1890,6 +1927,7 @@ static
 NTSTATUS
 SrvFindNamesInformation(
     PSRV_EXEC_CONTEXT         pExecContext,
+    PLWIO_SRV_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -1899,8 +1937,6 @@ SrvFindNamesInformation(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN  bInLock = FALSE;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PBYTE    pData = pDataBuffer;
     ULONG    ulDataLength = 0;
     ULONG    ulSearchResultCount = 0;
@@ -1908,17 +1944,19 @@ SrvFindNamesInformation(
     ULONG    ulOffset = ulDataOffset;
     ULONG    ulBytesAvailable = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
-    BOOLEAN  bRestartScan =
-               pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RESTART_SCAN;
-    BOOLEAN  bReturnSingleEntry =
-               (pRequestHeader->ucSearchFlags & SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
+    BOOLEAN  bRestartScan = LwIsSetFlag(
+                               pRequestHeader->ucSearchFlags,
+                               SMB2_SEARCH_FLAGS_RESTART_SCAN);
+    BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
+                                       pRequestHeader->ucSearchFlags,
+                                       SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_NAMES_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_NAMES_INFO_HEADER pLastInfoHeader = NULL; // Do not free
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
-    pSearchSpace = pCtxSmb2->pFile->pSearchSpace;
+    pSearchSpace = pFile->pSearchSpace;
 
     if (!pSearchSpace->pFileInfo)
     {
@@ -1941,7 +1979,7 @@ SrvFindNamesInformation(
         pFileInfoCursor = (PFILE_NAMES_INFORMATION)pSearchSpace->pFileInfoCursor;
         if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
         {
-            IO_MATCH_FILE_SPEC ioFileSpec;
+            IO_MATCH_FILE_SPEC ioFileSpec = {0};
             IO_STATUS_BLOCK ioStatusBlock = {0};
 
             ioFileSpec.Type = IO_MATCH_FILE_SPEC_TYPE_UNKNOWN;
@@ -1957,7 +1995,7 @@ SrvFindNamesInformation(
                 memset(pSearchSpace->pFileInfo, 0x0, pSearchSpace->usFileInfoLen);
 
                 ntStatus = IoQueryDirectoryFile(
-                                pCtxSmb2->pFile->hFile,
+                                pFile->hFile,
                                 NULL,
                                 &ioStatusBlock,
                                 pSearchSpace->pFileInfo,
@@ -2028,6 +2066,11 @@ SrvFindNamesInformation(
             }
 
             ulSearchResultCount += ulIterSearchCount;
+
+            if (bReturnSingleEntry && ulSearchResultCount)
+            {
+                break;
+            }
         }
     }
 
@@ -2046,7 +2089,7 @@ SrvFindNamesInformation(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pCtxSmb2->pFile->mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
     return ntStatus;
 

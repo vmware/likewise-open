@@ -62,7 +62,9 @@ NetrShareAdd(
         break;
 
     case 502:
-        /* No support for level 502 yet */
+        Info.info502 = (PSHARE_INFO_502)pBuffer;
+        break;
+
     default:
         err = ERROR_INVALID_LEVEL;
         BAIL_ON_WIN_ERROR(err);

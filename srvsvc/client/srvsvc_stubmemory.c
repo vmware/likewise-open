@@ -329,7 +329,6 @@ void SrvSvcClearNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr)
              SrvSvcClearSHARE_INFO_0(&ctr->ctr0->array[i]);
         }
         SAFE_FREE(ctr->ctr0->array);
-        SAFE_FREE(ctr->ctr0);
         break;
     case 1:
         if (!ctr->ctr1) {
@@ -340,7 +339,6 @@ void SrvSvcClearNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr)
              SrvSvcClearSHARE_INFO_1(&ctr->ctr1->array[i]);
         }
         SAFE_FREE(ctr->ctr1->array);
-        SAFE_FREE(ctr->ctr1);
         break;
     case 2:
         if (!ctr->ctr2) {
@@ -351,7 +349,6 @@ void SrvSvcClearNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr)
              SrvSvcClearSHARE_INFO_2(&ctr->ctr2->array[i]);
         }
         SAFE_FREE(ctr->ctr2->array);
-        SAFE_FREE(ctr->ctr2);
         break;
     case 501:
         if (!ctr->ctr501) {
@@ -362,7 +359,6 @@ void SrvSvcClearNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr)
              SrvSvcClearSHARE_INFO_501(&ctr->ctr501->array[i]);
         }
         SAFE_FREE(ctr->ctr501->array);
-        SAFE_FREE(ctr->ctr501);
         break;
     case 502:
         if (!ctr->ctr502) {
@@ -373,7 +369,6 @@ void SrvSvcClearNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr)
              SrvSvcClearSHARE_INFO_502_I(&ctr->ctr502->array[i]);
         }
         SAFE_FREE(ctr->ctr502->array);
-        SAFE_FREE(ctr->ctr502);
         break;
     }
 }

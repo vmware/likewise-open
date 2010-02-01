@@ -1028,6 +1028,9 @@ main(
         close(notifyFd);
     }
 
+    dwError = SrvSvcInitSecurity();
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
     dwError = SrvSvcListenForRPC();
     BAIL_ON_SRVSVC_ERROR(dwError);
 

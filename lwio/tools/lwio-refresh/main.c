@@ -163,7 +163,7 @@ ParseArgs(
 void
 ShowUsage()
 {
-    printf("Usage: lw-smb-refresh\n");
+    printf("Usage: lwio-refresh\n");
 }
 
 DWORD

@@ -450,6 +450,9 @@ SrvProcessGetInfo_SMB_V2(
                             pCtxSmb2,
                             pTree,
                             &pRequestHeader->fid,
+                            LwIsSetFlag(
+                                pSmbRequest->pHeader->ulFlags,
+                                SMB2_FLAGS_RELATED_OPERATION),
                             &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1005,7 +1008,7 @@ SrvGetFileInternalInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1060,7 +1063,9 @@ SrvBuildFileInternalInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1152,7 +1157,7 @@ SrvGetFileEAInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1206,7 +1211,9 @@ SrvBuildFileEAInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1298,7 +1305,7 @@ SrvGetFileBasicInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1351,7 +1358,9 @@ SrvBuildFileBasicInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1439,7 +1448,7 @@ SrvGetFileStandardInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1492,7 +1501,9 @@ SrvBuildFileStandardInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1581,7 +1592,7 @@ SrvGetFileNetworkOpenInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1634,7 +1645,9 @@ SrvBuildFileNetworkOpenInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1723,7 +1736,7 @@ SrvGetFileAccessInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1776,7 +1789,9 @@ SrvBuildFileAccessInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1864,7 +1879,7 @@ SrvGetFilePositionInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -1917,7 +1932,9 @@ SrvBuildFilePositionInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -2006,7 +2023,7 @@ SrvGetFileModeInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -2059,7 +2076,9 @@ SrvBuildFileModeInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -2170,7 +2189,7 @@ SrvGetFileAllInfo_SMB_V2(
                                     pExecContext);
 
                     ntStatus = IoQueryInformationFile(
-                                            pCtxSmb2->pFile->hFile,
+                                            pGetInfoState->pFile->hFile,
                                             pGetInfoState->pAcb,
                                             &pGetInfoState->ioStatusBlock,
                                             pGetInfoState->pData2,
@@ -2271,7 +2290,9 @@ SrvBuildFileAllInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -2404,7 +2425,7 @@ SrvGetFileAlignmentInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -2457,7 +2478,9 @@ SrvBuildFileAlignmentInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -2667,7 +2690,9 @@ SrvBuildFileAltNameInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -2761,7 +2786,7 @@ SrvGetFileAttrTagInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -2814,7 +2839,9 @@ SrvBuildFileAttrTagInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -3029,7 +3056,9 @@ SrvBuildFileStreamInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -3420,7 +3449,9 @@ SrvBuildFileFullEAInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -3688,7 +3719,7 @@ SrvGetFileCompressionInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pGetInfoState->pFile->hFile,
                         pGetInfoState->pAcb,
                         &pGetInfoState->ioStatusBlock,
                         pGetInfoState->pData2,
@@ -3742,7 +3773,9 @@ SrvBuildFileCompressionInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -3902,7 +3935,7 @@ SrvGetFileSystemVolumeInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                                pCtxSmb2->pFile->hFile,
+                                pGetInfoState->pFile->hFile,
                                 pGetInfoState->pAcb,
                                 &pGetInfoState->ioStatusBlock,
                                 pGetInfoState->pResponseBuffer,
@@ -3958,7 +3991,9 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -4066,7 +4101,7 @@ SrvGetFileSystemAttributeInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                                pCtxSmb2->pFile->hFile,
+                                pGetInfoState->pFile->hFile,
                                 pGetInfoState->pAcb,
                                 &pGetInfoState->ioStatusBlock,
                                 pGetInfoState->pResponseBuffer,
@@ -4122,7 +4157,9 @@ SrvBuildFileSystemAttributeInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -4226,7 +4263,7 @@ SrvGetFileSystemFullInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                                pCtxSmb2->pFile->hFile,
+                                pGetInfoState->pFile->hFile,
                                 pGetInfoState->pAcb,
                                 &pGetInfoState->ioStatusBlock,
                                 pGetInfoState->pData2,
@@ -4281,7 +4318,9 @@ SrvBuildFileSystemFullInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -4381,7 +4420,7 @@ SrvGetFileSystemSizeInfo_SMB_V2(
         SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                                pCtxSmb2->pFile->hFile,
+                                pGetInfoState->pFile->hFile,
                                 pGetInfoState->pAcb,
                                 &pGetInfoState->ioStatusBlock,
                                 pGetInfoState->pData2,
@@ -4435,7 +4474,9 @@ SrvBuildFileSystemSizeInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -4753,7 +4794,9 @@ SrvBuildSecurityInfoResponse_SMB_V2(
                     0LL,
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
