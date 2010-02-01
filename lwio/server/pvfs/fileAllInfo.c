@@ -176,6 +176,8 @@ PvfsQueryFileAllInfo(
 
     /* Alignment */
 
+    pFileInfo->AlignmentInformation.AlignmentRequirement = 0L;
+
     /* Name */
 
     ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pszFilename);
