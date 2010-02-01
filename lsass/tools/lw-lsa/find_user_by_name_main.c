@@ -390,6 +390,8 @@ PrintUserInfo_2(
     fprintf(stdout, "UPN:                        %s\n",
                     LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
     fprintf(stdout, "Generated UPN:              %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
+    fprintf(stdout, "DN:                         %s\n",
+                    LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszDN) ? "<null>" : pUserInfo->pszDN);
     fprintf(stdout, "Uid:                        %u\n", (unsigned int)pUserInfo->uid);
     fprintf(stdout, "Gid:                        %u\n", (unsigned int)pUserInfo->gid);
     fprintf(stdout, "Gecos:                      %s\n",
@@ -403,13 +405,13 @@ PrintUserInfo_2(
     fprintf(stdout, "Local User:                 %s\n", pUserInfo->bIsLocalUser ? "YES" : "NO");
     fprintf(stdout, "Account disabled:           %s\n",
             pUserInfo->bAccountDisabled ? "TRUE" : "FALSE");
-    fprintf(stdout, "Account Expired:            %s\n",
+    fprintf(stdout, "Account expired:            %s\n",
             pUserInfo->bAccountExpired ? "TRUE" : "FALSE");
-    fprintf(stdout, "Account Locked:             %s\n",
+    fprintf(stdout, "Account locked:             %s\n",
             pUserInfo->bAccountLocked ? "TRUE" : "FALSE");
     fprintf(stdout, "Password never expires:     %s\n",
             pUserInfo->bPasswordNeverExpires ? "TRUE" : "FALSE");
-    fprintf(stdout, "Password Expired:           %s\n",
+    fprintf(stdout, "Password expired:           %s\n",
             pUserInfo->bPasswordExpired ? "TRUE" : "FALSE");
     fprintf(stdout, "Prompt for password change: %s\n",
             pUserInfo->bPromptPasswordChange ? "YES" : "NO");
