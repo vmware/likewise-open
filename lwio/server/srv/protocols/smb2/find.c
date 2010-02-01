@@ -163,6 +163,7 @@ static
 NTSTATUS
 SrvMarshalNamesInfoSearchResults(
     PLWIO_SRV_SEARCH_SPACE_2      pSearchSpace,
+    PWSTR                         pwszTreePath,
     PBYTE                         pBuffer,
     ULONG                         ulBytesAvailable,
     ULONG                         ulOffset,
@@ -1935,24 +1936,28 @@ SrvFindNamesInformation(
     PULONG                    pulDataLength
     )
 {
-    NTSTATUS ntStatus = 0;
-    BOOLEAN  bInLock = FALSE;
-    PBYTE    pData = pDataBuffer;
-    ULONG    ulDataLength = 0;
+    NTSTATUS ntStatus            = 0;
+    BOOLEAN  bInLock             = FALSE;
+    PBYTE    pData               = pDataBuffer;
+    ULONG    ulDataLength        = 0;
     ULONG    ulSearchResultCount = 0;
-    ULONG    ulBytesUsed = 0;
-    ULONG    ulOffset = ulDataOffset;
-    ULONG    ulBytesAvailable = ulMaxDataLength;
+    ULONG    ulBytesUsed         = 0;
+    ULONG    ulOffset            = ulDataOffset;
+    ULONG    ulBytesAvailable    = ulMaxDataLength;
     BOOLEAN  bEndOfSearch = FALSE;
+    PWSTR    pwszTreePath = NULL;
+    BOOLEAN  bTreeInLock  = FALSE;
     BOOLEAN  bRestartScan = LwIsSetFlag(
                                pRequestHeader->ucSearchFlags,
                                SMB2_SEARCH_FLAGS_RESTART_SCAN);
     BOOLEAN  bReturnSingleEntry = LwIsSetFlag(
                                        pRequestHeader->ucSearchFlags,
                                        SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
-    PFILE_NAMES_INFORMATION pFileInfoCursor = NULL;
+    PFILE_NAMES_INFORMATION      pFileInfoCursor = NULL;
+    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PSMB2_FILE_NAMES_INFO_HEADER pLastInfoHeader = NULL; // Do not free
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
+    PLWIO_SRV_SEARCH_SPACE_2     pSearchSpace = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
@@ -2041,10 +2046,28 @@ SrvFindNamesInformation(
             } while (TRUE);
         }
 
+        if (!pwszTreePath)
+        {
+            PWSTR pwszTreePath2 = NULL;
+
+            LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb2->pTree->mutex);
+
+            ntStatus = SrvGetTreeRelativePath(
+                            pCtxSmb2->pTree->pShareInfo->pwszPath,
+                            &pwszTreePath2);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvAllocateStringW(pwszTreePath2, &pwszTreePath);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb2->pTree->mutex);
+        }
+
         if (!bEndOfSearch)
         {
             ntStatus = SrvMarshalNamesInfoSearchResults(
                             pSearchSpace,
+                            pwszTreePath,
                             pDataBuffer + ulDataLength,
                             ulBytesAvailable,
                             ulOffset,
@@ -2091,6 +2114,13 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb2->pTree->mutex);
+
+	if (pwszTreePath)
+    {
+        SrvFreeMemory(pwszTreePath);
+    }
+
     return ntStatus;
 
 error:
@@ -2104,6 +2134,7 @@ static
 NTSTATUS
 SrvMarshalNamesInfoSearchResults(
     PLWIO_SRV_SEARCH_SPACE_2      pSearchSpace,
+    PWSTR                         pwszTreePath,
     PBYTE                         pBuffer,
     ULONG                         ulBytesAvailable,
     ULONG                         ulOffset,
@@ -2115,6 +2146,7 @@ SrvMarshalNamesInfoSearchResults(
     NTSTATUS ntStatus = 0;
     PSMB2_FILE_NAMES_INFO_HEADER pInfoHeader = *ppLastInfoHeader;
     PFILE_NAMES_INFORMATION      pFileInfoCursor = NULL;
+    ULONG ulPrefixLength = wc16slen(pwszTreePath) * sizeof(wchar16_t);
     PBYTE pDataCursor   = pBuffer;
     ULONG ulBytesUsed   = 0;
     ULONG ulSearchCount = 0;
@@ -2130,13 +2162,26 @@ SrvMarshalNamesInfoSearchResults(
         ulInfoBytesRequired = sizeof(SMB2_FILE_NAMES_INFO_HEADER);
         ulDataOffset += sizeof(SMB2_FILE_NAMES_INFO_HEADER);
 
-        ulInfoBytesRequired += pFileInfoCursor->FileNameLength;
-        ulDataOffset += pFileInfoCursor->FileNameLength;
-
         if (!pFileInfoCursor->FileNameLength)
         {
             ulInfoBytesRequired += sizeof(wchar16_t);
             ulDataOffset += sizeof(wchar16_t);
+        }
+        else
+        {
+            if (SrvMatchPathPrefix(
+                    pFileInfoCursor->FileName,
+                    pFileInfoCursor->FileNameLength/sizeof(wchar16_t),
+                    pwszTreePath) != STATUS_SUCCESS)
+            {
+                ntStatus = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            ulInfoBytesRequired +=
+                    pFileInfoCursor->FileNameLength - ulPrefixLength;
+
+            ulDataOffset += pFileInfoCursor->FileNameLength - ulPrefixLength;
         }
 
         if (ulDataOffset % 8)
@@ -2158,7 +2203,8 @@ SrvMarshalNamesInfoSearchResults(
 
         if (pFileInfoCursor->NextEntryOffset)
         {
-            pFileInfoCursor = (PFILE_NAMES_INFORMATION)(((PBYTE)pFileInfoCursor) + pFileInfoCursor->NextEntryOffset);
+            pFileInfoCursor = (PFILE_NAMES_INFORMATION)(((PBYTE)pFileInfoCursor)
+                                    + pFileInfoCursor->NextEntryOffset);
         }
         else
         {
@@ -2185,19 +2231,23 @@ SrvMarshalNamesInfoSearchResults(
         ulDataOffset = 0;
 
         pInfoHeader->ulFileIndex = pFileInfoCursor->FileIndex;
-        pInfoHeader->ulFileNameLength = pFileInfoCursor->FileNameLength;
+        pInfoHeader->ulFileNameLength =
+                (pFileInfoCursor->FileNameLength ?
+                        pFileInfoCursor->FileNameLength - ulPrefixLength : 0);
 
         pDataCursor += sizeof(SMB2_FILE_NAMES_INFO_HEADER);
         ulDataOffset += sizeof(SMB2_FILE_NAMES_INFO_HEADER);
         ulOffset += sizeof(SMB2_FILE_NAMES_INFO_HEADER);
 
-        if (pFileInfoCursor->FileNameLength)
+        if (pInfoHeader->ulFileNameLength)
         {
-            memcpy(pDataCursor, (PBYTE)pFileInfoCursor->FileName, pFileInfoCursor->FileNameLength);
+            memcpy( pDataCursor,
+                    (PBYTE)pFileInfoCursor->FileName + ulPrefixLength,
+                    pInfoHeader->ulFileNameLength);
 
-            pDataCursor += pFileInfoCursor->FileNameLength;
-            ulOffset += pFileInfoCursor->FileNameLength;
-            ulDataOffset += pFileInfoCursor->FileNameLength;
+            pDataCursor  += pInfoHeader->ulFileNameLength;
+            ulOffset     += pInfoHeader->ulFileNameLength;
+            ulDataOffset += pInfoHeader->ulFileNameLength;
         }
         else
         {
@@ -2229,6 +2279,16 @@ SrvMarshalNamesInfoSearchResults(
     *pulBytesUsed = ulBytesUsed;
     *ppLastInfoHeader = pInfoHeader;
 
+cleanup:
+
     return ntStatus;
+
+error:
+
+    *pulSearchCount = 0;
+    *pulBytesUsed = 0;
+    // *ppLastInfoHeader = pInfoHeader;
+
+    goto cleanup;
 }
 

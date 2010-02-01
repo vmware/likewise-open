@@ -127,6 +127,13 @@ SrvGetParentPath(
     );
 
 NTSTATUS
+SrvMatchPathPrefix(
+    PWSTR pwszPath,
+    ULONG ulPathLength,
+    PWSTR pwszPrefix
+    );
+
+NTSTATUS
 SrvProdConsInit(
     ULONG                         ulNumMaxItems,
     PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,
