@@ -96,7 +96,7 @@
 
 #define BAIL_ON_LSA_ERROR(dwError) \
     if (dwError) {\
-       LSA_LOG_DEBUG("Error code: %d (symbol: %s)", dwError, LwWin32ExtErrorToName(dwError)); \
+       LSA_LOG_DEBUG("Error code: %d (symbol: %s)", dwError, LSA_SAFE_LOG_STRING(LwWin32ExtErrorToName(dwError))); \
        goto error;                 \
     }
 
@@ -210,7 +210,7 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
     LSA_LOG_ERROR("Failed to " szFmt " -> error = %d, symbol = %s, client pid = %ld", \
          ## __VA_ARGS__, \
          dwError, \
-         LwWin32ExtErrorToName(dwError), \
+         LSA_SAFE_LOG_STRING(LwWin32ExtErrorToName(dwError)), \
          (long)(hServer? ((PLSA_SRV_API_STATE)hServer)->peerPID : getpid()))
 
 #define LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, szFmt, ...) \
