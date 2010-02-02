@@ -286,6 +286,12 @@ SrvProtocolExecute_SMB_V1(
 
                 break;
 
+            case COM_SET_INFORMATION:
+
+                ntStatus = SrvProcessSetInformation(pExecContext);
+
+                break;
+
             case COM_SET_INFORMATION2:
 
                 ntStatus = SrvProcessSetInformation2(pExecContext);

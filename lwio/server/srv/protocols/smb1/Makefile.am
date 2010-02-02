@@ -34,6 +34,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     session.c        \
     sessionsetup.c   \
     setinfo2.c       \
+    setinfo.c        \
     trans2.c         \
     trans2qfi.c      \
     trans2qfsi.c     \

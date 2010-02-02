@@ -499,6 +499,41 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 typedef enum
 {
+    SRV_SET_INFO_STAGE_SMB_V1_INITIAL        = 0,
+    SRV_SET_INFO_STAGE_SMB_V1_ATTEMPT_SET,
+    SRV_SET_INFO_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_SET_INFO_STAGE_SMB_V1_DONE
+} SRV_SET_INFO_STAGE_SMB_V1;
+
+typedef struct _SRV_SET_INFO_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_SET_INFO_STAGE_SMB_V1     stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PLWIO_SRV_SESSION          pSession;
+    PLWIO_SRV_TREE             pTree;
+
+    IO_FILE_HANDLE             hFile;
+    IO_FILE_NAME               fileName;
+
+    PSET_INFO_REQUEST_HEADER   pRequestHeader; // Do not free
+    PWSTR                      pwszFilename;   // Do not free
+
+    FILE_BASIC_INFORMATION     fileBasicInfo;
+
+} SRV_SET_INFO_STATE_SMB_V1, *PSRV_SET_INFO_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_SET_INFO2_STAGE_SMB_V1_INITIAL        = 0,
     SRV_SET_INFO2_STAGE_SMB_V1_ATTEMPT_SET,
     SRV_SET_INFO2_STAGE_SMB_V1_BUILD_RESPONSE,
@@ -1108,3 +1143,14 @@ typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 } SRV_RUNTIME_GLOBALS_SMB_V1, *PSRV_RUNTIME_GLOBALS_SMB_V1;
 
 #endif /* __STRUCTS_H__ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
