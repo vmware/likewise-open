@@ -168,12 +168,6 @@ SrvProcessLock_SMB_V2(
         ntStatus = SMB2UnmarshalLockRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pRequestHeader->usLockCount != 1)
-        {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
         ntStatus = SrvTree2FindFile_SMB_V2(
                             pCtxSmb2,
                             pTree,
@@ -405,7 +399,7 @@ SrvExecuteLockRequest_SMB_V2(
         if (!((pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_SHARED_LOCK)^
               (pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_EXCLUSIVE_LOCK)))
         {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            ntStatus = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(ntStatus);
         }
 

@@ -1586,13 +1586,13 @@ SMB2UnmarshalLockRequest(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pRequestHeader = (PSMB2_LOCK_REQUEST_HEADER)pDataCursor;
+    pRequestHeader    = (PSMB2_LOCK_REQUEST_HEADER)pDataCursor;
     ulBytesAvailable -= sizeof(SMB2_LOCK_REQUEST_HEADER);
-    ulOffset += sizeof(SMB2_LOCK_REQUEST_HEADER);
+    ulOffset         += sizeof(SMB2_LOCK_REQUEST_HEADER);
 
     if (!pRequestHeader->usLockCount)
     {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
