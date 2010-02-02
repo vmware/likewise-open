@@ -475,7 +475,7 @@ PvfsSecurityAclGetDacl(
         S_IRUSR,
         S_IWUSR,
         S_IXUSR);
-    AccessMask |= WRITE_DAC;
+    AccessMask |= (WRITE_DAC|WRITE_OWNER);
     ntError = RtlAddAccessAllowedAceEx(
                   pDacl,
                   ACL_REVISION,
