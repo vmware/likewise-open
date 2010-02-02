@@ -599,7 +599,7 @@ PvfsAsyncIrpComplete(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    if (!pIrpContext->bIsPended);
+    if (!pIrpContext->bIsPended)
     {
         /* Can't complete a non-pending IRP */
         return;
