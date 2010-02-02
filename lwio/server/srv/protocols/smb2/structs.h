@@ -628,6 +628,23 @@ typedef struct _SMB2_FILE_FULL_DIR_INFO_HEADER
 } __attribute__((__packed__)) SMB2_FILE_FULL_DIR_INFO_HEADER,
                              *PSMB2_FILE_FULL_DIR_INFO_HEADER;
 
+typedef struct _SMB2_FILE_DIRECTORY_INFO_HEADER
+{
+    ULONG           ulNextEntryOffset;
+    ULONG           ulFileIndex;
+    LONG64          ullCreationTime;
+    LONG64          ullLastAccessTime;
+    LONG64          ullLastWriteTime;
+    LONG64          ullChangeTime;
+    LONG64          ullEndOfFile;
+    LONG64          ullAllocationSize;
+    FILE_ATTRIBUTES ulFileAttributes;
+    ULONG           ulFileNameLength;
+    // WCHAR           wszFileName[1];
+
+} __attribute__((__packed__)) SMB2_FILE_DIRECTORY_INFO_HEADER,
+                             *PSMB2_FILE_DIRECTORY_INFO_HEADER;
+
 typedef struct _SMB2_FILE_NAMES_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
@@ -705,6 +722,13 @@ typedef struct _SMB2_FILE_COMPRESSION_INFORMATION_HEADER
     UCHAR  ucReserved[3];
 } __attribute__((__packed__)) SMB2_FILE_COMPRESSION_INFORMATION_HEADER,
                              *PSMB2_FILE_COMPRESSION_INFORMATION_HEADER;
+
+typedef struct _SMB2_FILE_NAME_INFORMATION
+{
+    ULONG     ulFileNameLength;
+    WCHAR     FileName[];
+} __attribute__((__packed__)) SMB2_FILE_NAME_INFORMATION,
+                             *PSMB2_FILE_NAME_INFORMATION;
 
 typedef struct
 {

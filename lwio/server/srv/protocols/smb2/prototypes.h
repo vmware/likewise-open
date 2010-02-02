@@ -114,9 +114,57 @@ SrvProcessFlush_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// getfileinfo.c
+
+NTSTATUS
+SrvGetFileInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildFileInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+// getfsinfo.c
+
+NTSTATUS
+SrvGetFileSystemInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildFileSystemInfoResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // getinfo.c
+
 NTSTATUS
 SrvProcessGetInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+VOID
+SrvPrepareGetInfoStateAsync_SMB_V2(
+    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState,
+    PSRV_EXEC_CONTEXT          pExecContext
+    );
+
+VOID
+SrvReleaseGetInfoStateAsync_SMB_V2(
+    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState
+    );
+
+// getsecinfo.c
+
+NTSTATUS
+SrvGetSecurityInfo_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvBuildSecurityInfoResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 

@@ -104,8 +104,8 @@ FindMapByName(
 
 static
 VOID
-PrintUserInfo_0(
-    PLSA_USER_INFO_0 pUserInfo,
+PrintUserInfo_2(
+    PLSA_USER_INFO_2 pUserInfo,
     BOOLEAN bPrintKeys
     );
 
@@ -468,7 +468,7 @@ FindUserByName(
     )
 {
     DWORD dwError = 0;
-    DWORD dwUserInfoLevel = 0;
+    DWORD dwUserInfoLevel = 2;
     PVOID pUserInfo = NULL;
 
     dwError = LsaFindUserByName(
@@ -478,7 +478,7 @@ FindUserByName(
                     &pUserInfo);
     BAIL_ON_LSA_ERROR(dwError);
 
-    PrintUserInfo_0((PLSA_USER_INFO_0)pUserInfo, bPrintKeys);
+    PrintUserInfo_2((PLSA_USER_INFO_2)pUserInfo, bPrintKeys);
 
 cleanup:
 
@@ -573,8 +573,8 @@ error:
 
 static
 VOID
-PrintUserInfo_0(
-    PLSA_USER_INFO_0 pUserInfo,
+PrintUserInfo_2(
+    PLSA_USER_INFO_2 pUserInfo,
     BOOLEAN bPrintKeys
     )
 {
@@ -585,6 +585,9 @@ PrintUserInfo_0(
 
     printf("%s:%s:%u:%u:%s:%s:%s\n",
            YPMATCH_SAFE_LOG_STRING(pUserInfo->pszName),
+           pUserInfo->bAccountDisabled ? "**DISABLED**" :
+           pUserInfo->bAccountLocked ? "**LOCKED**" :
+           pUserInfo->bAccountExpired ? "**EXPIRED**" :
            YPMATCH_SAFE_LOG_STRING(pUserInfo->pszPasswd),
            (unsigned int)pUserInfo->uid,
            (unsigned int)pUserInfo->gid,

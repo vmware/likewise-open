@@ -191,3 +191,38 @@ error:
 
     goto cleanup;
 }
+
+NTSTATUS
+SrvMatchPathPrefix(
+    PWSTR pwszPath,
+    ULONG ulPathLength,
+    PWSTR pwszPrefix
+    )
+{
+    NTSTATUS ntStatus = STATUS_NO_MATCH;
+    ULONG   ulPrefixLength = wc16slen(pwszPrefix);
+    PWSTR   pwszTmp = NULL;
+
+    if (ulPathLength >= ulPrefixLength)
+    {
+        ntStatus = SrvAllocateMemory(
+                        (ulPrefixLength + 1) * sizeof(wchar16_t),
+                        (PVOID*)&pwszTmp);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        memcpy( (PBYTE)pwszTmp,
+                (PBYTE)pwszPath,
+                ulPrefixLength * sizeof(wchar16_t));
+
+        if (!SMBWc16sCaseCmp(pwszTmp, pwszPrefix))
+        {
+            ntStatus = STATUS_SUCCESS;
+        }
+    }
+
+error:
+
+    SRV_SAFE_FREE_MEMORY(pwszTmp);
+
+    return ntStatus;
+}

@@ -428,6 +428,53 @@ SrvTreeIsNamedPipe(
     return bResult;
 }
 
+NTSTATUS
+SrvGetTreeRelativePath(
+    PWSTR  pwszOriginalPath,
+    PWSTR* ppwszSpecificPath
+    )
+{
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+    wchar16_t wszBackSlash[] = { '\\', 0 };
+    wchar16_t wszFwdSlash[]  = { '/',  0 };
+
+    if ((*pwszOriginalPath != wszBackSlash[0]) &&
+         (*pwszOriginalPath != wszFwdSlash[0]))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    pwszOriginalPath++;
+
+    // Skip the device name
+    while (!IsNullOrEmptyString(pwszOriginalPath) &&
+           (*pwszOriginalPath != wszBackSlash[0]) &&
+           (*pwszOriginalPath != wszFwdSlash[0]))
+    {
+        pwszOriginalPath++;
+    }
+
+    if (IsNullOrEmptyString(pwszOriginalPath) ||
+        ((*pwszOriginalPath != wszBackSlash[0]) &&
+         (*pwszOriginalPath != wszFwdSlash[0])))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppwszSpecificPath = pwszOriginalPath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszSpecificPath = NULL;
+
+    goto cleanup;
+}
+
 PLWIO_SRV_TREE
 SrvTreeAcquire(
     PLWIO_SRV_TREE pTree

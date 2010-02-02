@@ -832,6 +832,12 @@ SrvTreeIsNamedPipe(
     PLWIO_SRV_TREE pTree
     );
 
+NTSTATUS
+SrvGetTreeRelativePath(
+    PWSTR  pwszOriginalPath,
+    PWSTR* ppwszSpecificPath
+    );
+
 PLWIO_SRV_TREE
 SrvTreeAcquire(
     PLWIO_SRV_TREE pTree

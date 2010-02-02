@@ -142,21 +142,6 @@ SrvBuildQueryNameInfoResponse(
 
 static
 NTSTATUS
-SrvGetSpecificTreePath(
-    PWSTR  pwszOriginalPath,
-    PWSTR* ppwszSpecificPath
-    );
-
-static
-NTSTATUS
-SrvMatchPathPrefix(
-    PWSTR pwszPath,
-    ULONG ulPathLength,
-    PWSTR pwszPrefix
-    );
-
-static
-NTSTATUS
 SrvQueryAltNameInfo(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -1763,7 +1748,7 @@ SrvMarshallFileNameInfo(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
-    ntStatus = SrvGetSpecificTreePath(
+    ntStatus = SrvGetTreeRelativePath(
                     pTree->pShareInfo->pwszPath,
                     &pwszTreePath);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1816,90 +1801,6 @@ error:
     }
 
     goto cleanup;
-}
-
-static
-NTSTATUS
-SrvGetSpecificTreePath(
-    PWSTR  pwszOriginalPath,
-    PWSTR* ppwszSpecificPath
-    )
-{
-    NTSTATUS ntStatus        = STATUS_SUCCESS;
-    wchar16_t wszBackSlash[] = { '\\', 0 };
-    wchar16_t wszFwdSlash[]  = { '/',  0 };
-
-    if ((*pwszOriginalPath != wszBackSlash[0]) &&
-         (*pwszOriginalPath != wszFwdSlash[0]))
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    pwszOriginalPath++;
-
-    // Skip the device name
-    while (!IsNullOrEmptyString(pwszOriginalPath) &&
-           (*pwszOriginalPath != wszBackSlash[0]) &&
-           (*pwszOriginalPath != wszFwdSlash[0]))
-    {
-        pwszOriginalPath++;
-    }
-
-    if (IsNullOrEmptyString(pwszOriginalPath) ||
-        ((*pwszOriginalPath != wszBackSlash[0]) &&
-         (*pwszOriginalPath != wszFwdSlash[0])))
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    *ppwszSpecificPath = pwszOriginalPath;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *ppwszSpecificPath = NULL;
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SrvMatchPathPrefix(
-    PWSTR pwszPath,
-    ULONG ulPathLength,
-    PWSTR pwszPrefix
-    )
-{
-    NTSTATUS ntStatus = STATUS_NO_MATCH;
-    ULONG   ulPrefixLength = wc16slen(pwszPrefix);
-    PWSTR   pwszTmp = NULL;
-
-    if (ulPathLength >= ulPrefixLength)
-    {
-        ntStatus = SrvAllocateMemory(
-                        (ulPrefixLength + 1) * sizeof(wchar16_t),
-                        (PVOID*)&pwszTmp);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy( (PBYTE)pwszTmp,
-                (PBYTE)pwszPath,
-                ulPrefixLength * sizeof(wchar16_t));
-
-        if (!SMBWc16sCaseCmp(pwszTmp, pwszPrefix))
-        {
-            ntStatus = STATUS_SUCCESS;
-        }
-    }
-
-error:
-
-    SRV_SAFE_FREE_MEMORY(pwszTmp);
-
-    return ntStatus;
 }
 
 static

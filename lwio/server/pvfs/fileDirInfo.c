@@ -336,8 +336,10 @@ PvfsQueryFileDirInfo(
            stat() it.  Just skip the file and move on. */
 
         if (ntError == STATUS_OBJECT_NAME_NOT_FOUND ||
-            ntError == STATUS_INSUFFICIENT_RESOURCES)
+            ntError == STATUS_INSUFFICIENT_RESOURCES ||
+            ntError == STATUS_ACCESS_DENIED)
         {
+            pFileInfo = pPrevFileInfo;
             pCcb->pDirContext->dwIndex++;
             continue;
         }
