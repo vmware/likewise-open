@@ -288,10 +288,21 @@ SrvBuildLockRequest_SMB_V2(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        if (!pLock->ullByteRange && !pLock->ullFileOffset)
+        // Only one of these must be set
+        switch (pLock->ulFlags & (SMB2_LOCK_FLAGS_SHARED_LOCK |
+                                  SMB2_LOCK_FLAGS_EXCLUSIVE_LOCK |
+                                  SMB2_LOCK_FLAGS_UNLOCK))
         {
-            ntStatus = STATUS_FILE_CLOSED;
-            BAIL_ON_NT_STATUS(ntStatus);
+            case SMB2_LOCK_FLAGS_SHARED_LOCK:
+            case SMB2_LOCK_FLAGS_EXCLUSIVE_LOCK:
+            case SMB2_LOCK_FLAGS_UNLOCK:
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(ntStatus);
         }
 
         pContext->lockInfo = *pLock;
@@ -407,14 +418,6 @@ SrvExecuteLockRequest_SMB_V2(
     for (iLock = 0; iLock < pLockRequest->ulNumContexts; iLock++)
     {
         PSRV_SMB2_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iLock];
-
-        // Only one of these must be set
-        if (!((pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_SHARED_LOCK)^
-              (pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_EXCLUSIVE_LOCK)))
-        {
-            ntStatus = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
 
         if (!(pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_UNLOCK))
         {
