@@ -281,6 +281,19 @@ SrvBuildLockRequest_SMB_V2(
         PSMB2_LOCK pLock = &pLockArray[iLock];
         PSRV_SMB2_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iCtx++];
 
+        if ((pLock->ullFileOffset == UINT64_MAX) &&
+            (pLock->ullByteRange == UINT64_MAX))
+        {
+            ntStatus = STATUS_INVALID_LOCK_RANGE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (!pLock->ullByteRange && !pLock->ullFileOffset)
+        {
+            ntStatus = STATUS_FILE_CLOSED;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         pContext->lockInfo = *pLock;
 
         pContext->ulKey = pSmbRequest->pHeader->ulPid;
