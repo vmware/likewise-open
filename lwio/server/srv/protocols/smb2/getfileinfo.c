@@ -185,6 +185,16 @@ SrvBuildFileAltNameInfoResponse_SMB_V2(
 
 static
 NTSTATUS
+SrvMarshallFileNameInfo_SMB_V2(
+    PLWIO_SRV_TREE_2 pTree,
+    PBYTE            pInfoBuffer,
+    USHORT           usBytesAvailable,
+    PBYTE*           ppData,
+    PUSHORT          pusDataLen
+    );
+
+static
+NTSTATUS
 SrvGetFileAttrTagInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -2202,6 +2212,8 @@ SrvBuildFileAltNameInfoResponse_SMB_V2(
     ULONG                      iMsg          = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PBYTE                      pData         = NULL;
+    USHORT                     usDataLen     = 0;
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
@@ -2254,20 +2266,28 @@ SrvBuildFileAltNameInfoResponse_SMB_V2(
     pGetInfoResponseHeader->usLength = sizeof(SMB2_GET_INFO_RESPONSE_HEADER)+1;
     pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
 
-    pGetInfoResponseHeader->ulOutBufferLength =
-                                    pGetInfoState->ulActualDataLength;
-
-    if (ulBytesAvailable < pGetInfoResponseHeader->ulOutBufferLength)
+    if (pGetInfoState->ulActualDataLength)
     {
-        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        ntStatus = SrvMarshallFileNameInfo_SMB_V2(
+                        pCtxSmb2->pTree,
+                        pGetInfoState->pData2,
+                        pGetInfoState->ulActualDataLength,
+                        &pData,
+                        &usDataLen);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (pGetInfoState->ulActualDataLength)
+    if (usDataLen)
     {
-        memcpy( pOutBuffer,
-                pGetInfoState->pData2,
-                pGetInfoState->ulActualDataLength);
+        if (ulBytesAvailable < usDataLen)
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pGetInfoResponseHeader->ulOutBufferLength =  usDataLen;
+
+        memcpy(pOutBuffer, pData, usDataLen);
     }
 
     // pOutBuffer += pGetInfoResponseHeader->ulOutBufferLength;
@@ -2277,6 +2297,11 @@ SrvBuildFileAltNameInfoResponse_SMB_V2(
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
+
+    if (pData)
+    {
+        SrvFreeMemory(pData);
+    }
 
     return ntStatus;
 
@@ -2290,6 +2315,82 @@ error:
     }
 
     pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvMarshallFileNameInfo_SMB_V2(
+    PLWIO_SRV_TREE_2 pTree,
+    PBYTE            pInfoBuffer,
+    USHORT           usBytesAvailable,
+    PBYTE*           ppData,
+    PUSHORT          pusDataLen
+    )
+{
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+    PBYTE    pData           = NULL;
+    USHORT   usBytesRequired = 0;
+    BOOLEAN  bInLock         = FALSE;
+    PWSTR     pwszTreePath   = NULL; // Do not free
+    PFILE_NAME_INFORMATION pFileNameInfo =
+                                        (PFILE_NAME_INFORMATION)pInfoBuffer;
+    PSMB2_FILE_NAME_INFORMATION pFileNameInfoPacked = NULL;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+
+    ntStatus = SrvGetTreeRelativePath(
+                    pTree->pShareInfo->pwszPath,
+                    &pwszTreePath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (STATUS_SUCCESS != SrvMatchPathPrefix(
+                                pFileNameInfo->FileName,
+                                pFileNameInfo->FileNameLength/sizeof(wchar16_t),
+                                pwszTreePath))
+    {
+        ntStatus = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        ULONG ulPrefixLength = wc16slen(pwszTreePath) * sizeof(wchar16_t);
+
+        usBytesRequired = sizeof(SMB2_FILE_NAME_INFORMATION) +
+                              pFileNameInfo->FileNameLength - ulPrefixLength;
+
+        ntStatus = SrvAllocateMemory(usBytesRequired, (PVOID*)&pData);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pFileNameInfoPacked = (PSMB2_FILE_NAME_INFORMATION)pData;
+
+        pFileNameInfoPacked->ulFileNameLength =
+                    pFileNameInfo->FileNameLength - ulPrefixLength;
+
+        memcpy((PBYTE)pFileNameInfoPacked->FileName,
+               (PBYTE)pFileNameInfo->FileName + ulPrefixLength,
+               pFileNameInfoPacked->ulFileNameLength);
+    }
+
+    *ppData = pData;
+    *pusDataLen = usBytesRequired;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppData = NULL;
+    *pusDataLen = 0;
+
+    if (pData)
+    {
+        SrvFreeMemory(pData);
+    }
 
     goto cleanup;
 }

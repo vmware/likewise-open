@@ -723,6 +723,13 @@ typedef struct _SMB2_FILE_COMPRESSION_INFORMATION_HEADER
 } __attribute__((__packed__)) SMB2_FILE_COMPRESSION_INFORMATION_HEADER,
                              *PSMB2_FILE_COMPRESSION_INFORMATION_HEADER;
 
+typedef struct _SMB2_FILE_NAME_INFORMATION
+{
+    ULONG     ulFileNameLength;
+    WCHAR     FileName[];
+} __attribute__((__packed__)) SMB2_FILE_NAME_INFORMATION,
+                             *PSMB2_FILE_NAME_INFORMATION;
+
 typedef struct
 {
     USHORT   usLength;
