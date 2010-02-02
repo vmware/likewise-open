@@ -52,9 +52,7 @@
 /* #define PVFS_DEVELOPER_DEBUG 1 */
 
 #ifdef PVFS_DEVELOPER_DEBUG
-#define PVFS_ASSERT(x)     LWIO_ASSERT(x)
-#else
-#define PVFS_ASSERT(x)
+/* Insert macro for developing here */
 #endif
 
 /* Error checking macros */

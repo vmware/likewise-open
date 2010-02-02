@@ -912,7 +912,11 @@ PvfsNotifyCleanIrpList(
 
     pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, NULL);
 
-    PVFS_ASSERT(pFilterLink != NULL);
+    if (pFilterLink == NULL)
+    {
+        ntError = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     while (pFilterLink)
     {
@@ -942,6 +946,7 @@ PvfsNotifyCleanIrpList(
         /* Can only be one IrpContext match so we are done */
     }
 
+cleanup:
     LWIO_UNLOCK_MUTEX(bFcbLocked, &pFcb->mutexNotify);
 
     if (pFcb)
@@ -950,6 +955,9 @@ PvfsNotifyCleanIrpList(
     }
 
     return ntError;
+
+error:
+    goto cleanup;
 }
 
 

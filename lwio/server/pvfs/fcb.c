@@ -166,7 +166,7 @@ PVOID *ppData
     /* This should never be called.  The CCB count has to be 0 when
        we call PvfsFreeFCB() and hence destroy the FCB->pCcbList */
 
-    PVFS_ASSERT(FALSE);
+    return;
 }
 
 

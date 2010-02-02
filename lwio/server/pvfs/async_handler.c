@@ -98,7 +98,7 @@ PvfsQueueCancelIrp(
 
     default:
         /* Should never be reachable */
-        PVFS_ASSERT(FALSE);
+        ntError = STATUS_INTERNAL_ERROR;
         break;
 
     }
@@ -581,7 +581,11 @@ PvfsIrpMarkPending(
     IN OPTIONAL PVOID CancelCallbackContext
     )
 {
-    PVFS_ASSERT(!pIrpContext->bIsPended);
+    if (pIrpContext->bIsPended)
+    {
+        /* Impossible to pend a single IRP twice */
+        return;
+    }
 
     IoIrpMarkPending(
         pIrpContext->pIrp,
@@ -595,7 +599,12 @@ PvfsAsyncIrpComplete(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
-    PVFS_ASSERT(pIrpContext->bIsPended);
+    if (!pIrpContext->bIsPended);
+    {
+        /* Can't complete a non-pending IRP */
+        return;
+    }
+
     IoIrpComplete(pIrpContext->pIrp);
 }
 
