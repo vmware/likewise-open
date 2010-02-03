@@ -193,7 +193,7 @@ SrvProcessOplock_SMB_V2(
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (pRequestHeader->ulReserved)
+    switch (pRequestHeader->ulLockSequence)
     {
         case LW_SMB2_OPLOCK_ACTION_SEND_BREAK:
 
@@ -1143,7 +1143,7 @@ SrvBuildOplockExecContext_SMB_V2(
     pLockRequestHeader->usLockCount = 1;
     pLockRequestHeader->usLength = sizeof(SMB2_LOCK_REQUEST_HEADER);
 
-    pLockRequestHeader->ulReserved = usOplockAction;
+    pLockRequestHeader->ulLockSequence = usOplockAction;
 
     // pBuffer          += sizeof(SMB2_LOCK_REQUEST_HEADER);
     // ulBytesAvailable -= sizeof(SMB2_LOCK_REQUEST_HEADER);

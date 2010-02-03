@@ -440,7 +440,7 @@ typedef struct __SMB2_LOCK_REQUEST_HEADER
 {
     USHORT    usLength;
     USHORT    usLockCount;
-    ULONG     ulReserved;
+    ULONG     ulLockSequence;
     SMB2_FID  fid;
     SMB2_LOCK locks[1];
 } __attribute__((__packed__)) SMB2_LOCK_REQUEST_HEADER,
