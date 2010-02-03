@@ -583,6 +583,15 @@ PvfsSecurityAccessMapFromPosix(
         }
     }
 
+    if ((Mode & Read) && (Mode & Write) && (Mode & Execute))
+    {
+        /* Force the caller to decide if we need to include
+           WRITE_OWNER|WRITE_DAC */
+
+        Access = FILE_ALL_ACCESS & ~(WRITE_OWNER|WRITE_DAC);
+    }
+
+
     *pAccess = Access;
 
     return;
