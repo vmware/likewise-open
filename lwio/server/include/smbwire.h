@@ -1379,6 +1379,31 @@ typedef struct
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
 
+    USHORT   usFileAttributes;
+    SMB_DATE lastWriteDate;
+    SMB_TIME lastWriteTime;
+    USHORT   reserved[5];
+    USHORT   usByteCount;
+
+    /* UCHAR ucBufferFormat; */
+    /* PWSTR pwszPath */
+
+} __attribute__((__packed__)) SET_INFO_REQUEST_HEADER,
+                             *PSET_INFO_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT byteCount;         /* Count of data bytes = 0 */
+}  __attribute__((__packed__))  SET_INFO_RESPONSE_HEADER,
+                               *PSET_INFO_RESPONSE_HEADER;
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
     USHORT   usFid;
     SMB_DATE creationDate;
     SMB_TIME creationTime;
@@ -2688,6 +2713,15 @@ WireUnmarshalTrans2ReplySetup(
     OPTIONAL OUT PUSHORT                                  pusParameterCount,
     OPTIONAL OUT PBYTE*                                   ppDataBlock,
     OPTIONAL OUT PUSHORT                                  pusDataCount
+    );
+
+NTSTATUS
+WireUnmarshalSetInfoRequest(
+    PBYTE                  pBuffer,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulOffset,
+    PSET_INFO_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                      ppwszPath
     );
 
 NTSTATUS

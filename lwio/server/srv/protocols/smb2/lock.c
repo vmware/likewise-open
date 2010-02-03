@@ -168,12 +168,6 @@ SrvProcessLock_SMB_V2(
         ntStatus = SMB2UnmarshalLockRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (pRequestHeader->usLockCount != 1)
-        {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
         ntStatus = SrvTree2FindFile_SMB_V2(
                             pCtxSmb2,
                             pTree,
@@ -286,6 +280,30 @@ SrvBuildLockRequest_SMB_V2(
     {
         PSMB2_LOCK pLock = &pLockArray[iLock];
         PSRV_SMB2_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iCtx++];
+
+        if ((pLock->ullFileOffset == UINT64_MAX) &&
+            (pLock->ullByteRange == UINT64_MAX))
+        {
+            ntStatus = STATUS_INVALID_LOCK_RANGE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        // Only one of these must be set
+        switch (pLock->ulFlags & (SMB2_LOCK_FLAGS_SHARED_LOCK |
+                                  SMB2_LOCK_FLAGS_EXCLUSIVE_LOCK |
+                                  SMB2_LOCK_FLAGS_UNLOCK))
+        {
+            case SMB2_LOCK_FLAGS_SHARED_LOCK:
+            case SMB2_LOCK_FLAGS_EXCLUSIVE_LOCK:
+            case SMB2_LOCK_FLAGS_UNLOCK:
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(ntStatus);
+        }
 
         pContext->lockInfo = *pLock;
 
@@ -400,14 +418,6 @@ SrvExecuteLockRequest_SMB_V2(
     for (iLock = 0; iLock < pLockRequest->ulNumContexts; iLock++)
     {
         PSRV_SMB2_LOCK_CONTEXT pContext = &pLockRequest->pLockContexts[iLock];
-
-        // Only one of these must be set
-        if (!((pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_SHARED_LOCK)^
-              (pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_EXCLUSIVE_LOCK)))
-        {
-            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
 
         if (!(pContext->lockInfo.ulFlags & SMB2_LOCK_FLAGS_UNLOCK))
         {

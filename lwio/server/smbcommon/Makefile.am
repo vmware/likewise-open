@@ -33,6 +33,7 @@ liblwiosmbcommon_la_SOURCES = \
     wire_readx.c         \
     wire_rename.c        \
     wire_session_setup.c \
+    wire_setinfo.c       \
     wire_setinfo2.c      \
     wire_transaction.c   \
     wire_tree_connect.c  \

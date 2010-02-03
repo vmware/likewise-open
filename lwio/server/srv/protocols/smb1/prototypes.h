@@ -423,6 +423,13 @@ SrvProcessSessionSetup(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// setinfo.c
+
+NTSTATUS
+SrvProcessSetInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // setinfo2.c
 
 NTSTATUS
