@@ -198,9 +198,24 @@ SrvConnectionSetProtocolVersion(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bInLock = FALSE;
+    BOOLEAN  bInLock  = FALSE;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    ntStatus = SrvConnectionSetProtocolVersion_inlock(pConnection, protoVer);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvConnectionSetProtocolVersion_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    SMB_PROTOCOL_VERSION protoVer
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
     if (protoVer != pConnection->protocolVer)
     {
@@ -224,7 +239,6 @@ SrvConnectionSetProtocolVersion(
                                 NULL,
                                 &SrvConnectionSessionRelease,
                                 &pConnection->pSessionCollection);
-                BAIL_ON_NT_STATUS(ntStatus);
 
                 break;
 
@@ -237,28 +251,21 @@ SrvConnectionSetProtocolVersion(
                                 NULL,
                                 &SrvConnection2SessionRelease,
                                 &pConnection->pSessionCollection);
-                BAIL_ON_NT_STATUS(ntStatus);
 
                 break;
 
             default:
 
                 ntStatus = STATUS_INVALID_PARAMETER_2;
-                BAIL_ON_NT_STATUS(ntStatus);
 
                 break;
         }
+        BAIL_ON_NT_STATUS(ntStatus);
     }
-
-cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
-
-    return ntStatus;
 
 error:
 
-    goto cleanup;
+    return ntStatus;
 }
 
 BOOLEAN

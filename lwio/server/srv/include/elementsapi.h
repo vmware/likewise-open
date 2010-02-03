@@ -592,6 +592,12 @@ SrvConnectionSetProtocolVersion(
     );
 
 NTSTATUS
+SrvConnectionSetProtocolVersion_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    SMB_PROTOCOL_VERSION protoVer
+    );
+
+NTSTATUS
 SrvConnectionCreateSession(
     PLWIO_SRV_CONNECTION pConnection,
     PLWIO_SRV_SESSION* ppSession
