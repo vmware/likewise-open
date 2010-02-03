@@ -118,11 +118,9 @@ IoCreateFile(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    if (EaBuffer ||
-        SecurityQualityOfService)
+    if (SecurityQualityOfService)
     {
         // Not yet implemented.
-        LWIO_ASSERT_MSG(FALSE, "Parameter is not yet supported.");
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
