@@ -95,7 +95,13 @@ SrvTree2FindFile_SMB_V2(
         }
         else
         {
-            ntStatus = STATUS_INVALID_PARAMETER;
+            ntStatus = SrvTree2FindFile(
+                            pTree,
+                            pFid->ullVolatileId,
+                            &pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pSmb2Context->pFile = SrvFile2Acquire(pFile);
         }
     }
     else // not related; therefore, do not use the context
