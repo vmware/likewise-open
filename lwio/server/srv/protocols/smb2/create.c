@@ -1076,12 +1076,14 @@ SrvFreeCreateState_SMB_V2(
 
         ntStatus2 = SrvTree2RemoveFile(
                         pCreateState->pTree,
-                        pCreateState->pFile->ullFid);
+                        &pCreateState->pFile->fid);
         if (ntStatus2)
         {
-            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%u][Fid:%ul][code:%d]",
+            LWIO_LOG_ERROR("Failed to remove file from tree [Tid:%u]"
+                            "[Fid:persistent(%0x08X) volatile(%0x08X)][code:%d]",
                            pCreateState->pTree->ulTid,
-                           pCreateState->pFile->ullFid,
+                           pCreateState->pFile->fid.ullPersistentId,
+                           pCreateState->pFile->fid.ullVolatileId,
                            ntStatus2);
         }
     }
@@ -1200,7 +1202,7 @@ SrvBuildCreateResponse_SMB_V2(
             break;
     }
 
-    pResponseHeader->fid.ullVolatileId = pCreateState->pFile->ullFid;
+    pResponseHeader->fid               = pCreateState->pFile->fid;
     pResponseHeader->ulCreateAction    = pCreateState->ulCreateAction;
     pResponseHeader->ullCreationTime   =
                                 pCreateState->pFileBasicInfo->CreationTime;

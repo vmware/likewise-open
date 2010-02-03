@@ -126,7 +126,7 @@ SrvBuildOplockState_SMB_V2(
 
     pOplockState->ulTid = pTree->ulTid;
 
-    pOplockState->ullFid = pFile->ullFid;
+    pOplockState->fid = pFile->fid;
 
     *ppOplockState = pOplockState;
 
@@ -486,7 +486,7 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     ntStatus = SrvSession2FindTree(pSession, pOplockState->ulTid, &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTree2FindFile(pTree, pOplockState->ullFid, &pFile);
+    ntStatus = SrvTree2FindFile(pTree, &pOplockState->fid, &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Clear flag indicating we are waiting an ACK from the client */
@@ -640,8 +640,8 @@ SrvBuildOplockBreakNotification_SMB_V2(
 
     pOplockBreakHeader = (PSMB2_OPLOCK_BREAK_HEADER)pOutBuffer;
 
-    pOplockBreakHeader->usLength          = sizeof(SMB2_OPLOCK_BREAK_HEADER);
-    pOplockBreakHeader->fid.ullVolatileId = pOplockState->ullFid;
+    pOplockBreakHeader->usLength = sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    pOplockBreakHeader->fid      = pOplockState->fid;
 
     switch (ucOplockLevel)
     {
@@ -762,8 +762,8 @@ SrvBuildOplockBreakResponse_SMB_V2(
 
     pOplockBreakHeader = (PSMB2_OPLOCK_BREAK_HEADER)pOutBuffer;
 
-    pOplockBreakHeader->usLength          = sizeof(SMB2_OPLOCK_BREAK_HEADER);
-    pOplockBreakHeader->fid.ullVolatileId = pOplockState->ullFid;
+    pOplockBreakHeader->usLength = sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    pOplockBreakHeader->fid      = pOplockState->fid;
 
     switch (ucOplockLevel)
     {
@@ -996,7 +996,7 @@ SrvOplockAsyncCB_SMB_V2(
 
     ntStatus = SrvTree2FindFile(
                     pTree,
-                    pOplockState->ullFid,
+                    &pOplockState->fid,
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1139,7 +1139,7 @@ SrvBuildOplockExecContext_SMB_V2(
     //
     // TODO: Fill in the persistent fid at a later time
     //
-    pLockRequestHeader->fid.ullVolatileId = pOplockState->ullFid;
+    pLockRequestHeader->fid         = pOplockState->fid;
     pLockRequestHeader->usLockCount = 1;
     pLockRequestHeader->usLength = sizeof(SMB2_LOCK_REQUEST_HEADER);
 
