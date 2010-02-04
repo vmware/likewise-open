@@ -676,18 +676,6 @@ SrvBuildOplockBreakNotification_SMB_V2(
     ulBytesAvailable -= sizeof(SMB2_OPLOCK_BREAK_HEADER);
     ulTotalBytesUsed += sizeof(SMB2_OPLOCK_BREAK_HEADER);
 
-    if (ulBytesAvailable < sizeof(SMB2_OPLOCK_BREAK_HEADER))
-    {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    // pOutBuffer       += sizeof(SMB2_OPLOCK_BREAK_HEADER);
-    // ulBytesUsed       = sizeof(SMB2_OPLOCK_BREAK_HEADER);
-    // ulOffset         += sizeof(SMB2_OPLOCK_BREAK_HEADER);
-    // ulBytesAvailable -= sizeof(SMB2_OPLOCK_BREAK_HEADER);
-    ulTotalBytesUsed += sizeof(SMB2_OPLOCK_BREAK_HEADER);
-
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
