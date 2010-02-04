@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -62,6 +62,13 @@ NtlmServerMarshalUserInfoToEncodedPac(
     OUT PBYTE* ppEncodedPac
     );
 
+static
+DWORD
+NtlmServerQueryCtxtFlagsAttribute(
+    IN  PNTLM_CONTEXT_HANDLE phContext,
+    OUT PSecPkgContext_Flags *ppFlagsInfo
+    );
+
 DWORD
 NtlmServerQueryContextAttributes(
     IN PNTLM_CONTEXT_HANDLE phContext,
@@ -98,11 +105,16 @@ NtlmServerQueryContextAttributes(
             &pContext->pLogonInfo);
         BAIL_ON_LSA_ERROR(dwError);
         break;
+    case SECPKG_ATTR_FLAGS:
+        dwError = NtlmServerQueryCtxtFlagsAttribute(
+            phContext,
+            &pContext->pFlags);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
     case SECPKG_ATTR_ACCESS_TOKEN:
     case SECPKG_ATTR_AUTHORITY:
     case SECPKG_ATTR_CLIENT_SPECIFIED_TARGET:
     case SECPKG_ATTR_DCE_INFO:
-    case SECPKG_ATTR_FLAGS:
     case SECPKG_ATTR_KEY_INFO:
     case SECPKG_ATTR_LAST_CLIENT_TOKEN_STATUS:
     case SECPKG_ATTR_LIFESPAN:
@@ -264,6 +276,39 @@ error:
         LW_SAFE_FREE_MEMORY(pLogonInfo->pLogonInfo);
         LW_SAFE_FREE_MEMORY(pLogonInfo);
     }
+
+    goto cleanup;
+}
+
+static
+DWORD
+NtlmServerQueryCtxtFlagsAttribute(
+    IN  PNTLM_CONTEXT_HANDLE phContext,
+    OUT PSecPkgContext_Flags *ppFlagsInfo
+    )
+{
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PSecPkgContext_Flags pFlagsInfo = NULL;
+
+    dwError = LwAllocateMemory(sizeof(*pFlagsInfo),
+                               OUT_PPVOID(&pFlagsInfo));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    NtlmGetContextInfo(
+        *phContext,
+        NULL,
+        &(pFlagsInfo->Flags),
+        NULL,
+        NULL);
+
+    *ppFlagsInfo = pFlagsInfo;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pFlagsInfo);
+    *ppFlagsInfo = NULL;
 
     goto cleanup;
 }
@@ -495,3 +540,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

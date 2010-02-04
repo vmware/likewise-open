@@ -215,6 +215,19 @@ static LWMsgTypeSpec gNtlmSecPkgContextPacLogonInfoSpec[] =
     LWMSG_TYPE_END
 };
 
+
+static LWMsgTypeSpec gNtlmSecPkgContextFlagsSpec[] =
+{
+    // DWORD dwFlags;
+
+    LWMSG_STRUCT_BEGIN(SecPkgContext_Flags),
+
+    LWMSG_MEMBER_UINT32(SecPkgContext_Flags, Flags),
+
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 /******************************************************************************/
 
 static LWMsgTypeSpec gNtlmSecPkgContextSizesSpec[] =
@@ -784,6 +797,11 @@ static LWMsgTypeSpec gNtlmQueryCtxtRespSpec[] =
     LWMSG_TYPESPEC(gNtlmSecPkgContextPacLogonInfoSpec),
     LWMSG_POINTER_END,
     LWMSG_ATTR_TAG(SECPKG_ATTR_PAC_LOGON_INFO),
+
+    LWMSG_MEMBER_POINTER_BEGIN(SecPkgContext, pFlags),
+    LWMSG_TYPESPEC(gNtlmSecPkgContextFlagsSpec),
+    LWMSG_POINTER_END,
+    LWMSG_ATTR_TAG(SECPKG_ATTR_FLAGS),
 
     LWMSG_UNION_END,
     LWMSG_ATTR_DISCRIM(NTLM_IPC_QUERY_CTXT_RESPONSE, ulAttribute),
