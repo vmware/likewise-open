@@ -57,6 +57,12 @@ SrvProcessRequestSpecific_SMB_V2(
 
 static
 NTSTATUS
+SrvSendInterimResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildExecContext_SMB_V2(
     PLWIO_SRV_CONNECTION      pConnection,
     PSMB_PACKET               pSmbRequest,
@@ -202,7 +208,7 @@ SrvProtocolExecute_SMB_V2(
         if (pPrevResponse && pPrevResponse->pHeader)
         {
             pPrevResponse->pHeader->ulChainOffset =
-                                    pPrevResponse->ulMessageSize;
+                pResponse->ulMessageSize ? pPrevResponse->ulMessageSize : 0;
         }
 
         pExecContext->pSmbResponse->bufferUsed += pResponse->ulMessageSize;
@@ -334,6 +340,17 @@ SrvProcessRequestSpecific_SMB_V2(
         case COM2_CREATE:
 
             ntStatus = SrvProcessCreate_SMB_V2(pExecContext);
+            if ((ntStatus == STATUS_PENDING) && pExecContext->pInterimResponse)
+            {
+                NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+                ntStatus2 = SrvSendInterimResponse_SMB_V2(pExecContext);
+                if (ntStatus2 != STATUS_SUCCESS)
+                {
+                    ntStatus = ntStatus2;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+            }
 
             break;
 
@@ -407,6 +424,12 @@ SrvProcessRequestSpecific_SMB_V2(
             else
             {
                 ntStatus = SrvProcessNotify_SMB_V2(pExecContext);
+                if ((ntStatus == STATUS_PENDING) &&
+                    pExecContext->pInterimResponse)
+                {
+                    ntStatus = SrvSendInterimResponse_SMB_V2(pExecContext);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
             }
 
             break;
@@ -439,6 +462,38 @@ SrvProcessRequestSpecific_SMB_V2(
 error:
 
     return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSendInterimResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = SrvTransportSendResponse(
+                    pExecContext->pConnection,
+                    pExecContext->pInterimResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    SMBPacketRelease(
+                pExecContext->pConnection->hPacketAllocator,
+                pExecContext->pInterimResponse);
+
+    pExecContext->pInterimResponse = NULL;
+
+    return ntStatus;
+
+error:
+
+    LWIO_LOG_ERROR("Failed to send auxiliary response "
+                   "[code:0x%08x",
+                   ntStatus);
+
+    goto cleanup;
 }
 
 VOID
