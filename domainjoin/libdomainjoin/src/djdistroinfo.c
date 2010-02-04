@@ -128,10 +128,7 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 */
                 //Find a matching distro name
                 "^[[:space:]]*((Red Hat)|(Enterprise Linux)) ((Enterprise Linux)|(Linux (Advanced|Enterprise) Server))[[:space:]]+(AS |ES |Client |Server )?"
-                //Get the version number, but strip the minor version if it is
-                //present (RHEL 2 has one). Also remove the AS or ES
-                //suffix if it is present.
-                "release ([[:digit:]]+)(\\.[[:digit:]]+)?(AS|ES)?([[:space:]]+\\(.*\\))?[[:space:]]*$",
+                "release ([[:digit:]]+(\\.[[:digit:]]+)?(AS|ES)?)",
                 9,
                 1
             },
@@ -164,9 +161,7 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
                 # The format of the line is something like:
                 #   CentOS release 4.x (Final)
                 */
-                "^[[:space:]]*CentOS release ([[:digit:]]+)"
-                //Trim off the minor version number
-                "(\\.[[:digit:]]+)?",
+                "^[[:space:]]*CentOS release ([[:digit:]]+(\\.[[:digit:]]+)?)",
                 1,
                 1
             },
@@ -187,14 +182,14 @@ CENTERROR DJGetDistroInfo(const char *testPrefix, DistroInfo *info)
             {
                 DISTRO_SLES,
                 "/etc/SuSE-release",
-                "^[[:space:]]*SUSE LINUX Enterprise Server ([[:digit:]]+)[[:space:]]+",
+                "^[[:space:]]*SUSE LINUX Enterprise Server ([[:digit:]]+( SP[[:digit:]]+)?)",
                 1,
                 0
             },
             {
                 DISTRO_SLED,
                 "/etc/SuSE-release",
-                "^[[:space:]]*SUSE LINUX Enterprise Desktop ([[:digit:]]+)[[:space:]]+",
+                "^[[:space:]]*SUSE LINUX Enterprise Desktop ([[:digit:]]+( SP[[:digit:]]+)?)",
                 1,
                 0
             },
