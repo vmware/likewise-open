@@ -84,18 +84,22 @@ SrvTree2FindFile_SMB_V2(
         }
         else if (pSmb2Context->pFile) // explicit id specified must match
         {
-            if (pSmb2Context->pFile->ullFid != pFid->ullVolatileId)
+            if ((pSmb2Context->pFile->fid.ullPersistentId == pFid->ullPersistentId) &&
+                (pSmb2Context->pFile->fid.ullVolatileId == pFid->ullVolatileId))
             {
-                ntStatus = STATUS_INVALID_PARAMETER;
+                pFile = SrvFile2Acquire(pSmb2Context->pFile);
             }
             else
             {
-                pFile = SrvFile2Acquire(pSmb2Context->pFile);
+                ntStatus = STATUS_INVALID_PARAMETER;
             }
         }
         else
         {
-            ntStatus = STATUS_INVALID_PARAMETER;
+            ntStatus = SrvTree2FindFile(pTree, pFid, &pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pSmb2Context->pFile = SrvFile2Acquire(pFile);
         }
     }
     else // not related; therefore, do not use the context
@@ -107,10 +111,7 @@ SrvTree2FindFile_SMB_V2(
         }
         else
         {
-            ntStatus = SrvTree2FindFile(
-                            pTree,
-                            pFid->ullVolatileId,
-                            &pFile);
+            ntStatus = SrvTree2FindFile(pTree, pFid, &pFile);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }

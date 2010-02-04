@@ -58,7 +58,7 @@ SrvFile2Free(
 
 NTSTATUS
 SrvFile2Create(
-    ULONG64                 ullFid,
+    PSMB2_FID               pFid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
@@ -74,7 +74,9 @@ SrvFile2Create(
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_FILE_2 pFile = NULL;
 
-    LWIO_LOG_DEBUG("Creating file [fid:%lu]", ullFid);
+    LWIO_LOG_DEBUG("Creating file [fid: (persistent:%08X)(volatile:%08X)]",
+                   pFid->ullPersistentId,
+                   pFid->ullVolatileId);
 
     ntStatus = SrvAllocateMemory(
                     sizeof(LWIO_SRV_FILE_2),
@@ -89,9 +91,7 @@ SrvFile2Create(
     ntStatus = SrvAllocateStringW(pwszFilename, &pFile->pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    uuid_generate(pFile->GUID);
-
-    pFile->ullFid = ullFid;
+    pFile->fid = *pFid;
     pFile->hFile = *phFile;
     *phFile = NULL;
     pFile->pFilename = *ppFilename;
@@ -103,9 +103,11 @@ SrvFile2Create(
     pFile->createDisposition = createDisposition;
     pFile->createOptions = createOptions;
 
-    LWIO_LOG_DEBUG("Associating file [object:0x%x][fid:%lu]",
+    LWIO_LOG_DEBUG( "Associating file [object:0x%x]"
+                    "[fid: (persistent:%08X)(volatile:%08X)]",
                     pFile,
-                    ullFid);
+                    pFid->ullPersistentId,
+                    pFid->ullVolatileId);
 
     *ppFile = pFile;
 
@@ -229,7 +231,9 @@ SrvFile2Acquire(
     PLWIO_SRV_FILE_2 pFile
     )
 {
-    LWIO_LOG_DEBUG("Acquiring file [fid:%lu]", pFile->ullFid);
+    LWIO_LOG_DEBUG("Acquiring file [fid: (persistent:%08X)(volatile:%08X)]",
+                    pFile->fid.ullPersistentId,
+                    pFile->fid.ullVolatileId);
 
     InterlockedIncrement(&pFile->refcount);
 
@@ -241,7 +245,9 @@ SrvFile2Release(
     PLWIO_SRV_FILE_2 pFile
     )
 {
-    LWIO_LOG_DEBUG("Releasing file [fid:%lu]", pFile->ullFid);
+    LWIO_LOG_DEBUG("Releasing file [fid: (persistent:%08X)(volatile:%08X)]",
+                    pFile->fid.ullPersistentId,
+                    pFile->fid.ullVolatileId);
 
     if (InterlockedDecrement(&pFile->refcount) == 0)
     {
@@ -266,9 +272,11 @@ SrvFile2Free(
     PLWIO_SRV_FILE_2 pFile
     )
 {
-    LWIO_LOG_DEBUG("Freeing file [object:0x%x][fid:%lu]",
+    LWIO_LOG_DEBUG( "Freeing file [object:0x%x]"
+                    "[fid: (persistent:%08X)(volatile:%08X)]",
                     pFile,
-                    pFile->ullFid);
+                    pFile->fid.ullPersistentId,
+                    pFile->fid.ullVolatileId);
 
     if (pFile->pMutex)
     {

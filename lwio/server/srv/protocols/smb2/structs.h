@@ -207,12 +207,6 @@ typedef struct __SMB2_CREATE_REQUEST_HEADER
 } __attribute__((__packed__)) SMB2_CREATE_REQUEST_HEADER,
                              *PSMB2_CREATE_REQUEST_HEADER;
 
-typedef struct __SMB2_FID
-{
-    ULONG64 ullPersistentId;
-    ULONG64 ullVolatileId;
-} __attribute__((__packed__)) SMB2_FID, *PSMB2_FID;
-
 typedef struct __SMB2_CREATE_RESPONSE_HEADER
 {
     USHORT   usLength;
@@ -440,7 +434,7 @@ typedef struct __SMB2_LOCK_REQUEST_HEADER
 {
     USHORT    usLength;
     USHORT    usLockCount;
-    ULONG     ulReserved;
+    ULONG     ulLockSequence;
     SMB2_FID  fid;
     SMB2_LOCK locks[1];
 } __attribute__((__packed__)) SMB2_LOCK_REQUEST_HEADER,
@@ -766,7 +760,7 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V2
     ULONG64                 ullUid;
     ULONG64                 ulTid;
 
-    ULONG64                 ullFid;
+    SMB2_FID                fid;
     BOOLEAN                 bBreakRequestSent;
 
     PSRV_TIMER_REQUEST      pTimerRequest;

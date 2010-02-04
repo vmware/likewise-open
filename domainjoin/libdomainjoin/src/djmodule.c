@@ -40,6 +40,7 @@
 #include "djlogincfg.h"
 #include "djsecuser.h"
 #include "djfirewall.h"
+#include "djauditing.h"
 #include "djconfig_mac.h"
 #include "djddns.h"
 

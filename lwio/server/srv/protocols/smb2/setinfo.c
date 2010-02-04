@@ -785,11 +785,16 @@ SrvUnmarshalRenameHeader_SMB_V2(
 
     if (pRenameInfoHeader->ullRootDir)
     {
+        // TODO: Figure out if this one is a persistent or volatile fid
+        SMB2_FID rootDirFid = { .ullPersistentId = 0xFFFFFFFFFFFFFFFFLL,
+                                .ullVolatileId   = pRenameInfoHeader->ullRootDir
+                              };
+
         LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb2->pTree->mutex);
 
         ntStatus = SrvTree2FindFile(
                         pCtxSmb2->pTree,
-                        pRenameInfoHeader->ullRootDir,
+                        &rootDirFid,
                         &pSetInfoState->pRootDir);
         BAIL_ON_NT_STATUS(ntStatus);
 

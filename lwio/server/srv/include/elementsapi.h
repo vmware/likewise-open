@@ -63,6 +63,12 @@ typedef VOID (*PFN_LWIO_SRV_FREE_OPLOCK_STATE)(HANDLE hOplockState);
 typedef VOID (*PFN_LWIO_SRV_FREE_BRL_STATE)(HANDLE hByteRangeLockState);
 typedef VOID (*PFN_LWIO_SRV_FREE_ASYNC_STATE)(HANDLE hAsyncState);
 
+typedef struct __SMB2_FID
+{
+    ULONG64 ullPersistentId;
+    ULONG64 ullVolatileId;
+} __attribute__((__packed__)) SMB2_FID, *PSMB2_FID;
+
 typedef struct _LWIO_ASYNC_STATE
 {
     pthread_rwlock_t               mutex;
@@ -131,8 +137,7 @@ typedef struct _LWIO_SRV_FILE_2
 
     LONG                    refcount;
 
-    ULONG64                 ullFid;
-    uuid_t                  GUID;
+    SMB2_FID                fid;
 
     IO_FILE_HANDLE          hFile;
     PIO_FILE_NAME           pFilename; // physical path on server
@@ -592,6 +597,12 @@ SrvConnectionSetProtocolVersion(
     );
 
 NTSTATUS
+SrvConnectionSetProtocolVersion_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    SMB_PROTOCOL_VERSION protoVer
+    );
+
+NTSTATUS
 SrvConnectionCreateSession(
     PLWIO_SRV_CONNECTION pConnection,
     PLWIO_SRV_SESSION* ppSession
@@ -863,7 +874,7 @@ SrvTree2Create(
 NTSTATUS
 SrvTree2FindFile(
     PLWIO_SRV_TREE_2  pTree,
-    ULONG64           ullFid,
+    PSMB2_FID         pFid,
     PLWIO_SRV_FILE_2* ppFile
     );
 
@@ -885,7 +896,7 @@ SrvTree2CreateFile(
 NTSTATUS
 SrvTree2RemoveFile(
     PLWIO_SRV_TREE_2 pTree,
-    ULONG64          ullFid
+    PSMB2_FID        pFid
     );
 
 BOOLEAN
@@ -979,7 +990,7 @@ SrvFileRundown(
 
 NTSTATUS
 SrvFile2Create(
-    ULONG64                 ullFid,
+    PSMB2_FID               pFid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,

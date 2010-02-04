@@ -994,6 +994,10 @@ NtlmTransactQueryContextAttributes(
                     pResultList->Buffer.pLogonInfo->LogonInfoLength;
                 pResultList->Buffer.pLogonInfo->pLogonInfo = NULL;
                 break;
+            case SECPKG_ATTR_FLAGS:
+                ((PSecPkgContext_Flags)pBuffer)->Flags =
+                    pResultList->Buffer.pFlags->Flags;
+                break;
             default:
                 dwError = LW_ERROR_INVALID_PARAMETER;
                 BAIL_ON_LSA_ERROR(dwError);
@@ -1254,3 +1258,13 @@ NtlmClientIpcShutdown()
         gpClient = NULL;
     }
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

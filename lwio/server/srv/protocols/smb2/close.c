@@ -235,7 +235,7 @@ SrvProcessClose_SMB_V2(
 
             ntStatus = SrvTree2RemoveFile(
                             pCloseState->pTree,
-                            pCloseState->pFile->ullFid);
+                            &pCloseState->pFile->fid);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pCloseState->stage = SRV_CLOSE_STAGE_SMB_V2_BUILD_RESPONSE;

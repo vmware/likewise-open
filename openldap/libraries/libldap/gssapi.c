@@ -699,6 +699,7 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 	gss_OID req_mech = GSS_C_NO_OID;
 	gss_OID ret_mech = GSS_C_NO_OID;
 	gss_ctx_id_t gss_ctx = GSS_C_NO_CONTEXT;
+	gss_cred_id_t gss_cred = GSS_C_NO_CREDENTIAL;
 	gss_name_t principal = GSS_C_NO_NAME;
 	OM_uint32 req_flags;
 	OM_uint32 ret_flags;
@@ -751,8 +752,16 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 	 */
 	input_token.value = NULL;
 	input_token.length = 0;
+
+	/*
+	 * Set credentials handle if it's been set (e.g. for gss-ntlm authentication)
+	 */
+	if (ld->ld_options.gssapi_cred_handle) {
+		gss_cred = (gss_cred_id_t)ld->ld_options.gssapi_cred_handle;
+	}
+
 	gss_rc = gss_init_sec_context(&minor_status,
-				      GSS_C_NO_CREDENTIAL,
+				      gss_cred,
 				      &gss_ctx,
 				      principal,
 				      req_mech,
@@ -789,7 +798,7 @@ ldap_int_gss_spnego_bind_s( LDAP *ld )
 		}
 
 		gss_rc = gss_init_sec_context(&minor_status,
-					      GSS_C_NO_CREDENTIAL,
+					      gss_cred,
 					      &gss_ctx,
 					      principal,
 					      req_mech,
@@ -941,6 +950,14 @@ ldap_int_gssapi_get_option( LDAP *ld, int option, void *arg )
 		}
 		break;
 
+	case LDAP_OPT_X_GSSAPI_CREDENTIAL_HANDLE:
+		if ( ld->ld_options.gssapi_cred_handle ) {
+			* (void**)arg = ld->ld_options.gssapi_cred_handle;
+		} else {
+			* (void**)arg = GSS_C_NO_CREDENTIAL;
+		}
+		break;
+
 	case LDAP_OPT_X_GSSAPI_DO_NOT_FREE_CONTEXT:
 		if ( ld->ld_options.ldo_gssapi_options & LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT ) {
 			* (int *) arg = (int)-1;
@@ -1003,6 +1020,12 @@ ldap_int_gssapi_set_option( LDAP *ld, int option, void *arg )
 		if ( arg != LDAP_OPT_OFF && ld->ld_defconn) {
 			ldap_int_gssapi_setup( ld, ld->ld_defconn,
 					       (gss_ctx_id_t) arg);
+		}
+		break;
+
+	case LDAP_OPT_X_GSSAPI_CREDENTIAL_HANDLE:
+		if ( arg != LDAP_OPT_OFF) {
+			ld->ld_options.gssapi_cred_handle = arg;
 		}
 		break;
 

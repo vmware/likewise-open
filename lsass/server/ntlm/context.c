@@ -620,12 +620,6 @@ NtlmCreateChallengeMessage(
     //                        Odd.
     dwOptions |= NTLM_FLAG_NTLM;
 
-    // These options are being set now simply because they appear to be
-    // required for authentication to work
-    dwOptions |= NTLM_FLAG_SIGN |
-                 NTLM_FLAG_SEAL |
-                 NTLM_FLAG_UNKNOWN_02000000;
-
     // Data is checked and memory is allocated; fill in the structure
     //
     memcpy(

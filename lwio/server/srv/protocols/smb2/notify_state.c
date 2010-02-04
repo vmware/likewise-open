@@ -297,7 +297,7 @@ SrvNotifyBuildExecContext_SMB_V2(
     ulTotalBytesUsed += ulHeaderSize;
 
     notifyRequestHeader.usLength = sizeof(notifyRequestHeader);
-    notifyRequestHeader.fid.ullVolatileId = pNotifyState->pFile->ullFid;
+    notifyRequestHeader.fid = pNotifyState->pFile->fid;
 
     if (ulBytesAvailable < sizeof(notifyRequestHeader))
     {

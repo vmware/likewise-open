@@ -99,12 +99,18 @@ typedef struct _SecPkgContext_PacLogonInfo
     PBYTE pLogonInfo;
 } SecPkgContext_PacLogonInfo, *PSecPkgContext_PacLogonInfo;
 
+typedef struct _SecPkgContext_Flags
+{
+    ULONG Flags;
+} SecPkgContext_Flags, *PSecPkgContext_Flags;
+
 typedef union _SecPkgContext
 {
     PSecPkgContext_Names pNames;
     PSecPkgContext_SessionKey pSessionKey;
     PSecPkgContext_Sizes pSizes;
     PSecPkgContext_PacLogonInfo pLogonInfo;
+    PSecPkgContext_Flags pFlags;
 } SecPkgContext, *PSecPkgContext;
 
 typedef struct _SecPkgCred_Names
@@ -248,8 +254,6 @@ typedef struct
 #define NTLM_FLAG_56                    0x80000000  /* 56-bit encryption */
 
 #define NTLM_FLAG_NEGOTIATE_DEFAULT ( \
-    NTLM_FLAG_SIGN                  | \
-    NTLM_FLAG_SEAL                  | \
     NTLM_FLAG_OEM                   | \
     NTLM_FLAG_REQUEST_TARGET        | \
     NTLM_FLAG_NTLM                  | \

@@ -50,6 +50,7 @@ libdomainjoin_la_SOURCES = \
        djhostinfo.c   \
        djauthinfo.c   \
        djkrb5conf.c   \
+       djauditing.c   \
        djlogger.c     \
        djdistroinfo.c \
        djstr.c    \

@@ -895,6 +895,13 @@ ntlm_gss_init_sec_context(
         }
     }
 
+    // NTLM supports only signing and sealing (both at the same time)
+    if ((nReqFlags & GSS_C_INTEG_FLAG) ||
+        (nReqFlags & GSS_C_CONF_FLAG))
+    {
+        dwNtlmFlags |= (NTLM_FLAG_SIGN | NTLM_FLAG_SEAL);
+    }
+
     MinorStatus = NtlmClientInitializeSecurityContext(
         &CredHandle,
         &hContext,
@@ -919,8 +926,15 @@ ntlm_gss_init_sec_context(
         BAIL_ON_LSA_ERROR(MinorStatus);
     }
 
-    RetFlags |= GSS_C_CONF_FLAG;
-    RetFlags |= GSS_C_INTEG_FLAG;
+    if (dwOutNtlmFlags & NTLM_FLAG_SIGN)
+    {
+        RetFlags |= GSS_C_INTEG_FLAG;
+    }
+
+    if (dwOutNtlmFlags & NTLM_FLAG_SEAL)
+    {
+        RetFlags |= GSS_C_CONF_FLAG;
+    }
 
 cleanup:
     *pMinorStatus = MinorStatus;
@@ -1410,12 +1424,22 @@ ntlm_gss_wrap(
         InputMessage->value,
         NtlmBuffer[1].cbBuffer);
 
-    MinorStatus = NtlmClientEncryptMessage(
-        &ContextHandle,
-        nEncrypt ? TRUE : FALSE,
-        &Message,
-        0
-        );
+    if (nEncrypt)
+    {
+        MinorStatus = NtlmClientEncryptMessage(
+            &ContextHandle,
+            TRUE,
+            &Message,
+            0);
+    }
+    else
+    {
+        MinorStatus = NtlmClientMakeSignature(
+            &ContextHandle,
+            Qop,
+            &Message,
+            0);
+    }
     BAIL_ON_LSA_ERROR(MinorStatus);
 
     // As noted above, we'll trim the size down to exclude the padding
@@ -1578,6 +1602,8 @@ ntlm_gss_unwrap(
     DWORD dwBufferSize = 0;
     BOOLEAN bEncrypted = FALSE;
     SecPkgContext_Sizes Sizes = {0};
+    DWORD dwNtlmFlags = 0;
+    DWORD dwQop = GSS_C_QOP_DEFAULT;
 
     LW_ASSERT(InputMessage);
 
@@ -1595,6 +1621,14 @@ ntlm_gss_unwrap(
     BAIL_ON_LSA_ERROR(MinorStatus);
 
     LW_ASSERT(InputMessage->length >= Sizes.cbMaxSignature);
+
+    // Check the negotiated flags to find out if the message is expected
+    // to be encrypted or signed only.
+    MinorStatus = NtlmClientQueryContextAttributes(
+        &ContextHandle,
+        SECPKG_ATTR_FLAGS,
+        &dwNtlmFlags);
+    BAIL_ON_LSA_ERROR(MinorStatus);
 
     // Here we are taking out the signature, but adding back in for the
     // padding.  The padding is only needed for the duration of the operation
@@ -1628,15 +1662,36 @@ ntlm_gss_unwrap(
     NtlmBuffer[1].cbBuffer = dwBufferSize;
     NtlmBuffer[1].pvBuffer = pBuffer;
 
-    MinorStatus = NtlmClientDecryptMessage(
-        &ContextHandle,
-        &Message,
-        0,
-        &bEncrypted
-        );
+    if (dwNtlmFlags & (NTLM_FLAG_SEAL | NTLM_FLAG_SIGN))
+    {
+        MinorStatus = NtlmClientDecryptMessage(
+            &ContextHandle,
+            &Message,
+            0,
+            &bEncrypted
+            );
+    }
+    else if (dwNtlmFlags & NTLM_FLAG_SIGN)
+    {
+        MinorStatus = NtlmClientVerifySignature(
+            &ContextHandle,
+            &Message,
+            0,
+            &dwQop
+            );
+    }
+    else
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+    }
     BAIL_ON_LSA_ERROR(MinorStatus);
 
-    OutputMessage->value = pBuffer;
+    if (pQop)
+    {
+        *pQop = (gss_qop_t)dwQop;
+    }
+
+    OutputMessage->value  = pBuffer;
     OutputMessage->length = dwBufferSize;
 
 cleanup:
@@ -2042,6 +2097,7 @@ ntlm_gss_inquire_context(
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     NTLM_CONTEXT_HANDLE NtlmCtxtHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    DWORD dwNtlmFlags = 0;
     SecPkgContext_Names Names = { 0 };
     gss_name_t pSourceName = NULL;
     PNTLM_GSS_NAME pUserName = NULL;
@@ -2054,7 +2110,21 @@ ntlm_gss_inquire_context(
 
     if (pCtxtFlags)
     {
-        *pCtxtFlags = GSS_C_CONF_FLAG | GSS_C_INTEG_FLAG;
+        MinorStatus = NtlmClientQueryContextAttributes(
+            &NtlmCtxtHandle,
+            SECPKG_ATTR_FLAGS,
+            &dwNtlmFlags);
+        BAIL_ON_LSA_ERROR(MinorStatus);
+
+        if (dwNtlmFlags & NTLM_FLAG_SIGN)
+        {
+            *pCtxtFlags |= GSS_C_INTEG_FLAG;
+        }
+
+        if (dwNtlmFlags & NTLM_FLAG_SEAL)
+        {
+            *pCtxtFlags |= GSS_C_CONF_FLAG;
+        }
     }
 
     if (ppTargetName)
