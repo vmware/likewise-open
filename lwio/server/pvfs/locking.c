@@ -236,13 +236,16 @@ PvfsAddPendingLock(
     if (!pIrpCtx->bIsPended)
     {
         PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIrp, pIrpCtx);
-        ntError = STATUS_PENDING;
     }
-
 
     /* Memory has been given to the Queue */
 
     pPendingLock = NULL;
+
+    /* Whether we pending the IRP this time or it was previously
+       marked as pending, we are back on the queue */
+
+    ntError = STATUS_PENDING;
 
 cleanup:
     PvfsFreePendingLock(&pPendingLock);

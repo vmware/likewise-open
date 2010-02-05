@@ -229,7 +229,21 @@ error:
 
             {
                 NTSTATUS ntStatus2 = STATUS_SUCCESS;
-                ULONG    ulLength  = 0xE0;
+                ULONG    ulLength  = 0;
+
+                if (!pGetInfoState->ulDataLength)
+                {
+                    ulLength = 0xEC;
+                }
+                else if (pGetInfoState->ulDataLength ==
+                            pGetInfoState->pRequestHeader->ulOutputBufferLen)
+                {
+                    ulLength = pGetInfoState->ulDataLength + 0xEC;
+                }
+                else
+                {
+                    ulLength = pGetInfoState->ulDataLength;
+                }
 
                 ntStatus2 = SrvAllocateMemory(
                                 sizeof(ULONG),

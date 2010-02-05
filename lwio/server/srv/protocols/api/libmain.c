@@ -176,30 +176,6 @@ error:
     {
         case STATUS_PENDING:
 
-            // Asynchronous processing
-
-            if (pContext->pInterimResponse)
-            {
-                NTSTATUS ntStatus2 = STATUS_SUCCESS;
-
-                /* synchronous response */
-                ntStatus2 = SrvTransportSendResponse(
-                                pContext->pConnection,
-                                pContext->pInterimResponse);
-                if (ntStatus2)
-                {
-                    LWIO_LOG_ERROR("Failed to send auxiliary response "
-                                   "[code:0x%08x",
-                                   ntStatus2);
-                }
-
-                SMBPacketRelease(
-                        pContext->pConnection->hPacketAllocator,
-                        pContext->pInterimResponse);
-
-                pContext->pInterimResponse = NULL;
-            }
-
             ntStatus = STATUS_SUCCESS;
 
             break;
