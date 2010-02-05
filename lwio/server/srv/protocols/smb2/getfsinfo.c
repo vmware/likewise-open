@@ -99,6 +99,22 @@ SrvBuildFileSystemSizeInfoResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
+NTSTATUS
+SrvGetFileSystemInfoGeneric_SMB_V2(
+    PSRV_EXEC_CONTEXT      pExecContext,
+    ULONG                  ulStructSize,
+    FILE_INFORMATION_CLASS infoClass
+    );
+
+static
+NTSTATUS
+SrvGetFileSystemInfoGeneric_WithString_SMB_V2(
+    PSRV_EXEC_CONTEXT      pExecContext,
+    ULONG                  ulStructSize,
+    FILE_INFORMATION_CLASS infoClass
+    );
+
 NTSTATUS
 SrvGetFileSystemInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
@@ -217,48 +233,10 @@ SrvGetFileSystemVolumeInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS                    ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION        pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
-
-    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
-
-    ntStatus = pGetInfoState->ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (!pGetInfoState->pResponseBuffer)
-    {
-        ntStatus = SMBPacketBufferAllocate(
-                        pConnection->hPacketAllocator,
-                        pGetInfoState->pRequestHeader->ulOutputBufferLen,
-                        &pGetInfoState->pResponseBuffer,
-                        &pGetInfoState->sAllocatedSize);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pGetInfoState->ulResponseBufferLen = pGetInfoState->sAllocatedSize;
-
-        SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
-
-        ntStatus = IoQueryVolumeInformationFile(
-                                pGetInfoState->pFile->hFile,
-                                pGetInfoState->pAcb,
-                                &pGetInfoState->ioStatusBlock,
-                                pGetInfoState->pResponseBuffer,
-                                pGetInfoState->ulResponseBufferLen,
-                                FileFsVolumeInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState); // completed sync
-    }
-
-    pGetInfoState->ulResponseBufferLen =
-                    pGetInfoState->ioStatusBlock.BytesTransferred;
-
-error:
-
-    return ntStatus;
+    return SrvGetFileSystemInfoGeneric_WithString_SMB_V2(
+                pExecContext,
+                sizeof(FILE_FS_VOLUME_INFORMATION),
+                FileFsVolumeInformation);
 }
 
 static
@@ -326,7 +304,7 @@ SrvBuildFileSystemVolumeInfoResponse_SMB_V2(
     pGetInfoResponseHeader->usLength = sizeof(SMB2_GET_INFO_RESPONSE_HEADER)+1;
     pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
 
-    pFSVolInfo = (PFILE_FS_VOLUME_INFORMATION)pGetInfoState->pResponseBuffer;
+    pFSVolInfo = (PFILE_FS_VOLUME_INFORMATION)pGetInfoState->pData2;
 
     pGetInfoResponseHeader->ulOutBufferLength = sizeof(SMB_FS_VOLUME_INFO_HEADER);
     // pGetInfoResponseHeader->ulOutBufferLength += pFSVolInfo->VolumeLabelLength;
@@ -384,48 +362,10 @@ SrvGetFileSystemAttributeInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS                    ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION        pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
-
-    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
-
-    ntStatus = pGetInfoState->ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (!pGetInfoState->pResponseBuffer)
-    {
-        ntStatus = SMBPacketBufferAllocate(
-                        pConnection->hPacketAllocator,
-                        pGetInfoState->pRequestHeader->ulOutputBufferLen,
-                        &pGetInfoState->pResponseBuffer,
-                        &pGetInfoState->sAllocatedSize);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pGetInfoState->ulResponseBufferLen = pGetInfoState->sAllocatedSize;
-
-        SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
-
-        ntStatus = IoQueryVolumeInformationFile(
-                                pGetInfoState->pFile->hFile,
-                                pGetInfoState->pAcb,
-                                &pGetInfoState->ioStatusBlock,
-                                pGetInfoState->pResponseBuffer,
-                                pGetInfoState->ulResponseBufferLen,
-                                FileFsAttributeInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState); // completed sync
-    }
-
-    pGetInfoState->ulResponseBufferLen =
-                    pGetInfoState->ioStatusBlock.BytesTransferred;
-
-error:
-
-    return ntStatus;
+    return SrvGetFileSystemInfoGeneric_WithString_SMB_V2(
+                pExecContext,
+                sizeof(FILE_FS_ATTRIBUTE_INFORMATION),
+                FileFsAttributeInformation);
 }
 
 static
@@ -493,7 +433,7 @@ SrvBuildFileSystemAttributeInfoResponse_SMB_V2(
     pGetInfoResponseHeader->usLength = sizeof(SMB2_GET_INFO_RESPONSE_HEADER)+1;
     pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
 
-    pFSAttrInfo = (PFILE_FS_ATTRIBUTE_INFORMATION)pGetInfoState->pResponseBuffer;
+    pFSAttrInfo = (PFILE_FS_ATTRIBUTE_INFORMATION)pGetInfoState->pData2;
 
     pGetInfoResponseHeader->ulOutBufferLength = sizeof(SMB_FS_ATTRIBUTE_INFO_HEADER);
     pGetInfoResponseHeader->ulOutBufferLength += pFSAttrInfo->FileSystemNameLength;
@@ -549,42 +489,10 @@ SrvGetFileSystemFullInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
-
-    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
-
-    ntStatus = pGetInfoState->ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (!pGetInfoState->pData2)
-    {
-        ntStatus = SrvAllocateMemory(
-                        sizeof(FILE_FS_SIZE_INFORMATION),
-                        (PVOID*)&pGetInfoState->pData2);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pGetInfoState->ulDataLength = sizeof(FILE_FS_SIZE_INFORMATION);
-
-        SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
-
-        ntStatus = IoQueryVolumeInformationFile(
-                                pGetInfoState->pFile->hFile,
-                                pGetInfoState->pAcb,
-                                &pGetInfoState->ioStatusBlock,
-                                pGetInfoState->pData2,
-                                pGetInfoState->ulDataLength,
-                                FileFsSizeInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState); // completed sync
-    }
-
-error:
-
-    return ntStatus;
+    return SrvGetFileSystemInfoGeneric_SMB_V2(
+                pExecContext,
+                sizeof(FILE_FS_SIZE_INFORMATION),
+                FileFsSizeInformation);
 }
 
 static
@@ -706,42 +614,10 @@ SrvGetFileSystemSizeInfo_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     )
 {
-    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
-
-    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
-
-    ntStatus = pGetInfoState->ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (!pGetInfoState->pData2)
-    {
-        ntStatus = SrvAllocateMemory(
-                        sizeof(FILE_FS_SIZE_INFORMATION),
-                        (PVOID*)&pGetInfoState->pData2);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pGetInfoState->ulDataLength = sizeof(FILE_FS_SIZE_INFORMATION);
-
-        SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
-
-        ntStatus = IoQueryVolumeInformationFile(
-                                pGetInfoState->pFile->hFile,
-                                pGetInfoState->pAcb,
-                                &pGetInfoState->ioStatusBlock,
-                                pGetInfoState->pData2,
-                                pGetInfoState->ulDataLength,
-                                FileFsSizeInformation);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState); // completed sync
-    }
-
-error:
-
-    return ntStatus;
+    return SrvGetFileSystemInfoGeneric_SMB_V2(
+            pExecContext,
+            sizeof(FILE_FS_SIZE_INFORMATION),
+            FileFsSizeInformation);
 }
 
 static
@@ -848,3 +724,264 @@ error:
 
     goto cleanup;
 }
+
+static
+NTSTATUS
+SrvGetFileSystemInfoGeneric_SMB_V2(
+    PSRV_EXEC_CONTEXT      pExecContext,
+    ULONG                  ulStructSize,
+    FILE_INFORMATION_CLASS infoClass
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+
+    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    ntStatus = pGetInfoState->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pGetInfoState->pData2)
+    {
+        if (pGetInfoState->pRequestHeader->ulOutputBufferLen < ulStructSize)
+        {
+            ntStatus = STATUS_INFO_LENGTH_MISMATCH;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = SrvAllocateMemory(
+                        SMB_MIN(pGetInfoState->pRequestHeader->ulOutputBufferLen,
+                                ulStructSize),
+                        (PVOID*)&pGetInfoState->pData2);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pGetInfoState->ulDataLength =
+                SMB_MIN(pGetInfoState->pRequestHeader->ulOutputBufferLen,
+                        ulStructSize);
+
+        SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
+
+        ntStatus = IoQueryVolumeInformationFile(
+                        pGetInfoState->pFile->hFile,
+                        pGetInfoState->pAcb,
+                        &pGetInfoState->ioStatusBlock,
+                        pGetInfoState->pData2,
+                        pGetInfoState->ulDataLength,
+                        infoClass);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState); // sync completion
+    }
+
+    pGetInfoState->ulActualDataLength =
+                            pGetInfoState->ioStatusBlock.BytesTransferred;
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvGetFileSystemInfoGeneric_WithString_SMB_V2(
+    PSRV_EXEC_CONTEXT      pExecContext,
+    ULONG                  ulStructSize,
+    FILE_INFORMATION_CLASS infoClass
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+    BOOLEAN                    bContinue     = TRUE;
+    PBYTE                      pErrorMessage = NULL;
+
+    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+
+    do
+    {
+        ntStatus = pGetInfoState->ioStatusBlock.Status;
+
+        switch (ntStatus)
+        {
+            case STATUS_BUFFER_TOO_SMALL:
+
+                {
+                    if (pGetInfoState->ulDataLength >=
+                            pGetInfoState->pRequestHeader->ulOutputBufferLen)
+                    {
+                        bContinue = FALSE;
+                    }
+                    else
+                    {
+                        ULONG ulNewSize =  0;
+
+                        if (!pGetInfoState->ulDataLength)
+                        {
+                            if (pGetInfoState->pRequestHeader->ulOutputBufferLen < ulStructSize)
+                            {
+                                ntStatus = STATUS_INFO_LENGTH_MISMATCH;
+                                BAIL_ON_NT_STATUS(ntStatus);
+                            }
+
+                            ulNewSize = ulStructSize + 256 * sizeof(wchar16_t);
+                        }
+                        else
+                        {
+                            ulNewSize = pGetInfoState->ulDataLength +
+                                            256 * sizeof(wchar16_t);
+                        }
+
+                        ulNewSize = SMB_MIN(ulNewSize,
+                                            pGetInfoState->pRequestHeader->ulOutputBufferLen);
+
+                        ntStatus = SMBReallocMemory(
+                                        pGetInfoState->pData2,
+                                        (PVOID*)&pGetInfoState->pData2,
+                                        ulNewSize);
+                        BAIL_ON_NT_STATUS(ntStatus);
+
+                        pGetInfoState->ulDataLength = ulNewSize;
+                    }
+
+                    SrvPrepareGetInfoStateAsync_SMB_V2(
+                                    pGetInfoState,
+                                    pExecContext);
+
+                    ntStatus = IoQueryVolumeInformationFile(
+                                            pGetInfoState->pFile->hFile,
+                                            pGetInfoState->pAcb,
+                                            &pGetInfoState->ioStatusBlock,
+                                            pGetInfoState->pData2,
+                                            pGetInfoState->ulDataLength,
+                                            infoClass);
+                    switch (ntStatus)
+                    {
+                        case STATUS_SUCCESS:
+
+                            bContinue = FALSE;
+
+                            pGetInfoState->ulActualDataLength =
+                                pGetInfoState->ioStatusBlock.BytesTransferred;
+
+                            // intentional fall through
+
+                        case STATUS_BUFFER_TOO_SMALL:
+
+                            // synchronous completion
+                            SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState);
+
+                            break;
+
+                        default:
+
+                            BAIL_ON_NT_STATUS(ntStatus);
+                    }
+                }
+
+                break;
+
+            case STATUS_SUCCESS:
+
+                if (!pGetInfoState->pData2)
+                {
+                    pGetInfoState->ioStatusBlock.Status =
+                                            STATUS_BUFFER_TOO_SMALL;
+                }
+                else
+                {
+                    pGetInfoState->ulActualDataLength =
+                                pGetInfoState->ioStatusBlock.BytesTransferred;
+
+                    bContinue = FALSE;
+                }
+
+                break;
+
+            default:
+
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
+
+    } while (bContinue);
+
+cleanup:
+
+    if (pErrorMessage)
+    {
+        SrvFreeMemory(pErrorMessage);
+    }
+
+    return ntStatus;
+
+error:
+
+    switch (ntStatus)
+    {
+        case STATUS_BUFFER_TOO_SMALL:
+
+            {
+                NTSTATUS ntStatus2 = STATUS_SUCCESS;
+                ULONG    ulLength  = 0;
+
+                if (!pGetInfoState->ulDataLength)
+                {
+                    ulLength = ulStructSize + sizeof(wchar16_t) * 256;
+                }
+                else if (pGetInfoState->ulDataLength ==
+                            pGetInfoState->pRequestHeader->ulOutputBufferLen)
+                {
+                    ulLength = pGetInfoState->ulDataLength +
+                                        sizeof(wchar16_t) * 256;
+                }
+                else
+                {
+                    ulLength = pGetInfoState->ulDataLength;
+                }
+
+                ntStatus2 = SrvAllocateMemory(
+                                sizeof(ULONG),
+                                (PVOID*)&pErrorMessage);
+                if (ntStatus2)
+                {
+                    LWIO_LOG_ERROR(
+                        "Failed to allocate buffer for error message "
+                        "[error:0x%08x]",
+                        ntStatus2);
+                }
+                else
+                {
+                    memcpy(pErrorMessage, (PBYTE)&ulLength, sizeof(ulLength));
+
+                    ntStatus2 = SrvSetErrorMessage_SMB_V2(
+                                    pCtxSmb2,
+                                    pErrorMessage,
+                                    sizeof(ulLength));
+                    if (ntStatus2 == STATUS_SUCCESS)
+                    {
+                        pErrorMessage = NULL;
+                    }
+                    else
+                    {
+                        LWIO_LOG_ERROR(
+                        "Failed to set error message in exec context "
+                        "[error:0x%08x]",
+                        ntStatus2);
+                    }
+                }
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    goto cleanup;
+}
+

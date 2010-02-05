@@ -103,6 +103,7 @@ SqliteProvider_Initialize(
 							                   0,
 							                   (PSECURITY_DESCRIPTOR_RELATIVE)pSecDescRel,
 							                   ulSecDescLength,
+							                   NULL,
 							                   NULL));
 	if (LWREG_ERROR_KEYNAME_EXIST == dwError)
 	{
@@ -193,7 +194,8 @@ SqliteCreateKeyEx(
 		   AccessDesired,
 		   pSecDescRel,
 		   ulSecDescLength,
-               (PREG_KEY_HANDLE*)phkResult);
+               (PREG_KEY_HANDLE*)phkResult,
+               pdwDisposition);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:

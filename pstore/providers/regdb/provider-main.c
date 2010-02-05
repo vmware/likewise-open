@@ -609,7 +609,7 @@ RegDB_WritePassword(
                   NULL,
                   PSTOREDB_REGISTRY_MACHINE_PWD_KEY,
                   NULL,
-                  WRITE_OWNER | KEY_READ,
+                  WRITE_OWNER | KEY_ALL_ACCESS,
                   pSecDescAbs);
     BAIL_ON_LWPS_ERROR(dwError);
 

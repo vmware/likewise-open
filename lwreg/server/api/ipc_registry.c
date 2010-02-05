@@ -364,7 +364,7 @@ RegSrvIpcCreateKeyEx(
         status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_CREATE_KEY_EX_RESPONSE, sizeof(*pRegResp));
         BAIL_ON_NT_STATUS(status);
 
-        pRegResp->dwDisposition= dwDisposition;
+        pRegResp->dwDisposition = dwDisposition;
         pRegResp->hkResult = hkResult;
         hkResult = NULL;
 

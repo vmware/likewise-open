@@ -505,14 +505,6 @@ SrvFreeGetInfoState_SMB_V2(
         SrvFile2Release(pGetInfoState->pFile);
     }
 
-    if (pGetInfoState->pResponseBuffer)
-    {
-        SMBPacketBufferFree(
-                    pGetInfoState->pConnection->hPacketAllocator,
-                    pGetInfoState->pResponseBuffer,
-                    pGetInfoState->sAllocatedSize);
-    }
-
     if (pGetInfoState->pConnection)
     {
         SrvConnectionRelease(pGetInfoState->pConnection);

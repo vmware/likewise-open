@@ -212,7 +212,8 @@ SqliteCreateKeyInternal(
     IN ACCESS_MASK AccessDesired,
     IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
     IN ULONG ulSecDescLength,
-    OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle
+    OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle,
+    OUT OPTIONAL PDWORD pdwDisposition
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -224,26 +225,23 @@ SqliteCreateKeyInternal(
     ACCESS_MASK AccessGranted = 0;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelToSet = NULL;
     ULONG ulSecDescLengthToSet = 0;
+    DWORD dwDisposition = 0;
 
     // Full key path
     BAIL_ON_NT_INVALID_STRING(pwszFullKeyName);
 
     LWREG_LOCK_MUTEX(bInLock, &gActiveKeyList.mutex);
 
-    pKeyCtx = SqliteCacheLocateActiveKey_inlock(pwszFullKeyName);
-    if (pKeyCtx)
-    {
-	status = STATUS_OBJECTID_EXISTS;
-	BAIL_ON_NT_STATUS(status);
-    }
-
-	status = RegDbOpenKey(ghCacheConnection,
-			              pwszFullKeyName,
-						  &pRegEntry);
+	status = SqliteOpenKeyInternal_inlock(
+			        handle,
+			        pwszFullKeyName, // Full Key Path
+	                AccessDesired,
+	                &pKeyHandle);
 	if (!status)
 	{
-	status = STATUS_OBJECTID_EXISTS;
-	BAIL_ON_NT_STATUS(status);
+		dwDisposition = REG_OPENED_EXISTING_KEY;
+
+		goto done;
 	}
 	else if (STATUS_OBJECT_NAME_NOT_FOUND == status)
 	{
@@ -259,7 +257,6 @@ SqliteCreateKeyInternal(
 	}
 
 	// ACL check
-
 	// Get key's security descriptor
 	// Inherit from its direct parent or given by caller
 	if (!pSecDescRel || !ulSecDescLength)
@@ -315,7 +312,7 @@ SqliteCreateKeyInternal(
 							&pRegEntry);
 	BAIL_ON_NT_STATUS(status);
 
-	if (pParentKeyCtx)
+    if (pParentKeyCtx)
 	{
 	    SqliteCacheResetParentKeySubKeyInfo_inlock(pParentKeyCtx->pwszKeyName);
 	}
@@ -331,7 +328,10 @@ SqliteCreateKeyInternal(
 	BAIL_ON_NT_STATUS(status);
 	pKeyCtx = NULL;
 
-	if (ppKeyHandle)
+	dwDisposition = REG_CREATED_NEW_KEY;
+
+done:
+    if (ppKeyHandle)
 	{
 		*ppKeyHandle = pKeyHandle;
 	}
@@ -339,6 +339,11 @@ SqliteCreateKeyInternal(
 	{
 		SqliteSafeFreeKeyHandle_inlock(pKeyHandle);
 	}
+
+    if (pdwDisposition)
+    {
+	*pdwDisposition =  dwDisposition;
+    }
 
 cleanup:
 
@@ -351,6 +356,11 @@ cleanup:
     return status;
 
 error:
+
+    if (ppKeyHandle)
+    {
+	    *ppKeyHandle = NULL;
+    }
 
     SqliteSafeFreeKeyHandle_inlock(pKeyHandle);
 
