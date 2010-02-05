@@ -619,16 +619,17 @@ error:
 
 NTSTATUS
 SMB2MarshalTreeConnectResponse(
-    IN OUT PBYTE                pBuffer,
-    IN     ULONG                ulOffset,
-    IN     ULONG                ulBytesAvailable,
-    IN     PLWIO_SRV_CONNECTION pConnection,
-    IN     PLWIO_SRV_TREE_2     pTree,
-    IN OUT PULONG               pulBytesUsed
+    IN OUT PBYTE                               pBuffer,
+    IN     ULONG                               ulOffset,
+    IN     ULONG                               ulBytesAvailable,
+    IN     PLWIO_SRV_CONNECTION                pConnection,
+    IN     PLWIO_SRV_TREE_2                    pTree,
+    IN OUT PSMB2_TREE_CONNECT_RESPONSE_HEADER* ppResponseHeader,
+    IN OUT PULONG                              pulBytesUsed
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSMB2_TREE_CONNECT_RESPONSE_HEADER pHeader = NULL;
+    PSMB2_TREE_CONNECT_RESPONSE_HEADER pResponseHeader = NULL;
     PBYTE  pDataCursor = pBuffer;
     ULONG  ulBytesUsed = 0;
 
@@ -638,30 +639,30 @@ SMB2MarshalTreeConnectResponse(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pHeader = (PSMB2_TREE_CONNECT_RESPONSE_HEADER)pDataCursor;
+    pResponseHeader = (PSMB2_TREE_CONNECT_RESPONSE_HEADER)pDataCursor;
     ulOffset += sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
     ulBytesUsed += sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
     ulBytesAvailable -= sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
     pDataCursor += sizeof(SMB2_TREE_CONNECT_RESPONSE_HEADER);
 
-    pHeader->usLength = ulBytesUsed;
+    pResponseHeader->usLength = ulBytesUsed;
 
     ntStatus = SrvGetMaximalShareAccessMask(
                     pTree->pShareInfo,
-                    &pHeader->ulShareAccessMask);
+                    &pResponseHeader->ulShareAccessMask);
     BAIL_ON_NT_STATUS(ntStatus);
 
     switch (pTree->pShareInfo->service)
     {
         case SHARE_SERVICE_DISK_SHARE:
 
-            pHeader->usShareType = 1;
+            pResponseHeader->usShareType = SMB2_SHARE_TYPE_DISK;
 
             break;
 
         case SHARE_SERVICE_NAMED_PIPE:
 
-            pHeader->usShareType = 2;
+            pResponseHeader->usShareType = SMB2_SHARE_TYPE_NAMED_PIPE;
 
             break;
 
@@ -672,9 +673,7 @@ SMB2MarshalTreeConnectResponse(
             break;
     }
 
-    // TODO: Fill in Share capabilities
-    // TODO: Fill in Share flags
-
+    *ppResponseHeader = pResponseHeader;
     *pulBytesUsed = ulBytesUsed;
 
 cleanup:
@@ -684,6 +683,7 @@ cleanup:
 error:
 
     *pulBytesUsed = 0;
+    *ppResponseHeader = NULL;
 
     if (ulBytesUsed)
     {
