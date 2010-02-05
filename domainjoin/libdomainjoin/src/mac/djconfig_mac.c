@@ -43,6 +43,7 @@ typedef enum
 #define LWIDSPLUGIN_INSTALL_PATH LIBDIR "/LWIDSPlugin.dsplug"
 #define LWEDSPLUGIN_INSTALL_PATH LIBDIR "/LWEDSPlugin.dsplug"
 #define LWDSPLUGIN_NAME         "/Likewise - Active Directory"
+#define APPLEADDSPLUGIN_NAME    "/Active Directory"
 #define PID_FILE_CONTENTS_SIZE   ((9 * 2) + 2)
 #define CONFIGD_PID_FILE         "/var/run/configd.pid"
 
@@ -494,17 +495,79 @@ error:
     return ceError;
 }
 
+CENTERROR
+DJIsAppleADPluginInUse(BOOLEAN* pExists)
+{
+    CENTERROR ceError = CENTERROR_SUCCESS;
+    PPROCINFO pProcInfo = NULL;
+    PSTR* ppszArgs = NULL;
+    DWORD nArgs = 7;
+    LONG status = 0;
+    BOOLEAN bInUse = FALSE;
+
+    DJ_LOG_INFO("Testing to see if Apple AD plugin is already in use");
+
+    ceError = CTAllocateMemory(sizeof(PSTR)*nArgs, (PVOID*)&ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString("/usr/bin/dscl", ppszArgs);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString("localhost", ppszArgs+1);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString("-list", ppszArgs+2);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString(APPLEADDSPLUGIN_NAME, ppszArgs+3);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = DJGetProcessStatus(pProcInfo, &status);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    if (status == 0)
+    {
+        bInUse = TRUE;
+    }
+
+error:
+
+    if (ppszArgs)
+    {
+       CTFreeStringArray(ppszArgs, nArgs);
+    }
+
+    if (pProcInfo)
+    {
+       FreeProcInfo(pProcInfo);
+    }
+
+    *pExists = bInUse;
+
+    return ceError;
+}
+
 static QueryResult QueryDSPlugin(const JoinProcessOptions *options, LWException **exc)
 {
-    BOOLEAN exists;
+    BOOLEAN exists = FALSE;
     QueryResult result = NotConfigured;
     PSTR value = NULL;
-    PSTR valueStart;
+    PSTR valueStart = NULL;
 
     LW_CLEANUP_CTERR(exc, CTCheckFileOrLinkExists("/usr/bin/dscl", &exists));
     if(!exists)
     {
         result = NotApplicable;
+        goto cleanup;
+    }
+
+    LW_CLEANUP_CTERR(exc, DJIsAppleADPluginInUse(&exists));
+    if(exists)
+    {
+        result = ApplePluginInUse;
         goto cleanup;
     }
 

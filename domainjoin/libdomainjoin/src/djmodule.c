@@ -239,6 +239,9 @@ void DJInitModuleStates(JoinProcessOptions *options, LWException **exc)
             case CannotConfigure:
                 arrayState->runModule = FALSE;
                 break;
+            case ApplePluginInUse:
+                LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Apple AD Directory Plugin in use.", "The configuration of module '%s' detected that the computer is already joined to Active Directory with the built in Apple AD plugin. To use Likewise, please first unbind your Mac from Active Directory by using the Directory Utility of your system.\n", state.module->longName);
+                goto cleanup;
             case SufficientlyConfigured:
             case NotConfigured:
                 break;
