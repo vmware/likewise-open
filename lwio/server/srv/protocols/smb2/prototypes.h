@@ -480,12 +480,13 @@ SMB2UnmarshalTreeConnect(
 
 NTSTATUS
 SMB2MarshalTreeConnectResponse(
-    PBYTE                pBuffer,
-    ULONG                ulOffset,
-    ULONG                ulBytesAvailable,
-    PLWIO_SRV_CONNECTION pConnection,
-    PLWIO_SRV_TREE_2     pTree,
-    PULONG               pulBytesUsed
+    PBYTE                               pBuffer,
+    ULONG                               ulOffset,
+    ULONG                               ulBytesAvailable,
+    PLWIO_SRV_CONNECTION                pConnection,
+    PLWIO_SRV_TREE_2                    pTree,
+    PSMB2_TREE_CONNECT_RESPONSE_HEADER* ppResponseHeader,
+    PULONG                              pulBytesUsed
     );
 
 NTSTATUS
