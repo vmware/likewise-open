@@ -78,12 +78,13 @@ SqliteCreateKeyContext(
 NTSTATUS
 SqliteCreateKeyInternal(
     IN OPTIONAL HANDLE handle,
-    IN OPTIONAL PREG_KEY_CONTEXT pParentKeyCtx,
+    IN PREG_KEY_CONTEXT pParentKeyCtx,
     IN PWSTR pwszFullKeyName, // Full Key Path
     IN ACCESS_MASK AccessDesired,
     IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
-    IN ULONG ulSecDescLen,
-    OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle
+    IN ULONG ulSecDescLength,
+    OUT OPTIONAL PREG_KEY_HANDLE* ppKeyHandle,
+    OUT OPTIONAL PDWORD pdwDisposition
     );
 
 NTSTATUS

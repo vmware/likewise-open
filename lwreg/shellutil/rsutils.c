@@ -272,6 +272,7 @@ RegShellUtilAddKeySecDesc(
     PSTR pszDelim = "\\";
     PSTR pszFullPath = NULL;
     PSTR pszSubKey = NULL;
+    DWORD dwDisposition = 0;
 
 
     if (!hReg)
@@ -311,20 +312,7 @@ RegShellUtilAddKeySecDesc(
                       AccessDesired,
                       pSecurityDescriptor,
                       &pNextKey,
-                      NULL);
-        if (LWREG_ERROR_KEYNAME_EXIST == dwError)
-        {
-            if (strcasecmp(pszToken, pszSubKey) || !bDoBail)
-            {
-                dwError = RegOpenKeyExW(hReg,
-                                        pCurrentKey,
-                                        pwszSubKey,
-                                        0,
-                                        KEY_ALL_ACCESS,
-                                        &pNextKey);
-                BAIL_ON_REG_ERROR(dwError);
-            }
-        }
+                      &dwDisposition);
         BAIL_ON_REG_ERROR(dwError);
 
         LWREG_SAFE_FREE_MEMORY(pwszSubKey);
@@ -339,6 +327,13 @@ RegShellUtilAddKeySecDesc(
         pNextKey = NULL;
 
         pszToken = strtok_r (NULL, pszDelim, &pszStrtokState);
+
+        if (LW_IS_NULL_OR_EMPTY_STR(pszToken) &&
+		REG_OPENED_EXISTING_KEY == dwDisposition && bDoBail)
+        {
+            dwError = LWREG_ERROR_KEYNAME_EXIST;
+            BAIL_ON_REG_ERROR(dwError);
+        }
     }
 
 cleanup:
