@@ -71,11 +71,11 @@ update_stage(gpointer data)
 
     if (update->ratio >= 0.0)
     {
-	gtk_progress_bar_set_fraction(update->dialog->progress, update->ratio);
+        gtk_progress_bar_set_fraction(update->dialog->progress, update->ratio);
     }
     else
     {
-	gtk_progress_bar_pulse(update->dialog->progress);
+        gtk_progress_bar_pulse(update->dialog->progress);
     }
 
     gdk_threads_leave();
@@ -134,8 +134,8 @@ joinprogress_new(GtkWindow* parent, const char* title)
     JoinProgressDialog* dialog = g_new0(JoinProgressDialog, 1);
     char* title_markup;
 
-    if(!dialog)
-	return NULL;
+    if(!xml || !dialog)
+        goto cleanup;
 
     dialog->dialog = GTK_DIALOG(glade_xml_get_widget(xml, "JoinProgressDialog"));
     g_assert(dialog->dialog != NULL);
@@ -152,7 +152,7 @@ joinprogress_new(GtkWindow* parent, const char* title)
     g_object_ref(G_OBJECT(dialog->title));
 
     if (CTAllocateStringPrintf(&title_markup, "<span weight=\"bold\" size=\"x-large\">%s</span>", title))
-	return NULL;
+        return NULL;
 
     gtk_label_set_markup(dialog->title, title_markup);
 
@@ -166,7 +166,12 @@ joinprogress_new(GtkWindow* parent, const char* title)
     g_assert(dialog->close != NULL);
     g_object_ref(G_OBJECT(dialog->close));
 
-
+cleanup:
+    if (xml)
+    {
+        g_object_unref(xml);
+        xml = NULL;
+    }
     return dialog;
 }
 

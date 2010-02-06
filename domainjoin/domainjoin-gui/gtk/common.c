@@ -34,8 +34,11 @@ void
 dialog_insert_likewise_logo(GtkDialog* dialog)
 {
     GtkWidget* image = gtk_image_new_from_file (DATADIR "/likewise/likewise-logo.png");
-    
-    gtk_box_pack_start(GTK_BOX(dialog->action_area), image, FALSE, FALSE, 0);
-    gtk_button_box_set_child_secondary(GTK_BUTTON_BOX(dialog->action_area), image, TRUE);
-    gtk_widget_show(image);
+
+    if (image)
+    {
+        gtk_box_pack_start(GTK_BOX(dialog->action_area), image, FALSE, FALSE, 0);
+        gtk_button_box_set_child_secondary(GTK_BUTTON_BOX(dialog->action_area), image, TRUE);
+        gtk_widget_show(image);
+    }
 }

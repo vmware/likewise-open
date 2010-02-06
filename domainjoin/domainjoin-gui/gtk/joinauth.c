@@ -42,14 +42,14 @@ struct JoinAuthDialog
 };
 
 JoinAuthDialog*
-joinauth_new(GtkWindow* parent)
+joinauth_new(PJOINSTATE pJoinState, GtkWindow* parent)
 {
     GladeXML* xml = glade_xml_new (DOMAINJOIN_XML, "JoinAuthDialog", NULL);
     JoinAuthDialog* dialog = g_new0(JoinAuthDialog, 1);
 
-    if(!dialog)
-	return NULL;
-    
+    if(!xml || !dialog)
+        goto cleanup;
+
     dialog->dialog = GTK_DIALOG(glade_xml_get_widget(xml, "JoinAuthDialog"));
     g_assert(dialog->dialog != NULL);
     g_object_ref(G_OBJECT(dialog->dialog));
@@ -64,6 +64,15 @@ joinauth_new(GtkWindow* parent)
     g_assert(dialog->password != NULL);
     g_object_ref(G_OBJECT(dialog->password));
 
+    if (pJoinState->user)
+        gtk_entry_set_text(dialog->user, pJoinState->user);
+
+cleanup:
+    if (xml)
+    {
+        g_object_unref(xml);
+        xml = NULL;
+    }
     return dialog;
 }
 
