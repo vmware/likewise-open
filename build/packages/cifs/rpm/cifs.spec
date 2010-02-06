@@ -74,6 +74,7 @@ case "$1" in
     [ -z "`pidof lwreg`" ] && %{PrefixDir}/bin/lwsm start lwreg
 
     for file in %{_sysconfdir}/likewise/*reg; do
+        echo "Importing ${file}..."
         %{PrefixDir}/bin/lwregshell update $file
     done
     %{_sysconfdir}/init.d/lwsmd reload

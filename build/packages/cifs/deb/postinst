@@ -17,6 +17,7 @@ case "$1" in
     [ -z "`pidof lwreg`" ] && lwsm start lwreg
 
     for file in /etc/likewise/*reg; do
+	echo "Importing $file..."
         lwregshell upgrade $file > /dev/null
     done
     /etc/init.d/lwsmd reload
