@@ -3,7 +3,8 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright (c) Likewise Software.  All rights Reserved.
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,25 +28,29 @@
  * license@likewisesoftware.com
  */
 
-#ifndef __INCLUDES_H__
-#define __INCLUDES_H__
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        includes.h
+ *
+ * Abstract:
+ *
+ *        Unnamed description
+ *        Precompiled includes header
+ *
+ * Authors: Kyle Stemen <kstemen@likewise.com>
+ *
+ */
 
 #include "config.h"
-#include <lw/rtlmemory.h>
-#include <lw/security-types.h>
-#include <lw/security-api.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include <lwstr.h>
+#include <lwerror.h>
+#include <lwlogging.h>
+#include <lwdef.h>
 #include <stdio.h>
-#include <ctype.h>
+#include <stdarg.h>
 
-#include "lwerror.h"
-#include "lwlogging.h"
-#include "bail.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwdef.h"
-#include "sysfuncs_p.h"
-
-#endif /* __INCLUDES_H__ */
+// Local includes
+#include "externs.h"
