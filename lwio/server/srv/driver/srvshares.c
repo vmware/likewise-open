@@ -611,7 +611,7 @@ SrvShareDevCtlGetInfo(
 
             p502->shi502_password            = NULL;
             p502->shi502_reserved            = pShareInfo->ulSecDescLen;
-            p502->shi502_security_descriptor = pShareInfo->pSecDesc;
+            p502->shi502_security_descriptor = (PBYTE)pShareInfo->pSecDesc;
 
             GetShareInfoParamsOut.Info.p502 = p502;
 
@@ -1197,16 +1197,18 @@ SrvShareUpdateInfo502(
 
     if (pInfo502->shi502_security_descriptor)
     {
-        ntStatus = SrvAllocateMemory(
-                       pInfo502->shi502_reserved,
-                       (PVOID*)&NewShareInfo.pSecDesc);
-        BAIL_ON_NT_STATUS(ntStatus);
+        /* NULL the SDs since we don't own them to prevent side effecting
+           the pShareInfo */
 
-        memcpy(
-            NewShareInfo.pSecDesc,
-            pInfo502->shi502_security_descriptor,
-            pInfo502->shi502_reserved);
-        NewShareInfo.ulSecDescLen = pInfo502->shi502_reserved;
+        NewShareInfo.pSecDesc = NULL;
+        NewShareInfo.ulSecDescLen = 0;
+        NewShareInfo.pAbsSecDesc = NULL;
+
+        ntStatus = SrvShareSetSecurity(
+                       &NewShareInfo,
+                       (PSECURITY_DESCRIPTOR_RELATIVE)pInfo502->shi502_security_descriptor,
+                       pInfo502->shi502_reserved);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     /* Copy to the original share using struct copy */
@@ -1223,11 +1225,7 @@ SrvShareUpdateInfo502(
         pShareInfo->pwszComment = NULL;
     }
 
-    if (pShareInfo->pSecDesc)
-    {
-        SrvFreeMemory(pShareInfo->pSecDesc);
-        pShareInfo->pSecDesc = NULL;
-    }
+    SrvShareFreeSecurity(pShareInfo);
 
     *pShareInfo = NewShareInfo;
 
