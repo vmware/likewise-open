@@ -229,6 +229,8 @@ PvfsCreateFileSupersede(
     ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
     BAIL_ON_NT_STATUS(ntError);
 
+    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
+
     /* This should get us a new FCB */
 
     ntError = PvfsCheckShareMode(
@@ -236,9 +238,11 @@ PvfsCreateFileSupersede(
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
                   &pCreateCtx->pFcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
+    if ((ntError != STATUS_SUCCESS) &&
+        (ntError != STATUS_SHARING_VIOLATION))
+    {
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     ntError = STATUS_SUCCESS;
     if (pCreateCtx->bFileExisted &&
@@ -429,6 +433,11 @@ PvfsCreateFileOpenOrOverwrite(
 
     pCreateCtx->bFileExisted = TRUE;
 
+    if (Disposition == FILE_OVERWRITE) {
+        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|
+                                       PVFS_SET_PROP_ATTRIB;
+    }
+
     ntError = PvfsAccessCheckFile(
                   pCreateCtx->pCcb->pUserToken,
                   pCreateCtx->pszDiskFilename,
@@ -446,17 +455,16 @@ PvfsCreateFileOpenOrOverwrite(
                   Args.ShareAccess,
                   pCreateCtx->GrantedAccess,
                   &pCreateCtx->pFcb);
-    BAIL_ON_NT_STATUS(ntError);
+    if ((ntError != STATUS_SUCCESS) &&
+        (ntError != STATUS_SHARING_VIOLATION))
+    {
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     if (pCreateCtx->pFcb->bDeleteOnClose)
     {
         ntError = STATUS_DELETE_PENDING;
         BAIL_ON_NT_STATUS(ntError);
-    }
-
-    if (Disposition == FILE_OVERWRITE) {
-        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|
-                                       PVFS_SET_PROP_ATTRIB;
     }
 
     ntError = STATUS_SUCCESS;
@@ -599,18 +607,22 @@ PvfsCreateFileOpenOrOverwriteIf(
                   pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCheckShareMode(
-                  pCreateCtx->pszDiskFilename,
-                  Args.ShareAccess,
-                  pCreateCtx->GrantedAccess,
-                  &pCreateCtx->pFcb);
-    BAIL_ON_NT_STATUS(ntError);
-
     if (!pCreateCtx->bFileExisted ||
         (Args.CreateDisposition == FILE_OVERWRITE_IF))
     {
         pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|
                                        PVFS_SET_PROP_ATTRIB;
+    }
+
+    ntError = PvfsCheckShareMode(
+                  pCreateCtx->pszDiskFilename,
+                  Args.ShareAccess,
+                  pCreateCtx->GrantedAccess,
+                  &pCreateCtx->pFcb);
+    if ((ntError != STATUS_SUCCESS) &&
+        (ntError != STATUS_SHARING_VIOLATION))
+    {
+        BAIL_ON_NT_STATUS(ntError);
     }
 
     ntError = STATUS_SUCCESS;

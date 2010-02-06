@@ -151,6 +151,12 @@ PvfsCreateFileDoSysOpen(
     PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     FILE_CREATE_RESULT CreateResult = 0;
 
+    ntError = PvfsEnforceShareMode(
+                   pCreateContext->pFcb,
+                   Args.ShareAccess,
+                   pCreateContext->GrantedAccess);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Do the open() */
 
     ntError = MapPosixOpenFlags(&unixFlags, pCreateContext->GrantedAccess, Args);
