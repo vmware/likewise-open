@@ -10,7 +10,7 @@ noinst_HEADERS = \
 	lwps-str.h \
 	lwps-utils.h \
 	lwps-cfg.h \
-	lwps-logger.h \
+	lwps-logging.h \
 	lwps-provider.h \
 	lwps-stack.h \
 	lwps-sysfuncs.h \

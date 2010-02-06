@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,64 +29,24 @@
  */
 
 /*
- *  Copyright (C) Likewise Software. All rights reserved.
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- *  Module Name:
+ * Module Name:
  *
- *     provider-main.c
+ *        externs.h
  *
- *  Abstract:
+ * Abstract:
  *
- *        Likewise Password Storage (LWPS)
+ *        Global Log variables
  *
- *        API to support TDB Password Storage
- *
- *  Authors: Gerald Carter <gcarter@likewisesoftware.com>
- *
+ * Authors: Kyle Stemen <kstemen@likewise.com>
  */
 
-#include "lwps-utils.h"
-#include "lwps/lwps.h"
-#include "lwps-system.h"
-#include "lwps-mem.h"
-#include "lwps-def.h"
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
 
-/**********************************************************
- * Convert a string to upper case.  modify the input string
- */
+extern LwpsLogLevel gLwpsLogLevel;
+extern PVOID gpLwpsLogUserData;
+extern PLWPS_LOG_CALLBACK gpLwpsLogCallback;
 
-VOID
-StrUpper(
-    PSTR pszString
-    );
-
-/***********************************************************
- * Is pszStr1 a substring of pszStr2 ?
- */
-
-BOOLEAN
-StrEqual(
-    PCSTR pszStr1,
-    PCSTR pszStr2
-    );
-
-
-/***********************************************************
- */
-
-BOOLEAN
-StrnEqual(
-    PCSTR pszStr1,
-    PCSTR pszStr2,
-    DWORD dwChars
-    );
-
-
-/*
-  local variables:
-  mode: c
-  c-basic-offset: 4
-  indent-tabs-mode: nil
-  tab-width: 4
-  end:
-*/
+#endif /* __EXTERNS_H__ */

@@ -29,64 +29,28 @@
  */
 
 /*
- *  Copyright (C) Likewise Software. All rights reserved.
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- *  Module Name:
+ * Module Name:
  *
- *     provider-main.c
+ *        includes.h
  *
- *  Abstract:
+ * Abstract:
  *
- *        Likewise Password Storage (LWPS)
+ *        Precompiled includes header
  *
- *        API to support TDB Password Storage
- *
- *  Authors: Gerald Carter <gcarter@likewisesoftware.com>
+ * Authors: Kyle Stemen <kstemen@likewise.com>
  *
  */
+
+#include "config.h"
+#include <stdio.h>
+#include <stdarg.h>
 
 #include "lwps-utils.h"
-#include "lwps/lwps.h"
-#include "lwps-system.h"
-#include "lwps-mem.h"
 #include "lwps-def.h"
+#include "lwps-str.h"
+#include "lwps-logging.h"
 
-/**********************************************************
- * Convert a string to upper case.  modify the input string
- */
-
-VOID
-StrUpper(
-    PSTR pszString
-    );
-
-/***********************************************************
- * Is pszStr1 a substring of pszStr2 ?
- */
-
-BOOLEAN
-StrEqual(
-    PCSTR pszStr1,
-    PCSTR pszStr2
-    );
-
-
-/***********************************************************
- */
-
-BOOLEAN
-StrnEqual(
-    PCSTR pszStr1,
-    PCSTR pszStr2,
-    DWORD dwChars
-    );
-
-
-/*
-  local variables:
-  mode: c
-  c-basic-offset: 4
-  indent-tabs-mode: nil
-  tab-width: 4
-  end:
-*/
+// Local includes
+#include "externs.h"
