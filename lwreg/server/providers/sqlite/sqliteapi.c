@@ -168,9 +168,16 @@ SqliteCreateKeyEx(
     pKeyCtx = pKeyHandle->pKey;
     BAIL_ON_INVALID_KEY_CONTEXT(pKeyCtx);
 
+    // Check key length
+    if (wc16slen(pSubKey) > MAX_KEY_LENGTH)
+    {
+	status = STATUS_INVALID_BLOCK_LENGTH;
+	BAIL_ON_NT_STATUS(status);
+    }
+
+    // check whether key is valid
 	if (!RegSrvIsValidKeyName(pSubKey))
 	{
-		// Invalid keyName passed in
 		status = STATUS_OBJECT_NAME_INVALID;
 		BAIL_ON_NT_STATUS(status);
 	}

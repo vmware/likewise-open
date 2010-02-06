@@ -46,6 +46,16 @@
 #include <regclient.h>
 #include <reg/lwreg.h>
 
+static
+DWORD
+ProcessSubKeys(
+    HANDLE hReg,
+    FILE* fp,
+    HKEY hKey,
+    DWORD dwNumSubKeys,
+    DWORD dwMaxSubKeyLen
+    );
+
 
 DWORD RegExportBinaryTypeToString(
     REG_DATA_TYPE token,
@@ -570,16 +580,18 @@ ProcessSubKeys(
     HANDLE hReg,
     FILE* fp,
     HKEY hKey,
-    DWORD dwNumSubKeys
+    DWORD dwNumSubKeys,
+    DWORD dwMaxSubKeyLen
     )
 {
     DWORD dwError = 0;
     int iCount = 0;
-    DWORD dwSubKeyLen = MAX_KEY_LENGTH;
-    LW_WCHAR subKey[MAX_KEY_LENGTH];   // buffer for subkey name
+    DWORD dwSubKeyLen = dwMaxSubKeyLen+1;
+    PWSTR subKey = NULL;   // buffer for subkey name
     PSTR pszSubKey = NULL;
     HKEY hSubKey = NULL;
     DWORD dwNumSubSubKeys = 0;
+    DWORD dwMaxSubSubKeyLen = 0;
     CHAR c = '\\';
     //Do not free
     PSTR pszSubKeyName = NULL;
@@ -588,7 +600,10 @@ ProcessSubKeys(
     // Get the subkeys and values under this key from registry
     for (iCount = 0; iCount < dwNumSubKeys; iCount++)
     {
-        dwSubKeyLen = MAX_KEY_LENGTH;
+	dwSubKeyLen = dwMaxSubKeyLen+1;
+
+        dwError = RegAllocateMemory(sizeof(*subKey) * dwSubKeyLen, (PVOID*)&subKey);
+        BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegEnumKeyExW((HANDLE)hReg,
                                 hKey,
@@ -603,6 +618,9 @@ ProcessSubKeys(
 
 	dwError = RegCStringAllocateFromWC16String(&pszSubKey, subKey);
         BAIL_ON_REG_ERROR(dwError);
+
+        LWREG_SAFE_FREE_MEMORY(subKey);
+        subKey = NULL;
 
         pszSubKeyName = strrchr(pszSubKey, c);
 
@@ -632,7 +650,7 @@ ProcessSubKeys(
             NULL,
             NULL,
             &dwNumSubSubKeys,
-            NULL,
+            &dwMaxSubSubKeyLen,
             NULL,
             NULL,
             NULL,
@@ -646,7 +664,8 @@ ProcessSubKeys(
                         fp,
                         hSubKey,
                         pszSubKey,
-                        dwNumSubSubKeys);
+                        dwNumSubSubKeys,
+                        dwMaxSubSubKeyLen);
         BAIL_ON_REG_ERROR(dwError);
 
         if (hSubKey)
@@ -658,8 +677,8 @@ ProcessSubKeys(
         }
 
         LWREG_SAFE_FREE_STRING(pszSubKey);
-        memset(subKey, 0 , dwSubKeyLen);
         dwNumSubSubKeys = 0;
+        dwMaxSubSubKeyLen = 0;
         LWREG_SAFE_FREE_MEMORY(pSubKey);
     }
 
@@ -671,7 +690,7 @@ cleanup:
     }
 
     LWREG_SAFE_FREE_STRING(pszSubKey);
-    memset(subKey, 0 , dwSubKeyLen);
+    LWREG_SAFE_FREE_MEMORY(subKey);
     dwNumSubKeys = 0;
     LWREG_SAFE_FREE_MEMORY(pSubKey);
 
@@ -695,6 +714,7 @@ ProcessRootKeys(
     DWORD iCount = 0;
     HKEY hRootKey = NULL;
     DWORD dwNumSubKeys = 0;
+    DWORD dwMaxSubKeyLen = 0;
 
 
     dwError = RegEnumRootKeysA(hReg,
@@ -724,7 +744,7 @@ ProcessRootKeys(
             NULL,
             NULL,
             &dwNumSubKeys,
-            NULL,
+            &dwMaxSubKeyLen,
             NULL,
             NULL,
             NULL,
@@ -737,7 +757,8 @@ ProcessRootKeys(
                                      fp,
                                      hRootKey,
                                      ppszRootKeyNames[iCount],
-                                     dwNumSubKeys);
+                                     dwNumSubKeys,
+                                     dwMaxSubKeyLen);
         BAIL_ON_REG_ERROR(dwError);
 
         if (hRootKey)
@@ -748,6 +769,7 @@ ProcessRootKeys(
             hRootKey = NULL;
         }
         dwNumSubKeys = 0;
+        dwMaxSubKeyLen = 0;
     }
 
 cleanup:
@@ -770,7 +792,8 @@ RegShellUtilExport(
     FILE* fp,
     HKEY hKey,
     PSTR pszKeyName,
-    DWORD dwNumSubKeys
+    DWORD dwNumSubKeys,
+    DWORD dwMaxSubKeyLen
     )
 {
     DWORD dwError = 0;
@@ -790,7 +813,8 @@ RegShellUtilExport(
         dwError = ProcessSubKeys(hReg,
                                  fp,
                                  hKey,
-                                 dwNumSubKeys);
+                                 dwNumSubKeys,
+                                 dwMaxSubKeyLen);
         BAIL_ON_REG_ERROR(dwError);
     }
     else if (hKey == NULL && dwNumSubKeys == 0)

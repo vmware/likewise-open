@@ -264,7 +264,7 @@ RegFreeMemory(
 #define LWREG_ERROR_DUPLICATE_KEYVALUENAME                    40702
 #define LWREG_ERROR_FAILED_DELETE_HAS_SUBKEY                  40703
 #define LWREG_ERROR_UNKNOWN_DATA_TYPE                         40704
-#define LWREG_ERROR_BEYOUND_MAX_VALUE_LEN                     40705
+#define LWREG_ERROR_BEYOUND_MAX_KEY_OR_VALUE_LENGTH           40705
 #define LWREG_ERROR_NO_MORE_KEYS_OR_VALUES                    40706
 #define LWREG_ERROR_INVALID_NAME                              40707
 #define LWREG_ERROR_INVALID_CONTEXT                           40708

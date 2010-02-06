@@ -46,20 +46,21 @@ typedef struct _REGSHELL_UTIL_IMPORT_CONTEXT
 } REGSHELL_UTIL_IMPORT_CONTEXT, *PREGSHELL_UTIL_IMPORT_CONTEXT;
 
 
-
 DWORD
 RegShellCanonicalizePath(
     PSTR pszInDefaultKey,
     PSTR pszInKeyName,
     PSTR *ppszFullPath,
     PSTR *ppszParentPath,
-    PSTR *ppszSubKey);
+    PSTR *ppszSubKey
+    );
 
 DWORD
 RegShellIsValidKey(
     HANDLE hReg,
     PSTR pszRootKeyName,
-    PSTR pszKey);
+    PSTR pszKey
+    );
 
 DWORD
 RegShellUtilAddKey(
@@ -78,21 +79,24 @@ RegShellUtilAddKeySecDesc(
     PSTR pszKeyName,
     BOOLEAN bDoBail,
     ACCESS_MASK AccessDesired,
-    PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor);
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor
+    );
 
 DWORD
 RegShellUtilDeleteKey(
     HANDLE hReg,
     PSTR pszRootKeyName,
     PSTR pszDefaultKey,
-    PSTR keyName);
+    PSTR keyName
+    );
 
 DWORD
 RegShellUtilDeleteTree(
     HANDLE hReg,
     PSTR pszRootKeyName,
     PSTR pszDefaultKey,
-    PSTR keyName);
+    PSTR keyName
+    );
 
 DWORD
 RegShellUtilGetKeys(
@@ -101,7 +105,8 @@ RegShellUtilGetKeys(
     PSTR pszDefaultKey,
     PSTR keyName,
     LW_WCHAR ***pppRetSubKeys,
-    PDWORD pdwRetSubKeyCount);
+    PDWORD pdwRetSubKeyCount
+    );
 
 DWORD
 RegShellUtilSetValue(
@@ -112,7 +117,8 @@ RegShellUtilSetValue(
     PSTR valueName,
     REG_DATA_TYPE type,
     LW_PVOID data,
-    DWORD dataLen);
+    DWORD dataLen
+    );
 
 DWORD
 RegShellUtilGetValues(
@@ -130,7 +136,8 @@ RegShellUtilDeleteValue(
     PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR keyName,
-    PSTR valueName);
+    PSTR valueName
+    );
 
 DWORD
 RegShellUtilGetValue(
@@ -141,15 +148,20 @@ RegShellUtilGetValue(
     IN PSTR pszValueName,
     OUT OPTIONAL PREG_DATA_TYPE pRegType,
     OUT OPTIONAL PVOID *ppValue,
-    OUT OPTIONAL PDWORD pdwValueLen);
+    OUT OPTIONAL PDWORD pdwValueLen
+    );
 
-DWORD RegShellUtilImportCallback(
-          PREG_PARSE_ITEM pItem,
-          HANDLE hUserCtx);
-
-DWORD RegShellUtilImportDebugCallback(
+DWORD
+RegShellUtilImportCallback(
     PREG_PARSE_ITEM pItem,
-    HANDLE userContext);
+    HANDLE hUserCtx
+    );
+
+DWORD
+RegShellUtilImportDebugCallback(
+    PREG_PARSE_ITEM pItem,
+    HANDLE userContext
+    );
 
 DWORD
 RegShellUtilExport(
@@ -157,20 +169,23 @@ RegShellUtilExport(
     FILE* fp,
     HKEY hKey,
     PSTR pszKeyName,
-    DWORD dwNumSubKeys
+    DWORD dwNumSubKeys,
+    DWORD dwMaxSubKeyLen
     );
 
 DWORD
 RegShellUtilEscapeString(
     PSTR pszValue,
     PSTR *ppszRetValue,
-    PDWORD pdwEscapeValueLen);
+    PDWORD pdwEscapeValueLen
+    );
 
-DWORD RegExportBinaryTypeToString(
+DWORD
+RegExportBinaryTypeToString(
     REG_DATA_TYPE token,
     PSTR tokenStr,
-    BOOLEAN dumpFormat);
-
+    BOOLEAN dumpFormat
+    );
 
 DWORD
 RegExportEntry(
