@@ -48,6 +48,38 @@
  */
 #include "includes.h"
 
+static
+VOID
+LsaLwLogMessage(
+    LwLogLevel level,
+    PVOID pUserData,
+    PCSTR pszMessage
+    )
+{
+    LSA_LOCK_LOGGER;
+    if (gpfnLogger && (gLsaMaxLogLevel >= level))
+    {
+        _LSA_LOG_WITH_THREAD(level, "%s", pszMessage);
+    }
+    LSA_UNLOCK_LOGGER;
+}
+
+static
+VOID
+LsaLwpsLogMessage(
+    LwpsLogLevel level,
+    PVOID pUserData,
+    PCSTR pszMessage
+    )
+{
+    LSA_LOCK_LOGGER;
+    if (gpfnLogger && (gLsaMaxLogLevel >= level))
+    {
+        _LSA_LOG_WITH_THREAD(level, "%s", pszMessage);
+    }
+    LSA_UNLOCK_LOGGER;
+}
+
 DWORD
 LsaInitLogging_r(
     PCSTR         pszProgramName,
@@ -65,6 +97,9 @@ LsaInitLogging_r(
                     logTarget,
                     maxAllowedLogLevel,
                     pszPath);
+
+    LwSetLogFunction(LW_LOG_LEVEL_DEBUG, LsaLwLogMessage, NULL);
+    LwpsSetLogFunction(LWPS_LOG_LEVEL_DEBUG, LsaLwpsLogMessage, NULL);
 
     LSA_UNLOCK_LOGGER;
 

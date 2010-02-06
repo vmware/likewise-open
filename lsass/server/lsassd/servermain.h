@@ -75,6 +75,11 @@ LsaSrvVerifyLwIoStatus(
     );
 
 DWORD
+LsaSrvRaiseMaxFiles(
+    DWORD dwMaxFiles
+    );
+
+DWORD
 LsaSrvSetDefaults(
     VOID
     );
