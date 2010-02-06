@@ -36,6 +36,11 @@
 
 #include "includes.h"
 
+static
+DWORD
+CharacterClassesInPassword(
+    const wchar16_t *password,
+    size_t len);
 
 static WINERR SavePrincipalKey(const wchar16_t *name, const wchar16_t *pass,
                                UINT32 pass_len, const wchar16_t *realm,
@@ -416,6 +421,75 @@ error:
     goto cleanup;
 }
 
+VOID
+GenerateMachinePassword(
+    wchar16_t *password,
+    size_t len)
+{
+    const DWORD dwMaxGenerationAttempts = 1000;
+    DWORD dwGenerationAttempts = 0;
+
+    password[0] = '\0';
+    do
+    {
+        get_random_string_w16(password, len);
+
+        dwGenerationAttempts++;
+
+    } while (dwGenerationAttempts <= dwMaxGenerationAttempts &&
+             CharacterClassesInPassword(password, len) < 3);
+
+    if (!(dwGenerationAttempts <= dwMaxGenerationAttempts))
+    {
+        abort();
+    }
+}
+
+static
+DWORD
+CharacterClassesInPassword(
+    const wchar16_t* password,
+    size_t len)
+{
+    DWORD dwClassesSeen = 0;
+    BOOLEAN bHasUpperCase = FALSE;
+    BOOLEAN bHasLowerCase = FALSE;
+    BOOLEAN bHasDigit = FALSE;
+    BOOLEAN bHasNonAlphaNumeric = FALSE;
+    size_t i = 0;
+
+    for (i = 0; i < len; i++)
+    {
+        if ('A' <= password[i] && password[i] <= 'Z')
+        {
+            bHasUpperCase = TRUE;
+        }
+        else if ('a' <= password[i] && password[i] <= 'z')
+        {
+            bHasLowerCase = TRUE;
+        }
+        else if ('0' <= password[i] && password[i] <= '9')
+        {
+            bHasDigit = TRUE;
+        }
+        else if (strchr( "-+/*,.;:!<=>%'&()", password[i]) != NULL)
+        {
+            // This may be a better list to check against:
+            //       `~!@#$%^&*()_+-={}|[]\:";'<>?,./
+            bHasNonAlphaNumeric = TRUE;
+        }
+    }
+    if (bHasUpperCase)
+        dwClassesSeen++;
+    if (bHasLowerCase)
+        dwClassesSeen++;
+    if (bHasDigit)
+        dwClassesSeen++;
+    if (bHasNonAlphaNumeric)
+        dwClassesSeen++;
+
+    return dwClassesSeen;
+}
 
 /*
 local variables:

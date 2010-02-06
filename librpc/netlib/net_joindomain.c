@@ -340,7 +340,9 @@ NetJoinDomainLocalInternal(
 
     samr_b = conn->samr.bind;
 
-    get_random_string_w16(machine_pass, sizeof(machine_pass)/sizeof(wchar16_t));
+    GenerateMachinePassword(
+        machine_pass,
+        sizeof(machine_pass)/sizeof(machine_pass[0]));
 
     /* for start, let's assume the account already exists */
     newacct = false;
