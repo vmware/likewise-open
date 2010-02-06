@@ -308,14 +308,11 @@ SrvShareAdd(
 
     if (ulSecDescLen)
     {
-        ntStatus = SrvAllocateMemory(
-                        ulSecDescLen,
-                        (PVOID*)&pShareInfo->pSecDesc);
+        ntStatus = SrvShareSetSecurity(
+                       pShareInfo,
+                       (PSECURITY_DESCRIPTOR_RELATIVE)pSecDesc,
+                       ulSecDescLen);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(pShareInfo->pSecDesc, pSecDesc, ulSecDescLen);
-
-        pShareInfo->ulSecDescLen = ulSecDescLen;
     }
     else
     {
@@ -347,7 +344,7 @@ SrvShareAdd(
                                             pShareInfo->pwszName,
                                             pShareInfo->pwszPath,
                                             pShareInfo->pwszComment,
-                                            pShareInfo->pSecDesc,
+                                            (PBYTE)pShareInfo->pSecDesc,
                                             pShareInfo->ulSecDescLen,
                                             pwszShareType);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -413,7 +410,7 @@ SrvShareUpdate(
                                             pShareInfo->pwszName,
                                             pShareInfo->pwszPath,
                                             pShareInfo->pwszComment,
-                                            pShareInfo->pSecDesc,
+                                            (PBYTE)pShareInfo->pSecDesc,
                                             pShareInfo->ulSecDescLen,
                                             wszServiceType);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -685,14 +682,12 @@ SrvShareFreeInfo(
     {
         SrvFreeMemory(pShareInfo->pwszPath);
     }
-    if (pShareInfo->pSecDesc)
-    {
-        SrvFreeMemory(pShareInfo->pSecDesc);
-    }
     if (pShareInfo->pwszComment)
     {
         SrvFreeMemory(pShareInfo->pwszComment);
     }
+
+    SrvShareFreeSecurity(pShareInfo);
 
     SrvFreeMemory(pShareInfo);
 }

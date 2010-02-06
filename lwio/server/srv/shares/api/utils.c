@@ -49,6 +49,12 @@
 
 #include "includes.h"
 
+static
+VOID
+SrvShareFreeAbsoluteSecurityDescriptor(
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
+
 NTSTATUS
 SrvGetShareName(
     IN  PCSTR  pszHostname,
@@ -226,3 +232,205 @@ SrvGetGuestShareAccessMask(
     return ntStatus;
 }
 
+VOID
+SrvShareFreeSecurity(
+    IN PSRV_SHARE_INFO pShareInfo
+    )
+{
+    if (pShareInfo->pSecDesc)
+    {
+        SrvFreeMemory(pShareInfo->pSecDesc);
+        pShareInfo->pSecDesc = NULL;
+        pShareInfo->ulSecDescLen = 0;
+    }
+
+    if (pShareInfo->pAbsSecDesc)
+    {
+        SrvShareFreeAbsoluteSecurityDescriptor(&pShareInfo->pAbsSecDesc);
+        pShareInfo->pAbsSecDesc = NULL;
+    }
+}
+
+
+NTSTATUS
+SrvShareSetSecurity(
+    IN  PSRV_SHARE_INFO pShareInfo,
+    IN  PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN  ULONG ulSecDescLen
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc = NULL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pAbsSecDesc = NULL;
+    ULONG ulAbsSecDescLen = 0;
+    PACL pDacl = NULL;
+    ULONG ulDaclLen = 0;
+    PACL pSacl = NULL;
+    ULONG ulSaclLen = 0;
+    PSID pOwner = NULL;
+    ULONG ulOwnerLen = 0;
+    PSID pGroup = NULL;
+    ULONG ulGroupLen = 0;
+
+    if ((pSecDesc == NULL) || (ulSecDescLen == 0))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Allocate space for the Relative SD */
+
+    ntStatus = SrvAllocateMemory(ulSecDescLen, (PVOID*)&pRelSecDesc);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LwRtlCopyMemory(pRelSecDesc, pSecDesc, ulSecDescLen);
+
+    /* Get sizes for the Absolute SD */
+
+    ntStatus = RtlSelfRelativeToAbsoluteSD(
+                   pRelSecDesc,
+                   pAbsSecDesc,
+                   &ulAbsSecDescLen,
+                   pDacl,
+                   &ulDaclLen,
+                   pSacl,
+                   &ulSaclLen,
+                   pOwner,
+                   &ulOwnerLen,
+                   pGroup,
+                   &ulGroupLen);
+    if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Allocate -- Always use RTL routines for Absolute SDs */
+
+    ntStatus = RTL_ALLOCATE(&pAbsSecDesc, VOID, ulSecDescLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (ulOwnerLen)
+    {
+        ntStatus = RTL_ALLOCATE(&pOwner, SID, ulOwnerLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (ulGroupLen)
+    {
+        ntStatus = RTL_ALLOCATE(&pGroup, SID, ulGroupLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (ulDaclLen)
+    {
+        ntStatus = RTL_ALLOCATE(&pDacl, VOID, ulDaclLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (ulSaclLen)
+    {
+        ntStatus = RTL_ALLOCATE(&pSacl, VOID, ulSaclLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Translate the SD */
+
+    ntStatus = RtlSelfRelativeToAbsoluteSD(
+                   pRelSecDesc,
+                   pAbsSecDesc,
+                   &ulAbsSecDescLen,
+                   pDacl,
+                   &ulDaclLen,
+                   pSacl,
+                   &ulSaclLen,
+                   pOwner,
+                   &ulOwnerLen,
+                   pGroup,
+                   &ulGroupLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Free the old SD and save the poiter to the new one */
+
+    SrvShareFreeSecurity(pShareInfo);
+
+    pShareInfo->pSecDesc = pRelSecDesc;
+    pShareInfo->ulSecDescLen = ulSecDescLen;
+    pShareInfo->pAbsSecDesc = pAbsSecDesc;
+
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+    if (pRelSecDesc)
+    {
+        SrvFreeMemory(pRelSecDesc);
+    }
+
+    if (pAbsSecDesc)
+    {
+        SrvShareFreeAbsoluteSecurityDescriptor(&pAbsSecDesc);
+    }
+
+    goto cleanup;
+}
+
+
+/**
+ * ATTN: Always use RTL routines when allocating memory for
+ * PSECURITY_DESCRIPTOR_ABSOLUTE.  Else the Free() here will not
+ * be symmetic.
+ **/
+
+static
+VOID
+SrvShareFreeAbsoluteSecurityDescriptor(
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSID pOwner = NULL;
+    PSID pGroup = NULL;
+    PACL pDacl = NULL;
+    PACL pSacl = NULL;
+    BOOLEAN bDefaulted = FALSE;
+    BOOLEAN bPresent = FALSE;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+
+    if ((ppSecDesc == NULL) || (*ppSecDesc == NULL))
+    {
+        return;
+    }
+
+    pSecDesc = *ppSecDesc;
+
+    ntError = RtlGetOwnerSecurityDescriptor(pSecDesc, &pOwner, &bDefaulted);
+    ntError = RtlGetGroupSecurityDescriptor(pSecDesc, &pGroup, &bDefaulted);
+
+    ntError = RtlGetDaclSecurityDescriptor(pSecDesc, &bPresent, &pDacl, &bDefaulted);
+    ntError = RtlGetSaclSecurityDescriptor(pSecDesc, &bPresent, &pSacl, &bDefaulted);
+
+    RTL_FREE(&pSecDesc);
+    RTL_FREE(&pOwner);
+    RTL_FREE(&pGroup);
+    RTL_FREE(&pDacl);
+    RTL_FREE(&pSacl);
+
+    *ppSecDesc = NULL;
+
+    return;
+}
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -92,8 +92,11 @@ typedef struct _SRV_SHARE_INFO
     PWSTR pwszName;
     PWSTR pwszPath;
     PWSTR pwszComment;
-    PBYTE pSecDesc;
+
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDesc;
     ULONG ulSecDescLen;
+
+    PSECURITY_DESCRIPTOR_ABSOLUTE pAbsSecDesc;
 
     SHARE_SERVICE service;
 
@@ -179,6 +182,18 @@ SrvGetGuestShareAccessMask(
     ACCESS_MASK*   pMask
     );
 
+VOID
+SrvShareFreeSecurity(
+    IN PSRV_SHARE_INFO pShareInfo
+    );
+
+NTSTATUS
+SrvShareSetSecurity(
+    IN  PSRV_SHARE_INFO pShareInfo,
+    IN  PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN  ULONG ulSecDescLen
+    );
+
 NTSTATUS
 SrvShareInitList(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
@@ -248,3 +263,12 @@ SrvShareShutdown(
     );
 
 #endif /* __SHAREAPI_H__ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
