@@ -305,27 +305,37 @@ LwMapSecurityFreeContext(
     )
 {
     PLW_MAP_SECURITY_CONTEXT context = *Context;
-    BOOLEAN bInLock = FALSE;
 
+    // We must be coming into this block with the MapSecurityState
+    // mutex locked
     if (context)
     {
-        LOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+        if (context != gLwMapSecurityState.Context)
+        {
+            LwMapSecurityFreeContextInternal(&context);
+            goto cleanup;
+        }
 
-        ASSERT(context == gLwMapSecurityState.Context);
+        // This is our global Context
 
         gLwMapSecurityState.RefCount--;
-        ASSERT(gLwMapSecurityState.RefCount >= 0);
+        if (gLwMapSecurityState.RefCount < 0)
+        {
+            // Logic error.  Bail out.  May leak memory.
+            goto cleanup;
+        }
 
         if ((0 == gLwMapSecurityState.RefCount) &&
             (0 == gLwMapSecurityState.InitCount))
         {
             LwMapSecurityFreeContextInternal(&gLwMapSecurityState.Context);
         }
-
-        UNLOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
-
-        *Context = NULL;
     }
+
+cleanup:
+    *Context = NULL;
+
+    return;
 }
 
 VOID
