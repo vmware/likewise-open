@@ -71,6 +71,14 @@ PvfsClose(
 
     pCcb->bCloseInProgress = TRUE;
 
+    if (pCcb->bPendingDeleteHandle)
+    {
+        /* delete-on-close-handle becomes delete-on-close-file */
+
+        PvfsFcbSetPendingDelete(pCcb->pFcb, TRUE);
+    }
+
+
     /* Call closedir() for directions and close() for files */
 
     if (PVFS_IS_DIR(pCcb))

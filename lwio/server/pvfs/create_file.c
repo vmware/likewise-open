@@ -189,7 +189,7 @@ PvfsCreateFileSupersede(
                       &pCreateCtx->pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
-        if (pCreateCtx->pFcb->bDeleteOnClose)
+        if (PvfsFcbIsPendingDelete(pCreateCtx->pFcb))
         {
             ntError = STATUS_DELETE_PENDING;
             BAIL_ON_NT_STATUS(ntError);
@@ -461,7 +461,7 @@ PvfsCreateFileOpenOrOverwrite(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    if (pCreateCtx->pFcb->bDeleteOnClose)
+    if (PvfsFcbIsPendingDelete(pCreateCtx->pFcb))
     {
         ntError = STATUS_DELETE_PENDING;
         BAIL_ON_NT_STATUS(ntError);

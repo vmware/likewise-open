@@ -208,7 +208,7 @@ PvfsCreateFileDoSysOpen(
 
     if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
     {
-        pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
+        pCreateContext->pCcb->bPendingDeleteHandle = TRUE;
     }
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
@@ -358,7 +358,7 @@ PvfsCreateDirDoSysOpen(
             BAIL_ON_NT_STATUS(ntError);
         }
 
-        pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
+        pCreateContext->pCcb->bPendingDeleteHandle = TRUE;
     }
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);

@@ -259,7 +259,6 @@ struct _PVFS_FCB
     PSTR pszFilename;
     /* End rwlockFileName */
 
-
     /* rwCcbLock */
     pthread_rwlock_t rwCcbLock;     /* For managing the CCB list */
     PPVFS_LIST pCcbList;
@@ -332,6 +331,7 @@ struct _PVFS_CCB
     pthread_mutex_t ControlBlock;   /* Use for CCB SetFileInfo operations */
 
     LONG RefCount;
+    BOOLEAN bPendingDeleteHandle;
     BOOLEAN bCloseInProgress;
 
     /* Open fd to the File or Directory */

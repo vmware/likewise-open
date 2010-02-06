@@ -355,7 +355,7 @@ PvfsFillOpenFileInfo100(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pInfo100->bDeleteOnClose = pFcb->bDeleteOnClose;
+    pInfo100->bDeleteOnClose = PvfsFcbIsPendingDelete(pFcb);
 
     pInfo100->NextEntryOffset = 0;
     pInfo100->FileNameLength = FilenameByteCount;
