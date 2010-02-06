@@ -1482,6 +1482,9 @@ static BOOLEAN PamModulePrompts( const char * phase, const char * module)
     // This module is used on Max OS X 10.6 - Snow Leopard
     if(!strcmp(buffer, "pam_opendirectory"))
         return TRUE;
+    // Used on Mandriva 2009 as an alternative to pam_unix
+    if (!strcmp(buffer, "pam_tcb"))
+        return TRUE;
 
     /* pam_lwidentity will only prompt for domain users during the password phase. All in all, it doesn't store passwords for subsequent modules in the password phase. */
     if(PamModuleIsLwidentity(phase, module) && !strcmp(phase, "auth"))
@@ -1552,6 +1555,8 @@ static BOOLEAN PamModuleDenies( const char * phase, const char * module)
     if(!strcmp(buffer, "pam_authtok_get"))
         return FALSE;
     if(!strcmp(buffer, "pam_permit"))
+        return FALSE;
+    if(!strcmp(buffer, "pam_env"))
         return FALSE;
 
     /* Assume that the module sometimes denies logins */
@@ -2390,6 +2395,16 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
             if(!strcmp(normalizedService, "useradd"))
                 goto cleanup;
             if(!strcmp(normalizedService, "gnome-screensaver-smartcard"))
+                goto cleanup;
+            /* The 5.4 update of RHEL 5 has "auth sufficient pam_env.so".  This
+             * lets all users through, but it is only called by the cron daemon
+             * when running jobs for the user. Only the setcred phase of auth
+             * is called, so crond is unable to check passwords anyway.
+
+             * The cron section is not used to determine who can edit their
+             * crontab.
+             */
+            if (!strcmp(normalizedService, "crond"))
                 goto cleanup;
 
             DJ_LOG_ERROR("Nothing seems to be protecting logins for service %s", service);
