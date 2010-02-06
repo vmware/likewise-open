@@ -50,7 +50,7 @@
 #include "util_sid.h"
 #include "lwps-def.h"
 #include "lwps-validate.h"
-#include "lwps-logger.h"
+#include "lwps-logging.h"
 #include "lwps-mem.h"
 #include <string.h>
 #include <stdio.h>

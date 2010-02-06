@@ -143,14 +143,11 @@ PvfsSetFileDispositionInfo(
             }
         }
 
-        pCcb->pFcb->bDeleteOnClose = TRUE;
-        pCcb->CreateOptions &= FILE_DELETE_ON_CLOSE;
+        PvfsFcbSetPendingDelete(pCcb->pFcb, TRUE);
     }
     else
     {
-        /* Clear */
-        pCcb->pFcb->bDeleteOnClose = FALSE;
-        pCcb->CreateOptions &= ~FILE_DELETE_ON_CLOSE;
+        PvfsFcbSetPendingDelete(pCcb->pFcb, FALSE);
     }
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);

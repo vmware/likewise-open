@@ -957,7 +957,6 @@ typedef struct _SRV_GET_INFO_STATE_SMB_V2
 
     PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader; // Do not free
 
-    PLWIO_SRV_CONNECTION          pConnection;
     PLWIO_SRV_FILE_2              pFile;
 
     PBYTE                         pData2;

@@ -386,6 +386,7 @@ AC_CONFIG_FILES([Makefile
 		 tools/dump_machine_account/Makefile
                  etc/Makefile
                  etc/pstore.reg
+		 logging/Makefile
                  ])
 
 if $ENABLE_TESTS

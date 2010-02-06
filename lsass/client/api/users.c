@@ -558,6 +558,12 @@ LsaGetNamesBySidList(
         &ppObjects);
     BAIL_ON_LSA_ERROR(dwError);
 
+    if (ppObjects[0] == NULL)
+    {
+        dwError = LW_ERROR_NO_SUCH_OBJECT;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
     dwError = LwAllocateMemory(sizeof(*pSidInfo) * sCount, OUT_PPVOID(&pSidInfo));
     BAIL_ON_LSA_ERROR(dwError);
 

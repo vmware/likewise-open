@@ -1444,8 +1444,6 @@ SrvBuildFileAllInfoResponse_SMB_V2(
     ULONG                      iMsg          = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
-    PWSTR                      pwszTreePath  = NULL; // Do not free
-    BOOLEAN                    bTreeInLock   = FALSE;
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
@@ -1545,35 +1543,15 @@ SrvBuildFileAllInfoResponse_SMB_V2(
     pFileAllInfoHeader->ulAlignment =
                         pFileAllInfo->AlignmentInformation.AlignmentRequirement;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb2->pTree->mutex);
+    pFileAllInfoHeader->ulFilenameLength =
+            pFileAllInfo->NameInformation.FileNameLength;
 
-    ntStatus = SrvGetTreeRelativePath(
-                    pCtxSmb2->pTree->pShareInfo->pwszPath,
-                    &pwszTreePath);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (SrvMatchPathPrefix(
-                pFileAllInfo->NameInformation.FileName,
-                pFileAllInfo->NameInformation.FileNameLength/sizeof(wchar16_t),
-                pwszTreePath) != STATUS_SUCCESS)
+    if (pFileAllInfoHeader->ulFilenameLength)
     {
-        ntStatus = STATUS_INTERNAL_ERROR;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        ULONG ulPrefixLength = wc16slen(pwszTreePath) * sizeof(wchar16_t);
-
-        pFileAllInfoHeader->ulFilenameLength =
-                pFileAllInfo->NameInformation.FileNameLength - ulPrefixLength;
-
-        if (pFileAllInfoHeader->ulFilenameLength)
-        {
-            memcpy(
-                pOutBuffer,
-                (PBYTE)pFileAllInfo->NameInformation.FileName + ulPrefixLength,
-                pFileAllInfoHeader->ulFilenameLength);
-        }
+        memcpy(
+            pOutBuffer,
+            (PBYTE)pFileAllInfo->NameInformation.FileName,
+            pFileAllInfoHeader->ulFilenameLength);
     }
 
     // pOutBuffer += pGetInfoResponseHeader->ulOutBufferLength;
@@ -1583,8 +1561,6 @@ SrvBuildFileAllInfoResponse_SMB_V2(
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb2->pTree->mutex);
 
     return ntStatus;
 

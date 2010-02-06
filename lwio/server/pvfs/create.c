@@ -151,6 +151,12 @@ PvfsCreateFileDoSysOpen(
     PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     FILE_CREATE_RESULT CreateResult = 0;
 
+    ntError = PvfsEnforceShareMode(
+                   pCreateContext->pFcb,
+                   Args.ShareAccess,
+                   pCreateContext->GrantedAccess);
+    BAIL_ON_NT_STATUS(ntError);
+
     /* Do the open() */
 
     ntError = MapPosixOpenFlags(&unixFlags, pCreateContext->GrantedAccess, Args);
@@ -202,7 +208,7 @@ PvfsCreateFileDoSysOpen(
 
     if (Args.CreateOptions & FILE_DELETE_ON_CLOSE)
     {
-        pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
+        pCreateContext->pCcb->bPendingDeleteHandle = TRUE;
     }
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
@@ -352,7 +358,7 @@ PvfsCreateDirDoSysOpen(
             BAIL_ON_NT_STATUS(ntError);
         }
 
-        pCreateContext->pCcb->pFcb->bDeleteOnClose = TRUE;
+        pCreateContext->pCcb->bPendingDeleteHandle = TRUE;
     }
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);

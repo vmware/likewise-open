@@ -885,6 +885,7 @@ DWORD
 LwTranslateKrb5Error(
     krb5_context ctx,
     krb5_error_code krbError,
+    PCSTR pszFunction,
     PCSTR pszFile,
     DWORD dwLine
     )
@@ -899,7 +900,8 @@ LwTranslateKrb5Error(
     }
     if (pszKrb5Error)
     {
-        LW_LOG_ERROR("KRB5 Error at %s:%d: [Code:%d] [Message: %s]",
+        LW_LOG_WARNING("[%s %s:%d] KRB5 Error code: %d (Message: %s)",
+                pszFunction,
                 pszFile,
                 dwLine,
                 krbError,
@@ -907,7 +909,8 @@ LwTranslateKrb5Error(
     }
     else
     {
-        LW_LOG_ERROR("KRB5 Error at %s:%d [Code:%d]",
+        LW_LOG_WARNING("[%s %s:%d] KRB5 Error code: %d",
+                pszFunction,
                 pszFile,
                 dwLine,
                 krbError);

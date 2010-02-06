@@ -55,7 +55,6 @@ static
 NTSTATUS
 SrvBuildGetInfoState_SMB_V2(
     PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
-    PLWIO_SRV_CONNECTION          pConnection,
     PLWIO_SRV_FILE_2              pFile,
     PSRV_GET_INFO_STATE_SMB_V2*   ppGetInfoState
     );
@@ -151,7 +150,6 @@ SrvProcessGetInfo_SMB_V2(
 
         ntStatus = SrvBuildGetInfoState_SMB_V2(
                             pRequestHeader,
-                            pConnection,
                             pFile,
                             &pGetInfoState);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -249,7 +247,6 @@ static
 NTSTATUS
 SrvBuildGetInfoState_SMB_V2(
     PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader,
-    PLWIO_SRV_CONNECTION          pConnection,
     PLWIO_SRV_FILE_2              pFile,
     PSRV_GET_INFO_STATE_SMB_V2*   ppGetInfoState
     )
@@ -270,8 +267,6 @@ SrvBuildGetInfoState_SMB_V2(
     pGetInfoState->stage = SRV_GET_INFO_STAGE_SMB_V2_INITIAL;
 
     pGetInfoState->pRequestHeader = pRequestHeader;
-
-    pGetInfoState->pConnection = SrvConnectionAcquire(pConnection);
 
     pGetInfoState->pFile = SrvFile2Acquire(pFile);
 
@@ -503,11 +498,6 @@ SrvFreeGetInfoState_SMB_V2(
     if (pGetInfoState->pFile)
     {
         SrvFile2Release(pGetInfoState->pFile);
-    }
-
-    if (pGetInfoState->pConnection)
-    {
-        SrvConnectionRelease(pGetInfoState->pConnection);
     }
 
     if (pGetInfoState->pMutex)

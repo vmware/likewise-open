@@ -1,6 +1,7 @@
 include_HEADERS = \
 	lwdef.h \
 	lwerror.h \
+	lwlogging.h \
 	lwfile.h \
 	lwkrb5.h \
 	lwldap.h \

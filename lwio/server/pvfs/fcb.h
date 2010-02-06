@@ -172,6 +172,18 @@ PvfsRenameFCB(
     PCSTR pszNewFilename
     );
 
+BOOLEAN
+PvfsFcbIsPendingDelete(
+    PPVFS_FCB pFcb
+    );
+
+VOID
+PvfsFcbSetPendingDelete(
+    PPVFS_FCB pFcb,
+    BOOLEAN bPendingDelete
+    );
+
+
 #endif   /* _PVFS_FCB_H */
 
 /*

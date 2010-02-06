@@ -1227,6 +1227,41 @@ error:
     goto cleanup;
 }
 
+
+/*****************************************************************************
+ ****************************************************************************/
+
+BOOLEAN
+PvfsFcbIsPendingDelete(
+    PPVFS_FCB pFcb
+    )
+{
+    BOOLEAN bPendingDelete = FALSE;
+    BOOLEAN bIsLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bIsLocked, &pFcb->ControlBlock);
+    bPendingDelete = pFcb->bDeleteOnClose;
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pFcb->ControlBlock);
+
+    return bPendingDelete;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+VOID
+PvfsFcbSetPendingDelete(
+    PPVFS_FCB pFcb,
+    BOOLEAN bPendingDelete
+    )
+{
+    BOOLEAN bIsLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bIsLocked, &pFcb->ControlBlock);
+    pFcb->bDeleteOnClose = bPendingDelete;
+    LWIO_UNLOCK_MUTEX(bIsLocked, &pFcb->ControlBlock);
+}
+
 /*
 local variables:
 mode: c

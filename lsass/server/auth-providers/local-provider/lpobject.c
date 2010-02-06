@@ -884,6 +884,7 @@ LocalDirOpenEnumMembers(
             wszEnumAttrs,
             &hEnum->pEntries,
             &hEnum->dwCount);
+        BAIL_ON_LSA_ERROR(dwError);
     }
 
     *phEnum = hEnum;

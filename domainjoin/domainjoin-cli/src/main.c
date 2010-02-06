@@ -96,7 +96,7 @@ ShowUsageInternal()
     fprintf(stdout, "    configure { --enable | --disable } pam [--testprefix <dir>]\n");
     fprintf(stdout, "    configure { --enable | --disable } nsswitch [--testprefix <dir>]\n");
     fprintf(stdout, "    configure { --enable | --disable } ssh [--testprefix <dir>]\n");
-    fprintf(stdout, "    configure { --enable | --disable } krb5 [--testprefix <dir>] [--long <longdomain>] [--short <shortdomain>]\n");
+    fprintf(stdout, "    configure { --enable | --disable } [--testprefix <dir>] [--long <longdomain>] [--short <shortdomain>] krb5\n");
     fprintf(stdout, "    configure { --enable | --disable } firewall [--testprefix <dir>]\n");
     fprintf(stdout, "    configure { --enable | --disable } eventfwdd\n");
     fprintf(stdout, "    configure { --enable | --disable } reapsysld\n");

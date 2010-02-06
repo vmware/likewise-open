@@ -56,7 +56,7 @@
 
 #include "lwps-def.h"
 #include "lwps-mem.h"
-#include "lwps-logger.h"
+#include "lwps-logging.h"
 #include "lwps-str.h"
 #include "lwps-stack.h"
 #include "lwps-futils.h"

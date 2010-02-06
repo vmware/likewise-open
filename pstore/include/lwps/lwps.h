@@ -187,5 +187,30 @@ LwpsGetErrorString(
     size_t stBufSize
     );
 
-#endif /* __LWPS_H__ */
+typedef enum
+{
+    LWPS_LOG_LEVEL_ALWAYS = 0,
+    LWPS_LOG_LEVEL_ERROR,
+    LWPS_LOG_LEVEL_WARNING,
+    LWPS_LOG_LEVEL_INFO,
+    LWPS_LOG_LEVEL_VERBOSE,
+    LWPS_LOG_LEVEL_DEBUG
+} LwpsLogLevel;
 
+typedef VOID (*PLWPS_LOG_CALLBACK)(LwpsLogLevel level, PVOID pUserData, PCSTR pszMessage);
+
+DWORD
+LwpsSetLogFunction(
+    IN LwpsLogLevel maxLevel,
+    IN PLWPS_LOG_CALLBACK pCallback,
+    IN PVOID pUserData
+    );
+
+DWORD
+LwpsLogMessage(
+    IN LwpsLogLevel level,
+    IN PCSTR pszFormat,
+    ...
+    );
+
+#endif /* __LWPS_H__ */

@@ -34,7 +34,7 @@
     do { \
         if (dwError) \
         { \
-            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            LW_LOG_DEBUG("[%s() %s:%d] Error code: %d (symbol: %s)", __FUNCTION__, __FILE__, __LINE__, dwError, LW_SAFE_LOG_STRING(LwWin32ErrorToName(dwError))); \
             goto error; \
         } \
     } while (0)
@@ -44,7 +44,7 @@
         if (dwError) \
         { \
             dwError = LwMapLdapErrorToLwError(dwError); \
-            LW_LOG_DEBUG("Error at %s:%d [code: %d]", __FILE__, __LINE__, dwError); \
+            LW_LOG_DEBUG("[%s() %s:%d] Ldap error code: %d", __FUNCTION__, __FILE__, __LINE__, dwError); \
             goto error; \
         } \
     } while (0)

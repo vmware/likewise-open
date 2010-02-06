@@ -73,6 +73,7 @@ PvfsAllocateCCB(
     pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
+    pCCB->bPendingDeleteHandle = FALSE;
     pCCB->bCloseInProgress = FALSE;
     pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
 
