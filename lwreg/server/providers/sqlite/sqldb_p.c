@@ -1107,18 +1107,21 @@ RegDbSafeRecordSubKeysInfo_inlock(
         goto cleanup;
     }
 
-    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppwszSubKeyNames, PWSTR, sizeof(*(pKeyResult->ppwszSubKeyNames)) * sCacheCount);
+    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppwszSubKeyNames,
+		                 PWSTR,
+		                 sizeof(*(pKeyResult->ppwszSubKeyNames)) * sCacheCount);
     BAIL_ON_NT_STATUS(status);
 
     for (iCount = 0; iCount < (DWORD)sCacheCount; iCount++)
     {
-        status = LwRtlWC16StringDuplicate(&pKeyResult->ppwszSubKeyNames[iCount], ppRegEntries[iCount]->pwszFullKeyName);
+        status = LwRtlWC16StringDuplicate(&pKeyResult->ppwszSubKeyNames[iCount],
+			                          ppRegEntries[iCount]->pwszFullKeyName);
         BAIL_ON_NT_STATUS(status);
 
 		if (ppRegEntries[iCount]->pwszFullKeyName)
 		{
 			sSubKeyLen = RtlWC16StringNumChars(ppRegEntries[iCount]->pwszFullKeyName);
-		}
+	    }
 
 		if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
 			pKeyResult->sMaxSubKeyLen = sSubKeyLen;

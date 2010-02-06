@@ -191,7 +191,17 @@ NtRegCreateKeyExW(
     OUT OPTIONAL PDWORD pdwDisposition
     )
 {
-    return RegTransactCreateKeyExW(
+    NTSTATUS status = 0;
+
+    BAIL_ON_NT_INVALID_POINTER(pSubKey);
+
+    if (wc16slen(pSubKey) > MAX_KEY_LENGTH)
+    {
+	status = STATUS_INVALID_BLOCK_LENGTH;
+	BAIL_ON_NT_STATUS(status);
+    }
+
+	status = RegTransactCreateKeyExW(
         hRegConnection,
         hKey,
         pSubKey,
@@ -203,6 +213,13 @@ NtRegCreateKeyExW(
         phkResult,
         pdwDisposition
         );
+	BAIL_ON_NT_STATUS(status);
+
+cleanup:
+    return status;
+
+error:
+    goto cleanup;
 }
 
 REG_API

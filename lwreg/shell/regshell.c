@@ -384,6 +384,7 @@ RegShellExportFile(
 {
     DWORD dwError = 0;
     DWORD dwSubKeysCount = 0;
+    DWORD dwMaxSubKeyLen = 0;
     char szRegFileName[PATH_MAX + 1];
     FILE* fp = NULL;
     HKEY hSubKey = NULL;
@@ -491,7 +492,7 @@ RegShellExportFile(
                   NULL,
                   NULL,
                   &dwSubKeysCount,
-                  NULL,
+                  &dwMaxSubKeyLen,
                   NULL,
                   NULL,
                   NULL,
@@ -503,7 +504,8 @@ RegShellExportFile(
                                  fp,
                                  hSubKey,
                                  pszRootFullPath,
-                                 dwSubKeysCount);
+                                 dwSubKeysCount,
+                                 dwMaxSubKeyLen);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
