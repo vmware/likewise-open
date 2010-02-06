@@ -292,8 +292,9 @@ SrvMarshalNegotiateResponse_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pNegotiateHeader->ullCurrentTime = llCurTime;
-    // TODO: Figure out boot time
-    pNegotiateHeader->ullBootTime = llCurTime;
+
+    ntStatus = SrvElementsGetBootTime(&pNegotiateHeader->ullBootTime);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(&pNegotiateHeader->serverGUID[0],
             pServerProperties->GUID,

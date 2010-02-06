@@ -1127,6 +1127,11 @@ SrvReleaseExecContext(
    );
 
 NTSTATUS
+SrvElementsGetBootTime(
+    PULONG64 pullBootTime
+    );
+
+NTSTATUS
 SrvElementsShutdown(
     VOID
     );

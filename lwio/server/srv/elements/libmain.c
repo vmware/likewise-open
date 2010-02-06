@@ -57,6 +57,9 @@ SrvElementsInit(
     NTSTATUS status = STATUS_SUCCESS;
     int      iIter = 0;
 
+    status = WireGetCurrentNTTime(&gSrvElements.llBootTime);
+    BAIL_ON_NT_STATUS(status);
+
     while (!RAND_status() && (iIter++ < 10))
     {
         uuid_t uuid;
@@ -104,6 +107,25 @@ SrvTimerCancelRequest(
                 &gSrvElements.timer,
                 pTimerRequest,
                 ppUserData);
+}
+
+NTSTATUS
+SrvElementsGetBootTime(
+    PULONG64 pullBootTime
+    )
+{
+    LONG64   llBootTime = 0LL;
+    BOOLEAN  bInLock    = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+
+    llBootTime = gSrvElements.llBootTime;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+
+    *pullBootTime = llBootTime;
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS
