@@ -54,8 +54,6 @@ typedef struct {
     DWORD dwLogLevel;
     /* log file path */
     char szLogFilePath[PATH_MAX + 1];
-    /* config file path */
-    char szConfigFilePath[PATH_MAX + 1];
     /* Cache path */
     char szCachePath[PATH_MAX+1];
     /* Prefix path */
@@ -79,12 +77,6 @@ typedef struct {
 } SRVSVC_CONFIG, *PSRVSVC_CONFIG;
 
 extern SRVSVC_CONFIG gServerConfig;
-
-
-DWORD
-SrvSvcGetConfigPath(
-    PSTR* ppszPath
-    );
 
 DWORD
 SrvSvcGetCachePath(

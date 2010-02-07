@@ -1,8 +1,6 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define DEFAULT_CONFIG_FILE_PATH CONFIGDIR "/srvsvcd.conf"
-
 #define DEFAULT_LSALPC_SOCKET_PATH CACHEDIR "/rpc/lsass"
 
 #define ERROR_NOT_SUPPORTED 50

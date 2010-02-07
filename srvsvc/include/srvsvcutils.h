@@ -58,44 +58,6 @@
 
 #endif
 
-typedef DWORD (*PFN_SRVSVC_FOREACH_STACK_ITEM)(
-                    PVOID pItem,
-                    PVOID pUserData
-                    );
-
-typedef struct __SRVSVC_STACK
-{
-    PVOID pItem;
-
-    struct __SRVSVC_STACK * pNext;
-
-} SRVSVC_STACK, *PSRVSVC_STACK;
-
-/*
- * Config parsing callbacks
- */
-typedef DWORD (*PFNCONFIG_START_SECTION)(
-                        PCSTR    pszSectionName,
-                        PBOOLEAN pbSkipSection,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_COMMENT)(
-                        PCSTR    pszComment,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_NAME_VALUE_PAIR)(
-                        PCSTR    pszName,
-                        PCSTR    pszValue,
-                        PBOOLEAN pbContinue
-                        );
-
-typedef DWORD (*PFNCONFIG_END_SECTION)(
-                        PCSTR pszSectionName,
-                        PBOOLEAN pbContinue
-                        );
-
 typedef struct _LOGFILEINFO {
     CHAR szLogPath[PATH_MAX+1];
     FILE* logHandle;
@@ -201,66 +163,6 @@ SrvSvcAllocateStringPrintfV(
     PSTR*   ppszOutputString,
     PCSTR   pszFormat,
     va_list args
-    );
-
-DWORD
-SrvSvcStackPush(
-    PVOID pItem,
-    PSRVSVC_STACK* ppStack
-    );
-
-PVOID
-SrvSvcStackPop(
-    PSRVSVC_STACK* ppStack
-    );
-
-PVOID
-SrvSvcStackPeek(
-    PSRVSVC_STACK pStack
-    );
-
-DWORD
-SrvSvcStackForeach(
-    PSRVSVC_STACK pStack,
-    PFN_SRVSVC_FOREACH_STACK_ITEM pfnAction,
-    PVOID pUserData
-    );
-
-PSRVSVC_STACK
-SrvSvcStackReverse(
-    PSRVSVC_STACK pStack
-    );
-
-VOID
-SrvSvcStackFree(
-    PSRVSVC_STACK pStack
-    );
-
-DWORD
-SrvSvcParseConfigFile(
-    PCSTR                     pszFilePath,
-    PFNCONFIG_START_SECTION   pfnStartSectionHandler,
-    PFNCONFIG_COMMENT         pfnCommentHandler,
-    PFNCONFIG_NAME_VALUE_PAIR pfnNameValuePairHandler,
-    PFNCONFIG_END_SECTION     pfnEndSectionHandler
-    );
-
-DWORD
-SrvSvcParseDays(
-    PCSTR  pszTimeInterval,
-    PDWORD pdwTimeInterval
-    );
-
-DWORD
-SrvSvcParseDiskUsage(
-    PCSTR  pszDiskUsage,
-    PDWORD pdwDiskUsage
-    );
-
-DWORD
-SrvSvcParseMaxEntries(
-    PCSTR  pszMaxEntries,
-    PDWORD pdwMaxEntries
     );
 
 DWORD

@@ -48,15 +48,14 @@
 
 SRVSVCSERVERINFO gServerInfo =
 {
-    PTHREAD_MUTEX_INITIALIZER,  /* Lock              */
-    0,                          /* Start as daemon   */
-    LOG_LEVEL_ERROR,            /* Max Log Level     */
-    "",                         /* Log file path     */
-    "",                         /* Config file path  */
-    "",                         /* Cache path        */
-    "",                         /* Prefix path       */
-    0,                          /* Process exit flag */
-    0                           /* Process exit code */
+    .lock               = PTHREAD_MUTEX_INITIALIZER,  /* Lock              */
+    .dwStartAsDaemon    = 0,                          /* Start as daemon   */
+    .dwLogLevel         = LOG_LEVEL_ERROR,            /* Max Log Level     */
+    .szLogFilePath      = "",                         /* Log file path     */
+    .szCachePath        = "",                         /* Cache path        */
+    .szPrefixPath       = "",                         /* Prefix path       */
+    .bProcessShouldExit = 0,                          /* Process exit flag */
+    .dwExitCode         = 0                           /* Process exit code */
 };
 
 #define SRVSVC_LOCK_SERVERINFO   pthread_mutex_lock(&gServerInfo.lock)
@@ -220,22 +219,6 @@ SrvSvcGetCachePath(
 }
 
 DWORD
-SrvSvcGetConfigPath(
-    PSTR* ppszPath
-    )
-{
-    DWORD dwError = 0;
-
-    SRVSVC_LOCK_SERVERINFO;
-
-    dwError = LwAllocateString(gServerInfo.szConfigFilePath, ppszPath);
-
-    SRVSVC_UNLOCK_SERVERINFO;
-
-    return (dwError);
-}
-
-DWORD
 SrvSvcGetPrefixPath(
     PSTR* ppszPath
     )
@@ -276,8 +259,8 @@ ShowUsage(
 {
     printf("Usage: %s [--start-as-daemon]\n"
             "          [--logfile logFilePath]\n"
-            "          [--loglevel {0, 1, 2, 3, 4, 5}]\n"
-            "          [--configfile configfilepath]\n", pszProgramName);
+            "          [--loglevel {0, 1, 2, 3, 4, 5}]\n",
+            pszProgramName);
 }
 
 void
@@ -308,7 +291,6 @@ SrvSvcParseArgs(
 {
     typedef enum {
         PARSE_MODE_OPEN = 0,
-        PARSE_MODE_CONFIGFILE,
         PARSE_MODE_LOGFILE,
         PARSE_MODE_LOGLEVEL
     } ParseMode;
@@ -339,9 +321,6 @@ SrvSvcParseArgs(
                 }
                 else if (strcmp(pArg, "--start-as-daemon") == 0) {
                     pSRVSVCServerInfo->dwStartAsDaemon = 1;
-                }
-                else if (strcmp(pArg, "--configfile") == 0) {
-                    parseMode = PARSE_MODE_CONFIGFILE;
                 }
                 else if (strcmp(pArg, "--loglevel") == 0) {
                     parseMode = PARSE_MODE_LOGLEVEL;
@@ -375,14 +354,6 @@ SrvSvcParseArgs(
                 pSRVSVCServerInfo->dwLogLevel = dwLogLevel;
 
                 parseMode = PARSE_MODE_OPEN;
-            }
-            break;
-            case PARSE_MODE_CONFIGFILE:
-            {
-                strncpy(pSRVSVCServerInfo->szConfigFilePath, pArg, PATH_MAX);
-                *(pSRVSVCServerInfo->szConfigFilePath+PATH_MAX) = '\0';
-                parseMode = PARSE_MODE_OPEN;
-
             }
             break;
         }
@@ -583,8 +554,6 @@ SrvSvcSetServerDefaults()
 
     *(gServerInfo.szLogFilePath) = '\0';
 
-    memset(gServerInfo.szConfigFilePath, 0, PATH_MAX+1);
-    strncpy(gServerInfo.szConfigFilePath, DEFAULT_CONFIG_FILE_PATH, PATH_MAX);
     strcpy(gServerInfo.szCachePath, CACHEDIR);
     strcpy(gServerInfo.szPrefixPath, PREFIXDIR);
 
@@ -651,106 +620,21 @@ SrvSvcStopSignalHandler()
     return (dwError);
 }
 
-/* call back functions to get the values from config file */
-DWORD
-SrvSvcConfigStartSection(
-    PCSTR    pszSectionName,
-    PBOOLEAN pbSkipSection,
-    PBOOLEAN pbContinue
-    )
-{
-
-    //This callback may not be required,retaining it for future
-    SRVSVC_LOG_VERBOSE("SrvSvcConfigStartSection: SECTION Name=%s", pszSectionName);
-
-    *pbSkipSection = FALSE;
-    *pbContinue = TRUE;
-
-    return 0;
-}
-
-DWORD
-SrvSvcConfigComment(
-    PCSTR    pszComment,
-    PBOOLEAN pbContinue
-    )
-{
-    //This callback may not be required,retaining it for future
-    SRVSVC_LOG_VERBOSE("SrvSvcConfigComment: %s",
-        (IsNullOrEmptyString(pszComment) ? "" : pszComment));
-
-    *pbContinue = TRUE;
-
-    return 0;
-}
-
-DWORD
-SrvSvcConfigNameValuePair(
-    PCSTR    pszName,
-    PCSTR    pszValue,
-    PBOOLEAN pbContinue
-    )
-{
-
-    //strip the white spaces
-    SrvSvcStripWhitespace((PSTR)pszName,1,1);
-    SrvSvcStripWhitespace((PSTR)pszValue,1,1);
-
-    SRVSVC_LOG_INFO("SrvSvcConfigNameValuePair: NAME=%s, VALUE=%s",
-        (IsNullOrEmptyString(pszName) ? "" : pszName),
-        (IsNullOrEmptyString(pszValue) ? "" : pszValue));
-
-    *pbContinue = TRUE;
-
-    return 0;
-}
-
-DWORD
-SrvSvcConfigEndSection(
-    PCSTR pszSectionName,
-    PBOOLEAN pbContinue
-    )
-{
-    //This callback may not be required,retaining it for future
-    SRVSVC_LOG_VERBOSE("SrvSvcConfigEndSection: SECTION Name=%s", pszSectionName);
-
-    *pbContinue = TRUE;
-
-    return 0;
-}
-
 
 static
 DWORD
 SrvSvcReadConfigSettings()
 {
     DWORD dwError = 0;
-    PSTR pszConfigFilePath = NULL;
 
     SRVSVC_LOG_INFO("Read Likewise Server Service configuration settings");
 
     dwError = SrvSvcSetConfigDefaults();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcGetConfigPath(&pszConfigFilePath);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = SrvSvcParseConfigFile(
-                pszConfigFilePath,
-                &SrvSvcConfigStartSection,
-                &SrvSvcConfigComment,
-                &SrvSvcConfigNameValuePair,
-                &SrvSvcConfigEndSection);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-cleanup:
-    LW_SAFE_FREE_MEMORY(pszConfigFilePath);
+error:
 
     return dwError;
-
-error:
-    goto cleanup;
-
 }
 
 static
@@ -995,7 +879,7 @@ main(
     dwError = SrvSvcReadConfigSettings();
     if (dwError != 0)
     {
-        SRVSVC_LOG_ERROR("Failed to read srvsvcd config file.  Error code: [%u]\n", dwError);
+        SRVSVC_LOG_ERROR("Failed set configuration settings.  Error code: [%u]\n", dwError);
         dwError = 0;
     }
 
