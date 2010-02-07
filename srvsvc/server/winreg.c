@@ -97,7 +97,7 @@ _RegOpenHKLM(
     UINT32 *h = NULL;
 
     dwError = LwAllocateMemory(sizeof(*h), OUT_PPVOID(&h));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     *handle = h;
 
@@ -257,7 +257,7 @@ _RegOpenKey(
     UINT32 *h = NULL;
 
     dwError = LwWc16sToMbs(key_name.string, &pszKeyName);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (LwRtlCStringIsEqual(
             pszKeyName,
@@ -281,7 +281,7 @@ _RegOpenKey(
     if (dwError == ERROR_SUCCESS)
     {
         dwError = LwAllocateMemory(sizeof(UINT32), &h);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         *handle = (REGISTRY_HANDLE)h;
     }
@@ -331,7 +331,7 @@ _RegQueryValue(
     *buffer_len_ptr = 1;
 
     dwError = LwWc16sToMbs(value_name.string, &pszValueName);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (LwRtlCStringIsEqual(pszValueName, "ProductType", FALSE))
     {
@@ -344,10 +344,10 @@ _RegQueryValue(
         if ((*buffer_size > 0) && (dwPTValueLen <= *buffer_size))
         {
             //dwError = SrvSvcSrvAllocateMemory(*buffer_size, (PVOID*)buffer);
-            //BAIL_ON_ERROR(dwError);
+            //BAIL_ON_SRVSVC_ERROR(dwError);
 
             dwError = LwMbsToWc16s(pszProductTypeValue, &pwszProductTypeValue);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             memcpy(buffer, pwszProductTypeValue, sizeof(WCHAR)*dwPTValueLen);
             *buffer_len = dwPTValueLen * sizeof(WCHAR);

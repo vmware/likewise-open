@@ -13,6 +13,7 @@
 #include <srvsvc/srvsvc.h>
 #include <srvsvc/srvsvcdefs.h>
 
+#include <srvsvcdefs.h>
 #include "srvsvcutils.h"
 
 #include "sysfuncs_p.h"

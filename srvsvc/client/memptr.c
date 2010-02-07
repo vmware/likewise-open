@@ -182,7 +182,7 @@ cleanup:
     return status;
 
 error:
-    SAFE_FREE(list);
+    SRVSVC_SAFE_FREE(list);
     *out = NULL;
     goto cleanup;
 }
@@ -204,18 +204,18 @@ NTSTATUS MemPtrListDestroy(PtrList **out)
     while (node) {
         PtrNode *rmnode = NULL;
 
-        SAFE_FREE(node->ptr);
+        SRVSVC_SAFE_FREE(node->ptr);
 
         rmnode = node;
         node = node->next;
 
-        SAFE_FREE(rmnode);
+        SRVSVC_SAFE_FREE(rmnode);
     }
 
     ret = pthread_mutex_destroy(&list->mutex);
     if (ret) status = STATUS_UNSUCCESSFUL;
 
-    SAFE_FREE(list);
+    SRVSVC_SAFE_FREE(list);
     *out = NULL;
 
 cleanup:
@@ -274,10 +274,10 @@ cleanup:
 
 error:
     if (node && node->ptr) {
-        SAFE_FREE(node->ptr);
+        SRVSVC_SAFE_FREE(node->ptr);
     }
 
-    SAFE_FREE(node);
+    SRVSVC_SAFE_FREE(node);
     *out = NULL;
 
     goto cleanup;
@@ -352,7 +352,7 @@ cleanup:
 error:
     /* Only the node should be freed here. node->ptr should
        be left intact */
-    SAFE_FREE(node);
+    SRVSVC_SAFE_FREE(node);
     goto cleanup;
 }
 

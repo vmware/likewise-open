@@ -28,75 +28,47 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Centeris Corporation 2004-2007
+ * Copyright (C) Likewise Software 2007
+ * All rights reserved.
+ *
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
+ * Server Service Utilities
+ *
+ */
+
 #include "includes.h"
 
-
-NET_API_STATUS
-NetShareDel(
-    IN  PCWSTR  pwszServername,
-    IN  PCWSTR  pwszSharename,
-    IN  DWORD   dwReserved
+DWORD
+SrvSvcSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn
     )
 {
-    NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    RPCSTATUS rpcStatus = RPC_S_OK;
-    handle_t hBinding = NULL;
-    PSTR pszServername = NULL;
-    PIO_CREDS pCreds = NULL;
+    WINERR winError = 0;
+    PWSTR pwszStr = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszSharename, ntStatus);
-
-    if (pwszServername)
+    winError = SrvSvcSrvAllocateMemory(pIn->size * sizeof(WCHAR),
+                                       (PVOID*)&pwszStr);
+    if (winError)
     {
-        err = LwWc16sToMbs(pwszServername, &pszServername);
-        BAIL_ON_WIN_ERROR(err);
+        goto error;
     }
 
-    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
-					 pszServername,
-					 pCreds);
-    if (rpcStatus)
-    {
-        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    err = NetrShareDel(hBinding,
-                       pwszServername,
-                       pwszSharename,
-		       dwReserved);
-    BAIL_ON_WIN_ERROR(err);
+    wc16sncpy(pwszStr, pIn->string, pIn->len / sizeof(WCHAR));
+    *ppwszOut = pwszStr;
 
 cleanup:
-    if (hBinding)
-    {
-        FreeSrvSvcBinding(&hBinding);
-    }
-
-    SRVSVC_SAFE_FREE(pszServername);
-
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
-    {
-        err = LwNtStatusToWin32Error(ntStatus);
-    }
-
-    return err;
+    return winError;
 
 error:
+    if (pwszStr)
+    {
+        SrvSvcSrvFreeMemory(pwszStr);
+    }
+
+    *ppwszOut = NULL;
     goto cleanup;
 }
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

@@ -39,10 +39,7 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include <srvsvcsys.h>
 
 #include <dce/rpc.h>
 #include <dce/smb.h>
@@ -53,8 +50,11 @@
 #include <lwmem.h>
 
 #include <srvsvc/srvsvc.h>
+#include <srvsvcdefs.h>
+#include <srvsvcutils.h>
 #include <memptr.h>
-#include <macros.h>
+
+#include "defs.h"
 
 #include "srvsvc_h.h"
 

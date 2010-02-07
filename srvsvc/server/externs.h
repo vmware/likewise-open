@@ -1,8 +1,8 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern pthread_t  gSignalHandlerThread;
-extern pthread_t* pgSignalHandlerThread;
+extern SRVSVC_RUNTIME_GLOBALS  gServerInfo;
+extern PSRVSVC_RUNTIME_GLOBALS gpServerInfo;
 
 #endif /* __EXTERNS_H__ */
 

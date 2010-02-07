@@ -48,16 +48,6 @@
 #ifndef __SRVSVCUTILS_H__
 #define __SRVSVCUTILS_H__
 
-#ifndef _WIN32
-
-#define PATH_SEPARATOR_STR "/"
-
-#else
-
-#define PATH_SEPARATOR_STR "\\"
-
-#endif
-
 typedef struct _LOGFILEINFO {
     CHAR szLogPath[PATH_MAX+1];
     FILE* logHandle;
@@ -89,12 +79,6 @@ SrvSvcSrvAllocateMemory(
 void
 SrvSvcSrvFreeMemory(
     PVOID pMemory
-    );
-
-DWORD
-SrvSvcSrvGetFromUnicodeStringEx(
-    PWSTR *ppwszOut,
-    UnicodeStringEx *pIn
     );
 
 DWORD

@@ -65,8 +65,8 @@ NetrShareDel(
                               dwReserved));
 
 cleanup:
-    SAFE_FREE(pwszServer);
-    SAFE_FREE(pwszName);
+    SRVSVC_SAFE_FREE(pwszServer);
+    SRVSVC_SAFE_FREE(pwszName);
 
     if (err == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)

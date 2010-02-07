@@ -75,39 +75,6 @@ SrvSvcSrvFreeMemory(
 }
 
 
-DWORD
-SrvSvcSrvGetFromUnicodeStringEx(
-    PWSTR *ppwszOut,
-    UnicodeStringEx *pIn
-    )
-{
-    WINERR winError = 0;
-    PWSTR pwszStr = NULL;
-
-    winError = SrvSvcSrvAllocateMemory(pIn->size * sizeof(WCHAR),
-                                       (PVOID*)&pwszStr);
-    if (winError)
-    {
-        goto error;
-    }
-
-    wc16sncpy(pwszStr, pIn->string, pIn->len / sizeof(WCHAR));
-    *ppwszOut = pwszStr;
-
-cleanup:
-    return winError;
-
-error:
-    if (pwszStr)
-    {
-        SrvSvcSrvFreeMemory(pwszStr);
-    }
-
-    *ppwszOut = NULL;
-    goto cleanup;
-}
-
-
 #ifdef _WIN32
  void __RPC_FAR * __RPC_USER midl_user_allocate(size_t cBytes)
 {

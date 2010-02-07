@@ -34,6 +34,7 @@
   - --read-only --read-write
   - --clear-allow --clear-deny
 */
+#include "config.h"
 
 #include <lw/security-api.h>
 #include <srvsvc/srvsvc.h>
@@ -42,12 +43,9 @@
 #include <lwmem.h>
 #include <lwstr.h>
 #include <stdio.h>
-
-#define BAIL_ON_ERROR(s)                        \
-    do                                          \
-    {                                           \
-        if ((s)) goto error;                    \
-    } while (0)
+#include <sys/param.h>
+#include <srvsvcdefs.h>
+#include <srvsvcutils.h>
 
 static struct
 {
@@ -101,7 +99,7 @@ AppendStringArray(
         *pppwszArray,
         OUT_PPVOID(&ppwszNewArray),
         sizeof(*ppwszNewArray) * (*pdwCount + 1));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ppwszNewArray[(*pdwCount)++] = pwszString;
 
@@ -123,7 +121,7 @@ PrintStringAttribute(
     PSTR pszValue = NULL;
 
     dwError = LwWc16sToMbs(pwszValue, &pszValue);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     printf("%s=%s\n", pszName, pszValue);
 
@@ -150,43 +148,43 @@ ParseShareArgs(
         if (!strcmp(ppszArgv[dwIndex], "--allow"))
         {
             dwError = LwMbsToWc16s(ppszArgv[++dwIndex], &pwszArg);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             dwError = AppendStringArray(
                 &gState.dwAllowUserCount,
                 &gState.ppwszAllowUsers,
                 pwszArg);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             pwszArg = NULL;
         }
         else if (!strcmp(ppszArgv[dwIndex], "--deny"))
         {
             dwError = LwMbsToWc16s(ppszArgv[++dwIndex], &pwszArg);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             dwError = AppendStringArray(
                 &gState.dwDenyUserCount,
                 &gState.ppwszDenyUsers,
                 pwszArg);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             pwszArg = NULL;
         }
         else if (!strcmp(ppszArgv[dwIndex], "--name"))
         {
             dwError = LwMbsToWc16s(ppszArgv[++dwIndex], &gState.pwszName);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         }
         else if (!strcmp(ppszArgv[dwIndex], "--path"))
         {
             dwError = LwMbsToWc16s(ppszArgv[++dwIndex], &gState.pwszPath);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         }
         else if (!strcmp(ppszArgv[dwIndex], "--comment"))
         {
             dwError = LwMbsToWc16s(ppszArgv[++dwIndex], &gState.pwszComment);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         }
         else if (!strcmp(ppszArgv[dwIndex], "--read-only"))
         {
@@ -207,7 +205,7 @@ ParseShareArgs(
         else
         {
             dwError = LwMbsToWc16s(ppszArgv[dwIndex], &gState.pwszTarget);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
             break;
         }
     }
@@ -233,7 +231,7 @@ MapNameToSid(
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
 
     dwError = LwWc16sToMbs(pwszName, &pszName);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     QueryList.ppszStrings = (PCSTR*) &pszName;
 
@@ -246,17 +244,17 @@ MapNameToSid(
         1,
         QueryList,
         &ppObjects);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (ppObjects[0] == NULL)
     {
         dwError = LW_ERROR_NO_SUCH_OBJECT;
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     dwError = LwNtStatusToWin32Error(
         RtlAllocateSidFromCString(ppSid, ppObjects[0]->pszObjectSid));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
 
@@ -288,7 +286,7 @@ MapSidToName(
 
     dwError = LwNtStatusToWin32Error(
         RtlAllocateCStringFromSid(&pszSid, pSid));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     QueryList.ppszStrings = (PCSTR*) &pszSid;
 
@@ -301,12 +299,12 @@ MapSidToName(
         1,
         QueryList,
         &ppObjects);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (ppObjects[0] == NULL)
     {
         dwError = LW_ERROR_NO_SUCH_OBJECT;
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     dwError = LwNtStatusToWin32Error(
@@ -315,7 +313,7 @@ MapSidToName(
             L"%s\\%s",
             ppObjects[0]->pszNetbiosDomainName,
             ppObjects[0]->pszSamAccountName));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
 
@@ -363,7 +361,7 @@ ConstructSecurityDescriptor(
 
 
     dwError = LsaOpenServer(&hLsa);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlCreateWellKnownSid(
@@ -371,7 +369,7 @@ ConstructSecurityDescriptor(
             NULL,
             &u.sid,
             &sidSize));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwDaclSize = ACL_HEADER_SIZE +
         dwAllowUserCount * (sizeof(ACCESS_ALLOWED_ACE) + SID_MAX_SIZE) +
@@ -381,16 +379,16 @@ ConstructSecurityDescriptor(
     dwError = LwAllocateMemory(
         dwDaclSize,
         OUT_PPVOID(&pDacl));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlCreateAcl(pDacl, dwDaclSize, ACL_REVISION));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     for (dwIndex = 0; dwIndex < dwDenyUserCount; dwIndex++)
     {
         dwError = MapNameToSid(hLsa, ppwszDenyUsers[dwIndex], &pSid);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = LwNtStatusToWin32Error(
             RtlAddAccessDeniedAceEx(
@@ -399,7 +397,7 @@ ConstructSecurityDescriptor(
                 0,
                 FILE_ALL_ACCESS,
                 pSid));
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         RTL_FREE(&pSid);
     }
@@ -407,7 +405,7 @@ ConstructSecurityDescriptor(
    for (dwIndex = 0; dwIndex < dwAllowUserCount; dwIndex++)
     {
         dwError = MapNameToSid(hLsa, ppwszAllowUsers[dwIndex], &pSid);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = LwNtStatusToWin32Error(
             RtlAddAccessAllowedAceEx(
@@ -416,7 +414,7 @@ ConstructSecurityDescriptor(
                 0,
                 mask,
                 pSid));
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         RTL_FREE(&pSid);
     }
@@ -424,20 +422,20 @@ ConstructSecurityDescriptor(
     dwError = LwAllocateMemory(
         SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE,
         OUT_PPVOID(&pAbsolute));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlCreateSecurityDescriptorAbsolute(
             pAbsolute,
             SECURITY_DESCRIPTOR_REVISION));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlSetOwnerSecurityDescriptor(
             pAbsolute,
             &u.sid,
             FALSE));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlSetDaclSecurityDescriptor(
@@ -445,7 +443,7 @@ ConstructSecurityDescriptor(
             TRUE,
             pDacl,
             FALSE));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     RtlAbsoluteToSelfRelativeSD(
         pAbsolute,
@@ -453,14 +451,14 @@ ConstructSecurityDescriptor(
         &ulRelativeSize);
 
     dwError = LwAllocateMemory(ulRelativeSize, OUT_PPVOID(&pRelative));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlAbsoluteToSelfRelativeSD(
             pAbsolute,
             pRelative,
             &ulRelativeSize));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     *ppRelative = pRelative;
     *pdwRelativeSize = ulRelativeSize;
@@ -526,7 +524,7 @@ DeconstructSecurityDescriptor(
     ACCESS_MASK leastMask = FILE_ALL_ACCESS;
 
     dwError = LsaOpenServer(&hLsa);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     status = RtlSelfRelativeToAbsoluteSD(
         pRelative,
@@ -543,34 +541,34 @@ DeconstructSecurityDescriptor(
     if (status != STATUS_BUFFER_TOO_SMALL)
     {
         dwError = LwNtStatusToWin32Error(status);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     dwError = LwAllocateMemory(ulSize, OUT_PPVOID(&pAbsolute));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (ulDaclSize)
     {
         dwError = LwAllocateMemory(ulDaclSize, OUT_PPVOID(&pDacl));
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     if (ulSaclSize)
     {
         dwError = LwAllocateMemory(ulSaclSize, OUT_PPVOID(&pSacl));
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     if (ulOwnerSize)
     {
         dwError = LwAllocateMemory(ulOwnerSize, OUT_PPVOID(&pOwner));
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     if (ulGroupSize)
     {
         dwError = LwAllocateMemory(ulGroupSize, OUT_PPVOID(&pGroup));
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     dwError = LwNtStatusToWin32Error(
@@ -586,7 +584,7 @@ DeconstructSecurityDescriptor(
             &ulOwnerSize,
             pGroup,
             &ulGroupSize));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (pDacl)
     {
@@ -603,13 +601,13 @@ DeconstructSecurityDescriptor(
                 if ((pAllow->Mask & FILE_GENERIC_READ) == FILE_GENERIC_READ)
                 {
                     dwError = MapSidToName(hLsa, pSid, &pwszUser);
-                    BAIL_ON_ERROR(dwError);
+                    BAIL_ON_SRVSVC_ERROR(dwError);
 
                     dwError = AppendStringArray(
                         &dwAllowUserCount,
                         &ppwszAllowUsers,
                         pwszUser);
-                    BAIL_ON_ERROR(dwError);
+                    BAIL_ON_SRVSVC_ERROR(dwError);
 
                     pwszUser = NULL;
 
@@ -623,13 +621,13 @@ DeconstructSecurityDescriptor(
                 if ((pDeny->Mask & FILE_GENERIC_READ) == FILE_GENERIC_READ)
                 {
                     dwError = MapSidToName(hLsa, pSid, &pwszUser);
-                    BAIL_ON_ERROR(dwError);
+                    BAIL_ON_SRVSVC_ERROR(dwError);
 
                     dwError = AppendStringArray(
                         &dwDenyUserCount,
                         &ppwszDenyUsers,
                         pwszUser);
-                    BAIL_ON_ERROR(dwError);
+                    BAIL_ON_SRVSVC_ERROR(dwError);
 
                     pwszUser = NULL;
                 }
@@ -701,14 +699,14 @@ Enum(
             &dwNumEntries,
             &dwTotalEntries,
             &dwResume);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwSeenEntries += dwNumEntries;
 
         for (dwIndex = 0; dwIndex < dwNumEntries; dwIndex++)
         {
             dwError = LwWc16sToMbs(pShareInfo[dwIndex].shi0_netname, &pszShareName);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             printf("%s\n", pszShareName);
 
@@ -759,23 +757,23 @@ GetInfo(
     BOOLEAN bReadOnly = FALSE;
 
     dwError = LwMbsToWc16s(ppszArgv[1], &pwszShareName);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = NetShareGetInfo(
         gState.pwszServerName,
         pwszShareName,
         dwLevel,
         OUT_PPVOID(&pShareInfo));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = PrintStringAttribute("name", pShareInfo->shi502_netname);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = PrintStringAttribute("path", pShareInfo->shi502_path);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = PrintStringAttribute("comment", pShareInfo->shi502_remark);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (pShareInfo->shi502_security_descriptor)
     {
@@ -787,7 +785,7 @@ GetInfo(
             &dwDenyUserCount,
             &ppwszDenyUsers,
             &bReadOnly);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         if (dwAllowUserCount)
         {
@@ -796,7 +794,7 @@ GetInfo(
             for (dwIndex = 0; dwIndex < dwAllowUserCount; dwIndex++)
             {
                 dwError = LwWc16sToMbs(ppwszAllowUsers[dwIndex], &pszUserName);
-                BAIL_ON_ERROR(dwError);
+                BAIL_ON_SRVSVC_ERROR(dwError);
 
                 printf("%s", pszUserName);
                 if (dwIndex < dwAllowUserCount - 1)
@@ -815,7 +813,7 @@ GetInfo(
             for (dwIndex = 0; dwIndex < dwDenyUserCount; dwIndex++)
             {
                 dwError = LwWc16sToMbs(ppwszDenyUsers[dwIndex], &pszUserName);
-                BAIL_ON_ERROR(dwError);
+                BAIL_ON_SRVSVC_ERROR(dwError);
 
                 printf("%s", pszUserName);
                 if (dwIndex < dwDenyUserCount - 1)
@@ -873,14 +871,14 @@ SetInfo(
     dwError = ParseShareArgs(
         argc,
         ppszArgv);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = NetShareGetInfo(
         gState.pwszServerName,
         gState.pwszTarget,
         dwLevel,
         OUT_PPVOID(&pShareInfo));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = DeconstructSecurityDescriptor(
         pShareInfo->shi502_reserved,
@@ -890,7 +888,7 @@ SetInfo(
         &dwDenyUserCount,
         &ppwszDenyUsers,
         &bReadOnly);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     newShareInfo = *pShareInfo;
 
@@ -917,7 +915,7 @@ SetInfo(
         gState.bReadOnly || gState.bReadWrite ? (gState.bReadOnly && !gState.bReadWrite) : bReadOnly,
         &pSecDesc,
         &dwSecDescSize);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     newShareInfo.shi502_reserved = dwSecDescSize;
     newShareInfo.shi502_security_descriptor = (PBYTE) pSecDesc;
@@ -928,7 +926,7 @@ SetInfo(
         dwLevel,
         &newShareInfo,
         &dwParmErr);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
 
@@ -967,7 +965,7 @@ Add(
     dwError = ParseShareArgs(
         argc,
         ppszArgv);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = ConstructSecurityDescriptor(
         gState.dwAllowUserCount,
@@ -977,7 +975,7 @@ Add(
         gState.bReadOnly && !gState.bReadWrite,
         &pSecDesc,
         &dwSecDescSize);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     shareInfo.shi502_type = 0; // SHARE_SERVICE_DISK_SHARE
     shareInfo.shi502_netname = gState.pwszName ? gState.pwszName : gState.pwszTarget;
@@ -991,7 +989,7 @@ Add(
         dwLevel,
         &shareInfo,
         &dwParmErr);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
 
@@ -1015,13 +1013,13 @@ Del(
     PWSTR pwszShareName = NULL;
 
     dwError = LwMbsToWc16s(ppszArgv[1], &pwszShareName);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = NetShareDel(
         gState.pwszServerName,
         pwszShareName,
         0);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
 
@@ -1045,43 +1043,43 @@ main(
     DWORD dwIndex = 0;
 
     dwError = SrvSvcInitMemory();
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     for (dwIndex = 1; dwIndex < argc; dwIndex++)
     {
         if (!strcasecmp(ppszArgv[dwIndex], "--server"))
         {
             dwError = LwMbsToWc16s(ppszArgv[++dwIndex], &gState.pwszServerName);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
         }
         else if (!strcasecmp(ppszArgv[dwIndex], "enum"))
         {
             dwError = Enum(argc - dwIndex, ppszArgv + dwIndex);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
             break;
         }
         else if (!strcasecmp(ppszArgv[dwIndex], "get-info"))
         {
             dwError = GetInfo(argc - dwIndex, ppszArgv + dwIndex);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
             break;
         }
         else if (!strcasecmp(ppszArgv[dwIndex], "set-info"))
         {
             dwError = SetInfo(argc - dwIndex, ppszArgv + dwIndex);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
             break;
         }
         else if (!strcasecmp(ppszArgv[dwIndex], "add"))
         {
             dwError = Add(argc - dwIndex, ppszArgv + dwIndex);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
             break;
         }
         else if (!strcasecmp(ppszArgv[dwIndex], "del"))
         {
             dwError = Del(argc - dwIndex, ppszArgv + dwIndex);
-            BAIL_ON_ERROR(dwError);
+            BAIL_ON_SRVSVC_ERROR(dwError);
             break;
         }
     }

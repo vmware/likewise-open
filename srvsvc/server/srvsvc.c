@@ -66,7 +66,7 @@ InitializeUnixRootSid(
             pSid,
             &identifierAuthority,
             SECURITY_UNMAPPED_UNIX_RID_COUNT));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     pSid->SubAuthority[0] = SECURITY_UNMAPPED_UNIX_UID_RID;
     pSid->SubAuthority[1] = 0;
@@ -98,7 +98,7 @@ SrvSvcInitSecurity(
             NULL,
             &builtinAdminsSid.sid,
             &sidSize));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlCreateWellKnownSid(
@@ -106,10 +106,10 @@ SrvSvcInitSecurity(
             NULL,
             &authedUsersSid.sid,
             &sidSize));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = InitializeUnixRootSid(&unixRootSid.sid);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwDaclSize = ACL_HEADER_SIZE +
         sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(&builtinAdminsSid.sid) - sizeof(ULONG) +
@@ -120,11 +120,11 @@ SrvSvcInitSecurity(
     dwError = LwAllocateMemory(
         dwDaclSize,
         OUT_PPVOID(&pDacl));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlCreateAcl(pDacl, dwDaclSize, ACL_REVISION));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlAddAccessAllowedAceEx(
@@ -133,7 +133,7 @@ SrvSvcInitSecurity(
             0,
             FILE_GENERIC_READ | FILE_GENERIC_WRITE | DELETE,
             &unixRootSid.sid));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlAddAccessAllowedAceEx(
@@ -142,7 +142,7 @@ SrvSvcInitSecurity(
             0,
             FILE_GENERIC_READ | FILE_GENERIC_WRITE | DELETE,
             &builtinAdminsSid.sid));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlAddAccessAllowedAceEx(
@@ -151,25 +151,25 @@ SrvSvcInitSecurity(
             0,
             FILE_GENERIC_READ,
             &authedUsersSid.sid));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwAllocateMemory(
         SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE,
         OUT_PPVOID(&pAbsolute));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlCreateSecurityDescriptorAbsolute(
             pAbsolute,
             SECURITY_DESCRIPTOR_REVISION));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlSetOwnerSecurityDescriptor(
             pAbsolute,
             &builtinAdminsSid.sid,
             FALSE));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlSetDaclSecurityDescriptor(
@@ -177,7 +177,7 @@ SrvSvcInitSecurity(
             TRUE,
             pDacl,
             FALSE));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     gpServerSecDesc = pAbsolute;
 
@@ -209,7 +209,7 @@ SrvSvcAccessCheck(
     rpc_binding_inq_access_token_caller(handle, &pToken, &rpcStatus);
 
     dwError = LwNtStatusToWin32Error(LwRpcStatusToNtStatus(rpcStatus));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (!RtlAccessCheck(
             gpServerSecDesc,
@@ -221,12 +221,12 @@ SrvSvcAccessCheck(
             &status))
     {
         dwError = LwNtStatusToWin32Error(status);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
     else if (granted != access)
     {
         dwError = LW_ERROR_ACCESS_DENIED;
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
 cleanup:
@@ -381,7 +381,7 @@ NET_API_STATUS _NetrShareAdd(
     DWORD dwError = 0;
 
     dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ | FILE_GENERIC_WRITE);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetShareAdd(
                     IDL_handle,
@@ -409,7 +409,7 @@ NET_API_STATUS _NetrShareEnum(
     DWORD dwError = 0;
 
     dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetShareEnum(
                     IDL_handle,
@@ -420,7 +420,7 @@ NET_API_STATUS _NetrShareEnum(
                     total_entries,
                     resume_handle
                     );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
 error:
 
@@ -438,7 +438,7 @@ NET_API_STATUS _NetrShareGetInfo(
     DWORD dwError = 0;
 
     dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetShareGetInfo(
                     IDL_handle,
@@ -466,7 +466,7 @@ NET_API_STATUS _NetrShareSetInfo(
     DWORD dwError = 0;
 
     dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ | FILE_GENERIC_WRITE);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetShareSetInfo(
                     IDL_handle,
@@ -493,7 +493,7 @@ NET_API_STATUS _NetrShareDel(
     DWORD dwError = 0;
 
     dwError = SrvSvcAccessCheck(IDL_handle, DELETE);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetShareDel(
                     IDL_handle,
@@ -529,7 +529,7 @@ NET_API_STATUS _NetrServerGetInfo(
     DWORD dwError = 0;
 
     dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetrServerGetInfo(
                     IDL_handle,
@@ -633,7 +633,7 @@ NET_API_STATUS _NetrNameValidate(
     DWORD dwError = 0;
 
     dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetNameValidate(
                        IDL_handle,
