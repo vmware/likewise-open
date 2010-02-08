@@ -28,68 +28,45 @@
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        macros.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Common private macros for rpc client library
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
 
 
-NET_API_STATUS
-NetShareDel(
-    IN  PCWSTR  pwszServername,
-    IN  PCWSTR  pwszSharename,
-    IN  DWORD   dwReserved
-    )
-{
-    NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    RPCSTATUS rpcStatus = RPC_S_OK;
-    handle_t hBinding = NULL;
-    PSTR pszServername = NULL;
-    PIO_CREDS pCreds = NULL;
+#ifndef _DEFS_H_
+#define _DEFS_H_
 
-    BAIL_ON_INVALID_PTR(pwszSharename, ntStatus);
+#define DCERPC_CALL(status, fn_call)                               \
+    do {                                                           \
+        NTSTATUS ntStatus = STATUS_SUCCESS;                        \
+        dcethread_exc *dceexc;                                     \
+                                                                   \
+        DCETHREAD_TRY                                              \
+        {                                                          \
+            dceexc = NULL;                                         \
+            (status) = fn_call;                                    \
+        }                                                          \
+        DCETHREAD_CATCH_ALL(dceexc)                                \
+        {                                                          \
+            ntStatus = LwRpcStatusToNtStatus(dceexc->match.value); \
+            (status) = LwNtStatusToWin32Error(ntStatus);           \
+        }                                                          \
+        DCETHREAD_ENDTRY;                                          \
+    } while (0);
 
-    if (pwszServername)
-    {
-        err = LwWc16sToMbs(pwszServername, &pszServername);
-        BAIL_ON_WIN_ERROR(err);
-    }
-
-    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
-					 pszServername,
-					 pCreds);
-    if (rpcStatus)
-    {
-        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    err = NetrShareDel(hBinding,
-                       pwszServername,
-                       pwszSharename,
-		       dwReserved);
-    BAIL_ON_WIN_ERROR(err);
-
-cleanup:
-    if (hBinding)
-    {
-        FreeSrvSvcBinding(&hBinding);
-    }
-
-    SRVSVC_SAFE_FREE(pszServername);
-
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
-    {
-        err = LwNtStatusToWin32Error(ntStatus);
-    }
-
-    return err;
-
-error:
-    goto cleanup;
-}
+#endif /* _DEFS_H_ */
 
 
 /*

@@ -58,6 +58,7 @@ libsrvsvc_la_LDFLAGS = \
     $(LIBUNISTR_LDFLAGS)
 
 libsrvsvc_la_LIBADD = \
+    @top_builddir@/utils/libsrvsvcutils.la \
     $(DCERPC_LIBS)    \
     $(LIBUNISTR_LIBS) \
     libsrvsvc_cs.la

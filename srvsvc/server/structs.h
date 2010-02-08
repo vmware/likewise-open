@@ -49,4 +49,38 @@ typedef struct _NET_SHARE_INFO503
     PSTR pszSID;
 } NET_SHARE_INFO503, *PNET_SHARE_INFO503;
 
+typedef struct _SRVSVC_CONFIG
+{
+    pthread_mutex_t mutex;
+
+    /* path to lsarpc server socket for local procedure calls */
+    CHAR szLsaLpcSocketPath[PATH_MAX + 1];
+
+} SRVSVC_CONFIG, *PSRVSVC_CONFIG;
+
+typedef struct _SRVSVC_RUNTIME_GLOBALS
+{
+    pthread_mutex_t mutex;
+
+    SRVSVC_CONFIG   config;                      /* configuration settings */
+
+    pthread_t       signalHandlerThread;
+    pthread_t*      pSignalHandlerThread;
+
+    rpc_binding_vector_p_t pServerBinding;
+    rpc_binding_vector_p_t pWkstaBinding;
+    rpc_binding_vector_p_t pRegistryBinding;
+
+    DWORD           dwStartAsDaemon;             /* Should start as daemon */
+
+    DWORD           dwLogLevel;                  /* maximum log level */
+
+    CHAR            szLogFilePath[PATH_MAX + 1]; /* log file path */
+
+    BOOLEAN         bProcessShouldExit;          /* Process termination flag */
+
+    DWORD           dwExitCode;                  /* Process Exit Code */
+
+} SRVSVC_RUNTIME_GLOBALS, *PSRVSVC_RUNTIME_GLOBALS;
+
 #endif /* __STRUCTS_H__ */

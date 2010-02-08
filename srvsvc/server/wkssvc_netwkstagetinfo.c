@@ -74,16 +74,16 @@ WksSvcNetWkstaGetInfo(
 
     dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo100),
                                       (PVOID*)&pInfo100);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = LwIoGetThreadCreds(&pCreds);
     BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = gethostname(szHostname, sizeof(szHostname));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcConfigGetLsaLpcSocketPath(&pszLsaLpcSocketPath);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     rpcStatus = InitLsaBindingFull(&hLsaBinding,
                                    "ncalrpc",
@@ -94,11 +94,11 @@ WksSvcNetWkstaGetInfo(
                                    NULL);
     if (rpcStatus) {
         dwError = NERR_InternalError;
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     dwError = LwMbsToWc16s(szHostname, &pwszLocalHost);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = LsaOpenPolicy2(hLsaBinding,
                               pwszLocalHost,
@@ -116,16 +116,16 @@ WksSvcNetWkstaGetInfo(
     dwError = SrvSvcSrvGetFromUnicodeStringEx(
                   &pInfo100->wksta100_domain,
                   &pPolInfo->dns.dns_domain);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwMbsToWc16s(szHostname, &pwszHostname);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     HostnameLen = LwRtlWC16StringNumChars(pwszHostname);
     dwError = SrvSvcSrvAllocateMemory(
                   sizeof(WCHAR)*(HostnameLen+1),
                   (PVOID*)&pInfo100->wksta100_name);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     memcpy(pInfo100->wksta100_name, pwszHostname, sizeof(WCHAR)*(HostnameLen));
 

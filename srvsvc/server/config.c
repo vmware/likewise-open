@@ -33,58 +33,40 @@
  * Copyright (C) Likewise Software 2007
  * All rights reserved.
  *
- * SrvSvc Server
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
+ * Likewise Server Service (LWSRVSVC)
+ *
+ * Server Main
+ *
+ * Configuration
  *
  */
-#include <config.h>
-#include <srvsvcsys.h>
 
-#include <lw/winerror.h>
-#include <lw/ntstatus.h>
-#include <wc16str.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwerror.h>
-#include <lwdscache.h>
-#include <lw/base.h>
-#include <lwio/lwio.h>
-#include <lwio/ntfileapi.h>
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-#include <dce/rpc.h>
-#include <compat/dcerpc.h>
-#include <lwrpc/lsa.h>
-#include <lwnet.h>
+#include "includes.h"
 
-#include <srvsvc/srvsvc.h>
-#include <srvsvcdefs.h>
-#include <srvsvcutils.h>
+DWORD
+SrvSvcReadConfigSettings(
+    VOID
+    )
+{
+    return 0;
+}
 
-#include "srvsvc.h"
-#include "srvsvc_srv.h"
-#include "srvsvc_h.h"
+DWORD
+SrvSvcConfigGetLsaLpcSocketPath(
+    PSTR* ppszPath
+    )
+{
+    DWORD   dwError = 0;
+    BOOLEAN bInLock = FALSE;
 
-#include "wkssvc.h"
-#include "wkssvc_srv.h"
-#include "wkssvc_h.h"
+    SRVSVC_LOCK_MUTEX(bInLock, &gServerInfo.mutex);
 
-#include "winreg.h"
-#include "winreg_srv.h"
-#include "winreg_h.h"
+    dwError = LwAllocateString(gServerInfo.config.szLsaLpcSocketPath,
+                               ppszPath);
 
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-#include "marshall.h"
+    SRVSVC_UNLOCK_MUTEX(bInLock, &gServerInfo.mutex);
 
-#include "externs.h"
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+    return dwError;
+}

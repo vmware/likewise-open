@@ -98,49 +98,6 @@
 #define SRVSVC_ERROR_ACCESS_DENIED             0x9425 // 37925
 #define SRVSVC_ERROR_SENTINEL                  0x9426 // 37926
 
-
-/*
- * Error check macros
- */
-
-#define BAIL_ON_SRVSVC_ERROR(dwError)                                   \
-    if (dwError) {                                                      \
-        SRVSVC_LOG_DEBUG("Error at %s:%d. Error [code:%d]",             \
-                         __FILE__, __LINE__, dwError);                  \
-        goto error;                                                     \
-    }
-
-#define BAIL_ON_DCE_ERROR(dwError, rpcstatus)                           \
-    if ((rpcstatus) != RPC_S_OK)                                        \
-    {                                                                   \
-        dce_error_string_t errstr;                                      \
-        int error_status;                                               \
-        dce_error_inq_text((rpcstatus), (unsigned char*)errstr,         \
-                           &error_status);                              \
-        if (error_status == error_status_ok)                            \
-        {                                                               \
-            SRVSVC_LOG_ERROR("DCE Error [0x%8lx] Reason [%s]",          \
-                             (unsigned long)(rpcstatus), errstr);       \
-        }                                                               \
-        else                                                            \
-        {                                                               \
-            SRVSVC_LOG_ERROR("DCE Error [0x%8lx]",                      \
-                             (unsigned long)(rpcstatus));               \
-        }                                                               \
-                                                                        \
-        switch ((rpcstatus)) {                                          \
-        case RPC_S_INVALID_STRING_BINDING:                              \
-            (dwError) = SRVSVC_ERROR_RPC_EXCEPTION_UPON_RPC_BINDING;    \
-            break;                                                      \
-                                                                        \
-        default:                                                        \
-            (dwError) = SRVSVC_ERROR_RPC_EXCEPTION;                     \
-        }                                                               \
-                                                                        \
-        goto error;                                                     \
-    }
-
-
 /*
  * Log levels
  */

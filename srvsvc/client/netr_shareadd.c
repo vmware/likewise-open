@@ -83,7 +83,7 @@ NetrShareAdd(
     }
 
 cleanup:
-    SAFE_FREE(pwszServer);
+    SRVSVC_SAFE_FREE(pwszServer);
 
     if (err == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)

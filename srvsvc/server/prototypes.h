@@ -33,98 +33,57 @@
  * Copyright (C) Likewise Software 2007
  * All rights reserved.
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
- * Likewise Server Service
+ * Likewise Server Service (LWSRVSVC)
+ *
+ * Server Main
+ *
+ * Function Prototypes
  *
  */
-#ifndef __MAIN_P_H__
-#define __MAIN_P_H__
 
-/* This structure captures the arguments that must be
- * sent to the Group Policy Service
- */
-typedef struct {
-    /* MT safety */
-    pthread_mutex_t lock;
-    /* Should start as daemon */
-    DWORD dwStartAsDaemon;
-    /* How much logging do you want? */
-    DWORD dwLogLevel;
-    /* log file path */
-    char szLogFilePath[PATH_MAX + 1];
-    /* config file path */
-    char szConfigFilePath[PATH_MAX + 1];
-    /* Cache path */
-    char szCachePath[PATH_MAX+1];
-    /* Prefix path */
-    char szPrefixPath[PATH_MAX+1];
-    /* Process termination flag */
-    BOOLEAN  bProcessShouldExit;
-    /* Process Exit Code */
-    DWORD dwExitCode;
-
-} SRVSVCSERVERINFO, *PSRVSVCSERVERINFO;
-
-extern SRVSVCSERVERINFO gServerInfo;
-
-
-typedef struct {
-    /* MT safety */
-    pthread_mutex_t pLock;
-    /* path to lsarpc server socket for local procedure calls */
-    CHAR pszLsaLpcSocketPath[PATH_MAX + 1];
-
-} SRVSVC_CONFIG, *PSRVSVC_CONFIG;
-
-extern SRVSVC_CONFIG gServerConfig;
-
+// config.c
 
 DWORD
-SrvSvcGetConfigPath(
-    PSTR* ppszPath
-    );
-
-DWORD
-SrvSvcGetCachePath(
-    PSTR* ppszPath
-    );
-
-DWORD
-SrvSvcGetPrefixPath(
-    PSTR* ppszPath
-    );
-
-BOOLEAN
-SrvSvcProcessShouldExit(
+SrvSvcReadConfigSettings(
     VOID
     );
 
-void
-SRVSVCSetProcessShouldExit(
-	BOOLEAN val
-	);
+DWORD
+SrvSvcConfigGetLsaLpcSocketPath(
+    PSTR* ppszPath
+    );
+
+// main.c
+
+VOID
+SrvSvcSetProcessShouldExit(
+    BOOLEAN val
+    );
+
+// signalhandler.c
+
+VOID
+SrvSvcBlockSelectedSignals(
+    VOID
+    );
 
 DWORD
-SrvSvcServerMain(
-    int argc,
-    char* argv[]
+SrvSvcStartSignalHandler(
+    VOID
     );
 
-void
-SrvSvcServerExit(
-    int retCode
+DWORD
+SrvSvcStopSignalHandler(
+    VOID
     );
 
-#endif /* __MAIN_P_H__ */
+// utils.c
 
+DWORD
+SrvSvcSrvGetFromUnicodeStringEx(
+    PWSTR *ppwszOut,
+    UnicodeStringEx *pIn
+    );
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/

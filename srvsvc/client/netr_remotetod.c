@@ -51,7 +51,7 @@ NET_API_STATUS NetRemoteTOD(
     BAIL_ON_WIN_ERROR(memerr);
 
 cleanup:
-    SAFE_FREE(info);
+    SRVSVC_SAFE_FREE(info);
     return status;
 
 error:

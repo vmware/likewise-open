@@ -1,20 +1,18 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define DEFAULT_CONFIG_FILE_PATH CONFIGDIR "/srvsvcd.conf"
+#define DAEMON_NAME "srvsvcd"
+#define PID_DIR "/var/run"
+#define PID_FILE PID_DIR "/" DAEMON_NAME ".pid"
+
+#define PID_FILE_CONTENTS_SIZE ((9 * 2) + 2)
 
 #define DEFAULT_LSALPC_SOCKET_PATH CACHEDIR "/rpc/lsass"
-
-#define ERROR_NOT_SUPPORTED 50
 
 #define SRV_IOCTL_ADD_SHARE 0
 #define SRV_IOCTL_SET_SHARE 1
 
-#define BAIL_ON_ERROR(dwError) \
-    if (dwError) goto error;
-
-#define BAIL_ON_NT_STATUS(ntStatus) \
-    if (ntStatus) goto error;
+#define ERROR_NOT_SUPPORTED 50
 
 /* Work around lack of proper Win32 error codes for now */
 

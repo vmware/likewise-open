@@ -8,6 +8,7 @@ idl_srcdir = $(top_srcdir)/idl
 include_srcdir = $(top_srcdir)/include
 
 srvsvcd_SOURCES =              \
+    config.c                   \
     srvsvc.c                   \
     srvsvc_srv.c               \
     wkssvc.c                   \
@@ -17,6 +18,7 @@ srvsvcd_SOURCES =              \
     globals.c                  \
     marshall.c                 \
     memutil.c                  \
+    signalhandler.c            \
     srvsvc_netshareadd.c       \
     srvsvc_netsharedel.c       \
     srvsvc_netsharegetinfo.c   \
@@ -24,6 +26,7 @@ srvsvcd_SOURCES =              \
     srvsvc_netshareenum.c      \
     srvsvc_netservergetinfo.c  \
     srvsvc_netnamevalidate.c   \
+    utils.c                    \
     wkssvc_netwkstagetinfo.c   \
     main.c
 

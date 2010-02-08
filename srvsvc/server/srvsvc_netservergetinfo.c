@@ -63,7 +63,7 @@ SrvSvcNetrServerGetInfo(
     if (level == 101) {
         dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo101),
                                        (void**)&pInfo101);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo101->sv101_platform_id    = 500;
         pInfo101->sv101_name           = ambstowc16s("UBUNTU8-DESKTOP");
@@ -77,7 +77,7 @@ SrvSvcNetrServerGetInfo(
     } else if (level == 102) {
         dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo102),
                                        (void**)&pInfo102);
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo102->sv102_platform_id    = 500;
         pInfo102->sv102_name           = ambstowc16s("UBUNTU8-DESKTOP");
