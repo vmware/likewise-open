@@ -97,7 +97,8 @@ SrvProcessTrans2SetPathInformation(
 
             accessMask = SrvGetPathAccessMask(pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pTrans2State->pTree->pShareInfo,
                             &pTrans2State->hFile,
                             pTrans2State->pAcb,
                             &pTrans2State->ioStatusBlock,

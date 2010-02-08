@@ -188,6 +188,15 @@ SrvShareFreeSecurity(
     );
 
 NTSTATUS
+SrvShareAccessCheck(
+    PSRV_SHARE_INFO pShareInfo,
+    PACCESS_TOKEN pToken,
+    ACCESS_MASK DesiredAccess,
+    PGENERIC_MAPPING pGenericMap,
+    PACCESS_MASK pGrantedAccess
+    );
+
+NTSTATUS
 SrvShareSetSecurity(
     IN  PSRV_SHARE_INFO pShareInfo,
     IN  PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,

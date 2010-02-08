@@ -173,7 +173,8 @@ SrvProcessOpenAndX(
 
             SrvPrepareOpenStateAsync(pOpenState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pOpenState->pTree->pShareInfo,
                             &pOpenState->hFile,
                             pOpenState->pAcb,
                             &pOpenState->ioStatusBlock,

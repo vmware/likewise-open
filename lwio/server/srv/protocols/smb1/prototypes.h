@@ -124,21 +124,6 @@ SrvFinderCreateRepository(
     );
 
 NTSTATUS
-SrvFinderCreateSearchSpace(
-    PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
-    HANDLE         hFinderRepository,
-    PWSTR          pwszFilesystemPath,
-    PWSTR          pwszSearchPattern,
-    USHORT         usSearchAttrs,
-    ULONG          ulSearchStorageType,
-    SMB_INFO_LEVEL infoLevel,
-    BOOLEAN        bUseLongFilenames,
-    ACCESS_MASK    accessMask,
-    PHANDLE        phFinder,
-    PUSHORT        pusSearchId
-    );
-
-NTSTATUS
 SrvFinderGetSearchSpace(
     HANDLE  hFinderRepository,
     USHORT  usSearchId,

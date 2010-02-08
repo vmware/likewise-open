@@ -1062,6 +1062,7 @@ SrvFinderBuildSearchPath(
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
+    IN  PSRV_SHARE_INFO pShareInfo,
     IN  PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     IN  HANDLE         hFinderRepository,
     IN  PWSTR          pwszFilesystemPath,

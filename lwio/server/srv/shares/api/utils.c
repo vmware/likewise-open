@@ -350,7 +350,7 @@ SrvShareSetSecurity(
                    &ulGroupLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Free the old SD and save the poiter to the new one */
+    /* Free the old SD and save the pointer to the new one */
 
     SrvShareFreeSecurity(pShareInfo);
 
@@ -423,6 +423,68 @@ SrvShareFreeAbsoluteSecurityDescriptor(
 
     return;
 }
+
+
+NTSTATUS
+SrvShareAccessCheck(
+    PSRV_SHARE_INFO pShareInfo,
+    PACCESS_TOKEN pToken,
+    ACCESS_MASK DesiredAccess,
+    PGENERIC_MAPPING pGenericMap,
+    PACCESS_MASK pGrantedAccess
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bLocked = FALSE;
+    BOOLEAN bAccessResult = FALSE;
+
+    if (!pGrantedAccess || !pToken)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pShareInfo->mutex);
+
+    /* This needs to be fixed in the Share API.  A share should
+       never have a NULL SD, but current both C$ and IPC$ do.
+       A NULL SD should be failure to be safe but allow it for
+       now. */
+
+    if (!pShareInfo->pAbsSecDesc)
+    {
+        // ntStatus = STATUS_ACCESS_DENIED;
+        ntStatus = STATUS_SUCCESS;
+        *pGrantedAccess = FILE_ALL_ACCESS;
+        goto cleanup;
+    }
+
+    bAccessResult = RtlAccessCheck(
+                        pShareInfo->pAbsSecDesc,
+                        pToken,
+                        DesiredAccess,
+                        0,
+                        pGenericMap,
+                        pGrantedAccess,
+                        &ntStatus);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!bAccessResult)
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bLocked, &pShareInfo->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
 
 
 

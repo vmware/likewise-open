@@ -180,7 +180,8 @@ SrvProcessNTCreateAndX(
 
             SrvPrepareCreateStateAsync(pCreateState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pCreateState->pTree->pShareInfo,
                             &pCreateState->hFile,
                             pCreateState->pAcb,
                             &pCreateState->ioStatusBlock,

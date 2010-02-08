@@ -200,6 +200,35 @@ SrvProdConsFreeContents(
     PSMB_PROD_CONS_QUEUE pQueue
     );
 
+NTSTATUS
+SrvIoCreateFile(
+    IN PSRV_SHARE_INFO pShareInfo,
+    OUT PIO_FILE_HANDLE pFileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock,
+    OUT PIO_STATUS_BLOCK pIoStatusBlock,
+    IN PIO_CREATE_SECURITY_CONTEXT pSecurityContext,
+    IN PIO_FILE_NAME pFileName,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN OPTIONAL PVOID pSecurityQualityOfService,
+    IN ACCESS_MASK DesiredAccess,
+    IN OPTIONAL LONG64 AllocationSize,
+    IN FILE_ATTRIBUTES FileAttributes,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN FILE_CREATE_DISPOSITION CreateDisposition,
+    IN FILE_CREATE_OPTIONS CreateOptions,
+    IN OPTIONAL PVOID pEaBuffer,
+    IN ULONG EaLength,
+    IN OPTIONAL PIO_ECP_LIST pEcpList
+    );
 
 
 #endif /* __SRV_UTILS_H__ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

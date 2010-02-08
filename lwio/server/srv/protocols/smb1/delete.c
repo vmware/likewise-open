@@ -196,6 +196,7 @@ SrvProcessDelete(
             if (pDeleteState->bPathHasWildCards)
             {
                 ntStatus = SrvFinderCreateSearchSpace(
+                                pDeleteState->pTree->pShareInfo,
                                 pDeleteState->pSession->pIoSecurityContext,
                                 pDeleteState->pSession->hFinderRepository,
                                 pDeleteState->pwszFilesystemPath,
@@ -394,7 +395,8 @@ SrvDeleteFiles(
 
             pDeleteState->bPendingCreate = TRUE;
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pDeleteState->pTree->pShareInfo,
                             &pDeleteState->hFile,
                             pDeleteState->pAcb,
                             &pDeleteState->ioStatusBlock,
@@ -512,7 +514,8 @@ SrvDeleteSingleFile(
 
         pDeleteState->bPendingCreate = TRUE;
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pDeleteState->pTree->pShareInfo,
                         &pDeleteState->hFile,
                         pDeleteState->pAcb,
                         &pDeleteState->ioStatusBlock,

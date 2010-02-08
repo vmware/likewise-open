@@ -206,7 +206,8 @@ SrvProcessSetInformation(
 
             SrvPrepareSetInfoStateAsync(pInfoState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pInfoState->pTree->pShareInfo,
                             &pInfoState->hFile,
                             pInfoState->pAcb,
                             &pInfoState->ioStatusBlock,

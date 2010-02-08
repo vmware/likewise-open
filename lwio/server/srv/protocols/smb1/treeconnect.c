@@ -670,7 +670,8 @@ SrvGetNativeFilesystem(
     {
         SrvPrepareTreeConnectStateAsync(pTConState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pTConState->pTree->pShareInfo,
                         &pTConState->hFile,
                         pTConState->pAcb,
                         &pTConState->ioStatusBlock,
@@ -678,10 +679,10 @@ SrvGetNativeFilesystem(
                         &pTConState->fileName,
                         pTConState->pSecurityDescriptor,
                         pTConState->pSecurityQOS,
-                        GENERIC_READ,
+                        FILE_READ_ATTRIBUTES,
                         0,
                         FILE_ATTRIBUTE_NORMAL,
-                        FILE_SHARE_READ,
+                        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                         FILE_OPEN,
                         0,
                         NULL, /* EA Buffer */

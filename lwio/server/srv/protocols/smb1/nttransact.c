@@ -1912,7 +1912,8 @@ SrvProcessNtTransactCreate(
 
             SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pNTTransactState->pTree->pShareInfo,
                             &pNTTransactState->hFile,
                             pNTTransactState->pAcb,
                             &pNTTransactState->ioStatusBlock,

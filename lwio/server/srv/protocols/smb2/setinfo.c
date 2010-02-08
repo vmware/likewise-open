@@ -699,7 +699,8 @@ SrvSetFileRenameInfo_SMB_V2(
 
         SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                                pCtxSmb2->pTree->pShareInfo,
                                 &pSetInfoState->hDir,
                                 pSetInfoState->pAcb,
                                 &pSetInfoState->ioStatusBlock,
