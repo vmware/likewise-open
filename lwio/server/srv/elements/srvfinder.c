@@ -295,6 +295,7 @@ error:
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
+    IN  PSRV_SHARE_INFO pShareInfo,
     IN  PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     IN  HANDLE         hFinderRepository,
     IN  PWSTR          pwszFilesystemPath,
@@ -323,7 +324,8 @@ SrvFinderCreateSearchSpace(
 
     fileName.FileName = pwszFilesystemPath;
 
-    ntStatus = IoCreateFile(
+    ntStatus = SrvIoCreateFile(
+                    pShareInfo,
                     &hFile,
                     NULL,
                     &ioStatusBlock,

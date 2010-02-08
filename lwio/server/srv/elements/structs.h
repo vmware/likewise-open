@@ -99,6 +99,21 @@ typedef struct _SRV_ELEMENTS_GLOBALS
 
     LONG64 llBootTime;
 
+    GENERIC_MAPPING ShareGenericMapping;
+
 } SRV_ELEMENTS_GLOBALS, *PSRV_ELEMENTS_GLOBALS;
 
 #endif /* __STRUCTS_H__ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
+

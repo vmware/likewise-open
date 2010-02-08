@@ -171,7 +171,8 @@ SrvProcessCreateDirectory(
 
             SrvPrepareCreatedirStateAsync(pCreatedirState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pCtxSmb1->pTree->pShareInfo,
                             &pCreatedirState->hFile,
                             pCreatedirState->pAcb,
                             &pCreatedirState->ioStatusBlock,

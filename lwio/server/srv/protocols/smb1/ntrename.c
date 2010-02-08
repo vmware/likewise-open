@@ -326,7 +326,8 @@ SrvExecuteNtRename(
     {
         SrvPrepareNtRenameStateAsync(pRenameState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pCtxSmb1->pTree->pShareInfo,
                         &pRenameState->hDir,
                         pRenameState->pAcb,
                         &pRenameState->ioStatusBlock,
@@ -353,7 +354,8 @@ SrvExecuteNtRename(
     {
         SrvPrepareNtRenameStateAsync(pRenameState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pCtxSmb1->pTree->pShareInfo,
                         &pRenameState->hFile,
                         pRenameState->pAcb,
                         &pRenameState->ioStatusBlock,

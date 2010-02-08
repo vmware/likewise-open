@@ -287,7 +287,8 @@ SrvProcessFind_SMB_V2(
     {
         IO_STATUS_BLOCK ioStatusBlock = {0};
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pTree->pShareInfo,
                         &hFile2,
                         NULL,
                         &ioStatusBlock,

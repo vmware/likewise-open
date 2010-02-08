@@ -565,7 +565,8 @@ SrvRenameFile(
 
         SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                                pTrans2State->pTree->pShareInfo,
                                 &pTrans2State->hDir,
                                 pTrans2State->pAcb,
                                 &pTrans2State->ioStatusBlock,

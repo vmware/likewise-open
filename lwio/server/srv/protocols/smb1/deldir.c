@@ -172,7 +172,8 @@ SrvProcessDeleteDirectory(
 
             SrvPrepareDeletedirStateAsync(pDeletedirState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pCtxSmb1->pTree->pShareInfo,
                             &pDeletedirState->hFile,
                             pDeletedirState->pAcb,
                             &pDeletedirState->ioStatusBlock,

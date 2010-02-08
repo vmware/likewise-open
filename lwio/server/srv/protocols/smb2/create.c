@@ -256,7 +256,8 @@ SrvProcessCreate_SMB_V2(
 
             SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pCreateState->pTree->pShareInfo,
                             &pCreateState->hFile,
                             pCreateState->pAcb,
                             &pCreateState->ioStatusBlock,

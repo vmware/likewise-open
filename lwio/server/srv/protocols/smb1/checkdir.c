@@ -196,7 +196,8 @@ SrvProcessCheckDirectory(
             {
                 SrvPrepareCheckdirStateAsync(pCheckdirState, pExecContext);
 
-                ntStatus = IoCreateFile(
+                ntStatus = SrvIoCreateFile(
+                                pCtxSmb1->pTree->pShareInfo,
                                 &pCheckdirState->hFile,
                                 pCheckdirState->pAcb,
                                 &pCheckdirState->ioStatusBlock,

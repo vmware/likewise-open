@@ -72,8 +72,8 @@
 
 #include <smbwire.h>
 
-#include <srvutils.h>
 #include <shareapi.h>
+#include <srvutils.h>
 #include <elementsapi.h>
 
 #include "structs.h"

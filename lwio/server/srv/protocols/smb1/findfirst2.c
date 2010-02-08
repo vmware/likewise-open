@@ -304,6 +304,7 @@ SrvBuildFindFirst2Response(
     LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SrvFinderCreateSearchSpace(
+                    pTree->pShareInfo,
                     pSession->pIoSecurityContext,
                     pSession->hFinderRepository,
                     pwszFilesystemPath,

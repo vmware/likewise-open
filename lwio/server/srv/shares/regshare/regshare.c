@@ -862,13 +862,11 @@ SrvShareRegWriteToShareInfo(
 
     if (ulSecDataLen)
     {
-        ntStatus = SrvAllocateMemory(
-                       ulSecDataLen,
-                       (PVOID*)&pShareInfo->pSecDesc);
+        ntStatus = SrvShareSetSecurity(
+                       pShareInfo,
+                       (PSECURITY_DESCRIPTOR_RELATIVE)pSecData,
+                       ulSecDataLen);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(pShareInfo->pSecDesc, pSecData, ulSecDataLen);
-        pShareInfo->ulSecDescLen = ulSecDataLen;
     }
 
     *ppShareInfo = pShareInfo;
@@ -912,3 +910,12 @@ SrvShareFreeStringArray(
     SrvFreeMemory(ppwszValues);
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

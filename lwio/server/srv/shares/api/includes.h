@@ -58,8 +58,8 @@
 
 #include <lw/ntstatus.h>
 
-#include <srvutils.h>
 #include <shareapi.h>
+#include <srvutils.h>
 #include <sharerepository.h>
 
 #include "defs.h"
