@@ -584,12 +584,20 @@ LsaSrvSetPassword(
                                         hProvider,
                                         pszLoginId,
                                         pszPassword);
-        if ((dwError == LW_ERROR_NOT_HANDLED) ||
-            (dwError == LW_ERROR_NO_SUCH_USER))
+        if (!dwError)
+        {
+            break;
+        }
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_USER))
         {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
             continue;
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 
