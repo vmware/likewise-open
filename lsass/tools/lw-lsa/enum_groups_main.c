@@ -303,6 +303,12 @@ ParseArgs(
                 }
 
                 dwInfoLevel = atoi(pszArg);
+                if ((dwInfoLevel < 0) ||
+                    (dwInfoLevel > 1)) {
+                    ShowUsage();
+                    exit(1);
+                }
+
                 parseMode = PARSE_MODE_OPEN;
 
                 break;
