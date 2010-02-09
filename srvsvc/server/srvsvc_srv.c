@@ -361,9 +361,9 @@ error:
     goto cleanup;
 }
 
-DWORD
+PVOID
 SrvSvcListenForRPC(
-    VOID
+    PVOID pArg
     )
 {
     volatile DWORD dwError = 0;
@@ -388,10 +388,15 @@ SrvSvcListenForRPC(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
-    return dwError;
+
+    raise(SIGTERM);
+
+    return;
 
 error:
+
     SRVSVC_LOG_ERROR("Failed to begin RPC listening.  Error code [%d]\n", dwError);
+
     goto cleanup;
 }
 
@@ -475,6 +480,81 @@ cleanup:
 
 error:
     SRVSVC_LOG_ERROR("Failed to unregister RPC endpoint.  Error code [%d]\n", dwError);
+    goto cleanup;
+}
+
+BOOLEAN
+SrvSvcRpcIsListening(
+    VOID
+    )
+{
+    volatile DWORD dwError = 0;
+    BOOLEAN bIsListening = FALSE;
+
+    DCETHREAD_TRY
+    {
+        bIsListening = rpc_mgmt_is_server_listening(NULL, (unsigned32*)&dwError);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if (!dwError)
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+        }
+        if (!dwError)
+        {
+            dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_LISTEN;
+        }
+    }
+    DCETHREAD_ENDTRY;
+
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+cleanup:
+
+    return bIsListening;
+
+error:
+
+    bIsListening = FALSE;
+
+    goto cleanup;
+}
+
+DWORD
+SrvSvcRpcStopListening(
+    VOID
+    )
+{
+    volatile DWORD dwError = 0;
+
+    DCETHREAD_TRY
+    {
+        rpc_mgmt_stop_server_listening(NULL, (unsigned32*)&dwError);
+    }
+    DCETHREAD_CATCH_ALL(THIS_CATCH)
+    {
+        if (!dwError)
+        {
+            dwError = dcethread_exc_getstatus (THIS_CATCH);
+        }
+        if(!dwError)
+        {
+            dwError = SRVSVC_ERROR_RPC_EXCEPTION_UPON_LISTEN;
+        }
+    }
+    DCETHREAD_ENDTRY;
+
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    SRVSVC_LOG_ERROR("Failed to stop RPC listening.  Error code [%d]\n", dwError);
+
     goto cleanup;
 }
 

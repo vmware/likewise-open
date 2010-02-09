@@ -64,8 +64,7 @@ typedef struct _SRVSVC_RUNTIME_GLOBALS
 
     SRVSVC_CONFIG   config;                      /* configuration settings */
 
-    pthread_t       signalHandlerThread;
-    pthread_t*      pSignalHandlerThread;
+    dcethread*      pRpcListenerThread;
 
     rpc_binding_vector_p_t pServerBinding;
     rpc_binding_vector_p_t pWkstaBinding;

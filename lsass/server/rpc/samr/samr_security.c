@@ -172,7 +172,7 @@ SamrSrvCreateLocalUserDacl(
     PACL  *ppDacl
     )
 {
-    ACCESS_MASK AdminAccessMask = STANDARD_RIGHTS_READ |
+    ACCESS_MASK AdminAccessMask = STANDARD_RIGHTS_ALL |
                                   USER_ACCESS_GET_NAME_ETC |
                                   USER_ACCESS_GET_LOCALE |
                                   USER_ACCESS_SET_LOC_COM |
@@ -302,27 +302,16 @@ SamrSrvCreateLocalGroupDacl(
     PACL  *ppDacl
     )
 {
-    ACCESS_MASK AdminAccessMask = STANDARD_RIGHTS_READ |
-                                  USER_ACCESS_GET_NAME_ETC |
-                                  USER_ACCESS_GET_LOCALE |
-                                  USER_ACCESS_SET_LOC_COM |
-                                  USER_ACCESS_GET_LOGONINFO |
-                                  USER_ACCESS_GET_ATTRIBUTES |
-                                  USER_ACCESS_SET_ATTRIBUTES |
-                                  USER_ACCESS_CHANGE_PASSWORD |
-                                  USER_ACCESS_SET_PASSWORD |
-                                  USER_ACCESS_GET_GROUPS |
-                                  USER_ACCESS_GET_GROUP_MEMBERSHIP |
-                                  USER_ACCESS_CHANGE_GROUP_MEMBERSHIP;
+    ACCESS_MASK AdminAccessMask = STANDARD_RIGHTS_ALL |
+                                  ALIAS_ACCESS_ADD_MEMBER |
+                                  ALIAS_ACCESS_REMOVE_MEMBER |
+                                  ALIAS_ACCESS_GET_MEMBERS |
+                                  ALIAS_ACCESS_LOOKUP_INFO |
+                                  ALIAS_ACCESS_SET_INFO;
 
     ACCESS_MASK AllAccessMask = STANDARD_RIGHTS_READ |
-                                USER_ACCESS_GET_NAME_ETC |
-                                USER_ACCESS_GET_LOCALE |
-                                USER_ACCESS_GET_LOGONINFO |
-                                USER_ACCESS_GET_ATTRIBUTES |
-                                USER_ACCESS_CHANGE_PASSWORD |
-                                USER_ACCESS_GET_GROUPS |
-                                USER_ACCESS_GET_GROUP_MEMBERSHIP;
+                                ALIAS_ACCESS_GET_MEMBERS |
+                                ALIAS_ACCESS_LOOKUP_INFO;
 
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
@@ -486,7 +475,7 @@ SamrSrvFreeSecurityDescriptor(
     BOOLEAN bSaclPresent = FALSE;
     BOOLEAN bSaclDefaulted = FALSE;
 
-    if (ppSecDesc == NULL &&
+    if (ppSecDesc == NULL ||
         *ppSecDesc == NULL)
     {
         return;

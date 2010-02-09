@@ -117,7 +117,7 @@ namespace Likewise.LMC
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(135, 13);
             this.label2.TabIndex = 2;
-            this.label2.Text = "© Likewise Software, 2008";
+            this.label2.Text = "© Likewise Software, 2009";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             //
             // label1
