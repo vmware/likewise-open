@@ -33,26 +33,25 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        logger.h
  *
  * Abstract:
  *
- *        Likewise Server Service (LWSRVSVC)
+ *        Likewise IO (SRVSVC)
  *
- *        Utilities
+ *        Logging API
  *
- *        Externs
+ *           Global variables
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
-extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
+#include "includes.h"
 
-#endif /* __EXTERNS_H__ */
+#if defined(LW_ENABLE_THREADS)
+pthread_mutex_t gSrvSvcLogLock = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
+
 

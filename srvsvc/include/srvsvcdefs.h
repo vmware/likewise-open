@@ -11,6 +11,10 @@
 
 #endif
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
 /*
  * Memory related macros
  */

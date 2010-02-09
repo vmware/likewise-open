@@ -14,8 +14,9 @@
 #include <srvsvc/srvsvcdefs.h>
 
 #include <srvsvcdefs.h>
-#include "srvsvcutils.h"
+#include <srvsvcutils.h>
 
-#include "sysfuncs_p.h"
-#include "srvsvclogger_p.h"
+#include "defs.h"
+#include "structs.h"
+#include "prototypes.h"
 #include "externs.h"

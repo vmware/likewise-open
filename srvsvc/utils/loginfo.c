@@ -33,26 +33,25 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        loginfo.h
  *
  * Abstract:
  *
- *        Likewise Server Service (LWSRVSVC)
+ *        Likewise Server Service (SRVSVC)
  *
- *        Utilities
- *
- *        Externs
+ *        Log Info
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
-extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
+#include "includes.h"
 
-#endif /* __EXTERNS_H__ */
-
+VOID
+SrvSvcFreeLogInfo(
+    PSRVSVC_LOG_INFO pLogInfo
+    )
+{
+    SRVSVC_SAFE_FREE_STRING(pLogInfo->pszPath);
+    LwFreeMemory(pLogInfo);
+}

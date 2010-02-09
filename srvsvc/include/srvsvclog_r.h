@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,26 +33,44 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        srvsvclog_r.h
  *
  * Abstract:
  *
- *        Likewise Server Service (LWSRVSVC)
+ *        Likewise Server Service (SRVSVC)
  *
- *        Utilities
+ *        Logging API (Thread Safe)
  *
- *        Externs
+ * 	  Global variables
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
-extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
+#ifndef __SRVSVCLOG_R_H__
+#define __SRVSVCLOG_R_H__
 
-#endif /* __EXTERNS_H__ */
+DWORD
+SrvSvcInitLogging_r(
+    PCSTR             pszProgramName,
+    SRVSVC_LOG_TARGET logTarget,
+    SRVSVC_LOG_LEVEL  maxAllowedLogLevel,
+    PCSTR             pszPath
+    );
 
+DWORD
+SrvSvcLogGetInfo_r(
+    PSRVSVC_LOG_INFO* ppLogInfo
+    );
+
+DWORD
+SrvSvcLogSetInfo_r(
+    PSRVSVC_LOG_INFO pLogInfo
+    );
+
+DWORD
+SrvSvcShutdownLogging_r(
+    VOID
+    );
+
+#endif /* __SRVSVCLOG_R_H__ */

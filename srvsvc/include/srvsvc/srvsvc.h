@@ -98,61 +98,6 @@
 #define SRVSVC_ERROR_ACCESS_DENIED             0x9425 // 37925
 #define SRVSVC_ERROR_SENTINEL                  0x9426 // 37926
 
-/*
- * Log levels
- */
-#define LOG_LEVEL_ALWAYS  0
-#define LOG_LEVEL_ERROR   1
-#define LOG_LEVEL_WARNING 2
-#define LOG_LEVEL_INFO    3
-#define LOG_LEVEL_VERBOSE 4
-#define LOG_LEVEL_DEBUG   5
-
-
-/*
- * Logging targets
- */
-#define LOG_DISABLED   0
-#define LOG_TO_SYSLOG  1
-#define LOG_TO_FILE    2
-#define LOG_TO_CONSOLE 3
-
-#ifndef HOST_NAME_MAX
-#define HOST_NAME_MAX 255
-#endif
-
-
-/*
- * Logging macros
- */
-#define SRVSVC_LOG_ALWAYS(szFmt...)                     \
-    SrvSvcLogMessage(LOG_LEVEL_ALWAYS, ## szFmt);
-
-#define SRVSVC_LOG_ERROR(szFmt...)                         \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_ERROR) {    \
-        SrvSvcLogMessage(LOG_LEVEL_ERROR, ## szFmt);       \
-    }
-
-#define SRVSVC_LOG_WARNING(szFmt...)                       \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_WARNING) {  \
-        SrvSvcLogMessage(LOG_LEVEL_WARNING, ## szFmt);     \
-    }
-
-#define SRVSVC_LOG_INFO(szFmt...)                          \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_INFO)    {  \
-        SrvSvcLogMessage(LOG_LEVEL_INFO, ## szFmt);        \
-    }
-
-#define SRVSVC_LOG_VERBOSE(szFmt...)                       \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
-        SrvSvcLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
-    }
-
-#define SRVSVC_LOG_DEBUG(szFmt...)                         \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
-        SrvSvcLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
-    }
-
 #ifndef NET_API_STATUS_DEFINED
 typedef WINERR NET_API_STATUS;
 

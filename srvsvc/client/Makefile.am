@@ -36,6 +36,7 @@ libsrvsvc_cs_la_SOURCES = srvsvc_cstub.c
 
 libsrvsvc_cs_la_CPPFLAGS = \
     $(AM_CPPFLAGS)         \
+    -DLW_ENABLE_THREADS=1  \
     -DDCERPC_STUB_BUILD    \
     $(DCERPC_INCLUDES)
 
@@ -58,6 +59,7 @@ libsrvsvc_la_LDFLAGS = \
     $(LIBUNISTR_LDFLAGS)
 
 libsrvsvc_la_LIBADD = \
+    @top_builddir@/logging_r/libsrvsvclog_r.la \
     @top_builddir@/utils/libsrvsvcutils.la \
     $(DCERPC_LIBS)    \
     $(LIBUNISTR_LIBS) \

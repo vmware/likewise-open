@@ -54,6 +54,8 @@
 #include <srvsvcutils.h>
 #include <memptr.h>
 
+#include <srvsvclog_r.h>
+
 #include "defs.h"
 
 #include "srvsvc_h.h"

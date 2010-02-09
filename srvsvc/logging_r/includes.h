@@ -33,26 +33,24 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        includes.h
  *
  * Abstract:
  *
- *        Likewise Server Service (LWSRVSVC)
+ *        Likewise Server Service (SRVSVC)
  *
- *        Utilities
+ *        Logging API (Private Header)
  *
- *        Externs
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
-extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
+#include "config.h"
+#include "srvsvcsys.h"
 
-#endif /* __EXTERNS_H__ */
+#include "srvsvc/srvsvc.h"
 
+#include "srvsvcdefs.h"
+#include "srvsvcutils.h"
+
+#include "externs.h"

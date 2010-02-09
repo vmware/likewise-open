@@ -69,7 +69,7 @@ strtoull(
 #endif /* defined(HAVE_STRTOULL) */
 
 void
-evt_sys_vsyslog(
+SrvSvc_vsyslog(
     int priority,
     const char *format,
     va_list ap

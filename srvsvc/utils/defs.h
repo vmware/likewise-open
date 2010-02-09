@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        defs.h
  *
  * Abstract:
  *
@@ -41,18 +41,17 @@
  *
  *        Utilities
  *
- *        Externs
+ *        Definitions
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
-extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
+#define SRVSVC_ERROR_TAG   "ERROR"
+#define SRVSVC_WARN_TAG    "WARNING"
+#define SRVSVC_INFO_TAG    "INFO"
+#define SRVSVC_VERBOSE_TAG "VERBOSE"
+#define SRVSVC_DEBUG_TAG   "DEBUG"
 
-#endif /* __EXTERNS_H__ */
+#define SRVSVC_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
 
