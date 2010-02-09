@@ -35,6 +35,7 @@
   - --clear-allow --clear-deny
 */
 #include "config.h"
+#include "srvsvcsys.h"
 
 #include <lw/security-api.h>
 #include <srvsvc/srvsvc.h>

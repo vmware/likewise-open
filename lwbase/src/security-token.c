@@ -587,6 +587,13 @@ RtlAccessCheck(
         GOTO_CLEANUP();
     }
 
+    if ((SecurityDescriptor->Owner == NULL) ||
+        (SecurityDescriptor->Group == NULL))
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        GOTO_CLEANUP();
+    }
+
     wantMaxAllowed = IsSetFlag(desiredAccess, MAXIMUM_ALLOWED);
     ClearFlag(desiredAccess, MAXIMUM_ALLOWED);
 
@@ -1047,3 +1054,14 @@ cleanup:
 
     return status;
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -209,7 +209,7 @@ RegDB_ReadPassword(
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
                   NULL,
-                  LWPS_REG_DOMAIN_DNS_NAME,
+                  LWPS_REG_HOST_DNS_DOMAIN,
                   NULL,
                   (PVOID) &pszHostDnsDomain,
                   NULL);
@@ -659,7 +659,7 @@ RegDB_WritePassword(
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
                   NULL,
-                  LWPS_REG_DOMAIN_DNS_NAME,
+                  LWPS_REG_HOST_DNS_DOMAIN,
                   REG_SZ,
                   pszHostDnsDomain,
                   strlen(pszHostDnsDomain));
