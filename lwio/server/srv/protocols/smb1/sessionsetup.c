@@ -63,6 +63,7 @@ SrvProcessSessionSetup(
     PBYTE                      pInitSecurityBlob        = NULL;
     ULONG                      ulInitSecurityBlobLength = 0;
     LW_MAP_SECURITY_GSS_CONTEXT hContextHandle = NULL;
+    BOOLEAN                    bGssNegotiateLocked = FALSE;
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
@@ -70,6 +71,8 @@ SrvProcessSessionSetup(
                     &pSecurityBlob,
                     &ulSecurityBlobLength);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_MUTEX(bGssNegotiateLocked, &pConnection->GssMutex);
 
     if (pConnection->hGssNegotiate == NULL)
     {
@@ -150,6 +153,8 @@ SrvProcessSessionSetup(
     }
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bGssNegotiateLocked, &pConnection->GssMutex);
 
     if (pInitSecurityBlob)
     {

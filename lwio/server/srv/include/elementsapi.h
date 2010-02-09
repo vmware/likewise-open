@@ -331,6 +331,10 @@ typedef struct _LWIO_SRV_CONNECTION
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
 
     HANDLE              hGssContext;
+
+    pthread_mutex_t     GssMutex;
+    pthread_mutex_t*    pGssMutex;
+
     HANDLE              hGssNegotiate;
 
     union
