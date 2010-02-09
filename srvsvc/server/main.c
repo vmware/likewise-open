@@ -112,12 +112,6 @@ SrvSvcCreatePIDFile(
 
 static
 DWORD
-SrvSvcInitLogging(
-    PSTR pszProgramName
-    );
-
-static
-DWORD
 SrvSvcRpcInitialize(
     VOID
     );
@@ -159,7 +153,11 @@ main(
     dwError = SrvSvcParseArgs(argc, argv, &gServerInfo);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcInitLogging(get_program_name(argv[0]));
+    dwError = SrvSvcInitLogging_r(
+                    get_program_name(argv[0]),
+                    gServerInfo.logTarget,
+                    gServerInfo.maxAllowedLogLevel,
+                    gServerInfo.szLogFilePath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     SRVSVC_LOG_VERBOSE("Logging Started");
@@ -213,7 +211,7 @@ main(
 
     SrvSvcRpcShutdown();
 
-    SrvSvcCloseLog();
+    SrvSvcShutdownLogging_r();
 
     SrvSvcSetProcessExitCode(dwError);
 
@@ -261,7 +259,7 @@ SrvSvcParseArgs(
     ParseMode parseMode = PARSE_MODE_OPEN;
     int iArg = 1;
     PSTR pArg = NULL;
-    DWORD dwLogLevel = 0;
+    BOOLEAN bLogTargetSet = FALSE;
 
     do
     {
@@ -287,6 +285,18 @@ SrvSvcParseArgs(
                 else if (strcmp(pArg, "--start-as-daemon") == 0)
                 {
                     pServerInfo->dwStartAsDaemon = 1;
+
+                    // If other arguments set before this set the log target
+                    // don't over-ride that setting
+                    if (!bLogTargetSet)
+                    {
+                        pServerInfo->logTarget = SRVSVC_LOG_TARGET_SYSLOG;
+                    }
+                }
+                else if (strcmp(pArg, "--syslog") == 0)
+                {
+                    bLogTargetSet = TRUE;
+                    pServerInfo->logTarget = SRVSVC_LOG_TARGET_SYSLOG;
                 }
                 else if (strcmp(pArg, "--loglevel") == 0)
                 {
@@ -304,8 +314,20 @@ SrvSvcParseArgs(
 
             case PARSE_MODE_LOGFILE:
 
-                strncpy(pServerInfo->szLogFilePath, pArg, PATH_MAX);
-                *(pServerInfo->szLogFilePath+PATH_MAX) = '\0';
+                strcpy(pServerInfo->szLogFilePath, pArg);
+
+                SrvSvcStripWhitespace(pServerInfo->szLogFilePath, TRUE, TRUE);
+
+                if (!strcmp(pServerInfo->szLogFilePath, "."))
+                {
+                    pServerInfo->logTarget = SRVSVC_LOG_TARGET_CONSOLE;
+                }
+                else
+                {
+                    pServerInfo->logTarget = SRVSVC_LOG_TARGET_FILE;
+                }
+
+                bLogTargetSet = TRUE;
 
                 parseMode = PARSE_MODE_OPEN;
 
@@ -313,24 +335,58 @@ SrvSvcParseArgs(
 
             case PARSE_MODE_LOGLEVEL:
 
-                dwLogLevel = atoi(pArg);
-
-                if (dwLogLevel < LOG_LEVEL_ALWAYS ||
-                    dwLogLevel > LOG_LEVEL_DEBUG)
+                if (!strcasecmp(pArg, "error"))
                 {
-                    SRVSVC_LOG_ERROR(   "Error: Invalid log level [%d]",
-                                        dwLogLevel);
+                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_ERROR;
+                }
+                else if (!strcasecmp(pArg, "warning"))
+                {
+                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_WARNING;
+                }
+                else if (!strcasecmp(pArg, "info"))
+                {
+                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_INFO;
+                }
+                else if (!strcasecmp(pArg, "verbose"))
+                {
+                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_VERBOSE;
+                }
+                else if (!strcasecmp(pArg, "debug"))
+                {
+                    pServerInfo->maxAllowedLogLevel = SRVSVC_LOG_LEVEL_DEBUG;
+                }
+                else
+                {
+                    SRVSVC_LOG_ERROR("Error: Invalid log level [%s]", pArg);
                     ShowUsage(get_program_name(argv[0]));
                     exit(1);
                 }
-
-                pServerInfo->dwLogLevel = dwLogLevel;
 
                 parseMode = PARSE_MODE_OPEN;
 
                 break;
         }
     } while (iArg < argc);
+
+    if (pServerInfo->dwStartAsDaemon)
+    {
+        if (pServerInfo->logTarget == SRVSVC_LOG_TARGET_CONSOLE)
+        {
+            SRVSVC_LOG_ERROR("%s", "Error: Cannot log to console when executing as a daemon");
+
+            dwError = SRVSVC_ERROR_INVALID_PARAMETER;
+            BAIL_ON_SRVSVC_ERROR(dwError);
+        }
+    }
+    else
+    {
+        if (!bLogTargetSet)
+        {
+            pServerInfo->logTarget = SRVSVC_LOG_TARGET_CONSOLE;
+        }
+    }
+
+error:
 
     return dwError;
 }
@@ -342,8 +398,9 @@ ShowUsage(
     )
 {
     printf("Usage: %s [--start-as-daemon]\n"
+            "          [--syslog]\n"
             "          [--logfile logFilePath]\n"
-            "          [--loglevel {0, 1, 2, 3, 4, 5}]\n",
+            "          [--loglevel {error, warning, info, verbose, debug}]\n",
             pszProgramName);
 }
 
@@ -637,26 +694,6 @@ SrvSvcCreatePIDFile(
 
     if (result < 0) {
         exit(1);
-    }
-}
-
-static
-DWORD
-SrvSvcInitLogging(
-    PSTR pszProgramName
-    )
-{
-    if (gServerInfo.dwStartAsDaemon) {
-
-        return SrvSvcInitLoggingToSyslog(gServerInfo.dwLogLevel,
-                                      pszProgramName,
-                                      LOG_PID,
-                                      LOG_DAEMON);
-    }
-    else
-    {
-        return SrvSvcInitLoggingToFile(gServerInfo.dwLogLevel,
-				       gServerInfo.szLogFilePath);
     }
 }
 

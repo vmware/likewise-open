@@ -37,22 +37,21 @@
  *
  * Abstract:
  *
- *        Likewise Server Service (LWSRVSVC)
+ *        Likewise Server Service (SRVSVC)
  *
- *        Utilities
+ *        External Variables
  *
- *        Externs
+ *        Logging API
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
+
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
-extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
+#if defined(LW_ENABLE_THREADS)
+extern pthread_mutex_t gSrvSvcLogLock;
+#endif
 
 #endif /* __EXTERNS_H__ */
-

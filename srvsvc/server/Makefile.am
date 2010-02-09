@@ -37,6 +37,7 @@ libwinreg_ss_la_SOURCES = winreg_sstub.c
 
 libsrvsvc_ss_la_CPPFLAGS = \
     $(AM_CPPFLAGS)         \
+    -DLW_ENABLE_THREADS=1  \
     -DDCERPC_STUB_BUILD    \
     $(DCERPC_INCLUDES)
 
@@ -89,6 +90,7 @@ srvsvcd_LDFLAGS = \
     @DS_FRAMEWORK_LDFLAGS@
 
 srvsvcd_LDADD = \
+    $(top_builddir)/logging_r/libsrvsvclog_r.la \
     $(top_builddir)/utils/libsrvsvcutils.la \
     libsrvsvc_ss.la                         \
     libwkssvc_ss.la                         \

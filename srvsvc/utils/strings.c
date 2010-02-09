@@ -43,8 +43,48 @@
 #include "includes.h"
 
 DWORD
+SrvSvcAllocateString(
+    PCSTR  pszInputString,
+    PSTR*  ppszOutputString
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwLen = 0;
+    PSTR  pszOutputString = NULL;
+
+    if (!pszInputString) {
+        dwError = SRVSVC_ERROR_INVALID_PARAMETER;
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
+    dwLen = strlen(pszInputString);
+
+    dwError = LwAllocateMemory(dwLen+1, (PVOID *)&pszOutputString);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (dwLen)
+    {
+       memcpy(pszOutputString, pszInputString, dwLen);
+    }
+
+    *ppszOutputString = pszOutputString;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    SRVSVC_SAFE_FREE_STRING(pszOutputString);
+
+    *ppszOutputString = NULL;
+
+    goto cleanup;
+}
+
+DWORD
 SrvSvcStrndup(
-    PCSTR pszInputString,
+    PCSTR  pszInputString,
     size_t size,
     PSTR * ppszOutputString
     )
@@ -76,30 +116,13 @@ error:
     return dwError;
 }
 
-/* return a string description of the TableCategory type */
-PCSTR
-TableCategoryToStr(
-    DWORD tableCategory
+VOID
+SrvSvcFreeString(
+    PSTR pszString
     )
 {
-
-    switch(tableCategory) {
-    case 0:
-        return "Application";
-    case 1:
-        return "WebBrowser";
-    case 2:
-        return "Security";
-    case 3:
-        return "System";
-    default:
-        return "Unknown";
-    }
-
-    return "";
-
+    LwFreeMemory(pszString);
 }
-
 
 BOOLEAN
 SrvSvcIsWhiteSpace(

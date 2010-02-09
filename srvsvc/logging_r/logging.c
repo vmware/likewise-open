@@ -33,45 +33,88 @@
  *
  * Module Name:
  *
- *        evtlogger_p.h
+ *        logging.c
  *
  * Abstract:
  *
- *        Likewise Server Service Service (LWSRVSVC)
+ *        Likewise IO (SRVSVC)
  *
- *        Utilities
+ *        Logging API (Private Header)
  *
- *        Private header (Logging API)
+ *        Thread Safe
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-#ifndef __SRVSVCLOGGER_P_H__
-#define __SRVSVCLOGGER_P_H__
+#include "includes.h"
 
 DWORD
-SrvSvcValidateLogLevel(
-    DWORD dwLogLevel
-    );
+SrvSvcInitLogging_r(
+    PCSTR         pszProgramName,
+    SRVSVC_LOG_TARGET  logTarget,
+    SRVSVC_LOG_LEVEL   maxAllowedLogLevel,
+    PCSTR         pszPath
+    )
+{
+    DWORD dwError = 0;
 
-VOID
-SrvSvcSetSyslogMask(
-    DWORD dwLogLevel
-    );
+    SRVSVC_LOCK_LOGGER;
 
-VOID
-SrvSvcLogToFile_InLock(
-    PLOGFILEINFO logInfo,
-    DWORD dwLogLevel,
-    PCSTR pszFormat,
-    va_list msgList
-    );
+    dwError = SrvSvcInitLogging(
+                    pszProgramName,
+                    logTarget,
+                    maxAllowedLogLevel,
+                    pszPath);
 
-VOID
-SrvSvcLogToSyslog_InLock(
-    DWORD   dwLogLevel,
-    PCSTR   pszFormat,
-    va_list msgList
-    );
+    SRVSVC_UNLOCK_LOGGER;
 
-#endif /* __SRVSVCLOGGER_P_H__ */
+    return dwError;
+}
+
+DWORD
+SrvSvcLogGetInfo_r(
+    PSRVSVC_LOG_INFO* ppLogInfo
+    )
+{
+    DWORD dwError = 0;
+
+    SRVSVC_LOCK_LOGGER;
+
+    dwError = SrvSvcLogGetInfo(ppLogInfo);
+
+    SRVSVC_UNLOCK_LOGGER;
+
+    return dwError;
+}
+
+DWORD
+SrvSvcLogSetInfo_r(
+    PSRVSVC_LOG_INFO pLogInfo
+    )
+{
+    DWORD dwError = 0;
+
+    SRVSVC_LOCK_LOGGER;
+
+    dwError = SrvSvcLogSetInfo(pLogInfo);
+
+    SRVSVC_UNLOCK_LOGGER;
+
+    return dwError;
+}
+
+DWORD
+SrvSvcShutdownLogging_r(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+
+    SRVSVC_LOCK_LOGGER;
+
+    dwError = SrvSvcShutdownLogging();
+
+    SRVSVC_UNLOCK_LOGGER;
+
+    return dwError;
+}

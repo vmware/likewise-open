@@ -45,7 +45,7 @@ static SM_BOOTSTRAP_SERVICE gRegistryService =
     .pszPath = SBINDIR "/lwregd",
     .ppszArgs =
     {
-        "lwregd",
+        SBINDIR "/lwregd",
         NULL
     }
 };

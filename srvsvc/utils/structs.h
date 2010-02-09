@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        structs.h
  *
  * Abstract:
  *
@@ -41,18 +41,29 @@
  *
  *        Utilities
  *
- *        Externs
+ *        Structures
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __EXTERNS_H__
-#define __EXTERNS_H__
 
-extern HANDLE                 ghSrvSvcLog;
-extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
-extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
-extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
+typedef struct
+{
+    FILE* fp_out;
+    FILE* fp_err;
+} SRVSVC_CONSOLE_LOG, *PSRVSVC_CONSOLE_LOG;
 
-#endif /* __EXTERNS_H__ */
+typedef struct
+{
+    PSTR  pszFilePath;
+    FILE* fp;
+} SRVSVC_FILE_LOG, *PSRVSVC_FILE_LOG;
+
+typedef struct
+{
+    PSTR    pszIdentifier;
+    BOOLEAN bOpened;
+    DWORD   dwFacility;
+    DWORD   dwOptions;
+} SRVSVC_SYS_LOG, *PSRVSVC_SYS_LOG;
 
