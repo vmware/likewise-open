@@ -187,16 +187,13 @@ main(
     dwError = SrvSvcDSNotify();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcStartSignalHandler();
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
     dwError = SrvSvcSMNotify();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcInitSecurity();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = SrvSvcListenForRPC();
+    dwError = SrvSvcHandleSignals();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
  cleanup:
@@ -206,8 +203,6 @@ main(
     SrvSvcSetProcessShouldExit(TRUE);
 
     SrvSvcDSShutdown();
-
-    SrvSvcStopSignalHandler();
 
     SrvSvcRpcShutdown();
 
@@ -764,7 +759,7 @@ SrvSvcRpcInitialize(
     for (dwBindAttempts = 0; dwBindAttempts < dwMaxBindAttempts; dwBindAttempts++)
     {
         dwError = WinRegRegisterForRPC(
-                        "Likewise Workstation Service",
+                        "Likewise Registry Service",
                         &gServerInfo.pRegistryBinding);
         if (dwError)
         {
@@ -780,6 +775,17 @@ SrvSvcRpcInitialize(
     }
     /* Bail if we still haven't succeeded after several attempts */
     BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwMapErrnoToLwError(dcethread_create(
+                                        &gServerInfo.pRpcListenerThread,
+                                        NULL,
+                                        &SrvSvcListenForRPC,
+                                        NULL));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    while (!SrvSvcRpcIsListening())
+    {
+    }
 
 cleanup:
 
@@ -798,26 +804,60 @@ SrvSvcRpcShutdown(
     VOID
     )
 {
+    DWORD dwError = 0;
     BOOLEAN bInLock = FALSE;
 
     SRVSVC_LOCK_MUTEX(bInLock, &gServerInfo.mutex);
 
     if (gServerInfo.pServerBinding)
     {
-        SrvSvcUnregisterForRPC(gServerInfo.pServerBinding);
+        dwError = SrvSvcUnregisterForRPC(gServerInfo.pServerBinding);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        gServerInfo.pServerBinding = NULL;
     }
 
     if (gServerInfo.pWkstaBinding)
     {
-        WksSvcUnregisterForRPC(gServerInfo.pWkstaBinding);
+        dwError = WksSvcUnregisterForRPC(gServerInfo.pWkstaBinding);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        gServerInfo.pWkstaBinding = NULL;
     }
 
     if (gServerInfo.pRegistryBinding)
     {
-        WinRegUnregisterForRPC(gServerInfo.pWkstaBinding);
+        dwError = WinRegUnregisterForRPC(gServerInfo.pRegistryBinding);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        gServerInfo.pRegistryBinding = NULL;
     }
 
     SRVSVC_UNLOCK_MUTEX(bInLock, &gServerInfo.mutex);
+
+    dwError = SrvSvcRpcStopListening();
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    SRVSVC_LOCK_MUTEX(bInLock, &gServerInfo.mutex);
+
+    if (gServerInfo.pRpcListenerThread)
+    {
+        dwError = LwMapErrnoToLwError(dcethread_interrupt(gServerInfo.pRpcListenerThread));
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        dwError = LwMapErrnoToLwError(dcethread_join(gServerInfo.pRpcListenerThread, NULL));
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
+cleanup:
+
+    SRVSVC_UNLOCK_MUTEX(bInLock, &gServerInfo.mutex);
+
+    return;
+
+error:
+
+    goto cleanup;
 }
 
 static

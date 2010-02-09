@@ -70,12 +70,7 @@ SrvSvcBlockSelectedSignals(
     );
 
 DWORD
-SrvSvcStartSignalHandler(
-    VOID
-    );
-
-DWORD
-SrvSvcStopSignalHandler(
+SrvSvcHandleSignals(
     VOID
     );
 

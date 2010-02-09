@@ -48,7 +48,7 @@
 SRVSVC_RUNTIME_GLOBALS gServerInfo =
 {
     .mutex                 = PTHREAD_MUTEX_INITIALIZER,
-    .pSignalHandlerThread  = NULL,
+    .pRpcListenerThread    = NULL,
     .pServerBinding        = NULL,
     .pWkstaBinding         = NULL,
     .pRegistryBinding      = NULL,

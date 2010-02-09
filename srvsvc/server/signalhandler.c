@@ -46,12 +46,6 @@
 #include "includes.h"
 
 static
-PVOID
-SrvSvcHandleSignals(
-    PVOID pArg
-    );
-
-static
 VOID
 SrvSvcInterruptHandler(
     int Signal
@@ -75,65 +69,9 @@ SrvSvcBlockSelectedSignals(
     pthread_sigmask(SIG_BLOCK,  &default_signal_mask, &old_signal_mask);
 }
 
-/*
- * Set up the process environment to properly deal with signals.
- * By default, we isolate all threads from receiving asynchronous
- * signals. We create a thread that handles all async signals.
- * The signal handling actions are handled in the handler thread.
- *
- * For AIX, we cant use a thread that sigwaits() on a specific signal,
- * we use a plain old, lame old Unix signal handler.
- *
- */
 DWORD
-SrvSvcStartSignalHandler(
-    VOID
-    )
-{
-    DWORD dwError = 0;
-
-    dwError = pthread_create(&gServerInfo.signalHandlerThread,
-                             NULL,
-                             &SrvSvcHandleSignals,
-                             NULL);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    gServerInfo.pSignalHandlerThread = &gServerInfo.signalHandlerThread;
-
-error:
-
-    return dwError;
-}
-
-DWORD
-SrvSvcStopSignalHandler(
-    VOID
-    )
-{
-    DWORD dwError = 0;
-    UINT32 status = 0;
-    BOOLEAN bInLock = FALSE;
-
-    rpc_mgmt_stop_server_listening(NULL, (unsigned32*)&status);
-
-    SRVSVC_LOCK_MUTEX(bInLock, &gServerInfo.mutex);
-
-    if (gServerInfo.pSignalHandlerThread)
-    {
-        pthread_kill(gServerInfo.signalHandlerThread, SIGTERM);
-        pthread_join(gServerInfo.signalHandlerThread, NULL);
-        gServerInfo.pSignalHandlerThread = NULL;
-    }
-
-    SRVSVC_UNLOCK_MUTEX(bInLock, &gServerInfo.mutex);
-
-    return (dwError);
-}
-
-static
-PVOID
 SrvSvcHandleSignals(
-    PVOID pArg
+    VOID
     )
 {
     DWORD dwError = 0;
@@ -185,7 +123,6 @@ SrvSvcHandleSignals(
             case SIGQUIT:
             case SIGTERM:
             {
-                rpc_mgmt_stop_server_listening(NULL, &status);
                 SrvSvcSetProcessShouldExit(TRUE);
 
                 goto error;
@@ -208,7 +145,8 @@ SrvSvcHandleSignals(
     }
 
 error:
-    return NULL;
+
+    return dwError;
 }
 
 static
