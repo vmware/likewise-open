@@ -224,6 +224,11 @@ SrvSvcStrndup(
     PSTR * ppszOutputString
     );
 
+VOID
+SrvSvcFreeString(
+    PSTR pszString
+    );
+
 BOOLEAN
 SrvSvcIsWhiteSpace(
     char c
