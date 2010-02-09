@@ -146,7 +146,8 @@ RegDB_CreateRestrictedSecDescAbs(
     NTSTATUS status = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs = NULL;
     PACL pDacl = NULL;
-    PSID pSid = NULL;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
 
     status = LW_RTL_ALLOCATE(&pSecDescAbs,
                             VOID,
@@ -158,19 +159,32 @@ RegDB_CreateRestrictedSecDescAbs(
     BAIL_ON_LWPS_ERROR(status);
 
     // Owner: Root
-    status = LwMapSecurityGetSidFromId(gpRegLwMapSecurityCtx,
-		                           &pSid,
-		                           TRUE,
-                                       0);
+
+    status = LwMapSecurityGetSidFromId(
+	         gpRegLwMapSecurityCtx,
+		 &pOwnerSid,
+		 TRUE,
+		 0);
     BAIL_ON_LWPS_ERROR(status);
 
-    status = RtlSetOwnerSecurityDescriptor(pSecDescAbs,
-                                            pSid,
-                                            FALSE);
+    status = RtlSetOwnerSecurityDescriptor(
+	         pSecDescAbs,
+		 pOwnerSid,
+		 FALSE);
     BAIL_ON_LWPS_ERROR(status);
-    pSid = NULL;
+    pOwnerSid = NULL;
 
-    // Group (no need to set group for registry key)
+    // Group: Administrators
+
+    status = RtlAllocateSidFromCString(&pGroupSid, "S-1-5-32-544");
+    BAIL_ON_LWPS_ERROR(status);
+
+    status = RtlSetGroupSecurityDescriptor(
+                 pSecDescAbs,
+                 pGroupSid,
+                 FALSE);
+    BAIL_ON_LWPS_ERROR(status);
+    pGroupSid = NULL;
 
     // Do not set Sacl currently
 
@@ -194,7 +208,8 @@ RegDB_CreateRestrictedSecDescAbs(
 
 cleanup:
     LW_RTL_FREE(&pDacl);
-    LW_RTL_FREE(&pSid);
+    LW_RTL_FREE(&pOwnerSid);
+    LW_RTL_FREE(&pGroupSid);
 
     return status;
 
