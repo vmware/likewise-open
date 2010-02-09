@@ -368,6 +368,26 @@ SrvSvcParseArgs(
         }
     } while (iArg < argc);
 
+    if (pServerInfo->dwStartAsDaemon)
+    {
+        if (pServerInfo->logTarget == SRVSVC_LOG_TARGET_CONSOLE)
+        {
+            SRVSVC_LOG_ERROR("%s", "Error: Cannot log to console when executing as a daemon");
+
+            dwError = SRVSVC_ERROR_INVALID_PARAMETER;
+            BAIL_ON_SRVSVC_ERROR(dwError);
+        }
+    }
+    else
+    {
+        if (!bLogTargetSet)
+        {
+            pServerInfo->logTarget = SRVSVC_LOG_TARGET_CONSOLE;
+        }
+    }
+
+error:
+
     return dwError;
 }
 
