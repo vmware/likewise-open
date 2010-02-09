@@ -174,6 +174,8 @@ LsaSrvInitServerSecurityDescriptor(
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
     PACL pDacl = NULL;
 
     BAIL_ON_INVALID_PTR(ppSecDesc);
@@ -185,6 +187,30 @@ LsaSrvInitServerSecurityDescriptor(
     ntStatus = RtlCreateSecurityDescriptorAbsolute(
                                     pSecDesc,
                                     SECURITY_DESCRIPTOR_REVISION);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = LwCreateWellKnownSid(WinLocalSystemSid,
+                                   NULL,
+                                   &pOwnerSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = RtlSetOwnerSecurityDescriptor(
+                                    pSecDesc,
+                                    pOwnerSid,
+                                    FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &pGroupSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = RtlSetGroupSecurityDescriptor(
+                                    pSecDesc,
+                                    pGroupSid,
+                                    FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = LsaSrvCreateServerDacl(&pDacl);
