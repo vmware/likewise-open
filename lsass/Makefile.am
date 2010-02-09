@@ -3,11 +3,11 @@ ACLOCAL_AMFLAGS = -I m4
 compat_subdirs = \
 	common \
     client \
-	logging_r \
 	interop
 
 full_subdirs= \
 	$(compat_subdirs) \
+	logging_r \
 	lsaunistr \
     join \
     server \
