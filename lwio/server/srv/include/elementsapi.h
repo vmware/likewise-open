@@ -332,8 +332,8 @@ typedef struct _LWIO_SRV_CONNECTION
 
     HANDLE              hGssContext;
 
-    pthread_mutex_t     GssMutex;
-    pthread_mutex_t*    pGssMutex;
+    pthread_mutex_t     mutexGssNegotiate;
+    pthread_mutex_t*    pMutexGssNegotiate;
 
     HANDLE              hGssNegotiate;
 
