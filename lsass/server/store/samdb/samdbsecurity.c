@@ -650,6 +650,9 @@ SamDbCreateNewLocalAccountSecDesc(
     *pulSecDescLen = ulSecDescLen;
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pSecDesc);
+    LW_SAFE_FREE_MEMORY(pDacl);
+
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)
     {
@@ -754,6 +757,10 @@ SamDbCreateLocalDomainDacl(
     *ppDacl = pDacl;
 
 cleanup:
+
+    RTL_FREE(&pBuiltinAdminsSid);
+    RTL_FREE(&pWorldSid);
+
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)
     {
@@ -835,6 +842,9 @@ SamDbCreateBuiltinDomainDacl(
     *ppDacl = pDacl;
 
 cleanup:
+    RTL_FREE(&pBuiltinAdminsSid);
+    RTL_FREE(&pWorldSid);
+
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)
     {
@@ -1028,6 +1038,9 @@ SamDbCreateLocalGroupDacl(
     *ppDacl = pDacl;
 
 cleanup:
+    RTL_FREE(&pBuiltinAdminsSid);
+    RTL_FREE(&pWorldSid);
+
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)
     {
