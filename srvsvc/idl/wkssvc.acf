@@ -20,5 +20,6 @@
 ]
 interface wkssvc
 {
+	[enable_allocate] _NetWkstaGetInfo();
 }
 
