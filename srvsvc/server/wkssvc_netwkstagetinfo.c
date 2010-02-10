@@ -154,6 +154,9 @@ cleanup:
         dwError = LwNtStatusToWin32Error(ntStatus);
     }
 
+    LW_SAFE_FREE_STRING(pszLsaLpcSocketPath);
+    LW_SAFE_FREE_STRING(pwszLocalHost);
+
     return dwError;
 
 error:
