@@ -7,7 +7,7 @@ TEST_SOURCES = test-security.c test-atomic.c test-threadpool.c
 noinst_LTLIBRARIES = libbenchmark.la
 
 libbenchmark_la_SOURCES = benchmark.c
-libbenchmark_la_LIBADD = $(top_builddir)/src/liblwbase.la
+libbenchmark_la_LIBADD = $(top_builddir)/src/liblwbase.la @LIB_XNET@
 
 noinst_PROGRAMS = benchmark
 benchmark_SOURCES = benchmark-main.c
