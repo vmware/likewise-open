@@ -398,9 +398,4 @@ SrvSvcValidateLogLevel(
     DWORD dwLogLevel
     );
 
-DWORD
-SrvSvcConfigGetLsaLpcSocketPath(
-    PSTR* ppszPath
-    );
-
 #endif /* __SRVSVCUTILS_H__ */
