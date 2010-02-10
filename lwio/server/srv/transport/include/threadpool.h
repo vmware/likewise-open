@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lwselect.h
+ *        threadpool.h
  *
  * Abstract:
  *
@@ -46,11 +46,11 @@
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
-#ifndef __LWSELECT_H__
-#define __LWSELECT_H__
+#ifndef __THREADPOOL_H__
+#define __THREADPOOL_H__
 
 NTSTATUS
-SrvSelectTransportInit(
+SrvThreadpoolTransportInit(
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
     PSMB_PROD_CONS_QUEUE           pWorkQueue,
@@ -58,8 +58,8 @@ SrvSelectTransportInit(
     );
 
 NTSTATUS
-SrvSelectTransportShutdown(
+SrvThreadpoolTransportShutdown(
     PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
     );
 
-#endif /* __LWSELECT_H__ */
+#endif /* __THREADPOOL_H__ */

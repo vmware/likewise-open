@@ -75,15 +75,7 @@
 
 #include <srvtransport.h>
 
-#if defined(LW_USE_EPOLL)
-#include <lwepoll.h>
-#elif defined (LW_USE_KQUEUE)
-#include <lwkqueue.h>
-#elif defined (LW_USE_POLL)
-#include <lwpoll.h>
-#elif defined (LW_USE_SELECT)
-#include <lwselect.h>
-#endif
+#include <threadpool.h>
 
 #include "externs.h"
 
