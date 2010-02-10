@@ -1,1 +1,3 @@
-SUBDIRS = include src moonunit
+ACLOCAL_AMFLAGS = -I m4
+
+SUBDIRS = include src moonunit doc

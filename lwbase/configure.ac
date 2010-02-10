@@ -2,6 +2,7 @@ AC_INIT(lwbase, 0.1, support@likewisesoftware.com)
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_HEADER([include/config.h])
 AC_CANONICAL_HOST
+AC_CONFIG_MACRO_DIR([m4])
 
 LWBASE_CPPFLAGS=""
 LWBASE_CFLAGS="-Wall -Werror -Wmissing-prototypes $CFLAGS"
@@ -51,7 +52,13 @@ AC_SUBST(DS_FRAMEWORK_LDFLAGS)
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_MKDIR_P
 AC_PROG_LIBTOOL
+
+LW_USE_DOXYGEN([1.5.3])
+AC_SUBST([DOXYGEN],[$DOXYGEN])
+AM_CONDITIONAL([HAVE_DOXYGEN], [$HAVE_DOXYGEN])
+AM_CONDITIONAL([HAVE_DOXYGEN_PDF], [$HAVE_DOXYGEN_PDF])
 
 # libunistr
 
@@ -132,6 +139,38 @@ AC_C_BIGENDIAN
 # Checks for library functions.
 AC_HEADER_STDC
 
+# Check for epoll
+
+AC_CHECK_HEADERS([sys/epoll.h], [HAVE_EPOLL_H=true], [HAVE_EPOLL_H=false])
+AC_CHECK_FUNC([epoll_create], [HAVE_EPOLL_CREATE=true], [HAVE_EPOLL_CREATE=false])
+AC_CHECK_LIB(pthread, pthread_setaffinity_np, [HAVE_SET_AFFINITY=true], [HAVE_SET_AFFINITY=false])
+
+THREADPOOL_BACKEND=select
+
+if $HAVE_EPOLL_H && $HAVE_EPOLL_CREATE && $HAVE_SET_AFFINITY
+then
+	THREADPOOL_BACKEND=epoll
+fi
+
+if test "$THREADPOOL_BACKEND" = "select"
+then
+	USE_SELECT=true
+	AC_DEFINE([USE_SELECT], [], [Define to use select backend])
+else
+	USE_SELECT=false
+fi
+
+if test "$THREADPOOL_BACKEND" = "epoll"
+then
+	USE_EPOLL=true
+	AC_DEFINE([USE_EPOLL], [], [Define to use epoll backend])
+else
+	USE_EPOLL=false
+fi
+
+AM_CONDITIONAL(USE_SELECT, $USE_SELECT)
+AM_CONDITIONAL(USE_EPOLL, $USE_EPOLL)
+
 # Check for moonunit bits
 AC_CHECK_HEADERS([moonunit/moonunit.h], [HAVE_MOONUNIT_H=true], [HAVE_MOONUNIT_H=false])
 AC_CHECK_LIB(moonunit, Mu_Interface_Result, [HAVE_MOONUNIT_LIB=true], [HAVE_MOONUNIT_LIB=false])
@@ -153,6 +192,15 @@ AC_CONFIG_FILES([Makefile
                  include/Makefile
                  include/lw/Makefile
                  src/Makefile
-                 moonunit/Makefile])
+                 moonunit/Makefile
+		 doc/Makefile
+		 doc/Doxyfile
+		 ])
 
 AC_OUTPUT
+
+echo ""
+echo "Likewise Base Runtime Library configuration:"
+echo ""
+echo "Thread pool event backend: $THREADPOOL_BACKEND"
+echo ""

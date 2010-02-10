@@ -52,5 +52,6 @@
 #include <lw/security-types.h>
 #include <lw/security-api.h>
 #include <lw/dscache.h>
+#include <lw/threadpool.h>
 
 #endif

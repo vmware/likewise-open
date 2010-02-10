@@ -33,3 +33,11 @@ liblwbase_la_SOURCES = \
 liblwbase_la_LIBADD = \
         @LIB_PTHREAD@ \
         liblwbase_nothr.la
+
+if USE_EPOLL
+liblwbase_la_SOURCES += threadpool-epoll.c
+endif
+
+if USE_SELECT
+liblwbase_la_SOURCES += threadpool-select.c
+endif
