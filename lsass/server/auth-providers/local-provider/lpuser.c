@@ -413,6 +413,8 @@ LocalDirAddUser(
 
         LsaUtilFreeSecurityObjectList(1, ppObjects);
         ppObjects = NULL;
+
+        RTL_FREE(&pGroupSID);
     }
 
     dwError = LsaMbsToWc16s(
@@ -595,6 +597,8 @@ LocalDirAddUser(
             dwError = LW_ERROR_SAM_DATABASE_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
+
+        RTL_FREE(&pGroupSID);
     }
 
     dwError = DirectoryAddToGroup(
