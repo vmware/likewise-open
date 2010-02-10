@@ -50,8 +50,8 @@ SrvWorkerMustStop(
     );
 
 static
-NTSTATUS
-SrvWorkerStop(
+VOID
+SrvWorkerIndicateStopContext(
     PLWIO_SRV_WORKER_CONTEXT pContext
     );
 
@@ -153,7 +153,7 @@ SrvWorkerIndicateStop(
 {
     if (pWorker->pWorker)
     {
-        SrvWorkerStop(&pWorker->context);
+        SrvWorkerIndicateStopContext(&pWorker->context);
     }
 }
 
@@ -164,7 +164,8 @@ SrvWorkerFreeContents(
 {
     if (pWorker->pWorker)
     {
-        SrvWorkerStop(&pWorker->context);
+        // Someone must have already called SrvWorkerIndicateStop
+        // and unblocked the prod/cons queue.
 
         pthread_join(pWorker->worker, NULL);
     }
@@ -226,37 +227,15 @@ SrvWorkerMustStop(
 }
 
 static
-NTSTATUS
-SrvWorkerStop(
+VOID
+SrvWorkerIndicateStopContext(
     PLWIO_SRV_WORKER_CONTEXT pContext
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT pExecContext = NULL;
-
     pthread_mutex_lock(&pContext->mutex);
 
     pContext->bStop = TRUE;
 
     pthread_mutex_unlock(&pContext->mutex);
-
-    ntStatus = SrvBuildEmptyExecContext(&pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvProdConsEnqueue(&gSMBSrvGlobals.workQueue, pExecContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    if (pExecContext)
-    {
-        SrvReleaseExecContext(pExecContext);
-    }
-
-    goto cleanup;
 }
 
