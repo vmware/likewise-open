@@ -41,27 +41,32 @@
 
 #include "includes.h"
 
+
 DWORD
-SrvSvcSrvGetFromUnicodeStringEx(
-    PWSTR *ppwszOut,
-    UnicodeStringEx *pIn
+SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
+    OUT PWSTR            *ppwszOut,
+    IN  UnicodeStringEx  *pIn
     )
 {
-    WINERR winError = 0;
+    WINERR dwError = 0;
     PWSTR pwszStr = NULL;
 
-    winError = SrvSvcSrvAllocateMemory(pIn->size * sizeof(WCHAR),
-                                       (PVOID*)&pwszStr);
-    if (winError)
-    {
-        goto error;
-    }
+    BAIL_ON_INVALID_PTR(ppwszOut, dwError);
+    BAIL_ON_INVALID_PTR(pIn, dwError);
 
-    wc16sncpy(pwszStr, pIn->string, pIn->len / sizeof(WCHAR));
+    dwError = SrvSvcSrvAllocateMemory(pIn->size * sizeof(WCHAR),
+                                      OUT_PPVOID(&pwszStr));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwWc16snCpy(pwszStr,
+                          pIn->string,
+                          pIn->len / sizeof(WCHAR));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
     *ppwszOut = pwszStr;
 
 cleanup:
-    return winError;
+    return dwError;
 
 error:
     if (pwszStr)
@@ -72,3 +77,99 @@ error:
     *ppwszOut = NULL;
     goto cleanup;
 }
+
+
+DWORD
+SrvSvcSrvAllocateWC16String(
+    OUT PWSTR  *ppwszOut,
+    IN  PCWSTR  pwszIn
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    size_t sStrLen = 0;
+    PWSTR pwszStr = NULL;
+
+    BAIL_ON_INVALID_PTR(ppwszOut, dwError);
+    BAIL_ON_INVALID_PTR(pwszIn, dwError);
+
+    dwError = LwWc16sLen(pwszIn, &sStrLen);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateMemory(sizeof(WCHAR) * (sStrLen + 1),
+                                      OUT_PPVOID(&pwszStr));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwWc16snCpy(pwszStr, pwszIn, sStrLen);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    *ppwszOut = pwszStr;
+
+cleanup:
+    return dwError;
+
+error:
+    if (pwszStr)
+    {
+        SrvSvcSrvFreeMemory(pwszStr);
+    }
+
+    *ppwszOut = NULL;
+
+    goto cleanup;
+}
+
+
+DWORD
+SrvSvcSrvAllocateWC16StringFromCString(
+    OUT PWSTR  *ppwszOut,
+    IN  PCSTR   pszIn
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    size_t sStrLen = 0;
+    PWSTR pwszIn = NULL;
+    PWSTR pwszStr = NULL;
+
+    BAIL_ON_INVALID_PTR(ppwszOut, dwError);
+    BAIL_ON_INVALID_PTR(pszIn, dwError);
+
+    dwError = LwMbsToWc16s(pszIn, &pwszIn);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwWc16sLen(pwszIn, &sStrLen);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateMemory(sizeof(WCHAR) * (sStrLen + 1),
+                                      OUT_PPVOID(&pwszStr));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwWc16snCpy(pwszStr, pwszIn, sStrLen);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    *ppwszOut = pwszStr;
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pwszIn);
+
+    return dwError;
+
+error:
+    if (pwszStr)
+    {
+        SrvSvcSrvFreeMemory(pwszStr);
+    }
+
+    *ppwszOut = NULL;
+
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

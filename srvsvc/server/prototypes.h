@@ -77,8 +77,19 @@ SrvSvcHandleSignals(
 // utils.c
 
 DWORD
-SrvSvcSrvGetFromUnicodeStringEx(
-    PWSTR *ppwszOut,
-    UnicodeStringEx *pIn
+SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
+    OUT PWSTR            *ppwszOut,
+    IN  UnicodeStringEx  *pIn
     );
 
+DWORD
+SrvSvcSrvAllocateWC16String(
+    OUT PWSTR  *ppwszOut,
+    IN  PCWSTR  pwszIn
+    );
+
+DWORD
+SrvSvcSrvAllocateWC16StringFromCString(
+    OUT PWSTR  *ppwszOut,
+    IN  PCSTR   pszIn
+    );

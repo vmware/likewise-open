@@ -41,7 +41,7 @@
  *
  *        Likewise I/O Subsystem
  *
- *        SRV Select Transport
+ *        SRV Threadpool Transport
  *
  *        Prototypes
  *
@@ -52,30 +52,30 @@
 // config.c
 
 NTSTATUS
-SrvSelectTransportInitConfig(
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
+SrvThreadpoolTransportInitConfig(
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
     );
 
 NTSTATUS
-SrvSelectTransportReadConfig(
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
+SrvThreadpoolTransportReadConfig(
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
     );
 
 VOID
-SrvSelectTransportFreeConfigContents(
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
+SrvThreadpoolTransportFreeConfigContents(
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
     );
 
 // libmain.c
 
 NTSTATUS
-SrvSelectTransportGetRequest(
+SrvThreadpoolTransportGetRequest(
     struct timespec*   pTimespec,
     PSRV_EXEC_CONTEXT* ppContext
     );
 
 NTSTATUS
-SrvSelectTransportSendResponse(
+SrvThreadpoolTransportSendResponse(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_PACKET          pResponse
     );
@@ -86,8 +86,6 @@ NTSTATUS
 SrvListenerInit(
     HANDLE                     hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    PLWIO_SRV_SOCKET_READER    pReaderArray,
-    ULONG                      ulNumReaders,
     PLWIO_SRV_LISTENER         pListener,
     BOOLEAN                    bEnableSecuritySignatures,
     BOOLEAN                    bRequireSecuritySignatures
@@ -100,31 +98,13 @@ SrvListenerShutdown(
 
 // reader.c
 
-NTSTATUS
-SrvSocketReaderInit(
-    PSMB_PROD_CONS_QUEUE   pWorkQueue,
-    PLWIO_SRV_SOCKET_READER pReader
-    );
-
-ULONG
-SrvSocketReaderGetCount(
-    PLWIO_SRV_SOCKET_READER pReader
-    );
-
-BOOLEAN
-SrvSocketReaderIsActive(
-    PLWIO_SRV_SOCKET_READER pReader
-    );
-
-NTSTATUS
-SrvSocketReaderEnqueueConnection(
-    PLWIO_SRV_SOCKET_READER pReader,
-    PLWIO_SRV_CONNECTION    pConnection
-    );
-
-NTSTATUS
-SrvSocketReaderFreeContents(
-    PLWIO_SRV_SOCKET_READER pReader
+VOID
+SrvSocketReaderProcess(
+    PLW_TASK pTask,
+    PVOID pDataContext,
+    LW_TASK_EVENT_MASK WakeMask,
+    LW_TASK_EVENT_MASK* pWaitMask,
+    PLONG64 pllTime
     );
 
 // srvconnection.c

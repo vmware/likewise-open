@@ -172,6 +172,13 @@ SrvSvcInitSecurity(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
+        RtlSetGroupSecurityDescriptor(
+            pAbsolute,
+            &builtinAdminsSid.sid,
+            FALSE));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(
         RtlSetDaclSecurityDescriptor(
             pAbsolute,
             TRUE,
@@ -391,9 +398,13 @@ NET_API_STATUS _NetrShareAdd(
                     parm_error
                     );
 
-error:
-
+cleanup:
     return dwError;
+
+error:
+    *parm_error = 0;
+
+    goto cleanup;
 }
 
 NET_API_STATUS _NetrShareEnum(
@@ -422,9 +433,16 @@ NET_API_STATUS _NetrShareEnum(
                     );
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-error:
-
+cleanup:
     return dwError;
+
+error:
+    memset(ctr, 0, sizeof(*ctr));
+
+    *total_entries = 0;
+    *resume_handle = 0;
+
+    goto cleanup;
 }
 
 NET_API_STATUS _NetrShareGetInfo(
@@ -447,10 +465,13 @@ NET_API_STATUS _NetrShareGetInfo(
                     level,
                     info
                     );
+cleanup:
+    return dwError;
 
 error:
+    memset(info, 0, sizeof(*info));
 
-    return dwError;
+    goto cleanup;
 }
 
 
@@ -476,10 +497,13 @@ NET_API_STATUS _NetrShareSetInfo(
                     info,
                     parm_error
                     );
+cleanup:
+    return dwError;
 
 error:
+    *parm_error = 0;
 
-    return dwError;
+    goto cleanup;
 }
 
 
@@ -537,10 +561,15 @@ NET_API_STATUS _NetrServerGetInfo(
                     level,
                     info
                     );
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+cleanup:
+    return dwError;
 
 error:
+    memset(info, 0, sizeof(*info));
 
-    return dwError;
+    goto cleanup;
 }
 
 NET_API_STATUS _NetrServerSetInfo(

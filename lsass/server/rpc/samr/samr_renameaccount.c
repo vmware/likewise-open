@@ -130,12 +130,6 @@ SamrSrvRenameAccount(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_SET_ATTRIBUTES))
-    {
-        ntStatus = STATUS_ACCESS_DENIED;
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-    }
-
     hDirectory = pConnCtx->hDirectory;
     pwszOldDn  = pAcctCtx->pwszDn;
 

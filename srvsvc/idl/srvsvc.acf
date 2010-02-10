@@ -21,5 +21,18 @@
 ] 
 interface srvsvc
 {
+	[enable_allocate] _NetrConnectionEnum();
+	[enable_allocate] _NetrFileEnum();
+	[enable_allocate] _NetrFileGetInfo();
+	[enable_allocate] _NetrFileClose();
+	[enable_allocate] _NetrSessionEnum();
+	[enable_allocate] _NetrShareAdd();
+	[enable_allocate] _NetrShareEnum();
+	[enable_allocate] _NetrShareGetInfo();
+	[enable_allocate] _NetrShareSetInfo();
+	[enable_allocate] _NetrShareDel();
+	[enable_allocate] _NetrServerGetInfo();
+	[enable_allocate] _NetrServerSetInfo();
+	[enable_allocate] _NetrRemoteTOD();
+	[enable_allocate] _NetrNameValidate();
 }
-

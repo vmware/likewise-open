@@ -252,7 +252,8 @@ SamrSrvCreateLocalUserDacl(
                                    NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwAccountSidSize = RtlLengthRequiredSid(pDomainSid->SubAuthorityCount);
+    dwAccountSidSize = RtlLengthRequiredSid(
+                                   pDomainSid->SubAuthorityCount + 1);
     dwError = LwAllocateMemory(dwAccountSidSize,
                                OUT_PPVOID(&pAccountSid));
     BAIL_ON_LSA_ERROR(dwError);

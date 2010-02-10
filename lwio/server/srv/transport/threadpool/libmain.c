@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lwselect.h
+ *        libmain.c
  *
  * Abstract:
  *
@@ -41,25 +41,89 @@
  *
  *        Transport API
  *
- *        Implementation using select and related APIs
+ *        Library Main
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
-#ifndef __LWSELECT_H__
-#define __LWSELECT_H__
+
+#include "includes.h"
 
 NTSTATUS
-SrvSelectTransportInit(
+SrvThreadpoolTransportInit(
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
     PSMB_PROD_CONS_QUEUE           pWorkQueue,
     PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-    );
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SrvThreadpoolTransportInitConfig(&gSrvThreadpoolTransport.config);
+    BAIL_ON_NT_STATUS(status);
+
+    status = SrvThreadpoolTransportReadConfig(&gSrvThreadpoolTransport.config);
+    BAIL_ON_NT_STATUS(status);
+
+    gSrvThreadpoolTransport.hPacketAllocator = hPacketAllocator;
+    gSrvThreadpoolTransport.pShareList = pShareList;
+    gSrvThreadpoolTransport.pWorkQueue = pWorkQueue;
+
+    status = SrvListenerInit(
+                    gSrvThreadpoolTransport.hPacketAllocator,
+                    gSrvThreadpoolTransport.pShareList,
+                    &gSrvThreadpoolTransport.listener,
+                    gSrvThreadpoolTransport.config.bEnableSigning,
+                    gSrvThreadpoolTransport.config.bRequireSigning);
+    BAIL_ON_NT_STATUS(status);
+
+    *ppFnTable = &gSrvThreadpoolTransport.fnTable;
+
+cleanup:
+
+    return status;
+
+error:
+
+    *ppFnTable = NULL;
+
+    goto cleanup;
+}
 
 NTSTATUS
-SrvSelectTransportShutdown(
-    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
-    );
+SrvThreadpoolTransportGetRequest(
+    IN  struct timespec*   pTimespec,
+    OUT PSRV_EXEC_CONTEXT* ppContext
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
 
-#endif /* __LWSELECT_H__ */
+NTSTATUS
+SrvThreadpoolTransportSendResponse(
+    IN          PLWIO_SRV_CONNECTION pConnection,
+    IN          PSMB_PACKET          pResponse
+    )
+{
+    return SrvConnectionWriteMessage(pConnection, pResponse);
+}
+
+NTSTATUS
+SrvThreadpoolTransportShutdown(
+    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SrvListenerShutdown(&gSrvThreadpoolTransport.listener);
+    BAIL_ON_NT_STATUS(status);
+
+    gSrvThreadpoolTransport.pWorkQueue = NULL;
+
+    SrvThreadpoolTransportFreeConfigContents(&gSrvThreadpoolTransport.config);
+
+error:
+
+    return status;
+}
+

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -28,38 +28,35 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        lwkqueue.h
+ *        externs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Transport API
+ *        Transport (based on threadpool)
  *
- *        Implementation using kqueue and related APIs
+ *        Globals
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
-#ifndef __LWKQUEUE_H__
-#define __LWKQUEUE_H__
 
-NTSTATUS
-SrvKQueueTransportInit(
-    PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
-    PSMB_PROD_CONS_QUEUE           pWorkQueue,
-    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-    );
+#include "includes.h"
 
-NTSTATUS
-SrvKQueueTransportShutdown(
-    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
-    );
-
-#endif /* __LWKQUEUE_H__ */
+LWIO_SRV_THREADPOOL_TRANSPORT_GLOBALS gSrvThreadpoolTransport =
+{
+        .mutex      = PTHREAD_MUTEX_INITIALIZER,
+        .pWorkQueue = NULL,
+        .fnTable    =
+            {
+                &SrvThreadpoolTransportGetRequest,
+                &SrvThreadpoolTransportSendResponse
+            }
+};

@@ -390,14 +390,20 @@ SamrSrvSetUserInfoInternal(
 
     pAcctCtx = (PACCOUNT_CONTEXT)hUser;
 
-    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    pDomCtx  = pAcctCtx->pDomCtx;
-    pConnCtx = pDomCtx->pConnCtx;
+    if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_SET_ATTRIBUTES))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
+    pDomCtx       = pAcctCtx->pDomCtx;
+    pConnCtx      = pDomCtx->pConnCtx;
     hDirectory    = pConnCtx->hDirectory;
     pwszAccountDn = pAcctCtx->pwszDn;
 

@@ -1,6 +1,6 @@
-noinst_LTLIBRARIES = libsrv.transport.select.la
+noinst_LTLIBRARIES = libsrv.transport.threadpool.la
 
-libsrv_transport_select_la_SOURCES = \
+libsrv_transport_threadpool_la_SOURCES = \
     config.c        \
     globals.c       \
     libmain.c       \
@@ -9,7 +9,7 @@ libsrv_transport_select_la_SOURCES = \
     srvconnection.c \
     srvsocket.c
 
-libsrv_transport_select_la_CPPFLAGS = \
+libsrv_transport_threadpool_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
@@ -17,5 +17,4 @@ libsrv_transport_select_la_CPPFLAGS = \
     -I@top_srcdir@/server/srv/include \
     -I@top_srcdir@/server/srv/transport/include
 
-libsrv_transport_select_la_LDFLAGS = -static
-
+libsrv_transport_threadpool_la_LDFLAGS =

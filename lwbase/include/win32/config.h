@@ -44,7 +44,7 @@
 /* #undef HAVE_SYS_VARARGS_H */
 
 /* Define to 1 if you have the <unistd.h> header file. */
-#define HAVE_UNISTD_H 1
+/* #undef HAVE_UNISTD_H */
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,42 +28,38 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        threadpool.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Transport API
+ *
+ *        Implementation using select and related APIs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
+#ifndef __THREADPOOL_H__
+#define __THREADPOOL_H__
 
-#include <config.h>
-#include <lwiosys.h>
+NTSTATUS
+SrvThreadpoolTransportInit(
+    PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
+    PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
+    PSMB_PROD_CONS_QUEUE           pWorkQueue,
+    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
+    );
 
-#include <lwio/lwio.h>
+NTSTATUS
+SrvThreadpoolTransportShutdown(
+    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
+    );
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-
+#endif /* __THREADPOOL_H__ */

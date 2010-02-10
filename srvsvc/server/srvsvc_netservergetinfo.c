@@ -56,79 +56,195 @@ SrvSvcNetrServerGetInfo(
     /* [out] */ srvsvc_NetSrvInfo *info
     )
 {
-    DWORD dwError = 0;
+    const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS |
+                                     LSA_ACCESS_VIEW_POLICY_INFO;
+
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    PSTR pszLsaLpcSocketPath = NULL;
+    handle_t hLsaBinding = NULL;
+    CHAR szHostname[64] = {0};
+    PWSTR pwszLocalHost = NULL;
+    POLICY_HANDLE hLocalPolicy = NULL;
+    LsaPolicyInformation *pPolInfo = NULL;
+    PCSTR pszComment = "Likewise RPC";
+    PCSTR pszUserPath = "/testpath";
+    PWSTR pwszHostname = NULL;
+    PWSTR pwszComment = NULL;
+    PWSTR pwszUserPath = NULL;
     SERVER_INFO_101 *pInfo101 = NULL;
     SERVER_INFO_102 *pInfo102 = NULL;
 
-    if (level == 101) {
+    dwError = SrvSvcConfigGetLsaLpcSocketPath(&pszLsaLpcSocketPath);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    rpcStatus = InitLsaBindingFull(&hLsaBinding,
+                                   "ncalrpc",
+                                   NULL,
+                                   pszLsaLpcSocketPath,
+                                   NULL,
+                                   NULL,
+                                   NULL);
+    if (rpcStatus)
+    {
+        dwError = NERR_InternalError;
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
+
+    dwError = gethostname(szHostname, sizeof(szHostname));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwMbsToWc16s(szHostname, &pwszLocalHost);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    ntStatus = LsaOpenPolicy2(hLsaBinding,
+                              pwszLocalHost,
+                              NULL,
+                              dwPolicyAccessMask,
+                              &hLocalPolicy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LsaQueryInfoPolicy(hLsaBinding,
+                                  hLocalPolicy,
+                                  LSA_POLICY_INFO_DNS,
+                                  &pPolInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (level == 101)
+    {
         dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo101),
-                                       (void**)&pInfo101);
+                                          OUT_PPVOID(&pInfo101));
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        dwError = SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
+                                              &pwszHostname,
+                                              &pPolInfo->dns.name);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        dwError = SrvSvcSrvAllocateWC16StringFromCString(
+                                              &pwszComment,
+                                              pszComment);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo101->sv101_platform_id    = 500;
-        pInfo101->sv101_name           = ambstowc16s("UBUNTU8-DESKTOP");
+        pInfo101->sv101_name           = pwszHostname;
         pInfo101->sv101_version_major  = 5;
         pInfo101->sv101_version_minor  = 1;
         pInfo101->sv101_type           = 0x0001003;
-        pInfo101->sv101_comment        = ambstowc16s("Likewise RPC");
+        pInfo101->sv101_comment        = pwszComment;
 
         info->info101 = pInfo101;
 
-    } else if (level == 102) {
+        pwszHostname = NULL;
+        pwszComment  = NULL;
+    }
+    else if (level == 102)
+    {
         dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo102),
-                                       (void**)&pInfo102);
+                                          OUT_PPVOID(&pInfo102));
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo101),
+                                          OUT_PPVOID(&pInfo101));
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        dwError = SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
+                                              &pwszHostname,
+                                              &pPolInfo->dns.name);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        dwError = SrvSvcSrvAllocateWC16StringFromCString(
+                                              &pwszComment,
+                                              pszComment);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo102->sv102_platform_id    = 500;
-        pInfo102->sv102_name           = ambstowc16s("UBUNTU8-DESKTOP");
+        pInfo102->sv102_name           = pwszHostname;
         pInfo102->sv102_version_major  = 5;
         pInfo102->sv102_version_minor  = 1;
         pInfo102->sv102_type           = 0x0001003;
-        pInfo102->sv102_comment        = ambstowc16s("Likewise RPC");
+        pInfo102->sv102_comment        = pwszComment;
         pInfo102->sv102_users          = 0;
         pInfo102->sv102_disc           = 0;
         pInfo102->sv102_hidden         = 0;
         pInfo102->sv102_announce       = 0;
         pInfo102->sv102_anndelta       = 0;
         pInfo102->sv102_licenses       = 5;
-        pInfo102->sv102_userpath       = ambstowc16s("/testpath");
+        pInfo102->sv102_userpath       = pwszUserPath;
 
         info->info102 = pInfo102;
 
-    } else {
+        pwszHostname = NULL;
+        pwszComment  = NULL;
+        pwszUserPath  = NULL;
+    }
+    else
+    {
         dwError = ERROR_NOT_SUPPORTED;
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
 cleanup:
+    if (hLsaBinding && hLocalPolicy)
+    {
+        LsaClose(hLsaBinding, hLocalPolicy);
+    }
+
+    if (pPolInfo)
+    {
+        LsaRpcFreeMemory(pPolInfo);
+    }
+
+    FreeLsaBinding(&hLsaBinding);
+
+    LW_SAFE_FREE_MEMORY(pszLsaLpcSocketPath);
+    LW_SAFE_FREE_MEMORY(pwszLocalHost);
+
+    if (dwError == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
     return dwError;
 
 error:
-    if (pInfo101) {
-        if (pInfo101->sv101_name) {
+    if (pInfo101)
+    {
+        if (pInfo101->sv101_name)
+        {
             SrvSvcSrvFreeMemory(pInfo101->sv101_name);
         }
 
-        if (pInfo101->sv101_comment) {
+        if (pInfo101->sv101_comment)
+        {
             SrvSvcSrvFreeMemory(pInfo101->sv101_comment);
         }
 
         SrvSvcSrvFreeMemory(pInfo101);
-
-    } else if (pInfo102) {
-        if (pInfo102->sv102_name) {
+    }
+    else if (pInfo102)
+    {
+        if (pInfo102->sv102_name)
+        {
             SrvSvcSrvFreeMemory(pInfo102->sv102_name);
         }
 
-        if (pInfo102->sv102_comment) {
+        if (pInfo102->sv102_comment)
+        {
             SrvSvcSrvFreeMemory(pInfo102->sv102_comment);
         }
 
-        if (pInfo102->sv102_userpath) {
+        if (pInfo102->sv102_userpath)
+        {
             SrvSvcSrvFreeMemory(pInfo102->sv102_userpath);
         }
 
         SrvSvcSrvFreeMemory(pInfo102);
     }
+
+    memset(info, 0, sizeof(*info));
 
     goto cleanup;
 }

@@ -17,4 +17,5 @@ lwinclude_HEADERS = \
         swab.h \
         safeint.h \
         security-types.h \
-        security-api.h
+        security-api.h \
+	threadpool.h
