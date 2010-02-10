@@ -177,7 +177,7 @@ SrvSvcNetrServerGetInfo(
 
         pwszHostname = NULL;
         pwszComment  = NULL;
-        pwszComment  = NULL;
+        pwszUserPath  = NULL;
     }
     else
     {
