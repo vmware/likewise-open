@@ -35,35 +35,22 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        externs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Transport (based on threadpool)
+ *
+ *        Externs
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#ifndef __EXTERNS_H__
+#define __EXTERNS_H__
 
-#include <lwio/lwio.h>
+extern LWIO_SRV_THREADPOOL_TRANSPORT_GLOBALS gSrvThreadpoolTransport;
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-
+#endif /* __EXTERNS_H__ */

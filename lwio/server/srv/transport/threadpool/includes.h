@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
  * Copyright Likewise Software
@@ -28,47 +28,60 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        libmain.c
+ *        includes.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Transport API
- *
- *        Library Main
+ *        Protocols
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
 
-#include "includes.h"
+#include <config.h>
+#include <lwiosys.h>
 
-NTSTATUS
-SrvKQueueTransportInit(
-    PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
-    PSMB_PROD_CONS_QUEUE           pWorkQueue,
-    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
+#include <uuid/uuid.h>
 
-    return status;
-}
+#include <lwio/lwio.h>
 
-NTSTATUS
-SrvKQueueTransportShutdown(
-    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
+#include <reg/lwntreg.h>
 
-    return status;
-}
+#include <lwiodef.h>
+#include <lwioutils.h>
+#include <lwiocfg.h>
+#include <lwiolog_r.h>
+#include <lwnet.h>
+
+#include <lw/ntstatus.h>
+#include <lw/threadpool.h>
+
+#include <lwio/lmshare.h>
+#include <lwio/lwshareinfo.h>
+
+#include <iodriver.h>
+#include <ioapi.h>
+
+#include <smbwire.h>
+
+#include <shareapi.h>
+#include <srvutils.h>
+#include <elementsapi.h>
+#include <transportapi.h>
+#include <srvtransport.h>
+
+#include "defs.h"
+#include "structs.h"
+#include "prototypes.h"
+
+#include "externs.h"
+
 

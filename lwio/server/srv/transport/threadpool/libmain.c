@@ -50,7 +50,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvSelectTransportInit(
+SrvThreadpoolTransportInit(
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
     PSMB_PROD_CONS_QUEUE           pWorkQueue,
@@ -58,48 +58,26 @@ SrvSelectTransportInit(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    INT iReader = 0;
 
-    status = SrvSelectTransportInitConfig(&gSrvSelectTransport.config);
+    status = SrvThreadpoolTransportInitConfig(&gSrvThreadpoolTransport.config);
     BAIL_ON_NT_STATUS(status);
 
-    status = SrvSelectTransportReadConfig(&gSrvSelectTransport.config);
+    status = SrvThreadpoolTransportReadConfig(&gSrvThreadpoolTransport.config);
     BAIL_ON_NT_STATUS(status);
 
-    gSrvSelectTransport.hPacketAllocator = hPacketAllocator;
-    gSrvSelectTransport.pShareList   = pShareList;
-    gSrvSelectTransport.ulNumReaders = gSrvSelectTransport.config.ulNumReaders;
-
-    gSrvSelectTransport.pWorkQueue = pWorkQueue;
-
-    status = SrvAllocateMemory(
-                    gSrvSelectTransport.ulNumReaders * sizeof(LWIO_SRV_SOCKET_READER),
-                    (PVOID*)&gSrvSelectTransport.pReaderArray);
-    BAIL_ON_NT_STATUS(status);
-
-    for (; iReader < gSrvSelectTransport.ulNumReaders; iReader++)
-    {
-        PLWIO_SRV_SOCKET_READER pReader = NULL;
-
-        pReader = &gSrvSelectTransport.pReaderArray[iReader];
-
-        pReader->readerId = iReader + 1;
-
-        status = SrvSocketReaderInit(gSrvSelectTransport.pWorkQueue, pReader);
-        BAIL_ON_NT_STATUS(status);
-    }
+    gSrvThreadpoolTransport.hPacketAllocator = hPacketAllocator;
+    gSrvThreadpoolTransport.pShareList = pShareList;
+    gSrvThreadpoolTransport.pWorkQueue = pWorkQueue;
 
     status = SrvListenerInit(
-                    gSrvSelectTransport.hPacketAllocator,
-                    gSrvSelectTransport.pShareList,
-                    gSrvSelectTransport.pReaderArray,
-                    gSrvSelectTransport.ulNumReaders,
-                    &gSrvSelectTransport.listener,
-                    gSrvSelectTransport.config.bEnableSigning,
-                    gSrvSelectTransport.config.bRequireSigning);
+                    gSrvThreadpoolTransport.hPacketAllocator,
+                    gSrvThreadpoolTransport.pShareList,
+                    &gSrvThreadpoolTransport.listener,
+                    gSrvThreadpoolTransport.config.bEnableSigning,
+                    gSrvThreadpoolTransport.config.bRequireSigning);
     BAIL_ON_NT_STATUS(status);
 
-    *ppFnTable = &gSrvSelectTransport.fnTable;
+    *ppFnTable = &gSrvThreadpoolTransport.fnTable;
 
 cleanup:
 
@@ -113,7 +91,7 @@ error:
 }
 
 NTSTATUS
-SrvSelectTransportGetRequest(
+SrvThreadpoolTransportGetRequest(
     IN  struct timespec*   pTimespec,
     OUT PSRV_EXEC_CONTEXT* ppContext
     )
@@ -122,7 +100,7 @@ SrvSelectTransportGetRequest(
 }
 
 NTSTATUS
-SrvSelectTransportSendResponse(
+SrvThreadpoolTransportSendResponse(
     IN          PLWIO_SRV_CONNECTION pConnection,
     IN          PSMB_PACKET          pResponse
     )
@@ -131,35 +109,18 @@ SrvSelectTransportSendResponse(
 }
 
 NTSTATUS
-SrvSelectTransportShutdown(
+SrvThreadpoolTransportShutdown(
     PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    status = SrvListenerShutdown(&gSrvSelectTransport.listener);
+    status = SrvListenerShutdown(&gSrvThreadpoolTransport.listener);
     BAIL_ON_NT_STATUS(status);
 
-    if (gSrvSelectTransport.pReaderArray)
-    {
-        if (gSrvSelectTransport.ulNumReaders)
-        {
-            INT      iReader = 0;
+    gSrvThreadpoolTransport.pWorkQueue = NULL;
 
-            for (; iReader < gSrvSelectTransport.ulNumReaders; iReader++)
-            {
-                status = SrvSocketReaderFreeContents(
-                                &gSrvSelectTransport.pReaderArray[iReader]);
-                BAIL_ON_NT_STATUS(status);
-            }
-        }
-
-        SrvFreeMemory(gSrvSelectTransport.pReaderArray);
-    }
-
-    gSrvSelectTransport.pWorkQueue = NULL;
-
-    SrvSelectTransportFreeConfigContents(&gSrvSelectTransport.config);
+    SrvThreadpoolTransportFreeConfigContents(&gSrvThreadpoolTransport.config);
 
 error:
 

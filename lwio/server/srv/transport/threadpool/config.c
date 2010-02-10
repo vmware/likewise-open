@@ -41,7 +41,7 @@
  *
  *        Likewise I/O Subsystem
  *
- *        SRV Select Transport
+ *        SRV Threadpool Transport
  *
  *        Configuration
  *
@@ -53,19 +53,18 @@
 
 static
 NTSTATUS
-SrvSelectTransportTransferConfigContents(
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pSrcConfig,
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pDstConfig
+SrvThreadpoolTransportTransferConfigContents(
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pSrcConfig,
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pDstConfig
     );
 
 NTSTATUS
-SrvSelectTransportInitConfig(
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
+SrvThreadpoolTransportInitConfig(
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    pConfig->ulNumReaders     = LWIO_SRV_DEFAULT_NUM_READERS;
     pConfig->bEnableSigning   = FALSE;
     pConfig->bRequireSigning = FALSE;
 
@@ -73,16 +72,16 @@ SrvSelectTransportInitConfig(
 }
 
 NTSTATUS
-SrvSelectTransportReadConfig(
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
+SrvThreadpoolTransportReadConfig(
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    LWIO_SRV_SELECT_TRANSPORT_CONFIG config = {0};
+    LWIO_SRV_THREADPOOL_TRANSPORT_CONFIG config = {0};
     PLWIO_CONFIG_REG pReg = NULL;
     DWORD           dwError = 0;
 
-    ntStatus = SrvSelectTransportInitConfig(&config);
+    ntStatus = SrvThreadpoolTransportInitConfig(&config);
     BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = LwIoOpenConfig(
@@ -111,7 +110,7 @@ SrvSelectTransportReadConfig(
                     TRUE,
                     &(config.bRequireSigning));
 
-    ntStatus = SrvSelectTransportTransferConfigContents(&config, pConfig);
+    ntStatus = SrvThreadpoolTransportTransferConfigContents(&config, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -121,7 +120,7 @@ cleanup:
         LwIoCloseConfig(pReg);
     }
 
-    SrvSelectTransportFreeConfigContents(&config);
+    SrvThreadpoolTransportFreeConfigContents(&config);
 
     return ntStatus;
 
@@ -132,23 +131,23 @@ error:
 
 static
 NTSTATUS
-SrvSelectTransportTransferConfigContents(
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pSrcConfig,
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pDstConfig
+SrvThreadpoolTransportTransferConfigContents(
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pSrcConfig,
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pDstConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    memset(pDstConfig, 0, sizeof(LWIO_SRV_SELECT_TRANSPORT_CONFIG));
-    memcpy(pDstConfig, pSrcConfig, sizeof(LWIO_SRV_SELECT_TRANSPORT_CONFIG));
-    memset(pSrcConfig, 0, sizeof(LWIO_SRV_SELECT_TRANSPORT_CONFIG));
+    memset(pDstConfig, 0, sizeof(LWIO_SRV_THREADPOOL_TRANSPORT_CONFIG));
+    memcpy(pDstConfig, pSrcConfig, sizeof(LWIO_SRV_THREADPOOL_TRANSPORT_CONFIG));
+    memset(pSrcConfig, 0, sizeof(LWIO_SRV_THREADPOOL_TRANSPORT_CONFIG));
 
     return ntStatus;
 }
 
 VOID
-SrvSelectTransportFreeConfigContents(
-    PLWIO_SRV_SELECT_TRANSPORT_CONFIG pConfig
+SrvThreadpoolTransportFreeConfigContents(
+    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
     )
 {
 }

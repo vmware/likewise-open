@@ -35,35 +35,28 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        externs.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Transport (based on threadpool)
+ *
+ *        Globals
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <lwio/lwio.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <srvutils.h>
-#include <shareapi.h>
-
+LWIO_SRV_THREADPOOL_TRANSPORT_GLOBALS gSrvThreadpoolTransport =
+{
+        .mutex      = PTHREAD_MUTEX_INITIALIZER,
+        .pWorkQueue = NULL,
+        .fnTable    =
+            {
+                &SrvThreadpoolTransportGetRequest,
+                &SrvThreadpoolTransportSendResponse
+            }
+};

@@ -276,9 +276,7 @@ SrvConnectionReadPacket(
         {
             case SMB_PROTOCOL_VERSION_UNKNOWN:
 
-                ntStatus = SrvConnectionSetProtocolVersion_inlock(
-                                pConnection,
-                                pPacket->protocolVer);
+                pConnection->protocolVer = pPacket->protocolVer;
 
                 break;
 
@@ -287,11 +285,11 @@ SrvConnectionReadPacket(
                 if (pConnection->protocolVer != pPacket->protocolVer)
                 {
                     ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
                 }
 
                 break;
         }
-        BAIL_ON_NT_STATUS(ntStatus);
 
         *ppPacket = pConnection->readerState.pRequestPacket;
 
@@ -310,7 +308,10 @@ error:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
-    SrvConnectionSetInvalid(pConnection);
+    if (ntStatus != STATUS_PENDING)
+    {
+        SrvConnectionSetInvalid(pConnection);
+    }
 
     goto cleanup;
 }
@@ -370,7 +371,7 @@ SrvConnectionWriteMessage(
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    // TODO: Use select to find out if the fd is ready to be written to
+    // TODO: Use threadpool to find out if the fd is ready to be written to
 
     while (sNumBytesToWrite)
     {
@@ -407,7 +408,10 @@ error:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    SrvConnectionSetInvalid(pConnection);
+    if (ntStatus != STATUS_PENDING)
+    {
+        SrvConnectionSetInvalid(pConnection);
+    }
 
     goto cleanup;
 }
@@ -434,13 +438,19 @@ SrvConnectionReadMessage(
         sNumBytesRead = read(pSocket->fd, pPacket->pRawBuffer + sOffset, sBytesToRead);
         if (sNumBytesRead < 0)
         {
-            if ((errno != EAGAIN) && (errno != EINTR))
+            switch (errno)
             {
+            case EINTR:
+                break;
+            case EAGAIN:
+                ntStatus = STATUS_PENDING;
+                BAIL_ON_NT_STATUS(ntStatus);
+                break;
+            default:
                 ntStatus = LwErrnoToNtStatus(errno);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
         }
-
     } while (sNumBytesRead < 0);
 
     *psNumBytesRead = sNumBytesRead;
