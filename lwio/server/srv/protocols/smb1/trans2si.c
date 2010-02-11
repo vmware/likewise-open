@@ -66,6 +66,18 @@ SrvUnmarshalRenameInformation(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
+NTSTATUS
+SrvSetEaList(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvUnmarshalSetEaListInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 NTSTATUS
 SrvSetFileInfo(
     PSRV_EXEC_CONTEXT pExecContext
@@ -114,8 +126,13 @@ SrvSetFileInfo(
 
             break;
 
-        case SMB_INFO_STANDARD :
         case SMB_INFO_QUERY_EA_SIZE :
+
+            ntStatus = SrvSetEaList(pExecContext);
+
+            break;
+
+        case SMB_INFO_STANDARD :
         case SMB_SET_FILE_UNIX_BASIC :
         case SMB_SET_FILE_UNIX_LINK :
         case SMB_SET_FILE_UNIX_HLINK :
@@ -700,6 +717,110 @@ SrvUnmarshalRenameInformation(
 cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSetEaList(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pTrans2State->pData2)
+    {
+        ntStatus = SrvUnmarshalSetEaListInformation(pExecContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+    ntStatus = IoSetInformationFile(
+                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                           pTrans2State->hFile),
+                    pTrans2State->pAcb,
+                    &pTrans2State->ioStatusBlock,
+                    (PFILE_FULL_EA_INFORMATION)pTrans2State->pData2,
+                    pTrans2State->usBytesAllocated,
+                    FileFullEaInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvUnmarshalSetEaListInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+    ULONG                      ulBytesAvailable  = 0;
+    ULONG                      ulOffset          = 0;
+    PBYTE                      pDataCursor       = NULL;
+    PTRANS2_FILE_EA_LIST_INFORMATION pFileEaListInfo = NULL;
+    PFILE_FULL_EA_INFORMATION  pFileFullEaInformation = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    pDataCursor = pTrans2State->pData;
+    ulOffset    = pTrans2State->pRequestHeader->dataOffset;
+    ulBytesAvailable = pTrans2State->pRequestHeader->dataCount;
+
+    if (ulBytesAvailable < sizeof(TRANS2_FILE_EA_LIST_INFORMATION))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pFileEaListInfo   = (PTRANS2_FILE_EA_LIST_INFORMATION)pDataCursor;
+    pDataCursor      += sizeof(TRANS2_FILE_EA_LIST_INFORMATION);
+    ulBytesAvailable -= sizeof(TRANS2_FILE_EA_LIST_INFORMATION);
+    ulOffset         += sizeof(TRANS2_FILE_EA_LIST_INFORMATION);
+
+    if (pFileEaListInfo->ulEaListSize <= 0)
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Assume for now that we are only allocating one
+       FILE_FULL_EA_INFORMATION record which is all that has
+       been observed from WinXP --jerry */
+
+    pTrans2State->usBytesAllocated = pFileEaListInfo->ulEaListSize + sizeof(ULONG);
+
+    ntStatus = SrvAllocateMemory(
+                    pTrans2State->usBytesAllocated,
+                    (PVOID*)&pTrans2State->pData2);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pFileFullEaInformation = (PFILE_FULL_EA_INFORMATION)pTrans2State->pData2;
+
+    pFileFullEaInformation->NextEntryOffset = 0;
+    memcpy((PBYTE)&pFileFullEaInformation->Flags,
+           (PBYTE)&pFileEaListInfo->pEaList[0],
+           pFileEaListInfo->ulEaListSize);
+
+cleanup:
 
     return ntStatus;
 
