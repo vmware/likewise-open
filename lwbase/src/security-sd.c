@@ -200,12 +200,6 @@ RtlpVerifyRelativeSecurityDescriptorOffset(
     {
         ULONG size = 0;
 
-        if (Offset < sizeUsed)
-        {
-            status = STATUS_INVALID_SECURITY_DESCR;
-            GOTO_CLEANUP();
-        }
-
         if (Offset > SecurityDescriptorLength)
         {
             status = STATUS_ASSERTION_FAILURE;
