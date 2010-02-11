@@ -59,7 +59,7 @@ service_start()
 	    ;;
 	SUSE)
 	    printf "%s" "Starting `service_description $1`"
-	    startproc ${LWSM} -q start "${1}"
+	    ${LWSM} -q start "${1}"
 	    status=$?
 	    if [ $status -eq 0 ]
 	    then
@@ -128,7 +128,7 @@ service_restart()
 	    ;;
 	SUSE)
 	    printf "%s" "Restarting `service_description $1`"
-	    startproc ${LWSM} -q restart "${1}"
+	    ${LWSM} -q restart "${1}"
 	    status=$?
 	    if [ $status -eq 0 ]
 	    then
