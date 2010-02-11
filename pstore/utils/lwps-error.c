@@ -203,15 +203,16 @@ LwpsGetSystemErrorString(
     DWORD  dwError = LWPS_ERROR_SUCCESS;
     size_t stResult = 0;
     PSTR   pszTempBuffer = NULL;
+    size_t stTempSize = stBufSize;
 
-    int result = LwpsStrError(dwConvertError, pszBuffer, stBufSize);
+    int error = LwpsStrError(dwConvertError, pszBuffer, stBufSize);
 
-    while (result < 0)
+    while (error)
     {
-        if(errno == ERANGE)
+        if (error == ERANGE)
         {
             // Guess
-            stBufSize = stBufSize * 2 + 10;
+            stTempSize = stTempSize * 2 + 10;
         }
         else
         {
@@ -224,13 +225,13 @@ LwpsGetSystemErrorString(
         LWPS_SAFE_FREE_MEMORY(pszTempBuffer);
 
         dwError = LwpsAllocateMemory(
-                        stBufSize,
+                        stTempSize,
                         (PVOID*)&pszTempBuffer);
         BAIL_ON_LWPS_ERROR(dwError);
 
-        result = LwpsStrError(dwConvertError, pszTempBuffer, stBufSize);
+        error = LwpsStrError(dwConvertError, pszTempBuffer, stTempSize);
     }
-        
+
     if (pszTempBuffer != NULL)
     {
         stResult = strlen(pszTempBuffer) + 1;
