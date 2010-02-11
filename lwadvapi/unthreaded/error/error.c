@@ -59,6 +59,10 @@ static struct
         DNS_ERROR_BAD_PACKET,
         "A bad packet was received from a DNS server. Potentially the requested address does not exist."
     },
+    {
+        ERROR_ACCESS_DENIED,
+        "Access is denied"
+    },
     {   LW_ERROR_ACCESS_DENIED,
         "Incorrect access attempt"
     },
