@@ -123,6 +123,57 @@
         field = (UINT16)ulValue;                                        \
     }
 
+#define GET_LOGON_HOURS(attr, field)                                    \
+    {                                                                   \
+        POCTET_STRING pLogonHours = NULL;                               \
+        DWORD dwLogonHoursSize = 1260;                                  \
+        DWORD dwLogonHoursLen = 0;                                      \
+        DWORD dwUnitsPerWeek = 0;                                       \
+        DWORD iUnit = 0;                                                \
+        DWORD iByte = 0;                                                \
+                                                                        \
+        dwError = DirectoryGetEntryAttrValueByName(                     \
+                          pEntry,                                       \
+                          (attr),                                       \
+                          DIRECTORY_ATTR_TYPE_OCTET_STREAM,             \
+                          &pLogonHours);                                \
+        BAIL_ON_LSA_ERROR(dwError);                                     \
+                                                                        \
+        ntStatus = SamrSrvAllocateMemory(OUT_PPVOID(&(field)->units),   \
+                                         dwLogonHoursSize);             \
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);                               \
+                                                                        \
+        memset((field)->units, 0, dwLogonHoursSize);                    \
+                                                                        \
+        /*                                                              \
+         * Each byte is a unit in the blob while                        \
+         * in LogonHours it is one bit                                  \
+         */                                                             \
+        dwUnitsPerWeek  = pLogonHours->ulNumBytes;                      \
+        dwLogonHoursLen = pLogonHours->ulNumBytes / 8;                  \
+                                                                        \
+        for (iUnit = 0, iByte = 0;                                      \
+             iUnit < dwLogonHoursLen && iByte < dwUnitsPerWeek;         \
+             iUnit++, iByte += 8)                                       \
+        {                                                               \
+            BYTE Unit = 0;                                              \
+                                                                        \
+            Unit |= pLogonHours->pBytes[iByte];                         \
+            Unit |= pLogonHours->pBytes[iByte+1] << 1;                  \
+            Unit |= pLogonHours->pBytes[iByte+2] << 2;                  \
+            Unit |= pLogonHours->pBytes[iByte+3] << 3;                  \
+            Unit |= pLogonHours->pBytes[iByte+4] << 4;                  \
+            Unit |= pLogonHours->pBytes[iByte+5] << 5;                  \
+            Unit |= pLogonHours->pBytes[iByte+6] << 6;                  \
+            Unit |= pLogonHours->pBytes[iByte+7] << 7;                  \
+                                                                        \
+            (field)->units[iUnit] = Unit;                               \
+        }                                                               \
+                                                                        \
+        (field)->units_per_week = dwUnitsPerWeek;                       \
+    }
+
+
 
 static
 NTSTATUS
@@ -803,6 +854,7 @@ SamrFillUserInfo3(
     WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
     WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
     WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
     WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
@@ -823,9 +875,7 @@ SamrFillUserInfo3(
     GET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo3->last_password_change);
     GET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo3->allow_password_change);
     GET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo3->force_password_change);
-
-    /* logon_hours */
-
+    GET_LOGON_HOURS(wszAttrLogonHours, &pInfo3->logon_hours);
     GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo3->bad_password_count);
     GET_UINT16_VALUE(wszAttrLogonCount, pInfo3->logon_count);
     GET_UINT32_VALUE(wszAttrAccountFlags, pInfo3->account_flags);
@@ -847,14 +897,20 @@ SamrFillUserInfo4(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = 0;
     UserInfo4 *pInfo4 = NULL;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
 
     pInfo4 = &(pInfo->info4);
 
-    pInfo4->logon_hours.units_per_week = 0;
-    pInfo4->logon_hours.units          = NULL;
+    GET_LOGON_HOURS(wszAttrLogonHours, &pInfo4->logon_hours);
 
+cleanup:
     return ntStatus;
+
+error:
+    memset(pInfo4, 0, sizeof(*pInfo4));
+    goto cleanup;
 }
 
 
@@ -880,6 +936,7 @@ SamrFillUserInfo5(
     WCHAR wszAttrWorkstations[] = DS_ATTR_WORKSTATIONS;
     WCHAR wszAttrLastLogon[] = DS_ATTR_LAST_LOGON;
     WCHAR wszAttrLastLogoff[] = DS_ATTR_LAST_LOGOFF;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
     WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
@@ -900,11 +957,7 @@ SamrFillUserInfo5(
     GET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo5->workstations);
     GET_NTTIME_VALUE(wszAttrLastLogon, pInfo5->last_logon);
     GET_NTTIME_VALUE(wszAttrLastLogoff, pInfo5->last_logoff);
-
-    /* logon hours */
-    pInfo5->logon_hours.units_per_week = 0;
-    pInfo5->logon_hours.units          = NULL;
-
+    GET_LOGON_HOURS(wszAttrLogonHours, &pInfo5->logon_hours);
     GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo5->bad_password_count);
     GET_UINT16_VALUE(wszAttrLogonCount, pInfo5->logon_count);
     GET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo5->last_password_change);
@@ -1253,6 +1306,7 @@ SamrFillUserInfo21(
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
     WCHAR wszAttrPrimaryGid[] = DS_ATTR_PRIMARY_GROUP;
     WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
     WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrCountryCode[] = DS_ATTR_COUNTRY_CODE;
@@ -1320,6 +1374,9 @@ SamrFillUserInfo21(
 
     GET_UINT32_VALUE(wszAttrAccountFlags, pInfo21->account_flags);
     pInfo21->fields_present |= SAMR_FIELD_ACCT_FLAGS;
+
+    GET_LOGON_HOURS(wszAttrLogonHours, &pInfo21->logon_hours);
+    pInfo21->fields_present |= SAMR_FIELD_LOGON_HOURS;
 
     GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo21->bad_password_count);
     pInfo21->fields_present |= SAMR_FIELD_BAD_PWD_COUNT;
