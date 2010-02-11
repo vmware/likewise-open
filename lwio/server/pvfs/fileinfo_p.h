@@ -72,6 +72,12 @@ PvfsFileEaInfo(
     );
 
 NTSTATUS
+PvfsFileFullEaInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsFileStreamInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext

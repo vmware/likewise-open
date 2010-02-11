@@ -116,30 +116,32 @@ LWRaiseLsassError(
     )
 {
     PSTR buffer = NULL;
-
+    PCSTR symbol = NULL;
+    PCSTR description = "Unknown error";
+    DWORD err = CENTERROR_DOMAINJOIN_LSASS_ERROR;
     size_t bufferSize;
+
+    symbol = LwWin32ExtErrorToName(code);
+    if (symbol == NULL)
+    {
+        symbol = "Unknown";
+    }
+
     bufferSize = LwGetErrorString(code, NULL, 0);
     LW_CLEANUP_CTERR(dest, CTAllocateMemory(bufferSize, PPCAST(&buffer)));
     if (LwGetErrorString(code, buffer, bufferSize) == bufferSize && bufferSize > 0 && strlen(buffer) > 0)
     {
-        DWORD err = CENTERROR_DOMAINJOIN_LSASS_ERROR;
-
-        switch (code)
-        {
-            case LW_ERROR_FAILED_TO_LOOKUP_DC:
-                err = CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
-                break;
-        }
-
-        LWRaiseEx(dest, err, file, line, "Lsass Error", "0x%X - %s", code, buffer);
-        if (dest != NULL)
-        {
-            (*dest)->subcode = code;
-        }
-        goto cleanup;
+        description = buffer;
     }
 
-    LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Unable to convert lsass error", "Lsass error code 0x%X has occurred, but an error string cannot be retrieved", code);
+    switch (code)
+    {
+        case LW_ERROR_FAILED_TO_LOOKUP_DC:
+            err = CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
+            break;
+    }
+
+    LWRaiseEx(dest, err, file, line, "Lsass Error", "%d (0x%X) %s - %s", code, code, symbol, description);
     if (dest != NULL)
     {
         (*dest)->subcode = code;

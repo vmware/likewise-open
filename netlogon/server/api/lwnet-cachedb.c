@@ -668,6 +668,7 @@ LWNetCacheDbReadFromRegistry(
     DWORD dwError = 0;
     HANDLE hReg = NULL;
     LW_WCHAR **ppSubKeys = NULL;
+    PSTR pszError = NULL;
     DWORD dwSubKeyCount = 0;
     DWORD i = 0;
     HKEY pNetLogonKey = NULL;
@@ -716,6 +717,19 @@ LWNetCacheDbReadFromRegistry(
                       hReg,
                       pNetLogonKey,
                       &cacheEntry);
+        if (dwError == LWREG_ERROR_NO_SUCH_KEY_OR_VALUE)
+        {
+            LwWc16sToMbs(ppSubKeys[i],
+                         &pszError);
+            if (pszError)
+            {
+                LWNET_LOG_WARNING("Warning: invalid/incomplete registry key "
+                                  "'%s'", pszError);
+                LWNET_SAFE_FREE_MEMORY(pszError);
+            }
+            dwError = 0;
+            continue;
+        }
         BAIL_ON_LWNET_ERROR(dwError);
         RegCloseKey(hReg, pNetLogonKey);
         pNetLogonKey = NULL;
@@ -875,6 +889,12 @@ LWNetCacheDbWriteToRegistry(
     /* Open connection to registry */
     dwError = RegOpenServer(&hReg);
     BAIL_ON_LWNET_ERROR(dwError);
+
+    /* Don't care if this fails, just remove the old cache if it exists */
+    RegUtilDeleteTree(hReg,
+                      HKEY_THIS_MACHINE,
+                      LWNET_NETLOGON_REGISTRY_KEY,
+                      LWNET_CACHE_REGISTRY_KEY);
 
     dwError = RegUtilAddKey(
                   hReg,

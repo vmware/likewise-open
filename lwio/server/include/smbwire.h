@@ -1578,6 +1578,23 @@ typedef struct {
 
 typedef struct
 {
+    UCHAR  ucFlags;
+    UCHAR  ucEaNameLength;
+    USHORT usEaDataLength;
+    UCHAR  ucName[1];
+
+} __attribute__((__packed__))  TRANS2_FILE_EA_LIST_ENTRY,
+                               PTRANS2_FILE_EA_LIST_ENTRY;
+typedef struct
+{
+    ULONG ulEaListSize;
+    TRANS2_FILE_EA_LIST_ENTRY pEaList[1];
+
+} __attribute__((__packed__)) TRANS2_FILE_EA_LIST_INFORMATION,
+                              *PTRANS2_FILE_EA_LIST_INFORMATION;
+
+typedef struct
+{
     UCHAR  ucReplaceIfExists;
     UCHAR  ucReserved[3];
     ULONG  ulRootDir;
@@ -2799,3 +2816,13 @@ WireSMBUTimetoNTTime(
     );
 
 #endif /* __SMBWIRE_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
