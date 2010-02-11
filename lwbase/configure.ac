@@ -147,11 +147,20 @@ AC_CHECK_HEADERS([sys/epoll.h], [HAVE_EPOLL_H=true], [HAVE_EPOLL_H=false])
 AC_CHECK_FUNC([epoll_create], [HAVE_EPOLL_CREATE=true], [HAVE_EPOLL_CREATE=false])
 AC_CHECK_LIB(pthread, pthread_setaffinity_np, [HAVE_SET_AFFINITY=true], [HAVE_SET_AFFINITY=false])
 
+# Check for kqueue
+
+AC_CHECK_FUNC([kqueue], [HAVE_KQUEUE=true], [HAVE_KQUEUE=false])
+
 THREADPOOL_BACKEND=select
 
 if $HAVE_EPOLL_H && $HAVE_EPOLL_CREATE && $HAVE_SET_AFFINITY
 then
 	THREADPOOL_BACKEND=epoll
+fi
+
+if $HAVE_KQUEUE && $HAVE_SET_AFFINITY
+then
+	THREADPOOL_BACKEND=kqueue
 fi
 
 if test "$THREADPOOL_BACKEND" = "select"
@@ -160,6 +169,14 @@ then
 	AC_DEFINE([USE_SELECT], [], [Define to use select backend])
 else
 	USE_SELECT=false
+fi
+
+if test "$THREADPOOL_BACKEND" = "kqueue"
+then
+	USE_KQUEUE=true
+	AC_DEFINE([USE_KQUEUE], [], [Define to use kqueue backend])
+else
+	USE_KQUEUE=false
 fi
 
 if test "$THREADPOOL_BACKEND" = "epoll"
@@ -172,6 +189,7 @@ fi
 
 AM_CONDITIONAL(USE_SELECT, $USE_SELECT)
 AM_CONDITIONAL(USE_EPOLL, $USE_EPOLL)
+AM_CONDITIONAL(USE_KQUEUE, $USE_KQUEUE)
 
 # Check for moonunit bits
 AC_CHECK_HEADERS([moonunit/moonunit.h], [HAVE_MOONUNIT_H=true], [HAVE_MOONUNIT_H=false])
