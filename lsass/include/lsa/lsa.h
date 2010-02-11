@@ -1489,28 +1489,6 @@ LsaCloseServer(
     LW_HANDLE hConnection
     );
 
-/**
- * @ingroup utility
- * @brief Get error code description
- *
- * Retrives a human-readable description of an LSASS
- * error code.  The description will be copied into
- * the specified buffer, but will be truncated if it
- * does not fit.
- *
- * @param[in] dwError the error code
- * @param[out] pszBuffer the buffer into which the description will be copied
- * @param[in] stBufSize the size of the provided buffer
- * @return the full size of the error string, which may be larger than the
- * provided buffer
- */
-size_t
-LwGetErrorString(
-    LW_DWORD dwError,
-    LW_PSTR pszBuffer,
-    size_t stBufSize
-    );
-
 LW_DWORD
 LsaGetErrorMessageForLoggingEvent(
     LW_DWORD dwError,
