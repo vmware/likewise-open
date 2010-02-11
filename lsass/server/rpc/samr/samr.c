@@ -618,7 +618,11 @@ NTSTATUS __SamrGetUserGroups(
     /* [out] */ RidWithAttributeArray **rids
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvGetUserGroups(IDL_handle,
+                                  hUser,
+                                  rids);
     return status;
 }
 

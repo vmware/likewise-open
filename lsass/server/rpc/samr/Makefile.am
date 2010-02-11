@@ -54,6 +54,7 @@ libsamr_la_SOURCES = \
     samr_deletealiasmember.c     \
     samr_getmembersinalias.c     \
     samr_getaliasmembership.c    \
+    samr_getusergroups.c         \
     samr_changepassworduser2.c   \
     samr_accesstoken.c           \
     samr_security.c              \
