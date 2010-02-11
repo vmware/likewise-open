@@ -10,6 +10,7 @@ libsrvelements_la_SOURCES = \
     srvfile2.c      \
     srvfinder.c     \
     srvgss.c        \
+    srvioapi.c      \
     srvsession.c    \
     srvsession2.c   \
     srvtimer.c      \
