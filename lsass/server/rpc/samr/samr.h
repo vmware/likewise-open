@@ -284,6 +284,14 @@ SamrSrvSetUserInfo(
 
 
 NTSTATUS
+SamrSrvGetUserGroups(
+    IN  handle_t                hBinding,
+    IN  ACCOUNT_HANDLE          hUser,
+    OUT RidWithAttributeArray **ppRids
+    );
+
+
+NTSTATUS
 SamrSrvQueryDisplayInfo(
     handle_t IDL_handle,
     DOMAIN_HANDLE hDomain,

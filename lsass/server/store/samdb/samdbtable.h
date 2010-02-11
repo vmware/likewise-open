@@ -178,7 +178,7 @@
                  SAM_DB_COL_LOCKOUT_TIME          " INTEGER,\n"                \
                  SAM_DB_COL_LOGON_COUNT           " INTEGER,\n"                \
                  SAM_DB_COL_BAD_PASSWORD_COUNT    " INTEGER,\n"                \
-                 SAM_DB_COL_LOGON_HOURS           " INTEGER,\n"                \
+                 SAM_DB_COL_LOGON_HOURS           " BLOB,\n"                   \
                  SAM_DB_COL_ROLE                  " INTEGER,\n"                \
                  SAM_DB_COL_MIN_PWD_LENGTH        " INTEGER,\n"                \
                  SAM_DB_COL_PWD_HISTORY_LENGTH    " INTEGER,\n"                \
@@ -734,7 +734,7 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
     {                                         \
         SAM_DB_DIR_ATTR_LOGON_HOURS,          \
         SAM_DB_COL_LOGON_HOURS,               \
-        SAMDB_ATTR_TYPE_INT32,                \
+        SAMDB_ATTR_TYPE_BLOB,                 \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
         SAM_DB_IS_QUERYABLE                   \
@@ -1013,7 +1013,8 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_LOGON_HOURS,                             \
-        SAM_DB_ATTR_FLAGS_NONE                                   \
+        (SAM_DB_ATTR_FLAGS_MANDATORY |                           \
+         SAM_DB_ATTR_FLAGS_GENERATE_IF_NOT_SPECIFIED)            \
     }
 
 #define SAMDB_CONTAINER_ATTRIBUTE_MAP                            \
