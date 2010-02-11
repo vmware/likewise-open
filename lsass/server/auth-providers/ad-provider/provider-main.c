@@ -1263,6 +1263,7 @@ AD_JoinDomain(
     PLSA_AD_IPC_JOIN_DOMAIN_REQ pRequest = NULL;
     PSTR pszMessage = NULL;
     BOOLEAN bLocked = FALSE;
+    PSTR pszDC = NULL;
 
     if (peerUID != 0)
     {
@@ -1289,6 +1290,18 @@ AD_JoinDomain(
     BAIL_ON_LSA_ERROR(dwError);
 
     LSA_LOG_TRACE("Domain join request: %s", pszMessage);
+
+    dwError = LWNetGetDomainController(
+                    pRequest->pszDomain,
+                    &pszDC);
+    if (dwError)
+    {
+        LSA_LOG_VERBOSE("Failed to find DC for domain %s", LSA_SAFE_LOG_STRING(pRequest->pszDomain));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    LSA_LOG_VERBOSE("Affinitized to DC '%s' for join request to domain '%s'",
+            LSA_SAFE_LOG_STRING(pszDC),
+            LSA_SAFE_LOG_STRING(pRequest->pszDomain));
 
     LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
     bLocked = TRUE;
@@ -1335,6 +1348,7 @@ cleanup:
     {
         lwmsg_data_context_delete(pDataContext);
     }
+    LW_SAFE_FREE_STRING(pszDC);
 
     return dwError;
 
