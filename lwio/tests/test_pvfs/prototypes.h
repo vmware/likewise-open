@@ -123,6 +123,11 @@ TestReadDirectoryChange(
     char *pszFilename
     );
 
+NTSTATUS
+PrintMaxOpenFiles(
+    VOID
+    );
+
 
 
 #endif /* _TEST_PVFS_PROTOTYPES_H_ */
