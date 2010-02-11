@@ -202,6 +202,18 @@ SamDbAddGenerateAccountFlags(
 
 static
 DWORD
+SamDbAddGenerateLogonHours(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDN,
+    PWSTR                  pwszParentDN,
+    PWSTR                  pwszObjectName,
+    PWSTR                  pwszDomainName,
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    );
+
+static
+DWORD
 SamDbAddGenerateSecurityDescriptor(
     PSAM_DIRECTORY_CONTEXT pDirectoryContext,
     PWSTR                  pwszDN,
@@ -270,6 +282,10 @@ static SAMDB_ADD_VALUE_GENERATOR gSamDbValueGenerators[] =
     {
         SAM_DB_COL_ACCOUNT_FLAGS,
         &SamDbAddGenerateAccountFlags
+    },
+    {
+        SAM_DB_COL_LOGON_HOURS,
+        &SamDbAddGenerateLogonHours
     },
     {
         SAM_DB_COL_SECURITY_DESCRIPTOR,
@@ -1208,6 +1224,66 @@ cleanup:
 
 error:
     *ppAttrValues = NULL;
+    *pdwNumValues = 0;
+
+    if (pAttrValue)
+    {
+        DirectoryFreeAttributeValues(pAttrValue, 1);
+    }
+
+    goto cleanup;
+}
+
+static
+DWORD
+SamDbAddGenerateLogonHours(
+    PSAM_DIRECTORY_CONTEXT pDirectoryContext,
+    PWSTR                  pwszDN,
+    PWSTR                  pwszParentDN,
+    PWSTR                  pwszObjectName,
+    PWSTR                  pwszDomainName,
+    PATTRIBUTE_VALUE*      ppAttrValues,
+    PDWORD                 pdwNumValues
+    )
+{
+    DWORD dwError = 0;
+    PATTRIBUTE_VALUE pAttrValue = NULL;
+    POCTET_STRING pLogonHoursBlob = NULL;
+    DWORD dwHoursPerWeek = 7 * 24;
+    PBYTE pLogonHours = NULL;
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(ATTRIBUTE_VALUE),
+                    OUT_PPVOID(&pAttrValue));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = DirectoryAllocateMemory(
+                    sizeof(*pLogonHoursBlob),
+                    OUT_PPVOID(&pLogonHoursBlob));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    dwError = DirectoryAllocateMemory(
+                    dwHoursPerWeek,
+                    OUT_PPVOID(&pLogonHours));
+    BAIL_ON_SAMDB_ERROR(dwError);
+
+    /* Set all bytes to 1 - this allows logging in all week long */
+    memset(pLogonHours, 1, dwHoursPerWeek);
+
+    pLogonHoursBlob->pBytes     = pLogonHours;
+    pLogonHoursBlob->ulNumBytes = dwHoursPerWeek;
+
+    pAttrValue->Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM;
+    pAttrValue->data.pOctetString = pLogonHoursBlob;
+
+    *ppAttrValues = pAttrValue;
+    *pdwNumValues = 1;
+
+cleanup:
+    return dwError;
+
+error:
+    *ppAttrValues = pAttrValue;
     *pdwNumValues = 0;
 
     if (pAttrValue)
