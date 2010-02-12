@@ -377,12 +377,12 @@ NetJoinDomainLocalInternal(
                                 machine_pass);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, hAccount);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
     status = RtlAllocateWC16StringFromSid(&sid_str, conn->samr.dom_sid);
     if (status != STATUS_SUCCESS) {
-        close_status = DisableWksAccount(conn, machacct_name, hAccount);
+        SamrClose(conn->samr.bind, hAccount);
+        hAccount = NULL;
+
+        close_status = DisableWksAccount(conn, machacct_name, &hAccount);
         BAIL_ON_NTSTATUS_ERROR(close_status);
 
         err = NtStatusToWin32Error(status);
@@ -398,8 +398,12 @@ NetJoinDomainLocalInternal(
               domain_controller_name,
               sid_str,
               machine_pass);
+
     if (err != ERROR_SUCCESS) {
-        close_status = DisableWksAccount(conn, machacct_name, hAccount);
+        SamrClose(conn->samr.bind, hAccount);
+        hAccount = NULL;
+
+        close_status = DisableWksAccount(conn, machacct_name, &hAccount);
         BAIL_ON_NTSTATUS_ERROR(close_status);
 
         BAIL_ON_WINERR_ERROR(err);
@@ -534,6 +538,12 @@ NetJoinDomainLocalInternal(
     }
 
 cleanup:
+
+    if (conn->samr.bind && hAccount)
+    {
+        SamrClose(conn->samr.bind, hAccount);
+    }
+
     if (conn) {
         close_status = NetDisconnectSamr(conn);
         if (status == STATUS_SUCCESS &&
