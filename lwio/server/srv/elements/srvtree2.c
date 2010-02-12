@@ -401,6 +401,9 @@ SrvTree2AcquireFileId_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    RAND_bytes( (PBYTE)&candidateFid.ullPersistentId,
+                sizeof(candidateFid.ullPersistentId));
+
     *pFid = candidateFid;
 
     /* Increment by 1 by make sure to deal with wraparound */
