@@ -123,7 +123,8 @@ LwpsStrError(
 
     return 0;
 #else
-    return strerror_r(errnum, pszBuf, buflen);
+    int error = strerror_r(errnum, pszBuf, buflen);
+    return error ? errno : 0;
 #endif
 }
 

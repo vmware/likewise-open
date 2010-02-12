@@ -35,8 +35,7 @@ cpp_quote("#endif")
 
 	/* function 0x00 */
     NTSTATUS _LsaClose(
-        [in,context_handle] void *hIn,
-        [out,context_handle] void **hOut
+        [in,out,context_handle] void **phInOut
         );
 
     NTSTATUS lsa_Function01();

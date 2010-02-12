@@ -92,8 +92,7 @@ cpp_quote("#endif")
 
     /* function 0x01 */
     NTSTATUS _SamrClose(
-        [in,context_handle] void *hIn,
-        [out,context_handle] void **phOut
+        [in,out,context_handle] void **phInOut,
         );
 
     /* function 0x02 */
