@@ -350,8 +350,14 @@ ConstructSecurityDescriptor(
     {
         SID sid;
         BYTE buffer[SID_MAX_SIZE];
-    } u;
-    ULONG sidSize = sizeof(u.buffer);
+    } Owner;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } Group;
+    ULONG OwnerSidSize = sizeof(Owner.buffer);
+    ULONG GroupSidSize = sizeof(Group.buffer);
     DWORD dwDaclSize = 0;
     PACL pDacl = NULL;
     DWORD dwIndex = 0;
@@ -368,14 +374,22 @@ ConstructSecurityDescriptor(
         RtlCreateWellKnownSid(
             WinBuiltinAdministratorsSid,
             NULL,
-            &u.sid,
-            &sidSize));
+            &Owner.sid,
+            &OwnerSidSize));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(
+        RtlCreateWellKnownSid(
+            WinBuiltinPowerUsersSid,
+            NULL,
+            &Group.sid,
+            &GroupSidSize));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwDaclSize = ACL_HEADER_SIZE +
         dwAllowUserCount * (sizeof(ACCESS_ALLOWED_ACE) + SID_MAX_SIZE) +
         dwDenyUserCount * (sizeof(ACCESS_DENIED_ACE) + SID_MAX_SIZE) +
-        RtlLengthSid(&u.sid);
+        RtlLengthSid(&Owner.sid) + RtlLengthSid(&Group.sid);
 
     dwError = LwAllocateMemory(
         dwDaclSize,
@@ -434,7 +448,14 @@ ConstructSecurityDescriptor(
     dwError = LwNtStatusToWin32Error(
         RtlSetOwnerSecurityDescriptor(
             pAbsolute,
-            &u.sid,
+            &Owner.sid,
+            FALSE));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(
+        RtlSetGroupSecurityDescriptor(
+            pAbsolute,
+            &Group.sid,
             FALSE));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
