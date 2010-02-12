@@ -199,8 +199,8 @@ SrvShareAccessCheck(
 NTSTATUS
 SrvShareSetSecurity(
     IN  PSRV_SHARE_INFO pShareInfo,
-    IN  PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
-    IN  ULONG ulSecDescLen
+    IN  PSECURITY_DESCRIPTOR_RELATIVE pIncRelSecDesc,
+    IN  ULONG ulIncRelSecDescLen
     );
 
 NTSTATUS

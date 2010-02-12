@@ -55,6 +55,19 @@ SrvShareFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
+static
+NTSTATUS
+SrvShareCreateAbsoluteSecDescFromRel(
+    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsSecDesc,
+    IN   PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc
+    );
+
+static
+NTSTATUS
+SrvShareDefaultSecurity(
+    PSRV_SHARE_INFO pShareInfo
+    );
+
 NTSTATUS
 SrvGetShareName(
     IN  PCSTR  pszHostname,
@@ -255,12 +268,142 @@ SrvShareFreeSecurity(
 NTSTATUS
 SrvShareSetSecurity(
     IN  PSRV_SHARE_INFO pShareInfo,
-    IN  PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
-    IN  ULONG ulSecDescLen
+    IN  PSECURITY_DESCRIPTOR_RELATIVE pIncRelSecDesc,
+    IN  ULONG ulIncRelSecDescLen
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc = NULL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pIncAbsSecDesc = NULL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pFinalAbsSecDesc = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pFinalRelSecDesc = NULL;
+    ULONG ulFinalRelSecDescLen = 0;
+    SECURITY_INFORMATION secInfo = 0;
+    PSID pOwner = NULL;
+    PSID pGroup = NULL;
+    PACL pDacl = NULL;
+    PACL pSacl = NULL;
+    BOOLEAN bDefaulted = FALSE;
+    BOOLEAN bPresent = FALSE;
+    GENERIC_MAPPING GenericMap = {
+        .GenericRead    = FILE_GENERIC_READ,
+        .GenericWrite   = FILE_GENERIC_WRITE,
+        .GenericExecute = FILE_GENERIC_EXECUTE,
+        .GenericAll     = FILE_ALL_ACCESS };
+
+    /* Sanity checks */
+
+    if ((pIncRelSecDesc == NULL) || (ulIncRelSecDescLen == 0))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pShareInfo->ulSecDescLen == 0)
+    {
+        ntStatus = SrvShareDefaultSecurity(pShareInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    /* Make the Absolute version of thr incoming SD and
+       get the SecurityInformation */
+
+    ntStatus = SrvShareCreateAbsoluteSecDescFromRel(
+                    &pIncAbsSecDesc,
+                    pIncRelSecDesc) ;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Don't bail on these.  We'll be checking the pointer */
+
+    ntStatus = RtlGetOwnerSecurityDescriptor(
+                   pIncAbsSecDesc,
+                   &pOwner,
+                   &bDefaulted);
+    secInfo |= pOwner ? OWNER_SECURITY_INFORMATION : 0;
+
+    ntStatus = RtlGetGroupSecurityDescriptor(
+                   pIncAbsSecDesc,
+                   &pGroup,
+                   &bDefaulted);
+    secInfo |= pGroup ? GROUP_SECURITY_INFORMATION : 0;
+
+    ntStatus = RtlGetDaclSecurityDescriptor(
+                   pIncAbsSecDesc,
+                   &bPresent,
+                   &pDacl,
+                   &bDefaulted);
+    secInfo |= pDacl ? DACL_SECURITY_INFORMATION : 0;
+
+    ntStatus = RtlGetSaclSecurityDescriptor(
+                   pIncAbsSecDesc,
+                   &bPresent,
+                   &pSacl,
+                   &bDefaulted);
+    secInfo |= pSacl ? SACL_SECURITY_INFORMATION  : 0;
+
+    /* Assume the new length is not longer than the combined length
+       of both the current and incoming relative SecDesc buffers */
+
+    ulFinalRelSecDescLen = ulIncRelSecDescLen + pShareInfo->ulSecDescLen;
+
+    ntStatus = SrvAllocateMemory(
+                   ulFinalRelSecDescLen,
+                   (PVOID*)&pFinalRelSecDesc);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlSetSecurityDescriptorInfo(
+                   secInfo,
+                   pIncRelSecDesc,
+                   pShareInfo->pSecDesc,
+                   pFinalRelSecDesc,
+                   &ulFinalRelSecDescLen,
+                   &GenericMap);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvShareCreateAbsoluteSecDescFromRel(
+                    &pFinalAbsSecDesc,
+                    pFinalRelSecDesc) ;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Free the old SecDesc and save the new one */
+
+    SrvShareFreeSecurity(pShareInfo);
+
+    pShareInfo->pSecDesc = pFinalRelSecDesc;
+    pShareInfo->ulSecDescLen = ulFinalRelSecDescLen;
+    pShareInfo->pAbsSecDesc = pFinalAbsSecDesc;
+
+    ntStatus = STATUS_SUCCESS;
+
+cleanup:
+    if (pIncAbsSecDesc)
+    {
+        SrvShareFreeAbsoluteSecurityDescriptor(&pIncAbsSecDesc);
+    }
+
+    return ntStatus;
+
+error:
+    if (pFinalRelSecDesc)
+    {
+        SrvFreeMemory(pFinalRelSecDesc);
+    }
+
+    if (pFinalAbsSecDesc)
+    {
+        SrvShareFreeAbsoluteSecurityDescriptor(&pFinalAbsSecDesc);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareCreateAbsoluteSecDescFromRel(
+    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsSecDesc,
+    IN   PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_ABSOLUTE pAbsSecDesc = NULL;
     ULONG ulAbsSecDescLen = 0;
     PACL pDacl = NULL;
@@ -271,19 +414,6 @@ SrvShareSetSecurity(
     ULONG ulOwnerLen = 0;
     PSID pGroup = NULL;
     ULONG ulGroupLen = 0;
-
-    if ((pSecDesc == NULL) || (ulSecDescLen == 0))
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    /* Allocate space for the Relative SD */
-
-    ntStatus = SrvAllocateMemory(ulSecDescLen, (PVOID*)&pRelSecDesc);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LwRtlCopyMemory(pRelSecDesc, pSecDesc, ulSecDescLen);
 
     /* Get sizes for the Absolute SD */
 
@@ -306,9 +436,6 @@ SrvShareSetSecurity(
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Allocate -- Always use RTL routines for Absolute SDs */
-
-    ntStatus = RTL_ALLOCATE(&pAbsSecDesc, VOID, ulSecDescLen);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     if (ulOwnerLen)
     {
@@ -334,6 +461,9 @@ SrvShareSetSecurity(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    ntStatus = RTL_ALLOCATE(&pAbsSecDesc, VOID, ulAbsSecDescLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     /* Translate the SD */
 
     ntStatus = RtlSelfRelativeToAbsoluteSD(
@@ -350,30 +480,18 @@ SrvShareSetSecurity(
                    &ulGroupLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Free the old SD and save the pointer to the new one */
-
-    SrvShareFreeSecurity(pShareInfo);
-
-    pShareInfo->pSecDesc = pRelSecDesc;
-    pShareInfo->ulSecDescLen = ulSecDescLen;
-    pShareInfo->pAbsSecDesc = pAbsSecDesc;
-
-    ntStatus = STATUS_SUCCESS;
+    *ppAbsSecDesc = pAbsSecDesc;
 
 cleanup:
-
     return ntStatus;
 
-error:
-    if (pRelSecDesc)
-    {
-        SrvFreeMemory(pRelSecDesc);
-    }
 
-    if (pAbsSecDesc)
-    {
-        SrvShareFreeAbsoluteSecurityDescriptor(&pAbsSecDesc);
-    }
+error:
+    LW_RTL_FREE(&pAbsSecDesc);
+    LW_RTL_FREE(&pOwner);
+    LW_RTL_FREE(&pGroup);
+    LW_RTL_FREE(&pSacl);
+    LW_RTL_FREE(&pDacl);
 
     goto cleanup;
 }
@@ -391,7 +509,7 @@ SrvShareFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     )
 {
-    NTSTATUS ntError = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSID pOwner = NULL;
     PSID pGroup = NULL;
     PACL pDacl = NULL;
@@ -407,11 +525,11 @@ SrvShareFreeAbsoluteSecurityDescriptor(
 
     pSecDesc = *ppSecDesc;
 
-    ntError = RtlGetOwnerSecurityDescriptor(pSecDesc, &pOwner, &bDefaulted);
-    ntError = RtlGetGroupSecurityDescriptor(pSecDesc, &pGroup, &bDefaulted);
+    ntStatus = RtlGetOwnerSecurityDescriptor(pSecDesc, &pOwner, &bDefaulted);
+    ntStatus = RtlGetGroupSecurityDescriptor(pSecDesc, &pGroup, &bDefaulted);
 
-    ntError = RtlGetDaclSecurityDescriptor(pSecDesc, &bPresent, &pDacl, &bDefaulted);
-    ntError = RtlGetSaclSecurityDescriptor(pSecDesc, &bPresent, &pSacl, &bDefaulted);
+    ntStatus = RtlGetDaclSecurityDescriptor(pSecDesc, &bPresent, &pDacl, &bDefaulted);
+    ntStatus = RtlGetSaclSecurityDescriptor(pSecDesc, &bPresent, &pSacl, &bDefaulted);
 
     RTL_FREE(&pSecDesc);
     RTL_FREE(&pOwner);
@@ -485,6 +603,157 @@ error:
     goto cleanup;
 }
 
+
+static
+NTSTATUS
+SrvShareDefaultSecurity(
+    PSRV_SHARE_INFO pShareInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc = NULL;
+    ULONG ulRelSecDescLen = 0;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pAbsSecDesc = NULL;
+    DWORD dwSidCount = 0;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
+    PSID pAdministratorsSid = NULL;
+    PSID pEveryoneSid = NULL;
+    PACL pDacl = NULL;
+    DWORD dwSizeDacl = 0;
+
+    /* Clear out any existing SecDesc's.  This is not a normal
+       use case, but be paranoid */
+
+    if (pShareInfo->ulSecDescLen)
+    {
+        SrvShareFreeSecurity(pShareInfo);
+    }
+
+    /* Build the new Absolute Security Descriptor */
+
+    ntStatus = RTL_ALLOCATE(
+                   &pAbsSecDesc,
+                   VOID,
+                   SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlCreateSecurityDescriptorAbsolute(
+                  pAbsSecDesc,
+                  SECURITY_DESCRIPTOR_REVISION);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Owner: Administrators */
+
+    ntStatus = RtlAllocateSidFromCString(&pOwnerSid, "S-1-5-32-544");
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlSetOwnerSecurityDescriptor(
+                   pAbsSecDesc,
+                   pOwnerSid,
+                   FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Group: Power Users */
+
+    ntStatus = RtlAllocateSidFromCString(&pGroupSid, "S-1-5-32-547");
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlSetGroupSecurityDescriptor(
+                   pAbsSecDesc,
+                   pGroupSid,
+                   FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* DACL: Administrators (Full Control), Everyone (Read) */
+
+    ntStatus = RtlAllocateSidFromCString(&pAdministratorsSid, "S-1-5-32-544");
+    BAIL_ON_NT_STATUS(ntStatus);
+    dwSidCount++;
+
+    ntStatus = RtlAllocateSidFromCString(&pEveryoneSid, "S-1-1-0");
+    BAIL_ON_NT_STATUS(ntStatus);
+    dwSidCount++;
+
+    dwSizeDacl = ACL_HEADER_SIZE +
+        dwSidCount * sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(pAdministratorsSid) +
+        RtlLengthSid(pEveryoneSid) -
+        dwSidCount * sizeof(ULONG);
+
+    ntStatus= RTL_ALLOCATE(&pDacl, VOID, dwSizeDacl);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlCreateAcl(pDacl, dwSizeDacl, ACL_REVISION);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlAddAccessAllowedAceEx(
+                  pDacl,
+                  ACL_REVISION,
+                  0,
+                  FILE_ALL_ACCESS,
+                  pAdministratorsSid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlAddAccessAllowedAceEx(
+                  pDacl,
+                  ACL_REVISION,
+                  0,
+                  FILE_GENERIC_READ,
+                  pEveryoneSid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlSetDaclSecurityDescriptor(
+                  pAbsSecDesc,
+                  TRUE,
+                  pDacl,
+                  FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Create the SelfRelative SD and assign them to the Share */
+
+    ntStatus = RtlAbsoluteToSelfRelativeSD(
+                   pAbsSecDesc,
+                   NULL,
+                   &ulRelSecDescLen);
+    if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+    {
+        ntStatus = SrvAllocateMemory(ulRelSecDescLen, (PVOID*)&pRelSecDesc);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = RtlAbsoluteToSelfRelativeSD(
+                       pAbsSecDesc,
+                       pRelSecDesc,
+                       &ulRelSecDescLen);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pShareInfo->pSecDesc = pRelSecDesc;
+    pShareInfo->ulSecDescLen = ulRelSecDescLen;
+    pShareInfo->pAbsSecDesc = pAbsSecDesc;
+
+    ntStatus = STATUS_SUCCESS;
+
+
+cleanup:
+    RTL_FREE(&pAdministratorsSid);
+    RTL_FREE(&pEveryoneSid);
+
+    return ntStatus;
+
+error:
+    RTL_FREE(&pAbsSecDesc);
+    RTL_FREE(&pOwnerSid);
+    RTL_FREE(&pGroupSid);
+    RTL_FREE(&pDacl);
+
+    if (pRelSecDesc)
+    {
+        SrvFreeMemory(pRelSecDesc);
+    }
+
+    goto cleanup;
+}
 
 
 
