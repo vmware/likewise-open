@@ -386,6 +386,8 @@ SrvListenerMain(
 
     LwRtlWakeTask(pConnTask);
 
+    *pWaitMask = LW_TASK_EVENT_YIELD;
+
 cleanup:
 
     if (connFd >= 0)
