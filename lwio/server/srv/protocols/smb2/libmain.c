@@ -187,11 +187,20 @@ SrvProtocolExecute_SMB_V2(
                 {
                     pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease(pExecContext->pProtocolContext->pSmb2Context->hState);
                     pExecContext->pProtocolContext->pSmb2Context->hState = NULL;
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease = NULL;
                 }
 
                 break;
 
             default:
+
+                if (pExecContext->pProtocolContext->pSmb2Context->hState &&
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease)
+                {
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease(pExecContext->pProtocolContext->pSmb2Context->hState);
+                    pExecContext->pProtocolContext->pSmb2Context->hState = NULL;
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease = NULL;
+                }
 
                 if (!pExecContext->bInternal)
                 {
