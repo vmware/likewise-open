@@ -103,6 +103,7 @@ PvfsQueryFileStandardInfo(
     PFILE_STANDARD_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PVFS_STAT Stat = {0};
+    BOOLEAN bDeletePending = FALSE;
 
     /* Sanity checks */
 
@@ -126,10 +127,14 @@ PvfsQueryFileStandardInfo(
     ntError = PvfsSysFstat(pCcb->fd, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
+    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pFcb);
+
     pFileInfo->AllocationSize = Stat.s_alloc;
     pFileInfo->EndOfFile      = Stat.s_size;
-    pFileInfo->NumberOfLinks  = Stat.s_nlink;
-    pFileInfo->DeletePending  = (pCcb->CreateOptions & FILE_DELETE_ON_CLOSE) ? TRUE : FALSE;
+    pFileInfo->NumberOfLinks  = bDeletePending ?
+                                Stat.s_nlink - 1 :
+                                Stat.s_nlink;
+    pFileInfo->DeletePending  = bDeletePending;
     pFileInfo->Directory      = S_ISDIR(Stat.s_mode) ? TRUE : FALSE;
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
