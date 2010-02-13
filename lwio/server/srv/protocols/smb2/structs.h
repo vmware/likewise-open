@@ -773,6 +773,8 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     ULONG                        iContext;
     ULONG                        ulNumContexts;
 
+    PSRV_CREATE_CONTEXT          pExtAContext;
+
     FILE_BASIC_INFORMATION       fileBasicInfo;
     PFILE_BASIC_INFORMATION      pFileBasicInfo;
 
