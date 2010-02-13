@@ -190,6 +190,62 @@ SrvProcessLock_SMB_V2(
     PSRV_EXEC_CONTEXT pContext
     );
 
+NTSTATUS
+SrvDetermineLocks_SMB_V2(
+    PSMB2_LOCK_REQUEST_HEADER pLockRequestHeader,
+    PSMB2_LOCK**              pppLockArray,
+    PULONG                    pulNumLocks
+    );
+
+NTSTATUS
+SrvDetermineUnlocks_SMB_V2(
+    PSMB2_LOCK_REQUEST_HEADER pLockRequestHeader,
+    PSMB2_LOCK**              pppUnlockArray,
+    PULONG                    pulNumUnlocks
+    );
+
+// lockasync.c
+
+NTSTATUS
+SrvBuildAsyncLockState_SMB_V2(
+    PSRV_EXEC_CONTEXT                     pExecContext,
+    PSRV_LOCK_REQUEST_STATE_SMB_V2        pLockRequestState,
+    PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2* ppAsyncLockState
+    );
+
+NTSTATUS
+SrvBuildExecContextAsyncLock_SMB_V2(
+    PSRV_EXEC_CONTEXT              pExecContext,
+    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState,
+    ULONG64                        ullAsyncId,
+    PSRV_EXEC_CONTEXT*             ppExecContextAsync
+    );
+
+PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2
+SrvAcquireAsyncLockState_SMB_V2(
+    PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2 pAsyncLockState
+    );
+
+NTSTATUS
+SrvCancelLock_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+NTSTATUS
+SrvProcessAsyncLockRequest_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+VOID
+SrvReleaseAsyncLockStateHandle_SMB_V2(
+    HANDLE hAsyncLockState
+    );
+
+VOID
+SrvReleaseAsyncLockState_SMB_V2(
+    PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2 pAsyncLockState
+    );
+
 // logoff.c
 
 NTSTATUS
@@ -618,7 +674,6 @@ SMB2MarshalLockResponse(
     PBYTE                  pBuffer,
     ULONG                  ulOffset,
     ULONG                  ulBytesAvailable,
-    PSRV_SMB2_LOCK_REQUEST pLockRequest,
     PULONG                 pulBytesUsed
     );
 

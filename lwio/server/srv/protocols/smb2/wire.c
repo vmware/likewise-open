@@ -1626,7 +1626,6 @@ SMB2MarshalLockResponse(
     IN OUT PBYTE                  pBuffer,
     IN     ULONG                  ulOffset,
     IN     ULONG                  ulBytesAvailable,
-    IN     PSRV_SMB2_LOCK_REQUEST pLockRequest,
     IN OUT PULONG                 pulBytesUsed
     )
 {
