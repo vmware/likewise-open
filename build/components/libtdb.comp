@@ -20,7 +20,15 @@ function component_configure
 {
     _setup_build_env
 
-    FEATURETEST_FLAGS="-D_GNU_SOURCE -D_REENTRANT -D_THREAD_SAFE -D_LARGEFILE64_SOURCE -D_XOPEN_SOURCE=500"
+    FEATURETEST_FLAGS="-D_GNU_SOURCE -D_REENTRANT -D_THREAD_SAFE -D_LARGEFILE64_SOURCE"
+
+    case `uname -s` in
+        FreeBSD)
+            ;;
+        *)
+            FEATURETEST_FLAGS="${FEATURETEST_FLAGS} -D_XOPEN_SOURCE=500"
+            ;;
+    esac
 
     cd ${COMP_SOURCES}/replace
 
@@ -53,14 +61,14 @@ function component_build
 {
     _setup_build_env
 
-    cd ${COMP_SOURCES}/libtdb/replace
+    cd ${COMP_SOURCES}/replace
     ${MAKE} ${_mflags} all
 
     _SHLIBEXT="so"
     _SONAMEFLAG="-Wl,-soname="
     _SHLD_FLAGS="-shared -Wl,-Bsymbolic"
 
-    cd ${COMP_SOURCES}/libtdb
+    cd ${COMP_SOURCES}/.
     ${MAKE} \
     SHLD_FLAGS="${_SHLD_FLAGS}" \
     PICFLAG="-fPIC" \
