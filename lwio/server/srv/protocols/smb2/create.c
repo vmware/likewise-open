@@ -455,14 +455,6 @@ error:
 
             if (pCreateState)
             {
-                if (pCreateState->ullAsyncId)
-                {
-                    ntStatus = SrvSession2RemoveAsyncState(
-                                    pCtxSmb2->pSession,
-                                    pCreateState->ullAsyncId);
-                    BAIL_ON_NT_STATUS(ntStatus);
-                }
-
                 SrvReleaseCreateStateAsync_SMB_V2(pCreateState);
             }
 
