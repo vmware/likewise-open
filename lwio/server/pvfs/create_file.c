@@ -468,8 +468,20 @@ PvfsCreateFileOpenOrOverwrite(
     }
 
     ntError = STATUS_SUCCESS;
-    if (pCreateCtx->GrantedAccess &
-        ~(FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE))
+
+    /* We can only potentially force an oplock break IFF
+       (a) the file already existed,
+       (b) and one of the following is true
+           i.  Disposition == FILE_OPEN_IF && permissions more than
+               (FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE)
+           ii. Disposition == FILE_OVERWRITE_IF
+    */
+
+    if (pCreateCtx->bFileExisted &&
+        (((Args.CreateDisposition == FILE_OPEN) &&
+         (pCreateCtx->GrantedAccess &
+          ~(FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE))) ||
+         (Args.CreateDisposition == FILE_OVERWRITE)))
     {
         ntError = PvfsOplockBreakIfLocked(
                       pCreateCtx->pIrpContext,
@@ -626,9 +638,20 @@ PvfsCreateFileOpenOrOverwriteIf(
     }
 
     ntError = STATUS_SUCCESS;
+
+    /* We can only potentially force an oplock break IFF
+       (a) the file already existed,
+       (b) and one of the following is true
+           i.  Disposition == FILE_OPEN_IF && permissions more than
+               (FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE)
+           ii. Disposition == FILE_OVERWRITE_IF
+    */
+
     if (pCreateCtx->bFileExisted &&
-        (pCreateCtx->GrantedAccess &
-         ~(FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE)))
+        (((Args.CreateDisposition == FILE_OPEN_IF) &&
+         (pCreateCtx->GrantedAccess &
+          ~(FILE_READ_ATTRIBUTES|FILE_WRITE_ATTRIBUTES|SYNCHRONIZE))) ||
+         (Args.CreateDisposition == FILE_OVERWRITE_IF)))
     {
         ntError = PvfsOplockBreakIfLocked(
                       pCreateCtx->pIrpContext,
