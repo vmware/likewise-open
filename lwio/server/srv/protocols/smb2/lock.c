@@ -215,7 +215,11 @@ SrvProcessLock_SMB_V2(
     {
         case SRV_LOCK_STAGE_SMB_V2_INITIAL:
 
-            if (!pLockRequestState->bFailImmediately)
+            //
+            // If all we have are unlocks, don't make this asynchronous
+            //
+            if (!pLockRequestState->bFailImmediately &&
+                (pLockRequestState->ulNumLocks > 0))
             {
                 // An asynchronous lock request can occur as the only message in
                 // a request, or the last in a chained request
