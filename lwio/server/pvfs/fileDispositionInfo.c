@@ -105,6 +105,7 @@ PvfsSetFileDispositionInfo(
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     IO_MATCH_FILE_SPEC FileSpec = {0};
     WCHAR wszPattern[2] = {L'*', 0x0 };
+    FILE_ATTRIBUTES Attributes = 0;
 
     /* Sanity checks */
 
@@ -131,6 +132,15 @@ PvfsSetFileDispositionInfo(
 
     if (pFileInfo->DeleteFile == TRUE)
     {
+        ntError = PvfsGetFileAttributes(pCcb, &Attributes);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (Attributes & FILE_ATTRIBUTE_READONLY)
+        {
+            ntError = STATUS_CANNOT_DELETE;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
         if (PVFS_IS_DIR(pCcb))
         {
             LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);

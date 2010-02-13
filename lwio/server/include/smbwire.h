@@ -1520,6 +1520,20 @@ typedef struct
     uint16_t byteCount;
 } __attribute__((__packed__)) CLOSE_RESPONSE_HEADER, *PCLOSE_RESPONSE_HEADER;
 
+typedef struct _TRANS2_FILE_SMB_STANDARD_INFORMATION {
+    SMB_DATE CreationDate;
+    SMB_TIME CreationTime;
+    SMB_DATE LastAccessDate;
+    SMB_TIME LastAccessTime;
+    SMB_DATE LastWriteDate;
+    SMB_TIME LastWriteTime;
+    ULONG FileSize;
+    ULONG AllocationSize;
+    USHORT Attributes;
+    // ULONG EaSize;    Listed in the SNIA ref but not seen from WinXP
+} __attribute__((__packed__)) TRANS2_FILE_SMB_STANDARD_INFORMATION,
+                             *PTRANS2_FILE_SMB_STANDARD_INFORMATION;
+
 typedef struct _TRANS2_FILE_BASIC_INFORMATION {
     LONG64 CreationTime;
     LONG64 LastAccessTime;

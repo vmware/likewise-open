@@ -70,6 +70,18 @@ SrvMarshallFileNameInfo(
 
 static
 NTSTATUS
+SrvQuerySmbStandardInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildQuerySmbStandardInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvQueryBasicInfo(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -216,6 +228,11 @@ SrvQueryInfo(
             break;
 
         case SMB_INFO_STANDARD :
+
+            ntStatus = SrvQuerySmbStandardInfo(pExecContext);
+
+            break;
+
         case SMB_INFO_QUERY_EA_SIZE :
         case SMB_INFO_QUERY_EAS_FROM_LIST :
         case SMB_INFO_QUERY_ALL_EAS :
@@ -310,6 +327,11 @@ SrvBuildQueryInfoResponse(
             break;
 
         case SMB_INFO_STANDARD :
+
+            ntStatus = SrvBuildQuerySmbStandardInfoResponse(pExecContext);
+
+            break;
+
         case SMB_INFO_QUERY_EA_SIZE :
         case SMB_INFO_QUERY_EAS_FROM_LIST :
         case SMB_INFO_QUERY_ALL_EAS :
@@ -338,6 +360,255 @@ SrvBuildQueryInfoResponse(
     }
 
     return ntStatus;
+}
+
+
+static
+NTSTATUS
+SrvQuerySmbStandardInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+    BOOLEAN                    bContinue    = TRUE;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    do
+    {
+        ntStatus = pTrans2State->ioStatusBlock.Status;
+
+        switch (ntStatus)
+        {
+            case STATUS_BUFFER_TOO_SMALL:
+
+                {
+                    USHORT usNewSize =  0;
+
+                    if (!pTrans2State->usBytesAllocated)
+                    {
+                        usNewSize = pTrans2State->usBytesAllocated +
+                                        sizeof(FILE_ALL_INFORMATION) +
+                                        256 * sizeof(wchar16_t);
+                    }
+                    else
+                    {
+                        usNewSize = pTrans2State->usBytesAllocated +
+                                        256 * sizeof(wchar16_t);
+                    }
+
+                    ntStatus = SMBReallocMemory(
+                                    pTrans2State->pData2,
+                                    (PVOID*)&pTrans2State->pData2,
+                                    usNewSize);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    pTrans2State->usBytesAllocated = usNewSize;
+
+                    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+                    ntStatus = IoQueryInformationFile(
+                                            (pTrans2State->pFile ?
+                                                    pTrans2State->pFile->hFile :
+                                                    pTrans2State->hFile),
+                                            pTrans2State->pAcb,
+                                            &pTrans2State->ioStatusBlock,
+                                            pTrans2State->pData2,
+                                            pTrans2State->usBytesAllocated,
+                                            FileAllInformation);
+                    switch (ntStatus)
+                    {
+                        case STATUS_SUCCESS:
+
+                            bContinue = FALSE;
+
+                            pTrans2State->usBytesUsed =
+                                pTrans2State->ioStatusBlock.BytesTransferred;
+
+                            // intentional fall through
+
+                        case STATUS_BUFFER_TOO_SMALL:
+
+                            // synchronous completion
+                            SrvReleaseTrans2StateAsync(pTrans2State);
+
+                            break;
+
+                        default:
+
+                            BAIL_ON_NT_STATUS(ntStatus);
+                    }
+                }
+
+                break;
+
+            case STATUS_SUCCESS:
+
+                if (!pTrans2State->pData2)
+                {
+                    pTrans2State->ioStatusBlock.Status =
+                                            STATUS_BUFFER_TOO_SMALL;
+                }
+                else
+                {
+                    bContinue = FALSE;
+
+                    pTrans2State->usBytesUsed =
+                                pTrans2State->ioStatusBlock.BytesTransferred;
+                }
+
+                break;
+
+            default:
+
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
+
+    } while (bContinue);
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildQuerySmbStandardInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PBYTE   pOutBuffer        = pSmbResponse->pBuffer;
+    ULONG   ulBytesAvailable  = pSmbResponse->ulBytesAvailable;
+    ULONG   ulOffset          = 0;
+    USHORT  usBytesUsed       = 0;
+    ULONG   ulTotalBytesUsed  = 0;
+    USHORT  usParam           = 0;
+    PUSHORT pSetup            = NULL;
+    BYTE    setupCount        = 0;
+    USHORT  usDataOffset      = 0;
+    USHORT  usParameterOffset = 0;
+    PFILE_ALL_INFORMATION       pFileAllInfo      = NULL;
+    TRANS2_FILE_SMB_STANDARD_INFORMATION fileSmbStdInfoPacked;
+    PSRV_TRANS2_STATE_SMB_V1      pTrans2State        = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    pFileAllInfo = (PFILE_ALL_INFORMATION)pTrans2State->pData2;
+
+    LwRtlZeroMemory(&fileSmbStdInfoPacked, sizeof(fileSmbStdInfoPacked));
+
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pTrans2State->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pTrans2State->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+
+    *pSmbResponse->pWordCount = 10 + setupCount;
+
+    ntStatus = WireNTTimeToSMBDateTime(
+                 pFileAllInfo->BasicInformation.CreationTime,
+		 &fileSmbStdInfoPacked.CreationDate,
+		 &fileSmbStdInfoPacked.CreationTime);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = WireNTTimeToSMBDateTime(
+                 pFileAllInfo->BasicInformation.LastAccessTime,
+		 &fileSmbStdInfoPacked.LastAccessDate,
+		 &fileSmbStdInfoPacked.LastAccessTime);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = WireNTTimeToSMBDateTime(
+	    pFileAllInfo->BasicInformation.LastWriteTime,
+		 &fileSmbStdInfoPacked.LastWriteDate,
+		 &fileSmbStdInfoPacked.LastWriteTime);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    fileSmbStdInfoPacked.FileSize = (ULONG)pFileAllInfo->StandardInformation.EndOfFile;
+    fileSmbStdInfoPacked.AllocationSize = (ULONG)pFileAllInfo->StandardInformation.AllocationSize;
+    fileSmbStdInfoPacked.Attributes = (USHORT)pFileAllInfo->BasicInformation.FileAttributes;
+    fileSmbStdInfoPacked.Attributes = (USHORT)pFileAllInfo->BasicInformation.FileAttributes;
+
+    ntStatus = WireMarshallTransaction2Response(
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    pSetup,
+                    setupCount,
+                    (PBYTE)&usParam,
+                    sizeof(usParam),
+                    (PBYTE)&fileSmbStdInfoPacked,
+                    sizeof(fileSmbStdInfoPacked),
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // pOutBuffer       += usBytesUsed;
+    // ulOffset         += usBytesUsed;
+    // ulBytesAvailable -= usBytesUsed;
+    ulTotalBytesUsed += usBytesUsed;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
 }
 
 static
@@ -1924,3 +2195,14 @@ SrvBuildQueryAltNameInfoResponse(
 {
     return SrvBuildQueryNameInfoResponse(pExecContext);
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
