@@ -271,8 +271,10 @@ SrvProcessCreate_SMB_V2(
                             pCreateState->pRequestHeader->ulShareAccess,
                             pCreateState->pRequestHeader->ulCreateDisposition,
                             pCreateState->pRequestHeader->ulCreateOptions,
-                            NULL, /* EA Buffer */
-                            0,    /* EA Length */
+                            (pCreateState->pExtAContext ?
+                                pCreateState->pExtAContext->pData : NULL),
+                            (pCreateState->pExtAContext ?
+                                pCreateState->pExtAContext->ulDataLength : 0),
                             pCreateState->pEcpList);
             switch (ntStatus)
             {
@@ -542,6 +544,7 @@ SrvBuildCreateState_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2       = pCtxProtocol->pSmb2Context;
     PSRV_CREATE_STATE_SMB_V2   pCreateState   = NULL;
     BOOLEAN                    bTreeInLock    = FALSE;
+    ULONG                      iCtx       = 0;
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_CREATE_STATE_SMB_V2),
@@ -610,6 +613,17 @@ SrvBuildCreateState_SMB_V2(
     *ppCreateContexts = NULL;
 
     pCreateState->ulNumContexts   = ulNumContexts;
+
+    for (iCtx = 0; iCtx < pCreateState->ulNumContexts; iCtx++)
+    {
+        PSRV_CREATE_CONTEXT pContext = &pCreateState->pCreateContexts[iCtx];
+
+        if (pContext->contextItemType == SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS)
+        {
+            pCreateState->pExtAContext = pContext;
+            break;
+        }
+    }
 
     pCreateState->pRequestHeader = pRequestHeader;
 
