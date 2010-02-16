@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -158,3 +158,71 @@ error:
     goto cleanup;
 }
 
+
+DWORD
+LsaDisableDomainGroupMembership(
+    VOID
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    PSTR pszHostname = NULL;
+    HANDLE hStore = NULL;
+    PLWPS_PASSWORD_INFO pPassInfo = NULL;
+    PSTR pszDnsDomainName = NULL;
+
+    dwError = LsaDnsGetHostInfo(&pszHostname);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwpsGetPasswordByHostName(
+                hStore,
+                pszHostname,
+                &pPassInfo);
+    if (dwError)
+    {
+        if (dwError == LWPS_ERROR_INVALID_ACCOUNT)
+        {
+            dwError = LW_ERROR_NOT_JOINED_TO_AD;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwWc16sToMbs(pPassInfo->pwszDnsDomainName,
+                           &pszDnsDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaChangeDomainGroupMembership(pszDnsDomainName,
+                                             FALSE);
+    BAIL_ON_LSA_ERROR(dwError);
+
+cleanup:
+    if (hStore && pPassInfo)
+    {
+        LwpsFreePasswordInfo(hStore, pPassInfo);
+    }
+
+    if (hStore)
+    {
+        LwpsClosePasswordStore(hStore);
+    }
+
+    LW_SAFE_FREE_MEMORY(pszDnsDomainName);
+    LW_SAFE_FREE_MEMORY(pszHostname);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

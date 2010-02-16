@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -52,6 +52,7 @@
 #define LSA_JOIN_DC_PREFIX "DC="
 
 #define LSA_JOIN_MAX_ALLOWED_CLOCK_DRIFT_SECONDS 60
+
 
 DWORD
 LsaNetJoinDomain(
@@ -545,3 +546,206 @@ LsaFreeMachineAccountInfo(
     LW_SAFE_FREE_STRING(pAcctInfo->pszSID);
     LwFreeMemory(pAcctInfo);
 }
+
+
+DWORD
+LsaEnableDomainGroupMembership(
+    PCSTR pszDomainName
+    )
+{
+    return LsaChangeDomainGroupMembership(pszDomainName,
+					  TRUE);
+}
+
+
+DWORD
+LsaChangeDomainGroupMembership(
+    IN  PCSTR    pszDomainName,
+    IN  BOOLEAN  bEnable
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = RPC_S_OK;
+    handle_t hLsaBinding = NULL;
+    WCHAR wszLocalSystem[] = { '\\', '\\', '\0' };
+    PWSTR pwszSystem = wszLocalSystem;
+    DWORD dwLocalPolicyAccessMask = LSA_ACCESS_VIEW_POLICY_INFO;
+    POLICY_HANDLE hLocalPolicy = NULL;
+    LsaPolicyInformation *pInfo = NULL;
+    PSID pDomainSid = NULL;
+    handle_t hSamrBinding = NULL;
+    DWORD dwLocalSamrAccessMask = SAMR_ACCESS_ENUM_DOMAINS |
+                                  SAMR_ACCESS_OPEN_DOMAIN;
+    SamrConnectInfo ConnReq;
+    DWORD dwConnReqLevel = 0;
+    SamrConnectInfo ConnInfo;
+    DWORD dwConnLevel = 0;
+    CONNECT_HANDLE hSamrConn = NULL;
+    DWORD dwBuiltinDomainAccessMask = DOMAIN_ACCESS_OPEN_ACCOUNT;
+    PSID pBuiltinDomainSid = NULL;
+    DOMAIN_HANDLE hBuiltinDomain = NULL;
+    DWORD dwAliasAccessMask = ALIAS_ACCESS_ADD_MEMBER |
+                              ALIAS_ACCESS_REMOVE_MEMBER;
+    ACCOUNT_HANDLE hBuiltinAdminsAlias = NULL;
+    PSID pDomainAdminsSid = NULL;
+
+    memset(&ConnReq, 0, sizeof(ConnReq));
+    memset(&ConnInfo, 0, sizeof(ConnInfo));
+
+    /*
+     * Connect local lsa rpc server and get basic
+     * domain information
+     */
+    rpcStatus = InitLsaBindingDefault(&hLsaBinding,
+                                      NULL,
+                                      NULL);
+    if (rpcStatus)
+    {
+        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+    }
+
+    ntStatus = LsaOpenPolicy2(hLsaBinding,
+                              pwszSystem,
+                              NULL,
+                              dwLocalPolicyAccessMask,
+                              &hLocalPolicy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LsaQueryInfoPolicy2(hLsaBinding,
+                                   hLocalPolicy,
+                                   LSA_POLICY_INFO_DOMAIN,
+                                   &pInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pDomainSid = pInfo->domain.sid;
+
+    /*
+     * Connect local samr rpc server and open BUILTIN domain
+     */
+    rpcStatus = InitSamrBindingDefault(&hSamrBinding,
+                                       NULL,
+                                       NULL);
+    if (rpcStatus)
+    {
+        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+    }
+
+    ConnReq.info1.client_version = SAMR_CONNECT_POST_WIN2K;
+    dwConnReqLevel = 1;
+
+    ntStatus = SamrConnect5(hSamrBinding,
+                            pwszSystem,
+                            dwLocalSamrAccessMask,
+                            dwConnReqLevel,
+                            &ConnReq,
+                            &dwConnLevel,
+                            &ConnInfo,
+                            &hSamrConn);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = LwCreateWellKnownSid(WinBuiltinDomainSid,
+                                   NULL,
+                                   &pBuiltinDomainSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = SamrOpenDomain(hSamrBinding,
+                              hSamrConn,
+                              dwBuiltinDomainAccessMask,
+                              pBuiltinDomainSid,
+                              &hBuiltinDomain);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /*
+     * Finally, open BUILTIN\Administrators local group and add
+     * "Domain Admins" to the list of members
+     */
+    ntStatus = SamrOpenAlias(hSamrBinding,
+                             hBuiltinDomain,
+                             dwAliasAccessMask,
+                             DOMAIN_ALIAS_RID_ADMINS,
+                             &hBuiltinAdminsAlias);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = LwCreateWellKnownSid(WinAccountDomainAdminsSid,
+                                   pDomainSid,
+                                   &pDomainAdminsSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (bEnable)
+    {
+        ntStatus = SamrAddAliasMember(hSamrBinding,
+                                      hBuiltinAdminsAlias,
+                                      pDomainAdminsSid);
+        if (ntStatus == STATUS_MEMBER_IN_ALIAS)
+        {
+            ntStatus = STATUS_SUCCESS;
+        }
+    }
+    else
+    {
+        ntStatus = SamrDeleteAliasMember(hSamrBinding,
+                                         hBuiltinAdminsAlias,
+                                         pDomainAdminsSid);
+        if (ntStatus == STATUS_MEMBER_NOT_IN_ALIAS)
+        {
+            ntStatus = STATUS_SUCCESS;
+        }
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    if (hSamrBinding && hBuiltinAdminsAlias)
+    {
+        SamrClose(hSamrBinding, hBuiltinAdminsAlias);
+    }
+
+    if (hSamrBinding && hBuiltinDomain)
+    {
+        SamrClose(hSamrBinding, hBuiltinDomain);
+    }
+
+    if (hSamrBinding && hSamrConn)
+    {
+        SamrClose(hSamrBinding, hSamrConn);
+    }
+
+    if (pInfo)
+    {
+        LsaRpcFreeMemory(pInfo);
+    }
+
+    if (hLsaBinding && hLocalPolicy)
+    {
+        LsaClose(hLsaBinding, hLocalPolicy);
+    }
+
+    FreeSamrBinding(&hSamrBinding);
+    FreeLsaBinding(&hLsaBinding);
+
+    LW_SAFE_FREE_MEMORY(pBuiltinDomainSid);
+    LW_SAFE_FREE_MEMORY(pDomainAdminsSid);
+
+    if (dwError == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

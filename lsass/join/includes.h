@@ -40,6 +40,7 @@
 #include <lw/winerror.h>
 #include <lwmem.h>
 #include <lwstr.h>
+#include <lwsid.h>
 #include <lwkrb5.h>
 #include "lsakrb5smb.h"
 #include <uuid/uuid.h>
