@@ -960,7 +960,7 @@ SMB2UnmarshalCreateContexts(
                 pSrvCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY;
             }
-            if (!strncmp(pSrvCContext->pszName,
+            else if (!strncmp(pSrvCContext->pszName,
                         SMB2_CONTEXT_NAME_SEC_DESC,
                         sizeof(SMB2_CONTEXT_NAME_SEC_DESC) - 1))
             {
