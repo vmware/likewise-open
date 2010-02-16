@@ -627,8 +627,22 @@ SrvBuildCreateState_SMB_V2(
                 break;
 
             case SMB2_CONTEXT_ITEM_TYPE_SEC_DESC:
+                {
+                    SECURITY_INFORMATION secInfoAll = DACL_SECURITY_INFORMATION;
 
-                pCreateState->pSecDescContext = pContext;
+                    if (!pContext->ulDataLength ||
+                        !RtlValidRelativeSecurityDescriptor(
+                                (PSECURITY_DESCRIPTOR_RELATIVE)pContext->pData,
+                                pContext->ulDataLength,
+                                secInfoAll))
+                    {
+                        ntStatus = STATUS_INVALID_PARAMETER;
+                        BAIL_ON_NT_STATUS(ntStatus);
+                    }
+
+                    pCreateState->pSecurityDescriptor =
+                            (PSECURITY_DESCRIPTOR_RELATIVE)pContext->pData;
+                }
 
                 break;
 
@@ -636,24 +650,6 @@ SrvBuildCreateState_SMB_V2(
 
                 break;
         }
-    }
-
-    if (pCreateState->pSecDescContext)
-    {
-        SECURITY_INFORMATION secInfoAll = DACL_SECURITY_INFORMATION;
-
-        if (!pCreateState->pSecDescContext->ulDataLength ||
-            !RtlValidRelativeSecurityDescriptor(
-                (PSECURITY_DESCRIPTOR_RELATIVE)pCreateState->pSecDescContext->pData,
-                pCreateState->pSecDescContext->ulDataLength,
-                secInfoAll))
-        {
-            ntStatus = STATUS_INVALID_PARAMETER;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pCreateState->pSecurityDescriptor =
-            (PSECURITY_DESCRIPTOR_RELATIVE)pCreateState->pSecDescContext->pData;
     }
 
     pCreateState->pRequestHeader = pRequestHeader;
