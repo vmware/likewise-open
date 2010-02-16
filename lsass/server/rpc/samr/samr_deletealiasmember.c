@@ -115,8 +115,12 @@ SamrSrvDeleteAliasMember(
                                OUT_PPVOID(&pwszFilter));
     BAIL_ON_LSA_ERROR(dwError);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
-                wszAttrObjectSid, pwszSid);
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrObjectSid, pwszSid) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = DirectorySearch(hDirectory,
                               pwszBaseDn,

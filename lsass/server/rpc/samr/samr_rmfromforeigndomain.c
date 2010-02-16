@@ -160,7 +160,7 @@ SamrSrvRemoveMemberFromForeignDomain(
                                             hAlias,
                                             pSid);
         if (ntStatus == STATUS_NO_SUCH_MEMBER ||
-            ntStatus == STATUS_MEMBER_NOT_IN_GROUP)
+            ntStatus == STATUS_MEMBER_NOT_IN_ALIAS)
         {
             /* Member is not in this alias so juts ignore it
                and try another one */
