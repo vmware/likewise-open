@@ -111,7 +111,7 @@ SrvProcessTrans2QueryPathInformation(
                             0,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            NULL  /* ECP List  */
+                            &pTrans2State->pEcpList
                             );
             BAIL_ON_NT_STATUS(ntStatus);
 

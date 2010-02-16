@@ -197,7 +197,7 @@ SrvProcessNTCreateAndX(
                             pCreateState->pRequestHeader->createOptions,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            pCreateState->pEcpList);
+                            &pCreateState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseCreateStateAsync(pCreateState); // completed synchronously

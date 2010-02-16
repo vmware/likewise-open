@@ -189,7 +189,7 @@ SrvProcessDeleteDirectory(
                             FILE_DELETE_ON_CLOSE | FILE_DIRECTORY_FILE,
                             NULL,
                             0,
-                            NULL);
+                            &pDeletedirState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseDeletedirStateAsync(pDeletedirState);
@@ -512,6 +512,11 @@ SrvFreeDeletedirState(
     PSRV_DELETEDIR_STATE_SMB_V1 pDeletedirState
     )
 {
+    if (pDeletedirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pDeletedirState->pEcpList);
+    }
+
     if (pDeletedirState->pAcb && pDeletedirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(

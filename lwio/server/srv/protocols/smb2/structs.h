@@ -951,6 +951,7 @@ typedef struct _SRV_SET_INFO_STATE_SMB_V2
 
     IO_ASYNC_CONTROL_BLOCK        acb;
     PIO_ASYNC_CONTROL_BLOCK       pAcb;
+    PIO_ECP_LIST                  pEcpList;
 
     PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                         pData;          // Do not free

@@ -30,6 +30,21 @@
 
 
 #include "includes.h"
+#include "srvecp.h"
+
+
+static
+NTSTATUS
+SrvIoPrepareEcpList(
+    IN PSRV_SHARE_INFO pShareInfo,
+    IN OUT PIO_ECP_LIST* ppEcpList
+    );
+
+static
+VOID
+SrvIoFreeEcpShareName(
+    IN PVOID pContext
+    );
 
 NTSTATUS
 SrvIoCreateFile(
@@ -49,7 +64,7 @@ SrvIoCreateFile(
     IN FILE_CREATE_OPTIONS CreateOptions,
     IN OPTIONAL PVOID pEaBuffer,
     IN ULONG EaLength,
-    IN OPTIONAL PIO_ECP_LIST pEcpList
+    IN OUT PIO_ECP_LIST* ppEcpList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -139,6 +154,9 @@ SrvIoCreateFile(
         }
     }
 
+    ntStatus = SrvIoPrepareEcpList(pShareInfo, ppEcpList);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     /* Do the open */
 
     ntStatus = IoCreateFile(
@@ -157,7 +175,7 @@ SrvIoCreateFile(
                    CreateOptions,
                    pEaBuffer,
                    EaLength,
-                   pEcpList);
+                   *ppEcpList);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -169,12 +187,68 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+SrvIoPrepareEcpList(
+    IN PSRV_SHARE_INFO pShareInfo,
+    IN OUT PIO_ECP_LIST* ppEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PUNICODE_STRING pShareName = NULL;
 
+    if (SrvElementsGetShareNameEcpEnabled())
+    {
+        if (!*ppEcpList)
+        {
+            ntStatus = IoRtlEcpListAllocate(ppEcpList);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
+        ntStatus = RTL_ALLOCATE(&pShareName, UNICODE_STRING, sizeof(*pShareName));
+        BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = RtlUnicodeStringAllocateFromWC16String(
+                        pShareName,
+                        pShareInfo->pwszName);
+        BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = IoRtlEcpListInsert(
+                        *ppEcpList,
+                        SRV_ECP_TYPE_SHARE_NAME,
+                        pShareName,
+                        sizeof(*pShareName),
+                        SrvIoFreeEcpShareName);
+        BAIL_ON_NT_STATUS(ntStatus);
 
+        pShareName = NULL;
+    }
 
+cleanup:
+
+    RTL_FREE(&pShareName);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvIoFreeEcpShareName(
+    IN PVOID pContext
+    )
+{
+    PUNICODE_STRING pShareName = (PUNICODE_STRING) pContext;
+
+    if (pShareName)
+    {
+        RtlUnicodeStringFree(pShareName);
+        RtlMemoryFree(pShareName);
+    }
+}
 
 /*
 local variables:

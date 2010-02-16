@@ -213,7 +213,7 @@ SrvProcessCheckDirectory(
                                 FILE_DIRECTORY_FILE,
                                 NULL, /* EA Buffer */
                                 0,    /* EA Length */
-                                NULL);
+                                &pCheckdirState->pEcpList);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 SrvReleaseCheckdirStateAsync(pCheckdirState); // completed sync
@@ -538,6 +538,11 @@ SrvFreeCheckdirState(
     PSRV_CHECKDIR_STATE_SMB_V1 pCheckdirState
     )
 {
+    if (pCheckdirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pCheckdirState->pEcpList);
+    }
+
     if (pCheckdirState->pAcb && pCheckdirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(

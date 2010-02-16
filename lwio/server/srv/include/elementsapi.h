@@ -941,7 +941,7 @@ SrvIoCreateFile(
     IN FILE_CREATE_OPTIONS CreateOptions,
     IN OPTIONAL PVOID pEaBuffer,
     IN ULONG EaLength,
-    IN OPTIONAL PIO_ECP_LIST pEcpList
+    IN OUT PIO_ECP_LIST* ppEcpList
     );
 
 NTSTATUS
@@ -1155,6 +1155,11 @@ SrvReleaseExecContext(
 NTSTATUS
 SrvElementsGetBootTime(
     PULONG64 pullBootTime
+    );
+
+BOOLEAN
+SrvElementsGetShareNameEcpEnabled(
+    VOID
     );
 
 NTSTATUS

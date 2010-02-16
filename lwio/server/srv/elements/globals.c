@@ -53,5 +53,6 @@ SRV_ELEMENTS_GLOBALS gSrvElements = {
     .mutex            = PTHREAD_MUTEX_INITIALIZER,
     .pHintsBuffer     = NULL,
     .ulHintsLength    = 0,
-    .llBootTime       = 0LL
+    .llBootTime       = 0LL,
+    .bShareNameEcpEnabled = FALSE,
 };

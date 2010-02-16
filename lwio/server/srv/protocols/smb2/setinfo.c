@@ -716,7 +716,7 @@ SrvSetFileRenameInfo_SMB_V2(
                                 FILE_DIRECTORY_FILE,
                                 NULL, /* EA Buffer */
                                 0,    /* EA Length */
-                                NULL  /* ECP List  */
+                                &pSetInfoState->pEcpList
                                 );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1210,6 +1210,11 @@ SrvFreeSetInfoState_SMB_V2(
     PSRV_SET_INFO_STATE_SMB_V2 pSetInfoState
     )
 {
+    if (pSetInfoState->pEcpList)
+    {
+        IoRtlEcpListFree(&pSetInfoState->pEcpList);
+    }
+
     if (pSetInfoState->pAcb && pSetInfoState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(

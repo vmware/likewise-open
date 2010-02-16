@@ -687,7 +687,7 @@ SrvGetNativeFilesystem(
                         0,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        NULL  /* ECP List  */
+                        &pTConState->pEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 

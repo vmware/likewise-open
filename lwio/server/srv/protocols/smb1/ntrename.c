@@ -343,7 +343,7 @@ SrvExecuteNtRename(
                         FILE_DIRECTORY_FILE,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        NULL  /* ECP List  */
+                        &pRenameState->pDirEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -371,7 +371,7 @@ SrvExecuteNtRename(
                         0,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        NULL  /* ECP List  */
+                        &pRenameState->pFileEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -630,6 +630,16 @@ SrvFreeNtRenameState(
     PSRV_NT_RENAME_STATE_SMB_V1 pRenameState
     )
 {
+    if (pRenameState->pDirEcpList)
+    {
+        IoRtlEcpListFree(&pRenameState->pDirEcpList);
+    }
+
+    if (pRenameState->pFileEcpList)
+    {
+        IoRtlEcpListFree(&pRenameState->pFileEcpList);
+    }
+
     if (pRenameState->pAcb && pRenameState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(

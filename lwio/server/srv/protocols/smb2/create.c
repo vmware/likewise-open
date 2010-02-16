@@ -275,7 +275,7 @@ SrvProcessCreate_SMB_V2(
                                 pCreateState->pExtAContext->pData : NULL),
                             (pCreateState->pExtAContext ?
                                 pCreateState->pExtAContext->ulDataLength : 0),
-                            pCreateState->pEcpList);
+                            &pCreateState->pEcpList);
             switch (ntStatus)
             {
                 case STATUS_PENDING:
