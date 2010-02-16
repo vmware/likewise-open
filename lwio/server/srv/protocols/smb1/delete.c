@@ -412,7 +412,7 @@ SrvDeleteFiles(
                             pDeleteState->ulCreateOptions,
                             NULL,
                             0,
-                            NULL);
+                            &pDeleteState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseDeleteStateAsync(pDeleteState); // completed sync
@@ -531,7 +531,7 @@ SrvDeleteSingleFile(
                         pDeleteState->ulCreateOptions,
                         NULL,
                         0,
-                        NULL);
+                        &pDeleteState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
         SrvReleaseDeleteStateAsync(pDeleteState); // completed sync
@@ -834,6 +834,11 @@ SrvFreeDeleteState(
     PSRV_DELETE_STATE_SMB_V1 pDeleteState
     )
 {
+    if (pDeleteState->pEcpList)
+    {
+        IoRtlEcpListFree(&pDeleteState->pEcpList);
+    }
+
     if (pDeleteState->pAcb && pDeleteState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(

@@ -519,6 +519,8 @@ typedef struct _SRV_SET_INFO_STATE_SMB_V1
     IO_ASYNC_CONTROL_BLOCK     acb;
     PIO_ASYNC_CONTROL_BLOCK    pAcb;
 
+    PIO_ECP_LIST               pEcpList;
+
     PLWIO_SRV_SESSION          pSession;
     PLWIO_SRV_TREE             pTree;
 
@@ -679,6 +681,7 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+    PIO_ECP_LIST               pEcpList;
 
     PTRANSACTION_REQUEST_HEADER pRequestHeader; // Do not free
     PUSHORT                     pBytecount;     // Do not free
@@ -766,6 +769,7 @@ typedef struct _SRV_CREATEDIR_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+    PIO_ECP_LIST               pEcpList;
 
     IO_FILE_HANDLE             hFile;
     IO_FILE_NAME               fileName;
@@ -799,6 +803,7 @@ typedef struct _SRV_DELETEDIR_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+    PIO_ECP_LIST               pEcpList;
 
     IO_FILE_HANDLE             hFile;
     IO_FILE_NAME               fileName;
@@ -853,6 +858,7 @@ typedef struct _SRV_DELETE_STATE_SMB_V1
     IO_FILE_NAME                              fileName;
     PVOID                                     pSecurityDescriptor;
     PVOID                                     pSecurityQOS;
+    PIO_ECP_LIST                              pEcpList;
     FILE_CREATE_OPTIONS                       ulCreateOptions;
     BOOLEAN                                   bPendingCreate;
     PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pResult; // Do not free
@@ -887,6 +893,9 @@ typedef struct _SRV_RENAME_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+
+    PIO_ECP_LIST               pDirEcpList;
+    PIO_ECP_LIST               pFileEcpList;
 
     IO_FILE_NAME               oldName;
     IO_FILE_NAME               newName;         // Do not free these contents
@@ -928,6 +937,9 @@ typedef struct _SRV_NT_RENAME_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+
+    PIO_ECP_LIST               pDirEcpList;
+    PIO_ECP_LIST               pFileEcpList;
 
     IO_FILE_NAME               oldName;
     IO_FILE_NAME               newName;         // Do not free these contents
@@ -1073,6 +1085,7 @@ typedef struct _SRV_CHECKDIR_STATE_SMB_V1
     IO_FILE_HANDLE            hFile;
     PVOID                     pSecurityDescriptor;
     PVOID                     pSecurityQOS;
+    PIO_ECP_LIST              pEcpList;
 
 } SRV_CHECKDIR_STATE_SMB_V1, *PSRV_CHECKDIR_STATE_SMB_V1;
 

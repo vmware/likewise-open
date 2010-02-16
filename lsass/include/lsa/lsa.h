@@ -656,13 +656,15 @@ typedef struct __LSA_VERSION
     LW_DWORD dwMajor;
     LW_DWORD dwMinor;
     LW_DWORD dwBuild;
+    LW_DWORD dwRevision;
 } LSA_VERSION, *PLSA_VERSION;
 
 typedef struct __LSASTATUS
 {
     LW_DWORD dwUptime;
 
-    LSA_VERSION version;
+    LSA_VERSION lsassVersion;
+    LSA_VERSION productVersion;
 
     LW_DWORD dwCount;
     PLSA_AUTH_PROVIDER_STATUS pAuthProviderStatusList;

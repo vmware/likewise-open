@@ -71,6 +71,7 @@
 #include <ioapi.h>
 
 #include <smbwire.h>
+#include <srvecp.h>
 
 #include <shareapi.h>
 #include <srvutils.h>

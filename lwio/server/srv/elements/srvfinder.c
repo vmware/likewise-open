@@ -320,6 +320,8 @@ SrvFinderCreateSearchSpace(
     USHORT   usCandidateSearchId = 0;
     BOOLEAN  bFound = FALSE;
     BOOLEAN  bInLock = FALSE;
+    PIO_ECP_LIST pEcpList = NULL;
+
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
     fileName.FileName = pwszFilesystemPath;
@@ -341,7 +343,7 @@ SrvFinderCreateSearchSpace(
                     0,
                     NULL, /* EA Buffer */
                     0,    /* EA Length */
-                    NULL  /* ECP List  */
+                    &pEcpList
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -417,6 +419,11 @@ SrvFinderCreateSearchSpace(
 cleanup:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pFinderRepository->mutex);
+
+    if (pEcpList)
+    {
+        IoRtlEcpListFree(&pEcpList);
+    }
 
     return ntStatus;
 

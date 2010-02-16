@@ -504,15 +504,23 @@ static LWMsgTypeSpec gLsaAuthProviderStatusSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaVersionSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSASTATUS),
+    LWMSG_MEMBER_UINT32(LSA_VERSION, dwMajor),
+    LWMSG_MEMBER_UINT32(LSA_VERSION, dwMinor),
+    LWMSG_MEMBER_UINT32(LSA_VERSION, dwBuild),
+    LWMSG_MEMBER_UINT32(LSA_VERSION, dwRevision),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaStatusSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSASTATUS),
     LWMSG_MEMBER_UINT32(LSASTATUS, dwUptime),
-    LWMSG_MEMBER_STRUCT_BEGIN(LSASTATUS, version),
-    LWMSG_MEMBER_UINT32(LSA_VERSION, dwMajor),
-    LWMSG_MEMBER_UINT32(LSA_VERSION, dwMinor),
-    LWMSG_MEMBER_UINT32(LSA_VERSION, dwBuild),
-    LWMSG_STRUCT_END,
+    LWMSG_MEMBER_TYPESPEC(LSASTATUS, lsassVersion, gLsaVersionSpec),
+    LWMSG_MEMBER_TYPESPEC(LSASTATUS, productVersion, gLsaVersionSpec),
     LWMSG_MEMBER_UINT32(LSASTATUS, dwCount),
     LWMSG_MEMBER_POINTER_BEGIN(LSASTATUS, pAuthProviderStatusList),
     LWMSG_TYPESPEC(gLsaAuthProviderStatusSpec),

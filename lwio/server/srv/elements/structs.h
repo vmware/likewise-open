@@ -98,6 +98,7 @@ typedef struct _SRV_ELEMENTS_GLOBALS
     ULONG ulHintsLength;
 
     LONG64 llBootTime;
+    BOOLEAN bShareNameEcpEnabled;
 
     GENERIC_MAPPING ShareGenericMapping;
 

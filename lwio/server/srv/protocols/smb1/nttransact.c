@@ -1929,7 +1929,7 @@ SrvProcessNtTransactCreate(
                             pNTTransactState->pNtTransactCreateHeader->ulCreateOptions,
                             pNTTransactState->pEA,
                             pNTTransactState->pNtTransactCreateHeader->ulEALength,
-                            pNTTransactState->pEcpList);
+                            &pNTTransactState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
@@ -2781,15 +2781,15 @@ SrvFreeNTTransactState(
     PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState
     )
 {
+    if (pNTTransactState->pEcpList)
+    {
+        IoRtlEcpListFree(&pNTTransactState->pEcpList);
+    }
+
     if (pNTTransactState->pAcb && pNTTransactState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pNTTransactState->pAcb->AsyncCancelContext);
-    }
-
-    if (pNTTransactState->pEcpList)
-    {
-        IoRtlEcpListFree(&pNTTransactState->pEcpList);
     }
 
     if (pNTTransactState->pFilename)

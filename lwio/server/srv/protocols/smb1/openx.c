@@ -190,7 +190,7 @@ SrvProcessOpenAndX(
                             pOpenState->usCreateOptions,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            pOpenState->pEcpList);
+                            &pOpenState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseOpenStateAsync(pOpenState); // completed synchronously

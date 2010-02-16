@@ -763,17 +763,18 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     IO_ASYNC_CONTROL_BLOCK       acb;
     PIO_ASYNC_CONTROL_BLOCK      pAcb;
 
-    PVOID                        pSecurityDescriptor;
-    PVOID                        pSecurityQOS;
-    PIO_FILE_NAME                pFilename;
-    PIO_ECP_LIST                 pEcpList;
-    IO_FILE_HANDLE               hFile;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor;
+    PVOID                         pSecurityQOS;
+    PIO_FILE_NAME                 pFilename;
+    PIO_ECP_LIST                  pEcpList;
+    IO_FILE_HANDLE                hFile;
 
     PSRV_CREATE_CONTEXT          pCreateContexts;
     ULONG                        iContext;
     ULONG                        ulNumContexts;
 
     PSRV_CREATE_CONTEXT          pExtAContext;
+    PSRV_CREATE_CONTEXT          pSecDescContext;
 
     FILE_BASIC_INFORMATION       fileBasicInfo;
     PFILE_BASIC_INFORMATION      pFileBasicInfo;
@@ -951,6 +952,7 @@ typedef struct _SRV_SET_INFO_STATE_SMB_V2
 
     IO_ASYNC_CONTROL_BLOCK        acb;
     PIO_ASYNC_CONTROL_BLOCK       pAcb;
+    PIO_ECP_LIST                  pEcpList;
 
     PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                         pData;          // Do not free

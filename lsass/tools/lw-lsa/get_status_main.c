@@ -273,10 +273,16 @@ PrintStatus(
                     (dwMins * LSA_SECONDS_IN_MINUTE));
 
     printf("LSA Server Status:\n\n");
-    printf("Agent version: %u.%u.%u\n",
-                    pStatus->version.dwMajor,
-                    pStatus->version.dwMinor,
-                    pStatus->version.dwBuild);
+    printf("Compiled daemon version: %u.%u.%u.%u\n",
+                    pStatus->lsassVersion.dwMajor,
+                    pStatus->lsassVersion.dwMinor,
+                    pStatus->lsassVersion.dwBuild,
+                    pStatus->lsassVersion.dwRevision);
+    printf("Packaged product version: %u.%u.%u.%u\n",
+                    pStatus->productVersion.dwMajor,
+                    pStatus->productVersion.dwMinor,
+                    pStatus->productVersion.dwBuild,
+                    pStatus->productVersion.dwRevision);
     printf("Uptime:        %u days %u hours %u minutes %u seconds\n", dwDays, dwHours, dwMins, dwSecs);
 
     for (iCount = 0; iCount < pStatus->dwCount; iCount++)

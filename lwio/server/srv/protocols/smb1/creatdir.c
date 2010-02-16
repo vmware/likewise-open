@@ -188,7 +188,7 @@ SrvProcessCreateDirectory(
                             FILE_DIRECTORY_FILE,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            NULL);
+                            &pCreatedirState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseCreatedirStateAsync(pCreatedirState); // completed sync
@@ -515,6 +515,11 @@ SrvFreeCreatedirState(
     PSRV_CREATEDIR_STATE_SMB_V1 pCreatedirState
     )
 {
+    if (pCreatedirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pCreatedirState->pEcpList);
+    }
+
     if (pCreatedirState->pAcb && pCreatedirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(

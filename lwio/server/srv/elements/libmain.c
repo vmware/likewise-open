@@ -128,6 +128,14 @@ SrvElementsGetBootTime(
     return STATUS_SUCCESS;
 }
 
+BOOLEAN
+SrvElementsGetShareNameEcpEnabled(
+    VOID
+    )
+{
+    return gSrvElements.bShareNameEcpEnabled;
+}
+
 NTSTATUS
 SrvElementsShutdown(
     VOID

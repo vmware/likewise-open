@@ -107,6 +107,7 @@ NetGetAccountName(
     UINT32    hash = 0;
     UINT32    offset = 0;
     wchar16_t newname[16];
+    wchar16_t searchname[17];
     size_t    hashstrlen = 0;
     size_t    samacctname_len = 0;
 
@@ -162,7 +163,16 @@ NetGetAccountName(
 
             SAFE_FREE(hashstr);
 
-            err = MachAcctSearch( ld, newname, base_dn, &dn );
+            if (sw16printfw(searchname,
+                            sizeof(searchname)/sizeof(wchar16_t),
+                            L"%ws$",
+                            newname) < 0)
+            {
+                err = ErrnoToWin32Error(errno);
+                BAIL_ON_WINERR_ERROR(err);
+            }
+
+            err = MachAcctSearch( ld, searchname, base_dn, &dn );
             if ( err != ERROR_SUCCESS )
             {
                 err = ERROR_SUCCESS;
@@ -172,6 +182,7 @@ NetGetAccountName(
 
                 break;
             }
+            SAFE_FREE(dn);
         }
         if (offset == 10)
         {
@@ -205,6 +216,7 @@ cleanup:
     SAFE_FREE(hashstr);
     SAFE_FREE(dn);
     SAFE_FREE(samname);
+    SAFE_FREE(base_dn);
 
     return err;
 
@@ -584,6 +596,8 @@ cleanup:
     SAFE_FREE(spn_attr_name);
     SAFE_FREE(spn_attr_val[0]);
     SAFE_FREE(spn_attr_val[1]);
+    SAFE_FREE(desc_attr_name);
+    SAFE_FREE(desc_attr_val[0]);
     SAFE_FREE(osname_attr_name);
     SAFE_FREE(osname_attr_val[0]);
     SAFE_FREE(osver_attr_name);

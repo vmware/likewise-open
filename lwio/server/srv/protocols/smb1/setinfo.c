@@ -223,7 +223,7 @@ SrvProcessSetInformation(
                             0,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            NULL  /* ECP List  */
+                            &pInfoState->pEcpList
                             );
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -589,6 +589,11 @@ SrvFreeSetInfoState(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (pInfoState->pEcpList)
+    {
+        IoRtlEcpListFree(&pInfoState->pEcpList);
+    }
 
     if (pInfoState->pAcb && pInfoState->pAcb->AsyncCancelContext)
     {
