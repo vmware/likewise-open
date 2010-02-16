@@ -449,11 +449,6 @@ PvfsResolvePath(
             /* Enumerate directory entries and look for a match */
 
             ntError = PvfsSysOpenDir(pszResolvedPath, &pDir);
-            if (ntError == STATUS_NOT_A_DIRECTORY)
-            {
-                /* We already did a stat above and could not find the file */
-                ntError = STATUS_OBJECT_PATH_NOT_FOUND;
-            }
             BAIL_ON_NT_STATUS(ntError);
 
             for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
