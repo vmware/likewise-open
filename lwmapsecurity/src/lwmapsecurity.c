@@ -470,11 +470,14 @@ LwMapSecurityGetIdFromSid(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_UNMAPPED_UNIX_AUTHORITY };
+    SID_IDENTIFIER_AUTHORITY unixIdAuthority = { SECURITY_UNMAPPED_UNIX_AUTHORITY };
+    SID_IDENTIFIER_AUTHORITY ntIdAuthority = { SECURITY_NT_AUTHORITY };
     BOOLEAN isUser = FALSE;
     ULONG id = 0;
 
-    if (RtlEqualMemory(&Sid->IdentifierAuthority, &identifierAuthority, sizeof(identifierAuthority)))
+    if (RtlEqualMemory(&Sid->IdentifierAuthority,
+                       &unixIdAuthority,
+                       sizeof(unixIdAuthority)))
     {
         if (Sid->SubAuthorityCount != SECURITY_UNMAPPED_UNIX_RID_COUNT)
         {
@@ -495,6 +498,15 @@ LwMapSecurityGetIdFromSid(
                 status = STATUS_INVALID_SID;
                 GOTO_CLEANUP();
         }
+    }
+    else if (Sid->SubAuthorityCount == 1 &&
+             Sid->SubAuthority[0] == SECURITY_LOCAL_SYSTEM_RID &&
+             RtlEqualMemory(&Sid->IdentifierAuthority,
+                            &ntIdAuthority,
+                            sizeof(ntIdAuthority)))
+    {
+        isUser = TRUE;
+        id = 0;
     }
     else
     {
@@ -536,13 +548,25 @@ LwMapSecurityGetSidFromId(
             SID Sid;
             BYTE Buffer[SID_MAX_SIZE];
         } sidBuffer;
+        ULONG ulSidSize = sizeof(sidBuffer);
 
-        status = LwMapSecurityInitializeSidFromUnmappedId(
-                        sizeof(sidBuffer),
-                        &sidBuffer.Sid,
-                        IsUser,
-                        Id);
-        GOTO_CLEANUP_ON_STATUS(status);
+        if (IsUser)
+        {
+            status = RtlCreateWellKnownSid(WinLocalSystemSid,
+                                           NULL,
+                                           &sidBuffer.Sid,
+                                           &ulSidSize);
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
+        else
+        {
+            status = LwMapSecurityInitializeSidFromUnmappedId(
+                                           sizeof(sidBuffer),
+                                           &sidBuffer.Sid ,
+                                           IsUser,
+                                           Id);
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
 
         status = Context->PluginInterface->DuplicateSid(
                         Context->PluginContext,
