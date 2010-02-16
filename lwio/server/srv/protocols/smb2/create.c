@@ -618,11 +618,42 @@ SrvBuildCreateState_SMB_V2(
     {
         PSRV_CREATE_CONTEXT pContext = &pCreateState->pCreateContexts[iCtx];
 
-        if (pContext->contextItemType == SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS)
+        switch (pContext->contextItemType)
         {
-            pCreateState->pExtAContext = pContext;
-            break;
+            case SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS:
+
+                pCreateState->pExtAContext = pContext;
+
+                break;
+
+            case SMB2_CONTEXT_ITEM_TYPE_SEC_DESC:
+
+                pCreateState->pSecDescContext = pContext;
+
+                break;
+
+            default:
+
+                break;
         }
+    }
+
+    if (pCreateState->pSecDescContext)
+    {
+        SECURITY_INFORMATION secInfoAll = DACL_SECURITY_INFORMATION;
+
+        if (!pCreateState->pSecDescContext->ulDataLength ||
+            !RtlValidRelativeSecurityDescriptor(
+                (PSECURITY_DESCRIPTOR_RELATIVE)pCreateState->pSecDescContext->pData,
+                pCreateState->pSecDescContext->ulDataLength,
+                secInfoAll))
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pCreateState->pSecurityDescriptor =
+            (PSECURITY_DESCRIPTOR_RELATIVE)pCreateState->pSecDescContext->pData;
     }
 
     pCreateState->pRequestHeader = pRequestHeader;
@@ -1272,6 +1303,7 @@ SrvBuildCreateResponse_SMB_V2(
             case SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID:
             case SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS:
             case SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY:
+            case SMB2_CONTEXT_ITEM_TYPE_SEC_DESC:
             default:
 
                 // TODO:
