@@ -779,6 +779,7 @@ typedef struct _SRV_CREATEDIR_STATE_SMB_V1
 typedef enum
 {
     SRV_DELETEDIR_STAGE_SMB_V1_INITIAL = 0,
+    SRV_DELETEDIR_STAGE_SMB_V1_ATTEMPT_SET_INFO,
     SRV_DELETEDIR_STAGE_SMB_V1_COMPLETED,
     SRV_DELETEDIR_STAGE_SMB_V1_BUILD_RESPONSE,
     SRV_DELETEDIR_STAGE_SMB_V1_DONE
@@ -804,6 +805,9 @@ typedef struct _SRV_DELETEDIR_STATE_SMB_V1
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
     PIO_ECP_LIST               pEcpList;
+
+    FILE_DISPOSITION_INFORMATION  fileDispositionInfo;
+    PFILE_DISPOSITION_INFORMATION pFileDispositionInfo;
 
     IO_FILE_HANDLE             hFile;
     IO_FILE_NAME               fileName;
