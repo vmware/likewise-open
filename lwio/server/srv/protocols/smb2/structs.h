@@ -763,7 +763,7 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     IO_ASYNC_CONTROL_BLOCK       acb;
     PIO_ASYNC_CONTROL_BLOCK      pAcb;
 
-    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor; // Do not free
     PVOID                         pSecurityQOS;
     PIO_FILE_NAME                 pFilename;
     PIO_ECP_LIST                  pEcpList;
@@ -774,7 +774,6 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     ULONG                        ulNumContexts;
 
     PSRV_CREATE_CONTEXT          pExtAContext;
-    PSRV_CREATE_CONTEXT          pSecDescContext;
 
     FILE_BASIC_INFORMATION       fileBasicInfo;
     PFILE_BASIC_INFORMATION      pFileBasicInfo;

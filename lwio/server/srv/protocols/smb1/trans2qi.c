@@ -164,6 +164,18 @@ SrvBuildQueryAltNameInfoResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+static
+NTSTATUS
+SrvQueryInternalInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildQueryInternalInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 NTSTATUS
 SrvQueryInfo(
     PSRV_EXEC_CONTEXT pExecContext
@@ -227,6 +239,12 @@ SrvQueryInfo(
 
             break;
 
+        case SMB_QUERY_FILE_INTERNAL_INFO :
+
+            ntStatus = SrvQueryInternalInfo(pExecContext);
+
+            break;
+
         case SMB_INFO_STANDARD :
 
             ntStatus = SrvQuerySmbStandardInfo(pExecContext);
@@ -241,7 +259,6 @@ SrvQueryInfo(
         case SMB_QUERY_FILE_COMPRESSION_INFO_ALIAS :
         case SMB_QUERY_FILE_UNIX_BASIC :
         case SMB_QUERY_FILE_UNIX_LINK :
-        case SMB_QUERY_FILE_INTERNAL_INFO :
         case SMB_QUERY_FILE_ACCESS_INFO :
         case SMB_QUERY_FILE_POSITION_INFO :
         case SMB_QUERY_FILE_MODE_INFO :
@@ -326,6 +343,12 @@ SrvBuildQueryInfoResponse(
 
             break;
 
+        case SMB_QUERY_FILE_INTERNAL_INFO :
+
+            ntStatus = SrvBuildQueryInternalInfoResponse(pExecContext);
+
+            break;
+
         case SMB_INFO_STANDARD :
 
             ntStatus = SrvBuildQuerySmbStandardInfoResponse(pExecContext);
@@ -340,7 +363,6 @@ SrvBuildQueryInfoResponse(
         case SMB_QUERY_FILE_COMPRESSION_INFO_ALIAS :
         case SMB_QUERY_FILE_UNIX_BASIC :
         case SMB_QUERY_FILE_UNIX_LINK :
-        case SMB_QUERY_FILE_INTERNAL_INFO :
         case SMB_QUERY_FILE_ACCESS_INFO :
         case SMB_QUERY_FILE_POSITION_INFO :
         case SMB_QUERY_FILE_MODE_INFO :
@@ -2196,7 +2218,162 @@ SrvBuildQueryAltNameInfoResponse(
     return SrvBuildQueryNameInfoResponse(pExecContext);
 }
 
+static
+NTSTATUS
+SrvQueryInternalInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
 
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    ntStatus = pTrans2State->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pTrans2State->pData2)
+    {
+        ntStatus = SrvAllocateMemory(
+                        sizeof(FILE_INTERNAL_INFORMATION),
+                        (PVOID*)&pTrans2State->pData2);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pTrans2State->usBytesAllocated = sizeof(FILE_INTERNAL_INFORMATION);
+
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+        ntStatus = IoQueryInformationFile(
+                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                               pTrans2State->hFile),
+                        pTrans2State->pAcb,
+                        &pTrans2State->ioStatusBlock,
+                        pTrans2State->pData2,
+                        pTrans2State->usBytesAllocated,
+                        FileInternalInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildQueryInternalInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PBYTE   pOutBuffer        = pSmbResponse->pBuffer;
+    ULONG   ulBytesAvailable  = pSmbResponse->ulBytesAvailable;
+    ULONG   ulOffset          = 0;
+    USHORT  usBytesUsed       = 0;
+    ULONG   ulTotalBytesUsed  = 0;
+    USHORT  usParam           = 0;
+    PUSHORT pSetup            = NULL;
+    BYTE    setupCount        = 0;
+    USHORT  usDataOffset      = 0;
+    USHORT  usParameterOffset = 0;
+    PFILE_INTERNAL_INFORMATION       pFileInternalInfo      = NULL;
+    TRANS2_FILE_INTERNAL_INFORMATION fileInternalInfoPacked = {0};
+    PSRV_TRANS2_STATE_SMB_V1         pTrans2State           = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    pFileInternalInfo = (PFILE_INTERNAL_INFORMATION)pTrans2State->pData2;
+
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pTrans2State->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pTrans2State->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+
+    *pSmbResponse->pWordCount = 10 + setupCount;
+
+    fileInternalInfoPacked.IndexNumber   = pFileInternalInfo->IndexNumber;
+
+    ntStatus = WireMarshallTransaction2Response(
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    pSetup,
+                    setupCount,
+                    (PBYTE)&usParam,
+                    sizeof(usParam),
+                    (PBYTE)&fileInternalInfoPacked,
+                    sizeof(fileInternalInfoPacked),
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // pOutBuffer       += usBytesUsed;
+    // ulOffset         += usBytesUsed;
+    // ulBytesAvailable -= usBytesUsed;
+    ulTotalBytesUsed += usBytesUsed;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
 
 /*
 local variables:

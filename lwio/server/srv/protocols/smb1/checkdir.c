@@ -538,15 +538,15 @@ SrvFreeCheckdirState(
     PSRV_CHECKDIR_STATE_SMB_V1 pCheckdirState
     )
 {
-    if (pCheckdirState->pEcpList)
-    {
-        IoRtlEcpListFree(&pCheckdirState->pEcpList);
-    }
-
     if (pCheckdirState->pAcb && pCheckdirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                     &pCheckdirState->pAcb->AsyncCancelContext);
+    }
+
+    if (pCheckdirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pCheckdirState->pEcpList);
     }
 
     // TODO: Free the following if set

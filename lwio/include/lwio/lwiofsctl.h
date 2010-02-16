@@ -47,6 +47,10 @@
 #define IO_FSCTL_OPLOCK_BREAK_ACK           0x00000101
 #define IO_FSCTL_SET_SPARSE                 0x000900c4
 
+/* Shadow copy FsIoControl codes. */
+#define IO_FSCTL_NETWORK_FILESYSTEM	        0x00140000
+#define IO_FSCTL_ACCESS_READ                0x00004000
+#define IO_FSCTL_ENUMERATE_SNAPSHOTS        (IO_FSCTL_NETWORK_FILESYSTEM | IO_FSCTL_ACCESS_READ | 0x64)
 
 /* Oplock Request Input Buffer */
 
@@ -95,6 +99,15 @@ typedef IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER
             IO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER,
             *PIO_FSCTL_OPLOCK_BREAK_ACK_OUTPUT_BUFFER;
 
+
+typedef struct _IO_FSCTL_ENUMERATE_SNAPSHOTS_OUTPUT_BUFFER
+{
+    ULONG ulNumberOfSnapshots;
+    ULONG ulNumberOfSnapshotsReturned;
+    ULONG ulSnapshotArraySize;
+    WCHAR pwszSnapshotArray[1];
+} IO_FSCTL_ENUMERATE_SNAPSHOTS_OUTPUT_BUFFER,
+    *PIO_FSCTL_ENUMERATE_SNAPSHOTS_OUTPUT_BUFFER;
 
 #endif
 

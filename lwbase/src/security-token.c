@@ -568,6 +568,11 @@ RtlAccessCheck(
     USHORT aclSizeUsed = 0;
     USHORT aceOffset = 0;
     PACE_HEADER aceHeader = NULL;
+    union {
+        SID Sid;
+        BYTE Buffer[SID_MAX_SIZE];
+    } sidBuffer;
+    ULONG ulSidSize = sizeof(sidBuffer);
 
     if (!SecurityDescriptor || !AccessToken || !GenericMapping)
     {
@@ -598,6 +603,30 @@ RtlAccessCheck(
     ClearFlag(desiredAccess, MAXIMUM_ALLOWED);
 
     RtlMapGenericMask(&desiredAccess, GenericMapping);
+
+    //
+    // NT AUTHORITY\SYSTEM is always allowed an access
+    //
+    status = RtlCreateWellKnownSid(WinLocalSystemSid,
+                                   NULL,
+                                   &sidBuffer.Sid,
+                                   &ulSidSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    if (RtlpIsSidMemberOfToken(AccessToken, &sidBuffer.Sid))
+    {
+        if (wantMaxAllowed)
+        {
+            SetFlag(desiredAccess, STANDARD_RIGHTS_ALL);
+            SetFlag(desiredAccess, GENERIC_ALL);
+            RtlMapGenericMask(&desiredAccess, GenericMapping);
+        }
+        SetFlag(grantedAccess, desiredAccess);
+        desiredAccess = 0;
+
+        status = STATUS_SUCCESS;
+        GOTO_CLEANUP();
+    }
 
     if (IsSetFlag(desiredAccess, ACCESS_SYSTEM_SECURITY))
     {

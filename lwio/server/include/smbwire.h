@@ -1582,6 +1582,11 @@ typedef struct _TRANS2_FILE_NAME_INFORMATION
 } __attribute__((__packed__)) TRANS2_FILE_NAME_INFORMATION,
                              *PTRANS2_FILE_NAME_INFORMATION;
 
+typedef struct _TRANS2_FILE_INTERNAL_INFORMATION {
+    LONG64 IndexNumber;
+} __attribute__((__packed__)) TRANS2_FILE_INTERNAL_INFORMATION,
+                             *PTRANS2_FILE_INTERNAL_INFORMATION;
+
 typedef struct {
     LONG64 EndOfFile;
 } __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION,

@@ -816,14 +816,14 @@ SrvFreeTreeConnectState(
     PSRV_TREE_CONNECT_STATE_SMB_V1 pTConState
     )
 {
-    if (pTConState->pEcpList)
-    {
-        IoRtlEcpListFree(&pTConState->pEcpList);
-    }
-
     if (pTConState->pAcb && pTConState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(&pTConState->pAcb->AsyncCancelContext);
+    }
+
+    if (pTConState->pEcpList)
+    {
+        IoRtlEcpListFree(&pTConState->pEcpList);
     }
 
     // TODO: Free the following if set

@@ -85,15 +85,13 @@ WireNTTimeToSMBDateTime(
 {
     NTSTATUS ntStatus = 0;
     time_t   timeUnix = 0;
-    time_t   curTime = 0;
     struct tm stTime = {0};
 
     timeUnix = (llNTTime /  WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) -
                     WIRE_NTTIME_EPOCH_DIFFERENCE_SECS;
 
     /* Adjust to local time zone */
-    curTime = time(NULL);
-    timeUnix -= (mktime(gmtime_r(&curTime, &stTime)) - curTime);
+    timeUnix -= (mktime(gmtime_r(&timeUnix, &stTime)) - timeUnix);
 
     gmtime_r(&timeUnix, &stTime);
 
@@ -180,12 +178,19 @@ WireNTTimeToSMBUTime(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    struct tm stTime = {0};
+    time_t tSmbUTime = 0;
 
     /**
      * @todo - Handle overflow
      */
-    *pulSmbUTime = (llNTTime / WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) -
+    tSmbUTime = (llNTTime / WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) -
                                             WIRE_NTTIME_EPOCH_DIFFERENCE_SECS;
+
+    /* Adjust the time zone */
+    tSmbUTime += (tSmbUTime - mktime(gmtime_r(&tSmbUTime, &stTime)));
+
+    *pulSmbUTime = (ULONG)tSmbUTime;
 
     return ntStatus;
 }
@@ -197,11 +202,16 @@ WireSMBUTimetoNTTime(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    struct tm stTime = {0};
+    time_t tSmbUTime = ulSmbUTime;
+
+    /* Adjust to local time zone. */
+    tSmbUTime -= (tSmbUTime - mktime(gmtime_r(&tSmbUTime, &stTime)));
 
     /**
      * @todo - Handle overflow
      */
-    *pllNTTime = (ulSmbUTime + WIRE_NTTIME_EPOCH_DIFFERENCE_SECS) *
+    *pllNTTime = (tSmbUTime + WIRE_NTTIME_EPOCH_DIFFERENCE_SECS) *
                                     WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS;
 
     return ntStatus;

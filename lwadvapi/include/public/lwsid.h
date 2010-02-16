@@ -47,6 +47,8 @@
 #ifndef __LWSID_H__
 #define __LWSID_H__
 
+#include <lw/security-types.h>
+
 
 DWORD
 LwCreateWellKnownSid(

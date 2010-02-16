@@ -1017,7 +1017,9 @@ SrvExecuteFsctl(
 
                 if (!pNTTransactState->pResponseBuffer)
                 {
-                    USHORT usInitialLength = 512;
+                    USHORT usInitialLength =
+                        pNTTransactState->pRequestHeader->ulMaxDataCount > 0 ?
+                        pNTTransactState->pRequestHeader->ulMaxDataCount : 512;
 
                     ntStatus = SrvAllocateMemory(
                                     usInitialLength,
@@ -2781,15 +2783,15 @@ SrvFreeNTTransactState(
     PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState
     )
 {
-    if (pNTTransactState->pEcpList)
-    {
-        IoRtlEcpListFree(&pNTTransactState->pEcpList);
-    }
-
     if (pNTTransactState->pAcb && pNTTransactState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pNTTransactState->pAcb->AsyncCancelContext);
+    }
+
+    if (pNTTransactState->pEcpList)
+    {
+        IoRtlEcpListFree(&pNTTransactState->pEcpList);
     }
 
     if (pNTTransactState->pFilename)
