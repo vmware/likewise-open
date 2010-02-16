@@ -2783,15 +2783,15 @@ SrvFreeNTTransactState(
     PSRV_NTTRANSACT_STATE_SMB_V1 pNTTransactState
     )
 {
-    if (pNTTransactState->pEcpList)
-    {
-        IoRtlEcpListFree(&pNTTransactState->pEcpList);
-    }
-
     if (pNTTransactState->pAcb && pNTTransactState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pNTTransactState->pAcb->AsyncCancelContext);
+    }
+
+    if (pNTTransactState->pEcpList)
+    {
+        IoRtlEcpListFree(&pNTTransactState->pEcpList);
     }
 
     if (pNTTransactState->pFilename)

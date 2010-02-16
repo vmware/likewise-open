@@ -568,15 +568,15 @@ SrvFreeDeletedirState(
     PSRV_DELETEDIR_STATE_SMB_V1 pDeletedirState
     )
 {
-    if (pDeletedirState->pEcpList)
-    {
-        IoRtlEcpListFree(&pDeletedirState->pEcpList);
-    }
-
     if (pDeletedirState->pAcb && pDeletedirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                     &pDeletedirState->pAcb->AsyncCancelContext);
+    }
+
+    if (pDeletedirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pDeletedirState->pEcpList);
     }
 
     // TODO: Free the following if set

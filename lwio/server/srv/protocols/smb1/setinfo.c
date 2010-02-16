@@ -588,16 +588,14 @@ SrvFreeSetInfoState(
     PSRV_SET_INFO_STATE_SMB_V1 pInfoState
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    if (pInfoState->pAcb && pInfoState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(&pInfoState->pAcb->AsyncCancelContext);
+    }
 
     if (pInfoState->pEcpList)
     {
         IoRtlEcpListFree(&pInfoState->pEcpList);
-    }
-
-    if (pInfoState->pAcb && pInfoState->pAcb->AsyncCancelContext)
-    {
-        IoDereferenceAsyncCancelContext(&pInfoState->pAcb->AsyncCancelContext);
     }
 
     if (pInfoState->pTree)
@@ -617,7 +615,7 @@ SrvFreeSetInfoState(
 
     if (pInfoState->hFile)
     {
-        ntStatus = IoCloseFile(pInfoState->hFile);
+        IoCloseFile(pInfoState->hFile);
     }
 
     if (pInfoState->pMutex)

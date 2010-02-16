@@ -361,15 +361,15 @@ SrvFreeTrans2State(
     PSRV_TRANS2_STATE_SMB_V1 pTrans2State
     )
 {
-    if (pTrans2State->pEcpList)
-    {
-        IoRtlEcpListFree(&pTrans2State->pEcpList);
-    }
-
     if (pTrans2State->pAcb && pTrans2State->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pTrans2State->pAcb->AsyncCancelContext);
+    }
+
+    if (pTrans2State->pEcpList)
+    {
+        IoRtlEcpListFree(&pTrans2State->pEcpList);
     }
 
     if (pTrans2State->pFile)

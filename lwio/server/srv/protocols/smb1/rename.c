@@ -630,6 +630,12 @@ SrvFreeRenameState(
     PSRV_RENAME_STATE_SMB_V1 pRenameState
     )
 {
+    if (pRenameState->pAcb && pRenameState->pAcb->AsyncCancelContext)
+    {
+        IoDereferenceAsyncCancelContext(
+                    &pRenameState->pAcb->AsyncCancelContext);
+    }
+
     if (pRenameState->pDirEcpList)
     {
         IoRtlEcpListFree(&pRenameState->pDirEcpList);
@@ -638,12 +644,6 @@ SrvFreeRenameState(
     if (pRenameState->pFileEcpList)
     {
         IoRtlEcpListFree(&pRenameState->pFileEcpList);
-    }
-
-    if (pRenameState->pAcb && pRenameState->pAcb->AsyncCancelContext)
-    {
-        IoDereferenceAsyncCancelContext(
-                    &pRenameState->pAcb->AsyncCancelContext);
     }
 
     // TODO: Free the following if set

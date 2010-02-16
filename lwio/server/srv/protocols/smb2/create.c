@@ -1084,15 +1084,15 @@ SrvFreeCreateState_SMB_V2(
     PSRV_CREATE_STATE_SMB_V2 pCreateState
     )
 {
-    if (pCreateState->pEcpList)
-    {
-        IoRtlEcpListFree(&pCreateState->pEcpList);
-    }
-
     if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                     &pCreateState->pAcb->AsyncCancelContext);
+    }
+
+    if (pCreateState->pEcpList)
+    {
+        IoRtlEcpListFree(&pCreateState->pEcpList);
     }
 
     // TODO: Free the following if set

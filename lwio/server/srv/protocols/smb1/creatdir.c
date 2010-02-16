@@ -515,15 +515,15 @@ SrvFreeCreatedirState(
     PSRV_CREATEDIR_STATE_SMB_V1 pCreatedirState
     )
 {
-    if (pCreatedirState->pEcpList)
-    {
-        IoRtlEcpListFree(&pCreatedirState->pEcpList);
-    }
-
     if (pCreatedirState->pAcb && pCreatedirState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                     &pCreatedirState->pAcb->AsyncCancelContext);
+    }
+
+    if (pCreatedirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pCreatedirState->pEcpList);
     }
 
     // TODO: Free the following if set

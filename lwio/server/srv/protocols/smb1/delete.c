@@ -855,15 +855,15 @@ SrvFreeDeleteState(
     PSRV_DELETE_STATE_SMB_V1 pDeleteState
     )
 {
-    if (pDeleteState->pEcpList)
-    {
-        IoRtlEcpListFree(&pDeleteState->pEcpList);
-    }
-
     if (pDeleteState->pAcb && pDeleteState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                 &pDeleteState->pAcb->AsyncCancelContext);
+    }
+
+    if (pDeleteState->pEcpList)
+    {
+        IoRtlEcpListFree(&pDeleteState->pEcpList);
     }
 
     if (pDeleteState->hSearchSpace)
