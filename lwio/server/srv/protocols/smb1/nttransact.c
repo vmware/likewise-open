@@ -1017,7 +1017,9 @@ SrvExecuteFsctl(
 
                 if (!pNTTransactState->pResponseBuffer)
                 {
-                    USHORT usInitialLength = 512;
+                    USHORT usInitialLength =
+                        pNTTransactState->pRequestHeader->ulMaxDataCount > 0 ?
+                        pNTTransactState->pRequestHeader->ulMaxDataCount : 512;
 
                     ntStatus = SrvAllocateMemory(
                                     usInitialLength,
