@@ -67,7 +67,12 @@ LsaSrvCopyDCInfo(
     );
 
 DWORD
-LsaSrvGetVersion(
+LsaSrvGetLsassVersion(
+    PLSA_VERSION pVersion
+    );
+
+DWORD
+LsaSrvGetProductVersion(
     PLSA_VERSION pVersion
     );
 

@@ -12,7 +12,7 @@ AM_CPPFLAGS=""
 AM_CFLAGS=""
 AM_LDFLAGS=""
 
-PKG_VERSION="5.0.0"
+COMPONENT_VERSION="5.0.0.0"
 
 # Platform-specific stuff
 
@@ -205,11 +205,11 @@ AC_DEFINE_UNQUOTED([ENABLE_NSS_ENUM_DEFAULT], ["$ENABLE_NSS_ENUM_DEFAULT"], [Def
 # Package version
 
 AC_ARG_WITH([version],
-        [AC_HELP_STRING([--with-version=<pkg-version>], [package version <major>.<minor>.<build>])],
+        [AC_HELP_STRING([--with-version=<comp-version>], [Component version <major>.<minor>.<build>.<revision>])],
         [
-		PKG_VERSION="$withval"
+		COMPONENT_VERSION="$withval"
         ])
-AC_DEFINE_UNQUOTED(PKG_VERSION, "$PKG_VERSION", [Package Version])
+AC_DEFINE_UNQUOTED(COMPONENT_VERSION, "$COMPONENT_VERSION", [Component Version])
 
 # lwreg
 
