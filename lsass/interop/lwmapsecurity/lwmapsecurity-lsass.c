@@ -94,6 +94,14 @@ typedef struct _LSA_MAP_SECURITY_OBJECT_INFO {
 
 static
 NTSTATUS
+LsaMapSecurityCreateTokenDefaultDacl(
+    PACL *ppDacl,
+    PSID pOwnerSid
+    );
+
+
+static
+NTSTATUS
 LsaMapSecurityOpenConnection(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PHANDLE phConnection
@@ -983,7 +991,11 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     // TOKEN_DEFAULT_DACL
     //
 
-    // TODO-Implement TOKEN_DEFAULT_DACL?
+    status = LsaMapSecurityCreateTokenDefaultDacl(
+                 &createInformation->DefaultDacl->DefaultDacl,
+                 createInformation->Owner->Owner);
+    GOTO_CLEANUP_ON_STATUS(status);
+
 
 cleanup:
     if (!NT_SUCCESS(status))
@@ -1247,7 +1259,10 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     // TOKEN_DEFAULT_DACL
     //
 
-    // TODO-Implement TOKEN_DEFAULT_DACL?
+    status = LsaMapSecurityCreateTokenDefaultDacl(
+                 &createInformation->DefaultDacl->DefaultDacl,
+                 createInformation->Owner->Owner);
+    GOTO_CLEANUP_ON_STATUS(status);
 
 cleanup:
 
@@ -1611,6 +1626,49 @@ cleanup:
 
     return status;
 }
+
+
+static
+NTSTATUS
+LsaMapSecurityCreateTokenDefaultDacl(
+    OUT PACL *ppDacl,
+    IN PSID pOwnerSid
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG ulDaclSize = 0;
+    PACL pDacl = NULL;
+
+    ulDaclSize = ACL_HEADER_SIZE +
+        sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(pOwnerSid) +
+        sizeof(ULONG);
+
+    status = LW_RTL_ALLOCATE(&pDacl, VOID, ulDaclSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlCreateAcl(pDacl, ulDaclSize, ACL_REVISION);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlAddAccessAllowedAceEx(
+                 pDacl,
+                 ACL_REVISION,
+                 0,
+                 GENERIC_ALL,
+                 pOwnerSid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    *ppDacl = pDacl;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        LW_RTL_FREE(&pDacl);
+    }
+
+    return status;
+}
+
 
 
 /*
