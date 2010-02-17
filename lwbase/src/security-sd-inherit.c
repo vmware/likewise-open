@@ -536,7 +536,7 @@ RtlpObjectSetGroup(
 #endif
     PSID pGroup = NULL;
     struct {
-        TOKEN_USER TokeUserInfo;
+        TOKEN_PRIMARY_GROUP TokePrimaryGroupInfo;
         BYTE Buffer[SID_MAX_SIZE];
     } TokenPrimaryGroupBuffer;
     PTOKEN_PRIMARY_GROUP pTokenPrimaryGroupInfo = (PTOKEN_PRIMARY_GROUP)&TokenPrimaryGroupBuffer;
