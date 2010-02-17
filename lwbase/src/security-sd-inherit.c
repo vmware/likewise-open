@@ -151,7 +151,7 @@ RtlCreatePrivateObjectSecurityEx(
     {
         status = RtlpCreateAbsSecDescFromRelative(
                      &pAbsCreatorSecDesc,
-                     pParentSecDesc);
+                     pCreatorSecDesc);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
@@ -454,9 +454,7 @@ RtlpObjectSetOwner(
                          pSecurityDescriptor,
                          pOwner,
                          FALSE);
-            GOTO_CLEANUP_ON_STATUS(status);
-
-            goto cleanup;
+            GOTO_CLEANUP();
         }
     }
 
@@ -479,9 +477,7 @@ RtlpObjectSetOwner(
                          pSecurityDescriptor,
                          pOwner,
                          TRUE);
-            GOTO_CLEANUP_ON_STATUS(status);
-
-            goto cleanup;
+            GOTO_CLEANUP();
         }
     }
 #endif   // End of disabled code
@@ -565,9 +561,7 @@ RtlpObjectSetGroup(
                          pSecurityDescriptor,
                          pGroup,
                          FALSE);
-            GOTO_CLEANUP_ON_STATUS(status);
-
-            goto cleanup;
+            GOTO_CLEANUP();
         }
     }
 
@@ -590,9 +584,7 @@ RtlpObjectSetGroup(
                          pSecurityDescriptor,
                          pGroup,
                          TRUE);
-            GOTO_CLEANUP_ON_STATUS(status);
-
-            goto cleanup;
+            GOTO_CLEANUP();
         }
     }
 #endif   // End of disabled code
@@ -745,6 +737,8 @@ cleanup:
         LW_RTL_FREE(&pFinalDacl);
     }
 
+    LW_RTL_FREE(&pBuffer);
+
     return status;
 }
 
@@ -821,7 +815,7 @@ RtlpObjectInheritSecurity(
         *pbIsNewDaclDefaulted = TRUE;
         *ppNewDacl = pDacl;
 
-        goto cleanup;
+        GOTO_CLEANUP();
     }
 
     if (pCreatorDacl)
