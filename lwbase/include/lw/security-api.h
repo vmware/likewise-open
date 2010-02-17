@@ -382,6 +382,19 @@ RtlSetSecurityDescriptorInfo(
     IN PGENERIC_MAPPING GenericMapping
     );
 
+NTSTATUS
+RtlCreatePrivateObjectSecurityEx(
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pParentSecDesc,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pCreatorSecDesc,
+    OUT PSECURITY_DESCRIPTOR_RELATIVE *ppNewSecDesc,
+    OUT PULONG pNewSecDescLength,
+    IN OPTIONAL PVOID pObjectType,  // Unused
+    IN BOOLEAN bIsContainerObject,
+    IN ULONG AutoInheritFlags,
+    IN OPTIONAL PACCESS_TOKEN pUserToken,
+    IN PGENERIC_MAPPING pGenericMap
+    );
+
 //
 // ACCESS_MASK Functions
 //
@@ -551,3 +564,15 @@ RtlCreateWellKnownSid(
     );
 
 #endif /* __LWBASE_SECURITY_API_H__ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+

@@ -980,6 +980,21 @@ typedef ULONG SECURITY_INFORMATION, *PSECURITY_INFORMATION;
     0 )
 
 //
+// RtlCreatePrivateObjectSecurity() AutoInheritFlags
+//
+
+#define SEF_DACL_AUTO_INHERIT                   0x00000001
+#define SEF_SACL_AUTO_INHERIT                   0x00000002
+#define SEF_DEFAULT_DESCRIPTOR_FOR_OBJECT       0x00000004
+#define SEF_AVOID_PRIVILEGE_CHECK               0x00000008
+#define SEF_AVOID_OWNER_CHECK                   0x00000010
+#define SEF_DEFAULT_OWNER_FROM_PARENT           0X00000020
+#define SEF_DEFAULT_GROUP_FROM_PARENT           0X00000040
+#define SEF_MACL_NO_WRITE_UP                    0X00000100  // unused
+#define SEF_MACL_NO_READ_UP                     0X00000200  // unused
+#define SEF_AVOID_OWNER_RESTRICTION             0x00001000
+
+//
 // Access Token
 //
 // The underlying (non-handle) type for an access token is PACCESS_TOKEN.
