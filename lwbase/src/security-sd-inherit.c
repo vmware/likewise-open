@@ -418,11 +418,9 @@ RtlpObjectSetOwner(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-#if 0
     PSID pCreatorSecDescOwner = NULL;
     PSID pParentSecDescOwner = NULL;
     BOOLEAN bDefaulted = FALSE;
-#endif
     PSID pOwner = NULL;
     union {
         TOKEN_OWNER TokenOwnerInfo;
@@ -430,10 +428,6 @@ RtlpObjectSetOwner(
     } TokenOwnerBuffer;
     PTOKEN_OWNER pTokenOwnerInformation = (PTOKEN_OWNER)&TokenOwnerBuffer;
     ULONG ulTokenOwnerLength = 0;
-
-#if 0
-    // Check is disabled until we have an LsaPrivilege model
-    // support SeRestorePrivilege
 
     // Always use the CreatorSecDesc Owner if present
 
@@ -453,7 +447,7 @@ RtlpObjectSetOwner(
             status = RtlSetOwnerSecurityDescriptor(
                          pSecurityDescriptor,
                          pOwner,
-                         FALSE);
+                         bDefaulted);
             GOTO_CLEANUP();
         }
     }
@@ -480,7 +474,6 @@ RtlpObjectSetOwner(
             GOTO_CLEANUP();
         }
     }
-#endif   // End of disabled code
 
     // Copy the owner of the ACCESS_TOKEN
 
@@ -525,11 +518,9 @@ RtlpObjectSetGroup(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-#if 0
     PSID pCreatorSecDescGroup = NULL;
     PSID pParentSecDescGroup = NULL;
     BOOLEAN bDefaulted = FALSE;
-#endif
     PSID pGroup = NULL;
     struct {
         TOKEN_PRIMARY_GROUP TokenPrimaryGroupInfo;
@@ -537,10 +528,6 @@ RtlpObjectSetGroup(
     } TokenPrimaryGroupBuffer;
     PTOKEN_PRIMARY_GROUP pTokenPrimaryGroupInfo = (PTOKEN_PRIMARY_GROUP)&TokenPrimaryGroupBuffer;
     ULONG ulTokenPrimaryGroupLength = 0;
-
-#if 0
-    // Check is disabled until we have an LsaPrivilege model
-    // support SeRestorePrivilege
 
     // Always use the CreatorSecDesc Group if present
 
@@ -560,7 +547,7 @@ RtlpObjectSetGroup(
             status = RtlSetGroupSecurityDescriptor(
                          pSecurityDescriptor,
                          pGroup,
-                         FALSE);
+                         bDefaulted);
             GOTO_CLEANUP();
         }
     }
@@ -587,7 +574,6 @@ RtlpObjectSetGroup(
             GOTO_CLEANUP();
         }
     }
-#endif   // End of disabled code
 
     // Copy the Group SID from the Token
 
@@ -661,14 +647,11 @@ RtlpObjectSetDacl(
     BOOLEAN bParentIsDaclDefaulted = FALSE;
     BOOLEAN bFinalIsDaclDefaulted = FALSE;
     SECURITY_DESCRIPTOR_CONTROL CreatorSecDescControl = 0;
+    PBYTE pBuffer = NULL;
+    PTOKEN_DEFAULT_DACL pTokenDefaultDaclInformation = NULL;
+    ULONG ulTokenDefaultDaclLength = 0;
+    ULONG ulTokenDefaultDaclSize = 0;
 
-    // Sanity check - ACCESS_TOKEN does not have a default DACL currently
-
-    if (!pParentSecDesc && !pCreatorSecDesc)
-    {
-        status = STATUS_INVALID_PARAMETER;
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
 
     // Pull the DACLs so we have something to work with
 
@@ -708,7 +691,8 @@ RtlpObjectSetDacl(
 
         bFinalIsDaclDefaulted = FALSE;
     }
-    else  // Do the inheritance
+    // Do the inheritance if we have at least one SecDesc to work with
+    else if (bParentIsDaclPresent || bCreatorIsDaclPresent)
     {
         status = RtlpObjectInheritSecurity(
                      &pFinalDacl,
@@ -721,6 +705,60 @@ RtlpObjectSetDacl(
                      pGenericMap);
         GOTO_CLEANUP_ON_STATUS(status);
     }
+
+    // Use the Token Default Dacl IFF we don't have a valid DACL with
+    // at least 1 ACE
+
+    if (!pFinalDacl || (RtlGetAclAceCount(pFinalDacl) == 0))
+    {
+        if (pFinalDacl)
+        {
+            LW_RTL_FREE(&pFinalDacl);
+        }
+
+        status = RtlQueryAccessTokenInformation(
+                     pUserToken,
+                     TokenDefaultDacl,
+                     NULL,
+                     0,
+                     &ulTokenDefaultDaclLength);
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            ulTokenDefaultDaclSize = ulTokenDefaultDaclLength;
+
+            status = LW_RTL_ALLOCATE(&pBuffer, VOID, ulTokenDefaultDaclSize);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            status = RtlQueryAccessTokenInformation(
+                         pUserToken,
+                         TokenDefaultDacl,
+                         pBuffer,
+                         ulTokenDefaultDaclLength,
+                         &ulTokenDefaultDaclLength);
+        }
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        pTokenDefaultDaclInformation = (PTOKEN_DEFAULT_DACL)pBuffer;
+
+        // Call RtlpObjectInheritSecurity() again but with the Token
+        // Default DACL as the creator Dacl so that it can handle
+        // adding the ACEs and mapping to the object specific bits
+
+        status = RtlpObjectInheritSecurity(
+                     &pFinalDacl,
+                     &bFinalIsDaclDefaulted,
+                     NULL,
+                     FALSE,
+                     pTokenDefaultDaclInformation->DefaultDacl,
+                     TRUE,
+                     bIsContainerObject,
+                     pGenericMap);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        bFinalIsDaclDefaulted = TRUE;
+    }
+
+    // Finally set the new DACL in the outgoing Seccurity Descriptor
 
     status = RtlSetDaclSecurityDescriptor(
                  pSecurityDescriptor,
@@ -768,6 +806,117 @@ cleanup:
 
 static
 NTSTATUS
+RtlpObjectDaclAssignSecurity(
+    OUT PACL *ppObjectDacl,
+    IN PACL pSrcDacl,
+    IN PGENERIC_MAPPING pGenericMap
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PACL pDacl = NULL;
+    ACCESS_MASK mask = 0;
+    USHORT aclSizeUsed = 0;
+    USHORT aceOffset = 0;
+    PACE_HEADER aceHeader = NULL;
+    PACCESS_ALLOWED_ACE aceAllow = NULL;
+    PACCESS_DENIED_ACE aceDeny = NULL;
+    PSID aceSid = NULL;
+    USHORT aclConsumed = 0;
+    USHORT aceNewOffset = 0;
+
+    aclSizeUsed = RtlGetAclSizeUsed(pSrcDacl);
+    if (aclSizeUsed == 0)
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    status = LW_RTL_ALLOCATE(&pDacl, VOID, aclSizeUsed);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlCreateAcl(pDacl, aclSizeUsed, ACL_REVISION);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    aclConsumed = RtlGetAclSizeUsed(pDacl);
+
+    while (TRUE)
+    {
+        aceNewOffset = aclConsumed;
+
+        status = RtlIterateAce(
+                     pSrcDacl,
+                     aclSizeUsed,
+                     &aceOffset,
+                     &aceHeader);
+        if (status == STATUS_NO_MORE_ENTRIES)
+        {
+            break;
+        }
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        // TODO - Deal with CREATOR OWNER and CREATOR GROUP
+
+        switch (aceHeader->AceType)
+        {
+            case ACCESS_ALLOWED_ACE_TYPE:
+            {
+                aceAllow = (PACCESS_ALLOWED_ACE)aceHeader;
+                mask = aceAllow->Mask;
+                aceSid = (PSID)&aceAllow->SidStart;
+
+                RtlMapGenericMask(&mask, pGenericMap);
+
+                status = RtlAddAccessAllowedAceEx(
+                             pDacl,
+                             ACL_REVISION,
+                             aceAllow->Header.AceFlags,
+                             mask,
+                             aceSid);
+                GOTO_CLEANUP_ON_STATUS(status);
+            }
+            break;
+
+            case ACCESS_DENIED_ACE_TYPE:
+            {
+                aceDeny = (PACCESS_DENIED_ACE)aceHeader;
+                mask = aceDeny->Mask;
+                aceSid = (PSID)&aceDeny->SidStart;
+
+                RtlMapGenericMask(&mask, pGenericMap);
+
+                status = RtlAddAccessDeniedAceEx(
+                             pDacl,
+                             ACL_REVISION,
+                             aceDeny->Header.AceFlags,
+                             mask,
+                             aceSid);
+                GOTO_CLEANUP_ON_STATUS(status);
+            }
+            break;
+
+            default:
+                // ignore
+                break;
+        }
+
+    }
+
+    *ppObjectDacl = pDacl;
+
+    status = STATUS_SUCCESS;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        LW_RTL_FREE(&pDacl);
+    }
+
+    return status;
+}
+
+
+static
+NTSTATUS
 RtlpObjectInheritSecurity(
     OUT PACL *ppNewDacl,
     OUT PBOOLEAN pbIsNewDaclDefaulted,
@@ -788,6 +937,7 @@ RtlpObjectInheritSecurity(
     PACE_HEADER pAceHeader = NULL;
     PACCESS_ALLOWED_ACE pAllowAce = NULL;
     PACCESS_DENIED_ACE pDenyAce = NULL;
+    ACCESS_MASK mask = 0;
 
     // Inheritance Algorithm:
     //
@@ -797,7 +947,7 @@ RtlpObjectInheritSecurity(
     // else
     //
     // (b) Add in all creator DACL entries
-    // (c)  Add in inheritable ACEs from parent
+    // (c) Add in inheritable ACEs from parent
     //      i.   Skip if is a container and is NOT a container inherit
     //           ace, or if is NOT a container and is NOT a object
     //           (non-container) inherit ace
@@ -809,7 +959,10 @@ RtlpObjectInheritSecurity(
 
     if (!pParentDacl && bCreatorIsDaclDefaulted)
     {
-        status = RtlpDuplicateDacl(&pDacl, pCreatorDacl);
+        status = RtlpObjectDaclAssignSecurity(
+                     &pDacl,
+                     pCreatorDacl,
+                     pGenericMap);
         GOTO_CLEANUP_ON_STATUS(status);
 
         *pbIsNewDaclDefaulted = TRUE;
@@ -852,26 +1005,36 @@ RtlpObjectInheritSecurity(
         status = RtlGetAce(pCreatorDacl, i, (PVOID*)&pAceHeader);
         GOTO_CLEANUP_ON_STATUS(status);
 
+        // TODO - Deal with CREATOR OWNER and CREATOR GROUP
+
         switch(pAceHeader->AceType)
         {
         case ACCESS_ALLOWED_ACE_TYPE:
             pAllowAce = (PACCESS_ALLOWED_ACE)pAceHeader;
+            mask = pAllowAce->Mask;
+
+            RtlMapGenericMask(&mask, pGenericMap);
+
             status = RtlAddAccessAllowedAceEx(
                          pDacl,
                          ACL_REVISION,
                          pAllowAce->Header.AceFlags,
-                         pAllowAce->Mask,
+                         mask,
                          (PSID)&pAllowAce->SidStart);
             GOTO_CLEANUP_ON_STATUS(status);
             break;
 
         case ACCESS_DENIED_ACE_TYPE:
             pDenyAce = (PACCESS_DENIED_ACE)pAceHeader;
+            mask = pDenyAce->Mask;
+
+            RtlMapGenericMask(&mask, pGenericMap);
+
             status = RtlAddAccessDeniedAceEx(
                          pDacl,
                          ACL_REVISION,
                          pDenyAce->Header.AceFlags,
-                         pDenyAce->Mask,
+                         mask,
                          (PSID)&pDenyAce->SidStart);
             GOTO_CLEANUP_ON_STATUS(status);
             break;
@@ -906,6 +1069,8 @@ RtlpObjectInheritSecurity(
         {
             continue;
         }
+
+        // TODO - Deal with CREATOR OWNER and CREATOR GROUP
 
         // See if the inherit ACE should continue to be propagated.
         // If so, then copy it
@@ -986,7 +1151,7 @@ RtlpObjectInheritSecurity(
         }
     }
 
-    *pbIsNewDaclDefaulted = FALSE;
+    *pbIsNewDaclDefaulted = bCreatorIsDaclDefaulted;
     *ppNewDacl = pDacl;
 
     status = STATUS_SUCCESS;
