@@ -425,7 +425,7 @@ RtlpObjectSetOwner(
 #endif
     PSID pOwner = NULL;
     union {
-        TOKEN_OWNER TokeUserInfo;
+        TOKEN_OWNER TokenOwnerInfo;
         BYTE Buffer[SID_MAX_SIZE];
     } TokenOwnerBuffer;
     PTOKEN_OWNER pTokenOwnerInformation = (PTOKEN_OWNER)&TokenOwnerBuffer;
