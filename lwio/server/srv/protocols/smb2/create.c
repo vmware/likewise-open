@@ -451,6 +451,12 @@ error:
 
             break;
 
+        case STATUS_NOT_A_DIRECTORY:
+
+            ntStatus = STATUS_OBJECT_PATH_NOT_FOUND;
+
+            // intentional fall through
+
         default:
 
             if (pCreateState)
