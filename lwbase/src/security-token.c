@@ -699,17 +699,17 @@ RtlAccessCheck(
             case ACCESS_ALLOWED_ACE_TYPE:
             {
                 PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE) aceHeader;
-                if (wantMaxAllowed || IsSetFlag(desiredAccess, ace->Mask))
+                ACCESS_MASK mask = ace->Mask;
+
+                RtlMapGenericMask(&mask, GenericMapping);
+
+                if (wantMaxAllowed || IsSetFlag(desiredAccess, mask))
                 {
                     // SID in token => add bits to granted bits
                     PSID sid = RtlpGetSidAccessAllowedAce(ace);
-                    ACCESS_MASK mask = 0;
 
                     if (RtlpIsSidMemberOfToken(AccessToken, sid))
                     {
-                        mask = ace->Mask;
-                        RtlMapGenericMask(&mask, GenericMapping);
-
                         if (wantMaxAllowed)
                         {
                             SetFlag(grantedAccess, mask);
@@ -728,7 +728,11 @@ RtlAccessCheck(
             {
                 // Allowed and deny ACEs are isomorphic.
                 PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE) aceHeader;
-                if (IsSetFlag(desiredAccess, ace->Mask))
+                ACCESS_MASK mask = ace->Mask;
+
+                RtlMapGenericMask(&mask, GenericMapping);
+
+                if (IsSetFlag(desiredAccess, mask))
                 {
                     // SID in token => exit with STATUS_ACCESS_DENIED
                     PSID sid = RtlpGetSidAccessAllowedAce(ace);
