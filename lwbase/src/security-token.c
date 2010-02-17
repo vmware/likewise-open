@@ -855,6 +855,12 @@ RtlAccessTokenRelativeSize(
         Align32(&ulRelativeSize);
     }
 
+    if (pToken->DefaultDacl)
+    {
+        ulRelativeSize += RtlGetAclSize(pToken->DefaultDacl);
+        Align32(&ulRelativeSize);
+    }
+
     return ulRelativeSize;
 }
 
@@ -941,6 +947,19 @@ RtlAccessTokenToSelfRelativeAccessToken(
         {
             pRelative->PrimaryGroupOffset = 0;
         }
+
+        if (pToken->DefaultDacl)
+        {
+            pRelative->DefaultDaclOffset = ulOffset;
+            memcpy(pBuffer + ulOffset, pToken->DefaultDacl, RtlGetAclSize(pToken->DefaultDacl));
+            ulOffset += RtlGetAclSize(pToken->DefaultDacl);
+            Align32(&ulOffset);
+        }
+        else
+        {
+            pRelative->DefaultDaclOffset = 0;
+        }
+
 
         assert(ulOffset == ulRelativeSize);
     }
