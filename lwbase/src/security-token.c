@@ -633,7 +633,7 @@ RtlAccessCheck(
         // TODO-Handle ACCESS_SYSTEM_SECURITY by checking SE_SECURITY_NAME
         // privilege.  For now, requesting ACCESS_SYSTEM_SECURITY is not
         // allowed.
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_PRIVILEGE_NOT_HELD;
         GOTO_CLEANUP();
     }
 
