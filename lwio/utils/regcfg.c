@@ -270,8 +270,6 @@ LwIoReadConfigString(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    dwError = 0;
-
 cleanup:
     return dwError;
 
@@ -337,9 +335,11 @@ LwIoReadConfigDword(
         {
             *pdwValue = dwValue;
         }
+        else
+        {
+            dwError = ERROR_INVALID_PARAMETER;
+        }
     }
-
-    dwError = 0;
 
     return dwError;
 }
