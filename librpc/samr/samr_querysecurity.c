@@ -57,7 +57,7 @@ SamrQuerySecurity(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer = NULL;
+    PSAMR_SECURITY_DESCRIPTOR_BUFFER pSecDescBuffer = NULL;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
