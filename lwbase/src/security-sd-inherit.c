@@ -221,7 +221,7 @@ RtlCreatePrivateObjectSecurityEx(
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
         status = LW_RTL_ALLOCATE(
-                     (PVOID*)&pNewSecDesc,
+                     &pNewSecDesc,
                      SECURITY_DESCRIPTOR_RELATIVE,
                      ulNewSecDescLength);
         GOTO_CLEANUP_ON_STATUS(status);
