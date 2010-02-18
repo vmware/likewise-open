@@ -208,6 +208,7 @@ SrvDetermineUnlocks_SMB_V2(
 
 NTSTATUS
 SrvBuildAsyncLockState_SMB_V2(
+    ULONG64                               ullAsyncId,
     PSRV_EXEC_CONTEXT                     pExecContext,
     PSRV_LOCK_REQUEST_STATE_SMB_V2        pLockRequestState,
     PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2* ppAsyncLockState

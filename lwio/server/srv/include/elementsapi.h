@@ -241,6 +241,8 @@ typedef struct _LWIO_SRV_SESSION_2
 
     PSTR              pszClientPrincipalName;
 
+    ULONG64           ullNextAvailableAsyncId;
+
     PLWRTL_RB_TREE    pAsyncStateCollection;
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
@@ -553,12 +555,6 @@ SrvGssNegHints(
     );
 
 NTSTATUS
-SrvAsyncBuildUniqueId(
-    PSRV_EXEC_CONTEXT pContext,
-    PULONG64          pullAsyncId
-    );
-
-NTSTATUS
 SrvAsyncStateCreate(
     ULONG64                       ullAsyncId,
     USHORT                        usCommand,
@@ -729,9 +725,11 @@ SrvSessionRundown(
     );
 
 NTSTATUS
-SrvSession2AddAsyncState(
-    PLWIO_SRV_SESSION_2 pSession,
-    PLWIO_ASYNC_STATE   pAsyncState
+SrvSession2CreateAsyncState(
+    PLWIO_SRV_SESSION_2           pSession,
+    USHORT                        usCommand,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*            ppAsyncState
     );
 
 NTSTATUS

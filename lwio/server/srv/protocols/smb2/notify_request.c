@@ -183,13 +183,17 @@ SrvProcessNotify_SMB_V2(
                  BAIL_ON_NT_STATUS(ntStatus);
              }
 
-             ntStatus = SrvAsyncBuildUniqueId(
-                             pExecContext,
-                             &pNotifyRequestState->ullAsyncId);
+             ntStatus = SrvSession2CreateAsyncState(
+                             pCtxSmb2->pSession,
+                             COM2_NOTIFY,
+                             &SrvNotifyStateReleaseHandle_SMB_V2,
+                             &pAsyncState);
              BAIL_ON_NT_STATUS(ntStatus);
 
+             bUnregisterAsync = TRUE;
+
              ntStatus = SrvNotifyCreateState_SMB_V2(
-                             pNotifyRequestState->ullAsyncId,
+                             pAsyncState->ullAsyncId,
                              pExecContext->pConnection,
                              pCtxSmb2->pSession,
                              pCtxSmb2->pTree,
@@ -204,22 +208,8 @@ SrvProcessNotify_SMB_V2(
                              &pNotifyState);
              BAIL_ON_NT_STATUS(ntStatus);
 
-             ntStatus = SrvAsyncStateCreate(
-                             pNotifyRequestState->ullAsyncId,
-                             COM2_NOTIFY,
-                             pNotifyState,
-                             &SrvNotifyStateReleaseHandle_SMB_V2,
-                             &pAsyncState);
-             BAIL_ON_NT_STATUS(ntStatus);
-
-             SrvNotifyStateAcquire_SMB_V2(pNotifyState);
-
-             ntStatus = SrvSession2AddAsyncState(
-                             pCtxSmb2->pSession,
-                             pAsyncState);
-             BAIL_ON_NT_STATUS(ntStatus);
-
-             bUnregisterAsync = TRUE;
+             pAsyncState->hAsyncState =
+                                 SrvNotifyStateAcquire_SMB_V2(pNotifyState);
 
              pNotifyRequestState->stage = SRV_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO;
 
