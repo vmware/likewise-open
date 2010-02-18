@@ -1054,7 +1054,6 @@ RtlpObjectInheritSecurity(
 
     for (i=0; i<usParentNumAces; i++)
     {
-        ACCESS_MASK Mask;
         UCHAR AceFlags;
 
         status = RtlGetAce(pParentDacl, i, (PVOID*)&pAceHeader);
@@ -1075,44 +1074,52 @@ RtlpObjectInheritSecurity(
         // See if the inherit ACE should continue to be propagated.
         // If so, then copy it
 
-        if (bIsContainerObject &&
-            !(pAceHeader->AceFlags & NO_PROPAGATE_INHERIT_ACE))
+        switch(pAceHeader->AceType)
         {
-            switch(pAceHeader->AceType)
-            {
             case ACCESS_ALLOWED_ACE_TYPE:
+            {
                 pAllowAce = (PACCESS_ALLOWED_ACE)pAceHeader;
-                Mask = pAllowAce->Mask;
-                status = RtlAddAccessAllowedAceEx(
-                             pDacl,
-                             ACL_REVISION,
-                             pAllowAce->Header.AceFlags,
-                             pAllowAce->Mask,
-                             (PSID)&pAllowAce->SidStart);
-                GOTO_CLEANUP_ON_STATUS(status);
-                break;
+                mask = pAllowAce->Mask;
+                if (bIsContainerObject &&
+                    !(pAceHeader->AceFlags & NO_PROPAGATE_INHERIT_ACE))
+                {
+                    status = RtlAddAccessAllowedAceEx(
+                                 pDacl,
+                                 ACL_REVISION,
+                                 pAllowAce->Header.AceFlags,
+                                 pAllowAce->Mask,
+                                 (PSID)&pAllowAce->SidStart);
+                    GOTO_CLEANUP_ON_STATUS(status);
+                }
+            }
+            break;
 
             case ACCESS_DENIED_ACE_TYPE:
+            {
                 pDenyAce = (PACCESS_DENIED_ACE)pAceHeader;
-                Mask = pDenyAce->Mask;
-                status = RtlAddAccessDeniedAceEx(
-                             pDacl,
-                             ACL_REVISION,
-                             pDenyAce->Header.AceFlags,
-                             pDenyAce->Mask,
-                             (PSID)&pDenyAce->SidStart);
-                GOTO_CLEANUP_ON_STATUS(status);
-                break;
+                mask = pDenyAce->Mask;
+                if (bIsContainerObject &&
+                    !(pAceHeader->AceFlags & NO_PROPAGATE_INHERIT_ACE))
+                {
+                    status = RtlAddAccessDeniedAceEx(
+                                 pDacl,
+                                 ACL_REVISION,
+                                 pDenyAce->Header.AceFlags,
+                                 pDenyAce->Mask,
+                                 (PSID)&pDenyAce->SidStart);
+                    GOTO_CLEANUP_ON_STATUS(status);
+                }
+            }
+            break;
 
             default:
                 // Skip all other types
                 continue;
-            }
         }
 
         // Map the generic bits to specific bits and remove inherit flags
 
-        RtlMapGenericMask(&Mask, pGenericMap);
+        RtlMapGenericMask(&mask, pGenericMap);
         AceFlags = pAceHeader->AceFlags;
         AceFlags &= ~(CONTAINER_INHERIT_ACE|
                       OBJECT_INHERIT_ACE|
@@ -1129,7 +1136,7 @@ RtlpObjectInheritSecurity(
                          pDacl,
                          ACL_REVISION,
                          AceFlags,
-                         Mask,
+                         mask,
                          (PSID)&pAllowAce->SidStart);
                 GOTO_CLEANUP_ON_STATUS(status);
                 break;
@@ -1140,7 +1147,7 @@ RtlpObjectInheritSecurity(
                          pDacl,
                          ACL_REVISION,
                          AceFlags,
-                         Mask,
+                         mask,
                          (PSID)&pDenyAce->SidStart);
             GOTO_CLEANUP_ON_STATUS(status);
             break;
