@@ -48,6 +48,14 @@
 #define _PVFS_ACL_H_
 
 NTSTATUS
+PvfsGetSecurityDescriptorFileDefault(
+    IN PPVFS_CCB pCcb,
+    IN SECURITY_INFORMATION SecInfo,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    );
+
+NTSTATUS
 PvfsGetSecurityDescriptorFile(
     IN PPVFS_CCB pCcb,
     IN SECURITY_INFORMATION SecInfo,

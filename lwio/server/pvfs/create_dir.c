@@ -181,7 +181,7 @@ PvfsCreateDirCreate(
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->bFileExisted = FALSE;
-    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
+    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
 
     ntError = PvfsCreateDirDoSysOpen(pCreateCtx);
     BAIL_ON_NT_STATUS(ntError);
@@ -376,7 +376,7 @@ PvfsCreateDirOpenIf(
 
     if (!pCreateCtx->bFileExisted)
     {
-        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|
+        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|
                                        PVFS_SET_PROP_ATTRIB;
     }
 

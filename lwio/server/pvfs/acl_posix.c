@@ -181,8 +181,6 @@ PvfsSecurityAclMapFromPosix(
     ntError = RtlSetOwnerSecurityDescriptor(pSecDesc, pOwnerSid, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pOwnerSid = NULL;
-
     // Group
 
     ntError = PvfsSecuritySidMapFromGid(&pGroupSid, pStat->s_gid);
@@ -191,8 +189,6 @@ PvfsSecurityAclMapFromPosix(
     ntError = RtlSetGroupSecurityDescriptor(pSecDesc, pGroupSid, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pGroupSid = NULL;
-
     // DACL
 
     ntError = PvfsSecurityAclGetDacl(&pDacl, pStat);
@@ -200,8 +196,6 @@ PvfsSecurityAclMapFromPosix(
 
     ntError = RtlSetDaclSecurityDescriptor(pSecDesc, TRUE, pDacl, FALSE);
     BAIL_ON_NT_STATUS(ntError);
-
-    pDacl = NULL;
 
 
     // We don't do SACLs here
@@ -216,15 +210,19 @@ PvfsSecurityAclMapFromPosix(
 
 
 cleanup:
-    LW_RTL_FREE(&pOwnerSid);
-    LW_RTL_FREE(&pGroupSid);
-    LW_RTL_FREE(&pDacl);
-
-    PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
+    if (pSecDesc)
+    {
+        PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
+    }
 
     return ntError;
 
 error:
+    LW_RTL_FREE(&pOwnerSid);
+    LW_RTL_FREE(&pGroupSid);
+    LW_RTL_FREE(&pDacl);
+    LW_RTL_FREE(&pSecDesc);
+
     goto cleanup;
 }
 
@@ -475,7 +473,7 @@ PvfsSecurityAclGetDacl(
         S_IRUSR,
         S_IWUSR,
         S_IXUSR);
-    AccessMask |= (WRITE_DAC|WRITE_OWNER);
+    AccessMask |= (READ_CONTROL|WRITE_DAC|WRITE_OWNER);
     ntError = RtlAddAccessAllowedAceEx(
                   pDacl,
                   ACL_REVISION,

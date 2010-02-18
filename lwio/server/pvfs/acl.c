@@ -46,8 +46,47 @@
 
 #include "pvfs.h"
 
-/****************************************************************
- ***************************************************************/
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+PvfsGetSecurityDescriptorFileDefault(
+    IN PPVFS_CCB pCcb,
+    IN SECURITY_INFORMATION SecInfo,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BYTE pFullSecDesc[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE];
+    ULONG FullSecDescLen = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
+
+    LwRtlZeroMemory(pFullSecDesc, FullSecDescLen);
+
+    ntError = PvfsGetSecurityDescriptorPosix(
+                  pCcb,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)pFullSecDesc,
+                  &FullSecDescLen);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlQuerySecurityDescriptorInfo(
+                  SecInfo,
+                  pSecDesc,
+                  pSecDescLen,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)pFullSecDesc);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+
+}
+
+
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsGetSecurityDescriptorFile(
@@ -125,6 +164,7 @@ error:
     goto cleanup;
 
 }
+
 
 /****************************************************************
  ***************************************************************/
@@ -220,6 +260,8 @@ PvfsSetSecurityDescriptorFile(
     ULONG SDCurLen = 1024;
     PSECURITY_DESCRIPTOR_RELATIVE pNewSecDesc = NULL;
     ULONG NewSecDescLen = 0;
+    PSECURITY_DESCRIPTOR_RELATIVE pFinalSecDesc = NULL;
+    ULONG FinalSecDescLen = 0;
     SECURITY_INFORMATION SecInfoAll = (OWNER_SECURITY_INFORMATION |
                                        GROUP_SECURITY_INFORMATION |
                                        DACL_SECURITY_INFORMATION |
@@ -232,52 +274,67 @@ PvfsSetSecurityDescriptorFile(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Retrieve the existing SD and merge with the incoming one */
-
-    do
+    if (SecInfo == SecInfoAll)
     {
-        ntError = PvfsReallocateMemory((PVOID*)&pSDCur, SDCurLen);
+        /* We already have a fully formed Security Descriptor */
+
+        pFinalSecDesc = pSecDesc;
+        FinalSecDescLen = SecDescLen;
+    }
+    else
+    {
+        /* Retrieve the existing SD and merge with the incoming one */
+
+        do
+        {
+            ntError = PvfsReallocateMemory((PVOID*)&pSDCur, SDCurLen);
+            BAIL_ON_NT_STATUS(ntError);
+
+            ntError = PvfsGetSecurityDescriptorFile(
+                          pCcb,
+                          SecInfoAll,
+                          pSDCur,
+                          &SDCurLen);
+            if (ntError == STATUS_BUFFER_TOO_SMALL) {
+                SDCurLen *= 2;
+            }
+        } while ((ntError != STATUS_SUCCESS) && (SDCurLen <= 4096));
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsGetSecurityDescriptorFile(
-                      pCcb,
-                      SecInfoAll,
+        /* Assume that the new SD is <= the combined size of the current
+           SD and the incoming one */
+
+        NewSecDescLen = SDCurLen + SecDescLen;
+        ntError = PvfsAllocateMemory((PVOID*)&pNewSecDesc, NewSecDescLen);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = RtlSetSecurityDescriptorInfo(
+                      SecInfo,
+                      pSecDesc,
                       pSDCur,
-                      &SDCurLen);
-        if (ntError == STATUS_BUFFER_TOO_SMALL) {
-            SDCurLen *= 2;
-        }
-    } while ((ntError != STATUS_SUCCESS) && (SDCurLen <= 4096));
-    BAIL_ON_NT_STATUS(ntError);
+                      pNewSecDesc,
+                      &NewSecDescLen,
+                      &gPvfsFileGenericMapping);
+        BAIL_ON_NT_STATUS(ntError);
 
-    /* Assume that the new SD is <= the combined size of the current
-       SD and the incoming one */
+        pFinalSecDesc = pNewSecDesc;
+        FinalSecDescLen = NewSecDescLen;
 
-    NewSecDescLen = SDCurLen + SecDescLen;
-    ntError = PvfsAllocateMemory((PVOID*)&pNewSecDesc, NewSecDescLen);
-    BAIL_ON_NT_STATUS(ntError);
+    }
 
-    ntError = RtlSetSecurityDescriptorInfo(
-                  SecInfo,
-                  pSecDesc,
-                  pSDCur,
-                  pNewSecDesc,
-                  &NewSecDescLen,
-                  &gPvfsFileGenericMapping);
-    BAIL_ON_NT_STATUS(ntError);
 
     /* Save the combined SD */
 
 #ifdef HAVE_EA_SUPPORT
     ntError = PvfsSetSecurityDescriptorFileXattr(
                   pCcb,
-                  pNewSecDesc,
-                  NewSecDescLen);
+                  pFinalSecDesc,
+                  FinalSecDescLen);
 #else
     ntError = PvfsSetSecurityDescriptorPosix(
                   pCcb,
-                  pNewSecDesc,
-                  NewSecDescLen);
+                  pFinalSecDesc,
+                  FinalSecDescLen);
 #endif
 
     BAIL_ON_NT_STATUS(ntError);
@@ -341,6 +398,78 @@ PvfsFreeAbsoluteSecurityDescriptor(
 
     return;
 }
+
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+PvfsCreateFileSecurity(
+    PACCESS_TOKEN pUserToken,
+    PPVFS_CCB pCcb,
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    BOOLEAN bIsDirectory
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR pszParentPath = NULL;
+    PSTR pszBaseFilename = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pFinalSecDesc = NULL;
+    ULONG FinalSecDescLength = 0;
+    BYTE ParentSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE];
+    ULONG ParentSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
+    SECURITY_INFORMATION SecInfoAll = (OWNER_SECURITY_INFORMATION |
+                                       GROUP_SECURITY_INFORMATION |
+                                       DACL_SECURITY_INFORMATION  |
+                                       SACL_SECURITY_INFORMATION);
+    BYTE DefaultSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE];
+    ULONG DefaultSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
+
+    LwRtlZeroMemory(ParentSecDescBuffer, ParentSecDescLength);
+    LwRtlZeroMemory(DefaultSecDescBuffer, DefaultSecDescLength);
+
+    ntError = PvfsFileSplitPath(
+                  &pszParentPath,
+                  &pszBaseFilename,
+                  pCcb->pszFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsGetSecurityDescriptorFilename(
+                  pszParentPath,
+                  SecInfoAll,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)ParentSecDescBuffer,
+                  &ParentSecDescLength);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCreatePrivateObjectSecurityEx(
+                  (PSECURITY_DESCRIPTOR_RELATIVE)ParentSecDescBuffer,
+                  pSecurityDescriptor,
+                  &pFinalSecDesc,
+                  &FinalSecDescLength,
+                  NULL,
+                  bIsDirectory,
+                  SEF_DACL_AUTO_INHERIT|SEF_SACL_AUTO_INHERIT,
+                  pUserToken,
+                  &gPvfsFileGenericMapping);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSetSecurityDescriptorFile(
+                  pCcb,
+                  SecInfoAll,
+                  pFinalSecDesc,
+                  FinalSecDescLength);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
+    RtlCStringFree(&pszParentPath);
+    RtlCStringFree(&pszBaseFilename);
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
 
 
 /****************************************************************

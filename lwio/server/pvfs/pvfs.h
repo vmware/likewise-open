@@ -127,6 +127,14 @@ PvfsFreeCreateContext(
     );
 
 NTSTATUS
+PvfsCreateFileSecurity(
+    PACCESS_TOKEN pUserToken,
+    PPVFS_CCB pCcb,
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    BOOLEAN bIsDirectory
+    );
+
+NTSTATUS
 PvfsCreateFileDoSysOpen(
     IN PVOID pContext
     );

@@ -229,7 +229,7 @@ PvfsCreateFileSupersede(
     ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
+    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
 
     /* This should get us a new FCB */
 
@@ -379,7 +379,7 @@ PvfsCreateFileCreate(
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|PVFS_SET_PROP_ATTRIB;
+    pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
 
     /* Can be no oplock break here since the file does not exist yet */
 
@@ -433,9 +433,9 @@ PvfsCreateFileOpenOrOverwrite(
 
     pCreateCtx->bFileExisted = TRUE;
 
-    if (Disposition == FILE_OVERWRITE) {
-        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|
-                                       PVFS_SET_PROP_ATTRIB;
+    if (Disposition == FILE_OVERWRITE)
+    {
+        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_ATTRIB;
     }
 
     ntError = PvfsAccessCheckFile(
@@ -622,7 +622,7 @@ PvfsCreateFileOpenOrOverwriteIf(
     if (!pCreateCtx->bFileExisted ||
         (Args.CreateDisposition == FILE_OVERWRITE_IF))
     {
-        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_OWNER|
+        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|
                                        PVFS_SET_PROP_ATTRIB;
     }
 
