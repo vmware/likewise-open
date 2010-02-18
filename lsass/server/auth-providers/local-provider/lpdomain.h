@@ -45,10 +45,21 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
 
 #ifndef __LP_DOMAIN_H__
 #define __LP_DOMAIN_H__
+
+
+DWORD
+LocalSyncDomainInfo(
+    PWSTR                    pwszUserDN,
+    PWSTR                    pwszCredentials,
+    ULONG                    ulMethod,
+    PLOCAL_PROVIDER_GLOBALS  pGlobals
+    );
+
 
 DWORD
 LocalGetDomainInfo(

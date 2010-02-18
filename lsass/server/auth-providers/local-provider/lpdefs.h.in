@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -97,8 +97,13 @@
 #define LOCAL_DB_DIR_ATTR_GECOS                "Gecos"
 #define LOCAL_DB_DIR_ATTR_HOME_DIR             "Homedir"
 #define LOCAL_DB_DIR_ATTR_SHELL                "LoginShell"
+#define LOCAL_DB_DIR_ATTR_MIN_PWD_AGE          "MinPwdAge"
 #define LOCAL_DB_DIR_ATTR_MAX_PWD_AGE          "MaxPwdAge"
 #define LOCAL_DB_DIR_ATTR_PWD_PROMPT_TIME      "PwdPromptTime"
+#define LOCAL_DB_DIR_ATTR_MIN_PWD_LENGTH       "MinPwdLength"
+#define LOCAL_DB_DIR_ATTR_LOCKOUT_DURATION     "LockoutDuration"
+#define LOCAL_DB_DIR_ATTR_LOCKOUT_WINDOW       "LockoutWindow"
+#define LOCAL_DB_DIR_ATTR_LOCKOUT_THRESHOLD    "LockoutThreshold"
 
 #define LOCAL_DIR_ATTR_OBJECT_CLASS  \
     {'O','b','j','e','c','t','C','l','a','s','s',0}
@@ -140,6 +145,8 @@
     {'H','o','m','e','d','i','r',0}
 #define LOCAL_DIR_ATTR_SHELL \
     {'L','o','g','i','n','S','h','e','l','l',0}
+#define LOCAL_DIR_ATTR_MIN_PWD_AGE \
+    {'M','i','n','P','w','d','A','g','e',0}
 #define LOCAL_DIR_ATTR_MAX_PWD_AGE \
     {'M','a','x','P','w','d','A','g','e',0}
 #define LOCAL_DIR_ATTR_PWD_PROMPT_TIME \
@@ -150,6 +157,25 @@
     {'L','a','s','t','L','o','g','o','n',0}
 #define LOCAL_DIR_ATTR_LAST_LOGOFF \
     {'L','a','s','t','L','o','g','o','f','f',0}
+#define LOCAL_DIR_ATTR_LOGON_COUNT \
+    {'L','o','g','o','n','C','o','u','n','t',0}
+#define LOCAL_DIR_ATTR_BAD_PASSWORD_COUNT \
+    {'B','a','d','P','w','d','C','o','u','n','t',0}
+#define LOCAL_DIR_ATTR_LOGON_HOURS \
+    {'L','o','g','o','n','H','o','u','r','s',0}
+#define LOCAL_DIR_ATTR_MIN_PWD_LENGTH \
+    {'M','i','n','P','w','d','L','e','n','g','t','h',0}
+#define LOCAL_DIR_ATTR_SEQUENCE_NUMBER \
+    {'S','e','q','u','e','n','c','e','N','u','m','b','e','r',0}
+#define LOCAL_DIR_ATTR_LOCKOUT_DURATION \
+    {'L','o','c','k','o','u','t','D','u','r','a','t','i','o','n',0}
+#define LOCAL_DIR_ATTR_LOCKOUT_WINDOW \
+    {'L','o','c','k','o','u','t','W','i','n','d','o','w',0}
+#define LOCAL_DIR_ATTR_LOCKOUT_THRESHOLD \
+    {'L','o','c','k','o','u','t','T','h','r','e','s','h','o','l','d',0}
+#define LOCAL_DIR_ATTR_LOCKOUT_TIME \
+    {'L','o','c','k','o','u','t','T','i','m','e',0}
+
 
 #define LOCAL_DIR_CN_PREFIX_ANSI  "CN="
 #define LOCAL_DIR_OU_PREFIX_ANSI  "OU="
@@ -189,6 +215,23 @@ typedef DWORD LOCAL_ACB, *PLOCAL_ACB;
 #define LOWEST_UID   (1000)
 #define LOWEST_GID   (1000)
 
+#define LOCAL_MIN_PASSWORD_AGE           (0)
+#define LOCAL_MAX_PASSWORD_AGE           (2419200)  /* 28 days */
+#define LOCAL_MIN_PASSWORD_LENGTH        (0)
+#define LOCAL_PASSWORD_PROMPT_TIME       (1209600)  /* 14 days */
+#define LOCAL_LOCKOUT_THRESHOLD          (0)
+#define LOCAL_LOCKOUT_DURATION           (0)
+#define LOCAL_LOCKOUT_WINDOW             (0)
+
 
 #endif /* __LPDEFS_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

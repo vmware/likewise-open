@@ -109,8 +109,13 @@ typedef struct _LOCAL_PROVIDER_GLOBALS
     PSTR            pszNetBIOSName;
     PSID            pLocalDomainSID;
 
+    LONG64          llMinPwdAge;
     LONG64          llMaxPwdAge;
+    DWORD           dwMinPwdLength;
     LONG64          llPwdChangeTime;
+    DWORD           dwLockoutThreshold;
+    LONG64          llLockoutDuration;
+    LONG64          llLockoutWindow;
 
     LOCAL_CONFIG    cfg;
 

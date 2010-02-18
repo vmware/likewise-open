@@ -67,15 +67,11 @@ LocalInitializeProvider(
     dwError = LocalCfgInitialize(&config);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalGetDomainInfo(
+    dwError = LocalSyncDomainInfo(
                     pwszUserDN,
                     pwszCredentials,
                     ulMethod,
-                    &gLPGlobals.pszLocalDomain,
-                    &gLPGlobals.pszNetBIOSName,
-                    &gLPGlobals.pLocalDomainSID,
-                    &gLPGlobals.llMaxPwdAge,
-                    &gLPGlobals.llPwdChangeTime);
+                    &gLPGlobals);
     BAIL_ON_LSA_ERROR(dwError);
 
     LocalCfgReadRegistry(&config);
@@ -211,10 +207,12 @@ LocalAuthenticateUser(
     )
 {
     DWORD dwError = 0;
+    DWORD dwUpdateError = 0;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     PWSTR pwszUserDN = NULL;
     PWSTR pwszPassword = NULL;
     PLSA_SECURITY_OBJECT pObject = NULL;
+    DWORD dwBadPasswordCount = 0;
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
@@ -237,6 +235,13 @@ LocalAuthenticateUser(
     dwError = LocalCheckAccountFlags(pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LocalGetUserLogonInfo(
+                  hProvider,
+                  pObject->pszDN,
+                  NULL,
+                  &dwBadPasswordCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
     if (pszPassword)
     {
         dwError = LsaMbsToWc16s(
@@ -249,6 +254,20 @@ LocalAuthenticateUser(
                     pContext->hDirectory,
                     pwszUserDN,
                     pwszPassword);
+    if (dwError == LW_ERROR_PASSWORD_MISMATCH)
+    {
+        dwBadPasswordCount++;
+
+        dwUpdateError = LocalSetUserLogonInfo(
+                        hProvider,
+                        pObject->pszDN,
+                        NULL,
+                        &dwBadPasswordCount,
+                        NULL,
+                        NULL);
+        BAIL_ON_LSA_ERROR(dwUpdateError);
+
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -257,6 +276,11 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pwszUserDN);
     LW_SAFE_FREE_MEMORY(pwszPassword);
+
+    if (dwUpdateError != ERROR_SUCCESS)
+    {
+        dwError = dwUpdateError;
+    }
 
     return dwError;
 
@@ -376,6 +400,11 @@ LocalChangePassword(
                     pObject->userInfo.uid);
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LocalCheckPasswordPolicy(
+                    pObject,
+                    pszPassword);
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaMbsToWc16s(
                         (pszPassword ? pszPassword : ""),
                         &pwszNewPassword);
@@ -433,6 +462,11 @@ LocalSetPassword(
     dwError = LwMbsToWc16s(
         pObject->pszDN,
         &pwszUserDN);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalCheckPasswordPolicy(
+                    pObject,
+                    pszPassword);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaMbsToWc16s(
@@ -637,9 +671,10 @@ LocalOpenSession(
 {
     DWORD dwError = 0;
     BOOLEAN bCreateHomedir = FALSE;
-    PWSTR pwszUserDN = NULL;
     PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
     PLSA_SECURITY_OBJECT pObject = NULL;
+    DWORD dwLogonCount = 0;
+    LONG64 llLastLogonTime = 0;
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
@@ -652,11 +687,6 @@ LocalOpenSession(
         LSA_OBJECT_TYPE_USER,
         pszLoginId,
         &pObject);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(
-        pObject->pszDN,
-        &pwszUserDN);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Allow directory creation only if this is
@@ -677,16 +707,30 @@ LocalOpenSession(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = LocalUpdateUserLoginTime(
+    dwError = LocalGetUserLogonInfo(
+                  hProvider,
+                  pObject->pszDN,
+                  &dwLogonCount,
+                  NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwLogonCount++;
+
+    dwError = LwGetNtTime((PULONG64)&llLastLogonTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalSetUserLogonInfo(
                     hProvider,
-                    pwszUserDN);
+                    pObject->pszDN,
+                    &dwLogonCount,
+                    NULL,
+                    &llLastLogonTime,
+                    NULL);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
     LsaUtilFreeSecurityObject(pObject);
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 
@@ -702,8 +746,8 @@ LocalCloseSession(
     )
 {
     DWORD dwError = 0;
-    PWSTR pwszUserDN = NULL;
     PLSA_SECURITY_OBJECT pObject = NULL;
+    LONG64 llLastLogoffTime = 0;
 
     dwError = LocalCheckForQueryAccess(hProvider);
     BAIL_ON_LSA_ERROR(dwError);
@@ -716,21 +760,21 @@ LocalCloseSession(
         &pObject);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwMbsToWc16s(
-        pObject->pszDN,
-        &pwszUserDN);
+    dwError = LwGetNtTime((PULONG64)&llLastLogoffTime);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LocalUpdateUserLogoffTime(
+    dwError = LocalSetUserLogonInfo(
                     hProvider,
-                    pwszUserDN);
+                    pObject->pszDN,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &llLastLogoffTime);
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
 
     LsaUtilFreeSecurityObject(pObject);
-
-    LW_SAFE_FREE_MEMORY(pwszUserDN);
 
     return dwError;
 

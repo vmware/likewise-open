@@ -57,6 +57,7 @@
 
 #include "lwmem.h"
 #include "lwstr.h"
+#include "lwtime.h"
 #include "lwsecurityidentifier.h"
 
 #include "lsautils.h"

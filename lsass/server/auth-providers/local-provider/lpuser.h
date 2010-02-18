@@ -107,6 +107,30 @@ LocalCheckAccountFlags(
     );
 
 DWORD
+LocalCheckPasswordPolicy(
+    PLSA_SECURITY_OBJECT pObject,
+    PCSTR                pszPassword
+    );
+
+DWORD
+LocalGetUserLogonInfo(
+    HANDLE   hProvider,
+    PSTR     pszUserDn,
+    PDWORD   pdwLogonCount,
+    PDWORD   pdwBadPasswordCount
+    );
+
+DWORD
+LocalSetUserLogonInfo(
+    HANDLE  hProvider,
+    PSTR    pszUserDn,
+    PDWORD  pdwLogonCount,
+    PDWORD  pdwBadPasswordCount,
+    PLONG64 pllLastLogonTime,
+    PLONG64 pllLastLofffTime
+    );
+
+DWORD
 LocalUpdateUserLoginTime(
     HANDLE hProvider,
     PWSTR  pwszUserDN
