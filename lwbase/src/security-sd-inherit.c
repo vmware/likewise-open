@@ -1002,7 +1002,7 @@ RtlpObjectInheritSecurity(
 
     for (i=0; i<usCreatorNumAces; i++)
     {
-        status = RtlGetAce(pCreatorDacl, i, (PVOID*)&pAceHeader);
+        status = RtlGetAce(pCreatorDacl, i, OUT_PPVOID(&pAceHeader));
         GOTO_CLEANUP_ON_STATUS(status);
 
         // TODO - Deal with CREATOR OWNER and CREATOR GROUP
@@ -1056,7 +1056,7 @@ RtlpObjectInheritSecurity(
     {
         UCHAR AceFlags;
 
-        status = RtlGetAce(pParentDacl, i, (PVOID*)&pAceHeader);
+        status = RtlGetAce(pParentDacl, i, OUT_PPVOID(&pAceHeader));
         GOTO_CLEANUP_ON_STATUS(status);
 
         // Skip if no inheritable access rights
