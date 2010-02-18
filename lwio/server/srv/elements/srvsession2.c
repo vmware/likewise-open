@@ -51,6 +51,13 @@
 
 static
 NTSTATUS
+SrvSession2AcquireAsyncId_inlock(
+   PLWIO_SRV_SESSION_2 pSession,
+   PULONG64            pullAsyncId
+   );
+
+static
+NTSTATUS
 SrvSession2AcquireTreeId_inlock(
    PLWIO_SRV_SESSION_2 pSession,
    PULONG              pulTid
@@ -294,52 +301,57 @@ error:
 }
 
 NTSTATUS
-SrvSession2AddAsyncState(
-    PLWIO_SRV_SESSION_2 pSession,
-    PLWIO_ASYNC_STATE   pAsyncState
+SrvSession2CreateAsyncState(
+    PLWIO_SRV_SESSION_2           pSession,
+    USHORT                        usCommand,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*            ppAsyncState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock  = FALSE;
-    PLWIO_ASYNC_STATE pAsyncState1 = NULL;
+    PLWIO_ASYNC_STATE pAsyncState = NULL;
+    ULONG64           ullAsyncId  = 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
-    ntStatus = LwRtlRBTreeFind(
-                    pSession->pAsyncStateCollection,
-                    &pAsyncState->ullAsyncId,
-                    (PVOID*)&pAsyncState1);
-    switch (ntStatus)
-    {
-        case STATUS_NOT_FOUND:
-
-            ntStatus = LwRtlRBTreeAdd(
-                            pSession->pAsyncStateCollection,
-                            &pAsyncState->ullAsyncId,
-                            pAsyncState);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            SrvAsyncStateAcquire(pAsyncState);
-
-            break;
-
-        case STATUS_SUCCESS:
-
-            ntStatus = STATUS_DUPLICATE_OBJECTID;
-
-            break;
-
-        default:
-
-            ;
-    }
+    ntStatus = SrvSession2AcquireAsyncId_inlock(
+                    pSession,
+                    &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-error:
+    ntStatus = SrvAsyncStateCreate(
+                    ullAsyncId,
+                    usCommand,
+                    NULL,
+                    pfnFreeAsyncState,
+                    &pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlRBTreeAdd(
+                    pSession->pAsyncStateCollection,
+                    &pAsyncState->ullAsyncId,
+                    pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
+
+cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 
     return ntStatus;
+
+error:
+
+    *ppAsyncState = NULL;
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
+    }
+
+    goto cleanup;
 }
 
 NTSTATUS
@@ -437,6 +449,69 @@ SrvSession2Rundown(
             NULL);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+}
+
+static
+NTSTATUS
+SrvSession2AcquireAsyncId_inlock(
+   PLWIO_SRV_SESSION_2 pSession,
+   PULONG64            pullAsyncId
+   )
+{
+    NTSTATUS ntStatus = 0;
+    ULONG64  ullCandidateAsyncId = pSession->ullNextAvailableAsyncId;
+    BOOLEAN  bFound = FALSE;
+
+    do
+    {
+        PLWIO_ASYNC_STATE pAsyncState = NULL;
+
+        /* 0 is never a valid async id */
+
+        if ((ullCandidateAsyncId == 0) || (ullCandidateAsyncId == UINT64_MAX))
+        {
+            ullCandidateAsyncId = 1;
+        }
+
+        ntStatus = LwRtlRBTreeFind(
+                        pSession->pAsyncStateCollection,
+                        &ullCandidateAsyncId,
+                        (PVOID*)&pAsyncState);
+        if (ntStatus == STATUS_NOT_FOUND)
+        {
+            ntStatus = STATUS_SUCCESS;
+            bFound = TRUE;
+        }
+        else
+        {
+            ullCandidateAsyncId++;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+    } while ((ullCandidateAsyncId != pSession->ullNextAvailableAsyncId) && !bFound);
+
+    if (!bFound)
+    {
+        ntStatus = STATUS_TOO_MANY_CONTEXT_IDS;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pullAsyncId = ullCandidateAsyncId;
+
+    /* Increment by 1 by make sure to deal with wrap around */
+
+    ullCandidateAsyncId++;
+    pSession->ullNextAvailableAsyncId = ullCandidateAsyncId ? ullCandidateAsyncId : 1;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pullAsyncId = 0;
+
+    goto cleanup;
 }
 
 static

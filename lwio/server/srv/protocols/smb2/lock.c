@@ -229,33 +229,24 @@ SrvProcessLock_SMB_V2(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
 
+                ntStatus = SrvSession2CreateAsyncState(
+                                pCtxSmb2->pSession,
+                                COM2_LOCK,
+                                &SrvReleaseAsyncLockStateHandle_SMB_V2,
+                                &pAsyncState);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                bUnregisterAsync = TRUE;
+
                 ntStatus = SrvBuildAsyncLockState_SMB_V2(
+                                pAsyncState->ullAsyncId,
                                 pExecContext,
                                 pLockRequestState,
                                 &pAsyncLockState);
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                ntStatus = SrvAsyncBuildUniqueId(
-                                pExecContext,
-                                &pAsyncLockState->ullAsyncId);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                ntStatus = SrvAsyncStateCreate(
-                                pAsyncLockState->ullAsyncId,
-                                COM2_LOCK,
-                                pAsyncLockState,
-                                &SrvReleaseAsyncLockStateHandle_SMB_V2,
-                                &pAsyncState);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                SrvAcquireAsyncLockState_SMB_V2(pAsyncLockState);
-
-                ntStatus = SrvSession2AddAsyncState(
-                                    pCtxSmb2->pSession,
-                                    pAsyncState);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                bUnregisterAsync = TRUE;
+                pAsyncState->hAsyncState =
+                            SrvAcquireAsyncLockState_SMB_V2(pAsyncLockState);
             }
 
             pLockRequestState->stage = SRV_LOCK_STAGE_SMB_V2_ATTEMPT_LOCK;

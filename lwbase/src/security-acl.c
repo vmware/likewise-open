@@ -204,7 +204,7 @@ RtlInitializeAccessAllowedAce(
     USHORT size = RtlLengthAccessAllowedAce(Sid);
 
     if (!LW_IS_VALID_FLAGS(AceFlags, VALID_ACE_FLAGS_MASK) ||
-        !LW_IS_VALID_FLAGS(AccessMask, VALID_DACL_ACCESS_MASK) ||
+        // !LW_IS_VALID_FLAGS(AccessMask, VALID_DACL_ACCESS_MASK) ||
         !RtlValidSid(Sid))
     {
         status = STATUS_INVALID_PARAMETER;
@@ -549,7 +549,10 @@ cleanup:
         *AclSizeUsed = sizeUsed;
     }
 
-    *Ace = aceLocation;
+    if (Ace)
+    {
+        *Ace = aceLocation;
+    }
 
     return status;
 }
@@ -1586,3 +1589,14 @@ RtlpDecodeLittleEndianAcl(
         offset += aceHeader->AceSize;
     }
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
+

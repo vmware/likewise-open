@@ -101,6 +101,7 @@ SrvFreeAsyncLockState_SMB_V2(
 
 NTSTATUS
 SrvBuildAsyncLockState_SMB_V2(
+    ULONG64                               ullAsyncId,
     PSRV_EXEC_CONTEXT                     pExecContext,
     PSRV_LOCK_REQUEST_STATE_SMB_V2        pLockRequestState,
     PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2* ppAsyncLockState
@@ -120,6 +121,8 @@ SrvBuildAsyncLockState_SMB_V2(
     pAsyncLockState->pMutex = &pAsyncLockState->mutex;
 
     pAsyncLockState->stage  = SRV_NOTIFY_STAGE_SMB_V2_INITIAL;
+
+    pAsyncLockState->ullAsyncId = ullAsyncId;
 
     pAsyncLockState->ulTid = pLockRequestState->ulTid;
 
