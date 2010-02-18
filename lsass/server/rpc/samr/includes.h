@@ -57,6 +57,7 @@
 #include <lw/base.h>
 #include <lw/winerror.h>
 #include <lwsid.h>
+#include <lwtime.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/rid.h>

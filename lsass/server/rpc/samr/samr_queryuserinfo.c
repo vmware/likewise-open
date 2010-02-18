@@ -194,6 +194,7 @@ SamrFillUserInfo2(
 static
 NTSTATUS
 SamrFillUserInfo3(
+    PACCOUNT_CONTEXT pAcctCtx,
     PDIRECTORY_ENTRY pEntry,
     UserInfo *pInfo
     );
@@ -314,6 +315,7 @@ SamrFillUserInfo20(
 static
 NTSTATUS
 SamrFillUserInfo21(
+    PACCOUNT_CONTEXT pAcctCtx,
     PDIRECTORY_ENTRY pEntry,
     UserInfo *pInfo
     );
@@ -673,7 +675,7 @@ SamrSrvQueryUserInfo(
         break;
 
     case 3:
-        ntStatus = SamrFillUserInfo3(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo3(pAcctCtx, pEntry, pUserInfo);
         break;
 
     case 4:
@@ -733,7 +735,7 @@ SamrSrvQueryUserInfo(
         break;
 
     case 21:
-        ntStatus = SamrFillUserInfo21(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo21(pAcctCtx, pEntry, pUserInfo);
         break;
 
     default:
@@ -833,6 +835,7 @@ error:
 static
 NTSTATUS
 SamrFillUserInfo3(
+    PACCOUNT_CONTEXT pAcctCtx,
     PDIRECTORY_ENTRY pEntry,
     UserInfo *pInfo
     )
@@ -852,12 +855,12 @@ SamrFillUserInfo3(
     WCHAR wszAttrLastLogon[] = DS_ATTR_LAST_LOGON;
     WCHAR wszAttrLastLogoff[] = DS_ATTR_LAST_LOGOFF;
     WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
-    WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
-    WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
     WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
     WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
+    NtTime ntMinPasswordAge = pAcctCtx->pDomCtx->ntMinPasswordAge;
+    NtTime ntMaxPasswordAge = pAcctCtx->pDomCtx->ntMinPasswordAge;
 
     pInfo3 = &(pInfo->info3);
 
@@ -873,8 +876,10 @@ SamrFillUserInfo3(
     GET_NTTIME_VALUE(wszAttrLastLogon, pInfo3->last_logon);
     GET_NTTIME_VALUE(wszAttrLastLogoff, pInfo3->last_logoff);
     GET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo3->last_password_change);
-    GET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo3->allow_password_change);
-    GET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo3->force_password_change);
+    pInfo3->allow_password_change = pInfo3->last_password_change +
+                                    ntMinPasswordAge;
+    pInfo3->force_password_change = pInfo3->last_password_change +
+                                    ntMaxPasswordAge;
     GET_LOGON_HOURS(wszAttrLogonHours, &pInfo3->logon_hours);
     GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo3->bad_password_count);
     GET_UINT16_VALUE(wszAttrLogonCount, pInfo3->logon_count);
@@ -1280,6 +1285,7 @@ error:
 static
 NTSTATUS
 SamrFillUserInfo21(
+    PACCOUNT_CONTEXT pAcctCtx,
     PDIRECTORY_ENTRY pEntry,
     UserInfo *pInfo
     )
@@ -1291,8 +1297,6 @@ SamrFillUserInfo21(
     WCHAR wszAttrLastLogoff[] = DS_ATTR_LAST_LOGOFF;
     WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
     WCHAR wszAttrAccountExpiry[] = DS_ATTR_ACCOUNT_EXPIRY;
-    WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
-    WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
     WCHAR wszAttrHomeDirectory[] = DS_ATTR_HOME_DIR;
@@ -1311,6 +1315,9 @@ SamrFillUserInfo21(
     WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrCountryCode[] = DS_ATTR_COUNTRY_CODE;
     WCHAR wszAttrCodePage[] = DS_ATTR_CODE_PAGE;
+    NtTime ntMinPasswordAge = pAcctCtx->pDomCtx->ntMinPasswordAge;
+    NtTime ntMaxPasswordAge = pAcctCtx->pDomCtx->ntMaxPasswordAge;
+    NtTime ntCurrentTime = 0;
 
     pInfo21 = &(pInfo->info21);
 
@@ -1326,10 +1333,12 @@ SamrFillUserInfo21(
     GET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo21->account_expiry);
     pInfo21->fields_present |= SAMR_FIELD_ACCT_EXPIRY;
 
-    GET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo21->allow_password_change);
+    pInfo21->allow_password_change = pInfo21->last_password_change +
+                                     ntMinPasswordAge;
     pInfo21->fields_present |= SAMR_FIELD_ALLOW_PWD_CHANGE;
 
-    GET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo21->force_password_change);
+    pInfo21->force_password_change = pInfo21->last_password_change +
+                                     ntMaxPasswordAge;
     pInfo21->fields_present |= SAMR_FIELD_FORCE_PWD_CHANGE;
 
     GET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo21->account_name);
@@ -1390,7 +1399,21 @@ SamrFillUserInfo21(
     GET_UINT16_VALUE(wszAttrCodePage, pInfo21->code_page);
     pInfo21->fields_present |= SAMR_FIELD_CODE_PAGE;
 
+    dwError = LwGetNtTime(&ntCurrentTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ntCurrentTime >= pInfo21->last_password_change + ntMaxPasswordAge)
+    {
+        pInfo21->password_expired = 1;
+    }
+
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:

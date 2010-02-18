@@ -93,7 +93,10 @@ typedef struct samr_domain_context
     PWSTR                pwszDn;
     PWSTR                pwszDomainName;
     PSID                 pDomainSid;
+    NtTime               ntMinPasswordAge;
+    NtTime               ntMaxPasswordAge;
     DWORD                dwMinPasswordLen;
+    NtTime               ntPasswordPromptTime;
     DWORD                dwPasswordProperties;
 
     PCONNECT_CONTEXT     pConnCtx;
