@@ -540,13 +540,14 @@ SMBSrvInitialize(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PCSTR pszConfigPath = SMB_CONFIG_FILE_PATH;
 
-    dwError = LwioSrvSetupInitialConfig();
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = LwioSrvSetupInitialConfig();
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = LwioSrvRefreshConfig();
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = LwioSrvRefreshConfig();
+    BAIL_ON_LWIO_ERROR(ntStatus);
 
     dwError = SMBInitCacheFolders();
     BAIL_ON_LWIO_ERROR(dwError);
@@ -559,6 +560,11 @@ SMBSrvInitialize(
     BAIL_ON_LWIO_ERROR(dwError);
 
 error:
+
+    if(ntStatus)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
 
     return dwError;
 }
@@ -1068,12 +1074,13 @@ SMBHandleSignals(
             case SIGHUP:
 
                 {
-                    DWORD dwError2 = 0;
+                    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-                    dwError2 = LwioSrvRefreshConfig();
-                    if (dwError2)
+                    ntStatus = LwioSrvRefreshConfig();
+                    if (ntStatus)
                     {
-                        LWIO_LOG_ERROR("Failed to refresh configuration [code:%d]", dwError2);
+                        LWIO_LOG_ERROR("Failed to refresh configuration "
+                            "[code:%d]", ntStatus);
                     }
                 }
 

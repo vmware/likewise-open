@@ -98,8 +98,7 @@ cleanup:
     {
         IopConfigFreeDriverConfig(&pDriverConfig);
     }
-    
-    // TODO -- Error code mismatch?
+
     return status;
 }
 
@@ -110,20 +109,17 @@ IopConfigReadDriver(
      PCSTR pszDriverName
      )
 {
-    DWORD dwError = 0;
-
     NTSTATUS status = 0;
     int EE = 0;
     PLWIO_CONFIG_REG pReg = NULL;
     PSTR pszDriverPath = NULL;
 
-    dwError = LwIoOpenConfig(
+    status = LwIoOpenConfig(
                 pszDriverKey,
                 pszDriverKey,
                 &pReg);
-    if (dwError)
+    if (status)
     {
-        // TODO-Error code issues?
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_ON_STATUS(status);
     }
@@ -133,10 +129,9 @@ IopConfigReadDriver(
         goto cleanup;
     }
 
-    dwError = LwIoReadConfigString(pReg, "Path", FALSE, &pszDriverPath);
-    if (dwError)
+    status = LwIoReadConfigString(pReg, "Path", FALSE, &pszDriverPath);
+    if (status)
     {
-        // TODO-Error code issues?
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
@@ -157,7 +152,6 @@ cleanup:
 
     LwRtlCStringFree(&pszDriverPath);
 
-    // TODO -- Error code mismatch?
     return status;
 
 }
@@ -167,7 +161,6 @@ IopConfigAddDrivers(
      PIOP_CONFIG pConfig
      )
 {
-    DWORD dwError = 0;
     NTSTATUS status = STATUS_SUCCESS;
     int EE = 0;
     PLWIO_CONFIG_REG pReg = NULL;
@@ -176,13 +169,12 @@ IopConfigAddDrivers(
     PSTR pszDriverNames = NULL;
     PSTR pszTokenState = NULL;
 
-    dwError = LwIoOpenConfig(
+    status = LwIoOpenConfig(
                 "Services\\lwio\\Parameters\\Drivers",
                 "Policy\\Services\\lwio\\Parameter\\Drivers",
                 &pReg);
-    if (dwError)
+    if (status)
     {
-        // TODO-Error code issues?
         status = STATUS_DEVICE_CONFIGURATION_ERROR;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
@@ -192,10 +184,9 @@ IopConfigAddDrivers(
         goto add_default;
     }
 
-    dwError = LwIoReadConfigString(pReg, "Load", FALSE, &pszDriverNames);
-    if (dwError)
+    status = LwIoReadConfigString(pReg, "Load", FALSE, &pszDriverNames);
+    if (status)
     {
-        // TODO-Error code issues?
         status = STATUS_DEVICE_CONFIGURATION_ERROR;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
@@ -234,11 +225,10 @@ cleanup:
 
     LwRtlCStringFree(&pszDriverKey);
 
-    // TODO -- Error code mismatch?
     return status;
 
 add_default:
-    dwError = IopConfigAddDriver(pConfig, "rdr", LIBDIR "/librdr.sys.so");
+    status = IopConfigAddDriver(pConfig, "rdr", LIBDIR "/librdr.sys.so");
     goto cleanup;
 }
 
@@ -268,7 +258,6 @@ IopConfigReadRegistry(
     )
 {
     NTSTATUS status = 0;
-    DWORD dwError = 0;
     PIOP_CONFIG pConfig = NULL;
 
     status = IO_ALLOCATE(&pConfig, IOP_CONFIG, sizeof(*pConfig));
@@ -276,10 +265,9 @@ IopConfigReadRegistry(
 
     LwListInit(&pConfig->DriverConfigList);
 
-    dwError = IopConfigAddDrivers(pConfig);
-    if (dwError)
+    status = IopConfigAddDrivers(pConfig);
+    if (status)
     {
-        // TODO-Error code issues?
         status = STATUS_UNSUCCESSFUL;
         GOTO_CLEANUP_ON_STATUS(status);
     }

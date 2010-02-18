@@ -42,65 +42,65 @@
 #include "includes.h"
 
 static
-DWORD
+NTSTATUS
 LwioSrvInitializeConfig(
     IN OUT PLWIO_CONFIG pConfig
     );
 
 static
-DWORD
+NTSTATUS
 LwioSrvReadRegistry(
     IN OUT PLWIO_CONFIG pConfig
     );
 
 static
-DWORD
+NTSTATUS
 LwioSrvTransferConfigContents(
     PLWIO_CONFIG pSrcConfig,
     PLWIO_CONFIG pDstConfig
     );
 
-DWORD
+NTSTATUS
 LwioSrvSetupInitialConfig(
     VOID
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bUnlockConfig = FALSE;
 
     LWIO_LOCK_SERVERCONFIG(bUnlockConfig);
 
-    dwError = LwioSrvInitializeConfig(gpServerConfig);
+    ntStatus = LwioSrvInitializeConfig(gpServerConfig);
 
     LWIO_UNLOCK_SERVERCONFIG(bUnlockConfig);
 
-    return dwError;
+    return ntStatus;
 }
 
-DWORD
+NTSTATUS
 LwioSrvRefreshConfig(
     VOID
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bUnlockConfig = FALSE;
     LWIO_CONFIG LwIoConfig;
 
-    dwError = LwioSrvReadRegistry(&LwIoConfig);
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = LwioSrvReadRegistry(&LwIoConfig);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_SERVERCONFIG(bUnlockConfig);
 
-    dwError = LwioSrvTransferConfigContents(
+    ntStatus = LwioSrvTransferConfigContents(
                     &LwIoConfig,
                     gpServerConfig);
-    BAIL_ON_LWIO_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     LWIO_UNLOCK_SERVERCONFIG(bUnlockConfig);
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -110,34 +110,34 @@ error:
 }
 
 static
-DWORD
+NTSTATUS
 LwioSrvReadRegistry(
     IN OUT PLWIO_CONFIG pConfig
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     LWIO_CONFIG LwIoConfig;
 
     memset(&LwIoConfig, 0, sizeof(LWIO_CONFIG));
 
-    dwError = LwioSrvInitializeConfig(&LwIoConfig);
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = LwioSrvInitializeConfig(&LwIoConfig);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = LwIoProcessConfig(
+    ntStatus = LwIoProcessConfig(
         "Services\\lwio\\Parameters",
         "Policy\\Services\\lwio\\Parameters",
         NULL,
         0);
-    BAIL_ON_NON_LWREG_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = LwioSrvTransferConfigContents(
+    ntStatus = LwioSrvTransferConfigContents(
                     &LwIoConfig,
                     pConfig);
-    BAIL_ON_LWIO_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -147,16 +147,16 @@ error:
 }
 
 static
-DWORD
+NTSTATUS
 LwioSrvInitializeConfig(
     IN OUT PLWIO_CONFIG pConfig
     )
 {
-    return 0;
+    return STATUS_SUCCESS;
 }
 
 static
-DWORD
+NTSTATUS
 LwioSrvTransferConfigContents(
     PLWIO_CONFIG pSrcConfig,
     PLWIO_CONFIG pDstConfig
@@ -167,7 +167,7 @@ LwioSrvTransferConfigContents(
     memcpy(pDstConfig, pSrcConfig, sizeof(*pSrcConfig));
     memset(pSrcConfig, 0, sizeof(*pSrcConfig));
 
-    return 0;
+    return STATUS_SUCCESS;
 }
 
 VOID

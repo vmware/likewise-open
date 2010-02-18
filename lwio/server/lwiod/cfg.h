@@ -33,12 +33,12 @@
 
 #include "includes.h"
 
-DWORD
+NTSTATUS
 LwioSrvSetupInitialConfig(
     VOID
     );
 
-DWORD
+NTSTATUS
 LwioSrvRefreshConfig(
     VOID
     );

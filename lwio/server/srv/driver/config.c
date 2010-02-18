@@ -65,19 +65,18 @@ SrvReadConfig(
     NTSTATUS        ntStatus = STATUS_SUCCESS;
     LWIO_SRV_CONFIG srvConfig = {0};
     PLWIO_CONFIG_REG pReg = NULL;
-    DWORD           dwError = 0;
 
     ntStatus = SrvInitConfig(&srvConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = LwIoOpenConfig(
+    ntStatus = LwIoOpenConfig(
                 "Services\\lwio\\Parameters\\Drivers\\srv",
                 "Policy\\Services\\lwio\\Parameters\\Drivers\\srv",
                 &pReg);
-    if (dwError)
+    if (ntStatus)
     {
         LWIO_LOG_ERROR("Failed to access device configuration [error code: %u]",
-                       dwError);
+                       ntStatus);
 
         ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
     }

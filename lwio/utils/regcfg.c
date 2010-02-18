@@ -49,7 +49,7 @@ struct __LWIO_CONFIG_REG
     PSTR pszPolicyKey;
 };
 
-DWORD
+NTSTATUS
 LwIoProcessConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
@@ -57,12 +57,12 @@ LwIoProcessConfig(
     DWORD dwConfigEntries
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwEntry = 0;
     PLWIO_CONFIG_REG pReg = NULL;
 
-    dwError = LwIoOpenConfig(pszConfigKey, pszPolicyKey, &pReg);
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = LwIoOpenConfig(pszConfigKey, pszPolicyKey, &pReg);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (pReg == NULL)
     {
@@ -71,11 +71,11 @@ LwIoProcessConfig(
 
     for (dwEntry = 0; dwEntry < dwConfigEntries; dwEntry++)
     {
-        dwError = 0;
+        ntStatus = STATUS_SUCCESS;
         switch (pConfig[dwEntry].Type)
         {
             case LwIoTypeString:
-                dwError = LwIoReadConfigString(
+                ntStatus = LwIoReadConfigString(
                             pReg,
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
@@ -83,7 +83,7 @@ LwIoProcessConfig(
                 break;
 
             case LwIoTypeDword:
-                dwError = LwIoReadConfigDword(
+                ntStatus = LwIoReadConfigDword(
                             pReg,
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
@@ -93,7 +93,7 @@ LwIoProcessConfig(
                 break;
 
             case LwIoTypeBoolean:
-                dwError = LwIoReadConfigBoolean(
+                ntStatus = LwIoReadConfigBoolean(
                             pReg,
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
@@ -101,7 +101,7 @@ LwIoProcessConfig(
                 break;
 
             case LwIoTypeEnum:
-                dwError = LwIoReadConfigEnum(
+                ntStatus = LwIoReadConfigEnum(
                             pReg,
                             pConfig[dwEntry].pszName,
                             pConfig[dwEntry].bUsePolicy,
@@ -114,28 +114,26 @@ LwIoProcessConfig(
             default:
                 break;
         }
-        BAIL_ON_NON_LWREG_ERROR(dwError);
-        dwError = 0;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
     LwIoCloseConfig(pReg);
     pReg = NULL;
 
-    return dwError;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 LwIoOpenConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
     PLWIO_CONFIG_REG *ppReg
     )
 {
-    DWORD dwError = 0;
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_CONFIG_REG pReg = NULL;
 
@@ -151,23 +149,23 @@ LwIoOpenConfig(
     ntStatus = LwRtlCStringDuplicate(&pReg->pszPolicyKey, pszPolicyKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = RegOpenServer(&pReg->hConnection);
-    if ( dwError )
+    ntStatus = NtRegOpenServer(&pReg->hConnection);
+    if (ntStatus)
     {
-        dwError = 0;
+        ntStatus = STATUS_SUCCESS;
         goto error;
     }
 
-    dwError = RegOpenKeyExA(
+    ntStatus = NtRegOpenKeyExA(
             pReg->hConnection,
             NULL,
             HKEY_THIS_MACHINE,
             0,
             KEY_READ,
             &(pReg->hKey));
-    if (dwError)
+    if (ntStatus)
     {
-        dwError = 0;
+        ntStatus = STATUS_SUCCESS;
         goto error;
     }
 
@@ -175,7 +173,7 @@ cleanup:
 
     *ppReg = pReg;
 
-    return dwError;
+    return ntStatus;
 
 error:
 
@@ -200,10 +198,10 @@ LwIoCloseConfig(
         {
             if ( pReg->hKey )
             {
-                RegCloseKey(pReg->hConnection, pReg->hKey);
+                NtRegCloseKey(pReg->hConnection, pReg->hKey);
                 pReg->hKey = NULL;
             }
-            RegCloseServer(pReg->hConnection);
+            NtRegCloseServer(pReg->hConnection);
             pReg->hConnection = NULL;
         }
 
@@ -211,7 +209,7 @@ LwIoCloseConfig(
     }
 }
 
-DWORD
+NTSTATUS
 LwIoReadConfigString(
     PLWIO_CONFIG_REG pReg,
     PCSTR   pszName,
@@ -219,7 +217,6 @@ LwIoReadConfigString(
     PSTR    *ppszValue
     )
 {
-    DWORD dwError = 0;
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bGotValue = FALSE;
     char szValue[MAX_VALUE_LENGTH];
@@ -230,7 +227,7 @@ LwIoReadConfigString(
     {
         dwSize = sizeof(szValue);
         memset(szValue, 0, dwSize);
-        dwError = RegGetValueA(
+        ntStatus = NtRegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
                     pReg->pszPolicyKey,
@@ -239,7 +236,7 @@ LwIoReadConfigString(
                     &dwType,
                     szValue,
                     &dwSize);
-        if (!dwError)
+        if (!ntStatus)
         {
             bGotValue = TRUE;
         }
@@ -249,7 +246,7 @@ LwIoReadConfigString(
     {
         dwSize = sizeof(szValue);
         memset(szValue, 0, dwSize);
-        dwError = RegGetValueA(
+        ntStatus = NtRegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
                     pReg->pszConfigKey,
@@ -258,7 +255,7 @@ LwIoReadConfigString(
                     &dwType,
                     szValue,
                     &dwSize);
-        if (!dwError)
+        if (!ntStatus)
         {
             bGotValue = TRUE;
         }
@@ -271,13 +268,13 @@ LwIoReadConfigString(
     }
 
 cleanup:
-    return dwError;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 LwIoReadConfigDword(
     PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
@@ -287,7 +284,7 @@ LwIoReadConfigDword(
     PDWORD pdwValue
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bGotValue = FALSE;
     DWORD dwValue = 0;
     DWORD dwSize =0;
@@ -296,7 +293,7 @@ LwIoReadConfigDword(
     if (bUsePolicy)
     {
         dwSize = sizeof(dwValue);
-        dwError = RegGetValueA(
+        ntStatus = NtRegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
                     pReg->pszPolicyKey,
@@ -305,7 +302,7 @@ LwIoReadConfigDword(
                     &dwType,
                     (PBYTE)&dwValue,
                     &dwSize);
-        if (!dwError)
+        if (!ntStatus)
         {
             bGotValue = TRUE;
         }
@@ -314,7 +311,7 @@ LwIoReadConfigDword(
     if (!bGotValue)
     {
         dwSize = sizeof(dwValue);
-        dwError = RegGetValueA(
+        ntStatus = NtRegGetValueA(
                     pReg->hConnection,
                     pReg->hKey,
                     pReg->pszConfigKey,
@@ -323,7 +320,7 @@ LwIoReadConfigDword(
                     &dwType,
                     (PBYTE)&dwValue,
                     &dwSize);
-        if (!dwError)
+        if (!ntStatus)
         {
             bGotValue = TRUE;
         }
@@ -337,14 +334,14 @@ LwIoReadConfigDword(
         }
         else
         {
-            dwError = ERROR_INVALID_PARAMETER;
+            ntStatus = STATUS_INVALID_PARAMETER;
         }
     }
 
-    return dwError;
+    return ntStatus;
 }
 
-DWORD
+NTSTATUS
 LwIoReadConfigBoolean(
     PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
@@ -353,29 +350,29 @@ LwIoReadConfigBoolean(
     )
 {
 
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwValue = *pbValue == TRUE ? 0x00000001 : 0x00000000;
 
-    dwError = LwIoReadConfigDword(
+    ntStatus = LwIoReadConfigDword(
                 pReg,
                 pszName,
                 bUsePolicy,
                 0,
                 -1,
                 &dwValue);
-    BAIL_ON_LWIO_ERROR(dwError);
+    BAIL_ON_LWIO_ERROR(ntStatus);
 
     *pbValue = dwValue ? TRUE : FALSE;
 
 cleanup:
 
-    return dwError;
+    return ntStatus;
 
 error:
     goto cleanup;
 }
 
-DWORD
+NTSTATUS
 LwIoReadConfigEnum(
     PLWIO_CONFIG_REG pReg,
     PCSTR   pszName,
@@ -386,16 +383,16 @@ LwIoReadConfigEnum(
     PDWORD  pdwValue
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PSTR pszValue = NULL;
     DWORD dwEnumIndex = 0;
 
-    dwError = LwIoReadConfigString(
+    ntStatus = LwIoReadConfigString(
                 pReg,
                 pszName,
                 bUsePolicy,
                 &pszValue);
-    BAIL_ON_LWIO_ERROR(dwError);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (pszValue != NULL )
     {
@@ -416,7 +413,7 @@ LwIoReadConfigEnum(
 cleanup:
     LwRtlCStringFree(&pszValue);
 
-    return dwError;
+    return ntStatus;
 
 error:
     goto cleanup;
