@@ -814,7 +814,7 @@ typedef struct _SAM_DB_ATTRIBUTE_MAP
     {                                         \
         SAM_DB_DIR_ATTR_LOCKOUT_THRESHOLD,    \
         SAM_DB_COL_LOCKOUT_THRESHOLD,         \
-        SAMDB_ATTR_TYPE_INT64,                \
+        SAMDB_ATTR_TYPE_INT32,                \
         SAM_DB_IS_NOT_A_ROW_ID,               \
         SAM_DB_IS_NOT_MULTI_VALUED,           \
         SAM_DB_IS_QUERYABLE                   \
@@ -1145,10 +1145,6 @@ typedef struct _SAMDB_ATTRIBUTE_MAP_INFO
     },                                                           \
     {                                                            \
         SAM_DB_DIR_ATTR_PRIMARY_DOMAIN,                          \
-        SAM_DB_ATTR_FLAGS_NONE                                   \
-    },                                                           \
-    {                                                            \
-        SAM_DB_DIR_ATTR_SEQUENCE_NUMBER,                         \
         SAM_DB_ATTR_FLAGS_NONE                                   \
     },                                                           \
     {                                                            \
