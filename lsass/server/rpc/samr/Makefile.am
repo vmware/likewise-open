@@ -24,6 +24,7 @@ libsamr_la_SOURCES = \
     samr_enumdomains.c           \
     samr_opendomain.c            \
     samr_close.c                 \
+    samr_setsecurity.c           \
     samr_querysecurity.c         \
     samr_lookupnames.c           \
     samr_lookuprids.c            \
