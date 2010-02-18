@@ -618,6 +618,17 @@ SrvBuildCreateState_SMB_V2(
 
                 pCreateState->pExtAContext = pContext;
 
+                ntStatus = IoRtlEcpListAllocate(&pCreateState->pEcpList);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                ntStatus = IoRtlEcpListInsert(
+                                pCreateState->pEcpList,
+                                SRV_ECP_TYPE_MAX_ACCESS,
+                                &pCreateState->ulMaximalAccessMask,
+                                sizeof(pCreateState->ulMaximalAccessMask),
+                                NULL);
+                BAIL_ON_NT_STATUS(ntStatus);
+
                 break;
 
             case SMB2_CONTEXT_ITEM_TYPE_SEC_DESC:

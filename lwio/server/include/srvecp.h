@@ -31,5 +31,6 @@
 #define __SRV_ECP_H__
 
 #define SRV_ECP_TYPE_SHARE_NAME "Likewise.SRV.ShareName"
+#define SRV_ECP_TYPE_MAX_ACCESS "Likewise.SRV.MaximalAccess"
 
 #endif /* __SRV_ECP_H__ */
