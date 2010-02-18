@@ -150,6 +150,7 @@ PvfsCreateFileDoSysOpen(
     int unixFlags = 0;
     PIO_CREATE_SECURITY_CONTEXT pSecCtx = Args.SecurityContext;
     FILE_CREATE_RESULT CreateResult = 0;
+    PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
 
     ntError = PvfsEnforceShareMode(
                    pCreateContext->pFcb,
@@ -182,9 +183,11 @@ PvfsCreateFileDoSysOpen(
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_OWNER) && pSecCtx)
+    /* CCB is now complete */
+
+    if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_SECURITY) && pSecCtx)
     {
-        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
+        /* Unix Security */
 
         pProcess = IoSecurityGetProcessInfo(pSecCtx);
 
@@ -192,6 +195,15 @@ PvfsCreateFileDoSysOpen(
                       pCreateContext->pCcb,
                       pProcess->Uid,
                       pProcess->Gid);
+        BAIL_ON_NT_STATUS(ntError);
+
+        /* Security Descriptor */
+
+        ntError = PvfsCreateFileSecurity(
+                      pCreateContext->pCcb->pUserToken,
+                      pCreateContext->pCcb,
+                      Args.SecurityDescriptor,
+                      FALSE);
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -272,7 +284,7 @@ PvfsCreateDirDoSysOpen(
     FILE_CREATE_RESULT CreateResult = 0;
     IO_MATCH_FILE_SPEC FileSpec = {0};
     WCHAR wszPattern[2] = {L'*', 0x0 };
-
+    PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
 
     /* Do the open() */
 
@@ -323,9 +335,9 @@ PvfsCreateDirDoSysOpen(
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_OWNER) && pSecCtx)
+    if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_SECURITY) && pSecCtx)
     {
-        PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
+        /* Unix Security */
 
         pProcess = IoSecurityGetProcessInfo(pSecCtx);
 
@@ -333,6 +345,15 @@ PvfsCreateDirDoSysOpen(
                       pCreateContext->pCcb,
                       pProcess->Uid,
                       pProcess->Gid);
+        BAIL_ON_NT_STATUS(ntError);
+
+        /* Security Descriptor */
+
+        ntError = PvfsCreateFileSecurity(
+                      pCreateContext->pCcb->pUserToken,
+                      pCreateContext->pCcb,
+                      Args.SecurityDescriptor,
+                      TRUE);
         BAIL_ON_NT_STATUS(ntError);
     }
 
