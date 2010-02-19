@@ -329,6 +329,10 @@ PvfsPathCacheAdd(
     IN PCSTR pszResolvedPath
     );
 
+NTSTATUS
+PvfsPathCacheRemove(
+    PCSTR pszPathname
+    );
 
 NTSTATUS
 PvfsPathCacheLookup(

@@ -1186,6 +1186,10 @@ PvfsRenameFCB(
             ntError = PvfsSysRename(pCcb->pFcb->pszFilename, pszNewFilename);
             BAIL_ON_NT_STATUS(ntError);
 
+            /* Clear the cache entry but ignore any errors */
+
+            ntError = PvfsPathCacheRemove(pFcb->pszFilename);
+
             /* Remove the FCB from the table, update the lookup key,
                and then re-add.  Otherwise you will get memory corruption
                as a freed pointer gets left in the Table because if
