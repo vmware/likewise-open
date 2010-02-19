@@ -59,9 +59,9 @@ LocalFindAttribute(
 
 static
 DWORD
-LocalMarshallAccountFlagsToSecurityObject(
+LocalMarshalAccountFlagsToSecurityObject(
     PLSA_SECURITY_OBJECT pObject,
-    DWORD dwUserInfoFlags,
+    DWORD dwAccountFlags,
     LONG64 llPwdLastSet,
     LONG64 llAcctExpiry
     )
@@ -74,55 +74,51 @@ LocalMarshallAccountFlagsToSecurityObject(
     BOOLEAN bAccountExpired = FALSE;
     BOOLEAN bPasswordExpired = FALSE;
     BOOLEAN bPromptPasswordChange = FALSE;
+    LONG64 llMinPwdAge = 0;
     LONG64 llMaxPwdAge = 0;
     LONG64 llTimeToExpiry = 0;
+    LONG64 llCurrentTime = 0;
+    LONG64 llPwdChangeTime = 0;
+
+    dwError = LocalCfgGetMinPasswordAge(&llMinPwdAge);
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LocalCfgGetMaxPasswordAge(&llMaxPwdAge);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (dwUserInfoFlags & LOCAL_ACB_PWNOEXP)
+    dwError = LwGetNtTime((PULONG64)&llCurrentTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwAccountFlags & LOCAL_ACB_PWNOEXP)
     {
         bPasswordNeverExpires = TRUE;
     }
 
-    if (dwUserInfoFlags & LOCAL_ACB_DISABLED)
+    if (dwAccountFlags & LOCAL_ACB_DISABLED)
     {
         bAccountDisabled = TRUE;
     }
 
-    if (dwUserInfoFlags & LOCAL_ACB_DOMTRUST)
-    {
-        bUserCanChangePassword = TRUE;
-    }
-
-    if (dwUserInfoFlags & LOCAL_ACB_NORMAL)
-    {
-        bAccountLocked = TRUE;
-    }
-
     if (!bPasswordNeverExpires)
     {
-        // Password expires
-
-        if (dwUserInfoFlags & LOCAL_ACB_PW_EXPIRED)
+        if (llCurrentTime > llPwdLastSet + llMaxPwdAge)
         {
-            bPasswordExpired = TRUE;
+            // Password has expired
+
+            bPasswordExpired      = TRUE;
             bPromptPasswordChange = TRUE;
         }
         else
         {
-            // Account has not expired yet
-
-            LONG64 llPwdChangeTime = 0;
-            LONG64 llCurTime = 0;
+            // Password has not expired yet but check if
+            // we can prompt for password change
 
             dwError = LocalCfgGetPasswordChangeWarningTime(&llPwdChangeTime);
             BAIL_ON_LSA_ERROR(dwError);
 
             bPasswordExpired = FALSE;
 
-            llCurTime = LocalGetNTTime(time(NULL));
-            llTimeToExpiry = llMaxPwdAge - (llCurTime - llPwdLastSet);
+            llTimeToExpiry = llMaxPwdAge - (llCurrentTime - llPwdLastSet);
 
             if (llTimeToExpiry <= llPwdChangeTime)
             {
@@ -137,21 +133,29 @@ LocalMarshallAccountFlagsToSecurityObject(
     else
     {
         // Password never expires
-        bPasswordExpired = FALSE;
+
+        bPasswordExpired      = FALSE;
         bPromptPasswordChange = FALSE;
     }
 
     if (llAcctExpiry)
     {
-        LONG64 llCurTime = LocalGetNTTime(time(NULL));
-
-        bAccountExpired = (llCurTime > llAcctExpiry) ? TRUE : FALSE;
+        bAccountExpired = (llCurrentTime > llAcctExpiry) ? TRUE : FALSE;
     }
 
-    pObject->userInfo.qwPwdLastSet = llPwdLastSet;
-    pObject->userInfo.qwMaxPwdAge = llMaxPwdAge;
-    pObject->userInfo.qwPwdExpires = llTimeToExpiry;
-    pObject->userInfo.qwAccountExpires = llAcctExpiry;
+    if (llCurrentTime - llPwdLastSet < llMinPwdAge)
+    {
+        bUserCanChangePassword = FALSE;
+    }
+    else
+    {
+        bUserCanChangePassword = TRUE;
+    }
+
+    pObject->userInfo.qwPwdLastSet           = llPwdLastSet;
+    pObject->userInfo.qwMaxPwdAge            = llMaxPwdAge;
+    pObject->userInfo.qwPwdExpires           = llCurrentTime + llTimeToExpiry;
+    pObject->userInfo.qwAccountExpires       = llAcctExpiry;
     pObject->userInfo.bIsAccountInfoKnown    = TRUE;
     pObject->userInfo.bAccountDisabled       = bAccountDisabled;
     pObject->userInfo.bAccountExpired        = bAccountExpired;
@@ -651,14 +655,14 @@ LocalMarshalEntryToSecurityObject(
     static WCHAR wszAttrNameHomedir[]        = LOCAL_DIR_ATTR_HOME_DIR;
     static WCHAR wszAttrNameUPN[]            = LOCAL_DIR_ATTR_USER_PRINCIPAL_NAME;
     static WCHAR wszAttrNameObjectSID[]      = LOCAL_DIR_ATTR_OBJECT_SID;
-    static WCHAR wszAttrNameUserInfoFlags[]  = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
+    static WCHAR wszAttrNameAccountFlags[]   = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     static WCHAR wszAttrNameAccountExpiry[]  = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     static WCHAR wszAttrNamePasswdLastSet[]  = LOCAL_DIR_ATTR_PASSWORD_LAST_SET;
     static WCHAR wszAttrNameDN[]             = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     static WCHAR wszAttrNameNetBIOSDomain[]  = LOCAL_DIR_ATTR_NETBIOS_NAME;
     PLSA_SECURITY_OBJECT pObject = NULL;
     DWORD  dwObjectClass = 0;
-    DWORD  dwUserInfoFlags = 0;
+    DWORD  dwAccountFlags = 0;
     LONG64 llAccountExpiry = 0;
     LONG64 llPasswordLastSet = 0;
     DWORD  dwUid = 0;
@@ -767,8 +771,8 @@ LocalMarshalEntryToSecurityObject(
 
         dwError = LocalMarshalAttrToInteger(
             pEntry,
-            wszAttrNameUserInfoFlags,
-            &dwUserInfoFlags);
+            wszAttrNameAccountFlags,
+            &dwAccountFlags);
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LocalMarshalAttrToLargeInteger(
@@ -783,9 +787,9 @@ LocalMarshalEntryToSecurityObject(
             &llPasswordLastSet);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = LocalMarshallAccountFlagsToSecurityObject(
+        dwError = LocalMarshalAccountFlagsToSecurityObject(
             pObject,
-            dwUserInfoFlags,
+            dwAccountFlags,
             llPasswordLastSet,
             llAccountExpiry);
         BAIL_ON_LSA_ERROR(dwError);

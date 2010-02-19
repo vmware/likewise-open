@@ -1183,7 +1183,7 @@ PvfsRenameFCB(
 
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbLocked, &pFcb->rwFileName);
 
-            ntError = PvfsSysRename(pCcb->pszFilename, pszNewFilename);
+            ntError = PvfsSysRename(pCcb->pFcb->pszFilename, pszNewFilename);
             BAIL_ON_NT_STATUS(ntError);
 
             /* Remove the FCB from the table, update the lookup key,

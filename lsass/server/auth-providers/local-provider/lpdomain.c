@@ -45,6 +45,7 @@
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
@@ -64,6 +65,534 @@ LocalGetSingleLargeIntegerAttrValue(
     DWORD            dwNumAttrs,
     PLONG64          pllAttrValue
     );
+
+
+DWORD
+LocalSyncDomainInfo(
+    PWSTR                    pwszUserDN,
+    PWSTR                    pwszCredentials,
+    ULONG                    ulMethod,
+    PLOCAL_PROVIDER_GLOBALS  pGlobals
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwNewMinPasswordAge = LOCAL_MIN_PASSWORD_AGE;
+    DWORD dwNewMaxPasswordAge = LOCAL_MAX_PASSWORD_AGE;
+    DWORD dwNewMinPasswordLength = LOCAL_MIN_PASSWORD_LENGTH;
+    DWORD dwNewPasswordPromptTime = LOCAL_PASSWORD_PROMPT_TIME;
+    DWORD dwNewLockoutThreshold = LOCAL_LOCKOUT_THRESHOLD;
+    DWORD dwNewLockoutDuration = LOCAL_LOCKOUT_DURATION;
+    DWORD dwNewLockoutWindow = LOCAL_LOCKOUT_WINDOW;
+    HANDLE hDirectory = NULL;
+    PSTR pszFilterFmt = LOCAL_DB_DIR_ATTR_OBJECT_CLASS " = %d";
+    DWORD dwDomainObjectClass = LOCAL_OBJECT_CLASS_DOMAIN;
+    PSTR pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    WCHAR wszAttrDn[] = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrDomain[] = LOCAL_DIR_ATTR_DOMAIN;
+    WCHAR wszAttrNetBIOSName[] = LOCAL_DIR_ATTR_NETBIOS_NAME;
+    WCHAR wszAttrObjectSID[] = LOCAL_DIR_ATTR_OBJECT_SID;
+    WCHAR wszAttrSequenceNumber[] = LOCAL_DIR_ATTR_SEQUENCE_NUMBER;
+    WCHAR wszAttrMinPasswordAge[] = LOCAL_DIR_ATTR_MIN_PWD_AGE;
+    WCHAR wszAttrMaxPasswordAge[] = LOCAL_DIR_ATTR_MAX_PWD_AGE;
+    WCHAR wszAttrMinPasswordLength[] = LOCAL_DIR_ATTR_MIN_PWD_LENGTH;
+    WCHAR wszAttrPasswordPromptTime[] = LOCAL_DIR_ATTR_PWD_PROMPT_TIME;
+    WCHAR wszAttrLockoutThreshold[] = LOCAL_DIR_ATTR_LOCKOUT_THRESHOLD;
+    WCHAR wszAttrLockoutDuration[] = LOCAL_DIR_ATTR_LOCKOUT_DURATION;
+    WCHAR wszAttrLockoutWindow[] = LOCAL_DIR_ATTR_LOCKOUT_WINDOW;
+    ULONG ulScope = 0;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    DWORD dwNumEntries = 0;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    PWSTR pwszDomainDn = NULL;
+    LONG64 llSequenceNumber = 0;
+    PWSTR pwszDomainName = NULL;
+    PSTR pszDomainName = NULL;
+    PWSTR pwszNetBIOSName = NULL;
+    PSTR pszNetBIOSName = NULL;
+    PWSTR pwszSid = NULL;
+    PSID pLocalDomainSid = NULL;
+    LONG64 llMinPasswordAge = 0;
+    LONG64 llNewMinPasswordAge = 0;
+    LONG64 llMaxPasswordAge = 0;
+    LONG64 llNewMaxPasswordAge = 0;
+    DWORD dwMinPasswordLength = 0;
+    LONG64 llPasswordPromptTime = 0;
+    LONG64 llNewPasswordPromptTime = 0;
+    DWORD dwLockoutThreshold = 0;
+    LONG64 llLockoutDuration = 0;
+    LONG64 llNewLockoutDuration = 0;
+    LONG64 llLockoutWindow = 0;
+    LONG64 llNewLockoutWindow = 0;
+    DWORD iMod = 0;
+
+    LSA_CONFIG SamConfig[] = {
+        {
+            "MinPasswordAge",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewMinPasswordAge
+        },
+        {
+            "MaxPasswordAge",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewMaxPasswordAge
+        },
+        {
+            "MinPasswordLength",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewMinPasswordLength
+        },
+        {
+            "PasswordPromptTime",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewPasswordPromptTime
+        },
+        {
+            "LockoutThreshold",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewLockoutThreshold
+        },
+        {
+            "LockoutDuration",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewLockoutDuration
+        },
+        {
+            "LockoutWindow",
+            TRUE,
+            LsaTypeDword,
+            0,
+            MAXDWORD,
+            NULL,
+            &dwNewLockoutWindow
+        }
+    };
+
+    PWSTR wszAttributes[] = {
+        wszAttrDn,
+        wszAttrDomain,
+        wszAttrNetBIOSName,
+        wszAttrObjectSID,
+        wszAttrSequenceNumber,
+        wszAttrMinPasswordAge,
+        wszAttrMaxPasswordAge,
+        wszAttrMinPasswordLength,
+        wszAttrPasswordPromptTime,
+        wszAttrLockoutThreshold,
+        wszAttrLockoutDuration,
+        wszAttrLockoutWindow,
+        NULL
+    };
+
+    enum AttrValueIndex {
+        ATTR_VAL_IDX_MIN_PASSWORD_AGE = 0,
+        ATTR_VAL_IDX_MAX_PASSWORD_AGE,
+        ATTR_VAL_IDX_MIN_PASSWORD_LENGTH,
+        ATTR_VAL_IDX_PASSWORD_PROMPT_TIME,
+        ATTR_VAL_IDX_LOCKOUT_THRESHOLD,
+        ATTR_VAL_IDX_LOCKOUT_DURATION,
+        ATTR_VAL_IDX_LOCKOUT_WINDOW,
+        ATTR_VAL_IDX_SEQUENCE_NUMBER,
+        ATTR_VAL_IDX_SENTINEL
+    };
+
+    ATTRIBUTE_VALUE AttrValues[] = {
+        { /* ATTR_VAL_IDX_MIN_PASSWORD_AGE */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        },
+        { /* ATTR_VAL_IDX_MAX_PASSWORD_AGE */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        },
+        { /* ATTR_VAL_IDX_MIN_PASSWORD_LENGTH */
+            .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+            .data.ulValue = 0
+        },
+        { /* ATTR_VAL_IDX_PASSWORD_PROMPT_TIME */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        },
+        { /* ATTR_VAL_IDX_LOCKOUT_THRESHOLD */
+            .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+            .data.ulValue = 0
+        },
+        { /* ATTR_VAL_IDX_LOCKOUT_DURATION */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        },
+        { /* ATTR_VAL_IDX_LOCKOUT_WINDOW */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        },
+        { /* ATTR_VAL_IDX_SEQUENCE_NUMBER */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        }
+    };
+
+    DIRECTORY_MOD ModMinPasswordAge = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrMinPasswordAge,
+        1,
+        &AttrValues[ATTR_VAL_IDX_MIN_PASSWORD_AGE]
+    };
+
+    DIRECTORY_MOD ModMaxPasswordAge = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrMaxPasswordAge,
+        1,
+        &AttrValues[ATTR_VAL_IDX_MAX_PASSWORD_AGE]
+    };
+
+    DIRECTORY_MOD ModMinPasswordLength = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrMinPasswordLength,
+        1,
+        &AttrValues[ATTR_VAL_IDX_MIN_PASSWORD_LENGTH]
+    };
+
+    DIRECTORY_MOD ModPasswordPromptTime = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrPasswordPromptTime,
+        1,
+        &AttrValues[ATTR_VAL_IDX_PASSWORD_PROMPT_TIME]
+    };
+
+    DIRECTORY_MOD ModLockoutThreshold = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrLockoutThreshold,
+        1,
+        &AttrValues[ATTR_VAL_IDX_LOCKOUT_THRESHOLD]
+    };
+
+    DIRECTORY_MOD ModLockoutDuration = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrLockoutDuration,
+        1,
+        &AttrValues[ATTR_VAL_IDX_LOCKOUT_DURATION]
+    };
+
+    DIRECTORY_MOD ModLockoutWindow = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrLockoutWindow,
+        1,
+        &AttrValues[ATTR_VAL_IDX_LOCKOUT_WINDOW]
+    };
+
+    DIRECTORY_MOD ModSequenceNumber = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrSequenceNumber,
+        1,
+        &AttrValues[ATTR_VAL_IDX_SEQUENCE_NUMBER]
+    };
+
+    DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1];
+    memset(Mods, 0, sizeof(Mods));
+
+    dwError = LsaProcessConfig(
+                "Services\\lsass\\Parameters\\SAM",
+                "Policy\\Services\\lsass\\Parameters\\SAM",
+                SamConfig,
+                sizeof(SamConfig)/sizeof(SamConfig[0]));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectoryOpen(&hDirectory);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectoryBind(
+                    hDirectory,
+                    pwszUserDN,
+                    pwszCredentials,
+                    ulMethod);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterFmt,
+                    dwDomainObjectClass);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    hDirectory,
+                    NULL,
+                    ulScope,
+                    pwszFilter,
+                    wszAttributes,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* There has to be exactly one domain object */
+    if (dwNumEntries != 1)
+    {
+        dwError = LW_ERROR_DATA_ERROR;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pEntry = &(pEntries[0]);
+
+    /*
+     * Get the basic domain info
+     */
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrDomain,
+                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                    &pwszDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrNetBIOSName,
+                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                    &pwszNetBIOSName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrObjectSID,
+                    DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                    &pwszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwWc16sToMbs(pwszDomainName, &pszDomainName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwWc16sToMbs(pwszNetBIOSName, &pszNetBIOSName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = RtlAllocateSidFromWC16String(
+                    &pLocalDomainSid,
+                    pwszSid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /*
+     * Check if we should update any of domain parameters
+     */
+
+    /* MinPasswordAge */
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrMinPasswordAge,
+                    DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                    &llMinPasswordAge);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    llNewMinPasswordAge = LW_WINTIME_TO_NTTIME_REL(dwNewMinPasswordAge);
+
+    if (llMinPasswordAge != llNewMinPasswordAge)
+    {
+        AttrValues[ATTR_VAL_IDX_MIN_PASSWORD_AGE].data.llValue =
+            llNewMinPasswordAge;
+        Mods[iMod++] = ModMinPasswordAge;
+
+        llMinPasswordAge = llNewMinPasswordAge;
+    }
+
+    /* MaxPasswordAge */
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrMaxPasswordAge,
+                    DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                    &llMaxPasswordAge);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    llNewMaxPasswordAge = LW_WINTIME_TO_NTTIME_REL(dwNewMaxPasswordAge);
+
+    if (llMaxPasswordAge != llNewMaxPasswordAge)
+    {
+        AttrValues[ATTR_VAL_IDX_MAX_PASSWORD_AGE].data.llValue =
+            llNewMaxPasswordAge;
+        Mods[iMod++] = ModMaxPasswordAge;
+
+        llMaxPasswordAge = llNewMaxPasswordAge;
+    }
+
+    /* MinPasswordLength */
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrMinPasswordLength,
+                    DIRECTORY_ATTR_TYPE_INTEGER,
+                    &dwMinPasswordLength);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwMinPasswordLength != dwNewMinPasswordLength)
+    {
+        AttrValues[ATTR_VAL_IDX_MIN_PASSWORD_LENGTH].data.ulValue =
+            dwNewMinPasswordLength;
+        Mods[iMod++] = ModMinPasswordLength;
+
+        dwMinPasswordLength = dwNewMinPasswordLength;
+    }
+
+    /* PasswordPromptTime */
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrPasswordPromptTime,
+                    DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                    &llPasswordPromptTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    llNewPasswordPromptTime = LW_WINTIME_TO_NTTIME_REL(dwNewPasswordPromptTime);
+
+    if (llPasswordPromptTime != llNewPasswordPromptTime)
+    {
+        AttrValues[ATTR_VAL_IDX_PASSWORD_PROMPT_TIME].data.llValue =
+            llNewPasswordPromptTime;
+        Mods[iMod++] = ModPasswordPromptTime;
+
+        llPasswordPromptTime = llNewPasswordPromptTime;
+    }
+
+    /* LockoutThreshold */
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrLockoutThreshold,
+                    DIRECTORY_ATTR_TYPE_INTEGER,
+                    &dwLockoutThreshold);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwLockoutThreshold != dwNewLockoutThreshold)
+    {
+        AttrValues[ATTR_VAL_IDX_LOCKOUT_THRESHOLD].data.ulValue =
+            dwLockoutThreshold;
+        Mods[iMod++] = ModLockoutThreshold;
+
+        dwLockoutThreshold = dwNewLockoutThreshold;
+    }
+
+    /* LockoutDuration */
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrLockoutDuration,
+                    DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                    &llLockoutDuration);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    llNewLockoutDuration = LW_WINTIME_TO_NTTIME_REL(dwNewLockoutDuration);
+
+    if (llLockoutDuration != llNewLockoutDuration)
+    {
+        AttrValues[ATTR_VAL_IDX_LOCKOUT_DURATION].data.llValue =
+            llNewLockoutDuration;
+        Mods[iMod++] = ModLockoutDuration;
+
+        llLockoutDuration = llNewLockoutDuration;
+    }
+
+    /* LockoutWindow */
+    dwError = DirectoryGetEntryAttrValueByName(
+                    pEntry,
+                    wszAttrLockoutWindow,
+                    DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                    &llLockoutWindow);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    llNewLockoutWindow = LW_WINTIME_TO_NTTIME_REL(dwNewLockoutWindow);
+
+    if (llLockoutWindow != llNewLockoutWindow)
+    {
+        AttrValues[ATTR_VAL_IDX_LOCKOUT_DURATION].data.llValue =
+            llNewLockoutWindow;
+        Mods[iMod++] = ModLockoutWindow;
+
+        llLockoutWindow = llNewLockoutWindow;
+    }
+
+    /*
+     * Update domain object with current SAM configuration if
+     * there was any change found
+     */
+
+    if (iMod)
+    {
+        dwError = DirectoryGetEntryAttrValueByName(
+                        pEntry,
+                        wszAttrSequenceNumber,
+                        DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                        &llSequenceNumber);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        AttrValues[ATTR_VAL_IDX_SEQUENCE_NUMBER].data.llValue =
+            ++llSequenceNumber;
+        Mods[iMod++] = ModSequenceNumber;
+
+        dwError = DirectoryGetEntryAttrValueByName(
+                        pEntry,
+                        wszAttrDn,
+                        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                        &pwszDomainDn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryModifyObject(
+                        hDirectory,
+                        pwszDomainDn,
+                        Mods);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    pGlobals->pszLocalDomain       = pszDomainName;
+    pGlobals->pszNetBIOSName       = pszNetBIOSName;
+    pGlobals->pLocalDomainSID      = pLocalDomainSid;
+    pGlobals->llMinPwdAge          = llMinPasswordAge;
+    pGlobals->llMaxPwdAge          = llMaxPasswordAge;
+    pGlobals->dwMinPwdLength       = dwMinPasswordLength;
+    pGlobals->llPwdChangeTime      = llPasswordPromptTime;
+    pGlobals->dwLockoutThreshold   = dwLockoutThreshold;
+    pGlobals->llLockoutDuration    = llLockoutDuration;
+    pGlobals->llLockoutWindow      = llLockoutWindow;
+
+cleanup:
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
+
+    if (dwError == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
 
 DWORD
 LocalGetDomainInfo(

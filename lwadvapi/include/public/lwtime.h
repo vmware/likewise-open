@@ -53,6 +53,9 @@
 #define LW_SECONDS_IN_DAY    (24 * LW_SECONDS_IN_HOUR)
 #define LW_SECONDS_IN_MINUTE (60)
 
+#define LW_WINTIME_TO_NTTIME_REL(winTime)  ((winTime) * 10000000LL)
+#define LW_NTTIME_TO_WINTIME_REL(ntTime)   ((ntTime) / 10000000LL)
+
 
 DWORD
 LwParseDateString(

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2010
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        samr_querysecurity.c
+ *        samr_setsecurity.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        SamrQuerySecurity function
+ *        SamrSetSecurity function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -48,11 +48,11 @@
 
 
 NTSTATUS
-SamrSrvQuerySecurity(
+SamrSrvSetSecurity(
     IN  handle_t                          hBinding,
     IN  void                             *hObject,
     IN  DWORD                             dwSecurityInfo,
-    OUT PSAMR_SECURITY_DESCRIPTOR_BUFFER *ppSecDescBuf
+    IN  PSAMR_SECURITY_DESCRIPTOR_BUFFER  pSecDescBuf
     )
 {
     const wchar_t wszFilterFmt[] = L"%ws='%ws'";
@@ -75,15 +75,43 @@ SamrSrvQuerySecurity(
     DWORD dwNumEntries = 0;
     PDIRECTORY_ENTRY pObjectEntry = NULL;
     POCTET_STRING pSecDescBlob = NULL;
-    PSAMR_SECURITY_DESCRIPTOR_BUFFER pSecDescBuf = NULL;
+    GENERIC_MAPPING GenericMapping = {0};
+    PSECURITY_DESCRIPTOR_RELATIVE pCurrentSecDesc = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDescChange = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pNewSecDesc = NULL;
+    DWORD dwNewSecDescLength = 0;
+    OCTET_STRING NewSecDescBlob = {0};
+    DWORD iMod = 0;
 
     PWSTR wszAttributes[] = {
         wszAttrSecDesc,
         NULL
     };
 
+    enum AttrValueIndex {
+        ATTR_VAL_IDX_SEC_DESC = 0,
+        ATTR_VAL_IDX_SENTINEL
+    };
+
+    ATTRIBUTE_VALUE AttrValues[] = {
+        {   /* ATTR_VAL_IDX_SEC_DESC */
+            .Type = DIRECTORY_ATTR_TYPE_OCTET_STREAM,
+            .data.pOctetString = NULL
+        }
+    };
+
+    DIRECTORY_MOD ModSecDesc = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrSecDesc,
+        1,
+        &AttrValues[ATTR_VAL_IDX_SEC_DESC]
+    };
+
+    DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1];
+    memset(&Mods, 0, sizeof(Mods));
+
     /*
-     * Only querying security descriptor on an account is allowed
+     * Only setting security descriptor in an account is allowed
      */
     if (pCtx->Type == SamrContextAccount)
     {
@@ -106,9 +134,15 @@ SamrSrvQuerySecurity(
     /*
      * 1) READ_CONTROL right is required to read a security descriptor
      * 2) Querying SACL part of the SD is not permitted over rpc
+     * 3) WRITE_DAC right is required to change a DACL in security descriptor
+     * 4) WRITE_OWNER right is require to change owner in security descriptor
      */
     if (!(pAcctCtx->dwAccessGranted & READ_CONTROL) ||
-        dwSecurityInfo & SACL_SECURITY_INFORMATION)
+        dwSecurityInfo & SACL_SECURITY_INFORMATION ||
+        ((dwSecurityInfo & DACL_SECURITY_INFORMATION) &&
+         !(pAcctCtx->dwAccessGranted & WRITE_DAC)) ||
+        ((dwSecurityInfo & OWNER_SECURITY_INFORMATION) &&
+         !(pAcctCtx->dwAccessGranted & WRITE_OWNER)))
     {
         ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
@@ -162,13 +196,46 @@ SamrSrvQuerySecurity(
                               &pSecDescBlob);
     BAIL_ON_LSA_ERROR(dwError);
 
-    ntStatus = SamrSrvAllocateSecDescBuffer(
-                              &pSecDescBuf,
-                              (SECURITY_INFORMATION)dwSecurityInfo,
-                              pSecDescBlob);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    pCurrentSecDesc  = (PSECURITY_DESCRIPTOR_RELATIVE)pSecDescBlob->pBytes;
+    pSecDescChange   = (PSECURITY_DESCRIPTOR_RELATIVE)pSecDescBuf->pBuffer;
 
-    *ppSecDescBuf = pSecDescBuf;
+    ntStatus = RtlSetSecurityDescriptorInfo(
+                              (SECURITY_INFORMATION)dwSecurityInfo,
+                              pSecDescChange,
+                              pCurrentSecDesc,
+                              NULL,
+                              &dwNewSecDescLength,
+                              &GenericMapping);
+    if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+    {
+        dwError = LwAllocateMemory(dwNewSecDescLength,
+                                   OUT_PPVOID(&pNewSecDesc));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ntStatus = RtlSetSecurityDescriptorInfo(
+                                  (SECURITY_INFORMATION)dwSecurityInfo,
+                                  pSecDescChange,
+                                  pCurrentSecDesc,
+                                  pNewSecDesc,
+                                  &dwNewSecDescLength,
+                                  &GenericMapping);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+    else
+    {
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    NewSecDescBlob.pBytes     = (PBYTE)pNewSecDesc;
+    NewSecDescBlob.ulNumBytes = dwNewSecDescLength;
+
+    AttrValues[ATTR_VAL_IDX_SEC_DESC].data.pOctetString = &NewSecDescBlob;
+    Mods[iMod++] = ModSecDesc;
+
+    dwError = DirectoryModifyObject(hDirectory,
+                                    pwszDn,
+                                    Mods);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     if (pEntries)
@@ -177,6 +244,7 @@ cleanup:
     }
 
     LW_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_MEMORY(pNewSecDesc);
 
     if (ntStatus == STATUS_SUCCESS &&
         dwError != ERROR_SUCCESS)
@@ -187,18 +255,6 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pSecDescBuf)
-    {
-        if (pSecDescBuf->pBuffer)
-        {
-            SamrSrvFreeMemory(pSecDescBuf->pBuffer);
-        }
-
-        SamrSrvFreeMemory(pSecDescBuf);
-    }
-
-    *ppSecDescBuf = NULL;
-
     goto cleanup;
 }
 

@@ -67,8 +67,18 @@ LocalCfgReadRegistry(
     );
 
 DWORD
+LocalCfgGetMinPasswordAge(
+    PLONG64 pllMinPwdAge
+    );
+
+DWORD
 LocalCfgGetMaxPasswordAge(
     PLONG64 pllMaxPwdAge
+    );
+
+DWORD
+LocalCfgGetMinPwdLength(
+    PDWORD pdwMinPwdLength
     );
 
 DWORD

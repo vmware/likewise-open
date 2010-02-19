@@ -133,6 +133,25 @@ LocalCfgTransferContents(
     return 0;
 }
 
+DWORD
+LocalCfgGetMinPasswordAge(
+    PLONG64 pllMinPwdAge
+    )
+{
+    DWORD  dwError = 0;
+    LONG64 llMinPwdAge = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    llMinPwdAge = gLPGlobals.llMinPwdAge;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pllMinPwdAge = llMinPwdAge;
+
+    return dwError;
+}
 
 DWORD
 LocalCfgGetMaxPasswordAge(
@@ -150,6 +169,26 @@ LocalCfgGetMaxPasswordAge(
     LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
 
     *pllMaxPwdAge = llMaxPwdAge;
+
+    return dwError;
+}
+
+DWORD
+LocalCfgGetMinPwdLength(
+    PDWORD pdwMinPwdLength
+    )
+{
+    DWORD  dwError = 0;
+    DWORD dwMinPwdLength = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LOCAL_LOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    dwMinPwdLength = gLPGlobals.dwMinPwdLength;
+
+    LOCAL_UNLOCK_MUTEX(bInLock, &gLPGlobals.mutex);
+
+    *pdwMinPwdLength = dwMinPwdLength;
 
     return dwError;
 }

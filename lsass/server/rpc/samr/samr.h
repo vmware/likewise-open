@@ -56,11 +56,20 @@ SamrSrvClose(
 
 
 NTSTATUS
+SamrSrvSetSecurity(
+    IN  handle_t hBinding,
+    IN  void *hObject,
+    IN  UINT32 security_info,
+    IN  PSAMR_SECURITY_DESCRIPTOR_BUFFER secdesc
+    );
+
+
+NTSTATUS
 SamrSrvQuerySecurity(
-    handle_t hBinding,
-    void *hObject,
-    UINT32 security_info,
-    PSECURITY_DESCRIPTOR_BUFFER *secdesc
+    IN  handle_t hBinding,
+    IN  void *hObject,
+    IN  UINT32 security_info,
+    OUT PSAMR_SECURITY_DESCRIPTOR_BUFFER *secdesc
     );
 
 

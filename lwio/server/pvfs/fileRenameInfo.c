@@ -114,6 +114,7 @@ PvfsSetFileRenameInfo(
     ACCESS_MASK DirDesired = 0;
     PSTR pszNewFileDirname = NULL;
     PSTR pszNewFileBasename = NULL;
+    PSTR pszCanonicalNewPathname = NULL;
 
     /* Sanity checks */
 
@@ -182,14 +183,22 @@ PvfsSetFileRenameInfo(
 
     /* Real work starts here */
 
-    /* Check for an existing file if not asked to overwrite */
+    /* Check for an existing file */
 
-    if (pFileInfo->ReplaceIfExists == FALSE)
+    ntError = PvfsLookupPath(
+                  &pszCanonicalNewPathname,
+                  pszNewPathname,
+                  FALSE);
+    if (ntError == STATUS_SUCCESS)
     {
-        PVFS_STAT Stat = {0};
-
-        ntError = PvfsSysStat(pszNewPathname, &Stat);
-        if (ntError == STATUS_SUCCESS) {
+        if (pFileInfo->ReplaceIfExists)
+        {
+            LwRtlCStringFree(&pszNewPathname);
+            pszNewPathname = pszCanonicalNewPathname;
+            pszCanonicalNewPathname = NULL;
+        }
+        else
+        {
             ntError = STATUS_OBJECT_NAME_COLLISION;
             BAIL_ON_NT_STATUS(ntError);
         }
@@ -208,6 +217,7 @@ PvfsSetFileRenameInfo(
         pCcb->pszFilename);
 
 cleanup:
+    LwRtlCStringFree(&pszCanonicalNewPathname);
     LwRtlCStringFree(&pszNewPathname);
     LwRtlCStringFree(&pszNewFileDirname);
     LwRtlCStringFree(&pszNewFileBasename);

@@ -47,6 +47,14 @@
 #include "includes.h"
 
 
+static
+NTSTATUS
+SamrSrvCheckPasswordPolicy(
+    IN  PACCOUNT_CONTEXT pAcctCtx,
+    IN  PWSTR            pwszPassword
+    );
+
+
 NTSTATUS
 SamrSrvSetUserInfo(
     IN  handle_t        hBinding,
@@ -137,6 +145,17 @@ SamrSrvSetUserInfo(
         SET_NTTIME_VALUE((pinfo)->field, (idx), (mod));           \
     } while (0);
 
+#define EXPIRE_PASSWORD_BY_FLAG(pinfo, field, flag, idx, mod)     \
+    do {                                                          \
+        TEST_ACCOUNT_FIELD_FLAG((pinfo)->fields_present,          \
+                                (flag));                          \
+        if ((pinfo)->field)                                       \
+        {                                                         \
+            SET_NTTIME_VALUE(0, (idx), (mod));                    \
+        }                                                         \
+    } while (0);
+
+
 
 NTSTATUS
 SamrSrvSetUserInfoInternal(
@@ -165,6 +184,7 @@ SamrSrvSetUserInfoInternal(
     WCHAR wszAttrProfilePath[] = DS_ATTR_PROFILE_PATH;
     WCHAR wszAttrWorkstations[]= DS_ATTR_WORKSTATIONS;
     WCHAR wszAttrParameters[] = DS_ATTR_PARAMETERS;
+    WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
     WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
     WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
@@ -185,6 +205,7 @@ SamrSrvSetUserInfoInternal(
         ATTR_VAL_IDX_WORKSTATIONS,
         ATTR_VAL_IDX_COMMENT,
         ATTR_VAL_IDX_PARAMETERS,
+        ATTR_VAL_IDX_LAST_PASSWORD_CHANGE,
         ATTR_VAL_IDX_ALLOW_PASSWORD_CHANGE,
         ATTR_VAL_IDX_FORCE_PASSWORD_CHANGE,
         ATTR_VAL_IDX_ACCOUNT_EXPIRY,
@@ -236,17 +257,21 @@ SamrSrvSetUserInfoInternal(
             .Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING,
             .data.pwszStringValue = NULL
         },
+        {   /* ATTR_VAL_IDX_LAST_PASSWORD_CHANGE */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        },
         {   /* ATTR_VAL_IDX_ALLOW_PASSWORD_CHANGE */
             .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
             .data.ulValue = 0
         },
         {   /* ATTR_VAL_IDX_FORCE_PASSWORD_CHANGE */
             .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-            .data.ulValue = 0
+            .data.llValue = 0
         },
         {   /* ATTR_VAL_IDX_ACCOUNT_EXPIRY */
             .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
-            .data.ulValue = 0
+            .data.llValue = 0
         },
         {   /* ATTR_VAL_IDX_ACCOUNT_FLAGS */
             .Type = DIRECTORY_ATTR_TYPE_INTEGER,
@@ -334,6 +359,13 @@ SamrSrvSetUserInfoInternal(
         wszAttrParameters,
         1,
         &AttrValues[ATTR_VAL_IDX_PARAMETERS]
+    };
+
+    DIRECTORY_MOD ModLastPasswordChange = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrLastPasswordChange,
+        1,
+        &AttrValues[ATTR_VAL_IDX_LAST_PASSWORD_CHANGE]
     };
 
     DIRECTORY_MOD ModAllowPasswordChange = {
@@ -550,6 +582,10 @@ SamrSrvSetUserInfoInternal(
         break;
 
     case 21:
+        SET_NTTIME_VALUE_BY_FLAG(&pInfo->info21, last_password_change,
+                                 SAMR_FIELD_LAST_PWD_CHANGE,
+                                 ATTR_VAL_IDX_LAST_PASSWORD_CHANGE,
+                                 ModLastPasswordChange);
         SET_NTTIME_VALUE_BY_FLAG(&pInfo->info21, account_expiry,
                                  SAMR_FIELD_ACCT_EXPIRY,
                                  ATTR_VAL_IDX_ACCOUNT_EXPIRY,
@@ -618,9 +654,17 @@ SamrSrvSetUserInfoInternal(
                                  SAMR_FIELD_CODE_PAGE,
                                  ATTR_VAL_IDX_CODE_PAGE,
                                  ModCodePage);
+        EXPIRE_PASSWORD_BY_FLAG(&pInfo->info21, password_expired,
+                                SAMR_FIELD_EXPIRED_FLAG,
+                                ATTR_VAL_IDX_LAST_PASSWORD_CHANGE,
+                                ModLastPasswordChange);
         break;
 
     case 25:
+        SET_NTTIME_VALUE_BY_FLAG(&pInfo->info25.info, last_password_change,
+                                 SAMR_FIELD_LAST_PWD_CHANGE,
+                                 ATTR_VAL_IDX_LAST_PASSWORD_CHANGE,
+                                 ModLastPasswordChange);
         SET_NTTIME_VALUE_BY_FLAG(&pInfo->info25.info, account_expiry,
                                  SAMR_FIELD_ACCT_EXPIRY,
                                  ATTR_VAL_IDX_ACCOUNT_EXPIRY,
@@ -689,6 +733,10 @@ SamrSrvSetUserInfoInternal(
                                  SAMR_FIELD_CODE_PAGE,
                                  ATTR_VAL_IDX_CODE_PAGE,
                                  ModCodePage);
+        EXPIRE_PASSWORD_BY_FLAG(&pInfo->info25.info, password_expired,
+                                SAMR_FIELD_EXPIRED_FLAG,
+                                ATTR_VAL_IDX_LAST_PASSWORD_CHANGE,
+                                ModLastPasswordChange);
 
         ntStatus = SamrSrvDecryptPasswordBlobEx(pConnCtx,
                                                 &pInfo->info25.password,
@@ -696,6 +744,10 @@ SamrSrvSetUserInfoInternal(
                                                 0,
                                                 0,
                                                 &pwszPassword);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        ntStatus = SamrSrvCheckPasswordPolicy(pAcctCtx,
+                                              pwszPassword);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         dwError = DirectorySetPassword(hDirectory,
@@ -713,6 +765,10 @@ SamrSrvSetUserInfoInternal(
                                                 0,
                                                 dwPasswordLen,
                                                 &pwszPassword);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        ntStatus = SamrSrvCheckPasswordPolicy(pAcctCtx,
+                                              pwszPassword);
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
         dwError = DirectorySetPassword(hDirectory,
@@ -753,6 +809,132 @@ cleanup:
         {
             LW_SAFE_FREE_MEMORY(AttrValues[i].data.pOctetString);
         }
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SamrSrvCheckPasswordPolicy(
+    IN  PACCOUNT_CONTEXT pAcctCtx,
+    IN  PWSTR            pwszPassword
+    )
+{
+    wchar_t wszFilterFmt[] = L"%ws='%ws'";
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PDOMAIN_CONTEXT pDomCtx = NULL;
+    PCONNECT_CONTEXT pConnCtx = NULL;
+    WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrPasswordLastSet[] = DS_ATTR_PASSWORD_LAST_SET;
+    PWSTR pwszBase = 0;
+    DWORD dwScope = 0;
+    size_t sDnLen = 0;
+    DWORD dwFilterLen = 0;
+    PWSTR pwszFilter = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    DWORD dwNumEntries = 0;
+    LONG64 llLastPasswordChange = 0;
+    LONG64 llCurrentTime = 0;
+    size_t sPasswordLen = 0;
+
+    PWSTR wszAttributes[] = {
+        wszAttrPasswordLastSet,
+        NULL
+    };
+
+    pDomCtx  = pAcctCtx->pDomCtx;
+    pConnCtx = pDomCtx->pConnCtx;
+    pwszBase = pDomCtx->pwszDn;
+
+    dwError = LwWc16sLen(pAcctCtx->pwszDn, &sDnLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwFilterLen = ((sizeof(wszAttrDn)/sizeof(WCHAR)) - 1) +
+                  sDnLen +
+                  (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
+
+    dwError = LwAllocateMemory(sizeof(WCHAR) * dwFilterLen,
+                               OUT_PPVOID(&pwszFilter));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrDn, pAcctCtx->pwszDn) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    dwError = DirectorySearch(pConnCtx->hDirectory,
+                              pwszBase,
+                              dwScope,
+                              pwszFilter,
+                              wszAttributes,
+                              FALSE,
+                              &pEntry,
+                              &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+
+    }
+    else if (dwNumEntries > 1)
+    {
+        ntStatus = STATUS_INTERNAL_ERROR;
+    }
+
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrPasswordLastSet,
+                              DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                              &llLastPasswordChange);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    dwError = LwGetNtTime((PULONG64)&llCurrentTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /*
+     * Check if password can be change give its age
+     */
+    if (llCurrentTime - llLastPasswordChange < pDomCtx->ntMinPasswordAge)
+    {
+        ntStatus = STATUS_PASSWORD_RESTRICTION;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    dwError = LwWc16sLen(pwszPassword, &sPasswordLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /*
+     * Check if password is longer than required minimum
+     */
+    if (sPasswordLen < pDomCtx->dwMinPasswordLen)
+    {
+        ntStatus = STATUS_PASSWORD_RESTRICTION;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+cleanup:
+    if (pEntry)
+    {
+        DirectoryFreeEntries(pEntry, dwNumEntries);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;

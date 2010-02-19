@@ -59,7 +59,7 @@ typedef struct __LWIO_CONFIG_TABLE
     PVOID pValue;
 } LWIO_CONFIG_TABLE, *PLWIO_CONFIG_TABLE;
 
-DWORD
+NTSTATUS
 LwIoProcessConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
@@ -67,7 +67,7 @@ LwIoProcessConfig(
     DWORD dwConfigEntries
     );
 
-DWORD
+NTSTATUS
 LwIoOpenConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
@@ -79,7 +79,7 @@ LwIoCloseConfig(
     PLWIO_CONFIG_REG pReg
     );
 
-DWORD
+NTSTATUS
 LwIoReadConfigString(
     PLWIO_CONFIG_REG pReg,
     PCSTR   pszName,
@@ -87,7 +87,7 @@ LwIoReadConfigString(
     PSTR    *ppszValue
     );
 
-DWORD
+NTSTATUS
 LwIoReadConfigDword(
     PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
@@ -97,7 +97,7 @@ LwIoReadConfigDword(
     PDWORD pdwValue
     );
 
-DWORD
+NTSTATUS
 LwIoReadConfigBoolean(
     PLWIO_CONFIG_REG pReg,
     PCSTR pszName,
@@ -105,7 +105,7 @@ LwIoReadConfigBoolean(
     PBOOLEAN pbValue
     );
 
-DWORD
+NTSTATUS
 LwIoReadConfigEnum(
     PLWIO_CONFIG_REG pReg,
     PCSTR pszName,

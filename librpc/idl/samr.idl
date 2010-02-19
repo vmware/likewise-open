@@ -99,14 +99,14 @@ cpp_quote("#endif")
     NTSTATUS _SamrSetSecurity(
         [in,context_handle] void *hObject,
         [in] UINT32 security_info,
-        [in] PSECURITY_DESCRIPTOR_BUFFER *secdesc
+        [in,ref] SAMR_SECURITY_DESCRIPTOR_BUFFER *secdesc
         );
 
     /* function 0x03 */
     NTSTATUS _SamrQuerySecurity(
         [in,context_handle] void *hObject,
         [in] UINT32 security_info,
-        [out] PSECURITY_DESCRIPTOR_BUFFER *secdesc
+        [out] PSAMR_SECURITY_DESCRIPTOR_BUFFER *secdesc
         );
 
     NTSTATUS samr_Function04();

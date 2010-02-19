@@ -1245,7 +1245,6 @@ error:
     return dwError;
 }
 
-
 static
 DWORD
 AD_JoinDomain(
@@ -1323,6 +1322,9 @@ AD_JoinDomain(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_PostJoinDomain(hProvider, gpLsaAdProviderState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaEnableDomainGroupMembership(pRequest->pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     LSA_LOG_INFO("Joined domain: %s", pRequest->pszDomain);
@@ -1441,6 +1443,9 @@ AD_LeaveDomain(
 
     LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
     bLocked = TRUE;
+
+    dwError = LsaDisableDomainGroupMembership();
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_PreLeaveDomain(hProvider, gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);

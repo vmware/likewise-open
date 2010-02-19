@@ -594,6 +594,17 @@ typedef union samr_display_info  {
 #endif /* _DCE_IDL_ */
 
 
+typedef struct _SAMR_SECURITY_DESCRIPTOR_BUFFER
+{
+    ULONG ulBufferLen;
+#ifdef _DCE_IDL_
+    [size_is(ulBufferLen)]
+#endif
+    PBYTE pBuffer;
+}
+SAMR_SECURITY_DESCRIPTOR_BUFFER, *PSAMR_SECURITY_DESCRIPTOR_BUFFER;
+
+
 /*
  * Samr context handles
  */

@@ -117,9 +117,9 @@ SamrSrvFreeUnicodeStringEx(
 
 NTSTATUS
 SamrSrvAllocateSecDescBuffer(
-    PSECURITY_DESCRIPTOR_BUFFER *ppBuffer,
-    SECURITY_INFORMATION         SecInfo,
-    POCTET_STRING                pBlob
+    PSAMR_SECURITY_DESCRIPTOR_BUFFER *ppBuffer,
+    SECURITY_INFORMATION              SecInfo,
+    POCTET_STRING                     pBlob
     );
 
 

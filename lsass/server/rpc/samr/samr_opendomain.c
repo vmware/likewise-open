@@ -66,8 +66,12 @@ SamrSrvOpenDomain(
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
     WCHAR wszAttrCommonName[] = DS_ATTR_COMMON_NAME;
     WCHAR wszAttrDn[] = DS_ATTR_DISTINGUISHED_NAME;
+    WCHAR wszAttrMinPwdAge[] = DS_ATTR_MIN_PWD_AGE;
+    WCHAR wszAttrMaxPwdAge[] = DS_ATTR_MAX_PWD_AGE;
     WCHAR wszAttrMinPwdLength[] = DS_ATTR_MIN_PWD_LENGTH;
+    WCHAR wszAttrPwdPromptTime[] = DS_ATTR_PWD_PROMPT_TIME;
     WCHAR wszAttrPwdProperties[] = DS_ATTR_PWD_PROPERTIES;
+    WCHAR wszAttrSequenceNumber[] = DS_ATTR_SEQUENCE_NUMBER;
     WCHAR wszAttrSecurityDescriptor[] = DS_ATTR_SECURITY_DESCRIPTOR;
     DWORD dwObjectClassDomain = DS_OBJECT_CLASS_DOMAIN;
     DWORD dwObjectClassBuiltin = DS_OBJECT_CLASS_BUILTIN_DOMAIN;
@@ -87,15 +91,22 @@ SamrSrvOpenDomain(
     PWSTR pwszDomainName = NULL;
     PWSTR pwszDn = NULL;
     PWSTR pwszDomainDn = NULL;
+    LONG64 llMinPasswordAge = 0;
+    LONG64 llMaxPasswordAge = 0;
     DWORD dwMinPwdLen = 0;
+    LONG64 llPasswordPromptTime = 0;
     DWORD dwPwdProperties = 0;
 
     PWSTR wszAttributes[] = {
         wszAttrCommonName,
         wszAttrObjectSid,
         wszAttrDn,
+        wszAttrMinPwdAge,
+        wszAttrMaxPwdAge,
         wszAttrMinPwdLength,
+        wszAttrPwdPromptTime,
         wszAttrPwdProperties,
+        wszAttrSequenceNumber,
         wszAttrSecurityDescriptor,
         NULL
     };
@@ -234,12 +245,36 @@ SamrSrvOpenDomain(
                                    pwszDn);
     BAIL_ON_LSA_ERROR(dwError);
 
+    /* Min password age */
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrMinPwdAge,
+                              DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                              &llMinPasswordAge);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Max password age */
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrMaxPwdAge,
+                              DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                              &llMaxPasswordAge);
+    BAIL_ON_LSA_ERROR(dwError);
+
     /* Min password length */
     dwError = DirectoryGetEntryAttrValueByName(
                               pEntry,
                               wszAttrMinPwdLength,
                               DIRECTORY_ATTR_TYPE_INTEGER,
                               &dwMinPwdLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    /* Password prompt time */
+    dwError = DirectoryGetEntryAttrValueByName(
+                              pEntry,
+                              wszAttrPwdPromptTime,
+                              DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+                              &llPasswordPromptTime);
     BAIL_ON_LSA_ERROR(dwError);
 
     /* Password properties */
@@ -256,7 +291,10 @@ SamrSrvOpenDomain(
     pDomCtx->pDomainSid           = pDomainSid;
     pDomCtx->pwszDomainName       = pwszDomainName;
     pDomCtx->pwszDn               = pwszDomainDn;
+    pDomCtx->ntMinPasswordAge     = (NtTime)llMinPasswordAge;
+    pDomCtx->ntMaxPasswordAge     = (NtTime)llMaxPasswordAge;
     pDomCtx->dwMinPasswordLen     = dwMinPwdLen;
+    pDomCtx->ntPasswordPromptTime = (NtTime)llPasswordPromptTime;
     pDomCtx->dwPasswordProperties = dwPwdProperties;
 
     pDomCtx->pConnCtx         = pConnCtx;

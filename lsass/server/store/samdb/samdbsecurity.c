@@ -139,7 +139,9 @@ SamDbCreateLocalDomainSecDesc(
                                     SECURITY_DESCRIPTOR_REVISION);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Set owner to LOCAL_SYSTEM */
+    /*
+     * Set owner to SYSTEM
+     */
     dwError = LwCreateWellKnownSid(WinLocalSystemSid,
                                    NULL,
                                    &pOwnerSid,
@@ -152,7 +154,9 @@ SamDbCreateLocalDomainSecDesc(
                                     FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Set group to BUILTIN\Administrators */
+    /*
+     * Set group to BUILTIN\Administrators
+     */
     dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
                                    NULL,
                                    &pGroupSid,
@@ -243,7 +247,9 @@ SamDbCreateBuiltinDomainSecDesc(
                                     SECURITY_DESCRIPTOR_REVISION);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Set owner to LOCAL_SYSTEM */
+    /*
+     * Set owner to LOCAL_SYSTEM
+     */
     dwError = LwCreateWellKnownSid(WinLocalSystemSid,
                                    NULL,
                                    &pOwnerSid,
@@ -256,7 +262,9 @@ SamDbCreateBuiltinDomainSecDesc(
                                     FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* Set group to BUILTIN\Administrators */
+    /*
+     * Set group to BUILTIN\Administrators
+     */
     dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
                                    NULL,
                                    &pGroupSid,
@@ -331,8 +339,8 @@ SamDbCreateLocalUserSecDesc(
 {
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSID pBuiltinAdminsSid = NULL;
-    DWORD dwBuiltinAdminsSidSize = 0;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
     ULONG ulSecDescLen = 1024;
@@ -348,21 +356,30 @@ SamDbCreateLocalUserSecDesc(
     BAIL_ON_NT_STATUS(ntStatus);
 
     /*
-     * Set owner and group (BUILTIN\Administrators)
+     * Set owner (BUITLIN\Administrators)
      */
     dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
                                    NULL,
-                                   &pBuiltinAdminsSid,
-                                   &dwBuiltinAdminsSidSize);
+                                   &pOwnerSid,
+                                   NULL);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     ntStatus = RtlSetOwnerSecurityDescriptor(pSecDesc,
-                                             pBuiltinAdminsSid,
+                                             pOwnerSid,
                                              FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /*
+     * Set group (BUILTIN\Administrators)
+     */
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &pGroupSid,
+                                   NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     ntStatus = RtlSetGroupSecurityDescriptor(pSecDesc,
-                                             pBuiltinAdminsSid,
+                                             pGroupSid,
                                              FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -428,8 +445,8 @@ SamDbCreateLocalGroupSecDesc(
 {
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSID pBuiltinAdminsSid = NULL;
-    DWORD dwBuiltinAdminsSidSize = 0;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
     ULONG ulSecDescLen = 1024;
@@ -445,21 +462,30 @@ SamDbCreateLocalGroupSecDesc(
     BAIL_ON_NT_STATUS(ntStatus);
 
     /*
-     * Set owner and group (BUILTIN\Administrators)
+     * Set owner (BUILTIN\Administrators)
      */
     dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
                                    NULL,
-                                   &pBuiltinAdminsSid,
-                                   &dwBuiltinAdminsSidSize);
+                                   &pOwnerSid,
+                                   NULL);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     ntStatus = RtlSetOwnerSecurityDescriptor(pSecDesc,
-                                             pBuiltinAdminsSid,
+                                             pOwnerSid,
                                              FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /*
+     * Set group (BUILTIN\Administrators)
+     */
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &pGroupSid,
+                                   NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     ntStatus = RtlSetGroupSecurityDescriptor(pSecDesc,
-                                             pBuiltinAdminsSid,
+                                             pGroupSid,
                                              FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -525,8 +551,8 @@ SamDbCreateBuiltinGroupSecDesc(
 {
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSID pBuiltinAdminsSid = NULL;
-    DWORD dwBuiltinAdminsSidSize = 0;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
     ULONG ulSecDescLen = 1024;
@@ -542,21 +568,30 @@ SamDbCreateBuiltinGroupSecDesc(
     BAIL_ON_NT_STATUS(ntStatus);
 
     /*
-     * Set owner and group (BUILTIN\Administrators)
+     * Set owner (BUILTIN\Administrators)
      */
     dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
                                    NULL,
-                                   &pBuiltinAdminsSid,
-                                   &dwBuiltinAdminsSidSize);
+                                   &pOwnerSid,
+                                   NULL);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     ntStatus = RtlSetOwnerSecurityDescriptor(pSecDesc,
-                                             pBuiltinAdminsSid,
+                                             pOwnerSid,
                                              FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /*
+     * Set group (BUILTIN\Administrators)
+     */
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &pGroupSid,
+                                   NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     ntStatus = RtlSetGroupSecurityDescriptor(pSecDesc,
-                                             pBuiltinAdminsSid,
+                                             pGroupSid,
                                              FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -622,8 +657,8 @@ SamDbCreateNewLocalAccountSecDesc(
 {
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSID pBuiltinAdminsSid = NULL;
-    DWORD dwBuiltinAdminsSidSize = 0;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
     PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
     ULONG ulSecDescLen = 1024;
@@ -639,21 +674,30 @@ SamDbCreateNewLocalAccountSecDesc(
     BAIL_ON_NT_STATUS(ntStatus);
 
     /*
-     * Set owner and group (BUILTIN\Administrators)
+     * Set owner (BUILTIN\Administrators)
      */
     dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
                                    NULL,
-                                   &pBuiltinAdminsSid,
-                                   &dwBuiltinAdminsSidSize);
+                                   &pOwnerSid,
+                                   NULL);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     ntStatus = RtlSetOwnerSecurityDescriptor(pSecDesc,
-                                             pBuiltinAdminsSid,
+                                             pOwnerSid,
                                              FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /*
+     * Set group (BUILTIN\Administrators)
+     */
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &pGroupSid,
+                                   NULL);
+    BAIL_ON_SAMDB_ERROR(dwError);
+
     ntStatus = RtlSetGroupSecurityDescriptor(pSecDesc,
-                                             pBuiltinAdminsSid,
+                                             pGroupSid,
                                              FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 

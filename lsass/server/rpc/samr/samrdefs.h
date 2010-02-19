@@ -118,6 +118,8 @@
     {'C','r','e','a','t','e','d','T','i','m','e',0}
 #define DS_ATTR_MIN_PWD_LENGTH \
     {'M','i','n','P','w','d','L','e','n','g','t','h',0}
+#define DS_ATTR_PWD_PROMPT_TIME \
+    {'P','w','d','P','r','o','m','p','t','T','i','m','e',0}
 #define DS_ATTR_PWD_HISTORY_LENGTH \
     {'P','w','d','H','i','s','t','o','r','y','L','e','n','g','t','h',0}
 #define DS_ATTR_PWD_PROPERTIES \
@@ -132,6 +134,8 @@
     {'L','a','s','t','L','o','g','o','f','f',0}
 #define DS_ATTR_FORCE_LOGOFF_TIME \
     {'F','o','r','c','e','L','o','g','o','f','f','T','i','m','e',0}
+#define DS_ATTR_SEQUENCE_NUMBER \
+    {'S','e','q','u','e','n','c','e','N','u','m','b','e','r',0}
 #define DS_ATTR_LOCKOUT_DURATION \
     {'L','o','c','k','o','u','t','D','u','r','a','t','i','o','n',0}
 #define DS_ATTR_LOCKOUT_WINDOW \

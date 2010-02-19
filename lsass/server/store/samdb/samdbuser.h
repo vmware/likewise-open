@@ -51,7 +51,7 @@
 DWORD
 SamDbSetPassword(
     HANDLE hBindHandle,
-    PWSTR  pszUserDN,
+    PWSTR  pwszUserDN,
     PWSTR  pwszPassword
     );
 
