@@ -157,11 +157,26 @@ PvfsSetFileRenameInfo(
     if (pRootDirCcb)
     {
         pszNewPathname = NULL;
-        ntError = RtlCStringAllocatePrintf(&pszNewPathname,
-                                           "%s/%s",
-                                           pRootDirCcb->pszFilename,
-                                           pszNewFilename);
-        PVFS_FREE(&pszNewFilename);
+
+        /* Check if we need to separate the root path from
+           the relative path witha a '/' */
+
+        if (*pszNewFilename == '/')
+        {
+            ntError = RtlCStringAllocatePrintf(
+                          &pszNewPathname,
+                          "%s%s",
+                          pRootDirCcb->pszFilename,
+                          pszNewFilename);
+        }
+        else
+        {
+            ntError = RtlCStringAllocatePrintf(
+                          &pszNewPathname,
+                          "%s/%s",
+                          pRootDirCcb->pszFilename,
+                          pszNewFilename);
+        }
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -191,16 +206,28 @@ PvfsSetFileRenameInfo(
                   FALSE);
     if (ntError == STATUS_SUCCESS)
     {
-        if (pFileInfo->ReplaceIfExists)
+        /* Several cases to consider
+           (a) Rename in case only (test => Test)
+           (b) Rename to exist file
+           (c) Rename to new file
+        */
+
+        if (LwRtlCStringCompare(
+                pCcb->pFcb->pszFilename,
+                pszNewPathname,
+                FALSE) != 0)
         {
-            LwRtlCStringFree(&pszNewPathname);
-            pszNewPathname = pszCanonicalNewPathname;
-            pszCanonicalNewPathname = NULL;
-        }
-        else
-        {
-            ntError = STATUS_OBJECT_NAME_COLLISION;
-            BAIL_ON_NT_STATUS(ntError);
+            if (pFileInfo->ReplaceIfExists)
+            {
+                LwRtlCStringFree(&pszNewPathname);
+                pszNewPathname = pszCanonicalNewPathname;
+                pszCanonicalNewPathname = NULL;
+            }
+            else
+            {
+                ntError = STATUS_OBJECT_NAME_COLLISION;
+                BAIL_ON_NT_STATUS(ntError);
+            }
         }
     }
 
@@ -217,6 +244,7 @@ PvfsSetFileRenameInfo(
         pCcb->pszFilename);
 
 cleanup:
+    LwRtlCStringFree(&pszNewFilename);
     LwRtlCStringFree(&pszCanonicalNewPathname);
     LwRtlCStringFree(&pszNewPathname);
     LwRtlCStringFree(&pszNewFileDirname);

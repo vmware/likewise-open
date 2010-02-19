@@ -127,7 +127,7 @@ PvfsPathCacheLookup(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    DWORD dwError = FALSE;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
     BOOLEAN bLocked = FALSE;
     PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
     PSTR pszResolvedPath = NULL;
@@ -185,6 +185,52 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsPathCacheRemove(
+    PCSTR pszPathname
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    DWORD dwError = LWIO_ERROR_SUCCESS;
+    BOOLEAN bLocked = FALSE;
+    PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
+
+    if (gpPathCache == NULL)
+    {
+        /* If the PathCache has been disabled, just fail return */
+
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
+
+    dwError = SMBHashGetValue(
+                  gpPathCache,
+                  (PCVOID)pszPathname,
+                  (PVOID*)&pCacheRecord);
+    if (dwError != LWIO_ERROR_SUCCESS)
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    /* Ignore errors from the remove */
+
+    dwError = SMBHashRemoveKey(gpPathCache, (PCVOID)pszPathname);
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
+
+    return ntError;
 }
 
 
