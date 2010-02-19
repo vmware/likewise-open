@@ -178,7 +178,6 @@ PvfsCreateFileDoSysOpen(
 
     ntError = PvfsAddCCBToFCB(pCreateContext->pFcb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
-    pCreateContext->pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
@@ -330,7 +329,6 @@ PvfsCreateDirDoSysOpen(
 
     ntError = PvfsAddCCBToFCB(pCreateContext->pFcb, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
-    pCreateContext->pFcb = NULL;
 
     ntError = PvfsSaveFileDeviceInfo(pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);

@@ -379,7 +379,8 @@ PvfsReleaseFCB(
 
     LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwCcbLock);
 
-    if (PvfsListLength(pFcb->pCcbList) == 0)
+    if (!PVFS_IS_DEVICE_HANDLE(pFcb) &&
+        PvfsListLength(pFcb->pCcbList) == 0)
     {
         ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
         if (ntError == STATUS_SUCCESS)
@@ -464,9 +465,7 @@ _PvfsFindFCB(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    PvfsReferenceFCB(pFcb);
-
-    *ppFcb = pFcb;
+    *ppFcb = PvfsReferenceFCB(pFcb);
     ntError = STATUS_SUCCESS;
 
 cleanup:
@@ -639,21 +638,20 @@ PvfsFindParentFCB(
     }
 
     *ppParentFcb = pFcb;
-    pFcb = NULL;
 
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pFcb)
-    {
-        PvfsReleaseFCB(pFcb);
-    }
-
     LwRtlCStringFree(&pszDirname);
 
     return ntError;
 
 error:
+    if (pFcb)
+    {
+        PvfsReleaseFCB(pFcb);
+    }
+
     goto cleanup;
 }
 
@@ -675,7 +673,7 @@ PvfsAddCCBToFCB(
     ntError = PvfsListAddTail(pFcb->pCcbList, &pCcb->FcbList);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCcb->pFcb = pFcb;
+    pCcb->pFcb = PvfsReferenceFCB(pFcb);
 
     ntError = STATUS_SUCCESS;
 
