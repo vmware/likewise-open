@@ -379,7 +379,8 @@ PvfsReleaseFCB(
 
     LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwCcbLock);
 
-    if (PvfsListLength(pFcb->pCcbList) == 0)
+    if (!PVFS_IS_DEVICE_HANDLE(pFcb) &&
+        PvfsListLength(pFcb->pCcbList) == 0)
     {
         ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
         if (ntError == STATUS_SUCCESS)
