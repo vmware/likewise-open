@@ -465,9 +465,7 @@ _PvfsFindFCB(
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    PvfsReferenceFCB(pFcb);
-
-    *ppFcb = pFcb;
+    *ppFcb = PvfsReferenceFCB(pFcb);
     ntError = STATUS_SUCCESS;
 
 cleanup:
@@ -640,21 +638,20 @@ PvfsFindParentFCB(
     }
 
     *ppParentFcb = pFcb;
-    pFcb = NULL;
 
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pFcb)
-    {
-        PvfsReleaseFCB(pFcb);
-    }
-
     LwRtlCStringFree(&pszDirname);
 
     return ntError;
 
 error:
+    if (pFcb)
+    {
+        PvfsReleaseFCB(pFcb);
+    }
+
     goto cleanup;
 }
 
