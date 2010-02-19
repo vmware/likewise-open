@@ -675,7 +675,7 @@ PvfsAddCCBToFCB(
     ntError = PvfsListAddTail(pFcb->pCcbList, &pCcb->FcbList);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCcb->pFcb = pFcb;
+    pCcb->pFcb = PvfsReferenceFCB(pFcb);
 
     ntError = STATUS_SUCCESS;
 

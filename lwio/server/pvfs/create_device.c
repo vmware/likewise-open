@@ -73,11 +73,6 @@ PvfsCreateDevice(
     ntError = PvfsAddCCBToFCB(gpPvfsDeviceFcb, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Add an extra reference to prevent us from freeing this
-       on the last handle close */
-
-    PvfsReferenceFCB(gpPvfsDeviceFcb);
-
     ntError = PvfsStoreCCB(pIrpContext->pIrp->FileHandle, pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
