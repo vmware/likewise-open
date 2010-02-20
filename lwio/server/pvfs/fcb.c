@@ -360,7 +360,7 @@ PvfsExecuteDeleteOnClose(
     ntError = PvfsSysRemove(pFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
-    PvfsFcbSetPendingDelete(pFcb, FALSE);
+    pFcb->bDeleteOnClose = FALSE;
 
 cleanup:
     return ntError;
@@ -381,6 +381,7 @@ PvfsReleaseFCB(
     BOOLEAN bFcbControlLocked = FALSE;
     PVFS_STAT Stat = {0};
     PPVFS_FCB pFcb = *ppFcb;
+    BOOLEAN bDeleteLocked = FALSE;
 
     /* Do housekeeping such as setting the last write time or
        honoring DeletOnClose when the CCB handle count reaches
@@ -410,9 +411,12 @@ PvfsReleaseFCB(
                 }
             }
 
-            if (PvfsFcbIsPendingDelete(pFcb))
+            LWIO_LOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
+            if (pFcb->bDeleteOnClose)
             {
                 ntError = PvfsExecuteDeleteOnClose(pFcb);
+
+                LWIO_UNLOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
 
                 if (ntError == STATUS_SUCCESS)
                 {
@@ -425,6 +429,7 @@ PvfsReleaseFCB(
                         pFcb->pszFilename);
                 }
             }
+            LWIO_UNLOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
         }
     }
 
