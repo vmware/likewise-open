@@ -1298,7 +1298,7 @@ LwMapLwmsgStatusToLwError(
         case LWMSG_STATUS_CANCELLED:
             return LW_ERROR_INTERRUPTED;
         case LWMSG_STATUS_FILE_NOT_FOUND:
-            return LW_ERROR_NO_SUCH_OBJECT;
+            return ERROR_FILE_NOT_FOUND;
         case LWMSG_STATUS_CONNECTION_REFUSED:
             return LW_ERROR_ERRNO_ECONNREFUSED;
         case LWMSG_STATUS_PEER_RESET:
