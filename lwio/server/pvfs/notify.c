@@ -532,32 +532,40 @@ PvfsNotifyFullReport(
     PPVFS_NOTIFY_REPORT_RECORD pReport = (PPVFS_NOTIFY_REPORT_RECORD)pContext;
     PPVFS_FCB pParentFcb = NULL;
     BOOLEAN bLocked = FALSE;
+    PPVFS_FCB pCursor = NULL;
 
     BAIL_ON_INVALID_PTR(pReport, ntError);
 
     /* Simply walk up the ancestory and process the notify filter
        record on top if there is a match */
 
-    for (pParentFcb = pReport->pFcb->pParentFcb;
-         pParentFcb;
-         pParentFcb = pParentFcb->pParentFcb)
+    pCursor = PvfsReferenceFCB(pReport->pFcb);
+
+    while ((pParentFcb = PvfsGetParentFCB(pCursor)) != NULL)
     {
         LWIO_LOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
 
         /* Process buffers before Irp so we don't doublt report
            a change on a pending Irp that has requested buffering a
-           change long (which shouldn't start until the existing Irp
-           has been completed */
+           change log (which shouldn't start until the existing Irp
+           has been completed). */
 
         PvfsNotifyFullReportBuffer(pParentFcb, pReport);
         PvfsNotifyFullReportIrp(pParentFcb, pReport);
 
         LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+
+        PvfsReleaseFCB(&pCursor);
+
+        pCursor = pParentFcb;
     }
 
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+    if (pCursor)
+    {
+        PvfsReleaseFCB(&pCursor);
+    }
 
     return ntError;
 
@@ -834,7 +842,7 @@ PvfsNotifyFullReportCtxFree(
 
         if (pReport->pFcb)
         {
-            PvfsReleaseFCB(pReport->pFcb);
+            PvfsReleaseFCB(&pReport->pFcb);
         }
 
         LwRtlCStringFree(&pReport->pszFilename);
@@ -951,7 +959,7 @@ cleanup:
 
     if (pFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     return ntError;

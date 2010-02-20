@@ -121,7 +121,7 @@ PvfsClose(
        since the FCB is already well on it's way to be free'd.  Can't
        schedule a work item using a free'd FCB */
 
-    if (pCcb->CreateOptions & FILE_DELETE_ON_CLOSE)
+    if (PvfsFcbIsPendingDelete(pCcb->pFcb))
     {
         PvfsNotifyScheduleFullReport(
             pCcb->pFcb,

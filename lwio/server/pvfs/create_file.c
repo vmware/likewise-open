@@ -203,8 +203,7 @@ PvfsCreateFileSupersede(
         /* Seems like this should clear the FCB from
            the open table.  Not sure */
 
-        PvfsReleaseFCB(pCreateCtx->pFcb);
-        pCreateCtx->pFcb = NULL;
+        PvfsReleaseFCB(&pCreateCtx->pFcb);
 
         RtlCStringFree(&pCreateCtx->pszDiskFilename);
     }

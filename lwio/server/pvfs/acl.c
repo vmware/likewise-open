@@ -461,6 +461,7 @@ PvfsCreateFileSecurity(
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
+    LW_RTL_FREE(&pFinalSecDesc);
     RtlCStringFree(&pszParentPath);
     RtlCStringFree(&pszBaseFilename);
 

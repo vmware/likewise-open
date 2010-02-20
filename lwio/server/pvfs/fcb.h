@@ -61,7 +61,7 @@ PvfsReferenceFCB(
 
 VOID
 PvfsReleaseFCB(
-    PPVFS_FCB pFcb
+    PPVFS_FCB *ppFcb
     );
 
 NTSTATUS
@@ -183,6 +183,10 @@ PvfsFcbSetPendingDelete(
     BOOLEAN bPendingDelete
     );
 
+PPVFS_FCB
+PvfsGetParentFCB(
+    PPVFS_FCB pFcb
+    );
 
 #endif   /* _PVFS_FCB_H */
 

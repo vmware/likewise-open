@@ -106,12 +106,11 @@ PvfsFreeCCB(
     {
         ntError = PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
 
-        PvfsReleaseFCB(pCCB->pFcb);
-
-        pCCB->pFcb = NULL;
+        PvfsReleaseFCB(&pCCB->pFcb);
     }
 
-    if (pCCB->pDirContext) {
+    if (pCCB->pDirContext)
+    {
         PvfsFreeDirectoryContext(pCCB->pDirContext);
     }
 

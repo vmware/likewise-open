@@ -126,7 +126,7 @@ PvfsFreeFCB(
     {
         if (pFcb->pParentFcb)
         {
-            PvfsReleaseFCB(pFcb->pParentFcb);
+            PvfsReleaseFCB(&pFcb->pParentFcb);
         }
 
         RtlCStringFree(&pFcb->pszFilename);
@@ -137,6 +137,7 @@ PvfsFreeFCB(
         pthread_rwlock_destroy(&pFcb->rwCcbLock);
         pthread_rwlock_destroy(&pFcb->rwBrlLock);
         pthread_rwlock_destroy(&pFcb->rwFileName);
+        pthread_rwlock_destroy(&pFcb->rwParent);
 
         PvfsListDestroy(&pFcb->pPendingLockQueue);
         PvfsListDestroy(&pFcb->pOplockPendingOpsQueue);
@@ -194,6 +195,7 @@ PvfsAllocateFCB(
     pthread_rwlock_init(&pFcb->rwCcbLock, NULL);
     pthread_rwlock_init(&pFcb->rwBrlLock, NULL);
     pthread_rwlock_init(&pFcb->rwFileName, NULL);
+    pthread_rwlock_init(&pFcb->rwParent, NULL);
 
     pFcb->RefCount = 1;
 
@@ -253,19 +255,22 @@ PvfsAllocateFCB(
     /* Miscellaneous */
 
     pFcb->bDeleteOnClose = FALSE;
+    pFcb->bRemoved = FALSE;
     pFcb->pParentFcb = NULL;
 
     *ppFcb = pFcb;
-    pFcb = NULL;
 
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PvfsFreeFCB(pFcb);
-
     return ntError;
 
 error:
+    if (pFcb)
+    {
+        PvfsFreeFCB(pFcb);
+    }
+
     goto cleanup;
 }
 
@@ -332,6 +337,8 @@ PvfsSetLastWriteTime(
                            LastAccessTime);
     BAIL_ON_NT_STATUS(ntError);
 
+    pFcb->LastWriteTime = 0;
+
 cleanup:
     return ntError;
 
@@ -353,6 +360,8 @@ PvfsExecuteDeleteOnClose(
     ntError = PvfsSysRemove(pFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
+    PvfsFcbSetPendingDelete(pFcb, FALSE);
+
 cleanup:
     return ntError;
 
@@ -363,24 +372,25 @@ error:
 
 VOID
 PvfsReleaseFCB(
-    PPVFS_FCB pFcb
+    PPVFS_FCB *ppFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN bTableLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
+    BOOLEAN bFcbControlLocked = FALSE;
     PVFS_STAT Stat = {0};
+    PPVFS_FCB pFcb = *ppFcb;
 
     /* Do housekeeping such as setting the last write time or
        honoring DeletOnClose when the CCB handle count reaches
-       0.  Not necessaril.y when the RefCount reaches 0.  We
+       0.  Not necessarily when the RefCount reaches 0.  We
        may have a non-handle open in the FCB table for a
        path component (see PvfsFindParentFCB()). */
 
     LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwCcbLock);
 
-    if (!PVFS_IS_DEVICE_HANDLE(pFcb) &&
-        PvfsListLength(pFcb->pCcbList) == 0)
+    if (!PVFS_IS_DEVICE_HANDLE(pFcb) && (PvfsListLength(pFcb->pCcbList) == 0))
     {
         ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
         if (ntError == STATUS_SUCCESS)
@@ -389,7 +399,6 @@ PvfsReleaseFCB(
             {
 
                 ntError = PvfsSetLastWriteTime(pFcb);
-                pFcb->LastWriteTime = 0;
 
                 if (ntError == STATUS_SUCCESS)
                 {
@@ -401,10 +410,9 @@ PvfsReleaseFCB(
                 }
             }
 
-            if (pFcb->bDeleteOnClose)
+            if (PvfsFcbIsPendingDelete(pFcb))
             {
                 ntError = PvfsExecuteDeleteOnClose(pFcb);
-                pFcb->bDeleteOnClose = FALSE;
 
                 if (ntError == STATUS_SUCCESS)
                 {
@@ -428,18 +436,26 @@ PvfsReleaseFCB(
        Otherwise another open request could search and locate the
        FCB in the tree and return free()'d memory. */
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
 
     if (InterlockedDecrement(&pFcb->RefCount) == 0)
     {
-        PvfsRemoveFCB(pFcb);
+        LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
+        if (!pFcb->bRemoved)
+        {
+            PvfsRemoveFCB(pFcb);
+            pFcb->bRemoved = TRUE;
+        }
+        LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
-        LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
+        LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
 
         PvfsFreeFCB(pFcb);
     }
 
-    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
+    LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
+
+    *ppFcb = (PPVFS_FCB)0xdeadbeef;
 
     return;
 }
@@ -451,7 +467,7 @@ PvfsReleaseFCB(
 static NTSTATUS
 _PvfsFindFCB(
     PPVFS_FCB *ppFcb,
-    PSTR pszFilename
+    PCSTR pszFilename
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -548,13 +564,20 @@ PvfsCreateFCB(
     ntError = _PvfsFindFCB(&pFcb, pszFilename);
     if (ntError == STATUS_SUCCESS) {
 
-        ntError = PvfsEnforceShareMode(pFcb,
-                                       SharedAccess,
-                                       DesiredAccess);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsEnforceShareMode(
+                      pFcb,
+                      SharedAccess,
+                      DesiredAccess);
 
-        *ppFcb = pFcb;
+        /* If we have success, then we are good.  If we have a sharing
+           violation, give the caller a chance to break the oplock and
+           we'll try again when the create is resumed. */
 
+        if (ntError == STATUS_SUCCESS ||
+            ntError == STATUS_SHARING_VIOLATION)
+        {
+            *ppFcb = PvfsReferenceFCB(pFcb);
+        }
         goto cleanup;
     }
 
@@ -576,18 +599,19 @@ PvfsCreateFCB(
 
     /* Return a reference to the FCB */
 
-    *ppFcb = pFcb;
+    *ppFcb = PvfsReferenceFCB(pFcb);
     ntError = STATUS_SUCCESS;
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bFcbTableLocked, &gFcbTable.rwLock);
 
+    if (pFcb) {
+        PvfsReleaseFCB(&pFcb);
+    }
+
     return ntError;
 
 error:
-    if (pFcb) {
-        PvfsReleaseFCB(pFcb);
-    }
     goto cleanup;
 }
 
@@ -649,7 +673,7 @@ cleanup:
 error:
     if (pFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     goto cleanup;
@@ -1085,7 +1109,7 @@ cleanup:
 
     if (pFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     return ntError;
@@ -1173,11 +1197,37 @@ PvfsRenameFCB(
     BOOLEAN bTableLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
     BOOLEAN bCcbLocked = FALSE;
+    BOOLEAN bParentLinkLocked = FALSE;
+    PPVFS_FCB pNewParentFcb = NULL;
+    PPVFS_FCB pOldParentFcb = NULL;
+    PPVFS_FCB pExistingTargetFcb = NULL;
+    BOOLEAN bExistingFcbLocked = FALSE;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
 
         ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
         BAIL_ON_NT_STATUS(ntError);
+
+        /* If the target has an existing FCB, remove it from the Table
+           and let the existing ref counters play out (e.g. pending
+           change notifies. */
+
+        ntError = _PvfsFindFCB(&pExistingTargetFcb, pszNewFilename);
+        if (ntError == STATUS_SUCCESS)
+        {
+            /* Make sure we have a different FCB */
+
+            if (pExistingTargetFcb != pFcb)
+            {
+                LWIO_LOCK_MUTEX(bExistingFcbLocked, &pExistingTargetFcb->ControlBlock);
+                if (!pExistingTargetFcb->bRemoved)
+                {
+                    PvfsRemoveFCB(pExistingTargetFcb);
+                    pExistingTargetFcb->bRemoved = TRUE;
+                }
+                LWIO_UNLOCK_MUTEX(bExistingFcbLocked, &pExistingTargetFcb->ControlBlock);
+            }
+        }
 
         LWIO_LOCK_RWMUTEX_EXCLUSIVE(bFcbLocked, &pFcb->rwFileName);
 
@@ -1202,6 +1252,20 @@ PvfsRenameFCB(
             ntError = LwRtlCStringDuplicate(&pFcb->pszFilename, pszNewFilename);
             BAIL_ON_NT_STATUS(ntError);
 
+            ntError = PvfsFindParentFCB(&pNewParentFcb, pFcb->pszFilename);
+            BAIL_ON_NT_STATUS(ntError);
+
+            /* Have to update the parent links as well */
+
+            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bParentLinkLocked, &pFcb->rwParent);
+            if (pNewParentFcb != pFcb->pParentFcb)
+            {
+                pOldParentFcb = pFcb->pParentFcb;
+                pFcb->pParentFcb = pNewParentFcb;
+                pNewParentFcb = NULL;
+            }
+            LWIO_UNLOCK_RWMUTEX(bParentLinkLocked, &pFcb->rwParent);
+
             ntError = PvfsAddFCB(pFcb);
             BAIL_ON_NT_STATUS(ntError);
 
@@ -1218,10 +1282,25 @@ PvfsRenameFCB(
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
 
 cleanup:
+    if (pNewParentFcb)
+    {
+        PvfsReleaseFCB(&pNewParentFcb);
+    }
+
+    if (pOldParentFcb)
+    {
+        PvfsReleaseFCB(&pOldParentFcb);
+    }
+
+    if (pExistingTargetFcb)
+    {
+        PvfsReleaseFCB(&pExistingTargetFcb);
+    }
 
     return ntError;
 
 error:
+    LWIO_UNLOCK_RWMUTEX(bParentLinkLocked, &pFcb->rwParent);
     LWIO_UNLOCK_MUTEX(bCcbLocked, &pCcb->ControlBlock);
     LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
     LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
@@ -1262,6 +1341,30 @@ PvfsFcbSetPendingDelete(
     LWIO_LOCK_MUTEX(bIsLocked, &pFcb->ControlBlock);
     pFcb->bDeleteOnClose = bPendingDelete;
     LWIO_UNLOCK_MUTEX(bIsLocked, &pFcb->ControlBlock);
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+PPVFS_FCB
+PvfsGetParentFCB(
+    PPVFS_FCB pFcb
+    )
+{
+    PPVFS_FCB pParent = NULL;
+    BOOLEAN bLocked = FALSE;
+
+    if (pFcb)
+    {
+        LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pFcb->rwParent);
+        if (pFcb->pParentFcb)
+        {
+            pParent = PvfsReferenceFCB(pFcb->pParentFcb);
+        }
+        LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwParent);
+    }
+
+    return pParent;
 }
 
 /*

@@ -125,7 +125,7 @@ PvfsFreeIrpContext(
     {
         if ((*ppIrpContext)->pFcb)
         {
-            PvfsReleaseFCB((*ppIrpContext)->pFcb);
+            PvfsReleaseFCB(&(*ppIrpContext)->pFcb);
         }
 
         pthread_mutex_destroy(&(*ppIrpContext)->Mutex);
