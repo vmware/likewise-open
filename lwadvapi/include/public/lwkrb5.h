@@ -185,6 +185,7 @@ LwSetupUserLoginSession(
     PCSTR pszPassword,
     BOOLEAN bUpdateUserCache,
     PCSTR pszServicePrincipal,
+    PCSTR pszServiceRealm,
     PCSTR pszServicePassword,
     char** ppchLogonInfo,
     size_t* psLogonInfo,

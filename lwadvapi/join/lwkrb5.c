@@ -1339,6 +1339,7 @@ LwSetupUserLoginSession(
     PCSTR pszPassword,
     BOOLEAN bUpdateUserCache,
     PCSTR pszServicePrincipal,
+    PCSTR pszServiceRealm,
     PCSTR pszServicePassword,
     char** ppchLogonInfo,
     size_t* psLogonInfo,
@@ -1492,6 +1493,13 @@ LwSetupUserLoginSession(
     krb5_auth_con_setflags(ctx,
                            authContext,
                            authcon_flags & ~KRB5_AUTH_CONTEXT_DO_TIME);
+
+
+    if (pszServiceRealm)
+    {
+        ret = krb5_set_default_realm(ctx, pszServiceRealm);
+        BAIL_ON_KRB_ERROR(ctx, ret);
+    }
 
     /* This decrypts the TGS. As a side effect it ensures that the KDC that
      * the user's TGT came from is in the same realm that the machine was

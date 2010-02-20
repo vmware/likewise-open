@@ -107,7 +107,7 @@ main(
                     &args);
     BAIL_ON_LWDNS_ERROR(dwError);
 
-    dwError = LWNetExtendEnvironmentForKrb5Affinity(FALSE);
+    dwError = LWNetExtendEnvironmentForKrb5Affinity(TRUE);
     BAIL_ON_LWDNS_ERROR(dwError);
 
     dwError = DNSInitialize();

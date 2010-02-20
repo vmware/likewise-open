@@ -110,7 +110,7 @@ main(
     
     gpAuthProvider->pszProviderLibpath = gpszProviderLibPath;
     
-    dwError = LWNetExtendEnvironmentForKrb5Affinity(FALSE);
+    dwError = LWNetExtendEnvironmentForKrb5Affinity(TRUE);
     BAIL_ON_LSA_ERROR(dwError);
     
     dwError = LADSBlockSelectedSignals();

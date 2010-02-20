@@ -234,7 +234,7 @@ lwiod_main(
        BAIL_ON_LWIO_ERROR(dwError);
     }
 
-    dwError = LWNetExtendEnvironmentForKrb5Affinity(FALSE);
+    dwError = LWNetExtendEnvironmentForKrb5Affinity(TRUE);
     BAIL_ON_LWIO_ERROR(dwError);
 
 #ifdef ENABLE_PIDFILE

@@ -32,6 +32,7 @@
 #include "djdaemonmgr.h"
 #include "ctstrutils.h"
 #include "djauthinfo.h"
+#include <lsa/lsa.h>
 
 // aka: CENTERROR_LICENSE_INCORRECT
 static DWORD GPAGENT_LICENSE_ERROR = 0x00002001;
@@ -315,6 +316,10 @@ DJManageDaemons(
     int daemonCount;
     int i;
     int j;
+    PLSA_LOG_INFO pLogInfo = NULL;
+    BOOLEAN bLsassContacted = FALSE;
+    DWORD dwError = 0;
+    LW_HANDLE hLsa = NULL;
 
     LW_CLEANUP_CTERR(exc, CTCheckFileExists(PWGRD, &bFileExists));
     if(bFileExists)
@@ -399,6 +404,35 @@ DJManageDaemons(
             }
             LW_CLEANUP(exc, innerExc);
         }
+
+        // Make sure lsass is responding
+        bLsassContacted = FALSE;
+        for (i = 0; !bLsassContacted && i < 30; i++)
+        {
+            DJ_LOG_INFO("Trying to contact lsassd");
+            if (hLsa)
+            {
+                LsaCloseServer(hLsa);
+                hLsa = NULL;
+            }
+            dwError = LsaOpenServer(&hLsa);
+            if (dwError == ERROR_FILE_NOT_FOUND ||
+                    dwError == LW_ERROR_ERRNO_ECONNREFUSED)
+            {
+                DJ_LOG_INFO("Failed with %d", dwError);
+                dwError = 0;
+                sleep(1);
+                continue;
+            }
+            LW_CLEANUP_LSERR(exc, dwError);
+            LW_CLEANUP_LSERR(exc, LsaGetLogInfo(hLsa, &pLogInfo));
+            bLsassContacted = TRUE;
+        }
+        if (!bLsassContacted)
+        {
+            LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INCORRECT_STATUS, "Unable to reach lsassd", "The lsass daemon could not be reached for 30 seconds after trying to start it. Please verify it is running.");
+            goto cleanup;
+        }
     }
     else
     {
@@ -442,6 +476,14 @@ DJManageDaemons(
 
 cleanup:
     CTSafeCloseFile(&fp);
+    if (pLogInfo)
+    {
+        LsaFreeLogInfo(pLogInfo);
+    }
+    if (hLsa)
+    {
+        LsaCloseServer(hLsa);
+    }
 
     LW_HANDLE(&innerExc);
 }
