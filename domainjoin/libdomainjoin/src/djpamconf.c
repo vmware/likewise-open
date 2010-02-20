@@ -1394,6 +1394,8 @@ static BOOLEAN PamModuleChecksCaller( const char * phase, const char * module)
         return TRUE;
     if(!strcmp(buffer, "pam_rhosts_auth"))
         return TRUE;
+    if(!strcmp(buffer, "pam_rhosts"))
+        return TRUE;
     if(!strcmp(buffer, "pam_console"))
         return TRUE;
     if(!strcmp(buffer, "pam_timestamp"))
