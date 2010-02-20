@@ -334,6 +334,8 @@ PvfsSetLastWriteTime(
                            LastAccessTime);
     BAIL_ON_NT_STATUS(ntError);
 
+    pFcb->LastWriteTime = 0;
+
 cleanup:
     return ntError;
 
@@ -354,6 +356,8 @@ PvfsExecuteDeleteOnClose(
 
     ntError = PvfsSysRemove(pFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
+
+    PvfsFcbSetPendingDelete(pFcb, FALSE);
 
 cleanup:
     return ntError;
@@ -392,7 +396,6 @@ PvfsReleaseFCB(
             {
 
                 ntError = PvfsSetLastWriteTime(pFcb);
-                pFcb->LastWriteTime = 0;
 
                 if (ntError == STATUS_SUCCESS)
                 {
@@ -404,10 +407,9 @@ PvfsReleaseFCB(
                 }
             }
 
-            if (pFcb->bDeleteOnClose)
+            if (PvfsFcbIsPendingDelete(pFcb))
             {
                 ntError = PvfsExecuteDeleteOnClose(pFcb);
-                pFcb->bDeleteOnClose = FALSE;
 
                 if (ntError == STATUS_SUCCESS)
                 {
