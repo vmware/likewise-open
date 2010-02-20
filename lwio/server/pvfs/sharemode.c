@@ -104,7 +104,7 @@ PvfsCheckShareMode(
 
 cleanup:
     if (pFcb) {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     return ntError;

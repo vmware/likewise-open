@@ -126,7 +126,7 @@ PvfsFreeFCB(
     {
         if (pFcb->pParentFcb)
         {
-            PvfsReleaseFCB(pFcb->pParentFcb);
+            PvfsReleaseFCB(&pFcb->pParentFcb);
         }
 
         RtlCStringFree(&pFcb->pszFilename);
@@ -256,16 +256,18 @@ PvfsAllocateFCB(
     pFcb->pParentFcb = NULL;
 
     *ppFcb = pFcb;
-    pFcb = NULL;
 
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PvfsFreeFCB(pFcb);
-
     return ntError;
 
 error:
+    if (pFcb)
+    {
+        PvfsFreeFCB(pFcb);
+    }
+
     goto cleanup;
 }
 
@@ -363,13 +365,14 @@ error:
 
 VOID
 PvfsReleaseFCB(
-    PPVFS_FCB pFcb
+    PPVFS_FCB *ppFcb
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     BOOLEAN bLocked = FALSE;
     BOOLEAN bFcbLocked = FALSE;
     PVFS_STAT Stat = {0};
+    PPVFS_FCB pFcb = *ppFcb;
 
     /* Do housekeeping such as setting the last write time or
        honoring DeletOnClose when the CCB handle count reaches
@@ -440,6 +443,8 @@ PvfsReleaseFCB(
     }
 
     LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
+
+    *ppFcb = (PPVFS_FCB)0xdeadbeef;
 
     return;
 }
@@ -576,18 +581,19 @@ PvfsCreateFCB(
 
     /* Return a reference to the FCB */
 
-    *ppFcb = pFcb;
+    *ppFcb = PvfsReferenceFCB(pFcb);
     ntError = STATUS_SUCCESS;
 
 cleanup:
     LWIO_UNLOCK_RWMUTEX(bFcbTableLocked, &gFcbTable.rwLock);
 
+    if (pFcb) {
+        PvfsReleaseFCB(&pFcb);
+    }
+
     return ntError;
 
 error:
-    if (pFcb) {
-        PvfsReleaseFCB(pFcb);
-    }
     goto cleanup;
 }
 
@@ -649,7 +655,7 @@ cleanup:
 error:
     if (pFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     goto cleanup;
@@ -1085,7 +1091,7 @@ cleanup:
 
     if (pFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     return ntError;

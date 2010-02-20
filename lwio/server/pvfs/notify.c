@@ -546,8 +546,8 @@ PvfsNotifyFullReport(
 
         /* Process buffers before Irp so we don't doublt report
            a change on a pending Irp that has requested buffering a
-           change long (which shouldn't start until the existing Irp
-           has been completed */
+           change log (which shouldn't start until the existing Irp
+           has been completed). */
 
         PvfsNotifyFullReportBuffer(pParentFcb, pReport);
         PvfsNotifyFullReportIrp(pParentFcb, pReport);
@@ -834,7 +834,7 @@ PvfsNotifyFullReportCtxFree(
 
         if (pReport->pFcb)
         {
-            PvfsReleaseFCB(pReport->pFcb);
+            PvfsReleaseFCB(&pReport->pFcb);
         }
 
         LwRtlCStringFree(&pReport->pszFilename);
@@ -951,7 +951,7 @@ cleanup:
 
     if (pFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     return ntError;

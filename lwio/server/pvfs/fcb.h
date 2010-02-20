@@ -61,7 +61,7 @@ PvfsReferenceFCB(
 
 VOID
 PvfsReleaseFCB(
-    PPVFS_FCB pFcb
+    PPVFS_FCB *ppFcb
     );
 
 NTSTATUS

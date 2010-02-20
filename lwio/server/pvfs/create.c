@@ -587,7 +587,7 @@ PvfsFreeCreateContext(
 
     if (pCreateCtx->pFcb)
     {
-        PvfsReleaseFCB(pCreateCtx->pFcb);
+        PvfsReleaseFCB(&pCreateCtx->pFcb);
     }
 
     /* The pIrpContext will be freed after somewhere else */

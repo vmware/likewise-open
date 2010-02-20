@@ -1312,7 +1312,7 @@ cleanup:
 
     if (pFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     return ntError;
@@ -1660,11 +1660,9 @@ PvfsFreeOplockReadyItemsContext(
     IN OUT PPVFS_FCB *ppFcb
     )
 {
-    PPVFS_FCB pFcb = *ppFcb;
-
-    if (pFcb)
+    if (ppFcb && *ppFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(ppFcb);
     }
 
     return;

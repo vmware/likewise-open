@@ -1226,7 +1226,7 @@ PvfsCleanPendingLockQueue(
 
     if (pFcb)
     {
-        PvfsReleaseFCB(pFcb);
+        PvfsReleaseFCB(&pFcb);
     }
 
     return ntError;
