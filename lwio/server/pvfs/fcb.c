@@ -553,13 +553,20 @@ PvfsCreateFCB(
     ntError = _PvfsFindFCB(&pFcb, pszFilename);
     if (ntError == STATUS_SUCCESS) {
 
-        ntError = PvfsEnforceShareMode(pFcb,
-                                       SharedAccess,
-                                       DesiredAccess);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsEnforceShareMode(
+                      pFcb,
+                      SharedAccess,
+                      DesiredAccess);
 
-        *ppFcb = pFcb;
+        /* If we have success, then we are good.  If we have a sharing
+           violation, give the caller a chance to break the oplock and
+           we'll try again when the create is resumed. */
 
+        if (ntError == STATUS_SUCCESS ||
+            ntError == STATUS_SHARING_VIOLATION)
+        {
+            *ppFcb = PvfsReferenceFCB(pFcb);
+        }
         goto cleanup;
     }
 
