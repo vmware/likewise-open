@@ -1328,55 +1328,6 @@ LsaIPCGetProtocolSpec(
     return gLsaIPCSpec;
 }
 
-DWORD
-LsaMapLwmsgStatus(
-    LWMsgStatus status
-    )
-{
-    switch (status)
-    {
-    default:
-        return LW_ERROR_INTERNAL;
-    case LWMSG_STATUS_SUCCESS:
-        return LW_ERROR_SUCCESS;
-    case LWMSG_STATUS_ERROR:
-        return LW_ERROR_INTERNAL;
-    case LWMSG_STATUS_MEMORY:
-        return LW_ERROR_OUT_OF_MEMORY;
-    case LWMSG_STATUS_MALFORMED:
-    case LWMSG_STATUS_OVERFLOW:
-    case LWMSG_STATUS_UNDERFLOW:
-    case LWMSG_STATUS_EOF:
-        return LW_ERROR_INVALID_MESSAGE;
-    case LWMSG_STATUS_INVALID_PARAMETER:
-        return EINVAL;
-    case LWMSG_STATUS_INVALID_STATE:
-        return EINVAL;
-    case LWMSG_STATUS_UNIMPLEMENTED:
-        return LW_ERROR_NOT_IMPLEMENTED;
-    case LWMSG_STATUS_SYSTEM:
-        return LW_ERROR_INTERNAL;
-    case LWMSG_STATUS_SECURITY:
-        return EACCES;
-    case LWMSG_STATUS_CANCELLED:
-        return EINTR;
-    case LWMSG_STATUS_FILE_NOT_FOUND:
-        return ENOENT;
-    case LWMSG_STATUS_TIMEOUT:
-    case LWMSG_STATUS_CONNECTION_REFUSED:
-        return ECONNREFUSED;
-    case LWMSG_STATUS_PEER_RESET:
-        return ECONNRESET;
-    case LWMSG_STATUS_PEER_ABORT:
-        return ECONNABORTED;
-    case LWMSG_STATUS_PEER_CLOSE:
-        return EPIPE;
-    case LWMSG_STATUS_SESSION_LOST:
-        return EPIPE;
-    }
-}
-
-
 /*
 local variables:
 mode: c

@@ -147,7 +147,7 @@ lsassd_main(
     // Ignore any errors returned by this function.
     LsaSrvRaiseMaxFiles(1024);
 
-    dwError = LWNetExtendEnvironmentForKrb5Affinity(FALSE);
+    dwError = LWNetExtendEnvironmentForKrb5Affinity(TRUE);
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LsaBlockSelectedSignals();
