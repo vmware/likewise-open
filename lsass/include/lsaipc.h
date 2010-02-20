@@ -223,7 +223,6 @@ typedef struct __LSA_IPC_SET_MACHINE_SID
     PCSTR pszSid;
 } LSA_IPC_SET_MACHINE_SID, *PLSA_IPC_SET_MACHINE_SID;
 
-<<<<<<< .working
 typedef struct __LSA_IPC_SET_MACHINE_NAME
 {
     PCSTR pszMachineName;
