@@ -345,6 +345,7 @@ PvfsFillOpenFileInfo100(
                   &pwszFilename,
                   pFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
+    LWIO_UNLOCK_MUTEX(bControlLocked, &pFcb->ControlBlock);
 
     FilenameByteCount = (LwRtlWC16StringNumChars(pwszFilename)+1) *
                         sizeof(WCHAR);
