@@ -6,6 +6,11 @@ liblwnetclientapi_la_CPPFLAGS = \
     $(LWADVAPI_INCLUDES) \
     $(AM_CPPFLAGS)
 
+if ENABLE_MINIMAL
+liblwnetclientapi_la_CPPFLAGS += "-DMINIMAL_NETLOGON=1"
+endif
+
+
 liblwnetclientapi_la_LIBADD =   \
     $(LWMSG_LIBS)               \
     $(LWADVAPI_NOTHR_LIBS)      \

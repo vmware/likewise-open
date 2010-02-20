@@ -237,6 +237,15 @@ AC_ARG_ENABLE([debug],
 			AM_CPPFLAGS="$AM_CPPFLAGS -DDEBUG"			
                 fi
         ])
+
+# minimal
+
+AC_ARG_ENABLE([minimal], [AC_HELP_STRING([--enable-minimal], [build minimal netlogon])])
+AM_CONDITIONAL(ENABLE_MINIMAL, test x"$enable_minimal" = x"yes")
+if test x"$enable_minimal" = x"yes"
+then
+        AC_DEFINE([ENABLE_MINIMAL], [], [Define if should build minimal netlogon])
+fi
         
 # Basic variables
 
