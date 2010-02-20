@@ -532,15 +532,16 @@ PvfsNotifyFullReport(
     PPVFS_NOTIFY_REPORT_RECORD pReport = (PPVFS_NOTIFY_REPORT_RECORD)pContext;
     PPVFS_FCB pParentFcb = NULL;
     BOOLEAN bLocked = FALSE;
+    PPVFS_FCB pCursor = NULL;
 
     BAIL_ON_INVALID_PTR(pReport, ntError);
 
     /* Simply walk up the ancestory and process the notify filter
        record on top if there is a match */
 
-    for (pParentFcb = pReport->pFcb->pParentFcb;
-         pParentFcb;
-         pParentFcb = pParentFcb->pParentFcb)
+    pCursor = PvfsReferenceFCB(pReport->pFcb);
+
+    while ((pParentFcb = PvfsGetParentFCB(pCursor)) != NULL)
     {
         LWIO_LOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
 
@@ -553,11 +554,18 @@ PvfsNotifyFullReport(
         PvfsNotifyFullReportIrp(pParentFcb, pReport);
 
         LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+
+        PvfsReleaseFCB(&pCursor);
+
+        pCursor = pParentFcb;
     }
 
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &pParentFcb->mutexNotify);
+    if (pCursor)
+    {
+        PvfsReleaseFCB(&pCursor);
+    }
 
     return ntError;
 
