@@ -34,6 +34,7 @@
 #include "ctshell.h"
 #include "djstr.h"
 #include "djauthinfo.h"
+#include <lsa/lsa.h>
 
 #define GCE(x) GOTO_CLEANUP_ON_CENTERROR((x))
 
@@ -833,22 +834,6 @@ static void FreeDomainMappings(DynamicArray *mappings)
     CTArrayFree(mappings);
 }
 
-static ssize_t
-FindMapping(DynamicArray *mappings,
-    PSTR shortName)
-{
-    size_t i;
-    for(i = 0; i < mappings->size; i++)
-    {
-        DomainMapping *current = ((DomainMapping *)mappings->data) + i;
-        if(!strcmp(current->shortName, shortName))
-        {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static CENTERROR
 GatherDomainMappings(
     DynamicArray *mappings,
@@ -857,7 +842,11 @@ GatherDomainMappings(
 {
     CENTERROR ceError = CENTERROR_SUCCESS;
     DomainMapping add;
-    char *commandOutput = NULL;
+    HANDLE hLsa = NULL;
+    PLSASTATUS pStatus = NULL;
+    size_t providerIndex = 0;
+    size_t domainIndex = 0;
+
     memset(mappings, 0, sizeof(*mappings));
     memset(&add, 0, sizeof(add));
 
@@ -866,137 +855,47 @@ GatherDomainMappings(
     GCE(ceError = CTArrayAppend(mappings, sizeof(add), &add, 1));
     memset(&add, 0, sizeof(add));
 
-#if !defined(MINIMAL_JOIN)
-    //This command requires that the computer is joined to the domain, but
-    //the auth daemon does not need to be running
-    ceError = CTShell("%prefix/bin/lwinet ads trusts >%output 2>&1",
-        CTSHELL_STRING(prefix, PREFIXDIR),
-        CTSHELL_BUFFER(output, &commandOutput));
-    if(ceError == CENTERROR_SUCCESS)
+    ceError = LsaOpenServer(&hLsa);
+    if (ceError == ERROR_FILE_NOT_FOUND || ceError == LW_ERROR_ERRNO_ECONNREFUSED)
     {
-        char *linesaveptr;
-        char *line;
-        line = strtok_r(commandOutput, "\r\n", &linesaveptr);
-        while(line != NULL)
+        DJ_LOG_INFO("Unable to get trust list because lsass is not running");
+        ceError = 0;
+        goto cleanup;
+    }
+    GCE(ceError);
+
+    GCE(ceError = LsaGetStatus(hLsa, &pStatus));
+
+    for (providerIndex = 0; providerIndex < pStatus->dwCount; providerIndex++)
+    {
+        PLSA_AUTH_PROVIDER_STATUS provider = &pStatus->pAuthProviderStatusList[providerIndex];
+        for (domainIndex = 0; domainIndex < provider->dwNumTrustedDomains; domainIndex++)
         {
-            //The output is in the form:
-            //<trustnum> <short name> <num> <hexnum> <hexnum> <hexnum> <SID> <GUID> <long name>
-            //e.g.:
-            //3 CORP                0 0x1d 0x02 0x00 S-1-5-21-418081286-1191099226-2202501032  {19df18bd-f2f4-453a-82fd-63b02c896ae1} corp.centeris.com
-            char *tokensaveptr;
-            char *shortName;
-            char *longName;
-            CT_SAFE_FREE_STRING(add.shortName);
-            CT_SAFE_FREE_STRING(add.longName);
-            //trustnum
-            strtok_r(line, " \t", &tokensaveptr);
-            shortName = strtok_r(NULL, " \t", &tokensaveptr);
-            if(shortName != NULL)
-                GCE(ceError = CTStrdup(shortName, &add.shortName));
-            //<num>
-            strtok_r(NULL, " \t", &tokensaveptr);
-            //<hexnum>
-            strtok_r(NULL, " \t", &tokensaveptr);
-            //<hexnum>
-            strtok_r(NULL, " \t", &tokensaveptr);
-            //<hexnum>
-            strtok_r(NULL, " \t", &tokensaveptr);
-            //<SID>
-            strtok_r(NULL, " \t", &tokensaveptr);
-            //<GUID>
-            strtok_r(NULL, " \t", &tokensaveptr);
-            longName = strtok_r(NULL, " \t", &tokensaveptr);
-            if(longName != NULL)
-                GCE(ceError = CTStrdup(longName, &add.longName));
-            CTStripWhitespace(add.shortName);
-            CTStripWhitespace(add.longName);
-
-            if(!IsNullOrEmptyString(add.shortName) && !IsNullOrEmptyString(add.longName))
-            {
-                DJ_LOG_INFO("Lwinet found trust '%s' -> '%s'",
-                        add.shortName,
-                        add.longName);
-                if( FindMapping(mappings, add.shortName) == -1)
-                {
-                    GCE(ceError = CTArrayAppend(mappings,
-                                sizeof(add), &add, 1));
-                    memset(&add, 0, sizeof(add));
-                }
-            }
-
-            line = strtok_r(NULL, "\r\n", &linesaveptr);
+            GCE(ceError = CTStrdup(provider->
+                        pTrustedDomainInfoArray[domainIndex].pszDnsDomain,
+                        &add.longName));
+            GCE(ceError = CTStrdup(provider->
+                        pTrustedDomainInfoArray[domainIndex].pszNetbiosDomain,
+                        &add.shortName));
+            GCE(ceError = CTArrayAppend(mappings, sizeof(add), &add, 1));
+            memset(&add, 0, sizeof(add));
         }
     }
-    else if(ceError == CENTERROR_COMMAND_FAILED)
-    {
-         DJ_LOG_INFO("Failed to run lwinet ads trusts. This is expected if not yet joined to the domain");
-         ceError = CENTERROR_SUCCESS;
-    }
-    else
-        GCE(ceError);
-
-    CT_SAFE_FREE_STRING(commandOutput);
-    //This command requires that the auth daemon is running
-    ceError = CTCaptureOutputWithStderr(
-        PREFIXDIR "/bin/lwiinfo --details -m",
-        TRUE,
-        &commandOutput);
-    if(ceError == CENTERROR_SUCCESS)
-    {
-        char *linesaveptr;
-        char *line;
-        line = strtok_r(commandOutput, "\r\n", &linesaveptr);
-        while(line != NULL)
-        {
-            //The output is in the form:
-            //<short name>, <long name>, <sid>
-            //e.g.:
-            //CORP, corp.centeris.com, S-1-5-21-418081286-1191099226-2202501032
-            char *tokensaveptr;
-            char *shortName;
-            char *longName;
-            CT_SAFE_FREE_STRING(add.shortName);
-            CT_SAFE_FREE_STRING(add.longName);
-            shortName = strtok_r(line, ",", &tokensaveptr);
-            if(shortName != NULL)
-                GCE(ceError = CTStrdup(shortName, &add.shortName));
-            longName = strtok_r(NULL, ",", &tokensaveptr);
-            if(longName != NULL)
-                GCE(ceError = CTStrdup(longName, &add.longName));
-            CTStripWhitespace(add.shortName);
-            CTStripWhitespace(add.longName);
-
-            if(!IsNullOrEmptyString(add.shortName) && !IsNullOrEmptyString(add.longName))
-            {
-                DJ_LOG_INFO("Lwiinfo found trust '%s' -> '%s'",
-                        add.shortName,
-                        add.longName);
-                if( FindMapping(mappings, add.shortName) == -1)
-                {
-                    GCE(ceError = CTArrayAppend(mappings,
-                                sizeof(add), &add, 1));
-                    memset(&add, 0, sizeof(add));
-                }
-            }
-
-            line = strtok_r(NULL, "\r\n", &linesaveptr);
-        }
-    }
-    else if(ceError == CENTERROR_COMMAND_FAILED)
-    {
-         DJ_LOG_INFO("Failed to run lwiinfo --details -m. This is expected if the auth daemon is not running");
-         ceError = CENTERROR_SUCCESS;
-    }
-    else
-        GCE(ceError);
-#endif
 
 cleanup:
-    CT_SAFE_FREE_STRING(commandOutput);
     if(!CENTERROR_IS_OK(ceError))
         FreeDomainMappings(mappings);
     CT_SAFE_FREE_STRING(add.shortName);
     CT_SAFE_FREE_STRING(add.longName);
+    if (pStatus)
+    {
+        LsaFreeStatus(pStatus);
+    }
+    if (hLsa)
+    {
+        LsaCloseServer(hLsa);
+    }
+
     return ceError;
 }
 
@@ -1115,12 +1014,14 @@ Krb5JoinDomain(Krb5Entry *conf,
     CENTERROR ceError = CENTERROR_SUCCESS;
     Krb5Entry *libdefaults;
     Krb5Entry *realms;
+    Krb5Entry *domain_realm = NULL;
     Krb5Entry *appdefaults;
     Krb5Entry *pamGroup;
     Krb5Entry *httpdGroup;
     Krb5Entry *domainGroup = NULL;
     Krb5Entry *addNode = NULL;
     char *domainUpper = NULL;
+    char *domainLower = NULL;
     char *autoShortDomain = NULL;
     DynamicArray trusts;
     char *mappingString = NULL;
@@ -1167,10 +1068,14 @@ Krb5JoinDomain(Krb5Entry *conf,
                 "RC4-HMAC DES-CBC-MD5 DES-CBC-CRC" ));
     GCE(ceError = SetNodeValue( libdefaults, "dns_lookup_kdc", "true" ));
 
+    GCE(ceError = EnsureStanzaNode(conf, "domain_realm", &domain_realm));
     GCE(ceError = EnsureStanzaNode(conf, "realms", &realms));
     GCE(ceError = CTStrdup(pszDomainName, &domainUpper));
     CTStrToUpper(domainUpper);
     GCE(ceError = CreateGroupNode(conf, 2, domainUpper, &domainGroup));
+    /* Enable SSO for Mac platforms, by creating a suitable /Library/Preferences/edu.mit.Kerberos file */
+    GCE(ceError = CreateMacKeberosFile((PSTR) pszDomainName, domainUpper));
+
     for(i = 0; i < trusts.size; i++)
     {
         DomainMapping *current = ((DomainMapping *)trusts.data) + i;
@@ -1179,6 +1084,15 @@ Krb5JoinDomain(Krb5Entry *conf,
         GCE(ceError = CreateValueNode(conf, 3, "auth_to_local", mappingString, &addNode));
         GCE(ceError = AddChildNode(domainGroup, addNode));
         addNode = NULL;
+
+        CT_SAFE_FREE_STRING(domainUpper);
+        CT_SAFE_FREE_STRING(domainLower);
+        GCE(ceError = CTStrdup(current->longName, &domainUpper));
+        CTStrToUpper(domainUpper);
+        GCE(ceError = CTAllocateStringPrintf(
+                &domainLower, ".%s", current->longName));
+        CTStrToLower(domainLower);
+        GCE(ceError = SetNodeValue(domain_realm, domainLower, domainUpper));
     }
     GCE(ceError = CreateValueNode(conf, 3, "auth_to_local", "DEFAULT", &addNode));
     GCE(ceError = AddChildNode(domainGroup, addNode));
@@ -1206,10 +1120,8 @@ Krb5JoinDomain(Krb5Entry *conf,
     GCE(ceError = GetReverseMappingsValueString( (DomainMapping *)trusts.data, &mappingString ));
     GCE(ceError = SetNodeValue( httpdGroup, "reverse_mappings", mappingString ));
 
-    /* Enable SSO for Mac platforms, by creating a suitable /Library/Preferences/edu.mit.Kerberos file */
-    GCE(ceError = CreateMacKeberosFile((PSTR) pszDomainName, domainUpper));
-
 cleanup:
+    CT_SAFE_FREE_STRING(domainLower);
     CT_SAFE_FREE_STRING(mappingString);
     CT_SAFE_FREE_STRING(autoShortDomain);
     CT_SAFE_FREE_STRING(domainUpper);

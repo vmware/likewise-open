@@ -1011,7 +1011,7 @@ DJGetComputerDN(PSTR *dn, LWException **exc)
 {
     DWORD _err = 0;
 
-    LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(FALSE));
+    LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(TRUE));
 
     _err = LsaGetComputerDN(dn);
     if(_err)
@@ -1176,7 +1176,7 @@ void DJCreateComputerAccount(
        LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
     }
 
-    LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(FALSE));
+    LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(TRUE));
 
     if ( options->disableTimeSync )
     {
