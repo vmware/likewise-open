@@ -380,7 +380,7 @@ PvfsReleaseFCB(
     BOOLEAN bFcbLocked = FALSE;
     BOOLEAN bFcbControlLocked = FALSE;
     PVFS_STAT Stat = {0};
-    PPVFS_FCB pFcb = *ppFcb;
+    PPVFS_FCB pFcb = NULL;
     BOOLEAN bDeleteLocked = FALSE;
 
     /* Do housekeeping such as setting the last write time or
@@ -388,6 +388,11 @@ PvfsReleaseFCB(
        0.  Not necessarily when the RefCount reaches 0.  We
        may have a non-handle open in the FCB table for a
        path component (see PvfsFindParentFCB()). */
+
+    if (ppFcb == NULL ||
+        *ppFcb == NULL) return;
+
+    pFcb = *ppFcb;
 
     LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwCcbLock);
 
@@ -460,7 +465,7 @@ PvfsReleaseFCB(
 
     LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
 
-    *ppFcb = (PPVFS_FCB)0xdeadbeef;
+    *ppFcb = (PPVFS_FCB)NULL;
 
     return;
 }
