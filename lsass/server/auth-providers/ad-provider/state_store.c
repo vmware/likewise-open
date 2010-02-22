@@ -189,6 +189,24 @@ ADState_UnmarshalDomainTrustData(
     IN size_t DataSize,
     IN OUT PDLINKEDLIST * ppDomainList
     );
+
+static
+DWORD
+ADState_WriteToFile(
+    IN ADSTATE_CONNECTION_HANDLE hDb,
+    IN OPTIONAL PAD_PROVIDER_DATA pProviderData,
+    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
+    IN OPTIONAL DWORD dwDomainInfoCount,
+    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
+    );
+
+static
+DWORD
+ADState_WriteProviderData(
+    IN FILE * pFileDb,
+    IN LWMsgDataContext * pDataContext,
+    IN PAD_PROVIDER_DATA pProviderData
+    );
 #else
 
 static
@@ -246,15 +264,6 @@ ADState_FreeEnumDomainInfo(
     IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
     );
 
-static
-DWORD
-ADState_WriteToFile(
-    IN ADSTATE_CONNECTION_HANDLE hDb,
-    IN OPTIONAL PAD_PROVIDER_DATA pProviderData,
-    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
-    IN OPTIONAL DWORD dwDomainInfoCount,
-    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
-    );
 
 #ifdef __LW_LSASS_USE_REGISTRY__
 static
@@ -265,18 +274,7 @@ ADState_WriteToRegistry(
     IN OPTIONAL DWORD dwDomainInfoCount,
     IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
     );
-#endif
 
-static
-DWORD
-ADState_WriteProviderData(
-    IN FILE * pFileDb,
-    IN LWMsgDataContext * pDataContext,
-    IN PAD_PROVIDER_DATA pProviderData
-    );
-
-
-#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteRegProviderData(
@@ -294,6 +292,8 @@ ADState_WriteRegCellEntry(
     IN PAD_LINKED_CELL_INFO pCellEntry
     );
 
+
+#ifndef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteCellEntry(
@@ -326,6 +326,7 @@ ADState_WriteOneEntry(
     IN size_t DataSize,
     IN PVOID pData
     );
+#endif
 
 DWORD
 ADState_OpenDb(
@@ -335,7 +336,6 @@ ADState_OpenDb(
     DWORD dwError = 0;
     BOOLEAN bLockCreated = FALSE;
     PADSTATE_CONNECTION pConn = NULL;
-    BOOLEAN bExists = FALSE;
 
     dwError = LwAllocateMemory(
                     sizeof(ADSTATE_CONNECTION),
@@ -346,6 +346,9 @@ ADState_OpenDb(
     BAIL_ON_LSA_ERROR(dwError);
     bLockCreated = TRUE;
 
+#ifndef __LW_LSASS_USE_REGISTRY__
+  {
+    BOOLEAN bExists = FALSE;
     dwError = LsaCheckFileExists(
         ADSTATE_DB,
         &bExists);
@@ -361,6 +364,8 @@ ADState_OpenDb(
                   NULL);
         BAIL_ON_LSA_ERROR(dwError);
     }
+  }
+#endif
 
     *phDb = pConn;
 
@@ -1245,6 +1250,7 @@ error:
 
 #endif
 
+#ifndef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteToFile(
@@ -1434,6 +1440,7 @@ error:
 
     goto cleanup;
 }
+#endif
 
 static
 DWORD
@@ -2433,8 +2440,8 @@ cleanup:
 error:
     goto cleanup;
 }
-#endif
 
+#else
 
 static
 DWORD
@@ -2789,3 +2796,4 @@ error:
 
     return dwError;
 }
+#endif
