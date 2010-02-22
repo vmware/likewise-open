@@ -132,6 +132,26 @@ PvfsCreateDirCreate(
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* We expect this call to fail with OBJECT_NAME_NOT_FOUND */
+
+    ntError = PvfsLookupPath(
+                  &pCreateCtx->pszDiskFilename,
+                  pCreateCtx->pszOriginalFilename,
+                  FALSE);
+    switch (ntError)
+    {
+    case STATUS_SUCCESS:
+        ntError = STATUS_OBJECT_NAME_COLLISION;
+        break;
+    case STATUS_OBJECT_NAME_NOT_FOUND:
+        ntError = STATUS_SUCCESS;
+        break;
+    default:
+        /* do nothing */
+        break;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
     ntError = PvfsFileSplitPath(
                   &pszDirname,
                   &pszRelativeFilename,
@@ -139,17 +159,12 @@ PvfsCreateDirCreate(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsLookupPath(&pszDiskDirname, pszDirname, FALSE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsLookupFile(
-                  &pCreateCtx->pszDiskFilename,
-                  pszDiskDirname,
-                  pszRelativeFilename,
-                  FALSE);
-    if (ntError == STATUS_SUCCESS) {
-        ntError = STATUS_OBJECT_NAME_COLLISION;
-        BAIL_ON_NT_STATUS(ntError);
+    if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
+    {
+        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
     }
+
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = LwRtlCStringAllocatePrintf(
                   &pCreateCtx->pszDiskFilename,
