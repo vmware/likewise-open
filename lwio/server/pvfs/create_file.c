@@ -126,7 +126,6 @@ PvfsCreateFileSupersede(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     IRP_ARGS_CREATE Args = pIrpContext->pIrp->Args.Create;
-    PSTR pszDirectory = NULL;
     PSTR pszDirname = NULL;
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskDirname = NULL;
@@ -217,7 +216,7 @@ PvfsCreateFileSupersede(
 
     ntError = PvfsAccessCheckDir(
                   pCreateCtx->pCcb->pUserToken,
-                  pszDirectory,
+                  pszDiskDirname,
                   Args.DesiredAccess,
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
