@@ -225,6 +225,11 @@ PvfsSetFileAttributes(
 
     Attributes &= ~(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_NORMAL);
 
+    if (Attributes & FILE_ATTRIBUTE_SYSTEM)
+    {
+        Attributes |= FILE_ATTRIBUTE_ARCHIVE;
+    }
+
 #ifdef HAVE_EA_SUPPORT
     ntError = PvfsSetFileAttributesXattr(pCcb, Attributes);
 #else
