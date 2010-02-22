@@ -3,7 +3,7 @@
  * -*- mode: c, c-basic-offset: 4 -*- */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2010
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -40,6 +40,7 @@
  *        Caching for AD Provider Database Interface
  *
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
+ *          Adam Bernstein (adam.bernstein@likewise.com)
  *
  */
 
@@ -61,54 +62,7 @@ typedef struct _ADSTATE_CONNECTION
 // string form.
 #define UUID_STR_SIZE 37
 
-#define ADSTATE_DB       LSASS_DB_DIR "/lsass-adstate.filedb"
-#define ADSTATE_DB_TEMP  ADSTATE_DB ".temp"
-
-#define FILEDB_FORMAT_TYPE "LFLT"
-#define FILEDB_FORMAT_VERSION 1
-
-#define FILEDB_DATA_TYPE_PROVIDER    1
-#define FILEDB_DATA_TYPE_LINKEDCELL  2
-#define FILEDB_DATA_TYPE_DOMAINTRUST 3
-
-#define ENTER_ADSTATE_DB_RW_READER_LOCK(pLock, bInLock) \
-    if (!bInLock) {                                 \
-        pthread_rwlock_rdlock(pLock);               \
-        bInLock = TRUE;                             \
-    }
-#define LEAVE_ADSTATE_DB_RW_READER_LOCK(pLock, bInLock) \
-    if (bInLock) {                                  \
-        pthread_rwlock_unlock(pLock);               \
-        bInLock = FALSE;                            \
-    }
-
-#define ENTER_ADSTATE_DB_RW_WRITER_LOCK(pLock, bInLock) \
-    if (!bInLock) {                                 \
-        pthread_rwlock_wrlock(pLock);               \
-        bInLock = TRUE;                             \
-    }
-#define LEAVE_ADSTATE_DB_RW_WRITER_LOCK(pLock, bInLock) \
-    if (bInLock) {                                  \
-        pthread_rwlock_unlock(pLock);               \
-        bInLock = FALSE;                            \
-    }
-
-#if 1
-#define __LW_LSASS_USE_REGISTRY__
-#endif
-
-typedef struct _AD_FILEDB_PROVIDER_DATA
-{
-    DWORD dwDirectoryMode;
-    ADConfigurationMode adConfigurationMode;
-    UINT64 adMaxPwdAge;
-    PSTR  pszDomain;
-    PSTR  pszShortDomain;
-    PSTR  pszComputerDN;
-    PSTR  pszCellDN;
-} AD_FILEDB_PROVIDER_DATA, *PAD_FILEDB_PROVIDER_DATA;
-
-typedef struct _AD_FILEDB_DOMAIN_INFO
+typedef struct _AD_REGB_DOMAIN_INFO
 {
     PSTR pszDnsDomainName;
     PSTR pszNetbiosDomainName;
@@ -126,88 +80,7 @@ typedef struct _AD_FILEDB_DOMAIN_INFO
     LSA_DM_DOMAIN_FLAGS Flags;
     PLSA_DM_DC_INFO DcInfo;
     PLSA_DM_DC_INFO GcInfo;
-} AD_FILEDB_DOMAIN_INFO, *PAD_FILEDB_DOMAIN_INFO;
-
-LWMsgTypeSpec gADStateProviderDataCacheSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(AD_FILEDB_PROVIDER_DATA),
-    LWMSG_MEMBER_UINT32(AD_FILEDB_PROVIDER_DATA, dwDirectoryMode),
-    LWMSG_MEMBER_UINT8(AD_FILEDB_PROVIDER_DATA, adConfigurationMode),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_PROVIDER_DATA, pszDomain),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_PROVIDER_DATA, pszShortDomain),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_PROVIDER_DATA, pszComputerDN),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_PROVIDER_DATA, pszCellDN),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-LWMsgTypeSpec gADStateLinkedCellCacheSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(AD_LINKED_CELL_INFO),
-    LWMSG_MEMBER_PSTR(AD_LINKED_CELL_INFO, pszCellDN),
-    LWMSG_MEMBER_PSTR(AD_LINKED_CELL_INFO, pszDomain),
-    LWMSG_MEMBER_UINT8(AD_LINKED_CELL_INFO, bIsForestCell),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-LWMsgTypeSpec gADStateDomainTrustCacheSpec[] =
-{
-    LWMSG_STRUCT_BEGIN(AD_FILEDB_DOMAIN_INFO),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszDnsDomainName),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszNetbiosDomainName),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszSid),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszGuid),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszTrusteeDnsDomainName),
-    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustFlags),
-    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustType),
-    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustAttributes),
-    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustDirection),
-    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, dwTrustMode),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszForestName),
-    LWMSG_MEMBER_PSTR(AD_FILEDB_DOMAIN_INFO, pszClientSiteName),
-    LWMSG_MEMBER_UINT32(AD_FILEDB_DOMAIN_INFO, Flags),
-    LWMSG_STRUCT_END,
-    LWMSG_TYPE_END
-};
-
-#ifndef __LW_LSASS_USE_REGISTRY__
-static
-DWORD
-ADState_ReadFromFile(
-    IN ADSTATE_CONNECTION_HANDLE hDb,
-    OUT OPTIONAL PAD_PROVIDER_DATA* ppResult,
-    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
-    OUT OPTIONAL PDLINKEDLIST* ppDomainList
-    );
-
-static
-DWORD
-ADState_UnmarshalDomainTrustData(
-    IN LWMsgDataContext * pDataContext,
-    IN PVOID pData,
-    IN size_t DataSize,
-    IN OUT PDLINKEDLIST * ppDomainList
-    );
-
-static
-DWORD
-ADState_WriteToFile(
-    IN ADSTATE_CONNECTION_HANDLE hDb,
-    IN OPTIONAL PAD_PROVIDER_DATA pProviderData,
-    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
-    IN OPTIONAL DWORD dwDomainInfoCount,
-    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
-    );
-
-static
-DWORD
-ADState_WriteProviderData(
-    IN FILE * pFileDb,
-    IN LWMsgDataContext * pDataContext,
-    IN PAD_PROVIDER_DATA pProviderData
-    );
-#else
+} AD_REGDB_DOMAIN_INFO, *PAD_REGDB_DOMAIN_INFO;
 
 static
 DWORD
@@ -215,7 +88,6 @@ ADState_ReadFromRegistry(
     OUT OPTIONAL PAD_PROVIDER_DATA* ppProviderData,
     OUT OPTIONAL PDLINKEDLIST* ppDomainList
     );
-#endif
 
 DWORD
 ADState_ReadRegProviderData(
@@ -232,26 +104,6 @@ ADState_ReadRegDomainEntry(
     PDLINKEDLIST *ppDomainList
     );
 
-#ifndef __LW_LSASS_USE_REGISTRY__
-static
-DWORD
-ADState_UnmarshalProviderData(
-    IN LWMsgDataContext * pDataContext,
-    IN PVOID pData,
-    IN size_t DataSize,
-    OUT PAD_PROVIDER_DATA * ppProviderData
-    );
-
-static
-DWORD
-ADState_UnmarshalLinkedCellData(
-    IN LWMsgDataContext * pDataContext,
-    IN PVOID pData,
-    IN size_t DataSize,
-    IN OUT PDLINKEDLIST * ppCellList
-    );
-#endif
-
 static
 VOID
 ADState_FreeEnumDomainInfoCallback(
@@ -264,8 +116,6 @@ ADState_FreeEnumDomainInfo(
     IN OUT PLSA_DM_ENUM_DOMAIN_INFO pDomainInfo
     );
 
-
-#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteToRegistry(
@@ -280,7 +130,6 @@ DWORD
 ADState_WriteRegProviderData(
     IN PAD_PROVIDER_DATA pProviderData
     );
-#endif
 
 DWORD
 ADState_WriteRegDomainEntry(
@@ -292,41 +141,6 @@ ADState_WriteRegCellEntry(
     IN PAD_LINKED_CELL_INFO pCellEntry
     );
 
-
-#ifndef __LW_LSASS_USE_REGISTRY__
-static
-DWORD
-ADState_WriteCellEntry(
-    IN FILE * pFileDb,
-    IN LWMsgDataContext * pDataContext,
-    IN PAD_LINKED_CELL_INFO pCellEntry
-    );
-
-static
-DWORD
-ADState_WriteDomainEntry(
-    IN FILE * pFileDb,
-    IN LWMsgDataContext * pDataContext,
-    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoEntry
-    );
-
-static
-DWORD
-ADState_CopyFromFile(
-    IN FILE * pFileDb,
-    IN BOOLEAN bCopyProviderData,
-    IN BOOLEAN bCopyDomainTrusts
-    );
-
-static
-DWORD
-ADState_WriteOneEntry(
-    IN FILE * pFileDb,
-    IN DWORD dwType,
-    IN size_t DataSize,
-    IN PVOID pData
-    );
-#endif
 
 DWORD
 ADState_OpenDb(
@@ -345,27 +159,6 @@ ADState_OpenDb(
     dwError = pthread_rwlock_init(&pConn->lock, NULL);
     BAIL_ON_LSA_ERROR(dwError);
     bLockCreated = TRUE;
-
-#ifndef __LW_LSASS_USE_REGISTRY__
-  {
-    BOOLEAN bExists = FALSE;
-    dwError = LsaCheckFileExists(
-        ADSTATE_DB,
-        &bExists);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!bExists)
-    {
-        dwError = ADState_WriteToFile(
-                  pConn,
-                  NULL,
-                  NULL,
-                  0,
-                  NULL);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-  }
-#endif
 
     *phDb = pConn;
 
@@ -424,20 +217,11 @@ ADState_EmptyDb(
 {
     DWORD dwError = 0;
 
-#ifdef __LW_LSASS_USE_REGISTRY__
     dwError = ADState_WriteToRegistry(
                   NULL,
                   NULL,
                   0,
                   NULL);
-#else
-    dwError = ADState_WriteToFile(
-                  hDb,
-                  NULL,
-                  NULL,
-                  0,
-                  NULL);
-#endif
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -455,19 +239,12 @@ ADState_GetProviderData(
     OUT PAD_PROVIDER_DATA* ppResult
     )
 {
-#ifdef __LW_LSASS_USE_REGISTRY__
     DWORD dwError = 0;
 
     dwError = ADState_ReadFromRegistry(
                   ppResult,
                   NULL);
     return dwError;
-#else
-    return ADState_ReadFromFile(
-               hDb,
-               ppResult,
-               NULL);
-#endif
 }
 
 DWORD
@@ -480,20 +257,11 @@ ADState_StoreProviderData(
 
     if (pProvider)
     {
-#ifdef __LW_LSASS_USE_REGISTRY__
         dwError = ADState_WriteToRegistry(
                       pProvider,
                       NULL,
                       0,
                       NULL);
-#else
-        dwError = ADState_WriteToFile(
-                      hDb,
-                      pProvider,
-                      NULL,
-                      0,
-                      NULL);
-#endif
     }
 
     return dwError;
@@ -506,16 +274,9 @@ ADState_GetDomainTrustList(
     OUT PDLINKEDLIST* ppList
     )
 {
-#ifdef __LW_LSASS_USE_REGISTRY__
     return ADState_ReadFromRegistry(
                NULL,
                ppList);
-#else
-    return ADState_ReadFromFile(
-               hDb,
-               NULL,
-               ppList);
-#endif
 }
 
 DWORD
@@ -528,20 +289,11 @@ ADState_AddDomainTrust(
 
     if (pDomainInfo)
     {
-#ifdef __LW_LSASS_USE_REGISTRY__
         dwError = ADState_WriteToRegistry(
                       NULL,
                       NULL,
                       0,
                       pDomainInfo);
-#else
-        dwError = ADState_WriteToFile(
-                      hDb,
-                      NULL,
-                      NULL,
-                      0,
-                      pDomainInfo);
-#endif
     }
 
     return dwError;
@@ -558,27 +310,17 @@ ADState_StoreDomainTrustList(
 
     if (ppDomainInfo && dwDomainInfoCount)
     {
-#ifdef __LW_LSASS_USE_REGISTRY__
         dwError = ADState_WriteToRegistry(
                       NULL,
                       ppDomainInfo,
                       dwDomainInfoCount,
                       NULL);
-#else
-        dwError = ADState_WriteToFile(
-                      hDb,
-                      NULL,
-                      ppDomainInfo,
-                      dwDomainInfoCount,
-                      NULL);
-#endif
     }
 
     return dwError;
 }
 
 
-#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_ReadFromRegistry(
@@ -623,487 +365,6 @@ ADState_ReadFromRegistry(
         goto cleanup;
 }
 
-#else
-
-static
-DWORD
-ADState_ReadFromFile(
-    IN ADSTATE_CONNECTION_HANDLE hDb,
-    OUT OPTIONAL PAD_PROVIDER_DATA* ppProviderData,
-    // Contains type PLSA_DM_ENUM_DOMAIN_INFO
-    OUT OPTIONAL PDLINKEDLIST* ppDomainList
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    FILE * pFileDb = NULL;
-    size_t Cnt = 0;
-    BYTE FormatType[4];
-    DWORD dwVersion = 0;
-    DWORD dwType = 0;
-    size_t DataMaxSize = 0;
-    size_t DataSize = 0;
-    PVOID pData = NULL;
-    LWMsgContext * pContext = NULL;
-    LWMsgDataContext * pDataContext = NULL;
-    PAD_PROVIDER_DATA pProviderData = NULL;
-    PDLINKEDLIST pCellList = NULL;
-    PDLINKEDLIST pDomainList = NULL;
-
-    memset(FormatType, 0, sizeof(FormatType));
-
-    ENTER_ADSTATE_DB_RW_READER_LOCK(&hDb->lock, bInLock);
-
-    pFileDb = fopen(ADSTATE_DB, "r");
-    if (pFileDb == NULL)
-    {
-        dwError = errno;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    Cnt = fread(&FormatType, sizeof(FormatType), 1, pFileDb);
-    if (Cnt == 0)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    else if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    Cnt = fread(&dwVersion, sizeof(dwVersion), 1, pFileDb);
-    if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(pContext, &pDataContext));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    while (1)
-    {
-        Cnt = fread(&dwType, sizeof(dwType), 1, pFileDb);
-        if (Cnt == 0)
-        {
-            break;
-        }
-        else if (Cnt != 1)
-        {
-            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        Cnt = fread(&DataSize, sizeof(DataSize), 1, pFileDb);
-        if (Cnt == 0)
-        {
-            break;
-        }
-        else if (Cnt != 1)
-        {
-            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (DataSize > DataMaxSize)
-        {
-            DataMaxSize = DataSize * 2;
-
-            dwError = LwReallocMemory(
-                          pData,
-                          (PVOID*)&pData,
-                          DataMaxSize);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        Cnt = fread(pData, DataSize, 1, pFileDb);
-        if (Cnt != 1)
-        {
-            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        switch (dwType)
-        {
-            case FILEDB_DATA_TYPE_PROVIDER:
-                if (ppProviderData)
-                {
-                    if (pProviderData)
-                    {
-                        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-                    }
-                    else
-                    {
-                        dwError = ADState_UnmarshalProviderData(
-                                      pDataContext,
-                                      pData,
-                                      DataSize,
-                                      &pProviderData);
-                    }
-                }
-                break;
-            case FILEDB_DATA_TYPE_LINKEDCELL:
-                if (ppProviderData)
-                {
-                    dwError = ADState_UnmarshalLinkedCellData(
-                                  pDataContext,
-                                  pData,
-                                  DataSize,
-                                  &pCellList);
-                }
-                break;
-            case FILEDB_DATA_TYPE_DOMAINTRUST:
-                if (ppDomainList)
-                {
-                    dwError = ADState_UnmarshalDomainTrustData(
-                                  pDataContext,
-                                  pData,
-                                  DataSize,
-                                  &pDomainList);
-                }
-                break;
-            default:
-                dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-                break;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (ppProviderData)
-    {
-        if (pProviderData)
-        {
-            pProviderData->pCellList = pCellList;
-            pCellList = NULL;
-        }
-        *ppProviderData = pProviderData;
-        pProviderData = NULL;
-    }
-
-    if (ppDomainList)
-    {
-        *ppDomainList = pDomainList;
-        pDomainList = NULL;
-    }
-
-cleanup:
-
-    if (pFileDb != NULL)
-    {
-        fclose(pFileDb);
-    }
-
-    LEAVE_ADSTATE_DB_RW_READER_LOCK(&hDb->lock, bInLock);
-
-    if (pDataContext)
-    {
-        lwmsg_data_context_delete(pDataContext);
-    }
-    if (pContext)
-    {
-        lwmsg_context_delete(pContext);
-    }
-
-    LW_SAFE_FREE_MEMORY(pData);
-
-    if (pProviderData)
-    {
-        ADProviderFreeProviderData(pProviderData);
-    }
-    if (pCellList)
-    {
-        ADProviderFreeCellList(pCellList);
-    }
-    if (pDomainList)
-    {
-        ADState_FreeEnumDomainInfoList(pDomainList);
-    }
-
-    return dwError;
-
-error:
-
-    if (ppProviderData)
-    {
-        *ppProviderData = NULL;
-    }
-    if (ppDomainList)
-    {
-        *ppDomainList = NULL;
-    }
-
-    goto cleanup;
-}
-
-static
-DWORD
-ADState_UnmarshalProviderData(
-    IN LWMsgDataContext * pDataContext,
-    IN PVOID pData,
-    IN size_t DataSize,
-    OUT PAD_PROVIDER_DATA * ppProviderData
-    )
-{
-    DWORD dwError = 0;
-    PAD_FILEDB_PROVIDER_DATA pFileDbData = NULL;
-    PAD_PROVIDER_DATA pProviderData = NULL;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                  pDataContext,
-                  gADStateProviderDataCacheSpec,
-                  pData,
-                  DataSize,
-                  (PVOID*)&pFileDbData));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(
-                  sizeof(*pProviderData),
-                  (PVOID*)&pProviderData);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pProviderData->dwDirectoryMode = pFileDbData->dwDirectoryMode;
-    pProviderData->adConfigurationMode = pFileDbData->adConfigurationMode;
-    pProviderData->adMaxPwdAge = pFileDbData->adMaxPwdAge;
-
-    if (pFileDbData->pszDomain)
-    {
-        strncpy(
-            pProviderData->szDomain,
-            pFileDbData->pszDomain,
-            sizeof(pProviderData->szDomain));
-    }
-
-    if (pFileDbData->pszShortDomain)
-    {
-        strncpy(
-            pProviderData->szShortDomain,
-            pFileDbData->pszShortDomain,
-            sizeof(pProviderData->szShortDomain));
-    }
-
-    if (pFileDbData->pszComputerDN)
-    {
-        strncpy(
-            pProviderData->szComputerDN,
-            pFileDbData->pszComputerDN,
-            sizeof(pProviderData->szComputerDN));
-    }
-
-    if (pFileDbData->pszCellDN)
-    {
-        strncpy(
-            pProviderData->cell.szCellDN,
-            pFileDbData->pszCellDN,
-            sizeof(pProviderData->cell.szCellDN));
-    }
-
-    *ppProviderData = pProviderData;
-
-cleanup:
-
-    if (pFileDbData)
-    {
-        lwmsg_data_free_graph(
-            pDataContext,
-            gADStateProviderDataCacheSpec,
-            pFileDbData);
-    }
-
-    return dwError;
-
-error:
-
-    *ppProviderData = NULL;
-
-    LW_SAFE_FREE_MEMORY(pProviderData);
-
-    goto cleanup;
-}
-
-static
-DWORD
-ADState_UnmarshalLinkedCellData(
-    IN LWMsgDataContext * pDataContext,
-    IN PVOID pData,
-    IN size_t DataSize,
-    IN OUT PDLINKEDLIST * ppCellList
-    )
-{
-    DWORD dwError = 0;
-    PAD_LINKED_CELL_INFO pCellEntry = NULL;
-    PAD_LINKED_CELL_INFO pListEntry = NULL;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                  pDataContext,
-                  gADStateLinkedCellCacheSpec,
-                  pData,
-                  DataSize,
-                  (PVOID*)&pCellEntry));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(
-                  sizeof(*pListEntry),
-                  (PVOID*)&pListEntry);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwStrDupOrNull(
-                  pCellEntry->pszCellDN,
-                  &pListEntry->pszCellDN);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwStrDupOrNull(
-                  pCellEntry->pszDomain,
-                  &pListEntry->pszDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pListEntry->bIsForestCell = pCellEntry->bIsForestCell;
-
-    dwError = LsaDLinkedListAppend(
-                  ppCellList,
-                  pListEntry);
-    BAIL_ON_LSA_ERROR(dwError);
-    pListEntry = NULL;
-
-cleanup:
-
-    if (pCellEntry)
-    {
-        lwmsg_data_free_graph(
-            pDataContext,
-            gADStateLinkedCellCacheSpec,
-            pCellEntry);
-    }
-
-    return dwError;
-
-error:
-
-    if (pListEntry)
-    {
-        ADProviderFreeCellInfo(pListEntry);
-    }
-
-    goto cleanup;
-}
-
-
-static
-DWORD
-ADState_UnmarshalDomainTrustData(
-    IN LWMsgDataContext * pDataContext,
-    IN PVOID pData,
-    IN size_t DataSize,
-    IN OUT PDLINKEDLIST * ppDomainList
-    )
-{
-    DWORD dwError = 0;
-    PAD_FILEDB_DOMAIN_INFO pDomainInfo = NULL;
-    PLSA_DM_ENUM_DOMAIN_INFO pListEntry = NULL;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_unmarshal_flat(
-                  pDataContext,
-                  gADStateDomainTrustCacheSpec,
-                  pData,
-                  DataSize,
-                  (PVOID*)&pDomainInfo));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwAllocateMemory(
-                  sizeof(*pListEntry),
-                  (PVOID*)&pListEntry);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwStrDupOrNull(
-                  pDomainInfo->pszDnsDomainName,
-                  &pListEntry->pszDnsDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwStrDupOrNull(
-                  pDomainInfo->pszNetbiosDomainName,
-                  &pListEntry->pszNetbiosDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (pDomainInfo->pszSid)
-    {
-        dwError = LsaAllocateSidFromCString(
-                      &pListEntry->pSid,
-                      pDomainInfo->pszSid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pDomainInfo->pszGuid)
-    {
-        dwError = LwAllocateMemory(
-                      UUID_STR_SIZE,
-                      (PVOID*)&pListEntry->pGuid);
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (uuid_parse(
-                pDomainInfo->pszGuid,
-                *pListEntry->pGuid) < 0)
-        {
-            // uuid_parse returns -1 on error, but does not set errno
-            dwError = LW_ERROR_INVALID_OBJECTGUID;
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-    }
-
-    dwError = LwStrDupOrNull(
-                  pDomainInfo->pszTrusteeDnsDomainName,
-                  &pListEntry->pszTrusteeDnsDomainName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pListEntry->dwTrustFlags = pDomainInfo->dwTrustFlags;
-    pListEntry->dwTrustType = pDomainInfo->dwTrustType;
-    pListEntry->dwTrustAttributes = pDomainInfo->dwTrustAttributes;
-    pListEntry->dwTrustDirection = pDomainInfo->dwTrustDirection;
-
-    dwError = LwStrDupOrNull(
-                  pDomainInfo->pszForestName,
-                  &pListEntry->pszForestName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwStrDupOrNull(
-                  pDomainInfo->pszClientSiteName,
-                  &pListEntry->pszClientSiteName);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pListEntry->Flags = pDomainInfo->Flags;
-    pListEntry->DcInfo = NULL;
-    pListEntry->GcInfo = NULL;
-
-    dwError = LsaDLinkedListAppend(
-                  ppDomainList,
-                  pListEntry);
-    BAIL_ON_LSA_ERROR(dwError);
-    pListEntry = NULL;
-
-cleanup:
-
-    if (pDomainInfo)
-    {
-        lwmsg_data_free_graph(
-            pDataContext,
-            gADStateDomainTrustCacheSpec,
-            pDomainInfo);
-    }
-
-    return dwError;
-
-error:
-
-    if (pListEntry)
-    {
-        ADState_FreeEnumDomainInfo(pListEntry);
-    }
-
-    goto cleanup;
-}
-#endif
 
 VOID
 ADState_FreeEnumDomainInfoList(
@@ -1160,7 +421,6 @@ ADState_FreeEnumDomainInfo(
     }
 }
 
-#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteToRegistry(
@@ -1248,199 +508,6 @@ error:
     goto cleanup;
 }
 
-#endif
-
-#ifndef __LW_LSASS_USE_REGISTRY__
-static
-DWORD
-ADState_WriteToFile(
-    IN ADSTATE_CONNECTION_HANDLE hDb,
-    IN OPTIONAL PAD_PROVIDER_DATA pProviderData,
-    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_INFO* ppDomainInfo,
-    IN OPTIONAL DWORD dwDomainInfoCount,
-    IN OPTIONAL PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoAppend
-    )
-{
-    DWORD dwError = 0;
-    BOOLEAN bInLock = FALSE;
-    BOOLEAN bExists = FALSE;
-    FILE * pFileDb = NULL;
-    size_t Cnt = 0;
-    PBYTE FormatType = (PBYTE)FILEDB_FORMAT_TYPE;
-    DWORD dwVersion = FILEDB_FORMAT_VERSION;
-    DWORD dwCount = 0;
-    LWMsgContext * pContext = NULL;
-    LWMsgDataContext * pDataContext = NULL;
-
-    ENTER_ADSTATE_DB_RW_WRITER_LOCK(&hDb->lock, bInLock);
-
-    dwError = LsaCheckDirectoryExists(LSASS_DB_DIR, &bExists);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (!bExists)
-    {
-        mode_t cacheDirMode = S_IRWXU;
-
-        dwError = LsaCreateDirectory(LSASS_DB_DIR, cacheDirMode);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    /* restrict access to u+rwx to the db folder */
-    dwError = LsaChangeOwnerAndPermissions(LSASS_DB_DIR, 0, 0, S_IRWXU);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaCheckFileExists(
-        ADSTATE_DB_TEMP,
-        &bExists);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (bExists)
-    {
-        dwError = LsaRemoveFile(ADSTATE_DB_TEMP);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    dwError = LsaCheckFileExists(
-        ADSTATE_DB,
-        &bExists);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    pFileDb = fopen(ADSTATE_DB_TEMP, "w");
-    if (pFileDb == NULL)
-    {
-        dwError = errno;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    Cnt = fwrite(FormatType, sizeof(BYTE) * 4, 1, pFileDb);
-    if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    Cnt = fwrite(&dwVersion, sizeof(dwVersion), 1, pFileDb);
-    if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (pProviderData || ppDomainInfo || pDomainInfoAppend)
-    {
-        dwError = MAP_LWMSG_ERROR(lwmsg_context_new(NULL, &pContext));
-        BAIL_ON_LSA_ERROR(dwError);
-
-        dwError = MAP_LWMSG_ERROR(lwmsg_data_context_new(
-                                      pContext,
-                                      &pDataContext));
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (pProviderData)
-        {
-            PDLINKEDLIST pCellList = pProviderData->pCellList;
-
-            dwError = ADState_WriteProviderData(
-                          pFileDb,
-                          pDataContext,
-                          pProviderData);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            while (pCellList)
-            {
-                dwError = ADState_WriteCellEntry(
-                              pFileDb,
-                              pDataContext,
-                              pCellList->pItem);
-                BAIL_ON_LSA_ERROR(dwError);
-
-
-                pCellList = pCellList->pNext;
-            }
-        }
-        else
-        {
-            if (bExists)
-            {
-                dwError = ADState_CopyFromFile(
-                              pFileDb,
-                              TRUE,
-                              FALSE);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-        }
-
-        if (ppDomainInfo)
-        {
-            for (dwCount = 0 ; dwCount < dwDomainInfoCount ; dwCount++)
-            {
-                dwError = ADState_WriteDomainEntry(
-                              pFileDb,
-                              pDataContext,
-                              ppDomainInfo[dwCount]);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-        }
-        else
-        {
-            if (bExists)
-            {
-                dwError = ADState_CopyFromFile(
-                              pFileDb,
-                              FALSE,
-                              TRUE);
-                BAIL_ON_LSA_ERROR(dwError);
-            }
-        }
-
-        if (pDomainInfoAppend)
-        {
-            dwError = ADState_WriteDomainEntry(
-                          pFileDb,
-                          pDataContext,
-                          pDomainInfoAppend);
-            BAIL_ON_LSA_ERROR(dwError);
-
-        }
-    }
-
-    if (pFileDb != NULL)
-    {
-        fclose(pFileDb);
-        pFileDb = NULL;
-    }
-
-    dwError = LsaChangeOwnerAndPermissions(ADSTATE_DB_TEMP, 0, 0, S_IRWXU);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LsaMoveFile(ADSTATE_DB_TEMP, ADSTATE_DB);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    if (pFileDb != NULL)
-    {
-        fclose(pFileDb);
-    }
-
-    LEAVE_ADSTATE_DB_RW_WRITER_LOCK(&hDb->lock, bInLock);
-
-    if (pDataContext)
-    {
-        lwmsg_data_context_delete(pDataContext);
-    }
-    if (pContext)
-    {
-        lwmsg_context_delete(pContext);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-#endif
 
 static
 DWORD
@@ -1764,7 +831,7 @@ ADState_ReadRegDomainEntry(
     PDLINKEDLIST *ppDomainList)
 {
     HANDLE hReg = NULL;
-    PAD_FILEDB_DOMAIN_INFO pDomainInfo = NULL;
+    PAD_REGDB_DOMAIN_INFO pDomainInfo = NULL;
     PLSA_DM_ENUM_DOMAIN_INFO pListEntry = NULL;
     DWORD dwError = 0;
     PWSTR *ppwszSubKeys = NULL;
@@ -2344,7 +1411,6 @@ error:
 }
 
 
-#ifdef __LW_LSASS_USE_REGISTRY__
 static
 DWORD
 ADState_WriteRegProviderData(
@@ -2440,360 +1506,3 @@ cleanup:
 error:
     goto cleanup;
 }
-
-#else
-
-static
-DWORD
-ADState_WriteProviderData(
-    IN FILE * pFileDb,
-    IN LWMsgDataContext * pDataContext,
-    IN PAD_PROVIDER_DATA pProviderData
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwType = FILEDB_DATA_TYPE_PROVIDER;
-    PVOID pData = NULL;
-    size_t DataSize = 0;
-    AD_FILEDB_PROVIDER_DATA FileDbData;
-
-    memset(&FileDbData, 0, sizeof(FileDbData));
-
-    FileDbData.dwDirectoryMode = pProviderData->dwDirectoryMode;
-    FileDbData.adConfigurationMode = pProviderData->adConfigurationMode;
-    FileDbData.adMaxPwdAge = pProviderData->adMaxPwdAge;
-
-    dwError = LwStrDupOrNull(
-                  pProviderData->szDomain,
-                  &FileDbData.pszDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwStrDupOrNull(
-                  pProviderData->szShortDomain,
-                  &FileDbData.pszShortDomain);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwStrDupOrNull(
-                  pProviderData->szComputerDN,
-                  &FileDbData.pszComputerDN);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = LwStrDupOrNull(
-                  pProviderData->cell.szCellDN,
-                  &FileDbData.pszCellDN);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
-                              pDataContext,
-                              gADStateProviderDataCacheSpec,
-                              &FileDbData,
-                              &pData,
-                              &DataSize));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADState_WriteOneEntry(
-                  pFileDb,
-                  dwType,
-                  DataSize,
-                  pData);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(FileDbData.pszDomain);
-    LW_SAFE_FREE_STRING(FileDbData.pszShortDomain);
-    LW_SAFE_FREE_STRING(FileDbData.pszComputerDN);
-    LW_SAFE_FREE_STRING(FileDbData.pszCellDN);
-    LW_SAFE_FREE_MEMORY(pData);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-ADState_WriteCellEntry(
-    IN FILE * pFileDb,
-    IN LWMsgDataContext * pDataContext,
-    IN PAD_LINKED_CELL_INFO pCellEntry
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwType = FILEDB_DATA_TYPE_LINKEDCELL;
-    PVOID pData = NULL;
-    size_t DataSize = 0;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
-                              pDataContext,
-                              gADStateLinkedCellCacheSpec,
-                              pCellEntry,
-                              &pData,
-                              &DataSize));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADState_WriteOneEntry(
-                  pFileDb,
-                  dwType,
-                  DataSize,
-                  pData);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    LW_SAFE_FREE_MEMORY(pData);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-ADState_WriteDomainEntry(
-    IN FILE * pFileDb,
-    IN LWMsgDataContext * pDataContext,
-    IN PLSA_DM_ENUM_DOMAIN_INFO pDomainInfoEntry
-    )
-{
-    DWORD dwError = 0;
-    DWORD dwType = FILEDB_DATA_TYPE_DOMAINTRUST;
-    PVOID pData = NULL;
-    size_t DataSize = 0;
-    AD_FILEDB_DOMAIN_INFO FileDbData;
-    char szGuid[UUID_STR_SIZE];
-
-    memset(&FileDbData, 0, sizeof(FileDbData));
-
-    FileDbData.pszDnsDomainName = pDomainInfoEntry->pszDnsDomainName;
-    FileDbData.pszNetbiosDomainName = pDomainInfoEntry->pszNetbiosDomainName;
-
-    if (pDomainInfoEntry->pSid != NULL)
-    {
-        dwError = LsaAllocateCStringFromSid(
-                &FileDbData.pszSid,
-                pDomainInfoEntry->pSid);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (pDomainInfoEntry->pGuid)
-    {
-        // Writes into a 37-byte caller allocated string
-        uuid_unparse(*pDomainInfoEntry->pGuid, szGuid);
-
-        FileDbData.pszGuid = szGuid;
-    }
-
-    FileDbData.pszTrusteeDnsDomainName = pDomainInfoEntry->pszTrusteeDnsDomainName;
-    FileDbData.dwTrustFlags = pDomainInfoEntry->dwTrustFlags;
-    FileDbData.dwTrustType = pDomainInfoEntry->dwTrustType;
-    FileDbData.dwTrustAttributes = pDomainInfoEntry->dwTrustAttributes;
-    FileDbData.dwTrustDirection = pDomainInfoEntry->dwTrustDirection;
-    FileDbData.pszForestName = pDomainInfoEntry->pszForestName;
-    FileDbData.pszClientSiteName = pDomainInfoEntry->pszClientSiteName;
-    FileDbData.Flags = pDomainInfoEntry->Flags;
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_data_marshal_flat_alloc(
-                              pDataContext,
-                              gADStateDomainTrustCacheSpec,
-                              &FileDbData,
-                              &pData,
-                              &DataSize));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = ADState_WriteOneEntry(
-                  pFileDb,
-                  dwType,
-                  DataSize,
-                  pData);
-    BAIL_ON_LSA_ERROR(dwError);
-
-cleanup:
-
-    LW_SAFE_FREE_STRING(FileDbData.pszSid);
-    LW_SAFE_FREE_MEMORY(pData);
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-ADState_CopyFromFile(
-    IN FILE * pFileDb,
-    IN BOOLEAN bCopyProviderData,
-    IN BOOLEAN bCopyDomainTrusts
-    )
-{
-    DWORD dwError = 0;
-    FILE * pOldFileDb = NULL;
-    size_t Cnt = 0;
-    BYTE FormatType[4];
-    DWORD dwVersion = 0;
-    DWORD dwType = 0;
-    size_t DataMaxSize = 0;
-    size_t DataSize = 0;
-    PVOID pData = NULL;
-
-    memset(FormatType, 0, sizeof(FormatType));
-
-    pOldFileDb = fopen(ADSTATE_DB, "r");
-    if (pOldFileDb == NULL)
-    {
-        dwError = errno;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    Cnt = fread(&FormatType, sizeof(FormatType), 1, pOldFileDb);
-    if (Cnt == 0)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    else if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    Cnt = fread(&dwVersion, sizeof(dwVersion), 1, pOldFileDb);
-    if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    while (1)
-    {
-        Cnt = fread(&dwType, sizeof(dwType), 1, pOldFileDb);
-        if (Cnt == 0)
-        {
-            break;
-        }
-        else if (Cnt != 1)
-        {
-            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        Cnt = fread(&DataSize, sizeof(DataSize), 1, pOldFileDb);
-        if (Cnt == 0)
-        {
-            break;
-        }
-        else if (Cnt != 1)
-        {
-            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        if (DataSize > DataMaxSize)
-        {
-            DataMaxSize = DataSize * 2;
-
-            dwError = LwReallocMemory(
-                          pData,
-                          (PVOID*)&pData,
-                          DataMaxSize);
-            BAIL_ON_LSA_ERROR(dwError);
-        }
-
-        Cnt = fread(pData, DataSize, 1, pOldFileDb);
-        if (Cnt != 1)
-        {
-            dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-
-        switch (dwType)
-        {
-            case FILEDB_DATA_TYPE_PROVIDER:
-            case FILEDB_DATA_TYPE_LINKEDCELL:
-                if (bCopyProviderData)
-                {
-                    dwError = ADState_WriteOneEntry(
-                                  pFileDb,
-                                  dwType,
-                                  DataSize,
-                                  pData);
-                    BAIL_ON_LSA_ERROR(dwError);
-                }
-                break;
-            case FILEDB_DATA_TYPE_DOMAINTRUST:
-                if (bCopyDomainTrusts)
-                {
-                    dwError = ADState_WriteOneEntry(
-                                  pFileDb,
-                                  dwType,
-                                  DataSize,
-                                  pData);
-                    BAIL_ON_LSA_ERROR(dwError);
-                }
-                break;
-            default:
-                dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-                break;
-        }
-        BAIL_ON_LSA_ERROR(dwError);
-    }
-
-cleanup:
-
-    LW_SAFE_FREE_MEMORY(pData);
-
-    if (pOldFileDb != NULL)
-    {
-        fclose(pOldFileDb);
-    }
-
-    return dwError;
-
-error:
-
-    goto cleanup;
-}
-
-static
-DWORD
-ADState_WriteOneEntry(
-    IN FILE * pFileDb,
-    IN DWORD dwType,
-    IN size_t DataSize,
-    IN PVOID pData
-    )
-{
-    DWORD dwError = 0;
-    size_t Cnt = 0;
-
-    Cnt = fwrite(&dwType, sizeof(dwType), 1, pFileDb);
-    if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    Cnt = fwrite(&DataSize, sizeof(DataSize), 1, pFileDb);
-    if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-    Cnt = fwrite(pData, DataSize, 1, pFileDb);
-    if (Cnt != 1)
-    {
-        dwError = LW_ERROR_UNEXPECTED_DB_RESULT;
-    }
-    BAIL_ON_LSA_ERROR(dwError);
-
-error:
-
-    return dwError;
-}
-#endif
