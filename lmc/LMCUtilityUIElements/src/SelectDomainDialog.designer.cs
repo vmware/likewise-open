@@ -65,6 +65,7 @@ namespace Likewise.LMC.UtilityUIElements
             //
             // tbDomain
             //
+            this.tbDomain.Enabled = false;
             this.tbDomain.Location = new System.Drawing.Point(100, 51);
             this.tbDomain.Name = "tbDomain";
             this.tbDomain.Size = new System.Drawing.Size(236, 20);
