@@ -400,7 +400,14 @@ RegShellExportFile(
 
     RegStripWhitespace(szRegFileName, TRUE, TRUE);
 
-    fp = fopen(szRegFileName, "w");
+    if (!strcmp(szRegFileName, "-"))
+    {
+        fp = stdout;
+    }
+    else
+    {
+        fp = fopen(szRegFileName, "w");
+    }
     if (fp == NULL) {
         dwError = errno;
         goto error;
@@ -521,7 +528,7 @@ cleanup:
     LWREG_SAFE_FREE_STRING(pszFullPath);
     LWREG_SAFE_FREE_STRING(pszRootFullPath);
 
-    if (fp)
+    if (fp && fp != stdout)
     {
         fclose(fp);
     }

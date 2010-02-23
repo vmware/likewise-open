@@ -257,7 +257,14 @@ RegIOOpen(
     dwError = RegAllocateMemory(sizeof(*ioHandle), (PVOID*)&ioHandle);
     BAIL_ON_INVALID_HANDLE(ioHandle);
 
-    ioHandle->fp = fopen(pszRegFile, "rb");
+    if (!strcmp(pszRegFile, "-"))
+    {
+        ioHandle->fp = stdin;
+    }
+    else
+    {
+        ioHandle->fp = fopen(pszRegFile, "rb");
+    }
     BAIL_ON_INVALID_HANDLE(ioHandle->fp);
 
     /*
@@ -513,7 +520,7 @@ RegIOFileClose(
     PREGIO_HANDLE ioHandle = (HANDLE) handle;
 
     BAIL_ON_INVALID_HANDLE(ioHandle);
-    if (ioHandle->fp)
+    if (ioHandle->fp && ioHandle->fp != stdin)
     {
         fclose(ioHandle->fp);
     }
