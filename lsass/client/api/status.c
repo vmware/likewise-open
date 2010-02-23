@@ -74,7 +74,7 @@ LsaGetStatus(
         case LSA_R_GET_STATUS_SUCCESS:
             *ppLsaStatus = (PLSASTATUS)response.object;
             break;
-        case LSA_R_GET_METRICS_FAILURE:
+        case LSA_R_GET_STATUS_FAILURE:
             pError = (PLSA_IPC_ERROR) response.object;
             dwError = pError->dwError;
             BAIL_ON_LSA_ERROR(dwError);

@@ -48,6 +48,11 @@
 #define NT_PENDING_OR_SUCCESS_OR_NOT(status) \
     (LW_NT_SUCCESS_OR_NOT(status) || (STATUS_PENDING == (status)))
 
+#define IsValidStatusForIrpType(Status, IrpType) \
+    (NT_PENDING_OR_SUCCESS_OR_NOT(Status) || \
+     ((IRP_TYPE_READ_DIRECTORY_CHANGE == (IrpType)) && \
+      (STATUS_NOTIFY_ENUM_DIR == (Status))))
+
 typedef struct _IOP_DRIVER_CONFIG {
     PSTR pszName;
     PSTR pszPath;

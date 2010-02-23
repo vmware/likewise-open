@@ -218,7 +218,7 @@ cleanup:
     }
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
-    LWIO_ASSERT(NT_PENDING_OR_SUCCESS_OR_NOT(status));
+    LWIO_ASSERT(IsValidStatusForIrpType(status, irpType));
     return status;
 }
 
