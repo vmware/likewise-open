@@ -262,13 +262,19 @@ PvfsDriverInitialize(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
+    if (!gpPvfsLwMapSecurityCtx)
+    {
+        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     ntError = PvfsInitializeFCBTable();
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsInitWorkerThreads();
+    ntError = PvfsPathCacheInit();
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsPathCacheInit();
+    ntError = PvfsInitWorkerThreads();
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:

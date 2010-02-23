@@ -50,7 +50,6 @@
 /***********************************************************************
  **********************************************************************/
 
-static
 NTSTATUS
 PvfsSecurityInitMapSecurityCtx(
     PLW_MAP_SECURITY_CONTEXT *ppContext
@@ -238,9 +237,12 @@ PvfsSecuritySidMapFromUid(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN  bInLock = FALSE;
     UINT32 Key = Uid % PVFS_MAX_MRU_SIZE;
 
     BAIL_ON_INVALID_PTR(ppUserSid, ntError);
+
+    LWIO_LOCK_MUTEX(bInLock, &gUidMruCacheMutex);
 
     if (gUidMruCache[Key] != NULL && (gUidMruCache[Key]->UnixId.Uid == Uid))
     {
@@ -248,12 +250,6 @@ PvfsSecuritySidMapFromUid(
         BAIL_ON_NT_STATUS(ntError);
 
         goto cleanup;
-    }
-
-    if (!gpPvfsLwMapSecurityCtx)
-    {
-        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
-        BAIL_ON_NT_STATUS(ntError);
     }
 
     ntError = LwMapSecurityGetSidFromId(
@@ -291,6 +287,9 @@ PvfsSecuritySidMapFromUid(
     }
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gUidMruCacheMutex);
+
     return ntError;
 
 error:
@@ -309,9 +308,13 @@ PvfsSecuritySidMapFromGid(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN  bInLock = FALSE;
     UINT32 Key = Gid % PVFS_MAX_MRU_SIZE;
 
     BAIL_ON_INVALID_PTR(ppGroupSid, ntError);
+
+
+    LWIO_LOCK_MUTEX(bInLock, &gGidMruCacheMutex);
 
     if (gGidMruCache[Key] != NULL && (gGidMruCache[Key]->UnixId.Gid == Gid))
     {
@@ -319,12 +322,6 @@ PvfsSecuritySidMapFromGid(
         BAIL_ON_NT_STATUS(ntError);
 
         goto cleanup;
-    }
-
-    if (!gpPvfsLwMapSecurityCtx)
-    {
-        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
-        BAIL_ON_NT_STATUS(ntError);
     }
 
     ntError = LwMapSecurityGetSidFromId(
@@ -362,6 +359,9 @@ PvfsSecuritySidMapFromGid(
     }
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gGidMruCacheMutex);
+
     return ntError;
 
 error:
@@ -384,12 +384,6 @@ PvfsSecuritySidMapToId(
 
     BAIL_ON_INVALID_PTR(pId, ntError);
     BAIL_ON_INVALID_PTR(pbIsUser, ntError);
-
-    if (!gpPvfsLwMapSecurityCtx)
-    {
-        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
-        BAIL_ON_NT_STATUS(ntError);
-    }
 
     ntError = LwMapSecurityGetIdFromSid(
                   gpPvfsLwMapSecurityCtx,

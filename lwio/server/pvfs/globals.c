@@ -68,8 +68,11 @@ PVFS_FCB_TABLE gFcbTable;
 
 PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx = NULL;
 
-PPVFS_ID_CACHE gUidMruCache[PVFS_MAX_MRU_SIZE];
-PPVFS_ID_CACHE gGidMruCache[PVFS_MAX_MRU_SIZE];
+pthread_mutex_t gUidMruCacheMutex = PTHREAD_MUTEX_INITIALIZER;
+PPVFS_ID_CACHE  gUidMruCache[PVFS_MAX_MRU_SIZE];
+
+pthread_mutex_t gGidMruCacheMutex = PTHREAD_MUTEX_INITIALIZER;
+PPVFS_ID_CACHE  gGidMruCache[PVFS_MAX_MRU_SIZE];
 
 
 /*

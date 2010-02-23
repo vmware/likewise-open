@@ -61,7 +61,10 @@ extern PPVFS_FCB gpPvfsDeviceFcb;
 
 extern PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx;
 
+extern pthread_mutex_t gUidMruCacheMutex;
 extern PPVFS_ID_CACHE gUidMruCache[];
+
+extern pthread_mutex_t gGidMruCacheMutex;
 extern PPVFS_ID_CACHE gGidMruCache[];
 
 
