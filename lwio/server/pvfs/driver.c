@@ -126,10 +126,19 @@ PvfsDriverShutdown(
 {
     PvfsDestroyFCBTable();
 
-    pthread_rwlock_destroy(&gPathCacheRwLock);
+    if (gpPathCacheRwLock)
+    {
+        pthread_rwlock_destroy(&gPathCacheRwLock);
+        gpPathCacheRwLock = NULL;
+    }
 
     PvfsDestroyUnixIdCache(gUidMruCache, PVFS_MAX_MRU_SIZE);
     PvfsDestroyUnixIdCache(gGidMruCache, PVFS_MAX_MRU_SIZE);
+
+    if (gpPvfsLwMapSecurityCtx)
+    {
+        PvfsSecurityShutdownMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
+    }
 
     IO_LOG_ENTER_LEAVE("");
 }
@@ -262,11 +271,8 @@ PvfsDriverInitialize(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    if (!gpPvfsLwMapSecurityCtx)
-    {
-        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsInitializeFCBTable();
     BAIL_ON_NT_STATUS(ntError);

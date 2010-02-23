@@ -92,6 +92,11 @@ PvfsSecurityInitMapSecurityCtx(
     PLW_MAP_SECURITY_CONTEXT *ppContext
     );
 
+VOID
+PvfsSecurityShutdownMapSecurityCtx(
+    PLW_MAP_SECURITY_CONTEXT *ppContext
+    );
+
 NTSTATUS
 PvfsGetSecurityDescriptorPosix(
     IN PPVFS_CCB pCcb,

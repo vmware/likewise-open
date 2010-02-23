@@ -263,6 +263,7 @@ PvfsPathCacheInit(
     PSMB_HASH_TABLE pHashTable = NULL;
 
     pthread_rwlock_init(&gPathCacheRwLock, NULL);
+    gpPathCacheRwLock = &gPathCacheRwLock;
 
     dwError = SMBHashCreate(
                   PVFS_PATH_CACHE_SIZE,

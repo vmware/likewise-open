@@ -51,8 +51,10 @@ extern GENERIC_MAPPING  gPvfsFileGenericMapping;
 extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
 extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;
 
-extern PSMB_HASH_TABLE gpPathCache;
-extern pthread_rwlock_t gPathCacheRwLock;
+extern pthread_rwlock_t  gPathCacheRwLock;
+extern pthread_rwlock_t* gpPathCacheRwLock;
+
+extern PSMB_HASH_TABLE   gpPathCache;
 
 extern PVFS_FCB_TABLE gFcbTable;
 

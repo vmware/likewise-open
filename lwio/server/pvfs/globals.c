@@ -58,8 +58,10 @@ GENERIC_MAPPING gPvfsFileGenericMapping = {
 PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;
 PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue = NULL;
 
+pthread_rwlock_t* gpPathCacheRwLock = NULL;
+pthread_rwlock_t  gPathCacheRwLock;
+
 PSMB_HASH_TABLE gpPathCache = NULL;
-pthread_rwlock_t gPathCacheRwLock;
 
 pthread_mutex_t gDeviceFcbMutex = PTHREAD_MUTEX_INITIALIZER;
 PPVFS_FCB gpPvfsDeviceFcb = NULL;

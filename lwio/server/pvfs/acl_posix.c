@@ -58,6 +58,17 @@ PvfsSecurityInitMapSecurityCtx(
     return LwMapSecurityCreateContext(ppContext);
 }
 
+/***********************************************************************
+ **********************************************************************/
+
+VOID
+PvfsSecurityShutdownMapSecurityCtx(
+    PLW_MAP_SECURITY_CONTEXT *ppContext
+    )
+{
+    return LwMapSecurityFreeContext(ppContext);
+}
+
 
 /***********************************************************************
  **********************************************************************/
