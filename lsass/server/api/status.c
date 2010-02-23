@@ -469,9 +469,17 @@ LsaSrvGetLsassVersion(
 
             case 3:
 
-                dwRevision = atoi(pszToken);
+                errno = 0;
+                dwRevision = strtoul(pszToken, NULL, 10);
+                dwError = LwMapErrnoToLwError(errno);
+                if (dwError != 0)
+                {
+                    LSA_LOG_DEBUG("Unable to parse revision due to error %d", dwError);
+                    dwRevision = 0;
+                    dwError = 0;
+                }
                 break;
-                
+
             default:
                 
                 dwError = LW_ERROR_INTERNAL;
@@ -528,6 +536,11 @@ LsaSrvGetProductVersion(
 #else
     versionFile = open(PREFIXDIR "/data/VERSION", O_RDONLY, 0);
 #endif
+    if (versionFile < 0)
+    {
+        dwError = LwMapErrnoToLwError(errno);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     dwCount = read(versionFile, szFileBuffer, sizeof(szFileBuffer));
     if (dwCount < 0)
@@ -552,7 +565,10 @@ LsaSrvGetProductVersion(
 
             errno = 0;
             dwMajor = strtoul(pszPos, &pszPos, 10);
+
             dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LSA_ERROR(dwError);
+
             if (pszPos[0] != '.')
             {
                 dwError = LW_ERROR_INVALID_AGENT_VERSION;
@@ -560,7 +576,9 @@ LsaSrvGetProductVersion(
             }
             pszPos++;
             dwMinor = strtoul(pszPos, &pszPos, 10);
+
             dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         else if (!strncmp(pszPos, "BUILD=", sizeof("BUILD=") - 1))
         {
@@ -569,6 +587,7 @@ LsaSrvGetProductVersion(
             errno = 0;
             dwBuild = strtoul(pszPos, &pszPos, 10);
             dwError = LwMapErrnoToLwError(errno);
+            BAIL_ON_LSA_ERROR(dwError);
         }
         else if (!strncmp(pszPos, "REVISION=", sizeof("REVISION=") - 1))
         {
@@ -577,6 +596,12 @@ LsaSrvGetProductVersion(
             errno = 0;
             dwRevision = strtoul(pszPos, &pszPos, 10);
             dwError = LwMapErrnoToLwError(errno);
+            if (dwError != 0)
+            {
+                LSA_LOG_DEBUG("Unable to parse revision due to error %d", dwError);
+                dwRevision = 0;
+                dwError = 0;
+            }
         }
         pszPos = strchr(pszPos, '\n');
         if (!pszPos)
