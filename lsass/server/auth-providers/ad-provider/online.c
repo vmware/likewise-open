@@ -1642,11 +1642,15 @@ AD_OnlineCheckUserPassword(
 
     BAIL_ON_LSA_ERROR(dwError);
 
-    dceStatus = DecodePacLogonInfo(
-        pchNdrEncodedPac,
-        sNdrEncodedPac,
-        &pPac);
-    BAIL_ON_DCE_ERROR(dwError, dceStatus);
+    if (sNdrEncodedPac)
+    {
+        // This function will abort if it is passed a zero sized PAC.
+        dceStatus = DecodePacLogonInfo(
+            pchNdrEncodedPac,
+            sNdrEncodedPac,
+            &pPac);
+        BAIL_ON_DCE_ERROR(dwError, dceStatus);
+    }
 
     if (pPac != NULL)
     {
@@ -1663,6 +1667,13 @@ AD_OnlineCheckUserPassword(
         BAIL_ON_LSA_ERROR(dwError);
 
         LSA_ASSERT(pUserInfo->userInfo.bIsAccountInfoKnown);
+    }
+    else
+    {
+        LSA_LOG_ERROR("no pac was received for %s\\%s (uid %d). The user's group memberships and password expiration may show up incorrectly on this machine.",
+                    LSA_SAFE_LOG_STRING(pUserInfo->pszNetbiosDomainName),
+                    LSA_SAFE_LOG_STRING(pUserInfo->pszSamAccountName),
+                    pUserInfo->userInfo.uid);
     }
 
 cleanup:

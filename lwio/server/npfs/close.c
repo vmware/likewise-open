@@ -133,11 +133,27 @@ NpfsServerCloseHandle(
 {
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
+    PNPFS_CCB pCCB = NULL;
+    PLW_LIST_LINKS pLink = NULL;
+    PNPFS_IRP_CONTEXT pReadContext = NULL;
 
     pPipe = pSCB->pPipe;
+    pCCB = pPipe->pCCB;
+
     ENTER_MUTEX(&pPipe->PipeMutex);
 
     pPipe->PipeServerState = PIPE_SERVER_CLOSED;
+
+    while (pCCB && !LwListIsEmpty(&pCCB->ReadIrpList))
+    {
+        pLink = pCCB->ReadIrpList.Next;
+        LwListRemove(pLink);
+
+        pReadContext = LW_STRUCT_FROM_FIELD(pLink, NPFS_IRP_CONTEXT, Link);
+
+        NpfsClientCompleteReadFile(pCCB, pReadContext);
+    }
+
     pthread_cond_signal(&pPipe->PipeCondition);
 
     if (pPipe->PipeClientState == PIPE_CLIENT_CLOSED)
@@ -147,6 +163,8 @@ NpfsServerCloseHandle(
     }
 
 error:
+
+    pPipe->pSCB = NULL;
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
 
@@ -164,11 +182,27 @@ NpfsClientCloseHandle(
 {
     NTSTATUS ntStatus = 0;
     PNPFS_PIPE pPipe = NULL;
+    PNPFS_CCB pSCB = NULL;
+    PLW_LIST_LINKS pLink = NULL;
+    PNPFS_IRP_CONTEXT pReadContext = NULL;
 
     pPipe = pCCB->pPipe;
+    pSCB = pPipe->pSCB;
+
     ENTER_MUTEX(&pPipe->PipeMutex);
 
     pPipe->PipeClientState = PIPE_CLIENT_CLOSED;
+
+    while (pSCB && !LwListIsEmpty(&pSCB->ReadIrpList))
+    {
+        pLink = pSCB->ReadIrpList.Next;
+        LwListRemove(pLink);
+
+        pReadContext = LW_STRUCT_FROM_FIELD(pLink, NPFS_IRP_CONTEXT, Link);
+
+        NpfsServerCompleteReadFile(pSCB, pReadContext);
+    }
+
     pthread_cond_signal(&pPipe->PipeCondition);
 
     if (pPipe->PipeServerState == PIPE_SERVER_CLOSED)
@@ -178,6 +212,8 @@ NpfsClientCloseHandle(
     }
 
 error:
+
+    pPipe->pCCB = NULL;
 
     LEAVE_MUTEX(&pPipe->PipeMutex);
 

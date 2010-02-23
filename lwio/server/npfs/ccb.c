@@ -44,6 +44,7 @@ NpfsCreateSCB(
 
     LwListInit(&pSCB->link);
     LwListInit(&pSCB->mdlList);
+    LwListInit(&pSCB->ReadIrpList);
 
     pSCB->CcbType = NPFS_CCB_SERVER;
     pSCB->lRefCount = 1;
@@ -83,6 +84,7 @@ NpfsCreateCCB(
 
     LwListInit(&pCCB->link);
     LwListInit(&pCCB->mdlList);
+    LwListInit(&pCCB->ReadIrpList);
 
     pCCB->CcbType = NPFS_CCB_CLIENT;
     pCCB->lRefCount = 1;

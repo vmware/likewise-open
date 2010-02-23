@@ -874,8 +874,8 @@ AC_CHECK_HEADERS([execinfo.h sys/regset.h])
 
 AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])
 
-if test x"$IDL" = x"no"; then
-    AC_MSG_WARN([DCERPC IDL compiler not found])
+if test x"$IDL" = x"no" -a x"$ENABLE_COMPAT" = x"false"; then
+    AC_MSG_ERROR([DCERPC IDL compiler not found])
 fi
 
 # Checks for typedefs, structures, and compiler characteristics.
