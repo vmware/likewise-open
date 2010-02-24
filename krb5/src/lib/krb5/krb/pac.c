@@ -468,6 +468,8 @@ k5_pac_validate_client(krb5_context context,
 {
     krb5_error_code ret;
     krb5_data client_info;
+    char *decoded_pac_princname;
+    char *appended_pac_princname;
     char *pac_princname;
     unsigned char *p;
     krb5_timestamp pac_authtime;
@@ -497,9 +499,35 @@ k5_pac_validate_client(krb5_context context,
 	return ERANGE;
 
     ret = krb5int_ucs2lecs_to_utf8s(p, (size_t)pac_princname_length / 2,
-				    &pac_princname, NULL);
+				    &decoded_pac_princname, NULL);
     if (ret != 0)
 	return ret;
+
+    if (!strchr(decoded_pac_princname, "@")) {
+	/* Append a realm so the default realm in the conf file is is avoided */
+	appended_pac_princname = malloc(pac_princname_length / 2 +
+					principal->realm.length + 2);
+	if (appended_pac_princname == NULL) {
+	    free(decoded_pac_princname);
+	    return(ENOMEM);
+	}
+
+	pac_princname = appended_pac_princname;
+
+	memcpy(pac_princname, decoded_pac_princname,
+		pac_princname_length / 2);
+	pac_princname += pac_princname_length / 2;
+	pac_princname[0] = '@';
+	pac_princname++;
+	memcpy(pac_princname, principal->realm.data, principal->realm.length);
+	pac_princname += principal->realm.length;
+	pac_princname[0] = 0;
+
+	pac_princname = appended_pac_princname;
+	free(decoded_pac_princname);
+    } else {
+	pac_princname = decoded_pac_princname;
+    }
 
     ret = krb5_parse_name_flags(context, pac_princname, 0, &pac_principal);
     if (ret != 0) {
