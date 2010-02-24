@@ -188,11 +188,8 @@ PvfsCreateFileSupersede(
                       &pCreateCtx->pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
-        if (PvfsFcbIsPendingDelete(pCreateCtx->pFcb))
-        {
-            ntError = STATUS_DELETE_PENDING;
-            BAIL_ON_NT_STATUS(ntError);
-        }
+        ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+        BAIL_ON_NT_STATUS(ntError);
 
         /* Finally remove the file */
 
@@ -241,6 +238,9 @@ PvfsCreateFileSupersede(
     {
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = STATUS_SUCCESS;
     if (pCreateCtx->bFileExisted &&
@@ -404,6 +404,9 @@ PvfsCreateFileCreate(
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
 
     /* Can be no oplock break here since the file does not exist yet */
@@ -486,13 +489,8 @@ PvfsCreateFileOpenOrOverwrite(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    if (PvfsFcbIsPendingDelete(pCreateCtx->pFcb))
-    {
-        ntError = STATUS_DELETE_PENDING;
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    ntError = STATUS_SUCCESS;
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* We can only potentially force an oplock break IFF
        (a) the file already existed,
@@ -662,7 +660,8 @@ PvfsCreateFileOpenOrOverwriteIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = STATUS_SUCCESS;
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* We can only potentially force an oplock break IFF
        (a) the file already existed,

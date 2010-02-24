@@ -50,7 +50,7 @@
 #include "ioipc.h"
 
 static
-DWORD
+NTSTATUS
 SMBSrvSetDefaults(
     VOID
     );
@@ -206,9 +206,10 @@ lwiod_main(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    dwError = SMBSrvSetDefaults();
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = SMBSrvSetDefaults();
+    BAIL_ON_LWIO_ERROR(ntStatus);
 
     dwError = SMBSrvParseArgs(argc,
                               argv,
@@ -279,13 +280,17 @@ error:
     goto cleanup;
 }
 
+#define MAX_OPEN_FILE_DESCRIPTORS 0x00004000
+
 static
-DWORD
+NTSTATUS
 SMBSrvSetDefaults(
     VOID
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    struct rlimit rlim = {0};
+    int err = 0;
 
     gpServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_ERROR;
 
@@ -296,7 +301,24 @@ SMBSrvSetDefaults(
 
     setlocale(LC_ALL, "");
 
-    return (dwError);
+    rlim.rlim_cur = MAX_OPEN_FILE_DESCRIPTORS;
+    rlim.rlim_max = MAX_OPEN_FILE_DESCRIPTORS;
+
+    if (setrlimit(RLIMIT_NOFILE, &rlim) < 0)
+    {
+        err = errno;
+
+        ntStatus = LwErrnoToNtStatus(err);
+
+        LWIO_LOG_ERROR("Failed to set maximum file descriptors to %d - %s (0x%x)\n",
+                       MAX_OPEN_FILE_DESCRIPTORS,
+                       LwNtStatusToDescription(ntStatus),
+                       ntStatus);
+    }
+
+    ntStatus = STATUS_SUCCESS;
+
+    return ntStatus;
 }
 
 static
@@ -1194,3 +1216,12 @@ SMBSrvSetProcessToExit(
     LWIO_UNLOCK_SERVERINFO(bInLock);
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

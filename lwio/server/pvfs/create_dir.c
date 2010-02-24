@@ -85,7 +85,7 @@ PvfsCreateDirectory(
     case FILE_OVERWRITE:
     case FILE_OVERWRITE_IF:
         /* These are all invalid create dispositions for directories */
-        ntError = STATUS_INVALID_DISPOSITION;
+        ntError = STATUS_INVALID_PARAMETER;
         break;
 
     case FILE_CREATE:
@@ -195,6 +195,9 @@ PvfsCreateDirCreate(
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    BAIL_ON_NT_STATUS(ntError);
+
     pCreateCtx->bFileExisted = FALSE;
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
 
@@ -270,11 +273,8 @@ PvfsCreateDirOpen(
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (PvfsFcbIsPendingDelete(pCreateCtx->pFcb))
-    {
-        ntError = STATUS_DELETE_PENDING;
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->bFileExisted = TRUE;
 
@@ -383,11 +383,8 @@ PvfsCreateDirOpenIf(
                   &pCreateCtx->pFcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (PvfsFcbIsPendingDelete(pCreateCtx->pFcb))
-    {
-        ntError = STATUS_DELETE_PENDING;
-        BAIL_ON_NT_STATUS(ntError);
-    }
+    ntError = PvfsCreateFileCheckPendingDelete(pCreateCtx->pFcb);
+    BAIL_ON_NT_STATUS(ntError);
 
     if (!pCreateCtx->bFileExisted)
     {

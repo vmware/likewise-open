@@ -143,9 +143,14 @@ PvfsSetFileDispositionInfo(
 
         if (PVFS_IS_DIR(pCcb))
         {
+            BOOLEAN bDirLocked = FALSE;
+
             LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);
 
-            ntError = PvfsEnumerateDirectory(pCcb, &FileSpec, 1);
+            LWIO_LOCK_MUTEX(bDirLocked, &pCcb->FileMutex);
+            ntError = PvfsEnumerateDirectory(pCcb, &FileSpec, 1, TRUE);
+            LWIO_UNLOCK_MUTEX(bDirLocked,  &pCcb->FileMutex);
+
             if (ntError == STATUS_SUCCESS)
             {
                 ntError = STATUS_DIRECTORY_NOT_EMPTY;

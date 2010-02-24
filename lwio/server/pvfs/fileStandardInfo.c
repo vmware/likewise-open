@@ -129,8 +129,22 @@ PvfsQueryFileStandardInfo(
 
     bDeletePending = PvfsFcbIsPendingDelete(pCcb->pFcb);
 
-    pFileInfo->AllocationSize = Stat.s_alloc;
-    pFileInfo->EndOfFile      = Stat.s_size;
+    if (PVFS_IS_DIR(pCcb))
+    {
+        /* NTFS reports the allocation and end-of-file on
+           directories as 0.  smbtorture cares about this even
+           if no apps that I know of do. */
+
+        pFileInfo->AllocationSize = 0;
+        pFileInfo->EndOfFile      = 0;
+    }
+    else
+    {
+        pFileInfo->EndOfFile      = Stat.s_size;
+        pFileInfo->AllocationSize = Stat.s_alloc > Stat.s_size ?
+                                    Stat.s_alloc : Stat.s_size;
+    }
+
     pFileInfo->NumberOfLinks  = bDeletePending ?
                                 Stat.s_nlink - 1 :
                                 Stat.s_nlink;

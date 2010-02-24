@@ -166,6 +166,36 @@ PvfsCreateFileDoSysOpen(
     ntError = PvfsSysOpen(&fd, pCreateContext->pszDiskFilename, unixFlags, 0700);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Perform preallocation is requested */
+
+    if (Args.AllocationSize > 0)
+    {
+        BOOLEAN bAllocate = FALSE;
+
+        switch (Args.CreateDisposition)
+        {
+        case FILE_SUPERSEDE:
+        case FILE_CREATE:
+        case FILE_OVERWRITE:
+        case FILE_OVERWRITE_IF:
+            bAllocate = TRUE;
+            break;
+
+        case FILE_OPEN_IF:
+            if (!pCreateContext->bFileExisted)
+            {
+                bAllocate = TRUE;
+            }
+            break;
+        }
+
+        if (bAllocate)
+        {
+            ntError = PvfsSysFtruncate(fd, (off_t)Args.AllocationSize);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
     /* Save our state */
 
     pCreateContext->pCcb->fd = fd;
@@ -306,18 +336,10 @@ PvfsCreateDirDoSysOpen(
                   sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysOpenDir(
-                  pCreateContext->pszDiskFilename,
-                  &pCreateContext->pCcb->pDirContext->pDir);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* PvfsSysDirFd() may need the filename on some platforms.
-       Go ahead and store it in the CCB just in case. */
-
     pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
     pCreateContext->pszDiskFilename = NULL;
 
-    ntError = PvfsSysDirFd(pCreateContext->pCcb, &fd);
+    ntError = PvfsSysOpen(&fd, pCreateContext->pCcb->pszFilename, 0, 0);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */
@@ -370,7 +392,7 @@ PvfsCreateDirDoSysOpen(
     {
         LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);
 
-        ntError = PvfsEnumerateDirectory(pCreateContext->pCcb, &FileSpec, 1);
+        ntError = PvfsEnumerateDirectory(pCreateContext->pCcb, &FileSpec, 1, FALSE);
         if (ntError == STATUS_SUCCESS)
         {
             ntError = STATUS_DIRECTORY_NOT_EMPTY;
@@ -642,6 +664,46 @@ error:
     goto cleanup;
 }
 
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsCreateFileCheckPendingDelete(
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FCB pParentFcb = NULL;
+
+    if (PvfsFcbIsPendingDelete(pFcb))
+    {
+        ntError = STATUS_DELETE_PENDING;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pParentFcb = PvfsGetParentFCB(pFcb);
+    if (pParentFcb && PvfsFcbIsPendingDelete(pParentFcb))
+    {
+        ntError = STATUS_DELETE_PENDING;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    if (pParentFcb)
+    {
+        PvfsReleaseFCB(&pParentFcb);
+    }
+
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 
 
