@@ -94,3 +94,6 @@
 #if HAVE_SYS_USER_H
 #include <sys/user.h>
 #endif
+
+#include <sys/time.h>
+#include <sys/resource.h>

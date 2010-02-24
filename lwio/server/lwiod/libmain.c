@@ -279,6 +279,8 @@ error:
     goto cleanup;
 }
 
+#define MAX_OPEN_FILE_DESCRIPTORS 0x0000FFFF
+
 static
 DWORD
 SMBSrvSetDefaults(
@@ -286,6 +288,8 @@ SMBSrvSetDefaults(
     )
 {
     DWORD dwError = 0;
+    struct rlimit rlim = {0};
+    int err = 0;
 
     gpServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_ERROR;
 
@@ -295,6 +299,20 @@ SMBSrvSetDefaults(
     strcpy(gpServerInfo->szPrefixPath, PREFIXDIR);
 
     setlocale(LC_ALL, "");
+
+    rlim.rlim_cur = MAX_OPEN_FILE_DESCRIPTORS;
+    rlim.rlim_max = MAX_OPEN_FILE_DESCRIPTORS;
+
+    if (setrlimit(RLIMIT_NOFILE, &rlim) < 0)
+    {
+        err = errno;
+
+        dwError = LwErrnoToNtStatus(err);
+        BAIL_ON_LWIO_ERROR(err);
+    }
+
+
+error:
 
     return (dwError);
 }
@@ -1194,3 +1212,12 @@ SMBSrvSetProcessToExit(
     LWIO_UNLOCK_SERVERINFO(bInLock);
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
