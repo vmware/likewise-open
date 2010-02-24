@@ -84,24 +84,42 @@ PvfsWC16CanonicalPathName(
     PSTR pszPath = NULL;
     PSTR pszCursor = NULL;
     size_t Length = 0;
+    size_t Offset = 0;
     int i = 0;
 
-    ntError = RtlCStringAllocateFromWC16String(&pszPath,
-                                               pwszPathname);
+    ntError = RtlCStringAllocateFromWC16String(
+                  &pszPath,
+                  pwszPathname);
     BAIL_ON_NT_STATUS(ntError);
+
+    Length = RtlCStringNumChars(pszPath);
 
     pszCursor = pszPath;
     while (pszCursor && *pszCursor)
     {
-        if (*pszCursor == '\\') {
+        if (*pszCursor == '\\')
+        {
             *pszCursor = '/';
         }
-        pszCursor++;
+
+        /* Collapse "//" to "/" */
+
+        if ((Offset > 0) &&
+            (*pszCursor == '/') &&
+            (*(pszCursor-1) == '/'))
+        {
+            LwRtlMoveMemory(pszCursor-1, pszCursor, Length-Offset);
+            pszPath[Length-1] = '\0';
+            Length--;
+            continue;
+        }
+
+        Offset++;
+        pszCursor = pszPath + Offset;
     }
 
     /* Strip trailing slashes */
 
-    Length = RtlCStringNumChars(pszPath);
     for (i=Length-1; i>0; i--)
     {
         /* break out at first non slash */
