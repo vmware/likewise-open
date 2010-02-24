@@ -410,6 +410,11 @@ cleanup:
         LwRtlReleaseTask(&pConnTask);
     }
 
+    if (pHostinfo)
+    {
+        SrvReleaseHostInfo(pHostinfo);
+    }
+
     return;
 
 error:
