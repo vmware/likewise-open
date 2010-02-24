@@ -333,6 +333,99 @@ error:
 
 static
 DWORD
+MapBuiltinNameToSid(
+    PSID *ppSid,
+    PCWSTR pwszName
+    )
+{
+    DWORD dwError = 0;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } Sid;
+    ULONG SidSize = sizeof(Sid.buffer);
+    PWSTR pwszEveryone = NULL;
+
+    dwError = LwNtStatusToWin32Error(
+                  RtlWC16StringAllocateFromCString(
+                      &pwszEveryone,
+                      "Everyone"));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+
+    if (LwRtlWC16StringIsEqual(pwszName, pwszEveryone, FALSE))
+    {
+        dwError = LwNtStatusToWin32Error(
+                      RtlCreateWellKnownSid(
+                          WinWorldSid,
+                          NULL,
+                          &Sid.sid,
+                          &SidSize));
+    }
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(
+                  RtlDuplicateSid(ppSid, &Sid.sid));
+
+cleanup:
+    LW_RTL_FREE(&pwszEveryone);
+
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
+DWORD
+MapBuiltinSidToName(
+    PWSTR *ppwszName,
+    PSID pSid
+    )
+{
+    DWORD dwError = 0;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } Sid;
+    ULONG SidSize = sizeof(Sid.buffer);
+    PWSTR pwszEveryone = NULL;
+
+    dwError = LwNtStatusToWin32Error(
+                  RtlCreateWellKnownSid(
+                      WinWorldSid,
+                      NULL,
+                      &Sid.sid,
+                      &SidSize));
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (RtlEqualSid(&Sid.sid, pSid))
+    {
+        dwError = LwNtStatusToWin32Error(
+                      RtlWC16StringAllocateFromCString(
+                          &pwszEveryone,
+                          "Everyone"));
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+    }
+
+    *ppwszName = pwszEveryone;
+
+cleanup:
+
+    return dwError;
+
+error:
+    LW_RTL_FREE(&pwszEveryone);
+
+    goto cleanup;
+}
+
+
+static
+DWORD
 ConstructSecurityDescriptor(
     DWORD dwAllowUserCount,
     PWSTR* ppwszAllowUsers,
@@ -364,8 +457,9 @@ ConstructSecurityDescriptor(
     PSID pSid = NULL;
     ULONG ulRelativeSize = 0;
     HANDLE hLsa = NULL;
-    ACCESS_MASK mask = bReadOnly ? FILE_GENERIC_READ : FILE_ALL_ACCESS;
-
+    ACCESS_MASK mask = bReadOnly ?
+                       (FILE_GENERIC_READ|FILE_GENERIC_EXECUTE) :
+                       FILE_ALL_ACCESS;
 
     dwError = LsaOpenServer(&hLsa);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -403,6 +497,11 @@ ConstructSecurityDescriptor(
     for (dwIndex = 0; dwIndex < dwDenyUserCount; dwIndex++)
     {
         dwError = MapNameToSid(hLsa, ppwszDenyUsers[dwIndex], &pSid);
+        if (dwError != LW_ERROR_SUCCESS)
+        {
+            dwError = MapBuiltinNameToSid(&pSid, ppwszDenyUsers[dwIndex]);
+        }
+
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = LwNtStatusToWin32Error(
@@ -420,6 +519,10 @@ ConstructSecurityDescriptor(
    for (dwIndex = 0; dwIndex < dwAllowUserCount; dwIndex++)
     {
         dwError = MapNameToSid(hLsa, ppwszAllowUsers[dwIndex], &pSid);
+        if (dwError != LW_ERROR_SUCCESS)
+        {
+            dwError = MapBuiltinNameToSid(&pSid, ppwszAllowUsers[dwIndex]);
+        }
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = LwNtStatusToWin32Error(
@@ -623,6 +726,10 @@ DeconstructSecurityDescriptor(
                 if ((pAllow->Mask & FILE_GENERIC_READ) == FILE_GENERIC_READ)
                 {
                     dwError = MapSidToName(hLsa, pSid, &pwszUser);
+                    if (dwError != LW_ERROR_SUCCESS)
+                    {
+                        dwError = MapBuiltinSidToName(&pwszUser, pSid);
+                    }
                     BAIL_ON_SRVSVC_ERROR(dwError);
 
                     dwError = AppendStringArray(
@@ -643,6 +750,10 @@ DeconstructSecurityDescriptor(
                 if ((pDeny->Mask & FILE_GENERIC_READ) == FILE_GENERIC_READ)
                 {
                     dwError = MapSidToName(hLsa, pSid, &pwszUser);
+                    if (dwError != LW_ERROR_SUCCESS)
+                    {
+                        dwError = MapBuiltinSidToName(&pwszUser, pSid);
+                    }
                     BAIL_ON_SRVSVC_ERROR(dwError);
 
                     dwError = AppendStringArray(
@@ -664,7 +775,7 @@ DeconstructSecurityDescriptor(
     *pdwAllowUserCount = dwAllowUserCount;
     *pppwszDenyUsers = ppwszDenyUsers;
     *pdwDenyUserCount = dwDenyUserCount;
-    *pbReadOnly = !((leastMask & FILE_ALL_ACCESS) == FILE_ALL_ACCESS);
+    *pbReadOnly = !((leastMask & FILE_GENERIC_WRITE) == FILE_GENERIC_WRITE);
 
 cleanup:
 
@@ -1118,3 +1229,14 @@ error:
         return 0;
     }
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
