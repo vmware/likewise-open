@@ -166,6 +166,36 @@ PvfsCreateFileDoSysOpen(
     ntError = PvfsSysOpen(&fd, pCreateContext->pszDiskFilename, unixFlags, 0700);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Perform preallocation is requested */
+
+    if (Args.AllocationSize > 0)
+    {
+        BOOLEAN bAllocate = FALSE;
+
+        switch (Args.CreateDisposition)
+        {
+        case FILE_SUPERSEDE:
+        case FILE_CREATE:
+        case FILE_OVERWRITE:
+        case FILE_OVERWRITE_IF:
+            bAllocate = TRUE;
+            break;
+
+        case FILE_OPEN_IF:
+            if (!pCreateContext->bFileExisted)
+            {
+                bAllocate = TRUE;
+            }
+            break;
+        }
+
+        if (bAllocate)
+        {
+            ntError = PvfsSysFtruncate(fd, (off_t)Args.AllocationSize);
+            BAIL_ON_NT_STATUS(ntError);
+        }
+    }
+
     /* Save our state */
 
     pCreateContext->pCcb->fd = fd;
