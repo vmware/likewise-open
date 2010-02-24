@@ -306,11 +306,6 @@ PvfsCreateDirDoSysOpen(
                   sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysOpenDir(
-                  pCreateContext->pszDiskFilename,
-                  &pCreateContext->pCcb->pDirContext->pDir);
-    BAIL_ON_NT_STATUS(ntError);
-
     /* PvfsSysDirFd() may need the filename on some platforms.
        Go ahead and store it in the CCB just in case. */
 
@@ -370,7 +365,7 @@ PvfsCreateDirDoSysOpen(
     {
         LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);
 
-        ntError = PvfsEnumerateDirectory(pCreateContext->pCcb, &FileSpec, 1);
+        ntError = PvfsEnumerateDirectory(pCreateContext->pCcb, &FileSpec, 1, FALSE);
         if (ntError == STATUS_SUCCESS)
         {
             ntError = STATUS_DIRECTORY_NOT_EMPTY;

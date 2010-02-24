@@ -212,7 +212,8 @@ NTSTATUS
 PvfsEnumerateDirectory(
     PPVFS_CCB pCcb,
     PIO_MATCH_FILE_SPEC pFileSpec,
-    LONG Count
+    LONG Count,
+    BOOLEAN bRescan
     );
 
 VOID

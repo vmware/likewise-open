@@ -153,7 +153,8 @@ PvfsQueryFileIdFullDirInfo(
         ntError = PvfsEnumerateDirectory(
                       pCcb,
                       pIrp->Args.QueryDirectory.FileSpec,
-                      -1);
+                      -1,
+                      FALSE);
     }
 
     LWIO_UNLOCK_MUTEX(bLocked, &pCcb->FileMutex);

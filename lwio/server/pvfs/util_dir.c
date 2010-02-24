@@ -162,7 +162,8 @@ NTSTATUS
 PvfsEnumerateDirectory(
     PPVFS_CCB pCcb,
     PIO_MATCH_FILE_SPEC pFileSpec,
-    LONG Count
+    LONG Count,
+    BOOLEAN bRescan
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -180,9 +181,37 @@ PvfsEnumerateDirectory(
     ntError = AllocateCStringFileSpec(&pszPattern, pFileSpec);
     BAIL_ON_NT_STATUS(ntError);
 
+    if (bRescan)
+    {
+        if (pCcb->pDirContext->pDir)
+        {
+            PvfsSysCloseDir(pCcb->pDirContext->pDir);
+
+        }
+        PvfsFreeDirectoryContext(pCcb->pDirContext);
+        pCcb->pDirContext = NULL;
+
+        ntError = PvfsAllocateMemory(
+                      (PVOID)&pCcb->pDirContext,
+                      sizeof(PVFS_DIRECTORY_CONTEXT));
+        BAIL_ON_NT_STATUS(ntError);
+
+        pCcb->pDirContext->bScanned = FALSE;
+    }
+
+
+    if (!pCcb->pDirContext->bScanned)
+    {
+        ntError = PvfsSysOpenDir(
+                      pCcb->pszFilename,
+                      &pCcb->pDirContext->pDir);
+        BAIL_ON_NT_STATUS(ntError);
+
+        pCcb->pDirContext->bScanned = TRUE;
+    }
+
     /* Loop to read entries */
 
-    pCcb->pDirContext->bScanned = TRUE;
     pDir = pCcb->pDirContext->pDir;
 
     /* -1 means to fill in whatever you can including current and

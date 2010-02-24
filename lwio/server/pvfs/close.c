@@ -83,8 +83,11 @@ PvfsClose(
 
     if (PVFS_IS_DIR(pCcb))
     {
-        ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
-        /* pCcb->fd is invalid now */
+        if (pCcb->pDirContext->pDir)
+        {
+            ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
+            /* pCcb->fd is invalid now */
+        }
     }
     else
     {
