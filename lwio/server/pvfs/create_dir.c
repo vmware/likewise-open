@@ -85,7 +85,7 @@ PvfsCreateDirectory(
     case FILE_OVERWRITE:
     case FILE_OVERWRITE_IF:
         /* These are all invalid create dispositions for directories */
-        ntError = STATUS_INVALID_DISPOSITION;
+        ntError = STATUS_INVALID_PARAMETER;
         break;
 
     case FILE_CREATE:
