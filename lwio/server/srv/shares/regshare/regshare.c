@@ -538,6 +538,8 @@ SrvShareRegEnum(
 
         if (ulMaxValueNameLen)
         {
+            SRV_SAFE_FREE_MEMORY_AND_RESET(pwszValueName);
+
             ntStatus = SrvAllocateMemory(
                             ulMaxValueNameLen,
                             (PVOID*) &pwszValueName);
@@ -546,6 +548,8 @@ SrvShareRegEnum(
 
         if (ulMaxValueLen)
         {
+            SRV_SAFE_FREE_MEMORY_AND_RESET(pData);
+
             ntStatus = SrvAllocateMemory(ulMaxValueLen, (PVOID*) &pData);
             BAIL_ON_NT_STATUS(ntStatus);
         }
