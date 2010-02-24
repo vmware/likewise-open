@@ -50,7 +50,7 @@
 #include "ioipc.h"
 
 static
-DWORD
+NTSTATUS
 SMBSrvSetDefaults(
     VOID
     );
@@ -206,9 +206,10 @@ lwiod_main(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    dwError = SMBSrvSetDefaults();
-    BAIL_ON_LWIO_ERROR(dwError);
+    ntStatus = SMBSrvSetDefaults();
+    BAIL_ON_LWIO_ERROR(ntStatus);
 
     dwError = SMBSrvParseArgs(argc,
                               argv,
@@ -279,15 +280,15 @@ error:
     goto cleanup;
 }
 
-#define MAX_OPEN_FILE_DESCRIPTORS 0x0000FFFF
+#define MAX_OPEN_FILE_DESCRIPTORS 0x00004000
 
 static
-DWORD
+NTSTATUS
 SMBSrvSetDefaults(
     VOID
     )
 {
-    DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     struct rlimit rlim = {0};
     int err = 0;
 
@@ -307,14 +308,17 @@ SMBSrvSetDefaults(
     {
         err = errno;
 
-        dwError = LwErrnoToNtStatus(err);
-        BAIL_ON_LWIO_ERROR(err);
+        ntStatus = LwErrnoToNtStatus(err);
+
+        LWIO_LOG_ERROR("Failed to set maximum file descriptors to %d - %s (0x%x)\n",
+                       MAX_OPEN_FILE_DESCRIPTORS,
+                       LwNtStatusToDescription(ntStatus),
+                       ntStatus);
     }
 
+    ntStatus = STATUS_SUCCESS;
 
-error:
-
-    return (dwError);
+    return ntStatus;
 }
 
 static
