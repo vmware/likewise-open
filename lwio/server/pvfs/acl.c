@@ -391,6 +391,112 @@ PvfsFreeAbsoluteSecurityDescriptor(
     return;
 }
 
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+PvfsSecurityAclSelfRelativeToAbsoluteSD(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsolute,
+    PSECURITY_DESCRIPTOR_RELATIVE pRelative
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pAbsolute = NULL;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
+    PACL pDacl = NULL;
+    PACL pSacl = NULL;
+    ULONG SecDescAbsSize = 0;
+    ULONG OwnerSize = 0;
+    ULONG GroupSize = 0;
+    ULONG DaclSize = 0;
+    ULONG SaclSize = 0;
+
+    /* Get the necessary sizes */
+
+    ntError = RtlSelfRelativeToAbsoluteSD(
+                 pRelative,
+                 pAbsolute,
+                 &SecDescAbsSize,
+                 pDacl,
+                 &DaclSize,
+                 pSacl,
+                 &SaclSize,
+                 pOwnerSid,
+                 &OwnerSize,
+                 pGroupSid,
+                 &GroupSize);
+    if (ntError != STATUS_BUFFER_TOO_SMALL)
+    {
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = LW_RTL_ALLOCATE(
+                  &pAbsolute,
+                  VOID,
+                  SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = RtlCreateSecurityDescriptorAbsolute(
+                  pAbsolute,
+                  SECURITY_DESCRIPTOR_REVISION);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (DaclSize)
+    {
+        ntError = LW_RTL_ALLOCATE(&pDacl, VOID, DaclSize);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (SaclSize)
+    {
+        ntError = LW_RTL_ALLOCATE(&pSacl, VOID, SaclSize);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (OwnerSize)
+    {
+        ntError = LW_RTL_ALLOCATE(&pOwnerSid, VOID, OwnerSize);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    if (GroupSize)
+    {
+        ntError = LW_RTL_ALLOCATE(&pGroupSid, VOID, GroupSize);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    /* Once more with feeling...This one should succeed. */
+
+    ntError = RtlSelfRelativeToAbsoluteSD(
+                 pRelative,
+                 pAbsolute,
+                 &SecDescAbsSize,
+                 pDacl,
+                 &DaclSize,
+                 pSacl,
+                 &SaclSize,
+                 pOwnerSid,
+                 &OwnerSize,
+                 pGroupSid,
+                 &GroupSize);
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppAbsolute = pAbsolute;
+    pAbsolute = NULL;
+
+cleanup:
+    return ntError;
+
+error:
+    LW_RTL_FREE(&pOwnerSid);
+    LW_RTL_FREE(&pGroupSid);
+    LW_RTL_FREE(&pDacl);
+    LW_RTL_FREE(&pSacl);
+    LW_RTL_FREE(&pAbsolute);
+
+    goto cleanup;
+}
 
 /***********************************************************************
  **********************************************************************/

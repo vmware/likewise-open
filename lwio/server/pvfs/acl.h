@@ -84,6 +84,13 @@ PvfsFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
+NTSTATUS
+PvfsSecurityAclSelfRelativeToAbsoluteSD(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsolute,
+    PSECURITY_DESCRIPTOR_RELATIVE pRelative
+    );
+
+
 
 /* From acl_posix.c */
 
