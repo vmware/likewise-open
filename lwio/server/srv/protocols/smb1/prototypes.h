@@ -66,8 +66,25 @@ SrvProcessCloseAndX(
 
 // config.c
 
+NTSTATUS
+SrvConfigSetupInitial_SMB_V1(
+    VOID
+    );
+
+NTSTATUS
+SrvConfigRefresh_SMB_V1(
+    VOID
+    );
+
+VOID
+SrvConfigShutdown_SMB_V1(
+    VOID
+    );
+
+// config.c - getter functions
+
 ULONG
-SrvConfigGetOplockTimeout_SMB_V1(
+SrvConfigGetOplockTimeoutMillisecs_SMB_V1(
     VOID
     );
 

@@ -247,7 +247,7 @@ SrvProcessOplock(
 
                         /* configured timeout will be in milliseconds */
                         llExpiry +=
-                            (SrvConfigGetOplockTimeout_SMB_V1() *
+                            (SrvConfigGetOplockTimeoutMillisecs_SMB_V1() *
                                 WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS);
 
                         ntStatus = SrvTimerPostRequest(
