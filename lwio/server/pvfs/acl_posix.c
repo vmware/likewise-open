@@ -730,6 +730,12 @@ PvfsSetSecurityDescriptorPosix(
 
 
 cleanup:
+
+    if (pSecDescAbs)
+    {
+        PvfsFreeAbsoluteSecurityDescriptor(&pSecDescAbs);
+    }
+
     return ntError;
 
 error:
