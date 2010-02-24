@@ -587,8 +587,29 @@ LsaChangeDomainGroupMembership(
     DOMAIN_HANDLE hBuiltinDomain = NULL;
     DWORD dwAliasAccessMask = ALIAS_ACCESS_ADD_MEMBER |
                               ALIAS_ACCESS_REMOVE_MEMBER;
-    ACCOUNT_HANDLE hBuiltinAdminsAlias = NULL;
+    ACCOUNT_HANDLE hAlias = NULL;
     PSID pDomainAdminsSid = NULL;
+    PSID pDomainUsersSid = NULL;
+    DWORD iGroup = 0;
+    DWORD iMember = 0;
+
+    PSID *pppAdminMembers[] = { &pDomainAdminsSid, NULL };
+    PSID *pppUsersMembers[] = { &pDomainUsersSid, NULL };
+
+    struct _LOCAL_GROUP_MEMBERS
+    {
+        DWORD   dwLocalGroupRid;
+        PSID  **pppMembers;
+    }
+    Memberships[] =
+    {
+        { DOMAIN_ALIAS_RID_ADMINS,
+          pppAdminMembers
+        },
+        { DOMAIN_ALIAS_RID_USERS,
+          pppUsersMembers
+        }
+    };
 
     memset(&ConnReq, 0, sizeof(ConnReq));
     memset(&ConnInfo, 0, sizeof(ConnInfo));
@@ -619,6 +640,18 @@ LsaChangeDomainGroupMembership(
     BAIL_ON_NT_STATUS(ntStatus);
 
     pDomainSid = pInfo->domain.sid;
+
+    dwError = LwCreateWellKnownSid(WinAccountDomainAdminsSid,
+                                   pDomainSid,
+                                   &pDomainAdminsSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwCreateWellKnownSid(WinAccountDomainUsersSid,
+                                   pDomainSid,
+                                   &pDomainUsersSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
 
     /*
      * Connect local samr rpc server and open BUILTIN domain
@@ -658,48 +691,61 @@ LsaChangeDomainGroupMembership(
     BAIL_ON_NT_STATUS(ntStatus);
 
     /*
-     * Finally, open BUILTIN\Administrators local group and add
-     * "Domain Admins" to the list of members
+     * Add requested domain groups or users to their
+     * corresponding local groups
      */
-    ntStatus = SamrOpenAlias(hSamrBinding,
-                             hBuiltinDomain,
-                             dwAliasAccessMask,
-                             DOMAIN_ALIAS_RID_ADMINS,
-                             &hBuiltinAdminsAlias);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    dwError = LwCreateWellKnownSid(WinAccountDomainAdminsSid,
-                                   pDomainSid,
-                                   &pDomainAdminsSid,
-                                   NULL);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (bEnable)
+    for (iGroup = 0;
+         iGroup < sizeof(Memberships)/sizeof(Memberships[0]);
+         iGroup++)
     {
-        ntStatus = SamrAddAliasMember(hSamrBinding,
-                                      hBuiltinAdminsAlias,
-                                      pDomainAdminsSid);
-        if (ntStatus == STATUS_MEMBER_IN_ALIAS)
+        DWORD dwRid = Memberships[iGroup].dwLocalGroupRid;
+
+        ntStatus = SamrOpenAlias(hSamrBinding,
+                                 hBuiltinDomain,
+                                 dwAliasAccessMask,
+                                 dwRid,
+                                 &hAlias);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        for (iMember = 0;
+             Memberships[iGroup].pppMembers[iMember] != NULL;
+             iMember++)
         {
-            ntStatus = STATUS_SUCCESS;
+            PSID *ppSid = Memberships[iGroup].pppMembers[iMember];
+
+            if (bEnable)
+            {
+                ntStatus = SamrAddAliasMember(hSamrBinding,
+                                              hAlias,
+                                              (*ppSid));
+                if (ntStatus == STATUS_MEMBER_IN_ALIAS)
+                {
+                    ntStatus = STATUS_SUCCESS;
+                }
+            }
+            else
+            {
+                ntStatus = SamrDeleteAliasMember(hSamrBinding,
+                                                 hAlias,
+                                                 (*ppSid));
+                if (ntStatus == STATUS_MEMBER_NOT_IN_ALIAS)
+                {
+                    ntStatus = STATUS_SUCCESS;
+                }
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
         }
+
+        ntStatus = SamrClose(hSamrBinding, hAlias);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        hAlias = NULL;
     }
-    else
-    {
-        ntStatus = SamrDeleteAliasMember(hSamrBinding,
-                                         hBuiltinAdminsAlias,
-                                         pDomainAdminsSid);
-        if (ntStatus == STATUS_MEMBER_NOT_IN_ALIAS)
-        {
-            ntStatus = STATUS_SUCCESS;
-        }
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    if (hSamrBinding && hBuiltinAdminsAlias)
+    if (hSamrBinding && hAlias)
     {
-        SamrClose(hSamrBinding, hBuiltinAdminsAlias);
+        SamrClose(hSamrBinding, hAlias);
     }
 
     if (hSamrBinding && hBuiltinDomain)
@@ -727,6 +773,7 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pBuiltinDomainSid);
     LW_SAFE_FREE_MEMORY(pDomainAdminsSid);
+    LW_SAFE_FREE_MEMORY(pDomainUsersSid);
 
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)

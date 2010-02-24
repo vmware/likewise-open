@@ -1060,7 +1060,7 @@ LsaSrvLookupOtherNames(
             /*
              * It turns out to be a local domain (machine) name itself
              */
-            pSid->type   = SID_TYPE_DOMAIN;
+            pSid->type   = SID_TYPE_COMPUTER;
             pSid->sid    = NULL;
             pSid->index  = dwLocalDomIndex;
         }

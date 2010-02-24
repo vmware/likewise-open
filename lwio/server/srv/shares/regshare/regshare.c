@@ -641,6 +641,11 @@ SrvShareRegEndEnum(
     IN HANDLE hResume
     )
 {
+    PSRV_SHARE_REG_ENUM_CONTEXT pEnumContext =
+                                    (PSRV_SHARE_REG_ENUM_CONTEXT)hResume;
+
+    SRV_SAFE_FREE_MEMORY(pEnumContext);
+
     return STATUS_SUCCESS;
 }
 

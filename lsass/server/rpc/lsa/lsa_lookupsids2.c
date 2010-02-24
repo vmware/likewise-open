@@ -797,7 +797,7 @@ LsaSrvLookupLocalSids(
         {
             /* RID is unknown because SID turns out to be
                the local machine SID, not an account SID */
-            pDstLocalName->type      = SID_TYPE_DOMAIN;
+            pDstLocalName->type      = SID_TYPE_COMPUTER;
             pDstLocalName->sid_index = dwLocalDomIndex;
         }
         else

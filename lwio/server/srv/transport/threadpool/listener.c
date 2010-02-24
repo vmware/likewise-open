@@ -138,6 +138,11 @@ SrvListenerShutdown(
 
     LwRtlReleaseTask(&pListener->context.pTask);
 
+    if (pListener->context.pPool)
+    {
+        LwRtlFreeThreadPool(&pListener->context.pPool);
+    }
+
     if (pListener->context.hGssContext)
     {
         SrvGssReleaseContext(pListener->context.hGssContext);
@@ -403,6 +408,11 @@ cleanup:
     if (pConnTask)
     {
         LwRtlReleaseTask(&pConnTask);
+    }
+
+    if (pHostinfo)
+    {
+        SrvReleaseHostInfo(pHostinfo);
     }
 
     return;
