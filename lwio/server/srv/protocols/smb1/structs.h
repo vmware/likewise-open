@@ -1162,9 +1162,9 @@ typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 
     PSMB_PROD_CONS_QUEUE  pWorkQueue;
 
-    pthread_rwlock_t      ConfigLock;
+    pthread_rwlock_t      configLock;
     pthread_rwlock_t      *pConfigLock;
-    SRV_CONFIG_SMB_V1     Config;
+    SRV_CONFIG_SMB_V1     config;
 
 } SRV_RUNTIME_GLOBALS_SMB_V1, *PSRV_RUNTIME_GLOBALS_SMB_V1;
 

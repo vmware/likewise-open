@@ -107,7 +107,7 @@ SrvConfigSetupInitial_SMB_V1(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    gProtocolGlobals_SMB_V1.pConfigLock = &gProtocolGlobals_SMB_V1.ConfigLock;
+    gProtocolGlobals_SMB_V1.pConfigLock = &gProtocolGlobals_SMB_V1.configLock;
 
     pthread_rwlock_init(gProtocolGlobals_SMB_V1.pConfigLock, NULL);
 
@@ -146,8 +146,8 @@ SrvConfigRefresh_SMB_V1(
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, gProtocolGlobals_SMB_V1.pConfigLock);
-    SrvConfigFree_SMB_V1(&gProtocolGlobals_SMB_V1.Config);
-    memcpy(&gProtocolGlobals_SMB_V1.Config, pConfig, sizeof(SRV_CONFIG_SMB_V1));
+    SrvConfigFree_SMB_V1(&gProtocolGlobals_SMB_V1.config);
+    memcpy(&gProtocolGlobals_SMB_V1.config, pConfig, sizeof(SRV_CONFIG_SMB_V1));
     LWIO_UNLOCK_RWMUTEX(bInLock, gProtocolGlobals_SMB_V1.pConfigLock);
 
 cleanup:
@@ -163,7 +163,7 @@ SrvConfigShutdown_SMB_V1(
     VOID
     )
 {
-    SrvConfigFree_SMB_V1(&gProtocolGlobals_SMB_V1.Config);
+    SrvConfigFree_SMB_V1(&gProtocolGlobals_SMB_V1.config);
 
     if (gProtocolGlobals_SMB_V1.pConfigLock)
     {
@@ -228,7 +228,7 @@ SrvConfigGetOplockTimeoutMillisecs_SMB_V1(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, gProtocolGlobals_SMB_V1.pConfigLock);
 
-    dwTimeout = gProtocolGlobals_SMB_V1.Config.dwOplockTimeoutMillisecs;
+    dwTimeout = gProtocolGlobals_SMB_V1.config.dwOplockTimeoutMillisecs;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, gProtocolGlobals_SMB_V1.pConfigLock);
 
