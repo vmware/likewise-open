@@ -112,6 +112,7 @@ typedef struct _NPFS_CCB
     struct _NPFS_PIPE * pPipe;
 
     LW_LIST_LINKS mdlList;
+    LW_LIST_LINKS ReadIrpList;
 
     LW_LIST_LINKS link;
 } NPFS_CCB, *PNPFS_CCB;
@@ -274,6 +275,18 @@ NpfsServerFreeCCB(
 NTSTATUS
 NpfsClientFreeCCB(
     PNPFS_CCB pCCB
+    );
+
+VOID
+NpfsClientCompleteReadFile(
+    PNPFS_CCB pCCB,
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
+
+VOID
+NpfsServerCompleteReadFile(
+    PNPFS_CCB pCCB,
+    PNPFS_IRP_CONTEXT pIrpContext
     );
 
 extern LW_LIST_LINKS gFCBList;

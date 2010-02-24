@@ -382,9 +382,12 @@ IopIpcReadFile(
     const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_READ_FILE_RESULT;
     PNT_IPC_MESSAGE_READ_FILE pMessage = (PNT_IPC_MESSAGE_READ_FILE) pIn->data;
     PNT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT pReply = NULL;
-    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    PIO_IPC_CALL_CONTEXT pContext = NULL;
 
     assert(messageType == pIn->tag);
+
+    status = IopIpcCreateCallContext(pCall, pIn, pOut, IopIpcCompleteGenericCall, &pContext);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_BUFFER_RESULT, sizeof(*pReply));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -398,19 +401,37 @@ IopIpcReadFile(
         GOTO_CLEANUP_ON_STATUS_EE(pReply->Status, EE);
     }
 
-    pReply->Status = IoReadFile(
-                            pMessage->FileHandle,
-                            NULL,
-                            &ioStatusBlock,
-                            pReply->Buffer,
-                            pMessage->Length,
-                            pMessage->ByteOffset,
-                            pMessage->Key);
-    pReply->Status = ioStatusBlock.Status;
-    pReply->BytesTransferred = ioStatusBlock.BytesTransferred;
+    status = IoReadFile(
+        pMessage->FileHandle,
+        &pContext->asyncBlock,
+        &pContext->ioStatusBlock,
+        pReply->Buffer,
+        pMessage->Length,
+        pMessage->ByteOffset,
+        pMessage->Key);
+
+    switch (status)
+    {
+    case STATUS_SUCCESS:
+        pReply->Status = pContext->ioStatusBlock.Status = status;
+        pReply->BytesTransferred = pContext->ioStatusBlock.BytesTransferred;
+        break;
+    case STATUS_PENDING:
+        lwmsg_call_pend(pCall, IopIpcCancelCall, pContext);
+        break;
+    default:
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+    }
 
 cleanup:
+
+    if (pContext && status != STATUS_PENDING)
+    {
+        IopIpcFreeCallContext(pContext);
+    }
+
     LOG_LEAVE_IF_STATUS_EE(status, EE);
+
     return NtIpcNtStatusToLWMsgStatus(status);
 }
 
