@@ -79,8 +79,6 @@ PvfsClose(
     }
 
 
-    /* Call closedir() for directions and close() for files */
-
     if (PVFS_IS_DIR(pCcb))
     {
         if (pCcb->pDirContext->pDir)
@@ -114,10 +112,12 @@ PvfsClose(
             ntError = PvfsOplockMarkPendedOpsReady(pCcb->pFcb);
             break;
         }
-
-        /* Close the fd */
-        ntError = PvfsSysClose(pCcb->fd);
     }
+
+    /* Close the fd */
+
+    ntError = PvfsSysClose(pCcb->fd);
+
 
     /* Technically, it would be more proper to do this in the utility
        functions in PvfsFreeFCB, but we will end up with memory corruption

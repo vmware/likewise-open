@@ -336,13 +336,10 @@ PvfsCreateDirDoSysOpen(
                   sizeof(PVFS_DIRECTORY_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
-    /* PvfsSysDirFd() may need the filename on some platforms.
-       Go ahead and store it in the CCB just in case. */
-
     pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
     pCreateContext->pszDiskFilename = NULL;
 
-    ntError = PvfsSysDirFd(pCreateContext->pCcb, &fd);
+    ntError = PvfsSysOpen(&fd, pCreateContext->pCcb->pszFilename, 0, 0);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */

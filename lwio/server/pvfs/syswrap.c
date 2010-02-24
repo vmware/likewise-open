@@ -230,22 +230,16 @@ PvfsSysDirFd(
     int fd = -1;
 
 #ifdef HAVE_DIRFD
-    if (pCcb->pDirContext->pDir)
+    if ((fd = dirfd(pCcb->pDirContext->pDir)) == -1)
     {
-        if ((fd = dirfd(pCcb->pDirContext->pDir)) == -1)
-        {
-            PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-        }
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+#else
+    if ((fd = open(pCcb->pszFilename, 0, 0)) == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
     }
 #endif
-
-    if (fd == -1)
-    {
-        if ((fd = open(pCcb->pszFilename, 0, 0)) == -1)
-        {
-            PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
-        }
-    }
 
     *pFd = fd;
 
