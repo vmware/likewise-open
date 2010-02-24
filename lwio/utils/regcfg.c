@@ -49,12 +49,29 @@ struct __LWIO_CONFIG_REG
     PSTR pszPolicyKey;
 };
 
+/**
+ * Read configuration values from the registry
+ *
+ * This function loops through a configuration table reading all given values
+ * from a registry key.  If an entry is not found in the registry
+ * @dwConfigEntries determines whether an error is returned.
+ *
+ * @param[in] pszConfigKey Registry key path
+ * @param[in] pszPolicyKey Registry policy key path
+ * @param[in] pConfig Configuration table specifying parameter names
+ * @param[in] dwConfigEntries Number of table entries
+ * @param[in] bIgnoreNotFound Don't error if a parameter is not found in the
+ *                            registry.
+ *
+ * @return STATUS_SUCCESS, or appropriate error.
+ */
 NTSTATUS
 LwIoProcessConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
     PLWIO_CONFIG_TABLE pConfig,
-    DWORD dwConfigEntries
+    DWORD dwConfigEntries,
+    BOOLEAN bIgnoreNotFound
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -113,6 +130,10 @@ LwIoProcessConfig(
 
             default:
                 break;
+        }
+        if (bIgnoreNotFound && ntStatus == STATUS_OBJECT_NAME_NOT_FOUND)
+        {
+            ntStatus = STATUS_SUCCESS;
         }
         BAIL_ON_NT_STATUS(ntStatus);
     }
