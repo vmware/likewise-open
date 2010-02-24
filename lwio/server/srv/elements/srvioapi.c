@@ -141,7 +141,7 @@ SrvIoCreateFile(
     {
         /* Escape clause for MAXIMUM_ALLOWED */
 
-        if ((MappedDesiredAccess == MAXIMUM_ALLOWED) &&
+        if ((MappedDesiredAccess & MAXIMUM_ALLOWED) &&
             (GrantedAccess == FILE_ALL_ACCESS))
         {
             ntStatus = STATUS_SUCCESS;
