@@ -779,6 +779,7 @@ SrvBuildFileBasicInfoResponse_SMB_V2(
     ULONG ulOffset         = 0;
     ULONG ulTotalBytesUsed = 0;
     PFILE_BASIC_INFORMATION        pFileBasicInfo = NULL;
+    SMB2_FILE_BASIC_INFORMATION    fileBasicInfoPacked = {0};
     PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
 
     pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
@@ -826,7 +827,14 @@ SrvBuildFileBasicInfoResponse_SMB_V2(
     pGetInfoResponseHeader->usLength = sizeof(SMB2_GET_INFO_RESPONSE_HEADER)+1;
     pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
 
-    pGetInfoResponseHeader->ulOutBufferLength = sizeof(FILE_BASIC_INFORMATION);
+    fileBasicInfoPacked.ChangeTime     = pFileBasicInfo->ChangeTime;
+    fileBasicInfoPacked.CreationTime   = pFileBasicInfo->CreationTime;
+    fileBasicInfoPacked.FileAttributes = pFileBasicInfo->FileAttributes;
+    fileBasicInfoPacked.LastAccessTime = pFileBasicInfo->LastAccessTime;
+    fileBasicInfoPacked.LastWriteTime  = pFileBasicInfo->LastWriteTime;
+
+    pGetInfoResponseHeader->ulOutBufferLength =
+                                        sizeof(SMB2_FILE_BASIC_INFORMATION);
 
     if (ulBytesAvailable < pGetInfoResponseHeader->ulOutBufferLength)
     {
@@ -834,7 +842,8 @@ SrvBuildFileBasicInfoResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    memcpy(pOutBuffer, pFileBasicInfo, sizeof(FILE_BASIC_INFORMATION));
+    memcpy(pOutBuffer, &fileBasicInfoPacked,
+                                        sizeof(SMB2_FILE_BASIC_INFORMATION));
 
     // pOutBuffer += sizeof(FILE_BASIC_INFORMATION);
     // ulBytesAvailable -= sizeof(FILE_BASIC_INFORMATION);
