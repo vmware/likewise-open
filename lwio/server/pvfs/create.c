@@ -644,6 +644,46 @@ error:
 
 
 
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsCreateFileCheckPendingDelete(
+    PPVFS_FCB pFcb
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PPVFS_FCB pParentFcb = NULL;
+
+    if (PvfsFcbIsPendingDelete(pFcb))
+    {
+        ntError = STATUS_DELETE_PENDING;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    pParentFcb = PvfsGetParentFCB(pFcb);
+    if (pParentFcb && PvfsFcbIsPendingDelete(pParentFcb))
+    {
+        ntError = STATUS_DELETE_PENDING;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    if (pParentFcb)
+    {
+        PvfsReleaseFCB(&pParentFcb);
+    }
+
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
 
 /*
 local variables:

@@ -127,6 +127,11 @@ PvfsFreeCreateContext(
     );
 
 NTSTATUS
+PvfsCreateFileCheckPendingDelete(
+    PPVFS_FCB pFcb
+    );
+
+NTSTATUS
 PvfsCreateFileSecurity(
     PACCESS_TOKEN pUserToken,
     PPVFS_CCB pCcb,
