@@ -48,8 +48,6 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define LWIO_DEFAULT_TIMEOUT_MSECS_SMB_V1 (30 * 1000)
-
 #define COM_CREATE_DIRECTORY_DESC       "SMB1_CREATE_DIRECTORY"
 #define COM_DELETE_DIRECTORY_DESC       "SMB1_DELETE_DIRECTORY"
 #define COM_OPEN_DESC                   "SMB1_OPEN"
@@ -128,5 +126,21 @@ typedef UCHAR SMB_OPLOCK_REQUEST;
 
 #define SMB_OPLOCK_REQUEST_EXCLUSIVE 0x02
 #define SMB_OPLOCK_REQUEST_BATCH     0x04
+
+/* SMB_V1 Configuration */
+
+#define SRV_DEFAULT_TIMEOUT_MSECS_SMB_V1 (30 * 1000)
+
+#define SRV_CONFIG_TABLE_INITIALIZER_SMB_V1                     \
+{                                                               \
+    {                                                           \
+        .pszName        = "OplockTimeoutMillisecs",             \
+        .bUsePolicy     = FALSE,                                \
+        .Type           = LwIoTypeDword,                        \
+        .dwMin          = 0,                                    \
+        .dwMax          = 60000,                                \
+        .pValue         = &pConfig->dwOplockTimeoutMillisecs    \
+    },                                                          \
+};
 
 #endif /* __DEFS_H__ */

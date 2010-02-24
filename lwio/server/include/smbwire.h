@@ -1998,6 +1998,16 @@ typedef enum
 
 typedef struct _LWIO_PACKET_ALLOCATOR *PLWIO_PACKET_ALLOCATOR;
 
+typedef struct _SMB2_FILE_BASIC_INFORMATION {
+    LONG64 CreationTime;
+    LONG64 LastAccessTime;
+    LONG64 LastWriteTime;
+    LONG64 ChangeTime;
+    FILE_ATTRIBUTES FileAttributes;
+    ULONG  unknown;
+} __attribute__((__packed__)) SMB2_FILE_BASIC_INFORMATION,
+                            *PSMB2_FILE_BASIC_INFORMATION;
+
 NTSTATUS
 MarshallNegotiateRequest(
     uint8_t       *pBuffer,

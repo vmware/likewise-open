@@ -1149,13 +1149,22 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V1
 
 } SRV_EXEC_CONTEXT_SMB_V1;
 
+/* Add new config parameters in alphabetic order. */
+typedef struct _SRV_CONFIG_SMB_V1
+{
+    DWORD dwOplockTimeoutMillisecs;
+
+} SRV_CONFIG_SMB_V1, *PSRV_CONFIG_SMB_V1;
+
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 {
     pthread_mutex_t       mutex;
 
     PSMB_PROD_CONS_QUEUE  pWorkQueue;
 
-    ULONG                 ulOplockTimeout;
+    pthread_rwlock_t      configLock;
+    pthread_rwlock_t      *pConfigLock;
+    SRV_CONFIG_SMB_V1     config;
 
 } SRV_RUNTIME_GLOBALS_SMB_V1, *PSRV_RUNTIME_GLOBALS_SMB_V1;
 

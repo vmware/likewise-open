@@ -64,7 +64,8 @@ LwIoProcessConfig(
     PCSTR pszConfigKey,
     PCSTR pszPolicyKey,
     PLWIO_CONFIG_TABLE pConfig,
-    DWORD dwConfigEntries
+    DWORD dwConfigEntries,
+    BOOLEAN bIgnoreNotFound
     );
 
 NTSTATUS

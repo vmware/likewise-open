@@ -326,6 +326,8 @@ PvfsFreeNotifyRecord(
         {
             PvfsReleaseCCB(pFilter->pCcb);
         }
+
+        PVFS_FREE(ppNotifyRecord);
     }
 
     return;

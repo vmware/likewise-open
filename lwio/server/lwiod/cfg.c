@@ -127,7 +127,8 @@ LwioSrvReadRegistry(
         "Services\\lwio\\Parameters",
         "Policy\\Services\\lwio\\Parameters",
         NULL,
-        0);
+        0,
+        TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwioSrvTransferConfigContents(

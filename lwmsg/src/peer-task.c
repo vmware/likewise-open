@@ -1474,7 +1474,8 @@ lwmsg_peer_task_dispatch_calls(
             }
         }
         /* Completed incoming call -- send reply */
-        else if (call->state & PEER_CALL_COMPLETED)
+        else if (call->state & PEER_CALL_COMPLETED &&
+                 call->state & PEER_CALL_DISPATCHED)
         {
             lwmsg_message_init(&task->outgoing_message);
             task->outgoing_message.flags = LWMSG_MESSAGE_FLAG_REPLY;
