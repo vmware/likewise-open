@@ -452,6 +452,11 @@ SrvDeleteFiles(
                             &pDeleteState->usDataLen,
                             &pDeleteState->usSearchResultCount,
                             &pDeleteState->bEndOfSearch);
+
+            if (ntStatus == STATUS_NO_MORE_MATCHES)
+            {
+                ntStatus = STATUS_SUCCESS;
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             if (pDeleteState->usSearchResultCount == 0 && !bDeletedFile)

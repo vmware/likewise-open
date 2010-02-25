@@ -336,6 +336,11 @@ SrvBuildFindNext2Response(
                     &usSearchResultLen,
                     &responseParams.usSearchCount,
                     &bEndOfSearch);
+
+    if (ntStatus == STATUS_NO_MORE_MATCHES)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (bEndOfSearch || (usFlags & SMB_FIND_CLOSE_AFTER_REQUEST))
@@ -388,11 +393,6 @@ cleanup:
     return ntStatus;
 
 error:
-
-    if (ntStatus == STATUS_NO_MORE_MATCHES)
-    {
-        ntStatus = STATUS_NO_SUCH_FILE;
-    }
 
     if (ulTotalBytesUsed)
     {
