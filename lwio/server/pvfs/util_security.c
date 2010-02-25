@@ -150,105 +150,82 @@ PvfsAccessCheckFile(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     ACCESS_MASK AccessMask = 0;
-    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
-    ULONG SecDescRelLen = 1024;
+    ACCESS_MASK DeleteAccessMask = 0;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    BYTE pRelativeSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
+    ULONG ulRelativeSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pParentSecDesc = NULL;
+    BYTE pParentRelSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
+    ULONG ulParentRelSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
+    BOOLEAN bGranted = FALSE;
     SECURITY_INFORMATION SecInfo = (OWNER_SECURITY_INFORMATION |
                                     GROUP_SECURITY_INFORMATION |
                                     DACL_SECURITY_INFORMATION);
-    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
-    ULONG SecDescLen = 0;
-    PACL pDacl = NULL;
-    ULONG DaclLen = 0;
-    PACL pSacl = NULL;
-    ULONG SaclLen = 0;
-    PSID pOwner = NULL;
-    ULONG OwnerLen = 0;
-    PSID pGroup = NULL;
-    ULONG GroupLen = 0;
+    PSTR pszParentPath = NULL;
 
     BAIL_ON_INVALID_PTR(pToken, ntError);
     BAIL_ON_INVALID_PTR(pGranted, ntError);
 
-    do
+    /* if asking for DELETE, check and see if the parent directory
+       will grant us that */
+
+    if (Desired & DELETE)
     {
-        ntError = PvfsReallocateMemory((PVOID*)&pSecDescRel, SecDescRelLen);
+        ntError = PvfsFileDirname(&pszParentPath, pszFilename);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsGetSecurityDescriptorFilename(pszFilename,
-                                                    SecInfo,
-                                                    pSecDescRel,
-                                                    &SecDescRelLen);
-        if (ntError == STATUS_BUFFER_TOO_SMALL) {
-            SecDescRelLen *= 2;
-        } else {
-            BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsGetSecurityDescriptorFilename(
+                      pszParentPath,
+                      SecInfo,
+                      (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer,
+                      &ulParentRelSecDescLength);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
+                      &pParentSecDesc,
+                      (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer);
+        BAIL_ON_NT_STATUS(ntError);
+
+        bGranted = RtlAccessCheck(
+                       pParentSecDesc,
+                       pToken,
+                       DELETE,
+                       0,
+                       &gPvfsFileGenericMapping,
+                       &DeleteAccessMask,
+                       &ntError);
+        if (bGranted)
+        {
+            Desired &= ~DELETE;
         }
 
-    } while ((ntError != STATUS_SUCCESS) &&
-             (SecDescRelLen <= SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE));
+    }
+
+    /* Check the file object itself */
+
+    ntError = PvfsGetSecurityDescriptorFilename(
+                  pszFilename,
+                  SecInfo,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer,
+                  &ulRelativeSecDescLength);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Get sizes */
-
-    ntError = RtlSelfRelativeToAbsoluteSD(pSecDescRel,
-                                          pSecDesc, &SecDescLen,
-                                          pDacl, &DaclLen,
-                                          pSacl, &SaclLen,
-                                          pOwner, &OwnerLen,
-                                          pGroup, &GroupLen);
-    if (ntError == STATUS_BUFFER_TOO_SMALL) {
-        ntError = STATUS_SUCCESS;
-    }
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Allocate -- Always use RTL routines for Absolute SDs */
-
-    ntError = RTL_ALLOCATE(&pSecDesc, VOID, SecDescLen);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if (OwnerLen) {
-        ntError = RTL_ALLOCATE(&pOwner, SID, OwnerLen);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    if (GroupLen) {
-        ntError = RTL_ALLOCATE(&pGroup, SID, GroupLen);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    if (DaclLen) {
-        ntError = RTL_ALLOCATE(&pDacl, VOID, DaclLen);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    if (SaclLen) {
-        ntError = RTL_ALLOCATE(&pSacl, VOID, SaclLen);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    /* Translate the SD */
-
-    ntError = RtlSelfRelativeToAbsoluteSD(pSecDescRel,
-                                          pSecDesc, &SecDescLen,
-                                          pDacl, &DaclLen,
-                                          pSacl, &SaclLen,
-                                          pOwner, &OwnerLen,
-                                          pGroup, &GroupLen);
+    ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
+                  &pSecDesc,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Now check access */
 
-    /* Remove the SACL bit */
-
-    Desired &= ~ACCESS_SYSTEM_SECURITY;
-
-    if (!RtlAccessCheck(pSecDesc,
-                        pToken,
-                        Desired,
-                        0,
-                        &gPvfsFileGenericMapping,
-                        &AccessMask,
-                        &ntError))
+    bGranted = RtlAccessCheck(
+                   pSecDesc,
+                   pToken,
+                   Desired,
+                   DeleteAccessMask,
+                   &gPvfsFileGenericMapping,
+                   &AccessMask,
+                   &ntError);
+    if (!bGranted)
     {
         BAIL_ON_NT_STATUS(ntError);
     }
@@ -257,8 +234,15 @@ PvfsAccessCheckFile(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    PVFS_FREE(&pSecDescRel);
-    PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
+    if (pParentSecDesc)
+    {
+        PvfsFreeAbsoluteSecurityDescriptor(&pParentSecDesc);
+    }
+
+    if (pSecDesc)
+    {
+        PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
+    }
 
     return ntError;
 

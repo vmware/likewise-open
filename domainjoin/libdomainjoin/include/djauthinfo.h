@@ -174,4 +174,6 @@ LWRaiseLsassError(
     unsigned int line
     );
 
+void SetLsassTimeSync(PCSTR rootPrefix, BOOLEAN sync, LWException **exc);
+
 #endif /* __DJ_AUTHINFO_H__ */

@@ -817,7 +817,6 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
 {
     PSTR pszCanonicalizedOU = NULL;
     ModuleState *state = DJGetModuleStateByName(options, "join");
-    BOOLEAN bNoTimeSyncFileExists = FALSE;
 
     if (!IsNullOrEmptyString(getenv("LD_LIBRARY_PATH")) ||
         !IsNullOrEmptyString(getenv("LD_PRELOAD")))
@@ -839,25 +838,7 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
         pszCanonicalizedOU = NULL;
     }
 
-    LW_CLEANUP_CTERR(exc, CTCheckFileExists(NO_TIME_SYNC_FILE,
-                &bNoTimeSyncFileExists));
-
-    if (options->disableTimeSync && !bNoTimeSyncFileExists)
-    {
-        /* Create no time sync file */
-        FILE* noTimeSyncFile = NULL;
-
-        LW_CLEANUP_CTERR(exc, CTOpenFile(NO_TIME_SYNC_FILE,
-                    "w", &noTimeSyncFile));
-
-        CTCloseFile(noTimeSyncFile);
-    }
-    else if (!options->disableTimeSync && bNoTimeSyncFileExists)
-    {
-        /* Remove no time sync file */
-        LW_CLEANUP_CTERR(exc, CTRemoveFile(NO_TIME_SYNC_FILE));
-    }
-
+    LW_TRY(exc, SetLsassTimeSync("", !options->disableTimeSync, &LW_EXC));
 
     LW_TRY(exc, DJCreateComputerAccount(&options->shortDomainName, options, &LW_EXC));
 
@@ -1643,5 +1624,43 @@ error:
     CT_SAFE_FREE_STRING(pszDescription);
     CT_SAFE_FREE_STRING(pszData);
 
+    return;
+}
+
+void SetLsassTimeSync(PCSTR rootPrefix, BOOLEAN sync, LWException **exc)
+{
+    DWORD dwSync = sync;
+    HANDLE hReg = (HANDLE)NULL;
+    HKEY pAdKey = NULL;
+    HANDLE lsa = NULL;
+
+    LW_CLEANUP_LSERR(exc, RegOpenServer(&hReg));
+    LW_CLEANUP_LSERR(exc, RegOpenKeyExA(
+                hReg,
+                NULL,
+                HKEY_THIS_MACHINE "\\Services\\lsass\\Parameters\\Providers\\ActiveDirectory",
+                0,
+                KEY_ALL_ACCESS,
+                &pAdKey));
+
+    LW_CLEANUP_LSERR(exc, RegSetValueExA(
+                hReg,
+                pAdKey,
+                "SyncSystemTime",
+                0,
+                REG_DWORD,
+                &dwSync,
+                sizeof(dwSync)));
+
+    LW_CLEANUP_LSERR(exc, LsaOpenServer(&lsa));
+    LW_CLEANUP_LSERR(exc, LsaRefreshConfiguration(lsa));
+
+cleanup:
+    if (lsa)
+    {
+        LsaCloseServer(lsa);
+    }
+    RegCloseKey(hReg, pAdKey);
+    RegCloseServer(hReg);
     return;
 }

@@ -99,6 +99,7 @@ joindialog_new(
     g_signal_connect(G_OBJECT(dialog->ou_specific), "toggled",
         G_CALLBACK(ou_specific_toggled), dialog);
 
+    // Set values saved from previous iteration.
     if (pJoinState->computer)
         gtk_entry_set_text(dialog->computer_entry, pJoinState->computer);
 
@@ -112,6 +113,12 @@ joindialog_new(
         if (pJoinState->ou_active)
             gtk_toggle_button_set_active(dialog->ou_specific, TRUE);
     }
+
+    if (pJoinState->noModifyHosts)
+    {
+        gtk_toggle_button_set_active(dialog->modify_hosts, FALSE);
+    }
+
 
 cleanup:
     if (xml)

@@ -44,6 +44,7 @@ typedef struct __JOINSTATE
     char* ou;
     char* user;
     char* password;
+    gboolean noModifyHosts;
 } JOINSTATE, *PJOINSTATE;
 
 void dialog_insert_likewise_logo(GtkDialog* dialog);
