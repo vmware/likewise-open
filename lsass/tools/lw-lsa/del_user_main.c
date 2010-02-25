@@ -114,17 +114,20 @@ ParseArgs(
     while (iArg < argc)
     {
         pArg = argv[iArg++];
-        if ( (strcmp(pArg, "--help") == 0) ||
-             (strcmp(pArg, "-h") == 0))
+        if (pArg[0] == '-')
         {
-            ShowUsage(GetProgramName(argv[0]));
-            exit(0);
-        }
-        else
-        {
-            fprintf(stderr, "Error: Invalid option \n");
-            ShowUsage(GetProgramName(argv[0]));
-            exit(1);
+            if ( (strcmp(pArg, "--help") == 0) ||
+                 (strcmp(pArg, "-h") == 0))
+            {
+                ShowUsage(GetProgramName(argv[0]));
+                exit(0);
+            }
+            else
+            {
+                fprintf(stderr, "Error: Invalid option \n");
+                ShowUsage(GetProgramName(argv[0]));
+                exit(1);
+            }
         }
     }
 
