@@ -185,7 +185,10 @@ PvfsCreateDirCreate(
     pCreateCtx->GrantedAccess = PvfsGetGrantedAccessForNewObject(
                                         Args.DesiredAccess);
 
-    ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
+    ntError = PvfsCheckDeleteOnClose(
+                  Args,
+                  NULL,  /* New directory */
+                  pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCheckShareMode(
@@ -261,9 +264,10 @@ PvfsCreateDirOpen(
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCheckReadOnlyDeleteOnClose(
+    ntError = PvfsCheckDeleteOnClose(
                   Args,
-                  pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL);
+                  pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL,
+                  pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCheckShareMode(
@@ -371,9 +375,10 @@ PvfsCreateDirOpenIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsCheckReadOnlyDeleteOnClose(
+    ntError = PvfsCheckDeleteOnClose(
                   Args,
-                  pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL);
+                  pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL,
+                  pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCheckShareMode(

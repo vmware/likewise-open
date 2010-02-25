@@ -509,9 +509,10 @@ error:
  ****************************************************************************/
 
 NTSTATUS
-PvfsCheckReadOnlyDeleteOnClose(
+PvfsCheckDeleteOnClose(
     IN IRP_ARGS_CREATE CreateArgs,
-    IN PSTR pszFilename
+    IN PSTR pszFilename,
+    IN ACCESS_MASK GrantedAccess
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
@@ -520,6 +521,13 @@ PvfsCheckReadOnlyDeleteOnClose(
     if (!(CreateArgs.CreateOptions & FILE_DELETE_ON_CLOSE)) {
         goto cleanup;
     }
+
+    if (!(GrantedAccess & DELETE))
+    {
+        ntError = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
 
     if (pszFilename) {
         ntError = PvfsGetFilenameAttributes(
