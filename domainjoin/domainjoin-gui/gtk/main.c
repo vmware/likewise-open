@@ -147,11 +147,13 @@ fill_state(JoinDialog* dialog)
     SAFE_FREE(join_state.domain);
     SAFE_FREE(join_state.ou);
     join_state.ou_active = FALSE;
+    join_state.noModifyHosts = FALSE;
 
     join_state.computer = safe_strdup(joindialog_get_computer_name(dialog));
-    join_state.ou_active = joindialog_get_ou_active(dialog);
-    join_state.ou = safe_strdup(joindialog_get_ou_name(dialog));
     join_state.domain = safe_strdup(joindialog_get_domain_name(dialog));
+    join_state.ou = safe_strdup(joindialog_get_ou_name(dialog));
+    join_state.ou_active = joindialog_get_ou_active(dialog);
+    join_state.noModifyHosts = !joindialog_get_modify_hosts(dialog);
 }
 
 static void
@@ -171,15 +173,23 @@ free_state()
     SAFE_FREE(join_state.computer);
     SAFE_FREE(join_state.domain);
     SAFE_FREE(join_state.ou);
+
     SAFE_FREE(join_state.user);
     SAFE_FREE(join_state.password);
 }
 
 static
 void
+free_state_computer()
+{
+    SAFE_FREE(join_state.computer);
+}
+
+static
+void
 free_state_domain()
 {
-    SAFE_FREE(join_state.password);
+    SAFE_FREE(join_state.domain);
 }
 
 static
@@ -272,7 +282,6 @@ typedef struct JoinInfo
 {
     JoinProgressDialog* dialog;
     JoinProcessOptions options;
-    gboolean noModifyHosts;
 } JoinInfo;
 
 static
@@ -314,7 +323,7 @@ join_worker(
     joinprogress_update(dialog, 0.0, "Joining");
 
     hostnameState = DJGetModuleStateByName(options, "hostname");
-    if(info->noModifyHosts)
+    if(join_state.noModifyHosts)
     {
         if(hostnameState != NULL)
             hostnameState->runModule = FALSE;
@@ -380,6 +389,7 @@ do_join(JoinDialog* dialog, LWException** exc)
     JoinProgressDialog* progress_dialog = NULL;
     JoinAuthDialog* auth_dialog = NULL;
 
+    fill_state(dialog);
     auth_dialog = joinauth_new(&join_state, joindialog_get_gtk_window(dialog));
 
     if (!auth_dialog)
@@ -392,7 +402,6 @@ do_join(JoinDialog* dialog, LWException** exc)
     {
         JoinInfo info = {0};
 
-        fill_state(dialog);
         fill_state_auth(auth_dialog);
 
         DJZeroJoinProcessOptions(&info.options);
@@ -417,7 +426,6 @@ do_join(JoinDialog* dialog, LWException** exc)
         }
 
         info.dialog = progress_dialog;
-        info.noModifyHosts = !joindialog_get_modify_hosts(dialog);
 
         g_thread_create(join_worker, &info, FALSE, NULL);
 
@@ -571,6 +579,7 @@ main(int argc, char** argv)
 
     memset(&join_state, 0, sizeof(join_state));
     join_state.ou_active = FALSE;
+    join_state.noModifyHosts = FALSE;
 
     log_begin();
 
@@ -592,8 +601,6 @@ main(int argc, char** argv)
         LW_TRY(&exc, DJQuery((char**) &computer, (char**) &domain, NULL, &LW_EXC));
         free_state_password();
 
-        join_state.computer = computer;
-
         // If DJQuery reports a domain, remember it since we need to leave it.
         // Otherwise, keep any current value since a user may have got back
         // here because of entering a bad value.
@@ -601,6 +608,20 @@ main(int argc, char** argv)
         {
             free_state_domain();
             join_state.domain = domain;
+
+            free_state_computer();
+            join_state.computer = computer;
+        }
+        else
+        {
+            if (join_state.computer == NULL)
+            {
+                join_state.computer = computer;
+            }
+            else
+            {
+                SAFE_FREE(computer);
+            }
         }
 
         // If DJQuery reports a domain, then we are a part of a domain.
