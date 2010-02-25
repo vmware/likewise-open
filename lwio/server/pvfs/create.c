@@ -64,6 +64,9 @@ PvfsCreate(
     PSTR pszFilename = NULL;
     PSTR pszDiskFilename = NULL;
     PVFS_STAT Stat = {0};
+    FILE_CREATE_OPTIONS FileDirCombo = (FILE_DIRECTORY_FILE|
+                                        FILE_NON_DIRECTORY_FILE);
+
 
     /* Check to see if this is a Device Create() */
 
@@ -78,6 +81,12 @@ PvfsCreate(
     /* Regular File/Directory Create() */
 
     CreateOptions = pIrp->Args.Create.CreateOptions;
+
+    if ((CreateOptions & FileDirCombo) == FileDirCombo)
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     if (CreateOptions & FILE_DIRECTORY_FILE)
     {
@@ -528,8 +537,19 @@ PvfsCheckDeleteOnClose(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    /* ReadOnly is largely ignored by the file system on directories.
+       It is used by the Windows explorer.exe to mark folders as "special" */
 
-    if (pszFilename) {
+    if (CreateArgs.CreateOptions & FILE_DIRECTORY_FILE)
+    {
+        ntError = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    /* Dealing with files from here down */
+
+    if (pszFilename)
+    {
         ntError = PvfsGetFilenameAttributes(
                       pszFilename,
                       &Attributes);
