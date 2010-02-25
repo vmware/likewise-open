@@ -132,14 +132,8 @@ PvfsSetFileDispositionInfo(
 
     if (pFileInfo->DeleteFile == TRUE)
     {
-        ntError = PvfsGetFileAttributes(pCcb, &Attributes);
-        BAIL_ON_NT_STATUS(ntError);
-
-        if (Attributes & FILE_ATTRIBUTE_READONLY)
-        {
-            ntError = STATUS_CANNOT_DELETE;
-            BAIL_ON_NT_STATUS(ntError);
-        }
+        /* Checks as to whether we can set the delete-on-close bit
+           differs for files and directortories */
 
         if (PVFS_IS_DIR(pCcb))
         {
@@ -154,6 +148,17 @@ PvfsSetFileDispositionInfo(
             if (ntError == STATUS_SUCCESS)
             {
                 ntError = STATUS_DIRECTORY_NOT_EMPTY;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+        else
+        {
+            ntError = PvfsGetFileAttributes(pCcb, &Attributes);
+            BAIL_ON_NT_STATUS(ntError);
+
+            if (Attributes & FILE_ATTRIBUTE_READONLY)
+            {
+                ntError = STATUS_CANNOT_DELETE;
                 BAIL_ON_NT_STATUS(ntError);
             }
         }

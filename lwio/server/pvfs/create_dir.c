@@ -247,6 +247,7 @@ PvfsCreateDirOpen(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     IRP_ARGS_CREATE Args = pIrpContext->pIrp->Args.Create;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
+    PVFS_STAT Stat = {0};
 
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
@@ -256,6 +257,15 @@ PvfsCreateDirOpen(
                   pCreateCtx->pszOriginalFilename,
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (!S_ISDIR(Stat.s_mode))
+    {
+        ntError = STATUS_NOT_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     ntError = PvfsAccessCheckDir(
                   pCreateCtx->pCcb->pUserToken,
@@ -324,6 +334,7 @@ PvfsCreateDirOpenIf(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskDirname = NULL;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
+    PVFS_STAT Stat = {0};
 
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
@@ -367,6 +378,16 @@ PvfsCreateDirOpenIf(
     }
     else
     {
+
+        ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (!S_ISDIR(Stat.s_mode))
+        {
+            ntError = STATUS_NOT_A_DIRECTORY;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
         ntError = PvfsAccessCheckDir(
                       pCreateCtx->pCcb->pUserToken,
                       pCreateCtx->pszDiskFilename,

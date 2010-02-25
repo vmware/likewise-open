@@ -130,6 +130,7 @@ PvfsCreateFileSupersede(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskDirname = NULL;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
+    PVFS_STAT Stat = {0};
 
     /* Caller had to have asked for DELETE access */
 
@@ -170,6 +171,13 @@ PvfsCreateFileSupersede(
 
     if (pCreateCtx->bFileExisted)
     {
+        ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
+        if ((ntError == STATUS_SUCCESS) && S_ISDIR(Stat.s_mode))
+        {
+            ntError = STATUS_FILE_IS_A_DIRECTORY;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
         ntError = PvfsAccessCheckFile(
                       pCreateCtx->pCcb->pUserToken,
                       pCreateCtx->pszDiskFilename,
@@ -362,8 +370,8 @@ PvfsCreateFileCreate(
         break;
 
         case STATUS_OBJECT_NAME_NOT_FOUND:
-        ntError = STATUS_SUCCESS;
-        break;
+            ntError = STATUS_SUCCESS;
+            break;
 
         default:
             /* do nothing */
@@ -457,6 +465,7 @@ PvfsCreateFileOpenOrOverwrite(
     IRP_ARGS_CREATE Args = pIrpContext->pIrp->Args.Create;
     FILE_CREATE_DISPOSITION Disposition = Args.CreateDisposition;;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
+    PVFS_STAT Stat = {0};
 
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
@@ -466,6 +475,15 @@ PvfsCreateFileOpenOrOverwrite(
                   pCreateCtx->pszOriginalFilename,
                   FALSE);
     BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (S_ISDIR(Stat.s_mode))
+    {
+        ntError = STATUS_FILE_IS_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     pCreateCtx->bFileExisted = TRUE;
 
@@ -589,6 +607,7 @@ PvfsCreateFileOpenOrOverwriteIf(
     PSTR pszRelativeFilename = NULL;
     PSTR pszDiskDirname = NULL;
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
+    PVFS_STAT Stat = {0};
 
     ntError = PvfsAllocateCreateContext(&pCreateCtx, pIrpContext);
     BAIL_ON_NT_STATUS(ntError);
@@ -619,6 +638,15 @@ PvfsCreateFileOpenOrOverwriteIf(
 
     if (pCreateCtx->bFileExisted)
     {
+        ntError = PvfsSysStat(pCreateCtx->pszDiskFilename, &Stat);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (S_ISDIR(Stat.s_mode))
+        {
+            ntError = STATUS_FILE_IS_A_DIRECTORY;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
         ntError = PvfsAccessCheckFile(
                       pCreateCtx->pCcb->pUserToken,
                       pCreateCtx->pszDiskFilename,
