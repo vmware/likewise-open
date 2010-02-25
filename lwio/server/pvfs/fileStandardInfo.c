@@ -137,17 +137,20 @@ PvfsQueryFileStandardInfo(
 
         pFileInfo->AllocationSize = 0;
         pFileInfo->EndOfFile      = 0;
+
+        pFileInfo->NumberOfLinks  = bDeletePending ? 0 : 1;
     }
     else
     {
         pFileInfo->EndOfFile      = Stat.s_size;
         pFileInfo->AllocationSize = Stat.s_alloc > Stat.s_size ?
                                     Stat.s_alloc : Stat.s_size;
+
+        pFileInfo->NumberOfLinks  = bDeletePending ?
+                                    Stat.s_nlink - 1 :
+                                    Stat.s_nlink;
     }
 
-    pFileInfo->NumberOfLinks  = bDeletePending ?
-                                Stat.s_nlink - 1 :
-                                Stat.s_nlink;
     pFileInfo->DeletePending  = bDeletePending;
     pFileInfo->Directory      = S_ISDIR(Stat.s_mode) ? TRUE : FALSE;
 

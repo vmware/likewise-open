@@ -133,7 +133,8 @@ PvfsCreateFileSupersede(
 
     /* Caller had to have asked for DELETE access */
 
-    if (!(Args.DesiredAccess & DELETE)) {
+    if (!(Args.DesiredAccess & DELETE))
+    {
         ntError = STATUS_CANNOT_DELETE;
         BAIL_ON_NT_STATUS(ntError);
     }
@@ -176,9 +177,10 @@ PvfsCreateFileSupersede(
                       &pCreateCtx->GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
 
-        ntError = PvfsCheckReadOnlyDeleteOnClose(
+        ntError = PvfsCheckDeleteOnClose(
                       Args,
-                      pCreateCtx->pszDiskFilename);
+                      pCreateCtx->pszDiskFilename,
+                      pCreateCtx->GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
 
         ntError = PvfsCheckShareMode(
@@ -221,7 +223,10 @@ PvfsCreateFileSupersede(
     pCreateCtx->GrantedAccess = PvfsGetGrantedAccessForNewObject(
                                         Args.DesiredAccess);
 
-    ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
+    ntError = PvfsCheckDeleteOnClose(
+                  Args,
+                  NULL,  /* New File */
+                  pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|PVFS_SET_PROP_ATTRIB;
@@ -392,7 +397,10 @@ PvfsCreateFileCreate(
     pCreateCtx->GrantedAccess = PvfsGetGrantedAccessForNewObject(
                                         Args.DesiredAccess);
 
-    ntError = PvfsCheckReadOnlyDeleteOnClose(Args, NULL);
+    ntError = PvfsCheckDeleteOnClose(
+                  Args,
+                  NULL,  /* New File */
+                  pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Need to go ahead and create a share mode entry */
@@ -473,9 +481,10 @@ PvfsCreateFileOpenOrOverwrite(
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsCheckReadOnlyDeleteOnClose(
+    ntError = PvfsCheckDeleteOnClose(
                   Args,
-                  pCreateCtx->pszDiskFilename);
+                  pCreateCtx->pszDiskFilename,
+                  pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCheckShareMode(
@@ -637,9 +646,10 @@ PvfsCreateFileOpenOrOverwriteIf(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    ntError = PvfsCheckReadOnlyDeleteOnClose(
+    ntError = PvfsCheckDeleteOnClose(
                   Args,
-                  pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL);
+                  pCreateCtx->bFileExisted ? pCreateCtx->pszDiskFilename : NULL,
+                  pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
     if (!pCreateCtx->bFileExisted ||
