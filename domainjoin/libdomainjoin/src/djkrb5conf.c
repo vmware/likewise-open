@@ -350,7 +350,7 @@ static CENTERROR ParseLine(Krb5Entry **parent, const char *linestr, const char *
         }
     }
 
-    GCE(ceError = AddChildNode(*parent, line));
+    GCE(ceError = InsertChildNode(*parent, (*parent)->subelements.size, line));
     if(expectChildren)
     {
         *parent = line;
