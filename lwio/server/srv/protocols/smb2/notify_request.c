@@ -175,6 +175,13 @@ SrvProcessNotify_SMB_V2(
                  BAIL_ON_NT_STATUS(ntStatus);
              }
 
+             if (pNTTransactState->pRequestHeader->ulMaxParameterCount >
+                 SMB_CN_MAX_BUFFER_SIZE)
+             {
+                 ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                 BAIL_ON_NT_STATUS(ntStatus);
+             }
+
              // A change notify request can occur as the only message in
              // a request, or the last in a chained request
              if (pCtxSmb2->iMsg != (pCtxSmb2->ulNumRequests - 1))

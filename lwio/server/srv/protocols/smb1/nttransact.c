@@ -1368,6 +1368,13 @@ SrvProcessNotifyChange(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
+            if (pNTTransactState->pRequestHeader->ulMaxParameterCount >
+                    SMB_CN_MAX_BUFFER_SIZE)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
             pNTTransactState->pNotifyChangeHeader =
                 (PSMB_NOTIFY_CHANGE_HEADER)(PBYTE)pNTTransactState->pSetup;
 
