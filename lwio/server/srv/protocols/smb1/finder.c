@@ -635,9 +635,9 @@ SrvFinderGetDirInfoSearchResults(
         }
     }
 
-    if (!usSearchResultCount && !bEndOfSearch)
+    if (!usSearchResultCount)
     {
-        ntStatus = STATUS_NO_SUCH_FILE;
+        ntStatus = STATUS_NO_MORE_MATCHES;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -984,9 +984,9 @@ SrvFinderGetFullDirInfoSearchResults(
         }
     }
 
-    if (!usSearchResultCount && !bEndOfSearch)
+    if (!usSearchResultCount)
     {
-        ntStatus = STATUS_NO_SUCH_FILE;
+        ntStatus = STATUS_NO_MORE_MATCHES;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -1340,9 +1340,9 @@ SrvFinderGetNamesInfoSearchResults(
         }
     }
 
-    if (!usSearchResultCount && !bEndOfSearch)
+    if (!usSearchResultCount)
     {
-        ntStatus = STATUS_NO_SUCH_FILE;
+        ntStatus = STATUS_NO_MORE_MATCHES;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -1688,9 +1688,9 @@ SrvFinderGetBothDirInfoSearchResults(
         }
     }
 
-    if (!usSearchResultCount && !bEndOfSearch)
+    if (!usSearchResultCount)
     {
-        ntStatus = STATUS_NO_SUCH_FILE;
+        ntStatus = STATUS_NO_MORE_MATCHES;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -2057,9 +2057,9 @@ SrvFinderGetIdBothDirInfoSearchResults(
         }
     }
 
-    if (!usSearchResultCount && !bEndOfSearch)
+    if (!usSearchResultCount)
     {
-        ntStatus = STATUS_NO_SUCH_FILE;
+        ntStatus = STATUS_NO_MORE_MATCHES;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
