@@ -147,6 +147,10 @@ RegCloseKey(
     IN HKEY hKey
     )
 {
+    if (!hRegConnection)
+    {
+        return RegNtStatusToWin32Error(STATUS_INVALID_PARAMETER);
+    }
     return RegNtStatusToWin32Error(
 		NtRegCloseKey(
 		    hRegConnection,
