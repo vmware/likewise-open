@@ -335,6 +335,22 @@ cleanup:
 
 error:
 
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            break;
+
+        default:
+
+            if (pNotifyState)
+            {
+                SrvReleaseNotifyStateAsync_SMB_V2(pNotifyState);
+            }
+
+            break;
+    }
+
     goto cleanup;
 }
 
