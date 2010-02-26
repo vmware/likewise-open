@@ -169,12 +169,6 @@ SrvProcessNotify_SMB_V2(
     {
         case SRV_NOTIFY_STAGE_SMB_V2_INITIAL:
 
-             if (!pNotifyRequestState->pRequestHeader->ulOutputBufferLength)
-             {
-                 ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-                 BAIL_ON_NT_STATUS(ntStatus);
-             }
-
              if (pNotifyRequestState->pRequestHeader->ulOutputBufferLength >
                  SMB_CN_MAX_BUFFER_SIZE)
              {
