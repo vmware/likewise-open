@@ -1530,6 +1530,12 @@ SrvExecuteChangeNotify(
                         pNotifyState->ulCompletionFilter,
                         NULL);
     }
+
+    if (ntStatus == STATUS_NOTIFY_ENUM_DIR)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
     SrvReleaseNotifyStateAsync(pNotifyState); // Completed synchronously
