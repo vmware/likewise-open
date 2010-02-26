@@ -1470,9 +1470,22 @@ cleanup:
 
 error:
 
-    if (ntStatus == STATUS_PENDING)
+    switch (ntStatus)
     {
-        bUnregisterAsync = FALSE;
+        case STATUS_PENDING:
+
+            bUnregisterAsync = FALSE;
+
+            break;
+
+        default:
+
+            if (pNotifyState)
+            {
+                SrvReleaseNotifyStateAsync(pNotifyState);
+            }
+
+            break;
     }
 
     goto cleanup;
