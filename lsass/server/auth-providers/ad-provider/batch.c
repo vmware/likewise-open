@@ -2763,17 +2763,6 @@ LsaAdBatchResolvePseudoObjectsInternalDefaultOrCell(
         }
         else if (dwCount == 0)
         {
-            //
-            // Object was not found in the Cell.
-            // Need to mark the item's Flags with DISABLED and has PSUEDO attributes here.
-            // This will make FindGroupByName return LW_OBJECT_NOT_ENABLED rather than
-            // LW_ERROR_NO_SUCH_GROUP error. This allows us to reference none cell enabled groups in the
-            // require-membership-of settings for the AD provider options.
-            //
-            PLSA_AD_BATCH_ITEM pItem = LW_STRUCT_FROM_FIELD(pLinks, LSA_AD_BATCH_ITEM, BatchItemListLinks);
-
-            SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED);
-            SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO);
             continue;
         }
 
