@@ -2647,6 +2647,11 @@ SMBPacketIsSigned(
     PSMB_PACKET pPacket
     );
 
+BOOLEAN
+SMB2PacketIsSigned(
+    PSMB_PACKET pPacket
+    );
+
 NTSTATUS
 SMBPacketVerifySignature(
     PSMB_PACKET pPacket,
