@@ -124,7 +124,7 @@ RunTask(
        the function to the time remaining */
     if (pTask->llDeadline != 0)
     {
-        llNewTime = pTask->llDeadline = llNow;
+        llNewTime = pTask->llDeadline - llNow;
 
         if (llNewTime < 0)
         {
@@ -476,6 +476,7 @@ ProcessRunnable(
                 else
                 {
                     /* We held the last reference to the task, so delete it */
+                    RingRemove(&pTask->SignalRing);
                     UNLOCK_THREAD(pThread);
                     TaskDelete(pTask);
                 }
@@ -520,10 +521,13 @@ ScheduleSignalled(
             RingRemove(&pTask->SignalRing);
             RingRemove(&pTask->QueueRing);
 
-            RingEnqueue(pRunnable, &pTask->QueueRing);
-            /* Transfer the signal bits into the event args */
-            pTask->EventArgs |= pTask->EventSignal;
-            pTask->EventSignal = 0;
+            if (pTask->EventSignal != TASK_COMPLETE_MASK)
+            {
+                RingEnqueue(pRunnable, &pTask->QueueRing);
+                /* Transfer the signal bits into the event args */
+                pTask->EventArgs |= pTask->EventSignal;
+                pTask->EventSignal = 0;
+            }
         }
 
         if (pThread->bShutdown && !*pbShutdown)
@@ -803,6 +807,10 @@ LwRtlReleaseTask(
     {
         LOCK_THREAD(pTask->pThread);
         ulRefCount = --pTask->ulRefCount;
+        if (ulRefCount == 0)
+        {
+            RingRemove(&pTask->SignalRing);
+        }
         UNLOCK_THREAD(pTask->pThread);
 
         if (ulRefCount == 0)

@@ -1470,9 +1470,22 @@ cleanup:
 
 error:
 
-    if (ntStatus == STATUS_PENDING)
+    switch (ntStatus)
     {
-        bUnregisterAsync = FALSE;
+        case STATUS_PENDING:
+
+            bUnregisterAsync = FALSE;
+
+            break;
+
+        default:
+
+            if (pNotifyState)
+            {
+                SrvReleaseNotifyStateAsync(pNotifyState);
+            }
+
+            break;
     }
 
     goto cleanup;
@@ -1517,6 +1530,12 @@ SrvExecuteChangeNotify(
                         pNotifyState->ulCompletionFilter,
                         NULL);
     }
+
+    if (ntStatus == STATUS_NOTIFY_ENUM_DIR)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
     SrvReleaseNotifyStateAsync(pNotifyState); // Completed synchronously

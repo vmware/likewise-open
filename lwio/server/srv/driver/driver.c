@@ -540,15 +540,6 @@ SrvShutdown(
             gSMBSrvGlobals.hPacketAllocator = NULL;
         }
 
-        while (gSMBSrvGlobals.pCCBList)
-        {
-            PSRV_CCB pCCB = gSMBSrvGlobals.pCCBList;
-
-            gSMBSrvGlobals.pCCBList = pCCB->pNext;
-
-            SrvCCBRelease(pCCB);
-        }
-
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
 
         SrvFreeConfigContents(&gSMBSrvGlobals.config);

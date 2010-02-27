@@ -206,7 +206,7 @@ SrvProtocolExecute_SMB_V2(
                 {
                     ntStatus = SrvBuildErrorResponse_SMB_V2(
                                     pExecContext,
-                                    0LL, /* Async Id */
+                                    pExecContext->ullAsyncId,
                                     ntStatus);
                 }
 
@@ -657,6 +657,7 @@ SrvBuildInterimResponse_SMB_V2(
     }
 
     pExecContext->pInterimResponse = pInterimResponse;
+    pExecContext->ullAsyncId = ullAsyncId;
 
 cleanup:
 

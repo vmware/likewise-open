@@ -196,10 +196,18 @@ SrvVerifyContext(
 
             case SMB_PROTOCOL_VERSION_2:
 
-                ntStatus = SMB2PacketVerifySignature(
-                                pContext->pSmbRequest,
-                                pConnection->pSessionKey,
-                                pConnection->ulSessionKeyLength);
+                // Allow only the Cancel request to be not signed
+                if (SMB2PacketIsSigned(pContext->pSmbRequest))
+                {
+                    ntStatus = SMB2PacketVerifySignature(
+                                        pContext->pSmbRequest,
+                                        pConnection->pSessionKey,
+                                        pConnection->ulSessionKeyLength);
+                }
+                else if (pContext->pSmbRequest->pSMB2Header->command != COM2_CANCEL)
+                {
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                }
 
                 break;
 

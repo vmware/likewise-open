@@ -245,8 +245,6 @@ NpfsValidateCreate(
             );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    return(ntStatus);
-
 error:
 
     return(ntStatus);

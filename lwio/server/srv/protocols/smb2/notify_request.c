@@ -169,20 +169,12 @@ SrvProcessNotify_SMB_V2(
     {
         case SRV_NOTIFY_STAGE_SMB_V2_INITIAL:
 
-             if (!pNotifyRequestState->pRequestHeader->ulOutputBufferLength)
-             {
-                 ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-                 BAIL_ON_NT_STATUS(ntStatus);
-             }
-
-#if 0
-             if (pNTTransactState->pRequestHeader->ulMaxParameterCount >
+             if (pNotifyRequestState->pRequestHeader->ulOutputBufferLength >
                  SMB_CN_MAX_BUFFER_SIZE)
              {
-                 ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                 ntStatus = STATUS_INVALID_PARAMETER;
                  BAIL_ON_NT_STATUS(ntStatus);
              }
-#endif
 
              // A change notify request can occur as the only message in
              // a request, or the last in a chained request
@@ -336,6 +328,22 @@ cleanup:
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            break;
+
+        default:
+
+            if (pNotifyState)
+            {
+                SrvReleaseNotifyStateAsync_SMB_V2(pNotifyState);
+            }
+
+            break;
+    }
 
     goto cleanup;
 }
@@ -726,39 +734,30 @@ SrvMarshalNotifyResponse_SMB_V2(
 
     pNotifyCursor = (PFILE_NOTIFY_INFORMATION)pNotifyResponse;
 
-    while (pNotifyCursor && (ulBytesAvailable > 0))
+    while (pNotifyCursor && (ulBufferLength < ulBytesAvailable))
     {
-        ULONG ulInfoBytesRequired = 0;
+        ulBufferLength += offsetof(FILE_NOTIFY_INFORMATION, FileName);
 
-        if (pNotifyCursor->NextEntryOffset != 0)
+        if (!pNotifyCursor->FileNameLength)
+        {
+            ulBufferLength += sizeof(wchar16_t);
+        }
+        else
+        {
+            ulBufferLength += pNotifyCursor->FileNameLength;
+        }
+
+        ulNumRecords++;
+
+        if (pNotifyCursor->NextEntryOffset)
         {
             if (ulBufferLength % 4)
             {
                 USHORT usAlignment = (4 - (ulBufferLength % 4));
 
-                ulInfoBytesRequired += usAlignment;
+                ulBufferLength += usAlignment;
             }
-        }
 
-        ulInfoBytesRequired += offsetof(FILE_NOTIFY_INFORMATION, FileName);
-        ulOffset            += offsetof(FILE_NOTIFY_INFORMATION, FileName);
-
-        if (!pNotifyCursor->FileNameLength)
-        {
-            ulInfoBytesRequired += sizeof(wchar16_t);
-        }
-        else
-        {
-            ulInfoBytesRequired += pNotifyCursor->FileNameLength;
-        }
-
-        ulNumRecords++;
-
-        ulBytesAvailable -= ulInfoBytesRequired;
-        ulBufferLength   += ulInfoBytesRequired;
-
-        if (pNotifyCursor->NextEntryOffset)
-        {
             pNotifyCursor =
                 (PFILE_NOTIFY_INFORMATION)(((PBYTE)pNotifyCursor) +
                                             pNotifyCursor->NextEntryOffset);
