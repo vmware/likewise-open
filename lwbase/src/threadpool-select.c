@@ -83,7 +83,7 @@ TaskProcessTrigger(
        the function to the time remaining */
     if (pTask->llDeadline != 0)
     {
-        llNewTime = pTask->llDeadline = llNow;
+        llNewTime = pTask->llDeadline - llNow;
 
         if (llNewTime < 0)
         {
