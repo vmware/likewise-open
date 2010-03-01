@@ -354,13 +354,24 @@ PvfsExecuteDeleteOnClose(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
 
-    ntError = PvfsValidatePath(pFcb, &pFcb->FileId);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsSysRemove(pFcb->pszFilename);
-    BAIL_ON_NT_STATUS(ntError);
+    /* Always reset the delete-on-close state to be safe */
 
     pFcb->bDeleteOnClose = FALSE;
+
+    /* Verify we are deleting the file we think we are */
+
+    ntError = PvfsValidatePath(pFcb, &pFcb->FileId);
+    if (ntError == STATUS_SUCCESS)
+    {
+        ntError = PvfsSysRemove(pFcb->pszFilename);
+
+        /* Reset dev/inode state */
+
+        pFcb->FileId.Device = 0;
+        pFcb->FileId.Inode  = 0;
+
+    }
+    BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
     return ntError;
@@ -432,6 +443,16 @@ PvfsReleaseFCB(
                             FILE_NOTIFY_CHANGE_FILE_NAME,
                         FILE_ACTION_REMOVED,
                         pFcb->pszFilename);
+                }
+
+                /* Remove the FCB and allow the refcount to handle the free().
+                   This prevents a failed delete-on-close from preventing
+                   any future opens. */
+
+                if (!pFcb->bRemoved)
+                {
+                    PvfsRemoveFCB(pFcb);
+                    pFcb->bRemoved = TRUE;
                 }
             }
             LWIO_UNLOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
