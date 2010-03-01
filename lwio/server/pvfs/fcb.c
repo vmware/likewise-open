@@ -400,8 +400,10 @@ PvfsReleaseFCB(
        may have a non-handle open in the FCB table for a
        path component (see PvfsFindParentFCB()). */
 
-    if (ppFcb == NULL ||
-        *ppFcb == NULL) return;
+    if (ppFcb == NULL || *ppFcb == NULL)
+    {
+        goto cleanup;
+    }
 
     pFcb = *ppFcb;
 
@@ -488,6 +490,7 @@ PvfsReleaseFCB(
 
     *ppFcb = (PPVFS_FCB)NULL;
 
+cleanup:
     return;
 }
 

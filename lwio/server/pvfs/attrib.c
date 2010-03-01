@@ -55,8 +55,8 @@
 
 /* Code */
 
-/****************************************************************
- ***************************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsGetFileAttributes(
@@ -101,7 +101,8 @@ PvfsGetFileAttributes(
        necessary */
 
     *pAttributes &= ~(FILE_ATTRIBUTE_NORMAL|FILE_ATTRIBUTE_DIRECTORY);
-    if (pCcb->CreateOptions & FILE_DIRECTORY_FILE) {
+    if (pCcb->CreateOptions & FILE_DIRECTORY_FILE)
+    {
         *pAttributes |= FILE_ATTRIBUTE_DIRECTORY;
     }
 
@@ -109,7 +110,8 @@ PvfsGetFileAttributes(
        has no other attributes set (according to SetFileAttribues()
        in the MS SDK) */
 
-    if (*pAttributes == 0) {
+    if (*pAttributes == 0)
+    {
         *pAttributes = FILE_ATTRIBUTE_NORMAL;
     }
 
@@ -124,8 +126,8 @@ error:
     goto cleanup;
 }
 
-/****************************************************************
- ***************************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsGetFilenameAttributes(
@@ -160,7 +162,8 @@ PvfsGetFilenameAttributes(
         if (!RtlCStringIsEqual(pszRelativeFilename, ".", FALSE) &&
             !RtlCStringIsEqual(pszRelativeFilename, "..", FALSE))
         {
-            if (*pszRelativeFilename == '.') {
+            if (*pszRelativeFilename == '.')
+            {
                 *pAttributes |= FILE_ATTRIBUTE_HIDDEN;
             }
         }
@@ -176,14 +179,16 @@ PvfsGetFilenameAttributes(
        necessary */
 
     *pAttributes &= ~FILE_ATTRIBUTE_DIRECTORY;
-    if (S_ISDIR(Stat.s_mode)) {
+    if (S_ISDIR(Stat.s_mode))
+    {
         *pAttributes |= FILE_ATTRIBUTE_DIRECTORY;
     }
     /* FILE_ATTRIBUTE_NORMAL is only valid when the file
        has no other attributes set (according to SetFileAttribues()
        in the MS SDK) */
 
-    if (*pAttributes == 0) {
+    if (*pAttributes == 0)
+    {
         *pAttributes = FILE_ATTRIBUTE_NORMAL;
     }
 

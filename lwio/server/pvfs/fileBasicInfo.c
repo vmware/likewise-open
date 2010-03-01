@@ -134,7 +134,8 @@ PvfsQueryFileBasicInfo(
 
 
     if (Args.Length < sizeof(*pFileInfo))
-    {        ntError = STATUS_BUFFER_TOO_SMALL;
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 

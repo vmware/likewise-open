@@ -39,7 +39,7 @@
  *
  *        Likewise Posix File System Driver (PVFS)
  *
- *        Security related routines such as ACLs, acces, checks, etc...
+ *        Security related routines such as ACLs, access checks, etc...
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
