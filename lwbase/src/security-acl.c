@@ -721,19 +721,19 @@ RtlIterateAce(
         GOTO_CLEANUP();
     }
 
-    status = RtlpGetAceLocationFromOffset(
-                    Acl,
-                    AclSizeUsed,
-                    aceOffset,
-                    OUT_PPVOID(&aceLocation));
-    GOTO_CLEANUP_ON_STATUS(status);
-
     if ((aceOffset == 0) &&
         (Acl->AceCount == 0))
     {
         status = STATUS_NO_MORE_ENTRIES;
         GOTO_CLEANUP();
     }
+
+    status = RtlpGetAceLocationFromOffset(
+                    Acl,
+                    AclSizeUsed,
+                    aceOffset,
+                    OUT_PPVOID(&aceLocation));
+    GOTO_CLEANUP_ON_STATUS(status);
 
     if (aceLocation->AceSize < sizeof(ACE_HEADER))
     {
