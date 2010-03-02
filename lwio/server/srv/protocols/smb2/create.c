@@ -211,8 +211,8 @@ SrvProcessCreate_SMB_V2(
             wszFileName.MaximumLength = sizeof(wszEmpty);
         }
 
-        ntStatus = SrvSession2CreateAsyncState(
-                                pSession,
+        ntStatus = SrvConnection2CreateAsyncState(
+                                pConnection,
                                 COM2_CREATE,
                                 &SrvReleaseCreateStateHandle_SMB_V2,
                                 &pAsyncState);
@@ -291,8 +291,8 @@ SrvProcessCreate_SMB_V2(
 
                     // completed synchronously; remove asynchronous state
                     //
-                    ntStatus = SrvSession2RemoveAsyncState(
-                                    pCtxSmb2->pSession,
+                    ntStatus = SrvConnection2RemoveAsyncState(
+                                    pConnection,
                                     pCreateState->ullAsyncId);
                     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -381,8 +381,8 @@ SrvProcessCreate_SMB_V2(
 
             if (pCreateState->ullAsyncId)
             {
-                ntStatus = SrvSession2RemoveAsyncState(
-                                pCtxSmb2->pSession,
+                ntStatus = SrvConnection2RemoveAsyncState(
+                                pConnection,
                                 pCreateState->ullAsyncId);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
@@ -413,8 +413,8 @@ cleanup:
 
         if (bUnregisterAsync)
         {
-            SrvSession2RemoveAsyncState(
-                    pCtxSmb2->pSession,
+            SrvConnection2RemoveAsyncState(
+                    pConnection,
                     pCreateState->ullAsyncId);
         }
 
@@ -482,7 +482,10 @@ SrvCancelCreate_SMB_V2(
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindAsyncState(pSession, ullAsyncId, &pAsyncState);
+    ntStatus = SrvConnection2FindAsyncState(
+                    pConnection,
+                    ullAsyncId,
+                    &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCreateState = (PSRV_CREATE_STATE_SMB_V2)pAsyncState->hAsyncState;

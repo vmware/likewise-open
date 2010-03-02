@@ -243,10 +243,6 @@ typedef struct _LWIO_SRV_SESSION_2
 
     PSTR              pszClientPrincipalName;
 
-    ULONG64           ullNextAvailableAsyncId;
-
-    PLWRTL_RB_TREE    pAsyncStateCollection;
-
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
 } LWIO_SRV_SESSION_2, *PLWIO_SRV_SESSION_2;
@@ -348,6 +344,10 @@ typedef struct _LWIO_SRV_CONNECTION
     };
 
     PLWRTL_RB_TREE      pSessionCollection;
+
+    ULONG64             ullNextAvailableAsyncId;
+
+    PLWRTL_RB_TREE      pAsyncStateCollection;
 
 } LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
 
@@ -631,6 +631,27 @@ SrvConnection2FindSession(
     );
 
 NTSTATUS
+SrvConnection2CreateAsyncState(
+    PLWIO_SRV_CONNECTION          pConnection,
+    USHORT                        usCommand,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*            ppAsyncState
+    );
+
+NTSTATUS
+SrvConnection2FindAsyncState(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullAsyncId,
+    PLWIO_ASYNC_STATE*   ppAsyncState
+    );
+
+NTSTATUS
+SrvConnection2RemoveAsyncState(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullAsyncId
+    );
+
+NTSTATUS
 SrvConnectionGetNamedPipeClientAddress(
     PLWIO_SRV_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
@@ -724,27 +745,6 @@ SrvSessionRelease(
 VOID
 SrvSessionRundown(
     PLWIO_SRV_SESSION pSession
-    );
-
-NTSTATUS
-SrvSession2CreateAsyncState(
-    PLWIO_SRV_SESSION_2           pSession,
-    USHORT                        usCommand,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
-    PLWIO_ASYNC_STATE*            ppAsyncState
-    );
-
-NTSTATUS
-SrvSession2FindAsyncState(
-    PLWIO_SRV_SESSION_2 pSession,
-    ULONG64             ullAsyncId,
-    PLWIO_ASYNC_STATE*  ppAsyncState
-    );
-
-NTSTATUS
-SrvSession2RemoveAsyncState(
-    PLWIO_SRV_SESSION_2 pSession,
-    ULONG64             ullAsyncId
     );
 
 NTSTATUS

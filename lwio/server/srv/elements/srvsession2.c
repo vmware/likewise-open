@@ -51,13 +51,6 @@
 
 static
 NTSTATUS
-SrvSession2AcquireAsyncId_inlock(
-   PLWIO_SRV_SESSION_2 pSession,
-   PULONG64            pullAsyncId
-   );
-
-static
-NTSTATUS
 SrvSession2AcquireTreeId_inlock(
    PLWIO_SRV_SESSION_2 pSession,
    PULONG              pulTid
@@ -80,19 +73,6 @@ static
 VOID
 SrvSession2Free(
     PLWIO_SRV_SESSION_2 pSession
-    );
-
-static
-int
-SrvSession2AsyncStateCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    );
-
-static
-VOID
-SrvSession2AsyncStateRelease(
-    PVOID pAsyncState
     );
 
 static
@@ -136,13 +116,6 @@ SrvSession2Create(
                     NULL,
                     &SrvSession2TreeRelease,
                     &pSession->pTreeCollection);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlRBTreeCreate(
-                    &SrvSession2AsyncStateCompare,
-                    NULL,
-                    &SrvSession2AsyncStateRelease,
-                    &pSession->pAsyncStateCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFinderCreateRepository(&pSession->hFinderRepository);
@@ -300,114 +273,6 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
-SrvSession2CreateAsyncState(
-    PLWIO_SRV_SESSION_2           pSession,
-    USHORT                        usCommand,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
-    PLWIO_ASYNC_STATE*            ppAsyncState
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-    PLWIO_ASYNC_STATE pAsyncState = NULL;
-    ULONG64           ullAsyncId  = 0;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
-
-    ntStatus = SrvSession2AcquireAsyncId_inlock(
-                    pSession,
-                    &ullAsyncId);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvAsyncStateCreate(
-                    ullAsyncId,
-                    usCommand,
-                    NULL,
-                    pfnFreeAsyncState,
-                    &pAsyncState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlRBTreeAdd(
-                    pSession->pAsyncStateCollection,
-                    &pAsyncState->ullAsyncId,
-                    pAsyncState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
-
-cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppAsyncState = NULL;
-
-    if (pAsyncState)
-    {
-        SrvAsyncStateRelease(pAsyncState);
-    }
-
-    goto cleanup;
-}
-
-NTSTATUS
-SrvSession2FindAsyncState(
-    PLWIO_SRV_SESSION_2 pSession,
-    ULONG64             ullAsyncId,
-    PLWIO_ASYNC_STATE*  ppAsyncState
-    )
-{
-    NTSTATUS          ntStatus = STATUS_SUCCESS;
-    PLWIO_ASYNC_STATE pAsyncState = NULL;
-    BOOLEAN           bInLock     = FALSE;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
-
-    ntStatus = LwRtlRBTreeFind(
-                    pSession->pAsyncStateCollection,
-                    &ullAsyncId,
-                    (PVOID*)&pAsyncState);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
-
-cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    *ppAsyncState = NULL;
-
-    goto cleanup;
-}
-
-NTSTATUS
-SrvSession2RemoveAsyncState(
-    PLWIO_SRV_SESSION_2 pSession,
-    ULONG64             ullAsyncId
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
-
-    ntStatus = LwRtlRBTreeRemove(
-                    pSession->pAsyncStateCollection,
-                    &ullAsyncId);
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-}
-
 PLWIO_SRV_SESSION_2
 SrvSession2Acquire(
     PLWIO_SRV_SESSION_2 pSession
@@ -449,69 +314,6 @@ SrvSession2Rundown(
             NULL);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
-}
-
-static
-NTSTATUS
-SrvSession2AcquireAsyncId_inlock(
-   PLWIO_SRV_SESSION_2 pSession,
-   PULONG64            pullAsyncId
-   )
-{
-    NTSTATUS ntStatus = 0;
-    ULONG64  ullCandidateAsyncId = pSession->ullNextAvailableAsyncId;
-    BOOLEAN  bFound = FALSE;
-
-    do
-    {
-        PLWIO_ASYNC_STATE pAsyncState = NULL;
-
-        /* 0 is never a valid async id */
-
-        if ((ullCandidateAsyncId == 0) || (ullCandidateAsyncId == UINT64_MAX))
-        {
-            ullCandidateAsyncId = 1;
-        }
-
-        ntStatus = LwRtlRBTreeFind(
-                        pSession->pAsyncStateCollection,
-                        &ullCandidateAsyncId,
-                        (PVOID*)&pAsyncState);
-        if (ntStatus == STATUS_NOT_FOUND)
-        {
-            ntStatus = STATUS_SUCCESS;
-            bFound = TRUE;
-        }
-        else
-        {
-            ullCandidateAsyncId++;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-    } while ((ullCandidateAsyncId != pSession->ullNextAvailableAsyncId) && !bFound);
-
-    if (!bFound)
-    {
-        ntStatus = STATUS_TOO_MANY_CONTEXT_IDS;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    *pullAsyncId = ullCandidateAsyncId;
-
-    /* Increment by 1 by make sure to deal with wrap around */
-
-    ullCandidateAsyncId++;
-    pSession->ullNextAvailableAsyncId = ullCandidateAsyncId ? ullCandidateAsyncId : 1;
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    *pullAsyncId = 0;
-
-    goto cleanup;
 }
 
 static
@@ -645,45 +447,7 @@ SrvSession2Free(
         IoSecurityDereferenceSecurityContext(&pSession->pIoSecurityContext);
     }
 
-    if (pSession->pAsyncStateCollection)
-    {
-        LwRtlRBTreeFree(pSession->pAsyncStateCollection);
-    }
-
     SrvFreeMemory(pSession);
-}
-
-static
-int
-SrvSession2AsyncStateCompare(
-    PVOID pKey1,
-    PVOID pKey2
-    )
-{
-    PULONG64 pAsyncId1 = (PULONG64)pKey1;
-    PULONG64 pAsyncId2 = (PULONG64)pKey2;
-
-    if (*pAsyncId1 > *pAsyncId2)
-    {
-        return 1;
-    }
-    else if (*pAsyncId1 < *pAsyncId2)
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-static
-VOID
-SrvSession2AsyncStateRelease(
-    PVOID pAsyncState
-    )
-{
-    SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
 }
 
 static
@@ -706,7 +470,6 @@ SrvSession2RundownTreeRbTreeVisit(
 
     return STATUS_SUCCESS;
 }
-
 
 /*
 local variables:
