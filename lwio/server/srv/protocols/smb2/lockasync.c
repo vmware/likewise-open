@@ -325,7 +325,7 @@ SrvCancelLock_SMB_V2(
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindAsyncState(pSession, ullAsyncId, &pAsyncState);
+    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pLockState = (PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2)pAsyncState->hAsyncState;
@@ -389,7 +389,7 @@ SrvProcessAsyncLockRequest_SMB_V2(
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindAsyncState(pSession, ullAsyncId, &pAsyncState);
+    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pAsyncLockState =
@@ -467,8 +467,8 @@ SrvProcessAsyncLockRequest_SMB_V2(
 
         case SRV_LOCK_STAGE_SMB_V2_DONE:
 
-            ntStatus = SrvSession2RemoveAsyncState(
-                                pSession,
+            ntStatus = SrvConnection2RemoveAsyncState(
+                                pConnection,
                                 pAsyncLockState->ullAsyncId);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -533,8 +533,8 @@ error:
 
                 if (pSession)
                 {
-                    ntStatus1 = SrvSession2RemoveAsyncState(
-                                        pSession,
+                    ntStatus1 = SrvConnection2RemoveAsyncState(
+                                        pConnection,
                                         pAsyncLockState->ullAsyncId);
                     if (ntStatus1 != STATUS_SUCCESS)
                     {
