@@ -434,6 +434,19 @@ PvfsReleaseFCB(
             {
                 ntError = PvfsExecuteDeleteOnClose(pFcb);
 
+                /* Remove the FCB and allow the refcount to handle the free().
+                   This prevents a failed delete-on-close from preventing
+                   any future opens. */
+
+                LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
+
+                if (!pFcb->bRemoved)
+                {
+                    PvfsRemoveFCB(pFcb);
+                    pFcb->bRemoved = TRUE;
+                }
+
+                LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
                 LWIO_UNLOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
 
                 if (ntError == STATUS_SUCCESS)
@@ -445,16 +458,6 @@ PvfsReleaseFCB(
                             FILE_NOTIFY_CHANGE_FILE_NAME,
                         FILE_ACTION_REMOVED,
                         pFcb->pszFilename);
-                }
-
-                /* Remove the FCB and allow the refcount to handle the free().
-                   This prevents a failed delete-on-close from preventing
-                   any future opens. */
-
-                if (!pFcb->bRemoved)
-                {
-                    PvfsRemoveFCB(pFcb);
-                    pFcb->bRemoved = TRUE;
                 }
             }
             LWIO_UNLOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
