@@ -78,9 +78,13 @@ SMBSocketHashSessionByKey(
     );
 
 static
-void *
+VOID
 SMBSocketReaderMain(
-    void *pData
+    PLW_TASK pTask,
+    LW_PVOID pContext,
+    LW_TASK_EVENT_MASK WakeMask,
+    LW_TASK_EVENT_MASK* pWaitMask,
+    LW_LONG64* pllTime
     );
 
 static
@@ -96,12 +100,6 @@ SMBSocketFindSessionByUID(
     PSMB_SOCKET   pSocket,
     uint16_t      uid,
     PSMB_SESSION* ppSession
-    );
-
-static
-int
-SMBSocketGetFd(
-    PSMB_SOCKET pSocket
     );
 
 static
@@ -121,6 +119,8 @@ SMBSocketCreate(
     SMB_SOCKET *pSocket = NULL;
     BOOLEAN bDestroyCondition = FALSE;
     BOOLEAN bDestroyMutex = FALSE;
+    PWSTR pwszCanonicalName = NULL;
+    PWSTR pwszCursor = NULL;
 
     ntStatus = SMBAllocateMemory(
                 sizeof(SMB_SOCKET),
@@ -149,6 +149,21 @@ SMBSocketCreate(
     ntStatus = LwRtlWC16StringDuplicate(&pSocket->pwszHostname, pwszHostname);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /* Construct canonical name by removing channel specifier */
+    ntStatus = LwRtlWC16StringDuplicate(&pwszCanonicalName, pwszHostname);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (pwszCursor = pwszCanonicalName; *pwszCursor; pwszCursor++)
+    {
+        if (*pwszCursor == '@')
+        {
+            *pwszCursor = '\0';
+            break;
+        }
+    }
+
+    pSocket->pwszCanonicalName = pwszCanonicalName;
+
     pSocket->maxBufferSize = 0;
     pSocket->maxRawSize = 0;
     pSocket->sessionKey = 0;
@@ -174,12 +189,12 @@ SMBSocketCreate(
                     &pSocket->pSessionHashByUID);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* The reader thread will immediately block waiting for initialization */
-    ntStatus = pthread_create(
-                    &pSocket->readerThread,
-                    NULL,
-                    &SMBSocketReaderMain,
-                    (void *) pSocket);
+    ntStatus = LwRtlCreateTask(
+        gRdrRuntime.pThreadPool,
+        &pSocket->pTask,
+        gRdrRuntime.pReaderTaskGroup,
+        SMBSocketReaderMain,
+        pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->pSessionPacket = NULL;
@@ -198,6 +213,7 @@ error:
         SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
 
         LWIO_SAFE_FREE_MEMORY(pSocket->pwszHostname);
+        LWIO_SAFE_FREE_MEMORY(pSocket->pwszCanonicalName);
 
         if (bDestroyCondition)
         {
@@ -414,6 +430,7 @@ SMBSocketSend(
     /* @todo: signal handling */
     NTSTATUS ntStatus = 0;
     ssize_t  writtenLen = 0;
+    size_t totalWritten = 0;
     BOOLEAN  bInLock = FALSE;
     BOOLEAN  bSemaphoreAcquired = FALSE;
     BOOLEAN bIsSignatureRequired = FALSE;
@@ -457,12 +474,18 @@ SMBSocketSend(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    writtenLen = write(
-                    pSocket->fd,
-                    pPacket->pRawBuffer,
-                    pPacket->bufferUsed);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
+    do
+    {
+        writtenLen = write(
+            pSocket->fd,
+            pPacket->pRawBuffer + totalWritten,
+            pPacket->bufferUsed - totalWritten);
+        if (writtenLen >= 0)
+        {
+            totalWritten += writtenLen;
+        }
+    } while (totalWritten < pPacket->bufferUsed &&
+             (writtenLen >= 0 || (writtenLen < 0 && (errno == EAGAIN || errno == EINTR))));
 
     if (writtenLen < 0)
     {
@@ -502,59 +525,65 @@ SMBSocketReceiveAndUnmarshall(
     )
 {
     NTSTATUS ntStatus = 0;
-    /* @todo: handle timeouts, signals, buffer overflow */
-    /* This logic would need to be modified for zero copy */
-    uint32_t len = sizeof(NETBIOS_HEADER);
     uint32_t readLen = 0;
-    uint32_t bufferUsed = 0;
 
-    /* @todo: support read threads in the daemonized case */
-    ntStatus = SMBSocketRead(pSocket, pPacket->pRawBuffer, len, &readLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (len != readLen)
+    while (pPacket->bufferUsed < sizeof(NETBIOS_HEADER))
     {
-        ntStatus = STATUS_END_OF_FILE;
+        ntStatus = SMBSocketRead(
+            pSocket,
+            pPacket->pRawBuffer + pPacket->bufferUsed,
+            sizeof(NETBIOS_HEADER) - pPacket->bufferUsed,
+            &readLen);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        if (readLen == 0)
+        {
+            ntStatus = STATUS_END_OF_FILE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pPacket->bufferUsed += readLen;
     }
 
     pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
-    bufferUsed += len;
-
     pPacket->pNetBIOSHeader->len = htonl(pPacket->pNetBIOSHeader->len);
 
-    if ((uint64_t) pPacket->pNetBIOSHeader->len + (uint64_t) bufferUsed > (uint64_t) pPacket->bufferLen)
+    if ((uint64_t) pPacket->pNetBIOSHeader->len + (uint64_t) pPacket->bufferUsed > (uint64_t) pPacket->bufferLen)
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SMBSocketRead(
-                    pSocket,
-                    pPacket->pRawBuffer + bufferUsed,
-                    pPacket->pNetBIOSHeader->len,
-                    &readLen);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if(pPacket->pNetBIOSHeader->len != readLen)
+    while (pPacket->bufferUsed < pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER))
     {
-        ntStatus = STATUS_END_OF_FILE;
+        ntStatus = SMBSocketRead(
+            pSocket,
+            pPacket->pRawBuffer + pPacket->bufferUsed,
+            pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER) - pPacket->bufferUsed,
+            &readLen);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        if (readLen == 0)
+        {
+            ntStatus = STATUS_END_OF_FILE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pPacket->bufferUsed += readLen;
     }
 
-    pPacket->pSMBHeader = (SMB_HEADER *) (pPacket->pRawBuffer + bufferUsed);
-    bufferUsed += sizeof(SMB_HEADER);
+    pPacket->pSMBHeader = (SMB_HEADER *) (pPacket->pRawBuffer + sizeof(NETBIOS_HEADER));
 
     if (SMBIsAndXCommand(SMB_LTOH8(pPacket->pSMBHeader->command)))
     {
         pPacket->pAndXHeader = (ANDX_HEADER *)
-            (pPacket->pSMBHeader + bufferUsed);
-        bufferUsed += sizeof(ANDX_HEADER);
+            (pPacket->pRawBuffer + sizeof(SMB_HEADER) + sizeof(NETBIOS_HEADER));
     }
 
-    pPacket->pParams = pPacket->pRawBuffer + bufferUsed;
+    pPacket->pParams = pPacket->pAndXHeader ?
+        (PBYTE) pPacket->pAndXHeader + sizeof(ANDX_HEADER) :
+        (PBYTE) pPacket->pSMBHeader + sizeof(SMB_HEADER);
     pPacket->pData = NULL;
-    pPacket->bufferUsed = pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER);
 
 error:
 
@@ -562,100 +591,125 @@ error:
 }
 
 static
-PVOID
+VOID
 SMBSocketReaderMain(
-    PVOID pData
+    PLW_TASK pTask,
+    LW_PVOID pContext,
+    LW_TASK_EVENT_MASK WakeMask,
+    LW_TASK_EVENT_MASK* pWaitMask,
+    LW_LONG64* pllTime
     )
 {
     NTSTATUS ntStatus = 0;
-    PSMB_SOCKET pSocket = (PSMB_SOCKET) pData;
+    PSMB_SOCKET pSocket = (PSMB_SOCKET) pContext;
     BOOLEAN bInLock = FALSE;
-    PSMB_PACKET pPacket = NULL;
+    socklen_t len = 0;
+    long err = 0;
+    static const LONG64 llConnectTimeout = 10 * 1000000000ll; // 10 sec
 
-    /* Wait for thread to become ready */
+    if (WakeMask & LW_TASK_EVENT_CANCEL)
+    {
+        *pWaitMask = LW_TASK_EVENT_COMPLETE;
+        goto cleanup;
+    }
+
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    while (pSocket->state < RDR_SOCKET_STATE_NEGOTIATING)
+    if (WakeMask & LW_TASK_EVENT_INIT)
     {
-        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
+        LwRtlSetTaskFd(pTask, pSocket->fd, LW_TASK_EVENT_FD_READABLE | LW_TASK_EVENT_FD_WRITABLE);
+    }
+
+    if (pSocket->state < RDR_SOCKET_STATE_NEGOTIATING)
+    {
+        /* See if we are done connecting */
+        if (getsockopt(pSocket->fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
+        {
+            ntStatus = LwErrnoToNtStatus(errno);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        switch (err)
+        {
+        case 0:
+            pSocket->state = RDR_SOCKET_STATE_NEGOTIATING;
+            pthread_cond_broadcast(&pSocket->event);
+            break;
+        case EINPROGRESS:
+            if (WakeMask & LW_TASK_EVENT_TIME)
+            {
+                /* We timed out, give up */
+                ntStatus = STATUS_TIMEOUT;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            else
+            {
+                *pWaitMask = LW_TASK_EVENT_FD_WRITABLE;
+                *pllTime = llConnectTimeout;
+                goto cleanup;
+            }
+        default:
+            ntStatus = LwErrnoToNtStatus(err);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    /* When the ref. count drops to zero, shutdown() breaks out of this loop */
-    while (SMBSocketGetState(pSocket) < RDR_SOCKET_STATE_TEARDOWN)
+    SMBSocketUpdateLastActiveTime(pSocket);
+
+    if (!pSocket->pPacket)
     {
-        int ret = 0;
-        fd_set fdset;
-        int fd = SMBSocketGetFd(pSocket);
-
-        FD_ZERO(&fdset);
-        FD_SET(fd, &fdset);
-
-        ret = select(fd + 1, &fdset, NULL, &fdset, NULL);
-        if (ret == -1)
-        {
-            ntStatus = ErrnoToNtStatus(errno);
-        }
-        else if (ret != 1)
-        {
-            ntStatus = STATUS_ASSERTION_FAILURE;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-        if (pSocket->bShutdown)
-        {
-            goto cleanup;
-        }
-        LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-        SMBSocketUpdateLastActiveTime(pSocket);
-
-        ntStatus = SMBPacketAllocate(pSocket->hPacketAllocator, &pPacket);
+        ntStatus = SMBPacketAllocate(pSocket->hPacketAllocator, &pSocket->pPacket);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SMBPacketBufferAllocate(
-                    pSocket->hPacketAllocator,
-                    1024*64,
-                    &pPacket->pRawBuffer,
-                    &pPacket->bufferLen);
+            pSocket->hPacketAllocator,
+            1024*64,
+            &pSocket->pPacket->pRawBuffer,
+            &pSocket->pPacket->bufferLen);
         BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-        /* Read whole messages */
-        ntStatus = SMBSocketReceiveAndUnmarshall(pSocket, pPacket);
-        BAIL_ON_NT_STATUS(ntStatus);
-
+    ntStatus = SMBSocketReceiveAndUnmarshall(pSocket, pSocket->pPacket);
+    switch(ntStatus)
+    {
+    case STATUS_SUCCESS:
         if (pSocket->maxMpxCount)
         {
             ntStatus = SMBSemaphorePost(&pSocket->semMpx);
             BAIL_ON_NT_STATUS(ntStatus);
         }
-
-        /* @todo: the client thread is responsible for calling FreePacket(),
-           which will lock the socket and add the memory back to the free
-           list, if appropriate. */
         /* This function should free packet and socket memory on error */
-        ntStatus = SMBSocketFindAndSignalResponse(pSocket, pPacket);
+        ntStatus = SMBSocketFindAndSignalResponse(pSocket, pSocket->pPacket);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pPacket = NULL;
+        pSocket->pPacket = NULL;
+
+        *pWaitMask = LW_TASK_EVENT_YIELD;
+        break;
+
+    case STATUS_PENDING:
+        *pWaitMask = LW_TASK_EVENT_FD_READABLE;
+        goto cleanup;
+
+    default:
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:
 
-    if (pPacket)
-    {
-        SMBPacketRelease(pSocket->hPacketAllocator, pPacket);
-    }
-
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    return NULL;
+    return;
 
 error:
 
-    LWIO_LOG_ERROR("Error when handling SMB socket[code:%d]", ntStatus);
+    if (ntStatus != STATUS_PENDING)
+    {
+        SMBSocketInvalidate(pSocket, ntStatus);
+        *pWaitMask = LW_TASK_EVENT_COMPLETE;
+    }
 
     goto cleanup;
 }
@@ -829,9 +883,6 @@ SMBSocketConnect(
 {
     NTSTATUS ntStatus = 0;
     int fd = -1;
-    fd_set fdset;
-    struct timeval tv = { .tv_sec = 10, .tv_usec = 0 };
-    int ret = 0;
     BOOLEAN bInLock = FALSE;
     struct addrinfo *ai = NULL;
     struct addrinfo *pCursor = NULL;
@@ -842,8 +893,7 @@ SMBSocketConnect(
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-
-    ntStatus = LwRtlCStringAllocateFromWC16String(&pszHostname, pSocket->pwszHostname);
+    ntStatus = LwRtlCStringAllocateFromWC16String(&pszHostname, pSocket->pwszCanonicalName);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RdrEaiToNtStatus(
@@ -883,39 +933,25 @@ SMBSocketConnect(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    FD_ZERO(&fdset);
-    FD_SET(fd, &fdset);
-
-    if (connect(fd, pCursor->ai_addr, pCursor->ai_addrlen) && errno != EINPROGRESS)
+    if (connect(fd, ai->ai_addr, ai->ai_addrlen) && errno != EINPROGRESS)
     {
-        ntStatus = ErrnoToNtStatus(errno);
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ret = select(fd + 1, NULL, &fdset, &fdset, &tv);
-    if (ret == 0)
-    {
-        ntStatus = STATUS_IO_TIMEOUT;
-    }
-    else if (ret == -1)
-    {
-        ntStatus = ErrnoToNtStatus(errno);
-    }
-    else if (ret != 1)
-    {
-        ntStatus = STATUS_ASSERTION_FAILURE;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
 
-    /* We are done connecting -- go to negotiation stage */
-    pSocket->state = RDR_SOCKET_STATE_NEGOTIATING;
     pSocket->fd = fd;
     fd = -1;
-    memcpy(&pSocket->address, &pCursor->ai_addr, pCursor->ai_addrlen);
+    memcpy(&pSocket->address, &ai->ai_addr, ai->ai_addrlen);
 
-    pthread_cond_broadcast(&pSocket->event);
+    /* Let the task wait for the connect() to complete before proceeding */
+    LwRtlWakeTask(pSocket->pTask);
+
+    while (pSocket->state < RDR_SOCKET_STATE_NEGOTIATING)
+    {
+        pthread_cond_wait(&pSocket->event, &pSocket->mutex);
+    }
 
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
@@ -953,37 +989,24 @@ SMBSocketRead(
     NTSTATUS ntStatus = 0;
     ssize_t totalRead = 0;
     ssize_t nRead = 0;
-    fd_set fdset;
-
-    FD_ZERO(&fdset);
 
     while (totalRead < len)
     {
-        int ret = 0;
-        /* Always ten seconds from last data read */
-        struct timeval tv = { .tv_sec = 10, .tv_usec = 0 };
-
-        FD_SET(pSocket->fd, &fdset);
-
-        ret = select(pSocket->fd + 1, &fdset, NULL, &fdset, &tv);
-        if (ret == 0)
-        {
-            ntStatus = STATUS_IO_TIMEOUT;
-        }
-        else if (ret == -1)
-        {
-            ntStatus = ErrnoToNtStatus(errno);
-        }
-        else if (ret != 1)
-        {
-            ntStatus = STATUS_ASSERTION_FAILURE;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
         nRead = read(pSocket->fd, buffer + totalRead, len - totalRead);
         if(nRead < 0)
         {
-            ntStatus = ErrnoToNtStatus(errno);
+            switch (errno)
+            {
+            case EINTR:
+                continue;
+            case EAGAIN:
+                ntStatus = STATUS_PENDING;
+                break;
+            default:
+                ntStatus = ErrnoToNtStatus(errno);
+            }
+
+            BAIL_ON_NT_STATUS(ntStatus);
         }
         else if (nRead == 0)
         {
@@ -1002,7 +1025,10 @@ cleanup:
 
 error:
 
-    SMBSocketInvalidate(pSocket, ntStatus);
+    if (ntStatus != STATUS_PENDING)
+    {
+        SMBSocketInvalidate(pSocket, ntStatus);
+    }
 
     goto cleanup;
 }
@@ -1076,24 +1102,6 @@ SMBSocketGetState(
     LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
 
     return socketState;
-}
-
-static
-int
-SMBSocketGetFd(
-    PSMB_SOCKET pSocket
-    )
-{
-    BOOLEAN bInLock = FALSE;
-    int fd = -1;
-
-    LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    fd = pSocket->fd;
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-
-    return fd;
 }
 
 NTSTATUS
@@ -1322,7 +1330,9 @@ SMBSocketFree(
         shutdown(pSocket->fd, SHUT_RD);
     }
 
-    pthread_join(pSocket->readerThread, NULL);
+    LwRtlCancelTask(pSocket->pTask);
+    LwRtlWaitTask(pSocket->pTask);
+    LwRtlReleaseTask(&pSocket->pTask);
 
     if ((pSocket->fd >= 0) && (close(pSocket->fd) < 0))
     {
@@ -1343,7 +1353,15 @@ SMBSocketFree(
     SMBHashSafeFree(&pSocket->pSessionHashByPrincipal);
     SMBHashSafeFree(&pSocket->pSessionHashByUID);
 
-    assert(!pSocket->pSessionPacket);
+    if (pSocket->pSessionPacket)
+    {
+        SMBPacketRelease(pSocket->hPacketAllocator, pSocket->pSessionPacket);
+    }
+
+    if (pSocket->pPacket)
+    {
+        SMBPacketRelease(pSocket->hPacketAllocator, pSocket->pPacket);
+    }
 
     pthread_mutex_destroy(&pSocket->mutex);
 

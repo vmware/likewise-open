@@ -223,6 +223,12 @@ RdrInitialize(
     ntStatus = RdrSocketInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = LwRtlCreateThreadPool(&gRdrRuntime.pThreadPool);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlCreateTaskGroup(gRdrRuntime.pThreadPool, &gRdrRuntime.pReaderTaskGroup);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = RdrReaperInit(&gRdrRuntime);
     BAIL_ON_NT_STATUS(ntStatus);
 

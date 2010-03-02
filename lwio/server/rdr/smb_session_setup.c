@@ -83,7 +83,7 @@ SessionSetup(
     WORD wUid = 0;
 
     ntStatus = SMBGSSContextBuild(
-        pSocket->pwszHostname,
+        pSocket->pwszCanonicalName,
         pCreds,
         &hSMBGSSContext);
     BAIL_ON_NT_STATUS(ntStatus);

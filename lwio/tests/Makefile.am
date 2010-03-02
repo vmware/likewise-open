@@ -3,4 +3,5 @@ SUBDIRS = \
     test_npclient \
     test_npclient2 \
     test_npserver \
-    test_pvfs
+    test_pvfs \
+    test_load
