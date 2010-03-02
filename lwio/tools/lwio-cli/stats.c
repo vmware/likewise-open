@@ -51,24 +51,23 @@ PrintServerStats_level_0(
     );
 
 DWORD
-ShowServerStats(
-    VOID
+ProcessServerStats(
+    BOOLEAN bShowStats,
+    BOOLEAN bResetStats
     )
 {
-    DWORD                           dwError   = 0;
-    NTSTATUS                        ntStatus  = STATUS_SUCCESS;
-    wchar16_t                       wszName[] = {'\\','s','r','v',0};
-    IO_FILE_NAME                    fileName  =
-                                        {
-                                                .RootFileHandle = NULL,
-                                                .FileName       = &wszName[0],
-                                                .IoNameOptions  = 0
-                                        };
-    IO_FILE_HANDLE                  hDevice       = NULL;
-    IO_STATUS_BLOCK                 ioStatusBlock = {0};
-    PIO_ASYNC_CONTROL_BLOCK         pAcb     = NULL;
-    IO_STATISTICS_INFO_INPUT_BUFFER inBuf    = {0};
-    IO_STATISTICS_INFO_0            stats    = {0};
+    DWORD                   dwError   = 0;
+    NTSTATUS                ntStatus  = STATUS_SUCCESS;
+    wchar16_t               wszName[] = {'\\','s','r','v',0};
+    IO_FILE_NAME            fileName  =
+                                {
+                                        .RootFileHandle = NULL,
+                                        .FileName       = &wszName[0],
+                                        .IoNameOptions  = 0
+                                };
+    IO_FILE_HANDLE          hDevice       = NULL;
+    IO_STATUS_BLOCK         ioStatusBlock = {0};
+    PIO_ASYNC_CONTROL_BLOCK pAcb          = NULL;
 
     ntStatus = NtCreateFile(
                   &hDevice,
@@ -88,30 +87,62 @@ ShowServerStats(
                   NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NtDeviceIoControlFile(
-                    hDevice,
-                    pAcb,
-                    &ioStatusBlock,
-                    IO_DEVICE_CTL_STATISTICS,
-                    &inBuf,
-                    sizeof(inBuf),
-                    &stats,
-                    sizeof(stats));
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    switch (inBuf.dwInfoLevel)
+    if (bResetStats)
     {
-        case 0:
+        IO_STATISTICS_INFO_INPUT_BUFFER inBuf =
+        {
+                .ulAction    = IO_STATISTICS_ACTION_TYPE_RESET,
+                .ulInfoLevel = 0
+        };
 
-            PrintServerStats_level_0(&stats);
+        ntStatus = NtDeviceIoControlFile(
+                        hDevice,
+                        pAcb,
+                        &ioStatusBlock,
+                        IO_DEVICE_CTL_STATISTICS,
+                        &inBuf,
+                        sizeof(inBuf),
+                        NULL,
+                        0);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            break;
+        printf("Successfully reset the server statistics\n");
+    }
 
-        default:
+    if (bShowStats)
+    {
+        IO_STATISTICS_INFO_INPUT_BUFFER inBuf =
+        {
+                .ulAction    = IO_STATISTICS_ACTION_TYPE_GET,
+                .ulInfoLevel = 0
+        };
+        IO_STATISTICS_INFO_0 stats = {0};
 
-            LWIO_LOG_WARNING("Unsupported info level [%d]\n", inBuf.dwInfoLevel);
+        ntStatus = NtDeviceIoControlFile(
+                        hDevice,
+                        pAcb,
+                        &ioStatusBlock,
+                        IO_DEVICE_CTL_STATISTICS,
+                        &inBuf,
+                        sizeof(inBuf),
+                        &stats,
+                        sizeof(stats));
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            break;
+        switch (inBuf.ulInfoLevel)
+        {
+            case 0:
+
+                PrintServerStats_level_0(&stats);
+
+                break;
+
+            default:
+
+                LWIO_LOG_WARNING("Unsupported info level [%d]\n", inBuf.ulInfoLevel);
+
+                break;
+        }
     }
 
 cleanup:
@@ -145,27 +176,27 @@ PrintServerStats_level_0(
 {
     printf("Server statistics [level 0]: \n\n");
 
-    printf("Number of connections:           [%llu]\n",
-           (unsigned long long)pStats->ullNumConnections);
+    printf("Number of connections:           [%lld]\n",
+           (long long)pStats->llNumConnections);
 
-    printf("Maximum Number of connections:   [%llu]\n",
-            (unsigned long long)pStats->ullMaxNumConnections);
+    printf("Maximum Number of connections:   [%lld]\n",
+            (long long)pStats->llMaxNumConnections);
 
-    printf("Number of sessions:              [%llu]\n",
-            (unsigned long long)pStats->ullNumSessions);
+    printf("Number of sessions:              [%lld]\n",
+            (long long)pStats->llNumSessions);
 
-    printf("Maximum Number of sessions:      [%llu]\n",
-            (unsigned long long)pStats->ullMaxNumSessions);
+    printf("Maximum Number of sessions:      [%lld]\n",
+            (long long)pStats->llMaxNumSessions);
 
-    printf("Number of tree connects:         [%llu]\n",
-            (unsigned long long)pStats->ullNumTreeConnects);
+    printf("Number of tree connects:         [%lld]\n",
+            (long long)pStats->llNumTreeConnects);
 
-    printf("Maximum Number of tree connects: [%llu]\n",
-            (unsigned long long)pStats->ullMaxNumTreeConnects);
+    printf("Maximum Number of tree connects: [%lld]\n",
+            (long long)pStats->llMaxNumTreeConnects);
 
-    printf("Number of open files:            [%llu]\n",
-            (unsigned long long)pStats->ullNumOpenFiles);
+    printf("Number of open files:            [%lld]\n",
+            (long long)pStats->llNumOpenFiles);
 
-    printf("Maximum Number of open files:    [%llu]\n",
-            (unsigned long long)pStats->ullMaxNumOpenFiles);
+    printf("Maximum Number of open files:    [%lld]\n",
+            (long long)pStats->llMaxNumOpenFiles);
 }

@@ -45,12 +45,13 @@
 #define IO_DEVICE_TYPE_DISK_FILE_SYSTEM     0x00080000
 #define IO_DEVICE_TYPE_NETWORK_FILE_SYSTEM  0x00140000
 
-#define IO_DEVICE_REQ_ACCESS_READ_DATA      0x00004000
+#define IO_DEVICE_REQ_ACCESS_READ_DATA      0x00010000
+#define IO_DEVICE_REQ_ACCESS_WRITE_DATA     0x00020000
 
 #define IO_DEVICE_CUSTOM_CONTROL_CODE       0x00002000
 
 #define IO_DEVICE_FUNC_CODE_LIST_OPEN_FILES 0x00008010
-#define IO_DEVICE_FUNC_CODE_GET_STATS       0x00008020
+#define IO_DEVICE_FUNC_CODE_STATISTICS      0x00008020
 
 #define IO_DEVICE_TRANSFER_TYPE_BUFFERED    0x00000000
 #define IO_DEVICE_TRANSFER_TYPE_IN_DIRECT   0x00000001
@@ -63,10 +64,11 @@
                                          IO_DEVICE_FUNC_CODE_LIST_OPEN_FILES | \
                                          IO_DEVICE_TRANSFER_TYPE_NEITHER       \
                                        )
-#define IO_DEVICE_CTL_STATISTICS       ( IO_DEVICE_TYPE_NETWORK_FILE_SYSTEM | \
+#define IO_DEVICE_CTL_STATISTICS ( IO_DEVICE_TYPE_NETWORK_FILE_SYSTEM | \
                                          IO_DEVICE_REQ_ACCESS_READ_DATA     | \
+                                         IO_DEVICE_REQ_ACCESS_WRITE_DATA    | \
                                          IO_DEVICE_CUSTOM_CONTROL_CODE      | \
-                                         IO_DEVICE_FUNC_CODE_GET_STATS      | \
+                                         IO_DEVICE_FUNC_CODE_STATISTICS     | \
                                          IO_DEVICE_TRANSFER_TYPE_NEITHER      \
                                        )
 
@@ -99,23 +101,29 @@ typedef struct _IO_OPEN_FILE_INFO_INPUT_BUFFER
 
 typedef struct _IO_STATISTICS_INFO_0
 {
-    ULONG64 ullNumConnections;
-    ULONG64 ullMaxNumConnections;
+    LONG64 llNumConnections;
+    LONG64 llMaxNumConnections;
 
-    ULONG64 ullNumSessions;
-    ULONG64 ullMaxNumSessions;
+    LONG64 llNumSessions;
+    LONG64 llMaxNumSessions;
 
-    ULONG64 ullNumTreeConnects;
-    ULONG64 ullMaxNumTreeConnects;
+    LONG64 llNumTreeConnects;
+    LONG64 llMaxNumTreeConnects;
 
-    ULONG64 ullNumOpenFiles;
-    ULONG64 ullMaxNumOpenFiles;
+    LONG64 llNumOpenFiles;
+    LONG64 llMaxNumOpenFiles;
 
 } IO_STATISTICS_INFO_0, *PIO_STATISTICS_INFO_0;
 
+typedef ULONG IO_STATISTICS_ACTION_TYPE;
+
+#define IO_STATISTICS_ACTION_TYPE_GET   0x00000000
+#define IO_STATISTICS_ACTION_TYPE_RESET 0x00000001
+
 typedef struct _IO_STATISTICS_INFO_INPUT_BUFFER
 {
-    DWORD dwInfoLevel;
+    ULONG ulAction;
+    ULONG ulInfoLevel;
 
 } IO_STATISTICS_INFO_INPUT_BUFFER, *PIO_STATISTICS_INFO_INPUT_BUFFER;
 

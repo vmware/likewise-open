@@ -120,6 +120,8 @@ SrvSessionCreate(
                     &pSession->hFinderRepository);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SRV_ELEMENTS_INCREMENT_SESSIONS;
+
     *ppSession = pSession;
 
 cleanup:
@@ -293,6 +295,8 @@ SrvSessionRelease(
 
     if (InterlockedDecrement(&pSession->refcount) == 0)
     {
+        SRV_ELEMENTS_DECREMENT_SESSIONS;
+
         SrvSessionFree(pSession);
     }
 }

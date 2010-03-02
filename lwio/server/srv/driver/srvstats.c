@@ -50,6 +50,15 @@
 
 static
 NTSTATUS
+SrvGetStatistics(
+    PIO_STATISTICS_INFO_INPUT_BUFFER pInBuf,
+    PBYTE                            lpOutBuffer,
+    ULONG                            ulOutBufferSize,
+    PULONG                           pulBytesTransferred
+    );
+
+static
+NTSTATUS
 SrvGetStatistics_level_0(
     PBYTE  lpOutBuffer,
     ULONG  ulOutBufferSize,
@@ -57,7 +66,7 @@ SrvGetStatistics_level_0(
     );
 
 NTSTATUS
-SrvGetStatistics(
+SrvProcessStatistics(
     IN     PBYTE  lpInBuffer,
     IN     ULONG  ulInBufferSize,
     IN OUT PBYTE  lpOutBuffer,
@@ -77,7 +86,56 @@ SrvGetStatistics(
 
     memcpy((PBYTE)&inBuf, lpInBuffer, ulInBufferSize);
 
-    switch (inBuf.dwInfoLevel)
+    switch (inBuf.ulAction)
+    {
+        case IO_STATISTICS_ACTION_TYPE_GET:
+
+            ntStatus = SrvGetStatistics(
+                            &inBuf,
+                            lpOutBuffer,
+                            ulOutBufferSize,
+                            &ulBytesTransferred);
+
+            break;
+
+        case IO_STATISTICS_ACTION_TYPE_RESET:
+
+            ntStatus = SrvElementsResetStats();
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pulBytesTransferred = ulBytesTransferred;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pulBytesTransferred = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvGetStatistics(
+    PIO_STATISTICS_INFO_INPUT_BUFFER pInBuf,
+    PBYTE                            lpOutBuffer,
+    ULONG                            ulOutBufferSize,
+    PULONG                           pulBytesTransferred
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG    ulBytesTransferred = 0;
+
+    switch (pInBuf->ulInfoLevel)
     {
         case 0:
 
@@ -118,6 +176,7 @@ SrvGetStatistics_level_0(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_ELEMENTS_STATISTICS stats = {0};
     IO_STATISTICS_INFO_0 statBuf = {0};
 
     if (ulOutBufferSize < sizeof(statBuf))
@@ -126,7 +185,20 @@ SrvGetStatistics_level_0(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    // TODO: Get Server stats
+    ntStatus = SrvElementsGetStats(&stats);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    statBuf.llNumConnections = stats.llNumConnections;
+    statBuf.llMaxNumConnections = stats.llMaxNumConnections;
+
+    statBuf.llNumSessions = stats.llNumSessions;
+    statBuf.llMaxNumSessions = stats.llMaxNumSessions;
+
+    statBuf.llNumTreeConnects = stats.llNumTreeConnects;
+    statBuf.llMaxNumTreeConnects = stats.llMaxNumTreeConnects;
+
+    statBuf.llNumOpenFiles = stats.llNumOpenFiles;
+    statBuf.llMaxNumOpenFiles = stats.llMaxNumOpenFiles;
 
     memcpy(lpOutBuffer, (PBYTE)&statBuf, sizeof(statBuf));
 
