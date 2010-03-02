@@ -87,35 +87,35 @@ SrvSvcInitSecurity(
     {
         SID sid;
         BYTE buffer[SID_MAX_SIZE];
-    } builtinAdminsSid, authedUsersSid, unixRootSid;
-    ULONG sidSize = sizeof(builtinAdminsSid);
+    } unixRootSid;
+    PSID pBuiltinAdminsSid = NULL;
+    PSID pAuthedUsersSid = NULL;
+    DWORD dwSidSize = 0;
     DWORD dwDaclSize = 0;
     PACL pDacl = NULL;
 
-    dwError = LwNtStatusToWin32Error(
-        RtlCreateWellKnownSid(
+    dwError = LwCreateWellKnownSid(
             WinBuiltinAdministratorsSid,
             NULL,
-            &builtinAdminsSid.sid,
-            &sidSize));
+            &pBuiltinAdminsSid,
+            &dwSidSize);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = LwNtStatusToWin32Error(
-        RtlCreateWellKnownSid(
+    dwError = LwCreateWellKnownSid(
             WinAuthenticatedUserSid,
             NULL,
-            &authedUsersSid.sid,
-            &sidSize));
+            &pAuthedUsersSid,
+            &dwSidSize);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = InitializeUnixRootSid(&unixRootSid.sid);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwDaclSize = ACL_HEADER_SIZE +
-        sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(&builtinAdminsSid.sid) - sizeof(ULONG) +
-        sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(&authedUsersSid.sid) - sizeof(ULONG) +
+        sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(pBuiltinAdminsSid) - sizeof(ULONG) +
+        sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(pAuthedUsersSid) - sizeof(ULONG) +
         sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(&unixRootSid.sid) - sizeof(ULONG) +
-        RtlLengthSid(&builtinAdminsSid.sid);
+        RtlLengthSid(pBuiltinAdminsSid);
 
     dwError = LwAllocateMemory(
         dwDaclSize,
@@ -141,7 +141,7 @@ SrvSvcInitSecurity(
             ACL_REVISION,
             0,
             FILE_GENERIC_READ | FILE_GENERIC_WRITE | DELETE,
-            &builtinAdminsSid.sid));
+            pBuiltinAdminsSid));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
@@ -150,7 +150,7 @@ SrvSvcInitSecurity(
             ACL_REVISION,
             0,
             FILE_GENERIC_READ,
-            &authedUsersSid.sid));
+            pAuthedUsersSid));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwAllocateMemory(
@@ -167,14 +167,14 @@ SrvSvcInitSecurity(
     dwError = LwNtStatusToWin32Error(
         RtlSetOwnerSecurityDescriptor(
             pAbsolute,
-            &builtinAdminsSid.sid,
+            pBuiltinAdminsSid,
             FALSE));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwNtStatusToWin32Error(
         RtlSetGroupSecurityDescriptor(
             pAbsolute,
-            &builtinAdminsSid.sid,
+            pBuiltinAdminsSid,
             FALSE));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -189,6 +189,7 @@ SrvSvcInitSecurity(
     gpServerSecDesc = pAbsolute;
 
 cleanup:
+    LW_SAFE_FREE_MEMORY(pAuthedUsersSid);
 
     return dwError;
 
@@ -196,6 +197,7 @@ error:
 
     LW_SAFE_FREE_MEMORY(pAbsolute);
     LW_SAFE_FREE_MEMORY(pDacl);
+    LW_SAFE_FREE_MEMORY(pBuiltinAdminsSid);
 
     goto cleanup;
 }
