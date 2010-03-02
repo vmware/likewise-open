@@ -30,7 +30,7 @@ noinst_HEADERS = \
 	include/mt19937ar.h \
 	include/peer-private.h \
 	include/archive-private.h \
-	include/task-select-private.h
+	include/task-threadpool-private.h
 
 lwmsg_includedir = $(includedir)/lwmsg
 
@@ -98,13 +98,13 @@ src_liblwmsg_nothr_la_LIBADD = @LIB_XNET@ @LIB_DL@ @LIB_ICONV@ @LIB_RT@
 src_liblwmsg_nothr_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/src/liblwmsg_nothr.sym
 
 src_liblwmsg_la_SOURCES = \
-	src/task-select.c \
+	src/task-threadpool.c \
 	src/peer.c \
 	src/peer-task.c \
 	src/peer-call.c \
 	src/session-shared.c
 
-src_liblwmsg_la_LIBADD = src/liblwmsg_nothr.la @LIB_PTHREAD@
+src_liblwmsg_la_LIBADD = src/liblwmsg_nothr.la @LIB_PTHREAD@ -llwbase
 src_liblwmsg_la_LDFLAGS = $(AM_LDFLAGS) -export-symbols $(top_srcdir)/src/liblwmsg.sym
 
 # test
