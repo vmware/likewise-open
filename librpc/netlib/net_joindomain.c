@@ -551,12 +551,13 @@ NetJoinDomainLocalInternal(
 
 cleanup:
 
-    if (conn->samr.bind && hAccount)
-    {
-        SamrClose(conn->samr.bind, hAccount);
-    }
-
     if (conn) {
+
+        if (conn->samr.bind && hAccount)
+        {
+            SamrClose(conn->samr.bind, hAccount);
+        }
+
         close_status = NetDisconnectSamr(conn);
         if (status == STATUS_SUCCESS &&
             close_status != STATUS_SUCCESS)

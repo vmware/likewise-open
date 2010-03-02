@@ -1620,6 +1620,11 @@ typedef struct
 } __attribute__((__packed__)) TRANS2_FILE_EA_LIST_INFORMATION,
                               *PTRANS2_FILE_EA_LIST_INFORMATION;
 
+typedef struct _TRANS2_FILE_ACCESS_INFORMATION {
+    ULONG AccessMask;
+} __attribute__((__packed__)) TRANS2_FILE_ACCESS_INFORMATION,
+                             *PTRANS2_FILE_ACCCESS_INFORMATION;
+
 typedef struct
 {
     UCHAR  ucReplaceIfExists;

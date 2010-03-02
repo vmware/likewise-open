@@ -85,6 +85,7 @@ error:
     return dwError;
 }
 
+#if 0
 static
 DWORD
 NtlmSrvIpcReleaseHandle(
@@ -102,6 +103,7 @@ error:
 
     return dwError;
 }
+#endif
 
 static
 DWORD
@@ -208,9 +210,6 @@ NtlmSrvIpcAcceptSecurityContext(
             // they only clean up the most recent one received, we need to clean
             // up the old one they were nice enough to pass in.
             dwError = NtlmSrvIpcUnregisterHandle(pCall, pReq->hContext);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = NtlmSrvIpcReleaseHandle(pCall, pReq->hContext);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -664,9 +663,6 @@ NtlmSrvIpcInitializeSecurityContext(
             // they only clean up the most recent one received, we need to clean
             // up the old one they were nice enough to pass in.
             dwError = NtlmSrvIpcUnregisterHandle(pCall, pReq->hContext);
-            BAIL_ON_LSA_ERROR(dwError);
-
-            dwError = NtlmSrvIpcReleaseHandle(pCall, pReq->hContext);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
