@@ -228,6 +228,17 @@ SrvShareDevCtlSetInfo(
     IN     ULONG ulOutBufferSize
     );
 
+// srvstats.c
+
+NTSTATUS
+SrvGetStatistics(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
 // srvworker.c
 
 NTSTATUS

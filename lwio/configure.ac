@@ -757,6 +757,7 @@ AC_CONFIG_FILES([Makefile
         tools/lwio-tool/Makefile
         tools/lwio-copy/Makefile
         tools/lwio-driver/Makefile
+        tools/lwio-cli/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
         tests/test_npclient/Makefile

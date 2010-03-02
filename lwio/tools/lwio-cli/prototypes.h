@@ -28,58 +28,23 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        prototypes.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
- *
- *        Utilities
+ *        LWIO client interface program
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
-#include <config.h>
-#include <lwiosys.h>
+// stats.c
 
-#include <uuid/uuid.h>
-
-#include <lwio/lwio.h>
-
-#include <reg/lwntreg.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiocfg.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-#include <lwio/lwiodevctl.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-
-#include <shareapi.h>
-#include <srvutils.h>
-#include <elementsapi.h>
-#include <protocolapi.h>
-#include <transportapi.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-
-#include "externs.h"
+DWORD
+ShowServerStats(
+    VOID
+    );
