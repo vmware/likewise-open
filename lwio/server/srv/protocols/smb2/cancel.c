@@ -60,7 +60,6 @@ SrvProcessCancel_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PLWIO_SRV_SESSION_2        pSession     = NULL;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId   = 0LL;
 
@@ -70,13 +69,6 @@ SrvProcessCancel_SMB_V2(
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    ntStatus = SrvConnection2FindSession_SMB_V2(
-                    pCtxSmb2,
-                    pConnection,
-                    pSmbRequest->pHeader->ullSessionId,
-                    &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -117,11 +109,6 @@ cleanup:
     if (pAsyncState)
     {
         SrvAsyncStateRelease(pAsyncState);
-    }
-
-    if (pSession)
-    {
-        SrvSession2Release(pSession);
     }
 
     return ntStatus;
