@@ -49,21 +49,21 @@
 
 #define SRV_ELEMENTS_INCREMENT_STAT(stat, maxstat) \
 { \
-    BOOLEAN bInLock = FALSE; \
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvElements.statsLock); \
+    BOOLEAN bStatsInLock = FALSE; \
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bStatsInLock, &gSrvElements.statsLock); \
     if (++stat > maxstat) \
     { \
         maxstat = stat; \
     } \
-    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock); \
+    LWIO_UNLOCK_RWMUTEX(bStatsInLock, &gSrvElements.statsLock); \
 }
 
 #define SRV_ELEMENTS_DECREMENT_STAT(stat) \
 { \
-    BOOLEAN bInLock = FALSE; \
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvElements.statsLock); \
+    BOOLEAN bStatsInLock = FALSE; \
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bStatsInLock, &gSrvElements.statsLock); \
     stat--; \
-    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock); \
+    LWIO_UNLOCK_RWMUTEX(bStatsInLock, &gSrvElements.statsLock); \
 }
 
 #define SRV_ELEMENTS_INCREMENT_CONNECTIONS \
