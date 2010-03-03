@@ -715,7 +715,8 @@ cleanup:
     gss_release_buffer(&ulMinorStatus, &output_desc);
     gss_release_name(&ulMinorStatus, &target_name);
     gss_release_oid_set(&ulMinorStatus, &DesiredMechs);
-
+    gss_release_cred(&ulMinorStatus, &pServerCreds);
+    gss_release_oid(&ulMinorStatus, &NtlmOid);
 
     if (pGssNegotiate->pGssContext &&
         (*pGssNegotiate->pGssContext != GSS_C_NO_CONTEXT))
