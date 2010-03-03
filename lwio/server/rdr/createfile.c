@@ -210,8 +210,10 @@ ParseSharePath(
     PSTR  pszPath = NULL;
     PSTR  pszIndex = NULL;
     PSTR  pszServer = NULL;
+    PSTR  pszCanonical = NULL;
     PSTR  pszShare  = NULL;
     PSTR  pszFilename = NULL;
+    PSTR  pszCursor = NULL;
     size_t sLen = 0;
     size_t i = 0;
     struct in_addr ipAddr;
@@ -253,6 +255,21 @@ ParseSharePath(
                     &pszServer);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SMBStrndup(
+                    pszIndex,
+                    sLen,
+                    &pszCanonical);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (pszCursor = pszCanonical; *pszCursor; pszCursor++)
+    {
+        if (*pszCursor == '@')
+        {
+            *pszCursor = '\0';
+            break;
+        }
+    }
+
     pszIndex += sLen;
 
     // Skip delimiter
@@ -274,11 +291,11 @@ ParseSharePath(
     }
 
     ntStatus = SMBAllocateMemory(
-        sizeof("\\\\") - 1 + strlen(pszServer) + sizeof("\\") - 1 + sLen + 1,
+        sizeof("\\\\") - 1 + strlen(pszCanonical) + sizeof("\\") - 1 + sLen + 1,
         (PVOID*)&pszShare);
     BAIL_ON_NT_STATUS(ntStatus);
     
-    sprintf(pszShare, "\\\\%s\\", pszServer);
+    sprintf(pszShare, "\\\\%s\\", pszCanonical);
     strncat(pszShare, pszIndex, sLen);
 
     pszIndex += sLen;
@@ -329,6 +346,7 @@ ParseSharePath(
 
 cleanup:
 
+    LWIO_SAFE_FREE_STRING(pszCanonical);
     LWIO_SAFE_FREE_STRING(pszServer);
     LWIO_SAFE_FREE_STRING(pszPath);
 

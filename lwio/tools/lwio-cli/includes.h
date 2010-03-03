@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -39,47 +37,17 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
- *
- *        Elements
+ *        LWIO client interface program
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
+#define _POSIX_PTHREAD_SEMANTICS 1
+
 #include <config.h>
 #include <lwiosys.h>
-
-#include <uuid/uuid.h>
-
-#include <openssl/rand.h>
-#include <openssl/hmac.h>
-
-#include <krb5.h>
-#include <gssapi/gssapi.h>
-#include <gssapi/gssapi_generic.h>
-#include <gssapi/gssapi_krb5.h>
-
 #include <lwio/lwio.h>
-
-#include <lwiodef.h>
+#include <lwio/lwiodevctl.h>
 #include <lwioutils.h>
-#include <lwiolog_r.h>
 
-#include <lw/ntstatus.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-#include <srvecp.h>
-
-#include <shareapi.h>
-#include <srvutils.h>
-#include <elementsapi.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "srvtimer.h"
-
-#include "externs.h"
-
+#include "prototypes.h"

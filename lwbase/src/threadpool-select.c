@@ -850,8 +850,8 @@ LwRtlCancelTaskGroup(
 
     for (i = 0; i < group->pPool->ulEventThreadCount; i++)
     {
-        UNLOCK_THREAD(&group->pPool->pEventThreads[i]);
         SignalThread(&group->pPool->pEventThreads[i]);
+        UNLOCK_THREAD(&group->pPool->pEventThreads[i]);
     }
 
     UNLOCK_GROUP(group);

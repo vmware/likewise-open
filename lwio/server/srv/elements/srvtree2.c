@@ -122,6 +122,8 @@ SrvTree2Create(
                     &pTree->pFileCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SRV_ELEMENTS_INCREMENT_TREE_CONNECTS;
+
     *ppTree = pTree;
 
 cleanup:
@@ -330,6 +332,8 @@ SrvTree2Release(
 
     if (InterlockedDecrement(&pTree->refcount) == 0)
     {
+        SRV_ELEMENTS_DECREMENT_TREE_CONNECTS;
+
         SrvTree2Free(pTree);
     }
 }

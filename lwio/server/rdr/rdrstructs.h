@@ -84,7 +84,8 @@ typedef struct
                                             received */
 
     int fd;
-    PWSTR pwszHostname;         /* For hashing and for GSS */
+    PWSTR pwszHostname;         /* Raw hostname, including channel specifier */
+    PWSTR pwszCanonicalName;      /* Canconical hostname for DNS resolution/GSS principal construction */
     struct sockaddr address;    /* For hashing */
 
     uint32_t maxBufferSize;     /* Max transmit buffer size */
@@ -99,7 +100,7 @@ typedef struct
     SMB_HASH_TABLE *pSessionHashByPrincipal;   /* Dependent sessions */
     SMB_HASH_TABLE *pSessionHashByUID;         /* Dependent sessions */
 
-    pthread_t readerThread;     /* Single reader */
+    PLW_TASK pTask;     /* Single reader */
 
     PSMB_PACKET    pSessionPacket; /* To store packets without a UID
                                          (Negotiate and Session Setup) */
@@ -120,6 +121,7 @@ typedef struct
     DWORD    dwSessionKeyLength;
 
     DWORD    dwSequence;
+    PSMB_PACKET pPacket;
 
 } SMB_SOCKET, *PSMB_SOCKET;
 
@@ -268,6 +270,8 @@ typedef struct _RDR_GLOBAL_RUNTIME
     time_t expirationTime;
     time_t volatile nextWakeupTime;
     pid_t SysPid;
+    PLW_THREAD_POOL pThreadPool;
+    PLW_TASK_GROUP pReaderTaskGroup;
 } RDR_GLOBAL_RUNTIME, *PRDR_GLOBAL_RUNTIME;
 
 #endif

@@ -56,6 +56,12 @@ SrvConnection2AcquireAsyncId_inlock(
    PULONG64             pullAsyncId
    );
 
+static
+VOID
+SrvConnectionFree(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
 // Rules:
 //
 // Only one reader thread can read from this socket
@@ -185,6 +191,8 @@ SrvConnectionCreate(
 
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
     uuid_copy(pConnection->serverProperties.GUID, pServerProperties->GUID);
+
+    SRV_ELEMENTS_INCREMENT_CONNECTIONS;
 
     *ppConnection = pConnection;
 
@@ -841,66 +849,77 @@ SrvConnectionRelease(
 {
     if (InterlockedDecrement(&pConnection->refCount) == 0)
     {
-        if (pConnection->readerState.pRequestPacket)
-        {
-            SMBPacketRelease(
-                pConnection->hPacketAllocator,
-                pConnection->readerState.pRequestPacket);
-        }
+        SRV_ELEMENTS_DECREMENT_CONNECTIONS;
 
-        if (pConnection->pSessionKey)
-        {
-            SrvFreeMemory(pConnection->pSessionKey);
-        }
-
-        if (pConnection->hGssNegotiate)
-        {
-            SrvGssEndNegotiate(
-                pConnection->hGssContext,
-                pConnection->hGssNegotiate);
-        }
-
-        if (pConnection->hGssContext)
-        {
-            SrvGssReleaseContext(pConnection->hGssContext);
-        }
-
-        if (pConnection->hSocket && pConnection->pfnSocketFree)
-        {
-            pConnection->pfnSocketFree(pConnection->hSocket);
-        }
-
-        if (pConnection->pSessionCollection)
-        {
-            LwRtlRBTreeFree(pConnection->pSessionCollection);
-        }
-
-        if (pConnection->pAsyncStateCollection)
-        {
-            LwRtlRBTreeFree(pConnection->pAsyncStateCollection);
-        }
-
-        if (pConnection->pHostinfo)
-        {
-            SrvReleaseHostInfo(pConnection->pHostinfo);
-        }
-
-        if (pConnection->pMutex)
-        {
-            pthread_rwlock_destroy(&pConnection->mutex);
-            pConnection->pMutex = NULL;
-        }
-
-        if (pConnection->pMutexGssNegotiate)
-        {
-            pthread_mutex_destroy(&pConnection->mutexGssNegotiate);;
-            pConnection->pMutexGssNegotiate = NULL;
-        }
-
-        SrvConnectionFreeContentsClientProperties(&pConnection->clientProperties);
-
-        SrvFreeMemory(pConnection);
+        SrvConnectionFree(pConnection);
     }
+}
+
+static
+VOID
+SrvConnectionFree(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    if (pConnection->readerState.pRequestPacket)
+    {
+        SMBPacketRelease(
+            pConnection->hPacketAllocator,
+            pConnection->readerState.pRequestPacket);
+    }
+
+    if (pConnection->pSessionKey)
+    {
+        SrvFreeMemory(pConnection->pSessionKey);
+    }
+
+    if (pConnection->hGssNegotiate)
+    {
+        SrvGssEndNegotiate(
+            pConnection->hGssContext,
+            pConnection->hGssNegotiate);
+    }
+
+    if (pConnection->hGssContext)
+    {
+        SrvGssReleaseContext(pConnection->hGssContext);
+    }
+
+    if (pConnection->hSocket && pConnection->pfnSocketFree)
+    {
+        pConnection->pfnSocketFree(pConnection->hSocket);
+    }
+
+    if (pConnection->pSessionCollection)
+    {
+        LwRtlRBTreeFree(pConnection->pSessionCollection);
+    }
+
+    if (pConnection->pAsyncStateCollection)
+    {
+        LwRtlRBTreeFree(pConnection->pAsyncStateCollection);
+    }
+
+    if (pConnection->pHostinfo)
+    {
+        SrvReleaseHostInfo(pConnection->pHostinfo);
+    }
+
+    if (pConnection->pMutex)
+    {
+        pthread_rwlock_destroy(&pConnection->mutex);
+        pConnection->pMutex = NULL;
+    }
+
+    if (pConnection->pMutexGssNegotiate)
+    {
+        pthread_mutex_destroy(&pConnection->mutexGssNegotiate);;
+        pConnection->pMutexGssNegotiate = NULL;
+    }
+
+    SrvConnectionFreeContentsClientProperties(&pConnection->clientProperties);
+
+    SrvFreeMemory(pConnection);
 }
 
 static
