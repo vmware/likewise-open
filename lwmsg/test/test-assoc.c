@@ -40,6 +40,7 @@
 #include <moonunit/moonunit.h>
 #include <config.h>
 #include <pthread.h>
+#include <sys/un.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -408,7 +409,7 @@ MU_TEST(assoc, foo_send_recv_fragment)
 }
 
 
-MU_TEST(assoc, foo_send_timeout_connect)
+MU_TEST(assoc, foo_send_timeout_connect_pair)
 {
     int sockets[2];
     LWMsgAssoc* send_assoc = NULL;
@@ -433,6 +434,48 @@ MU_TEST(assoc, foo_send_timeout_connect)
                LWMSG_CONNECTION_MODE_PAIR,
                sockets[0]));
     
+    lwmsg_assoc_set_timeout(send_assoc, LWMSG_TIMEOUT_ESTABLISH, &time);
+
+    status = lwmsg_assoc_establish(send_assoc);
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_TIMEOUT);
+
+    MU_TRY_ASSOC(send_assoc, lwmsg_assoc_close(send_assoc));
+    lwmsg_assoc_delete(send_assoc);
+}
+
+MU_TEST(assoc, foo_send_timeout_connect_endpoint)
+{
+    int sock;
+    LWMsgAssoc* send_assoc = NULL;
+    static LWMsgProtocol* foo_protocol = NULL;
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTime time = {0, 200000};
+    struct sockaddr_un sockaddr;
+    const char* endpoint = "/tmp/.lwmsg_test_endpoint";
+
+    MU_ASSERT((sock = socket(AF_UNIX, SOCK_STREAM, 0)) >= 0);
+
+    sockaddr.sun_family = AF_UNIX;
+    strcpy(sockaddr.sun_path, endpoint);
+    unlink(sockaddr.sun_path);
+
+    MU_ASSERT(bind(sock, (struct sockaddr*) &sockaddr, sizeof(sockaddr)) == 0);
+
+    MU_ASSERT(listen(sock, 8) == 0);
+
+    MU_TRY(lwmsg_protocol_new(NULL, &foo_protocol));
+    MU_TRY_PROTOCOL(foo_protocol, lwmsg_protocol_add_protocol_spec(foo_protocol, FooProtocol_spec));
+
+    MU_TRY(lwmsg_connection_new(
+               NULL,
+               foo_protocol,
+               &send_assoc));
+
+    MU_TRY(lwmsg_connection_set_endpoint(
+               send_assoc,
+               LWMSG_CONNECTION_MODE_LOCAL,
+               endpoint));
+
     lwmsg_assoc_set_timeout(send_assoc, LWMSG_TIMEOUT_ESTABLISH, &time);
 
     status = lwmsg_assoc_establish(send_assoc);
