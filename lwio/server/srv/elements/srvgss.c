@@ -944,6 +944,7 @@ srv_display_status_1(
 #else
             case GSS_S_COMPLETE:
             case GSS_S_CONTINUE_NEEDED:
+            case 40157:   /* What minor code is this? */
 #endif
                 LWIO_LOG_VERBOSE("GSS-API error calling %s: %d (%s)\n",
                         pszId, code,

@@ -451,6 +451,10 @@ PvfsReleaseFCB(
 
                 if (ntError == STATUS_SUCCESS)
                 {
+                    /* Clear the cache entry but ignore any errors */
+
+                    PvfsPathCacheRemove(pFcb->pszFilename);
+
                     PvfsNotifyScheduleFullReport(
                         pFcb,
                         S_ISDIR(Stat.s_mode) ?
@@ -476,6 +480,11 @@ PvfsReleaseFCB(
 
     if (InterlockedDecrement(&pFcb->RefCount) == 0)
     {
+
+        /* Clear the path cache */
+
+        PvfsPathCacheRemove(pFcb->pszFilename);
+
         LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
         if (!pFcb->bRemoved)
         {

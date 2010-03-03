@@ -69,7 +69,6 @@ PvfsPathCacheAdd(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     DWORD dwError = LWIO_ERROR_SUCCESS;
-    PSTR pszPathname = NULL;
     PPVFS_PATH_CACHE_ENTRY pCacheRecord = NULL;
     BOOLEAN bLocked = FALSE;
 
@@ -81,39 +80,41 @@ PvfsPathCacheAdd(
         goto cleanup;
     }
 
-    ntError = LwRtlCStringDuplicate(&pszPathname, pszResolvedPath);
-    BAIL_ON_NT_STATUS(ntError);
-
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pCacheRecord,
                   sizeof(PVFS_PATH_CACHE_ENTRY));
     BAIL_ON_NT_STATUS(ntError);
 
-    pCacheRecord->pszPathname = pszPathname;
+    ntError = LwRtlCStringDuplicate(
+                  &pCacheRecord->pszPathname,
+                  pszResolvedPath);
+    BAIL_ON_NT_STATUS(ntError);
+
     pCacheRecord->LastAccess = time(NULL);
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gPathCacheRwLock);
     dwError = SMBHashSetValue(
                   gpPathCache,
-                  (PVOID)pszPathname,
+                  (PVOID)pCacheRecord->pszPathname,
                   (PVOID)pCacheRecord);
     LWIO_UNLOCK_RWMUTEX(bLocked, &gPathCacheRwLock);
 
-    if (dwError != LWIO_ERROR_SUCCESS) {
+    if (dwError != LWIO_ERROR_SUCCESS)
+    {
         ntError = STATUS_INSUFFICIENT_RESOURCES;
     }
     BAIL_ON_NT_STATUS(ntError);
 
-    pszPathname = NULL;
-    pCacheRecord = NULL;
-
 cleanup:
-    LwRtlCStringFree(&pszPathname);
-    PVFS_FREE(&pCacheRecord);
-
     return ntError;
 
 error:
+    if (pCacheRecord)
+    {
+        RtlCStringFree(&pCacheRecord->pszPathname);
+        PVFS_FREE(&pCacheRecord);
+    }
+
     goto cleanup;
 }
 
@@ -314,18 +315,22 @@ PvfsPathCacheKey(
 /*****************************************************************************
  ****************************************************************************/
 
-static VOID
+static
+VOID
 PvfsPathCacheFreeEntry(
     const SMB_HASH_ENTRY *pEntry
     )
 {
+    PPVFS_PATH_CACHE_ENTRY pRecord = NULL;
+
     if (pEntry)
     {
-        PSTR pszPath = (PSTR)pEntry->pKey;
+        pRecord = (PPVFS_PATH_CACHE_ENTRY)pEntry->pValue;
 
-        LwRtlCStringFree(&pszPath);
+        LwRtlCStringFree(&pRecord->pszPathname);
+        PVFS_FREE(&pRecord);
 
-        PVFS_FREE(&pEntry->pValue);
+        /* The Key was a pointer to the pszPathname in the record */
     }
 
     return;
