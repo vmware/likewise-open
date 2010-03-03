@@ -16,7 +16,7 @@ function _setup_build_env
     CFLAGS="${_cflags} -fPIC"
     LDFLAGS="${_ldflags}"
 
-    DEFINES="-D_FILE_OFFSET_BITS=64"
+    DEFINES="-D_FILE_OFFSET_BITS=64 -DMAX_POLL_FDS=32"
 
     CFLAGS="$CFLAGS $DEFINES"
     CPPFLAGS="$DEFINES"
