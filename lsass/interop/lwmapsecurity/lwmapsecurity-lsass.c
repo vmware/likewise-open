@@ -1565,6 +1565,8 @@ cleanup:
         FreePacLogonInfo(pPac);
     }
 
+    LsaMapSecurityFreeObjectInfo(&objectInfo);
+
     return status;
 
 error:
