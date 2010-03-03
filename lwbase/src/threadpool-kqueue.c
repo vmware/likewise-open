@@ -458,6 +458,7 @@ ProcessRunnable(
     PLW_TASK_GROUP pGroup = NULL;
     PRING pRing = NULL;
     PRING pNext = NULL;
+    struct kevent* pEvent = NULL;
 
     /* We are guaranteed to run each task at least once.  If tasks remain
        on the runnable list by yielding, we will continue to run them
@@ -509,6 +510,38 @@ ProcessRunnable(
             {
                 /* Task is complete */
                 RingRemove(&pTask->QueueRing);
+
+                /* Remove any associated events from the kqueue */
+                if (pTask->Fd >= 0)
+                {
+                    if (pTask->EventLastWait & LW_TASK_EVENT_FD_READABLE)
+                    {
+                        status = AddCommand(pCommands, &pEvent);
+                        GOTO_ERROR_ON_STATUS(status);
+                        EV_SET(
+                            pEvent,
+                            pTask->Fd,
+                            EVFILT_READ,
+                            EV_DELETE,
+                            0,
+                            0,
+                            0);
+                    }
+
+                    if (pTask->EventLastWait & LW_TASK_EVENT_FD_WRITABLE)
+                    {
+                        status = AddCommand(pCommands, &pEvent);
+                        GOTO_ERROR_ON_STATUS(status);
+                        EV_SET(
+                            pEvent,
+                            pTask->Fd,
+                            EVFILT_WRITE,
+                            EV_DELETE,
+                            0,
+                            0,
+                            0);
+                    }
+                }
 
                 LOCK_POOL(pThread->pPool);
                 pThread->ulLoad--;
@@ -1134,9 +1167,11 @@ InitEventThread(
     cpuset_t cpuSet;
     struct kevent event;
     pthread_attr_t threadAttr;
+    BOOLEAN bThreadAttrInit = FALSE;
 
     status = LwErrnoToNtStatus(pthread_attr_init(&threadAttr));
     GOTO_ERROR_ON_STATUS(status);
+    bThreadAttrInit = TRUE;
 
     CPU_ZERO(&cpuSet);
 
@@ -1192,8 +1227,12 @@ InitEventThread(
             pThread));
     GOTO_ERROR_ON_STATUS(status);
 
-
 error:
+
+    if (bThreadAttrInit)
+    {
+        pthread_attr_destroy(&threadAttr);
+    }
 
     return status;
 }
