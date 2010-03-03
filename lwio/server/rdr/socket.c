@@ -1317,18 +1317,7 @@ SMBSocketFree(
     PSMB_SOCKET pSocket
     )
 {
-    BOOLEAN bInLock = FALSE;
-
     assert(!pSocket->refCount);
-
-    /* shutdown read side of socket to wake up thread to join */
-    if (pSocket->fd >= 0)
-    {
-        LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
-        pSocket->bShutdown = TRUE;
-        LWIO_UNLOCK_MUTEX(bInLock, &pSocket->mutex);
-        shutdown(pSocket->fd, SHUT_RD);
-    }
 
     LwRtlCancelTask(pSocket->pTask);
     LwRtlWaitTask(pSocket->pTask);
@@ -1347,6 +1336,7 @@ SMBSocketFree(
     pthread_cond_destroy(&pSocket->event);
 
     LWIO_SAFE_FREE_MEMORY(pSocket->pwszHostname);
+    LWIO_SAFE_FREE_MEMORY(pSocket->pwszCanonicalName);
     LWIO_SAFE_FREE_MEMORY(pSocket->pSecurityBlob);
 
     /* @todo: assert that the session hashes are empty */
