@@ -1032,6 +1032,7 @@ lwmsg_peer_task_rundown(
     LWMsgRing* next = NULL;
     PeerCall* call = NULL;
     LWMsgMessage cancel = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     pthread_mutex_lock(&task->call_lock);
 
@@ -1042,6 +1043,9 @@ lwmsg_peer_task_rundown(
 
         if (!call->is_outgoing && call->state & PEER_CALL_COMPLETED)
         {
+            message.tag = call->params.incoming.out.tag;
+            message.data = call->params.incoming.out.data;
+            lwmsg_assoc_destroy_message(task->assoc, &message);
             lwmsg_peer_call_delete(call);
         }
         else if (!(call->state & PEER_CALL_COMPLETED))
