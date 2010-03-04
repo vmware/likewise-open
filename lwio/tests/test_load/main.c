@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <wc16str.h>
 
 #define PAYLOAD "Hello, World!\r\n"
 
@@ -56,6 +57,13 @@ LoadThread(
     CHAR szCompare[sizeof(szPayload)];
     IO_STATUS_BLOCK ioStatus = {0};
     LONG64 llOffset = 0;
+    CHAR szHostname[256] = {0};
+
+    if (gethostname(szHostname, sizeof(szHostname) -1) != 0)
+    {
+        status = LwErrnoToNtStatus(errno);
+        GOTO_ERROR_ON_STATUS(status);
+    }
 
     status = RTL_ALLOCATE(&pFiles, LOAD_FILE, sizeof(*pFiles) * gState.ulConnectionsPerThread);
     GOTO_ERROR_ON_STATUS(status);
@@ -69,13 +77,12 @@ LoadThread(
 
         status = LwRtlWC16StringAllocatePrintfW(
             &pFile->Filename.FileName,
-            L"/rdr/%s@%u-%u/%s/test-load-%u-%u.txt",
+            L"/rdr/%s@%u/%s/test-load-%s-%u.txt",
             gState.pszServer,
-            pThread->ulNumber,
-            ulFile,
+            pThread->ulNumber * gState.ulThreadCount + ulFile,
             gState.pszShare,
-            pThread->ulNumber,
-            ulFile);
+            szHostname,
+            pThread->ulNumber * gState.ulThreadCount + ulFile);
         GOTO_ERROR_ON_STATUS(status);
     }
 
@@ -89,9 +96,9 @@ LoadThread(
 
     for (ulIter = 0; ulIter < gState.ulIterations; ulIter++)
     {
-        printf("[%u] Starting iteration %d or %d...\n",
+        printf("[%u] Starting iteration %d of %d...\n",
                pThread->ulNumber,
-               ulIter,
+               ulIter + 1,
                gState.ulIterations);
 
         /* Pass 1 -- open files for writing */
@@ -122,12 +129,6 @@ LoadThread(
                 NULL,                  /* EA buffer */
                 0,                     /* EA length */
                 NULL);                 /* ECP list */
-            if (status == STATUS_RETRY)
-            {
-                ulFile--;
-                status = STATUS_SUCCESS;
-            }
-
             GOTO_ERROR_ON_STATUS(status);
         }
 
@@ -149,12 +150,6 @@ LoadThread(
                 sizeof(szPayload), /* Buffer size */
                 &llOffset, /* File offset */
                 NULL); /* Key */
-
-            if (status == STATUS_RETRY)
-            {
-                ulFile--;
-                status = STATUS_SUCCESS;
-            }
             GOTO_ERROR_ON_STATUS(status);
         }
 
@@ -167,12 +162,6 @@ LoadThread(
             pFile = &pFiles[ulFile];
 
             status = LwNtCloseFile(pFile->hHandle);
-            if (status == STATUS_RETRY)
-            {
-                status = STATUS_SUCCESS;
-                ulFile--;
-                continue;
-            }
             GOTO_ERROR_ON_STATUS(status);
 
             pFile->hHandle = NULL;
@@ -184,22 +173,18 @@ LoadThread(
                 &pFile->Filename,      /* Filename */
                 NULL,                  /* Security descriptor */
                 NULL,                  /* Security QOS */
-                FILE_GENERIC_READ,     /* Desired access mask */
+                FILE_GENERIC_READ |
+                DELETE,                /* Desired access mask */
                 0,                     /* Allocation size */
                 0,                     /* File attributes */
                 FILE_SHARE_READ |
                 FILE_SHARE_WRITE |
                 FILE_SHARE_DELETE,     /* Share access */
                 FILE_OPEN,             /* Create disposition */
-                0,                     /* Create options */
+                FILE_DELETE_ON_CLOSE,  /* Create options */
                 NULL,                  /* EA buffer */
                 0,                     /* EA length */
                 NULL);                 /* ECP list */
-            if (status == STATUS_RETRY)
-            {
-                ulFile--;
-                status = STATUS_SUCCESS;
-            }
             GOTO_ERROR_ON_STATUS(status);
         }
 
@@ -219,13 +204,6 @@ LoadThread(
                 sizeof(szCompare), /* Buffer size */
                 &llOffset, /* File offset */
                 NULL); /* Key */
-            if (status == STATUS_RETRY)
-            {
-                ulFile--;
-                status = STATUS_SUCCESS;
-            }
-            GOTO_ERROR_ON_STATUS(status);
-
             GOTO_ERROR_ON_STATUS(status);
 
             if (ioStatus.BytesTransferred != sizeof(szCompare) ||
@@ -238,18 +216,13 @@ LoadThread(
 
         /* Pass 5 -- close handles */
 
-        printf("[%u] Closing files files...\n", pThread->ulNumber);
+        printf("[%u] Closing files...\n", pThread->ulNumber);
 
         for (ulFile = 0; ulFile < gState.ulConnectionsPerThread; ulFile++)
         {
             pFile = &pFiles[ulFile];
 
             status = LwNtCloseFile(pFile->hHandle);
-            if (status == STATUS_RETRY)
-            {
-                ulFile--;
-                status = STATUS_SUCCESS;
-            }
             GOTO_ERROR_ON_STATUS(status);
         }
     }
@@ -316,20 +289,108 @@ error:
     return status;
 }
 
+static
+VOID
+Usage(
+    PCSTR pszProgram
+    )
+{
+    printf("Usage: %s [ options ... ] server share\n", pszProgram);
+}
+
+static
+VOID
+Help(
+    PCSTR pszProgram
+    )
+{
+    Usage(pszProgram);
+
+    printf(
+        "\n"
+        "Options:\n"
+        "\n"
+        "  --help                            Show this help\n"
+        "  --iterations count                Number of iterations of open-write-read-close cycle\n"
+        "  --threads count                   Number of threads to spawn\n"
+        "  --connections count               Number of connections to create per thread\n");
+}
+
+static
+VOID
+ParseArgs(
+    int argc,
+    char** ppszArgv
+    )
+{
+    int i = 0;
+
+    for (i = 1; i < argc; i++)
+    {
+        if (!strcmp(ppszArgv[i], "--help"))
+        {
+            Help(ppszArgv[0]);
+            exit(0);
+        }
+        else if (!strcmp(ppszArgv[i], "--iterations"))
+        {
+            if (i + i == argc)
+            {
+                Usage(ppszArgv[0]);
+                exit(1);
+            }
+            gState.ulIterations = atoi(ppszArgv[++i]);
+        }
+        else if (!strcmp(ppszArgv[i], "--threads"))
+        {
+            if (i + i == argc)
+            {
+                Usage(ppszArgv[0]);
+                exit(1);
+            }
+            gState.ulThreadCount = atoi(ppszArgv[++i]);
+        }
+        else if (!strcmp(ppszArgv[i], "--connections"))
+        {
+            if (i + i == argc)
+            {
+                Usage(ppszArgv[0]);
+                exit(1);
+            }
+            gState.ulConnectionsPerThread = atoi(ppszArgv[++i]);
+        }
+        else
+        {
+            if (i + 1 >= argc)
+            {
+                Usage(ppszArgv[0]);
+                exit(1);
+            }
+
+            gState.pszServer = ppszArgv[i];
+            gState.pszShare = ppszArgv[++i];
+
+            return;
+        }
+    }
+
+    if (!gState.pszServer)
+    {
+        Usage(ppszArgv[0]);
+        exit(1);
+    }
+}
+
 int
 main(
     int argc,
     char** ppszArgv
     )
 {
-    gState.pszServer = ppszArgv[1];
-    gState.pszShare= ppszArgv[2];
+    ParseArgs(argc, ppszArgv);
 
     return Run();
 }
-
-
-
 
 /*
 local variables:

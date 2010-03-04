@@ -472,6 +472,12 @@ RtlQueryAccessTokenUnixInformation(
 ///
 
 BOOLEAN
+RtlIsSidMemberOfToken(
+    IN PACCESS_TOKEN AccessToken,
+    IN PSID Sid
+    );
+
+BOOLEAN
 RtlAccessCheck(
     IN PSECURITY_DESCRIPTOR_ABSOLUTE SecurityDescriptor,
     IN PACCESS_TOKEN AccessToken,
