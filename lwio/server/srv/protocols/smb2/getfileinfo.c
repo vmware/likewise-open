@@ -1516,8 +1516,6 @@ SrvBuildFileAllInfoResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pOutBuffer += sizeof(SMB2_FILE_ALL_INFORMATION_HEADER);
-
     pFileAllInfoHeader = (PSMB2_FILE_ALL_INFORMATION_HEADER)pOutBuffer;
     pFileAllInfoHeader->llChangeTime =
                             pFileAllInfo->BasicInformation.ChangeTime;
@@ -1554,6 +1552,8 @@ SrvBuildFileAllInfoResponse_SMB_V2(
 
     pFileAllInfoHeader->ulFilenameLength =
             pFileAllInfo->NameInformation.FileNameLength;
+
+    pOutBuffer += sizeof(SMB2_FILE_ALL_INFORMATION_HEADER);
 
     if (pFileAllInfoHeader->ulFilenameLength)
     {
