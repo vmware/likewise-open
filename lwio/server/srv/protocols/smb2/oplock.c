@@ -297,7 +297,9 @@ SrvProcessOplock_SMB_V2(
 
             if (pOplockState)
             {
-                ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState, FALSE);
+                ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState,
+                                                            NULL,
+                                                            FALSE);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
@@ -404,7 +406,9 @@ SrvProcessOplockBreak_SMB_V2(
             pOplockState->pTimerRequest = NULL;
         }
 
-        ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState, FALSE);
+        ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState,
+                    &pRequestHeader->ucOplockLevel,
+                    FALSE);
         BAIL_ON_NT_STATUS(ntStatus);
 
         switch (pRequestHeader->ucOplockLevel)
@@ -468,6 +472,7 @@ error:
 NTSTATUS
 SrvAcknowledgeOplockBreak_SMB_V2(
     PSRV_OPLOCK_STATE_SMB_V2 pOplockState,
+    PUCHAR                   pucNewOplockLevel,
     BOOLEAN                  bFileIsClosed
     )
 {
@@ -521,7 +526,18 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     }
     else
     {
-        pOplockState->oplockBuffer_ack.Response = IO_OPLOCK_BREAK_ACKNOWLEDGE;
+        if (pucNewOplockLevel &&
+            (*pucNewOplockLevel == SMB_OPLOCK_LEVEL_NONE) &&
+            (ucOplockLevel == SMB_OPLOCK_LEVEL_II))
+        {
+            pOplockState->oplockBuffer_ack.Response =
+                                                IO_OPLOCK_BREAK_ACK_NO_LEVEL_2;
+        }
+        else
+        {
+            pOplockState->oplockBuffer_ack.Response =
+                                                IO_OPLOCK_BREAK_ACKNOWLEDGE;
+        }
     }
 
     SrvPrepareOplockStateAsync_SMB_V2(pOplockState);

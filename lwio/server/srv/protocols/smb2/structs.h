@@ -687,6 +687,18 @@ typedef struct _SMB2_FILE_NAME_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_NAME_INFORMATION,
                              *PSMB2_FILE_NAME_INFORMATION;
 
+typedef struct _SMB2_FILE_NETWORK_OPEN_INFORMATION {
+    LONG64          llCreationTime;
+    LONG64          llLastAccessTime;
+    LONG64          llLastWriteTime;
+    LONG64          llChangeTime;
+    ULONG64         ullAllocationSize;
+    ULONG64         ullEndOfFile;
+    FILE_ATTRIBUTES ulFileAttributes;
+    ULONG           ulPad;
+} __attribute__((__packed__)) SMB2_FILE_NETWORK_OPEN_INFORMATION,
+                            *PSMB2_FILE_NETWORK_OPEN_INFORMATION;
+
 typedef struct
 {
     USHORT   usLength;

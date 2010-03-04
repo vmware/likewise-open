@@ -345,6 +345,7 @@ SrvProcessOplockBreak_SMB_V2(
 NTSTATUS
 SrvAcknowledgeOplockBreak_SMB_V2(
     PSRV_OPLOCK_STATE_SMB_V2 pOplockState,
+    PUCHAR  pucNewOplockLevel,
     BOOLEAN bFileIsClosed
     );
 

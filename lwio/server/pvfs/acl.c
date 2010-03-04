@@ -272,7 +272,7 @@ PvfsSetSecurityDescriptorFile(
     ULONG ulCurrentSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
     BYTE pNewSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
     ULONG ulNewSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
-
+    PSECURITY_DESCRIPTOR_ABSOLUTE pIncAbsSecDesc = NULL;
 
     /* Sanity checks */
 
@@ -281,6 +281,53 @@ PvfsSetSecurityDescriptorFile(
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
+
+    /* If the new Security Descriptor contains owner or group SID
+       information, berify that the user's ACCESS_TOKEN contains the
+       SID as a member */
+
+    if (SecInfo & (OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION))
+    {
+        PSID pOwner = NULL;
+        PSID pGroup = NULL;
+        BOOLEAN bDefaulted = FALSE;
+
+        ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
+                      &pIncAbsSecDesc,
+                      pSecDesc);
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (SecInfo & OWNER_SECURITY_INFORMATION)
+        {
+            ntError = RtlGetOwnerSecurityDescriptor(
+                          pIncAbsSecDesc,
+                          &pOwner,
+                          &bDefaulted);
+            BAIL_ON_NT_STATUS(ntError);
+
+            if (!RtlIsSidMemberOfToken(pCcb->pUserToken, pOwner))
+            {
+                ntError = STATUS_ACCESS_DENIED;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+
+        if (SecInfo & GROUP_SECURITY_INFORMATION)
+        {
+            ntError = RtlGetGroupSecurityDescriptor(
+                          pIncAbsSecDesc,
+                          &pGroup,
+                          &bDefaulted);
+            BAIL_ON_NT_STATUS(ntError);
+
+            if (!RtlIsSidMemberOfToken(pCcb->pUserToken, pGroup))
+            {
+                ntError = STATUS_ACCESS_DENIED;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+    }
+
 
     if (SecInfo == SecInfoAll)
     {
@@ -342,6 +389,11 @@ PvfsSetSecurityDescriptorFile(
 
 
 cleanup:
+    if (pIncAbsSecDesc)
+    {
+        PvfsFreeAbsoluteSecurityDescriptor(&pIncAbsSecDesc);
+    }
+
     return ntError;
 
 error:

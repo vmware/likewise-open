@@ -1011,6 +1011,7 @@ SrvBuildFileNetworkOpenInfoResponse_SMB_V2(
     ULONG ulOffset         = 0;
     ULONG ulTotalBytesUsed = 0;
     PFILE_NETWORK_OPEN_INFORMATION pFileNetworkOpenInfo = NULL;
+    SMB2_FILE_NETWORK_OPEN_INFORMATION fileNetworkOpenInfoPacked = {0};
     PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
 
     pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
@@ -1059,7 +1060,7 @@ SrvBuildFileNetworkOpenInfoResponse_SMB_V2(
     pGetInfoResponseHeader->usOutBufferOffset = ulOffset;
 
     pGetInfoResponseHeader->ulOutBufferLength =
-                                            sizeof(FILE_NETWORK_OPEN_INFORMATION);
+                                    sizeof(SMB2_FILE_NETWORK_OPEN_INFORMATION);
 
     if (ulBytesAvailable < pGetInfoResponseHeader->ulOutBufferLength)
     {
@@ -1067,7 +1068,23 @@ SrvBuildFileNetworkOpenInfoResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    memcpy(pOutBuffer, pFileNetworkOpenInfo, sizeof(FILE_NETWORK_OPEN_INFORMATION));
+    fileNetworkOpenInfoPacked.llChangeTime        =
+                            pFileNetworkOpenInfo->ChangeTime;
+    fileNetworkOpenInfoPacked.llCreationTime      =
+                            pFileNetworkOpenInfo->CreationTime;
+    fileNetworkOpenInfoPacked.llLastAccessTime    =
+                            pFileNetworkOpenInfo->LastAccessTime;
+    fileNetworkOpenInfoPacked.llLastWriteTime     =
+                            pFileNetworkOpenInfo->LastWriteTime;
+    fileNetworkOpenInfoPacked.ullAllocationSize =
+                            pFileNetworkOpenInfo->AllocationSize;
+    fileNetworkOpenInfoPacked.ullEndOfFile      =
+                            pFileNetworkOpenInfo->EndOfFile;
+    fileNetworkOpenInfoPacked.ulFileAttributes    =
+                            pFileNetworkOpenInfo->FileAttributes;
+
+    memcpy(pOutBuffer, &fileNetworkOpenInfoPacked,
+                sizeof(SMB2_FILE_NETWORK_OPEN_INFORMATION));
 
     // pOutBuffer += sizeof(FILE_NETWORK_OPEN_INFORMATION);
     // ulBytesAvailable -= sizeof(FILE_NETWORK_OPEN_INFORMATION);
@@ -1516,8 +1533,6 @@ SrvBuildFileAllInfoResponse_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pOutBuffer += sizeof(SMB2_FILE_ALL_INFORMATION_HEADER);
-
     pFileAllInfoHeader = (PSMB2_FILE_ALL_INFORMATION_HEADER)pOutBuffer;
     pFileAllInfoHeader->llChangeTime =
                             pFileAllInfo->BasicInformation.ChangeTime;
@@ -1554,6 +1569,8 @@ SrvBuildFileAllInfoResponse_SMB_V2(
 
     pFileAllInfoHeader->ulFilenameLength =
             pFileAllInfo->NameInformation.FileNameLength;
+
+    pOutBuffer += sizeof(SMB2_FILE_ALL_INFORMATION_HEADER);
 
     if (pFileAllInfoHeader->ulFilenameLength)
     {
