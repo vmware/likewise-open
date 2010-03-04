@@ -175,10 +175,13 @@ SrvProcessRead_SMB_V2(
             pReadState->llByteOffset =
                                 pReadState->pRequestHeader->ullFileOffset;
 
-            ntStatus = SrvAllocateMemory(
+            if (pReadState->pRequestHeader->ulDataLength > 0)
+            {
+                ntStatus = SrvAllocateMemory(
                             pReadState->pRequestHeader->ulDataLength,
                             (PVOID*)&pReadState->pData);
-            BAIL_ON_NT_STATUS(ntStatus);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pReadState->stage = SRV_READ_STAGE_SMB_V2_ATTEMPT_READ;
 
