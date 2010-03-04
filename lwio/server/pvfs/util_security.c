@@ -150,7 +150,7 @@ PvfsAccessCheckFile(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     ACCESS_MASK AccessMask = 0;
-    ACCESS_MASK DeleteAccessMask = 0;
+    ACCESS_MASK GrantedAccess = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
     BYTE pRelativeSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
     ULONG ulRelativeSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
@@ -162,6 +162,8 @@ PvfsAccessCheckFile(
                                     GROUP_SECURITY_INFORMATION |
                                     DACL_SECURITY_INFORMATION);
     PSTR pszParentPath = NULL;
+    PSID pOwner = NULL;
+    BOOLEAN bOwnerDefaulted = FALSE;
 
     BAIL_ON_INVALID_PTR(pToken, ntError);
     BAIL_ON_INVALID_PTR(pGranted, ntError);
@@ -192,11 +194,11 @@ PvfsAccessCheckFile(
                        DELETE,
                        0,
                        &gPvfsFileGenericMapping,
-                       &DeleteAccessMask,
+                       &GrantedAccess,
                        &ntError);
         if (bGranted)
         {
-            Desired &= ~DELETE;
+            ClearFlag(Desired, DELETE);
         }
 
     }
@@ -215,13 +217,28 @@ PvfsAccessCheckFile(
                   (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer);
     BAIL_ON_NT_STATUS(ntError);
 
+    /* Tests against NTFS/Win2003R2 show that the file/directory object
+       owner is always granted FILE_READ_ATTRIBUTES */
+
+    ntError = RtlGetOwnerSecurityDescriptor(
+                  pSecDesc,
+                  &pOwner,
+                  &bOwnerDefaulted);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (RtlIsSidMemberOfToken(pToken, pOwner))
+    {
+        ClearFlag(Desired, FILE_READ_ATTRIBUTES);
+        SetFlag(GrantedAccess, FILE_READ_ATTRIBUTES);
+    }
+
     /* Now check access */
 
     bGranted = RtlAccessCheck(
                    pSecDesc,
                    pToken,
                    Desired,
-                   DeleteAccessMask,
+                   GrantedAccess,
                    &gPvfsFileGenericMapping,
                    &AccessMask,
                    &ntError);
