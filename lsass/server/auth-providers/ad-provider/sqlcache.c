@@ -642,12 +642,32 @@ LsaDbFindUserByName(
     // do not free
     sqlite3_stmt *pstQuery = NULL;
     PLSA_SECURITY_OBJECT pObject = NULL;
+    PSTR pszDnsDomain = NULL;
 
     ENTER_SQLITE_LOCK(&pConn->lock, bInLock);
 
     switch (pUserNameInfo->nameType)
     {
        case NameType_UPN:
+            dwError = LsaDmQueryDomainInfo(
+                            pUserNameInfo->pszDomainNetBiosName,
+                            &pszDnsDomain,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL);
+            BAIL_ON_LSA_ERROR(dwError);
+
             pstQuery = pConn->pstFindUserByUPN;
             dwError = sqlite3_bind_text(
                     pstQuery,
@@ -661,7 +681,7 @@ LsaDbFindUserByName(
             dwError = sqlite3_bind_text(
                     pstQuery,
                     2,
-                    pUserNameInfo->pszDomainNetBiosName,
+                    pszDnsDomain,
                     -1, // let sqlite calculate the length
                     SQLITE_TRANSIENT //let sqlite make its own copy
                     );
@@ -715,6 +735,7 @@ LsaDbFindUserByName(
     *ppObject = pObject;
 
 cleanup:
+    LW_SAFE_FREE_STRING(pszDnsDomain);
     LEAVE_SQLITE_LOCK(&pConn->lock, bInLock);
 
     return dwError;

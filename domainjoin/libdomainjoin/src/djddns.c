@@ -79,7 +79,6 @@ DJConfigureHostInDDNS(
     LWException** ppException
     )
 {
-    // TODO
 }
 
 static

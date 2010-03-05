@@ -103,7 +103,7 @@ LsaSrvInitRpcServer(
     PCSTR pszSrvLibPath = NULL;
 
     if (LW_IS_NULL_OR_EMPTY_STR(pRpc->pszSrvLibPath)) {
-        dwError = ENOENT;
+        dwError = ERROR_FILE_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

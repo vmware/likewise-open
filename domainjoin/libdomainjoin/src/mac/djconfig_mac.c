@@ -426,8 +426,8 @@ DJFlushCache(
         "/usr/bin/dscacheutil" /* On Mac OS X 10.5 */
     };
 
-    /* TODO -- Add better logging */
-    DJ_LOG_INFO("Enter %s()", __FUNCTION__);
+    DJ_LOG_INFO("Flushing dns cache");
+
 
     for (i = 0; i < (sizeof(cacheUtils) / sizeof(cacheUtils[0])); i++)
     {
@@ -458,7 +458,6 @@ DJFlushCache(
     ceError = CENTERROR_FILE_NOT_FOUND;
 
 error:
-    DJ_LOG_INFO("Leave %s() with error 0x%08x", __FUNCTION__, ceError);
     return ceError;
 }
 

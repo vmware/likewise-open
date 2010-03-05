@@ -859,7 +859,7 @@ AD_CheckUserInList(
         }
     }
 
-    dwError = EACCES;
+    dwError = LW_ERROR_ACCESS_DENIED;
     BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
@@ -874,7 +874,7 @@ cleanup:
 
 error:
 
-    if (dwError == EACCES)
+    if (dwError == LW_ERROR_ACCESS_DENIED)
     {
         LSA_LOG_ERROR("Error: User [%s] not in restricted login list", pszUserName);
     }
@@ -1165,7 +1165,7 @@ AD_RemoveUserByIdFromCache(
     // restrict access to root
     if (peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -3397,7 +3397,7 @@ AD_UpdateObject(
     case LSA_OBJECT_TYPE_USER:
         if (gettimeofday(&current_tv, NULL) < 0)
         {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
         ADConvertTimeUnix2Nt(current_tv.tv_sec,

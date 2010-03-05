@@ -84,14 +84,14 @@ LsaNISGetNicknames(
 
     if (!bFileExists)
     {
-        dwError = ENOENT;
+        dwError = ERROR_FILE_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     fp = fopen(pszNicknameFilePath, "r");
     if (!fp)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -111,7 +111,7 @@ LsaNISGetNicknames(
             }
             else
             {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }

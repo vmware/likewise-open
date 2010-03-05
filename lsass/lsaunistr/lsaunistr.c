@@ -83,7 +83,7 @@ LsaWc16snToMbs(
     
     pwszTruncated = _wc16sndup(pwszInput, sMaxChars);
     if (!pwszTruncated) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -188,7 +188,7 @@ LsaSW16printf(
                   args);
     
     if (ret == -1){
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
     

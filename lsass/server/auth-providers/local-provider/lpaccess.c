@@ -62,7 +62,7 @@ LocalCheckForAddAccess(
 
     if (!bIsAdmin)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
     }
 
 error:
@@ -83,7 +83,7 @@ LocalCheckForModifyAccess(
 
     if (!bIsAdmin)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
     }
 
 error:
@@ -109,7 +109,7 @@ LocalCheckForPasswordChangeAccess(
 
         if (!bIsAdmin)
         {
-            dwError = EACCES;
+            dwError = LW_ERROR_ACCESS_DENIED;
         }
     }
 
@@ -139,7 +139,7 @@ LocalCheckForDeleteAccess(
 
     if (!bIsAdmin)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
     }
 
 error:

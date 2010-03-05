@@ -61,7 +61,7 @@ LsaAppendAndFreePtrs(
 
     if (dwNewCount < dwCurrentCount)
     {
-        dwError = ERANGE;
+        dwError = LW_ERROR_ERRNO_ERANGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

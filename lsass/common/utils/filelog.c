@@ -83,7 +83,7 @@ LsaOpenFileLog(
 
     pFileLog->fp = fopen(pFileLog->pszFilePath, "w");
     if (pFileLog->fp == NULL) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         goto error;
     }
 

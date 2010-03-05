@@ -853,30 +853,21 @@ DJManageDaemonDescription(
 
     *description = NULL;
 
-    LW_TRY(exc, DJGetDaemonStatus(pszName, &bStarted, &LW_EXC));
-
-    // if we got this far, we have validated the existence of the
-    // daemon and we have figured out if its started or stopped
-
-    // if we are already in the desired state, do nothing.
-    if (bStarted != bStatus) {
-
-        CT_SAFE_FREE_STRING(daemonPath);
-        LW_TRY(exc, FindDaemonScript(pszName, &daemonPath, &LW_EXC));
-        if(bStatus)
-        {
-            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
-                    "Start %s by running '%s start'.\n"
-                    "Create symlinks for %s so that it starts at reboot.\n",
-                    pszName, daemonPath, pszName));
-        }
-        else
-        {
-            LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
-                    "Stop %s by running '%s stop'.\n"
-                    "Remove symlinks for %s so that it no longer starts at reboot.\n",
-                    pszName, daemonPath, pszName));
-        }
+    CT_SAFE_FREE_STRING(daemonPath);
+    LW_TRY(exc, FindDaemonScript(pszName, &daemonPath, &LW_EXC));
+    if(bStatus)
+    {
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
+                "Start %s by running '%s start'.\n"
+                "Create symlinks for %s so that it starts at reboot.\n",
+                pszName, daemonPath, pszName));
+    }
+    else
+    {
+        LW_CLEANUP_CTERR(exc, CTAllocateStringPrintf(description,
+                "Stop %s by running '%s stop'.\n"
+                "Remove symlinks for %s so that it no longer starts at reboot.\n",
+                pszName, daemonPath, pszName));
     }
 
 cleanup:

@@ -71,7 +71,6 @@ libdomainjoin_la_SOURCES += \
        djdaemonmgr.c \
        aix/djaixparser.c \
        mac/djconfig_mac.c \
-       djtimemgmt.c \
        djsshconf.c    \
        djddns.c
 

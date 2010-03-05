@@ -1276,7 +1276,7 @@ AD_AddAllowedMember(
                       gpAllowedSIDs,
                       pszSID,
                       (PVOID*)&pszValue);
-        if (dwError == ENOENT)
+        if (dwError == ERROR_NOT_FOUND)
         {
             dwError = LwAllocateString(
                           pszSID,

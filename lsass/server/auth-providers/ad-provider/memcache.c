@@ -506,7 +506,7 @@ MemCacheLoadFile(
                                 pConn->pSIDToPasswordVerifier,
                                 ((PLSA_PASSWORD_VERIFIER)message.data)->pszObjectSid,
                                 (PVOID*)&pFromHash);
-                if (dwError == ENOENT)
+                if (dwError == ERROR_NOT_FOUND)
                 {
                     dwError = 0;
                 }
@@ -874,7 +874,7 @@ MemCacheFindUserByName(
                     pIndex,
                     pszKey,
                     (PVOID*)&pListEntry);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = LW_ERROR_NOT_HANDLED;
     }
@@ -931,7 +931,7 @@ MemCacheFindUserById(
                     pIndex,
                     (PVOID)(size_t)uid,
                     (PVOID*)&pListEntry);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = LW_ERROR_NOT_HANDLED;
     }
@@ -1011,7 +1011,7 @@ MemCacheFindGroupByName(
                     pIndex,
                     pszKey,
                     (PVOID *)&pListEntry);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = LW_ERROR_NOT_HANDLED;
     }
@@ -1067,7 +1067,7 @@ MemCacheFindGroupById(
                     pIndex,
                     (PVOID)(size_t)gid,
                     (PVOID *)&pListEntry);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = LW_ERROR_NOT_HANDLED;
     }
@@ -1383,7 +1383,7 @@ MemCacheRemoveObjectByHashKey(
                     pTable,
                     pvKey,
                     (PVOID*)&pListEntry);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         // The key does not exist
         dwError = 0;
@@ -1730,7 +1730,7 @@ MemCacheFindMembership(
                     pConn->pParentSIDToMembershipList,
                     pszParentSid,
                     (PVOID*)&pGuardian);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         return NULL;
     }
@@ -1954,7 +1954,7 @@ MemCacheRemoveOrphanedMemberships(
                                 pConn->pSIDToSecurityObject,
                                 pMembership->membership.pszParentSid,
                                 (PVOID*)&pListEntry);
-                if (dwError == ENOENT)
+                if (dwError == ERROR_NOT_FOUND)
                 {
                     bOrphaned = TRUE;
                     dwError = 0;
@@ -1968,7 +1968,7 @@ MemCacheRemoveOrphanedMemberships(
                                 pConn->pSIDToSecurityObject,
                                 pMembership->membership.pszChildSid,
                                 (PVOID*)&pListEntry);
-                if (dwError == ENOENT)
+                if (dwError == ERROR_NOT_FOUND)
                 {
                     bOrphaned = TRUE;
                     dwError = 0;
@@ -2111,7 +2111,7 @@ MemCacheSetPinnedObjectWeights(
                             pConn->pChildSIDToMembershipList,
                             pObject->pszObjectSid,
                             (PVOID*)&pGuardian);
-            if (dwError == ENOENT)
+            if (dwError == ERROR_NOT_FOUND)
             {
                 dwError = 0;
             }
@@ -2133,7 +2133,7 @@ MemCacheSetPinnedObjectWeights(
                                 pConn->pSIDToSecurityObject,
                                 pMembership->membership.pszParentSid,
                                 (PVOID*)&pListEntry);
-                if (dwError == ENOENT)
+                if (dwError == ERROR_NOT_FOUND)
                 {
                     dwError = 0;
                 }
@@ -2229,7 +2229,7 @@ MemCacheMaintainSizeCap(
                         pConn->pSIDToSecurityObject,
                         pFromHash->pszObjectSid,
                         (PVOID*)&pListEntry);
-        if (dwError == ENOENT)
+        if (dwError == ERROR_NOT_FOUND)
         {
             LSA_LOG_INFO("Removing orphaned password verifier for sid %s",
                     pFromHash->pszObjectSid);
@@ -2266,7 +2266,7 @@ MemCacheMaintainSizeCap(
                             pConn->pChildSIDToMembershipList,
                             pFromHash->pszObjectSid,
                             (PVOID*)&pGuardian);
-            if (dwError == ENOENT)
+            if (dwError == ERROR_NOT_FOUND)
             {
                 dwError = 0;
             }
@@ -2288,7 +2288,7 @@ MemCacheMaintainSizeCap(
                                 pConn->pSIDToSecurityObject,
                                 pMembership->membership.pszParentSid,
                                 (PVOID*)&pListEntry);
-                if (dwError == ENOENT)
+                if (dwError == ERROR_NOT_FOUND)
                 {
                     dwError = 0;
                 }
@@ -2350,7 +2350,7 @@ MemCacheMaintainSizeCap(
                         pConn->pSIDToPasswordVerifier,
                         pszSid,
                         (PVOID*)&pFromHash);
-        if (dwError == ENOENT)
+        if (dwError == ERROR_NOT_FOUND)
         {
             // The password verifier did not exist
             dwError = 0;
@@ -2628,7 +2628,7 @@ MemCacheAddMembership(
                     pConn->pParentSIDToMembershipList,
                     pMembership->membership.pszParentSid,
                     (PVOID*)&pGuardian);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         // Gotta add the guardian node
         dwError = 0;
@@ -2670,7 +2670,7 @@ MemCacheAddMembership(
                     pConn->pChildSIDToMembershipList,
                     pMembership->membership.pszChildSid,
                     (PVOID*)&pGuardian);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         // Gotta add the guardian node
         dwError = 0;
@@ -2753,7 +2753,7 @@ MemCacheRemoveMembershipsBySid(
                     pIndex,
                     pszSid,
                     (PVOID*)&pGuardian);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = 0;
     }
@@ -2900,7 +2900,7 @@ MemCacheStoreGroupMembership(
                     pConn->pParentSIDToMembershipList,
                     pszParentSid,
                     (PVOID*)&pGuardian);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = 0;
     }
@@ -2924,7 +2924,7 @@ MemCacheStoreGroupMembership(
                             pCombined,
                             pExistingMembership->membership.pszChildSid,
                             (PVOID*)&pMembership);
-            if (dwError == ENOENT)
+            if (dwError == ERROR_NOT_FOUND)
             {
                 // This entry from the existing cache data is not in the list
                 // passed to this function
@@ -3075,7 +3075,7 @@ MemCacheStoreGroupsForUser(
                     pConn->pParentSIDToMembershipList,
                     pszChildSid,
                     (PVOID*)&pGuardian);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = 0;
     }
@@ -3097,7 +3097,7 @@ MemCacheStoreGroupsForUser(
                                 pCombined,
                                 pExistingMembership->membership.pszParentSid,
                                 (PVOID*)&pMembership);
-                if (dwError == ENOENT)
+                if (dwError == ERROR_NOT_FOUND)
                 {
                     // This entry from the existing cache data is not in the list
                     // passed to this function
@@ -3217,7 +3217,7 @@ MemCacheGetMemberships(
                     pIndex,
                     pszSid,
                     (PVOID*)&pGuardian);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         // This function returns success with 0 results when the group is not
         // found in the cache
@@ -3339,7 +3339,7 @@ MemCacheEnumUsersCache(
                         pIndex,
                         pszResume,
                         (PVOID*)&pListEntry);
-        if (dwError == ENOENT)
+        if (dwError == ERROR_NOT_FOUND)
         {
             dwError = LW_ERROR_NOT_HANDLED;
         }
@@ -3429,7 +3429,7 @@ MemCacheEnumGroupsCache(
                         pIndex,
                         pszResume,
                         (PVOID*)&pListEntry);
-        if (dwError == ENOENT)
+        if (dwError == ERROR_NOT_FOUND)
         {
             dwError = LW_ERROR_NOT_HANDLED;
         }
@@ -3505,7 +3505,7 @@ MemCacheFindObjectByDN(
                     pIndex,
                     pszDN,
                     (PVOID*)&pListEntry);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = LW_ERROR_NOT_HANDLED;
     }
@@ -3596,7 +3596,7 @@ MemCacheFindObjectBySid(
                     pIndex,
                     pszSid,
                     (PVOID*)&pListEntry);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = LW_ERROR_NOT_HANDLED;
     }
@@ -3690,7 +3690,7 @@ MemCacheGetPasswordVerifier(
                     pIndex,
                     pszUserSid,
                     (PVOID*)&pFromHash);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = LW_ERROR_NOT_HANDLED;
     }
@@ -3742,7 +3742,7 @@ MemCacheStorePasswordVerifier(
                     pIndex,
                     pVerifier->pszObjectSid,
                     (PVOID*)&pFromHash);
-    if (dwError == ENOENT)
+    if (dwError == ERROR_NOT_FOUND)
     {
         dwError = 0;
     }

@@ -455,7 +455,7 @@ LsaAddUserMain(
 
     if (geteuid() != 0) {
         fprintf(stderr, "This program requires super-user privileges.\n");
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

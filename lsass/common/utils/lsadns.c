@@ -61,7 +61,7 @@ LsaDnsGetHostInfo(
 
     if ( gethostname(szBuffer, sizeof(szBuffer)) != 0 )
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

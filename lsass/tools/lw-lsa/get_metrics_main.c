@@ -288,7 +288,6 @@ PrintMetricPack_0(
     printf("Failed session opens:         %llu\n", (unsigned long long)pMetricPack->failedOpenSession);
     printf("Failed session closures:      %llu\n", (unsigned long long)pMetricPack->failedCloseSession);
     printf("Failed password changes:      %llu\n", (unsigned long long)pMetricPack->failedChangePassword);
-    printf("Unauthorized access attempts: %llu\n", (unsigned long long)pMetricPack->unauthorizedAccesses);
 }
 
 VOID
@@ -313,7 +312,6 @@ PrintMetricPack_1(
     printf("Failed session closures:              %llu\n", (unsigned long long)pMetricPack->failedCloseSession);
     printf("Successful password changes:          %llu\n", (unsigned long long)pMetricPack->successfulChangePassword);
     printf("Failed password changes:              %llu\n", (unsigned long long)pMetricPack->failedChangePassword);
-    printf("Unauthorized access attempts:         %llu\n", (unsigned long long)pMetricPack->unauthorizedAccesses);
 }
 
 DWORD

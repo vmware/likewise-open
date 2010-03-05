@@ -32,7 +32,6 @@
 #include "djdistroinfo.h"
 #include "djsshconf.h"
 #include "djpamconf.h"
-#include "djtimemgmt.h"
 #include "djcli.h"
 #include "djfirewall.h"
 #include "djauditing.h"
@@ -104,7 +103,6 @@ ShowUsageInternal()
     fprintf(stdout, "    get_arch\n");
     fprintf(stdout, "    get_distro\n");
     fprintf(stdout, "    get_distro_version\n");
-    fprintf(stdout, "    sync_time <domain controller> <allowed drift>\n");
     fprintf(stdout, "    raise_error <error code | error name | 0xhex error code>\n");
     fprintf(stdout, "\n");
 }
@@ -915,20 +913,6 @@ int main(
         LW_TRY(&exc, DJNetInitialize(bEnableDcerpcd, &LW_EXC));
         LW_TRY(&exc, DJSetComputerName(argPos[0], NULL, &LW_EXC));
     }
-#ifndef ENABLE_MINIMAL
-    else if(!strcmp(argPos[0], "sync_time"))
-    {
-        unsigned int allowedDrift;
-        argPos++;
-        if(--remainingArgs != 2)
-        {
-            ShowUsage();
-            goto cleanup;
-        }
-        LW_CLEANUP_CTERR(&exc, ParseUInt(argPos[1], &allowedDrift));
-        LW_CLEANUP_CTERR(&exc, DJSyncTimeToDC(argPos[0], allowedDrift));
-    }
-#endif
     else if(!strcmp(argPos[0], "join"))
     {
         argPos++;

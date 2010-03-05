@@ -274,7 +274,7 @@ GPCloseLibrary(
 
         if (dlclose(gpGPLibHandle))
         {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
         }
         gpGPLibHandle = (void*) NULL;
         BAIL_ON_LSA_ERROR(dwError);

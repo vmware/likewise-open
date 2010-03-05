@@ -135,7 +135,7 @@ lsassd_main(
     BAIL_ON_LSA_ERROR(dwError);
 
     if (atexit(LsaSrvExitHandler) < 0) {
-       dwError = errno;
+       dwError = LwMapErrnoToLwError(errno);
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -189,8 +189,9 @@ lsassd_main(
 
         if (ret < 0)
         {
-            LSA_LOG_ERROR("Could not notify service manager: %s (%i)", strerror(errno), errno);
             dwError = LwMapErrnoToLwError(errno);
+            LSA_LOG_ERROR("Could not notify service manager: %s (%i)",
+                    strerror(errno), errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -457,8 +458,8 @@ LsaSrvRaiseMaxFiles(
     {
         if (setrlimit(RLIMIT_NOFILE, &maxFiles) < 0)
         {
-            LSA_LOG_ERROR("Raising max fd limit failed");
             dwError = LwMapErrnoToLwError(errno);
+            LSA_LOG_ERROR("Raising max fd limit failed");
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -712,7 +713,7 @@ LsaSrvExitHandler(
     if (dwExitCode) {
        fp = fopen(szErrCodeFilePath, "w");
        if (fp == NULL) {
-          dwError = errno;
+          dwError = LwMapErrnoToLwError(errno);
           BAIL_ON_LSA_ERROR(dwError);
        }
        fprintf(fp, "%d\n", dwExitCode);

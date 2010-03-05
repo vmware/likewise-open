@@ -56,7 +56,7 @@ DirectoryAllocateMemory(
     pMemory = malloc(sSize);
     if (!pMemory)
     {
-        dwError = ENOMEM;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
     }
     else
     {
@@ -90,7 +90,7 @@ DirectoryReallocMemory(
 
     if (!pNewMemory)
     {
-       dwError = ENOMEM;
+       dwError = LW_ERROR_OUT_OF_MEMORY;
        *ppNewMemory = NULL;
     }
     else

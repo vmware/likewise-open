@@ -176,8 +176,8 @@ LsaPamDisplayMOTD(
     phMOTD = fopen(MOTD_FILE, "r");
     if (phMOTD == NULL)
     {
+        dwError = LwMapErrnoToLwError(errno);
         LSA_LOG_PAM_INFO("Unable to open MOTD file for reading: %s", MOTD_FILE);
-        dwError = errno;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

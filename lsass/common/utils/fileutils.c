@@ -58,7 +58,7 @@ LsaRemoveFile(
             if (errno == EINTR) {
                 continue;
             }
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         } else {
             break;
@@ -90,7 +90,7 @@ LsaCheckFileExists(
              *pbFileExists = 0;
              break;
            }
-           dwError = errno;
+           dwError = LwMapErrnoToLwError(errno);
            BAIL_ON_LSA_ERROR(dwError);
         } else {
           *pbFileExists = 1;
@@ -123,7 +123,7 @@ LsaCheckSockExists(
              *pbSockExists = 0;
              break;
            }
-           dwError = errno;
+           dwError = LwMapErrnoToLwError(errno);
            BAIL_ON_LSA_ERROR(dwError);
         } else {
           *pbSockExists = (((statbuf.st_mode & S_IFMT) == S_IFSOCK) ? TRUE : FALSE);
@@ -163,7 +163,7 @@ LsaCheckLinkExists(
              break;
            }
 
-           dwError = errno;
+           dwError = LwMapErrnoToLwError(errno);
            BAIL_ON_LSA_ERROR(dwError);
         }
         else
@@ -209,7 +209,7 @@ LsaCheckFileOrLinkExists(
              break;
            }
 
-           dwError = errno;
+           dwError = LwMapErrnoToLwError(errno);
            BAIL_ON_LSA_ERROR(dwError);
         }
         else
@@ -239,7 +239,7 @@ LsaMoveFile(
     DWORD dwError = 0;
 
     if (rename(pszSrcPath, pszDstPath) < 0) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
     }
 
     return dwError;
@@ -258,7 +258,7 @@ LsaChangePermissions(
             if (errno == EINTR) {
                 continue;
             }
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         } else {
             break;
@@ -281,7 +281,7 @@ LsaChangeOwner(
     struct stat statbuf = {0};
 
     if (lstat(pszPath, &statbuf) < 0) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -293,7 +293,7 @@ LsaChangeOwner(
                 if (errno == EINTR) {
                     continue;
                 }
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             } else {
                 break;
@@ -305,7 +305,7 @@ LsaChangeOwner(
                 if (errno == EINTR) {
                     continue;
                 }
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             } else {
                 break;
@@ -345,10 +345,10 @@ LsaChangeDirectory(
     )
 {
     if (pszPath == NULL || *pszPath == '\0')
-        return EINVAL;
+        return LW_ERROR_INVALID_PARAMETER;
 
     if (chdir(pszPath) < 0)
-        return errno;
+        return LwMapErrnoToLwError(errno);
 
     return 0;
 }
@@ -368,7 +368,7 @@ LsaRemoveDirectory(
     CHAR szBuf[PATH_MAX+1];
 
     if ((pDir = opendir(pszPath)) == NULL) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -383,7 +383,7 @@ LsaRemoveDirectory(
         memset(&statbuf, 0, sizeof(struct stat));
 
         if (stat(szBuf, &statbuf) < 0) {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -392,7 +392,7 @@ LsaRemoveDirectory(
             BAIL_ON_LSA_ERROR(dwError);
 
             if (rmdir(szBuf) < 0) {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -435,7 +435,7 @@ LsaCheckDirectoryExists(
                 *pbDirExists = FALSE;
                 break;
             }
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
 
         }
@@ -463,7 +463,7 @@ LsaGetCurrentDirectoryPath(
     PSTR pszPath = NULL;
 
     if (getcwd(szBuf, PATH_MAX) == NULL) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -519,7 +519,7 @@ LsaCreateDirectoryRecursive(
 
         if (!bDirExists) {
             if (mkdir(pszDirPath, dwWorkingFileMode) < 0) {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
             bDirCreated = TRUE;
@@ -575,7 +575,7 @@ LsaCreateDirectory(
     mode_t dwWorkingFileMode;
 
     if (pszPath == NULL || *pszPath == '\0') {
-        dwError = EINVAL;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -687,7 +687,7 @@ LsaGetOwnerAndPermissions(
     memset(&statbuf, 0, sizeof(struct stat));
 
     if (stat(pszSrcPath, &statbuf) < 0) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -718,7 +718,7 @@ LsaCopyFileWithPerms(
 
     if (LW_IS_NULL_OR_EMPTY_STR(pszSrcPath) ||
         LW_IS_NULL_OR_EMPTY_STR(pszDstPath)) {
-        dwError = EINVAL;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -730,12 +730,12 @@ LsaCopyFileWithPerms(
     strcat(pszTmpPath, pszTmpSuffix);
 
     if ((iFd = open(pszSrcPath, O_RDONLY, S_IRUSR)) < 0) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if ((oFd = open(pszTmpPath, O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR|S_IWUSR)) < 0) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -747,7 +747,7 @@ LsaCopyFileWithPerms(
             if (errno == EINTR)
                 continue;
 
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -759,7 +759,7 @@ LsaCopyFileWithPerms(
             if (errno == EINTR)
                 continue;
 
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
 
         }
@@ -876,7 +876,7 @@ LsaGetSymlinkTarget(
           if (errno == EINTR)
              continue;
 
-          dwError = errno;
+          dwError = LwMapErrnoToLwError(errno);
           BAIL_ON_LSA_ERROR(dwError);
        }
 
@@ -909,7 +909,10 @@ LsaCreateSymlink(
    PCSTR pszNewPath
    )
 {
-    return ((symlink(pszOldPath, pszNewPath) < 0) ? errno : 0);
+    if (symlink(pszOldPath, pszNewPath) < 0)
+        return LwMapErrnoToLwError(errno);
+    else
+        return ERROR_SUCCESS;
 }
 
 DWORD
@@ -929,7 +932,7 @@ LsaCopyDirectory(
     PSTR  pszTargetPath = NULL;
 
     if (NULL == (pDir = opendir(pszSourceDirPath))) {
-       dwError = errno;
+       dwError = LwMapErrnoToLwError(errno);
        BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -945,7 +948,7 @@ LsaCopyDirectory(
         sprintf(szSrcPath, "%s/%s", pszSourceDirPath, pDirEntry->d_name);
 
         if (lstat(szSrcPath, &statbuf) < 0) {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1053,7 +1056,7 @@ LsaGetMatchingFilePathsInFolder(
     BAIL_ON_LSA_ERROR(dwError);
 
     if(!bDirExists) {
-        dwError = ENOENT;
+        dwError = ERROR_FILE_NOT_FOUND;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1068,7 +1071,7 @@ LsaGetMatchingFilePathsInFolder(
 
     pDir = opendir(pszDirPath);
     if (!pDir) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1095,7 +1098,7 @@ LsaGetMatchingFilePathsInFolder(
                 //just skip it.
                 continue;
             }
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
 

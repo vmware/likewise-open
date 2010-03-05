@@ -696,7 +696,7 @@ LsaHashSetValue(
     PVOID  pValue
     );
 
-//Returns ENOENT if pKey is not in the table
+//Returns ERROR_NOT_FOUND if pKey is not in the table
 DWORD
 LsaHashGetValue(
     LSA_HASH_TABLE *pTable,

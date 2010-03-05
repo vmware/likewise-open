@@ -126,7 +126,7 @@ main(
 
     if (getgrgid_r(gid, &grp, szBuf, sizeof(szBuf), &pGroup) < 0) {
         fprintf(stderr, "Failed to lookup group [gid:%u]", (unsigned int)gid);
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

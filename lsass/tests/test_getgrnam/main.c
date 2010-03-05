@@ -138,7 +138,7 @@ main(
 
     if (getgrnam_r(pszGroupId, &grp, szBuf, sizeof(szBuf), &pGrp) < 0) {
        fprintf(stderr, "Failed to lookup group [Group Id:%s]", pszGroupId);
-       dwError = errno;
+       dwError = LwMapErrnoToLwError(errno);
        BAIL_ON_LSA_ERROR(dwError);
     }
 

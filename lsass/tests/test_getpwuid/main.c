@@ -124,7 +124,7 @@ main(
 
     if (getpwuid_r(uid, &user, szBuf, sizeof(szBuf), &pUser) < 0) {
        fprintf(stderr, "Failed to lookup user [uid:%u]", (unsigned int)uid);
-       dwError = errno;
+       dwError = LwMapErrnoToLwError(errno);
        BAIL_ON_LSA_ERROR(dwError);
     }
 

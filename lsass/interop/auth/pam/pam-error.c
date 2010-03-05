@@ -96,6 +96,8 @@ LsaPamMapErrorCode(
                 ret = PAM_AUTH_ERR;
             break;
         case EACCES:
+        case ERROR_ACCESS_DENIED:
+        case LW_ERROR_ACCESS_DENIED:
             ret = PAM_PERM_DENIED;
             break;
         default:

@@ -206,7 +206,7 @@ LsaMarshalUserInfo(
         {
             if (gettimeofday(&current_tv, NULL) < 0)
             {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
             LsaConvertTimeUnix2Nt(current_tv.tv_sec,

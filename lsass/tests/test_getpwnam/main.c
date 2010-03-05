@@ -134,7 +134,7 @@ main(
 
     if (getpwnam_r(pszLoginId, &user, szBuf, sizeof(szBuf), &pUser) < 0) {
        fprintf(stderr, "Failed to lookup user [Login Id:%s]", pszLoginId);
-       dwError = errno;
+       dwError = LwMapErrnoToLwError(errno);
        BAIL_ON_LSA_ERROR(dwError);
     }
 

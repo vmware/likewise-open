@@ -183,7 +183,7 @@ error:
     goto cleanup;
 }
 
-//Returns ENOENT if pKey is not in the table
+//Returns ERROR_NOT_FOUND if pKey is not in the table
 DWORD
 LsaHashGetValue(
         LSA_HASH_TABLE *pTable,
@@ -215,7 +215,7 @@ LsaHashGetValue(
         pExamine = pExamine->pNext;
     }
 
-    dwError = ENOENT;
+    dwError = ERROR_NOT_FOUND;
 
 cleanup:
 
@@ -419,7 +419,7 @@ LsaHashRemoveKey(
     }
 
     //The key isn't in the table yet.
-    dwError = ENOENT;
+    dwError = ERROR_NOT_FOUND;
 
 cleanup:
     return dwError;

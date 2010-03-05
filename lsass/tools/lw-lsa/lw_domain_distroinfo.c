@@ -145,7 +145,7 @@ LwGetLikewiseVersion(
     pVersionFile = fopen(pszFilePath, "r");
     if (pVersionFile == NULL)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -163,7 +163,7 @@ LwGetLikewiseVersion(
         len = getline(&pszLine, &bufSize, pVersionFile);
         if (len < 0)
         {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
         else if (len > 0)
@@ -352,7 +352,7 @@ LwDomainGetOSType(
         //0.
         if (uname(&unameStruct) < 0)
         {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -923,7 +923,7 @@ LwDomainGetDistroVersion(
         //0.
         if (uname(&unameStruct) < 0)
         {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1404,7 +1404,7 @@ LwDomainGetDistroArch(
             //0.
             if (uname(&unameStruct) < 0)
             {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
 
@@ -1545,7 +1545,7 @@ LwDomainReadFile(
 
     if (stat(pszPath, &statbuf) < 0)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1560,13 +1560,13 @@ LwDomainReadFile(
     pFp = fopen(pszPath, "r");
     if (pFp == NULL)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
     if (fread(pszFileContents, statbuf.st_size, 1, pFp) != 1)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

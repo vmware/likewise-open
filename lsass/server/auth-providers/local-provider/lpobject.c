@@ -1028,7 +1028,7 @@ LocalDirQueryMemberOfDN(
             pGroupHash,
             pszGroupSid,
             OUT_PPVOID(&pszPreviousGroupSid));
-        if (dwError == ENOENT)
+        if (dwError == ERROR_NOT_FOUND)
         {
             dwError = LsaHashSetValue(
                 pGroupHash,

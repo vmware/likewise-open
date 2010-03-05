@@ -85,7 +85,7 @@ GetCurrentTime(
 
     if (gettimeofday(&now, NULL) < 0)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         GOTO_CLEANUP_ON_ERROR(dwError);
     }
 
