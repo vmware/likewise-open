@@ -235,7 +235,7 @@ DJManageDaemonsDescription(
     }
     else
     {
-        i = daemonCount;
+        i = daemonCount - 1;
     }
     while(TRUE)
     {
