@@ -1882,6 +1882,18 @@ LsaQueryExpandedGroupMembers(
     );
 
 LW_DWORD
+LsaFindGroupAndExpandedMembers(
+    LW_IN LW_HANDLE hLsa,
+    LW_PCSTR pszTargetProvider,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LSA_QUERY_TYPE QueryType,
+    LW_IN LSA_QUERY_ITEM QueryItem,
+    LW_OUT PLSA_SECURITY_OBJECT* ppGroupObject,
+    LW_OUT LW_PDWORD pdwMemberObjectCount,
+    LW_OUT PLSA_SECURITY_OBJECT** pppMemberObjects
+    );
+
+LW_DWORD
 LsaModifyUser2(
     LW_HANDLE hLsaConnection,
     LW_PCSTR pszTargetProvider,

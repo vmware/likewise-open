@@ -105,6 +105,18 @@ LsaSrvQueryMemberOf(
     OUT PSTR** pppszGroupSids
     );
 
+LW_DWORD
+LsaSrvFindGroupAndExpandedMembers(
+    LW_IN LW_HANDLE hServer,
+    LW_PCSTR pszTargetProvider,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LSA_QUERY_TYPE QueryType,
+    LW_IN LSA_QUERY_ITEM QueryItem,
+    LW_OUT PLSA_SECURITY_OBJECT* ppGroupObject,
+    LW_OUT LW_PDWORD pdwMemberObjectCount,
+    LW_OUT PLSA_SECURITY_OBJECT** pppMemberObjects
+    );
+
 VOID
 LsaSrvCloseEnum(
     IN HANDLE hServer,

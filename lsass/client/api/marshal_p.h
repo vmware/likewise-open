@@ -74,6 +74,17 @@ LsaMarshalGroupInfo(
     );
 
 DWORD
+LsaMarshalGroupInfo1(
+    HANDLE hLsa,
+    LSA_FIND_FLAGS FindFlags,
+    PLSA_SECURITY_OBJECT     pGroup,
+    DWORD dwMemberCount,
+    PLSA_SECURITY_OBJECT* ppMembers,
+    DWORD                   dwGroupInfoLevel,
+    PVOID*                  ppGroupInfo
+    );
+
+DWORD
 LsaMarshalGroupInfoList(
     HANDLE hLsa,
     LSA_FIND_FLAGS FindFlags,

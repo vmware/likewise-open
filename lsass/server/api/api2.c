@@ -1271,6 +1271,297 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+LsaSrvQueryExpandedGroupMembersInternal(
+    IN HANDLE hServer,
+    PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN PCSTR pszSid,
+    IN OUT PLSA_HASH_TABLE pHash
+    )
+{
+    DWORD dwError = 0;
+    HANDLE hEnum = NULL;
+    static const DWORD dwMaxEnumCount = 128;
+    DWORD dwEnumCount = 0;
+    PSTR* ppszSids = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+    DWORD dwIndex = 0;
+
+    dwError = LsaSrvOpenEnumMembers(
+        hServer,
+        pszTargetProvider,
+        &hEnum,
+        FindFlags,
+        pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    for (;;)
+    {
+        dwError = LsaSrvEnumMembers(
+            hServer,
+            hEnum,
+            dwMaxEnumCount,
+            &dwEnumCount,
+            &ppszSids);
+        if (dwError == ERROR_NO_MORE_ITEMS)
+        {
+            dwError = 0;
+            break;
+        }
+        BAIL_ON_LSA_ERROR(dwError);
+
+        QueryList.ppszStrings = (PCSTR*) ppszSids;
+
+        dwError = LsaSrvFindObjects(
+            hServer,
+            pszTargetProvider,
+            FindFlags,
+            LSA_OBJECT_TYPE_UNDEFINED,
+            LSA_QUERY_TYPE_BY_SID,
+            dwEnumCount,
+            QueryList,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (dwIndex = 0; dwIndex < dwEnumCount; dwIndex++)
+        {
+            if (ppObjects[dwIndex] && !LsaHashExists(pHash, ppObjects[dwIndex]->pszObjectSid))
+            {
+                dwError = LsaHashSetValue(
+                    pHash,
+                    ppObjects[dwIndex]->pszObjectSid,
+                    ppObjects[dwIndex]);
+                BAIL_ON_LSA_ERROR(dwError);
+
+                if (ppObjects[dwIndex]->type == LSA_OBJECT_TYPE_GROUP)
+                {
+                    dwError = LsaSrvQueryExpandedGroupMembersInternal(
+                        hServer,
+                        pszTargetProvider,
+                        FindFlags,
+                        ObjectType,
+                        ppObjects[dwIndex]->pszObjectSid,
+                        pHash);
+                    ppObjects[dwIndex] = NULL;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+                else
+                {
+                    ppObjects[dwIndex] = NULL;
+                }
+            }
+        }
+
+        if (ppszSids)
+        {
+            LwFreeStringArray(ppszSids, dwEnumCount);
+        }
+
+        if (ppObjects)
+        {
+            LsaUtilFreeSecurityObjectList(dwEnumCount, ppObjects);
+            ppObjects = NULL;
+        }
+    }
+
+cleanup:
+
+    if (ppszSids)
+    {
+        LwFreeStringArray(ppszSids, dwEnumCount);
+    }
+
+    if (ppObjects)
+    {
+        LsaUtilFreeSecurityObjectList(dwEnumCount, ppObjects);
+        ppObjects = NULL;
+    }
+
+    if (hEnum)
+    {
+        LsaSrvCloseEnum(hServer, hEnum);
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LsaFreeMemberHashEntry(
+    const LSA_HASH_ENTRY* pEntry
+    )
+{
+    if (pEntry->pValue)
+    {
+        LsaUtilFreeSecurityObject(pEntry->pValue);
+    }
+}
+
+static
+DWORD
+LsaSrvQueryExpandedGroupMembers(
+    IN HANDLE hServer,
+    PCSTR pszTargetProvider,
+    IN LSA_FIND_FLAGS FindFlags,
+    IN LSA_OBJECT_TYPE ObjectType,
+    IN PCSTR pszSid,
+    OUT PDWORD pdwMemberCount,
+    OUT PLSA_SECURITY_OBJECT** pppMembers
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwIndex = 0;
+    PLSA_HASH_TABLE pHash = NULL;
+    LSA_HASH_ITERATOR hashIterator = {0};
+    LSA_HASH_ENTRY* pHashEntry = NULL;
+    DWORD dwMemberCount = 0;
+    DWORD dwFilteredMemberCount = 0;
+    PLSA_SECURITY_OBJECT* ppMembers = NULL;
+    PLSA_SECURITY_OBJECT pMember = NULL;
+
+    dwError = LsaHashCreate(
+        29,
+        LsaHashCaselessStringCompare,
+        LsaHashCaselessStringHash,
+        LsaFreeMemberHashEntry,
+        NULL,
+        &pHash);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSrvQueryExpandedGroupMembersInternal(
+        hServer,
+        pszTargetProvider,
+        FindFlags,
+        ObjectType,
+        pszSid,
+        pHash);
+
+    dwMemberCount = (DWORD) LsaHashGetKeyCount(pHash);
+
+    if (dwMemberCount)
+    {
+        dwError = LwAllocateMemory(
+            sizeof(*ppMembers) * dwMemberCount,
+            OUT_PPVOID(&ppMembers));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaHashGetIterator(pHash, &hashIterator);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (dwIndex = 0; (pHashEntry = LsaHashNext(&hashIterator)) != NULL; dwIndex++)
+        {
+            pMember = pHashEntry->pValue;
+
+            if (ObjectType == LSA_OBJECT_TYPE_UNDEFINED ||
+                pMember->type == ObjectType)
+            {
+                ppMembers[dwFilteredMemberCount++] = pMember;
+                pHashEntry->pValue = NULL;
+            }
+        }
+    }
+
+    *pppMembers = ppMembers;
+    *pdwMemberCount = dwFilteredMemberCount;
+
+cleanup:
+
+    LsaHashSafeFree(&pHash);
+
+    return dwError;
+
+error:
+
+    *pppMembers = NULL;
+    *pdwMemberCount = 0;
+
+    if (ppMembers)
+    {
+        LsaUtilFreeSecurityObjectList(dwMemberCount, ppMembers);
+    }
+
+    goto cleanup;
+}
+
+LW_DWORD
+LsaSrvFindGroupAndExpandedMembers(
+    LW_IN LW_HANDLE hServer,
+    LW_PCSTR pszTargetProvider,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LSA_QUERY_TYPE QueryType,
+    LW_IN LSA_QUERY_ITEM QueryItem,
+    LW_OUT PLSA_SECURITY_OBJECT* ppGroupObject,
+    LW_OUT LW_PDWORD pdwMemberObjectCount,
+    LW_OUT PLSA_SECURITY_OBJECT** pppMemberObjects
+    )
+{
+    DWORD dwError = 0;
+    LSA_QUERY_LIST QueryList;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+
+    switch(QueryType)
+    {
+    case LSA_QUERY_TYPE_BY_UNIX_ID:
+        QueryList.pdwIds = &QueryItem.dwId;
+        break;
+    default:
+        QueryList.ppszStrings = &QueryItem.pszString;
+        break;
+    }
+
+    dwError = LsaSrvFindObjects(
+        hServer,
+        pszTargetProvider,
+        FindFlags,
+        LSA_OBJECT_TYPE_GROUP,
+        QueryType,
+        1,
+        QueryList,
+        &ppObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (!ppObjects[0])
+    {
+        dwError = LW_ERROR_NO_SUCH_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LsaSrvQueryExpandedGroupMembers(
+        hServer,
+        pszTargetProvider,
+        FindFlags,
+        LSA_OBJECT_TYPE_USER,
+        ppObjects[0]->pszObjectSid,
+        pdwMemberObjectCount,
+        pppMemberObjects);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    *ppGroupObject = ppObjects[0];
+    ppObjects[0] = NULL;
+
+cleanup:
+
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
+
+    return dwError;
+
+error:
+
+    *ppGroupObject = NULL;
+    *pdwMemberObjectCount = 0;
+    *pppMemberObjects = NULL;
+
+    goto cleanup;
+}
+
 VOID
 LsaSrvCloseEnum(
     IN HANDLE hServer,
