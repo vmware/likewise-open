@@ -134,6 +134,49 @@ error:
 }
 
 static
+VOID
+Usage(
+    void
+    )
+{
+    printf(
+        "Usage: lw-share [ <options> ... ] enum\n"
+        "       lw-share [ <options> ... ] add [ <add options> ... ] <share>\n"
+        "       lw-share [ <options> ... ] del <share>\n"
+        "       lw-share [ <options> ... ] get-info <share>\n"
+        "       lw-share [ <options> ... ] set-info [ <set-info options> ... ] <share>\n");
+}
+
+static
+VOID
+Help(
+    void
+    )
+{
+    Usage();
+
+    printf("\n"
+           "Options:\n"
+           "\n"
+           "  --usage                 Show usage information\n"
+           "  --help                  Show this help information\n"
+           "  --server <server>       Specify target server (default: local machine)\n"
+           "\n"
+           "Options (add/set-info):\n"
+           "\n"
+           "  --path <path>           Share path\n"
+           "  --comment <comment>     Share comment\n"
+           "  --read-only             Make share read-only\n"
+           "  --read-write            Make share readable and writable (default)\n"
+           "  --allow <nt4 name>      Allow user/group access to share\n"
+           "  --deny <nt4 name>       Deny user/group access to share\n"
+           "\n"
+           "Options (set-ifno):\n"
+           "  --clear-allow           Clear allowed list\n"
+           "  --clear-deny            Clear denied list\n");
+}
+
+static
 DWORD
 ParseShareArgs(
     int argc,
@@ -1178,12 +1221,28 @@ main(
     dwError = SrvSvcInitMemory();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
+    if (argc < 2)
+    {
+        Usage();
+        return 1;
+    }
+
     for (dwIndex = 1; dwIndex < argc; dwIndex++)
     {
         if (!strcasecmp(ppszArgv[dwIndex], "--server"))
         {
             dwError = LwMbsToWc16s(ppszArgv[++dwIndex], &gState.pwszServerName);
             BAIL_ON_SRVSVC_ERROR(dwError);
+        }
+        else if (!strcasecmp(ppszArgv[dwIndex], "--help"))
+        {
+            Help();
+            return 1;
+        }
+        else if (!strcasecmp(ppszArgv[dwIndex], "--usage"))
+        {
+            Help();
+            return 1;
         }
         else if (!strcasecmp(ppszArgv[dwIndex], "enum"))
         {
@@ -1214,6 +1273,11 @@ main(
             dwError = Del(argc - dwIndex, ppszArgv + dwIndex);
             BAIL_ON_SRVSVC_ERROR(dwError);
             break;
+        }
+        else
+        {
+            Usage();
+            return 1;
         }
     }
 
