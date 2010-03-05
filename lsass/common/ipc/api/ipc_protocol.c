@@ -394,7 +394,6 @@ static LWMsgTypeSpec gLsaMetricPack0Spec[] =
     LWMSG_MEMBER_UINT64(LSA_METRIC_PACK_0, failedOpenSession),
     LWMSG_MEMBER_UINT64(LSA_METRIC_PACK_0, failedCloseSession),
     LWMSG_MEMBER_UINT64(LSA_METRIC_PACK_0, failedChangePassword),
-    LWMSG_MEMBER_UINT64(LSA_METRIC_PACK_0, unauthorizedAccesses),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -419,7 +418,6 @@ static LWMsgTypeSpec gLsaMetricPack1Spec[] =
     LWMSG_MEMBER_UINT64(LSA_METRIC_PACK_1, failedCloseSession),
     LWMSG_MEMBER_UINT64(LSA_METRIC_PACK_1, successfulChangePassword),
     LWMSG_MEMBER_UINT64(LSA_METRIC_PACK_1, failedChangePassword),
-    LWMSG_MEMBER_UINT64(LSA_METRIC_PACK_1, unauthorizedAccesses),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };

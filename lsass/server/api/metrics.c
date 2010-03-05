@@ -127,8 +127,6 @@ LsaSrvGetMetrics_0(
                  gPerfCounters[LsaMetricFailedCloseSession];
     pMetricPack->failedChangePassword =
                  gPerfCounters[LsaMetricFailedChangePassword];
-    pMetricPack->unauthorizedAccesses =
-                 gPerfCounters[LsaMetricUnauthorizedAccesses];
 
     *ppMetricPack = pMetricPack;
 
@@ -196,8 +194,6 @@ LsaSrvGetMetrics_1(
                  gPerfCounters[LsaMetricSuccessfulChangePassword];
     pMetricPack->failedChangePassword =
                  gPerfCounters[LsaMetricFailedChangePassword];
-    pMetricPack->unauthorizedAccesses =
-                 gPerfCounters[LsaMetricUnauthorizedAccesses];
 
     *ppMetricPack = pMetricPack;
 

@@ -545,7 +545,6 @@ typedef struct __LSA_METRIC_PACK_0
     LW_UINT64 failedOpenSession;
     LW_UINT64 failedCloseSession;
     LW_UINT64 failedChangePassword;
-    LW_UINT64 unauthorizedAccesses;
 } LSA_METRIC_PACK_0, *PLSA_METRIC_PACK_0;
 
 typedef struct __LSA_METRIC_PACK_1
@@ -567,7 +566,6 @@ typedef struct __LSA_METRIC_PACK_1
     LW_UINT64 failedCloseSession;
     LW_UINT64 successfulChangePassword;
     LW_UINT64 failedChangePassword;
-    LW_UINT64 unauthorizedAccesses;
 } LSA_METRIC_PACK_1, *PLSA_METRIC_PACK_1;
 
 typedef struct __LSA_METRIC_PACK
