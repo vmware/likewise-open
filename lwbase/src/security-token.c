@@ -640,6 +640,24 @@ RtlAccessCheck(
     {
         // TODO-Allow WRITE_OWNER if have SE_TAKE_OWNERSHIP_NAME regardless
         // of DACL.
+
+        //
+        // BUILTIN\Administrators are always allowed WRITE_OWNER
+        //
+
+        ulSidSize = sizeof(sidBuffer);
+        status = RtlCreateWellKnownSid(
+                     WinBuiltinAdministratorsSid,
+                     NULL,
+                     &sidBuffer.Sid,
+                     &ulSidSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        if (RtlIsSidMemberOfToken(AccessToken, &sidBuffer.Sid))
+        {
+            SetFlag(grantedAccess, WRITE_OWNER);
+            ClearFlag(desiredAccess, WRITE_OWNER);
+        }
     }
 
     //
