@@ -746,7 +746,8 @@ lwmsg_peer_task_set_timeout(
     *next_timeout = *timeout;
     *next_trigger = lwmsg_peer_task_assoc_trigger(task->assoc);
 
-    if (lwmsg_peer_task_subject_to_timeout(peer, task, trigger))
+    if (lwmsg_time_is_positive(timeout) &&
+        lwmsg_peer_task_subject_to_timeout(peer, task, trigger))
     {
         *next_trigger |= LWMSG_TASK_TRIGGER_TIME;
     }
