@@ -512,7 +512,8 @@ error:
 
     if (pSocket != NULL)
     {
-        SMBSocketInvalidate(pSocket, ntStatus);
+        LWIO_LOCK_MUTEX(bInLock, &pSocket->mutex);
+        SMBSocketInvalidate_InLock(pSocket, ntStatus);
     }
 
     goto cleanup;
