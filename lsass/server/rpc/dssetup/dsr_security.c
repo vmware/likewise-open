@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        dssetup_security.c
+ *        dsr_security.c
  *
  * Abstract:
  *
