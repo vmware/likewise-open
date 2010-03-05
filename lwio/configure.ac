@@ -764,6 +764,7 @@ AC_CONFIG_FILES([Makefile
         tests/test_npserver/Makefile
         tests/test_npclient_transactnp/Makefile
         tests/test_pvfs/Makefile
+	tests/test_load/Makefile
         tests/tcon/Makefile
         tests/transactnp/Makefile
         scripts/Makefile
