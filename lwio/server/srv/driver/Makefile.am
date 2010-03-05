@@ -18,6 +18,7 @@ libsrv_sys_la_SOURCES = \
     driver.c       \
     globals.c      \
     srvshares.c    \
+    srvstats.c     \
     srvworker.c
 
 libsrv_sys_la_CPPFLAGS = \

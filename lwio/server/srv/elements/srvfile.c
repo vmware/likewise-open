@@ -106,6 +106,8 @@ SrvFileCreate(
                     pFile,
                     fid);
 
+    SRV_ELEMENTS_INCREMENT_OPEN_FILES;
+
     *ppFile = pFile;
 
 cleanup:
@@ -277,6 +279,8 @@ SrvFileRelease(
 
     if (InterlockedDecrement(&pFile->refcount) == 0)
     {
+        SRV_ELEMENTS_DECREMENT_OPEN_FILES;
+
         SrvFileFree(pFile);
     }
 }

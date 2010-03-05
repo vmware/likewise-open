@@ -309,23 +309,15 @@ SrvCancelLock_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PLWIO_SRV_SESSION_2        pSession     = NULL;
     BOOLEAN                    bInLock      = FALSE;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId   = 0LL;
     PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2     pLockState   = NULL;
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
-                            pCtxSmb2,
-                            pConnection,
-                            pSmbRequest->pHeader->ullSessionId,
-                            &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindAsyncState(pSession, ullAsyncId, &pAsyncState);
+    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pLockState = (PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2)pAsyncState->hAsyncState;
@@ -347,11 +339,6 @@ cleanup:
     if (pAsyncState)
     {
         SrvAsyncStateRelease(pAsyncState);
-    }
-
-    if (pSession)
-    {
-        SrvSession2Release(pSession);
     }
 
     return ntStatus;
@@ -389,7 +376,7 @@ SrvProcessAsyncLockRequest_SMB_V2(
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindAsyncState(pSession, ullAsyncId, &pAsyncState);
+    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pAsyncLockState =
@@ -467,8 +454,8 @@ SrvProcessAsyncLockRequest_SMB_V2(
 
         case SRV_LOCK_STAGE_SMB_V2_DONE:
 
-            ntStatus = SrvSession2RemoveAsyncState(
-                                pSession,
+            ntStatus = SrvConnection2RemoveAsyncState(
+                                pConnection,
                                 pAsyncLockState->ullAsyncId);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -533,8 +520,8 @@ error:
 
                 if (pSession)
                 {
-                    ntStatus1 = SrvSession2RemoveAsyncState(
-                                        pSession,
+                    ntStatus1 = SrvConnection2RemoveAsyncState(
+                                        pConnection,
                                         pAsyncLockState->ullAsyncId);
                     if (ntStatus1 != STATUS_SUCCESS)
                     {

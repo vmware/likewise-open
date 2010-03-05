@@ -28,58 +28,24 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        prototypes.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
- *
- *        Elements
+ *        LWIO client interface program
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
-#include <config.h>
-#include <lwiosys.h>
+// stats.c
 
-#include <uuid/uuid.h>
-
-#include <openssl/rand.h>
-#include <openssl/hmac.h>
-
-#include <krb5.h>
-#include <gssapi/gssapi.h>
-#include <gssapi/gssapi_generic.h>
-#include <gssapi/gssapi_krb5.h>
-
-#include <lwio/lwio.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-
-#include <lw/ntstatus.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <smbwire.h>
-#include <srvecp.h>
-
-#include <shareapi.h>
-#include <srvutils.h>
-#include <elementsapi.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "srvtimer.h"
-
-#include "externs.h"
-
+DWORD
+ProcessServerStats(
+    BOOLEAN bShowStats,
+    BOOLEAN bResetStats
+    );

@@ -517,9 +517,8 @@ cleanup:
     return status;
 }
 
-static
 BOOLEAN
-RtlpIsSidMemberOfToken(
+RtlIsSidMemberOfToken(
     IN PACCESS_TOKEN AccessToken,
     IN PSID Sid
     )
@@ -613,7 +612,7 @@ RtlAccessCheck(
                                    &ulSidSize);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    if (RtlpIsSidMemberOfToken(AccessToken, &sidBuffer.Sid))
+    if (RtlIsSidMemberOfToken(AccessToken, &sidBuffer.Sid))
     {
         if (wantMaxAllowed)
         {
@@ -641,6 +640,24 @@ RtlAccessCheck(
     {
         // TODO-Allow WRITE_OWNER if have SE_TAKE_OWNERSHIP_NAME regardless
         // of DACL.
+
+        //
+        // BUILTIN\Administrators are always allowed WRITE_OWNER
+        //
+
+        ulSidSize = sizeof(sidBuffer);
+        status = RtlCreateWellKnownSid(
+                     WinBuiltinAdministratorsSid,
+                     NULL,
+                     &sidBuffer.Sid,
+                     &ulSidSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        if (RtlIsSidMemberOfToken(AccessToken, &sidBuffer.Sid))
+        {
+            SetFlag(grantedAccess, WRITE_OWNER);
+            ClearFlag(desiredAccess, WRITE_OWNER);
+        }
     }
 
     //
@@ -649,7 +666,7 @@ RtlAccessCheck(
 
     if (IsSetFlag(desiredAccess, READ_CONTROL | WRITE_DAC))
     {
-        if (RtlpIsSidMemberOfToken(AccessToken, SecurityDescriptor->Owner))
+        if (RtlIsSidMemberOfToken(AccessToken, SecurityDescriptor->Owner))
         {
             SetFlag(grantedAccess, (READ_CONTROL | WRITE_DAC) & desiredAccess);
             ClearFlag(desiredAccess, grantedAccess);
@@ -708,7 +725,7 @@ RtlAccessCheck(
                     // SID in token => add bits to granted bits
                     PSID sid = RtlpGetSidAccessAllowedAce(ace);
 
-                    if (RtlpIsSidMemberOfToken(AccessToken, sid))
+                    if (RtlIsSidMemberOfToken(AccessToken, sid))
                     {
                         if (wantMaxAllowed)
                         {
@@ -736,7 +753,7 @@ RtlAccessCheck(
                 {
                     // SID in token => exit with STATUS_ACCESS_DENIED
                     PSID sid = RtlpGetSidAccessAllowedAce(ace);
-                    if (RtlpIsSidMemberOfToken(AccessToken, sid))
+                    if (RtlIsSidMemberOfToken(AccessToken, sid))
                     {
                         status = STATUS_ACCESS_DENIED;
                         GOTO_CLEANUP();

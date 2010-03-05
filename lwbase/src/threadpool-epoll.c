@@ -447,6 +447,13 @@ ProcessRunnable(
                 /* Task is complete */
                 RingRemove(&pTask->QueueRing);
 
+                /* Turn off any fd in the epoll set */
+                if (pTask->Fd >= 0)
+                {
+                    status = LwRtlSetTaskFd(pTask, pTask->Fd, 0);
+                    GOTO_ERROR_ON_STATUS(status);
+                }
+
                 LOCK_POOL(pThread->pPool);
                 pThread->ulLoad--;
                 UNLOCK_POOL(pThread->pPool);
@@ -1081,9 +1088,11 @@ InitEventThread(
     struct epoll_event event;
     cpu_set_t cpuSet;
     pthread_attr_t threadAttr;
+    BOOLEAN bThreadAttrInit = FALSE;
 
     status = LwErrnoToNtStatus(pthread_attr_init(&threadAttr));
     GOTO_ERROR_ON_STATUS(status);
+    bThreadAttrInit = TRUE;
 
     CPU_ZERO(&cpuSet);
 
@@ -1140,6 +1149,11 @@ InitEventThread(
     GOTO_ERROR_ON_STATUS(status);
 
 error:
+
+    if (bThreadAttrInit)
+    {
+        pthread_attr_destroy(&threadAttr);
+    }
 
     return status;
 }

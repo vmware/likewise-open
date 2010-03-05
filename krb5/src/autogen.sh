@@ -2,4 +2,5 @@
 
 top=`pwd`
 
+autoheader
 autoconf -I "$top"

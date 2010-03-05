@@ -551,7 +551,7 @@ SrvFinderGetDirInfoSearchResults(
         USHORT usIterSearchCount = 0;
 
         pFileDirInfoCursor = (PFILE_DIRECTORY_INFORMATION)pSearchSpace->pFileInfoCursor;
-        if (!pFileDirInfoCursor || !pFileDirInfoCursor->NextEntryOffset)
+        if (!pFileDirInfoCursor)
         {
             IO_MATCH_FILE_SPEC ioFileSpec;
             IO_STATUS_BLOCK ioStatusBlock = {0};
@@ -614,7 +614,7 @@ SrvFinderGetDirInfoSearchResults(
             } while (TRUE);
         }
 
-        if (!bEndOfSearch)
+        if (pSearchSpace->pFileInfoCursor)
         {
             ntStatus = SrvFinderMarshallDirInfoResults(
                             pSearchSpace,
@@ -644,7 +644,7 @@ SrvFinderGetDirInfoSearchResults(
     *ppData = pData;
     *pusDataLen = usDataLen;
     *pusSearchResultCount = usSearchResultCount;
-    *pbEndOfSearch = bEndOfSearch;
+    *pbEndOfSearch = pSearchSpace->pFileInfoCursor ? FALSE : bEndOfSearch;
 
 cleanup:
 
@@ -900,7 +900,7 @@ SrvFinderGetFullDirInfoSearchResults(
         USHORT usIterSearchCount = 0;
 
         pFileInfoCursor = (PFILE_FULL_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
-        if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
+        if (!pFileInfoCursor)
         {
             IO_MATCH_FILE_SPEC ioFileSpec;
             IO_STATUS_BLOCK ioStatusBlock = {0};
@@ -963,7 +963,7 @@ SrvFinderGetFullDirInfoSearchResults(
             } while (TRUE);
         }
 
-        if (!bEndOfSearch)
+        if (pSearchSpace->pFileInfoCursor)
         {
             ntStatus = SrvFinderMarshallFullDirInfoResults(
                             pSearchSpace,
@@ -993,7 +993,7 @@ SrvFinderGetFullDirInfoSearchResults(
     *ppData = pData;
     *pusDataLen = usDataLen;
     *pusSearchResultCount = usSearchResultCount;
-    *pbEndOfSearch = bEndOfSearch;
+    *pbEndOfSearch = pSearchSpace->pFileInfoCursor ? FALSE : bEndOfSearch;
 
 cleanup:
 
@@ -1256,7 +1256,7 @@ SrvFinderGetNamesInfoSearchResults(
         USHORT usIterSearchCount = 0;
 
         pFileInfoCursor = (PFILE_NAMES_INFORMATION)pSearchSpace->pFileInfoCursor;
-        if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
+        if (!pFileInfoCursor)
         {
             IO_MATCH_FILE_SPEC ioFileSpec;
             IO_STATUS_BLOCK ioStatusBlock = {0};
@@ -1319,7 +1319,7 @@ SrvFinderGetNamesInfoSearchResults(
             } while (TRUE);
         }
 
-        if (!bEndOfSearch)
+        if (pSearchSpace->pFileInfoCursor)
         {
             ntStatus = SrvFinderMarshallNamesInfoResults(
                             pSearchSpace,
@@ -1349,7 +1349,7 @@ SrvFinderGetNamesInfoSearchResults(
     *ppData = pData;
     *pusDataLen = usDataLen;
     *pusSearchResultCount = usSearchResultCount;
-    *pbEndOfSearch = bEndOfSearch;
+    *pbEndOfSearch = pSearchSpace->pFileInfoCursor ? FALSE : bEndOfSearch;
 
 cleanup:
 
@@ -1604,7 +1604,7 @@ SrvFinderGetBothDirInfoSearchResults(
         USHORT usIterSearchCount = 0;
 
         pFileInfoCursor = (PFILE_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
-        if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
+        if (!pFileInfoCursor)
         {
             IO_MATCH_FILE_SPEC ioFileSpec;
             IO_STATUS_BLOCK ioStatusBlock = {0};
@@ -1667,7 +1667,7 @@ SrvFinderGetBothDirInfoSearchResults(
             } while (TRUE);
         }
 
-        if (!bEndOfSearch)
+        if (pSearchSpace->pFileInfoCursor)
         {
             ntStatus = SrvFinderMarshallBothDirInfoResults(
                             pSearchSpace,
@@ -1697,7 +1697,7 @@ SrvFinderGetBothDirInfoSearchResults(
     *ppData = pData;
     *pusDataLen = usDataLen;
     *pusSearchResultCount = usSearchResultCount;
-    *pbEndOfSearch = bEndOfSearch;
+    *pbEndOfSearch = pSearchSpace->pFileInfoCursor ? FALSE : bEndOfSearch;
 
 cleanup:
 
@@ -1973,7 +1973,7 @@ SrvFinderGetIdBothDirInfoSearchResults(
         USHORT usIterSearchCount = 0;
 
         pFileInfoCursor = (PFILE_ID_BOTH_DIR_INFORMATION)pSearchSpace->pFileInfoCursor;
-        if (!pFileInfoCursor || !pFileInfoCursor->NextEntryOffset)
+        if (!pFileInfoCursor)
         {
             IO_MATCH_FILE_SPEC ioFileSpec;
             IO_STATUS_BLOCK ioStatusBlock = {0};
@@ -2036,7 +2036,7 @@ SrvFinderGetIdBothDirInfoSearchResults(
             } while (TRUE);
         }
 
-        if (!bEndOfSearch)
+        if (pSearchSpace->pFileInfoCursor)
         {
             ntStatus = SrvFinderMarshallIdBothDirInfoResults(
                             pSearchSpace,
@@ -2066,7 +2066,7 @@ SrvFinderGetIdBothDirInfoSearchResults(
     *ppData = pData;
     *pusDataLen = usDataLen;
     *pusSearchResultCount = usSearchResultCount;
-    *pbEndOfSearch = bEndOfSearch;
+    *pbEndOfSearch = pSearchSpace->pFileInfoCursor ? FALSE : bEndOfSearch;
 
 cleanup:
 

@@ -184,8 +184,8 @@ SrvProcessNotify_SMB_V2(
                  BAIL_ON_NT_STATUS(ntStatus);
              }
 
-             ntStatus = SrvSession2CreateAsyncState(
-                             pCtxSmb2->pSession,
+             ntStatus = SrvConnection2CreateAsyncState(
+                             pConnection,
                              COM2_NOTIFY,
                              &SrvNotifyStateReleaseHandle_SMB_V2,
                              &pAsyncState);
@@ -247,8 +247,8 @@ SrvProcessNotify_SMB_V2(
 
                     // completed synchronously; remove asynchronous state
                     //
-                    ntStatus = SrvSession2RemoveAsyncState(
-                                    pCtxSmb2->pSession,
+                    ntStatus = SrvConnection2RemoveAsyncState(
+                                    pConnection,
                                     pAsyncState->ullAsyncId);
                     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -297,8 +297,8 @@ cleanup:
     {
         if (bUnregisterAsync)
         {
-            SrvSession2RemoveAsyncState(
-                    pCtxSmb2->pSession,
+            SrvConnection2RemoveAsyncState(
+                    pConnection,
                     pNotifyState->ullAsyncId);
         }
 
@@ -376,10 +376,10 @@ SrvProcessNotifyCompletion_SMB_V2(
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindAsyncState(pSession, ullAsyncId, &pAsyncState);
+    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2RemoveAsyncState(pSession, ullAsyncId);
+    ntStatus = SrvConnection2RemoveAsyncState(pConnection, ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pNotifyState = (PSRV_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
@@ -464,23 +464,15 @@ SrvCancelChangeNotify_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PLWIO_SRV_SESSION_2        pSession     = NULL;
     BOOLEAN                    bInLock      = FALSE;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId   = 0LL;
     PSRV_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
-                            pCtxSmb2,
-                            pConnection,
-                            pSmbRequest->pHeader->ullSessionId,
-                            &pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindAsyncState(pSession, ullAsyncId, &pAsyncState);
+    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pNotifyState = (PSRV_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
@@ -502,11 +494,6 @@ cleanup:
     if (pAsyncState)
     {
         SrvAsyncStateRelease(pAsyncState);
-    }
-
-    if (pSession)
-    {
-        SrvSession2Release(pSession);
     }
 
     return ntStatus;

@@ -243,10 +243,6 @@ typedef struct _LWIO_SRV_SESSION_2
 
     PSTR              pszClientPrincipalName;
 
-    ULONG64           ullNextAvailableAsyncId;
-
-    PLWRTL_RB_TREE    pAsyncStateCollection;
-
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
 } LWIO_SRV_SESSION_2, *PLWIO_SRV_SESSION_2;
@@ -348,6 +344,10 @@ typedef struct _LWIO_SRV_CONNECTION
     };
 
     PLWRTL_RB_TREE      pSessionCollection;
+
+    ULONG64             ullNextAvailableAsyncId;
+
+    PLWRTL_RB_TREE      pAsyncStateCollection;
 
 } LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
 
@@ -474,6 +474,22 @@ typedef struct _SRV_EXEC_CONTEXT
     ULONG64                            ullAsyncId;
 
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
+
+typedef struct _SRV_ELEMENTS_STATISTICS
+{
+    LONG64 llNumConnections;
+    LONG64 llMaxNumConnections;
+
+    LONG64 llNumSessions;
+    LONG64 llMaxNumSessions;
+
+    LONG64 llNumTreeConnects;
+    LONG64 llMaxNumTreeConnects;
+
+    LONG64 llNumOpenFiles;
+    LONG64 llMaxNumOpenFiles;
+
+} SRV_ELEMENTS_STATISTICS, *PSRV_ELEMENTS_STATISTICS;
 
 NTSTATUS
 SrvElementsInit(
@@ -631,6 +647,27 @@ SrvConnection2FindSession(
     );
 
 NTSTATUS
+SrvConnection2CreateAsyncState(
+    PLWIO_SRV_CONNECTION          pConnection,
+    USHORT                        usCommand,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*            ppAsyncState
+    );
+
+NTSTATUS
+SrvConnection2FindAsyncState(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullAsyncId,
+    PLWIO_ASYNC_STATE*   ppAsyncState
+    );
+
+NTSTATUS
+SrvConnection2RemoveAsyncState(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullAsyncId
+    );
+
+NTSTATUS
 SrvConnectionGetNamedPipeClientAddress(
     PLWIO_SRV_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
@@ -724,27 +761,6 @@ SrvSessionRelease(
 VOID
 SrvSessionRundown(
     PLWIO_SRV_SESSION pSession
-    );
-
-NTSTATUS
-SrvSession2CreateAsyncState(
-    PLWIO_SRV_SESSION_2           pSession,
-    USHORT                        usCommand,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
-    PLWIO_ASYNC_STATE*            ppAsyncState
-    );
-
-NTSTATUS
-SrvSession2FindAsyncState(
-    PLWIO_SRV_SESSION_2 pSession,
-    ULONG64             ullAsyncId,
-    PLWIO_ASYNC_STATE*  ppAsyncState
-    );
-
-NTSTATUS
-SrvSession2RemoveAsyncState(
-    PLWIO_SRV_SESSION_2 pSession,
-    ULONG64             ullAsyncId
     );
 
 NTSTATUS
@@ -1159,6 +1175,16 @@ SrvElementsGetBootTime(
 
 BOOLEAN
 SrvElementsGetShareNameEcpEnabled(
+    VOID
+    );
+
+NTSTATUS
+SrvElementsGetStats(
+    PSRV_ELEMENTS_STATISTICS pStats
+    );
+
+NTSTATUS
+SrvElementsResetStats(
     VOID
     );
 

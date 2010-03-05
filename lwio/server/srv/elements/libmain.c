@@ -76,6 +76,9 @@ SrvElementsInit(
     status = SrvTimerInit(&gSrvElements.timer);
     BAIL_ON_NT_STATUS(status);
 
+    pthread_rwlock_init(&gSrvElements.statsLock, NULL);
+    gSrvElements.pStatsLock = &gSrvElements.statsLock;
+
 error:
 
     return status;
@@ -137,6 +140,38 @@ SrvElementsGetShareNameEcpEnabled(
 }
 
 NTSTATUS
+SrvElementsGetStats(
+    PSRV_ELEMENTS_STATISTICS pStats
+    )
+{
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvElements.statsLock);
+
+    *pStats = gSrvElements.stats;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+SrvElementsResetStats(
+    VOID
+    )
+{
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvElements.statsLock);
+
+    memset(&gSrvElements.stats, 0, sizeof(gSrvElements.stats));
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
 SrvElementsShutdown(
     VOID
     )
@@ -153,6 +188,12 @@ SrvElementsShutdown(
         SrvFreeMemory(gSrvElements.pHintsBuffer);
         gSrvElements.pHintsBuffer = NULL;
         gSrvElements.ulHintsLength = 0;
+    }
+
+    if (gSrvElements.pStatsLock)
+    {
+        pthread_rwlock_destroy(&gSrvElements.statsLock);
+        gSrvElements.pStatsLock = NULL;
     }
 
 error:

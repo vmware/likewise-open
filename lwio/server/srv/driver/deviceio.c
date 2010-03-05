@@ -161,6 +161,17 @@ SrvDeviceIoCommon(
                         );
           break;
 
+      case IO_DEVICE_CTL_STATISTICS:
+
+          ntStatus = SrvProcessStatistics(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+
+          break;
+
       default:
 
           ntStatus = STATUS_INVALID_PARAMETER;
