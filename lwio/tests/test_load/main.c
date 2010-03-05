@@ -60,6 +60,9 @@ LoadThread(
     status = RTL_ALLOCATE(&pFiles, LOAD_FILE, sizeof(*pFiles) * gState.ulConnectionsPerThread);
     GOTO_ERROR_ON_STATUS(status);
 
+    printf("[%u] Creating start up environment...\n",
+           pThread->ulNumber);
+
     for (ulFile = 0; ulFile < gState.ulConnectionsPerThread; ulFile++)
     {
         pFile = &pFiles[ulFile];
@@ -83,9 +86,19 @@ LoadThread(
     }
     pthread_mutex_unlock(&gState.Lock);
 
+
     for (ulIter = 0; ulIter < gState.ulIterations; ulIter++)
     {
+        printf("[%u] Starting iteration %d or %d...\n",
+               pThread->ulNumber,
+               ulIter,
+               gState.ulIterations);
+
         /* Pass 1 -- open files for writing */
+
+        printf("[%u] Opening %u files for writing...\n",
+               pThread->ulNumber,
+               gState.ulConnectionsPerThread);
 
         for (ulFile = 0; ulFile < gState.ulConnectionsPerThread; ulFile++)
         {
@@ -109,10 +122,19 @@ LoadThread(
                 NULL,                  /* EA buffer */
                 0,                     /* EA length */
                 NULL);                 /* ECP list */
+            if (status == STATUS_RETRY)
+            {
+                ulFile--;
+                status = STATUS_SUCCESS;
+            }
+
             GOTO_ERROR_ON_STATUS(status);
         }
 
         /* Pass 2 -- write payload into each file */
+
+        printf("[%u] Writing to files...\n", pThread->ulNumber);
+
         for (ulFile = 0; ulFile < gState.ulConnectionsPerThread; ulFile++)
         {
             pFile = &pFiles[ulFile];
@@ -127,16 +149,30 @@ LoadThread(
                 sizeof(szPayload), /* Buffer size */
                 &llOffset, /* File offset */
                 NULL); /* Key */
+
+            if (status == STATUS_RETRY)
+            {
+                ulFile--;
+                status = STATUS_SUCCESS;
+            }
             GOTO_ERROR_ON_STATUS(status);
         }
 
         /* Pass 3 -- reopen each file for reading */
+
+        printf("[%u] Reopening files for reading...\n", pThread->ulNumber);
 
         for (ulFile = 0; ulFile < gState.ulConnectionsPerThread; ulFile++)
         {
             pFile = &pFiles[ulFile];
 
             status = LwNtCloseFile(pFile->hHandle);
+            if (status == STATUS_RETRY)
+            {
+                status = STATUS_SUCCESS;
+                ulFile--;
+                continue;
+            }
             GOTO_ERROR_ON_STATUS(status);
 
             pFile->hHandle = NULL;
@@ -159,10 +195,17 @@ LoadThread(
                 NULL,                  /* EA buffer */
                 0,                     /* EA length */
                 NULL);                 /* ECP list */
+            if (status == STATUS_RETRY)
+            {
+                ulFile--;
+                status = STATUS_SUCCESS;
+            }
             GOTO_ERROR_ON_STATUS(status);
         }
 
         /* Pass 4 -- read back each payload and compare */
+
+        printf("[%u] Reading files...\n", pThread->ulNumber);
 
         for (ulFile = 0; ulFile < gState.ulConnectionsPerThread; ulFile++)
         {
@@ -176,6 +219,13 @@ LoadThread(
                 sizeof(szCompare), /* Buffer size */
                 &llOffset, /* File offset */
                 NULL); /* Key */
+            if (status == STATUS_RETRY)
+            {
+                ulFile--;
+                status = STATUS_SUCCESS;
+            }
+            GOTO_ERROR_ON_STATUS(status);
+
             GOTO_ERROR_ON_STATUS(status);
 
             if (ioStatus.BytesTransferred != sizeof(szCompare) ||
@@ -188,11 +238,18 @@ LoadThread(
 
         /* Pass 5 -- close handles */
 
+        printf("[%u] Closing files files...\n", pThread->ulNumber);
+
         for (ulFile = 0; ulFile < gState.ulConnectionsPerThread; ulFile++)
         {
             pFile = &pFiles[ulFile];
 
             status = LwNtCloseFile(pFile->hHandle);
+            if (status == STATUS_RETRY)
+            {
+                ulFile--;
+                status = STATUS_SUCCESS;
+            }
             GOTO_ERROR_ON_STATUS(status);
         }
     }
@@ -270,3 +327,16 @@ main(
 
     return Run();
 }
+
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
