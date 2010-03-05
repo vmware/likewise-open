@@ -1782,9 +1782,12 @@ cleanup:
 	}
 	if (ret == GSS_S_COMPLETE) {
 		*context_handle = (gss_union_ctx_id_t)(sc->ctx_handle)->internal_ctx_id;
-		if (sc->internal_name != GSS_C_NO_NAME &&
-		    src_name != NULL) {
+		if (sc->internal_name != GSS_C_NO_NAME) {
+                    if (src_name != NULL) {
 			*src_name = sc->internal_name;
+                    } else {
+                        gss_release_name(&tmpmin, &sc->internal_name);
+                    }
 		}
 		free(((gss_union_ctx_id_t)sc->ctx_handle)->mech_type->elements);
 		free(((gss_union_ctx_id_t)sc->ctx_handle)->mech_type);
