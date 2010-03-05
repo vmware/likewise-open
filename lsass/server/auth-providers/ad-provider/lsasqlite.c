@@ -158,7 +158,7 @@ LsaSqliteReadUInt32(
 
     if (qwTemp > UINT_MAX)
     {
-        dwError = ERANGE;
+        dwError = LW_ERROR_ERRNO_ERANGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

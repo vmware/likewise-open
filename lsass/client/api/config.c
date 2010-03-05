@@ -81,7 +81,7 @@ LsaRefreshConfiguration(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_UNEXPECTED_MESSAGE;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -136,7 +136,7 @@ LsaSetMachineSid(
         break;
 
     default:
-        dwError = EINVAL;
+        dwError = LW_ERROR_UNEXPECTED_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -191,7 +191,7 @@ LsaSetMachineName(
         break;
 
     default:
-        dwError = EINVAL;
+        dwError = LW_ERROR_UNEXPECTED_MESSAGE;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -242,7 +242,7 @@ LsaGetPamConfig(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_UNEXPECTED_MESSAGE;
             BAIL_ON_LSA_ERROR(dwError);
     }
 

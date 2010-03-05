@@ -160,7 +160,7 @@ LsaSrvGetDomainByName(
     dwError = LsaHashGetValue(pPolCtx->pDomains,
                               (PVOID)pKey,
                               OUT_PPVOID(&pEntry));
-    if (dwError == ERROR_FILE_NOT_FOUND)
+    if (dwError == ERROR_NOT_FOUND)
     {
         ntStatus = STATUS_NO_SUCH_DOMAIN;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
@@ -220,7 +220,7 @@ LsaSrvGetDomainBySid(
     dwError = LsaHashGetValue(pPolCtx->pDomains,
                               (PVOID)pKey,
                               OUT_PPVOID(&pEntry));
-    if (dwError == ERROR_FILE_NOT_FOUND)
+    if (dwError == ERROR_NOT_FOUND)
     {
         ntStatus = STATUS_NO_SUCH_DOMAIN;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);

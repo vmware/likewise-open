@@ -968,7 +968,7 @@ AD_PacMembershipFilterWithLdap(
                     ppCacheMemberships[i]->bIsDomainPrimaryGroup;
                 pMembership->bIsInLdap = ppCacheMemberships[i]->bIsInLdap;
             }
-            else if (dwError == ENOENT)
+            else if (dwError == ERROR_NOT_FOUND)
             {
                 bGroupsMatch = FALSE;
                 LSA_LOG_VERBOSE(
@@ -1038,7 +1038,7 @@ AD_PacMembershipFilterWithLdap(
             }
             pMembership->bIsInLdap = TRUE;
         }
-        else if (dwError == ENOENT)
+        else if (dwError == ERROR_NOT_FOUND)
         {
             dwError = LW_ERROR_SUCCESS;
         }
@@ -1411,7 +1411,7 @@ AD_OnlineCachePasswordVerifier(
 
     if (gettimeofday(&current_tv, NULL) < 0)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -4017,7 +4017,7 @@ AD_UpdateUserObjectFlags(
 
     if (gettimeofday(&current_tv, NULL) < 0)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
     ADConvertTimeUnix2Nt(current_tv.tv_sec,

@@ -44,7 +44,7 @@ RpcSvcCreateDomainSocketPath(
     pszSocketName = strrchr(pszSocketPath, '/');
 
     if (!pszSocketName) {
-        dwError = EINVAL;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -56,7 +56,7 @@ RpcSvcCreateDomainSocketPath(
 
     if (chmod(pszDirName, DirMode))
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -99,7 +99,7 @@ RpcSvcCreateDirectory(
             /* Make sure it's a directory */
             if (!S_ISDIR(statbuf.st_mode))
             {
-                dwError = ENOENT;
+                dwError = ERROR_FILE_NOT_FOUND;
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -108,7 +108,7 @@ RpcSvcCreateDirectory(
             /* Create it */
             if (mkdir(pszDirPath, DirMode))
             {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -121,7 +121,7 @@ RpcSvcCreateDirectory(
         /* Make sure its a directory */
         if (!S_ISDIR(statbuf.st_mode))
         {
-            dwError = ENOENT;
+            dwError = ERROR_FILE_NOT_FOUND;
             BAIL_ON_LSA_ERROR(dwError);
         }
     }
@@ -130,7 +130,7 @@ RpcSvcCreateDirectory(
         /* Create it */
         if (mkdir(pszDirPath, DirMode))
         {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
     }

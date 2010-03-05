@@ -134,7 +134,7 @@ LsaModUserMain(
 
      if (geteuid() != 0) {
          fprintf(stderr, "This program requires super-user privileges.\n");
-         dwError = EACCES;
+         dwError = LW_ERROR_ACCESS_DENIED;
          BAIL_ON_LSA_ERROR(dwError);
      }
 
@@ -1084,7 +1084,7 @@ ReadPassword(
     }
 
     if (idx == 128) {
-        dwError = LwMapErrnoToLwError(ENOBUFS);
+        dwError = LW_ERROR_ERRNO_ENOBUFS;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

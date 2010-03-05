@@ -1317,7 +1317,7 @@ LsaSrvAddUser2(
 
     if (pServerState->peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -1401,7 +1401,7 @@ LsaSrvModifyUser2(
 
     if (pServerState->peerUID)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

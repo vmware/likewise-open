@@ -274,7 +274,7 @@ LsaGetCurrentTimeSeconds(
     // Preserve gettimeofday() since the code we are replacing currently uses that.
     if (gettimeofday(&current_tv, NULL) < 0)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 

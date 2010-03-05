@@ -67,7 +67,7 @@ LsaSrvIgnoreSIGHUP(
     // signal handler. This way if we later decide to catch it with sigwait,
     // the signal will still get delivered to the process.
     if (signal(SIGHUP, LsaSrvNOPHandler) < 0) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -154,7 +154,7 @@ LsaSrvHandleSignals(
     action.sa_handler = LsaSrvInterruptHandler;
 
     sysRet = sigaction(SIGINT, &action, NULL);
-    dwError = (sysRet != 0) ? errno : 0;
+    dwError = (sysRet != 0) ? LwMapErrnoToLwError(errno) : 0;
     BAIL_ON_LSA_ERROR(dwError);
 
     // Unblock SIGINT

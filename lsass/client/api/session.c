@@ -84,7 +84,7 @@ LsaOpenSession(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_UNEXPECTED_MESSAGE;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -135,7 +135,7 @@ LsaCloseSession(
             BAIL_ON_LSA_ERROR(dwError);
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_UNEXPECTED_MESSAGE;
             BAIL_ON_LSA_ERROR(dwError);
     }
 

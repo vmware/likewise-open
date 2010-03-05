@@ -98,7 +98,7 @@ set_log_level_main(
 
     if (geteuid() != 0) {
         fprintf(stderr, "This program requires super-user privileges.\n");
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -303,7 +303,7 @@ PrintLogInfo(
             fprintf(stdout, "LSA Server is logging to syslog\n");
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -329,7 +329,7 @@ PrintLogInfo(
             fprintf(stdout, "%s\n", "trace");
             break;
         default:
-            dwError = EINVAL;
+            dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LSA_ERROR(dwError);
     }
 

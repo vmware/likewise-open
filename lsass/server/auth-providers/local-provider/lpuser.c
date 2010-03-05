@@ -852,7 +852,7 @@ LocalDirModifyUser(
 
         if (strptime(pUserModInfo->pszExpiryDate, "%Y-%m-%d", &tmbuf) == NULL)
         {
-            dwError = errno;
+            dwError = LwMapErrnoToLwError(errno);
             BAIL_ON_LSA_ERROR(dwError);
         }
 
@@ -1118,7 +1118,7 @@ LocalDirSetPassword(
     }
     else
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

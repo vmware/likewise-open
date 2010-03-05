@@ -525,7 +525,7 @@ LsaDeleteGroupByName(
 
     if (geteuid() != 0)
     {
-        dwError = EACCES;
+        dwError = LW_ERROR_ACCESS_DENIED;
         BAIL_ON_LSA_ERROR(dwError);
     }
 

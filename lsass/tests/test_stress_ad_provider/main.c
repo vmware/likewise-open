@@ -97,14 +97,14 @@ main(
     if (LW_IS_NULL_OR_EMPTY_STR(gpszProviderLibPath))
     {
         fprintf(stderr, "Error: The stress config file does not have a valid provider library path\n");
-        dwError = EINVAL;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
     if (LW_IS_NULL_OR_EMPTY_STR(gpszProviderConfigFilePath))
     {
         fprintf(stderr, "Error: The stress config file does not have a valid provider config file path\n");
-        dwError = EINVAL;
+        dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
     }
     
@@ -409,7 +409,7 @@ LADSHandleSignals(
     action.sa_handler = LADSInterruptHandler;
 
     sysRet = sigaction(SIGINT, &action, NULL);
-    dwError = (sysRet != 0) ? errno : 0;
+    dwError = (sysRet != 0) ? LwMapErrnoToLwError(errno) : 0;
     BAIL_ON_LSA_ERROR(dwError);
 
     // Unblock SIGINT

@@ -49,6 +49,7 @@
 #include "config.h"
 #include <string.h>
 #include <errno.h>
+#include <lwerror.h>
 
 #if defined(__LWI_SOLARIS__) || defined(__LWI_HP_UX__)
 
@@ -64,12 +65,12 @@ LsaStrError(
     size_t requiredLen = 0;
 
     if (pszResult == NULL)
-        return errno;
+        return LwMapErrnoToLwError(errno);
 
     requiredLen = strlen(pszResult) + 1;
     if (buflen < requiredLen)
     {
-        return ERANGE;
+        return LW_ERROR_ERRNO_ERANGE;
     }
     memcpy(pszBuf, pszResult, requiredLen);
     return 0;
@@ -85,10 +86,11 @@ LsaStrError(
     )
 {
 #ifdef STRERROR_R_CHAR_P
+    errno = 0;
     char *pszResult = strerror_r(errnum, pszBuf, buflen);
 
     if (pszResult == NULL) {
-        return errno ? errno : EINVAL;
+        return errno ? LwMapErrnoToLwError(errno) : LW_ERROR_INVALID_PARAMETER;
     }
 
     if (pszResult != pszBuf)
@@ -97,7 +99,7 @@ LsaStrError(
         size_t requiredLen = strlen(pszResult) + 1;
         if (buflen < requiredLen)
         {
-            return ERANGE;
+            return LW_ERROR_ERRNO_ERANGE;
         }
         memcpy(pszBuf, pszResult, requiredLen);
         return 0;
@@ -107,12 +109,19 @@ LsaStrError(
     {
         // We can't tell if the error string exactly fit into the buffer, or
         // if the buffer is too small. We'll assume it's too small.
-        return ERANGE;
+        return LW_ERROR_ERRNO_ERANGE;
     }
 
     return 0;
 #else
-    return strerror_r(errnum, pszBuf, buflen);
+    if (strerror_r(errnum, pszBuf, buflen) == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return LwMapErrnoToLwError(errno);
+    }
 #endif
 }
 

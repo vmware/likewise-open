@@ -93,7 +93,7 @@ LsaSrvPopulateGroups(
     BOOLEAN bReleaseLock = FALSE;
 
     if ((fp = fopen("/etc/group", "r")) == NULL) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -110,7 +110,7 @@ LsaSrvPopulateGroups(
             if (feof(fp)) {
                 break;
             } else {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -207,7 +207,7 @@ LsaSrvPopulateUsers(
     BOOLEAN bReleaseLock = FALSE;
 
     if ((fp = fopen("/etc/passwd", "r")) == NULL) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -224,7 +224,7 @@ LsaSrvPopulateUsers(
             if (feof(fp)) {
                 break;
             } else {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
@@ -360,7 +360,7 @@ LsaSrvPopulateGroupMembers(
     BOOLEAN bReleaseLock = FALSE;
 
     if ((fp = fopen("/etc/group", "r")) == NULL) {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
@@ -377,7 +377,7 @@ LsaSrvPopulateGroupMembers(
             if (feof(fp)) {
                 break;
             } else {
-                dwError = errno;
+                dwError = LwMapErrnoToLwError(errno);
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }

@@ -927,7 +927,7 @@ LsaAdBatchEnumObjects(
                     // The object is already in the hash
                     ADCacheSafeFreeObject(&ppTotalObjects[dwInput]);
                 }
-                else if (dwError == ENOENT)
+                else if (dwError == ERROR_NOT_FOUND)
                 {
                     // This is a new entry; let's track it in the hash
 
