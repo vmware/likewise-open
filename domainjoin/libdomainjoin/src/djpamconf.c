@@ -1634,10 +1634,12 @@ static BOOLEAN PamModuleAlwaysDeniesDomainLogins( const char * phase, const char
     if(!strcmp(buffer, "pam_dhkeys") && !strcmp(phase, "password"))
         return FALSE;
 
-    /* This allows pam_lsass to go after pam_unix. This is necessary so that
-     * pam_console or pam_foreground gets run if present.
+    /* This allows pam_lsass to go after pam_unix or pam_unix2. This is
+     * necessary so that pam_console, pam_foreground, or pam_resmgr gets run if
+     * present.
      */
-    if (!strcmp(buffer, "pam_unix") && !strcmp(phase, "session"))
+    if ((!strcmp(buffer, "pam_unix") || !strcmp(buffer, "pam_unix2")) &&
+            !strcmp(phase, "session"))
     {
         if (distro->os == OS_HPUX)
         {
@@ -3043,6 +3045,16 @@ void DJUpdatePamConf(const char *testPrefix,
              * gdm instead.
              */
             DJ_LOG_INFO("Not directly enabling pam entry point 'system-auth'");
+            continue;
+        }
+        if(!strcmp(services[i], "common-session"))
+        {
+            /* Sled uses system-auth only as an include file. We should
+             * not directly try to enable lsass for this entry point because
+             * we want to insert "session sufficient pam_lsass" in
+             * gdm instead.
+             */
+            DJ_LOG_INFO("Not directly enabling pam entry point 'common-session'");
             continue;
         }
         if(!strcmp(services[i], "vmware-authd") && enable &&
