@@ -2051,9 +2051,32 @@ static void PamLwidentityEnable(const char *testPrefix, const DistroInfo *distro
 
     if(line == -1)
     {
-        /* This means that this service is not defined for this phase. An example is the session phase of passwd.
-         * This function will return an error, and the parent function should decide whether or not to ignore the error.
+        /* This means that this service is not defined for this phase. An
+         * example is the session phase of passwd.  This function will return
+         * an error, and the parent function should decide whether or not to
+         * ignore the error.
          */
+        if (!strcmp(service, "xrdp-sesman") &&
+            !strcmp(phase, "session") &&
+            (line = NextLineForService(conf, -1, service, "account")) != -1)
+        {
+            // This is for remote desktop logins. There is a bug on SLED 11
+            // Nomad (an implementation of xrdp) where it does not contain a
+            // session phase. In this case, pam_lsass still needs to be added
+            // for home directory creation.
+
+            DJ_LOG_INFO("Inserting pam_lwidentity for xrdp missing session");
+            LW_CLEANUP_CTERR(exc, CopyLineAndUpdateSkips(conf, line, &lwidentityLine));
+
+            /* Fill in the correct values for lwidentityLine */
+            lineObj = &conf->lines[lwidentityLine];
+            /* This is incase the phase is @include */
+            LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->phase, lineObj->service, phase));
+            LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->control, lineObj->phase, "sufficient"));
+            LW_CLEANUP_CTERR(exc, SetPamTokenValue(&lineObj->module, lineObj->control, pam_lwidentity));
+            lineObj->optionCount = 0;
+            goto cleanup;
+        }
         LW_CLEANUP_CTERR(exc, CENTERROR_DOMAINJOIN_PAM_MISSING_SERVICE);
     }
 
