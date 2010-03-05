@@ -971,9 +971,6 @@ ConfigureNameServiceSwitch()
      * hosts file after checking DNS. This means that our FQDN setting code
      * won't necessarily take effect. So instead we rewrite the line to put
      * local in front.
-     *
-     * TODO: this code should be moved to where the FQDN is set so that it
-     * is not run when the --nohosts option is given.
      */
     if(distro.os == OS_AIX)
     {

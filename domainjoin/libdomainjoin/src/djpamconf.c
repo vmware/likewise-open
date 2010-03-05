@@ -1504,7 +1504,13 @@ static BOOLEAN PamModulePrompts( const char * phase, const char * module)
 
 static BOOLEAN PamModuleUnderstandsTryFirstPass( const char * phase, const char * module)
 {
+    const char *moduleBasename = strrchr(module, "/");
     char buffer[256];
+
+    if (!moduleBasename)
+    {
+        moduleBasename = module;
+    }
 
     if(!PamModulePrompts(phase, module))
         return FALSE;
@@ -1522,7 +1528,7 @@ static BOOLEAN PamModuleUnderstandsTryFirstPass( const char * phase, const char 
        pam_unix, which Linux systems also use (but it works on them). So the
        prefix of the unnormalized module name is also checked.
        */
-    if(!strcmp(buffer, "pam_unix") && CTStrStartsWith(module, "lib"))
+    if(!strcmp(buffer, "pam_unix") && CTStrStartsWith(moduleBasename, "lib"))
         return FALSE;
 
     return TRUE;
