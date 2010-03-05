@@ -42,7 +42,6 @@
 #include "djauthconf.h"
 #include "djparsehosts.h"
 #include "djkrb5conf.h"
-#include "djtimemgmt.h"
 #include "djnsswitch.h"
 #include "djdaemonmgr.h"
 #include "djmethodcfg.h"
