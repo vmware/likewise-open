@@ -475,6 +475,22 @@ typedef struct _SRV_EXEC_CONTEXT
 
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
 
+typedef struct _SRV_ELEMENTS_STATISTICS
+{
+    LONG64 llNumConnections;
+    LONG64 llMaxNumConnections;
+
+    LONG64 llNumSessions;
+    LONG64 llMaxNumSessions;
+
+    LONG64 llNumTreeConnects;
+    LONG64 llMaxNumTreeConnects;
+
+    LONG64 llNumOpenFiles;
+    LONG64 llMaxNumOpenFiles;
+
+} SRV_ELEMENTS_STATISTICS, *PSRV_ELEMENTS_STATISTICS;
+
 NTSTATUS
 SrvElementsInit(
     VOID
@@ -1159,6 +1175,16 @@ SrvElementsGetBootTime(
 
 BOOLEAN
 SrvElementsGetShareNameEcpEnabled(
+    VOID
+    );
+
+NTSTATUS
+SrvElementsGetStats(
+    PSRV_ELEMENTS_STATISTICS pStats
+    );
+
+NTSTATUS
+SrvElementsResetStats(
     VOID
     );
 

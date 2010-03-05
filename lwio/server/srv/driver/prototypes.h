@@ -231,7 +231,7 @@ SrvShareDevCtlSetInfo(
 // srvstats.c
 
 NTSTATUS
-SrvGetStatistics(
+SrvProcessStatistics(
     IN     PBYTE  lpInBuffer,
     IN     ULONG  ulInBufferSize,
     IN OUT PBYTE  lpOutBuffer,

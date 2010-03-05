@@ -77,6 +77,7 @@
 #include <srvutils.h>
 #include <elementsapi.h>
 
+#include "defs.h"
 #include "structs.h"
 #include "srvtimer.h"
 

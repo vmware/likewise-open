@@ -45,6 +45,7 @@
 // stats.c
 
 DWORD
-ShowServerStats(
-    VOID
+ProcessServerStats(
+    BOOLEAN bShowStats,
+    BOOLEAN bResetStats
     );

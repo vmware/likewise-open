@@ -109,6 +109,8 @@ SrvFile2Create(
                     pFid->ullPersistentId,
                     pFid->ullVolatileId);
 
+    SRV_ELEMENTS_INCREMENT_OPEN_FILES;
+
     *ppFile = pFile;
 
 cleanup:
@@ -251,6 +253,8 @@ SrvFile2Release(
 
     if (InterlockedDecrement(&pFile->refcount) == 0)
     {
+        SRV_ELEMENTS_DECREMENT_OPEN_FILES;
+
         SrvFile2Free(pFile);
     }
 }

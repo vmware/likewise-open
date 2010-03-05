@@ -163,7 +163,7 @@ SrvDeviceIoCommon(
 
       case IO_DEVICE_CTL_STATISTICS:
 
-          ntStatus = SrvGetStatistics(
+          ntStatus = SrvProcessStatistics(
                           pInBuffer,
                           ulInBufferSize,
                           pOutBuffer,

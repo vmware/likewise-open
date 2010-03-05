@@ -49,7 +49,8 @@ DWORD
 ParseArgs(
     int      argc,
     char*    argv[],
-    PBOOLEAN pbShowStats
+    PBOOLEAN pbGetStats,
+    PBOOLEAN pbResetStats
     );
 
 static
@@ -66,13 +67,14 @@ main(
 {
     DWORD   dwError = 0;
     BOOLEAN bShowStats = FALSE;
+    BOOLEAN bResetStats = FALSE;
 
-    dwError = ParseArgs(argc, argv, &bShowStats);
+    dwError = ParseArgs(argc, argv, &bShowStats, &bResetStats);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    if (bShowStats)
+    if (bShowStats || bResetStats)
     {
-        dwError = ShowServerStats();
+        dwError = ProcessServerStats(bShowStats, bResetStats);
         BAIL_ON_LWIO_ERROR(dwError);
     }
 
@@ -90,7 +92,8 @@ DWORD
 ParseArgs(
     int      argc,
     char*    argv[],
-    PBOOLEAN pbShowStats
+    PBOOLEAN pbGetStats,
+    PBOOLEAN pbResetStats
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -101,7 +104,8 @@ ParseArgs(
 
     int       iArg       = 1;
     ParseMode parseMode  = PARSE_MODE_OPEN;
-    BOOLEAN   bShowStats = FALSE;
+    BOOLEAN   bGetStats   = FALSE;
+    BOOLEAN   bResetStats = FALSE;
 
     for (iArg = 1; iArg < argc; iArg++)
     {
@@ -116,9 +120,13 @@ ParseArgs(
                     ShowUsage();
                     exit(0);
                 }
-                else if (!strcasecmp(pszArg, "--show-stats"))
+                else if (!strcasecmp(pszArg, "--get-stats"))
                 {
-                    bShowStats = TRUE;
+                    bGetStats = TRUE;
+                }
+                else if (!strcasecmp(pszArg, "--reset-stats"))
+                {
+                    bResetStats = TRUE;
                 }
                 else
                 {
@@ -137,7 +145,8 @@ ParseArgs(
         }
     }
 
-    *pbShowStats = bShowStats;
+    *pbGetStats = bGetStats;
+    *pbResetStats = bResetStats;
 
     return ntStatus;
 }
@@ -150,7 +159,8 @@ ShowUsage(
 {
     printf("Usage: lwio-cli <arguments> ...\n\n"
            "Arguments:\n"
-           "    --show-stats \n");
+           "    --get-stats \n"
+           "    --reset-stats \n");
 }
 
 
