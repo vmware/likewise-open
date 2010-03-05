@@ -49,6 +49,13 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvConnection2AcquireAsyncId_inlock(
+   PLWIO_SRV_CONNECTION pConnection,
+   PULONG64             pullAsyncId
+   );
+
 // Rules:
 //
 // Only one reader thread can read from this socket
@@ -103,6 +110,19 @@ SrvConnection2SessionRelease(
     PVOID pSession
     );
 
+static
+int
+SrvConnection2AsyncStateCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    );
+
+static
+VOID
+SrvConnection2AsyncStateRelease(
+    PVOID pAsyncState
+    );
+
 NTSTATUS
 SrvConnectionCreate(
     HANDLE                          hSocket,
@@ -136,6 +156,13 @@ SrvConnectionCreate(
                     NULL,
                     &SrvConnectionSessionRelease,
                     &pConnection->pSessionCollection);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlRBTreeCreate(
+                    &SrvConnection2AsyncStateCompare,
+                    NULL,
+                    &SrvConnection2AsyncStateRelease,
+                    &pConnection->pAsyncStateCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvAcquireHostInfo(
@@ -598,6 +625,177 @@ error:
 }
 
 NTSTATUS
+SrvConnection2CreateAsyncState(
+    PLWIO_SRV_CONNECTION          pConnection,
+    USHORT                        usCommand,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*            ppAsyncState
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    PLWIO_ASYNC_STATE pAsyncState = NULL;
+    ULONG64           ullAsyncId  = 0;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    ntStatus = SrvConnection2AcquireAsyncId_inlock(
+                    pConnection,
+                    &ullAsyncId);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvAsyncStateCreate(
+                    ullAsyncId,
+                    usCommand,
+                    NULL,
+                    pfnFreeAsyncState,
+                    &pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlRBTreeAdd(
+                    pConnection->pAsyncStateCollection,
+                    &pAsyncState->ullAsyncId,
+                    pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppAsyncState = NULL;
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnection2AcquireAsyncId_inlock(
+   PLWIO_SRV_CONNECTION pConnection,
+   PULONG64             pullAsyncId
+   )
+{
+    NTSTATUS ntStatus = 0;
+    ULONG64  ullCandidateAsyncId = pConnection->ullNextAvailableAsyncId;
+    BOOLEAN  bFound = FALSE;
+
+    do
+    {
+        PLWIO_ASYNC_STATE pAsyncState = NULL;
+
+        /* 0 is never a valid async id */
+
+        if ((ullCandidateAsyncId == 0) || (ullCandidateAsyncId == UINT64_MAX))
+        {
+            ullCandidateAsyncId = 1;
+        }
+
+        ntStatus = LwRtlRBTreeFind(
+                        pConnection->pAsyncStateCollection,
+                        &ullCandidateAsyncId,
+                        (PVOID*)&pAsyncState);
+        if (ntStatus == STATUS_NOT_FOUND)
+        {
+            ntStatus = STATUS_SUCCESS;
+            bFound = TRUE;
+        }
+        else
+        {
+            ullCandidateAsyncId++;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+    } while ((ullCandidateAsyncId != pConnection->ullNextAvailableAsyncId) && !bFound);
+
+    if (!bFound)
+    {
+        ntStatus = STATUS_TOO_MANY_CONTEXT_IDS;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pullAsyncId = ullCandidateAsyncId;
+
+    /* Increment by 1 by make sure to deal with wrap around */
+
+    ullCandidateAsyncId++;
+    pConnection->ullNextAvailableAsyncId = ullCandidateAsyncId ? ullCandidateAsyncId : 1;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pullAsyncId = 0;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvConnection2FindAsyncState(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullAsyncId,
+    PLWIO_ASYNC_STATE*   ppAsyncState
+    )
+{
+    NTSTATUS          ntStatus = STATUS_SUCCESS;
+    PLWIO_ASYNC_STATE pAsyncState = NULL;
+    BOOLEAN           bInLock     = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    ntStatus = LwRtlRBTreeFind(
+                    pConnection->pAsyncStateCollection,
+                    &ullAsyncId,
+                    (PVOID*)&pAsyncState);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppAsyncState = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvConnection2RemoveAsyncState(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullAsyncId
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    ntStatus = LwRtlRBTreeRemove(
+                    pConnection->pAsyncStateCollection,
+                    &ullAsyncId);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+}
+
+NTSTATUS
 SrvConnectionGetNamedPipeSessionKey(
     PLWIO_SRV_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
@@ -675,6 +873,11 @@ SrvConnectionRelease(
         if (pConnection->pSessionCollection)
         {
             LwRtlRBTreeFree(pConnection->pSessionCollection);
+        }
+
+        if (pConnection->pAsyncStateCollection)
+        {
+            LwRtlRBTreeFree(pConnection->pAsyncStateCollection);
         }
 
         if (pConnection->pHostinfo)
@@ -917,4 +1120,39 @@ SrvConnection2SessionRelease(
 {
     SrvSession2Release((PLWIO_SRV_SESSION_2)pSession);
 }
+
+static
+int
+SrvConnection2AsyncStateCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    )
+{
+    PULONG64 pAsyncId1 = (PULONG64)pKey1;
+    PULONG64 pAsyncId2 = (PULONG64)pKey2;
+
+    if (*pAsyncId1 > *pAsyncId2)
+    {
+        return 1;
+    }
+    else if (*pAsyncId1 < *pAsyncId2)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+static
+VOID
+SrvConnection2AsyncStateRelease(
+    PVOID pAsyncState
+    )
+{
+    SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
+}
+
+
 

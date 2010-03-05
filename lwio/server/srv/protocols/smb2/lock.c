@@ -229,8 +229,8 @@ SrvProcessLock_SMB_V2(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
 
-                ntStatus = SrvSession2CreateAsyncState(
-                                pCtxSmb2->pSession,
+                ntStatus = SrvConnection2CreateAsyncState(
+                                pConnection,
                                 COM2_LOCK,
                                 &SrvReleaseAsyncLockStateHandle_SMB_V2,
                                 &pAsyncState);
@@ -335,8 +335,8 @@ cleanup:
     {
         if (bUnregisterAsync)
         {
-            SrvSession2RemoveAsyncState(
-                    pCtxSmb2->pSession,
+            SrvConnection2RemoveAsyncState(
+                    pConnection,
                     pAsyncLockState->ullAsyncId);
         }
 
