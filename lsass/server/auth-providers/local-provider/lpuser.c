@@ -744,6 +744,7 @@ LocalDirModifyUser(
         { 0, NULL }
     };
 
+    WCHAR wszAttrNameDn[] = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     WCHAR wszAttrNameUserInfoFlags[] = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     WCHAR wszAttrNameAccountExpiry[] = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     WCHAR wszAttrNameNtHash [] = LOCAL_DIR_ATTR_NT_HASH;
@@ -760,15 +761,27 @@ LocalDirModifyUser(
     ATTRIBUTE_VALUE avShell = {0};
     ATTRIBUTE_VALUE avGecos = {0};
     ATTRIBUTE_VALUE avHomedir = {0};
-    DWORD             dwNumMods = 0;
-    PWSTR             pwszGroupDN_remove = NULL;
-    PWSTR             pwszGroupDN_add   = NULL;
-    PWSTR             pwszPassword      = NULL;
+    DWORD dwNumMods = 0;
+    PWSTR pwszPrimaryGroupDn = NULL;
+    PDIRECTORY_ENTRY pLocalGroupMemberships = NULL;
+    DWORD dwNumLocalGroups = 0;
+    DWORD iGroup = 0;
+    PDIRECTORY_ENTRY pLocalGroupEntry = NULL;
+    PWSTR pwszLocalGroupDn  = NULL;
+    BOOLEAN bIsMember = FALSE;
+    PWSTR pwszGroupDN_remove = NULL;
+    PWSTR pwszGroupDN_add   = NULL;
+    PWSTR pwszPassword      = NULL;
     OCTET_STRING NtHashBlob = {0};
     OCTET_STRING LmHashBlob = {0};
     LSA_QUERY_LIST QueryList;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PLSA_SECURITY_OBJECT pObject = NULL;
+
+    PWSTR wszMembershipAttributes[] = {
+        wszAttrNameDn,
+        NULL
+    };
 
     QueryList.ppszStrings = (PCSTR*) &pUserModInfo->pszSid;
 
@@ -916,6 +929,45 @@ LocalDirModifyUser(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
+        /*
+         * Check if the user is member of this group before making
+         * it their primary group
+         */
+        dwError = LwMbsToWc16s(
+            ppObjects[0]->pszDN,
+            &pwszPrimaryGroupDn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryGetMemberships(
+            pContext->hDirectory,
+            pwszUserDN,
+            wszMembershipAttributes,
+            &pLocalGroupMemberships,
+            &dwNumLocalGroups);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (iGroup = 0; !bIsMember && iGroup < dwNumLocalGroups; iGroup++)
+        {
+            pLocalGroupEntry = &(pLocalGroupMemberships[iGroup]);
+
+            dwError = DirectoryGetEntryAttrValueByName(
+                pLocalGroupEntry,
+                wszAttrNameDn,
+                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                &pwszLocalGroupDn);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            bIsMember = LwRtlWC16StringIsEqual(pwszPrimaryGroupDn,
+                                               pwszLocalGroupDn,
+                                               FALSE);
+        }
+
+        if (!bIsMember)
+        {
+            dwError = ERROR_MEMBER_NOT_IN_ALIAS;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
         mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
         mods[dwNumMods].pwszAttrName = &wszAttrNamePrimaryGroup[0];
         mods[dwNumMods].ulNumValues = 1;
@@ -1038,10 +1090,16 @@ cleanup:
     LsaUtilFreeSecurityObject(pObject);
     LsaUtilFreeSecurityObjectList(1, ppObjects);
 
+    if (pLocalGroupMemberships)
+    {
+        DirectoryFreeEntries(pLocalGroupMemberships, dwNumLocalGroups);
+    }
+
     LW_SAFE_FREE_MEMORY(pwszGroupDN_remove);
     LW_SAFE_FREE_MEMORY(pwszGroupDN_add);
     LW_SAFE_FREE_MEMORY(pwszPassword);
     LW_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszPrimaryGroupDn);
 
     return dwError;
 
