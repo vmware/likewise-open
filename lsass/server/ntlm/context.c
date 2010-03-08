@@ -516,6 +516,14 @@ NtlmCreateChallengeMessage(
     {
         dwOptions |= NTLM_FLAG_128;
     }
+    if (pNegMsg->NtlmFlags & NTLM_FLAG_SIGN)
+    {
+        dwOptions |= NTLM_FLAG_SIGN;
+    }
+    if (pNegMsg->NtlmFlags & NTLM_FLAG_SEAL)
+    {
+        dwOptions |= NTLM_FLAG_SEAL;
+    }
 
     // calculate optional data size
     if (pOsVersion)
