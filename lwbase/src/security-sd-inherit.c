@@ -823,13 +823,12 @@ RtlpObjectDaclAssignSecurity(
     PACL pDacl = NULL;
     ACCESS_MASK mask = 0;
     USHORT aclSize = 0;
+    USHORT srcAclSizeUsed = 0;
     USHORT aceOffset = 0;
     PACE_HEADER aceHeader = NULL;
     PACCESS_ALLOWED_ACE aceAllow = NULL;
     PACCESS_DENIED_ACE aceDeny = NULL;
     PSID aceSid = NULL;
-    USHORT aclConsumed = 0;
-    USHORT aceNewOffset = 0;
     union
     {
         SID sid;
@@ -903,15 +902,13 @@ RtlpObjectDaclAssignSecurity(
     status = RtlCreateAcl(pDacl, aclSize, ACL_REVISION);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    aclConsumed = RtlGetAclSizeUsed(pDacl);
+    srcAclSizeUsed = RtlGetAclSizeUsed(pSrcDacl);
 
     while (TRUE)
     {
-        aceNewOffset = aclConsumed;
-
         status = RtlIterateAce(
                      pSrcDacl,
-                     aclSize,
+                     srcAclSizeUsed,
                      &aceOffset,
                      &aceHeader);
         if (status == STATUS_NO_MORE_ENTRIES)

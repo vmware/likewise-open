@@ -1225,6 +1225,99 @@ cleanup:
     return status;
 }
 
+static
+SHORT
+RtlpCompareAceFlagsForInsert(
+    ULONG AceFlags1,
+    ULONG AceFlags2
+    )
+{
+    SHORT sResult = 0;
+    BOOLEAN bInherited1 = (AceFlags1 & INHERITED_ACE) ? TRUE : FALSE;
+    BOOLEAN bInheritOnly1 = (AceFlags1 & INHERIT_ONLY_ACE) ? TRUE : FALSE;
+    BOOLEAN bInherited2 = (AceFlags2 & INHERITED_ACE) ? TRUE : FALSE;
+    BOOLEAN bInheritOnly2 = (AceFlags2 & INHERIT_ONLY_ACE) ? TRUE : FALSE;
+
+    // Sort order is:
+    // 1. Non-inherited, inherit-only
+    // 2. Non-inherited
+    // 3. Inherited, inherit only
+    // 4. inherited
+
+    if (bInherited1)
+    {
+        if (!bInherited2)
+        {
+            sResult = 1;
+            GOTO_CLEANUP();
+        }
+
+        // Comparing two inherited ACEs
+
+        if (bInheritOnly1)
+        {
+            if (!bInheritOnly2)
+            {
+                sResult = -1;
+                GOTO_CLEANUP();
+            }
+
+            sResult = 0;
+            GOTO_CLEANUP();
+        }
+
+        // Ace1: Inherited, non-inherit only
+        // Ace2: Inherited, ...
+
+        if (bInheritOnly2)
+        {
+            sResult = 1;
+            GOTO_CLEANUP();
+        }
+
+        sResult = 0;
+        GOTO_CLEANUP();
+    }
+    else  // Non-inherited
+    {
+        if (bInherited2)
+        {
+            sResult = -1;
+            GOTO_CLEANUP();
+        }
+
+        // Comparing two non-inherited ACEs
+
+        if (bInheritOnly1)
+        {
+            if (!bInheritOnly2)
+            {
+                sResult = -1;
+                GOTO_CLEANUP();
+            }
+
+            sResult = 0;
+            GOTO_CLEANUP();
+        }
+
+        // Ace1: Non-Inherited, non-inherit only
+        // Ace2: Non-Inherited, ...
+
+        if (bInheritOnly2)
+        {
+            sResult = 1;
+            GOTO_CLEANUP();
+        }
+
+        sResult = 0;
+        GOTO_CLEANUP();
+    }
+
+cleanup:
+    return sResult;
+}
+
+
 NTSTATUS
 RtlAddAccessAllowedAceEx(
     IN PACL Acl,
@@ -1236,9 +1329,11 @@ RtlAddAccessAllowedAceEx(
 {
     NTSTATUS status = STATUS_SUCCESS;
     USHORT sizeUsed = 0;
-    USHORT aceOffset = 0;
     PACCESS_ALLOWED_ACE aceLocation = NULL;
     USHORT aceSize = 0;
+    USHORT usLoop = 0;
+    USHORT aceOffset = 0;
+    PACE_HEADER aceHeader = NULL;
 
     if (!RtlpValidAclHeader(Acl))
     {
@@ -1259,13 +1354,44 @@ RtlAddAccessAllowedAceEx(
         GOTO_CLEANUP();
     }
 
-    status = RtlpGetAceLocationFromIndex(
-                    Acl,
-                    ((ULONG)-1),
-                    &sizeUsed,
-                    &aceOffset,
-                    OUT_PPVOID(&aceLocation));
-    GOTO_CLEANUP_ON_STATUS(status);
+    // Allowed ACEs get added to the front of the allow list
+
+    if (Acl->AceCount > 0)
+    {
+        sizeUsed = RtlGetAclSizeUsed(Acl);
+
+        for (usLoop=0; usLoop < Acl->AceCount; usLoop++)
+        {
+            status = RtlIterateAce(Acl, sizeUsed, &aceOffset, &aceHeader);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            if (aceHeader->AceType == ACCESS_ALLOWED_ACE_TYPE)
+            {
+                if (RtlpCompareAceFlagsForInsert(
+                        AceFlags,
+                        aceHeader->AceFlags) <= 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        aceLocation = (PACCESS_ALLOWED_ACE)aceHeader;
+    }
+
+    // Covers Acl->AceCount == 0 and the case where we are adding
+    // to the end of the list
+
+    if (usLoop == Acl->AceCount)
+    {
+        status = RtlpGetAceLocationFromIndex(
+                     Acl,
+                     ((ULONG)-1),
+                     &sizeUsed,
+                     &aceOffset,
+                     OUT_PPVOID(&aceLocation));
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
     aceSize = RtlLengthAccessAllowedAce(Sid);
 
@@ -1300,9 +1426,11 @@ RtlAddAccessDeniedAceEx(
 {
     NTSTATUS status = STATUS_SUCCESS;
     USHORT sizeUsed = 0;
-    USHORT aceOffset = 0;
     PACCESS_DENIED_ACE aceLocation = NULL;
     USHORT aceSize = 0;
+    USHORT usLoop = 0;
+    USHORT aceOffset = 0;
+    PACE_HEADER aceHeader = NULL;
 
     if (!RtlpValidAclHeader(Acl))
     {
@@ -1323,13 +1451,50 @@ RtlAddAccessDeniedAceEx(
         GOTO_CLEANUP();
     }
 
-    status = RtlpGetAceLocationFromIndex(
-                    Acl,
-                    ((ULONG)-1),
-                    &sizeUsed,
-                    &aceOffset,
-                    OUT_PPVOID(&aceLocation));
-    GOTO_CLEANUP_ON_STATUS(status);
+    // Deny ACEs get added to the end of the deny list
+
+    if (Acl->AceCount > 0)
+    {
+        sizeUsed = RtlGetAclSizeUsed(Acl);
+
+        for (usLoop=0; usLoop < Acl->AceCount; usLoop++)
+        {
+            status = RtlIterateAce(Acl, sizeUsed, &aceOffset, &aceHeader);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            if (aceHeader->AceType == ACCESS_ALLOWED_ACE_TYPE)
+            {
+                // Acess Denied ACE always goes before Access Allowed
+                break;
+            }
+
+            if (aceHeader->AceType == ACCESS_DENIED_ACE_TYPE)
+            {
+                if (RtlpCompareAceFlagsForInsert(
+                        AceFlags,
+                        aceHeader->AceFlags) <= 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        aceLocation = (PACCESS_DENIED_ACE)aceHeader;
+    }
+
+    // Covers Acl->AceCount == 0 and the case where we are adding
+    // to the end of the list
+
+    if (usLoop == Acl->AceCount)
+    {
+        status = RtlpGetAceLocationFromIndex(
+                     Acl,
+                     ((ULONG)-1),
+                     &sizeUsed,
+                     &aceOffset,
+                     OUT_PPVOID(&aceLocation));
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
     aceSize = RtlLengthAccessDeniedAce(Sid);
 
