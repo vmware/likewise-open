@@ -42,19 +42,6 @@
 
 static
 NTSTATUS
-RtlpCreateAbsSecDescFromRelative(
-    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsSecDesc,
-    IN  PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc
-    );
-
-static
-VOID
-RtlpFreeAbsoluteSecurityDescriptor(
-    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
-    );
-
-static
-NTSTATUS
 RtlpObjectSetOwner(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor,
     IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pParentSecDesc,
@@ -265,7 +252,6 @@ cleanup:
 }
 
 
-static
 NTSTATUS
 RtlpCreateAbsSecDescFromRelative(
     OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsSecDesc,
@@ -366,7 +352,6 @@ cleanup:
     return status;
 }
 
-static
 VOID
 RtlpFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc

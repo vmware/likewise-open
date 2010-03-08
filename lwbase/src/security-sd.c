@@ -1189,116 +1189,130 @@ RtlQuerySecurityDescriptorInfo(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs = NULL;
-    PSID pOwnerSid = NULL;
-    PSID pGroupSid = NULL;
-    PACL pDacl = NULL;
-    PACL pSacl = NULL;
-    ULONG SecDescAbsSize = 0;
-    ULONG OwnerSize = 0;
-    ULONG GroupSize = 0;
-    ULONG DaclSize = 0;
-    ULONG SaclSize = 0;
 
-    /* Sanity checks */
+    // Sanity checks
 
-    if (SecurityInformation == 0) {
+    if (SecurityInformation == 0)
+    {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    /* Get the necessary sizes */
-
-    status = RtlSelfRelativeToAbsoluteSD(ObjectSecurityDescriptor,
-                                         pSecDescAbs,
-                                         &SecDescAbsSize,
-                                         pDacl,
-                                         &DaclSize,
-                                         pSacl,
-                                         &SaclSize,
-                                         pOwnerSid,
-                                         &OwnerSize,
-                                         pGroupSid,
-                                         &GroupSize);
-    if (status != STATUS_BUFFER_TOO_SMALL) {
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (SecDescAbsSize) {
-        status = RTL_ALLOCATE(&pSecDescAbs,
-                              SECURITY_DESCRIPTOR_ABSOLUTE,
-                              SecDescAbsSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (DaclSize) {
-        status = RTL_ALLOCATE(&pDacl, ACL, DaclSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (SaclSize) {
-        status = RTL_ALLOCATE(&pSacl, ACL, SaclSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (OwnerSize) {
-        status = RTL_ALLOCATE(&pOwnerSid, SID,OwnerSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (GroupSize) {
-        status = RTL_ALLOCATE(&pGroupSid, SID, GroupSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    /* Once for with feeling...This one should succeed. */
-
-    status = RtlSelfRelativeToAbsoluteSD(ObjectSecurityDescriptor,
-                                         pSecDescAbs,
-                                         &SecDescAbsSize,
-                                         pDacl,
-                                         &DaclSize,
-                                         pSacl,
-                                         &SaclSize,
-                                         pOwnerSid,
-                                         &OwnerSize,
-                                         pGroupSid,
-                                         &GroupSize);
+    status = RtlpCreateAbsSecDescFromRelative(
+                 &pSecDescAbs,
+                 ObjectSecurityDescriptor);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    if (!(SecurityInformation & OWNER_SECURITY_INFORMATION)) {
-        status = RtlSetOwnerSecurityDescriptor(pSecDescAbs, NULL, FALSE);
+    // Remove any pieces not requested by the caller
+
+    if (!(SecurityInformation & OWNER_SECURITY_INFORMATION))
+    {
+        PSID pOwnerSid = NULL;
+        BOOLEAN bOwnerDefaulted = FALSE;
+
+        status = RtlGetOwnerSecurityDescriptor(
+                     pSecDescAbs,
+                     &pOwnerSid,
+                     &bOwnerDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LW_RTL_FREE(&pOwnerSid);
+
+        status = RtlSetOwnerSecurityDescriptor(
+                     pSecDescAbs,
+                     NULL,
+                     FALSE);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    if (!(SecurityInformation & GROUP_SECURITY_INFORMATION)) {
+    if (!(SecurityInformation & GROUP_SECURITY_INFORMATION))
+    {
+        PSID pGroupSid = NULL;
+        BOOLEAN bGroupDefaulted = FALSE;
+
+        status = RtlGetGroupSecurityDescriptor(
+                     pSecDescAbs,
+                     &pGroupSid,
+                     &bGroupDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LW_RTL_FREE(&pGroupSid);
+
         status = RtlSetGroupSecurityDescriptor(pSecDescAbs, NULL, FALSE);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    if (!(SecurityInformation & DACL_SECURITY_INFORMATION)) {
+    if (!(SecurityInformation & DACL_SECURITY_INFORMATION))
+    {
+        PACL pDacl = NULL;
+        BOOLEAN bDaclDefaulted = FALSE;
+        BOOLEAN bDaclPresent = FALSE;
+        SECURITY_DESCRIPTOR_CONTROL DaclControlChange = (SE_DACL_PROTECTED|
+                                                         SE_DACL_AUTO_INHERITED|
+                                                         SE_DACL_AUTO_INHERIT_REQ|
+                                                         SE_DACL_UNTRUSTED);
+
+        status = RtlGetDaclSecurityDescriptor(
+                     pSecDescAbs,
+                     &bDaclPresent,
+                     &pDacl,
+                     &bDaclDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LW_RTL_FREE(&pDacl);
+
         status = RtlSetDaclSecurityDescriptor(pSecDescAbs, FALSE, NULL, FALSE);
         GOTO_CLEANUP_ON_STATUS(status);
-    }
 
-    if (!(SecurityInformation & SACL_SECURITY_INFORMATION)) {
-        status = RtlSetSaclSecurityDescriptor(pSecDescAbs, FALSE, NULL, FALSE);
+        status = RtlSetSecurityDescriptorControl(
+                     pSecDescAbs,
+                     DaclControlChange,
+                     0);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    /* Convert back to relative form */
+    if (!(SecurityInformation & SACL_SECURITY_INFORMATION))
+    {
+        PACL pSacl = NULL;
+        BOOLEAN bSaclDefaulted = FALSE;
+        BOOLEAN bSaclPresent = FALSE;
+        SECURITY_DESCRIPTOR_CONTROL SaclControlChange = (SE_SACL_PROTECTED|
+                                                         SE_SACL_AUTO_INHERITED|
+                                                         SE_SACL_AUTO_INHERIT_REQ);
 
-    status = RtlAbsoluteToSelfRelativeSD(pSecDescAbs,
-                                         SecurityDescriptor,
-                                         Length);
+        status = RtlGetSaclSecurityDescriptor(
+                     pSecDescAbs,
+                     &bSaclPresent,
+                     &pSacl,
+                     &bSaclDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LW_RTL_FREE(&pSacl);
+
+        status = RtlSetSaclSecurityDescriptor(pSecDescAbs, FALSE, NULL, FALSE);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetSecurityDescriptorControl(
+                     pSecDescAbs,
+                     SaclControlChange,
+                     0);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    // Convert back to relative form
+
+    status = RtlAbsoluteToSelfRelativeSD(
+                 pSecDescAbs,
+                 SecurityDescriptor,
+                 Length);
     GOTO_CLEANUP_ON_STATUS(status);
 
 
 cleanup:
-    RTL_FREE(&pOwnerSid);
-    RTL_FREE(&pGroupSid);
-    RTL_FREE(&pDacl);
-    RTL_FREE(&pSacl);
-    RTL_FREE(&pSecDescAbs);
+    if (pSecDescAbs)
+    {
+        RtlpFreeAbsoluteSecurityDescriptor(&pSecDescAbs);
+    }
 
     return status;
 }
@@ -1315,213 +1329,195 @@ RtlSetSecurityDescriptorInfo(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_ABSOLUTE pObjSecDescAbs = NULL;
-    PSID pObjOwnerSid = NULL;
-    PSID pObjGroupSid = NULL;
-    PACL pObjDacl = NULL;
-    PACL pObjSacl = NULL;
-    ULONG ObjSecDescAbsSize = 0;
-    ULONG ObjOwnerSize = 0;
-    ULONG ObjGroupSize = 0;
-    ULONG ObjDaclSize = 0;
-    ULONG ObjSaclSize = 0;
-    PSECURITY_DESCRIPTOR_ABSOLUTE pIncSecDescAbs = NULL;
-    PSID pIncOwnerSid = NULL;
-    PSID pIncGroupSid = NULL;
-    PACL pIncDacl = NULL;
-    PACL pIncSacl = NULL;
-    ULONG IncSecDescAbsSize = 0;
-    ULONG IncOwnerSize = 0;
-    ULONG IncGroupSize = 0;
-    ULONG IncDaclSize = 0;
-    ULONG IncSaclSize = 0;
-    SECURITY_DESCRIPTOR_CONTROL Control = 0;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pInputSecDescAbs = NULL;
+    SECURITY_DESCRIPTOR_CONTROL InputSecDescControl = 0;
     UCHAR Revision = 0;
 
-    /* Sanity checks */
+    // Sanity checks
 
-    if (SecurityInformation == 0) {
+    if (SecurityInformation == 0)
+    {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    /* Object SD: Get the necessary sizes */
+    // Convert to an Absolute SecDesc
 
-    status = RtlSelfRelativeToAbsoluteSD(ObjectSecurityDescriptor,
-                                         pObjSecDescAbs,
-                                         &ObjSecDescAbsSize,
-                                         pObjDacl,
-                                         &ObjDaclSize,
-                                         pObjSacl,
-                                         &ObjSaclSize,
-                                         pObjOwnerSid,
-                                         &ObjOwnerSize,
-                                         pObjGroupSid,
-                                         &ObjGroupSize);
-    if (status != STATUS_BUFFER_TOO_SMALL) {
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (ObjSecDescAbsSize) {
-        status = RTL_ALLOCATE(&pObjSecDescAbs,
-                              SECURITY_DESCRIPTOR_ABSOLUTE,
-                              ObjSecDescAbsSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (ObjDaclSize) {
-        status = RTL_ALLOCATE(&pObjDacl, ACL, ObjDaclSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (ObjSaclSize) {
-        status = RTL_ALLOCATE(&pObjSacl, ACL, ObjSaclSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (ObjOwnerSize) {
-        status = RTL_ALLOCATE(&pObjOwnerSid, SID, ObjOwnerSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (ObjGroupSize) {
-        status = RTL_ALLOCATE(&pObjGroupSid, SID, ObjGroupSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    status = RtlSelfRelativeToAbsoluteSD(ObjectSecurityDescriptor,
-                                         pObjSecDescAbs,
-                                         &ObjSecDescAbsSize,
-                                         pObjDacl,
-                                         &ObjDaclSize,
-                                         pObjSacl,
-                                         &ObjSaclSize,
-                                         pObjOwnerSid,
-                                         &ObjOwnerSize,
-                                         pObjGroupSid,
-                                         &ObjGroupSize);
+    status = RtlpCreateAbsSecDescFromRelative(
+                 &pObjSecDescAbs,
+                 ObjectSecurityDescriptor);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    /* Incoming SD: Get the necessary sizes */
-
-    status = RtlSelfRelativeToAbsoluteSD(InputSecurityDescriptor,
-                                         pIncSecDescAbs,
-                                         &IncSecDescAbsSize,
-                                         pIncDacl,
-                                         &IncDaclSize,
-                                         pIncSacl,
-                                         &IncSaclSize,
-                                         pIncOwnerSid,
-                                         &IncOwnerSize,
-                                         pIncGroupSid,
-                                         &IncGroupSize);
-    if (status != STATUS_BUFFER_TOO_SMALL) {
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (IncSecDescAbsSize) {
-        status = RTL_ALLOCATE(&pIncSecDescAbs,
-                              SECURITY_DESCRIPTOR_ABSOLUTE,
-                              IncSecDescAbsSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (IncDaclSize) {
-        status = RTL_ALLOCATE(&pIncDacl, ACL, IncDaclSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (IncSaclSize) {
-        status = RTL_ALLOCATE(&pIncSacl, ACL, IncSaclSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (IncOwnerSize) {
-        status = RTL_ALLOCATE(&pIncOwnerSid, SID, IncOwnerSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    if (IncGroupSize) {
-        status = RTL_ALLOCATE(&pIncGroupSid, SID, IncGroupSize);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    status = RtlSelfRelativeToAbsoluteSD(InputSecurityDescriptor,
-                                         pIncSecDescAbs,
-                                         &IncSecDescAbsSize,
-                                         pIncDacl,
-                                         &IncDaclSize,
-                                         pIncSacl,
-                                         &IncSaclSize,
-                                         pIncOwnerSid,
-                                         &IncOwnerSize,
-                                         pIncGroupSid,
-                                         &IncGroupSize);
+    status = RtlpCreateAbsSecDescFromRelative(
+                 &pInputSecDescAbs,
+                 InputSecurityDescriptor);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    /* Merge */
+    // Merge
 
-    status = RtlGetSecurityDescriptorControl(pIncSecDescAbs, &Control, &Revision);
+    status = RtlGetSecurityDescriptorControl(
+                 pInputSecDescAbs,
+                 &InputSecDescControl,
+                 &Revision);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    if (SecurityInformation & OWNER_SECURITY_INFORMATION) {
-        BOOLEAN bOwnerDefaulted = Control & SE_OWNER_DEFAULTED;
+    // Owner
 
-        status = RtlSetOwnerSecurityDescriptor(pObjSecDescAbs,
-                                               pIncOwnerSid,
-                                               bOwnerDefaulted);
+    if (SecurityInformation & OWNER_SECURITY_INFORMATION)
+    {
+        PSID pInputOwnerSid = NULL;
+        BOOLEAN bInputOwnerDefaulted = FALSE;
+
+        status = RtlGetOwnerSecurityDescriptor(
+                     pInputSecDescAbs,
+                     &pInputOwnerSid,
+                     &bInputOwnerDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetOwnerSecurityDescriptor(
+                     pObjSecDescAbs,
+                     pInputOwnerSid,
+                     bInputOwnerDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetOwnerSecurityDescriptor(
+                     pInputSecDescAbs,
+                     NULL,
+                     FALSE);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    if (SecurityInformation & GROUP_SECURITY_INFORMATION) {
-        BOOLEAN bGroupDefaulted = Control & SE_GROUP_DEFAULTED;
+    // Group
 
-        status = RtlSetGroupSecurityDescriptor(pObjSecDescAbs,
-                                               pIncGroupSid,
-                                               bGroupDefaulted);
+    if (SecurityInformation & GROUP_SECURITY_INFORMATION)
+    {
+        PSID pInputGroupSid = NULL;
+        BOOLEAN bInputGroupDefaulted = FALSE;
 
+        status = RtlGetGroupSecurityDescriptor(
+                     pInputSecDescAbs,
+                     &pInputGroupSid,
+                     &bInputGroupDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetGroupSecurityDescriptor(
+                     pObjSecDescAbs,
+                     pInputGroupSid,
+                     bInputGroupDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetGroupSecurityDescriptor(
+                     pInputSecDescAbs,
+                     NULL,
+                     FALSE);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+    }
+
+    // Dacl
+
+    if (SecurityInformation & DACL_SECURITY_INFORMATION)
+    {
+        PACL pInputDacl = NULL;
+        BOOLEAN bInputDaclDefaulted = FALSE;
+        BOOLEAN bInputDaclPresent = FALSE;
+        SECURITY_DESCRIPTOR_CONTROL DaclControlSet = 0;
+        SECURITY_DESCRIPTOR_CONTROL DaclControlChange = (SE_DACL_PROTECTED|
+                                                         SE_DACL_AUTO_INHERITED|
+                                                         SE_DACL_AUTO_INHERIT_REQ|
+                                                         SE_DACL_UNTRUSTED);
+
+        status = RtlGetDaclSecurityDescriptor(
+                     pInputSecDescAbs,
+                     &bInputDaclPresent,
+                     &pInputDacl,
+                     &bInputDaclDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetDaclSecurityDescriptor(
+                     pObjSecDescAbs,
+                     bInputDaclPresent,
+                     pInputDacl,
+                     bInputDaclDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetDaclSecurityDescriptor(
+                     pInputSecDescAbs,
+                     FALSE,
+                     NULL,
+                     FALSE);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        DaclControlSet = InputSecDescControl & DaclControlChange;
+
+        status = RtlSetSecurityDescriptorControl(
+                     pObjSecDescAbs,
+                     DaclControlChange,
+                     DaclControlSet);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    if (SecurityInformation & DACL_SECURITY_INFORMATION) {
-        BOOLEAN bDaclDefaulted = Control & SE_DACL_DEFAULTED;
+    // Sacl
 
-        status = RtlSetDaclSecurityDescriptor(pObjSecDescAbs,
-                                              TRUE,
-                                              pIncDacl,
-                                              bDaclDefaulted);
+    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    {
+        PACL pInputSacl = NULL;
+        BOOLEAN bInputSaclDefaulted = FALSE;
+        BOOLEAN bInputSaclPresent = FALSE;
+        SECURITY_DESCRIPTOR_CONTROL SaclControlSet = 0;
+        SECURITY_DESCRIPTOR_CONTROL SaclControlChange = (SE_SACL_PROTECTED|
+                                                         SE_SACL_AUTO_INHERITED|
+                                                         SE_SACL_AUTO_INHERIT_REQ);
+
+        status = RtlGetSaclSecurityDescriptor(
+                     pInputSecDescAbs,
+                     &bInputSaclPresent,
+                     &pInputSacl,
+                     &bInputSaclDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetSaclSecurityDescriptor(
+                     pObjSecDescAbs,
+                     bInputSaclPresent,
+                     pInputSacl,
+                     bInputSaclDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetSaclSecurityDescriptor(
+                     pInputSecDescAbs,
+                     FALSE,
+                     NULL,
+                     FALSE);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        SaclControlSet = InputSecDescControl & SaclControlChange;
+
+        status = RtlSetSecurityDescriptorControl(
+                     pObjSecDescAbs,
+                     SaclControlChange,
+                     SaclControlSet);
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    if (SecurityInformation & SACL_SECURITY_INFORMATION) {
-        BOOLEAN bSaclDefaulted = Control & SE_SACL_DEFAULTED;
+    // Convert back to relative form
 
-        status = RtlSetSaclSecurityDescriptor(pObjSecDescAbs,
-                                              TRUE,
-                                              pIncSacl,
-                                              bSaclDefaulted);
-        GOTO_CLEANUP_ON_STATUS(status);
-    }
-
-    /* Convert back to relative form */
-
-    status = RtlAbsoluteToSelfRelativeSD(pObjSecDescAbs,
-                                         NewObjectSecurityDescriptor,
-                                         NewObjectSecurityDescriptorLength);
+    status = RtlAbsoluteToSelfRelativeSD(
+                 pObjSecDescAbs,
+                 NewObjectSecurityDescriptor,
+                 NewObjectSecurityDescriptorLength);
     GOTO_CLEANUP_ON_STATUS(status);
 
 
 cleanup:
-    RTL_FREE(&pObjOwnerSid);
-    RTL_FREE(&pObjGroupSid);
-    RTL_FREE(&pObjDacl);
-    RTL_FREE(&pObjSacl);
-    RTL_FREE(&pObjSecDescAbs);
+    if (pObjSecDescAbs)
+    {
+        RtlpFreeAbsoluteSecurityDescriptor(&pObjSecDescAbs);
+    }
 
-    RTL_FREE(&pIncOwnerSid);
-    RTL_FREE(&pIncGroupSid);
-    RTL_FREE(&pIncDacl);
-    RTL_FREE(&pIncSacl);
-    RTL_FREE(&pIncSecDescAbs);
+    if (pInputSecDescAbs)
+    {
+        RtlpFreeAbsoluteSecurityDescriptor(&pInputSecDescAbs);
+    }
 
     return status;
 }
