@@ -67,6 +67,26 @@ static struct
         "Incorrect access attempt"
     },
     {
+        ERROR_MEMBER_IN_ALIAS,
+	"User is already in local group"
+    },
+    {
+        ERROR_MEMBER_NOT_IN_ALIAS,
+	"User is not a member of local group"
+    },
+    {
+        ERROR_NO_SUCH_ALIAS,
+	"No such local group"
+    },
+    {
+        ERROR_ALIAS_EXISTS,
+	"Local group exists"
+    },
+    {
+        ERROR_MEMBERS_PRIMARY_GROUP,
+	"Group is a primary group of one or more users"
+    },
+    {
         LW_ERROR_INVALID_CACHE_PATH,
         "An invalid cache path was specified"
     },
