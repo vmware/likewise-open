@@ -211,6 +211,18 @@ LsaTransactQueryMemberOf(
     OUT PSTR** pppszGroupSids
     );
 
+LW_DWORD
+LsaTransactFindGroupAndExpandedMembers(
+    LW_IN LW_HANDLE hLsa,
+    LW_PCSTR pszTargetProvider,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LSA_QUERY_TYPE QueryType,
+    LW_IN LSA_QUERY_ITEM QueryItem,
+    LW_OUT PLSA_SECURITY_OBJECT* pGroupObject,
+    LW_OUT LW_PDWORD pdwMemberObjectCount,
+    LW_OUT PLSA_SECURITY_OBJECT** pppMemberObjects
+    );
+
 DWORD
 LsaTransactCloseEnum(
     IN HANDLE hLsa,

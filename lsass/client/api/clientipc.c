@@ -1243,6 +1243,90 @@ error:
     goto cleanup;
 }
 
+LW_DWORD
+LsaTransactFindGroupAndExpandedMembers(
+    LW_IN LW_HANDLE hLsa,
+    LW_PCSTR pszTargetProvider,
+    LW_IN LSA_FIND_FLAGS FindFlags,
+    LW_IN LSA_QUERY_TYPE QueryType,
+    LW_IN LSA_QUERY_ITEM QueryItem,
+    LW_OUT PLSA_SECURITY_OBJECT* ppGroupObject,
+    LW_OUT LW_PDWORD pdwMemberObjectCount,
+    LW_OUT PLSA_SECURITY_OBJECT** pppMemberObjects
+    )
+{
+    DWORD dwError = 0;
+    LSA2_IPC_FIND_GROUP_AND_EXPANDED_MEMBERS_REQ req = {0};
+    PLSA2_IPC_FIND_GROUP_AND_EXPANDED_MEMBERS_RES pRes = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* pCall = NULL;
+
+    dwError = LsaIpcAcquireCall(hLsa, &pCall);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    req.pszTargetProvider = pszTargetProvider;
+    req.FindFlags = FindFlags;
+    req.QueryType = QueryType;
+    req.QueryItem = QueryItem;
+
+    switch(QueryType)
+    {
+    case LSA_QUERY_TYPE_BY_UNIX_ID:
+        req.IpcQueryType = LSA2_IPC_QUERY_DWORDS;
+        break;
+    default:
+        req.IpcQueryType = LSA2_IPC_QUERY_STRINGS;
+        break;
+    }
+
+    in.tag = LSA2_Q_FIND_GROUP_AND_EXPANDED_MEMBERS;
+    in.data = &req;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_call_dispatch(pCall, &in, &out, NULL, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    switch (out.tag)
+    {
+    case LSA2_R_FIND_GROUP_AND_EXPANDED_MEMBERS:
+        pRes = out.data;
+        *ppGroupObject = pRes->pGroup;
+        *pdwMemberObjectCount = pRes->dwMemberObjectCount;
+        *pppMemberObjects = pRes->ppMemberObjects;
+
+        pRes->pGroup = NULL;
+        pRes->ppMemberObjects = NULL;
+        break;
+    case LSA2_R_ERROR:
+        pError = (PLSA_IPC_ERROR) out.data;
+        dwError = pError->dwError;
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+cleanup:
+
+    if (pCall)
+    {
+        lwmsg_call_destroy_params(pCall, &out);
+        lwmsg_call_release(pCall);
+    }
+
+    return dwError;
+
+error:
+
+   *ppGroupObject = NULL;
+   *pdwMemberObjectCount = 0;
+   *pppMemberObjects = NULL;
+
+    goto cleanup;
+}
+
 DWORD
 LsaTransactCloseEnum(
     IN HANDLE hLsa,

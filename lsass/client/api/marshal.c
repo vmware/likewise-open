@@ -501,6 +501,132 @@ error:
 }
 
 DWORD
+LsaMarshalGroupInfo1(
+    HANDLE hLsa,
+    LSA_FIND_FLAGS FindFlags,
+    PLSA_SECURITY_OBJECT     pGroup,
+    DWORD dwMemberCount,
+    PLSA_SECURITY_OBJECT* ppMembers,
+    DWORD                   dwGroupInfoLevel,
+    PVOID*                  ppGroupInfo
+    )
+{
+    DWORD dwError = 0;
+    PVOID pGroupInfo = NULL;
+    PLSA_GROUP_INFO_1 pGroupInfo1 = NULL;
+    /* The variable represents pGroupInfo casted to different types. Do not
+     * free these values directly, free pGroupInfo instead.
+     */
+    size_t sIndex = 0;
+    size_t sEnabled = 0;
+
+    *ppGroupInfo = NULL;
+
+    BAIL_ON_INVALID_POINTER(pGroup);
+
+    if (pGroup->type != LSA_OBJECT_TYPE_GROUP)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!pGroup->enabled)
+    {
+        dwError = LW_ERROR_NO_SUCH_GROUP;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(
+        sizeof(LSA_GROUP_INFO_1),
+        (PVOID*)&pGroupInfo);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pGroupInfo1 = (PLSA_GROUP_INFO_1) pGroupInfo;
+
+    pGroupInfo1->gid = pGroup->groupInfo.gid;
+
+    dwError = LwAllocateString(
+        pGroup->groupInfo.pszUnixName,
+        &pGroupInfo1->pszName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    // Optional values use LwStrDupOrNull. Required values use
+    // LwAllocateString.
+    dwError = LwStrDupOrNull(
+        pGroup->groupInfo.pszPasswd,
+        &pGroupInfo1->pszPasswd);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LwAllocateString(
+        pGroup->pszObjectSid,
+        &pGroupInfo1->pszSid);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pGroup->pszDN)
+    {
+        dwError = LwAllocateString(
+            pGroup->pszDN,
+            &pGroupInfo1->pszDN);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    for (sIndex = 0; sIndex < dwMemberCount; sIndex++)
+    {
+        if (ppMembers[sIndex])
+        {
+            if (ppMembers[sIndex]->enabled)
+            {
+                sEnabled++;
+            }
+
+            if (ppMembers[sIndex]->type != LSA_OBJECT_TYPE_USER)
+            {
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    dwError = LwAllocateMemory(
+        //Leave room for terminating null pointer
+        sizeof(PSTR) * (sEnabled+1),
+        (PVOID*)&pGroupInfo1->ppszMembers);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sEnabled = 0;
+
+    for (sIndex = 0; sIndex < dwMemberCount; sIndex++)
+    {
+        if (ppMembers[sIndex])
+        {
+            if (ppMembers[sIndex]->enabled)
+            {
+                dwError = LwAllocateString(
+                    ppMembers[sIndex]->userInfo.pszUnixName,
+                    &pGroupInfo1->ppszMembers[sEnabled++]);
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+        }
+    }
+
+    *ppGroupInfo = pGroupInfo;
+
+cleanup:
+
+    return dwError;
+
+error:
+    if (pGroupInfo) {
+        LsaFreeGroupInfo(dwGroupInfoLevel, pGroupInfo);
+        pGroupInfo = NULL;
+    }
+
+    *ppGroupInfo = NULL;
+
+    goto cleanup;
+}
+
+DWORD
 LsaMarshalGroupInfoList(
     HANDLE hLsa,
     LSA_FIND_FLAGS FindFlags,

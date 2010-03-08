@@ -152,7 +152,10 @@ LsaFindGroupByName(
     DWORD dwError = 0;
     PVOID pGroupInfo = NULL;
     LSA_QUERY_LIST QueryList;
+    LSA_QUERY_ITEM QueryItem;
+    DWORD dwObjectCount = 1;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT pGroup = NULL;
 
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
     BAIL_ON_INVALID_STRING(pszGroupName);
@@ -162,32 +165,61 @@ LsaFindGroupByName(
 
     BAIL_ON_INVALID_POINTER(ppGroupInfo);
 
-    QueryList.ppszStrings = &pszGroupName;
-
-    dwError = LsaFindObjects(
-        hLsaConnection,
-        NULL,
-        0,
-        LSA_OBJECT_TYPE_GROUP,
-        LSA_QUERY_TYPE_BY_NAME,
-        1,
-        QueryList,
-        &ppObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppObjects[0] == NULL)
+    switch (dwGroupInfoLevel)
     {
-        dwError = LW_ERROR_NO_SUCH_GROUP;
+    case 1:
+        /* Fast path */
+        QueryItem.pszString = pszGroupName;
+
+        dwError = LsaFindGroupAndExpandedMembers(
+            hLsaConnection,
+            NULL,
+            FindFlags,
+            LSA_QUERY_TYPE_BY_NAME,
+            QueryItem,
+            &pGroup,
+            &dwObjectCount,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaMarshalGroupInfo1(
+            hLsaConnection,
+            FindFlags,
+            pGroup,
+            dwObjectCount,
+            ppObjects,
+            dwGroupInfoLevel,
+            &pGroupInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        QueryList.ppszStrings = &pszGroupName;
+
+        dwError = LsaFindObjects(
+            hLsaConnection,
+            NULL,
+            0,
+            LSA_OBJECT_TYPE_GROUP,
+            LSA_QUERY_TYPE_BY_NAME,
+            1,
+            QueryList,
+        &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (ppObjects[0] == NULL)
+        {
+            dwError = LW_ERROR_NO_SUCH_GROUP;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = LsaMarshalGroupInfo(
+            hLsaConnection,
+            FindFlags,
+            ppObjects[0],
+            dwGroupInfoLevel,
+            &pGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);
     }
-
-    dwError = LsaMarshalGroupInfo(
-        hLsaConnection,
-        FindFlags,
-        ppObjects[0],
-        dwGroupInfoLevel,
-        &pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
 
 error:
 
@@ -196,9 +228,14 @@ error:
         *ppGroupInfo = pGroupInfo;
     }
 
+    if (pGroup)
+    {
+        LsaFreeSecurityObject(pGroup);
+    }
+
     if (ppObjects)
     {
-        LsaFreeSecurityObjectList(1, ppObjects);
+        LsaFreeSecurityObjectList(dwObjectCount, ppObjects);
     }
 
     return dwError;
@@ -218,7 +255,10 @@ LsaFindGroupById(
     DWORD dwError = 0;
     PVOID pGroupInfo = NULL;
     LSA_QUERY_LIST QueryList;
+    LSA_QUERY_ITEM QueryItem;
+    DWORD dwObjectCount = 1;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    PLSA_SECURITY_OBJECT pGroup = NULL;
     DWORD dwGid = (DWORD) gid;
 
     BAIL_ON_INVALID_HANDLE(hLsaConnection);
@@ -228,32 +268,61 @@ LsaFindGroupById(
 
     BAIL_ON_INVALID_POINTER(ppGroupInfo);
 
-    QueryList.pdwIds = &dwGid;
-
-    dwError = LsaFindObjects(
-        hLsaConnection,
-        NULL,
-        FindFlags,
-        LSA_OBJECT_TYPE_GROUP,
-        LSA_QUERY_TYPE_BY_UNIX_ID,
-        1,
-        QueryList,
-        &ppObjects);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    if (ppObjects[0] == NULL)
+    switch (dwGroupInfoLevel)
     {
-        dwError = LW_ERROR_NO_SUCH_GROUP;
+    case 1:
+        /* Fast path */
+        QueryItem.dwId = dwGid;
+
+        dwError = LsaFindGroupAndExpandedMembers(
+            hLsaConnection,
+            NULL,
+            FindFlags,
+            LSA_QUERY_TYPE_BY_UNIX_ID,
+            QueryItem,
+            &pGroup,
+            &dwObjectCount,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LsaMarshalGroupInfo1(
+            hLsaConnection,
+            FindFlags,
+            pGroup,
+            dwObjectCount,
+            ppObjects,
+            dwGroupInfoLevel,
+            &pGroupInfo);
+        BAIL_ON_LSA_ERROR(dwError);
+        break;
+    default:
+        QueryList.pdwIds = &dwGid;
+
+        dwError = LsaFindObjects(
+            hLsaConnection,
+            NULL,
+            FindFlags,
+            LSA_OBJECT_TYPE_GROUP,
+            LSA_QUERY_TYPE_BY_UNIX_ID,
+            1,
+            QueryList,
+            &ppObjects);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        if (ppObjects[0] == NULL)
+        {
+            dwError = LW_ERROR_NO_SUCH_GROUP;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
+        dwError = LsaMarshalGroupInfo(
+            hLsaConnection,
+            FindFlags,
+            ppObjects[0],
+            dwGroupInfoLevel,
+            &pGroupInfo);
         BAIL_ON_LSA_ERROR(dwError);
     }
-
-    dwError = LsaMarshalGroupInfo(
-        hLsaConnection,
-        FindFlags,
-        ppObjects[0],
-        dwGroupInfoLevel,
-        &pGroupInfo);
-    BAIL_ON_LSA_ERROR(dwError);
 
 error:
 
@@ -262,9 +331,14 @@ error:
         *ppGroupInfo = pGroupInfo;
     }
 
+    if (pGroup)
+    {
+        LsaFreeSecurityObject(pGroup);
+    }
+
     if (ppObjects)
     {
-        LsaFreeSecurityObjectList(1, ppObjects);
+        LsaFreeSecurityObjectList(dwObjectCount, ppObjects);
     }
 
     return dwError;

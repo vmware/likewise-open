@@ -1824,6 +1824,97 @@ error:
 }
 
 static LWMsgStatus
+LsaSrvIpcFindGroupAndExpandedMembers(
+    LWMsgCall* pCall,
+    const LWMsgParams* pIn,
+    LWMsgParams* pOut,
+    void* data
+    )
+{
+    DWORD dwError = 0;
+    PLSA2_IPC_FIND_GROUP_AND_EXPANDED_MEMBERS_REQ pReq = pIn->data;
+    PLSA2_IPC_FIND_GROUP_AND_EXPANDED_MEMBERS_RES pRes = NULL;
+    PLSA_SECURITY_OBJECT pGroupObject = NULL;
+    DWORD dwMemberObjectCount = 0;
+    PLSA_SECURITY_OBJECT* ppMemberObjects = NULL;
+    PLSA_IPC_ERROR pError = NULL;
+
+    switch (pReq->QueryType)
+    {
+    case LSA_QUERY_TYPE_BY_UNIX_ID:
+        if (pReq->IpcQueryType != LSA2_IPC_QUERY_DWORDS)
+        {
+            dwError = LW_ERROR_INTERNAL;
+        }
+        break;
+    case LSA_QUERY_TYPE_BY_DN:
+    case LSA_QUERY_TYPE_BY_SID:
+    case LSA_QUERY_TYPE_BY_NT4:
+    case LSA_QUERY_TYPE_BY_ALIAS:
+    case LSA_QUERY_TYPE_BY_UPN:
+    case LSA_QUERY_TYPE_BY_NAME:
+        if (pReq->IpcQueryType != LSA2_IPC_QUERY_STRINGS)
+        {
+            dwError = LW_ERROR_INTERNAL;
+        }
+        break;
+    default:
+        dwError = LW_ERROR_INTERNAL;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    if (!dwError)
+    {
+        dwError = LsaSrvFindGroupAndExpandedMembers(
+            LsaSrvIpcGetSessionData(pCall),
+            pReq->pszTargetProvider,
+            pReq->FindFlags,
+            pReq->QueryType,
+            pReq->QueryItem,
+            &pGroupObject,
+            &dwMemberObjectCount,
+            &ppMemberObjects);
+    }
+
+    if (!dwError)
+    {
+        dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pRes->pGroup = pGroupObject;
+        pRes->dwMemberObjectCount = dwMemberObjectCount;
+        pRes->ppMemberObjects = ppMemberObjects;
+
+        pGroupObject = NULL;
+        ppMemberObjects = NULL;
+
+        pOut->tag = LSA2_R_FIND_GROUP_AND_EXPANDED_MEMBERS;
+        pOut->data = pRes;
+    }
+    else
+    {
+        dwError = LsaSrvIpcCreateError(dwError, NULL, &pError);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pOut->tag = LSA2_R_ERROR;
+        pOut->data = pError;
+    }
+
+cleanup:
+
+    if (ppMemberObjects)
+    {
+        LsaUtilFreeSecurityObjectList(dwMemberObjectCount, ppMemberObjects);
+    }
+
+    return MAP_LW_ERROR_IPC(dwError);
+
+error:
+
+    goto cleanup;
+}
+
+static LWMsgStatus
 LsaSrvIpcCloseEnum(
     LWMsgCall* pCall,
     const LWMsgParams* pIn,
@@ -1889,6 +1980,7 @@ static LWMsgDispatchSpec gMessageHandlers[] =
     LWMSG_DISPATCH_BLOCK(LSA2_Q_OPEN_ENUM_MEMBERS, LsaSrvIpcOpenEnumMembers),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_ENUM_MEMBERS, LsaSrvIpcEnumMembers),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_QUERY_MEMBER_OF, LsaSrvIpcQueryMemberOf),
+    LWMSG_DISPATCH_BLOCK(LSA2_Q_FIND_GROUP_AND_EXPANDED_MEMBERS, LsaSrvIpcFindGroupAndExpandedMembers),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_CLOSE_ENUM, LsaSrvIpcCloseEnum),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_MODIFY_USER, LsaSrvIpcModifyUser2),
     LWMSG_DISPATCH_BLOCK(LSA2_Q_ADD_GROUP, LsaSrvIpcAddGroup2),
