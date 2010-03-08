@@ -572,6 +572,12 @@ SrvGssNegHints(
     ULONG *pulNegHintsLength
     );
 
+ULONG64
+SrvAsyncStateBuildId(
+    ULONG  ulPid,
+    USHORT usMid
+    );
+
 NTSTATUS
 SrvAsyncStateCreate(
     ULONG64                       ullAsyncId,

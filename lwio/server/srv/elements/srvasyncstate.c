@@ -55,6 +55,15 @@ SrvAsyncStateFree(
     PLWIO_ASYNC_STATE pAsyncState
     );
 
+ULONG64
+SrvAsyncStateBuildId(
+    ULONG  ulPid,
+    USHORT usMid
+    )
+{
+    return (((ULONG64)ulPid) << 32) | ((ULONG64)usMid);
+}
+
 NTSTATUS
 SrvAsyncStateCreate(
     ULONG64                       ullAsyncId,
