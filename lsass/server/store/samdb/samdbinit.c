@@ -1187,7 +1187,7 @@ SamDbAddLocalAccounts(
         {
             .pszName          = "Administrator",
             .dwUid            = SAM_DB_UID_FROM_RID(DOMAIN_USER_RID_ADMIN),
-            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_ADMINS),
+            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_LW_USERS),
             .dwRid            = DOMAIN_USER_RID_ADMIN,
             .pszDescription   = "Built-in account for administering the "
                                 "computer/domain",
@@ -1199,7 +1199,7 @@ SamDbAddLocalAccounts(
         {
             .pszName          = "Guest",
             .dwUid            = SAM_DB_UID_FROM_RID(DOMAIN_USER_RID_GUEST),
-            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_GUESTS),
+            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_LW_USERS),
             .dwRid            = DOMAIN_USER_RID_GUEST,
             .pszDescription   = "Built-in account for guest access to the "
                                 "computer/domain",
