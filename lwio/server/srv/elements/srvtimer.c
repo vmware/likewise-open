@@ -154,10 +154,9 @@ SrvTimerMain(
 
             if (llCurTime >= pTimerRequest->llExpiry)
             {
-                BOOLEAN bInLock2 = FALSE;
+                SrvTimerDetachRequest_inlock(pContext, pTimerRequest);
 
                 LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
-                LWIO_LOCK_MUTEX(bInLock2, &pTimerRequest->mutex);
 
                 if (pTimerRequest->pfnTimerExpiredCB)
                 {
@@ -167,10 +166,7 @@ SrvTimerMain(
                                         pTimerRequest->pUserData);
                 }
 
-                LWIO_UNLOCK_MUTEX(bInLock2, &pTimerRequest->mutex);
                 LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
-
-                SrvTimerDetachRequest_inlock(pContext, pTimerRequest);
             }
 
             SrvTimerRelease(pTimerRequest);
@@ -374,9 +370,6 @@ SrvTimerPostRequestSpecific(
     pTimerRequest->pUserData = pUserData;
     pTimerRequest->pfnTimerExpiredCB = pfnTimerExpiredCB;
 
-    pthread_mutex_init(&pTimerRequest->mutex, NULL);
-    pTimerRequest->pMutex = &pTimerRequest->mutex;
-
     LWIO_LOCK_MUTEX(bInLock, &pTimer->context.mutex);
 
     for (pTimerIter = pTimer->context.pRequests;
@@ -453,7 +446,6 @@ SrvTimerCancelRequestSpecific(
 
     if (pIter)
     {
-        BOOLEAN bInLock2 = FALSE;
         PSRV_TIMER_REQUEST pPrev = pIter->pPrev;
 
         if (pPrev)
@@ -473,12 +465,8 @@ SrvTimerCancelRequestSpecific(
         pIter->pPrev = NULL;
         pIter->pNext = NULL;
 
-        LWIO_LOCK_MUTEX(bInLock2, &pIter->mutex);
-
         pIter->pfnTimerExpiredCB = NULL;
         pUserData = pIter->pUserData;
-
-        LWIO_UNLOCK_MUTEX(bInLock2, &pIter->mutex);
     }
     else
     {
@@ -527,11 +515,6 @@ SrvTimerFree(
     IN  PSRV_TIMER_REQUEST pTimerRequest
     )
 {
-    if (pTimerRequest->pMutex)
-    {
-        pthread_mutex_destroy(&pTimerRequest->mutex);
-    }
-
     SrvFreeMemory(pTimerRequest);
 }
 
