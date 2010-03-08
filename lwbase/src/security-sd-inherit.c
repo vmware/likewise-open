@@ -53,7 +53,6 @@ RtlpFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
-
 static
 NTSTATUS
 RtlpObjectSetOwner(
@@ -429,7 +428,8 @@ RtlpObjectSetOwner(
     PTOKEN_OWNER pTokenOwnerInformation = (PTOKEN_OWNER)&TokenOwnerBuffer;
     ULONG ulTokenOwnerLength = 0;
 
-    // Always use the CreatorSecDesc Owner if present
+    // Use the CreatorSecDesc Owner if present and is
+    // a member of the user's token
 
     if (pCreatorSecDesc)
     {
@@ -439,7 +439,8 @@ RtlpObjectSetOwner(
                      &bDefaulted);
         GOTO_CLEANUP_ON_STATUS(status);
 
-        if (pCreatorSecDescOwner)
+        if (pCreatorSecDescOwner
+            && RtlIsSidMemberOfToken(pUserToken, pCreatorSecDescOwner))
         {
             status = RtlDuplicateSid(&pOwner, pCreatorSecDescOwner);
             GOTO_CLEANUP_ON_STATUS(status);
@@ -529,7 +530,8 @@ RtlpObjectSetGroup(
     PTOKEN_PRIMARY_GROUP pTokenPrimaryGroupInfo = (PTOKEN_PRIMARY_GROUP)&TokenPrimaryGroupBuffer;
     ULONG ulTokenPrimaryGroupLength = 0;
 
-    // Always use the CreatorSecDesc Group if present
+    // Use the CreatorSecDesc Group if present and if a
+    // member of the user's token
 
     if (pCreatorSecDesc)
     {
@@ -539,7 +541,8 @@ RtlpObjectSetGroup(
                      &bDefaulted);
         GOTO_CLEANUP_ON_STATUS(status);
 
-        if (pCreatorSecDescGroup)
+        if (pCreatorSecDescGroup
+            && RtlIsSidMemberOfToken(pUserToken, pCreatorSecDescGroup))
         {
             status = RtlDuplicateSid(&pGroup, pCreatorSecDescGroup);
             GOTO_CLEANUP_ON_STATUS(status);
@@ -622,6 +625,7 @@ RtlpObjectInheritSecurity(
     IN OPTIONAL PACL pCreatorDacl,
     IN BOOLEAN bCreatorIsDaclDefaulted,
     IN BOOLEAN bIsContainerObject,
+    IN PACCESS_TOKEN pUserToken,
     IN PGENERIC_MAPPING pGenericMap
     );
 
@@ -702,6 +706,7 @@ RtlpObjectSetDacl(
                      bCreatorIsDaclPresent ? pCreatorDacl : NULL,
                      bCreatorIsDaclDefaulted,
                      bIsContainerObject,
+                     pUserToken,
                      pGenericMap);
         GOTO_CLEANUP_ON_STATUS(status);
     }
@@ -752,6 +757,7 @@ RtlpObjectSetDacl(
                      pTokenDefaultDaclInformation->DefaultDacl,
                      TRUE,
                      bIsContainerObject,
+                     pUserToken,
                      pGenericMap);
         GOTO_CLEANUP_ON_STATUS(status);
 
@@ -808,6 +814,7 @@ static
 NTSTATUS
 RtlpObjectDaclAssignSecurity(
     OUT PACL *ppObjectDacl,
+    IN PACCESS_TOKEN pUserToken,
     IN PACL pSrcDacl,
     IN PGENERIC_MAPPING pGenericMap
     )
@@ -815,7 +822,7 @@ RtlpObjectDaclAssignSecurity(
     NTSTATUS status = STATUS_SUCCESS;
     PACL pDacl = NULL;
     ACCESS_MASK mask = 0;
-    USHORT aclSizeUsed = 0;
+    USHORT aclSize = 0;
     USHORT aceOffset = 0;
     PACE_HEADER aceHeader = NULL;
     PACCESS_ALLOWED_ACE aceAllow = NULL;
@@ -823,18 +830,77 @@ RtlpObjectDaclAssignSecurity(
     PSID aceSid = NULL;
     USHORT aclConsumed = 0;
     USHORT aceNewOffset = 0;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } CreatorOwner;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } CreatorGroup;
+    ULONG CreatorOwnerSidSize = sizeof(CreatorOwner.buffer);
+    ULONG CreatorGroupSidSize = sizeof(CreatorGroup.buffer);
+    union {
+        TOKEN_OWNER TokenOwnerInfo;
+        BYTE Buffer[SID_MAX_SIZE];
+    } TokenOwnerBuffer;
+    PTOKEN_OWNER pTokenOwnerInformation = (PTOKEN_OWNER)&TokenOwnerBuffer;
+    ULONG ulTokenOwnerLength = 0;
+    struct {
+        TOKEN_PRIMARY_GROUP TokenPrimaryGroupInfo;
+        BYTE Buffer[SID_MAX_SIZE];
+    } TokenPrimaryGroupBuffer;
+    PTOKEN_PRIMARY_GROUP pTokenPrimaryGroupInfo = (PTOKEN_PRIMARY_GROUP)&TokenPrimaryGroupBuffer;
+    ULONG ulTokenPrimaryGroupLength = 0;
 
-    aclSizeUsed = RtlGetAclSizeUsed(pSrcDacl);
-    if (aclSizeUsed == 0)
+    aclSize = ACL_HEADER_SIZE +
+              (RtlGetAclAceCount(pSrcDacl) *
+               (sizeof(ACCESS_ALLOWED_ACE) + SID_MAX_SIZE));
+
+    if (aclSize == 0)
     {
         status = STATUS_INVALID_SECURITY_DESCR;
         GOTO_CLEANUP_ON_STATUS(status);
     }
 
-    status = LW_RTL_ALLOCATE(&pDacl, VOID, aclSizeUsed);
+    // Build the "CREATOR OWNER" and "CREATOR GROUP" sids for comparison
+
+    status = RtlCreateWellKnownSid(
+                 WinCreatorOwnerSid,
+                 NULL,
+                 &CreatorOwner.sid,
+                 &CreatorOwnerSidSize);
     GOTO_CLEANUP_ON_STATUS(status);
 
-    status = RtlCreateAcl(pDacl, aclSizeUsed, ACL_REVISION);
+    status = RtlCreateWellKnownSid(
+                 WinCreatorGroupSid,
+                 NULL,
+                 &CreatorGroup.sid,
+                 &CreatorGroupSidSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlQueryAccessTokenInformation(
+                 pUserToken,
+                 TokenOwner,
+                 (PVOID)pTokenOwnerInformation,
+                 sizeof(TokenOwnerBuffer),
+                 &ulTokenOwnerLength);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlQueryAccessTokenInformation(
+                 pUserToken,
+                 TokenPrimaryGroup,
+                 (PVOID)pTokenPrimaryGroupInfo,
+                 sizeof(TokenPrimaryGroupBuffer),
+                 &ulTokenPrimaryGroupLength);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LW_RTL_ALLOCATE(&pDacl, VOID, aclSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlCreateAcl(pDacl, aclSize, ACL_REVISION);
     GOTO_CLEANUP_ON_STATUS(status);
 
     aclConsumed = RtlGetAclSizeUsed(pDacl);
@@ -845,7 +911,7 @@ RtlpObjectDaclAssignSecurity(
 
         status = RtlIterateAce(
                      pSrcDacl,
-                     aclSizeUsed,
+                     aclSize,
                      &aceOffset,
                      &aceHeader);
         if (status == STATUS_NO_MORE_ENTRIES)
@@ -853,8 +919,6 @@ RtlpObjectDaclAssignSecurity(
             break;
         }
         GOTO_CLEANUP_ON_STATUS(status);
-
-        // TODO - Deal with CREATOR OWNER and CREATOR GROUP
 
         switch (aceHeader->AceType)
         {
@@ -865,6 +929,15 @@ RtlpObjectDaclAssignSecurity(
                 aceSid = (PSID)&aceAllow->SidStart;
 
                 RtlMapGenericMask(&mask, pGenericMap);
+
+                if (RtlEqualSid(aceSid, &CreatorOwner.sid))
+                {
+                    aceSid = pTokenOwnerInformation->Owner;
+                }
+                else if (RtlEqualSid(aceSid, &CreatorGroup.sid))
+                {
+                    aceSid = pTokenPrimaryGroupInfo->PrimaryGroup;
+                }
 
                 status = RtlAddAccessAllowedAceEx(
                              pDacl,
@@ -883,6 +956,15 @@ RtlpObjectDaclAssignSecurity(
                 aceSid = (PSID)&aceDeny->SidStart;
 
                 RtlMapGenericMask(&mask, pGenericMap);
+
+                if (RtlEqualSid(aceSid, &CreatorOwner.sid))
+                {
+                    aceSid = pTokenOwnerInformation->Owner;
+                }
+                else if (RtlEqualSid(aceSid, &CreatorGroup.sid))
+                {
+                    aceSid = pTokenPrimaryGroupInfo->PrimaryGroup;
+                }
 
                 status = RtlAddAccessDeniedAceEx(
                              pDacl,
@@ -925,6 +1007,7 @@ RtlpObjectInheritSecurity(
     IN OPTIONAL PACL pCreatorDacl,
     IN BOOLEAN bCreatorIsDaclDefaulted,
     IN BOOLEAN bIsContainerObject,
+    IN PACCESS_TOKEN pUserToken,
     IN PGENERIC_MAPPING pGenericMap
     )
 {
@@ -938,6 +1021,30 @@ RtlpObjectInheritSecurity(
     PACCESS_ALLOWED_ACE pAllowAce = NULL;
     PACCESS_DENIED_ACE pDenyAce = NULL;
     ACCESS_MASK mask = 0;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } CreatorOwner;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } CreatorGroup;
+    ULONG CreatorOwnerSidSize = sizeof(CreatorOwner.buffer);
+    ULONG CreatorGroupSidSize = sizeof(CreatorGroup.buffer);
+    union {
+        TOKEN_OWNER TokenOwnerInfo;
+        BYTE Buffer[SID_MAX_SIZE];
+    } TokenOwnerBuffer;
+    PTOKEN_OWNER pTokenOwnerInformation = (PTOKEN_OWNER)&TokenOwnerBuffer;
+    ULONG ulTokenOwnerLength = 0;
+    struct {
+        TOKEN_PRIMARY_GROUP TokenPrimaryGroupInfo;
+        BYTE Buffer[SID_MAX_SIZE];
+    } TokenPrimaryGroupBuffer;
+    PTOKEN_PRIMARY_GROUP pTokenPrimaryGroupInfo = (PTOKEN_PRIMARY_GROUP)&TokenPrimaryGroupBuffer;
+    ULONG ulTokenPrimaryGroupLength = 0;
 
     // Inheritance Algorithm:
     //
@@ -961,6 +1068,7 @@ RtlpObjectInheritSecurity(
     {
         status = RtlpObjectDaclAssignSecurity(
                      &pDacl,
+                     pUserToken,
                      pCreatorDacl,
                      pGenericMap);
         GOTO_CLEANUP_ON_STATUS(status);
@@ -973,12 +1081,16 @@ RtlpObjectInheritSecurity(
 
     if (pCreatorDacl)
     {
-        usDaclSize = RtlGetAclSizeUsed(pCreatorDacl);
+        usDaclSize = ACL_HEADER_SIZE +
+                     (RtlGetAclAceCount(pCreatorDacl) *
+                      (sizeof(ACCESS_ALLOWED_ACE) + SID_MAX_SIZE));
     }
 
     if (pParentDacl)
     {
-        usDaclSize += (RtlGetAclSizeUsed(pParentDacl) * 2);
+        usDaclSize += ACL_HEADER_SIZE +
+                     (RtlGetAclAceCount(pParentDacl) *
+                      (sizeof(ACCESS_ALLOWED_ACE) + SID_MAX_SIZE));
     }
 
     if (usDaclSize <= 0)
@@ -986,6 +1098,38 @@ RtlpObjectInheritSecurity(
         status = STATUS_INVALID_SECURITY_DESCR;
         GOTO_CLEANUP_ON_STATUS(status);
     }
+
+    // Build the "CREATOR OWNER" and "CREATOR GROUP" sids for comparison
+
+    status = RtlCreateWellKnownSid(
+                 WinCreatorOwnerSid,
+                 NULL,
+                 &CreatorOwner.sid,
+                 &CreatorOwnerSidSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlCreateWellKnownSid(
+                 WinCreatorGroupSid,
+                 NULL,
+                 &CreatorGroup.sid,
+                 &CreatorGroupSidSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlQueryAccessTokenInformation(
+                 pUserToken,
+                 TokenOwner,
+                 (PVOID)pTokenOwnerInformation,
+                 sizeof(TokenOwnerBuffer),
+                 &ulTokenOwnerLength);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlQueryAccessTokenInformation(
+                 pUserToken,
+                 TokenPrimaryGroup,
+                 (PVOID)pTokenPrimaryGroupInfo,
+                 sizeof(TokenPrimaryGroupBuffer),
+                 &ulTokenPrimaryGroupLength);
+    GOTO_CLEANUP_ON_STATUS(status);
 
     status = LW_RTL_ALLOCATE(&pDacl, VOID, usDaclSize);
     GOTO_CLEANUP_ON_STATUS(status);
@@ -1004,8 +1148,6 @@ RtlpObjectInheritSecurity(
     {
         status = RtlGetAce(pCreatorDacl, i, OUT_PPVOID(&pAceHeader));
         GOTO_CLEANUP_ON_STATUS(status);
-
-        // TODO - Deal with CREATOR OWNER and CREATOR GROUP
 
         switch(pAceHeader->AceType)
         {
@@ -1055,6 +1197,7 @@ RtlpObjectInheritSecurity(
     for (i=0; i<usParentNumAces; i++)
     {
         UCHAR AceFlags;
+        PSID pAceSid = NULL;
 
         status = RtlGetAce(pParentDacl, i, OUT_PPVOID(&pAceHeader));
         GOTO_CLEANUP_ON_STATUS(status);
@@ -1068,8 +1211,6 @@ RtlpObjectInheritSecurity(
         {
             continue;
         }
-
-        // TODO - Deal with CREATOR OWNER and CREATOR GROUP
 
         // See if the inherit ACE should continue to be propagated.
         // If so, then copy it
@@ -1123,32 +1264,56 @@ RtlpObjectInheritSecurity(
         AceFlags = pAceHeader->AceFlags;
         AceFlags &= ~(CONTAINER_INHERIT_ACE|
                       OBJECT_INHERIT_ACE|
-                      NO_PROPAGATE_INHERIT_ACE);
+                      INHERIT_ONLY_ACE);
         AceFlags |= INHERITED_ACE;
 
         // Set the inherited direct ACE
+        // Deal with CREATOR OWNER and CREATOR GROUP
 
         switch(pAceHeader->AceType)
         {
         case ACCESS_ALLOWED_ACE_TYPE:
             pAllowAce = (PACCESS_ALLOWED_ACE)pAceHeader;
+
+            pAceSid = (PSID)&pAllowAce->SidStart;
+            if (RtlEqualSid(pAceSid, &CreatorOwner.sid))
+            {
+                pAceSid = pTokenOwnerInformation->Owner;
+            }
+            else if (RtlEqualSid(pAceSid, &CreatorGroup.sid))
+            {
+                pAceSid = pTokenPrimaryGroupInfo->PrimaryGroup;
+            }
+
             status = RtlAddAccessAllowedAceEx(
                          pDacl,
                          ACL_REVISION,
                          AceFlags,
                          mask,
-                         (PSID)&pAllowAce->SidStart);
-                GOTO_CLEANUP_ON_STATUS(status);
-                break;
+                         pAceSid);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            break;
 
         case ACCESS_DENIED_ACE_TYPE:
             pDenyAce = (PACCESS_DENIED_ACE)pAceHeader;
+
+            pAceSid = (PSID)&pDenyAce->SidStart;
+            if (RtlEqualSid(pAceSid, &CreatorOwner.sid))
+            {
+                pAceSid = pTokenOwnerInformation->Owner;
+            }
+            else if (RtlEqualSid(pAceSid, &CreatorGroup.sid))
+            {
+                pAceSid = pTokenPrimaryGroupInfo->PrimaryGroup;
+            }
+
             status = RtlAddAccessDeniedAceEx(
                          pDacl,
                          ACL_REVISION,
                          AceFlags,
                          mask,
-                         (PSID)&pDenyAce->SidStart);
+                         pAceSid);
             GOTO_CLEANUP_ON_STATUS(status);
             break;
 
