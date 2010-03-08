@@ -126,3 +126,14 @@ RtlpDecodeLittleEndianAcl(
     IN PACL LittleEndianAcl,
     OUT PACL Acl
     );
+
+NTSTATUS
+RtlpCreateAbsSecDescFromRelative(
+    OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsSecDesc,
+    IN  PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc
+    );
+
+VOID
+RtlpFreeAbsoluteSecurityDescriptor(
+    IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
