@@ -954,6 +954,24 @@ RtlCreateWellKnownSid(
             sidBuffer.Sid.SubAuthority[0] = SECURITY_INTERACTIVE_RID;
             break;
         }
+        case WinCreatorOwnerSid:
+        {
+            // S-1-3-0
+            SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_CREATOR_SID_AUTHORITY };
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            GOTO_CLEANUP_ON_STATUS(status);
+            sidBuffer.Sid.SubAuthority[0] = SECURITY_CREATOR_OWNER_RID;
+            break;
+        }
+        case WinCreatorGroupSid:
+        {
+            // S-1-3-1
+            SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_CREATOR_SID_AUTHORITY };
+            status = RtlInitializeSid(&sidBuffer.Sid, &identifierAuthority, 1);
+            GOTO_CLEANUP_ON_STATUS(status);
+            sidBuffer.Sid.SubAuthority[0] = SECURITY_CREATOR_GROUP_RID;
+            break;
+        }
         case WinAuthenticatedUserSid:
         {
             // S-1-5-11

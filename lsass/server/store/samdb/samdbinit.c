@@ -1598,6 +1598,7 @@ SamDbSetupLocalGroupMemberships(
 
     PCSTR ppszLikewiseUsersMembers[] =  {
         "Administrator",
+        "Guest",
         NULL
     };
 
