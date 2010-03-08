@@ -466,8 +466,11 @@ RtlSetSecurityDescriptorControl(
     status = RtlpVerifySecurityDescriptorHeader(SecurityDescriptor);
     GOTO_CLEANUP_ON_STATUS(status);
 
+    // Don't allow changes for bits that should be manually set and
+    // Ensure that BitsToSet is a proper subset of BitstoChange
+
     if (!LW_IS_VALID_FLAGS(BitsToChange, SE_SET_SECURITY_DESCRIPTOR_CONTROL_MASK) ||
-        IsSetFlag(BitsToChange, ~BitsToSet))
+        ((BitsToChange | BitsToSet) & ~BitsToChange))
     {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP();
