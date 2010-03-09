@@ -171,7 +171,7 @@ PvfsAccessCheckFile(
     /* if asking for DELETE, check and see if the parent directory
        will grant us that */
 
-    if (Desired & DELETE)
+    if (Desired & (MAXIMUM_ALLOWED | DELETE))
     {
         ntError = PvfsFileDirname(&pszParentPath, pszFilename);
         BAIL_ON_NT_STATUS(ntError);
