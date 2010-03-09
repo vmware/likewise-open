@@ -785,6 +785,21 @@ error:
 }
 
 VOID
+LwRtlRBTreeRemoveAll(
+    PLWRTL_RB_TREE pRBTree
+    )
+{
+    PLWRTL_RB_TREE_NODE pRootNode = pRBTree->pRoot;
+
+    if (pRootNode && !RB_IS_NIL(pRBTree, pRootNode))
+    {
+        LwRtlRBTreeRemoveAllNodes(pRBTree, pRootNode);
+    }
+
+    pRBTree->pRoot = pRBTree->pSentinel;
+}
+
+VOID
 LwRtlRBTreeFree(
     PLWRTL_RB_TREE pRBTree
     )

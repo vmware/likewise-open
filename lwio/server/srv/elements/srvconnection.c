@@ -129,6 +129,31 @@ SrvConnection2AsyncStateRelease(
     PVOID pAsyncState
     );
 
+static
+VOID
+SrvConnectionRundown_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+static
+NTSTATUS
+SrvConnectionRundownSessionRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
+SrvConnection2RundownSessionRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    );
+
+
 NTSTATUS
 SrvConnectionCreate(
     HANDLE                          hSocket,
@@ -332,7 +357,11 @@ SrvConnectionSetInvalid(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
+    if (pConnection->state != LWIO_SRV_CONN_STATE_INVALID)
+    {
+        pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
+        SrvConnectionRundown_inlock(pConnection);
+    }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 }
@@ -1175,3 +1204,97 @@ SrvConnection2AsyncStateRelease(
 
 
 
+static
+VOID
+SrvConnectionRundown_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (pConnection->pSessionCollection)
+    {
+        switch (pConnection->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_1:
+
+                ntStatus = LwRtlRBTreeTraverse(
+                                pConnection->pSessionCollection,
+                                LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                                &SrvConnectionRundownSessionRbTreeVisit,
+                                NULL);
+                break;
+
+            case SMB_PROTOCOL_VERSION_2:
+
+                ntStatus = LwRtlRBTreeTraverse(
+                                pConnection->pSessionCollection,
+                                LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                                &SrvConnection2RundownSessionRbTreeVisit,
+                                NULL);
+                break;
+
+            default:
+
+                ntStatus = STATUS_INTERNAL_ERROR;
+
+                break;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    return;
+
+error:
+
+    LWIO_LOG_ERROR("Connection run down failed [status: %s = 0x%08X (%d)]",
+                   LwNtStatusToName(ntStatus),
+                   ntStatus,
+                   ntStatus);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionRundownSessionRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_SESSION pSession = (PLWIO_SRV_SESSION)pData;
+
+    if (pSession)
+    {
+        SrvSessionRundown(pSession);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
+}
+
+static
+NTSTATUS
+SrvConnection2RundownSessionRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_SESSION_2 pSession = (PLWIO_SRV_SESSION_2)pData;
+
+    if (pSession)
+    {
+        SrvSession2Rundown(pSession);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
+}

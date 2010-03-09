@@ -248,12 +248,6 @@ SrvProcessLogoffAndX(
 
 // notify.c
 
-ULONG64
-SrvNotifyGetId(
-    ULONG  ulPid,
-    USHORT usMid
-    );
-
 NTSTATUS
 SrvNotifyCreateState(
     PLWIO_SRV_CONNECTION              pConnection,

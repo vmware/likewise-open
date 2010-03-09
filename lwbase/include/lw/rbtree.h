@@ -113,6 +113,11 @@ LwRtlRBTreeRemove(
     PVOID   pKey);
 
 VOID
+LwRtlRBTreeRemoveAll(
+    PLWRTL_RB_TREE pRBTree
+    );
+
+VOID
 LwRtlRBTreeFree(
     PLWRTL_RB_TREE pRBTree
     );

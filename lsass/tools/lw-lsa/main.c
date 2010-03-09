@@ -86,7 +86,8 @@ lsa_main(
     main_entry *entry = NULL;
     int i;
 
-    if (argc < 2)
+    if (argc < 2 || (argc == 2 &&
+            (!strcmp(argv[1], "--help") || !strcmp(argv[1], "--usage"))))
     {
         fprintf(stderr, "Usage: lsa mode ...\n\n");
         fprintf(stderr, "Available modes:\n");
