@@ -412,15 +412,14 @@ IopIpcReadFile(
 
     switch (status)
     {
-    case STATUS_SUCCESS:
-        pReply->Status = pContext->ioStatusBlock.Status = status;
-        pReply->BytesTransferred = pContext->ioStatusBlock.BytesTransferred;
-        break;
     case STATUS_PENDING:
         lwmsg_call_pend(pCall, IopIpcCancelCall, pContext);
         break;
     default:
-        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+        pReply->Status = pContext->ioStatusBlock.Status;
+        pReply->BytesTransferred = pContext->ioStatusBlock.BytesTransferred;
+        status = STATUS_SUCCESS;
+        break;
     }
 
 cleanup:
