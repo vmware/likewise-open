@@ -1436,7 +1436,7 @@ RtlSetSecurityDescriptorInfo(
 
         status = RtlSetDaclSecurityDescriptor(
                      pObjSecDescAbs,
-                     bInputDaclPresent,
+                     TRUE,
                      pInputDacl,
                      bInputDaclDefaulted);
         GOTO_CLEANUP_ON_STATUS(status);
@@ -1478,7 +1478,7 @@ RtlSetSecurityDescriptorInfo(
 
         status = RtlSetSaclSecurityDescriptor(
                      pObjSecDescAbs,
-                     bInputSaclPresent,
+                     TRUE,
                      pInputSacl,
                      bInputSaclDefaulted);
         GOTO_CLEANUP_ON_STATUS(status);
