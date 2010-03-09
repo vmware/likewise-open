@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wc16str.h>
+#include <termios.h>
 
 #define PAYLOAD "Hello, World!\r\n"
 
@@ -28,6 +29,9 @@ struct
     ULONG ulIterations;
     PCSTR pszServer;
     PCSTR pszShare;
+    PCSTR pszUser;
+    PCSTR pszDomain;
+    PCSTR pszPassword;
     BOOLEAN volatile bStart;
     pthread_mutex_t Lock;
     pthread_cond_t Event;
@@ -58,6 +62,7 @@ LoadThread(
     IO_STATUS_BLOCK ioStatus = {0};
     LONG64 llOffset = 0;
     CHAR szHostname[256] = {0};
+    LW_PIO_CREDS pCreds = NULL;
 
     if (gethostname(szHostname, sizeof(szHostname) -1) != 0)
     {
@@ -84,6 +89,17 @@ LoadThread(
             szHostname,
             pThread->ulNumber * gState.ulThreadCount + ulFile);
         GOTO_ERROR_ON_STATUS(status);
+    }
+
+    if (gState.pszUser && gState.pszDomain && gState.pszPassword)
+    {
+        status = LwIoCreatePlainCredsA(gState.pszUser, gState.pszDomain, gState.pszPassword, &pCreds);
+        GOTO_ERROR_ON_STATUS(status);
+
+        status = LwIoSetThreadCreds(pCreds);
+        GOTO_ERROR_ON_STATUS(status);
+
+        LwIoDeleteCreds(pCreds);
     }
 
     pthread_mutex_lock(&gState.Lock);
@@ -241,6 +257,67 @@ error:
 
 static
 NTSTATUS
+PromptPassword(
+    void
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    static CHAR szBuffer[128] = {0};
+    struct termios old, new;
+    int index = 0;
+
+    if (tcgetattr(0, &old) < 0)
+    {
+        status = LwErrnoToNtStatus(errno);
+        GOTO_ERROR_ON_STATUS(status);
+    }
+
+    memcpy(&new, &old, sizeof(struct termios));
+
+    new.c_lflag &= ~(ECHO);
+
+    if (tcsetattr(0, TCSANOW, &new) < 0)
+    {
+        status = LwErrnoToNtStatus(errno);
+        GOTO_ERROR_ON_STATUS(status);
+    }
+
+    fprintf(stdout, "Password: ");
+    fflush(stdout);
+
+    for (index = 0; index < sizeof(szBuffer) - 1; index++)
+    {
+        if (read(0, &szBuffer[index], 1) < 0)
+        {
+            status = LwErrnoToNtStatus(errno);
+            GOTO_ERROR_ON_STATUS(status);
+        }
+
+        if (szBuffer[index] == '\n')
+        {
+            szBuffer[index] = '\0';
+            break;
+        }
+    }
+
+    gState.pszPassword = szBuffer;
+
+    if (tcsetattr(0, TCSANOW, &old) < 0)
+    {
+        status = LwErrnoToNtStatus(errno);
+        GOTO_ERROR_ON_STATUS(status);
+    }
+
+    fprintf(stdout, "\n");
+    fflush(stdout);
+
+error:
+
+    return status;
+}
+
+static
+NTSTATUS
 Run(
     void
     )
@@ -249,6 +326,12 @@ Run(
     PLOAD_THREAD pThreads = NULL;
     PLOAD_THREAD pThread = NULL;
     ULONG ulThread = 0;
+
+    if (gState.pszUser && gState.pszDomain && !gState.pszPassword)
+    {
+        status = PromptPassword();
+        GOTO_ERROR_ON_STATUS(status);
+    }
 
     status = RTL_ALLOCATE(&pThreads, LOAD_THREAD, sizeof(*pThreads) * gState.ulThreadCount);
     GOTO_ERROR_ON_STATUS(status);
@@ -311,6 +394,9 @@ Help(
         "Options:\n"
         "\n"
         "  --help                            Show this help\n"
+        "  --user <name>                     Specify user name (default: use current Kerberos credentials)\n"
+        "  --domain <domain>                 Specify domain of user (required when using --user)\n"
+        "  --password <name>                 Specify user password (default: prompt interactively)\n"
         "  --iterations count                Number of iterations of open-write-read-close cycle\n"
         "  --threads count                   Number of threads to spawn\n"
         "  --connections count               Number of connections to create per thread\n");
@@ -334,7 +420,7 @@ ParseArgs(
         }
         else if (!strcmp(ppszArgv[i], "--iterations"))
         {
-            if (i + i == argc)
+            if (i + 1 == argc)
             {
                 Usage(ppszArgv[0]);
                 exit(1);
@@ -343,7 +429,7 @@ ParseArgs(
         }
         else if (!strcmp(ppszArgv[i], "--threads"))
         {
-            if (i + i == argc)
+            if (i + 1 == argc)
             {
                 Usage(ppszArgv[0]);
                 exit(1);
@@ -352,12 +438,39 @@ ParseArgs(
         }
         else if (!strcmp(ppszArgv[i], "--connections"))
         {
-            if (i + i == argc)
+            if (i + 1 == argc)
             {
                 Usage(ppszArgv[0]);
                 exit(1);
             }
             gState.ulConnectionsPerThread = atoi(ppszArgv[++i]);
+        }
+        else if (!strcmp(ppszArgv[i], "--user"))
+        {
+            if (i + 1 == argc)
+            {
+                Usage(ppszArgv[0]);
+                exit(1);
+            }
+            gState.pszUser = ppszArgv[++i];
+        }
+        else if (!strcmp(ppszArgv[i], "--domain"))
+        {
+            if (i + 1 == argc)
+            {
+                Usage(ppszArgv[0]);
+                exit(1);
+            }
+            gState.pszDomain = ppszArgv[++i];
+        }
+        else if (!strcmp(ppszArgv[i], "--password"))
+        {
+            if (i + 1 == argc)
+            {
+                Usage(ppszArgv[0]);
+                exit(1);
+            }
+            gState.pszPassword = ppszArgv[++i];
         }
         else
         {
