@@ -664,10 +664,15 @@ RtlAccessCheck(
     // Owner can always read the SD and write the DACL.
     //
 
-    if (IsSetFlag(desiredAccess, READ_CONTROL | WRITE_DAC))
+    if (wantMaxAllowed || IsSetFlag(desiredAccess, READ_CONTROL | WRITE_DAC))
     {
         if (RtlIsSidMemberOfToken(AccessToken, SecurityDescriptor->Owner))
         {
+            if (wantMaxAllowed)
+            {
+                desiredAccess |= (READ_CONTROL | WRITE_DAC);
+            }
+
             SetFlag(grantedAccess, (READ_CONTROL | WRITE_DAC) & desiredAccess);
             ClearFlag(desiredAccess, grantedAccess);
         }
