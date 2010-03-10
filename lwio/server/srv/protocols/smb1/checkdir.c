@@ -192,6 +192,11 @@ SrvProcessCheckDirectory(
 
         case SRV_CHECKDIR_STAGE_SMB_V1_ATTEMPT_CHECK:
 
+            // Catch failed CreateFile calls when they come back around
+
+            ntStatus = pCheckdirState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
             if (!pCheckdirState->hFile)
             {
                 SrvPrepareCheckdirStateAsync(pCheckdirState, pExecContext);

@@ -179,7 +179,6 @@ PvfsWorkerDoWork(
             }
             else
             {
-                pIrpCtx->bInProgress = TRUE;
                 ntError = pWorkCtx->pfnCompletion(pWorkCtx->pContext);
             }
 

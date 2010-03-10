@@ -160,7 +160,6 @@ PvfsAllocateIrpContext(
 
     pIrpContext->bIsCancelled = FALSE;
     pIrpContext->bIsPended = FALSE;
-    pIrpContext->bInProgress = FALSE;
     pIrpContext->QueueType = PVFS_QUEUE_TYPE_NONE;
     pIrpContext->pFcb = NULL;
 
