@@ -136,7 +136,7 @@ SrvTransportSocketGetFileDescriptor(
     );
 
 NTSTATUS
-SrvTransportSocketSetNewDataNotify(
+SrvTransportSocketSetBuffer(
     IN PSRV_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,

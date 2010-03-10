@@ -633,7 +633,7 @@ SrvProtocolTransportDriverUpdateBuffer(
 
     // TODO-Set Minimum = 1 (or something smarter) for ZCT for SMB write.
     // TODO-Test out setting Size = Minimum (perhaps registry config) -- IFF not doing ZCT SMB write support.
-    ntStatus = SrvTransportSocketSetNewDataNotify(
+    ntStatus = SrvTransportSocketSetBuffer(
                     pConnection->pSocket,
                     pBuffer,
                     Size,
@@ -656,7 +656,7 @@ SrvProtocolTransportDriverRemoveBuffer(
     )
 {
     // Do not give any buffer to the socket.
-    SrvTransportSocketSetNewDataNotify(
+    SrvTransportSocketSetBuffer(
             pConnection->pSocket,
             NULL,
             0,

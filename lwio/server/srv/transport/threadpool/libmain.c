@@ -121,14 +121,14 @@ SrvTransportSocketGetFileDescriptor(
 }
 
 NTSTATUS
-SrvTransportSocketSetNewDataNotify(
+SrvTransportSocketSetBuffer(
     IN PSRV_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
     IN ULONG Minimum
     )
 {
-    return SrvSocketSetNewDataNotify(pSocket, pBuffer, Size, Minimum);
+    return SrvSocketSetBuffer(pSocket, pBuffer, Size, Minimum);
 }
 
 NTSTATUS
