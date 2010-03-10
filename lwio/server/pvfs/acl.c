@@ -124,7 +124,8 @@ PvfsGetSecurityDescriptorFile(
     /* EA security descriptor support not available or present for
        this object */
 
-    if (ntError == STATUS_RESOURCE_DATA_NOT_FOUND)
+    if ((ntError == STATUS_RESOURCE_DATA_NOT_FOUND) ||
+        (ntError == STATUS_NOT_SUPPORTED))
     {
         ulFullSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
 
@@ -207,7 +208,8 @@ PvfsGetSecurityDescriptorFilename(
     /* EA security descriptor support not available or present for
        this object */
 
-    if (ntError == STATUS_RESOURCE_DATA_NOT_FOUND)
+    if ((ntError == STATUS_RESOURCE_DATA_NOT_FOUND) ||
+        (ntError == STATUS_NOT_SUPPORTED))
     {
         ulFullSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
 
@@ -216,6 +218,7 @@ PvfsGetSecurityDescriptorFilename(
                       (PSECURITY_DESCRIPTOR_RELATIVE)pFullSecDescBuffer,
                       &ulFullSecDescLength);
     }
+    BAIL_ON_NT_STATUS(ntError);
 
     /* If the caller wants the complete Security Descriptor, just copy
        the buffer */
