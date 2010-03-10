@@ -46,6 +46,14 @@
 #define __IO_API_H__
 
 #include <lwio/io-types.h>
+#include "lwzct.h"
+
+typedef ULONG IO_FLAGS, *PIO_FLAGS;
+
+// At the moment, paging I/O flag is valid only for read.
+#define IO_FLAG_PAGING_IO           0x00000001
+// no access check is not yet valid.
+#define IO_FLAG_NO_ACCESS_CHECK     0x00000002
 
 //
 // Asynchoronous I/O Support
@@ -143,6 +151,102 @@ IoPagingReadFile(
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key
+    );
+
+VOID
+IoGetZctSupportMaskFile(
+    IN IO_FILE_HANDLE FileHandle,
+    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctReadMask,
+    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctWriteMask
+    );
+
+///
+/// Prepare ZCT for a read.
+///
+/// Driver appends entries to the ZCT for caller to read from.  Allowed types
+/// are specified by the caller in the ZCT.
+///
+/// @param[in,out] Zct - length by which ZCT is extended is how much
+///    can actually be read.  The driver is guaranteeing this.  The caller
+///    can check how much the length increased to get the amount "read"
+///    (i.e., if the ZCT passed in was not empty).  This should
+///    match IoStatusBlock->BytesTransferred.
+///
+/// @param[out] IsPartial - set to TRUE if the ZCT length returned is
+///    less than what is actually available in the file.  This allows
+///    the FSD to do a ZCT operation to get partial result but indicating
+///    to the caller to come back for more (presumably using a normal read).
+///
+/// @retval STATUS_SUCCESS
+/// @retval STATUS_PENDING
+/// @retval STATUS_MORE_PROCESSING_REQUIRED (or STATUS_RETRY?) -
+///    try again as regular read.
+///
+NTSTATUS
+IoPrepareZctReadFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN OUT PIO_ZCT Zct,
+    IN ULONG Length,
+    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG Key,
+    OUT PVOID* CompletionContext,
+    OUT PBOOLEAN IsPartial
+    );
+
+///
+/// Complete ZCT read.
+///
+/// Caller signals that the I/O is complete.
+///
+NTSTATUS
+IoCompleteZctReadFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN PVOID CompletionContext
+    );
+
+///
+/// Prepare ZCT for a write.
+///
+/// Driver adds entries to the ZCT for caller to write info.  Allowed types
+/// are specified by the caller in the ZCT.
+///
+/// @retval STATUS_SUCCESS
+/// @retval STATUS_PENDING
+/// @retval STATUS_MORE_PROCESSING_REQUIRED (or STATUS_RETRY?) -
+///    try again as regular write.
+///
+NTSTATUS
+IoPrepareZctWriteFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN OUT PIO_ZCT Zct,
+    IN ULONG Length,
+    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG Key,
+    OUT PVOID* CompletionContext
+    );
+
+///
+/// Complete ZCT write.
+///
+/// Caller signals that the I/O is complete.
+///
+NTSTATUS
+IoCompleteZctWriteFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN PVOID CompletionContext,
+    IN ULONG BytesTransferred
     );
 
 NTSTATUS 

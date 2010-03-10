@@ -41,6 +41,7 @@
 
 #include <lwio/lwio.h>
 #include <lwmapsecurity/lwmapsecurity.h>
+#include "lwzct.h"
 
 struct _IO_DRIVER_OBJECT;
 typedef struct _IO_DRIVER_OBJECT IO_DRIVER_OBJECT, *PIO_DRIVER_OBJECT;
@@ -93,6 +94,12 @@ typedef ULONG IO_LOCK_CONTROL;
 #define IO_LOCK_CONTROL_UNLOCK_ALL_BY_KEY 3
 #define IO_LOCK_CONTROL_UNLOCK_ALL        4
 
+typedef UINT8 IRP_ZCT_OPERATION, *PIRP_ZCT_OPERATION;
+
+#define IRP_ZCT_OPERATION_NONE      0
+#define IRP_ZCT_OPERATION_PREPARE   1
+#define IRP_ZCT_OPERATION_COMPLETE  2
+
 // "Storage" field is so we do not have to allocate
 // extra memory blocks for small optional parameters
 // that are provided via pointers.
@@ -115,11 +122,20 @@ typedef struct _IRP_ARGS_CREATE {
 
 typedef struct _IRP_ARGS_READ_WRITE {
     // IN for write, OUT for read
-    IN OUT PVOID Buffer;
+    union {
+        IN OUT PVOID Buffer;
+        IN OUT PIO_ZCT Zct;
+    };
     IN ULONG Length;
     IN OPTIONAL PLONG64 ByteOffset;
     IN OPTIONAL PULONG Key;
     IN BOOLEAN IsPagingIo;
+    // For ZCT read/write
+    IN IRP_ZCT_OPERATION ZctOperation;
+    OUT BOOLEAN ZctIsPartial;
+    IN OUT PVOID ZctCompletionContext;
+    IN ULONG ZctWriteBytesTransferred;
+    // Storage area for optional parameters
     struct {
         LONG64 ByteOffset;
         ULONG Key;
@@ -296,6 +312,14 @@ IoFileSetContext(
 PVOID
 IoFileGetContext(
     IN IO_FILE_HANDLE FileHandle
+    );
+
+// The FSD must synchronize calling this itself
+VOID
+IoFileSetZctSupportMask(
+    IN IO_FILE_HANDLE FileHandle,
+    IN IO_ZCT_ENTRY_MASK ZctReadMask,
+    IN IO_ZCT_ENTRY_MASK ZctWriteMask
     );
 
 // IRP functions for async processing
