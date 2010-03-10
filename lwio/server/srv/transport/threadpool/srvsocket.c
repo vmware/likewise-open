@@ -119,6 +119,12 @@ error:
 
     pszResult = NULL;
 
+    // Terminate output buffer
+    if (AddressLength > 0)
+    {
+        pszAddress[0] = 0;
+    }
+
     goto cleanup;
 }
 
@@ -134,7 +140,6 @@ SrvSocketCreate(
     NTSTATUS ntStatus = 0;
     PSRV_SOCKET pSocket = NULL;
     PCSTR pszAddress = NULL;
-    BOOLEAN bIsDenied = FALSE;
 
     if (ClientAddressLength > sizeof(pSocket->ClientAddress))
     {
@@ -166,8 +171,8 @@ SrvSocketCreate(
 
     pszAddress = SrvSocketAddressToString(
                             &pSocket->ClientAddress.Generic,
-                            pSocket->AddresssStringBuffer,
-                            sizeof(pSocket->AddresssStringBuffer));
+                            pSocket->AddressStringBuffer,
+                            sizeof(pSocket->AddressStringBuffer));
     if (!pszAddress)
     {
         // This should never happen.
@@ -194,10 +199,9 @@ SrvSocketCreate(
                     pSocket);
     if (STATUS_ACCESS_DENIED == ntStatus)
     {
-        bIsDenied = TRUE;
         LWIO_LOG_ERROR("Connection denied by protocol for fd = %d, address = '%s'",
                        pSocket->fd,
-                       pSocket->AddresssStringBuffer);
+                       pSocket->AddressStringBuffer);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -208,8 +212,7 @@ cleanup:
 
     *ppSocket = pSocket;
 
-    // Do not error out so listener does not error
-    return bIsDenied ? STATUS_SUCCESS : ntStatus;
+    return ntStatus;
 
 error:
 
@@ -229,7 +232,8 @@ error:
         }
         else
         {
-            SrvSocketFree(&pSocket);
+            SrvSocketFree(pSocket);
+            pSocket = NULL;
         }
     }
 
@@ -238,11 +242,9 @@ error:
 
 VOID
 SrvSocketFree(
-    IN OUT PSRV_SOCKET* ppSocket
+    IN OUT PSRV_SOCKET pSocket
     )
 {
-    PSRV_SOCKET pSocket = *ppSocket;
-
     if (pSocket)
     {
         SrvSocketProcessTaskDisconnect(pSocket);
@@ -256,7 +258,6 @@ SrvSocketFree(
         }
         LwRtlCleanupMutex(&pSocket->Mutex);
         SrvFreeMemory(pSocket);
-        *ppSocket = NULL;
     }
 }
 
@@ -278,7 +279,7 @@ SrvSocketGetAddressString(
     )
 {
     // immutable, so lock not needed.
-    return pSocket->AddresssStringBuffer;
+    return pSocket->AddressStringBuffer;
 }
 
 int
@@ -305,7 +306,7 @@ SrvSocketSetNewDataNotify(
     {
         ntStatus = STATUS_INVALID_PARAMETER;
     }
-    else if ((Size) > 0 && !pBuffer)
+    else if ((Size > 0) && !pBuffer)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
     }
@@ -796,7 +797,8 @@ SrvSocketProcessTask(
 
     if (IsSetFlag(WakeMask, LW_TASK_EVENT_CANCEL))
     {
-        SrvSocketFree(&pSocket);
+        SrvSocketFree(pSocket);
+        pSocket = NULL;
         waitMask = LW_TASK_EVENT_COMPLETE;
         goto cleanup;
     }

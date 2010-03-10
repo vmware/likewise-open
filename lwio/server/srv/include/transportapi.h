@@ -107,14 +107,14 @@ typedef struct _SRV_TRANSPORT_PROTOCOL_DISPATCH {
 
 NTSTATUS
 SrvTransportInit(
-    OUT PSRV_TRANSPORT_HANDLE pTransportHandle,
+    OUT PSRV_TRANSPORT_HANDLE phTransport,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
     IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
     );
 
 VOID
 SrvTransportShutdown(
-    IN OUT PSRV_TRANSPORT_HANDLE pTransportHandle
+    IN OUT SRV_TRANSPORT_HANDLE hTransport
     );
 
 VOID

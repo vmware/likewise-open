@@ -82,7 +82,7 @@ SrvSocketCreate(
 
 VOID
 SrvSocketFree(
-    IN OUT PSRV_SOCKET* ppSocket
+    IN OUT PSRV_SOCKET pSocket
     );
 
 VOID

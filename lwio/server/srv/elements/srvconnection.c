@@ -156,7 +156,7 @@ SrvConnection2RundownSessionRbTreeVisit(
 
 NTSTATUS
 SrvConnectionCreate(
-    struct _SRV_SOCKET*             pSocket,
+    PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,

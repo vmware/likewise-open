@@ -51,7 +51,7 @@
 
 NTSTATUS
 SrvTransportInit(
-    OUT PSRV_TRANSPORT_HANDLE pTransportHandle,
+    OUT PSRV_TRANSPORT_HANDLE phTransport,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
     IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
     )
@@ -70,29 +70,27 @@ SrvTransportInit(
 
 cleanup:
 
-    *pTransportHandle = pTransport;
+    *phTransport = pTransport;
 
     return ntStatus;
 
 error:
 
-    SrvTransportShutdown(&pTransport);
+    SrvTransportShutdown(pTransport);
+    pTransport = NULL;
 
     goto cleanup;
 }
 
 VOID
 SrvTransportShutdown(
-    IN OUT PSRV_TRANSPORT_HANDLE pTransportHandle
+    IN OUT SRV_TRANSPORT_HANDLE hTransport
     )
 {
-    PSRV_TRANSPORT_HANDLE_DATA pTransport = *pTransportHandle;
-
-    if (pTransport)
+    if (hTransport)
     {
-        SrvListenerShutdown(&pTransport->Listener);
-        SrvFreeMemory(pTransport);
-        *pTransportHandle = NULL;
+        SrvListenerShutdown(&hTransport->Listener);
+        SrvFreeMemory(hTransport);
     }
 }
 

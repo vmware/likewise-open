@@ -284,9 +284,9 @@ typedef struct _SRV_CLIENT_PROPERITES
 
 } SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
 
-struct _SRV_SOCKET;
-typedef VOID (*PFN_SRV_SOCKET_FREE)(struct _SRV_SOCKET* pSocket);
-typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(struct _SRV_SOCKET* pSocket, PVOID* ppAddr, PULONG pulAddrLength);
+typedef struct _SRV_SOCKET *PLWIO_SRV_SOCKET;
+typedef VOID (*PFN_SRV_SOCKET_FREE)(PLWIO_SRV_SOCKET pSocket);
+typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(PLWIO_SRV_SOCKET pSocket, PVOID* ppAddr, PULONG pulAddrLength);
 
 typedef struct _SRV_CONNECTION_SOCKET_DISPATCH {
     PFN_SRV_SOCKET_FREE pfnFree;
@@ -302,7 +302,7 @@ typedef struct _SRV_CONNECTION
 
     LWIO_SRV_CONN_STATE  state;
 
-    struct _SRV_SOCKET* pSocket;
+    PLWIO_SRV_SOCKET pSocket;
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
 
     SRV_PROPERTIES        serverProperties;
@@ -608,7 +608,7 @@ SrvAsyncStateRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    struct _SRV_SOCKET*             hSocket,
+    PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
