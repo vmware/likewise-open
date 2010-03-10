@@ -233,6 +233,11 @@ SrvProcessTreeConnectAndX(
 
         case SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO:
 
+            // Catch failed CreateFile calls when they come back around
+
+            ntStatus = pTConState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvQueryTreeConnectInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -295,6 +300,12 @@ error:
             //       files involved have to be closed
 
             break;
+
+        case STATUS_OBJECT_NAME_NOT_FOUND:
+
+            ntStatus = STATUS_BAD_NETWORK_PATH;
+
+            // Intentional fall through
 
         default:
 

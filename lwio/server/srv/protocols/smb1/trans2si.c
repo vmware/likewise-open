@@ -580,6 +580,11 @@ SrvRenameFile(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
+        // Catch failed CreateFile calls when they come back around
+
+        ntStatus = pTrans2State->ioStatusBlock.Status;
+        BAIL_ON_NT_STATUS(ntStatus);
+
         SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
         ntStatus = SrvIoCreateFile(
