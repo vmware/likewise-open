@@ -1617,7 +1617,6 @@ PvfsOplockProcessReadyItems(
         }
         else
         {
-            pPendingOp->pIrpContext->bInProgress = TRUE;
             ntError = pPendingOp->pfnCompletion(pPendingOp->pCompletionContext);
         }
 

@@ -66,10 +66,6 @@ PvfsQueueCancelIrp(
 
     LWIO_LOCK_MUTEX(bIsLocked, &pIrpContext->Mutex);
 
-    if (pIrpContext->bInProgress) {
-        return;
-    }
-
     pIrpContext->bIsCancelled = TRUE;
 
     switch(pIrpContext->QueueType)

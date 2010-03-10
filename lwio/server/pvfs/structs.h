@@ -385,7 +385,6 @@ struct _PVFS_IRP_CONTEXT
 
     BOOLEAN bIsCancelled;
     BOOLEAN bIsPended;
-    BOOLEAN bInProgress;
     PVFS_QUEUE_TYPE QueueType;
 
     PPVFS_FCB pFcb;
