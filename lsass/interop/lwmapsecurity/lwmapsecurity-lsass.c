@@ -1094,8 +1094,8 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
     PSID pPrimaryGidSid = NULL;
     PSTR pszPrimaryGidSid = NULL;
 
-    /* Allocate array for string forms of sids, plus extra slot for sid from primary UNIX gid */
-    status = RTL_ALLOCATE(&ppszInputSids, PSTR, sizeof(*ppszInputSids) * (dwInputSidCount + 1));
+    /* Allocate array for string forms of sids, plus extra slots for user sid and sid from primary UNIX gid */
+    status = RTL_ALLOCATE(&ppszInputSids, PSTR, sizeof(*ppszInputSids) * (dwInputSidCount + 2));
     GOTO_CLEANUP_ON_STATUS(status);
 
     for (i = 0; i < dwInputSidCount; i++)
@@ -1103,6 +1103,10 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
         status = RtlAllocateCStringFromSid(&ppszInputSids[i], ppInputSids[i]);
         GOTO_CLEANUP_ON_STATUS(status);
     }
+
+    /* Add user SID itself to list */
+    status = RtlAllocateCStringFromSid(&ppszInputSids[dwInputSidCount++], pObjectInfo->Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
 
     status = LsaMapSecurityOpenConnection(Context, &hConnection);
     GOTO_CLEANUP_ON_STATUS(status);
