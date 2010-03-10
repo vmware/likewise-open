@@ -64,30 +64,43 @@ SrvProtocolFreeExecContext(
 NTSTATUS
 SrvProtocolInit(
     PSMB_PROD_CONS_QUEUE pWorkQueue,
-    BOOLEAN              bSupportSMB2
+    PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    BOOLEAN  bSupportSMBV2 = FALSE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bSupportSMBV2 = FALSE;
 
-    gProtocolApiGlobals.pWorkQueue   = pWorkQueue;
-    gProtocolApiGlobals.bSupportSMB2 = bSupportSMB2;
+    gProtocolApiGlobals.pWorkQueue = pWorkQueue;
+    gProtocolApiGlobals.hPacketAllocator = hPacketAllocator;
+    gProtocolApiGlobals.pShareList = pShareList;
 
-    status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
-    BAIL_ON_NT_STATUS(status);
+    SrvProtocolInitConfig(&gProtocolApiGlobals.Config);
 
-    status = SrvProtocolInit_SMB_V1(pWorkQueue);
-    BAIL_ON_NT_STATUS(status);
+    ntStatus = SrvProtocolReadConfig(&gProtocolApiGlobals.Config);
+    BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvProtocolInit_SMB_V1(pWorkQueue);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    bSupportSMBV2 = SrvProtocolConfigIsSmb2Enabled();
     if (bSupportSMBV2)
     {
-        status = SrvProtocolInit_SMB_V2(pWorkQueue);
-        BAIL_ON_NT_STATUS(status);
+        ntStatus = SrvProtocolInit_SMB_V2(pWorkQueue);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    ntStatus = SrvProtocolTransportDriverInit(&gProtocolApiGlobals);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
 
 error:
 
-    return status;
+    SrvProtocolShutdown();
+    goto cleanup;
 }
 
 NTSTATUS
@@ -159,7 +172,7 @@ SrvProtocolExecute(
         for (; iRepeat < (pContext->ulNumDuplicates + 1); iRepeat++)
         {
             /* synchronous response */
-            ntStatus = SrvTransportSendResponse(
+            ntStatus = SrvProtocolTransportSendResponse(
                             pContext->pConnection,
                             pContext->pSmbResponse);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -265,30 +278,23 @@ SrvProtocolFreeExecContext(
     SrvFreeMemory(pProtocolContext);
 }
 
-NTSTATUS
+VOID
 SrvProtocolShutdown(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    BOOLEAN bSupportSMBV2 = FALSE;
+    SrvProtocolTransportDriverShutdown(&gProtocolApiGlobals);
 
-    status = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
-    BAIL_ON_NT_STATUS(status);
+    // Always shutdown all protocols regardless of enabled state
+    // to allow implementing dynamic enable/disable where pre-existing
+    // connections are not torn down.
+    SrvProtocolShutdown_SMB_V1();
+    SrvProtocolShutdown_SMB_V2();
 
-    status = SrvProtocolShutdown_SMB_V1();
-    BAIL_ON_NT_STATUS(status);
-
-    if (bSupportSMBV2)
-    {
-        status = SrvProtocolShutdown_SMB_V2();
-        BAIL_ON_NT_STATUS(status);
-    }
+    SrvProtocolFreeConfigContents(&gProtocolApiGlobals.Config);
 
     gProtocolApiGlobals.pWorkQueue = NULL;
-
-error:
-
-    return status;
+    gProtocolApiGlobals.hPacketAllocator = NULL;
+    gProtocolApiGlobals.pShareList = NULL;
 }
 

@@ -49,6 +49,16 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define SMB_LISTEN_Q                          32
+#define SMB_LISTEN_QUEUE_LENGTH 32
+#define SMB_SERVER_PORT 445
+
+#ifdef INET_ADDR6STRLEN
+#define _SRV_INET_ADDR6STRLEN INET_ADDR6STRLEN
+#else
+#define _SRV_INET_ADDR6STRLEN 0
+#endif
+
+#define SRV_SOCKET_ADDRESS_STRING_MAX_SIZE \
+    (LW_MAX(INET_ADDRSTRLEN, _SRV_INET_ADDR6STRLEN) + 1)
 
 #endif /* __DEFS_H__ */

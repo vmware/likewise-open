@@ -55,7 +55,16 @@ typedef struct _IRP_INTERNAL {
                 PIO_ASYNC_COMPLETE_CALLBACK Callback;
                 PVOID CallbackContext;
                 PIO_STATUS_BLOCK pIoStatusBlock;
-                PIO_FILE_HANDLE pCreateFileHandle;
+                // Per-operation output parameters
+                union {
+                    struct {
+                        PIO_FILE_HANDLE pFileHandle;
+                    } Create;
+                    struct {
+                        PVOID* pCompletionContext;
+                        PBOOLEAN pIsPartial;
+                    } PrepareZctReadWrite;
+                } OpOut;
             } Async;
             struct {
                 PLW_RTL_EVENT Event;
@@ -280,7 +289,7 @@ IopIrpCompleteInternal(
                 IopFileObjectReference(pIrp->FileHandle);
                 if (IsAsyncCompletion && irpInternal->Completion.IsAsyncCall)
                 {
-                    *irpInternal->Completion.Async.pCreateFileHandle = pIrp->FileHandle;
+                    *irpInternal->Completion.Async.OpOut.Create.pFileHandle = pIrp->FileHandle;
                 }
                 break;
 
@@ -298,6 +307,24 @@ IopIrpCompleteInternal(
                 IopFileObjectDereference(&pFileObject);
 
                 break;
+            }
+
+            case IRP_TYPE_READ:
+            case IRP_TYPE_WRITE:
+            {
+                if (IRP_ZCT_OPERATION_PREPARE == pIrp->Args.ReadWrite.ZctOperation)
+                {
+                    LWIO_ASSERT(pIrp->Args.ReadWrite.ZctCompletionContext);
+
+                    if (IsAsyncCompletion && irpInternal->Completion.IsAsyncCall)
+                    {
+                        *irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pCompletionContext = pIrp->Args.ReadWrite.ZctCompletionContext;
+                        if (IRP_TYPE_READ == pIrp->Type)
+                        {
+                            *irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pIsPartial = pIrp->Args.ReadWrite.ZctIsPartial;
+                        }
+                    }
+                }
             }
         }
     }
@@ -439,12 +466,74 @@ cleanup:
     return isCancellable;
 }
 
+static
+inline
+BOOLEAN
+IopIrpIsCreate(
+    IN PIRP pIrp
+    )
+{
+    return ((IRP_TYPE_CREATE == pIrp->Type) ||
+            (IRP_TYPE_CREATE_NAMED_PIPE == pIrp->Type));
+}
+
+static
+inline
+BOOLEAN
+IopIrpIsPrepareZctReadWrite(
+    IN PIRP pIrp
+    )
+{
+    return (((IRP_TYPE_READ == pIrp->Type) ||
+             (IRP_TYPE_WRITE == pIrp->Type)) &&
+            (pIrp->Args.ReadWrite.ZctOperation == IRP_ZCT_OPERATION_PREPARE));
+}
+
+VOID
+IopIrpSetOutputCreate(
+    IN OUT PIRP pIrp,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN PIO_FILE_HANDLE pCreateFileHandle
+    )
+{
+    LWIO_ASSERT(IopIrpIsCreate(pIrp));
+    LWIO_ASSERT(pCreateFileHandle);
+
+    if (AsyncControlBlock)
+    {
+        PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
+        irpInternal->Completion.IsAsyncCall = TRUE;
+        irpInternal->Completion.Async.OpOut.Create.pFileHandle = pCreateFileHandle;
+    }
+}
+
+VOID
+IopIrpSetOutputPrepareZctReadWrite(
+    IN OUT PIRP pIrp,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN PVOID* pCompletionContext,
+    IN OPTIONAL PBOOLEAN pIsPartial
+    )
+{
+    LWIO_ASSERT(IopIrpIsPrepareZctReadWrite(pIrp));
+    LWIO_ASSERT(pCompletionContext);
+    LWIO_ASSERT(IS_BOTH_OR_NEITHER(pIsPartial,
+                                   (IRP_TYPE_READ == pIrp->Type)));
+
+    if (AsyncControlBlock)
+    {
+        PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
+        irpInternal->Completion.IsAsyncCall = TRUE;
+        irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pCompletionContext = pCompletionContext;
+        irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pIsPartial = pIsPartial;
+    }
+}
+
 NTSTATUS
 IopIrpDispatch(
     IN PIRP pIrp,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    IN PIO_STATUS_BLOCK pIoStatusBlock,
-    IN OPTIONAL PIO_FILE_HANDLE pCreateFileHandle
+    IN PIO_STATUS_BLOCK pIoStatusBlock
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -457,14 +546,8 @@ IopIrpDispatch(
     IRP_TYPE irpType = pIrp->Type;
 
     LWIO_ASSERT(pIoStatusBlock);
-    LWIO_ASSERT(IS_BOTH_OR_NEITHER(pCreateFileHandle,
-                                   (IRP_TYPE_CREATE == pIrp->Type) ||
-                                   (IRP_TYPE_CREATE_NAMED_PIPE == pIrp->Type)));
 
     isAsyncCall = AsyncControlBlock ? TRUE : FALSE;
-
-    irpInternal->Completion.IsAsyncCall = isAsyncCall;
-
     if (isAsyncCall)
     {
         LWIO_ASSERT(!AsyncControlBlock->AsyncCancelContext);
@@ -473,7 +556,12 @@ IopIrpDispatch(
         irpInternal->Completion.Async.Callback = AsyncControlBlock->Callback;
         irpInternal->Completion.Async.CallbackContext = AsyncControlBlock->CallbackContext;
         irpInternal->Completion.Async.pIoStatusBlock = pIoStatusBlock;
-        irpInternal->Completion.Async.pCreateFileHandle = pCreateFileHandle;
+
+        // Assert that caller has set required out params via IopIrpSetOutput*().
+        LWIO_ASSERT(!IopIrpIsCreate(pIrp) || irpInternal->Completion.Async.OpOut.Create.pFileHandle);
+        LWIO_ASSERT(!IopIrpIsPrepareZctReadWrite(pIrp) || irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pCompletionContext);
+        LWIO_ASSERT(!(IopIrpIsPrepareZctReadWrite(pIrp) && (IRP_TYPE_READ == pIrp->Type)) ||
+                    irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pIsPartial);
 
         // Reference IRP since we may need to return an an async cancel context.
         IopIrpReference(pIrp);
@@ -481,11 +569,16 @@ IopIrpDispatch(
     }
     else
     {
+        // Since sync, assert IopIrpSetOutput*() has not actually set anything.
+        LWIO_ASSERT(!irpInternal->Completion.IsAsyncCall);
+
         status = LwRtlInitializeEvent(&event);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
         irpInternal->Completion.Sync.Event = &event;
     }
+
+    irpInternal->Completion.IsAsyncCall = isAsyncCall;
 
     // We have to dispatch once we add the IRP as "dipatched"
     // and we have to call IopIrpCompleteInternal() so that

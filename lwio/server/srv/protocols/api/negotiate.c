@@ -107,9 +107,7 @@ SrvBuildNegotiateResponseForDialect(
     BOOLEAN bSupportSMBV2 = FALSE;
     PSMB_PACKET pSmbResponse = NULL;
 
-    ntStatus = SrvProtocolConfigSupports_SMB_V2(&bSupportSMBV2);
-    BAIL_ON_NT_STATUS(ntStatus);
-
+    bSupportSMBV2 = SrvProtocolConfigIsSmb2Enabled();
     if (bSupportSMBV2)
     {
         for (iDialect = 0; iDialect < ulNumDialects; iDialect++)

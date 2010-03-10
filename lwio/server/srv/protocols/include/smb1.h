@@ -86,7 +86,7 @@ SrvProtocolFreeContext_SMB_V1(
     PSRV_EXEC_CONTEXT_SMB_V1 pProtocolContext
     );
 
-NTSTATUS
+VOID
 SrvProtocolShutdown_SMB_V1(
     VOID
     );

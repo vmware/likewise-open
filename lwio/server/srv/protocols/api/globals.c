@@ -52,8 +52,6 @@
 SRV_PROTOCOL_API_GLOBALS gProtocolApiGlobals =
 {
     .mutex         = PTHREAD_MUTEX_INITIALIZER,
-    .bSupportSMB2  = FALSE,
-    .pWorkQueue    = NULL
 };
 
 

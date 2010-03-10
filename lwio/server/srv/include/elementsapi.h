@@ -284,9 +284,16 @@ typedef struct _SRV_CLIENT_PROPERITES
 
 } SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
 
-typedef VOID (*PFN_LWIO_SRV_FREE_SOCKET_HANDLE)(HANDLE hSocket);
+struct _SRV_SOCKET;
+typedef VOID (*PFN_SRV_SOCKET_FREE)(struct _SRV_SOCKET* pSocket);
+typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(struct _SRV_SOCKET* pSocket, PVOID* ppAddr, PULONG pulAddrLength);
 
-typedef struct _LWIO_SRV_CONNECTION
+typedef struct _SRV_CONNECTION_SOCKET_DISPATCH {
+    PFN_SRV_SOCKET_FREE pfnFree;
+    PFN_SRV_SOCKET_GET_ADDRESS_BYTES pfnGetAddressBytes;
+} SRV_CONNECTION_SOCKET_DISPATCH, *PSRV_CONNECTION_SOCKET_DISPATCH;
+
+typedef struct _SRV_CONNECTION
 {
     LONG                refCount;
 
@@ -295,8 +302,8 @@ typedef struct _LWIO_SRV_CONNECTION
 
     LWIO_SRV_CONN_STATE  state;
 
-    HANDLE                          hSocket;
-    PFN_LWIO_SRV_FREE_SOCKET_HANDLE pfnSocketFree;
+    struct _SRV_SOCKET* pSocket;
+    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
 
     SRV_PROPERTIES        serverProperties;
     SRV_CLIENT_PROPERTIES clientProperties;
@@ -317,7 +324,7 @@ typedef struct _LWIO_SRV_CONNECTION
 
     struct
     {
-        BOOLEAN         bReadHeader;
+        BOOLEAN         bNeedHeader;
         size_t          sNumBytesToRead;
         size_t          sOffset;
         PSMB_PACKET     pRequestPacket;
@@ -327,8 +334,10 @@ typedef struct _LWIO_SRV_CONNECTION
     PBYTE               pSessionKey;
     ULONG               ulSessionKeyLength;
 
+    // Server-wide state
     PSRV_HOST_INFO             pHostinfo;
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
+    PVOID                      pProtocolTransportDriverContext;
 
     HANDLE              hGssContext;
 
@@ -599,13 +608,13 @@ SrvAsyncStateRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    HANDLE                          hSocket,
+    struct _SRV_SOCKET*             hSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
     PSRV_PROPERTIES                 pServerProperties,
     PSRV_HOST_INFO                  pHostinfo,
-    PFN_LWIO_SRV_FREE_SOCKET_HANDLE pfnSocketFree,
+    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch,
     PLWIO_SRV_CONNECTION*           ppConnection
     );
 

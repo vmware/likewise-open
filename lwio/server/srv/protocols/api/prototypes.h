@@ -54,8 +54,33 @@
 // config.c
 
 NTSTATUS
-SrvProtocolConfigSupports_SMB_V2(
-    PBOOLEAN pbSupportSMBV2
+SrvProtocolReadConfig(
+    PSRV_PROTOCOL_CONFIG pConfig
+    );
+
+NTSTATUS
+SrvProtocolInitConfig(
+    PSRV_PROTOCOL_CONFIG pConfig
+    );
+
+VOID
+SrvProtocolFreeConfigContents(
+    PSRV_PROTOCOL_CONFIG pConfig
+    );
+
+BOOLEAN
+SrvProtocolConfigIsSigningEnabled(
+    VOID
+    );
+
+BOOLEAN
+SrvProtocolConfigIsSigningRequired(
+    VOID
+    );
+
+BOOLEAN
+SrvProtocolConfigIsSmb2Enabled(
+    VOID
     );
 
 // negotiate.c
@@ -66,6 +91,18 @@ SrvProcessNegotiate(
         IN  PSMB_PACKET          pSmbRequest,
         OUT PSMB_PACKET*         ppSmbResponse
         );
+
+// transport.c
+
+NTSTATUS
+SrvProtocolTransportDriverInit(
+    PSRV_PROTOCOL_API_GLOBALS pGlobals
+    );
+
+VOID
+SrvProtocolTransportDriverShutdown(
+    PSRV_PROTOCOL_API_GLOBALS pGlobals
+    );
 
 #endif /* __PROTOTYPES_H__ */
 

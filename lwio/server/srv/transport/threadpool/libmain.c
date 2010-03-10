@@ -50,80 +50,114 @@
 #include "includes.h"
 
 NTSTATUS
-SrvThreadpoolTransportInit(
-    PLWIO_PACKET_ALLOCATOR         hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST     pShareList,
-    PSMB_PROD_CONS_QUEUE           pWorkQueue,
-    PSRV_TRANSPORT_FUNCTION_TABLE* ppFnTable
+SrvTransportInit(
+    OUT PSRV_TRANSPORT_HANDLE pTransportHandle,
+    IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
+    IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_TRANSPORT_HANDLE_DATA pTransport = NULL;
 
-    status = SrvThreadpoolTransportInitConfig(&gSrvThreadpoolTransport.config);
-    BAIL_ON_NT_STATUS(status);
+    ntStatus = SrvAllocateMemory(sizeof(*pTransport), OUT_PPVOID(&pTransport));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = SrvThreadpoolTransportReadConfig(&gSrvThreadpoolTransport.config);
-    BAIL_ON_NT_STATUS(status);
+    pTransport->Dispatch = *pProtocolDispatch;
+    pTransport->pContext = pProtocolDispatchContext;
 
-    gSrvThreadpoolTransport.hPacketAllocator = hPacketAllocator;
-    gSrvThreadpoolTransport.pShareList = pShareList;
-    gSrvThreadpoolTransport.pWorkQueue = pWorkQueue;
-
-    status = SrvListenerInit(
-                    gSrvThreadpoolTransport.hPacketAllocator,
-                    gSrvThreadpoolTransport.pShareList,
-                    &gSrvThreadpoolTransport.listener,
-                    gSrvThreadpoolTransport.config.bEnableSigning,
-                    gSrvThreadpoolTransport.config.bRequireSigning);
-    BAIL_ON_NT_STATUS(status);
-
-    *ppFnTable = &gSrvThreadpoolTransport.fnTable;
+    ntStatus = SrvListenerInit(&pTransport->Listener, pTransport);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    return status;
+    *pTransportHandle = pTransport;
+
+    return ntStatus;
 
 error:
 
-    *ppFnTable = NULL;
+    SrvTransportShutdown(&pTransport);
 
     goto cleanup;
 }
 
-NTSTATUS
-SrvThreadpoolTransportGetRequest(
-    IN  struct timespec*   pTimespec,
-    OUT PSRV_EXEC_CONTEXT* ppContext
+VOID
+SrvTransportShutdown(
+    IN OUT PSRV_TRANSPORT_HANDLE pTransportHandle
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    PSRV_TRANSPORT_HANDLE_DATA pTransport = *pTransportHandle;
+
+    if (pTransport)
+    {
+        SrvListenerShutdown(&pTransport->Listener);
+        SrvFreeMemory(pTransport);
+        *pTransportHandle = NULL;
+    }
+}
+
+VOID
+SrvTransportSocketGetAddress(
+    IN PSRV_SOCKET pSocket,
+    OUT const struct sockaddr** ppAddress,
+    OUT size_t* pAddressLength
+    )
+{
+    SrvSocketGetAddress(pSocket, ppAddress, pAddressLength);
+}
+
+PCSTR
+SrvTransportSocketGetAddressString(
+    IN PSRV_SOCKET pSocket
+    )
+{
+    return SrvSocketGetAddressString(pSocket);
+}
+
+int
+SrvTransportSocketGetFileDescriptor(
+    IN PSRV_SOCKET pSocket
+    )
+{
+    return SrvSocketGetFileDescriptor(pSocket);
 }
 
 NTSTATUS
-SrvThreadpoolTransportSendResponse(
-    IN          PLWIO_SRV_CONNECTION pConnection,
-    IN          PSMB_PACKET          pResponse
+SrvTransportSocketSetNewDataNotify(
+    IN PSRV_SOCKET pSocket,
+    IN PVOID pBuffer,
+    IN ULONG Size,
+    IN ULONG Minimum
     )
 {
-    return SrvConnectionWriteMessage(pConnection, pResponse);
+    return SrvSocketSetNewDataNotify(pSocket, pBuffer, Size, Minimum);
 }
 
 NTSTATUS
-SrvThreadpoolTransportShutdown(
-    PSRV_TRANSPORT_FUNCTION_TABLE pFnTable
+SrvTransportSocketSendReply(
+    IN PSRV_SOCKET pSocket,
+    IN PSRV_SEND_CONTEXT pSendContext,
+    IN PVOID pBuffer,
+    IN ULONG Size
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
-    status = SrvListenerShutdown(&gSrvThreadpoolTransport.listener);
-    BAIL_ON_NT_STATUS(status);
-
-    gSrvThreadpoolTransport.pWorkQueue = NULL;
-
-    SrvThreadpoolTransportFreeConfigContents(&gSrvThreadpoolTransport.config);
-
-error:
-
-    return status;
+    return SrvSocketSendReply(pSocket, pSendContext, pBuffer, Size);
 }
 
+NTSTATUS
+SrvTransportSocketSendZctReply(
+    IN PSRV_SOCKET pSocket,
+    IN PSRV_SEND_CONTEXT pSendContext,
+    IN PIO_ZCT pZct
+    )
+{
+    return SrvSocketSendZctReply(pSocket, pSendContext, pZct);
+}
+
+VOID
+SrvTransportSocketClose(
+    IN OUT PSRV_SOCKET pSocket
+    )
+{
+    SrvSocketClose(pSocket);
+}

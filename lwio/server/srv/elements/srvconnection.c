@@ -156,13 +156,13 @@ SrvConnection2RundownSessionRbTreeVisit(
 
 NTSTATUS
 SrvConnectionCreate(
-    HANDLE                          hSocket,
+    struct _SRV_SOCKET*             pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
     PSRV_PROPERTIES                 pServerProperties,
     PSRV_HOST_INFO                  pHostinfo,
-    PFN_LWIO_SRV_FREE_SOCKET_HANDLE pfnSocketFree,
+    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch,
     PLWIO_SRV_CONNECTION*           ppConnection
     )
 {
@@ -170,7 +170,7 @@ SrvConnectionCreate(
     PLWIO_SRV_CONNECTION pConnection = NULL;
 
     ntStatus = SrvAllocateMemory(
-                    sizeof(LWIO_SRV_CONNECTION),
+                    sizeof(*pConnection),
                     (PVOID*)&pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -211,8 +211,8 @@ SrvConnectionCreate(
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->pShareList = pShareList;
     pConnection->state = LWIO_SRV_CONN_STATE_INITIAL;
-    pConnection->hSocket = hSocket;
-    pConnection->pfnSocketFree = pfnSocketFree;
+    pConnection->pSocket = pSocket;
+    pConnection->pSocketDispatch = pSocketDispatch;
 
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
     uuid_copy(pConnection->serverProperties.GUID, pServerProperties->GUID);
@@ -833,6 +833,38 @@ SrvConnection2RemoveAsyncState(
 }
 
 NTSTATUS
+SrvConnectionGetNamedPipeClientAddress(
+    PLWIO_SRV_CONNECTION pConnection,
+    PIO_ECP_LIST        pEcpList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID pAddr = NULL;
+    ULONG ulAddrLength = 0;
+
+    ntStatus = pConnection->pSocketDispatch->pfnGetAddressBytes(
+                    pConnection->pSocket,
+                    &pAddr,
+                    &ulAddrLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoRtlEcpListInsert(pEcpList,
+                                  IO_ECP_TYPE_PEER_ADDRESS,
+                                  pAddr,
+                                  ulAddrLength,
+                                  NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvConnectionGetNamedPipeSessionKey(
     PLWIO_SRV_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
@@ -914,9 +946,9 @@ SrvConnectionFree(
         SrvGssReleaseContext(pConnection->hGssContext);
     }
 
-    if (pConnection->hSocket && pConnection->pfnSocketFree)
+    if (pConnection->pSocket && pConnection->pSocketDispatch)
     {
-        pConnection->pfnSocketFree(pConnection->hSocket);
+        pConnection->pSocketDispatch->pfnFree(pConnection->pSocket);
     }
 
     if (pConnection->pSessionCollection)

@@ -43,6 +43,7 @@
  */
 
 #include "iop.h"
+#include "ioapi.h"
 
 // Need to add a way to cancel operation from outside IRP layer.
 // Probably requires something in IO_ASYNC_CONTROL_BLOCK.
@@ -184,11 +185,11 @@ IoCreateFile(
     pIrp->Args.Create.SecurityQualityOfService = SecurityQualityOfService;
     pIrp->Args.Create.EcpList = EcpList;
 
+    IopIrpSetOutputCreate(pIrp, AsyncControlBlock, FileHandle);
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    FileHandle);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -304,8 +305,7 @@ IopReadWriteFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -393,6 +393,283 @@ IoPagingReadFile(
                 Key);
 }
 
+VOID
+IoGetZctSupportMaskFile(
+    IN IO_FILE_HANDLE FileHandle,
+    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctReadMask,
+    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctWriteMask
+    )
+{
+    IopFileGetZctSupportMask(FileHandle, ZctReadMask, ZctWriteMask);
+}
+
+static
+NTSTATUS
+IopPrepareZctReadWriteFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN BOOLEAN bIsWrite,
+    IN OUT PIO_ZCT Zct,
+    IN ULONG Length,
+    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG Key,
+    OUT PVOID* CompletionContext,
+    OUT OPTIONAL PBOOLEAN IsPartial
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    BOOLEAN bIsPagingIo = IsSetFlag(IoFlags, IO_FLAG_PAGING_IO);
+    IRP_TYPE irpType = bIsWrite ? IRP_TYPE_WRITE : IRP_TYPE_READ;
+    IO_ZCT_ENTRY_MASK mask = 0;
+    PVOID completionContext = NULL;
+    BOOLEAN isPartial = FALSE;
+
+    if (!FileHandle || !IoStatusBlock || !Zct)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    //
+    // IsPartial is only for reads.
+    //
+
+    if (IS_BOTH_OR_NEITHER(bIsWrite, IsPartial))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    LWIO_ASSERT(!(bIsWrite && bIsPagingIo));
+
+    //
+    // Ensure that the FSD can handle ZCT I/O.
+    //
+
+    IopFileGetZctSupportMask(
+            FileHandle,
+            bIsWrite ? NULL : &mask,
+            bIsWrite ? &mask : NULL);
+    if (!mask)
+    {
+        status = STATUS_NOT_SUPPORTED;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.ReadWrite.Zct = Zct;
+    pIrp->Args.ReadWrite.Length = Length;
+    pIrp->Args.ReadWrite.ByteOffset = ByteOffset;
+    pIrp->Args.ReadWrite.Key = Key;
+    pIrp->Args.ReadWrite.IsPagingIo = bIsPagingIo;
+    pIrp->Args.ReadWrite.ZctOperation = IRP_ZCT_OPERATION_PREPARE;
+
+    // TODO -- Reserve space for complete ZCT IRP.
+    // The idea is that the completion context returned
+    // would be from the I/O manager and would include
+    // the FSD's context as well as the completion IRP.
+
+    IopIrpSetOutputPrepareZctReadWrite(
+            pIrp,
+            AsyncControlBlock,
+            CompletionContext,
+            IsPartial);
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+        LWIO_ASSERT(ioStatusBlock.BytesTransferred <= Length);
+        completionContext = pIrp->Args.ReadWrite.ZctCompletionContext;
+        LWIO_ASSERT(completionContext);
+        isPartial = pIrp->Args.ReadWrite.ZctIsPartial;
+    }
+
+cleanup:
+    IopIrpDereference(&pIrp);
+
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+        *CompletionContext = completionContext;
+        if (IsPartial)
+        {
+            *IsPartial = isPartial;
+        }
+    }
+
+    LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "op = %s", bIsWrite ? "Write" : "Read");
+    return status;
+}
+
+static
+NTSTATUS
+IopCompleteZctReadWriteFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN BOOLEAN bIsWrite,
+    IN PVOID CompletionContext,
+    IN OPTIONAL ULONG BytesTransferred
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+    PIRP pIrp = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = { 0 };
+    BOOLEAN bIsPagingIo = IsSetFlag(IoFlags, IO_FLAG_PAGING_IO);
+    IRP_TYPE irpType = bIsWrite ? IRP_TYPE_WRITE : IRP_TYPE_READ;
+
+    if (!FileHandle || !IoStatusBlock || !CompletionContext)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    LWIO_ASSERT(!(bIsWrite && bIsPagingIo));
+
+    LWIO_ASSERT(!BytesTransferred || bIsWrite);
+
+    // TODO -- use reserved complete ZCT IRP -- see
+    // IopPrepareZctReadWriteFile().
+
+    status = IopIrpCreate(&pIrp, irpType, FileHandle);
+    ioStatusBlock.Status = status;
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    pIrp->Args.ReadWrite.IsPagingIo = bIsPagingIo;
+    pIrp->Args.ReadWrite.ZctOperation = IRP_ZCT_OPERATION_COMPLETE;
+    pIrp->Args.ReadWrite.ZctCompletionContext = CompletionContext;
+    pIrp->Args.ReadWrite.ZctWriteBytesTransferred = BytesTransferred;
+
+    status = IopIrpDispatch(
+                    pIrp,
+                    AsyncControlBlock,
+                    IoStatusBlock);
+    if (STATUS_PENDING != status)
+    {
+        ioStatusBlock = pIrp->IoStatusBlock;
+        // TODO -- Do we expect 0 or the actual bytes committed?
+        LWIO_ASSERT(ioStatusBlock.BytesTransferred <= BytesTransferred);
+    }
+
+cleanup:
+    IopIrpDereference(&pIrp);
+
+    if (STATUS_PENDING != status)
+    {
+        *IoStatusBlock = ioStatusBlock;
+    }
+
+    LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "op = %s", bIsWrite ? "Write" : "Read");
+    return status;
+}
+
+NTSTATUS
+IoPrepareZctReadFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN OUT PIO_ZCT Zct,
+    IN ULONG Length,
+    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG Key,
+    OUT PVOID* CompletionContext,
+    OUT PBOOLEAN IsPartial
+    )
+{
+    return IopPrepareZctReadWriteFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                IoFlags,
+                FALSE,
+                Zct,
+                Length,
+                ByteOffset,
+                Key,
+                CompletionContext,
+                IsPartial);
+}
+
+NTSTATUS
+IoCompleteZctReadFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN PVOID CompletionContext
+    )
+{
+    return IopCompleteZctReadWriteFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                IoFlags,
+                FALSE,
+                CompletionContext,
+                0);
+}
+
+NTSTATUS
+IoPrepareZctWriteFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN OUT PIO_ZCT Zct,
+    IN ULONG Length,
+    IN OPTIONAL PLONG64 ByteOffset,
+    IN OPTIONAL PULONG Key,
+    OUT PVOID* CompletionContext
+    )
+{
+    return IopPrepareZctReadWriteFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                IoFlags,
+                TRUE,
+                Zct,
+                Length,
+                ByteOffset,
+                Key,
+                CompletionContext,
+                NULL);
+}
+
+NTSTATUS
+IoCompleteZctWriteFile(
+    IN IO_FILE_HANDLE FileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock,
+    IN IO_FLAGS IoFlags,
+    IN PVOID CompletionContext,
+    IN ULONG BytesTransferred
+    )
+{
+    return IopCompleteZctReadWriteFile(
+                FileHandle,
+                AsyncControlBlock,
+                IoStatusBlock,
+                IoFlags,
+                TRUE,
+                CompletionContext,
+                BytesTransferred);
+}
+
 static
 NTSTATUS
 IopControlFile(
@@ -432,8 +709,7 @@ IopControlFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -524,8 +800,7 @@ IoFlushBuffersFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -578,8 +853,7 @@ IopQuerySetInformationFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -712,8 +986,7 @@ IoQueryDirectoryFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -773,8 +1046,7 @@ IoReadDirectoryChangeFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -828,8 +1100,7 @@ IopQuerySetVolumeInformationFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -925,8 +1196,7 @@ IoLockFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -980,8 +1250,7 @@ IoUnlockFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;
@@ -1123,8 +1392,7 @@ IopQuerySetSecurityFile(
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING != status)
     {
         ioStatusBlock = pIrp->IoStatusBlock;

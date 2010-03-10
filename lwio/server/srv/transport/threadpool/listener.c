@@ -28,8 +28,6 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -50,7 +48,7 @@
 
 static
 VOID
-SrvListenerMain(
+SrvListenerProcessTask(
     PLW_TASK pTask,
     PVOID pDataContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -60,107 +58,69 @@ SrvListenerMain(
 
 NTSTATUS
 SrvListenerInit(
-    HANDLE                     hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    PLWIO_SRV_LISTENER         pListener,
-    BOOLEAN                    bEnableSecuritySignatures,
-    BOOLEAN                    bRequireSecuritySignatures
+    OUT PSRV_TRANSPORT_LISTENER pListener,
+    IN SRV_TRANSPORT_HANDLE pTransport
     )
 {
     NTSTATUS ntStatus = 0;
 
-    memset(&pListener->context, 0, sizeof(pListener->context));
+    RtlZeroMemory(pListener, sizeof(*pListener));
 
-    pthread_mutex_init(&pListener->context.mutex, NULL);
-    pListener->context.pMutex = &pListener->context.mutex;
+    pListener->pTransport = pTransport;
 
-    pListener->context.hPacketAllocator = hPacketAllocator;
-
-    uuid_generate(pListener->context.serverProperties.GUID);
-
-    pListener->context.serverProperties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
-    pListener->context.serverProperties.bEnableSecuritySignatures =
-                                                    bEnableSecuritySignatures;
-    pListener->context.serverProperties.bRequireSecuritySignatures =
-                                                    bRequireSecuritySignatures;
-    pListener->context.serverProperties.bEncryptPasswords = TRUE;
-    pListener->context.serverProperties.MaxRawSize = 64 * 1024;
-    pListener->context.serverProperties.MaxMpxCount = 50;
-    pListener->context.serverProperties.MaxNumberVCs = 1;
-    pListener->context.serverProperties.MaxBufferSize = 16644;
-    pListener->context.serverProperties.Capabilities = 0;
-    pListener->context.serverProperties.Capabilities |= CAP_UNICODE;
-    pListener->context.serverProperties.Capabilities |= CAP_LARGE_FILES;
-    pListener->context.serverProperties.Capabilities |= CAP_NT_SMBS;
-    pListener->context.serverProperties.Capabilities |= CAP_RPC_REMOTE_APIS;
-    pListener->context.serverProperties.Capabilities |= CAP_STATUS32;
-    pListener->context.serverProperties.Capabilities |= CAP_LEVEL_II_OPLOCKS;
-    pListener->context.serverProperties.Capabilities |= CAP_LARGE_READX;
-    pListener->context.serverProperties.Capabilities |= CAP_LARGE_WRITEX;
-    pListener->context.serverProperties.Capabilities |= CAP_EXTENDED_SECURITY;
-
-    pListener->context.pShareList = pShareList;
-
-    ntStatus = LwRtlCreateThreadPool(&pListener->context.pPool);
+    ntStatus = LwRtlCreateThreadPool(&pListener->pPool);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwRtlCreateTaskGroup(pListener->context.pPool, &pListener->context.pTaskGroup);
+    ntStatus = LwRtlCreateTaskGroup(pListener->pPool, &pListener->pTaskGroup);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlCreateTask(
-        pListener->context.pPool,
-        &pListener->context.pTask,
-        pListener->context.pTaskGroup,
-        SrvListenerMain,
-        &pListener->context);
+                    pListener->pPool,
+                    &pListener->pTask,
+                    pListener->pTaskGroup,
+                    SrvListenerProcessTask,
+                    pListener);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LwRtlWakeTask(pListener->context.pTask);
+    LwRtlWakeTask(pListener->pTask);
+
+cleanup:
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
+    SrvListenerShutdown(pListener);
+
+    goto cleanup;
 }
 
-NTSTATUS
+VOID
 SrvListenerShutdown(
-    PLWIO_SRV_LISTENER pListener
+    IN OUT PSRV_TRANSPORT_LISTENER pListener
     )
 {
-    NTSTATUS ntStatus = 0;
-
-    if (pListener->context.pTaskGroup)
+    if (pListener->pTaskGroup)
     {
-        LwRtlCancelTaskGroup(pListener->context.pTaskGroup);
-        LwRtlWaitTaskGroup(pListener->context.pTaskGroup);
-        LwRtlFreeTaskGroup(&pListener->context.pTaskGroup);
+        LwRtlCancelTaskGroup(pListener->pTaskGroup);
+        LwRtlWaitTaskGroup(pListener->pTaskGroup);
+        LwRtlFreeTaskGroup(&pListener->pTaskGroup);
     }
 
-    LwRtlReleaseTask(&pListener->context.pTask);
+    LwRtlReleaseTask(&pListener->pTask);
 
-    if (pListener->context.pPool)
+    if (pListener->pPool)
     {
-        LwRtlFreeThreadPool(&pListener->context.pPool);
+        LwRtlFreeThreadPool(&pListener->pPool);
     }
 
-    if (pListener->context.hGssContext)
-    {
-        SrvGssReleaseContext(pListener->context.hGssContext);
-    }
-
-    if (pListener->context.pMutex)
-    {
-        pthread_mutex_destroy(&pListener->context.mutex);
-        pListener->context.pMutex = NULL;
-    }
-
-    return ntStatus;
+    RtlZeroMemory(pListener, sizeof(*pListener));
 }
 
 static
 NTSTATUS
-SrvListenerMainInit(
-    PLWIO_SRV_LISTENER_CONTEXT pContext
+SrvListenerProcessTaskInit(
+    PSRV_TRANSPORT_LISTENER pListener
     )
 {
     NTSTATUS ntStatus = 0;
@@ -168,21 +128,21 @@ SrvListenerMainInit(
     int on = 1;
     long opts = 0;
 
-    pContext->listenFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (pContext->listenFd < 0)
+    pListener->ListenFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (pListener->ListenFd < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (setsockopt(pContext->listenFd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
+    if (setsockopt(pListener->ListenFd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
 #ifdef TCP_NODELAY
-    if (setsockopt(pContext->listenFd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) < 0)
+    if (setsockopt(pListener->ListenFd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -190,14 +150,14 @@ SrvListenerMainInit(
 #endif
 
     /* Put socket in nonblock mode */
-    opts = fcntl(pContext->listenFd, F_GETFL, 0);
+    opts = fcntl(pListener->ListenFd, F_GETFL, 0);
     if (opts < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
     opts |= O_NONBLOCK;
-    if (fcntl(pContext->listenFd, F_SETFL, opts) < 0)
+    if (fcntl(pListener->ListenFd, F_SETFL, opts) < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -208,13 +168,13 @@ SrvListenerMainInit(
     servaddr.sin_addr.s_addr  = htonl(INADDR_ANY);
     servaddr.sin_port = htons(SMB_SERVER_PORT);
 
-    if (bind(pContext->listenFd, (const struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
+    if (bind(pListener->ListenFd, (const struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (listen(pContext->listenFd, SMB_LISTEN_Q) < 0)
+    if (listen(pListener->ListenFd, SMB_LISTEN_QUEUE_LENGTH) < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -222,8 +182,8 @@ SrvListenerMainInit(
 
     /* Register fd with thread pool */
     ntStatus = LwRtlSetTaskFd(
-        pContext->pTask,
-        pContext->listenFd,
+        pListener->pTask,
+        pListener->ListenFd,
         LW_TASK_EVENT_FD_READABLE);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -233,10 +193,10 @@ cleanup:
 
 error:
 
-    if (pContext->listenFd >= 0)
+    if (pListener->ListenFd >= 0)
     {
-        close(pContext->listenFd);
-        pContext->listenFd = -1;
+        close(pListener->ListenFd);
+        pListener->ListenFd = -1;
     }
 
     goto cleanup;
@@ -244,7 +204,7 @@ error:
 
 static
 VOID
-SrvListenerMain(
+SrvListenerProcessTask(
     PLW_TASK pTask,
     PVOID pDataContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -252,22 +212,21 @@ SrvListenerMain(
     PLONG64 pllTime
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_TRANSPORT_LISTENER pListener = (PSRV_TRANSPORT_LISTENER) pDataContext;
     int connFd = -1;
-    PLWIO_SRV_SOCKET pSocket = NULL;
-    PLWIO_SRV_LISTENER_CONTEXT pContext = (PLWIO_SRV_LISTENER_CONTEXT) pDataContext;
-    PLWIO_SRV_CONNECTION pConnection = NULL;
-    PSRV_HOST_INFO pHostinfo = NULL;
-    CHAR   remoteIpAddr[256];
-    struct sockaddr_in cliaddr;
-    SOCKLEN_T clilen = 0;
-    PLW_TASK pConnTask = NULL;
+    PSRV_SOCKET pSocket = NULL;
+    SRV_SOCKET_ADDRESS clientAddress;
+    SOCKLEN_T clientAddressLength = sizeof(clientAddress);
+    CHAR clientAddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
+    LW_TASK_EVENT_MASK waitMask = 0;
 
     if (WakeMask & LW_TASK_EVENT_INIT)
     {
         LWIO_LOG_DEBUG("Srv listener starting");
 
-        ntStatus = SrvListenerMainInit(pContext);
+        ntStatus = SrvListenerProcessTaskInit(pListener);
+        // Note that task will terminate on error.
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -275,123 +234,81 @@ SrvListenerMain(
     {
         LWIO_LOG_DEBUG("Srv listener stopping");
 
-        if (pContext->listenFd >= 0)
+        if (pListener->ListenFd >= 0)
         {
-            close(pContext->listenFd);
-            pContext->listenFd = -1;
+            close(pListener->ListenFd);
+            pListener->ListenFd = -1;
         }
 
-        *pWaitMask = LW_TASK_EVENT_COMPLETE;
+        waitMask = LW_TASK_EVENT_COMPLETE;
         goto cleanup;
     }
 
-    clilen = sizeof(cliaddr);
-    memset(&cliaddr, 0, sizeof(cliaddr));
-
-    connFd = accept(pContext->listenFd, (struct sockaddr*)&cliaddr, &clilen);
-
+    connFd = accept(pListener->ListenFd,
+                    &clientAddress.Generic,
+                    &clientAddressLength);
     if (connFd < 0)
     {
         if (errno == EPROTO || errno == ECONNABORTED || errno == EINTR)
         {
-            *pWaitMask = LW_TASK_EVENT_YIELD;
+            waitMask = LW_TASK_EVENT_YIELD;
             goto cleanup;
         }
         else if (errno == EAGAIN)
         {
-            *pWaitMask = LW_TASK_EVENT_FD_READABLE;
+            waitMask = LW_TASK_EVENT_FD_READABLE;
             goto cleanup;
         }
         else
         {
+            // Note that task will terminate.
             ntStatus = LwErrnoToNtStatus(errno);
+            LWIO_LOG_ERROR("Failed to accept connection (errno = %d, status = 0x%08x)", errno, ntStatus);
+            LWIO_ASSERT(ntStatus);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
-    if (getpeername(connFd, (struct sockaddr*)&cliaddr, &clilen) < 0)
+    // TODO - getpeername should not be necessary after accept.
+    if (getpeername(connFd, &clientAddress.Generic, &clientAddressLength) < 0)
     {
-        LWIO_LOG_WARNING("Failed to find the remote socket address for [fd:%d][code:%d]", connFd, errno);
+        // Note that task will terminate.
+        ntStatus = LwErrnoToNtStatus(errno);
+        LWIO_LOG_ERROR("Failed to find the remote socket address for fd = %d (errno = %d, status = 0x%08x)", connFd, errno, ntStatus);
+        LWIO_ASSERT(ntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LWIO_LOG_INFO("Handling client from [%s]",
-                  SMB_SAFE_LOG_STRING(inet_ntop(
-                                          AF_INET,
-                                          &cliaddr.sin_addr,
-                                          remoteIpAddr,
-                                          sizeof(remoteIpAddr))));
+    SrvSocketAddressToString(
+            &clientAddress.Generic,
+            clientAddressStringBuffer,
+            sizeof(clientAddressStringBuffer));
 
-    if (!pHostinfo)
-    {
-        NTSTATUS ntStatus1 = SrvAcquireHostInfo(
-            NULL,
-            &pHostinfo);
-        if (ntStatus1)
-        {
-            LWIO_LOG_ERROR("Failed to acquire current host information [code:%d]", ntStatus1);
-            close(connFd);
-            connFd = -1;
-
-            *pWaitMask = LW_TASK_EVENT_YIELD;
-            goto cleanup;
-        }
-    }
-
-    if (!pContext->hGssContext)
-    {
-        NTSTATUS ntStatus2 = 0;
-
-        ntStatus2 = SrvGssAcquireContext(
-            pHostinfo,
-            NULL,
-            &pContext->hGssContext);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR("Failed to initialize GSS Handle [code:%d]", ntStatus2);
-
-
-            close(connFd);
-            connFd = -1;
-
-            *pWaitMask = LW_TASK_EVENT_YIELD;
-            goto cleanup;
-        }
-    }
+    LWIO_LOG_INFO("Handling client from '%s' on fd = %d",
+                  clientAddressStringBuffer,
+                  connFd);
 
     ntStatus = SrvSocketCreate(
-        connFd,
-        &cliaddr,
-        &pSocket);
-    BAIL_ON_NT_STATUS(ntStatus);
+                    pListener,
+                    connFd,
+                    &clientAddress.Generic,
+                    clientAddressLength,
+                    &pSocket);
+    if (ntStatus)
+    {
+        // Do not terminate on this error.
+        LWIO_LOG_ERROR("Failed to create transport socket for fd = %d, address = '%s' (status = 0x%08x)",
+                       connFd,
+                       clientAddressStringBuffer,
+                       ntStatus);
+        ntStatus = STATUS_SUCCESS;
+        waitMask = LW_TASK_EVENT_YIELD;
+        goto cleanup;
+    }
 
     connFd = -1;
 
-    ntStatus = SrvConnectionCreate(
-        pSocket,
-        pContext->hPacketAllocator,
-        pContext->hGssContext,
-        pContext->pShareList,
-        &pContext->serverProperties,
-        pHostinfo,
-        &SrvSocketFree,
-        &pConnection);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSocket = NULL;
-
-    ntStatus = LwRtlCreateTask(
-        pContext->pPool,
-        &pConnTask,
-        pContext->pTaskGroup,
-        SrvSocketReaderProcess,
-        pConnection);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pConnection = NULL;
-
-    LwRtlWakeTask(pConnTask);
-
-    *pWaitMask = LW_TASK_EVENT_YIELD;
+    waitMask = LW_TASK_EVENT_YIELD;
 
 cleanup:
 
@@ -400,29 +317,18 @@ cleanup:
         close(connFd);
     }
 
-    if (pConnection)
-    {
-        SrvConnectionRelease(pConnection);
-    }
+    // waitMask can only be 0 (aka COMPLETE) for EVENT_CANCEL or error.
+    LWIO_ASSERT(waitMask ||
+                ((LW_TASK_EVENT_COMPLETE == waitMask) &&
+                 (IsSetFlag(WakeMask, LW_TASK_EVENT_CANCEL) || ntStatus)));
 
-    if (pConnTask)
-    {
-        LwRtlReleaseTask(&pConnTask);
-    }
-
-    if (pHostinfo)
-    {
-        SrvReleaseHostInfo(pHostinfo);
-    }
+    *pWaitMask = waitMask;
 
     return;
 
 error:
 
-    if (pConnTask)
-    {
-        LwRtlCancelTask(pConnTask);
-    }
+    waitMask = LW_TASK_EVENT_COMPLETE;
 
     goto cleanup;
 }

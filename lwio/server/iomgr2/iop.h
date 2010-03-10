@@ -166,6 +166,9 @@ struct _IO_FILE_OBJECT {
         PIO_STATUS_BLOCK pIoStatusBlock;
     } Rundown;
 
+    IO_ZCT_ENTRY_MASK ZctReadMask;
+    IO_ZCT_ENTRY_MASK ZctWriteMask;
+
     // TODO -- Pre-allocate IRP_TYPE_CLOSE...
 };
 
@@ -337,12 +340,26 @@ IopIrpCancel(
     IN PIRP pIrp
     );
 
+VOID
+IopIrpSetOutputCreate(
+    IN OUT PIRP pIrp,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN PIO_FILE_HANDLE pCreateFileHandle
+    );
+
+VOID
+IopIrpSetOutputPrepareZctReadWrite(
+    IN OUT PIRP pIrp,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    IN PVOID* pCompletionContext,
+    IN OPTIONAL PBOOLEAN pIsPartial
+    );
+
 NTSTATUS
 IopIrpDispatch(
     IN PIRP pIrp,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    IN OPTIONAL PIO_STATUS_BLOCK pIoStatusBlock,
-    IN OPTIONAL PIO_FILE_HANDLE pCreateFileHandle
+    IN PIO_STATUS_BLOCK pIoStatusBlock
     );
 
 VOID
@@ -382,6 +399,13 @@ IopFileObjectAllocate(
 VOID
 IopFileObjectFree(
     IN OUT PIO_FILE_OBJECT* ppFileObject
+    );
+
+VOID
+IopFileGetZctSupportMask(
+    IN IO_FILE_HANDLE FileHandle,
+    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctReadMask,
+    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctWriteMask
     );
 
 NTSTATUS

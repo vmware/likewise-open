@@ -53,7 +53,8 @@
 NTSTATUS
 SrvProtocolInit(
     PSMB_PROD_CONS_QUEUE pWorkQueue,
-    BOOLEAN              bSupportSMB2
+    PLWIO_PACKET_ALLOCATOR hPacketAllocator,
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     );
 
 NTSTATUS
@@ -62,6 +63,12 @@ SrvProtocolExecute(
     );
 
 NTSTATUS
+SrvProtocolTransportSendResponse(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSMB_PACKET pPacket
+    );
+
+VOID
 SrvProtocolShutdown(
     VOID
     );

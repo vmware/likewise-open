@@ -187,6 +187,42 @@ IoFileGetContext(
     return FileHandle->pContext;    
 }
 
+VOID
+IoFileSetZctSupportMask(
+    IN IO_FILE_HANDLE FileHandle,
+    IN IO_ZCT_ENTRY_MASK ZctReadMask,
+    IN IO_ZCT_ENTRY_MASK ZctWriteMask
+    )
+{
+    // It is up to the FSD to synchornize
+    IopFileObjectLock(FileHandle);
+    FileHandle->ZctReadMask = ZctReadMask;
+    FileHandle->ZctWriteMask = ZctWriteMask;
+    IopFileObjectUnlock(FileHandle);
+}
+
+VOID
+IopFileGetZctSupportMask(
+    IN IO_FILE_HANDLE FileHandle,
+    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctReadMask,
+    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctWriteMask
+    )
+{
+    if (ZctReadMask || ZctWriteMask)
+    {
+        IopFileObjectLock(FileHandle);
+        if (ZctReadMask)
+        {
+            *ZctReadMask = FileHandle->ZctReadMask;
+        }
+        if (ZctWriteMask)
+        {
+            *ZctWriteMask = FileHandle->ZctWriteMask;
+        }
+        IopFileObjectUnlock(FileHandle);
+    }
+}
+
 static
 NTSTATUS
 IopContinueAsyncCloseFile(
@@ -215,8 +251,7 @@ IopContinueAsyncCloseFile(
     status = IopIrpDispatch(
                     pIrp,
                     useAsyncControlBlock,
-                    IoStatusBlock,
-                    NULL);
+                    IoStatusBlock);
     if (STATUS_PENDING == status)
     {
         IoDereferenceAsyncCancelContext(&asyncControlBlock.AsyncCancelContext);
