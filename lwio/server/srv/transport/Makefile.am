@@ -1,6 +1,4 @@
-METHOD=threadpool
-
+# Will move contents out of threadpool later.
 SUBDIRS = \
-    $(METHOD) \
-    api
+    threadpool
 

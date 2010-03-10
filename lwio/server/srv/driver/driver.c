@@ -310,13 +310,8 @@ SrvInitialize(
 
     ntStatus = SrvProtocolInit(
                     &gSMBSrvGlobals.workQueue,
-                    gSMBSrvGlobals.config.bSupportSMB2);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvTransportInit(
                     gSMBSrvGlobals.hPacketAllocator,
-                    &gSMBSrvGlobals.shareList,
-                    &gSMBSrvGlobals.workQueue);
+                    &gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvAllocateMemory(
@@ -526,7 +521,7 @@ SrvShutdown(
             gSMBSrvGlobals.pWorkerArray = NULL;
         }
 
-        SrvTransportShutdown();
+        SrvProtocolShutdown();
 
         SrvElementsShutdown();
 
@@ -543,10 +538,7 @@ SrvShutdown(
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
 
         SrvFreeConfigContents(&gSMBSrvGlobals.config);
-    }
 
-    if (gSMBSrvGlobals.pMutex)
-    {
         pthread_mutex_unlock(gSMBSrvGlobals.pMutex);
         gSMBSrvGlobals.pMutex = NULL;
     }

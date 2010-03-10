@@ -49,107 +49,83 @@
  *
  */
 
-// config.c
-
-NTSTATUS
-SrvThreadpoolTransportInitConfig(
-    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
-    );
-
-NTSTATUS
-SrvThreadpoolTransportReadConfig(
-    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
-    );
-
-VOID
-SrvThreadpoolTransportFreeConfigContents(
-    PLWIO_SRV_THREADPOOL_TRANSPORT_CONFIG pConfig
-    );
-
-// libmain.c
-
-NTSTATUS
-SrvThreadpoolTransportGetRequest(
-    struct timespec*   pTimespec,
-    PSRV_EXEC_CONTEXT* ppContext
-    );
-
-NTSTATUS
-SrvThreadpoolTransportSendResponse(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET          pResponse
-    );
-
 // listener.c
 
 NTSTATUS
 SrvListenerInit(
-    HANDLE                     hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    PLWIO_SRV_LISTENER         pListener,
-    BOOLEAN                    bEnableSecuritySignatures,
-    BOOLEAN                    bRequireSecuritySignatures
+    OUT PSRV_TRANSPORT_LISTENER pListener,
+    IN SRV_TRANSPORT_HANDLE pTransport
     );
-
-NTSTATUS
-SrvListenerShutdown(
-    PLWIO_SRV_LISTENER pListener
-    );
-
-// reader.c
 
 VOID
-SrvSocketReaderProcess(
-    PLW_TASK pTask,
-    PVOID pDataContext,
-    LW_TASK_EVENT_MASK WakeMask,
-    LW_TASK_EVENT_MASK* pWaitMask,
-    PLONG64 pllTime
-    );
-
-// srvconnection.c
-
-int
-SrvConnectionGetFd(
-    PLWIO_SRV_CONNECTION pConnection
-    );
-
-NTSTATUS
-SrvConnectionGetNextSequence(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pSmbRequest,
-    PULONG              pulRequestSequence
-    );
-
-NTSTATUS
-SrvConnectionReadPacket(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET* ppPacket
-    );
-
-NTSTATUS
-SrvConnectionWriteMessage(
-    PLWIO_SRV_CONNECTION pConnection,
-    PSMB_PACKET         pPacket
-    );
-
-NTSTATUS
-SrvConnectionGetNamedPipeClientAddress(
-    PLWIO_SRV_CONNECTION pConnection,
-    PIO_ECP_LIST        pEcpList
+SrvListenerShutdown(
+    IN OUT PSRV_TRANSPORT_LISTENER pListener
     );
 
 // srvsocket.c
 
+PCSTR
+SrvSocketAddressToString(
+    IN struct sockaddr* pSocketAddress,
+    OUT PSTR pszAddress,
+    IN ULONG AddressLength
+    );
+
 NTSTATUS
 SrvSocketCreate(
-    int fd,
-    struct sockaddr_in* pClientAddr,
-    PLWIO_SRV_SOCKET* ppSocket
+    IN PSRV_TRANSPORT_LISTENER pListener,
+    IN int fd,
+    IN struct sockaddr* pClientAddress,
+    IN SOCKLEN_T ClientAddressLength,
+    OUT PSRV_SOCKET* ppSocket
     );
 
 VOID
 SrvSocketFree(
-    HANDLE hSocket
+    IN OUT PSRV_SOCKET* ppSocket
     );
 
+VOID
+SrvSocketGetAddress(
+    IN PSRV_SOCKET pSocket,
+    OUT const struct sockaddr** ppAddress,
+    OUT size_t* pAddressLength
+    );
+
+PCSTR
+SrvSocketGetAddressString(
+    IN PSRV_SOCKET pSocket
+    );
+
+int
+SrvSocketGetFileDescriptor(
+    IN PSRV_SOCKET pSocket
+    );
+
+NTSTATUS
+SrvSocketSetNewDataNotify(
+    IN PSRV_SOCKET pSocket,
+    IN PVOID pBuffer,
+    IN ULONG Size,
+    IN ULONG Minimum
+    );
+
+NTSTATUS
+SrvSocketSendReply(
+    IN PSRV_SOCKET pSocket,
+    IN PSRV_SEND_CONTEXT pSendContext,
+    IN PVOID pBuffer,
+    IN ULONG Size
+    );
+
+NTSTATUS
+SrvSocketSendZctReply(
+    IN PSRV_SOCKET pSocket,
+    IN PSRV_SEND_CONTEXT pSendContext,
+    IN PIO_ZCT pZct
+    );
+
+VOID
+SrvSocketClose(
+    IN OUT PSRV_SOCKET pSocket
+    );

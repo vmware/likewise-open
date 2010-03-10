@@ -494,7 +494,7 @@ SrvSendInterimResponse_SMB_V2(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    ntStatus = SrvTransportSendResponse(
+    ntStatus = SrvProtocolTransportSendResponse(
                     pExecContext->pConnection,
                     pExecContext->pInterimResponse);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -801,12 +801,11 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
+VOID
 SrvProtocolShutdown_SMB_V2(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
@@ -814,8 +813,6 @@ SrvProtocolShutdown_SMB_V2(
     gProtocolGlobals_SMB_V2.pWorkQueue = NULL;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V2.mutex);
-
-    return status;
 }
 
 static

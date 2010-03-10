@@ -70,7 +70,7 @@ SrvBuildNegotiateResponse_SMB_V2(
     OUT PSMB_PACKET*         ppSmbResponse
     );
 
-NTSTATUS
+VOID
 SrvProtocolShutdown_SMB_V2(
     VOID
     );

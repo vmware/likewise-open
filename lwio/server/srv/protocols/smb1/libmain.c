@@ -870,12 +870,11 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
+VOID
 SrvProtocolShutdown_SMB_V1(
     VOID
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolGlobals_SMB_V1.mutex);
@@ -887,8 +886,6 @@ SrvProtocolShutdown_SMB_V1(
     /* Configuration shutdown should always come last as other shutdown
      * routines may rely on configuration parameters to be set */
     SrvConfigShutdown_SMB_V1();
-
-    return status;
 }
 
 static

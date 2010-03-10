@@ -74,13 +74,33 @@ typedef struct _LWIO_SRV_PROTOCOL_WORKER
 
 } LWIO_SRV_PROTOCOL_WORKER, *PLWIO_SRV_PROTOCOL_WORKER;
 
-typedef struct __SRV_PROTOCOL_API_GLOBALS
+typedef struct _SRV_PROTOCOL_CONFIG
+{
+    BOOLEAN bEnableSmb2;
+    BOOLEAN bEnableSigning;
+    BOOLEAN bRequireSigning;
+} SRV_PROTOCOL_CONFIG, *PSRV_PROTOCOL_CONFIG;
+
+typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT {
+    // Initialized on startup
+    struct _SRV_PROTOCOL_API_GLOBALS* pGlobals;
+    SRV_TRANSPORT_HANDLE hTransport;
+    SRV_TRANSPORT_PROTOCOL_DISPATCH Dispatch;
+    SRV_CONNECTION_SOCKET_DISPATCH SocketDispatch;
+    uuid_t Guid;
+    // Initialized on first use
+    HANDLE hGssContext;
+} SRV_PROTOCOL_TRANSPORT_CONTEXT;
+
+typedef struct _SRV_PROTOCOL_API_GLOBALS
 {
     pthread_mutex_t           mutex;
 
-    BOOLEAN                   bSupportSMB2;
-
     PSMB_PROD_CONS_QUEUE      pWorkQueue;
+    PLWIO_PACKET_ALLOCATOR     hPacketAllocator;
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
+    SRV_PROTOCOL_CONFIG        Config;
+    SRV_PROTOCOL_TRANSPORT_CONTEXT TransportContext;
 
 } SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
 

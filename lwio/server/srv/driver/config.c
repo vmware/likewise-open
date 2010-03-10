@@ -85,6 +85,18 @@ SrvReadConfig(
     /* Ignore error as it may not exist; we can still use default. */
     LwIoReadConfigBoolean(pReg, "SupportSmb2", FALSE, &(srvConfig.bSupportSMB2));
 
+    LwIoReadConfigBoolean(
+                    pReg,
+                    "EnableSecuritySignatures",
+                    TRUE,
+                    &(srvConfig.bEnableSigning));
+
+    LwIoReadConfigBoolean(
+                    pReg,
+                    "RequireSecuritySignatures",
+                    TRUE,
+                    &(srvConfig.bRequireSigning));
+
     ntStatus = SrvTransferConfigContents(&srvConfig, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 

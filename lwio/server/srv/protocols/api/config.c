@@ -49,19 +49,167 @@
 
 #include "includes.h"
 
+static
 NTSTATUS
-SrvProtocolConfigSupports_SMB_V2(
-    PBOOLEAN pbSupportSMBV2
+SrvProtocolTransferConfigContents(
+    PSRV_PROTOCOL_CONFIG pSrc,
+    PSRV_PROTOCOL_CONFIG pDest
+    );
+
+
+NTSTATUS
+SrvProtocolReadConfig(
+    PSRV_PROTOCOL_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_PROTOCOL_CONFIG config = { 0 };
+    PLWIO_CONFIG_REG pReg = NULL;
+
+    ntStatus = SrvProtocolInitConfig(&config);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwIoOpenConfig(
+                "Services\\lwio\\Parameters\\Drivers\\srv",
+                "Policy\\Services\\lwio\\Parameters\\Drivers\\srv",
+                &pReg);
+    if (ntStatus)
+    {
+        LWIO_LOG_ERROR("Failed to access device configuration [error code: %u]",
+                       ntStatus);
+
+        ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Ignore error as it may not exist; we can still use default. */
+    LwIoReadConfigBoolean(
+            pReg,
+            "SupportSmb2",
+            SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2,
+            &config.bEnableSmb2);
+
+    LwIoReadConfigBoolean(
+            pReg,
+            "EnableSecuritySignatures",
+            SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING,
+            &config.bEnableSigning);
+
+    LwIoReadConfigBoolean(
+            pReg,
+            "RequireSecuritySignatures",
+            SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING,
+            &config.bRequireSigning);
+
+    ntStatus = SrvProtocolTransferConfigContents(&config, pConfig);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (pReg)
+    {
+        LwIoCloseConfig(pReg);
+    }
+
+    SrvProtocolFreeConfigContents(&config);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvProtocolInitConfig(
+    PSRV_PROTOCOL_CONFIG pConfig
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    SrvProtocolFreeConfigContents(pConfig);
+
+    pConfig->bEnableSmb2 = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2;
+    pConfig->bEnableSigning = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING;
+    pConfig->bRequireSigning = SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING;
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvProtocolTransferConfigContents(
+    PSRV_PROTOCOL_CONFIG pSrc,
+    PSRV_PROTOCOL_CONFIG pDest
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    SrvProtocolFreeConfigContents(pDest);
+
+    *pDest = *pSrc;
+
+    SrvProtocolFreeConfigContents(pSrc);
+
+    return ntStatus;
+}
+
+VOID
+SrvProtocolFreeConfigContents(
+    PSRV_PROTOCOL_CONFIG pConfig
+    )
+{
+    // Nothing to free right now
+    memset(pConfig, 0, sizeof(*pConfig));
+}
+
+BOOLEAN
+SrvProtocolConfigIsSigningEnabled(
+    VOID
+    )
+{
+    BOOLEAN bEnabled = FALSE;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    *pbSupportSMBV2 = gProtocolApiGlobals.bSupportSMB2;
+    bEnabled = gProtocolApiGlobals.Config.bEnableSigning;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    return ntStatus;
+    return bEnabled;
+}
+
+BOOLEAN
+SrvProtocolConfigIsSigningRequired(
+    VOID
+    )
+{
+    BOOLEAN bRequired = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    bRequired = gProtocolApiGlobals.Config.bRequireSigning;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    return bRequired;
+}
+
+BOOLEAN
+SrvProtocolConfigIsSmb2Enabled(
+    VOID
+    )
+{
+    BOOLEAN bEnabled = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    bEnabled = gProtocolApiGlobals.Config.bEnableSmb2;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    return bEnabled;
 }

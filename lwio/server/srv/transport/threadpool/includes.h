@@ -69,6 +69,7 @@
 
 #include <iodriver.h>
 #include <ioapi.h>
+#include <lwlist.h>
 
 #include <smbwire.h>
 
@@ -76,12 +77,7 @@
 #include <srvutils.h>
 #include <elementsapi.h>
 #include <transportapi.h>
-#include <srvtransport.h>
 
 #include "defs.h"
 #include "structs.h"
 #include "prototypes.h"
-
-#include "externs.h"
-
-

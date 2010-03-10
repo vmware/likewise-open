@@ -32,7 +32,7 @@ libsrv_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
 libsrv_sys_la_LIBADD = \
     @top_builddir@/server/srv/protocols/api/libsrv.protocols.api.la \
-    @top_builddir@/server/srv/transport/api/libsrv.transport.api.la \
+    @top_builddir@/server/srv/transport/threadpool/libsrv.transport.threadpool.la \
     @top_builddir@/server/srv/elements/libsrvelements.la \
     @top_builddir@/server/srv/shares/api/libshareapi.la \
     @top_builddir@/server/srv/utils/libsrvutils.la \

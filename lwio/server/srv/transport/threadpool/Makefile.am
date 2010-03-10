@@ -1,12 +1,8 @@
 noinst_LTLIBRARIES = libsrv.transport.threadpool.la
 
 libsrv_transport_threadpool_la_SOURCES = \
-    config.c        \
-    globals.c       \
     libmain.c       \
     listener.c      \
-    reader.c        \
-    srvconnection.c \
     srvsocket.c
 
 libsrv_transport_threadpool_la_CPPFLAGS = \
