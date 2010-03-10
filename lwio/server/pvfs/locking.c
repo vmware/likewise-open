@@ -403,6 +403,7 @@ PvfsProcessPendingLocks(
     PIRP pIrp = NULL;
     PPVFS_CCB pCcb = NULL;
     BOOLEAN bBrlWriteLocked = FALSE;
+    BOOLEAN bIrpCtxLocked = FALSE;
 
     /* Take the pending lock queue for processing */
 
@@ -433,6 +434,7 @@ PvfsProcessPendingLocks(
     {
         pData = NULL;
         pPendingLock = NULL;
+        bIrpCtxLocked = FALSE;
 
         ntError = PvfsListRemoveHead(pProcessingQueue, &pData);
         BAIL_ON_NT_STATUS(ntError);
@@ -445,15 +447,12 @@ PvfsProcessPendingLocks(
         pCcb        = pPendingLock->pCcb;
         pIrp        = pPendingLock->pIrpContext->pIrp;
 
+
+        LWIO_LOCK_MUTEX(bIrpCtxLocked, &pPendingLock->pIrpContext->Mutex);
+
         if (pPendingLock->pIrpContext->bIsCancelled)
         {
-            pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
-
-            PvfsAsyncIrpComplete(pPendingLock->pIrpContext);
-            PvfsFreeIrpContext(&pPendingLock->pIrpContext);
-
-            PvfsFreePendingLock(&pPendingLock);
-
+            LWIO_UNLOCK_MUTEX(bIrpCtxLocked, &pPendingLock->pIrpContext->Mutex);
             continue;
         }
 
@@ -477,6 +476,7 @@ PvfsProcessPendingLocks(
                                ByteOffset,
                                Length,
                                Flags);
+        LWIO_UNLOCK_MUTEX(bIrpCtxLocked, &pPendingLock->pIrpContext->Mutex);
 
         if (ntError != STATUS_PENDING)
         {
