@@ -717,6 +717,33 @@ AC_MSG_RESULT([no])
 
 CFLAGS="$saved_CFLAGS"
 
+# ZCT splice, sendfile, etc. support
+AC_ARG_WITH([splice],
+        [AC_HELP_STRING([--without-splice], [Do not use splice])],
+        [],
+        [with_splice=yes]
+)
+AC_ARG_WITH([sendfile],
+        [AC_HELP_STRING([--without-sendfile], [Do not use sendfile])],
+        [],
+        [with_sendfile=yes]
+)
+AC_ARG_WITH([sendfilev],
+        [AC_HELP_STRING([--without-sendfilev], [Do not use sendfilev])],
+        [],
+        [with_sendfilev=yes]
+)
+AC_CHECK_HEADERS([sys/sendfile.h])
+AS_IF([test "x$with_splice" != xno],[
+AC_CHECK_FUNCS([splice])
+])
+AS_IF([test "x$with_sendfile" != xno],[
+AC_CHECK_FUNCS([sendfile])
+])
+AS_IF([test "x$with_sendfilev" != xno],[
+AC_CHECK_FUNCS([sendfilev])
+])
+
 AC_CONFIG_FILES([Makefile
         include/Makefile
         etc/Makefile
