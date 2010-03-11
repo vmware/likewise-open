@@ -64,16 +64,6 @@ PvfsFreeMemory(
     IN OUT PVOID *ppBuffer
     );
 
-NTSTATUS
-PvfsFreeIrpContext(
-	PPVFS_IRP_CONTEXT *ppIrpContext
-    );
-
-NTSTATUS
-PvfsAllocateIrpContext(
-	PPVFS_IRP_CONTEXT *ppIrpContext,
-    PIRP pIrp
-    );
 
 #endif       /* _PVFS_ALLOC_P_H */
 

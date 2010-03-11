@@ -217,7 +217,7 @@ PvfsAddPendingLock(
                                  sizeof(PVFS_PENDING_LOCK));
     BAIL_ON_NT_STATUS(ntError);
 
-    pPendingLock->pIrpContext = pIrpCtx;
+    pPendingLock->pIrpContext = PvfsReferenceIrpContext(pIrpCtx);
 
     pPendingLock->pCcb = PvfsReferenceCCB(pCcb);
     pPendingLock->PendingLock = *pLock;   /* structure assignment */
@@ -233,10 +233,13 @@ PvfsAddPendingLock(
     }
     pIrpCtx->QueueType = PVFS_QUEUE_TYPE_PENDING_LOCK;
 
-    if (!pIrpCtx->bIsPended)
-    {
-        PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIrp, pIrpCtx);
-    }
+    PvfsIrpMarkPending(pIrpCtx, PvfsQueueCancelIrp, pIrpCtx);
+
+    /* Allow the call to be cancelled while in the queue */
+
+    PvfsIrpContextClearFlag(
+        pPendingLock->pIrpContext,
+        PVFS_IRP_CTX_FLAG_ACTIVE);
 
     /* Memory has been given to the Queue */
 
@@ -403,7 +406,7 @@ PvfsProcessPendingLocks(
     PIRP pIrp = NULL;
     PPVFS_CCB pCcb = NULL;
     BOOLEAN bBrlWriteLocked = FALSE;
-    BOOLEAN bIrpCtxLocked = FALSE;
+    BOOLEAN bActive = FALSE;
 
     /* Take the pending lock queue for processing */
 
@@ -434,7 +437,6 @@ PvfsProcessPendingLocks(
     {
         pData = NULL;
         pPendingLock = NULL;
-        bIrpCtxLocked = FALSE;
 
         ntError = PvfsListRemoveHead(pProcessingQueue, &pData);
         BAIL_ON_NT_STATUS(ntError);
@@ -447,12 +449,14 @@ PvfsProcessPendingLocks(
         pCcb        = pPendingLock->pCcb;
         pIrp        = pPendingLock->pIrpContext->pIrp;
 
+        bActive = PvfsIrpContextMarkIfNotSetFlag(
+                      pPendingLock->pIrpContext,
+                      PVFS_IRP_CTX_FLAG_CANCELLED,
+                      PVFS_IRP_CTX_FLAG_ACTIVE);
 
-        LWIO_LOCK_MUTEX(bIrpCtxLocked, &pPendingLock->pIrpContext->Mutex);
-
-        if (pPendingLock->pIrpContext->bIsCancelled)
+        if (!bActive)
         {
-            LWIO_UNLOCK_MUTEX(bIrpCtxLocked, &pPendingLock->pIrpContext->Mutex);
+            PvfsFreePendingLock(&pPendingLock);
             continue;
         }
 
@@ -476,7 +480,6 @@ PvfsProcessPendingLocks(
                                ByteOffset,
                                Length,
                                Flags);
-        LWIO_UNLOCK_MUTEX(bIrpCtxLocked, &pPendingLock->pIrpContext->Mutex);
 
         if (ntError != STATUS_PENDING)
         {
@@ -485,7 +488,6 @@ PvfsProcessPendingLocks(
             pIrp->IoStatusBlock.Status = ntError;
 
             PvfsAsyncIrpComplete(pPendingLock->pIrpContext);
-            PvfsFreeIrpContext(&pPendingLock->pIrpContext);
         }
 
         /* If the lock was pended again, it ahs a new record, so
@@ -494,7 +496,6 @@ PvfsProcessPendingLocks(
            the relationship between completing an Irp and an IrpContext,
            we do not.  */
 
-        pPendingLock->pIrpContext = NULL;
         PvfsFreePendingLock(&pPendingLock);
     }
 
@@ -986,7 +987,7 @@ PvfsCreateLockContext(
     ntError = PvfsAllocateMemory((PVOID*)&pLockCtx, sizeof(PVFS_PENDING_LOCK));
     BAIL_ON_NT_STATUS(ntError);
 
-    pLockCtx->pIrpContext = pIrpContext;
+    pLockCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pLockCtx->pCcb = PvfsReferenceCCB(pCcb);
     InitLockEntry(&pLockCtx->PendingLock, Key, Offset, Length, Flags);
 
@@ -1011,20 +1012,22 @@ PvfsFreeLockContext(
 {
     PPVFS_PENDING_LOCK pLockCtx = NULL;
 
-    if (!ppContext || !(*ppContext))
+    if (ppContext && *ppContext)
     {
-        return;
+        pLockCtx = (PPVFS_PENDING_LOCK)(*ppContext);
+
+        if (pLockCtx->pIrpContext)
+        {
+            PvfsReleaseIrpContext(&pLockCtx->pIrpContext);
+        }
+
+        if (pLockCtx->pCcb)
+        {
+            PvfsReleaseCCB(pLockCtx->pCcb);
+        }
+
+        PVFS_FREE(ppContext);
     }
-
-    pLockCtx = (PPVFS_PENDING_LOCK)(*ppContext);
-
-    if (pLockCtx->pCcb)
-    {
-        PvfsReleaseCCB(pLockCtx->pCcb);
-    }
-
-    PVFS_FREE(&pLockCtx);
-    *ppContext = NULL;
 
     return;
 }
@@ -1148,8 +1151,11 @@ PvfsScheduleCancelLock(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
+
+    pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
     ntError = PvfsCreateWorkContext(
                   &pWorkCtx,
@@ -1170,6 +1176,11 @@ cleanup:
     return ntError;
 
 error:
+    if (pIrpCtx)
+    {
+        PvfsReleaseIrpContext(&pIrpCtx);
+    }
+
     goto cleanup;
 }
 
@@ -1189,6 +1200,7 @@ PvfsCleanPendingLockQueue(
     PPVFS_PENDING_LOCK pLockRecord = NULL;
     PLW_LIST_LINKS pLockRecordLink = NULL;
     PLW_LIST_LINKS pNextLink = NULL;
+    BOOLEAN bFound = FALSE;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &pFcb->rwBrlLock);
 
@@ -1209,13 +1221,14 @@ PvfsCleanPendingLockQueue(
             continue;
         }
 
+        bFound = TRUE;
+
         PvfsListRemoveItem(pFcb->pPendingLockQueue, pLockRecordLink);
         pLockRecordLink = NULL;
 
         pLockRecord->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
 
         PvfsAsyncIrpComplete(pLockRecord->pIrpContext);
-        PvfsFreeIrpContext(&pLockRecord->pIrpContext);
 
         PvfsFreePendingLock(&pLockRecord);
 
@@ -1224,9 +1237,22 @@ PvfsCleanPendingLockQueue(
 
     LWIO_UNLOCK_RWMUTEX(bLocked, &pFcb->rwBrlLock);
 
+    if (!bFound)
+    {
+        pIrpContext->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
+
+        PvfsAsyncIrpComplete(pIrpContext);
+    }
+
+
     if (pFcb)
     {
         PvfsReleaseFCB(&pFcb);
+    }
+
+    if (pIrpContext)
+    {
+        PvfsReleaseIrpContext(&pIrpContext);
     }
 
     return ntError;
@@ -1254,23 +1280,20 @@ PvfsFreePendingLock(
     PPVFS_PENDING_LOCK *ppPendingLock
     )
 {
+    PPVFS_PENDING_LOCK pLock = NULL;
+
     if (ppPendingLock && *ppPendingLock)
     {
-        if ((*ppPendingLock)->pIrpContext)
+        pLock = *ppPendingLock;
+
+        if (pLock->pIrpContext)
         {
-            PPVFS_IRP_CONTEXT pIrpContext = (*ppPendingLock)->pIrpContext;
-
-            pIrpContext->pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
-
-            PvfsAsyncIrpComplete(pIrpContext);
-            PvfsFreeIrpContext(&pIrpContext);
-
-            (*ppPendingLock)->pIrpContext = NULL;
+            PvfsReleaseIrpContext(&pLock->pIrpContext);
         }
 
-        if ((*ppPendingLock)->pCcb)
+        if (pLock->pCcb)
         {
-            PvfsReleaseCCB((*ppPendingLock)->pCcb);
+            PvfsReleaseCCB(pLock->pCcb);
         }
 
         PVFS_FREE(ppPendingLock);

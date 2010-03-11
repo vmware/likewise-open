@@ -620,29 +620,30 @@ PvfsFreeCreateContext(
 {
     PPVFS_PENDING_CREATE pCreateCtx = NULL;
 
-    if (!ppContext || !*ppContext) {
-        return;
-    }
-
-    pCreateCtx = (PPVFS_PENDING_CREATE)*ppContext;
-
-
-    RtlCStringFree(&pCreateCtx->pszDiskFilename);
-    RtlCStringFree(&pCreateCtx->pszOriginalFilename);
-
-    if (pCreateCtx->pCcb)
+    if (ppContext && *ppContext)
     {
-        PvfsReleaseCCB(pCreateCtx->pCcb);
+        pCreateCtx = (PPVFS_PENDING_CREATE)*ppContext;
+
+        if (pCreateCtx->pIrpContext)
+        {
+            PvfsReleaseIrpContext(&pCreateCtx->pIrpContext);
+        }
+
+        if (pCreateCtx->pCcb)
+        {
+            PvfsReleaseCCB(pCreateCtx->pCcb);
+        }
+
+        if (pCreateCtx->pFcb)
+        {
+            PvfsReleaseFCB(&pCreateCtx->pFcb);
+        }
+
+        RtlCStringFree(&pCreateCtx->pszDiskFilename);
+        RtlCStringFree(&pCreateCtx->pszOriginalFilename);
+
+        PVFS_FREE(ppContext);
     }
-
-    if (pCreateCtx->pFcb)
-    {
-        PvfsReleaseFCB(&pCreateCtx->pFcb);
-    }
-
-    /* The pIrpContext will be freed after somewhere else */
-
-    PVFS_FREE(&pCreateCtx);
 
     return;
 }
@@ -677,7 +678,7 @@ PvfsAllocateCreateContext(
     ntError = PvfsAcquireAccessToken(pCreateCtx->pCcb, pSecCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    pCreateCtx->pIrpContext = pIrpContext;
+    pCreateCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
 
     *ppCreate = pCreateCtx;
     pCreateCtx = NULL;

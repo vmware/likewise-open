@@ -260,7 +260,7 @@ PvfsCreateSetEndOfFileContext(
                   sizeof(PVFS_PENDING_READ));
     BAIL_ON_NT_STATUS(ntError);
 
-    pSetEndOfFileCtx->pIrpContext = pIrpContext;
+    pSetEndOfFileCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pSetEndOfFileCtx->pCcb = PvfsReferenceCCB(pCcb);
 
     *ppSetEndOfFileContext = pSetEndOfFileCtx;
@@ -285,20 +285,22 @@ PvfsFreeSetEndOfFileContext(
 {
     PPVFS_PENDING_SET_END_OF_FILE pEoFCtx = NULL;
 
-    if (!ppContext || !(*ppContext))
+    if (ppContext && *ppContext)
     {
-        return;
+        pEoFCtx = (PPVFS_PENDING_SET_END_OF_FILE)(*ppContext);
+
+        if (pEoFCtx->pIrpContext)
+        {
+            PvfsReleaseIrpContext(&pEoFCtx->pIrpContext);
+        }
+
+        if (pEoFCtx->pCcb)
+        {
+            PvfsReleaseCCB(pEoFCtx->pCcb);
+        }
+
+        PVFS_FREE(ppContext);
     }
-
-    pEoFCtx = (PPVFS_PENDING_SET_END_OF_FILE)(*ppContext);
-
-    if (pEoFCtx->pCcb)
-    {
-        PvfsReleaseCCB(pEoFCtx->pCcb);
-    }
-
-    PVFS_FREE(&pEoFCtx);
-    *ppContext = NULL;
 
     return;
 }

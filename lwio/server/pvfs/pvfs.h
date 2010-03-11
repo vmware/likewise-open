@@ -262,6 +262,57 @@ PvfsCreateDirectory(
     );
 
 
+/* From irpctx.c */
+
+NTSTATUS
+PvfsAllocateIrpContext(
+	PPVFS_IRP_CONTEXT *ppIrpContext,
+    PIRP pIrp
+    );
+
+PPVFS_IRP_CONTEXT
+PvfsReferenceIrpContext(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+VOID
+PvfsReleaseIrpContext(
+    PPVFS_IRP_CONTEXT *ppIrpContext
+    );
+
+BOOLEAN
+PvfsIrpContextCheckFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToCheck
+    );
+
+VOID
+PvfsIrpContextSetFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToSet
+    );
+
+VOID
+PvfsIrpContextClearFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToClear
+    );
+
+BOOLEAN
+PvfsIrpContextMarkIfNotSetFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToCheck,
+    USHORT BitToSet
+    );
+
+BOOLEAN
+PvfsIrpContextMarkIfSetFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToCheck,
+    USHORT BitToSet
+    );
+
+
 /* From errno.c */
 
 NTSTATUS
