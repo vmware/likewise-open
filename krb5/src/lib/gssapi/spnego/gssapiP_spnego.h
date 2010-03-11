@@ -82,6 +82,12 @@ typedef struct {
 	gss_name_t	mech_name;
 } spnego_name_desc, *spnego_name_t;
 
+/* Structure for credential */
+typedef struct {
+	gss_cred_id_t mcred;	/* mechglue union of obtainable creds */
+	gss_OID_set neg_mechs;	/* app-specified list of allowable mechs */
+} spnego_gss_cred_id_rec, *spnego_gss_cred_id_t;
+
 /* Structure for context handle */
 typedef struct {
 	OM_uint32	magic_num;
@@ -526,6 +532,14 @@ spnego_gss_release_any_name_mapping
 	gss_name_t name,
 	gss_buffer_t type_id,
 	gss_any_t *input
+);
+
+OM_uint32
+spnego_gss_set_neg_mechs
+(
+	OM_uint32 *minor_status,
+	gss_cred_id_t cred_handle,
+	const gss_OID_set mech_list
 );
 
 #ifdef	__cplusplus
