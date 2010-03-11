@@ -396,8 +396,8 @@ IoPagingReadFile(
 VOID
 IoGetZctSupportMaskFile(
     IN IO_FILE_HANDLE FileHandle,
-    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctReadMask,
-    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctWriteMask
+    OUT OPTIONAL PLW_ZCT_ENTRY_MASK ZctReadMask,
+    OUT OPTIONAL PLW_ZCT_ENTRY_MASK ZctWriteMask
     )
 {
     IopFileGetZctSupportMask(FileHandle, ZctReadMask, ZctWriteMask);
@@ -411,7 +411,7 @@ IopPrepareZctReadWriteFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN IO_FLAGS IoFlags,
     IN BOOLEAN bIsWrite,
-    IN OUT PIO_ZCT Zct,
+    IN OUT PLW_ZCT_VECTOR Zct,
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key,
@@ -425,7 +425,7 @@ IopPrepareZctReadWriteFile(
     IO_STATUS_BLOCK ioStatusBlock = { 0 };
     BOOLEAN bIsPagingIo = IsSetFlag(IoFlags, IO_FLAG_PAGING_IO);
     IRP_TYPE irpType = bIsWrite ? IRP_TYPE_WRITE : IRP_TYPE_READ;
-    IO_ZCT_ENTRY_MASK mask = 0;
+    LW_ZCT_ENTRY_MASK mask = 0;
     PVOID completionContext = NULL;
     BOOLEAN isPartial = FALSE;
 
@@ -582,7 +582,7 @@ IoPrepareZctReadFile(
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN IO_FLAGS IoFlags,
-    IN OUT PIO_ZCT Zct,
+    IN OUT PLW_ZCT_VECTOR Zct,
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key,
@@ -629,7 +629,7 @@ IoPrepareZctWriteFile(
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN IO_FLAGS IoFlags,
-    IN OUT PIO_ZCT Zct,
+    IN OUT PLW_ZCT_VECTOR Zct,
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key,

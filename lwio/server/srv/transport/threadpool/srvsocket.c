@@ -346,7 +346,7 @@ NTSTATUS
 SrvSocketSendReplyCommon(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,
-    IN OPTIONAL PIO_ZCT pZct,
+    IN OPTIONAL PLW_ZCT_VECTOR pZct,
     IN OPTIONAL PVOID pBuffer,
     IN ULONG Size
     )
@@ -432,7 +432,7 @@ NTSTATUS
 SrvSocketSendZctReply(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,
-    IN PIO_ZCT pZct
+    IN PLW_ZCT_VECTOR pZct
     )
 {
     return SrvSocketSendReplyCommon(
@@ -680,7 +680,7 @@ SrvSocketProcessTaskWrite(
 
         if (pSendItem->pZct)
         {
-            ntStatus = IoZctWriteSocketIo(
+            ntStatus = LwZctWriteSocketIo(
                             pSendItem->pZct,
                             pSocket->fd,
                             &bytesTransferred,

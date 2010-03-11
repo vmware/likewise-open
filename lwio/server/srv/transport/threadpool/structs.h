@@ -68,7 +68,7 @@ typedef struct _SRV_SEND_ITEM
 {
     LW_LIST_LINKS SendLinks;
     PSRV_SEND_CONTEXT pSendContext;
-    PIO_ZCT pZct;
+    PLW_ZCT_VECTOR pZct;
     PVOID pBuffer;
     ULONG Length;
     ULONG Offset;

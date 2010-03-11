@@ -155,7 +155,7 @@ NTSTATUS
 SrvTransportSocketSendZctReply(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,
-    IN PIO_ZCT pZct
+    IN PLW_ZCT_VECTOR pZct
     );
 
 ///

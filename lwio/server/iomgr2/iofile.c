@@ -190,8 +190,8 @@ IoFileGetContext(
 VOID
 IoFileSetZctSupportMask(
     IN IO_FILE_HANDLE FileHandle,
-    IN IO_ZCT_ENTRY_MASK ZctReadMask,
-    IN IO_ZCT_ENTRY_MASK ZctWriteMask
+    IN LW_ZCT_ENTRY_MASK ZctReadMask,
+    IN LW_ZCT_ENTRY_MASK ZctWriteMask
     )
 {
     // It is up to the FSD to synchornize
@@ -204,8 +204,8 @@ IoFileSetZctSupportMask(
 VOID
 IopFileGetZctSupportMask(
     IN IO_FILE_HANDLE FileHandle,
-    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctReadMask,
-    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctWriteMask
+    OUT OPTIONAL PLW_ZCT_ENTRY_MASK ZctReadMask,
+    OUT OPTIONAL PLW_ZCT_ENTRY_MASK ZctWriteMask
     )
 {
     if (ZctReadMask || ZctWriteMask)

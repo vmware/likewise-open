@@ -97,16 +97,16 @@
 #endif
 #endif
 
-#define IO_ZCT_ENTRY_CAPACITY_MINIMUM   4
-#define IO_ZCT_ENTRY_CAPACITY_INCREMENT 2
+#define LW_ZCT_ENTRY_CAPACITY_MINIMUM   4
+#define LW_ZCT_ENTRY_CAPACITY_INCREMENT 2
 
-typedef ULONG IO_ZCT_CURSOR_TYPE, *PIO_ZCT_CURSOR_TYPE;
+typedef ULONG LW_ZCT_CURSOR_TYPE, *PLW_ZCT_CURSOR_TYPE;
 
-#define IO_ZCT_CURSOR_TYPE_IOVEC                      1
-#define IO_ZCT_CURSOR_TYPE_SPLICE                     2
-#define IO_ZCT_CURSOR_TYPE_SENDFILE                   3
+#define LW_ZCT_CURSOR_TYPE_IOVEC                      1
+#define LW_ZCT_CURSOR_TYPE_SPLICE                     2
+#define LW_ZCT_CURSOR_TYPE_SENDFILE                   3
 
-typedef struct _IO_ZCT_CURSOR_IOVEC {
+typedef struct _LW_ZCT_CURSOR_IOVEC {
     // Next starting Vector location is modified after
     // each transfer as needed.
     struct iovec* Vector;
@@ -115,13 +115,13 @@ typedef struct _IO_ZCT_CURSOR_IOVEC {
     // Points to starting Vector location.  Updated
     // after each transfer as needed.
     int Index;
-} IO_ZCT_CURSOR_IOVEC, *PIO_ZCT_CURSOR_IOVEC;
+} LW_ZCT_CURSOR_IOVEC, *PLW_ZCT_CURSOR_IOVEC;
 
-typedef struct _IO_ZCT_CURSOR_SPLICE {
+typedef struct _LW_ZCT_CURSOR_SPLICE {
     int FileDescriptor;
     // Length is updated after each transfer as needed.
     size_t Length;
-} IO_ZCT_CURSOR_SPLICE, *PIO_ZCT_CURSOR_SPLICE;
+} LW_ZCT_CURSOR_SPLICE, *PLW_ZCT_CURSOR_SPLICE;
 
 //
 // The ordering for the have sendfile checks is important here and
@@ -133,7 +133,7 @@ typedef struct _IO_ZCT_CURSOR_SPLICE {
 //
 #if defined(HAVE_SENDFILEV)
 #define HAVE_SENDFILE_ANY 1
-typedef struct _IO_ZCT_CURSOR_SENDFILE {
+typedef struct _LW_ZCT_CURSOR_SENDFILE {
     // Next starting Vector location is modified after
     // each transfer as needed.
     sendfilevec_t* Vector;
@@ -142,24 +142,24 @@ typedef struct _IO_ZCT_CURSOR_SENDFILE {
     // Points to starting Vector location.  Updated
     // after each transfer as needed.
     int Index;
-} IO_ZCT_CURSOR_SENDFILE, *PIO_ZCT_CURSOR_SENDFILE;
+} LW_ZCT_CURSOR_SENDFILE, *PLW_ZCT_CURSOR_SENDFILE;
 #elif defined(HAVE_SENDFILE_HEADER_TRAILER)
 #define HAVE_SENDFILE_ANY 1
-typedef struct _IO_ZCT_CURSOR_SENDFILE {
-    IO_ZCT_CURSOR_IOVEC Header;
-    IO_ZCT_CURSOR_IOVEC Trailer;
+typedef struct _LW_ZCT_CURSOR_SENDFILE {
+    LW_ZCT_CURSOR_IOVEC Header;
+    LW_ZCT_CURSOR_IOVEC Trailer;
     int FileDescriptor;
     off_t Offset;
     size_t Length;
-} IO_ZCT_CURSOR_SENDFILE, *PIO_ZCT_CURSOR_SENDFILE;
+} LW_ZCT_CURSOR_SENDFILE, *PLW_ZCT_CURSOR_SENDFILE;
 #elif defined(HAVE_SENDFILE)
 #define HAVE_SENDFILE_ANY 1
-typedef struct _IO_ZCT_CURSOR_SENDFILE {
+typedef struct _LW_ZCT_CURSOR_SENDFILE {
     int FileDescriptor;
     // Offset and Length are updated after each transfer as needed.
     off_t Offset;
     size_t Length;
-} IO_ZCT_CURSOR_SENDFILE, *PIO_ZCT_CURSOR_SENDFILE;
+} LW_ZCT_CURSOR_SENDFILE, *PLW_ZCT_CURSOR_SENDFILE;
 #endif
 
 ///
@@ -172,25 +172,25 @@ typedef struct _IO_ZCT_CURSOR_SENDFILE {
 /// entry types that include arrays, the index of where to
 /// start in the array is updated.
 ///
-typedef struct _IO_ZCT_CURSOR_ENTRY {
+typedef struct _LW_ZCT_CURSOR_ENTRY {
     /// This represent the location(s) in the Entries member
-    /// of IO_ZCT that are encompassed by this cursor entry.
+    /// of LW_ZCT_VECTOR that are encompassed by this cursor entry.
     /// This is strictly for debugging.
     struct {
-        /// Index into the Entries member of IO_ZCT.
+        /// Index into the Entries member of LW_ZCT_VECTOR.
         ULONG Index;
         /// How many entries the current cursor entry contains
         /// starting from Index.  This must be >= 1.
         ULONG Count;
     } DebugExtent;
     /// Current type info.
-    IO_ZCT_CURSOR_TYPE Type;
+    LW_ZCT_CURSOR_TYPE Type;
     union {
-        IO_ZCT_CURSOR_IOVEC IoVec;
-        IO_ZCT_CURSOR_SPLICE Splice;
-        IO_ZCT_CURSOR_SENDFILE SendFile;
+        LW_ZCT_CURSOR_IOVEC IoVec;
+        LW_ZCT_CURSOR_SPLICE Splice;
+        LW_ZCT_CURSOR_SENDFILE SendFile;
     } Data;
-} IO_ZCT_CURSOR_ENTRY, *PIO_ZCT_CURSOR_ENTRY;
+} LW_ZCT_CURSOR_ENTRY, *PLW_ZCT_CURSOR_ENTRY;
 
 ///
 /// ZCT Cursor
@@ -203,7 +203,7 @@ typedef struct _IO_ZCT_CURSOR_ENTRY {
 /// the data needed by the cursor, including vectors and
 /// such.  This makes the allocation more efficient.
 ///
-typedef struct _IO_ZCT_CURSOR {
+typedef struct _LW_ZCT_CURSOR {
     /// Total cursor allocation size.  This must be large enough to
     /// encompass all of the cursor entries.
     ULONG Size;
@@ -223,13 +223,13 @@ typedef struct _IO_ZCT_CURSOR {
     /// finished, the index is incremented.
     ULONG Index;
     /// Cursor entries.
-    IO_ZCT_CURSOR_ENTRY Entry[1];
-} IO_ZCT_CURSOR, *PIO_ZCT_CURSOR;
+    LW_ZCT_CURSOR_ENTRY Entry[1];
+} LW_ZCT_CURSOR, *PLW_ZCT_CURSOR;
 
-struct _IO_ZCT {
-    IO_ZCT_IO_TYPE IoType;
-    IO_ZCT_ENTRY_MASK Mask;
-    PIO_ZCT_ENTRY Entries;
+struct _LW_ZCT_VECTOR {
+    LW_ZCT_IO_TYPE IoType;
+    LW_ZCT_ENTRY_MASK Mask;
+    PLW_ZCT_ENTRY Entries;
     ULONG Count;
     ULONG Capacity;
     /// Total size of transfer.
@@ -242,13 +242,13 @@ struct _IO_ZCT {
     NTSTATUS Status;
     /// When the cursor is allocated, the ZCT can
     /// no longer have entries added.
-    PIO_ZCT_CURSOR Cursor;
+    PLW_ZCT_CURSOR Cursor;
 };
 
 static
 NTSTATUS
-IopZctReadWriteSocket(
-    IN OUT PIO_ZCT pZct,
+LwpZctReadWriteSocket(
+    IN OUT PLW_ZCT_VECTOR pZct,
     IN int SocketFd,
     IN BOOLEAN IsWrite,
     OUT OPTIONAL PULONG BytesTransferred,
@@ -257,20 +257,20 @@ IopZctReadWriteSocket(
 
 static
 NTSTATUS
-IopZctCursorEntryReadWriteSocket(
+LwpZctCursorEntryReadWriteSocket(
     IN int SocketFd,
     IN BOOLEAN IsWrite,
-    IN OUT PIO_ZCT_CURSOR_ENTRY pEntry,
+    IN OUT PLW_ZCT_CURSOR_ENTRY pEntry,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDoneEntry
     );
 
 static
 NTSTATUS
-IopZctIoVecReadWrite(
+LwpZctIoVecReadWrite(
     IN int FileDescriptor,
     IN BOOLEAN IsWrite,
-    IN OUT PIO_ZCT_CURSOR_IOVEC Cursor,
+    IN OUT PLW_ZCT_CURSOR_IOVEC Cursor,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDone
     );
@@ -278,10 +278,10 @@ IopZctIoVecReadWrite(
 #if defined(HAVE_SPLICE)
 static
 NTSTATUS
-IopZctSplice(
+LwpZctSplice(
     IN int FileDescriptor,
     IN BOOLEAN IsWrite,
-    IN OUT PIO_ZCT_CURSOR_SPLICE Cursor,
+    IN OUT PLW_ZCT_CURSOR_SPLICE Cursor,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDone
     );
@@ -290,53 +290,57 @@ IopZctSplice(
 #if defined(HAVE_SENDFILE_ANY)
 static
 NTSTATUS
-IopZctSendFile(
+LwpZctSendFile(
     IN int FileDescriptor,
-    IN OUT PIO_ZCT_CURSOR_SENDFILE Cursor,
+    IN OUT PLW_ZCT_CURSOR_SENDFILE Cursor,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDone
     );
 #endif
 
 NTSTATUS
-IoZctCreate(
-    OUT PIO_ZCT* ppZct,
-    IN IO_ZCT_IO_TYPE IoType
+LwZctCreate(
+    OUT PLW_ZCT_VECTOR* ppZct,
+    IN LW_ZCT_IO_TYPE IoType
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     int EE = 0;
-    PIO_ZCT pZct = NULL;
+    PLW_ZCT_VECTOR pZct = NULL;
 
-    if (!IoZctIsValidIoType(IoType))
+    switch (IoType)
     {
+    case LW_ZCT_IO_TYPE_READ_SOCKET:
+    case LW_ZCT_IO_TYPE_WRITE_SOCKET:
+        break;
+    default:
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP();
     }
 
-    status = RTL_ALLOCATE(&pZct, IO_ZCT, sizeof(*pZct));
+    status = RTL_ALLOCATE(&pZct, LW_ZCT_VECTOR, sizeof(*pZct));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    pZct->Capacity = IO_ZCT_ENTRY_CAPACITY_MINIMUM;
+    pZct->Capacity = LW_ZCT_ENTRY_CAPACITY_MINIMUM;
 
-    status = RTL_ALLOCATE(&pZct->Entries, IO_ZCT_ENTRY, sizeof(*pZct->Entries) * pZct->Capacity);
+    status = RTL_ALLOCATE(&pZct->Entries, LW_ZCT_ENTRY, sizeof(*pZct->Entries) * pZct->Capacity);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     pZct->IoType = IoType;
-    pZct->Mask = IoZctGetSystemSupportedMask(IoType);
+    pZct->Mask = LwZctGetSystemSupportedMask(IoType);
 
 cleanup:
-    IoZctDestroy(&pZct);
+    LwZctDestroy(&pZct);
 
     return status;
 }
 
 VOID
-IoZctDestroy(
-    IN OUT PIO_ZCT* ppZct
+LwZctDestroy(
+    IN OUT PLW_ZCT_VECTOR* ppZct
     )
 {
-    PIO_ZCT pZct = *ppZct;
+    PLW_ZCT_VECTOR pZct = *ppZct;
 
     if (pZct)
     {
@@ -348,9 +352,9 @@ IoZctDestroy(
 }
 
 NTSTATUS
-IopZctCheckEntry(
-    IN IO_ZCT_ENTRY_MASK Mask,
-    IN PIO_ZCT_ENTRY Entry
+LwpZctCheckEntry(
+    IN LW_ZCT_ENTRY_MASK Mask,
+    IN PLW_ZCT_ENTRY Entry
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -362,7 +366,7 @@ IopZctCheckEntry(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    if (!IsSetFlag(Mask, _IO_ZCT_ENTRY_MASK_FROM_TYPE(Entry->Type)))
+    if (!IsSetFlag(Mask, _LW_ZCT_ENTRY_MASK_FROM_TYPE(Entry->Type)))
     {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -370,7 +374,7 @@ IopZctCheckEntry(
 
     switch (Entry->Type)
     {
-        case IO_ZCT_ENTRY_TYPE_MEMORY:
+        case LW_ZCT_ENTRY_TYPE_MEMORY:
             if (!Entry->Data.Memory.Buffer)
             {
                 status = STATUS_INVALID_PARAMETER;
@@ -383,7 +387,7 @@ IopZctCheckEntry(
             }
             break;
 
-        case IO_ZCT_ENTRY_TYPE_FD_FILE:
+        case LW_ZCT_ENTRY_TYPE_FD_FILE:
             if (Entry->Data.FdFile.Fd < 0)
             {
                 status = STATUS_INVALID_PARAMETER;
@@ -391,7 +395,7 @@ IopZctCheckEntry(
             }
             break;
 
-        case IO_ZCT_ENTRY_TYPE_FD_PIPE:
+        case LW_ZCT_ENTRY_TYPE_FD_PIPE:
             if (Entry->Data.FdPipe.Fd < 0)
             {
                 status = STATUS_INVALID_PARAMETER;
@@ -410,10 +414,10 @@ cleanup:
 
 static
 NTSTATUS
-IopZctAdd(
-    IN OUT PIO_ZCT pZct,
+LwpZctAdd(
+    IN OUT PLW_ZCT_VECTOR pZct,
     IN BOOLEAN bAddToFront,
-    IN PIO_ZCT_ENTRY Entries,
+    IN PLW_ZCT_ENTRY Entries,
     IN ULONG Count
     )
 {
@@ -421,7 +425,7 @@ IopZctAdd(
     int EE = 0;
     ULONG i = 0;
     ULONG newCount = 0;
-    PIO_ZCT_ENTRY pTarget = NULL;
+    PLW_ZCT_ENTRY pTarget = NULL;
     ULONG newLength = pZct->Length;
 
     if (pZct->Cursor)
@@ -432,7 +436,7 @@ IopZctAdd(
 
     for (i = 0; i < Count; i++)
     {
-        status = IopZctCheckEntry(pZct->Mask, &Entries[i]);
+        status = LwpZctCheckEntry(pZct->Mask, &Entries[i]);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
         status = LwRtlSafeAddULONG(&newLength, newLength, Entries[i].Length);
@@ -442,10 +446,10 @@ IopZctAdd(
     newCount = pZct->Count + Count;
     if (pZct->Capacity < newCount)
     {
-        PIO_ZCT_ENTRY pEntries = NULL;
-        ULONG newCapacity = newCount + IO_ZCT_ENTRY_CAPACITY_INCREMENT;
+        PLW_ZCT_ENTRY pEntries = NULL;
+        ULONG newCapacity = newCount + LW_ZCT_ENTRY_CAPACITY_INCREMENT;
 
-        status = RTL_ALLOCATE(&pEntries, IO_ZCT_ENTRY, sizeof(pEntries[0]) * newCapacity);
+        status = RTL_ALLOCATE(&pEntries, LW_ZCT_ENTRY, sizeof(pEntries[0]) * newCapacity);
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
         pTarget = pEntries;
@@ -480,60 +484,60 @@ cleanup:
 }
 
 NTSTATUS
-IoZctAppend(
-    IN OUT PIO_ZCT pZct,
-    IN PIO_ZCT_ENTRY Entries,
+LwZctAppend(
+    IN OUT PLW_ZCT_VECTOR pZct,
+    IN PLW_ZCT_ENTRY Entries,
     IN ULONG Count
     )
 {
-    return IopZctAdd(pZct, FALSE, Entries, Count);
+    return LwpZctAdd(pZct, FALSE, Entries, Count);
 }
 
 NTSTATUS
-IoZctPrepend(
-    IN OUT PIO_ZCT pZct,
-    IN PIO_ZCT_ENTRY Entries,
+LwZctPrepend(
+    IN OUT PLW_ZCT_VECTOR pZct,
+    IN PLW_ZCT_ENTRY Entries,
     IN ULONG Count
     )
 {
-    return IopZctAdd(pZct, TRUE, Entries, Count);
+    return LwpZctAdd(pZct, TRUE, Entries, Count);
 }
 
 ULONG
-IoZctGetLength(
-    IN PIO_ZCT pZct
+LwZctGetLength(
+    IN PLW_ZCT_VECTOR pZct
     )
 {
     return pZct->Length;
 }
 
-IO_ZCT_ENTRY_MASK
-IoZctGetSupportedMask(
-    IN PIO_ZCT pZct
+LW_ZCT_ENTRY_MASK
+LwZctGetSupportedMask(
+    IN PLW_ZCT_VECTOR pZct
     )
 {
     return pZct->Mask;
 }
 
-IO_ZCT_ENTRY_MASK
-IoZctGetSystemSupportedMask(
-    IN IO_ZCT_IO_TYPE IoType
+LW_ZCT_ENTRY_MASK
+LwZctGetSystemSupportedMask(
+    IN LW_ZCT_IO_TYPE IoType
     )
 {
-    IO_ZCT_ENTRY_MASK mask = 0;
+    LW_ZCT_ENTRY_MASK mask = 0;
 
     switch (IoType)
     {
-        case IO_ZCT_IO_TYPE_READ_SOCKET:
-        case IO_ZCT_IO_TYPE_WRITE_SOCKET:
-            SetFlag(mask, IO_ZCT_ENTRY_MASK_MEMORY);
+        case LW_ZCT_IO_TYPE_READ_SOCKET:
+        case LW_ZCT_IO_TYPE_WRITE_SOCKET:
+            SetFlag(mask, LW_ZCT_ENTRY_MASK_MEMORY);
 #if defined(HAVE_SPLICE)
-            SetFlag(mask, IO_ZCT_ENTRY_MASK_FD_PIPE);
+            SetFlag(mask, LW_ZCT_ENTRY_MASK_FD_PIPE);
 #endif
 #if defined(HAVE_SENDFILE_ANY)
-            if (IO_ZCT_IO_TYPE_WRITE_SOCKET == IoType)
+            if (LW_ZCT_IO_TYPE_WRITE_SOCKET == IoType)
             {
-                SetFlag(mask, IO_ZCT_ENTRY_MASK_FD_FILE);
+                SetFlag(mask, LW_ZCT_ENTRY_MASK_FD_FILE);
             }
 #endif
             break;
@@ -544,13 +548,13 @@ IoZctGetSystemSupportedMask(
 
 static
 NTSTATUS
-IopZctPrepareForSocketIo(
-    IN OUT PIO_ZCT pZct
+LwpZctPrepareForSocketIo(
+    IN OUT PLW_ZCT_VECTOR pZct
     );
 
 NTSTATUS
-IoZctPrepareIo(
-    IN OUT PIO_ZCT pZct
+LwZctPrepareIo(
+    IN OUT PLW_ZCT_VECTOR pZct
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -565,9 +569,9 @@ IoZctPrepareIo(
 
     switch (pZct->IoType)
     {
-    case IO_ZCT_IO_TYPE_READ_SOCKET:
-    case IO_ZCT_IO_TYPE_WRITE_SOCKET:
-        status = IopZctPrepareForSocketIo(pZct);
+    case LW_ZCT_IO_TYPE_READ_SOCKET:
+    case LW_ZCT_IO_TYPE_WRITE_SOCKET:
+        status = LwpZctPrepareForSocketIo(pZct);
         GOTO_CLEANUP_EE(EE);
         break;
     default:
@@ -582,12 +586,12 @@ cleanup:
 
 static
 ULONG
-IopZctCountRun(
-    IN PIO_ZCT_ENTRY Entries,
+LwpZctCountRun(
+    IN PLW_ZCT_ENTRY Entries,
     IN ULONG Count,
-    IN PIO_ZCT_ENTRY_TYPE AllowedEntryTypes,
+    IN PLW_ZCT_ENTRY_TYPE AllowedEntryTypes,
     IN ULONG AllowedCount,
-    IN OPTIONAL PIO_ZCT_ENTRY_TYPE RequiredType
+    IN OPTIONAL PLW_ZCT_ENTRY_TYPE RequiredType
     )
 {
     ULONG count = 0;
@@ -596,7 +600,7 @@ IopZctCountRun(
 
     for (i = 0; i < Count; i++)
     {
-        PIO_ZCT_ENTRY pEntry = &Entries[i];
+        PLW_ZCT_ENTRY pEntry = &Entries[i];
         ULONG allowedIndex = 0;
         BOOLEAN foundAllowed = FALSE;
 
@@ -634,14 +638,14 @@ IopZctCountRun(
 
 static
 ULONG
-IopZctCountRunMemory(
-    IN PIO_ZCT_ENTRY Entries,
+LwpZctCountRunMemory(
+    IN PLW_ZCT_ENTRY Entries,
     IN ULONG Count
     )
 {
-    IO_ZCT_ENTRY_TYPE memoryAllowed[] = { IO_ZCT_ENTRY_TYPE_MEMORY };
+    LW_ZCT_ENTRY_TYPE memoryAllowed[] = { LW_ZCT_ENTRY_TYPE_MEMORY };
 
-    return IopZctCountRun(
+    return LwpZctCountRun(
                 Entries,
                 Count,
                 memoryAllowed,
@@ -652,15 +656,15 @@ IopZctCountRunMemory(
 #if defined(HAVE_SENDFILEV)
 static
 ULONG
-IopZctCountRunSendFileV(
-    IN PIO_ZCT_ENTRY Entries,
+LwpZctCountRunSendFileV(
+    IN PLW_ZCT_ENTRY Entries,
     IN ULONG Count
     )
 {
-    IO_ZCT_ENTRY_TYPE memoryFileAllowed[] = { IO_ZCT_ENTRY_TYPE_MEMORY, IO_ZCT_ENTRY_TYPE_FD_FILE };
-    IO_ZCT_ENTRY_TYPE fileRequired[] = { IO_ZCT_ENTRY_TYPE_FD_FILE };
+    LW_ZCT_ENTRY_TYPE memoryFileAllowed[] = { LW_ZCT_ENTRY_TYPE_MEMORY, LW_ZCT_ENTRY_TYPE_FD_FILE };
+    LW_ZCT_ENTRY_TYPE fileRequired[] = { LW_ZCT_ENTRY_TYPE_FD_FILE };
 
-    return IopZctCountRun(
+    return LwpZctCountRun(
                 Entries,
                 Count,
                 memoryFileAllowed,
@@ -670,17 +674,17 @@ IopZctCountRunSendFileV(
 #endif
 
 static
-IO_ZCT_CURSOR_TYPE
-IopZctCountRangeForSocketIo(
-    IN PIO_ZCT pZct,
+LW_ZCT_CURSOR_TYPE
+LwpZctCountRangeForSocketIo(
+    IN PLW_ZCT_VECTOR pZct,
     IN ULONG StartIndex,
     OUT PULONG Count
     )
 {
-    IO_ZCT_CURSOR_TYPE cursorType = 0;
+    LW_ZCT_CURSOR_TYPE cursorType = 0;
     int EE = 0;
     ULONG count = 0;
-    PIO_ZCT_ENTRY pEntry = &pZct->Entries[StartIndex];
+    PLW_ZCT_ENTRY pEntry = &pZct->Entries[StartIndex];
 
     if (StartIndex >= pZct->Count)
     {
@@ -691,45 +695,45 @@ IopZctCountRangeForSocketIo(
     }
 
 #if defined(HAVE_SENDFILEV)
-    count = IopZctCountRunSendFileV(pEntry, pZct->Count - StartIndex);
+    count = LwpZctCountRunSendFileV(pEntry, pZct->Count - StartIndex);
     if (count > 0)
     {
-        cursorType = IO_ZCT_CURSOR_TYPE_SENDFILE;
+        cursorType = LW_ZCT_CURSOR_TYPE_SENDFILE;
         GOTO_CLEANUP_EE(EE);
     }
 #elif defined(HAVE_SENDFILE_HEADER_TRAILER)
-    count = IopZctCountRunMemory(pEntry, pZct->Count - StartIndex);
+    count = LwpZctCountRunMemory(pEntry, pZct->Count - StartIndex);
     if (((StartIndex + count) < pZct->Count) &&
-        (IO_ZCT_ENTRY_TYPE_FD_FILE == pEntry[count].Type))
+        (LW_ZCT_ENTRY_TYPE_FD_FILE == pEntry[count].Type))
     {
         ULONG headerCount = count;
 
-        count = IopZctCountRunMemory(
+        count = LwpZctCountRunMemory(
                         &pEntry[count],
                         pZct->Count - (StartIndex + count));
         count = headerCount + 1 + count;
-        cursorType = IO_ZCT_CURSOR_TYPE_SENDFILE;
+        cursorType = LW_ZCT_CURSOR_TYPE_SENDFILE;
         GOTO_CLEANUP_EE(EE);
     }
 #elif defined(HAVE_SENDFILE)
-    if (IO_ZCT_ENTRY_TYPE_FD_FILE == pEntry->Type)
+    if (LW_ZCT_ENTRY_TYPE_FD_FILE == pEntry->Type)
     {
         count = 1;
-        cursorType = IO_ZCT_CURSOR_TYPE_SENDFILE;
+        cursorType = LW_ZCT_CURSOR_TYPE_SENDFILE;
         GOTO_CLEANUP_EE(EE);
     }
 #endif
-    count = IopZctCountRunMemory(pEntry, pZct->Count - StartIndex);
+    count = LwpZctCountRunMemory(pEntry, pZct->Count - StartIndex);
     if (count > 0)
     {
-        cursorType = IO_ZCT_CURSOR_TYPE_IOVEC;
+        cursorType = LW_ZCT_CURSOR_TYPE_IOVEC;
         GOTO_CLEANUP_EE(EE);
     }
 
-    if (IO_ZCT_ENTRY_TYPE_FD_PIPE == pEntry->Type)
+    if (LW_ZCT_ENTRY_TYPE_FD_PIPE == pEntry->Type)
     {
         count = 1;
-        cursorType = IO_ZCT_CURSOR_TYPE_SPLICE;
+        cursorType = LW_ZCT_CURSOR_TYPE_SPLICE;
         GOTO_CLEANUP_EE(EE);
     }
 
@@ -744,9 +748,9 @@ cleanup:
 
 static
 NTSTATUS
-IopZctCursorAllocateForSocketIo(
-    IN PIO_ZCT pZct,
-    OUT PIO_ZCT_CURSOR* ppCursor
+LwpZctCursorAllocateForSocketIo(
+    IN PLW_ZCT_VECTOR pZct,
+    OUT PLW_ZCT_CURSOR* ppCursor
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -761,42 +765,42 @@ IopZctCursorAllocateForSocketIo(
     ULONG sendFileVecSize = 0;
 #endif
     ULONG size = 0;
-    PIO_ZCT_CURSOR pCursor = NULL;
+    PLW_ZCT_CURSOR pCursor = NULL;
 
     while (i < pZct->Count)
     {
-        IO_ZCT_CURSOR_TYPE cursorType = 0;
+        LW_ZCT_CURSOR_TYPE cursorType = 0;
         ULONG count = 0;
 
-        cursorType = IopZctCountRangeForSocketIo(
+        cursorType = LwpZctCountRangeForSocketIo(
                             pZct,
                             i,
                             &count);
         switch (cursorType)
         {
-            case IO_ZCT_CURSOR_TYPE_IOVEC:
+            case LW_ZCT_CURSOR_TYPE_IOVEC:
                 cursorEntryCount++;
                 assert(count > 0);
                 ioVecCount += count;
                 break;
-            case IO_ZCT_CURSOR_TYPE_SPLICE:
+            case LW_ZCT_CURSOR_TYPE_SPLICE:
                 cursorEntryCount++;
                 assert(1 == count);
                 break;
 #if defined(HAVE_SENDFILEV)
-            case IO_ZCT_CURSOR_TYPE_SENDFILE:
+            case LW_ZCT_CURSOR_TYPE_SENDFILE:
                 cursorEntryCount++;
                 assert(count > 0);
                 sendFileVecCount += count;
                 break;
 #elif defined(HAVE_SENDFILE_HEADER_TRAILER)
-            case IO_ZCT_CURSOR_TYPE_SENDFILE:
+            case LW_ZCT_CURSOR_TYPE_SENDFILE:
                 cursorEntryCount++;
                 assert(count > 0);
                 ioVecCount += count - 1;
                 break;
 #elif defined(HAVE_SENDFILE)
-            case IO_ZCT_CURSOR_TYPE_SENDFILE:
+            case LW_ZCT_CURSOR_TYPE_SENDFILE:
                 cursorEntryCount++;
                 assert(1 == count);
                 break;
@@ -811,7 +815,7 @@ IopZctCursorAllocateForSocketIo(
         i += count;
     }
 
-    cursorEntrySize = cursorEntryCount * sizeof(IO_ZCT_CURSOR_ENTRY);
+    cursorEntrySize = cursorEntryCount * sizeof(LW_ZCT_CURSOR_ENTRY);
     size += cursorEntrySize;
 
     ioVecSize = ioVecCount * sizeof(struct iovec);
@@ -822,7 +826,7 @@ IopZctCursorAllocateForSocketIo(
     size += sendFileVecSize;
 #endif
 
-    status = RTL_ALLOCATE(&pCursor, IO_ZCT_CURSOR, size);
+    status = RTL_ALLOCATE(&pCursor, LW_ZCT_CURSOR, size);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     pCursor->Size = size;
@@ -847,8 +851,8 @@ cleanup:
 
 static
 struct iovec*
-IopZctCursorAllocateIoVec(
-    IN OUT PIO_ZCT_CURSOR pCursor,
+LwpZctCursorAllocateIoVec(
+    IN OUT PLW_ZCT_CURSOR pCursor,
     IN ULONG Count
     )
 {
@@ -865,8 +869,8 @@ IopZctCursorAllocateIoVec(
 #ifdef HAVE_SENDFILEV
 static
 sendfilevec_t*
-IopZctCursorAllocateSendFileVec(
-    IN OUT PIO_ZCT_CURSOR pCursor,
+LwpZctCursorAllocateSendFileVec(
+    IN OUT PLW_ZCT_CURSOR pCursor,
     IN ULONG Count
     )
 {
@@ -879,10 +883,10 @@ IopZctCursorAllocateSendFileVec(
 
 static
 VOID
-IopZctCursorInitiazeIoVecCursorEntry(
-    IN OUT PIO_ZCT_CURSOR pCursor,
-    OUT PIO_ZCT_CURSOR_IOVEC pIoVecCursor,
-    IN PIO_ZCT_ENTRY pEntries,
+LwpZctCursorInitiazeIoVecCursorEntry(
+    IN OUT PLW_ZCT_CURSOR pCursor,
+    OUT PLW_ZCT_CURSOR_IOVEC pIoVecCursor,
+    IN PLW_ZCT_ENTRY pEntries,
     IN ULONG Count
     )
 {
@@ -890,15 +894,15 @@ IopZctCursorInitiazeIoVecCursorEntry(
 
     assert(Count > 0);
 
-    pIoVecCursor->Vector = IopZctCursorAllocateIoVec(pCursor, Count);
+    pIoVecCursor->Vector = LwpZctCursorAllocateIoVec(pCursor, Count);
     pIoVecCursor->Count = Count;
 
     for (i = 0; i < Count; i++)
     {
         struct iovec* pVector = &pIoVecCursor->Vector[i];
-        PIO_ZCT_ENTRY pEntry = &pEntries[i];
+        PLW_ZCT_ENTRY pEntry = &pEntries[i];
 
-        assert(IO_ZCT_ENTRY_TYPE_MEMORY == pEntry->Type);
+        assert(LW_ZCT_ENTRY_TYPE_MEMORY == pEntry->Type);
 
         pVector->iov_base = pEntry->Data.Memory.Buffer;
         pVector->iov_len = pEntry->Length;
@@ -907,17 +911,17 @@ IopZctCursorInitiazeIoVecCursorEntry(
 
 static
 VOID
-IopZctCursorInitiazeSpliceCursorEntry(
-    IN OUT PIO_ZCT_CURSOR pCursor,
-    OUT PIO_ZCT_CURSOR_SPLICE pSpliceCursor,
-    IN PIO_ZCT_ENTRY pEntries,
+LwpZctCursorInitiazeSpliceCursorEntry(
+    IN OUT PLW_ZCT_CURSOR pCursor,
+    OUT PLW_ZCT_CURSOR_SPLICE pSpliceCursor,
+    IN PLW_ZCT_ENTRY pEntries,
     IN ULONG Count
     )
 {
-    PIO_ZCT_ENTRY pEntry = &pEntries[0];
+    PLW_ZCT_ENTRY pEntry = &pEntries[0];
 
     assert(1 == Count);
-    assert(IO_ZCT_ENTRY_TYPE_FD_PIPE == pEntry->Type);
+    assert(LW_ZCT_ENTRY_TYPE_FD_PIPE == pEntry->Type);
 
     pSpliceCursor->FileDescriptor = pEntry->Data.FdPipe.Fd;
     pSpliceCursor->Length = pEntry->Length;
@@ -926,10 +930,10 @@ IopZctCursorInitiazeSpliceCursorEntry(
 #if defined(HAVE_SENDFILEV)
 static
 VOID
-IopZctCursorInitiazeSendFileCursorEntry(
-    IN OUT PIO_ZCT_CURSOR pCursor,
-    OUT PIO_ZCT_CURSOR_SENDFILE pSendFileCursor,
-    IN PIO_ZCT_ENTRY pEntries,
+LwpZctCursorInitiazeSendFileCursorEntry(
+    IN OUT PLW_ZCT_CURSOR pCursor,
+    OUT PLW_ZCT_CURSOR_SENDFILE pSendFileCursor,
+    IN PLW_ZCT_ENTRY pEntries,
     IN ULONG Count
     )
 {
@@ -937,24 +941,24 @@ IopZctCursorInitiazeSendFileCursorEntry(
 
     assert(Count > 0);
 
-    pSendFileCursor->Vector = IopZctCursorAllocateSendFileVec(pCursor, Count);
+    pSendFileCursor->Vector = LwpZctCursorAllocateSendFileVec(pCursor, Count);
     pSendFileCursor->Count = Count;
 
     for (i = 0; i < Count; i++)
     {
         sendfilevec_t* pVector = &pSendFileCursor->Vector[i];
-        PIO_ZCT_ENTRY pEntry = &pEntries[i];
+        PLW_ZCT_ENTRY pEntry = &pEntries[i];
 
         pVector->sfv_len = pEntry->Length;
         pVector->sfv_flag = 0;
 
         switch (pEntry->Type)
         {
-            case IO_ZCT_ENTRY_TYPE_FD_FILE:
+            case LW_ZCT_ENTRY_TYPE_FD_FILE:
                 pVector->sfv_fd = pEntry->Data.FdFile.Fd;
                 pVector->sfv_off = pEntry->Data.FdFile.Offset;
                 break;
-            case IO_ZCT_ENTRY_TYPE_MEMORY:
+            case LW_ZCT_ENTRY_TYPE_MEMORY:
                 pVector->sfv_fd = SFV_FD_SELF;
                 pVector->sfv_off = (off_t) pEntry->Data.Memory.Buffer;
                 break;
@@ -967,23 +971,23 @@ IopZctCursorInitiazeSendFileCursorEntry(
 #elif defined(HAVE_SENDFILE_HEADER_TRAILER)
 static
 VOID
-IopZctCursorInitiazeSendFileCursorEntry(
-    IN OUT PIO_ZCT_CURSOR pCursor,
-    OUT PIO_ZCT_CURSOR_SENDFILE pSendFileCursor,
-    IN PIO_ZCT_ENTRY pEntries,
+LwpZctCursorInitiazeSendFileCursorEntry(
+    IN OUT PLW_ZCT_CURSOR pCursor,
+    OUT PLW_ZCT_CURSOR_SENDFILE pSendFileCursor,
+    IN PLW_ZCT_ENTRY pEntries,
     IN ULONG Count
     )
 {
-    PIO_ZCT_ENTRY pEntry = &pEntries[0];
+    PLW_ZCT_ENTRY pEntry = &pEntries[0];
     ULONG headerCount = 0;
     ULONG trailerCount = 0;
 
     assert(Count > 0);
 
-    headerCount = IopZctCountRunMemory(pEntry, Count);
+    headerCount = LwpZctCountRunMemory(pEntry, Count);
     if (headerCount > 0)
     {
-        IopZctCursorInitiazeIoVecCursorEntry(
+        LwpZctCursorInitiazeIoVecCursorEntry(
                 pCursor,
                 &pSendFileCursor->Header,
                 pEntry,
@@ -992,7 +996,7 @@ IopZctCursorInitiazeSendFileCursorEntry(
 
     pEntry += headerCount;
 
-    assert(IO_ZCT_ENTRY_TYPE_FD_FILE == pEntry->Type);
+    assert(LW_ZCT_ENTRY_TYPE_FD_FILE == pEntry->Type);
 
     pSendFileCursor->FileDescriptor = pEntry->Data.FdFile.Fd;
     pSendFileCursor->Offset = pEntry->Data.FdFile.Offset;
@@ -1004,7 +1008,7 @@ IopZctCursorInitiazeSendFileCursorEntry(
     assert(trailerCount < Count);
     if (trailerCount > 0)
     {
-        IopZctCursorInitiazeIoVecCursorEntry(
+        LwpZctCursorInitiazeIoVecCursorEntry(
                 pCursor,
                 &pSendFileCursor->Trailer,
                 pEntry,
@@ -1014,14 +1018,14 @@ IopZctCursorInitiazeSendFileCursorEntry(
 #elif defined(HAVE_SENDFILE)
 static
 VOID
-IopZctCursorInitiazeSendFileCursorEntry(
-    IN OUT PIO_ZCT_CURSOR pCursor,
-    OUT PIO_ZCT_CURSOR_SENDFILE pSendFileCursor,
-    IN PIO_ZCT_ENTRY pEntries,
+LwpZctCursorInitiazeSendFileCursorEntry(
+    IN OUT PLW_ZCT_CURSOR pCursor,
+    OUT PLW_ZCT_CURSOR_SENDFILE pSendFileCursor,
+    IN PLW_ZCT_ENTRY pEntries,
     IN ULONG Count
     )
 {
-    PIO_ZCT_ENTRY pEntry = &pEntries[0];
+    PLW_ZCT_ENTRY pEntry = &pEntries[0];
 
     assert(1 == Count);
 
@@ -1033,9 +1037,9 @@ IopZctCursorInitiazeSendFileCursorEntry(
 
 static
 NTSTATUS
-IopZctCursorInitializeForSocketIo(
-    IN PIO_ZCT pZct,
-    IN OUT PIO_ZCT_CURSOR pCursor
+LwpZctCursorInitializeForSocketIo(
+    IN PLW_ZCT_VECTOR pZct,
+    IN OUT PLW_ZCT_CURSOR pCursor
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1045,13 +1049,13 @@ IopZctCursorInitializeForSocketIo(
 
     while (i < pZct->Count)
     {
-        PIO_ZCT_CURSOR_ENTRY pCursorEntry = &pCursor->Entry[cursorIndex];
-        IO_ZCT_CURSOR_TYPE cursorType = 0;
+        PLW_ZCT_CURSOR_ENTRY pCursorEntry = &pCursor->Entry[cursorIndex];
+        LW_ZCT_CURSOR_TYPE cursorType = 0;
         ULONG count = 0;
 
         assert(cursorIndex < pCursor->Count);
 
-        cursorType = IopZctCountRangeForSocketIo(
+        cursorType = LwpZctCountRangeForSocketIo(
                             pZct,
                             i,
                             &count);
@@ -1062,24 +1066,24 @@ IopZctCursorInitializeForSocketIo(
 
         switch (cursorType)
         {
-            case IO_ZCT_CURSOR_TYPE_IOVEC:
-                IopZctCursorInitiazeIoVecCursorEntry(
+            case LW_ZCT_CURSOR_TYPE_IOVEC:
+                LwpZctCursorInitiazeIoVecCursorEntry(
                         pCursor,
                         &pCursorEntry->Data.IoVec,
                         &pZct->Entries[i],
                         count);
                 break;
 
-            case IO_ZCT_CURSOR_TYPE_SPLICE:
-                IopZctCursorInitiazeSpliceCursorEntry(
+            case LW_ZCT_CURSOR_TYPE_SPLICE:
+                LwpZctCursorInitiazeSpliceCursorEntry(
                         pCursor,
                         &pCursorEntry->Data.Splice,
                         &pZct->Entries[i],
                         count);
                 break;
 #if defined(HAVE_SENDFILE_ANY)
-            case IO_ZCT_CURSOR_TYPE_SENDFILE:
-                IopZctCursorInitiazeSendFileCursorEntry(
+            case LW_ZCT_CURSOR_TYPE_SENDFILE:
+                LwpZctCursorInitiazeSendFileCursorEntry(
                         pCursor,
                         &pCursorEntry->Data.SendFile,
                         &pZct->Entries[i],
@@ -1103,18 +1107,18 @@ cleanup:
 
 static
 NTSTATUS
-IopZctPrepareForSocketIo(
-    IN OUT PIO_ZCT pZct
+LwpZctPrepareForSocketIo(
+    IN OUT PLW_ZCT_VECTOR pZct
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     int EE = 0;
-    PIO_ZCT_CURSOR pCursor = NULL;
+    PLW_ZCT_CURSOR pCursor = NULL;
 
-    status = IopZctCursorAllocateForSocketIo(pZct, &pCursor);
+    status = LwpZctCursorAllocateForSocketIo(pZct, &pCursor);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = IopZctCursorInitializeForSocketIo(
+    status = LwpZctCursorInitializeForSocketIo(
                     pZct,
                     pCursor);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -1130,14 +1134,14 @@ cleanup:
 
 
 NTSTATUS
-IoZctReadSocketIo(
-    IN OUT PIO_ZCT pZct,
+LwZctReadSocketIo(
+    IN OUT PLW_ZCT_VECTOR pZct,
     IN int SocketFd,
     OUT OPTIONAL PULONG BytesTransferred,
     OUT OPTIONAL PULONG BytesRemaining
     )
 {
-    return IopZctReadWriteSocket(
+    return LwpZctReadWriteSocket(
                 pZct,
                 SocketFd,
                 FALSE,
@@ -1146,14 +1150,14 @@ IoZctReadSocketIo(
 }
 
 NTSTATUS
-IoZctWriteSocketIo(
-    IN OUT PIO_ZCT pZct,
+LwZctWriteSocketIo(
+    IN OUT PLW_ZCT_VECTOR pZct,
     IN int SocketFd,
     OUT OPTIONAL PULONG BytesTransferred,
     OUT OPTIONAL PULONG BytesRemaining
     )
 {
-    return IopZctReadWriteSocket(
+    return LwpZctReadWriteSocket(
                 pZct,
                 SocketFd,
                 TRUE,
@@ -1163,8 +1167,8 @@ IoZctWriteSocketIo(
 
 static
 NTSTATUS
-IopZctReadWriteSocket(
-    IN OUT PIO_ZCT pZct,
+LwpZctReadWriteSocket(
+    IN OUT PLW_ZCT_VECTOR pZct,
     IN int SocketFd,
     IN BOOLEAN IsWrite,
     OUT OPTIONAL PULONG BytesTransferred,
@@ -1175,7 +1179,7 @@ IopZctReadWriteSocket(
     int EE = 0;
     ULONG totalBytesTransferred = 0;
     ULONG bytesRemaining = 0;
-    IO_ZCT_IO_TYPE ioType = IsWrite ? IO_ZCT_IO_TYPE_WRITE_SOCKET : IO_ZCT_IO_TYPE_READ_SOCKET;
+    LW_ZCT_IO_TYPE ioType = IsWrite ? LW_ZCT_IO_TYPE_WRITE_SOCKET : LW_ZCT_IO_TYPE_READ_SOCKET;
 
     if (!pZct->Cursor)
     {
@@ -1199,9 +1203,9 @@ IopZctReadWriteSocket(
     {
         ULONG bytesTransferred = 0;
         BOOLEAN isDoneEntry = FALSE;
-        PIO_ZCT_CURSOR_ENTRY pEntry = &pZct->Cursor->Entry[pZct->Cursor->Index];
+        PLW_ZCT_CURSOR_ENTRY pEntry = &pZct->Cursor->Entry[pZct->Cursor->Index];
 
-        status = IopZctCursorEntryReadWriteSocket(
+        status = LwpZctCursorEntryReadWriteSocket(
                         SocketFd,
                         IsWrite,
                         pEntry,
@@ -1255,10 +1259,10 @@ cleanup:
 
 static
 NTSTATUS
-IopZctCursorEntryReadWriteSocket(
+LwpZctCursorEntryReadWriteSocket(
     IN int SocketFd,
     IN BOOLEAN IsWrite,
-    IN OUT PIO_ZCT_CURSOR_ENTRY pEntry,
+    IN OUT PLW_ZCT_CURSOR_ENTRY pEntry,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDoneEntry
     )
@@ -1270,9 +1274,9 @@ IopZctCursorEntryReadWriteSocket(
 
     switch (pEntry->Type)
     {
-    case IO_ZCT_CURSOR_TYPE_IOVEC:
+    case LW_ZCT_CURSOR_TYPE_IOVEC:
     {
-        status = IopZctIoVecReadWrite(
+        status = LwpZctIoVecReadWrite(
                         SocketFd,
                         IsWrite,
                         &pEntry->Data.IoVec,
@@ -1281,8 +1285,8 @@ IopZctCursorEntryReadWriteSocket(
         break;
     }
 #ifdef HAVE_SPLICE
-    case IO_ZCT_CURSOR_TYPE_SPLICE:
-        status = IopZctSplice(
+    case LW_ZCT_CURSOR_TYPE_SPLICE:
+        status = LwpZctSplice(
                         SocketFd,
                         IsWrite,
                         &pEntry->Data.Splice,
@@ -1291,7 +1295,7 @@ IopZctCursorEntryReadWriteSocket(
         break;
 #endif
 #ifdef HAVE_SENDFILE_ANY
-    case IO_ZCT_CURSOR_TYPE_SENDFILE:
+    case LW_ZCT_CURSOR_TYPE_SENDFILE:
         assert(IsWrite);
         if (!IsWrite)
         {
@@ -1299,7 +1303,7 @@ IopZctCursorEntryReadWriteSocket(
         }
         else
         {
-            status = IopZctSendFile(
+            status = LwpZctSendFile(
                         SocketFd,
                         &pEntry->Data.SendFile,
                         &bytesTransferred,
@@ -1326,10 +1330,10 @@ cleanup:
 }
 
 NTSTATUS
-IopZctIoVecReadWrite(
+LwpZctIoVecReadWrite(
     IN int FileDescriptor,
     IN BOOLEAN IsWrite,
-    IN OUT PIO_ZCT_CURSOR_IOVEC Cursor,
+    IN OUT PLW_ZCT_CURSOR_IOVEC Cursor,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDone
     )
@@ -1420,10 +1424,10 @@ cleanup:
 #if defined(HAVE_SPLICE)
 static
 NTSTATUS
-IopZctSplice(
+LwpZctSplice(
     IN int FileDescriptor,
     IN BOOLEAN IsWrite,
-    IN OUT PIO_ZCT_CURSOR_SPLICE Cursor,
+    IN OUT PLW_ZCT_CURSOR_SPLICE Cursor,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDone
     )
@@ -1504,9 +1508,9 @@ cleanup:
 #if defined(HAVE_SENDFILEV)
 static
 NTSTATUS
-IopZctSendFile(
+LwpZctSendFile(
     IN int FileDescriptor,
-    IN OUT PIO_ZCT_CURSOR_SENDFILE Cursor,
+    IN OUT PLW_ZCT_CURSOR_SENDFILE Cursor,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDone
     )
@@ -1516,9 +1520,9 @@ IopZctSendFile(
 #elif defined (HAVE_SENDFILE_HEADER_TRAILER)
 static
 NTSTATUS
-IopZctSendFile(
+LwpZctSendFile(
     IN int FileDescriptor,
-    IN OUT PIO_ZCT_CURSOR_SENDFILE Cursor,
+    IN OUT PLW_ZCT_CURSOR_SENDFILE Cursor,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDone
     )
@@ -1528,9 +1532,9 @@ IopZctSendFile(
 #elif defined (HAVE_SENDFILE)
 static
 NTSTATUS
-IopZctSendFile(
+LwpZctSendFile(
     IN int FileDescriptor,
-    IN OUT PIO_ZCT_CURSOR_SENDFILE Cursor,
+    IN OUT PLW_ZCT_CURSOR_SENDFILE Cursor,
     OUT PULONG BytesTransferred,
     OUT PBOOLEAN IsDone
     )
