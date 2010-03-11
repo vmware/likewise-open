@@ -107,14 +107,14 @@ typedef struct _SRV_TRANSPORT_PROTOCOL_DISPATCH {
 
 NTSTATUS
 SrvTransportInit(
-    OUT PSRV_TRANSPORT_HANDLE pTransportHandle,
+    OUT PSRV_TRANSPORT_HANDLE phTransport,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
     IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
     );
 
 VOID
 SrvTransportShutdown(
-    IN OUT PSRV_TRANSPORT_HANDLE pTransportHandle
+    IN OUT SRV_TRANSPORT_HANDLE hTransport
     );
 
 VOID
@@ -136,7 +136,7 @@ SrvTransportSocketGetFileDescriptor(
     );
 
 NTSTATUS
-SrvTransportSocketSetNewDataNotify(
+SrvTransportSocketSetBuffer(
     IN PSRV_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
@@ -155,7 +155,7 @@ NTSTATUS
 SrvTransportSocketSendZctReply(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,
-    IN PIO_ZCT pZct
+    IN PLW_ZCT_VECTOR pZct
     );
 
 ///

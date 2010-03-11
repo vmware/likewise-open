@@ -50,7 +50,7 @@ typedef struct _SRV_SOCKET
     int fd;
     SRV_SOCKET_ADDRESS ClientAddress;
     SOCKLEN_T ClientAddressLength;
-    CHAR AddresssStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
+    CHAR AddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
 
     PLW_TASK pTask;
     SRV_SOCKET_STATE_MASK StateMask;
@@ -62,13 +62,13 @@ typedef struct _SRV_SOCKET
     ULONG Offset;
     // Send queue - (SRV_SEND_ITEM.SendLinks)
     LW_LIST_LINKS SendHead;
-} SRV_SOCKET, *PLWIO_SRV_SOCKET;
+} SRV_SOCKET;
 
 typedef struct _SRV_SEND_ITEM
 {
     LW_LIST_LINKS SendLinks;
     PSRV_SEND_CONTEXT pSendContext;
-    PIO_ZCT pZct;
+    PLW_ZCT_VECTOR pZct;
     PVOID pBuffer;
     ULONG Length;
     ULONG Offset;

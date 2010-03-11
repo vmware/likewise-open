@@ -308,7 +308,7 @@ SrvSessionRundown(
 {
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
     LwRtlRBTreeTraverse(
             pSession->pTreeCollection,

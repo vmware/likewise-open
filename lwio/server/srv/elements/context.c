@@ -135,6 +135,15 @@ SrvReleaseExecContextHandle(
     SrvReleaseExecContext((PSRV_EXEC_CONTEXT)hExecContext);
 }
 
+PSRV_EXEC_CONTEXT
+SrvAcquireExecContext(
+   PSRV_EXEC_CONTEXT pContext
+   )
+{
+    InterlockedIncrement(&pContext->refCount);
+    return pContext;
+}
+
 VOID
 SrvReleaseExecContext(
    IN PSRV_EXEC_CONTEXT pContext

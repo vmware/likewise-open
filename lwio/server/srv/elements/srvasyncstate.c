@@ -66,11 +66,12 @@ SrvAsyncStateBuildId(
 
 NTSTATUS
 SrvAsyncStateCreate(
-    ULONG64                       ullAsyncId,
-    USHORT                        usCommand,
-    HANDLE                        hAsyncState,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
-    PLWIO_ASYNC_STATE*            ppAsyncState
+    ULONG64                         ullAsyncId,
+    USHORT                          usCommand,
+    HANDLE                          hAsyncState,
+    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*              ppAsyncState
     )
 {
     NTSTATUS          ntStatus    = STATUS_SUCCESS;
@@ -90,6 +91,7 @@ SrvAsyncStateCreate(
     pAsyncState->usCommand         = usCommand;
     pAsyncState->hAsyncState       = hAsyncState;
     pAsyncState->pfnFreeAsyncState = pfnFreeAsyncState;
+    pAsyncState->pfnCancelAsyncState = pfnCancelAsyncState;
 
     *ppAsyncState = pAsyncState;
 
@@ -102,6 +104,17 @@ error:
     *ppAsyncState = NULL;
 
     goto cleanup;
+}
+
+VOID
+SrvAsyncStateCancel(
+    PLWIO_ASYNC_STATE pAsyncState
+    )
+{
+    if (pAsyncState->hAsyncState && pAsyncState->pfnCancelAsyncState)
+    {
+        pAsyncState->pfnCancelAsyncState(pAsyncState->hAsyncState);
+    }
 }
 
 PLWIO_ASYNC_STATE

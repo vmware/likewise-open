@@ -243,16 +243,19 @@ PvfsDriverDispatch(
         break;
     }
 
-    if ((ntError != STATUS_SUCCESS) && (ntError != STATUS_PENDING)) {
+    if ((ntError != STATUS_SUCCESS) && (ntError != STATUS_PENDING))
+    {
         BAIL_ON_NT_STATUS(ntError);
     }
 
 cleanup:
 
-    if (ntError != STATUS_PENDING) {
+    if (ntError != STATUS_PENDING)
+    {
         pIrp->IoStatusBlock.Status = ntError;
-        PvfsFreeIrpContext(&pIrpCtx);
     }
+
+    PvfsReleaseIrpContext(&pIrpCtx);
 
     return ntError;
 

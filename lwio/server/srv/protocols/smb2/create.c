@@ -64,6 +64,18 @@ SrvBuildCreateState_SMB_V2(
     );
 
 static
+VOID
+SrvCancelCreateStateHandle_SMB_V2(
+    HANDLE hCreateState
+    );
+
+static
+VOID
+SrvCancelCreateStateHandle_SMB_V2_inlock(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    );
+
+static
 NTSTATUS
 SrvQueryFileInformation_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
@@ -214,6 +226,7 @@ SrvProcessCreate_SMB_V2(
         ntStatus = SrvConnection2CreateAsyncState(
                                 pConnection,
                                 COM2_CREATE,
+                                &SrvCancelCreateStateHandle_SMB_V2,
                                 &SrvReleaseCreateStateHandle_SMB_V2,
                                 &pAsyncState);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -484,10 +497,7 @@ SrvCancelCreate_SMB_V2(
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
 
-    if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
-    {
-        IoCancelAsyncCancelContext(pCreateState->pAcb->AsyncCancelContext);
-    }
+    SrvCancelCreateStateHandle_SMB_V2_inlock(pCreateState);
 
 cleanup:
 
@@ -667,6 +677,35 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvCancelCreateStateHandle_SMB_V2(
+    HANDLE hCreateState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    PSRV_CREATE_STATE_SMB_V2 pCreateState =
+                (PSRV_CREATE_STATE_SMB_V2)hCreateState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
+
+    SrvCancelCreateStateHandle_SMB_V2_inlock(pCreateState);
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
+}
+
+static
+VOID
+SrvCancelCreateStateHandle_SMB_V2_inlock(
+    PSRV_CREATE_STATE_SMB_V2 pCreateState
+    )
+{
+    if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
+    {
+        IoCancelAsyncCancelContext(pCreateState->pAcb->AsyncCancelContext);
+    }
 }
 
 static

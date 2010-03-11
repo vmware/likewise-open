@@ -76,6 +76,12 @@ SrvBuildAsyncLockResponse_SMB_V2(
 
 static
 VOID
+SrvCancelAsyncLockState_SMB_V2_inlock(
+    PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2 pAsyncLockState
+    );
+
+static
+VOID
 SrvPrepareAsyncLockStateAsync_SMB_V2(
     PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2 pAsyncLockRequestState,
     PSRV_EXEC_CONTEXT                    pExecContext
@@ -324,10 +330,7 @@ SrvCancelLock_SMB_V2(
 
     LWIO_LOCK_MUTEX(bInLock, &pLockState->mutex);
 
-    if (pLockState->pAcb && pLockState->pAcb->AsyncCancelContext)
-    {
-        IoCancelAsyncCancelContext(pLockState->pAcb->AsyncCancelContext);
-    }
+    SrvCancelAsyncLockState_SMB_V2_inlock(pLockState);
 
 cleanup:
 
@@ -346,6 +349,22 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+VOID
+SrvCancelAsyncLockState_SMB_V2(
+    HANDLE hLockState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2 pAsyncLockState =
+            (PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2)hLockState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pAsyncLockState->mutex);
+
+    SrvCancelAsyncLockState_SMB_V2_inlock(pAsyncLockState);
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pAsyncLockState->mutex);
 }
 
 NTSTATUS
@@ -749,6 +768,18 @@ error:
     pSmbResponse->ulMessageSize = 0;
 
     goto cleanup;
+}
+
+static
+VOID
+SrvCancelAsyncLockState_SMB_V2_inlock(
+    PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2 pAsyncLockState
+    )
+{
+    if (pAsyncLockState->pAcb && pAsyncLockState->pAcb->AsyncCancelContext)
+    {
+        IoCancelAsyncCancelContext(pAsyncLockState->pAcb->AsyncCancelContext);
+    }
 }
 
 static

@@ -11,6 +11,7 @@ endif
 libpvfs_sys_la_SOURCES = \
     globals.c \
     driver.c \
+    irpctx.c \
     async_handler.c \
     create.c \
     read.c   \

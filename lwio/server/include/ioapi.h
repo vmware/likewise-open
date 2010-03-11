@@ -156,8 +156,8 @@ IoPagingReadFile(
 VOID
 IoGetZctSupportMaskFile(
     IN IO_FILE_HANDLE FileHandle,
-    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctReadMask,
-    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctWriteMask
+    OUT OPTIONAL PLW_ZCT_ENTRY_MASK ZctReadMask,
+    OUT OPTIONAL PLW_ZCT_ENTRY_MASK ZctWriteMask
     );
 
 ///
@@ -188,7 +188,7 @@ IoPrepareZctReadFile(
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN IO_FLAGS IoFlags,
-    IN OUT PIO_ZCT Zct,
+    IN OUT PLW_ZCT_VECTOR Zct,
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key,
@@ -227,7 +227,7 @@ IoPrepareZctWriteFile(
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN IO_FLAGS IoFlags,
-    IN OUT PIO_ZCT Zct,
+    IN OUT PLW_ZCT_VECTOR Zct,
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key,

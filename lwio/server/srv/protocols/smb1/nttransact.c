@@ -1403,6 +1403,7 @@ SrvProcessNotifyChange(
                             pNotifyState->ullNotifyId,
                             SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE,
                             pNotifyState,
+                            &SrvNotifyStateCancel,
                             &SrvNotifyStateReleaseHandle,
                             &pAsyncState);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -2015,17 +2016,17 @@ SrvProcessNtTransactCreate(
             ntStatus = pNTTransactState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
-            if (!pNTTransactState->pFile->hByteRangeLockState)
+            if (!pNTTransactState->pFile->hCancellableBRLStateList)
             {
-                PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList = NULL;
+                PSRV_BYTE_RANGE_LOCK_STATE_LIST pBRLStateList = NULL;
 
-                ntStatus = SrvCreatePendingLockStateList(&pPendingLockStateList);
+                ntStatus = SrvCreatePendingLockStateList(&pBRLStateList);
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                pNTTransactState->pFile->hByteRangeLockState =
-                                (HANDLE)pPendingLockStateList;
+                pNTTransactState->pFile->hCancellableBRLStateList =
+                                (HANDLE)pBRLStateList;
 
-                pNTTransactState->pFile->pfnFreeByteRangeLockState =
+                pNTTransactState->pFile->pfnFreeBRLStateList =
                                 &SrvFreePendingLockStateListHandle;
             }
 

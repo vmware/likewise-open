@@ -124,7 +124,7 @@ typedef struct _IRP_ARGS_READ_WRITE {
     // IN for write, OUT for read
     union {
         IN OUT PVOID Buffer;
-        IN OUT PIO_ZCT Zct;
+        IN OUT PLW_ZCT_VECTOR Zct;
     };
     IN ULONG Length;
     IN OPTIONAL PLONG64 ByteOffset;
@@ -318,8 +318,8 @@ IoFileGetContext(
 VOID
 IoFileSetZctSupportMask(
     IN IO_FILE_HANDLE FileHandle,
-    IN IO_ZCT_ENTRY_MASK ZctReadMask,
-    IN IO_ZCT_ENTRY_MASK ZctWriteMask
+    IN LW_ZCT_ENTRY_MASK ZctReadMask,
+    IN LW_ZCT_ENTRY_MASK ZctWriteMask
     );
 
 // IRP functions for async processing

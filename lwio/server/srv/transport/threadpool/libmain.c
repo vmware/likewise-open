@@ -51,7 +51,7 @@
 
 NTSTATUS
 SrvTransportInit(
-    OUT PSRV_TRANSPORT_HANDLE pTransportHandle,
+    OUT PSRV_TRANSPORT_HANDLE phTransport,
     IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
     IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
     )
@@ -70,29 +70,27 @@ SrvTransportInit(
 
 cleanup:
 
-    *pTransportHandle = pTransport;
+    *phTransport = pTransport;
 
     return ntStatus;
 
 error:
 
-    SrvTransportShutdown(&pTransport);
+    SrvTransportShutdown(pTransport);
+    pTransport = NULL;
 
     goto cleanup;
 }
 
 VOID
 SrvTransportShutdown(
-    IN OUT PSRV_TRANSPORT_HANDLE pTransportHandle
+    IN OUT SRV_TRANSPORT_HANDLE hTransport
     )
 {
-    PSRV_TRANSPORT_HANDLE_DATA pTransport = *pTransportHandle;
-
-    if (pTransport)
+    if (hTransport)
     {
-        SrvListenerShutdown(&pTransport->Listener);
-        SrvFreeMemory(pTransport);
-        *pTransportHandle = NULL;
+        SrvListenerShutdown(&hTransport->Listener);
+        SrvFreeMemory(hTransport);
     }
 }
 
@@ -123,14 +121,14 @@ SrvTransportSocketGetFileDescriptor(
 }
 
 NTSTATUS
-SrvTransportSocketSetNewDataNotify(
+SrvTransportSocketSetBuffer(
     IN PSRV_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
     IN ULONG Minimum
     )
 {
-    return SrvSocketSetNewDataNotify(pSocket, pBuffer, Size, Minimum);
+    return SrvSocketSetBuffer(pSocket, pBuffer, Size, Minimum);
 }
 
 NTSTATUS
@@ -148,7 +146,7 @@ NTSTATUS
 SrvTransportSocketSendZctReply(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,
-    IN PIO_ZCT pZct
+    IN PLW_ZCT_VECTOR pZct
     )
 {
     return SrvSocketSendZctReply(pSocket, pSendContext, pZct);

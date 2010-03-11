@@ -46,6 +46,13 @@ SrvBuildCloseResponse(
 
 static
 VOID
+SrvFileCancelAsyncOperations(
+    PLWIO_SRV_TREE pTree,
+    PLWIO_SRV_FILE pFile
+    );
+
+static
+VOID
 SrvPrepareCloseStateAsync(
     PSRV_CLOSE_STATE_SMB_V1 pCloseState,
     PSRV_EXEC_CONTEXT       pExecContext
@@ -241,6 +248,10 @@ SrvProcessCloseAndX(
 
             if (pCtxSmb1->pFile)
             {
+                SrvFileCancelAsyncOperations(
+                        pCtxSmb1->pTree,
+                        pCtxSmb1->pFile);
+
                 SrvFileRundown(pCtxSmb1->pFile);
                 SrvFileRelease(pCtxSmb1->pFile);
                 pCtxSmb1->pFile = NULL;
@@ -435,6 +446,69 @@ error:
     }
 
     pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvFileCancelAsyncOperations(
+    PLWIO_SRV_TREE pTree,
+    PLWIO_SRV_FILE pFile
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    PSRV_BYTE_RANGE_LOCK_STATE_LIST pBRLStateList =
+            (PSRV_BYTE_RANGE_LOCK_STATE_LIST)pFile->hCancellableBRLStateList;
+    PSRV_BYTE_RANGE_LOCK_STATE pCursor     = NULL;
+    PLWIO_ASYNC_STATE          pAsyncState = NULL;
+
+    LWIO_LOCK_MUTEX(bInLock, &pBRLStateList->mutex);
+
+    for (   pCursor = pBRLStateList->pHead;
+            pCursor != NULL;
+            pCursor = pCursor->pNext)
+    {
+        if (pAsyncState)
+        {
+            SrvAsyncStateRelease(pAsyncState);
+
+            pAsyncState = NULL;
+        }
+
+        ntStatus = SrvTreeFindAsyncState(
+                        pTree,
+                        pCursor->ullAsyncId,
+                        &pAsyncState);
+        if (ntStatus == STATUS_NOT_FOUND)
+        {
+            ntStatus = STATUS_SUCCESS;
+
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvAsyncStateCancel(pAsyncState);
+    }
+
+cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pBRLStateList->mutex);
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
+    }
+
+    return;
+
+error:
+
+    LWIO_LOG_ERROR("File async operation cancellation failed [status: %s = 0x%08X (%d)]",
+                   LwNtStatusToName(ntStatus),
+                   ntStatus,
+                   ntStatus);
 
     goto cleanup;
 }

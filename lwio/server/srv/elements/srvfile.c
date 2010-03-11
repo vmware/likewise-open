@@ -332,9 +332,9 @@ SrvFileFree(
         pFile->pfnFreeOplockState(pFile->hOplockState);
     }
 
-    if (pFile->hByteRangeLockState && pFile->pfnFreeByteRangeLockState)
+    if (pFile->hCancellableBRLStateList && pFile->pfnFreeBRLStateList)
     {
-        pFile->pfnFreeByteRangeLockState(pFile->hByteRangeLockState);
+        pFile->pfnFreeBRLStateList(pFile->hCancellableBRLStateList);
     }
 
     if (pFile->hFile)

@@ -138,15 +138,15 @@ PvfsWorkerDoWork(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
-    BOOL bInLock = FALSE;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
     PPVFS_WORK_QUEUE pWorkQueue = (PPVFS_WORK_QUEUE)pQueue;
+    BOOLEAN bActive = FALSE;
 
     while(1)
     {
-        bInLock = FALSE;
         pWorkCtx = NULL;
         pIrpCtx = NULL;
+        bActive = FALSE;
 
         /*
          * Pull from the internal work queue first.  Fallback to the
@@ -171,18 +171,19 @@ PvfsWorkerDoWork(
         {
             pIrpCtx = (PPVFS_IRP_CONTEXT)pWorkCtx->pContext;
 
-            LWIO_LOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
+            bActive = PvfsIrpContextMarkIfNotSetFlag(
+                          pIrpCtx,
+                          PVFS_IRP_CTX_FLAG_CANCELLED,
+                          PVFS_IRP_CTX_FLAG_ACTIVE);
 
-            if (pIrpCtx->bIsCancelled)
-            {
-                ntError = STATUS_CANCELLED;
-            }
-            else
+            if (bActive)
             {
                 ntError = pWorkCtx->pfnCompletion(pWorkCtx->pContext);
             }
-
-            LWIO_UNLOCK_MUTEX(bInLock, &pIrpCtx->Mutex);
+            else
+            {
+                ntError = STATUS_CANCELLED;
+            }
 
             /* Check to to see if the request was requeued */
 
@@ -191,13 +192,7 @@ PvfsWorkerDoWork(
                 pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
 
                 PvfsAsyncIrpComplete(pIrpCtx);
-                PvfsFreeIrpContext(&pIrpCtx);
             }
-
-            /* The IRP has been completed or pended again.  In either case,
-               the work context* is done and releases */
-
-            pWorkCtx->pContext = NULL;
         }
         else
         {

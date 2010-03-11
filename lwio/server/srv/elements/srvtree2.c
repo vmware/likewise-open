@@ -345,7 +345,7 @@ SrvTree2Rundown(
 {
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
     LwRtlRBTreeTraverse(
             pTree->pFileCollection,

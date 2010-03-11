@@ -56,107 +56,97 @@
 #include <lw/attrs.h>
 
 ///
-/// ZCT (zero copy transfer)
+/// ZCT Vector
 ///
-/// The ZCT is an opaque type representing buffers and/or file descriptors
-/// and tracking the location of the I/O within the transfer.
+/// The ZCT vector is an opaque type representing ZCT "buffers" and
+/// tracking the location of the I/O within the vector.
 ///
-typedef struct _IO_ZCT IO_ZCT, *PIO_ZCT;
+typedef struct _LW_ZCT_VECTOR LW_ZCT_VECTOR, *PLW_ZCT_VECTOR;
 
 ///
 /// Type of ZCT I/O.
 ///
 
-typedef UCHAR IO_ZCT_IO_TYPE, *PIO_ZCT_IO_TYPE;
+typedef UCHAR LW_ZCT_IO_TYPE, *PLW_ZCT_IO_TYPE;
 
-#define IO_ZCT_IO_TYPE_READ_SOCKET    1
-#define IO_ZCT_IO_TYPE_WRITE_SOCKET   2
-
-#define IO_ZCT_IO_TYPE_MASK_VALID \
-    ( \
-        IO_ZCT_IO_TYPE_READ_SOCKET | \
-        IO_ZCT_IO_TYPE_WRITE_SOCKET | \
-        0 \
-    )
-
-#define IoZctIsValidIoType(IoType) \
-    (!((IoType) & ~IO_ZCT_IO_TYPE_MASK_VALID))
+#define LW_ZCT_IO_TYPE_READ_SOCKET    1
+#define LW_ZCT_IO_TYPE_WRITE_SOCKET   2
 
 ///
-/// Type of ZCT entries
+/// Type of ZCT buffers/entries
 ///
-/// A ZCT can contain buffers and file descriptors of several types.
-/// A single ZCT entry contains just one type:
+/// A ZCT vector can contain "buffers" of several types.
+/// A single ZCT entry contains just one "buffer" type:
 ///
 /// - memory (for use with readv/writev)
 /// - file descriptor for a file (for use with sendfile)
 /// - file descriptor for a pipe (for use with splice)
 ///
 
-typedef UCHAR IO_ZCT_ENTRY_TYPE, *PIO_ZCT_ENTRY_TYPE;
+typedef UCHAR LW_ZCT_ENTRY_TYPE, *PLW_ZCT_ENTRY_TYPE;
 
-#define IO_ZCT_ENTRY_TYPE_MEMORY    1
-#define IO_ZCT_ENTRY_TYPE_FD_FILE   2
-#define IO_ZCT_ENTRY_TYPE_FD_PIPE   3
+#define LW_ZCT_ENTRY_TYPE_MEMORY    1
+#define LW_ZCT_ENTRY_TYPE_FD_FILE   2
+#define LW_ZCT_ENTRY_TYPE_FD_PIPE   3
 
 //
-// Mask of allowed ZCT types
+// Mask of allowed ZCT buffer/entry types
 //
 
-typedef UCHAR IO_ZCT_ENTRY_MASK, *PIO_ZCT_ENTRY_MASK;
+typedef UCHAR LW_ZCT_ENTRY_MASK, *PLW_ZCT_ENTRY_MASK;
 
-#define _IO_ZCT_ENTRY_MASK_FROM_TYPE(Type)  (1 << ((Type) - 1))
+#define _LW_ZCT_ENTRY_MASK_FROM_TYPE(Type)  (1 << ((Type) - 1))
 
-#define IO_ZCT_ENTRY_MASK_MEMORY    _IO_ZCT_ENTRY_MASK_FROM_TYPE(IO_ZCT_ENTRY_TYPE_MEMORY)
-#define IO_ZCT_ENTRY_MASK_FD_FILE   _IO_ZCT_ENTRY_MASK_FROM_TYPE(IO_ZCT_ENTRY_TYPE_FD_FILE)
-#define IO_ZCT_ENTRY_MASK_FD_PIPE   _IO_ZCT_ENTRY_MASK_FROM_TYPE(IO_ZCT_ENTRY_TYPE_FD_PIPE)
+#define LW_ZCT_ENTRY_MASK_MEMORY    _LW_ZCT_ENTRY_MASK_FROM_TYPE(LW_ZCT_ENTRY_TYPE_MEMORY)
+#define LW_ZCT_ENTRY_MASK_FD_FILE   _LW_ZCT_ENTRY_MASK_FROM_TYPE(LW_ZCT_ENTRY_TYPE_FD_FILE)
+#define LW_ZCT_ENTRY_MASK_FD_PIPE   _LW_ZCT_ENTRY_MASK_FROM_TYPE(LW_ZCT_ENTRY_TYPE_FD_PIPE)
 
 ///
-/// A ZCT entry
+/// A ZCT buffer/entry
 ///
-/// A ZCT entry represents a memory buffer or file descriptor.
+/// A ZCT buffer/entry represents a memory buffer or file/pipe descriptor.
 ///
-typedef struct _IO_ZCT_ENTRY {
+typedef struct _LW_ZCT_ENTRY {
     /// Type of ZCT entry
-    IO_ZCT_ENTRY_TYPE Type;
+    LW_ZCT_ENTRY_TYPE Type;
     /// Length of data represented by entry in bytes (e.g., size of the
     /// memory buffer or how much to read/write from/to the file
     /// descriptor).
     ULONG Length;
     union {
-        /// IO_ZCT_ENTRY_TYPE_MEMORY
+        /// LW_ZCT_ENTRY_TYPE_MEMORY
         struct {
             PVOID Buffer;
         } Memory;
-        /// IO_ZCT_ENTRY_TYPE_FD_FILE
+        /// LW_ZCT_ENTRY_TYPE_FD_FILE
         struct {
             int Fd;
             LONG64 Offset;
         } FdFile;
-        /// IO_ZCT_ENTRY_TYPE_FD_PIPE
+        /// LW_ZCT_ENTRY_TYPE_FD_PIPE
         struct {
             int Fd;
         } FdPipe;
     } Data;
-} IO_ZCT_ENTRY, *PIO_ZCT_ENTRY;
+} LW_ZCT_ENTRY, *PLW_ZCT_ENTRY;
 
 ///
-/// Create a ZCT.
+/// Create a ZCT vector.
 ///
-/// @param[out] ppZct - Returns created ZCT.
+/// @param[out] ppZct - Returns created ZCT vector.
 /// @param[in] IoType - Type of I/O for transfer.
 ///
 /// @retval STATUS_SUCCESS on success
 /// @retval !NT_SUCCESS on failure
 ///
 NTSTATUS
-IoZctCreate(
-    OUT PIO_ZCT* ppZct,
-    IN IO_ZCT_IO_TYPE IoType
+LwZctCreate(
+    OUT PLW_ZCT_VECTOR* ppZct,
+    IN LW_ZCT_IO_TYPE IoType
     );
 
 ///
-/// Destroy a ZCT.
+/// Destroy a ZCT vector.
 ///
 /// Free all resources used for tracking the ZCT buffers and file
 /// descriptors.
@@ -164,14 +154,14 @@ IoZctCreate(
 /// @paaram[in,out] ppZct ZCT to destroy.  Set to NULL on output.
 ///
 VOID
-IoZctDestroy(
-    IN OUT PIO_ZCT* ppZct
+LwZctDestroy(
+    IN OUT PLW_ZCT_VECTOR* ppZct
     );
 
 ///
-/// Append entries to a ZCT.
+/// Append entries to a ZCT vector.
 ///
-/// @param[in] pZct - ZCT to modify.
+/// @param[in] pZct - ZCT vector to modify.
 ///
 /// @param[in] Entries - Array of entries to add.
 ///
@@ -181,16 +171,16 @@ IoZctDestroy(
 /// @retval !NT_SUCCESS on failure
 ///
 NTSTATUS
-IoZctAppend(
-    IN OUT PIO_ZCT pZct,
-    IN PIO_ZCT_ENTRY Entries,
+LwZctAppend(
+    IN OUT PLW_ZCT_VECTOR pZct,
+    IN PLW_ZCT_ENTRY Entries,
     IN ULONG Count
     );
 
 ///
-/// Prepend entries to a ZCT.
+/// Prepend entries to a ZCT vector.
 ///
-/// @param[in] pZct - ZCT to modify.
+/// @param[in] pZct - ZCT vector to modify.
 ///
 /// @param[in] Entries - Array of entries to add.
 ///
@@ -200,67 +190,67 @@ IoZctAppend(
 /// @retval !NT_SUCCESS on failure
 ///
 NTSTATUS
-IoZctPrepend(
-    IN OUT PIO_ZCT pZct,
-    IN PIO_ZCT_ENTRY Entries,
+LwZctPrepend(
+    IN OUT PLW_ZCT_VECTOR pZct,
+    IN PLW_ZCT_ENTRY Entries,
     IN ULONG Count
     );
 
 ///
-/// Get the total length represented by the ZCT.
+/// Get the total length represented by the ZCT vector.
 ///
-/// @param[in] pZct - ZCT to query.
+/// @param[in] pZct - ZCT vector to query.
 ///
 /// @return Length in bytes
 ///
 ULONG
-IoZctGetLength(
-    IN PIO_ZCT pZct
+LwZctGetLength(
+    IN PLW_ZCT_VECTOR pZct
     );
 
 ///
-/// Get the mask of ZCT entry types supported in a ZCT.
+/// Get the mask of ZCT buffer types supported in a ZCT vector.
 ///
-/// @param[in] pZct - ZCT to query.
+/// @param[in] pZct - ZCT vector to query.
 ///
-/// @return Appropriate #IO_ZCT_ENTRY_MASK
+/// @return Appropriate #LW_ZCT_ENTRY_MASK
 ///
-IO_ZCT_ENTRY_MASK
-IoZctGetSupportedMask(
-    IN PIO_ZCT pZct
+LW_ZCT_ENTRY_MASK
+LwZctGetSupportedMask(
+    IN PLW_ZCT_VECTOR pZct
     );
 
 ///
-/// Get supported ZCT types based on I/O type.
+/// Get supported ZCT buffer types based on I/O type.
 ///
-/// Get supported ZCT types based on I/O type.  If an invalid
+/// Get supported ZCT buffer types based on I/O type.  If an invalid
 /// I/O type is specified, a zero mask would be returned.
 ///
 /// @param[in] IoType - Type of I/O
 ///
-/// @return mask of supported ZCT types on the system
+/// @return mask of supported ZCT buffer types on the system
 
-IO_ZCT_ENTRY_MASK
-IoZctGetSystemSupportedMask(
-    IN IO_ZCT_IO_TYPE IoType
+LW_ZCT_ENTRY_MASK
+LwZctGetSystemSupportedMask(
+    IN LW_ZCT_IO_TYPE IoType
     );
 
 ///
-/// Prepare ZCT for I/O.
+/// Prepare ZCT vector for I/O.
 ///
-/// After calling this, the ZCT can no longer be extended.
+/// After calling this, the ZCT vector can no longer be extended.
 ///
-/// @param[in, out] pZct - ZCT to prepare for I/O.
+/// @param[in, out] pZct - ZCT vector to prepare for I/O.
 ///
 NTSTATUS
-IoZctPrepareIo(
-    IN OUT PIO_ZCT pZct
+LwZctPrepareIo(
+    IN OUT PLW_ZCT_VECTOR pZct
     );
 
 #if 0
 NTSTATUS
-IoZctPerform{Socket}Io(
-    IN OUT PIO_ZCT pZct,
+LwZctPerform{Socket}Io(
+    IN OUT PLW_ZCT_VECTOR pZct,
     IN int {Socket}Fd,
     OUT OPTIONAL PULONG BytesTransferred,
     OUT OPTIONAL PULONG BytesRemaining
@@ -268,11 +258,11 @@ IoZctPerform{Socket}Io(
 #endif
 
 ///
-/// Read from socket into ZCT.
+/// Read from socket into ZCT vector.
 ///
-/// The ZCT must have been prepared with IoZctPrepareIo().
+/// The ZCT vector must have been prepared with LwZctPrepareIo().
 ///
-/// @param[in out] pZct - ZCT into which to read.
+/// @param[in out] pZct - ZCT vector into which to read.
 /// @param[in] pSocketFd - Socket from which to read.
 /// @param[out] BytesTrasnferred - returns bytes read.
 /// @param[out] BytesRemaining - returns bytes remaining to read.
@@ -282,19 +272,19 @@ IoZctPerform{Socket}Io(
 /// @retval !NT_SUCCESS
 ///
 NTSTATUS
-IoZctReadSocketIo(
-    IN OUT PIO_ZCT pZct,
+LwZctReadSocketIo(
+    IN OUT PLW_ZCT_VECTOR pZct,
     IN int SocketFd,
     OUT OPTIONAL PULONG BytesTransferred,
     OUT OPTIONAL PULONG BytesRemaining
     );
 
 ///
-/// Write into socket from ZCT.
+/// Write into socket from ZCT vector.
 ///
-/// The ZCT must have been prepared with IoZctPrepareIo().
+/// The ZCT vector must have been prepared with LwZctPrepareIo().
 ///
-/// @param[in out] pZct - ZCT from which to write.
+/// @param[in out] pZct - ZCT vector from which to write.
 /// @param[in] pSocketFd - Socket info which to write.
 /// @param[out] BytesTrasnferred - returns bytes written.
 /// @param[out] BytesRemaining - returns bytes remaining to write.
@@ -304,8 +294,8 @@ IoZctReadSocketIo(
 /// @retval !NT_SUCCESS
 ///
 NTSTATUS
-IoZctWriteSocketIo(
-    IN OUT PIO_ZCT pZct,
+LwZctWriteSocketIo(
+    IN OUT PLW_ZCT_VECTOR pZct,
     IN int SocketFd,
     OUT OPTIONAL PULONG BytesTransferred,
     OUT OPTIONAL PULONG BytesRemaining

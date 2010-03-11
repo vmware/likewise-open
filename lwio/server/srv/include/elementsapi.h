@@ -62,7 +62,8 @@ typedef UCHAR SMB_OPLOCK_LEVEL;
 #define SMB_CN_MAX_BUFFER_SIZE 0x00010000
 
 typedef VOID (*PFN_LWIO_SRV_FREE_OPLOCK_STATE)(HANDLE hOplockState);
-typedef VOID (*PFN_LWIO_SRV_FREE_BRL_STATE)(HANDLE hByteRangeLockState);
+typedef VOID (*PFN_LWIO_SRV_FREE_BRL_STATE_LIST)(HANDLE hBRLStateList);
+typedef VOID (*PFN_LWIO_SRV_CANCEL_ASYNC_STATE)(HANDLE hAsyncState);
 typedef VOID (*PFN_LWIO_SRV_FREE_ASYNC_STATE)(HANDLE hAsyncState);
 
 typedef struct __SMB2_FID
@@ -82,7 +83,9 @@ typedef struct _LWIO_ASYNC_STATE
     USHORT                         usCommand;
 
     HANDLE                         hAsyncState;
-    PFN_LWIO_SRV_FREE_ASYNC_STATE  pfnFreeAsyncState;
+
+    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState;
+    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState;
 
 } LWIO_ASYNC_STATE, *PLWIO_ASYNC_STATE;
 
@@ -110,8 +113,9 @@ typedef struct _LWIO_SRV_FILE
     HANDLE                         hOplockState;
     PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
 
-    HANDLE                         hByteRangeLockState;
-    PFN_LWIO_SRV_FREE_BRL_STATE    pfnFreeByteRangeLockState;
+    HANDLE                           hCancellableBRLStateList;
+    PFN_LWIO_SRV_FREE_BRL_STATE_LIST pfnFreeBRLStateList;
+
     ULONG64                        ullLastFailedLockOffset;
 
 } LWIO_SRV_FILE, *PLWIO_SRV_FILE;
@@ -284,9 +288,9 @@ typedef struct _SRV_CLIENT_PROPERITES
 
 } SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
 
-struct _SRV_SOCKET;
-typedef VOID (*PFN_SRV_SOCKET_FREE)(struct _SRV_SOCKET* pSocket);
-typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(struct _SRV_SOCKET* pSocket, PVOID* ppAddr, PULONG pulAddrLength);
+typedef struct _SRV_SOCKET *PLWIO_SRV_SOCKET;
+typedef VOID (*PFN_SRV_SOCKET_FREE)(PLWIO_SRV_SOCKET pSocket);
+typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(PLWIO_SRV_SOCKET pSocket, PVOID* ppAddr, PULONG pulAddrLength);
 
 typedef struct _SRV_CONNECTION_SOCKET_DISPATCH {
     PFN_SRV_SOCKET_FREE pfnFree;
@@ -302,7 +306,7 @@ typedef struct _SRV_CONNECTION
 
     LWIO_SRV_CONN_STATE  state;
 
-    struct _SRV_SOCKET* pSocket;
+    PLWIO_SRV_SOCKET pSocket;
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
 
     SRV_PROPERTIES        serverProperties;
@@ -589,11 +593,17 @@ SrvAsyncStateBuildId(
 
 NTSTATUS
 SrvAsyncStateCreate(
-    ULONG64                       ullAsyncId,
-    USHORT                        usCommand,
-    HANDLE                        hAsyncState,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
-    PLWIO_ASYNC_STATE*            ppAsyncState
+    ULONG64                         ullAsyncId,
+    USHORT                          usCommand,
+    HANDLE                          hAsyncState,
+    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*              ppAsyncState
+    );
+
+VOID
+SrvAsyncStateCancel(
+    PLWIO_ASYNC_STATE pAsyncState
     );
 
 PLWIO_ASYNC_STATE
@@ -608,7 +618,7 @@ SrvAsyncStateRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    struct _SRV_SOCKET*             hSocket,
+    PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
     PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
@@ -663,10 +673,11 @@ SrvConnection2FindSession(
 
 NTSTATUS
 SrvConnection2CreateAsyncState(
-    PLWIO_SRV_CONNECTION          pConnection,
-    USHORT                        usCommand,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
-    PLWIO_ASYNC_STATE*            ppAsyncState
+    PLWIO_SRV_CONNECTION            pConnection,
+    USHORT                          usCommand,
+    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*              ppAsyncState
     );
 
 NTSTATUS
@@ -1176,6 +1187,11 @@ SrvIsValidExecContext(
 VOID
 SrvReleaseExecContextHandle(
    IN HANDLE hExecContext
+   );
+
+PSRV_EXEC_CONTEXT
+SrvAcquireExecContext(
+   PSRV_EXEC_CONTEXT pContext
    );
 
 VOID

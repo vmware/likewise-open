@@ -529,13 +529,13 @@ SrvShutdown(
 
         SrvShareShutdown();
 
+        SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
+
         if (gSMBSrvGlobals.hPacketAllocator)
         {
             SMBPacketFreeAllocator(gSMBSrvGlobals.hPacketAllocator);
             gSMBSrvGlobals.hPacketAllocator = NULL;
         }
-
-        SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
 
         SrvFreeConfigContents(&gSMBSrvGlobals.config);
 

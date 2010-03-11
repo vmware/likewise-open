@@ -132,7 +132,7 @@ static
 NTSTATUS
 SrvProtocolTransportDriverDetectPacket(
     IN PSRV_CONNECTION pConnection,
-    IN OUT PULONG pBytesAvailable,
+    IN OUT PULONG pulBytesAvailable,
     OUT PSMB_PACKET* ppPacket
     );
 
@@ -212,7 +212,8 @@ SrvProtocolTransportDriverShutdown(
         // This will cause done notifications to occur,
         // which will get rid of any last remaining connection
         // references.
-        SrvTransportShutdown(&pTransportContext->hTransport);
+        SrvTransportShutdown(pTransportContext->hTransport);
+        pTransportContext->hTransport = NULL;
     }
 
     if (pTransportContext->hGssContext)
@@ -632,7 +633,7 @@ SrvProtocolTransportDriverUpdateBuffer(
 
     // TODO-Set Minimum = 1 (or something smarter) for ZCT for SMB write.
     // TODO-Test out setting Size = Minimum (perhaps registry config) -- IFF not doing ZCT SMB write support.
-    ntStatus = SrvTransportSocketSetNewDataNotify(
+    ntStatus = SrvTransportSocketSetBuffer(
                     pConnection->pSocket,
                     pBuffer,
                     Size,
@@ -655,7 +656,7 @@ SrvProtocolTransportDriverRemoveBuffer(
     )
 {
     // Do not give any buffer to the socket.
-    SrvTransportSocketSetNewDataNotify(
+    SrvTransportSocketSetBuffer(
             pConnection->pSocket,
             NULL,
             0,
@@ -666,19 +667,19 @@ static
 NTSTATUS
 SrvProtocolTransportDriverDetectPacket(
     IN PSRV_CONNECTION pConnection,
-    IN OUT PULONG pBytesAvailable,
+    IN OUT PULONG pulBytesAvailable,
     OUT PSMB_PACKET* ppPacket
     )
 {
     NTSTATUS ntStatus = 0;
-    ULONG bytesRemaining = *pBytesAvailable;
+    ULONG ulBytesAvailable = *pulBytesAvailable;
     PSMB_PACKET pPacketFound = NULL;
 
-    LWIO_ASSERT(bytesRemaining > 0);
+    LWIO_ASSERT(ulBytesAvailable > 0);
 
     if (pConnection->readerState.bNeedHeader)
     {
-        size_t sNumBytesRead = LW_MIN(pConnection->readerState.sNumBytesToRead, bytesRemaining);
+        size_t sNumBytesRead = LW_MIN(pConnection->readerState.sNumBytesToRead, ulBytesAvailable);
 
         pConnection->readerState.sNumBytesToRead -= sNumBytesRead;
         pConnection->readerState.sOffset += sNumBytesRead;
@@ -704,20 +705,20 @@ SrvProtocolTransportDriverDetectPacket(
             }
         }
 
-        bytesRemaining -= sNumBytesRead;
+        ulBytesAvailable -= sNumBytesRead;
     }
 
-    if (bytesRemaining &&
+    if (ulBytesAvailable &&
         !pConnection->readerState.bNeedHeader &&
         pConnection->readerState.sNumBytesToRead)
     {
-        size_t sNumBytesRead = LW_MIN(pConnection->readerState.sNumBytesToRead, bytesRemaining);
+        size_t sNumBytesRead = LW_MIN(pConnection->readerState.sNumBytesToRead, ulBytesAvailable);
 
         pConnection->readerState.sNumBytesToRead            -= sNumBytesRead;
         pConnection->readerState.sOffset                    += sNumBytesRead;
         pConnection->readerState.pRequestPacket->bufferUsed += sNumBytesRead;
 
-        bytesRemaining -= sNumBytesRead;
+        ulBytesAvailable -= sNumBytesRead;
     }
 
     // Packet is complete
@@ -809,7 +810,7 @@ SrvProtocolTransportDriverDetectPacket(
 
 cleanup:
 
-    *pBytesAvailable = bytesRemaining;
+    *pulBytesAvailable = ulBytesAvailable;
     *ppPacket = pPacketFound;
 
     return ntStatus;
@@ -817,7 +818,7 @@ cleanup:
 error:
 
     pPacketFound = NULL;
-    bytesRemaining = 0;
+    ulBytesAvailable = 0;
 
     goto cleanup;
 }
@@ -986,6 +987,7 @@ SrvProtocolTransportSendResponse(
     PSRV_SEND_CONTEXT pSendContext = NULL;
 
     ntStatus = SrvAllocateMemory(sizeof(*pSendContext), OUT_PPVOID(&pSendContext));
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pSendContext->pConnection = pConnection;
     SrvConnectionAcquire(pConnection);

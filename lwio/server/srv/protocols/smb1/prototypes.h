@@ -226,17 +226,22 @@ SrvBuildErrorResponse_SMB_V1(
 
 NTSTATUS
 SrvCreatePendingLockStateList(
-    PSRV_PENDING_LOCK_STATE_LIST* ppLockStateList
+    PSRV_BYTE_RANGE_LOCK_STATE_LIST* ppBRLStateList
     );
 
 VOID
 SrvFreePendingLockStateListHandle(
-    HANDLE hLockStateList
+    HANDLE hBRLStateList
     );
 
 NTSTATUS
 SrvProcessLockAndX(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+VOID
+SrvCancelLockState(
+    HANDLE hLockState
     );
 
 // logoff.c
@@ -261,6 +266,11 @@ SrvNotifyCreateState(
     BOOLEAN                           bWatchTree,
     ULONG                             ulMaxBufferSize,
     PSRV_CHANGE_NOTIFY_STATE_SMB_V1*  ppNotifyState
+    );
+
+VOID
+SrvNotifyStateCancel(
+    HANDLE hNotifyState
     );
 
 VOID

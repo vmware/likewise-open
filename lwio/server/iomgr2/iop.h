@@ -166,8 +166,8 @@ struct _IO_FILE_OBJECT {
         PIO_STATUS_BLOCK pIoStatusBlock;
     } Rundown;
 
-    IO_ZCT_ENTRY_MASK ZctReadMask;
-    IO_ZCT_ENTRY_MASK ZctWriteMask;
+    LW_ZCT_ENTRY_MASK ZctReadMask;
+    LW_ZCT_ENTRY_MASK ZctWriteMask;
 
     // TODO -- Pre-allocate IRP_TYPE_CLOSE...
 };
@@ -404,8 +404,8 @@ IopFileObjectFree(
 VOID
 IopFileGetZctSupportMask(
     IN IO_FILE_HANDLE FileHandle,
-    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctReadMask,
-    OUT OPTIONAL PIO_ZCT_ENTRY_MASK ZctWriteMask
+    OUT OPTIONAL PLW_ZCT_ENTRY_MASK ZctReadMask,
+    OUT OPTIONAL PLW_ZCT_ENTRY_MASK ZctWriteMask
     );
 
 NTSTATUS

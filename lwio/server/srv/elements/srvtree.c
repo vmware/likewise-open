@@ -90,6 +90,15 @@ SrvTreeAsyncStateRelease(
 
 static
 NTSTATUS
+SrvTreeRundownAsyncStatesRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
 SrvTreeRundownFileRbTreeVisit(
     PVOID pKey,
     PVOID pData,
@@ -186,9 +195,7 @@ SrvTreeFindFile(
         pTree->lruFile[fid % SRV_LRU_CAPACITY] = pFile;
     }
 
-    SrvFileAcquire(pFile);
-
-    *ppFile = pFile;
+    *ppFile = SrvFileAcquire(pFile);
 
 cleanup:
 
@@ -209,7 +216,7 @@ error:
 
 NTSTATUS
 SrvTreeCreateFile(
-    PLWIO_SRV_TREE           pTree,
+    PLWIO_SRV_TREE          pTree,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
@@ -219,7 +226,7 @@ SrvTreeCreateFile(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE*          ppFile
+    PLWIO_SRV_FILE*         ppFile
     )
 {
     NTSTATUS ntStatus = 0;
@@ -254,9 +261,7 @@ SrvTreeCreateFile(
                     pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvFileAcquire(pFile);
-
-    *ppFile = pFile;
+    *ppFile = SrvFileAcquire(pFile);
 
 cleanup:
 
@@ -513,6 +518,12 @@ SrvTreeRundown(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
+    LwRtlRBTreeTraverse(
+                pTree->pAsyncStateCollection,
+                LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                SrvTreeRundownAsyncStatesRbTreeVisit,
+                NULL);
+
 	if (pTree->pAsyncStateCollection)
 	{
 	LwRtlRBTreeRemoveAll(pTree->pAsyncStateCollection);
@@ -688,6 +699,27 @@ SrvTreeAsyncStateRelease(
     )
 {
     SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
+}
+
+static
+NTSTATUS
+SrvTreeRundownAsyncStatesRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_ASYNC_STATE pAsyncState = (PLWIO_ASYNC_STATE)pData;
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateCancel(pAsyncState);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
 }
 
 static

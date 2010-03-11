@@ -82,7 +82,7 @@ SrvSocketCreate(
 
 VOID
 SrvSocketFree(
-    IN OUT PSRV_SOCKET* ppSocket
+    IN OUT PSRV_SOCKET pSocket
     );
 
 VOID
@@ -103,7 +103,7 @@ SrvSocketGetFileDescriptor(
     );
 
 NTSTATUS
-SrvSocketSetNewDataNotify(
+SrvSocketSetBuffer(
     IN PSRV_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
@@ -122,7 +122,7 @@ NTSTATUS
 SrvSocketSendZctReply(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,
-    IN PIO_ZCT pZct
+    IN PLW_ZCT_VECTOR pZct
     );
 
 VOID
