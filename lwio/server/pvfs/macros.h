@@ -49,9 +49,9 @@
 
 /* Developer cycle testing macros; Disabled for release */
 
-/* #define PVFS_DEVELOPER_DEBUG 1 */
+/* #define _PVFS_DEVELOPER_DEBUG 1 */
 
-#ifdef PVFS_DEVELOPER_DEBUG
+#ifdef _PVFS_DEVELOPER_DEBUG
 /* Insert macro for developing here */
 #endif
 

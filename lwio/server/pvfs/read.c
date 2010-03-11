@@ -290,7 +290,7 @@ PvfsCreateReadContext(
                   sizeof(PVFS_PENDING_READ));
     BAIL_ON_NT_STATUS(ntError);
 
-    pReadCtx->pIrpContext = pIrpContext;
+    pReadCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pReadCtx->pCcb = PvfsReferenceCCB(pCcb);
 
     *ppReadContext = pReadCtx;
@@ -315,20 +315,22 @@ PvfsFreeReadContext(
 {
     PPVFS_PENDING_READ pReadCtx = NULL;
 
-    if (!ppContext || !(*ppContext))
+    if (ppContext && *ppContext)
     {
-        return;
+        pReadCtx = (PPVFS_PENDING_READ)(*ppContext);
+
+        if (pReadCtx->pIrpContext)
+        {
+            PvfsReleaseIrpContext(&pReadCtx->pIrpContext);
+        }
+
+        if (pReadCtx->pCcb)
+        {
+            PvfsReleaseCCB(pReadCtx->pCcb);
+        }
+
+        PVFS_FREE(ppContext);
     }
-
-    pReadCtx = (PPVFS_PENDING_READ)(*ppContext);
-
-    if (pReadCtx->pCcb)
-    {
-        PvfsReleaseCCB(pReadCtx->pCcb);
-    }
-
-    PVFS_FREE(&pReadCtx);
-    *ppContext = NULL;
 
     return;
 }

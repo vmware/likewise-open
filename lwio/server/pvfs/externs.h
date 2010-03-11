@@ -69,5 +69,12 @@ extern PPVFS_ID_CACHE gUidMruCache[];
 extern pthread_mutex_t gGidMruCacheMutex;
 extern PPVFS_ID_CACHE gGidMruCache[];
 
+#ifdef _PVFS_DEVELOPER_DEBUG
+extern LONG gIrpContextCount;
+extern LONG gFcbCount;
+extern LONG gCcbCount;
+extern LONG gWorkContextCount;
+#endif
+
 
 #endif /* __EXTERNS_H__ */

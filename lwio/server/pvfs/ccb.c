@@ -47,10 +47,6 @@
 
 #include "pvfs.h"
 
-/* Forward declarations */
-
-
-/* Code */
 
 /***********************************************************
  **********************************************************/
@@ -82,6 +78,10 @@ PvfsAllocateCCB(
     pCCB->RefCount = 1;
 
     *ppCCB = pCCB;
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+        InterlockedIncrement(&gCcbCount);
+#endif
 
     ntError = STATUS_SUCCESS;
 
@@ -129,6 +129,11 @@ PvfsFreeCCB(
     pthread_mutex_destroy(&pCCB->ControlBlock);
 
     PVFS_FREE(&pCCB);
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+        InterlockedDecrement(&gCcbCount);
+#endif
+
 
     return STATUS_SUCCESS;
 }
