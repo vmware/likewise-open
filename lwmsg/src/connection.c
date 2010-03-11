@@ -58,7 +58,7 @@ lwmsg_connection_construct(
     BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->sendbuffer));
     BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->recvbuffer));
 
-    priv->packet_size = 2048;
+    priv->packet_size = 8192;
     priv->fd = -1;
     priv->mode = LWMSG_CONNECTION_MODE_NONE;
 
