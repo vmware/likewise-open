@@ -754,12 +754,10 @@ SrvRegisterPendingLockState(
 
     SrvAcquireLockState(pLockState);
 
+    pLockState->ullAsyncId = pBRLState->ullAsyncId; // publish for cancellation
+
     ntStatus = SrvTreeAddAsyncState(pTree, pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    SrvAsyncStateAcquire(pAsyncState);
-
-    pLockState->ullAsyncId = pBRLState->ullAsyncId; // publish for cancellation
 
     LWIO_LOCK_MUTEX(bInLock, &pBRLStateList->mutex);
 
@@ -791,6 +789,11 @@ error:
     if (pBRLState)
     {
         SrvFreeMemory(pBRLState);
+    }
+
+    if (pLockState)
+    {
+        pLockState->ullAsyncId = 0;
     }
 
     goto cleanup;
