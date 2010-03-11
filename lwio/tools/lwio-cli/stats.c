@@ -176,27 +176,19 @@ PrintServerStats_level_0(
 {
     printf("Server statistics [level 0]: \n\n");
 
-    printf("Number of connections:           [%lld]\n",
-           (long long)pStats->llNumConnections);
+    printf("Connections   [Current: %lld] [Maximum: %lld]\n",
+           (long long)pStats->llNumConnections,
+           (long long)pStats->llMaxNumConnections);
 
-    printf("Maximum Number of connections:   [%lld]\n",
-            (long long)pStats->llMaxNumConnections);
-
-    printf("Number of sessions:              [%lld]\n",
-            (long long)pStats->llNumSessions);
-
-    printf("Maximum Number of sessions:      [%lld]\n",
+    printf("Sessions      [Current: %lld] [Maximum: %lld]\n",
+            (long long)pStats->llNumSessions,
             (long long)pStats->llMaxNumSessions);
 
-    printf("Number of tree connects:         [%lld]\n",
-            (long long)pStats->llNumTreeConnects);
-
-    printf("Maximum Number of tree connects: [%lld]\n",
+    printf("Tree connects [Current: %lld] [Maximum: %lld]\n",
+            (long long)pStats->llNumTreeConnects,
             (long long)pStats->llMaxNumTreeConnects);
 
-    printf("Number of open files:            [%lld]\n",
-            (long long)pStats->llNumOpenFiles);
-
-    printf("Maximum Number of open files:    [%lld]\n",
+    printf("Files:        [Current: %lld] [Maximum: %lld]\n",
+            (long long)pStats->llNumOpenFiles,
             (long long)pStats->llMaxNumOpenFiles);
 }
