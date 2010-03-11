@@ -22,7 +22,6 @@ typedef ULONG SRV_SOCKET_STATE_MASK, *PSRV_SOCKET_STATE_MASK;
 #define SRV_SOCKET_STATE_EXTERNAL_CLOSE 0x00000001
 #define SRV_SOCKET_STATE_FD_WRITABLE    0x00000002
 #define SRV_SOCKET_STATE_FD_READABLE    0x00000004
-#define SRV_SOCKET_STATE_CLOSED         0x00000008
 
 // Abstraction for socket address to handle different address types.
 typedef union {

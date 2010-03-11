@@ -985,6 +985,7 @@ SrvProtocolTransportSendResponse(
 {
     NTSTATUS ntStatus = 0;
     PSRV_SEND_CONTEXT pSendContext = NULL;
+    BOOLEAN bInLock = FALSE;
 
     ntStatus = SrvAllocateMemory(sizeof(*pSendContext), OUT_PPVOID(&pSendContext));
     BAIL_ON_NT_STATUS(ntStatus);
@@ -996,6 +997,14 @@ SrvProtocolTransportSendResponse(
     pSendContext->pPacket = pPacket;
     InterlockedIncrement(&pPacket->refCount);
 
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    if (!pConnection->pSocket)
+    {
+        ntStatus = STATUS_CONNECTION_DISCONNECTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvTransportSocketSendReply(
                     pConnection->pSocket,
                     pSendContext,
@@ -1003,11 +1012,17 @@ SrvProtocolTransportSendResponse(
                     pSendContext->pPacket->bufferUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
 cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
 
 error:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     if (pSendContext)
     {

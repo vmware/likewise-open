@@ -153,6 +153,14 @@ SrvTransportSocketSendZctReply(
 }
 
 VOID
+SrvTransportSocketDisconnect(
+    IN PSRV_SOCKET pSocket
+    )
+{
+    return SrvSocketDisconnect(pSocket);
+}
+
+VOID
 SrvTransportSocketClose(
     IN OUT PSRV_SOCKET pSocket
     )

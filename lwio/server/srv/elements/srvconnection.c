@@ -369,6 +369,11 @@ SrvConnectionSetInvalid(
     {
         pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
         SrvConnectionRundown_inlock(pConnection);
+        if (pConnection->pSocket)
+        {
+            pConnection->pSocketDispatch->pfnFree(pConnection->pSocket);
+            pConnection->pSocket = NULL;
+        }
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
