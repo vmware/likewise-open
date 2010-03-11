@@ -226,8 +226,8 @@ SrvProcessCreate_SMB_V2(
         ntStatus = SrvConnection2CreateAsyncState(
                                 pConnection,
                                 COM2_CREATE,
-                                &SrvReleaseCreateStateHandle_SMB_V2,
                                 &SrvCancelCreateStateHandle_SMB_V2,
+                                &SrvReleaseCreateStateHandle_SMB_V2,
                                 &pAsyncState);
         BAIL_ON_NT_STATUS(ntStatus);
 

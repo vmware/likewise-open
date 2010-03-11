@@ -193,8 +193,8 @@ SrvProcessNotify_SMB_V2(
              ntStatus = SrvConnection2CreateAsyncState(
                              pConnection,
                              COM2_NOTIFY,
-                             &SrvNotifyStateReleaseHandle_SMB_V2,
                              &SrvCancelNotifyState_SMB_V2,
+                             &SrvNotifyStateReleaseHandle_SMB_V2,
                              &pAsyncState);
              BAIL_ON_NT_STATUS(ntStatus);
 

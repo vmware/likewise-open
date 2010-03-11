@@ -232,8 +232,8 @@ SrvProcessLock_SMB_V2(
                 ntStatus = SrvConnection2CreateAsyncState(
                                 pConnection,
                                 COM2_LOCK,
-                                &SrvReleaseAsyncLockStateHandle_SMB_V2,
                                 &SrvCancelAsyncLockState_SMB_V2,
+                                &SrvReleaseAsyncLockStateHandle_SMB_V2,
                                 &pAsyncState);
                 BAIL_ON_NT_STATUS(ntStatus);
 
