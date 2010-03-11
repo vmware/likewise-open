@@ -190,6 +190,11 @@ SrvProcessLock_SMB_V2(
     PSRV_EXEC_CONTEXT pContext
     );
 
+VOID
+SrvCancelAsyncLockState_SMB_V2(
+    HANDLE hLockState
+    );
+
 NTSTATUS
 SrvDetermineLocks_SMB_V2(
     PSMB2_LOCK_REQUEST_HEADER pLockRequestHeader,
@@ -276,6 +281,11 @@ SrvProcessNotifyCompletion_SMB_V2(
 NTSTATUS
 SrvCancelChangeNotify_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
+    );
+
+VOID
+SrvCancelNotifyState_SMB_V2(
+    HANDLE hNotifyState
     );
 
 // notify_state.c

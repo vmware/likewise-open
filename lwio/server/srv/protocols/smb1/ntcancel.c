@@ -50,18 +50,6 @@
 
 #include "includes.h"
 
-static
-NTSTATUS
-SrvCancelNotifyRequest(
-    PLWIO_ASYNC_STATE pAsyncState
-    );
-
-static
-NTSTATUS
-SrvCancelLockRequest(
-    PLWIO_ASYNC_STATE pAsyncState
-    );
-
 NTSTATUS
 SrvProcessNTCancel(
     PSRV_EXEC_CONTEXT pExecContext
@@ -103,13 +91,13 @@ SrvProcessNTCancel(
     {
         case SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE:
 
-            ntStatus = SrvCancelNotifyRequest(pAsyncState);
+            SrvNotifyStateCancel(pAsyncState->hAsyncState);
 
             break;
 
         case COM_LOCKING_ANDX:
 
-            ntStatus = SrvCancelLockRequest(pAsyncState);
+            SrvCancelLockState(pAsyncState->hAsyncState);
 
             break;
 
@@ -151,53 +139,3 @@ error:
     goto cleanup;
 }
 
-static
-NTSTATUS
-SrvCancelNotifyRequest(
-    PLWIO_ASYNC_STATE pAsyncState
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-    PSRV_CHANGE_NOTIFY_STATE_SMB_V1 pNotifyState = NULL;
-
-    pNotifyState =
-            (PSRV_CHANGE_NOTIFY_STATE_SMB_V1)pAsyncState->hAsyncState;
-
-    LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
-
-    if (pNotifyState->pAcb && pNotifyState->pAcb->AsyncCancelContext)
-    {
-        IoCancelAsyncCancelContext(
-                    pNotifyState->pAcb->AsyncCancelContext);
-    }
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
-
-    return ntStatus;
-}
-
-static
-NTSTATUS
-SrvCancelLockRequest(
-    PLWIO_ASYNC_STATE pAsyncState
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-    PSRV_LOCK_STATE_SMB_V1 pLockState = NULL;
-
-    pLockState = (PSRV_LOCK_STATE_SMB_V1)pAsyncState->hAsyncState;
-
-    LWIO_LOCK_MUTEX(bInLock, &pLockState->mutex);
-
-    if (pLockState->pAcb && pLockState->pAcb->AsyncCancelContext)
-    {
-        IoCancelAsyncCancelContext(
-                pLockState->pAcb->AsyncCancelContext);
-    }
-
-    LWIO_UNLOCK_MUTEX(bInLock, &pLockState->mutex);
-
-    return ntStatus;
-}

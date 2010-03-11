@@ -57,6 +57,12 @@ SrvBuildNotifyRequestState_SMB_V2(
     );
 
 static
+VOID
+SrvCancelNotifyState_SMB_V2_inlock(
+    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+    );
+
+static
 NTSTATUS
 SrvExecuteChangeNotify_SMB_V2(
     PSRV_EXEC_CONTEXT        pExecContext,
@@ -188,6 +194,7 @@ SrvProcessNotify_SMB_V2(
                              pConnection,
                              COM2_NOTIFY,
                              &SrvNotifyStateReleaseHandle_SMB_V2,
+                             &SrvCancelNotifyState_SMB_V2,
                              &pAsyncState);
              BAIL_ON_NT_STATUS(ntStatus);
 
@@ -479,10 +486,7 @@ SrvCancelChangeNotify_SMB_V2(
 
     LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
 
-    if (pNotifyState->pAcb && pNotifyState->pAcb->AsyncCancelContext)
-    {
-        IoCancelAsyncCancelContext(pNotifyState->pAcb->AsyncCancelContext);
-    }
+    SrvCancelNotifyState_SMB_V2_inlock(pNotifyState);
 
 cleanup:
 
@@ -501,6 +505,22 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+VOID
+SrvCancelNotifyState_SMB_V2(
+    HANDLE hNotifyState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState =
+                        (PSRV_NOTIFY_STATE_SMB_V2)hNotifyState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
+
+    SrvCancelNotifyState_SMB_V2_inlock(pNotifyState);
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
 }
 
 static
@@ -543,6 +563,18 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvCancelNotifyState_SMB_V2_inlock(
+    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+    )
+{
+    if (pNotifyState->pAcb && pNotifyState->pAcb->AsyncCancelContext)
+    {
+        IoCancelAsyncCancelContext(pNotifyState->pAcb->AsyncCancelContext);
+    }
 }
 
 static

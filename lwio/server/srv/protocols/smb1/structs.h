@@ -345,6 +345,11 @@ typedef struct _SRV_LOCK_STATE_SMB_V1
     PLOCKING_ANDX_RANGE              pUnlockRange;       // Do not free
     PLOCKING_ANDX_RANGE              pLockRange;         // Do not free
 
+    ULONG                            ulPid;
+    USHORT                           usMid;
+
+    ULONG64                          ullAsyncId;
+
     USHORT                           iUnlock;
     BOOLEAN                          bUnlockPending;
 
@@ -364,19 +369,25 @@ typedef struct _SRV_LOCK_STATE_SMB_V1
 
     PSRV_TIMER_REQUEST               pTimerRequest;
 
-    struct _SRV_LOCK_STATE_SMB_V1*   pNext;
-
 } SRV_LOCK_STATE_SMB_V1, *PSRV_LOCK_STATE_SMB_V1;
 
-typedef struct _SRV_PENDING_LOCK_STATE_LIST
+typedef struct _SRV_BYTE_RANGE_LOCK_STATE
 {
-    pthread_mutex_t        mutex;
-    pthread_mutex_t*       pMutex;
+    ULONG64 ullAsyncId;
 
-    PSRV_LOCK_STATE_SMB_V1 pLockStateHead;
-    PSRV_LOCK_STATE_SMB_V1 pLockStateTail;
+    struct _SRV_BYTE_RANGE_LOCK_STATE* pNext;
 
-} SRV_PENDING_LOCK_STATE_LIST, *PSRV_PENDING_LOCK_STATE_LIST;
+} SRV_BYTE_RANGE_LOCK_STATE, *PSRV_BYTE_RANGE_LOCK_STATE;
+
+typedef struct _SRV_BYTE_RANGE_LOCK_STATE_LIST
+{
+    pthread_mutex_t  mutex;
+    pthread_mutex_t* pMutex;
+
+    PSRV_BYTE_RANGE_LOCK_STATE pHead;
+    PSRV_BYTE_RANGE_LOCK_STATE pTail;
+
+} SRV_BYTE_RANGE_LOCK_STATE_LIST, *PSRV_BYTE_RANGE_LOCK_STATE_LIST;
 
 typedef enum
 {
