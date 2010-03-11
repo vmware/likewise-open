@@ -688,7 +688,6 @@ static struct gss_config krb5_mechanism = {
     krb5_gss_export_name_composite,
     krb5_gss_map_name_to_any,
     krb5_gss_release_any_name_mapping,
-    NULL,               /* set_neg_mechs */
 };
 
 
