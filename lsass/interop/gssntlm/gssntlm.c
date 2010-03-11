@@ -541,14 +541,6 @@ typedef struct _GSS_MECH_CONFIG
         gss_buffer_t,
         gss_any_t *
         );
-
-    OM_uint32
-    (*gss_set_neg_mechs)
-    (
-        OM_uint32 *,
-        gss_cred_id_t,
-        const gss_OID_set
-        );
 } GSS_MECH_CONFIG, *PGSS_MECH_CONFIG;
 
 typedef struct _NTLM_GSS_NAME
@@ -625,7 +617,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     ntlm_gss_unwrap_iov,
     NULL, //ntlm_gss_wrap_iov_length,
     NULL, //ntlm_gss_complete_auth_token,
-    NULL, //ntlm_gss_acquire_cred_impersonate_name
+    NULL, //ntlm_gss_inquire_context2
     .gss_get_name_attribute = ntlm_gss_get_name_attribute
 };
 
