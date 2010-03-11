@@ -697,6 +697,11 @@ SrvSetFileRenameInfo_SMB_V2(
         LWIO_UNLOCK_RWMUTEX(bTreeInLock,
                             &pCtxSmb2->pTree->pShareInfo->mutex);
 
+        // Catch failed CreateFile calls when they come back around
+
+        ntStatus = pSetInfoState->ioStatusBlock.Status;
+        BAIL_ON_NT_STATUS(ntStatus);
+
         SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
         ntStatus = SrvIoCreateFile(

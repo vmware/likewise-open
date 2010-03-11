@@ -378,14 +378,19 @@ typedef enum
 } PVFS_QUEUE_TYPE;
 
 
+#define PVFS_IRP_CTX_FLAG_NONE          0x0000
+#define PVFS_IRP_CTX_FLAG_CANCELLED     0x0001
+#define PVFS_IRP_CTX_FLAG_PENDED        0x0002
+#define PVFS_IRP_CTX_FLAG_ACTIVE        0x0004
+#define PVFS_IRP_CTX_FLAG_COMPLETE      0x0008
+
 struct _PVFS_IRP_CONTEXT
 {
     pthread_mutex_t Mutex;
-    pthread_cond_t  Event;    /* synchronize point for worker threads */
+    LONG RefCount;
 
-    BOOLEAN bIsCancelled;
-    BOOLEAN bIsPended;
-    BOOLEAN bInProgress;
+    USHORT Flags;
+
     PVFS_QUEUE_TYPE QueueType;
 
     PPVFS_FCB pFcb;

@@ -122,6 +122,16 @@ NtlmServerInitializeSecurityContext(
 
     *phNewContext = pNtlmContext;
 
+    if (pfContextAttr)
+    {
+        NtlmGetContextInfo(
+            pNtlmContext,
+            NULL,
+            pfContextAttr,
+            NULL,
+            NULL);
+    }
+
 
 cleanup:
     LW_SAFE_FREE_STRING(pWorkstation);

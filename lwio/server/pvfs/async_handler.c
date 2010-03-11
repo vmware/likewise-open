@@ -62,48 +62,45 @@ PvfsQueueCancelIrp(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pCancelContext;
-    BOOLEAN bIsLocked = FALSE;
+    BOOLEAN bCancelled = FALSE;
 
-    LWIO_LOCK_MUTEX(bIsLocked, &pIrpContext->Mutex);
+    bCancelled = PvfsIrpContextMarkIfNotSetFlag(
+                     pIrpContext,
+                     PVFS_IRP_CTX_FLAG_ACTIVE,
+                     PVFS_IRP_CTX_FLAG_CANCELLED);
 
-    if (pIrpContext->bInProgress) {
-        return;
-    }
-
-    pIrpContext->bIsCancelled = TRUE;
-
-    switch(pIrpContext->QueueType)
+    if (bCancelled)
     {
-    case PVFS_QUEUE_TYPE_IO:
-        /* Nothing to do.  Let the general Io Work queue processing
-           handle it */
-        ntError = STATUS_SUCCESS;
-        break;
+        switch(pIrpContext->QueueType)
+        {
+        case PVFS_QUEUE_TYPE_IO:
+            /* Nothing to do.  Let the general Io Work queue processing
+               handle it */
+            ntError = STATUS_SUCCESS;
+            break;
 
-    case PVFS_QUEUE_TYPE_OPLOCK:
-        ntError = PvfsScheduleCancelOplock(pIrpContext);
-        break;
+        case PVFS_QUEUE_TYPE_OPLOCK:
+            ntError = PvfsScheduleCancelOplock(pIrpContext);
+            break;
 
-    case PVFS_QUEUE_TYPE_PENDING_OPLOCK_BREAK:
-        ntError = PvfsScheduleCancelPendingOp(pIrpContext);
-        break;
+        case PVFS_QUEUE_TYPE_PENDING_OPLOCK_BREAK:
+            ntError = PvfsScheduleCancelPendingOp(pIrpContext);
+            break;
 
-    case PVFS_QUEUE_TYPE_PENDING_LOCK:
-        ntError = PvfsScheduleCancelLock(pIrpContext);
-        break;
+        case PVFS_QUEUE_TYPE_PENDING_LOCK:
+            ntError = PvfsScheduleCancelLock(pIrpContext);
+            break;
 
-    case PVFS_QUEUE_TYPE_NOTIFY:
-        ntError = PvfsScheduleCancelNotify(pIrpContext);
-        break;
+        case PVFS_QUEUE_TYPE_NOTIFY:
+            ntError = PvfsScheduleCancelNotify(pIrpContext);
+            break;
 
-    default:
-        /* Should never be reachable */
-        ntError = STATUS_INTERNAL_ERROR;
-        break;
-
+        default:
+            /* Should never be reachable */
+            ntError = STATUS_INTERNAL_ERROR;
+            break;
+        }
     }
-
-    LWIO_UNLOCK_MUTEX(bIsLocked, &pIrpContext->Mutex);
 
     return;
 }
@@ -135,7 +132,6 @@ PvfsScheduleIoWorkItem(
         pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
 
         PvfsAsyncIrpComplete(pIrpCtx);
-        PvfsFreeIrpContext(&pIrpCtx);
     }
     BAIL_ON_NT_STATUS(ntError);
 
@@ -170,11 +166,25 @@ PvfsCreateWorkContext(
     BAIL_ON_NT_STATUS(ntError);
 
     pWorkCtx->bIsIrpContext = bIsIrpContext;
-    pWorkCtx->pContext = pContext;
+    if (bIsIrpContext)
+    {
+        pWorkCtx->pContext = (PVOID)PvfsReferenceIrpContext(
+                                    (PPVFS_IRP_CONTEXT)pContext);
+    }
+    else
+    {
+        pWorkCtx->pContext = pContext;
+    }
+
     pWorkCtx->pfnCompletion = pfnCompletion;
     pWorkCtx->pfnFreeContext = pfnFreeContext;
 
     *ppWorkContext = pWorkCtx;
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+    InterlockedIncrement(&gWorkContextCount);
+#endif
+
 
     ntError = STATUS_SUCCESS;
 
@@ -194,24 +204,17 @@ PvfsFreeWorkContext(
     IN OUT PPVFS_WORK_CONTEXT *ppWorkContext
     )
 {
-    PPVFS_WORK_CONTEXT pWorkCtx = *ppWorkContext;
-    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
+    PPVFS_WORK_CONTEXT pWorkCtx = NULL;
 
-    if (pWorkCtx)
+    if (ppWorkContext && *ppWorkContext)
     {
+        pWorkCtx = *ppWorkContext;
+
         if (pWorkCtx->pContext)
         {
             if (pWorkCtx->bIsIrpContext)
             {
-                pIrpCtx = (PPVFS_IRP_CONTEXT)pWorkCtx->pContext;
-
-                if (pIrpCtx->pIrp)
-                {
-                    pIrpCtx->pIrp->IoStatusBlock.Status = STATUS_CANCELLED;
-
-                    PvfsAsyncIrpComplete(pIrpCtx);
-                    PvfsFreeIrpContext(&pIrpCtx);
-                }
+                PvfsReleaseIrpContext((PPVFS_IRP_CONTEXT*)&pWorkCtx->pContext);
             }
             else
             {
@@ -227,6 +230,10 @@ PvfsFreeWorkContext(
         }
 
         PVFS_FREE(ppWorkContext);
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+        InterlockedDecrement(&gWorkContextCount);
+#endif
     }
 
     return;
@@ -571,41 +578,6 @@ cleanup:
 
 error:
     goto cleanup;
-}
-
-
-VOID
-PvfsIrpMarkPending(
-    IN PPVFS_IRP_CONTEXT pIrpContext,
-    IN PIO_IRP_CALLBACK CancelCallback,
-    IN OPTIONAL PVOID CancelCallbackContext
-    )
-{
-    if (pIrpContext->bIsPended)
-    {
-        /* Impossible to pend a single IRP twice */
-        return;
-    }
-
-    IoIrpMarkPending(
-        pIrpContext->pIrp,
-        CancelCallback,
-        CancelCallbackContext);
-    pIrpContext->bIsPended = TRUE;
-}
-
-VOID
-PvfsAsyncIrpComplete(
-    PPVFS_IRP_CONTEXT pIrpContext
-    )
-{
-    if (!pIrpContext->bIsPended)
-    {
-        /* Can't complete a non-pending IRP */
-        return;
-    }
-
-    IoIrpComplete(pIrpContext->pIrp);
 }
 
 
