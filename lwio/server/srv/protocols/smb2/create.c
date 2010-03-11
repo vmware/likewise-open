@@ -614,7 +614,7 @@ SrvBuildCreateState_SMB_V2(
 
         switch (pContext->contextItemType)
         {
-            case SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS:
+            case SMB2_CONTEXT_ITEM_TYPE_MAX_ACCESS:
 
                 pCreateState->pExtAContext = pContext;
 
