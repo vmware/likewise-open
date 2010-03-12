@@ -223,8 +223,8 @@ MU_TEST(Task, Yield)
 
 #define BUFFER_SIZE (64 * 1024)
 #define SEND_SEGMENTS 1
-#define NUM_ITERATIONS 16
-#define NUM_PAIRS 500
+#define NUM_ITERATIONS 32
+#define NUM_PAIRS 250
 
 MU_TEST(Task, Transceive)
 {
