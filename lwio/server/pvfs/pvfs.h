@@ -298,6 +298,14 @@ PvfsIrpContextClearFlag(
     USHORT BitToClear
     );
 
+USHORT
+PvfsIrpContextConditionalSetFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToCheck,
+    USHORT BitToSetOnTrue,
+    USHORT BitToSetOnFalse
+    );
+
 BOOLEAN
 PvfsIrpContextMarkIfNotSetFlag(
     PPVFS_IRP_CONTEXT pIrpContext,
@@ -311,7 +319,6 @@ PvfsIrpContextMarkIfSetFlag(
     USHORT BitToCheck,
     USHORT BitToSet
     );
-
 
 /* From errno.c */
 

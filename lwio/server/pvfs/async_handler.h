@@ -73,6 +73,11 @@ PvfsQueueCancelIrp(
     PVOID pCancelContext
     );
 
+NTSTATUS
+PvfsQueueCancelIrpIfRequested(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
 
 /* Pvfs IRP Async API */
 

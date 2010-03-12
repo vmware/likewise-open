@@ -62,14 +62,15 @@ PvfsQueueCancelIrp(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pCancelContext;
-    BOOLEAN bCancelled = FALSE;
+    USHORT SetFlag = 0;
 
-    bCancelled = PvfsIrpContextMarkIfNotSetFlag(
-                     pIrpContext,
-                     PVFS_IRP_CTX_FLAG_ACTIVE,
-                     PVFS_IRP_CTX_FLAG_CANCELLED);
+    SetFlag = PvfsIrpContextConditionalSetFlag(
+                  pIrpContext,
+                  PVFS_IRP_CTX_FLAG_ACTIVE,
+                  PVFS_IRP_CTX_FLAG_REQUEST_CANCEL,
+                  PVFS_IRP_CTX_FLAG_CANCELLED);
 
-    if (bCancelled)
+    if (IsSetFlag(SetFlag, PVFS_IRP_CTX_FLAG_CANCELLED))
     {
         switch(pIrpContext->QueueType)
         {
@@ -105,6 +106,37 @@ PvfsQueueCancelIrp(
     return;
 }
 
+
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+PvfsQueueCancelIrpIfRequested(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    USHORT SetFlag = 0;
+
+    /* First check to see if we've been requested to cancel the IRP */
+
+    SetFlag = PvfsIrpContextConditionalSetFlag(
+                  pIrpContext,
+                  PVFS_IRP_CTX_FLAG_REQUEST_CANCEL,
+                  PVFS_IRP_CTX_FLAG_CANCELLED,
+                  0);
+
+    if (IsSetFlag(SetFlag, PVFS_IRP_CTX_FLAG_CANCELLED))
+    {
+        PvfsIrpContextClearFlag(pIrpContext, PVFS_IRP_CTX_FLAG_ACTIVE);
+
+        PvfsQueueCancelIrp(pIrpContext->pIrp, pIrpContext);
+        ntError = STATUS_CANCELLED;
+    }
+
+    return ntError;
+}
 
 /***********************************************************************
  **********************************************************************/

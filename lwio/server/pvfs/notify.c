@@ -663,6 +663,8 @@ PvfsNotifyFullReportIrp(
 
         PvfsListRemoveItem(pFcb->pNotifyListIrp, pFilterLink);
 
+        PvfsQueueCancelIrpIfRequested(pFilter->pIrpContext);
+
         bActive = PvfsIrpContextMarkIfNotSetFlag(
                       pFilter->pIrpContext,
                       PVFS_IRP_CTX_FLAG_CANCELLED,

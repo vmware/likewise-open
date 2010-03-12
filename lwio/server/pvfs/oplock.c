@@ -1635,6 +1635,8 @@ PvfsOplockProcessReadyItems(
 
         pIrp = pPendingOp->pIrpContext->pIrp;
 
+        PvfsQueueCancelIrpIfRequested(pPendingOp->pIrpContext);
+
         bActive = PvfsIrpContextMarkIfNotSetFlag(
                       pPendingOp->pIrpContext,
                       PVFS_IRP_CTX_FLAG_CANCELLED,
