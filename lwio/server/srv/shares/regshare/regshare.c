@@ -376,17 +376,22 @@ error:
 NTSTATUS
 SrvShareRegBeginEnum(
     HANDLE  hRepository,
-    ULONG   ulLimit,
+    ULONG   ulBatchLimit,
     PHANDLE phResume
     )
 {
     NTSTATUS  ntStatus       = 0;
-    ULONG     ulValueCount   = 0;
     HKEY      hRootKey       = NULL;
     HKEY      hKey           = NULL;
     wchar16_t wszHKTM[]      = HKEY_THIS_MACHINE_W;
     wchar16_t wszSharesKey[] = REG_KEY_PATH_SRV_SHARES_W;
     PSRV_SHARE_REG_ENUM_CONTEXT pEnumContext = NULL;
+
+    if (!ulBatchLimit || (ulBatchLimit == UINT32_MAX))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_SHARE_REG_ENUM_CONTEXT),
@@ -420,21 +425,14 @@ SrvShareRegBeginEnum(
                     NULL,
                     NULL,
                     NULL,
-                    &ulValueCount,
+                    &pEnumContext->ulValuesAvailable,
                     &pEnumContext->ulMaxValueNameLen,
                     &pEnumContext->ulMaxValueLen,
                     NULL,
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (ulLimit > ulValueCount)
-    {
-        pEnumContext->ulMaxIndex = ulValueCount;
-    }
-    else
-    {
-        pEnumContext->ulMaxIndex = ulLimit;
-    }
+    pEnumContext->ulBatchLimit = ulBatchLimit;
 
     *phResume = (HANDLE)pEnumContext;
 
@@ -470,6 +468,7 @@ SrvShareRegEnum(
 {
     NTSTATUS ntStatus          = 0;
     ULONG    ulIndex           = 0;
+    ULONG    ulBatchIndex      = 0;
     HKEY     hRootKey          = NULL;
     HKEY     hKey              = NULL;
     HKEY     hSecKey           = NULL;
@@ -485,12 +484,10 @@ SrvShareRegEnum(
     BYTE             pSecData[MAX_VALUE_LENGTH] = {0};
     PSRV_SHARE_REG_ENUM_CONTEXT pResume = (PSRV_SHARE_REG_ENUM_CONTEXT)hResume;
 
-    if (!pResume->ulMaxIndex)
+    if (!pResume)
     {
-        *pppShareInfoList = NULL;
-        *pulNumSharesFound = 0;
-
-        goto cleanup;
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     ntStatus = NtRegOpenKeyExW(
@@ -521,11 +518,13 @@ SrvShareRegEnum(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvAllocateMemory(
-                  pResume->ulMaxIndex * sizeof(*ppShareInfoList),
-                  (PVOID) &ppShareInfoList);
+                    pResume->ulBatchLimit * sizeof(*ppShareInfoList),
+                    (PVOID) &ppShareInfoList);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    for (ulIndex = 0; ulIndex < pResume->ulMaxIndex; ulIndex++)
+    ulBatchIndex = pResume->ulBatchIndex;
+
+    for (ulIndex = 0; ulIndex < pResume->ulBatchLimit; ulIndex++)
     {
         ULONG ulMaxValueNameLen = 0;
         ULONG ulMaxValueLen     = 0;
@@ -557,13 +556,18 @@ SrvShareRegEnum(
         ntStatus = NtRegEnumValueW(
                       hRepository,
                       hKey,
-                      ulIndex,
+                      ulBatchIndex++,
                       pwszValueName,
                       &ulMaxValueNameLen,
                       NULL,
                       &dataType,
                       pData,
                       &ulMaxValueLen);
+        if (ntStatus == STATUS_NO_MORE_MATCHES)
+        {
+            ntStatus = STATUS_SUCCESS;
+            break;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (REG_MULTI_SZ != dataType)
@@ -598,6 +602,8 @@ SrvShareRegEnum(
                       &ppShareInfoList[ulNumSharesFound++]);
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    pResume->ulBatchIndex = ulBatchIndex;
 
     *pppShareInfoList = ppShareInfoList;
     *pulNumSharesFound = ulNumSharesFound;

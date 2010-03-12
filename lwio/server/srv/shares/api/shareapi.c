@@ -78,7 +78,7 @@ SrvShareInitList(
     HANDLE   hResume = NULL;
     PSRV_SHARE_INFO* ppShareInfoList = NULL;
     PSRV_SHARE_ENTRY pShareEntry = NULL;
-    ULONG            ulLimit  = 256;
+    ULONG            ulBatchLimit  = 256;
     ULONG            ulNumSharesFound = 0;
 
     pthread_rwlock_init(&pShareList->mutex, NULL);
@@ -91,7 +91,7 @@ SrvShareInitList(
 
     ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryBeginEnum(
                                             hRepository,
-                                            ulLimit,
+                                            ulBatchLimit,
                                             &hResume);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -130,7 +130,7 @@ SrvShareInitList(
             pShareEntry = NULL;
         }
 
-    } while (ulNumSharesFound == ulLimit);
+    } while (ulNumSharesFound == ulBatchLimit);
 
 cleanup:
 
