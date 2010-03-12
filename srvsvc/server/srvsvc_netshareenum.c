@@ -76,8 +76,13 @@ SrvSvcNetShareEnum(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_ENUM_SHARE;
-    PSTR pszSmbPath = NULL;
-    IO_FILE_NAME filename = { 0 };
+    wchar16_t wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_NAME filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
     SHARE_INFO_ENUM_PARAMS EnumParamsIn = { 0 };
     PSHARE_INFO_ENUM_PARAMS pEnumParamsOut = NULL;
     srvsvc_NetShareCtr0 *ctr0 = NULL;
@@ -94,18 +99,6 @@ SrvSvcNetShareEnum(
                         &dwInLength
                         );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    dwError = LwAllocateStringPrintf(
-                        &pszSmbPath,
-                        "\\srv"
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(
-                        pszSmbPath,
-                        &filename.FileName
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtCreateFile(
                         &hFile,
@@ -255,8 +248,6 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
     LW_SAFE_FREE_MEMORY(pEnumParamsOut);
-    LW_SAFE_FREE_MEMORY(pszSmbPath);
-    LW_SAFE_FREE_MEMORY(filename.FileName);
 
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)

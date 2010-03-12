@@ -74,8 +74,13 @@ SrvSvcNetShareAdd(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_ADD_SHARE;
-    PSTR pszSmbPath = NULL;
-    IO_FILE_NAME filename = { 0 };
+    wchar16_t wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_NAME filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
     SHARE_INFO_ADD_PARAMS AddParams = { 0 };
 
     AddParams.dwInfoLevel = level;
@@ -119,18 +124,6 @@ SrvSvcNetShareAdd(
                         );
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = LwAllocateStringPrintf(
-                        &pszSmbPath,
-                        "\\srv"
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(
-                        pszSmbPath,
-                        &filename.FileName
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
     ntStatus = NtCreateFile(
                         &hFile,
                         NULL,
@@ -170,8 +163,6 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
-    LW_SAFE_FREE_MEMORY(pszSmbPath);
-    LW_SAFE_FREE_MEMORY(filename.FileName);
 
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)
