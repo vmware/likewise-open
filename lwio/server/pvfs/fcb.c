@@ -151,7 +151,7 @@ PvfsFreeFCB(
         PVFS_FREE(&pFcb);
 
 #ifdef _PVFS_DEVELOPER_DEBUG
-        InterlockedDecrement(&gFcbCount);
+        InterlockedDecrement(&gPvfsFcbCount);
 #endif
 
     }
@@ -266,7 +266,7 @@ PvfsAllocateFCB(
     *ppFcb = pFcb;
 
 #ifdef _PVFS_DEVELOPER_DEBUG
-        InterlockedIncrement(&gFcbCount);
+        InterlockedIncrement(&gPvfsFcbCount);
 #endif
 
     ntError = STATUS_SUCCESS;
@@ -885,6 +885,10 @@ PvfsAddItemPendingOplockBreakAck(
         PvfsQueueCancelIrp,
         pIrpContext);
 
+    /* Set the request in a cancellable state */
+
+    PvfsIrpContextClearFlag(pIrpContext, PVFS_IRP_CTX_FLAG_ACTIVE);
+
 cleanup:
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
 
@@ -1037,6 +1041,11 @@ cleanup:
     return ntError;
 
 error:
+    if (pOplock)
+    {
+        PvfsFreeOplockRecord(&pOplock);
+    }
+
     goto cleanup;
 }
 

@@ -78,10 +78,10 @@ PPVFS_ID_CACHE  gGidMruCache[PVFS_MAX_MRU_SIZE];
 
 
 #ifdef _PVFS_DEVELOPER_DEBUG
-LONG gIrpContextCount = 0;
-LONG gFcbCount = 0;
-LONG gCcbCount = 0;
-LONG gWorkContextCount = 0;
+LONG gPvfsIrpContextCount = 0;
+LONG gPvfsFcbCount = 0;
+LONG gPvfsCcbCount = 0;
+LONG gPvfsWorkContextCount = 0;
 #endif
 
 /*

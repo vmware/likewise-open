@@ -202,7 +202,8 @@ error:
 
 /* Caller must hold the mutex on the FCB */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsAddPendingLock(
     PPVFS_FCB pFcb,
     PPVFS_IRP_CONTEXT pIrpCtx,
@@ -212,6 +213,11 @@ PvfsAddPendingLock(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_PENDING_LOCK pPendingLock = NULL;
+
+    /* Look for a cancellation request before re-queuing the request */
+
+    ntError = PvfsQueueCancelIrpIfRequested(pIrpCtx);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsAllocateMemory((PVOID*)&pPendingLock,
                                  sizeof(PVFS_PENDING_LOCK));
@@ -448,6 +454,8 @@ PvfsProcessPendingLocks(
 
         pCcb        = pPendingLock->pCcb;
         pIrp        = pPendingLock->pIrpContext->pIrp;
+
+        PvfsQueueCancelIrpIfRequested(pPendingLock->pIrpContext);
 
         bActive = PvfsIrpContextMarkIfNotSetFlag(
                       pPendingLock->pIrpContext,
