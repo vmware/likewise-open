@@ -54,9 +54,10 @@ NtlmClientFreeCredentialsHandle(
 {
     DWORD dwError = LW_ERROR_SUCCESS;
 
-    dwError = NtlmTransactFreeCredentialsHandle(
-        phCredential
-        );
+    if (*phCredential != NULL)
+    {
+        dwError = NtlmTransactFreeCredentialsHandle(phCredential);
+    }
 
     return(dwError);
 }
