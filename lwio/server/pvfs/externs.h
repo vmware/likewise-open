@@ -45,6 +45,8 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
+#include "macros.h"
+
 extern PSTR             gpszPVFSProviderName;
 extern GENERIC_MAPPING  gPvfsFileGenericMapping;
 
@@ -70,10 +72,10 @@ extern pthread_mutex_t gGidMruCacheMutex;
 extern PPVFS_ID_CACHE gGidMruCache[];
 
 #ifdef _PVFS_DEVELOPER_DEBUG
-extern LONG gIrpContextCount;
-extern LONG gFcbCount;
-extern LONG gCcbCount;
-extern LONG gWorkContextCount;
+extern LONG gPvfsIrpContextCount;
+extern LONG gPvfsFcbCount;
+extern LONG gPvfsCcbCount;
+extern LONG gPvfsWorkContextCount;
 #endif
 
 
