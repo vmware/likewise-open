@@ -1041,6 +1041,11 @@ cleanup:
     return ntError;
 
 error:
+    if (pOplock)
+    {
+        PvfsFreeOplockRecord(&pOplock);
+    }
+
     goto cleanup;
 }
 
