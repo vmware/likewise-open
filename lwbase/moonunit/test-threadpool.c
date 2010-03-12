@@ -72,8 +72,7 @@ pthread_cond_t gEvent = PTHREAD_COND_INITIALIZER;
 
 MU_FIXTURE_SETUP(Task)
 {
-    MU_ASSERT_STATUS_SUCCESS(
-        LwRtlCreateThreadPool(&gpPool));
+    MU_ASSERT_STATUS_SUCCESS(LwRtlCreateThreadPool(&gpPool, NULL));
 }
 
 MU_FIXTURE_TEARDOWN(Task)

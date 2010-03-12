@@ -49,6 +49,8 @@
 #include <sys/param.h>
 #include <sys/cpuset.h>
 
+#include "threadpool-common.h"
+
 #define TASK_COMPLETE_MASK 0xFFFFFFFF
 
 typedef struct _RING
@@ -135,7 +137,7 @@ typedef struct _LW_TASK_GROUP
 
 typedef struct _LW_THREAD_POOL
 {
-    ULONG ulRefCount;
+    PLW_THREAD_POOL pDelegate;
     PKQUEUE_THREAD pEventThreads;
     ULONG ulEventThreadCount;
     PWORK_ITEM_THREAD pWorkThreads;
