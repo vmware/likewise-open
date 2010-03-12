@@ -725,8 +725,7 @@ AC_TRY_COMPILE([
   ],
   [
     struct sockaddr_in6 a;
-    memset(&a, 0, sizeof(a));
-    return 0;
+    return sizeof(a);
   ], [
     AC_MSG_RESULT([yes])
     AC_DEFINE([LW_USE_INET6], [], [Define if using IPv6])
