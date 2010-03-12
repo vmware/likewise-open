@@ -718,6 +718,8 @@ AC_MSG_RESULT([no])
 CFLAGS="$saved_CFLAGS"
 
 # ZCT splice, sendfile, etc. support
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wall -Werror"
 AC_ARG_WITH([splice],
         [AC_HELP_STRING([--without-splice], [Do not use splice])],
         [],
@@ -735,14 +737,111 @@ AC_ARG_WITH([sendfilev],
 )
 AC_CHECK_HEADERS([sys/sendfile.h])
 AS_IF([test "x$with_splice" != xno],[
-AC_CHECK_FUNCS([splice])
+  AC_MSG_CHECKING([if splice is supported])
+  AC_TRY_LINK([
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
+#include <fcntl.h>
+    ],
+    [
+      int fd_in = -1;
+      loff_t* off_in = 0;
+      int fd_out = -1;
+      loff_t* off_out = 0;
+      size_t len = 0;
+      unsigned int flags = SPLICE_F_MOVE | SPLICE_F_NONBLOCK;
+      long result = splice(fd_in, off_in, fd_out, off_out, len, flags);
+      return (result < 0) ? 1 : 0;
+    ], [
+      AC_MSG_RESULT([yes])
+      AC_DEFINE([HAVE_SPLICE], [], [Define if splice is supported])
+    ], [
+      AC_MSG_RESULT([no])
+  ])
 ])
 AS_IF([test "x$with_sendfile" != xno],[
-AC_CHECK_FUNCS([sendfile])
+  # TODO-check for any necessary libraries (Solaris needs -lsendfile)
+  AC_MSG_CHECKING([if sendfile (simple) is supported])
+  AC_TRY_LINK([
+#ifdef HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+    ],
+    [
+      int out_fd = -1;
+      int in_fd = -1;
+      off_t* off = 0;
+      size_t len = 0;
+      ssize_t result = sendfile(out_fd, in_fd, off, len);
+      return (result < 0) ? 1 : 0;
+    ], [
+      AC_MSG_RESULT([yes])
+      AC_DEFINE([HAVE_SENDFILE], [], [Define if sendfile is supported])
+    ], [
+      AC_MSG_RESULT([no])
+  ])
+])
+AS_IF([test "x$with_sendfile" != xno],[
+  AC_MSG_CHECKING([if sendfile (BSD style) is supported])
+  AC_TRY_LINK([
+#include <sys/types.h>
+#include <sys/uio.h>
+#ifdef HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+    ],
+    [
+      int fd = -1;
+      int s = -1;
+      off_t offset = 0;
+      size_t nbytes = 0;
+      struct sf_hdtr hdtr = { 0 };
+      off_t sbytes = 0;
+      int flags = 0;
+      ssize_t result = sendfile(fd, s, offset, nbytes, &hdtr, &sbytes, flags);
+      return (result < 0) ? 1 : 0;
+    ], [
+      AC_MSG_RESULT([yes])
+      AC_DEFINE([HAVE_SENDFILE], [], [Define if sendfile is supported])
+    ], [
+      AC_MSG_RESULT([no])
+  ])
 ])
 AS_IF([test "x$with_sendfilev" != xno],[
-AC_CHECK_FUNCS([sendfilev])
+  # TODO-check for any necessary libraries (Solaris needs -lsendfile)
+  AC_MSG_CHECKING([if sendfilev is supported])
+  AC_TRY_LINK([
+#include <sys/types.h>
+#include <sys/uio.h>
+#ifdef HAVE_SYS_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+    ],
+    [
+      int fildes = -1;
+      struct sendfilevec vec = { 0 };
+      int sfvcnt = 0;
+      size_t xferred = 0;
+      ssize_t result = sendfilev(fildes, &vec, sfvcnt, &xferred);
+      return (result < 0) ? 1 : 0;
+    ], [
+      AC_MSG_RESULT([yes])
+      AC_DEFINE([HAVE_SENDFILEV], [], [Define if sendfilev is supported])
+    ], [
+      AC_MSG_RESULT([no])
+  ])
 ])
+CFLAGS="$saved_CFLAGS"
 
 AC_CONFIG_FILES([Makefile
         include/Makefile
