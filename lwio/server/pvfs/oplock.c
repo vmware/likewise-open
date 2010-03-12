@@ -137,8 +137,6 @@ PvfsOplockRequest(
     pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
     pIrpContext->QueueType = PVFS_QUEUE_TYPE_OPLOCK;
 
-    PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
-
     /* Allow the oplock request to be cancelled now */
 
     PvfsIrpContextClearFlag(pIrpContext, PVFS_IRP_CTX_FLAG_ACTIVE);
@@ -156,6 +154,12 @@ cleanup:
     return ntError;
 
 error:
+    if (PvfsIrpContextCheckFlag(pIrpContext, PVFS_IRP_CTX_FLAG_PENDED))
+    {
+        pIrpContext->pIrp->IoStatusBlock.Status = ntError;
+        PvfsAsyncIrpComplete(pIrpContext);
+    }
+
     goto cleanup;
 }
 
@@ -1459,6 +1463,8 @@ PvfsOplockGrantBatchOrLevel1(
         ntError = PvfsOplockBreakAllLevel2Oplocks(pFcb);
         BAIL_ON_NT_STATUS(ntError);
 
+        PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
+
         ntError = PvfsAddOplockRecord(
                       pFcb,
                       pIrpContext,
@@ -1520,6 +1526,8 @@ PvfsOplockGrantLevel2(
     if (!PvfsFileIsOplocked(pFcb) ||
         PvfsFileIsOplockedShared(pFcb))
     {
+        PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
+
         ntError = PvfsAddOplockRecord(
                       pFcb,
                       pIrpContext,
