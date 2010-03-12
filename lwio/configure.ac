@@ -717,6 +717,24 @@ AC_MSG_RESULT([no])
 
 CFLAGS="$saved_CFLAGS"
 
+# Check for sockaddr_in6 support
+saved_CFLAGS="$CFLAGS"
+AC_MSG_CHECKING([if IPv6 is supported])
+AC_TRY_COMPILE([
+#include <netinet/in.h>
+  ],
+  [
+    struct sockaddr_in6 a;
+    memset(&a, 0, sizeof(a));
+    return 0;
+  ], [
+    AC_MSG_RESULT([yes])
+    AC_DEFINE([LW_USE_INET6], [], [Define if using IPv6])
+  ], [
+    AC_MSG_RESULT([no])
+])
+CFLAGS="$saved_CFLAGS"
+
 # ZCT splice, sendfile, etc. support
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -Wall -Werror"

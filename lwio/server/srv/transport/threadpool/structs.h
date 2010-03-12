@@ -27,7 +27,7 @@ typedef ULONG SRV_SOCKET_STATE_MASK, *PSRV_SOCKET_STATE_MASK;
 typedef union {
     struct sockaddr Generic;
     struct sockaddr_in Ip;
-#ifdef AF_INET6
+#ifdef LW_USE_INET6
     struct sockaddr_in6 Ip6;
 #endif
 } SRV_SOCKET_ADDRESS, *PSRV_SOCKET_ADDRESS;

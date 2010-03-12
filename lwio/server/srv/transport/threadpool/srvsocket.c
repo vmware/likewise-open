@@ -104,7 +104,7 @@ SrvSocketAddressToString(
         case AF_INET:
             pAddressPart = &((struct sockaddr_in*)pSocketAddress)->sin_addr;
             break;
-#ifdef AF_INET6
+#ifdef LW_USE_INET6
         case AF_INET6:
             pAddressPart = &((struct sockaddr_in6*)pSocketAddress)->sin6_addr;
             break;
