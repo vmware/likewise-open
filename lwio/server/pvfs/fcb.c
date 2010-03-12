@@ -885,6 +885,10 @@ PvfsAddItemPendingOplockBreakAck(
         PvfsQueueCancelIrp,
         pIrpContext);
 
+    /* Set the request in a cancellable state */
+
+    PvfsIrpContextClearFlag(pIrpContext, PVFS_IRP_CTX_FLAG_ACTIVE);
+
 cleanup:
     LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
 
