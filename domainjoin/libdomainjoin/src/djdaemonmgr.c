@@ -63,18 +63,6 @@ static QueryResult QueryStopDaemons(const JoinProcessOptions *options, LWExcepti
     if(running)
         result = NotConfigured;
     
-    DJGetDaemonStatus("lwmgmtd", &running, &inner);
-    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-    {
-        /* The lwmgmtd may not be installed so ignore */
-        LW_HANDLE(&inner);
-        running = FALSE;
-    }
-    LW_CLEANUP(exc, inner);
-    
-    if(running)
-        result = NotConfigured;
-
 cleanup:
     LW_HANDLE(&inner);
     return result;
@@ -132,18 +120,6 @@ static QueryResult QueryStartDaemons(const JoinProcessOptions *options, LWExcept
     if(!running)
         result = NotConfigured;
     
-    DJGetDaemonStatus("lwmgmtd", &running, &inner);
-    if (!LW_IS_OK(inner) && inner->code == CENTERROR_DOMAINJOIN_MISSING_DAEMON)
-    {
-        /* The lwmgmtd may not be installed so ignore */
-        LW_HANDLE(&inner);
-        running = TRUE;
-    }
-    LW_CLEANUP(exc, inner);
-
-    if(!running)
-        result = NotConfigured;
-
     if(stopState != NULL && stopState->runModule)
         result = NotConfigured;
 
