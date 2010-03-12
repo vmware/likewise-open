@@ -171,6 +171,8 @@ PvfsWorkerDoWork(
         {
             pIrpCtx = (PPVFS_IRP_CONTEXT)pWorkCtx->pContext;
 
+            PvfsQueueCancelIrpIfRequested(pIrpCtx);
+
             bActive = PvfsIrpContextMarkIfNotSetFlag(
                           pIrpCtx,
                           PVFS_IRP_CTX_FLAG_CANCELLED,
