@@ -79,7 +79,7 @@ PvfsFreeIrpContext(
         PVFS_FREE(ppIrpContext);
 
 #ifdef _PVFS_DEVELOPER_DEBUG
-        InterlockedDecrement(&gIrpContextCount);
+        InterlockedDecrement(&gPvfsIrpContextCount);
 #endif
     }
 }
@@ -115,7 +115,7 @@ PvfsAllocateIrpContext(
     *ppIrpContext = pIrpContext;
 
 #ifdef _PVFS_DEVELOPER_DEBUG
-    InterlockedIncrement(&gIrpContextCount);
+    InterlockedIncrement(&gPvfsIrpContextCount);
 #endif
 
 cleanup:
