@@ -780,12 +780,6 @@ gss_canonicalize_name(
     const gss_OID,      /* mech_type */
     gss_name_t *);      /* output_name */
 
-OM_uint32 KRB5_CALLCONV
-gss_set_neg_mechs(
-    OM_uint32 *,        /* minor_status */
-    gss_cred_id_t,      /* cred_handle */
-    const gss_OID_set); /* mech_set */
-
 #if TARGET_OS_MAC
 #    pragma pack(pop)
 #endif

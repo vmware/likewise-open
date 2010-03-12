@@ -22,13 +22,12 @@ typedef ULONG SRV_SOCKET_STATE_MASK, *PSRV_SOCKET_STATE_MASK;
 #define SRV_SOCKET_STATE_EXTERNAL_CLOSE 0x00000001
 #define SRV_SOCKET_STATE_FD_WRITABLE    0x00000002
 #define SRV_SOCKET_STATE_FD_READABLE    0x00000004
-#define SRV_SOCKET_STATE_CLOSED         0x00000008
 
 // Abstraction for socket address to handle different address types.
 typedef union {
     struct sockaddr Generic;
     struct sockaddr_in Ip;
-#ifdef AF_INET6
+#ifdef LW_USE_INET6
     struct sockaddr_in6 Ip6;
 #endif
 } SRV_SOCKET_ADDRESS, *PSRV_SOCKET_ADDRESS;

@@ -86,6 +86,9 @@
 #ifdef HAVE_SYS_SENDFILE_H
 #include <sys/sendfile.h>
 #endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
 
 // Enable to pull in test definitions to help
 // catch compilation issues for splice/sendfilev/etc.
@@ -188,7 +191,9 @@ typedef struct _LW_ZCT_CURSOR_ENTRY {
     union {
         LW_ZCT_CURSOR_IOVEC IoVec;
         LW_ZCT_CURSOR_SPLICE Splice;
+#ifdef HAVE_SENDFILE_ANY
         LW_ZCT_CURSOR_SENDFILE SendFile;
+#endif
     } Data;
 } LW_ZCT_CURSOR_ENTRY, *PLW_ZCT_CURSOR_ENTRY;
 

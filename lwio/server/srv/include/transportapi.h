@@ -159,10 +159,18 @@ SrvTransportSocketSendZctReply(
     );
 
 ///
-/// Close Transport's socket.
+/// Disconnect a socket while keeping the reference.
+/// This will call SEND_DONE and CONNECTION_DONE asynchronously.
 ///
-/// This can only be called if CONNECTION_DONE has not yet
-/// been called.
+VOID
+SrvTransportSocketDisconnect(
+    IN PSRV_SOCKET pSocket
+    );
+
+///
+/// Let go of the reference to the socket.  This will
+/// can call SEND_DONE synchronously as needed.
+/// CONNECTION_DONE will not be called ever.
 ///
 VOID
 SrvTransportSocketClose(

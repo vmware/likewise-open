@@ -81,11 +81,6 @@ SrvSocketCreate(
     );
 
 VOID
-SrvSocketFree(
-    IN OUT PSRV_SOCKET pSocket
-    );
-
-VOID
 SrvSocketGetAddress(
     IN PSRV_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
@@ -123,6 +118,11 @@ SrvSocketSendZctReply(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,
     IN PLW_ZCT_VECTOR pZct
+    );
+
+VOID
+SrvSocketDisconnect(
+    IN PSRV_SOCKET pSocket
     );
 
 VOID
