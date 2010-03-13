@@ -183,7 +183,7 @@ extern int verbose_mode;
             printf("(unknown type)\n");                         \
         }                                                       \
                                                                 \
-        SAFE_FREE(v);                                           \
+        SRVSVC_SAFE_FREE(v);                                           \
     } while (0)
 
 #define PARAM_INFO_END                                          \
@@ -216,14 +216,14 @@ extern int verbose_mode;
     if (verbose_mode) {                                   \
         wchar16_t *str = GetFromUnicodeString((v));       \
         w16printfw("%hhs%hhs = \"%ws\"\n", pfx, #v, str); \
-        SAFE_FREE(str);                                   \
+        SRVSVC_SAFE_FREE(str);                                   \
     }
 
 #define DUMP_UNICODE_STRING_EX(pfx, v)                    \
     if (verbose_mode) {                                   \
         wchar16_t *str = GetFromUnicodeStringEx((v));     \
         w16printfw("%hhs%hhs = \"%ws\"\n", pfx, #v, str); \
-        SAFE_FREE(str);                                   \
+        SRVSVC_SAFE_FREE(str);                                   \
     }
 
 

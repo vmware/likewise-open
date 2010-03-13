@@ -81,7 +81,6 @@ SamrSrvDecryptPasswordBlobEx(
     DWORD dwError = ERROR_SUCCESS;
     PBYTE pPlainTextBlob = NULL;
     DWORD dwPlainTextBlobSize = 0;
-    DWORD dwPasswordSize = 0;
     DWORD dwPassBlobSize = 0;
     PBYTE pKey = NULL;
     DWORD dwKeyLen = 0;
@@ -97,7 +96,6 @@ SamrSrvDecryptPasswordBlobEx(
     BAIL_ON_INVALID_PTR(pPassBlob);
     BAIL_ON_INVALID_PTR(ppwszPassword);
 
-    dwPasswordSize      = (PassLen + 1) * sizeof(WCHAR);
     dwPassBlobSize      = sizeof(pPassBlob->data);
     dwPlainTextBlobSize = dwPassBlobSize - sizeof(KeyInit);
     memset(&ctx, 0, sizeof(ctx));

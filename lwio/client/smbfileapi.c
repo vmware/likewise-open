@@ -68,9 +68,9 @@ error:
 }
 
 LW_NTSTATUS
-LwIoGetPeerPrincipalName(
+LwIoGetPeerAccessToken(
     IO_FILE_HANDLE File,
-    LW_PSTR* ppszPrincipalName
+    PACCESS_TOKEN* ppToken
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
@@ -79,10 +79,10 @@ LwIoGetPeerPrincipalName(
     Status = LwIoAcquireContext(&Context);
     BAIL_ON_NT_STATUS(Status);
 
-    Status = LwIoCtxGetPeerPrincipalName(
+    Status = LwIoCtxGetPeerAccessToken(
         &Context,
         File,
-        ppszPrincipalName
+        ppToken
         );
     BAIL_ON_NT_STATUS(Status);
 

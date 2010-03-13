@@ -87,10 +87,18 @@ typedef struct samr_domain_context
 {
     enum SamrContextType Type;
     LONG                 refcount;
+
     DWORD                dwAccessGranted;
+
     PWSTR                pwszDn;
     PWSTR                pwszDomainName;
     PSID                 pDomainSid;
+    NtTime               ntMinPasswordAge;
+    NtTime               ntMaxPasswordAge;
+    DWORD                dwMinPasswordLen;
+    NtTime               ntPasswordPromptTime;
+    DWORD                dwPasswordProperties;
+
     PCONNECT_CONTEXT     pConnCtx;
 
 } DOMAIN_CONTEXT, *PDOMAIN_CONTEXT;
@@ -100,12 +108,15 @@ typedef struct samr_account_context
 {
     enum SamrContextType Type;
     LONG                 refcount;
+
     DWORD                dwAccessGranted;
+
     PWSTR                pwszDn;
     PWSTR                pwszName;
     DWORD                dwRid;
     DWORD                dwAccountType;
     PSID                 pSid;
+
     PDOMAIN_CONTEXT      pDomCtx;
 
 } ACCOUNT_CONTEXT, *PACCOUNT_CONTEXT;

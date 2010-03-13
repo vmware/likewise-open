@@ -47,8 +47,10 @@ statusdialog_new(const char* computer, const char* domain)
     GladeXML* xml = glade_xml_new (DOMAINJOIN_XML, "StatusDialog", NULL);
     StatusDialog* dialog = g_new0(StatusDialog, 1);
 
-    if (!dialog)
-	return NULL;
+    if (!xml || !dialog)
+    {
+        goto cleanup;
+    }
 
     dialog->dialog = GTK_DIALOG(glade_xml_get_widget(xml, "StatusDialog"));
     g_assert(dialog->dialog != NULL);
@@ -59,16 +61,23 @@ statusdialog_new(const char* computer, const char* domain)
     g_object_ref(G_OBJECT(dialog->computer_entry));
 
     if (computer)
-	gtk_entry_set_text(dialog->computer_entry, computer);
+        gtk_entry_set_text(dialog->computer_entry, computer);
 
     dialog->domain_entry = GTK_ENTRY(glade_xml_get_widget(xml, "StatusDomainEntry"));
     g_assert(dialog->domain_entry != NULL);
     g_object_ref(G_OBJECT(dialog->domain_entry));
 
     if (domain)
-	gtk_entry_set_text(dialog->domain_entry, domain);
+        gtk_entry_set_text(dialog->domain_entry, domain);
 
     dialog_insert_likewise_logo(dialog->dialog);
+
+cleanup:
+    if (xml)
+    {
+        g_object_unref(xml);
+        xml = NULL;
+    }
 
     return dialog;
 }

@@ -31,6 +31,8 @@
 
 typedef struct _LW_MAP_SECURITY_CONTEXT *PLW_MAP_SECURITY_CONTEXT;
 
+typedef struct gss_ctx_id_struct *LW_MAP_SECURITY_GSS_CONTEXT;
+
 //
 // Every successful call to LwMapSecurityInitialize() must have
 // exactly one corresponding call to LwMapSecurityCleanup().
@@ -116,6 +118,13 @@ LwMapSecurityCreateAccessTokenFromCStringUsername(
     IN PLW_MAP_SECURITY_CONTEXT Context,
     OUT PACCESS_TOKEN* AccessToken,
     IN PCSTR Username
+    );
+
+NTSTATUS
+LwMapSecurityCreateAccessTokenFromGssContext(
+    IN PLW_MAP_SECURITY_CONTEXT Context,
+    OUT PACCESS_TOKEN* AccessToken,
+    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
     );
 
 #endif /* __LW_MAP_SECURITY_H__ */

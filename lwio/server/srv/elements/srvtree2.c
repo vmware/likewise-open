@@ -53,7 +53,7 @@ static
 NTSTATUS
 SrvTree2AcquireFileId_inlock(
    PLWIO_SRV_TREE_2 pTree,
-   PULONG64         pullFid
+   PSMB2_FID        pFid
    );
 
 static
@@ -73,6 +73,15 @@ static
 VOID
 SrvTree2Free(
     PLWIO_SRV_TREE_2 pTree
+    );
+
+static
+NTSTATUS
+SrvTree2RundownFileRbTreeVisit(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
     );
 
 NTSTATUS
@@ -104,12 +113,16 @@ SrvTree2Create(
     pTree->pShareInfo = pShareInfo;
     InterlockedIncrement(&pShareInfo->refcount);
 
+    pTree->ullNextAvailableFid = 0xFFFFFFFF00000001LL;
+
     ntStatus = LwRtlRBTreeCreate(
                     &SrvTree2FileCompare,
                     NULL,
                     &SrvTree2FileRelease,
                     &pTree->pFileCollection);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SRV_ELEMENTS_INCREMENT_TREE_CONNECTS;
 
     *ppTree = pTree;
 
@@ -132,7 +145,7 @@ error:
 NTSTATUS
 SrvTree2FindFile(
     PLWIO_SRV_TREE_2  pTree,
-    ULONG64           ullFid,
+    PSMB2_FID         pFid,
     PLWIO_SRV_FILE_2* ppFile
     )
 {
@@ -142,17 +155,19 @@ SrvTree2FindFile(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
-    pFile = pTree->lruFile[ ullFid % SRV_LRU_CAPACITY ];
+    pFile = pTree->lruFile[ pFid->ullVolatileId % SRV_LRU_CAPACITY ];
 
-    if (!pFile || (pFile->ullFid != ullFid))
+    if (!pFile ||
+        (pFile->fid.ullPersistentId != pFid->ullPersistentId) ||
+        (pFile->fid.ullVolatileId != pFid->ullVolatileId))
     {
         ntStatus = LwRtlRBTreeFind(
                         pTree->pFileCollection,
-                        &ullFid,
+                        pFid,
                         (PVOID*)&pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pTree->lruFile[ullFid % SRV_LRU_CAPACITY] = pFile;
+        pTree->lruFile[pFid->ullVolatileId % SRV_LRU_CAPACITY] = pFile;
     }
 
     InterlockedIncrement(&pFile->refcount);
@@ -194,17 +209,17 @@ SrvTree2CreateFile(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PLWIO_SRV_FILE_2 pFile = NULL;
-    ULONG64  ullFid = 0;
+    SMB2_FID  fid = {0};
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
     ntStatus = SrvTree2AcquireFileId_inlock(
                     pTree,
-                    &ullFid);
+                    &fid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvFile2Create(
-                    ullFid,
+                    &fid,
                     pwszFilename,
                     phFile,
                     ppFilename,
@@ -219,7 +234,7 @@ SrvTree2CreateFile(
 
     ntStatus = LwRtlRBTreeAdd(
                     pTree->pFileCollection,
-                    &pFile->ullFid,
+                    &pFile->fid,
                     pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -248,7 +263,7 @@ error:
 NTSTATUS
 SrvTree2RemoveFile(
     PLWIO_SRV_TREE_2 pTree,
-    ULONG64          ullFid
+    PSMB2_FID        pFid
     )
 {
     NTSTATUS ntStatus = 0;
@@ -257,15 +272,15 @@ SrvTree2RemoveFile(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
-    pFile = pTree->lruFile[ ullFid % SRV_LRU_CAPACITY ];
-    if (pFile && (pFile->ullFid == ullFid))
+    pFile = pTree->lruFile[ pFid->ullVolatileId % SRV_LRU_CAPACITY ];
+    if (pFile &&
+        (pFile->fid.ullPersistentId == pFid->ullPersistentId) &&
+        (pFile->fid.ullVolatileId == pFid->ullVolatileId))
     {
-        pTree->lruFile[ ullFid % SRV_LRU_CAPACITY ] = NULL;
+        pTree->lruFile[ pFile->fid.ullVolatileId % SRV_LRU_CAPACITY ] = NULL;
     }
 
-    ntStatus = LwRtlRBTreeRemove(
-                    pTree->pFileCollection,
-                    &ullFid);
+    ntStatus = LwRtlRBTreeRemove(pTree->pFileCollection, pFid);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -317,19 +332,41 @@ SrvTree2Release(
 
     if (InterlockedDecrement(&pTree->refcount) == 0)
     {
+        SRV_ELEMENTS_DECREMENT_TREE_CONNECTS;
+
         SrvTree2Free(pTree);
     }
+}
+
+VOID
+SrvTree2Rundown(
+    PLWIO_SRV_TREE_2 pTree
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+
+    LwRtlRBTreeTraverse(
+            pTree->pFileCollection,
+            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+            SrvTree2RundownFileRbTreeVisit,
+            NULL);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 }
 
 static
 NTSTATUS
 SrvTree2AcquireFileId_inlock(
    PLWIO_SRV_TREE_2 pTree,
-   PULONG64         pullFid
+   PSMB2_FID        pFid
    )
 {
     NTSTATUS ntStatus = 0;
-    ULONG64  candidateFid = pTree->ullNextAvailableFid;
+    SMB2_FID candidateFid = {   .ullPersistentId = 0xFFFFFFFFFFFFFFFFLL,
+                                .ullVolatileId = pTree->ullNextAvailableFid
+                            };
     BOOLEAN  bFound = FALSE;
 
     do
@@ -338,9 +375,10 @@ SrvTree2AcquireFileId_inlock(
 
         /* 0 is never a valid fid */
 
-        if ((candidateFid == 0) || (candidateFid == UINT64_MAX))
+        if ((candidateFid.ullVolatileId == 0) ||
+            (candidateFid.ullVolatileId == UINT64_MAX))
         {
-            candidateFid = 1;
+            candidateFid.ullVolatileId = 1;
         }
 
         ntStatus = LwRtlRBTreeFind(
@@ -354,11 +392,12 @@ SrvTree2AcquireFileId_inlock(
         }
         else
         {
-            candidateFid++;
+            candidateFid.ullVolatileId++;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-    } while ((candidateFid != pTree->ullNextAvailableFid) && !bFound);
+    } while (   (candidateFid.ullVolatileId != pTree->ullNextAvailableFid) &&
+                !bFound);
 
     if (!bFound)
     {
@@ -366,12 +405,16 @@ SrvTree2AcquireFileId_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *pullFid = candidateFid;
+    RAND_bytes( (PBYTE)&candidateFid.ullPersistentId,
+                sizeof(candidateFid.ullPersistentId));
 
-    /* Increment by 1 by make sure tyo deal with wraparound */
+    *pFid = candidateFid;
 
-    candidateFid++;
-    pTree->ullNextAvailableFid = candidateFid ? candidateFid : 1;
+    /* Increment by 1 by make sure to deal with wraparound */
+
+    candidateFid.ullVolatileId++;
+    pTree->ullNextAvailableFid =
+                candidateFid.ullVolatileId ? candidateFid.ullVolatileId : 1;
 
 cleanup:
 
@@ -379,7 +422,8 @@ cleanup:
 
 error:
 
-    *pullFid = 0;
+    pFid->ullPersistentId = 0LL;
+    pFid->ullVolatileId = 0LL;
 
     goto cleanup;
 }
@@ -391,21 +435,10 @@ SrvTree2FileCompare(
     PVOID pKey2
     )
 {
-    PULONG64 pFid1 = (PULONG64)pKey1;
-    PULONG64 pFid2 = (PULONG64)pKey2;
+    PSMB2_FID pFid1 = (PSMB2_FID)pKey1;
+    PSMB2_FID pFid2 = (PSMB2_FID)pKey2;
 
-    if (*pFid1 > *pFid2)
-    {
-        return 1;
-    }
-    else if (*pFid1 < *pFid2)
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
+    return memcmp((PBYTE)pFid1, (PBYTE)pFid2, sizeof(SMB2_FID));
 }
 
 static
@@ -444,6 +477,27 @@ SrvTree2Free(
     }
 
     SrvFreeMemory(pTree);
+}
+
+static
+NTSTATUS
+SrvTree2RundownFileRbTreeVisit(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_FILE_2 pFile = (PLWIO_SRV_FILE_2)pData;
+
+    if (pFile)
+    {
+        SrvFile2Rundown(pFile);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
 }
 
 

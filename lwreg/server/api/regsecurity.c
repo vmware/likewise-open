@@ -73,9 +73,46 @@ RegSrvAccessCheckKeyHandle(
 }
 
 NTSTATUS
+RegSrvCreateAccessToken(
+    uid_t uid,
+    gid_t gid,
+    PACCESS_TOKEN* ppToken
+    )
+{
+    NTSTATUS status = 0;
+    PACCESS_TOKEN pToken = NULL;
+
+	status = LwMapSecurityCreateAccessTokenFromUidGid(gpRegLwMapSecurityCtx,
+		                                          &pToken,
+		                                          uid,
+		                                          gid);
+    if (status || !pToken)
+    {
+	status = STATUS_NO_TOKEN;
+    }
+    BAIL_ON_NT_STATUS(status);
+
+    *ppToken = pToken;
+
+cleanup:
+
+    return status;
+
+error:
+
+    if (pToken)
+    {
+        RtlReleaseAccessToken(&pToken);
+    }
+
+    *ppToken = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 RegSrvAccessCheckKey(
-	IN ULONG uid,
-	IN ULONG gid,
+	IN PACCESS_TOKEN pToken,
     IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
     IN ULONG ulSecDescRelLen,
     IN ACCESS_MASK AccessDesired,
@@ -83,7 +120,6 @@ RegSrvAccessCheckKey(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PACCESS_TOKEN pToken = NULL;
     ACCESS_MASK AccessMask = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs = NULL;
     ULONG ulSecDescAbsLen = 0;
@@ -99,15 +135,11 @@ RegSrvAccessCheckKey(
 
     BAIL_ON_NT_INVALID_POINTER(psamGranted);
 
-    status = LwMapSecurityCreateAccessTokenFromUidGid(gpRegLwMapSecurityCtx,
-		                                          &pToken,
-		                                          uid,
-		                                          gid);
-    if (status || !pToken)
+    if (!pToken)
     {
 	status = STATUS_NO_TOKEN;
+	BAIL_ON_NT_STATUS(status);
     }
-    BAIL_ON_NT_STATUS(status);
 
     // Get sizes
     status = RtlSelfRelativeToAbsoluteSD(pSecDescRel,
@@ -172,10 +204,6 @@ RegSrvAccessCheckKey(
     *psamGranted = AccessMask;
 
 cleanup:
-    if (pToken)
-    {
-        RtlReleaseAccessToken(&pToken);
-    }
 
     RegSrvFreeAbsoluteSecurityDescriptor(&pSecDescAbs);
 
@@ -225,13 +253,14 @@ RegSrvFreeAbsoluteSecurityDescriptor(
 NTSTATUS
 RegSrvCreateDefaultSecDescRel(
 	IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
-	IN OUT PULONG pulSecDescLen
+	IN OUT PULONG pulSecDescLength
 	)
 {
     NTSTATUS status = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs = NULL;
     PACL pDacl = NULL;
-    PSID pSid = NULL;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
 
     status = LW_RTL_ALLOCATE(&pSecDescAbs,
                             VOID,
@@ -243,19 +272,32 @@ RegSrvCreateDefaultSecDescRel(
     BAIL_ON_NT_STATUS(status);
 
     // Owner: Root
-    status = LwMapSecurityGetSidFromId(gpRegLwMapSecurityCtx,
-		                           &pSid,
-		                           TRUE,
-                                       0);
+    status = LwMapSecurityGetSidFromId(
+                 gpRegLwMapSecurityCtx,
+                 &pOwnerSid,
+                 TRUE,
+                 0);
     BAIL_ON_NT_STATUS(status);
 
-    status = RtlSetOwnerSecurityDescriptor(pSecDescAbs,
-                                            pSid,
-                                            FALSE);
+    status = RtlSetOwnerSecurityDescriptor(
+                 pSecDescAbs,
+                 pOwnerSid,
+                 FALSE);
     BAIL_ON_NT_STATUS(status);
-    pSid = NULL;
+    pOwnerSid = NULL;
 
-    // Group (no need to set group for registry key)
+    // Group Administrators
+
+    status = RtlAllocateSidFromCString(&pGroupSid, "S-1-5-32-544");
+    BAIL_ON_NT_STATUS(status);
+
+    status = RtlSetGroupSecurityDescriptor(
+                 pSecDescAbs,
+                 pGroupSid,
+                 FALSE);
+    BAIL_ON_NT_STATUS(status);
+    pGroupSid = NULL;
+
 
     // Do not set Sacl currently
 
@@ -278,12 +320,13 @@ RegSrvCreateDefaultSecDescRel(
 
     status = RtlAbsoluteToSelfRelativeSD(pSecDescAbs,
                                          pSecDescRel,
-                                         pulSecDescLen);
+                                         pulSecDescLength);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
     LW_RTL_FREE(&pDacl);
-    LW_RTL_FREE(&pSid);
+    LW_RTL_FREE(&pOwnerSid);
+    LW_RTL_FREE(&pGroupSid);
 
     RegSrvFreeAbsoluteSecurityDescriptor(&pSecDescAbs);
 

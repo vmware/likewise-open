@@ -49,9 +49,9 @@
 
 NTSTATUS
 SamrSrvAddAliasMember(
-    handle_t IDL_handle,
-    ACCOUNT_HANDLE hAlias,
-    PSID pSid
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hAlias,
+    IN  PSID            pSid
     )
 {
     const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS;
@@ -189,8 +189,15 @@ SamrSrvAddAliasMember(
 
     pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
 
-    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    if (!(pAcctCtx->dwAccessGranted & ALIAS_ACCESS_ADD_MEMBER))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
@@ -216,8 +223,12 @@ SamrSrvAddAliasMember(
                                OUT_PPVOID(&pwszFilter));
     BAIL_ON_LSA_ERROR(dwError);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
-                wszAttrObjectSid, pwszSid);
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrObjectSid, pwszSid) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = DirectorySearch(hDirectory,
                               pwszBaseDn,

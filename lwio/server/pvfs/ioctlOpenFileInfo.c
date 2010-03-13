@@ -345,6 +345,7 @@ PvfsFillOpenFileInfo100(
                   &pwszFilename,
                   pFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
+    LWIO_UNLOCK_MUTEX(bControlLocked, &pFcb->ControlBlock);
 
     FilenameByteCount = (LwRtlWC16StringNumChars(pwszFilename)+1) *
                         sizeof(WCHAR);
@@ -355,7 +356,7 @@ PvfsFillOpenFileInfo100(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pInfo100->bDeleteOnClose = pFcb->bDeleteOnClose;
+    pInfo100->bDeleteOnClose = PvfsFcbIsPendingDelete(pFcb);
 
     pInfo100->NextEntryOffset = 0;
     pInfo100->FileNameLength = FilenameByteCount;

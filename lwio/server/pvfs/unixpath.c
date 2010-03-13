@@ -84,24 +84,42 @@ PvfsWC16CanonicalPathName(
     PSTR pszPath = NULL;
     PSTR pszCursor = NULL;
     size_t Length = 0;
+    size_t Offset = 0;
     int i = 0;
 
-    ntError = RtlCStringAllocateFromWC16String(&pszPath,
-                                               pwszPathname);
+    ntError = RtlCStringAllocateFromWC16String(
+                  &pszPath,
+                  pwszPathname);
     BAIL_ON_NT_STATUS(ntError);
+
+    Length = RtlCStringNumChars(pszPath);
 
     pszCursor = pszPath;
     while (pszCursor && *pszCursor)
     {
-        if (*pszCursor == '\\') {
+        if (*pszCursor == '\\')
+        {
             *pszCursor = '/';
         }
-        pszCursor++;
+
+        /* Collapse "//" to "/" */
+
+        if ((Offset > 0) &&
+            (*pszCursor == '/') &&
+            (*(pszCursor-1) == '/'))
+        {
+            LwRtlMoveMemory(pszCursor-1, pszCursor, Length-Offset);
+            pszPath[Length-1] = '\0';
+            Length--;
+            continue;
+        }
+
+        Offset++;
+        pszCursor = pszPath + Offset;
     }
 
     /* Strip trailing slashes */
 
-    Length = RtlCStringNumChars(pszPath);
     for (i=Length-1; i>0; i--)
     {
         /* break out at first non slash */
@@ -128,17 +146,20 @@ error:
 
 NTSTATUS
 PvfsValidatePath(
-    PCSTR pszFilename,
+    PPVFS_FCB pFcb,
     PPVFS_FILE_ID pFileId
     )
 {
-    NTSTATUS ntError= STATUS_UNSUCCESSFUL;
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN bFcbLocked = FALSE;
     PVFS_STAT Stat = {0};
+
+    LWIO_LOCK_RWMUTEX_SHARED(bFcbLocked, &pFcb->rwFileName);
 
     /* Verify that the dev/inode pair is the same on the pathname
        and the fd */
 
-    ntError = PvfsSysStat(pszFilename, &Stat);
+    ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
     BAIL_ON_NT_STATUS(ntError);
 
     if ((pFileId->Device != Stat.s_dev) || (pFileId->Inode != Stat.s_ino))
@@ -148,6 +169,8 @@ PvfsValidatePath(
     }
 
 cleanup:
+    LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
+
     return ntError;
 
 error:
@@ -444,6 +467,10 @@ PvfsResolvePath(
             /* Enumerate directory entries and look for a match */
 
             ntError = PvfsSysOpenDir(pszResolvedPath, &pDir);
+            if (ntError == STATUS_NOT_A_DIRECTORY)
+            {
+                ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+            }
             BAIL_ON_NT_STATUS(ntError);
 
             for(ntError = PvfsSysReadDir(pDir, &pDirEntry);
@@ -461,7 +488,18 @@ PvfsResolvePath(
             /* Did we find a match? */
 
             if (!pDirEntry) {
-                ntError = STATUS_OBJECT_NAME_NOT_FOUND;
+                /* Return code depends on whether the last component was
+                   not found or if an intermediate component was invalid */
+
+                if (pszCursor == NULL)
+                {
+                    ntError = STATUS_OBJECT_NAME_NOT_FOUND;
+                }
+                else
+                {
+                    ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+                }
+
                 BAIL_ON_NT_STATUS(ntError);
             }
 

@@ -5,7 +5,7 @@
 # Author: Gerald Carter <jerry@likewise.com>
 #
 #LWI_STARTUP_TYPE_REDHAT###
-#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 91 9
+#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 19 9
 #LWI_STARTUP_TYPE_REDHAT# description: Start and Stop NETLOGON 
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT#

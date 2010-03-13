@@ -64,7 +64,7 @@ SqliteSetKeySecurity(
 	ULONG ulCurrSecDescLen = 0;
 	PSECURITY_DESCRIPTOR_RELATIVE pNewSecDescRel = NULL;
 	ULONG ulNewSecDescLen = 0;
-	//Do not free
+	// Do not free
 	PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelToSet = NULL;
 	ULONG ulSecDescToSetLen = 0;
 	PREG_KEY_CONTEXT pKeyCtx = NULL;
@@ -94,8 +94,6 @@ SqliteSetKeySecurity(
 
     pKeyCtx = pKeyHandle->pKey;
     BAIL_ON_INVALID_KEY_CONTEXT(pKeyCtx);
-
-	RegSrvReferenceKeyContext(pKeyCtx);
 
 	/* Sanity checks */
 	if (SecurityInformation == 0)
@@ -161,6 +159,7 @@ SqliteSetKeySecurity(
     }
 
     status = RegDbUpdateKeyAcl(ghCacheConnection,
+		                   (PCWSTR)pKeyCtx->pwszKeyName,
 							   pKeyCtx->qwId,
 							   pKeyCtx->qwSdId,
 							   pSecDescRelToSet,
@@ -172,7 +171,6 @@ SqliteSetKeySecurity(
 
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyCtx->mutex);
-    RegSrvReleaseKeyContext(pKeyCtx);
 
     LWREG_SAFE_FREE_MEMORY(pCurrSecDescRel);
     LWREG_SAFE_FREE_MEMORY(pNewSecDescRel);
@@ -195,8 +193,6 @@ SqliteGetKeySecurity(
     NTSTATUS status = STATUS_SUCCESS;
     PREG_KEY_HANDLE pKeyHandle = (PREG_KEY_HANDLE)hKey;
     PREG_KEY_CONTEXT pKeyCtx = NULL;
-    PSECURITY_DESCRIPTOR_RELATIVE pCurrSecDescRel = NULL;
-    ULONG ulCurrSecDescLen = 0;
     BOOLEAN bInLock = FALSE;
 
     BAIL_ON_NT_INVALID_POINTER(pKeyHandle);
@@ -207,8 +203,6 @@ SqliteGetKeySecurity(
     pKeyCtx = pKeyHandle->pKey;
     BAIL_ON_INVALID_KEY_CONTEXT(pKeyCtx);
 
-    RegSrvReferenceKeyContext(pKeyCtx);
-
     LWREG_LOCK_RWMUTEX_SHARED(bInLock, &pKeyCtx->mutex);
 
     // this key currently has no SD assigned
@@ -218,41 +212,18 @@ SqliteGetKeySecurity(
 	BAIL_ON_NT_STATUS(status);
     }
 
-    if (!pKeyCtx->bHasSdInfo)
-    {
-		status = RegDbGetKeyAclByKeyId(ghCacheConnection,
-				                       pKeyCtx->qwId,
-				                       &pKeyCtx->qwSdId,
-				                       &pCurrSecDescRel,
-				                       &ulCurrSecDescLen);
-		BAIL_ON_NT_STATUS(status);
-
-	status = RegSrvSetKeySecurityDescriptor_inlock(pKeyCtx, pCurrSecDescRel, ulCurrSecDescLen);
-	BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-	    status = LW_RTL_ALLOCATE((PVOID*)&pCurrSecDescRel, VOID, pKeyCtx->ulSecDescLength);
-	    BAIL_ON_NT_STATUS(status);
-
-	    status = RegSrvGetKeySecurityDescriptor_inlock(pKeyCtx,
-							            pCurrSecDescRel,
-							            pKeyCtx->ulSecDescLength);
-	    BAIL_ON_NT_STATUS(status);
-    }
+    status = SqliteCacheKeySecurityDescriptor_inlock(pKeyCtx);
+    BAIL_ON_NT_STATUS(status);
 
 	status = RtlQuerySecurityDescriptorInfo(
 				  SecurityInformation,
 				  pSecDescRel,
 				  pulSecDescRelLen,
-				  pCurrSecDescRel);
+				  pKeyCtx->pSecurityDescriptor);
 	BAIL_ON_NT_STATUS(status);
 
 cleanup:
     LWREG_UNLOCK_RWMUTEX(bInLock, &pKeyCtx->mutex);
-    RegSrvReleaseKeyContext(pKeyCtx);
-
-    LWREG_SAFE_FREE_MEMORY(pCurrSecDescRel);
 
     return status;
 

@@ -44,6 +44,7 @@ LwIoDaemonIpcRefreshConfiguration(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PLWIO_STATUS_REPLY pStatusResponse = NULL;
 
@@ -52,16 +53,15 @@ LwIoDaemonIpcRefreshConfiguration(
                     (PVOID*)&pStatusResponse);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    dwError = LwioSrvRefreshConfig();
+    ntStatus = LwioSrvRefreshConfig();
 
     /* Transmit refresh error to client but do not fail out of dispatch loop */
-    if (dwError)
+    if (ntStatus)
     {
-        pStatusResponse->dwError = dwError;
+        pStatusResponse->dwError = LwNtStatusToWin32Error(ntStatus);
         pOut->tag = LWIO_REFRESH_CONFIG_FAILED;
         pOut->data = (PVOID) pStatusResponse;
 
-        dwError = 0;
         goto cleanup;
     }
 
@@ -323,8 +323,8 @@ static LWMsgDispatchSpec gLwIoDaemonIpcDispatchSpec[] =
     LWMSG_DISPATCH_NONBLOCK(LWIO_SET_LOG_INFO, LwIoDaemonIpcSetLogInfo),
     LWMSG_DISPATCH_NONBLOCK(LWIO_GET_LOG_INFO, LwIoDaemonIpcGetLogInfo),
     LWMSG_DISPATCH_NONBLOCK(LWIO_GET_DRIVER_STATUS, LwIoDaemonIpcGetDriverStatus),
-    LWMSG_DISPATCH_NONBLOCK(LWIO_LOAD_DRIVER, LwIoDaemonIpcLoadDriver),
-    LWMSG_DISPATCH_NONBLOCK(LWIO_UNLOAD_DRIVER, LwIoDaemonIpcUnloadDriver),
+    LWMSG_DISPATCH_BLOCK(LWIO_LOAD_DRIVER, LwIoDaemonIpcLoadDriver),
+    LWMSG_DISPATCH_BLOCK(LWIO_UNLOAD_DRIVER, LwIoDaemonIpcUnloadDriver),
     LWMSG_DISPATCH_NONBLOCK(LWIO_GET_PID, LwIoDaemonIpcGetPid),
     LWMSG_DISPATCH_END
 };

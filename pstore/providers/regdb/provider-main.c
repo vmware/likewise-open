@@ -62,6 +62,13 @@ LWPS_INITIALIZE_PROVIDER(regdb)(
     *ppszName = (PSTR) gpszRegDBProviderName;
     *ppFnTable = &gRegDBProviderAPITable;
 
+    dwError = LwNtStatusToWin32Error(LwMapSecurityInitialize());
+    BAIL_ON_LWPS_ERROR(dwError);
+
+    dwError = LwNtStatusToWin32Error(
+                  LwMapSecurityCreateContext(&gpRegLwMapSecurityCtx));
+    BAIL_ON_LWPS_ERROR(dwError);
+
 cleanup:
     return dwError;
 
@@ -202,7 +209,7 @@ RegDB_ReadPassword(
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
                   NULL,
-                  LWPS_REG_DOMAIN_DNS_NAME,
+                  LWPS_REG_HOST_DNS_DOMAIN,
                   NULL,
                   (PVOID) &pszHostDnsDomain,
                   NULL);
@@ -540,6 +547,8 @@ RegDB_WritePassword(
     BAIL_ON_INVALID_POINTER(hProvider);
     BAIL_ON_INVALID_POINTER(pInfo);
     pContext = (PREGDB_PROVIDER_CONTEXT)hProvider;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDescAbs = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
 
     /* This is all the values to be written to the registry. */
     dwError = LwpsWc16sToMbs(pInfo->pwszSID, &pszDomainSID);
@@ -591,11 +600,17 @@ RegDB_WritePassword(
      * to restrict read access to value names (the machine password)
      * stored under this key.
      */
-    dwError = RegUtilAddKey(
+    dwError = LwNtStatusToWin32Error(
+                  RegDB_CreateRestrictedSecDescAbs(&pSecDescAbs));
+    BAIL_ON_LWPS_ERROR(status);
+
+    dwError = RegUtilAddKeySecDesc(
                   pContext->hReg,
                   NULL,
                   PSTOREDB_REGISTRY_MACHINE_PWD_KEY,
-                  NULL);
+                  NULL,
+                  WRITE_OWNER | KEY_ALL_ACCESS,
+                  pSecDescAbs);
     BAIL_ON_LWPS_ERROR(dwError);
 
     /* Write the data to the registry */
@@ -644,7 +659,7 @@ RegDB_WritePassword(
                   NULL,
                   PSTOREDB_REGISTRY_KEY,
                   NULL,
-                  LWPS_REG_DOMAIN_DNS_NAME,
+                  LWPS_REG_HOST_DNS_DOMAIN,
                   REG_SZ,
                   pszHostDnsDomain,
                   strlen(pszHostDnsDomain));
@@ -713,6 +728,7 @@ cleanup:
     LWPS_SAFE_FREE_MEMORY(pszHostDnsDomain);
     LWPS_SAFE_FREE_MEMORY(pszMachineAccount);
     LWPS_SAFE_FREE_MEMORY(pszMachinePassword);
+    RegDB_FreeAbsoluteSecurityDescriptor(&pSecDescAbs);
 
     return dwError;
 
@@ -827,6 +843,9 @@ LWPS_SHUTDOWN_PROVIDER(regdb)(
     DWORD dwError = 0;
 
     BAIL_IF_NOT_SUPERUSER(geteuid());
+
+    LwMapSecurityFreeContext(&gpRegLwMapSecurityCtx);
+    LwMapSecurityCleanup();
 
 cleanup:
     return dwError;

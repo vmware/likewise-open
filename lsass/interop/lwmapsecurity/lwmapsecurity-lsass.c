@@ -48,6 +48,13 @@
 #include <lsa/lsa.h>
 #include <lw/rtlgoto.h>
 #include <lw/safeint.h>
+#include <uuid/uuid.h>
+#include <lwrpc/krb5pac.h>
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_ext.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 #include "lwmem.h"
 #include "lwstr.h"
 #include "lwsecurityidentifier.h"
@@ -76,6 +83,7 @@ typedef struct _LSA_MAP_SECURITY_OBJECT_INFO {
     ULONG Uid;
     ULONG Gid;
     PSID Sid;
+    PSID PrimaryGroupSid;
 } LSA_MAP_SECURITY_OBJECT_INFO, *PLSA_MAP_SECURITY_OBJECT_INFO;
 
 #define IS_NOT_FOUND_ERROR(lsaError) ( \
@@ -83,6 +91,14 @@ typedef struct _LSA_MAP_SECURITY_OBJECT_INFO {
     (LW_ERROR_NO_SUCH_GROUP == (lsaError)) || \
     (LW_ERROR_NO_SUCH_OBJECT == (lsaError)) || \
     0 )
+
+static
+NTSTATUS
+LsaMapSecurityCreateTokenDefaultDacl(
+    PACL *ppDacl,
+    PSID pOwnerSid
+    );
+
 
 static
 NTSTATUS
@@ -131,6 +147,7 @@ LsaMapSecurityFreeObjectInfo(
     )
 {
     RTL_FREE(&pObjectInfo->Sid);
+    RTL_FREE(&pObjectInfo->PrimaryGroupSid);
     RtlZeroMemory(pObjectInfo, sizeof(*pObjectInfo));
 }
 
@@ -206,7 +223,7 @@ LsaMapSecurityResolveObjectInfo(
                 &ppObjects);
         }
 
-        if (dwError == LW_ERROR_SUCCESS && ppObjects[0] == NULL)
+        if (dwError == LW_ERROR_SUCCESS && (ppObjects[0] == NULL || !ppObjects[0]->enabled))
         {
             dwError = LW_ERROR_NO_SUCH_OBJECT;
         }
@@ -273,6 +290,11 @@ LsaMapSecurityResolveObjectInfo(
 
         status = RtlAllocateSidFromCString(&objectInfo.Sid, ppObjects[0]->pszObjectSid);
         GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlAllocateSidFromCString(
+            &objectInfo.PrimaryGroupSid,
+            ppObjects[0]->userInfo.pszPrimaryGroupSid);
+        GOTO_CLEANUP_ON_STATUS(status);
     }
     else
     {
@@ -334,7 +356,7 @@ LsaMapSecurityResolveObjectInfoBySid(
                     QueryList,
                     &ppObjects);
 
-    if (dwError == LW_ERROR_SUCCESS && ppObjects[0] == NULL)
+    if (dwError == LW_ERROR_SUCCESS && (ppObjects[0] == NULL || !ppObjects[0]->enabled))
     {
         dwError = LW_ERROR_NO_SUCH_OBJECT;
     }
@@ -365,6 +387,115 @@ LsaMapSecurityResolveObjectInfoBySid(
 
         status = RtlAllocateSidFromCString(&objectInfo.Sid, ppObjects[0]->pszObjectSid);
         GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+cleanup:
+
+    if (!NT_SUCCESS(status))
+    {
+        LsaMapSecurityFreeObjectInfo(&objectInfo);
+    }
+
+    LW_SAFE_FREE_STRING(pszSid);
+
+    LsaUtilFreeSecurityObjectList(1, ppObjects);
+
+    *pObjectInfo = objectInfo;
+
+    return status;
+}
+
+static
+NTSTATUS
+LsaMapSecurityConstructSid(
+    IN PSID pDomainSid,
+    IN ULONG rid,
+    OUT PSID* ppSid
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSID pSid = NULL;
+
+    status = RTL_ALLOCATE(&pSid, SID, SID_MAX_SIZE);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RtlCopySid(SID_MAX_SIZE, pSid, pDomainSid);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RtlAppendRidSid(SID_MAX_SIZE, pSid, rid);
+    BAIL_ON_NT_STATUS(status);
+
+    *ppSid = pSid;
+
+cleanup:
+
+    return status;
+
+error:
+
+    *ppSid = NULL;
+
+    RTL_FREE(&pSid);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+LsaMapSecurityResolveObjectInfoFromPac(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    IN PAC_LOGON_INFO* pPac,
+    OUT PLSA_MAP_SECURITY_OBJECT_INFO pObjectInfo
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    LSA_MAP_SECURITY_OBJECT_INFO objectInfo = { 0 };
+    PSTR pszSid = NULL;
+    PLSA_SECURITY_OBJECT* ppObjects = NULL;
+    LSA_QUERY_LIST QueryList;
+    HANDLE hConnection = NULL;
+
+    status = LsaMapSecurityConstructSid(pPac->info3.base.domain_sid, pPac->info3.base.rid, &objectInfo.Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlAllocateCStringFromSid(&pszSid, objectInfo.Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LsaMapSecurityOpenConnection(Context, &hConnection);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    QueryList.ppszStrings = (PCSTR*) &pszSid;
+
+    dwError = LsaFindObjects(
+                    hConnection,
+                    NULL,
+                    0,
+                    LSA_OBJECT_TYPE_UNDEFINED,
+                    LSA_QUERY_TYPE_BY_SID,
+                    1,
+                    QueryList,
+                    &ppObjects);
+
+    LsaMapSecurityCloseConnection(Context, &hConnection);
+
+    status = LsaMapSecurityConstructSid(
+        pPac->info3.base.domain_sid,
+        pPac->info3.base.primary_gid,
+        &objectInfo.PrimaryGroupSid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_IS_USER);
+
+    if (ppObjects[0] && ppObjects[0]->enabled)
+    {
+        assert(ppObjects[0]->type == LSA_OBJECT_TYPE_USER);
+
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_UID);
+        SetFlag(objectInfo.Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID);
+
+        objectInfo.Uid = ppObjects[0]->userInfo.uid;
+        objectInfo.Gid = ppObjects[0]->userInfo.gid;
     }
 
 cleanup:
@@ -839,18 +970,32 @@ LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfo(
     // TOKEN_PRIMARY_GROUP
     //
 
-    status = LsaMapSecurityGetSidFromId(
-                    Context,
-                    &createInformation->PrimaryGroup->PrimaryGroup,
-                    FALSE,
-                    createInformation->Unix->Gid);
-    GOTO_CLEANUP_ON_STATUS(status);
+    if (pObjectInfo->PrimaryGroupSid)
+    {
+        status = RtlDuplicateSid(
+            &createInformation->PrimaryGroup->PrimaryGroup,
+            pObjectInfo->PrimaryGroupSid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+    else
+    {
+        status = LsaMapSecurityGetSidFromId(
+            Context,
+            &createInformation->PrimaryGroup->PrimaryGroup,
+            FALSE,
+            createInformation->Unix->Gid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
     //
     // TOKEN_DEFAULT_DACL
     //
 
-    // TODO-Implement TOKEN_DEFAULT_DACL?
+    status = LsaMapSecurityCreateTokenDefaultDacl(
+                 &createInformation->DefaultDacl->DefaultDacl,
+                 createInformation->Owner->Owner);
+    GOTO_CLEANUP_ON_STATUS(status);
+
 
 cleanup:
     if (!NT_SUCCESS(status))
@@ -870,6 +1015,277 @@ cleanup:
 
     return status;
 }
+
+static
+NTSTATUS
+LsaMapSecurityMergeStringLists(
+    IN DWORD dwCount1,
+    IN PSTR* ppszStrings1,
+    IN DWORD dwCount2,
+    IN PSTR* ppszStrings2,
+    OUT PDWORD pdwMergedCount,
+    OUT PSTR** pppszMergedStrings
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PSTR* ppszMergedStrings = NULL;
+    DWORD dwMergedCount = dwCount1;
+    DWORD dwSecondIndex = 0;
+    DWORD dwFirstIndex = 0;
+    BOOLEAN bFound = FALSE;
+
+    status = RTL_ALLOCATE(&ppszMergedStrings, PSTR, sizeof(PSTR) * (dwCount1 + dwCount2));
+    BAIL_ON_NT_STATUS(status);
+
+    memcpy(ppszMergedStrings, ppszStrings1, sizeof(*ppszStrings1) * dwCount1);
+
+    for (dwSecondIndex = 0; dwSecondIndex < dwCount2; dwSecondIndex++)
+    {
+        bFound = FALSE;
+        for (dwFirstIndex = 0; dwFirstIndex < dwCount1; dwFirstIndex++)
+        {
+            if (!strcasecmp(ppszStrings1[dwFirstIndex], ppszStrings2[dwSecondIndex]))
+            {
+                bFound = TRUE;
+                break;
+            }
+        }
+
+        if (!bFound)
+        {
+            ppszMergedStrings[dwMergedCount++] = ppszStrings2[dwSecondIndex];
+        }
+    }
+
+    *pdwMergedCount = dwMergedCount;
+    *pppszMergedStrings = ppszMergedStrings;
+
+cleanup:
+
+    return status;
+
+error:
+
+    RTL_FREE(ppszMergedStrings);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
+    IN PLSA_MAP_SECURITY_OBJECT_INFO pObjectInfo,
+    IN DWORD dwInputSidCount,
+    IN PSID* ppInputSids
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = LW_ERROR_SUCCESS;
+    PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
+    ULONG i = 0;
+    HANDLE hConnection = NULL;
+    PSTR* ppszInputSids = NULL;
+    PSTR* ppszSuppGroupSids = NULL;
+    PSTR* ppszGroupSids = NULL;
+    DWORD dwGroupCount = 0;
+    DWORD dwSuppGroupCount = 0;
+    PSID pPrimaryGidSid = NULL;
+    PSTR pszPrimaryGidSid = NULL;
+
+    /* Allocate array for string forms of sids, plus extra slots for user sid and sid from primary UNIX gid */
+    status = RTL_ALLOCATE(&ppszInputSids, PSTR, sizeof(*ppszInputSids) * (dwInputSidCount + 2));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    for (i = 0; i < dwInputSidCount; i++)
+    {
+        status = RtlAllocateCStringFromSid(&ppszInputSids[i], ppInputSids[i]);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    /* Add user SID itself to list */
+    status = RtlAllocateCStringFromSid(&ppszInputSids[dwInputSidCount++], pObjectInfo->Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LsaMapSecurityOpenConnection(Context, &hConnection);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    if (IsSetFlag(pObjectInfo->Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID))
+    {
+        status = LsaMapSecurityGetSidFromId(
+                        Context,
+                        &pPrimaryGidSid,
+                        FALSE,
+                        pObjectInfo->Gid);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlAllocateCStringFromSid(&pszPrimaryGidSid, pPrimaryGidSid);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        for (i = 0; i < dwInputSidCount; i++)
+        {
+            if (!strcasecmp(ppszInputSids[i], pszPrimaryGidSid))
+            {
+                break;
+            }
+        }
+
+        if (i == dwInputSidCount)
+        {
+            ppszInputSids[dwInputSidCount++] = pszPrimaryGidSid;
+            pszPrimaryGidSid = NULL;
+        }
+    }
+
+    dwError = LsaQueryMemberOf(
+                    hConnection,
+                    NULL,
+                    LSA_FIND_FLAGS_LOCAL,
+                    dwInputSidCount,
+                    ppszInputSids,
+                    &dwSuppGroupCount,
+                    &ppszSuppGroupSids);
+    if (IS_NOT_FOUND_ERROR(dwError))
+    {
+        dwError = 0;
+        dwGroupCount = 0;
+    }
+    else
+    {
+        status = LsaLsaErrorToNtStatus(dwError);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    LsaMapSecurityCloseConnection(Context, &hConnection);
+
+    status = LsaMapSecurityMergeStringLists(
+        dwInputSidCount,
+        ppszInputSids,
+        dwSuppGroupCount,
+        ppszSuppGroupSids,
+        &dwGroupCount,
+        &ppszGroupSids);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    //
+    // Allocate token create information with enough space
+    // for any potential extra GIDs.
+    //
+
+    status = LsaMapSecurityAllocateAccessTokenCreateInformation(
+        &createInformation,
+        dwGroupCount);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    //
+    // TOKEN_UNIX
+    //
+
+    if (IsSetFlag(pObjectInfo->Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_UID))
+    {
+        createInformation->Unix->Uid = pObjectInfo->Uid;
+    }
+    else
+    {
+        status = STATUS_NO_SUCH_USER;
+        GOTO_CLEANUP();
+    }
+
+    if (IsSetFlag(pObjectInfo->Flags, LSA_MAP_SECURITY_OBJECT_INFO_FLAG_VALID_GID))
+    {
+        createInformation->Unix->Gid = pObjectInfo->Gid;
+    }
+    else
+    {
+        status = STATUS_NO_SUCH_GROUP;
+        GOTO_CLEANUP();
+    }
+
+    // TODO-Should the token even have a umask, and if so,
+    // where should it come from?
+    createInformation->Unix->Umask = 0022;
+
+    //
+    // TOKEN_USER
+    //
+
+    status = RtlDuplicateSid(&createInformation->User->User.Sid, pObjectInfo->Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    //
+    // TOKEN_GROUPS
+    //
+
+    for (i = 0; i < dwGroupCount; i++)
+    {
+        PSID_AND_ATTRIBUTES group = &createInformation->Groups->Groups[createInformation->Groups->GroupCount];
+
+        status = RtlAllocateSidFromCString(
+            &group->Sid,
+            ppszGroupSids[i]);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        group->Attributes = SE_GROUP_ENABLED;
+
+        createInformation->Groups->GroupCount++;
+    }
+
+    //
+    // TOKEN_OWNER
+    //
+
+    status = RtlDuplicateSid(&createInformation->Owner->Owner, pObjectInfo->Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    //
+    // TOKEN_PRIMARY_GROUP
+    //
+
+    if (pObjectInfo->PrimaryGroupSid)
+    {
+        status = RtlDuplicateSid(
+            &createInformation->PrimaryGroup->PrimaryGroup,
+            pObjectInfo->PrimaryGroupSid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+    else
+    {
+        status = LsaMapSecurityGetSidFromId(
+            Context,
+            &createInformation->PrimaryGroup->PrimaryGroup,
+            FALSE,
+            createInformation->Unix->Gid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    //
+    // TOKEN_DEFAULT_DACL
+    //
+
+    status = LsaMapSecurityCreateTokenDefaultDacl(
+                 &createInformation->DefaultDacl->DefaultDacl,
+                 createInformation->Owner->Owner);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+
+    if (!NT_SUCCESS(status))
+    {
+        LsaMapSecurityFreeAccessTokenCreateInformation(Context, &createInformation);
+    }
+
+    RTL_FREE(&pszPrimaryGidSid);
+    RTL_FREE(&pPrimaryGidSid);
+    RTL_FREE(&ppszGroupSids);
+    LwFreeStringArray(ppszSuppGroupSids, dwSuppGroupCount);
+    LwFreeStringArray(ppszInputSids, dwInputSidCount);
+
+    *CreateInformation = createInformation;
+
+    return status;
+}
+
 
 static
 NTSTATUS
@@ -930,6 +1346,110 @@ cleanup:
 
 static
 NTSTATUS
+LsaMapSecurityGetPacInfoFromGssContext(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT PAC_LOGON_INFO** ppPac,
+    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
+    )
+{
+    static const CHAR szLogonInfoUrn[] = "urn:mspac:logon-info";
+    NTSTATUS status = STATUS_SUCCESS;
+    OM_uint32 minorStatus = 0;
+    OM_uint32 majorStatus = 0;
+    error_status_t dceStatus = 0;
+    gss_name_t srcName = GSS_C_NO_NAME;
+    gss_buffer_desc logonInfoUrn =
+    {
+        .length = sizeof(szLogonInfoUrn) - 1,
+        .value = (PBYTE) szLogonInfoUrn
+    };
+    gss_buffer_desc pacData = {0};
+    gss_buffer_desc displayData = {0};
+    PAC_LOGON_INFO *pPac = NULL;
+    int more = -1;
+
+    majorStatus = gss_inquire_context(
+        &minorStatus,
+        GssContext,
+        &srcName,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL);
+    if (majorStatus != GSS_S_COMPLETE)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    majorStatus = gss_get_name_attribute(
+        &minorStatus,
+        srcName,
+        &logonInfoUrn,
+        NULL,
+        NULL,
+        &pacData,
+        &displayData,
+        &more);
+    if (majorStatus != GSS_S_COMPLETE)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    if (pacData.value == NULL)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    dceStatus = DecodePacLogonInfo(
+        pacData.value,
+        pacData.length,
+        &pPac);
+    if (dceStatus)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    *ppPac = pPac;
+
+cleanup:
+
+    if (pacData.value)
+    {
+        gss_release_buffer(&minorStatus, &pacData);
+    }
+
+    if (displayData.value)
+    {
+        gss_release_buffer(&minorStatus, &displayData);
+    }
+
+    if (srcName)
+    {
+        gss_release_name(&minorStatus, &srcName);
+    }
+
+    return status;
+
+error:
+
+    *ppPac = NULL;
+
+    if (pPac)
+    {
+        FreePacLogonInfo(pPac);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
 LsaMapSecurityGetAccessTokenCreateInformationFromUid(
     IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
     OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
@@ -962,6 +1482,103 @@ LsaMapSecurityGetAccessTokenCreateInformationFromUsername(
 }
 
 static
+NTSTATUS
+LsaMapSecurityGetAccessTokenCreateInformationFromGssContext(
+    IN PLW_MAP_SECURITY_PLUGIN_CONTEXT Context,
+    OUT PACCESS_TOKEN_CREATE_INFORMATION* CreateInformation,
+    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PAC_LOGON_INFO* pPac = NULL;
+    LSA_MAP_SECURITY_OBJECT_INFO objectInfo = {0};
+    DWORD dwInputSidCount = 0;
+    PSID* ppInputSids = NULL;
+    DWORD dwIndex = 0;
+    PSID pSid = NULL;
+
+    status = LsaMapSecurityGetPacInfoFromGssContext(
+        Context,
+        &pPac,
+        GssContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = LsaMapSecurityResolveObjectInfoFromPac(Context, pPac, &objectInfo);
+    BAIL_ON_NT_STATUS(status);
+
+    status = RTL_ALLOCATE(&ppInputSids, PSID, sizeof(PSID) *
+                          (pPac->info3.base.groups.count +
+                           pPac->res_groups.count +
+                           pPac->info3.sidcount));
+    BAIL_ON_NT_STATUS(status);
+
+    for (dwIndex = 0; dwIndex < pPac->info3.base.groups.count; dwIndex++)
+    {
+        status = LsaMapSecurityConstructSid(
+            pPac->info3.base.domain_sid,
+            pPac->info3.base.groups.rids[dwIndex].rid,
+            &pSid);
+        BAIL_ON_NT_STATUS(status);
+
+        ppInputSids[dwInputSidCount++] = pSid;
+        pSid = NULL;
+    }
+
+    for (dwIndex = 0; dwIndex < pPac->res_groups.count; dwIndex++)
+    {
+        status = LsaMapSecurityConstructSid(
+            pPac->res_group_dom_sid,
+            pPac->res_groups.rids[dwIndex].rid,
+            &pSid);
+        BAIL_ON_NT_STATUS(status);
+
+        ppInputSids[dwInputSidCount++] = pSid;
+        pSid = NULL;
+    }
+
+    for (dwIndex = 0; dwIndex < pPac->info3.sidcount; dwIndex++)
+    {
+        status = RtlDuplicateSid(&pSid, pPac->info3.sids[dwIndex].sid);
+        BAIL_ON_NT_STATUS(status);
+
+        ppInputSids[dwInputSidCount++] = pSid;
+        pSid = NULL;
+    }
+
+    status = LsaMapSecurityGetAccessTokenCreateInformationFromObjectInfoAndGroups(
+        Context,
+        CreateInformation,
+        &objectInfo,
+        dwInputSidCount,
+        ppInputSids);
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    RTL_FREE(&pSid);
+
+    for (dwIndex = 0; dwIndex < dwInputSidCount; dwIndex++)
+    {
+        RTL_FREE(&ppInputSids[dwIndex]);
+    }
+
+    RTL_FREE(&ppInputSids);
+
+    if (pPac)
+    {
+        FreePacLogonInfo(pPac);
+    }
+
+    LsaMapSecurityFreeObjectInfo(&objectInfo);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
 VOID
 LsaMapSecurityFreeContext(
     IN OUT PLW_MAP_SECURITY_PLUGIN_CONTEXT* Context
@@ -984,6 +1601,7 @@ static LW_MAP_SECURITY_PLUGIN_INTERFACE gLsaMapSecurityPluginInterface = {
     .FreeSid = LsaMapSecurityFreeSid,
     .GetAccessTokenCreateInformationFromUid = LsaMapSecurityGetAccessTokenCreateInformationFromUid,
     .GetAccessTokenCreateInformationFromUsername = LsaMapSecurityGetAccessTokenCreateInformationFromUsername,
+    .GetAccessTokenCreateInformationFromGssContext = LsaMapSecurityGetAccessTokenCreateInformationFromGssContext,
     .FreeAccessTokenCreateInformation = LsaMapSecurityFreeAccessTokenCreateInformation,
 };
 
@@ -1014,6 +1632,49 @@ cleanup:
 
     return status;
 }
+
+
+static
+NTSTATUS
+LsaMapSecurityCreateTokenDefaultDacl(
+    OUT PACL *ppDacl,
+    IN PSID pOwnerSid
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG ulDaclSize = 0;
+    PACL pDacl = NULL;
+
+    ulDaclSize = ACL_HEADER_SIZE +
+        sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(pOwnerSid) +
+        sizeof(ULONG);
+
+    status = LW_RTL_ALLOCATE(&pDacl, VOID, ulDaclSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlCreateAcl(pDacl, ulDaclSize, ACL_REVISION);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlAddAccessAllowedAceEx(
+                 pDacl,
+                 ACL_REVISION,
+                 0,
+                 GENERIC_ALL,
+                 pOwnerSid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    *ppDacl = pDacl;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        LW_RTL_FREE(&pDacl);
+    }
+
+    return status;
+}
+
 
 
 /*

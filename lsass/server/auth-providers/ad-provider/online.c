@@ -1290,6 +1290,8 @@ AD_CacheUserRealInfoFromPac(
 
     pUserInfo->userInfo.qwPwdLastSet =
                (uint64_t)WinTimeToInt64(pPac->info3.base.last_password_change);
+    pUserInfo->userInfo.qwPwdExpires =
+               (uint64_t)WinTimeToInt64(pPac->info3.base.force_password_change);
     pUserInfo->userInfo.qwAccountExpires =
                (uint64_t)WinTimeToInt64(pPac->info3.base.acct_expiry);
 
@@ -1303,8 +1305,8 @@ AD_CacheUserRealInfoFromPac(
                pUserInfo->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError =  LsaAdBatchMarshalUserInfoPasswordLastSet(
-               pUserInfo->userInfo.qwPwdLastSet,
+    dwError = LsaAdBatchMarshalUserInfoPasswordExpires(
+               pUserInfo->userInfo.qwPwdExpires,
                &pUserInfo->userInfo,
                pUserInfo->pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1601,6 +1603,7 @@ AD_OnlineCheckUserPassword(
                     pszPassword,
                     KRB5_File_Cache,
                     pszServicePrincipal,
+                    pszDomainDnsName,
                     pszServicePassword,
                     &pchNdrEncodedPac,
                     &sNdrEncodedPac,
@@ -1625,6 +1628,7 @@ AD_OnlineCheckUserPassword(
                       pszPassword,
                       KRB5_File_Cache,
                       pszServicePrincipal,
+                      pszDomainDnsName,
                       pszServicePassword,
                       &pchNdrEncodedPac,
                       &sNdrEncodedPac,
@@ -1638,11 +1642,15 @@ AD_OnlineCheckUserPassword(
 
     BAIL_ON_LSA_ERROR(dwError);
 
-    dceStatus = DecodePacLogonInfo(
-        pchNdrEncodedPac,
-        sNdrEncodedPac,
-        &pPac);
-    BAIL_ON_DCE_ERROR(dwError, dceStatus);
+    if (sNdrEncodedPac)
+    {
+        // This function will abort if it is passed a zero sized PAC.
+        dceStatus = DecodePacLogonInfo(
+            pchNdrEncodedPac,
+            sNdrEncodedPac,
+            &pPac);
+        BAIL_ON_DCE_ERROR(dwError, dceStatus);
+    }
 
     if (pPac != NULL)
     {
@@ -1659,6 +1667,13 @@ AD_OnlineCheckUserPassword(
         BAIL_ON_LSA_ERROR(dwError);
 
         LSA_ASSERT(pUserInfo->userInfo.bIsAccountInfoKnown);
+    }
+    else
+    {
+        LSA_LOG_ERROR("no pac was received for %s\\%s (uid %d). The user's group memberships and password expiration may show up incorrectly on this machine.",
+                    LSA_SAFE_LOG_STRING(pUserInfo->pszNetbiosDomainName),
+                    LSA_SAFE_LOG_STRING(pUserInfo->pszSamAccountName),
+                    pUserInfo->userInfo.uid);
     }
 
 cleanup:
@@ -3992,7 +4007,6 @@ AD_UpdateUserObjectFlags(
     DWORD dwError = LW_ERROR_SUCCESS;
     struct timeval current_tv = {0};
     UINT64 u64current_NTtime = 0;
-    int64_t qwNanosecsToPasswordExpiry = 0;
 
     if (gettimeofday(&current_tv, NULL) < 0)
     {
@@ -4011,19 +4025,13 @@ AD_UpdateUserObjectFlags(
             pUser->userInfo.bAccountExpired = TRUE;
         }
 
-        if (gpADProviderData->adMaxPwdAge != 0)
+        if ((!pUser->userInfo.bPasswordNeverExpires &&
+             pUser->userInfo.qwPwdExpires != 0 &&
+             u64current_NTtime >= pUser->userInfo.qwPwdExpires) ||
+            pUser->userInfo.qwPwdLastSet == 0)
         {
-            qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-                (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
-
-            if ((!pUser->userInfo.bPasswordNeverExpires &&
-                 gpADProviderData->adMaxPwdAge != 0 &&
-                 qwNanosecsToPasswordExpiry < 0) ||
-                pUser->userInfo.qwPwdLastSet == 0)
-            {
-                //password is expired already
-                pUser->userInfo.bPasswordExpired = TRUE;
-            }
+            //password is expired already
+            pUser->userInfo.bPasswordExpired = TRUE;
         }
     }
 
@@ -4918,7 +4926,7 @@ AD_OnlineGetGroupMemberSids(
 
     if (FindFlags & LSA_FIND_FLAGS_NSS)
     {
-        bIsCacheOnlyMode = AD_GetNssUserMembershipCacheOnlyEnabled();
+        bIsCacheOnlyMode = AD_GetNssGroupMembersCacheOnlyEnabled();
     }
 
     dwError = AD_FindObjectBySid(hProvider, pszSid, &pGroupInfo);

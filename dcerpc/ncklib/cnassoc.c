@@ -4169,7 +4169,7 @@ pointer_t       type;
      */
     RPC_CN_LOCAL_ID_CLEAR (grp_id);
     RPC_CN_LOCK ();
-    rpc__cn_assoc_reclaim (grp_id, (unsigned long) type, false);
+    rpc__cn_assoc_reclaim (grp_id, (unsigned long) type, true);
     RPC_CN_UNLOCK ();
 }
 

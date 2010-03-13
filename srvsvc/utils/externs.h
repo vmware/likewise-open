@@ -49,9 +49,10 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern LOGINFO gSrvSvcLogInfo;
-
-#define SRVSVC_LOCK_LOGGER   pthread_mutex_lock(&gSrvSvcLogInfo.lock)
-#define SRVSVC_UNLOCK_LOGGER pthread_mutex_unlock(&gSrvSvcLogInfo.lock)
+extern HANDLE                 ghSrvSvcLog;
+extern SRVSVC_LOG_LEVEL       gSrvSvcLsaMaxLogLevel;
+extern SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET;
+extern PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger;
 
 #endif /* __EXTERNS_H__ */
+

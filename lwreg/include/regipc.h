@@ -202,31 +202,20 @@ typedef struct __REG_IPC_DELETE_VALUE_REQ
 
 /******************************************************************************/
 
-// IN HKEY hKey,
-// IN DWORD dwIndex,
-// OUT PWSTR pName,
-// IN OUT PDWORD pcName,
-// IN PDWORD pReserved,
-// IN OUT PWSTR pClass,
-// IN OUT OPTIONAL PDWORD pcClass,
-// OUT OPTIONAL PFILETIME pftLastWriteTime
-
 typedef struct __REG_IPC_ENUM_KEY_EX_REQ
 {
     HKEY hKey;
     DWORD dwIndex;
-    PWSTR pName;
     DWORD cName;
-    PWSTR pClass;
-    PDWORD pcClass;
+    DWORD cClass;
 } REG_IPC_ENUM_KEY_EX_REQ, *PREG_IPC_ENUM_KEY_EX_REQ;
 
 typedef struct __REG_IPC_ENUM_KEY_EX_RESPONSE
 {
     PWSTR pName;
     DWORD cName;
-    //PWSTR pClass;
-    //PDWORD pcClass;
+    PWSTR pClass;
+    DWORD cClass;
     //PFILETIME pftLastWriteTime;
 } REG_IPC_ENUM_KEY_EX_RESPONSE, *PREG_IPC_ENUM_KEY_EX_RESPONSE;
 
@@ -236,9 +225,7 @@ typedef struct __REG_IPC_ENUM_VALUE_REQ
 {
     HKEY hKey;
     DWORD dwIndex;
-    PWSTR pName;
     DWORD cName;
-    PBYTE pValue;
     DWORD cValue;
 } REG_IPC_ENUM_VALUE_REQ, *PREG_IPC_ENUM_VALUE_REQ;
 
@@ -271,7 +258,6 @@ typedef struct __REG_IPC_GET_VALUE_REQ
     PCWSTR pSubKey;
     PCWSTR pValue;
     REG_DATA_TYPE_FLAGS Flags;
-    PBYTE pData;
     DWORD cbData;
 } REG_IPC_GET_VALUE_REQ, *PREG_IPC_GET_VALUE_REQ;
 
@@ -325,18 +311,15 @@ typedef struct __REG_IPC_QUERY_INFO_KEY_REQ
 typedef struct __REG_IPC_QUERY_INFO_KEY_RESPONSE
 {
     PWSTR pClass;
-    //PDWORD pcClass;
     DWORD cSubKeys;
     DWORD cMaxSubKeyLen;
 
     DWORD cValues;
     DWORD cMaxValueNameLen;
     DWORD cMaxValueLen;
+
+    DWORD cSecurityDescriptor;
   //  PDWORD pcMaxClassLen;
-  //  PDWORD pcValues;
-  //  PDWORD pcMaxValueNameLen;
-  //  PDWORD pcMaxValueLen;
-  //  PDWORD pcbSecurityDescriptor;
   //  PFILETIME pftLastWriteTime;
 } REG_IPC_QUERY_INFO_KEY_RESPONSE, *PREG_IPC_QUERY_INFO_KEY_RESPONSE;
 
@@ -435,13 +418,25 @@ typedef struct __REG_IPC_SET_VALUE_EX_REQ
 //IN SECURITY_INFORMATION SecurityInformation,
 //IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
 //IN ULONG Length
-typedef struct __REG_IPC_KEY_SECURITY_REQ
+typedef struct __REG_IPC_SET_KEY_SECURITY_REQ
 {
     HKEY hKey;
     SECURITY_INFORMATION SecurityInformation;
     PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor;
     ULONG Length;
-} REG_IPC_KEY_SECURITY_REQ, *PREG_IPC_KEY_SECURITY_REQ;
+} REG_IPC_SET_KEY_SECURITY_REQ, *PREG_IPC_SET_KEY_SECURITY_REQ;
+
+
+//IN HKEY hKey,
+//IN SECURITY_INFORMATION SecurityInformation,
+//IN PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+//IN ULONG Length
+typedef struct __REG_IPC_GET_KEY_SECURITY_REQ
+{
+    HKEY hKey;
+    SECURITY_INFORMATION SecurityInformation;
+    ULONG Length;
+} REG_IPC_GET_KEY_SECURITY_REQ, *PREG_IPC_GET_KEY_SECURITY_REQ;
 
 // No RESPONSE of SetKeySecurity
 
@@ -458,16 +453,6 @@ typedef struct __REG_IPC_GET_KEY_SECURITY_RES
 LWMsgProtocolSpec*
 RegIPCGetProtocolSpec(
     void
-    );
-
-DWORD
-RegOpenServer(
-    PHANDLE phConnection
-    );
-
-VOID
-RegCloseServer(
-    HANDLE hConnection
     );
 
 NTSTATUS

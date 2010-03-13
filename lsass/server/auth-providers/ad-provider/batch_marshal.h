@@ -75,8 +75,8 @@ LsaAdBatchMarshalUserInfoAccountExpires(
     );
 
 DWORD
-LsaAdBatchMarshalUserInfoPasswordLastSet(
-    IN UINT64 PasswordLastSet,
+LsaAdBatchMarshalUserInfoPasswordExpires(
+    IN UINT64 PasswordExpires,
     IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo,
     IN PCSTR pszSamAccountName
     );

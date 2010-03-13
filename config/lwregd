@@ -6,7 +6,7 @@
 #         Marc Guy <mguy@likewise.com>
 #
 #LWI_STARTUP_TYPE_REDHAT###
-#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 92 9
+#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 18 9
 #LWI_STARTUP_TYPE_REDHAT# description: Start and Stop the Likewise Registry Daemon 
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT#

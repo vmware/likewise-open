@@ -225,6 +225,12 @@ SrvFreeLockState(
     PSRV_LOCK_STATE_SMB_V1 pLockState
     );
 
+static
+VOID
+SrvConvertLockTimeout(
+    PSRV_LOCK_STATE_SMB_V1 pLockState
+    );
+
 NTSTATUS
 SrvCreatePendingLockStateList(
     PSRV_PENDING_LOCK_STATE_LIST* ppLockStateList
@@ -431,6 +437,8 @@ SrvProcessLockAndX(
                                 pLockState);
                 BAIL_ON_NT_STATUS(ntStatus);
 
+                SrvConvertLockTimeout(pLockState);
+
                 switch (pLockState->pRequestHeader->ulTimeout)
                 {
                     case 0:           /* don't wait i.e. fail immediately */
@@ -443,10 +451,12 @@ SrvProcessLockAndX(
                         {
                             LONG64 llExpiry = 0LL;
 
-                            llExpiry =
-                                (time(NULL) +
-                                 (pLockState->pRequestHeader->ulTimeout/1000) +
-                                 11644473600LL) * 10000000LL;
+                            ntStatus = WireGetCurrentNTTime(&llExpiry);
+                            BAIL_ON_NT_STATUS(ntStatus);
+
+                            llExpiry +=
+                                (pLockState->pRequestHeader->ulTimeout *
+                                 WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS);
 
                             ntStatus = SrvTimerPostRequest(
                                             llExpiry,
@@ -487,6 +497,8 @@ SrvProcessLockAndX(
 
         case SRV_LOCK_STAGE_SMB_V1_DONE:
 
+            if (!(pLockState->pRequestHeader->ucLockType &
+                LWIO_LOCK_TYPE_CANCEL_LOCK))
             {
                 NTSTATUS ntStatus2 = STATUS_SUCCESS;
                 PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList =
@@ -552,6 +564,18 @@ error:
 
             // intentional fall through
 
+        case STATUS_LOCK_NOT_GRANTED:
+
+            if (pLockState->pRequestHeader->ulTimeout != 0)
+            {
+                ntStatus = STATUS_FILE_LOCK_CONFLICT;
+            }
+
+            SrvFileSetLastFailedLockOffset(pLockState->pFile,
+                    pLockState->llOffset);
+
+            // intentional fall through
+
         default:
 
             if (pLockState)
@@ -568,8 +592,6 @@ error:
 
                 SrvClearLocks(pLockState);
             }
-
-            // ntStatus = STATUS_LOCK_NOT_GRANTED;
 
             break;
     }
@@ -1109,16 +1131,17 @@ SrvUnregisterPendingLockState(
 
     if (pCursor == pLockStateList->pLockStateHead)
     {
-        pLockStateList->pLockStateHead = pCursor->pNext;
-
-        if (!pLockStateList->pLockStateHead)
+        if (pLockStateList->pLockStateHead == pLockStateList->pLockStateTail)
         {
             pLockStateList->pLockStateTail = NULL;
         }
+
+        pLockStateList->pLockStateHead = pLockStateList->pLockStateHead->pNext;
     }
     else if (pCursor == pLockStateList->pLockStateTail)
     {
         pLockStateList->pLockStateTail = pPrev;
+        pPrev->pNext = NULL;
     }
     else
     {
@@ -1293,14 +1316,6 @@ SrvExecuteLockRequest(
     bFailImmediately  = (pLockState->pRequestHeader->ulTimeout == 0);
     bWaitIndefinitely = (pLockState->pRequestHeader->ulTimeout == (ULONG)-1);
 
-    if (pLockState->bCancelled || pLockState->bExpired)
-    {
-        SrvReleaseLockStateAsync(pLockState);
-
-        ntStatus = STATUS_FILE_LOCK_CONFLICT;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     if (pLockState->bUnlockPending)
     {
         ntStatus = pLockState->ioStatusBlock.Status; // async response status
@@ -1308,6 +1323,23 @@ SrvExecuteLockRequest(
 
         pLockState->iUnlock++;
         pLockState->bUnlockPending = FALSE;
+    }
+
+    if (pLockState->bLockPending)
+    {
+        ntStatus = pLockState->ioStatusBlock.Status; // async response status
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pLockState->iLock++;
+        pLockState->bLockPending = FALSE;
+    }
+
+    if (pLockState->bCancelled || pLockState->bExpired)
+    {
+        SrvReleaseLockStateAsync(pLockState);
+
+        ntStatus = STATUS_FILE_LOCK_CONFLICT;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     for (; pLockState->iUnlock < pLockState->pRequestHeader->usNumUnlocks;
@@ -1358,15 +1390,6 @@ SrvExecuteLockRequest(
         {
             SrvReleaseLockStateAsync(pLockState); // completed synchronously
         }
-    }
-
-    if (pLockState->bLockPending)
-    {
-        ntStatus = pLockState->ioStatusBlock.Status; // async response status
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pLockState->iLock++;
-        pLockState->bLockPending = FALSE;
     }
 
     for (; pLockState->iLock < pLockState->pRequestHeader->usNumLocks;
@@ -1780,6 +1803,66 @@ SrvFreeLockState(
     }
 
     SrvFreeMemory(pLockState);
+}
+
+
+static
+VOID
+SrvConvertLockTimeout(
+    PSRV_LOCK_STATE_SMB_V1 pLockState
+    )
+{
+        int i = 0;
+        ULONG64 ullOffset = 0;
+        const ULONG64 ullMaxNonBlockingLockOffset = 0xEF000000;
+        const ULONG ulLockConflictTimeout = 250;
+        ULONG64 ullLastFailedLockOffset = -1;
+
+        // If a requested lock has previously conflicted with a held lock
+        // we save the offset. If it is requested again in a non-blocking
+        // manner we instead give it a small timeout. This throttles clients
+        // which are repeatedly polling for the same lock and overloading the
+        // server. In addition locks over a certain offset, when the 64-bit is
+        // not set, are always given a short timeout.
+
+        if (pLockState->pRequestHeader->ulTimeout != 0)
+        {
+                goto cleanup;
+        }
+
+        ullLastFailedLockOffset =
+                SrvFileGetLastFailedLockOffset(pLockState->pFile);
+
+        for (i = 0; i < pLockState->pRequestHeader->usNumLocks; i++)
+        {
+            if (pLockState->pRequestHeader->ucLockType &
+                LWIO_LOCK_TYPE_LARGE_FILES)
+            {
+                PLOCKING_ANDX_RANGE_LARGE_FILE pLockInfo =
+                            &pLockState->pLockRangeLarge[i];
+
+                ullOffset = (((ULONG64)pLockInfo->ulOffsetHigh) << 32) |
+                            ((ULONG64)pLockInfo->ulOffsetLow);
+            }
+            else
+            {
+                PLOCKING_ANDX_RANGE pLockInfo = &pLockState->pLockRange[i];
+
+                ullOffset = pLockInfo->ulOffset;
+            }
+
+            if (ullOffset == ullLastFailedLockOffset ||
+                (ullOffset >= ullMaxNonBlockingLockOffset &&
+                (ullOffset & 0x8000000000000000LL) == 0))
+
+            {
+                pLockState->pRequestHeader->ulTimeout = ulLockConflictTimeout;
+                break;
+            }
+        }
+
+cleanup:
+        return;
 }
 
 /*

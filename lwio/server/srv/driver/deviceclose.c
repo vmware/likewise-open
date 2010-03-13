@@ -51,14 +51,23 @@
 
 NTSTATUS
 SrvDeviceClose(
-    IO_DEVICE_HANDLE DeviceHandle,
-    PIRP pIrp
+    IO_DEVICE_HANDLE hDevice,
+    PIRP             pIrp
     )
 {
-    NTSTATUS ntStatus = 0;
+    NTSTATUS         ntStatus    = 0;
+    PSRV_CCB         pCCB        = NULL;
+
+    ntStatus = SrvCCBGet(pIrp->FileHandle, &pCCB);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvCCBRelease(pCCB);
+
+error:
 
     return ntStatus;
 }
+
 
 
 

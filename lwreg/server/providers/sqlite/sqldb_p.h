@@ -147,6 +147,12 @@ RegDbUnpackAclInfo(
     PULONG pSecDescLen
     );
 
+NTSTATUS
+RegDbDuplicateDbKeyEntry(
+    PREG_DB_KEY pRegKey,
+    PREG_DB_KEY* ppRegKey
+    );
+
 void
 RegDbSafeFreeEntryKey(
     PREG_DB_KEY* ppEntry
@@ -357,10 +363,11 @@ RegDbDeleteKeyValue(
 NTSTATUS
 RegDbUpdateKeyAcl(
 	IN REG_DB_HANDLE hDb,
+	IN PCWSTR pwszFullKeyPath,
 	IN int64_t qwKeyDbId,
 	IN int64_t qwKeyCurrSdId,
-	IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel,
-	IN ULONG ulSecDescLen
+	IN PSECURITY_DESCRIPTOR_RELATIVE pSecDescRelToSet,
+	IN ULONG ulSecDescToSetLen
 	);
 
 NTSTATUS

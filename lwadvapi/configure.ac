@@ -10,6 +10,7 @@ AC_SUBST(AM_CFLAGS)
 AC_USE_SYSTEM_EXTENSIONS
 
 AC_DEFINE([_REENTRANT], [1], [Enables strtok_r on HP-UX])
+AC_DEFINE([_THREAD_SAFE], [1], [Use the thread specific errno])
 
 # Checks for programs.
 AC_PROG_CC
@@ -284,6 +285,7 @@ AC_CONFIG_FILES([Makefile
                  unthreaded/file/Makefile
                  unthreaded/dscache/Makefile
                  unthreaded/time/Makefile
+                 unthreaded/logging/Makefile
                  join/Makefile])
 
 AC_OUTPUT

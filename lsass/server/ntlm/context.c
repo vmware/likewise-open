@@ -161,6 +161,11 @@ NtlmFreeContext(
     }
     LW_SAFE_FREE_MEMORY(pContext->pdwRecvMsgSeq);
 
+    if (pContext->pUserInfo)
+    {
+        LsaFreeAuthUserInfo(&pContext->pUserInfo);
+    }
+
     LW_SAFE_FREE_MEMORY(pContext);
     *ppContext = NULL;
 }
@@ -511,6 +516,14 @@ NtlmCreateChallengeMessage(
     {
         dwOptions |= NTLM_FLAG_128;
     }
+    if (pNegMsg->NtlmFlags & NTLM_FLAG_SIGN)
+    {
+        dwOptions |= NTLM_FLAG_SIGN;
+    }
+    if (pNegMsg->NtlmFlags & NTLM_FLAG_SEAL)
+    {
+        dwOptions |= NTLM_FLAG_SEAL;
+    }
 
     // calculate optional data size
     if (pOsVersion)
@@ -614,12 +627,6 @@ NtlmCreateChallengeMessage(
     // NTLM_FLAG_TYPE_SHARE - The authentication target is a network share (?).
     //                        Odd.
     dwOptions |= NTLM_FLAG_NTLM;
-
-    // These options are being set now simply because they appear to be
-    // required for authentication to work
-    dwOptions |= NTLM_FLAG_SIGN |
-                 NTLM_FLAG_SEAL |
-                 NTLM_FLAG_UNKNOWN_02000000;
 
     // Data is checked and memory is allocated; fill in the structure
     //

@@ -1006,8 +1006,7 @@ spnego_gss_init_sec_context(
 	}
 	/* create mic/check mic */
 	if (!HARD_ERROR(ret) && spnego_ctx->mech_complete &&
-	    (spnego_ctx->ctx_flags & GSS_C_INTEG_FLAG) &&
-	    (peerState != ACCEPT_COMPLETE)) {
+	    (spnego_ctx->ctx_flags & GSS_C_INTEG_FLAG)) {
 		ret = handle_mic(minor_status,
 				 mechListMIC_in,
 				 (mechtok_out.length != 0),
@@ -1783,9 +1782,12 @@ cleanup:
 	}
 	if (ret == GSS_S_COMPLETE) {
 		*context_handle = (gss_union_ctx_id_t)(sc->ctx_handle)->internal_ctx_id;
-		if (sc->internal_name != GSS_C_NO_NAME &&
-		    src_name != NULL) {
+		if (sc->internal_name != GSS_C_NO_NAME) {
+                    if (src_name != NULL) {
 			*src_name = sc->internal_name;
+                    } else {
+                        gss_release_name(&tmpmin, &sc->internal_name);
+                    }
 		}
 		free(((gss_union_ctx_id_t)sc->ctx_handle)->mech_type->elements);
 		free(((gss_union_ctx_id_t)sc->ctx_handle)->mech_type);
@@ -3112,6 +3114,19 @@ get_negTokenResp(OM_uint32 *minor_status,
 		*mechListMIC = get_input_token(&ptr, REMAIN);
 		if (*mechListMIC == GSS_C_NO_BUFFER)
 			return GSS_S_DEFECTIVE_TOKEN;
+
+                /* Handle Windows 2000 duplicate response token */
+                if (*responseToken &&
+                    ((*responseToken)->length == (*mechListMIC)->length) &&
+                    !memcmp((*responseToken)->value, (*mechListMIC)->value,
+                            (*responseToken)->length))
+                {
+                    OM_uint32 tmpmin;
+
+                    gss_release_buffer(&tmpmin, *mechListMIC);
+                    free(*mechListMIC);
+                    *mechListMIC = NULL;
+                }
 	}
 	return GSS_S_COMPLETE;
 #undef REMAIN

@@ -190,7 +190,7 @@ LwAllocateStringPrintfV(
 
     if (requiredLength >= (UINT32_MAX - 1))
     {
-        dwError = ENOMEM;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LW_ERROR(dwError);
     }
 
@@ -206,13 +206,13 @@ LwAllocateStringPrintfV(
                             args2);
     if (dwNewRequiredLength < 0)
     {
-        dwError = errno;
+        dwError = LwMapErrnoToLwError(errno);
         BAIL_ON_LW_ERROR(dwError);
     }
     else if (dwNewRequiredLength > requiredLength)
     {
         /* unexpected, ideally should log something, or use better error code */
-        dwError = ENOMEM;
+        dwError = LW_ERROR_OUT_OF_MEMORY;
         BAIL_ON_LW_ERROR(dwError);
     }
     else if (dwNewRequiredLength < requiredLength)

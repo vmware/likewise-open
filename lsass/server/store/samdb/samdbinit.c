@@ -100,9 +100,7 @@ SamDbAddLocalDomain(
     PCSTR  pszDomainDN,
     PCSTR  pszDomainName,
     PCSTR  pszNetBIOSName,
-    PCSTR  pszMachineSID,
-    LONG64 llMaxPwdAge,
-    LONG64 llPwdChangeTime
+    PCSTR  pszMachineSID
     );
 
 static
@@ -443,8 +441,6 @@ SamDbAddMachineDomain(
     uuid_t GUID;
     PSID   pMachineSid = NULL;
     SID_IDENTIFIER_AUTHORITY AuthId = { SECURITY_NT_AUTHORITY };
-    LONG64 llMaxPwdAge = SAMDB_MAX_PWD_AGE_DEFAULT * 10000000LL;
-    LONG64 llPwdPromptTime = SAMDB_PASSWD_PROMPT_TIME_DEFAULT * 10000000LL;
 
     uuid_generate(GUID);
 
@@ -487,9 +483,7 @@ SamDbAddMachineDomain(
                     pszDomainDN,
                     pszDomainName,
                     pszNetBIOSName,
-                    pszMachineSID,
-                    llMaxPwdAge,
-                    llPwdPromptTime);
+                    pszMachineSID);
     BAIL_ON_SAMDB_ERROR(dwError);
 
     *ppMachineSid = pMachineSid;
@@ -515,9 +509,7 @@ SamDbAddLocalDomain(
     PCSTR  pszDomainDN,
     PCSTR  pszDomainName,
     PCSTR  pszNetBIOSName,
-    PCSTR  pszMachineSID,
-    LONG64 llMaxPwdAge,
-    LONG64 llPwdChangeTime
+    PCSTR  pszMachineSID
     )
 {
     DWORD dwError = 0;
@@ -528,26 +520,45 @@ SamDbAddLocalDomain(
     WCHAR wszAttrNameDomain[]         = SAM_DB_DIR_ATTR_DOMAIN;
     WCHAR wszAttrNameCommonName[]     = SAM_DB_DIR_ATTR_COMMON_NAME;
     WCHAR wszAttrNameSamAccountName[] = SAM_DB_DIR_ATTR_SAM_ACCOUNT_NAME;
+    WCHAR wszAttrNameMinPwdAge[]      = SAM_DB_DIR_ATTR_MIN_PWD_AGE;
     WCHAR wszAttrNameMaxPwdAge[]      = SAM_DB_DIR_ATTR_MAX_PWD_AGE;
+    WCHAR wszAttrNameMinPwdLength[]   = SAM_DB_DIR_ATTR_MIN_PWD_LENGTH;
     WCHAR wszAttrNamePwdChangeTime[]  = SAM_DB_DIR_ATTR_PWD_PROMPT_TIME;
+    WCHAR wszAttrNameLockoutThreshold[] = SAM_DB_DIR_ATTR_LOCKOUT_THRESHOLD;
+    WCHAR wszAttrNameLockoutDuration[] = SAM_DB_DIR_ATTR_LOCKOUT_DURATION;
+    WCHAR wszAttrNameLockoutWindow[]  = SAM_DB_DIR_ATTR_LOCKOUT_WINDOW;
     WCHAR wszAttrNameSecDesc[]        = SAM_DB_DIR_ATTR_SECURITY_DESCRIPTOR;
     PWSTR pwszObjectDN    = NULL;
     PWSTR pwszMachineSID  = NULL;
     PWSTR pwszDomainName  = NULL;
     PWSTR pwszNetBIOSName = NULL;
     PSID pMachineSID = NULL;
+    LONG64 llMinPwdAge = LW_WINTIME_TO_NTTIME_REL(SAMDB_MIN_PWD_AGE);
+    LONG64 llMaxPwdAge = LW_WINTIME_TO_NTTIME_REL(SAMDB_MAX_PWD_AGE);
+    DWORD dwMinPwdLength = 0;
+    LONG64 llPwdPromptTime = LW_WINTIME_TO_NTTIME_REL(SAMDB_PWD_PROMPT_TIME);
+    DWORD dwLockoutThreshold = SAMDB_LOCKOUT_THRESHOLD;
+    LONG64 llLockoutDuration = LW_WINTIME_TO_NTTIME_REL(SAMDB_LOCKOUT_DURATION);
+    LONG64 llLockoutWindow = LW_WINTIME_TO_NTTIME_REL(SAMDB_LOCKOUT_WINDOW);
     PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
     OCTET_STRING SecDescBlob = {0};
     ULONG ulSecDescLen = 0;
     ATTRIBUTE_VALUE avObjectClass = {0};
     ATTRIBUTE_VALUE avMachineSID  = {0};
     ATTRIBUTE_VALUE avDomainName  = {0};
+    ATTRIBUTE_VALUE avCommonName = {0};
+    ATTRIBUTE_VALUE avSamAccountName = {0};
     ATTRIBUTE_VALUE avNetBIOSName = {0};
-    ATTRIBUTE_VALUE avMaxPwdAge   = {0};
+    ATTRIBUTE_VALUE avMinPwdAge = {0};
+    ATTRIBUTE_VALUE avMaxPwdAge = {0};
+    ATTRIBUTE_VALUE avMinPwdLength = {0};
     ATTRIBUTE_VALUE avPwdChangeTime = {0};
+    ATTRIBUTE_VALUE avLockoutThreshold = {0};
+    ATTRIBUTE_VALUE avLockoutDuration = {0};
+    ATTRIBUTE_VALUE avLockoutWindow = {0};
     ATTRIBUTE_VALUE avSecDesc = {0};
-    DIRECTORY_MOD mods[11];
-    ULONG     iMod = 0;
+    DIRECTORY_MOD mods[16];
+    ULONG iMod = 0;
 
     memset(mods, 0, sizeof(mods));
 
@@ -590,12 +601,16 @@ SamDbAddLocalDomain(
     mods[++iMod].pwszAttrName = &wszAttrNameCommonName[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
-    mods[iMod].pAttrValues = &avDomainName;
+    avCommonName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    avCommonName.data.pwszStringValue = pwszDomainName;
+    mods[iMod].pAttrValues = &avCommonName;
 
     mods[++iMod].pwszAttrName = &wszAttrNameSamAccountName[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
-    mods[iMod].pAttrValues = &avDomainName;
+    avSamAccountName.Type = DIRECTORY_ATTR_TYPE_UNICODE_STRING;
+    avSamAccountName.data.pwszStringValue = pwszDomainName;
+    mods[iMod].pAttrValues = &avSamAccountName;
 
     dwError = LsaMbsToWc16s(
                     pszNetBIOSName,
@@ -609,6 +624,13 @@ SamDbAddLocalDomain(
     avNetBIOSName.data.pwszStringValue = pwszNetBIOSName;
     mods[iMod].pAttrValues = &avNetBIOSName;
 
+    mods[++iMod].pwszAttrName = &wszAttrNameMinPwdAge[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avMinPwdAge.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+    avMinPwdAge.data.llValue = llMinPwdAge;
+    mods[iMod].pAttrValues = &avMinPwdAge;
+
     mods[++iMod].pwszAttrName = &wszAttrNameMaxPwdAge[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
@@ -616,12 +638,40 @@ SamDbAddLocalDomain(
     avMaxPwdAge.data.llValue = llMaxPwdAge;
     mods[iMod].pAttrValues = &avMaxPwdAge;
 
+    mods[++iMod].pwszAttrName = &wszAttrNameMinPwdLength[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avMinPwdLength.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+    avMinPwdLength.data.ulValue = dwMinPwdLength;
+    mods[iMod].pAttrValues = &avMinPwdLength;
+
     mods[++iMod].pwszAttrName = &wszAttrNamePwdChangeTime[0];
     mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
     mods[iMod].ulNumValues = 1;
     avPwdChangeTime.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
-    avPwdChangeTime.data.llValue = llPwdChangeTime;
+    avPwdChangeTime.data.llValue = llPwdPromptTime;
     mods[iMod].pAttrValues = &avPwdChangeTime;
+
+    mods[++iMod].pwszAttrName = &wszAttrNameLockoutThreshold[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avLockoutThreshold.Type = DIRECTORY_ATTR_TYPE_INTEGER;
+    avLockoutThreshold.data.ulValue = dwLockoutThreshold;
+    mods[iMod].pAttrValues = &avLockoutThreshold;
+
+    mods[++iMod].pwszAttrName = &wszAttrNameLockoutDuration[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avLockoutDuration.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+    avLockoutDuration.data.llValue = llLockoutDuration;
+    mods[iMod].pAttrValues = &avLockoutDuration;
+
+    mods[++iMod].pwszAttrName = &wszAttrNameLockoutWindow[0];
+    mods[iMod].ulOperationFlags = DIR_MOD_FLAGS_ADD;
+    mods[iMod].ulNumValues = 1;
+    avLockoutWindow.Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER;
+    avLockoutWindow.data.llValue = llLockoutWindow;
+    mods[iMod].pAttrValues = &avLockoutWindow;
 
     ntStatus = RtlAllocateSidFromWC16String(&pMachineSID,
                                             pwszMachineSID);
@@ -1137,7 +1187,7 @@ SamDbAddLocalAccounts(
         {
             .pszName          = "Administrator",
             .dwUid            = SAM_DB_UID_FROM_RID(DOMAIN_USER_RID_ADMIN),
-            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_ADMINS),
+            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_LW_USERS),
             .dwRid            = DOMAIN_USER_RID_ADMIN,
             .pszDescription   = "Built-in account for administering the "
                                 "computer/domain",
@@ -1149,7 +1199,7 @@ SamDbAddLocalAccounts(
         {
             .pszName          = "Guest",
             .dwUid            = SAM_DB_UID_FROM_RID(DOMAIN_USER_RID_GUEST),
-            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_GUESTS),
+            .dwGid            = SAM_DB_GID_FROM_RID(DOMAIN_ALIAS_RID_LW_USERS),
             .dwRid            = DOMAIN_USER_RID_GUEST,
             .pszDescription   = "Built-in account for guest access to the "
                                 "computer/domain",
@@ -1548,6 +1598,7 @@ SamDbSetupLocalGroupMemberships(
 
     PCSTR ppszLikewiseUsersMembers[] =  {
         "Administrator",
+        "Guest",
         NULL
     };
 

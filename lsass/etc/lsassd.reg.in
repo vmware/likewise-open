@@ -51,7 +51,7 @@
 "RefreshUserCredentials"=dword:00000001
 "CellSupport"="full"
 "TrimUserMembership"=dword:00000001
-"NssGroupMembersQueryCacheOnly"=dword:00000001
+"NssGroupMembersQueryCacheOnly"=dword:00000000
 "NssUserMembershipQueryCacheOnly"=dword:00000000
 "NssEnumerationEnabled"=dword:@ENABLE_NSS_ENUM_DEFAULT_DWORD@
 "DomainManagerCheckDomainOnlineInterval"=dword:0000012C
@@ -69,6 +69,15 @@
 "HomeDirUmask"="022"
 "SkeletonDirs"="@default_skeldirs@"
 "AcceptNTLMv1"=dword:00000001
+
+[HKEY_THIS_MACHINE\Services\lsass\Parameters\SAM]
+"MinPasswordAge"=dword:00000000
+"MaxPasswordAge"=dword:0024ea00
+"MinPasswordLength"=dword:00000000
+"PasswordPromptTime"=dword:00127500
+"LockoutThreshold"=dword:00000000
+"LockoutDuration"=dword:00000000
+"LockoutWindow"=dword:00000000
 
 [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers]
 "LoadOrder"=sza:"lsarpc" "samr" "dssetup"

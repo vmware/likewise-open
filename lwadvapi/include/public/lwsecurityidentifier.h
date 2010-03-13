@@ -54,6 +54,7 @@ typedef struct __LW_SECURITY_IDENTIFIER {
     UCHAR* pucSidBytes;  //byte representation of multi-byte Security Identification Descriptor
     DWORD dwByteLength;
 } LW_SECURITY_IDENTIFIER, *PLW_SECURITY_IDENTIFIER;
+
 DWORD
 LwAllocSecurityIdentifierFromBinary(
     UCHAR* pucSidBytes,

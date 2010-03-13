@@ -49,6 +49,10 @@ extern rpc_binding_vector_p_t gpLsaSrvBinding;
 
 extern LSA_SRV_CONFIG gLsaSrvConfig;
 
+extern PSECURITY_DESCRIPTOR_ABSOLUTE gpLsaSecDesc;
+
+extern PLW_MAP_SECURITY_CONTEXT gpLsaSecCtx;
+
 #endif /* _EXTERNS_H_ */
 
 

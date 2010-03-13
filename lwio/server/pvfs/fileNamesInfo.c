@@ -153,7 +153,8 @@ PvfsQueryFileNamesInfo(
         ntError = PvfsEnumerateDirectory(
                       pCcb,
                       pIrp->Args.QueryDirectory.FileSpec,
-                      -1);
+                      -1,
+                      FALSE);
     }
 
     LWIO_UNLOCK_MUTEX(bLocked, &pCcb->FileMutex);
@@ -218,6 +219,7 @@ PvfsQueryFileNamesInfo(
             ntError == STATUS_INSUFFICIENT_RESOURCES ||
             ntError == STATUS_ACCESS_DENIED)
         {
+            pFileInfo = pPrevFileInfo;
             pCcb->pDirContext->dwIndex++;
             continue;
         }
@@ -286,7 +288,6 @@ FillFileNamesInfoBuffer(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PFILE_NAMES_INFORMATION pFileInfo = (PFILE_NAMES_INFORMATION)pBuffer;
     PWSTR pwszFilename = NULL;
-    PSTR pszFullPath = NULL;
     DWORD dwNeeded = 0;
     size_t W16FilenameLen = 0;
     size_t W16FilenameLenBytes = 0;
@@ -300,15 +301,6 @@ FillFileNamesInfoBuffer(
     }
 
     pFileInfo->FileIndex = 0;
-
-    /* Build the absolute path and stat() it */
-
-    ntError = RtlCStringAllocatePrintf(
-                  &pszFullPath,
-                  "%s/%s",
-                  pszParent,
-                  pEntry->pszFilename);
-    BAIL_ON_NT_STATUS(ntError);
 
     ntError = RtlWC16StringAllocateFromCString(
                   &pwszFilename,
@@ -344,7 +336,6 @@ FillFileNamesInfoBuffer(
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    RtlCStringFree(&pszFullPath);
     RtlWC16StringFree(&pwszFilename);
 
     return ntError;

@@ -83,9 +83,12 @@ SrvProcessEcho_SMB_V2(
                     pSmbRequest->pHeader->ullCommandSequence,
                     pSmbRequest->pHeader->ulTid,
                     pSmbRequest->pHeader->ullSessionId,
+                    0LL, /* Async Id */
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                            pSmbRequest->pHeader->ulFlags,
+                            SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);

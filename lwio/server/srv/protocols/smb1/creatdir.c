@@ -171,7 +171,8 @@ SrvProcessCreateDirectory(
 
             SrvPrepareCreatedirStateAsync(pCreatedirState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pCtxSmb1->pTree->pShareInfo,
                             &pCreatedirState->hFile,
                             pCreatedirState->pAcb,
                             &pCreatedirState->ioStatusBlock,
@@ -187,7 +188,7 @@ SrvProcessCreateDirectory(
                             FILE_DIRECTORY_FILE,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            NULL);
+                            &pCreatedirState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseCreatedirStateAsync(pCreatedirState); // completed sync
@@ -518,6 +519,11 @@ SrvFreeCreatedirState(
     {
         IoDereferenceAsyncCancelContext(
                     &pCreatedirState->pAcb->AsyncCancelContext);
+    }
+
+    if (pCreatedirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pCreatedirState->pEcpList);
     }
 
     // TODO: Free the following if set

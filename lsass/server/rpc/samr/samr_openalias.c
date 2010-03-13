@@ -49,11 +49,11 @@
 
 NTSTATUS
 SamrSrvOpenAlias(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ UINT32 access_mask,
-    /* [in] */ UINT32 rid,
-    /* [out] */ ACCOUNT_HANDLE *phAlias
+    IN  handle_t         hBinding,
+    IN  DOMAIN_HANDLE    hDomain,
+    IN  DWORD            dwAccessMask,
+    IN  DWORD            dwRid,
+    OUT ACCOUNT_HANDLE  *phAlias
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -62,8 +62,8 @@ SamrSrvOpenAlias(
 
     ntStatus = SamrSrvOpenAccount(hBinding,
                                   hDomain,
-                                  access_mask,
-                                  rid,
+                                  dwAccessMask,
+                                  dwRid,
                                   DS_OBJECT_CLASS_LOCAL_GROUP,
                                   &hAlias);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);

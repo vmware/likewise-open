@@ -28,8 +28,21 @@ liblwbase_nothr_la_LIBADD = \
 
 liblwbase_la_SOURCES = \
 	atomic.c \
-        security-token.c
+        security-token.c \
+        security-sd-inherit.c
 
 liblwbase_la_LIBADD = \
         @LIB_PTHREAD@ \
         liblwbase_nothr.la
+
+if USE_EPOLL
+liblwbase_la_SOURCES += threadpool-epoll.c
+endif
+
+if USE_KQUEUE
+liblwbase_la_SOURCES += threadpool-kqueue.c
+endif
+
+if USE_SELECT
+liblwbase_la_SOURCES += threadpool-select.c
+endif

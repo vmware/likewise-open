@@ -47,56 +47,78 @@
  */
 #include "includes.h"
 
+static LWNET_CLIENT_CONNECTION_CONTEXT gContext = {0};
+#if defined(__LWI_SOLARIS__) || defined (__LWI_AIX__)
+static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
+#else
+static pthread_once_t gOnceControl = PTHREAD_ONCE_INIT;
+#endif
+static DWORD gdwOnceError = 0;
+
+VOID
+LWNetOpenServerOnce(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &gContext.pProtocol));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(gContext.pProtocol, LWNetIPCGetProtocolSpec()));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_client_new(NULL, gContext.pProtocol, &gContext.pClient));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_client_set_endpoint(
+                                  gContext.pClient,
+                                  LWMSG_CONNECTION_MODE_LOCAL,
+                                  LWNET_CACHE_DIR "/" LWNET_SERVER_FILENAME));
+    BAIL_ON_LWNET_ERROR(dwError);
+
+cleanup:
+
+    gdwOnceError = dwError;
+
+    return;
+
+error:
+
+    if (gContext.pClient)
+    {
+        lwmsg_client_delete(gContext.pClient);
+    }
+
+    if (gContext.pProtocol)
+    {
+        lwmsg_protocol_delete(gContext.pProtocol);
+    }
+
+    goto cleanup;
+}
+
 DWORD
 LWNetOpenServer(
     PHANDLE phConnection
     )
 {
     DWORD dwError = 0;
-    PLWNET_CLIENT_CONNECTION_CONTEXT pContext = NULL;
 
     BAIL_ON_INVALID_POINTER(phConnection);
 
-    dwError = LWNetAllocateMemory(sizeof(LWNET_CLIENT_CONNECTION_CONTEXT), (PVOID*)&pContext);
+    pthread_once(&gOnceControl, LWNetOpenServerOnce);
+
+    dwError = gdwOnceError;
     BAIL_ON_LWNET_ERROR(dwError);
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, LWNetIPCGetProtocolSpec()));
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_client_new(NULL, pContext->pProtocol, &pContext->pClient));
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    dwError = MAP_LWMSG_ERROR(lwmsg_client_set_endpoint(
-                                  pContext->pClient,
-                                  LWMSG_CONNECTION_MODE_LOCAL,
-                                  LWNET_CACHE_DIR "/" LWNET_SERVER_FILENAME));
-    BAIL_ON_LWNET_ERROR(dwError);
-
-    *phConnection = (HANDLE)pContext;
+    *phConnection = (HANDLE) &gContext;
 
 cleanup:
 
     return dwError;
 
 error:
-
-    if (pContext)
-    {
-        if (pContext->pClient)
-        {
-            lwmsg_client_delete(pContext->pClient);
-        }
-
-        if (pContext->pProtocol)
-        {
-            lwmsg_protocol_delete(pContext->pProtocol);
-        }
-
-        LWNetFreeMemory(pContext);
-    }
 
     if (phConnection)
     {
@@ -111,23 +133,27 @@ LWNetCloseServer(
     HANDLE hConnection
     )
 {
-    DWORD dwError = 0;
-    PLWNET_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PLWNET_CLIENT_CONNECTION_CONTEXT)hConnection;
+    return 0;
+}
 
-    if (pContext->pClient)
+static
+__attribute__((destructor))
+VOID
+LWNetCloseServerOnce(
+    VOID
+    )
+{
+    if (gContext.pClient)
     {
-        lwmsg_client_delete(pContext->pClient);
+        lwmsg_client_delete(gContext.pClient);
     }
 
-    if (pContext->pProtocol)
+    if (gContext.pProtocol)
     {
-        lwmsg_protocol_delete(pContext->pProtocol);
+        lwmsg_protocol_delete(gContext.pProtocol);
     }
 
-    LWNetFreeMemory(pContext);
-
-    return dwError;
+    memset(&gContext, 0, sizeof(gContext));
 }
 
 DWORD

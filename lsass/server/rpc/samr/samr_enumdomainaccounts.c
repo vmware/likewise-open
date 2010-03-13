@@ -116,6 +116,12 @@ SamrSrvEnumDomainAccounts(
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
+    if (!(pDomCtx->dwAccessGranted & DOMAIN_ACCESS_ENUM_ACCOUNTS))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
     pConnCtx       = pDomCtx->pConnCtx;
     pwszBase       = pDomCtx->pwszDn;
     pwszDomainName = pDomCtx->pwszDomainName;

@@ -50,7 +50,6 @@
 #include "lwps-system.h"
 #include "lwps-mem.h"
 #include "lwps-def.h"
-#include "lwps-logger.h"
 
 /**********************************************************
  * Convert a string to upper case.  modify the input string

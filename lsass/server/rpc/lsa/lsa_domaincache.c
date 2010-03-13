@@ -48,8 +48,16 @@
 
 
 static
+VOID
+LsaSrvDomainEntryDestroy(
+    PDOMAIN_ENTRY *ppEntry,
+    BOOLEAN        bCleanClose
+    );
+
+
+static
 int
-LsaSrvSamDomainKeyCompare(
+LsaSrvDomainKeyCompare(
     PCVOID pEntry1,
     PCVOID pEntry2
     );
@@ -57,30 +65,30 @@ LsaSrvSamDomainKeyCompare(
 
 static
 size_t
-LsaSrvSamDomainKeyHash(
+LsaSrvDomainKeyHash(
     PCVOID pKey
     );
 
 
 static
 void
-LsaSrvSamDomainHashEntryFree(
+LsaSrvDomainHashEntryFree(
     const LSA_HASH_ENTRY *pEntry
     );
 
 
 static
 NTSTATUS
-LsaSrvSamDomainEntryCopy(
-    PSAM_DOMAIN_ENTRY *ppOut,
-    const PSAM_DOMAIN_ENTRY pIn
+LsaSrvDomainEntryCopy(
+    PDOMAIN_ENTRY *ppOut,
+    const PDOMAIN_ENTRY pIn
     );
 
 
 static
 NTSTATUS
-LsaSrvCreateSamDomainKey(
-    PSAM_DOMAIN_KEY *ppKey,
+LsaSrvCreateDomainKey(
+    PDOMAIN_KEY *ppKey,
     PCWSTR pwszName,
     const PSID pSid
     );
@@ -88,13 +96,13 @@ LsaSrvCreateSamDomainKey(
 
 static
 void
-LsaSrvSamDomainKeyFree(
-    PSAM_DOMAIN_KEY *ppKey
+LsaSrvDomainKeyFree(
+    PDOMAIN_KEY *ppKey
     );
 
 
 NTSTATUS
-LsaSrvCreateSamDomainsTable(
+LsaSrvCreateDomainsTable(
     PLSA_HASH_TABLE *ppDomains
     )
 {
@@ -103,9 +111,9 @@ LsaSrvCreateSamDomainsTable(
     PLSA_HASH_TABLE pDomains = NULL;
 
     dwError = LsaHashCreate(20,
-                            LsaSrvSamDomainKeyCompare,
-                            LsaSrvSamDomainKeyHash,
-                            LsaSrvSamDomainHashEntryFree,
+                            LsaSrvDomainKeyCompare,
+                            LsaSrvDomainKeyHash,
+                            LsaSrvDomainHashEntryFree,
                             NULL,
                             &pDomains);
     BAIL_ON_LSA_ERROR(dwError);
@@ -128,25 +136,25 @@ error:
 
 
 NTSTATUS
-LsaSrvGetSamDomainByName(
+LsaSrvGetDomainByName(
     PPOLICY_CONTEXT pPolCtx,
     PCWSTR pwszDomainName,
-    PSAM_DOMAIN_ENTRY *ppDomain
+    PDOMAIN_ENTRY *ppDomain
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    PSAM_DOMAIN_KEY pKey = NULL;
+    PDOMAIN_KEY pKey = NULL;
     PVOID pEntry = NULL;
-    PSAM_DOMAIN_ENTRY pDomain = NULL;
+    PDOMAIN_ENTRY pDomain = NULL;
 
     BAIL_ON_INVALID_PTR(pPolCtx);
     BAIL_ON_INVALID_PTR(pwszDomainName);
     BAIL_ON_INVALID_PTR(ppDomain);
 
-    ntStatus = LsaSrvCreateSamDomainKey(&pKey,
-                                        pwszDomainName,
-                                        NULL);
+    ntStatus = LsaSrvCreateDomainKey(&pKey,
+                                     pwszDomainName,
+                                     NULL);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwError = LsaHashGetValue(pPolCtx->pDomains,
@@ -162,14 +170,14 @@ LsaSrvGetSamDomainByName(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    ntStatus = LsaSrvSamDomainEntryCopy(&pDomain,
-                                        (PSAM_DOMAIN_ENTRY)pEntry);
+    ntStatus = LsaSrvDomainEntryCopy(&pDomain,
+                                     (PDOMAIN_ENTRY)pEntry);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     *ppDomain = pDomain;
 
 cleanup:
-    LsaSrvSamDomainKeyFree(&pKey);
+    LsaSrvDomainKeyFree(&pKey);
 
     if (ntStatus == STATUS_SUCCESS &&
         dwError != ERROR_SUCCESS)
@@ -180,7 +188,7 @@ cleanup:
     return ntStatus;
 
 error:
-    LsaSrvSamDomainEntryFree(&pDomain);
+    LsaSrvDomainEntryFree(&pDomain);
 
     *ppDomain = NULL;
     goto cleanup;
@@ -188,40 +196,48 @@ error:
 
 
 NTSTATUS
-LsaSrvGetSamDomainBySid(
+LsaSrvGetDomainBySid(
     PPOLICY_CONTEXT pPolCtx,
     const PSID pSid,
-    PSAM_DOMAIN_ENTRY *ppDomain
+    PDOMAIN_ENTRY *ppDomain
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    PSAM_DOMAIN_KEY pKey = NULL;
+    PDOMAIN_KEY pKey = NULL;
     PVOID pEntry = NULL;
-    PSAM_DOMAIN_ENTRY pDomain = NULL;
+    PDOMAIN_ENTRY pDomain = NULL;
 
     BAIL_ON_INVALID_PTR(pPolCtx);
     BAIL_ON_INVALID_PTR(pSid);
     BAIL_ON_INVALID_PTR(ppDomain);
 
-    ntStatus = LsaSrvCreateSamDomainKey(&pKey,
-                                        NULL,
-                                        pSid);
+    ntStatus = LsaSrvCreateDomainKey(&pKey,
+                                     NULL,
+                                     pSid);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     dwError = LsaHashGetValue(pPolCtx->pDomains,
                               (PVOID)pKey,
                               OUT_PPVOID(&pEntry));
-    BAIL_ON_LSA_ERROR(dwError);
+    if (dwError == ERROR_FILE_NOT_FOUND)
+    {
+        ntStatus = STATUS_NO_SUCH_DOMAIN;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+    else if (dwError != ERROR_SUCCESS)
+    {
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    ntStatus = LsaSrvSamDomainEntryCopy(&pDomain,
-                                        (PSAM_DOMAIN_ENTRY)pEntry);
+    ntStatus = LsaSrvDomainEntryCopy(&pDomain,
+                                     (PDOMAIN_ENTRY)pEntry);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     *ppDomain = pDomain;
 
 cleanup:
-    LsaSrvSamDomainKeyFree(&pKey);
+    LsaSrvDomainKeyFree(&pKey);
 
     if (ntStatus == STATUS_SUCCESS &&
         dwError != ERROR_SUCCESS)
@@ -232,7 +248,7 @@ cleanup:
     return ntStatus;
 
 error:
-    LsaSrvSamDomainEntryFree(&pDomain);
+    LsaSrvDomainEntryFree(&pDomain);
 
     *ppDomain = NULL;
     goto cleanup;
@@ -240,47 +256,53 @@ error:
 
 
 NTSTATUS
-LsaSrvSetSamDomain(
+LsaSrvSetDomain(
     PPOLICY_CONTEXT pPolCtx,
-    const PSAM_DOMAIN_ENTRY pDomain
+    const PDOMAIN_ENTRY pDomain
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = 0;
-    PSAM_DOMAIN_KEY pKeyName = NULL;
-    PSAM_DOMAIN_ENTRY pEntryByName = NULL;
-    PSAM_DOMAIN_KEY pKeySid = NULL;
-    PSAM_DOMAIN_ENTRY pEntryBySid = NULL;
+    PDOMAIN_KEY pKeyName = NULL;
+    PDOMAIN_ENTRY pEntryByName = NULL;
+    PDOMAIN_KEY pKeySid = NULL;
+    PDOMAIN_ENTRY pEntryBySid = NULL;
 
     BAIL_ON_INVALID_PTR(pPolCtx);
     BAIL_ON_INVALID_PTR(pDomain);
 
-    ntStatus = LsaSrvSamDomainEntryCopy(&pEntryByName,
-                                        pDomain);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    if (pDomain->pwszName)
+    {
+        ntStatus = LsaSrvCreateDomainKey(&pKeyName,
+                                         pDomain->pwszName,
+                                         NULL);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    ntStatus = LsaSrvCreateSamDomainKey(&pKeyName,
-                                        pDomain->pwszName,
-                                        NULL);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        ntStatus = LsaSrvDomainEntryCopy(&pEntryByName,
+                                         pDomain);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    dwError = LsaHashSetValue(pPolCtx->pDomains,
-                              pKeyName,
-                              pEntryByName);
-    BAIL_ON_LSA_ERROR(dwError);
+        dwError = LsaHashSetValue(pPolCtx->pDomains,
+                                  pKeyName,
+                                  pEntryByName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    ntStatus = LsaSrvSamDomainEntryCopy(&pEntryBySid,
-                                        pDomain);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    if (pDomain->pSid)
+    {
+        ntStatus = LsaSrvCreateDomainKey(&pKeySid,
+                                         NULL,
+                                         pDomain->pSid);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    ntStatus = LsaSrvCreateSamDomainKey(&pKeySid,
-                                        NULL,
-                                        pDomain->pSid);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        ntStatus = LsaSrvDomainEntryCopy(&pEntryBySid,
+                                         pDomain);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    dwError = LsaHashSetValue(pPolCtx->pDomains,
-                              pKeySid,
-                              pEntryBySid);
+        dwError = LsaHashSetValue(pPolCtx->pDomains,
+                                  pKeySid,
+                                  pEntryBySid);
+    }
 
 cleanup:
     if (ntStatus == STATUS_SUCCESS &&
@@ -294,92 +316,34 @@ cleanup:
 error:
     if (pKeyName)
     {
-        LsaSrvSamDomainKeyFree(&pKeyName);
+        LsaSrvDomainKeyFree(&pKeyName);
     }
 
     if (pKeySid)
     {
-        LsaSrvSamDomainKeyFree(&pKeySid);
+        LsaSrvDomainKeyFree(&pKeySid);
     }
 
     if (pEntryByName)
     {
-        LsaSrvSamDomainEntryFree(&pEntryByName);
+        LsaSrvDomainEntryFree(&pEntryByName);
     }
 
     if (pEntryBySid)
     {
-        LsaSrvSamDomainEntryFree(&pEntryBySid);
+        LsaSrvDomainEntryFree(&pEntryBySid);
     }
 
-    goto cleanup;
-}
-
-
-NTSTATUS
-LsaSrvGetLocalSamDomain(
-    PPOLICY_CONTEXT pPolCtx,
-    BOOLEAN bBuiltin,
-    PSAM_DOMAIN_ENTRY *ppDomain
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwError = 0;
-    LSA_HASH_ITERATOR IterDomains = {0};
-    LSA_HASH_ENTRY *pHashEntry = NULL;
-    PSAM_DOMAIN_ENTRY pEntry = NULL;
-    PSAM_DOMAIN_ENTRY pDomain = NULL;
-    WCHAR wszBuiltinName[] = LSA_BUILTIN_DOMAIN_NAME;
-    BOOLEAN bIsBuiltin = FALSE;
-
-    dwError = LsaHashGetIterator(pPolCtx->pDomains,
-                                 &IterDomains);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    for (pHashEntry = LsaHashNext(&IterDomains);
-         pHashEntry != NULL;
-         pHashEntry = LsaHashNext(&IterDomains))
-    {
-        pEntry = (PSAM_DOMAIN_ENTRY)pHashEntry->pValue;
-        if (!pEntry->bLocal) continue;
-
-        bIsBuiltin = (!wc16scasecmp(pEntry->pwszName, wszBuiltinName));
-        if (bIsBuiltin != bBuiltin) continue;
-
-        ntStatus = LsaSrvSamDomainEntryCopy(&pDomain,
-                                            pEntry);
-        BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-        *ppDomain = pDomain;
-        goto cleanup;
-    }
-
-    ntStatus = STATUS_NO_SUCH_DOMAIN;
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-cleanup:
-    if (ntStatus == STATUS_SUCCESS &&
-        dwError != ERROR_SUCCESS)
-    {
-        ntStatus = LwWin32ErrorToNtStatus(dwError);
-    }
-
-    return ntStatus;
-
-error:
-    LsaSrvSamDomainEntryFree(&pDomain);
-
-    *ppDomain = NULL;
     goto cleanup;
 }
 
 
 VOID
-LsaSrvSamDomainEntryFree(
-    PSAM_DOMAIN_ENTRY *ppEntry
+LsaSrvDomainEntryFree(
+    PDOMAIN_ENTRY *ppEntry
     )
 {
-    PSAM_DOMAIN_ENTRY pEntry = *ppEntry;
+    PDOMAIN_ENTRY pEntry = *ppEntry;
 
     if (!pEntry) return;
 
@@ -387,20 +351,45 @@ LsaSrvSamDomainEntryFree(
     LW_SAFE_FREE_MEMORY(pEntry->pwszName);
     LW_SAFE_FREE_MEMORY(pEntry);
 
-    *ppEntry = pEntry;
+    *ppEntry = NULL;
+}
+
+
+static
+VOID
+LsaSrvDomainEntryDestroy(
+    PDOMAIN_ENTRY *ppEntry,
+    BOOLEAN        bCleanClose
+    )
+{
+    PDOMAIN_ENTRY pEntry = *ppEntry;
+
+    if (!pEntry) return;
+
+    if (bCleanClose &&
+        pEntry->hLsaBinding &&
+        pEntry->hPolicy)
+    {
+        LsaClose(pEntry->hLsaBinding, pEntry->hPolicy);
+        FreeLsaBinding(&pEntry->hLsaBinding);
+    }
+
+    LsaSrvDomainEntryFree(&pEntry);
+
+    *ppEntry = NULL;
 }
 
 
 static
 int
-LsaSrvSamDomainKeyCompare(
+LsaSrvDomainKeyCompare(
     PCVOID pK1,
     PCVOID pK2
     )
 {
     int ret = 0;
-    PSAM_DOMAIN_KEY pKey1 = (PSAM_DOMAIN_KEY)pK1;
-    PSAM_DOMAIN_KEY pKey2 = (PSAM_DOMAIN_KEY)pK2;
+    PDOMAIN_KEY pKey1 = (PDOMAIN_KEY)pK1;
+    PDOMAIN_KEY pKey2 = (PDOMAIN_KEY)pK2;
 
     if (pKey1->eType != pKey2->eType)
     {
@@ -410,14 +399,14 @@ LsaSrvSamDomainKeyCompare(
 
     switch (pKey1->eType)
     {
-    case eSamDomainSid:
+    case eDomainSid:
         if (!RtlEqualSid(pKey1->pSid, pKey2->pSid))
         {
             ret = 1;
         }
         break;
 
-    case eSamDomainName:
+    case eDomainName:
         ret = wc16scmp(pKey1->pwszName, pKey2->pwszName);
         break;
     }
@@ -429,24 +418,24 @@ cleanup:
 
 static
 size_t
-LsaSrvSamDomainKeyHash(
+LsaSrvDomainKeyHash(
     PCVOID pK
     )
 {
-    PSAM_DOMAIN_KEY pKey = (PSAM_DOMAIN_KEY)pK;
+    PDOMAIN_KEY pKey = (PDOMAIN_KEY)pK;
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSTR pszKeyStr = NULL;
     size_t hash = 0;
 
     switch (pKey->eType)
     {
-    case eSamDomainSid:
+    case eDomainSid:
         ntStatus = RtlAllocateCStringFromSid(
                                   &pszKeyStr,
                                   pKey->pSid);
         break;
 
-    case eSamDomainName:
+    case eDomainName:
         ntStatus = LwRtlCStringAllocateFromWC16String(
                                   &pszKeyStr,
                                   pKey->pwszName);
@@ -468,25 +457,25 @@ error:
 
 static
 void
-LsaSrvSamDomainHashEntryFree(
+LsaSrvDomainHashEntryFree(
     const LSA_HASH_ENTRY *pEntry
     )
 {
-    LsaSrvSamDomainKeyFree((PSAM_DOMAIN_KEY*)&pEntry->pKey);
-    LsaSrvSamDomainEntryFree((PSAM_DOMAIN_ENTRY*)&pEntry->pValue);
+    LsaSrvDomainKeyFree((PDOMAIN_KEY*)&pEntry->pKey);
+    LsaSrvDomainEntryFree((PDOMAIN_ENTRY*)&pEntry->pValue);
 }
 
 
 static
 NTSTATUS
-LsaSrvSamDomainEntryCopy(
-    PSAM_DOMAIN_ENTRY *ppOut,
-    const PSAM_DOMAIN_ENTRY pIn
+LsaSrvDomainEntryCopy(
+    PDOMAIN_ENTRY *ppOut,
+    const PDOMAIN_ENTRY pIn
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    PSAM_DOMAIN_ENTRY pOut = NULL;
+    PDOMAIN_ENTRY pOut = NULL;
 
     BAIL_ON_INVALID_PTR(ppOut);
     BAIL_ON_INVALID_PTR(pIn);
@@ -495,16 +484,22 @@ LsaSrvSamDomainEntryCopy(
                                OUT_PPVOID(&pOut));
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwAllocateWc16String(&pOut->pwszName,
-                                   pIn->pwszName);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pIn->pwszName)
+    {
+        dwError = LwAllocateWc16String(&pOut->pwszName,
+                                       pIn->pwszName);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    ntStatus = RtlDuplicateSid(&pOut->pSid,
-                               pIn->pSid);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    if (pIn->pSid)
+    {
+        ntStatus = RtlDuplicateSid(&pOut->pSid,
+                                   pIn->pSid);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
-    pOut->bLocal  = pIn->bLocal;
-    pOut->hDomain = pIn->hDomain;
+    pOut->hPolicy     = pIn->hPolicy;
+    pOut->hLsaBinding = pIn->hLsaBinding;
 
     *ppOut = pOut;
 
@@ -525,15 +520,15 @@ error:
 
 static
 NTSTATUS
-LsaSrvCreateSamDomainKey(
-    PSAM_DOMAIN_KEY *ppKey,
+LsaSrvCreateDomainKey(
+    PDOMAIN_KEY *ppKey,
     PCWSTR pwszName,
     const PSID pSid
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwError = ERROR_SUCCESS;
-    PSAM_DOMAIN_KEY pKey = NULL;
+    PDOMAIN_KEY pKey = NULL;
 
     BAIL_ON_INVALID_PTR(ppKey);
 
@@ -543,7 +538,7 @@ LsaSrvCreateSamDomainKey(
 
     if (pwszName)
     {
-        pKey->eType = eSamDomainName;
+        pKey->eType = eDomainName;
 
         dwError = LwAllocateWc16String(&pKey->pwszName,
                                        pwszName);
@@ -552,7 +547,7 @@ LsaSrvCreateSamDomainKey(
     }
     else if (pSid)
     {
-        pKey->eType = eSamDomainSid;
+        pKey->eType = eDomainSid;
 
         ntStatus = RtlDuplicateSid(&pKey->pSid,
                                    pSid);
@@ -577,34 +572,499 @@ cleanup:
     return ntStatus;
 
 error:
-    LsaSrvSamDomainKeyFree(&pKey);
+    LsaSrvDomainKeyFree(&pKey);
     goto cleanup;
 }
 
 
 static
 void
-LsaSrvSamDomainKeyFree(
-    PSAM_DOMAIN_KEY *ppKey
+LsaSrvDomainKeyFree(
+    PDOMAIN_KEY *ppKey
     )
 {
-    PSAM_DOMAIN_KEY pKey = *ppKey;
+    PDOMAIN_KEY pKey = *ppKey;
 
     if (!pKey) return;
 
     switch (pKey->eType)
     {
-    case eSamDomainName:
+    case eDomainName:
         LW_SAFE_FREE_MEMORY(pKey->pwszName);
         break;
 
-    case eSamDomainSid:
+    case eDomainSid:
         RTL_FREE(&pKey->pSid);
         break;
     }
 
     LW_SAFE_FREE_MEMORY(pKey);
     *ppKey = NULL;
+}
+
+
+VOID
+LsaSrvDestroyDomainsTable(
+    PLSA_HASH_TABLE  pDomains,
+    BOOLEAN          bCleanClose
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    LSA_HASH_ITERATOR Iter = {0};
+    LSA_HASH_ENTRY *pEntry = NULL;
+
+    dwError = LsaHashGetIterator(pDomains, &Iter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    while ((pEntry = LsaHashNext(&Iter)) != NULL)
+    {
+        LsaSrvDomainKeyFree((PDOMAIN_KEY*)&pEntry->pKey);
+        LsaSrvDomainEntryDestroy((PDOMAIN_ENTRY*)&pEntry->pValue,
+                                 bCleanClose);
+    }
+
+error:
+    return;
+}
+
+
+NTSTATUS
+LsaSrvConnectDomainByName(
+    PPOLICY_CONTEXT   pPolCtx,
+    PCWSTR            pwszDomainName,
+    PDOMAIN_ENTRY    *ppDomEntry
+    )
+{
+    const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const DWORD dwTrustFlags = NETR_TRUST_FLAG_IN_FOREST;
+
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    RPCSTATUS rpcStatus = 0;
+    PSTR pszDcName = NULL;
+    PIO_CREDS pCreds = NULL;
+    handle_t hLsaBinding = NULL;
+    POLICY_HANDLE hDcPolicy = NULL;
+    handle_t hNetrBinding = NULL;
+    NetrDomainTrust *pTrusts = NULL;
+    DWORD dwNumTrusts = 0;
+    DWORD i = 0;
+    PSTR pszTrustedDomainName = NULL;
+    PSTR pszTrustedDcName = NULL;
+    POLICY_HANDLE hTrustedDcPolicy = NULL;
+    DOMAIN_ENTRY DomEntry = {0};
+    PDOMAIN_ENTRY pDomEntry = NULL;
+
+    dwError = LwWc16sToMbs(pPolCtx->pwszDcName,
+                           &pszDcName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = LsaSrvGetSystemCreds(&pCreds);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    if (pwszDomainName == NULL ||
+        !wc16scasecmp(pwszDomainName, pPolCtx->pwszDomainName))
+    {
+        ntStatus = LsaSrvGetDomainByName(pPolCtx,
+                                         pPolCtx->pwszDomainName,
+                                         &pDomEntry);
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            goto cleanup;
+        }
+        else if (ntStatus != STATUS_NO_SUCH_DOMAIN)
+        {
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        /*
+         * Connect to a DC of the domain we're member of
+         */
+        rpcStatus = InitLsaBindingDefault(&hLsaBinding,
+                                          pszDcName,
+                                          pCreds);
+        if (rpcStatus)
+        {
+            ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        ntStatus = LsaOpenPolicy2(hLsaBinding,
+                                  pPolCtx->pwszDcName,
+                                  NULL,
+                                  dwPolicyAccessMask,
+                                  &hDcPolicy);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        dwError = LwAllocateMemory(sizeof(*pDomEntry),
+                                   OUT_PPVOID(&pDomEntry));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = LwAllocateWc16String(&pDomEntry->pwszName,
+                                       pPolCtx->pwszDomainName);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        pDomEntry->pSid        = NULL;
+        pDomEntry->hLsaBinding = hLsaBinding;
+        pDomEntry->hPolicy     = hDcPolicy;
+
+        dwError = LsaSrvSetDomain(pPolCtx, pDomEntry);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (pwszDomainName != NULL)
+    {
+        /*
+         * Check if requested domain is one of our trusted
+         * domains and make a connection if so.
+         */
+
+        rpcStatus = InitNetlogonBindingDefault(&hNetrBinding,
+                                               pszDcName,
+                                               pCreds,
+                                               FALSE);
+        if (rpcStatus)
+        {
+            ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        ntStatus = DsrEnumerateDomainTrusts(hNetrBinding,
+                                            pPolCtx->pwszDcName,
+                                            dwTrustFlags,
+                                            &pTrusts,
+                                            &dwNumTrusts);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        for (i = 0; i < dwNumTrusts; i++)
+        {
+            NetrDomainTrust *pTrust = &(pTrusts[i]);
+
+            /*
+             * If this trusted domain is already in the cache
+             * don't try opening another connection and caching
+             * it once again
+             */
+            ntStatus = LsaSrvGetDomainByName(pPolCtx,
+                                             pTrust->netbios_name,
+                                             &pDomEntry);
+            if (ntStatus == STATUS_SUCCESS)
+            {
+                LsaSrvDomainEntryFree(&pDomEntry);
+                continue;
+            }
+            else if (ntStatus != STATUS_NO_SUCH_DOMAIN)
+            {
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            }
+
+            dwError = LwWc16sToMbs(pTrust->dns_name,
+                                   &pszTrustedDomainName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LWNetGetDomainController(pszTrustedDomainName,
+                                               &pszTrustedDcName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            rpcStatus = InitLsaBindingDefault(&hLsaBinding,
+                                              pszTrustedDcName,
+                                              pCreds);
+            if (rpcStatus)
+            {
+                ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            }
+
+            ntStatus = LsaOpenPolicy2(hLsaBinding,
+                                      pTrust->dns_name,
+                                      NULL,
+                                      dwPolicyAccessMask,
+                                      &hTrustedDcPolicy);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+            DomEntry.pwszName    = pTrust->netbios_name;
+            DomEntry.pSid        = NULL;
+            DomEntry.hLsaBinding = hLsaBinding;
+            DomEntry.hPolicy     = hTrustedDcPolicy;
+
+            dwError = LsaSrvSetDomain(pPolCtx, &DomEntry);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LW_SAFE_FREE_MEMORY(pszTrustedDomainName);
+            LWNetFreeString(pszTrustedDcName);
+            pszTrustedDomainName = NULL;
+            pszTrustedDcName     = NULL;
+            hLsaBinding          = NULL;
+            hTrustedDcPolicy     = NULL;
+        }
+
+        /*
+         * If the domain we're looking for is none of the trusted
+         * ones try to leave it up to the our DC.
+         * If we still don't have the connection to our DC at this
+         * point it means an error.
+         */
+        ntStatus = LsaSrvGetDomainByName(pPolCtx,
+                                         pwszDomainName,
+                                         &pDomEntry);
+        if (ntStatus == STATUS_NO_SUCH_DOMAIN)
+        {
+            ntStatus = LsaSrvGetDomainByName(pPolCtx,
+                                             pPolCtx->pwszDomainName,
+                                             &pDomEntry);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+    }
+
+    *ppDomEntry = pDomEntry;
+
+cleanup:
+    FreeNetlogonBinding(&hNetrBinding);
+
+    if (pTrusts)
+    {
+        NetrFreeMemory(pTrusts);
+    }
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
+    LWNetFreeString(pszTrustedDcName);
+
+    LW_SAFE_FREE_MEMORY(pszDcName);
+    LW_SAFE_FREE_MEMORY(pszTrustedDcName);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+NTSTATUS
+LsaSrvConnectDomainBySid(
+    PPOLICY_CONTEXT   pPolCtx,
+    PSID              pDomainSid,
+    PDOMAIN_ENTRY    *ppDomEntry
+    )
+{
+    const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS;
+    const DWORD dwTrustFlags = NETR_TRUST_FLAG_IN_FOREST;
+
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = 0;
+    PSTR pszDcName = NULL;
+    PIO_CREDS pCreds = NULL;
+    handle_t hLsaBinding= NULL;
+    POLICY_HANDLE hDcPolicy = NULL;
+    handle_t hNetrBinding = NULL;
+    NetrDomainTrust *pTrusts = NULL;
+    DWORD dwNumTrusts = 0;
+    DWORD i = 0;
+    PSTR pszTrustedDomainName = NULL;
+    PSTR pszTrustedDcName = NULL;
+    POLICY_HANDLE hTrustedDcPolicy = NULL;
+    DOMAIN_ENTRY DomEntry = {0};
+    PDOMAIN_ENTRY pDomEntry = NULL;
+
+    dwError = LwWc16sToMbs(pPolCtx->pwszDcName,
+                           &pszDcName);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = LsaSrvGetSystemCreds(&pCreds);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    if (pDomainSid == NULL ||
+        RtlEqualSid(pDomainSid, pPolCtx->pDomainSid))
+    {
+        ntStatus = LsaSrvGetDomainBySid(pPolCtx,
+                                        pPolCtx->pDomainSid,
+                                        &pDomEntry);
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            goto cleanup;
+        }
+        else if (ntStatus != STATUS_NO_SUCH_DOMAIN)
+        {
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        /*
+         * Connect to a DC of the domain we're member of
+         */
+        rpcStatus = InitLsaBindingDefault(&hLsaBinding,
+                                          pszDcName,
+                                          pCreds);
+        if (rpcStatus)
+        {
+            ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        ntStatus = LsaOpenPolicy2(hLsaBinding,
+                                  pPolCtx->pwszDcName,
+                                  NULL,
+                                  dwPolicyAccessMask,
+                                  &hDcPolicy);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        dwError = LwAllocateMemory(sizeof(*pDomEntry),
+                                   OUT_PPVOID(&pDomEntry));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        ntStatus = RtlDuplicateSid(&pDomEntry->pSid,
+                                   pPolCtx->pDomainSid);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        pDomEntry->pwszName    = NULL;
+        pDomEntry->hLsaBinding = hLsaBinding;
+        pDomEntry->hPolicy     = hDcPolicy;
+
+        dwError = LsaSrvSetDomain(pPolCtx, pDomEntry);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    else if (pDomainSid != NULL)
+    {
+        /*
+         * Check if requested domain is one of our trusted
+         * domains and make a connection if so.
+         */
+
+        rpcStatus = InitNetlogonBindingDefault(&hNetrBinding,
+                                               pszDcName,
+                                               pCreds,
+                                               FALSE);
+        if (rpcStatus)
+        {
+            ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+
+        ntStatus = DsrEnumerateDomainTrusts(hNetrBinding,
+                                            pPolCtx->pwszDcName,
+                                            dwTrustFlags,
+                                            &pTrusts,
+                                            &dwNumTrusts);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        for (i = 0; i < dwNumTrusts; i++)
+        {
+            NetrDomainTrust *pTrust = &(pTrusts[i]);
+
+            /*
+             * If this trusted domain is already in the cache
+             * don't try opening another connection and caching
+             * it once again
+             */
+            ntStatus = LsaSrvGetDomainBySid(pPolCtx,
+                                            pTrust->sid,
+                                            &pDomEntry);
+            if (ntStatus == STATUS_SUCCESS)
+            {
+                LsaSrvDomainEntryFree(&pDomEntry);
+                continue;
+            }
+            else if (ntStatus != STATUS_NO_SUCH_DOMAIN)
+            {
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            }
+
+            dwError = LwWc16sToMbs(pTrust->dns_name,
+                                   &pszTrustedDomainName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            dwError = LWNetGetDomainController(pszTrustedDomainName,
+                                               &pszTrustedDcName);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            rpcStatus = InitLsaBindingDefault(&hLsaBinding,
+                                              pszTrustedDcName,
+                                              pCreds);
+            if (rpcStatus)
+            {
+                ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+                BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            }
+
+            ntStatus = LsaOpenPolicy2(hLsaBinding,
+                                      pTrust->dns_name,
+                                      NULL,
+                                      dwPolicyAccessMask,
+                                      &hTrustedDcPolicy);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+            DomEntry.pwszName    = NULL;
+            DomEntry.pSid        = pTrust->sid;
+            DomEntry.hLsaBinding = hLsaBinding;
+            DomEntry.hPolicy     = hTrustedDcPolicy;
+
+            dwError = LsaSrvSetDomain(pPolCtx, &DomEntry);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            LW_SAFE_FREE_MEMORY(pszTrustedDomainName);
+            LWNetFreeString(pszTrustedDcName);
+            pszTrustedDomainName = NULL;
+            pszTrustedDcName     = NULL;
+            hLsaBinding          = NULL;
+            hTrustedDcPolicy     = NULL;
+        }
+
+        /*
+         * If the domain we're looking for is none of the trusted
+         * ones try to leave it up to the our DC.
+         * If we still don't have the connection to our DC at this
+         * point it means an error.
+         */
+        ntStatus = LsaSrvGetDomainBySid(pPolCtx,
+                                        pDomainSid,
+                                        &pDomEntry);
+        if (ntStatus == STATUS_NO_SUCH_DOMAIN)
+        {
+            ntStatus = LsaSrvGetDomainBySid(pPolCtx,
+                                            pPolCtx->pDomainSid,
+                                            &pDomEntry);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+    }
+
+    *ppDomEntry = pDomEntry;
+
+cleanup:
+    FreeNetlogonBinding(&hNetrBinding);
+
+    if (pTrusts)
+    {
+        NetrFreeMemory(pTrusts);
+    }
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
+    LWNetFreeString(pszTrustedDcName);
+
+    LW_SAFE_FREE_MEMORY(pszDcName);
+    LW_SAFE_FREE_MEMORY(pszTrustedDcName);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
 }
 
 

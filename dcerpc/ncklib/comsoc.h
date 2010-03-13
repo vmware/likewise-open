@@ -263,6 +263,13 @@ typedef struct rpc_socket_vtbl_s
         rpc_transport_info_handle_t info1,
         rpc_transport_info_handle_t info2
         );
+
+    /* Inquire for access token */
+    rpc_socket_error_t
+    (*transport_inq_access_token) (
+        rpc_transport_info_handle_t info,
+        rpc_access_token_p_t* token
+        );
 } rpc_socket_vtbl_t, *rpc_socket_vtbl_p_t;
 
 typedef struct rpc_socket_handle_s
@@ -738,6 +745,7 @@ rpc__transport_info_equal(
                                                 /* progress */
 #define RPC_C_SOCKET_EISCONN      EISCONN       /* socket is already */
                                                 /* connected */
+#define RPC_C_SOCKET_ENOTSUP      ENOTSUP       /* operation not supported */
 #ifdef ETIME
 #define RPC_C_SOCKET_ETIME        ETIME         /* A time skew occurred */
 #else

@@ -55,9 +55,29 @@ SrvElementsInit(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    int      iIter = 0;
+
+    status = WireGetCurrentNTTime(&gSrvElements.llBootTime);
+    BAIL_ON_NT_STATUS(status);
+
+    while (!RAND_status() && (iIter++ < 10))
+    {
+        uuid_t uuid;
+        CHAR   szUUID[37];
+
+        memset(szUUID, 0, sizeof(szUUID));
+
+        uuid_generate(uuid);
+        uuid_unparse(uuid, szUUID);
+
+        RAND_seed(szUUID, sizeof(szUUID));
+    }
 
     status = SrvTimerInit(&gSrvElements.timer);
     BAIL_ON_NT_STATUS(status);
+
+    pthread_rwlock_init(&gSrvElements.statsLock, NULL);
+    gSrvElements.pStatsLock = &gSrvElements.statsLock;
 
 error:
 
@@ -93,6 +113,65 @@ SrvTimerCancelRequest(
 }
 
 NTSTATUS
+SrvElementsGetBootTime(
+    PULONG64 pullBootTime
+    )
+{
+    LONG64   llBootTime = 0LL;
+    BOOLEAN  bInLock    = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+
+    llBootTime = gSrvElements.llBootTime;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+
+    *pullBootTime = llBootTime;
+
+    return STATUS_SUCCESS;
+}
+
+BOOLEAN
+SrvElementsGetShareNameEcpEnabled(
+    VOID
+    )
+{
+    return gSrvElements.bShareNameEcpEnabled;
+}
+
+NTSTATUS
+SrvElementsGetStats(
+    PSRV_ELEMENTS_STATISTICS pStats
+    )
+{
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvElements.statsLock);
+
+    *pStats = gSrvElements.stats;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+SrvElementsResetStats(
+    VOID
+    )
+{
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvElements.statsLock);
+
+    memset(&gSrvElements.stats, 0, sizeof(gSrvElements.stats));
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
 SrvElementsShutdown(
     VOID
     )
@@ -109,6 +188,12 @@ SrvElementsShutdown(
         SrvFreeMemory(gSrvElements.pHintsBuffer);
         gSrvElements.pHintsBuffer = NULL;
         gSrvElements.ulHintsLength = 0;
+    }
+
+    if (gSrvElements.pStatsLock)
+    {
+        pthread_rwlock_destroy(&gSrvElements.statsLock);
+        gSrvElements.pStatsLock = NULL;
     }
 
 error:

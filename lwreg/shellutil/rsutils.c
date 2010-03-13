@@ -250,13 +250,16 @@ error:
     goto cleanup;
 }
 
+
 DWORD
-RegShellUtilAddKey(
+RegShellUtilAddKeySecDesc(
     HANDLE hReg,
     PSTR pszRootKeyName,
     PSTR pszDefaultKey,
     PSTR pszKeyName,
-    BOOLEAN bDoBail
+    BOOLEAN bDoBail,
+    IN ACCESS_MASK AccessDesired,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor
     )
 {
     DWORD dwError = 0;
@@ -269,6 +272,7 @@ RegShellUtilAddKey(
     PSTR pszDelim = "\\";
     PSTR pszFullPath = NULL;
     PSTR pszSubKey = NULL;
+    DWORD dwDisposition = 0;
 
 
     if (!hReg)
@@ -305,23 +309,10 @@ RegShellUtilAddKey(
                       0,
                       NULL,
                       0,
-                      KEY_ALL_ACCESS,
-                      NULL,
+                      AccessDesired,
+                      pSecurityDescriptor,
                       &pNextKey,
-                      NULL);
-        if (LWREG_ERROR_KEYNAME_EXIST == dwError)
-        {
-            if (strcasecmp(pszToken, pszSubKey) || !bDoBail)
-            {
-                dwError = RegOpenKeyExW(hReg,
-                                        pCurrentKey,
-                                        pwszSubKey,
-                                        0,
-                                        KEY_ALL_ACCESS,
-                                        &pNextKey);
-                BAIL_ON_REG_ERROR(dwError);
-            }
-        }
+                      &dwDisposition);
         BAIL_ON_REG_ERROR(dwError);
 
         LWREG_SAFE_FREE_MEMORY(pwszSubKey);
@@ -336,6 +327,13 @@ RegShellUtilAddKey(
         pNextKey = NULL;
 
         pszToken = strtok_r (NULL, pszDelim, &pszStrtokState);
+
+        if (LW_IS_NULL_OR_EMPTY_STR(pszToken) &&
+		REG_OPENED_EXISTING_KEY == dwDisposition && bDoBail)
+        {
+            dwError = LWREG_ERROR_KEYNAME_EXIST;
+            BAIL_ON_REG_ERROR(dwError);
+        }
     }
 
 cleanup:
@@ -356,6 +354,26 @@ cleanup:
 
 error:
     goto cleanup;
+}
+
+
+DWORD
+RegShellUtilAddKey(
+    HANDLE hReg,
+    PSTR pszRootKeyName,
+    PSTR pszDefaultKey,
+    PSTR pszKeyName,
+    BOOLEAN bDoBail
+    )
+{
+    return RegShellUtilAddKeySecDesc(
+               hReg,
+               pszRootKeyName,
+               pszDefaultKey,
+               pszKeyName,
+               bDoBail,
+               KEY_ALL_ACCESS,
+               NULL);
 }
 
 

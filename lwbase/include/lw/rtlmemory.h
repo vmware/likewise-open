@@ -93,6 +93,13 @@ LwRtlMemoryFree(
 #define LW_RTL_ALLOCATE(ppMemory, Type, Size) \
     ( (*(ppMemory)) = (Type*) LwRtlMemoryAllocate(Size), (*(ppMemory)) ? LW_STATUS_SUCCESS : LW_STATUS_INSUFFICIENT_RESOURCES )
 
+#define LW_RTL_ALLOCATE_AUTO(ppMemory) \
+    ( (*(ppMemory)) = LwRtlMemoryAllocate(sizeof(**(ppMemory))), (*(ppMemory)) ? LW_STATUS_SUCCESS : LW_STATUS_INSUFFICIENT_RESOURCES )
+
+#define LW_RTL_ALLOCATE_ARRAY_AUTO(ppMemory, ulCount) \
+    ( (*(ppMemory)) = LwRtlMemoryAllocate(sizeof(**(ppMemory)) * (ulCount)), (*(ppMemory)) ? LW_STATUS_SUCCESS : LW_STATUS_INSUFFICIENT_RESOURCES )
+
+
 #define LW_RTL_FREE(ppMemory) \
     do { \
         if (*(ppMemory)) \

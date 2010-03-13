@@ -29,7 +29,17 @@
  */
 
 /*
- * Abstract: SamrGetUserGroups function (rpc server library)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        samr_getusergroups.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Server Interface
+ *
+ *        SamrGetUserGroups function
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
@@ -38,17 +48,35 @@
 
 
 NTSTATUS
-SamrGetUserGroups(
-    /* [in] */  ACCOUNT_HANDLE hUser,
-    /* [out] */ RidWithAttributeArray **ppRids
+SamrSrvGetUserGroups(
+    IN  handle_t                hBinding,
+    IN  ACCOUNT_HANDLE          hUser,
+    OUT RidWithAttributeArray **ppRids
     )
 {
-    NTSTATUS ntStatus = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RidWithAttributeArray *pRids = NULL;
+
+    ntStatus = SamrSrvAllocateMemory(OUT_PPVOID(&pRids),
+                                     sizeof(*pRids));
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    pRids->count = 0;
+    pRids->rids  = NULL;
+
+    *ppRids = pRids;
 
 cleanup:
     return ntStatus;
 
 error:
+    if (pRids)
+    {
+        SamrSrvFreeMemory(pRids);
+    }
+
+    *ppRids = NULL;
+
     goto cleanup;
 }
 

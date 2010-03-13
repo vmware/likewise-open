@@ -48,23 +48,6 @@
 #include "includes.h"
 
 
-typedef struct _ACCESS_LIST
-{
-    PSID        *ppSid;
-    ACCESS_MASK AccessMask;
-    ULONG       ulAccessType;
-
-} ACCESS_LIST, *PACCESS_LIST;
-
-
-static
-DWORD
-SamrSrvCreateDacl(
-    PACL *ppDacl,
-    PACCESS_LIST pList
-    );
-
-
 static
 DWORD
 SamrSrvCreateServerDacl(
@@ -194,6 +177,8 @@ SamrSrvInitServerSecurityDescriptor(
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
     PACL pDacl = NULL;
 
     BAIL_ON_INVALID_PTR(ppSecDesc);
@@ -205,6 +190,30 @@ SamrSrvInitServerSecurityDescriptor(
     ntStatus = RtlCreateSecurityDescriptorAbsolute(
                                     pSecDesc,
                                     SECURITY_DESCRIPTOR_REVISION);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = LwCreateWellKnownSid(WinLocalSystemSid,
+                                   NULL,
+                                   &pOwnerSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = RtlSetOwnerSecurityDescriptor(
+                                    pSecDesc,
+                                    pOwnerSid,
+                                    FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &pGroupSid,
+                                   NULL);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    ntStatus = RtlSetGroupSecurityDescriptor(
+                                    pSecDesc,
+                                    pGroupSid,
+                                    FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = SamrSrvCreateServerDacl(&pDacl);
@@ -415,86 +424,6 @@ error:
 
     goto cleanup;
 }
-
-
-static
-DWORD
-SamrSrvCreateDacl(
-    PACL *ppDacl,
-    PACCESS_LIST pList
-    )
-{
-    DWORD dwError = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwDaclSize = 0;
-    PACL pDacl = NULL;
-    DWORD i = 0;
-    ULONG ulSidSize = 0;
-
-    dwDaclSize += ACL_HEADER_SIZE;
-
-    for (i = 0; pList[i].ppSid && (*pList[i].ppSid); i++)
-    {
-        ulSidSize = RtlLengthSid(*(pList[i].ppSid));
-
-        if (pList[i].ulAccessType == ACCESS_ALLOWED_ACE_TYPE)
-        {
-            dwDaclSize += ulSidSize + sizeof(ACCESS_ALLOWED_ACE);
-        }
-        else if (pList[i].ulAccessType == ACCESS_DENIED_ACE_TYPE)
-        {
-            dwDaclSize += ulSidSize + sizeof(ACCESS_DENIED_ACE);
-        }
-    }
-
-    dwError = LwAllocateMemory(dwDaclSize,
-                               OUT_PPVOID(&pDacl));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    ntStatus = RtlCreateAcl(pDacl, dwDaclSize, ACL_REVISION);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; pList[i].ppSid && (*pList[i].ppSid); i++)
-    {
-        if (pList[i].ulAccessType == ACCESS_ALLOWED_ACE_TYPE)
-        {
-            ntStatus = RtlAddAccessAllowedAceEx(pDacl,
-                                                ACL_REVISION,
-                                                0,
-                                                pList[i].AccessMask,
-                                                *(pList[i].ppSid));
-        }
-        else if (pList[i].ulAccessType == ACCESS_DENIED_ACE_TYPE)
-        {
-            ntStatus = RtlAddAccessDeniedAceEx(pDacl,
-                                               ACL_REVISION,
-                                               0,
-                                               pList[i].AccessMask,
-                                               *(pList[i].ppSid));
-        }
-
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    *ppDacl = pDacl;
-
-cleanup:
-    if (dwError == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
-    {
-        dwError = LwNtStatusToWin32Error(ntStatus);
-    }
-
-    return dwError;
-
-error:
-    LW_SAFE_FREE_MEMORY(pDacl);
-    *ppDacl = NULL;
-
-    goto cleanup;
-}
-
-
 
 
 /*

@@ -40,6 +40,7 @@
 #define __IODRIVER_H__
 
 #include <lwio/lwio.h>
+#include <lwmapsecurity/lwmapsecurity.h>
 
 struct _IO_DRIVER_OBJECT;
 typedef struct _IO_DRIVER_OBJECT IO_DRIVER_OBJECT, *PIO_DRIVER_OBJECT;
@@ -107,7 +108,7 @@ typedef struct _IRP_ARGS_CREATE {
     IN FILE_CREATE_OPTIONS CreateOptions;
     IN OPTIONAL PFILE_FULL_EA_INFORMATION EaBuffer;
     IN ULONG EaLength;
-    IN OPTIONAL PVOID SecurityDescriptor; // TBD
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor;
     IN OPTIONAL PVOID SecurityQualityOfService; // TBD
     IN OPTIONAL PIO_ECP_LIST EcpList;
 } IRP_ARGS_CREATE, *PIRP_ARGS_CREATE;
@@ -394,6 +395,12 @@ NTSTATUS
 IoSecurityCreateSecurityContextFromUsername(
     OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
     IN PUNICODE_STRING Username
+    );
+
+NTSTATUS
+IoSecurityCreateSecurityContextFromGssContext(
+    OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
+    IN LW_MAP_SECURITY_GSS_CONTEXT hGssContext
     );
 
 //

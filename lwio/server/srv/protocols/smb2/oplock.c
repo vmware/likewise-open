@@ -51,6 +51,14 @@
 
 static
 NTSTATUS
+SrvBuildOplockBreakNotification_SMB_V2(
+    PSRV_EXEC_CONTEXT        pExecContext,
+    PSRV_OPLOCK_STATE_SMB_V2 pOplockState,
+    UCHAR                    ucOplockLevel
+    );
+
+static
+NTSTATUS
 SrvBuildOplockBreakResponse_SMB_V2(
     PSRV_EXEC_CONTEXT        pExecContext,
     PSRV_OPLOCK_STATE_SMB_V2 pOplockState,
@@ -118,7 +126,7 @@ SrvBuildOplockState_SMB_V2(
 
     pOplockState->ulTid = pTree->ulTid;
 
-    pOplockState->ullFid = pFile->ullFid;
+    pOplockState->fid = pFile->fid;
 
     *ppOplockState = pOplockState;
 
@@ -149,7 +157,7 @@ SrvProcessOplock_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PSMB2_LOCK_REQUEST_HEADER  pRequestHeader = NULL; // Do not free
+    PSMB2_OPLOCK_BREAK_HEADER  pRequestHeader = NULL; // Do not free
     PLWIO_SRV_SESSION_2        pSession      = NULL;
     PLWIO_SRV_TREE_2           pTree         = NULL;
     PLWIO_SRV_FILE_2           pFile         = NULL;
@@ -170,7 +178,7 @@ SrvProcessOplock_SMB_V2(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2UnmarshalLockRequest(
+    ntStatus = SMB2UnmarshalOplockBreakRequest(
                     pSmbRequest,
                     &pRequestHeader);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -179,6 +187,9 @@ SrvProcessOplock_SMB_V2(
                     pCtxSmb2,
                     pTree,
                     &pRequestHeader->fid,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -217,7 +228,7 @@ SrvProcessOplock_SMB_V2(
                     break;
             }
 
-            ntStatus = SrvBuildOplockBreakResponse_SMB_V2(
+            ntStatus = SrvBuildOplockBreakNotification_SMB_V2(
                             pExecContext,
                             pOplockState,
                             ucOplockLevel);
@@ -232,9 +243,13 @@ SrvProcessOplock_SMB_V2(
                     {
                         LONG64 llExpiry = 0LL;
 
-                        llExpiry = (time(NULL) +
-                                    (SrvConfigGetOplockTimeout_SMB_V2()/1000) +
-                                    11644473600LL) * 10000000LL;
+                        ntStatus = WireGetCurrentNTTime(&llExpiry);
+                        BAIL_ON_NT_STATUS(ntStatus);
+
+                        /* configured timeout will be in milliseconds */
+                        llExpiry +=
+                            (SrvConfigGetOplockTimeout_SMB_V2() *
+                                WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS);
 
                         ntStatus = SrvTimerPostRequest(
                                         llExpiry,
@@ -250,7 +265,15 @@ SrvProcessOplock_SMB_V2(
 
                 case SMB_OPLOCK_LEVEL_II:
 
-                    /* We're done.  No Ack needed for level2 breaks */
+                    /* Level2 can only break to none. No Ack needed.
+                       Remove any remaining oplock state */
+
+                    pOplockState = (PSRV_OPLOCK_STATE_SMB_V2)SrvFile2RemoveOplockState(pFile);
+                    if (pOplockState)
+                    {
+                        SrvReleaseOplockState_SMB_V2(pOplockState);
+                        pOplockState = NULL;
+                    }
 
                     ntStatus = STATUS_SUCCESS;
 
@@ -350,6 +373,9 @@ SrvProcessOplockBreak_SMB_V2(
                     pCtxSmb2,
                     pTree,
                     &pRequestHeader->fid,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -358,6 +384,25 @@ SrvProcessOplockBreak_SMB_V2(
     if (pOplockState)
     {
         UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+
+        // Release the timer on the break ack now
+
+        if (pOplockState->pTimerRequest)
+        {
+            PSRV_OPLOCK_STATE_SMB_V2 pOplockState2 = NULL;
+
+            SrvTimerCancelRequest(
+                pOplockState->pTimerRequest,
+                (PVOID*)&pOplockState2);
+
+            if (pOplockState2)
+            {
+                SrvReleaseOplockState_SMB_V2(pOplockState2);
+            }
+
+            SrvTimerRelease(pOplockState->pTimerRequest);
+            pOplockState->pTimerRequest = NULL;
+        }
 
         ntStatus = SrvAcknowledgeOplockBreak_SMB_V2(pOplockState, FALSE);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -441,7 +486,7 @@ SrvAcknowledgeOplockBreak_SMB_V2(
     ntStatus = SrvSession2FindTree(pSession, pOplockState->ulTid, &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTree2FindFile(pTree, pOplockState->ullFid, &pFile);
+    ntStatus = SrvTree2FindFile(pTree, &pOplockState->fid, &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Clear flag indicating we are waiting an ACK from the client */
@@ -543,6 +588,116 @@ error:
 
 static
 NTSTATUS
+SrvBuildOplockBreakNotification_SMB_V2(
+    PSRV_EXEC_CONTEXT        pExecContext,
+    PSRV_OPLOCK_STATE_SMB_V2 pOplockState,
+    UCHAR                    ucOplockLevel
+    )
+{
+    NTSTATUS                   ntStatus      = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg          = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PSMB2_OPLOCK_BREAK_HEADER  pOplockBreakHeader = NULL; // Do not free
+    PBYTE pOutBuffer       = pSmbResponse->pBuffer;
+    ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
+    ULONG ulOffset         = 0;
+    ULONG ulTotalBytesUsed = 0;
+
+    ntStatus = SMB2MarshalHeader(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM2_BREAK,
+                        pSmbRequest->pHeader->usEpoch,
+                        0,  /* Credits     */
+                        0L, /* Process Id  */
+                        pSmbRequest->pHeader->ullCommandSequence,
+                        0L,  /* Tree Id    */
+                        0LL, /* Session Id */
+                        0LL, /* Async Id   */
+                        STATUS_SUCCESS,
+                        TRUE,
+                        LwIsSetFlag(
+                            pSmbRequest->pHeader->ulFlags,
+                            SMB2_FLAGS_RELATED_OPERATION),
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->ulHeaderSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->ulHeaderSize;
+    ulOffset         += pSmbResponse->ulHeaderSize;
+    ulBytesAvailable -= pSmbResponse->ulHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
+
+    if (ulBytesAvailable < sizeof(SMB2_OPLOCK_BREAK_HEADER))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pOplockBreakHeader = (PSMB2_OPLOCK_BREAK_HEADER)pOutBuffer;
+
+    pOplockBreakHeader->usLength = sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    pOplockBreakHeader->fid      = pOplockState->fid;
+
+    switch (ucOplockLevel)
+    {
+        case SMB_OPLOCK_LEVEL_BATCH:
+
+            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_BATCH;
+
+            break;
+
+        case SMB_OPLOCK_LEVEL_I:
+
+            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_I;
+
+            break;
+
+        case SMB_OPLOCK_LEVEL_II:
+
+            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_II;
+
+            break;
+
+        default:
+
+            pOplockBreakHeader->ucOplockLevel = SMB2_OPLOCK_LEVEL_NONE;
+
+            break;
+    }
+
+    // pOutBuffer       += sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    // ulBytesUsed       = sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    // ulOffset         += sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    ulBytesAvailable -= sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_OPLOCK_BREAK_HEADER);
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader      = NULL;
+        pSmbResponse->ulHeaderSize = 0;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
 SrvBuildOplockBreakResponse_SMB_V2(
     PSRV_EXEC_CONTEXT        pExecContext,
     PSRV_OPLOCK_STATE_SMB_V2 pOplockState,
@@ -572,9 +727,12 @@ SrvBuildOplockBreakResponse_SMB_V2(
                         pSmbRequest->pHeader->ullCommandSequence,
                         pCtxSmb2->pTree->ulTid,
                         pCtxSmb2->pSession->ullUid,
+                        0LL, /* Async Id */
                         STATUS_SUCCESS,
                         TRUE,
-                        pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                        LwIsSetFlag(
+                            pSmbRequest->pHeader->ulFlags,
+                            SMB2_FLAGS_RELATED_OPERATION),
                         &pSmbResponse->pHeader,
                         &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -592,8 +750,8 @@ SrvBuildOplockBreakResponse_SMB_V2(
 
     pOplockBreakHeader = (PSMB2_OPLOCK_BREAK_HEADER)pOutBuffer;
 
-    pOplockBreakHeader->usLength          = sizeof(SMB2_OPLOCK_BREAK_HEADER);
-    pOplockBreakHeader->fid.ullVolatileId = pOplockState->ullFid;
+    pOplockBreakHeader->usLength = sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    pOplockBreakHeader->fid      = pOplockState->fid;
 
     switch (ucOplockLevel)
     {
@@ -826,7 +984,7 @@ SrvOplockAsyncCB_SMB_V2(
 
     ntStatus = SrvTree2FindFile(
                     pTree,
-                    pOplockState->ullFid,
+                    &pOplockState->fid,
                     &pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -899,7 +1057,7 @@ SrvBuildOplockExecContext_SMB_V2(
     ULONG                     ulBytesUsed        = 0;
     ULONG                     ulTotalBytesUsed   = 0;
     PSMB2_HEADER              pHeader            = NULL; // Do not free
-    PSMB2_LOCK_REQUEST_HEADER pLockRequestHeader = NULL; // Do not free
+    PSMB2_OPLOCK_BREAK_HEADER pOplockBreakHeader = NULL; // Do not free
 
     ntStatus = SMBPacketAllocate(
                     pOplockState->pConnection->hPacketAllocator,
@@ -939,13 +1097,14 @@ SrvBuildOplockExecContext_SMB_V2(
                     pBuffer,
                     ulOffset,
                     ulBytesAvailable,
-                    COM2_LOCK,
+                    COM2_BREAK,
                     0,                  /* epoch       */
                     1,                  /* credits     */
                     0,                  /* pid         */
                     0xFFFFFFFFFFFFFFFFLL, /* mid = -1    */
                     pOplockState->ulTid,
                     pOplockState->ullUid,
+                    0LL, /* Async Id */
                     STATUS_SUCCESS,
                     FALSE,              /* is response */
                     FALSE,              /* chained message */
@@ -957,26 +1116,22 @@ SrvBuildOplockExecContext_SMB_V2(
     ulBytesAvailable -= ulBytesUsed;
     ulTotalBytesUsed += ulBytesUsed;
 
-    if (ulBytesAvailable < sizeof(SMB2_LOCK_REQUEST_HEADER))
+    if (ulBytesAvailable < sizeof(SMB2_OPLOCK_BREAK_HEADER))
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pLockRequestHeader = (PSMB2_LOCK_REQUEST_HEADER)pBuffer;
+    pOplockBreakHeader = (PSMB2_OPLOCK_BREAK_HEADER)pBuffer;
 
-    //
-    // TODO: Fill in the persistent fid at a later time
-    //
-    pLockRequestHeader->fid.ullVolatileId = pOplockState->ullFid;
-    pLockRequestHeader->usLockCount = 1;
-    pLockRequestHeader->usLength = sizeof(SMB2_LOCK_REQUEST_HEADER);
+    pOplockBreakHeader->fid         = pOplockState->fid;
+    pOplockBreakHeader->usLength = sizeof(SMB2_OPLOCK_BREAK_HEADER);
 
-    pLockRequestHeader->ulReserved = usOplockAction;
+    pOplockBreakHeader->ulReserved = usOplockAction;
 
-    // pBuffer          += sizeof(SMB2_LOCK_REQUEST_HEADER);
-    // ulBytesAvailable -= sizeof(SMB2_LOCK_REQUEST_HEADER);
-    ulTotalBytesUsed += sizeof(SMB2_LOCK_REQUEST_HEADER);
+    // pBuffer          += sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    // ulBytesAvailable -= sizeof(SMB2_OPLOCK_BREAK_HEADER);
+    ulTotalBytesUsed += sizeof(SMB2_OPLOCK_BREAK_HEADER);
 
     pSmbRequest->bufferUsed += ulTotalBytesUsed;
 
@@ -1033,3 +1188,13 @@ SrvReleaseOplockStateAsync_SMB_V2(
         pOplockState->pAcb = NULL;
     }
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

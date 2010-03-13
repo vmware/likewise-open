@@ -59,9 +59,17 @@ typedef UCHAR SMB_OPLOCK_LEVEL;
 #define SMB_OPLOCK_LEVEL_BATCH 0x02
 #define SMB_OPLOCK_LEVEL_II    0x03
 
+#define SMB_CN_MAX_BUFFER_SIZE 0x00010000
+
 typedef VOID (*PFN_LWIO_SRV_FREE_OPLOCK_STATE)(HANDLE hOplockState);
 typedef VOID (*PFN_LWIO_SRV_FREE_BRL_STATE)(HANDLE hByteRangeLockState);
 typedef VOID (*PFN_LWIO_SRV_FREE_ASYNC_STATE)(HANDLE hAsyncState);
+
+typedef struct __SMB2_FID
+{
+    ULONG64 ullPersistentId;
+    ULONG64 ullVolatileId;
+} __attribute__((__packed__)) SMB2_FID, *PSMB2_FID;
 
 typedef struct _LWIO_ASYNC_STATE
 {
@@ -71,6 +79,7 @@ typedef struct _LWIO_ASYNC_STATE
     LONG                           refcount;
 
     ULONG64                        ullAsyncId;
+    USHORT                         usCommand;
 
     HANDLE                         hAsyncState;
     PFN_LWIO_SRV_FREE_ASYNC_STATE  pfnFreeAsyncState;
@@ -103,6 +112,7 @@ typedef struct _LWIO_SRV_FILE
 
     HANDLE                         hByteRangeLockState;
     PFN_LWIO_SRV_FREE_BRL_STATE    pfnFreeByteRangeLockState;
+    ULONG64                        ullLastFailedLockOffset;
 
 } LWIO_SRV_FILE, *PLWIO_SRV_FILE;
 
@@ -129,8 +139,7 @@ typedef struct _LWIO_SRV_FILE_2
 
     LONG                    refcount;
 
-    ULONG64                 ullFid;
-    uuid_t                  GUID;
+    SMB2_FID                fid;
 
     IO_FILE_HANDLE          hFile;
     PIO_FILE_NAME           pFilename; // physical path on server
@@ -322,6 +331,10 @@ typedef struct _LWIO_SRV_CONNECTION
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
 
     HANDLE              hGssContext;
+
+    pthread_mutex_t     mutexGssNegotiate;
+    pthread_mutex_t*    pMutexGssNegotiate;
+
     HANDLE              hGssNegotiate;
 
     union
@@ -331,6 +344,10 @@ typedef struct _LWIO_SRV_CONNECTION
     };
 
     PLWRTL_RB_TREE      pSessionCollection;
+
+    ULONG64             ullNextAvailableAsyncId;
+
+    PLWRTL_RB_TREE      pAsyncStateCollection;
 
 } LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
 
@@ -438,6 +455,9 @@ typedef struct _SRV_EXEC_CONTEXT
 {
     LONG                               refCount;
 
+    pthread_mutex_t                    mutex;
+    pthread_mutex_t*                   pMutex;
+
     PLWIO_SRV_CONNECTION               pConnection;
     PSMB_PACKET                        pSmbRequest;
 
@@ -447,11 +467,29 @@ typedef struct _SRV_EXEC_CONTEXT
     PSMB_PACKET                        pSmbResponse;
     ULONG                              ulNumDuplicates;
 
-    PSMB_PACKET                        pSmbAuxResponse;
+    PSMB_PACKET                        pInterimResponse;
 
     BOOLEAN                            bInternal;
 
+    ULONG64                            ullAsyncId;
+
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
+
+typedef struct _SRV_ELEMENTS_STATISTICS
+{
+    LONG64 llNumConnections;
+    LONG64 llMaxNumConnections;
+
+    LONG64 llNumSessions;
+    LONG64 llMaxNumSessions;
+
+    LONG64 llNumTreeConnects;
+    LONG64 llMaxNumTreeConnects;
+
+    LONG64 llNumOpenFiles;
+    LONG64 llMaxNumOpenFiles;
+
+} SRV_ELEMENTS_STATISTICS, *PSRV_ELEMENTS_STATISTICS;
 
 NTSTATUS
 SrvElementsInit(
@@ -496,7 +534,8 @@ SrvGssGetSessionDetails(
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
     PULONG pulSessionKeyLength,
-    PSTR* ppszClientPrincipalName
+    PSTR* ppszClientPrincipalName,
+    LW_MAP_SECURITY_GSS_CONTEXT* pContextHandle
     );
 
 NTSTATUS
@@ -536,6 +575,7 @@ SrvGssNegHints(
 NTSTATUS
 SrvAsyncStateCreate(
     ULONG64                       ullAsyncId,
+    USHORT                        usCommand,
     HANDLE                        hAsyncState,
     PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*            ppAsyncState
@@ -563,8 +603,19 @@ SrvConnectionCreate(
     PLWIO_SRV_CONNECTION*           ppConnection
     );
 
+SMB_PROTOCOL_VERSION
+SrvConnectionGetProtocolVersion(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
 NTSTATUS
 SrvConnectionSetProtocolVersion(
+    PLWIO_SRV_CONNECTION pConnection,
+    SMB_PROTOCOL_VERSION protoVer
+    );
+
+NTSTATUS
+SrvConnectionSetProtocolVersion_inlock(
     PLWIO_SRV_CONNECTION pConnection,
     SMB_PROTOCOL_VERSION protoVer
     );
@@ -593,6 +644,27 @@ SrvConnection2FindSession(
     PLWIO_SRV_CONNECTION pConnection,
     ULONG64              ullUid,
     PLWIO_SRV_SESSION_2* ppSession
+    );
+
+NTSTATUS
+SrvConnection2CreateAsyncState(
+    PLWIO_SRV_CONNECTION          pConnection,
+    USHORT                        usCommand,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
+    PLWIO_ASYNC_STATE*            ppAsyncState
+    );
+
+NTSTATUS
+SrvConnection2FindAsyncState(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullAsyncId,
+    PLWIO_ASYNC_STATE*   ppAsyncState
+    );
+
+NTSTATUS
+SrvConnection2RemoveAsyncState(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullAsyncId
     );
 
 NTSTATUS
@@ -676,12 +748,6 @@ SrvSessionCreateTree(
     PLWIO_SRV_TREE*   ppTree
     );
 
-NTSTATUS
-SrvSessionGetNamedPipeClientPrincipal(
-    PLWIO_SRV_SESSION pSession,
-    PIO_ECP_LIST     pEcpList
-    );
-
 PLWIO_SRV_SESSION
 SrvSessionAcquire(
     PLWIO_SRV_SESSION pSession
@@ -689,6 +755,11 @@ SrvSessionAcquire(
 
 VOID
 SrvSessionRelease(
+    PLWIO_SRV_SESSION pSession
+    );
+
+VOID
+SrvSessionRundown(
     PLWIO_SRV_SESSION pSession
     );
 
@@ -718,12 +789,6 @@ SrvSession2CreateTree(
     PLWIO_SRV_TREE_2*   ppTree
     );
 
-NTSTATUS
-SrvSession2GetNamedPipeClientPrincipal(
-    PLWIO_SRV_SESSION_2 pSession,
-    PIO_ECP_LIST        pEcpList
-    );
-
 PLWIO_SRV_SESSION_2
 SrvSession2Acquire(
     PLWIO_SRV_SESSION_2 pSession
@@ -731,6 +796,11 @@ SrvSession2Acquire(
 
 VOID
 SrvSession2Release(
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
+VOID
+SrvSession2Rundown(
     PLWIO_SRV_SESSION_2 pSession
     );
 
@@ -793,6 +863,12 @@ SrvTreeIsNamedPipe(
     PLWIO_SRV_TREE pTree
     );
 
+NTSTATUS
+SrvGetTreeRelativePath(
+    PWSTR  pwszOriginalPath,
+    PWSTR* ppwszSpecificPath
+    );
+
 PLWIO_SRV_TREE
 SrvTreeAcquire(
     PLWIO_SRV_TREE pTree
@@ -800,6 +876,11 @@ SrvTreeAcquire(
 
 VOID
 SrvTreeRelease(
+    PLWIO_SRV_TREE pTree
+    );
+
+VOID
+SrvTreeRundown(
     PLWIO_SRV_TREE pTree
     );
 
@@ -813,7 +894,7 @@ SrvTree2Create(
 NTSTATUS
 SrvTree2FindFile(
     PLWIO_SRV_TREE_2  pTree,
-    ULONG64           ullFid,
+    PSMB2_FID         pFid,
     PLWIO_SRV_FILE_2* ppFile
     );
 
@@ -835,7 +916,7 @@ SrvTree2CreateFile(
 NTSTATUS
 SrvTree2RemoveFile(
     PLWIO_SRV_TREE_2 pTree,
-    ULONG64          ullFid
+    PSMB2_FID        pFid
     );
 
 BOOLEAN
@@ -851,6 +932,32 @@ SrvTree2Acquire(
 VOID
 SrvTree2Release(
     PLWIO_SRV_TREE_2 pTree
+    );
+
+VOID
+SrvTree2Rundown(
+    PLWIO_SRV_TREE_2 pTree
+    );
+
+NTSTATUS
+SrvIoCreateFile(
+    IN PSRV_SHARE_INFO pShareInfo,
+    OUT PIO_FILE_HANDLE pFileHandle,
+    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock,
+    OUT PIO_STATUS_BLOCK pIoStatusBlock,
+    IN PIO_CREATE_SECURITY_CONTEXT pSecurityContext,
+    IN PIO_FILE_NAME pFileName,
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    IN OPTIONAL PVOID pSecurityQualityOfService,
+    IN ACCESS_MASK DesiredAccess,
+    IN OPTIONAL LONG64 AllocationSize,
+    IN FILE_ATTRIBUTES FileAttributes,
+    IN FILE_SHARE_FLAGS ShareAccess,
+    IN FILE_CREATE_DISPOSITION CreateDisposition,
+    IN FILE_CREATE_OPTIONS CreateOptions,
+    IN OPTIONAL PVOID pEaBuffer,
+    IN ULONG EaLength,
+    IN OUT PIO_ECP_LIST* ppEcpList
     );
 
 NTSTATUS
@@ -896,6 +1003,17 @@ SrvFileGetOplockLevel(
     PLWIO_SRV_FILE pFile
     );
 
+VOID
+SrvFileSetLastFailedLockOffset(
+    PLWIO_SRV_FILE pFile,
+    ULONG64        ullLastFailedLockOffset
+    );
+
+ULONG64
+SrvFileGetLastFailedLockOffset(
+    PLWIO_SRV_FILE pFile
+    );
+
 PLWIO_SRV_FILE
 SrvFileAcquire(
     PLWIO_SRV_FILE pFile
@@ -906,9 +1024,14 @@ SrvFileRelease(
     PLWIO_SRV_FILE pFile
     );
 
+VOID
+SrvFileRundown(
+    PLWIO_SRV_FILE pFile
+    );
+
 NTSTATUS
 SrvFile2Create(
-    ULONG64                 ullFid,
+    PSMB2_FID               pFid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
@@ -959,6 +1082,11 @@ SrvFile2Release(
     PLWIO_SRV_FILE_2 pFile
     );
 
+VOID
+SrvFile2Rundown(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
 NTSTATUS
 SrvFinderCreateRepository(
     OUT PHANDLE phFinderRepository
@@ -975,6 +1103,7 @@ SrvFinderBuildSearchPath(
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
+    IN  PSRV_SHARE_INFO pShareInfo,
     IN  PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     IN  HANDLE         hFinderRepository,
     IN  PWSTR          pwszFilesystemPath,
@@ -1019,6 +1148,16 @@ SrvBuildExecContext(
    OUT PSRV_EXEC_CONTEXT*   ppContext
    );
 
+NTSTATUS
+SrvBuildEmptyExecContext(
+   OUT PSRV_EXEC_CONTEXT* ppContext
+   );
+
+BOOLEAN
+SrvIsValidExecContext(
+   IN PSRV_EXEC_CONTEXT pExecContext
+   );
+
 VOID
 SrvReleaseExecContextHandle(
    IN HANDLE hExecContext
@@ -1028,6 +1167,26 @@ VOID
 SrvReleaseExecContext(
    IN PSRV_EXEC_CONTEXT pContext
    );
+
+NTSTATUS
+SrvElementsGetBootTime(
+    PULONG64 pullBootTime
+    );
+
+BOOLEAN
+SrvElementsGetShareNameEcpEnabled(
+    VOID
+    );
+
+NTSTATUS
+SrvElementsGetStats(
+    PSRV_ELEMENTS_STATISTICS pStats
+    );
+
+NTSTATUS
+SrvElementsResetStats(
+    VOID
+    );
 
 NTSTATUS
 SrvElementsShutdown(

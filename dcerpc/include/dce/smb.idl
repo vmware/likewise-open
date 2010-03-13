@@ -24,7 +24,7 @@
 **
 **  NAME:
 **
-**      schannel.idl
+**      smb.idl
 **
 **  FACILITY:
 **
@@ -32,7 +32,7 @@
 **
 **  ABSTRACT:
 **
-**  Netlogon/Schannel types.
+**  SMB (ncacn_np) transport-specific functions
 **
 **
 */
@@ -58,10 +58,5 @@
         [in] rpc_transport_info_handle_t info,
         [out] unsigned char** sess_key,
         [out] unsigned16* sess_key_len
-        );
-
-    void rpc_smb_transport_info_inq_peer_principal_name(
-        [in] rpc_transport_info_handle_t info,
-        [out] char** principal
         );
 }

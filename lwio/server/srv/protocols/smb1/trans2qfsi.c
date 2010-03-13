@@ -189,7 +189,8 @@ SrvProcessTrans2QueryFilesystemInformation(
 
             SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pTrans2State->pTree->pShareInfo,
                             &pTrans2State->hFile,
                             pTrans2State->pAcb,
                             &pTrans2State->ioStatusBlock,
@@ -197,15 +198,15 @@ SrvProcessTrans2QueryFilesystemInformation(
                             &pTrans2State->fileName,
                             pTrans2State->pSecurityDescriptor,
                             pTrans2State->pSecurityQOS,
-                            GENERIC_READ,
+                            FILE_READ_ATTRIBUTES,
                             0,
                             FILE_ATTRIBUTE_NORMAL,
-                            FILE_SHARE_READ,
+                            FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                             FILE_OPEN,
                             0,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            NULL  /* ECP List  */
+                            &pTrans2State->pEcpList
                             );
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -291,18 +292,21 @@ SrvQueryFilesystemInfo(
             break;
 
         case SMB_QUERY_FS_VOLUME_INFO:
+        case SMB_QUERY_FS_VOLUME_INFO_ALIAS:
 
             ntStatus = SrvQueryFSVolumeInfo(pExecContext);
 
             break;
 
         case SMB_QUERY_FS_SIZE_INFO:
+        case SMB_QUERY_FS_SIZE_INFO_ALIAS:
 
             ntStatus = SrvQueryFSSizeInfo(pExecContext);
 
             break;
 
         case SMB_QUERY_FS_ATTRIBUTE_INFO:
+        case SMB_QUERY_FS_ATTRIBUTE_INFO_ALIAS:
 
             ntStatus = SrvQueryFSAttributeInfo(pExecContext);
 
@@ -311,6 +315,9 @@ SrvQueryFilesystemInfo(
         case SMB_QUERY_FS_DEVICE_INFO:
         case SMB_QUERY_CIFS_UNIX_INFO:
         case SMB_QUERY_MAC_FS_INFO:
+        case SMB_QUERY_FS_FULL_SIZE_INFO:
+        case SMB_QUERY_FS_QUOTA_INFO:
+        case SMB_QUERY_FS_DEVICE_INFO_ALIAS:
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
@@ -354,18 +361,21 @@ SrvBuildQueryFilesystemInfoResponse(
             break;
 
         case SMB_QUERY_FS_VOLUME_INFO:
+        case SMB_QUERY_FS_VOLUME_INFO_ALIAS:
 
             ntStatus = SrvBuildFSVolumeInfoResponse(pExecContext);
 
             break;
 
         case SMB_QUERY_FS_SIZE_INFO:
+        case SMB_QUERY_FS_SIZE_INFO_ALIAS:
 
             ntStatus = SrvBuildFSSizeInfoResponse(pExecContext);
 
             break;
 
         case SMB_QUERY_FS_ATTRIBUTE_INFO:
+        case SMB_QUERY_FS_ATTRIBUTE_INFO_ALIAS:
 
             ntStatus = SrvBuildFSAttributeInfoResponse(pExecContext);
 
@@ -374,6 +384,9 @@ SrvBuildQueryFilesystemInfoResponse(
         case SMB_QUERY_FS_DEVICE_INFO:
         case SMB_QUERY_CIFS_UNIX_INFO:
         case SMB_QUERY_MAC_FS_INFO:
+        case SMB_QUERY_FS_FULL_SIZE_INFO:
+        case SMB_QUERY_FS_QUOTA_INFO:
+        case SMB_QUERY_FS_DEVICE_INFO_ALIAS:
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
@@ -776,7 +789,6 @@ SrvMarshallFSInfoVolume(
     PFILE_FS_VOLUME_INFORMATION pFSVolInfo = NULL;
     PSMB_FS_INFO_VOLUME_HEADER pFSInfoVolHeader = NULL;
     USHORT   usVolumeLabelByteLen = 0;
-    USHORT   usAlignment = 0;
 
     pFSVolInfo = (PFILE_FS_VOLUME_INFORMATION)pVolumeInfo;
 
@@ -785,11 +797,6 @@ SrvMarshallFSInfoVolume(
 
     if (pFSVolInfo->VolumeLabel && *pFSVolInfo->VolumeLabel)
     {
-        usAlignment = usDataOffset % 2;
-
-        usBytesRequired += usAlignment;
-        // usDataOffset += usAlignment;
-
         usVolumeLabelByteLen = SMB_MIN(UINT8_MAX, pFSVolInfo->VolumeLabelLength);
 
         usBytesRequired += usVolumeLabelByteLen;
@@ -813,8 +820,6 @@ SrvMarshallFSInfoVolume(
 
     if (usVolumeLabelByteLen)
     {
-        pDataCursor += usAlignment;
-
         memcpy(pDataCursor, (PBYTE)pFSVolInfo->VolumeLabel, usVolumeLabelByteLen);
     }
 

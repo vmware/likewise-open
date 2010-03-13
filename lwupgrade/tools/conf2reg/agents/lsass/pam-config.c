@@ -123,6 +123,7 @@ LsaPamFreeConfigContents(
     )
 {
     LW_SAFE_FREE_STRING(pConfig->pszAccessDeniedMessage);
+    LW_SAFE_FREE_STRING(pConfig->pszLogLevel);
 }
 
 DWORD

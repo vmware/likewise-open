@@ -41,15 +41,27 @@ typedef struct lsa_rpc_context {
 } LsaRpcContext, LSA_RPC_CONTEXT;
 
 
-typedef struct lsa_rpc_worker {
-    pthread_t         worker;
-    LSA_RPC_CONTEXT   context;
-} LsaRpcWorker, LSA_RPC_WORKER, *PLSA_RPC_WORKER;
+DWORD
+LsaRpcStartServer(
+    VOID
+    );
+
+DWORD
+LsaRpcStopServer(
+    VOID
+    );
 
 
-DWORD LsaRpcStartServer(void);
+DWORD
+LsaSrvInitServerSecurityDescriptor(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
 
-DWORD LsaRpcStopServer(void);
+
+DWORD
+LsaSrvDestroyServerSecurityDescriptor(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
 
 
 #endif /* _LSA_SRV_H_ */

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -30,102 +30,113 @@
 
 #include "includes.h"
 
-NET_API_STATUS NetShareSetInfo(
-    handle_t b,
-    const wchar16_t *servername,
-    const wchar16_t *netname,
-    UINT32 level,
-    UINT8 *bufptr,
-    UINT32 *parm_err
+NET_API_STATUS
+NetrShareSetInfo(
+    IN  handle_t   hBinding,
+    IN  PWSTR      pwszServername,
+    IN  PWSTR      pwszNetname,
+    IN  DWORD      dwLevel,
+    IN  PVOID      pBuffer,
+    OUT PDWORD     pdwParmErr
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
-    srvsvc_NetShareInfo info;
-    PSHARE_INFO_502 buf502 = NULL;
-    SHARE_INFO_502_I info502;
-    PSHARE_INFO_1501 buf1501 = NULL;
-    SHARE_INFO_1501_I info1501;
-    UINT8 *sdbuf = NULL;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PWSTR pwszServer = NULL;
+    PWSTR pwszShare = NULL;
+    srvsvc_NetShareInfo Info;
+    PSHARE_INFO_502 pInfo502 = NULL;
+    SHARE_INFO_502_I Info502i = {0};
+    PSHARE_INFO_1501 pInfo1501 = NULL;
+    SHARE_INFO_1501_I Info1501i = {0};
+    PVOID pSecDescBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(b, status);
-    BAIL_ON_INVALID_PTR(netname, status);
+    BAIL_ON_INVALID_PTR(hBinding, err);
+    BAIL_ON_INVALID_PTR(pwszNetname, err);
 
-    memset(&info, 0, sizeof(info));
-    memset(&info502, 0, sizeof(info502));
-    memset(&info1501, 0, sizeof(info1501));
+    memset(&Info, 0, sizeof(Info));
+    memset(&Info502i, 0, sizeof(Info502i));
+    memset(&Info1501i, 0, sizeof(Info1501i));
 
-    switch (level) {
+    switch (dwLevel)
+    {
     case 1:
-        info.info1 = (PSHARE_INFO_1)bufptr;
+        Info.info1 = (PSHARE_INFO_1)pBuffer;
         break;
-    case 2:
-        info.info2 = (PSHARE_INFO_2)bufptr;
-        break;
-    case 502:
-        buf502 = (PSHARE_INFO_502)bufptr;
 
-        if (buf502)
+    case 2:
+        Info.info2 = (PSHARE_INFO_2)pBuffer;
+        break;
+
+    case 502:
+        pInfo502 = (PSHARE_INFO_502)pBuffer;
+        if (pInfo502)
         {
-            if ((buf502->shi502_security_descriptor && !buf502->shi502_reserved) ||
-                (!buf502->shi502_security_descriptor && buf502->shi502_reserved))
+            if ((pInfo502->shi502_security_descriptor && !pInfo502->shi502_reserved) ||
+                (!pInfo502->shi502_security_descriptor && pInfo502->shi502_reserved))
             {
-                status = ERROR_INVALID_PARAMETER;
-                BAIL_ON_WIN_ERROR(status);
+                err = ERROR_INVALID_PARAMETER;
+                BAIL_ON_WIN_ERROR(err);
             }
 
-            info502.shi502_netname             = buf502->shi502_netname;
-            info502.shi502_type                = buf502->shi502_type;
-            info502.shi502_remark              = buf502->shi502_remark;
-            info502.shi502_permissions         = buf502->shi502_permissions;
-            info502.shi502_max_uses            = buf502->shi502_max_uses;
-            info502.shi502_current_uses        = buf502->shi502_current_uses;
-            info502.shi502_path                = buf502->shi502_path;
-            info502.shi502_password            = buf502->shi502_password;
-            info502.shi502_reserved            = buf502->shi502_reserved;
-            info502.shi502_security_descriptor = buf502->shi502_security_descriptor;
+            Info502i.shi502_netname             = pInfo502->shi502_netname;
+            Info502i.shi502_type                = pInfo502->shi502_type;
+            Info502i.shi502_remark              = pInfo502->shi502_remark;
+            Info502i.shi502_permissions         = pInfo502->shi502_permissions;
+            Info502i.shi502_max_uses            = pInfo502->shi502_max_uses;
+            Info502i.shi502_current_uses        = pInfo502->shi502_current_uses;
+            Info502i.shi502_path                = pInfo502->shi502_path;
+            Info502i.shi502_password            = pInfo502->shi502_password;
+            Info502i.shi502_reserved            = pInfo502->shi502_reserved;
+            Info502i.shi502_security_descriptor = pInfo502->shi502_security_descriptor;
 
-            info.info502 = &info502;
+            Info.info502 = &Info502i;
         }
         break;
-    case 1004:
-        info.info1004 = (PSHARE_INFO_1004)bufptr;
-        break;
-    case 1005:
-        info.info1005 = (PSHARE_INFO_1005)bufptr;
-        break;
-    case 1006:
-        info.info1006 = (PSHARE_INFO_1006)bufptr;
-        break;
-    case 1501:
-        buf1501 = (PSHARE_INFO_1501)bufptr;
 
-        if (buf1501)
+    case 1004:
+        Info.info1004 = (PSHARE_INFO_1004)pBuffer;
+        break;
+
+    case 1005:
+        Info.info1005 = (PSHARE_INFO_1005)pBuffer;
+        break;
+
+    case 1006:
+        Info.info1006 = (PSHARE_INFO_1006)pBuffer;
+        break;
+
+    case 1501:
+        pInfo1501 = (PSHARE_INFO_1501)pBuffer;
+        if (pInfo1501)
         {
-            if ((buf1501->shi1501_security_descriptor && !buf1501->shi1501_reserved) ||
-                (!buf1501->shi1501_security_descriptor && buf1501->shi1501_reserved))
+            if ((pInfo1501->shi1501_security_descriptor && !pInfo1501->shi1501_reserved) ||
+                (!pInfo1501->shi1501_security_descriptor && pInfo1501->shi1501_reserved))
             {
-                status = ERROR_INVALID_PARAMETER;
-                BAIL_ON_WIN_ERROR(status);
+                err = ERROR_INVALID_PARAMETER;
+                BAIL_ON_WIN_ERROR(err);
             }
 
-            info1501.shi1501_reserved            = buf1501->shi1501_reserved;
-            info1501.shi1501_security_descriptor = buf1501->shi1501_security_descriptor;
+            Info1501i.shi1501_reserved            = pInfo1501->shi1501_reserved;
+            Info1501i.shi1501_security_descriptor = pInfo1501->shi1501_security_descriptor;
 
-            info.info1501 = &info1501;
+            Info.info1501 = &Info1501i;
         }
         break;
     }
 
-    DCERPC_CALL(status,
-                _NetrShareSetInfo(b,
-                                  (wchar16_t *)servername,
-                                  (wchar16_t *)netname,
-                                  level, info, parm_err));
-    BAIL_ON_WIN_ERROR(status);
+    DCERPC_CALL(err,
+                _NetrShareSetInfo(hBinding,
+                                  pwszServername,
+                                  pwszNetname,
+                                  dwLevel,
+                                  Info,
+                                  pdwParmErr));
+    BAIL_ON_WIN_ERROR(err);
 
 cleanup:
-    SAFE_FREE(sdbuf);
-    return status;
+    LW_SAFE_FREE_MEMORY(pSecDescBuffer);
+
+    return err;
 
 error:
     goto cleanup;

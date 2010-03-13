@@ -46,6 +46,12 @@ DecodePacLogonInfo(
     PAC_LOGON_INFO **ppLogonInfo
     );
 
+error_status_t
+EncodePacLogonInfo(
+    PAC_LOGON_INFO* pLogonInfo,
+    PDWORD pdwEncodedSize,
+    PBYTE* ppEncodedBuffer
+    );
 
 void
 FreePacLogonInfo(

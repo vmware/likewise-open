@@ -461,7 +461,7 @@ LsaPamGetCurrentPassword(
 
        dwError = LsaPamConverse(
                         pamh,
-                        "Password:",
+                        "Password: ",
                         PAM_PROMPT_ECHO_OFF,
                         &pszPassword);
        BAIL_ON_LSA_ERROR(dwError);
@@ -561,7 +561,7 @@ LsaPamGetOldPassword(
         LSA_LOG_PAM_DEBUG("LsaPamGetOldPassword::prompting for current password");
        dwError = LsaPamConverse(
                             pamh,
-                            "Current password:",
+                            "Current password: ",
                             PAM_PROMPT_ECHO_OFF,
                             &pszPassword);
        BAIL_ON_LSA_ERROR(dwError);
@@ -639,7 +639,7 @@ LsaPamGetNewPassword(
         LSA_LOG_PAM_DEBUG("LsaPamGetOldPassword::prompting for new password");
        dwError = LsaPamConverse(
                 pamh,
-                "New password:",
+                "New password: ",
                 PAM_PROMPT_ECHO_OFF,
                 &pszPassword_1);
        BAIL_ON_LSA_ERROR(dwError);
@@ -647,7 +647,7 @@ LsaPamGetNewPassword(
         LSA_LOG_PAM_DEBUG("LsaPamGetOldPassword::prompting for re-enter password");
        dwError = LsaPamConverse(
                 pamh,
-                "Re-enter password:",
+                "Re-enter password: ",
                 PAM_PROMPT_ECHO_OFF,
                 &pszPassword_2);
        BAIL_ON_LSA_ERROR(dwError);

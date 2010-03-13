@@ -94,7 +94,8 @@ SrvProcessTrans2QueryPathInformation(
 
             SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pTrans2State->pTree->pShareInfo,
                             &pTrans2State->hFile,
                             pTrans2State->pAcb,
                             &pTrans2State->ioStatusBlock,
@@ -110,7 +111,7 @@ SrvProcessTrans2QueryPathInformation(
                             0,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            NULL  /* ECP List  */
+                            &pTrans2State->pEcpList
                             );
             BAIL_ON_NT_STATUS(ntStatus);
 

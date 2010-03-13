@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libsrv.protocols.smb2.la
 
 libsrv_protocols_smb2_la_SOURCES = \
+    cancel.c         \
     close.c          \
     connection.c     \
     config.c         \
@@ -9,13 +10,19 @@ libsrv_protocols_smb2_la_SOURCES = \
     error.c          \
     find.c           \
     flush.c          \
+    getfileinfo.c    \
+    getfsinfo.c      \
     getinfo.c        \
+    getsecinfo.c     \
     globals.c        \
     ioctl.c          \
     libmain.c        \
     lock.c           \
+    lockasync.c      \
     logoff.c         \
     negotiate.c      \
+    notify_request.c \
+    notify_state.c   \
     oplock.c         \
     read.c           \
     session.c        \

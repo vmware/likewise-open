@@ -65,14 +65,15 @@
 
 #include <lwio/lmshare.h>
 #include <lwio/lwshareinfo.h>
+#include <lwio/lwiodevctl.h>
 
 #include <iodriver.h>
 #include <ioapi.h>
 
 #include <smbwire.h>
 
-#include <srvutils.h>
 #include <shareapi.h>
+#include <srvutils.h>
 #include <elementsapi.h>
 #include <protocolapi.h>
 #include <transportapi.h>

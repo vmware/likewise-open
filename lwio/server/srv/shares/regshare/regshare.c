@@ -538,6 +538,8 @@ SrvShareRegEnum(
 
         if (ulMaxValueNameLen)
         {
+            SRV_SAFE_FREE_MEMORY_AND_RESET(pwszValueName);
+
             ntStatus = SrvAllocateMemory(
                             ulMaxValueNameLen,
                             (PVOID*) &pwszValueName);
@@ -546,6 +548,8 @@ SrvShareRegEnum(
 
         if (ulMaxValueLen)
         {
+            SRV_SAFE_FREE_MEMORY_AND_RESET(pData);
+
             ntStatus = SrvAllocateMemory(ulMaxValueLen, (PVOID*) &pData);
             BAIL_ON_NT_STATUS(ntStatus);
         }
@@ -637,6 +641,11 @@ SrvShareRegEndEnum(
     IN HANDLE hResume
     )
 {
+    PSRV_SHARE_REG_ENUM_CONTEXT pEnumContext =
+                                    (PSRV_SHARE_REG_ENUM_CONTEXT)hResume;
+
+    SRV_SAFE_FREE_MEMORY(pEnumContext);
+
     return STATUS_SUCCESS;
 }
 
@@ -862,13 +871,11 @@ SrvShareRegWriteToShareInfo(
 
     if (ulSecDataLen)
     {
-        ntStatus = SrvAllocateMemory(
-                       ulSecDataLen,
-                       (PVOID*)&pShareInfo->pSecDesc);
+        ntStatus = SrvShareSetSecurity(
+                       pShareInfo,
+                       (PSECURITY_DESCRIPTOR_RELATIVE)pSecData,
+                       ulSecDataLen);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        memcpy(pShareInfo->pSecDesc, pSecData, ulSecDataLen);
-        pShareInfo->ulSecDescLen = ulSecDataLen;
     }
 
     *ppShareInfo = pShareInfo;
@@ -912,3 +919,12 @@ SrvShareFreeStringArray(
     SrvFreeMemory(ppwszValues);
 }
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

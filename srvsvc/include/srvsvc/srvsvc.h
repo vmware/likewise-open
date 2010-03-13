@@ -98,104 +98,6 @@
 #define SRVSVC_ERROR_ACCESS_DENIED             0x9425 // 37925
 #define SRVSVC_ERROR_SENTINEL                  0x9426 // 37926
 
-
-/*
- * Error check macros
- */
-
-#define BAIL_ON_SRVSVC_ERROR(dwError)                                   \
-    if (dwError) {                                                      \
-        SRVSVC_LOG_DEBUG("Error at %s:%d. Error [code:%d]",             \
-                         __FILE__, __LINE__, dwError);                  \
-        goto error;                                                     \
-    }
-
-#define BAIL_ON_DCE_ERROR(dwError, rpcstatus)                           \
-    if ((rpcstatus) != RPC_S_OK)                                        \
-    {                                                                   \
-        dce_error_string_t errstr;                                      \
-        int error_status;                                               \
-        dce_error_inq_text((rpcstatus), (unsigned char*)errstr,         \
-                           &error_status);                              \
-        if (error_status == error_status_ok)                            \
-        {                                                               \
-            SRVSVC_LOG_ERROR("DCE Error [0x%8lx] Reason [%s]",          \
-                             (unsigned long)(rpcstatus), errstr);       \
-        }                                                               \
-        else                                                            \
-        {                                                               \
-            SRVSVC_LOG_ERROR("DCE Error [0x%8lx]",                      \
-                             (unsigned long)(rpcstatus));               \
-        }                                                               \
-                                                                        \
-        switch ((rpcstatus)) {                                          \
-        case RPC_S_INVALID_STRING_BINDING:                              \
-            (dwError) = SRVSVC_ERROR_RPC_EXCEPTION_UPON_RPC_BINDING;    \
-            break;                                                      \
-                                                                        \
-        default:                                                        \
-            (dwError) = SRVSVC_ERROR_RPC_EXCEPTION;                     \
-        }                                                               \
-                                                                        \
-        goto error;                                                     \
-    }
-
-
-/*
- * Log levels
- */
-#define LOG_LEVEL_ALWAYS  0
-#define LOG_LEVEL_ERROR   1
-#define LOG_LEVEL_WARNING 2
-#define LOG_LEVEL_INFO    3
-#define LOG_LEVEL_VERBOSE 4
-#define LOG_LEVEL_DEBUG   5
-
-
-/*
- * Logging targets
- */
-#define LOG_DISABLED   0
-#define LOG_TO_SYSLOG  1
-#define LOG_TO_FILE    2
-#define LOG_TO_CONSOLE 3
-
-#ifndef HOST_NAME_MAX
-#define HOST_NAME_MAX 255
-#endif
-
-
-/*
- * Logging macros
- */
-#define SRVSVC_LOG_ALWAYS(szFmt...)                     \
-    SrvSvcLogMessage(LOG_LEVEL_ALWAYS, ## szFmt);
-
-#define SRVSVC_LOG_ERROR(szFmt...)                         \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_ERROR) {    \
-        SrvSvcLogMessage(LOG_LEVEL_ERROR, ## szFmt);       \
-    }
-
-#define SRVSVC_LOG_WARNING(szFmt...)                       \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_WARNING) {  \
-        SrvSvcLogMessage(LOG_LEVEL_WARNING, ## szFmt);     \
-    }
-
-#define SRVSVC_LOG_INFO(szFmt...)                          \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_INFO)    {  \
-        SrvSvcLogMessage(LOG_LEVEL_INFO, ## szFmt);        \
-    }
-
-#define SRVSVC_LOG_VERBOSE(szFmt...)                       \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
-        SrvSvcLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
-    }
-
-#define SRVSVC_LOG_DEBUG(szFmt...)                         \
-    if (gSrvSvcLogInfo.dwLogLevel >= LOG_LEVEL_VERBOSE) {  \
-        SrvSvcLogMessage(LOG_LEVEL_VERBOSE, ## szFmt);     \
-    }
-
 #ifndef NET_API_STATUS_DEFINED
 typedef WINERR NET_API_STATUS;
 
@@ -310,23 +212,42 @@ NetShareEnum(
 
 
 NET_API_STATUS
+NetrShareGetInfo(
+    IN  handle_t  hBinding,
+    IN  PWSTR     pwszServername,
+    IN  PWSTR     pwszNetname,
+    IN  DWORD     dwLevel,
+    OUT PVOID    *ppBuffer
+    );
+
+
+NET_API_STATUS
 NetShareGetInfo(
-    handle_t b,
-    const wchar16_t *servername,
-    const wchar16_t *netname,
-    UINT32 level,
-    UINT8 **bufptr
+    IN  PCWSTR    pwszServername,
+    IN  PCWSTR    pwszNetname,
+    IN  DWORD     dwLevel,
+    OUT PVOID    *ppBuffer
+    );
+
+
+NET_API_STATUS
+NetrShareSetInfo(
+    IN  handle_t  hBinding,
+    IN  PWSTR     pwszServername,
+    IN  PWSTR     pwszNetname,
+    IN  DWORD     dwLevel,
+    IN  PVOID     pBuffer,
+    OUT PDWORD    pdwParmErr
     );
 
 
 NET_API_STATUS
 NetShareSetInfo(
-    handle_t b,
-    const wchar16_t *servername,
-    const wchar16_t *netname,
-    UINT32 level,
-    UINT8 *bufptr,
-    UINT32 *parm_err
+    IN  PCWSTR    pwszServername,
+    IN  PCWSTR    pwszNetname,
+    IN  DWORD     dwLevel,
+    IN  PVOID     pBuffer,
+    OUT PDWORD    pdwParmErr
     );
 
 

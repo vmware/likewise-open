@@ -31,7 +31,6 @@
 #include "includes.h"
 
 
-
 NET_API_STATUS
 NetMachineChangePassword(
     void
@@ -44,13 +43,12 @@ NetMachineChangePassword(
     PLWPS_PASSWORD_INFO pass_info = NULL;
     wchar16_t *username = NULL;
     wchar16_t *oldpassword = NULL;
-    wchar16_t *newpassword = NULL;
+    wchar16_t newpassword[MACHPASS_LEN+1];
     wchar16_t *domain_controller_name = NULL;
     size_t domain_controller_name_len = 0;
-    char machine_pass[MACHPASS_LEN+1];
     char *localname = NULL;
 
-    memset((void*)machine_pass, 0, sizeof(machine_pass));
+    memset((void*)newpassword, 0, sizeof(newpassword));
 
     err = NetGetHostInfo(&localname);
     BAIL_ON_WINERR_ERROR(err);
@@ -66,21 +64,16 @@ NetMachineChangePassword(
         goto error;
     }
 
-    get_random_string(machine_pass, sizeof(machine_pass));
-
     status = NetpGetRwDcName(pass_info->pwszDnsDomainName, FALSE,
                            &domain_controller_name);
     BAIL_ON_NTSTATUS_ERROR(status);
 
     username    = pass_info->pwszMachineAccount;
     oldpassword = pass_info->pwszMachinePassword;
-    newpassword = ambstowc16s((char*)machine_pass);
 
-    if(newpassword == NULL)
-    {
-        err = ERROR_OUTOFMEMORY;
-        goto error;
-    }
+    GenerateMachinePassword(
+        newpassword,
+        sizeof(newpassword)/sizeof(newpassword[0]));
 
     domain_controller_name_len = wc16slen(domain_controller_name);
 
@@ -117,7 +110,6 @@ cleanup:
         NetFreeMemory(localname);
     }
 
-    SAFE_FREE(newpassword);
     SAFE_FREE(domain_controller_name);
 
     if (err == ERROR_SUCCESS &&

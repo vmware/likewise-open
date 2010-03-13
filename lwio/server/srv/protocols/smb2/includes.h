@@ -68,9 +68,10 @@
 #include <lwiofsctl.h>
 
 #include <smbwire.h>
+#include <srvecp.h>
 
-#include <srvutils.h>
 #include <shareapi.h>
+#include <srvutils.h>
 #include <elementsapi.h>
 #include <transportapi.h>
 #include <protocolapi.h>

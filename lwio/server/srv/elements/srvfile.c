@@ -100,10 +100,13 @@ SrvFileCreate(
     pFile->shareAccess = shareAccess;
     pFile->createDisposition = createDisposition;
     pFile->createOptions = createOptions;
+    pFile->ullLastFailedLockOffset = -1;
 
     LWIO_LOG_DEBUG("Associating file [object:0x%x][fid:%u]",
                     pFile,
                     fid);
+
+    SRV_ELEMENTS_INCREMENT_OPEN_FILES;
 
     *ppFile = pFile;
 
@@ -222,6 +225,39 @@ SrvFileGetOplockLevel(
     return ucOplockLevel;
 }
 
+VOID
+SrvFileSetLastFailedLockOffset(
+    PLWIO_SRV_FILE pFile,
+    ULONG64        ullLastFailedLockOffset
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    pFile->ullLastFailedLockOffset = ullLastFailedLockOffset;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
+ULONG64
+SrvFileGetLastFailedLockOffset(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    ULONG64 ullLastFailedLockOffset = -1;
+
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pFile->mutex);
+
+    ullLastFailedLockOffset = pFile->ullLastFailedLockOffset;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+
+    return ullLastFailedLockOffset;
+}
+
 PLWIO_SRV_FILE
 SrvFileAcquire(
     PLWIO_SRV_FILE pFile
@@ -243,7 +279,20 @@ SrvFileRelease(
 
     if (InterlockedDecrement(&pFile->refcount) == 0)
     {
+        SRV_ELEMENTS_DECREMENT_OPEN_FILES;
+
         SrvFileFree(pFile);
+    }
+}
+
+VOID
+SrvFileRundown(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    if (pFile->hFile)
+    {
+        IoCancelFile(pFile->hFile);
     }
 }
 

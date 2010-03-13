@@ -196,6 +196,7 @@ SrvProcessDelete(
             if (pDeleteState->bPathHasWildCards)
             {
                 ntStatus = SrvFinderCreateSearchSpace(
+                                pDeleteState->pTree->pShareInfo,
                                 pDeleteState->pSession->pIoSecurityContext,
                                 pDeleteState->pSession->hFinderRepository,
                                 pDeleteState->pwszFilesystemPath,
@@ -299,6 +300,8 @@ SrvDeleteFiles(
     PSRV_DELETE_STATE_SMB_V1   pDeleteState = NULL;
     PWSTR                      pwszFilename = NULL;
     BOOLEAN                    bDone        = FALSE;
+    BOOLEAN                    bDeletedFile = FALSE;
+    wchar16_t wszDot[]                      = {'.',  0};
 
     pDeleteState = (PSRV_DELETE_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -378,6 +381,12 @@ SrvDeleteFiles(
                        pDeleteState->pResult->ShortNameLength);
             }
 
+            if ((SMBWc16sCmp(pwszFilename, wszDot) == 0))
+            {
+                ntStatus = STATUS_OBJECT_NAME_INVALID;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
             if (pDeleteState->fileName.FileName)
             {
                 SrvFreeMemory(pDeleteState->fileName.FileName);
@@ -394,7 +403,8 @@ SrvDeleteFiles(
 
             pDeleteState->bPendingCreate = TRUE;
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pDeleteState->pTree->pShareInfo,
                             &pDeleteState->hFile,
                             pDeleteState->pAcb,
                             &pDeleteState->ioStatusBlock,
@@ -410,10 +420,12 @@ SrvDeleteFiles(
                             pDeleteState->ulCreateOptions,
                             NULL,
                             0,
-                            NULL);
+                            &pDeleteState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseDeleteStateAsync(pDeleteState); // completed sync
+
+	    bDeletedFile = TRUE;
 
             pDeleteState->bPendingCreate = FALSE;
         }
@@ -440,7 +452,19 @@ SrvDeleteFiles(
                             &pDeleteState->usDataLen,
                             &pDeleteState->usSearchResultCount,
                             &pDeleteState->bEndOfSearch);
+
+            if (ntStatus == STATUS_NO_MORE_MATCHES)
+            {
+                ntStatus = STATUS_SUCCESS;
+            }
             BAIL_ON_NT_STATUS(ntStatus);
+
+            if (pDeleteState->usSearchResultCount == 0 && !bDeletedFile)
+            {
+                ntStatus = STATUS_NO_SUCH_FILE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
         }
         else
         {
@@ -467,13 +491,9 @@ error:
         case STATUS_PENDING:
         case STATUS_FILE_IS_A_DIRECTORY:
         case STATUS_SHARING_VIOLATION:
-
-            break;
-
         case STATUS_OBJECT_NAME_NOT_FOUND:
+        case STATUS_OBJECT_NAME_INVALID:
         case STATUS_NO_SUCH_FILE:
-
-            ntStatus = STATUS_OBJECT_NAME_NOT_FOUND;
 
             break;
 
@@ -497,11 +517,18 @@ SrvDeleteSingleFile(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_DELETE_STATE_SMB_V1   pDeleteState = NULL;
+    wchar16_t                  wszDot[]     = {'.',  0};
 
     pDeleteState = (PSRV_DELETE_STATE_SMB_V1)pCtxSmb1->hState;
 
     if (!pDeleteState->bPendingCreate)
     {
+        if ((SMBWc16sCmp(pDeleteState->pwszSearchPattern2, wszDot) == 0))
+        {
+            ntStatus = STATUS_OBJECT_NAME_INVALID;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         ntStatus = SrvBuildFilePath(
                         pDeleteState->pwszFilesystemPath,
                         pDeleteState->pwszSearchPattern2,
@@ -512,7 +539,8 @@ SrvDeleteSingleFile(
 
         pDeleteState->bPendingCreate = TRUE;
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pDeleteState->pTree->pShareInfo,
                         &pDeleteState->hFile,
                         pDeleteState->pAcb,
                         &pDeleteState->ioStatusBlock,
@@ -528,7 +556,7 @@ SrvDeleteSingleFile(
                         pDeleteState->ulCreateOptions,
                         NULL,
                         0,
-                        NULL);
+                        &pDeleteState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
         SrvReleaseDeleteStateAsync(pDeleteState); // completed sync
@@ -558,6 +586,7 @@ error:
         case STATUS_PENDING:
         case STATUS_FILE_IS_A_DIRECTORY:
         case STATUS_SHARING_VIOLATION:
+        case STATUS_OBJECT_NAME_INVALID:
 
             break;
 
@@ -837,6 +866,11 @@ SrvFreeDeleteState(
                 &pDeleteState->pAcb->AsyncCancelContext);
     }
 
+    if (pDeleteState->pEcpList)
+    {
+        IoRtlEcpListFree(&pDeleteState->pEcpList);
+    }
+
     if (pDeleteState->hSearchSpace)
     {
         NTSTATUS ntStatus2 = 0;
@@ -896,3 +930,12 @@ SrvFreeDeleteState(
 
     SrvFreeMemory(pDeleteState);
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

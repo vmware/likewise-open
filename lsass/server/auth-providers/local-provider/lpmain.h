@@ -50,7 +50,7 @@
 #define __LPMAIN_H__
 
 #ifdef ENABLE_STATIC_PROVIDERS
-#define LsaInitializeProvider LsaInitializeProvider_Local
+#define LsaInitializeProvider2 LsaInitializeProvider_Local
 #endif
 
 DWORD

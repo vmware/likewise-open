@@ -743,9 +743,7 @@ AC_CONFIG_FILES([Makefile
         server/srv/protocols/smb2/Makefile
         server/srv/transport/Makefile
         server/srv/transport/api/Makefile
-        server/srv/transport/lwepoll/Makefile
-        server/srv/transport/lwpoll/Makefile
-        server/srv/transport/lwselect/Makefile
+        server/srv/transport/threadpool/Makefile
         server/srv/driver/Makefile
         server/npfs/Makefile
         server/pvfs/Makefile
@@ -759,6 +757,7 @@ AC_CONFIG_FILES([Makefile
         tools/lwio-tool/Makefile
         tools/lwio-copy/Makefile
         tools/lwio-driver/Makefile
+        tools/lwio-cli/Makefile
         tests/Makefile
         tests/test_bitvector/Makefile
         tests/test_npclient/Makefile
@@ -766,6 +765,7 @@ AC_CONFIG_FILES([Makefile
         tests/test_npserver/Makefile
         tests/test_npclient_transactnp/Makefile
         tests/test_pvfs/Makefile
+	tests/test_load/Makefile
         tests/tcon/Makefile
         tests/transactnp/Makefile
         scripts/Makefile

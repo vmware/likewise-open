@@ -8,17 +8,24 @@ SrvSvcRegisterForRPC(
     rpc_binding_vector_p_t* ppServerBinding
     );
 
-
-DWORD
+PVOID
 SrvSvcListenForRPC(
-    VOID
+    PVOID pArg
     );
-
 
 DWORD
 SrvSvcUnregisterForRPC(
     rpc_binding_vector_p_t pServerBinding
     );
 
+BOOLEAN
+SrvSvcRpcIsListening(
+    VOID
+    );
+
+DWORD
+SrvSvcRpcStopListening(
+    VOID
+    );
 
 #endif /* _SRVSVC_SRV_H_ */

@@ -30,6 +30,7 @@
 
 #include "domainjoin.h"
 #include "djfirewall.h"
+#include "djauditing.h"
 #include "djdistroinfo.h"
 #include "djauthconf.h"
 #include "djauthinfo.h"
@@ -115,30 +116,32 @@ LWRaiseLsassError(
     )
 {
     PSTR buffer = NULL;
-
+    PCSTR symbol = NULL;
+    PCSTR description = "Unknown error";
+    DWORD err = CENTERROR_DOMAINJOIN_LSASS_ERROR;
     size_t bufferSize;
+
+    symbol = LwWin32ExtErrorToName(code);
+    if (symbol == NULL)
+    {
+        symbol = "Unknown";
+    }
+
     bufferSize = LwGetErrorString(code, NULL, 0);
     LW_CLEANUP_CTERR(dest, CTAllocateMemory(bufferSize, PPCAST(&buffer)));
     if (LwGetErrorString(code, buffer, bufferSize) == bufferSize && bufferSize > 0 && strlen(buffer) > 0)
     {
-        DWORD err = CENTERROR_DOMAINJOIN_LSASS_ERROR;
-
-        switch (code)
-        {
-            case LW_ERROR_FAILED_TO_LOOKUP_DC:
-                err = CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
-                break;
-        }
-
-        LWRaiseEx(dest, err, file, line, "Lsass Error", "0x%X - %s", code, buffer);
-        if (dest != NULL)
-        {
-            (*dest)->subcode = code;
-        }
-        goto cleanup;
+        description = buffer;
     }
 
-    LWRaiseEx(dest, CENTERROR_DOMAINJOIN_LSASS_ERROR, file, line, "Unable to convert lsass error", "Lsass error code 0x%X has occurred, but an error string cannot be retrieved", code);
+    switch (code)
+    {
+        case LW_ERROR_FAILED_TO_LOOKUP_DC:
+            err = CENTERROR_DOMAINJOIN_UNRESOLVED_DOMAIN_NAME;
+            break;
+    }
+
+    LWRaiseEx(dest, err, file, line, "Lsass Error", "%d (0x%X) %s - %s", code, code, symbol, description);
     if (dest != NULL)
     {
         (*dest)->subcode = code;
@@ -814,7 +817,6 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
 {
     PSTR pszCanonicalizedOU = NULL;
     ModuleState *state = DJGetModuleStateByName(options, "join");
-    BOOLEAN bNoTimeSyncFileExists = FALSE;
 
     if (!IsNullOrEmptyString(getenv("LD_LIBRARY_PATH")) ||
         !IsNullOrEmptyString(getenv("LD_PRELOAD")))
@@ -836,25 +838,7 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
         pszCanonicalizedOU = NULL;
     }
 
-    LW_CLEANUP_CTERR(exc, CTCheckFileExists(NO_TIME_SYNC_FILE,
-                &bNoTimeSyncFileExists));
-
-    if (options->disableTimeSync && !bNoTimeSyncFileExists)
-    {
-        /* Create no time sync file */
-        FILE* noTimeSyncFile = NULL;
-
-        LW_CLEANUP_CTERR(exc, CTOpenFile(NO_TIME_SYNC_FILE,
-                    "w", &noTimeSyncFile));
-
-        CTCloseFile(noTimeSyncFile);
-    }
-    else if (!options->disableTimeSync && bNoTimeSyncFileExists)
-    {
-        /* Remove no time sync file */
-        LW_CLEANUP_CTERR(exc, CTRemoveFile(NO_TIME_SYNC_FILE));
-    }
-
+    LW_TRY(exc, SetLsassTimeSync("", !options->disableTimeSync, &LW_EXC));
 
     LW_TRY(exc, DJCreateComputerAccount(&options->shortDomainName, options, &LW_EXC));
 
@@ -1008,7 +992,7 @@ DJGetComputerDN(PSTR *dn, LWException **exc)
 {
     DWORD _err = 0;
 
-    LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(FALSE));
+    LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(TRUE));
 
     _err = LsaGetComputerDN(dn);
     if(_err)
@@ -1173,7 +1157,7 @@ void DJCreateComputerAccount(
        LW_CLEANUP_CTERR(exc, CTMapSystemError(errno));
     }
 
-    LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(FALSE));
+    LW_CLEANUP_LSERR(exc, LWNetExtendEnvironmentForKrb5Affinity(TRUE));
 
     if ( options->disableTimeSync )
     {
@@ -1640,5 +1624,43 @@ error:
     CT_SAFE_FREE_STRING(pszDescription);
     CT_SAFE_FREE_STRING(pszData);
 
+    return;
+}
+
+void SetLsassTimeSync(PCSTR rootPrefix, BOOLEAN sync, LWException **exc)
+{
+    DWORD dwSync = sync;
+    HANDLE hReg = (HANDLE)NULL;
+    HKEY pAdKey = NULL;
+    HANDLE lsa = NULL;
+
+    LW_CLEANUP_LSERR(exc, RegOpenServer(&hReg));
+    LW_CLEANUP_LSERR(exc, RegOpenKeyExA(
+                hReg,
+                NULL,
+                HKEY_THIS_MACHINE "\\Services\\lsass\\Parameters\\Providers\\ActiveDirectory",
+                0,
+                KEY_ALL_ACCESS,
+                &pAdKey));
+
+    LW_CLEANUP_LSERR(exc, RegSetValueExA(
+                hReg,
+                pAdKey,
+                "SyncSystemTime",
+                0,
+                REG_DWORD,
+                &dwSync,
+                sizeof(dwSync)));
+
+    LW_CLEANUP_LSERR(exc, LsaOpenServer(&lsa));
+    LW_CLEANUP_LSERR(exc, LsaRefreshConfiguration(lsa));
+
+cleanup:
+    if (lsa)
+    {
+        LsaCloseServer(lsa);
+    }
+    RegCloseKey(hReg, pAdKey);
+    RegCloseServer(hReg);
     return;
 }

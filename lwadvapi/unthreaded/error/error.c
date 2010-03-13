@@ -55,8 +55,36 @@ static struct
         LW_ERROR_SUCCESS,
         "No error"
     },
+    {
+        DNS_ERROR_BAD_PACKET,
+        "A bad packet was received from a DNS server. Potentially the requested address does not exist."
+    },
+    {
+        ERROR_ACCESS_DENIED,
+        "Access is denied"
+    },
     {   LW_ERROR_ACCESS_DENIED,
         "Incorrect access attempt"
+    },
+    {
+        ERROR_MEMBER_IN_ALIAS,
+	"User is already in local group"
+    },
+    {
+        ERROR_MEMBER_NOT_IN_ALIAS,
+	"User is not a member of local group"
+    },
+    {
+        ERROR_NO_SUCH_ALIAS,
+	"No such local group"
+    },
+    {
+        ERROR_ALIAS_EXISTS,
+	"Local group exists"
+    },
+    {
+        ERROR_MEMBERS_PRIMARY_GROUP,
+	"Group is a primary group of one or more users"
     },
     {
         LW_ERROR_INVALID_CACHE_PATH,
@@ -1290,7 +1318,7 @@ LwMapLwmsgStatusToLwError(
         case LWMSG_STATUS_CANCELLED:
             return LW_ERROR_INTERRUPTED;
         case LWMSG_STATUS_FILE_NOT_FOUND:
-            return LW_ERROR_NO_SUCH_OBJECT;
+            return ERROR_FILE_NOT_FOUND;
         case LWMSG_STATUS_CONNECTION_REFUSED:
             return LW_ERROR_ERRNO_ECONNREFUSED;
         case LWMSG_STATUS_PEER_RESET:

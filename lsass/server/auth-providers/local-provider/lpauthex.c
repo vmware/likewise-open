@@ -131,7 +131,7 @@ LocalAuthenticateUserExInternal(
         hProvider,
         0,
         LSA_OBJECT_TYPE_USER,
-        LSA_QUERY_TYPE_BY_NAME,
+        LSA_QUERY_TYPE_BY_NT4,
         1,
         QueryList,
         &ppObjects);

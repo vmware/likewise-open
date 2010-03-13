@@ -41,8 +41,8 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
 {
     NTSTATUS ntStatus = 0;
     NEGOTIATE_RESPONSE_HEADER* pResponseHeader = NULL;
-    time_t    curTime;
-    ULONG64   llUTCTime;
+    time_t    curTime   = 0L;
+    LONG64    llUTCTime = 0LL;
     uint16_t  byteCount = 0;
     uint8_t*  pDataCursor = NULL;
     PSRV_PROPERTIES pServerProperties = &pConnection->serverProperties;
@@ -111,7 +111,8 @@ SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
 
     pResponseHeader->serverTimeZone = (mktime(gmtime(&curTime)) - curTime)/60;
 
-    llUTCTime = (curTime + 11644473600LL) * 10000000LL;
+    ntStatus = WireSMBUTimetoNTTime(curTime, &llUTCTime);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     pResponseHeader->systemTimeLow = llUTCTime & 0xFFFFFFFFLL;
     pResponseHeader->systemTimeHigh = (llUTCTime & 0xFFFFFFFF00000000LL) >> 32;

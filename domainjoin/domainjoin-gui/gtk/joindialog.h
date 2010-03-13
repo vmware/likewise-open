@@ -31,7 +31,7 @@
 #ifndef __JOINDIALOG_H__
 #define __JOINDIALOG_H__
 
-#include <gtk/gtk.h>
+#include "common.h"
 
 #define JOINDIALOG_CLOSE 0
 #define JOINDIALOG_JOIN 1
@@ -40,10 +40,11 @@ struct JoinDialog;
 
 typedef struct JoinDialog JoinDialog;
 
-JoinDialog* joindialog_new(const char* computer, const char* domain);
+JoinDialog* joindialog_new(const PJOINSTATE pJoinState);
 int joindialog_run(JoinDialog* dialog);
 const char* joindialog_get_computer_name(JoinDialog* dialog);
 const char* joindialog_get_domain_name(JoinDialog* dialog);
+gboolean  joindialog_get_ou_active(JoinDialog* dialog);
 const char* joindialog_get_ou_name(JoinDialog* dialog);
 gboolean joindialog_get_modify_hosts(JoinDialog* dialog);
 GtkWindow* joindialog_get_gtk_window(JoinDialog* dialog);

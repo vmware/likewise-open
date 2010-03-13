@@ -75,6 +75,15 @@ SrvSessionFree(
     PLWIO_SRV_SESSION pSession
     );
 
+static
+NTSTATUS
+SrvSessionRundownTreeRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    );
+
 NTSTATUS
 SrvSessionCreate(
     USHORT            uid,
@@ -110,6 +119,8 @@ SrvSessionCreate(
     ntStatus = SrvFinderCreateRepository(
                     &pSession->hFinderRepository);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SRV_ELEMENTS_INCREMENT_SESSIONS;
 
     *ppSession = pSession;
 
@@ -263,32 +274,6 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
-SrvSessionGetNamedPipeClientPrincipal(
-    IN     PLWIO_SRV_SESSION pSession,
-    IN OUT PIO_ECP_LIST     pEcpList
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSTR pszClientPrincipalName = pSession->pszClientPrincipalName;
-    ULONG ulEcpLength = strlen(pszClientPrincipalName) + 1;
-
-    ntStatus = IoRtlEcpListInsert(pEcpList,
-                                  IO_ECP_TYPE_PEER_PRINCIPAL,
-                                  pszClientPrincipalName,
-                                  ulEcpLength,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
 PLWIO_SRV_SESSION
 SrvSessionAcquire(
     PLWIO_SRV_SESSION pSession
@@ -310,8 +295,28 @@ SrvSessionRelease(
 
     if (InterlockedDecrement(&pSession->refcount) == 0)
     {
+        SRV_ELEMENTS_DECREMENT_SESSIONS;
+
         SrvSessionFree(pSession);
     }
+}
+
+VOID
+SrvSessionRundown(
+    PLWIO_SRV_SESSION pSession
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    LwRtlRBTreeTraverse(
+            pSession->pTreeCollection,
+            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+            SrvSessionRundownTreeRbTreeVisit,
+            NULL);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 }
 
 static
@@ -446,6 +451,27 @@ SrvSessionFree(
     }
 
     SrvFreeMemory(pSession);
+}
+
+static
+NTSTATUS
+SrvSessionRundownTreeRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_TREE pTree = (PLWIO_SRV_TREE)pData;
+
+    if (pTree)
+    {
+        SrvTreeRundown(pTree);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
 }
 
 

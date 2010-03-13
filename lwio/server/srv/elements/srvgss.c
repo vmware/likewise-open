@@ -247,7 +247,8 @@ SrvGssGetSessionDetails(
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
     PULONG pulSessionKeyLength,
-    PSTR* ppszClientPrincipalName
+    PSTR* ppszClientPrincipalName,
+    LW_MAP_SECURITY_GSS_CONTEXT* pContextHandle
     )
 {
     NTSTATUS ntStatus = 0;
@@ -288,6 +289,11 @@ SrvGssGetSessionDetails(
     {
         *ppSessionKey = pSessionKey;
         *pulSessionKeyLength = dwSessionKeyLength;
+    }
+
+    if (pContextHandle)
+    {
+        *pContextHandle = *pGssNegotiate->pGssContext;
     }
 
 cleanup:
@@ -709,7 +715,8 @@ cleanup:
     gss_release_buffer(&ulMinorStatus, &output_desc);
     gss_release_name(&ulMinorStatus, &target_name);
     gss_release_oid_set(&ulMinorStatus, &DesiredMechs);
-
+    gss_release_cred(&ulMinorStatus, &pServerCreds);
+    gss_release_oid(&ulMinorStatus, &NtlmOid);
 
     if (pGssNegotiate->pGssContext &&
         (*pGssNegotiate->pGssContext != GSS_C_NO_CONTEXT))
@@ -937,6 +944,7 @@ srv_display_status_1(
 #else
             case GSS_S_COMPLETE:
             case GSS_S_CONTINUE_NEEDED:
+            case 40157:   /* What minor code is this? */
 #endif
                 LWIO_LOG_VERBOSE("GSS-API error calling %s: %d (%s)\n",
                         pszId, code,

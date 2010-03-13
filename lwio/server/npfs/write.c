@@ -209,6 +209,8 @@ NpfsServerWriteFile_Connected(
     PVOID pBuffer = NULL;
     ULONG Length = 0;
     ULONG ulBytesTransferred = 0;
+    PNPFS_IRP_CONTEXT pReadContext = NULL;
+    PLW_LIST_LINKS pLink = NULL;
 
     switch (pIrpContext->pIrp->Type)
     {
@@ -238,6 +240,19 @@ NpfsServerWriteFile_Connected(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
+    while (!LwListIsEmpty(&pCCB->ReadIrpList) &&
+           !NpfsMdlListIsEmpty(&pCCB->mdlList))
+    {
+        pLink = pCCB->ReadIrpList.Next;
+        LwListRemove(pLink);
+
+        pReadContext = LW_STRUCT_FROM_FIELD(pLink, NPFS_IRP_CONTEXT, Link);
+
+        NpfsClientCompleteReadFile(pCCB, pReadContext);
+    }
+
+    pthread_cond_signal(&pPipe->PipeCondition);
+
     pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
 
 error:
@@ -259,6 +274,8 @@ NpfsClientWriteFile_Connected(
     PVOID pBuffer = NULL;
     ULONG Length = 0;
     ULONG ulBytesTransferred = 0;
+    PLW_LIST_LINKS pLink = NULL;
+    PNPFS_IRP_CONTEXT pReadContext = NULL;
 
     switch (pIrpContext->pIrp->Type)
     {
@@ -287,6 +304,19 @@ NpfsClientWriteFile_Connected(
                         Length,
                         &ulBytesTransferred);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    while (!LwListIsEmpty(&pSCB->ReadIrpList) &&
+           !NpfsMdlListIsEmpty(&pSCB->mdlList))
+    {
+        pLink = pSCB->ReadIrpList.Next;
+        LwListRemove(pLink);
+
+        pReadContext = LW_STRUCT_FROM_FIELD(pLink, NPFS_IRP_CONTEXT, Link);
+
+        NpfsServerCompleteReadFile(pSCB, pReadContext);
+    }
+
+    pthread_cond_signal(&pPipe->PipeCondition);
 
     pIrpContext->pIrp->IoStatusBlock.BytesTransferred = ulBytesTransferred;
 

@@ -31,6 +31,16 @@
 #ifndef __SMBWIRE_H__
 #define __SMBWIRE_H__
 
+#define WIRE_NTTIME_EPOCH_DIFFERENCE_SECS             (11644473600LL)
+
+#define WIRE_FACTOR_MICROSECS_TO_HUNDREDS_OF_NANOSECS (10LL)
+
+#define WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS \
+                        (1000LL * WIRE_FACTOR_MICROSECS_TO_HUNDREDS_OF_NANOSECS)
+
+#define WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS \
+                        (1000LL * WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS)
+
 typedef enum
 {
     /*
@@ -169,6 +179,7 @@ typedef UCHAR SMB2_INFO_TYPE;
 
 typedef UCHAR SMB2_FILE_INFO_CLASS;
 
+#define SMB2_FILE_INFO_CLASS_DIR            0x01
 #define SMB2_FILE_INFO_CLASS_FULL_DIR       0x02
 #define SMB2_FILE_INFO_CLASS_BOTH_DIR       0x03
 #define SMB2_FILE_INFO_CLASS_BASIC          0x04
@@ -177,6 +188,7 @@ typedef UCHAR SMB2_FILE_INFO_CLASS;
 #define SMB2_FILE_INFO_CLASS_EA             0x07
 #define SMB2_FILE_INFO_CLASS_ACCESS         0x08
 #define SMB2_FILE_INFO_CLASS_RENAME         0x0A
+#define SMB2_FILE_INFO_CLASS_NAMES          0x0C
 #define SMB2_FILE_INFO_CLASS_DISPOSITION    0x0D
 #define SMB2_FILE_INFO_CLASS_POSITION       0x0E
 #define SMB2_FILE_INFO_FULL_EA              0x0F
@@ -222,11 +234,41 @@ typedef UCHAR SMB2_SEARCH_FLAGS;
 #define SMB2_SEARCH_FLAGS_INDEX_SPECIFIED     0x03
 #define SMB2_SEARCH_FLAGS_REOPEN              0x10
 
+typedef USHORT SMB2_NOTIFY_FLAGS;
+
+#define SMB2_NOTIFY_FLAGS_WATCH_TREE          0x0001
+
+typedef USHORT SMB2_CLOSE_FLAGS;
+
+#define SMB2_CLOSE_FLAGS_GET_FILE_ATTRIBUTES  0x0001
+
 #define SMB2_CONTEXT_NAME_DURABLE_HANDLE      "DHnQ"
 #define SMB2_CONTEXT_NAME_MAX_ACCESS          "MxAc"
 #define SMB2_CONTEXT_NAME_QUERY_DISK_ID       "QFid"
 #define SMB2_CONTEXT_NAME_EXT_ATTRS           "ExtA"
 #define SMB2_CONTEXT_NAME_SHADOW_COPY         "TWrp"
+#define SMB2_CONTEXT_NAME_SEC_DESC            "SecD"
+
+typedef USHORT SMB2_SHARE_TYPE;
+
+#define SMB2_SHARE_TYPE_DISK       0x0001
+#define SMB2_SHARE_TYPE_NAMED_PIPE 0x0002
+
+typedef ULONG SMB2_SHARE_FLAGS;
+
+#define SMB2_SHARE_FLAGS_DFS                   0x00000001
+#define SMB2_SHARE_FLAGS_DFS_ROOT              0x00000002
+#define SMB2_SHARE_FLAGS_CSC_NONE              0x00000030
+#define SMB2_SHARE_FLAGS_RESTRICT_EXCL_OPENS   0x00000100
+#define SMB2_SHARE_FLAGS_FORCE_SHARED_DELETE   0x00000200
+#define SMB2_SHARE_FLAGS_ALLOW_NS_CACHING      0x00000400
+#define SMB2_SHARE_FLAGS_ACCESS_BASED_DIR_ENUM 0x00000800
+#define SMB2_SHARE_FLAGS_FORCE_LEVELII_OPLOCK  0x00001000
+#define SMB2_SHARE_FLAGS_ENABLE_HASH           0x00002000
+
+typedef ULONG SMB2_SHARE_CAPABILITIES;
+
+#define SMB2_SHARE_CAPABILITIES_DFS_AVAILABLE  0x00000008
 
 typedef enum
 {
@@ -235,7 +277,8 @@ typedef enum
     SMB2_CONTEXT_ITEM_TYPE_MAX_ACCESS,
     SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID,
     SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS,
-    SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY
+    SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY,
+    SMB2_CONTEXT_ITEM_TYPE_SEC_DESC
 
 } SMB2_CONTEXT_ITEM_TYPE;
 
@@ -359,6 +402,15 @@ typedef USHORT SMB_INFO_LEVEL, *PSMB_INFO_LEVEL;
 #define SMB_QUERY_FILE_ALIGNMENT_INFO     0x3F9
 #define SMB_QUERY_FILE_NETWORK_OPEN_INFO  0x40A
 #define SMB_QUERY_FILE_ATTRIBUTE_TAG_INFO 0x40B
+#define SMB_SET_FILE_DISPOSITION_INFO_ALIAS 0x3F5
+#define SMB_SET_FILE_POSITION_INFO        0x3F6
+#define SMB_SET_FILE_MODE_INFO            0x3F8
+#define SMB_QUERY_FS_VOLUME_INFO_ALIAS    0x3E9
+#define SMB_QUERY_FS_SIZE_INFO_ALIAS      0x3EB
+#define SMB_QUERY_FS_DEVICE_INFO_ALIAS    0x3EC
+#define SMB_QUERY_FS_ATTRIBUTE_INFO_ALIAS 0x3ED
+#define SMB_QUERY_FS_QUOTA_INFO           0x3EE
+#define SMB_QUERY_FS_FULL_SIZE_INFO       0x3EF
 
 typedef UCHAR LWIO_LOCK_TYPE;
 
@@ -548,7 +600,8 @@ typedef struct
 
 typedef enum
 {
-	SMB_PROTOCOL_VERSION_1 = 0,
+    SMB_PROTOCOL_VERSION_UNKNOWN = 0,
+	SMB_PROTOCOL_VERSION_1,
 	SMB_PROTOCOL_VERSION_2
 } SMB_PROTOCOL_VERSION;
 
@@ -1355,6 +1408,31 @@ typedef struct
     /* wordCount and byteCount are handled at a higher layer */
     /* AndX chains will be handled at a higher layer */
 
+    USHORT   usFileAttributes;
+    SMB_DATE lastWriteDate;
+    SMB_TIME lastWriteTime;
+    USHORT   reserved[5];
+    USHORT   usByteCount;
+
+    /* UCHAR ucBufferFormat; */
+    /* PWSTR pwszPath */
+
+} __attribute__((__packed__)) SET_INFO_REQUEST_HEADER,
+                             *PSET_INFO_REQUEST_HEADER;
+
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
+    USHORT byteCount;         /* Count of data bytes = 0 */
+}  __attribute__((__packed__))  SET_INFO_RESPONSE_HEADER,
+                               *PSET_INFO_RESPONSE_HEADER;
+typedef struct
+{
+    /* wordCount and byteCount are handled at a higher layer */
+    /* AndX chains will be handled at a higher layer */
+
     USHORT   usFid;
     SMB_DATE creationDate;
     SMB_TIME creationTime;
@@ -1450,6 +1528,20 @@ typedef struct
     uint16_t byteCount;
 } __attribute__((__packed__)) CLOSE_RESPONSE_HEADER, *PCLOSE_RESPONSE_HEADER;
 
+typedef struct _TRANS2_FILE_SMB_STANDARD_INFORMATION {
+    SMB_DATE CreationDate;
+    SMB_TIME CreationTime;
+    SMB_DATE LastAccessDate;
+    SMB_TIME LastAccessTime;
+    SMB_DATE LastWriteDate;
+    SMB_TIME LastWriteTime;
+    ULONG FileSize;
+    ULONG AllocationSize;
+    USHORT Attributes;
+    // ULONG EaSize;    Listed in the SNIA ref but not seen from WinXP
+} __attribute__((__packed__)) TRANS2_FILE_SMB_STANDARD_INFORMATION,
+                             *PTRANS2_FILE_SMB_STANDARD_INFORMATION;
+
 typedef struct _TRANS2_FILE_BASIC_INFORMATION {
     LONG64 CreationTime;
     LONG64 LastAccessTime;
@@ -1496,6 +1588,11 @@ typedef struct _TRANS2_FILE_NAME_INFORMATION
 } __attribute__((__packed__)) TRANS2_FILE_NAME_INFORMATION,
                              *PTRANS2_FILE_NAME_INFORMATION;
 
+typedef struct _TRANS2_FILE_INTERNAL_INFORMATION {
+    LONG64 IndexNumber;
+} __attribute__((__packed__)) TRANS2_FILE_INTERNAL_INFORMATION,
+                             *PTRANS2_FILE_INTERNAL_INFORMATION;
+
 typedef struct {
     LONG64 EndOfFile;
 } __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION,
@@ -1505,6 +1602,28 @@ typedef struct {
     BOOLEAN bFileIsDeleted;
 } __attribute__((__packed__)) TRANS2_FILE_DISPOSITION_INFORMATION,
                              *PTRANS2_FILE_DISPOSITION_INFORMATION;
+
+typedef struct
+{
+    UCHAR  ucFlags;
+    UCHAR  ucEaNameLength;
+    USHORT usEaDataLength;
+    UCHAR  ucName[1];
+
+} __attribute__((__packed__))  TRANS2_FILE_EA_LIST_ENTRY,
+                               PTRANS2_FILE_EA_LIST_ENTRY;
+typedef struct
+{
+    ULONG ulEaListSize;
+    TRANS2_FILE_EA_LIST_ENTRY pEaList[1];
+
+} __attribute__((__packed__)) TRANS2_FILE_EA_LIST_INFORMATION,
+                              *PTRANS2_FILE_EA_LIST_INFORMATION;
+
+typedef struct _TRANS2_FILE_ACCESS_INFORMATION {
+    ULONG AccessMask;
+} __attribute__((__packed__)) TRANS2_FILE_ACCESS_INFORMATION,
+                             *PTRANS2_FILE_ACCCESS_INFORMATION;
 
 typedef struct
 {
@@ -1883,6 +2002,16 @@ typedef enum
 } SMB_SECURITY_MODE;
 
 typedef struct _LWIO_PACKET_ALLOCATOR *PLWIO_PACKET_ALLOCATOR;
+
+typedef struct _SMB2_FILE_BASIC_INFORMATION {
+    LONG64 CreationTime;
+    LONG64 LastAccessTime;
+    LONG64 LastWriteTime;
+    LONG64 ChangeTime;
+    FILE_ATTRIBUTES FileAttributes;
+    ULONG  unknown;
+} __attribute__((__packed__)) SMB2_FILE_BASIC_INFORMATION,
+                            *PSMB2_FILE_BASIC_INFORMATION;
 
 NTSTATUS
 MarshallNegotiateRequest(
@@ -2523,6 +2652,11 @@ SMBPacketIsSigned(
     PSMB_PACKET pPacket
     );
 
+BOOLEAN
+SMB2PacketIsSigned(
+    PSMB_PACKET pPacket
+    );
+
 NTSTATUS
 SMBPacketVerifySignature(
     PSMB_PACKET pPacket,
@@ -2667,6 +2801,15 @@ WireUnmarshalTrans2ReplySetup(
     );
 
 NTSTATUS
+WireUnmarshalSetInfoRequest(
+    PBYTE                  pBuffer,
+    ULONG                  ulBytesAvailable,
+    ULONG                  ulOffset,
+    PSET_INFO_REQUEST_HEADER* ppRequestHeader,
+    PWSTR*                      ppwszPath
+    );
+
+NTSTATUS
 WireUnmarshalSetInfo2Request(
     PBYTE                  pBuffer,
     ULONG                  ulBytesAvailable,
@@ -2680,6 +2823,17 @@ WireUnmarshalQueryInfo2Request(
     ULONG                        ulBytesAvailable,
     ULONG                        ulOffset,
     PQUERY_INFO2_REQUEST_HEADER* ppRequestHeader
+    );
+
+NTSTATUS
+WireGetCurrentNTTime(
+    PLONG64 pllCurTime
+    );
+
+NTSTATUS
+WireNTTimeToTimeSpec(
+    LONG64 llCurTime,
+    struct timespec* pTimeSpec
     );
 
 NTSTATUS
@@ -2709,3 +2863,13 @@ WireSMBUTimetoNTTime(
     );
 
 #endif /* __SMBWIRE_H__ */
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

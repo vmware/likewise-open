@@ -281,7 +281,8 @@ LsaAllocateTranslatedSids3(
                                pNewArray);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
-            else if (pIn->sids[i].type == SID_TYPE_INVALID ||
+            else if (pIn->sids[i].type == SID_TYPE_DOMAIN ||
+                     pIn->sids[i].type == SID_TYPE_INVALID ||
                      pIn->sids[i].type == SID_TYPE_UNKNOWN)
             {
                 pNewArray[i].sid = NULL;

@@ -190,6 +190,7 @@ LDAP_BEGIN_DECL
 /* OpenLDAP GSSAPI options */
 #define LDAP_OPT_X_GSSAPI_DO_NOT_FREE_CONTEXT      0x6200
 #define LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL   0x6201
+#define LDAP_OPT_X_GSSAPI_CREDENTIAL_HANDLE        0x6202
 
 
 /* Private API Extensions -- reserved for application use */

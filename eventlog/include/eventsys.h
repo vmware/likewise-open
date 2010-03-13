@@ -55,6 +55,7 @@
   #include <lw/winerror.h>
   #include <dlfcn.h>
   #include <dce/rpcexc.h>
+  #include <dce/lrpc.h>
 
 #if HAVE_WC16STR_H
   #include <wc16str.h>

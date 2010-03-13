@@ -48,46 +48,47 @@ static void
 ou_specific_toggled(GtkToggleButton* ou_specific, gpointer _data)
 {
     JoinDialog* dialog = (JoinDialog*) _data;
-    
+
     gtk_widget_set_sensitive(GTK_WIDGET(dialog->ou_entry),
-			     gtk_toggle_button_get_active(ou_specific));
+                                gtk_toggle_button_get_active(ou_specific));
 }
 
 JoinDialog*
-joindialog_new(const char* computer, const char* domain)
+joindialog_new(
+    const PJOINSTATE pJoinState
+    )
 {
     GladeXML* xml = glade_xml_new (DOMAINJOIN_XML, "JoinDialog", NULL);
     JoinDialog* dialog = g_new0(JoinDialog, 1);
 
-    if (!dialog)
-	return NULL;
+    if (!xml || !dialog)
+        goto cleanup;
 
     dialog->dialog = GTK_DIALOG(glade_xml_get_widget(xml, "JoinDialog"));
     g_assert(dialog->dialog != NULL);
     g_object_ref(G_OBJECT(dialog->dialog));
 
+    // Computer name text field
     dialog->computer_entry = GTK_ENTRY(glade_xml_get_widget(xml, "ComputerEntry"));
     g_assert(dialog->computer_entry != NULL);
     g_object_ref(G_OBJECT(dialog->computer_entry));
 
-    if (computer)
-	gtk_entry_set_text(dialog->computer_entry, computer);
-
+    // Domain name text field
     dialog->domain_entry = GTK_ENTRY(glade_xml_get_widget(xml, "DomainEntry"));
     g_assert(dialog->domain_entry != NULL);
     g_object_ref(G_OBJECT(dialog->domain_entry));
 
-    if (domain)
-	gtk_entry_set_text(dialog->domain_entry, domain);
-
+    // OU text field
     dialog->ou_entry = GTK_ENTRY(glade_xml_get_widget(xml, "OUEntry"));
     g_assert(dialog->ou_entry != NULL);
     g_object_ref(G_OBJECT(dialog->ou_entry));
-    
+
+    // OU toggle button
     dialog->ou_specific = GTK_RADIO_BUTTON(glade_xml_get_widget(xml, "OUSpecific"));
     g_assert(dialog->ou_specific != NULL);
     g_object_ref(G_OBJECT(dialog->ou_specific));
 
+    // Modify Hosts toggle button
     dialog->modify_hosts = GTK_CHECK_BUTTON(glade_xml_get_widget(xml, "JoinModifyHosts"));
     g_assert(dialog->modify_hosts != NULL);
     g_object_ref(G_OBJECT(dialog->modify_hosts));
@@ -96,8 +97,35 @@ joindialog_new(const char* computer, const char* domain)
 
     // Connect signals
     g_signal_connect(G_OBJECT(dialog->ou_specific), "toggled",
-		     G_CALLBACK(ou_specific_toggled), dialog);
+        G_CALLBACK(ou_specific_toggled), dialog);
 
+    // Set values saved from previous iteration.
+    if (pJoinState->computer)
+        gtk_entry_set_text(dialog->computer_entry, pJoinState->computer);
+
+    if (pJoinState->domain)
+        gtk_entry_set_text(dialog->domain_entry, pJoinState->domain);
+
+    if (pJoinState->ou)
+    {
+        gtk_entry_set_text(dialog->ou_entry, pJoinState->ou);
+
+        if (pJoinState->ou_active)
+            gtk_toggle_button_set_active(dialog->ou_specific, TRUE);
+    }
+
+    if (pJoinState->noModifyHosts)
+    {
+        gtk_toggle_button_set_active(dialog->modify_hosts, FALSE);
+    }
+
+
+cleanup:
+    if (xml)
+    {
+        g_object_unref(xml);
+        xml = NULL;
+    }
     return dialog;
 }
 
@@ -119,12 +147,16 @@ joindialog_get_domain_name(JoinDialog* dialog)
     return gtk_entry_get_text(dialog->domain_entry);
 }
 
+gboolean
+joindialog_get_ou_active(JoinDialog* dialog)
+{
+    return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dialog->ou_specific));
+}
+
 const char*
 joindialog_get_ou_name(JoinDialog* dialog)
 {
-    return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dialog->ou_specific)) ?
-	gtk_entry_get_text(dialog->ou_entry) :
-	NULL;
+    return gtk_entry_get_text(dialog->ou_entry);
 }
 
 gboolean
@@ -147,8 +179,9 @@ joindialog_delete(JoinDialog* dialog)
     g_object_unref(G_OBJECT(dialog->domain_entry));
     g_object_unref(G_OBJECT(dialog->ou_entry));
     g_object_unref(G_OBJECT(dialog->ou_specific));
+    g_object_unref(G_OBJECT(dialog->modify_hosts));
 
     gtk_widget_destroy(GTK_WIDGET(dialog->dialog));
-    
+
     g_free(dialog);
 }

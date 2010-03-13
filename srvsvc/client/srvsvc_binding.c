@@ -170,11 +170,11 @@ InitSrvSvcBindingFull(
     *phBinding = hBinding;
 
 cleanup:
-    SAFE_FREE(pbProtSeq);
-    SAFE_FREE(pbEndpoint);
-    SAFE_FREE(pbUuid);
-    SAFE_FREE(pbOpts);
-    SAFE_FREE(pbAddr);
+    SRVSVC_SAFE_FREE(pbProtSeq);
+    SRVSVC_SAFE_FREE(pbEndpoint);
+    SRVSVC_SAFE_FREE(pbUuid);
+    SRVSVC_SAFE_FREE(pbOpts);
+    SRVSVC_SAFE_FREE(pbAddr);
 
     if (pbBindingString)
     {

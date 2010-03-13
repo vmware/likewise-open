@@ -198,7 +198,7 @@ NpfsFreePipe(
 
     NpfsReleaseFCB(pFCB);
     RTL_FREE(&pPipe->pSessionKey);
-    RTL_FREE(&pPipe->pszClientPrincipalName);
+    RtlReleaseAccessToken(&pPipe->pClientAccessToken);
     NpfsFreeMemory(pPipe);
 
     return(ntStatus);

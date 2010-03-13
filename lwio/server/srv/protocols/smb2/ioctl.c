@@ -158,11 +158,33 @@ SrvProcessIOCTL_SMB_V2(
                         &pData);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvTree2FindFile_SMB_V2(
-                        pCtxSmb2,
-                        pTree,
-                        &pRequestHeader->fid,
-                        &pFile);
+        switch (pRequestHeader->ulFunctionCode)
+        {
+            case IO_FSCTL_GET_DFS_REFERRALS:
+
+                ntStatus = STATUS_FS_DRIVER_REQUIRED;
+
+                break;
+
+            case IO_FSCTL_PIPE_WAIT:
+
+                ntStatus = STATUS_NOT_SUPPORTED;
+
+                break;
+
+            default:
+
+                ntStatus = SrvTree2FindFile_SMB_V2(
+                                pCtxSmb2,
+                                pTree,
+                                &pRequestHeader->fid,
+                                LwIsSetFlag(
+                                    pSmbRequest->pHeader->ulFlags,
+                                    SMB2_FLAGS_RELATED_OPERATION),
+                                &pFile);
+
+                break;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvBuildIOCTLState_SMB_V2(
@@ -374,9 +396,26 @@ SrvExecuteIOCTL_SMB_V2(
     pIOCTLState->ulResponseBufferLen =
                                     pIOCTLState->ioStatusBlock.BytesTransferred;
 
-error:
+cleanup:
 
     return ntStatus;
+
+error:
+
+    switch (ntStatus)
+    {
+        case STATUS_NOT_SUPPORTED:
+
+            ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    goto cleanup;
 }
 
 static
@@ -411,9 +450,12 @@ SrvBuildIOCTLResponse_SMB_V2(
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
                     pCtxSmb2->pSession->ullUid,
+                    0LL, /* Async Id */
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);

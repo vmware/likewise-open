@@ -127,6 +127,19 @@ PvfsFreeCreateContext(
     );
 
 NTSTATUS
+PvfsCreateFileCheckPendingDelete(
+    PPVFS_FCB pFcb
+    );
+
+NTSTATUS
+PvfsCreateFileSecurity(
+    PACCESS_TOKEN pUserToken,
+    PPVFS_CCB pCcb,
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
+    BOOLEAN bIsDirectory
+    );
+
+NTSTATUS
 PvfsCreateFileDoSysOpen(
     IN PVOID pContext
     );
@@ -144,9 +157,10 @@ PvfsSetCreateResult(
     );
 
 NTSTATUS
-PvfsCheckReadOnlyDeleteOnClose(
+PvfsCheckDeleteOnClose(
     IN IRP_ARGS_CREATE CreateArgs,
-    IN PSTR pszFilename
+    IN PSTR pszFilename,
+    IN ACCESS_MASK GrantedAccess
     );
 
 NTSTATUS
@@ -248,6 +262,64 @@ PvfsCreateDirectory(
     );
 
 
+/* From irpctx.c */
+
+NTSTATUS
+PvfsAllocateIrpContext(
+	PPVFS_IRP_CONTEXT *ppIrpContext,
+    PIRP pIrp
+    );
+
+PPVFS_IRP_CONTEXT
+PvfsReferenceIrpContext(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+VOID
+PvfsReleaseIrpContext(
+    PPVFS_IRP_CONTEXT *ppIrpContext
+    );
+
+BOOLEAN
+PvfsIrpContextCheckFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToCheck
+    );
+
+VOID
+PvfsIrpContextSetFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToSet
+    );
+
+VOID
+PvfsIrpContextClearFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToClear
+    );
+
+USHORT
+PvfsIrpContextConditionalSetFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToCheck,
+    USHORT BitToSetOnTrue,
+    USHORT BitToSetOnFalse
+    );
+
+BOOLEAN
+PvfsIrpContextMarkIfNotSetFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToCheck,
+    USHORT BitToSet
+    );
+
+BOOLEAN
+PvfsIrpContextMarkIfSetFlag(
+    PPVFS_IRP_CONTEXT pIrpContext,
+    USHORT BitToCheck,
+    USHORT BitToSet
+    );
+
 /* From errno.c */
 
 NTSTATUS
@@ -272,7 +344,7 @@ PvfsWC16CanonicalPathName(
 
 NTSTATUS
 PvfsValidatePath(
-    PCSTR pszFilename,
+    PPVFS_FCB pFcb,
     PPVFS_FILE_ID pFileId
     );
 
@@ -321,6 +393,10 @@ PvfsPathCacheAdd(
     IN PCSTR pszResolvedPath
     );
 
+NTSTATUS
+PvfsPathCacheRemove(
+    PCSTR pszPathname
+    );
 
 NTSTATUS
 PvfsPathCacheLookup(

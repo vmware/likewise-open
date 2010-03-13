@@ -305,27 +305,37 @@ LwMapSecurityFreeContext(
     )
 {
     PLW_MAP_SECURITY_CONTEXT context = *Context;
-    BOOLEAN bInLock = FALSE;
 
+    // We must be coming into this block with the MapSecurityState
+    // mutex locked
     if (context)
     {
-        LOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
+        if (context != gLwMapSecurityState.Context)
+        {
+            LwMapSecurityFreeContextInternal(&context);
+            goto cleanup;
+        }
 
-        ASSERT(context == gLwMapSecurityState.Context);
+        // This is our global Context
 
         gLwMapSecurityState.RefCount--;
-        ASSERT(gLwMapSecurityState.RefCount >= 0);
+        if (gLwMapSecurityState.RefCount < 0)
+        {
+            // Logic error.  Bail out.  May leak memory.
+            goto cleanup;
+        }
 
         if ((0 == gLwMapSecurityState.RefCount) &&
             (0 == gLwMapSecurityState.InitCount))
         {
-            LwMapSecurityFreeContext(&gLwMapSecurityState.Context);
+            LwMapSecurityFreeContextInternal(&gLwMapSecurityState.Context);
         }
-
-        UNLOCK_MUTEX(&gLwMapSecurityState.Mutex, bInLock);
-
-        *Context = NULL;
     }
+
+cleanup:
+    *Context = NULL;
+
+    return;
 }
 
 VOID
@@ -460,11 +470,14 @@ LwMapSecurityGetIdFromSid(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SID_IDENTIFIER_AUTHORITY identifierAuthority = { SECURITY_UNMAPPED_UNIX_AUTHORITY };
+    SID_IDENTIFIER_AUTHORITY unixIdAuthority = { SECURITY_UNMAPPED_UNIX_AUTHORITY };
+    SID_IDENTIFIER_AUTHORITY ntIdAuthority = { SECURITY_NT_AUTHORITY };
     BOOLEAN isUser = FALSE;
     ULONG id = 0;
 
-    if (RtlEqualMemory(&Sid->IdentifierAuthority, &identifierAuthority, sizeof(identifierAuthority)))
+    if (RtlEqualMemory(&Sid->IdentifierAuthority,
+                       &unixIdAuthority,
+                       sizeof(unixIdAuthority)))
     {
         if (Sid->SubAuthorityCount != SECURITY_UNMAPPED_UNIX_RID_COUNT)
         {
@@ -485,6 +498,15 @@ LwMapSecurityGetIdFromSid(
                 status = STATUS_INVALID_SID;
                 GOTO_CLEANUP();
         }
+    }
+    else if (Sid->SubAuthorityCount == 1 &&
+             Sid->SubAuthority[0] == SECURITY_LOCAL_SYSTEM_RID &&
+             RtlEqualMemory(&Sid->IdentifierAuthority,
+                            &ntIdAuthority,
+                            sizeof(ntIdAuthority)))
+    {
+        isUser = TRUE;
+        id = 0;
     }
     else
     {
@@ -526,13 +548,25 @@ LwMapSecurityGetSidFromId(
             SID Sid;
             BYTE Buffer[SID_MAX_SIZE];
         } sidBuffer;
+        ULONG ulSidSize = sizeof(sidBuffer);
 
-        status = LwMapSecurityInitializeSidFromUnmappedId(
-                        sizeof(sidBuffer),
-                        &sidBuffer.Sid,
-                        IsUser,
-                        Id);
-        GOTO_CLEANUP_ON_STATUS(status);
+        if (IsUser)
+        {
+            status = RtlCreateWellKnownSid(WinLocalSystemSid,
+                                           NULL,
+                                           &sidBuffer.Sid,
+                                           &ulSidSize);
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
+        else
+        {
+            status = LwMapSecurityInitializeSidFromUnmappedId(
+                                           sizeof(sidBuffer),
+                                           &sidBuffer.Sid ,
+                                           IsUser,
+                                           Id);
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
 
         status = Context->PluginInterface->DuplicateSid(
                         Context->PluginContext,
@@ -824,6 +858,49 @@ LwMapSecurityCreateAccessTokenFromUnicodeStringUsername(
                     Context->PluginContext,
                     &createInformation,
                     Username);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = LwMapSecurityCreateExtendedAccessToken(
+                    &accessToken,
+                    createInformation->User,
+                    createInformation->Groups,
+                    createInformation->Owner,
+                    createInformation->PrimaryGroup,
+                    createInformation->DefaultDacl,
+                    createInformation->Unix);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        if (accessToken)
+        {
+            RtlReleaseAccessToken(&accessToken);
+        }
+    }
+
+    LwMapSecurityFreeAccessTokenCreateInformation(Context, &createInformation);
+
+    *AccessToken = accessToken;
+
+    return status;
+}
+
+NTSTATUS
+LwMapSecurityCreateAccessTokenFromGssContext(
+    IN PLW_MAP_SECURITY_CONTEXT Context,
+    OUT PACCESS_TOKEN* AccessToken,
+    IN LW_MAP_SECURITY_GSS_CONTEXT GssContext
+    )
+{
+       NTSTATUS status = STATUS_SUCCESS;
+    PACCESS_TOKEN accessToken = NULL;
+    PACCESS_TOKEN_CREATE_INFORMATION createInformation = NULL;
+
+    status = Context->PluginInterface->GetAccessTokenCreateInformationFromGssContext(
+                    Context->PluginContext,
+                    &createInformation,
+                    GssContext);
     GOTO_CLEANUP_ON_STATUS(status);
 
     status = LwMapSecurityCreateExtendedAccessToken(

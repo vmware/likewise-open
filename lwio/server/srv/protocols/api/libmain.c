@@ -105,9 +105,19 @@ SrvProtocolExecute(
         BAIL_ON_NT_STATUS(ntStatus);
 
         pContext->pProtocolContext->protocolVersion =
-                            pContext->pConnection->protocolVer;
+                        SrvConnectionGetProtocolVersion(pContext->pConnection);
 
         pContext->pfnFreeContext = &SrvProtocolFreeExecContext;
+    }
+
+    if ((pContext->pSmbRequest->pSMBHeader->command == COM_NEGOTIATE) &&
+        (SrvConnectionGetState(pContext->pConnection) !=
+                                        LWIO_SRV_CONN_STATE_INITIAL))
+    {
+        SrvConnectionSetInvalid(pContext->pConnection);
+
+        ntStatus = STATUS_CONNECTION_RESET;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     switch (pContext->pSmbRequest->protocolVer)
@@ -123,8 +133,21 @@ SrvProtocolExecute(
             ntStatus = SrvProtocolExecute_SMB_V2(pContext);
 
             break;
+
+        default:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
     }
     BAIL_ON_NT_STATUS(ntStatus);
+
+    // Cleanup any protocol state before sending a response.
+    if (pContext->pProtocolContext)
+    {
+        pContext->pfnFreeContext(pContext->pProtocolContext);
+        pContext->pProtocolContext = NULL;
+    }
 
     if (pContext->pSmbResponse && pContext->pSmbResponse->pNetBIOSHeader->len)
     {
@@ -153,30 +176,6 @@ error:
     {
         case STATUS_PENDING:
 
-            // Asynchronous processing
-
-            if (pContext->pSmbAuxResponse)
-            {
-                NTSTATUS ntStatus2 = STATUS_SUCCESS;
-
-                /* synchronous response */
-                ntStatus2 = SrvTransportSendResponse(
-                                pContext->pConnection,
-                                pContext->pSmbAuxResponse);
-                if (ntStatus2)
-                {
-                    LWIO_LOG_ERROR("Failed to send auxiliary response "
-                                   "[code:0x%08x",
-                                   ntStatus2);
-                }
-
-                SMBPacketRelease(
-                        pContext->pConnection->hPacketAllocator,
-                        pContext->pSmbAuxResponse);
-
-                pContext->pSmbAuxResponse = NULL;
-            }
-
             ntStatus = STATUS_SUCCESS;
 
             break;
@@ -198,19 +197,6 @@ SrvProtocolExecute_SMB_V1_Filter(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pSmbRequest;
-
-    switch (pContext->pSmbRequest->pSMBHeader->command)
-    {
-        case COM_NEGOTIATE:
-
-            if (SrvConnectionGetState(pConnection) != LWIO_SRV_CONN_STATE_INITIAL)
-            {
-                ntStatus = STATUS_INVALID_SERVER_STATE;
-            }
-
-            break;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
 
     switch (pSmbRequest->pSMBHeader->command)
     {
@@ -268,6 +254,10 @@ SrvProtocolFreeExecContext(
             {
                 SrvProtocolFreeContext_SMB_V2(pProtocolContext->pSmb2Context);
             }
+
+            break;
+
+        default:
 
             break;
     }

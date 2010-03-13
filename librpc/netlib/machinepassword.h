@@ -44,5 +44,9 @@ SaveMachinePassword(
     const wchar16_t *password
     );
 
+VOID
+GenerateMachinePassword(
+    wchar16_t *password,
+    size_t len);
 
 #endif /* _MACHINE_PASSWORD_H_ */

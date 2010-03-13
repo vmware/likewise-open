@@ -45,14 +45,18 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
+#include "macros.h"
+
 extern PSTR             gpszPVFSProviderName;
 extern GENERIC_MAPPING  gPvfsFileGenericMapping;
 
 extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
 extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;
 
-extern PSMB_HASH_TABLE gpPathCache;
-extern pthread_rwlock_t gPathCacheRwLock;
+extern pthread_rwlock_t  gPathCacheRwLock;
+extern pthread_rwlock_t* gpPathCacheRwLock;
+
+extern PSMB_HASH_TABLE   gpPathCache;
 
 extern PVFS_FCB_TABLE gFcbTable;
 
@@ -61,8 +65,18 @@ extern PPVFS_FCB gpPvfsDeviceFcb;
 
 extern PLW_MAP_SECURITY_CONTEXT gpPvfsLwMapSecurityCtx;
 
+extern pthread_mutex_t gUidMruCacheMutex;
 extern PPVFS_ID_CACHE gUidMruCache[];
+
+extern pthread_mutex_t gGidMruCacheMutex;
 extern PPVFS_ID_CACHE gGidMruCache[];
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+extern LONG gPvfsIrpContextCount;
+extern LONG gPvfsFcbCount;
+extern LONG gPvfsCcbCount;
+extern LONG gPvfsWorkContextCount;
+#endif
 
 
 #endif /* __EXTERNS_H__ */

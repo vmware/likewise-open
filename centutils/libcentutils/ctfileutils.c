@@ -676,7 +676,7 @@ CTCreateTempDirectory(
     if(tmpDir == NULL)
         tmpDir = "/tmp";
 
-    ceError = CTAllocateStringPrintf(&template, "%s/centeristmpXXXXXX", tmpDir);
+    ceError = CTAllocateStringPrintf(&template, "%s/likewisetmpXXXXXX", tmpDir);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     if (mkdtemp(template) == NULL) {

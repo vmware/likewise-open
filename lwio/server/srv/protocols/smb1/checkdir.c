@@ -192,11 +192,17 @@ SrvProcessCheckDirectory(
 
         case SRV_CHECKDIR_STAGE_SMB_V1_ATTEMPT_CHECK:
 
+            // Catch failed CreateFile calls when they come back around
+
+            ntStatus = pCheckdirState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
             if (!pCheckdirState->hFile)
             {
                 SrvPrepareCheckdirStateAsync(pCheckdirState, pExecContext);
 
-                ntStatus = IoCreateFile(
+                ntStatus = SrvIoCreateFile(
+                                pCtxSmb1->pTree->pShareInfo,
                                 &pCheckdirState->hFile,
                                 pCheckdirState->pAcb,
                                 &pCheckdirState->ioStatusBlock,
@@ -212,7 +218,7 @@ SrvProcessCheckDirectory(
                                 FILE_DIRECTORY_FILE,
                                 NULL, /* EA Buffer */
                                 0,    /* EA Length */
-                                NULL);
+                                &pCheckdirState->pEcpList);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 SrvReleaseCheckdirStateAsync(pCheckdirState); // completed sync
@@ -541,6 +547,11 @@ SrvFreeCheckdirState(
     {
         IoDereferenceAsyncCancelContext(
                     &pCheckdirState->pAcb->AsyncCancelContext);
+    }
+
+    if (pCheckdirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pCheckdirState->pEcpList);
     }
 
     // TODO: Free the following if set

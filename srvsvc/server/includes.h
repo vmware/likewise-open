@@ -57,7 +57,10 @@
 #include <lwnet.h>
 
 #include <srvsvc/srvsvc.h>
+#include <srvsvcdefs.h>
 #include <srvsvcutils.h>
+
+#include <srvsvclog_r.h>
 
 #include "srvsvc.h"
 #include "srvsvc_srv.h"
@@ -73,6 +76,7 @@
 
 #include "defs.h"
 #include "structs.h"
+#include "prototypes.h"
 #include "marshall.h"
 
 #include "externs.h"

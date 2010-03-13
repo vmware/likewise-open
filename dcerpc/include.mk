@@ -15,7 +15,7 @@ IDL_CPPFLAGS=$(IDL_CFLAGS)
 IDL=$(top_builddir)/idl_compiler/dceidl
 IDL_INCLUDE_DIR=$(top_srcdir)/include/dce
 
-IDLFLAGS=$(IDL_CFLAGS) -cepv -client none -server none -I$(IDL_INCLUDE_DIR)/..
+IDLFLAGS=$(IDL_CFLAGS) -cepv -client none -server none -I$(IDL_INCLUDE_DIR)/.. $(IDL_FLAGS)
 NCK_IDLFLAGS=-keep object -no_cpp -v -no_mepv -I$(IDL_INCLUDE_DIR)/.. -I$(top_builddir)/include @DCETHREADINCLUDES@ $(TARGET_OS) -cc_cmd '$(LIBTOOL) --mode=compile $(IDL_CC) -c $(IDL_CFLAGS) '
 
 MODULELDFLAGS=-module -avoid-version -export-dynamic

@@ -383,29 +383,152 @@ RegShellExportFile(
     )
 {
     DWORD dwError = 0;
+    DWORD dwSubKeysCount = 0;
+    DWORD dwMaxSubKeyLen = 0;
     char szRegFileName[PATH_MAX + 1];
     FILE* fp = NULL;
+    HKEY hSubKey = NULL;
+    HKEY hRootKey = NULL;
+    PSTR pszFullPath = NULL;
+    PSTR pszRootFullPath = NULL;
+    PSTR pszDefaultKey = NULL;
+    PSTR pszRootKey = NULL;
+    PSTR pszTemp = NULL;
 
 
     strcpy(szRegFileName, rsItem->args[0]);
 
     RegStripWhitespace(szRegFileName, TRUE, TRUE);
 
-    fp = fopen(szRegFileName, "w");
+    if (!strcmp(szRegFileName, "-"))
+    {
+        fp = stdout;
+    }
+    else
+    {
+        fp = fopen(szRegFileName, "w");
+    }
     if (fp == NULL) {
         dwError = errno;
         goto error;
     }
 
+    if (rsItem->keyName && *rsItem->keyName)
+    {
+        dwError = LwRtlCStringDuplicate(
+                      &pszRootKey,
+                      rsItem->keyName);
+        BAIL_ON_REG_ERROR(dwError);
+        pszTemp = strchr(pszRootKey, '\\');
+        if (pszTemp)
+        {
+            *pszTemp = '\0';
+        }
+        dwError = RegOpenKeyExA(hReg,
+                                NULL,
+                                pszRootKey,
+                                0,
+                                KEY_READ,
+                                &hRootKey);
+        if (dwError)
+        {
+            dwError = RegOpenKeyExA(hReg,
+                                    NULL,
+                                    HKEY_THIS_MACHINE,
+                                    0,
+                                    KEY_READ,
+                                    &hRootKey);
+            BAIL_ON_REG_ERROR(dwError);
+            LWREG_SAFE_FREE_STRING(pszRootKey);
+            dwError = LwRtlCStringDuplicate(
+                          &pszRootKey,
+                          HKEY_THIS_MACHINE);
+            BAIL_ON_REG_ERROR(dwError);
+            pszDefaultKey = strchr(rsItem->keyName, '\\');
+            if (pszDefaultKey)
+            {
+                pszDefaultKey++;
+            }
+            else
+            {
+                pszDefaultKey = rsItem->keyName;
+            }
+        }
+        else
+        {
+            pszDefaultKey = pszTemp + 1;
+        }
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = RegShellCanonicalizePath(pszDefaultKey,
+                                           NULL,
+                                           &pszFullPath,
+                                           NULL,
+                                           NULL);
+        BAIL_ON_REG_ERROR(dwError);
+
+        if (pszFullPath && strcmp(pszFullPath, "\\") != 0)
+        {
+            dwError = RegOpenKeyExA(
+                          hReg,
+                          hRootKey,
+                          pszFullPath+1,
+                          0,
+                          KEY_READ,
+                          &hSubKey);
+            BAIL_ON_REG_ERROR(dwError);
+
+        }
+        else
+        {
+            hSubKey = hRootKey;
+            hRootKey = NULL;
+        }
+    }
+
+    dwError = LwRtlCStringAllocatePrintf(
+                  &pszRootFullPath,
+                  "%s%s",
+                  pszRootKey,
+                  pszFullPath);
+    BAIL_ON_REG_ERROR(dwError);
+    dwError = RegQueryInfoKeyA(
+                  hReg,
+                  hSubKey,
+                  NULL,
+                  NULL,
+                  NULL,
+                  &dwSubKeysCount,
+                  &dwMaxSubKeyLen,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL);
+
     dwError = RegShellUtilExport(hReg,
                                  fp,
-                                 NULL,
-                                 NULL,
-                                 0);
+                                 hSubKey,
+                                 pszRootFullPath,
+                                 dwSubKeysCount,
+                                 dwMaxSubKeyLen);
     BAIL_ON_REG_ERROR(dwError);
 
 cleanup:
-    if (fp)
+    if (hSubKey)
+    {
+        RegCloseKey(hReg, hSubKey);
+    }
+    if (hRootKey)
+    {
+        RegCloseKey(hReg, hRootKey);
+    }
+    LWREG_SAFE_FREE_STRING(pszRootKey);
+    LWREG_SAFE_FREE_STRING(pszFullPath);
+    LWREG_SAFE_FREE_STRING(pszRootFullPath);
+
+    if (fp && fp != stdout)
     {
         fclose(fp);
     }
@@ -587,6 +710,7 @@ RegShellProcessCmd(
     PSTR pszFullKeyName = NULL;
     BOOLEAN bChdirOk = TRUE;
     HKEY hRootKey = NULL;
+    CHAR szError[128] = {0};
 
     dwError = RegShellCmdParse(pParseState, argc, argv, &rsItem);
     if (dwError == 0)
@@ -790,11 +914,15 @@ RegShellProcessCmd(
                                       pszPwd);
                         if (dwError)
                         {
-                            dwError = 0;
-                            printf("cd: key not valid '%s'\n", pszPwd);
+                            LwRegGetErrorString(dwError,
+                                                szError,
+                                                sizeof(szError)-1);
+                            printf("cd: key not valid '%s' [%s]\n",
+                                   pszToken, szError);
                             LWREG_SAFE_FREE_MEMORY(pszPwd);
                             pszPwd = NULL;
                             bChdirOk = FALSE;
+                            dwError = 0;
                             break;
                         }
                         else
@@ -812,15 +940,22 @@ RegShellProcessCmd(
                                       pszToken);
                         if (dwError)
                         {
-                            dwError = 0;
-                            printf("cd: key not valid '%s'\n", pszToken);
+                            LwRegGetErrorString(dwError,
+                                                szError,
+                                                sizeof(szError)-1);
+                            printf("cd: key not valid '%s' [%s]\n",
+                                   pszToken, szError);
+
                             bChdirOk = FALSE;
+                            dwError = 0;
                             break;
                         }
                         else
                         {
                             LWREG_SAFE_FREE_MEMORY(pszNewDefaultKey);
-                            dwError = LwRtlCStringDuplicate(&pszNewDefaultKey, pszToken);
+                            dwError = LwRtlCStringDuplicate(
+                                          &pszNewDefaultKey,
+                                          pszToken);
                             BAIL_ON_REG_ERROR(dwError);
                         }
                     }

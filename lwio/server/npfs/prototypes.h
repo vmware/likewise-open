@@ -180,6 +180,20 @@ NpfsFileStandardInfo(
     PNPFS_IRP_CONTEXT pIrpContext
     );
 
+/* file_access_info.c */
+
+NTSTATUS
+NpfsQueryFileAccessInfo(
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
+
+
+NTSTATUS
+NpfsFileAccessInfo(
+    NPFS_INFO_TYPE Type,
+    PNPFS_IRP_CONTEXT pIrpContext
+    );
+
 /* file_pipe_info.c */
 
 NTSTATUS

@@ -117,19 +117,19 @@ SrvSvcNetShareAdd(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwAllocateStringPrintf(
                         &pszSmbPath,
                         "\\srv"
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwMbsToWc16s(
                         pszSmbPath,
                         &filename.FileName
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtCreateFile(
                         &hFile,

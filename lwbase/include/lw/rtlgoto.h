@@ -79,4 +79,7 @@
 #define GOTO_CLEANUP_ON_ERRNO_EE(error, EE) \
     _GOTO_CLEANUP_ON_NONZERO_EE(error, EE)
 
+#define GOTO_ERROR_ON_STATUS(status) \
+    do { if ((status)) goto error; } while (0)
+
 #endif /* __RTL_GOTO_H__ */

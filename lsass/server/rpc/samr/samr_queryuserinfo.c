@@ -123,6 +123,57 @@
         field = (UINT16)ulValue;                                        \
     }
 
+#define GET_LOGON_HOURS(attr, field)                                    \
+    {                                                                   \
+        POCTET_STRING pLogonHours = NULL;                               \
+        DWORD dwLogonHoursSize = 1260;                                  \
+        DWORD dwLogonHoursLen = 0;                                      \
+        DWORD dwUnitsPerWeek = 0;                                       \
+        DWORD iUnit = 0;                                                \
+        DWORD iByte = 0;                                                \
+                                                                        \
+        dwError = DirectoryGetEntryAttrValueByName(                     \
+                          pEntry,                                       \
+                          (attr),                                       \
+                          DIRECTORY_ATTR_TYPE_OCTET_STREAM,             \
+                          &pLogonHours);                                \
+        BAIL_ON_LSA_ERROR(dwError);                                     \
+                                                                        \
+        ntStatus = SamrSrvAllocateMemory(OUT_PPVOID(&(field)->units),   \
+                                         dwLogonHoursSize);             \
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);                               \
+                                                                        \
+        memset((field)->units, 0, dwLogonHoursSize);                    \
+                                                                        \
+        /*                                                              \
+         * Each byte is a unit in the blob while                        \
+         * in LogonHours it is one bit                                  \
+         */                                                             \
+        dwUnitsPerWeek  = pLogonHours->ulNumBytes;                      \
+        dwLogonHoursLen = pLogonHours->ulNumBytes / 8;                  \
+                                                                        \
+        for (iUnit = 0, iByte = 0;                                      \
+             iUnit < dwLogonHoursLen && iByte < dwUnitsPerWeek;         \
+             iUnit++, iByte += 8)                                       \
+        {                                                               \
+            BYTE Unit = 0;                                              \
+                                                                        \
+            Unit |= pLogonHours->pBytes[iByte];                         \
+            Unit |= pLogonHours->pBytes[iByte+1] << 1;                  \
+            Unit |= pLogonHours->pBytes[iByte+2] << 2;                  \
+            Unit |= pLogonHours->pBytes[iByte+3] << 3;                  \
+            Unit |= pLogonHours->pBytes[iByte+4] << 4;                  \
+            Unit |= pLogonHours->pBytes[iByte+5] << 5;                  \
+            Unit |= pLogonHours->pBytes[iByte+6] << 6;                  \
+            Unit |= pLogonHours->pBytes[iByte+7] << 7;                  \
+                                                                        \
+            (field)->units[iUnit] = Unit;                               \
+        }                                                               \
+                                                                        \
+        (field)->units_per_week = dwUnitsPerWeek;                       \
+    }
+
+
 
 static
 NTSTATUS
@@ -143,6 +194,7 @@ SamrFillUserInfo2(
 static
 NTSTATUS
 SamrFillUserInfo3(
+    PACCOUNT_CONTEXT pAcctCtx,
     PDIRECTORY_ENTRY pEntry,
     UserInfo *pInfo
     );
@@ -263,6 +315,7 @@ SamrFillUserInfo20(
 static
 NTSTATUS
 SamrFillUserInfo21(
+    PACCOUNT_CONTEXT pAcctCtx,
     PDIRECTORY_ENTRY pEntry,
     UserInfo *pInfo
     );
@@ -500,12 +553,14 @@ SamrSrvQueryUserInfo(
 
     pAcctCtx = (PACCOUNT_CONTEXT)hUser;
 
-    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    switch (level) {
+    switch (level)
+    {
     case 15:
     case 18:
     case 19:
@@ -542,18 +597,73 @@ SamrSrvQueryUserInfo(
                               &dwEntriesNum);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (dwEntriesNum == 0) {
+    if (dwEntriesNum == 0)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
 
-    } else if (dwEntriesNum > 1) {
+    }
+    else if (dwEntriesNum > 1)
+    {
         ntStatus = STATUS_INTERNAL_ERROR;
     }
 
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     ntStatus = SamrSrvAllocateMemory((void**)&pUserInfo,
-                                   sizeof(*pUserInfo));
+                                     sizeof(*pUserInfo));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    switch (level)
+    {
+    case 1:
+    case 6:
+    case 7:
+    case 8:
+    case 13:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_NAME_ETC) ||
+            !(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+        break;
+
+    case 2:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_LOCALE) ||
+            !(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+        break;
+
+    case 4:
+    case 5:
+    case 10:
+    case 11:
+    case 12:
+    case 14:
+    case 17:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_LOGONINFO) ||
+            !(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+        break;
+
+    case 3:
+    case 9:
+    case 16:
+    case 20:
+    case 21:
+        if (!(pAcctCtx->dwAccessGranted & USER_ACCESS_GET_ATTRIBUTES))
+        {
+            ntStatus = STATUS_ACCESS_DENIED;
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+        }
+        break;
+    }
 
     switch (level) {
     case 1:
@@ -565,7 +675,7 @@ SamrSrvQueryUserInfo(
         break;
 
     case 3:
-        ntStatus = SamrFillUserInfo3(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo3(pAcctCtx, pEntry, pUserInfo);
         break;
 
     case 4:
@@ -625,7 +735,7 @@ SamrSrvQueryUserInfo(
         break;
 
     case 21:
-        ntStatus = SamrFillUserInfo21(pEntry, pUserInfo);
+        ntStatus = SamrFillUserInfo21(pAcctCtx, pEntry, pUserInfo);
         break;
 
     default:
@@ -725,6 +835,7 @@ error:
 static
 NTSTATUS
 SamrFillUserInfo3(
+    PACCOUNT_CONTEXT pAcctCtx,
     PDIRECTORY_ENTRY pEntry,
     UserInfo *pInfo
     )
@@ -744,11 +855,12 @@ SamrFillUserInfo3(
     WCHAR wszAttrLastLogon[] = DS_ATTR_LAST_LOGON;
     WCHAR wszAttrLastLogoff[] = DS_ATTR_LAST_LOGOFF;
     WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
-    WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
-    WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
     WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
+    NtTime ntMinPasswordAge = pAcctCtx->pDomCtx->ntMinPasswordAge;
+    NtTime ntMaxPasswordAge = pAcctCtx->pDomCtx->ntMinPasswordAge;
 
     pInfo3 = &(pInfo->info3);
 
@@ -764,11 +876,11 @@ SamrFillUserInfo3(
     GET_NTTIME_VALUE(wszAttrLastLogon, pInfo3->last_logon);
     GET_NTTIME_VALUE(wszAttrLastLogoff, pInfo3->last_logoff);
     GET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo3->last_password_change);
-    GET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo3->allow_password_change);
-    GET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo3->force_password_change);
-
-    /* logon_hours */
-
+    pInfo3->allow_password_change = pInfo3->last_password_change +
+                                    ntMinPasswordAge;
+    pInfo3->force_password_change = pInfo3->last_password_change +
+                                    ntMaxPasswordAge;
+    GET_LOGON_HOURS(wszAttrLogonHours, &pInfo3->logon_hours);
     GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo3->bad_password_count);
     GET_UINT16_VALUE(wszAttrLogonCount, pInfo3->logon_count);
     GET_UINT32_VALUE(wszAttrAccountFlags, pInfo3->account_flags);
@@ -790,14 +902,20 @@ SamrFillUserInfo4(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = 0;
     UserInfo4 *pInfo4 = NULL;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
 
     pInfo4 = &(pInfo->info4);
 
-    pInfo4->logon_hours.units_per_week = 0;
-    pInfo4->logon_hours.units          = NULL;
+    GET_LOGON_HOURS(wszAttrLogonHours, &pInfo4->logon_hours);
 
+cleanup:
     return ntStatus;
+
+error:
+    memset(pInfo4, 0, sizeof(*pInfo4));
+    goto cleanup;
 }
 
 
@@ -823,6 +941,7 @@ SamrFillUserInfo5(
     WCHAR wszAttrWorkstations[] = DS_ATTR_WORKSTATIONS;
     WCHAR wszAttrLastLogon[] = DS_ATTR_LAST_LOGON;
     WCHAR wszAttrLastLogoff[] = DS_ATTR_LAST_LOGOFF;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
     WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
@@ -843,11 +962,7 @@ SamrFillUserInfo5(
     GET_UNICODE_STRING_VALUE(wszAttrWorkstations, pInfo5->workstations);
     GET_NTTIME_VALUE(wszAttrLastLogon, pInfo5->last_logon);
     GET_NTTIME_VALUE(wszAttrLastLogoff, pInfo5->last_logoff);
-
-    /* logon hours */
-    pInfo5->logon_hours.units_per_week = 0;
-    pInfo5->logon_hours.units          = NULL;
-
+    GET_LOGON_HOURS(wszAttrLogonHours, &pInfo5->logon_hours);
     GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo5->bad_password_count);
     GET_UINT16_VALUE(wszAttrLogonCount, pInfo5->logon_count);
     GET_NTTIME_VALUE(wszAttrLastPasswordChange, pInfo5->last_password_change);
@@ -1170,6 +1285,7 @@ error:
 static
 NTSTATUS
 SamrFillUserInfo21(
+    PACCOUNT_CONTEXT pAcctCtx,
     PDIRECTORY_ENTRY pEntry,
     UserInfo *pInfo
     )
@@ -1181,8 +1297,6 @@ SamrFillUserInfo21(
     WCHAR wszAttrLastLogoff[] = DS_ATTR_LAST_LOGOFF;
     WCHAR wszAttrLastPasswordChange[] = DS_ATTR_PASSWORD_LAST_SET;
     WCHAR wszAttrAccountExpiry[] = DS_ATTR_ACCOUNT_EXPIRY;
-    WCHAR wszAttrAllowPasswordChange[] = DS_ATTR_ALLOW_PASSWORD_CHANGE;
-    WCHAR wszAttrForcePasswordChange[] = DS_ATTR_FORCE_PASSWORD_CHANGE;
     WCHAR wszAttrSamAccountName[] = DS_ATTR_SAM_ACCOUNT_NAME;
     WCHAR wszAttrFullName[] = DS_ATTR_FULL_NAME;
     WCHAR wszAttrHomeDirectory[] = DS_ATTR_HOME_DIR;
@@ -1196,10 +1310,14 @@ SamrFillUserInfo21(
     WCHAR wszAttrObjectSid[] = DS_ATTR_OBJECT_SID;
     WCHAR wszAttrPrimaryGid[] = DS_ATTR_PRIMARY_GROUP;
     WCHAR wszAttrAccountFlags[] = DS_ATTR_ACCOUNT_FLAGS;
+    WCHAR wszAttrLogonHours[] = DS_ATTR_LOGON_HOURS;
     WCHAR wszAttrBadPasswordCount[] = DS_ATTR_BAD_PASSWORD_COUNT;
     WCHAR wszAttrLogonCount[] = DS_ATTR_LOGON_COUNT;
     WCHAR wszAttrCountryCode[] = DS_ATTR_COUNTRY_CODE;
     WCHAR wszAttrCodePage[] = DS_ATTR_CODE_PAGE;
+    NtTime ntMinPasswordAge = pAcctCtx->pDomCtx->ntMinPasswordAge;
+    NtTime ntMaxPasswordAge = pAcctCtx->pDomCtx->ntMaxPasswordAge;
+    NtTime ntCurrentTime = 0;
 
     pInfo21 = &(pInfo->info21);
 
@@ -1215,10 +1333,12 @@ SamrFillUserInfo21(
     GET_NTTIME_VALUE(wszAttrAccountExpiry, pInfo21->account_expiry);
     pInfo21->fields_present |= SAMR_FIELD_ACCT_EXPIRY;
 
-    GET_NTTIME_VALUE(wszAttrAllowPasswordChange, pInfo21->allow_password_change);
+    pInfo21->allow_password_change = pInfo21->last_password_change +
+                                     ntMinPasswordAge;
     pInfo21->fields_present |= SAMR_FIELD_ALLOW_PWD_CHANGE;
 
-    GET_NTTIME_VALUE(wszAttrForcePasswordChange, pInfo21->force_password_change);
+    pInfo21->force_password_change = pInfo21->last_password_change +
+                                     ntMaxPasswordAge;
     pInfo21->fields_present |= SAMR_FIELD_FORCE_PWD_CHANGE;
 
     GET_UNICODE_STRING_VALUE(wszAttrSamAccountName, pInfo21->account_name);
@@ -1264,6 +1384,9 @@ SamrFillUserInfo21(
     GET_UINT32_VALUE(wszAttrAccountFlags, pInfo21->account_flags);
     pInfo21->fields_present |= SAMR_FIELD_ACCT_FLAGS;
 
+    GET_LOGON_HOURS(wszAttrLogonHours, &pInfo21->logon_hours);
+    pInfo21->fields_present |= SAMR_FIELD_LOGON_HOURS;
+
     GET_UINT16_VALUE(wszAttrBadPasswordCount, pInfo21->bad_password_count);
     pInfo21->fields_present |= SAMR_FIELD_BAD_PWD_COUNT;
 
@@ -1276,7 +1399,21 @@ SamrFillUserInfo21(
     GET_UINT16_VALUE(wszAttrCodePage, pInfo21->code_page);
     pInfo21->fields_present |= SAMR_FIELD_CODE_PAGE;
 
+    dwError = LwGetNtTime(&ntCurrentTime);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (ntCurrentTime >= pInfo21->last_password_change + ntMaxPasswordAge)
+    {
+        pInfo21->password_expired = 1;
+    }
+
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:

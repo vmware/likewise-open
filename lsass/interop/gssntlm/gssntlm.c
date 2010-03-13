@@ -53,6 +53,13 @@
 #include <assert.h>
 #include <lwsecurityidentifier.h>
 #include <lsautils.h>
+#include <errno.h>
+
+UINT32 ntlm_gss_duplicate_oid(
+    UINT32 MinorStatus,
+    const gss_OID_desc *const Oid,
+    gss_OID *NewOid
+    );
 
 gss_OID_desc gGssNtlmOidDesc = {
     .length = GSS_MECH_NTLM_LEN,
@@ -438,19 +445,102 @@ typedef struct _GSS_MECH_CONFIG
         );
 
     OM_uint32
-    (*gss_inquire_context2)(
-        OM_uint32*,
-        gss_ctx_id_t,
-        gss_name_t*,
-        gss_name_t*,
-        OM_uint32*,
-        gss_OID*,
-        OM_uint32*,
-        PINT,
-        PINT,
+    (*gss_acquire_cred_impersonate_name)(
+        OM_uint32 *,
+        const gss_cred_id_t,
+        const gss_name_t,
+        OM_uint32,
+        const gss_OID_set,
+        gss_cred_usage_t,
+        gss_cred_id_t *,
+        gss_OID_set *,
+        OM_uint32 *
+        );
+
+    OM_uint32
+    (*gss_add_cred_impersonate_name)(
+        OM_uint32 *,
+        gss_cred_id_t,
+        const gss_cred_id_t,
+        const gss_name_t,
+        const gss_OID,
+        gss_cred_usage_t,
+        OM_uint32,
+        OM_uint32,
+        gss_cred_id_t *,
+        gss_OID_set *,
+        OM_uint32 *,
+        OM_uint32 *
+        );
+
+    OM_uint32
+    (*gss_display_name_ext)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_OID,
         gss_buffer_t
         );
 
+    OM_uint32
+    (*gss_inquire_name)(
+        OM_uint32 *,
+        gss_name_t,
+        int *,
+        gss_OID *,
+        gss_buffer_set_t *
+        );
+
+    OM_uint32
+    (*gss_get_name_attribute)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_buffer_t,
+        int *,
+        int *,
+        gss_buffer_t,
+        gss_buffer_t,
+        int *
+        );
+
+    OM_uint32
+    (*gss_set_name_attribute)(
+        OM_uint32 *,
+        gss_name_t,
+        int,
+        gss_buffer_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_delete_name_attribute)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_export_name_composite)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_buffer_t
+        );
+
+    OM_uint32
+    (*gss_map_name_to_any)(
+        OM_uint32 *,
+        gss_name_t,
+        int,
+        gss_buffer_t,
+        gss_any_t *
+        );
+
+    OM_uint32
+    (*gss_release_any_name_mapping)(
+        OM_uint32 *,
+        gss_name_t,
+        gss_buffer_t,
+        gss_any_t *
+        );
 } GSS_MECH_CONFIG, *PGSS_MECH_CONFIG;
 
 typedef struct _NTLM_GSS_NAME
@@ -458,6 +548,7 @@ typedef struct _NTLM_GSS_NAME
     // This always points to a static global structure
     gss_OID NameType;
     PSTR pszName;
+    NTLM_CONTEXT_HANDLE hContext;
 } NTLM_GSS_NAME, *PNTLM_GSS_NAME;
 
 typedef struct _NTLM_GSS_CREDS
@@ -511,7 +602,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gss_inquire_cred_by_mech,
     NULL, //ntlm_gss_inquire_names_for_mech,
     ntlm_gss_inquire_context,
-    NULL, // ntlm_gss_release_oid,
+    ntlm_gss_release_oid,
     NULL, //ntlm_gss_wrap_size_limit,
     NULL, //ntlm_gss_export_name,
     NULL, //ntlm_gss_store_cred,
@@ -527,6 +618,7 @@ static GSS_MECH_CONFIG gNtlmMech =
     NULL, //ntlm_gss_wrap_iov_length,
     NULL, //ntlm_gss_complete_auth_token,
     NULL, //ntlm_gss_inquire_context2
+    .gss_get_name_attribute = ntlm_gss_get_name_attribute
 };
 
 //
@@ -803,6 +895,13 @@ ntlm_gss_init_sec_context(
         }
     }
 
+    // NTLM supports only signing and sealing (both at the same time)
+    if ((nReqFlags & GSS_C_INTEG_FLAG) ||
+        (nReqFlags & GSS_C_CONF_FLAG))
+    {
+        dwNtlmFlags |= (NTLM_FLAG_SIGN | NTLM_FLAG_SEAL);
+    }
+
     MinorStatus = NtlmClientInitializeSecurityContext(
         &CredHandle,
         &hContext,
@@ -827,13 +926,14 @@ ntlm_gss_init_sec_context(
         BAIL_ON_LSA_ERROR(MinorStatus);
     }
 
-    if (dwOutNtlmFlags & NTLM_FLAG_SEAL)
-    {
-        RetFlags |= GSS_C_CONF_FLAG;
-    }
     if (dwOutNtlmFlags & NTLM_FLAG_SIGN)
     {
         RetFlags |= GSS_C_INTEG_FLAG;
+    }
+
+    if (dwOutNtlmFlags & NTLM_FLAG_SEAL)
+    {
+        RetFlags |= GSS_C_CONF_FLAG;
     }
 
 cleanup:
@@ -1007,14 +1107,8 @@ ntlm_gss_accept_sec_context(
     {
         BAIL_ON_LSA_ERROR(MinorStatus);
 
-        if (dwFinalFlags & NTLM_FLAG_SEAL)
-        {
-            dwRetFlags |= GSS_C_CONF_FLAG;
-        }
-        if (dwFinalFlags & NTLM_FLAG_SIGN)
-        {
-            dwRetFlags |= GSS_C_INTEG_FLAG;
-        }
+        dwRetFlags |= GSS_C_CONF_FLAG;
+        dwRetFlags |= GSS_C_INTEG_FLAG;
 
         MajorStatus = ntlm_gss_inquire_context(
                           &MinorStatus,
@@ -1330,12 +1424,22 @@ ntlm_gss_wrap(
         InputMessage->value,
         NtlmBuffer[1].cbBuffer);
 
-    MinorStatus = NtlmClientEncryptMessage(
-        &ContextHandle,
-        nEncrypt ? TRUE : FALSE,
-        &Message,
-        0
-        );
+    if (nEncrypt)
+    {
+        MinorStatus = NtlmClientEncryptMessage(
+            &ContextHandle,
+            TRUE,
+            &Message,
+            0);
+    }
+    else
+    {
+        MinorStatus = NtlmClientMakeSignature(
+            &ContextHandle,
+            Qop,
+            &Message,
+            0);
+    }
     BAIL_ON_LSA_ERROR(MinorStatus);
 
     // As noted above, we'll trim the size down to exclude the padding
@@ -1498,6 +1602,8 @@ ntlm_gss_unwrap(
     DWORD dwBufferSize = 0;
     BOOLEAN bEncrypted = FALSE;
     SecPkgContext_Sizes Sizes = {0};
+    DWORD dwNtlmFlags = 0;
+    DWORD dwQop = GSS_C_QOP_DEFAULT;
 
     LW_ASSERT(InputMessage);
 
@@ -1515,6 +1621,14 @@ ntlm_gss_unwrap(
     BAIL_ON_LSA_ERROR(MinorStatus);
 
     LW_ASSERT(InputMessage->length >= Sizes.cbMaxSignature);
+
+    // Check the negotiated flags to find out if the message is expected
+    // to be encrypted or signed only.
+    MinorStatus = NtlmClientQueryContextAttributes(
+        &ContextHandle,
+        SECPKG_ATTR_FLAGS,
+        &dwNtlmFlags);
+    BAIL_ON_LSA_ERROR(MinorStatus);
 
     // Here we are taking out the signature, but adding back in for the
     // padding.  The padding is only needed for the duration of the operation
@@ -1548,15 +1662,36 @@ ntlm_gss_unwrap(
     NtlmBuffer[1].cbBuffer = dwBufferSize;
     NtlmBuffer[1].pvBuffer = pBuffer;
 
-    MinorStatus = NtlmClientDecryptMessage(
-        &ContextHandle,
-        &Message,
-        0,
-        &bEncrypted
-        );
+    if (dwNtlmFlags & (NTLM_FLAG_SEAL | NTLM_FLAG_SIGN))
+    {
+        MinorStatus = NtlmClientDecryptMessage(
+            &ContextHandle,
+            &Message,
+            0,
+            &bEncrypted
+            );
+    }
+    else if (dwNtlmFlags & NTLM_FLAG_SIGN)
+    {
+        MinorStatus = NtlmClientVerifySignature(
+            &ContextHandle,
+            &Message,
+            0,
+            &dwQop
+            );
+    }
+    else
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+    }
     BAIL_ON_LSA_ERROR(MinorStatus);
 
-    OutputMessage->value = pBuffer;
+    if (pQop)
+    {
+        *pQop = (gss_qop_t)dwQop;
+    }
+
+    OutputMessage->value  = pBuffer;
     OutputMessage->length = dwBufferSize;
 
 cleanup:
@@ -1962,14 +2097,34 @@ ntlm_gss_inquire_context(
     OM_uint32 MajorStatus = GSS_S_COMPLETE;
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     NTLM_CONTEXT_HANDLE NtlmCtxtHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
+    DWORD dwNtlmFlags = 0;
     SecPkgContext_Names Names = { 0 };
     gss_name_t pSourceName = NULL;
     PNTLM_GSS_NAME pUserName = NULL;
 
-    if (pCtxtFlags || pLocal || pOpen)
+    if (pLocal || pOpen)
     {
         MinorStatus = LW_ERROR_NOT_SUPPORTED;
         BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    if (pCtxtFlags)
+    {
+        MinorStatus = NtlmClientQueryContextAttributes(
+            &NtlmCtxtHandle,
+            SECPKG_ATTR_FLAGS,
+            &dwNtlmFlags);
+        BAIL_ON_LSA_ERROR(MinorStatus);
+
+        if (dwNtlmFlags & NTLM_FLAG_SIGN)
+        {
+            *pCtxtFlags |= GSS_C_INTEG_FLAG;
+        }
+
+        if (dwNtlmFlags & NTLM_FLAG_SEAL)
+        {
+            *pCtxtFlags |= GSS_C_CONF_FLAG;
+        }
     }
 
     if (ppTargetName)
@@ -1991,6 +2146,7 @@ ntlm_gss_inquire_context(
         BAIL_ON_LSA_ERROR(MinorStatus);
 
         pUserName->NameType = GSS_C_NT_USER_NAME;
+        pUserName->hContext = NtlmCtxtHandle;
 
         MinorStatus = LwAllocateString(
             Names.pUserName,
@@ -2121,6 +2277,80 @@ error:
     goto cleanup;
 }
 
+OM_uint32
+ntlm_gss_get_name_attribute(
+    OM_uint32* pMinorStatus,
+    gss_name_t pName,
+    gss_buffer_t pAttr,
+    int* pAuthenticate,
+    int* pComplete,
+    gss_buffer_t pValue,
+    gss_buffer_t pDisplayValue,
+    int* pMore
+    )
+{
+    OM_uint32 MajorStatus = GSS_S_COMPLETE;
+    OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
+    SecPkgContext_PacLogonInfo LogonInfo = {0};
+    PNTLM_GSS_NAME pUserName = (PNTLM_GSS_NAME) pName;
+
+    if (pMore && *pMore != -1)
+    {
+        MinorStatus = ERROR_NO_MORE_ITEMS;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    if (!strncmp("urn:mspac:logon-info", (char*) pAttr->value, pAttr->length))
+    {
+        if (pValue)
+        {
+            MinorStatus = NtlmClientQueryContextAttributes(
+                &pUserName->hContext,
+                SECPKG_ATTR_PAC_LOGON_INFO,
+                &LogonInfo);
+            BAIL_ON_LSA_ERROR(MinorStatus);
+
+            pValue->value = LogonInfo.pLogonInfo;
+            pValue->length = LogonInfo.LogonInfoLength;
+        }
+
+        if (pAuthenticate)
+        {
+            *pAuthenticate = 1;
+        }
+
+        if (pComplete)
+        {
+            *pComplete = 1;
+        }
+
+        if (pMore)
+        {
+            *pMore = 0;
+        }
+    }
+    else
+    {
+        MinorStatus = LW_ERROR_NO_SUCH_ATTRIBUTE;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+cleanup:
+
+    *pMinorStatus = MinorStatus;
+
+    return MajorStatus;
+
+error:
+
+    if (MajorStatus == GSS_S_COMPLETE)
+    {
+        MajorStatus = GSS_S_FAILURE;
+    }
+
+    goto cleanup;
+}
+
 PGSS_MECH_CONFIG
 gss_mech_initialize(void)
 {
@@ -2190,3 +2420,32 @@ error:
 
     goto cleanup;
 }
+
+OM_uint32
+ntlm_gss_release_oid(
+    OM_uint32* MinorStatus,
+    gss_OID *pOid
+    )
+{
+    /* Don't free the global static OID */
+
+    if ((pOid &&
+         ((*pOid == gGssNtlmOid) || (*pOid == GSS_C_NO_OID))))
+    {
+
+        *MinorStatus = 0;
+        return GSS_S_COMPLETE;
+    }
+
+    return GSS_S_FAILURE;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

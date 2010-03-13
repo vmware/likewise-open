@@ -58,47 +58,50 @@ WksSvcNetWkstaGetInfo(
     const DWORD dwPolicyAccessMask = LSA_ACCESS_LOOKUP_NAMES_SIDS |
                                      LSA_ACCESS_VIEW_POLICY_INFO;
 
+    DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
     RPCSTATUS rpcStatus = RPC_S_OK;
-    DWORD dwError = 0;
     PWKSTA_INFO_100 pInfo100 = NULL;
-    PIO_CREDS pCreds = NULL;
-    CHAR szHostname[64];
+    CHAR szHostname[64] = {0};
     PSTR pszLsaLpcSocketPath = NULL;
     handle_t hLsaBinding = NULL;
     PWSTR pwszLocalHost = NULL;
     POLICY_HANDLE hLocalPolicy = NULL;
     LsaPolicyInformation *pPolInfo = NULL;
     PWSTR pwszHostname = NULL;
-    ULONG HostnameLen = 0;
+    PWSTR pwszDnsDomain = NULL;
+
+    if (level != 100)
+    {
+        dwError = ERROR_NOT_SUPPORTED;
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
 
     dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo100),
                                       (PVOID*)&pInfo100);
-    BAIL_ON_ERROR(dwError);
-
-    ntStatus = LwIoGetThreadCreds(&pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = gethostname(szHostname, sizeof(szHostname));
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcConfigGetLsaLpcSocketPath(&pszLsaLpcSocketPath);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     rpcStatus = InitLsaBindingFull(&hLsaBinding,
                                    "ncalrpc",
-                                   szHostname,
+                                   NULL,
                                    pszLsaLpcSocketPath,
                                    NULL,
                                    NULL,
                                    NULL);
-    if (rpcStatus) {
+    if (rpcStatus)
+    {
         dwError = NERR_InternalError;
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
     dwError = LwMbsToWc16s(szHostname, &pwszLocalHost);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = LsaOpenPolicy2(hLsaBinding,
                               pwszLocalHost,
@@ -113,40 +116,42 @@ WksSvcNetWkstaGetInfo(
                                   &pPolInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SrvSvcSrvGetFromUnicodeStringEx(
-                  &pInfo100->wksta100_domain,
-                  &pPolInfo->dns.dns_domain);
-    BAIL_ON_ERROR(dwError);
+    dwError = SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
+                                  &pwszDnsDomain,
+                                  &pPolInfo->dns.dns_domain);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = LwMbsToWc16s(szHostname, &pwszHostname);
-    BAIL_ON_ERROR(dwError);
+    dwError = SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
+                                  &pwszHostname,
+                                  &pPolInfo->dns.name);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    HostnameLen = LwRtlWC16StringNumChars(pwszHostname);
-    dwError = SrvSvcSrvAllocateMemory(
-                  sizeof(WCHAR)*(HostnameLen+1),
-                  (PVOID*)&pInfo100->wksta100_name);
-    BAIL_ON_ERROR(dwError);
-
-    memcpy(pInfo100->wksta100_name, pwszHostname, sizeof(WCHAR)*(HostnameLen));
-
+    pInfo100->wksta100_domain        = pwszDnsDomain;
+    pInfo100->wksta100_name          = pwszHostname;
     pInfo100->wksta100_version_major = 5;
     pInfo100->wksta100_version_minor = 1;
     pInfo100->wksta100_platform_id   = 500;
 
     info->info100 = pInfo100;
 
-    ntStatus = LsaClose(hLsaBinding, hLocalPolicy);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pwszDnsDomain = NULL;
+    pwszHostname  = NULL;
 
 cleanup:
+    if (hLsaBinding && hLocalPolicy)
+    {
+        LsaClose(hLsaBinding, hLocalPolicy);
+    }
+
     if (pPolInfo)
     {
         LsaRpcFreeMemory(pPolInfo);
     }
 
-    LW_SAFE_FREE_MEMORY(pwszHostname);
-
     FreeLsaBinding(&hLsaBinding);
+
+    LW_SAFE_FREE_MEMORY(pszLsaLpcSocketPath);
+    LW_SAFE_FREE_MEMORY(pwszLocalHost);
 
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)
@@ -159,14 +164,20 @@ cleanup:
 error:
     if (pInfo100)
     {
+        if (pInfo100->wksta100_domain)
+        {
+            SrvSvcSrvFreeMemory(pInfo100->wksta100_domain);
+        }
+
+        if (pInfo100->wksta100_name)
+        {
+            SrvSvcSrvFreeMemory(pInfo100->wksta100_name);
+        }
+
         SrvSvcSrvFreeMemory(pInfo100);
     }
 
-    switch (level) {
-    case 100:
-        info->info100 = NULL;
-        break;
-    }
+    memset(info, 0, sizeof(*info));
 
     goto cleanup;
 }

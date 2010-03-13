@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        defs.h
+ *        structs.h
  *
  * Abstract:
  *
@@ -97,6 +97,29 @@ typedef struct _SRV_ELEMENTS_GLOBALS
     PBYTE pHintsBuffer;
     ULONG ulHintsLength;
 
+    LONG64 llBootTime;
+    BOOLEAN bShareNameEcpEnabled;
+
+    GENERIC_MAPPING ShareGenericMapping;
+
+    pthread_rwlock_t        statsLock;
+    pthread_rwlock_t*       pStatsLock;
+
+    SRV_ELEMENTS_STATISTICS stats;
+
 } SRV_ELEMENTS_GLOBALS, *PSRV_ELEMENTS_GLOBALS;
 
 #endif /* __STRUCTS_H__ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
+

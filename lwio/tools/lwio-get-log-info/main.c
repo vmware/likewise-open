@@ -176,7 +176,7 @@ ParseArgs(
 void
 ShowUsage()
 {
-    printf("Usage: lw-smb-get-log-info\n");
+    printf("Usage: lwio-get-log-info\n");
 }
 
 DWORD

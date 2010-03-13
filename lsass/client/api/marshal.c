@@ -201,7 +201,6 @@ LsaMarshalUserInfo(
     {
         struct timeval current_tv;
         UINT64 u64current_NTtime = 0;
-        int64_t qwNanosecsToPasswordExpiry;
 
         if (pUser->userInfo.bIsAccountInfoKnown)
         {
@@ -213,34 +212,26 @@ LsaMarshalUserInfo(
             LsaConvertTimeUnix2Nt(current_tv.tv_sec,
                                  &u64current_NTtime);
 
-            qwNanosecsToPasswordExpiry = pUser->userInfo.qwMaxPwdAge -
-                (u64current_NTtime - pUser->userInfo.qwPwdLastSet);
-
             if (pUser->userInfo.bPasswordNeverExpires ||
-                pUser->userInfo.qwMaxPwdAge == 0)
+                pUser->userInfo.qwPwdExpires == 0)
             {
                 //password never expires
                 pUserInfo2->dwDaysToPasswordExpiry = 0LL;
             }
-            else if (pUser->userInfo.bPasswordExpired)
+            else if (pUser->userInfo.bPasswordExpired ||
+                     u64current_NTtime >= pUser->userInfo.qwPwdExpires)
             {
                 //password is expired already
                 pUserInfo2->dwDaysToPasswordExpiry = 0LL;
             }
             else
             {
-                pUserInfo2->dwDaysToPasswordExpiry = qwNanosecsToPasswordExpiry /
+                pUserInfo2->dwDaysToPasswordExpiry =
+                    (pUser->userInfo.qwPwdExpires - u64current_NTtime) /
                     (10000000LL * 24*60*60);
             }
 
-            if (pUser->userInfo.qwMaxPwdAge == 0)
-            {
-                pUserInfo2->bPasswordNeverExpires = TRUE;
-            }
-            else
-            {
-                pUserInfo2->bPasswordNeverExpires = pUser->userInfo.bPasswordNeverExpires;
-            }
+            pUserInfo2->bPasswordNeverExpires = pUser->userInfo.bPasswordNeverExpires;
 
             pUserInfo2->bPasswordExpired = pUser->userInfo.bPasswordExpired;
             pUserInfo2->bPromptPasswordChange = pUser->userInfo.bPromptPasswordChange;

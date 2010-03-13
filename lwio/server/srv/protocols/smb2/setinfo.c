@@ -244,6 +244,9 @@ SrvProcessSetInfo_SMB_V2(
                             pCtxSmb2,
                             pTree,
                             &pRequestHeader->fid,
+                            LwIsSetFlag(
+                                pSmbRequest->pHeader->ulFlags,
+                                SMB2_FLAGS_RELATED_OPERATION),
                             &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -603,7 +606,7 @@ SrvSetFileEOFInfo_SMB_V2(
         SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
         ntStatus = IoSetInformationFile(
-                        pCtxSmb2->pFile->hFile,
+                        pSetInfoState->pFile->hFile,
                         pSetInfoState->pAcb,
                         &pSetInfoState->ioStatusBlock,
                         (PFILE_END_OF_FILE_INFORMATION)pSetInfoState->pData,
@@ -641,7 +644,7 @@ SrvSetFileDispositionInfo_SMB_V2(
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
                     (PFILE_DISPOSITION_INFORMATION)pSetInfoState->pData,
@@ -694,25 +697,31 @@ SrvSetFileRenameInfo_SMB_V2(
         LWIO_UNLOCK_RWMUTEX(bTreeInLock,
                             &pCtxSmb2->pTree->pShareInfo->mutex);
 
+        // Catch failed CreateFile calls when they come back around
+
+        ntStatus = pSetInfoState->ioStatusBlock.Status;
+        BAIL_ON_NT_STATUS(ntStatus);
+
         SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                                pCtxSmb2->pTree->pShareInfo,
                                 &pSetInfoState->hDir,
                                 pSetInfoState->pAcb,
                                 &pSetInfoState->ioStatusBlock,
                                 pCtxSmb2->pSession->pIoSecurityContext,
                                 &pSetInfoState->dirPath,
-                                pSetInfoState->pSecurityDescriptor,
+                                (PSECURITY_DESCRIPTOR_RELATIVE)pSetInfoState->pSecurityDescriptor,
                                 pSetInfoState->pSecurityQOS,
                                 GENERIC_READ,
                                 0,
                                 FILE_ATTRIBUTE_NORMAL,
-                                0,
+                                FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                                 FILE_OPEN,
                                 FILE_DIRECTORY_FILE,
                                 NULL, /* EA Buffer */
                                 0,    /* EA Length */
-                                NULL  /* ECP List  */
+                                &pSetInfoState->pEcpList
                                 );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -728,7 +737,7 @@ SrvSetFileRenameInfo_SMB_V2(
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
                     (PFILE_RENAME_INFORMATION)pSetInfoState->pData2,
@@ -782,11 +791,16 @@ SrvUnmarshalRenameHeader_SMB_V2(
 
     if (pRenameInfoHeader->ullRootDir)
     {
+        // TODO: Figure out if this one is a persistent or volatile fid
+        SMB2_FID rootDirFid = { .ullPersistentId = 0xFFFFFFFFFFFFFFFFLL,
+                                .ullVolatileId   = pRenameInfoHeader->ullRootDir
+                              };
+
         LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb2->pTree->mutex);
 
         ntStatus = SrvTree2FindFile(
                         pCtxSmb2->pTree,
-                        pRenameInfoHeader->ullRootDir,
+                        &rootDirFid,
                         &pSetInfoState->pRootDir);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -840,7 +854,7 @@ SrvSetFileBasicInfo_SMB_V2(
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
                     (PFILE_BASIC_INFORMATION)pSetInfoState->pData,
@@ -878,7 +892,7 @@ SrvSetFileAllocationInfo_SMB_V2(
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
-                    pCtxSmb2->pFile->hFile,
+                    pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
                     (PFILE_ALLOCATION_INFORMATION)pSetInfoState->pData,
@@ -922,9 +936,12 @@ SrvBuildSetInfoCommonResponse_SMB_V2(
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
                     pCtxSmb2->pSession->ullUid,
+                    0LL, /* Async Id */
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -1202,6 +1219,11 @@ SrvFreeSetInfoState_SMB_V2(
     {
         IoDereferenceAsyncCancelContext(
                 &pSetInfoState->pAcb->AsyncCancelContext);
+    }
+
+    if (pSetInfoState->pEcpList)
+    {
+        IoRtlEcpListFree(&pSetInfoState->pEcpList);
     }
 
     if (pSetInfoState->pFile)

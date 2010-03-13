@@ -499,6 +499,43 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
 typedef enum
 {
+    SRV_SET_INFO_STAGE_SMB_V1_INITIAL        = 0,
+    SRV_SET_INFO_STAGE_SMB_V1_ATTEMPT_SET,
+    SRV_SET_INFO_STAGE_SMB_V1_BUILD_RESPONSE,
+    SRV_SET_INFO_STAGE_SMB_V1_DONE
+} SRV_SET_INFO_STAGE_SMB_V1;
+
+typedef struct _SRV_SET_INFO_STATE_SMB_V1
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_SET_INFO_STAGE_SMB_V1     stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PIO_ECP_LIST               pEcpList;
+
+    PLWIO_SRV_SESSION          pSession;
+    PLWIO_SRV_TREE             pTree;
+
+    IO_FILE_HANDLE             hFile;
+    IO_FILE_NAME               fileName;
+
+    PSET_INFO_REQUEST_HEADER   pRequestHeader; // Do not free
+    PWSTR                      pwszFilename;   // Do not free
+
+    FILE_BASIC_INFORMATION     fileBasicInfo;
+
+} SRV_SET_INFO_STATE_SMB_V1, *PSRV_SET_INFO_STATE_SMB_V1;
+
+typedef enum
+{
     SRV_SET_INFO2_STAGE_SMB_V1_INITIAL        = 0,
     SRV_SET_INFO2_STAGE_SMB_V1_ATTEMPT_SET,
     SRV_SET_INFO2_STAGE_SMB_V1_BUILD_RESPONSE,
@@ -644,6 +681,7 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+    PIO_ECP_LIST               pEcpList;
 
     PTRANSACTION_REQUEST_HEADER pRequestHeader; // Do not free
     PUSHORT                     pBytecount;     // Do not free
@@ -731,6 +769,7 @@ typedef struct _SRV_CREATEDIR_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+    PIO_ECP_LIST               pEcpList;
 
     IO_FILE_HANDLE             hFile;
     IO_FILE_NAME               fileName;
@@ -740,6 +779,7 @@ typedef struct _SRV_CREATEDIR_STATE_SMB_V1
 typedef enum
 {
     SRV_DELETEDIR_STAGE_SMB_V1_INITIAL = 0,
+    SRV_DELETEDIR_STAGE_SMB_V1_ATTEMPT_SET_INFO,
     SRV_DELETEDIR_STAGE_SMB_V1_COMPLETED,
     SRV_DELETEDIR_STAGE_SMB_V1_BUILD_RESPONSE,
     SRV_DELETEDIR_STAGE_SMB_V1_DONE
@@ -764,6 +804,10 @@ typedef struct _SRV_DELETEDIR_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+    PIO_ECP_LIST               pEcpList;
+
+    FILE_DISPOSITION_INFORMATION  fileDispositionInfo;
+    PFILE_DISPOSITION_INFORMATION pFileDispositionInfo;
 
     IO_FILE_HANDLE             hFile;
     IO_FILE_NAME               fileName;
@@ -818,6 +862,7 @@ typedef struct _SRV_DELETE_STATE_SMB_V1
     IO_FILE_NAME                              fileName;
     PVOID                                     pSecurityDescriptor;
     PVOID                                     pSecurityQOS;
+    PIO_ECP_LIST                              pEcpList;
     FILE_CREATE_OPTIONS                       ulCreateOptions;
     BOOLEAN                                   bPendingCreate;
     PSMB_FIND_FILE_BOTH_DIRECTORY_INFO_HEADER pResult; // Do not free
@@ -852,6 +897,9 @@ typedef struct _SRV_RENAME_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+
+    PIO_ECP_LIST               pDirEcpList;
+    PIO_ECP_LIST               pFileEcpList;
 
     IO_FILE_NAME               oldName;
     IO_FILE_NAME               newName;         // Do not free these contents
@@ -893,6 +941,9 @@ typedef struct _SRV_NT_RENAME_STATE_SMB_V1
 
     PVOID                      pSecurityDescriptor;
     PVOID                      pSecurityQOS;
+
+    PIO_ECP_LIST               pDirEcpList;
+    PIO_ECP_LIST               pFileEcpList;
 
     IO_FILE_NAME               oldName;
     IO_FILE_NAME               newName;         // Do not free these contents
@@ -1038,6 +1089,7 @@ typedef struct _SRV_CHECKDIR_STATE_SMB_V1
     IO_FILE_HANDLE            hFile;
     PVOID                     pSecurityDescriptor;
     PVOID                     pSecurityQOS;
+    PIO_ECP_LIST              pEcpList;
 
 } SRV_CHECKDIR_STATE_SMB_V1, *PSRV_CHECKDIR_STATE_SMB_V1;
 
@@ -1061,6 +1113,7 @@ typedef struct __SRV_MESSAGE_SMB_V1
     ULONG        ulSerialNum;       // Sequence # in packet; starts from 0
 
     PBYTE        pBuffer;           // Raw packet buffer
+    ULONG        ulOffset;          // Offset of packet buffer within message
 
     UCHAR        ucCommand;         // andx or SMB command
     PSMB_HEADER  pHeader;           // header corresponding to serial 0 message
@@ -1096,14 +1149,34 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V1
 
 } SRV_EXEC_CONTEXT_SMB_V1;
 
+/* Add new config parameters in alphabetic order. */
+typedef struct _SRV_CONFIG_SMB_V1
+{
+    DWORD dwOplockTimeoutMillisecs;
+
+} SRV_CONFIG_SMB_V1, *PSRV_CONFIG_SMB_V1;
+
 typedef struct _SRV_RUNTIME_GLOBALS_SMB_V1
 {
     pthread_mutex_t       mutex;
 
     PSMB_PROD_CONS_QUEUE  pWorkQueue;
 
-    ULONG                 ulOplockTimeout;
+    pthread_rwlock_t      configLock;
+    pthread_rwlock_t      *pConfigLock;
+    SRV_CONFIG_SMB_V1     config;
 
 } SRV_RUNTIME_GLOBALS_SMB_V1, *PSRV_RUNTIME_GLOBALS_SMB_V1;
 
 #endif /* __STRUCTS_H__ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

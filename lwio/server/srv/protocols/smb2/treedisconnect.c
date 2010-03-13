@@ -90,6 +90,8 @@ SrvProcessTreeDisconnect_SMB_V2(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SrvTree2Rundown(pTree);
+
     ntStatus = SrvSession2RemoveTree(
                     pSession,
                     pSmbRequest->pHeader->ulTid);
@@ -106,9 +108,12 @@ SrvProcessTreeDisconnect_SMB_V2(
                     pSmbRequest->pHeader->ullCommandSequence,
                     pTree->ulTid,
                     pSession->ullUid,
+                    0LL, /* Async Id */
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);

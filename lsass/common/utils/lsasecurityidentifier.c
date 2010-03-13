@@ -580,10 +580,10 @@ LsaHexStrToByteArray(
         UCHAR ucHi = 0;
         UCHAR ucLow = 0;
 
-        dwError = HexCharToByte(hexHi, &ucHi);
+        dwError = LsaHexCharToByte(hexHi, &ucHi);
         BAIL_ON_LSA_ERROR(dwError);
 
-        dwError = HexCharToByte(hexLow, &ucLow);
+        dwError = LsaHexCharToByte(hexLow, &ucLow);
         BAIL_ON_LSA_ERROR(dwError);
 
         pucByteArray[i] = (ucHi * 16) + ucLow;

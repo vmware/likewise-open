@@ -69,11 +69,19 @@ NTSTATUS __SamrClose(
 }
 
 
-NTSTATUS _samr_Function02(
-    /* [in] */ handle_t IDL_handle
+NTSTATUS __SamrSetSecurity(
+    /* [in] */ handle_t IDL_handle,
+    /* [in,context_handle] */ void *hObject,
+    /* [in] */ UINT32 security_info,
+    /* [in,ref] */ PSAMR_SECURITY_DESCRIPTOR_BUFFER secdesc
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvSetSecurity(IDL_handle,
+                                hObject,
+                                security_info,
+                                secdesc);
     return status;
 }
 
@@ -82,7 +90,7 @@ NTSTATUS __SamrQuerySecurity(
     /* [in] */ handle_t IDL_handle,
     /* [in,context_handle] */ void *hObject,
     /* [in] */ UINT32 security_info,
-    /* [out] */ PSECURITY_DESCRIPTOR_BUFFER *secdesc
+    /* [out] */ PSAMR_SECURITY_DESCRIPTOR_BUFFER *secdesc
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -618,7 +626,11 @@ NTSTATUS __SamrGetUserGroups(
     /* [out] */ RidWithAttributeArray **rids
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvGetUserGroups(IDL_handle,
+                                  hUser,
+                                  rids);
     return status;
 }
 
@@ -683,7 +695,11 @@ NTSTATUS __SamrGetUserPwInfo(
     /* [out] */ PwInfo *info
     )
 {
-    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvGetUserPwInfo(IDL_handle,
+                                  hUser,
+                                  info);
     return status;
 }
 
@@ -849,6 +865,23 @@ NTSTATUS __SamrConnect2(
                              system_name,
                              access_mask,
                              hConn);
+    return status;
+}
+
+
+NTSTATUS __SamrSetUserInfo2(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ ACCOUNT_HANDLE hUser,
+    /* [in] */ UINT16 level,
+    /* [in] */ UserInfo *info
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = SamrSrvSetUserInfo2(IDL_handle,
+                                 hUser,
+                                 level,
+                                 info);
     return status;
 }
 

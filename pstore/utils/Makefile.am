@@ -5,7 +5,6 @@ noinst_LTLIBRARIES=liblwps-utils.la
 liblwps_utils_la_SOURCES = \
        lwps-futils.c   \
        lwps-error.c    \
-       lwps-logger.c   \
        lwps-mem.c      \
        lwps-paths.c    \
        lwps-rwlock.c   \
@@ -17,7 +16,9 @@ liblwps_utils_la_SOURCES = \
 
 liblwps_utils_la_CPPFLAGS = @LIBUNISTR_INCLUDES@ $(AM_CPPFLAGS)
 liblwps_utils_la_LDFLAGS = @LIBUNISTR_LDFLAGS@
-liblwps_utils_la_LIBADD = @LIBUNISTR_LIBS@
+liblwps_utils_la_LIBADD = \
+	$(LIBUNISTR_LIBS) \
+	$(top_builddir)/logging/liblwps_logging.la
 
 noinst_HEADERS = \
 	lwps-error_p.h \

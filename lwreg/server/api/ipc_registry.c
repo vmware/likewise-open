@@ -212,6 +212,9 @@ RegSrvOpenServer(
     pServerState->peerUID = peerUID;
     pServerState->peerGID = peerGID;
 
+    status = RegSrvCreateAccessToken(peerUID, peerGID, &pServerState->pToken);
+    BAIL_ON_NT_STATUS(status);
+
     *phServer = (HANDLE)pServerState;
 
 cleanup:
@@ -239,6 +242,11 @@ RegSrvCloseServer(
     if (pServerState->hEventLog != (HANDLE)NULL)
     {
        //RegSrvCloseEventLog(pServerState->hEventLog);
+    }
+
+    if (pServerState->pToken)
+    {
+        RtlReleaseAccessToken(&pServerState->pToken);
     }
 
     LwRtlMemoryFree(pServerState);
@@ -356,7 +364,7 @@ RegSrvIpcCreateKeyEx(
         status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_CREATE_KEY_EX_RESPONSE, sizeof(*pRegResp));
         BAIL_ON_NT_STATUS(status);
 
-        pRegResp->dwDisposition= dwDisposition;
+        pRegResp->dwDisposition = dwDisposition;
         pRegResp->hkResult = hkResult;
         hkResult = NULL;
 
@@ -539,17 +547,32 @@ RegSrvIpcEnumKeyExW(
 	NTSTATUS status = 0;
     PREG_IPC_ENUM_KEY_EX_REQ pReq = pIn->data;
     PREG_IPC_ENUM_KEY_EX_RESPONSE pRegResp = NULL;
+    PWSTR pKeyName = NULL;
+    PWSTR pClassName = NULL;
     PREG_IPC_STATUS pStatus = NULL;
+
+
+    if (pReq->cName)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pKeyName, WCHAR, pReq->cName*sizeof(*pKeyName));
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    if (pReq->cClass)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pClassName, WCHAR, pReq->cClass*sizeof(*pClassName));
+        BAIL_ON_NT_STATUS(status);
+    }
 
     status = RegSrvEnumKeyExW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->dwIndex,
-        pReq->pName,
+        pKeyName,
         &pReq->cName,
         NULL,
-        pReq->pClass,
-        pReq->pcClass,
+        pClassName,
+        &pReq->cClass,
         NULL
         );
     if (!status)
@@ -557,9 +580,13 @@ RegSrvIpcEnumKeyExW(
         status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_KEY_EX_RESPONSE, sizeof(*pRegResp));
         BAIL_ON_NT_STATUS(status);
 
-        pRegResp->pName= pReq->pName;
-        pReq->pName = NULL;
+        pRegResp->pName= pKeyName;
+        pKeyName = NULL;
         pRegResp->cName = pReq->cName;
+
+        pRegResp->pClass= pClassName;
+        pClassName = NULL;
+        pRegResp->cClass = pReq->cClass;
 
         pOut->tag = REG_R_ENUM_KEYW_EX;
         pOut->data = pRegResp;
@@ -574,6 +601,9 @@ RegSrvIpcEnumKeyExW(
     }
 
 cleanup:
+    LWREG_SAFE_FREE_MEMORY(pKeyName);
+    LWREG_SAFE_FREE_MEMORY(pClassName);
+
     return MAP_REG_ERROR_IPC(status);
 
 error:
@@ -597,6 +627,7 @@ RegSrvIpcQueryInfoKeyW(
     DWORD dwValueCount = 0;
     DWORD dwMaxValueNameLen = 0;
     DWORD dwMaxValueLen = 0;
+    DWORD dwSecurityDescriptorLen = 0;
 
     status = RegSrvQueryInfoKeyW(
         RegSrvIpcGetSessionData(pCall),
@@ -610,7 +641,7 @@ RegSrvIpcQueryInfoKeyW(
         &dwValueCount,
         &dwMaxValueNameLen,
         &dwMaxValueLen,
-        NULL,
+        &dwSecurityDescriptorLen,
         NULL
         );
     if (!status)
@@ -623,6 +654,7 @@ RegSrvIpcQueryInfoKeyW(
         pRegResp->cValues = dwValueCount;
         pRegResp->cMaxValueNameLen = dwMaxValueNameLen;
         pRegResp->cMaxValueLen = dwMaxValueLen;
+        pRegResp->cSecurityDescriptor = dwSecurityDescriptorLen;
 
         pOut->tag = REG_R_QUERY_INFO_KEYW;
         pOut->data = pRegResp;
@@ -656,6 +688,13 @@ RegSrvIpcGetValueW(
     PREG_IPC_GET_VALUE_RESPONSE pRegResp = NULL;
     PREG_IPC_STATUS pStatus = NULL;
     DWORD dwType = 0;
+    PBYTE pData = NULL;
+
+    if (pReq->cbData)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pData, BYTE, pReq->cbData*sizeof(*pData));
+        BAIL_ON_NT_STATUS(status);
+    }
 
     status = RegSrvGetValueW(
         RegSrvIpcGetSessionData(pCall),
@@ -664,18 +703,17 @@ RegSrvIpcGetValueW(
         pReq->pValue,
         pReq->Flags,
         &dwType,
-        pReq->pData,
+        pData,
         &pReq->cbData
         );
-
     if (!status)
     {
         status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_GET_VALUE_RESPONSE, sizeof(*pRegResp));
         BAIL_ON_NT_STATUS(status);
 
         pRegResp->cbData = pReq->cbData;
-        pRegResp->pvData = pReq->pData;
-        pReq->pData = NULL;
+        pRegResp->pvData = pData;
+        pData = NULL;
         pRegResp->dwType = dwType;
 
         pOut->tag = REG_R_GET_VALUEW;
@@ -691,6 +729,8 @@ RegSrvIpcGetValueW(
     }
 
 cleanup:
+    LWREG_SAFE_FREE_MEMORY(pData);
+
     return MAP_REG_ERROR_IPC(status);
 
 error:
@@ -826,18 +866,32 @@ RegSrvIpcEnumValueW(
 	NTSTATUS status = 0;
     PREG_IPC_ENUM_VALUE_REQ pReq = pIn->data;
     PREG_IPC_ENUM_VALUE_RESPONSE pRegResp = NULL;
+    PWSTR pValueName = NULL;
+    PBYTE pValue = NULL;
     PREG_IPC_STATUS pStatus = NULL;
     REG_DATA_TYPE type = REG_UNKNOWN;
+
+    if (pReq->cName)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pValueName, WCHAR, pReq->cName*sizeof(*pValueName));
+        BAIL_ON_NT_STATUS(status);
+    }
+
+    if (pReq->cValue)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pValue, BYTE, pReq->cValue*sizeof(*pValue));
+        BAIL_ON_NT_STATUS(status);
+    }
 
     status = RegSrvEnumValueW(
         RegSrvIpcGetSessionData(pCall),
         pReq->hKey,
         pReq->dwIndex,
-        pReq->pName,
+        pValueName,
         &pReq->cName,
         NULL,
         &type,
-        pReq->pValue,
+        pValue,
         &pReq->cValue);
 
     if (!status)
@@ -845,11 +899,11 @@ RegSrvIpcEnumValueW(
         status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_ENUM_VALUE_RESPONSE, sizeof(*pRegResp));
         BAIL_ON_NT_STATUS(status);
 
-        pRegResp->pName= pReq->pName;
-        pReq->pName = NULL;
+        pRegResp->pName= pValueName;
+        pValueName = NULL;
         pRegResp->cName = pReq->cName;
-        pRegResp->pValue = pReq->pValue;
-        pReq->pValue = NULL;
+        pRegResp->pValue = pValue;
+        pValue = NULL;
         pRegResp->cValue = pReq->cValue;
         pRegResp->type = type;
 
@@ -866,6 +920,9 @@ RegSrvIpcEnumValueW(
     }
 
 cleanup:
+    LWREG_SAFE_FREE_MEMORY(pValueName);
+    LWREG_SAFE_FREE_MEMORY(pValue);
+
     return MAP_REG_ERROR_IPC(status);
 
 error:
@@ -978,7 +1035,7 @@ RegSrvIpcSetKeySecurity(
     )
 {
 	NTSTATUS status = 0;
-    PREG_IPC_KEY_SECURITY_REQ pReq = pIn->data;
+    PREG_IPC_SET_KEY_SECURITY_REQ pReq = pIn->data;
     PREG_IPC_STATUS pStatus = NULL;
 
     status = RegSrvSetKeySecurity(RegSrvIpcGetSessionData(pCall),
@@ -1016,22 +1073,29 @@ RegSrvIpcGetKeySecurity(
     )
 {
 	NTSTATUS status = 0;
-    PREG_IPC_KEY_SECURITY_REQ pReq = pIn->data;
+    PREG_IPC_GET_KEY_SECURITY_REQ pReq = pIn->data;
     PREG_IPC_GET_KEY_SECURITY_RES pRegResp = NULL;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecDescRel = NULL;
     PREG_IPC_STATUS pStatus = NULL;
+
+    if (pReq->Length)
+    {
+	status = LW_RTL_ALLOCATE((PVOID*)&pSecDescRel, VOID, pReq->Length);
+        BAIL_ON_NT_STATUS(status);
+    }
 
     status = RegSrvGetKeySecurity(RegSrvIpcGetSessionData(pCall),
 		                      pReq->hKey,
 		                      pReq->SecurityInformation,
-		                      pReq->SecurityDescriptor,
+		                      pSecDescRel,
 		                      &pReq->Length);
 	if (!status)
 	{
 		status = LW_RTL_ALLOCATE((PVOID*)&pRegResp, REG_IPC_GET_KEY_SECURITY_RES, sizeof(*pRegResp));
 		BAIL_ON_NT_STATUS(status);
 
-		pRegResp->SecurityDescriptor = pReq->SecurityDescriptor;
-		pReq->SecurityDescriptor = NULL;
+		pRegResp->SecurityDescriptor = pSecDescRel;
+		pSecDescRel = NULL;
 		pRegResp->Length = pReq->Length;
 
 		pOut->tag = REG_R_GET_KEY_SECURITY;
@@ -1047,6 +1111,7 @@ RegSrvIpcGetKeySecurity(
     }
 
 cleanup:
+    LWREG_SAFE_FREE_MEMORY(pSecDescRel);
     return MAP_REG_ERROR_IPC(status);
 
 error:

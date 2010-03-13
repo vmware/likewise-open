@@ -48,6 +48,17 @@
  */
 #include "client.h"
 
+/*
+ * This is a work-around for the fact we don't exactly know the
+ * multibyte size for these paramters. The only way we can determine
+ * this correctly is to actually enumerate the key/values and
+ * find the maximum multibyte string length. This is a lot of work,
+ * which isn't really necessary. These sizes are used for memory
+ * allocation purposes normally, so as long as these are at least
+ * as big as the longest multibyte value, this is good enough.
+ */
+#define LW_WC2MBS_FACTOR_MAX 4
+
 REG_API
 NTSTATUS
 NtRegEnumRootKeysA(
@@ -180,7 +191,17 @@ NtRegCreateKeyExW(
     OUT OPTIONAL PDWORD pdwDisposition
     )
 {
-    return RegTransactCreateKeyExW(
+    NTSTATUS status = 0;
+
+    BAIL_ON_NT_INVALID_POINTER(pSubKey);
+
+    if (wc16slen(pSubKey) > MAX_KEY_LENGTH)
+    {
+	status = STATUS_INVALID_BLOCK_LENGTH;
+	BAIL_ON_NT_STATUS(status);
+    }
+
+	status = RegTransactCreateKeyExW(
         hRegConnection,
         hKey,
         pSubKey,
@@ -192,6 +213,13 @@ NtRegCreateKeyExW(
         phkResult,
         pdwDisposition
         );
+	BAIL_ON_NT_STATUS(status);
+
+cleanup:
+    return status;
+
+error:
+    goto cleanup;
 }
 
 REG_API
@@ -775,6 +803,7 @@ NtRegGetValueA(
     if (dwType == REG_SZ)
     {
         cTempData *= sizeof(WCHAR);
+        LWREG_SAFE_FREE_MEMORY(pTempData);
         status = LW_RTL_ALLOCATE(&pTempData, BYTE, cTempData);
         BAIL_ON_NT_STATUS(status);
 	status = RegTransactGetValueW(
@@ -966,6 +995,7 @@ NtRegQueryInfoKeyA(
     DWORD cMaxValueLen = 0;
     CHAR valueName[MAX_KEY_LENGTH] = {0};
     DWORD cValueName = MAX_KEY_LENGTH;
+    DWORD dwType = 0;
 
     if (pcClass)
     {
@@ -995,22 +1025,13 @@ NtRegQueryInfoKeyA(
         pftLastWriteTime);
 	BAIL_ON_NT_STATUS(status);
 
-    /*
-     * This is a work-around for the fact we don't exactly know the
-     * multibyte size for these paramters. The only way we can determine
-     * this correctly is to actually enumerate the key/values and
-     * find the maximum multibyte string length. This is a lot of work,
-     * which isn't really necessary. These sizes are used for memory
-     * allocation purposes normally, so as long as these are at least
-     * as big as the longest multibyte value, this is good enough.
-     */
     if (pcMaxSubKeyLen)
     {
-        *pcMaxSubKeyLen *= 4;
+        *pcMaxSubKeyLen *= LW_WC2MBS_FACTOR_MAX;
     }
     if (pcMaxValueNameLen)
     {
-        *pcMaxValueNameLen *= 4;
+        *pcMaxValueNameLen *= LW_WC2MBS_FACTOR_MAX;
     }
 
 	for (; dwIndex < cValues; dwIndex++)
@@ -1025,11 +1046,15 @@ NtRegQueryInfoKeyA(
 				                valueName,
 				                &cValueName,
 				                NULL,
-				                NULL,
+                                &dwType,
 		                        NULL,
 		                        &cbData);
 		BAIL_ON_NT_STATUS(status);
 
+	if (REG_MULTI_SZ == dwType || REG_SZ == dwType)
+        {
+            cbData *= LW_WC2MBS_FACTOR_MAX;
+        }
         if (cMaxValueLen < cbData)
 		{
 			cMaxValueLen = cbData;

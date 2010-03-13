@@ -65,7 +65,7 @@ static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     { FileStandardInformation,          &NpfsFileStandardInfo },
     { FileInternalInformation,          NULL },
     { FileEaInformation,                NULL },
-    { FileAccessInformation,            NULL },
+    { FileAccessInformation,            NpfsFileAccessInfo },
     { FileNameInformation,              NULL },
     { FileRenameInformation,            NULL },
     { FileLinkInformation,              NULL },
@@ -121,6 +121,8 @@ NpfsQueryInformation(
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+
+    pIrp->IoStatusBlock.Status = ntStatus;
 
     if(pIrpContext) {
         NpfsFreeIrpContext(pIrpContext);

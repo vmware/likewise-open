@@ -107,6 +107,7 @@ NetGetAccountName(
     UINT32    hash = 0;
     UINT32    offset = 0;
     wchar16_t newname[16];
+    wchar16_t searchname[17];
     size_t    hashstrlen = 0;
     size_t    samacctname_len = 0;
 
@@ -162,7 +163,16 @@ NetGetAccountName(
 
             SAFE_FREE(hashstr);
 
-            err = MachAcctSearch( ld, newname, base_dn, &dn );
+            if (sw16printfw(searchname,
+                            sizeof(searchname)/sizeof(wchar16_t),
+                            L"%ws$",
+                            newname) < 0)
+            {
+                err = ErrnoToWin32Error(errno);
+                BAIL_ON_WINERR_ERROR(err);
+            }
+
+            err = MachAcctSearch( ld, searchname, base_dn, &dn );
             if ( err != ERROR_SUCCESS )
             {
                 err = ERROR_SUCCESS;
@@ -172,6 +182,7 @@ NetGetAccountName(
 
                 break;
             }
+            SAFE_FREE(dn);
         }
         if (offset == 10)
         {
@@ -205,6 +216,7 @@ cleanup:
     SAFE_FREE(hashstr);
     SAFE_FREE(dn);
     SAFE_FREE(samname);
+    SAFE_FREE(base_dn);
 
     return err;
 
@@ -340,7 +352,9 @@ NetJoinDomainLocalInternal(
 
     samr_b = conn->samr.bind;
 
-    get_random_string_w16(machine_pass, sizeof(machine_pass)/sizeof(wchar16_t));
+    GenerateMachinePassword(
+        machine_pass,
+        sizeof(machine_pass)/sizeof(machine_pass[0]));
 
     /* for start, let's assume the account already exists */
     newacct = false;
@@ -375,12 +389,12 @@ NetJoinDomainLocalInternal(
                                 machine_pass);
     BAIL_ON_NTSTATUS_ERROR(status);
 
-    status = SamrClose(samr_b, hAccount);
-    BAIL_ON_NTSTATUS_ERROR(status);
-
     status = RtlAllocateWC16StringFromSid(&sid_str, conn->samr.dom_sid);
     if (status != STATUS_SUCCESS) {
-        close_status = DisableWksAccount(conn, machacct_name, hAccount);
+        SamrClose(conn->samr.bind, hAccount);
+        hAccount = NULL;
+
+        close_status = DisableWksAccount(conn, machacct_name, &hAccount);
         BAIL_ON_NTSTATUS_ERROR(close_status);
 
         err = NtStatusToWin32Error(status);
@@ -396,8 +410,12 @@ NetJoinDomainLocalInternal(
               domain_controller_name,
               sid_str,
               machine_pass);
+
     if (err != ERROR_SUCCESS) {
-        close_status = DisableWksAccount(conn, machacct_name, hAccount);
+        SamrClose(conn->samr.bind, hAccount);
+        hAccount = NULL;
+
+        close_status = DisableWksAccount(conn, machacct_name, &hAccount);
         BAIL_ON_NTSTATUS_ERROR(close_status);
 
         BAIL_ON_WINERR_ERROR(err);
@@ -532,7 +550,14 @@ NetJoinDomainLocalInternal(
     }
 
 cleanup:
+
     if (conn) {
+
+        if (conn->samr.bind && hAccount)
+        {
+            SamrClose(conn->samr.bind, hAccount);
+        }
+
         close_status = NetDisconnectSamr(conn);
         if (status == STATUS_SUCCESS &&
             close_status != STATUS_SUCCESS)
@@ -572,6 +597,8 @@ cleanup:
     SAFE_FREE(spn_attr_name);
     SAFE_FREE(spn_attr_val[0]);
     SAFE_FREE(spn_attr_val[1]);
+    SAFE_FREE(desc_attr_name);
+    SAFE_FREE(desc_attr_val[0]);
     SAFE_FREE(osname_attr_name);
     SAFE_FREE(osname_attr_val[0]);
     SAFE_FREE(osver_attr_name);

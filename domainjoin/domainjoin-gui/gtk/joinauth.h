@@ -31,7 +31,7 @@
 #ifndef __JOINAUTH_H__
 #define __JOINAUTH_H__
 
-#include <gtk/gtk.h>
+#include "common.h"
 
 #define JOINAUTH_CANCEL 0
 #define JOINAUTH_OK 1
@@ -40,7 +40,7 @@ struct JoinAuthDialog;
 
 typedef struct JoinAuthDialog JoinAuthDialog;
 
-JoinAuthDialog* joinauth_new(GtkWindow* parent);
+JoinAuthDialog* joinauth_new(PJOINSTATE pJoinState, GtkWindow* parent);
 void joinauth_delete(JoinAuthDialog* dialog);
 int joinauth_run(JoinAuthDialog* dialog);
 const char* joinauth_get_user(JoinAuthDialog* dialog);

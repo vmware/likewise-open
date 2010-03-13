@@ -207,12 +207,6 @@ typedef struct __SMB2_CREATE_REQUEST_HEADER
 } __attribute__((__packed__)) SMB2_CREATE_REQUEST_HEADER,
                              *PSMB2_CREATE_REQUEST_HEADER;
 
-typedef struct __SMB2_FID
-{
-    ULONG64 ullPersistentId;
-    ULONG64 ullVolatileId;
-} __attribute__((__packed__)) SMB2_FID, *PSMB2_FID;
-
 typedef struct __SMB2_CREATE_RESPONSE_HEADER
 {
     USHORT   usLength;
@@ -430,17 +424,17 @@ typedef struct __SMB2_IOCTL_RESPONSE_HEADER
 
 typedef struct __SMB2_LOCK
 {
-    ULONG64 ullFileOffset;
-    ULONG64 ullByteRange;
-    ULONG   ulFlags;
-    ULONG   ulReserved;
+    LONG64 ullFileOffset;
+    LONG64 ullByteRange;
+    ULONG  ulFlags;
+    ULONG  ulReserved;
 } __attribute__((__packed__)) SMB2_LOCK, *PSMB2_LOCK;
 
 typedef struct __SMB2_LOCK_REQUEST_HEADER
 {
     USHORT    usLength;
     USHORT    usLockCount;
-    ULONG     ulReserved;
+    ULONG     ulLockSequence;
     SMB2_FID  fid;
     SMB2_LOCK locks[1];
 } __attribute__((__packed__)) SMB2_LOCK_REQUEST_HEADER,
@@ -452,43 +446,6 @@ typedef struct __SMB2_LOCK_RESPONSE_HEADER
     USHORT    usReserved;
 } __attribute__((__packed__)) SMB2_LOCK_RESPONSE_HEADER,
                              *PSMB2_LOCK_RESPONSE_HEADER;;
-
-typedef struct _SRV_SMB2_LOCK_REQUEST* PSRV_SMB2_LOCK_REQUEST;
-
-typedef struct _SRV_SMB2_LOCK_CONTEXT
-{
-    SMB2_LOCK               lockInfo;
-
-    ULONG                   ulKey;
-
-    IO_ASYNC_CONTROL_BLOCK  acb;
-    PIO_ASYNC_CONTROL_BLOCK pAcb;
-
-    IO_STATUS_BLOCK         ioStatusBlock;
-
-    PSRV_SMB2_LOCK_REQUEST  pLockRequest;
-    PSRV_EXEC_CONTEXT       pExecContext;
-
-} SRV_SMB2_LOCK_CONTEXT, *PSRV_SMB2_LOCK_CONTEXT;
-
-typedef struct _SRV_SMB2_LOCK_REQUEST
-{
-    LONG                   refCount;
-
-    pthread_mutex_t        mutex;
-    pthread_mutex_t*       pMutex;
-
-    ULONG                  ulNumContexts;
-
-    PSRV_SMB2_LOCK_CONTEXT pLockContexts; /* unlocks and locks */
-
-    LONG                   lPendingContexts;
-
-    IO_STATUS_BLOCK        ioStatusBlock;
-
-    BOOLEAN                bComplete;
-
-} SRV_SMB2_LOCK_REQUEST;
 
 typedef struct __SMB2_FIND_REQUEST_HEADER
 {
@@ -517,6 +474,17 @@ typedef struct __SMB2_FIND_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_FIND_RESPONSE_HEADER,
                              *PSMB2_FIND_RESPONSE_HEADER;
 
+typedef struct __SMB2_NOTIFY_RESPONSE_HEADER
+{
+    USHORT   usLength;
+    USHORT   usOutBufferOffset;
+    ULONG    ulOutBufferLength;
+
+    /* Notify results follow */
+
+} __attribute__((__packed__)) SMB2_NOTIFY_RESPONSE_HEADER,
+                             *PSMB2_NOTIFY_RESPONSE_HEADER;
+
 typedef struct __SMB2_OPLOCK_BREAK_HEADER
 {
     USHORT   usLength;
@@ -536,7 +504,7 @@ typedef struct __SMB2_ERROR_RESPONSE_HEADER
 } __attribute__((__packed__)) SMB2_ERROR_RESPONSE_HEADER,
                              *PSMB2_ERROR_RESPONSE_HEADER;
 
-typedef struct _SMB2_FILE_ID_BOTH_DIR_INFORMATION
+typedef struct _SMB2_FILE_ID_BOTH_DIR_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
     ULONG           ulFileIndex;
@@ -559,7 +527,7 @@ typedef struct _SMB2_FILE_ID_BOTH_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_ID_BOTH_DIR_INFO_HEADER,
                              *PSMB2_FILE_ID_BOTH_DIR_INFO_HEADER;
 
-typedef struct _SMB2_FILE_ID_FULL_DIR_INFORMATION
+typedef struct _SMB2_FILE_ID_FULL_DIR_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
     ULONG           ulFileIndex;
@@ -579,7 +547,7 @@ typedef struct _SMB2_FILE_ID_FULL_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_ID_FULL_DIR_INFO_HEADER,
                              *PSMB2_FILE_ID_FULL_DIR_INFO_HEADER;
 
-typedef struct _SMB2_FILE_BOTH_DIR_INFORMATION
+typedef struct _SMB2_FILE_BOTH_DIR_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
     ULONG           ulFileIndex;
@@ -599,7 +567,7 @@ typedef struct _SMB2_FILE_BOTH_DIR_INFORMATION
 } __attribute__((__packed__)) SMB2_FILE_BOTH_DIR_INFO_HEADER,
                              *PSMB2_FILE_BOTH_DIR_INFO_HEADER;
 
-typedef struct _SMB2_FILE_FULL_DIR_INFORMATION
+typedef struct _SMB2_FILE_FULL_DIR_INFO_HEADER
 {
     ULONG           ulNextEntryOffset;
     ULONG           ulFileIndex;
@@ -616,6 +584,33 @@ typedef struct _SMB2_FILE_FULL_DIR_INFORMATION
 
 } __attribute__((__packed__)) SMB2_FILE_FULL_DIR_INFO_HEADER,
                              *PSMB2_FILE_FULL_DIR_INFO_HEADER;
+
+typedef struct _SMB2_FILE_DIRECTORY_INFO_HEADER
+{
+    ULONG           ulNextEntryOffset;
+    ULONG           ulFileIndex;
+    LONG64          ullCreationTime;
+    LONG64          ullLastAccessTime;
+    LONG64          ullLastWriteTime;
+    LONG64          ullChangeTime;
+    LONG64          ullEndOfFile;
+    LONG64          ullAllocationSize;
+    FILE_ATTRIBUTES ulFileAttributes;
+    ULONG           ulFileNameLength;
+    // WCHAR           wszFileName[1];
+
+} __attribute__((__packed__)) SMB2_FILE_DIRECTORY_INFO_HEADER,
+                             *PSMB2_FILE_DIRECTORY_INFO_HEADER;
+
+typedef struct _SMB2_FILE_NAMES_INFO_HEADER
+{
+    ULONG           ulNextEntryOffset;
+    ULONG           ulFileIndex;
+    ULONG           ulFileNameLength;
+    // WCHAR           wszFileName[1];
+
+} __attribute__((__packed__)) SMB2_FILE_NAMES_INFO_HEADER,
+                             *PSMB2_FILE_NAMES_INFO_HEADER;
 
 typedef struct _SMB2_FILE_ALL_INFORMATION_HEADER
 {
@@ -685,6 +680,24 @@ typedef struct _SMB2_FILE_COMPRESSION_INFORMATION_HEADER
 } __attribute__((__packed__)) SMB2_FILE_COMPRESSION_INFORMATION_HEADER,
                              *PSMB2_FILE_COMPRESSION_INFORMATION_HEADER;
 
+typedef struct _SMB2_FILE_NAME_INFORMATION
+{
+    ULONG     ulFileNameLength;
+    WCHAR     FileName[];
+} __attribute__((__packed__)) SMB2_FILE_NAME_INFORMATION,
+                             *PSMB2_FILE_NAME_INFORMATION;
+
+typedef struct
+{
+    USHORT   usLength;
+    USHORT   usFlags;
+    ULONG    ulOutputBufferLength;
+    SMB2_FID fid;
+    ULONG    ulCompletionFilter;
+    ULONG    ulReserved;
+} __attribute__((__packed__)) SMB2_NOTIFY_CHANGE_HEADER,
+                             *PSMB2_NOTIFY_CHANGE_HEADER;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
 typedef struct _SRV_OPLOCK_INFO
@@ -710,7 +723,7 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V2
     ULONG64                 ullUid;
     ULONG64                 ulTid;
 
-    ULONG64                 ullFid;
+    SMB2_FID                fid;
     BOOLEAN                 bBreakRequestSent;
 
     PSRV_TIMER_REQUEST      pTimerRequest;
@@ -750,15 +763,17 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     IO_ASYNC_CONTROL_BLOCK       acb;
     PIO_ASYNC_CONTROL_BLOCK      pAcb;
 
-    PVOID                        pSecurityDescriptor;
-    PVOID                        pSecurityQOS;
-    PIO_FILE_NAME                pFilename;
-    PIO_ECP_LIST                 pEcpList;
-    IO_FILE_HANDLE               hFile;
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor; // Do not free
+    PVOID                         pSecurityQOS;
+    PIO_FILE_NAME                 pFilename;
+    PIO_ECP_LIST                  pEcpList;
+    IO_FILE_HANDLE                hFile;
 
     PSRV_CREATE_CONTEXT          pCreateContexts;
     ULONG                        iContext;
     ULONG                        ulNumContexts;
+
+    PSRV_CREATE_CONTEXT          pExtAContext;
 
     FILE_BASIC_INFORMATION       fileBasicInfo;
     PFILE_BASIC_INFORMATION      pFileBasicInfo;
@@ -781,6 +796,8 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     PLWIO_SRV_TREE_2             pTree;
     PLWIO_SRV_FILE_2             pFile;
     BOOLEAN                      bRemoveFileFromTree;
+
+    ULONG64                      ullAsyncId;
 
 } SRV_CREATE_STATE_SMB_V2, *PSRV_CREATE_STATE_SMB_V2;
 
@@ -905,16 +922,11 @@ typedef struct _SRV_GET_INFO_STATE_SMB_V2
 
     PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader; // Do not free
 
-    PLWIO_SRV_CONNECTION          pConnection;
     PLWIO_SRV_FILE_2              pFile;
 
     PBYTE                         pData2;
     ULONG                         ulDataLength;
     ULONG                         ulActualDataLength;
-
-    PBYTE                         pResponseBuffer;
-    size_t                        sAllocatedSize;
-    ULONG                         ulResponseBufferLen;
 
 } SRV_GET_INFO_STATE_SMB_V2, *PSRV_GET_INFO_STATE_SMB_V2;
 
@@ -939,6 +951,7 @@ typedef struct _SRV_SET_INFO_STATE_SMB_V2
 
     IO_ASYNC_CONTROL_BLOCK        acb;
     PIO_ASYNC_CONTROL_BLOCK       pAcb;
+    PIO_ECP_LIST                  pEcpList;
 
     PSMB2_SET_INFO_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                         pData;          // Do not free
@@ -990,6 +1003,155 @@ typedef struct _SRV_IOCTL_STATE_SMB_V2
 
 } SRV_IOCTL_STATE_SMB_V2, *PSRV_IOCTL_STATE_SMB_V2;
 
+typedef struct _SRV_NOTIFY_STATE_SMB_V2
+{
+    LONG                    refCount;
+
+    pthread_mutex_t         mutex;
+    pthread_mutex_t*        pMutex;
+
+    ULONG64                 ullAsyncId;
+
+    IO_STATUS_BLOCK         ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK  acb;
+    PIO_ASYNC_CONTROL_BLOCK pAcb;
+
+    ULONG                   ulCompletionFilter;
+    BOOLEAN                 bWatchTree;
+
+    PLWIO_SRV_CONNECTION    pConnection;
+
+    USHORT                  usEpoch;
+    ULONG64                 ullSessionId;
+    ULONG                   ulTid;
+    ULONG                   ulPid;
+    ULONG64                 ullCommandSequence;
+
+    PLWIO_SRV_FILE_2        pFile;
+
+    PBYTE                   pBuffer;
+    ULONG                   ulBufferLength;
+    ULONG                   ulBytesUsed;
+
+    ULONG                   ulMaxBufferSize;
+
+} SRV_NOTIFY_STATE_SMB_V2, *PSRV_NOTIFY_STATE_SMB_V2;
+
+typedef enum
+{
+    SRV_NOTIFY_STAGE_SMB_V2_INITIAL = 0,
+    SRV_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO,
+    SRV_NOTIFY_STAGE_SMB_V2_BUILD_RESPONSE,
+    SRV_NOTIFY_STAGE_SMB_V2_DONE
+} SRV_NOTIFY_STAGE_SMB_V2;
+
+typedef struct _SRV_NOTIFY_REQUEST_STATE_SMB_V2
+{
+    LONG                       refCount;
+
+    pthread_mutex_t            mutex;
+    pthread_mutex_t*           pMutex;
+
+    SRV_NOTIFY_STAGE_SMB_V2    stage;
+
+    IO_STATUS_BLOCK            ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK     acb;
+    PIO_ASYNC_CONTROL_BLOCK    pAcb;
+
+    PSMB2_NOTIFY_CHANGE_HEADER pRequestHeader; // Do not free
+
+    PLWIO_SRV_FILE_2           pFile;
+
+    ULONG64                    ullAsyncId;
+
+    PBYTE                      pResponseBuffer;
+    size_t                     sResponseBufferLen;
+    ULONG                      ulResponseBufferLen;
+
+} SRV_NOTIFY_REQUEST_STATE_SMB_V2, *PSRV_NOTIFY_REQUEST_STATE_SMB_V2;
+
+
+typedef enum
+{
+    SRV_LOCK_STAGE_SMB_V2_INITIAL = 0,
+    SRV_LOCK_STAGE_SMB_V2_ATTEMPT_LOCK,
+    SRV_LOCK_STAGE_SMB_V2_BUILD_RESPONSE,
+    SRV_LOCK_STAGE_SMB_V2_DONE
+} SRV_LOCK_STAGE_SMB_V2;
+
+typedef struct _SRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2
+{
+    LONG                      refCount;
+
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
+
+    SRV_LOCK_STAGE_SMB_V2     stage;
+
+    ULONG64                   ullAsyncId;
+
+    IO_STATUS_BLOCK           ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK    acb;
+    PIO_ASYNC_CONTROL_BLOCK   pAcb;
+
+    PSMB2_LOCK_REQUEST_HEADER pRequestHeader; // Do not free
+
+    ULONG                     ulTid;
+    PLWIO_SRV_FILE_2          pFile;
+
+    PSMB2_LOCK*               ppUnlockArray;
+    ULONG                     ulNumUnlocks;
+    ULONG                     iUnlock;
+    BOOLEAN                   bUnlockPending;
+
+    PSMB2_LOCK*               ppLockArray;
+    ULONG                     ulNumLocks;
+    ULONG                     iLock;
+    BOOLEAN                   bLockPending;
+
+    BOOLEAN                   bFailImmediately;
+
+} SRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2, *PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2;
+
+typedef struct _SRV_LOCK_REQUEST_STATE_SMB_V2
+{
+    LONG                      refCount;
+
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
+
+    SRV_LOCK_STAGE_SMB_V2     stage;
+
+    IO_STATUS_BLOCK           ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK    acb;
+    PIO_ASYNC_CONTROL_BLOCK   pAcb;
+
+    PSMB2_LOCK_REQUEST_HEADER pRequestHeader; // Do not free
+
+    ULONG                     ulTid;
+
+    PLWIO_SRV_FILE_2          pFile;
+
+    PSMB2_LOCK*               ppUnlockArray;
+    ULONG                     ulNumUnlocks;
+    ULONG                     iUnlock;
+    BOOLEAN                   bUnlockPending;
+
+    PSMB2_LOCK*               ppLockArray;
+    ULONG                     ulNumLocks;
+    ULONG                     iLock;
+    BOOLEAN                   bLockPending;
+
+    BOOLEAN                   bFailImmediately;
+
+    ULONG64                   ullAsyncId;
+
+} SRV_LOCK_REQUEST_STATE_SMB_V2, *PSRV_LOCK_REQUEST_STATE_SMB_V2;
+
 typedef enum
 {
     SRV_CLOSE_STAGE_SMB_V2_INITIAL = 0,
@@ -1012,7 +1174,7 @@ typedef struct _SRV_CLOSE_STATE_SMB_V2
     IO_ASYNC_CONTROL_BLOCK     acb;
     PIO_ASYNC_CONTROL_BLOCK    pAcb;
 
-    PSMB2_FID                  pFid; // Do not free
+    PSMB2_CLOSE_REQUEST_HEADER pRequestHeader; // Do not free
 
     FILE_BASIC_INFORMATION     fileBasicInfo;
     PFILE_BASIC_INFORMATION    pFileBasicInfo;
@@ -1045,6 +1207,9 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V2
     PLWIO_SRV_SESSION_2                  pSession;
     PLWIO_SRV_TREE_2                     pTree;
     PLWIO_SRV_FILE_2                     pFile;
+
+    LONG                                 llNumSuccessfulCreates;
+    NTSTATUS                             lastCloseStatus;
 
     HANDLE                               hState;
     PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2 pfnStateRelease;

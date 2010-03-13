@@ -48,12 +48,8 @@
  */
 #include "includes.h"
 
-LOGINFO gSrvSvcLogInfo =
-{
-    PTHREAD_MUTEX_INITIALIZER,
-    LOG_LEVEL_ERROR,
-    LOG_DISABLED,
-    {{"", NULL}},
-    0
-};
+HANDLE                 ghSrvSvcLog        = (HANDLE)NULL;
+SRVSVC_LOG_LEVEL       gSrvSvcMaxLogLevel = LWIO_LOG_LEVEL_ERROR;
+SRVSVC_LOG_TARGET      gSRVSVC_LOG_TARGET = LWIO_LOG_TARGET_DISABLED;
+PFN_SRVSVC_LOG_MESSAGE gpfnSrvSvcLogger   = NULL;
 

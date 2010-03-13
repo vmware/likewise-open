@@ -31,39 +31,50 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetShareGetInfo(
-    handle_t b,
-    const wchar16_t *servername,
-    const wchar16_t *netname,
-    UINT32 level,
-    UINT8 **bufptr
+NET_API_STATUS
+NetrShareGetInfo(
+    IN  handle_t     hBinding,
+    IN  PWSTR        pwszServername,
+    IN  PWSTR        pwszNetname,
+    IN  DWORD        dwLevel,
+    OUT PVOID       *ppBuffer
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
-    srvsvc_NetShareInfo info;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    srvsvc_NetShareInfo Info;
+    PVOID pBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(b, status);
-    BAIL_ON_INVALID_PTR(netname, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(hBinding, err);
+    BAIL_ON_INVALID_PTR(pwszNetname, err);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
 
-    memset(&info, 0, sizeof(info));
-    *bufptr = NULL;
+    memset(&Info, 0, sizeof(Info));
 
-    DCERPC_CALL(status,
-                _NetrShareGetInfo(b,
-                                  (wchar16_t *)servername,
-                                  (wchar16_t *)netname,
-                                  level, &info));
+    DCERPC_CALL(err,
+                _NetrShareGetInfo(hBinding,
+                                  pwszServername,
+                                  pwszNetname,
+                                  dwLevel,
+                                  &Info));
 
-    memerr = SrvSvcCopyNetShareInfo(level, &info, bufptr);
-    BAIL_ON_WIN_ERROR(memerr);
+    err = SrvSvcCopyNetShareInfo(dwLevel, &Info, &pBuffer);
+    BAIL_ON_WIN_ERROR(err);
+
+    *ppBuffer = pBuffer;
 
 cleanup:
-    SrvSvcClearNetShareInfo(level, &info);
-    return status;
+    SrvSvcClearNetShareInfo(dwLevel, &Info);
+
+    return err;
 
 error:
+    if (pBuffer)
+    {
+        SrvSvcFreeMemory(pBuffer);
+    }
+
+    *ppBuffer = NULL;
+
     goto cleanup;
 }
 

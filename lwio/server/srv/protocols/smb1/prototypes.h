@@ -66,8 +66,25 @@ SrvProcessCloseAndX(
 
 // config.c
 
+NTSTATUS
+SrvConfigSetupInitial_SMB_V1(
+    VOID
+    );
+
+NTSTATUS
+SrvConfigRefresh_SMB_V1(
+    VOID
+    );
+
+VOID
+SrvConfigShutdown_SMB_V1(
+    VOID
+    );
+
+// config.c - getter functions
+
 ULONG
-SrvConfigGetOplockTimeout_SMB_V1(
+SrvConfigGetOplockTimeoutMillisecs_SMB_V1(
     VOID
     );
 
@@ -121,21 +138,6 @@ SrvProcessEchoAndX(
 NTSTATUS
 SrvFinderCreateRepository(
     PHANDLE phFinderRepository
-    );
-
-NTSTATUS
-SrvFinderCreateSearchSpace(
-    PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
-    HANDLE         hFinderRepository,
-    PWSTR          pwszFilesystemPath,
-    PWSTR          pwszSearchPattern,
-    USHORT         usSearchAttrs,
-    ULONG          ulSearchStorageType,
-    SMB_INFO_LEVEL infoLevel,
-    BOOLEAN        bUseLongFilenames,
-    ACCESS_MASK    accessMask,
-    PHANDLE        phFinder,
-    PUSHORT        pusSearchId
     );
 
 NTSTATUS
@@ -423,6 +425,13 @@ SrvProcessSessionSetup(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// setinfo.c
+
+NTSTATUS
+SrvProcessSetInformation(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // setinfo2.c
 
 NTSTATUS
@@ -600,7 +609,6 @@ SrvUnmarshalHeaderAndX_SMB_V1(
     PBYTE         pBuffer,
     ULONG         ulOffset,
     ULONG         ulBytesAvailable,
-    UCHAR         ucCommand,
     PBYTE*        ppWordCount,
     PANDX_HEADER* ppAndXHeader,
     PUSHORT       pusBytesUsed

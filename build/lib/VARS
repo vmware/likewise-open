@@ -13,7 +13,7 @@ LIKEWISE_OPEN_EXTRA_TAG="ubuntu_lucid"
 _UUID=""
 _ICONV=""
 case `uname -s` in
-    NetBSD)
+    NetBSD|FreeBSD)
 	_UUID="libuuid"
 	_ICONV="libiconv"
 	;;

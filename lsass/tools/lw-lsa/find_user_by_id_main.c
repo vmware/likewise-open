@@ -386,6 +386,8 @@ PrintUserInfo_2(
     fprintf(stdout, "UPN:                        %s\n",
                     LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszUPN) ? "<null>" : pUserInfo->pszUPN);
     fprintf(stdout, "Generated UPN:              %s\n", pUserInfo->bIsGeneratedUPN ? "YES" : "NO");
+    fprintf(stdout, "DN:                         %s\n",
+                    LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszDN) ? "<null>" : pUserInfo->pszDN);
     fprintf(stdout, "Uid:                        %u\n", (unsigned int)pUserInfo->uid);
     fprintf(stdout, "Gid:                        %u\n", (unsigned int)pUserInfo->gid);
     fprintf(stdout, "Gecos:                      %s\n",

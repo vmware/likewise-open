@@ -99,13 +99,13 @@ SrvSvcNetShareEnum(
                         &pszSmbPath,
                         "\\srv"
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwMbsToWc16s(
                         pszSmbPath,
                         &filename.FileName
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtCreateFile(
                         &hFile,
@@ -130,7 +130,7 @@ SrvSvcNetShareEnum(
                     dwOutLength,
                     (void**)&pOutBuffer
                     );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtDeviceIoControlFile(
                     hFile,
@@ -153,7 +153,7 @@ SrvSvcNetShareEnum(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         ntStatus = NtDeviceIoControlFile(
                         hFile,
@@ -185,7 +185,7 @@ SrvSvcNetShareEnum(
                             sizeof(*ctr0->array) * ctr0->count,
                             (void**)&ctr0->array
                             );
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
         memcpy((void*)ctr0->array, (void*)pEnumParamsOut->info.p0,
                sizeof(*ctr0->array) * ctr0->count);
         break;
@@ -198,7 +198,7 @@ SrvSvcNetShareEnum(
                             sizeof(*ctr1->array) * ctr1->count,
                             (void**)&ctr1->array
                             );
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
         memcpy((void*)ctr1->array, (void*)pEnumParamsOut->info.p1,
                sizeof(*ctr1->array) * ctr1->count);
         break;
@@ -211,7 +211,7 @@ SrvSvcNetShareEnum(
                             sizeof(*ctr2->array) * ctr2->count,
                             (void**)&ctr2->array
                             );
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
         memcpy((void*)ctr2->array, (void*)pEnumParamsOut->info.p2,
                sizeof(*ctr2->array) * ctr2->count);
         break;
@@ -224,7 +224,7 @@ SrvSvcNetShareEnum(
                             sizeof(*ctr501->array) * ctr501->count,
                             (void**)&ctr501->array
                             );
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
         memcpy((void*)ctr501->array, (void*)pEnumParamsOut->info.p501,
                sizeof(*ctr501->array) * ctr501->count);
         break;
@@ -237,7 +237,7 @@ SrvSvcNetShareEnum(
                             sizeof(*ctr502->array) * ctr502->count,
                             (void**)&ctr502->array
                             );
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
         memcpy((void*)ctr502->array, (void*)pEnumParamsOut->info.p502,
                sizeof(*ctr502->array) * ctr502->count);
         break;

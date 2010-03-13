@@ -39,6 +39,13 @@
 #ifndef __LWBASE_SECURITY_TYPES_H__
 #define __LWBASE_SECURITY_TYPES_H__
 
+#ifdef _DCE_IDL_
+
+cpp_quote("#include <lw/security-types.h>")
+cpp_quote("#if 0")
+
+#endif
+
 #include <lw/types.h>
 #include <lw/attrs.h>
 
@@ -901,17 +908,6 @@ typedef struct _SECURITY_DESCRIPTOR_ABSOLUTE *PSECURITY_DESCRIPTOR_ABSOLUTE;
 typedef struct _SECURITY_DESCRIPTOR_RELATIVE *PSECURITY_DESCRIPTOR_RELATIVE;
 #endif
 
-typedef struct _SECURITY_DESCRIPTOR_BUFFER
-{
-    ULONG ulBufferLen;
-#ifdef _DCE_IDL_
-    [size_is(ulBufferLen)]
-#endif
-    PBYTE pBuffer;
-}
-SECURITY_DESCRIPTOR_BUFFER, *PSECURITY_DESCRIPTOR_BUFFER;
-
-
 #define SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE (5 * sizeof(PVOID))
 #define SECURITY_DESCRIPTOR_RELATIVE_MIN_SIZE (5 * sizeof(ULONG))
 // Maximum for a revision 1 security descriptor
@@ -973,6 +969,21 @@ typedef ULONG SECURITY_INFORMATION, *PSECURITY_INFORMATION;
     0 )
 
 //
+// RtlCreatePrivateObjectSecurity() AutoInheritFlags
+//
+
+#define SEF_DACL_AUTO_INHERIT                   0x00000001
+#define SEF_SACL_AUTO_INHERIT                   0x00000002
+#define SEF_DEFAULT_DESCRIPTOR_FOR_OBJECT       0x00000004
+#define SEF_AVOID_PRIVILEGE_CHECK               0x00000008
+#define SEF_AVOID_OWNER_CHECK                   0x00000010
+#define SEF_DEFAULT_OWNER_FROM_PARENT           0X00000020
+#define SEF_DEFAULT_GROUP_FROM_PARENT           0X00000040
+#define SEF_MACL_NO_WRITE_UP                    0X00000100  // unused
+#define SEF_MACL_NO_READ_UP                     0X00000200  // unused
+#define SEF_AVOID_OWNER_RESTRICTION             0x00001000
+
+//
 // Access Token
 //
 // The underlying (non-handle) type for an access token is PACCESS_TOKEN.
@@ -984,6 +995,8 @@ typedef ULONG SECURITY_INFORMATION, *PSECURITY_INFORMATION;
 #ifndef _DCE_IDL_
 
 typedef struct _ACCESS_TOKEN *PACCESS_TOKEN;
+
+typedef struct _ACCESS_TOKEN_SELF_RELATIVE *PACCESS_TOKEN_SELF_RELATIVE;
 
 typedef ULONG TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
 
@@ -1043,6 +1056,10 @@ typedef struct _TOKEN_UNIX {
     ULONG Gid;
     ULONG Umask;
 } TOKEN_UNIX, *PTOKEN_UNIX;
+
+#else
+
+typedef void *PACCESS_TOKEN;
 
 #endif // _DCE_IDL_
 
@@ -1286,6 +1303,12 @@ typedef struct _SECURITY_QUALITY_OF_SERVICE {
     SECURITY_CONTEXT_TRACKING_MODE ContextTrackingMode;
     BOOLEAN EffectiveOnly;
 } SECURITY_QUALITY_OF_SERVICE, *PSECURITY_QUALITY_OF_SERVICE;
+
+#ifdef _DCE_IDL_
+
+cpp_quote("#endif")
+
+#endif
 
 #endif /* __LWBASE_SECURITY_TYPES_H__ */
 

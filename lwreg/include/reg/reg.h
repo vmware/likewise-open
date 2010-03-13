@@ -135,42 +135,48 @@ typedef ACCESS_MASK REGSAM;
 typedef DWORD REG_DATA_TYPE;
 typedef DWORD *PREG_DATA_TYPE;
 
-#define REG_NONE                           0 // No value type
-#define REG_SZ                             1 // Unicode null terminated string
-#define REG_EXPAND_SZ                      2 // hex(2): (Not supported)
-#define REG_BINARY                         3 // hex:
-#define REG_DWORD                          4 // dword
-#define REG_DWORD_LITTLE_ENDIAN            4 // 32-bit number (same as REG_DWORD)
-#define REG_DWORD_BIG_ENDIAN               5 // 32-bit number (Not supported)
-#define REG_LINK                           6 // hex(7): (Not supported)
-#define REG_MULTI_SZ                       7 // Multiple Unicode strings
-#define REG_RESOURCE_LIST                  8 // hex(8): (Not supported)
-#define REG_FULL_RESOURCE_DESCRIPTOR       9 // hex(9): (Not supported)
-#define REG_RESOURCE_REQUIREMENTS_LIST     10// hex(a): (Not supported)
-#define REG_QWORD                          11// hex(b): (Not supported)
-#define REG_QWORD_LITTLE_ENDIAN            11// hex(b):
+#define REG_NONE                           0  // No value type
+#define REG_SZ                             1  // Unicode null terminated string
+#define REG_EXPAND_SZ                      2  // hex(2): (Not supported)
+#define REG_BINARY                         3  // hex:
+#define REG_DWORD                          4  // dword
+#define REG_DWORD_LITTLE_ENDIAN            4  // 32-bit number (same as REG_DWORD)
+#define REG_DWORD_BIG_ENDIAN               5  // 32-bit number (Not supported)
+#define REG_LINK                           6  // hex(7): (Not supported)
+#define REG_MULTI_SZ                       7  // Multiple Unicode strings
+#define REG_RESOURCE_LIST                  8  // hex(8): (Not supported)
+#define REG_FULL_RESOURCE_DESCRIPTOR       9  // hex(9): (Not supported)
+#define REG_RESOURCE_REQUIREMENTS_LIST     10 // hex(a): (Not supported)
+#define REG_QWORD                          11 // hex(b): (Not supported)
+#define REG_QWORD_LITTLE_ENDIAN            11 // hex(b):
 
 
-#define REG_KEY                            21// represent the reg entry is a Key
-#define REG_KEY_DEFAULT                    22// Default "@" entry
-#define REG_PLAIN_TEXT                     23// A string without "" around it
-#define REG_UNKNOWN                        24// Unknown data type
+#define REG_KEY                            21 // represent the reg entry is a Key
+#define REG_KEY_DEFAULT                    22 // Default "@" entry
+#define REG_PLAIN_TEXT                     23 // A string without "" around it
+#define REG_UNKNOWN                        24 // Unknown data type
 
 
 typedef DWORD REG_DATA_TYPE_FLAGS;
 
 #define RRF_RT_REG_NONE       0x00000001
-#define RRF_RT_REG_SZ         0x00000002 //Restrict type to REG_SZ.
-#define RRF_RT_REG_EXPAND_SZ  0x00000004 //Restrict type to REG_EXPAND_SZ.
-#define RRF_RT_REG_BINARY     0x00000008 //Restrict type to REG_BINARY.
-#define RRF_RT_REG_DWORD      0x00000010 //Restrict type to REG_DWORD.
-#define RRF_RT_REG_MULTI_SZ   0x00000020 //Restrict type to REG_MULTI_SZ.
-#define RRF_RT_REG_QWORD      0x00000040 //Restrict type to REG_QWORD.
+#define RRF_RT_REG_SZ         0x00000002 // Restrict type to REG_SZ.
+#define RRF_RT_REG_EXPAND_SZ  0x00000004 // Restrict type to REG_EXPAND_SZ.
+#define RRF_RT_REG_BINARY     0x00000008 // Restrict type to REG_BINARY.
+#define RRF_RT_REG_DWORD      0x00000010 // Restrict type to REG_DWORD.
+#define RRF_RT_REG_MULTI_SZ   0x00000020 // Restrict type to REG_MULTI_SZ.
+#define RRF_RT_REG_QWORD      0x00000040 // Restrict type to REG_QWORD.
 #define RRF_RT_DWORD          RRF_RT_REG_BINARY | RRF_RT_REG_DWORD
 #define RRF_RT_QWORD          RRF_RT_REG_BINARY | RRF_RT_REG_QWORD
-#define RRF_RT_ANY            0x0000FFFF //No type restriction.
+#define RRF_RT_ANY            0x0000FFFF // No type restriction.
 #define RRF_NOEXPAND          0x10000000
 #define RRF_ZEROONFAILURE     0x20000000
+
+
+typedef DWORD REG_CREATE_KEY_DISPOSITION_FLAGS;
+
+#define REG_CREATED_NEW_KEY     0x00000001L // The key did not exist and was created.
+#define REG_OPENED_EXISTING_KEY 0x00000002L // The key existed and was simply opened without being changed.
 
 #define HKEY_THIS_MACHINE "HKEY_THIS_MACHINE"
 
@@ -258,7 +264,7 @@ RegFreeMemory(
 #define LWREG_ERROR_DUPLICATE_KEYVALUENAME                    40702
 #define LWREG_ERROR_FAILED_DELETE_HAS_SUBKEY                  40703
 #define LWREG_ERROR_UNKNOWN_DATA_TYPE                         40704
-#define LWREG_ERROR_BEYOUND_MAX_VALUE_LEN                     40705
+#define LWREG_ERROR_BEYOUND_MAX_KEY_OR_VALUE_LENGTH           40705
 #define LWREG_ERROR_NO_MORE_KEYS_OR_VALUES                    40706
 #define LWREG_ERROR_INVALID_NAME                              40707
 #define LWREG_ERROR_INVALID_CONTEXT                           40708

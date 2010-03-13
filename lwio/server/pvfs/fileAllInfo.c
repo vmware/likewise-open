@@ -110,6 +110,7 @@ PvfsQueryFileAllInfo(
     off_t CurrentOffset = 0;
     PSTR pszWinFileName = NULL;
     PSTR pszCursor = NULL;
+    BOOLEAN bDeletePending = FALSE;
 
     /* Sanity checks */
 
@@ -150,10 +151,30 @@ PvfsQueryFileAllInfo(
     BAIL_ON_NT_STATUS(ntError);
 
     /* Standard */
-    pFileInfo->StandardInformation.AllocationSize = Stat.s_alloc;
-    pFileInfo->StandardInformation.EndOfFile      = Stat.s_size;
-    pFileInfo->StandardInformation.NumberOfLinks  = Stat.s_nlink;
-    pFileInfo->StandardInformation.DeletePending  = pCcb->pFcb->bDeleteOnClose;
+    bDeletePending = PvfsFcbIsPendingDelete(pCcb->pFcb);
+
+    if (PVFS_IS_DIR(pCcb))
+    {
+        /* NTFS reports the allocation and end-of-file on
+           directories as 0.  smbtorture cares about this even
+           if no apps that I know of do. */
+
+        pFileInfo->StandardInformation.AllocationSize = 0;
+        pFileInfo->StandardInformation.EndOfFile      = 0;
+
+        pFileInfo->StandardInformation.NumberOfLinks  = bDeletePending ? 0 : 1;
+    }
+    else
+    {
+        pFileInfo->StandardInformation.EndOfFile      = Stat.s_size;
+        pFileInfo->StandardInformation.AllocationSize = Stat.s_alloc > Stat.s_size ?
+                                                        Stat.s_alloc : Stat.s_size;
+        pFileInfo->StandardInformation.NumberOfLinks  = bDeletePending ?
+                                                        Stat.s_nlink - 1:
+                                                        Stat.s_nlink;
+    }
+
+    pFileInfo->StandardInformation.DeletePending  = bDeletePending;
     pFileInfo->StandardInformation.Directory      = S_ISDIR(Stat.s_mode) ? TRUE : FALSE;
 
     /* Internal */
@@ -176,9 +197,11 @@ PvfsQueryFileAllInfo(
 
     /* Alignment */
 
+    pFileInfo->AlignmentInformation.AlignmentRequirement = 0L;
+
     /* Name */
 
-    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pszFilename);
+    ntError = LwRtlCStringDuplicate(&pszWinFileName, pCcb->pFcb->pszFilename);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Convert to a Windows pathname equivalent */

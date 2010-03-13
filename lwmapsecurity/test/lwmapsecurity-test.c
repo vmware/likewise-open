@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <ctype.h>
 
 #define LOG(Format, ...) \
     printf(Format "\n", ## __VA_ARGS__)
@@ -55,10 +56,23 @@
     do { \
         if (!NT_SUCCESS(status)) \
         { \
-            fprintf(stderr, "status = 0x%08x\n", status); \
-            assert(FALSE); \
+            MapErrorCodes(status); \
+            exit(1); \
         } \
     } while (0)
+
+VOID
+MapErrorCodes(
+    NTSTATUS status
+    );
+
+int
+IsNumber(char* strNum);
+
+void
+ParseArgs(
+    int argc,
+    char* argv[]);
 
 static
 VOID
@@ -192,7 +206,7 @@ DumpToken(
 
 static
 VOID
-Usage(
+ShowUsage(
     IN PCSTR pszProgramName
     )
 {
@@ -205,23 +219,56 @@ Usage(
            pszProgramName);
 }
 
+void
+ParseArgs(
+    int argc,
+    char* argv[])
+{
+    if ( argc < 2 || (strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0))
+    {
+        ShowUsage(argv[0]);
+        exit(0);
+    }
+    else
+    {
+        if(argc == 2)
+        {
+            if( isalpha((int)*argv[1]) == 0)
+            {
+                fprintf(stdout, "Name should start with an alphabet\n\n");
+                ShowUsage(argv[0]);
+                exit(1);
+            }
+        }
+        else if (argc == 3)
+        {
+            if ( IsNumber(argv[1]) || IsNumber(argv[2]) )
+            {
+                fprintf(stdout, "uid and gid should be numbers\n\n");
+                ShowUsage(argv[0]);
+                exit(1);
+            }
+        }
+        else
+        {
+            fprintf(stdout, "Too many arguements\n\n");
+            ShowUsage(argv[0]);
+            exit(1);
+        }
+    }
+}
+
 int
 main(
     IN int argc,
-    IN PCSTR argv[]
+    IN char* argv[]
     )
 {
     NTSTATUS status = 0;
-    PCSTR pszUsageError = NULL;
-    PCSTR pszProgramName = argv[0];
     PLW_MAP_SECURITY_CONTEXT context = NULL;
     PACCESS_TOKEN accessToken = NULL;
 
-    if ((argc < 2) || !strcasecmp("--help", argv[1]))
-    {
-        Usage(pszProgramName);
-        return 0;
-    }
+    ParseArgs(argc, argv);
 
     status = LwMapSecurityCreateContext(&context);
     ASSERT_NT_SUCCESS_STATUS(status);
@@ -246,24 +293,43 @@ main(
                         (ULONG) gid);
         ASSERT_NT_SUCCESS_STATUS(status);
     }
-    else
-    {
-        pszUsageError = "Too many arguments.\n";
-        goto cleanup;
-    }
 
     DumpToken(accessToken);
-
-cleanup:
-    if (pszUsageError)
-    {
-        printf("%s", pszUsageError);
-        Usage(pszProgramName);
-        status = STATUS_INVALID_PARAMETER;
-    }
 
     RtlReleaseAccessToken(&accessToken);
     LwMapSecurityFreeContext(&context);
 
     return NT_SUCCESS(status) ? 0 : 1;
+}
+
+int
+IsNumber(char* strNum)
+{
+    int nLen = 0;
+    int nIndex = 0;
+
+    nLen = strlen(strNum);
+
+    for (nIndex = 0; nIndex < nLen; nIndex++)
+    {
+        if (isdigit((int)strNum[nIndex]) == 0)
+            return -1;
+    }
+    return 0;
+}
+
+VOID
+MapErrorCodes(
+    NTSTATUS status
+    )
+{
+    switch (status)
+    {
+        case LW_STATUS_NOT_FOUND:
+            fprintf(stderr,"User not found. Error code 0x%X\n", status);
+            break;
+        default:
+            fprintf(stderr,"Invalid operation. Error code 0x%X\n", status);
+            break;
+	}
 }

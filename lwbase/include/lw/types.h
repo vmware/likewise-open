@@ -63,6 +63,13 @@
 // this is a DCE IDL compiler pass.
 //
 
+#ifdef _DCE_IDL_
+
+cpp_quote("#include <lw/types.h>")
+cpp_quote("#if 0")
+
+#endif
+
 #ifndef _DCE_IDL_
 #include <stddef.h>
 #include <inttypes.h>
@@ -432,5 +439,11 @@ typedef LW_PANSI_STRING PANSI_STRING;
 #define RtlDecimalDigitValue(Character) LwRtlDecimalDigitValue(Character)
 
 #endif /* LW_STRICT_NAMESPACE */
+
+#ifdef _DCE_IDL_
+
+cpp_quote("#endif")
+
+#endif
 
 #endif

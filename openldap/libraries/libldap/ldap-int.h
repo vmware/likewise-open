@@ -238,6 +238,7 @@ struct ldapoptions {
 #define LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT	0x0001
 #define LDAP_GSSAPI_OPT_ALLOW_REMOTE_PRINCIPAL	0x0002
 	unsigned ldo_gssapi_options;
+	void *gssapi_cred_handle;
 #endif
 
 	int		ldo_refhoplimit;	/* limit on referral nesting */

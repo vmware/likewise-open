@@ -12,21 +12,22 @@ SamrSrvBuildHomedirPath(
 
 NTSTATUS
 SamrSrvCreateAccount(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in] */ UnicodeStringEx *account_name,
-    /* [in  */ DWORD dwObjectClass,
-    /* [in] */ UINT32 account_flags,
-    /* [in] */ UINT32 access_mask,
-    /* [out] */ ACCOUNT_HANDLE *hAccount,
-    /* [out] */ UINT32 *access_granted,
-    /* [out] */ UINT32 *rid
+    IN  handle_t          hBinding,
+    IN  DOMAIN_HANDLE     hDomain,
+    IN  UnicodeStringEx  *pAccountName,
+    IN  DWORD             dwObjectClass,
+    IN  DWORD             dwAccountFlags,
+    IN  DWORD             dwAccessMask,
+    OUT ACCOUNT_HANDLE   *phAccount,
+    OUT PDWORD            pdwAccessGranted,
+    OUT PDWORD            pdwRid
     )
 {
     const wchar_t wszAccountDnFmt[] = L"CN=%ws,%ws";
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
     PDOMAIN_CONTEXT pDomCtx = NULL;
+    PCONNECT_CONTEXT pConnCtx = NULL;
     PACCOUNT_CONTEXT pAccCtx = NULL;
     HANDLE hDirectory = NULL;
     WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
@@ -131,7 +132,6 @@ SamrSrvCreateAccount(
     DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1];
 
     PWSTR pwszAccountName = NULL;
-    PWSTR pwszName = NULL;
     PWSTR pwszParentDn = NULL;
     PWSTR pwszAccountDn = NULL;
     PSTR pszShell = NULL;
@@ -145,34 +145,40 @@ SamrSrvCreateAccount(
     Ids Types = {0};
     DWORD dwRid = 0;
     DWORD dwAccountType = 0;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    GENERIC_MAPPING GenericMapping = {0};
+    DWORD dwAccessGranted = 0;
 
     memset(&Mods, 0, sizeof(Mods));
 
-    pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+    pDomCtx  = (PDOMAIN_CONTEXT)hDomain;
+    pConnCtx = pDomCtx->pConnCtx;
 
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    hDirectory   = pDomCtx->pConnCtx->hDirectory;
-    pwszParentDn = pDomCtx->pwszDn;
-
-    ntStatus = SamrSrvGetFromUnicodeStringEx(&pwszAccountName,
-                                             account_name);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-    dwError = LwAllocateWc16String(&pwszName,
-                                   pwszAccountName);
+    dwError = LwAllocateMemory(sizeof(*pAccCtx),
+                               OUT_PPVOID(&pAccCtx));
     BAIL_ON_LSA_ERROR(dwError);
 
-    /*
-     * Check if such account name already exists.
-     */
+    hDirectory   = pConnCtx->hDirectory;
+    pwszParentDn = pDomCtx->pwszDn;
+
+    dwError = LwAllocateWc16StringFromUnicodeString(
+                                     &pwszAccountName,
+                                     (PUNICODE_STRING)pAccountName);
+    BAIL_ON_LSA_ERROR(dwError);
 
     ntStatus = SamrSrvInitUnicodeString(&AccountName,
                                         pwszAccountName);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    /*
+     * Check if such account name already exists.
+     */
 
     ntStatus = SamrSrvLookupNames(hBinding,
                                   hDomain,
@@ -202,9 +208,9 @@ SamrSrvCreateAccount(
         SamrSrvFreeMemory(Types.ids);
     }
 
-    SamrSrvFreeUnicodeString(&AccountName);
-
-
+    /*
+     * Prepare account attributes and create the object
+     */
     dwError = LwWc16sLen(pwszAccountName, &sCommonNameLen);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -219,9 +225,13 @@ SamrSrvCreateAccount(
                                OUT_PPVOID(&pwszAccountDn));
     BAIL_ON_LSA_ERROR(dwError);
 
-    sw16printfw(pwszAccountDn, dwAccountDnLen, wszAccountDnFmt,
-                pwszAccountName,
-                pwszParentDn);
+    if (sw16printfw(pwszAccountDn, dwAccountDnLen, wszAccountDnFmt,
+                    pwszAccountName,
+                    pwszParentDn) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = SamrSrvConfigGetDefaultLoginShell(&pszShell);
     BAIL_ON_LSA_ERROR(dwError);
@@ -238,7 +248,7 @@ SamrSrvCreateAccount(
     AttrValues[ATTR_VAL_IDX_COMMON_NAME].data.pwszStringValue
         = pwszAccountName;
     AttrValues[ATTR_VAL_IDX_ACCOUNT_FLAGS].data.ulValue
-        = (account_flags | ACB_DISABLED);
+        = (dwAccountFlags | ACB_DISABLED);
     AttrValues[ATTR_VAL_IDX_NETBIOS_NAME].data.pwszStringValue
         = pDomCtx->pwszDomainName;
     AttrValues[ATTR_VAL_IDX_HOME_DIR].data.pwszStringValue
@@ -263,10 +273,6 @@ SamrSrvCreateAccount(
                                  Mods);
     BAIL_ON_LSA_ERROR(dwError);
 
-    ntStatus = SamrSrvInitUnicodeString(&AccountName,
-                                        pwszAccountName);
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
     ntStatus = SamrSrvLookupNames(hBinding,
                                   hDomain,
                                   1,
@@ -278,36 +284,57 @@ SamrSrvCreateAccount(
     dwRid         = Rids.ids[0];
     dwAccountType = Types.ids[0];
 
-    dwError = LwAllocateMemory(sizeof(*pAccCtx),
-                               (void**)&pAccCtx);
+    /*
+     * Create default security descriptor
+     */
+    ntStatus = SamrSrvCreateNewAccountSecurityDescriptor(
+                                  pDomCtx->pDomainSid,
+                                  dwRid,
+                                  dwObjectClass,
+                                  &pSecDesc);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    dwError = DirectorySetEntrySecurityDescriptor(
+                                  hDirectory,
+                                  pwszAccountDn,
+                                  pSecDesc);
     BAIL_ON_LSA_ERROR(dwError);
 
-    pAccCtx->Type          = SamrContextAccount;
-    pAccCtx->refcount      = 1;
-    pAccCtx->pwszDn        = pwszAccountDn;
-    pAccCtx->pwszName      = pwszName;
-    pAccCtx->dwRid         = dwRid;
-    pAccCtx->dwAccountType = dwAccountType;
-    pAccCtx->pDomCtx       = pDomCtx;
+    if (!RtlAccessCheck(pSecDesc,
+                        pConnCtx->pUserToken,
+                        dwAccessMask,
+                        0,
+                        &GenericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    pAccCtx->Type            = SamrContextAccount;
+    pAccCtx->refcount        = 1;
+    pAccCtx->dwAccessGranted = dwAccessGranted;
+    pAccCtx->pwszDn          = pwszAccountDn;
+    pAccCtx->pwszName        = pwszAccountName;
+    pAccCtx->dwRid           = dwRid;
+    pAccCtx->dwAccountType   = dwAccountType;
+
+    pAccCtx->pDomCtx         = pDomCtx;
+    InterlockedIncrement(&pDomCtx->refcount);
 
     /* Increase ref count because DCE/RPC runtime is about to use this
        pointer as well */
     InterlockedIncrement(&pAccCtx->refcount);
 
-    *hAccount = (ACCOUNT_HANDLE)pAccCtx;
-    *rid      = dwRid;
-
-    /* TODO: this has be changed accordingly when security descriptors
-       are enabled */
-    *access_granted = MAXIMUM_ALLOWED;
+    *phAccount        = (ACCOUNT_HANDLE)pAccCtx;
+    *pdwRid           = dwRid;
+    *pdwAccessGranted = dwAccessGranted;
 
 cleanup:
-    SamrSrvFreeUnicodeString(&AccountName);
+    LW_SAFE_FREE_MEMORY(pszShell);
+    LW_SAFE_FREE_MEMORY(pwszHomedirPath);
 
-    if (pwszAccountName)
-    {
-        SamrSrvFreeMemory(pwszAccountName);
-    }
+    SamrSrvFreeUnicodeString(&AccountName);
 
     if (Rids.ids)
     {
@@ -319,6 +346,8 @@ cleanup:
         SamrSrvFreeMemory(Types.ids);
     }
 
+    SamrSrvFreeSecurityDescriptor(&pSecDesc);
+
     if (ntStatus == STATUS_SUCCESS &&
         dwError != ERROR_SUCCESS)
     {
@@ -328,11 +357,14 @@ cleanup:
     return ntStatus;
 
 error:
-    LW_SAFE_FREE_MEMORY(pAccCtx);
+    if (pAccCtx)
+    {
+        ACCOUNT_HANDLE_rundown((ACCOUNT_HANDLE)pAccCtx);
+    }
 
-    *hAccount       = NULL;
-    *access_granted = 0;
-    *rid            = 0;
+    *phAccount        = NULL;
+    *pdwAccessGranted = 0;
+    *pdwRid           = 0;
     goto cleanup;
 }
 

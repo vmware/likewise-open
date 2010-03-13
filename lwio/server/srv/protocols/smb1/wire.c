@@ -424,7 +424,6 @@ SrvUnmarshalHeaderAndX_SMB_V1(
     PBYTE         pBuffer,
     ULONG         ulOffset,
     ULONG         ulBytesAvailable,
-    UCHAR         ucCommand,
     PBYTE*        ppWordCount,
     PANDX_HEADER* ppAndXHeader,
     PUSHORT       pusBytesUsed
@@ -448,21 +447,18 @@ SrvUnmarshalHeaderAndX_SMB_V1(
     ulBytesAvailable -= sizeof(BYTE);
     usBytesUsed      += sizeof(BYTE);
 
-    if (SMBIsAndXCommand(ucCommand))
+    if (ulBytesAvailable < sizeof(ANDX_HEADER))
     {
-        if (ulBytesAvailable < sizeof(ANDX_HEADER))
-        {
-            ntStatus = STATUS_INVALID_BUFFER_SIZE;
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pAndXHeader = (PANDX_HEADER) pBuffer;
-
-        // pBuffer          += sizeof(ANDX_HEADER);
-        // ulOffset         += sizeof(ANDX_HEADER);
-        // ulBytesAvailable -= sizeof(ANDX_HEADER);
-        usBytesUsed      += sizeof(ANDX_HEADER);
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    pAndXHeader = (PANDX_HEADER) pBuffer;
+
+    // pBuffer          += sizeof(ANDX_HEADER);
+    // ulOffset         += sizeof(ANDX_HEADER);
+    // ulBytesAvailable -= sizeof(ANDX_HEADER);
+    usBytesUsed      += sizeof(ANDX_HEADER);
 
     if (ppWordCount)
     {

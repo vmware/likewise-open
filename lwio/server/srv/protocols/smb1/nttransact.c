@@ -1017,7 +1017,9 @@ SrvExecuteFsctl(
 
                 if (!pNTTransactState->pResponseBuffer)
                 {
-                    USHORT usInitialLength = 512;
+                    USHORT usInitialLength =
+                        pNTTransactState->pRequestHeader->ulMaxDataCount > 0 ?
+                        pNTTransactState->pRequestHeader->ulMaxDataCount : 512;
 
                     ntStatus = SrvAllocateMemory(
                                     usInitialLength,
@@ -1366,6 +1368,13 @@ SrvProcessNotifyChange(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
+            if (pNTTransactState->pRequestHeader->ulMaxParameterCount >
+                    SMB_CN_MAX_BUFFER_SIZE)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
             pNTTransactState->pNotifyChangeHeader =
                 (PSMB_NOTIFY_CHANGE_HEADER)(PBYTE)pNTTransactState->pSetup;
 
@@ -1392,6 +1401,7 @@ SrvProcessNotifyChange(
 
             ntStatus = SrvAsyncStateCreate(
                             pNotifyState->ullNotifyId,
+                            SMB_SUB_COMMAND_NT_TRANSACT_NOTIFY_CHANGE,
                             pNotifyState,
                             &SrvNotifyStateReleaseHandle,
                             &pAsyncState);
@@ -1460,9 +1470,22 @@ cleanup:
 
 error:
 
-    if (ntStatus == STATUS_PENDING)
+    switch (ntStatus)
     {
-        bUnregisterAsync = FALSE;
+        case STATUS_PENDING:
+
+            bUnregisterAsync = FALSE;
+
+            break;
+
+        default:
+
+            if (pNotifyState)
+            {
+                SrvReleaseNotifyStateAsync(pNotifyState);
+            }
+
+            break;
     }
 
     goto cleanup;
@@ -1507,6 +1530,12 @@ SrvExecuteChangeNotify(
                         pNotifyState->ulCompletionFilter,
                         NULL);
     }
+
+    if (ntStatus == STATUS_NOTIFY_ENUM_DIR)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
     SrvReleaseNotifyStateAsync(pNotifyState); // Completed synchronously
@@ -1581,6 +1610,8 @@ SrvProcessChangeNotifyCompletion(
         case STATUS_NOTIFY_ENUM_DIR:
         case STATUS_SUCCESS:
 
+            pNotifyState->ulBytesUsed =
+                                pNotifyState->ioStatusBlock.BytesTransferred;
             ntStatus = SrvBuildChangeNotifyResponse(pExecContext, pNotifyState);
 
             break;
@@ -1770,39 +1801,30 @@ SrvMarshalChangeNotifyResponse(
 
     pNotifyCursor = (PFILE_NOTIFY_INFORMATION)pNotifyResponse;
 
-    while (pNotifyCursor && (ulBytesAvailable > 0))
+    while (pNotifyCursor && (ulBufferLength < ulBytesAvailable))
     {
-        ULONG ulInfoBytesRequired = 0;
+        ulBufferLength += offsetof(FILE_NOTIFY_INFORMATION, FileName);
 
-        if (pNotifyCursor->NextEntryOffset != 0)
+        if (!pNotifyCursor->FileNameLength)
+        {
+            ulBufferLength += sizeof(wchar16_t);
+        }
+        else
+        {
+            ulBufferLength += pNotifyCursor->FileNameLength;
+        }
+
+        ulNumRecords++;
+
+        if (pNotifyCursor->NextEntryOffset)
         {
             if (ulBufferLength % 4)
             {
                 USHORT usAlignment = (4 - (ulBufferLength % 4));
 
-                ulInfoBytesRequired += usAlignment;
+                ulBufferLength += usAlignment;
             }
-        }
 
-        ulInfoBytesRequired  = sizeof(SMB_NOTIFY_CHANGE_HEADER);
-        ulOffset            += sizeof(SMB_NOTIFY_CHANGE_HEADER);
-
-        if (!pNotifyCursor->FileNameLength)
-        {
-            ulInfoBytesRequired += sizeof(wchar16_t);
-        }
-        else
-        {
-            ulInfoBytesRequired += pNotifyCursor->FileNameLength;
-        }
-
-        ulNumRecords++;
-
-        ulBytesAvailable -= ulInfoBytesRequired;
-        ulBufferLength   += ulInfoBytesRequired;
-
-        if (pNotifyCursor->NextEntryOffset)
-        {
             pNotifyCursor =
                 (PFILE_NOTIFY_INFORMATION)(((PBYTE)pNotifyCursor) +
                                             pNotifyCursor->NextEntryOffset);
@@ -1822,7 +1844,7 @@ SrvMarshalChangeNotifyResponse(
     pNotifyCursor = (PFILE_NOTIFY_INFORMATION)pNotifyResponse;
     pDataCursor   = pBuffer;
 
-    for (; iRecord < ulNumRecords++; iRecord++)
+    for (; iRecord < ulNumRecords; iRecord++)
     {
         pPrevHeader = pCurHeader;
         pCurHeader = (PFILE_NOTIFY_INFORMATION)pDataCursor;
@@ -1839,8 +1861,8 @@ SrvMarshalChangeNotifyResponse(
         pCurHeader->Action = pNotifyCursor->Action;
         pCurHeader->FileNameLength = pNotifyCursor->FileNameLength;
 
-        pDataCursor += sizeof(SMB_NOTIFY_CHANGE_HEADER);
-        ulOffset    += sizeof(SMB_NOTIFY_CHANGE_HEADER);
+        pDataCursor += offsetof(FILE_NOTIFY_INFORMATION, FileName);
+        ulOffset    += offsetof(FILE_NOTIFY_INFORMATION, FileName);
 
         if (pNotifyCursor->FileNameLength)
         {
@@ -1918,13 +1940,14 @@ SrvProcessNtTransactCreate(
 
             SrvPrepareNTTransactStateAsync(pNTTransactState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pNTTransactState->pTree->pShareInfo,
                             &pNTTransactState->hFile,
                             pNTTransactState->pAcb,
                             &pNTTransactState->ioStatusBlock,
                             pNTTransactState->pSession->pIoSecurityContext,
                             pNTTransactState->pFilename,
-                            pNTTransactState->pSecDesc,
+                            (PSECURITY_DESCRIPTOR_RELATIVE)pNTTransactState->pSecDesc,
                             pNTTransactState->pSecurityQOS,
                             pNTTransactState->pNtTransactCreateHeader->ulDesiredAccess,
                             pNTTransactState->pNtTransactCreateHeader->ullAllocationSize,
@@ -1934,7 +1957,7 @@ SrvProcessNtTransactCreate(
                             pNTTransactState->pNtTransactCreateHeader->ulCreateOptions,
                             pNTTransactState->pEA,
                             pNTTransactState->pNtTransactCreateHeader->ulEALength,
-                            pNTTransactState->pEcpList);
+                            &pNTTransactState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
@@ -2122,7 +2145,7 @@ SrvParseNtTransactCreateParameters(
 
     if (pNTTransactState->pNtTransactCreateHeader->ulSecurityDescLength)
     {
-        SECURITY_INFORMATION secInfoAll = DACL_SECURITY_INFORMATION;
+        SECURITY_INFORMATION secInfoAll = 0;
 
         if (ulBytesAvailable <
                 pNTTransactState->pNtTransactCreateHeader->ulSecurityDescLength)
@@ -2234,11 +2257,6 @@ SrvParseNtTransactCreateParameters(
         ntStatus = SrvConnectionGetNamedPipeSessionKey(
                        pConnection,
                        pNTTransactState->pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvSessionGetNamedPipeClientPrincipal(
-                        pNTTransactState->pSession,
-                        pNTTransactState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvConnectionGetNamedPipeClientAddress(
@@ -2876,3 +2894,11 @@ SrvFreeNTTransactState(
     SrvFreeMemory(pNTTransactState);
 }
 
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

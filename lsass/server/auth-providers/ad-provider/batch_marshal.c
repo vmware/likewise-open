@@ -193,15 +193,13 @@ error:
 }
 
 DWORD
-LsaAdBatchMarshalUserInfoPasswordLastSet(
-    IN UINT64 PasswordLastSet,
+LsaAdBatchMarshalUserInfoPasswordExpires(
+    IN UINT64 PasswordExpires,
     IN OUT PLSA_SECURITY_OBJECT_USER_INFO pObjectUserInfo,
     IN PCSTR pszSamAccountName
     )
 {
     DWORD dwError = 0;
-    // in 100ns units:
-    int64_t passwordExpiry = 0;
     UINT64 currentNtTime = 0;
 
     dwError = ADGetCurrentNtTime(&currentNtTime);
@@ -213,14 +211,11 @@ LsaAdBatchMarshalUserInfoPasswordLastSet(
         goto error;
     }
 
-    // ISSUE-2008/11/18-dalmeida -- Don't we need to check
-    // for the max password age of the user domain rather
-    // than the machine domain?
-    passwordExpiry = gpADProviderData->adMaxPwdAge -
-        (currentNtTime - PasswordLastSet);
     // ISSUE-2008/11/18-dalmeida -- The number of days
     // should be a setting.
-    if (passwordExpiry / (10000000LL * 24*60*60) <= 14)
+    if (PasswordExpires != 0 &&
+        (currentNtTime >= PasswordExpires ||
+        (PasswordExpires - currentNtTime) / (10000000LL * 24*60*60) <= 14))
     {
         //The password will expire in 14 days or less
         pObjectUserInfo->bPromptPasswordChange = TRUE;
@@ -383,6 +378,7 @@ LsaAdBatchMarshalUserInfo(
     LSA_XFER_STRING(pUserInfo->pszUserPrincipalName, pObjectUserInfo->pszUPN);
 
     pObjectUserInfo->qwPwdLastSet = pUserInfo->PasswordLastSet;
+    pObjectUserInfo->qwPwdExpires = pUserInfo->PasswordExpires;
     pObjectUserInfo->qwAccountExpires = pUserInfo->AccountExpires;
 
     // Handle shell.
@@ -424,8 +420,8 @@ LsaAdBatchMarshalUserInfo(
     BAIL_ON_LSA_ERROR(dwError);
 
     // Figure out password prompting.
-    dwError = LsaAdBatchMarshalUserInfoPasswordLastSet(
-                    pUserInfo->PasswordLastSet,
+    dwError = LsaAdBatchMarshalUserInfoPasswordExpires(
+                    pUserInfo->PasswordExpires,
                     pObjectUserInfo,
                     pszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);

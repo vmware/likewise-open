@@ -326,7 +326,8 @@ SrvExecuteNtRename(
     {
         SrvPrepareNtRenameStateAsync(pRenameState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pCtxSmb1->pTree->pShareInfo,
                         &pRenameState->hDir,
                         pRenameState->pAcb,
                         &pRenameState->ioStatusBlock,
@@ -342,7 +343,7 @@ SrvExecuteNtRename(
                         FILE_DIRECTORY_FILE,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        NULL  /* ECP List  */
+                        &pRenameState->pDirEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -353,7 +354,8 @@ SrvExecuteNtRename(
     {
         SrvPrepareNtRenameStateAsync(pRenameState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pCtxSmb1->pTree->pShareInfo,
                         &pRenameState->hFile,
                         pRenameState->pAcb,
                         &pRenameState->ioStatusBlock,
@@ -369,7 +371,7 @@ SrvExecuteNtRename(
                         0,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        NULL  /* ECP List  */
+                        &pRenameState->pFileEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -632,6 +634,16 @@ SrvFreeNtRenameState(
     {
         IoDereferenceAsyncCancelContext(
                     &pRenameState->pAcb->AsyncCancelContext);
+    }
+
+    if (pRenameState->pDirEcpList)
+    {
+        IoRtlEcpListFree(&pRenameState->pDirEcpList);
+    }
+
+    if (pRenameState->pFileEcpList)
+    {
+        IoRtlEcpListFree(&pRenameState->pFileEcpList);
     }
 
     // TODO: Free the following if set

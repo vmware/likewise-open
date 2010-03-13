@@ -56,11 +56,20 @@ SamrSrvClose(
 
 
 NTSTATUS
+SamrSrvSetSecurity(
+    IN  handle_t hBinding,
+    IN  void *hObject,
+    IN  UINT32 security_info,
+    IN  PSAMR_SECURITY_DESCRIPTOR_BUFFER secdesc
+    );
+
+
+NTSTATUS
 SamrSrvQuerySecurity(
-    handle_t hBinding,
-    void *hObject,
-    UINT32 security_info,
-    PSECURITY_DESCRIPTOR_BUFFER *secdesc
+    IN  handle_t hBinding,
+    IN  void *hObject,
+    IN  UINT32 security_info,
+    OUT PSAMR_SECURITY_DESCRIPTOR_BUFFER *secdesc
     );
 
 
@@ -276,10 +285,18 @@ SamrSrvQueryUserInfo(
 
 NTSTATUS
 SamrSrvSetUserInfo(
-    handle_t hBinding,
-    ACCOUNT_HANDLE hUser,
-    UINT16 level,
-    UserInfo *pInfo
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          usLevel,
+    IN  UserInfo       *pInfo
+    );
+
+
+NTSTATUS
+SamrSrvGetUserGroups(
+    IN  handle_t                hBinding,
+    IN  ACCOUNT_HANDLE          hUser,
+    OUT RidWithAttributeArray **ppRids
     );
 
 
@@ -294,6 +311,14 @@ SamrSrvQueryDisplayInfo(
     UINT32 *total_size,
     UINT32 *returned_size,
     SamrDisplayInfo *info
+    );
+
+
+NTSTATUS
+SamrSrvGetUserPwInfo(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    OUT PwInfo         *pInfo
     );
 
 
@@ -338,6 +363,15 @@ SamrSrvConnect2(
     IN  PCWSTR          pwszSystemName,
     IN  DWORD           dwAccessMask,
     OUT CONNECT_HANDLE *hConn
+    );
+
+
+NTSTATUS
+SamrSrvSetUserInfo2(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          usLevel,
+    IN  UserInfo       *pInfo
     );
 
 
@@ -433,6 +467,15 @@ SamrSrvConnectInternal(
     OUT PDWORD            pdwLevelOut,
     OUT SamrConnectInfo  *pInfoOut,
     OUT PCONNECT_CONTEXT *ppConnCtx
+    );
+
+
+NTSTATUS
+SamrSrvSetUserInfoInternal(
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hUser,
+    IN  UINT16          level,
+    IN  UserInfo       *pInfo
     );
 
 

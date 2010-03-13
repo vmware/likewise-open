@@ -140,6 +140,8 @@ typedef struct _DIRECTORY_MOD
     {'O','b','j','e','c','t','R','e','c','o','r','d','I','d',0}
 #define DIRECTORY_ATTR_OBJECT_SID \
     {'O','b','j','e','c','t','S','I','D',0}
+#define DIRECTORY_ATTR_SECURITY_DESCRIPTOR \
+    {'S','e','c','u','r','i','t','y','D','e','s','c','r','i','p','t','o','r',0}
 #define DIRECTORY_ATTR_DISTINGUISHED_NAME  \
     {'D','i','s','t','i','n','g','u','i','s','h','e','d','N','a','m','e',0}
 #define DIRECTORY_ATTR_PARENT_DN \
@@ -450,6 +452,13 @@ DWORD
 DirectoryGetEntrySecurityDescriptor(
     PDIRECTORY_ENTRY               pEntry,
     PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
+
+DWORD
+DirectorySetEntrySecurityDescriptor(
+    HANDLE                         hDirectory,
+    PCWSTR                         pwszDn,
+    PSECURITY_DESCRIPTOR_ABSOLUTE  pSecDesc
     );
 
 DWORD

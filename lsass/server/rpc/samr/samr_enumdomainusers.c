@@ -49,26 +49,44 @@
 
 NTSTATUS
 SamrSrvEnumDomainUsers(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ DOMAIN_HANDLE hDomain,
-    /* [in, out] */ UINT32 *resume,
-    /* [in] */ UINT32 account_flags,
-    /* [in] */ UINT32 max_size,
-    /* [out] */ RidNameArray **names,
-    /* [out] */ UINT32 *num_entries
+    IN  handle_t       hBinding,
+    IN  DOMAIN_HANDLE  hDomain,
+    IN OUT PDWORD      pdwResume,
+    IN  DWORD          dwAccountFlags,
+    IN  DWORD          dwMaxSize,
+    OUT RidNameArray **ppNames,
+    OUT PDWORD         pdwNumEntries
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PDOMAIN_CONTEXT pDomCtx = (PDOMAIN_CONTEXT)hDomain;
+
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     ntStatus = SamrSrvEnumDomainAccounts(hBinding,
-                                       hDomain,
-                                       resume,
-                                       DS_OBJECT_CLASS_USER,
-                                       account_flags,
-                                       max_size,
-                                       names,
-                                       num_entries);
+                                         hDomain,
+                                         pdwResume,
+                                         DS_OBJECT_CLASS_USER,
+                                         dwAccountFlags,
+                                         dwMaxSize,
+                                         ppNames,
+                                         pdwNumEntries);
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
+
+error:
+    goto cleanup;
 }
 
 

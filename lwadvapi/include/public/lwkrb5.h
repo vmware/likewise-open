@@ -67,7 +67,7 @@ typedef enum
 #define BAIL_ON_SEC_ERROR(dwMajorStatus)                        \
     if ((dwMajorStatus!= SEC_E_OK) &&                           \
         (dwMajorStatus != SEC_I_CONTINUE_NEEDED)) {             \
-        LW_LOG_ERROR("GSS API Error: %d", dwMajorStatus);      \
+        LW_LOG_DEBUG("GSS API Error: %d", dwMajorStatus);      \
         dwError = LW_ERROR_GSS_CALL_FAILED;                    \
         goto error;                                             \
     }
@@ -77,7 +77,7 @@ typedef enum
 #define BAIL_ON_SEC_ERROR(dwMajorStatus)                        \
     if ((dwMajorStatus!= GSS_S_COMPLETE) &&                     \
         (dwMajorStatus != GSS_S_CONTINUE_NEEDED)) {             \
-        LW_LOG_ERROR("GSS API Error: %d", dwMajorStatus);      \
+        LW_LOG_DEBUG("[%s() %s:%d] GSS API error code: %d", __FUNCTION__, __FILE__, __LINE__, dwMajorStatus);                                 \
         dwError = LW_ERROR_GSS_CALL_FAILED;                    \
         goto error;                                             \
     }
@@ -88,7 +88,7 @@ typedef enum
     do { \
         if (ret) \
         { \
-           (dwError) = LwTranslateKrb5Error(ctx, ret, __FILE__, __LINE__); \
+           (dwError) = LwTranslateKrb5Error(ctx, ret, __FUNCTION__, __FILE__, __LINE__); \
            goto error; \
         } \
     } while (0)
@@ -172,6 +172,7 @@ DWORD
 LwTranslateKrb5Error(
     krb5_context ctx,
     krb5_error_code krbError,
+    PCSTR pszFunction,
     PCSTR pszFile,
     DWORD dwLine
     );
@@ -184,6 +185,7 @@ LwSetupUserLoginSession(
     PCSTR pszPassword,
     BOOLEAN bUpdateUserCache,
     PCSTR pszServicePrincipal,
+    PCSTR pszServiceRealm,
     PCSTR pszServicePassword,
     char** ppchLogonInfo,
     size_t* psLogonInfo,

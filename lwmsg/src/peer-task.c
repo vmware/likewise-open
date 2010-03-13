@@ -746,7 +746,8 @@ lwmsg_peer_task_set_timeout(
     *next_timeout = *timeout;
     *next_trigger = lwmsg_peer_task_assoc_trigger(task->assoc);
 
-    if (lwmsg_peer_task_subject_to_timeout(peer, task, trigger))
+    if (lwmsg_time_is_positive(timeout) &&
+        lwmsg_peer_task_subject_to_timeout(peer, task, trigger))
     {
         *next_trigger |= LWMSG_TASK_TRIGGER_TIME;
     }
@@ -1031,6 +1032,7 @@ lwmsg_peer_task_rundown(
     LWMsgRing* next = NULL;
     PeerCall* call = NULL;
     LWMsgMessage cancel = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     pthread_mutex_lock(&task->call_lock);
 
@@ -1041,6 +1043,9 @@ lwmsg_peer_task_rundown(
 
         if (!call->is_outgoing && call->state & PEER_CALL_COMPLETED)
         {
+            message.tag = call->params.incoming.out.tag;
+            message.data = call->params.incoming.out.data;
+            lwmsg_assoc_destroy_message(task->assoc, &message);
             lwmsg_peer_call_delete(call);
         }
         else if (!(call->state & PEER_CALL_COMPLETED))
@@ -1474,7 +1479,8 @@ lwmsg_peer_task_dispatch_calls(
             }
         }
         /* Completed incoming call -- send reply */
-        else if (call->state & PEER_CALL_COMPLETED)
+        else if (call->state & PEER_CALL_COMPLETED &&
+                 call->state & PEER_CALL_DISPATCHED)
         {
             lwmsg_message_init(&task->outgoing_message);
             task->outgoing_message.flags = LWMSG_MESSAGE_FLAG_REPLY;

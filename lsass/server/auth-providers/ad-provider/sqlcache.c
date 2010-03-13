@@ -1230,6 +1230,13 @@ LsaDbUnpackUserInfo(
     dwError = LsaSqliteReadUInt64(
         pstQuery,
         piColumnPos,
+        "PwdExpires",
+        &pResult->userInfo.qwPwdExpires);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaSqliteReadUInt64(
+        pstQuery,
+        piColumnPos,
         "AccountExpires",
         &pResult->userInfo.qwAccountExpires);
     BAIL_ON_LSA_ERROR(dwError);
@@ -1602,6 +1609,7 @@ LsaDbStoreObjectEntries(
                             "Shell,"
                             "Homedir,"
                             "PwdLastSet,"
+                            "PwdExpires,"
                             "AccountExpires,"
                             "GeneratedUPN,"
                             "IsAccountInfoKnown,"
@@ -1624,6 +1632,7 @@ LsaDbStoreObjectEntries(
                             "%Q," //shell
                             "%Q," //homedir
                             "%llu," //pwdlastset
+                            "%llu," //pwdexpires
                             "%llu," //account expires
                             "%d," //generatedUPN
                             "%d," //IsAccountInfoKnown
@@ -1648,6 +1657,7 @@ LsaDbStoreObjectEntries(
                         ppObjects[sIndex]->userInfo.pszShell,
                         ppObjects[sIndex]->userInfo.pszHomedir,
                         ppObjects[sIndex]->userInfo.qwPwdLastSet,
+                        ppObjects[sIndex]->userInfo.qwPwdExpires,
                         ppObjects[sIndex]->userInfo.qwAccountExpires,
                         ppObjects[sIndex]->userInfo.bIsGeneratedUPN,
                         ppObjects[sIndex]->userInfo.bIsAccountInfoKnown,
@@ -2443,7 +2453,7 @@ LsaDbQueryObjectMulti(
     )
 {
     DWORD dwError = 0;
-    const int nExpectedCols = 31; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
+    const int nExpectedCols = 32; // The number of fields returned by LsaDbGetObjectFieldList
     int iColumnPos = 0;
     PLSA_SECURITY_OBJECT pObject = NULL;
     int nGotColumns = 0;
@@ -2496,7 +2506,7 @@ LsaDbQueryObjectMulti(
     }
     else
     {
-        iColumnPos += 20; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
+        iColumnPos += 21; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
     }
 
     if (pObject->type == LSA_OBJECT_TYPE_GROUP && pObject->enabled)
@@ -2695,7 +2705,7 @@ LsaDbQueryObject(
     )
 {
     DWORD dwError = 0;
-    const int nExpectedCols = 31; // This is the number of fields defined in lsadb.h (LSA_SECURITY_OBJECT)
+    const int nExpectedCols = 32; // The number of fields returned by LsaDbGetObjectFieldList
     int iColumnPos = 0;
     PLSA_SECURITY_OBJECT pObject = NULL;
     int nGotColumns = 0;
@@ -2756,7 +2766,7 @@ LsaDbQueryObject(
     }
     else
     {
-        iColumnPos += 20; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
+        iColumnPos += 21; // This is the number of fields in the userInfo section of lsadb.h (LSA_SECURITY_OBJECT)
     }
 
     if (pObject->type == LSA_OBJECT_TYPE_GROUP && pObject->enabled)
@@ -2831,6 +2841,7 @@ LsaDbGetObjectFieldList(
         LSA_DB_TABLE_NAME_USERS ".Shell, "
         LSA_DB_TABLE_NAME_USERS ".Homedir, "
         LSA_DB_TABLE_NAME_USERS ".PwdLastSet, "
+        LSA_DB_TABLE_NAME_USERS ".PwdExpires, "
         LSA_DB_TABLE_NAME_USERS ".AccountExpires, "
         LSA_DB_TABLE_NAME_USERS ".GeneratedUPN, "
         LSA_DB_TABLE_NAME_USERS ".IsAccountInfoKnown, "

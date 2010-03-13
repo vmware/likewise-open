@@ -96,6 +96,43 @@ IsUnsignedInteger(
     PCSTR pszIntegerCandidate
     );
 
+VOID
+ParseArgs(
+    int argc,
+    char* argv[]
+    )
+{
+    int iArg = 1;
+    const char* pArg = NULL;
+
+    if (argc != 2)
+    {
+        ShowUsage(GetProgramName(argv[0]));
+        exit(1);
+    }
+
+    while (iArg < argc)
+    {
+        pArg = argv[iArg++];
+        if (pArg[0] == '-')
+        {
+            if ( (strcmp(pArg, "--help") == 0) ||
+                 (strcmp(pArg, "-h") == 0))
+            {
+                ShowUsage(GetProgramName(argv[0]));
+                exit(0);
+            }
+            else
+            {
+                fprintf(stderr, "Error: Invalid option \n");
+                ShowUsage(GetProgramName(argv[0]));
+                exit(1);
+            }
+        }
+    }
+
+}
+
 DWORD
 LsaDelUserMain(
     int argc,
@@ -109,18 +146,7 @@ LsaDelUserMain(
     size_t dwErrorBufferSize = 0;
     BOOLEAN bPrintOrigError = TRUE;
 
-    if (argc != 2) {
-        ShowUsage(GetProgramName(argv[0]));
-        exit(1);
-    }
-
-    if ((strcmp(argv[1], "--help") == 0) ||
-        (strcmp(argv[1], "-h") == 0))
-    {
-        ShowUsage(GetProgramName(argv[0]));
-        exit(0);
-    }
-
+    ParseArgs(argc,argv);
 
     dwError = LsaOpenServer(&hLsaConnection);
     BAIL_ON_LSA_ERROR(dwError);

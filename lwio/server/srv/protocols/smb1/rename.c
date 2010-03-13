@@ -326,7 +326,8 @@ SrvExecuteRename(
     {
         SrvPrepareRenameStateAsync(pRenameState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pCtxSmb1->pTree->pShareInfo,
                         &pRenameState->hDir,
                         pRenameState->pAcb,
                         &pRenameState->ioStatusBlock,
@@ -337,12 +338,12 @@ SrvExecuteRename(
                         GENERIC_READ,
                         0,
                         FILE_ATTRIBUTE_NORMAL,
-                        0,
+                        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                         FILE_OPEN,
                         FILE_DIRECTORY_FILE,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        NULL  /* ECP List  */
+                        &pRenameState->pDirEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -353,7 +354,8 @@ SrvExecuteRename(
     {
         SrvPrepareRenameStateAsync(pRenameState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pCtxSmb1->pTree->pShareInfo,
                         &pRenameState->hFile,
                         pRenameState->pAcb,
                         &pRenameState->ioStatusBlock,
@@ -369,7 +371,7 @@ SrvExecuteRename(
                         0,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        NULL  /* ECP List  */
+                        &pRenameState->pFileEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -632,6 +634,16 @@ SrvFreeRenameState(
     {
         IoDereferenceAsyncCancelContext(
                     &pRenameState->pAcb->AsyncCancelContext);
+    }
+
+    if (pRenameState->pDirEcpList)
+    {
+        IoRtlEcpListFree(&pRenameState->pDirEcpList);
+    }
+
+    if (pRenameState->pFileEcpList)
+    {
+        IoRtlEcpListFree(&pRenameState->pFileEcpList);
     }
 
     // TODO: Free the following if set

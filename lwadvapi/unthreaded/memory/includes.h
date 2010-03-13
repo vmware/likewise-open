@@ -32,6 +32,8 @@
 
 #include "config.h"
 #include <lw/rtlmemory.h>
+#include <lw/security-types.h>
+#include <lw/security-api.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -39,6 +41,7 @@
 #include <ctype.h>
 
 #include "lwerror.h"
+#include "lwlogging.h"
 #include "bail.h"
 #include "lwmem.h"
 #include "lwstr.h"

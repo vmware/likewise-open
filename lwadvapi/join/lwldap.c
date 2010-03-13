@@ -604,7 +604,8 @@ error:
 
 void display_status(char *msg, OM_uint32 maj_stat, OM_uint32 min_stat)
 {
-    display_status_1(msg, maj_stat, GSS_C_GSS_CODE);
+    // BAIL_ON_SEC_ERROR shows this code
+    // display_status_1(msg, maj_stat, GSS_C_GSS_CODE);
     display_status_1(msg, min_stat, GSS_C_MECH_CODE);
 }
 
@@ -634,10 +635,10 @@ void display_status_1(char *m, OM_uint32 code, int type)
         case GSS_S_COMPLETE:
         case GSS_S_CONTINUE_NEEDED:
 #endif
-            LW_LOG_VERBOSE("GSS-API error calling %s: %d (%s)", m, code, (char *)msg.value);
+            LW_LOG_DEBUG("GSS-API error calling %s: %d (%s)", m, code, (char *)msg.value);
 	    break;
 	default:
-            LW_LOG_ERROR("GSS-API error calling %s: %d (%s)", m, code, (char *)msg.value);
+            LW_LOG_DEBUG("GSS-API error calling %s: %d (%s)", m, code, (char *)msg.value);
 	}
 
         (void) gss_release_buffer(&min_stat, &msg);

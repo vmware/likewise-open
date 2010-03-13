@@ -5,7 +5,8 @@ noinst_LTLIBRARIES = liblwadvapi_memory.la
 liblwadvapi_memory_la_SOURCES = \
        sysfuncs.c    \
        lwmem.c    \
-       lwstr.c
+       lwstr.c    \
+       lwsid.c
 
 
 liblwadvapi_memory_la_CPPFLAGS = \

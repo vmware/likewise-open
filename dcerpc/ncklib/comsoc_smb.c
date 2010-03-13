@@ -15,13 +15,14 @@
 
 #include <lwio/lwio.h>
 #include <lw/base.h>
+#include <lwmapsecurity/lwmapsecurity.h>
 
 #define SMB_SOCKET_LOCK(sock) (rpc__smb_socket_lock(sock))
 #define SMB_SOCKET_UNLOCK(sock) (rpc__smb_socket_unlock(sock))
 
 typedef struct rpc_smb_transport_info_s
 {
-    char* peer_principal;
+    rpc_access_token_p_t access_token;
     struct
     {
         unsigned16 length;
@@ -125,10 +126,7 @@ rpc__smb_transport_info_destroy(
         free(smb_info->session_key.data);
     }
 
-    if (smb_info->peer_principal)
-    {
-        free(smb_info->peer_principal);
-    }
+    RtlReleaseAccessToken(&smb_info->access_token);
 }
 
 void
@@ -157,20 +155,6 @@ rpc_smb_transport_info_inq_session_key(
     if (sess_key_len)
     {
         *sess_key_len = (unsigned32) smb_info->session_key.length;
-    }
-}
-
-void
-rpc_smb_transport_info_inq_peer_principal_name(
-    rpc_transport_info_handle_t info,
-    unsigned char** principal
-    )
-{
-    rpc_smb_transport_info_p_t smb_info = (rpc_smb_transport_info_p_t) info;
-
-    if (principal)
-    {
-        *principal = (unsigned char*) smb_info->peer_principal;
     }
 }
 
@@ -604,7 +588,7 @@ error:
 INTERNAL
 rpc_socket_error_t
 rpc__smb_socket_destruct(
-    rpc_socket_t sock ATTRIBUTE_UNUSED
+    rpc_socket_t sock
     )
 {
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
@@ -864,10 +848,10 @@ rpc__smb_socket_accept(
     }
 
      serr = NtStatusToErrno(
-        LwIoCtxGetPeerPrincipalName(
+        LwIoCtxGetPeerAccessToken(
             npsmb->context,
             npsmb->np,
-            &npsmb->info.peer_principal));
+            &npsmb->info.access_token));
     if (serr)
     {
         goto error;
@@ -1603,14 +1587,10 @@ rpc__smb_socket_inq_transport_info(
         }
     }
 
-    if (smb->info.peer_principal)
+    if (smb->info.access_token)
     {
-        smb_info->peer_principal = strdup(smb->info.peer_principal);
-        if (!smb_info->peer_principal)
-        {
-            serr = ENOMEM;
-            goto error;
-        }
+        smb_info->access_token = smb->info.access_token;
+        RtlReferenceAccessToken(smb_info->access_token);
     }
 
     if (smb->info.session_key.data)
@@ -1643,6 +1623,22 @@ error:
     return serr;
 }
 
+INTERNAL
+rpc_socket_error_t
+rpc__smb_socket_transport_inq_access_token(
+    rpc_transport_info_handle_t info,
+    rpc_access_token_p_t* token
+    )
+{
+    rpc_smb_transport_info_p_t smb_info = (rpc_smb_transport_info_p_t) info;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    RtlReferenceAccessToken(smb_info->access_token);
+    *token = smb_info->access_token;
+
+    return LwNtStatusToErrno(status);
+}
+
 rpc_socket_vtbl_t rpc_g_smb_socket_vtbl =
 {
     .socket_construct = rpc__smb_socket_construct,
@@ -1669,5 +1665,6 @@ rpc_socket_vtbl_t rpc_g_smb_socket_vtbl =
     .socket_enum_ifaces = rpc__smb_socket_enum_ifaces,
     .socket_inq_transport_info = rpc__smb_socket_inq_transport_info,
     .transport_info_free = rpc_smb_transport_info_free,
-    .transport_info_equal = rpc__smb_transport_info_equal
+    .transport_info_equal = rpc__smb_transport_info_equal,
+    .transport_inq_access_token = rpc__smb_socket_transport_inq_access_token
 };

@@ -49,12 +49,21 @@
 #define LWNET_KRB5_CONFIG_VARIABLE_NAME "KRB5_CONFIG"
 #define LWNET_KRB5_BASE_CONF_PATH LWNET_CONFIG_DIR "/likewise-krb5-ad.conf"
 
+#define LWNET_KRB5_DEFAULT_CONF_PATH "/etc/krb5.conf"
+
+#ifdef MINIMAL_NETLOGON
+// In a minimal build, the system krb5.conf is used instead of the likewise
+// conf file. This saves the space of installing a second file, but the system
+// krb5.conf must be fully configured.
+#define LWNET_KRB5_ENV_PREFIX \
+    LWNET_KRB5_CONF_PATH ":" LWNET_KRB5_DEFAULT_CONF_PATH
+#else
 #define LWNET_KRB5_ENV_PREFIX \
     LWNET_KRB5_CONF_PATH ":" LWNET_KRB5_BASE_CONF_PATH
+#endif
+
 #define LWNET_KRB5_ENV_PREFIX_LENGTH \
     (sizeof(LWNET_KRB5_ENV_PREFIX)-1)
-
-#define LWNET_KRB5_DEFAULT_CONF_PATH "/etc/krb5.conf"
 
 LWNET_API
 DWORD

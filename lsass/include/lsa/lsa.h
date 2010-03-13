@@ -194,7 +194,8 @@ typedef LW_DWORD LSA_NIS_MAP_QUERY_FLAGS;
 
 typedef LW_DWORD LSA_FIND_FLAGS, *PLSA_FIND_FLAGS;
 
-#define LSA_FIND_FLAGS_NSS 0x00000001
+#define LSA_FIND_FLAGS_NSS   0x00000001
+#define LSA_FIND_FLAGS_LOCAL 0x00000002
 
 typedef struct __LW_LSA_DATA_BLOB
 {
@@ -655,13 +656,15 @@ typedef struct __LSA_VERSION
     LW_DWORD dwMajor;
     LW_DWORD dwMinor;
     LW_DWORD dwBuild;
+    LW_DWORD dwRevision;
 } LSA_VERSION, *PLSA_VERSION;
 
 typedef struct __LSASTATUS
 {
     LW_DWORD dwUptime;
 
-    LSA_VERSION version;
+    LSA_VERSION lsassVersion;
+    LSA_VERSION productVersion;
 
     LW_DWORD dwCount;
     PLSA_AUTH_PROVIDER_STATUS pAuthProviderStatusList;
@@ -1488,28 +1491,6 @@ LsaCloseServer(
     LW_HANDLE hConnection
     );
 
-/**
- * @ingroup utility
- * @brief Get error code description
- *
- * Retrives a human-readable description of an LSASS
- * error code.  The description will be copied into
- * the specified buffer, but will be truncated if it
- * does not fit.
- *
- * @param[in] dwError the error code
- * @param[out] pszBuffer the buffer into which the description will be copied
- * @param[in] stBufSize the size of the provided buffer
- * @return the full size of the error string, which may be larger than the
- * provided buffer
- */
-size_t
-LwGetErrorString(
-    LW_DWORD dwError,
-    LW_PSTR pszBuffer,
-    size_t stBufSize
-    );
-
 LW_DWORD
 LsaGetErrorMessageForLoggingEvent(
     LW_DWORD dwError,
@@ -1659,11 +1640,12 @@ typedef struct _LSA_SECURITY_OBJECT_USER_INFO
     LW_PSTR pszAliasName;
     uint64_t qwPwdLastSet;
     uint64_t qwMaxPwdAge;
+    uint64_t qwPwdExpires;
     uint64_t qwAccountExpires;
 
     LW_BOOLEAN bIsGeneratedUPN;
     LW_BOOLEAN bIsAccountInfoKnown;
-    // Calculated from userAccountControl, accountExpires, and pwdLastSet
+    // Calculated from userAccountControl, accountExpires, and pwdExpires
     // attributes from AD.
     LW_BOOLEAN bPasswordExpired;
     LW_BOOLEAN bPasswordNeverExpires;

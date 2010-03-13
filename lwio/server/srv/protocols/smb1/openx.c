@@ -173,7 +173,8 @@ SrvProcessOpenAndX(
 
             SrvPrepareOpenStateAsync(pOpenState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pOpenState->pTree->pShareInfo,
                             &pOpenState->hFile,
                             pOpenState->pAcb,
                             &pOpenState->ioStatusBlock,
@@ -189,7 +190,7 @@ SrvProcessOpenAndX(
                             pOpenState->usCreateOptions,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            pOpenState->pEcpList);
+                            &pOpenState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
@@ -386,11 +387,6 @@ SrvBuildOpenState(
 
         ntStatus = SrvConnectionGetNamedPipeSessionKey(
                        pConnection,
-                       pOpenState->pEcpList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SrvSessionGetNamedPipeClientPrincipal(
-                       pCtxSmb1->pSession,
                        pOpenState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1035,15 +1031,15 @@ SrvFreeOpenState(
     PSRV_OPEN_STATE_SMB_V1 pOpenState
     )
 {
-    if (pOpenState->pEcpList)
-    {
-        IoRtlEcpListFree(&pOpenState->pEcpList);
-    }
-
     if (pOpenState->pAcb && pOpenState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(
                     &pOpenState->pAcb->AsyncCancelContext);
+    }
+
+    if (pOpenState->pEcpList)
+    {
+        IoRtlEcpListFree(&pOpenState->pEcpList);
     }
 
     // TODO: Free the following if set

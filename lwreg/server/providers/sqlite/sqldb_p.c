@@ -59,7 +59,19 @@ RegDbOpenKey_inlock(
     PCWSTR pwszCurrentKeyPath = pwszFullKeyPath;
     int64_t qwParentId = 0;
     PREG_DB_KEY pRegKey = NULL;
+    PREG_DB_KEY pRegKeyDup = NULL;
+    BOOLEAN bInLock = FALSE;
 
+    status = SqliteCacheGetDbKeyInfo(pwszFullKeyPath, &pRegKey);
+    if (!status)
+    {
+	goto cleanup;
+    }
+    else if (STATUS_OBJECT_NAME_NOT_FOUND == status)
+    {
+	status = 0;
+    }
+    BAIL_ON_NT_STATUS(status);
 
     while (pwszCurrentKeyPath)
     {
@@ -91,13 +103,26 @@ RegDbOpenKey_inlock(
 	status = RegDbGetKeyAclByAclIndex_inlock(hDb,
 			                             pRegKey->qwAclIndex,
 			                             &pRegKey->pSecDescRel,
-			                             &pRegKey->ulSecDescLen);
+			                             &pRegKey->ulSecDescLength);
 	BAIL_ON_NT_STATUS(status);
     }
 
     REG_LOG_VERBOSE("Registry::sqldb.c RegDbOpenKey_inlock() finished\n");
 
+    status = RegDbDuplicateDbKeyEntry(pRegKey, &pRegKeyDup);
+    BAIL_ON_NT_STATUS(status);
+
+    LWREG_LOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
+
+	status = SqliteCacheInsertDbKeyInfo_inlock(pRegKeyDup);
+	BAIL_ON_NT_STATUS(status);
+	pRegKeyDup = NULL;
+
 cleanup:
+
+    SqliteReleaseDbKeyInfo_inlock(pRegKeyDup);
+
+    LWREG_UNLOCK_MUTEX(bInLock, &gRegDbKeyList.mutex);
 
     if (!status && ppRegKey)
     {
@@ -113,10 +138,12 @@ cleanup:
     return status;
 
 error:
+
     if(ppRegKey)
     {
 	*ppRegKey = NULL;
     }
+
     RegDbSafeFreeEntryKey(&pRegKey);
 
     goto cleanup;
@@ -283,6 +310,8 @@ RegDbDeleteKey_inlock(
 
     status = sqlite3_reset(pstQuery);
     BAIL_ON_SQLITE3_ERROR(status, sqlite3_errmsg(pConn->pDb));
+
+    SqliteCacheDeleteDbKeyInfo(pwszFullKeyName);
 
 cleanup:
 
@@ -786,7 +815,7 @@ RegDbGetKeyAclByAclIndex_inlock(
     // qwAclIndex should not be -1 (pre-check is done before call this function)
     IN int64_t qwAclIndex,
     OUT PSECURITY_DESCRIPTOR_RELATIVE* ppSecDescRel,
-    OUT PULONG pulSecDescLen
+    OUT PULONG pulSecDescLength
     )
 {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -824,7 +853,7 @@ RegDbGetKeyAclByAclIndex_inlock(
 		status = RegDbUnpackAclInfo(pstQuery,
 				                     &iColumnPos,
 				                     ppSecDescRel,
-		                             pulSecDescLen);
+		                             pulSecDescLength);
 		BAIL_ON_NT_STATUS(status);
 
 		sResultCount++;
@@ -852,7 +881,7 @@ cleanup:
 
 error:
     *ppSecDescRel = NULL;
-    *pulSecDescLen = 0;
+    *pulSecDescLength = 0;
 
     goto cleanup;
 }
@@ -861,7 +890,7 @@ NTSTATUS
 RegDbGetKeyAclIndexByKeyAcl_inlock(
 	IN REG_DB_HANDLE hDb,
 	IN PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
-    IN ULONG ulSecDescLen,
+    IN ULONG ulSecDescLength,
 	OUT int64_t* pqwAclIndex
 	)
 {
@@ -878,7 +907,7 @@ RegDbGetKeyAclIndexByKeyAcl_inlock(
 			   pstQuery,
 			   1,
 			   (BYTE*)pSecurityDescriptor,
-			   ulSecDescLen);
+			   ulSecDescLength);
 	BAIL_ON_SQLITE3_ERROR_STMT(status, pstQuery);
 
     while ((status = (DWORD)sqlite3_step(pstQuery)) == SQLITE_ROW)
@@ -964,6 +993,58 @@ RegDbSafeFreeEntryValueList(
     }
 }
 
+NTSTATUS
+RegDbDuplicateDbKeyEntry(
+    PREG_DB_KEY pRegKey,
+    PREG_DB_KEY* ppRegKey
+    )
+{
+	NTSTATUS status = 0;
+	PREG_DB_KEY pRegDupKey = NULL;
+
+	if (!pRegKey)
+	{
+		goto done;
+	}
+
+    status = LW_RTL_ALLOCATE((PVOID*)&pRegDupKey, REG_DB_KEY, sizeof(*pRegDupKey));
+    BAIL_ON_NT_STATUS(status);
+
+    memcpy(pRegDupKey, pRegKey, sizeof(*pRegKey));
+
+    pRegDupKey->pwszFullKeyName = NULL;
+    pRegDupKey->pwszKeyName = NULL;
+    pRegDupKey->pSecDescRel = NULL;
+
+    status = LwRtlWC16StringDuplicate(&pRegDupKey->pwszKeyName,
+		                          pRegKey->pwszKeyName);
+    BAIL_ON_NT_STATUS(status);
+
+    status = LwRtlWC16StringDuplicate(&pRegDupKey->pwszFullKeyName,
+		                          pRegKey->pwszFullKeyName);
+    BAIL_ON_NT_STATUS(status);
+
+    status = LW_RTL_ALLOCATE((PVOID*)&pRegDupKey->pSecDescRel, VOID, pRegKey->ulSecDescLength);
+    BAIL_ON_NT_STATUS(status);
+
+    memcpy(pRegDupKey->pSecDescRel, pRegKey->pSecDescRel, pRegKey->ulSecDescLength);
+
+done:
+    *ppRegKey = pRegDupKey;
+
+cleanup:
+
+    return status;
+
+error:
+
+    *ppRegKey = NULL;
+
+    RegDbSafeFreeEntryKey(&pRegDupKey);
+
+    goto cleanup;
+}
+
 void
 RegDbSafeFreeEntryKey(
     PREG_DB_KEY* ppEntry
@@ -1026,18 +1107,21 @@ RegDbSafeRecordSubKeysInfo_inlock(
         goto cleanup;
     }
 
-    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppwszSubKeyNames, PWSTR, sizeof(*(pKeyResult->ppwszSubKeyNames)) * sCacheCount);
+    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppwszSubKeyNames,
+		                 PWSTR,
+		                 sizeof(*(pKeyResult->ppwszSubKeyNames)) * sCacheCount);
     BAIL_ON_NT_STATUS(status);
 
     for (iCount = 0; iCount < (DWORD)sCacheCount; iCount++)
     {
-        status = LwRtlWC16StringDuplicate(&pKeyResult->ppwszSubKeyNames[iCount], ppRegEntries[iCount]->pwszFullKeyName);
+        status = LwRtlWC16StringDuplicate(&pKeyResult->ppwszSubKeyNames[iCount],
+			                          ppRegEntries[iCount]->pwszFullKeyName);
         BAIL_ON_NT_STATUS(status);
 
 		if (ppRegEntries[iCount]->pwszFullKeyName)
 		{
 			sSubKeyLen = RtlWC16StringNumChars(ppRegEntries[iCount]->pwszFullKeyName);
-		}
+	    }
 
 		if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
 			pKeyResult->sMaxSubKeyLen = sSubKeyLen;

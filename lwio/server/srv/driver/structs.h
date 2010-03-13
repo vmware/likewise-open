@@ -125,8 +125,6 @@ typedef struct _LWIO_SRV_RUNTIME_GLOBALS
 
     PLWIO_PACKET_ALLOCATOR    hPacketAllocator;
 
-    PSRV_CCB                  pCCBList;
-
     IO_DEVICE_HANDLE          hDevice;
 
 } LWIO_SRV_RUNTIME_GLOBALS, *PLWIO_SRV_RUNTIME_GLOBALS;

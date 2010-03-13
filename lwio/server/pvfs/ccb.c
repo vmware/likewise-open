@@ -47,10 +47,6 @@
 
 #include "pvfs.h"
 
-/* Forward declarations */
-
-
-/* Code */
 
 /***********************************************************
  **********************************************************/
@@ -73,6 +69,7 @@ PvfsAllocateCCB(
     pthread_mutex_init(&pCCB->FileMutex, NULL);
     pthread_mutex_init(&pCCB->ControlBlock, NULL);
 
+    pCCB->bPendingDeleteHandle = FALSE;
     pCCB->bCloseInProgress = FALSE;
     pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
 
@@ -81,6 +78,10 @@ PvfsAllocateCCB(
     pCCB->RefCount = 1;
 
     *ppCCB = pCCB;
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+    InterlockedIncrement(&gPvfsCcbCount);
+#endif
 
     ntError = STATUS_SUCCESS;
 
@@ -105,12 +106,11 @@ PvfsFreeCCB(
     {
         ntError = PvfsRemoveCCBFromFCB(pCCB->pFcb, pCCB);
 
-        PvfsReleaseFCB(pCCB->pFcb);
-
-        pCCB->pFcb = NULL;
+        PvfsReleaseFCB(&pCCB->pFcb);
     }
 
-    if (pCCB->pDirContext) {
+    if (pCCB->pDirContext)
+    {
         PvfsFreeDirectoryContext(pCCB->pDirContext);
     }
 
@@ -129,6 +129,11 @@ PvfsFreeCCB(
     pthread_mutex_destroy(&pCCB->ControlBlock);
 
     PVFS_FREE(&pCCB);
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+    InterlockedDecrement(&gPvfsCcbCount);
+#endif
+
 
     return STATUS_SUCCESS;
 }

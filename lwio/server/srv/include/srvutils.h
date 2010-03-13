@@ -127,6 +127,13 @@ SrvGetParentPath(
     );
 
 NTSTATUS
+SrvMatchPathPrefix(
+    PWSTR pwszPath,
+    ULONG ulPathLength,
+    PWSTR pwszPrefix
+    );
+
+NTSTATUS
 SrvProdConsInit(
     ULONG                         ulNumMaxItems,
     PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,
@@ -193,6 +200,13 @@ SrvProdConsFreeContents(
     PSMB_PROD_CONS_QUEUE pQueue
     );
 
-
-
 #endif /* __SRV_UTILS_H__ */
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

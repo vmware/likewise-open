@@ -517,9 +517,8 @@ cleanup:
     return status;
 }
 
-static
 BOOLEAN
-RtlpIsSidMemberOfToken(
+RtlIsSidMemberOfToken(
     IN PACCESS_TOKEN AccessToken,
     IN PSID Sid
     )
@@ -568,6 +567,11 @@ RtlAccessCheck(
     USHORT aclSizeUsed = 0;
     USHORT aceOffset = 0;
     PACE_HEADER aceHeader = NULL;
+    union {
+        SID Sid;
+        BYTE Buffer[SID_MAX_SIZE];
+    } sidBuffer;
+    ULONG ulSidSize = sizeof(sidBuffer);
 
     if (!SecurityDescriptor || !AccessToken || !GenericMapping)
     {
@@ -587,17 +591,48 @@ RtlAccessCheck(
         GOTO_CLEANUP();
     }
 
+    if ((SecurityDescriptor->Owner == NULL) ||
+        (SecurityDescriptor->Group == NULL))
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+        GOTO_CLEANUP();
+    }
+
     wantMaxAllowed = IsSetFlag(desiredAccess, MAXIMUM_ALLOWED);
     ClearFlag(desiredAccess, MAXIMUM_ALLOWED);
 
     RtlMapGenericMask(&desiredAccess, GenericMapping);
+
+    //
+    // NT AUTHORITY\SYSTEM is always allowed an access
+    //
+    status = RtlCreateWellKnownSid(WinLocalSystemSid,
+                                   NULL,
+                                   &sidBuffer.Sid,
+                                   &ulSidSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    if (RtlIsSidMemberOfToken(AccessToken, &sidBuffer.Sid))
+    {
+        if (wantMaxAllowed)
+        {
+            SetFlag(desiredAccess, STANDARD_RIGHTS_ALL);
+            SetFlag(desiredAccess, GENERIC_ALL);
+            RtlMapGenericMask(&desiredAccess, GenericMapping);
+        }
+        SetFlag(grantedAccess, desiredAccess);
+        desiredAccess = 0;
+
+        status = STATUS_SUCCESS;
+        GOTO_CLEANUP();
+    }
 
     if (IsSetFlag(desiredAccess, ACCESS_SYSTEM_SECURITY))
     {
         // TODO-Handle ACCESS_SYSTEM_SECURITY by checking SE_SECURITY_NAME
         // privilege.  For now, requesting ACCESS_SYSTEM_SECURITY is not
         // allowed.
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_PRIVILEGE_NOT_HELD;
         GOTO_CLEANUP();
     }
 
@@ -605,6 +640,42 @@ RtlAccessCheck(
     {
         // TODO-Allow WRITE_OWNER if have SE_TAKE_OWNERSHIP_NAME regardless
         // of DACL.
+
+        //
+        // BUILTIN\Administrators are always allowed WRITE_OWNER
+        //
+
+        ulSidSize = sizeof(sidBuffer);
+        status = RtlCreateWellKnownSid(
+                     WinBuiltinAdministratorsSid,
+                     NULL,
+                     &sidBuffer.Sid,
+                     &ulSidSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        if (RtlIsSidMemberOfToken(AccessToken, &sidBuffer.Sid))
+        {
+            SetFlag(grantedAccess, WRITE_OWNER);
+            ClearFlag(desiredAccess, WRITE_OWNER);
+        }
+    }
+
+    //
+    // Owner can always read the SD and write the DACL.
+    //
+
+    if (wantMaxAllowed || IsSetFlag(desiredAccess, READ_CONTROL | WRITE_DAC))
+    {
+        if (RtlIsSidMemberOfToken(AccessToken, SecurityDescriptor->Owner))
+        {
+            if (wantMaxAllowed)
+            {
+                desiredAccess |= (READ_CONTROL | WRITE_DAC);
+            }
+
+            SetFlag(grantedAccess, (READ_CONTROL | WRITE_DAC) & desiredAccess);
+            ClearFlag(desiredAccess, grantedAccess);
+        }
     }
 
     // TODO-MAXIMUM_ALLOWED wrt privileges and WRITE_OWNER and
@@ -650,17 +721,17 @@ RtlAccessCheck(
             case ACCESS_ALLOWED_ACE_TYPE:
             {
                 PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE) aceHeader;
-                if (wantMaxAllowed || IsSetFlag(desiredAccess, ace->Mask))
+                ACCESS_MASK mask = ace->Mask;
+
+                RtlMapGenericMask(&mask, GenericMapping);
+
+                if (wantMaxAllowed || IsSetFlag(desiredAccess, mask))
                 {
                     // SID in token => add bits to granted bits
                     PSID sid = RtlpGetSidAccessAllowedAce(ace);
-                    ACCESS_MASK mask = 0;
 
-                    if (RtlpIsSidMemberOfToken(AccessToken, sid))
+                    if (RtlIsSidMemberOfToken(AccessToken, sid))
                     {
-                        mask = ace->Mask;
-                        RtlMapGenericMask(&mask, GenericMapping);
-
                         if (wantMaxAllowed)
                         {
                             SetFlag(grantedAccess, mask);
@@ -679,11 +750,15 @@ RtlAccessCheck(
             {
                 // Allowed and deny ACEs are isomorphic.
                 PACCESS_ALLOWED_ACE ace = (PACCESS_ALLOWED_ACE) aceHeader;
-                if (IsSetFlag(desiredAccess, ace->Mask))
+                ACCESS_MASK mask = ace->Mask;
+
+                RtlMapGenericMask(&mask, GenericMapping);
+
+                if (IsSetFlag(desiredAccess, mask))
                 {
                     // SID in token => exit with STATUS_ACCESS_DENIED
                     PSID sid = RtlpGetSidAccessAllowedAce(ace);
-                    if (RtlpIsSidMemberOfToken(AccessToken, sid))
+                    if (RtlIsSidMemberOfToken(AccessToken, sid))
                     {
                         status = STATUS_ACCESS_DENIED;
                         GOTO_CLEANUP();
@@ -715,3 +790,352 @@ cleanup:
 
     return NT_SUCCESS(status) ? TRUE : FALSE;
 }
+
+static
+inline
+VOID
+Align32(
+    PULONG ulValue
+    )
+{
+    ULONG ulRem = *ulValue % 32;
+
+    if (ulRem) *ulValue += (32 - ulRem);
+}
+
+static
+inline
+NTSTATUS
+CheckOffset(
+    ULONG ulOffset,
+    ULONG ulSize,
+    ULONG ulMaxSize
+    )
+{
+    if (ulMaxSize - ulOffset < ulSize)
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+    else
+    {
+        return STATUS_SUCCESS;
+    }
+}
+
+static
+inline
+NTSTATUS
+AdvanceTo(
+    PULONG ulValue,
+    ULONG ulPosition,
+    ULONG ulSize
+    )
+{
+    if (ulPosition >= ulSize)
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+    else
+    {
+        *ulValue = ulPosition;
+        return STATUS_SUCCESS;
+    }
+}
+
+static
+ULONG
+RtlAccessTokenRelativeSize(
+    PACCESS_TOKEN pToken
+    )
+{
+    ULONG ulRelativeSize = 0;
+    ULONG i = 0;
+
+    ulRelativeSize += sizeof(ACCESS_TOKEN_SELF_RELATIVE);
+    Align32(&ulRelativeSize);
+
+    ulRelativeSize += RtlLengthSid(pToken->User.Sid);
+    Align32(&ulRelativeSize);
+
+    if (pToken->Groups);
+    {
+        ulRelativeSize += sizeof(SID_AND_ATTRIBUTES_SELF_RELATIVE) * pToken->GroupCount;
+        Align32(&ulRelativeSize);
+
+        for (i = 0; i < pToken->GroupCount; i++)
+        {
+            ulRelativeSize += RtlLengthSid(pToken->Groups[i].Sid);
+            Align32(&ulRelativeSize);
+        }
+    }
+
+    if (pToken->Owner)
+    {
+        ulRelativeSize += RtlLengthSid(pToken->Owner);
+        Align32(&ulRelativeSize);
+    }
+
+    if (pToken->PrimaryGroup)
+    {
+        ulRelativeSize += RtlLengthSid(pToken->PrimaryGroup);
+        Align32(&ulRelativeSize);
+    }
+
+    if (pToken->DefaultDacl)
+    {
+        ulRelativeSize += RtlGetAclSize(pToken->DefaultDacl);
+        Align32(&ulRelativeSize);
+    }
+
+    return ulRelativeSize;
+}
+
+NTSTATUS
+RtlAccessTokenToSelfRelativeAccessToken(
+    IN PACCESS_TOKEN pToken,
+    OUT OPTIONAL PACCESS_TOKEN_SELF_RELATIVE pRelative,
+    IN OUT PULONG pulSize
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG ulRelativeSize = RtlAccessTokenRelativeSize(pToken);
+    PSID_AND_ATTRIBUTES_SELF_RELATIVE pGroups = NULL;
+    PBYTE pBuffer = NULL;
+    ULONG ulOffset = 0;
+    ULONG i = 0;
+
+    if (pRelative)
+    {
+        if (*pulSize < ulRelativeSize)
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
+
+        pBuffer = (PBYTE) pRelative;
+
+        pRelative->Flags = pToken->Flags;
+        pRelative->User.Attributes = pToken->User.Attributes;
+        pRelative->GroupCount = pToken->GroupCount;
+        pRelative->Uid = pToken->Uid;
+        pRelative->Gid = pToken->Gid;
+        pRelative->Umask = pToken->Umask;
+
+        ulOffset += sizeof(*pRelative);
+        Align32(&ulOffset);
+
+        pRelative->User.SidOffset = ulOffset;
+        memcpy(pBuffer + ulOffset, pToken->User.Sid, RtlLengthSid(pToken->User.Sid));
+        ulOffset += RtlLengthSid(pToken->User.Sid);
+        Align32(&ulOffset);
+
+        if (pToken->Groups)
+        {
+            pRelative->GroupsOffset = ulOffset;
+            pGroups = (PSID_AND_ATTRIBUTES_SELF_RELATIVE) (pBuffer + ulOffset);
+            ulOffset += sizeof(SID_AND_ATTRIBUTES_SELF_RELATIVE) * pToken->GroupCount;
+            Align32(&ulOffset);
+
+            for (i = 0; i < pToken->GroupCount; i++)
+            {
+                pGroups[i].Attributes = pToken->Groups[i].Attributes;
+                pGroups[i].SidOffset = ulOffset;
+                memcpy(pBuffer + ulOffset, pToken->Groups[i].Sid, RtlLengthSid(pToken->Groups[i].Sid));
+                ulOffset += RtlLengthSid(pToken->Groups[i].Sid);
+                Align32(&ulOffset);
+            }
+        }
+        else
+        {
+            pRelative->GroupsOffset = 0;
+        }
+
+        if (pToken->Owner)
+        {
+            pRelative->OwnerOffset = ulOffset;
+            memcpy(pBuffer + ulOffset, pToken->Owner, RtlLengthSid(pToken->Owner));
+            ulOffset += RtlLengthSid(pToken->Owner);
+            Align32(&ulOffset);
+        }
+        else
+        {
+            pRelative->OwnerOffset = 0;
+        }
+
+        if (pToken->PrimaryGroup)
+        {
+            pRelative->PrimaryGroupOffset = ulOffset;
+            memcpy(pBuffer + ulOffset, pToken->PrimaryGroup, RtlLengthSid(pToken->PrimaryGroup));
+            ulOffset += RtlLengthSid(pToken->PrimaryGroup);
+            Align32(&ulOffset);
+        }
+        else
+        {
+            pRelative->PrimaryGroupOffset = 0;
+        }
+
+        if (pToken->DefaultDacl)
+        {
+            pRelative->DefaultDaclOffset = ulOffset;
+            memcpy(pBuffer + ulOffset, pToken->DefaultDacl, RtlGetAclSize(pToken->DefaultDacl));
+            ulOffset += RtlGetAclSize(pToken->DefaultDacl);
+            Align32(&ulOffset);
+        }
+        else
+        {
+            pRelative->DefaultDaclOffset = 0;
+        }
+
+
+        assert(ulOffset == ulRelativeSize);
+    }
+
+cleanup:
+
+    *pulSize = ulRelativeSize;
+
+    return status;
+}
+
+static
+NTSTATUS
+RtlValidateSelfRelativeSid(
+    PSID pSid,
+    ULONG ulOffset,
+    ULONG ulRelativeSize
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    status = CheckOffset(ulOffset, SID_MIN_SIZE, ulRelativeSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = CheckOffset(ulOffset, RtlLengthSid(pSid), ulRelativeSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+cleanup:
+
+    return status;
+}
+
+NTSTATUS
+RtlSelfRelativeAccessTokenToAccessToken(
+    IN PACCESS_TOKEN_SELF_RELATIVE pRelative,
+    IN ULONG ulRelativeSize,
+    OUT PACCESS_TOKEN* ppToken
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PACCESS_TOKEN pToken = NULL;
+    ULONG ulOffset = 0;
+    PBYTE pBuffer = (PBYTE) pRelative;
+    PSID pSid = NULL;
+    PSID_AND_ATTRIBUTES_SELF_RELATIVE pGroups = NULL;
+    ULONG ulSize = 0;
+    ULONG ulRealSize = 0;
+    ULONG i = 0;
+
+    status = RTL_ALLOCATE(&pToken, ACCESS_TOKEN, sizeof(*pToken));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    pToken->ReferenceCount = 1;
+
+    status = CheckOffset(0, sizeof(*pRelative), ulRelativeSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    pToken->Flags = pRelative->Flags;
+    pToken->User.Attributes = pRelative->User.Attributes;
+    pToken->GroupCount = pRelative->GroupCount;
+    pToken->Uid = pRelative->Uid;
+    pToken->Gid = pRelative->Gid;
+    pToken->Umask = pRelative->Umask;
+
+    ulOffset = pRelative->User.SidOffset;
+    pSid = (PSID) (pBuffer + ulOffset);
+    status = RtlValidateSelfRelativeSid(pSid, ulOffset, ulRelativeSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    status = RtlDuplicateSid(&pToken->User.Sid, pSid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    ulOffset = pRelative->GroupsOffset;
+    if (ulOffset)
+    {
+        status = LwRtlSafeMultiplyULONG(
+            &ulSize,
+            sizeof(SID_AND_ATTRIBUTES_SELF_RELATIVE),
+            pRelative->GroupCount);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = LwRtlSafeMultiplyULONG(
+            &ulRealSize,
+            sizeof(SID_AND_ATTRIBUTES),
+            pRelative->GroupCount);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = CheckOffset(ulOffset, ulSize, ulRelativeSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        pGroups = (PSID_AND_ATTRIBUTES_SELF_RELATIVE) (pBuffer + ulOffset);
+
+        status = RTL_ALLOCATE(&pToken->Groups, SID_AND_ATTRIBUTES, ulRealSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        for (i = 0; i < pRelative->GroupCount; i++)
+        {
+            pToken->Groups[i].Attributes = pGroups[i].Attributes;
+
+            ulOffset = pGroups[i].SidOffset;
+            pSid = (PSID) (pBuffer + ulOffset);
+            status = RtlValidateSelfRelativeSid(pSid, ulOffset, ulRelativeSize);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            status = RtlDuplicateSid(&pToken->Groups[i].Sid, pSid);
+            GOTO_CLEANUP_ON_STATUS(status);
+        }
+    }
+
+    ulOffset = pRelative->OwnerOffset;
+    if (ulOffset)
+    {
+        pSid = (PSID) (pBuffer + ulOffset);
+        status = RtlValidateSelfRelativeSid(pSid, ulOffset, ulRelativeSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlDuplicateSid(&pToken->Owner, pSid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    ulOffset = pRelative->PrimaryGroupOffset;
+    if (ulOffset)
+    {
+        pSid = (PSID) (pBuffer + ulOffset);
+        status = RtlValidateSelfRelativeSid(pSid, ulOffset, ulRelativeSize);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlDuplicateSid(&pToken->PrimaryGroup, pSid);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    *ppToken = pToken;
+
+cleanup:
+
+    if (!NT_SUCCESS(status))
+    {
+        RtlReleaseAccessToken(&pToken);
+    }
+
+    return status;
+}
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -51,6 +51,9 @@
 
 #include <uuid/uuid.h>
 
+#include <openssl/rand.h>
+#include <openssl/hmac.h>
+
 #include <krb5.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_generic.h>
@@ -68,11 +71,13 @@
 #include <ioapi.h>
 
 #include <smbwire.h>
+#include <srvecp.h>
 
-#include <srvutils.h>
 #include <shareapi.h>
+#include <srvutils.h>
 #include <elementsapi.h>
 
+#include "defs.h"
 #include "structs.h"
 #include "srvtimer.h"
 

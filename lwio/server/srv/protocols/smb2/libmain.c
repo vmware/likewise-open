@@ -51,7 +51,13 @@
 
 static
 NTSTATUS
-SrvBuildStatusPendingResponse_SMB_V2(
+SrvProcessRequestSpecific_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvSendInterimResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
@@ -128,7 +134,6 @@ SrvProtocolExecute_SMB_V2(
          pSmb2Context->iMsg++)
     {
         ULONG iMsg = pSmb2Context->iMsg;
-        PSRV_MESSAGE_SMB_V2 pRequest = &pSmb2Context->pRequests[iMsg];
         PSRV_MESSAGE_SMB_V2 pResponse = &pSmb2Context->pResponses[iMsg];
         PSRV_MESSAGE_SMB_V2 pPrevResponse = NULL;
 
@@ -167,201 +172,11 @@ SrvProtocolExecute_SMB_V2(
                                         pExecContext->pSmbResponse->bufferUsed -
                                         sizeof(NETBIOS_HEADER);
 
-        LWIO_LOG_VERBOSE("Executing command [%s:%d]",
-                         SrvGetCommandDescription_SMB_V2(pRequest->pHeader->command),
-                         pRequest->pHeader->command);
-
-        switch (pRequest->pHeader->command)
-        {
-            case COM2_NEGOTIATE:
-
-                ntStatus = SrvProcessNegotiate_SMB_V2(pExecContext);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                ntStatus = SrvConnectionSetProtocolVersion(
-                                pExecContext->pConnection,
-                                SMB_PROTOCOL_VERSION_2);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                SrvConnectionSetState(
-                        pExecContext->pConnection,
-                        LWIO_SRV_CONN_STATE_NEGOTIATE);
-
-                break;
-
-            case COM2_ECHO:
-            case COM2_SESSION_SETUP:
-
-                {
-                    switch (SrvConnectionGetState(pExecContext->pConnection))
-                    {
-                        case LWIO_SRV_CONN_STATE_NEGOTIATE:
-                        case LWIO_SRV_CONN_STATE_READY:
-
-                            break;
-
-                        default:
-
-                            ntStatus = STATUS_INVALID_SERVER_STATE;
-
-                            break;
-                    }
-                }
-
-                break;
-
-            default:
-
-                switch (SrvConnectionGetState(pExecContext->pConnection))
-                {
-                    case LWIO_SRV_CONN_STATE_READY:
-
-                        break;
-
-                    default:
-
-                        ntStatus = STATUS_INVALID_SERVER_STATE;
-
-                        break;
-                }
-
-                break;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        switch (pRequest->pHeader->command)
-        {
-            case COM2_NEGOTIATE:
-
-                break;
-
-            case COM2_SESSION_SETUP:
-
-                ntStatus = SrvProcessSessionSetup_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_LOGOFF:
-
-                ntStatus = SrvProcessLogoff_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_TREE_CONNECT:
-
-                ntStatus = SrvProcessTreeConnect_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_TREE_DISCONNECT:
-
-                ntStatus = SrvProcessTreeDisconnect_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_CREATE:
-
-                ntStatus = SrvProcessCreate_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_CLOSE:
-
-                ntStatus = SrvProcessClose_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_FLUSH:
-
-                ntStatus = SrvProcessFlush_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_READ:
-
-                ntStatus = SrvProcessRead_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_WRITE:
-
-                ntStatus = SrvProcessWrite_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_LOCK:
-
-                if (pExecContext->bInternal)
-                {
-                    ntStatus = SrvProcessOplock_SMB_V2(pExecContext);
-                }
-                else
-                {
-                    ntStatus = SrvProcessLock_SMB_V2(pExecContext);
-                }
-
-                break;
-
-            case COM2_IOCTL:
-
-                ntStatus = SrvProcessIOCTL_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_ECHO:
-
-                ntStatus = SrvProcessEcho_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_FIND:
-
-                ntStatus = SrvProcessFind_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_GETINFO:
-
-                ntStatus = SrvProcessGetInfo_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_SETINFO:
-
-                ntStatus = SrvProcessSetInfo_SMB_V2(pExecContext);
-
-                break;
-
-            case COM2_BREAK:
-
-                ntStatus = SrvProcessOplockBreak_SMB_V2(pExecContext);
-
-                break;
-
-            default:
-
-                ntStatus = STATUS_NOT_SUPPORTED;
-
-                break;
-        }
+        ntStatus = SrvProcessRequestSpecific_SMB_V2(pExecContext);
 
         switch (ntStatus)
         {
             case STATUS_PENDING:
-
-                // TODO
-                if (0)
-                {
-                    NTSTATUS ntStatus2 = STATUS_SUCCESS;
-
-                    ntStatus2 = SrvBuildStatusPendingResponse_SMB_V2(
-                                    pExecContext
-                                    );
-                    if (ntStatus2)
-                    {
-                        LWIO_LOG_ERROR("Failed to build status pending response [0x%08x]", ntStatus2);
-                    }
-                }
 
                 break;
 
@@ -372,18 +187,29 @@ SrvProtocolExecute_SMB_V2(
                 {
                     pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease(pExecContext->pProtocolContext->pSmb2Context->hState);
                     pExecContext->pProtocolContext->pSmb2Context->hState = NULL;
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease = NULL;
                 }
 
                 break;
 
             default:
 
+                if (pExecContext->pProtocolContext->pSmb2Context->hState &&
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease)
+                {
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease(pExecContext->pProtocolContext->pSmb2Context->hState);
+                    pExecContext->pProtocolContext->pSmb2Context->hState = NULL;
+                    pExecContext->pProtocolContext->pSmb2Context->pfnStateRelease = NULL;
+                }
+
                 if (!pExecContext->bInternal)
                 {
                     ntStatus = SrvBuildErrorResponse_SMB_V2(
                                     pExecContext,
+                                    pExecContext->ullAsyncId,
                                     ntStatus);
                 }
+
                 break;
         }
         BAIL_ON_NT_STATUS(ntStatus);
@@ -391,7 +217,7 @@ SrvProtocolExecute_SMB_V2(
         if (pPrevResponse && pPrevResponse->pHeader)
         {
             pPrevResponse->pHeader->ulChainOffset =
-                                    pPrevResponse->ulMessageSize;
+                pResponse->ulMessageSize ? pPrevResponse->ulMessageSize : 0;
         }
 
         pExecContext->pSmbResponse->bufferUsed += pResponse->ulMessageSize;
@@ -405,6 +231,289 @@ cleanup:
     return ntStatus;
 
 error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProcessRequestSpecific_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg         = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+
+    LWIO_LOG_VERBOSE("Executing command [%s:%d]",
+                     SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
+                     pSmbRequest->pHeader->command);
+
+    if (!iMsg &&
+        LwIsSetFlag(pSmbRequest->pHeader->ulFlags,SMB2_FLAGS_RELATED_OPERATION))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    switch (pSmbRequest->pHeader->command)
+    {
+        case COM2_NEGOTIATE:
+
+            ntStatus = SrvProcessNegotiate_SMB_V2(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvConnectionSetProtocolVersion(
+                            pExecContext->pConnection,
+                            SMB_PROTOCOL_VERSION_2);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            SrvConnectionSetState(
+                    pExecContext->pConnection,
+                    LWIO_SRV_CONN_STATE_NEGOTIATE);
+
+            break;
+
+        case COM2_ECHO:
+        case COM2_SESSION_SETUP:
+
+            {
+                switch (SrvConnectionGetState(pExecContext->pConnection))
+                {
+                    case LWIO_SRV_CONN_STATE_NEGOTIATE:
+                    case LWIO_SRV_CONN_STATE_READY:
+
+                        break;
+
+                    default:
+
+                        ntStatus = STATUS_INVALID_SERVER_STATE;
+
+                        break;
+                }
+            }
+
+            break;
+
+        default:
+
+            switch (SrvConnectionGetState(pExecContext->pConnection))
+            {
+                case LWIO_SRV_CONN_STATE_READY:
+
+                    break;
+
+                default:
+
+                    ntStatus = STATUS_INVALID_SERVER_STATE;
+
+                    break;
+            }
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pSmbRequest->pHeader->command)
+    {
+        case COM2_NEGOTIATE:
+
+            break;
+
+        case COM2_SESSION_SETUP:
+
+            ntStatus = SrvProcessSessionSetup_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_LOGOFF:
+
+            ntStatus = SrvProcessLogoff_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_TREE_CONNECT:
+
+            ntStatus = SrvProcessTreeConnect_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_TREE_DISCONNECT:
+
+            ntStatus = SrvProcessTreeDisconnect_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_CREATE:
+
+            ntStatus = SrvProcessCreate_SMB_V2(pExecContext);
+            if ((ntStatus == STATUS_PENDING) && pExecContext->pInterimResponse)
+            {
+                NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+                ntStatus2 = SrvSendInterimResponse_SMB_V2(pExecContext);
+                if (ntStatus2 != STATUS_SUCCESS)
+                {
+                    ntStatus = ntStatus2;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+            }
+
+            break;
+
+        case COM2_CLOSE:
+
+            ntStatus = SrvProcessClose_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_FLUSH:
+
+            ntStatus = SrvProcessFlush_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_READ:
+
+            ntStatus = SrvProcessRead_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_WRITE:
+
+            ntStatus = SrvProcessWrite_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_LOCK:
+
+            if (pExecContext->bInternal)
+            {
+                ntStatus = SrvProcessAsyncLockRequest_SMB_V2(pExecContext);
+            }
+            else
+            {
+                ntStatus = SrvProcessLock_SMB_V2(pExecContext);
+                if ((ntStatus == STATUS_PENDING) &&
+                    pExecContext->pInterimResponse)
+                {
+                    ntStatus = SrvSendInterimResponse_SMB_V2(pExecContext);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+            }
+
+            break;
+
+        case COM2_IOCTL:
+
+            ntStatus = SrvProcessIOCTL_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_CANCEL:
+
+            ntStatus = SrvProcessCancel_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_ECHO:
+
+            ntStatus = SrvProcessEcho_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_FIND:
+
+            ntStatus = SrvProcessFind_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_NOTIFY:
+
+            if (pExecContext->bInternal)
+            {
+                ntStatus = SrvProcessNotifyCompletion_SMB_V2(pExecContext);
+            }
+            else
+            {
+                ntStatus = SrvProcessNotify_SMB_V2(pExecContext);
+                if ((ntStatus == STATUS_PENDING) &&
+                    pExecContext->pInterimResponse)
+                {
+                    ntStatus = SrvSendInterimResponse_SMB_V2(pExecContext);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+            }
+
+            break;
+
+        case COM2_GETINFO:
+
+            ntStatus = SrvProcessGetInfo_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_SETINFO:
+
+            ntStatus = SrvProcessSetInfo_SMB_V2(pExecContext);
+
+            break;
+
+        case COM2_BREAK:
+
+            if (pExecContext->bInternal)
+            {
+                ntStatus = SrvProcessOplock_SMB_V2(pExecContext);
+            }
+            else
+            {
+                ntStatus = SrvProcessOplockBreak_SMB_V2(pExecContext);
+            }
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_NOT_SUPPORTED;
+
+            break;
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSendInterimResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = SrvTransportSendResponse(
+                    pExecContext->pConnection,
+                    pExecContext->pInterimResponse);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    SMBPacketRelease(
+                pExecContext->pConnection->hPacketAllocator,
+                pExecContext->pInterimResponse);
+
+    pExecContext->pInterimResponse = NULL;
+
+    return ntStatus;
+
+error:
+
+    LWIO_LOG_ERROR("Failed to send auxiliary response "
+                   "[code:0x%08x",
+                   ntStatus);
 
     goto cleanup;
 }
@@ -452,10 +561,10 @@ SrvProtocolFreeContext_SMB_V2(
     SrvFreeMemory(pProtocolContext);
 }
 
-static
 NTSTATUS
-SrvBuildStatusPendingResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+SrvBuildInterimResponse_SMB_V2(
+    PSRV_EXEC_CONTEXT pExecContext,
+    ULONG64           ullAsyncId
     )
 {
     NTSTATUS                   ntStatus      = STATUS_SUCCESS;
@@ -465,31 +574,31 @@ SrvBuildStatusPendingResponse_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSMB2_HEADER               pHeader       = NULL;
     NTSTATUS                   errorStatus   = STATUS_PENDING;
-    PSMB_PACKET pSmbAuxResponse = NULL;
-    PBYTE pOutBuffer            = NULL;
-    ULONG ulOffset              = 0;
-    ULONG ulBytesAvailable      = 0;
-    ULONG ulBytesUsed           = 0;
-    ULONG ulTotalBytesUsed      = 0;
-    ULONG ulHeaderSize          = 0;
+    PSMB_PACKET pInterimResponse = NULL;
+    PBYTE pOutBuffer             = NULL;
+    ULONG ulOffset               = 0;
+    ULONG ulBytesAvailable       = 0;
+    ULONG ulBytesUsed            = 0;
+    ULONG ulTotalBytesUsed       = 0;
+    ULONG ulHeaderSize           = 0;
 
     ntStatus = SMBPacketAllocate(
                     pExecContext->pConnection->hPacketAllocator,
-                    &pSmbAuxResponse);
+                    &pInterimResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketBufferAllocate(
                     pExecContext->pConnection->hPacketAllocator,
                     (64 * 1024) + 4096,
-                    &pSmbAuxResponse->pRawBuffer,
-                    &pSmbAuxResponse->bufferLen);
+                    &pInterimResponse->pRawBuffer,
+                    &pInterimResponse->bufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMB2InitPacket(pSmbAuxResponse, TRUE);
+    ntStatus = SMB2InitPacket(pInterimResponse, TRUE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pOutBuffer = pSmbAuxResponse->pRawBuffer + sizeof(NETBIOS_HEADER);
-    ulBytesAvailable = pSmbAuxResponse->bufferLen - sizeof(NETBIOS_HEADER);
+    pOutBuffer = pInterimResponse->pRawBuffer + sizeof(NETBIOS_HEADER);
+    ulBytesAvailable = pInterimResponse->bufferLen - sizeof(NETBIOS_HEADER);
 
     ntStatus = SMB2MarshalHeader(
                 pOutBuffer,
@@ -502,9 +611,12 @@ SrvBuildStatusPendingResponse_SMB_V2(
                 pSmbRequest->pHeader->ullCommandSequence,
                 pSmbRequest->pHeader->ulTid,
                 pSmbRequest->pHeader->ullSessionId,
+                ullAsyncId,
                 errorStatus,
                 TRUE,
-                pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                LwIsSetFlag(
+                    pSmbRequest->pHeader->ulFlags,
+                    SMB2_FLAGS_RELATED_OPERATION),
                 &pHeader,
                 &ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -530,21 +642,22 @@ SrvBuildStatusPendingResponse_SMB_V2(
     // ulBytesAvailable -= ulBytesUsed;
     ulTotalBytesUsed += ulBytesUsed;
 
-    pSmbAuxResponse->bufferUsed += ulTotalBytesUsed;
+    pInterimResponse->bufferUsed += ulTotalBytesUsed;
 
-    ntStatus = SMB2MarshalFooter(pSmbAuxResponse);
+    ntStatus = SMB2MarshalFooter(pInterimResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pExecContext->pSmbAuxResponse)
+    if (pExecContext->pInterimResponse)
     {
         SMBPacketRelease(
                 pExecContext->pConnection->hPacketAllocator,
-                pExecContext->pSmbAuxResponse);
+                pExecContext->pInterimResponse);
 
-        pExecContext->pSmbAuxResponse = NULL;
+        pExecContext->pInterimResponse = NULL;
     }
 
-    pExecContext->pSmbAuxResponse = pSmbAuxResponse;
+    pExecContext->pInterimResponse = pInterimResponse;
+    pExecContext->ullAsyncId = ullAsyncId;
 
 cleanup:
 
@@ -552,11 +665,11 @@ cleanup:
 
 error:
 
-    if (pSmbAuxResponse)
+    if (pInterimResponse)
     {
         SMBPacketRelease(
             pExecContext->pConnection->hPacketAllocator,
-            pSmbAuxResponse);
+            pInterimResponse);
     }
 
     goto cleanup;

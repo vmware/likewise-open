@@ -5,12 +5,12 @@
 # Author: Gerald Carter <jerry@likewise.com>
 #
 #LWI_STARTUP_TYPE_REDHAT###
-#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 91 9
+#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 17 9
 #LWI_STARTUP_TYPE_REDHAT# description: Start and Stop Likewise Service Manager
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT#
 #LWI_STARTUP_TYPE_SUSE### BEGIN INIT INFO
-#LWI_STARTUP_TYPE_SUSE# Provides: lsassd
+#LWI_STARTUP_TYPE_SUSE# Provides: lwsmd
 #LWI_STARTUP_TYPE_SUSE# Required-Start:
 #LWI_STARTUP_TYPE_SUSE# Required-Stop:
 #LWI_STARTUP_TYPE_SUSE# Default-Start: 3 5

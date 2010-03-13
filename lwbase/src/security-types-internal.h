@@ -127,4 +127,35 @@ typedef struct _ACCESS_TOKEN {
     ULONG Umask;
 } ACCESS_TOKEN;
 
+typedef struct _SID_AND_ATTRIBUTES_SELF_RELATIVE
+{
+    ULONG SidOffset;
+    SID_ATTRIBUTES Attributes;
+} SID_AND_ATTRIBUTES_SELF_RELATIVE, *PSID_AND_ATTRIBUTES_SELF_RELATIVE;
+
+typedef struct _ACCESS_TOKEN_SELF_RELATIVE {
+    ACCESS_TOKEN_FLAGS Flags;
+    // TOKEN_USER:
+    SID_AND_ATTRIBUTES_SELF_RELATIVE User;
+    // TOKEN_GROUPS:
+    ULONG GroupCount;
+    ULONG GroupsOffset;
+#if 0
+    TOKEN_PRIVILEGES Privileges;
+#endif
+    // TOKEN_OWNER:
+    ULONG OwnerOffset;
+    // TOKEN_PRIMARY_GROUP:
+    ULONG PrimaryGroupOffset;
+    // TOKEN_DEFAULT_DACL:
+    ULONG DefaultDaclOffset;
+#if 0
+    TOKEN_SOURCE Source;
+#endif
+    // TOKEN_UNIX:
+    ULONG Uid;
+    ULONG Gid;
+    ULONG Umask;
+} ACCESS_TOKEN_SELF_RELATIVE;
+
 #endif /* __LW_SECURITY_TYPES_INTERNAL_H__ */

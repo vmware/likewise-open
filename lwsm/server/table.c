@@ -174,6 +174,30 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+LwSmTableReconstructEntry(
+    PSM_TABLE_ENTRY pEntry
+    )
+{
+    DWORD dwError = 0;
+
+    if (pEntry->object.pData)
+    {
+        pEntry->pVtbl->pfnDestruct(&pEntry->object);
+        pEntry->object.pData = NULL;
+    }
+
+    dwError = pEntry->pVtbl->pfnConstruct(&pEntry->object, pEntry->pInfo, &pEntry->object.pData);
+    BAIL_ON_ERROR(dwError);
+
+    pEntry->bDirty = FALSE;
+
+error:
+
+    return dwError;
+}
+
 DWORD
 LwSmTableAddEntry(
     PLW_SERVICE_INFO pInfo,
@@ -219,7 +243,7 @@ LwSmTableAddEntry(
     dwError = LwSmLoaderGetVtbl(pwszLoaderName, &pEntry->pVtbl);
     BAIL_ON_ERROR(dwError);
 
-    dwError = pEntry->pVtbl->pfnConstruct(&pEntry->object, pEntry->pInfo, &pEntry->object.pData);
+    dwError = LwSmTableReconstructEntry(pEntry);
     BAIL_ON_ERROR(dwError);
 
     LOCK(bLocked, gServiceTable.pLock);
@@ -304,6 +328,8 @@ LwSmTableUpdateEntry(
     LwSmCommonFreeServiceInfo(pEntry->pInfo);
     pEntry->pInfo = pUpdate;
     pUpdate = NULL;
+
+    pEntry->bDirty = TRUE;
 
 cleanup:
 
@@ -429,6 +455,12 @@ LwSmTableStartEntry(
                 BAIL_ON_ERROR(dwError);
 
                 SM_LOG_INFO("Starting service: %s", pszServiceName);
+
+                if (pEntry->bDirty)
+                {
+                    dwError = LwSmTableReconstructEntry(pEntry);
+                    BAIL_ON_ERROR(dwError);
+                }
 
                 dwError = pEntry->pVtbl->pfnStart(&pEntry->object);
                 BAIL_ON_ERROR(dwError);

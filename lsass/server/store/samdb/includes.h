@@ -36,6 +36,8 @@
 #include <uuid/uuid.h>
 
 #include <lw/base.h>
+#include <lw/security-types.h>
+#include <lwsid.h>
 #include <lwrpc/samrdefs.h>
 
 #include "lsa/lsa.h"
@@ -43,6 +45,7 @@
 #include "lsadef.h"
 #include "lwmem.h"
 #include "lwstr.h"
+#include "lwtime.h"
 #include "lwsecurityidentifier.h"
 #include "lsautils.h"
 #include "lsaunistr.h"

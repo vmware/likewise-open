@@ -50,9 +50,9 @@
 
 DWORD
 RegMultiStrsToByteArrayW(
-    PWSTR*   ppwszInMultiSz,
-    PBYTE*   ppOutBuf,
-    SSIZE_T* pOutBufLen
+    IN PWSTR*   ppwszInMultiSz,
+    OUT PBYTE*   ppOutBuf,
+    OUT SSIZE_T* pOutBufLen
     )
 {
     return RegNtStatusToWin32Error(
@@ -64,9 +64,9 @@ RegMultiStrsToByteArrayW(
 
 NTSTATUS
 NtRegMultiStrsToByteArrayW(
-    PWSTR*   ppwszInMultiSz,
-    PBYTE*   ppOutBuf,
-    SSIZE_T* pOutBufLen
+    IN PWSTR*   ppwszInMultiSz,
+    OUT PBYTE*   ppOutBuf,
+    OUT SSIZE_T* pOutBufLen
     )
 {
     DWORD   dwError   = 0;
@@ -144,9 +144,9 @@ error:
 
 DWORD
 RegMultiStrsToByteArrayA(
-    PSTR*    ppszInMultiSz,
-    PBYTE*   ppOutBuf,
-    SSIZE_T* pOutBufLen
+    IN PSTR*    ppszInMultiSz,
+    OUT PBYTE*   ppOutBuf,
+    OUT SSIZE_T* pOutBufLen
     )
 {
     return RegNtStatusToWin32Error(
@@ -158,9 +158,9 @@ RegMultiStrsToByteArrayA(
 
 NTSTATUS
 NtRegMultiStrsToByteArrayA(
-    PSTR*    ppszInMultiSz,
-    PBYTE*   ppOutBuf,
-    SSIZE_T* pOutBufLen
+    IN PSTR*    ppszInMultiSz,
+    OUT PBYTE*   ppOutBuf,
+    OUT SSIZE_T* pOutBufLen
     )
 {
     DWORD   dwError   = 0;
@@ -224,9 +224,9 @@ error:
 
 DWORD
 RegByteArrayToMultiStrsW(
-    PBYTE   pInBuf,
-    SSIZE_T bufLen,
-    PWSTR** pppwszStrings
+    IN PBYTE   pInBuf,
+    IN SSIZE_T bufLen,
+    OUT PWSTR** pppwszStrings
     )
 {
     return RegNtStatusToWin32Error(
@@ -239,9 +239,9 @@ RegByteArrayToMultiStrsW(
 
 NTSTATUS
 NtRegByteArrayToMultiStrsW(
-    PBYTE   pInBuf,
-    SSIZE_T bufLen,
-    PWSTR** pppwszStrings
+    IN PBYTE   pInBuf,
+    IN SSIZE_T bufLen,
+    OUT PWSTR** pppwszStrings
     )
 {
     DWORD   dwError      = 0;
@@ -323,9 +323,9 @@ error:
 
 DWORD
 RegByteArrayToMultiStrsA(
-    PBYTE   pInBuf,
-    SSIZE_T bufLen,
-    PSTR**  pppszStrings
+    IN PBYTE   pInBuf,
+    IN SSIZE_T bufLen,
+    OUT PSTR**  pppszStrings
     )
 {
     return RegNtStatusToWin32Error(
@@ -337,9 +337,9 @@ RegByteArrayToMultiStrsA(
 
 NTSTATUS
 NtRegByteArrayToMultiStrsA(
-    PBYTE   pInBuf,
-    SSIZE_T bufLen,
-    PSTR**  pppszStrings
+    IN PBYTE   pInBuf,
+    IN SSIZE_T bufLen,
+    OUT PSTR**  pppszStrings
     )
 {
     DWORD   dwError      = 0;
@@ -418,10 +418,10 @@ error:
 
 DWORD
 RegConvertByteStreamA2W(
-    const PBYTE pData,
-    DWORD       cbData,
-    PBYTE*      ppOutData,
-    PDWORD      pcbOutDataLen
+    IN const PBYTE pData,
+    IN DWORD       cbData,
+    OUT PBYTE*      ppOutData,
+    OUT PDWORD      pcbOutDataLen
     )
 {
     return RegNtStatusToWin32Error(
@@ -434,10 +434,10 @@ RegConvertByteStreamA2W(
 
 NTSTATUS
 NtRegConvertByteStreamA2W(
-    const PBYTE pData,
-    DWORD       cbData,
-    PBYTE*      ppOutData,
-    PDWORD      pcbOutDataLen
+    IN const PBYTE pData,
+    IN DWORD       cbData,
+    OUT PBYTE*      ppOutData,
+    OUT PDWORD      pcbOutDataLen
     )
 {
     DWORD dwError      = 0;
@@ -446,6 +446,7 @@ NtRegConvertByteStreamA2W(
     PCSTR pszCursor    = NULL;
     PWSTR pwszCursor   = NULL;
     PWSTR pwszValue    = NULL;
+    DWORD cbWcLen      = 0;
 
     cbOutDataLen = cbData * sizeof(WCHAR);
 
@@ -469,14 +470,18 @@ NtRegConvertByteStreamA2W(
 	dwError = LwRtlWC16StringAllocateFromCString(&pwszValue, pszCursor);
 	BAIL_ON_REG_ERROR(dwError);
 
-        memcpy((PBYTE)pwszCursor, (PBYTE)pwszValue, dwLength * sizeof(WCHAR));
+        cbWcLen = wc16slen(pwszValue);
+        memcpy((PBYTE)pwszCursor,
+               (PBYTE)pwszValue,
+               (cbWcLen + 1) * sizeof(*pwszValue));
 
         pszCursor  += dwLength + 1;
-        pwszCursor += dwLength + 1;
+        pwszCursor += cbWcLen + 1;
     }
+    *pwszCursor++ = '\0';
 
     *ppOutData     = pOutData;
-    *pcbOutDataLen = cbOutDataLen;
+    *pcbOutDataLen = ((PBYTE) pwszCursor) - pOutData;
 
 cleanup:
 
@@ -518,10 +523,10 @@ RegConvertByteStreamW2A(
 
 NTSTATUS
 NtRegConvertByteStreamW2A(
-    const PBYTE pData,
-    DWORD       cbData,
-    PBYTE*      ppOutData,
-    PDWORD      pcbOutDataLen
+    IN const PBYTE pData,
+    IN DWORD       cbData,
+    OUT PBYTE*      ppOutData,
+    OUT PDWORD      pcbOutDataLen
     )
 {
     DWORD dwError      = 0;
@@ -530,8 +535,10 @@ NtRegConvertByteStreamW2A(
     PSTR  pszCursor    = NULL;
     PWSTR pwszCursor   = NULL;
     PSTR  pszValue     = NULL;
+    DWORD cbMbsLen     = 0;
 
-    cbOutDataLen = cbData / sizeof(WCHAR);
+    /* High bound on bytes for given number of wide characters passed in */
+    cbOutDataLen = (cbData / sizeof(WCHAR)) * 4;
 
     dwError = LW_RTL_ALLOCATE((PVOID*)&pOutData, BYTE,
 		                  sizeof(*pOutData) * cbOutDataLen);
@@ -558,14 +565,16 @@ NtRegConvertByteStreamW2A(
 	dwError = LwRtlCStringAllocateFromWC16String(&pszValue, pwszCursor);
         BAIL_ON_REG_ERROR(dwError);
 
-        memcpy(pszCursor, pszValue, len);
+        cbMbsLen = strlen(pszValue);
+        memcpy(pszCursor, pszValue, cbMbsLen + 1);
 
-        pszCursor  += len + 1;
+        pszCursor  += cbMbsLen + 1;
         pwszCursor += len + 1;
     }
+    *pszCursor++ = '\0';
 
     *ppOutData     = pOutData;
-    *pcbOutDataLen = cbOutDataLen;
+    *pcbOutDataLen = ((PBYTE) pszCursor) - pOutData;
 
 cleanup:
 

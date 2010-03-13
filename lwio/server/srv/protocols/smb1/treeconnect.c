@@ -233,6 +233,11 @@ SrvProcessTreeConnectAndX(
 
         case SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO:
 
+            // Catch failed CreateFile calls when they come back around
+
+            ntStatus = pTConState->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvQueryTreeConnectInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -295,6 +300,12 @@ error:
             //       files involved have to be closed
 
             break;
+
+        case STATUS_OBJECT_NAME_NOT_FOUND:
+
+            ntStatus = STATUS_BAD_NETWORK_PATH;
+
+            // Intentional fall through
 
         default:
 
@@ -670,7 +681,8 @@ SrvGetNativeFilesystem(
     {
         SrvPrepareTreeConnectStateAsync(pTConState, pExecContext);
 
-        ntStatus = IoCreateFile(
+        ntStatus = SrvIoCreateFile(
+                        pTConState->pTree->pShareInfo,
                         &pTConState->hFile,
                         pTConState->pAcb,
                         &pTConState->ioStatusBlock,
@@ -678,15 +690,15 @@ SrvGetNativeFilesystem(
                         &pTConState->fileName,
                         pTConState->pSecurityDescriptor,
                         pTConState->pSecurityQOS,
-                        GENERIC_READ,
+                        FILE_READ_ATTRIBUTES,
                         0,
                         FILE_ATTRIBUTE_NORMAL,
-                        FILE_SHARE_READ,
+                        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                         FILE_OPEN,
                         0,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        NULL  /* ECP List  */
+                        &pTConState->pEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -815,14 +827,14 @@ SrvFreeTreeConnectState(
     PSRV_TREE_CONNECT_STATE_SMB_V1 pTConState
     )
 {
-    if (pTConState->pEcpList)
-    {
-        IoRtlEcpListFree(&pTConState->pEcpList);
-    }
-
     if (pTConState->pAcb && pTConState->pAcb->AsyncCancelContext)
     {
         IoDereferenceAsyncCancelContext(&pTConState->pAcb->AsyncCancelContext);
+    }
+
+    if (pTConState->pEcpList)
+    {
+        IoRtlEcpListFree(&pTConState->pEcpList);
     }
 
     // TODO: Free the following if set

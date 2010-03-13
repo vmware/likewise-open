@@ -65,7 +65,7 @@ SrvDriverShutdown(
 static
 NTSTATUS
 SrvInitialize(
-    VOID
+    IO_DEVICE_HANDLE hDevice
     );
 
 static
@@ -86,6 +86,12 @@ SrvShutdown(
     VOID
     );
 
+static
+VOID
+SrvUnblockOneWorker(
+    IN PSMB_PROD_CONS_QUEUE pWorkQueue
+    );
+
 NTSTATUS
 IO_DRIVER_ENTRY(srv)(
     IN IO_DRIVER_HANDLE hDriver,
@@ -95,6 +101,7 @@ IO_DRIVER_ENTRY(srv)(
     NTSTATUS ntStatus = 0;
     PCSTR    pszName  = "srv";
     PVOID    pDeviceContext = NULL;
+    IO_DEVICE_HANDLE hDevice = NULL;
 
     if (IO_DRIVER_ENTRY_INTERFACE_VERSION != ulInterfaceVersion)
     {
@@ -110,17 +117,29 @@ IO_DRIVER_ENTRY(srv)(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoDeviceCreate(
-                    &gSMBSrvGlobals.hDevice,
+                    &hDevice,
                     hDriver,
                     pszName,
                     pDeviceContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvInitialize();
+    ntStatus = SrvInitialize(hDevice);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    hDevice = NULL;
+
+cleanup:
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
+    if (hDevice)
+    {
+        IoDeviceDelete(&hDevice);
+    }
+
+    goto cleanup;
 }
 
 static
@@ -249,7 +268,7 @@ error:
 static
 NTSTATUS
 SrvInitialize(
-    VOID
+    IO_DEVICE_HANDLE hDevice
     )
 {
     NTSTATUS ntStatus = 0;
@@ -316,6 +335,8 @@ SrvInitialize(
         ntStatus = SrvWorkerInit(pWorker);
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    gSMBSrvGlobals.hDevice = hDevice;
 
 error:
 
@@ -469,6 +490,9 @@ SrvShutdown(
 {
     NTSTATUS ntStatus = 0;
 
+    // TODO: All existing requests must be waited on to be completed before
+    //       shutting down the worker queues.
+
     if (gSMBSrvGlobals.pMutex)
     {
         pthread_mutex_lock(gSMBSrvGlobals.pMutex);
@@ -477,11 +501,18 @@ SrvShutdown(
         {
             INT iWorker = 0;
 
-            for (; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
             {
                 PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
 
                 SrvWorkerIndicateStop(pWorker);
+            }
+
+            // Must indicate stop for all workers before queueing the
+            // unblocks.
+            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+            {
+                SrvUnblockOneWorker(&gSMBSrvGlobals.workQueue);
             }
 
             for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
@@ -509,15 +540,6 @@ SrvShutdown(
             gSMBSrvGlobals.hPacketAllocator = NULL;
         }
 
-        while (gSMBSrvGlobals.pCCBList)
-        {
-            PSRV_CCB pCCB = gSMBSrvGlobals.pCCBList;
-
-            gSMBSrvGlobals.pCCBList = pCCB->pNext;
-
-            SrvCCBRelease(pCCB);
-        }
-
         SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
 
         SrvFreeConfigContents(&gSMBSrvGlobals.config);
@@ -532,5 +554,31 @@ SrvShutdown(
     return ntStatus;
 }
 
+static
+VOID
+SrvUnblockOneWorker(
+    IN PSMB_PROD_CONS_QUEUE pWorkQueue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT pExecContext = NULL;
 
+    ntStatus = SrvBuildEmptyExecContext(&pExecContext);
+    BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvProdConsEnqueue(pWorkQueue, pExecContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return;
+
+error:
+
+    if (pExecContext)
+    {
+        SrvReleaseExecContext(pExecContext);
+    }
+
+    goto cleanup;
+}

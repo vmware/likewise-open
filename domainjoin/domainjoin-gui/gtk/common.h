@@ -36,6 +36,17 @@
 
 #define DOMAINJOIN_XML (DATADIR "/likewise/domainjoin-gtk.glade")
 
+typedef struct __JOINSTATE
+{
+    char* computer;
+    char* domain;
+    gboolean ou_active;
+    char* ou;
+    char* user;
+    char* password;
+    gboolean noModifyHosts;
+} JOINSTATE, *PJOINSTATE;
+
 void dialog_insert_likewise_logo(GtkDialog* dialog);
 
 #endif

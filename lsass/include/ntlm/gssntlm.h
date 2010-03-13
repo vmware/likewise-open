@@ -99,6 +99,12 @@ ntlm_gss_release_cred(
     );
 
 OM_uint32
+ntlm_gss_release_oid(
+    OM_uint32* MinorStatus,
+    gss_OID *pOid
+    );
+
+OM_uint32
 ntlm_gss_init_sec_context(
     OM_uint32* pMinorStatus,
     const gss_cred_id_t InitiatorCredHandle,
@@ -274,6 +280,18 @@ ntlm_gssspi_set_cred_option(
     gss_cred_id_t GssCredHandle,
     const gss_OID Option,
     const gss_buffer_t Buffer
+    );
+
+OM_uint32
+ntlm_gss_get_name_attribute(
+    OM_uint32* pMinorStatus,
+    gss_name_t pName,
+    gss_buffer_t pAttr,
+    int* pAuthenticate,
+    int* pComplete,
+    gss_buffer_t pValue,
+    gss_buffer_t pDisplayValue,
+    int* pMore
     );
 
 #endif /* __GSSNTLM_H__ */

@@ -63,6 +63,7 @@ SrvProcessTreeConnect_SMB_V2(
     PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
     PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PSMB2_TREE_CONNECT_REQUEST_HEADER pTreeConnectHeader = NULL;// Do not free
+    PSMB2_TREE_CONNECT_RESPONSE_HEADER pTreeConnectResponseHeader = NULL; // Do not free
     UNICODE_STRING    wszPath = {0}; // Do not free
     PLWIO_SRV_SESSION_2 pSession = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
@@ -142,9 +143,12 @@ SrvProcessTreeConnect_SMB_V2(
                     pSmbRequest->pHeader->ullCommandSequence,
                     pCtxSmb2->pTree->ulTid,
                     pSession->ullUid,
+                    0LL, /* Async Id */
                     STATUS_SUCCESS,
                     TRUE,
-                    pSmbRequest->pHeader->ulFlags & SMB2_FLAGS_RELATED_OPERATION,
+                    LwIsSetFlag(
+                        pSmbRequest->pHeader->ulFlags,
+                        SMB2_FLAGS_RELATED_OPERATION),
                     &pSmbResponse->pHeader,
                     &pSmbResponse->ulHeaderSize);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -160,8 +164,50 @@ SrvProcessTreeConnect_SMB_V2(
                     ulBytesAvailable,
                     pConnection,
                     pCtxSmb2->pTree,
+                    &pTreeConnectResponseHeader,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    // pTreeConnectResponseHeader->ulShareFlags |=
+    //                         SMB2_SHARE_FLAGS_DFS;
+    // pTreeConnectResponseHeader->ulShareFlags |=
+    //                         SMB2_SHARE_FLAGS_DFS_ROOT;
+    // pTreeConnectResponseHeader->ulShareFlags |=
+    //                         SMB2_SHARE_FLAGS_RESTRICT_EXCL_OPENS;
+    // pTreeConnectResponseHeader->ulShareFlags |=
+    //                         SMB2_SHARE_FLAGS_FORCE_SHARED_DELETE;
+    // pTreeConnectResponseHeader->ulShareFlags |=
+    //                         SMB2_SHARE_FLAGS_ALLOW_NS_CACHING;
+    // pTreeConnectResponseHeader->ulShareFlags |=
+    //                         SMB2_SHARE_FLAGS_ACCESS_BASED_DIR_ENUM;
+
+    switch (pTreeConnectResponseHeader->usShareType)
+    {
+        case SMB2_SHARE_TYPE_DISK:
+
+            // pTreeConnectResponseHeader->ulShareFlags |=
+            //                         SMB2_SHARE_FLAGS_FORCE_LEVELII_OPLOCK;
+
+            break;
+
+        case SMB2_SHARE_TYPE_NAMED_PIPE:
+
+            pTreeConnectResponseHeader->ulShareFlags |=
+                                    SMB2_SHARE_FLAGS_CSC_NONE;
+
+            break;
+
+        default:
+
+            break;
+
+    }
+
+    // pTreeConnectResponseHeader->ulShareFlags |=
+    //                         SMB2_SHARE_FLAGS_ENABLE_HASH;
+
+    // pTreeConnectRequestHeader->ulShareCapabilities |=
+    //                             SMB2_SHARE_CAPABILITIES_DFS_AVAILABLE;
 
     // pOutBuffer += ulBytesUsed;
     // ulOffset += ulBytesUsed;

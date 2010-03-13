@@ -504,15 +504,23 @@ static LWMsgTypeSpec gLsaAuthProviderStatusSpec[] =
     LWMSG_TYPE_END
 };
 
+static LWMsgTypeSpec gLsaVersionSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(LSASTATUS),
+    LWMSG_MEMBER_UINT32(LSA_VERSION, dwMajor),
+    LWMSG_MEMBER_UINT32(LSA_VERSION, dwMinor),
+    LWMSG_MEMBER_UINT32(LSA_VERSION, dwBuild),
+    LWMSG_MEMBER_UINT32(LSA_VERSION, dwRevision),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
 static LWMsgTypeSpec gLsaStatusSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSASTATUS),
     LWMSG_MEMBER_UINT32(LSASTATUS, dwUptime),
-    LWMSG_MEMBER_STRUCT_BEGIN(LSASTATUS, version),
-    LWMSG_MEMBER_UINT32(LSA_VERSION, dwMajor),
-    LWMSG_MEMBER_UINT32(LSA_VERSION, dwMinor),
-    LWMSG_MEMBER_UINT32(LSA_VERSION, dwBuild),
-    LWMSG_STRUCT_END,
+    LWMSG_MEMBER_TYPESPEC(LSASTATUS, lsassVersion, gLsaVersionSpec),
+    LWMSG_MEMBER_TYPESPEC(LSASTATUS, productVersion, gLsaVersionSpec),
     LWMSG_MEMBER_UINT32(LSASTATUS, dwCount),
     LWMSG_MEMBER_POINTER_BEGIN(LSASTATUS, pAuthProviderStatusList),
     LWMSG_TYPESPEC(gLsaAuthProviderStatusSpec),
@@ -951,6 +959,7 @@ static LWMsgTypeSpec gLsaSecurityObjectUserInfoSpec[] =
     LWMSG_MEMBER_PSTR(LSA_SECURITY_OBJECT_USER_INFO, pszHomedir),
     LWMSG_MEMBER_UINT64(LSA_SECURITY_OBJECT_USER_INFO, qwPwdLastSet),
     LWMSG_MEMBER_UINT64(LSA_SECURITY_OBJECT_USER_INFO, qwMaxPwdAge),
+    LWMSG_MEMBER_UINT64(LSA_SECURITY_OBJECT_USER_INFO, qwPwdExpires),
     LWMSG_MEMBER_UINT64(LSA_SECURITY_OBJECT_USER_INFO, qwAccountExpires),
 
     LWMSG_MEMBER_UINT8(LSA_SECURITY_OBJECT_USER_INFO, bIsGeneratedUPN),
@@ -1162,7 +1171,7 @@ static LWMsgTypeSpec gLsa2IpcModifyUserReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_MODIFY_USER_REQ),
     LWMSG_MEMBER_PSTR(LSA2_IPC_MODIFY_USER_REQ, pszTargetProvider),
-    LWMSG_MEMBER_POINTER(LSA2_IPC_MODIFY_USER_REQ, pUserModInfo, LWMSG_TYPESPEC(gLsaUserAddInfoSpec)),
+    LWMSG_MEMBER_POINTER(LSA2_IPC_MODIFY_USER_REQ, pUserModInfo, LWMSG_TYPESPEC(gLsaIPCUserModInfo2Spec)),
     LWMSG_ATTR_NOT_NULL,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -1172,7 +1181,7 @@ static LWMsgTypeSpec gLsa2IpcModifyGroupReqSpec[] =
 {
     LWMSG_STRUCT_BEGIN(LSA2_IPC_MODIFY_GROUP_REQ),
     LWMSG_MEMBER_PSTR(LSA2_IPC_MODIFY_GROUP_REQ, pszTargetProvider),
-    LWMSG_MEMBER_POINTER(LSA2_IPC_MODIFY_GROUP_REQ, pGroupModInfo, LWMSG_TYPESPEC(gLsaGroupAddInfoSpec)),
+    LWMSG_MEMBER_POINTER(LSA2_IPC_MODIFY_GROUP_REQ, pGroupModInfo, LWMSG_TYPESPEC(gLsaIPCGroupModInfo2Spec)),
     LWMSG_ATTR_NOT_NULL,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
@@ -1318,55 +1327,6 @@ LsaIPCGetProtocolSpec(
 {
     return gLsaIPCSpec;
 }
-
-DWORD
-LsaMapLwmsgStatus(
-    LWMsgStatus status
-    )
-{
-    switch (status)
-    {
-    default:
-        return LW_ERROR_INTERNAL;
-    case LWMSG_STATUS_SUCCESS:
-        return LW_ERROR_SUCCESS;
-    case LWMSG_STATUS_ERROR:
-        return LW_ERROR_INTERNAL;
-    case LWMSG_STATUS_MEMORY:
-        return LW_ERROR_OUT_OF_MEMORY;
-    case LWMSG_STATUS_MALFORMED:
-    case LWMSG_STATUS_OVERFLOW:
-    case LWMSG_STATUS_UNDERFLOW:
-    case LWMSG_STATUS_EOF:
-        return LW_ERROR_INVALID_MESSAGE;
-    case LWMSG_STATUS_INVALID_PARAMETER:
-        return EINVAL;
-    case LWMSG_STATUS_INVALID_STATE:
-        return EINVAL;
-    case LWMSG_STATUS_UNIMPLEMENTED:
-        return LW_ERROR_NOT_IMPLEMENTED;
-    case LWMSG_STATUS_SYSTEM:
-        return LW_ERROR_INTERNAL;
-    case LWMSG_STATUS_SECURITY:
-        return EACCES;
-    case LWMSG_STATUS_CANCELLED:
-        return EINTR;
-    case LWMSG_STATUS_FILE_NOT_FOUND:
-        return ENOENT;
-    case LWMSG_STATUS_TIMEOUT:
-    case LWMSG_STATUS_CONNECTION_REFUSED:
-        return ECONNREFUSED;
-    case LWMSG_STATUS_PEER_RESET:
-        return ECONNRESET;
-    case LWMSG_STATUS_PEER_ABORT:
-        return ECONNABORTED;
-    case LWMSG_STATUS_PEER_CLOSE:
-        return EPIPE;
-    case LWMSG_STATUS_SESSION_LOST:
-        return EPIPE;
-    }
-}
-
 
 /*
 local variables:

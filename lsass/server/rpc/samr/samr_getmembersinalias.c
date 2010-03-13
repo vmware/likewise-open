@@ -49,9 +49,9 @@
 
 NTSTATUS
 SamrSrvGetMembersInAlias(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ ACCOUNT_HANDLE hAlias,
-    /* [out] */ SidArray *pSids
+    IN  handle_t        hBinding,
+    IN  ACCOUNT_HANDLE  hAlias,
+    OUT SidArray       *pSids
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -73,15 +73,23 @@ SamrSrvGetMembersInAlias(
         NULL
     };
 
-    pAcctCtx    = (PACCOUNT_CONTEXT)hAlias;
-    pConnCtx    = (PCONNECT_CONTEXT)pAcctCtx->pDomCtx->pConnCtx;
-    hDirectory  = pConnCtx->hDirectory;
-    pwszAliasDn = pAcctCtx->pwszDn;
+    pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
 
-    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
+
+    if (!(pAcctCtx->dwAccessGranted & ALIAS_ACCESS_GET_MEMBERS))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    pConnCtx    = (PCONNECT_CONTEXT)pAcctCtx->pDomCtx->pConnCtx;
+    hDirectory  = pConnCtx->hDirectory;
+    pwszAliasDn = pAcctCtx->pwszDn;
 
     dwError = DirectoryGetGroupMembers(hDirectory,
                                        pwszAliasDn,

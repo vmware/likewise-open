@@ -367,6 +367,11 @@ SrvFreeTrans2State(
                 &pTrans2State->pAcb->AsyncCancelContext);
     }
 
+    if (pTrans2State->pEcpList)
+    {
+        IoRtlEcpListFree(&pTrans2State->pEcpList);
+    }
+
     if (pTrans2State->pFile)
     {
         SrvFileRelease(pTrans2State->pFile);

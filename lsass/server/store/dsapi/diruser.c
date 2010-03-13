@@ -193,11 +193,23 @@ DWORD
 DirectoryAddToGroup(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    PDIRECTORY_ENTRY  pDirectoryEntries
+    PDIRECTORY_ENTRY  pAddMemberEntry
     )
 {
     DWORD dwError = 0;
     PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    WCHAR wszAttrDn[] = DIRECTORY_ATTR_DISTINGUISHED_NAME;
+    DWORD iEntry = 0;
+    DWORD dwNumEntries = 0;
+    PWSTR pwszAddMemberDn = NULL;
+    PWSTR pwszMemberDn = NULL;
+
+    PWSTR wszAttributes[] = {
+        wszAttrDn,
+        NULL
+    };
 
     if (!pContext || !pContext->pProvider)
     {
@@ -205,12 +217,60 @@ DirectoryAddToGroup(
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
+    /*
+     * First, check if this member is already in the group.
+     */
+    dwError = DirectoryGetGroupMembers(
+                    hDirectory,
+                    pwszGroupDN,
+                    wszAttributes,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    if (dwNumEntries > 0)
+    {
+        dwError = DirectoryGetEntryAttrValueByName(
+                        pAddMemberEntry,
+                        wszAttrDn,
+                        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                        &pwszAddMemberDn);
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+
+        for (iEntry = 0; iEntry < dwNumEntries; iEntry++)
+        {
+            pEntry = &pEntries[iEntry];
+
+            dwError = DirectoryGetEntryAttrValueByName(
+                            pEntry,
+                            wszAttrDn,
+                            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                            &pwszMemberDn);
+            BAIL_ON_DIRECTORY_ERROR(dwError);
+
+            if (LwRtlWC16StringIsEqual(pwszMemberDn,
+                                       pwszAddMemberDn,
+                                       FALSE))
+            {
+                dwError = ERROR_MEMBER_IN_ALIAS;
+                BAIL_ON_DIRECTORY_ERROR(dwError);
+            }
+        }
+    }
+
+    /*
+     * Add the new member to the group
+     */
     dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryAddToGroup(
                     pContext->hBindHandle,
                     pwszGroupDN,
-                    pDirectoryEntries);
+                    pAddMemberEntry);
 
 error:
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
 
     return dwError;
 }
@@ -219,11 +279,24 @@ DWORD
 DirectoryRemoveFromGroup(
     HANDLE            hDirectory,
     PWSTR             pwszGroupDN,
-    PDIRECTORY_ENTRY  pDirectoryEntries
+    PDIRECTORY_ENTRY  pDelMemberEntry
     )
 {
     DWORD dwError = 0;
     PDIRECTORY_CONTEXT pContext = (PDIRECTORY_CONTEXT)hDirectory;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    WCHAR wszAttrDn[] = DIRECTORY_ATTR_DISTINGUISHED_NAME;
+    DWORD iEntry = 0;
+    DWORD dwNumEntries = 0;
+    PWSTR pwszDelMemberDn = NULL;
+    PWSTR pwszMemberDn = NULL;
+    BOOLEAN bFound = FALSE;
+
+    PWSTR wszAttributes[] = {
+        wszAttrDn,
+        NULL
+    };
 
     if (!pContext || !pContext->pProvider)
     {
@@ -231,12 +304,65 @@ DirectoryRemoveFromGroup(
         BAIL_ON_DIRECTORY_ERROR(dwError);
     }
 
+    /*
+     * First, check if this member is in the group.
+     */
+    dwError = DirectoryGetGroupMembers(
+                    hDirectory,
+                    pwszGroupDN,
+                    wszAttributes,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_DIRECTORY_ERROR(dwError);
+
+    if (dwNumEntries > 0)
+    {
+        dwError = DirectoryGetEntryAttrValueByName(
+                        pDelMemberEntry,
+                        wszAttrDn,
+                        DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                        &pwszDelMemberDn);
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+
+        for (iEntry = 0; !bFound && iEntry < dwNumEntries; iEntry++)
+        {
+            pEntry = &pEntries[iEntry];
+
+            dwError = DirectoryGetEntryAttrValueByName(
+                            pEntry,
+                            wszAttrDn,
+                            DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                            &pwszMemberDn);
+            BAIL_ON_DIRECTORY_ERROR(dwError);
+
+            if (LwRtlWC16StringIsEqual(pwszMemberDn,
+                                       pwszDelMemberDn,
+                                       FALSE))
+            {
+                bFound = TRUE;
+            }
+        }
+    }
+
+    if (!bFound)
+    {
+        dwError = ERROR_MEMBER_NOT_IN_ALIAS;
+        BAIL_ON_DIRECTORY_ERROR(dwError);
+    }
+
+    /*
+     * Delete the member from the group
+     */
     dwError = pContext->pProvider->pProviderFnTbl->pfnDirectoryRemoveFromGroup(
                     pContext->hBindHandle,
                     pwszGroupDN,
-                    pDirectoryEntries);
+                    pDelMemberEntry);
 
 error:
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
 
     return dwError;
 }
@@ -264,3 +390,13 @@ error:
 
     return dwError;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -306,8 +306,15 @@ SamrSrvQueryDomainInfo(
     pDomCtx  = (PDOMAIN_CONTEXT)hDomain;
     pConnCtx = pDomCtx->pConnCtx;
 
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    if (!(pDomCtx->dwAccessGranted & DOMAIN_ACCESS_LOOKUP_INFO_2))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
@@ -322,17 +329,21 @@ SamrSrvQueryDomainInfo(
                   wc16slen(pwszDn) +
                   (sizeof(wszFilterFmt)/sizeof(wszFilterFmt[0]));
 
-    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(WCHAR));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(dwFilterLen * sizeof(WCHAR),
+                               OUT_PPVOID(&pwszFilter));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
-                wszAttrObjectClass,
-                dwObjectClassDomain,
-                wszAttrObjectClass,
-                dwObjectClassBuiltin,
-                wszAttrDn,
-                pwszDn);
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilterFmt,
+                    wszAttrObjectClass,
+                    dwObjectClassDomain,
+                    wszAttrObjectClass,
+                    dwObjectClassBuiltin,
+                    wszAttrDn,
+                    pwszDn) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = DirectorySearch(pConnCtx->hDirectory,
                               pwszBase,
@@ -431,9 +442,7 @@ SamrSrvQueryDomainInfo(
     *ppInfo = pInfo;
 
 cleanup:
-    if (pwszFilter) {
-        SamrSrvFreeMemory(pwszFilter);
-    }
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
     if (pEntry) {
         DirectoryFreeEntries(pEntry, dwEntriesNum);

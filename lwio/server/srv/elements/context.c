@@ -66,12 +66,8 @@ SrvBuildExecContext(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_EXEC_CONTEXT pContext = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_EXEC_CONTEXT),
-                    (PVOID*)&pContext);
+    ntStatus = SrvBuildEmptyExecContext(&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pContext->refCount = 1;
 
     pContext->pConnection = SrvConnectionAcquire(pConnection);
 
@@ -91,6 +87,44 @@ error:
     *ppContext = NULL;
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvBuildEmptyExecContext(
+   OUT PSRV_EXEC_CONTEXT* ppContext
+   )
+{
+    NTSTATUS          ntStatus = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT pContext = NULL;
+
+    ntStatus = SrvAllocateMemory(sizeof(SRV_EXEC_CONTEXT), (PVOID*)&pContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pContext->refCount = 1;
+
+    pContext->bInternal = TRUE;
+
+    *ppContext = pContext;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppContext = NULL;
+
+    goto cleanup;
+}
+
+BOOLEAN
+SrvIsValidExecContext(
+   IN PSRV_EXEC_CONTEXT pExecContext
+   )
+{
+    return (pExecContext &&
+            pExecContext->pConnection &&
+            pExecContext->pSmbRequest);
 }
 
 VOID
@@ -137,16 +171,21 @@ SrvFreeExecContext(
             pContext->pSmbResponse);
     }
 
-    if (pContext->pSmbAuxResponse)
+    if (pContext->pInterimResponse)
     {
         SMBPacketRelease(
             pContext->pConnection->hPacketAllocator,
-            pContext->pSmbAuxResponse);
+            pContext->pInterimResponse);
     }
 
     if (pContext->pConnection)
     {
         SrvConnectionRelease(pContext->pConnection);
+    }
+
+    if (pContext->pMutex)
+    {
+        pthread_mutex_destroy(&pContext->mutex);
     }
 
     SrvFreeMemory(pContext);

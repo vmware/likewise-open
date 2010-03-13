@@ -181,4 +181,6 @@
 #include <sys/regset.h>
 #endif
 
+#include <sys/resource.h>
+
 #endif

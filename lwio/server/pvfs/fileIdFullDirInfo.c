@@ -153,7 +153,8 @@ PvfsQueryFileIdFullDirInfo(
         ntError = PvfsEnumerateDirectory(
                       pCcb,
                       pIrp->Args.QueryDirectory.FileSpec,
-                      -1);
+                      -1,
+                      FALSE);
     }
 
     LWIO_UNLOCK_MUTEX(bLocked, &pCcb->FileMutex);
@@ -219,6 +220,7 @@ PvfsQueryFileIdFullDirInfo(
             ntError == STATUS_INSUFFICIENT_RESOURCES ||
             ntError == STATUS_ACCESS_DENIED)
         {
+            pFileInfo = pPrevFileInfo;
             pCcb->pDirContext->dwIndex++;
             continue;
         }

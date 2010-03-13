@@ -48,6 +48,7 @@ SrvProcessTreeDisconnectAndX(
     ULONG ulTotalBytesUsed     = 0;
     PTREE_DISCONNECT_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
     PLWIO_SRV_SESSION                pSession = NULL;
+    PLWIO_SRV_TREE                   pTree = NULL;
 
     ntStatus = SrvConnectionFindSession_SMB_V1(
                     pCtxSmb1,
@@ -55,6 +56,14 @@ SrvProcessTreeDisconnectAndX(
                     pSmbRequest->pHeader->uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvSessionFindTree(
+                    pSession,
+                    pSmbRequest->pHeader->tid,
+                    &pTree);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvTreeRundown(pTree);
 
     ntStatus = SrvSessionRemoveTree(pSession, pSmbRequest->pHeader->tid);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -115,6 +124,10 @@ SrvProcessTreeDisconnectAndX(
     pSmbResponse->ulMessageSize = ulTotalBytesUsed;
 
 cleanup:
+    if (pTree)
+    {
+        SrvTreeRelease(pTree);
+    }
 
     if (pSession)
     {

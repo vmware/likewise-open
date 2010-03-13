@@ -54,47 +54,74 @@ SrvTree2FindFile_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
     PLWIO_SRV_TREE_2         pTree,
     PSMB2_FID                pFid,
+    BOOLEAN                  bRelated,
     PLWIO_SRV_FILE_2*        ppFile
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_FILE_2 pFile = NULL;
 
-    if (pFid && !(pFid->ullPersistentId == 0xFFFFFFFFFFFFFFFFLL &&
-                  pFid->ullVolatileId == 0xFFFFFFFFFFFFFFFFLL))
+    if (!pFid)
     {
-        if (pSmb2Context->pFile)
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (bRelated)
+    {
+        // chained request will inherit handle in context
+        if ((pFid->ullPersistentId == 0xFFFFFFFFFFFFFFFFLL) &&
+            (pFid->ullVolatileId == 0xFFFFFFFFFFFFFFFFLL))
         {
-            if (pSmb2Context->pFile->ullFid != pFid->ullVolatileId)
+            if (pSmb2Context->pFile)
             {
-                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-                BAIL_ON_NT_STATUS(ntStatus);
+                pFile = SrvFile2Acquire(pSmb2Context->pFile);
             }
             else
             {
+                ntStatus = STATUS_FILE_CLOSED;
+            }
+        }
+        else if (pSmb2Context->pFile) // explicit id specified must match
+        {
+            if ((pSmb2Context->pFile->fid.ullPersistentId == pFid->ullPersistentId) &&
+                (pSmb2Context->pFile->fid.ullVolatileId == pFid->ullVolatileId))
+            {
                 pFile = SrvFile2Acquire(pSmb2Context->pFile);
+            }
+            else
+            {
+                ntStatus = STATUS_INVALID_PARAMETER;
             }
         }
         else
         {
-            ntStatus = SrvTree2FindFile(
-                            pTree,
-                            pFid->ullVolatileId,
-                            &pFile);
+            ntStatus = SrvTree2FindFile(pTree, pFid, &pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pSmb2Context->pFile = SrvFile2Acquire(pFile);
         }
     }
-    else if (pSmb2Context->pFile)
+    else // not related; therefore, do not use the context
     {
-        pFile = SrvFile2Acquire(pSmb2Context->pFile);
-    }
-    else
-    {
-        ntStatus = STATUS_NOT_FOUND;
+        if ((pFid->ullPersistentId == 0xFFFFFFFFFFFFFFFFLL) &&
+            (pFid->ullVolatileId == 0xFFFFFFFFFFFFFFFFLL))
+        {
+            ntStatus = STATUS_FILE_CLOSED;
+        }
+        else
+        {
+            ntStatus = SrvTree2FindFile(pTree, pFid, &pFile);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pFile)
+    {
+        ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     *ppFile = pFile;
 

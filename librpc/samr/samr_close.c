@@ -55,22 +55,25 @@ SamrClose(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     unsigned32 rpcStatus = 0;
-    void *hOut = NULL;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hIn, ntStatus);
 
     DCERPC_CALL(ntStatus, _SamrClose(hSamrBinding,
-                                     hIn,
-                                     &hOut));
+                                     &hIn))
     BAIL_ON_NT_STATUS(ntStatus);
 
-    rpc_sm_destroy_client_context(&hIn, &rpcStatus);
-
 cleanup:
+
     return ntStatus;
 
 error:
+
+    if (hIn)
+    {
+        rpc_sm_destroy_client_context(&hIn, &rpcStatus);
+    }
+
     goto cleanup;
 }
 

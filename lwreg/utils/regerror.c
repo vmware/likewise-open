@@ -188,8 +188,8 @@ static struct
         "Unsupported registry data type"
     },
     {
-        LWREG_ERROR_BEYOUND_MAX_VALUE_LEN,
-        "Value length is beyond maximum allowed value length"
+	LWREG_ERROR_BEYOUND_MAX_KEY_OR_VALUE_LENGTH,
+        "Key (value) name / Value length is beyond maximum allowed length"
     },
     {
         LWREG_ERROR_NO_MORE_KEYS_OR_VALUES,

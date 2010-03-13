@@ -45,4 +45,5 @@ libntlmserver_la_LIBADD = \
     $(CRYPTO_LIBS) \
     $(KRB5_LIBS) \
     $(LWADVAPI_LIBS) \
-    $(SOCKET_LIBS)
+    $(SOCKET_LIBS) \
+    $(NETAPI_LIBS)

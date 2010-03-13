@@ -82,6 +82,13 @@ LsaSrvLookupNames2(
                                   &dwCount,
                                   unknown1,
                                   unknown2);
+    if (ntStatus != STATUS_SUCCESS &&
+        ntStatus != STATUS_SOME_NOT_MAPPED &&
+        ntStatus != STATUS_NONE_MAPPED)
+    {
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
     ntLookupStatus = ntStatus;
 
     Sids2.count = Sids3.count;

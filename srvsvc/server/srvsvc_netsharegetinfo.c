@@ -123,7 +123,7 @@ SrvSvcNetShareGetInfo(
                         &pszSmbPath,
                         "\\srv"
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwMbsToWc16s(
                         pszSmbPath,
@@ -154,7 +154,7 @@ SrvSvcNetShareGetInfo(
                     dwOutLength,
                     (void**)&pOutBuffer
                     );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtDeviceIoControlFile(
                     hFile,
@@ -178,7 +178,7 @@ SrvSvcNetShareGetInfo(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
-        BAIL_ON_ERROR(dwError);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         ntStatus = NtDeviceIoControlFile(
                         hFile,
@@ -202,7 +202,7 @@ SrvSvcNetShareGetInfo(
 
     dwError = SrvSvcSrvAllocateMemory(sizeof(*pShareInfo),
                                     (PVOID*)&pShareInfo);
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     switch (pGetParamsOut->dwInfoLevel) {
     case 0:

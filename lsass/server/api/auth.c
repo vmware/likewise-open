@@ -162,11 +162,15 @@ LsaSrvAuthenticateUserEx(
     PLSA_AUTH_PROVIDER pProvider = NULL;
     HANDLE hProvider = (HANDLE)NULL;
     PLSA_LOGIN_NAME_INFO pLoginInfo = NULL;
+    LSA_AUTH_USER_PARAMS localUserParams;
 
     BAIL_ON_INVALID_POINTER(pUserParams);
     BAIL_ON_INVALID_POINTER(ppUserInfo);
 
     LSA_TRACE_BEGIN_FUNCTION(dwTraceFlags, sizeof(dwTraceFlags)/sizeof(dwTraceFlags[0]));
+
+    /* Make copy of parameters structure so we can modify it */
+    localUserParams = *pUserParams;
 
     /* Validate the AuthType */
 
@@ -217,7 +221,7 @@ LsaSrvAuthenticateUserEx(
     if (pLoginInfo->nameType == NameType_UPN)
     {
         /* If they gave us a UPN, our domain MUST be NULL */
-        LW_SAFE_FREE_STRING(pUserParams->pszDomain);
+        localUserParams.pszDomain = NULL;
     }
 
     /* Do the NTLM authentication */
@@ -231,7 +235,7 @@ LsaSrvAuthenticateUserEx(
 
         dwError = pProvider->pFnTable2->pfnAuthenticateUserEx(
                                             hProvider,
-                                            pUserParams,
+                                            &localUserParams,
                                             ppUserInfo);
         if (!dwError)
         {
@@ -584,12 +588,20 @@ LsaSrvSetPassword(
                                         hProvider,
                                         pszLoginId,
                                         pszPassword);
-        if ((dwError == LW_ERROR_NOT_HANDLED) ||
-            (dwError == LW_ERROR_NO_SUCH_USER))
+        if (!dwError)
+        {
+            break;
+        }
+        else if ((dwError == LW_ERROR_NOT_HANDLED) ||
+                 (dwError == LW_ERROR_NO_SUCH_USER))
         {
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = (HANDLE)NULL;
             continue;
+        }
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
         }
     }
 

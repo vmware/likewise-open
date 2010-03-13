@@ -48,6 +48,14 @@
 #define _PVFS_ACL_H_
 
 NTSTATUS
+PvfsGetSecurityDescriptorFileDefault(
+    IN PPVFS_CCB pCcb,
+    IN SECURITY_INFORMATION SecInfo,
+    IN OUT PSECURITY_DESCRIPTOR_RELATIVE pSecDesc,
+    IN OUT PULONG pSecDescLen
+    );
+
+NTSTATUS
 PvfsGetSecurityDescriptorFile(
     IN PPVFS_CCB pCcb,
     IN SECURITY_INFORMATION SecInfo,
@@ -76,8 +84,25 @@ PvfsFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
+NTSTATUS
+PvfsSecurityAclSelfRelativeToAbsoluteSD(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsolute,
+    PSECURITY_DESCRIPTOR_RELATIVE pRelative
+    );
+
+
 
 /* From acl_posix.c */
+
+NTSTATUS
+PvfsSecurityInitMapSecurityCtx(
+    PLW_MAP_SECURITY_CONTEXT *ppContext
+    );
+
+VOID
+PvfsSecurityShutdownMapSecurityCtx(
+    PLW_MAP_SECURITY_CONTEXT *ppContext
+    );
 
 NTSTATUS
 PvfsGetSecurityDescriptorPosix(

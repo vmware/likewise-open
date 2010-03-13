@@ -68,37 +68,48 @@ PvfsCheckShareMode(
     ntError = PvfsFindFCB(&pFcb, pszFilename);
     if (ntError == STATUS_SUCCESS) {
 
-        ntError = PvfsEnforceShareMode(pFcb,
-                                       SharedAccess,
-                                       DesiredAccess);
-        BAIL_ON_NT_STATUS(ntError);
+        ntError = PvfsEnforceShareMode(
+                      pFcb,
+                      SharedAccess,
+                      DesiredAccess);
 
-        *ppFcb = pFcb;
+        /* If we have success, then we are good.  If we have a sharing
+           violation, give the caller a chance to break the oplock and
+           we'll try again when the create is resumed. */
 
+        if (ntError == STATUS_SUCCESS ||
+            ntError == STATUS_SHARING_VIOLATION)
+        {
+            *ppFcb = PvfsReferenceFCB(pFcb);
+        }
         goto cleanup;
     }
 
-    if (ntError != STATUS_OBJECT_NAME_NOT_FOUND) {
+    if (ntError != STATUS_OBJECT_NAME_NOT_FOUND)
+    {
         BAIL_ON_NT_STATUS(ntError);
     }
 
     /* If not found, then add one */
 
-    ntError = PvfsCreateFCB(&pFcb, pszFilename,
-                            SharedAccess, DesiredAccess);
+    ntError = PvfsCreateFCB(
+                  &pFcb,
+                  pszFilename,
+                  SharedAccess,
+                  DesiredAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    *ppFcb = pFcb;
+    *ppFcb = PvfsReferenceFCB(pFcb);
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (pFcb) {
+        PvfsReleaseFCB(&pFcb);
+    }
+
     return ntError;
 
 error:
-    if (pFcb) {
-        PvfsReleaseFCB(pFcb);
-    }
-
     goto cleanup;
 }
 
@@ -122,15 +133,17 @@ PvfsEnforceShareMode(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     int i = 0;
-    ULONG RetryMax = 4;
+    ULONG RetryMax = 3;
     struct timespec SleepTime = {0};
     struct timespec RemainingTime = {0};
 
-    for (i=0; i<RetryMax; i++)
+    for (i=0; i<RetryMax && (ntError != STATUS_SUCCESS); i++)
     {
         ntError = _PvfsEnforceShareMode(pFcb, ShareAccess, DesiredAccess);
         if ((ntError == STATUS_SHARING_VIOLATION) && (i<(RetryMax-1)))
         {
+            NTSTATUS ntErrorSleep = STATUS_SUCCESS;
+
             /* 2 milliseconds */
             RemainingTime.tv_sec = 0;
             RemainingTime.tv_nsec = 2 * 1000000;
@@ -139,15 +152,12 @@ PvfsEnforceShareMode(
                 SleepTime.tv_sec = RemainingTime.tv_sec;
                 SleepTime.tv_nsec = RemainingTime.tv_nsec;
 
-                ntError = PvfsSysNanoSleep(&SleepTime, &RemainingTime);
-            } while (ntError == STATUS_MORE_PROCESSING_REQUIRED);
+                ntErrorSleep = PvfsSysNanoSleep(&SleepTime, &RemainingTime);
+            } while (ntErrorSleep == STATUS_MORE_PROCESSING_REQUIRED);
 
-            ntError = STATUS_SUCCESS;
+            continue;
         }
         BAIL_ON_NT_STATUS(ntError);
-
-        /* All done */
-        break;
     }
 
 cleanup:
@@ -224,7 +234,7 @@ _PvfsEnforceShareMode(
                an existing share mode */
 
             if ((DesiredAccess & ShareModeTable[i].Access) &&
-                !(pCcb->ShareFlags & ShareModeTable[i].ShareFlag))
+                (!(pCcb->ShareFlags & ShareModeTable[i].ShareFlag)))
             {
                 ntError = STATUS_SHARING_VIOLATION;
                 BAIL_ON_NT_STATUS(ntError);
@@ -234,7 +244,7 @@ _PvfsEnforceShareMode(
                and an existing granted access mask */
 
             if ((pCcb->AccessGranted & ShareModeTable[i].Access) &&
-                !(ShareAccess & ShareModeTable[i].ShareFlag))
+                (!(ShareAccess & ShareModeTable[i].ShareFlag)))
             {
                 ntError = STATUS_SHARING_VIOLATION;
                 BAIL_ON_NT_STATUS(ntError);

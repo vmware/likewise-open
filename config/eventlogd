@@ -8,7 +8,7 @@
 # /etc/init.d/eventlogd
 #
 #LWI_STARTUP_TYPE_REDHAT###
-#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 91 9
+#LWI_STARTUP_TYPE_REDHAT# chkconfig: 35 20 9
 #LWI_STARTUP_TYPE_REDHAT# description: Start and Stop the Likewise Likewise Eventlog
 #LWI_STARTUP_TYPE_REDHAT###
 #LWI_STARTUP_TYPE_REDHAT#

@@ -242,9 +242,13 @@ SrvProcessOplock(
                     {
                         LONG64 llExpiry = 0LL;
 
-                        llExpiry = (time(NULL) +
-                                    (SrvConfigGetOplockTimeout_SMB_V1()/1000) +
-                                    11644473600LL) * 10000000LL;
+                        ntStatus = WireGetCurrentNTTime(&llExpiry);
+                        BAIL_ON_NT_STATUS(ntStatus);
+
+                        /* configured timeout will be in milliseconds */
+                        llExpiry +=
+                            (SrvConfigGetOplockTimeoutMillisecs_SMB_V1() *
+                                WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS);
 
                         ntStatus = SrvTimerPostRequest(
                                         llExpiry,

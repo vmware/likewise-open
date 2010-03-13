@@ -88,7 +88,7 @@
     do { \
         if ((err) != STATUS_SUCCESS) { \
             LSA_LOG_DEBUG("Error at %s:%d [code: %d]", \
-                            __FILE__, __LINE__, dwError); \
+                          __FILE__, __LINE__, (err));  \
 		    goto error; \
 	    } \
     } while (0);
@@ -96,7 +96,7 @@
 
 #define BAIL_ON_LSA_ERROR(dwError) \
     if (dwError) {\
-       LSA_LOG_DEBUG("Error code: %d (symbol: %s)", dwError, LwWin32ExtErrorToName(dwError)); \
+       LSA_LOG_DEBUG("Error code: %d (symbol: %s)", dwError, LSA_SAFE_LOG_STRING(LwWin32ExtErrorToName(dwError))); \
        goto error;                 \
     }
 
@@ -132,19 +132,11 @@ extern pthread_mutex_t gLogLock;
 #define LSA_LOCK_LOGGER   pthread_mutex_lock(&gLogLock)
 #define LSA_UNLOCK_LOGGER pthread_mutex_unlock(&gLogLock)
 
-#if defined (__LWI_DARWIN_X64__)
 #define _LSA_LOG_WITH_THREAD(Level, Format, ...) \
     _LSA_LOG_MESSAGE(Level, \
-                     "%zd:" Format, \
-                     (size_t)pthread_self(), \
+                     "0x%lx:" Format, \
+                     (unsigned long)pthread_self(), \
                      ## __VA_ARGS__)
-#else
-#define _LSA_LOG_WITH_THREAD(Level, Format, ...) \
-    _LSA_LOG_MESSAGE(Level, \
-                     "0x%x:" Format, \
-                     (unsigned int)pthread_self(), \
-                     ## __VA_ARGS__)
-#endif
 
 #else
 
@@ -218,7 +210,7 @@ extern PFN_LSA_LOG_MESSAGE gpfnLogger;
     LSA_LOG_ERROR("Failed to " szFmt " -> error = %d, symbol = %s, client pid = %ld", \
          ## __VA_ARGS__, \
          dwError, \
-         LwWin32ExtErrorToName(dwError), \
+         LSA_SAFE_LOG_STRING(LwWin32ExtErrorToName(dwError)), \
          (long)(hServer? ((PLSA_SRV_API_STATE)hServer)->peerPID : getpid()))
 
 #define LSA_LOG_VERBOSE_ENTRY_NOT_FOUND(hServer, dwError, szFmt, ...) \
@@ -1264,114 +1256,10 @@ LsaTraceShutdown(
     );
 
 DWORD
-LsaAllocSecurityIdentifierFromBinary(
-    UCHAR* sidBytes,
-    DWORD dwSidBytesLength,
-    PLSA_SECURITY_IDENTIFIER* ppSecurityIdentifier
-    );
-
-DWORD
-LsaAllocSecurityIdentifierFromString(
-    PCSTR pszSidString,
-    PLSA_SECURITY_IDENTIFIER* ppSecurityIdentifier
-    );
-
-VOID
-LsaFreeSecurityIdentifier(
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier
-    );
-
-DWORD
-LsaGetSecurityIdentifierRid(
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
-    PDWORD pdwRid
-    );
-
-DWORD
-LsaSetSecurityIdentifierRid(
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
-    DWORD dwRid
-    );
-
-DWORD
-LsaReplaceSidRid(
-    IN PCSTR pszSid,
-    IN DWORD dwNewRid,
-    OUT PSTR* ppszNewSid
-    );
-
-DWORD
-LsaGetSecurityIdentifierHashedRid(
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
-    PDWORD dwHashedRid
-    );
-
-// The UID is a DWORD constructued using a non-cryptographic hash
-// of the User's domain SID and user RID.
-DWORD
-LsaHashSecurityIdentifierToId(
-    IN PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
-    OUT PDWORD pdwId
-    );
-
-DWORD
-LsaHashSidStringToId(
-    IN PCSTR pszSidString,
-    OUT PDWORD pdwId
-    );
-
-DWORD
-LsaGetSecurityIdentifierBinary(
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
-    UCHAR** ppucSidBytes,
-    DWORD* pdwSidBytesLength
-    );
-
-DWORD
-LsaGetSecurityIdentifierString(
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
-    PSTR* ppszSidStr
-    );
-
-DWORD
-LsaSidBytesToString(
-    UCHAR* pucSidBytes,
-    DWORD dwSidBytesLength,
-    PSTR* pszSidString
-    );
-
-DWORD
-LsaGetDomainSecurityIdentifier(
-    PLSA_SECURITY_IDENTIFIER pSecurityIdentifier,
-    PLSA_SECURITY_IDENTIFIER* ppDomainSID
-    );
-
-DWORD
-LsaHexStrToByteArray(
-    IN PCSTR pszHexString,
-    IN OPTIONAL DWORD* pdwHexStringLength,
-    OUT UCHAR** ppucByteArray,
-    OUT DWORD* pdwByteArrayLength
-    );
-
-DWORD
 LsaByteArrayToHexStr(
     IN UCHAR* pucByteArray,
     IN DWORD dwByteArrayLength,
     OUT PSTR* ppszHexString
-    );
-
-DWORD
-LsaByteArrayToLdapFormatHexStr(
-    IN UCHAR* pucByteArray,
-    IN DWORD dwByteArrayLength,
-    OUT PSTR* ppszHexString
-    );
-
-DWORD
-LsaSidStrToLdapFormatHexStr(
-    IN PCSTR pszSid,
-    OUT PSTR* ppszHexSid
     );
 
 int

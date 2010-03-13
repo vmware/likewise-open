@@ -105,6 +105,7 @@ PvfsSetFileDispositionInfo(
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     IO_MATCH_FILE_SPEC FileSpec = {0};
     WCHAR wszPattern[2] = {L'*', 0x0 };
+    FILE_ATTRIBUTES Attributes = 0;
 
     /* Sanity checks */
 
@@ -131,26 +132,42 @@ PvfsSetFileDispositionInfo(
 
     if (pFileInfo->DeleteFile == TRUE)
     {
+        /* Checks as to whether we can set the delete-on-close bit
+           differs for files and directortories */
+
         if (PVFS_IS_DIR(pCcb))
         {
+            BOOLEAN bDirLocked = FALSE;
+
             LwRtlUnicodeStringInit(&FileSpec.Pattern, wszPattern);
 
-            ntError = PvfsEnumerateDirectory(pCcb, &FileSpec, 1);
+            LWIO_LOCK_MUTEX(bDirLocked, &pCcb->FileMutex);
+            ntError = PvfsEnumerateDirectory(pCcb, &FileSpec, 1, TRUE);
+            LWIO_UNLOCK_MUTEX(bDirLocked,  &pCcb->FileMutex);
+
             if (ntError == STATUS_SUCCESS)
             {
                 ntError = STATUS_DIRECTORY_NOT_EMPTY;
                 BAIL_ON_NT_STATUS(ntError);
             }
         }
+        else
+        {
+            ntError = PvfsGetFileAttributes(pCcb, &Attributes);
+            BAIL_ON_NT_STATUS(ntError);
 
-        pCcb->pFcb->bDeleteOnClose = TRUE;
-        pCcb->CreateOptions &= FILE_DELETE_ON_CLOSE;
+            if (Attributes & FILE_ATTRIBUTE_READONLY)
+            {
+                ntError = STATUS_CANNOT_DELETE;
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+
+        PvfsFcbSetPendingDelete(pCcb->pFcb, TRUE);
     }
     else
     {
-        /* Clear */
-        pCcb->pFcb->bDeleteOnClose = FALSE;
-        pCcb->CreateOptions &= ~FILE_DELETE_ON_CLOSE;
+        PvfsFcbSetPendingDelete(pCcb->pFcb, FALSE);
     }
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);

@@ -72,6 +72,12 @@ PvfsFileEaInfo(
     );
 
 NTSTATUS
+PvfsFileFullEaInfo(
+    PVFS_INFO_TYPE Type,
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
 PvfsFileStreamInfo(
     PVFS_INFO_TYPE Type,
     PPVFS_IRP_CONTEXT pIrpContext
@@ -206,7 +212,8 @@ NTSTATUS
 PvfsEnumerateDirectory(
     PPVFS_CCB pCcb,
     PIO_MATCH_FILE_SPEC pFileSpec,
-    LONG Count
+    LONG Count,
+    BOOLEAN bRescan
     );
 
 VOID

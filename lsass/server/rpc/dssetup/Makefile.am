@@ -15,6 +15,8 @@ libdssetup_la_SOURCES =             \
     dssetup_cfg.c                   \
     dssetup_srv.c                   \
     dsr_memory.c                    \
+    dsr_security.c                  \
+    dsr_accesstoken.c               \
     dsr_rolegetprimarydomaininfo.c
 
 DCEIDL_PASS_INCLUDES = \

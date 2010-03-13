@@ -263,8 +263,7 @@ IopIrpCompleteInternal(
 
     IopFileObjectRemoveDispatched(pIrp->FileHandle, pIrp->Type);
 
-    // FIXME: fix the macro
-    // LWIO_ASSERT(NT_SUCCESS_OR_NOT(pIrp->IoStatusBlock.Status));
+    LWIO_ASSERT(IsValidStatusForIrpType(pIrp->IoStatusBlock.Status, pIrp->Type));
 
     if (STATUS_SUCCESS == pIrp->IoStatusBlock.Status)
     {
@@ -455,6 +454,7 @@ IopIrpDispatch(
     PIRP pExtraIrpReference = NULL;
     PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
     BOOLEAN needCancel = FALSE;
+    IRP_TYPE irpType = pIrp->Type;
 
     LWIO_ASSERT(pIoStatusBlock);
     LWIO_ASSERT(IS_BOTH_OR_NEITHER(pCreateFileHandle,
@@ -566,7 +566,7 @@ cleanup:
 
     LWIO_ASSERT(IS_BOTH_OR_NEITHER(pExtraIrpReference, (STATUS_PENDING == status)));
     LWIO_ASSERT((STATUS_PENDING != status) || isAsyncCall);
-    LWIO_ASSERT(NT_PENDING_OR_SUCCESS_OR_NOT(status));
+    LWIO_ASSERT(IsValidStatusForIrpType(status, irpType));
     return status;
 }
 

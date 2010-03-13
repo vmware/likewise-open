@@ -88,7 +88,7 @@ IoCreateFile(
     OUT PIO_STATUS_BLOCK IoStatusBlock,
     IN PIO_CREATE_SECURITY_CONTEXT SecurityContext,
     IN PIO_FILE_NAME FileName,
-    IN OPTIONAL PVOID SecurityDescriptor, // TBD
+    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
     IN OPTIONAL PVOID SecurityQualityOfService, // TBD
     IN ACCESS_MASK DesiredAccess,
     IN OPTIONAL LONG64 AllocationSize,
@@ -118,12 +118,9 @@ IoCreateFile(
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
 
-    if (EaBuffer ||
-        SecurityDescriptor ||
-        SecurityQualityOfService)
+    if (SecurityQualityOfService)
     {
         // Not yet implemented.
-        LWIO_ASSERT_MSG(FALSE, "Parameter is not yet supported.");
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_ON_STATUS_EE(status, EE);
     }
@@ -221,7 +218,7 @@ cleanup:
     }
 
     IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
-    LWIO_ASSERT(NT_PENDING_OR_SUCCESS_OR_NOT(status));
+    LWIO_ASSERT(IsValidStatusForIrpType(status, irpType));
     return status;
 }
 

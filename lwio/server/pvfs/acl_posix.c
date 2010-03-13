@@ -50,13 +50,23 @@
 /***********************************************************************
  **********************************************************************/
 
-static
 NTSTATUS
 PvfsSecurityInitMapSecurityCtx(
     PLW_MAP_SECURITY_CONTEXT *ppContext
     )
 {
     return LwMapSecurityCreateContext(ppContext);
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+VOID
+PvfsSecurityShutdownMapSecurityCtx(
+    PLW_MAP_SECURITY_CONTEXT *ppContext
+    )
+{
+    return LwMapSecurityFreeContext(ppContext);
 }
 
 
@@ -181,8 +191,6 @@ PvfsSecurityAclMapFromPosix(
     ntError = RtlSetOwnerSecurityDescriptor(pSecDesc, pOwnerSid, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pOwnerSid = NULL;
-
     // Group
 
     ntError = PvfsSecuritySidMapFromGid(&pGroupSid, pStat->s_gid);
@@ -191,8 +199,6 @@ PvfsSecurityAclMapFromPosix(
     ntError = RtlSetGroupSecurityDescriptor(pSecDesc, pGroupSid, FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
-    pGroupSid = NULL;
-
     // DACL
 
     ntError = PvfsSecurityAclGetDacl(&pDacl, pStat);
@@ -200,8 +206,6 @@ PvfsSecurityAclMapFromPosix(
 
     ntError = RtlSetDaclSecurityDescriptor(pSecDesc, TRUE, pDacl, FALSE);
     BAIL_ON_NT_STATUS(ntError);
-
-    pDacl = NULL;
 
 
     // We don't do SACLs here
@@ -216,15 +220,19 @@ PvfsSecurityAclMapFromPosix(
 
 
 cleanup:
-    LW_RTL_FREE(&pOwnerSid);
-    LW_RTL_FREE(&pGroupSid);
-    LW_RTL_FREE(&pDacl);
-
-    PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
+    if (pSecDesc)
+    {
+        PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
+    }
 
     return ntError;
 
 error:
+    LW_RTL_FREE(&pOwnerSid);
+    LW_RTL_FREE(&pGroupSid);
+    LW_RTL_FREE(&pDacl);
+    LW_RTL_FREE(&pSecDesc);
+
     goto cleanup;
 }
 
@@ -240,9 +248,12 @@ PvfsSecuritySidMapFromUid(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN  bInLock = FALSE;
     UINT32 Key = Uid % PVFS_MAX_MRU_SIZE;
 
     BAIL_ON_INVALID_PTR(ppUserSid, ntError);
+
+    LWIO_LOCK_MUTEX(bInLock, &gUidMruCacheMutex);
 
     if (gUidMruCache[Key] != NULL && (gUidMruCache[Key]->UnixId.Uid == Uid))
     {
@@ -250,12 +261,6 @@ PvfsSecuritySidMapFromUid(
         BAIL_ON_NT_STATUS(ntError);
 
         goto cleanup;
-    }
-
-    if (!gpPvfsLwMapSecurityCtx)
-    {
-        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
-        BAIL_ON_NT_STATUS(ntError);
     }
 
     ntError = LwMapSecurityGetSidFromId(
@@ -293,6 +298,9 @@ PvfsSecuritySidMapFromUid(
     }
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gUidMruCacheMutex);
+
     return ntError;
 
 error:
@@ -311,9 +319,13 @@ PvfsSecuritySidMapFromGid(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    BOOLEAN  bInLock = FALSE;
     UINT32 Key = Gid % PVFS_MAX_MRU_SIZE;
 
     BAIL_ON_INVALID_PTR(ppGroupSid, ntError);
+
+
+    LWIO_LOCK_MUTEX(bInLock, &gGidMruCacheMutex);
 
     if (gGidMruCache[Key] != NULL && (gGidMruCache[Key]->UnixId.Gid == Gid))
     {
@@ -321,12 +333,6 @@ PvfsSecuritySidMapFromGid(
         BAIL_ON_NT_STATUS(ntError);
 
         goto cleanup;
-    }
-
-    if (!gpPvfsLwMapSecurityCtx)
-    {
-        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
-        BAIL_ON_NT_STATUS(ntError);
     }
 
     ntError = LwMapSecurityGetSidFromId(
@@ -364,6 +370,9 @@ PvfsSecuritySidMapFromGid(
     }
 
 cleanup:
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gGidMruCacheMutex);
+
     return ntError;
 
 error:
@@ -386,12 +395,6 @@ PvfsSecuritySidMapToId(
 
     BAIL_ON_INVALID_PTR(pId, ntError);
     BAIL_ON_INVALID_PTR(pbIsUser, ntError);
-
-    if (!gpPvfsLwMapSecurityCtx)
-    {
-        ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
-        BAIL_ON_NT_STATUS(ntError);
-    }
 
     ntError = LwMapSecurityGetIdFromSid(
                   gpPvfsLwMapSecurityCtx,
@@ -475,7 +478,7 @@ PvfsSecurityAclGetDacl(
         S_IRUSR,
         S_IWUSR,
         S_IXUSR);
-    AccessMask |= WRITE_DAC;
+    AccessMask |= (READ_CONTROL|WRITE_DAC|WRITE_OWNER);
     ntError = RtlAddAccessAllowedAceEx(
                   pDacl,
                   ACL_REVISION,
@@ -583,6 +586,15 @@ PvfsSecurityAccessMapFromPosix(
         }
     }
 
+    if ((Mode & Read) && (Mode & Write) && (Mode & Execute))
+    {
+        /* Force the caller to decide if we need to include
+           WRITE_OWNER|WRITE_DAC */
+
+        Access = FILE_ALL_ACCESS & ~(WRITE_OWNER|WRITE_DAC);
+    }
+
+
     *pAccess = Access;
 
     return;
@@ -626,13 +638,6 @@ PvfsSecurityAccessMapToPosix(
 
 /***********************************************************************
  **********************************************************************/
-
-static
-NTSTATUS
-PvfsSecurityAclSelfRelativeToAbsoluteSD(
-    PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsolute,
-    PSECURITY_DESCRIPTOR_RELATIVE pRelative
-    );
 
 static
 NTSTATUS
@@ -718,121 +723,17 @@ PvfsSetSecurityDescriptorPosix(
 
 
 cleanup:
+
+    if (pSecDescAbs)
+    {
+        PvfsFreeAbsoluteSecurityDescriptor(&pSecDescAbs);
+    }
+
     return ntError;
 
 error:
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
-
-static
-NTSTATUS
-PvfsSecurityAclSelfRelativeToAbsoluteSD(
-    PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsolute,
-    PSECURITY_DESCRIPTOR_RELATIVE pRelative
-    )
-{
-    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
-    PSECURITY_DESCRIPTOR_ABSOLUTE pAbsolute = NULL;
-    PSID pOwnerSid = NULL;
-    PSID pGroupSid = NULL;
-    PACL pDacl = NULL;
-    PACL pSacl = NULL;
-    ULONG SecDescAbsSize = 0;
-    ULONG OwnerSize = 0;
-    ULONG GroupSize = 0;
-    ULONG DaclSize = 0;
-    ULONG SaclSize = 0;
-
-    /* Get the necessary sizes */
-
-    ntError = RtlSelfRelativeToAbsoluteSD(
-                 pRelative,
-                 pAbsolute,
-                 &SecDescAbsSize,
-                 pDacl,
-                 &DaclSize,
-                 pSacl,
-                 &SaclSize,
-                 pOwnerSid,
-                 &OwnerSize,
-                 pGroupSid,
-                 &GroupSize);
-    if (ntError != STATUS_BUFFER_TOO_SMALL)
-    {
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    ntError = LW_RTL_ALLOCATE(
-                  &pAbsolute,
-                  VOID,
-                  SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = RtlCreateSecurityDescriptorAbsolute(
-                  pAbsolute,
-                  SECURITY_DESCRIPTOR_REVISION);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if (DaclSize)
-    {
-        ntError = LW_RTL_ALLOCATE(&pDacl, VOID, DaclSize);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    if (SaclSize)
-    {
-        ntError = LW_RTL_ALLOCATE(&pSacl, VOID, SaclSize);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    if (OwnerSize)
-    {
-        ntError = LW_RTL_ALLOCATE(&pOwnerSid, VOID, OwnerSize);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    if (GroupSize)
-    {
-        ntError = LW_RTL_ALLOCATE(&pGroupSid, VOID, GroupSize);
-        BAIL_ON_NT_STATUS(ntError);
-    }
-
-    /* Once more with feeling...This one should succeed. */
-
-    ntError = RtlSelfRelativeToAbsoluteSD(
-                 pRelative,
-                 pAbsolute,
-                 &SecDescAbsSize,
-                 pDacl,
-                 &DaclSize,
-                 pSacl,
-                 &SaclSize,
-                 pOwnerSid,
-                 &OwnerSize,
-                 pGroupSid,
-                 &GroupSize);
-    BAIL_ON_NT_STATUS(ntError);
-
-    *ppAbsolute = pAbsolute;
-    pAbsolute = NULL;
-
-cleanup:
-    return ntError;
-
-error:
-    LW_RTL_FREE(&pOwnerSid);
-    LW_RTL_FREE(&pGroupSid);
-    LW_RTL_FREE(&pDacl);
-    LW_RTL_FREE(&pSacl);
-    LW_RTL_FREE(&pAbsolute);
-
-    goto cleanup;
-}
-
 
 /***********************************************************************
  **********************************************************************/

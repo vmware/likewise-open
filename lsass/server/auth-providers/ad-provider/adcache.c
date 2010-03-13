@@ -591,6 +591,7 @@ ADCacheDuplicateObject(
         BAIL_ON_LSA_ERROR(dwError);
 
         pDest->userInfo.qwPwdLastSet = pSrc->userInfo.qwPwdLastSet;
+        pDest->userInfo.qwPwdExpires = pSrc->userInfo.qwPwdExpires;
         pDest->userInfo.qwAccountExpires = pSrc->userInfo.qwAccountExpires;
 
         pDest->userInfo.bIsGeneratedUPN = pSrc->userInfo.bIsGeneratedUPN;

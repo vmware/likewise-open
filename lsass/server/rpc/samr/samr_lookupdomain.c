@@ -90,7 +90,8 @@ SamrSrvLookupDomain(
 
     pConnCtx = (PCONNECT_CONTEXT)hConn;
 
-    if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect) {
+    if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }

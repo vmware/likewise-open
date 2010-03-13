@@ -143,7 +143,7 @@ PvfsQueryFileStreamInfo(
     pFileInfo->StreamNameLength = StreamNameLenBytes;
     memcpy(pFileInfo->StreamName, pwszStreamName, StreamNameLenBytes);
 
-    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
+    pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo) + StreamNameLenBytes;
     ntError = STATUS_SUCCESS;
 
 cleanup:

@@ -11,6 +11,7 @@ SUPPORT_DIRS="build config lwupgrade"
 SUPPORT_FILES="README LICENSE"
 
 DIRS="${COMP_ALL} ${SUPPORT_DIRS}"
+DIRS="`echo ${DIRS} | sed 's/libcrypto/openssl/g'`"
 FILES="${SUPPORT_FILES}"
 
 VERSION=$(LikewiseOpenVersion)

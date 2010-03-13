@@ -63,6 +63,12 @@
 #define CATCH_ALL DCETHREAD_CATCH_ALL(THIS_CATCH)
 #define ENDTRY DCETHREAD_ENDTRY
 
+void
+ShowUsage();
+
+int
+IsNumber(char* strNum);
+
 static
 DWORD
 BuildEventRecord(
@@ -144,8 +150,22 @@ main(
 
     EVENT_LOG_RECORD* pEventRecord = NULL;
 
-    if (argc == 2)
+    if (argc > 1)
+    {
+        if(IsNumber(argv[1]))
+        {
+            ShowUsage();
+            exit(0);
+        }
+
         num_iters = atoi(argv[1]);
+        if( num_iters < 0 || num_iters > 1000 )
+        {
+            fprintf(stdout, "Please enter the number between 1-1000\n");
+            ShowUsage();
+            exit(0);
+        }
+    }
 
     dwError = gethostname( hostname,
                            sizeof(hostname));
@@ -154,66 +174,64 @@ main(
     TRY
     {
 
-    dwError = LWIOpenEventLogEx(hostname,
-                    "System",             // char* pszEventTableCategoryId
-                    "DefaultEventSource",      //char * pszEventSource
-                    123,                       //DWORD dwEventSourceId
-                    "DefaultUser",             //char * pszUser
-                    "DefaultComputer",          //char * pszComputer
-                    &hEventLog);
-    BAIL_ON_EVT_ERROR(dwError);
-
-    dwError = LWIWriteEventLog(hEventLog,
-                    "smallishEventType",
-                    "littleCategory",
-                    "shortDescription",
-                    "<null>");
-    BAIL_ON_EVT_ERROR(dwError);
-
-    dwError = LWISetEventLogUser(hEventLog,
-                     "AStrangeUser");
-    BAIL_ON_EVT_ERROR(dwError);
-
-    dwError = LWIWriteEventLog(hEventLog,
-                    "smallishEventType",
-                    "littleCategory",
-                    "A slightly different shortDescription",
-                    "<null>");
+        dwError = LWIOpenEventLogEx(hostname,
+                        "System",             // char* pszEventTableCategoryId
+                        "DefaultEventSource",      //char * pszEventSource
+                        123,                       //DWORD dwEventSourceId
+                        "DefaultUser",             //char * pszUser
+                        "DefaultComputer",          //char * pszComputer
+                        &hEventLog);
         BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = BuildEventRecord(&pEventRecord);
+        dwError = LWIWriteEventLog(hEventLog,
+                        "smallishEventType",
+                        "littleCategory",
+                        "shortDescription",
+                        "<null>");
         BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = LWIWriteEventLogBase(hEventLog, *pEventRecord);
-    BAIL_ON_EVT_ERROR(dwError);
+        dwError = LWISetEventLogUser(hEventLog,
+                         "AStrangeUser");
+        BAIL_ON_EVT_ERROR(dwError);
 
-    dwError = LWICloseEventLog(hEventLog);
-    BAIL_ON_EVT_ERROR(dwError);
-    hEventLog = 0;
+        dwError = LWIWriteEventLog(hEventLog,
+                        "smallishEventType",
+                        "littleCategory",
+                        "A slightly different shortDescription",
+                        "<null>");
+        BAIL_ON_EVT_ERROR(dwError);
 
-    //Try this with most things set to null
-    dwError = LWIOpenEventLogEx(NULL,   //target host -- should end up going to localhost
-                    "Application",       		// char* pszEventTableCategoryId
-                    "DefaultEventSource",      //char * pszEventSource
-                    0,                       //DWORD dwEventSourceId
-                    NULL,             //char * pszUser
-                    NULL,          //char * pszComputer
-                    &hEventLog);
-    BAIL_ON_EVT_ERROR(dwError);
+        dwError = BuildEventRecord(&pEventRecord);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        dwError = LWIWriteEventLogBase(hEventLog, *pEventRecord);
+        BAIL_ON_EVT_ERROR(dwError);
+
+        dwError = LWICloseEventLog(hEventLog);
+        BAIL_ON_EVT_ERROR(dwError);
+        hEventLog = 0;
+
+        //Try this with most things set to null
+        dwError = LWIOpenEventLogEx(NULL,   //target host -- should end up going to localhost
+                        "Application",       		// char* pszEventTableCategoryId
+                        "DefaultEventSource",      //char * pszEventSource
+                        0,                       //DWORD dwEventSourceId
+                        NULL,             //char * pszUser
+                        NULL,          //char * pszComputer
+                        &hEventLog);
+        BAIL_ON_EVT_ERROR(dwError);
 
 
-    for (i = 0; i < num_iters; i++) {
-
-
-        memset(rand_str, 0, 61);
-        for (j = 0; j < 60; j++) {
-        rand_str[j] = RAND_LETTER();
-        if (rand_str[j] == '"') {
-            rand_str[j] = ' ';
+        for (i = 0; i < num_iters; i++) {
+            memset(rand_str, 0, 61);
+            for (j = 0; j < 60; j++) {
+            rand_str[j] = RAND_LETTER();
+            if (rand_str[j] == '"') {
+                rand_str[j] = ' ';
+            }
         }
-        }
 
-        printf("adding record %d/%d with salt: %s.  \n", i, num_iters, rand_str);
+        printf("adding record %d/%d with salt: %s.  \n", i+1, num_iters, rand_str);
 
         sprintf(type, "typeRandom%d", i);
         sprintf(category, "category%s", rand_str);
@@ -254,9 +272,37 @@ main(
     }
 
     if (dwError != 0) {
-    printf("In error section: dwError=%d\n", dwError);
-    EVT_LOG_ERROR("Failed to add event. Error code [%d]\n", dwError);
+        fprintf(stderr, "Error: Failed to add event\n");
+        EVT_LOG_ERROR("Failed to add event. Error code [%d]\n", dwError);
     }
 
     return dwError;
 }
+
+void
+ShowUsage()
+{
+    printf("Usage: lw-addevent [<number of events>] \n");
+    printf("max <number of events> = 1000\n");
+    printf("\nExamples:\n");
+    printf("\tlw-addevent  - if no option is provided, writes three records\n");
+    printf("\tlw-addevent 10 - if option is provided then writes the number of records provided\n");
+
+}
+
+int
+IsNumber(char* strNum)
+{
+    int nLen = 0;
+    int nIndex = 0;
+
+    nLen = strlen(strNum);
+
+    for (nIndex = 0; nIndex < nLen; nIndex++)
+    {
+        if (isdigit((int)strNum[nIndex]) == 0)
+            return -1;
+    }
+    return 0;
+}
+

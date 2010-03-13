@@ -50,8 +50,8 @@ SrvWorkerMustStop(
     );
 
 static
-NTSTATUS
-SrvWorkerStop(
+VOID
+SrvWorkerIndicateStopContext(
     PLWIO_SRV_WORKER_CONTEXT pContext
     );
 
@@ -116,10 +116,13 @@ SrvWorkerMain(
 
         if (pExecContext)
         {
-            NTSTATUS ntStatus2 = SrvProtocolExecute(pExecContext);
-            if (ntStatus2)
+            if (SrvIsValidExecContext(pExecContext))
             {
-                LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
+                NTSTATUS ntStatus2 = SrvProtocolExecute(pExecContext);
+                if (ntStatus2)
+                {
+                    LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
+                }
             }
 
             SrvReleaseExecContext(pExecContext);
@@ -150,7 +153,7 @@ SrvWorkerIndicateStop(
 {
     if (pWorker->pWorker)
     {
-        SrvWorkerStop(&pWorker->context);
+        SrvWorkerIndicateStopContext(&pWorker->context);
     }
 }
 
@@ -161,7 +164,8 @@ SrvWorkerFreeContents(
 {
     if (pWorker->pWorker)
     {
-        SrvWorkerStop(&pWorker->context);
+        // Someone must have already called SrvWorkerIndicateStop
+        // and unblocked the prod/cons queue.
 
         pthread_join(pWorker->worker, NULL);
     }
@@ -223,8 +227,8 @@ SrvWorkerMustStop(
 }
 
 static
-NTSTATUS
-SrvWorkerStop(
+VOID
+SrvWorkerIndicateStopContext(
     PLWIO_SRV_WORKER_CONTEXT pContext
     )
 {
@@ -233,7 +237,5 @@ SrvWorkerStop(
     pContext->bStop = TRUE;
 
     pthread_mutex_unlock(&pContext->mutex);
-
-    return 0;
 }
 

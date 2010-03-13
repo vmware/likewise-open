@@ -58,39 +58,11 @@ SrvTransportInit(
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
-#if defined(LW_USE_EPOLL)
-
-    status = SrvEPollTransportInit(
+    status = SrvThreadpoolTransportInit(
                     hPacketAllocator,
                     pShareList,
                     pWorkQueue,
                     &gpSrvTransportApi);
-
-#elif defined (LW_USE_KQUEUE)
-
-    status = SrvKQueueTransportInit(
-                    hPacketAllocator,
-                    pShareList,
-                    pWorkQueue,
-                    &gpSrvTransportApi);
-
-#elif defined (LW_USE_POLL)
-
-    status = SrvPollTransportInit(
-                    hPacketAllocator,
-                    pShareList,
-                    pWorkQueue,
-                    &gpSrvTransportApi);
-
-#elif defined (LW_USE_SELECT)
-
-    status = SrvSelectTransportInit(
-                    hPacketAllocator,
-                    pShareList,
-                    pWorkQueue,
-                    &gpSrvTransportApi);
-
-#endif
 
     return status;
 }
@@ -120,23 +92,7 @@ SrvTransportShutdown(
 {
     NTSTATUS status = STATUS_NOT_IMPLEMENTED;
 
-#if defined(LW_USE_EPOLL)
-
-    status = SrvEPollTransportShutdown(gpSrvTransportApi);
-
-#elif defined (LW_USE_KQUEUE)
-
-    status = SrvKQueueTransportShutdown(gpSrvTransportApi);
-
-#elif defined (LW_USE_POLL)
-
-    status = SrvPollTransportShutdown(gpSrvTransportApi);
-
-#elif defined (LW_USE_SELECT)
-
-    status = SrvSelectTransportShutdown(gpSrvTransportApi);
-
-#endif
+    status = SrvThreadpoolTransportShutdown(gpSrvTransportApi);
 
     gpSrvTransportApi = NULL;
 

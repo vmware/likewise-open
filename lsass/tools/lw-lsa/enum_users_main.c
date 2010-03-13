@@ -450,6 +450,8 @@ PrintUserInfo_2(
     fprintf(stdout, "Name:              %s\n", LW_PRINTF_STRING(pUserInfo->pszName));
     fprintf(stdout, "UPN:               %s\n", LW_PRINTF_STRING(pUserInfo->pszUPN));
     fprintf(stdout, "Generated UPN:     %s\n", LW_PRINTF_YES_NO(pUserInfo->bIsGeneratedUPN));
+    fprintf(stdout, "DN:                %s\n",
+            LW_IS_NULL_OR_EMPTY_STR(pUserInfo->pszDN) ? "<null>" : pUserInfo->pszDN);
     fprintf(stdout, "Uid:               %u\n", (unsigned int)pUserInfo->uid);
     fprintf(stdout, "Gid:               %u\n", (unsigned int)pUserInfo->gid);
     fprintf(stdout, "Gecos:             %s\n", LW_PRINTF_STRING(pUserInfo->pszGecos));

@@ -49,8 +49,10 @@ LSA_RPCSRV_FUNCTION_TABLE gDsrRpcFuncTable = {
 
 rpc_binding_vector_p_t gpDsrSrvBinding = NULL;
 
-
 DSSETUP_SRV_CONFIG gDsrSrvConfig;
+
+/* dssetup server security descriptor */
+PSECURITY_DESCRIPTOR_ABSOLUTE gpDsrSecDesc = NULL;
 
 
 /*

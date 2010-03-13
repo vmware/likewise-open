@@ -1117,7 +1117,12 @@ lwmsg_connection_finish_recv_handshake(
         ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED, "Received malformed greeting packet");
     }
 
-    if (packet->contents.greeting.packet_size > (uint32_t) priv->packet_size)
+    if (packet->contents.greeting.packet_size < sizeof(ConnectionPacket) + 1)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED, "Invalid packet size request from peer");
+    }
+
+    if (packet->contents.greeting.packet_size < (uint32_t) priv->packet_size)
     {
         priv->packet_size = packet->contents.greeting.packet_size;
     }
@@ -1185,7 +1190,7 @@ lwmsg_connection_finish_recv_handshake(
     lwmsg_connection_buffer_destruct(&priv->sendbuffer);
     BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->sendbuffer));
 
-    /* Set up marshal token for message exchange (this is where byte order
+    /* Set up marshal context for message exchange (this is where byte order
        and other negotiated format settings should be set) */
     if (priv->marshal_context)
     {

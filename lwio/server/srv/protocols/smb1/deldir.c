@@ -40,6 +40,12 @@ SrvBuildDeletedirState(
 
 static
 NTSTATUS
+SrvSetFileInformation_inlock(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildDeleteDirectoryResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -168,11 +174,12 @@ SrvProcessDeleteDirectory(
             LWIO_UNLOCK_RWMUTEX(bTreeInLock,
                                 &pCtxSmb1->pTree->pShareInfo->mutex);
 
-            pDeletedirState->stage = SRV_DELETEDIR_STAGE_SMB_V1_COMPLETED;
+            pDeletedirState->stage = SRV_DELETEDIR_STAGE_SMB_V1_ATTEMPT_SET_INFO;
 
             SrvPrepareDeletedirStateAsync(pDeletedirState, pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pCtxSmb1->pTree->pShareInfo,
                             &pDeletedirState->hFile,
                             pDeletedirState->pAcb,
                             &pDeletedirState->ioStatusBlock,
@@ -180,18 +187,28 @@ SrvProcessDeleteDirectory(
                             &pDeletedirState->fileName,
                             pDeletedirState->pSecurityDescriptor,
                             pDeletedirState->pSecurityQOS,
-                            GENERIC_WRITE,
+                            DELETE,
                             0,
                             FILE_ATTRIBUTE_NORMAL,
-                            0,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE |
+                            FILE_SHARE_DELETE,
                             FILE_OPEN,
-                            FILE_DELETE_ON_CLOSE,
+                            FILE_DIRECTORY_FILE,
                             NULL,
                             0,
-                            NULL);
+                            &pDeletedirState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseDeletedirStateAsync(pDeletedirState);
+
+            // intentional fall through
+
+        case SRV_DELETEDIR_STAGE_SMB_V1_ATTEMPT_SET_INFO:
+
+            pDeletedirState->stage = SRV_DELETEDIR_STAGE_SMB_V1_COMPLETED;
+
+            ntStatus = SrvSetFileInformation_inlock(pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
 
             // intentional fall through
 
@@ -288,6 +305,11 @@ SrvBuildDeletedirState(
     pDeletedirState->pwszPathFragment = pwszPathFragment;
     pDeletedirState->pRequestHeader   = pRequestHeader;
 
+    pDeletedirState->pFileDispositionInfo =
+	&pDeletedirState->fileDispositionInfo;
+
+    pDeletedirState->pFileDispositionInfo->DeleteFile = TRUE;
+
     *ppDeletedirState = pDeletedirState;
 
 cleanup:
@@ -302,6 +324,41 @@ error:
     {
         SrvFreeDeletedirState(pDeletedirState);
     }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSetFileInformation_inlock(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                    ntStatus = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1    pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_DELETEDIR_STATE_SMB_V1 pDeletedirState = NULL;
+
+    pDeletedirState = (PSRV_DELETEDIR_STATE_SMB_V1)pCtxSmb1->hState;
+
+    SrvPrepareDeletedirStateAsync(pDeletedirState, pExecContext);
+
+    ntStatus = IoSetInformationFile(
+                    pDeletedirState->hFile,
+                    pDeletedirState->pAcb,
+                    &pDeletedirState->ioStatusBlock,
+                    pDeletedirState->pFileDispositionInfo,
+                    sizeof(pDeletedirState->fileDispositionInfo),
+                    FileDispositionInformation);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseDeletedirStateAsync(pDeletedirState); // completed synchronously
+
+cleanup:
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
@@ -517,6 +574,11 @@ SrvFreeDeletedirState(
                     &pDeletedirState->pAcb->AsyncCancelContext);
     }
 
+    if (pDeletedirState->pEcpList)
+    {
+        IoRtlEcpListFree(&pDeletedirState->pEcpList);
+    }
+
     // TODO: Free the following if set
     // pSecurityDescriptor;
     // pSecurityQOS;
@@ -539,4 +601,11 @@ SrvFreeDeletedirState(
     SrvFreeMemory(pDeletedirState);
 }
 
-
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

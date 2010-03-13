@@ -97,7 +97,8 @@ SrvProcessTrans2SetPathInformation(
 
             accessMask = SrvGetPathAccessMask(pExecContext);
 
-            ntStatus = IoCreateFile(
+            ntStatus = SrvIoCreateFile(
+                            pTrans2State->pTree->pShareInfo,
                             &pTrans2State->hFile,
                             pTrans2State->pAcb,
                             &pTrans2State->ioStatusBlock,
@@ -113,7 +114,7 @@ SrvProcessTrans2SetPathInformation(
                             0,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            NULL  /* ECP List  */
+                            &pTrans2State->pEcpList
                             );
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -132,12 +133,10 @@ SrvProcessTrans2SetPathInformation(
 
         case SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO:
 
-            pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_IO_COMPLETE;
-
             ntStatus = SrvSetPathInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_BUILD_RESPONSE;
+            pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_IO_COMPLETE;
 
             // intentional fall through
 

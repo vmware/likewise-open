@@ -65,8 +65,15 @@ SamrSrvCreateDomAlias(
 
     pDomCtx = (PDOMAIN_CONTEXT)hDomain;
 
-    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain) {
+    if (pDomCtx == NULL || pDomCtx->Type != SamrContextDomain)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    if (!(pDomCtx->dwAccessGranted & DOMAIN_ACCESS_CREATE_ALIAS))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 

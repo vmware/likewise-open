@@ -134,7 +134,8 @@ PvfsQueryFileBasicInfo(
 
 
     if (Args.Length < sizeof(*pFileInfo))
-    {        ntError = STATUS_BUFFER_TOO_SMALL;
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -213,7 +214,7 @@ PvfsSetFileBasicInfo(
 
     /* Real work starts here */
 
-    ntError = PvfsValidatePath(pCcb->pFcb->pszFilename, &pCcb->FileId);
+    ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
     BAIL_ON_NT_STATUS(ntError);
 
     /* We cant's set the Change Time so ignore it */

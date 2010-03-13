@@ -120,6 +120,25 @@ LsaNetFreeString(
     PSTR pszString
     );
 
+DWORD
+LsaEnableDomainGroupMembership(
+    PCSTR pszDomainName
+    );
+
+
+DWORD
+LsaDisableDomainGroupMembership(
+    VOID
+    );
+
+
+DWORD
+LsaChangeDomainGroupMembership(
+    IN  PCSTR    pszDomainName,
+    IN  BOOLEAN  bEnable
+    );
+
+
 #endif /* __LSA_JOIN_H__ */
 
 

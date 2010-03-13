@@ -533,7 +533,7 @@ SamrCleanStubDisplayInfo(
 
 void
 SamrCleanStubSecurityDescriptorBuffer(
-    PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
+    PSAMR_SECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
     )
 {
     RPCSTATUS rpcStatus = 0;
@@ -544,7 +544,7 @@ SamrCleanStubSecurityDescriptorBuffer(
 
 void
 SamrFreeStubSecurityDescriptorBuffer(
-    PSECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
+    PSAMR_SECURITY_DESCRIPTOR_BUFFER pSecDescBuffer
     )
 {
     RPCSTATUS rpcStatus = 0;

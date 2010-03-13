@@ -1245,7 +1245,6 @@ error:
     return dwError;
 }
 
-
 static
 DWORD
 AD_JoinDomain(
@@ -1263,6 +1262,7 @@ AD_JoinDomain(
     PLSA_AD_IPC_JOIN_DOMAIN_REQ pRequest = NULL;
     PSTR pszMessage = NULL;
     BOOLEAN bLocked = FALSE;
+    PSTR pszDC = NULL;
 
     if (peerUID != 0)
     {
@@ -1290,6 +1290,18 @@ AD_JoinDomain(
 
     LSA_LOG_TRACE("Domain join request: %s", pszMessage);
 
+    dwError = LWNetGetDomainController(
+                    pRequest->pszDomain,
+                    &pszDC);
+    if (dwError)
+    {
+        LSA_LOG_VERBOSE("Failed to find DC for domain %s", LSA_SAFE_LOG_STRING(pRequest->pszDomain));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+    LSA_LOG_VERBOSE("Affinitized to DC '%s' for join request to domain '%s'",
+            LSA_SAFE_LOG_STRING(pszDC),
+            LSA_SAFE_LOG_STRING(pRequest->pszDomain));
+
     LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
     bLocked = TRUE;
 
@@ -1310,6 +1322,9 @@ AD_JoinDomain(
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_PostJoinDomain(hProvider, gpLsaAdProviderState);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaEnableDomainGroupMembership(pRequest->pszHostDnsDomain);
     BAIL_ON_LSA_ERROR(dwError);
 
     LSA_LOG_INFO("Joined domain: %s", pRequest->pszDomain);
@@ -1335,6 +1350,7 @@ cleanup:
     {
         lwmsg_data_context_delete(pDataContext);
     }
+    LW_SAFE_FREE_STRING(pszDC);
 
     return dwError;
 
@@ -1427,6 +1443,9 @@ AD_LeaveDomain(
 
     LsaAdProviderStateAcquireWrite(gpLsaAdProviderState);
     bLocked = TRUE;
+
+    dwError = LsaDisableDomainGroupMembership();
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = AD_PreLeaveDomain(hProvider, gpLsaAdProviderState);
     BAIL_ON_LSA_ERROR(dwError);
@@ -3372,7 +3391,6 @@ AD_UpdateObject(
     DWORD dwError = LW_ERROR_SUCCESS;
     struct timeval current_tv = {0};
     UINT64 u64current_NTtime = 0;
-    int64_t qwNanosecsToPasswordExpiry = 0;
 
     switch(pObject->type)
     {
@@ -3394,21 +3412,15 @@ AD_UpdateObject(
                 pObject->userInfo.bAccountExpired = TRUE;
             }
 
-            if (gpADProviderData->adMaxPwdAge != 0)
+            pObject->userInfo.qwMaxPwdAge = gpADProviderData->adMaxPwdAge;
+
+            if ((!pObject->userInfo.bPasswordNeverExpires &&
+                  pObject->userInfo.qwPwdExpires != 0 &&
+                  u64current_NTtime >= pObject->userInfo.qwPwdExpires) ||
+                pObject->userInfo.qwPwdLastSet == 0)
             {
-                pObject->userInfo.qwMaxPwdAge = gpADProviderData->adMaxPwdAge;
-
-                qwNanosecsToPasswordExpiry = gpADProviderData->adMaxPwdAge -
-                    (u64current_NTtime - pObject->userInfo.qwPwdLastSet);
-
-                if ((!pObject->userInfo.bPasswordNeverExpires &&
-                     gpADProviderData->adMaxPwdAge != 0 &&
-                     qwNanosecsToPasswordExpiry < 0) ||
-                    pObject->userInfo.qwPwdLastSet == 0)
-                {
-                    //password is expired already
-                    pObject->userInfo.bPasswordExpired = TRUE;
-                }
+                //password is expired already
+                pObject->userInfo.bPasswordExpired = TRUE;
             }
         }
 
@@ -3796,7 +3808,8 @@ AD_QueryMemberOf(
 
     LsaAdProviderStateAcquireRead(gpLsaAdProviderState);
 
-    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED)
+    if (gpLsaAdProviderState->joinState != LSA_AD_JOINED ||
+        FindFlags & LSA_FIND_FLAGS_LOCAL)
     {
         dwError = LW_ERROR_NOT_HANDLED;
         BAIL_ON_LSA_ERROR(dwError);

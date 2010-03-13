@@ -49,17 +49,17 @@
 
 NTSTATUS
 SamrSrvEnumDomains(
-    /* [in] */ handle_t hBinding,
-    /* [in] */ CONNECT_HANDLE hConn,
-    /* [in, out] */ UINT32 *resume,
-    /* [in] */ UINT32 size,
-    /* [out] */ EntryArray **domains,
-    /* [out] */ UINT32 *num_entries
+    IN  handle_t        hBinding,
+    IN  CONNECT_HANDLE  hConn,
+    IN OUT PDWORD       pdwResume,
+    IN  DWORD           dwMaxSize,
+    OUT EntryArray    **ppDomains,
+    OUT PDWORD          pdwNumEntries
     )
 {
     wchar_t wszFilter[] = L"%ws=%d OR %ws=%d";
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
     PCONNECT_CONTEXT pConnCtx = NULL;
     PWSTR pwszBase = NULL;
     WCHAR wszAttrObjectClass[] = DS_ATTR_OBJECT_CLASS;
@@ -69,27 +69,41 @@ SamrSrvEnumDomains(
     DWORD dwScope = 0;
     PWSTR pwszFilter = NULL;
     DWORD dwFilterLen = 0;
-    PWSTR wszAttributes[2];
     PDIRECTORY_ENTRY pEntries = NULL;
     DWORD dwEntriesNum = 0;
     PDIRECTORY_ENTRY pEntry = NULL;
     PDIRECTORY_ATTRIBUTE pAttr = NULL;
     PATTRIBUTE_VALUE pAttrVal = NULL;
+    DWORD dwSize = 0;
     DWORD i = 0;
     DWORD dwResume = 0;
     DWORD dwCount = 0;
-    DWORD dwSize = 0;
     EntryArray *pDomains = NULL;
     Entry *pDomain = NULL;
 
-    BAIL_ON_INVALID_PARAMETER(resume);
-    BAIL_ON_INVALID_PARAMETER(domains);
-    BAIL_ON_INVALID_PARAMETER(num_entries);
+    PWSTR wszAttributes[] = {
+        wszAttrCommonName,
+        NULL
+    };
+
+    BAIL_ON_INVALID_PTR(hBinding);
+    BAIL_ON_INVALID_PTR(hConn);
+    BAIL_ON_INVALID_PTR(pdwResume);
+    BAIL_ON_INVALID_PTR(ppDomains);
+    BAIL_ON_INVALID_PTR(pdwNumEntries);
 
     pConnCtx = (PCONNECT_CONTEXT)hConn;
 
-    if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect) {
+    if (pConnCtx == NULL || pConnCtx->Type != SamrContextConnect)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    /* Check access rights required */
+    if (!(pConnCtx->dwAccessGranted & SAMR_ACCESS_ENUM_DOMAINS))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
@@ -99,18 +113,19 @@ SamrSrvEnumDomains(
                   ((sizeof(wszAttrObjectClass) / sizeof(WCHAR)) - 1) +
                   10;
 
-    ntStatus = SamrSrvAllocateMemory((void**)&pwszFilter,
-                                   dwFilterLen * sizeof(*pwszFilter));
-    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    dwError = LwAllocateMemory(dwFilterLen * sizeof(pwszFilter[0]),
+                               OUT_PPVOID(&pwszFilter));
+    BAIL_ON_LSA_ERROR(dwError);
 
-    sw16printfw(pwszFilter, dwFilterLen, wszFilter,
-                &wszAttrObjectClass[0],
-                dwObjectClassDomain,
-                &wszAttrObjectClass[0],
-                dwObjectClassBuiltin);
-
-    wszAttributes[0] = wszAttrCommonName;
-    wszAttributes[1] = NULL;
+    if (sw16printfw(pwszFilter, dwFilterLen, wszFilter,
+                    &wszAttrObjectClass[0],
+                    dwObjectClassDomain,
+                    &wszAttrObjectClass[0],
+                    dwObjectClassBuiltin) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
 
     dwError = DirectorySearch(pConnCtx->hDirectory,
                               pwszBase,
@@ -123,18 +138,20 @@ SamrSrvEnumDomains(
     BAIL_ON_LSA_ERROR(dwError);
 
     ntStatus = SamrSrvAllocateMemory((void**)&pDomains,
-                                   sizeof(EntryArray));
+                                     sizeof(EntryArray));
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    i = (*resume);
+    i = (*pdwResume);
 
-    if (i >= dwEntriesNum) {
+    if (i >= dwEntriesNum)
+    {
         ntStatus = STATUS_NO_MORE_ENTRIES;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
     dwSize += sizeof(pDomains->count);
-    for (; dwSize < size && i < dwEntriesNum; i++) {
+    for (; dwSize < dwMaxSize && i < dwEntriesNum; i++)
+    {
         pEntry = &(pEntries[i]);
 
         dwError = DirectoryGetEntryAttributeSingle(pEntry,
@@ -145,15 +162,16 @@ SamrSrvEnumDomains(
         BAIL_ON_LSA_ERROR(dwError);
 
         if (pAttrVal &&
-            pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-
+            pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+        {
             dwSize += sizeof(UINT32);
-            dwSize += wc16slen(pAttrVal->data.pwszStringValue) * sizeof(wchar16_t);
+            dwSize += wc16slen(pAttrVal->data.pwszStringValue) * sizeof(WCHAR);
             dwSize += 2 * sizeof(UINT16);
 
             dwCount++;
-
-        } else {
+        }
+        else
+        {
             ntStatus = STATUS_INTERNAL_ERROR;
             BAIL_ON_NTSTATUS_ERROR(ntStatus);
         }
@@ -162,15 +180,17 @@ SamrSrvEnumDomains(
     /* At least one domain entry is returned regardless of declared
        max response size */
     dwCount  = (!dwCount) ? 1 : dwCount;
-    dwResume = (*resume) + dwCount;
+    dwResume = (*pdwResume) + dwCount;
 
-    ntStatus = SamrSrvAllocateMemory((void**)&pDomains->entries,
-                                   sizeof(pDomains->entries[0]) * dwCount);
+    ntStatus = SamrSrvAllocateMemory(
+                          (void**)&pDomains->entries,
+                          sizeof(pDomains->entries[0]) * dwCount);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
     pDomains->count = dwCount;
 
-    for (i = (*resume); i < dwResume; i++) {
+    for (i = (*pdwResume); i < dwResume; i++)
+    {
         pEntry = &(pEntries[i]);
 
         dwError = DirectoryGetEntryAttributeSingle(pEntry,
@@ -180,34 +200,36 @@ SamrSrvEnumDomains(
         dwError = DirectoryGetAttributeValue(pAttr, &pAttrVal);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING) {
-            pDomain = &(pDomains->entries[i - (*resume)]);
+        if (pAttrVal->Type == DIRECTORY_ATTR_TYPE_UNICODE_STRING)
+        {
+            pDomain = &(pDomains->entries[i - (*pdwResume)]);
 
             pDomain->idx = i;
-            ntStatus = SamrSrvInitUnicodeString(&pDomain->name,
-                                              pAttrVal->data.pwszStringValue);
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
-
-        } else {
-            ntStatus = STATUS_INTERNAL_ERROR;
-            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            ntStatus = SamrSrvInitUnicodeString(
+                                    &pDomain->name,
+                                    pAttrVal->data.pwszStringValue);
         }
+        else
+        {
+            ntStatus = STATUS_INTERNAL_ERROR;
+        }
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
-    if (dwResume < dwEntriesNum) {
+    if (dwResume < dwEntriesNum)
+    {
         ntStatus = STATUS_MORE_ENTRIES;
     }
 
-    *resume      = dwResume;
-    *num_entries = dwCount;
-    *domains     = pDomains;
+    *pdwResume      = dwResume;
+    *pdwNumEntries  = dwCount;
+    *ppDomains      = pDomains;
 
 cleanup:
-    if (pwszFilter) {
-        SamrSrvFreeMemory(pwszFilter);
-    }
+    LW_SAFE_FREE_MEMORY(pwszFilter);
 
-    if (pEntries) {
+    if (pEntries)
+    {
         DirectoryFreeEntries(pEntries, dwEntriesNum);
     }
 
@@ -220,13 +242,14 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pDomains) {
+    if (pDomains)
+    {
         SamrSrvFreeMemory(pDomains);
     }
 
-    *resume      = 0;
-    *num_entries = 0;
-    *domains     = NULL;
+    *pdwResume      = 0;
+    *pdwNumEntries  = 0;
+    *ppDomains      = NULL;
     goto cleanup;
 }
 

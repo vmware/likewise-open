@@ -13,5 +13,5 @@
 "AllowDeleteTo"=""
 "MaxDiskUsage"=dword:06400000
 "MaxEventLifespan"=dword:0000005A
-"MaxNumEvents"=dword:00000064
+"MaxNumEvents"=dword:000186A0
 "EventDbPurgeInterval"=dword:00000001

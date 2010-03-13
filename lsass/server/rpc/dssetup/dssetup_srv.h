@@ -50,13 +50,25 @@
 
 DWORD
 DsrRpcStartServer(
-    void
+    VOID
     );
 
 
 DWORD
 DsrRpcStopServer(
-    void
+    VOID
+    );
+
+
+DWORD
+DsrSrvInitServerSecurityDescriptor(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
+
+
+DWORD
+DsrSrvDestroyServerSecurityDescriptor(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
 

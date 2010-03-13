@@ -37,6 +37,9 @@ DJConfigureLWIDSPlugin();
 CENTERROR
 DJUnconfigureLWIDSPlugin();
 
+CENTERROR
+DJIsAppleADPluginInUse(BOOLEAN* pExists);
+
 extern const JoinModule DJDSPlugin;
 
 #endif /* __DJCONFIG_MAC_H__ */

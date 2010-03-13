@@ -99,9 +99,6 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
             foreach (string str in members.Keys)
             {
                 OriginalObjects.Add(str);
-            }
-            foreach (string str in members.Keys)
-            {
                 ModifiedObjects.Add(str.ToLower());
             }
 
@@ -170,9 +167,10 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         userlogonName = de.Properties["sAMAccountName"].Value as string;
                     }
                     LUGAPI.NetAddGroupMember(_dirnode.LdapContext.DomainControllerName, "Administrators", userlogonName);
+
+                    ModifiedObjects.Remove(AdminGroupDN.ToLower());
                 }
 
-                ModifiedObjects.Remove(AdminGroupDN.ToLower());
                 string[] members_values = new string[ModifiedObjects.Count + 1];
                 if (ModifiedObjects.Count > 0)
                 {
@@ -424,7 +422,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         MemoflistView.Items.Clear();
                         MemoflistView.Items.AddRange(lvItemArr);
 
-                        ModifiedObjects.Remove(item.Tag as string);
+                        ModifiedObjects.Remove((item.Tag as string).ToLower());
                         memListchanged = true;
                     }
                     RemoveButton.Enabled = false;

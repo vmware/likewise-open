@@ -204,7 +204,7 @@ RtlInitializeAccessAllowedAce(
     USHORT size = RtlLengthAccessAllowedAce(Sid);
 
     if (!LW_IS_VALID_FLAGS(AceFlags, VALID_ACE_FLAGS_MASK) ||
-        !LW_IS_VALID_FLAGS(AccessMask, VALID_DACL_ACCESS_MASK) ||
+        // !LW_IS_VALID_FLAGS(AccessMask, VALID_DACL_ACCESS_MASK) ||
         !RtlValidSid(Sid))
     {
         status = STATUS_INVALID_PARAMETER;
@@ -237,13 +237,32 @@ RtlInitializeAccessDeniedAce(
     IN PSID Sid
     )
 {
-    // ACCESS_DENIED_ACE is isomorphic wrt ACCESS_ALLOWED_ACE
-    return RtlInitializeAccessAllowedAce(
-                (PACCESS_ALLOWED_ACE) Ace,
-                AceLength,
-                AceFlags,
-                AccessMask,
-                Sid);
+    NTSTATUS status = STATUS_SUCCESS;
+    USHORT size = RtlLengthAccessDeniedAce(Sid);
+
+    if (!LW_IS_VALID_FLAGS(AceFlags, VALID_ACE_FLAGS_MASK) ||
+        !LW_IS_VALID_FLAGS(AccessMask, VALID_DACL_ACCESS_MASK) ||
+        !RtlValidSid(Sid))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    if (AceLength < size)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        GOTO_CLEANUP();
+    }
+
+    Ace->Header.AceType = ACCESS_DENIED_ACE_TYPE;
+    Ace->Header.AceFlags = AceFlags;
+    Ace->Header.AceSize = size;
+    Ace->Mask = AccessMask;
+    // We already know the size is sufficient
+    RtlCopyMemory(&Ace->SidStart, Sid, RtlLengthSid(Sid));
+
+cleanup:
+    return status;
 }
 
 //
@@ -530,7 +549,10 @@ cleanup:
         *AclSizeUsed = sizeUsed;
     }
 
-    *Ace = aceLocation;
+    if (Ace)
+    {
+        *Ace = aceLocation;
+    }
 
     return status;
 }
@@ -546,15 +568,55 @@ RtlInsertAccessDeniedAce(
     OUT OPTIONAL PACCESS_DENIED_ACE* Ace
     )
 {
-    // ACCESS_DENIED_ACE is isomorphic wrt ACCESS_ALLOWED_ACE
-    return RtlInsertAccessAllowedAce(
-                Acl,
-                AclSizeUsed,
-                AceOffset,
-                AceFlags,
-                AccessMask,
-                Sid,
-                (PACCESS_ALLOWED_ACE*) Ace);
+    NTSTATUS status = STATUS_SUCCESS;
+    USHORT sizeUsed = *AclSizeUsed;
+    PACCESS_DENIED_ACE aceLocation = NULL;
+    USHORT aceSize = 0;
+
+    if (!RtlValidSid(Sid))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    status = RtlpGetAceLocationFromOffset(
+                    Acl,
+                    sizeUsed,
+                    AceOffset,
+                    OUT_PPVOID(&aceLocation));
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    aceSize = RtlLengthAccessDeniedAce(Sid);
+
+    status = RtlpMakeRoomForAceAtLocation(Acl, sizeUsed, aceLocation, aceSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    // We know we have at least aceSize bytes available.
+    status = RtlInitializeAccessDeniedAce(
+                    aceLocation,
+                    aceSize,
+                    AceFlags,
+                    AccessMask,
+                    Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    assert(aceSize == aceLocation->Header.AceSize);
+    sizeUsed += aceSize;
+    Acl->AceCount++;
+
+cleanup:
+    if (!NT_SUCCESS(status))
+    {
+        aceLocation = NULL;
+    }
+    else
+    {
+        *AclSizeUsed = sizeUsed;
+    }
+
+    *Ace = aceLocation;
+
+    return status;
 }
 
 static
@@ -659,19 +721,19 @@ RtlIterateAce(
         GOTO_CLEANUP();
     }
 
-    status = RtlpGetAceLocationFromOffset(
-                    Acl,
-                    AclSizeUsed,
-                    aceOffset,
-                    OUT_PPVOID(&aceLocation));
-    GOTO_CLEANUP_ON_STATUS(status);
-
     if ((aceOffset == 0) &&
         (Acl->AceCount == 0))
     {
         status = STATUS_NO_MORE_ENTRIES;
         GOTO_CLEANUP();
     }
+
+    status = RtlpGetAceLocationFromOffset(
+                    Acl,
+                    AclSizeUsed,
+                    aceOffset,
+                    OUT_PPVOID(&aceLocation));
+    GOTO_CLEANUP_ON_STATUS(status);
 
     if (aceLocation->AceSize < sizeof(ACE_HEADER))
     {
@@ -1163,6 +1225,99 @@ cleanup:
     return status;
 }
 
+static
+SHORT
+RtlpCompareAceFlagsForInsert(
+    ULONG AceFlags1,
+    ULONG AceFlags2
+    )
+{
+    SHORT sResult = 0;
+    BOOLEAN bInherited1 = (AceFlags1 & INHERITED_ACE) ? TRUE : FALSE;
+    BOOLEAN bInheritOnly1 = (AceFlags1 & INHERIT_ONLY_ACE) ? TRUE : FALSE;
+    BOOLEAN bInherited2 = (AceFlags2 & INHERITED_ACE) ? TRUE : FALSE;
+    BOOLEAN bInheritOnly2 = (AceFlags2 & INHERIT_ONLY_ACE) ? TRUE : FALSE;
+
+    // Sort order is:
+    // 1. Non-inherited, inherit-only
+    // 2. Non-inherited
+    // 3. Inherited, inherit only
+    // 4. inherited
+
+    if (bInherited1)
+    {
+        if (!bInherited2)
+        {
+            sResult = 1;
+            GOTO_CLEANUP();
+        }
+
+        // Comparing two inherited ACEs
+
+        if (bInheritOnly1)
+        {
+            if (!bInheritOnly2)
+            {
+                sResult = -1;
+                GOTO_CLEANUP();
+            }
+
+            sResult = 0;
+            GOTO_CLEANUP();
+        }
+
+        // Ace1: Inherited, non-inherit only
+        // Ace2: Inherited, ...
+
+        if (bInheritOnly2)
+        {
+            sResult = 1;
+            GOTO_CLEANUP();
+        }
+
+        sResult = 0;
+        GOTO_CLEANUP();
+    }
+    else  // Non-inherited
+    {
+        if (bInherited2)
+        {
+            sResult = -1;
+            GOTO_CLEANUP();
+        }
+
+        // Comparing two non-inherited ACEs
+
+        if (bInheritOnly1)
+        {
+            if (!bInheritOnly2)
+            {
+                sResult = -1;
+                GOTO_CLEANUP();
+            }
+
+            sResult = 0;
+            GOTO_CLEANUP();
+        }
+
+        // Ace1: Non-Inherited, non-inherit only
+        // Ace2: Non-Inherited, ...
+
+        if (bInheritOnly2)
+        {
+            sResult = 1;
+            GOTO_CLEANUP();
+        }
+
+        sResult = 0;
+        GOTO_CLEANUP();
+    }
+
+cleanup:
+    return sResult;
+}
+
+
 NTSTATUS
 RtlAddAccessAllowedAceEx(
     IN PACL Acl,
@@ -1174,9 +1329,11 @@ RtlAddAccessAllowedAceEx(
 {
     NTSTATUS status = STATUS_SUCCESS;
     USHORT sizeUsed = 0;
-    USHORT aceOffset = 0;
     PACCESS_ALLOWED_ACE aceLocation = NULL;
     USHORT aceSize = 0;
+    USHORT usLoop = 0;
+    USHORT aceOffset = 0;
+    PACE_HEADER aceHeader = NULL;
 
     if (!RtlpValidAclHeader(Acl))
     {
@@ -1197,13 +1354,44 @@ RtlAddAccessAllowedAceEx(
         GOTO_CLEANUP();
     }
 
-    status = RtlpGetAceLocationFromIndex(
-                    Acl,
-                    ((ULONG)-1),
-                    &sizeUsed,
-                    &aceOffset,
-                    OUT_PPVOID(&aceLocation));
-    GOTO_CLEANUP_ON_STATUS(status);
+    // Allowed ACEs get added to the front of the allow list
+
+    if (Acl->AceCount > 0)
+    {
+        sizeUsed = RtlGetAclSizeUsed(Acl);
+
+        for (usLoop=0; usLoop < Acl->AceCount; usLoop++)
+        {
+            status = RtlIterateAce(Acl, sizeUsed, &aceOffset, &aceHeader);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            if (aceHeader->AceType == ACCESS_ALLOWED_ACE_TYPE)
+            {
+                if (RtlpCompareAceFlagsForInsert(
+                        AceFlags,
+                        aceHeader->AceFlags) <= 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        aceLocation = (PACCESS_ALLOWED_ACE)aceHeader;
+    }
+
+    // Covers Acl->AceCount == 0 and the case where we are adding
+    // to the end of the list
+
+    if (usLoop == Acl->AceCount)
+    {
+        status = RtlpGetAceLocationFromIndex(
+                     Acl,
+                     ((ULONG)-1),
+                     &sizeUsed,
+                     &aceOffset,
+                     OUT_PPVOID(&aceLocation));
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
 
     aceSize = RtlLengthAccessAllowedAce(Sid);
 
@@ -1236,13 +1424,98 @@ RtlAddAccessDeniedAceEx(
     IN PSID Sid
     )
 {
-    // ACCESS_DENIED_ACE is isomorphic wrt ACCESS_ALLOWED_ACE
-    return RtlAddAccessAllowedAceEx(
-                Acl,
-                AceRevision,
-                AceFlags,
-                AccessMask,
-                Sid);
+    NTSTATUS status = STATUS_SUCCESS;
+    USHORT sizeUsed = 0;
+    PACCESS_DENIED_ACE aceLocation = NULL;
+    USHORT aceSize = 0;
+    USHORT usLoop = 0;
+    USHORT aceOffset = 0;
+    PACE_HEADER aceHeader = NULL;
+
+    if (!RtlpValidAclHeader(Acl))
+    {
+        status = STATUS_INVALID_ACL;
+        GOTO_CLEANUP();
+    }
+
+    if (!RtlpValidAclRevision(AceRevision) ||
+        (AceRevision > Acl->AclRevision))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    if (!RtlValidSid(Sid))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP();
+    }
+
+    // Deny ACEs get added to the end of the deny list
+
+    if (Acl->AceCount > 0)
+    {
+        sizeUsed = RtlGetAclSizeUsed(Acl);
+
+        for (usLoop=0; usLoop < Acl->AceCount; usLoop++)
+        {
+            status = RtlIterateAce(Acl, sizeUsed, &aceOffset, &aceHeader);
+            GOTO_CLEANUP_ON_STATUS(status);
+
+            if (aceHeader->AceType == ACCESS_ALLOWED_ACE_TYPE)
+            {
+                // Acess Denied ACE always goes before Access Allowed
+                break;
+            }
+
+            if (aceHeader->AceType == ACCESS_DENIED_ACE_TYPE)
+            {
+                if (RtlpCompareAceFlagsForInsert(
+                        AceFlags,
+                        aceHeader->AceFlags) <= 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        aceLocation = (PACCESS_DENIED_ACE)aceHeader;
+    }
+
+    // Covers Acl->AceCount == 0 and the case where we are adding
+    // to the end of the list
+
+    if (usLoop == Acl->AceCount)
+    {
+        status = RtlpGetAceLocationFromIndex(
+                     Acl,
+                     ((ULONG)-1),
+                     &sizeUsed,
+                     &aceOffset,
+                     OUT_PPVOID(&aceLocation));
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+    aceSize = RtlLengthAccessDeniedAce(Sid);
+
+    status = RtlpMakeRoomForAceAtLocation(Acl, sizeUsed, aceLocation, aceSize);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    // We know we have at least aceSize bytes available.
+    status = RtlInitializeAccessDeniedAce(
+                    aceLocation,
+                    aceSize,
+                    AceFlags,
+                    AccessMask,
+                    Sid);
+    GOTO_CLEANUP_ON_STATUS(status);
+
+    assert(aceSize == aceLocation->Header.AceSize);
+    sizeUsed += aceSize;
+    Acl->AceCount++;
+
+cleanup:
+    return status;
 }
 
 BOOLEAN
@@ -1481,3 +1754,14 @@ RtlpDecodeLittleEndianAcl(
         offset += aceHeader->AceSize;
     }
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
+

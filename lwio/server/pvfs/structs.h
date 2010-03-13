@@ -148,7 +148,7 @@ typedef struct _PVFS_PENDING_LOCK
 typedef LONG PVFS_SET_FILE_PROPERTY_FLAGS;
 
 #define PVFS_SET_PROP_NONE      0x00000000
-#define PVFS_SET_PROP_OWNER     0x00000001
+#define PVFS_SET_PROP_SECURITY  0x00000001
 #define PVFS_SET_PROP_ATTRIB    0x00000002
 
 typedef struct _PVFS_PENDING_CREATE
@@ -247,13 +247,23 @@ struct _PVFS_FCB
     /* ControlBlock */
     pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
                                        on an individual FCB */
-    PSTR pszFilename;
-    PPVFS_FCB pParentFcb;
     PVFS_FILE_ID FileId;
     LONG64 LastWriteTime;          /* Saved mode time from SET_FILE_INFO */
     BOOLEAN bDeleteOnClose;
+    BOOLEAN bRemoved;
     /* End ControlBlock */
 
+    /* rwParent */
+    pthread_rwlock_t rwParent;
+
+    PPVFS_FCB pParentFcb;
+    /* End rwParent */
+
+    /* rwFileName */
+    pthread_rwlock_t rwFileName;
+
+    PSTR pszFilename;
+    /* End rwFileName */
 
     /* rwCcbLock */
     pthread_rwlock_t rwCcbLock;     /* For managing the CCB list */
@@ -265,9 +275,6 @@ struct _PVFS_FCB
     pthread_rwlock_t rwBrlLock;     /* For managing the LockTable in
                                        the CCB list, the pendingLockqueue,
                                        and the LastFailedLock entry */
-    PVFS_LOCK_ENTRY LastFailedLock;
-    PPVFS_CCB pLastFailedLockOwner;   /* Never reference, only used
-                                         to match pointer */
     PPVFS_LIST pPendingLockQueue;
     /* End rwBrlLock */
 
@@ -330,6 +337,7 @@ struct _PVFS_CCB
     pthread_mutex_t ControlBlock;   /* Use for CCB SetFileInfo operations */
 
     LONG RefCount;
+    BOOLEAN bPendingDeleteHandle;
     BOOLEAN bCloseInProgress;
 
     /* Open fd to the File or Directory */
@@ -370,14 +378,20 @@ typedef enum
 } PVFS_QUEUE_TYPE;
 
 
+#define PVFS_IRP_CTX_FLAG_NONE             0x0000
+#define PVFS_IRP_CTX_FLAG_CANCELLED        0x0001
+#define PVFS_IRP_CTX_FLAG_PENDED           0x0002
+#define PVFS_IRP_CTX_FLAG_ACTIVE           0x0004
+#define PVFS_IRP_CTX_FLAG_COMPLETE         0x0008
+#define PVFS_IRP_CTX_FLAG_REQUEST_CANCEL   0x0010
+
 struct _PVFS_IRP_CONTEXT
 {
     pthread_mutex_t Mutex;
-    pthread_cond_t  Event;    /* synchronize point for worker threads */
+    LONG RefCount;
 
-    BOOLEAN bIsCancelled;
-    BOOLEAN bIsPended;
-    BOOLEAN bInProgress;
+    USHORT Flags;
+
     PVFS_QUEUE_TYPE QueueType;
 
     PPVFS_FCB pFcb;

@@ -88,6 +88,15 @@ SrvTreeAsyncStateRelease(
     PVOID pAsyncState
     );
 
+static
+NTSTATUS
+SrvTreeRundownFileRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    );
+
 NTSTATUS
 SrvTreeCreate(
     USHORT          tid,
@@ -130,6 +139,8 @@ SrvTreeCreate(
                     &SrvTreeAsyncStateRelease,
                     &pTree->pAsyncStateCollection);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    SRV_ELEMENTS_INCREMENT_TREE_CONNECTS;
 
     *ppTree = pTree;
 
@@ -419,6 +430,53 @@ SrvTreeIsNamedPipe(
     return bResult;
 }
 
+NTSTATUS
+SrvGetTreeRelativePath(
+    PWSTR  pwszOriginalPath,
+    PWSTR* ppwszSpecificPath
+    )
+{
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+    wchar16_t wszBackSlash[] = { '\\', 0 };
+    wchar16_t wszFwdSlash[]  = { '/',  0 };
+
+    if ((*pwszOriginalPath != wszBackSlash[0]) &&
+         (*pwszOriginalPath != wszFwdSlash[0]))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    pwszOriginalPath++;
+
+    // Skip the device name
+    while (!IsNullOrEmptyString(pwszOriginalPath) &&
+           (*pwszOriginalPath != wszBackSlash[0]) &&
+           (*pwszOriginalPath != wszFwdSlash[0]))
+    {
+        pwszOriginalPath++;
+    }
+
+    if (IsNullOrEmptyString(pwszOriginalPath) ||
+        ((*pwszOriginalPath != wszBackSlash[0]) &&
+         (*pwszOriginalPath != wszFwdSlash[0])))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppwszSpecificPath = pwszOriginalPath;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppwszSpecificPath = NULL;
+
+    goto cleanup;
+}
+
 PLWIO_SRV_TREE
 SrvTreeAcquire(
     PLWIO_SRV_TREE pTree
@@ -440,8 +498,28 @@ SrvTreeRelease(
 
     if (InterlockedDecrement(&pTree->refcount) == 0)
     {
+        SRV_ELEMENTS_DECREMENT_TREE_CONNECTS;
+
         SrvTreeFree(pTree);
     }
+}
+
+VOID
+SrvTreeRundown(
+    PLWIO_SRV_TREE pTree
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+
+    LwRtlRBTreeTraverse(
+            pTree->pFileCollection,
+            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+            SrvTreeRundownFileRbTreeVisit,
+            NULL);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
 }
 
 static
@@ -607,6 +685,26 @@ SrvTreeAsyncStateRelease(
     SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
 }
 
+static
+NTSTATUS
+SrvTreeRundownFileRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_FILE pFile = (PLWIO_SRV_FILE)pData;
+
+    if (pFile)
+    {
+        SrvFileRundown(pFile);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
+}
 
 
 /*

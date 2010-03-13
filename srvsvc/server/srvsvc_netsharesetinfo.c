@@ -103,6 +103,11 @@ SrvSvcNetShareSetInfo(
         SetParams.Info.p502 = (PSHARE_INFO_502)info.info502;
         break;
 
+    case 1005:
+        SetParams.Info.p502 = (PSHARE_INFO_1005)info.info1005;
+        goto cleanup;
+        break;
+
     default:
         ntStatus = STATUS_INVALID_LEVEL;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -119,19 +124,19 @@ SrvSvcNetShareSetInfo(
                         dwOutLength,
                         (void**)&pOutBuffer
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwAllocateStringPrintf(
                         &pszSmbPath,
                         "\\srv"
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwMbsToWc16s(
                         pszSmbPath,
                         &filename.FileName
                         );
-    BAIL_ON_ERROR(dwError);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtCreateFile(
                         &hFile,

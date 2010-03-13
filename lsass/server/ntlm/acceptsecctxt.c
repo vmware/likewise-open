@@ -141,6 +141,9 @@ NtlmServerAcceptSecurityContext(
             &pNtlmCtxtOut
             );
         BAIL_ON_LSA_ERROR(dwError);
+
+        pNtlmCtxtOut->pUserInfo = pNtlmCtxtChlng->pUserInfo;
+        pNtlmCtxtChlng->pUserInfo = NULL;
     }
 
     ContextHandle = pNtlmCtxtOut;
@@ -646,12 +649,15 @@ NtlmValidateResponse(
         memcpy(pSessionKey, pUserInfo->pSessionKey->pData, NTLM_SESSION_KEY_SIZE);
     }
 
-    // Free the pUserInfo for now... we may want to save this off later
-    //
-    dwError = LsaFreeAuthUserInfo(&pUserInfo);
-    BAIL_ON_LSA_ERROR(dwError);
+    pChlngCtxt->pUserInfo = pUserInfo;
+    pUserInfo = NULL;
 
 cleanup:
+
+    if (pUserInfo)
+    {
+        LsaFreeAuthUserInfo(&pUserInfo);
+    }
 
     LW_SAFE_FREE_MEMORY(pLMRespBuffer);
     LW_SAFE_FREE_MEMORY(pNTRespBuffer);

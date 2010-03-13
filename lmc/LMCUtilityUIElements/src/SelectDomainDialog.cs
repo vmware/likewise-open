@@ -16,6 +16,7 @@ namespace Likewise.LMC.UtilityUIElements
         private string sUsername = "";
         private string sDomain = "";
         private string sDomainController = "";
+        private bool bUseDefaultDomain = true;
         private CredentialsDialog credsDialog = null;
 
         #endregion
@@ -30,7 +31,7 @@ namespace Likewise.LMC.UtilityUIElements
         public SelectDomainDialog(string domain, string username)
             : this()
         {
-            if (String.IsNullOrEmpty(username))
+            if (bUseDefaultDomain)
             {
                 rbDefaultDomain.Checked = true;
                 tbDomain.Text = "";
@@ -57,6 +58,7 @@ namespace Likewise.LMC.UtilityUIElements
         private void rbDefaultDomain_CheckedChanged(object sender, EventArgs e)
         {
             btnOk.Enabled = true;
+            bUseDefaultDomain = rbDefaultDomain.Checked;
         }
 
         private void rbOtherDomain_CheckedChanged(object sender, EventArgs e)

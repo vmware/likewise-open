@@ -54,6 +54,8 @@
 
 #include <lwps/lwps.h>
 #include <lw/rtlmemory.h>
+#include <lw/security-types.h>
+#include <lw/security-api.h>
 #include <lw/attrs.h>
 
 #include "lwdef.h"
@@ -64,6 +66,7 @@
 #include "lwerror.h"
 #include "krb5error-table.h"
 #include "lwkrb5.h"
+#include "lwlogging.h"
 #include "bail.h"
 #include "externs.h"
 

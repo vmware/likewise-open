@@ -163,6 +163,15 @@ RPC_ARG_DEFINE(dcom, ENABLE_DCOM, no,[Enable experimental DCOM support])
 AM_CONDITIONAL(ENABLE_DCOM, test x$rpc_arg_dcom = yes)
 AM_CONDITIONAL(TARGET_OS_LINUX, test x$target_os = xlinux-gnu)
 
+if test x"$localstatedir" = x"/var"; then
+    rpccachedir="$localstatedir/lib/likewise"
+else
+    rpccachedir="$localstatedir"
+fi
+AS_AC_EXPAND(rpc_dir, ["$rpccachedir/rpc"])
+AC_DEFINE_UNQUOTED([RPC_C_NP_DIR], ["$rpc_dir"], [named pipes directory])
+AC_DEFINE_UNQUOTED([RPC_C_UXD_DIR], ["$rpc_dir"], [unix domain sockets directory])
+
 #####################################################################
 ## COMPONENT: threads
 
@@ -402,6 +411,15 @@ AM_CONDITIONAL(NAF_UXD, test x${rpc_arg_afuxd} = xyes)
 
 RPC_ARG_DEFINE(ifloopback, USE_LOOPBACK, yes,Include loopback interface support)
 
+AC_CHECK_DECLS([SO_PEERCRED, getpeereid],,,
+[
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+])
+
+AC_CHECK_FUNCS(getpeereid)
+
 
 #####################################################################
 ## COMPONENT: dcelib
@@ -475,6 +493,17 @@ AC_CONFIG_SUBDIRS(flex-2.5.4)
 FLEX='${top_builddir}/flex-2.5.4/flex'
 AC_SUBST(FLEX)
 
+for i in ${CPPFLAGS} ${AM_CPPFLAGS}; do
+    j=`echo $i | grep '^-I'`
+    if test x != x"$j"
+    then
+        IDL_FLAGS="$IDL_FLAGS $j"
+    fi
+done
+
+AC_SUBST(IDL_FLAGS)
+
+
 AC_OUTPUT(
 Makefile
 dnl freedce.spec
@@ -528,5 +557,6 @@ demos/echo_server/Makefile
 demos/echo_number/Makefile
 demos/echo_union/Makefile
 demos/samr_test/Makefile
+demos/access/Makefile
 perf/Makefile
 )

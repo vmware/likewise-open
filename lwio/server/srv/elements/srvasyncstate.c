@@ -58,6 +58,7 @@ SrvAsyncStateFree(
 NTSTATUS
 SrvAsyncStateCreate(
     ULONG64                       ullAsyncId,
+    USHORT                        usCommand,
     HANDLE                        hAsyncState,
     PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*            ppAsyncState
@@ -77,6 +78,7 @@ SrvAsyncStateCreate(
     pAsyncState->pMutex = &pAsyncState->mutex;
 
     pAsyncState->ullAsyncId        = ullAsyncId;
+    pAsyncState->usCommand         = usCommand;
     pAsyncState->hAsyncState       = hAsyncState;
     pAsyncState->pfnFreeAsyncState = pfnFreeAsyncState;
 

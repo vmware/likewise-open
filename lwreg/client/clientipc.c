@@ -67,7 +67,7 @@ error:
 
 DWORD
 RegOpenServer(
-	PHANDLE phConnection
+	OUT PHANDLE phConnection
 	)
 {
     return RegNtStatusToWin32Error(
@@ -76,7 +76,7 @@ RegOpenServer(
 
 NTSTATUS
 NtRegOpenServer(
-    PHANDLE phConnection
+    OUT PHANDLE phConnection
     )
 {
     NTSTATUS status = 0;
@@ -148,7 +148,7 @@ error:
 
 VOID
 RegCloseServer(
-    HANDLE hConnection
+    IN HANDLE hConnection
     )
 {
 	NtRegCloseServer(hConnection);
@@ -157,7 +157,7 @@ RegCloseServer(
 
 VOID
 NtRegCloseServer(
-    HANDLE hConnection
+    IN HANDLE hConnection
     )
 {
     PREG_CLIENT_CONNECTION_CONTEXT pContext =
@@ -237,8 +237,9 @@ RegTransactEnumRootKeysW(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-		status = EINVAL;
+		status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -347,7 +348,7 @@ RegTransactCreateKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-		status = EINVAL;
+		status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -414,7 +415,7 @@ RegTransactOpenKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-		status = EINVAL;
+		status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -472,7 +473,7 @@ RegTransactCloseKey(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -529,7 +530,7 @@ RegTransactDeleteKeyW(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -610,6 +611,10 @@ RegTransactQueryInfoKeyW(
             {
                 *pcMaxValueLen = pQueryInfoKeyResp->cMaxValueLen;
             }
+            if (pcbSecurityDescriptor)
+            {
+		*pcbSecurityDescriptor = pQueryInfoKeyResp->cSecurityDescriptor;
+            }
 
             break;
         case REG_R_ERROR:
@@ -618,7 +623,7 @@ RegTransactQueryInfoKeyW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -643,7 +648,7 @@ RegTransactEnumKeyExW(
     IN OUT PWSTR pName,
     IN OUT PDWORD pcName,
     IN PDWORD pReserved,
-    IN OUT PWSTR pClass,
+    IN OUT OPTIONAL PWSTR pClass,
     IN OUT OPTIONAL PDWORD pcClass,
     OUT OPTIONAL PFILETIME pftLastWriteTime
     )
@@ -664,10 +669,8 @@ RegTransactEnumKeyExW(
 
     EnumKeyExReq.hKey = hKey;
     EnumKeyExReq.dwIndex = dwIndex;
-    EnumKeyExReq.pName = pName;
     EnumKeyExReq.cName = *pcName;
-    EnumKeyExReq.pClass = pClass;
-    EnumKeyExReq.pcClass = pcClass;
+    EnumKeyExReq.cClass = pcClass ? *pcClass : 0;
 
     in.tag = REG_Q_ENUM_KEYW_EX;
     in.data = &EnumKeyExReq;
@@ -683,6 +686,15 @@ RegTransactEnumKeyExW(
             memcpy(pName, pEnumKeyExResp->pName, (pEnumKeyExResp->cName+1)*sizeof(*pName));
             *pcName = pEnumKeyExResp->cName;
 
+            if (pClass)
+            {
+                memcpy(pClass, pEnumKeyExResp->pClass, (pEnumKeyExResp->cClass+1)*sizeof(*pClass));
+                if (pcClass)
+                {
+			*pcClass = pEnumKeyExResp->cClass;
+                }
+            }
+
             break;
 
         case REG_R_ERROR:
@@ -691,7 +703,7 @@ RegTransactEnumKeyExW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -737,7 +749,6 @@ RegTransactGetValueW(
     GetValueReq.pSubKey = pSubKey;
     GetValueReq.pValue = pValue;
     GetValueReq.Flags = Flags;
-    GetValueReq.pData = pvData;
     GetValueReq.cbData = *pcbData;
 
     in.tag = REG_Q_GET_VALUEW;
@@ -774,7 +785,7 @@ RegTransactGetValueW(
             BAIL_ON_NT_STATUS(status);
             break;
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -833,7 +844,7 @@ RegTransactDeleteKeyValueW(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -887,8 +898,9 @@ RegTransactDeleteTreeW(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -942,8 +954,9 @@ RegTransactDeleteValueW(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -988,9 +1001,7 @@ RegTransactEnumValueW(
 
     EnumValueReq.hKey = hKey;
     EnumValueReq.dwIndex = dwIndex;
-    EnumValueReq.pName = pValueName;
     EnumValueReq.cName = *pcchValueName;
-    EnumValueReq.pValue = pData;
     EnumValueReq.cValue = pcbData == NULL ? 0 : *pcbData;
 
 
@@ -1030,8 +1041,9 @@ RegTransactEnumValueW(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1125,8 +1137,9 @@ RegTransactQueryMultipleValues(
             status = pStatus->status;
             BAIL_ON_NT_STATUS(status);
             break;
+
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1190,7 +1203,7 @@ RegTransactSetValueExW(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1217,7 +1230,7 @@ RegTransactSetKeySecurity(
 	)
 {
 	NTSTATUS status = 0;
-    REG_IPC_KEY_SECURITY_REQ SetKeySecurityReq;
+    REG_IPC_SET_KEY_SECURITY_REQ SetKeySecurityReq;
     // Do not free pStatus
     PREG_IPC_STATUS pStatus = NULL;
 
@@ -1251,7 +1264,7 @@ RegTransactSetKeySecurity(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 
@@ -1278,7 +1291,7 @@ RegTransactGetKeySecurity(
 	)
 {
 	NTSTATUS status = 0;
-    REG_IPC_KEY_SECURITY_REQ GetKeySecurityReq;
+    REG_IPC_GET_KEY_SECURITY_REQ GetKeySecurityReq;
     PREG_IPC_GET_KEY_SECURITY_RES pGetKeySecurityResp = NULL;
     // Do not free pStatus
     PREG_IPC_STATUS pStatus = NULL;
@@ -1292,7 +1305,6 @@ RegTransactGetKeySecurity(
 
     GetKeySecurityReq.hKey = hKey;
     GetKeySecurityReq.SecurityInformation = SecurityInformation;
-    GetKeySecurityReq.SecurityDescriptor = SecurityDescriptor;
     GetKeySecurityReq.Length = *lpcbSecurityDescriptor;
 
     in.tag = REG_Q_GET_KEY_SECURITY;
@@ -1318,7 +1330,7 @@ RegTransactGetKeySecurity(
             break;
 
         default:
-            status = EINVAL;
+            status = STATUS_INVALID_PARAMETER;
             BAIL_ON_NT_STATUS(status);
     }
 

@@ -1155,6 +1155,37 @@ RegShellCmdParse(
                 dwError = RegShellCmdParseCommand(cmd, &pCmdItem);
             }
             break;
+        case REGSHELL_CMD_EXPORT:
+            dwError = RegShellCmdParseCommand(cmd, &pCmdItem);
+            BAIL_ON_REG_ERROR(dwError);
+            if (argc > 3)
+            {
+                dwError = RegShellCmdParseKeyName(
+                              pParseState,
+                              cmd,
+                              argv[2],
+                              &pCmdItem);
+                BAIL_ON_REG_ERROR(dwError);
+                dwError = RegAllocateMemory(
+                              sizeof(PSTR) * 2,
+                              (PVOID*)&pCmdItem->args);
+                BAIL_ON_REG_ERROR(dwError);
+                dwError = RegCStringDuplicate(
+                              (LW_PVOID) &pCmdItem->args[0], argv[3]);
+                BAIL_ON_REG_ERROR(dwError);
+                pCmdItem->argsCount = 1;
+            }
+            else
+            {
+                dwError = RegAllocateMemory(
+                              sizeof(PSTR) * 2,
+                              (PVOID*)&pCmdItem->args);
+                BAIL_ON_REG_ERROR(dwError);
+                dwError = RegCStringDuplicate(
+                              (LW_PVOID) &pCmdItem->args[0], argv[2]);
+            }
+            break;
+
         case REGSHELL_CMD_LIST_KEYS:
         case REGSHELL_CMD_LIST:
         case REGSHELL_CMD_DIRECTORY:
@@ -1175,7 +1206,6 @@ RegShellCmdParse(
             break;
 
         case REGSHELL_CMD_IMPORT:
-        case REGSHELL_CMD_EXPORT:
         case REGSHELL_CMD_UPGRADE:
         case REGSHELL_CMD_SET_HIVE:
             if (argc != 3)
@@ -1304,6 +1334,7 @@ RegShellCmdlineParseToArgv(
     BOOLEAN eof = FALSE;
     BOOLEAN stop = FALSE;
     PSTR pszAttr = NULL;
+    PSTR pszPrevAttr = NULL;
     PSTR *pszArgv = NULL;
     PSTR *pszArgvRealloc = NULL;
     PSTR pszBinaryData = NULL;
@@ -1475,7 +1506,7 @@ RegShellCmdlineParseToArgv(
                 {
                     dwAllocSize = 4;
                     dwArgc = 2;
-                    state = REGSHELL_CMDLINE_STATE_IMPORT;
+                    state = REGSHELL_CMDLINE_STATE_ADDVALUE;
                 }
                 else if (cmdEnum == REGSHELL_CMD_UPGRADE)
                 {
@@ -1651,6 +1682,26 @@ RegShellCmdlineParseToArgv(
                 {
                     dwError = LWREG_ERROR_INVALID_CONTEXT;
                 }
+                else if (cmdEnum == REGSHELL_CMD_EXPORT &&
+                         token == REGLEX_PLAIN_TEXT)
+                {
+                    dwError = RegCStringDuplicate(&pszPrevAttr, pszAttr);
+                    BAIL_ON_REG_ERROR(dwError);
+
+                    dwError = RegLexGetToken(pParseState->ioHandle,
+                                             pParseState->lexHandle,
+                                             &token,
+                                             &eof);
+                    if (eof)
+                    {
+                        state = REGSHELL_CMDLINE_STATE_ADDVALUE_VALUENAME;
+                    }
+                    else
+                    {
+                        state = REGSHELL_CMDLINE_STATE_ADDVALUE_KEYNAME;
+                    }
+                    RegLexUnGetToken(pParseState->lexHandle);
+                }
                 else if (token == REGLEX_REG_KEY)
                 {
                     state = REGSHELL_CMDLINE_STATE_ADDVALUE_KEYNAME;
@@ -1668,14 +1719,22 @@ RegShellCmdlineParseToArgv(
                 break;
 
                 case REGSHELL_CMDLINE_STATE_ADDVALUE_KEYNAME:
-                    RegLexGetAttribute(pParseState->lexHandle,
-                                       &attrSize,
-                                       &pszAttr);
+                    if (pszPrevAttr)
+                    {
+                        pszAttr = pszPrevAttr;
+                    }
+                    else
+                    {
+                        RegLexGetAttribute(pParseState->lexHandle,
+                                           &attrSize,
+                                           &pszAttr);
+                    }
                     dwError = RegShellCmdParseKeyName(
                                   pParseState,
                                   cmdEnum,
                                   pszAttr,
                                   &pCmdItem);
+                    LWREG_SAFE_FREE_MEMORY(pszPrevAttr);
                     BAIL_ON_REG_ERROR(dwError);
                     if (pCmdItem->keyName)
                     {
@@ -1745,7 +1804,8 @@ RegShellCmdlineParseToArgv(
                     BAIL_ON_REG_ERROR(dwError);
 
                     /* add_value type is next */
-                    if (cmdEnum == REGSHELL_CMD_DELETE_VALUE)
+                    if (cmdEnum == REGSHELL_CMD_DELETE_VALUE ||
+                        cmdEnum == REGSHELL_CMD_EXPORT)
                     {
                         stop = TRUE;
                     }
@@ -2000,10 +2060,11 @@ RegShellUsage(
         "       list_values [[keyName]]\n"
         "       delete_value [[KeyName]] \"ValueName\"\n"
         "       set_hive HIVE_NAME\n"
-        "       import file.reg\n"
-        "       export file.reg\n"
-        "       upgrade file.reg\n"
+        "       import file.reg | -\n"
+        "       export [[keyName]] file.reg | - \n"
+        "       upgrade file.reg | -\n"
         "       exit | quit | ^D\n"
+        "       history\n"
         "\n"
         "         Type: REG_SZ | REG_DWORD | REG_BINARY | REG_MULTI_SZ\n"
         "               REG_DWORD and REG_BINARY values are hexadecimal\n"

@@ -102,8 +102,8 @@ EnumerateMaps(
 
 static
 VOID
-PrintUserInfo_0(
-    PLSA_USER_INFO_0 pUserInfo,
+PrintUserInfo_2(
+    PLSA_USER_INFO_2 pUserInfo,
     BOOLEAN bPrintKeys
     );
 
@@ -448,7 +448,7 @@ EnumerateUsers(
     )
 {
     DWORD  dwError = 0;
-    DWORD  dwUserInfoLevel = 0;
+    DWORD  dwUserInfoLevel = 2;
     DWORD  dwBatchSize = 100;
     DWORD  dwNumUsersFound = 0;
     PVOID* ppUserInfoList = NULL;
@@ -484,9 +484,9 @@ EnumerateUsers(
 
         for (iUser = 0; iUser < dwNumUsersFound; iUser++)
         {
-            PLSA_USER_INFO_0 pUserInfo = (PLSA_USER_INFO_0)*(ppUserInfoList + iUser);
+            PLSA_USER_INFO_2 pUserInfo = (PLSA_USER_INFO_2)*(ppUserInfoList + iUser);
 
-            PrintUserInfo_0(pUserInfo, bPrintKeys);
+            PrintUserInfo_2(pUserInfo, bPrintKeys);
         }
 
     } while (dwNumUsersFound);
@@ -664,8 +664,8 @@ error:
 
 static
 VOID
-PrintUserInfo_0(
-    PLSA_USER_INFO_0 pUserInfo,
+PrintUserInfo_2(
+    PLSA_USER_INFO_2 pUserInfo,
     BOOLEAN bPrintKeys
     )
 {
@@ -676,6 +676,9 @@ PrintUserInfo_0(
 
     printf("%s:%s:%u:%u:%s:%s:%s\n",
            YPCAT_SAFE_LOG_STRING(pUserInfo->pszName),
+           pUserInfo->bAccountDisabled ? "**DISABLED**" :
+           pUserInfo->bAccountLocked ? "**LOCKED**" :
+           pUserInfo->bAccountExpired ? "**EXPIRED**" :
            YPCAT_SAFE_LOG_STRING(pUserInfo->pszPasswd),
            (unsigned int)pUserInfo->uid,
            (unsigned int)pUserInfo->gid,

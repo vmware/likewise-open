@@ -332,7 +332,7 @@ typedef struct _LSA2_IPC_DELETE_OBJECT_REQ
     PCSTR pszSid;
 } LSA2_IPC_DELETE_OBJECT_REQ, *PLSA2_IPC_DELETE_OBJECT_REQ;
 
-#define MAP_LWMSG_ERROR(_e_) (LsaMapLwmsgStatus(_e_))
+#define MAP_LWMSG_ERROR(_e_) (LwMapLwmsgStatusToLwError(_e_))
 #define MAP_LW_ERROR_IPC(_e_) ((_e_) ? LWMSG_STATUS_ERROR : LWMSG_STATUS_SUCCESS)
 
 LWMsgProtocolSpec*
@@ -348,11 +348,6 @@ LsaOpenServer(
 DWORD
 LsaCloseServer(
     HANDLE hConnection
-    );
-
-DWORD
-LsaMapLwmsgStatus(
-    LWMsgStatus status
     );
 
 extern LWMsgTypeSpec gLsaSecurityObjectSpec[];

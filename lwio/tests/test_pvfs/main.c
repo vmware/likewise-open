@@ -60,7 +60,7 @@ main(
 
     /* Check Arg count */
 
-    if (argc <= 2) {
+    if (argc <= 1) {
         PrintUsage(argv[0]);
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
@@ -118,6 +118,10 @@ main(
     {
         ntError = ListOpenFiles(argv[2]);
     }
+    else if (strcmp(argv[1], "--max-open-files") == 0)
+    {
+        ntError = PrintMaxOpenFiles();
+    }
     else
     {
         PrintUsage(argv[0]);
@@ -150,15 +154,16 @@ PrintUsage(
 {
     fprintf(stderr, "Usage: %s <command> [command options]\n", pszProgName);
     fprintf(stderr, "(All pvfs files should be given in the format \"/pvfs/path/...\")\n");
-    fprintf(stderr, "    -c <src> <dst>    Copy src to the Pvfs dst file\n");
-    fprintf(stderr, "    -C <src> <dst>    Copy the pvfs src file to the local dst file\n");
-    fprintf(stderr, "    -S <path>         Stat a Pvfs path (directory or file)\n");
-    fprintf(stderr, "    -l <dir>          List the files in a directory\n");
-    fprintf(stderr, "    -F <file> <size>  Set the end-of-file\n");
-    fprintf(stderr, "    -D <path>         Delete a file or directory using delete-on-close\n");
-    fprintf(stderr, "    -L <filename>     Locking Tests\n");
-    fprintf(stderr, "    -O <filename>     Oplock Test\n");
-
+    fprintf(stderr, "    -c <src> <dst>           Copy src to the Pvfs dst file\n");
+    fprintf(stderr, "    -C <src> <dst>           Copy the pvfs src file to the local dst file\n");
+    fprintf(stderr, "    -S <path>                Stat a Pvfs path (directory or file)\n");
+    fprintf(stderr, "    -l <dir>                 List the files in a directory\n");
+    fprintf(stderr, "    -F <file> <size>         Set the end-of-file\n");
+    fprintf(stderr, "    -D <path>                Delete a file or directory using delete-on-close\n");
+    fprintf(stderr, "    -L <filename>            Locking Tests\n");
+    fprintf(stderr, "    -O <filename>            Oplock Test\n");
+    fprintf(stderr, "    --ls-open-files <level>  List open files\n");
+    fprintf(stderr, "    --max-open-files         Print the maximum number of concurrent open fds\n");
 
     fprintf(stderr, "\n");
 
@@ -1276,6 +1281,72 @@ error:
         NtCloseFile(hFile);
     }
 
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+#define MAX_OPEN_FILE_TEST 0x00010000
+
+NTSTATUS
+PrintMaxOpenFiles(
+    VOID
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    IO_FILE_HANDLE hFileArray[MAX_OPEN_FILE_TEST];
+    IO_STATUS_BLOCK StatusBlock = {0};
+    IO_FILE_NAME SrcFilename = {0};
+    int i = 0;
+    NTSTATUS savedStatus = STATUS_SUCCESS;
+
+
+    ntError = LwRtlWC16StringAllocateFromCString(
+                  &SrcFilename.FileName,
+                  "/pvfs/tmp/max_open_file_test");
+    BAIL_ON_NT_STATUS(ntError);
+
+    for (i=0; i<MAX_OPEN_FILE_TEST; i++)
+    {
+        ntError = NtCreateFile(
+                      &hFileArray[i],
+                      NULL,
+                      &StatusBlock,
+                      &SrcFilename,
+                      NULL,
+                      NULL,
+                      FILE_GENERIC_READ,
+                      0,
+                      FILE_ATTRIBUTE_NORMAL,
+                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                      FILE_OPEN_IF,
+                      FILE_NON_DIRECTORY_FILE|FILE_DELETE_ON_CLOSE,
+                      NULL,
+                      0,
+                      NULL);
+        if (ntError != STATUS_SUCCESS)
+        {
+            savedStatus = ntError;
+        }
+    }
+
+    printf("Max open file limit == %d\n", i);
+
+    for (; i>=0; i--)
+    {
+        NtCloseFile(hFileArray[i]);
+    }
+
+    RtlWC16StringFree(&SrcFilename.FileName);
+
+    ntError = savedStatus;
+
+cleanup:
+    return ntError;
+
+error:
     goto cleanup;
 }
 

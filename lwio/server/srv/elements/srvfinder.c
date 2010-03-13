@@ -216,6 +216,8 @@ SrvFinderBuildSearchPath(
         else if ((*pwszCursor == wszStar[0]) ||
                  (*pwszCursor == wszQuestionMark[0]))
         {
+            bPathHasWildCards = TRUE;
+
             break;
         }
 
@@ -293,6 +295,7 @@ error:
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
+    IN  PSRV_SHARE_INFO pShareInfo,
     IN  PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     IN  HANDLE         hFinderRepository,
     IN  PWSTR          pwszFilesystemPath,
@@ -317,11 +320,14 @@ SrvFinderCreateSearchSpace(
     USHORT   usCandidateSearchId = 0;
     BOOLEAN  bFound = FALSE;
     BOOLEAN  bInLock = FALSE;
+    PIO_ECP_LIST pEcpList = NULL;
+
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
     fileName.FileName = pwszFilesystemPath;
 
-    ntStatus = IoCreateFile(
+    ntStatus = SrvIoCreateFile(
+                    pShareInfo,
                     &hFile,
                     NULL,
                     &ioStatusBlock,
@@ -332,12 +338,12 @@ SrvFinderCreateSearchSpace(
                     accessMask,
                     0,
                     FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_READ,
+                    FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                     FILE_OPEN,
                     0,
                     NULL, /* EA Buffer */
                     0,    /* EA Length */
-                    NULL  /* ECP List  */
+                    &pEcpList
                     );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -413,6 +419,11 @@ SrvFinderCreateSearchSpace(
 cleanup:
 
     LWIO_UNLOCK_MUTEX(bInLock, &pFinderRepository->mutex);
+
+    if (pEcpList)
+    {
+        IoRtlEcpListFree(&pEcpList);
+    }
 
     return ntStatus;
 

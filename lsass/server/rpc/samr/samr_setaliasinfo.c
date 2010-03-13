@@ -106,14 +106,21 @@ SamrSrvSetAliasInfo(
     memset(&Mods, 0, sizeof(Mods));
 
     pAcctCtx = (PACCOUNT_CONTEXT)hAlias;
-    pDomCtx  = pAcctCtx->pDomCtx;
-    pConnCtx = pDomCtx->pConnCtx;
 
-    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount) {
+    if (pAcctCtx == NULL || pAcctCtx->Type != SamrContextAccount)
+    {
         ntStatus = STATUS_INVALID_HANDLE;
         BAIL_ON_NTSTATUS_ERROR(ntStatus);
     }
 
+    if (!(pAcctCtx->dwAccessGranted & ALIAS_ACCESS_SET_INFO))
+    {
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+    }
+
+    pDomCtx       = pAcctCtx->pDomCtx;
+    pConnCtx      = pDomCtx->pConnCtx;
     hDirectory    = pConnCtx->hDirectory;
     pwszAccountDn = pAcctCtx->pwszDn;
 

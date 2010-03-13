@@ -49,17 +49,15 @@
 
 /* Developer cycle testing macros; Disabled for release */
 
-/* #define PVFS_DEVELOPER_DEBUG 1 */
+/* #define _PVFS_DEVELOPER_DEBUG 1 */
 
-#ifdef PVFS_DEVELOPER_DEBUG
-#define PVFS_ASSERT(x)     LWIO_ASSERT(x)
-#else
-#define PVFS_ASSERT(x)
+#ifdef _PVFS_DEVELOPER_DEBUG
+/* Insert macro for developing here */
 #endif
 
 /* Error checking macros */
 
-#define PVFS_IS_DEVICE_HANDLE(p)  ((p)->pFcb == gpPvfsDeviceFcb)
+#define PVFS_IS_DEVICE_HANDLE(p)  ((p) == gpPvfsDeviceFcb)
 
 #define PVFS_BAIL_ON_INVALID_CCB(p, err)                    \
     do {                                                    \
@@ -67,7 +65,7 @@
             err = STATUS_INVALID_PARAMETER;                 \
             goto error;                                     \
         }                                                   \
-        if (((p)->fd == -1) && !PVFS_IS_DEVICE_HANDLE(p))   \
+        if (((p)->fd == -1) && !PVFS_IS_DEVICE_HANDLE((p)->pFcb))   \
         {                                                   \
             err = STATUS_INVALID_HANDLE;                    \
             goto error;                                     \

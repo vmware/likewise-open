@@ -382,7 +382,7 @@ AC_SUBST(SOCKET_LIBS)
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h sys/syslimits.h sys/limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h fcntl.h iconv.h sys/stat.h time.h sys/time.h sys/varargs.h synch.h pthread.h wc16str.h wc16printf.h])
+AC_CHECK_HEADERS([inttypes.h arpa/inet.h fcntl.h limits.h sys/param.h sys/syslimits.h sys/limits.h netdb.h netinet/in.h stdint.h stdlib.h stdbool.h string.h strings.h sys/socket.h syslog.h unistd.h sys/types.h fcntl.h iconv.h sys/stat.h time.h sys/time.h sys/varargs.h synch.h pthread.h dlfcn.h wc16str.h wc16printf.h])
 
 AC_PATH_PROG([IDL], [dceidl], [no], [$PATH:$DCERPC_PATH])
 
@@ -433,6 +433,7 @@ AC_CONFIG_FILES([Makefile
                  etc/Makefile
 		 etc/srvsvcd.reg
                  utils/Makefile
+                 logging_r/Makefile
                  client/Makefile
                  test/Makefile
                  server/Makefile

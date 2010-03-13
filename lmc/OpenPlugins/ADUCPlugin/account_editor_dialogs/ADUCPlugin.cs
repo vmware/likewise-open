@@ -441,10 +441,10 @@ public class ADUCPlugin: IPlugIn
     private void cm_OnConnect(object sender, EventArgs e)
     {
         bool initialConnect = true;
+        SelectDomainDialog domainDlg = null;
 
         while (true)
         {
-            SelectDomainDialog domainDlg = null;
             if (initialConnect)
             {
                 domainDlg = new SelectDomainDialog(_hn.domainName, _hn.creds.UserName);

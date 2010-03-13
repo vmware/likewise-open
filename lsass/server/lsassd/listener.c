@@ -46,7 +46,11 @@
 #include "lsassd.h"
 
 #define MAX_DISPATCH 8
+#ifdef __LWI_SOLARIS__
+#define MAX_CLIENTS 200
+#else
 #define MAX_CLIENTS 512
+#endif
 
 static LWMsgContext* gpContext = NULL;
 static LWMsgProtocol* gpProtocol = NULL;
@@ -145,7 +149,7 @@ LsaSrvStartListenThread(
     PSTR pszCommPath = NULL;
     BOOLEAN bDirExists = FALSE;
     DWORD dwError = 0;
-    static LWMsgTime idleTimeout = {30, 0};
+    static LWMsgTime idleTimeout = {10, 0};
 
     dwError = LsaSrvGetCachePath(&pszCachePath);
     BAIL_ON_LSA_ERROR(dwError);

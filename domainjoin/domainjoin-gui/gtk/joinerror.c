@@ -39,12 +39,12 @@
 #include <string.h>
 #include <stdio.h>
 
-#define abort()							\
-    do								\
-    {								\
-	fprintf(stderr, "%s:%i: abort()", __FILE__, __LINE__);	\
-	abort();						\
-    } while (0)							\
+#define abort() \
+    do \
+    { \
+        fprintf(stderr, "%s:%i: abort()", __FILE__, __LINE__); \
+        abort(); \
+    } while (0) \
 
 
 struct JoinErrorDialog
@@ -61,34 +61,34 @@ joinerror_new(GtkWindow* parent, LWException* exc)
     GladeXML* xml = glade_xml_new (DOMAINJOIN_XML, "JoinErrorDialog", NULL);
     JoinErrorDialog* dialog = g_new0(JoinErrorDialog, 1);
 
-    if(!dialog)
-	return NULL;
-    
+    if(!xml || !dialog)
+        goto cleanup;
+
     dialog->dialog = GTK_DIALOG(glade_xml_get_widget(xml, "JoinErrorDialog"));
     g_assert(dialog->dialog != NULL);
     g_object_ref(G_OBJECT(dialog->dialog));
-    
+
     gtk_window_set_transient_for (GTK_WINDOW(dialog->dialog), parent);
-    
+
     dialog->error_short = GTK_LABEL(glade_xml_get_widget(xml, "JoinErrorShort"));
     g_assert(dialog->error_short != NULL);
     g_object_ref(G_OBJECT(dialog->error_short));
 
     if (exc->shortMsg)
     {
-	char* markup;
+        char* markup;
 
-	if (CTAllocateStringPrintf(&markup, 
-				   "<span weight=\"bold\" size=\"x-large\">%s</span>", 
-				   exc->shortMsg))
-	    abort();
+        if (CTAllocateStringPrintf(&markup,
+                    "<span weight=\"bold\" size=\"x-large\">%s</span>",
+                    exc->shortMsg))
+            abort();
 
-	gtk_label_set_markup(dialog->error_short, markup);
+        gtk_label_set_markup(dialog->error_short, markup);
     }
     else
     {
-	gtk_label_set_markup(dialog->error_short, 
-			     "<span weight=\"bold\" size=\"x-large\">Join error encountered</span>");
+        gtk_label_set_markup(dialog->error_short,
+                 "<span weight=\"bold\" size=\"x-large\">Join error encountered</span>");
     }
 
     dialog->error_long = GTK_LABEL(glade_xml_get_widget(xml, "JoinErrorLong"));
@@ -97,11 +97,11 @@ joinerror_new(GtkWindow* parent, LWException* exc)
 
     if (exc->longMsg)
     {
-	gtk_label_set_text(dialog->error_long, exc->longMsg);
+        gtk_label_set_text(dialog->error_long, exc->longMsg);
     }
     else
     {
-	gtk_label_set_text(dialog->error_long,
+        gtk_label_set_text(dialog->error_long,
                            "An unexpected or internal error was encountered "
                            "during the domain join.  Please contact Likewise technical "
                            "support for assistance.");
@@ -112,39 +112,45 @@ joinerror_new(GtkWindow* parent, LWException* exc)
     g_object_ref(G_OBJECT(dialog->error_details));
 
     {
-	char* details;
-	GtkTextIter iter;
-	GtkTextBuffer* buffer;
-	LWStackFrame* stack;
+        char* details;
+        GtkTextIter iter;
+        GtkTextBuffer* buffer;
+        LWStackFrame* stack;
 
-	buffer = gtk_text_view_get_buffer(dialog->error_details);
+        buffer = gtk_text_view_get_buffer(dialog->error_details);
 
-	if (CTAllocateStringPrintf(&details, 
-				   "Error code: %s (0x%.8x)\n\n"
-				   "Backtrace:",
-				   CTErrorName(exc->code), exc->code))
-	    abort();
+        if (CTAllocateStringPrintf(&details,
+                                   "Error code: %s (0x%.8x)\n\n"
+                                   "Backtrace:",
+                                   CTErrorName(exc->code), exc->code))
+            abort();
 
-	gtk_text_buffer_set_text(gtk_text_view_get_buffer(dialog->error_details),
-				 details, -1);
+        gtk_text_buffer_set_text(
+                gtk_text_view_get_buffer(dialog->error_details), details, -1);
 
-	gtk_text_buffer_get_end_iter(buffer, &iter);
+        gtk_text_buffer_get_end_iter(buffer, &iter);
 
-	CTFreeString(details);
+        CTFreeString(details);
 
-	for (stack = &exc->stack; stack; stack = stack->down)
-	{
-	    if (CTAllocateStringPrintf(&details, 
-				       "\n    %s:%i",
-				       stack->file, stack->line))
-		abort();
+        for (stack = &exc->stack; stack; stack = stack->down)
+        {
+            if (CTAllocateStringPrintf(&details,
+                                       "\n    %s:%i",
+                                       stack->file, stack->line))
+                abort();
 
-	    gtk_text_buffer_insert(buffer, &iter, details, -1);
+            gtk_text_buffer_insert(buffer, &iter, details, -1);
 
-	    CTFreeString(details);
-	}
+            CTFreeString(details);
+        }
     }
 
+cleanup:
+    if (xml)
+    {
+        g_object_unref(xml);
+        xml = NULL;
+    }
     return dialog;
 }
 
@@ -160,7 +166,7 @@ joinerror_delete(JoinErrorDialog* dialog)
     g_object_unref(G_OBJECT(dialog->error_short));
     g_object_unref(G_OBJECT(dialog->error_long));
     g_object_unref(G_OBJECT(dialog->error_details));
-    
+
     gtk_widget_destroy(GTK_WIDGET(dialog->dialog));
 
     g_free(dialog);

@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lsa_creds.c
+ *        lsa_accesstoken.c
  *
  * Abstract:
  *
@@ -46,10 +46,137 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+LsaSrvInitNpAuthInfo(
+    IN  rpc_transport_info_handle_t hTransportInfo,
+    OUT PPOLICY_CONTEXT             pPolCtx
+    );
+
+NTSTATUS
+LsaSrvInitAuthInfo(
+    IN  handle_t          hBinding,
+    OUT PPOLICY_CONTEXT   pPolCtx
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    RPCSTATUS rpcStatus = 0;
+    rpc_transport_info_handle_t hTransportInfo = NULL;
+    DWORD dwProtSeq = rpc_c_invalid_protseq_id;
+
+    rpc_binding_inq_access_token_caller(
+        hBinding,
+        &pPolCtx->pUserToken,
+        &rpcStatus);
+
+    ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    rpc_binding_inq_transport_info(hBinding,
+                                   &hTransportInfo,
+                                   &rpcStatus);
+
+    ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+    BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+    if (hTransportInfo)
+    {
+        rpc_binding_inq_prot_seq(hBinding,
+                                 (unsigned32*)&dwProtSeq,
+                                 &rpcStatus);
+        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
+        BAIL_ON_NTSTATUS_ERROR(ntStatus);
+
+        switch (dwProtSeq)
+        {
+        case rpc_c_protseq_id_ncacn_np:
+            ntStatus = LsaSrvInitNpAuthInfo(hTransportInfo,
+                                             pPolCtx);
+            BAIL_ON_NTSTATUS_ERROR(ntStatus);
+            break;
+        }
+    }
+
+cleanup:
+    return ntStatus;
+
+error:
+    LsaSrvFreeAuthInfo(pPolCtx);
+
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+LsaSrvInitNpAuthInfo(
+    IN  rpc_transport_info_handle_t hTransportInfo,
+    OUT PPOLICY_CONTEXT             pPolCtx
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PUCHAR pucSessionKey = NULL;
+    USHORT usSessionKeyLen = 0;
+    PBYTE pSessionKey = NULL;
+    DWORD dwSessionKeyLen = 0;
+
+    rpc_smb_transport_info_inq_session_key(
+                                   hTransportInfo,
+                                   (unsigned char**)&pucSessionKey,
+                                   (unsigned16*)&usSessionKeyLen);
+
+    dwSessionKeyLen = usSessionKeyLen;
+    if (dwSessionKeyLen)
+    {
+        dwError = LwAllocateMemory(dwSessionKeyLen,
+                                   OUT_PPVOID(&pSessionKey));
+        BAIL_ON_LSA_ERROR(dwError);
+
+        memcpy(pSessionKey, pucSessionKey, dwSessionKeyLen);
+    }
+
+    pPolCtx->pSessionKey     = pSessionKey;
+    pPolCtx->dwSessionKeyLen = dwSessionKeyLen;
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+VOID
+LsaSrvFreeAuthInfo(
+    IN  PPOLICY_CONTEXT pPolCtx
+    )
+{
+    if (pPolCtx == NULL) return;
+
+    if (pPolCtx->pUserToken)
+    {
+        RtlReleaseAccessToken(&pPolCtx->pUserToken);
+        pPolCtx->pUserToken = NULL;
+    }
+
+    if (pPolCtx->pSessionKey)
+    {
+        LW_SAFE_FREE_MEMORY(pPolCtx->pSessionKey);
+        pPolCtx->pSessionKey     = NULL;
+        pPolCtx->dwSessionKeyLen = 0;
+    }
+}
+
 
 NTSTATUS
 LsaSrvGetSystemCreds(
-    LW_PIO_CREDS *ppCreds
+    OUT LW_PIO_CREDS *ppCreds
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;

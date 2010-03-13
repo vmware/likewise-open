@@ -61,7 +61,7 @@ PvfsReferenceFCB(
 
 VOID
 PvfsReleaseFCB(
-    PPVFS_FCB pFcb
+    PPVFS_FCB *ppFcb
     );
 
 NTSTATUS
@@ -165,6 +165,28 @@ PvfsScheduleCancelPendingOp(
     PPVFS_IRP_CONTEXT pIrpContext
     );
 
+NTSTATUS
+PvfsRenameFCB(
+    PPVFS_FCB pFcb,
+    PPVFS_CCB pCcb,
+    PCSTR pszNewFilename
+    );
+
+BOOLEAN
+PvfsFcbIsPendingDelete(
+    PPVFS_FCB pFcb
+    );
+
+VOID
+PvfsFcbSetPendingDelete(
+    PPVFS_FCB pFcb,
+    BOOLEAN bPendingDelete
+    );
+
+PPVFS_FCB
+PvfsGetParentFCB(
+    PPVFS_FCB pFcb
+    );
 
 #endif   /* _PVFS_FCB_H */
 

@@ -413,6 +413,8 @@ LocalDirAddUser(
 
         LsaUtilFreeSecurityObjectList(1, ppObjects);
         ppObjects = NULL;
+
+        RTL_FREE(&pGroupSID);
     }
 
     dwError = LsaMbsToWc16s(
@@ -595,6 +597,8 @@ LocalDirAddUser(
             dwError = LW_ERROR_SAM_DATABASE_ERROR;
             BAIL_ON_LSA_ERROR(dwError);
         }
+
+        RTL_FREE(&pGroupSID);
     }
 
     dwError = DirectoryAddToGroup(
@@ -740,6 +744,7 @@ LocalDirModifyUser(
         { 0, NULL }
     };
 
+    WCHAR wszAttrNameDn[] = LOCAL_DIR_ATTR_DISTINGUISHED_NAME;
     WCHAR wszAttrNameUserInfoFlags[] = LOCAL_DIR_ATTR_ACCOUNT_FLAGS;
     WCHAR wszAttrNameAccountExpiry[] = LOCAL_DIR_ATTR_ACCOUNT_EXPIRY;
     WCHAR wszAttrNameNtHash [] = LOCAL_DIR_ATTR_NT_HASH;
@@ -756,15 +761,27 @@ LocalDirModifyUser(
     ATTRIBUTE_VALUE avShell = {0};
     ATTRIBUTE_VALUE avGecos = {0};
     ATTRIBUTE_VALUE avHomedir = {0};
-    DWORD             dwNumMods = 0;
-    PWSTR             pwszGroupDN_remove = NULL;
-    PWSTR             pwszGroupDN_add   = NULL;
-    PWSTR             pwszPassword      = NULL;
+    DWORD dwNumMods = 0;
+    PWSTR pwszPrimaryGroupDn = NULL;
+    PDIRECTORY_ENTRY pLocalGroupMemberships = NULL;
+    DWORD dwNumLocalGroups = 0;
+    DWORD iGroup = 0;
+    PDIRECTORY_ENTRY pLocalGroupEntry = NULL;
+    PWSTR pwszLocalGroupDn  = NULL;
+    BOOLEAN bIsMember = FALSE;
+    PWSTR pwszGroupDN_remove = NULL;
+    PWSTR pwszGroupDN_add   = NULL;
+    PWSTR pwszPassword      = NULL;
     OCTET_STRING NtHashBlob = {0};
     OCTET_STRING LmHashBlob = {0};
     LSA_QUERY_LIST QueryList;
     PLSA_SECURITY_OBJECT* ppObjects = NULL;
     PLSA_SECURITY_OBJECT pObject = NULL;
+
+    PWSTR wszMembershipAttributes[] = {
+        wszAttrNameDn,
+        NULL
+    };
 
     QueryList.ppszStrings = (PCSTR*) &pUserModInfo->pszSid;
 
@@ -912,6 +929,45 @@ LocalDirModifyUser(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
+        /*
+         * Check if the user is member of this group before making
+         * it their primary group
+         */
+        dwError = LwMbsToWc16s(
+            ppObjects[0]->pszDN,
+            &pwszPrimaryGroupDn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryGetMemberships(
+            pContext->hDirectory,
+            pwszUserDN,
+            wszMembershipAttributes,
+            &pLocalGroupMemberships,
+            &dwNumLocalGroups);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        for (iGroup = 0; !bIsMember && iGroup < dwNumLocalGroups; iGroup++)
+        {
+            pLocalGroupEntry = &(pLocalGroupMemberships[iGroup]);
+
+            dwError = DirectoryGetEntryAttrValueByName(
+                pLocalGroupEntry,
+                wszAttrNameDn,
+                DIRECTORY_ATTR_TYPE_UNICODE_STRING,
+                &pwszLocalGroupDn);
+            BAIL_ON_LSA_ERROR(dwError);
+
+            bIsMember = LwRtlWC16StringIsEqual(pwszPrimaryGroupDn,
+                                               pwszLocalGroupDn,
+                                               FALSE);
+        }
+
+        if (!bIsMember)
+        {
+            dwError = ERROR_MEMBER_NOT_IN_ALIAS;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
+
         mods[dwNumMods].ulOperationFlags = DIR_MOD_FLAGS_REPLACE;
         mods[dwNumMods].pwszAttrName = &wszAttrNamePrimaryGroup[0];
         mods[dwNumMods].ulNumValues = 1;
@@ -1034,10 +1090,16 @@ cleanup:
     LsaUtilFreeSecurityObject(pObject);
     LsaUtilFreeSecurityObjectList(1, ppObjects);
 
+    if (pLocalGroupMemberships)
+    {
+        DirectoryFreeEntries(pLocalGroupMemberships, dwNumLocalGroups);
+    }
+
     LW_SAFE_FREE_MEMORY(pwszGroupDN_remove);
     LW_SAFE_FREE_MEMORY(pwszGroupDN_add);
     LW_SAFE_FREE_MEMORY(pwszPassword);
     LW_SAFE_FREE_MEMORY(pwszUserDN);
+    LW_SAFE_FREE_MEMORY(pwszPrimaryGroupDn);
 
     return dwError;
 
@@ -1296,6 +1358,276 @@ LocalCheckAccountFlags(
     }
 
 error:
+
+    return dwError;
+}
+
+DWORD
+LocalCheckPasswordPolicy(
+    PLSA_SECURITY_OBJECT pObject,
+    PCSTR                pszPassword
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwMinPasswordLen = 0;
+    size_t sPasswordLen = 0;
+
+    BAIL_ON_INVALID_POINTER(pObject);
+    BAIL_ON_INVALID_POINTER(pszPassword);
+
+    if (!pObject->userInfo.bUserCanChangePassword)
+    {
+        dwError = LW_ERROR_PASSWORD_RESTRICTION;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    dwError = LocalCfgGetMinPwdLength(&dwMinPasswordLen);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    sPasswordLen = strlen(pszPassword);
+    if (dwMinPasswordLen > sPasswordLen)
+    {
+        dwError = LW_ERROR_PASSWORD_RESTRICTION;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+error:
+    return dwError;
+}
+
+DWORD
+LocalGetUserLogonInfo(
+    HANDLE   hProvider,
+    PSTR     pszUserDn,
+    PDWORD   pdwLogonCount,
+    PDWORD   pdwBadPasswordCount
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    WCHAR wszAttrNameLogonCount[] = LOCAL_DIR_ATTR_LOGON_COUNT;
+    WCHAR wszAttrNameBadPasswordCount[] = LOCAL_DIR_ATTR_BAD_PASSWORD_COUNT;
+    PCSTR pszFilterTemplate =  LOCAL_DB_DIR_ATTR_DISTINGUISHED_NAME " = '%s'";
+    PSTR  pszFilter = NULL;
+    PWSTR pwszFilter = NULL;
+    PDIRECTORY_ENTRY pEntry = NULL;
+    PDIRECTORY_ENTRY pEntries = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD dwLogonCount = 0;
+    DWORD dwBadPasswordCount = 0;
+
+    PWSTR pwszAttributes[] = {
+        wszAttrNameLogonCount,
+        wszAttrNameBadPasswordCount,
+        NULL
+    };
+
+    BAIL_ON_INVALID_POINTER(hProvider);
+    BAIL_ON_INVALID_POINTER(pszUserDn);
+
+    dwError = LwAllocateStringPrintf(
+                    &pszFilter,
+                    pszFilterTemplate,
+                    pszUserDn);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LsaMbsToWc16s(
+                    pszFilter,
+                    &pwszFilter);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = DirectorySearch(
+                    pContext->hDirectory,
+                    NULL,
+                    0,
+                    pwszFilter,
+                    pwszAttributes,
+                    FALSE,
+                    &pEntries,
+                    &dwNumEntries);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (dwNumEntries == 0)
+    {
+        dwError = LW_ERROR_NO_SUCH_USER;
+    }
+    else if (dwNumEntries != 1)
+    {
+        dwError = LW_ERROR_DATA_ERROR;
+    }
+    BAIL_ON_LSA_ERROR(dwError);
+
+    pEntry = &pEntries[0];
+
+    dwError = LocalMarshalAttrToInteger(
+                   pEntry,
+                   wszAttrNameLogonCount,
+                   &dwLogonCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = LocalMarshalAttrToInteger(
+                   pEntry,
+                   wszAttrNameBadPasswordCount,
+                   &dwBadPasswordCount);
+    BAIL_ON_LSA_ERROR(dwError);
+
+    if (pdwLogonCount)
+    {
+        *pdwLogonCount = dwLogonCount;
+    }
+
+    if (pdwBadPasswordCount)
+    {
+        *pdwBadPasswordCount = dwBadPasswordCount;
+    }
+
+cleanup:
+    if (pEntries)
+    {
+        DirectoryFreeEntries(pEntries, dwNumEntries);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszFilter);
+    LW_SAFE_FREE_MEMORY(pszFilter);
+
+    return dwError;
+
+error:
+    if (pdwLogonCount)
+    {
+        *pdwLogonCount = 0;
+    }
+
+    if (pdwBadPasswordCount)
+    {
+        *pdwBadPasswordCount = 0;
+    }
+
+    goto cleanup;
+}
+
+DWORD
+LocalSetUserLogonInfo(
+    HANDLE  hProvider,
+    PSTR    pszUserDn,
+    PDWORD  pdwLogonCount,
+    PDWORD  pdwBadPasswordCount,
+    PLONG64 pllLastLogonTime,
+    PLONG64 pllLastLogoffTime
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    PLOCAL_PROVIDER_CONTEXT pContext = (PLOCAL_PROVIDER_CONTEXT)hProvider;
+    WCHAR wszAttrNameLogonCount[] = LOCAL_DIR_ATTR_LOGON_COUNT;
+    WCHAR wszAttrNameBadPasswordCount[] = LOCAL_DIR_ATTR_BAD_PASSWORD_COUNT;
+    WCHAR wszAttrNameLastLogon[] = LOCAL_DIR_ATTR_LAST_LOGON;
+    WCHAR wszAttrNameLastLogoff[] = LOCAL_DIR_ATTR_LAST_LOGOFF;
+    DWORD iMod = 0;
+    PWSTR pwszUserDn = NULL;
+
+    enum AttrValueIndex {
+        ATTR_VAL_IDX_LOGON_COUNT = 0,
+        ATTR_VAL_IDX_BAD_PASSWORD_COUNT,
+        ATTR_VAL_IDX_LAST_LOGON,
+        ATTR_VAL_IDX_LAST_LOGOFF,
+        ATTR_VAL_IDX_SENTINEL
+    };
+
+    ATTRIBUTE_VALUE AttrValues[] = {
+        {   /* ATTR_VAL_IDX_LOGON_COUNT */
+            .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+            .data.ulValue = 0
+        },
+        {   /* ATTR_VAL_IDX_BAD_PASSWORD_COUNT */
+            .Type = DIRECTORY_ATTR_TYPE_INTEGER,
+            .data.ulValue = 0
+        },
+        {   /* ATTR_VAL_IDX_LAST_LOGON */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        },
+        {   /* ATTR_VAL_IDX_LAST_LOGOFF */
+            .Type = DIRECTORY_ATTR_TYPE_LARGE_INTEGER,
+            .data.llValue = 0
+        }
+    };
+
+    DIRECTORY_MOD ModLogonCount = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrNameLogonCount,
+        1,
+        &AttrValues[ATTR_VAL_IDX_LOGON_COUNT]
+    };
+
+    DIRECTORY_MOD ModBadPasswordCount = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrNameBadPasswordCount,
+        1,
+        &AttrValues[ATTR_VAL_IDX_BAD_PASSWORD_COUNT]
+    };
+
+    DIRECTORY_MOD ModLastLogon = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrNameLastLogon,
+        1,
+        &AttrValues[ATTR_VAL_IDX_LAST_LOGON]
+    };
+
+    DIRECTORY_MOD ModLastLogoff = {
+        DIR_MOD_FLAGS_REPLACE,
+        wszAttrNameLastLogoff,
+        1,
+        &AttrValues[ATTR_VAL_IDX_LAST_LOGOFF]
+    };
+
+    DIRECTORY_MOD Mods[ATTR_VAL_IDX_SENTINEL + 1];
+    memset(&Mods, 0, sizeof(Mods));
+
+    BAIL_ON_INVALID_POINTER(hProvider);
+    BAIL_ON_INVALID_POINTER(pszUserDn);
+
+    if (pdwLogonCount)
+    {
+        AttrValues[ATTR_VAL_IDX_LOGON_COUNT].data.ulValue =
+            (*pdwLogonCount);
+        Mods[iMod++] = ModLogonCount;
+    }
+
+    if (pdwBadPasswordCount)
+    {
+        AttrValues[ATTR_VAL_IDX_BAD_PASSWORD_COUNT].data.ulValue =
+            (*pdwBadPasswordCount);
+        Mods[iMod++] = ModBadPasswordCount;
+    }
+
+    if (pllLastLogonTime)
+    {
+        AttrValues[ATTR_VAL_IDX_LAST_LOGON].data.llValue =
+            (*pllLastLogonTime);
+        Mods[iMod++] = ModLastLogon;
+    }
+
+    if (pllLastLogoffTime)
+    {
+        AttrValues[ATTR_VAL_IDX_LAST_LOGOFF].data.llValue =
+            (*pllLastLogoffTime);
+        Mods[iMod++] = ModLastLogoff;
+    }
+
+    if (iMod)
+    {
+        dwError = LwMbsToWc16s(pszUserDn, &pwszUserDn);
+        BAIL_ON_LSA_ERROR(dwError);
+
+        dwError = DirectoryModifyObject(
+                        pContext->hDirectory,
+                        pwszUserDn,
+                        Mods);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszUserDn);
 
     return dwError;
 }

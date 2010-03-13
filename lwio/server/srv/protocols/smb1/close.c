@@ -166,9 +166,10 @@ SrvProcessCloseAndX(
 
                 default:
 
-                    pCloseState->fileBasicInfo.LastWriteTime =
-                        (pCloseState->pRequestHeader->ulLastWriteTime +
-                         11644473600LL) * 10000000LL;
+                    ntStatus = WireSMBUTimetoNTTime(
+                                pCloseState->pRequestHeader->ulLastWriteTime,
+                                &pCloseState->fileBasicInfo.LastWriteTime);
+                    BAIL_ON_NT_STATUS(ntStatus);
 
                     SrvPrepareCloseStateAsync(pCloseState, pExecContext);
 
@@ -240,6 +241,7 @@ SrvProcessCloseAndX(
 
             if (pCtxSmb1->pFile)
             {
+                SrvFileRundown(pCtxSmb1->pFile);
                 SrvFileRelease(pCtxSmb1->pFile);
                 pCtxSmb1->pFile = NULL;
             }

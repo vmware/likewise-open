@@ -130,7 +130,7 @@ SrvProcessReadAndX(
 
         usFlags2 = pSmbRequest->pHeader->flags2;
 
-        switch (pSmbRequest->pHeader->wordCount)
+        switch (*pSmbRequest->pWordCount)
         {
             case 10:
 
@@ -177,7 +177,7 @@ SrvProcessReadAndX(
         }
 
         ntStatus = SrvBuildReadState(
-                        pSmbRequest->pHeader->wordCount,
+                        *pSmbRequest->pWordCount,
                         pRequestHeader_WC_10,
                         pRequestHeader_WC_12,
                         pFile,
@@ -499,8 +499,9 @@ SrvBuildReadAndXResponse(
     pReadState->pResponseHeader->dataLengthHigh = 0;
 
     // The data offset will fit in 16 bits
-    assert(pReadState->ulDataOffset <= UINT16_MAX);
-    pReadState->pResponseHeader->dataOffset = (USHORT)pReadState->ulDataOffset;
+    assert((pReadState->ulDataOffset + pSmbResponse->ulOffset) <= UINT16_MAX);
+    pReadState->pResponseHeader->dataOffset =
+      (USHORT)(pSmbResponse->ulOffset + pReadState->ulDataOffset);
 
     assert(pReadState->ulPackageByteCount <= UINT16_MAX);
     pReadState->pResponseHeader->byteCount = (USHORT)pReadState->ulPackageByteCount;

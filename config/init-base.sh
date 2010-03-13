@@ -112,6 +112,11 @@ elif [ "`uname -s`" = 'VMkernel' ]; then
     PLATFORM="ESXI"                             
 elif [ "`uname`" = "FreeBSD" -o "`uname`" = "Isilon OneFS" ]; then
     PLATFORM="FREEBSD"
+    extra_commands="reload"
+    reload_cmd=daemon_reload
+    status_cmd=daemon_status
+    start_cmd=daemon_start
+    stop_cmd=daemon_stop
 else
     PLATFORM="UNKNOWN"
 fi

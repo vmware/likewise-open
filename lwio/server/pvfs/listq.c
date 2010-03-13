@@ -214,7 +214,11 @@ PvfsListRemoveItem(
     BAIL_ON_INVALID_PTR(pList, ntError);
     BAIL_ON_INVALID_PTR(pItem, ntError);
 
-    PVFS_ASSERT(!PvfsListIsEmpty(pList));
+    if (PvfsListIsEmpty(pList))
+    {
+        ntError = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     LwListRemove(pItem);
     pList->CurrentSize--;
@@ -238,11 +242,16 @@ PvfsListIsEmpty(
     )
 {
     BOOLEAN bIsEmpty = FALSE;
+    NTSTATUS ntError = STATUS_SUCCESS;
 
     if (pList->CurrentSize == 0)
     {
         bIsEmpty = TRUE;
-        PVFS_ASSERT(LwListIsEmpty(&pList->DataList));
+        if (!LwListIsEmpty(&pList->DataList))
+        {
+            /* This would be a logic error */
+            ntError = STATUS_INTERNAL_ERROR;
+        }
     }
 
     return bIsEmpty;

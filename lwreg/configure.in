@@ -338,6 +338,8 @@ AC_DEFINE_UNQUOTED(LIBDIR, "$LIBDIR", [Library directory])
 
 AS_AC_EXPAND(SBINDIR, $sbindir)
 
+AS_AC_EXPAND(BINDIR, $bindir)
+
 AC_C_BIGENDIAN
 
 AC_PROG_CC
@@ -551,6 +553,7 @@ AC_CONFIG_FILES([Makefile
                  test/Makefile
                  shellutil/Makefile
                  shell/Makefile
+		 shell/lw-edit-reg.sh
                  logging_r/Makefile])
 
 AC_OUTPUT

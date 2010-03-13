@@ -150,9 +150,9 @@ error:
     }
     else
     {
-        LSA_LOG_PAM_ERROR("pam_notify_user_logon failed [login:%s][error code: %d]",
-                          LSA_SAFE_LOG_STRING(pszLoginId),
-                          dwError);
+        LSA_LOG_PAM_INFO("pam_notify_user_logon failed [login:%s][error code: %d]",
+                         LSA_SAFE_LOG_STRING(pszLoginId),
+                         dwError);
     }
 
     goto cleanup;

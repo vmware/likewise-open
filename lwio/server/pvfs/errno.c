@@ -56,14 +56,7 @@ PvfsMapUnixErrnoToNtStatus(
     int err
     )
 {
-    NTSTATUS ntError = LwErrnoToNtStatus(err);
-    BOOLEAN bUnMapped = FALSE;
-
-    if (ntError == -1) {
-        bUnMapped = TRUE;
-    }
-
-    return ntError;
+    return LwErrnoToNtStatus(err);
 }
 
 

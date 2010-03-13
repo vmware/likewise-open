@@ -71,12 +71,21 @@ PvfsClose(
 
     pCcb->bCloseInProgress = TRUE;
 
-    /* Call closedir() for directions and close() for files */
+    if (pCcb->bPendingDeleteHandle)
+    {
+        /* delete-on-close-handle becomes delete-on-close-file */
+
+        PvfsFcbSetPendingDelete(pCcb->pFcb, TRUE);
+    }
+
 
     if (PVFS_IS_DIR(pCcb))
     {
-        ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
-        /* pCcb->fd is invalid now */
+        if (pCcb->pDirContext->pDir)
+        {
+            ntError = PvfsSysCloseDir(pCcb->pDirContext->pDir);
+            /* pCcb->fd is invalid now */
+        }
     }
     else
     {
@@ -103,26 +112,17 @@ PvfsClose(
             ntError = PvfsOplockMarkPendedOpsReady(pCcb->pFcb);
             break;
         }
-
-        /* Close the fd */
-        ntError = PvfsSysClose(pCcb->fd);
     }
+
+    /* Close the fd */
+
+    ntError = PvfsSysClose(pCcb->fd);
+
 
     /* Technically, it would be more proper to do this in the utility
        functions in PvfsFreeFCB, but we will end up with memory corruption
        since the FCB is already well on it's way to be free'd.  Can't
        schedule a work item using a free'd FCB */
-
-    if (pCcb->CreateOptions & FILE_DELETE_ON_CLOSE)
-    {
-        PvfsNotifyScheduleFullReport(
-            pCcb->pFcb,
-            PVFS_IS_DIR(pCcb) ?
-                FILE_NOTIFY_CHANGE_DIR_NAME :
-                FILE_NOTIFY_CHANGE_FILE_NAME,
-            FILE_ACTION_REMOVED,
-            pCcb->pszFilename);
-    }
 
     if (pCcb->ChangeEvent != 0)
     {
