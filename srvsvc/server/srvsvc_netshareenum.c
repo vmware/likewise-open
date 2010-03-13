@@ -143,7 +143,7 @@ SrvSvcNetShareEnum(
                     dwOutLength
                     );
 
-    while (ntStatus == STATUS_MORE_ENTRIES) {
+    while (ntStatus == STATUS_BUFFER_TOO_SMALL) {
         /* We need more space in output buffer to make this call */
 
         LW_SAFE_FREE_MEMORY(pOutBuffer);
