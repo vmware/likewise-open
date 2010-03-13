@@ -245,6 +245,9 @@ SrvShareAdd(
     PSRV_SHARE_ENTRY pShareEntry = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
     wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
+    wchar16_t wszShareComment[] = {0};
+    PWSTR     pwszShareCommentRef =
+                    (pwszShareComment ? pwszShareComment : &wszShareComment[0]);
     HANDLE hRepository = NULL;
 
     if (IsNullOrEmptyString(pwszShareName))
@@ -294,17 +297,10 @@ SrvShareAdd(
                     &pShareInfo->pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pwszShareComment)
-    {
-        ntStatus = SrvAllocateStringW(
-                        pwszShareComment,
+    ntStatus = SrvAllocateStringW(
+                        pwszShareCommentRef,
                         &pShareInfo->pwszComment);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        pShareInfo->pwszComment = NULL;
-    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (ulSecDescLen)
     {
