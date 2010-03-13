@@ -85,8 +85,13 @@ SrvSvcNetShareGetInfo(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_GET_SHARE_INFO;
-    PSTR pszSmbPath = NULL;
-    IO_FILE_NAME filename = {0};
+    wchar16_t wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_NAME filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
     SHARE_INFO_GETINFO_PARAMS GetParamsIn = {0};
     PSHARE_INFO_GETINFO_PARAMS pGetParamsOut = NULL;
     PSHARE_INFO pShareInfo = NULL;
@@ -116,18 +121,6 @@ SrvSvcNetShareGetInfo(
                         &GetParamsIn,
                         &pInBuffer,
                         &dwInLength
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    dwError = LwAllocateStringPrintf(
-                        &pszSmbPath,
-                        "\\srv"
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(
-                        pszSmbPath,
-                        &filename.FileName
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -240,8 +233,6 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
     LW_SAFE_FREE_MEMORY(pGetParamsOut);
-    LW_SAFE_FREE_MEMORY(pszSmbPath);
-    LW_SAFE_FREE_MEMORY(filename.FileName);
 
     switch (ntStatus) {
     case STATUS_SUCCESS:
