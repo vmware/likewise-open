@@ -98,7 +98,7 @@ PvfsReadDirectoryChange(
     BAIL_ON_ZERO_LENGTH(Args.Length, ntError);
 
     /* If we have something in the buffer, return that immediately.  Else
-       register a notificationf ilter */
+       register a notification filter */
 
     ntError = PvfsNotifyReportBufferedChanges(
                   pCcb,
@@ -106,6 +106,8 @@ PvfsReadDirectoryChange(
                   pIrpContext);
     if (ntError == STATUS_NOT_FOUND)
     {
+        PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
+
         ntError = PvfsNotifyAddFilter(
                       pCcb->pFcb,
                       pIrpContext,
@@ -122,9 +124,12 @@ PvfsReadDirectoryChange(
                 pIrpContext->pFcb = PvfsReferenceFCB(pCcb->pFcb);
             }
 
-            PvfsIrpMarkPending(pIrpContext, PvfsQueueCancelIrp, pIrpContext);
+            /* Allow the call to be cancelled while in the queue */
+
+            PvfsIrpContextClearFlag(pIrpContext, PVFS_IRP_CTX_FLAG_ACTIVE);
 
             ntError = STATUS_PENDING;
+            goto cleanup;
         }
     }
     BAIL_ON_NT_STATUS(ntError);
@@ -138,6 +143,12 @@ cleanup:
     return ntError;
 
 error:
+    if (PvfsIrpContextCheckFlag(pIrpContext, PVFS_IRP_CTX_FLAG_PENDED))
+    {
+        pIrpContext->pIrp->IoStatusBlock.Status = ntError;
+        PvfsAsyncIrpComplete(pIrpContext);
+    }
+
     goto cleanup;
 }
 
@@ -382,13 +393,16 @@ PvfsNotifyAddFilter(
 
 
     LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+
     ntError = PvfsListAddTail(
                   pFcb->pNotifyListIrp,
                   &pFilter->NotifyList);
+
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexNotify);
+
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexNotify);
 
     return ntError;
 
