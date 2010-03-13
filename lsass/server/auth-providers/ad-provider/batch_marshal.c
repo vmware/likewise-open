@@ -484,12 +484,8 @@ LsaAdBatchMarshal(
     //
     // 1) Object must have user or group type.
     // 2) Object must have real information.
-    // 3) Object must have either:
-    //    a) Pseudo information.
-    //    b) Or be in unprovisioned mode.
     if ((LSA_AD_BATCH_OBJECT_TYPE_UNDEFINED == pItem->ObjectType) ||
-        !IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL) ||
-        !(IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO) || LsaAdBatchIsUnprovisionedMode()))
+        !IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_REAL))
     {
         PCSTR pszType = NULL;
         BOOLEAN bIsString = FALSE;
@@ -514,7 +510,10 @@ LsaAdBatchMarshal(
         goto cleanup;
     }
 
-    LSA_ASSERT(LSA_IS_XOR(IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO), LsaAdBatchIsUnprovisionedMode()));
+    if (!IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_HAVE_PSEUDO) && !LsaAdBatchIsUnprovisionedMode())
+    {
+        SetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED);
+    }
 
     if (IsSetFlag(pItem->Flags, LSA_AD_BATCH_ITEM_FLAG_DISABLED) &&
         (pItem->ObjectType != LSA_AD_BATCH_OBJECT_TYPE_GROUP))
