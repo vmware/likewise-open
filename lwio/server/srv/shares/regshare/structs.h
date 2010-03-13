@@ -57,7 +57,9 @@ typedef struct _SRV_SHARE_REG_GLOBALS
 
 typedef struct _SRV_SHARE_REG_ENUM_CONTEXT
 {
-    ULONG ulMaxIndex;
+    ULONG ulBatchIndex;
+    ULONG ulBatchLimit;
+    ULONG ulValuesAvailable;
     ULONG ulMaxValueNameLen;
     ULONG ulMaxValueLen;
 } SRV_SHARE_REG_ENUM_CONTEXT, *PSRV_SHARE_REG_ENUM_CONTEXT;

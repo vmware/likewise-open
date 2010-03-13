@@ -1,10 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights Reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,41 +18,78 @@
  * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
  * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
  * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
- * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * HAVE QUESTIONS, OR WISHTO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
 
 /*
- * Copyright (C) Likewise Software. All rights reserved.
- *
  * Module Name:
  *
- *        freecreds.c
+ *        threadpool-common.h
  *
  * Abstract:
  *
- *        Likewise Security and Authentication Subsystem (LSASS)
+ *        Thread pool API
  *
- *        FreeCredentialsHandle client wrapper API
+ * Authors: Brian Koropoff (bkoropoff@likewise.com)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Marc Guy (mguy@likewisesoftware.com)
  */
 
-#include "client.h"
+#ifndef __LWBASE_THREADPOOL_COMMON_H__
+#define __LWBASE_THREADPOOL_COMMON_H__
 
-DWORD
-NtlmClientFreeCredentialsHandle(
-    IN PNTLM_CRED_HANDLE phCredential
+struct _LW_THREAD_POOL_ATTRIBUTES
+{
+    BOOLEAN bDelegateTasks;
+    LONG lTaskThreads;
+    ULONG lWorkThreads;
+};
+
+NTSTATUS
+AcquireDelegatePool(
+    PLW_THREAD_POOL* ppPool
+    );
+
+VOID
+ReleaseDelegatePool(
+    PLW_THREAD_POOL* ppPool
+    );
+
+static
+inline
+BOOLEAN
+GetDelegateAttr(
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs
     )
 {
-    DWORD dwError = LW_ERROR_SUCCESS;
-
-    if (*phCredential != NULL)
-    {
-        dwError = NtlmTransactFreeCredentialsHandle(phCredential);
-    }
-
-    return(dwError);
+    return pAttrs ? pAttrs->bDelegateTasks : TRUE;
 }
+
+static
+inline
+ULONG
+GetTaskThreadsAttr(
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs,
+    int numCpus
+    )
+{
+    LONG lCount = pAttrs ? pAttrs->lTaskThreads : -1;
+
+    return lCount < 0 ? -lCount * numCpus : lCount;
+}
+
+static
+inline
+ULONG
+GetWorkThreadsAttr(
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs,
+    int numCpus
+    )
+{
+    LONG lCount = pAttrs ? pAttrs->lWorkThreads : -4;
+
+    return lCount < 0 ? -lCount * numCpus : lCount;
+}
+
+#endif

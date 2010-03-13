@@ -73,8 +73,13 @@ SrvSvcNetShareDel(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_DELETE_SHARE;
-    PSTR pszSmbPath = NULL;
-    IO_FILE_NAME filename = { 0 };
+    wchar16_t wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_NAME filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
     SHARE_INFO_DELETE_PARAMS DeleteParams = { 0 };
 
     DeleteParams.servername = server_name;
@@ -90,18 +95,6 @@ SrvSvcNetShareDel(
     dwError = LwAllocateMemory(
                         dwOutLength,
                         (PVOID*)&pOutBuffer
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwAllocateStringPrintf(
-                        &pszSmbPath,
-                        "\\srv"
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(
-                        pszSmbPath,
-                        &filename.FileName
                         );
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -144,8 +137,6 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
-    LW_SAFE_FREE_MEMORY(pszSmbPath);
-    LW_SAFE_FREE_MEMORY(filename.FileName);
 
     if (dwError == ERROR_SUCCESS &&
         ntStatus != STATUS_SUCCESS)

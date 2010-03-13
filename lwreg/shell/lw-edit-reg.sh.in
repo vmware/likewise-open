@@ -76,12 +76,7 @@ then
     fi
 fi
 
-if type mktemp >/dev/null 2>&1
-then
-    TMP_FILE="`mktemp`.txt"
-else
-    TMP_FILE="/tmp/.lw-edit-reg-$$.txt"
-fi
+TMP_FILE="/tmp/.lw-edit-reg-$$.txt"
 
 "${BINDIR}/lwregshell" export ${ROOT_PATH} "${TMP_FILE}" || exit $?
 ${EDITOR} "${TMP_FILE}" || exit $?

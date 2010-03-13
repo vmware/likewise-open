@@ -72,8 +72,7 @@ pthread_cond_t gEvent = PTHREAD_COND_INITIALIZER;
 
 MU_FIXTURE_SETUP(Task)
 {
-    MU_ASSERT_STATUS_SUCCESS(
-        LwRtlCreateThreadPool(&gpPool));
+    MU_ASSERT_STATUS_SUCCESS(LwRtlCreateThreadPool(&gpPool, NULL));
 }
 
 MU_FIXTURE_TEARDOWN(Task)
@@ -224,8 +223,8 @@ MU_TEST(Task, Yield)
 
 #define BUFFER_SIZE (64 * 1024)
 #define SEND_SEGMENTS 1
-#define NUM_ITERATIONS 16
-#define NUM_PAIRS 500
+#define NUM_ITERATIONS 32
+#define NUM_PAIRS 250
 
 MU_TEST(Task, Transceive)
 {

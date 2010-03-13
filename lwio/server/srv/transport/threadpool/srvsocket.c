@@ -49,6 +49,12 @@ SRV_SOCKET_UNLOCK_WITH(
 }
 
 static
+VOID
+SrvSocketAcquire(
+    IN PSRV_SOCKET pSocket
+    );
+
+static
 inline
 PSRV_TRANSPORT_PROTOCOL_DISPATCH
 SrvSocketGetDispatch(
@@ -56,6 +62,22 @@ SrvSocketGetDispatch(
     )
 {
     return &pSocket->pListener->pTransport->Dispatch;
+}
+
+static
+inline
+VOID
+SrvSocketSetDoneStatusIf(
+    IN PSRV_SOCKET pSocket,
+    IN NTSTATUS Status
+    )
+{
+    LWIO_ASSERT(Status);
+
+    if (!pSocket->DoneStatus)
+    {
+        pSocket->DoneStatus = Status;
+    }
 }
 
 static
@@ -74,7 +96,7 @@ static
 VOID
 SrvSocketProcessTaskDisconnect(
     IN PSRV_SOCKET pSocket,
-    IN BOOLEAN bIsClose
+    IN NTSTATUS Status
     );
 
 static
@@ -165,6 +187,7 @@ SrvSocketCreate(
     ntStatus = SrvAllocateMemory(sizeof(*pSocket), OUT_PPVOID(&pSocket));
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pSocket->RefCount = 1;
     LwListInit(&pSocket->SendHead);
 
     ntStatus = LwRtlInitializeMutex(&pSocket->Mutex, TRUE);
@@ -188,6 +211,8 @@ SrvSocketCreate(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    // TODO-Use separeate listener and socket task groups
+    // in case of shutdown as we are adding a new socket task.
     ntStatus = LwRtlCreateTask(
                     pListener->pPool,
                     &pSocket->pTask,
@@ -196,23 +221,9 @@ SrvSocketCreate(
                     pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO - Perhaps grab mutex on socket first in case
-    // protocol driver tries to close socket right after returning
-    // (from another thread) to make sure that pConnection
-    // is set.
-    ntStatus = SrvSocketGetDispatch(pSocket)->pfnConnectionNew(
-                    &pSocket->pConnection,
-                    pListener->pTransport->pContext,
-                    pSocket);
-    if (STATUS_ACCESS_DENIED == ntStatus)
-    {
-        LWIO_LOG_ERROR("Connection denied by protocol for fd = %d, address = '%s'",
-                       pSocket->fd,
-                       pSocket->AddressStringBuffer);
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
+    // Referenced by task
+    SrvSocketAcquire(pSocket);
 
-    ntStatus = STATUS_SUCCESS;
     LwRtlWakeTask(pSocket->pTask);
 
 cleanup:
@@ -225,26 +236,43 @@ error:
 
     if (pSocket)
     {
-        if (pSocket->pConnection)
+        if (pSocket->pTask)
         {
             pSocket->DoneStatus = ntStatus;
             LwRtlWakeTask(pSocket->pTask);
-            pSocket = NULL;
         }
-        else if (pSocket->pTask)
-        {
-            pSocket->DoneStatus = ntStatus;
-            LwRtlCancelTask(pSocket->pTask);
-            pSocket = NULL;
-        }
-        else
-        {
-            SrvSocketFree(pSocket);
-            pSocket = NULL;
-        }
+
+        SrvSocketRelease(pSocket);
+        pSocket = NULL;
     }
 
     goto cleanup;
+}
+
+static
+VOID
+SrvSocketAcquire(
+    IN PSRV_SOCKET pSocket
+    )
+{
+    LONG count = InterlockedIncrement(&pSocket->RefCount);
+    LWIO_ASSERT(count > 1);
+}
+
+VOID
+SrvSocketRelease(
+    IN OUT PSRV_SOCKET pSocket
+    )
+{
+    if (pSocket)
+    {
+        LONG count = InterlockedDecrement(&pSocket->RefCount);
+        LWIO_ASSERT(count >= 0);
+        if (0 == count)
+        {
+            SrvSocketFree(pSocket);
+        }
+    }
 }
 
 static
@@ -253,20 +281,18 @@ SrvSocketFree(
     IN OUT PSRV_SOCKET pSocket
     )
 {
-    if (pSocket)
+    LWIO_ASSERT(!pSocket->pConnection);
+    LWIO_ASSERT(LwListIsEmpty(&pSocket->SendHead));
+    if (pSocket->pTask)
     {
-        SrvSocketProcessTaskDisconnect(pSocket, FALSE);
-        if (pSocket->pTask)
-        {
-            LwRtlReleaseTask(&pSocket->pTask);
-        }
-        if (pSocket->fd >= 0)
-        {
-            close(pSocket->fd);
-        }
-        LwRtlCleanupMutex(&pSocket->Mutex);
-        SrvFreeMemory(pSocket);
+        LwRtlReleaseTask(&pSocket->pTask);
     }
+    if (pSocket->fd >= 0)
+    {
+        close(pSocket->fd);
+    }
+    LwRtlCleanupMutex(&pSocket->Mutex);
+    SrvFreeMemory(pSocket);
 }
 
 VOID
@@ -383,11 +409,8 @@ SrvSocketSendReplyCommon(
 
     SRV_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
 
-    if (pSocket->DoneStatus)
-    {
-        ntStatus = pSocket->DoneStatus;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    ntStatus = pSocket->DoneStatus;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSocketGetDispatch(pSocket)->pfnSendPrepare(pSendContext);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -463,10 +486,7 @@ SrvSocketDisconnect(
     )
 {
     SRV_SOCKET_LOCK(pSocket);
-    if (!pSocket->DoneStatus)
-    {
-        pSocket->DoneStatus = STATUS_CONNECTION_DISCONNECTED;
-    }
+    SrvSocketSetDoneStatusIf(pSocket, STATUS_CONNECTION_DISCONNECTED);
     LwRtlWakeTask(pSocket->pTask);
     SRV_SOCKET_UNLOCK(pSocket);
 }
@@ -476,26 +496,22 @@ SrvSocketClose(
     IN OUT PSRV_SOCKET pSocket
     )
 {
-    PLW_TASK pTask = NULL;
-
     SRV_SOCKET_LOCK(pSocket);
 
     // Check that caller is not doing something wrong.
-    LWIO_ASSERT(!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_EXTERNAL_CLOSE));
-    SetFlag(pSocket->StateMask, SRV_SOCKET_STATE_EXTERNAL_CLOSE);
+    LWIO_ASSERT(!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_CLOSED));
+    SetFlag(pSocket->StateMask, SRV_SOCKET_STATE_CLOSED);
 
-    if (!pSocket->DoneStatus)
-    {
-        pSocket->DoneStatus = STATUS_CONNECTION_DISCONNECTED;
-    }
+    // No connection any more.  This disables notifications to the PTD.
+    pSocket->pConnection = NULL;
 
-    SrvSocketProcessTaskDisconnect(pSocket, TRUE);
-
-    pTask = pSocket->pTask;
+    SrvSocketSetDoneStatusIf(pSocket, STATUS_CONNECTION_DISCONNECTED);
+    LwRtlWakeTask(pSocket->pTask);
 
     SRV_SOCKET_UNLOCK(pSocket);
 
-    LwRtlCancelTask(pTask);
+    // Release PTD's reference.
+    SrvSocketRelease(pSocket);
 }
 
 static
@@ -506,7 +522,26 @@ SrvSocketProcessTaskInit(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    /* Register fd with thread pool */
+    // Notify PTD about new connection.
+    ntStatus = SrvSocketGetDispatch(pSocket)->pfnConnectionNew(
+                    &pSocket->pConnection,
+                    pSocket->pListener->pTransport->pContext,
+                    pSocket);
+    if (ntStatus)
+    {
+        LWIO_LOG_ERROR("New connection failed in protocol for fd = %d, address = '%s' with status = 0x%08x",
+                       pSocket->fd,
+                       pSocket->AddressStringBuffer,
+                       ntStatus);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_ASSERT(pSocket->pConnection);
+
+    // Take a reference for the PTD's new connection object.
+    SrvSocketAcquire(pSocket);
+
+    // Register file descriptor with thread pool for read/write.
     ntStatus = LwRtlSetTaskFd(
                     pSocket->pTask,
                     pSocket->fd,
@@ -626,11 +661,8 @@ SrvSocketProcessTaskRead(
     ULONG bytesRemaining = 0;
     ULONG initialOffset = pSocket->Offset;
 
-    if (pSocket->DoneStatus)
-    {
-        ntStatus = pSocket->DoneStatus;
-        goto cleanup;
-    }
+    ntStatus = pSocket->DoneStatus;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_READABLE))
     {
@@ -698,11 +730,8 @@ SrvSocketProcessTaskWrite(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    if (pSocket->DoneStatus)
-    {
-        ntStatus = pSocket->DoneStatus;
-        goto cleanup;
-    }
+    ntStatus = pSocket->DoneStatus;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if (!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_WRITABLE))
     {
@@ -779,10 +808,18 @@ static
 VOID
 SrvSocketProcessTaskDisconnect(
     IN PSRV_SOCKET pSocket,
-    IN BOOLEAN bIsClose
+    IN NTSTATUS Status
     )
 {
+    SrvSocketSetDoneStatusIf(pSocket, Status);
+
     LWIO_ASSERT(pSocket->DoneStatus);
+
+    // For debugging only - the state machine should call in here just once
+    // because this function will cancel the task.
+
+    LWIO_ASSERT(!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_DISCONNECTED));
+    SetFlag(pSocket->StateMask, SRV_SOCKET_STATE_DISCONNECTED);
 
     if (pSocket->pConnection)
     {
@@ -799,17 +836,16 @@ SrvSocketProcessTaskDisconnect(
             SrvFreeMemory(pSendItem);
         }
 
-        if (!bIsClose)
-        {
-            SrvSocketGetDispatch(pSocket)->pfnConnectionDone(
-                    pSocket->pConnection,
-                    pSocket->DoneStatus);
-        }
+        SrvSocketGetDispatch(pSocket)->pfnConnectionDone(
+                pSocket->pConnection,
+                pSocket->DoneStatus);
 
         pSocket->pConnection = NULL;
     }
 
-    if (!bIsClose && (pSocket->fd >= 0))
+    LWIO_ASSERT(LwListIsEmpty(&pSocket->SendHead));
+
+    if (pSocket->fd >= 0)
     {
         NTSTATUS ntStatus = LwRtlSetTaskFd(pSocket->pTask, pSocket->fd, 0);
         if (ntStatus)
@@ -823,6 +859,8 @@ SrvSocketProcessTaskDisconnect(
         close(pSocket->fd);
         pSocket->fd = -1;
     }
+
+    LwRtlCancelTask(pSocket->pTask);
 }
 
 static
@@ -848,22 +886,28 @@ SrvSocketProcessTask(
     // and checking for that to do a disconnect, which will cause the
     // protocol to close the socket.
 
+    SRV_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
+
     if (IsSetFlag(WakeMask, LW_TASK_EVENT_CANCEL))
     {
-        SrvSocketFree(pSocket);
+        if (pSocket->pConnection)
+        {
+            ntStatus = STATUS_CANCELLED;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        SRV_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
+
+        SrvSocketRelease(pSocket);
         pSocket = NULL;
+
         waitMask = LW_TASK_EVENT_COMPLETE;
         goto cleanup;
     }
 
-    SRV_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
-
     // Process any error conditions.
-    if (pSocket->DoneStatus)
-    {
-        ntStatus = pSocket->DoneStatus;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    ntStatus = pSocket->DoneStatus;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     // Handle EVENT_INIT:
     if (IsSetFlag(WakeMask, LW_TASK_EVENT_INIT))
@@ -871,6 +915,9 @@ SrvSocketProcessTask(
         ntStatus = SrvSocketProcessTaskInit(pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    // If we have made it this far, there must be an active connection.
+    LWIO_ASSERT(pSocket->pConnection);
 
     //
     // Handle EVENT_FD_{WRITABLE,READABLE}
@@ -932,12 +979,7 @@ cleanup:
 
 error:
 
-    if (!pSocket->DoneStatus)
-    {
-        pSocket->DoneStatus = ntStatus;
-    }
-
-    SrvSocketProcessTaskDisconnect(pSocket, FALSE);
+    SrvSocketProcessTaskDisconnect(pSocket, ntStatus);
 
     // Connection needs to close the socket (i.e., cancel the task).
     waitMask = LW_TASK_EVENT_EXPLICIT;

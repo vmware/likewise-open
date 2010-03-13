@@ -29,7 +29,8 @@ liblwbase_nothr_la_LIBADD = \
 liblwbase_la_SOURCES = \
 	atomic.c \
         security-token.c \
-        security-sd-inherit.c
+        security-sd-inherit.c \
+	threadpool-common.c
 
 liblwbase_la_LIBADD = \
         @LIB_PTHREAD@ \

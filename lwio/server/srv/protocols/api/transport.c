@@ -103,6 +103,12 @@ SrvProtocolTransportDriverSocketFree(
     );
 
 static
+VOID
+SrvProtocolTransportDriverSocketDisconnect(
+    IN PSRV_SOCKET pSocket
+    );
+
+static
 NTSTATUS
 SrvProtocolTransportDriverSocketGetAddressBytes(
     IN PSRV_SOCKET pSocket,
@@ -179,6 +185,7 @@ SrvProtocolTransportDriverInit(
     pTransportDispatch->pfnSendDone = SrvProtocolTransportDriverSendDone;
 
     pSocketDispatch->pfnFree = SrvProtocolTransportDriverSocketFree;
+    pSocketDispatch->pfnDisconnect = SrvProtocolTransportDriverSocketDisconnect;
     pSocketDispatch->pfnGetAddressBytes = SrvProtocolTransportDriverSocketGetAddressBytes;
 
     uuid_generate(pTransportContext->Guid);
@@ -340,6 +347,10 @@ SrvProtocolTransportDriverConnectionData(
 
     LWIO_ASSERT(BytesAvailable > 0);
 
+    // TODO-Remove this lock?  This should be doable
+    // because the transport guarantees that only one thread can be
+    // processing a connection data callback.  The only caveat
+    // might be when we introduce buffer manipulation from another thread.
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     while (bytesRemaining > 0)
@@ -420,13 +431,11 @@ SrvProtocolTransportDriverConnectionDone(
     IN NTSTATUS Status
     )
 {
-    PSRV_SOCKET pSocket = pConnection->pSocket;
-
     if (STATUS_CONNECTION_RESET == Status)
     {
         LWIO_LOG_DEBUG("Connection reset by peer '%s' (fd = %d)",
-                SrvTransportSocketGetAddressString(pSocket),
-                SrvTransportSocketGetFileDescriptor(pSocket));
+                SrvTransportSocketGetAddressString(pConnection->pSocket),
+                SrvTransportSocketGetFileDescriptor(pConnection->pSocket));
     }
 
     SrvConnectionSetInvalid(pConnection);
@@ -522,6 +531,15 @@ SrvProtocolTransportDriverSocketFree(
     )
 {
     SrvTransportSocketClose(pSocket);
+}
+
+static
+VOID
+SrvProtocolTransportDriverSocketDisconnect(
+    IN PSRV_SOCKET pSocket
+    )
+{
+    SrvTransportSocketDisconnect(pSocket);
 }
 
 static
@@ -985,7 +1003,6 @@ SrvProtocolTransportSendResponse(
 {
     NTSTATUS ntStatus = 0;
     PSRV_SEND_CONTEXT pSendContext = NULL;
-    BOOLEAN bInLock = FALSE;
 
     ntStatus = SrvAllocateMemory(sizeof(*pSendContext), OUT_PPVOID(&pSendContext));
     BAIL_ON_NT_STATUS(ntStatus);
@@ -997,14 +1014,6 @@ SrvProtocolTransportSendResponse(
     pSendContext->pPacket = pPacket;
     InterlockedIncrement(&pPacket->refCount);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
-
-    if (!pConnection->pSocket)
-    {
-        ntStatus = STATUS_CONNECTION_DISCONNECTED;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     ntStatus = SrvTransportSocketSendReply(
                     pConnection->pSocket,
                     pSendContext,
@@ -1012,17 +1021,11 @@ SrvProtocolTransportSendResponse(
                     pSendContext->pPacket->bufferUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
-
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
 
 error:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     if (pSendContext)
     {

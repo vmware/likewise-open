@@ -26,6 +26,7 @@
 #include <config.h>
 
 #include <lw/base.h>
+#include <lw/rtlgoto.h>
 
 #ifdef HAVE_PTHREAD_H
 #include <pthread.h>
