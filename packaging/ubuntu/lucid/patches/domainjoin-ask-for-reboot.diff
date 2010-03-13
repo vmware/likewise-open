@@ -1,7 +1,8 @@
-diff -Nurb likewise-open/domainjoin/domainjoin-cli/src/main.c likewise-open.new/domainjoin/domainjoin-cli/src/main.c
---- likewise-open/domainjoin/domainjoin-cli/src/main.c	2009-11-12 11:38:04.000000000 -0800
-+++ likewise-open.new/domainjoin/domainjoin-cli/src/main.c	2009-11-12 15:56:15.000000000 -0800
-@@ -464,6 +464,7 @@
+Index: likewise-open-5.4.0.41804/domainjoin/domainjoin-cli/src/main.c
+===================================================================
+--- likewise-open-5.4.0.41804.orig/domainjoin/domainjoin-cli/src/main.c	2010-03-05 15:45:28.000000000 -0600
++++ likewise-open-5.4.0.41804/domainjoin/domainjoin-cli/src/main.c	2010-03-05 15:45:58.000000000 -0600
+@@ -478,6 +478,7 @@
  
      LW_TRY(exc, DJRunJoinProcess(&options, &LW_EXC));
      fprintf(stdout, "SUCCESS\n");

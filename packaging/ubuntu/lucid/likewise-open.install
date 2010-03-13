@@ -66,35 +66,32 @@ etc/init.d/lsassd
 etc/likewise-open/lsassd.reg
 etc/likewise-open/gss/mech
 
+usr/lib/likewise-open/gss/libgssapi_ntlm.so
+usr/lib/likewise-open/libsamr_srv.so*
+usr/lib/likewise-open/liblsa_srv.so*
+usr/lib/likewise-open/libdssetup_srv.so*
+
 lib/libnss_lsass.so*
 lib/security/pam_lsass.so
 usr/share/pam-configs/likewise-open
 
 usr/bin/lw-lsa
 usr/bin/lw-migrator
-usr/bin/lw-del-user
-usr/bin/lw-add-user
-usr/bin/lw-set-machine-sid
-usr/bin/lw-dump-machine-acct
-usr/bin/lw-mod-group
-usr/bin/lw-find-user-by-name
-usr/bin/lw-find-group-by-id
+usr/bin/lw-*-user
+usr/bin/lw-*-group
+usr/bin/lw-enum-*
+usr/bin/lw-set-machine-*
+usr/bin/lw-query-*
+usr/bin/lw-find-*
 usr/bin/lw-ad-cache
-usr/bin/lw-del-group
-usr/bin/lw-enum-users
 usr/bin/lw-find-by-sid
 usr/bin/lw-ypcat
-usr/bin/lw-find-group-by-name
 usr/bin/lw-get-log-info
-usr/bin/lw-enum-groups
 usr/bin/lw-ypmatch
 usr/bin/lw-get-metrics
-usr/bin/lw-add-group
-usr/bin/lw-mod-user
 usr/bin/lw-get-status
 usr/bin/lw-set-log-level
 usr/bin/lw-refresh-configuration
-usr/bin/lw-find-user-by-id
 usr/bin/lw-list-groups-for-user
 usr/bin/lw-trace-info
 
@@ -145,6 +142,7 @@ etc/init.d/lwregd
 etc/likewise-open/lwreg.reg
 
 usr/bin/lwregshell
+usr/bin/lw-edit-reg
 
 usr/lib/likewise-open/libregclient.so*
 usr/lib/likewise-open/libregipc.so*

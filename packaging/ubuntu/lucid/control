@@ -1,7 +1,7 @@
 Source: likewise-open
 Section: net
 Priority: optional
-Maintainer: Scott Salley <ssalley@likewise.com>
+Maintainer: Gerald Carter <gcarter@likewise.com>
 Build-Depends: autoconf (>=2.53), automake, bison, debhelper (>= 7),
  libglade2-dev, libncurses5-dev, libpam0g-dev, libpam-runtime,
  libssl-dev, libtool, libsqlite3-dev, uuid-dev, quilt, rsync, libxml2,

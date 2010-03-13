@@ -1,7 +1,8 @@
-diff -Nurb likewise-open/domainjoin/libdomainjoin/src/djmodule.c likewise-open.new/domainjoin/libdomainjoin/src/djmodule.c
---- likewise-open/domainjoin/libdomainjoin/src/djmodule.c	2009-11-12 11:38:04.000000000 -0800
-+++ likewise-open.new/domainjoin/libdomainjoin/src/djmodule.c	2009-11-12 16:25:21.000000000 -0800
-@@ -75,7 +75,6 @@
+Index: likewise-open-5.4.0.41804/domainjoin/libdomainjoin/src/djmodule.c
+===================================================================
+--- likewise-open-5.4.0.41804.orig/domainjoin/libdomainjoin/src/djmodule.c	2010-03-05 15:45:28.000000000 -0600
++++ likewise-open-5.4.0.41804/domainjoin/libdomainjoin/src/djmodule.c	2010-03-05 15:46:13.000000000 -0600
+@@ -76,7 +76,6 @@
      &DJBashPrompt,
      &DJGdmPresession,
      &DJPamMode,
@@ -9,7 +10,7 @@ diff -Nurb likewise-open/domainjoin/libdomainjoin/src/djmodule.c likewise-open.n
      &DJLamAuth,
      &DJSshModule,
      &DJDSPlugin,
-@@ -87,7 +86,6 @@
+@@ -88,7 +87,6 @@
      &DJDSPlugin,
      &DJSshModule,
      &DJLamAuth,

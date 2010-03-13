@@ -1,6 +1,7 @@
-diff -Nurp likewise-open-5.4.0.39717/lsass/etc/lsassd.reg.in likewise-open-5.4.0.39717.new/lsass/etc/lsassd.reg.in
---- likewise-open-5.4.0.39717/lsass/etc/lsassd.reg.in	2009-12-14 08:49:51.000000000 -0800
-+++ likewise-open-5.4.0.39717.new/lsass/etc/lsassd.reg.in	2009-12-14 10:31:18.000000000 -0800
+Index: likewise-open-5.4.0.41804/lsass/etc/lsassd.reg.in
+===================================================================
+--- likewise-open-5.4.0.41804.orig/lsass/etc/lsassd.reg.in	2010-03-05 13:45:42.000000000 -0600
++++ likewise-open-5.4.0.41804/lsass/etc/lsassd.reg.in	2010-03-05 15:51:41.000000000 -0600
 @@ -32,9 +32,9 @@
  "Id"="lsa-activedirectory-provider"
  "Path"="@providerdir@/liblsass_auth_provider_ad@MOD_EXT@"
@@ -20,7 +21,7 @@ diff -Nurp likewise-open-5.4.0.39717/lsass/etc/lsassd.reg.in likewise-open-5.4.0
 -"CellSupport"="full"
 +"CellSupport"="unprovisioned"
  "TrimUserMembership"=dword:00000001
- "NssGroupMembersQueryCacheOnly"=dword:00000001
+ "NssGroupMembersQueryCacheOnly"=dword:00000000
  "NssUserMembershipQueryCacheOnly"=dword:00000000
 @@ -62,9 +62,9 @@
  [HKEY_THIS_MACHINE\Services\lsass\Parameters\Providers\Local]
@@ -34,7 +35,7 @@ diff -Nurp likewise-open-5.4.0.39717/lsass/etc/lsassd.reg.in likewise-open-5.4.0
  "CreateHomeDir"=dword:00000001
  "HomeDirUmask"="022"
  "SkeletonDirs"="@default_skeldirs@"
-@@ -80,9 +80,9 @@
+@@ -89,9 +89,9 @@
  [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\samr]
  "Path"="@rpcserverdir@/libsamr_srv@MOD_EXT@"
  "LpcSocketPath"="@CACHEDIR@/rpc/lsass"
@@ -46,9 +47,10 @@ diff -Nurp likewise-open-5.4.0.39717/lsass/etc/lsassd.reg.in likewise-open-5.4.0
  
  [HKEY_THIS_MACHINE\Services\lsass\Parameters\RPCServers\dssetup]
  "Path"="@rpcserverdir@/libdssetup_srv@MOD_EXT@"
-diff -Nurp likewise-open-5.4.0.39717/lsass/server/auth-providers/ad-provider/addef.h.in likewise-open-5.4.0.39717.new/lsass/server/auth-providers/ad-provider/addef.h.in
---- likewise-open-5.4.0.39717/lsass/server/auth-providers/ad-provider/addef.h.in	2009-12-14 08:49:51.000000000 -0800
-+++ likewise-open-5.4.0.39717.new/lsass/server/auth-providers/ad-provider/addef.h.in	2009-12-14 10:29:28.000000000 -0800
+Index: likewise-open-5.4.0.41804/lsass/server/auth-providers/ad-provider/addef.h.in
+===================================================================
+--- likewise-open-5.4.0.41804.orig/lsass/server/auth-providers/ad-provider/addef.h.in	2010-01-18 17:42:34.000000000 -0600
++++ likewise-open-5.4.0.41804/lsass/server/auth-providers/ad-provider/addef.h.in	2010-03-05 15:51:41.000000000 -0600
 @@ -53,7 +53,7 @@
  
  #define AD_BUILTIN_GROUP_SID_PREFIX "S-1-5-32-"

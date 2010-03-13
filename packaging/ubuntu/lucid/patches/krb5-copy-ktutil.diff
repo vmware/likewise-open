@@ -1,7 +1,8 @@
-diff -Nurp old/build/components/krb5.comp new/build/components/krb5.comp
---- old/build/components/krb5.comp	2009-11-03 10:53:44.000000000 -0800
-+++ new/build/components/krb5.comp	2009-11-03 17:06:44.000000000 -0800
-@@ -93,7 +93,7 @@ function component_install
+Index: likewise-open-5.4.0.41804/build/components/krb5.comp
+===================================================================
+--- likewise-open-5.4.0.41804.orig/build/components/krb5.comp	2010-03-05 13:04:08.000000000 -0600
++++ likewise-open-5.4.0.41804/build/components/krb5.comp	2010-03-05 15:51:29.000000000 -0600
+@@ -94,7 +94,7 @@
      mkdir -m 0755 -p ${STAGING_PREFIX_DIR}/{bin,include,${_lib}}
      mkdir -m 0755 -p ${STAGING_SYSCONF_DIR}
  

@@ -1,0 +1,26 @@
+Index: likewise-open-5.4.0.41963/domainjoin/libdomainjoin/src/djdistroinfo.c
+===================================================================
+--- likewise-open-5.4.0.41963.orig/domainjoin/libdomainjoin/src/djdistroinfo.c	2010-03-09 09:42:03.000000000 -0600
++++ likewise-open-5.4.0.41963/domainjoin/libdomainjoin/src/djdistroinfo.c	2010-03-12 22:22:24.000000000 -0600
+@@ -618,7 +618,7 @@
+ #ifdef MINIMAL_JOIN
+     GCE(ceError = CTOpenFile(LOCALSTATEDIR "/VERSION", "r", &versionFile));
+ #else
+-    GCE(ceError = CTOpenFile(PREFIXDIR "/data/VERSION", "r", &versionFile));
++    GCE(ceError = CTOpenFile(PREFIXDIR "/share/likewise-open/VERSION", "r", &versionFile));
+ #endif
+ 
+     while (TRUE)
+Index: likewise-open-5.4.0.41963/lsass/server/api/status.c
+===================================================================
+--- likewise-open-5.4.0.41963.orig/lsass/server/api/status.c	2010-03-12 22:23:31.000000000 -0600
++++ likewise-open-5.4.0.41963/lsass/server/api/status.c	2010-03-12 22:23:49.000000000 -0600
+@@ -534,7 +534,7 @@
+ #ifdef MINIMAL_LSASS
+     versionFile = open(LOCALSTATEDIR "/VERSION", O_RDONLY, 0);
+ #else
+-    versionFile = open(PREFIXDIR "/data/VERSION", O_RDONLY, 0);
++    versionFile = open(PREFIXDIR "/share/likewise-open/VERSION", O_RDONLY, 0);
+ #endif
+     if (versionFile < 0)
+     {
