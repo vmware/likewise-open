@@ -325,6 +325,8 @@ SrvListenerProcessTask(
 
 cleanup:
 
+    SrvSocketRelease(pSocket);
+
     if (connFd >= 0)
     {
         close(connFd);

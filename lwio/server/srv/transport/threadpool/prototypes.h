@@ -81,6 +81,11 @@ SrvSocketCreate(
     );
 
 VOID
+SrvSocketRelease(
+    IN OUT PSRV_SOCKET pSocket
+    );
+
+VOID
 SrvSocketGetAddress(
     IN PSRV_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,

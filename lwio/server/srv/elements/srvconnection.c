@@ -362,21 +362,24 @@ SrvConnectionSetInvalid(
     )
 {
     BOOLEAN bInLock = FALSE;
+    BOOLEAN bDisconnect = FALSE;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
     if (pConnection->state != LWIO_SRV_CONN_STATE_INVALID)
     {
+        bDisconnect = TRUE;
         pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
         SrvConnectionRundown_inlock(pConnection);
-        if (pConnection->pSocket)
-        {
-            pConnection->pSocketDispatch->pfnFree(pConnection->pSocket);
-            pConnection->pSocket = NULL;
-        }
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    // Call disconnect w/o lock held.
+    if (bDisconnect && pConnection->pSocket)
+    {
+        pConnection->pSocketDispatch->pfnDisconnect(pConnection->pSocket);
+    }
 }
 
 LWIO_SRV_CONN_STATE
@@ -961,7 +964,7 @@ SrvConnectionFree(
         SrvGssReleaseContext(pConnection->hGssContext);
     }
 
-    if (pConnection->pSocket && pConnection->pSocketDispatch)
+    if (pConnection->pSocket)
     {
         pConnection->pSocketDispatch->pfnFree(pConnection->pSocket);
     }

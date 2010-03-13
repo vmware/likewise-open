@@ -67,31 +67,79 @@ typedef struct _SRV_SEND_CONTEXT *PSRV_SEND_CONTEXT;
 // Callbacks for protocol driver layer
 //
 
-// Called when a new connection arrives.  Should return
-// STATUS_ACCESS_DENIED to reject the connection.
+///
+/// Transport indication that there is a new connection.
+///
+/// This is called when a new connection arrives.  It should return
+/// STATUS_ACCESS_DENIED or any other error to reject the connection.
+///
+/// If the connection is accepted, #PFN_SRV_TRANSPORT_CONNECTION_DONE
+/// will be called unless the socket is explicitly closed with
+/// SrvTransportSocketClose().
+///
 typedef NTSTATUS (*PFN_SRV_TRANSPORT_CONNECTION_NEW)(
     OUT PSRV_CONNECTION* ppConnection,
     IN PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
     IN PSRV_SOCKET pSocket
     );
 
+///
+/// Transport indication that there is data available.
+///
+/// This is called when at least the minimum requested number of bytes are
+/// available in the buffer specified via SrvTransportSocketSetBuffer().
+///
+/// This call is always asynchronous.
+///
 typedef NTSTATUS (*PFN_SRV_TRANSPORT_CONNECTION_DATA)(
     IN PSRV_CONNECTION pConnection,
     IN ULONG BytesAvailable
     );
 
-// This will always be called if NEW succeeded.
+///
+/// Transport indication that the connection is done.
+///
+/// This is called if #PFN_SRV_TRANSPORT_CONNECTION_NEW succeeded
+/// and SrvTransportSocketClose() was not called to indicate
+/// that the transport is done with the socket.
+///
+/// Note that any #PFN_SRV_TRANSPORT_SEND_DONE will happen
+/// before this is called.
+///
+/// This call is always asynchronous.
+///
+/// The PTD cannot call back into the driver while and after processing
+/// this.
+///
 typedef VOID (*PFN_SRV_TRANSPORT_CONNECTION_DONE)(
     IN PSRV_CONNECTION pConnection,
     IN NTSTATUS Status
     );
 
-// If SEND_PREPARE fails, SEND_DONE is *NOT* called.
+///
+/// Transport indication that the send reply is queued.
+///
+/// This is called from within SrvTransportSocketSendReply() and
+/// SrvTransportSocketSendZctReply() so that the PTD can perform signing,
+/// etc. in the same order that the replies are queued.  If this returns
+/// an error, SrvTransportSocketSendReply()/SrvTransportSocketSendZctReply()
+/// will also return an error.
+///
 typedef NTSTATUS (*PFN_SRV_TRANSPORT_SEND_PREPARE)(
     IN PSRV_SEND_CONTEXT pSendContext
     );
 
-// Only called if SEND_PRAPARE succeeds.
+///
+/// Transport indication that the send reply is done.
+///
+/// This is called with a status code indicating whether or not
+/// sending the reply was successful.  This called IFF
+/// SrvTransportSocketSendReply()/SrvTransportSocketSendZctReply()
+/// succeeded and SrvTransportSocketClose() has not been called.
+///
+/// This can be called synchronously from inside the send reply
+/// functions or asynchronously.
+///
 typedef VOID (*PFN_SRV_TRANSPORT_SEND_DONE)(
     IN PSRV_SEND_CONTEXT pSendContext,
     IN NTSTATUS Status
@@ -135,6 +183,19 @@ SrvTransportSocketGetFileDescriptor(
     IN PSRV_SOCKET pSocket
     );
 
+///
+/// Set the socket buffer to use to receive data.
+///
+/// This will set the buffer into which to receive data.  If a NULL
+/// or zero-size buffer is specified, no more data will be accepted.
+/// Normally, this function can only be called from within
+/// #PFN_SRV_TRANSPORT_CONNECTION_DATA.  However, if the buffer is
+/// already NULL or zero, this can be called from outside to resume
+/// receiving data.
+///
+/// If called from outside of a callback, this cannot be called with
+/// any locks help that can also be held by a callback.
+///
 NTSTATUS
 SrvTransportSocketSetBuffer(
     IN PSRV_SOCKET pSocket,
@@ -143,6 +204,16 @@ SrvTransportSocketSetBuffer(
     IN ULONG Minimum
     );
 
+///
+/// Send a reply.
+///
+/// This will send a reply, queueing it as needed.  Once the reply is queued,
+/// tt will synchronously call #PFN_SRV_TRANSPORT_SEND_PREPARE.  It may also
+/// call #PFN_SRV_TRANSPORT_SEND_DONE if the send is done synchronously.
+///
+/// If called from outside of a callback, this cannot be called with
+/// any locks help that can also be held by a callback.
+///
 NTSTATUS
 SrvTransportSocketSendReply(
     IN PSRV_SOCKET pSocket,
@@ -151,6 +222,16 @@ SrvTransportSocketSendReply(
     IN ULONG Size
     );
 
+///
+/// Send a reply.
+///
+/// This will send a reply, queueing it as needed.  Once the reply is queued,
+/// tt will synchronously call #PFN_SRV_TRANSPORT_SEND_PREPARE.  It may also
+/// call #PFN_SRV_TRANSPORT_SEND_DONE if the send is done synchronously.
+///
+/// If called from outside of a callback, this cannot be called with
+/// any locks help that can also be held by a callback.
+///
 NTSTATUS
 SrvTransportSocketSendZctReply(
     IN PSRV_SOCKET pSocket,
@@ -159,8 +240,14 @@ SrvTransportSocketSendZctReply(
     );
 
 ///
-/// Disconnect a socket while keeping the reference.
-/// This will call SEND_DONE and CONNECTION_DONE asynchronously.
+/// Disconnect a socket.
+///
+/// This will disconnect a socket while keeping the memory referece valid.
+/// It will asynchronously call #PFN_SRV_TRANSPORT_SEND_DONE and
+/// #PFN_SRV_TRANSPORT_CONNECTION_DONE.
+///
+/// If called from outside of a callback, this cannot be called with
+/// any locks help that can also be held by a callback.
 ///
 VOID
 SrvTransportSocketDisconnect(
@@ -168,9 +255,15 @@ SrvTransportSocketDisconnect(
     );
 
 ///
-/// Let go of the reference to the socket.  This will
-/// can call SEND_DONE synchronously as needed.
-/// CONNECTION_DONE will not be called ever.
+/// Close the socket.
+///
+/// This should be done when the PTD is completely done with the socket.
+/// No #PFN_SRV_TRANSPORT_SEND_DONE or #PFN_SRV_TRANSPORT_CONNECTION_DONE
+/// callbacks are triggered by this.  So the the PTD needs those callbacks,
+/// it must call SrvTransportSocketDisconnect() and wait for the callbacks.
+///
+/// If called from outside of a callback, this cannot be called with
+/// any locks help that can also be held by a callback.
 ///
 VOID
 SrvTransportSocketClose(

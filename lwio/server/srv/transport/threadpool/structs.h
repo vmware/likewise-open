@@ -19,9 +19,10 @@ typedef struct _SRV_TRANSPORT_HANDLE_DATA {
 
 typedef ULONG SRV_SOCKET_STATE_MASK, *PSRV_SOCKET_STATE_MASK;
 
-#define SRV_SOCKET_STATE_EXTERNAL_CLOSE 0x00000001
+#define SRV_SOCKET_STATE_CLOSED         0x00000001
 #define SRV_SOCKET_STATE_FD_WRITABLE    0x00000002
 #define SRV_SOCKET_STATE_FD_READABLE    0x00000004
+#define SRV_SOCKET_STATE_DISCONNECTED   0x00000008
 
 // Abstraction for socket address to handle different address types.
 typedef union {
@@ -35,6 +36,7 @@ typedef union {
 // Transport abstraction for a connection.
 typedef struct _SRV_SOCKET
 {
+    LONG RefCount;
     LW_RTL_MUTEX Mutex;
 
     // Back reference.
