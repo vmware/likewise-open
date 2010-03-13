@@ -115,7 +115,7 @@ libsamr_srv_la_CFLAGS = \
     $(AM_CFLAGS)
 libsamr_srv_la_LIBADD = \
     libsamr_ss.la
-
+libsamr_srv_la_LDFLAGS = -module -avoid-version
 
 CLEAN_FILES = samr_cstub.c samr_sstub.c samr_h.h
 
