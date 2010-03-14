@@ -753,7 +753,7 @@ SMBWc16sCmp(
     PCWSTR  pwszSecond
     );
 
-DWORD
+int
 SMBWc16sCaseCmp(
     PCWSTR  pwszFirst,
     PCWSTR  pwszSecond
