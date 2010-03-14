@@ -875,6 +875,16 @@ SrvShareRegWriteToShareInfo(
         }
     }
 
+    if (!pShareInfo->pwszComment)
+    {
+        wchar16_t wszComment[] = {0};
+
+        ntStatus = SrvAllocateStringW(
+                        &wszComment[0],
+                        &pShareInfo->pwszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     if (ulSecDataLen)
     {
         ntStatus = SrvShareSetSecurity(
