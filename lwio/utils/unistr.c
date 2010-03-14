@@ -221,7 +221,7 @@ SMBWc16sCmp(
     return wc16scmp(pwszFirst, pwszSecond);
 }
 
-DWORD
+int
 SMBWc16sCaseCmp(
     PCWSTR  pwszFirst,
     PCWSTR  pwszSecond
