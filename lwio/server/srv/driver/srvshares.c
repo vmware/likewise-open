@@ -398,7 +398,7 @@ SrvShareDevCtlEnum(
     }
     else
     {
-        ntStatus = STATUS_MORE_ENTRIES;
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -639,7 +639,7 @@ SrvShareDevCtlGetInfo(
     }
     else
     {
-        ntStatus = STATUS_MORE_ENTRIES;
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 

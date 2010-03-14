@@ -76,8 +76,13 @@ SrvSvcNetShareEnum(
     FILE_CREATE_DISPOSITION CreateDisposition = 0;
     FILE_CREATE_OPTIONS CreateOptions = 0;
     ULONG IoControlCode = SRV_DEVCTL_ENUM_SHARE;
-    PSTR pszSmbPath = NULL;
-    IO_FILE_NAME filename = { 0 };
+    wchar16_t wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_NAME filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
     SHARE_INFO_ENUM_PARAMS EnumParamsIn = { 0 };
     PSHARE_INFO_ENUM_PARAMS pEnumParamsOut = NULL;
     srvsvc_NetShareCtr0 *ctr0 = NULL;
@@ -94,18 +99,6 @@ SrvSvcNetShareEnum(
                         &dwInLength
                         );
     BAIL_ON_NT_STATUS(ntStatus);
-
-    dwError = LwAllocateStringPrintf(
-                        &pszSmbPath,
-                        "\\srv"
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(
-                        pszSmbPath,
-                        &filename.FileName
-                        );
-    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtCreateFile(
                         &hFile,
@@ -126,10 +119,7 @@ SrvSvcNetShareEnum(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = LwAllocateMemory(
-                    dwOutLength,
-                    (void**)&pOutBuffer
-                    );
+    dwError = LwAllocateMemory(dwOutLength, (void**)&pOutBuffer);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtDeviceIoControlFile(
@@ -143,16 +133,13 @@ SrvSvcNetShareEnum(
                     dwOutLength
                     );
 
-    while (ntStatus == STATUS_MORE_ENTRIES) {
+    while (ntStatus == STATUS_BUFFER_TOO_SMALL) {
         /* We need more space in output buffer to make this call */
 
         LW_SAFE_FREE_MEMORY(pOutBuffer);
         dwOutLength *= 2;
 
-        dwError = LwAllocateMemory(
-                        dwOutLength,
-                        (void**)&pOutBuffer
-                        );
+        dwError = LwAllocateMemory(dwOutLength, (void**)&pOutBuffer);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         ntStatus = NtDeviceIoControlFile(
@@ -174,6 +161,7 @@ SrvSvcNetShareEnum(
                         dwOutLength,
                         &pEnumParamsOut
                         );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     switch (pEnumParamsOut->dwInfoLevel) {
 
@@ -241,12 +229,19 @@ SrvSvcNetShareEnum(
         memcpy((void*)ctr502->array, (void*)pEnumParamsOut->info.p502,
                sizeof(*ctr502->array) * ctr502->count);
         break;
+
+    default:
+
+        ntStatus = STATUS_NOT_SUPPORTED;
+        break;
     }
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *level         = pEnumParamsOut->dwInfoLevel;
     *total_entries = pEnumParamsOut->dwNumEntries;
 
 cleanup:
+
     if (hFile)
     {
         NtCloseFile(hFile);
@@ -255,14 +250,6 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
     LW_SAFE_FREE_MEMORY(pEnumParamsOut);
-    LW_SAFE_FREE_MEMORY(pszSmbPath);
-    LW_SAFE_FREE_MEMORY(filename.FileName);
-
-    if (dwError == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
-    {
-        dwError = LwNtStatusToWin32Error(ntStatus);
-    }
 
     return dwError;
 
@@ -289,11 +276,21 @@ error:
         case 502:
             SrvSvcSrvFreeMemory(ctr502->array);
             break;
+        default:
+
+            SRVSVC_LOG_ERROR("Unsupported info level [%u]",
+                             pEnumParamsOut->dwInfoLevel);
+            break;
         }
     }
 
     *level         = 0;
     *total_entries = 0;
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
 
     goto cleanup;
 }

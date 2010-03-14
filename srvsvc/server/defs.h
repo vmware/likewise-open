@@ -9,6 +9,8 @@
 
 #define DEFAULT_LSALPC_SOCKET_PATH CACHEDIR "/rpc/lsass"
 
+#define SRV_DRIVER_NAME_W { '\\', 's', 'r', 'v', 0 }
+
 #define SRV_IOCTL_ADD_SHARE 0
 #define SRV_IOCTL_SET_SHARE 1
 

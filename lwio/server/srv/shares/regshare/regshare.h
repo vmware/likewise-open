@@ -82,7 +82,7 @@ SrvShareRegAdd(
 NTSTATUS
 SrvShareRegBeginEnum(
     IN  HANDLE  hRepository,
-    IN  ULONG   ulLimit,
+    IN  ULONG   ulBatchLimit,
     OUT PHANDLE phResume
     );
 
