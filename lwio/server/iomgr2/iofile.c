@@ -290,6 +290,20 @@ IopFileObjectRundown(
     IopFileObjectLock(pFileObject);
     isLocked = TRUE;
 
+    if (IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_CLOSE_DONE))
+    {
+        LWIO_ASSERT(IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN));
+        LWIO_ASSERT(1 == pFileObject->ReferenceCount);
+
+        IopFileObjectUnlock(pFileObject);
+        isLocked = FALSE;
+
+        IopFileObjectDereference(&pFileObject);
+
+        status = STATUS_SUCCESS;
+        GOTO_CLEANUP_EE(EE);
+    }
+
     if (IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN))
     {
         LWIO_LOG_ERROR("Attempt to rundown multiple times");

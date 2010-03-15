@@ -138,20 +138,78 @@ IopIpcCompleteGenericCall(
 
 static
 VOID
+IopIpcCompleteRundownCall(
+    IN PVOID pData
+    )
+{
+    PIO_IPC_CALL_CONTEXT pContext = (PIO_IPC_CALL_CONTEXT) pData;
+    PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = pContext->pOut->data;
+
+    pReply->Status = pContext->ioStatusBlock.Status;
+
+    IoDereferenceAsyncCancelContext(&pContext->asyncBlock.AsyncCancelContext);
+    lwmsg_call_complete(pContext->pCall, LWMSG_STATUS_SUCCESS);
+
+    IopIpcFreeCallContext(pContext);
+}
+
+static
+VOID
+IopIpcCompleteCloseCall(
+    IN PVOID pData
+    )
+{
+    PIO_STATUS_BLOCK pIoStatus = (PIO_STATUS_BLOCK) pData;
+
+    if (pIoStatus->Status)
+    {
+        LWIO_LOG_ERROR("failed to cleanup handle (status = 0x%08x)", pIoStatus->Status);
+    }
+
+    RTL_FREE(&pIoStatus);
+}
+
+static
+VOID
 IopIpcCleanupFileHandle(
     PVOID pHandle
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     IO_FILE_HANDLE fileHandle = (IO_FILE_HANDLE) pHandle;
-    assert(fileHandle);
-    if (fileHandle)
+    PIO_STATUS_BLOCK pIoStatus = NULL;
+    IO_ASYNC_CONTROL_BLOCK async = {0};
+
+    if (RTL_ALLOCATE(&pIoStatus, IO_STATUS_BLOCK, sizeof(*pIoStatus)) != STATUS_SUCCESS)
     {
-        NTSTATUS status = IoCloseFile(fileHandle);
-        if (status)
+        status = IoCloseFile(fileHandle);
+        GOTO_ERROR_ON_STATUS(status);
+    }
+    else
+    {
+        async.Callback = IopIpcCompleteCloseCall;
+        async.CallbackContext = pIoStatus;
+
+        status = IoAsyncCloseFile(fileHandle, &async, pIoStatus);
+        switch (status)
         {
-            LWIO_LOG_ERROR("failed to cleanup handle (status = 0x%08x)", status);
-            assert(FALSE);
+        case STATUS_SUCCESS:
+            RTL_FREE(&pIoStatus);
+            break;
+        case STATUS_PENDING:
+            IoDereferenceAsyncCancelContext(&async.AsyncCancelContext);
+            status = STATUS_SUCCESS;
+            break;
+        default:
+            GOTO_ERROR_ON_STATUS(status);
         }
+    }
+
+error:
+
+    if (status)
+    {
+        LWIO_LOG_ERROR("failed to cleanup handle (status = 0x%08x)", status);
     }
 }
 
@@ -352,6 +410,13 @@ IopIpcCloseFile(
     static const LWMsgTag replyType = NT_IPC_MESSAGE_TYPE_CLOSE_FILE_RESULT;
     PNT_IPC_MESSAGE_GENERIC_FILE pMessage = (PNT_IPC_MESSAGE_GENERIC_FILE) pIn->data;
     PNT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT pReply = NULL;
+    PIO_IPC_CALL_CONTEXT pContext = NULL;
+
+    status = NtIpcUnregisterFileHandle(pCall, pMessage->FileHandle);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
+
+    status = IopIpcCreateCallContext(pCall, pIn, pOut, IopIpcCompleteRundownCall, &pContext);
+    GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     status = IO_ALLOCATE(&pReply, NT_IPC_MESSAGE_GENERIC_FILE_IO_RESULT, sizeof(*pReply));
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
@@ -359,9 +424,28 @@ IopIpcCloseFile(
     pOut->tag = replyType;
     pOut->data = pReply;
 
-    pReply->Status = NtIpcUnregisterFileHandle(pCall, pMessage->FileHandle);
+    status = IoRundownFile(
+        pMessage->FileHandle,
+        &pContext->asyncBlock,
+        &pContext->ioStatusBlock);
+    switch (status)
+    {
+    case STATUS_PENDING:
+        lwmsg_call_pend(pCall, IopIpcCancelCall, pContext);
+        break;
+    default:
+        pReply->Status = pContext->ioStatusBlock.Status;
+        status = STATUS_SUCCESS;
+        break;
+    }
 
 cleanup:
+
+    if (pContext && status != STATUS_PENDING)
+    {
+        IopIpcFreeCallContext(pContext);
+    }
+
     LOG_LEAVE_IF_STATUS_EE(status, EE);
     return NtIpcNtStatusToLWMsgStatus(status);
 }

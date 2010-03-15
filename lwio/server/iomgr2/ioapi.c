@@ -232,6 +232,18 @@ IoCancelFile(
 }
 
 NTSTATUS
+IoRundownFile(
+    IN OUT IO_FILE_HANDLE FileHandle,
+    IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
+    OUT PIO_STATUS_BLOCK IoStatusBlock
+    )
+{
+    // Assumes that close cannot fail.
+    IopFileObjectReference(FileHandle);
+    return IoAsyncCloseFile(FileHandle, AsyncControlBlock, IoStatusBlock);
+}
+
+NTSTATUS
 IoAsyncCloseFile(
     IN OUT IO_FILE_HANDLE FileHandle,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
