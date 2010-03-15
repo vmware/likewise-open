@@ -1058,7 +1058,7 @@ lwmsg_peer_task_rundown(
                 }
                 else
                 {
-                        cancel.status = LWMSG_STATUS_CANCELLED;
+                    cancel.status = LWMSG_STATUS_CANCELLED;
                 }
                 lwmsg_peer_call_complete_outgoing(call, &cancel);
             }
@@ -1260,10 +1260,11 @@ lwmsg_peer_task_dispatch_incoming_message(
     switch (status)
     {
     case LWMSG_STATUS_SUCCESS:
-        lwmsg_assoc_destroy_message(task->assoc, &task->incoming_message);
+        /* Message data is now owned by the call parameters */
+        lwmsg_message_init(&task->incoming_message);
         break;
     case LWMSG_STATUS_PENDING:
-        /* The message data is now owned by the call */
+        /* Message data is now owned by the call parameters */
         lwmsg_message_init(&task->incoming_message);
         status = LWMSG_STATUS_SUCCESS;
         break;
@@ -1422,6 +1423,7 @@ lwmsg_peer_task_dispatch_calls(
     LWMsgRing* next = NULL;
     PeerCall* call = NULL;
     LWMsgCookie cookie = 0;
+    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     for (ring = task->calls.next; !task->outgoing && ring != &task->calls; ring = next)
     {
@@ -1490,6 +1492,12 @@ lwmsg_peer_task_dispatch_calls(
             task->outgoing_message.status = call->status;
 
             cookie = call->cookie;
+
+            /* It's now safe to destroy the incoming call parameters */
+            message.tag = call->params.incoming.in.tag;
+            message.data = call->params.incoming.in.data;
+            lwmsg_assoc_destroy_message(task->assoc, &message);
+
             lwmsg_ring_remove(&call->ring);
             lwmsg_peer_call_delete(call);
 
