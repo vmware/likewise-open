@@ -90,6 +90,9 @@ SrvSetFileInfo(
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
+    ntStatus = pTrans2State->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
     switch (*pTrans2State->pSmbInfoLevel)
     {
         case SMB_SET_FILE_BASIC_INFO :
@@ -150,6 +153,8 @@ SrvSetFileInfo(
             break;
     }
 
+error:
+
     return ntStatus;
 }
 
@@ -164,6 +169,9 @@ SrvSetPathInfo(
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    ntStatus = pTrans2State->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
 
     switch (*pTrans2State->pSmbInfoLevel)
     {
@@ -184,7 +192,7 @@ SrvSetPathInfo(
         case SMB_SET_FILE_ALLOCATION_INFO :
         case SMB_SET_FILE_ALLOCATION_INFO_ALIAS:
 
-	    ntStatus = SrvSetAllocationInfo(pExecContext);
+            ntStatus = SrvSetAllocationInfo(pExecContext);
 
             break;
 
@@ -224,6 +232,8 @@ SrvSetPathInfo(
 
             break;
     }
+
+error:
 
     return ntStatus;
 }
@@ -372,7 +382,6 @@ SrvSetBasicInfo(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1       = pCtxProtocol->pSmb1Context;
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State   = NULL;
-    PFILE_BASIC_INFORMATION    pFileBasicInfo = NULL;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -382,21 +391,28 @@ SrvSetBasicInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pFileBasicInfo = (PFILE_BASIC_INFORMATION)pTrans2State->pData;
 
-    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+    if (!pTrans2State->bSetInfoAttempted)
+    {
+        PFILE_BASIC_INFORMATION pFileBasicInfo =
+                            (PFILE_BASIC_INFORMATION)pTrans2State->pData;
 
-    ntStatus = IoSetInformationFile(
-                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
-                                           pTrans2State->hFile),
-                    pTrans2State->pAcb,
-                    &pTrans2State->ioStatusBlock,
-                    pFileBasicInfo,
-                    sizeof(FILE_BASIC_INFORMATION),
-                    FileBasicInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        pTrans2State->bSetInfoAttempted = TRUE;
 
-    SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+
+        ntStatus = IoSetInformationFile(
+                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                               pTrans2State->hFile),
+                        pTrans2State->pAcb,
+                        &pTrans2State->ioStatusBlock,
+                        pFileBasicInfo,
+                        sizeof(FILE_BASIC_INFORMATION),
+                        FileBasicInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
 
 error:
 
@@ -413,7 +429,6 @@ SrvSetDispositionInfo(
     PSRV_PROTOCOL_EXEC_CONTEXT    pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1      pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_TRANS2_STATE_SMB_V1      pTrans2State = NULL;
-    PFILE_DISPOSITION_INFORMATION pFileDispositionInfo = NULL;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -423,21 +438,27 @@ SrvSetDispositionInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pFileDispositionInfo = (PFILE_DISPOSITION_INFORMATION)pTrans2State->pData;
+    if (!pTrans2State->bSetInfoAttempted)
+    {
+        PFILE_DISPOSITION_INFORMATION pFileDispositionInfo =
+                        (PFILE_DISPOSITION_INFORMATION)pTrans2State->pData;
 
-    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+		pTrans2State->bSetInfoAttempted = TRUE;
 
-    ntStatus = IoSetInformationFile(
-                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
-                                           pTrans2State->hFile),
-                    pTrans2State->pAcb,
-                    &pTrans2State->ioStatusBlock,
-                    pFileDispositionInfo,
-                    sizeof(FILE_DISPOSITION_INFORMATION),
-                    FileDispositionInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
-    SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+        ntStatus = IoSetInformationFile(
+                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                               pTrans2State->hFile),
+                        pTrans2State->pAcb,
+                        &pTrans2State->ioStatusBlock,
+                        pFileDispositionInfo,
+                        sizeof(FILE_DISPOSITION_INFORMATION),
+                        FileDispositionInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
 
 error:
 
@@ -454,7 +475,6 @@ SrvSetAllocationInfo(
     PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1     pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_TRANS2_STATE_SMB_V1     pTrans2State = NULL;
-    PFILE_ALLOCATION_INFORMATION pFileAllocationInfo = NULL;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -464,21 +484,27 @@ SrvSetAllocationInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pFileAllocationInfo = (PFILE_ALLOCATION_INFORMATION)pTrans2State->pData;
+    if (!pTrans2State->bSetInfoAttempted)
+    {
+        PFILE_ALLOCATION_INFORMATION pFileAllocationInfo =
+                            (PFILE_ALLOCATION_INFORMATION)pTrans2State->pData;
 
-    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+		pTrans2State->bSetInfoAttempted = TRUE;
 
-    ntStatus = IoSetInformationFile(
-                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
-                                           pTrans2State->hFile),
-                    pTrans2State->pAcb,
-                    &pTrans2State->ioStatusBlock,
-                    pFileAllocationInfo,
-                    sizeof(FILE_ALLOCATION_INFORMATION),
-                    FileAllocationInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
-    SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+        ntStatus = IoSetInformationFile(
+                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                               pTrans2State->hFile),
+                        pTrans2State->pAcb,
+                        &pTrans2State->ioStatusBlock,
+                        pFileAllocationInfo,
+                        sizeof(FILE_ALLOCATION_INFORMATION),
+                        FileAllocationInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
 
 error:
 
@@ -495,7 +521,6 @@ SrvSetEndOfFileInfo(
     PSRV_PROTOCOL_EXEC_CONTEXT    pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1      pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_TRANS2_STATE_SMB_V1      pTrans2State = NULL;
-    PFILE_END_OF_FILE_INFORMATION pFileEofInfo = NULL;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -505,21 +530,27 @@ SrvSetEndOfFileInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    pFileEofInfo = (PFILE_END_OF_FILE_INFORMATION)pTrans2State->pData;
+    if (!pTrans2State->bSetInfoAttempted)
+    {
+        PFILE_END_OF_FILE_INFORMATION pFileEofInfo =
+                            (PFILE_END_OF_FILE_INFORMATION)pTrans2State->pData;
 
-    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+		pTrans2State->bSetInfoAttempted = TRUE;
 
-    ntStatus = IoSetInformationFile(
-                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
-                                           pTrans2State->hFile),
-                    pTrans2State->pAcb,
-                    &pTrans2State->ioStatusBlock,
-                    pFileEofInfo,
-                    sizeof(FILE_END_OF_FILE_INFORMATION),
-                    FileEndOfFileInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
-    SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+        ntStatus = IoSetInformationFile(
+                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                               pTrans2State->hFile),
+                        pTrans2State->pAcb,
+                        &pTrans2State->ioStatusBlock,
+                        pFileEofInfo,
+                        sizeof(FILE_END_OF_FILE_INFORMATION),
+                        FileEndOfFileInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
 
 error:
 
@@ -749,19 +780,24 @@ SrvSetEaList(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
+    if (!pTrans2State->bSetInfoAttempted)
+    {
+        SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);
 
-    ntStatus = IoSetInformationFile(
-                    (pTrans2State->pFile ? pTrans2State->pFile->hFile :
-                                           pTrans2State->hFile),
-                    pTrans2State->pAcb,
-                    &pTrans2State->ioStatusBlock,
-                    (PFILE_FULL_EA_INFORMATION)pTrans2State->pData2,
-                    pTrans2State->usBytesAllocated,
-                    FileFullEaInformation);
-    BAIL_ON_NT_STATUS(ntStatus);
+		pTrans2State->bSetInfoAttempted = TRUE;
 
-    SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+        ntStatus = IoSetInformationFile(
+                        (pTrans2State->pFile ? pTrans2State->pFile->hFile :
+                                               pTrans2State->hFile),
+                        pTrans2State->pAcb,
+                        &pTrans2State->ioStatusBlock,
+                        (PFILE_FULL_EA_INFORMATION)pTrans2State->pData2,
+                        pTrans2State->usBytesAllocated,
+                        FileFullEaInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
+    }
 
 error:
 
