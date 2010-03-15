@@ -59,7 +59,6 @@ liblsa_la_LIBADD = \
     $(top_builddir)/server/api/liblsaserverapi.la  \
     $(top_builddir)/server/store/dsapi/libdsapi.la
 
-
 liblsa_ss_la_SOURCES = \
     lsa_sstub.c
 
@@ -74,13 +73,12 @@ liblsa_ss_la_CFLAGS = \
 liblsa_ss_la_LIBADD = \
     liblsa.la
 
-
 liblsa_srv_la_SOURCES =
 liblsa_srv_la_CFLAGS = \
        $(AM_CFLAGS)
 liblsa_srv_la_LIBADD = \
     liblsa_ss.la
-
+liblsa_srv_la_LDFLAGS = -module -avoid-version
 
 CLEAN_FILES = lsa_cstub.c lsa_sstub.c lsa_h.h
 
