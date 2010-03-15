@@ -1365,8 +1365,18 @@ RtlSetSecurityDescriptorInfo(
 
     if (SecurityInformation & OWNER_SECURITY_INFORMATION)
     {
+        PSID pObjOwnerSid = NULL;
+        BOOLEAN bObjOwnerDefaulted = FALSE;
         PSID pInputOwnerSid = NULL;
         BOOLEAN bInputOwnerDefaulted = FALSE;
+
+        status = RtlGetOwnerSecurityDescriptor(
+                     pObjSecDescAbs,
+                     &pObjOwnerSid,
+                     &bObjOwnerDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LW_RTL_FREE(&pObjOwnerSid);
 
         status = RtlGetOwnerSecurityDescriptor(
                      pInputSecDescAbs,
@@ -1375,24 +1385,35 @@ RtlSetSecurityDescriptorInfo(
         GOTO_CLEANUP_ON_STATUS(status);
 
         status = RtlSetOwnerSecurityDescriptor(
+                     pInputSecDescAbs,
+                     NULL,
+                     FALSE);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetOwnerSecurityDescriptor(
                      pObjSecDescAbs,
                      pInputOwnerSid,
                      bInputOwnerDefaulted);
         GOTO_CLEANUP_ON_STATUS(status);
 
-        status = RtlSetOwnerSecurityDescriptor(
-                     pInputSecDescAbs,
-                     NULL,
-                     FALSE);
-        GOTO_CLEANUP_ON_STATUS(status);
     }
 
     // Group
 
     if (SecurityInformation & GROUP_SECURITY_INFORMATION)
     {
+        PSID pObjGroupSid = NULL;
+        BOOLEAN bObjGroupDefaulted = FALSE;
         PSID pInputGroupSid = NULL;
         BOOLEAN bInputGroupDefaulted = FALSE;
+
+        status = RtlGetGroupSecurityDescriptor(
+                     pObjSecDescAbs,
+                     &pObjGroupSid,
+                     &bObjGroupDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LW_RTL_FREE(&pObjGroupSid);
 
         status = RtlGetGroupSecurityDescriptor(
                      pInputSecDescAbs,
@@ -1401,23 +1422,25 @@ RtlSetSecurityDescriptorInfo(
         GOTO_CLEANUP_ON_STATUS(status);
 
         status = RtlSetGroupSecurityDescriptor(
-                     pObjSecDescAbs,
-                     pInputGroupSid,
-                     bInputGroupDefaulted);
-        GOTO_CLEANUP_ON_STATUS(status);
-
-        status = RtlSetGroupSecurityDescriptor(
                      pInputSecDescAbs,
                      NULL,
                      FALSE);
         GOTO_CLEANUP_ON_STATUS(status);
 
+        status = RtlSetGroupSecurityDescriptor(
+                     pObjSecDescAbs,
+                     pInputGroupSid,
+                     bInputGroupDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
     }
 
     // Dacl
 
     if (SecurityInformation & DACL_SECURITY_INFORMATION)
     {
+        PACL pObjDacl = NULL;
+        BOOLEAN bObjDaclDefaulted = FALSE;
+        BOOLEAN bObjDaclPresent = FALSE;
         PACL pInputDacl = NULL;
         BOOLEAN bInputDaclDefaulted = FALSE;
         BOOLEAN bInputDaclPresent = FALSE;
@@ -1428,6 +1451,15 @@ RtlSetSecurityDescriptorInfo(
                                                          SE_DACL_UNTRUSTED);
 
         status = RtlGetDaclSecurityDescriptor(
+                     pObjSecDescAbs,
+                     &bObjDaclPresent,
+                     &pObjDacl,
+                     &bObjDaclDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LW_RTL_FREE(&pObjDacl);
+
+        status = RtlGetDaclSecurityDescriptor(
                      pInputSecDescAbs,
                      &bInputDaclPresent,
                      &pInputDacl,
@@ -1435,17 +1467,23 @@ RtlSetSecurityDescriptorInfo(
         GOTO_CLEANUP_ON_STATUS(status);
 
         status = RtlSetDaclSecurityDescriptor(
-                     pObjSecDescAbs,
-                     TRUE,
-                     pInputDacl,
-                     bInputDaclDefaulted);
-        GOTO_CLEANUP_ON_STATUS(status);
-
-        status = RtlSetDaclSecurityDescriptor(
                      pInputSecDescAbs,
                      FALSE,
                      NULL,
                      FALSE);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetSecurityDescriptorControl(
+                     pObjSecDescAbs,
+                     DaclControlChange,
+                     0);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetDaclSecurityDescriptor(
+                     pObjSecDescAbs,
+                     TRUE,
+                     pInputDacl,
+                     bInputDaclDefaulted);
         GOTO_CLEANUP_ON_STATUS(status);
 
         DaclControlSet = InputSecDescControl & DaclControlChange;
@@ -1461,6 +1499,9 @@ RtlSetSecurityDescriptorInfo(
 
     if (SecurityInformation & SACL_SECURITY_INFORMATION)
     {
+        PACL pObjSacl = NULL;
+        BOOLEAN bObjSaclDefaulted = FALSE;
+        BOOLEAN bObjSaclPresent = FALSE;
         PACL pInputSacl = NULL;
         BOOLEAN bInputSaclDefaulted = FALSE;
         BOOLEAN bInputSaclPresent = FALSE;
@@ -1470,6 +1511,15 @@ RtlSetSecurityDescriptorInfo(
                                                          SE_SACL_AUTO_INHERIT_REQ);
 
         status = RtlGetSaclSecurityDescriptor(
+                     pObjSecDescAbs,
+                     &bObjSaclPresent,
+                     &pObjSacl,
+                     &bObjSaclDefaulted);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        LW_RTL_FREE(&pObjSacl);
+
+        status = RtlGetSaclSecurityDescriptor(
                      pInputSecDescAbs,
                      &bInputSaclPresent,
                      &pInputSacl,
@@ -1477,17 +1527,23 @@ RtlSetSecurityDescriptorInfo(
         GOTO_CLEANUP_ON_STATUS(status);
 
         status = RtlSetSaclSecurityDescriptor(
-                     pObjSecDescAbs,
-                     TRUE,
-                     pInputSacl,
-                     bInputSaclDefaulted);
-        GOTO_CLEANUP_ON_STATUS(status);
-
-        status = RtlSetSaclSecurityDescriptor(
                      pInputSecDescAbs,
                      FALSE,
                      NULL,
                      FALSE);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetSecurityDescriptorControl(
+                     pObjSecDescAbs,
+                     SaclControlChange,
+                     0);
+        GOTO_CLEANUP_ON_STATUS(status);
+
+        status = RtlSetSaclSecurityDescriptor(
+                     pObjSecDescAbs,
+                     TRUE,
+                     pInputSacl,
+                     bInputSaclDefaulted);
         GOTO_CLEANUP_ON_STATUS(status);
 
         SaclControlSet = InputSecDescControl & SaclControlChange;
