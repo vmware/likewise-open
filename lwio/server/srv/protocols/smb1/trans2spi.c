@@ -124,14 +124,14 @@ SrvProcessTrans2SetPathInformation(
 
         case SRV_TRANS2_STAGE_SMB_V1_CREATE_FILE_COMPLETED:
 
-            ntStatus = pTrans2State->ioStatusBlock.Status;
-            BAIL_ON_NT_STATUS(ntStatus);
-
             pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO;
 
             // intentional fall through
 
         case SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO:
+
+            ntStatus = pTrans2State->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
 
             ntStatus = SrvSetPathInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
