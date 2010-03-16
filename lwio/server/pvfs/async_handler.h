@@ -87,6 +87,11 @@ PvfsAsyncCreate(
     );
 
 NTSTATUS
+PvfsAsyncClose(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+NTSTATUS
 PvfsAsyncLockControl(
     PPVFS_IRP_CONTEXT  pIrpContext
     );

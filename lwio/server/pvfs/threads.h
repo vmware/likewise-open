@@ -58,6 +58,9 @@ typedef struct _PVFS_WORKER_THREAD {
 typedef struct _PVFS_WORKER_POOL {
 
     DWORD PoolSize;
+#ifdef _PVFS_DEVELOPER_DEBUG
+    LONG Available;
+#endif
     PPVFS_WORKER IoWorkers;
     PVFS_WORKER PriorityWorker;
 

@@ -46,10 +46,6 @@
 
 #include "pvfs.h"
 
-/* File Globals */
-
-static PVFS_WORKER_POOL gWorkPool;
-
 /* Forward declarations */
 
 static PVOID
@@ -97,6 +93,10 @@ PvfsInitWorkerThreads(
     /* I/O Worker Threads */
 
     gWorkPool.PoolSize = PVFS_WORKERS_NUMBER_THREADS;
+#ifdef _PVFS_DEVELOPER_DEBUG
+    gWorkPool.Available = PVFS_WORKERS_NUMBER_THREADS + 1;
+#endif
+
     for (i=0; i<gWorkPool.PoolSize; i++)
     {
         ret = pthread_create(
@@ -148,14 +148,6 @@ PvfsWorkerDoWork(
         pIrpCtx = NULL;
         bActive = FALSE;
 
-        /*
-         * Pull from the internal work queue first.  Fallback to the
-         * I/O Work queue if the internal one is empty.  The activity
-         * in the internal work queue should never cause starvation
-         * of the I/O queue since the internal queue is driven by
-         * additional state from IRPs.
-         */
-
         ntError = PvfsNextWorkItem(pWorkQueue, &pWorkCtx);
 
         /* If the work item is NULL, try again next time around.  */
@@ -164,6 +156,25 @@ PvfsWorkerDoWork(
         {
             continue;
         }
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+        {
+            LONG AvailableThreads = 0;
+
+            AvailableThreads = InterlockedDecrement(&gWorkPool.Available);
+
+            /* Check for one more available thread which would be the
+               internal priority thread */
+
+            if (AvailableThreads <= 1)
+            {
+                LWIO_LOG_ERROR(
+                    "%s: Worker thread count exhausted! (%d)\n",
+                    PVFS_LOG_HEADER,
+                    AvailableThreads);
+            }
+        }
+#endif
 
         /* Deal with IRPs slightly differently than non IRP work items */
 
@@ -202,6 +213,10 @@ PvfsWorkerDoWork(
         }
 
         PvfsFreeWorkContext(&pWorkCtx);
+
+#ifdef _PVFS_DEVELOPER_DEBUG
+        InterlockedIncrement(&gWorkPool.Available);
+#endif
     }
 
     return NULL;

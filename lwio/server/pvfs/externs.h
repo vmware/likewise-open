@@ -46,9 +46,13 @@
 #define __EXTERNS_H__
 
 #include "macros.h"
+#include "threads.h"
+
 
 extern PSTR             gpszPVFSProviderName;
 extern GENERIC_MAPPING  gPvfsFileGenericMapping;
+
+PVFS_WORKER_POOL gWorkPool;
 
 extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
 extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;
