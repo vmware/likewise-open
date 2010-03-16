@@ -87,11 +87,6 @@ lwmsg_peer_call_thunk(
         if (call->state & PEER_CALL_COMPLETED)
         {
             /* The call was already completed */
-            incoming_message.tag = call->params.incoming.in.tag;
-            incoming_message.data = call->params.incoming.in.data;
-
-            lwmsg_assoc_destroy_message(call->task->assoc, &incoming_message);
-
             lwmsg_task_wake(call->task->event_task);
         }
         else if ((call->state & PEER_CALL_CANCELLED) &&
@@ -281,25 +276,17 @@ lwmsg_peer_call_complete_incoming(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PeerCall* pcall = PEER_CALL(call);
-    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     pthread_mutex_lock(&pcall->task->call_lock);
 
     pcall->status = call_status;
     pcall->state |= PEER_CALL_COMPLETED;
 
-    /* Only free data and wake up the task
-       if the dispatch function has finished running.
-       Otherwise, these steps will be performed once
-       the dispatch function is finished */
+    /* Only wake up the task if the dispatch function
+       has finished running. Otherwise, these steps will be
+       performed once the dispatch function is finished */
     if (pcall->state & PEER_CALL_DISPATCHED)
     {
-        /* Destroy parameters to call */
-        message.tag = pcall->params.incoming.in.tag;
-        message.data = pcall->params.incoming.in.data;
-
-        lwmsg_assoc_destroy_message(pcall->task->assoc, &message);
-
         lwmsg_task_wake(pcall->task->event_task);
     }
 

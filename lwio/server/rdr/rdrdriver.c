@@ -227,9 +227,6 @@ RdrInitialize(
     ntStatus = LwRtlCreateThreadPoolAttributes(&pAttrs);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* We don't presently use work threads, so turn them off */
-    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_WORK_THREADS, 0);
-
     ntStatus = LwRtlCreateThreadPool(&gRdrRuntime.pThreadPool, pAttrs);
     BAIL_ON_NT_STATUS(ntStatus);
 
