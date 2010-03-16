@@ -55,6 +55,8 @@ GENERIC_MAPPING gPvfsFileGenericMapping = {
     .GenericAll     = FILE_ALL_ACCESS
 };
 
+PVFS_WORKER_POOL gWorkPool = {0};
+
 PPVFS_WORK_QUEUE gpPvfsIoWorkQueue = NULL;
 PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue = NULL;
 
