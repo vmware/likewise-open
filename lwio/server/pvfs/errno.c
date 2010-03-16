@@ -56,7 +56,17 @@ PvfsMapUnixErrnoToNtStatus(
     int err
     )
 {
-    return LwErrnoToNtStatus(err);
+    NTSTATUS ntError = LwErrnoToNtStatus(err);
+
+    if (ntError == (NTSTATUS)-1)
+    {
+        LWIO_LOG_ERROR(
+            "%s: Unable to map Unix errno (%d) to an NTSTATUS error.\n",
+            PVFS_LOG_HEADER,
+            err);
+    }
+
+    return ntError;
 }
 
 

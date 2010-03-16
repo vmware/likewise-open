@@ -47,6 +47,8 @@
 #ifndef _PVFS_MACROS_H
 #define _PVFS_MACROS_H
 
+#define PVFS_LOG_HEADER          "PVFS"
+
 /* Developer cycle testing macros; Disabled for release */
 
 /* #define _PVFS_DEVELOPER_DEBUG 1 */
