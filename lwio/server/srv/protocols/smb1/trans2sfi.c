@@ -92,6 +92,9 @@ SrvProcessTrans2SetFileInformation(
 
         case SRV_TRANS2_STAGE_SMB_V1_ATTEMPT_IO:
 
+            ntStatus = pTrans2State->ioStatusBlock.Status;
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvSetFileInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 

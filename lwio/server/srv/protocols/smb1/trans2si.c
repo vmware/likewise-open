@@ -90,9 +90,6 @@ SrvSetFileInfo(
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
-    ntStatus = pTrans2State->ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
-
     switch (*pTrans2State->pSmbInfoLevel)
     {
         case SMB_SET_FILE_BASIC_INFO :
@@ -112,7 +109,7 @@ SrvSetFileInfo(
         case SMB_SET_FILE_ALLOCATION_INFO :
         case SMB_SET_FILE_ALLOCATION_INFO_ALIAS:
 
-	    ntStatus = SrvSetAllocationInfo(pExecContext);
+            ntStatus = SrvSetAllocationInfo(pExecContext);
 
             break;
 
@@ -153,8 +150,6 @@ SrvSetFileInfo(
             break;
     }
 
-error:
-
     return ntStatus;
 }
 
@@ -169,9 +164,6 @@ SrvSetPathInfo(
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
-
-    ntStatus = pTrans2State->ioStatusBlock.Status;
-    BAIL_ON_NT_STATUS(ntStatus);
 
     switch (*pTrans2State->pSmbInfoLevel)
     {
@@ -232,8 +224,6 @@ SrvSetPathInfo(
 
             break;
     }
-
-error:
 
     return ntStatus;
 }
