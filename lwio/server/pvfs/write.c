@@ -204,7 +204,8 @@ PvfsWriteFileWithContext(
                                bufLen - totalBytesWritten,
                                &Offset,
                                &bytesWritten);
-        if (ntError == STATUS_PENDING) {
+        if (ntError == STATUS_MORE_PROCESSING_REQUIRED)
+        {
             continue;
         }
         BAIL_ON_NT_STATUS(ntError);
