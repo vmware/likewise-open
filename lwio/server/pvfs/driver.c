@@ -168,6 +168,7 @@ PvfsDestroyUnixIdCache(
  Driver Dispatch Routine
  ***********************************************************/
 
+/* #define _PVFS_ENABLE_FULL_ASYNC    1 */
 
 static NTSTATUS
 PvfsDriverDispatch(
@@ -183,14 +184,62 @@ PvfsDriverDispatch(
 
     switch (pIrpCtx->pIrp->Type)
     {
+
     /* Always async */
+
     case IRP_TYPE_FLUSH_BUFFERS:
         ntError = PvfsAsyncFlushBuffers(pIrpCtx);
         break;
 
-    /* Synchronous by default, but can block and return PENDING */
+#ifdef _PVFS_ENABLE_FULL_ASYNC
+
+    /* Enable the following to always pass the IRP off to the
+       worker thread pool.  Needed for some drivers due to
+       potentially blocking syscalls on distributed file systems */
+
+    case IRP_TYPE_CREATE:
+        ntError = PvfsAsyncCreate(pIrpCtx);
+        break;
+    case IRP_TYPE_LOCK_CONTROL:
+        ntError = PvfsAsyncLockControl(pIrpCtx);
+        break;
+    case IRP_TYPE_READ:
+        ntError = PvfsAsyncRead(pIrpCtx);
+        break;
+    case IRP_TYPE_WRITE:
+        ntError = PvfsAsyncWrite(pIrpCtx);
+        break;
+    case IRP_TYPE_SET_INFORMATION:
+        ntError = PvfsAsyncSetInformationFile(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_INFORMATION:
+        ntError = PvfsAsyncQueryInformationFile(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_DIRECTORY:
+        ntError = PvfsAsyncQueryDirInformation(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
+        ntError = PvfsAsyncQueryVolumeInformation(pIrpCtx);
+        break;
+    case IRP_TYPE_QUERY_SECURITY:
+        ntError = PvfsAsyncQuerySecurityFile(pIrpCtx);
+        break;
+    case IRP_TYPE_SET_SECURITY:
+        ntError = PvfsAsyncSetSecurityFile(pIrpCtx);
+        break;
+    case IRP_TYPE_CLOSE:
+        ntError = PvfsAsyncClose(pIrpCtx);
+        break;
+
+#else
+
+    /* Normal Pvfs operation mode */
+
     case IRP_TYPE_CREATE:
         ntError = PvfsCreate(pIrpCtx);
+        break;
+    case IRP_TYPE_LOCK_CONTROL:
+        ntError = PvfsLockControl(pIrpCtx);
         break;
     case IRP_TYPE_READ:
         ntError = PvfsRead(pIrpCtx);
@@ -198,20 +247,9 @@ PvfsDriverDispatch(
     case IRP_TYPE_WRITE:
         ntError = PvfsWrite(pIrpCtx);
         break;
-    case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsLockControl(pIrpCtx);
-        break;
-    case IRP_TYPE_FS_CONTROL:
-        ntError = PvfsDispatchFsIoControl(pIrpCtx);
-        break;
-    case IRP_TYPE_READ_DIRECTORY_CHANGE:
-        ntError = PvfsReadDirectoryChange(pIrpCtx);
-        break;
     case IRP_TYPE_SET_INFORMATION:
         ntError = PvfsSetInformationFile(pIrpCtx);
         break;
-
-    /* Currently only support synchronous calls */
     case IRP_TYPE_QUERY_INFORMATION:
         ntError = PvfsQueryInformationFile(pIrpCtx);
         break;
@@ -230,11 +268,27 @@ PvfsDriverDispatch(
     case IRP_TYPE_CLOSE:
         ntError = PvfsClose(pIrpCtx);
         break;
+#endif
+
+    /* Synchronous by default, but can block and return PENDING.
+       Cannot be async by default since STATUS_PENDING means has a
+       different meaning when returned from the following IRPs */
+
+    case IRP_TYPE_FS_CONTROL:
+        ntError = PvfsDispatchFsIoControl(pIrpCtx);
+        break;
+    case IRP_TYPE_READ_DIRECTORY_CHANGE:
+        ntError = PvfsReadDirectoryChange(pIrpCtx);
+        break;
+
+    /* Currently only support synchronous calls */
+
     case IRP_TYPE_DEVICE_IO_CONTROL:
         ntError = PvfsDispatchDeviceIoControl(pIrpCtx);
         break;
 
     /* Not implemented */
+
     case IRP_TYPE_SET_VOLUME_INFORMATION:
         ntError = PvfsSetVolumeInformation(pIrpCtx);
         break;
