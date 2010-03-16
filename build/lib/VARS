@@ -6,7 +6,7 @@
 LIKEWISE_OPEN_MAJOR=5
 LIKEWISE_OPEN_MINOR=4
 LIKEWISE_OPEN_BUILD=0
-LIKEWISE_OPEN_REVISION=`git log -n1 --grep='\(.*: r[1-9].*\)' | tail -1 | cut -d: -f2 | sed -e 's:\s*r::' -e 's:)$::'`
+LIKEWISE_OPEN_REVISION=`git log | grep '\(.*: r[1-9].*\)' | cut -d: -f2 | sed -e 's:\s*r::' -e 's:)$::' | sort -n | tail -1`
 LIKEWISE_OPEN_EXTRA_TAG=""
 
 ## check for platform specific components
