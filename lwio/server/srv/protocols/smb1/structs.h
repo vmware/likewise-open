@@ -707,6 +707,8 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
     USHORT                      usBytesAllocated;
     USHORT                      usBytesUsed;
 
+    BOOLEAN                     bSetInfoAttempted;
+
 } SRV_TRANS2_STATE_SMB_V1, *PSRV_TRANS2_STATE_SMB_V1;
 
 typedef enum
