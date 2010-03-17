@@ -567,6 +567,8 @@ rpc__smb_socket_construct(
                 goto error;
             }
         }
+
+        smb_sock->info.schannel = smb_info->schannel;
     }
 
     sock->data.pointer = (void*) smb_sock;
