@@ -172,7 +172,15 @@ PvfsCreateFileDoSysOpen(
     ntError = MapPosixOpenFlags(&unixFlags, pCreateContext->GrantedAccess, Args);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsSysOpen(&fd, pCreateContext->pszDiskFilename, unixFlags, 0700);
+    do
+    {
+        ntError = PvfsSysOpen(
+                      &fd,
+                      pCreateContext->pszDiskFilename,
+                      unixFlags,
+                      0700);
+
+    } while (ntError == STATUS_MORE_PROCESSING_REQUIRED);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Perform preallocation is requested */
@@ -348,7 +356,15 @@ PvfsCreateDirDoSysOpen(
     pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
     pCreateContext->pszDiskFilename = NULL;
 
-    ntError = PvfsSysOpen(&fd, pCreateContext->pCcb->pszFilename, 0, 0);
+    do
+    {
+        ntError = PvfsSysOpen(
+                      &fd,
+                      pCreateContext->pCcb->pszFilename,
+                      0,
+                      0);
+
+    } while (ntError == STATUS_MORE_PROCESSING_REQUIRED);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Save our state */
