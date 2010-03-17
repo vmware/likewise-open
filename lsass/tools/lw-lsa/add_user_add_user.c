@@ -339,11 +339,17 @@ BuildUserInfo(
     dwError = LwAllocateString(pszLoginId, &pUserInfo->pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwAllocateString(pszShell, &pUserInfo->pszShell);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pUserInfo->pszShell)
+    {
+        dwError = LwAllocateString(pszShell, &pUserInfo->pszShell);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    dwError = LwAllocateString(pszHomedir, &pUserInfo->pszHomedir);
-    BAIL_ON_LSA_ERROR(dwError);
+    if (pUserInfo->pszHomedir)
+    {
+        dwError = LwAllocateString(pszHomedir, &pUserInfo->pszHomedir);
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
     // TODO: Gecos
 
@@ -468,20 +474,6 @@ LsaAddUserMain(
                     &pszGroup,
                     &pszLoginId);
     BAIL_ON_LSA_ERROR(dwError);
-
-    if (!pszShell) {
-       dwError = LwAllocateString("/bin/sh", &pszShell);
-       BAIL_ON_LSA_ERROR(dwError);
-    }
-
-    if (!pszHomedir) {
-        char szBuf[PATH_MAX+1];
-
-        sprintf(szBuf, "/home/%s", pszLoginId);
-
-        dwError = LwAllocateString(szBuf, &pszHomedir);
-        BAIL_ON_LSA_ERROR(dwError);
-    }
 
     dwError = AddUser(
                     pszHomedir,

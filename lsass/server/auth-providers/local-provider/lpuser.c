@@ -432,7 +432,7 @@ LocalDirAddUser(
     attrValues[LOCAL_DAU0_IDX_NETBIOS_DOMAIN].data.pwszStringValue = pwszNetBIOSDomain;
 
     dwError = LsaMbsToWc16s(
-                    pUserInfo->pszName,
+                    pLoginInfo->pszName,
                     &pwszSamAccountName);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -465,7 +465,7 @@ LocalDirAddUser(
     else
     {
         dwError = LocalBuildHomeDirPathFromTemplate(
-                        pUserInfo->pszName,
+                        pLoginInfo->pszName,
                         pLoginInfo->pszDomainNetBiosName,
                         &pszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
@@ -491,7 +491,7 @@ LocalDirAddUser(
         BAIL_ON_LSA_ERROR(dwError);
 
         dwError = LsaMbsToWc16s(
-                    pUserInfo->pszShell,
+                    pszShell,
                     &pwszShell);
         BAIL_ON_LSA_ERROR(dwError);
     }
