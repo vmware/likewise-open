@@ -141,6 +141,7 @@ Usage(
 {
     printf(
         "Usage: lw-share [ <options> ... ] enum\n"
+        "       lw-share [ <options> ... ] enum-info\n"
         "       lw-share [ <options> ... ] add [ <add options> ... ] <share>\n"
         "       lw-share [ <options> ... ] del <share>\n"
         "       lw-share [ <options> ... ] get-info <share>\n"
@@ -848,6 +849,95 @@ error:
 
 static
 DWORD
+DumpShareInfo(
+    PSHARE_INFO_502 pShareInfo
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwAllowUserCount = 0;
+    PWSTR* ppwszAllowUsers = NULL;
+    DWORD dwDenyUserCount = 0;
+    PWSTR* ppwszDenyUsers = NULL;
+    BOOLEAN bReadOnly = FALSE;
+    PSTR pszUserName = NULL;
+    DWORD dwIndex = 0;
+
+    dwError = PrintStringAttribute("name", pShareInfo->shi502_netname);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = PrintStringAttribute("path", pShareInfo->shi502_path);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = PrintStringAttribute("comment", pShareInfo->shi502_remark);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (pShareInfo->shi502_security_descriptor)
+    {
+        dwError = DeconstructSecurityDescriptor(
+            pShareInfo->shi502_reserved,
+            (PSECURITY_DESCRIPTOR_RELATIVE) pShareInfo->shi502_security_descriptor,
+            &dwAllowUserCount,
+            &ppwszAllowUsers,
+            &dwDenyUserCount,
+            &ppwszDenyUsers,
+            &bReadOnly);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        if (dwAllowUserCount)
+        {
+            printf("allow=");
+
+            for (dwIndex = 0; dwIndex < dwAllowUserCount; dwIndex++)
+            {
+                dwError = LwWc16sToMbs(ppwszAllowUsers[dwIndex], &pszUserName);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+
+                printf("%s", pszUserName);
+                if (dwIndex < dwAllowUserCount - 1)
+                {
+                    printf(",");
+                }
+            }
+
+            printf("\n");
+        }
+
+        if (dwDenyUserCount)
+        {
+            printf("deny=");
+
+            for (dwIndex = 0; dwIndex < dwDenyUserCount; dwIndex++)
+            {
+                dwError = LwWc16sToMbs(ppwszDenyUsers[dwIndex], &pszUserName);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+
+                printf("%s", pszUserName);
+                if (dwIndex < dwDenyUserCount - 1)
+                {
+                    printf(",");
+                }
+            }
+
+            printf("\n");
+        }
+
+        printf("read_only=%s\n", bReadOnly ? "true" : "false");
+    }
+
+cleanup:
+
+    FreeStringArray(dwAllowUserCount, ppwszAllowUsers);
+    FreeStringArray(dwDenyUserCount, ppwszDenyUsers);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
 Enum(
     int argc,
     char** ppszArgv
@@ -915,6 +1005,78 @@ error:
 
 static
 DWORD
+EnumInfo(
+    int argc,
+    char** ppszArgv
+    )
+{
+    static const DWORD dwLevel = 502;
+    static const DWORD dwMaxLen = 128;
+
+    DWORD dwError = 0;
+    PSHARE_INFO_502 pShareInfo = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwSeenEntries = 0;
+    DWORD dwResume = 0;
+    DWORD dwIndex = 0;
+    PSTR pszShareName = NULL;
+
+    do
+    {
+        dwError = NetShareEnum(
+            gState.pwszServerName,
+            dwLevel,
+            OUT_PPVOID(&pShareInfo),
+            dwMaxLen,
+            &dwNumEntries,
+            &dwTotalEntries,
+            &dwResume);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        dwSeenEntries += dwNumEntries;
+
+        for (dwIndex = 0; dwIndex < dwNumEntries; dwIndex++)
+        {
+            dwError = LwWc16sToMbs(pShareInfo[dwIndex].shi502_netname, &pszShareName);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+
+            printf("[%s]\n", pszShareName);
+
+            dwError = DumpShareInfo(&pShareInfo[dwIndex]);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+
+            printf("\n");
+
+            LW_SAFE_FREE_STRING(pszShareName);
+        }
+
+        if (pShareInfo)
+        {
+            SrvSvcFreeMemory(pShareInfo);
+            pShareInfo = NULL;
+        }
+    } while (dwSeenEntries < dwTotalEntries);
+
+cleanup:
+
+    LW_SAFE_FREE_STRING(pszShareName);
+
+    if (pShareInfo)
+    {
+        SrvSvcFreeMemory(pShareInfo);
+        pShareInfo = NULL;
+    }
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+static
+DWORD
 GetInfo(
     int argc,
     char** ppszArgv
@@ -924,13 +1086,6 @@ GetInfo(
     DWORD dwError = 0;
     PSHARE_INFO_502 pShareInfo = NULL;
     PWSTR pwszShareName = NULL;
-    DWORD dwAllowUserCount = 0;
-    PWSTR* ppwszAllowUsers = NULL;
-    DWORD dwDenyUserCount = 0;
-    PWSTR* ppwszDenyUsers = NULL;
-    DWORD dwIndex = 0;
-    PSTR pszUserName = NULL;
-    BOOLEAN bReadOnly = FALSE;
 
     dwError = LwMbsToWc16s(ppszArgv[1], &pwszShareName);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -942,67 +1097,8 @@ GetInfo(
         OUT_PPVOID(&pShareInfo));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = PrintStringAttribute("name", pShareInfo->shi502_netname);
+    dwError = DumpShareInfo(pShareInfo);
     BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = PrintStringAttribute("path", pShareInfo->shi502_path);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = PrintStringAttribute("comment", pShareInfo->shi502_remark);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    if (pShareInfo->shi502_security_descriptor)
-    {
-        dwError = DeconstructSecurityDescriptor(
-            pShareInfo->shi502_reserved,
-            (PSECURITY_DESCRIPTOR_RELATIVE) pShareInfo->shi502_security_descriptor,
-            &dwAllowUserCount,
-            &ppwszAllowUsers,
-            &dwDenyUserCount,
-            &ppwszDenyUsers,
-            &bReadOnly);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        if (dwAllowUserCount)
-        {
-            printf("allow=");
-
-            for (dwIndex = 0; dwIndex < dwAllowUserCount; dwIndex++)
-            {
-                dwError = LwWc16sToMbs(ppwszAllowUsers[dwIndex], &pszUserName);
-                BAIL_ON_SRVSVC_ERROR(dwError);
-
-                printf("%s", pszUserName);
-                if (dwIndex < dwAllowUserCount - 1)
-                {
-                    printf(",");
-                }
-            }
-
-            printf("\n");
-        }
-
-        if (dwDenyUserCount)
-        {
-            printf("deny=");
-
-            for (dwIndex = 0; dwIndex < dwDenyUserCount; dwIndex++)
-            {
-                dwError = LwWc16sToMbs(ppwszDenyUsers[dwIndex], &pszUserName);
-                BAIL_ON_SRVSVC_ERROR(dwError);
-
-                printf("%s", pszUserName);
-                if (dwIndex < dwDenyUserCount - 1)
-                {
-                    printf(",");
-                }
-            }
-
-            printf("\n");
-        }
-
-        printf("read_only=%s\n", bReadOnly ? "true" : "false");
-    }
 
 cleanup:
 
@@ -1012,9 +1108,6 @@ cleanup:
     }
 
     LW_SAFE_FREE_MEMORY(pwszShareName);
-
-    FreeStringArray(dwAllowUserCount, ppwszAllowUsers);
-    FreeStringArray(dwDenyUserCount, ppwszDenyUsers);
 
     return dwError;
 
@@ -1247,6 +1340,12 @@ main(
         else if (!strcasecmp(ppszArgv[dwIndex], "enum"))
         {
             dwError = Enum(argc - dwIndex, ppszArgv + dwIndex);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+            break;
+        }
+        else if (!strcasecmp(ppszArgv[dwIndex], "enum-info"))
+        {
+            dwError = EnumInfo(argc - dwIndex, ppszArgv + dwIndex);
             BAIL_ON_SRVSVC_ERROR(dwError);
             break;
         }
