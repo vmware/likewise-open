@@ -682,6 +682,8 @@ SrvShareDuplicateInfo(
 
     pShareInfoCopy->bMarkedForDeletion = pShareInfo->bMarkedForDeletion;
 
+    *ppShareInfo = pShareInfoCopy;
+
 cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
