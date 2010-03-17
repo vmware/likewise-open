@@ -42,10 +42,6 @@
 
 #include "task-threadpool-private.h"
 
-static pthread_mutex_t global_manager_lock = PTHREAD_MUTEX_INITIALIZER;
-static LWMsgTaskManager* global_manager = NULL;
-static unsigned long global_manager_refs;
-
 static struct
 {
     LWMsgTaskTrigger trigger;
@@ -295,25 +291,12 @@ lwmsg_task_acquire_manager(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    pthread_mutex_lock(&global_manager_lock);
-
-    if (global_manager)
-    {
-        global_manager_refs++;
-        *manager = global_manager;
-    }
-    else
-    {
-        BAIL_ON_ERROR(status = MAP_NTSTATUS(
-                          LwRtlCreateThreadPool(
-                              (PLW_THREAD_POOL*) (PVOID) &global_manager)));
-        global_manager_refs = 1;
-        *manager = global_manager;
-    }
+    BAIL_ON_ERROR(status = MAP_NTSTATUS(
+                      LwRtlCreateThreadPool(
+                          (PLW_THREAD_POOL*) (PVOID) manager,
+                          NULL)));
 
 error:
-
-    pthread_mutex_unlock(&global_manager_lock);
 
     return status;
 }
@@ -323,19 +306,5 @@ lwmsg_task_release_manager(
     LWMsgTaskManager* manager
     )
 {
-    pthread_mutex_lock(&global_manager_lock);
-
-    if (manager == global_manager)
-    {
-        if (--global_manager_refs == 0)
-        {
-            LwRtlFreeThreadPool((PLW_THREAD_POOL*) (PVOID) &global_manager);
-        }
-    }
-    else
-    {
-        LwRtlFreeThreadPool((PLW_THREAD_POOL*) (PVOID) &manager);
-    }
-
-    pthread_mutex_unlock(&global_manager_lock);
+    LwRtlFreeThreadPool((PLW_THREAD_POOL*) (PVOID) &manager);
 }
