@@ -89,6 +89,14 @@ typedef struct _LW_TASK_GROUP LW_TASK_GROUP, *PLW_TASK_GROUP;
 typedef struct _LW_TASK LW_TASK, *PLW_TASK;
 
 /**
+ * @brief Thread pool attributes
+ *
+ * An opaque data structure which can be used to specify a set of
+ * custom attributes when creating a thread pool
+ */
+typedef struct _LW_THREAD_POOL_ATTRIBUTES LW_THREAD_POOL_ATTRIBUTES, *PLW_THREAD_POOL_ATTRIBUTES;
+
+/**
  * @brief Event mask
  *
  * A bitmask representing a set of events.
@@ -183,6 +191,35 @@ typedef enum LW_WORK_ITEM_FLAGS
      */
     LW_WORK_ITEM_DEDICATED         = 0x00
 } LW_WORK_ITEM_FLAGS;
+
+/**
+ * @brief Thread pool option
+ *
+ * An option that can be set on a #LW_THREAD_POOL_ATTRIBUTES
+ * structure.  Each option documents the types of the trailing arguments
+ * that should be passed to #LwRtlSetThreadPoolAttribute().
+ */
+typedef enum LW_THREAD_POOL_OPTION
+{
+    /**
+     * (BOOLEAN) Delegate tasks to the global thread pool rather than creating
+     * private task threads.  This is the recommended behavior.
+     * (Default: TRUE)
+     */
+    LW_THREAD_POOL_OPTION_DELEGATE_TASKS,
+    /**
+     * (LONG) Number of task threads to create.  A negative number indicates
+     * a multiple of the number of CPUs present on the system.
+     * (Default: -1)
+     */
+    LW_THREAD_POOL_OPTION_TASK_THREADS,
+    /**
+     * (LONG) Number of work threads to create.  A negative number indicates
+     * a multiple of the number of CPUs present on the system.
+     * (Default: -4)
+     */
+    LW_THREAD_POOL_OPTION_WORK_THREADS
+} LW_THREAD_POOL_OPTION;
 
 /**
  * @brief Main task function
@@ -500,6 +537,54 @@ LwRtlQueueWorkItem(
     );
 
 /**
+ * @brief Create thread pool attributes structure
+ *
+ * Creates a new thread pool attributes structure.
+ *
+ * @param[out] ppAttrs the created structure
+ * @retval #LW_STATUS_SUCCESS success
+ * @retval #LW_STATUS_INSUFFICIENT_RESOURCES out of memory
+ */
+LW_NTSTATUS
+LwRtlCreateThreadPoolAttributes(
+    LW_OUT PLW_THREAD_POOL_ATTRIBUTES* ppAttrs
+    );
+
+/**
+ * @brief Set thread pool attribute
+ *
+ * Sets the specified option on the given thread pool attributes
+ * structure.  See the documentation for #LW_THREAD_POOL_OPTION for
+ * available options and the variable argument types for each.
+ *
+ * @param[in,out] pAttrs the attributes structure
+ * @param[in] Option the option to set
+ * @param[in] ... parameters for the particular option
+ * @retval #LW_STATUS_SUCCESS success
+ * @retval #LW_STATUS_NOT_SUPPORTED the thread pool implementation does not support that
+ * particular option
+ */
+LW_NTSTATUS
+LwRtlSetThreadPoolAttribute(
+    LW_IN LW_OUT PLW_THREAD_POOL_ATTRIBUTES pAttrs,
+    LW_IN LW_THREAD_POOL_OPTION Option,
+    ...
+    );
+
+/**
+ * @brief Free thread pool attributes
+ *
+ * Frees a thread pool attributes structure.
+ *
+ * @param[in,out] ppAttrs a reference to the pointer to free. *ppAttrs
+ * may be NULL when called and will be set to NULL before returning.
+ */
+VOID
+LwRtlFreeThreadPoolAttributes(
+    LW_IN LW_OUT PLW_THREAD_POOL_ATTRIBUTES* ppAttrs
+    );
+
+/**
  * @brief Create new thread pool
  *
  * Creates a new thread pool.
@@ -510,7 +595,8 @@ LwRtlQueueWorkItem(
  */
 LW_NTSTATUS
 LwRtlCreateThreadPool(
-    LW_OUT PLW_THREAD_POOL* ppPool
+    LW_OUT PLW_THREAD_POOL* ppPool,
+    LW_IN LW_OPTIONAL PLW_THREAD_POOL_ATTRIBUTES pAttrs
     );
 
 /**

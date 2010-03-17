@@ -589,6 +589,11 @@ LwRtlCreateTask(
     NTSTATUS status = STATUS_SUCCESS;
     PSELECT_TASK pTask = NULL;
 
+    if (pPool->pDelegate)
+    {
+        return LwRtlCreateTask(pPool->pDelegate, ppTask, pGroup, pfnFunc, pContext);
+    }
+
     GOTO_ERROR_ON_STATUS(status = LW_RTL_ALLOCATE_AUTO(&pTask));
 
     RingInit(&pTask->GroupRing);
@@ -636,6 +641,11 @@ LwRtlCreateTaskGroup(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PLW_TASK_GROUP pGroup = NULL;
+
+    if (pPool->pDelegate)
+    {
+        return LwRtlCreateTaskGroup(pPool->pDelegate, ppGroup);
+    }
 
     GOTO_ERROR_ON_STATUS(status = LW_RTL_ALLOCATE_AUTO(&pGroup));
     GOTO_ERROR_ON_STATUS(status = LwErrnoToNtStatus(pthread_mutex_init(&pGroup->Lock, NULL)));
@@ -956,12 +966,21 @@ error:
 
 NTSTATUS
 LwRtlCreateThreadPool(
-    PLW_THREAD_POOL* ppPool
+    PLW_THREAD_POOL* ppPool,
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PLW_THREAD_POOL pPool = NULL;
     int i = 0;
+    int numCpus = 0;
+
+    numCpus = sysconf(_SC_NPROCESSORS_ONLN);
+
+    if (numCpus < 0)
+    {
+        numCpus = 1;
+    }
 
     GOTO_ERROR_ON_STATUS(status = LW_RTL_ALLOCATE_AUTO(&pPool));
 
@@ -970,27 +989,41 @@ LwRtlCreateThreadPool(
     GOTO_ERROR_ON_STATUS(status = LwErrnoToNtStatus(pthread_mutex_init(&pPool->Lock, NULL)));
     GOTO_ERROR_ON_STATUS(status = LwErrnoToNtStatus(pthread_cond_init(&pPool->Event, NULL)));
 
-    pPool->ulEventThreadCount = EVENT_THREAD_COUNT;
-    pPool->ulNextEventThread = 0;
-    GOTO_ERROR_ON_STATUS(status = LW_RTL_ALLOCATE_ARRAY_AUTO(
-                             &pPool->pEventThreads,
-                             pPool->ulEventThreadCount));
-    for (i = 0; i < pPool->ulEventThreadCount; i++)
+    if (GetDelegateAttr(pAttrs))
     {
-        GOTO_ERROR_ON_STATUS(status = SelectThreadInit(&pPool->pEventThreads[i]));
+        status = AcquireDelegatePool(&pPool->pDelegate);
+        GOTO_ERROR_ON_STATUS(status);
+    }
+    else
+    {
+        pPool->ulEventThreadCount = GetTaskThreadsAttr(pAttrs, numCpus);
+        pPool->ulNextEventThread = 0;
+
+        if (pPool->ulEventThreadCount)
+        {
+            GOTO_ERROR_ON_STATUS(status = LW_RTL_ALLOCATE_ARRAY_AUTO(
+                                     &pPool->pEventThreads,
+                                     pPool->ulEventThreadCount));
+            for (i = 0; i < pPool->ulEventThreadCount; i++)
+            {
+                GOTO_ERROR_ON_STATUS(status = SelectThreadInit(&pPool->pEventThreads[i]));
+            }
+        }
     }
 
-    pPool->ulWorkThreadCount = WORK_THREAD_COUNT;
-    GOTO_ERROR_ON_STATUS(status = LW_RTL_ALLOCATE_ARRAY_AUTO(
-                             &pPool->pWorkThreads,
-                             pPool->ulWorkThreadCount));
+    pPool->ulWorkThreadCount = GetWorkThreadsAttr(pAttrs, numCpus);
 
-    for (i = 0; i < pPool->ulWorkThreadCount; i++)
+    if (pPool->ulWorkThreadCount)
     {
-        GOTO_ERROR_ON_STATUS(status = WorkThreadInit(pPool, &pPool->pWorkThreads[i]));
-    }
+        GOTO_ERROR_ON_STATUS(status = LW_RTL_ALLOCATE_ARRAY_AUTO(
+                                 &pPool->pWorkThreads,
+                                 pPool->ulWorkThreadCount));
 
-    pPool->ulRefCount = 1;
+        for (i = 0; i < pPool->ulWorkThreadCount; i++)
+        {
+            GOTO_ERROR_ON_STATUS(status = WorkThreadInit(pPool, &pPool->pWorkThreads[i]));
+        }
+    }
 
     *ppPool = pPool;
 
@@ -1039,6 +1072,11 @@ LwRtlFreeThreadPool(
             }
 
             RtlMemoryFree(pPool->pWorkThreads);
+        }
+
+        if (pPool->pDelegate)
+        {
+            ReleaseDelegatePool(&pPool->pDelegate);
         }
 
         pthread_mutex_destroy(&pPool->Lock);

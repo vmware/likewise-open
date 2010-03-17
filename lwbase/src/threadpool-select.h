@@ -43,6 +43,8 @@
 #include <lw/rtlgoto.h>
 #include <pthread.h>
 
+#include "threadpool-common.h"
+
 typedef struct _RING
 {
     struct _RING* pPrev;
@@ -116,7 +118,7 @@ typedef struct _LW_TASK_GROUP
 
 typedef struct _LW_THREAD_POOL
 {
-    ULONG ulRefCount;
+    PLW_THREAD_POOL pDelegate;
     PSELECT_THREAD pEventThreads;
     ULONG ulEventThreadCount;
     ULONG ulNextEventThread;
