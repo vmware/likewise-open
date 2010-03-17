@@ -46,6 +46,7 @@ NET_API_STATUS NetRemoteTOD(
 
     DCERPC_CALL(status,
                 _NetrRemoteTOD(b, (wchar16_t *)servername, &info));
+    BAIL_ON_WIN_ERROR(status);
 
     memerr = SrvSvcCopyTIME_OF_DAY_INFO(info, bufptr);
     BAIL_ON_WIN_ERROR(memerr);
