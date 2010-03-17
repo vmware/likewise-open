@@ -56,6 +56,7 @@ NetrShareGetInfo(
                                   pwszNetname,
                                   dwLevel,
                                   &Info));
+    BAIL_ON_WIN_ERROR(err);
 
     err = SrvSvcCopyNetShareInfo(dwLevel, &Info, &pBuffer);
     BAIL_ON_WIN_ERROR(err);

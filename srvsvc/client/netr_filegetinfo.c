@@ -52,6 +52,7 @@ NET_API_STATUS NetFileGetInfo(
     DCERPC_CALL(status,
                 _NetrFileGetInfo(b, (wchar16_t *)servername,
                                  fileid, level, &info));
+    BAIL_ON_WIN_ERROR(status);
 
     memerr = SrvSvcCopyNetFileInfo(level, &info, bufptr);
     BAIL_ON_WIN_ERROR(memerr);
