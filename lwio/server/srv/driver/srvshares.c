@@ -367,8 +367,8 @@ SrvShareDevCtlEnum(
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 p502[i].shi502_password            = NULL;
-                p502[i].shi502_reserved            = 0;
-                p502[i].shi502_security_descriptor = NULL;
+                p502[i].shi502_reserved            = pShareInfo->ulSecDescLen;
+                p502[i].shi502_security_descriptor = (PBYTE) pShareInfo->pSecDesc;
             }
 
             EnumShareInfoParamsOut.info.p502 = p502;
