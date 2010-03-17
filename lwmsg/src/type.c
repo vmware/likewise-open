@@ -39,4 +39,37 @@
 #include "type-private.h"
 #include "util-private.h"
 
-/* FIXME: put something here */
+LWMsgTypeFlags
+lwmsg_type_get_flags(
+    const LWMsgType* attrs
+    )
+{
+    return attrs->flags;
+}
+
+size_t
+lwmsg_type_get_custom_flags(
+    const LWMsgType* attrs
+    )
+{
+    return attrs->custom;
+}
+
+LWMsgStatus
+lwmsg_type_get_integer_range(
+    const LWMsgType* attrs,
+    size_t* low,
+    size_t* high
+    )
+{
+    if (attrs->flags & LWMSG_TYPE_FLAG_RANGE)
+    {
+        *low = attrs->range_low;
+        *high = attrs->range_high;
+        return LWMSG_STATUS_SUCCESS;
+    }
+    else
+    {
+        return LWMSG_STATUS_INVALID_PARAMETER;
+    }
+}

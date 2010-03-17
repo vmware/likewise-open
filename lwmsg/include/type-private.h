@@ -45,6 +45,18 @@
 
 #include "status-private.h"
 
+typedef struct LWMsgType
+{
+    /** Set flags */
+    LWMsgTypeFlags flags;
+    /** Custom flags from #LWMSG_ATTR_CUSTOM() */
+    size_t custom;
+    /** Minimum value of range constraint */
+    size_t range_low;
+    /** Maximum value of range constraint */
+    size_t range_high;
+} LWMsgTypeAttrs;
+
 /* Iteration */
 typedef struct LWMsgTypeIter
 {
@@ -109,7 +121,7 @@ typedef struct LWMsgTypeIter
         struct
         {
             /* Custom type class structure */
-            LWMsgCustomTypeClass* typeclass;
+            LWMsgTypeClass* typeclass;
             /* Per-instance data pointer (passed to methods in type class) */
             void* typedata;
         } kind_custom;

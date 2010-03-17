@@ -424,6 +424,44 @@ lwmsg_data_print_graph_alloc(
     char** result
     );
 
+/**
+ * @brief Allocate memory block
+ *
+ * Allocates a block of memory using the data context's memory manager.
+ * This is the same memory manager used when reconstructing an object graph
+ * during unmarshalling.
+ *
+ * @param[in] context the data context
+ * @param[in] size the number of bytes to allocate
+ * @param[out] object the allocated block
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_data_alloc_memory(
+    LWMsgDataContext* context,
+    size_t size,
+    void** object
+    );
+
+/**
+ * @brief Free memory block
+ *
+ * Frees a block of memory using the data context's memory manager.
+ * This is the same memory manager used when reconstructing an object graph
+ * during unmarshalling.
+ *
+ * @param[in] context the data context
+ * @param[in,out] object the block to free
+ */
+void
+lwmsg_data_free_memory(
+    LWMsgDataContext* context,
+    void* object
+    );
+
 /*@}*/
 
 #endif

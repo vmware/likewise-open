@@ -255,7 +255,7 @@ lwmsg_local_token_get_pid(
 
 
 #ifndef DOXYGEN
-extern LWMsgCustomTypeClass lwmsg_fd_type_class;
+extern LWMsgTypeClass lwmsg_fd_type_class;
 #endif
 
 /**

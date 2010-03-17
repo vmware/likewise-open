@@ -46,27 +46,34 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef union
+{
+    LWMsgHandleID id;
+} TransmitData;
+
+typedef struct
+{
+    LWMsgHandleType type;
+    TransmitData data;
+} TransmitHandle;
+
 static LWMsgStatus
 lwmsg_assoc_marshal_handle(
     LWMsgDataContext* mcontext,
-    size_t object_size,
-    void* object,
     LWMsgTypeAttrs* attrs,
-    LWMsgBuffer* buffer,
+    void* object,
+    void* transmit_object,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     void* pointer = NULL;
-    LWMsgHandleType location;
-    unsigned long handle;
+    TransmitHandle* transmit = transmit_object;
     LWMsgAssoc* assoc = NULL;
     LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
-    unsigned char blob[5];
     const char* type = NULL;
     const LWMsgContext* context = lwmsg_data_context_get_context(mcontext);
-    LWMsgByteOrder byte_order = lwmsg_data_context_get_byte_order(mcontext);
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
@@ -82,8 +89,8 @@ lwmsg_assoc_marshal_handle(
             session,
             pointer,
             &type,
-            &location,
-            &handle);
+            &transmit->type,
+            &transmit->data.id);
 
         switch (status)
         {
@@ -102,22 +109,22 @@ lwmsg_assoc_marshal_handle(
                         "Invalid handle 0x%lx(%lu): expected handle of type '%s', "
                         "got '%s'",
                         (unsigned long) pointer,
-                        (unsigned long) handle,
+                        transmit->data.id,
                         (const char*) data,
                         type);
         }
 
         /* Confirm that handle origin is correct according to type attributes */
-        if ((attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER && location != LWMSG_HANDLE_REMOTE) ||
-            (attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER && location != LWMSG_HANDLE_LOCAL))
+        if ((attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER && transmit->type != LWMSG_HANDLE_REMOTE) ||
+            (attrs->custom & LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER && transmit->type != LWMSG_HANDLE_LOCAL))
         {
-            if (location == LWMSG_HANDLE_LOCAL)
+            if (transmit->type == LWMSG_HANDLE_LOCAL)
             {
                 MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                             "Invalid handle 0x%lx(%lu): expected handle which is "
                             "local for the receiver",
                             (unsigned long) pointer,
-                            (unsigned long) handle);
+                            (unsigned long) transmit->data.id);
             }
             else
             {
@@ -125,48 +132,36 @@ lwmsg_assoc_marshal_handle(
                             "Invalid handle 0x%lx(%lu): expected handle which is "
                             "local for the sender",
                             (unsigned long) pointer,
-                            (unsigned long) handle);
+                            (unsigned long) transmit->data.id);
             }
         }
-
-        blob[0] = (unsigned char) location;
-
-        BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                          &handle,
-                          sizeof(handle),
-                          LWMSG_NATIVE_ENDIAN,
-                          &blob[1],
-                          4,
-                          byte_order,
-                          LWMSG_UNSIGNED));
-
-        BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, blob, sizeof(blob)));
     }
     else
     {
         /* If the handle was not supposed to be NULL, raise an error */
-        if (attrs->nonnull)
+        if (attrs->flags & LWMSG_TYPE_FLAG_NOT_NULL)
         {
             MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                         "Invalid handle: expected non-null handle");
         }
 
-        blob[0] = (unsigned char) LWMSG_HANDLE_NULL;
-
-        BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, blob, sizeof(blob[0])));
+        transmit->type = LWMSG_HANDLE_NULL;
     }
+
+cleanup:
+
+    return status;
 
 error:
 
-    return status;
+    goto cleanup;
 }
 
 static LWMsgStatus
 lwmsg_assoc_unmarshal_handle(
     LWMsgDataContext* mcontext,
-    LWMsgBuffer* buffer,
-    size_t object_size,
     LWMsgTypeAttrs* attrs,
+    void* transmit_object,
     void* object,
     void* data
     )
@@ -174,29 +169,19 @@ lwmsg_assoc_unmarshal_handle(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = NULL;
     void* pointer = NULL;
-    LWMsgHandleType location;
-    unsigned long handle;
-    char temp[5];
+    TransmitHandle* transmit = transmit_object;
     LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
     const LWMsgContext* context = lwmsg_data_context_get_context(mcontext);
-   LWMsgByteOrder byte_order = lwmsg_data_context_get_byte_order(mcontext);
+    LWMsgHandleType location = transmit->type;
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
     BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
-    /* Read handle type */
-    BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &temp[0], sizeof(temp[0])));
-
-    location = (LWMsgHandleType) temp[0];
-
     if (location != LWMSG_HANDLE_NULL)
     {
-         /* Read handle ID */
-        BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &temp[1], sizeof(temp) - sizeof(temp[0])));
-
         /* Invert sense of handle location */
         if (location == LWMSG_HANDLE_LOCAL)
         {
@@ -216,7 +201,7 @@ lwmsg_assoc_unmarshal_handle(
                             "Invalid handle (%lu): expected handle which is "
                             "local for the receiver",
                             (unsigned long) pointer,
-                            (unsigned long) handle);
+                            (unsigned long) transmit->data.id);
             }
             else
             {
@@ -224,18 +209,9 @@ lwmsg_assoc_unmarshal_handle(
                             "Invalid handle (%lu): expected handle which is "
                             "local for the sender",
                             (unsigned long) pointer,
-                            (unsigned long) handle);
+                            (unsigned long) transmit->data.id);
             }
         }
-
-        BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                          temp + 1,
-                          4,
-                          byte_order,
-                          &handle,
-                          sizeof(handle),
-                          LWMSG_NATIVE_ENDIAN,
-                          LWMSG_UNSIGNED));
 
         /* Convert handle to pointer */
         status = lwmsg_session_manager_handle_id_to_pointer(
@@ -243,7 +219,7 @@ lwmsg_assoc_unmarshal_handle(
             session,
             (const char*) data,
             location,
-            handle,
+            transmit->data.id,
             &pointer);
 
         switch (status)
@@ -256,7 +232,7 @@ lwmsg_assoc_unmarshal_handle(
                                   manager,
                                   session,
                                   (const char*) data,
-                                  handle,
+                                  transmit->data.id,
                                   NULL,
                                   &pointer));
             }
@@ -264,7 +240,7 @@ lwmsg_assoc_unmarshal_handle(
             {
                 MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                                     "Invalid handle (%lu)",
-                                    (unsigned long) handle);
+                                    (unsigned long) transmit->data.id);
             }
             break;
         default:
@@ -276,7 +252,7 @@ lwmsg_assoc_unmarshal_handle(
     }
     else
     {
-        if (attrs->nonnull)
+        if (attrs->flags & LWMSG_TYPE_FLAG_NOT_NULL)
         {
             MARSHAL_RAISE_ERROR(mcontext, status = LWMSG_STATUS_INVALID_HANDLE,
                         "Invalid handle: expected non-null handle");
@@ -292,8 +268,7 @@ error:
 static
 void
 lwmsg_assoc_free_handle(
-    const LWMsgContext* context,
-    size_t object_size,
+    LWMsgDataContext* context,
     LWMsgTypeAttrs* attr,
     void* object,
     void* data
@@ -303,7 +278,10 @@ lwmsg_assoc_free_handle(
     LWMsgAssoc* assoc = NULL;
     void* pointer = NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
+    BAIL_ON_ERROR(status = lwmsg_context_get_data(
+                      lwmsg_data_context_get_context(context),
+                      "assoc",
+                      (void**) (void*) &assoc));
 
     pointer = *(void**) object;
 
@@ -320,12 +298,11 @@ error:
 static LWMsgStatus
 lwmsg_assoc_print_handle(
     const LWMsgContext* context,
-    size_t object_size,
-    void* object,
     LWMsgTypeAttrs* attrs,
-    void* data,
+    void* object,
     LWMsgDataPrintFunction print,
-    void* print_data
+    void* print_data,
+    void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -381,7 +358,7 @@ lwmsg_assoc_print_handle(
     else
     {
         static const char* nullstr = "<null>";
-        if (attrs->nonnull)
+        if (attrs->flags & LWMSG_TYPE_FLAG_NOT_NULL)
         {
             BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
         }
@@ -399,12 +376,30 @@ error:
     return status;
 }
 
-LWMsgCustomTypeClass lwmsg_handle_type_class =
+static LWMsgTypeSpec handle_id_spec[] =
+{
+    LWMSG_STRUCT_BEGIN(TransmitHandle),
+    LWMSG_MEMBER_UINT8(TransmitHandle, type),
+    LWMSG_MEMBER_UNION_BEGIN(TransmitHandle, data),
+    LWMSG_MEMBER_UINT32(TransmitData, id),
+    LWMSG_ATTR_TAG(LWMSG_HANDLE_LOCAL),
+    LWMSG_MEMBER_UINT32(TransmitData, id),
+    LWMSG_ATTR_TAG(LWMSG_HANDLE_REMOTE),
+    LWMSG_VOID,
+    LWMSG_ATTR_TAG(LWMSG_HANDLE_NULL),
+    LWMSG_UNION_END,
+    LWMSG_ATTR_DISCRIM(TransmitHandle, type),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+LWMsgTypeClass lwmsg_handle_type_class =
 {
     .is_pointer = LWMSG_TRUE,
-
+    .transmit_type = handle_id_spec,
     .marshal = lwmsg_assoc_marshal_handle,
     .unmarshal = lwmsg_assoc_unmarshal_handle,
-    .free = lwmsg_assoc_free_handle,
+    .destroy_presented = lwmsg_assoc_free_handle,
+    .destroy_transmitted = NULL, /* Nothing to free in transmitted form */
     .print = lwmsg_assoc_print_handle
 };

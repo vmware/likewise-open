@@ -272,7 +272,7 @@ lwmsg_data_print_graph_visit(
     PrintInfo* info = (PrintInfo*) data;
     const char* prefix = NULL;
 
-    if (iter->attrs.sensitive)
+    if (iter->attrs.flags & LWMSG_TYPE_FLAG_SENSITIVE)
     {
         BAIL_ON_ERROR(status = print(info, "<sensitive>"));
     }
@@ -304,7 +304,7 @@ lwmsg_data_print_graph_visit(
             break;
         case LWMSG_KIND_ARRAY:
         case LWMSG_KIND_POINTER:
-            if (iter->attrs.promoted)
+            if (iter->attrs.flags & LWMSG_TYPE_FLAG_PROMOTED)
             {
                 prefix = "";
             }
@@ -364,12 +364,11 @@ lwmsg_data_print_graph_visit(
             {
                 BAIL_ON_ERROR(status = iter->info.kind_custom.typeclass->print(
                                   info->context,
-                                  iter->size,
-                                  object,
                                   &iter->attrs,
-                                  iter->info.kind_custom.typedata,
+                                  object,
                                   print_wrap,
-                                  info));
+                                  info,
+                                  iter->info.kind_custom.typedata));
             }
             else
             {

@@ -249,7 +249,7 @@ lwmsg_type_iterate_inner(
             iter->offset = *(spec++);
         }
         iter->kind = LWMSG_KIND_CUSTOM;
-        iter->info.kind_custom.typeclass = (LWMsgCustomTypeClass*) *(spec++);
+        iter->info.kind_custom.typeclass = (LWMsgTypeClass*) *(spec++);
         iter->info.kind_custom.typedata = (void*) *(spec++);
         break;
     case LWMSG_CMD_VOID:
@@ -314,17 +314,18 @@ lwmsg_type_iterate_inner(
             iter->verify_data = (void*) *(spec++);
             break;
         case LWMSG_CMD_RANGE:
+            iter->attrs.flags |= LWMSG_TYPE_FLAG_RANGE;
             iter->attrs.range_low = (size_t) *(spec++);
             iter->attrs.range_high = (size_t) *(spec++);
             break;
         case LWMSG_CMD_NOT_NULL:
-            iter->attrs.nonnull = LWMSG_TRUE;
+            iter->attrs.flags |= LWMSG_TYPE_FLAG_NOT_NULL;
             break;
         case LWMSG_CMD_ENCODING:
             iter->info.kind_indirect.encoding = (const char*) *(spec++);
             break;
         case LWMSG_CMD_SENSITIVE:
-            iter->attrs.sensitive = LWMSG_TRUE;
+            iter->attrs.flags |= LWMSG_TYPE_FLAG_SENSITIVE;
             break;
         case LWMSG_CMD_CUSTOM_ATTR:
             iter->attrs.custom |= (size_t) *(spec++);
@@ -358,10 +359,6 @@ lwmsg_type_iterate(
     memset(&iter->meta, 0, sizeof(iter->meta));
     memset(&iter->debug, 0, sizeof(iter->debug));
 
-    /* Set invalid range to indicate it is not set */
-    iter->attrs.range_high = 0;
-    iter->attrs.range_low = 1;
-
     lwmsg_type_iterate_inner(spec, iter);
 }
 
@@ -377,8 +374,7 @@ lwmsg_type_promote(
      iter->info.kind_indirect.term_info.static_length = 1;
      iter->inner = spec;
      iter->size = sizeof(void*);
-     iter->attrs.nonnull = LWMSG_TRUE;
-     iter->attrs.promoted = LWMSG_TRUE;
+     iter->attrs.flags = LWMSG_TYPE_FLAG_NOT_NULL | LWMSG_TYPE_FLAG_PROMOTED;
 }
 
 void

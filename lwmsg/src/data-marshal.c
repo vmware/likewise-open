@@ -104,7 +104,7 @@ lwmsg_data_marshal_indirect_prologue(
     case LWMSG_TERM_ZERO:
         if (!object)
         {
-            if (iter->attrs.nonnull)
+            if (iter->attrs.flags & LWMSG_TYPE_FLAG_NOT_NULL)
             {
                 BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
             }
@@ -179,7 +179,7 @@ lwmsg_data_marshal_indirect(
     /* Enforce nullability.  Even if the pointer is marked
        as non-null, allow it to be null if there are no
        elements to marshal */
-    if (iter->attrs.nonnull && !object && count != 0)
+    if (iter->attrs.flags & LWMSG_TYPE_FLAG_NOT_NULL && !object && count != 0)
     {
         BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
     }
@@ -236,7 +236,7 @@ lwmsg_data_marshal_integer(
     in_size = iter->size;
 
     /* If a valid range is defined, check value against it */
-    if (iter->attrs.range_low < iter->attrs.range_high)
+    if (iter->attrs.flags & LWMSG_TYPE_FLAG_RANGE)
     {
         BAIL_ON_ERROR(status = lwmsg_data_verify_range(
                           &context->error,
@@ -270,16 +270,53 @@ lwmsg_data_marshal_custom(
     LWMsgBuffer* buffer)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    void* transmit_object = NULL;
+    LWMsgTypeClass* typeclass = iter->info.kind_custom.typeclass;
+    LWMsgTypeIter transmit_iter;
+    LWMsgMarshalState my_state = {0};
 
+    lwmsg_type_iterate(typeclass->transmit_type, &transmit_iter);
+
+    /* Allocate space for the transmitted object */
+    BAIL_ON_ERROR(status = lwmsg_data_alloc_memory(context, transmit_iter.size, &transmit_object));
+
+    /* Convert presented object into transmitted object */
     BAIL_ON_ERROR(status = iter->info.kind_custom.typeclass->marshal(
                       context,
-                      iter->size,
-                      object,
                       &iter->attrs,
-                      buffer,
+                      object,
+                      transmit_object,
                       iter->info.kind_custom.typedata));
 
+    /* Marshal transmitted object */
+    BAIL_ON_ERROR(status = lwmsg_data_marshal_internal(
+                      context,
+                      &my_state,
+                      &transmit_iter,
+                      transmit_object,
+                      buffer));
+
+
 error:
+
+    if (transmit_object)
+    {
+        /* Although we have the type spec for the transmitted object,
+           we do not call lwmsg_data_free_graph_internal() to clean it up
+           because we did not build it ourselves.  Instead, we
+           call the destroy_transmitted function of the type class. */
+        if (iter->info.kind_custom.typeclass->destroy_transmitted)
+        {
+            iter->info.kind_custom.typeclass->destroy_transmitted(
+                context,
+                &transmit_iter.attrs,
+                transmit_object,
+                iter->info.kind_custom.typedata);
+        }
+
+        /* Free object itself */
+        lwmsg_data_free_memory(context, transmit_object);
+    }
 
     return status;
 }
@@ -370,12 +407,12 @@ lwmsg_data_marshal_pointer(
     ptr_flag = *(void**) object ? 0xFF : 0x00;
 
     /* Only write pointer flag for nullable pointers */
-    if (!iter->attrs.nonnull)
+    if (!(iter->attrs.flags & LWMSG_TYPE_FLAG_NOT_NULL))
     {
         BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, &ptr_flag, 1));
     }
 
-    if (ptr_flag || iter->attrs.nonnull)
+    if (ptr_flag || (iter->attrs.flags & LWMSG_TYPE_FLAG_NOT_NULL))
     {
         /* Pointer is present, so also write pointee */
         BAIL_ON_ERROR(status = lwmsg_data_marshal_indirect(
@@ -403,7 +440,7 @@ lwmsg_data_marshal_internal(
 
     if (iter->verify)
     {
-        BAIL_ON_ERROR(status = iter->verify(context, LWMSG_FALSE, iter->size, object, iter->verify_data));
+        BAIL_ON_ERROR(status = iter->verify(context, LWMSG_FALSE, object, iter->verify_data));
     }
 
     switch (iter->kind)

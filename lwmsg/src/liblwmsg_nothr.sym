@@ -75,6 +75,8 @@ lwmsg_data_unmarshal_flat
 lwmsg_data_free_graph
 lwmsg_data_print_graph
 lwmsg_data_print_graph_alloc
+lwmsg_data_alloc_memory
+lwmsg_data_free_memory
 lwmsg_protocol_get_message_type
 lwmsg_protocol_get_message_name
 lwmsg_protocol_new
@@ -140,3 +142,6 @@ lwmsg_fd_type_class
 lwmsg_handle_type_class
 lwmsg_error_name
 lwmsg_set_close_on_exec
+lwmsg_type_get_flags
+lwmsg_type_get_custom_flags
+lwmsg_type_get_integer_range

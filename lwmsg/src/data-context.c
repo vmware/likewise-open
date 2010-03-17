@@ -140,3 +140,21 @@ lwmsg_data_context_raise_error(
     return status;
 }
 
+LWMsgStatus
+lwmsg_data_alloc_memory(
+    LWMsgDataContext* context,
+    size_t size,
+    void** object
+    )
+{
+    return lwmsg_context_alloc(context->context, size, object);
+}
+
+void
+lwmsg_data_free_memory(
+    LWMsgDataContext* context,
+    void* object
+    )
+{
+    lwmsg_context_free(context->context, object);
+}
