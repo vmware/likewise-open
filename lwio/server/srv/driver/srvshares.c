@@ -50,6 +50,48 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvValidateShareNameChange(
+    PSRV_SHARE_INFO pShareInfo,
+    PWSTR pwszNewName
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo0(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_0 pInfo0
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo1(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_1 pInfo1
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo2(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_2 pInfo2
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo501(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_501 pInfo501
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo502(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_502 pInfo502
+    );
+
 NTSTATUS
 SrvShareDevCtlAdd(
     IN     PBYTE lpInBuffer,
@@ -704,52 +746,6 @@ error:
     goto cleanup;
 }
 
-
-/***********************************************************************
- **********************************************************************/
-
-static
-NTSTATUS
-SrvValidateShareNameChange(
-    PSRV_SHARE_INFO pShareInfo,
-    PWSTR pwszNewName
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo0(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_0 pInfo0
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo1(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_1 pInfo1
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo2(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_2 pInfo2
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo501(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_501 pInfo501
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo502(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_502 pInfo502
-    );
-
 NTSTATUS
 SrvShareDevCtlSetInfo(
     IN     PBYTE lpInBuffer,
@@ -836,10 +832,6 @@ error:
     return ntStatus;
 }
 
-
-/***********************************************************************
- **********************************************************************/
-
 static
 NTSTATUS
 SrvValidateShareNameChange(
@@ -878,10 +870,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
 
 static
 NTSTATUS
@@ -925,10 +913,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
 
 static
 NTSTATUS
@@ -995,10 +979,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
 
 static
 NTSTATUS
@@ -1084,10 +1064,6 @@ error:
     goto cleanup;
 }
 
-
-/***********************************************************************
- **********************************************************************/
-
 static
 NTSTATUS
 SrvShareUpdateInfo501(
@@ -1153,10 +1129,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
 
 static
 NTSTATUS
