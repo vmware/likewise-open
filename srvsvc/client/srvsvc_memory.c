@@ -610,6 +610,7 @@ NET_API_STATUS SrvSvcCopyNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr,
                  DUP_WC16S(a502, a502[i].shi502_remark);
                  DUP_WC16S(a502, a502[i].shi502_path);
                  DUP_WC16S(a502, a502[i].shi502_password);
+                 memcpy(a502[i].shi502_security_descriptor, e->shi502_security_descriptor, e->shi502_reserved);
             }
         }
         break;
