@@ -36,6 +36,7 @@
  * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
  *
  */
+
 /**
 @page arch_rep Data Representation
 
@@ -187,13 +188,11 @@ this active arm is encoded in the octet stream.
 @lwmsg_field{w<sub>a</sub>, Representation of the active arm}
 @lwmsg_endrep
 
-@section arch_rep_assoc Association Data Types
+@section arch_rep_useful Useful Data Types
 
-The association abstraction extends the set of core marshaller
-types with primitives that are not meaningful outside the
-context of an association.  However, they remain an integral
-component of the <tt>LWMsg</tt> stack and are included here
-for completeness.
+The following data types are extensions built on the core
+set using the custom type mechanism (see #LWMSG_CUSTOM) and included
+as part of the standard LWMsg software package.
 
 @subsection arch_rep_hand Handles
 
@@ -223,12 +222,6 @@ The locality field has three legal values:
 - <tt>0x00</tt>: The handle is null
 - <tt>0x01</tt>: The handle is local from the perspective of the encoder
 - <tt>0x02</tt>: The handle is remote from the perspective of the encoder
-
-@section arch_rep_conn Connection Data Types
-
-The connection abstraction builds on associations by adding
-additional primivite data types to exploit features of
-the underlying transport mechanism and operating system.
 
 @subsection arch_rep_fd File Descriptors
 

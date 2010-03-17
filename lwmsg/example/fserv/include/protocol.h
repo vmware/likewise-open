@@ -61,18 +61,14 @@ typedef struct ReadReply
 /* Begin message enumeration */
 typedef enum MessageType
 {
-    FSERV_OPEN,             /* OpenRequest */
-    FSERV_OPEN_SUCCESS,     /* FileHandle */
-    FSERV_OPEN_FAILED,      /* StatusReply */
-    FSERV_READ,             /* ReadRequest */
-    FSERV_READ_SUCCESS,     /* ReadReply */
-    FSERV_READ_FAILED,      /* StatusReply */
-    FSERV_WRITE,            /* WriteRequest */
-    FSERV_WRITE_SUCCESS,    /* StatusReply */
-    FSERV_WRITE_FAILED,     /* StatusReply */
-    FSERV_CLOSE,            /* FileHandle */
-    FSERV_CLOSE_SUCCESS,    /* StatusReply */
-    FSERV_CLOSE_FAILED      /* StatusReply */
+    FSERV_OPEN_REQ,         /* OpenRequest */
+    FSERV_OPEN_RES,         /* FileHandle */
+    FSERV_READ_REQ,         /* ReadRequest */
+    FSERV_READ_RES,         /* ReadReply */
+    FSERV_WRITE_REQ,        /* WriteRequest */
+    FSERV_CLOSE_REQ,        /* FileHandle */
+    FSERV_VOID_RES,         /* void */
+    FSERV_ERROR_RES         /* StatusReply */
 } MessageType;
 /* End message enumeration */    
 

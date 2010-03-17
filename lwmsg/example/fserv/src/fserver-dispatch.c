@@ -144,7 +144,7 @@ fserv_open_srv(
 
         sreply->err = ret;
 
-        out->tag = FSERV_OPEN_FAILED;
+        out->tag = FSERV_ERROR_RES;
         out->data = (void*) sreply;
     }
     else
@@ -190,7 +190,7 @@ fserv_open_srv(
                 goto error;
             }
 
-            out->tag = FSERV_OPEN_SUCCESS;
+            out->tag = FSERV_OPEN_RES;
             out->data = (void*) handle;
             handle = NULL;
 
@@ -214,7 +214,7 @@ fserv_open_srv(
             }
             
             sreply->err = errno;
-            out->tag = FSERV_OPEN_FAILED;
+            out->tag = FSERV_ERROR_RES;
             out->data = (void*) sreply;
         }
     }
@@ -246,23 +246,24 @@ fserv_write_srv(
     LOG("fserv_write() of %lu bytes to fd %i on session %p\n",
         (unsigned long) req->size, fd, session);
 
-    sreply = malloc(sizeof(*sreply));
-
-    if (!sreply)
-    {
-        status = LWMSG_STATUS_MEMORY;
-        goto error;
-    }
-
     if (write(fd, req->data, req->size) == -1)
     {
+        sreply = malloc(sizeof(*sreply));
+
+        if (!sreply)
+        {
+            status = LWMSG_STATUS_MEMORY;
+            goto error;
+        }
+
         sreply->err = errno;
-        out->tag = FSERV_WRITE_SUCCESS;
+        out->tag = FSERV_ERROR_RES;
+        out->data = sreply;
     }
     else
     {
-        sreply->err = 0;
-        out->tag = FSERV_WRITE_FAILED;
+        out->tag = FSERV_VOID_RES;
+        out->data = NULL;
     }
 
     out->data = (void*) sreply;
@@ -325,7 +326,7 @@ fserv_read_srv(
         }
 
         sreply->err = err;
-        out->tag = FSERV_READ_FAILED;
+        out->tag = FSERV_ERROR_RES;
         out->data = (void*) sreply;
     }
     else if (ret == 0)
@@ -333,13 +334,13 @@ fserv_read_srv(
         free(rreply->data);
         rreply->data = NULL;
         rreply->size = 0;
-        out->tag = FSERV_READ_SUCCESS;
+        out->tag = FSERV_READ_RES;
         out->data = (void*) rreply;
     }
     else
     {
         rreply->size = ret;
-        out->tag = FSERV_READ_SUCCESS;
+        out->tag = FSERV_READ_RES;
         out->data = (void*) rreply;
     }
 
@@ -363,32 +364,31 @@ fserv_close_srv(
 
     LOG("fserv_close() on fd %i for session %p\n", handle->fd, session);
 
-    sreply = malloc(sizeof(*sreply));
-    
-    if (!sreply)
-    {
-        status = LWMSG_STATUS_MEMORY;
-        goto error;
-    }
-
     /* Unregister the handle no matter what */
     status = lwmsg_session_release_handle(session, handle);
     if (status)
     {
         goto error;
     }
-    
+
     if (close(handle->fd) == -1)
     {
+        sreply = malloc(sizeof(*sreply));
+
+        if (!sreply)
+        {
+            status = LWMSG_STATUS_MEMORY;
+            goto error;
+        }
+
         sreply->err = errno;
-        out->tag = FSERV_CLOSE_FAILED;
+        out->tag = FSERV_ERROR_RES;
         out->data = sreply;
     }
     else
     {
-        sreply->err = 0;
-        out->tag = FSERV_CLOSE_SUCCESS;
-        out->data = sreply;
+        out->tag = FSERV_VOID_RES;
+        out->data = NULL;
     }
 
 error:
@@ -398,10 +398,10 @@ error:
 
 static LWMsgDispatchSpec fserv_dispatch[] =
 {
-    LWMSG_DISPATCH_NONBLOCK(FSERV_OPEN, fserv_open_srv),
-    LWMSG_DISPATCH_NONBLOCK(FSERV_WRITE, fserv_write_srv),
-    LWMSG_DISPATCH_NONBLOCK(FSERV_READ, fserv_read_srv),
-    LWMSG_DISPATCH_NONBLOCK(FSERV_CLOSE, fserv_close_srv),
+    LWMSG_DISPATCH_NONBLOCK(FSERV_OPEN_REQ, fserv_open_srv),
+    LWMSG_DISPATCH_NONBLOCK(FSERV_WRITE_REQ, fserv_write_srv),
+    LWMSG_DISPATCH_NONBLOCK(FSERV_READ_REQ, fserv_read_srv),
+    LWMSG_DISPATCH_NONBLOCK(FSERV_CLOSE_REQ, fserv_close_srv),
     LWMSG_DISPATCH_END
 };
 

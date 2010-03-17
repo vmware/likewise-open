@@ -206,7 +206,7 @@ typedef struct LWMsgType LWMsgType;
  * A callback function which converts a presented type to its transmitted form.
  * The transmitted_object parameter will point to a block of memory large enough
  * for the transmitted type.  Any resources allocated to construct the transmitted
- * object can be freed by the corresponding #LWMsgDestroyTransmittedFunction.
+ * object can be freed by the corresponding #LWMsgTypeDestroyTransmittedFunction.
  *
  * @param[in]  context the data context
  * @param[in]  type the type to marshal
@@ -233,7 +233,7 @@ typedef LWMsgStatus (*LWMsgTypeMarshalFunction) (
  * A callback function type which converts a transmitted type to its presented form.
  * The presented_object parameter will point to a block of memory large enough for
  * the presented type.  Any resources allocated to construct the presented object can
- * be freed by the corresponding #LWMsgDestroyPresentedFunction
+ * be freed by the corresponding #LWMsgTypeDestroyPresentedFunction
  *
  * @param[in]  context the data context
  * @param[in]  type the type to marshal
@@ -466,6 +466,7 @@ typedef enum LWMsgTypeDirective
  *
  * Specifies an empty (zero-length) type.  This is primarily useful
  * for indicating empty arms of a union.
+ * @hideinitializer
  */
 #define LWMSG_VOID \
     _TYPECMD(LWMSG_CMD_VOID)
@@ -1341,7 +1342,9 @@ lwmsg_type_get_custom_flags(
  * and must have the #LWMSG_TYPE_FLAG_RANGE flag
  * set.
  *
- * @param type the type
+ * @param[in] type the type
+ * @param[out] low the lowest allowed value
+ * @param[out] high the highest allowed value
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_PARAMETER, the type was not an integer or did not have a range set}

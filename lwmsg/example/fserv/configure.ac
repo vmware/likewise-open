@@ -28,8 +28,7 @@ AC_C_INLINE
 AC_HEADER_STDC
 
 AC_CHECK_HEADER([lwmsg/lwmsg.h],,[AC_MSG_ERROR([Could not find lwmsg headers])])
-AC_CHECK_LIB([lwmsg_nothr], [lwmsg_assoc_send], [LIB_LWMSG_NOTHR="-llwmsg_nothr"], [AC_MSG_ERROR([Could not find liblwmsg_nothr])])
-AC_CHECK_LIB([lwmsg], [lwmsg_server_start], [LIB_LWMSG="-llwmsg"], [AC_MSG_ERROR([Could not find liblwmsg])])
+AC_CHECK_LIB([lwmsg], [lwmsg_peer_new], [LIB_LWMSG="-llwmsg"], [AC_MSG_ERROR([Could not find liblwmsg])])
 
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile])
 

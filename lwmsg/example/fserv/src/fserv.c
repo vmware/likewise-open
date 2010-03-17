@@ -4,180 +4,147 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <pthread.h>
 
 static LWMsgProtocol* protocol = NULL;
+static LWMsgPeer* client = NULL;
+static pthread_once_t once = PTHREAD_ONCE_INIT;
+static LWMsgStatus volatile once_status = LWMSG_STATUS_SUCCESS;
+
+static
+void
+__fserv_construct(
+    void
+    )
+{
+    /* Create protocol structure */
+    once_status = lwmsg_protocol_new(NULL, &protocol);
+    if (once_status)
+    {
+        goto error;
+    }
+
+    /* Add protocol spec to protocol structure */
+    once_status = lwmsg_protocol_add_protocol_spec(protocol, fserv_get_protocol());
+    if (once_status)
+    {
+        goto error;
+    }
+
+    /* Create peer */
+    once_status = lwmsg_peer_new(NULL, protocol, &client);
+    if (once_status)
+    {
+        goto error;
+    }
+
+    /* Add connect endpoint */
+    once_status = lwmsg_peer_add_connect_endpoint(
+        client,
+        LWMSG_ENDPOINT_LOCAL,
+        FSERV_SOCKET_PATH);
+    if (once_status)
+    {
+        goto error;
+    }
+
+    /* Connect */
+    once_status = lwmsg_peer_connect(client);
+    if (once_status)
+    {
+        goto error;
+    }
+
+error:
+
+    return;
+}
+
+static
+LWMsgStatus
+fserv_construct(
+    void
+    )
+{
+    pthread_once(&once, __fserv_construct);
+
+    return once_status;
+}
 
 static
 void
 __attribute__((destructor))
-free_protocol(
+fserv_destruct(
     void
     )
 {
+    if (client)
+    {
+        /* Disconnect and delete */
+        lwmsg_peer_disconnect(client);
+        lwmsg_peer_delete(client);
+    }
+
     if (protocol)
     {
         lwmsg_protocol_delete(protocol);
     }
 }
 
-/* Connect to local fserv */
-int
-fserv_connect(
-    FServ** out_fserv
-    )
-{
-    int ret = 0;
-    FServ* fserv = NULL;
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    if (!protocol)
-    {
-        /* Create protocol object */
-        status = lwmsg_protocol_new(NULL, &protocol);
-        if (status)
-        {
-            ret = -1;
-            goto error;
-        }
-        /* Add protocol spec to protocol object */
-        status = lwmsg_protocol_add_protocol_spec(protocol, fserv_get_protocol());
-        if (status)
-        {
-            ret = -1;
-            goto error;
-        }
-    }
-
-    fserv = calloc(1, sizeof(*fserv));
-    if (!fserv)
-    {
-        ret = ENOMEM;
-        goto error;
-    }
-
-    /* Create connection object */
-    status = lwmsg_connection_new(NULL, protocol, &fserv->assoc);
-    if (status)
-    {
-        ret = -1;
-        goto error;
-    }
-
-    /* Set connection endpoint */
-    status = lwmsg_connection_set_endpoint(
-        fserv->assoc,
-        LWMSG_CONNECTION_MODE_LOCAL,
-        FSERV_SOCKET_PATH);
-    if (status)
-    {
-        ret = -1;
-        goto error;
-    }
-
-    /* Establish session */
-    status = lwmsg_assoc_establish(fserv->assoc);
-    if (status)
-    {
-        ret = -1;
-        goto error;
-    }
-
-    *out_fserv = fserv;
-
-done:
-
-    return ret;
-
-error:
-
-    if (fserv)
-    {
-        if (fserv->assoc)
-        {
-            lwmsg_assoc_delete(fserv->assoc);
-        }
-        free(fserv);
-    }
-
-    goto done;
-}
-
-/* Disconnect an fserv connection */
-int
-fserv_disconnect(
-    FServ* fserv
-    )
-{
-    int ret = 0;
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    /* Close association */
-    status = lwmsg_assoc_close(fserv->assoc);
-
-    if (status)
-    {
-        ret = -1;
-        goto error;
-    }
-
-error:
-
-    /* Delete association */
-    lwmsg_assoc_delete(fserv->assoc);
-    free(fserv);
-
-    return ret;
-}
-
 /* Open a file using an fserv connection */
 int
 fserv_open(
-    FServ* fserv,
     const char* path,
     FServMode mode,
-    FServFile** out_file
+    FServFile** file
     )
 {
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     OpenRequest request;
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
     FServFile* file = NULL;
 
-    /* Set up request parameters */
-    request.mode = mode;
-    request.path = (char*) path;   
-    request_msg.tag = FSERV_OPEN;
-    request_msg.data = &request;
-    
-    /* Send message and receive reply */
-    status = lwmsg_assoc_send_message_transact(fserv->assoc, &request_msg, &reply_msg);
+    status = fserv_construct();
     if (status)
     {
         ret = -1;
         goto error;
     }
 
-    switch (reply_msg.tag)
+    /* Acquire call */
+    status = lwmsg_peer_acquire_call(client, &call);
+    if (status)
     {
-    case FSERV_OPEN_SUCCESS:
-        /* Open succeeded -- create the client handle */
-        file = malloc(sizeof(*file));
-        if (!file)
-        {
-            ret = ENOMEM;
-            goto error;
-        }
+        ret = -1;
+        goto error;
+    }
 
-        file->fserv = fserv;
-        file->handle = (FileHandle*) reply_msg.data;
-        reply_msg.data = NULL;
-        *out_file = file;
+    /* Set up request parameters */
+    request.mode = mode;
+    request.path = (char*) path;   
+    in.tag = FSERV_OPEN_REQ;
+    in.data = &request;
+    
+    /* Make call */
+    status = lwmsg_call_dispatch(call, &in, &out, NULL, NULL);
+    if (status)
+    {
+        ret = -1;
+        goto error;
+    }
+
+    switch (out.tag)
+    {
+    case FSERV_OPEN_RES:
+        *file = out.data;
+        out.data = NULL;
         break;
-    case FSERV_OPEN_FAILED:
+    case FSERV_ERROR_RES:
         /* Open failed -- extract the error code */
-        ret = ((StatusReply*) reply_msg.data)->err;
+        ret = ((StatusReply*) out.data)->err;
         goto error;
     default:
         ret = EINVAL;
@@ -186,8 +153,12 @@ fserv_open(
 
 done:
 
-    /* Ask the association to free the reply */
-    lwmsg_assoc_destroy_message(fserv->assoc, &reply_msg);
+    if (call)
+    {
+        /* Clean up */
+        lwmsg_call_destroy_params(call, &out);
+        lwmsg_call_release(call);
+    }
 
     return ret;
 
@@ -214,34 +185,42 @@ fserv_read(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ReadRequest request;
     ReadReply* reply;
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
 
-    /* Set up request parameters */
-    request.handle = file->handle;
-    request.size = size;
-    request_msg.tag = FSERV_READ;
-    request_msg.data = &request;
-    
-    /* Send message and receive reply */
-    status = lwmsg_assoc_send_message_transact(file->fserv->assoc, &request_msg, &reply_msg);
+    status = lwmsg_peer_acquire_call(client, &call);
     if (status)
     {
         ret = -1;
         goto error;
     }
 
-    switch (reply_msg.tag)
+    /* Set up request parameters */
+    request.handle = file;
+    request.size = size;
+    in.tag = FSERV_READ_REQ;
+    in.data = &request;
+    
+    /* Send message and receive reply */
+    status = lwmsg_call_dispatch(call, &in, &out, NULL, NULL);
+    if (status)
     {
-    case FSERV_READ_SUCCESS:
+        ret = -1;
+        goto error;
+    }
+
+    switch (out.tag)
+    {
+    case FSERV_READ_RES:
         /* Read succeeded -- copy the data into the buffer */
-        reply = (ReadReply*) reply_msg.data;
+        reply = (ReadReply*) out.data;
         memcpy(buffer, reply->data, reply->size);
         *size_read = reply->size;
         break;
-    case FSERV_READ_FAILED:
+    case FSERV_ERROR_RES:
         /* Read failed -- extract the error code */
-        ret = ((StatusReply*) reply_msg.data)->err;
+        ret = ((StatusReply*) out.data)->err;
         goto error;
     default:
         ret = EINVAL;
@@ -250,8 +229,11 @@ fserv_read(
 
 done:
 
-    /* Ask the association to free the reply */
-    lwmsg_assoc_destroy_message(file->fserv->assoc, &reply_msg);
+    if (call)
+    {
+        lwmsg_call_destroy_params(call, &out);
+        lwmsg_call_release(call);
+    }
 
     return ret;
 
@@ -271,32 +253,40 @@ fserv_write(
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     WriteRequest request;
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgCall* call = NULL;
 
-    /* Set up request parameters */
-    request.handle = file->handle;   
-    request.size = size;
-    request.data = (char*) buffer;
-    request_msg.tag = FSERV_WRITE;
-    request_msg.data = &request;
-    
-    /* Send message and receive reply */
-    status = lwmsg_assoc_send_message_transact(file->fserv->assoc, &request_msg, &reply_msg);
+    status = lwmsg_peer_acquire_call(client, &call);
     if (status)
     {
         ret = -1;
         goto error;
     }
 
-    switch (reply_msg.tag)
+    /* Set up request parameters */
+    request.handle = file;
+    request.size = size;
+    request.data = (char*) buffer;
+    in.tag = FSERV_WRITE_REQ;
+    in.data = &request;
+    
+    /* Send message and receive reply */
+    status = lwmsg_call_dispatch(call, &in, &out, NULL, NULL);
+    if (status)
     {
-    case FSERV_WRITE_SUCCESS:
-        /* Write succeeded -- don't bother to look at reply message */
+        ret = -1;
+        goto error;
+    }
+
+    switch (out.tag)
+    {
+    case FSERV_VOID_RES:
+        /* Write succeeded */
         break;
-    case FSERV_WRITE_FAILED:
+    case FSERV_ERROR_RES:
         /* Write failed -- extract the error code */
-        ret = ((StatusReply*) reply_msg.data)->err;
+        ret = ((StatusReply*) out.data)->err;
         goto error;
     default:
         ret = EINVAL;
@@ -305,8 +295,11 @@ fserv_write(
 
 done:
 
-    /* Ask the association to free the reply */
-    lwmsg_assoc_destroy_message(file->fserv->assoc, &reply_msg);
+    if (call)
+    {
+        lwmsg_call_destroy_params(call, &out);
+        lwmsg_call_release(call);
+    }
 
     return ret;
 
@@ -323,35 +316,45 @@ fserv_close(
 {
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
-    LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
+    LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
+    LWMsgSession* session = NULL;
+    LWMsgCall* call = NULL;
 
-    request_msg.tag = FSERV_CLOSE;
-    request_msg.data = file->handle;
-
-    /* Send message and receive reply */
-    status = lwmsg_assoc_send_message_transact(file->fserv->assoc, &request_msg, &reply_msg);
+    status = lwmsg_peer_acquire_call(client, &call);
     if (status)
     {
         ret = -1;
         goto error;
     }
 
-    switch (reply_msg.tag)
+    session = lwmsg_call_get_session(call);
+
+    in.tag = FSERV_CLOSE_REQ;
+    in.data = file;
+
+    /* Send message and receive reply */
+    status = lwmsg_call_dispatch(call, &in, &out, NULL, NULL);
+    if (status)
     {
-    case FSERV_CLOSE_SUCCESS:
-        /* Release the handle */
-        status = lwmsg_assoc_release_handle(file->fserv->assoc, file->handle);
+        ret = -1;
+        goto error;
+    }
+
+    switch (out.tag)
+    {
+    case FSERV_VOID_RES:
+        /* Unregister the handle */
+        status = lwmsg_session_unregister_handle(session, file);
         if (status)
         {
             ret = -1;
             goto error;
         }
-        file->handle = NULL;
         break;
-    case FSERV_CLOSE_FAILED:
+    case FSERV_ERROR_RES:
         /* In either case, extract the status code and get out of here */
-        ret = ((StatusReply*) reply_msg.data)->err;
+        ret = ((StatusReply*) out.data)->err;
         if (ret)
         {
             goto error;
@@ -364,11 +367,11 @@ fserv_close(
 
 error:
 
-    /* Ask the association to free the reply */
-    lwmsg_assoc_destroy_message(file->fserv->assoc, &reply_msg);
-
-    /* Always free the file, even if there was a problem */
-    free(file);
+    if (call)
+    {
+        lwmsg_call_destroy_params(call, &out);
+        lwmsg_call_release(call);
+    }
 
     return ret;
 }

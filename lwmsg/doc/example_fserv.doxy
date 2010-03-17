@@ -40,18 +40,16 @@
 @page example_fserv Fserv -- Simple File Server
 
 @section Overview
-<tt>Fserv</tt> is a simple example program which demonstrates how to
-use <tt>LWMsg</tt> to implement a naive file server.  It provides good
-coverage of most of <tt>LWMsg</tt>'s features:
+<tt>Fserv</tt> is a simple example which demonstrates how to
+use <tt>LWMsg</tt> to implement a file server daemon and client
+API that supports open/read/write/close operations.  It provides
+good coverage of most of <tt>LWMsg</tt>'s features:
 
-- Basic marshaller type specification
+- Type specification
 - Authentication using security tokens
-- Handles
-- Sending and receiving messages with the non-threaded association API
-- Handling messages with the threaded server API
-
-The provided build scripts also demonstrate a reasonable approach
-to structuring and building an <tt>LWMsg</tt>-based project.
+- Opaque handles
+- Implementing a multi-threaded server
+- Implementing a multi-threaded client API
 
 Fserv is available in the <tt>LWMsg</tt> source distribution in the
 <tt>example/fserv</tt> subdirectory.

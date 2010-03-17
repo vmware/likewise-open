@@ -38,10 +38,9 @@
 /**
 @page arch Architecture Guide
 
-This guide details aspects of <tt>LWMsg</tt>'s architecture 
-that are relevant to interoperability and compatibility between
-different versions or other implementations.  It is divided into
-several sections:
+This guide details the organizing principles and architecture of
+of <tt>LWMsg</tt>.  Consult one of the following sections for details:
+
 -# @subpage arch_rep
 -# @subpage arch_sess
 

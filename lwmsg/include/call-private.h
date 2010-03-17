@@ -57,6 +57,7 @@
 /*@{*/
 
 /**
+ * @internal
  * @brief Call handle vtable
  *
  * Virtual function table for #LWMsgCall structures.
@@ -166,6 +167,7 @@ typedef struct LWMsgCallClass
 } LWMsgCallClass;
 
 /**
+ * @internal
  * @brief Call handle representation
  *
  * The internal representation of a call handle.  To implement
@@ -184,6 +186,7 @@ struct LWMsgCall
 };
 
 /**
+ * @internal
  * @brief Cast to call handle
  *
  * Convenience macro to cast to #LWMsgCall *

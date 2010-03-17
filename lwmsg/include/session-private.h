@@ -55,6 +55,7 @@
 /*@{*/
 
 /**
+ * @internal
  * @brief Session manager function table structure
  *
  * This structure contains the implementation of a session manager.
