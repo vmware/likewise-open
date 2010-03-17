@@ -645,7 +645,7 @@ EXCLUDE_SYMBOLS        =
 
 EXAMPLE_PATH           = @top_srcdir@/example/fserv/include/protocol.h \
                          @top_srcdir@/example/fserv/src/protocol.c \
-                         @top_srcdir@/example/fserv/src/fserv.c
+                         @top_srcdir@/example/fserv/src/fserv-client.c
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp

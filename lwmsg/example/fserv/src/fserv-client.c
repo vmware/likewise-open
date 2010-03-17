@@ -124,10 +124,10 @@ fserv_open(
 
     /* Set up request parameters */
     request.mode = mode;
-    request.path = (char*) path;   
+    request.path = (char*) path;
     in.tag = FSERV_OPEN_REQ;
     in.data = &request;
-    
+
     /* Make call */
     status = lwmsg_call_dispatch(call, &in, &out, NULL, NULL);
     if (status)
@@ -201,7 +201,7 @@ fserv_read(
     request.size = size;
     in.tag = FSERV_READ_REQ;
     in.data = &request;
-    
+
     /* Send message and receive reply */
     status = lwmsg_call_dispatch(call, &in, &out, NULL, NULL);
     if (status)
@@ -238,7 +238,7 @@ done:
     return ret;
 
 error:
-    
+
     goto done;
 }
 
@@ -270,7 +270,7 @@ fserv_write(
     request.data = (char*) buffer;
     in.tag = FSERV_WRITE_REQ;
     in.data = &request;
-    
+
     /* Send message and receive reply */
     status = lwmsg_call_dispatch(call, &in, &out, NULL, NULL);
     if (status)

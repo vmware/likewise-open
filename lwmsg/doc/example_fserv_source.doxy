@@ -119,7 +119,7 @@ type of each message.
 
 @section c Client
 
-The client API implementation is contained in <tt>src/fserv.c</tt>.
+The client API implementation is contained in <tt>src/fserv-client.c</tt>.
 It abstracts away the details of creating connections and exchanging
 messages in order to perform Fserv operations.
 
@@ -136,7 +136,7 @@ structure which describes the protocol the peer node will speak.
 A protocol structure allows one or more protocol specifications
 to be combined together.  First, the structure is created:
 
-@dontinclude fserv/src/fserv.c
+@dontinclude fserv/src/fserv-client.c
 @skip Create protocol structure
 @until ;
 

@@ -10,7 +10,7 @@ libfservcommon_la_SOURCES = protocol.c
 libfservcommon_la_CPPFLAGS = $(AM_CPPFLAGS) $(LWMSG_CPPFLAGS)
 libfservcommon_la_LIBADD = $(LIB_LWMSG)
 
-libfservclient_la_SOURCES = fserv.c
+libfservclient_la_SOURCES = fserv-client.c
 libfservclient_la_CPPFLAGS = $(AM_CPPFLAGS) $(LWMSG_CPPFLAGS)
 libfservclient_la_LIBADD = libfservcommon.la
 
