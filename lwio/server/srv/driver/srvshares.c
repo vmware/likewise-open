@@ -494,6 +494,7 @@ SrvShareDevCtlGetInfo(
     SHARE_INFO_GETINFO_PARAMS GetShareInfoParamsOut;
     PWSTR pwszShareName = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
+    BOOLEAN         bInLock = FALSE;
     PSHARE_INFO_0 p0 = NULL;
     PSHARE_INFO_1 p1 = NULL;
     PSHARE_INFO_2 p2 = NULL;
@@ -518,6 +519,8 @@ SrvShareDevCtlGetInfo(
                         pwszShareName,
                         &pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
     switch (ulLevel)
     {
@@ -646,6 +649,8 @@ SrvShareDevCtlGetInfo(
     *pulBytesTransferred = ulBufferSize;
 
 cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
     if (pShareInfo) {
         SrvShareReleaseInfo(pShareInfo);
