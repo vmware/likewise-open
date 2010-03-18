@@ -381,7 +381,7 @@ LwIoReadConfigBoolean(
                 0,
                 -1,
                 &dwValue);
-    BAIL_ON_LWIO_ERROR(ntStatus);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *pbValue = dwValue ? TRUE : FALSE;
 
