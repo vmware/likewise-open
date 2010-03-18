@@ -126,6 +126,8 @@ typedef struct PeerAssocTask
     LWMsgSession* session;
     LWMsgHashTable incoming_calls;
     LWMsgHashTable outgoing_calls;
+    LWMsgRing active_incoming_calls;
+    LWMsgRing active_outgoing_calls;
     LWMsgMessage incoming_message;
     LWMsgMessage outgoing_message;
     unsigned incoming:1;
