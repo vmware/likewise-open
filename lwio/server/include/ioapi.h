@@ -179,14 +179,9 @@ IoGetZctSupportMaskFile(
 ///    (i.e., if the ZCT passed in was not empty).  This should
 ///    match IoStatusBlock->BytesTransferred.
 ///
-/// @param[out] IsPartial - set to TRUE if the ZCT length returned is
-///    less than what is actually available in the file.  This allows
-///    the FSD to do a ZCT operation to get partial result but indicating
-///    to the caller to come back for more (presumably using a normal read).
-///
 /// @retval STATUS_SUCCESS
 /// @retval STATUS_PENDING
-/// @retval STATUS_MORE_PROCESSING_REQUIRED (or STATUS_RETRY?) -
+/// @retval STATUS_NOT_SUPPORTED (or STATUS_RETRY?) -
 ///    try again as regular read.
 ///
 NTSTATUS
@@ -199,8 +194,7 @@ IoPrepareZctReadFile(
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key,
-    OUT PVOID* CompletionContext,
-    OUT PBOOLEAN IsPartial
+    OUT PVOID* CompletionContext
     );
 
 ///
@@ -225,7 +219,7 @@ IoCompleteZctReadFile(
 ///
 /// @retval STATUS_SUCCESS
 /// @retval STATUS_PENDING
-/// @retval STATUS_MORE_PROCESSING_REQUIRED (or STATUS_RETRY?) -
+/// @retval STATUS_NOT_SUPPORTED (or STATUS_RETRY?) -
 ///    try again as regular write.
 ///
 NTSTATUS

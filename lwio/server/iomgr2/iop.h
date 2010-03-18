@@ -351,8 +351,7 @@ VOID
 IopIrpSetOutputPrepareZctReadWrite(
     IN OUT PIRP pIrp,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    IN PVOID* pCompletionContext,
-    IN OPTIONAL PBOOLEAN pIsPartial
+    IN PVOID* pCompletionContext
     );
 
 NTSTATUS

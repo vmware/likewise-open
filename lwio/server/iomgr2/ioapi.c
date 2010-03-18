@@ -427,8 +427,7 @@ IopPrepareZctReadWriteFile(
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key,
-    OUT PVOID* CompletionContext,
-    OUT OPTIONAL PBOOLEAN IsPartial
+    OUT PVOID* CompletionContext
     )
 {
     NTSTATUS status = 0;
@@ -439,19 +438,8 @@ IopPrepareZctReadWriteFile(
     IRP_TYPE irpType = bIsWrite ? IRP_TYPE_WRITE : IRP_TYPE_READ;
     LW_ZCT_ENTRY_MASK mask = 0;
     PVOID completionContext = NULL;
-    BOOLEAN isPartial = FALSE;
 
     if (!FileHandle || !IoStatusBlock || !Zct)
-    {
-        status = STATUS_INVALID_PARAMETER;
-        GOTO_CLEANUP_EE(EE);
-    }
-
-    //
-    // IsPartial is only for reads.
-    //
-
-    if (IS_BOTH_OR_NEITHER(bIsWrite, IsPartial))
     {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_EE(EE);
@@ -492,8 +480,7 @@ IopPrepareZctReadWriteFile(
     IopIrpSetOutputPrepareZctReadWrite(
             pIrp,
             AsyncControlBlock,
-            CompletionContext,
-            IsPartial);
+            CompletionContext);
     status = IopIrpDispatch(
                     pIrp,
                     AsyncControlBlock,
@@ -504,7 +491,6 @@ IopPrepareZctReadWriteFile(
         LWIO_ASSERT(ioStatusBlock.BytesTransferred <= Length);
         completionContext = pIrp->Args.ReadWrite.ZctCompletionContext;
         LWIO_ASSERT(completionContext);
-        isPartial = pIrp->Args.ReadWrite.ZctIsPartial;
     }
 
 cleanup:
@@ -514,10 +500,6 @@ cleanup:
     {
         *IoStatusBlock = ioStatusBlock;
         *CompletionContext = completionContext;
-        if (IsPartial)
-        {
-            *IsPartial = isPartial;
-        }
     }
 
     LOG_LEAVE_IF_STATUS_EE_EX(status, EE, "op = %s", bIsWrite ? "Write" : "Read");
@@ -598,8 +580,7 @@ IoPrepareZctReadFile(
     IN ULONG Length,
     IN OPTIONAL PLONG64 ByteOffset,
     IN OPTIONAL PULONG Key,
-    OUT PVOID* CompletionContext,
-    OUT PBOOLEAN IsPartial
+    OUT PVOID* CompletionContext
     )
 {
     return IopPrepareZctReadWriteFile(
@@ -612,8 +593,7 @@ IoPrepareZctReadFile(
                 Length,
                 ByteOffset,
                 Key,
-                CompletionContext,
-                IsPartial);
+                CompletionContext);
 }
 
 NTSTATUS
@@ -658,8 +638,7 @@ IoPrepareZctWriteFile(
                 Length,
                 ByteOffset,
                 Key,
-                CompletionContext,
-                NULL);
+                CompletionContext);
 }
 
 NTSTATUS

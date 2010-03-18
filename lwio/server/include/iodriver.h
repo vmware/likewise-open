@@ -132,7 +132,6 @@ typedef struct _IRP_ARGS_READ_WRITE {
     IN BOOLEAN IsPagingIo;
     // For ZCT read/write
     IN IRP_ZCT_OPERATION ZctOperation;
-    OUT BOOLEAN ZctIsPartial;
     IN OUT PVOID ZctCompletionContext;
     IN ULONG ZctWriteBytesTransferred;
     // Storage area for optional parameters
