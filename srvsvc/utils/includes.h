@@ -11,7 +11,6 @@
 #include <lwrpc/unicodestring.h>
 
 #include <srvsvc/srvsvc.h>
-#include <srvsvc/srvsvcdefs.h>
 
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>

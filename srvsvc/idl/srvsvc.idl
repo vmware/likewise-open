@@ -28,8 +28,7 @@ interface srvsvc
 {
 cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
-#include <lwrpc/types.h>
-#include <srvsvc/srvsvcdefs.h>
+#include <srvsvc/srvsvc.h>
 
 cpp_quote("#ifndef __SRVSVC_IDL__")
 cpp_quote("#define __SRVSVC_IDL__")
