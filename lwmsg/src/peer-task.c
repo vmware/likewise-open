@@ -319,16 +319,28 @@ lwmsg_peer_task_delete(
     PeerAssocTask* task
     )
 {
-    LWMsgRing* ring = NULL;
-    LWMsgRing* next = NULL;
+    LWMsgHashIter iter = {0};
     PeerCall* call = NULL;
 
-    for (ring = task->calls.next; ring != &task->calls; ring = next)
+    lwmsg_hash_iter_begin(&task->incoming_calls, &iter);
+    while ((call = lwmsg_hash_iter_next(&task->incoming_calls, &iter)))
     {
-        next = ring->next;
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
+        lwmsg_hash_remove_entry(&task->incoming_calls, call);
         lwmsg_peer_call_delete(call);
     }
+    lwmsg_hash_iter_end(&task->incoming_calls, &iter);
+
+    lwmsg_hash_destroy(&task->incoming_calls);
+
+    lwmsg_hash_iter_begin(&task->outgoing_calls, &iter);
+    while ((call = lwmsg_hash_iter_next(&task->outgoing_calls, &iter)))
+    {
+        lwmsg_hash_remove_entry(&task->outgoing_calls, call);
+        lwmsg_peer_call_delete(call);
+    }
+    lwmsg_hash_iter_end(&task->outgoing_calls, &iter);
+
+    lwmsg_hash_destroy(&task->outgoing_calls);
 
     if (task->assoc)
     {
@@ -390,6 +402,34 @@ lwmsg_peer_task_ref(
     lwmsg_peer_unlock(task->peer);
 }
 
+static
+void*
+lwmsg_peer_call_get_key(
+    const void* entry
+    )
+{
+    return &((PeerCall*) entry)->cookie;
+}
+
+static
+size_t
+lwmsg_peer_call_digest(
+    const void* key
+    )
+{
+    return (size_t) *(LWMsgCookie*) key;
+}
+
+static
+LWMsgBool
+lwmsg_peer_call_equal(
+    const void* key1,
+    const void* key2
+    )
+{
+    return *((const LWMsgCookie*) key1) == *((const LWMsgCookie*) key2);
+}
+
 LWMsgStatus
 lwmsg_peer_assoc_task_new(
     LWMsgPeer* peer,
@@ -426,7 +466,22 @@ lwmsg_peer_assoc_task_new(
     my_task->type = type;
     my_task->refcount = 2;
 
-    lwmsg_ring_init(&my_task->calls);
+    BAIL_ON_ERROR(status = lwmsg_hash_init(
+                      &my_task->incoming_calls,
+                      31,
+                      lwmsg_peer_call_get_key,
+                      lwmsg_peer_call_digest,
+                      lwmsg_peer_call_equal,
+                      offsetof(PeerCall, ring)));
+
+    BAIL_ON_ERROR(status = lwmsg_hash_init(
+                      &my_task->outgoing_calls,
+                      31,
+                      lwmsg_peer_call_get_key,
+                      lwmsg_peer_call_digest,
+                      lwmsg_peer_call_equal,
+                      offsetof(PeerCall, ring)));
+
     lwmsg_message_init(&my_task->incoming_message);
     lwmsg_message_init(&my_task->outgoing_message);
 
@@ -722,7 +777,8 @@ lwmsg_peer_task_subject_to_timeout(
         handle_count = lwmsg_session_get_handle_count(task->session);
         num_clients = lwmsg_peer_get_num_clients(peer);
 
-        return handle_count == 0 && num_clients == peer->max_clients && lwmsg_ring_is_empty(&task->calls);
+        return handle_count == 0 && num_clients == peer->max_clients &&
+            lwmsg_hash_get_count(&task->incoming_calls) == 0;
     }
     else
     {
@@ -1028,48 +1084,49 @@ lwmsg_peer_task_rundown(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    LWMsgRing* ring = NULL;
-    LWMsgRing* next = NULL;
+    LWMsgHashIter iter = {0};
     PeerCall* call = NULL;
     LWMsgMessage cancel = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     pthread_mutex_lock(&task->call_lock);
 
-    for (ring = task->calls.next; ring != &task->calls; ring = next)
+    lwmsg_hash_iter_begin(&task->incoming_calls, &iter);
+    while ((call = lwmsg_hash_iter_next(&task->incoming_calls, &iter)))
     {
-        next = ring->next;
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
-
-        if (!call->is_outgoing && call->state & PEER_CALL_COMPLETED)
+        if (call->state & PEER_CALL_COMPLETED)
         {
             message.tag = call->params.incoming.out.tag;
             message.data = call->params.incoming.out.data;
             lwmsg_assoc_destroy_message(task->assoc, &message);
+            lwmsg_hash_remove_entry(&task->incoming_calls, call);
             lwmsg_peer_call_delete(call);
         }
-        else if (!(call->state & PEER_CALL_COMPLETED))
+        else if (!(call->state & PEER_CALL_CANCELLED))
         {
-            if (call->is_outgoing)
-            {
-                if (task->status)
-                {
-                    cancel.status = task->status;
-                }
-                else
-                {
-                    cancel.status = LWMSG_STATUS_CANCELLED;
-                }
-                lwmsg_peer_call_complete_outgoing(call, &cancel);
-            }
-            else if (!(call->state & PEER_CALL_CANCELLED))
-            {
-                lwmsg_peer_call_cancel_incoming(call);
-            }
+            lwmsg_peer_call_cancel_incoming(call);
         }
     }
+    lwmsg_hash_iter_end(&task->incoming_calls, &iter);
 
-    if (!lwmsg_ring_is_empty(&task->calls))
+    lwmsg_hash_iter_begin(&task->outgoing_calls, &iter);
+    while ((call = lwmsg_hash_iter_next(&task->outgoing_calls, &iter)))
+    {
+        if (task->status)
+        {
+            cancel.status = task->status;
+        }
+        else
+        {
+            cancel.status = LWMSG_STATUS_CANCELLED;
+        }
+        lwmsg_hash_remove_entry(&task->outgoing_calls, call);
+        lwmsg_peer_call_complete_outgoing(call, &cancel);
+    }
+    lwmsg_hash_iter_end(&task->outgoing_calls, &iter);
+
+    if (lwmsg_hash_get_count(&task->incoming_calls) != 0 ||
+        lwmsg_hash_get_count(&task->outgoing_calls) != 0)
     {
         *next_trigger = LWMSG_TASK_TRIGGER_EXPLICIT;
         BAIL_ON_ERROR(status = LWMSG_STATUS_PENDING);
@@ -1143,19 +1200,14 @@ lwmsg_peer_task_cancel_call(
     LWMsgCookie cookie
     )
 {
-    LWMsgRing* ring = NULL;
     PeerCall* call = NULL;
 
-    for (ring = task->calls.next; ring != &task->calls; ring = ring->next)
-    {
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
+    call = lwmsg_hash_find_key(&task->incoming_calls, &cookie);
 
-        if (call->cookie == cookie && !call->is_outgoing)
-        {
-            lwmsg_peer_log_message(task->peer, task->assoc, &task->incoming_message, LWMSG_FALSE);
-            lwmsg_peer_call_cancel_incoming(call);
-            break;
-        }
+    if (call)
+    {
+        lwmsg_peer_log_message(task->peer, task->assoc, &task->incoming_message, LWMSG_FALSE);
+        lwmsg_peer_call_cancel_incoming(call);
     }
 }
 
@@ -1166,20 +1218,15 @@ lwmsg_peer_task_complete_call(
     LWMsgCookie cookie
     )
 {
-    LWMsgRing* ring = NULL;
     PeerCall* call = NULL;
 
-    for (ring = task->calls.next; ring != &task->calls; ring = ring->next)
-    {
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
+    call = lwmsg_hash_find_key(&task->outgoing_calls, &cookie);
 
-        if (call->cookie == cookie && call->is_outgoing)
-        {
-            lwmsg_ring_remove(&call->ring);
-            lwmsg_peer_log_message(task->peer, task->assoc, &task->incoming_message, LWMSG_TRUE);
-            lwmsg_peer_call_complete_outgoing(call, &task->incoming_message);
-            break;
-        }
+    if (call)
+    {
+        lwmsg_hash_remove_entry(&task->outgoing_calls, call);
+        lwmsg_peer_log_message(task->peer, task->assoc, &task->incoming_message, LWMSG_TRUE);
+        lwmsg_peer_call_complete_outgoing(call, &task->incoming_message);
     }
 }
 
@@ -1195,16 +1242,20 @@ lwmsg_peer_task_dispatch_incoming_message(
     LWMsgPeer* peer = task->peer;
     PeerCall* call = NULL;
 
+    /* If the incoming message is a reply to one of our calls,
+       find it and complete it */
     if (task->incoming_message.flags & LWMSG_MESSAGE_FLAG_REPLY)
     {
         lwmsg_peer_task_complete_call(task, task->incoming_message.cookie);
         goto error;
     }
+    /* If the incoming message is a control message... */
     else if (task->incoming_message.flags & LWMSG_MESSAGE_FLAG_CONTROL)
     {
         switch (task->incoming_message.status)
         {
         case LWMSG_STATUS_CANCELLED:
+            /* The caller cancelled a previous call, so find it and cancel it here as well */
             lwmsg_peer_task_cancel_call(task, task->incoming_message.cookie);
             lwmsg_assoc_destroy_message(task->assoc, &task->incoming_message);
             goto error;
@@ -1217,10 +1268,29 @@ lwmsg_peer_task_dispatch_incoming_message(
 
     lwmsg_peer_log_message(peer, task->assoc, &task->incoming_message, LWMSG_FALSE);
 
-    BAIL_ON_ERROR(status = lwmsg_peer_call_new(task, &call));
-    lwmsg_peer_task_ref(task);
-    lwmsg_ring_enqueue(&task->calls, &call->ring);
+    /* Check if this cookie is already in use */
+    if (lwmsg_hash_find_key(&task->incoming_calls, &task->incoming_message.cookie))
+    {
+        /* This association is toast */
+        status = lwmsg_peer_task_handle_assoc_error(
+            peer,
+            task,
+            LWMSG_STATUS_MALFORMED);
+        lwmsg_assoc_destroy_message(task->assoc, &task->incoming_message);
+        goto error;
+    }
 
+    /* Create a call structure to track call */
+    BAIL_ON_ERROR(status = lwmsg_peer_call_new(task, &call));
+    /* The call structure holds a reference to the task */
+    lwmsg_peer_task_ref(task);
+
+    /* Set cookie and insert into incoming call table */
+    call->cookie = task->incoming_message.cookie;
+    lwmsg_hash_insert_entry(&task->incoming_calls, call);
+
+    /* If the incoming message is synthetic for some bizarre reason,
+       just echo back the status code to the caller */
     if (task->incoming_message.flags & LWMSG_MESSAGE_FLAG_SYNTHETIC)
     {
         status = lwmsg_peer_task_handle_call_error(
@@ -1231,6 +1301,7 @@ lwmsg_peer_task_dispatch_incoming_message(
         goto error;
     }
 
+    /* Make sure the tag is within the bounds of the dispatch vector */
     if (tag < 0 || tag >= peer->dispatch.vector_length)
     {
         status = lwmsg_peer_task_handle_call_error(
@@ -1241,6 +1312,7 @@ lwmsg_peer_task_dispatch_incoming_message(
         goto error;
     }
 
+    /* Make sure the call is supported */
     spec = peer->dispatch.vector[tag];
     if (spec == NULL)
     {
@@ -1252,6 +1324,7 @@ lwmsg_peer_task_dispatch_incoming_message(
         goto error;
     }
 
+    /* Dispatch the call */
     status = lwmsg_peer_call_dispatch_incoming(
         call,
         spec,
@@ -1419,19 +1492,16 @@ lwmsg_peer_task_dispatch_calls(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_PENDING;
-    LWMsgRing* ring = NULL;
-    LWMsgRing* next = NULL;
     PeerCall* call = NULL;
     LWMsgCookie cookie = 0;
     LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgHashIter iter = {0};
 
-    for (ring = task->calls.next; !task->outgoing && ring != &task->calls; ring = next)
+    lwmsg_hash_iter_begin(&task->outgoing_calls, &iter);
+    while ((call = lwmsg_hash_iter_next(&task->outgoing_calls, &iter)))
     {
-        next = ring->next;
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
-
         /* Undispatched outgoing call -- send request */
-        if (call->is_outgoing && !call->state & PEER_CALL_DISPATCHED)
+        if (!(call->state & PEER_CALL_DISPATCHED))
         {
             call->state |= PEER_CALL_DISPATCHED;
 
@@ -1455,9 +1525,8 @@ lwmsg_peer_task_dispatch_calls(
             }
         }
         /* Cancelled outgoing call -- send cancel request */
-        else if (call->is_outgoing &&
-                 call->state & PEER_CALL_DISPATCHED &&
-                 call->state & PEER_CALL_CANCELLED &&
+        else if ((call->state & PEER_CALL_DISPATCHED) &&
+                 (call->state & PEER_CALL_CANCELLED) &&
                  call->status != LWMSG_STATUS_CANCELLED)
         {
             call->status = LWMSG_STATUS_CANCELLED;
@@ -1480,9 +1549,15 @@ lwmsg_peer_task_dispatch_calls(
                 BAIL_ON_ERROR(status);
             }
         }
+    }
+    lwmsg_hash_iter_end(&task->outgoing_calls, &iter);
+
+    lwmsg_hash_iter_begin(&task->incoming_calls, &iter);
+    while ((call = lwmsg_hash_iter_next(&task->incoming_calls, &iter)))
+    {
         /* Completed incoming call -- send reply */
-        else if (call->state & PEER_CALL_COMPLETED &&
-                 call->state & PEER_CALL_DISPATCHED)
+        if ((call->state & PEER_CALL_COMPLETED) &&
+            (call->state & PEER_CALL_DISPATCHED))
         {
             lwmsg_message_init(&task->outgoing_message);
             task->outgoing_message.flags = LWMSG_MESSAGE_FLAG_REPLY;
@@ -1498,7 +1573,8 @@ lwmsg_peer_task_dispatch_calls(
             message.data = call->params.incoming.in.data;
             lwmsg_assoc_destroy_message(task->assoc, &message);
 
-            lwmsg_ring_remove(&call->ring);
+            /* Delete the call structure */
+            lwmsg_hash_remove_entry(&task->incoming_calls, call);
             lwmsg_peer_call_delete(call);
 
             do
@@ -1518,8 +1594,9 @@ lwmsg_peer_task_dispatch_calls(
                 case LWMSG_STATUS_INVALID_HANDLE:
                 case LWMSG_STATUS_OVERFLOW:
                 case LWMSG_STATUS_UNDERFLOW:
-                    /* Our reply itself was unsendable, so send a synthetic reply
-                       instead so the caller at least knows the call is complete */
+                    /* Our reply could not be sent because the dispatch function gave us
+                       bogus response parameters.  Send a synthetic reply instead so the
+                       caller at least knows the call is complete */
                     LWMSG_LOG_WARNING(task->peer->context,
                                       "(assoc:0x%lx >> %u) Response payload could not be sent: %s",
                                       LWMSG_POINTER_AS_ULONG(task->assoc),
@@ -1538,6 +1615,7 @@ lwmsg_peer_task_dispatch_calls(
             } while (status == LWMSG_STATUS_AGAIN);
         }
     }
+    lwmsg_hash_iter_end(&task->incoming_calls, &iter);
 
 error:
 
