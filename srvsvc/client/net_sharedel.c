@@ -42,10 +42,7 @@ NetShareDel(
     PSRVSVC_CONTEXT pContext = NULL;
     PSTR pszServername = NULL;
 
-    if (!pwszSharename)
-    {
-        err = ERROR_INVALID_PARAMETER;
-    }
+    BAIL_ON_INVALID_PTR(pwszSharename, err);
 
     if (pwszServername)
     {
