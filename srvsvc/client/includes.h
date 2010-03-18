@@ -49,7 +49,7 @@
 #include <lwio/io-types.h>
 #include <lwmem.h>
 
-#include <srvsvc/srvsvc.h>
+#include <lw/srvsvc.h>
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>
 #include <memptr.h>

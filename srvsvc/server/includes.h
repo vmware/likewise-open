@@ -56,9 +56,10 @@
 #include <lwrpc/lsa.h>
 #include <lwnet.h>
 
-#include <srvsvc/srvsvc.h>
-#include <srvsvc/winreg.h>
-#include <srvsvc/wkssvc.h>
+#include <lw/srvsvc.h>
+#include <lw/winreg.h>
+#include <lw/wkssvc.h>
+
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>
 

@@ -48,7 +48,7 @@
 #include "config.h"
 #include "srvsvcsys.h"
 
-#include "srvsvc/srvsvc.h"
+#include "lw/srvsvc.h"
 
 #include "srvsvcdefs.h"
 #include "srvsvcutils.h"

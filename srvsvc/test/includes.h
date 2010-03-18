@@ -17,7 +17,7 @@
 #include <lwstr.h>
 #include <lwio/lwio.h>
 
-#include <srvsvc/srvsvc.h>
+#include <lw/srvsvc.h>
 #include <lwrpc/LMcreds.h>
 
 #include "../client/srvsvc_util.h"

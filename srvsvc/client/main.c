@@ -39,7 +39,7 @@
 
 #include <lw/base.h>
 #include <lw/security-api.h>
-#include <srvsvc/srvsvc.h>
+#include <lw/srvsvc.h>
 #include <lsa/lsa.h>
 #include <lwerror.h>
 #include <lwmem.h>

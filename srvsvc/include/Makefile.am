@@ -1,8 +1,8 @@
-srvsvcincludedir = $(includedir)/srvsvc
+srvsvcincludedir = $(includedir)/lw
 
 srvsvcinclude_HEADERS =     \
-    srvsvc/srvsvc.h         \
-    srvsvc/winreg.h         \
-    srvsvc/wkssvc.h
+    lw/srvsvc.h         \
+    lw/winreg.h         \
+    lw/wkssvc.h
 
 noinst_HEADERS =
