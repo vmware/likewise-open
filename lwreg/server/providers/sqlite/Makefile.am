@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libregserver_provider_sqlite.la
+noinst_LTLIBRARIES = libregserver_provider_sqlite.la
 
 PROVIDER_CPPFLAGS = @SQLITE_INCLUDES@
 PROVIDER_LIBS = @SQLITE_LIBS@
