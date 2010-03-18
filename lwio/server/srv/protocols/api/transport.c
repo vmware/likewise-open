@@ -922,10 +922,20 @@ SrvProtocolTransportDriverCheckSignature(
                 break;
 
             case SMB_PROTOCOL_VERSION_2:
-                ntStatus = SMB2PacketVerifySignature(
-                                pContext->pSmbRequest,
-                                pConnection->pSessionKey,
-                                pConnection->ulSessionKeyLength);
+                // Allow CANCEL and ECHO requests to be unsigned
+                if (SMB2PacketIsSigned(pContext->pSmbRequest))
+                {
+                    ntStatus = SMB2PacketVerifySignature(
+                        pContext->pSmbRequest,
+                        pConnection->pSessionKey,
+                        pConnection->ulSessionKeyLength);
+                }
+                else if (pContext->pSmbRequest->pSMB2Header->command != COM2_CANCEL &&
+                         pContext->pSmbRequest->pSMB2Header->command != COM2_ECHO)
+                {
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
 
                 break;
 
