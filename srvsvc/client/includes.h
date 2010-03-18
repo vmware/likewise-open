@@ -57,6 +57,7 @@
 #include <srvsvclog_r.h>
 
 #include "defs.h"
+#include "structs.h"
 
 #include "srvsvc_h.h"
 

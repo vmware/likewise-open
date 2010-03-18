@@ -31,7 +31,7 @@
 #include "includes.h"
 
 NET_API_STATUS NetServerSetInfo(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 level,
     UINT8 *bufptr,
@@ -41,7 +41,8 @@ NET_API_STATUS NetServerSetInfo(
     NET_API_STATUS status = ERROR_SUCCESS;
     srvsvc_NetSrvInfo info;
 
-    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
 
     memset(&info, 0, sizeof(info));
 
@@ -226,8 +227,12 @@ NET_API_STATUS NetServerSetInfo(
     }
 
     DCERPC_CALL(status,
-                _NetrServerSetInfo(b, (wchar16_t *)servername,
-                                   level, info, parm_err));
+                _NetrServerSetInfo(
+                        pContext->hBinding,
+                        (wchar16_t *)servername,
+                        level,
+                        info,
+                        parm_err));
 
 cleanup:
     return status;

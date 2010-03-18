@@ -48,7 +48,6 @@
 #define _SRVSVC_H_
 
 #include <lwrpc/types.h>
-#include <srvsvc/srvsvcbinding.h>
 #include <srvsvc/srvsvcdefs.h>
 
 
@@ -102,10 +101,17 @@ typedef WINERR NET_API_STATUS;
 #define NET_API_STATUS_DEFINED
 #endif
 
+typedef struct _SRVSVC_CONTEXT* PSRVSVC_CONTEXT;
+
+NET_API_STATUS
+SrvSvcCreateContext(
+    IN  PCSTR            pszHostname,
+    OUT PSRVSVC_CONTEXT* ppContext
+    );
 
 NET_API_STATUS
 NetConnectionEnum(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *qualifier,
     UINT32 level,
@@ -119,7 +125,7 @@ NetConnectionEnum(
 
 NET_API_STATUS
 NetFileEnum(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *basepath,
     const wchar16_t *username,
@@ -134,7 +140,7 @@ NetFileEnum(
 
 NET_API_STATUS
 NetFileGetInfo(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 fileid,
     UINT32 level,
@@ -144,7 +150,7 @@ NetFileGetInfo(
 
 NET_API_STATUS
 NetFileClose(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 fileid
     );
@@ -152,7 +158,7 @@ NetFileClose(
 
 NET_API_STATUS
 NetSessionEnum(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *unc_client_name,
     const wchar16_t *username,
@@ -167,7 +173,7 @@ NetSessionEnum(
 
 NET_API_STATUS
 NetrShareAdd(
-    IN  handle_t hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PCWSTR   pwszServername,
     IN  DWORD    dwLevel,
     IN  PVOID    pBuffer,
@@ -186,7 +192,7 @@ NetShareAdd(
 
 NET_API_STATUS
 NetrShareEnum(
-    IN  handle_t hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PCWSTR   pwszServername,
     IN  DWORD    dwLevel,
     OUT PVOID   *ppBuffer,
@@ -211,7 +217,7 @@ NetShareEnum(
 
 NET_API_STATUS
 NetrShareGetInfo(
-    IN  handle_t  hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PWSTR     pwszServername,
     IN  PWSTR     pwszNetname,
     IN  DWORD     dwLevel,
@@ -230,7 +236,7 @@ NetShareGetInfo(
 
 NET_API_STATUS
 NetrShareSetInfo(
-    IN  handle_t  hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PWSTR     pwszServername,
     IN  PWSTR     pwszNetname,
     IN  DWORD     dwLevel,
@@ -251,7 +257,7 @@ NetShareSetInfo(
 
 NET_API_STATUS
 NetrShareDel(
-    IN  handle_t hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PCWSTR   pwszServername,
     IN  PCWSTR   pwszSharename,
     IN  DWORD    dwReserved
@@ -268,7 +274,7 @@ NetShareDel(
 
 NET_API_STATUS
 NetServerGetInfo(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 level,
     UINT8 **bufptr
@@ -277,7 +283,7 @@ NetServerGetInfo(
 
 NET_API_STATUS
 NetServerSetInfo(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 level,
     UINT8 *bufptr,
@@ -287,11 +293,15 @@ NetServerSetInfo(
 
 NET_API_STATUS
 NetRemoteTOD(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT8 **bufptr
     );
 
+NET_API_STATUS
+SrvSvcCloseContext(
+    IN  PSRVSVC_CONTEXT pContext
+    );
 
 NET_API_STATUS
 SrvSvcInitMemory(

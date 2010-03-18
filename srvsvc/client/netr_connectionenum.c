@@ -32,7 +32,7 @@
 
 
 NET_API_STATUS NetConnectionEnum(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *qualifier,
     UINT32 level,
@@ -50,7 +50,8 @@ NET_API_STATUS NetConnectionEnum(
     srvsvc_NetConnCtr1 ctr1;
     UINT32 l = level;
 
-    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
     BAIL_ON_INVALID_PTR(entriesread, status);
     BAIL_ON_INVALID_PTR(totalentries, status);
@@ -71,7 +72,7 @@ NET_API_STATUS NetConnectionEnum(
     }
 
     DCERPC_CALL(status,
-                _NetrConnectionEnum(b,
+                _NetrConnectionEnum(pContext->hBinding,
                                     (wchar16_t *)servername,
                                     (wchar16_t *)qualifier,
                                     &l, &ctr,

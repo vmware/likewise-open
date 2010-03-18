@@ -32,7 +32,7 @@
 
 
 NET_API_STATUS NetFileEnum(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *basepath,
     const wchar16_t *username,
@@ -51,7 +51,8 @@ NET_API_STATUS NetFileEnum(
     srvsvc_NetFileCtr3 ctr3;
     UINT32 l = level;
 
-    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
     BAIL_ON_INVALID_PTR(entriesread, status);
     BAIL_ON_INVALID_PTR(totalentries, status);
@@ -73,7 +74,7 @@ NET_API_STATUS NetFileEnum(
     }
 
     DCERPC_CALL(status,
-                _NetrFileEnum(b,
+                _NetrFileEnum(pContext->hBinding,
                               (wchar16_t *)servername,
                               (wchar16_t *)basepath,
                               (wchar16_t *)username,

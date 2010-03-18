@@ -33,7 +33,7 @@
 
 NET_API_STATUS
 NetrShareDel(
-    IN  handle_t hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PCWSTR   pwszServername,
     IN  PCWSTR   pwszSharename,
     IN  DWORD    dwReserved
@@ -44,7 +44,8 @@ NetrShareDel(
     PWSTR pwszServer = NULL;
     PWSTR pwszName = NULL;
 
-    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pContext, ntStatus);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszSharename, ntStatus);
 
     if (pwszServername)
@@ -59,7 +60,7 @@ NetrShareDel(
     BAIL_ON_WIN_ERROR(err);
 
     DCERPC_CALL(err,
-                _NetrShareDel(hBinding,
+                _NetrShareDel(pContext->hBinding,
                               pwszServer,
                               pwszName,
                               dwReserved));

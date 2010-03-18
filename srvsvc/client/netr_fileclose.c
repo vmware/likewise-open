@@ -32,17 +32,21 @@
 
 
 NET_API_STATUS NetFileClose(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 fileid
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
 
     DCERPC_CALL(status,
-                _NetrFileClose(b, (wchar16_t *)servername, fileid));
+                _NetrFileClose(
+                        pContext->hBinding,
+                        (wchar16_t *)servername,
+                        fileid));
 
 cleanup:
     return status;

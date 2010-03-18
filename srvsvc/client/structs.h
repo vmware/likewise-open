@@ -33,63 +33,21 @@
  *
  * Module Name:
  *
- *        srvsvcbinding.h
+ *        structs.h
  *
  * Abstract:
  *
- *        Likewise Server Service (srvsvc) RPC client and server
+ *        Remote Procedure Call (RPC) Client Interface (SRVSVC)
  *
- *        DCE/RPC binding functions
+ *        structures required for srvsvc rpc client library
  *
- * Authors: Rafal Szczesniak (rafal@likewise.com)
+ * Authors: Sriram Nambakam  (snambakam@likewise.com)
+ *          Rafal Szczesniak (rafal@likewise.com)
+ *
  */
 
-
-#ifndef _SRVSVC_BINDING_H_
-#define _SRVSVC_BINDING_H_
-
-#include <lwrpc/types.h>
-#include <lwio/lwio.h>
-
-#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
-#define SRVSVC_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/srvsvc"
-
-
-RPCSTATUS
-InitSrvSvcBindingDefault(
-    OUT handle_t  *phBinding,
-    IN  PCSTR      pszHostname,
-    IN  PIO_CREDS  pCreds
-    );
-
-
-RPCSTATUS
-InitSrvSvcBindingFull(
-    OUT handle_t *phBinding,
-    IN  PCSTR     pszProtSeq,
-    IN  PCSTR     pszHostname,
-    IN  PCSTR     pszEndpoint,
-    IN  PCSTR     pszUuid,
-    IN  PCSTR     pszOptions,
-    IN  PIO_CREDS pCreds
-    );
-
-
-RPCSTATUS
-FreeSrvSvcBinding(
-    handle_t *phBinding
-    );
-
-
-#endif /* _SRVSVC_BINDING_H_ */
-
-
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+typedef struct _SRVSVC_CONTEXT
+{
+    PIO_CREDS pCreds;
+    handle_t  hBinding;
+} SRVSVC_CONTEXT;

@@ -33,7 +33,7 @@
 
 NET_API_STATUS
 NetrShareEnum(
-    IN  handle_t hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PCWSTR   pwszServername,
     IN  DWORD    dwLevel,
     OUT PVOID   *ppBuffer,
@@ -57,7 +57,8 @@ NetrShareEnum(
     DWORD dwTotalEntries = 0;
     DWORD dwReturnedLevel = dwLevel;
 
-    BAIL_ON_INVALID_PTR(hBinding, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(ppBuffer, status);
     BAIL_ON_INVALID_PTR(pdwNumEntries, status);
     BAIL_ON_INVALID_PTR(pdwTotalEntries, status);
@@ -99,7 +100,7 @@ NetrShareEnum(
     }
 
     DCERPC_CALL(status,
-                _NetrShareEnum(hBinding,
+                _NetrShareEnum(pContext->hBinding,
                                pwszServer,
                                &dwReturnedLevel,
                                &ctr,

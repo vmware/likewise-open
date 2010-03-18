@@ -32,7 +32,7 @@
 
 
 NET_API_STATUS NetFileGetInfo(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 fileid,
     UINT32 level,
@@ -43,15 +43,20 @@ NET_API_STATUS NetFileGetInfo(
     NET_API_STATUS memerr = ERROR_SUCCESS;
     srvsvc_NetFileInfo info;
 
-    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
 
     memset(&info, 0, sizeof(info));
     *bufptr = NULL;
 
     DCERPC_CALL(status,
-                _NetrFileGetInfo(b, (wchar16_t *)servername,
-                                 fileid, level, &info));
+                _NetrFileGetInfo(
+                        pContext->hBinding,
+                        (wchar16_t *)servername,
+                        fileid,
+                        level,
+                        &info));
     BAIL_ON_WIN_ERROR(status);
 
     memerr = SrvSvcCopyNetFileInfo(level, &info, bufptr);

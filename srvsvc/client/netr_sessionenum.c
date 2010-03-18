@@ -32,7 +32,7 @@
 
 
 NET_API_STATUS NetSessionEnum(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *unc_client_name,
     const wchar16_t *username,
@@ -54,7 +54,8 @@ NET_API_STATUS NetSessionEnum(
     srvsvc_NetSessCtr502 ctr502;
     UINT32 l = level;
 
-    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
     BAIL_ON_INVALID_PTR(entriesread, status);
     BAIL_ON_INVALID_PTR(totalentries, status);
@@ -88,7 +89,7 @@ NET_API_STATUS NetSessionEnum(
     }
 
     DCERPC_CALL(status,
-                _NetrSessionEnum(b,
+                _NetrSessionEnum(pContext->hBinding,
                                  (wchar16_t *)servername,
                                  (wchar16_t *)unc_client_name,
                                  (wchar16_t *)username,

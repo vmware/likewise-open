@@ -41,11 +41,8 @@ NetShareSetInfo(
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    RPCSTATUS rpcStatus = 0;
-    handle_t hBinding = NULL;
+    PSRVSVC_CONTEXT pContext = NULL;
     PSTR pszServername = NULL;
-    PIO_CREDS pCreds = NULL;
     PWSTR pwszServer = NULL;
     PWSTR pwszShare = NULL;
 
@@ -65,41 +62,27 @@ NetShareSetInfo(
     err = LwAllocateWc16String(&pwszShare, pwszNetname);
     BAIL_ON_WIN_ERROR(err);
 
-    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
+    err = SrvSvcCreateContext(pszServername, &pContext);
+    BAIL_ON_WIN_ERROR(err);
 
-    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
-					 pszServername,
-					 pCreds);
-    if (rpcStatus)
-    {
-        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    err = NetrShareSetInfo(hBinding,
-			   pwszServer,
-			   pwszShare,
-			   dwLevel,
-			   pBuffer,
-			   pdwParmErr);
+    err = NetrShareSetInfo(
+                pContext,
+                pwszServer,
+                pwszShare,
+                dwLevel,
+                pBuffer,
+                pdwParmErr);
     BAIL_ON_WIN_ERROR(err);
 
 cleanup:
-    if (hBinding)
+    if (pContext)
     {
-        FreeSrvSvcBinding(&hBinding);
+        SrvSvcCloseContext(pContext);
     }
 
     LW_SAFE_FREE_MEMORY(pszServername);
     LW_SAFE_FREE_MEMORY(pwszServer);
     LW_SAFE_FREE_MEMORY(pwszShare);
-
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
-    {
-        err = LwNtStatusToWin32Error(ntStatus);
-    }
 
     return err;
 
