@@ -241,6 +241,12 @@ AC_SUBST(LWREG_LIBS)
 AM_CPPFLAGS="$AM_CPPFLAGS $LWREG_INCLUDES"
 AM_LDFLAGS="$AM_LDFLAGS $LWREG_LDFLAGS $LWREG_LIBS"
 
+AM_CONDITIONAL(ENABLE_TDB, test x"$enable_tdb" = x"yes")
+if test x"$enable_tdb" = x"yes"
+then
+        AC_DEFINE([ENABLE_TDB], [], [Define if tdb provider should be built])
+fi
+
 # Checks for library functions
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([strndup strncasecmp strtoul strtoll __strtoll])
