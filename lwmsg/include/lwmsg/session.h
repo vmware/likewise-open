@@ -161,7 +161,7 @@ typedef enum LWMsgHandleType
 } LWMsgHandleType;
 
 #ifndef DOXYGEN
-typedef unsigned long LWMsgHandleID;
+typedef uint32_t LWMsgHandleID;
 
 typedef struct LWMsgSessionManager LWMsgSessionManager;
 
