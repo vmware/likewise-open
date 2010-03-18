@@ -28,12 +28,12 @@
  * license@likewisesoftware.com
  */
 
-
 uint32_t
 WireWriteFile(
     PSMB_TREE pTree,
     uint16_t  fid,
-    uint64_t  llWriteOffset,
+    uint64_t  llFileWriteOffset,
+    uint16_t  writeMode,
     uint8_t*  pWriteBuffer,
     uint16_t  wWriteLen,
     uint16_t* pwWritten,

@@ -68,7 +68,8 @@ RdrTransactCreateFile(
     FILE_SHARE_FLAGS shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS createOptions,
-    PUSHORT pusFid
+    PUSHORT pusFid,
+    PUSHORT pusFileType
     );
 
 NTSTATUS
@@ -162,7 +163,8 @@ RdrCreateFileEx(
         shareAccess,
         createDisposition,
         createOptions,
-        &pFile->fid);
+        &pFile->fid,
+        &pFile->usFileType);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFile->pwszPath = pwszFilename;
@@ -376,7 +378,8 @@ RdrTransactCreateFile(
     FILE_SHARE_FLAGS shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS createOptions,
-    PUSHORT pusFid
+    PUSHORT pusFid,
+    PUSHORT pusFileType
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -498,6 +501,7 @@ RdrTransactCreateFile(
     BAIL_ON_NT_STATUS(ntStatus);
 
     *pusFid = pResponseHeader->fid;
+    *pusFileType = pResponseHeader->fileType;
 
 cleanup:
 

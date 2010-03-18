@@ -35,6 +35,7 @@ WireWriteFile(
     PSMB_TREE pTree,
     uint16_t  fid,
     uint64_t  llFileWriteOffset,
+    uint16_t  writeMode,
     uint8_t*  pWriteBuffer,
     uint16_t  wWriteLen,
     uint16_t* pwWritten,
@@ -90,7 +91,7 @@ WireWriteFile(
     pRequestHeader->fid = fid;
     pRequestHeader->offset = llFileWriteOffset & 0x00000000FFFFFFFFLL;
     pRequestHeader->reserved = 0;
-    pRequestHeader->writeMode = 0;
+    pRequestHeader->writeMode = writeMode;
     pRequestHeader->remaining = 0;
 
     /* ignored if CAP_LARGE_WRITEX is set */

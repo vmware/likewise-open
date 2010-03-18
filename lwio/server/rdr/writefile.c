@@ -48,6 +48,7 @@
  */
 #include "rdr.h"
 
+#define WRITE_DATA_OFFSET     133
 
 NTSTATUS
 RdrWriteFileEx(
@@ -61,23 +62,40 @@ RdrWriteFileEx(
     DWORD dwNumBytesWritten = 0;
     PSMB_CLIENT_FILE_HANDLE pFile = (PSMB_CLIENT_FILE_HANDLE)hFile;
     BOOLEAN bFileIsLocked = FALSE;
+    ULONG ulWriteMax = 0;
 
     LWIO_LOCK_MUTEX(bFileIsLocked, &pFile->mutex);
 
+    ulWriteMax = pFile->pTree->pSession->pSocket->maxBufferSize - WRITE_DATA_OFFSET;
+    if (ulWriteMax > UINT16_MAX)
+    {
+        ulWriteMax = UINT16_MAX;
+    }
+
     do
     {
-        uint16_t wBytesToWrite = UINT16_MAX;
+        uint16_t wBytesToWrite = (uint16_t) ulWriteMax;
         uint16_t wBytesWritten = 0;
+        USHORT usWriteMode = 0;
 
-        if (dwNumBytesToWrite < UINT16_MAX)
+        if (dwNumBytesToWrite < ulWriteMax)
         {
-            wBytesToWrite = (uint16_t)dwNumBytesToWrite;
+            wBytesToWrite = (uint16_t) dwNumBytesToWrite;
+        }
+
+        /* If file is a named pipe in message mode and this is the
+           first WriteAndX, set the "start of message" bit in the write
+           mode */
+        if (pFile->usFileType == 0x2 && dwNumBytesWritten == 0)
+        {
+            usWriteMode |= 0x8;
         }
 
         ntStatus = WireWriteFile(
                     pFile->pTree,
                     pFile->fid,
                     pFile->llOffset,
+                    usWriteMode,
                     pBuffer + dwNumBytesWritten,
                     wBytesToWrite,
                     &wBytesWritten,
