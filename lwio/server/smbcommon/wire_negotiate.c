@@ -72,7 +72,7 @@ typedef struct
  *                Size of marshall buffer
  * @param pBufferUsed
  *                On success, the amount of the marshall buffer used.  On
- *                EMSGSIZE, the total amount of marshall buffer needed
+ *                STATUS_INVALID_BUFFER_SIZE, the total amount of marshall buffer needed
  *
  * @return Non-zero error code on error
  */
@@ -131,7 +131,7 @@ MarshallNegotiateRequest(
 
     if (bufferUsed > bufferLen)
     {
-        ntStatus = EMSGSIZE;
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
     }
 
     *pBufferUsed = bufferUsed;
@@ -182,7 +182,7 @@ UnmarshallNegotiateRequest(
 
     if (i > *pDialectCount)
     {
-        ntStatus = EMSGSIZE;
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
     }
 
     *pDialectCount = i;
@@ -236,7 +236,7 @@ MarshallNegotiateResponseData(
 
     if (bufferUsed > bufferLen)
     {
-        ntStatus = EMSGSIZE;
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
     }
 
     *pBufferUsed = bufferUsed;

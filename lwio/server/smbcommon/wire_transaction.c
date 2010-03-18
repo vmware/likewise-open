@@ -777,7 +777,7 @@ WireMarshallTransactionSetupData(
                     pData,
                     dataLen,
                     pDataOffset);
-    if (ntStatus && ntStatus != EMSGSIZE)
+    if (ntStatus && ntStatus != STATUS_INVALID_BUFFER_SIZE)
     {
         return ntStatus;
     }
@@ -787,7 +787,7 @@ WireMarshallTransactionSetupData(
 
     if (bufferUsed > bufferLen)
     {
-        ntStatus = EMSGSIZE;
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
     }
     else
     {
@@ -842,7 +842,7 @@ WireMarshallTransactionParameterData(
 
         if (bufferUsed > bufferLen)
         {
-            ntStatus = EMSGSIZE;
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
         }
     }
 
