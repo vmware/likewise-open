@@ -183,7 +183,7 @@ cleanup:
 error:
     if (ntStatus == STATUS_NOT_FOUND)
     {
-        ntStatus = STATUS_INVALID_HANDLE;
+        ntStatus = STATUS_FILE_CLOSED;
     }
 
     *ppFile = NULL;
