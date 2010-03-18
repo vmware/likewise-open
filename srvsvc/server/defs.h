@@ -23,6 +23,10 @@
 #define WIN32_ERROR_FILE_NOT_FOUND              0x00000002
 #define WIN32_ERROR_UNKNOWN_LEVEL               0x0000007c
 
+#define SECURITY_UNMAPPED_UNIX_AUTHORITY    { 0, 0, 0, 0, 0, 22 }
+#define SECURITY_UNMAPPED_UNIX_UID_RID      1
+#define SECURITY_UNMAPPED_UNIX_RID_COUNT    2
+
 
 #endif /* __DEFS_H__ */
 

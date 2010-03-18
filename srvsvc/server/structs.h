@@ -82,6 +82,10 @@ typedef struct _SRVSVC_RUNTIME_GLOBALS
 
     DWORD           dwExitCode;                  /* Process Exit Code */
 
+    PSECURITY_DESCRIPTOR_ABSOLUTE pServerSecDesc;
+
+    GENERIC_MAPPING genericMapping;
+
 } SRVSVC_RUNTIME_GLOBALS, *PSRVSVC_RUNTIME_GLOBALS;
 
 #endif /* __STRUCTS_H__ */

@@ -58,10 +58,17 @@ SRVSVC_RUNTIME_GLOBALS gServerInfo =
     .szLogFilePath         = "",
     .bProcessShouldExit    = 0,
     .dwExitCode            = 0,
-    .config                = {
+    .pServerSecDesc        = NULL,
+    .config                =    {
                                 .mutex = PTHREAD_MUTEX_INITIALIZER,
                                 .szLsaLpcSocketPath = DEFAULT_LSALPC_SOCKET_PATH
-                             }
+                                },
+    .genericMapping        =    {
+                                .GenericRead = FILE_GENERIC_READ,
+                                .GenericWrite = FILE_GENERIC_WRITE,
+                                .GenericExecute = FILE_GENERIC_EXECUTE,
+                                .GenericAll = FILE_ALL_ACCESS
+                                }
 };
 
 PSRVSVC_RUNTIME_GLOBALS gpServerInfo = &gServerInfo;
