@@ -74,6 +74,83 @@ SrvSvcHandleSignals(
     VOID
     );
 
+// srvsvc.c
+
+NET_API_STATUS
+SrvSvcInitSecurity(
+    void
+    );
+
+NET_API_STATUS
+SrvSvcNetShareAdd(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    UINT32 level,
+    srvsvc_NetShareInfo info,
+    UINT32 *parm_error
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareEnum(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    UINT32 *level,
+    srvsvc_NetShareCtr *ctr,
+    UINT32 preferred_maximum_length,
+    UINT32 *total_entries,
+    UINT32 *resume_handle
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareGetInfo(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    UINT32 level,
+    srvsvc_NetShareInfo *info
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareSetInfo(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    UINT32 level,
+    srvsvc_NetShareInfo info,
+    UINT32 *parm_error
+    );
+
+
+NET_API_STATUS
+SrvSvcNetShareDel(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *netname,
+    UINT32 reserved
+    );
+
+
+NET_API_STATUS
+SrvSvcNetrServerGetInfo(
+    handle_t b,
+    wchar16_t *server_name,
+    UINT32 level,
+    srvsvc_NetSrvInfo *info
+    );
+
+
+NET_API_STATUS
+SrvSvcNetNameValidate(
+    handle_t IDL_handle,
+    wchar16_t *server_name,
+    wchar16_t *name,
+    UINT32 type,
+    UINT32 flags
+    );
+
 // utils.c
 
 DWORD
