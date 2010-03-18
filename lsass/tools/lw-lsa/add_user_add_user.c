@@ -339,13 +339,13 @@ BuildUserInfo(
     dwError = LwAllocateString(pszLoginId, &pUserInfo->pszName);
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (pUserInfo->pszShell)
+    if (pszShell)
     {
         dwError = LwAllocateString(pszShell, &pUserInfo->pszShell);
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    if (pUserInfo->pszHomedir)
+    if (pszHomedir)
     {
         dwError = LwAllocateString(pszHomedir, &pUserInfo->pszHomedir);
         BAIL_ON_LSA_ERROR(dwError);
