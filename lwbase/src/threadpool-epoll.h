@@ -36,14 +36,16 @@
  *
  */
 
-#ifndef __LWBASE_THREADPOOL_INTERNAL_H__
-#define __LWBASE_THREADPOOL_INTERNAL_H__
+#ifndef __LWBASE_THREADPOOL_EPOLL_H__
+#define __LWBASE_THREADPOOL_EPOLL_H__
 
 #include <lw/threadpool.h>
 #include <lw/rtlgoto.h>
 #include <pthread.h>
 #include <sys/epoll.h>
 #include <sched.h>
+
+#include "threadpool-common.h"
 
 #define TASK_COMPLETE_MASK 0xFFFFFFFF
 
@@ -123,7 +125,7 @@ typedef struct _LW_TASK_GROUP
 
 typedef struct _LW_THREAD_POOL
 {
-    ULONG ulRefCount;
+    struct _LW_THREAD_POOL* pDelegate;
     PEPOLL_THREAD pEventThreads;
     ULONG ulEventThreadCount;
     PWORK_ITEM_THREAD pWorkThreads;

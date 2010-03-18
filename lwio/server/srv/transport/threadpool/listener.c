@@ -68,6 +68,7 @@ SrvListenerInit(
     )
 {
     NTSTATUS ntStatus = 0;
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs = NULL;
 
     memset(&pListener->context, 0, sizeof(pListener->context));
 
@@ -101,7 +102,17 @@ SrvListenerInit(
 
     pListener->context.pShareList = pShareList;
 
-    ntStatus = LwRtlCreateThreadPool(&pListener->context.pPool);
+    ntStatus = LwRtlCreateThreadPoolAttributes(&pAttrs);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Our tasks sometimes make blocking IPC calls, so use a private set of task threads */
+    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_DELEGATE_TASKS, FALSE);
+    /* Create one task thread per CPU */
+    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_TASK_THREADS, -1);
+    /* We don't presently use work threads, so turn them off */
+    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_WORK_THREADS, 0);
+
+    ntStatus = LwRtlCreateThreadPool(&pListener->context.pPool, pAttrs);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlCreateTaskGroup(pListener->context.pPool, &pListener->context.pTaskGroup);
@@ -118,6 +129,8 @@ SrvListenerInit(
     LwRtlWakeTask(pListener->context.pTask);
 
 error:
+
+    LwRtlFreeThreadPoolAttributes(&pAttrs);
 
     return ntStatus;
 }

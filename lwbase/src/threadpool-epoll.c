@@ -39,14 +39,8 @@
 #include "includes.h"
 #include "threadpool-epoll.h"
 
-/* FIXME: Make these tweakable on the thread pool itself */
-
 /* Maximum events to read on each epoll_wait() */
 #define MAX_EVENTS 500
-/* Number of event-processing threads */
-#define EVENT_THREAD_COUNT 8
-/* Number of work item-processing threads */
-#define WORK_THREAD_COUNT 8
 /* Maximum number of ticks (task function invocations) to
    process each iteration of the event loop */
 #define MAX_TICKS 1000
@@ -728,6 +722,11 @@ LwRtlCreateTask(
     ULONG ulMinLoad = 0xFFFFFFFF;
     ULONG ulIndex = 0;
 
+    if (pPool->pDelegate)
+    {
+        return LwRtlCreateTask(pPool->pDelegate, ppTask, pGroup, pfnFunc, pContext);
+    }
+
     status = LW_RTL_ALLOCATE_AUTO(&pTask);
     GOTO_ERROR_ON_STATUS(status);
 
@@ -782,6 +781,11 @@ LwRtlCreateTaskGroup(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PLW_TASK_GROUP pGroup = NULL;
+
+    if (pPool->pDelegate)
+    {
+        return LwRtlCreateTaskGroup(pPool->pDelegate, ppGroup);
+    }
 
     status = LW_RTL_ALLOCATE_AUTO(&pGroup);
     GOTO_ERROR_ON_STATUS(status);
@@ -1208,7 +1212,8 @@ error:
 
 NTSTATUS
 LwRtlCreateThreadPool(
-    PLW_THREAD_POOL* ppPool
+    PLW_THREAD_POOL* ppPool,
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1231,38 +1236,48 @@ LwRtlCreateThreadPool(
 
     if (numCpus < 0)
     {
-        pPool->ulEventThreadCount = EVENT_THREAD_COUNT;
+        numCpus = 1;
+    }
+
+    if (GetDelegateAttr(pAttrs))
+    {
+        status = AcquireDelegatePool(&pPool->pDelegate);
+        GOTO_ERROR_ON_STATUS(status);
     }
     else
     {
-        pPool->ulEventThreadCount = (ULONG) numCpus;
+        pPool->ulEventThreadCount = GetTaskThreadsAttr(pAttrs, numCpus);
+
+        if (pPool->ulEventThreadCount)
+        {
+            status = LW_RTL_ALLOCATE_ARRAY_AUTO(
+                &pPool->pEventThreads,
+                pPool->ulEventThreadCount);
+            GOTO_ERROR_ON_STATUS(status);
+
+            for (i = 0; i < pPool->ulEventThreadCount; i++)
+            {
+                status = InitEventThread(pPool, &pPool->pEventThreads[i], numCpus >= 0 ? i % numCpus : -1);
+                GOTO_ERROR_ON_STATUS(status);
+            }
+        }
     }
 
-    status = LW_RTL_ALLOCATE_ARRAY_AUTO(
-        &pPool->pEventThreads,
-        pPool->ulEventThreadCount);
-    GOTO_ERROR_ON_STATUS(status);
+    pPool->ulWorkThreadCount = GetWorkThreadsAttr(pAttrs, numCpus);
 
-    for (i = 0; i < pPool->ulEventThreadCount; i++)
+    if (pPool->ulWorkThreadCount)
     {
-        status = InitEventThread(pPool, &pPool->pEventThreads[i], numCpus >= 0 ? i % numCpus : -1);
+        status = LW_RTL_ALLOCATE_ARRAY_AUTO(
+            &pPool->pWorkThreads,
+            pPool->ulWorkThreadCount);
         GOTO_ERROR_ON_STATUS(status);
+
+        for (i = 0; i < pPool->ulWorkThreadCount; i++)
+        {
+            status = InitWorkThread(pPool, &pPool->pWorkThreads[i]);
+            GOTO_ERROR_ON_STATUS(status);
+        }
     }
-
-    pPool->ulWorkThreadCount = WORK_THREAD_COUNT;
-
-    status = LW_RTL_ALLOCATE_ARRAY_AUTO(
-        &pPool->pWorkThreads,
-        pPool->ulWorkThreadCount);
-    GOTO_ERROR_ON_STATUS(status);
-
-    for (i = 0; i < pPool->ulWorkThreadCount; i++)
-    {
-        status = InitWorkThread(pPool, &pPool->pWorkThreads[i]);
-        GOTO_ERROR_ON_STATUS(status);
-    }
-
-    pPool->ulRefCount = 1;
 
     *ppPool = pPool;
 
@@ -1311,6 +1326,11 @@ LwRtlFreeThreadPool(
             }
 
             RtlMemoryFree(pPool->pWorkThreads);
+        }
+
+        if (pPool->pDelegate)
+        {
+            ReleaseDelegatePool(&pPool->pDelegate);
         }
 
         pthread_mutex_destroy(&pPool->Lock);

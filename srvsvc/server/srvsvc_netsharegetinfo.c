@@ -96,7 +96,7 @@ SrvSvcNetShareGetInfo(
     PSHARE_INFO_GETINFO_PARAMS pGetParamsOut = NULL;
     PSHARE_INFO pShareInfo = NULL;
 
-    /* Validate info levele */
+    /* Validate info level */
 
     switch (level){
     case 0:
@@ -192,6 +192,7 @@ SrvSvcNetShareGetInfo(
                         dwOutLength,
                         &pGetParamsOut
                         );
+    BAIL_ON_NT_STATUS(ntStatus);
 
     dwError = SrvSvcSrvAllocateMemory(sizeof(*pShareInfo),
                                     (PVOID*)&pShareInfo);
@@ -222,6 +223,12 @@ SrvSvcNetShareGetInfo(
         info->info502 = &pShareInfo->info502;
         memcpy(info->info502, pGetParamsOut->Info.p502, sizeof(*info->info502));
         break;
+    default:
+
+        ntStatus = STATUS_INVALID_INFO_CLASS;
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        break;
     }
 
 cleanup:
@@ -234,28 +241,19 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pOutBuffer);
     LW_SAFE_FREE_MEMORY(pGetParamsOut);
 
-    switch (ntStatus) {
-    case STATUS_SUCCESS:
-        dwError = WIN32_ERROR_SUCCESS;
-        break;
-    case STATUS_NOT_FOUND:
-        dwError = WIN32_ERROR_FILE_NOT_FOUND;
-        break;
-    case STATUS_INVALID_INFO_CLASS:
-        dwError = WIN32_ERROR_UNKNOWN_LEVEL;
-        break;
-    default:
-        dwError = WIN32_ERROR_INVALID_FUNCTION;
-        break;
-    }
-
     return dwError;
 
 error:
+
     memset(info, 0x0, sizeof(*info));
 
     if (pShareInfo) {
         SrvSvcSrvFreeMemory(pShareInfo);
+    }
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
     }
 
     goto cleanup;

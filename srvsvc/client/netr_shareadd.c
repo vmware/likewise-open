@@ -76,6 +76,7 @@ NetrShareAdd(
                                    dwLevel,
                                    Info,
                                    &dwParmErr));
+    BAIL_ON_WIN_ERROR(err);
 
     if (pdwParmErr)
     {

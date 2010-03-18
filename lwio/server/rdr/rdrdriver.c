@@ -208,6 +208,7 @@ RdrInitialize(
     )
 {
     NTSTATUS ntStatus = 0;
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs = NULL;
 
     memset(&gRdrRuntime, 0, sizeof(gRdrRuntime));
 
@@ -223,7 +224,13 @@ RdrInitialize(
     ntStatus = RdrSocketInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwRtlCreateThreadPool(&gRdrRuntime.pThreadPool);
+    ntStatus = LwRtlCreateThreadPoolAttributes(&pAttrs);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* We don't presently use work threads, so turn them off */
+    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_WORK_THREADS, 0);
+
+    ntStatus = LwRtlCreateThreadPool(&gRdrRuntime.pThreadPool, pAttrs);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlCreateTaskGroup(gRdrRuntime.pThreadPool, &gRdrRuntime.pReaderTaskGroup);
@@ -233,6 +240,8 @@ RdrInitialize(
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
+
+    LwRtlFreeThreadPoolAttributes(&pAttrs);
 
     return ntStatus;
 }

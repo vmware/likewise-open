@@ -50,6 +50,48 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvValidateShareNameChange(
+    PSRV_SHARE_INFO pShareInfo,
+    PWSTR pwszNewName
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo0(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_0 pInfo0
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo1(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_1 pInfo1
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo2(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_2 pInfo2
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo501(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_501 pInfo501
+    );
+
+static
+NTSTATUS
+SrvShareUpdateInfo502(
+    PSRV_SHARE_INFO pShareInfo,
+    PSHARE_INFO_502 pInfo502
+    );
+
 NTSTATUS
 SrvShareDevCtlAdd(
     IN     PBYTE lpInBuffer,
@@ -367,8 +409,8 @@ SrvShareDevCtlEnum(
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 p502[i].shi502_password            = NULL;
-                p502[i].shi502_reserved            = 0;
-                p502[i].shi502_security_descriptor = NULL;
+                p502[i].shi502_reserved            = pShareInfo->ulSecDescLen;
+                p502[i].shi502_security_descriptor = (PBYTE) pShareInfo->pSecDesc;
             }
 
             EnumShareInfoParamsOut.info.p502 = p502;
@@ -494,6 +536,7 @@ SrvShareDevCtlGetInfo(
     SHARE_INFO_GETINFO_PARAMS GetShareInfoParamsOut;
     PWSTR pwszShareName = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
+    BOOLEAN         bInLock = FALSE;
     PSHARE_INFO_0 p0 = NULL;
     PSHARE_INFO_1 p1 = NULL;
     PSHARE_INFO_2 p2 = NULL;
@@ -518,6 +561,8 @@ SrvShareDevCtlGetInfo(
                         pwszShareName,
                         &pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
     switch (ulLevel)
     {
@@ -647,6 +692,8 @@ SrvShareDevCtlGetInfo(
 
 cleanup:
 
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
     if (pShareInfo) {
         SrvShareReleaseInfo(pShareInfo);
     }
@@ -698,52 +745,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
-
-static
-NTSTATUS
-SrvValidateShareNameChange(
-    PSRV_SHARE_INFO pShareInfo,
-    PWSTR pwszNewName
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo0(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_0 pInfo0
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo1(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_1 pInfo1
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo2(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_2 pInfo2
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo501(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_501 pInfo501
-    );
-
-static
-NTSTATUS
-SrvShareUpdateInfo502(
-    PSRV_SHARE_INFO pShareInfo,
-    PSHARE_INFO_502 pInfo502
-    );
 
 NTSTATUS
 SrvShareDevCtlSetInfo(
@@ -831,10 +832,6 @@ error:
     return ntStatus;
 }
 
-
-/***********************************************************************
- **********************************************************************/
-
 static
 NTSTATUS
 SrvValidateShareNameChange(
@@ -873,10 +870,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
 
 static
 NTSTATUS
@@ -920,10 +913,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
 
 static
 NTSTATUS
@@ -990,10 +979,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
 
 static
 NTSTATUS
@@ -1079,10 +1064,6 @@ error:
     goto cleanup;
 }
 
-
-/***********************************************************************
- **********************************************************************/
-
 static
 NTSTATUS
 SrvShareUpdateInfo501(
@@ -1148,10 +1129,6 @@ error:
 
     goto cleanup;
 }
-
-
-/***********************************************************************
- **********************************************************************/
 
 static
 NTSTATUS

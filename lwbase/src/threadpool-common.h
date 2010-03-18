@@ -1,10 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software    2004-2008
- * All rights reserved.
+ * Copyright (c) Likewise Software.  All rights Reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,54 +18,78 @@
  * WITH LIKEWISE SOFTWARE, THEN YOU MAY ELECT TO USE THE SOFTWARE UNDER THE
  * TERMS OF THAT SOFTWARE LICENSE AGREEMENT INSTEAD OF THE TERMS OF THE GNU
  * LESSER GENERAL PUBLIC LICENSE, NOTWITHSTANDING THE ABOVE NOTICE.  IF YOU
- * HAVE QUESTIONS, OR WISH TO REQUEST A COPY OF THE ALTERNATE LICENSING
+ * HAVE QUESTIONS, OR WISHTO REQUEST A COPY OF THE ALTERNATE LICENSING
  * TERMS OFFERED BY LIKEWISE SOFTWARE, PLEASE CONTACT LIKEWISE SOFTWARE AT
  * license@likewisesoftware.com
  */
 
-#include "includes.h"
+/*
+ * Module Name:
+ *
+ *        threadpool-common.h
+ *
+ * Abstract:
+ *
+ *        Thread pool API
+ *
+ * Authors: Brian Koropoff (bkoropoff@likewise.com)
+ *
+ */
 
+#ifndef __LWBASE_THREADPOOL_COMMON_H__
+#define __LWBASE_THREADPOOL_COMMON_H__
 
-NET_API_STATUS NetFileGetInfo(
-    handle_t b,
-    const wchar16_t *servername,
-    UINT32 fileid,
-    UINT32 level,
-    UINT8 **bufptr
+struct _LW_THREAD_POOL_ATTRIBUTES
+{
+    BOOLEAN bDelegateTasks;
+    LONG lTaskThreads;
+    ULONG lWorkThreads;
+};
+
+NTSTATUS
+AcquireDelegatePool(
+    PLW_THREAD_POOL* ppPool
+    );
+
+VOID
+ReleaseDelegatePool(
+    PLW_THREAD_POOL* ppPool
+    );
+
+static
+inline
+BOOLEAN
+GetDelegateAttr(
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
-    srvsvc_NetFileInfo info;
-
-    BAIL_ON_INVALID_PTR(b, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
-
-    memset(&info, 0, sizeof(info));
-    *bufptr = NULL;
-
-    DCERPC_CALL(status,
-                _NetrFileGetInfo(b, (wchar16_t *)servername,
-                                 fileid, level, &info));
-    BAIL_ON_WIN_ERROR(status);
-
-    memerr = SrvSvcCopyNetFileInfo(level, &info, bufptr);
-    BAIL_ON_WIN_ERROR(memerr);
-
-cleanup:
-    SrvSvcClearNetFileInfo(level, &info);
-    return status;
-
-error:
-    goto cleanup;
+    return pAttrs ? pAttrs->bDelegateTasks : TRUE;
 }
 
+static
+inline
+ULONG
+GetTaskThreadsAttr(
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs,
+    int numCpus
+    )
+{
+    LONG lCount = pAttrs ? pAttrs->lTaskThreads : -1;
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+    return lCount < 0 ? -lCount * numCpus : lCount;
+}
+
+static
+inline
+ULONG
+GetWorkThreadsAttr(
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs,
+    int numCpus
+    )
+{
+    LONG lCount = pAttrs ? pAttrs->lWorkThreads : -4;
+
+    return lCount < 0 ? -lCount * numCpus : lCount;
+}
+
+#endif

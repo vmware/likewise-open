@@ -20,7 +20,7 @@ int main(int argc, char** argv)
     ULONG64 ullTotal = 0;
     ULONG64 ullTime = 0;
 
-    LwRtlCreateThreadPool(&pPool);
+    LwRtlCreateThreadPool(&pPool, NULL);
 
     BenchmarkThreadPool(
         pPool,
