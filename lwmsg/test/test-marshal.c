@@ -82,14 +82,11 @@ LWMsgStatus
 basic_verify_foo(
     LWMsgDataContext* dcontext,
     LWMsgBool unmarshalling,
-    size_t object_size,
     void* object,
     void* data
     )
 {
     short* fooptr = (short*) object;
-
-    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, object_size, sizeof(short));
 
     if (*fooptr != -42)
     {

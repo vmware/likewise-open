@@ -63,6 +63,13 @@ SrvShareRemoveFromList_inlock(
     );
 
 static
+NTSTATUS
+SrvShareDuplicateInfo(
+    PSRV_SHARE_INFO  pShareInfo,
+    PSRV_SHARE_INFO* ppShareInfo
+    );
+
+static
 int
 SrvShareCompareInfo(
     PVOID pKey1,
@@ -586,9 +593,8 @@ SrvShareEnum(
         pShareEntry = pShareList->pShareEntry;
         for (; i < ulCount; i++)
         {
-            InterlockedIncrement(&pShareEntry->pInfo->refcount);
-
-            ppShares[i] = pShareEntry->pInfo;
+            ntStatus = SrvShareDuplicateInfo(pShareEntry->pInfo, &ppShares[i]);
+            BAIL_ON_NT_STATUS(ntStatus);
 
             pShareEntry = pShareEntry->pNext;
         }
@@ -612,6 +618,86 @@ error:
 
     *pppShareInfo   = NULL;
     *pulNumEntries = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareDuplicateInfo(
+    PSRV_SHARE_INFO  pShareInfo,
+    PSRV_SHARE_INFO* ppShareInfo
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock = FALSE;
+    PSRV_SHARE_INFO pShareInfoCopy = NULL;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_SHARE_INFO),
+                    (PVOID*)&pShareInfoCopy);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pShareInfoCopy->refcount = 1;
+
+    pthread_rwlock_init(&pShareInfoCopy->mutex, NULL);
+    pShareInfoCopy->pMutex = &pShareInfoCopy->mutex;
+
+    if (pShareInfo->pwszName)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pShareInfo->pwszName,
+                        &pShareInfoCopy->pwszName);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pShareInfo->pwszPath)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pShareInfo->pwszPath,
+                        &pShareInfoCopy->pwszPath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pShareInfo->pwszComment)
+    {
+        ntStatus = SrvAllocateStringW(
+                        pShareInfo->pwszComment,
+                        &pShareInfoCopy->pwszComment);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pShareInfo->ulSecDescLen)
+    {
+        ntStatus = SrvShareSetSecurity(
+                        pShareInfoCopy,
+                        pShareInfo->pSecDesc,
+                        pShareInfo->ulSecDescLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pShareInfoCopy->service = pShareInfo->service;
+
+    pShareInfoCopy->bMarkedForDeletion = pShareInfo->bMarkedForDeletion;
+
+    *ppShareInfo = pShareInfoCopy;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppShareInfo = NULL;
+
+    if (pShareInfoCopy)
+    {
+        SrvShareFreeInfo(pShareInfoCopy);
+    }
 
     goto cleanup;
 }

@@ -143,7 +143,7 @@ lwmsg_data_unmarshal_integer_immediate(
                       iter->info.kind_integer.sign));
 
     /* If a valid range is defined, check value against it */
-    if (iter->attrs.range_low < iter->attrs.range_high)
+    if (iter->attrs.flags & LWMSG_TYPE_FLAG_RANGE)
     {
         BAIL_ON_ERROR(status = lwmsg_data_verify_range(
                           &context->error,
@@ -167,16 +167,42 @@ lwmsg_data_unmarshal_custom_immediate(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgTypeClass* typeclass = iter->info.kind_custom.typeclass;
+    LWMsgTypeIter transmit_iter;
+    void* transmit_object = NULL;
+    LWMsgUnmarshalState my_state = {0};
 
+    lwmsg_type_iterate(typeclass->transmit_type, &transmit_iter);
+
+    /* Allocate memory for transmitted object */
+    BAIL_ON_ERROR(status = lwmsg_data_alloc_memory(context, transmit_iter.size, &transmit_object));
+
+    /* Unmarshal transmitted object */
+    BAIL_ON_ERROR(status = lwmsg_data_unmarshal_internal(
+                      context,
+                      &my_state,
+                      &transmit_iter,
+                      buffer,
+                      transmit_object));
+
+    /* Convert transmitted object into presented object */
     BAIL_ON_ERROR(status = iter->info.kind_custom.typeclass->unmarshal(
                       context,
-                      buffer,
-                      iter->size,
                       &iter->attrs,
+                      transmit_object,
                       object,
                       iter->info.kind_custom.typedata));
 
 error:
+
+    if (transmit_object)
+    {
+        /* Since we constructed the transmitted object ourselves, we do not call
+           the destroy_transmitted function of the type class */
+        lwmsg_data_free_graph_internal(context, &transmit_iter, transmit_object);
+        /* Free object itself */
+        lwmsg_data_free_memory(context, transmit_object);
+    }
 
     return status;
 }
@@ -397,7 +423,7 @@ lwmsg_data_unmarshal_pointer(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     unsigned char ptr_flag;
 
-    if (iter->attrs.nonnull)
+    if (iter->attrs.flags & LWMSG_TYPE_FLAG_NOT_NULL)
     {
         /* If pointer is never null, there is no flag in the stream */
         ptr_flag = 0xFF;
@@ -765,7 +791,7 @@ lwmsg_data_unmarshal_internal(
 
     if (iter->verify)
     {
-        BAIL_ON_ERROR(status = iter->verify(context, LWMSG_TRUE, iter->size, object, iter->verify_data));
+        BAIL_ON_ERROR(status = iter->verify(context, LWMSG_TRUE, object, iter->verify_data));
     }
 
 error:

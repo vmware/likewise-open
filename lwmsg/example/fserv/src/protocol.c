@@ -100,18 +100,14 @@ LWMsgTypeSpec readreply_spec[] =
 /* Begin protocol specification */
 LWMsgProtocolSpec protocol_spec[] =
 {
-    LWMSG_MESSAGE(FSERV_OPEN, openrequest_spec),
-    LWMSG_MESSAGE(FSERV_OPEN_SUCCESS, filehandle_spec),
-    LWMSG_MESSAGE(FSERV_OPEN_FAILED, statusreply_spec),
-    LWMSG_MESSAGE(FSERV_READ, readrequest_spec),
-    LWMSG_MESSAGE(FSERV_READ_SUCCESS, readreply_spec),
-    LWMSG_MESSAGE(FSERV_READ_FAILED, statusreply_spec),
-    LWMSG_MESSAGE(FSERV_WRITE, writerequest_spec),
-    LWMSG_MESSAGE(FSERV_WRITE_SUCCESS, statusreply_spec),
-    LWMSG_MESSAGE(FSERV_WRITE_FAILED, statusreply_spec),
-    LWMSG_MESSAGE(FSERV_CLOSE, filehandle_spec),
-    LWMSG_MESSAGE(FSERV_CLOSE_SUCCESS, statusreply_spec),
-    LWMSG_MESSAGE(FSERV_CLOSE_FAILED, statusreply_spec),
+    LWMSG_MESSAGE(FSERV_OPEN_REQ, openrequest_spec),
+    LWMSG_MESSAGE(FSERV_OPEN_RES, filehandle_spec),
+    LWMSG_MESSAGE(FSERV_READ_REQ, readrequest_spec),
+    LWMSG_MESSAGE(FSERV_READ_RES, readreply_spec),
+    LWMSG_MESSAGE(FSERV_WRITE_REQ, writerequest_spec),
+    LWMSG_MESSAGE(FSERV_CLOSE_REQ, filehandle_spec),
+    LWMSG_MESSAGE(FSERV_VOID_RES, NULL),
+    LWMSG_MESSAGE(FSERV_ERROR_RES, statusreply_spec),
     LWMSG_PROTOCOL_END
 };
 /* End protocol specification */

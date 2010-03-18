@@ -827,7 +827,7 @@ lwmsg_assoc_acquire_call(
     );
 
 #ifndef DOXYGEN
-extern LWMsgCustomTypeClass lwmsg_handle_type_class;
+extern LWMsgTypeClass lwmsg_handle_type_class;
 
 #define LWMSG_ASSOC_HANDLE_LOCAL_FOR_RECEIVER 0x1
 #define LWMSG_ASSOC_HANDLE_LOCAL_FOR_SENDER 0x2

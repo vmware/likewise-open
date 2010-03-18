@@ -44,8 +44,8 @@
 #include "call-private.h"
 
 /**
- * @ingroup assoc_impl
- * @brief Assocation implementation structure
+ * @internal
+ * @brief Association implementation structure
  *
  * Describes the concrete implementation of an association.
  */

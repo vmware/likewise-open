@@ -170,6 +170,12 @@ const LWMsgDispatchSpec;
  */
 #define LWMSG_DISPATCH_END {LWMSG_DISPATCH_TYPE_END, -1, NULL}
 
+/**
+ * @brief Peer structure
+ *
+ * An opaque structure from which calls can be answered
+ * or dispatched.
+ */
 typedef struct LWMsgPeer LWMsgPeer;
 
 /**

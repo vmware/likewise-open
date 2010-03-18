@@ -7,7 +7,6 @@ int
 main(int argc, char** argv)
 {
     int ret = 0;
-    FServ* fserv = NULL;
     FServFile* file = NULL;
     char buffer[2048];
     unsigned int size_read = 0;
@@ -18,13 +17,7 @@ main(int argc, char** argv)
         goto error;
     }
 
-    ret = fserv_connect(&fserv);
-    if (ret)
-    {
-        goto error;
-    }
-
-    ret = fserv_open(fserv, argv[1], FSERV_MODE_WRITE, &file);
+    ret = fserv_open(argv[1], FSERV_MODE_WRITE, &file);
     if (ret)
     {
         goto error;
@@ -57,11 +50,6 @@ error:
     if (file)
     {
         fserv_close(file);
-    }
-
-    if (fserv)
-    {
-        fserv_disconnect(fserv);
     }
 
     if (ret)

@@ -384,11 +384,10 @@ lwmsg_data_free_graph_visit(
     switch(iter->kind)
     {
     case LWMSG_KIND_CUSTOM:
-        if (iter->info.kind_custom.typeclass->free)
+        if (iter->info.kind_custom.typeclass->destroy_presented)
         {
-            iter->info.kind_custom.typeclass->free(
-                info->context->context,
-                iter->size,
+            iter->info.kind_custom.typeclass->destroy_presented(
+                info->context,
                 &iter->attrs,
                 object,
                 iter->info.kind_custom.typedata);

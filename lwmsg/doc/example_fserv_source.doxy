@@ -68,13 +68,10 @@ between client and server:
 @until End message structures
 
 Note the presence of the opaque <tt>FileHandle</tt> structure.
-This type will be transmitted to the client as a handle.  By
-placing the structure definition in a separate header, the C compiler
-can ensure that the client does not attempt to dereference
-proxies while also enforcing type safety.  The server will include
-<tt>protocol-server.h</tt> so that it can create and manipulate
-its handles.  This technique is not necessary for the security of
-the server but is a good practice to catch potential bugs.
+This type will be transmitted to the client as a handle.  The actual
+definition of this structure is placed in <tt>protocol-server.h</tt>
+which the client does not include.  This prevents client code from
+erroneously attempting to dereference opaque handle types.
 
 Also note that there are no <tt>OpenReply</tt> or <tt>CloseRequest</tt>
 structures.  This is because both can be represented as <tt>FileHandle</tt>s
@@ -122,79 +119,65 @@ type of each message.
 
 @section c Client
 
-The client API implementation is contained in <tt>src/fserv.c</tt>.
+The client API implementation is contained in <tt>src/fserv-client.c</tt>.
 It abstracts away the details of creating connections and exchanging
 messages in order to perform Fserv operations.
 
 @subsection connect Connecting
 
-Connections are created to the server by <tt>fserv_connect()</tt>.
-Before establishing the connection, the function must first create
-a protocol object if it has not already.  A protocol object allows
-one or more protocol specifications to be combined together.  This
-protocol object is what is then used to create a connection.  First,
-a new protocol object is created.
+The client creates an #LWMsgPeer structure and connects it
+to the local IPC server.  After this is done, any number of concurrent
+calls can safely be dispatched to the server through this structure.
+Therefore, a single global instance is lazily initialized in
+<tt>fserv_construct()</tt> using the <tt>pthread_once()</tt> mechanism.
 
-@dontinclude fserv/src/fserv.c
-@skip Create protocol object
+Before establishing the connection, we must first create a protocol
+structure which describes the protocol the peer node will speak.
+A protocol structure allows one or more protocol specifications
+to be combined together.  First, the structure is created:
+
+@dontinclude fserv/src/fserv-client.c
+@skip Create protocol structure
 @until ;
 
-The protocol specification is then added to the object.
+The protocol specification is then added:
 
 @skip Add protocol spec
 @until ;
 
-After ensuring that a protocol object has been created, the function
-then establishes the actual connection.  This is done in two steps.
-First, it creates a new connection object:
+We create the peer structure, passing in our protocol:
 
-@skip Create connection
+@skip Create peer
 @until ;
 
-Connections are merely a type of association, so "association"
-and "connection" will be used interchangably for the remainder of this
-document.
+Now we can add an endpoint to connect to:
 
-Next, it sets the connection mode and endpoint:
-
-@skip Set connection endpoint
+@skip Add connect endpoint
 @until ;
 
-The connection mode, #LWMSG_CONNECTION_MODE_LOCAL, indicates a UNIX domain
-socket connection.  The endpoint is the path of the special socket file.
+Finally, we connect the peer node to the server:
 
-After the endpoint is set, the association with the server can be established:
-
-@skip Establish session
+@skip Connect
 @until ;
 
 @subsection discon Disconnecting
 
-To disconnect from the server, the client simply closes the association
-inside <tt>fserv_disconnect()</tt>:
+To disconnect from the server, the client simply disconnects the peer
+structure and then deletes it:
 
-@skip Close association
+@skip Disconnect and delete
 @until ;
-
-This operation attempts to cleanly tear down the connection with the
-server and may fail.  Whether it succeeds or fails, the function deletes
-the association before returning:
-
-@skip Delete association
 @until ;
-
-Deleting an association does not cleanly tear down the connection if
-it has not been closed, but it is guaranteed to succeed and release
-all resources that were being held.  The sequence of #lwmsg_assoc_close()
-followed by #lwmsg_assoc_delete() is the preferred way to shut down
-a connection.
 
 @subsection open Opening a File
 
-Opening a file involves sending a request message to the server and
-receiving a response back that contains a file handle.  The function
-<tt>fserv_open()</tt> begins by filling out the <tt>OpenRequest</tt>
-structure that it will send:
+Opening a file involves making a call to the server. First, we acquire a call handle
+from the peer structure:
+
+@skip Acquire call
+@until ;
+
+The input parameters to the call are initialized:
 
 @skip Set up
 @until ;
@@ -202,23 +185,30 @@ structure that it will send:
 @until ;
 @until ;
 
-The function then sends the message and receives a reply in a single
-transact operation:
+The call can now be dispatched, sending the input parameters to the server and receiving back
+the output parameters in a single operation:
 
-@skip Send message
+@skip Make call
 @until ;
 
-If the transaction succeeds, <tt>reply_msg.tag</tt> is set to the tag
-of the reply message and <tt>reply_msg.data</tt> is set to the unmarshalled
-message payload.  The function then checks what kind of reply it received.
-If it received a success message, it allocates a wrapper around the
-handle it received and returns that to the caller.  If it received a failure
-message, it extracts the error code and returns the error to the caller.
-Otherwise, it indicates that it received an invalid message type.
+If the call succeeds, <tt>out.tag</tt> is set to the type of the call result and
+<tt>out.data</tt> is set to the result data.  The function then checks
+what kind of result it received.  If it received a normal open response, it
+returns the file handle to the caller.  The data is nulled out of the parameters
+structure so that it is not freed later on.  If it received a failure response,
+it extracts the error code and returns the error to the caller.
 
 @skip switch
 @until default:
 @until }
+
+Before the function returns, it needs to clean up all resources allocated during
+the call.  Any output parameters from the call that we have not saved are destroyed,
+and then the call handle is released.
+
+@skip Clean up
+@until ;
+@until ;
 
 @section s Server
 

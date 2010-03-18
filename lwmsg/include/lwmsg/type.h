@@ -99,7 +99,7 @@
  * - The length of arrays and pointer referents must be specified:
  *     - As a static length with #LWMSG_ATTR_LENGTH_STATIC()
  *     - As the value of a <i>previous</i> integer structure member with #LWMSG_ATTR_LENGTH_MEMBER()
- *     - As being implicit through nul-termination with #LWMSG_ATTR_STRING
+ *     - As being implicit through zero-termination with #LWMSG_ATTR_ZERO_TERMINATED
  * - The active arm of unions must be specified through a discriminator:
  *     - Each union arm must be marked with an integer tag with #LWMSG_ATTR_TAG()
  *     - Each instance of a union type must be correlated with a <i>previous</i> integer
@@ -164,89 +164,129 @@ typedef enum LWMsgSignage
     LWMSG_UNSIGNED
 } LWMsgSignage;
 
-typedef struct LWMsgTypeAttrs
+/**
+ * @brief Type flag bitmask
+ *
+ * Describes set/unset attributes of a type
+ */
+typedef enum LWMsgTypeFlags
 {
-    size_t custom;
-    size_t range_low;
-    size_t range_high;
-    unsigned nonnull:1;
-    unsigned aliasable:1;
-    unsigned sensitive:1;
-    unsigned promoted:1;
-} LWMsgTypeAttrs;
+    /**
+     * Type may not be NULL
+     * @hideinitializer
+     */
+    LWMSG_TYPE_FLAG_NOT_NULL  = 0x01,
+    /**
+     * Type contains sensitive data
+     * @hideinitializer
+     */
+    LWMSG_TYPE_FLAG_SENSITIVE = 0x02,
+    /**
+     * Type was implicitly promoted to a pointer
+     * @hideinitializer
+     */
+    LWMSG_TYPE_FLAG_PROMOTED  = 0x04,
+    /**
+     * Type has a range constraint
+     * @hideinitializer
+     */
+    LWMSG_TYPE_FLAG_RANGE     = 0x08
+} LWMsgTypeFlags;
+
+/**
+ * @brief Type
+ *
+ * An opqaue handle representing a type.
+ */
+typedef struct LWMsgType LWMsgType;
 
 /**
  * @brief Custom marshal function
  *
- * A callback function type which implements marshalling logic for
- * a custom marshaller type.
+ * A callback function which converts a presented type to its transmitted form.
+ * The transmitted_object parameter will point to a block of memory large enough
+ * for the transmitted type.  Any resources allocated to construct the transmitted
+ * object can be freed by the corresponding #LWMsgTypeDestroyTransmittedFunction.
  *
- * @param context the marshalling context
- * @param object_size the in-memory size of the object to marshal, or 0 if unknown
- * @param object the in-memory object to marshal
- * @param attrs attributes of the type to marshal
- * @param buffer the marshalling buffer with the cursor set to where the 
- * serialized representation should be written
- * @param data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
+ * @param[in]  context the data context
+ * @param[in]  type the type to marshal
+ * @param[in]  presented_object the presented object
+ * @param[out] transmitted_object the object which will be transmitted
+ * @param[in]  data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
  * in the type specification
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_etc{implementation-specific error}
  * @lwmsg_endstatus
  */
-typedef LWMsgStatus (*LWMsgCustomMarshalFunction) (
+typedef LWMsgStatus (*LWMsgTypeMarshalFunction) (
     struct LWMsgDataContext* context,
-    size_t object_size,
+    LWMsgType* type,
     void* object,
-    LWMsgTypeAttrs* attrs,
-    LWMsgBuffer* buffer,
+    void* transmit_object,
     void* data
     );
 
 /**
  * @brief Custom unmarshal function
  *
- * A callback function type which implements unmarshalling logic for
- * a custom marshaller type.
+ * A callback function type which converts a transmitted type to its presented form.
+ * The presented_object parameter will point to a block of memory large enough for
+ * the presented type.  Any resources allocated to construct the presented object can
+ * be freed by the corresponding #LWMsgTypeDestroyPresentedFunction
  *
- * @param context the marshalling context
- * @param buffer the marshalling buffer with the cursor set to the start of 
- * the serialized representation
- * @param object_size the in-memory size of the object to unmarshal, or 0 if known
- * @param attrs attributes of the type to unmarshal
- * @param object the location to unmarshal to
- * @param data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
+ * @param[in]  context the data context
+ * @param[in]  type the type to marshal
+ * @param[in]  transmit_object the transmitted object
+ * @param[out] presented_object space for the presented object
+ * @param[in]  data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
  * in the type specification
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_etc{implementation-specific error}
  * @lwmsg_endstatus
  */
-typedef LWMsgStatus (*LWMsgCustomUnmarshalFunction) (
+typedef LWMsgStatus (*LWMsgTypeUnmarshalFunction) (
     struct LWMsgDataContext* context,
-    LWMsgBuffer* buffer,
-    size_t object_size,
-    LWMsgTypeAttrs* attrs,
+    LWMsgType* type,
+    void* transmit_object,
     void* object,
     void* data
     );
 
 /**
- * @brief Custom free function
+ * @brief Destroy presented object function
  *
- * A callback function type which frees an instance of a custom type.
+ * A callback function type which releases any resources associated with a
+ * presented object.
  *
- * @param context the marshalling context
- * @param object_size the in-memory size of the object to free, or 0 if unknown
- * @param attrs attributes of the type to free
+ * @param context the data context
+ * @param type the type to free
  * @param object the address of the object to free
  * @param data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
  * in the type specification
  */
-typedef void (*LWMsgCustomFreeFunction) (
-    const struct LWMsgContext* context,
-    size_t object_size,
-    LWMsgTypeAttrs* attr,
+typedef void (*LWMsgTypeDestroyPresentedFunction) (
+    struct LWMsgDataContext* context,
+    LWMsgType* type,
+    void* object,
+    void* data
+    );
+
+/**
+ * @brief Destroy transmitted object function
+ *
+ * A callback function which releases any resources associated with a
+ * transmitted object.
+ *
+ * @param[in] context the data context
+ * @param[in,out] object the transmitted object
+ * @param[in] data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
+ * in the type specification
+ */
+typedef void (*LWMsgTypeDestroyTransmittedFunction) (
+    struct LWMsgDataContext* context,
+    LWMsgType* type,
     void* object,
     void* data
     );
@@ -277,45 +317,74 @@ typedef LWMsgStatus
  * A callback function type which prints the representation of a custom type,
  * using the provided type printing callback.
  *
- * @param context the marshalling context
- * @param object_size the in-memory size of the object to free, or 0 if unknown
+ * @param context the data context
  * @param object the address of the object to print
- * @param attrs attributes of the type to print
+ * @param type the type to print
  * @param data the user data pointer specified to LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM()
  * in the type specification
  * @param print the type print callback
  * @param print_data the user data pointer to pass to the type print callback
  */
-typedef LWMsgStatus (*LWMsgCustomPrintFunction) (
+typedef LWMsgStatus (*LWMsgTypePrintFunction) (
     const struct LWMsgContext* context,
-    size_t object_size,
+    LWMsgType* attr,
     void* object,
-    LWMsgTypeAttrs* attr,
-    void* data,
     LWMsgDataPrintFunction print,
-    void* print_data
+    void* print_data,
+    void* data
     );
 
+
 /**
- * @brief Custom marshaller type class
+ * @brief Marshaller type specification
  *
- * Describes a custom marshaller type which may be used with
- * LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM() in a type specification
- *
+ * The fundamental type used to represent a type specification.
+ * This is considered an implementation detail.
+ * @hideinitializer
  */
-typedef struct LWMsgCustomTypeClass
+typedef size_t const LWMsgTypeSpec;
+
+/**
+ * @brief Custom type class
+ *
+ * Describes a custom type which may be used with
+ * LWMSG_CUSTOM() or LWMSG_MEMBER_CUSTOM() in a type specification.
+ *
+ * A custom type actually comprises two types:
+ * - The presented type, which is the type seen by the application.
+ * - The transmitted type, which is the type represented in the
+ *   data stream.
+ *
+ * The presented type's size must be known to the marshaller so that
+ * it can allocate adequate memory for it when reconstructing
+ * the object graph from the data stream.  All other details
+ * of the type are up to the application, which must provide
+ * functions to convert to and from the transmitted type,
+ * functions to destroy the presented and transmitted types,
+ * and a function to print the presented type in human-readable form.
+ */
+typedef struct LWMsgTypeClass
 {
-    /** @brief Whether the type should be considered a pointer */
+    /**
+     * @brief Whether the type is a pointer
+     *
+     * If a custom type is a pointer, it will not be subject to automatic
+     * pointer promotion when passed to #lwmsg_data_marshal() et al.
+     */
     LWMsgBool is_pointer;
-    /** @brief Marshal callback function */
-    LWMsgCustomMarshalFunction marshal;
-    /** @brief Unmarshal callback function */
-    LWMsgCustomUnmarshalFunction unmarshal;
-    /** @brief Free callback function */
-    LWMsgCustomFreeFunction free;
+    /** @brief The type of the transmitted form */
+    LWMsgTypeSpec* transmit_type;
+    /** @brief Marshal function */
+    LWMsgTypeMarshalFunction marshal;
+    /** @brief Unmarshal function */
+    LWMsgTypeUnmarshalFunction unmarshal;
+    /** @brief Destroy presented function */
+    LWMsgTypeDestroyPresentedFunction destroy_presented;
+    /** @brief Destroy transmitted function */
+    LWMsgTypeDestroyTransmittedFunction destroy_transmitted;
     /** @brief Print callback function */
-    LWMsgCustomPrintFunction print;
-} LWMsgCustomTypeClass;
+    LWMsgTypePrintFunction print;
+} LWMsgTypeClass;
 
 /**
  * @brief Custom data verification function
@@ -324,9 +393,8 @@ typedef struct LWMsgCustomTypeClass
  * in-memory data immediately before marshalling or immediately
  * after unmarshalling.
  *
- * @param context the marshalling context
- * @param unmarshalling true whether the operation being performed is unmarshalling
- * @param object_size the size of the object to verify in bytes
+ * @param context the data context
+ * @param unmarshalling true when the operation being performed is unmarshalling
  * @param object the object to verify
  * @param data the user data pointer given to LWMSG_ATTR_VERIFY()
  * @lwmsg_status
@@ -337,19 +405,9 @@ typedef struct LWMsgCustomTypeClass
 typedef LWMsgStatus (*LWMsgVerifyFunction) (
     struct LWMsgDataContext* context,
     LWMsgBool unmarshalling,
-    size_t object_size,
     void* object,
     void *data
     );
-
-/**
- * @brief Marshaller type specification
- *
- * The fundamental type used to represent a type specification.
- * This is considered an implementation detail.
- * @hideinitializer
- */
-typedef size_t const LWMsgTypeSpec;
 
 #ifndef DOXYGEN
 typedef enum LWMsgTypeDirective
@@ -408,6 +466,7 @@ typedef enum LWMsgTypeDirective
  *
  * Specifies an empty (zero-length) type.  This is primarily useful
  * for indicating empty arms of a union.
+ * @hideinitializer
  */
 #define LWMSG_VOID \
     _TYPECMD(LWMSG_CMD_VOID)
@@ -1248,6 +1307,55 @@ typedef enum LWMsgTypeDirective
     LWMSG_MEMBER_ARRAY_BEGIN(type, field),     \
     __VA_ARGS__,                               \
     LWMSG_ARRAY_END
+
+/**
+ * @brief Get type flags
+ *
+ * Gets the flags for the specified type.
+ *
+ * @param type the type
+ * @return the flags for the type
+ */
+LWMsgTypeFlags
+lwmsg_type_get_flags(
+    const LWMsgType* type
+    );
+
+/**
+ * @brief Get custom type flags
+ *
+ * Gets custom flags for the specified type.
+ *
+ * @param type the type
+ * @return custom flags for the type
+ */
+size_t
+lwmsg_type_get_custom_flags(
+    const LWMsgType* type
+    );
+
+/**
+ * @brief Get integer range constraint
+ *
+ * Gets the bounds of an integer type.
+ * The specified type must be an integer type
+ * and must have the #LWMSG_TYPE_FLAG_RANGE flag
+ * set.
+ *
+ * @param[in] type the type
+ * @param[out] low the lowest allowed value
+ * @param[out] high the highest allowed value
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_PARAMETER, the type was not an integer or did not have a range set}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_type_get_integer_range(
+    const LWMsgType* type,
+    size_t* low,
+    size_t* high
+    );
 
 /*@}*/
 

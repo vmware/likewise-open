@@ -48,41 +48,33 @@
 static LWMsgStatus
 lwmsg_connection_marshal_fd(
     LWMsgDataContext* context,
-    size_t object_size,
-    void* object,
     LWMsgTypeAttrs* attrs,
-    LWMsgBuffer* buffer,
+    void* object,
+    void* transmit_object,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    int fd = -1;
+    int fd = *(int*) object;
     unsigned char indicator;
+    LWMsgAssoc* assoc = NULL;
 
-    if (object_size == 0)
-    {
-        object_size = sizeof(fd);
-    }
+    BAIL_ON_ERROR(status = lwmsg_context_get_data(
+                      lwmsg_data_context_get_context(context),
+                      "assoc",
+                      (void**) (void*) &assoc));
 
-    BAIL_ON_ERROR(status = lwmsg_convert_integer(object,
-                                                 object_size,
-                                                 LWMSG_NATIVE_ENDIAN,
-                                                 &fd,
-                                                 sizeof(fd),
-                                                 LWMSG_NATIVE_ENDIAN,
-                                                 LWMSG_SIGNED));
-
-    if (fd != -1)
+    if (fd >= 0)
     {
         indicator = 0xFF;
-        BAIL_ON_ERROR(status = lwmsg_connection_queue_fd((LWMsgAssoc*) buffer->data, fd));
+        BAIL_ON_ERROR(status = lwmsg_connection_queue_fd(assoc, fd));
     }
     else
     {
         indicator = 0x00;
     }
 
-    BAIL_ON_ERROR(status = lwmsg_buffer_write(buffer, &indicator, sizeof(indicator)));
+    *(unsigned char*) transmit_object = indicator;
 
 error:
 
@@ -92,37 +84,28 @@ error:
 static LWMsgStatus
 lwmsg_connection_unmarshal_fd(
     LWMsgDataContext* context,
-    LWMsgBuffer* buffer,
-    size_t object_size,
     LWMsgTypeAttrs* attrs,
-    void* object,
+    void* transmit_object,
+    void* natural_object,
     void* data
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    unsigned char flag = 0;
+    unsigned char flag = *(unsigned char*) transmit_object;
     int fd = -1;
+    LWMsgAssoc* assoc = NULL;
 
-    if (object_size == 0)
-    {
-        object_size = sizeof(fd);
-    }
-
-    BAIL_ON_ERROR(status = lwmsg_buffer_read(buffer, &flag, 1));
+    BAIL_ON_ERROR(status = lwmsg_context_get_data(
+                      lwmsg_data_context_get_context(context),
+                      "assoc",
+                      (void**) (void*) &assoc));
 
     if (flag)
     {
-        BAIL_ON_ERROR(status = lwmsg_connection_dequeue_fd((LWMsgAssoc*) buffer->data, &fd));
+        BAIL_ON_ERROR(status = lwmsg_connection_dequeue_fd(assoc, &fd));
     }
 
-    BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                      &fd,
-                      sizeof(fd),
-                      LWMSG_NATIVE_ENDIAN,
-                      object,
-                      object_size,
-                      LWMSG_NATIVE_ENDIAN,
-                      LWMSG_SIGNED));
+    *(int*) natural_object = fd;
 
 error:
 
@@ -132,45 +115,34 @@ error:
 static
 void
 lwmsg_connection_free_fd(
-    const LWMsgContext* context,
-    size_t object_size,
+    LWMsgDataContext* context,
     LWMsgTypeAttrs* attrs,
     void* object,
     void* data
     )
 {
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    int fd = -1;
-
-    if (object_size == 0)
-    {
-        object_size = sizeof(fd);
-    }
-
-    BAIL_ON_ERROR(status = lwmsg_convert_integer(
-                      object,
-                      object_size,
-                      LWMSG_NATIVE_ENDIAN,
-                      &fd,
-                      sizeof(fd),
-                      LWMSG_NATIVE_ENDIAN,
-                      LWMSG_SIGNED));
+    int fd = *(int*) object;
 
     if (fd >= 0)
     {
         close(fd);
     }
 
-error:
-
     return;
 }
 
-LWMsgCustomTypeClass lwmsg_fd_type_class =
+LWMsgTypeSpec indicator_spec[] =
+{
+    LWMSG_UINT8(unsigned char),
+    LWMSG_TYPE_END
+};
+
+LWMsgTypeClass lwmsg_fd_type_class =
 {
     .is_pointer = LWMSG_FALSE,
-
+    .transmit_type = indicator_spec,
     .marshal = lwmsg_connection_marshal_fd,
     .unmarshal = lwmsg_connection_unmarshal_fd,
-    .free = lwmsg_connection_free_fd
+    .destroy_presented = lwmsg_connection_free_fd,
+    .destroy_transmitted = NULL /* Nothing to free in transmitted form */
 };
