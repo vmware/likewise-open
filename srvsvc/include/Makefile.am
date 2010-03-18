@@ -5,7 +5,7 @@ srvsvcinclude_HEADERS =     \
     srvsvc/srvsvcbinding.h  \
     srvsvc/srvsvcdefs.h     \
     srvsvc/types.h          \
-    srvsvc/winregdefs.h     \
-    srvsvc/wkssvcdefs.h
+    srvsvc/winreg.h         \
+    srvsvc/wkssvc.h
 
 noinst_HEADERS =

@@ -32,7 +32,7 @@ interface wkssvc
 cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
 #include <lwrpc/types.h>
-#include <srvsvc/wkssvcdefs.h>
+#include <srvsvc/wkssvc.h>
 
     cpp_quote("#ifndef __WKSSVC_IDL__")
     cpp_quote("#define __WKSSVC_IDL__")
