@@ -29,6 +29,23 @@
  */
 
 NET_API_STATUS
+NetrServerGetInfo(
+    PSRVSVC_CONTEXT pContext,        /* IN             */
+    PCWSTR          pwszServername,  /* IN    OPTIONAL */
+    DWORD           dwInfoLevel,     /* IN             */
+    PBYTE*          ppBuffer         /*    OUT         */
+    );
+
+NET_API_STATUS
+NetrServerSetInfo(
+    PSRVSVC_CONTEXT pContext,        /* IN              */
+    PCWSTR          pwszServername,  /* IN     OPTIONAL */
+    DWORD           dwInfoLevel,     /* IN              */
+    PBYTE           pBuffer,         /* IN              */
+    PDWORD          pdwParmError     /*    OUT OPTIONAL */
+    );
+
+NET_API_STATUS
 NetShareAdd(
     IN  PCWSTR  pwszServername,
     IN  DWORD   dwLevel,

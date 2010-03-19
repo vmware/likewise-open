@@ -32,40 +32,41 @@
 
 
 NET_API_STATUS
-NetrServerGetInfo(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT32 level,
-    UINT8 **bufptr
+NetServerGetInfo(
+    IN  PCWSTR  pwszServername,
+    IN  DWORD   dwLevel,
+    OUT PBYTE  *ppBuffer
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
-    srvsvc_NetSrvInfo info;
+    NET_API_STATUS err = ERROR_SUCCESS;
+    PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE pBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
 
-    memset(&info, 0, sizeof(info));
-    *bufptr = NULL;
+    err = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_WIN_ERROR(err);
 
-    DCERPC_CALL(status,
-                _NetrServerGetInfo(
-                        pContext->hBinding,
-                        (wchar16_t *)servername,
-                        level,
-                        &info));
-    BAIL_ON_WIN_ERROR(status);
+    err = NetrServerGetInfo(pContext,
+                            pwszServername,
+                            dwLevel,
+                            &pBuffer);
+    BAIL_ON_WIN_ERROR(err);
 
-    memerr = SrvSvcCopyNetSrvInfo(level, &info, bufptr);
-    BAIL_ON_WIN_ERROR(memerr);
+    *ppBuffer = pBuffer;
 
 cleanup:
-    SrvSvcClearNetSrvInfo(level, &info);
-    return status;
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return err;
 
 error:
+    *ppBuffer = NULL;
+
     goto cleanup;
 }
 
