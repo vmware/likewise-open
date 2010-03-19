@@ -1424,8 +1424,8 @@ NET_API_STATUS
 NetrFileEnum(
     PSRVSVC_CONTEXT pContext,          /* IN              */
     PCWSTR          pwszServername,    /* IN    OPTIONAL  */
-    PWSTR           pwszBasepath,      /* IN    OPTIONAL  */
-    PWSTR           pwszUsername,      /* IN    OPTIONAL  */
+    PCWSTR          pwszBasepath,      /* IN    OPTIONAL  */
+    PCWSTR          pwszUsername,      /* IN    OPTIONAL  */
     DWORD           dwInfoLevel,       /* IN              */
     PBYTE*          ppBuffer,          /*    OUT          */
     DWORD           dwPrefmaxlen,      /* IN              */

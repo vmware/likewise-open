@@ -31,7 +31,8 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetFileEnum(
+NET_API_STATUS
+NetrFileEnum(
     PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *basepath,
