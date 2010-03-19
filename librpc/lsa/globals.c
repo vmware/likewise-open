@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,35 +28,33 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        globals.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Global variables
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
 
-#include <lwio/lwio.h>
+#include "includes.h"
 
-#include <DceSupport.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
-#include <lwbuffer.h>
+/* This is a pointer to list of allocated pointers.
+   The list enables freeing a pointer and dependant pointers */
+PVOID gLsaMemoryList = NULL;
 
-#include <lwrpc/types.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
 
-#include "macros.h"
+/* Library initialisation guard */
+pthread_mutex_t gLsaDataMutex = PTHREAD_MUTEX_INITIALIZER;
 
-#include "lsadefs.h"
-#include "lsa_memory.h"
-#include "lsa_stubmemory.h"
-#include "lsa_h.h"
-
-#include "externs.h"
+BOOLEAN bLsaInitialised = 0;
 
 
 /*

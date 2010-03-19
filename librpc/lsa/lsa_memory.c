@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2010
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -46,14 +46,28 @@
 
 #include "includes.h"
 
-/* File globals */
 
-static PVOID pLsaMemoryList = NULL;
-static pthread_mutex_t gLsaDataMutex = PTHREAD_MUTEX_INITIALIZER;
-static BOOLEAN bLsaInitialised = 0;
+static
+NTSTATUS
+LsaAllocateDomainInfo(
+    OUT PVOID          pBuffer,
+    IN OUT PDWORD      pdwOffset,
+    IN OUT PDWORD      pdwSpaceLeft,
+    IN LsaDomainInfo  *pIn,
+    IN OUT PDWORD      pdwSize
+    );
 
 
-/* Code */
+static
+NTSTATUS
+LsaAllocateAuditEventsInfo(
+    OUT PVOID            pBuffer,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
+    IN AuditEventsInfo  *pIn,
+    IN OUT PDWORD        pdwSize
+    );
+
 
 NTSTATUS
 LsaRpcInitMemory(
@@ -61,25 +75,7 @@ LsaRpcInitMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-
-    LIBRPC_LOCK_MUTEX(bLocked, &gLsaDataMutex);
-
-    if (!bLsaInitialised)
-    {
-        ntStatus = MemPtrListInit((PtrList**)&pLsaMemoryList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bLsaInitialised = 1;
-    }
-
-cleanup:
-    LIBRPC_UNLOCK_MUTEX(bLocked, &gLsaDataMutex);
-
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 
@@ -89,585 +85,355 @@ LsaRpcDestroyMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-
-    LIBRPC_LOCK_MUTEX(bLocked, &gLsaDataMutex);
-
-    if (bLsaInitialised && pLsaMemoryList)
-    {
-        ntStatus = MemPtrListDestroy((PtrList**)&pLsaMemoryList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bLsaInitialised = 0;
-    }
-
-cleanup:
-    LIBRPC_UNLOCK_MUTEX(bLocked, &gLsaDataMutex);
-
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 
 NTSTATUS
 LsaRpcAllocateMemory(
     OUT PVOID *ppOut,
-    IN  size_t Size,
-    IN  PVOID  pDependent
-    )
-{
-    return MemPtrAllocate(
-               (PtrList*)pLsaMemoryList,
-               ppOut,
-               Size,
-               pDependent);
-}
-
-
-NTSTATUS
-LsaRpcFreeMemory(
-    IN PVOID pBuffer
-    )
-{
-    if (pBuffer == NULL)
-    {
-        return STATUS_SUCCESS;
-    }
-
-    return MemPtrFree((PtrList*)pLsaMemoryList, pBuffer);
-}
-
-
-NTSTATUS
-LsaRpcAddDepMemory(
-    IN PVOID pBuffer,
-    IN PVOID pDependent
-    )
-{
-    return MemPtrAddDependant(
-               (PtrList*)pLsaMemoryList,
-               pBuffer,
-               pDependent);
-}
-
-
-NTSTATUS
-LsaAllocateTranslatedSids(
-    OUT TranslatedSid **ppOut,
-    IN  TranslatedSidArray *pIn
+    IN  size_t sSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    TranslatedSid *pNewArray = NULL;
-    int i = 0;
-    int count = (pIn == NULL) ? 1 : pIn->count;
+    PVOID pMem = NULL;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
-
-    ntStatus = LsaRpcAllocateMemory(
-                   (PVOID*)&pNewArray,
-                   sizeof(TranslatedSid) * count,
-                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIn != NULL)
+    pMem = malloc(sSize);
+    if (pMem == NULL)
     {
-        for (i = 0; i < count; i++)
-        {
-            pNewArray[i].type  = pIn->sids[i].type;
-            pNewArray[i].rid   = pIn->sids[i].rid;
-            pNewArray[i].index = pIn->sids[i].index;
-        }
+        ntStatus = STATUS_NO_MEMORY;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppOut = pNewArray;
-    pNewArray = NULL;
+    memset(pMem, 0, sSize);
+    *ppOut = pMem;
 
 cleanup:
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pNewArray);
-
     *ppOut = NULL;
+    goto cleanup;
+}
+
+
+VOID
+LsaRpcFreeMemory(
+    IN PVOID pPtr
+    )
+{
+    free(pPtr);
+}
+
+
+NTSTATUS
+LsaAllocateTranslatedSids(
+    OUT TranslatedSid       *pOut,
+    IN OUT PDWORD            pdwOffset,
+    IN OUT PDWORD            pdwSpaceLeft,
+    IN  TranslatedSidArray  *pIn,
+    IN OUT PDWORD            pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    DWORD iTransSid = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iTransSid = 0; iTransSid < pIn->count; iTransSid++)
+    {
+        LWBUF_ALLOC_WORD(pBuffer, pIn->sids[iTransSid].type);
+        LWBUF_ALIGN_TYPE(pdwOffset, pdwSize, pdwSpaceLeft, DWORD);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->sids[iTransSid].rid);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->sids[iTransSid].index);
+    }
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
     goto cleanup;
 }
 
 
 NTSTATUS
 LsaAllocateTranslatedSids2(
-    OUT TranslatedSid2 **ppOut,
-    IN  TranslatedSidArray2 *pIn
+    OUT TranslatedSid2       *pOut,
+    IN OUT PDWORD             pdwOffset,
+    IN OUT PDWORD             pdwSpaceLeft,
+    IN  TranslatedSidArray2  *pIn,
+    IN OUT PDWORD             pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    TranslatedSid2 *pNewArray = NULL;
-    int i = 0;
-    int count = (pIn == NULL) ? 1 : pIn->count;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    DWORD iTransSid = 0;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = LsaRpcAllocateMemory(
-                   (PVOID*)&pNewArray,
-                   sizeof(TranslatedSid2) * count,
-                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIn != NULL)
+    for (iTransSid = 0; iTransSid < pIn->count; iTransSid++)
     {
-        for (i = 0; i < count; i++)
-        {
-            pNewArray[i].type     = pIn->sids[i].type;
-            pNewArray[i].rid      = pIn->sids[i].rid;
-            pNewArray[i].index    = pIn->sids[i].index;
-            pNewArray[i].unknown1 = pIn->sids[i].unknown1;
-        }
+        LWBUF_ALLOC_WORD(pBuffer, pIn->sids[iTransSid].type);
+        LWBUF_ALIGN_TYPE(pdwOffset, pdwSize, pdwSpaceLeft, DWORD);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->sids[iTransSid].rid);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->sids[iTransSid].index);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->sids[iTransSid].unknown1);
     }
 
-    *ppOut = pNewArray;
-    pNewArray = NULL;
-
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pNewArray);
-
-    *ppOut = NULL;
     goto cleanup;
 }
 
 
 NTSTATUS
 LsaAllocateTranslatedSids3(
-    OUT TranslatedSid3 **ppOut,
-    IN  TranslatedSidArray3 *pIn
+    OUT TranslatedSid3       *pOut,
+    IN OUT PDWORD             pdwOffset,
+    IN OUT PDWORD             pdwSpaceLeft,
+    IN  TranslatedSidArray3  *pIn,
+    IN OUT PDWORD             pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    TranslatedSid3 *pNewArray = NULL;
-    int i = 0;
-    int count = (pIn == NULL) ? 1 : pIn->count;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    DWORD iTransSid = 0;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = LsaRpcAllocateMemory(
-                   (PVOID*)&pNewArray,
-                   sizeof(TranslatedSid2) * count,
-                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIn != NULL)
+    for (iTransSid = 0; iTransSid < pIn->count; iTransSid++)
     {
-        for (i = 0; i < count; i++)
+        LWBUF_ALLOC_WORD(pBuffer, pIn->sids[iTransSid].type);
+        LWBUF_ALIGN_PTR(pdwOffset, pdwSize, pdwSpaceLeft);
+
+        if (pIn->sids[iTransSid].sid)
         {
-            pNewArray[i].type     = pIn->sids[i].type;
-            pNewArray[i].index    = pIn->sids[i].index;
-            pNewArray[i].unknown1 = pIn->sids[i].unknown1;
-
-            if (pIn->sids[i].sid &&
-                (pIn->sids[i].type != SID_TYPE_INVALID &&
-                 pIn->sids[i].type != SID_TYPE_UNKNOWN))
-            {
-                ntStatus = MsRpcDuplicateSid(
-                               &(pNewArray[i].sid),
-                               pIn->sids[i].sid);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                ntStatus = LsaRpcAddDepMemory(
-                               pNewArray[i].sid,
-                               pNewArray);
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-            else if (pIn->sids[i].type == SID_TYPE_DOMAIN ||
-                     pIn->sids[i].type == SID_TYPE_INVALID ||
-                     pIn->sids[i].type == SID_TYPE_UNKNOWN)
-            {
-                pNewArray[i].sid = NULL;
-            }
-            else
-            {
-                ntStatus = STATUS_INVALID_SID;
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
+            LWBUF_ALLOC_PSID(pBuffer, pIn->sids[iTransSid].sid);
         }
+        else if (pIn->sids[iTransSid].type == SID_TYPE_DOMAIN ||
+                 pIn->sids[iTransSid].type == SID_TYPE_INVALID ||
+                 pIn->sids[iTransSid].type == SID_TYPE_UNKNOWN)
+        {
+            LWBUF_ALLOC_PSID(pBuffer, NULL);
+        }
+        else
+        {
+            ntStatus = STATUS_INVALID_SID;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->sids[iTransSid].index);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->sids[iTransSid].unknown1);
     }
 
-    *ppOut = pNewArray;
-    pNewArray = NULL;
-
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pNewArray);
-
-    *ppOut = NULL;
     goto cleanup;
 }
 
 
 NTSTATUS
 LsaAllocateRefDomainList(
-    OUT RefDomainList **ppOut,
-    IN  RefDomainList *pIn
+    OUT RefDomainList *pOut,
+    IN OUT PDWORD      pdwOffset,
+    IN OUT PDWORD      pdwSpaceLeft,
+    IN  RefDomainList *pIn,
+    IN OUT PDWORD      pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    RefDomainList *pDomList = NULL;
-    int i = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    PVOID pDomains = NULL;
+    PVOID *ppDomains = NULL;
+    DWORD iDom = 0;
+    DWORD dwDomainsSize = 0;
+    DWORD dwDomainsSpaceLeft = 0;
+    DWORD dwDomainsOffset = 0;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = LsaRpcAllocateMemory(
-                   (PVOID*)&pDomList,
-                   sizeof(RefDomainList),
-                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->count);
+    LWBUF_ALIGN_PTR(pdwOffset, pdwSize, pdwSpaceLeft);
 
-    if (pIn == NULL) goto cleanup;
-
-    pDomList->count    = pIn->count;
-    pDomList->max_size = pIn->max_size;
-
-    ntStatus = LsaRpcAllocateMemory(
-                   (PVOID*)&pDomList->domains,
-                   sizeof(LsaDomainInfo) * pDomList->count,
-                   (PVOID)pDomList);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pDomList->count; i++)
+    if (pIn->count > 0)
     {
-        LsaDomainInfo *pDomInfo = &(pDomList->domains[i]);
-
-        ntStatus = CopyUnicodeStringEx(&pDomInfo->name, &pIn->domains[i].name);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (pDomInfo->name.string)
+        for (iDom = 0; iDom < pIn->count; iDom++)
         {
-            ntStatus = LsaRpcAddDepMemory(
-                           (PVOID)pDomInfo->name.string,
-                           (PVOID)pDomList);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        MsRpcDuplicateSid(&pDomInfo->sid, pIn->domains[i].sid);
-        BAIL_ON_NULL_PTR(pDomInfo->sid, ntStatus);
-
-        if (pDomInfo->sid)
-        {
-            ntStatus = LsaRpcAddDepMemory(
-                           (PVOID)pDomInfo->sid,
-                           (PVOID)pDomList);
+            ntStatus = LsaAllocateDomainInfo(NULL,
+                                             &dwDomainsOffset,
+                                             NULL,
+                                             &(pIn->domains[iDom]),
+                                             &dwDomainsSize);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
-    *ppOut = pDomList;
-    pDomList = NULL;
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwDomainsSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
+
+        if (pIn->count)
+        {
+            pDomains = LWBUF_TARGET_PTR(pBuffer, dwDomainsSize, pdwSpaceLeft);
+
+            /* sanity check - the data pointer and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(PBYTE, pDomains, dwError);
+
+            dwDomainsSpaceLeft = dwDomainsSize;
+            dwDomainsOffset    = 0;
+
+            /* Allocate the entries */
+            for (iDom = 0; iDom < pIn->count; iDom++)
+            {
+                PVOID pDomCursor = pDomains + (iDom * sizeof(pIn->domains[0]));
+
+                ntStatus = LsaAllocateDomainInfo(pDomCursor,
+                                                 &dwDomainsOffset,
+                                                 &dwDomainsSpaceLeft,
+                                                 &(pIn->domains[iDom]),
+                                                 pdwSize);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                dwDomainsOffset = 0;
+            }
+        }
+
+        ppDomains        = (PVOID*)pCursor;
+        *ppDomains       = (PVOID)pDomains;
+        (*pdwSpaceLeft) -= (pDomains) ? dwDomainsSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft) -= sizeof(PVOID);
+    }
+    else
+    {
+        (*pdwSize) += dwDomainsSize;
+    }
+
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(PVOID);
+    (*pdwSize)   += sizeof(PVOID);
+
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->max_size);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory(pDomList);
+    goto cleanup;
+}
 
-    *ppOut = NULL;
+
+static
+NTSTATUS
+LsaAllocateDomainInfo(
+    OUT PVOID          pBuffer,
+    IN OUT PDWORD      pdwOffset,
+    IN OUT PDWORD      pdwSpaceLeft,
+    IN LsaDomainInfo  *pIn,
+    IN OUT PDWORD      pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->name);
+    LWBUF_ALLOC_PSID(pBuffer, pIn->sid);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
     goto cleanup;
 }
 
 
 NTSTATUS
 LsaAllocateTranslatedNames(
-    OUT TranslatedName **ppOut,
-    IN  TranslatedNameArray *pIn
+    OUT TranslatedName       *pOut,
+    IN OUT PDWORD             pdwOffset,
+    IN OUT PDWORD             pdwSpaceLeft,
+    IN  TranslatedNameArray  *pIn,
+    IN OUT PDWORD             pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    TranslatedName *pNameArray = NULL;
-    int i = 0;
-    int count = (pIn == NULL) ? 1 : pIn->count;;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    DWORD iTransName = 0;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
-
-    ntStatus = LsaRpcAllocateMemory(
-                   (PVOID*)&pNameArray,
-                   sizeof(TranslatedName) * count,
-                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIn != NULL)
-    {
-        for (i = 0; i < pIn->count; i++)
-        {
-            TranslatedName *pNameOut = &pNameArray[i];
-            TranslatedName *pNameIn  = &pIn->names[i];
-
-            pNameOut->type      = pNameIn->type;
-            pNameOut->sid_index = pNameIn->sid_index;
-
-            ntStatus = CopyUnicodeString(&pNameOut->name, &pNameIn->name);
-            BAIL_ON_NT_STATUS(ntStatus);
-
-            if (pNameOut->name.string)
-            {
-                ntStatus = LsaRpcAddDepMemory(
-                               (PVOID)pNameOut->name.string,
-                               (PVOID)pNameArray);
-                BAIL_ON_NT_STATUS(ntStatus);
-            }
-        }
-    }
-
-    *ppOut = pNameArray;
-    pNameArray = NULL;
-
-cleanup:
-    return ntStatus;
-
-error:
-    LsaRpcFreeMemory((PVOID)pNameArray);
-
-    *ppOut = NULL;
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-LsaCopyPolInfoField(
-    OUT PVOID pOut,
-    IN  PVOID pIn,
-    IN  size_t Size)
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    memcpy(pOut, pIn, Size);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-LsaCopyPolInfoAuditEvents(
-    OUT AuditEventsInfo *pOut,
-    IN  AuditEventsInfo *pIn,
-    IN  PVOID pDependent
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->auditing_mode = pIn->auditing_mode;
-    pOut->count         = pIn->count;
-
-    ntStatus = LsaRpcAllocateMemory(
-                   (PVOID*)&pOut->settings,
-                   (size_t)pOut->count,
-                   pDependent);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    memcpy((PVOID)&pOut->settings,
-           (PVOID)&pIn->settings,
-           pOut->count);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-LsaCopyPolInfoLsaDomain(
-    OUT LsaDomainInfo *pOut,
-    IN  LsaDomainInfo *pIn,
-    IN  PVOID pDependent
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = CopyUnicodeStringEx(&pOut->name, &pIn->name);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->name.string)
+    for (iTransName = 0; iTransName < pIn->count; iTransName++)
     {
-        ntStatus = LsaRpcAddDepMemory(
-                       (PVOID)pOut->name.string,
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    MsRpcDuplicateSid(&pOut->sid, pIn->sid);
-    BAIL_ON_NULL_PTR(pOut->sid, ntStatus);
-
-    if (pOut->sid)
-    {
-        ntStatus = LsaRpcAddDepMemory(
-                       (PVOID)pOut->sid,
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
+        LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->names[iTransName].type);
+        LWBUF_ALIGN_PTR(pdwOffset, pdwSize, pdwSpaceLeft);
+        LWBUF_ALLOC_UNICODE_STRING(
+                             pBuffer,
+                             (PUNICODE_STRING)&pIn->names[iTransName].name);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->names[iTransName].sid_index);
     }
 
 cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-LsaCopyPolInfoPDAccount(
-    OUT PDAccountInfo *pOut,
-    IN  PDAccountInfo *pIn,
-    IN  PVOID pDependent
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = CopyUnicodeString(&pOut->name, &pIn->name);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->name.string)
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
     {
-        ntStatus = LsaRpcAddDepMemory(
-                       (PVOID)pOut->name.string,
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-LsaCopyPolInfoReplicaSource(
-    OUT ReplicaSourceInfo *pOut,
-    IN  ReplicaSourceInfo *pIn,
-    IN  PVOID pDependent
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = CopyUnicodeString(&pOut->source, &pIn->source);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->source.string)
-    {
-        ntStatus = LsaRpcAddDepMemory(
-                       (PVOID)pOut->source.string,
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeString(&pOut->account, &pIn->account);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->account.string)
-    {
-        ntStatus = LsaRpcAddDepMemory(
-                       (PVOID)pOut->account.string,
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-LsaCopyPolInfoDnsDomain(
-    OUT DnsDomainInfo *pOut,
-    IN  DnsDomainInfo *pIn,
-    IN  PVOID pDependent
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = CopyUnicodeStringEx(&pOut->name, &pIn->name);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->name.string)
-    {
-        ntStatus = LsaRpcAddDepMemory(
-                       (PVOID)pOut->name.string,
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeStringEx(&pOut->dns_domain, &pIn->dns_domain);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->dns_domain.string)
-    {
-        ntStatus = LsaRpcAddDepMemory(
-                       (PVOID)pOut->dns_domain.string,
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeStringEx(&pOut->dns_forest, &pIn->dns_forest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->dns_forest.string)
-    {
-        ntStatus = LsaRpcAddDepMemory(
-                       (PVOID)pOut->dns_forest.string,
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    memcpy((PVOID)&pOut->domain_guid,
-           (PVOID)&pIn->domain_guid,
-           sizeof(Guid));
-
-    MsRpcDuplicateSid(&pOut->sid, pIn->sid);
-    BAIL_ON_NULL_PTR(pOut->sid, ntStatus);
-
-    if (pOut->sid) {
-        ntStatus = LsaRpcAddDepMemory((PVOID)pOut->sid, pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-cleanup:
     return ntStatus;
 
 error:
@@ -677,129 +443,215 @@ error:
 
 NTSTATUS
 LsaAllocatePolicyInformation(
-    OUT LsaPolicyInformation **pOut,
+    OUT LsaPolicyInformation *pOut,
+    IN OUT PDWORD             pdwOffset,
+    IN OUT PDWORD             pdwSpaceLeft,
+    IN  WORD                  swLevel,
     IN  LsaPolicyInformation *pIn,
-    IN  UINT32 Level
+    IN OUT PDWORD             pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    LsaPolicyInformation *pPolInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
 
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = LsaRpcAllocateMemory(
-                   (PVOID*)&pPolInfo,
-                   sizeof(LsaPolicyInformation),
-                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIn == NULL)
+    switch (swLevel)
     {
-        ntStatus = STATUS_SUCCESS;
-        goto cleanup;
-    }
-
-    switch (Level) {
     case LSA_POLICY_INFO_AUDIT_LOG:
-        ntStatus = LsaCopyPolInfoField(
-                       (PVOID)&pPolInfo->audit_log,
-                       (PVOID)&pIn->audit_log,
-                       sizeof(AuditLogInfo));
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->audit_log.percent_full);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->audit_log.log_size);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->audit_log.retention_time);
+        LWBUF_ALLOC_BYTE(pBuffer, pIn->audit_log.shutdown_in_progress);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->audit_log.time_to_shutdown);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->audit_log.next_audit_record);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->audit_log.unknown);
         break;
 
     case LSA_POLICY_INFO_AUDIT_EVENTS:
-        ntStatus = LsaCopyPolInfoAuditEvents(
-                       &pPolInfo->audit_events,
-                       &pIn->audit_events,
-                       (PVOID)pPolInfo);
+        ntStatus = LsaAllocateAuditEventsInfo(pBuffer,
+                                              pdwOffset,
+                                              pdwSpaceLeft,
+                                              &pIn->audit_events,
+                                              pdwSize);
         break;
 
     case LSA_POLICY_INFO_DOMAIN:
-        ntStatus = LsaCopyPolInfoLsaDomain(
-                       &pPolInfo->domain,
-                       &pIn->domain,
-                       (PVOID)pPolInfo);
+        ntStatus = LsaAllocateDomainInfo(pBuffer,
+                                         pdwOffset,
+                                         pdwSpaceLeft,
+                                         &pIn->domain,
+                                         pdwSize);
         break;
 
     case LSA_POLICY_INFO_PD:
-        ntStatus = LsaCopyPolInfoPDAccount(
-                       &pPolInfo->pd,
-                       &pIn->pd,
-                       (PVOID)pPolInfo);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->pd.name);
         break;
 
     case LSA_POLICY_INFO_ACCOUNT_DOMAIN:
-        ntStatus = LsaCopyPolInfoLsaDomain(
-                       &pPolInfo->account_domain,
-                       &pIn->account_domain,
-                       (PVOID)pPolInfo);
+        ntStatus = LsaAllocateDomainInfo(pBuffer,
+                                         pdwOffset,
+                                         pdwSpaceLeft,
+                                         &pIn->account_domain,
+                                         pdwSize);
         break;
 
     case LSA_POLICY_INFO_ROLE:
-        ntStatus = LsaCopyPolInfoField(
-                       (PVOID)&pPolInfo->role,
-                       (PVOID)&pIn->role,
-                       sizeof(ServerRole));
+        LWBUF_ALLOC_WORD(pBuffer, pIn->role.unknown);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->role.role);
         break;
 
     case LSA_POLICY_INFO_REPLICA:
-        ntStatus = LsaCopyPolInfoReplicaSource(
-                       &pPolInfo->replica,
-                       &pIn->replica,
-                       (PVOID)pPolInfo);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->replica.source);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->replica.account);
         break;
 
     case LSA_POLICY_INFO_QUOTA:
-        ntStatus = LsaCopyPolInfoField(
-                       (PVOID)&pPolInfo->quota,
-                       (PVOID)&pIn->quota,
-                       sizeof(DefaultQuotaInfo));
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->quota.paged_pool);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->quota.non_paged_pool);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->quota.min_wss);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->quota.max_wss);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->quota.pagefile);
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->quota.unknown);
         break;
 
     case LSA_POLICY_INFO_DB:
-        ntStatus = LsaCopyPolInfoField(
-                       (PVOID)&pPolInfo->db,
-                       (PVOID)&pIn->db,
-                       sizeof(ModificationInfo));
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->db.modified_id);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->db.db_create_time);
         break;
 
     case LSA_POLICY_INFO_AUDIT_FULL_SET:
-        ntStatus = LsaCopyPolInfoField(
-                       (PVOID)&pPolInfo->audit_set,
-                       (PVOID)&pIn->audit_set,
-                       sizeof(AuditFullSetInfo));
+        LWBUF_ALLOC_BYTE(pBuffer, pIn->audit_set.shutdown_on_full);
         break;
 
     case LSA_POLICY_INFO_AUDIT_FULL_QUERY:
-        ntStatus = LsaCopyPolInfoField(
-                       (PVOID)&pPolInfo->audit_query,
-                       (PVOID)&pIn->audit_query,
-                       sizeof(AuditFullQueryInfo));
+        LWBUF_ALLOC_WORD(pBuffer, pIn->audit_query.unknown);
+        LWBUF_ALLOC_BYTE(pBuffer, pIn->audit_query.shutdown_on_full);
+        LWBUF_ALLOC_BYTE(pBuffer, pIn->audit_query.log_is_full);
         break;
 
     case LSA_POLICY_INFO_DNS:
-        ntStatus = LsaCopyPolInfoDnsDomain(
-                       &pPolInfo->dns,
-                       &pIn->dns,
-                       (PVOID)pPolInfo);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->dns.name);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->dns.dns_domain);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->dns.dns_forest);
+        LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+        LWBUF_ALLOC_BLOB(pBuffer,
+                         sizeof(pIn->dns.domain_guid),
+                         (PBYTE)&(pIn->dns.domain_guid));
+        LWBUF_ALLOC_PSID(pBuffer, pIn->dns.sid);
         break;
 
     default:
         ntStatus = STATUS_INVALID_LEVEL;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *pOut = pPolInfo;
-    pPolInfo = NULL;
-
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pPolInfo);
+    goto cleanup;
+}
 
-    *pOut = NULL;
+
+static
+NTSTATUS
+LsaAllocateAuditEventsInfo(
+    OUT PVOID            pOut,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
+    IN AuditEventsInfo  *pIn,
+    IN OUT PDWORD        pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    PVOID pBlob = NULL;
+    PVOID *ppBlob = NULL;
+    DWORD dwBlobSize = 0;
+    DWORD dwBlobSpaceLeft = 0;
+    DWORD dwBlobOffset = 0;
+
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->auditing_mode);
+    LWBUF_ALIGN_PTR(pdwOffset, pdwSize, pdwSpaceLeft);
+
+    if (pIn->count)
+    {
+        dwBlobSize = sizeof(pIn->settings[0]) * pIn->count;
+    }
+
+    /* Set pointer to the entries array */
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwBlobSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
+
+        if (pIn->count)
+        {
+            pBlob = LWBUF_TARGET_PTR(pBuffer, dwBlobSize, pdwSpaceLeft);
+
+            /* sanity check - the blob and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(AuditEventsInfo*, pBlob, dwError);
+
+            dwBlobSpaceLeft = dwBlobSize;
+            dwBlobSize      = 0;
+            dwBlobOffset    = 0;
+
+            dwError = LwBufferAllocFixedBlob(
+                                       pBlob,
+                                       &dwBlobSize,
+                                       &dwBlobSpaceLeft,
+                                       (PBYTE)pIn->settings,
+                                       sizeof(pIn->settings[0]) * pIn->count,
+                                       &dwBlobSize);
+            BAIL_ON_WIN_ERROR(dwError);
+        }
+
+        ppBlob           = (PVOID*)pCursor;
+        *ppBlob          = (PVOID)pBlob;
+        (*pdwSpaceLeft) -= (pBlob) ? dwBlobSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft) -= sizeof(PVOID);
+    }
+    else
+    {
+        (*pdwSize) += dwBlobSize;
+    }
+
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(PVOID);
+    (*pdwSize)   += sizeof(PVOID);
+
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->count);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
     goto cleanup;
 }
 

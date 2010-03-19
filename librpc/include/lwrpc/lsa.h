@@ -139,9 +139,9 @@ LsaRpcDestroyMemory(
     );
 
 
-NTSTATUS
+VOID
 LsaRpcFreeMemory(
-    IN PVOID pBuffer
+    IN PVOID pPtr
     );
 
 

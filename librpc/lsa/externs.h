@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2010
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,35 +28,20 @@
  * license@likewisesoftware.com
  */
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <iconv.h>
-#include <string.h>
+#ifndef _EXTERNS_H_
+#define _EXTERNS_H_
 
-#include <lwio/lwio.h>
+#include "includes.h"
 
-#include <DceSupport.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <wc16str.h>
-#include <lw/ntstatus.h>
-#include <lwbuffer.h>
 
-#include <lwrpc/types.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
+extern PVOID gLsaMemoryList;
 
-#include "macros.h"
+extern pthread_mutex_t gLsaDataMutex;
 
-#include "lsadefs.h"
-#include "lsa_memory.h"
-#include "lsa_stubmemory.h"
-#include "lsa_h.h"
+extern BOOLEAN bLsaInitialised;
 
-#include "externs.h"
+
+#endif /* _EXTERN_H_ */
 
 
 /*
