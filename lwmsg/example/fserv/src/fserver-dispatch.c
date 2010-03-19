@@ -20,15 +20,10 @@ fserv_check_permissions(LWMsgSession* session, const char* path, OpenMode mode)
     gid_t egid;
     struct stat statbuf;
 
-    token = lwmsg_session_get_peer_security_token(session);
+    /* Extract security token */
+    token = lwmsg_session_get_peers_ecurity_token(session);
 
-    if (!token)
-    {
-        LOG("Failed to get auth info for session %p\n", session);
-        ret = -1;
-        goto error;
-    }
-
+    /* Check that session is authenticated and that the token type is correct */
     if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))
     {
         LOG("Unsupported authentication type on session %p\n", session);
@@ -36,6 +31,7 @@ fserv_check_permissions(LWMsgSession* session, const char* path, OpenMode mode)
         goto error;
     }
 
+    /* Extract uid and gid of the caller */
     status = lwmsg_local_token_get_eid(token, &euid, &egid);
     if (status)
     {
@@ -111,6 +107,7 @@ fserv_free_handle(
     free(handle);
 }
 
+/* Implementation of fserv_open() */
 static LWMsgStatus
 fserv_open_srv(
     LWMsgCall* call,
@@ -127,23 +124,26 @@ fserv_open_srv(
     int flags = 0;
     int fd = -1;
     int ret;
-    
+
     LOG("fserv_open() of %s on session %p\n", req->path, session);
 
+    /* Check permissions */
     ret = fserv_check_permissions(session, req->path, req->mode);
 
     if (ret)
     {
+        /* Allocate status reply */
         sreply = malloc(sizeof(*sreply));
-        
+
+        /* Bail out on allocation failure */
         if (!handle)
         {
             status = LWMSG_STATUS_MEMORY;
             goto error;
         }
 
+        /* Set output parameters */
         sreply->err = ret;
-
         out->tag = FSERV_ERROR_RES;
         out->data = (void*) sreply;
     }
@@ -169,10 +169,12 @@ fserv_open_srv(
             flags |= O_APPEND;
         }
         
+        /* Open file */
         fd = open(req->path, flags);
         
         if (fd >= 0)
         {
+            /* Create handle structure */
             handle = malloc(sizeof(*handle));
             
             if (!handle)
@@ -180,20 +182,24 @@ fserv_open_srv(
                 status = LWMSG_STATUS_MEMORY;
                 goto error;
             }
-            
+
+            /* Fill in handle */
             handle->fd = fd;
             handle->mode = req->mode;
-            
+
+            /* Register handle */
             status = lwmsg_session_register_handle(session, "FileHandle", handle, fserv_free_handle);
             if (status)
             {
                 goto error;
             }
 
+            /* Set output parameters */
             out->tag = FSERV_OPEN_RES;
             out->data = (void*) handle;
             handle = NULL;
 
+            /* Retain handle */
             status = lwmsg_session_retain_handle(session, out->data);
             if (status)
             {
@@ -396,12 +402,13 @@ error:
     return status;
 }
 
+/* Dispatch spec */
 static LWMsgDispatchSpec fserv_dispatch[] =
 {
-    LWMSG_DISPATCH_NONBLOCK(FSERV_OPEN_REQ, fserv_open_srv),
-    LWMSG_DISPATCH_NONBLOCK(FSERV_WRITE_REQ, fserv_write_srv),
-    LWMSG_DISPATCH_NONBLOCK(FSERV_READ_REQ, fserv_read_srv),
-    LWMSG_DISPATCH_NONBLOCK(FSERV_CLOSE_REQ, fserv_close_srv),
+    LWMSG_DISPATCH_BLOCK(FSERV_OPEN_REQ, fserv_open_srv),
+    LWMSG_DISPATCH_BLOCK(FSERV_WRITE_REQ, fserv_write_srv),
+    LWMSG_DISPATCH_BLOCK(FSERV_READ_REQ, fserv_read_srv),
+    LWMSG_DISPATCH_BLOCK(FSERV_CLOSE_REQ, fserv_close_srv),
     LWMSG_DISPATCH_END
 };
 

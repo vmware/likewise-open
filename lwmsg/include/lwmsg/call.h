@@ -240,7 +240,7 @@ lwmsg_call_release(
 /**
  * @brief Get session for call
  *
- * Returns the #LWMsgSession associated with the given call
+ * Returns the #LWMsgSession associated with the given call.
  * This function may be used by both callers and callees.
  *
  * @param[in] call the call handle

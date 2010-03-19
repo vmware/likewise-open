@@ -148,7 +148,7 @@ DOXYGEN_PDF_TARGET =
 DOXYGEN_PDF_INSTALL_TARGET =
 endif
 
-DOXYGEN_HEADER_DEPS = \
+DOXYGEN_SOURCE_DEPS = \
 	$(top_srcdir)/include/lwmsg/call.h \
 	$(top_srcdir)/include/lwmsg/assoc.h \
 	$(top_srcdir)/include/lwmsg/buffer.h \
@@ -182,7 +182,11 @@ DOXYGEN_HEADER_DEPS = \
 	$(top_srcdir)/include/test-private.h \
 	$(top_srcdir)/include/type-private.h \
 	$(top_srcdir)/include/util-private.h \
-	$(top_srcdir)/include/xnet-private.h
+	$(top_srcdir)/include/xnet-private.h \
+	$(top_srcdir)/example/fserv/include/protocol.h \
+	$(top_srcdir)/example/fserv/src/protocol.c \
+	$(top_srcdir)/example/fserv/src/fserv-client.c \
+	$(top_srcdir)/example/fserv/src/fserver.c
 
 DOXYGEN_DEPS = \
 	doc/Doxyfile.in \
@@ -190,11 +194,10 @@ DOXYGEN_DEPS = \
 	doc/arch.doxy \
 	doc/arch_rep.doxy \
 	doc/arch_sess.doxy \
-	doc/example.doxy \
 	doc/example_fserv.doxy \
 	doc/example_fserv_layout.doxy \
 	doc/example_fserv_source.doxy \
-	$(DOXYGEN_HEADER_DEPS)
+	$(DOXYGEN_SOURCE_DEPS)
 
 doc/doxygen-html: $(DOXYGEN_DEPS)
 	$(MKDIR_P) $@ && \
