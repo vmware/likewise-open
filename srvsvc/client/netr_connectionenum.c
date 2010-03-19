@@ -31,7 +31,8 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetConnectionEnum(
+NET_API_STATUS
+NetrConnectionEnum(
     PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *qualifier,

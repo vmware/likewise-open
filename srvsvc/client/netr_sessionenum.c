@@ -31,7 +31,8 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetSessionEnum(
+NET_API_STATUS
+NetrSessionEnum(
     PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     const wchar16_t *unc_client_name,
