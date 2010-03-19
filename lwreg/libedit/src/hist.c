@@ -138,6 +138,31 @@ hist_get(EditLine *el)
 	if (el->el_line.lastchar > el->el_line.buffer
 	    && el->el_line.lastchar[-1] == ' ')
 		el->el_line.lastchar--;
+
+#ifdef __LW_MULTIBYTE__
+{
+	int mbindx = 0;
+	unsigned char mbbuf[MB_LEN_MAX];
+	char *cp;
+
+	/*
+	 * Compute charlen map values, searching the current
+	 * line buffer for multibyte characters
+	 */
+	el->el_multibyte.charlen_map_indx = 0;
+	memset(el->el_multibyte.charlen_map, 0,
+		   sizeof(el->el_multibyte.charlen_map));
+	for (cp=el->el_line.buffer, mbindx=0; cp<el->el_line.lastchar; cp++) {
+		 mbbuf[mbindx++] = *cp;
+		 mbbuf[mbindx] = '\0';
+		if (mbtowc(NULL, mbbuf, mbindx+1) != -1) {
+			el->el_multibyte.charlen_map[
+				el->el_multibyte.charlen_map_indx++] = mbindx;
+			mbindx = 0;
+		}
+	}
+}
+#endif
 #ifdef KSHVI
 	if (el->el_map.type == MAP_VI)
 		el->el_line.cursor = el->el_line.buffer;
