@@ -3,8 +3,13 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 noinst_PROGRAMS = testsrvsvc
 
 testsrvsvc_SOURCES = \
-    test.c           \
-    params.c         \
+    net_shareadd.c     \
+    net_sharedel.c     \
+    net_shareenum.c    \
+    net_sharegetinfo.c \
+    net_sharesetinfo.c \
+    params.c           \
+    test.c             \
     test_srvsvc.c
 
 SRVSVC_INCLUDES= \
