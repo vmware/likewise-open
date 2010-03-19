@@ -338,38 +338,31 @@ rpc__smb_buffer_settle(
     buffer->end_cursor = buffer->base + filled;
 }
 
-/* Advance buffer start_cursor to the end of the last packet
-   or the last packet that is the final fragment in a series,
-   whichever comes first.  If the final fragment is found,
-   return true, otherwise false.
-*/
+/* Advance buffer start_cursor to the end of the next valid fragment */
 INTERNAL
 inline
 boolean
-rpc__smb_buffer_advance_cursor(rpc_smb_buffer_p_t buffer, size_t* amount)
+rpc__smb_buffer_advance_cursor(rpc_smb_buffer_p_t buffer, boolean* last)
 {
-    boolean last;
     size_t packet_size;
 
-    while (rpc__smb_buffer_packet_size(buffer) <= rpc__smb_buffer_pending(buffer))
+    if (rpc__smb_buffer_packet_size(buffer) <= rpc__smb_buffer_pending(buffer))
     {
-        last = rpc__smb_buffer_packet_is_last(buffer);
         packet_size = rpc__smb_buffer_packet_size(buffer);
-
-        buffer->start_cursor += packet_size;
 
         if (last)
         {
-            if (amount)
-            {
-                *amount = buffer->start_cursor - buffer->base;
-            }
-
-            return true;
+            *last = rpc__smb_buffer_packet_is_last(buffer);
         }
-    }
 
-    return false;
+        buffer->start_cursor += packet_size;
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 INTERNAL
@@ -635,6 +628,10 @@ rpc__smb_socket_connect(
     USHORT sesskeylen = 0;
     IO_FILE_NAME filename = { 0 };
     IO_STATUS_BLOCK io_status = { 0 };
+    static const ACCESS_MASK pipeAccess =
+        READ_CONTROL | FILE_WRITE_ATTRIBUTES | FILE_READ_ATTRIBUTES |
+        FILE_WRITE_EA | FILE_READ_EA | FILE_READ_DATA | FILE_APPEND_DATA |
+        FILE_WRITE_DATA;
 
     SMB_SOCKET_LOCK(smb);
 
@@ -687,7 +684,7 @@ rpc__smb_socket_connect(
             &filename,                               /* Filename */
             NULL,                                    /* Security descriptor */
             NULL,                                    /* Security QOS */
-            GENERIC_READ | GENERIC_WRITE,            /* Access mode */
+            pipeAccess,                              /* Access mode */
             0,                                       /* Allocation size */
             0,                                       /* File attributes */
             FILE_SHARE_READ | FILE_SHARE_WRITE,      /* Sharing mode */
@@ -1204,7 +1201,7 @@ rpc__smb_socket_sendmsg(
     rpc_socket_error_t serr = RPC_C_SOCKET_OK;
     rpc_smb_socket_p_t smb = (rpc_smb_socket_p_t) sock->data.pointer;
     int i;
-    size_t pending = 0;
+    boolean last = false;
 
     SMB_SOCKET_LOCK(smb);
 
@@ -1221,7 +1218,7 @@ rpc__smb_socket_sendmsg(
 
     *cc = 0;
 
-    /* Append all fragments into a single buffer */
+    /* Gather vector into a single buffer */
     for (i = 0; i < iov_len; i++)
     {
         serr = rpc__smb_buffer_append(&smb->sendbuffer, iov[i].iov_base, iov[i].iov_len);
@@ -1234,8 +1231,8 @@ rpc__smb_socket_sendmsg(
         *cc += iov[i].iov_len;
     }
 
-    /* Look for the last fragment and do send if we find it */
-    if (rpc__smb_buffer_advance_cursor(&smb->sendbuffer, &pending))
+    /* Send all fragments */
+    while (rpc__smb_buffer_advance_cursor(&smb->sendbuffer, &last))
     {
         serr = rpc__smb_socket_do_send(sock);
         if (serr)
@@ -1243,8 +1240,12 @@ rpc__smb_socket_sendmsg(
             goto error;
         }
 
-        /* Switch into recv mode */
-        rpc__smb_socket_change_state(smb, SMB_STATE_RECV);
+        if (last)
+        {
+            /* Switch into recv mode */
+            rpc__smb_socket_change_state(smb, SMB_STATE_RECV);
+            break;
+        }
     }
 
 cleanup:

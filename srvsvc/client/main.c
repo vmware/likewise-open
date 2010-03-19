@@ -37,12 +37,14 @@
 #include "config.h"
 #include "srvsvcsys.h"
 
+#include <lw/base.h>
 #include <lw/security-api.h>
-#include <srvsvc/srvsvc.h>
+#include <lw/srvsvc.h>
 #include <lsa/lsa.h>
 #include <lwerror.h>
 #include <lwmem.h>
 #include <lwstr.h>
+#include <lwio/io-types.h>
 #include <stdio.h>
 #include <sys/param.h>
 #include <srvsvcdefs.h>

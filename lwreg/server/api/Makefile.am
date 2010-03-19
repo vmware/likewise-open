@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libregserverapi.la
+noinst_LTLIBRARIES = libregserverapi.la
 
 libregserverapi_la_SOURCES = \
     main.c                \

@@ -88,6 +88,13 @@ SrvFreeNtRenameState(
     PSRV_NT_RENAME_STATE_SMB_V1 pRenameState
     );
 
+static
+NTSTATUS
+SrvValidateStreamNewName(
+    PWSTR pwszOldName,
+    PWSTR pwszNewName
+    );
+
 NTSTATUS
 SrvProcessNtRename(
     PSRV_EXEC_CONTEXT pExecContext
@@ -256,6 +263,36 @@ error:
 
 static
 NTSTATUS
+SrvValidateStreamNewName(
+    PWSTR pwszOldName,
+    PWSTR pwszNewName
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    wchar16_t wszColon[] = {':', 0};
+
+    while(!IsNullOrEmptyString(pwszOldName))
+    {
+        if (*pwszOldName++ == wszColon[0])
+        {
+            if (*pwszNewName != wszColon[0] ||
+                IsNullOrEmptyString((pwszNewName+1)))
+            {
+                ntStatus = STATUS_INVALID_PARAMETER;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            break;
+        }
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
 SrvBuildNtRenameState(
     PSMB_NT_RENAME_REQUEST_HEADER pRequestHeader,
     PWSTR                         pwszOldName,
@@ -271,6 +308,9 @@ SrvBuildNtRenameState(
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+    ntStatus = SrvValidateStreamNewName(pwszOldName, pwszNewName);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_NT_RENAME_STATE_SMB_V1),

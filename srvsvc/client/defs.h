@@ -48,6 +48,10 @@
 #ifndef _DEFS_H_
 #define _DEFS_H_
 
+#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
+#define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
+#define SRVSVC_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/srvsvc"
+
 #define DCERPC_CALL(status, fn_call)                               \
     do {                                                           \
         NTSTATUS ntStatus = STATUS_SUCCESS;                        \

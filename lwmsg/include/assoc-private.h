@@ -284,4 +284,45 @@ lwmsg_assoc_get_session_manager(
     LWMsgSessionManager** manager
     );
 
+/**
+ * @ingroup assoc
+ * @brief Set session manager
+ *
+ * Sets the session manager (and thus the session) for the specified association.
+ * Associations sharing the same session may share handles.
+ *
+ * @param[in] assoc the association
+ * @param[in] manager the session manager
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{INVALID_STATE, the session manager cannot be changed in the association's current state}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_set_session_manager(
+    LWMsgAssoc* assoc,
+    LWMsgSessionManager* manager
+    );
+
+/**
+ * @ingroup assoc_impl
+ * @brief Retrieve peer session ID
+ *
+ * Retrieves the session ID of the peer.  It is usually
+ * not necessary for applications to access this value,
+ * but it may be useful in some scenarios.
+ *
+ * @param[in] assoc the association
+ * @param[out] id the session ID structure into which the ID will be written
+ * @lwmsg_status
+ * @lwmsg_code{INVALID_STATE, no session is established}
+ * @lwmsg_etc{an implementation-specific error}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_get_peer_session_id(
+    LWMsgAssoc* assoc,
+    LWMsgSessionID* id
+    );
+
 #endif

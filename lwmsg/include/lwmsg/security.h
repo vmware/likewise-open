@@ -152,7 +152,7 @@ lwmsg_security_token_copy(
  *
  * Deletes a security token.
  *
- * @param[in] token the token object
+ * @param[in,out] token the token object
  */
 void
 lwmsg_security_token_delete(

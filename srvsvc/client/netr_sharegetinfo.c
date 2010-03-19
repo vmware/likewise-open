@@ -33,7 +33,7 @@
 
 NET_API_STATUS
 NetrShareGetInfo(
-    IN  handle_t     hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PWSTR        pwszServername,
     IN  PWSTR        pwszNetname,
     IN  DWORD        dwLevel,
@@ -44,14 +44,15 @@ NetrShareGetInfo(
     srvsvc_NetShareInfo Info;
     PVOID pBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(hBinding, err);
+    BAIL_ON_INVALID_PTR(pContext, err);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, err);
     BAIL_ON_INVALID_PTR(pwszNetname, err);
     BAIL_ON_INVALID_PTR(ppBuffer, err);
 
     memset(&Info, 0, sizeof(Info));
 
     DCERPC_CALL(err,
-                _NetrShareGetInfo(hBinding,
+                _NetrShareGetInfo(pContext->hBinding,
                                   pwszServername,
                                   pwszNetname,
                                   dwLevel,

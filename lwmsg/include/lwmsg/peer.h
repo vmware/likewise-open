@@ -227,9 +227,9 @@ LWMsgStatus
  * A callback function which is invoked when an unexpected error occurs
  * in the process of handling incoming calls.
  *
- * @param peer the peer handle
- * @param status the status code of the error
- * @param data a user data pointer
+ * @param[in] peer the peer handle
+ * @param[in] status the status code of the error
+ * @param[in] data a user data pointer
  */
 typedef
 void
@@ -270,7 +270,7 @@ lwmsg_peer_new(
  * a peer which is listening for incoming calls will block
  * until all outstanding incoming calls can be cancelled.
  *
- * @param peer the peer object to delete
+ * @param[in,out] peer the peer object to delete
  */
 void
 lwmsg_peer_delete(
@@ -283,9 +283,9 @@ lwmsg_peer_delete(
  * Sets the specified timeout to the specified value.
  * See #lwmsg_assoc_set_timeout() for more information.
  *
- * @param peer the peer object
- * @param type the type of timeout to set
- * @param value the value, or NULL for no timeout
+ * @param[in,out] peer the peer object
+ * @param[in] type the type of timeout to set
+ * @param[in] value the value, or NULL for no timeout
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{UNSUPPORTED, the specified timeout type is not supported}
@@ -306,8 +306,8 @@ lwmsg_peer_set_timeout(
  * simultaneously.  Associations beyond this will wait until a slot becomes
  * available.
  *
- * @param peer the peer object
- * @param max_clients the maximum number of simultaneous associations to support
+ * @param[in,out] peer the peer object
+ * @param[in] max_clients the maximum number of simultaneous associations to support
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, the peer is already listening}
@@ -326,8 +326,8 @@ lwmsg_peer_set_max_listen_clients(
  * waiting until a client slot becomes available.  Pending associations beyond
  * this value will be rejected outright.
  *
- * @param peer the peer object
- * @param max_backlog the maximum number of clients to queue
+ * @param[in,out] peer the peer object
+ * @param[in] max_backlog the maximum number of clients to queue
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, the peer is already active}
@@ -345,8 +345,8 @@ lwmsg_peer_set_max_listen_backlog(
  * Adds a set of message dispatch functions to the specified
  * peer object.
  *
- * @param peer the peer object
- * @param spec the dispatch specification
+ * @param[in,out] peer the peer object
+ * @param[in] spec the dispatch specification
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -362,14 +362,14 @@ lwmsg_peer_add_dispatch_spec(
  * @brief Add listen socket
  *
  * Adds a socket on which the peer will accept incoming associations.
- * This function must be passed a valid file descriptor which is socket
+ * This function must be passed a valid socket descriptor
  * that matches the specified mode and is already listening (has had
  * listen() called on it).  The peer will assume ownership of this
  * fd.
  *
- * @param peer the peer object
- * @param type the endpoint type
- * @param fd the socket on which to listen
+ * @param[in,out] peer the peer object
+ * @param[in] type the endpoint type
+ * @param[in] fd the socket on which to listen
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, the peer is already active}
@@ -388,10 +388,10 @@ lwmsg_peer_add_listen_fd(
  *
  * Adds an endpoint on which the peer will listen for connections.
  *
- * @param peer the peer object
- * @param type the type of endpoint
- * @param endpoint the endpoint path on which to listen
- * @param permissions permissions for the endpoint (only applicable to local endpoints)
+ * @param[in,out] peer the peer object
+ * @param[in] type the type of endpoint
+ * @param[in] endpoint the endpoint path on which to listen
+ * @param[in] permissions permissions for the endpoint (only applicable to local endpoints)
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, the peer is already active}
@@ -414,10 +414,10 @@ lwmsg_peer_add_listen_endpoint(
  * may set up a session context which the destructor function
  * should clean up when the session is terminated.
  *
- * @param peer the peer handle
- * @param construct a session constructor function
- * @param destruct a session destructor function
- * @param data a user data pointer to be passed to both functions
+ * @param[in,out] peer the peer handle
+ * @param[in] construct a session constructor function
+ * @param[in] destruct a session destructor function
+ * @param[in] data a user data pointer to be passed to both functions
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, the peer is already active}
@@ -437,8 +437,8 @@ lwmsg_peer_set_listen_session_functions(
  * Sets the user data pointer which is passed to dispatch functions.
  * This function may only be used while the peer is inactive.
  *
- * @param peer the peer object
- * @param data the data pointer
+ * @param[in,out] peer the peer object
+ * @param[in] data the data pointer
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, the peer is already active}
@@ -456,7 +456,7 @@ lwmsg_peer_set_dispatch_data(
  * Gets the user data pointer which is passed to dispatch functions.
  * If no pointer was explicitly set, the value defaults to NULL.
  *
- * @param peer the peer object
+ * @param[in] peer the peer object
  * @return the data pointer
  */
 void*
@@ -472,7 +472,7 @@ lwmsg_peer_get_dispatch_data(
  * function returns once all endpoints are ready to accept incoming
  * associations.
  *
- * @param peer the peer object
+ * @param[in,out] peer the peer object
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
@@ -490,8 +490,7 @@ lwmsg_peer_start_listen(
  * incoming calls.  This function returns once all incoming associations have
  * been terminated.
  *
- * @param peer the peer object
- * @param peer the peer object
+ * @param[in,out] peer the peer object
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
@@ -511,9 +510,9 @@ lwmsg_peer_stop_listen(
  *
  * @warning Do not call #lwmsg_peer_stop_listen() from an exception handler
  *
- * @param peer the peer handle
- * @param except the handler function
- * @param except_data a user data pointer to pass to the handler function
+ * @param[in,out] peer the peer handle
+ * @param[in] except the handler function
+ * @param[in] except_data a user data pointer to pass to the handler function
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
@@ -531,9 +530,9 @@ lwmsg_peer_set_exception_function(
  * Adds an endpoint which will be used when establishing an outgoing association
  * with #lwmsg_peer_connect().
  *
- * @param peer the peer handle
- * @param type the type of endpoint
- * @param endpoint the endpoint path
+ * @param[in,out] peer the peer handle
+ * @param[in] type the type of endpoint
+ * @param[in] endpoint the endpoint path
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
@@ -555,7 +554,7 @@ lwmsg_peer_add_connect_endpoint(
  * outgoing association is in the process of being established, this
  * function will block until it either succeeds or fails.
  *
- * @param peer the peer handle
+ * @param[in,out] peer the peer handle
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{CONNECTION_REFUSED, the connection was refused}
@@ -575,7 +574,7 @@ lwmsg_peer_connect(
  * thus function is a no-op.  If the association is already being disconnected,
  * this function will block until it either succeeds or fails.
  *
- * @param peer the peer handle
+ * @param[in,out] peer the peer handle
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_endstatus
@@ -594,7 +593,7 @@ lwmsg_peer_disconnect(
  * #lwmsg_peer_connect(), this function will do so implicitly.  The acquired
  * call handle should be released with #lwmsg_call_release() when no longer needed.
  *
- * @param[in] peer the peer handle
+ * @param[in,out] peer the peer handle
  * @param[out] call the acquired call handle
  * @lwmsg_status
  * @lwmsg_success

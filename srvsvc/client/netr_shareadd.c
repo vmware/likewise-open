@@ -33,7 +33,7 @@
 
 NET_API_STATUS
 NetrShareAdd(
-    IN  handle_t hBinding,
+    IN  PSRVSVC_CONTEXT pContext,
     IN  PCWSTR   pwszServername,
     IN  DWORD    dwLevel,
     IN  PVOID    pBuffer,
@@ -46,7 +46,8 @@ NetrShareAdd(
     DWORD dwParmErr = 0;
     PWSTR pwszServer = NULL;
 
-    BAIL_ON_INVALID_PTR(hBinding, ntStatus);
+    BAIL_ON_INVALID_PTR(pContext, ntStatus);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, ntStatus);
 
     if (pwszServername)
     {
@@ -71,7 +72,7 @@ NetrShareAdd(
         break;
     }
 
-    DCERPC_CALL(err, _NetrShareAdd(hBinding,
+    DCERPC_CALL(err, _NetrShareAdd(pContext->hBinding,
                                    pwszServer,
                                    dwLevel,
                                    Info,

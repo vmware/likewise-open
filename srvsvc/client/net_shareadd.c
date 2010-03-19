@@ -40,13 +40,11 @@ NetShareAdd(
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    RPCSTATUS rpcStatus = RPC_S_OK;
-    handle_t hBinding = NULL;
+    PSRVSVC_CONTEXT pContext = NULL;
     PSTR pszServername = NULL;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pBuffer, ntStatus);
+    BAIL_ON_INVALID_PTR(pBuffer, err);
 
     if (pwszServername)
     {
@@ -54,19 +52,10 @@ NetShareAdd(
         BAIL_ON_WIN_ERROR(err);
     }
 
-    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
+    err = SrvSvcCreateContext(pszServername, &pContext);
+    BAIL_ON_WIN_ERROR(err);
 
-    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
-					 pszServername,
-					 pCreds);
-    if (rpcStatus)
-    {
-        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    err = NetrShareAdd(hBinding,
+    err = NetrShareAdd(pContext,
                        pwszServername,
                        dwLevel,
                        pBuffer,
@@ -74,15 +63,10 @@ NetShareAdd(
     BAIL_ON_WIN_ERROR(err);
 
 cleanup:
-    if (hBinding)
-    {
-        FreeSrvSvcBinding(&hBinding);
-    }
 
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
+    if (pContext)
     {
-        err = LwNtStatusToWin32Error(ntStatus);
+        SrvSvcCloseContext(pContext);
     }
 
     return err;

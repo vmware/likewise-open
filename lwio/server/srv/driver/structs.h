@@ -55,10 +55,6 @@ typedef struct _LWIO_SRV_CONFIG
     ULONG ulMaxNumPackets;
     ULONG ulMaxNumWorkItemsInQueue;
 
-    BOOLEAN bSupportSMB2;
-    BOOLEAN bEnableSigning;
-    BOOLEAN bRequireSigning;
-
 } LWIO_SRV_CONFIG, *PLWIO_SRV_CONFIG;
 
 typedef struct _SRV_CCB

@@ -51,7 +51,28 @@ lwmsg_peer_call_complete_incoming(
 
 static
 void
-lwmsg_peer_call_thunk(
+lwmsg_peer_call_activate_incoming(
+    PeerCall* call
+    )
+{
+    lwmsg_hash_remove_entry(&call->task->incoming_calls, call);
+    lwmsg_ring_enqueue(&call->task->active_incoming_calls, &call->ring);
+}
+
+static
+void
+lwmsg_peer_call_activate_outgoing(
+    PeerCall* call
+    )
+{
+    lwmsg_hash_remove_entry(&call->task->outgoing_calls, call);
+    lwmsg_ring_enqueue(&call->task->active_outgoing_calls, &call->ring);
+}
+
+
+static
+void
+lwmsg_peer_call_worker(
     void* data
     )
 {
@@ -72,6 +93,12 @@ lwmsg_peer_call_thunk(
             call->params.incoming.dispatch_data);
         call->params.incoming.out.tag = outgoing_message.tag;
         call->params.incoming.out.data = outgoing_message.data;
+
+        pthread_mutex_lock(&call->task->call_lock);
+        call->state |= PEER_CALL_DISPATCHED | PEER_CALL_COMPLETED;
+        lwmsg_peer_call_activate_incoming(call);
+        lwmsg_task_wake(call->task->event_task);
+        pthread_mutex_unlock(&call->task->call_lock);
         break;
     case LWMSG_DISPATCH_TYPE_BLOCK:
     case LWMSG_DISPATCH_TYPE_NONBLOCK:
@@ -87,6 +114,7 @@ lwmsg_peer_call_thunk(
         if (call->state & PEER_CALL_COMPLETED)
         {
             /* The call was already completed */
+            lwmsg_peer_call_activate_incoming(call);
             lwmsg_task_wake(call->task->event_task);
         }
         else if ((call->state & PEER_CALL_CANCELLED) &&
@@ -140,7 +168,7 @@ lwmsg_peer_call_dispatch_incoming(
     case LWMSG_DISPATCH_TYPE_OLD:
         BAIL_ON_ERROR(status = lwmsg_task_dispatch_work_item(
                           call->task->peer->task_manager,
-                          lwmsg_peer_call_thunk,
+                          lwmsg_peer_call_worker,
                           call));
         status = LWMSG_STATUS_PENDING;
         break;
@@ -154,7 +182,7 @@ lwmsg_peer_call_dispatch_incoming(
         {
             BAIL_ON_ERROR(status = lwmsg_task_dispatch_work_item(
                               call->task->peer->task_manager,
-                              lwmsg_peer_call_thunk,
+                              lwmsg_peer_call_worker,
                               call));
             status = LWMSG_STATUS_PENDING;
         }
@@ -176,11 +204,13 @@ lwmsg_peer_call_dispatch_incoming(
                     /* The call was completed before we even returned from
                        the dispatch function */
                     status = call->status;
+                    lwmsg_peer_call_activate_incoming(call);
                 }
                 break;
             default:
                 call->status = status;
                 call->state |= PEER_CALL_COMPLETED;
+                lwmsg_peer_call_activate_incoming(call);
                 break;
             }
         }
@@ -212,16 +242,26 @@ lwmsg_peer_call_dispatch_outgoing(
 
     BAIL_ON_ERROR(status = pcall->task->status);
 
+    /* Are we out of cookie slots? */
+    if (lwmsg_hash_get_count(&pcall->task->outgoing_calls) == ((LWMsgCookie) -1) + 1)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_BUSY);
+    }
+
     pcall->state = PEER_CALL_NONE;
-    pcall->is_outgoing = LWMSG_TRUE;
     pcall->params.outgoing.complete = complete;
     pcall->params.outgoing.complete_data = data;
     pcall->params.outgoing.in = input;
     pcall->params.outgoing.out = output;
-    pcall->cookie = pcall->task->next_cookie++;
     pcall->status = LWMSG_STATUS_SUCCESS;
-    lwmsg_ring_enqueue(&pcall->task->calls, &pcall->ring);
 
+    /* Find an unused cookie */
+    do
+    {
+        pcall->cookie = pcall->task->next_cookie++;
+    } while (lwmsg_hash_find_key(&pcall->task->outgoing_calls, &pcall->cookie));
+
+    lwmsg_peer_call_activate_outgoing(pcall);
     lwmsg_task_wake(pcall->task->event_task);
 
     if (!complete)
@@ -287,6 +327,7 @@ lwmsg_peer_call_complete_incoming(
        performed once the dispatch function is finished */
     if (pcall->state & PEER_CALL_DISPATCHED)
     {
+        lwmsg_peer_call_activate_incoming(pcall);
         lwmsg_task_wake(pcall->task->event_task);
     }
 
@@ -379,11 +420,12 @@ lwmsg_peer_call_cancel_outgoing(
         if (pcall->state & PEER_CALL_DISPATCHED &&
             !(pcall->state & PEER_CALL_COMPLETED))
         {
+            lwmsg_peer_call_activate_outgoing(pcall);
             lwmsg_task_wake(pcall->task->event_task);
         }
         else
         {
-            lwmsg_ring_remove(&pcall->ring);
+            lwmsg_hash_remove_entry(&pcall->task->outgoing_calls, pcall);
         }
     }
 
@@ -411,7 +453,6 @@ lwmsg_peer_call_release_outgoing(
     else
     {
         delete = LWMSG_TRUE;
-        lwmsg_ring_remove(&pcall->ring);
     }
     pthread_mutex_unlock(&task->call_lock);
 
@@ -468,11 +509,6 @@ lwmsg_peer_call_acquire_callback(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PeerCall* pcall = PEER_CALL(call);
     PeerCall* my_callback = NULL;
-
-    if (pcall->is_outgoing)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
-    }
 
     BAIL_ON_ERROR(status = lwmsg_peer_call_new(pcall->task, &my_callback));
 
@@ -532,8 +568,6 @@ lwmsg_peer_call_delete(
     PeerCall* call
     )
 {
-    lwmsg_ring_remove(&call->ring);
-
     if (call->task)
     {
         lwmsg_peer_task_unref(call->task);

@@ -62,7 +62,6 @@ typedef struct _IRP_INTERNAL {
                     } Create;
                     struct {
                         PVOID* pCompletionContext;
-                        PBOOLEAN pIsPartial;
                     } PrepareZctReadWrite;
                 } OpOut;
             } Async;
@@ -319,10 +318,6 @@ IopIrpCompleteInternal(
                     if (IsAsyncCompletion && irpInternal->Completion.IsAsyncCall)
                     {
                         *irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pCompletionContext = pIrp->Args.ReadWrite.ZctCompletionContext;
-                        if (IRP_TYPE_READ == pIrp->Type)
-                        {
-                            *irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pIsPartial = pIrp->Args.ReadWrite.ZctIsPartial;
-                        }
                     }
                 }
             }
@@ -511,21 +506,17 @@ VOID
 IopIrpSetOutputPrepareZctReadWrite(
     IN OUT PIRP pIrp,
     IN OPTIONAL PIO_ASYNC_CONTROL_BLOCK AsyncControlBlock,
-    IN PVOID* pCompletionContext,
-    IN OPTIONAL PBOOLEAN pIsPartial
+    IN PVOID* pCompletionContext
     )
 {
     LWIO_ASSERT(IopIrpIsPrepareZctReadWrite(pIrp));
     LWIO_ASSERT(pCompletionContext);
-    LWIO_ASSERT(IS_BOTH_OR_NEITHER(pIsPartial,
-                                   (IRP_TYPE_READ == pIrp->Type)));
 
     if (AsyncControlBlock)
     {
         PIRP_INTERNAL irpInternal = IopIrpGetInternal(pIrp);
         irpInternal->Completion.IsAsyncCall = TRUE;
         irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pCompletionContext = pCompletionContext;
-        irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pIsPartial = pIsPartial;
     }
 }
 
@@ -560,8 +551,6 @@ IopIrpDispatch(
         // Assert that caller has set required out params via IopIrpSetOutput*().
         LWIO_ASSERT(!IopIrpIsCreate(pIrp) || irpInternal->Completion.Async.OpOut.Create.pFileHandle);
         LWIO_ASSERT(!IopIrpIsPrepareZctReadWrite(pIrp) || irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pCompletionContext);
-        LWIO_ASSERT(!(IopIrpIsPrepareZctReadWrite(pIrp) && (IRP_TYPE_READ == pIrp->Type)) ||
-                    irpInternal->Completion.Async.OpOut.PrepareZctReadWrite.pIsPartial);
 
         // Reference IRP since we may need to return an an async cancel context.
         IopIrpReference(pIrp);

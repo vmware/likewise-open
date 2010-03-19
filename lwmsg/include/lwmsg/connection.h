@@ -120,9 +120,9 @@ typedef enum LWMsgConnectionMode
  * A new connection begins in an unconnected state and must be
  * bound to a socket or endpoint before it can continue.
  *
- * @param context an optional context
- * @param prot the protocol supported by the new connection
- * @param out_assoc the created connection
+ * @param[in] context an optional context
+ * @param[in] prot the protocol supported by the new connection
+ * @param[out] out_assoc the created connection
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -147,8 +147,8 @@ lwmsg_connection_new(
  * and the preferred packet size of the peer.  The packet size cannot be
  * changed after the connection is bound.
  *
- * @param assoc the connection
- * @param size the desired packet size
+ * @param[in,out] assoc the connection
+ * @param[in] size the desired packet size
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_STATE, the packet size cannot be changed in the connection's current state}
@@ -169,9 +169,9 @@ lwmsg_connection_set_packet_size(
  * This function does not by itself cause connection activity
  * and thus is guaranteed not to block.
  *
- * @param assoc the connection
- * @param mode the connection mode
- * @param fd the file descriptor
+ * @param[in,out] assoc the connection
+ * @param[in] mode the connection mode
+ * @param[in] fd the file descriptor
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_PARAMETER, the file descriptor is invalid}
@@ -196,9 +196,9 @@ lwmsg_connection_set_fd(
  * This function does not by itself cause a connection to be establish
  * and thus is guaranteed not to block.
  *
- * @param assoc the connection
- * @param mode the connection mode
- * @param endpoint the named endpoint
+ * @param[in,out] assoc the connection
+ * @param[in] mode the connection mode
+ * @param[in] endpoint the named endpoint
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_PARAMETER, the endpoint is invalid}
@@ -219,12 +219,13 @@ lwmsg_connection_set_endpoint(
  * local access token (that is, a token for which #lwmsg_security_token_get_type()
  * returns "local")
  *
- * @param token the local security token
- * @param out_euid the effective user id
- * @param out_egid the effective group id
+ * @param[in] token the local security token
+ * @param[out] out_euid the effective user id
+ * @param[out] out_egid the effective group id
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_PARAMETER, the provided token was not of the correct type}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_local_token_get_eid(
@@ -240,19 +241,19 @@ lwmsg_local_token_get_eid(
  * access token (that is, a token for which #lwmsg_security_token_get_type()
  * returns "local")
  *
- * @param token the local security token
- * @param out_pid the client pid. If the platform does not support querying the
- *       pid of processes connecting over a unix domain socket, this will be -1.
+ * @param[in] token the local security token
+ * @param[out] out_pid the client pid. If the platform does not support querying the
+ * pid of processes connecting over a UNIX domain socket, this will be -1.
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{INVALID_PARAMETER, the provided token was not of the correct type}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_local_token_get_pid(
     LWMsgSecurityToken* token,
     pid_t *out_pid
     );
-
 
 #ifndef DOXYGEN
 extern LWMsgTypeClass lwmsg_fd_type_class;

@@ -56,6 +56,7 @@ NetlogonConfFileToRegFile(
     PCSTR pszRegFile
     );
 
+#ifdef ENABLE_TDB
 extern
 DWORD
 LwiauthConfFileToRegFile(
@@ -63,6 +64,7 @@ LwiauthConfFileToRegFile(
     PCSTR pszSecretsFile,
     PCSTR pszRegFile
     );
+#endif
 
 extern
 DWORD
@@ -166,6 +168,7 @@ main(
                 dwError = NetlogonConfFileToRegFile(argv[2], argv[3]);
             }
         }
+#ifdef ENABLE_TDB
         else if (!strcmp(argv[1], "--lwiauth"))
         {
             if (argc < 5)
@@ -177,6 +180,7 @@ main(
                 dwError = LwiauthConfFileToRegFile(argv[2], argv[3], argv[4]);
             }
         }
+#endif
         else if (!strcmp(argv[1], "--pstore-sqlite"))
         {
             if (argc < 3)
@@ -227,37 +231,51 @@ PrintUsage(
     fputs(
 "conf2reg: Generates files, from previous Likewise releases, into\n"
 "          the current format and imports the machine account."
-"\n"
+"\n", stderr);
+
+    fputs(
 "--lsass CONF REG\n"
 "  Convert lsass 5.x configuration file to registry\n"
 "  import file.\n"
-"\n"
+"\n", stderr);
+
+    fputs(
 "--lwio CONF REG\n"
 "  Convert lwio 5.x configuration file to registry import\n"
 "  file.\n"
-"\n"
+"\n", stderr);
+
+    fputs(
 "--netlogon CONF REG\n"
 "  Convert netlogon 5.x configuration file to registry\n"
 "  import file.\n"
-"\n"
+"\n", stderr);
+
+    fputs(
 "--eventlog CONF REG\n"
 "  Convert eventlog 5.x configuration file to registry\n"
 "  import file.\n"
-"\n"
+"\n", stderr);
+
+#ifdef ENABLE_TDB
+    fputs(
 "--lwiauth CONF TDB REG\n"
 "  Import 4.1 machine account (requires root privileges)\n"
 "  using the files lwiauthd.conf and secrets.tdb.\n"
 "  Also generates a registry file for use with lwregshell\n"
 "  to preserve various system settings.\n"
-"\n"
+"\n", stderr);
+#endif
+
+    fputs(
 "--pstore-sqlite SQLDB\n"
 "  Import 5.0/5.1/5.3 machine account (requires root privileges)\n"
 "  stored in a sqlite database.\n"
-, stderr);
+"\n", stderr);
 
    if (pszAdditionalMessage)
    {
-       fputs("\n\n", stderr);
+       fputs("\n", stderr);
        fputs(pszAdditionalMessage, stderr);
    }
 }

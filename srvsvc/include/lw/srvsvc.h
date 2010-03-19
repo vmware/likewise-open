@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2008
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -28,10 +28,27 @@
  * license@likewisesoftware.com
  */
 
-#ifndef _SRVSVCDEFS_H_
-#define _SRVSVCDEFS_H_
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        srvsvc.h
+ *
+ * Abstract:
+ *
+ *        Likewise Server Service (srvsvc) RPC client and server
+ *
+ *        Client API
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+#ifndef _SRVSVC_H_
+#define _SRVSVC_H_
 
 #include <lwrpc/types.h>
+#include <lwio/lmshare.h>
 
 
 #ifndef CONNECTION_INFO_0_DEFINED
@@ -1243,13 +1260,281 @@ typedef struct _TIME_OF_DAY_INFO {
 
 #endif /* TIME_OF_DAY_INFO_DEFINED */
 
+#if !defined(_DCE_IDL_)
+
 /*
- * Include the share info typedefs from lwio
+ * Error codes
  */
-#include <lwio/lmshare.h>
+#define SRVSVC_ERROR_SUCCESS                   0x0000
+#define SRVSVC_ERROR_INVALID_CONFIG_PATH       0x9400 // 37888
+#define SRVSVC_ERROR_INVALID_PREFIX_PATH       0x9401 // 37889
+#define SRVSVC_ERROR_INSUFFICIENT_BUFFER       0x9402 // 37890
+#define SRVSVC_ERROR_OUT_OF_MEMORY             0x9403 // 37891
+#define SRVSVC_ERROR_INVALID_MESSAGE           0x9404 // 37892
+#define SRVSVC_ERROR_UNEXPECTED_MESSAGE        0x9405 // 37893
+#define SRVSVC_ERROR_NO_SUCH_USER              0x9406 // 37894
+#define SRVSVC_ERROR_DATA_ERROR                0x9407 // 37895
+#define SRVSVC_ERROR_NOT_IMPLEMENTED           0x9408 // 37896
+#define SRVSVC_ERROR_NO_CONTEXT_ITEM           0x9409 // 37897
+#define SRVSVC_ERROR_NO_SUCH_GROUP             0x940A // 37898
+#define SRVSVC_ERROR_REGEX_COMPILE_FAILED      0x940B // 37899
+#define SRVSVC_ERROR_NSS_EDIT_FAILED           0x940C // 37900
+#define SRVSVC_ERROR_NO_HANDLER                0x940D // 37901
+#define SRVSVC_ERROR_INTERNAL                  0x940E // 37902
+#define SRVSVC_ERROR_NOT_HANDLED               0x940F // 37903
+#define SRVSVC_ERROR_UNEXPECTED_DB_RESULT      0x9410 // 37904
+#define SRVSVC_ERROR_INVALID_PARAMETER         0x9411 // 37905
+#define SRVSVC_ERROR_LOAD_LIBRARY_FAILED       0x9412 // 37906
+#define SRVSVC_ERROR_LOOKUP_SYMBOL_FAILED      0x9413 // 37907
+#define SRVSVC_ERROR_INVALID_EVENTLOG          0x9414 // 37908
+#define SRVSVC_ERROR_INVALID_CONFIG            0x9415 // 37909
+#define SRVSVC_ERROR_STRING_CONV_FAILED        0x9416 // 37910
+#define SRVSVC_ERROR_INVALID_DB_HANDLE         0x9417 // 37911
+#define SRVSVC_ERROR_FAILED_CONVERT_TIME       0x9418 // 37912
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_RPC_BINDING 0x9419 // 37913
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_OPEN   0x941A // 37914
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_CLOSE  0x941B // 37915
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_COUNT  0x941C // 37916
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_READ   0x941D // 37917
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_WRITE  0x941E // 37918
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_CLEAR  0x941F // 37919
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_DELETE 0x9420 // 37920
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_REGISTER 0x9421 // 37921
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_UNREGISTER 0x9422 // 37922
+#define SRVSVC_ERROR_RPC_EXCEPTION_UPON_LISTEN 0x9423 // 37923
+#define SRVSVC_ERROR_RPC_EXCEPTION             0x9424 // 37924
+#define SRVSVC_ERROR_ACCESS_DENIED             0x9425 // 37925
+#define SRVSVC_ERROR_SENTINEL                  0x9426 // 37926
+
+#ifndef NET_API_STATUS_DEFINED
+typedef WINERR NET_API_STATUS;
+
+#define NET_API_STATUS_DEFINED
+#endif
+
+typedef struct _SRVSVC_CONTEXT* PSRVSVC_CONTEXT;
+
+NET_API_STATUS
+SrvSvcCreateContext(
+    IN  PCWSTR           pwszHostname,
+    OUT PSRVSVC_CONTEXT* ppContext
+    );
+
+NET_API_STATUS
+NetConnectionEnum(
+    PSRVSVC_CONTEXT pContext,
+    const wchar16_t *servername,
+    const wchar16_t *qualifier,
+    UINT32 level,
+    UINT8 **bufptr,
+    UINT32 prefmaxlen,
+    UINT32 *entriesread,
+    UINT32 *totalentries,
+    UINT32 *resume_handle
+    );
 
 
-#endif /* _SRVSVCDEFS_H_ */
+NET_API_STATUS
+NetFileEnum(
+    PSRVSVC_CONTEXT pContext,
+    const wchar16_t *servername,
+    const wchar16_t *basepath,
+    const wchar16_t *username,
+    UINT32 level,
+    UINT8 **bufptr,
+    UINT32 prefmaxlen,
+    UINT32 *entriesread,
+    UINT32 *totalentries,
+    UINT32 *resume_handle
+    );
+
+
+NET_API_STATUS
+NetFileGetInfo(
+    PSRVSVC_CONTEXT pContext,
+    const wchar16_t *servername,
+    UINT32 fileid,
+    UINT32 level,
+    UINT8 **bufptr
+    );
+
+
+NET_API_STATUS
+NetFileClose(
+    PSRVSVC_CONTEXT pContext,
+    const wchar16_t *servername,
+    UINT32 fileid
+    );
+
+
+NET_API_STATUS
+NetSessionEnum(
+    PSRVSVC_CONTEXT pContext,
+    const wchar16_t *servername,
+    const wchar16_t *unc_client_name,
+    const wchar16_t *username,
+    UINT32 level,
+    UINT8 **bufptr,
+    UINT32 prefmaxlen,
+    UINT32 *entriesread,
+    UINT32 *totalentries,
+    UINT32 *resume_handle
+    );
+
+
+NET_API_STATUS
+NetrShareAdd(
+    IN  PSRVSVC_CONTEXT pContext,
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    IN  PVOID    pBuffer,
+    OUT PDWORD   pdwParmErr
+    );
+
+
+NET_API_STATUS
+NetShareAdd(
+    IN  PCWSTR  pwszServername,
+    IN  DWORD   dwLevel,
+    IN  PVOID   pBuffer,
+    OUT PDWORD  pdwParmErr
+    );
+
+
+NET_API_STATUS
+NetrShareEnum(
+    IN  PSRVSVC_CONTEXT pContext,
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    OUT PVOID   *ppBuffer,
+    IN  DWORD    dwMaxLen,
+    OUT PDWORD   pdwNumEntries,
+    OUT PDWORD   pdwTotalEntries,
+    OUT PDWORD   pdwResume
+    );
+
+
+NET_API_STATUS
+NetShareEnum(
+    IN  PCWSTR   pwszServername,
+    IN  DWORD    dwLevel,
+    OUT PVOID   *ppBuffer,
+    IN  DWORD    dwMaxLen,
+    OUT PDWORD   pdwNumEntries,
+    OUT PDWORD   pdwTotalEntries,
+    OUT PDWORD   pdwResume
+    );
+
+
+NET_API_STATUS
+NetrShareGetInfo(
+    IN  PSRVSVC_CONTEXT pContext,
+    IN  PWSTR     pwszServername,
+    IN  PWSTR     pwszNetname,
+    IN  DWORD     dwLevel,
+    OUT PVOID    *ppBuffer
+    );
+
+
+NET_API_STATUS
+NetShareGetInfo(
+    IN  PCWSTR    pwszServername,
+    IN  PCWSTR    pwszNetname,
+    IN  DWORD     dwLevel,
+    OUT PVOID    *ppBuffer
+    );
+
+
+NET_API_STATUS
+NetrShareSetInfo(
+    IN  PSRVSVC_CONTEXT pContext,
+    IN  PWSTR     pwszServername,
+    IN  PWSTR     pwszNetname,
+    IN  DWORD     dwLevel,
+    IN  PVOID     pBuffer,
+    OUT PDWORD    pdwParmErr
+    );
+
+
+NET_API_STATUS
+NetShareSetInfo(
+    IN  PCWSTR    pwszServername,
+    IN  PCWSTR    pwszNetname,
+    IN  DWORD     dwLevel,
+    IN  PVOID     pBuffer,
+    OUT PDWORD    pdwParmErr
+    );
+
+
+NET_API_STATUS
+NetrShareDel(
+    IN  PSRVSVC_CONTEXT pContext,
+    IN  PCWSTR   pwszServername,
+    IN  PCWSTR   pwszSharename,
+    IN  DWORD    dwReserved
+    );
+
+
+NET_API_STATUS
+NetShareDel(
+    IN  PCWSTR  pwszServername,
+    IN  PCWSTR  pwszSharename,
+    IN  DWORD   dwReserved
+    );
+
+
+NET_API_STATUS
+NetServerGetInfo(
+    PSRVSVC_CONTEXT pContext,
+    const wchar16_t *servername,
+    UINT32 level,
+    UINT8 **bufptr
+    );
+
+
+NET_API_STATUS
+NetServerSetInfo(
+    PSRVSVC_CONTEXT pContext,
+    const wchar16_t *servername,
+    UINT32 level,
+    UINT8 *bufptr,
+    UINT32 *parm_err
+    );
+
+
+NET_API_STATUS
+NetRemoteTOD(
+    PSRVSVC_CONTEXT pContext,
+    const wchar16_t *servername,
+    UINT8 **bufptr
+    );
+
+NET_API_STATUS
+SrvSvcCloseContext(
+    IN  PSRVSVC_CONTEXT pContext
+    );
+
+NET_API_STATUS
+SrvSvcInitMemory(
+    void
+    );
+
+
+NET_API_STATUS
+SrvSvcDestroyMemory(
+    void
+    );
+
+
+NET_API_STATUS
+SrvSvcFreeMemory(
+    void *ptr
+    );
+
+#endif /* !defined(_DCE_IDL_) */
+
+
+#endif /* _SRVSVC_H_ */
 
 
 /*

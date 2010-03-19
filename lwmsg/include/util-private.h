@@ -476,4 +476,98 @@ lwmsg_sendmsg_timeout(
     LWMsgTime* time
     );
 
+typedef void*
+(*LWMsgHashGetKeyFunc)(
+    const void* entry
+    );
+
+typedef size_t
+(*LWMsgHashDigestFunc)(
+    const void* key
+    );
+
+typedef LWMsgBool (*LWMsgHashEqualFunc)(
+    const void* key1,
+    const void* key2
+    );
+
+typedef struct LWMsgHashTable
+{
+    size_t capacity;
+    size_t count;
+    LWMsgRing* buckets;
+    LWMsgHashGetKeyFunc get_key;
+    LWMsgHashDigestFunc digest;
+    LWMsgHashEqualFunc equal;
+    size_t ring_offset;
+} LWMsgHashTable;
+
+typedef struct LWMsgHashIter
+{
+    LWMsgRing* bucket;
+    LWMsgRing* ring;
+} LWMsgHashIter;
+
+LWMsgStatus
+lwmsg_hash_init(
+    LWMsgHashTable* table,
+    size_t capacity,
+    LWMsgHashGetKeyFunc get_key,
+    LWMsgHashDigestFunc digest,
+    LWMsgHashEqualFunc equal,
+    size_t ring_offset
+    );
+
+size_t
+lwmsg_hash_get_count(
+    LWMsgHashTable* table
+    );
+
+void
+lwmsg_hash_insert_entry(
+    LWMsgHashTable* table,
+    void* entry
+    );
+
+void*
+lwmsg_hash_find_key(
+    LWMsgHashTable* table,
+    const void* key
+    );
+
+LWMsgStatus
+lwmsg_hash_remove_key(
+    LWMsgHashTable* table,
+    const void* key
+    );
+
+LWMsgStatus
+lwmsg_hash_remove_entry(
+    LWMsgHashTable* table,
+    void* entry
+    );
+
+void
+lwmsg_hash_iter_begin(
+    LWMsgHashTable* table,
+    LWMsgHashIter* iter
+    );
+
+void*
+lwmsg_hash_iter_next(
+    LWMsgHashTable* table,
+    LWMsgHashIter* iter
+    );
+
+void
+lwmsg_hash_iter_end(
+    LWMsgHashTable* table,
+    LWMsgHashIter* iter
+    );
+
+void
+lwmsg_hash_destroy(
+    LWMsgHashTable* table
+    );
+
 #endif

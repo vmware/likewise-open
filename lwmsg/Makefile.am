@@ -30,6 +30,7 @@ noinst_HEADERS = \
 	include/mt19937ar.h \
 	include/peer-private.h \
 	include/archive-private.h \
+	include/task-private.h
 	include/task-threadpool-private.h
 
 lwmsg_includedir = $(includedir)/lwmsg
@@ -53,9 +54,7 @@ lwmsg_include_HEADERS = \
 	include/lwmsg/session.h \
 	include/lwmsg/client.h \
 	include/lwmsg/server.h \
-	include/lwmsg/archive.h \
-	include/lwmsg/task.h
-
+	include/lwmsg/archive.h
 
 # src
 

@@ -46,8 +46,111 @@
 
 #include "includes.h"
 
+static
+NET_API_STATUS
+InitSrvSvcBindingDefault(
+    OUT handle_t  *phBinding,
+    IN  PCSTR      pszHostname,
+    IN  PIO_CREDS  pCreds
+    );
 
-RPCSTATUS
+static
+NET_API_STATUS
+InitSrvSvcBindingFull(
+    OUT handle_t *phBinding,
+    IN  PCSTR     pszProtSeq,
+    IN  PCSTR     pszHostname,
+    IN  PCSTR     pszEndpoint,
+    IN  PCSTR     pszUuid,
+    IN  PCSTR     pszOptions,
+    IN  PIO_CREDS pCreds
+    );
+
+static
+NET_API_STATUS
+FreeSrvSvcBinding(
+    handle_t *phBinding
+    );
+
+NET_API_STATUS
+SrvSvcCreateContext(
+    IN  PCWSTR           pwszHostname,
+    OUT PSRVSVC_CONTEXT* ppContext
+    )
+{
+    NET_API_STATUS  status   = 0;
+    NTSTATUS        ntStatus = STATUS_SUCCESS;
+    PSRVSVC_CONTEXT pContext = NULL;
+    PSTR            pszHostname = NULL;
+
+    if (pwszHostname)
+    {
+        status = LwWc16sToMbs(pwszHostname, &pszHostname);
+        BAIL_ON_SRVSVC_ERROR(status);
+    }
+
+    status = LwAllocateMemory(sizeof(SRVSVC_CONTEXT), (PVOID*)&pContext);
+    BAIL_ON_SRVSVC_ERROR(status);
+
+    ntStatus = LwIoGetActiveCreds(NULL, &pContext->pCreds);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    status = InitSrvSvcBindingDefault(
+                &pContext->hBinding,
+                pszHostname,
+                pContext->pCreds);
+    BAIL_ON_SRVSVC_ERROR(status);
+
+    *ppContext = pContext;
+
+cleanup:
+
+    if (pszHostname)
+    {
+        LwFreeMemory(pszHostname);
+    }
+
+    return status;
+
+error:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    goto cleanup;
+}
+
+NET_API_STATUS
+SrvSvcCloseContext(
+    IN  PSRVSVC_CONTEXT pContext
+    )
+{
+    NET_API_STATUS status = 0;
+
+    if (pContext->hBinding)
+    {
+        FreeSrvSvcBinding(&pContext->hBinding);
+    }
+
+    if (pContext->pCreds)
+    {
+        LwIoDeleteCreds(pContext->pCreds);
+    }
+
+    LwFreeMemory(pContext);
+
+    return status;
+}
+
+static
+NET_API_STATUS
 InitSrvSvcBindingDefault(
     OUT handle_t  *phBinding,
     IN  PCSTR      pszHostname,
@@ -76,7 +179,8 @@ InitSrvSvcBindingDefault(
     *phBinding = hBinding;
 
 cleanup:
-    return rpcStatus;
+
+    return LwRpcStatusToNtStatus(rpcStatus);
 
 error:
     *phBinding = NULL;
@@ -84,8 +188,8 @@ error:
     goto cleanup;
 }
 
-
-RPCSTATUS
+static
+NET_API_STATUS
 InitSrvSvcBindingFull(
     OUT handle_t *phBinding,
     IN  PCSTR     pszProtSeq,
@@ -191,7 +295,7 @@ cleanup:
         rpc_smb_transport_info_free(hInfo);
     }
 
-    return rpcStatus;
+    return LwRpcStatusToNtStatus(rpcStatus);
 
 error:
     if (hBinding)
@@ -202,8 +306,8 @@ error:
     goto cleanup;
 }
 
-
-RPCSTATUS
+static
+NET_API_STATUS
 FreeSrvSvcBinding(
     handle_t *phBinding
     )
@@ -218,7 +322,7 @@ FreeSrvSvcBinding(
     }
 
 cleanup:
-    return rpcStatus;
+    return LwRpcStatusToNtStatus(rpcStatus);
 
 error:
     goto cleanup;

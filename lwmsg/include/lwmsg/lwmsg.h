@@ -54,7 +54,6 @@
 #include <lwmsg/archive.h>
 
 #ifndef LWMSG_NO_THREADS
-#include <lwmsg/task.h>
 #include <lwmsg/peer.h>
 #include <lwmsg/server.h>
 #include <lwmsg/client.h>

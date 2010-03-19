@@ -36,7 +36,7 @@
 #include <lw/security-types.h>
 #include <lw/ntstatus.h>
 
-#include <srvsvc/types.h>
+#include "srvsvctypes.h"
 
 #include "params.h"
 

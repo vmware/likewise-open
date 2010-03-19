@@ -201,10 +201,6 @@ SrvProcessRead_SMB_V2(
                             pReadState->pRequestHeader->ulDataLength,
                             &pReadState->llByteOffset,
                             &pReadState->ulKey);
-            if (ntStatus == STATUS_END_OF_FILE)
-            {
-                ntStatus = STATUS_SUCCESS;
-            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseReadStateAsync_SMB_V2(pReadState); // completed synchronously
@@ -214,19 +210,14 @@ SrvProcessRead_SMB_V2(
         case SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED:
 
             ntStatus = pReadState->ioStatusBlock.Status;
-            if (ntStatus == STATUS_END_OF_FILE)
-            {
-                ntStatus = STATUS_SUCCESS;
-            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             pReadState->ulBytesRead = pReadState->ioStatusBlock.BytesTransferred;
             if (pReadState->ulBytesRead <
                             pReadState->pRequestHeader->ulMinimumCount)
             {
-                pReadState->ulRemaining =
-                                pReadState->pRequestHeader->ulMinimumCount -
-                                pReadState->ulBytesRead;
+                ntStatus = STATUS_END_OF_FILE;
+                BAIL_ON_NT_STATUS(ntStatus);
             }
 
             pReadState->stage = SRV_READ_STAGE_SMB_V2_BUILD_RESPONSE;
@@ -282,6 +273,12 @@ error:
             // TODO: Add an indicator to the file object to trigger a
             //       cleanup if the connection gets closed and all the
             //       files involved have to be closed
+
+            break;
+
+        case STATUS_FILE_IS_A_DIRECTORY:
+
+            ntStatus = STATUS_INVALID_DEVICE_REQUEST;
 
             break;
 

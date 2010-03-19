@@ -43,6 +43,7 @@
 /**
  * @file session-private.h
  * @brief Session API (INTERNAL)
+ * @internal
  */
 
 /**
@@ -53,6 +54,15 @@
  */
 
 /*@{*/
+
+typedef struct LWMsgSessionID
+{
+    unsigned char bytes[8];
+} LWMsgSessionID;
+
+typedef char LWMsgSessionString[33];
+typedef uint32_t LWMsgHandleID;
+typedef struct LWMsgSessionManager LWMsgSessionManager;
 
 /**
  * @internal
@@ -395,6 +405,34 @@ struct LWMsgSessionManager
     LWMsgSessionID smid;
 };
 
+const LWMsgSessionID*
+lwmsg_session_get_id(
+    LWMsgSession* session
+    );
+
+#ifndef LWMSG_NO_THREADS
+LWMsgStatus
+lwmsg_shared_session_manager_new(
+    LWMsgSessionManager** out_manager
+    );
+#endif
+
+void
+lwmsg_session_manager_delete(
+    LWMsgSessionManager* manager
+    );
+
+const LWMsgSessionID*
+lwmsg_session_manager_get_id(
+    LWMsgSessionManager* manager
+    );
+
+void
+lwmsg_session_id_to_string(
+    const LWMsgSessionID* smid,
+    LWMsgSessionString buffer
+    );
+
 LWMsgStatus
 lwmsg_session_manager_enter_session (
     LWMsgSessionManager* manager,
@@ -509,6 +547,34 @@ LWMsgStatus
 lwmsg_session_manager_init(
     LWMsgSessionManager* manager,
     LWMsgSessionManagerClass* mclass
+    );
+
+/**
+ * @brief Get association count
+ *
+ * Returns a count of the number of associations that
+ * have entered the given session.
+ *
+ * @param session the session
+ * @return the number of associations currently inside the session
+ */
+size_t
+lwmsg_session_get_assoc_count(
+    LWMsgSession* session
+    );
+
+/**
+ * @brief Get handle count
+ *
+ * Returns a count of the number of handles contained
+ * in the given session.
+ *
+ * @param session the session
+ * @return the number of handles current contained in the session
+ */
+size_t
+lwmsg_session_get_handle_count(
+    LWMsgSession* session
     );
 
 #define LWMSG_SESSION_MANAGER(obj) ((LWMsgSessionManager*) (obj))

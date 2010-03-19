@@ -10,8 +10,7 @@
 #include <lwio/io-types.h>
 #include <lwrpc/unicodestring.h>
 
-#include <srvsvc/srvsvc.h>
-#include <srvsvc/srvsvcdefs.h>
+#include <lw/srvsvc.h>
 
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>

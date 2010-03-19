@@ -43,10 +43,11 @@
 #include <lwmsg/connection.h>
 #include <lwmsg/assoc.h>
 #include <lwmsg/session.h>
-#include <lwmsg/task.h>
 #include "context-private.h"
 #include "util-private.h"
 #include "call-private.h"
+#include "session-private.h"
+#include "task-private.h"
 
 #include <pthread.h>
 #include <sys/time.h>
@@ -73,7 +74,6 @@ typedef struct PeerCall
     LWMsgCall base;
     LWMsgRing ring;
     struct PeerAssocTask* task;
-    LWMsgBool is_outgoing;
     enum
     {
         PEER_CALL_NONE = 0x0,
@@ -125,7 +125,10 @@ typedef struct PeerAssocTask
     PeerAssocTaskType type;
     LWMsgAssoc* assoc;
     LWMsgSession* session;
-    LWMsgRing calls;
+    LWMsgHashTable incoming_calls;
+    LWMsgHashTable outgoing_calls;
+    LWMsgRing active_incoming_calls;
+    LWMsgRing active_outgoing_calls;
     LWMsgMessage incoming_message;
     LWMsgMessage outgoing_message;
     unsigned incoming:1;

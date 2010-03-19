@@ -112,7 +112,7 @@ MarshallWriteRequestData(
 
     if (bufferUsed > bufferLen)
     {
-        ntStatus = EMSGSIZE;
+        ntStatus = STATUS_INVALID_BUFFER_SIZE;
         goto error;
     }
 

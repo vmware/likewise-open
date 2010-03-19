@@ -56,13 +56,15 @@
 #include <lwrpc/lsa.h>
 #include <lwnet.h>
 
-#include <srvsvc/srvsvc.h>
+#include <lw/srvsvc.h>
+#include <lw/winreg.h>
+#include <lw/wkssvc.h>
+
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>
 
 #include <srvsvclog_r.h>
 
-#include "srvsvc.h"
 #include "srvsvc_srv.h"
 #include "srvsvc_h.h"
 

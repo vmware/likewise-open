@@ -39,19 +39,6 @@
 
 #include "includes.h"
 
-static PSECURITY_DESCRIPTOR_ABSOLUTE gpServerSecDesc = NULL;
-static GENERIC_MAPPING gGenericMapping =
-{
-    .GenericRead = FILE_GENERIC_READ,
-    .GenericWrite = FILE_GENERIC_WRITE,
-    .GenericExecute = FILE_GENERIC_EXECUTE,
-    .GenericAll = FILE_ALL_ACCESS
-};
-
-#define SECURITY_UNMAPPED_UNIX_AUTHORITY    { 0, 0, 0, 0, 0, 22 }
-#define SECURITY_UNMAPPED_UNIX_UID_RID      1
-#define SECURITY_UNMAPPED_UNIX_RID_COUNT    2
-
 static
 NET_API_STATUS
 InitializeUnixRootSid(
@@ -186,7 +173,7 @@ SrvSvcInitSecurity(
             FALSE));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    gpServerSecDesc = pAbsolute;
+    gServerInfo.pServerSecDesc = pAbsolute;
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pAuthedUsersSid);
@@ -221,11 +208,11 @@ SrvSvcAccessCheck(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     if (!RtlAccessCheck(
-            gpServerSecDesc,
+            gServerInfo.pServerSecDesc,
             pToken,
             access,
             0,
-            &gGenericMapping,
+            &gServerInfo.genericMapping,
             &granted,
             &status))
     {

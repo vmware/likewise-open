@@ -42,11 +42,13 @@
 #include <lwmsg/time.h>
 
 /**
- * @file task.h
+ * @file task-private.h
  * @brief Task Manager API
+ * @internal
  */
 
 /**
+ * @internal
  * @defgroup tasks Task management
  * @ingroup public
  * @brief Event-triggered task subsystem
@@ -62,6 +64,7 @@
 /*@{*/
 
 /**
+ * @internal
  * @brief Task manager
  *
  * An opaque structure representing a particular task manager.
@@ -71,6 +74,7 @@
 typedef struct LWMsgTaskManager LWMsgTaskManager;
 
 /**
+ * @internal
  * @brief Task group
  *
  * An opaque structure which represents a group of related tasks.
@@ -80,6 +84,7 @@ typedef struct LWMsgTaskManager LWMsgTaskManager;
 typedef struct LWMsgTaskGroup LWMsgTaskGroup;
 
 /**
+ * @internal
  * @brief Task
  *
  * An opaque structure representing a single task.  Each task has
@@ -89,6 +94,7 @@ typedef struct LWMsgTaskGroup LWMsgTaskGroup;
 typedef struct LWMsgTask LWMsgTask;
 
 /**
+ * @internal
  * @brief Trigger condition mask
  *
  * A bitmask representing the conditions under which a
@@ -97,6 +103,7 @@ typedef struct LWMsgTask LWMsgTask;
 typedef enum LWMsgTaskTrigger
 {
     /**
+     * @internal
      * @brief Task initialized
      *
      * A special bit which indicates that a task has been
@@ -108,6 +115,7 @@ typedef enum LWMsgTaskTrigger
     LWMSG_TASK_TRIGGER_INIT         = 0x01,
 
     /**
+     * @internal
      * @brief Task explicitly woken
      *
      * Indicates that the task was explicitly woken by
@@ -119,6 +127,7 @@ typedef enum LWMsgTaskTrigger
     LWMSG_TASK_TRIGGER_EXPLICIT     = 0x02,
 
     /**
+     * @internal
      * @brief Task cancelled
      *
      * Indicates that the task has been cancelled.
@@ -131,6 +140,7 @@ typedef enum LWMsgTaskTrigger
     LWMSG_TASK_TRIGGER_CANCEL       = 0x04,
 
     /**
+     * @internal
      * @brief Timeout expired
      *
      * Indicates that the last set timeout has expired.
@@ -140,6 +150,7 @@ typedef enum LWMsgTaskTrigger
     LWMSG_TASK_TRIGGER_TIME         = 0x08,
 
     /**
+     * @internal
      * @brief File descriptor readable
      *
      * Indicates that a file descriptor has become readable.
@@ -149,6 +160,7 @@ typedef enum LWMsgTaskTrigger
     LWMSG_TASK_TRIGGER_FD_READABLE  = 0x10,
 
     /**
+     * @internal
      * @brief File descriptor writable
      *
      * Indicates that a file descriptor has become writable.
@@ -158,6 +170,7 @@ typedef enum LWMsgTaskTrigger
     LWMSG_TASK_TRIGGER_FD_WRITABLE  = 0x20,
 
     /**
+     * @internal
      * @brief File descriptor exception
      *
      * Indicates that an exception event occurred on a file
@@ -169,6 +182,7 @@ typedef enum LWMsgTaskTrigger
 } LWMsgTaskTrigger;
 
 /**
+ * @internal
  * @brief Main task function
  *
  * A function which is run whenever the trigger conditions of
@@ -191,7 +205,6 @@ typedef enum LWMsgTaskTrigger
  * @param[in,out] time the time left before a timeout is triggered
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_etc{a critial error occurred}
  * @lwmsg_endstatus
  */
 typedef LWMsgStatus (*LWMsgTaskFunction)(
@@ -202,6 +215,7 @@ typedef LWMsgStatus (*LWMsgTaskFunction)(
     );
 
 /**
+ * @internal
  * @brief Work item function
  *
  * A function which is dispatched to a thread pool by
@@ -215,6 +229,7 @@ typedef void (*LWMsgWorkItemFunction)(
     );
 
 /**
+ * @internal
  * @brief Create a new task
  *
  * Creates a new task with the specified task manager within
@@ -250,6 +265,7 @@ lwmsg_task_new(
     );
 
 /**
+ * @internal
  * @brief Create a new task group
  *
  * Creates a new task group.  Whenever tasks are created, they may optionally
@@ -270,6 +286,7 @@ lwmsg_task_group_new(
     );
 
 /**
+ * @internal
  * @brief Release task
  *
  * Indicates that the given task will no longer be externally referenced
@@ -283,6 +300,7 @@ lwmsg_task_release(
     );
 
 /**
+ * @internal
  * @brief Delete task group
  *
  * Deletes the given task group.  The results of calling this function
@@ -298,6 +316,7 @@ lwmsg_task_group_delete(
     );
 
 /**
+ * @internal
  * @brief Set file descriptor for wakeup triggers
  *
  * Sets the file descriptor which will be used for the
@@ -314,6 +333,7 @@ lwmsg_task_set_trigger_fd(
     );
 
 /**
+ * @internal
  * @brief Manually wake task
  *
  * Causes the specified task to wake up immediately with the
@@ -325,6 +345,7 @@ lwmsg_task_wake(
     );
 
 /**
+ * @internal
  * @brief Cancel task
  *
  * Cancels the specified task.  In addition to having the same
@@ -339,6 +360,7 @@ lwmsg_task_cancel(
     );
 
 /**
+ * @internal
  * @brief Wait for task completion
  *
  * Waits for the specified task to complete by indicating an empty
@@ -352,6 +374,7 @@ lwmsg_task_wait(
     );
 
 /**
+ * @internal
  * @brief Wake task group
  *
  * Equivalent to calling #lwmsg_task_wake() on all tasks in the
@@ -365,6 +388,7 @@ lwmsg_task_group_wake(
     );
 
 /**
+ * @internal
  * @brief Cancel task group
  *
  * Equivalent to calling #lwmsg_task_cancel() on all tasks in the
@@ -378,6 +402,7 @@ lwmsg_task_group_cancel(
     );
 
 /**
+ * @internal
  * @brief Wait for task group to complete
  *
  * Equivalent to calling #lwmsg_task_wait() on all tasks in the
@@ -391,6 +416,7 @@ lwmsg_task_group_wait(
     );
 
 /**
+ * @internal
  * @brief Dispatch synchronous work item
  *
  * Schedules a work item to be run in another thread.  Unlike tasks,
@@ -414,6 +440,7 @@ lwmsg_task_dispatch_work_item(
     );
 
 /**
+ * @internal
  * @brief Acquire task manager
  *
  * Acquires a reference a task manager.
@@ -432,6 +459,7 @@ lwmsg_task_acquire_manager(
     );
 
 /**
+ * @internal
  * @brief Release reference to task manager
  *
  * Releases a reference to a task manager.

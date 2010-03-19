@@ -91,6 +91,10 @@ typedef struct LWMsgCall LWMsgCall;
  * A caller-supplied function which is invoked when an asynchronous
  * call is completed by the callee.  A completion function must not
  * block.
+ *
+ * @param[in] call the call handle
+ * @param[in] status the status code the call completed with
+ * @param[in] data a user data pointer
  */
 typedef void
 (*LWMsgCompleteFunction) (
@@ -105,6 +109,9 @@ typedef void
  * A callee-supplied function which is invoked when an asynchronous
  * operation is cancelled by the caller.  A cancellation function
  * must not block.
+ *
+ * @param[in] call the call handle
+ * @param[in] data a user data pointer
  */
 typedef void
 (*LWMsgCancelFunction) (
@@ -124,9 +131,12 @@ typedef void
  * has been correctly initialized (e.g. with #LWMSG_PARAMS_INITIALIZER)
  * to free any data it might contain.
  *
- * @param call the call handle
- * @param params the parameters structure
- * @return the output parameters structure
+ * @param[in] call the call handle
+ * @param[in,out] params the parameters structure
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{MALFORMED, the parameter data was not well-formed and could not be fully destroyed}
+ * @lwmsg_endstatus
  */
 LWMsgStatus
 lwmsg_call_destroy_params(
@@ -171,9 +181,9 @@ lwmsg_call_dispatch(
  * The callee must also cause #LWMSG_STATUS_PENDING to be returned from
  * #lwmsg_call_dispatch().
  *
- * @param call the call handle
- * @param cancel a mandatory call cancellation function
- * @param data a data pointer to pass to the cancellation function
+ * @param[in,out] call the call handle
+ * @param[in] cancel a mandatory call cancellation function
+ * @param[in] data a data pointer to pass to the cancellation function
  */
 void
 lwmsg_call_pend(
@@ -189,8 +199,8 @@ lwmsg_call_pend(
  * must only be used by callees, and only after marking the call as pending
  * with #lwmsg_call_pend().
  *
- * @param call the call handle
- * @param status the call return status
+ * @param[in,out] call the call handle
+ * @param[in] status the call return status
  */
 void
 lwmsg_call_complete(
@@ -206,7 +216,7 @@ lwmsg_call_complete(
  * call.  When successfully cancelled, the completion function passed to
  * #lwmsg_call_dispatch() will be invoked with a status of #LWMSG_STATUS_CANCELLED.
  *
- * @param call the call handle
+ * @param[in,out] call the call handle
  */
 void
 lwmsg_call_cancel(
@@ -217,9 +227,10 @@ lwmsg_call_cancel(
  * @brief Release call handle
  *
  * Releases the given call handle.  This function should be used by the caller
- * after it is finished with the call.
+ * after it is finished with the call.  A pending call may be released before
+ * it completes.
  *
- * @param call the call handle
+ * @param[in,out] call the call handle
  */
 void
 lwmsg_call_release(
@@ -229,10 +240,10 @@ lwmsg_call_release(
 /**
  * @brief Get session for call
  *
- * Returns the #LWMsgSession in which the given call handle's call
- * takes places.  This function may be used by both callers and callees.
+ * Returns the #LWMsgSession associated with the given call
+ * This function may be used by both callers and callees.
  *
- * @param call the call handle
+ * @param[in] call the call handle
  * @return the session for the call
  */
 LWMsgSession*
@@ -243,7 +254,7 @@ lwmsg_call_get_session(
 /**
  * @brief Acquire callback handle
  *
- * Returns a #LWMsgCall which can be used to make a call back
+ * Returns an #LWMsgCall which can be used to make a call back
  * to the initiator of the given call.  This function may
  * only be used by callees.
  *

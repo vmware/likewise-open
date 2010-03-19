@@ -626,27 +626,6 @@ lwmsg_assoc_get_peer_security_token(
 
 /**
  * @ingroup assoc
- * @brief Retrieve peer session ID
- *
- * Retrieves the session ID of the peer.  It is usually
- * not necessary for applications to access this value,
- * but it may be useful in some scenarios.
- *
- * @param[in] assoc the association
- * @param[out] id the session ID structure into which the ID will be written
- * @lwmsg_status
- * @lwmsg_code{INVALID_STATE, no session is established}
- * @lwmsg_etc{an implementation-specific error}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_get_peer_session_id(
-    LWMsgAssoc* assoc,
-    LWMsgSessionID* id
-    );
-
-/**
- * @ingroup assoc
  * @brief Retrieve last error message
  *
  * Fetches the error message for the last error which occured on the specified association.
@@ -661,26 +640,6 @@ const char*
 lwmsg_assoc_get_error_message(
     LWMsgAssoc* assoc,
     LWMsgStatus status
-    );
-
-/**
- * @ingroup assoc
- * @brief Set session manager
- * 
- * Sets the session manager (and thus the session) for the specified association.
- * Associations sharing the same session may share handles.
- *
- * @param[in] assoc the association
- * @param[in] manager the session manager
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the session manager cannot be changed in the association's current state}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_set_session_manager(
-    LWMsgAssoc* assoc,
-    LWMsgSessionManager* manager
     );
 
 /**
@@ -733,7 +692,7 @@ lwmsg_assoc_get_state(
  * Gets a user data pointer for the session which the specified assocation
  * is part of.
  *
- * @param assoc the association
+ * @param[in] assoc the association
  * @param[out] data the user data pointer
  * @lwmsg_status
  * @lwmsg_success

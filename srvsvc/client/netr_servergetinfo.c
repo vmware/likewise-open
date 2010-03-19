@@ -32,7 +32,7 @@
 
 
 NET_API_STATUS NetServerGetInfo(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 level,
     UINT8 **bufptr
@@ -42,15 +42,19 @@ NET_API_STATUS NetServerGetInfo(
     NET_API_STATUS memerr = ERROR_SUCCESS;
     srvsvc_NetSrvInfo info;
 
-    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
 
     memset(&info, 0, sizeof(info));
     *bufptr = NULL;
 
     DCERPC_CALL(status,
-                _NetrServerGetInfo(b, (wchar16_t *)servername,
-                                   level, &info));
+                _NetrServerGetInfo(
+                        pContext->hBinding,
+                        (wchar16_t *)servername,
+                        level,
+                        &info));
     BAIL_ON_WIN_ERROR(status);
 
     memerr = SrvSvcCopyNetSrvInfo(level, &info, bufptr);

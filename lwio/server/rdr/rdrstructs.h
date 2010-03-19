@@ -234,6 +234,7 @@ typedef struct _SMB_CLIENT_FILE_HANDLE
 
     PSMB_TREE pTree;
 
+    USHORT usFileType;
     uint16_t  fid;
     uint64_t  llOffset;
 

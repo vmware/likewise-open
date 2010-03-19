@@ -45,6 +45,12 @@
 #include <string.h>
 #include <pthread.h>
 
+typedef struct SharedHandleKey
+{
+    LWMsgHandleType type;
+    LWMsgHandleID id;
+} SharedHandleKey;
+
 typedef struct SharedSession
 {
     LWMsgSession base;
@@ -54,12 +60,10 @@ typedef struct SharedSession
     LWMsgSecurityToken* sec_token;
     /* Reference count */
     size_t volatile refs;
-    /* Pointer to linked list of handles */
-    struct SharedHandle* volatile handles;
-    /* Number of handles */
-    size_t num_handles;
-    /* Links to other sessions in the manager */
-    struct SharedSession * volatile next, * volatile prev;
+    /* Hash of handles by ptr (local handles only) */
+    LWMsgHashTable handle_by_ptr;
+    /* Hash of handles by id */
+    LWMsgHashTable handle_by_id;
     /* Lock */
     pthread_mutex_t lock;
     /* Next handle ID */
@@ -68,13 +72,15 @@ typedef struct SharedSession
     void* data;
     /* Destruct function */
     LWMsgSessionDestructFunction destruct;
+    /* Link in hash table by rsmid */
+    LWMsgRing ring;
 } SharedSession;
 
 typedef struct SharedHandle
 {
-    /* Pointer to associated session */
-    SharedSession* session;
-    /* Validity vit */
+    /* Key */
+    SharedHandleKey key;
+    /* Validity bit */
     LWMsgBool volatile valid;
     /* Reference count */
     size_t volatile refs;
@@ -82,25 +88,123 @@ typedef struct SharedHandle
     const char* type;
     /* Handle pointer */
     void* pointer;
-    /* Handle locality */
-    LWMsgHandleType locality;
-    /* Handle id */
-    unsigned long hid;
     /* Handle cleanup function */
     void (*cleanup)(void*);
-    /* Links to other handles in the session */
-    struct SharedHandle* next, *prev;
+    /* Link in hash table by ptr */
+    LWMsgRing ptr_ring;
+    /* Link in hash table by id */
+    LWMsgRing id_ring;
 } SharedHandle;
 
 typedef struct SharedManager
 {
     LWMsgSessionManager base;
-    SharedSession* volatile sessions;
+    LWMsgHashTable sessions;
     pthread_mutex_t lock;
 } SharedManager;
 
 #define SHARED_MANAGER(obj) ((SharedManager*) (obj))
 #define SHARED_SESSION(obj) ((SharedSession*) (obj))
+
+static
+void*
+shared_session_get_key(
+    const void* entry
+    )
+{
+    return &((SharedSession*) entry)->rsmid;
+}
+
+static
+size_t
+shared_session_digest(
+    const void* key
+    )
+{
+    const LWMsgSessionID* rsmid = key;
+    size_t hash = 0;
+    int i = 0;
+
+    for (i = 0; i < sizeof(rsmid->bytes); i++)
+    {
+        hash = hash * 31 + rsmid->bytes[i];
+    }
+
+    return hash;
+}
+
+static
+LWMsgBool
+shared_session_equal(
+    const void* key1,
+    const void* key2
+    )
+{
+    return memcmp(key1, key2, sizeof(LWMsgSessionID)) == 0;
+}
+
+static
+void*
+shared_handle_get_key_ptr(
+    const void* entry
+    )
+{
+    return ((SharedHandle*) entry)->pointer;
+}
+
+static
+size_t
+shared_handle_digest_ptr(
+    const void* key
+    )
+{
+    return (size_t) key;
+}
+
+static
+LWMsgBool
+shared_handle_equal_ptr(
+    const void* key1,
+    const void* key2
+    )
+{
+    return key1 == key2;
+}
+
+static
+void*
+shared_handle_get_key_id(
+    const void* entry
+    )
+{
+    return &((SharedHandle*) entry)->key;
+}
+
+static
+size_t
+shared_handle_digest_id(
+    const void* key
+    )
+{
+    const SharedHandleKey* hkey = key;
+
+    return hkey->type == LWMSG_HANDLE_LOCAL ? hkey->id : ~hkey->id;
+}
+
+static
+LWMsgBool
+shared_handle_equal_id(
+    const void* key1,
+    const void* key2
+    )
+{
+    const SharedHandleKey* hkey1 = key1;
+    const SharedHandleKey* hkey2 = key2;
+
+    return
+        hkey1->type == hkey2->type &&
+        hkey1->id == hkey2->id;
+}
 
 static inline
 void
@@ -140,22 +244,16 @@ session_unlock(
 
 static void
 shared_free_handle(
+    SharedSession* session,
     SharedHandle* entry
     )
 {
+    lwmsg_hash_remove_entry(&session->handle_by_ptr, entry);
+    lwmsg_hash_remove_entry(&session->handle_by_id, entry);
+
     if (entry->cleanup)
     {
         entry->cleanup(entry->pointer);
-    }
-
-    if (entry->prev)
-    {
-        entry->prev->next = entry->next;
-    }
-    
-    if (entry->next)
-    {
-        entry->next->prev = entry->prev;
     }
 
     free(entry);
@@ -177,31 +275,25 @@ shared_add_handle(
     SharedHandle* handle = NULL;
     SharedSession* my_session = SHARED_SESSION(session);
 
-    handle = calloc(1, sizeof(*handle));
-
-    if (!handle)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
-    }
+    BAIL_ON_ERROR(status = LWMSG_ALLOC(&handle));
 
     handle->type = type;
     handle->valid = LWMSG_TRUE;
     handle->refs = 1;
     handle->pointer = pointer ? pointer : handle;
     handle->cleanup = cleanup;
-    handle->hid = hid;
-    handle->locality = locality;
+    handle->key.id = hid;
+    handle->key.type = locality;
 
-    handle->next = my_session->handles;
+    lwmsg_ring_init(&handle->ptr_ring);
+    lwmsg_ring_init(&handle->id_ring);
 
-    if (my_session->handles)
+    if (pointer)
     {
-        my_session->handles->prev = handle;
+        lwmsg_hash_insert_entry(&my_session->handle_by_ptr, handle);
     }
 
-    my_session->handles = handle;
-
-    my_session->num_handles++;
+    lwmsg_hash_insert_entry(&my_session->handle_by_id, handle);
 
     *out_handle = handle;
 
@@ -217,32 +309,30 @@ shared_find_session(
     const LWMsgSessionID* rsmid
     )
 {
-    SharedSession* entry = NULL;
-
-    for (entry = priv->sessions; entry; entry = entry->next)
-    {
-        if (!memcmp(rsmid->bytes, entry->rsmid.bytes, sizeof(rsmid->bytes)))
-        {
-            return entry;
-        }
-    }
-
-    return NULL;
+    return lwmsg_hash_find_key(&priv->sessions, rsmid);
 }
 
 static
 void
 shared_free_session(
+    SharedManager* manager,
     SharedSession* session
     )
 {
-    SharedHandle* handle, *next;
+    SharedHandle* handle = NULL;
+    LWMsgHashIter iter = {0};
 
-    for (handle = session->handles; handle; handle = next)
+    lwmsg_hash_remove_entry(&manager->sessions, session);
+
+    lwmsg_hash_iter_begin(&session->handle_by_id, &iter);
+    while ((handle = lwmsg_hash_iter_next(&session->handle_by_id, &iter)))
     {
-        next = handle->next;
-        shared_free_handle(handle);
+        shared_free_handle(session, handle);
     }
+    lwmsg_hash_iter_end(&session->handle_by_id, &iter);
+
+    lwmsg_hash_destroy(&session->handle_by_id);
+    lwmsg_hash_destroy(&session->handle_by_ptr);
 
     if (session->destruct && session->data)
     {
@@ -265,14 +355,17 @@ shared_delete(
     )
 {
     SharedManager* priv = SHARED_MANAGER(manager);
-    SharedSession* entry, *next;
+    LWMsgHashIter iter = {0};
+    SharedSession* entry = NULL;
 
-    for (entry = priv->sessions; entry; entry = next)
+    lwmsg_hash_iter_begin(&priv->sessions, &iter);
+    while ((entry = lwmsg_hash_iter_next(&priv->sessions, &iter)))
     {
-        next = entry->next;
-
-        shared_free_session(entry);
+        shared_free_session(priv, entry);
     }
+    lwmsg_hash_iter_end(&priv->sessions, &iter);
+
+    lwmsg_hash_destroy(&priv->sessions);
 
     pthread_mutex_destroy(&priv->lock);
 
@@ -311,11 +404,7 @@ shared_enter_session(
     }
     else
     {
-        session = calloc(1, sizeof(*session));
-        if (!session)
-        {
-            BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
-        }
+        BAIL_ON_ERROR(status = LWMSG_ALLOC(&session));
 
         session->base.manager = manager;
 
@@ -328,6 +417,24 @@ shared_enter_session(
             BAIL_ON_ERROR(status = lwmsg_security_token_copy(rtoken, &session->sec_token));
         }
 
+        lwmsg_ring_init(&session->ring);
+
+        BAIL_ON_ERROR(status = lwmsg_hash_init(
+                          &session->handle_by_id,
+                          31,
+                          shared_handle_get_key_id,
+                          shared_handle_digest_id,
+                          shared_handle_equal_id,
+                          offsetof(SharedHandle, id_ring)));
+
+        BAIL_ON_ERROR(status = lwmsg_hash_init(
+                          &session->handle_by_ptr,
+                          31,
+                          shared_handle_get_key_ptr,
+                          shared_handle_digest_ptr,
+                          shared_handle_equal_ptr,
+                          offsetof(SharedHandle, ptr_ring)));
+
         session->refs = 1;
         session->destruct = destruct;
 
@@ -339,13 +446,7 @@ shared_enter_session(
                               &session->data));
         }
 
-        if (priv->sessions)
-        {
-            priv->sessions->prev = session;
-        }
-        session->next = priv->sessions;
-        priv->sessions = session;
-
+        lwmsg_hash_insert_entry(&priv->sessions, session);
     }
 
     *out_session = LWMSG_SESSION(session);
@@ -360,7 +461,7 @@ error:
 
     if (session)
     {
-        shared_free_session(session);
+        shared_free_session(priv, session);
     }
 
     goto done;
@@ -383,22 +484,7 @@ shared_leave_session(
 
     if (my_session->refs == 0)
     {
-        if (priv->sessions == my_session)
-        {
-            priv->sessions = priv->sessions->next;
-        }
-        
-        if (my_session->next)
-        {
-            my_session->next->prev = my_session->prev;
-        }
-        
-        if (my_session->prev)
-        {
-            my_session->prev->next = my_session->next;
-        }
-
-        shared_free_session(my_session);
+        shared_free_session(priv, my_session);
     }
 
     shared_unlock(priv);
@@ -435,6 +521,35 @@ shared_get_session_peer_security_token (
     return my_session->sec_token;
 }
 
+static
+SharedHandle*
+shared_find_handle_by_id(
+    SharedSession* session,
+    LWMsgHandleType type,
+    LWMsgHandleID id
+    )
+{
+    SharedHandleKey key = {0};
+
+    key.type = type;
+    key.id = id;
+
+    return lwmsg_hash_find_key(&session->handle_by_id, &key);
+}
+
+static
+SharedHandle*
+shared_find_handle_by_ptr(
+    SharedSession* session,
+    void* ptr
+    )
+{
+    SharedHandle* handle = lwmsg_hash_find_key(&session->handle_by_ptr, ptr);
+
+    /* If the pointer was not found in the table, it must be a proxy
+       that we can cast directly */
+    return handle ? handle : (SharedHandle*) ptr;
+}
 
 static
 LWMsgStatus
@@ -487,8 +602,20 @@ shared_register_handle_local(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     SharedHandle* handle = NULL;
     SharedSession* my_session = SHARED_SESSION(session);
+    SharedHandleKey key = {0};
 
     session_lock(my_session);
+
+    if (lwmsg_hash_get_count(&my_session->handle_by_id) == UINT32_MAX)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_RESOURCE_LIMIT);
+    }
+
+    do
+    {
+        key.type = LWMSG_HANDLE_LOCAL;
+        key.id = my_session->next_hid++;
+    } while (lwmsg_hash_find_key(&my_session->handle_by_id, &key));
 
     BAIL_ON_ERROR(status = shared_add_handle(
                       my_session,
@@ -501,7 +628,7 @@ shared_register_handle_local(
 
     if (hid)
     {
-        *hid = handle->hid;
+        *hid = handle->key.id;
     }
 
 error:
@@ -525,26 +652,12 @@ shared_retain_handle(
 
     session_lock(my_session);
 
-    for (handle = my_session->handles; handle; handle = handle->next)
-    {
-        if (handle->pointer == ptr)
-        {
-            handle->refs++;
-            goto done;
-        }
-    }
-
-    BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
-
-done:
+    handle = shared_find_handle_by_ptr(my_session, ptr);
+    handle->refs++;
 
     session_unlock(my_session);
 
     return status;
-
-error:
-
-    goto done;
 }
 
 static
@@ -561,35 +674,15 @@ shared_release_handle(
 
     session_lock(my_session);
 
-    for (handle = my_session->handles; handle; handle = handle->next)
+    handle = shared_find_handle_by_ptr(my_session, ptr);
+    if (--handle->refs == 0)
     {
-        if (handle->pointer == ptr)
-        {
-            if (--handle->refs == 0)
-            {
-                if (handle == my_session->handles)
-                {
-                    my_session->handles = my_session->handles->next;
-                }
-
-                shared_free_handle(handle);
-                my_session->num_handles--;
-            }
-            goto done;
-        }
+        shared_free_handle(my_session, handle);
     }
-
-    BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
-
-done:
 
     session_unlock(my_session);
 
     return status;
-
-error:
-
-    goto done;
 }
 
 static
@@ -606,32 +699,19 @@ shared_unregister_handle(
 
     session_lock(my_session);
 
-    for (handle = my_session->handles; handle; handle = handle->next)
+    handle = shared_find_handle_by_ptr(my_session, ptr);
+
+    if (!handle->valid)
     {
-        if (handle->pointer == ptr)
-        {
-            if (!handle->valid)
-            {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
-            }
-
-            handle->valid = LWMSG_FALSE;
-
-            if (--handle->refs == 0)
-            {
-                if (handle == my_session->handles)
-                {
-                    my_session->handles = my_session->handles->next;
-                }
-
-                shared_free_handle(handle);
-                my_session->num_handles--;
-            }
-            goto done;
-        }
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
     }
 
-    BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    handle->valid = LWMSG_FALSE;
+
+    if (--handle->refs == 0)
+    {
+        shared_free_handle(my_session, handle);
+    }
 
 done:
 
@@ -661,32 +741,25 @@ shared_handle_pointer_to_id(
 
     session_lock(my_session);
 
-    for (handle = my_session->handles; handle; handle = handle->next)
-    {
-        if (handle->pointer == pointer)
-        {
-            if (!handle->valid)
-            {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
-            }
+    handle = shared_find_handle_by_ptr(my_session, pointer);
 
-            if (type)
-            {
-                *type = handle->type;
-            }
-            if (htype)
-            {
-                *htype = handle->locality;
-            }
-            if (hid)
-            {
-                *hid = handle->hid;
-            }
-            goto done;
-        }
+    if (!handle->valid)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
     }
 
-    BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    if (type)
+    {
+        *type = handle->type;
+    }
+    if (htype)
+    {
+        *htype = handle->key.type;
+    }
+    if (hid)
+    {
+        *hid = handle->key.id;
+    }
 
 done:
 
@@ -716,27 +789,20 @@ shared_handle_id_to_pointer(
 
     session_lock(my_session);
 
-    for (handle = my_session->handles; handle; handle = handle->next)
+    handle = shared_find_handle_by_id(my_session, htype, hid);
+
+    if (!handle || !handle->valid)
     {
-        if (handle->hid == hid && handle->locality == htype)
-        {
-            if (!handle->valid)
-            {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
-            }
-
-            if (type && strcmp(type, handle->type))
-            {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
-            }
-
-            *pointer = handle->pointer;
-            handle->refs++;
-            goto done;
-        }
+        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
     }
 
-    BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    if (type && strcmp(type, handle->type))
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    }
+
+    *pointer = handle->pointer;
+    handle->refs++;
 
 done:
 
@@ -806,7 +872,7 @@ shared_get_session_handle_count(
     SharedSession* my_session = SHARED_SESSION(session);
 
     session_lock(my_session);
-    handles = my_session->num_handles;
+    handles = lwmsg_hash_get_count(&my_session->handle_by_id);
     session_unlock(my_session);
     return handles;
 }
@@ -840,6 +906,15 @@ lwmsg_shared_session_manager_new(
     SharedManager* my_manager = NULL;
 
     BAIL_ON_ERROR(status = LWMSG_ALLOC(&my_manager));
+
+    BAIL_ON_ERROR(status = lwmsg_hash_init(
+                      &my_manager->sessions,
+                      31,
+                      shared_session_get_key,
+                      shared_session_digest,
+                      shared_session_equal,
+                      offsetof(SharedSession, ring)));
+
     BAIL_ON_ERROR(status = lwmsg_session_manager_init(&my_manager->base, &shared_class));
 
     BAIL_ON_ERROR(status = lwmsg_error_map_errno(pthread_mutex_init(&my_manager->lock, NULL)));

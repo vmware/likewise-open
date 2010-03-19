@@ -40,46 +40,18 @@ NetShareGetInfo(
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    RPCSTATUS rpcStatus = RPC_S_OK;
-    handle_t hBinding = NULL;
-    PSTR pszServername = NULL;
-    PIO_CREDS pCreds = NULL;
-    PWSTR pwszServer = NULL;
-    PWSTR pwszShare = NULL;
+    PSRVSVC_CONTEXT pContext = NULL;
     PVOID pBuffer = NULL;
 
     BAIL_ON_INVALID_PTR(pwszNetname, err);
     BAIL_ON_INVALID_PTR(ppBuffer, err);
 
-    if (pwszServername)
-    {
-        err = LwWc16sToMbs(pwszServername, &pszServername);
-        BAIL_ON_WIN_ERROR(err);
-
-        err = LwAllocateWc16String(&pwszServer, pwszServername);
-        BAIL_ON_WIN_ERROR(err);
-
-    }
-
-    err = LwAllocateWc16String(&pwszShare, pwszNetname);
+    err = SrvSvcCreateContext(pwszServername, &pContext);
     BAIL_ON_WIN_ERROR(err);
 
-    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
-                                         pszServername,
-                                         pCreds);
-    if (rpcStatus)
-    {
-        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    err = NetrShareGetInfo(hBinding,
-                           pwszServer,
-                           pwszShare,
+    err = NetrShareGetInfo(pContext,
+                           pwszServername,
+                           pwszNetname,
                            dwLevel,
                            &pBuffer);
     BAIL_ON_WIN_ERROR(err);
@@ -87,19 +59,10 @@ NetShareGetInfo(
     *ppBuffer = pBuffer;
 
 cleanup:
-    if (hBinding)
-    {
-        FreeSrvSvcBinding(&hBinding);
-    }
 
-    LW_SAFE_FREE_MEMORY(pszServername);
-    LW_SAFE_FREE_MEMORY(pwszServer);
-    LW_SAFE_FREE_MEMORY(pwszShare);
-
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
+    if (pContext)
     {
-        err = LwNtStatusToWin32Error(ntStatus);
+        SrvSvcCloseContext(pContext);
     }
 
     return err;

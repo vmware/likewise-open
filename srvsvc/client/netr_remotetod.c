@@ -32,7 +32,7 @@
 
 
 NET_API_STATUS NetRemoteTOD(
-    handle_t b,
+    PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT8 **bufptr
     )
@@ -41,11 +41,15 @@ NET_API_STATUS NetRemoteTOD(
     NET_API_STATUS memerr = ERROR_SUCCESS;
     PTIME_OF_DAY_INFO info = NULL;
 
-    BAIL_ON_INVALID_PTR(b, status);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
 
     DCERPC_CALL(status,
-                _NetrRemoteTOD(b, (wchar16_t *)servername, &info));
+                _NetrRemoteTOD(
+                        pContext->hBinding,
+                        (wchar16_t *)servername,
+                        &info));
     BAIL_ON_WIN_ERROR(status);
 
     memerr = SrvSvcCopyTIME_OF_DAY_INFO(info, bufptr);

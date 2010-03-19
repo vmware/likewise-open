@@ -39,55 +39,30 @@ NetShareDel(
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    RPCSTATUS rpcStatus = RPC_S_OK;
-    handle_t hBinding = NULL;
-    PSTR pszServername = NULL;
-    PIO_CREDS pCreds = NULL;
+    PSRVSVC_CONTEXT pContext = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszSharename, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszSharename, err);
 
-    if (pwszServername)
-    {
-        err = LwWc16sToMbs(pwszServername, &pszServername);
-        BAIL_ON_WIN_ERROR(err);
-    }
+    err = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_WIN_ERROR(err);
 
-    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    rpcStatus = InitSrvSvcBindingDefault(&hBinding,
-					 pszServername,
-					 pCreds);
-    if (rpcStatus)
-    {
-        ntStatus = LwRpcStatusToNtStatus(rpcStatus);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    err = NetrShareDel(hBinding,
+    err = NetrShareDel(pContext,
                        pwszServername,
                        pwszSharename,
-		       dwReserved);
+                       dwReserved);
     BAIL_ON_WIN_ERROR(err);
 
 cleanup:
-    if (hBinding)
-    {
-        FreeSrvSvcBinding(&hBinding);
-    }
 
-    SRVSVC_SAFE_FREE(pszServername);
-
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
+    if (pContext)
     {
-        err = LwNtStatusToWin32Error(ntStatus);
+        SrvSvcCloseContext(pContext);
     }
 
     return err;
 
 error:
+
     goto cleanup;
 }
 

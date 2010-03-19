@@ -62,50 +62,16 @@ SrvReadConfig(
     PLWIO_SRV_CONFIG pConfig
     )
 {
-    NTSTATUS        ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     LWIO_SRV_CONFIG srvConfig = {0};
-    PLWIO_CONFIG_REG pReg = NULL;
 
     ntStatus = SrvInitConfig(&srvConfig);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwIoOpenConfig(
-                "Services\\lwio\\Parameters\\Drivers\\srv",
-                "Policy\\Services\\lwio\\Parameters\\Drivers\\srv",
-                &pReg);
-    if (ntStatus)
-    {
-        LWIO_LOG_ERROR("Failed to access device configuration [error code: %u]",
-                       ntStatus);
-
-        ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* Ignore error as it may not exist; we can still use default. */
-    LwIoReadConfigBoolean(pReg, "SupportSmb2", FALSE, &(srvConfig.bSupportSMB2));
-
-    LwIoReadConfigBoolean(
-                    pReg,
-                    "EnableSecuritySignatures",
-                    TRUE,
-                    &(srvConfig.bEnableSigning));
-
-    LwIoReadConfigBoolean(
-                    pReg,
-                    "RequireSecuritySignatures",
-                    TRUE,
-                    &(srvConfig.bRequireSigning));
 
     ntStatus = SrvTransferConfigContents(&srvConfig, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-
-    if (pReg)
-    {
-        LwIoCloseConfig(pReg);
-    }
 
     SrvFreeConfigContents(&srvConfig);
 
@@ -128,7 +94,6 @@ SrvInitConfig(
     pConfig->ulMaxNumPackets          = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
     pConfig->ulNumWorkers             = LWIO_SRV_DEFAULT_NUM_WORKERS;
     pConfig->ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
-    pConfig->bSupportSMB2             = FALSE;
 
     return ntStatus;
 }

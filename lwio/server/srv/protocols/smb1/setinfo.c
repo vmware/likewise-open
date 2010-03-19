@@ -192,6 +192,27 @@ SrvProcessSetInformation(
                             &pInfoState->fileBasicInfo.LastWriteTime);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            pInfoState->fileBasicInfo.FileAttributes =
+                         pInfoState->pRequestHeader->usFileAttributes;
+
+            switch(pInfoState->fileBasicInfo.FileAttributes)
+            {
+                case FILE_ATTRIBUTE_NORMAL:
+
+                    pInfoState->fileBasicInfo.FileAttributes = 0;
+                    break;
+
+                case 0:
+
+                    pInfoState->fileBasicInfo.FileAttributes =
+                                                FILE_ATTRIBUTE_NORMAL;
+                    break;
+
+                default:
+
+                    break;
+            }
+
             LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pInfoState->pTree->mutex);
 
             ntStatus = SrvBuildFilePath(

@@ -72,7 +72,12 @@ extern NET_CREDS_HANDLE hCreds;
 
 void AddTest(struct test *ft, const char *name, test_fn function);
 void SetupSrvSvcTests(struct test *t);
-handle_t CreateSrvSvcBinding(handle_t *binding, const wchar16_t *host);
+
+NET_API_STATUS
+CreateSrvSvcBinding(
+    PSRVSVC_CONTEXT* ppContext,
+    const wchar16_t* pwszServername
+    );
 
 
 #define STATUS(a, b)                                                     \
@@ -194,7 +199,7 @@ extern int verbose_mode;
 
 #define DUMP_PTR(pfx, v)                            \
     if (verbose_mode) {                             \
-        printf("%s%s = 0x%08x\n", pfx, #v, (v));    \
+        printf("%s%s = %p\n", pfx, #v, (v));    \
     }
 
 #define DUMP_WSTR(pfx, v)                                  \
