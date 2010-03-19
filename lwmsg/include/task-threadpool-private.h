@@ -38,9 +38,9 @@
 #ifndef __LWMSG_TASK_SELECT_PRIVATE_H__
 #define __LWMSG_TASK_SELECT_PRIVATE_H__
 
-#include <lwmsg/task.h>
 #include <lwmsg/common.h>
 
+#include "task-private.h"
 #include "util-private.h"
 
 #include <pthread.h>

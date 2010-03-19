@@ -47,6 +47,8 @@
 #include <unistd.h>
 
 #include "test-private.h"
+#include "session-private.h"
+#include "assoc-private.h"
 
 typedef struct TrivialHandle
 {

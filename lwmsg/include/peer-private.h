@@ -43,10 +43,11 @@
 #include <lwmsg/connection.h>
 #include <lwmsg/assoc.h>
 #include <lwmsg/session.h>
-#include <lwmsg/task.h>
 #include "context-private.h"
 #include "util-private.h"
 #include "call-private.h"
+#include "session-private.h"
+#include "task-private.h"
 
 #include <pthread.h>
 #include <sys/time.h>

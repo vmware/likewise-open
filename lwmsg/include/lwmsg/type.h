@@ -111,8 +111,8 @@
  *   Members will be marshalled in the order of the type specification.
  * - The specified width of an integer type may differ from the C type.  The
  *   integer will be marshalled to the specified size, with widening or truncating
- *   conversions applied automatically.  <b>Caution</b>: truncating conversions which
- *   cause overflow or underflow will generate runtime errors.
+ *   conversions applied automatically.  <b>Caution</b>: Truncating conversions which
+ *   cause overflow will generate runtime errors.
  */
 
 /* @{ */
@@ -1313,7 +1313,7 @@ typedef enum LWMsgTypeDirective
  *
  * Gets the flags for the specified type.
  *
- * @param type the type
+ * @param[in] type the type
  * @return the flags for the type
  */
 LWMsgTypeFlags
@@ -1326,7 +1326,7 @@ lwmsg_type_get_flags(
  *
  * Gets custom flags for the specified type.
  *
- * @param type the type
+ * @param[in] type the type
  * @return custom flags for the type
  */
 size_t

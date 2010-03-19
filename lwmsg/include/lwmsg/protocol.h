@@ -123,12 +123,12 @@ const LWMsgProtocolSpec;
  * The retrieved type may be passed directly to the marshaller to
  * marshal or unmarshal message payloads of the given type.
  *
- * @param prot the protocol
- * @param tag the message type
- * @param out_type the marshaller type
+ * @param[in] prot the protocol
+ * @param[in] tag the message tag
+ * @param[out] out_type the marshaller type
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{NOT_FOUND, no such message type exists in the specified protocol}
+ * @lwmsg_code{NOT_FOUND, no such message tag exists in the specified protocol}
  * @lwmsg_endstatus
  */
 LWMsgStatus
@@ -138,6 +138,19 @@ lwmsg_protocol_get_message_type(
     LWMsgTypeSpec** out_type
     );
 
+/**
+ * @brief Get name of message tag
+ *
+ * Gets the symbolic name of the given message tag.
+ *
+ * @param[in] prot the protocol
+ * @param[in] tag the message tag
+ * @param[out] name the symbolic name of the tag
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_code{NOT_FOUND, no such message tag exists in the specified protocol}
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_protocol_get_message_name(
     LWMsgProtocol* prot,
@@ -151,8 +164,8 @@ lwmsg_protocol_get_message_name(
  * Creates a new protocol object with no known messages.
  * Messages must be added with lwmsg_protocol_add_protocol_spec().
  *
- * @param context a marshalling context, or <tt>NULL</tt> for default settings
- * @param prot the created protocol
+ * @param[in] context a marshalling context, or <tt>NULL</tt> for default settings
+ * @param[out] prot the created protocol
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_memory
@@ -171,8 +184,8 @@ lwmsg_protocol_new(
  * to the specified protocol object.  This may be performed
  * multiple times to aggregate several protocol specifications.
  *
- * @param prot the protocol object
- * @param spec the protocol specification
+ * @param[in,out] prot the protocol object
+ * @param[in] spec the protocol specification
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{MALFORMED, an error was detected in the protocol specification or one of the type specifications}
@@ -190,7 +203,7 @@ lwmsg_protocol_add_protocol_spec(
  * Deletes the specified protocol object.  It is the caller's responsibility
  * to ensure than no users of the object remain.
  *
- * @param prot the protocol object to delete
+ * @param[in,out] prot the protocol object to delete
  */
 void
 lwmsg_protocol_delete(
@@ -205,8 +218,8 @@ lwmsg_protocol_delete(
  * if another function called on the protocol returns an error or the protocol
  * is deleted.
  *
- * @param prot the protocol object
- * @param status the status code of the last error
+ * @param[in] prot the protocol object
+ * @param[in] status the status code of the last error
  * @return a human-readable error string
  */
 const char*

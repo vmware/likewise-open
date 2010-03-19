@@ -48,6 +48,7 @@
 
 #include "util-private.h"
 #include "test-private.h"
+#include "task-private.h"
 
 LWMsgTaskManager* manager = NULL;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;

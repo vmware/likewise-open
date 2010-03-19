@@ -45,6 +45,7 @@
 /**
  * @file call-private.h
  * @brief Call API (INTERNAL)
+ * @internal
  */
 
 /**
