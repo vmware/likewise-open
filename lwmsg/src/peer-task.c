@@ -349,7 +349,7 @@ lwmsg_peer_task_delete(
          ring = next)
     {
         next = ring->next;
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
+        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, queue_ring);
         lwmsg_peer_call_delete(call);
     }
 
@@ -358,7 +358,7 @@ lwmsg_peer_task_delete(
          ring = next)
     {
         next = ring->next;
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
+        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, queue_ring);
         lwmsg_peer_call_delete(call);
     }
 
@@ -495,7 +495,7 @@ lwmsg_peer_assoc_task_new(
                       lwmsg_peer_call_get_key,
                       lwmsg_peer_call_digest,
                       lwmsg_peer_call_equal,
-                      offsetof(PeerCall, ring)));
+                      offsetof(PeerCall, hash_ring)));
 
     BAIL_ON_ERROR(status = lwmsg_hash_init(
                       &my_task->outgoing_calls,
@@ -503,7 +503,7 @@ lwmsg_peer_assoc_task_new(
                       lwmsg_peer_call_get_key,
                       lwmsg_peer_call_digest,
                       lwmsg_peer_call_equal,
-                      offsetof(PeerCall, ring)));
+                      offsetof(PeerCall, hash_ring)));
 
     lwmsg_message_init(&my_task->incoming_message);
     lwmsg_message_init(&my_task->outgoing_message);
@@ -1528,8 +1528,7 @@ lwmsg_peer_task_dispatch_calls(
         next = ring->next;
         lwmsg_ring_remove(ring);
 
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
-        lwmsg_hash_insert_entry(&task->outgoing_calls, call);
+        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, queue_ring);
 
         /* Undispatched outgoing call -- send request*/
         if (!(call->state & PEER_CALL_DISPATCHED))
@@ -1589,8 +1588,7 @@ lwmsg_peer_task_dispatch_calls(
         next = ring->next;
         lwmsg_ring_remove(ring);
 
-        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, ring);
-        lwmsg_hash_insert_entry(&task->incoming_calls, call);
+        call = LWMSG_OBJECT_FROM_MEMBER(ring, PeerCall, queue_ring);
 
         /* Completed incoming call -- send reply */
         if ((call->state & PEER_CALL_COMPLETED) &&

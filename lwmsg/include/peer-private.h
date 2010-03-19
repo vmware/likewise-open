@@ -72,7 +72,8 @@ typedef enum PeerAssocTaskType
 typedef struct PeerCall
 {
     LWMsgCall base;
-    LWMsgRing ring;
+    LWMsgRing hash_ring;
+    LWMsgRing queue_ring;
     struct PeerAssocTask* task;
     enum
     {

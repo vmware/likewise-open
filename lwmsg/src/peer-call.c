@@ -55,8 +55,8 @@ lwmsg_peer_call_activate_incoming(
     PeerCall* call
     )
 {
-    lwmsg_hash_remove_entry(&call->task->incoming_calls, call);
-    lwmsg_ring_enqueue(&call->task->active_incoming_calls, &call->ring);
+    lwmsg_ring_remove(&call->queue_ring);
+    lwmsg_ring_enqueue(&call->task->active_incoming_calls, &call->queue_ring);
 }
 
 static
@@ -65,8 +65,8 @@ lwmsg_peer_call_activate_outgoing(
     PeerCall* call
     )
 {
-    lwmsg_hash_remove_entry(&call->task->outgoing_calls, call);
-    lwmsg_ring_enqueue(&call->task->active_outgoing_calls, &call->ring);
+    lwmsg_ring_remove(&call->queue_ring);
+    lwmsg_ring_enqueue(&call->task->active_outgoing_calls, &call->queue_ring);
 }
 
 
@@ -261,6 +261,7 @@ lwmsg_peer_call_dispatch_outgoing(
         pcall->cookie = pcall->task->next_cookie++;
     } while (lwmsg_hash_find_key(&pcall->task->outgoing_calls, &pcall->cookie));
 
+    lwmsg_hash_insert_entry(&pcall->task->outgoing_calls, pcall);
     lwmsg_peer_call_activate_outgoing(pcall);
     lwmsg_task_wake(pcall->task->event_task);
 
@@ -452,6 +453,10 @@ lwmsg_peer_call_release_outgoing(
     }
     else
     {
+        /* Since we will delete the call outside the call lock,
+           we must remove it from any queue while we are in the lock
+           to avoid a race condition with the task owning the call */
+        lwmsg_ring_remove(&pcall->queue_ring);
         delete = LWMSG_TRUE;
     }
     pthread_mutex_unlock(&task->call_lock);
@@ -542,7 +547,8 @@ lwmsg_peer_call_new(
 
     BAIL_ON_ERROR(status = LWMSG_ALLOC(&my_call));
 
-    lwmsg_ring_init(&my_call->ring);
+    lwmsg_ring_init(&my_call->queue_ring);
+    lwmsg_ring_init(&my_call->hash_ring);
 
     my_call->base.vtbl = &peer_call_class;
     my_call->task = task;
@@ -568,6 +574,8 @@ lwmsg_peer_call_delete(
     PeerCall* call
     )
 {
+    lwmsg_ring_remove(&call->queue_ring);
+
     if (call->task)
     {
         lwmsg_peer_task_unref(call->task);
