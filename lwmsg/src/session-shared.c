@@ -44,6 +44,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
+#include <limits.h>
 
 typedef struct SharedHandleKey
 {
