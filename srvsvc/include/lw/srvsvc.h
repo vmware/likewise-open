@@ -1403,8 +1403,8 @@ NET_API_STATUS
 NetrSessionDel(
     PSRVSVC_CONTEXT pContext,          /* IN              */
     PCWSTR          pwszServername,    /* IN     OPTIONAL */
-    PWSTR           pwszUncClientname, /* IN     OPTIONAL */
-    PWSTR           pwszUsername       /* IN     OPTIONAL */
+    PCWSTR          pwszUncClientname, /* IN     OPTIONAL */
+    PCWSTR          pwszUsername       /* IN     OPTIONAL */
     );
 
 NET_API_STATUS

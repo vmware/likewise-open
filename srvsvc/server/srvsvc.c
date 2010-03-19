@@ -360,10 +360,16 @@ NET_API_STATUS _NetrSessionEnum(
     return dwError;
 }
 
-void _srvsvc_FunctionD(
-    /* [in] */ handle_t IDL_handle
+NET_API_STATUS _NetrSessionDel(
+    /* [in] */ handle_t IDL_handle,
+    /* [in] */ wchar16_t *server_name,
+    /* [in] */ wchar16_t *unc_client_name,
+    /* [in] */ wchar16_t *username
     )
 {
+    DWORD dwError = ERROR_NOT_SUPPORTED;
+
+    return dwError;
 }
 
 NET_API_STATUS _NetrShareAdd(
