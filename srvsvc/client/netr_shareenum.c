@@ -36,7 +36,7 @@ NetrShareEnum(
     IN  PSRVSVC_CONTEXT pContext,
     IN  PCWSTR   pwszServername,
     IN  DWORD    dwLevel,
-    OUT PVOID   *ppBuffer,
+    OUT PBYTE   *ppBuffer,
     IN  DWORD    dwMaxLen,
     OUT PDWORD   pdwNumEntries,
     OUT PDWORD   pdwTotalEntries,
@@ -52,7 +52,7 @@ NetrShareEnum(
     srvsvc_NetShareCtr501 ctr501;
     srvsvc_NetShareCtr502 ctr502;
     PWSTR pwszServer = NULL;
-    PVOID pBuffer = NULL;
+    PBYTE pBuffer = NULL;
     DWORD dwNumEntries = 0;
     DWORD dwTotalEntries = 0;
     DWORD dwReturnedLevel = dwLevel;

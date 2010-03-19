@@ -36,7 +36,7 @@ NetShareSetInfo(
     IN  PCWSTR     pwszServername,
     IN  PCWSTR     pwszNetname,
     IN  DWORD      dwLevel,
-    IN  PVOID      pBuffer,
+    IN  PBYTE      pBuffer,
     OUT PDWORD     pdwParmErr
     )
 {

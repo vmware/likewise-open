@@ -35,24 +35,17 @@ NET_API_STATUS
 NetShareAdd(
     IN  PCWSTR  pwszServername,
     IN  DWORD   dwLevel,
-    IN  PVOID   pBuffer,
+    IN  PBYTE   pBuffer,
     OUT PDWORD  pdwParmErr
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
     PSRVSVC_CONTEXT pContext = NULL;
-    PSTR pszServername = NULL;
     PIO_CREDS pCreds = NULL;
 
     BAIL_ON_INVALID_PTR(pBuffer, err);
 
-    if (pwszServername)
-    {
-        err = LwWc16sToMbs(pwszServername, &pszServername);
-        BAIL_ON_WIN_ERROR(err);
-    }
-
-    err = SrvSvcCreateContext(pszServername, &pContext);
+    err = SrvSvcCreateContext(pwszServername, &pContext);
     BAIL_ON_WIN_ERROR(err);
 
     err = NetrShareAdd(pContext,

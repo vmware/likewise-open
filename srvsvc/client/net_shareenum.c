@@ -35,7 +35,7 @@ NET_API_STATUS
 NetShareEnum(
     IN  PCWSTR   pwszServername,
     IN  DWORD    dwLevel,
-    OUT PVOID   *ppBuffer,
+    OUT PBYTE   *ppBuffer,
     IN  DWORD    dwMaxLen,
     OUT PDWORD   pdwNumEntries,
     OUT PDWORD   pdwTotalEntries,

@@ -36,12 +36,12 @@ NetShareGetInfo(
     IN  PCWSTR  pwszServername,
     IN  PCWSTR  pwszNetname,
     IN  DWORD   dwLevel,
-    OUT PVOID  *ppBuffer
+    OUT PBYTE  *ppBuffer
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
     PSRVSVC_CONTEXT pContext = NULL;
-    PVOID pBuffer = NULL;
+    PBYTE pBuffer = NULL;
 
     BAIL_ON_INVALID_PTR(pwszNetname, err);
     BAIL_ON_INVALID_PTR(ppBuffer, err);
