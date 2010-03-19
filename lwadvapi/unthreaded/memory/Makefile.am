@@ -6,7 +6,8 @@ liblwadvapi_memory_la_SOURCES = \
        sysfuncs.c    \
        lwmem.c    \
        lwstr.c    \
-       lwsid.c
+       lwsid.c    \
+       lwbuffer.c
 
 
 liblwadvapi_memory_la_CPPFLAGS = \
