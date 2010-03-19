@@ -108,6 +108,12 @@ PvfsOplockRequest(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    if (!gPvfsDriverConfig.EnableOplocks)
+    {
+        ntError = STATUS_OPLOCK_NOT_GRANTED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     /* Verify the oplock request type */
 
     switch(pOplockRequest->OplockRequestType)

@@ -78,13 +78,13 @@ PPVFS_ID_CACHE  gUidMruCache[PVFS_MAX_MRU_SIZE];
 pthread_mutex_t gGidMruCacheMutex = PTHREAD_MUTEX_INITIALIZER;
 PPVFS_ID_CACHE  gGidMruCache[PVFS_MAX_MRU_SIZE];
 
+PVFS_DRIVER_CONFIG gPvfsDriverConfig;
 
-#ifdef _PVFS_DEVELOPER_DEBUG
+
 LONG gPvfsIrpContextCount = 0;
 LONG gPvfsFcbCount = 0;
 LONG gPvfsCcbCount = 0;
 LONG gPvfsWorkContextCount = 0;
-#endif
 
 /*
 local variables:

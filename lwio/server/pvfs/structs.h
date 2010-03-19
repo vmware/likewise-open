@@ -493,6 +493,22 @@ typedef struct _PVFS_ID_CACHE
 } PVFS_ID_CACHE, *PPVFS_ID_CACHE;
 
 
+typedef struct _PVFS_DRIVER_CONFIG
+{
+    pthread_rwlock_t rwLock;
+
+    DWORD     CreateFileMode;
+    DWORD     CreateDirectoryMode;
+
+    BOOLEAN   EnableOplocks;
+    BOOLEAN   EnableFullAsync;
+    BOOLEAN   EnableDriverDebug;
+
+    DWORD     WorkerThreadPoolSize;
+
+} PVFS_DRIVER_CONFIG, *PPVFS_DRIVER_CONFIG;
+
+
 #endif    /* _PVFS_STRUCTS_H */
 
 

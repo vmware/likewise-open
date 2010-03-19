@@ -69,6 +69,9 @@ PvfsInitWorkerThreads(
     int unixerr = 0;
     int ret = 0;
 
+    gWorkPool.PoolSize = gPvfsDriverConfig.WorkerThreadPoolSize;
+    gWorkPool.Available = gWorkPool.PoolSize + 1;
+
     /* Both of these will be blocking queues */
 
     ntError = PvfsInitWorkQueue(
@@ -87,15 +90,10 @@ PvfsInitWorkerThreads(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&gWorkPool.IoWorkers,
-                  PVFS_WORKERS_NUMBER_THREADS * sizeof(PVFS_WORKER));
+                  gWorkPool.PoolSize * sizeof(PVFS_WORKER));
     BAIL_ON_NT_STATUS(ntError);
 
     /* I/O Worker Threads */
-
-    gWorkPool.PoolSize = PVFS_WORKERS_NUMBER_THREADS;
-#ifdef _PVFS_DEVELOPER_DEBUG
-    gWorkPool.Available = PVFS_WORKERS_NUMBER_THREADS + 1;
-#endif
 
     for (i=0; i<gWorkPool.PoolSize; i++)
     {
@@ -141,6 +139,7 @@ PvfsWorkerDoWork(
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
     PPVFS_WORK_QUEUE pWorkQueue = (PPVFS_WORK_QUEUE)pQueue;
     BOOLEAN bActive = FALSE;
+    LONG AvailableThreads = 0;
 
     while(1)
     {
@@ -157,24 +156,18 @@ PvfsWorkerDoWork(
             continue;
         }
 
-#ifdef _PVFS_DEVELOPER_DEBUG
+        /* Check for one more available thread which would be the
+           internal priority thread */
+
+        AvailableThreads = InterlockedDecrement(&gWorkPool.Available);
+
+        if (gPvfsDriverConfig.EnableDriverDebug && AvailableThreads <= 1)
         {
-            LONG AvailableThreads = 0;
-
-            AvailableThreads = InterlockedDecrement(&gWorkPool.Available);
-
-            /* Check for one more available thread which would be the
-               internal priority thread */
-
-            if (AvailableThreads <= 1)
-            {
-                LWIO_LOG_ERROR(
-                    "%s: Worker thread count exhausted! (%d)\n",
-                    PVFS_LOG_HEADER,
-                    AvailableThreads);
-            }
+            LWIO_LOG_ERROR(
+                "%s: Worker thread count exhausted! (%d)\n",
+                PVFS_LOG_HEADER,
+                AvailableThreads);
         }
-#endif
 
         /* Deal with IRPs slightly differently than non IRP work items */
 

@@ -68,6 +68,7 @@
 #include "lwio/lwiodevctl.h"
 #include "iodriver.h"
 #include "lwioutils.h"
+#include "lwiocfg.h"
 #include "lwlist.h"
 
 #include "listq.h"
@@ -104,7 +105,9 @@
 
 /* Driver defines */
 
-#define PVFS_WORKERS_NUMBER_THREADS      4
+#define PVFS_CONF_REGISTRY_LOCAL  "Services\\lwio\\Parameters\\Drivers\\pvfs"
+#define PVFS_CONF_REGISTRY_POLICY "Policy\\Services\\lwio\\Parameters\\Drivers\\pvfs"
+
 #define PVFS_WORKERS_MAX_WORK_ITEMS      1024
 #define PVFS_MAX_MRU_SIZE                64
 
@@ -627,6 +630,14 @@ PvfsNotifyScheduleFullReport(
 NTSTATUS
 PvfsScheduleCancelNotify(
     PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+
+/* From config.c */
+
+NTSTATUS
+PvfsConfigRegistryInit(
+    PPVFS_DRIVER_CONFIG pConfig
     );
 
 

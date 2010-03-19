@@ -79,9 +79,7 @@ PvfsAllocateCCB(
 
     *ppCCB = pCCB;
 
-#ifdef _PVFS_DEVELOPER_DEBUG
     InterlockedIncrement(&gPvfsCcbCount);
-#endif
 
     ntError = STATUS_SUCCESS;
 
@@ -130,10 +128,7 @@ PvfsFreeCCB(
 
     PVFS_FREE(&pCCB);
 
-#ifdef _PVFS_DEVELOPER_DEBUG
     InterlockedDecrement(&gPvfsCcbCount);
-#endif
-
 
     return STATUS_SUCCESS;
 }
