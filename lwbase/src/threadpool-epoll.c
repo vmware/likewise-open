@@ -1084,6 +1084,7 @@ static
 NTSTATUS
 InitEventThread(
     PEPOLL_POOL pPool,
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs,
     PEPOLL_THREAD pThread,
     LONG lCpu
     )
@@ -1144,6 +1145,11 @@ InitEventThread(
         GOTO_ERROR_ON_STATUS(status);
     }
 
+    if (pAttrs && pAttrs->ulTaskThreadStackSize)
+    {
+        pthread_attr_setstacksize(&threadAttr, pAttrs->ulTaskThreadStackSize);
+    }
+
     status = LwErrnoToNtStatus(
         pthread_create(
             &pThread->Thread,
@@ -1191,13 +1197,25 @@ static
 NTSTATUS
 InitWorkThread(
     PEPOLL_POOL pPool,
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs,
     PWORK_ITEM_THREAD pThread
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    pthread_attr_t pthreadAttr;
+    BOOLEAN bAttrInit = FALSE;
+
+    status = LwErrnoToNtStatus(pthread_attr_init(&pthreadAttr));
+    GOTO_ERROR_ON_STATUS(status);
+
+    bAttrInit = TRUE;
 
     pThread->pPool = pPool;
 
+    if (pAttrs && pAttrs->ulWorkThreadStackSize)
+    {
+        pthread_attr_setstacksize(&pthreadAttr, pAttrs->ulWorkThreadStackSize);
+    }
     status = pthread_create(
         &pThread->Thread,
         NULL,
@@ -1206,6 +1224,11 @@ InitWorkThread(
     GOTO_ERROR_ON_STATUS(status);
 
 error:
+
+    if (bAttrInit)
+    {
+        pthread_attr_destroy(&pthreadAttr);
+    }
 
     return status;
 }
@@ -1257,7 +1280,7 @@ LwRtlCreateThreadPool(
 
             for (i = 0; i < pPool->ulEventThreadCount; i++)
             {
-                status = InitEventThread(pPool, &pPool->pEventThreads[i], numCpus >= 0 ? i % numCpus : -1);
+                status = InitEventThread(pPool, pAttrs, &pPool->pEventThreads[i], numCpus >= 0 ? i % numCpus : -1);
                 GOTO_ERROR_ON_STATUS(status);
             }
         }
@@ -1274,7 +1297,7 @@ LwRtlCreateThreadPool(
 
         for (i = 0; i < pPool->ulWorkThreadCount; i++)
         {
-            status = InitWorkThread(pPool, &pPool->pWorkThreads[i]);
+            status = InitWorkThread(pPool, pAttrs, &pPool->pWorkThreads[i]);
             GOTO_ERROR_ON_STATUS(status);
         }
     }
