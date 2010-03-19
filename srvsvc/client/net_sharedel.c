@@ -40,17 +40,10 @@ NetShareDel(
 {
     NET_API_STATUS err = ERROR_SUCCESS;
     PSRVSVC_CONTEXT pContext = NULL;
-    PSTR pszServername = NULL;
 
     BAIL_ON_INVALID_PTR(pwszSharename, err);
 
-    if (pwszServername)
-    {
-        err = LwWc16sToMbs(pwszServername, &pszServername);
-        BAIL_ON_WIN_ERROR(err);
-    }
-
-    err = SrvSvcCreateContext(pszServername, &pContext);
+    err = SrvSvcCreateContext(pwszServername, &pContext);
     BAIL_ON_WIN_ERROR(err);
 
     err = NetrShareDel(pContext,
@@ -65,8 +58,6 @@ cleanup:
     {
         SrvSvcCloseContext(pContext);
     }
-
-    SRVSVC_SAFE_FREE(pszServername);
 
     return err;
 

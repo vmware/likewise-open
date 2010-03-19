@@ -77,49 +77,6 @@ static const char *Win32ErrorToSymbolicName(NET_API_STATUS err)
     return buf;
 }
 
-NET_API_STATUS
-CreateSrvSvcBinding(
-    PSRVSVC_CONTEXT* ppContext,
-    const wchar16_t* pwszServername
-    )
-{
-    NET_API_STATUS err = 0;
-    PSTR pszServername = NULL;
-    PSRVSVC_CONTEXT pContext = NULL;
-
-    if (pwszServername)
-    {
-        err = LwWc16sToMbs(pwszServername, &pszServername);
-        if (err) goto error;
-    }
-
-    err = SrvSvcCreateContext(pszServername, &pContext);
-    if (err) goto error;
-
-    *ppContext = pContext;
-
-cleanup:
-
-    if (pszServername)
-    {
-        LwFreeMemory(pszServername);
-    }
-
-    return err;
-
-error:
-
-    *ppContext = NULL;
-
-    if (pContext)
-    {
-        SrvSvcCloseContext(pContext);
-    }
-
-    goto cleanup;
-}
-
-
 static
 NET_API_STATUS
 CleanupShare(
@@ -130,7 +87,7 @@ CleanupShare(
     NET_API_STATUS err = ERROR_SUCCESS;
     PSRVSVC_CONTEXT pContext = NULL;
 
-    err = CreateSrvSvcBinding(&pContext, pwszHostname);
+    err = SrvSvcCreateContext(pwszHostname, &pContext);
     if (err) goto error;
 
     err = NetrShareDel(pContext,
@@ -173,7 +130,7 @@ int TestNetConnectionEnum(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err)
     {
         goto done;
@@ -342,7 +299,7 @@ int TestNetFileEnum(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err) goto done;
 
     INPUT_ARG_PTR(pContext);
@@ -535,7 +492,7 @@ int TestNetFileGetInfo(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err) goto done;
 
     INPUT_ARG_PTR(pContext);
@@ -671,7 +628,7 @@ int TestNetFileClose(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err) goto done;
 
     INPUT_ARG_PTR(pContext);
@@ -722,7 +679,7 @@ int TestNetSessionEnum(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err) goto done;
 
     INPUT_ARG_PTR(pContext);
@@ -1437,7 +1394,7 @@ int TestNetShareDel(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err) goto done;
 
     INPUT_ARG_PTR(pContext);
@@ -1483,7 +1440,7 @@ int TestNetServerGetInfo(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err) goto done;
 
     INPUT_ARG_PTR(pContext);
@@ -1612,7 +1569,7 @@ int TestNetServerSetInfo(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err) goto done;
 
     INPUT_ARG_PTR(pContext);
@@ -2461,7 +2418,7 @@ int TestNetRemoteTOD(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    err = CreateSrvSvcBinding(&pContext, hostname);
+    err = SrvSvcCreateContext(hostname, &pContext);
     if (err) goto done;
 
     INPUT_ARG_PTR(pContext);

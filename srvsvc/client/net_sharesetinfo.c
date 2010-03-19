@@ -43,32 +43,17 @@ NetShareSetInfo(
     NET_API_STATUS err = ERROR_SUCCESS;
     PSRVSVC_CONTEXT pContext = NULL;
     PSTR pszServername = NULL;
-    PWSTR pwszServer = NULL;
-    PWSTR pwszShare = NULL;
 
     BAIL_ON_INVALID_PTR(pwszNetname, err);
     BAIL_ON_INVALID_PTR(pBuffer, err);
 
-    if (pwszServername)
-    {
-      err = LwWc16sToMbs(pwszServername, &pszServername);
-      BAIL_ON_WIN_ERROR(err);
-
-      err = LwAllocateWc16String(&pwszServer, pwszServername);
-      BAIL_ON_WIN_ERROR(err);
-
-    }
-
-    err = LwAllocateWc16String(&pwszShare, pwszNetname);
-    BAIL_ON_WIN_ERROR(err);
-
-    err = SrvSvcCreateContext(pszServername, &pContext);
+    err = SrvSvcCreateContext(pwszServername, &pContext);
     BAIL_ON_WIN_ERROR(err);
 
     err = NetrShareSetInfo(
                 pContext,
-                pwszServer,
-                pwszShare,
+                pwszServername,
+                pwszNetname,
                 dwLevel,
                 pBuffer,
                 pdwParmErr);
@@ -79,10 +64,6 @@ cleanup:
     {
         SrvSvcCloseContext(pContext);
     }
-
-    LW_SAFE_FREE_MEMORY(pszServername);
-    LW_SAFE_FREE_MEMORY(pwszServer);
-    LW_SAFE_FREE_MEMORY(pwszShare);
 
     return err;
 

@@ -1316,7 +1316,7 @@ typedef struct _SRVSVC_CONTEXT* PSRVSVC_CONTEXT;
 
 NET_API_STATUS
 SrvSvcCreateContext(
-    IN  PCSTR            pszHostname,
+    IN  PCWSTR           pwszHostname,
     OUT PSRVSVC_CONTEXT* ppContext
     );
 

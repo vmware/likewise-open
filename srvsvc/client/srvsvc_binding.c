@@ -74,13 +74,20 @@ FreeSrvSvcBinding(
 
 NET_API_STATUS
 SrvSvcCreateContext(
-    IN  PCSTR            pszHostname,
+    IN  PCWSTR           pwszHostname,
     OUT PSRVSVC_CONTEXT* ppContext
     )
 {
     NET_API_STATUS  status   = 0;
     NTSTATUS        ntStatus = STATUS_SUCCESS;
     PSRVSVC_CONTEXT pContext = NULL;
+    PSTR            pszHostname = NULL;
+
+    if (pwszHostname)
+    {
+        status = LwWc16sToMbs(pwszHostname, &pszHostname);
+        BAIL_ON_SRVSVC_ERROR(status);
+    }
 
     status = LwAllocateMemory(sizeof(SRVSVC_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_SRVSVC_ERROR(status);
@@ -97,6 +104,11 @@ SrvSvcCreateContext(
     *ppContext = pContext;
 
 cleanup:
+
+    if (pszHostname)
+    {
+        LwFreeMemory(pszHostname);
+    }
 
     return status;
 
