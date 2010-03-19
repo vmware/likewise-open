@@ -8,6 +8,10 @@ if ENABLE_PVFS
 SUBDIRS += pvfs
 endif
 
+if ENABLE_DFS
+SUBDIRS += dfs
+endif
+
 if ENABLE_RDR
 SUBDIRS += rdr
 endif
