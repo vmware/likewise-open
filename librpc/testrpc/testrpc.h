@@ -249,27 +249,27 @@ extern int verbose_mode;
 #define RESULT_INT(v)                DUMP_INT("=> ", (v));
 #define RESULT_UINT(v)               DUMP_UINT("=> ", (v));
 
-#define CALL_MSRPC(msrpc_call)                                     \
+#define CALL_MSRPC(status, msrpc_call)                             \
     do {                                                           \
         if (verbose_mode) {                                        \
             printf("= Function call:\n=   %s\n", #msrpc_call);     \
         }                                                          \
                                                                    \
-        msrpc_call;                                                \
+        status = msrpc_call;                                       \
         printf("= Returned status:\n=   %s (0x%08x)\n",            \
-               NtStatusToName(status), status);                    \
+               NtStatusToName((status)), (status));                \
     } while (0)
 
 
-#define CALL_NETAPI(netapi_call)                                   \
+#define CALL_NETAPI(status, netapi_call)                           \
     do {                                                           \
         if (verbose_mode) {                                        \
             printf("= Function call:\n=   %s\n", #netapi_call);    \
         }                                                          \
                                                                    \
-        netapi_call;                                               \
+        status = netapi_call;                                      \
         printf("= Returned status:\n=   %s (0x%08x)\n",            \
-               Win32ErrorToName(err), err);                        \
+               Win32ErrorToName((status)), (status));              \
     } while (0)
 
 
@@ -288,9 +288,179 @@ extern int verbose_mode;
 
 
 #define ASSERT_TEST(expr)                                          \
-    if (!(expr)) {                                                 \
+    if (!(expr))                                                   \
+    {                                                              \
         DISPLAY_ERROR(("assert failed: %s\n", #expr));             \
+        bRet = FALSE;                                              \
     }
+
+
+#define ASSERT_TEST_MSG(expr, msg)                                 \
+    if (!(expr))                                                   \
+    {                                                              \
+        DISPLAY_ERROR(("assert failed: %s ", #expr));              \
+        printf msg;                                                \
+        bRet = FALSE;                                              \
+    }
+
+#define ASSERT_UNICODE_STRING_EQUAL(str1_ptr, str2_ptr)            \
+    if (!LwRtlUnicodeStringIsEqual((str1_ptr), (str2_ptr), FALSE)) \
+    {                                                              \
+        DISPLAY_ERROR(("assert failed: %s != %s\n",                \
+                       #str1_ptr, #str2_ptr));                     \
+        bRet = FALSE;                                              \
+        goto error;                                                \
+    }
+
+
+#define ASSERT_UNICODE_STRING_VALID_MSG(name_ptr, msg)             \
+    do {                                                           \
+        DWORD _iWC = 0;                                            \
+                                                                   \
+        if (!((name_ptr)->len == (name_ptr)->size) &&              \
+            !((name_ptr)->len + sizeof((name_ptr)->string[0])      \
+              == (name_ptr)->size))                                \
+        {                                                          \
+            DISPLAY_ERROR(("assert failed: "                       \
+                           "invalid unicode name len/size\n"));    \
+            printf msg;                                            \
+            bRet = FALSE;                                          \
+        }                                                          \
+                                                                   \
+        if ((name_ptr)->size == 0 &&                               \
+            (name_ptr)->string != NULL)                            \
+        {                                                          \
+            DISPLAY_ERROR(("assert failed: "                       \
+                           "invalid unicode name "                 \
+                           "size == 0 while buffer != NULL\n"));   \
+            printf msg;                                            \
+            bRet = FALSE;                                          \
+        }                                                          \
+                                                                   \
+        for (_iWC = 0;                                             \
+             _iWC < ((name_ptr)->len                               \
+                     / sizeof((name_ptr)->string[0]));             \
+             _iWC++)                                               \
+        {                                                          \
+            if ((name_ptr)->string[_iWC] == 0)                     \
+            {                                                      \
+                DISPLAY_ERROR(("assert failed: "                   \
+                               "invalid unicode name "             \
+                               "NULL-termination "                 \
+                               "before i < size\n"));              \
+                printf msg;                                        \
+                bRet = FALSE;                                      \
+            }                                                      \
+        }                                                          \
+                                                                   \
+    } while (0)
+
+
+#define ASSERT_UNICODE_STRING_VALID(name_ptr)                      \
+    do {                                                           \
+        DWORD _iWC = 0;                                            \
+                                                                   \
+        if (!((name_ptr)->len == (name_ptr)->size) &&              \
+            !((name_ptr)->len + sizeof((name_ptr)->string[0])      \
+              == (name_ptr)->size))                                \
+        {                                                          \
+            DISPLAY_ERROR(("assert failed: "                       \
+                           "invalid unicode name len/size\n"));    \
+            bRet = FALSE;                                          \
+        }                                                          \
+                                                                   \
+        if ((name_ptr)->size == 0 &&                               \
+            (name_ptr)->string != NULL)                            \
+        {                                                          \
+            DISPLAY_ERROR(("assert failed: "                       \
+                           "invalid unicode name "                 \
+                           "size == 0 while buffer != NULL\n"));   \
+            bRet = FALSE;                                          \
+        }                                                          \
+                                                                   \
+        for (_iWC = 0;                                             \
+             _iWC < ((name_ptr)->len                               \
+                     / sizeof((name_ptr)->string[0]));             \
+             _iWC++)                                               \
+        {                                                          \
+            if ((name_ptr)->string[_iWC] == 0)                     \
+            {                                                      \
+                DISPLAY_ERROR(("assert failed: "                   \
+                               "invalid unicode name "             \
+                               "NULL-termination "                 \
+                               "before i < size\n"));              \
+                bRet = FALSE;                                      \
+            }                                                      \
+        }                                                          \
+                                                                   \
+    } while (0)
+
+
+#define ASSERT_SID_EQUAL(sid1_ptr, sid2_ptr)                       \
+    do {                                                           \
+        if ((sid1_ptr) == (sid2_ptr))                              \
+        {                                                          \
+            break;                                                 \
+        }                                                          \
+                                                                   \
+        if ((sid1_ptr) == NULL && (sid2_ptr) != NULL)              \
+        {                                                          \
+            DISPLAY_ERROR(("invalid SID: %s == NULL\n",            \
+                           #sid1_ptr));                            \
+            bRet = FALSE;                                          \
+            break;                                                 \
+        }                                                          \
+                                                                   \
+        if ((sid1_ptr) != NULL && (sid2_ptr) == NULL)              \
+        {                                                          \
+            DISPLAY_ERROR(("invalid SID: %s == NULL\n",            \
+                           #sid2_ptr));                            \
+            bRet = FALSE;                                          \
+            break;                                                 \
+        }                                                          \
+                                                                   \
+        if (!RtlEqualSid((sid1_ptr), (sid2_ptr)))                  \
+        {                                                          \
+            DISPLAY_ERROR(("assert failed: %s == %s\n",            \
+                           #sid1_ptr, #sid2_ptr));                 \
+            bRet = FALSE;                                          \
+        }                                                          \
+    } while (0)
+
+
+#define ASSERT_SID_EQUAL_MSG(sid1_ptr, sid2_ptr, msg)              \
+    do {                                                           \
+        if ((sid1_ptr) == (sid2_ptr))                              \
+        {                                                          \
+            break;                                                 \
+        }                                                          \
+                                                                   \
+        if ((sid1_ptr) == NULL && (sid2_ptr) != NULL)              \
+        {                                                          \
+            DISPLAY_ERROR(("assert failed: %s == NULL\n",          \
+                           #sid1_ptr));                            \
+            printf msg;                                            \
+            bRet = FALSE;                                          \
+            break;                                                 \
+        }                                                          \
+                                                                   \
+        if ((sid1_ptr) != NULL && (sid2_ptr) == NULL)              \
+        {                                                          \
+            DISPLAY_ERROR(("assert failed: %s == NULL\n",          \
+                           #sid2_ptr));                            \
+            printf msg;                                            \
+            bRet = FALSE;                                          \
+            break;                                                 \
+        }                                                          \
+                                                                   \
+        if (!RtlEqualSid((sid1_ptr), (sid2_ptr)))                  \
+        {                                                          \
+            DISPLAY_ERROR(("assert failed: %s != %s\n",            \
+                           #sid1_ptr, #sid2_ptr));                 \
+            printf msg;                                            \
+            bRet = FALSE;                                          \
+        }                                                          \
+    } while (0)
 
 
 #endif /* _TESTRPC_H_ */

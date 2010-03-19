@@ -278,7 +278,7 @@ int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
 
     NetrFreeMemory(pInfo);
 
-    CALL_MSRPC(status = NetrSamLogonInteractive(schn_b, &creds, server, domain, computer,
+    CALL_MSRPC(status, NetrSamLogonInteractive(schn_b, &creds, server, domain, computer,
                                                 username, password,
                                                 (UINT16)logon_level,
                                                 (UINT16)validation_level,
@@ -401,7 +401,7 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
                           rpc_c_authn_level_pkt_privacy,
                           &creds);
 
-    CALL_MSRPC(status = NetrSamLogoff(schn_b, &creds, server, domain, computer,
+    CALL_MSRPC(status, NetrSamLogoff(schn_b, &creds, server, domain, computer,
                                       username, password, (UINT16)logon_level));
     if (status != STATUS_SUCCESS) goto close;
 
@@ -541,7 +541,7 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
                               computer, machpass, &creds, &schn_b);
     if (status != STATUS_SUCCESS) goto close;
 
-    CALL_MSRPC(status = NetrSamLogonEx(schn_b, server, domain, computer,
+    CALL_MSRPC(status, NetrSamLogonEx(schn_b, server, domain, computer,
                                        username, password,
                                        (UINT16)logon_level,
                                        (UINT16)validation_level,
@@ -654,7 +654,7 @@ int TestNetlogonEnumTrustedDomains(struct test *t, const wchar16_t *hostname,
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) return false;
 
-    CALL_MSRPC(status = NetrEnumerateTrustedDomainsEx(netr_b, server,
+    CALL_MSRPC(status, NetrEnumerateTrustedDomainsEx(netr_b, server,
                                                       &trusts, &count));
     if (status != STATUS_SUCCESS) goto done;
 
@@ -704,7 +704,7 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) return false;
 
-    CALL_NETAPI(err = DsrEnumerateDomainTrusts(netr_b, hostname, trustflags,
+    CALL_NETAPI(err, DsrEnumerateDomainTrusts(netr_b, hostname, trustflags,
                                                &trusts, &count));
     if (err != ERROR_SUCCESS) goto done;
 
@@ -754,7 +754,7 @@ int TestNetlogonGetDcName(struct test *t, const wchar16_t *hostname,
     netr_b = CreateNetlogonBinding(&netr_b, hostname);
     if (netr_b == NULL) return false;
 
-    CALL_NETAPI(err = DsrGetDcName(netr_b, hostname, domain_name,
+    CALL_NETAPI(err, DsrGetDcName(netr_b, hostname, domain_name,
                                    NULL, NULL, getdcflags, &info));
     if (err != ERROR_SUCCESS) goto done;
 

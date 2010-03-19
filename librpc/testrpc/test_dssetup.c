@@ -104,7 +104,7 @@ CallDsrRoleGetPrimaryDomainInformation(struct test *t,
     INPUT_ARG_PTR(hBinding);
     INPUT_ARG_UINT(uiLevel);
 
-    CALL_NETAPI(err = DsrRoleGetPrimaryDomainInformation(hBinding, uiLevel,
+    CALL_NETAPI(err, DsrRoleGetPrimaryDomainInformation(hBinding, uiLevel,
                                                          &pInfo));
     if (err != 0) netapi_fail(err);
 
