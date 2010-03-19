@@ -183,6 +183,44 @@ c_delbefore(EditLine *el, int num)
 /* c_delbefore1():
  *	Delete the character before the cursor, do not yank
  */
+#ifdef __LW_MULTIBYTE__
+protected void
+c_delbefore1(EditLine *el)
+{
+	int len = 0;
+	int curlen = 0;
+	int i = 0;
+	char *cp = NULL;
+
+	/* Backspace character is in length map, but not in the data */
+	if (el->el_multibyte.charlen_map_indx < 1)
+		return;
+
+	curlen = el->el_cursor.h;
+
+	/* Character before backspace character */
+	len = el->el_multibyte.charlen_map[el->el_multibyte.charlen_map_indx-1];
+
+	/* Nuke out the previous character byte values */
+	cp = el->el_line.cursor - len;
+	for (i=0; i<len; i++) {
+		*cp++ = '\0';
+	}
+
+	el->el_line.lastchar -= len;
+	el->el_multibyte.charlen_map_indx--;
+	el->el_state.argument = 0;
+	term__putc(el, '\r');
+	for (i=0; i<curlen; i++) {
+		term__putc(el, ' ');
+	}
+	re_clear_display(el);
+	term__putc(el, '\r');
+}
+#else
+/* c_delbefore1():
+ *	Delete the character before the cursor, do not yank
+ */
 protected void
 c_delbefore1(EditLine *el)
 {
@@ -193,6 +231,7 @@ c_delbefore1(EditLine *el)
 
 	el->el_line.lastchar--;
 }
+#endif
 
 
 /* ce__isword():

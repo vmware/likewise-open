@@ -28,6 +28,7 @@
 #include <lwrpc/netlogon.h>
 #include <lwrpc/dssetup.h>
 #include <lwrpc/LM.h>
+#include <macros.h>
 #include <md5.h>
 #include <hmac_md5.h>
 #include <rc4.h>

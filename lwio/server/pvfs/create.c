@@ -178,7 +178,7 @@ PvfsCreateFileDoSysOpen(
                       &fd,
                       pCreateContext->pszDiskFilename,
                       unixFlags,
-                      0700);
+                      (mode_t)gPvfsDriverConfig.CreateFileMode);
 
     } while (ntError == STATUS_MORE_PROCESSING_REQUIRED);
     BAIL_ON_NT_STATUS(ntError);
@@ -342,7 +342,9 @@ PvfsCreateDirDoSysOpen(
 
     if (!pCreateContext->bFileExisted)
     {
-        ntError = PvfsSysMkDir(pCreateContext->pszDiskFilename, 0700);
+        ntError = PvfsSysMkDir(
+                      pCreateContext->pszDiskFilename,
+                      (mode_t)gPvfsDriverConfig.CreateDirectoryMode);
         BAIL_ON_NT_STATUS(ntError);
     }
 

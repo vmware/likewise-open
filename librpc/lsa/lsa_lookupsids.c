@@ -62,8 +62,11 @@ LsaLookupSids(
     NTSTATUS ntRetStatus = STATUS_SUCCESS;
     TranslatedNameArray NameArray = {0};
     RefDomainList *pRefDomains = NULL;
-    TranslatedName *pOutNames = NULL;
+    TranslatedName *pTransNames = NULL;
     RefDomainList *pOutDomains = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hPolicy, ntStatus);
@@ -88,21 +91,72 @@ LsaLookupSids(
 
     /* Status other than success doesn't have to mean failure here */
     if (ntRetStatus != STATUS_SUCCESS &&
-        ntRetStatus != LW_STATUS_SOME_NOT_MAPPED) goto error;
+        ntRetStatus != LW_STATUS_SOME_NOT_MAPPED)
+    {
+        BAIL_ON_NT_STATUS(ntRetStatus);
+    }
 
-    ntStatus = LsaAllocateTranslatedNames(&pOutNames, &NameArray);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (NameArray.count)
+    {
+        ntStatus = LsaAllocateTranslatedNames(NULL,
+                                              &dwOffset,
+                                              NULL,
+                                              &NameArray,
+                                              &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LsaAllocateRefDomainList(&pOutDomains, pRefDomains);
-    BAIL_ON_NT_STATUS(ntStatus);
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
 
-    *ppTransNames = pOutNames;
+        ntStatus = LsaRpcAllocateMemory(OUT_PPVOID(&pTransNames),
+                                        dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = LsaAllocateTranslatedNames(pTransNames,
+                                              &dwOffset,
+                                              &dwSpaceLeft,
+                                              &NameArray,
+                                              &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pRefDomains)
+    {
+        dwSize   = 0;
+        dwOffset = 0;
+
+        ntStatus = LsaAllocateRefDomainList(NULL,
+                                            &dwOffset,
+                                            NULL,
+                                            pRefDomains,
+                                            &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = LsaRpcAllocateMemory(OUT_PPVOID(&pOutDomains),
+                                        dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = LsaAllocateRefDomainList(pOutDomains,
+                                            &dwOffset,
+                                            &dwSpaceLeft,
+                                            pRefDomains,
+                                            &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppTransNames = pTransNames;
     *ppRefDomList = pOutDomains;
+    *Count        = NameArray.count;
 
 cleanup:
-
     /* Free pointers returned from stub */
-    if (pRefDomains) {
+    if (pRefDomains)
+    {
         LsaFreeStubRefDomainList(pRefDomains);
     }
 
@@ -110,18 +164,20 @@ cleanup:
 
     if (ntStatus == STATUS_SUCCESS &&
         (ntRetStatus == STATUS_SUCCESS ||
-         ntRetStatus == LW_STATUS_SOME_NOT_MAPPED)) {
+         ntRetStatus == LW_STATUS_SOME_NOT_MAPPED))
+    {
         ntStatus = ntRetStatus;
     }
 
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pOutNames);
-    LsaRpcFreeMemory((PVOID)pOutDomains);
+    LsaRpcFreeMemory(pTransNames);
+    LsaRpcFreeMemory(pOutDomains);
 
     *ppTransNames = NULL;
     *ppRefDomList = NULL;
+    *Count        = 0;
 
     goto cleanup;
 }

@@ -1,15 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <config.h>
+#include <srvsvcsys.h>
 
-#if HAVE_STRINGS_H
-#include <strings.h>
-#endif
-
-#include <dce/dce_error.h>
-#include <dce/smb.h>
-#include <wc16str.h>
 #include <lw/base.h>
 #include <lw/ntstatus.h>
 #include <lw/winerror.h>
@@ -20,7 +11,11 @@
 #include <lw/srvsvc.h>
 #include <lwrpc/LMcreds.h>
 
-#include "../client/srvsvc_util.h"
+#include <srvsvcdefs.h>
+#include <srvsvcutils.h>
 
+#include "srvsvc_util.h"
+
+#include "prototypes.h"
 #include "test.h"
 #include "params.h"

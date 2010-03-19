@@ -30,36 +30,32 @@
 
 #include "includes.h"
 
-
 NET_API_STATUS
-NetShareGetInfo(
-    IN  PCWSTR  pwszServername,
-    IN  PCWSTR  pwszNetname,
-    IN  DWORD   dwLevel,
-    OUT PVOID  *ppBuffer
+NetServerSetInfo(
+    IN  PCWSTR     pwszServername,
+    IN  DWORD      dwLevel,
+    IN  PBYTE      pBuffer,
+    OUT PDWORD     pdwParmErr
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
     PSRVSVC_CONTEXT pContext = NULL;
-    PVOID pBuffer = NULL;
+    PSTR pszServername = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszNetname, err);
-    BAIL_ON_INVALID_PTR(ppBuffer, err);
+    BAIL_ON_INVALID_PTR(pBuffer, err);
 
     err = SrvSvcCreateContext(pwszServername, &pContext);
     BAIL_ON_WIN_ERROR(err);
 
-    err = NetrShareGetInfo(pContext,
-                           pwszServername,
-                           pwszNetname,
-                           dwLevel,
-                           &pBuffer);
+    err = NetrServerSetInfo(
+                pContext,
+                pwszServername,
+                dwLevel,
+                pBuffer,
+                pdwParmErr);
     BAIL_ON_WIN_ERROR(err);
 
-    *ppBuffer = pBuffer;
-
 cleanup:
-
     if (pContext)
     {
         SrvSvcCloseContext(pContext);
@@ -68,8 +64,6 @@ cleanup:
     return err;
 
 error:
-    *ppBuffer = NULL;
-
     goto cleanup;
 }
 

@@ -28,7 +28,6 @@
  * license@likewisesoftware.com
  */
 
-//#include <lwrpc/unicodestring.h>
 #include "includes.h"
 
 extern int verbose_mode;
@@ -45,7 +44,7 @@ extern int verbose_mode;
 
 
 static
-BOOL
+BOOLEAN
 CallSamrConnect(
     handle_t hBinding,
     const wchar16_t *system_name,
@@ -54,7 +53,7 @@ CallSamrConnect(
 
 
 static
-BOOL
+BOOLEAN
 CallSamrClose(
     handle_t hBinding,
     CONNECT_HANDLE *phConn
@@ -62,7 +61,7 @@ CallSamrClose(
 
 
 static
-BOOL
+BOOLEAN
 CallSamrEnumDomains(
     handle_t        hBinding,
     CONNECT_HANDLE  hConn,
@@ -72,7 +71,7 @@ CallSamrEnumDomains(
 
 
 static
-BOOL
+BOOLEAN
 CallSamrOpenDomains(
     handle_t        hBinding,
     CONNECT_HANDLE  hConn,
@@ -84,20 +83,31 @@ CallSamrOpenDomains(
 
 
 static
-BOOL
+BOOLEAN
 CallSamrEnumDomainUsers(
+    handle_t       hBinding,
+    DOMAIN_HANDLE  hDomain,
+    PDWORD        *ppdwUserRids,
+    PDWORD         pdwNumUsers
+    );
+
+
+static
+BOOLEAN
+CallSamrEnumDomainAliases(
     handle_t       hBinding,
     DOMAIN_HANDLE  hDomain
     );
 
 
 static
-BOOL
-CallSamrEnumDomainAliases(
-    handle_t       hBinding,
-    DOMAIN_HANDLE  hDomain
+BOOLEAN
+CallSamrQueryDomainUsers(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PDWORD          pdwRids,
+    DWORD           dwNumRids
     );
-
 
 
 handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
@@ -575,121 +585,138 @@ done:
 
 
 static
-BOOL
+BOOLEAN
 CallSamrConnect(
-    handle_t hBinding,
-    const wchar16_t *system_name,
+    handle_t        hBinding,
+    PCWSTR          pwszSystemName,
     CONNECT_HANDLE *phConn
     )
 {
-    BOOL ret = TRUE;
-    BOOL connected = FALSE;
-    NTSTATUS status = STATUS_SUCCESS;
-    UINT32 access_mask = SAMR_ACCESS_OPEN_DOMAIN |
+    BOOL bRet = TRUE;
+    BOOL bConnected = FALSE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwAccessMask = SAMR_ACCESS_OPEN_DOMAIN |
                          SAMR_ACCESS_ENUM_DOMAINS |
                          SAMR_ACCESS_CONNECT_TO_SERVER;
-    UINT32 level_in = 0;
-    UINT32 level_out = 0;
-    SamrConnectInfo info_in;
-    SamrConnectInfo info_out;
+    DWORD dwLevelIn = 0;
+    DWORD dwLevelOut = 0;
+    SamrConnectInfo InfoIn;
+    SamrConnectInfo InfoOut;
     CONNECT_HANDLE hConn = NULL;
     CONNECT_HANDLE h = NULL;
 
-    memset(&info_in, 0, sizeof(info_in));
-    memset(&info_out, 0, sizeof(info_out));
+    memset(&InfoIn, 0, sizeof(InfoIn));
+    memset(&InfoOut, 0, sizeof(InfoOut));
 
     DISPLAY_COMMENT(("Testing SamrConnect2\n"));
 
-    status = SamrConnect2(hBinding, system_name, access_mask, &h);
-    if (status) {
-        DISPLAY_ERROR(("SamrConnect2 error %s\n", NtStatusToName(status)));
-        ret = FALSE;
-    } else {
-        connected = TRUE;
-        hConn     = h;
+    ntStatus = SamrConnect2(hBinding, pwszSystemName, dwAccessMask, &h);
+    if (ntStatus)
+    {
+        DISPLAY_ERROR(("SamrConnect2 error %s\n", LwNtStatusToName(ntStatus)));
+        bRet = FALSE;
+    }
+    else
+    {
+        bConnected = TRUE;
+        hConn      = h;
     }
 
     DISPLAY_COMMENT(("Testing SamrConnect3\n"));
 
-    status = SamrConnect3(hBinding, system_name, access_mask, &h);
-    if (status) {
-        DISPLAY_ERROR(("SamrConnect3 error %s\n", NtStatusToName(status)));
-        ret = FALSE;
-    } else {
-        if (connected) {
+    ntStatus = SamrConnect3(hBinding, pwszSystemName, dwAccessMask, &h);
+    if (ntStatus)
+    {
+        DISPLAY_ERROR(("SamrConnect3 error %s\n", LwNtStatusToName(ntStatus)));
+        bRet = FALSE;
+    }
+    else
+    {
+        if (bConnected)
+        {
             CallSamrClose(hBinding, &hConn);
         }
 
-        connected = TRUE;
-        hConn     = h;
+        bConnected = TRUE;
+        hConn      = h;
     }
 
     DISPLAY_COMMENT(("Testing SamrConnect4\n"));
 
-    status = SamrConnect4(hBinding, system_name, 0, access_mask, &h);
-    if (status) {
-        DISPLAY_ERROR(("SamrConnect4 error %s\n", NtStatusToName(status)));
-        ret = FALSE;
-    } else {
-        if (connected) {
+    ntStatus = SamrConnect4(hBinding, pwszSystemName, 0, dwAccessMask, &h);
+    if (ntStatus)
+    {
+        DISPLAY_ERROR(("SamrConnect4 error %s\n", LwNtStatusToName(ntStatus)));
+        bRet = FALSE;
+    }
+    else
+    {
+        if (bConnected)
+        {
             CallSamrClose(hBinding, &hConn);
         }
 
-        connected = TRUE;
-        hConn     = h;
+        bConnected = TRUE;
+        hConn      = h;
     }
 
     DISPLAY_COMMENT(("Testing SamrConnect5\n"));
 
-    level_in = 1;
-    info_in.info1.client_version = SAMR_CONNECT_POST_WIN2K;
+    dwLevelIn = 1;
+    InfoIn.info1.client_version = SAMR_CONNECT_POST_WIN2K;
 
-    status = SamrConnect5(hBinding, system_name, access_mask, level_in, &info_in,
-                          &level_out, &info_out, &h);
-    if (status) {
-        DISPLAY_ERROR(("SamrConnect5 error %s\n", NtStatusToName(status)));
-        ret = FALSE;
-    } else {
-        if (connected) {
+    ntStatus = SamrConnect5(hBinding, pwszSystemName, dwAccessMask, dwLevelIn,
+                            &InfoIn, &dwLevelOut, &InfoOut, &h);
+    if (ntStatus)
+    {
+        DISPLAY_ERROR(("SamrConnect5 error %s\n", LwNtStatusToName(ntStatus)));
+        bRet = FALSE;
+    }
+    else
+    {
+        if (bConnected)
+        {
             CallSamrClose(hBinding, &hConn);
         }
 
-        connected = TRUE;
-        hConn     = h;
+        bConnected = TRUE;
+        hConn      = h;
     }
 
     *phConn = hConn;
 
-    return ret;
+    return bRet;
 }
 
 
 static
-BOOL
+BOOLEAN
 CallSamrClose(
     handle_t        hBinding,
     CONNECT_HANDLE *phConn
     )
 {
-    BOOL ret = TRUE;
-    NTSTATUS status = STATUS_SUCCESS;
+    BOOL bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     CONNECT_HANDLE hConn = NULL;
 
     DISPLAY_COMMENT(("Testing SamrClose\n"));
 
     hConn = *phConn;
 
-    status = SamrClose(hBinding, hConn);
-    if (status) {
-        DISPLAY_ERROR(("SamrClose error %s\n", NtStatusToName(status)));
+    ntStatus = SamrClose(hBinding, hConn);
+    if (ntStatus)
+    {
+        DISPLAY_ERROR(("SamrClose error %s\n", LwNtStatusToName(ntStatus)));
+        bRet = FALSE;
     }
 
-    return ret;
+    return bRet;
 }
 
 
 static
-BOOL
+BOOLEAN
 CallSamrEnumDomains(
     handle_t        hBinding,
     CONNECT_HANDLE  hConn,
@@ -697,135 +724,205 @@ CallSamrEnumDomains(
     PSID           *ppBuiltinSid
     )
 {
-    BOOL ret = TRUE;
-    NTSTATUS status = STATUS_SUCCESS;
-    UINT32 resume = 0;
-    UINT32 max_size = 16;
-    wchar16_t **domains = NULL;
-    UINT32 num_entries = 0;
-    UINT32 i = 0;
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwResume = 0;
+    DWORD dwMaxSize = 16;
+    PWSTR *ppwszDomains = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD i = 0;
     PSID pSid = NULL;
     PSID pDomainSid = NULL;
     PSID pBuiltinSid = NULL;
 
-    DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", max_size));
+    DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", dwMaxSize));
 
-    do {
-        status = SamrEnumDomains(hBinding, hConn, &resume, max_size,
-                                 &domains, &num_entries);
+    do
+    {
+        CALL_MSRPC(ntStatus, SamrEnumDomains(hBinding, hConn, &dwResume,
+                                             dwMaxSize, &ppwszDomains,
+                                             &dwNumEntries));
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomains error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+        }
+        else
+        {
+            DISPLAY_DOMAINS(ppwszDomains, dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomains error %s\n", NtStatusToName(status)));
+            for (i = 0; i < dwNumEntries; i++)
+            {
+                ASSERT_TEST_MSG((ppwszDomains[i] != NULL), ("(i = %d)\n", i));
+            }
 
-        } else {
-            DISPLAY_DOMAINS(domains, num_entries);
-
-            if (domains) {
-                SamrFreeMemory((void*)domains);
+            if (ppwszDomains)
+            {
+                SamrFreeMemory(ppwszDomains);
+                ppwszDomains = NULL;
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    resume    = 0;
-    max_size *= 2;
+    dwResume    = 0;
+    dwMaxSize  *= 2;
 
-    DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", max_size));
+    DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", dwMaxSize));
 
-    do {
-        status = SamrEnumDomains(hBinding, hConn, &resume, max_size,
-                                 &domains, &num_entries);
+    do
+    {
+        CALL_MSRPC(ntStatus, SamrEnumDomains(hBinding, hConn, &dwResume,
+                                             dwMaxSize, &ppwszDomains,
+                                             &dwNumEntries));
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomains error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+        }
+        else
+        {
+            DISPLAY_DOMAINS(ppwszDomains, dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomains error %s\n", NtStatusToName(status)));
+            for (i = 0; i < dwNumEntries; i++)
+            {
+                ASSERT_TEST_MSG((ppwszDomains[i] != NULL), ("(i = %d)\n", i));
+            }
 
-        } else {
-            DISPLAY_DOMAINS(domains, num_entries);
-
-            if (domains) {
-                SamrFreeMemory((void*)domains);
+            if (ppwszDomains)
+            {
+                SamrFreeMemory(ppwszDomains);
+                ppwszDomains = NULL;
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    resume    = 0;
-    max_size *= 2;
+    dwResume    = 0;
+    dwMaxSize  *= 2;
 
-    DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", max_size));
+    DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", dwMaxSize));
 
-    do {
-        status = SamrEnumDomains(hBinding, hConn, &resume, max_size,
-                                 &domains, &num_entries);
+    do
+    {
+        CALL_MSRPC(ntStatus, SamrEnumDomains(hBinding, hConn, &dwResume,
+                                             dwMaxSize, &ppwszDomains,
+                                             &dwNumEntries));
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomains error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+        }
+        else
+        {
+            DISPLAY_DOMAINS(ppwszDomains, dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomains error %s\n", NtStatusToName(status)));
+            for (i = 0; i < dwNumEntries; i++)
+            {
+                ASSERT_TEST_MSG((ppwszDomains[i] != NULL), ("(i = %d)\n", i));
+            }
 
-        } else {
-            DISPLAY_DOMAINS(domains, num_entries);
-
-            if (domains) {
-                SamrFreeMemory((void*)domains);
+            if (ppwszDomains)
+            {
+                SamrFreeMemory(ppwszDomains);
+                ppwszDomains = NULL;
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    resume   = 0;
-    max_size = (UINT32)(-1);
+    dwResume   = 0;
+    dwMaxSize  = (DWORD)(-1);
 
-    DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", max_size));
+    DISPLAY_COMMENT(("Testing SamrEnumDomains with max_size = %d\n", dwMaxSize));
 
-    do {
-        status = SamrEnumDomains(hBinding, hConn, &resume, max_size,
-                                 &domains, &num_entries);
+    do
+    {
+        CALL_MSRPC(ntStatus, SamrEnumDomains(hBinding, hConn, &dwResume,
+                                             dwMaxSize, &ppwszDomains,
+                                             &dwNumEntries));
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomains error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+        }
+        else
+        {
+            DISPLAY_DOMAINS(ppwszDomains, dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomains error %s\n", NtStatusToName(status)));
-            ret = FALSE;
+            for (i = 0; i < dwNumEntries; i++)
+            {
+                PWSTR pwszDomain = ppwszDomains[i];
 
-        } else {
-            DISPLAY_DOMAINS(domains, num_entries);
-
-            for (i = 0; i < num_entries; i++) {
-                wchar16_t *domain = domains[i];
+                ASSERT_TEST_MSG((ppwszDomains[i] != NULL), ("(i = %d)\n", i));
 
                 DISPLAY_COMMENT(("Testing SamrLookupDomain\n"));
 
-                status = SamrLookupDomain(hBinding, hConn, domain, &pSid);
-                if (status) {
+                ntStatus = SamrLookupDomain(hBinding, hConn, pwszDomain, &pSid);
+                if (ntStatus)
+                {
                     DISPLAY_ERROR(("SamrLookupDomain error %s\n",
-                                   NtStatusToName(status)));
-                    ret = FALSE;
+                                   LwNtStatusToName(ntStatus)));
+                    bRet = FALSE;
+                }
+                else
+                {
+                    ASSERT_TEST(pSid != NULL && RtlValidSid(pSid));
 
-                } else {
-                    if (pSid->SubAuthorityCount > 1) {
+                    if (pSid->SubAuthorityCount > 1)
+                    {
                         DISPLAY_COMMENT(("Found domain SID\n"));
                         pDomainSid = pSid;
-
-                    } else {
+                    }
+                    else
+                    {
                         DISPLAY_COMMENT(("Found builtin domain SID\n"));
                         pBuiltinSid = pSid;
                     }
                 }
             }
 
-            if (domains) {
-                SamrFreeMemory((void*)domains);
+            if (ppwszDomains)
+            {
+                SamrFreeMemory(ppwszDomains);
+                ppwszDomains = NULL;
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    *ppDomainSid  = pDomainSid;
-    *ppBuiltinSid = pBuiltinSid;
+    ntStatus = RtlDuplicateSid(ppDomainSid, pDomainSid);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        bRet = FALSE;
+    }
 
-    return ret;
+    ntStatus = RtlDuplicateSid(ppBuiltinSid, pBuiltinSid);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        bRet = FALSE;
+    }
+
+    if (pDomainSid)
+    {
+        SamrFreeMemory(pDomainSid);
+    }
+
+    if (pBuiltinSid)
+    {
+        SamrFreeMemory(pBuiltinSid);
+    }
+
+    return bRet;
 }
 
 
 static
-BOOL
+BOOLEAN
 CallSamrOpenDomains(
     handle_t        hBinding,
     CONNECT_HANDLE  hConn,
@@ -835,30 +932,34 @@ CallSamrOpenDomains(
     DOMAIN_HANDLE  *phBuiltin
     )
 {
-    BOOL ret = TRUE;
-    NTSTATUS status = STATUS_SUCCESS;
-    UINT32 access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                         DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                         DOMAIN_ACCESS_CREATE_USER |
-                         DOMAIN_ACCESS_CREATE_ALIAS |
-                         DOMAIN_ACCESS_LOOKUP_INFO_2 |
-                         DOMAIN_ACCESS_LOOKUP_INFO_1;
+    BOOL bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UINT32 dwAccessMask = DOMAIN_ACCESS_OPEN_ACCOUNT |
+                          DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                          DOMAIN_ACCESS_CREATE_USER |
+                          DOMAIN_ACCESS_CREATE_ALIAS |
+                          DOMAIN_ACCESS_LOOKUP_INFO_2 |
+                          DOMAIN_ACCESS_LOOKUP_INFO_1;
     DOMAIN_HANDLE hDomain = NULL;
     DOMAIN_HANDLE hBuiltin = NULL;
-    DomainInfo *pInfo = NULL;
-    UINT16 i = 0;
+    DomainInfo *pDomainInfo[14] = {NULL};
+    DWORD i = 0;
 
-    if (pDomainSid) {
+    if (pDomainSid)
+    {
         DISPLAY_COMMENT(("Testing SamrOpenDomain\n"));
 
-        status = SamrOpenDomain(hBinding, hConn, access_mask, pDomainSid,
-                                &hDomain);
-        if (status) {
-            DISPLAY_ERROR(("SamrOpenDomain error %s\n", NtStatusToName(status)));
-            ret = FALSE;
-
-        } else {
-            for (i = 1; i <= 13; i++) {
+        CALL_MSRPC(ntStatus, SamrOpenDomain(hBinding, hConn, dwAccessMask,
+                                            pDomainSid, &hDomain));
+        if (ntStatus)
+        {
+            DISPLAY_ERROR(("SamrOpenDomain error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+        }
+        else
+        {
+            for (i = 1; i <= 13; i++)
+            {
                 if (i == 10)
                 {
                     /* domain info level 10 doesn't exist */
@@ -867,33 +968,77 @@ CallSamrOpenDomains(
 
                 DISPLAY_COMMENT(("Testing SamrQueryDomainInfo (level=%d)\n", i));
 
-                status = SamrQueryDomainInfo(hBinding, hDomain, i, &pInfo);
-                if (status) {
-                    DISPLAY_ERROR(("SamrQueryDomainInfo error %s\n", NtStatusToName(status)));
-                    ret = FALSE;
-                }
-
-                if (pInfo)
+                CALL_MSRPC(ntStatus, SamrQueryDomainInfo(hBinding,
+                                                         hDomain, i, &pDomainInfo[i]));
+                if (ntStatus)
                 {
-                    SamrFreeMemory(pInfo);
+                    DISPLAY_ERROR(("SamrQueryDomainInfo error %s\n", LwNtStatusToName(ntStatus)));
+                    bRet = FALSE;
                 }
             }
+
+            ASSERT_TEST(pDomainInfo[1]->info1.min_pass_age <
+                        pDomainInfo[1]->info1.max_pass_age);
+            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.comment);
+            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.domain_name);
+            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.primary);
+            ASSERT_TEST(pDomainInfo[2]->info2.role >= SAMR_ROLE_STANDALONE &&
+                        pDomainInfo[2]->info2.role <= SAMR_ROLE_DOMAIN_PDC);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[4]->info4.comment,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.comment);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[5]->info5.domain_name,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.domain_name);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[6]->info6.primary,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.primary);
+            ASSERT_TEST(pDomainInfo[7]->info7.role ==
+                        pDomainInfo[2]->info2.role);
+            ASSERT_TEST(pDomainInfo[11]->info11.info2.role >= SAMR_ROLE_STANDALONE &&
+                        pDomainInfo[11]->info11.info2.role <= SAMR_ROLE_DOMAIN_PDC);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.comment,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.comment);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.domain_name,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.domain_name);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.primary,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.primary);
+            ASSERT_TEST(pDomainInfo[11]->info11.info2.role ==
+                        pDomainInfo[2]->info2.role);
+            ASSERT_TEST(pDomainInfo[12]->info12.lockout_duration ==
+                        pDomainInfo[11]->info11.lockout_duration);
+            ASSERT_TEST(pDomainInfo[12]->info12.lockout_window ==
+                        pDomainInfo[11]->info11.lockout_window);
+            ASSERT_TEST(pDomainInfo[12]->info12.lockout_threshold ==
+                        pDomainInfo[11]->info11.lockout_threshold);
         }
-    } else {
+    }
+    else
+    {
         DISPLAY_COMMENT(("Domain skipped\n"));
     }
 
-    if (pBuiltinSid) {
+    for (i = 1; i <= 13; i++)
+    {
+        if (pDomainInfo[i])
+        {
+            SamrFreeMemory(pDomainInfo[i]);
+            pDomainInfo[i] = NULL;
+        }
+    }
+
+    if (pBuiltinSid)
+    {
         DISPLAY_COMMENT(("Testing SamrOpenDomain\n"));
 
-        status = SamrOpenDomain(hBinding, hConn, access_mask, pBuiltinSid,
-                                &hBuiltin);
-        if (status) {
-            DISPLAY_ERROR(("SamrOpenDomain error %s\n", NtStatusToName(status)));
-            ret = FALSE;
-
-        } else {
-            for (i = 1; i <= 13; i++) {
+        CALL_MSRPC(ntStatus, SamrOpenDomain(hBinding, hConn, dwAccessMask,
+                                            pBuiltinSid, &hBuiltin));
+        if (ntStatus)
+        {
+            DISPLAY_ERROR(("SamrOpenDomain error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+        }
+        else
+        {
+            for (i = 1; i <= 13; i++)
+            {
                 if (i == 10)
                 {
                     /* domain info level 10 doesn't exist */
@@ -902,26 +1047,71 @@ CallSamrOpenDomains(
 
                 DISPLAY_COMMENT(("Testing SamrQueryDomainInfo (level=%d)\n", i));
 
-                status = SamrQueryDomainInfo(hBinding, hBuiltin, i, &pInfo);
-                if (status) {
-                    DISPLAY_ERROR(("SamrQueryDomainInfo error %s\n", NtStatusToName(status)));
-                    ret = FALSE;
-                }
-
-                if (pInfo)
+                CALL_MSRPC(ntStatus, SamrQueryDomainInfo(hBinding,
+                                                         hBuiltin, i, &pDomainInfo[i]));
+                if (ntStatus)
                 {
-                    SamrFreeMemory(pInfo);
+                    DISPLAY_ERROR(("SamrQueryDomainInfo error %s\n", LwNtStatusToName(ntStatus)));
+                    bRet = FALSE;
                 }
             }
+
+            ASSERT_TEST(pDomainInfo[1]->info1.min_pass_age <
+                        pDomainInfo[1]->info1.max_pass_age);
+            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.comment);
+            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.domain_name);
+            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.primary);
+            ASSERT_TEST(pDomainInfo[2]->info2.role >= SAMR_ROLE_STANDALONE &&
+                        pDomainInfo[2]->info2.role <= SAMR_ROLE_DOMAIN_PDC);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[4]->info4.comment,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.comment);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[5]->info5.domain_name,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.domain_name);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[6]->info6.primary,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.primary);
+            ASSERT_TEST(pDomainInfo[7]->info7.role ==
+                        pDomainInfo[2]->info2.role);
+            ASSERT_TEST(pDomainInfo[11]->info11.info2.role >= SAMR_ROLE_STANDALONE &&
+                        pDomainInfo[11]->info11.info2.role <= SAMR_ROLE_DOMAIN_PDC);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.comment,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.comment);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.domain_name,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.domain_name);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.primary,
+                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.primary);
+            ASSERT_TEST(pDomainInfo[11]->info11.info2.role ==
+                        pDomainInfo[2]->info2.role);
+            ASSERT_TEST(pDomainInfo[12]->info12.lockout_duration ==
+                        pDomainInfo[11]->info11.lockout_duration);
+            ASSERT_TEST(pDomainInfo[12]->info12.lockout_window ==
+                        pDomainInfo[11]->info11.lockout_window);
+            ASSERT_TEST(pDomainInfo[12]->info12.lockout_threshold ==
+                        pDomainInfo[11]->info11.lockout_threshold);
         }
-    } else {
+    }
+    else
+    {
         DISPLAY_COMMENT(("Builtin domain skipped\n"));
     }
 
     *phDomain  = hDomain;
     *phBuiltin = hBuiltin;
 
-    return ret;
+error:
+    for (i = 1; i <= 13; i++)
+    {
+        if (pDomainInfo[i])
+        {
+            SamrFreeMemory(pDomainInfo[i]);
+        }
+    }
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        bRet = FALSE;
+    }
+
+    return bRet;
 }
 
 
@@ -936,209 +1126,420 @@ CallSamrOpenDomains(
 
 
 static
-BOOL
+BOOLEAN
 CallSamrEnumDomainUsers(
     handle_t       hBinding,
-    DOMAIN_HANDLE  hDomain
+    DOMAIN_HANDLE  hDomain,
+    PDWORD        *ppdwUserRids,
+    PDWORD         pdwNumUsers
     )
 {
-    BOOL ret = TRUE;
-    NTSTATUS status = STATUS_SUCCESS;
-    UINT32 resume = 0;
-    UINT32 max_size = 16;
-    UINT32 account_flags = 0;
-    wchar16_t **users = NULL;
-    UINT32 *rids = NULL;
-    UINT32 *types = NULL;
-    UINT32 num_entries = 0;
-    UINT32 rids_count = 0;
-    UINT32 i = 0;
-    wchar16_t *names[2];
+    BOOL bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwResume = 0;
+    DWORD dwMaxSize = 16;
+    DWORD dwAccountFlags = 0;
+    PWSTR *ppwszUsers = NULL;
+    PDWORD pdwRids = NULL;
+    PDWORD pdwTypes = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD dwRidsCount = 0;
+    DWORD i = 0;
+    PWSTR ppwszNames[2] = {0};
+    PDWORD pdwUserRids = NULL;
 
-    DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", max_size));
+    DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", dwMaxSize));
 
-    resume = 0;
-    account_flags = ACB_NORMAL;
+    dwResume       = 0;
+    dwAccountFlags = ACB_NORMAL;
 
-    do {
-        status = SamrEnumDomainUsers(hBinding, hDomain, &resume, account_flags,
-                                     max_size, &users, &rids, &num_entries);
+    do
+    {
+        ntStatus = SamrEnumDomainUsers(hBinding, hDomain, &dwResume, dwAccountFlags,
+                                       dwMaxSize, &ppwszUsers, &pdwRids, &dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomainUsers error %s\n", NtStatusToName(status)));
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomainUsers error %s\n", LwNtStatusToName(ntStatus)));
+        }
+        else
+        {
+            DISPLAY_USERS(ppwszUsers, dwNumEntries);
 
-        } else {
-            DISPLAY_USERS(users, num_entries);
+            if (ppwszUsers)
+            {
+                SamrFreeMemory(ppwszUsers);
+                ppwszUsers = NULL;
+            }
 
-            if (users) {
-                SamrFreeMemory((void*)users);
+            if (pdwRids)
+            {
+                SamrFreeMemory(pdwRids);
+                pdwRids = NULL;
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    resume    = 0;
-    max_size *= 2;
+    dwResume    = 0;
+    dwMaxSize  *= 2;
 
-    DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", max_size));
+    DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", dwMaxSize));
 
-    do {
-        status = SamrEnumDomainUsers(hBinding, hDomain, &resume, account_flags,
-                                     max_size, &users, &rids, &num_entries);
+    do
+    {
+        ntStatus = SamrEnumDomainUsers(hBinding, hDomain, &dwResume, dwAccountFlags,
+                                       dwMaxSize, &ppwszUsers, &pdwRids, &dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomainUsers error %s\n", NtStatusToName(status)));
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomainUsers error %s\n", LwNtStatusToName(ntStatus)));
+        }
+        else
+        {
+            DISPLAY_USERS(ppwszUsers, dwNumEntries);
 
-        } else {
-            DISPLAY_USERS(users, num_entries);
+            if (ppwszUsers)
+            {
+                SamrFreeMemory(ppwszUsers);
+                ppwszUsers = NULL;
+            }
 
-            if (users) {
-                SamrFreeMemory((void*)users);
+            if (pdwRids)
+            {
+                SamrFreeMemory(pdwRids);
+                pdwRids = NULL;
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    resume    = 0;
-    max_size *= 2;
+    dwResume    = 0;
+    dwMaxSize  *= 2;
 
-    DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", max_size));
+    DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", dwMaxSize));
 
-    do {
-        status = SamrEnumDomainUsers(hBinding, hDomain, &resume, account_flags,
-                                     max_size, &users, &rids, &num_entries);
+    do
+    {
+        ntStatus = SamrEnumDomainUsers(hBinding, hDomain, &dwResume, dwAccountFlags,
+                                       dwMaxSize, &ppwszUsers, &pdwRids, &dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomainUsers error %s\n", NtStatusToName(status)));
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomainUsers error %s\n", LwNtStatusToName(ntStatus)));
+        }
+        else
+        {
+            DISPLAY_USERS(ppwszUsers, dwNumEntries);
 
-        } else {
-            DISPLAY_USERS(users, num_entries);
+            if (ppwszUsers)
+            {
+                SamrFreeMemory(ppwszUsers);
+                ppwszUsers = NULL;
+            }
 
-            if (users) {
-                SamrFreeMemory((void*)users);
+            if (pdwRids)
+            {
+                SamrFreeMemory(pdwRids);
+                pdwRids = NULL;
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    resume   = 0;
-    max_size = (UINT32)(-1);
+    dwResume   = 0;
+    dwMaxSize  = (UINT32)(-1);
 
-    DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", max_size));
+    DISPLAY_COMMENT(("Testing SamrEnumDomainUsers with max_size = %d\n", dwMaxSize));
 
-    do {
-        status = SamrEnumDomainUsers(hBinding, hDomain, &resume, account_flags,
-                                     max_size, &users, &rids, &num_entries);
+    do
+    {
+        ntStatus = SamrEnumDomainUsers(hBinding, hDomain, &dwResume, dwAccountFlags,
+                                       dwMaxSize, &ppwszUsers, &pdwRids, &dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomainUsers error %s\n", NtStatusToName(status)));
-            ret = FALSE;
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomainUsers error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+        }
+        else
+        {
+            DISPLAY_USERS(ppwszUsers, dwNumEntries);
 
-        } else {
-            DISPLAY_USERS(users, num_entries);
+            dwError = LwAllocateMemory(sizeof(DWORD) * dwNumEntries,
+                                       OUT_PPVOID(&pdwUserRids));
+            BAIL_ON_WIN_ERROR(dwError);
 
-            for (i = 0; i < num_entries; i++) {
-                wchar16_t *user = users[i];
+            memcpy(pdwUserRids, pdwRids, sizeof(DWORD) * dwNumEntries);
 
-                names[0] = user;
-                names[1] = NULL;
+            SamrFreeMemory(pdwRids);
+            pdwRids = NULL;
+
+            for (i = 0; i < dwNumEntries; i++)
+            {
+                PWSTR pwszUser = ppwszUsers[i];
+
+                ppwszNames[0] = pwszUser;
+                ppwszNames[1] = NULL;
 
                 DISPLAY_COMMENT(("Testing SamrLookupNames\n"));
 
-                status = SamrLookupNames(hBinding, hDomain, 1, names,
-                                         &rids, &types, &rids_count);
-                if (status) {
+                ntStatus = SamrLookupNames(hBinding, hDomain, 1, ppwszNames,
+                                           &pdwRids, &pdwTypes, &dwRidsCount);
+                if (ntStatus)
+                {
                     DISPLAY_ERROR(("SamrLookupNames error %s\n",
-                                   NtStatusToName(status)));
+                                   LwNtStatusToName(ntStatus)));
                 }
 
-                if (rids) {
-                    SamrFreeMemory(rids);
+                if (pdwRids)
+                {
+                    SamrFreeMemory(pdwRids);
+                    pdwRids = NULL;
                 }
 
-                if (types) {
-                    SamrFreeMemory(types);
+                if (pdwTypes)
+                {
+                    SamrFreeMemory(pdwTypes);
+                    pdwTypes = NULL;
                 }
-            }
-
-            if (users) {
-                SamrFreeMemory((void*)users);
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    return ret;
+    if (ppdwUserRids)
+    {
+        *ppdwUserRids = pdwUserRids;
+    }
+    else
+    {
+        LW_SAFE_FREE_MEMORY(pdwUserRids);
+    }
+
+    if (pdwNumUsers)
+    {
+        *pdwNumUsers  = dwNumEntries;
+    }
+
+error:
+    if (ppwszUsers)
+    {
+        SamrFreeMemory(ppwszUsers);
+    }
+
+    if (pdwRids)
+    {
+        SamrFreeMemory(pdwRids);
+    }
+
+    if (pdwTypes)
+    {
+        SamrFreeMemory(pdwTypes);
+    }
+
+    return bRet;
 }
 
 
 static
-BOOL
+BOOLEAN
 CallSamrEnumDomainAliases(
     handle_t       hBinding,
     DOMAIN_HANDLE  hDomain
     )
 {
-    BOOL ret = TRUE;
-    NTSTATUS status = STATUS_SUCCESS;
-    UINT32 resume = 0;
-    UINT32 account_flags = 0;
-    wchar16_t **aliases = NULL;
-    UINT32 *rids = NULL;
-    UINT32 *types = NULL;
-    UINT32 num_entries = 0;
-    UINT32 rids_count = 0;
-    UINT32 i = 0;
-    wchar16_t *names[2];
+    BOOL bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwResume = 0;
+    DWORD dwAccountFlags = 0;
+    PWSTR *ppwszAliases = NULL;
+    PDWORD pdwRids = NULL;
+    PDWORD pdwTypes = NULL;
+    DWORD dwNumEntries = 0;
+    DWORD dwRidsCount = 0;
+    DWORD i = 0;
+    PWSTR ppwszNames[2] = {NULL};
 
-    resume = 0;
-    account_flags = ACB_NORMAL;
+    dwResume = 0;
+    dwAccountFlags = ACB_NORMAL;
 
     DISPLAY_COMMENT(("Testing SamrEnumDomainAliases\n"));
 
-    do {
-        status = SamrEnumDomainAliases(hBinding, hDomain, &resume, account_flags,
-                                       &aliases, &rids, &num_entries);
+    do
+    {
+        ntStatus = SamrEnumDomainAliases(hBinding, hDomain, &dwResume, dwAccountFlags,
+                                         &ppwszAliases, &pdwRids, &dwNumEntries);
 
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_MORE_ENTRIES) {
-            DISPLAY_ERROR(("SamrEnumDomainAliases error %s\n", NtStatusToName(status)));
-            ret = FALSE;
+        if (ntStatus != STATUS_SUCCESS &&
+            ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomainAliases error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+        }
+        else
+        {
+            DISPLAY_USERS(ppwszAliases, dwNumEntries);
 
-        } else {
-            DISPLAY_USERS(aliases, num_entries);
+            if (pdwRids)
+            {
+                SamrFreeMemory(pdwRids);
+                pdwRids = NULL;
+            }
 
-            for (i = 0; i < num_entries; i++) {
-                wchar16_t *alias = aliases[i];
+            for (i = 0; i < dwNumEntries; i++)
+            {
+                PWSTR pwszAlias = ppwszAliases[i];
 
-                names[0] = alias;
-                names[1] = NULL;
+                ppwszNames[0] = pwszAlias;
+                ppwszNames[1] = NULL;
 
                 DISPLAY_COMMENT(("Testing SamrLookupNames\n"));
 
-                status = SamrLookupNames(hBinding, hDomain, 1, names,
-                                         &rids, &types, &rids_count);
-                if (status) {
+                ntStatus = SamrLookupNames(hBinding, hDomain, 1, ppwszNames,
+                                           &pdwRids, &pdwTypes, &dwRidsCount);
+                if (ntStatus)
+                {
                     DISPLAY_ERROR(("SamrLookupNames error %s\n",
-                                   NtStatusToName(status)));
+                                   LwNtStatusToName(ntStatus)));
                 }
 
-                if (rids) {
-                    SamrFreeMemory(rids);
+                if (pdwRids)
+                {
+                    SamrFreeMemory(pdwRids);
+                    pdwRids = NULL;
                 }
 
-                if (types) {
-                    SamrFreeMemory(types);
+                if (pdwTypes)
+                {
+                    SamrFreeMemory(pdwTypes);
+                    pdwTypes = NULL;
                 }
             }
 
-            if (aliases) {
-                SamrFreeMemory((void*)aliases);
+            if (ppwszAliases)
+            {
+                SamrFreeMemory(ppwszAliases);
+                ppwszAliases = NULL;
             }
         }
-    } while (status == STATUS_MORE_ENTRIES);
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
 
-    return ret;
+    if (pdwRids)
+    {
+        SamrFreeMemory(pdwRids);
+    }
+
+    if (pdwTypes)
+    {
+        SamrFreeMemory(pdwTypes);
+    }
+
+    if (ppwszAliases)
+    {
+        SamrFreeMemory(ppwszAliases);
+    }
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+CallSamrQueryDomainUsers(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PDWORD          pdwRids,
+    DWORD           dwNumRids
+    )
+{
+    const DWORD dwAccessMask = USER_ACCESS_GET_NAME_ETC |
+                               USER_ACCESS_GET_LOCALE |
+                               USER_ACCESS_GET_LOGONINFO |
+                               USER_ACCESS_GET_ATTRIBUTES;
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwRid = 0;
+    ACCOUNT_HANDLE hUser = NULL;
+    DWORD iUser = 0;
+    UserInfo *pUserInfo[21] = {NULL};
+    DWORD iLevel = 0;
+
+    for (iUser = 0; iUser < dwNumRids; iUser++)
+    {
+        dwRid = pdwRids[iUser];
+
+        CALL_MSRPC(ntStatus, SamrOpenUser(hBinding, hDomain, dwAccessMask,
+                                          dwRid, &hUser));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+        }
+        else
+        {
+            for (iLevel = 1; iLevel < 21; iLevel++)
+            {
+                CALL_MSRPC(ntStatus, SamrQueryUserInfo(hBinding, hUser,
+                                                       iLevel, &pUserInfo[iLevel]));
+                if (ntStatus)
+                {
+                    bRet = FALSE;
+                }
+            }
+
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[1]->info1.account_name);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[1]->info1.full_name);
+            ASSERT_TEST(pUserInfo[1]->info1.primary_gid > 0);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[1]->info1.description);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[1]->info1.comment);
+
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pUserInfo[2]->info2.comment,
+                                        (PUNICODE_STRING)&pUserInfo[1]->info1.comment);
+
+
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pUserInfo[3]->info3.account_name,
+                                        (PUNICODE_STRING)&pUserInfo[1]->info1.account_name);
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pUserInfo[3]->info3.full_name,
+                                        (PUNICODE_STRING)&pUserInfo[1]->info1.full_name);
+            ASSERT_TEST(pUserInfo[3]->info3.rid == dwRid);
+            ASSERT_TEST(pUserInfo[3]->info3.primary_gid == pUserInfo[1]->info1.primary_gid);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.home_directory);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.home_drive);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.logon_script);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.profile_path);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.workstations);
+            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.home_directory);
+            ASSERT_TEST((pUserInfo[3]->info3.account_flags & ACB_NORMAL));
+        }
+
+        CALL_MSRPC(ntStatus, SamrClose(hBinding, hUser));
+
+        for (iLevel = 1; iLevel < 21; iLevel++)
+        {
+            if (pUserInfo[iLevel])
+            {
+                SamrFreeMemory(pUserInfo[iLevel]);
+                pUserInfo[iLevel] = NULL;
+            }
+        }
+    }
+
+error:
+    for (iLevel = 1; iLevel < 21; iLevel++)
+    {
+        if (pUserInfo[iLevel])
+        {
+            SamrFreeMemory(pUserInfo[iLevel]);
+        }
+    }
+
+    return bRet;
 }
 
 
@@ -1149,7 +1550,7 @@ TestSamrConnect(struct test *t, const wchar16_t *hostname,
 {
     PCSTR pszDefSysName = NULL;
 
-    BOOL ret = TRUE;
+    BOOL bRet = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
     CONNECT_HANDLE hConn = NULL;
@@ -1165,20 +1566,20 @@ TestSamrConnect(struct test *t, const wchar16_t *hostname,
 
     CreateSamrBinding(&hBinding, hostname);
 
-    ret &= CallSamrConnect(hBinding,
-                           pwszSysName,
-                           &hConn);
+    bRet &= CallSamrConnect(hBinding,
+                            pwszSysName,
+                            &hConn);
 
-    ret &= CallSamrClose(hBinding,
-                         &hConn);
+    bRet &= CallSamrClose(hBinding,
+                          &hConn);
 
 done:
     FreeSamrBinding(&hBinding);
     RELEASE_SESSION_CREDS;
 
-    SAFE_FREE(pwszSysName);
+    LW_SAFE_FREE_MEMORY(pwszSysName);
 
-    return (int)ret;
+    return (int)bRet;
 }
 
 
@@ -1190,7 +1591,7 @@ TestSamrDomains(struct test *t, const wchar16_t *hostname,
 {
     PCSTR pszDefSysName = "";
 
-    BOOL ret = TRUE;
+    BOOL bRet = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
     CONNECT_HANDLE hConn = NULL;
@@ -1208,24 +1609,23 @@ TestSamrDomains(struct test *t, const wchar16_t *hostname,
 
     CreateSamrBinding(&hBinding, hostname);
 
-    ret &= CallSamrConnect(hBinding,
-                           pwszSysName,
-                           &hConn);
+    bRet &= CallSamrConnect(hBinding,
+                            pwszSysName,
+                            &hConn);
 
-    ret &= CallSamrEnumDomains(hBinding,
-                               hConn,
-                               &pDomainSid,
-                               &pBuiltinSid);
+    bRet &= CallSamrEnumDomains(hBinding,
+                                hConn,
+                                &pDomainSid,
+                                &pBuiltinSid);
 
-    ret &= CallSamrClose(hBinding,
-                         &hConn);
+    bRet &= CallSamrClose(hBinding, &hConn);
 
 done:
     FreeSamrBinding(&hBinding);
 
-    SAFE_FREE(pwszSysName);
+    LW_SAFE_FREE_MEMORY(pwszSysName);
 
-    return (int)ret;
+    return (int)bRet;
 }
 
 
@@ -1236,7 +1636,7 @@ TestSamrDomainsQuery(struct test *t, const wchar16_t *hostname,
 {
     PCSTR pszDefSysName = "";
 
-    BOOL ret = TRUE;
+    BOOLEAN bRet = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
     CONNECT_HANDLE hConn = NULL;
@@ -1256,48 +1656,50 @@ TestSamrDomainsQuery(struct test *t, const wchar16_t *hostname,
 
     CreateSamrBinding(&hBinding, hostname);
 
-    ret &= CallSamrConnect(hBinding,
-                           pwszSysName,
-                           &hConn);
+    bRet &= CallSamrConnect(hBinding,
+                            pwszSysName,
+                            &hConn);
 
-    ret &= CallSamrEnumDomains(hBinding,
-                               hConn,
-                               &pDomainSid,
-                               &pBuiltinSid);
+    bRet &= CallSamrEnumDomains(hBinding,
+                                hConn,
+                                &pDomainSid,
+                                &pBuiltinSid);
 
-    ret &= CallSamrOpenDomains(hBinding,
-                               hConn,
-                               pDomainSid,
-                               pBuiltinSid,
-                               &hDomain,
-                               &hBuiltin);
+    bRet &= CallSamrOpenDomains(hBinding,
+                                hConn,
+                                pDomainSid,
+                                pBuiltinSid,
+                                &hDomain,
+                                &hBuiltin);
 
-    ret &= CallSamrClose(hBinding,
-                         &hDomain);
+    bRet &= CallSamrClose(hBinding, &hDomain);
 
-    ret &= CallSamrClose(hBinding,
-                         &hBuiltin);
+    bRet &= CallSamrClose(hBinding, &hBuiltin);
 
-    ret &= CallSamrClose(hBinding,
-                         &hConn);
+    bRet &= CallSamrClose(hBinding, &hConn);
 
 done:
     FreeSamrBinding(&hBinding);
 
-    SAFE_FREE(pwszSysName);
+    LW_SAFE_FREE_MEMORY(pwszSysName);
 
-    return (int)ret;
+    return (int)bRet;
 }
 
 
 int
-TestSamrUsers(struct test *t, const wchar16_t *hostname,
-                const wchar16_t *user, const wchar16_t *pass,
-                struct parameter *options, int optcount)
+TestSamrUsers(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
 {
     PCSTR pszDefSysName = "";
 
-    BOOL ret = TRUE;
+    BOOL bRet = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
     CONNECT_HANDLE hConn = NULL;
@@ -1317,37 +1719,109 @@ TestSamrUsers(struct test *t, const wchar16_t *hostname,
 
     CreateSamrBinding(&hBinding, hostname);
 
-    ret &= CallSamrConnect(hBinding,
-                           pwszSysName,
-                           &hConn);
+    bRet &= CallSamrConnect(hBinding,
+                            pwszSysName,
+                            &hConn);
 
-    ret &= CallSamrEnumDomains(hBinding,
-                               hConn,
-                               &pDomainSid,
-                               &pBuiltinSid);
+    bRet &= CallSamrEnumDomains(hBinding,
+                                hConn,
+                                &pDomainSid,
+                                &pBuiltinSid);
 
-    ret &= CallSamrOpenDomains(hBinding,
-                               hConn,
-                               pDomainSid,
-                               pBuiltinSid,
-                               &hDomain,
-                               &hBuiltin);
+    bRet &= CallSamrOpenDomains(hBinding,
+                                hConn,
+                                pDomainSid,
+                                pBuiltinSid,
+                                &hDomain,
+                                &hBuiltin);
 
-    ret &= CallSamrEnumDomainUsers(hBinding,
-                                   hDomain);
+    bRet &= CallSamrEnumDomainUsers(hBinding, hDomain, NULL, NULL);
 
-    ret &= CallSamrEnumDomainUsers(hBinding,
-                                   hBuiltin);
+    bRet &= CallSamrEnumDomainUsers(hBinding, hBuiltin, NULL, NULL);
 
-    ret &= CallSamrClose(hBinding,
-                         &hConn);
+    bRet &= CallSamrClose(hBinding, &hConn);
 
 done:
     FreeSamrBinding(&hBinding);
 
-    SAFE_FREE(pwszSysName);
+    LW_SAFE_FREE_MEMORY(pwszSysName);
+    RTL_FREE(&pDomainSid);
+    RTL_FREE(&pBuiltinSid);
 
-    return (int)ret;
+    return (int)bRet;
+}
+
+
+int
+TestSamrQueryUsers(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
+{
+    PCSTR pszDefSysName = "";
+
+    BOOL bRet = TRUE;
+    enum param_err perr = perr_success;
+    handle_t hBinding = NULL;
+    CONNECT_HANDLE hConn = NULL;
+    PSID pDomainSid = NULL;
+    PSID pBuiltinSid = NULL;
+    PWSTR pwszSysName = NULL;
+    DOMAIN_HANDLE hDomain = NULL;
+    DOMAIN_HANDLE hBuiltin = NULL;
+    PDWORD pdwDomainRids = NULL;
+    DWORD dwNumDomainUsers = 0;
+    PDWORD pdwBuiltinRids = NULL;
+    DWORD dwNumBuiltinUsers = 0;
+
+    perr = fetch_value(options, optcount, "systemname", pt_w16string,
+                       &pwszSysName, &pszDefSysName);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    TESTINFO(t, hostname, user, pass);
+
+    SET_SESSION_CREDS(hCreds);
+
+    CreateSamrBinding(&hBinding, hostname);
+
+    bRet &= CallSamrConnect(hBinding,
+                            pwszSysName,
+                            &hConn);
+
+    bRet &= CallSamrEnumDomains(hBinding,
+                                hConn,
+                                &pDomainSid,
+                                &pBuiltinSid);
+
+    bRet &= CallSamrOpenDomains(hBinding,
+                                hConn,
+                                pDomainSid,
+                                pBuiltinSid,
+                                &hDomain,
+                                &hBuiltin);
+
+    bRet &= CallSamrEnumDomainUsers(hBinding, hDomain, &pdwDomainRids, &dwNumDomainUsers);
+
+    bRet &= CallSamrQueryDomainUsers(hBinding, hDomain, pdwDomainRids, dwNumDomainUsers);
+
+    bRet &= CallSamrEnumDomainUsers(hBinding, hBuiltin, &pdwBuiltinRids, &dwNumBuiltinUsers);
+
+    bRet &= CallSamrClose(hBinding, &hConn);
+
+done:
+    FreeSamrBinding(&hBinding);
+
+    LW_SAFE_FREE_MEMORY(pdwDomainRids);
+    LW_SAFE_FREE_MEMORY(pdwBuiltinRids);
+    LW_SAFE_FREE_MEMORY(pwszSysName);
+    RTL_FREE(&pDomainSid);
+    RTL_FREE(&pBuiltinSid);
+
+    return (int)bRet;
 }
 
 
@@ -1358,7 +1832,7 @@ TestSamrAliases(struct test *t, const wchar16_t *hostname,
 {
     PCSTR pszDefSysName = "";
 
-    BOOL ret = TRUE;
+    BOOL bRet = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
     CONNECT_HANDLE hConn = NULL;
@@ -1378,33 +1852,35 @@ TestSamrAliases(struct test *t, const wchar16_t *hostname,
 
     CreateSamrBinding(&hBinding, hostname);
 
-    ret &= CallSamrConnect(hBinding,
-                           pwszSysName,
-                           &hConn);
+    bRet &= CallSamrConnect(hBinding,
+                            pwszSysName,
+                            &hConn);
 
-    ret &= CallSamrEnumDomains(hBinding,
-                               hConn,
-                               &pDomainSid,
-                               &pBuiltinSid);
+    bRet &= CallSamrEnumDomains(hBinding,
+                                hConn,
+                                &pDomainSid,
+                                &pBuiltinSid);
 
-    ret &= CallSamrOpenDomains(hBinding,
-                               hConn,
-                               pDomainSid,
-                               pBuiltinSid,
-                               &hDomain,
-                               &hBuiltin);
+    bRet &= CallSamrOpenDomains(hBinding,
+                                hConn,
+                                pDomainSid,
+                                pBuiltinSid,
+                                &hDomain,
+                                &hBuiltin);
 
-    ret &= CallSamrEnumDomainAliases(hBinding,
-                                     &hDomain);
+    bRet &= CallSamrEnumDomainAliases(hBinding, hDomain);
 
-    ret &= CallSamrEnumDomainAliases(hBinding,
-                                     &hBuiltin);
+    bRet &= CallSamrEnumDomainAliases(hBinding,
+                                     hBuiltin);
 
-    ret &= CallSamrClose(hBinding,
-                         &hConn);
+    bRet &= CallSamrClose(hBinding, &hConn);
 
 done:
-    return (int)ret;
+    FreeSamrBinding(&hBinding);
+
+    LW_SAFE_FREE_MEMORY(pwszSysName);
+
+    return (int)bRet;
 }
 
 
@@ -1506,8 +1982,8 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
             INPUT_ARG_PTR(hUser);
             INPUT_ARG_UINT(i);
 
-            CALL_MSRPC(status = SamrQueryUserInfo(samr_binding, hUser,
-                                                  (UINT16)i, &info));
+            CALL_MSRPC(status, SamrQueryUserInfo(samr_binding, hUser,
+                                                 (UINT16)i, &info));
             if (status != STATUS_SUCCESS &&
                 status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
 
@@ -1519,8 +1995,8 @@ int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
         INPUT_ARG_PTR(hUser);
         INPUT_ARG_UINT(level);
 
-        CALL_MSRPC(status = SamrQueryUserInfo(samr_binding, hUser,
-                                              (UINT16)level, &info));
+        CALL_MSRPC(status, SamrQueryUserInfo(samr_binding, hUser,
+                                             (UINT16)level, &info));
         if (status != STATUS_SUCCESS &&
             status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
 
@@ -1662,8 +2138,8 @@ int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
             INPUT_ARG_PTR(hAlias);
             INPUT_ARG_UINT(i);
 
-            CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, hAlias,
-                                                   (UINT16)i, &info));
+            CALL_MSRPC(status, SamrQueryAliasInfo(samr_binding, hAlias,
+                                                  (UINT16)i, &info));
             if (status != STATUS_SUCCESS &&
                 status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
 
@@ -1677,7 +2153,7 @@ int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
         INPUT_ARG_PTR(hAlias);
         INPUT_ARG_UINT(level);
 
-        CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, hAlias,
+        CALL_MSRPC(status, SamrQueryAliasInfo(samr_binding, hAlias,
                                               (UINT16)level, &info));
         if (status != STATUS_SUCCESS &&
             status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
@@ -1852,8 +2328,8 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
         INPUT_ARG_PTR(hAlias);
         INPUT_ARG_UINT(i);
 
-        CALL_MSRPC(status = SamrQueryAliasInfo(samr_binding, hAlias,
-                                               (UINT16)i, &aliasinfo));
+        CALL_MSRPC(status, SamrQueryAliasInfo(samr_binding, hAlias,
+                                              (UINT16)i, &aliasinfo));
         if (status != 0) rpc_fail(status);
 
         if (aliasinfo) SamrFreeMemory((void*)aliasinfo);
@@ -2154,8 +2630,8 @@ int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
         INPUT_ARG_INT(i);
         INPUT_ARG_PTR(dominfo);
 
-        CALL_MSRPC(status = SamrQueryDomainInfo(samr_binding, hDomain,
-                                                (UINT16)i, &dominfo));
+        CALL_MSRPC(status, SamrQueryDomainInfo(samr_binding, hDomain,
+                                               (UINT16)i, &dominfo));
 
         OUTPUT_ARG_PTR(dominfo);
 
@@ -2442,15 +2918,15 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
             start_idx = 0;
 
             do {
-                CALL_MSRPC(status = SamrQueryDisplayInfo(samr_binding,
-                                                         hDomain,
-                                                         (UINT16)level,
-                                                         start_idx,
-                                                         max_entries,
-                                                         buf_size,
-                                                         &total_size,
-                                                         &returned_size,
-                                                         &info));
+                CALL_MSRPC(status, SamrQueryDisplayInfo(samr_binding,
+                                                        hDomain,
+                                                        (UINT16)level,
+                                                        start_idx,
+                                                        max_entries,
+                                                        buf_size,
+                                                        &total_size,
+                                                        &returned_size,
+                                                        &info));
                 switch (level) {
                 case 1:
                     if (info && info->info1.count) {
@@ -2492,11 +2968,11 @@ int TestSamrQueryDisplayInfo(struct test *t, const wchar16_t *hostname,
 
     } else {
         do {
-            CALL_MSRPC(status = SamrQueryDisplayInfo(samr_binding, hDomain,
-                                                     (UINT16)level, start_idx,
-                                                     max_entries, buf_size,
-                                                     &total_size, &returned_size,
-                                                     &info));
+            CALL_MSRPC(status, SamrQueryDisplayInfo(samr_binding, hDomain,
+                                                    (UINT16)level, start_idx,
+                                                    max_entries, buf_size,
+                                                    &total_size, &returned_size,
+                                                    &info));
             switch (level) {
             case 1:
                 if (info && info->info1.count) {
@@ -3379,8 +3855,8 @@ int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(grp_rids);
     INPUT_ARG_PTR(grp_attrs);
 
-    CALL_MSRPC(status = SamrGetUserGroups(samr_b, hUser, &grp_rids,
-                                          &grp_attrs, &grp_count));
+    CALL_MSRPC(status, SamrGetUserGroups(samr_b, hUser, &grp_rids,
+                                         &grp_attrs, &grp_count));
 
     OUTPUT_ARG_PTR(grp_rids);
     OUTPUT_ARG_PTR(grp_attrs);
@@ -3609,12 +4085,12 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(usr_sid);
     INPUT_ARG_UINT(sids_count);
 
-    CALL_MSRPC(status = SamrGetAliasMembership(samr_b,
-                                               hBtinDomain,
-                                               &usr_sid,
-                                               sids_count,
-                                               &btin_rids,
-                                               &btin_rids_count));
+    CALL_MSRPC(status, SamrGetAliasMembership(samr_b,
+                                              hBtinDomain,
+                                              &usr_sid,
+                                              sids_count,
+                                              &btin_rids,
+                                              &btin_rids_count));
 
     OUTPUT_ARG_PTR(&btin_rids);
     OUTPUT_ARG_UINT(btin_rids_count);
@@ -3627,12 +4103,12 @@ int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
     INPUT_ARG_PTR(usr_sid);
     INPUT_ARG_UINT(sids_count);
 
-    CALL_MSRPC(status = SamrGetAliasMembership(samr_b,
-                                               &hDomain,
-                                               &usr_sid,
-                                               sids_count,
-                                               &dom_rids,
-                                               &dom_rids_count));
+    CALL_MSRPC(status, SamrGetAliasMembership(samr_b,
+                                              &hDomain,
+                                              &usr_sid,
+                                              sids_count,
+                                              &dom_rids,
+                                              &dom_rids_count));
 
     OUTPUT_ARG_PTR(&dom_rids);
     OUTPUT_ARG_UINT(dom_rids_count);

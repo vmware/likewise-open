@@ -34,15 +34,15 @@
 NET_API_STATUS
 NetrShareGetInfo(
     IN  PSRVSVC_CONTEXT pContext,
-    IN  PWSTR        pwszServername,
-    IN  PWSTR        pwszNetname,
-    IN  DWORD        dwLevel,
-    OUT PVOID       *ppBuffer
+    IN  PCWSTR          pwszServername,
+    IN  PCWSTR          pwszNetname,
+    IN  DWORD           dwLevel,
+    OUT PBYTE          *ppBuffer
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
     srvsvc_NetShareInfo Info;
-    PVOID pBuffer = NULL;
+    PBYTE pBuffer = NULL;
 
     BAIL_ON_INVALID_PTR(pContext, err);
     BAIL_ON_INVALID_PTR(pContext->hBinding, err);

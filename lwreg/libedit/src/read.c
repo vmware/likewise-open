@@ -59,8 +59,12 @@ private int	read_char(EditLine *, char *);
 private int	read_getcmd(EditLine *, el_action_t *, char *);
 private void	read_pop(c_macro_t *);
 
+#if 0
+#define __LW_DEBUG__
+#endif
 #ifdef __LW_MULTIBYTE__
-private int	read_wchar(EditLine *, char *);
+private int read_wchar(EditLine *, char *);
+private void read_wchar_debug(EditLine *el, const char *fname);
 #endif
 
 /* read_init():
@@ -265,6 +269,17 @@ read_getcmd(EditLine *el, el_action_t *cmdnum, char *ch)
 			*ch |= 0200;
 		}
 		cmd = el->el_map.current[(unsigned char) *ch];
+
+		/* remove command characters from the character map */
+		if (cmd == EM_KILL_LINE) {
+			el->el_multibyte.charlen_map_indx = 0;
+		}
+		else if (cmd != ED_INSERT &&
+			cmd != ED_DIGIT &&
+			(*ch & 0200) != 0200) {
+			el->el_multibyte.charlen_map_indx--;
+		}
+
 		if (cmd == ED_SEQUENCE_LEAD_IN) {
 			key_value_t val;
 			switch (key_get(el, ch, &val)) {
@@ -320,6 +335,31 @@ read_char(EditLine *el, char *cp)
 	return (int)num_read;
 }
 
+#if defined(__LW_DEBUG__) && defined(__LW_MULTIBYTE__)
+private void read_wchar_debug(EditLine *el, const char *fname)
+{
+	FILE *fp = fopen(fname, "a");
+	int i = 0;
+	unsigned char *cp = NULL;
+
+	if (!fp)
+		return;
+
+	for (cp = (unsigned char *) el->el_line.buffer; cp<= el->el_line.lastchar; cp++)
+	{
+		fprintf(fp, "%02X ", *cp);
+	}
+	fprintf(fp, "\n");
+
+	fprintf(fprintf, "map_index=%d\n", el->el_multibyte.charlen_map_indx);
+	for (i=0; i<el->el_multibyte.charlen_map_indx; i++)
+	{
+		fprintf(fp, "%d, ", el->el_multibyte.charlen_map[i]);
+	}
+	fprintf(fp, "\n\n");
+	fclose(fp);
+}
+#endif
 
 #ifdef __LW_MULTIBYTE__
 /* read_wchar():
@@ -339,6 +379,7 @@ read_wchar(EditLine *el, char *cp)
 	ssize_t num_read;
 	int tried = 0;
 
+	/* Return accumulated bytes from valid multibyte sequence */
 	if (el->el_multibyte.have_wchar &&
 		el->el_multibyte.bufindx < el->el_multibyte.buflen)
 	{
@@ -355,6 +396,10 @@ read_wchar(EditLine *el, char *cp)
 	memset(el->el_multibyte.buf, 0, sizeof(el->el_multibyte.buf));
  again:
 	el->el_signal->sig_no = 0;
+#ifdef __LW_DEBUG__
+	read_wchar_debug(el, "/tmp/lwregshell.txt");
+#endif
+
 	while ((num_read = read(el->el_infd, cp, 1)) == -1 || num_read == 1) {
 		if (num_read == -1) {
 			if (el->el_signal->sig_no == SIGCONT) {
@@ -380,6 +425,9 @@ read_wchar(EditLine *el, char *cp)
 						el->el_multibyte.bufindx++];
 				el->el_multibyte.have_wchar = 1;
 				num_read = 1;
+				el->el_multibyte.charlen_map[
+                                    el->el_multibyte.charlen_map_indx++] =
+					el->el_multibyte.buflen;
 				break;
 			}
 		}

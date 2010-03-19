@@ -78,9 +78,7 @@ PvfsFreeIrpContext(
 
         PVFS_FREE(ppIrpContext);
 
-#ifdef _PVFS_DEVELOPER_DEBUG
         InterlockedDecrement(&gPvfsIrpContextCount);
-#endif
     }
 }
 
@@ -114,9 +112,7 @@ PvfsAllocateIrpContext(
 
     *ppIrpContext = pIrpContext;
 
-#ifdef _PVFS_DEVELOPER_DEBUG
     InterlockedIncrement(&gPvfsIrpContextCount);
-#endif
 
 cleanup:
     return ntError;

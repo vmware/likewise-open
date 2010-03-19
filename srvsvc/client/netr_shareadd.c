@@ -36,7 +36,7 @@ NetrShareAdd(
     IN  PSRVSVC_CONTEXT pContext,
     IN  PCWSTR   pwszServername,
     IN  DWORD    dwLevel,
-    IN  PVOID    pBuffer,
+    IN  PBYTE    pBuffer,
     OUT PDWORD   pdwParmErr
     )
 {

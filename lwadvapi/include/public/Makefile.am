@@ -12,4 +12,5 @@ include_HEADERS = \
         lwsid.h \
 	ldaperror-table.h \
 	lwldap-error.h \
-	lwdscache.h
+	lwdscache.h \
+	lwbuffer.h

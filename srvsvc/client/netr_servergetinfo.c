@@ -31,7 +31,8 @@
 #include "includes.h"
 
 
-NET_API_STATUS NetServerGetInfo(
+NET_API_STATUS
+NetrServerGetInfo(
     PSRVSVC_CONTEXT pContext,
     const wchar16_t *servername,
     UINT32 level,

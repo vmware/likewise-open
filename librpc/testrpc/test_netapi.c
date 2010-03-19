@@ -52,9 +52,9 @@ int GetUserLocalGroups(const wchar16_t *hostname, wchar16_t *username,
     INPUT_ARG_PTR(grpinfo);
     INPUT_ARG_UINT(pref_maxlen);
 
-    CALL_NETAPI(err = NetUserGetLocalGroups(hostname, username, level, flags,
-                                            (void*)&grpinfo, pref_maxlen,
-                                            entries, &total));
+    CALL_NETAPI(err, NetUserGetLocalGroups(hostname, username, level, flags,
+                                           (void*)&grpinfo, pref_maxlen,
+                                           entries, &total));
 
     OUTPUT_ARG_PTR(grpinfo);
     OUTPUT_ARG_UINT(*entries);
@@ -122,10 +122,10 @@ int GetLocalGroupMembers(const wchar16_t *hostname, const wchar16_t *aliasname,
     INPUT_ARG_PTR(info);
     INPUT_ARG_UINT(prefmaxlen);
 
-    CALL_NETAPI(err = NetLocalGroupGetMembers(hostname, aliasname, level,
-                                              (void*) &info,
-                                              prefmaxlen, entries,
-                                              &total, &resume));
+    CALL_NETAPI(err, NetLocalGroupGetMembers(hostname, aliasname, level,
+                                             (void*) &info,
+                                             prefmaxlen, entries,
+                                             &total, &resume));
 
     OUTPUT_ARG_PTR(info);
     OUTPUT_ARG_UINT(*entries);
@@ -211,7 +211,7 @@ int AddUser(const wchar16_t *hostname, const wchar16_t *username)
     info1->usri1_flags = flags;
     info1->usri1_priv = USER_PRIV_USER;
 
-    CALL_NETAPI(err = NetUserAdd(hostname, level, (void*)info1, &parm_err));
+    CALL_NETAPI(err, NetUserAdd(hostname, level, (void*)info1, &parm_err));
 
     SAFE_FREE(info1->usri1_comment);
     SAFE_FREE(info1->usri1_home_dir);
@@ -254,7 +254,7 @@ int AddLocalGroup(const wchar16_t *hostname, const wchar16_t *aliasname)
     INPUT_ARG_WSTR(info.lgrpi1_comment);
     INPUT_ARG_UINT(parm_err);
 
-    CALL_NETAPI(err = NetLocalGroupAdd(hostname, level, &info, &parm_err));
+    CALL_NETAPI(err, NetLocalGroupAdd(hostname, level, &info, &parm_err));
 
     OUTPUT_ARG_UINT(parm_err);
 
@@ -295,8 +295,8 @@ int AddLocalGroupMember(const wchar16_t *hostname, const wchar16_t *aliasname,
             member);
     memberinfo.lgrmi3_domainandname = (wchar16_t*)domain_member;
 
-    CALL_NETAPI(err = NetLocalGroupAddMembers(hostname, aliasname, 3,
-                                              &memberinfo, 1));
+    CALL_NETAPI(err, NetLocalGroupAddMembers(hostname, aliasname, 3,
+                                             &memberinfo, 1));
 
     return err;
 }
@@ -320,8 +320,8 @@ int DelLocalGroupMember(const wchar16_t *hostname,
             member);
     memberinfo.lgrmi3_domainandname = host_member;
 
-    CALL_NETAPI(err = NetLocalGroupDelMembers(hostname, aliasname, 3,
-                                              &memberinfo, 1));
+    CALL_NETAPI(err, NetLocalGroupDelMembers(hostname, aliasname, 3,
+                                             &memberinfo, 1));
 
     return err;
 }
@@ -345,7 +345,7 @@ CallNetUserEnum(
     DWORD  dwFilter
     )
 {
-    BOOL ret = TRUE;
+    BOOL bRet = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
     PVOID pBuffer = NULL;
     DWORD dwMaxLen = MAX_PREFERRED_LENGTH;
@@ -375,7 +375,7 @@ CallNetUserEnum(
                 err != ERROR_MORE_DATA &&
                 err != ERROR_NOT_ENOUGH_MEMORY)
             {
-                ret = FALSE;
+                bRet = FALSE;
                 goto done;
             }
 
@@ -425,7 +425,7 @@ done:
         NetApiBufferFree(pBuffer);
     }
 
-    return ret;
+    return bRet;
 }
 
 
@@ -680,7 +680,7 @@ CallNetUserGetLocalGroups(
     DWORD  dwFlags
     )
 {
-    BOOL ret = TRUE;
+    BOOL bRet = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
     PVOID pBuffer = NULL;
     DWORD dwMaxLen = MAX_PREFERRED_LENGTH;
@@ -708,7 +708,7 @@ CallNetUserGetLocalGroups(
             err != ERROR_MORE_DATA &&
             err != ERROR_NOT_ENOUGH_MEMORY)
         {
-            ret = FALSE;
+            bRet = FALSE;
             goto done;
         }
 
@@ -756,7 +756,7 @@ done:
         NetApiBufferFree(pBuffer);
     }
 
-    return ret;
+    return bRet;
 }
 
 
@@ -767,7 +767,7 @@ CallNetLocalGroupEnum(
     DWORD  dwLevel
     )
 {
-    BOOL ret = TRUE;
+    BOOL bRet = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
     PVOID pBuffer = NULL;
     DWORD dwMaxLen = MAX_PREFERRED_LENGTH;
@@ -795,7 +795,7 @@ CallNetLocalGroupEnum(
                 err != ERROR_MORE_DATA &&
                 err != ERROR_NOT_ENOUGH_MEMORY)
             {
-                ret = FALSE;
+                bRet = FALSE;
                 goto done;
             }
 
@@ -845,7 +845,7 @@ done:
         NetApiBufferFree(pBuffer);
     }
 
-    return ret;
+    return bRet;
 }
 
 
@@ -988,7 +988,7 @@ CallNetLocalGroupGetMembers(
     DWORD  dwLevel
     )
 {
-    BOOL ret = TRUE;
+    BOOL bRet = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
     PVOID pBuffer = NULL;
     DWORD dwMaxLen = MAX_PREFERRED_LENGTH;
@@ -1017,7 +1017,7 @@ CallNetLocalGroupGetMembers(
                 err != ERROR_MORE_DATA &&
                 err != ERROR_NOT_ENOUGH_MEMORY)
             {
-                ret = FALSE;
+                bRet = FALSE;
                 goto done;
             }
 
@@ -1067,7 +1067,7 @@ done:
         NetApiBufferFree(pBuffer);
     }
 
-    return ret;
+    return bRet;
 }
 
 
@@ -1299,7 +1299,7 @@ int TestNetUserDel(struct test *t, const wchar16_t *hostname,
     status = EnsureUserAccount(hostname, pwszUsername, &bCreated);
     if (status != 0) rpc_fail(status);
 
-    CALL_NETAPI(err = NetUserDel(hostname, pwszUsername));
+    CALL_NETAPI(err, NetUserDel(hostname, pwszUsername));
     if (err != 0) netapi_fail(err);
 
 done:
@@ -1705,8 +1705,8 @@ int TestNetJoinDomain(struct test *t, const wchar16_t *hostname,
     if (rejoin) opts |= NETSETUP_DOMAIN_JOIN_IF_JOINED;
     if (deferspn) opts |= NETSETUP_DEFER_SPN_SET;
 
-    CALL_NETAPI(err = NetJoinDomain(NULL, hostname, accountou,
-                                    username, password, opts));
+    CALL_NETAPI(err, NetJoinDomain(NULL, hostname, accountou,
+                                   username, password, opts));
     if (err != 0) netapi_fail(err);
 
     status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &store);
@@ -1772,7 +1772,7 @@ int TestNetUnjoinDomain(struct test *t, const wchar16_t *hostname,
 
     opts = (disable) ? NETSETUP_ACCT_DELETE : 0;
 
-    CALL_NETAPI(err = NetUnjoinDomain(NULL, username, password, opts));
+    CALL_NETAPI(err, NetUnjoinDomain(NULL, username, password, opts));
     if (err != 0) netapi_fail(err);
 
 done:
@@ -1793,7 +1793,7 @@ int TestNetMachineChangePassword(struct test *t, const wchar16_t *hostname,
 
     TESTINFO(t, hostname, user, pass);
 
-    CALL_NETAPI(err = NetMachineChangePassword());
+    CALL_NETAPI(err, NetMachineChangePassword());
     if (err != ERROR_SUCCESS) netapi_fail(err);
 
 done:
@@ -1839,8 +1839,8 @@ int TestNetUserChangePassword(struct test *t, const wchar16_t *hostname,
     status = EnsureUserAccount(hostname, username, &bCreated);
     if (status != 0) rpc_fail(status);
 
-    CALL_NETAPI(err = NetUserChangePassword(hostname, username,
-                                            oldpassword, newpassword));
+    CALL_NETAPI(err, NetUserChangePassword(hostname, username,
+                                           oldpassword, newpassword));
     if (err != 0) netapi_fail(err);
 
 done:
@@ -2476,7 +2476,7 @@ int TestNetGetDomainName(struct test *t, const wchar16_t *hostname,
 
     SET_SESSION_CREDS(hCreds);
 
-    CALL_NETAPI(err = NetGetDomainName(hostname, &domain_name));
+    CALL_NETAPI(err, NetGetDomainName(hostname, &domain_name));
     if (err != 0) netapi_fail(err);
 
     OUTPUT_ARG_WSTR(domain_name);

@@ -47,6 +47,7 @@
 #define	ANCHOR
 #define __LW_MULTIBYTE__
 
+#include <limits.h>
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -94,7 +95,9 @@ typedef struct el_multibyte_t {
 	int buflen;
 	int bufindx;
 	int have_wchar;
-	unsigned char buf[7];
+	unsigned char buf[MB_LEN_MAX];
+	int charlen_map[EL_BUFSIZ]; /* Number of bytes per multibyte sequence */
+	int charlen_map_indx; /* Index into charlen_map */
 } el_multibyte_t;
 #endif
 

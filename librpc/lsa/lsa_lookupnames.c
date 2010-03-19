@@ -64,9 +64,12 @@ LsaLookupNames(
     NTSTATUS ntRetStatus = STATUS_SUCCESS;
     UnicodeString *pLsaNames = NULL;
     RefDomainList *pRefDomains = NULL;
-    RefDomainList *pOutDomList = NULL;
-    TranslatedSidArray pSidArray = {0};
-    TranslatedSid *pOutSidArray = NULL;
+    RefDomainList *pOutDomains = NULL;
+    TranslatedSidArray SidArray = {0};
+    TranslatedSid *pTransSids = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hPolicy, ntStatus);
@@ -86,7 +89,7 @@ LsaLookupNames(
                               NumNames,
                               pLsaNames,
                               &pRefDomains,
-                              &pSidArray,
+                              &SidArray,
                               Level,
                               Count));
     ntRetStatus = ntStatus;
@@ -100,21 +103,59 @@ LsaLookupNames(
         BAIL_ON_NT_STATUS(ntRetStatus);
     }
 
+    if (SidArray.count > 0)
+    {
+        dwSpaceLeft = sizeof(*pTransSids) * SidArray.count;
 
-    ntStatus = LsaAllocateTranslatedSids(&pOutSidArray, &pSidArray);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = LsaRpcAllocateMemory(OUT_PPVOID(&pTransSids),
+                                        dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LsaAllocateRefDomainList(&pOutDomList, pRefDomains);
-    BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = LsaAllocateTranslatedSids(pTransSids,
+                                             &dwOffset,
+                                             &dwSpaceLeft,
+                                             &SidArray,
+                                             &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    *ppSids    = pOutSidArray;
-    *ppDomList = pOutDomList;
+    if (pRefDomains)
+    {
+        dwSize   = 0;
+        dwOffset = 0;
+
+        ntStatus = LsaAllocateRefDomainList(NULL,
+                                            &dwOffset,
+                                            NULL,
+                                            pRefDomains,
+                                            &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = LsaRpcAllocateMemory(OUT_PPVOID(&pOutDomains),
+                                        dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = LsaAllocateRefDomainList(pOutDomains,
+                                            &dwOffset,
+                                            &dwSpaceLeft,
+                                            pRefDomains,
+                                            &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppSids    = pTransSids;
+    *ppDomList = pOutDomains;
+    *Count     = SidArray.count;
 
 cleanup:
     FreeUnicodeStringArray(pLsaNames, NumNames);
 
     /* Free pointers returned from stub */
-    LsaCleanStubTranslatedSidArray(&pSidArray);
+    LsaCleanStubTranslatedSidArray(&SidArray);
 
     if (pRefDomains)
     {
@@ -131,11 +172,12 @@ cleanup:
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pOutSidArray);
-    LsaRpcFreeMemory((PVOID)pOutDomList);
+    LsaRpcFreeMemory(pTransSids);
+    LsaRpcFreeMemory(pOutDomains);
 
     *ppSids    = NULL;
     *ppDomList = NULL;
+    *Count     = 0;
 
     goto cleanup;
 }

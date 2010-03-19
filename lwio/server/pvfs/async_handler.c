@@ -213,10 +213,7 @@ PvfsCreateWorkContext(
 
     *ppWorkContext = pWorkCtx;
 
-#ifdef _PVFS_DEVELOPER_DEBUG
     InterlockedIncrement(&gPvfsWorkContextCount);
-#endif
-
 
     ntError = STATUS_SUCCESS;
 
@@ -263,9 +260,7 @@ PvfsFreeWorkContext(
 
         PVFS_FREE(ppWorkContext);
 
-#ifdef _PVFS_DEVELOPER_DEBUG
         InterlockedDecrement(&gPvfsWorkContextCount);
-#endif
     }
 
     return;

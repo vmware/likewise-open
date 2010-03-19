@@ -1321,192 +1321,131 @@ SrvSvcCreateContext(
     );
 
 NET_API_STATUS
-NetConnectionEnum(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    const wchar16_t *qualifier,
-    UINT32 level,
-    UINT8 **bufptr,
-    UINT32 prefmaxlen,
-    UINT32 *entriesread,
-    UINT32 *totalentries,
-    UINT32 *resume_handle
+NetrServerGetInfo(
+    PSRVSVC_CONTEXT pContext,        /* IN             */
+    PCWSTR          pwszServername,  /* IN    OPTIONAL */
+    DWORD           dwInfoLevel,     /* IN             */
+    PBYTE*          ppBuffer         /*    OUT         */
     );
-
 
 NET_API_STATUS
-NetFileEnum(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    const wchar16_t *basepath,
-    const wchar16_t *username,
-    UINT32 level,
-    UINT8 **bufptr,
-    UINT32 prefmaxlen,
-    UINT32 *entriesread,
-    UINT32 *totalentries,
-    UINT32 *resume_handle
+NetrServerSetInfo(
+    PSRVSVC_CONTEXT pContext,        /* IN              */
+    PCWSTR          pwszServername,  /* IN     OPTIONAL */
+    DWORD           dwInfoLevel,     /* IN              */
+    PBYTE           pBuffer,         /* IN              */
+    PDWORD          pdwParmError     /*    OUT OPTIONAL */
     );
-
-
-NET_API_STATUS
-NetFileGetInfo(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT32 fileid,
-    UINT32 level,
-    UINT8 **bufptr
-    );
-
-
-NET_API_STATUS
-NetFileClose(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT32 fileid
-    );
-
-
-NET_API_STATUS
-NetSessionEnum(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    const wchar16_t *unc_client_name,
-    const wchar16_t *username,
-    UINT32 level,
-    UINT8 **bufptr,
-    UINT32 prefmaxlen,
-    UINT32 *entriesread,
-    UINT32 *totalentries,
-    UINT32 *resume_handle
-    );
-
-
-NET_API_STATUS
-NetrShareAdd(
-    IN  PSRVSVC_CONTEXT pContext,
-    IN  PCWSTR   pwszServername,
-    IN  DWORD    dwLevel,
-    IN  PVOID    pBuffer,
-    OUT PDWORD   pdwParmErr
-    );
-
-
-NET_API_STATUS
-NetShareAdd(
-    IN  PCWSTR  pwszServername,
-    IN  DWORD   dwLevel,
-    IN  PVOID   pBuffer,
-    OUT PDWORD  pdwParmErr
-    );
-
 
 NET_API_STATUS
 NetrShareEnum(
-    IN  PSRVSVC_CONTEXT pContext,
-    IN  PCWSTR   pwszServername,
-    IN  DWORD    dwLevel,
-    OUT PVOID   *ppBuffer,
-    IN  DWORD    dwMaxLen,
-    OUT PDWORD   pdwNumEntries,
-    OUT PDWORD   pdwTotalEntries,
-    OUT PDWORD   pdwResume
+    PSRVSVC_CONTEXT pContext,        /* IN              */
+    PCWSTR          pwszServername,  /* IN     OPTIONAL */
+    DWORD           dwInfoLevel,     /* IN              */
+    PBYTE*          ppBuffer,        /*    OUT          */
+    DWORD           dwPrefmaxLen,    /* IN              */
+    PDWORD          pdwEntriesRead,  /*    OUT          */
+    PDWORD          pdwTotalEntries, /*    OUT          */
+    PDWORD          pdwResumeHandle  /* IN OUT OPTIONAL */
     );
-
-
-NET_API_STATUS
-NetShareEnum(
-    IN  PCWSTR   pwszServername,
-    IN  DWORD    dwLevel,
-    OUT PVOID   *ppBuffer,
-    IN  DWORD    dwMaxLen,
-    OUT PDWORD   pdwNumEntries,
-    OUT PDWORD   pdwTotalEntries,
-    OUT PDWORD   pdwResume
-    );
-
 
 NET_API_STATUS
 NetrShareGetInfo(
-    IN  PSRVSVC_CONTEXT pContext,
-    IN  PWSTR     pwszServername,
-    IN  PWSTR     pwszNetname,
-    IN  DWORD     dwLevel,
-    OUT PVOID    *ppBuffer
+    PSRVSVC_CONTEXT pContext,        /* IN              */
+    PCWSTR          pwszServername,  /* IN     OPTIONAL */
+    PCWSTR          pwszNetname,     /* IN              */
+    DWORD           dwInfoLevel,     /* IN              */
+    PBYTE*          ppBuffer         /*    OUT          */
     );
-
-
-NET_API_STATUS
-NetShareGetInfo(
-    IN  PCWSTR    pwszServername,
-    IN  PCWSTR    pwszNetname,
-    IN  DWORD     dwLevel,
-    OUT PVOID    *ppBuffer
-    );
-
 
 NET_API_STATUS
 NetrShareSetInfo(
-    IN  PSRVSVC_CONTEXT pContext,
-    IN  PWSTR     pwszServername,
-    IN  PWSTR     pwszNetname,
-    IN  DWORD     dwLevel,
-    IN  PVOID     pBuffer,
-    OUT PDWORD    pdwParmErr
+    PSRVSVC_CONTEXT pContext,        /* IN              */
+    PCWSTR          pwszServername,  /* IN     OPTIONAL */
+    PCWSTR          pwszNetname,     /* IN              */
+    DWORD           dwInfoLevel,     /* IN              */
+    PBYTE           pBuffer,         /* IN              */
+    PDWORD          pdwParmError     /*    OUT          */
     );
-
 
 NET_API_STATUS
-NetShareSetInfo(
-    IN  PCWSTR    pwszServername,
-    IN  PCWSTR    pwszNetname,
-    IN  DWORD     dwLevel,
-    IN  PVOID     pBuffer,
-    OUT PDWORD    pdwParmErr
+NetrShareAdd(
+    PSRVSVC_CONTEXT pContext,        /* IN              */
+    PCWSTR          pwszServername,  /* IN     OPTIONAL */
+    DWORD           dwInfoLevel,     /* IN              */
+    PBYTE           pBuffer,         /* IN              */
+    PDWORD          pdwParmError     /*    OUT          */
     );
-
 
 NET_API_STATUS
 NetrShareDel(
-    IN  PSRVSVC_CONTEXT pContext,
-    IN  PCWSTR   pwszServername,
-    IN  PCWSTR   pwszSharename,
-    IN  DWORD    dwReserved
+    PSRVSVC_CONTEXT pContext,        /* IN              */
+    PCWSTR          pwszServername,  /* IN     OPTIONAL */
+    PCWSTR          pwszNetname,     /* IN              */
+    DWORD           dwReserved       /* IN              */
     );
 
-
 NET_API_STATUS
-NetShareDel(
-    IN  PCWSTR  pwszServername,
-    IN  PCWSTR  pwszSharename,
-    IN  DWORD   dwReserved
+NetrSessionEnum(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN     OPTIONAL */
+    PWSTR           pwszUncClientname, /* IN     OPTIONAL */
+    PWSTR           pwszUsername,      /* IN     OPTIONAL */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer,          /*    OUT          */
+    DWORD           dwPrefmaxLen,      /* IN              */
+    PDWORD          pdwEntriesRead,    /*    OUT          */
+    PDWORD          pdwTotalEntries,   /*    OUT          */
+    PDWORD          pdwResumeHandle    /* IN OUT OPTIONAL */
     );
 
-
 NET_API_STATUS
-NetServerGetInfo(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT32 level,
-    UINT8 **bufptr
+NetrSessionDel(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN     OPTIONAL */
+    PWSTR           pwszUncClientname, /* IN     OPTIONAL */
+    PWSTR           pwszUsername       /* IN     OPTIONAL */
     );
 
-
 NET_API_STATUS
-NetServerSetInfo(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT32 level,
-    UINT8 *bufptr,
-    UINT32 *parm_err
+NetrConnectionEnum(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN     OPTIONAL */
+    PWSTR           pwszQualifier,     /* IN              */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer,          /*    OUT          */
+    DWORD           dwPrefmaxlen,      /* IN              */
+    PDWORD          pdwEntriesRead,    /*    OUT          */
+    PDWORD          pdwTotalEntries,   /*    OUT          */
+    PDWORD          pdwResumeHandle    /* IN OUT OPTIONAL */
     );
 
+NET_API_STATUS
+NetrFileEnum(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    PWSTR           pwszBasepath,      /* IN    OPTIONAL  */
+    PWSTR           pwszUsername,      /* IN    OPTIONAL  */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer,          /*    OUT          */
+    DWORD           dwPrefmaxlen,      /* IN              */
+    PDWORD          pwdEntriesRead,    /*    OUT          */
+    PDWORD          pdwTotalEntries,   /*    OUT          */
+    PDWORD          pdwResumeHandle    /* IN OUT OPTIONAL */
+    );
 
 NET_API_STATUS
-NetRemoteTOD(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT8 **bufptr
+NetrFileClose(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    DWORD           dwFileId           /* IN              */
+    );
+
+NET_API_STATUS
+NetrRemoteTOD(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    PBYTE*          ppBuffer           /*    OUT          */
     );
 
 NET_API_STATUS

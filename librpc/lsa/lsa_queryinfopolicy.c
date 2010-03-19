@@ -58,6 +58,9 @@ LsaQueryInfoPolicy(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     LsaPolicyInformation *pInfo = NULL;
     LsaPolicyInformation *pOutInfo = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hPolicy, ntStatus);
@@ -70,24 +73,48 @@ LsaQueryInfoPolicy(
                               &pInfo));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LsaAllocatePolicyInformation(
-                   &pOutInfo,
-                   pInfo,
-                   Level);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pInfo)
+    {
+        ntStatus = LsaAllocatePolicyInformation(
+                              NULL,
+                              &dwOffset,
+                              NULL,
+                              Level,
+                              pInfo,
+                              &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = LsaRpcAllocateMemory(OUT_PPVOID(&pOutInfo),
+                                        dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = LsaAllocatePolicyInformation(
+                              pOutInfo,
+                              &dwOffset,
+                              &dwSpaceLeft,
+                              Level,
+                              pInfo,
+                              &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     *ppInfo = pOutInfo;
 
 cleanup:
     /* Free pointers allocated by dcerpc stub */
-    if (pInfo) {
+    if (pInfo)
+    {
         LsaFreeStubPolicyInformation(pInfo, Level);
     }
 
     return ntStatus;
 
 error:
-    LsaRpcFreeMemory((PVOID)pOutInfo);
+    LsaRpcFreeMemory(pOutInfo);
 
     *ppInfo = NULL;
     goto cleanup;

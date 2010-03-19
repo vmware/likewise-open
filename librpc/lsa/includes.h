@@ -40,10 +40,10 @@
 #include <dce/smb.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
+#include <lwbuffer.h>
 
 #include <lwrpc/types.h>
-#include <lwrpc/lsabinding.h>
-#include <lwrpc/lsadefs.h>
+#include <lwrpc/lsa.h>
 #include <lwrpc/unicodestring.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/memptr.h>
@@ -55,6 +55,8 @@
 #include "lsa_memory.h"
 #include "lsa_stubmemory.h"
 #include "lsa_h.h"
+
+#include "externs.h"
 
 
 /*

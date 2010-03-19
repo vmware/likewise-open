@@ -168,9 +168,8 @@ PvfsDestroyUnixIdCache(
  Driver Dispatch Routine
  ***********************************************************/
 
-/* #define _PVFS_ENABLE_FULL_ASYNC    1 */
-
-static NTSTATUS
+static
+NTSTATUS
 PvfsDriverDispatch(
     IN IO_DEVICE_HANDLE DeviceHandle,
     IN PIRP pIrp
@@ -191,84 +190,74 @@ PvfsDriverDispatch(
         ntError = PvfsAsyncFlushBuffers(pIrpCtx);
         break;
 
-#ifdef _PVFS_ENABLE_FULL_ASYNC
-
-    /* Enable the following to always pass the IRP off to the
-       worker thread pool.  Needed for some drivers due to
-       potentially blocking syscalls on distributed file systems */
+    /* Conditionally Async.  Any call that determines it will block
+       (e.g oplock breaks, or blocking locks) will still be handled async
+       as necessary */
 
     case IRP_TYPE_CREATE:
-        ntError = PvfsAsyncCreate(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncCreate(pIrpCtx) :
+                      PvfsCreate(pIrpCtx);
         break;
+
     case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsAsyncLockControl(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncLockControl(pIrpCtx) :
+                      PvfsLockControl(pIrpCtx);
         break;
+
     case IRP_TYPE_READ:
-        ntError = PvfsAsyncRead(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncRead(pIrpCtx) :
+                      PvfsRead(pIrpCtx);
         break;
+
     case IRP_TYPE_WRITE:
-        ntError = PvfsAsyncWrite(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncWrite(pIrpCtx) :
+                      PvfsWrite(pIrpCtx);;
         break;
+
     case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsAsyncSetInformationFile(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncSetInformationFile(pIrpCtx) :
+                      PvfsSetInformationFile(pIrpCtx);
         break;
+
     case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsAsyncQueryInformationFile(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncQueryInformationFile(pIrpCtx) :
+                      PvfsQueryInformationFile(pIrpCtx);
         break;
+
     case IRP_TYPE_QUERY_DIRECTORY:
-        ntError = PvfsAsyncQueryDirInformation(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncQueryDirInformation(pIrpCtx) :
+                      PvfsQueryDirInformation(pIrpCtx);
         break;
+
     case IRP_TYPE_QUERY_VOLUME_INFORMATION:
-        ntError = PvfsAsyncQueryVolumeInformation(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncQueryVolumeInformation(pIrpCtx) :
+                      PvfsQueryVolumeInformation(pIrpCtx);
         break;
+
     case IRP_TYPE_QUERY_SECURITY:
-        ntError = PvfsAsyncQuerySecurityFile(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncQuerySecurityFile(pIrpCtx) :
+                      PvfsQuerySecurityFile(pIrpCtx);
         break;
+
     case IRP_TYPE_SET_SECURITY:
-        ntError = PvfsAsyncSetSecurityFile(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncSetSecurityFile(pIrpCtx) :
+                      PvfsSetSecurityFile(pIrpCtx);
         break;
     case IRP_TYPE_CLOSE:
-        ntError = PvfsAsyncClose(pIrpCtx);
+        ntError = gPvfsDriverConfig.EnableFullAsync ?
+                      PvfsAsyncClose(pIrpCtx) :
+                      PvfsClose(pIrpCtx);
         break;
-
-#else
-
-    /* Normal Pvfs operation mode */
-
-    case IRP_TYPE_CREATE:
-        ntError = PvfsCreate(pIrpCtx);
-        break;
-    case IRP_TYPE_LOCK_CONTROL:
-        ntError = PvfsLockControl(pIrpCtx);
-        break;
-    case IRP_TYPE_READ:
-        ntError = PvfsRead(pIrpCtx);
-        break;
-    case IRP_TYPE_WRITE:
-        ntError = PvfsWrite(pIrpCtx);
-        break;
-    case IRP_TYPE_SET_INFORMATION:
-        ntError = PvfsSetInformationFile(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_INFORMATION:
-        ntError = PvfsQueryInformationFile(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_DIRECTORY:
-        ntError = PvfsQueryDirInformation(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
-        ntError = PvfsQueryVolumeInformation(pIrpCtx);
-        break;
-    case IRP_TYPE_QUERY_SECURITY:
-        ntError = PvfsQuerySecurityFile(pIrpCtx);
-        break;
-    case IRP_TYPE_SET_SECURITY:
-        ntError = PvfsSetSecurityFile(pIrpCtx);
-        break;
-    case IRP_TYPE_CLOSE:
-        ntError = PvfsClose(pIrpCtx);
-        break;
-#endif
 
     /* Synchronous by default, but can block and return PENDING.
        Cannot be async by default since STATUS_PENDING means has a
@@ -277,6 +266,7 @@ PvfsDriverDispatch(
     case IRP_TYPE_FS_CONTROL:
         ntError = PvfsDispatchFsIoControl(pIrpCtx);
         break;
+
     case IRP_TYPE_READ_DIRECTORY_CHANGE:
         ntError = PvfsReadDirectoryChange(pIrpCtx);
         break;
@@ -292,6 +282,7 @@ PvfsDriverDispatch(
     case IRP_TYPE_SET_VOLUME_INFORMATION:
         ntError = PvfsSetVolumeInformation(pIrpCtx);
         break;
+
     default:
         ntError = STATUS_INVALID_PARAMETER;
         break;
@@ -327,6 +318,9 @@ PvfsDriverInitialize(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    ntError = PvfsConfigRegistryInit(&gPvfsDriverConfig);
+    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSecurityInitMapSecurityCtx(&gpPvfsLwMapSecurityCtx);
     BAIL_ON_NT_STATUS(ntError);

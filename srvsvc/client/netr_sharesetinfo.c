@@ -33,11 +33,11 @@
 NET_API_STATUS
 NetrShareSetInfo(
     IN  PSRVSVC_CONTEXT pContext,
-    IN  PWSTR      pwszServername,
-    IN  PWSTR      pwszNetname,
-    IN  DWORD      dwLevel,
-    IN  PVOID      pBuffer,
-    OUT PDWORD     pdwParmErr
+    IN  PCWSTR          pwszServername,
+    IN  PCWSTR          pwszNetname,
+    IN  DWORD           dwLevel,
+    IN  PBYTE           pBuffer,
+    OUT PDWORD          pdwParmErr
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;

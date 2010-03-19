@@ -150,10 +150,7 @@ PvfsFreeFCB(
 
         PVFS_FREE(&pFcb);
 
-#ifdef _PVFS_DEVELOPER_DEBUG
         InterlockedDecrement(&gPvfsFcbCount);
-#endif
-
     }
 
     return;
@@ -265,9 +262,7 @@ PvfsAllocateFCB(
 
     *ppFcb = pFcb;
 
-#ifdef _PVFS_DEVELOPER_DEBUG
-        InterlockedIncrement(&gPvfsFcbCount);
-#endif
+    InterlockedIncrement(&gPvfsFcbCount);
 
     ntError = STATUS_SUCCESS;
 

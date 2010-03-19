@@ -28,52 +28,33 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        globals.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Global variables
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
 #include "includes.h"
 
+/* This is a pointer to list of allocated pointers.
+   The list enables freeing a pointer and dependant pointers */
+PVOID gLsaMemoryList = NULL;
 
-NET_API_STATUS
-NetShareAdd(
-    IN  PCWSTR  pwszServername,
-    IN  DWORD   dwLevel,
-    IN  PVOID   pBuffer,
-    OUT PDWORD  pdwParmErr
-    )
-{
-    NET_API_STATUS err = ERROR_SUCCESS;
-    PSRVSVC_CONTEXT pContext = NULL;
-    PSTR pszServername = NULL;
-    PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pBuffer, err);
+/* Library initialisation guard */
+pthread_mutex_t gLsaDataMutex = PTHREAD_MUTEX_INITIALIZER;
 
-    if (pwszServername)
-    {
-        err = LwWc16sToMbs(pwszServername, &pszServername);
-        BAIL_ON_WIN_ERROR(err);
-    }
-
-    err = SrvSvcCreateContext(pszServername, &pContext);
-    BAIL_ON_WIN_ERROR(err);
-
-    err = NetrShareAdd(pContext,
-                       pwszServername,
-                       dwLevel,
-                       pBuffer,
-                       pdwParmErr);
-    BAIL_ON_WIN_ERROR(err);
-
-cleanup:
-
-    if (pContext)
-    {
-        SrvSvcCloseContext(pContext);
-    }
-
-    return err;
-
-error:
-    goto cleanup;
-}
+BOOLEAN bLsaInitialised = 0;
 
 
 /*

@@ -32,34 +32,31 @@
 
 
 NET_API_STATUS
-NetShareSetInfo(
-    IN  PCWSTR     pwszServername,
-    IN  PCWSTR     pwszNetname,
-    IN  DWORD      dwLevel,
-    IN  PVOID      pBuffer,
-    OUT PDWORD     pdwParmErr
+NetServerGetInfo(
+    IN  PCWSTR  pwszServername,
+    IN  DWORD   dwLevel,
+    OUT PBYTE  *ppBuffer
     )
 {
     NET_API_STATUS err = ERROR_SUCCESS;
     PSRVSVC_CONTEXT pContext = NULL;
-    PSTR pszServername = NULL;
+    PBYTE pBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszNetname, err);
-    BAIL_ON_INVALID_PTR(pBuffer, err);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
 
     err = SrvSvcCreateContext(pwszServername, &pContext);
     BAIL_ON_WIN_ERROR(err);
 
-    err = NetrShareSetInfo(
-                pContext,
-                pwszServername,
-                pwszNetname,
-                dwLevel,
-                pBuffer,
-                pdwParmErr);
+    err = NetrServerGetInfo(pContext,
+                            pwszServername,
+                            dwLevel,
+                            &pBuffer);
     BAIL_ON_WIN_ERROR(err);
 
+    *ppBuffer = pBuffer;
+
 cleanup:
+
     if (pContext)
     {
         SrvSvcCloseContext(pContext);
@@ -68,6 +65,8 @@ cleanup:
     return err;
 
 error:
+    *ppBuffer = NULL;
+
     goto cleanup;
 }
 

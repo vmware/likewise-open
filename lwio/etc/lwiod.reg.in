@@ -28,6 +28,13 @@
 "Dependencies"="lwio"
 "Type"=dword:00000003
 
+[HKEY_THIS_MACHINE\Services\dfs]
+"Description"="Likewise Distributed Filesystem"
+"Path"="@providerdir@/libdfs.sys@MOD_EXT@"
+"Arguments"="dfs"
+"Dependencies"="lwio"
+"Type"=dword:00000003
+
 [HKEY_THIS_MACHINE\Services\npfs]
 "Description"="Likewise Named Pipe Filesystem"
 "Path"="@providerdir@/libnpfs.sys@MOD_EXT@"
@@ -39,7 +46,10 @@
 "SignMessagesIfSupported"=dword:00000000
 
 [HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers]
-"Load"="rdr,srv,pvfs,npfs"
+"Load"="rdr,srv,pvfs,dfs,npfs"
+
+[HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\dfs]
+"Path"="@providerdir@/libdfs.sys@MOD_EXT@"
 
 [HKEY_THIS_MACHINE\Services\lwio\Parameters\Drivers\pvfs]
 "Path"="@providerdir@/libpvfs.sys@MOD_EXT@"

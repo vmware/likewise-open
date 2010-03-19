@@ -4,6 +4,7 @@ idl_srcdir = $(top_srcdir)/idl
 noinst_LTLIBRARIES = liblsa_cs.la liblsa.la
 
 liblsa_la_SOURCES =         \
+    globals.c               \
     lsa_binding.c           \
     lsa_memory.c            \
     lsa_stubmemory.c        \
