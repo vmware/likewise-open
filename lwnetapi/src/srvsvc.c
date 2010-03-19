@@ -122,6 +122,12 @@ NetServerGetInfoW(
     PSRVSVC_CONTEXT pContext = NULL;
     PBYTE pBuffer = NULL;
 
+    if (!ppBuffer)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
     status = SrvSvcCreateContext(pwszServername, &pContext);
     BAIL_ON_NETAPI_ERROR(status);
 
@@ -135,6 +141,11 @@ NetServerGetInfoW(
     *ppBuffer = pBuffer;
 
 cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
 
     return status;
 
@@ -213,7 +224,46 @@ NetServerSetInfoW(
     PDWORD pdwParmError    /*    OUT OPTIONAL */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    DWORD dwParmError = 0;
+
+    if (!pBuffer)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrServerSetInfo(
+                    pContext,
+                    pwszServername,
+                    dwInfoLevel,
+                    pBuffer,
+                    &dwParmError);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *pdwParmError = 0;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (pdwParmError)
+    {
+        *pdwParmError = dwParmError;
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -315,7 +365,72 @@ NetShareEnumW(
     PDWORD pdwResumeHandle /* IN OUT OPTIONAL */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE pBuffer        = NULL;
+    DWORD dwEntriesRead  = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = 0;
+
+    if (!ppBuffer || !pdwEntriesRead || !pdwTotalEntries)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrShareEnum(
+                    pContext,
+                    pwszServername,
+                    dwInfoLevel,
+                    &pBuffer,
+                    dwPrefmaxLen,
+                    &dwEntriesRead,
+                    &dwTotalEntries,
+                    &dwResumeHandle);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *ppBuffer = pBuffer;
+    *pdwEntriesRead = dwEntriesRead;
+    *pdwTotalEntries = dwTotalEntries;
+    *pdwResumeHandle = dwResumeHandle;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
+    }
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = 0;
+    }
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = 0;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -392,7 +507,51 @@ NetShareGetInfoW(
     PBYTE* ppBuffer        /*    OUT          */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE pBuffer = NULL;
+
+    if (!ppBuffer || !pwszNetname)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrShareGetInfo(
+                    pContext,
+                    pwszServername,
+                    pwszNetname,
+                    dwInfoLevel,
+                    &pBuffer);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *ppBuffer = pBuffer;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -470,7 +629,47 @@ NetShareSetInfoW(
     PDWORD  pdwParmError    /*    OUT          */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    DWORD dwParmError = 0;
+
+    if (!pBuffer || !pwszNetname)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrShareSetInfo(
+                    pContext,
+                    pwszServername,
+                    pwszNetname,
+                    dwInfoLevel,
+                    pBuffer,
+                    &dwParmError);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *pdwParmError = 0;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (pdwParmError)
+    {
+        *pdwParmError = dwParmError;
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -536,7 +735,46 @@ NetShareAddW(
     PDWORD  pdwParmError    /*    OUT          */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    DWORD dwParmError = 0;
+
+    if (!pBuffer)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrShareAdd(
+                    pContext,
+                    pwszServername,
+                    dwInfoLevel,
+                    pBuffer,
+                    &dwParmError);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *pdwParmError = 0;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (pdwParmError)
+    {
+        *pdwParmError = dwParmError;
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -597,7 +835,37 @@ NetShareDelW(
     DWORD   dwReserved      /* IN              */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+
+    if (!pwszNetname)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrShareDel(
+                    pContext,
+                    pwszServername,
+                    pwszNetname,
+                    dwReserved);
+    BAIL_ON_NETAPI_ERROR(status);
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -729,7 +997,74 @@ NetSessionEnumW(
     PDWORD  pdwResumeHandle    /* IN OUT OPTIONAL */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE pBuffer        = NULL;
+    DWORD dwEntriesRead  = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = 0;
+
+    if (!ppBuffer || !pdwEntriesRead || !pdwTotalEntries)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrSessionEnum(
+                    pContext,
+                    pwszServername,
+                    pwszUncClientname,
+                    pwszUsername,
+                    dwInfoLevel,
+                    &pBuffer,
+                    dwPrefmaxLen,
+                    &dwEntriesRead,
+                    &dwTotalEntries,
+                    &dwResumeHandle);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *ppBuffer = pBuffer;
+    *pdwEntriesRead = dwEntriesRead;
+    *pdwTotalEntries = dwTotalEntries;
+    *pdwResumeHandle = dwResumeHandle;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
+    }
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = 0;
+    }
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = 0;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -799,7 +1134,31 @@ NetSessionDelW(
     PWSTR   pwszUsername       /* IN     OPTIONAL */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrSessionDel(
+                    pContext,
+                    pwszServername,
+                    pwszUncClientname,
+                    pwszUsername);
+    BAIL_ON_NETAPI_ERROR(status);
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -910,17 +1269,44 @@ NetConnectionEnumW(
     PWSTR   pwszQualifier,     /* IN              */
     DWORD   dwInfoLevel,       /* IN              */
     PBYTE*  ppBuffer,          /*    OUT          */
-    DWORD   dwPrefmaxlen,      /* IN              */
+    DWORD   dwPrefmaxLen,      /* IN              */
     PDWORD  pdwEntriesRead,    /*    OUT          */
     PDWORD  pdwTotalEntries,   /*    OUT          */
     PDWORD  pdwResumeHandle    /* IN OUT OPTIONAL */
     )
 {
-    NET_API_STATUS  status   = 0;
+    NET_API_STATUS  status = 0;
     PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE pBuffer        = NULL;
+    DWORD dwEntriesRead  = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = 0;
+
+    if (!ppBuffer || !pdwEntriesRead || !pdwTotalEntries)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
 
     status = SrvSvcCreateContext(pwszServername, &pContext);
     BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrConnectionEnum(
+                    pContext,
+                    pwszServername,
+                    pwszQualifier,
+                    dwInfoLevel,
+                    &pBuffer,
+                    dwPrefmaxLen,
+                    &dwEntriesRead,
+                    &dwTotalEntries,
+                    &dwResumeHandle);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *ppBuffer = pBuffer;
+    *pdwEntriesRead = dwEntriesRead;
+    *pdwTotalEntries = dwTotalEntries;
+    *pdwResumeHandle = dwResumeHandle;
 
 cleanup:
 
@@ -932,6 +1318,28 @@ cleanup:
     return status;
 
 error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
+    }
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = 0;
+    }
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = 0;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
 
     goto cleanup;
 }
@@ -1059,13 +1467,80 @@ NetFileEnumW(
     PWSTR  pwszUsername,       /* IN    OPTIONAL  */
     DWORD  dwInfoLevel,        /* IN              */
     PBYTE* ppBuffer,           /*    OUT          */
-    DWORD  dwPrefmaxlen,       /* IN              */
-    PDWORD pwdEntriesRead,     /*    OUT          */
+    DWORD  dwPrefmaxLen,       /* IN              */
+    PDWORD pdwEntriesRead,     /*    OUT          */
     PDWORD pdwTotalEntries,    /*    OUT          */
     PDWORD pdwResumeHandle     /* IN OUT OPTIONAL */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE pBuffer        = NULL;
+    DWORD dwEntriesRead  = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = 0;
+
+    if (!ppBuffer || !pdwEntriesRead || !pdwTotalEntries)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrFileEnum(
+                    pContext,
+                    pwszServername,
+                    pwszBasepath,
+                    pwszUsername,
+                    dwInfoLevel,
+                    &pBuffer,
+                    dwPrefmaxLen,
+                    &dwEntriesRead,
+                    &dwTotalEntries,
+                    &dwResumeHandle);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *ppBuffer = pBuffer;
+    *pdwEntriesRead = dwEntriesRead;
+    *pdwTotalEntries = dwTotalEntries;
+    *pdwResumeHandle = dwResumeHandle;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
+    }
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = 0;
+    }
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = 0;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -1106,7 +1581,27 @@ NetFileCloseW(
     DWORD  dwFileId            /* IN              */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrFileClose(pContext, pwszServername, dwFileId);
+    BAIL_ON_NETAPI_ERROR(status);
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -1166,6 +1661,45 @@ NetRemoteTODW(
     PBYTE* ppBuffer            /*    OUT          */
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS  status = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE           pBuffer = NULL;
+
+    if (!ppBuffer)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrRemoteTOD(pContext, pwszServername, &pBuffer);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *ppBuffer = pBuffer;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
 }
 
