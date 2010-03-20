@@ -131,8 +131,6 @@ main(
         	break;
 
         case NET_COMMAND_SHARE:
-            printf("net share\n");
-
             dwError = NetShare(argc, argv);
             BAIL_ON_LWUTIL_ERROR(dwError);
 
