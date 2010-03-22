@@ -10,3 +10,5 @@ liblwutilnetshare_la_CPPFLAGS = \
     @LWNETAPI_INCLUDES@ \
     @LWADVAPI_INCLUDES@ \
     $(AM_CPPFLAGS)
+
+liblwutilnetshare_la_LIBADD = -llsaclient
