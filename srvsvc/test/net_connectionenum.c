@@ -32,29 +32,73 @@
 
 
 NET_API_STATUS
-NetrFileClose(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT32 fileid
+NetConnectionEnum(
+    PSRVSVC_CONTEXT pContext,  /* IN              */
+    PCWSTR  pwszServername,    /* IN     OPTIONAL */
+    PCWSTR  pwszQualifier,     /* IN              */
+    DWORD   dwInfoLevel,       /* IN              */
+    PBYTE*  ppBuffer,          /*    OUT          */
+    DWORD   dwPrefmaxLen,      /* IN              */
+    PDWORD  pdwEntriesRead,    /*    OUT          */
+    PDWORD  pdwTotalEntries,   /*    OUT          */
+    PDWORD  pdwResumeHandle    /* IN OUT OPTIONAL */
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
+    NET_API_STATUS  status = 0;
+    PBYTE pBuffer        = NULL;
+    DWORD dwEntriesRead  = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = 0;
 
-    BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
+    if (!ppBuffer || !pdwEntriesRead || !pdwTotalEntries)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_WIN_ERROR(status);
+    }
 
-    DCERPC_CALL(status,
-                _NetrFileClose(
-                        pContext->hBinding,
-                        (wchar16_t *)servername,
-                        fileid));
+    status = NetrConnectionEnum(
+                    pContext,
+                    pwszServername,
+                    pwszQualifier,
+                    dwInfoLevel,
+                    &pBuffer,
+                    dwPrefmaxLen,
+                    &dwEntriesRead,
+                    &dwTotalEntries,
+                    &dwResumeHandle);
+    BAIL_ON_WIN_ERROR(status);
+
+    *ppBuffer = pBuffer;
+    *pdwEntriesRead = dwEntriesRead;
+    *pdwTotalEntries = dwTotalEntries;
+    *pdwResumeHandle = dwResumeHandle;
 
 cleanup:
+
     return status;
 
 error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
+    }
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = 0;
+    }
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = 0;
+    }
+
     goto cleanup;
 }
+
 
 
 /*

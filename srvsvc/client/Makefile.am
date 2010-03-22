@@ -11,6 +11,7 @@ libsrvsvc_la_SOURCES =        \
     netr_fileenum.c           \
     netr_filegetinfo.c        \
     netr_fileclose.c          \
+    netr_sessiondel.c         \
     netr_sessionenum.c        \
     netr_shareadd.c           \
     netr_shareenum.c          \

@@ -1389,8 +1389,8 @@ NET_API_STATUS
 NetrSessionEnum(
     PSRVSVC_CONTEXT pContext,          /* IN              */
     PCWSTR          pwszServername,    /* IN     OPTIONAL */
-    PWSTR           pwszUncClientname, /* IN     OPTIONAL */
-    PWSTR           pwszUsername,      /* IN     OPTIONAL */
+    PCWSTR          pwszUncClientname, /* IN     OPTIONAL */
+    PCWSTR          pwszUsername,      /* IN     OPTIONAL */
     DWORD           dwInfoLevel,       /* IN              */
     PBYTE*          ppBuffer,          /*    OUT          */
     DWORD           dwPrefmaxLen,      /* IN              */
@@ -1403,15 +1403,15 @@ NET_API_STATUS
 NetrSessionDel(
     PSRVSVC_CONTEXT pContext,          /* IN              */
     PCWSTR          pwszServername,    /* IN     OPTIONAL */
-    PWSTR           pwszUncClientname, /* IN     OPTIONAL */
-    PWSTR           pwszUsername       /* IN     OPTIONAL */
+    PCWSTR          pwszUncClientname, /* IN     OPTIONAL */
+    PCWSTR          pwszUsername       /* IN     OPTIONAL */
     );
 
 NET_API_STATUS
 NetrConnectionEnum(
     PSRVSVC_CONTEXT pContext,          /* IN              */
     PCWSTR          pwszServername,    /* IN     OPTIONAL */
-    PWSTR           pwszQualifier,     /* IN              */
+    PCWSTR          pwszQualifier,     /* IN              */
     DWORD           dwInfoLevel,       /* IN              */
     PBYTE*          ppBuffer,          /*    OUT          */
     DWORD           dwPrefmaxlen,      /* IN              */
@@ -1424,8 +1424,8 @@ NET_API_STATUS
 NetrFileEnum(
     PSRVSVC_CONTEXT pContext,          /* IN              */
     PCWSTR          pwszServername,    /* IN    OPTIONAL  */
-    PWSTR           pwszBasepath,      /* IN    OPTIONAL  */
-    PWSTR           pwszUsername,      /* IN    OPTIONAL  */
+    PCWSTR          pwszBasepath,      /* IN    OPTIONAL  */
+    PCWSTR          pwszUsername,      /* IN    OPTIONAL  */
     DWORD           dwInfoLevel,       /* IN              */
     PBYTE*          ppBuffer,          /*    OUT          */
     DWORD           dwPrefmaxlen,      /* IN              */

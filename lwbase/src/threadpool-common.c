@@ -53,7 +53,9 @@ AcquireDelegatePool(
         {
             .bDelegateTasks = FALSE,
             .lTaskThreads = -1,
-            .lWorkThreads = 0
+            .lWorkThreads = 0,
+            .ulTaskThreadStackSize = 0,
+            .ulWorkThreadStackSize = 0
         };
 
 
@@ -119,6 +121,8 @@ LwRtlCreateThreadPoolAttributes(
     pAttrs->bDelegateTasks = TRUE;
     pAttrs->lTaskThreads = -1;
     pAttrs->lWorkThreads = -4;
+    pAttrs->ulTaskThreadStackSize = 0;
+    pAttrs->ulWorkThreadStackSize = 0;
 
     *ppAttrs = pAttrs;
 
@@ -155,6 +159,12 @@ LwRtlSetThreadPoolAttribute(
         break;
     case LW_THREAD_POOL_OPTION_WORK_THREADS:
         pAttrs->lWorkThreads = va_arg(ap, LONG);
+        break;
+    case LW_THREAD_POOL_OPTION_TASK_THREAD_STACK_SIZE:
+        pAttrs->ulTaskThreadStackSize = va_arg(ap, ULONG);
+        break;
+    case LW_THREAD_POOL_OPTION_WORK_THREAD_STACK_SIZE:
+        pAttrs->ulWorkThreadStackSize = va_arg(ap, ULONG);
         break;
     default:
         status = STATUS_NOT_SUPPORTED;

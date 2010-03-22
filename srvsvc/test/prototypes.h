@@ -88,3 +88,57 @@ NetShareSetInfo(
     OUT PDWORD     pdwParmErr
     );
 
+NET_API_STATUS
+NetConnectionEnum(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN     OPTIONAL */
+    PCWSTR          pwszQualifier,     /* IN              */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer,          /*    OUT          */
+    DWORD           dwPrefmaxlen,      /* IN              */
+    PDWORD          pdwEntriesRead,    /*    OUT          */
+    PDWORD          pdwTotalEntries,   /*    OUT          */
+    PDWORD          pdwResumeHandle    /* IN OUT OPTIONAL */
+    );
+
+NET_API_STATUS
+NetSessionEnum(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN     OPTIONAL */
+    PCWSTR          pwszUncClientname, /* IN     OPTIONAL */
+    PCWSTR          pwszUsername,      /* IN     OPTIONAL */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer,          /*    OUT          */
+    DWORD           dwPrefmaxLen,      /* IN              */
+    PDWORD          pdwEntriesRead,    /*    OUT          */
+    PDWORD          pdwTotalEntries,   /*    OUT          */
+    PDWORD          pdwResumeHandle    /* IN OUT OPTIONAL */
+    );
+
+NET_API_STATUS
+NetFileEnum(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    PCWSTR          pwszBasepath,      /* IN    OPTIONAL  */
+    PCWSTR          pwszUsername,      /* IN    OPTIONAL  */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer,          /*    OUT          */
+    DWORD           dwPrefmaxlen,      /* IN              */
+    PDWORD          pwdEntriesRead,    /*    OUT          */
+    PDWORD          pdwTotalEntries,   /*    OUT          */
+    PDWORD          pdwResumeHandle    /* IN OUT OPTIONAL */
+    );
+
+NET_API_STATUS
+NetFileClose(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    DWORD           dwFileId           /* IN              */
+    );
+
+NET_API_STATUS
+NetRemoteTOD(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    PBYTE*          ppBuffer           /*    OUT          */
+    );

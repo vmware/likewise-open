@@ -37,28 +37,42 @@
  */
 
 /**
-@page example_fserv_source Source Code Walkthrough
+@page example_fserv_walkthrough Walkthrough
 
-@section common Common
+@section Overview
 
-Creating a message protocol requires the following:
+This guide will walk you line by line through the interesting bits of
+the Fserv, the example file server that uses LWMsg.  It is divided into
+three sections: common code used by both client and server, client code,
+and server code.
+
+@section Contents
+
+-# @subpage example_fserv_walkthrough_common
+-# @subpage example_fserv_walkthrough_client
+-# @subpage example_fserv_walkthrough_server
+
+@page example_fserv_walkthrough_common Common
+
+In order for the client and server to communicate, they must agree on a common
+message protocol.  Creating a message protocol requires the following:
 
 - A set of C data structures for exchanging information
 - A corresponding set of type specifications which describe
-  the layout and relationships of these structure
+  the layout and relationships of these structures
 - A protocol specification which binds a set of message tags
   and payload types together into a description of the protocol
 
 Because these elements are the same for both the client and server,
-they should be factored out into their own library in order to
-reduce memory usage at runtime.
+they are factored out into their own library in the interest of
+efficiency.
 
 The file <tt>include/protocol.h</tt> contains the basic C type
-definitions and message type enumeration for the Fserv message
+definitions and message tag enumeration for the Fserv message
 protocol.  The type and protocol specifications are contained
 in <tt>src/protocol.c</tt>.
 
-@subsection phs Message Structures
+@section phs Message Structures
 
 First, we define the types that will be used to transmit data
 between client and server:
@@ -78,7 +92,7 @@ structures.  This is because both can be represented as <tt>FileHandle</tt>s
 without being wrapped in an outer structure -- LWMsg permits any
 pointer or pointer-like type to be the payload of a message.
 
-@subsection mte Message Tag Enumeration
+@section mte Message Tag Enumeration
 
 We then enumerates all possible message tags.  These tags
 comprise the set of messages that may be sent between client and
@@ -99,7 +113,7 @@ to ensure that they are used appropriately and in the correct
 sequence.  Future versions may support encoding some restrictions
 directly into the protocol specification.
 
-@subsection ts Type Specification
+@section ts Type Specification
 
 Each C structure that we want to use in the message protocol must
 have a type specification describing it:
@@ -108,7 +122,7 @@ have a type specification describing it:
 @skip Begin type specifications
 @until End type specifications
 
-@subsection ps Protocol Specification
+@section ps Protocol Specification
 
 Finally, we need a protocol specification which binds together
 our enumerated set of messages tags and indicates the payload
@@ -117,13 +131,13 @@ type of each message.
 @skip Begin protocol specification
 @until End protocol specification
 
-@section c Client
+@page example_fserv_walkthrough_client Client
 
 The client API implementation is contained in <tt>src/fserv-client.c</tt>.
 It abstracts away the details of creating connections and exchanging
 messages in order to perform Fserv operations.
 
-@subsection connect Connecting
+@section connect Connecting
 
 The client creates an #LWMsgPeer structure and connects it
 to the local IPC server.  After this is done, any number of concurrent
@@ -160,7 +174,7 @@ Finally, we connect the peer node to the server:
 @skip Connect
 @until ;
 
-@subsection discon Disconnecting
+@section discon Disconnecting
 
 To disconnect from the server, the client simply disconnects the peer
 structure and then deletes it:
@@ -169,7 +183,7 @@ structure and then deletes it:
 @until ;
 @until ;
 
-@subsection open Opening a File
+@section open Opening a File
 
 Opening a file involves making a call to the server. First, we acquire a call handle
 from the peer structure:
@@ -210,6 +224,156 @@ and then the call handle is released.
 @until ;
 @until ;
 
-@section s Server
+@page example_fserv_walkthrough_server Server
+
+To implement the server, we must define call handler functions for each of the
+message types we defined in the protocol.  These handlers are bound together
+into a dispatch specification which associates each incoming message tag
+with a particular function:
+
+@dontinclude fserv/src/fserver-dispatch.c
+@skip Dispatch spec
+@until ;
+
+@section open Opening a file
+
+Let's examine the implementation of fserv_open_srv() call as an example:
+
+@dontinclude fserv/src/fserver-dispatch.c
+@skip Implementation of fserv_open
+@until fserv_open_srv
+@until )
+
+The handler takes four parameters:
+
+- A call handle representing the current call
+- The input parameters structure
+- The output parameters structure
+- A user data pointer
+
+The <tt>data</tt> field of the #LWMsgParams structure contains the actual
+payload of the call, so we cast it to the appropriate type:
+
+@skip OpenRequest* req =
+@until ;
+
+@subsection auth Authenticating the client
+
+We will need to perform a permissions check when opening a file.  This means
+querying for the identity of the caller.  In order to get the identity of the
+caller, we need access to the session through the #lwmsg_call_get_session() function:
+
+@skip LWMsgSession* session
+@until ;
+
+Now that we have the request parameters and the session, we can call a helper function
+to perform our permissions check.
+
+@skip Check permissions
+@until ;
+
+The <tt>fserv_check_permissions()</tt> function begins by extracting the peer security
+token from the session:
+
+@dontinclude fserv/src/fserver-dispatch.c
+@skip Extract security token
+@until ;
+
+If the token is NULL, the session was not authenticated and an error is returned.
+The #lwmsg_security_token_get_type() is used to query the type of the security token.
+For UNIX domain socket connections, it should be "local":
+
+@skip Check that session is authenticated
+@until }
+
+Now that we know we have a "local" security token, we can use #lwmsg_local_token_get_eid()
+to extract the effective uid and gid of the caller:
+
+@skip Extract uid and gid
+@until ;
+
+The rest of the function performs the actual permission check.  If <tt>fserv_check_permissions()</tt>
+returns a failure code, we allocate a state reply data structure and bail out on an allocation error:
+
+@skip Allocate status reply
+@until }
+
+Finally, we fill in the reply and set the out parameters structure.  The <tt>tag</tt> is set
+to the generic error reply tag defined in the protocol, and the <tt>data</tt> is set to the
+status reply structure.
+
+@skip Set output parameters
+@until ;
+@until ;
+@until ;
+
+@subsection comp Completing the call
+
+If the permissions check passed, we open the file:
+
+@skip Open file
+@until ;
+
+If the file open fails, we set the output parameters to an error status response as before.
+If it succeeds, we allocate and fill in a handle structure:
+
+@skip Create handle
+@until Fill in
+@until ;
+@until ;
+
+Before the handle can be given to the caller, it must be registered with the session.
+This is performed with the #lwmsg_session_register_handle() call:
+
+@skip Register handle
+@until ;
+
+Notice that the second parameter to the call is the string form of the name passed to
+#LWMSG_HANDLE() in the type specification.  The fourth parameter is a callback function
+which will be invoked when the handle is no longer used.  A handle can become unused
+explicitly by dropping its reference count to zero.  A calling client disconnecting
+from our server will terminate its session and cause the handle to become unused
+implicitly.  In either case, the callback will be invoked to clean up the unused handle.
+
+Now that the handle is registered, it can safely be placed in the output parameters:
+
+@skip Set output
+@until ;
+@until ;
+
+Before returning, there is one last step to perform.  All handles have a reference count
+which is used to track how many users of the handle remain.  The reference count can be
+increased with #lwmsg_session_retain_handle() and decreased with #lwmsg_session_release_handle().
+When a handle is registered, it has an implicit reference count of 1.  Because we are
+about to give a reference to the handle to the caller, we need to increment the reference count:
+
+@skip Retain handle
+@until ;
+
+Abstractly, the handle will have two references after the call returns.  The client's reference
+represents its ability to use to the handle in subsequent calls to the server.  The server's
+reference represents its willingness to accept the handle in subsequent calls from the client.
+When the client makes a call to close the handle, they will both release their references and the
+handle will be cleaned up.
+
+Concretely, the picture is slightly different.  The LWMsg call discipline specifies that the caller
+assumes ownership of the output parameters of a call and is responsible for freeing them.  Because
+the server can only send the output parameters to the client as a stream of serialized data, any
+server-side memory must be automatically freed afterwards.  The client then allocates its
+own memory and unpacks the serialized data into it.
+
+Analagously, the server will send a serialized representation of the handle to the client and then
+automatically decrement the reference count on the handle to one.  The client will create a proxy
+handle structure on its end with an implicit reference count of one.  Both the client and server
+will believe the handle to have exactly one reference, and therefore both will keep the handle
+alive for use in subsequent calls.  When the client makes a close call, they will both drop their
+single references; the server will clean up the physical handle and the client will clean up its proxy.
+
+These memory ownership and handle reference count semantics are consistent regardless of the locations
+of the client and server.  For example, the client and server could be in the same process.  As
+an optimization, output parameters from a call could be given directly to the client without
+serialization.  The client would assume direct ownership of any memory and would receive a reference to
+the physical handle, not a proxy.  Both client and server would agree that the handle has two references,
+and the handle would be cleaned up when both reference are released as part of a close call.
 
 **/

@@ -1,5 +1,10 @@
+/* Editor Settings: expandtabs and use 4 spaces for indentation
+ * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
+ * -*- mode: c, c-basic-offset: 4 -*- */
+
 /*
- * Copyright (c) Likewise Software.  All rights Reserved.
+ * Copyright Likewise Software    2004-2008
+ * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -7,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -23,22 +28,32 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Module Name:
- *
- *        example.doxy
- *
- * Abstract:
- *
- *        Examples documentation page
- *
- * Authors: Brian Koropoff (bkoropoff@likewisesoftware.com)
- *
- */
-/**
-@page example Examples
+#include "includes.h"
 
-There is currently a single example program available:
+NET_API_STATUS
+NetrSessionDel(
+    PSRVSVC_CONTEXT pContext,  /* IN              */
+    PCWSTR  pwszServername,    /* IN     OPTIONAL */
+    PCWSTR  pwszUncClientname, /* IN     OPTIONAL */
+    PCWSTR  pwszUsername       /* IN     OPTIONAL */
+    )
+{
+    NET_API_STATUS err = ERROR_SUCCESS;
 
-- @subpage example_fserv
-**/
+    BAIL_ON_INVALID_PTR(pContext, err);
+    BAIL_ON_INVALID_PTR(pContext->hBinding, err);
+
+    DCERPC_CALL(err,
+                _NetrSessionDel(
+                        pContext->hBinding,
+                        pwszServername,
+                        pwszUncClientname,
+                        pwszUsername));
+
+cleanup:
+
+    return err;
+
+error:
+    goto cleanup;
+}

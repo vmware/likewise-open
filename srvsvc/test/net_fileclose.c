@@ -32,30 +32,25 @@
 
 
 NET_API_STATUS
-NetrFileClose(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT32 fileid
+NetFileClose(
+    PSRVSVC_CONTEXT pContext,  /* IN              */
+    PCWSTR  pwszServername,    /* IN    OPTIONAL  */
+    DWORD  dwFileId            /* IN              */
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
+    NET_API_STATUS  status = 0;
 
-    BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
-
-    DCERPC_CALL(status,
-                _NetrFileClose(
-                        pContext->hBinding,
-                        (wchar16_t *)servername,
-                        fileid));
+    status = NetrFileClose(pContext, pwszServername, dwFileId);
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
+
     return status;
 
 error:
+
     goto cleanup;
 }
-
 
 /*
 local variables:

@@ -218,7 +218,12 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
         [in,out,unique] UINT32 *resume_handle
     );
 
-    void _srvsvc_FunctionD();
+    /* Function: 0x0d */
+    WINERR _NetrSessionDel(
+        [in,string,unique] wchar16_t *server_name,
+        [in,string,unique] wchar16_t *unc_client_name,
+        [in,string,unique] wchar16_t *username
+    );
 
     /* Function: 0x0e */
     WINERR _NetrShareAdd(

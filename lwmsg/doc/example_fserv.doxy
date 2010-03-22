@@ -37,13 +37,14 @@
  */
 
 /**
-@page example_fserv Fserv -- Simple File Server
+@page example_fserv Tutorial
 
 @section Overview
-<tt>Fserv</tt> is a simple example which demonstrates how to
-use <tt>LWMsg</tt> to implement a file server daemon and client
-API that supports open/read/write/close operations.  It provides
-good coverage of most of <tt>LWMsg</tt>'s features:
+This tutorial demonstrates how to use <tt>LWMsg</tt> to implement a
+file server daemon and client API that supports open, read, write, and close
+operations.  Although a file server that only accepts clients over local
+IPC has limited use in the real world, it provides good coverage of most
+of <tt>LWMsg</tt>'s features:
 
 - Type specification
 - Authentication using security tokens
@@ -51,12 +52,12 @@ good coverage of most of <tt>LWMsg</tt>'s features:
 - Implementing a multi-threaded server
 - Implementing a multi-threaded client API
 
-Fserv is available in the <tt>LWMsg</tt> source distribution in the
-<tt>example/fserv</tt> subdirectory.
+This example is available in the <tt>LWMsg</tt> source distribution in the
+<tt>example/fserv</tt> subdirectory where it can be built and run.
 
 @section Contents
 
 -# @subpage example_fserv_layout
--# @subpage example_fserv_source
+-# @subpage example_fserv_walkthrough
 
 **/
