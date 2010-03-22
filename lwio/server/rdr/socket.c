@@ -528,31 +528,34 @@ SMBSocketReceiveAndUnmarshall(
     NTSTATUS ntStatus = 0;
     uint32_t readLen = 0;
 
-    while (pPacket->bufferUsed < sizeof(NETBIOS_HEADER))
+    if (pPacket->bufferUsed < sizeof(NETBIOS_HEADER))
     {
-        ntStatus = SMBSocketRead(
-            pSocket,
-            pPacket->pRawBuffer + pPacket->bufferUsed,
-            sizeof(NETBIOS_HEADER) - pPacket->bufferUsed,
-            &readLen);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        if (readLen == 0)
+        while (pPacket->bufferUsed < sizeof(NETBIOS_HEADER))
         {
-            ntStatus = STATUS_END_OF_FILE;
+            ntStatus = SMBSocketRead(
+                pSocket,
+                pPacket->pRawBuffer + pPacket->bufferUsed,
+                sizeof(NETBIOS_HEADER) - pPacket->bufferUsed,
+                &readLen);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            if (readLen == 0)
+            {
+                ntStatus = STATUS_END_OF_FILE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pPacket->bufferUsed += readLen;
         }
 
-        pPacket->bufferUsed += readLen;
-    }
+        pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
+        pPacket->pNetBIOSHeader->len = htonl(pPacket->pNetBIOSHeader->len);
 
-    pPacket->pNetBIOSHeader = (NETBIOS_HEADER *) pPacket->pRawBuffer;
-    pPacket->pNetBIOSHeader->len = htonl(pPacket->pNetBIOSHeader->len);
-
-    if ((uint64_t) pPacket->pNetBIOSHeader->len + (uint64_t) pPacket->bufferUsed > (uint64_t) pPacket->bufferLen)
-    {
-        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
-        BAIL_ON_NT_STATUS(ntStatus);
+        if ((uint64_t) pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER) > (uint64_t) pPacket->bufferLen)
+        {
+            ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
 
     while (pPacket->bufferUsed < pPacket->pNetBIOSHeader->len + sizeof(NETBIOS_HEADER))
