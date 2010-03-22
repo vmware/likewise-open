@@ -24,8 +24,8 @@ __COMP_LIST="krb5 openldap libcrypto ${_UUID} ${_ICONV} libunistr lwbase \
     lwmapsecurity lwmsg centutils \
     sqlite libtdb lwreg pstore \
     lwadvapi netlogon lwio lwsm libkeytab libgss \
-    dcerpc lwrpcrt librpc eventlog lsass \
-    lwdns domainjoin srvsvc \
+    dcerpc lwrpcrt librpc eventlog lsass srvsvc \
+    lwdns domainjoin lwnetapi lwtools \
 "
 
 function LikewiseOpenVersion
