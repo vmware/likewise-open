@@ -114,7 +114,6 @@ PvfsQueryFileBasicInfo(
     PPVFS_CCB pCcb = NULL;
     PFILE_BASIC_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    PVFS_STAT Stat = {0};
 
     /* Sanity checks */
 
@@ -132,7 +131,6 @@ PvfsQueryFileBasicInfo(
     BAIL_ON_NT_STATUS(ntError);
 #endif
 
-
     if (Args.Length < sizeof(*pFileInfo))
     {
         ntError = STATUS_BUFFER_TOO_SMALL;
@@ -143,31 +141,15 @@ PvfsQueryFileBasicInfo(
 
     /* Real work starts here */
 
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Timestamps */
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastAccessTime, Stat.s_atime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->LastWriteTime, Stat.s_mtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->ChangeTime, Stat.s_ctime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->CreationTime, Stat.s_crtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->FileAttributes);
+    ntError = PvfsCcbQueryFileBasicInformation(pCcb, pFileInfo);
     BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
 cleanup:
-    if (pCcb) {
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -190,10 +172,6 @@ PvfsSetFileBasicInfo(
     PPVFS_CCB pCcb = NULL;
     PFILE_BASIC_INFORMATION pFileInfo = NULL;
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
-    LONG64 WriteTime = 0;
-    LONG64 AccessTime = 0;
-    FILE_NOTIFY_CHANGE NotifyFilter = FILE_NOTIFY_CHANGE_LAST_WRITE |
-                                      FILE_NOTIFY_CHANGE_LAST_ACCESS;
 
     /* Sanity checks */
 
@@ -206,7 +184,8 @@ PvfsSetFileBasicInfo(
     BAIL_ON_NT_STATUS(ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
-    {        ntError = STATUS_BUFFER_TOO_SMALL;
+    {
+        ntError = STATUS_BUFFER_TOO_SMALL;
         BAIL_ON_NT_STATUS(ntError);
     }
 
@@ -214,73 +193,15 @@ PvfsSetFileBasicInfo(
 
     /* Real work starts here */
 
-    ntError = PvfsValidatePath(pCcb->pFcb, &pCcb->FileId);
+    ntError = PvfsCcbSetFileBasicInformation(pCcb, pFileInfo);
     BAIL_ON_NT_STATUS(ntError);
-
-    /* We cant's set the Change Time so ignore it */
-
-    WriteTime  = pFileInfo->LastWriteTime;
-    AccessTime = pFileInfo->LastAccessTime;
-
-    /* Ignore 0xffffffff */
-
-    if (WriteTime == (LONG64)-1) {
-        WriteTime = 0;
-    }
-
-    if (AccessTime == (LONG64)-1) {
-        AccessTime = 0;
-    }
-
-    /* Save for "sticky" WriteTime sematics */
-
-    if (WriteTime != 0) {
-        pCcb->pFcb->LastWriteTime = WriteTime;
-    }
-
-    /* Check if we need to preserve any original timestamps */
-
-    if (WriteTime == 0 || AccessTime == 0) {
-        PVFS_STAT Stat = {0};
-
-        ntError = PvfsSysFstat(pCcb->fd, &Stat);
-        BAIL_ON_NT_STATUS(ntError);
-
-        if (WriteTime == 0) {
-            NotifyFilter &= ~FILE_NOTIFY_CHANGE_LAST_WRITE;
-            ntError = PvfsUnixToWinTime(&WriteTime, Stat.s_mtime);
-            BAIL_ON_NT_STATUS(ntError);
-        }
-
-        if (AccessTime == 0) {
-            NotifyFilter &= ~FILE_NOTIFY_CHANGE_LAST_ACCESS;
-            ntError = PvfsUnixToWinTime(&AccessTime, Stat.s_atime);
-            BAIL_ON_NT_STATUS(ntError);
-        }
-    }
-
-    ntError = PvfsSysUtime(pCcb->pszFilename, WriteTime, AccessTime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    if (pFileInfo->FileAttributes != 0) {
-        ntError = PvfsSetFileAttributes(pCcb, pFileInfo->FileAttributes);
-        BAIL_ON_NT_STATUS(ntError);
-    }
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
     ntError = STATUS_SUCCESS;
 
-    if (NotifyFilter != 0)
-    {
-        PvfsNotifyScheduleFullReport(
-            pCcb->pFcb,
-            NotifyFilter,
-            FILE_ACTION_MODIFIED,
-            pCcb->pFcb->pszFilename);
-    }
-
 cleanup:
-    if (pCcb) {
+    if (pCcb)
+    {
         PvfsReleaseCCB(pCcb);
     }
 
@@ -298,4 +219,5 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+
 

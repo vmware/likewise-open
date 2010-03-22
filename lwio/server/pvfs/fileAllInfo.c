@@ -131,26 +131,16 @@ PvfsQueryFileAllInfo(
 
     /* Real work starts here */
 
-    ntError = PvfsSysFstat(pCcb->fd, &Stat);
-    BAIL_ON_NT_STATUS(ntError);
-
-    /* Basic */
-    ntError = PvfsUnixToWinTime(&pFileInfo->BasicInformation.LastAccessTime, Stat.s_atime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->BasicInformation.LastWriteTime, Stat.s_mtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->BasicInformation.ChangeTime, Stat.s_ctime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsUnixToWinTime(&pFileInfo->BasicInformation.CreationTime, Stat.s_crtime);
-    BAIL_ON_NT_STATUS(ntError);
-
-    ntError = PvfsGetFileAttributes(pCcb, &pFileInfo->BasicInformation.FileAttributes);
+    ntError = PvfsCcbQueryFileBasicInformation(
+                  pCcb,
+                  &pFileInfo->BasicInformation);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Standard */
+
+    ntError = PvfsSysFstat(pCcb->fd, &Stat);
+    BAIL_ON_NT_STATUS(ntError);
+
     bDeletePending = PvfsFcbIsPendingDelete(pCcb->pFcb);
 
     if (PVFS_IS_DIR(pCcb))

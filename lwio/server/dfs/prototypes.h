@@ -162,6 +162,113 @@ DfsFsIoControl(
     );
 
 
+//
+// From fcb.c
+//
+
+NTSTATUS
+DfsInitializeFCBTable(
+    VOID
+    );
+
+NTSTATUS
+DfsInitializeFCBTable(
+    VOID
+    );
+
+NTSTATUS
+DfsAllocateFCB(
+    PDFS_FCB *ppFcb
+    );
+
+NTSTATUS
+DfsAddReferralFCB(
+    PDFS_FCB pFcb,
+    PSTR pszReferral
+    );
+
+PDFS_FCB
+DfsReferenceFCB(
+    IN PDFS_FCB pFcb
+    );
+
+VOID
+DfsReleaseFCB(
+    PDFS_FCB *ppFcb
+    );
+
+NTSTATUS
+DfsFindFCB(
+    PDFS_FCB *ppFcb,
+    PSTR pszFilename
+    );
+
+NTSTATUS
+DfsCreateFCB(
+    OUT PDFS_FCB *ppFcb,
+    IN  PSTR pszPathname
+    );
+
+NTSTATUS
+DfsAddCCBToFCB(
+    PDFS_FCB pFcb,
+    PDFS_CCB pCcb
+    );
+
+NTSTATUS
+DfsRemoveCCBFromFCB(
+    PDFS_FCB pFcb,
+    PDFS_CCB pCcb
+    );
+
+
+//
+// From ccb.c
+//
+
+NTSTATUS
+DfsAllocateCCB(
+    PDFS_CCB *ppCcb
+    );
+
+NTSTATUS
+DfsFreeCCB(
+    PDFS_CCB pCcb
+    );
+
+VOID
+DfsReleaseCCB(
+    PDFS_CCB pCcb
+    );
+
+PDFS_CCB
+DfsReferenceCCB(
+    PDFS_CCB pCcb
+    );
+
+NTSTATUS
+DfsStoreCCB(
+    IO_FILE_HANDLE FileHandle,
+    PDFS_CCB pCcb
+    );
+
+NTSTATUS
+DfsAcquireCCB(
+    IO_FILE_HANDLE FileHandle,
+    PDFS_CCB * ppCcb
+    );
+
+
+//
+// From config.c
+//
+
+NTSTATUS
+DfsConfigRegistryInit(
+    VOID
+    );
+
+
 #endif /* __DFS_PROTOTYPES_H__ */
 
 
@@ -173,3 +280,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+
