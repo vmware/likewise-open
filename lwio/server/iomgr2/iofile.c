@@ -293,7 +293,17 @@ IopFileObjectRundown(
     if (IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_CLOSE_DONE))
     {
         LWIO_ASSERT(IsSetFlag(pFileObject->Flags, FILE_OBJECT_FLAG_RUNDOWN));
-        LWIO_ASSERT(1 == pFileObject->ReferenceCount);
+        // Note that there can be IRP references for completed IRPs sitting
+        // around where the caller has not yet gotten rid of the IRP by
+        // calling IoDereferenceAsyncCancelContext().  So we cannot assert
+        // that (1 == pFileObject->ReferenceCount).  Therefore, we do the
+        // next best thing and check DispatchedIrpCount.  Technically, if
+        // someone got far enough into a new call that they created an IRP,
+        // they will also have a new IRP file objeject reference.  However,
+        // the new IRP will fail to dispatch.  While that is a logic bug
+        // in the caller, we cannot trap those sorts of bugs via asserts
+        // in the I/O manager.
+        LWIO_ASSERT(0 == pFileObject->DispatchedIrpCount);
 
         IopFileObjectUnlock(pFileObject);
         isLocked = FALSE;

@@ -176,6 +176,8 @@ typedef struct _LWIO_SRV_TREE
 
     PSRV_SHARE_INFO   pShareInfo;
 
+    IO_FILE_HANDLE    hFile;
+
     PLWIO_SRV_FILE    lruFile[SRV_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pFileCollection;
@@ -196,6 +198,8 @@ typedef struct _LWIO_SRV_TREE_2
     ULONG             ulTid;
 
     PSRV_SHARE_INFO   pShareInfo;
+
+    IO_FILE_HANDLE    hFile;
 
     PLWIO_SRV_FILE_2  lruFile[SRV_LRU_CAPACITY];
 
