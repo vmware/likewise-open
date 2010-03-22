@@ -471,6 +471,11 @@ SrvTree2Free(
         LwRtlRBTreeFree(pTree->pFileCollection);
     }
 
+    if (pTree->hFile)
+    {
+        IoCloseFile(pTree->hFile);
+    }
+
     if (pTree->pShareInfo)
     {
         SrvShareReleaseInfo(pTree->pShareInfo);

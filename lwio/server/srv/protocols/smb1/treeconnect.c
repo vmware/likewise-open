@@ -67,6 +67,12 @@ SrvReleaseTreeConnectStateAsync(
 
 static
 NTSTATUS
+SrvCreateTreeRootHandle(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
 SrvBuildTreeConnectResponse(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -226,6 +232,22 @@ SrvProcessTreeConnectAndX(
             BAIL_ON_NT_STATUS(ntStatus);
 
             pTConState->bRemoveTreeFromSession = TRUE;
+
+            pTConState->stage = SRV_TREE_CONNECT_CREATE_TREE_ROOT_HANDLE;
+
+            // Intentional fall through
+
+        case SRV_TREE_CONNECT_CREATE_TREE_ROOT_HANDLE:
+
+            if (pTConState->pTree->pShareInfo->service ==
+                    SHARE_SERVICE_DISK_SHARE)
+            {
+                ntStatus = pTConState->ioStatusBlock.Status;
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                ntStatus = SrvCreateTreeRootHandle(pExecContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO;
 
@@ -501,6 +523,71 @@ SrvReleaseTreeConnectStateAsync(
 
 static
 NTSTATUS
+SrvCreateTreeRootHandle(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS                   ntStatus     = STATUS_SUCCESS;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TREE_CONNECT_STATE_SMB_V1 pTConState  = NULL;
+    BOOLEAN                        bInLock     = FALSE;
+
+    pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pTConState->fileName.FileName)
+    {
+        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTConState->pShareInfo->mutex);
+
+        ntStatus = SrvAllocateStringW(
+                        pTConState->pShareInfo->pwszPath,
+                        &pTConState->fileName.FileName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_UNLOCK_RWMUTEX(bInLock, &pTConState->pShareInfo->mutex);
+    }
+
+    if (!pTConState->pTree->hFile)
+    {
+        SrvPrepareTreeConnectStateAsync(pTConState, pExecContext);
+
+        ntStatus = SrvIoCreateFile(
+                        pTConState->pTree->pShareInfo,
+                        &pTConState->pTree->hFile,
+                        pTConState->pAcb,
+                        &pTConState->ioStatusBlock,
+                        pTConState->pSession->pIoSecurityContext,
+                        &pTConState->fileName,
+                        pTConState->pSecurityDescriptor,
+                        pTConState->pSecurityQOS,
+                        FILE_READ_ATTRIBUTES,
+                        0,
+                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+                        FILE_OPEN,
+                        0,
+                        NULL, /* EA Buffer */
+                        0,    /* EA Length */
+                        &pTConState->pEcpList
+                        );
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvReleaseTreeConnectStateAsync(pTConState); // completed synchronously
+    }
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTConState->pShareInfo->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
 SrvBuildTreeConnectResponse(
     PSRV_EXEC_CONTEXT pExecContext
     )
@@ -660,50 +747,9 @@ SrvGetNativeFilesystem(
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_TREE_CONNECT_STATE_SMB_V1 pTConState  = NULL;
     PFILE_FS_ATTRIBUTE_INFORMATION pFsAttrInfo = NULL;
-    BOOLEAN  bInLock = FALSE;
     BOOLEAN  bContinue = TRUE;
 
     pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V1)pCtxSmb1->hState;
-
-    if (!pTConState->fileName.FileName)
-    {
-        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTConState->pShareInfo->mutex);
-
-        ntStatus = SrvAllocateStringW(
-                        pTConState->pShareInfo->pwszPath,
-                        &pTConState->fileName.FileName);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_RWMUTEX(bInLock, &pTConState->pShareInfo->mutex);
-    }
-
-    if (!pTConState->hFile)
-    {
-        SrvPrepareTreeConnectStateAsync(pTConState, pExecContext);
-
-        ntStatus = SrvIoCreateFile(
-                        pTConState->pTree->pShareInfo,
-                        &pTConState->hFile,
-                        pTConState->pAcb,
-                        &pTConState->ioStatusBlock,
-                        pTConState->pSession->pIoSecurityContext,
-                        &pTConState->fileName,
-                        pTConState->pSecurityDescriptor,
-                        pTConState->pSecurityQOS,
-                        FILE_READ_ATTRIBUTES,
-                        0,
-                        FILE_ATTRIBUTE_NORMAL,
-                        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
-                        FILE_OPEN,
-                        0,
-                        NULL, /* EA Buffer */
-                        0,    /* EA Length */
-                        &pTConState->pEcpList
-                        );
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        SrvReleaseTreeConnectStateAsync(pTConState); // completed synchronously
-    }
 
     if (!pTConState->pVolumeInfo)
     {
@@ -748,7 +794,7 @@ SrvGetNativeFilesystem(
         SrvPrepareTreeConnectStateAsync(pTConState, pExecContext);
 
         ntStatus = IoQueryVolumeInformationFile(
-                        pTConState->hFile,
+                        pTConState->pTree->hFile,
                         pTConState->pAcb,
                         &pTConState->ioStatusBlock,
                         pTConState->pVolumeInfo,
@@ -790,8 +836,6 @@ SrvGetNativeFilesystem(
            pFsAttrInfo->FileSystemNameLength);
 
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTConState->pShareInfo->mutex);
 
     return ntStatus;
 
@@ -849,11 +893,6 @@ SrvFreeTreeConnectState(
     if (pTConState->pShareInfo)
     {
         SrvShareReleaseInfo(pTConState->pShareInfo);
-    }
-
-    if (pTConState->hFile)
-    {
-        IoCloseFile(pTConState->hFile);
     }
 
     if (pTConState->pszService2)

@@ -660,6 +660,11 @@ SrvTreeFree(
         LwRtlRBTreeFree(pTree->pAsyncStateCollection);
     }
 
+    if (pTree->hFile)
+    {
+        IoCloseFile(pTree->hFile);
+    }
+
     if (pTree->pShareInfo)
     {
         SrvShareReleaseInfo(pTree->pShareInfo);

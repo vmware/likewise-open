@@ -156,6 +156,7 @@ typedef enum
 {
     SRV_TREE_CONNECT_STAGE_SMB_V1_INITIAL = 0,
     SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO,
+    SRV_TREE_CONNECT_CREATE_TREE_ROOT_HANDLE,
     SRV_TREE_CONNECT_STAGE_SMB_V1_QUERY_INFO_COMPLETED,
     SRV_TREE_CONNECT_STAGE_SMB_V1_DONE
 } SRV_TREE_CONNECT_STAGE_SMB_V1;
@@ -182,7 +183,6 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V1
     PVOID                          pSecurityDescriptor;
     PVOID                          pSecurityQOS;
     PIO_ECP_LIST                   pEcpList;
-    IO_FILE_HANDLE                 hFile;
 
     PSRV_SHARE_INFO                pShareInfo;
     PLWIO_SRV_SESSION              pSession;
