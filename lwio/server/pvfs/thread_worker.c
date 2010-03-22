@@ -207,9 +207,7 @@ PvfsWorkerDoWork(
 
         PvfsFreeWorkContext(&pWorkCtx);
 
-#ifdef _PVFS_DEVELOPER_DEBUG
         InterlockedIncrement(&gWorkPool.Available);
-#endif
     }
 
     return NULL;
