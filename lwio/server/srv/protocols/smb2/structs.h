@@ -710,6 +710,45 @@ typedef struct
 } __attribute__((__packed__)) SMB2_NOTIFY_CHANGE_HEADER,
                              *PSMB2_NOTIFY_CHANGE_HEADER;
 
+typedef enum
+{
+    SRV_TREE_CONNECT_STAGE_SMB_V2_INITIAL = 0,
+    SRV_TREE_CONNECT_STAGE_SMB_V2_CREATE_TREE_ROOT_HANDLE,
+    SRV_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE,
+    SRV_TREE_CONNECT_STAGE_SMB_V2_DONE
+} SRV_TREE_CONNECT_STAGE_SMB_V2;
+
+typedef struct _SRV_TREE_CONNECT_STATE_SMB_V2
+{
+    LONG                          refCount;
+
+    pthread_mutex_t               mutex;
+    pthread_mutex_t*              pMutex;
+
+    SRV_TREE_CONNECT_STAGE_SMB_V2 stage;
+
+    IO_STATUS_BLOCK               ioStatusBlock;
+
+    IO_ASYNC_CONTROL_BLOCK        acb;
+    PIO_ASYNC_CONTROL_BLOCK       pAcb;
+
+    PSMB2_TREE_CONNECT_REQUEST_HEADER pRequestHeader; // Do not free
+
+    PWSTR                         pwszPath;
+
+    PVOID                         pSecurityDescriptor;
+    PVOID                         pSecurityQOS;
+    PIO_ECP_LIST                  pEcpList;
+
+    PLWIO_SRV_SESSION_2           pSession;
+    PLWIO_SRV_TREE_2              pTree;
+
+    IO_FILE_NAME                  fileName;
+
+    BOOLEAN                       bRemoveTreeFromSession;
+
+} SRV_TREE_CONNECT_STATE_SMB_V2, *PSRV_TREE_CONNECT_STATE_SMB_V2;
+
 typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
 typedef struct _SRV_OPLOCK_INFO

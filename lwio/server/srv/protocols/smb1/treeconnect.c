@@ -233,11 +233,12 @@ SrvProcessTreeConnectAndX(
 
             pTConState->bRemoveTreeFromSession = TRUE;
 
-            pTConState->stage = SRV_TREE_CONNECT_CREATE_TREE_ROOT_HANDLE;
+            pTConState->stage =
+                    SRV_TREE_CONNECT_STAGE_SMB_V1_CREATE_TREE_ROOT_HANDLE;
 
             // Intentional fall through
 
-        case SRV_TREE_CONNECT_CREATE_TREE_ROOT_HANDLE:
+        case SRV_TREE_CONNECT_STAGE_SMB_V1_CREATE_TREE_ROOT_HANDLE:
 
             if (pTConState->pTree->pShareInfo->service ==
                     SHARE_SERVICE_DISK_SHARE)
@@ -249,7 +250,8 @@ SrvProcessTreeConnectAndX(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO;
+            pTConState->stage =
+                    SRV_TREE_CONNECT_STAGE_SMB_V1_ATTEMPT_QUERY_INFO;
 
             // Intentional fall through
 
@@ -263,7 +265,8 @@ SrvProcessTreeConnectAndX(
             ntStatus = SrvQueryTreeConnectInfo(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V1_QUERY_INFO_COMPLETED;
+            pTConState->stage =
+                    SRV_TREE_CONNECT_STAGE_SMB_V1_QUERY_INFO_COMPLETED;
 
             // Intentional fall through
 
