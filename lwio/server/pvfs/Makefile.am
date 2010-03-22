@@ -31,6 +31,7 @@ libpvfs_sys_la_SOURCES = \
     create_device.c \
     alloc.c \
     ccb.c \
+    ccb_fileinfo.c \
     fcb.c \
     errno.c \
     syswrap.c \

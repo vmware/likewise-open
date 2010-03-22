@@ -641,6 +641,21 @@ PvfsConfigRegistryInit(
     );
 
 
+/* From ccb_fileinfo.c */
+
+NTSTATUS
+PvfsCcbQueryFileBasicInformation(
+    PPVFS_CCB pCcb,
+    PFILE_BASIC_INFORMATION pFileInfo
+    );
+
+NTSTATUS
+PvfsCcbSetFileBasicInformation(
+    PPVFS_CCB pCcb,
+    PFILE_BASIC_INFORMATION pFileInfo
+    );
+
+
 #endif /* __PVFS_H__ */
 
 
