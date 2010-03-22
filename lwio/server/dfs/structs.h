@@ -55,6 +55,13 @@ typedef struct _DFS_OBJECT_COUNTER
 
 } DFS_OBJECT_COUNTER, *PDFS_OBJECT_COUNTER;
 
+typedef struct _DFS_FCB_TABLE
+{
+    pthread_rwlock_t rwLock;
+
+    PLWRTL_RB_TREE pFcbTree;
+
+} DFS_FCB_TABLE, *PDFS_FCB_TABLE;
 
 typedef struct _DFS_IRP_CONTEXT DFS_IRP_CONTEXT, *PDFS_IRP_CONTEXT;
 
@@ -74,6 +81,37 @@ struct _DFS_IRP_CONTEXT
 
     PIRP pIrp;
 };
+
+typedef struct _DFS_FCB
+{
+    LONG RefCount;
+
+    /* ControlBlock */
+    pthread_mutex_t ControlBlock;   /* For ensuring atomic operations
+                                       on an individual FCB */
+    PSTR pszPathname;
+    BOOLEAN bRemoved;
+    /* End of ControlBlock */
+
+    /* rwCcbLock */
+    pthread_rwlock_t rwCcbLock;     /* For managing the CCB list */
+    PDFS_LIST pCcbList;
+    /* End rwCcbLock */
+
+} DFS_FCB, *PDFS_FCB;
+
+typedef struct _DFS_CCB
+{
+    LW_LIST_LINKS FcbList;
+
+    pthread_mutex_t ControlBlock;   /* Use for CCB SetFileInfo operations */
+
+    LONG RefCount;
+    PDFS_FCB pFcb;
+
+    PSTR pszPathname;
+
+} DFS_CCB, *PDFS_CCB;
 
 
 #endif    /* _DFS_STRUCTS_H */

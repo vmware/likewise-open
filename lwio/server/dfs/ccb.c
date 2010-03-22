@@ -7,7 +7,6 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
-:q
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or (at
  * your option) any later version.
@@ -34,75 +33,45 @@
  *
  * Module Name:
  *
- *        driver.c
+ *        ccb.c
  *
  * Abstract:
  *
  *        Likewise Distributed File System Driver (DFS)
  *
- *        Driver Entry Function
+ *        Create Control Block routineus
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
 #include "dfs.h"
 
-/* Forward declarations */
-
-static
-VOID
-DfsDriverShutdown(
-    IN IO_DRIVER_HANDLE DriverHandle
-    );
-
-static
-NTSTATUS
-DfsDriverDispatch(
-    IN IO_DEVICE_HANDLE DeviceHandle,
-    IN PIRP pIrp
-    );
-
-static NTSTATUS
-DfsDriverInitialize(
-    VOID
-    );
-
-
 
 /***********************************************************************
  **********************************************************************/
 
 NTSTATUS
-IO_DRIVER_ENTRY(dfs)(
-    IN IO_DRIVER_HANDLE DriverHandle,
-    IN ULONG InterfaceVersion
+DfsAllocateCCB(
+    PDFS_CCB *ppCcb
     )
 {
     NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
-    IO_DEVICE_HANDLE deviceHandle = NULL;
+    PDFS_CCB pCcb = NULL;
 
-    if (IO_DRIVER_ENTRY_INTERFACE_VERSION != InterfaceVersion)
-    {
-        ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    *ppCcb = NULL;
 
-    ntStatus = IoDriverInitialize(
-                  DriverHandle,
-                  NULL,
-                  DfsDriverShutdown,
-                  DfsDriverDispatch);
+    ntStatus = DfsAllocateMemory((PVOID*)&pCcb, sizeof(DFS_CCB));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = IoDeviceCreate(
-                   &deviceHandle,
-                   DriverHandle,
-                   "dfs",
-                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pthread_mutex_init(&pCcb->ControlBlock, NULL);
 
-    ntStatus = DfsDriverInitialize();
-    BAIL_ON_NT_STATUS(ntStatus);
+    pCcb->RefCount = 1;
+
+    *ppCcb = pCcb;
+
+    InterlockedIncrement(&gDfsObjectCounter.CcbCount);
+
+    ntStatus = STATUS_SUCCESS;
 
 cleanup:
     return ntStatus;
@@ -115,100 +84,124 @@ error:
 /***********************************************************************
  **********************************************************************/
 
-static
-VOID
-DfsDriverShutdown(
-    IN IO_DRIVER_HANDLE DriverHandle
-    )
-{
-    IO_LOG_ENTER_LEAVE("");
-}
-
-
-/***********************************************************************
- **********************************************************************/
-
-static
 NTSTATUS
-DfsDriverDispatch(
-    IN IO_DEVICE_HANDLE DeviceHandle,
-    IN PIRP pIrp
-    )
-{
-    NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
-    PDFS_IRP_CONTEXT pIrpContext = NULL;
-
-    ntStatus = DfsAllocateIrpContext(&pIrpContext, pIrp);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    switch (pIrpContext->pIrp->Type)
-    {
-    case IRP_TYPE_CREATE:
-        ntStatus = DfsCreate(pIrpContext);
-        break;
-
-    case IRP_TYPE_CLOSE:
-        ntStatus = DfsClose(pIrpContext);
-        break;
-
-    case IRP_TYPE_FS_CONTROL:
-        ntStatus = DfsFsIoControl(pIrpContext);
-        break;
-
-    case IRP_TYPE_FLUSH_BUFFERS:
-    case IRP_TYPE_LOCK_CONTROL:
-    case IRP_TYPE_READ:
-    case IRP_TYPE_WRITE:
-    case IRP_TYPE_SET_INFORMATION:
-    case IRP_TYPE_QUERY_INFORMATION:
-    case IRP_TYPE_QUERY_DIRECTORY:
-    case IRP_TYPE_QUERY_VOLUME_INFORMATION:
-    case IRP_TYPE_QUERY_SECURITY:
-    case IRP_TYPE_SET_SECURITY:
-    case IRP_TYPE_READ_DIRECTORY_CHANGE:
-    case IRP_TYPE_DEVICE_IO_CONTROL:
-    case IRP_TYPE_SET_VOLUME_INFORMATION:
-        ntStatus = STATUS_NOT_SUPPORTED;
-        break;
-
-    default:
-        ntStatus = STATUS_INVALID_PARAMETER;
-        break;
-    }
-
-    if ((ntStatus != STATUS_SUCCESS) && (ntStatus != STATUS_PENDING))
-    {
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-cleanup:
-
-    if (ntStatus != STATUS_PENDING)
-    {
-        pIrp->IoStatusBlock.Status = ntStatus;
-    }
-
-    DfsReleaseIrpContext(&pIrpContext);
-
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-/***********************************************************************
- **********************************************************************/
-
-static
-NTSTATUS
-DfsDriverInitialize(
-    VOID
+DfsFreeCCB(
+    PDFS_CCB pCcb
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    ntStatus = DfsInitializeFCBTable();
+    if (pCcb->pFcb)
+    {
+        ntStatus = DfsRemoveCCBFromFCB(pCcb->pFcb, pCcb);
+
+        DfsReleaseFCB(&pCcb->pFcb);
+    }
+
+    LwRtlCStringFree(&pCcb->pszPathname);
+
+    pthread_mutex_destroy(&pCcb->ControlBlock);
+
+    DfsFreeMemory((PVOID*)&pCcb);
+
+    InterlockedDecrement(&gDfsObjectCounter.CcbCount);
+
+    return STATUS_SUCCESS;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+VOID
+DfsReleaseCCB(
+    PDFS_CCB pCcb
+    )
+{
+    if (InterlockedDecrement(&pCcb->RefCount) == 0)
+    {
+        DfsFreeCCB(pCcb);
+    }
+
+    return;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+PDFS_CCB
+DfsReferenceCCB(
+    PDFS_CCB pCcb
+    )
+{
+    InterlockedIncrement(&pCcb->RefCount);
+
+    return pCcb;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static NTSTATUS
+DfsAcquireCCBInternal(
+    IO_FILE_HANDLE FileHandle,
+    PDFS_CCB * ppCcb,
+    BOOLEAN bIncRef
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PDFS_CCB pCcb = (PDFS_CCB)IoFileGetContext(FileHandle);
+
+    // DFS_BAIL_ON_INVALID_CCB(pCcb, ntStatus);
+
+    if (bIncRef)
+    {
+        InterlockedIncrement(&pCcb->RefCount);
+    }
+
+    *ppCcb = pCcb;
+
+    return ntStatus;
+}
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+DfsAcquireCCB(
+    IO_FILE_HANDLE FileHandle,
+    PDFS_CCB * ppCcb
+    )
+{
+    return DfsAcquireCCBInternal(FileHandle, ppCcb, TRUE);
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+DfsAcquireCCBClose(
+    IO_FILE_HANDLE FileHandle,
+    PDFS_CCB * ppCcb
+    )
+{
+    return DfsAcquireCCBInternal(FileHandle, ppCcb, FALSE);
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+DfsStoreCCB(
+    IO_FILE_HANDLE FileHandle,
+    PDFS_CCB pCcb
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    ntStatus = IoFileSetContext(FileHandle, (PVOID)pCcb);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -217,6 +210,7 @@ cleanup:
 error:
     goto cleanup;
 }
+
 
 
 /*

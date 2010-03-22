@@ -10,11 +10,15 @@ endif
 
 libdfs_sys_la_SOURCES = \
     driver.c    \
+    ccb.c       \
     close.c     \
+    config.c    \
     create.c    \
-    fsctrl.c     \
+    fcb.c       \
+    fsctrl.c    \
     globals.c   \
     irpctx.c    \
+    listq.c     \
     memory.c
 
 libdfs_sys_la_CPPFLAGS = \

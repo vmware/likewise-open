@@ -47,6 +47,7 @@
 #include "dfs.h"
 
 DFS_OBJECT_COUNTER gDfsObjectCounter = {0};
+DFS_FCB_TABLE gDfsFcbTable;
 
 
 /*

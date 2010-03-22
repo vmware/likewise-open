@@ -33,39 +33,47 @@
  *
  * Module Name:
  *
- *        includes
+ *        prototypes.h
  *
  * Abstract:
  *
  *        Likewise Distributed File System (DFS)
  *
+ *        Registry Configuration
  *
  * Authors: Gerald Carter <gcarter@likewise.com>
  */
 
+#include "dfs.h"
 
-#ifndef __DFS_H__
-#define __DFS_H__
+NTSTATUS
+DfsConfigRegistryInit(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PDFS_FCB pFcb = NULL;
 
-#include "config.h"
+    ntStatus = DfsCreateFCB(&pFcb, "/Documents");
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#include <lw/base.h>
-#include <lw/security-types.h>
-#include <lwmapsecurity/lwmapsecurity.h>
+    ntStatus = DfsAddReferralFCB(pFcb, "\\Documents");
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#include "lwiosys.h"
-#include "lwio/lwiofsctl.h"
-#include "lwio/lwiodevctl.h"
-#include "iodriver.h"
-#include "lwioutils.h"
-#include "lwlist.h"
+    ntStatus = DfsCreateFCB(&pFcb, "/Documents/Public");
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#include "listq.h"
-#include "structs.h"
-#include "externs.h"
-#include "prototypes.h"
+    ntStatus = DfsAddReferralFCB(
+                   pFcb,
+                   "\\filesrv\\public\\documents");
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#endif /* __DFS_H__ */
+cleanup:
+    return STATUS_SUCCESS;
+
+error:
+    goto cleanup;
+}
 
 
 /*
