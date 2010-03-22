@@ -906,10 +906,18 @@ LwRtlWaitTaskGroup(
 static
 NTSTATUS
 SelectThreadInit(
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs,
     PSELECT_THREAD pThread
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    pthread_attr_t pthreadAttr;
+    BOOLEAN bAttrInit = FALSE;
+
+    status = LwErrnoToNtStatus(pthread_attr_init(&pthreadAttr));
+    GOTO_ERROR_ON_STATUS(status);
+
+    bAttrInit = TRUE;
 
     GOTO_ERROR_ON_STATUS(status = LwErrnoToNtStatus(pthread_mutex_init(&pThread->Lock, NULL)));
     GOTO_ERROR_ON_STATUS(status = LwErrnoToNtStatus(pthread_cond_init(&pThread->Event, NULL)));
@@ -921,13 +929,23 @@ SelectThreadInit(
 
     RingInit(&pThread->Tasks);
 
+    if (pAttrs && pAttrs->ulTaskThreadStackSize)
+    {
+        pthread_attr_setstacksize(&pthreadAttr, pAttrs->ulTaskThreadStackSize);
+    }
+
     GOTO_ERROR_ON_STATUS(status = pthread_create(
                       &pThread->Thread,
-                      NULL,
+                      &pthreadAttr,
                       EventThread,
                       pThread));
 
 error:
+
+    if (bAttrInit)
+    {
+        pthread_attr_destroy(&pthreadAttr);
+    }
 
     return status;
 }
@@ -946,20 +964,38 @@ static
 NTSTATUS
 WorkThreadInit(
     PSELECT_POOL pPool,
+    PLW_THREAD_POOL_ATTRIBUTES pAttrs,
     PWORK_ITEM_THREAD pThread
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    pthread_attr_t pthreadAttr;
+    BOOLEAN bAttrInit = FALSE;
+
+    status = LwErrnoToNtStatus(pthread_attr_init(&pthreadAttr));
+    GOTO_ERROR_ON_STATUS(status);
+
+    bAttrInit = TRUE;
 
     pThread->pPool = pPool;
 
+    if (pAttrs && pAttrs->ulWorkThreadStackSize)
+    {
+        pthread_attr_setstacksize(&pthreadAttr, pAttrs->ulWorkThreadStackSize);
+    }
+
     GOTO_ERROR_ON_STATUS(status = pthread_create(
                       &pThread->Thread,
-                      NULL,
+                      &pthreadAttr,
                       WorkThread,
                       pThread));
 
 error:
+
+    if (bAttrInit)
+    {
+        pthread_attr_destroy(&pthreadAttr);
+    }
 
     return status;
 }
@@ -1006,7 +1042,7 @@ LwRtlCreateThreadPool(
                                      pPool->ulEventThreadCount));
             for (i = 0; i < pPool->ulEventThreadCount; i++)
             {
-                GOTO_ERROR_ON_STATUS(status = SelectThreadInit(&pPool->pEventThreads[i]));
+                GOTO_ERROR_ON_STATUS(status = SelectThreadInit(pAttrs, &pPool->pEventThreads[i]));
             }
         }
     }
@@ -1021,7 +1057,7 @@ LwRtlCreateThreadPool(
 
         for (i = 0; i < pPool->ulWorkThreadCount; i++)
         {
-            GOTO_ERROR_ON_STATUS(status = WorkThreadInit(pPool, &pPool->pWorkThreads[i]));
+            GOTO_ERROR_ON_STATUS(status = WorkThreadInit(pPool, pAttrs, &pPool->pWorkThreads[i]));
         }
     }
 

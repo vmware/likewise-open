@@ -43,7 +43,9 @@ struct _LW_THREAD_POOL_ATTRIBUTES
 {
     BOOLEAN bDelegateTasks;
     LONG lTaskThreads;
-    ULONG lWorkThreads;
+    LONG lWorkThreads;
+    ULONG ulTaskThreadStackSize;
+    ULONG ulWorkThreadStackSize;
 };
 
 NTSTATUS

@@ -218,7 +218,19 @@ typedef enum LW_THREAD_POOL_OPTION
      * a multiple of the number of CPUs present on the system.
      * (Default: -4)
      */
-    LW_THREAD_POOL_OPTION_WORK_THREADS
+    LW_THREAD_POOL_OPTION_WORK_THREADS,
+    /**
+     * (ULONG) Size of thread stacks for task threads in bytes.  0 indicates
+     * the system default.
+     * (Default: 0)
+     */
+    LW_THREAD_POOL_OPTION_TASK_THREAD_STACK_SIZE,
+    /**
+     * (ULONG) Size of thread stacks for work threads in bytes.  0 indicates
+     * the system default.
+     * (Default: 0)
+     */
+    LW_THREAD_POOL_OPTION_WORK_THREAD_STACK_SIZE
 } LW_THREAD_POOL_OPTION;
 
 /**
