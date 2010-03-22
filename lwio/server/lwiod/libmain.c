@@ -51,8 +51,8 @@
 
 static
 NTSTATUS
-SMBSrvSetDefaults(
-    VOID
+LwioSrvSetDefaults(
+    PLWIO_CONFIG pConfig
     );
 
 static
@@ -194,6 +194,10 @@ static IO_STATIC_DRIVER gStaticDrivers[] =
 #ifdef ENABLE_NPFS
     IO_STATIC_DRIVER_ENTRY(npfs),
 #endif
+#ifdef ENABLE_DFS
+    IO_STATIC_DRIVER_ENTRY(dfs),
+#endif
+
     IO_STATIC_DRIVER_END
 };
 
@@ -208,8 +212,17 @@ lwiod_main(
     DWORD dwError = 0;
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    ntStatus = SMBSrvSetDefaults();
-    BAIL_ON_LWIO_ERROR(ntStatus);
+    ntStatus = LwioSrvInitializeConfig(&gLwioServerConfig);
+    dwError = LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    ntStatus = LwioSrvRefreshConfig(&gLwioServerConfig);
+    dwError = LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_LWIO_ERROR(dwError);
+
+    ntStatus = LwioSrvSetDefaults(&gLwioServerConfig);
+    dwError = LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_LWIO_ERROR(dwError);
 
     dwError = SMBSrvParseArgs(argc,
                               argv,
@@ -280,17 +293,16 @@ error:
     goto cleanup;
 }
 
-#define MAX_OPEN_FILE_DESCRIPTORS 0x00004000
-
 static
 NTSTATUS
-SMBSrvSetDefaults(
-    VOID
+LwioSrvSetDefaults(
+    PLWIO_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     struct rlimit rlim = {0};
     int err = 0;
+    LWIO_CONFIG defaultConfig;
 
     gpServerInfo->maxAllowedLogLevel = LWIO_LOG_LEVEL_ERROR;
 
@@ -301,8 +313,13 @@ SMBSrvSetDefaults(
 
     setlocale(LC_ALL, "");
 
-    rlim.rlim_cur = MAX_OPEN_FILE_DESCRIPTORS;
-    rlim.rlim_max = MAX_OPEN_FILE_DESCRIPTORS;
+    // Enforce configuration settings
+
+    ntStatus = LwioSrvInitializeConfig(&defaultConfig);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    rlim.rlim_cur = pConfig->MaxOpenFileDescriptors;
+    rlim.rlim_max = pConfig->MaxOpenFileDescriptors;
 
     if (setrlimit(RLIMIT_NOFILE, &rlim) < 0)
     {
@@ -310,15 +327,41 @@ SMBSrvSetDefaults(
 
         ntStatus = LwErrnoToNtStatus(err);
 
-        LWIO_LOG_ERROR("Failed to set maximum file descriptors to %d - %s (0x%x)\n",
-                       MAX_OPEN_FILE_DESCRIPTORS,
-                       LwNtStatusToDescription(ntStatus),
-                       ntStatus);
+        LWIO_LOG_ERROR(
+            "Failed to set maximum file descriptors to %d - %s (0x%x).  "
+            "Using default (%d)\n",
+            pConfig->MaxOpenFileDescriptors,
+            LwNtStatusToDescription(ntStatus),
+            ntStatus,
+            defaultConfig.MaxOpenFileDescriptors);
+
+        rlim.rlim_cur = defaultConfig.MaxOpenFileDescriptors;
+        rlim.rlim_max = defaultConfig.MaxOpenFileDescriptors;
+
+        if (setrlimit(RLIMIT_NOFILE, &rlim) < 0)
+        {
+            err = errno;
+            ntStatus = LwErrnoToNtStatus(err);
+
+            LWIO_LOG_ERROR(
+                "Failed to set default file descriptor limit (%d - %s) (0x%x).\n",
+                defaultConfig.MaxOpenFileDescriptors,
+                LwNtStatusToDescription(ntStatus),
+                ntStatus);
+        }
     }
 
     ntStatus = STATUS_SUCCESS;
 
+cleanup:
+
+    LwioSrvFreeConfigContents(&defaultConfig);
+
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static
@@ -563,21 +606,15 @@ SMBSrvInitialize(
 {
     DWORD dwError = 0;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PCSTR pszConfigPath = SMB_CONFIG_FILE_PATH;
 
-    ntStatus = LwioSrvSetupInitialConfig();
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwioSrvRefreshConfig();
-    BAIL_ON_LWIO_ERROR(ntStatus);
 
     dwError = SMBInitCacheFolders();
     BAIL_ON_LWIO_ERROR(dwError);
 
 #ifdef ENABLE_STATIC_DRIVERS
-    dwError = IoInitialize(pszConfigPath, gStaticDrivers);
+    dwError = IoInitialize("", gStaticDrivers);
 #else
-    dwError = IoInitialize(pszConfigPath, NULL);
+    dwError = IoInitialize("", NULL);
 #endif
     BAIL_ON_LWIO_ERROR(dwError);
 
@@ -1098,7 +1135,7 @@ SMBHandleSignals(
                 {
                     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-                    ntStatus = LwioSrvRefreshConfig();
+                    ntStatus = LwioSrvRefreshConfig(&gLwioServerConfig);
                     if (ntStatus)
                     {
                         LWIO_LOG_ERROR("Failed to refresh configuration "

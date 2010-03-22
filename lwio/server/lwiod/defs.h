@@ -31,7 +31,10 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define SMB_CONFIG_FILE_PATH CONFIGDIR "/lwiod.conf"
+
+#define LWIO_CONF_REGISTRY_LOCAL   "Services\\lwio\\Parameters"
+#define LWIO_CONF_REGISTRY_POLICY  "Policy\\Services\\lwio\\Parameters"
+
 
 #endif
 
