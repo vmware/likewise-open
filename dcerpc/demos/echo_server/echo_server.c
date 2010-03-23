@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
-#include <rpc.h>
 #include <compat/dcerpc.h>
 #include "echo.h"
 #include "misc.h"
