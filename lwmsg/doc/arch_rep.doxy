@@ -65,7 +65,10 @@ Integers are arbitrary-length integral values (although the length
 must be a multiple of 8 bits).  They are encoded starting with the
 most significant byte and ending with the least.  Integers may
 be signed or unsigned.  Signed integers are encoded using two's
-complement representation.
+complement representation.  Although the data representation does
+not impose a limit on the size of integers, LWMsg only supports
+integers as wide as <tt>intmax_t</tt> on a given platform.  The largest
+size which is guaranteed to be supported is 64 bits.
 
 @lwmsg_rep{Integer}
 @lwmsg_field{8, Most significant byte}

@@ -21,7 +21,7 @@ fserv_check_permissions(LWMsgSession* session, const char* path, OpenMode mode)
     struct stat statbuf;
 
     /* Extract security token */
-    token = lwmsg_session_get_peers_ecurity_token(session);
+    token = lwmsg_session_get_peer_security_token(session);
 
     /* Check that session is authenticated and that the token type is correct */
     if (token == NULL || strcmp(lwmsg_security_token_get_type(token), "local"))

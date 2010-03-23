@@ -57,7 +57,7 @@ This example is available in the <tt>LWMsg</tt> source distribution in the
 
 @section Contents
 
--# @subpage example_fserv_layout
 -# @subpage example_fserv_walkthrough
+-# @subpage example_fserv_layout
 
 **/

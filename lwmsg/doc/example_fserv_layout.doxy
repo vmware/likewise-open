@@ -37,6 +37,54 @@
  */
 
 /**
-@page example_fserv_layout Project Layout
+@page example_fserv_layout Source Code
+
+- include
+    - @subpage fserv_h
+    - @subpage protocol_h
+    - @subpage protocol_server_h
+- src
+    - @subpage protocol_c
+    - @subpage fserv_client_c
+    - @subpage fserver_dispatch_c
+    - @subpage fserver_c
+    - @subpage fcat_c
+    - @subpage fsink_c
+
+@page fserv_h fserv.h
+Client API header file
+@include fserv/include/fserv.h
+
+@page protocol_h protocol.h
+Common protocol definition header
+@include fserv/include/protocol.h
+
+@page protocol_server_h protocol-server.h
+Server-private protocol definition header
+@include fserv/include/protocol-server.h
+
+@page protocol_c protocol.c
+Protocol definition source
+@include fserv/src/protocol.c
+
+@page fserv_client_c fserv-client.c
+Client API implementation
+@include fserv/src/fserv-client.c
+
+@page fserver_dispatch_c fserver-dispatch.c
+Server call dispatch handlers
+@include fserv/src/fserver-dispatch.c
+
+@page fserver_c fserver.c
+Server program
+@include fserv/src/fserver.c
+
+@page fcat_c fcat.c
+Program that concatenates files like UNIX cat using the client API
+@include fserv/src/fcat.c
+
+@page fsink_c fsink.c
+Program that writes stdin to a file using the client API
+@include fserv/src/fsink.c
 
 **/

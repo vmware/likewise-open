@@ -52,7 +52,7 @@ wait_signal(void)
 }
 
 static int
-run(LWMsgServer* server)
+run(LWMsgPeer* server)
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     int ret = 0;
@@ -61,7 +61,8 @@ run(LWMsgServer* server)
 
     block_signals();
 
-    status = lwmsg_server_start(server);
+    /* Begin listening for calls */
+    status = lwmsg_peer_start_listen(server);
     if (status)
     {
         goto error;
@@ -82,7 +83,8 @@ run(LWMsgServer* server)
         }
     }
 
-    status = lwmsg_server_stop(server);
+    /* Stop listening */
+    status = lwmsg_peer_stop_listen(server);
     if (status)
     {
         goto error;
@@ -103,33 +105,38 @@ int main(int argc, char** argv)
     int ret = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgProtocol* protocol = NULL;
-    LWMsgServer* server = NULL;
+    LWMsgPeer* server = NULL;
 
+    /* Create protocol */
     status = lwmsg_protocol_new(NULL, &protocol);
     if (status)
     {
         goto error;
     }
 
+    /* Add protocol spec */
     status = lwmsg_protocol_add_protocol_spec(protocol, fserv_get_protocol());
     if (status)
     {
         goto error;
     }
 
-    status = lwmsg_server_new(NULL, protocol, &server);
+    /* Create peer */
+    status = lwmsg_peer_new(NULL, protocol, &server);
     if (status)
     {
         goto error;
     }
 
-    status = lwmsg_server_add_dispatch_spec(server, fserver_get_dispatch());
+    /* Add dispatch spec */
+    status = lwmsg_peer_add_dispatch_spec(server, fserver_get_dispatch());
     if (status)
     {
         goto error;
     }
 
-    status = lwmsg_server_set_endpoint(server, LWMSG_SERVER_MODE_LOCAL, FSERV_SOCKET_PATH, (S_IRWXU | S_IRWXG | S_IRWXO));
+    /* Add listen endpoint */
+    status = lwmsg_peer_add_listen_endpoint(server, LWMSG_ENDPOINT_LOCAL, FSERV_SOCKET_PATH, (S_IRWXU | S_IRWXG | S_IRWXO));
     if (status)
     {
         goto error;
@@ -141,7 +148,7 @@ error:
 
     if (server)
     {
-        lwmsg_server_delete(server);
+        lwmsg_peer_delete(server);
     }
 
     if (protocol)

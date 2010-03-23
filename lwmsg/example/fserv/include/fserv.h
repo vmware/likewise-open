@@ -11,7 +11,7 @@ typedef enum FServMode
     FSERV_MODE_APPEND = 4
 } FServMode;
 
-/* Open a file using an fserv connection */
+/* Open a file */
 int
 fserv_open(
     const char* path,

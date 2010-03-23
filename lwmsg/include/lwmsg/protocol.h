@@ -78,8 +78,7 @@ typedef struct LWMsgProtocol LWMsgProtocol;
  * Defines the messages and payload types available to a protocol.
  * You should initialize a static array of this structure in your source code
  * using #LWMSG_MESSAGE() and #LWMSG_PROTOCOL_END.  The result will be suitable
- * to pass to lwmsg_protocol_add_protocol_spec() or lwmsg_server_add_protocol().
- * Consider the following example:
+ * to pass to #lwmsg_protocol_add_protocol_spec().  Consider the following example:
  *
  * @code
  * enum FooMessageType

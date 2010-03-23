@@ -344,8 +344,8 @@ fserv_close(
     switch (out.tag)
     {
     case FSERV_VOID_RES:
-        /* Unregister the handle */
-        status = lwmsg_session_unregister_handle(session, file);
+        /* Release the handle */
+        status = lwmsg_session_release_handle(session, file);
         if (status)
         {
             ret = -1;

@@ -550,6 +550,7 @@ lwmsg_session_manager_init(
     );
 
 /**
+ * @internal
  * @brief Get association count
  *
  * Returns a count of the number of associations that
@@ -564,6 +565,7 @@ lwmsg_session_get_assoc_count(
     );
 
 /**
+ * @internal
  * @brief Get handle count
  *
  * Returns a count of the number of handles contained
