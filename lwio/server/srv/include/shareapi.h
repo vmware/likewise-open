@@ -263,6 +263,11 @@ SrvShareFreeInfoList(
     ULONG            ulNumInfos
     );
 
+PSRV_SHARE_INFO
+SrvShareAcquireInfo(
+    IN PSRV_SHARE_INFO pShareInfo
+    );
+
 VOID
 SrvShareReleaseInfo(
     IN PSRV_SHARE_INFO pShareInfo

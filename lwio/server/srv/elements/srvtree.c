@@ -132,8 +132,7 @@ SrvTreeCreate(
                     pTree,
                     tid);
 
-    pTree->pShareInfo = pShareInfo;
-    InterlockedIncrement(&pShareInfo->refcount);
+    pTree->pShareInfo = SrvShareAcquireInfo(pShareInfo);
 
     ntStatus = LwRtlRBTreeCreate(
                     &SrvTreeFileCompare,

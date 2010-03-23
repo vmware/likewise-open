@@ -149,8 +149,7 @@ SrvShareInitList(
                             (PVOID*)&pShareEntry);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pShareEntry->pInfo = pShareInfo;
-            InterlockedIncrement(&pShareInfo->refcount);
+            pShareEntry->pInfo = SrvShareAcquireInfo(pShareInfo);
 
             pShareEntry->pNext = pShareList->pShareEntry;
             pShareList->pShareEntry = pShareEntry;
@@ -234,9 +233,7 @@ SrvShareFindByName_inlock(
                     (PVOID*)&pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    InterlockedIncrement(&pShareInfo->refcount);
-
-    *ppShareInfo = pShareInfo;
+    *ppShareInfo = SrvShareAcquireInfo(pShareInfo);
 
 cleanup:
 
@@ -349,8 +346,7 @@ SrvShareAdd(
                     (PVOID*)&pShareEntry);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pShareEntry->pInfo = pShareInfo;
-    InterlockedIncrement(&pShareInfo->refcount);
+    pShareEntry->pInfo = SrvShareAcquireInfo(pShareInfo);
 
     ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -372,7 +368,7 @@ SrvShareAdd(
                     pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    InterlockedIncrement(&pShareInfo->refcount);
+    pShareInfo = NULL;
 
     pShareEntry->pNext = pShareList->pShareEntry;
     pShareList->pShareEntry = pShareEntry;
@@ -786,6 +782,16 @@ SrvShareFreeInfoList(
     }
 
     SrvFreeMemory(ppInfoList);
+}
+
+PSRV_SHARE_INFO
+SrvShareAcquireInfo(
+    IN PSRV_SHARE_INFO pShareInfo
+    )
+{
+    InterlockedIncrement(&pShareInfo->refcount);
+
+    return pShareInfo;
 }
 
 VOID
