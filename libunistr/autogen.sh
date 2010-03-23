@@ -1,6 +1,6 @@
 #!/bin/sh
 autoheader
 aclocal
-libtoolize --automake
-automake --add-missing
+libtoolize --automake -c
+automake --add-missing --copy
 autoconf
