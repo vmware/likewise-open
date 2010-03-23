@@ -302,6 +302,12 @@ IopReadWriteFile(
         GOTO_CLEANUP_EE(EE);
     }
 
+    if (Length && !Buffer)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
     LWIO_ASSERT(!(bIsWrite && bIsPagingIo));
 
     status = IopIrpCreate(&pIrp, irpType, FileHandle);
