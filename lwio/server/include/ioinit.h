@@ -68,4 +68,9 @@ IoMgrUnloadDriver(
     PWSTR pwszDriverName
     );
 
+NTSTATUS
+IoMgrRefresh(
+    VOID
+    );
+
 #endif /* __IOINIT_H__ */

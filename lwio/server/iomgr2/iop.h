@@ -99,6 +99,7 @@ struct _IO_DRIVER_OBJECT {
     struct {
         PIO_DRIVER_SHUTDOWN_CALLBACK Shutdown;
         PIO_DRIVER_DISPATCH_CALLBACK Dispatch;
+        PIO_DRIVER_REFRESH_CALLBACK Refresh;
     } Callback;
     PVOID Context;
 
@@ -227,6 +228,11 @@ PIO_DEVICE_OBJECT
 IopRootFindDevice(
     IN PIOP_ROOT_STATE pRoot,
     IN PUNICODE_STRING pDeviceName
+    );
+
+NTSTATUS
+IopRootRefreshDrivers(
+    IN PIOP_ROOT_STATE pRoot
     );
 
 VOID

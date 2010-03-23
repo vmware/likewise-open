@@ -244,6 +244,10 @@ typedef NTSTATUS (*PIO_DRIVER_DISPATCH_CALLBACK)(
     IN PIRP Irp
     );
 
+typedef NTSTATUS (*PIO_DRIVER_REFRESH_CALLBACK)(
+    IN IO_DRIVER_HANDLE DriverHandle
+    );
+
 typedef NTSTATUS (*PIO_DRIVER_ENTRY)(
     IN IO_DRIVER_HANDLE DriverHandle,
     IN ULONG InterfaceVersion
@@ -267,6 +271,12 @@ IoDriverInitialize(
     IN OPTIONAL PVOID DriverContext,
     IN PIO_DRIVER_SHUTDOWN_CALLBACK ShutdownCallback,
     IN PIO_DRIVER_DISPATCH_CALLBACK DispatchCallback
+    );
+
+NTSTATUS
+IoDriverRegisterRefreshCallback(
+    IN OUT IO_DRIVER_HANDLE DriverHandle,
+    IN PIO_DRIVER_REFRESH_CALLBACK RefreshCallback
     );
 
 PCSTR

@@ -73,6 +73,7 @@
 #include "servermain.h"
 #include "ipc.h"
 #include "proc.h"
+#include "ioinit.h"
 
 #include "externs.h"
 
