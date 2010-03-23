@@ -36,6 +36,7 @@
  * Abstract:
  *
  * Authors: Scott Salley <ssalley@likewise.com>
+ *          Gerald Carter Mgcarter@likewise.com>
  *
  */
 
@@ -43,12 +44,6 @@
 
 static
 NTSTATUS
-LwioSrvInitializeConfig(
-    IN OUT PLWIO_CONFIG pConfig
-    );
-
-static
-NTSTATUS
 LwioSrvReadRegistry(
     IN OUT PLWIO_CONFIG pConfig
     );
@@ -56,58 +51,53 @@ LwioSrvReadRegistry(
 static
 NTSTATUS
 LwioSrvTransferConfigContents(
-    PLWIO_CONFIG pSrcConfig,
-    PLWIO_CONFIG pDstConfig
+    PLWIO_CONFIG pDstConfig,
+    PLWIO_CONFIG pSrcConfig
     );
 
-NTSTATUS
-LwioSrvSetupInitialConfig(
-    VOID
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bUnlockConfig = FALSE;
 
-    LWIO_LOCK_SERVERCONFIG(bUnlockConfig);
-
-    ntStatus = LwioSrvInitializeConfig(gpServerConfig);
-
-    LWIO_UNLOCK_SERVERCONFIG(bUnlockConfig);
-
-    return ntStatus;
-}
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 LwioSrvRefreshConfig(
-    VOID
+    PLWIO_CONFIG pCurrentConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bUnlockConfig = FALSE;
-    LWIO_CONFIG LwIoConfig;
+    LWIO_CONFIG newConfig;
+    BOOLEAN bConfigLocked = FALSE;
 
-    ntStatus = LwioSrvReadRegistry(&LwIoConfig);
+    ntStatus = LwioSrvInitializeConfig(&newConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_LOCK_SERVERCONFIG(bUnlockConfig);
+    ntStatus = LwioSrvReadRegistry(&newConfig);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bConfigLocked, &newConfig.RwLock);
 
     ntStatus = LwioSrvTransferConfigContents(
-                    &LwIoConfig,
-                    gpServerConfig);
+                   pCurrentConfig,
+                   &newConfig);
+
+    LWIO_UNLOCK_RWMUTEX(bConfigLocked, &newConfig.RwLock);
+
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-
-    LWIO_UNLOCK_SERVERCONFIG(bUnlockConfig);
 
     return ntStatus;
 
 error:
 
-    LwioSrvFreeConfigContents(&LwIoConfig);
+    LwioSrvFreeConfigContents(&newConfig);
 
     goto cleanup;
 }
+
+
+/***********************************************************************
+ **********************************************************************/
 
 static
 NTSTATUS
@@ -116,77 +106,109 @@ LwioSrvReadRegistry(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    LWIO_CONFIG LwIoConfig;
+    PLWIO_CONFIG_REG pReg = NULL;
 
-    memset(&LwIoConfig, 0, sizeof(LWIO_CONFIG));
+    ntStatus = LwIoOpenConfig(
+                   LWIO_CONF_REGISTRY_LOCAL,
+                   LWIO_CONF_REGISTRY_POLICY,
+                   &pReg);
+    if (ntStatus)
+    {
+        LWIO_LOG_ERROR(
+            "Failed to access device configuration [error code: %l]",
+            ntStatus);
 
-    ntStatus = LwioSrvInitializeConfig(&LwIoConfig);
+        ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
+    }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwIoProcessConfig(
-        "Services\\lwio\\Parameters",
-        "Policy\\Services\\lwio\\Parameters",
-        NULL,
-        0,
-        TRUE);
-    BAIL_ON_NT_STATUS(ntStatus);
+    /* Ignore error as it may not exist; we can still use default. */
 
-    ntStatus = LwioSrvTransferConfigContents(
-                    &LwIoConfig,
-                    pConfig);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LwIoReadConfigDword(
+        pReg,
+        "MaxOpenFileDescriptors",
+        TRUE,
+        1,
+        0xFFFFFFFF,
+        &pConfig->MaxOpenFileDescriptors);
 
 cleanup:
+
+    if (pReg)
+    {
+        LwIoCloseConfig(pReg);
+    }
 
     return ntStatus;
 
 error:
 
-    LwioSrvFreeConfigContents(&LwIoConfig);
-
     goto cleanup;
 }
 
-static
-NTSTATUS
-LwioSrvInitializeConfig(
-    IN OUT PLWIO_CONFIG pConfig
-    )
-{
-    return STATUS_SUCCESS;
-}
 
-static
-NTSTATUS
-LwioSrvTransferConfigContents(
-    PLWIO_CONFIG pSrcConfig,
-    PLWIO_CONFIG pDstConfig
-    )
-{
-    LwioSrvFreeConfigContents(pDstConfig);
-
-    memcpy(pDstConfig, pSrcConfig, sizeof(*pSrcConfig));
-    memset(pSrcConfig, 0, sizeof(*pSrcConfig));
-
-    return STATUS_SUCCESS;
-}
+/***********************************************************************
+ **********************************************************************/
 
 VOID
 LwioSrvFreeConfig(
     IN OUT PLWIO_CONFIG pConfig
     )
 {
-    LwioSrvFreeConfigContents(pConfig);
+    if (pConfig)
+    {
+        LwioSrvFreeConfigContents(pConfig);
 
-    LwIoFreeMemory(pConfig);
+        LwIoFreeMemory(pConfig);
+    }
 }
+
+
+/***********************************************************************
+ **********************************************************************/
 
 VOID
 LwioSrvFreeConfigContents(
     IN OUT PLWIO_CONFIG pConfig
     )
 {
-    // Nothing to do right now
+    if (pConfig->pRwLock)
+    {
+        pthread_rwlock_destroy(&pConfig->RwLock);
+    }
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+LwioSrvInitializeConfig(
+    IN OUT PLWIO_CONFIG pConfig
+    )
+{
+    pthread_rwlock_init(&pConfig->RwLock, NULL);
+    pConfig->pRwLock = &pConfig->RwLock;
+
+    pConfig->MaxOpenFileDescriptors = 16384;
+
+    return STATUS_SUCCESS;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+static
+NTSTATUS
+LwioSrvTransferConfigContents(
+    PLWIO_CONFIG pDstConfig,
+    PLWIO_CONFIG pSrcConfig
+    )
+{
+    pDstConfig->MaxOpenFileDescriptors = pSrcConfig->MaxOpenFileDescriptors;
+
+    return STATUS_SUCCESS;
 }
 
 

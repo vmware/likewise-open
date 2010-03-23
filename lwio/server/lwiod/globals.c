@@ -67,8 +67,6 @@ PSMBSERVERINFO gpServerInfo = &gServerInfo;
 pthread_t  gSignalHandlerThread;
 pthread_t* gpSignalHandlerThread = NULL;
 
-pthread_mutex_t gServerConfigLock = PTHREAD_MUTEX_INITIALIZER;
-LWIO_CONFIG gServerConfig;
-PLWIO_CONFIG gpServerConfig = &gServerConfig;
+LWIO_CONFIG gLwioServerConfig;
 
 
