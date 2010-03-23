@@ -53,7 +53,10 @@ NetShareShowUsage(
 	VOID
 	)
 {
-	printf("Show net share usage\n");
+    printf(
+        "Usage: lwnet share\n"
+        "       lwnet share add <name=path>\n"
+        "       lwnet share del <name>\n");
 }
 
 static
@@ -153,14 +156,18 @@ NetShareParseArguments(
     BAIL_ON_LWUTIL_ERROR(dwError);
 
 
-
     if (!argv[2])
     {
     	pCommandInfo->dwControlCode = NET_SHARE_ENUM;
     	goto cleanup;
     }
 
-    if (!strcasecmp(argv[2], NET_SHARE_COMMAND_ADD))
+    if (!strcasecmp(argv[2], NET_SHARE_COMMAND_HELP))
+    {
+	NetShareShowUsage();
+	goto cleanup;
+    }
+    else if (!strcasecmp(argv[2], NET_SHARE_COMMAND_ADD))
 	{
 		pCommandInfo->dwControlCode = NET_SHARE_ADD;
 
@@ -186,6 +193,11 @@ NetShareParseArguments(
 		dwError = NetShareDelParseArguments(argv[3], pCommandInfo);
 		BAIL_ON_LWUTIL_ERROR(dwError);
 	}
+	else
+    {
+		dwError = LW_ERROR_INVALID_PARAMETER;
+		BAIL_ON_LWUTIL_ERROR(dwError);
+    }
 
 cleanup:
 
