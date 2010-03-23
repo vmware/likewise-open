@@ -1861,18 +1861,20 @@ SrvMarshallFileNameInfo_SMB_V2(
     NTSTATUS ntStatus        = STATUS_SUCCESS;
     PBYTE    pData           = NULL;
     USHORT   usBytesRequired = 0;
-    BOOLEAN  bInLock         = FALSE;
+    BOOLEAN  bShareInLock         = FALSE;
     PWSTR     pwszTreePath   = NULL; // Do not free
     PFILE_NAME_INFORMATION pFileNameInfo =
                                         (PFILE_NAME_INFORMATION)pInfoBuffer;
     PSMB2_FILE_NAME_INFORMATION pFileNameInfoPacked = NULL;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
 
     ntStatus = SrvGetTreeRelativePath(
                     pTree->pShareInfo->pwszPath,
                     &pwszTreePath);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
     if (STATUS_SUCCESS != SrvMatchPathPrefix(
                                 pFileNameInfo->FileName,
@@ -1907,7 +1909,7 @@ SrvMarshallFileNameInfo_SMB_V2(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
     return ntStatus;
 

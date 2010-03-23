@@ -64,7 +64,7 @@ SrvShareCreateAbsoluteSecDescFromRel(
 
 static
 NTSTATUS
-SrvShareDefaultSecurity(
+SrvShareSetDefaultSecurity(
     PSRV_SHARE_INFO pShareInfo
     );
 
@@ -300,7 +300,7 @@ SrvShareSetSecurity(
 
     if (pShareInfo->ulSecDescLen == 0)
     {
-        ntStatus = SrvShareDefaultSecurity(pShareInfo);
+        ntStatus = SrvShareSetDefaultSecurity(pShareInfo);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -553,7 +553,7 @@ SrvShareAccessCheck(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
+    BOOLEAN bShareInLock = FALSE;
     BOOLEAN bAccessResult = FALSE;
 
     if (!pGrantedAccess || !pToken)
@@ -562,7 +562,7 @@ SrvShareAccessCheck(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    LWIO_LOCK_RWMUTEX_SHARED(bLocked, &pShareInfo->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pShareInfo->mutex);
 
     /* This needs to be fixed in the Share API.  A share should
        never have a NULL SD, but current both C$ and IPC$ do.
@@ -594,7 +594,7 @@ SrvShareAccessCheck(
     }
 
 cleanup:
-    LWIO_UNLOCK_RWMUTEX(bLocked, &pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pShareInfo->mutex);
 
     return ntStatus;
 
@@ -606,7 +606,7 @@ error:
 
 static
 NTSTATUS
-SrvShareDefaultSecurity(
+SrvShareSetDefaultSecurity(
     PSRV_SHARE_INFO pShareInfo
     )
 {

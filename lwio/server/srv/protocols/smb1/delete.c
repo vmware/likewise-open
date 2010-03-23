@@ -105,7 +105,7 @@ SrvProcessDelete(
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_DELETE_STATE_SMB_V1   pDeleteState = NULL;
     BOOLEAN                    bInLock      = FALSE;
-    BOOLEAN                    bTreeInLock  = FALSE;
+    BOOLEAN                    bShareInLock  = FALSE;
     PWSTR                      pwszFilesystemPath = NULL;
 
     pDeleteState = (PSRV_DELETE_STATE_SMB_V1)pCtxSmb1->hState;
@@ -174,15 +174,16 @@ SrvProcessDelete(
                             &pDeleteState->pTree);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
-                                        &pDeleteState->pTree->pShareInfo->mutex);
+            LWIO_LOCK_RWMUTEX_SHARED(
+                    bShareInLock,
+                    &pDeleteState->pTree->pShareInfo->mutex);
 
             ntStatus = SrvAllocateStringW(
                             pDeleteState->pTree->pShareInfo->pwszPath,
                             &pwszFilesystemPath);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+            LWIO_UNLOCK_RWMUTEX(bShareInLock,
                                 &pDeleteState->pTree->pShareInfo->mutex);
 
             ntStatus = SrvFinderBuildSearchPath(
@@ -247,7 +248,7 @@ SrvProcessDelete(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pDeleteState->pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pDeleteState->pTree->pShareInfo->mutex);
 
     if (pDeleteState)
     {

@@ -534,20 +534,20 @@ SrvCreateTreeRootHandle(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_TREE_CONNECT_STATE_SMB_V1 pTConState  = NULL;
-    BOOLEAN                        bInLock     = FALSE;
+    BOOLEAN                        bShareInLock = FALSE;
 
     pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V1)pCtxSmb1->hState;
 
     if (!pTConState->fileName.FileName)
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTConState->pShareInfo->mutex);
+        LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTConState->pShareInfo->mutex);
 
         ntStatus = SrvAllocateStringW(
                         pTConState->pShareInfo->pwszPath,
                         &pTConState->fileName.FileName);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        LWIO_UNLOCK_RWMUTEX(bInLock, &pTConState->pShareInfo->mutex);
+        LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pShareInfo->mutex);
     }
 
     if (!pTConState->pTree->hFile)
@@ -580,7 +580,7 @@ SrvCreateTreeRootHandle(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTConState->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pShareInfo->mutex);
 
     return ntStatus;
 

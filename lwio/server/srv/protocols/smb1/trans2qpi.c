@@ -51,7 +51,7 @@ SrvProcessTrans2QueryPathInformation(
     ULONG                      iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
-    BOOLEAN                    bTreeInLock  = FALSE;
+    BOOLEAN                    bShareInLock  = FALSE;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -80,7 +80,9 @@ SrvProcessTrans2QueryPathInformation(
                             &pTrans2State->pTree);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTrans2State->pTree->mutex);
+            LWIO_LOCK_RWMUTEX_SHARED(
+                            bShareInLock,
+                            &pTrans2State->pTree->pShareInfo->mutex);
 
             ntStatus = SrvBuildFilePath(
                             pTrans2State->pTree->pShareInfo->pwszPath,
@@ -88,7 +90,9 @@ SrvProcessTrans2QueryPathInformation(
                             &pTrans2State->fileName.FileName);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTrans2State->pTree->mutex);
+            LWIO_UNLOCK_RWMUTEX(
+                            bShareInLock,
+                            &pTrans2State->pTree->pShareInfo->mutex);
 
             pTrans2State->stage = SRV_TRANS2_STAGE_SMB_V1_CREATE_FILE_COMPLETED;
 
@@ -160,7 +164,7 @@ SrvProcessTrans2QueryPathInformation(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTrans2State->pTree->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTrans2State->pTree->pShareInfo->mutex);
 
     return ntStatus;
 
