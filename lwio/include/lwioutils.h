@@ -747,7 +747,7 @@ SMBWc16sLen(
     size_t*    psLen
     );
 
-DWORD
+int
 SMBWc16sCmp(
     PCWSTR  pwszFirst,
     PCWSTR  pwszSecond

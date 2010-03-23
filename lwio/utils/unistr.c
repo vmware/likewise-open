@@ -212,7 +212,7 @@ error:
     goto cleanup;
 }
 
-DWORD
+int
 SMBWc16sCmp(
     PCWSTR  pwszFirst,
     PCWSTR  pwszSecond
