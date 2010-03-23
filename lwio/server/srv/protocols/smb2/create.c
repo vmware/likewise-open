@@ -647,7 +647,7 @@ SrvBuildCreateState_SMB_V2(
 
             case SMB2_CONTEXT_ITEM_TYPE_SEC_DESC:
                 {
-                    SECURITY_INFORMATION secInfoAll = DACL_SECURITY_INFORMATION;
+                    SECURITY_INFORMATION secInfoAll = 0;
 
                     if (!pContext->ulDataLength ||
                         !RtlValidRelativeSecurityDescriptor(
