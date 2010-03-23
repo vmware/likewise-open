@@ -35,7 +35,7 @@ extern NET_SHARE_STATE gState;
 
 DWORD
 LwUtilNetShareEnum(
-    VOID
+	NET_SHARE_ENUM_INFO_PARAMS ShareEnumInfo
     );
 
 DWORD

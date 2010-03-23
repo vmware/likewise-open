@@ -91,6 +91,11 @@ LwUtilNetShareAdd(
     PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
     DWORD dwSecDescSize = 0;
 
+    if (ShareAddInfo.pszServerName)
+    {
+        dwError = LwMbsToWc16s(ShareAddInfo.pszServerName, &gState.pwszServerName);
+        BAIL_ON_LWUTIL_ERROR(dwError);
+    }
 
     dwError = LwMbsToWc16s(ShareAddInfo.pszPath, &gState.pwszPath);
     BAIL_ON_LWUTIL_ERROR(dwError);
@@ -136,7 +141,7 @@ error:
 
 DWORD
 LwUtilNetShareEnum(
-    VOID
+	NET_SHARE_ENUM_INFO_PARAMS ShareEnumInfo
     )
 {
     static const DWORD dwLevel = 2;
@@ -160,6 +165,11 @@ LwUtilNetShareEnum(
     DWORD dwSharePathLen = 0;
     DWORD dwShareCommentLen = 0;
 
+    if (ShareEnumInfo.pszServerName)
+    {
+        dwError = LwMbsToWc16s(ShareEnumInfo.pszServerName, &gState.pwszServerName);
+        BAIL_ON_LWUTIL_ERROR(dwError);
+    }
 
     do
     {
@@ -331,6 +341,12 @@ LwUtilNetShareDel(
 {
     DWORD dwError = 0;
     PWSTR pwszShareName = NULL;
+
+    if (ShareDelInfo.pszServerName)
+    {
+        dwError = LwMbsToWc16s(ShareDelInfo.pszServerName, &pwszShareName);
+        BAIL_ON_LWUTIL_ERROR(dwError);
+    }
 
     dwError = LwMbsToWc16s(ShareDelInfo.pszShareName, &pwszShareName);
     BAIL_ON_LWUTIL_ERROR(dwError);
