@@ -43,4 +43,9 @@ LwUtilNetShareAdd(
 	NET_SHARE_ADD_INFO_PARAMS ShareAddInfo
     );
 
+DWORD
+LwUtilNetShareDel(
+	NET_SHARE_DEL_INFO_PARAMS ShareDelInfo
+    );
+
 #endif /* SHARE_P_H_ */

@@ -205,6 +205,35 @@ cleanup:
     return status;
 }
 
+NTSTATUS
+IoDriverRegisterRefreshCallback(
+    IN OUT IO_DRIVER_HANDLE DriverHandle,
+    IN PIO_DRIVER_REFRESH_CALLBACK RefreshCallback
+    )
+{
+    NTSTATUS status = 0;
+    int EE = 0;
+
+    if (!RefreshCallback || !DriverHandle)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    if (!IsSetFlag(DriverHandle->Flags, IO_DRIVER_OBJECT_FLAG_INITIALIZED))
+    {
+        // Not initialized yet
+        status = STATUS_UNSUCCESSFUL;
+        GOTO_CLEANUP_EE(EE);
+    }
+
+    DriverHandle->Callback.Refresh = RefreshCallback;
+
+cleanup:
+    IO_LOG_LEAVE_ON_STATUS_EE(status, EE);
+    return status;
+}
+
 PCSTR
 IoDriverGetName(
     IN IO_DRIVER_HANDLE DriverHandle

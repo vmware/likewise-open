@@ -132,6 +132,27 @@ cleanup:
     return status;
 }
 
+NTSTATUS
+IoMgrRefresh(
+    VOID
+    )
+{
+    NTSTATUS status = 0;
+
+    LwThreadsAcquireMutex(&gDriverLock);
+
+    if (gpIoRoot)
+    {
+        status = IopRootRefreshDrivers(gpIoRoot);
+        GOTO_CLEANUP_ON_STATUS(status);
+    }
+
+cleanup:
+
+    LwThreadsReleaseMutex(&gDriverLock);
+
+    return status;
+}
 
 NTSTATUS
 IopParse(

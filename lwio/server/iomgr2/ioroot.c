@@ -176,6 +176,41 @@ cleanup:
     return pFoundDriver;
 }
 
+NTSTATUS
+IopRootRefreshDrivers(
+    IN PIOP_ROOT_STATE pRoot
+    )
+{
+    NTSTATUS status = 0;
+    NTSTATUS subStatus = 0;
+    PLW_LIST_LINKS pLinks = NULL;
+
+    for (pLinks = pRoot->DriverObjectList.Next;
+         pLinks != &pRoot->DriverObjectList;
+         pLinks = pLinks->Next)
+    {
+        PIO_DRIVER_OBJECT pDriverObject = LW_STRUCT_FROM_FIELD(pLinks, IO_DRIVER_OBJECT, RootLinks);
+
+        if (pDriverObject->Callback.Refresh)
+        {
+            subStatus = pDriverObject->Callback.Refresh(pDriverObject);
+            if (subStatus)
+            {
+                LWIO_LOG_ERROR("Failed to refresh driver: %s (0x%x)",
+                               LwNtStatusToName(subStatus), subStatus);
+            }
+
+
+            if (!status)
+            {
+                status = subStatus;
+            }
+        }
+    }
+
+    return status;
+}
+
 PIO_DEVICE_OBJECT
 IopRootFindDevice(
     IN PIOP_ROOT_STATE pRoot,
