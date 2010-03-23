@@ -84,9 +84,9 @@ typedef RPC_IF_ID rpc_if_id_t;
 
 #define ATTRIBUTE_UNUSED
 
-#define DCETHREAD_TRY RpcTryExcept
-#define DCETHREAD_CATCH_ALL(_exc) RpcExcept(RpcExceptionCode == (_exc))
-#define DCETHREAD_ENDTRY RpcEndExcept
+#define DCETHREAD_TRY RpcTryExcept {
+#define DCETHREAD_CATCH_ALL(_exc) } RpcExcept(1) { DWORD _exc = RpcExceptionCode();
+#define DCETHREAD_ENDTRY } RpcEndExcept
 
 #define rpc_c_protseq_max_calls_default RPC_C_PROTSEQ_MAX_REQS_DEFAULT
 #define rpc_c_listen_max_calls_default RPC_C_LISTEN_MAX_CALLS_DEFAULT
