@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        lwutilitiessys.h
+ *        lwtoolsystem.h
  *
  * Abstract:
  *
@@ -45,8 +45,8 @@
  *          Wei Fu (wfu@likewise.com)
  */
 
-#ifndef LWUTILITIESSYS_H_
-#define LWUTILITIESSYS_H_
+#ifndef LWTOOLSYSTEM_H_
+#define LWTOOLSYSTEM_H_
 
 #ifdef UNICODE
       #undef UNICODE
@@ -185,4 +185,4 @@
 
 #endif
 
-#endif /* LWUTILITIESSYS_H_ */
+#endif /* LWTOOLSYSTEM_H_ */

@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        lwutilities.h
+ *        lwtools.h
  *
  * Abstract:
  *
@@ -46,8 +46,8 @@
  *          Wei Fu (wfu@likewise.com)
  */
 
-#ifndef LWUTILITIES_H_
-#define LWUTILITIES_H_
+#ifndef LWTOOLS_H_
+#define LWTOOLS_H_
 
 
-#endif /* LWUTILITIES_H_ */
+#endif /* LWTOOLS_H_ */

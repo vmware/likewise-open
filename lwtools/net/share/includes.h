@@ -30,7 +30,7 @@
 
 #include <config.h>
 
-#include <lwutilsystem.h>
+#include <lwtoolsystem.h>
 
 #include <lw/errno.h>
 #include <lw/security-types.h>
@@ -41,7 +41,7 @@
 #include <lwmem.h>
 #include <lwstr.h>
 #include <lwsecurityidentifier.h>
-#include <lwutilities.h>
+#include <lwtools.h>
 
 #include <lw/lm.h>
 #include <lwio/lmshare.h>

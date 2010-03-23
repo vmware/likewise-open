@@ -51,18 +51,15 @@
 
 #include <config.h>
 
-#include <lwutilsystem.h>
-
-//#include <lsa/lsa.h>
+#include <lwtoolsystem.h>
 
 #include <lw/errno.h>
 #include <lwmem.h>
 #include <lwstr.h>
 #include <reg/lwreg.h>
 
-//#include <lsadef.h>
 #include <lwsecurityidentifier.h>
-#include <lwutilities.h>
+#include <lwtools.h>
 
 #include "lwnetutils.h"
 #include "externs.h"
