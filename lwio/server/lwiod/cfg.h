@@ -34,13 +34,13 @@
 #include "includes.h"
 
 NTSTATUS
-LwioSrvSetupInitialConfig(
-    VOID
+LwioSrvInitializeConfig(
+    IN OUT PLWIO_CONFIG pConfig
     );
 
 NTSTATUS
 LwioSrvRefreshConfig(
-    VOID
+    PLWIO_CONFIG pConfig
     );
 
 VOID

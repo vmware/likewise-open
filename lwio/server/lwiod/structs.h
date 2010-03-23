@@ -75,10 +75,21 @@ typedef struct {
 
 typedef struct __LWIO_CONFIG
 {
+    pthread_rwlock_t RwLock;
+    pthread_rwlock_t* pRwLock;
 
-    DWORD dwPlaceHolder;
+    DWORD MaxOpenFileDescriptors;
 
 } LWIO_CONFIG, *PLWIO_CONFIG;
 
 #endif /* __STRUCTS_H__ */
 
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

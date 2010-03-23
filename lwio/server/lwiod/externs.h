@@ -73,21 +73,8 @@ extern pthread_t* gpSignalHandlerThread;
            bInLock = FALSE;                           \
         }
 
-extern pthread_mutex_t gServerConfigLock;
-extern LWIO_CONFIG      gServerConfig;
-extern PLWIO_CONFIG     gpServerConfig;
+extern LWIO_CONFIG gLwioServerConfig;
 
-#define LWIO_LOCK_SERVERCONFIG(bInLock)               \
-        if (!bInLock) {                              \
-           pthread_mutex_lock(&gServerConfigLock);   \
-           bInLock = TRUE;                           \
-        }
-
-#define LWIO_UNLOCK_SERVERCONFIG(bInLock)             \
-        if (bInLock) {                               \
-           pthread_mutex_unlock(&gServerConfigLock); \
-           bInLock = FALSE;                          \
-        }
 
 #endif /* __EXTERNS_P_H__ */
 

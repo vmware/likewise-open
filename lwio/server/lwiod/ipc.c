@@ -53,7 +53,7 @@ LwIoDaemonIpcRefreshConfiguration(
                     (PVOID*)&pStatusResponse);
     BAIL_ON_LWIO_ERROR(dwError);
 
-    ntStatus = LwioSrvRefreshConfig();
+    ntStatus = LwioSrvRefreshConfig(&gLwioServerConfig);
 
     /* Transmit refresh error to client but do not fail out of dispatch loop */
     if (ntStatus)
