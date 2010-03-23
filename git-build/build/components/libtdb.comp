@@ -1,0 +1,135 @@
+#!/bin/bash -c "exit 1"
+
+COMP_NAME="libtdb"
+COMP_SOURCES="${BUILD_ROOT}/${COMP_NAME}"
+
+function _setup_build_env
+{
+    set_compiler_env
+
+    LDFLAGS="${_ldflags} "
+    CFLAGS="${_cflags}"
+    CPPFLAGS="${_cppflags}"
+
+    export LDFLAGS CFLAGS CPPFLAGS
+
+    exit_on_error $?
+}
+
+function component_configure
+{
+    _setup_build_env
+
+    FEATURETEST_FLAGS="-D_GNU_SOURCE -D_REENTRANT -D_THREAD_SAFE -D_LARGEFILE64_SOURCE"
+
+    case `uname -s` in
+        FreeBSD)
+            ;;
+        *)
+            FEATURETEST_FLAGS="${FEATURETEST_FLAGS} -D_XOPEN_SOURCE=500"
+            ;;
+    esac
+
+    cd ${COMP_SOURCES}/replace
+
+    run_autogen ${COMP_SOURCES}/replace
+    exit_on_error $?
+
+    run_configure \
+	--disable-shared \
+	--prefix=${PREFIXDIR} \
+	--libdir=${PREFIXDIR}/${_lib} \
+	CPPFLAGS="${CPPFLAGS} ${FEATURETEST_FLAGS}" \
+	CFLAGS="${CFLAGS} ${FEATURETEST_FLAGS} -fPIC" \
+	LDFLAGS="${LDFLAGS} -fPIC"
+
+    cd ${COMP_SOURCES}/.
+
+    run_autogen ${COMP_SOURCES}
+    exit_on_error $?
+
+    run_configure \
+	--disable-static \
+	--prefix=${PREFIXDIR} \
+	--libdir=${PREFIXDIR}/${_lib} \
+	CPPFLAGS="${CPPFLAGS} ${FEATURETEST_FLAGS}" \
+	CFLAGS="${CFLAGS} ${FEATURETEST_FLAGS} -fPIC" \
+	LDFLAGS="${LDFLAGS} -fPIC"
+}
+
+function component_build
+{
+    _setup_build_env
+
+    cd ${COMP_SOURCES}/replace
+    ${MAKE} ${_mflags} all
+
+    _SHLIBEXT="so"
+    _SONAMEFLAG="-Wl,-soname="
+    _SHLD_FLAGS="-shared -Wl,-Bsymbolic"
+
+    cd ${COMP_SOURCES}/.
+    ${MAKE} \
+    SHLD_FLAGS="${_SHLD_FLAGS}" \
+    PICFLAG="-fPIC" \
+    SONAMEFLAG="${_SONAMEFLAG}" \
+    SHLIBEXT="${_SHLIBEXT}" \
+    ${_mflags} all
+}
+
+function component_install
+{
+    _setup_build_env
+
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
+
+    [ "$INSTALL_ROOT" != "/" ] && [ -z "${BUILD_PRESERVE_STAGING}" ] && rm -rf $INSTALL_ROOT
+    mkdir -p ${INSTALL_ROOT}
+    mkdir -p ${STAGE_INSTALL_DIR}
+
+    cd ${COMP_SOURCES}/replace
+    ${MAKE} DESTDIR=${INSTALL_ROOT} install
+
+    _SHLIBEXT="so"
+    _SONAMEFLAG="-Wl,-soname="
+    _SHLD_FLAGS="-shared -Wl,-Bsymbolic"
+
+    cd ${COMP_SOURCES}/.
+    ${MAKE} \
+    SHLD_FLAGS="${_SHLD_FLAGS}" \
+    PICFLAG="-fPIC" \
+    SONAMEFLAG="${_SONAMEFLAG}" \
+    SHLIBEXT="${_SHLIBEXT}" \
+    DESTDIR=${INSTALL_ROOT} install
+
+    rsync -a ${INSTALL_ROOT}/ ${STAGE_INSTALL_DIR}/
+
+    libtool_rewrite_staging
+}
+
+
+function component_populate
+{
+    local INSTALL_ROOT="${STAGE_COMP_DIR}/${COMP_NAME}"
+    local INSTALL_PREFIX_DIR="${INSTALL_ROOT}/${PREFIXDIR}"
+    local STAGING_PREFIX_DIR="${STAGE_INSTALL_DIR}/${PREFIXDIR}"
+    local STAGING_SYSCONF_DIR="${STAGE_INSTALL_DIR}/${SYSCONFDIR}"
+
+    local POPULATE_DIR="$1"
+    local EXCLUDE_FILE="${POPULATE_DIR}/../exclude.files"
+
+    if [ -z "${POPULATE_DIR}" ] || [ ! -d "${POPULATE_DIR}" ]; then
+	echo "Non-existent or invalid populate dircetory given: ${POPULATE_DIR}"
+	return 1
+    fi
+
+    cat <<EOF > ${EXCLUDE_FILE}
+include
+share
+*.a
+*.la
+EOF
+
+    rsync -a --exclude-from=${EXCLUDE_FILE} ${INSTALL_ROOT}/ ${POPULATE_DIR}/
+}
+

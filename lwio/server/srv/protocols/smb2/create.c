@@ -537,6 +537,20 @@ SrvBuildCreateState_SMB_V2(
     PSRV_CREATE_STATE_SMB_V2   pCreateState   = NULL;
     BOOLEAN                    bTreeInLock    = FALSE;
     ULONG                      iCtx       = 0;
+    wchar16_t wszBackSlash[]              = { '\\', 0};
+    wchar16_t wszForwardSlash[]           = { '/' , 0};
+
+    if (*pwszFilename->Buffer == wszBackSlash[0])
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (*pwszFilename->Buffer == wszForwardSlash[0])
+    {
+        ntStatus = STATUS_OBJECT_NAME_INVALID;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_CREATE_STATE_SMB_V2),
@@ -633,7 +647,7 @@ SrvBuildCreateState_SMB_V2(
 
             case SMB2_CONTEXT_ITEM_TYPE_SEC_DESC:
                 {
-                    SECURITY_INFORMATION secInfoAll = DACL_SECURITY_INFORMATION;
+                    SECURITY_INFORMATION secInfoAll = 0;
 
                     if (!pContext->ulDataLength ||
                         !RtlValidRelativeSecurityDescriptor(
