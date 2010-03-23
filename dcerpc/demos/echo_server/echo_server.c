@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#include <rpc.h>
 #include <compat/dcerpc.h>
 #include "echo.h"
 #include "misc.h"
@@ -276,7 +277,9 @@ ReverseIt(
     unsigned result_size;
     args * result;
     unsigned32 i,j,l;
+#if 0
     rpc_transport_info_handle_t transport_info = NULL;
+#endif
     unsigned32 rpcstatus = 0;
     unsigned char* sesskey = NULL;
     unsigned32 sesskey_len = 0;
@@ -292,6 +295,7 @@ ReverseIt(
         printf ("ReverseIt() called by client: %s\n", binding_info);
     }
 
+#if 0
     rpc_binding_inq_transport_info(h, &transport_info, &rpcstatus);
 
     if (transport_info)
@@ -307,7 +311,7 @@ ReverseIt(
 
         printf ("\n");
     }
-
+#endif
 
     if (in_text == NULL) return 0;
 
