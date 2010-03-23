@@ -324,6 +324,34 @@ error:
     goto cleanup;
 }
 
+DWORD
+LwUtilNetShareDel(
+	NET_SHARE_DEL_INFO_PARAMS ShareDelInfo
+    )
+{
+    DWORD dwError = 0;
+    PWSTR pwszShareName = NULL;
+
+    dwError = LwMbsToWc16s(ShareDelInfo.pszShareName, &pwszShareName);
+    BAIL_ON_LWUTIL_ERROR(dwError);
+
+    dwError = NetShareDelW(
+        gState.pwszServerName,
+        pwszShareName,
+        0);
+    BAIL_ON_LWUTIL_ERROR(dwError);
+
+cleanup:
+
+    LW_SAFE_FREE_MEMORY(pwszShareName);
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
 static
 DWORD
 MapNameToSid(

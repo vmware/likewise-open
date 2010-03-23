@@ -108,6 +108,28 @@ error:
     goto cleanup;
 }
 
+static
+DWORD
+NetShareDelParseArguments(
+	IN PCSTR pszShareDelArg,
+	IN OUT PNET_SHARE_COMMAND_INFO pCommandInfo
+	)
+{
+	DWORD dwError = 0;
+
+    dwError = LwAllocateString(pszShareDelArg, &pCommandInfo->ShareDelInfo.pszShareName);
+    BAIL_ON_LWUTIL_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+    LW_SAFE_FREE_STRING(pCommandInfo->ShareDelInfo.pszShareName);
+
+    goto cleanup;
+}
+
 
 static
 DWORD
@@ -155,8 +177,14 @@ NetShareParseArguments(
 	{
 		pCommandInfo->dwControlCode = NET_SHARE_DEL;
 
+		if (!argv[3])
+		{
+			dwError = LW_ERROR_INVALID_PARAMETER;
+			BAIL_ON_LWUTIL_ERROR(dwError);
+		}
 
-
+		dwError = NetShareDelParseArguments(argv[3], pCommandInfo);
+		BAIL_ON_LWUTIL_ERROR(dwError);
 	}
 
 cleanup:
@@ -215,7 +243,8 @@ NetShare(
 
 
         case NET_SHARE_DEL:
-            //dwError = NetShareDel();
+            dwError = LwUtilNetShareDel(pCommandInfo->ShareDelInfo);
+		BAIL_ON_LWUTIL_ERROR(dwError);
         	break;
 
         case NET_SHARE_ENUM:
