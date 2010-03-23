@@ -821,10 +821,13 @@ static void DoJoin(JoinProcessOptions *options, LWException **exc)
     if (!IsNullOrEmptyString(getenv("LD_LIBRARY_PATH")) ||
         !IsNullOrEmptyString(getenv("LD_PRELOAD")))
     {
-        options->warningCallback(options, "Unsupported loader flags set",
+        if (options->warningCallback != NULL)
+        {
+            options->warningCallback(options, "Unsupported loader flags set",
                                  "LD_LIBRARY_PATH and/or LD_PRELOAD are currently set on your system. Best practices for Unix and Linux administration strongly recommend not to use these environmental variables (see http://linuxmafia.com/faq/Admin/ld-lib-path.html for more information). Likewise does not support environments where either variable is set.\n"
                                  "\n"
                                  "If this operation fails you should stop all likewise daemons, clear the environmental variable, then retry the join operation.");
+        }
     }
 
     if (options->ouName)

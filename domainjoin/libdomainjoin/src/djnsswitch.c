@@ -1285,29 +1285,41 @@ static void RestartDtloginIfRunning(JoinProcessOptions *options, LWException **e
                 LW_CLEANUP_CTERR(exc, DJGetDistroInfo(NULL, &distro));
                 if(distro.os == OS_SUNOS)
                 {
-                    options->warningCallback(options, "Unable to restart dtlogin",
-                        "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
-                        "/etc/init.d/dtlogin stop\n"
-                        "/etc/init.d/dtlogin start");
+                    if (options->warningCallback != NULL)
+                    {
+                        options->warningCallback(options, "Unable to restart dtlogin",
+                            "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
+                            "/etc/init.d/dtlogin stop\n"
+                            "/etc/init.d/dtlogin start");
+                    }
                 }
                 else if(distro.os == OS_HPUX)
                 {
-                    options->warningCallback(options, "Unable to restart dtlogin",
-                        "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
-                        "/sbin/init.d/dtlogin.rc stop\n"
-                        "/sbin/init.d/dtlogin.rc start");
+                    if (options->warningCallback != NULL)
+                    {
+                        options->warningCallback(options, "Unable to restart dtlogin",
+                            "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
+                            "/sbin/init.d/dtlogin.rc stop\n"
+                            "/sbin/init.d/dtlogin.rc start");
+                    }
                 }
                 else if(distro.os == OS_AIX)
                 {
-                    options->warningCallback(options, "Unable to restart dtlogin",
-                        "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
-                        "kill `cat /var/dt/Xpid`\n"
-                        "/etc/rc.dt");
+                    if (options->warningCallback != NULL)
+                    {
+                        options->warningCallback(options, "Unable to restart dtlogin",
+                            "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please run these commands as root, outside of an Xwindows session:\n\n"
+                            "kill `cat /var/dt/Xpid`\n"
+                            "/etc/rc.dt");
+                    }
                 }
                 else
                 {
-                    options->warningCallback(options, "Unable to restart dtlogin",
-                        "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please restart dtlogin.");
+                    if (options->warningCallback != NULL)
+                    {
+                        options->warningCallback(options, "Unable to restart dtlogin",
+                            "The dtlogin process needs to be restarted for domain users to interactively login graphically, but it cannot be restarted at this time because a user is currently logged in. After the user exits, please restart dtlogin.");
+                    }
                 }
             }
         }
@@ -1341,7 +1353,10 @@ static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
     if(ceError == CENTERROR_INVALID_FILENAME)
     {
         ceError = CENTERROR_SUCCESS;
-        options->warningCallback(options, "Could not find file", "Could not find nsswitch file");
+        if (options->warningCallback != NULL)
+        {
+            options->warningCallback(options, "Could not find file", "Could not find nsswitch file");
+        }
         goto cleanup;
     }
     LW_CLEANUP_CTERR(exc, ceError);
@@ -1362,19 +1377,25 @@ static void DoNsswitch(JoinProcessOptions *options, LWException **exc)
             &restartException);
     if(restartException != NULL && restartException->code == CENTERROR_COMMAND_FAILED)
     {
-        options->warningCallback(options, "Some services require manual restart", restartException->longMsg);
+        if (options->warningCallback)
+        {
+            options->warningCallback(options, "Some services require manual restart", restartException->longMsg);
+        }
         LW_HANDLE(&restartException);
     }
     LW_CLEANUP(exc, restartException);
 
     LW_TRY(exc, RestartDtloginIfRunning(options, &LW_EXC));
 
-    options->warningCallback(options,
-                             "System restart required",
-                             "Your system has been configured to authenticate to "
-                             "Active Directory for the first time.  It is recommended "
-                             "that you restart your system to ensure that all applications "
-                             "recognize the new settings.");
+    if (options->warningCallback != NULL)
+    {
+        options->warningCallback(options,
+                                 "System restart required",
+                                 "Your system has been configured to authenticate to "
+                                 "Active Directory for the first time.  It is recommended "
+                                 "that you restart your system to ensure that all applications "
+                                 "recognize the new settings.");
+    }
 
 cleanup:
 
@@ -1405,7 +1426,10 @@ static PSTR GetNsswitchDescription(const JoinProcessOptions *options, LWExceptio
     if(ceError == CENTERROR_INVALID_FILENAME)
     {
         ceError = CENTERROR_SUCCESS;
-        options->warningCallback(options, "Could not find file", "Could not find nsswitch file");
+        if (options->warningCallback != NULL)
+        {
+            options->warningCallback(options, "Could not find file", "Could not find nsswitch file");
+        }
         goto cleanup;
     }
     LW_CLEANUP_CTERR(exc, ceError);

@@ -239,14 +239,14 @@ void DJInitModuleStates(JoinProcessOptions *options, LWException **exc)
             case CannotConfigure:
                 arrayState->runModule = FALSE;
                 break;
-            case ApplePluginInUse:
-                LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Apple AD Directory Plugin in use.", "The configuration of module '%s' detected that the computer is already joined to Active Directory with the built in Apple AD plugin. To use Likewise, please first unbind your Mac from Active Directory by using the Directory Utility of your system.\n", state.module->longName);
-                goto cleanup;
             case SufficientlyConfigured:
             case NotConfigured:
                 break;
+            case ApplePluginInUse:
+                LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Apple AD Directory Plugin in use.", "The configuration of module '%s' detected that the computer is already joined to Active Directory with the built in Apple AD plugin. To use Likewise, please first unbind your Mac from Active Directory by using the Directory Utility of your system.\n", state.module->shortName);
+                goto cleanup;
             default:
-                LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Invalid module state", "The configuration of module '%s' returned an invalid configuration state.\n", state.module->longName);
+                LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Invalid module state", "The configuration of module '%s' returned an invalid configuration state.\n", state.module->shortName);
                 goto cleanup;
         }
     }
@@ -290,6 +290,12 @@ void DJCheckRequiredEnabled(const JoinProcessOptions *options, LWException **exc
                     goto cleanup;
                 }
                 break;
+            case ApplePluginInUse:
+                LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Apple AD Directory Plugin in use.", "The configuration of module '%s' detected that the computer is already joined to Active Directory with the built in Apple AD plugin. To use Likewise, please first unbind your Mac from Active Directory by using the Directory Utility of your system.\n", state->module->shortName);
+                goto cleanup;
+            default:
+                LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Invalid module state", "The configuration of module '%s' returned an invalid configuration state.\n", state->module->shortName);
+                goto cleanup;
         }
     }
 
@@ -331,12 +337,21 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
                             &exceptionTitle,
                             "A resumable error occurred while processing the '%s' module",
                             state->module->shortName));
-                    options->warningCallback(options, exceptionTitle, exceptionMessage);
+                    if (options->warningCallback != NULL)
+                    {
+                        options->warningCallback(options, exceptionTitle, exceptionMessage);
+                    }
                     DJLogException(LOG_LEVEL_WARNING, moduleException);
                     LWHandle(&moduleException);
                     CT_SAFE_FREE_STRING(exceptionMessage);
                     CT_SAFE_FREE_STRING(exceptionTitle);
                     break;
+                case ApplePluginInUse:
+                    LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Apple AD Directory Plugin in use.", "The configuration of module '%s' detected that the computer is already joined to Active Directory with the built in Apple AD plugin. To use Likewise, please first unbind your Mac from Active Directory by using the Directory Utility of your system.\n", state->module->shortName);
+                    goto cleanup;
+                default:
+                    LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Invalid module state", "The configuration of module '%s' returned an invalid configuration state.\n", state->module->shortName);
+                    goto cleanup;
             }
         }
         else
@@ -359,9 +374,20 @@ void DJRunJoinProcess(JoinProcessOptions *options, LWException **exc)
                             CTAllocateStringPrintf(&exceptionMessage,
                             "Even though the configuration of '%s' was executed, the configuration did not fully complete. Please contact Likewise support.",
                             state->module->shortName));
-                    options->warningCallback(options, "A resumable error occurred while processing a module", exceptionMessage);
+                    if (options->warningCallback != NULL)
+                    {
+                        options->warningCallback(options,
+                                                 "A resumable error occurred while processing a module",
+                                                 exceptionMessage);
+                    }
                     CT_SAFE_FREE_STRING(exceptionMessage);
                     break;
+                case ApplePluginInUse:
+                    LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Apple AD Directory Plugin in use.", "The configuration of module '%s' detected that the computer is already joined to Active Directory with the built in Apple AD plugin. To use Likewise, please first unbind your Mac from Active Directory by using the Directory Utility of your system.\n", state->module->shortName);
+                    goto cleanup;
+                default:
+                    LW_RAISE_EX(exc, CENTERROR_INVALID_OPERATION, "Invalid module state", "The configuration of module '%s' returned an invalid configuration state.\n", state->module->shortName);
+                    goto cleanup;
             }
         }
     }

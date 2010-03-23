@@ -36,12 +36,12 @@
 
 typedef enum _QueryResult
 {
-    CannotConfigure,
-    NotConfigured,
-    SufficientlyConfigured,
-    FullyConfigured,
-    NotApplicable,
-    ApplePluginInUse
+    CannotConfigure = 0,
+    NotConfigured = 1,
+    SufficientlyConfigured = 2,
+    FullyConfigured = 3,
+    NotApplicable = 4,
+    ApplePluginInUse = 5
 } QueryResult;
 
 struct _JoinModule;
