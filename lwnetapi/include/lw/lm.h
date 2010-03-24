@@ -306,85 +306,35 @@ NetApiShutdown(
 
 #if defined(UNICODE)
 
-#define NetServerGetInfo(Arg1, Arg2, Arg3) \
-        NetServerGetInfoW(Arg1, Arg2, Arg3)
-
-#define NetServerSetInfo(Arg1, Arg2, Arg3, Arg4) \
-        NetServerSetInfoW(Arg1, Arg2, Arg3, Arg4)
-
-#define NetShareEnum(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7) \
-        NetShareEnumW(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7)
-
-#define NetShareGetInfo(Arg1, Arg2, Arg3, Arg4) \
-        NetShareGetInfoW(Arg1, Arg2, Arg3, Arg4)
-
-#define NetShareSetInfo(Arg1, Arg2, Arg3, Arg4, Arg5) \
-        NetShareSetInfoW(Arg1, Arg2, Arg3, Arg4, Arg5)
-
-#define NetShareAdd(Arg1, Arg2, Arg3, Arg4) \
-        NetShareAddW(Arg1, Arg2, Arg3, Arg4)
-
-#define NetServerDel(Arg1, Arg2, Arg3) \
-        NetServerDelW(Arg1, Arg2, Arg3)
-
-#define NetSessionEnum(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9) \
-        NetSessionEnumW(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9)
-
-#define NetSessionDel(Arg1, Arg2, Arg3) \
-        NetSessionDelW(Arg1, Arg2, Arg3)
-
-#define NetConnectionEnum(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8) \
-        NetConnectionEnumW(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8)
-
-#define NetFileEnum(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9) \
-        NetFileEnumW(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9)
-
-#define NetFileClose(Arg1, Arg2) \
-        NetFileCloseW(Arg1, Arg2)
-
-#define NetRemoteTOD(Arg1, Arg2) \
-        NetRemoteTODW(Arg1, Arg2)
+#define NetServerGetInfo   NetServerGetInfoW
+#define NetServerSetInfo   NetServerSetInfoW
+#define NetShareEnum       NetShareEnumW
+#define NetShareGetInfo    NetShareGetInfoW
+#define NetShareSetInfo    NetShareSetInfoW
+#define NetShareAdd        NetShareAddW
+#define NetServerDel       NetServerDelW
+#define NetSessionEnum     NetSessionEnumW
+#define NetSessionDel      NetSessionDelW
+#define NetConnectionEnum  NetConnectionEnumW
+#define NetFileEnum        NetFileEnumW
+#define NetFileClose       NetFileCloseW
+#define NetRemoteTOD       NetRemoteTODW
 
 #else
 
-#define NetServerGetInfo(Arg1, Arg2, Arg3) \
-        NetServerGetInfoA(Arg1, Arg2, Arg3)
-
-#define NetServerSetInfo(Arg1, Arg2, Arg3, Arg4) \
-        NetServerSetInfoA(Arg1, Arg2, Arg3, Arg4)
-
-#define NetShareEnum(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7) \
-        NetShareEnumA(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7)
-
-#define NetShareGetInfo(Arg1, Arg2, Arg3, Arg4) \
-        NetShareGetInfoA(Arg1, Arg2, Arg3, Arg4)
-
-#define NetShareSetInfo(Arg1, Arg2, Arg3, Arg4, Arg5) \
-        NetShareSetInfoA(Arg1, Arg2, Arg3, Arg4, Arg5)
-
-#define NetShareAdd(Arg1, Arg2, Arg3, Arg4) \
-        NetShareAddA(Arg1, Arg2, Arg3, Arg4)
-
-#define NetServerDel(Arg1, Arg2, Arg3) \
-        NetServerDelA(Arg1, Arg2, Arg3)
-
-#define NetSessionEnum(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9) \
-        NetSessionEnumA(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9)
-
-#define NetSessionDel(Arg1, Arg2, Arg3) \
-        NetSessionDelA(Arg1, Arg2, Arg3)
-
-#define NetConnectionEnum(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8) \
-        NetConnectionEnumA(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8)
-
-#define NetFileEnum(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9) \
-        NetFileEnumA(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9)
-
-#define NetFileClose(Arg1, Arg2) \
-        NetFileCloseA(Arg1, Arg2)
-
-#define NetRemoteTOD(Arg1, Arg2) \
-        NetRemoteTODA(Arg1, Arg2)
+#define NetServerGetInfo   NetServerGetInfoA
+#define NetServerSetInfo   NetServerSetInfoA
+#define NetShareEnum       NetShareEnumA
+#define NetShareGetInfo    NetShareGetInfoA
+#define NetShareSetInfo    NetShareSetInfoA
+#define NetShareAdd        NetShareAddA
+#define NetServerDel       NetServerDelA
+#define NetSessionEnum     NetSessionEnumA
+#define NetSessionDel      NetSessionDelA
+#define NetConnectionEnum  NetConnectionEnumA
+#define NetFileEnum        NetFileEnumA
+#define NetFileClose       NetFileCloseA
+#define NetRemoteTOD       NetRemoteTODA
 
 #endif /* UNICODE */
 
