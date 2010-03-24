@@ -49,24 +49,22 @@ typedef DWORD NET_SHARE_CTRL_CODE;
 #define NET_SHARE_COMMENT_TITLE "Remark"
 
 
-
-
 typedef struct _NET_SHARE_ADD_INFO_PARAMS
 {
-	PSTR pszServerName;
-	PSTR pszShareName;
-	PSTR pszPath;
+	PWSTR pwszServerName;
+	PWSTR pwszShareName;
+	PWSTR pwszPath;
 }NET_SHARE_ADD_INFO_PARAMS, *PNET_SHARE_ADD_INFO_PARAMS;
 
 typedef struct _NET_SHARE_DEL_INFO_PARAMS
 {
-	PSTR pszServerName;
-	PSTR pszShareName;
+	PWSTR pwszServerName;
+	PWSTR pwszShareName;
 }NET_SHARE_DEL_INFO_PARAMS, *PNET_SHARE_DEL_INFO_PARAMS;
 
 typedef struct _NET_SHARE_ENUM_INFO_PARAMS
 {
-	PSTR pszServerName;
+	PWSTR pwszServerName;
 }NET_SHARE_ENUM_INFO_PARAMS, *PNET_SHARE_ENUM_INFO_PARAMS;
 
 
@@ -83,13 +81,10 @@ typedef struct _NET_SHARE_COMMAND_INFO {
 
 typedef struct _NET_SHARE_STATE
 {
-    PWSTR pwszServerName;
     DWORD dwAllowUserCount;
     PWSTR* ppwszAllowUsers;
     DWORD dwDenyUserCount;
     PWSTR* ppwszDenyUsers;
-    PWSTR pwszName;
-    PWSTR pwszPath;
     PWSTR pwszComment;
     PWSTR pwszTarget;
     BOOLEAN bReadOnly;

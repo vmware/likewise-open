@@ -47,4 +47,9 @@ NetShareShutdown(
     VOID
     );
 
+VOID
+NetShareShowUsage(
+	VOID
+	);
+
 #endif /* SHARE_H_ */

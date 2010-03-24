@@ -91,18 +91,6 @@ LwUtilNetShareAdd(
     PSECURITY_DESCRIPTOR_RELATIVE pSecDesc = NULL;
     DWORD dwSecDescSize = 0;
 
-    if (ShareAddInfo.pszServerName)
-    {
-        dwError = LwMbsToWc16s(ShareAddInfo.pszServerName, &gState.pwszServerName);
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-
-    dwError = LwMbsToWc16s(ShareAddInfo.pszPath, &gState.pwszPath);
-    BAIL_ON_LWUTIL_ERROR(dwError);
-
-    dwError = LwMbsToWc16s(ShareAddInfo.pszShareName, &gState.pwszName);
-    BAIL_ON_LWUTIL_ERROR(dwError);
-
     dwError = ConstructSecurityDescriptor(
         gState.dwAllowUserCount,
         gState.ppwszAllowUsers,
@@ -113,15 +101,16 @@ LwUtilNetShareAdd(
         &dwSecDescSize);
     BAIL_ON_LWUTIL_ERROR(dwError);
 
+    shareInfo.shi502_netname = ShareAddInfo.pwszShareName;
+    shareInfo.shi502_path = ShareAddInfo.pwszPath;
+
     shareInfo.shi502_type = 0; // SHARE_SERVICE_DISK_SHARE
-    shareInfo.shi502_netname = gState.pwszName ? gState.pwszName : gState.pwszTarget;
     shareInfo.shi502_remark = gState.pwszComment;
-    shareInfo.shi502_path = gState.pwszPath;
     shareInfo.shi502_reserved = dwSecDescSize;
     shareInfo.shi502_security_descriptor = (PBYTE) pSecDesc;
 
     dwError = NetShareAddW(
-        gState.pwszServerName,
+	ShareAddInfo.pwszServerName,
         dwLevel,
         (PBYTE)&shareInfo,
         &dwParmErr);
@@ -165,16 +154,10 @@ LwUtilNetShareEnum(
     DWORD dwSharePathLen = 0;
     DWORD dwShareCommentLen = 0;
 
-    if (ShareEnumInfo.pszServerName)
-    {
-        dwError = LwMbsToWc16s(ShareEnumInfo.pszServerName, &gState.pwszServerName);
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-
     do
     {
         dwError = NetShareEnumW(
-            gState.pwszServerName,
+		ShareEnumInfo.pwszServerName,
             dwLevel,
             (PBYTE*)&pShareInfo,
             dwMaxLen,
@@ -340,26 +323,14 @@ LwUtilNetShareDel(
     )
 {
     DWORD dwError = 0;
-    PWSTR pwszShareName = NULL;
-
-    if (ShareDelInfo.pszServerName)
-    {
-        dwError = LwMbsToWc16s(ShareDelInfo.pszServerName, &pwszShareName);
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-
-    dwError = LwMbsToWc16s(ShareDelInfo.pszShareName, &pwszShareName);
-    BAIL_ON_LWUTIL_ERROR(dwError);
 
     dwError = NetShareDelW(
-        gState.pwszServerName,
-        pwszShareName,
+	ShareDelInfo.pwszServerName,
+        ShareDelInfo.pwszShareName,
         0);
     BAIL_ON_LWUTIL_ERROR(dwError);
 
 cleanup:
-
-    LW_SAFE_FREE_MEMORY(pwszShareName);
 
     return dwError;
 

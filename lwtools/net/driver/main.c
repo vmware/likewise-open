@@ -64,6 +64,71 @@
 #define NET_COMMAND_LOCALGROUP_NAME "LOCALGROUP"
 #define NET_COMMAND_TIME_NAME "TIME"
 
+
+static
+VOID
+NetShowUsage(
+	VOID
+	)
+{
+    printf(
+        "lwnet commands available: \n"
+        "       lwnet share \n");
+
+    printf("\n"
+           "lwnet help command - shows usage of a particular lwnet command)\n"
+           "\n");
+}
+
+static
+VOID
+NetCommandShow(
+	VOID
+	)
+{
+    printf(
+        "The syntax of lwnet command is: \n"
+        "       lwnet [ share | use ]\n");
+}
+
+static
+VOID
+NetShowCommandUsage(
+	char *param
+	)
+{
+	if (!strcasecmp(param, NET_COMMAND_SHARE_NAME))
+	{
+		NetShareShowUsage();
+	}
+	else if (!strcasecmp(param, NET_COMMAND_SESSION_NAME))
+	{
+		//NetSessionShowUsage();
+	}
+	else if (!strcasecmp(param, NET_COMMAND_USER_NAME))
+	{
+		//NetUserShowUsage();
+	}
+	else if (!strcasecmp(param, NET_COMMAND_VIEW_NAME))
+	{
+		//NetViewShowUsage();
+	}
+	else if (!strcasecmp(param, NET_COMMAND_LOCALGROUP_NAME))
+	{
+		//NetLocalGroupShowUsage();
+	}
+	else if (!strcasecmp(param, NET_COMMAND_TIME_NAME))
+	{
+		//NetTimeShowUsage();
+	}
+	else
+	{
+		NetShowUsage();
+	}
+
+	return;
+}
+
 static
 DWORD
 NetMapSubCommand(
@@ -73,7 +138,7 @@ NetMapSubCommand(
 {
 	NET_SUB_COMMAND dwSubCommand = NET_COMMAND_UNKNOWN;
 
-	if (!param || !strcasecmp(param, NET_COMMAND_HELP_NAME))
+	if (!strcasecmp(param, NET_COMMAND_HELP_NAME))
 	{
 		dwSubCommand = NET_COMMAND_HELP;
 	}
@@ -117,6 +182,12 @@ main(
 	DWORD dwError = 0;
 	NET_SUB_COMMAND dwSubCommand = NET_COMMAND_UNKNOWN;
 
+	if (argc == 1)
+	{
+		NetCommandShow();
+		return dwError;
+	}
+
     dwError = NetMapSubCommand(
                     argv[1],
                     &dwSubCommand
@@ -126,8 +197,15 @@ main(
     switch (dwSubCommand)
     {
         case NET_COMMAND_HELP:
-        	printf("net help\n");
-        	//dwError = Share(argc, argv);
+            if (!argv[2])
+            {
+		NetShowUsage();
+            }
+            else
+            {
+		NetShowCommandUsage(argv[2]);
+            }
+
         	break;
 
         case NET_COMMAND_SHARE:
@@ -158,7 +236,7 @@ main(
 
         case NET_COMMAND_UNKNOWN:
         default:
-        	printf("Wrong command\n");
+		NetShowUsage();
         	break;
     }
 
