@@ -51,7 +51,7 @@
 
 static
 NTSTATUS
-SrvShareRegWriteToShareInfo(
+NfsShareRegWriteToShareInfo(
     IN  REG_DATA_TYPE    regDataType,
     IN  PWSTR            pwszShareName,
     IN  PBYTE            pData,
@@ -59,18 +59,18 @@ SrvShareRegWriteToShareInfo(
     IN  REG_DATA_TYPE    regSecDataType,
     IN  PBYTE            pSecData,
     IN  ULONG            ulSecDataLen,
-    OUT PSRV_SHARE_INFO* ppShareInfo
+    OUT PNFS_SHARE_INFO* ppShareInfo
     );
 
 static
 VOID
-SrvShareFreeStringArray(
+NfsShareFreeStringArray(
     PWSTR* ppwszValues,
     ULONG  ulNumValues
     );
 
 NTSTATUS
-SrvShareRegInit(
+NfsShareRegInit(
     VOID
     )
 {
@@ -78,7 +78,7 @@ SrvShareRegInit(
 }
 
 NTSTATUS
-SrvShareRegOpen(
+NfsShareRegOpen(
     OUT PHANDLE phRepository
     )
 {
@@ -86,10 +86,10 @@ SrvShareRegOpen(
 }
 
 NTSTATUS
-SrvShareRegFindByName(
+NfsShareRegFindByName(
     HANDLE           hRepository,
     PWSTR            pwszShareName,
-    PSRV_SHARE_INFO* ppShareInfo
+    PNFS_SHARE_INFO* ppShareInfo
     )
 {
     NTSTATUS        ntStatus       = STATUS_SUCCESS;
@@ -100,12 +100,12 @@ SrvShareRegFindByName(
     ULONG           ulValueLen     = MAX_VALUE_LENGTH;
     REG_DATA_TYPE   dataSecType    = REG_UNKNOWN;
     ULONG           ulSecValueLen  = MAX_VALUE_LENGTH;
-    PSRV_SHARE_INFO pShareInfo     = NULL;
+    PNFS_SHARE_INFO pShareInfo     = NULL;
     BYTE            pData[MAX_VALUE_LENGTH]    = {0};
     BYTE            pSecData[MAX_VALUE_LENGTH] = {0};
     wchar16_t       wszHKTM[]        = HKEY_THIS_MACHINE_W;
-    wchar16_t       wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
-    wchar16_t       wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
+    wchar16_t       wszSharesKey[]   = REG_KEY_PATH_NFS_SHARES_W;
+    wchar16_t       wszShareSecKey[] = REG_KEY_PATH_NFS_SHARES_SECURITY_W;
 
     ntStatus = NtRegOpenKeyExW(
                     hRepository,
@@ -156,7 +156,7 @@ SrvShareRegFindByName(
                     &ulSecValueLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareRegWriteToShareInfo(
+    ntStatus = NfsShareRegWriteToShareInfo(
                     dataType,
                     pwszShareName,
                     pData,
@@ -190,14 +190,14 @@ error:
 
     if (pShareInfo)
     {
-        SrvShareReleaseInfo(pShareInfo);
+        NfsShareReleaseInfo(pShareInfo);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvShareRegAdd(
+NfsShareRegAdd(
     IN HANDLE hRepository,
     IN PWSTR  pwszShareName,
     IN PWSTR  pwszPath,
@@ -216,8 +216,8 @@ SrvShareRegAdd(
     SSIZE_T  cOutDataLen = 0;
     ULONG    ulCount     = 0;
     wchar16_t wszHKTM[]        = HKEY_THIS_MACHINE_W;
-    wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
-    wchar16_t wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
+    wchar16_t wszSharesKey[]   = REG_KEY_PATH_NFS_SHARES_W;
+    wchar16_t wszShareSecKey[] = REG_KEY_PATH_NFS_SHARES_SECURITY_W;
     wchar16_t wszPathPrefix[]    = REG_KEY_PATH_PREFIX_W;
     ULONG     ulPathPrefixLen =
                         (sizeof(wszPathPrefix)/sizeof(wchar16_t)) - 1;
@@ -251,11 +251,11 @@ SrvShareRegAdd(
                     &hKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAllocateMemory(sizeof(PWSTR) * 4, (PVOID*)&ppwszValues);
+    ntStatus = NfsAllocateMemory(sizeof(PWSTR) * 4, (PVOID*)&ppwszValues);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // Path
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     sizeof(wszPathPrefix) + wc16slen(pwszPath) * sizeof(wchar16_t),
                     (PVOID*)&ppwszValues[ulCount]);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -273,7 +273,7 @@ SrvShareRegAdd(
         ULONG     ulCommentPrefixLen =
                             (sizeof(wszCommentPrefix)/sizeof(wchar16_t)) - 1;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                             sizeof(wszCommentPrefix) + wc16slen(pwszComment) * sizeof(wchar16_t),
                             (PVOID*)&ppwszValues[++ulCount]);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -292,7 +292,7 @@ SrvShareRegAdd(
         ULONG     ulServicePrefixLen =
                             (sizeof(wszServicePrefix)/sizeof(wchar16_t)) - 1;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                             sizeof(wszServicePrefix) + wc16slen(pwszService) * sizeof(wchar16_t),
                             (PVOID*)&ppwszValues[++ulCount]);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -359,7 +359,7 @@ cleanup:
     }
     if (ppwszValues)
     {
-        SrvShareFreeStringArray(ppwszValues, 4);
+        NfsShareFreeStringArray(ppwszValues, 4);
     }
     if (pOutData)
     {
@@ -374,7 +374,7 @@ error:
 }
 
 NTSTATUS
-SrvShareRegBeginEnum(
+NfsShareRegBeginEnum(
     HANDLE  hRepository,
     ULONG   ulBatchLimit,
     PHANDLE phResume
@@ -384,8 +384,8 @@ SrvShareRegBeginEnum(
     HKEY      hRootKey       = NULL;
     HKEY      hKey           = NULL;
     wchar16_t wszHKTM[]      = HKEY_THIS_MACHINE_W;
-    wchar16_t wszSharesKey[] = REG_KEY_PATH_SRV_SHARES_W;
-    PSRV_SHARE_REG_ENUM_CONTEXT pEnumContext = NULL;
+    wchar16_t wszSharesKey[] = REG_KEY_PATH_NFS_SHARES_W;
+    PNFS_SHARE_REG_ENUM_CONTEXT pEnumContext = NULL;
 
     if (!ulBatchLimit || (ulBatchLimit == UINT32_MAX))
     {
@@ -393,8 +393,8 @@ SrvShareRegBeginEnum(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_SHARE_REG_ENUM_CONTEXT),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_SHARE_REG_ENUM_CONTEXT),
                     (PVOID*)&pEnumContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -453,16 +453,16 @@ error:
 
     *phResume = NULL;
 
-    SRV_SAFE_FREE_MEMORY(pEnumContext);
+    NFS_SAFE_FREE_MEMORY(pEnumContext);
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvShareRegEnum(
+NfsShareRegEnum(
     HANDLE            hRepository,
     HANDLE            hResume,
-    PSRV_SHARE_INFO** pppShareInfoList,
+    PNFS_SHARE_INFO** pppShareInfoList,
     PULONG            pulNumSharesFound
     )
 {
@@ -476,13 +476,13 @@ SrvShareRegEnum(
     PBYTE    pData             = NULL;
     REG_DATA_TYPE    dataType  = REG_UNKNOWN;
     wchar16_t wszHKTM[]        = HKEY_THIS_MACHINE_W;
-    wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
-    wchar16_t wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
-    PSRV_SHARE_INFO* ppShareInfoList  = NULL;
+    wchar16_t wszSharesKey[]   = REG_KEY_PATH_NFS_SHARES_W;
+    wchar16_t wszShareSecKey[] = REG_KEY_PATH_NFS_SHARES_SECURITY_W;
+    PNFS_SHARE_INFO* ppShareInfoList  = NULL;
     REG_DATA_TYPE    dataSecType      = REG_UNKNOWN;
     ULONG            ulNumSharesFound = 0;
     BYTE             pSecData[MAX_VALUE_LENGTH] = {0};
-    PSRV_SHARE_REG_ENUM_CONTEXT pResume = (PSRV_SHARE_REG_ENUM_CONTEXT)hResume;
+    PNFS_SHARE_REG_ENUM_CONTEXT pResume = (PNFS_SHARE_REG_ENUM_CONTEXT)hResume;
 
     if (!pResume)
     {
@@ -517,7 +517,7 @@ SrvShareRegEnum(
                     &hSecKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     pResume->ulBatchLimit * sizeof(*ppShareInfoList),
                     (PVOID) &ppShareInfoList);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -537,9 +537,9 @@ SrvShareRegEnum(
 
         if (ulMaxValueNameLen)
         {
-            SRV_SAFE_FREE_MEMORY_AND_RESET(pwszValueName);
+            NFS_SAFE_FREE_MEMORY_AND_RESET(pwszValueName);
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             ulMaxValueNameLen,
                             (PVOID*) &pwszValueName);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -547,9 +547,9 @@ SrvShareRegEnum(
 
         if (ulMaxValueLen)
         {
-            SRV_SAFE_FREE_MEMORY_AND_RESET(pData);
+            NFS_SAFE_FREE_MEMORY_AND_RESET(pData);
 
-            ntStatus = SrvAllocateMemory(ulMaxValueLen, (PVOID*) &pData);
+            ntStatus = NfsAllocateMemory(ulMaxValueLen, (PVOID*) &pData);
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
@@ -591,7 +591,7 @@ SrvShareRegEnum(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvShareRegWriteToShareInfo(
+        ntStatus = NfsShareRegWriteToShareInfo(
                       dataType,
                       pwszValueName,
                       pData,
@@ -623,8 +623,8 @@ cleanup:
 	NtRegCloseKey(hRepository, hSecKey);
     }
 
-    SRV_SAFE_FREE_MEMORY(pwszValueName);
-    SRV_SAFE_FREE_MEMORY(pData);
+    NFS_SAFE_FREE_MEMORY(pwszValueName);
+    NFS_SAFE_FREE_MEMORY(pData);
 
     return ntStatus;
 
@@ -635,28 +635,28 @@ error:
 
     if (ppShareInfoList)
     {
-        SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
+        NfsShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvShareRegEndEnum(
+NfsShareRegEndEnum(
     IN HANDLE hRepository,
     IN HANDLE hResume
     )
 {
-    PSRV_SHARE_REG_ENUM_CONTEXT pEnumContext =
-                                    (PSRV_SHARE_REG_ENUM_CONTEXT)hResume;
+    PNFS_SHARE_REG_ENUM_CONTEXT pEnumContext =
+                                    (PNFS_SHARE_REG_ENUM_CONTEXT)hResume;
 
-    SRV_SAFE_FREE_MEMORY(pEnumContext);
+    NFS_SAFE_FREE_MEMORY(pEnumContext);
 
     return STATUS_SUCCESS;
 }
 
 NTSTATUS
-SrvShareRegDelete(
+NfsShareRegDelete(
     IN HANDLE hRepository,
     IN PWSTR  pwszShareName
     )
@@ -664,8 +664,8 @@ SrvShareRegDelete(
     NTSTATUS  ntStatus = 0;
     HKEY      hRootKey = NULL;
     wchar16_t wszHKTM[]        = HKEY_THIS_MACHINE_W;
-    wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
-    wchar16_t wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
+    wchar16_t wszSharesKey[]   = REG_KEY_PATH_NFS_SHARES_W;
+    wchar16_t wszShareSecKey[] = REG_KEY_PATH_NFS_SHARES_SECURITY_W;
 
     ntStatus = NtRegOpenKeyExW(
                     hRepository,
@@ -709,7 +709,7 @@ error:
 }
 
 NTSTATUS
-SrvShareRegGetCount(
+NfsShareRegGetCount(
     IN     HANDLE  hRepository,
     IN OUT PULONG  pulNumShares
     )
@@ -719,7 +719,7 @@ SrvShareRegGetCount(
     HKEY      hRootKey    = NULL;
     HKEY      hKey        = NULL;
     wchar16_t wszHKTM[]        = HKEY_THIS_MACHINE_W;
-    wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
+    wchar16_t wszSharesKey[]   = REG_KEY_PATH_NFS_SHARES_W;
 
     ntStatus = NtRegOpenKeyExW(
                     hRepository,
@@ -778,7 +778,7 @@ error:
 }
 
 VOID
-SrvShareRegClose(
+NfsShareRegClose(
     IN HANDLE hRepository
     )
 {
@@ -786,7 +786,7 @@ SrvShareRegClose(
 }
 
 VOID
-SrvShareRegShutdown(
+NfsShareRegShutdown(
     VOID
     )
 {
@@ -795,7 +795,7 @@ SrvShareRegShutdown(
 
 static
 NTSTATUS
-SrvShareRegWriteToShareInfo(
+NfsShareRegWriteToShareInfo(
     IN  REG_DATA_TYPE    regDataType,
     IN  PWSTR            pwszShareName,
     IN  PBYTE            pData,
@@ -803,14 +803,14 @@ SrvShareRegWriteToShareInfo(
     IN  REG_DATA_TYPE    regSecDataType,
     IN  PBYTE            pSecData,
     IN  ULONG            ulSecDataLen,
-    OUT PSRV_SHARE_INFO* ppShareInfo
+    OUT PNFS_SHARE_INFO* ppShareInfo
     )
 {
     NTSTATUS        ntStatus     = STATUS_SUCCESS;
-    PSRV_SHARE_INFO pShareInfo   = NULL;
+    PNFS_SHARE_INFO pShareInfo   = NULL;
     PWSTR*          ppwszValues  = NULL;
 
-    ntStatus = SrvAllocateMemory(sizeof(*pShareInfo), (PVOID*)&pShareInfo);
+    ntStatus = NfsAllocateMemory(sizeof(*pShareInfo), (PVOID*)&pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pShareInfo->refcount = 1;
@@ -818,7 +818,7 @@ SrvShareRegWriteToShareInfo(
     pthread_rwlock_init(&pShareInfo->mutex, NULL);
     pShareInfo->pMutex = &pShareInfo->mutex;
 
-    ntStatus = SrvAllocateStringW(pwszShareName, &pShareInfo->pwszName);
+    ntStatus = NfsAllocateStringW(pwszShareName, &pShareInfo->pwszName);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pData)
@@ -843,25 +843,25 @@ SrvShareRegWriteToShareInfo(
 
             if (!wc16sncmp(&wszPathPrefix[0], pwszValue, ulPathPrefixLen))
             {
-                SRV_SAFE_FREE_MEMORY(pShareInfo->pwszPath);
+                NFS_SAFE_FREE_MEMORY(pShareInfo->pwszPath);
 
-                ntStatus = SrvAllocateStringW(
+                ntStatus = NfsAllocateStringW(
                                 &pwszValue[ulPathPrefixLen],
                                 &pShareInfo->pwszPath);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else if (!wc16sncmp(&wszCommentPrefix[0], pwszValue, ulCommentPrefixLen))
             {
-                SRV_SAFE_FREE_MEMORY(pShareInfo->pwszComment);
+                NFS_SAFE_FREE_MEMORY(pShareInfo->pwszComment);
 
-                ntStatus = SrvAllocateStringW(
+                ntStatus = NfsAllocateStringW(
                                 &pwszValue[ulCommentPrefixLen],
                                 &pShareInfo->pwszComment);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else if (!wc16sncmp(&wszServicePrefix[0], pwszValue, ulServicePrefixLen))
             {
-                ntStatus = SrvShareMapServiceStringToIdW(
+                ntStatus = NfsShareMapServiceStringToIdW(
                                 &pwszValue[ulServicePrefixLen],
                                 &pShareInfo->service);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -879,7 +879,7 @@ SrvShareRegWriteToShareInfo(
     {
         wchar16_t wszComment[] = {0};
 
-        ntStatus = SrvAllocateStringW(
+        ntStatus = NfsAllocateStringW(
                         &wszComment[0],
                         &pShareInfo->pwszComment);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -887,7 +887,7 @@ SrvShareRegWriteToShareInfo(
 
     if (ulSecDataLen)
     {
-        ntStatus = SrvShareSetSecurity(
+        ntStatus = NfsShareSetSecurity(
                        pShareInfo,
                        (PSECURITY_DESCRIPTOR_RELATIVE)pSecData,
                        ulSecDataLen);
@@ -909,7 +909,7 @@ error:
 
     if (pShareInfo)
     {
-        SrvShareReleaseInfo(pShareInfo);
+        NfsShareReleaseInfo(pShareInfo);
     }
 
     goto cleanup;
@@ -917,7 +917,7 @@ error:
 
 static
 VOID
-SrvShareFreeStringArray(
+NfsShareFreeStringArray(
     PWSTR* ppwszValues,
     ULONG  ulNumValues
     )
@@ -928,11 +928,11 @@ SrvShareFreeStringArray(
     {
         if (ppwszValues[iValue])
         {
-            SrvFreeMemory(ppwszValues[iValue]);
+            NfsFreeMemory(ppwszValues[iValue]);
         }
     }
 
-    SrvFreeMemory(ppwszValues);
+    NfsFreeMemory(ppwszValues);
 }
 
 

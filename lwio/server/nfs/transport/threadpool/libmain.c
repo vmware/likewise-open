@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Transport API
  *
@@ -50,22 +50,22 @@
 #include "includes.h"
 
 NTSTATUS
-SrvTransportInit(
-    OUT PSRV_TRANSPORT_HANDLE phTransport,
-    IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
-    IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
+NfsTransportInit(
+    OUT PNFS_TRANSPORT_HANDLE phTransport,
+    IN PNFS_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
+    IN OPTIONAL PNFS_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_TRANSPORT_HANDLE_DATA pTransport = NULL;
+    PNFS_TRANSPORT_HANDLE_DATA pTransport = NULL;
 
-    ntStatus = SrvAllocateMemory(sizeof(*pTransport), OUT_PPVOID(&pTransport));
+    ntStatus = NfsAllocateMemory(sizeof(*pTransport), OUT_PPVOID(&pTransport));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTransport->Dispatch = *pProtocolDispatch;
     pTransport->pContext = pProtocolDispatchContext;
 
-    ntStatus = SrvListenerInit(&pTransport->Listener, pTransport);
+    ntStatus = NfsListenerInit(&pTransport->Listener, pTransport);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -76,94 +76,94 @@ cleanup:
 
 error:
 
-    SrvTransportShutdown(pTransport);
+    NfsTransportShutdown(pTransport);
     pTransport = NULL;
 
     goto cleanup;
 }
 
 VOID
-SrvTransportShutdown(
-    IN OUT SRV_TRANSPORT_HANDLE hTransport
+NfsTransportShutdown(
+    IN OUT NFS_TRANSPORT_HANDLE hTransport
     )
 {
     if (hTransport)
     {
-        SrvListenerShutdown(&hTransport->Listener);
-        SrvFreeMemory(hTransport);
+        NfsListenerShutdown(&hTransport->Listener);
+        NfsFreeMemory(hTransport);
     }
 }
 
 VOID
-SrvTransportSocketGetAddress(
-    IN PSRV_SOCKET pSocket,
+NfsTransportSocketGetAddress(
+    IN PNFS_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
     OUT size_t* pAddressLength
     )
 {
-    SrvSocketGetAddress(pSocket, ppAddress, pAddressLength);
+    NfsSocketGetAddress(pSocket, ppAddress, pAddressLength);
 }
 
 PCSTR
-SrvTransportSocketGetAddressString(
-    IN PSRV_SOCKET pSocket
+NfsTransportSocketGetAddressString(
+    IN PNFS_SOCKET pSocket
     )
 {
-    return SrvSocketGetAddressString(pSocket);
+    return NfsSocketGetAddressString(pSocket);
 }
 
 int
-SrvTransportSocketGetFileDescriptor(
-    IN PSRV_SOCKET pSocket
+NfsTransportSocketGetFileDescriptor(
+    IN PNFS_SOCKET pSocket
     )
 {
-    return SrvSocketGetFileDescriptor(pSocket);
+    return NfsSocketGetFileDescriptor(pSocket);
 }
 
 NTSTATUS
-SrvTransportSocketSetBuffer(
-    IN PSRV_SOCKET pSocket,
+NfsTransportSocketSetBuffer(
+    IN PNFS_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
     IN ULONG Minimum
     )
 {
-    return SrvSocketSetBuffer(pSocket, pBuffer, Size, Minimum);
+    return NfsSocketSetBuffer(pSocket, pBuffer, Size, Minimum);
 }
 
 NTSTATUS
-SrvTransportSocketSendReply(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsTransportSocketSendReply(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN PVOID pBuffer,
     IN ULONG Size
     )
 {
-    return SrvSocketSendReply(pSocket, pSendContext, pBuffer, Size);
+    return NfsSocketSendReply(pSocket, pSendContext, pBuffer, Size);
 }
 
 NTSTATUS
-SrvTransportSocketSendZctReply(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsTransportSocketSendZctReply(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN PLW_ZCT_VECTOR pZct
     )
 {
-    return SrvSocketSendZctReply(pSocket, pSendContext, pZct);
+    return NfsSocketSendZctReply(pSocket, pSendContext, pZct);
 }
 
 VOID
-SrvTransportSocketDisconnect(
-    IN PSRV_SOCKET pSocket
+NfsTransportSocketDisconnect(
+    IN PNFS_SOCKET pSocket
     )
 {
-    return SrvSocketDisconnect(pSocket);
+    return NfsSocketDisconnect(pSocket);
 }
 
 VOID
-SrvTransportSocketClose(
-    IN OUT PSRV_SOCKET pSocket
+NfsTransportSocketClose(
+    IN OUT PNFS_SOCKET pSocket
     )
 {
-    SrvSocketClose(pSocket);
+    NfsSocketClose(pSocket);
 }

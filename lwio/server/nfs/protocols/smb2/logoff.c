@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -53,43 +53,43 @@
 
 static
 NTSTATUS
-SrvBuildLogoffResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildLogoffResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
-SrvProcessLogoff_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessLogoff_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus      = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection   = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PLWIO_SRV_SESSION_2        pSession      = NULL;
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PLWIO_NFS_SESSION_2        pSession      = NULL;
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
+    ntStatus = NfsConnection2FindSession_SMB_V2(
                     pCtxSmb2,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvSession2Rundown(pSession);
+    NfsSession2Rundown(pSession);
 
-    ntStatus = SrvConnection2RemoveSession(
+    ntStatus = NfsConnection2RemoveSession(
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildLogoffResponse_SMB_V2(pExecContext);
+    ntStatus = NfsBuildLogoffResponse_SMB_V2(pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pCtxSmb2->pSession)
     {
-        SrvSession2Release(pCtxSmb2->pSession);
+        NfsSession2Release(pCtxSmb2->pSession);
         pCtxSmb2->pSession = NULL;
     }
 
@@ -97,7 +97,7 @@ cleanup:
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     return ntStatus;
@@ -109,16 +109,16 @@ error:
 
 static
 NTSTATUS
-SrvBuildLogoffResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildLogoffResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PBYTE pOutBuffer = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset    = 0;

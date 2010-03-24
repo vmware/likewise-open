@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -51,52 +51,52 @@
 
 static
 PVOID
-SrvTimerMain(
+NfsTimerMain(
     IN  PVOID pData
     );
 
 static
 NTSTATUS
-SrvTimerGetNextRequest_inlock(
-    IN  PSRV_TIMER_CONTEXT  pContext,
-    OUT PSRV_TIMER_REQUEST* ppTimerRequest
+NfsTimerGetNextRequest_inlock(
+    IN  PNFS_TIMER_CONTEXT  pContext,
+    OUT PNFS_TIMER_REQUEST* ppTimerRequest
     );
 
 static
 NTSTATUS
-SrvTimerDetachRequest_inlock(
-    IN OUT PSRV_TIMER_CONTEXT pContext,
-    IN OUT PSRV_TIMER_REQUEST pTimerRequest
+NfsTimerDetachRequest_inlock(
+    IN OUT PNFS_TIMER_CONTEXT pContext,
+    IN OUT PNFS_TIMER_REQUEST pTimerRequest
     );
 
 static
 VOID
-SrvTimerFree(
-    IN  PSRV_TIMER_REQUEST pTimerRequest
+NfsTimerFree(
+    IN  PNFS_TIMER_REQUEST pTimerRequest
     );
 
 static
 VOID
-SrvTimerShutdownCB(
-    PSRV_TIMER_REQUEST pTimerRequest,
+NfsTimerShutdownCB(
+    PNFS_TIMER_REQUEST pTimerRequest,
     PVOID              pUserData
     );
 
 static
 BOOLEAN
-SrvTimerMustStop_inlock(
-    IN  PSRV_TIMER_CONTEXT pContext
+NfsTimerMustStop_inlock(
+    IN  PNFS_TIMER_CONTEXT pContext
     );
 
 static
 VOID
-SrvTimerStop(
-    IN  PSRV_TIMER_CONTEXT pContext
+NfsTimerStop(
+    IN  PNFS_TIMER_CONTEXT pContext
     );
 
 NTSTATUS
-SrvTimerInit(
-    IN  PSRV_TIMER pTimer
+NfsTimerInit(
+    IN  PNFS_TIMER pTimer
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -114,7 +114,7 @@ SrvTimerInit(
     status = pthread_create(
                     &pTimer->timerThread,
                     NULL,
-                    &SrvTimerMain,
+                    &NfsTimerMain,
                     &pTimer->context);
     BAIL_ON_NT_STATUS(status);
 
@@ -127,21 +127,21 @@ error:
 
 static
 PVOID
-SrvTimerMain(
+NfsTimerMain(
     IN  PVOID pData
     )
 {
     NTSTATUS status = 0;
-    PSRV_TIMER_CONTEXT pContext = (PSRV_TIMER_CONTEXT)pData;
-    PSRV_TIMER_REQUEST pTimerRequest = NULL;
+    PNFS_TIMER_CONTEXT pContext = (PNFS_TIMER_CONTEXT)pData;
+    PNFS_TIMER_REQUEST pTimerRequest = NULL;
     LONG64 llCurTime = 0LL;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOG_DEBUG("Srv timer starting");
+    LWIO_LOG_DEBUG("Nfs timer starting");
 
     LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
 
-    while (!SrvTimerMustStop_inlock(pContext))
+    while (!NfsTimerMustStop_inlock(pContext))
     {
         int errCode = 0;
         BOOLEAN bRetryWait = FALSE;
@@ -154,7 +154,7 @@ SrvTimerMain(
 
             if (llCurTime >= pTimerRequest->llExpiry)
             {
-                SrvTimerDetachRequest_inlock(pContext, pTimerRequest);
+                NfsTimerDetachRequest_inlock(pContext, pTimerRequest);
 
                 LWIO_UNLOCK_MUTEX(bInLock, &pContext->mutex);
 
@@ -169,12 +169,12 @@ SrvTimerMain(
                 LWIO_LOCK_MUTEX(bInLock, &pContext->mutex);
             }
 
-            SrvTimerRelease(pTimerRequest);
+            NfsTimerRelease(pTimerRequest);
             pTimerRequest = NULL;
         }
 
         // Get the next timer request in queue
-        status = SrvTimerGetNextRequest_inlock(pContext, &pTimerRequest);
+        status = NfsTimerGetNextRequest_inlock(pContext, &pTimerRequest);
         if (status == STATUS_NOT_FOUND)
         {
             // If the queue is empty wait for a day or until a request arrives
@@ -206,7 +206,7 @@ SrvTimerMain(
                 status = LwErrnoToNtStatus(errCode);
                 BAIL_ON_NT_STATUS(status);
 
-            } while (bRetryWait && !SrvTimerMustStop_inlock(pContext));
+            } while (bRetryWait && !NfsTimerMustStop_inlock(pContext));
 
             continue;
         }
@@ -242,7 +242,7 @@ SrvTimerMain(
             status = LwErrnoToNtStatus(errCode);
             BAIL_ON_NT_STATUS(status);
 
-        } while (bRetryWait && !SrvTimerMustStop_inlock(pContext));
+        } while (bRetryWait && !NfsTimerMustStop_inlock(pContext));
     }
 
 cleanup:
@@ -251,29 +251,29 @@ cleanup:
 
     if (pTimerRequest)
     {
-        SrvTimerRelease(pTimerRequest);
+        NfsTimerRelease(pTimerRequest);
     }
 
-    LWIO_LOG_DEBUG("Srv timer stopping");
+    LWIO_LOG_DEBUG("Nfs timer stopping");
 
     return NULL;
 
 error:
 
-    LWIO_LOG_ERROR("Srv timer stopping due to error [%d]", status);
+    LWIO_LOG_ERROR("Nfs timer stopping due to error [%d]", status);
 
     goto cleanup;
 }
 
 static
 NTSTATUS
-SrvTimerGetNextRequest_inlock(
-    IN  PSRV_TIMER_CONTEXT  pContext,
-    OUT PSRV_TIMER_REQUEST* ppTimerRequest
+NfsTimerGetNextRequest_inlock(
+    IN  PNFS_TIMER_CONTEXT  pContext,
+    OUT PNFS_TIMER_REQUEST* ppTimerRequest
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSRV_TIMER_REQUEST pTimerRequest = NULL;
+    PNFS_TIMER_REQUEST pTimerRequest = NULL;
 
     if (!pContext->pRequests)
     {
@@ -300,9 +300,9 @@ error:
 
 static
 NTSTATUS
-SrvTimerDetachRequest_inlock(
-    IN OUT PSRV_TIMER_CONTEXT pContext,
-    IN OUT PSRV_TIMER_REQUEST pTimerRequest
+NfsTimerDetachRequest_inlock(
+    IN OUT PNFS_TIMER_CONTEXT pContext,
+    IN OUT PNFS_TIMER_REQUEST pTimerRequest
     )
 {
     if (pTimerRequest->pPrev)
@@ -334,18 +334,18 @@ SrvTimerDetachRequest_inlock(
 }
 
 NTSTATUS
-SrvTimerPostRequestSpecific(
-    IN  PSRV_TIMER             pTimer,
+NfsTimerPostRequestSpecific(
+    IN  PNFS_TIMER             pTimer,
     IN  LONG64                 llExpiry,
     IN  PVOID                  pUserData,
-    IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-    OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+    IN  PFN_NFS_TIMER_CALLBACK pfnTimerExpiredCB,
+    OUT PNFS_TIMER_REQUEST*    ppTimerRequest
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSRV_TIMER_REQUEST pTimerRequest = NULL;
-    PSRV_TIMER_REQUEST pTimerIter = NULL;
-    PSRV_TIMER_REQUEST pPrev = NULL;
+    PNFS_TIMER_REQUEST pTimerRequest = NULL;
+    PNFS_TIMER_REQUEST pTimerIter = NULL;
+    PNFS_TIMER_REQUEST pPrev = NULL;
     BOOLEAN bInLock = FALSE;
 
     if (!llExpiry)
@@ -359,8 +359,8 @@ SrvTimerPostRequestSpecific(
         BAIL_ON_NT_STATUS(status);
     }
 
-    status = SrvAllocateMemory(
-                    sizeof(SRV_TIMER_REQUEST),
+    status = NfsAllocateMemory(
+                    sizeof(NFS_TIMER_REQUEST),
                     (PVOID*)&pTimerRequest);
     BAIL_ON_NT_STATUS(status);
 
@@ -414,7 +414,7 @@ cleanup:
 
     if (pTimerRequest)
     {
-        SrvTimerRelease(pTimerRequest);
+        NfsTimerRelease(pTimerRequest);
     }
 
     return status;
@@ -427,15 +427,15 @@ error:
 }
 
 NTSTATUS
-SrvTimerCancelRequestSpecific(
-    IN  PSRV_TIMER         pTimer,
-    IN  PSRV_TIMER_REQUEST pTimerRequest,
+NfsTimerCancelRequestSpecific(
+    IN  PNFS_TIMER         pTimer,
+    IN  PNFS_TIMER_REQUEST pTimerRequest,
     OUT PVOID*             ppUserData
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
-    PSRV_TIMER_REQUEST pIter = NULL;
+    PNFS_TIMER_REQUEST pIter = NULL;
     PVOID              pUserData = NULL;
 
     LWIO_LOCK_MUTEX(bInLock, &pTimer->context.mutex);
@@ -446,7 +446,7 @@ SrvTimerCancelRequestSpecific(
 
     if (pIter)
     {
-        PSRV_TIMER_REQUEST pPrev = pIter->pPrev;
+        PNFS_TIMER_REQUEST pPrev = pIter->pPrev;
 
         if (pPrev)
         {
@@ -486,7 +486,7 @@ cleanup:
 
     if (pIter)
     {
-        SrvTimerRelease(pIter);
+        NfsTimerRelease(pIter);
     }
 
     return status;
@@ -497,13 +497,13 @@ error:
 }
 
 NTSTATUS
-SrvTimerRelease(
-    IN  PSRV_TIMER_REQUEST pTimerRequest
+NfsTimerRelease(
+    IN  PNFS_TIMER_REQUEST pTimerRequest
     )
 {
     if (InterlockedDecrement(&pTimerRequest->refCount) == 0)
     {
-        SrvTimerFree(pTimerRequest);
+        NfsTimerFree(pTimerRequest);
     }
 
     return STATUS_SUCCESS;
@@ -511,30 +511,30 @@ SrvTimerRelease(
 
 static
 VOID
-SrvTimerFree(
-    IN  PSRV_TIMER_REQUEST pTimerRequest
+NfsTimerFree(
+    IN  PNFS_TIMER_REQUEST pTimerRequest
     )
 {
-    SrvFreeMemory(pTimerRequest);
+    NfsFreeMemory(pTimerRequest);
 }
 
 NTSTATUS
-SrvTimerIndicateStop(
-    IN  PSRV_TIMER pTimer
+NfsTimerIndicateStop(
+    IN  PNFS_TIMER pTimer
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_TIMER_REQUEST pTimerRequest = NULL;
+    PNFS_TIMER_REQUEST pTimerRequest = NULL;
 
     if (pTimer->pTimerThread)
     {
-        SrvTimerStop(&pTimer->context);
+        NfsTimerStop(&pTimer->context);
 
         // Wake up the timer thread
-        ntStatus = SrvTimerPostRequest(
+        ntStatus = NfsTimerPostRequest(
                         1LL,
                         NULL,
-                        &SrvTimerShutdownCB,
+                        &NfsTimerShutdownCB,
                         &pTimerRequest);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -543,7 +543,7 @@ error:
 
     if (pTimerRequest)
     {
-        SrvTimerRelease(pTimerRequest);
+        NfsTimerRelease(pTimerRequest);
     }
 
     return ntStatus;
@@ -551,21 +551,21 @@ error:
 
 static
 VOID
-SrvTimerShutdownCB(
-    PSRV_TIMER_REQUEST pTimerRequest,
+NfsTimerShutdownCB(
+    PNFS_TIMER_REQUEST pTimerRequest,
     PVOID              pUserData
     )
 {
 }
 
 VOID
-SrvTimerFreeContents(
-    IN  PSRV_TIMER pTimer
+NfsTimerFreeContents(
+    IN  PNFS_TIMER pTimer
     )
 {
     if (pTimer->pTimerThread)
     {
-        SrvTimerStop(&pTimer->context);
+        NfsTimerStop(&pTimer->context);
 
         pthread_join(pTimer->timerThread, NULL);
     }
@@ -578,11 +578,11 @@ SrvTimerFreeContents(
 
     while(pTimer->context.pRequests)
     {
-        PSRV_TIMER_REQUEST pRequest = pTimer->context.pRequests;
+        PNFS_TIMER_REQUEST pRequest = pTimer->context.pRequests;
 
         pTimer->context.pRequests = pTimer->context.pRequests->pNext;
 
-        SrvTimerRelease(pRequest);
+        NfsTimerRelease(pRequest);
     }
 
     if (pTimer->context.pMutex)
@@ -594,8 +594,8 @@ SrvTimerFreeContents(
 
 static
 BOOLEAN
-SrvTimerMustStop_inlock(
-    IN  PSRV_TIMER_CONTEXT pContext
+NfsTimerMustStop_inlock(
+    IN  PNFS_TIMER_CONTEXT pContext
     )
 {
     BOOLEAN bStop = FALSE;
@@ -607,8 +607,8 @@ SrvTimerMustStop_inlock(
 
 static
 VOID
-SrvTimerStop(
-    IN  PSRV_TIMER_CONTEXT pContext
+NfsTimerStop(
+    IN  PNFS_TIMER_CONTEXT pContext
     )
 {
     pthread_mutex_lock(&pContext->mutex);

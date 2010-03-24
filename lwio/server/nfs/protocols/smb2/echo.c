@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -52,16 +52,16 @@
 #include "includes.h"
 
 NTSTATUS
-SrvProcessEcho_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessEcho_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus      = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;

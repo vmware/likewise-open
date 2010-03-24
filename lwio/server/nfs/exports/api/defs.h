@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Share Repository API
  *
@@ -49,8 +49,8 @@
  *
  */
 
-#ifndef __SRV_SHAREAPI_DEFS_H__
-#define __SRV_SHAREAPI_DEFS_H__
+#ifndef __NFS_SHAREAPI_DEFS_H__
+#define __NFS_SHAREAPI_DEFS_H__
 
-#endif /* __SRV_SHAREAPI_DEFS_H__ */
+#endif /* __NFS_SHAREAPI_DEFS_H__ */
 

@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -51,18 +51,18 @@
 #include "srvgss_p.h"
 
 NTSTATUS
-SrvGssAcquireContext(
-    PSRV_HOST_INFO pHostinfo,
+NfsGssAcquireContext(
+    PNFS_HOST_INFO pHostinfo,
     HANDLE         hGssOrig,
     PHANDLE        phGssNew
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_KRB5_CONTEXT pContext = (PSRV_KRB5_CONTEXT)hGssOrig;
+    PNFS_KRB5_CONTEXT pContext = (PNFS_KRB5_CONTEXT)hGssOrig;
 
     if (!pContext)
     {
-        ntStatus = SrvGssNewContext(pHostinfo, &pContext);
+        ntStatus = NfsGssNewContext(pHostinfo, &pContext);
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else
@@ -84,18 +84,18 @@ error:
 }
 
 BOOLEAN
-SrvGssNegotiateIsComplete(
+NfsGssNegotiateIsComplete(
     HANDLE hGss,
     HANDLE hGssNegotiate
     )
 {
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate;
-    return pGssNegotiate->state == SRV_GSS_CONTEXT_STATE_COMPLETE;
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PNFS_GSS_NEGOTIATE_CONTEXT)hGssNegotiate;
+    return pGssNegotiate->state == NFS_GSS_CONTEXT_STATE_COMPLETE;
 }
 
 static
 NTSTATUS
-SrvGssGetSessionKey(
+NfsGssGetSessionKey(
     gss_ctx_id_t Context,
     PBYTE* ppSessionKey,
     PDWORD pdwSessionKeyLength
@@ -156,7 +156,7 @@ error:
 
 static
 NTSTATUS
-SrvGssGetClientPrincipalName(
+NfsGssGetClientPrincipalName(
     gss_ctx_id_t Context,
     PSTR *ppszClientName
     )
@@ -214,7 +214,7 @@ SrvGssGetClientPrincipalName(
         nameBuffer = ClientName->elements[0];
     }
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                    (nameBuffer.length + 1) * sizeof(CHAR),
                    (PVOID*)&pszClientPrincipalName);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -242,7 +242,7 @@ error:
 }
 
 NTSTATUS
-SrvGssGetSessionDetails(
+NfsGssGetSessionDetails(
     HANDLE hGss,
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
@@ -252,12 +252,12 @@ SrvGssGetSessionDetails(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate;
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PNFS_GSS_NEGOTIATE_CONTEXT)hGssNegotiate;
     PBYTE pSessionKey = NULL;
     DWORD dwSessionKeyLength = 0;
     PSTR pszClientPrincipalName = NULL;
 
-    if (!SrvGssNegotiateIsComplete(hGss, hGssNegotiate))
+    if (!NfsGssNegotiateIsComplete(hGss, hGssNegotiate))
     {
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -265,7 +265,7 @@ SrvGssGetSessionDetails(
 
     if (ppSessionKey)
     {
-        ntStatus = SrvGssGetSessionKey(
+        ntStatus = NfsGssGetSessionKey(
                         *pGssNegotiate->pGssContext,
                         &pSessionKey,
                         &dwSessionKeyLength);
@@ -274,7 +274,7 @@ SrvGssGetSessionDetails(
 
     if (ppszClientPrincipalName)
     {
-        ntStatus = SrvGssGetClientPrincipalName(
+        ntStatus = NfsGssGetClientPrincipalName(
                        *pGssNegotiate->pGssContext,
                        &pszClientPrincipalName);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -313,33 +313,33 @@ error:
 
     if (pSessionKey)
     {
-        SrvFreeMemory(pSessionKey);
+        NfsFreeMemory(pSessionKey);
     }
     if (pszClientPrincipalName)
     {
-        SrvFreeMemory(pszClientPrincipalName);
+        NfsFreeMemory(pszClientPrincipalName);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvGssBeginNegotiate(
+NfsGssBeginNegotiate(
     HANDLE  hGss,
     PHANDLE phGssResume
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = NULL;
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiate = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_GSS_NEGOTIATE_CONTEXT),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_GSS_NEGOTIATE_CONTEXT),
                     (PVOID*)&pGssNegotiate);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_INITIAL;
+    pGssNegotiate->state = NFS_GSS_CONTEXT_STATE_INITIAL;
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     sizeof(gss_ctx_id_t),
                     (PVOID*)&pGssNegotiate->pGssContext);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -358,14 +358,14 @@ error:
 
     if (pGssNegotiate)
     {
-        SrvGssEndNegotiate(hGss, (HANDLE)pGssNegotiate);
+        NfsGssEndNegotiate(hGss, (HANDLE)pGssNegotiate);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvGssNegotiate(
+NfsGssNegotiate(
     HANDLE  hGss,
     HANDLE  hGssResume,
     PBYTE   pSecurityInputBlob,
@@ -375,14 +375,14 @@ SrvGssNegotiate(
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_KRB5_CONTEXT pGssContext = (PSRV_KRB5_CONTEXT)hGss;
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssResume;
+    PNFS_KRB5_CONTEXT pGssContext = (PNFS_KRB5_CONTEXT)hGss;
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiate = (PNFS_GSS_NEGOTIATE_CONTEXT)hGssResume;
     PBYTE pSecurityBlob = NULL;
     ULONG ulSecurityBlobLen = 0;
 
     switch(pGssNegotiate->state)
     {
-        case SRV_GSS_CONTEXT_STATE_INITIAL:
+        case NFS_GSS_CONTEXT_STATE_INITIAL:
 
             if (pSecurityInputBlob)
             {
@@ -390,7 +390,7 @@ SrvGssNegotiate(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            ntStatus = SrvGssInitNegotiate(
+            ntStatus = NfsGssInitNegotiate(
                             pGssContext,
                             pGssNegotiate,
                             pSecurityInputBlob,
@@ -400,9 +400,9 @@ SrvGssNegotiate(
 
             break;
 
-        case SRV_GSS_CONTEXT_STATE_HINTS:
+        case NFS_GSS_CONTEXT_STATE_HINTS:
 
-            ntStatus = SrvGssContinueNegotiate(
+            ntStatus = NfsGssContinueNegotiate(
                             pGssContext,
                             pGssNegotiate,
                             NULL,
@@ -412,7 +412,7 @@ SrvGssNegotiate(
 
             break;
 
-        case SRV_GSS_CONTEXT_STATE_NEGOTIATE:
+        case NFS_GSS_CONTEXT_STATE_NEGOTIATE:
 
             if (!pSecurityInputBlob)
             {
@@ -420,7 +420,7 @@ SrvGssNegotiate(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            ntStatus = SrvGssContinueNegotiate(
+            ntStatus = NfsGssContinueNegotiate(
                             pGssContext,
                             pGssNegotiate,
                             pSecurityInputBlob,
@@ -430,7 +430,7 @@ SrvGssNegotiate(
 
             break;
 
-        case SRV_GSS_CONTEXT_STATE_COMPLETE:
+        case NFS_GSS_CONTEXT_STATE_COMPLETE:
 
             break;
 
@@ -447,15 +447,15 @@ error:
 }
 
 VOID
-SrvGssEndNegotiate(
+NfsGssEndNegotiate(
     HANDLE hGss,
     HANDLE hGssResume
     )
 {
     ULONG ulMinorStatus = 0;
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiateContext = NULL;
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiateContext = NULL;
 
-    pGssNegotiateContext = (PSRV_GSS_NEGOTIATE_CONTEXT)hGssResume;
+    pGssNegotiateContext = (PNFS_GSS_NEGOTIATE_CONTEXT)hGssResume;
 
     if (pGssNegotiateContext->pGssContext &&
         (*pGssNegotiateContext->pGssContext != GSS_C_NO_CONTEXT))
@@ -465,38 +465,38 @@ SrvGssEndNegotiate(
                         pGssNegotiateContext->pGssContext,
                         GSS_C_NO_BUFFER);
 
-        SrvFreeMemory(pGssNegotiateContext->pGssContext);
+        NfsFreeMemory(pGssNegotiateContext->pGssContext);
     }
 
-    SrvFreeMemory(pGssNegotiateContext);
+    NfsFreeMemory(pGssNegotiateContext);
 }
 
 VOID
-SrvGssReleaseContext(
+NfsGssReleaseContext(
     HANDLE hGss
     )
 {
-    PSRV_KRB5_CONTEXT pContext = (PSRV_KRB5_CONTEXT)hGss;
+    PNFS_KRB5_CONTEXT pContext = (PNFS_KRB5_CONTEXT)hGss;
 
     if (InterlockedDecrement(&pContext->refcount) == 0)
     {
-        SrvGssFreeContext(pContext);
+        NfsGssFreeContext(pContext);
     }
 }
 
 static
 NTSTATUS
-SrvGssNewContext(
-    PSRV_HOST_INFO     pHostinfo,
-    PSRV_KRB5_CONTEXT* ppContext
+NfsGssNewContext(
+    PNFS_HOST_INFO     pHostinfo,
+    PNFS_KRB5_CONTEXT* ppContext
     )
 {
     NTSTATUS ntStatus = 0;
     PSTR     pszCachePath = NULL;
-    PSRV_KRB5_CONTEXT pContext = NULL;
+    PNFS_KRB5_CONTEXT pContext = NULL;
     BOOLEAN  bInLock = FALSE;
 
-    ntStatus = SrvAllocateMemory(sizeof(SRV_KRB5_CONTEXT), (PVOID*)&pContext);
+    ntStatus = NfsAllocateMemory(sizeof(NFS_KRB5_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pContext->refcount = 1;
@@ -508,7 +508,7 @@ SrvGssNewContext(
 
     if (pHostinfo->bIsJoined)
     {
-        ntStatus = SrvAllocateStringPrintf(
+        ntStatus = NfsAllocateStringPrintf(
                        &pContext->pszMachinePrincipal,
                        "%s$@%s",
                        pHostinfo->pszHostname,
@@ -519,10 +519,10 @@ SrvGssNewContext(
 
         SMBStrToUpper(pContext->pszMachinePrincipal);
 
-        ntStatus = SMBAllocateString(SRV_KRB5_CACHE_PATH, &pszCachePath);
+        ntStatus = SMBAllocateString(NFS_KRB5_CACHE_PATH, &pszCachePath);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvGetTGTFromKeytab(
+        ntStatus = NfsGetTGTFromKeytab(
                        pContext->pszMachinePrincipal,
                        NULL,
                        pszCachePath,
@@ -533,7 +533,7 @@ SrvGssNewContext(
     }
     else
     {
-        ntStatus = SrvAllocateStringPrintf(
+        ntStatus = NfsAllocateStringPrintf(
                        &pContext->pszMachinePrincipal,
                        "%s",
                        pHostinfo->pszHostname);
@@ -554,12 +554,12 @@ error:
 
     if (pContext)
     {
-        SrvGssFreeContext(pContext);
+        NfsGssFreeContext(pContext);
     }
 
     if (pszCachePath)
     {
-        SrvFreeMemory(pszCachePath);
+        NfsFreeMemory(pszCachePath);
     }
 
     goto cleanup;
@@ -567,9 +567,9 @@ error:
 
 static
 NTSTATUS
-SrvGssInitNegotiate(
-    PSRV_KRB5_CONTEXT          pGssContext,
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
+NfsGssInitNegotiate(
+    PNFS_KRB5_CONTEXT          pGssContext,
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
     PBYTE                      pSecurityInputBlob,
     ULONG                      ulSecurityInputBlobLen,
     PBYTE*                     ppSecurityOutputBlob,
@@ -614,10 +614,10 @@ SrvGssInitNegotiate(
 
     if (!IsNullOrEmptyString(pGssContext->pszCachePath))
     {
-        ntStatus = SrvGssRenew(pGssContext);
+        ntStatus = NfsGssRenew(pGssContext);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSetDefaultKrb5CachePath(
+        ntStatus = NfsSetDefaultKrb5CachePath(
                        pGssContext->pszCachePath,
                        &pszCurrentCachePath);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -675,13 +675,13 @@ SrvGssInitNegotiate(
     {
         case GSS_S_CONTINUE_NEEDED:
 
-            pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_NEGOTIATE;
+            pGssNegotiate->state = NFS_GSS_CONTEXT_STATE_NEGOTIATE;
 
             break;
 
         case GSS_S_COMPLETE:
 
-            pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_COMPLETE;
+            pGssNegotiate->state = NFS_GSS_CONTEXT_STATE_COMPLETE;
 
             break;
 
@@ -695,7 +695,7 @@ SrvGssInitNegotiate(
 
     if (output_desc.length)
     {
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         output_desc.length,
                         (PVOID*)&pSessionKey);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -731,11 +731,11 @@ cleanup:
 
     if (pszCurrentCachePath)
     {
-        SrvSetDefaultKrb5CachePath(
+        NfsSetDefaultKrb5CachePath(
             pszCurrentCachePath,
             NULL);
 
-        SrvFreeMemory(pszCurrentCachePath);
+        NfsFreeMemory(pszCurrentCachePath);
     }
 
     return ntStatus;
@@ -751,7 +751,7 @@ error:
 
     if (pSessionKey)
     {
-        SrvFreeMemory(pSessionKey);
+        NfsFreeMemory(pSessionKey);
     }
 
     goto cleanup;
@@ -759,9 +759,9 @@ error:
 
 static
 NTSTATUS
-SrvGssContinueNegotiate(
-    PSRV_KRB5_CONTEXT          pGssContext,
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
+NfsGssContinueNegotiate(
+    PNFS_KRB5_CONTEXT          pGssContext,
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
     PBYTE                      pSecurityInputBlob,
     ULONG                      ulSecurityInputBlobLen,
     PBYTE*                     ppSecurityOutputBlob,
@@ -808,13 +808,13 @@ SrvGssContinueNegotiate(
     {
         case GSS_S_CONTINUE_NEEDED:
 
-            pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_NEGOTIATE;
+            pGssNegotiate->state = NFS_GSS_CONTEXT_STATE_NEGOTIATE;
 
             break;
 
         case GSS_S_COMPLETE:
 
-            pGssNegotiate->state = SRV_GSS_CONTEXT_STATE_COMPLETE;
+            pGssNegotiate->state = NFS_GSS_CONTEXT_STATE_COMPLETE;
 
             break;
 
@@ -828,7 +828,7 @@ SrvGssContinueNegotiate(
 
     if (output_desc.length)
     {
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         output_desc.length,
                         (PVOID*)&pSecurityBlob);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -860,7 +860,7 @@ error:
 
     if (pSecurityBlob)
     {
-        SrvFreeMemory(pSecurityBlob);
+        NfsFreeMemory(pSecurityBlob);
     }
 
     goto cleanup;
@@ -868,15 +868,15 @@ error:
 
 static
 VOID
-SrvGssFreeContext(
-    PSRV_KRB5_CONTEXT pContext
+NfsGssFreeContext(
+    PNFS_KRB5_CONTEXT pContext
     )
 {
     if (!IsNullOrEmptyString(pContext->pszCachePath))
     {
         NTSTATUS ntStatus = 0;
 
-        ntStatus = SrvDestroyKrb5Cache(pContext->pszCachePath);
+        ntStatus = NfsDestroyKrb5Cache(pContext->pszCachePath);
         if (ntStatus)
         {
             LWIO_LOG_ERROR("Failed to destroy kerberos cache path [%s][code:%d]",
@@ -887,11 +887,11 @@ SrvGssFreeContext(
 
     if (pContext->pszCachePath)
     {
-        SrvFreeMemory(pContext->pszCachePath);
+        NfsFreeMemory(pContext->pszCachePath);
     }
     if (pContext->pszMachinePrincipal)
     {
-        SrvFreeMemory(pContext->pszMachinePrincipal);
+        NfsFreeMemory(pContext->pszMachinePrincipal);
     }
 
     if (pContext->pMutex)
@@ -967,8 +967,8 @@ srv_display_status_1(
 
 static
 NTSTATUS
-SrvGssRenew(
-   PSRV_KRB5_CONTEXT pContext
+NfsGssRenew(
+   PNFS_KRB5_CONTEXT pContext
    )
 {
     NTSTATUS ntStatus = 0;
@@ -976,7 +976,7 @@ SrvGssRenew(
     if (!pContext->ticketExpiryTime ||
         difftime(time(NULL), pContext->ticketExpiryTime) >  60 * 60)
     {
-        ntStatus = SrvGetTGTFromKeytab(
+        ntStatus = NfsGetTGTFromKeytab(
                         pContext->pszMachinePrincipal,
                         NULL,
                         pContext->pszCachePath,
@@ -988,7 +988,7 @@ SrvGssRenew(
 
 static
 NTSTATUS
-SrvGetTGTFromKeytab(
+NfsGetTGTFromKeytab(
     PCSTR   pszUserName,
     PCSTR   pszPassword,
     PCSTR   pszCachePath,
@@ -1074,7 +1074,7 @@ error:
 
 static
 NTSTATUS
-SrvDestroyKrb5Cache(
+NfsDestroyKrb5Cache(
     PCSTR pszCachePath
     )
 {
@@ -1111,7 +1111,7 @@ error:
 
 static
 NTSTATUS
-SrvSetDefaultKrb5CachePath(
+NfsSetDefaultKrb5CachePath(
     PCSTR pszCachePath,
     PSTR* ppszOrigCachePath
     )
@@ -1165,7 +1165,7 @@ error:
  **/
 
 NTSTATUS
-SrvGssNegHints(
+NfsGssNegHints(
     HANDLE hGssContext,
     PBYTE *ppNegHints,
     ULONG *pulNegHintsLength
@@ -1175,37 +1175,37 @@ SrvGssNegHints(
     HANDLE   hGssNegotiate = NULL;
     BOOLEAN  bInLock       = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_LOCK_MUTEX(bInLock, &gNfsElements.mutex);
 
-    if (!gSrvElements.pHintsBuffer)
+    if (!gNfsElements.pHintsBuffer)
     {
-        ntStatus = SrvGssBeginNegotiate(hGssContext, &hGssNegotiate);
+        ntStatus = NfsGssBeginNegotiate(hGssContext, &hGssNegotiate);
         BAIL_ON_NT_STATUS(ntStatus);
 
         /* MIT Krb5 1.7 returns the NegHints blob if you call
            gss_accept_sec_context() with a NULL input buffer */
 
-        ((PSRV_GSS_NEGOTIATE_CONTEXT)hGssNegotiate)->state = SRV_GSS_CONTEXT_STATE_HINTS;
-        ntStatus = SrvGssNegotiate(
+        ((PNFS_GSS_NEGOTIATE_CONTEXT)hGssNegotiate)->state = NFS_GSS_CONTEXT_STATE_HINTS;
+        ntStatus = NfsGssNegotiate(
                        hGssContext,
                        hGssNegotiate,
                        NULL,
                        0,
-                       &gSrvElements.pHintsBuffer,
-                       &gSrvElements.ulHintsLength);
+                       &gNfsElements.pHintsBuffer,
+                       &gNfsElements.ulHintsLength);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppNegHints        = gSrvElements.pHintsBuffer;
-    *pulNegHintsLength = gSrvElements.ulHintsLength;
+    *ppNegHints        = gNfsElements.pHintsBuffer;
+    *pulNegHintsLength = gNfsElements.ulHintsLength;
 
 cleanup:
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &gNfsElements.mutex);
 
     if (hGssNegotiate)
     {
-        SrvGssEndNegotiate(hGssContext, hGssNegotiate);
+        NfsGssEndNegotiate(hGssContext, hGssNegotiate);
     }
 
     return ntStatus;

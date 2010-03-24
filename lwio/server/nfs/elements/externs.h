@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -49,7 +49,7 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern SRV_ELEMENTS_GLOBALS gSrvElements;
+extern NFS_ELEMENTS_GLOBALS gNfsElements;
 
 #endif /* __EXTERNS_H__ */
 

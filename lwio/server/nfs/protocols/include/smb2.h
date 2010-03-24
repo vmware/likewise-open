@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        SMB V2 Protocol Handler API
  *
@@ -49,29 +49,29 @@
 #define __SMB_V2_H__
 
 NTSTATUS
-SrvProtocolInit_SMB_V2(
+NfsProtocolInit_SMB_V2(
     PSMB_PROD_CONS_QUEUE pAsyncWorkQueue
     );;
 
 NTSTATUS
-SrvProtocolExecute_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProtocolExecute_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 VOID
-SrvProtocolFreeContext_SMB_V2(
-    PSRV_EXEC_CONTEXT_SMB_V2 pProtocolContext
+NfsProtocolFreeContext_SMB_V2(
+    PNFS_EXEC_CONTEXT_SMB_V2 pProtocolContext
     );
 
 NTSTATUS
-SrvBuildNegotiateResponse_SMB_V2(
-    IN  PLWIO_SRV_CONNECTION pConnection,
+NfsBuildNegotiateResponse_SMB_V2(
+    IN  PLWIO_NFS_CONNECTION pConnection,
     IN  PSMB_PACKET          pSmbRequest,
     OUT PSMB_PACKET*         ppSmbResponse
     );
 
 VOID
-SrvProtocolShutdown_SMB_V2(
+NfsProtocolShutdown_SMB_V2(
     VOID
     );
 

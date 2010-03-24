@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Share API
  *
@@ -51,7 +51,7 @@
 
 static
 NTSTATUS
-SrvShareMapSpecificToWindowsPath(
+NfsShareMapSpecificToWindowsPath(
     IN  PWSTR  pwszFSPrefix,
     IN  PWSTR  pwszRootPath,
     IN  PWSTR  pwszInputPath,
@@ -59,7 +59,7 @@ SrvShareMapSpecificToWindowsPath(
     );
 
 NTSTATUS
-SrvShareMapIdToServiceStringW(
+NfsShareMapIdToServiceStringW(
     IN  SHARE_SERVICE  service,
     OUT PWSTR*         ppwszService
     )
@@ -68,17 +68,17 @@ SrvShareMapIdToServiceStringW(
     PWSTR pwszShareType = NULL;
     PSTR  pszShareType = NULL;
 
-    ntStatus = SrvShareMapIdToServiceStringA(service, &pszShareType);
+    ntStatus = NfsShareMapIdToServiceStringA(service, &pszShareType);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvMbsToWc16s(pszShareType, &pwszShareType);
+    ntStatus = NfsMbsToWc16s(pszShareType, &pwszShareType);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppwszService = pwszShareType;
 
 cleanup:
 
-    SRV_SAFE_FREE_MEMORY(pszShareType);
+    NFS_SAFE_FREE_MEMORY(pszShareType);
 
     return ntStatus;
 
@@ -90,7 +90,7 @@ error:
 }
 
 NTSTATUS
-SrvShareMapIdToServiceStringA(
+NfsShareMapIdToServiceStringA(
     IN  SHARE_SERVICE  service,
     OUT PSTR*          ppszService
     )
@@ -103,31 +103,31 @@ SrvShareMapIdToServiceStringA(
     {
         case SHARE_SERVICE_DISK_SHARE:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_DISK_A;
+            pszId = LWIO_NFS_SHARE_STRING_ID_DISK_A;
 
             break;
 
         case SHARE_SERVICE_PRINTER:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_PRINTER_A;
+            pszId = LWIO_NFS_SHARE_STRING_ID_PRINTER_A;
 
             break;
 
         case SHARE_SERVICE_COMM_DEVICE:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_COMM_A;
+            pszId = LWIO_NFS_SHARE_STRING_ID_COMM_A;
 
             break;
 
         case SHARE_SERVICE_NAMED_PIPE:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_IPC_A;
+            pszId = LWIO_NFS_SHARE_STRING_ID_IPC_A;
 
             break;
 
         case SHARE_SERVICE_ANY:
 
-            pszId = LWIO_SRV_SHARE_STRING_ID_ANY_A;
+            pszId = LWIO_NFS_SHARE_STRING_ID_ANY_A;
 
             break;
 
@@ -158,7 +158,7 @@ error:
 }
 
 NTSTATUS
-SrvShareMapServiceStringToIdA(
+NfsShareMapServiceStringToIdA(
     IN     PCSTR          pszService,
     IN OUT SHARE_SERVICE* pService
     )
@@ -170,23 +170,23 @@ SrvShareMapServiceStringToIdA(
     {
         ntStatus = STATUS_NOT_FOUND;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_IPC_A))
+    else if (!strcmp(pszService, LWIO_NFS_SHARE_STRING_ID_IPC_A))
     {
         service = SHARE_SERVICE_NAMED_PIPE;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_DISK_A))
+    else if (!strcmp(pszService, LWIO_NFS_SHARE_STRING_ID_DISK_A))
     {
         service = SHARE_SERVICE_DISK_SHARE;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_COMM_A))
+    else if (!strcmp(pszService, LWIO_NFS_SHARE_STRING_ID_COMM_A))
     {
         service = SHARE_SERVICE_COMM_DEVICE;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_PRINTER_A))
+    else if (!strcmp(pszService, LWIO_NFS_SHARE_STRING_ID_PRINTER_A))
     {
         service = SHARE_SERVICE_PRINTER;
     }
-    else if (!strcmp(pszService, LWIO_SRV_SHARE_STRING_ID_ANY_A))
+    else if (!strcmp(pszService, LWIO_NFS_SHARE_STRING_ID_ANY_A))
     {
         service = SHARE_SERVICE_ANY;
     }
@@ -210,17 +210,17 @@ error:
 }
 
 NTSTATUS
-SrvShareMapServiceStringToIdW(
+NfsShareMapServiceStringToIdW(
     IN     PWSTR          pwszService,
     IN OUT SHARE_SERVICE* pService
     )
 {
     NTSTATUS      ntStatus  = STATUS_SUCCESS;
-    wchar16_t     wszIpc[]  = LWIO_SRV_SHARE_STRING_ID_IPC_W;
-    wchar16_t     wszDisk[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
-    wchar16_t     wszComm[] = LWIO_SRV_SHARE_STRING_ID_COMM_W;
-    wchar16_t     wszPtr[]  = LWIO_SRV_SHARE_STRING_ID_PRINTER_W;
-    wchar16_t     wszAny[]  = LWIO_SRV_SHARE_STRING_ID_ANY_W;
+    wchar16_t     wszIpc[]  = LWIO_NFS_SHARE_STRING_ID_IPC_W;
+    wchar16_t     wszDisk[] = LWIO_NFS_SHARE_STRING_ID_DISK_W;
+    wchar16_t     wszComm[] = LWIO_NFS_SHARE_STRING_ID_COMM_W;
+    wchar16_t     wszPtr[]  = LWIO_NFS_SHARE_STRING_ID_PRINTER_W;
+    wchar16_t     wszAny[]  = LWIO_NFS_SHARE_STRING_ID_ANY_W;
     SHARE_SERVICE service   = SHARE_SERVICE_UNKNOWN;
 
     if (IsNullOrEmptyString(pwszService))
@@ -267,7 +267,7 @@ error:
 }
 
 NTSTATUS
-SrvShareMapFromWindowsPath(
+NfsShareMapFromWindowsPath(
     IN  PWSTR  pwszInputPath,
     OUT PWSTR* ppwszPath
     )
@@ -283,7 +283,7 @@ SrvShareMapFromWindowsPath(
     size_t    sFSPrefixLen = 3;
     size_t    sFSRootLen = 0;
     size_t    sRequiredLen = 0;
-    wchar16_t wszFileSystemRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_W;
+    wchar16_t wszFileSystemRoot[] = LWIO_NFS_FILE_SYSTEM_ROOT_W;
 
     if (!pwszInputPath || !*pwszInputPath)
     {
@@ -328,7 +328,7 @@ SrvShareMapFromWindowsPath(
     sRequiredLen += wc16slen(pwszPathReadCursor) * sizeof(wchar16_t);
     sRequiredLen += sizeof(wchar16_t);
 
-    ntStatus = SrvAllocateMemory(sRequiredLen, (PVOID*)&pwszPath);
+    ntStatus = NfsAllocateMemory(sRequiredLen, (PVOID*)&pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pwszPathReadCursor = pwszInputPath;
@@ -371,32 +371,32 @@ error:
 
     *ppwszPath = NULL;
 
-    SRV_SAFE_FREE_MEMORY(pwszPath);
+    NFS_SAFE_FREE_MEMORY(pwszPath);
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvShareMapToWindowsPath(
+NfsShareMapToWindowsPath(
     IN  PWSTR  pwszInputPath,
     OUT PWSTR* ppwszPath
     )
 {
     NTSTATUS ntStatus = 0;
     PWSTR pwszPath = NULL;
-    wchar16_t wszFileSystemPrefix[] = LWIO_SRV_FILE_SYSTEM_PREFIX_W;
-    wchar16_t wszFileSystemRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_W;
+    wchar16_t wszFileSystemPrefix[] = LWIO_NFS_FILE_SYSTEM_PREFIX_W;
+    wchar16_t wszFileSystemRoot[] = LWIO_NFS_FILE_SYSTEM_ROOT_W;
 
-    ntStatus = SrvShareMapSpecificToWindowsPath(
+    ntStatus = NfsShareMapSpecificToWindowsPath(
                     &wszFileSystemPrefix[0],
                     &wszFileSystemRoot[0],
                     pwszInputPath,
                     &pwszPath);
     if (ntStatus == STATUS_OBJECT_PATH_SYNTAX_BAD)
     {
-        wchar16_t wszPipeSystemRoot[] = LWIO_SRV_PIPE_SYSTEM_ROOT_W;
+        wchar16_t wszPipeSystemRoot[] = LWIO_NFS_PIPE_SYSTEM_ROOT_W;
 
-        ntStatus = SrvShareMapSpecificToWindowsPath(
+        ntStatus = NfsShareMapSpecificToWindowsPath(
                             &wszFileSystemPrefix[0],
                             &wszPipeSystemRoot[0],
                             pwszInputPath,
@@ -416,7 +416,7 @@ error:
 
     if (pwszPath)
     {
-        SrvFreeMemory(pwszPath);
+        NfsFreeMemory(pwszPath);
     }
 
     goto cleanup;
@@ -424,7 +424,7 @@ error:
 
 static
 NTSTATUS
-SrvShareMapSpecificToWindowsPath(
+NfsShareMapSpecificToWindowsPath(
     IN  PWSTR  pwszFSPrefix,
     IN  PWSTR  pwszRootPath,
     IN  PWSTR  pwszInputPath,
@@ -478,7 +478,7 @@ SrvShareMapSpecificToWindowsPath(
     sRequiredLen += wc16slen(pwszPathReadCursor) * sizeof(wchar16_t);
     sRequiredLen += sizeof(wchar16_t);
 
-    ntStatus = SrvAllocateMemory(sRequiredLen, (PVOID*)&pwszPath);
+    ntStatus = NfsAllocateMemory(sRequiredLen, (PVOID*)&pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pwszPathReadCursor = pwszInputPath;
@@ -520,7 +520,7 @@ error:
 
     *ppwszPath = NULL;
 
-    SRV_SAFE_FREE_MEMORY(pwszPath);
+    NFS_SAFE_FREE_MEMORY(pwszPath);
 
     goto cleanup;
 }

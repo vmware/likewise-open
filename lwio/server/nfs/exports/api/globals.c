@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Share Repository API
  *
@@ -51,7 +51,7 @@
 
 #include "includes.h"
 
-SRV_SHAREAPI_GLOBALS gSrvShareApi =
+NFS_SHAREAPI_GLOBALS gNfsShareApi =
 {
     .pFnTable = NULL
 };

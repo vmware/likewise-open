@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -51,34 +51,34 @@
 
 static
 NTSTATUS
-SrvBuildNotifyRequestState_SMB_V2(
+NfsBuildNotifyRequestState_SMB_V2(
     PSMB2_NOTIFY_CHANGE_HEADER         pRequestHeader,
-    PSRV_NOTIFY_REQUEST_STATE_SMB_V2*  ppNotifyRequestState
+    PNFS_NOTIFY_REQUEST_STATE_SMB_V2*  ppNotifyRequestState
     );
 
 static
 VOID
-SrvCancelNotifyState_SMB_V2_inlock(
-    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+NfsCancelNotifyState_SMB_V2_inlock(
+    PNFS_NOTIFY_STATE_SMB_V2 pNotifyState
     );
 
 static
 NTSTATUS
-SrvExecuteChangeNotify_SMB_V2(
-    PSRV_EXEC_CONTEXT        pExecContext,
-    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+NfsExecuteChangeNotify_SMB_V2(
+    PNFS_EXEC_CONTEXT        pExecContext,
+    PNFS_NOTIFY_STATE_SMB_V2 pNotifyState
     );
 
 static
 NTSTATUS
-SrvBuildNotifyResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT        pExecContext,
-    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+NfsBuildNotifyResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT        pExecContext,
+    PNFS_NOTIFY_STATE_SMB_V2 pNotifyState
     );
 
 static
 NTSTATUS
-SrvMarshalNotifyResponse_SMB_V2(
+NfsMarshalNotifyResponse_SMB_V2(
     PBYTE  pNotifyResponse,
     ULONG  ulNotifyResponseLength,
     PBYTE* ppBuffer,
@@ -87,43 +87,43 @@ SrvMarshalNotifyResponse_SMB_V2(
 
 static
 VOID
-SrvReleaseNotifyRequestStateHandle_SMB_V2(
+NfsReleaseNotifyRequestStateHandle_SMB_V2(
     HANDLE hNotifyRequest
     );
 
 static
 VOID
-SrvReleaseNotifyRequestState_SMB_V2(
-    PSRV_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState
+NfsReleaseNotifyRequestState_SMB_V2(
+    PNFS_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState
     );
 
 static
 VOID
-SrvFreeNotifyRequestState_SMB_V2(
-    PSRV_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState
+NfsFreeNotifyRequestState_SMB_V2(
+    PNFS_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState
     );
 
 NTSTATUS
-SrvProcessNotify_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessNotify_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection  = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PLWIO_SRV_SESSION_2        pSession     = NULL;
-    PLWIO_SRV_TREE_2           pTree        = NULL;
-    PLWIO_SRV_FILE_2           pFile        = NULL;
+    PNFS_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PLWIO_NFS_SESSION_2        pSession     = NULL;
+    PLWIO_NFS_TREE_2           pTree        = NULL;
+    PLWIO_NFS_FILE_2           pFile        = NULL;
     BOOLEAN                    bInLock      = FALSE;
-    PSRV_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
+    PNFS_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
     PLWIO_ASYNC_STATE          pAsyncState       = NULL;
     BOOLEAN                    bUnregisterAsync          = FALSE;
-    PSRV_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState = NULL;
+    PNFS_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState = NULL;
 
-    pNotifyRequestState = (PSRV_NOTIFY_REQUEST_STATE_SMB_V2)pCtxSmb2->hState;
+    pNotifyRequestState = (PNFS_NOTIFY_REQUEST_STATE_SMB_V2)pCtxSmb2->hState;
     if (pNotifyRequestState)
     {
         InterlockedIncrement(&pNotifyRequestState->refCount);
@@ -132,14 +132,14 @@ SrvProcessNotify_SMB_V2(
     {
         PSMB2_NOTIFY_CHANGE_HEADER pRequestHeader = NULL; // Do not free
 
-        ntStatus = SrvConnection2FindSession_SMB_V2(
+        ntStatus = NfsConnection2FindSession_SMB_V2(
                         pCtxSmb2,
                         pConnection,
                         pSmbRequest->pHeader->ullSessionId,
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSession2FindTree_SMB_V2(
+        ntStatus = NfsSession2FindTree_SMB_V2(
                         pCtxSmb2,
                         pSession,
                         pSmbRequest->pHeader->ulTid,
@@ -149,16 +149,16 @@ SrvProcessNotify_SMB_V2(
         ntStatus = SMB2UnmarshalNotifyRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvBuildNotifyRequestState_SMB_V2(
+        ntStatus = NfsBuildNotifyRequestState_SMB_V2(
                         pRequestHeader,
                         &pNotifyRequestState);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pCtxSmb2->hState = pNotifyRequestState;
         InterlockedIncrement(&pNotifyRequestState->refCount);
-        pCtxSmb2->pfnStateRelease = &SrvReleaseNotifyRequestStateHandle_SMB_V2;
+        pCtxSmb2->pfnStateRelease = &NfsReleaseNotifyRequestStateHandle_SMB_V2;
 
-        ntStatus = SrvTree2FindFile_SMB_V2(
+        ntStatus = NfsTree2FindFile_SMB_V2(
                         pCtxSmb2,
                         pTree,
                         &pRequestHeader->fid,
@@ -173,7 +173,7 @@ SrvProcessNotify_SMB_V2(
 
     switch (pNotifyRequestState->stage)
     {
-        case SRV_NOTIFY_STAGE_SMB_V2_INITIAL:
+        case NFS_NOTIFY_STAGE_SMB_V2_INITIAL:
 
              if (pNotifyRequestState->pRequestHeader->ulOutputBufferLength >
                  SMB_CN_MAX_BUFFER_SIZE)
@@ -190,17 +190,17 @@ SrvProcessNotify_SMB_V2(
                  BAIL_ON_NT_STATUS(ntStatus);
              }
 
-             ntStatus = SrvConnection2CreateAsyncState(
+             ntStatus = NfsConnection2CreateAsyncState(
                              pConnection,
                              COM2_NOTIFY,
-                             &SrvCancelNotifyState_SMB_V2,
-                             &SrvNotifyStateReleaseHandle_SMB_V2,
+                             &NfsCancelNotifyState_SMB_V2,
+                             &NfsNotifyStateReleaseHandle_SMB_V2,
                              &pAsyncState);
              BAIL_ON_NT_STATUS(ntStatus);
 
              bUnregisterAsync = TRUE;
 
-             ntStatus = SrvNotifyCreateState_SMB_V2(
+             ntStatus = NfsNotifyCreateState_SMB_V2(
                              pAsyncState->ullAsyncId,
                              pExecContext->pConnection,
                              pCtxSmb2->pSession,
@@ -217,15 +217,15 @@ SrvProcessNotify_SMB_V2(
              BAIL_ON_NT_STATUS(ntStatus);
 
              pAsyncState->hAsyncState =
-                                 SrvNotifyStateAcquire_SMB_V2(pNotifyState);
+                                 NfsNotifyStateAcquire_SMB_V2(pNotifyState);
 
-             pNotifyRequestState->stage = SRV_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO;
+             pNotifyRequestState->stage = NFS_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO;
 
              // intentional fall through
 
-        case SRV_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO:
+        case NFS_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO:
 
-            ntStatus = SrvExecuteChangeNotify_SMB_V2(
+            ntStatus = NfsExecuteChangeNotify_SMB_V2(
                             pExecContext,
                             pNotifyState);
             switch (ntStatus)
@@ -235,7 +235,7 @@ SrvProcessNotify_SMB_V2(
                 {
                     // TODO: Might have to cancel the entire operation
                     //
-                    NTSTATUS ntStatus2 = SrvBuildInterimResponse_SMB_V2(
+                    NTSTATUS ntStatus2 = NfsBuildInterimResponse_SMB_V2(
                                                 pExecContext,
                                                 pNotifyState->ullAsyncId);
                     if (ntStatus2 != STATUS_SUCCESS)
@@ -254,7 +254,7 @@ SrvProcessNotify_SMB_V2(
 
                     // completed synchronously; remove asynchronous state
                     //
-                    ntStatus = SrvConnection2RemoveAsyncState(
+                    ntStatus = NfsConnection2RemoveAsyncState(
                                     pConnection,
                                     pAsyncState->ullAsyncId);
                     BAIL_ON_NT_STATUS(ntStatus);
@@ -271,22 +271,22 @@ SrvProcessNotify_SMB_V2(
             }
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pNotifyRequestState->stage = SRV_NOTIFY_STAGE_SMB_V2_BUILD_RESPONSE;
+            pNotifyRequestState->stage = NFS_NOTIFY_STAGE_SMB_V2_BUILD_RESPONSE;
 
             // intentional fall through
 
-        case SRV_NOTIFY_STAGE_SMB_V2_BUILD_RESPONSE:
+        case NFS_NOTIFY_STAGE_SMB_V2_BUILD_RESPONSE:
 
-            ntStatus = SrvBuildNotifyResponse_SMB_V2(
+            ntStatus = NfsBuildNotifyResponse_SMB_V2(
                             pExecContext,
                             pNotifyState);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pNotifyRequestState->stage = SRV_NOTIFY_STAGE_SMB_V2_DONE;
+            pNotifyRequestState->stage = NFS_NOTIFY_STAGE_SMB_V2_DONE;
 
             // intentional fall through
 
-        case SRV_NOTIFY_STAGE_SMB_V2_DONE:
+        case NFS_NOTIFY_STAGE_SMB_V2_DONE:
 
             break;
     }
@@ -297,39 +297,39 @@ cleanup:
     {
         LWIO_UNLOCK_MUTEX(bInLock, &pNotifyRequestState->mutex);
 
-        SrvReleaseNotifyRequestState_SMB_V2(pNotifyRequestState);
+        NfsReleaseNotifyRequestState_SMB_V2(pNotifyRequestState);
     }
 
     if (pNotifyState)
     {
         if (bUnregisterAsync)
         {
-            SrvConnection2RemoveAsyncState(
+            NfsConnection2RemoveAsyncState(
                     pConnection,
                     pNotifyState->ullAsyncId);
         }
 
-        SrvNotifyStateRelease_SMB_V2(pNotifyState);
+        NfsNotifyStateRelease_SMB_V2(pNotifyState);
     }
 
     if (pAsyncState)
     {
-        SrvAsyncStateRelease(pAsyncState);
+        NfsAsyncStateRelease(pAsyncState);
     }
 
     if (pFile)
     {
-        SrvFile2Release(pFile);
+        NfsFile2Release(pFile);
     }
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     return ntStatus;
@@ -346,7 +346,7 @@ error:
 
             if (pNotifyState)
             {
-                SrvReleaseNotifyStateAsync_SMB_V2(pNotifyState);
+                NfsReleaseNotifyStateAsync_SMB_V2(pNotifyState);
             }
 
             break;
@@ -356,24 +356,24 @@ error:
 }
 
 NTSTATUS
-SrvProcessNotifyCompletion_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessNotifyCompletion_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection  = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PLWIO_SRV_SESSION_2        pSession     = NULL;
-    PLWIO_SRV_TREE_2           pTree        = NULL;
+    PNFS_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PLWIO_NFS_SESSION_2        pSession     = NULL;
+    PLWIO_NFS_TREE_2           pTree        = NULL;
     BOOLEAN                    bInLock      = FALSE;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId   = 0LL;
-    PSRV_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
+    PNFS_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
+    ntStatus = NfsConnection2FindSession_SMB_V2(
                             pCtxSmb2,
                             pConnection,
                             pSmbRequest->pHeader->ullSessionId,
@@ -383,15 +383,15 @@ SrvProcessNotifyCompletion_SMB_V2(
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
+    ntStatus = NfsConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnection2RemoveAsyncState(pConnection, ullAsyncId);
+    ntStatus = NfsConnection2RemoveAsyncState(pConnection, ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pNotifyState = (PSRV_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
+    pNotifyState = (PNFS_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
 
-    ntStatus = SrvSession2FindTree_SMB_V2(
+    ntStatus = NfsSession2FindTree_SMB_V2(
                     pCtxSmb2,
                     pSession,
                     pNotifyState->ulTid,
@@ -404,7 +404,7 @@ SrvProcessNotifyCompletion_SMB_V2(
     {
         case STATUS_CANCELLED:
 
-            ntStatus = SrvBuildErrorResponse_SMB_V2(
+            ntStatus = NfsBuildErrorResponse_SMB_V2(
                             pExecContext,
                             pNotifyState->ullAsyncId,
                             pSmbRequest->pHeader->error);
@@ -417,7 +417,7 @@ SrvProcessNotifyCompletion_SMB_V2(
             pNotifyState->ulBytesUsed =
                                 pNotifyState->ioStatusBlock.BytesTransferred;
 
-            ntStatus = SrvBuildNotifyResponse_SMB_V2(
+            ntStatus = NfsBuildNotifyResponse_SMB_V2(
                             pExecContext,
                             pNotifyState);
 
@@ -440,17 +440,17 @@ cleanup:
 
     if (pAsyncState)
     {
-        SrvAsyncStateRelease(pAsyncState);
+        NfsAsyncStateRelease(pAsyncState);
     }
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     return ntStatus;
@@ -461,32 +461,32 @@ error:
 }
 
 NTSTATUS
-SrvCancelChangeNotify_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsCancelChangeNotify_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection  = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
     BOOLEAN                    bInLock      = FALSE;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId   = 0LL;
-    PSRV_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
+    PNFS_NOTIFY_STATE_SMB_V2   pNotifyState = NULL;
 
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
+    ntStatus = NfsConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pNotifyState = (PSRV_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
+    pNotifyState = (PNFS_NOTIFY_STATE_SMB_V2)pAsyncState->hAsyncState;
 
     LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
 
-    SrvCancelNotifyState_SMB_V2_inlock(pNotifyState);
+    NfsCancelNotifyState_SMB_V2_inlock(pNotifyState);
 
 cleanup:
 
@@ -497,7 +497,7 @@ cleanup:
 
     if (pAsyncState)
     {
-        SrvAsyncStateRelease(pAsyncState);
+        NfsAsyncStateRelease(pAsyncState);
     }
 
     return ntStatus;
@@ -508,33 +508,33 @@ error:
 }
 
 VOID
-SrvCancelNotifyState_SMB_V2(
+NfsCancelNotifyState_SMB_V2(
     HANDLE hNotifyState
     )
 {
     BOOLEAN bInLock = FALSE;
-    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState =
-                        (PSRV_NOTIFY_STATE_SMB_V2)hNotifyState;
+    PNFS_NOTIFY_STATE_SMB_V2 pNotifyState =
+                        (PNFS_NOTIFY_STATE_SMB_V2)hNotifyState;
 
     LWIO_LOCK_MUTEX(bInLock, &pNotifyState->mutex);
 
-    SrvCancelNotifyState_SMB_V2_inlock(pNotifyState);
+    NfsCancelNotifyState_SMB_V2_inlock(pNotifyState);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pNotifyState->mutex);
 }
 
 static
 NTSTATUS
-SrvBuildNotifyRequestState_SMB_V2(
+NfsBuildNotifyRequestState_SMB_V2(
     PSMB2_NOTIFY_CHANGE_HEADER         pRequestHeader,
-    PSRV_NOTIFY_REQUEST_STATE_SMB_V2*  ppNotifyRequestState
+    PNFS_NOTIFY_REQUEST_STATE_SMB_V2*  ppNotifyRequestState
     )
 {
     NTSTATUS ntStatus     = STATUS_SUCCESS;
-    PSRV_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState = NULL;
+    PNFS_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_NOTIFY_REQUEST_STATE_SMB_V2),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_NOTIFY_REQUEST_STATE_SMB_V2),
                     (PVOID*)&pNotifyRequestState);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -543,7 +543,7 @@ SrvBuildNotifyRequestState_SMB_V2(
     pthread_mutex_init(&pNotifyRequestState->mutex, NULL);
     pNotifyRequestState->pMutex = &pNotifyRequestState->mutex;
 
-    pNotifyRequestState->stage = SRV_NOTIFY_STAGE_SMB_V2_INITIAL;
+    pNotifyRequestState->stage = NFS_NOTIFY_STAGE_SMB_V2_INITIAL;
 
     pNotifyRequestState->pRequestHeader = pRequestHeader;
 
@@ -559,7 +559,7 @@ error:
 
     if (pNotifyRequestState)
     {
-        SrvFreeNotifyRequestState_SMB_V2(pNotifyRequestState);
+        NfsFreeNotifyRequestState_SMB_V2(pNotifyRequestState);
     }
 
     goto cleanup;
@@ -567,8 +567,8 @@ error:
 
 static
 VOID
-SrvCancelNotifyState_SMB_V2_inlock(
-    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+NfsCancelNotifyState_SMB_V2_inlock(
+    PNFS_NOTIFY_STATE_SMB_V2 pNotifyState
     )
 {
     if (pNotifyState->pAcb && pNotifyState->pAcb->AsyncCancelContext)
@@ -579,14 +579,14 @@ SrvCancelNotifyState_SMB_V2_inlock(
 
 static
 NTSTATUS
-SrvExecuteChangeNotify_SMB_V2(
-    PSRV_EXEC_CONTEXT        pExecContext,
-    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+NfsExecuteChangeNotify_SMB_V2(
+    PNFS_EXEC_CONTEXT        pExecContext,
+    PNFS_NOTIFY_STATE_SMB_V2 pNotifyState
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
 
-    SrvPrepareNotifyStateAsync_SMB_V2(pNotifyState);
+    NfsPrepareNotifyStateAsync_SMB_V2(pNotifyState);
 
     ntStatus = IoReadDirectoryChangeFile(
                     pNotifyState->pFile->hFile,
@@ -616,7 +616,7 @@ SrvExecuteChangeNotify_SMB_V2(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvReleaseNotifyStateAsync_SMB_V2(pNotifyState); // Completed synchronously
+    NfsReleaseNotifyStateAsync_SMB_V2(pNotifyState); // Completed synchronously
 
     pNotifyState->ulBytesUsed = pNotifyState->ioStatusBlock.BytesTransferred;
 
@@ -631,17 +631,17 @@ error:
 
 static
 NTSTATUS
-SrvBuildNotifyResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT        pExecContext,
-    PSRV_NOTIFY_STATE_SMB_V2 pNotifyState
+NfsBuildNotifyResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT        pExecContext,
+    PNFS_NOTIFY_STATE_SMB_V2 pNotifyState
     )
 {
     NTSTATUS                     ntStatus     = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PNFS_PROTOCOL_EXEC_CONTEXT   pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2     pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                        iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2          pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2          pSmbResponse = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2          pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2          pSmbResponse = &pCtxSmb2->pResponses[iMsg];
     PSMB2_NOTIFY_RESPONSE_HEADER pNotifyResponseHeader = NULL; // do not free
     PBYTE pData            = NULL;
     ULONG ulDataLength     = 0;
@@ -681,7 +681,7 @@ SrvBuildNotifyResponse_SMB_V2(
     if ((pNotifyState->ioStatusBlock.Status == STATUS_SUCCESS) &&
         pNotifyState->ulBytesUsed > 0)
     {
-        ntStatus = SrvMarshalNotifyResponse_SMB_V2(
+        ntStatus = NfsMarshalNotifyResponse_SMB_V2(
                         pNotifyState->pBuffer,
                         pNotifyState->ulBytesUsed,
                         &pData,
@@ -711,7 +711,7 @@ cleanup:
 
     if (pData)
     {
-        SrvFreeMemory(pData);
+        NfsFreeMemory(pData);
     }
 
     return ntStatus;
@@ -732,7 +732,7 @@ error:
 
 static
 NTSTATUS
-SrvMarshalNotifyResponse_SMB_V2(
+NfsMarshalNotifyResponse_SMB_V2(
     PBYTE  pNotifyResponse,
     ULONG  ulNotifyResponseLength,
     PBYTE* ppBuffer,
@@ -789,7 +789,7 @@ SrvMarshalNotifyResponse_SMB_V2(
 
     if (ulBufferLength)
     {
-        ntStatus = SrvAllocateMemory(ulBufferLength, (PVOID*)&pBuffer);
+        ntStatus = NfsAllocateMemory(ulBufferLength, (PVOID*)&pBuffer);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -861,7 +861,7 @@ error:
 
     if (pBuffer)
     {
-        SrvFreeMemory(pBuffer);
+        NfsFreeMemory(pBuffer);
     }
 
     goto cleanup;
@@ -869,37 +869,37 @@ error:
 
 static
 VOID
-SrvReleaseNotifyRequestStateHandle_SMB_V2(
+NfsReleaseNotifyRequestStateHandle_SMB_V2(
     HANDLE hNotifyRequest
     )
 {
-    return SrvReleaseNotifyRequestState_SMB_V2(
-                (PSRV_NOTIFY_REQUEST_STATE_SMB_V2)hNotifyRequest);
+    return NfsReleaseNotifyRequestState_SMB_V2(
+                (PNFS_NOTIFY_REQUEST_STATE_SMB_V2)hNotifyRequest);
 }
 
 static
 VOID
-SrvReleaseNotifyRequestState_SMB_V2(
-    PSRV_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState
+NfsReleaseNotifyRequestState_SMB_V2(
+    PNFS_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState
     )
 {
     if (InterlockedDecrement(&pNotifyRequestState->refCount) == 0)
     {
-        SrvFreeNotifyRequestState_SMB_V2(pNotifyRequestState);
+        NfsFreeNotifyRequestState_SMB_V2(pNotifyRequestState);
     }
 }
 
 static
 VOID
-SrvFreeNotifyRequestState_SMB_V2(
-    PSRV_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState
+NfsFreeNotifyRequestState_SMB_V2(
+    PNFS_NOTIFY_REQUEST_STATE_SMB_V2 pNotifyRequestState
     )
 {
     if (pNotifyRequestState->pFile)
     {
-        SrvFile2Release(pNotifyRequestState->pFile);
+        NfsFile2Release(pNotifyRequestState->pFile);
     }
 
-    SrvFreeMemory(pNotifyRequestState);
+    NfsFreeMemory(pNotifyRequestState);
 }
 

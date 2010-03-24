@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocol API (Private to protocol handlers)
  *
@@ -48,20 +48,20 @@
 #ifndef __PROTOCOL_API_P_H__
 #define __PROTOCOL_API_P_H__
 
-typedef struct _SRV_EXEC_CONTEXT_SMB_V1* PSRV_EXEC_CONTEXT_SMB_V1;
-typedef struct _SRV_EXEC_CONTEXT_SMB_V2* PSRV_EXEC_CONTEXT_SMB_V2;
+typedef struct _NFS_EXEC_CONTEXT_SMB_V1* PNFS_EXEC_CONTEXT_SMB_V1;
+typedef struct _NFS_EXEC_CONTEXT_SMB_V2* PNFS_EXEC_CONTEXT_SMB_V2;
 
-typedef struct _SRV_PROTOCOL_EXEC_CONTEXT
+typedef struct _NFS_PROTOCOL_EXEC_CONTEXT
 {
     SMB_PROTOCOL_VERSION protocolVersion;
 
     union
     {
-        PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context;
-        PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context;
+        PNFS_EXEC_CONTEXT_SMB_V1 pSmb1Context;
+        PNFS_EXEC_CONTEXT_SMB_V2 pSmb2Context;
     };
 
-} SRV_PROTOCOL_EXEC_CONTEXT;
+} NFS_PROTOCOL_EXEC_CONTEXT;
 
 #endif /* __PROTOCOL_API_P_H__ */
 

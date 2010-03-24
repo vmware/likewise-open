@@ -41,7 +41,7 @@
  *
  *        Likewise I/O Subsystem
  *
- *        SRV Threadpool Transport
+ *        NFS Threadpool Transport
  *
  *        Prototypes
  *
@@ -52,85 +52,85 @@
 // listener.c
 
 NTSTATUS
-SrvListenerInit(
-    OUT PSRV_TRANSPORT_LISTENER pListener,
-    IN SRV_TRANSPORT_HANDLE pTransport
+NfsListenerInit(
+    OUT PNFS_TRANSPORT_LISTENER pListener,
+    IN NFS_TRANSPORT_HANDLE pTransport
     );
 
 VOID
-SrvListenerShutdown(
-    IN OUT PSRV_TRANSPORT_LISTENER pListener
+NfsListenerShutdown(
+    IN OUT PNFS_TRANSPORT_LISTENER pListener
     );
 
 // srvsocket.c
 
 PCSTR
-SrvSocketAddressToString(
+NfsSocketAddressToString(
     IN struct sockaddr* pSocketAddress,
     OUT PSTR pszAddress,
     IN ULONG AddressLength
     );
 
 NTSTATUS
-SrvSocketCreate(
-    IN PSRV_TRANSPORT_LISTENER pListener,
+NfsSocketCreate(
+    IN PNFS_TRANSPORT_LISTENER pListener,
     IN int fd,
     IN struct sockaddr* pClientAddress,
     IN SOCKLEN_T ClientAddressLength,
-    OUT PSRV_SOCKET* ppSocket
+    OUT PNFS_SOCKET* ppSocket
     );
 
 VOID
-SrvSocketRelease(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketRelease(
+    IN OUT PNFS_SOCKET pSocket
     );
 
 VOID
-SrvSocketGetAddress(
-    IN PSRV_SOCKET pSocket,
+NfsSocketGetAddress(
+    IN PNFS_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
     OUT size_t* pAddressLength
     );
 
 PCSTR
-SrvSocketGetAddressString(
-    IN PSRV_SOCKET pSocket
+NfsSocketGetAddressString(
+    IN PNFS_SOCKET pSocket
     );
 
 int
-SrvSocketGetFileDescriptor(
-    IN PSRV_SOCKET pSocket
+NfsSocketGetFileDescriptor(
+    IN PNFS_SOCKET pSocket
     );
 
 NTSTATUS
-SrvSocketSetBuffer(
-    IN PSRV_SOCKET pSocket,
+NfsSocketSetBuffer(
+    IN PNFS_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
     IN ULONG Minimum
     );
 
 NTSTATUS
-SrvSocketSendReply(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsSocketSendReply(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN PVOID pBuffer,
     IN ULONG Size
     );
 
 NTSTATUS
-SrvSocketSendZctReply(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsSocketSendZctReply(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN PLW_ZCT_VECTOR pZct
     );
 
 VOID
-SrvSocketDisconnect(
-    IN PSRV_SOCKET pSocket
+NfsSocketDisconnect(
+    IN PNFS_SOCKET pSocket
     );
 
 VOID
-SrvSocketClose(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketClose(
+    IN OUT PNFS_SOCKET pSocket
     );

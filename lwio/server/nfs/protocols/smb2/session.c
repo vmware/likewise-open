@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -50,15 +50,15 @@
 #include "includes.h"
 
 NTSTATUS
-SrvSession2FindTree_SMB_V2(
-    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
-    PLWIO_SRV_SESSION_2      pSession,
+NfsSession2FindTree_SMB_V2(
+    PNFS_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PLWIO_NFS_SESSION_2      pSession,
     ULONG                    ulTid,
-    PLWIO_SRV_TREE_2*        ppTree
+    PLWIO_NFS_TREE_2*        ppTree
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_TREE_2 pTree = NULL;
+    PLWIO_NFS_TREE_2 pTree = NULL;
 
     if (ulTid)
     {
@@ -71,23 +71,23 @@ SrvSession2FindTree_SMB_V2(
             }
             else
             {
-                pTree = SrvTree2Acquire(pSmb2Context->pTree);
+                pTree = NfsTree2Acquire(pSmb2Context->pTree);
             }
         }
         else
         {
-            ntStatus = SrvSession2FindTree(
+            ntStatus = NfsSession2FindTree(
                             pSession,
                             ulTid,
                             &pTree);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pSmb2Context->pTree = SrvTree2Acquire(pTree);
+            pSmb2Context->pTree = NfsTree2Acquire(pTree);
         }
     }
     else if (pSmb2Context->pTree)
     {
-        pTree = SrvTree2Acquire(pSmb2Context->pTree);
+        pTree = NfsTree2Acquire(pSmb2Context->pTree);
     }
     else
     {

@@ -48,7 +48,7 @@
 
 static
 VOID
-SrvListenerProcessTask(
+NfsListenerProcessTask(
     PLW_TASK pTask,
     PVOID pDataContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -57,9 +57,9 @@ SrvListenerProcessTask(
     );
 
 NTSTATUS
-SrvListenerInit(
-    OUT PSRV_TRANSPORT_LISTENER pListener,
-    IN SRV_TRANSPORT_HANDLE pTransport
+NfsListenerInit(
+    OUT PNFS_TRANSPORT_LISTENER pListener,
+    IN NFS_TRANSPORT_HANDLE pTransport
     )
 {
     NTSTATUS ntStatus = 0;
@@ -89,7 +89,7 @@ SrvListenerInit(
                     pListener->pPool,
                     &pListener->pTask,
                     pListener->pTaskGroup,
-                    SrvListenerProcessTask,
+                    NfsListenerProcessTask,
                     pListener);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -103,14 +103,14 @@ cleanup:
 
 error:
 
-    SrvListenerShutdown(pListener);
+    NfsListenerShutdown(pListener);
 
     goto cleanup;
 }
 
 VOID
-SrvListenerShutdown(
-    IN OUT PSRV_TRANSPORT_LISTENER pListener
+NfsListenerShutdown(
+    IN OUT PNFS_TRANSPORT_LISTENER pListener
     )
 {
     if (pListener->pTaskGroup)
@@ -132,8 +132,8 @@ SrvListenerShutdown(
 
 static
 NTSTATUS
-SrvListenerProcessTaskInit(
-    PSRV_TRANSPORT_LISTENER pListener
+NfsListenerProcessTaskInit(
+    PNFS_TRANSPORT_LISTENER pListener
     )
 {
     NTSTATUS ntStatus = 0;
@@ -217,7 +217,7 @@ error:
 
 static
 VOID
-SrvListenerProcessTask(
+NfsListenerProcessTask(
     PLW_TASK pTask,
     PVOID pDataContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -226,26 +226,26 @@ SrvListenerProcessTask(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_TRANSPORT_LISTENER pListener = (PSRV_TRANSPORT_LISTENER) pDataContext;
+    PNFS_TRANSPORT_LISTENER pListener = (PNFS_TRANSPORT_LISTENER) pDataContext;
     int connFd = -1;
-    PSRV_SOCKET pSocket = NULL;
-    SRV_SOCKET_ADDRESS clientAddress;
+    PNFS_SOCKET pSocket = NULL;
+    NFS_SOCKET_ADDRESS clientAddress;
     SOCKLEN_T clientAddressLength = sizeof(clientAddress);
-    CHAR clientAddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
+    CHAR clientAddressStringBuffer[NFS_SOCKET_ADDRESS_STRING_MAX_SIZE];
     LW_TASK_EVENT_MASK waitMask = 0;
 
     if (WakeMask & LW_TASK_EVENT_INIT)
     {
-        LWIO_LOG_DEBUG("Srv listener starting");
+        LWIO_LOG_DEBUG("Nfs listener starting");
 
-        ntStatus = SrvListenerProcessTaskInit(pListener);
+        ntStatus = NfsListenerProcessTaskInit(pListener);
         // Note that task will terminate on error.
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (WakeMask & LW_TASK_EVENT_CANCEL)
     {
-        LWIO_LOG_DEBUG("Srv listener stopping");
+        LWIO_LOG_DEBUG("Nfs listener stopping");
 
         if (pListener->ListenFd >= 0)
         {
@@ -292,7 +292,7 @@ SrvListenerProcessTask(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvSocketAddressToString(
+    NfsSocketAddressToString(
             &clientAddress.Generic,
             clientAddressStringBuffer,
             sizeof(clientAddressStringBuffer));
@@ -301,7 +301,7 @@ SrvListenerProcessTask(
                   clientAddressStringBuffer,
                   connFd);
 
-    ntStatus = SrvSocketCreate(
+    ntStatus = NfsSocketCreate(
                     pListener,
                     connFd,
                     &clientAddress.Generic,
@@ -325,7 +325,7 @@ SrvListenerProcessTask(
 
 cleanup:
 
-    SrvSocketRelease(pSocket);
+    NfsSocketRelease(pSocket);
 
     if (connFd >= 0)
     {

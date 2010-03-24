@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -53,71 +53,71 @@
 
 static
 NTSTATUS
-SrvBuildFlushState_SMB_V2(
+NfsBuildFlushState_SMB_V2(
     PSMB2_FID                pFid,
-    PLWIO_SRV_FILE_2         pFile,
-    PSRV_FLUSH_STATE_SMB_V2* ppFlushState
+    PLWIO_NFS_FILE_2         pFile,
+    PNFS_FLUSH_STATE_SMB_V2* ppFlushState
     );
 
 static
 NTSTATUS
-SrvBuildFlushResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildFlushResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 VOID
-SrvPrepareFlushStateAsync_SMB_V2(
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState,
-    PSRV_EXEC_CONTEXT       pExecContext
+NfsPrepareFlushStateAsync_SMB_V2(
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState,
+    PNFS_EXEC_CONTEXT       pExecContext
     );
 
 static
 VOID
-SrvExecuteFlushAsyncCB_SMB_V2(
+NfsExecuteFlushAsyncCB_SMB_V2(
     PVOID pContext
     );
 
 static
 VOID
-SrvReleaseFlushStateAsync_SMB_V2(
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState
+NfsReleaseFlushStateAsync_SMB_V2(
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState
     );
 
 static
 VOID
-SrvReleaseFlushStateHandle_SMB_V2(
+NfsReleaseFlushStateHandle_SMB_V2(
     HANDLE hState
     );
 
 static
 VOID
-SrvReleaseFlushState_SMB_V2(
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState
+NfsReleaseFlushState_SMB_V2(
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState
     );
 
 static
 VOID
-SrvFreeFlushState_SMB_V2(
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState
+NfsFreeFlushState_SMB_V2(
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState
     );
 
 NTSTATUS
-SrvProcessFlush_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessFlush_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
-    PSRV_FLUSH_STATE_SMB_V2    pFlushState  = NULL;
-    PLWIO_SRV_SESSION_2        pSession     = NULL;
-    PLWIO_SRV_TREE_2           pTree        = NULL;
-    PLWIO_SRV_FILE_2           pFile        = NULL;
+    PLWIO_NFS_CONNECTION       pConnection  = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PNFS_FLUSH_STATE_SMB_V2    pFlushState  = NULL;
+    PLWIO_NFS_SESSION_2        pSession     = NULL;
+    PLWIO_NFS_TREE_2           pTree        = NULL;
+    PLWIO_NFS_FILE_2           pFile        = NULL;
     BOOLEAN                    bInLock      = FALSE;
 
-    pFlushState = (PSRV_FLUSH_STATE_SMB_V2)pCtxSmb2->hState;
+    pFlushState = (PNFS_FLUSH_STATE_SMB_V2)pCtxSmb2->hState;
 
     if (pFlushState)
     {
@@ -126,17 +126,17 @@ SrvProcessFlush_SMB_V2(
     else
     {
         ULONG               iMsg          = pCtxSmb2->iMsg;
-        PSRV_MESSAGE_SMB_V2 pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+        PNFS_MESSAGE_SMB_V2 pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
         PSMB2_FID           pFid = NULL; // Do not free
 
-        ntStatus = SrvConnection2FindSession_SMB_V2(
+        ntStatus = NfsConnection2FindSession_SMB_V2(
                         pCtxSmb2,
                         pConnection,
                         pSmbRequest->pHeader->ullSessionId,
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSession2FindTree_SMB_V2(
+        ntStatus = NfsSession2FindTree_SMB_V2(
                         pCtxSmb2,
                         pSession,
                         pSmbRequest->pHeader->ulTid,
@@ -146,7 +146,7 @@ SrvProcessFlush_SMB_V2(
         ntStatus = SMB2UnmarshalFlushRequest(pSmbRequest, &pFid);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvTree2FindFile_SMB_V2(
+        ntStatus = NfsTree2FindFile_SMB_V2(
                         pCtxSmb2,
                         pTree,
                         pFid,
@@ -156,7 +156,7 @@ SrvProcessFlush_SMB_V2(
                         &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvBuildFlushState_SMB_V2(
+        ntStatus = NfsBuildFlushState_SMB_V2(
                         pFid,
                         pFile,
                         &pFlushState);
@@ -164,18 +164,18 @@ SrvProcessFlush_SMB_V2(
 
         pCtxSmb2->hState = pFlushState;
         InterlockedIncrement(&pFlushState->refCount);
-        pCtxSmb2->pfnStateRelease = &SrvReleaseFlushStateHandle_SMB_V2;
+        pCtxSmb2->pfnStateRelease = &NfsReleaseFlushStateHandle_SMB_V2;
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pFlushState->mutex);
 
     switch (pFlushState->stage)
     {
-        case SRV_FLUSH_STAGE_SMB_V2_INITIAL:
+        case NFS_FLUSH_STAGE_SMB_V2_INITIAL:
 
-            pFlushState->stage = SRV_FLUSH_STAGE_SMB_V2_FLUSH_COMPLETED;
+            pFlushState->stage = NFS_FLUSH_STAGE_SMB_V2_FLUSH_COMPLETED;
 
-            SrvPrepareFlushStateAsync_SMB_V2(pFlushState, pExecContext);
+            NfsPrepareFlushStateAsync_SMB_V2(pFlushState, pExecContext);
 
             ntStatus = IoFlushBuffersFile(
                             pFlushState->pFile->hFile,
@@ -183,29 +183,29 @@ SrvProcessFlush_SMB_V2(
                             &pFlushState->ioStatusBlock);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvReleaseFlushStateAsync_SMB_V2(pFlushState); // completed synchronously
+            NfsReleaseFlushStateAsync_SMB_V2(pFlushState); // completed synchronously
 
             // intentional fall through
 
-        case SRV_FLUSH_STAGE_SMB_V2_FLUSH_COMPLETED:
+        case NFS_FLUSH_STAGE_SMB_V2_FLUSH_COMPLETED:
 
             ntStatus = pFlushState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pFlushState->stage = SRV_FLUSH_STAGE_SMB_V2_BUILD_RESPONSE;
+            pFlushState->stage = NFS_FLUSH_STAGE_SMB_V2_BUILD_RESPONSE;
 
             // intentional fall through
 
-        case SRV_FLUSH_STAGE_SMB_V2_BUILD_RESPONSE:
+        case NFS_FLUSH_STAGE_SMB_V2_BUILD_RESPONSE:
 
-            ntStatus = SrvBuildFlushResponse_SMB_V2(pExecContext);
+            ntStatus = NfsBuildFlushResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pFlushState->stage = SRV_FLUSH_STAGE_SMB_V2_DONE;
+            pFlushState->stage = NFS_FLUSH_STAGE_SMB_V2_DONE;
 
             // intentional fall through
 
-        case SRV_FLUSH_STAGE_SMB_V2_DONE:
+        case NFS_FLUSH_STAGE_SMB_V2_DONE:
 
             break;
     }
@@ -214,24 +214,24 @@ cleanup:
 
     if (pFile)
     {
-        SrvFile2Release(pFile);
+        NfsFile2Release(pFile);
     }
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     if (pFlushState)
     {
         LWIO_UNLOCK_MUTEX(bInLock, &pFlushState->mutex);
 
-        SrvReleaseFlushState_SMB_V2(pFlushState);
+        NfsReleaseFlushState_SMB_V2(pFlushState);
     }
 
     return ntStatus;
@@ -252,7 +252,7 @@ error:
 
             if (pFlushState)
             {
-                SrvReleaseFlushStateAsync_SMB_V2(pFlushState);
+                NfsReleaseFlushStateAsync_SMB_V2(pFlushState);
             }
 
             break;
@@ -263,17 +263,17 @@ error:
 
 static
 NTSTATUS
-SrvBuildFlushState_SMB_V2(
+NfsBuildFlushState_SMB_V2(
     PSMB2_FID                pFid,
-    PLWIO_SRV_FILE_2         pFile,
-    PSRV_FLUSH_STATE_SMB_V2* ppFlushState
+    PLWIO_NFS_FILE_2         pFile,
+    PNFS_FLUSH_STATE_SMB_V2* ppFlushState
     )
 {
     NTSTATUS                ntStatus    = STATUS_SUCCESS;
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState = NULL;
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_FLUSH_STATE_SMB_V2),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_FLUSH_STATE_SMB_V2),
                     (PVOID*)&pFlushState);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -282,10 +282,10 @@ SrvBuildFlushState_SMB_V2(
     pthread_mutex_init(&pFlushState->mutex, NULL);
     pFlushState->pMutex = &pFlushState->mutex;
 
-    pFlushState->stage = SRV_FLUSH_STAGE_SMB_V2_INITIAL;
+    pFlushState->stage = NFS_FLUSH_STAGE_SMB_V2_INITIAL;
 
     pFlushState->pFid  = pFid;
-    pFlushState->pFile = SrvFile2Acquire(pFile);
+    pFlushState->pFile = NfsFile2Acquire(pFile);
 
     *ppFlushState = pFlushState;
 
@@ -299,7 +299,7 @@ error:
 
     if (pFlushState)
     {
-        SrvFreeFlushState_SMB_V2(pFlushState);
+        NfsFreeFlushState_SMB_V2(pFlushState);
     }
 
     goto cleanup;
@@ -307,16 +307,16 @@ error:
 
 static
 NTSTATUS
-SrvBuildFlushResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildFlushResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus      = 0;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PBYTE pOutBuffer = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset    = 0;
@@ -383,12 +383,12 @@ error:
 
 static
 VOID
-SrvPrepareFlushStateAsync_SMB_V2(
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState,
-    PSRV_EXEC_CONTEXT       pExecContext
+NfsPrepareFlushStateAsync_SMB_V2(
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState,
+    PNFS_EXEC_CONTEXT       pExecContext
     )
 {
-    pFlushState->acb.Callback        = &SrvExecuteFlushAsyncCB_SMB_V2;
+    pFlushState->acb.Callback        = &NfsExecuteFlushAsyncCB_SMB_V2;
 
     pFlushState->acb.CallbackContext = pExecContext;
     InterlockedIncrement(&pExecContext->refCount);
@@ -400,18 +400,18 @@ SrvPrepareFlushStateAsync_SMB_V2(
 
 static
 VOID
-SrvExecuteFlushAsyncCB_SMB_V2(
+NfsExecuteFlushAsyncCB_SMB_V2(
     PVOID pContext
     )
 {
     NTSTATUS                   ntStatus         = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
-    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
-    PSRV_FLUSH_STATE_SMB_V2    pFlushState      = NULL;
+    PNFS_EXEC_CONTEXT          pExecContext     = (PNFS_EXEC_CONTEXT)pContext;
+    PNFS_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PNFS_FLUSH_STATE_SMB_V2    pFlushState      = NULL;
     BOOLEAN                    bInLock          = FALSE;
 
     pFlushState =
-            (PSRV_FLUSH_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
+            (PNFS_FLUSH_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
 
     LWIO_LOCK_MUTEX(bInLock, &pFlushState->mutex);
 
@@ -424,20 +424,20 @@ SrvExecuteFlushAsyncCB_SMB_V2(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pFlushState->mutex);
 
-    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
+    ntStatus = NfsProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
     if (ntStatus != STATUS_SUCCESS)
     {
         LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
                        ntStatus);
 
-        SrvReleaseExecContext(pExecContext);
+        NfsReleaseExecContext(pExecContext);
     }
 }
 
 static
 VOID
-SrvReleaseFlushStateAsync_SMB_V2(
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState
+NfsReleaseFlushStateAsync_SMB_V2(
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState
     )
 {
     if (pFlushState->pAcb)
@@ -446,12 +446,12 @@ SrvReleaseFlushStateAsync_SMB_V2(
 
         if (pFlushState->pAcb->CallbackContext)
         {
-            PSRV_EXEC_CONTEXT pExecContext = NULL;
+            PNFS_EXEC_CONTEXT pExecContext = NULL;
 
             pExecContext =
-                    (PSRV_EXEC_CONTEXT)pFlushState->pAcb->CallbackContext;
+                    (PNFS_EXEC_CONTEXT)pFlushState->pAcb->CallbackContext;
 
-            SrvReleaseExecContext(pExecContext);
+            NfsReleaseExecContext(pExecContext);
 
             pFlushState->pAcb->CallbackContext = NULL;
         }
@@ -468,29 +468,29 @@ SrvReleaseFlushStateAsync_SMB_V2(
 
 static
 VOID
-SrvReleaseFlushStateHandle_SMB_V2(
+NfsReleaseFlushStateHandle_SMB_V2(
     HANDLE hState
     )
 {
-    SrvReleaseFlushState_SMB_V2((PSRV_FLUSH_STATE_SMB_V2)hState);
+    NfsReleaseFlushState_SMB_V2((PNFS_FLUSH_STATE_SMB_V2)hState);
 }
 
 static
 VOID
-SrvReleaseFlushState_SMB_V2(
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState
+NfsReleaseFlushState_SMB_V2(
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState
     )
 {
     if (InterlockedDecrement(&pFlushState->refCount) == 0)
     {
-        SrvFreeFlushState_SMB_V2(pFlushState);
+        NfsFreeFlushState_SMB_V2(pFlushState);
     }
 }
 
 static
 VOID
-SrvFreeFlushState_SMB_V2(
-    PSRV_FLUSH_STATE_SMB_V2 pFlushState
+NfsFreeFlushState_SMB_V2(
+    PNFS_FLUSH_STATE_SMB_V2 pFlushState
     )
 {
     if (pFlushState->pAcb && pFlushState->pAcb->AsyncCancelContext)
@@ -501,7 +501,7 @@ SrvFreeFlushState_SMB_V2(
 
     if (pFlushState->pFile)
     {
-        SrvFile2Release(pFlushState->pFile);
+        NfsFile2Release(pFlushState->pFile);
     }
 
     if (pFlushState->pMutex)
@@ -509,5 +509,5 @@ SrvFreeFlushState_SMB_V2(
         pthread_mutex_destroy(&pFlushState->mutex);
     }
 
-    SrvFreeMemory(pFlushState);
+    NfsFreeMemory(pFlushState);
 }

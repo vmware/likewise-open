@@ -49,39 +49,39 @@
 
 static
 VOID
-SrvFinderFreeRepository(
-    IN PSRV_FINDER_REPOSITORY pFinderRepository
+NfsFinderFreeRepository(
+    IN PNFS_FINDER_REPOSITORY pFinderRepository
     );
 
 static
 int
-SrvFinderCompareSearchSpaces(
+NfsFinderCompareSearchSpaces(
     IN PVOID pKey1,
     IN PVOID pKey2
     );
 
 static
 VOID
-SrvFinderFreeData(
+NfsFinderFreeData(
     IN PVOID pData
     );
 
 static
 VOID
-SrvFinderFreeSearchSpace(
-    IN PSRV_SEARCH_SPACE pSearchSpace
+NfsFinderFreeSearchSpace(
+    IN PNFS_SEARCH_SPACE pSearchSpace
     );
 
 NTSTATUS
-SrvFinderCreateRepository(
+NfsFinderCreateRepository(
     OUT PHANDLE phFinderRepository
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_FINDER_REPOSITORY pFinderRepository = NULL;
+    PNFS_FINDER_REPOSITORY pFinderRepository = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_FINDER_REPOSITORY),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_FINDER_REPOSITORY),
                     (PVOID*)&pFinderRepository);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -91,9 +91,9 @@ SrvFinderCreateRepository(
     pFinderRepository->pMutex = &pFinderRepository->mutex;
 
     ntStatus = LwRtlRBTreeCreate(
-                    &SrvFinderCompareSearchSpaces,
+                    &NfsFinderCompareSearchSpaces,
                     NULL,
-                    &SrvFinderFreeData,
+                    &NfsFinderFreeData,
                     &pFinderRepository->pSearchSpaceCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -109,14 +109,14 @@ error:
 
     if (pFinderRepository)
     {
-        SrvFinderFreeRepository(pFinderRepository);
+        NfsFinderFreeRepository(pFinderRepository);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvFinderBuildSearchPath(
+NfsFinderBuildSearchPath(
     IN              PWSTR    pwszPath,
     IN              PWSTR    pwszSearchPattern,
        OUT          PWSTR*   ppwszFilesystemPath,
@@ -156,7 +156,7 @@ SrvFinderBuildSearchPath(
 
     if (pwszSearchPattern && *pwszSearchPattern)
     {
-        ntStatus = SrvAllocateStringW(pwszSearchPattern, &pwszSearchPattern3);
+        ntStatus = NfsAllocateStringW(pwszSearchPattern, &pwszSearchPattern3);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -231,7 +231,7 @@ SrvFinderBuildSearchPath(
 
         sSuffixLen = ((PBYTE)pwszLastSlash - (PBYTE)pwszSearchPattern3);
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         sLen * sizeof(wchar16_t) + sizeof(wszBackslash[0]) + sSuffixLen + sizeof(wchar16_t),
                         (PVOID*)&pwszFilesystemPath);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -247,18 +247,18 @@ SrvFinderBuildSearchPath(
     }
     else
     {
-        ntStatus = SrvAllocateStringW(pwszPath, &pwszFilesystemPath);
+        ntStatus = NfsAllocateStringW(pwszPath, &pwszFilesystemPath);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     pwszCursor = (pwszLastSlash ? ++pwszLastSlash : pwszSearchPattern3);
     if (pwszCursor && *pwszCursor)
     {
-        ntStatus = SrvAllocateStringW(pwszCursor, &pwszSearchPattern2);
+        ntStatus = NfsAllocateStringW(pwszCursor, &pwszSearchPattern2);
     }
     else
     {
-        ntStatus = SrvAllocateStringW(wszStar, &pwszSearchPattern2);
+        ntStatus = NfsAllocateStringW(wszStar, &pwszSearchPattern2);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -272,7 +272,7 @@ SrvFinderBuildSearchPath(
 
 cleanup:
 
-    SRV_SAFE_FREE_MEMORY(pwszSearchPattern3);
+    NFS_SAFE_FREE_MEMORY(pwszSearchPattern3);
 
     return ntStatus;
 
@@ -286,16 +286,16 @@ error:
         *pbPathHasWildCards  = FALSE;
     }
 
-    SRV_SAFE_FREE_MEMORY(pwszFilesystemPath);
-    SRV_SAFE_FREE_MEMORY(pwszSearchPattern2);
+    NFS_SAFE_FREE_MEMORY(pwszFilesystemPath);
+    NFS_SAFE_FREE_MEMORY(pwszSearchPattern2);
 
     goto cleanup;
 }
 
 
 NTSTATUS
-SrvFinderCreateSearchSpace(
-    IN  PSRV_SHARE_INFO pShareInfo,
+NfsFinderCreateSearchSpace(
+    IN  PNFS_SHARE_INFO pShareInfo,
     IN  PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     IN  HANDLE         hFinderRepository,
     IN  PWSTR          pwszFilesystemPath,
@@ -315,18 +315,18 @@ SrvFinderCreateSearchSpace(
     IO_FILE_NAME        fileName = {0};
     PVOID               pSecurityDescriptor = NULL;
     PVOID               pSecurityQOS = NULL;
-    PSRV_FINDER_REPOSITORY pFinderRepository = NULL;
-    PSRV_SEARCH_SPACE pSearchSpace = NULL;
+    PNFS_FINDER_REPOSITORY pFinderRepository = NULL;
+    PNFS_SEARCH_SPACE pSearchSpace = NULL;
     USHORT   usCandidateSearchId = 0;
     BOOLEAN  bFound = FALSE;
     BOOLEAN  bInLock = FALSE;
     PIO_ECP_LIST pEcpList = NULL;
 
-    pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
+    pFinderRepository = (PNFS_FINDER_REPOSITORY)hFinderRepository;
 
     fileName.FileName = pwszFilesystemPath;
 
-    ntStatus = SrvIoCreateFile(
+    ntStatus = NfsIoCreateFile(
                     pShareInfo,
                     &hFile,
                     NULL,
@@ -353,7 +353,7 @@ SrvFinderCreateSearchSpace(
 
     do
     {
-        PSRV_SEARCH_SPACE pSearchSpace = NULL;
+        PNFS_SEARCH_SPACE pSearchSpace = NULL;
 
         if (!usCandidateSearchId || (usCandidateSearchId == UINT16_MAX))
         {
@@ -379,8 +379,8 @@ SrvFinderCreateSearchSpace(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_SEARCH_SPACE),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_SEARCH_SPACE),
                     (PVOID*)&pSearchSpace);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -404,7 +404,7 @@ SrvFinderCreateSearchSpace(
     pSearchSpace->ulSearchStorageType = ulSearchStorageType;
     pSearchSpace->bUseLongFilenames = bUseLongFilenames;
 
-    ntStatus = SrvAllocateStringW(
+    ntStatus = NfsAllocateStringW(
                     pwszSearchPattern,
                     &pSearchSpace->pwszSearchPattern);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -434,7 +434,7 @@ error:
 
     if (pSearchSpace)
     {
-        SrvFinderReleaseSearchSpace(pSearchSpace);
+        NfsFinderReleaseSearchSpace(pSearchSpace);
     }
 
     if (hFile)
@@ -446,18 +446,18 @@ error:
 }
 
 NTSTATUS
-SrvFinderGetSearchSpace(
+NfsFinderGetSearchSpace(
     IN  HANDLE  hFinderRepository,
     IN  USHORT  usSearchId,
     OUT PHANDLE phFinder
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_FINDER_REPOSITORY pFinderRepository = NULL;
-    PSRV_SEARCH_SPACE pSearchSpace = NULL;
+    PNFS_FINDER_REPOSITORY pFinderRepository = NULL;
+    PNFS_SEARCH_SPACE pSearchSpace = NULL;
     BOOLEAN bInLock = FALSE;
 
-    pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
+    pFinderRepository = (PNFS_FINDER_REPOSITORY)hFinderRepository;
 
     LWIO_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
@@ -485,29 +485,29 @@ error:
 }
 
 VOID
-SrvFinderReleaseSearchSpace(
+NfsFinderReleaseSearchSpace(
     IN HANDLE hFinder
     )
 {
-    PSRV_SEARCH_SPACE pSearchSpace = (PSRV_SEARCH_SPACE)hFinder;
+    PNFS_SEARCH_SPACE pSearchSpace = (PNFS_SEARCH_SPACE)hFinder;
 
     if (InterlockedDecrement(&pSearchSpace->refCount) == 0)
     {
-        SrvFinderFreeSearchSpace(pSearchSpace);
+        NfsFinderFreeSearchSpace(pSearchSpace);
     }
 }
 
 NTSTATUS
-SrvFinderCloseSearchSpace(
+NfsFinderCloseSearchSpace(
     IN HANDLE hFinderRepository,
     IN USHORT usSearchId
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_FINDER_REPOSITORY pFinderRepository = NULL;
+    PNFS_FINDER_REPOSITORY pFinderRepository = NULL;
     BOOLEAN bInLock = FALSE;
 
-    pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
+    pFinderRepository = (PNFS_FINDER_REPOSITORY)hFinderRepository;
 
     LWIO_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);
 
@@ -528,24 +528,24 @@ error:
 }
 
 VOID
-SrvFinderCloseRepository(
+NfsFinderCloseRepository(
     IN HANDLE hFinderRepository
     )
 {
-    PSRV_FINDER_REPOSITORY pFinderRepository = NULL;
+    PNFS_FINDER_REPOSITORY pFinderRepository = NULL;
 
-    pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
+    pFinderRepository = (PNFS_FINDER_REPOSITORY)hFinderRepository;
 
     if (InterlockedDecrement(&pFinderRepository->refCount) == 0)
     {
-        SrvFinderFreeRepository(pFinderRepository);
+        NfsFinderFreeRepository(pFinderRepository);
     }
 }
 
 static
 VOID
-SrvFinderFreeRepository(
-    IN PSRV_FINDER_REPOSITORY pFinderRepository
+NfsFinderFreeRepository(
+    IN PNFS_FINDER_REPOSITORY pFinderRepository
     )
 {
     if (pFinderRepository->pSearchSpaceCollection)
@@ -558,12 +558,12 @@ SrvFinderFreeRepository(
         pthread_mutex_destroy(&pFinderRepository->mutex);
     }
 
-    SrvFreeMemory(pFinderRepository);
+    NfsFreeMemory(pFinderRepository);
 }
 
 static
 int
-SrvFinderCompareSearchSpaces(
+NfsFinderCompareSearchSpaces(
     IN PVOID pKey1,
     IN PVOID pKey2
     )
@@ -587,22 +587,22 @@ SrvFinderCompareSearchSpaces(
 
 static
 VOID
-SrvFinderFreeData(
+NfsFinderFreeData(
     IN PVOID pData
     )
 {
-    PSRV_SEARCH_SPACE pSearchSpace = (PSRV_SEARCH_SPACE)pData;
+    PNFS_SEARCH_SPACE pSearchSpace = (PNFS_SEARCH_SPACE)pData;
 
     if (InterlockedDecrement(&pSearchSpace->refCount) == 0)
     {
-        SrvFinderFreeSearchSpace(pSearchSpace);
+        NfsFinderFreeSearchSpace(pSearchSpace);
     }
 }
 
 static
 VOID
-SrvFinderFreeSearchSpace(
-    IN PSRV_SEARCH_SPACE pSearchSpace
+NfsFinderFreeSearchSpace(
+    IN PNFS_SEARCH_SPACE pSearchSpace
     )
 {
     if (pSearchSpace->pMutex)
@@ -617,7 +617,7 @@ SrvFinderFreeSearchSpace(
 
     if (pSearchSpace->pFileInfo)
     {
-        SrvFreeMemory(pSearchSpace->pFileInfo);
+        NfsFreeMemory(pSearchSpace->pFileInfo);
     }
 
     if (pSearchSpace->pwszSearchPattern)
@@ -626,5 +626,5 @@ SrvFinderFreeSearchSpace(
 
     }
 
-    SrvFreeMemory(pSearchSpace);
+    NfsFreeMemory(pSearchSpace);
 }

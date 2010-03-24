@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - NFS
  *
  *        Utilities
  *
@@ -46,7 +46,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvAllocateMemory(
+NfsAllocateMemory(
     IN  size_t size,
     OUT PVOID* ppMemory
     )
@@ -55,7 +55,7 @@ SrvAllocateMemory(
 }
 
 NTSTATUS
-SrvReallocMemory(
+NfsReallocMemory(
     IN  PVOID  pMemory,
     IN  size_t size,
     OUT PVOID* ppNewMemory
@@ -76,7 +76,7 @@ SrvReallocMemory(
 }
 
 VOID
-SrvFreeMemory(
+NfsFreeMemory(
     IN PVOID pMemory
     )
 {

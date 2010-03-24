@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - NFS
  *
  *        Share API
  *
@@ -44,32 +44,32 @@
 #ifndef __SHAREAPI_H__
 #define __SHAREAPI_H__
 
-#define LWIO_SRV_FILE_SYSTEM_PREFIX_A "C:\\"
-#define LWIO_SRV_FILE_SYSTEM_PREFIX_W { 'C', ':', '\\', 0 }
+#define LWIO_NFS_FILE_SYSTEM_PREFIX_A "C:\\"
+#define LWIO_NFS_FILE_SYSTEM_PREFIX_W { 'C', ':', '\\', 0 }
 
-#define LWIO_SRV_DEFAULT_SHARE_PATH_A "\\lwcifs"
-#define LWIO_SRV_DEFAULT_SHARE_PATH_W { '\\', 'l', 'w', 'c', 'i', 'f', 's', 0 }
+#define LWIO_NFS_DEFAULT_SHARE_PATH_A "\\lwcifs"
+#define LWIO_NFS_DEFAULT_SHARE_PATH_W { '\\', 'l', 'w', 'c', 'i', 'f', 's', 0 }
 
-#define LWIO_SRV_FILE_SYSTEM_ROOT_A   "\\pvfs"
-#define LWIO_SRV_FILE_SYSTEM_ROOT_W   { '\\', 'p', 'v', 'f', 's', 0 }
+#define LWIO_NFS_FILE_SYSTEM_ROOT_A   "\\pvfs"
+#define LWIO_NFS_FILE_SYSTEM_ROOT_W   { '\\', 'p', 'v', 'f', 's', 0 }
 
-#define LWIO_SRV_PIPE_SYSTEM_ROOT_A   "\\npfs"
-#define LWIO_SRV_PIPE_SYSTEM_ROOT_W   { '\\', 'n', 'p', 'f', 's', 0 }
+#define LWIO_NFS_PIPE_SYSTEM_ROOT_A   "\\npfs"
+#define LWIO_NFS_PIPE_SYSTEM_ROOT_W   { '\\', 'n', 'p', 'f', 's', 0 }
 
-#define LWIO_SRV_SHARE_STRING_ID_ANY_A "????"
-#define LWIO_SRV_SHARE_STRING_ID_ANY_W {'?','?','?','?',0}
+#define LWIO_NFS_SHARE_STRING_ID_ANY_A "????"
+#define LWIO_NFS_SHARE_STRING_ID_ANY_W {'?','?','?','?',0}
 
-#define LWIO_SRV_SHARE_STRING_ID_IPC_A "IPC"
-#define LWIO_SRV_SHARE_STRING_ID_IPC_W {'I','P','C',0}
+#define LWIO_NFS_SHARE_STRING_ID_IPC_A "IPC"
+#define LWIO_NFS_SHARE_STRING_ID_IPC_W {'I','P','C',0}
 
-#define LWIO_SRV_SHARE_STRING_ID_COMM_A "COMM"
-#define LWIO_SRV_SHARE_STRING_ID_COMM_W {'C','O','M','M',0}
+#define LWIO_NFS_SHARE_STRING_ID_COMM_A "COMM"
+#define LWIO_NFS_SHARE_STRING_ID_COMM_W {'C','O','M','M',0}
 
-#define LWIO_SRV_SHARE_STRING_ID_PRINTER_A "LPT1:"
-#define LWIO_SRV_SHARE_STRING_ID_PRINTER_W {'L','P','T','1',':',0}
+#define LWIO_NFS_SHARE_STRING_ID_PRINTER_A "LPT1:"
+#define LWIO_NFS_SHARE_STRING_ID_PRINTER_W {'L','P','T','1',':',0}
 
-#define LWIO_SRV_SHARE_STRING_ID_DISK_A "A:"
-#define LWIO_SRV_SHARE_STRING_ID_DISK_W {'A',':',0}
+#define LWIO_NFS_SHARE_STRING_ID_DISK_A "A:"
+#define LWIO_NFS_SHARE_STRING_ID_DISK_W {'A',':',0}
 
 typedef enum
 {
@@ -82,7 +82,7 @@ typedef enum
 
 } SHARE_SERVICE;
 
-typedef struct _SRV_SHARE_INFO
+typedef struct _NFS_SHARE_INFO
 {
     LONG refcount;
 
@@ -102,70 +102,70 @@ typedef struct _SRV_SHARE_INFO
 
     BOOLEAN bMarkedForDeletion;
 
-} SRV_SHARE_INFO, *PSRV_SHARE_INFO;
+} NFS_SHARE_INFO, *PNFS_SHARE_INFO;
 
-typedef struct _SRV_SHARE_ENTRY
+typedef struct _NFS_SHARE_ENTRY
 {
-    PSRV_SHARE_INFO pInfo;
+    PNFS_SHARE_INFO pInfo;
 
-    struct _SRV_SHARE_ENTRY  *pNext;
+    struct _NFS_SHARE_ENTRY  *pNext;
 
-} SRV_SHARE_ENTRY, *PSRV_SHARE_ENTRY;
+} NFS_SHARE_ENTRY, *PNFS_SHARE_ENTRY;
 
-typedef struct _LWIO_SRV_SHARE_ENTRY_LIST
+typedef struct _LWIO_NFS_SHARE_ENTRY_LIST
 {
     pthread_rwlock_t  mutex;
     pthread_rwlock_t* pMutex;
 
-    PSRV_SHARE_ENTRY  pShareEntry;
+    PNFS_SHARE_ENTRY  pShareEntry;
 
     PLWRTL_RB_TREE    pShareCollection;
 
-} LWIO_SRV_SHARE_ENTRY_LIST, *PLWIO_SRV_SHARE_ENTRY_LIST;
+} LWIO_NFS_SHARE_ENTRY_LIST, *PLWIO_NFS_SHARE_ENTRY_LIST;
 
 NTSTATUS
-SrvShareInit(
+NfsShareInit(
     VOID
     );
 
 NTSTATUS
-SrvShareMapIdToServiceStringW(
+NfsShareMapIdToServiceStringW(
     IN  SHARE_SERVICE  service,
     OUT PWSTR*         ppwszService
     );
 
 NTSTATUS
-SrvShareMapIdToServiceStringA(
+NfsShareMapIdToServiceStringA(
     IN  SHARE_SERVICE  service,
     OUT PSTR*          ppszService
     );
 
 NTSTATUS
-SrvShareMapServiceStringToIdA(
+NfsShareMapServiceStringToIdA(
     IN     PCSTR          pszService,
     IN OUT SHARE_SERVICE* pService
     );
 
 NTSTATUS
-SrvShareMapServiceStringToIdW(
+NfsShareMapServiceStringToIdW(
     IN     PWSTR          pwszService,
     IN OUT SHARE_SERVICE* pService
     );
 
 NTSTATUS
-SrvShareMapFromWindowsPath(
+NfsShareMapFromWindowsPath(
     IN  PWSTR  pwszInputPath,
     OUT PWSTR* ppwszPath
     );
 
 NTSTATUS
-SrvShareMapToWindowsPath(
+NfsShareMapToWindowsPath(
     IN  PWSTR  pwszInputPath,
     OUT PWSTR* ppwszPath
     );
 
 NTSTATUS
-SrvGetShareName(
+NfsGetShareName(
     IN  PCSTR  pszHostname,
     IN  PCSTR  pszDomain,
     IN  PWSTR  pwszPath,
@@ -173,25 +173,25 @@ SrvGetShareName(
     );
 
 NTSTATUS
-SrvGetMaximalShareAccessMask(
-    PSRV_SHARE_INFO pShareInfo,
+NfsGetMaximalShareAccessMask(
+    PNFS_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     );
 
 NTSTATUS
-SrvGetGuestShareAccessMask(
-    PSRV_SHARE_INFO pShareInfo,
+NfsGetGuestShareAccessMask(
+    PNFS_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     );
 
 VOID
-SrvShareFreeSecurity(
-    IN PSRV_SHARE_INFO pShareInfo
+NfsShareFreeSecurity(
+    IN PNFS_SHARE_INFO pShareInfo
     );
 
 NTSTATUS
-SrvShareAccessCheck(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareAccessCheck(
+    PNFS_SHARE_INFO pShareInfo,
     PACCESS_TOKEN pToken,
     ACCESS_MASK DesiredAccess,
     PGENERIC_MAPPING pGenericMap,
@@ -199,27 +199,27 @@ SrvShareAccessCheck(
     );
 
 NTSTATUS
-SrvShareSetSecurity(
-    IN  PSRV_SHARE_INFO pShareInfo,
+NfsShareSetSecurity(
+    IN  PNFS_SHARE_INFO pShareInfo,
     IN  PSECURITY_DESCRIPTOR_RELATIVE pIncRelSecDesc,
     IN  ULONG ulIncRelSecDescLen
     );
 
 NTSTATUS
-SrvShareInitList(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+NfsShareInitList(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList
     );
 
 NTSTATUS
-SrvShareFindByName(
-    IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareFindByName(
+    IN  PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN  PWSTR                      pwszShareName,
-    OUT PSRV_SHARE_INFO*           ppShareInfo
+    OUT PNFS_SHARE_INFO*           ppShareInfo
     );
 
 NTSTATUS
-SrvShareAdd(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareAdd(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN     PWSTR                      pwszShareName,
     IN     PWSTR                      pwszPath,
     IN     PWSTR                      pwszComment,
@@ -229,58 +229,58 @@ SrvShareAdd(
     );
 
 NTSTATUS
-SrvShareUpdate(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN     PSRV_SHARE_INFO            pShareInfo
+NfsShareUpdate(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
+    IN     PNFS_SHARE_INFO            pShareInfo
     );
 
 NTSTATUS
-SrvShareDelete(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareDelete(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN     PWSTR                      pwszShareName
     );
 
 NTSTATUS
-SrvShareEnum(
-    IN     PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    OUT    PSRV_SHARE_INFO**          pppShareInfo,
+NfsShareEnum(
+    IN     PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
+    OUT    PNFS_SHARE_INFO**          pppShareInfo,
     IN OUT PULONG                     pulNumEntries
     );
 
 NTSTATUS
-SrvShareDuplicateInfo(
-    PSRV_SHARE_INFO  pShareInfo,
-    PSRV_SHARE_INFO* ppShareInfo
+NfsShareDuplicateInfo(
+    PNFS_SHARE_INFO  pShareInfo,
+    PNFS_SHARE_INFO* ppShareInfo
     );
 
 VOID
-SrvShareFreeListContents(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+NfsShareFreeListContents(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList
     );
 
 VOID
-SrvShareFreeEntry(
-    IN PSRV_SHARE_ENTRY pShareEntry
+NfsShareFreeEntry(
+    IN PNFS_SHARE_ENTRY pShareEntry
     );
 
 VOID
-SrvShareFreeInfoList(
-    PSRV_SHARE_INFO* ppInfoList,
+NfsShareFreeInfoList(
+    PNFS_SHARE_INFO* ppInfoList,
     ULONG            ulNumInfos
     );
 
-PSRV_SHARE_INFO
-SrvShareAcquireInfo(
-    IN PSRV_SHARE_INFO pShareInfo
+PNFS_SHARE_INFO
+NfsShareAcquireInfo(
+    IN PNFS_SHARE_INFO pShareInfo
     );
 
 VOID
-SrvShareReleaseInfo(
-    IN PSRV_SHARE_INFO pShareInfo
+NfsShareReleaseInfo(
+    IN PNFS_SHARE_INFO pShareInfo
     );
 
 NTSTATUS
-SrvShareShutdown(
+NfsShareShutdown(
     VOID
     );
 

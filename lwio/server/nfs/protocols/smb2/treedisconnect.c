@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -51,19 +51,19 @@
 #include "includes.h"
 
 NTSTATUS
-SrvProcessTreeDisconnect_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessTreeDisconnect_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION pConnection = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
-    PLWIO_SRV_SESSION_2  pSession = NULL;
-    PLWIO_SRV_TREE_2     pTree = NULL;
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PLWIO_NFS_SESSION_2  pSession = NULL;
+    PLWIO_NFS_TREE_2     pTree = NULL;
     PSMB2_TREE_DISCONNECT_REQUEST_HEADER pTreeDisconnectHeader = NULL; // Do not free
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
@@ -71,7 +71,7 @@ SrvProcessTreeDisconnect_SMB_V2(
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
+    ntStatus = NfsConnection2FindSession_SMB_V2(
                     pCtxSmb2,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
@@ -83,16 +83,16 @@ SrvProcessTreeDisconnect_SMB_V2(
                     &pTreeDisconnectHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindTree_SMB_V2(
+    ntStatus = NfsSession2FindTree_SMB_V2(
                     pCtxSmb2,
                     pSession,
                     pSmbRequest->pHeader->ulTid,
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvTree2Rundown(pTree);
+    NfsTree2Rundown(pTree);
 
-    ntStatus = SrvSession2RemoveTree(
+    ntStatus = NfsSession2RemoveTree(
                     pSession,
                     pSmbRequest->pHeader->ulTid);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -139,7 +139,7 @@ SrvProcessTreeDisconnect_SMB_V2(
 
     if (pCtxSmb2->pTree)
     {
-        SrvTree2Release(pCtxSmb2->pTree);
+        NfsTree2Release(pCtxSmb2->pTree);
         pCtxSmb2->pTree = NULL;
     }
 
@@ -147,12 +147,12 @@ cleanup:
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     return ntStatus;

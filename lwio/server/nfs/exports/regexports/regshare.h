@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Share Repository based on Registry
  *
@@ -48,28 +48,28 @@
  *
  */
 
-#ifndef __SRV_REGSHARE_H__
-#define __SRV_REGSHARE_H__
+#ifndef __NFS_REGSHARE_H__
+#define __NFS_REGSHARE_H__
 
 NTSTATUS
-SrvShareRegInit(
+NfsShareRegInit(
     VOID
     );
 
 NTSTATUS
-SrvShareRegOpen(
+NfsShareRegOpen(
     OUT PHANDLE phRepository
     );
 
 NTSTATUS
-SrvShareRegFindByName(
+NfsShareRegFindByName(
     IN  HANDLE           hRepository,
     IN  PWSTR            pwszShareName,
-    OUT PSRV_SHARE_INFO* ppShareInfo
+    OUT PNFS_SHARE_INFO* ppShareInfo
     );
 
 NTSTATUS
-SrvShareRegAdd(
+NfsShareRegAdd(
     IN HANDLE hRepository,
     IN PWSTR  pwszShareName,
     IN PWSTR  pwszPath,
@@ -80,47 +80,47 @@ SrvShareRegAdd(
     );
 
 NTSTATUS
-SrvShareRegBeginEnum(
+NfsShareRegBeginEnum(
     IN  HANDLE  hRepository,
     IN  ULONG   ulBatchLimit,
     OUT PHANDLE phResume
     );
 
 NTSTATUS
-SrvShareRegEnum(
+NfsShareRegEnum(
     IN     HANDLE            hRepository,
     IN     HANDLE            hResume,
-    OUT    PSRV_SHARE_INFO** pppShareInfoList,
+    OUT    PNFS_SHARE_INFO** pppShareInfoList,
     IN OUT PULONG            pulNumSharesFound
     );
 
 NTSTATUS
-SrvShareRegEndEnum(
+NfsShareRegEndEnum(
     IN HANDLE           hRepository,
     IN HANDLE           hResume
     );
 
 NTSTATUS
-SrvShareRegDelete(
+NfsShareRegDelete(
     IN HANDLE hRepository,
     IN PWSTR  pwszShareName
     );
 
 NTSTATUS
-SrvShareRegGetCount(
+NfsShareRegGetCount(
     IN     HANDLE  hRepository,
     IN OUT PULONG  pulNumShares
     );
 
 VOID
-SrvShareRegClose(
+NfsShareRegClose(
     IN HANDLE hRepository
     );
 
 VOID
-SrvShareRegShutdown(
+NfsShareRegShutdown(
     VOID
     );
 
-#endif /* __SRV_REGSHARE_H__ */
+#endif /* __NFS_REGSHARE_H__ */
 

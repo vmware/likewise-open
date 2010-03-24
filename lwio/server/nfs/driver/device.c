@@ -32,7 +32,7 @@
 
 
 NTSTATUS
-SrvDeviceRead(
+NfsDeviceRead(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     )
@@ -43,7 +43,7 @@ SrvDeviceRead(
 }
 
 NTSTATUS
-SrvDeviceWrite(
+NfsDeviceWrite(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     )
@@ -55,7 +55,7 @@ SrvDeviceWrite(
 
 
 NTSTATUS
-SrvDeviceControlFS(
+NfsDeviceControlFS(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     )
@@ -66,7 +66,7 @@ SrvDeviceControlFS(
 }
 
 NTSTATUS
-SrvDeviceFlush(
+NfsDeviceFlush(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     )
@@ -77,7 +77,7 @@ SrvDeviceFlush(
 }
 
 NTSTATUS
-SrvDeviceQueryInfo(
+NfsDeviceQueryInfo(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     )
@@ -88,7 +88,7 @@ SrvDeviceQueryInfo(
 }
 
 NTSTATUS
-SrvDeviceSetInfo(
+NfsDeviceSetInfo(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     )

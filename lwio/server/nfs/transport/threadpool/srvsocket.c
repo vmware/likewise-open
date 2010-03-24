@@ -3,8 +3,8 @@
 static
 inline
 VOID
-SRV_SOCKET_LOCK(
-    IN PSRV_SOCKET pSocket
+NFS_SOCKET_LOCK(
+    IN PNFS_SOCKET pSocket
     )
 {
     LwRtlLockMutex(&pSocket->Mutex);
@@ -13,8 +13,8 @@ SRV_SOCKET_LOCK(
 static
 inline
 VOID
-SRV_SOCKET_UNLOCK(
-    IN PSRV_SOCKET pSocket
+NFS_SOCKET_UNLOCK(
+    IN PNFS_SOCKET pSocket
     )
 {
     LwRtlUnlockMutex(&pSocket->Mutex);
@@ -23,42 +23,42 @@ SRV_SOCKET_UNLOCK(
 static
 inline
 VOID
-SRV_SOCKET_LOCK_WITH(
+NFS_SOCKET_LOCK_WITH(
     IN OUT PBOOLEAN pbIsLocked,
-    IN PSRV_SOCKET pSocket
+    IN PNFS_SOCKET pSocket
     )
 {
     LWIO_ASSERT(!*pbIsLocked);
-    SRV_SOCKET_LOCK(pSocket);
+    NFS_SOCKET_LOCK(pSocket);
     *pbIsLocked = TRUE;
 }
 
 static
 inline
 VOID
-SRV_SOCKET_UNLOCK_WITH(
+NFS_SOCKET_UNLOCK_WITH(
     IN OUT PBOOLEAN pbIsLocked,
-    IN PSRV_SOCKET pSocket
+    IN PNFS_SOCKET pSocket
     )
 {
     if (*pbIsLocked)
     {
-        SRV_SOCKET_UNLOCK(pSocket);
+        NFS_SOCKET_UNLOCK(pSocket);
         *pbIsLocked = FALSE;
     }
 }
 
 static
 VOID
-SrvSocketAcquire(
-    IN PSRV_SOCKET pSocket
+NfsSocketAcquire(
+    IN PNFS_SOCKET pSocket
     );
 
 static
 inline
-PSRV_TRANSPORT_PROTOCOL_DISPATCH
-SrvSocketGetDispatch(
-    IN PSRV_SOCKET pSocket
+PNFS_TRANSPORT_PROTOCOL_DISPATCH
+NfsSocketGetDispatch(
+    IN PNFS_SOCKET pSocket
     )
 {
     return &pSocket->pListener->pTransport->Dispatch;
@@ -67,8 +67,8 @@ SrvSocketGetDispatch(
 static
 inline
 VOID
-SrvSocketSetDoneStatusIf(
-    IN PSRV_SOCKET pSocket,
+NfsSocketSetDoneStatusIf(
+    IN PNFS_SOCKET pSocket,
     IN NTSTATUS Status
     )
 {
@@ -82,26 +82,26 @@ SrvSocketSetDoneStatusIf(
 
 static
 VOID
-SrvSocketFree(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketFree(
+    IN OUT PNFS_SOCKET pSocket
     );
 
 static
 NTSTATUS
-SrvSocketProcessTaskWrite(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketProcessTaskWrite(
+    IN OUT PNFS_SOCKET pSocket
     );
 
 static
 VOID
-SrvSocketProcessTaskDisconnect(
-    IN PSRV_SOCKET pSocket,
+NfsSocketProcessTaskDisconnect(
+    IN PNFS_SOCKET pSocket,
     IN NTSTATUS Status
     );
 
 static
 VOID
-SrvSocketProcessTask(
+NfsSocketProcessTask(
     PLW_TASK pTask,
     PVOID pDataContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -112,7 +112,7 @@ SrvSocketProcessTask(
 // Implementations
 
 PCSTR
-SrvSocketAddressToString(
+NfsSocketAddressToString(
     IN struct sockaddr* pSocketAddress,
     OUT PSTR pszAddress,
     IN ULONG AddressLength
@@ -158,16 +158,16 @@ error:
 }
 
 NTSTATUS
-SrvSocketCreate(
-    IN PSRV_TRANSPORT_LISTENER pListener,
+NfsSocketCreate(
+    IN PNFS_TRANSPORT_LISTENER pListener,
     IN int fd,
     IN struct sockaddr* pClientAddress,
     IN SOCKLEN_T ClientAddressLength,
-    OUT PSRV_SOCKET* ppSocket
+    OUT PNFS_SOCKET* ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_SOCKET pSocket = NULL;
+    PNFS_SOCKET pSocket = NULL;
     PCSTR pszAddress = NULL;
 
     if (ClientAddressLength > sizeof(pSocket->ClientAddress))
@@ -184,7 +184,7 @@ SrvSocketCreate(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvAllocateMemory(sizeof(*pSocket), OUT_PPVOID(&pSocket));
+    ntStatus = NfsAllocateMemory(sizeof(*pSocket), OUT_PPVOID(&pSocket));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSocket->RefCount = 1;
@@ -199,7 +199,7 @@ SrvSocketCreate(
     memcpy(&pSocket->ClientAddress, pClientAddress, ClientAddressLength);
     pSocket->ClientAddressLength = ClientAddressLength;
 
-    pszAddress = SrvSocketAddressToString(
+    pszAddress = NfsSocketAddressToString(
                             &pSocket->ClientAddress.Generic,
                             pSocket->AddressStringBuffer,
                             sizeof(pSocket->AddressStringBuffer));
@@ -217,12 +217,12 @@ SrvSocketCreate(
                     pListener->pPool,
                     &pSocket->pTask,
                     pListener->pTaskGroup,
-                    SrvSocketProcessTask,
+                    NfsSocketProcessTask,
                     pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // Referenced by task
-    SrvSocketAcquire(pSocket);
+    NfsSocketAcquire(pSocket);
 
     LwRtlWakeTask(pSocket->pTask);
 
@@ -242,7 +242,7 @@ error:
             LwRtlWakeTask(pSocket->pTask);
         }
 
-        SrvSocketRelease(pSocket);
+        NfsSocketRelease(pSocket);
         pSocket = NULL;
     }
 
@@ -251,8 +251,8 @@ error:
 
 static
 VOID
-SrvSocketAcquire(
-    IN PSRV_SOCKET pSocket
+NfsSocketAcquire(
+    IN PNFS_SOCKET pSocket
     )
 {
     LONG count = InterlockedIncrement(&pSocket->RefCount);
@@ -260,8 +260,8 @@ SrvSocketAcquire(
 }
 
 VOID
-SrvSocketRelease(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketRelease(
+    IN OUT PNFS_SOCKET pSocket
     )
 {
     if (pSocket)
@@ -270,15 +270,15 @@ SrvSocketRelease(
         LWIO_ASSERT(count >= 0);
         if (0 == count)
         {
-            SrvSocketFree(pSocket);
+            NfsSocketFree(pSocket);
         }
     }
 }
 
 static
 VOID
-SrvSocketFree(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketFree(
+    IN OUT PNFS_SOCKET pSocket
     )
 {
     LWIO_ASSERT(!pSocket->pConnection);
@@ -292,12 +292,12 @@ SrvSocketFree(
         close(pSocket->fd);
     }
     LwRtlCleanupMutex(&pSocket->Mutex);
-    SrvFreeMemory(pSocket);
+    NfsFreeMemory(pSocket);
 }
 
 VOID
-SrvSocketGetAddress(
-    IN PSRV_SOCKET pSocket,
+NfsSocketGetAddress(
+    IN PNFS_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
     OUT size_t* pAddressLength
     )
@@ -308,8 +308,8 @@ SrvSocketGetAddress(
 }
 
 PCSTR
-SrvSocketGetAddressString(
-    IN PSRV_SOCKET pSocket
+NfsSocketGetAddressString(
+    IN PNFS_SOCKET pSocket
     )
 {
     // immutable, so lock not needed.
@@ -317,8 +317,8 @@ SrvSocketGetAddressString(
 }
 
 int
-SrvSocketGetFileDescriptor(
-    IN PSRV_SOCKET pSocket
+NfsSocketGetFileDescriptor(
+    IN PNFS_SOCKET pSocket
     )
 {
     // immutable, so lock not needed.
@@ -327,8 +327,8 @@ SrvSocketGetFileDescriptor(
 
 
 NTSTATUS
-SrvSocketSetBuffer(
-    IN PSRV_SOCKET pSocket,
+NfsSocketSetBuffer(
+    IN PNFS_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
     IN ULONG Minimum
@@ -350,16 +350,16 @@ SrvSocketSetBuffer(
         // This can never happen!
         LWIO_ASSERT(FALSE);
 
-        SRV_SOCKET_LOCK(pSocket);
+        NFS_SOCKET_LOCK(pSocket);
         pSocket->pBuffer = NULL;
         pSocket->Size = 0;
         pSocket->Minimum = 0;
         pSocket->Offset = 0;
-        SRV_SOCKET_UNLOCK(pSocket);
+        NFS_SOCKET_UNLOCK(pSocket);
     }
     else
     {
-        SRV_SOCKET_LOCK(pSocket);
+        NFS_SOCKET_LOCK(pSocket);
         pSocket->pBuffer = pBuffer;
         pSocket->Size = Size;
         pSocket->Minimum = Minimum;
@@ -369,7 +369,7 @@ SrvSocketSetBuffer(
             // Notify task that there is a buffer
             LwRtlWakeTask(pSocket->pTask);
         }
-        SRV_SOCKET_UNLOCK(pSocket);
+        NFS_SOCKET_UNLOCK(pSocket);
     }
 
     return ntStatus;
@@ -377,23 +377,23 @@ SrvSocketSetBuffer(
 
 static
 NTSTATUS
-SrvSocketSendReplyCommon(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsSocketSendReplyCommon(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN OPTIONAL PLW_ZCT_VECTOR pZct,
     IN OPTIONAL PVOID pBuffer,
     IN ULONG Size
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_SEND_ITEM pSendItem = NULL;
+    PNFS_SEND_ITEM pSendItem = NULL;
     BOOLEAN bIsLocked = FALSE;
 
     LWIO_ASSERT(!IS_BOTH_OR_NEITHER(pZct, pBuffer));
     LWIO_ASSERT(!pZct || (0 == Size));
     LWIO_ASSERT(!pBuffer || (Size > 0));
 
-    ntStatus = SrvAllocateMemory(sizeof(*pSendItem), OUT_PPVOID(&pSendItem));
+    ntStatus = NfsAllocateMemory(sizeof(*pSendItem), OUT_PPVOID(&pSendItem));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSendItem->pSendContext = pSendContext;
@@ -407,22 +407,22 @@ SrvSocketSendReplyCommon(
         pSendItem->Length = Size;
     }
 
-    SRV_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
+    NFS_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
 
     ntStatus = pSocket->DoneStatus;
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSocketGetDispatch(pSocket)->pfnSendPrepare(pSendContext);
+    ntStatus = NfsSocketGetDispatch(pSocket)->pfnSendPrepare(pSendContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // Cannot fail after this.
 
     LwListInsertTail(&pSocket->SendHead, &pSendItem->SendLinks);
 
-    if (IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_WRITABLE))
+    if (IsSetFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_WRITABLE))
     {
         // Try to write inline.
-        ntStatus = SrvSocketProcessTaskWrite(pSocket);
+        ntStatus = NfsSocketProcessTaskWrite(pSocket);
     }
 
     // Wake task to process list or send error
@@ -435,7 +435,7 @@ SrvSocketSendReplyCommon(
 
 cleanup:
 
-    SRV_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
+    NFS_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
 
     return ntStatus;
 
@@ -443,21 +443,21 @@ error:
 
     if (pSendItem)
     {
-        SrvFreeMemory(pSendItem);
+        NfsFreeMemory(pSendItem);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvSocketSendReply(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsSocketSendReply(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN PVOID pBuffer,
     IN ULONG Size
     )
 {
-    return SrvSocketSendReplyCommon(
+    return NfsSocketSendReplyCommon(
                 pSocket,
                 pSendContext,
                 NULL,
@@ -466,13 +466,13 @@ SrvSocketSendReply(
 }
 
 NTSTATUS
-SrvSocketSendZctReply(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsSocketSendZctReply(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN PLW_ZCT_VECTOR pZct
     )
 {
-    return SrvSocketSendReplyCommon(
+    return NfsSocketSendReplyCommon(
                 pSocket,
                 pSendContext,
                 pZct,
@@ -481,49 +481,49 @@ SrvSocketSendZctReply(
 }
 
 VOID
-SrvSocketDisconnect(
-    IN PSRV_SOCKET pSocket
+NfsSocketDisconnect(
+    IN PNFS_SOCKET pSocket
     )
 {
-    SRV_SOCKET_LOCK(pSocket);
-    SrvSocketSetDoneStatusIf(pSocket, STATUS_CONNECTION_DISCONNECTED);
+    NFS_SOCKET_LOCK(pSocket);
+    NfsSocketSetDoneStatusIf(pSocket, STATUS_CONNECTION_DISCONNECTED);
     LwRtlWakeTask(pSocket->pTask);
-    SRV_SOCKET_UNLOCK(pSocket);
+    NFS_SOCKET_UNLOCK(pSocket);
 }
 
 VOID
-SrvSocketClose(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketClose(
+    IN OUT PNFS_SOCKET pSocket
     )
 {
-    SRV_SOCKET_LOCK(pSocket);
+    NFS_SOCKET_LOCK(pSocket);
 
     // Check that caller is not doing something wrong.
-    LWIO_ASSERT(!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_CLOSED));
-    SetFlag(pSocket->StateMask, SRV_SOCKET_STATE_CLOSED);
+    LWIO_ASSERT(!IsSetFlag(pSocket->StateMask, NFS_SOCKET_STATE_CLOSED));
+    SetFlag(pSocket->StateMask, NFS_SOCKET_STATE_CLOSED);
 
     // No connection any more.  This disables notifications to the PTD.
     pSocket->pConnection = NULL;
 
-    SrvSocketSetDoneStatusIf(pSocket, STATUS_CONNECTION_DISCONNECTED);
+    NfsSocketSetDoneStatusIf(pSocket, STATUS_CONNECTION_DISCONNECTED);
     LwRtlWakeTask(pSocket->pTask);
 
-    SRV_SOCKET_UNLOCK(pSocket);
+    NFS_SOCKET_UNLOCK(pSocket);
 
     // Release PTD's reference.
-    SrvSocketRelease(pSocket);
+    NfsSocketRelease(pSocket);
 }
 
 static
 NTSTATUS
-SrvSocketProcessTaskInit(
-    IN PSRV_SOCKET pSocket
+NfsSocketProcessTaskInit(
+    IN PNFS_SOCKET pSocket
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
     // Notify PTD about new connection.
-    ntStatus = SrvSocketGetDispatch(pSocket)->pfnConnectionNew(
+    ntStatus = NfsSocketGetDispatch(pSocket)->pfnConnectionNew(
                     &pSocket->pConnection,
                     pSocket->pListener->pTransport->pContext,
                     pSocket);
@@ -539,7 +539,7 @@ SrvSocketProcessTaskInit(
     LWIO_ASSERT(pSocket->pConnection);
 
     // Take a reference for the PTD's new connection object.
-    SrvSocketAcquire(pSocket);
+    NfsSocketAcquire(pSocket);
 
     // Register file descriptor with thread pool for read/write.
     ntStatus = LwRtlSetTaskFd(
@@ -555,7 +555,7 @@ error:
 
 static
 NTSTATUS
-SrvSocketRead(
+NfsSocketRead(
     IN int FileDescriptor,
     OUT PVOID pBuffer,
     IN ULONG Length,
@@ -604,7 +604,7 @@ error:
 
 static
 NTSTATUS
-SrvSocketWrite(
+NfsSocketWrite(
     IN int FileDescriptor,
     OUT PVOID pBuffer,
     IN ULONG Length,
@@ -653,8 +653,8 @@ error:
 
 static
 NTSTATUS
-SrvSocketProcessTaskRead(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketProcessTaskRead(
+    IN OUT PNFS_SOCKET pSocket
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -664,7 +664,7 @@ SrvSocketProcessTaskRead(
     ntStatus = pSocket->DoneStatus;
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_READABLE))
+    if (!IsSetFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_READABLE))
     {
         ntStatus = STATUS_SUCCESS;
         goto cleanup;
@@ -677,10 +677,10 @@ SrvSocketProcessTaskRead(
         PVOID pCurrent = LwRtlOffsetToPointer(pSocket->pBuffer, pSocket->Offset);
         ULONG bytesTransferred = 0;
 
-        ntStatus = SrvSocketRead(pSocket->fd, pCurrent, bytesRemaining, &bytesTransferred);
+        ntStatus = NfsSocketRead(pSocket->fd, pCurrent, bytesRemaining, &bytesTransferred);
         if (STATUS_MORE_PROCESSING_REQUIRED == ntStatus)
         {
-            ClearFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_READABLE);
+            ClearFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_READABLE);
             ntStatus = STATUS_SUCCESS;
             break;
         }
@@ -705,7 +705,7 @@ SrvSocketProcessTaskRead(
     if ((pSocket->Offset > initialOffset) &&
         (pSocket->Offset >= pSocket->Minimum))
     {
-        ntStatus = SrvSocketGetDispatch(pSocket)->pfnConnectionData(
+        ntStatus = NfsSocketGetDispatch(pSocket)->pfnConnectionData(
                         pSocket->pConnection,
                         pSocket->Offset);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -724,8 +724,8 @@ error:
 
 static
 NTSTATUS
-SrvSocketProcessTaskWrite(
-    IN OUT PSRV_SOCKET pSocket
+NfsSocketProcessTaskWrite(
+    IN OUT PNFS_SOCKET pSocket
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -733,7 +733,7 @@ SrvSocketProcessTaskWrite(
     ntStatus = pSocket->DoneStatus;
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_WRITABLE))
+    if (!IsSetFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_WRITABLE))
     {
         ntStatus = STATUS_SUCCESS;
         goto cleanup;
@@ -742,7 +742,7 @@ SrvSocketProcessTaskWrite(
     while (!LwListIsEmpty(&pSocket->SendHead))
     {
         PLW_LIST_LINKS pLinks = pSocket->SendHead.Next;
-        PSRV_SEND_ITEM pSendItem = LW_STRUCT_FROM_FIELD(pLinks, SRV_SEND_ITEM, SendLinks);
+        PNFS_SEND_ITEM pSendItem = LW_STRUCT_FROM_FIELD(pLinks, NFS_SEND_ITEM, SendLinks);
         ULONG bytesRemaining = 0;
         ULONG bytesTransferred = 0;
 
@@ -762,7 +762,7 @@ SrvSocketProcessTaskWrite(
 
             bytesRemaining = pSendItem->Length - pSendItem->Offset;
 
-            ntStatus = SrvSocketWrite(pSocket->fd, pCurrent, bytesRemaining, &bytesTransferred);
+            ntStatus = NfsSocketWrite(pSocket->fd, pCurrent, bytesRemaining, &bytesTransferred);
             if (STATUS_SUCCESS == ntStatus)
             {
                 pSendItem->Offset += bytesTransferred;
@@ -774,7 +774,7 @@ SrvSocketProcessTaskWrite(
 
         if (STATUS_MORE_PROCESSING_REQUIRED == ntStatus)
         {
-            ClearFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_WRITABLE);
+            ClearFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_WRITABLE);
             ntStatus = STATUS_SUCCESS;
             break;
         }
@@ -784,12 +784,12 @@ SrvSocketProcessTaskWrite(
 
         if (!bytesRemaining)
         {
-            SrvSocketGetDispatch(pSocket)->pfnSendDone(
+            NfsSocketGetDispatch(pSocket)->pfnSendDone(
                     pSendItem->pSendContext,
                     STATUS_SUCCESS);
 
             LwListRemove(&pSendItem->SendLinks);
-            SrvFreeMemory(pSendItem);
+            NfsFreeMemory(pSendItem);
         }
     }
 
@@ -806,37 +806,37 @@ error:
 
 static
 VOID
-SrvSocketProcessTaskDisconnect(
-    IN PSRV_SOCKET pSocket,
+NfsSocketProcessTaskDisconnect(
+    IN PNFS_SOCKET pSocket,
     IN NTSTATUS Status
     )
 {
-    SrvSocketSetDoneStatusIf(pSocket, Status);
+    NfsSocketSetDoneStatusIf(pSocket, Status);
 
     LWIO_ASSERT(pSocket->DoneStatus);
 
     // For debugging only - the state machine should call in here just once
     // because this function will cancel the task.
 
-    LWIO_ASSERT(!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_DISCONNECTED));
-    SetFlag(pSocket->StateMask, SRV_SOCKET_STATE_DISCONNECTED);
+    LWIO_ASSERT(!IsSetFlag(pSocket->StateMask, NFS_SOCKET_STATE_DISCONNECTED));
+    SetFlag(pSocket->StateMask, NFS_SOCKET_STATE_DISCONNECTED);
 
     if (pSocket->pConnection)
     {
         while (!LwListIsEmpty(&pSocket->SendHead))
         {
             PLW_LIST_LINKS pLinks = pSocket->SendHead.Next;
-            PSRV_SEND_ITEM pSendItem = LW_STRUCT_FROM_FIELD(pLinks, SRV_SEND_ITEM, SendLinks);
+            PNFS_SEND_ITEM pSendItem = LW_STRUCT_FROM_FIELD(pLinks, NFS_SEND_ITEM, SendLinks);
 
-            SrvSocketGetDispatch(pSocket)->pfnSendDone(
+            NfsSocketGetDispatch(pSocket)->pfnSendDone(
                             pSendItem->pSendContext,
                             pSocket->DoneStatus);
 
             LwListRemove(&pSendItem->SendLinks);
-            SrvFreeMemory(pSendItem);
+            NfsFreeMemory(pSendItem);
         }
 
-        SrvSocketGetDispatch(pSocket)->pfnConnectionDone(
+        NfsSocketGetDispatch(pSocket)->pfnConnectionDone(
                 pSocket->pConnection,
                 pSocket->DoneStatus);
 
@@ -865,7 +865,7 @@ SrvSocketProcessTaskDisconnect(
 
 static
 VOID
-SrvSocketProcessTask(
+NfsSocketProcessTask(
     PLW_TASK pTask,
     PVOID pDataContext,
     LW_TASK_EVENT_MASK WakeMask,
@@ -874,7 +874,7 @@ SrvSocketProcessTask(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_SOCKET pSocket = (PSRV_SOCKET) pDataContext;
+    PNFS_SOCKET pSocket = (PNFS_SOCKET) pDataContext;
     BOOLEAN bIsLocked = FALSE;
     LW_TASK_EVENT_MASK waitMask = 0;
 
@@ -886,7 +886,7 @@ SrvSocketProcessTask(
     // and checking for that to do a disconnect, which will cause the
     // protocol to close the socket.
 
-    SRV_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
+    NFS_SOCKET_LOCK_WITH(&bIsLocked, pSocket);
 
     if (IsSetFlag(WakeMask, LW_TASK_EVENT_CANCEL))
     {
@@ -896,9 +896,9 @@ SrvSocketProcessTask(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        SRV_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
+        NFS_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
 
-        SrvSocketRelease(pSocket);
+        NfsSocketRelease(pSocket);
         pSocket = NULL;
 
         waitMask = LW_TASK_EVENT_COMPLETE;
@@ -912,7 +912,7 @@ SrvSocketProcessTask(
     // Handle EVENT_INIT:
     if (IsSetFlag(WakeMask, LW_TASK_EVENT_INIT))
     {
-        ntStatus = SrvSocketProcessTaskInit(pSocket);
+        ntStatus = NfsSocketProcessTaskInit(pSocket);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -926,27 +926,27 @@ SrvSocketProcessTask(
     // Save FD state (in case we cannot fully act on it now).
     if (IsSetFlag(WakeMask, LW_TASK_EVENT_FD_WRITABLE))
     {
-        SetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_WRITABLE);
+        SetFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_WRITABLE);
     }
     if (IsSetFlag(WakeMask, LW_TASK_EVENT_FD_READABLE))
     {
-        SetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_READABLE);
+        SetFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_READABLE);
     }
 
     // Process FD state, handling write first so we can free up
     // memory.
 
-    ntStatus = SrvSocketProcessTaskWrite(pSocket);
+    ntStatus = NfsSocketProcessTaskWrite(pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSocketProcessTaskRead(pSocket);
+    ntStatus = NfsSocketProcessTaskRead(pSocket);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // Determine what wait mask is needed.
     if ((pSocket->Size - pSocket->Offset) > 0)
     {
         SetFlag(waitMask, LW_TASK_EVENT_FD_READABLE);
-        if (IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_READABLE))
+        if (IsSetFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_READABLE))
         {
             SetFlag(waitMask, LW_TASK_EVENT_YIELD);
         }
@@ -954,7 +954,7 @@ SrvSocketProcessTask(
     if (!LwListIsEmpty(&pSocket->SendHead))
     {
         SetFlag(waitMask, LW_TASK_EVENT_FD_WRITABLE);
-        if (IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_WRITABLE))
+        if (IsSetFlag(pSocket->StateMask, NFS_SOCKET_STATE_FD_WRITABLE))
         {
             SetFlag(waitMask, LW_TASK_EVENT_YIELD);
         }
@@ -966,7 +966,7 @@ SrvSocketProcessTask(
 
 cleanup:
 
-    SRV_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
+    NFS_SOCKET_UNLOCK_WITH(&bIsLocked, pSocket);
 
     // waitMask can only be 0 (aka COMPLETE) for EVENT_CANCEL.
     LWIO_ASSERT(waitMask ||
@@ -979,7 +979,7 @@ cleanup:
 
 error:
 
-    SrvSocketProcessTaskDisconnect(pSocket, ntStatus);
+    NfsSocketProcessTaskDisconnect(pSocket, ntStatus);
 
     // Connection needs to close the socket (i.e., cancel the task).
     waitMask = LW_TASK_EVENT_EXPLICIT;

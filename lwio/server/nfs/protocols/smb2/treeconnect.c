@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -52,79 +52,79 @@
 
 static
 NTSTATUS
-SrvBuildTreeConnectState_SMB_V2(
-    PLWIO_SRV_SESSION_2               pSession,
+NfsBuildTreeConnectState_SMB_V2(
+    PLWIO_NFS_SESSION_2               pSession,
     PSMB2_TREE_CONNECT_REQUEST_HEADER pTreeConnectHeader,
     PUNICODE_STRING                   pPath,
-    PSRV_TREE_CONNECT_STATE_SMB_V2*   ppTConState
+    PNFS_TREE_CONNECT_STATE_SMB_V2*   ppTConState
     );
 
 static
 VOID
-SrvPrepareTreeConnectStateAsync_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState,
-    PSRV_EXEC_CONTEXT              pExecContext
+NfsPrepareTreeConnectStateAsync_SMB_V2(
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState,
+    PNFS_EXEC_CONTEXT              pExecContext
     );
 
 static
 VOID
-SrvExecuteTreeConnectAsyncCB_SMB_V2(
+NfsExecuteTreeConnectAsyncCB_SMB_V2(
     PVOID pContext
     );
 
 static
 VOID
-SrvReleaseTreeConnectStateAsync_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState
+NfsReleaseTreeConnectStateAsync_SMB_V2(
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState
     );
 
 static
 NTSTATUS
-SrvCreateTreeRootHandle_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsCreateTreeRootHandle_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
-SrvBuildTreeConnectResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildTreeConnectResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 VOID
-SrvReleaseTreeConnectStateHandle_SMB_V2(
+NfsReleaseTreeConnectStateHandle_SMB_V2(
     HANDLE hTConState
     );
 
 static
 VOID
-SrvReleaseTreeConnectState_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState
+NfsReleaseTreeConnectState_SMB_V2(
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState
     );
 
 static
 VOID
-SrvFreeTreeConnectState_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState
+NfsFreeTreeConnectState_SMB_V2(
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState
     );
 
 NTSTATUS
-SrvProcessTreeConnect_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessTreeConnect_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState = NULL;
-    PLWIO_SRV_SESSION_2 pSession      = NULL;
+    PLWIO_NFS_CONNECTION pConnection = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState = NULL;
+    PLWIO_NFS_SESSION_2 pSession      = NULL;
     PWSTR               pwszSharename = NULL;
-    PSRV_SHARE_INFO     pShareInfo    = NULL;
+    PNFS_SHARE_INFO     pShareInfo    = NULL;
     BOOLEAN             bInLock       = FALSE;
     BOOLEAN             bShareInfoInLock = FALSE;
 
-    pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V2)pCtxSmb2->hState;
+    pTConState = (PNFS_TREE_CONNECT_STATE_SMB_V2)pCtxSmb2->hState;
     if (pTConState)
     {
         InterlockedIncrement(&pTConState->refCount);
@@ -132,7 +132,7 @@ SrvProcessTreeConnect_SMB_V2(
     else
     {
         ULONG                      iMsg          = pCtxSmb2->iMsg;
-        PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+        PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
         PSMB2_TREE_CONNECT_REQUEST_HEADER pTreeConnectHeader = NULL;// Do not free
         UNICODE_STRING    wszPath = {0}; // Do not free
 
@@ -142,7 +142,7 @@ SrvProcessTreeConnect_SMB_V2(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = SrvConnection2FindSession_SMB_V2(
+        ntStatus = NfsConnection2FindSession_SMB_V2(
                         pCtxSmb2,
                         pConnection,
                         pSmbRequest->pHeader->ullSessionId,
@@ -155,7 +155,7 @@ SrvProcessTreeConnect_SMB_V2(
                         &wszPath);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvBuildTreeConnectState_SMB_V2(
+        ntStatus = NfsBuildTreeConnectState_SMB_V2(
                         pSession,
                         pTreeConnectHeader,
                         &wszPath,
@@ -164,20 +164,20 @@ SrvProcessTreeConnect_SMB_V2(
 
         pCtxSmb2->hState = pTConState;
         InterlockedIncrement(&pTConState->refCount);
-        pCtxSmb2->pfnStateRelease = &SrvReleaseTreeConnectStateHandle_SMB_V2;
+        pCtxSmb2->pfnStateRelease = &NfsReleaseTreeConnectStateHandle_SMB_V2;
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pTConState->mutex);
 
     switch (pTConState->stage)
     {
-        case SRV_TREE_CONNECT_STAGE_SMB_V2_INITIAL:
+        case NFS_TREE_CONNECT_STAGE_SMB_V2_INITIAL:
 
             LWIO_LOCK_RWMUTEX_SHARED(
                     bShareInfoInLock,
                     &pConnection->pHostinfo->mutex);
 
-            ntStatus = SrvGetShareName(
+            ntStatus = NfsGetShareName(
                             pConnection->pHostinfo->pszHostname,
                             pConnection->pHostinfo->pszDomain,
                             pTConState->pwszPath,
@@ -186,7 +186,7 @@ SrvProcessTreeConnect_SMB_V2(
 
             LWIO_UNLOCK_RWMUTEX(bShareInfoInLock, &pConnection->pHostinfo->mutex);
 
-            ntStatus = SrvShareFindByName(
+            ntStatus = NfsShareFindByName(
                             pConnection->pShareList,
                             pwszSharename,
                             &pShareInfo);
@@ -196,7 +196,7 @@ SrvProcessTreeConnect_SMB_V2(
             }
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvSession2CreateTree(
+            ntStatus = NfsSession2CreateTree(
                             pTConState->pSession,
                             pShareInfo,
                             &pTConState->pTree);
@@ -206,7 +206,7 @@ SrvProcessTreeConnect_SMB_V2(
 
             // intentional fall through
 
-        case SRV_TREE_CONNECT_STAGE_SMB_V2_CREATE_TREE_ROOT_HANDLE:
+        case NFS_TREE_CONNECT_STAGE_SMB_V2_CREATE_TREE_ROOT_HANDLE:
 
             if (pTConState->pTree->pShareInfo->service ==
                                 SHARE_SERVICE_DISK_SHARE)
@@ -214,24 +214,24 @@ SrvProcessTreeConnect_SMB_V2(
                 ntStatus = pTConState->ioStatusBlock.Status;
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                ntStatus = SrvCreateTreeRootHandle_SMB_V2(pExecContext);
+                ntStatus = NfsCreateTreeRootHandle_SMB_V2(pExecContext);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE;
+            pTConState->stage = NFS_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE;
 
             // intentional fall through
 
-        case SRV_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE:
+        case NFS_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE:
 
-            ntStatus = SrvBuildTreeConnectResponse_SMB_V2(pExecContext);
+            ntStatus = NfsBuildTreeConnectResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
             // intentional fall through
 
-        case SRV_TREE_CONNECT_STAGE_SMB_V2_DONE:
+        case NFS_TREE_CONNECT_STAGE_SMB_V2_DONE:
 
-            pCtxSmb2->pTree = SrvTree2Acquire(pTConState->pTree);
+            pCtxSmb2->pTree = NfsTree2Acquire(pTConState->pTree);
 
             pTConState->bRemoveTreeFromSession = FALSE;
 
@@ -246,20 +246,20 @@ cleanup:
     {
         LWIO_UNLOCK_MUTEX(bInLock, &pTConState->mutex);
 
-        SrvReleaseTreeConnectState_SMB_V2(pTConState);
+        NfsReleaseTreeConnectState_SMB_V2(pTConState);
     }
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     if (pShareInfo)
     {
-        SrvShareReleaseInfo(pShareInfo);
+        NfsShareReleaseInfo(pShareInfo);
     }
 
-    SRV_SAFE_FREE_MEMORY(pwszSharename);
+    NFS_SAFE_FREE_MEMORY(pwszSharename);
 
     return ntStatus;
 
@@ -285,7 +285,7 @@ error:
 
             if (pTConState)
             {
-                SrvReleaseTreeConnectStateAsync_SMB_V2(pTConState);
+                NfsReleaseTreeConnectStateAsync_SMB_V2(pTConState);
             }
 
             break;
@@ -296,18 +296,18 @@ error:
 
 static
 NTSTATUS
-SrvBuildTreeConnectState_SMB_V2(
-    PLWIO_SRV_SESSION_2               pSession,
+NfsBuildTreeConnectState_SMB_V2(
+    PLWIO_NFS_SESSION_2               pSession,
     PSMB2_TREE_CONNECT_REQUEST_HEADER pTreeConnectHeader,
     PUNICODE_STRING                   pPath,
-    PSRV_TREE_CONNECT_STATE_SMB_V2*   ppTConState
+    PNFS_TREE_CONNECT_STATE_SMB_V2*   ppTConState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState = NULL;
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_TREE_CONNECT_STATE_SMB_V2),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_TREE_CONNECT_STATE_SMB_V2),
                     (PVOID*)&pTConState);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -316,18 +316,18 @@ SrvBuildTreeConnectState_SMB_V2(
     pthread_mutex_init(&pTConState->mutex, NULL);
     pTConState->pMutex = &pTConState->mutex;
 
-    pTConState->stage = SRV_TREE_CONNECT_STAGE_SMB_V2_INITIAL;
+    pTConState->stage = NFS_TREE_CONNECT_STAGE_SMB_V2_INITIAL;
 
     pTConState->pRequestHeader = pTreeConnectHeader;
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                         pPath->Length + sizeof(wchar16_t),
                         (PVOID*)&pTConState->pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy((PBYTE)pTConState->pwszPath, (PBYTE)pPath->Buffer, pPath->Length);
 
-    pTConState->pSession = SrvSession2Acquire(pSession);
+    pTConState->pSession = NfsSession2Acquire(pSession);
 
     *ppTConState = pTConState;
 
@@ -341,7 +341,7 @@ error:
 
     if (pTConState)
     {
-        SrvFreeTreeConnectState_SMB_V2(pTConState);
+        NfsFreeTreeConnectState_SMB_V2(pTConState);
     }
 
     goto cleanup;
@@ -349,12 +349,12 @@ error:
 
 static
 VOID
-SrvPrepareTreeConnectStateAsync_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState,
-    PSRV_EXEC_CONTEXT              pExecContext
+NfsPrepareTreeConnectStateAsync_SMB_V2(
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState,
+    PNFS_EXEC_CONTEXT              pExecContext
     )
 {
-    pTConState->acb.Callback        = &SrvExecuteTreeConnectAsyncCB_SMB_V2;
+    pTConState->acb.Callback        = &NfsExecuteTreeConnectAsyncCB_SMB_V2;
 
     pTConState->acb.CallbackContext = pExecContext;
     InterlockedIncrement(&pExecContext->refCount);
@@ -366,18 +366,18 @@ SrvPrepareTreeConnectStateAsync_SMB_V2(
 
 static
 VOID
-SrvExecuteTreeConnectAsyncCB_SMB_V2(
+NfsExecuteTreeConnectAsyncCB_SMB_V2(
     PVOID pContext
     )
 {
     NTSTATUS                   ntStatus         = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
-    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState   = NULL;
+    PNFS_EXEC_CONTEXT          pExecContext     = (PNFS_EXEC_CONTEXT)pContext;
+    PNFS_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState   = NULL;
     BOOLEAN                        bInLock      = FALSE;
 
     pTConState =
-        (PSRV_TREE_CONNECT_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
+        (PNFS_TREE_CONNECT_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
 
     LWIO_LOCK_MUTEX(bInLock, &pTConState->mutex);
 
@@ -390,20 +390,20 @@ SrvExecuteTreeConnectAsyncCB_SMB_V2(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pTConState->mutex);
 
-    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
+    ntStatus = NfsProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
     if (ntStatus != STATUS_SUCCESS)
     {
         LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
                        ntStatus);
 
-        SrvReleaseExecContext(pExecContext);
+        NfsReleaseExecContext(pExecContext);
     }
 }
 
 static
 VOID
-SrvReleaseTreeConnectStateAsync_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState
+NfsReleaseTreeConnectStateAsync_SMB_V2(
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState
     )
 {
     if (pTConState->pAcb)
@@ -412,11 +412,11 @@ SrvReleaseTreeConnectStateAsync_SMB_V2(
 
         if (pTConState->pAcb->CallbackContext)
         {
-            PSRV_EXEC_CONTEXT pExecContext = NULL;
+            PNFS_EXEC_CONTEXT pExecContext = NULL;
 
-            pExecContext = (PSRV_EXEC_CONTEXT)pTConState->pAcb->CallbackContext;
+            pExecContext = (PNFS_EXEC_CONTEXT)pTConState->pAcb->CallbackContext;
 
-            SrvReleaseExecContext(pExecContext);
+            NfsReleaseExecContext(pExecContext);
 
             pTConState->pAcb->CallbackContext = NULL;
         }
@@ -433,17 +433,17 @@ SrvReleaseTreeConnectStateAsync_SMB_V2(
 
 static
 NTSTATUS
-SrvCreateTreeRootHandle_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsCreateTreeRootHandle_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState  = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState  = NULL;
     BOOLEAN                        bShareInLock     = FALSE;
 
-    pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V2)pCtxSmb2->hState;
+    pTConState = (PNFS_TREE_CONNECT_STATE_SMB_V2)pCtxSmb2->hState;
 
     if (!pTConState->fileName.FileName)
     {
@@ -451,7 +451,7 @@ SrvCreateTreeRootHandle_SMB_V2(
                     bShareInLock,
                     &pTConState->pTree->pShareInfo->mutex);
 
-        ntStatus = SrvAllocateStringW(
+        ntStatus = NfsAllocateStringW(
                         pTConState->pTree->pShareInfo->pwszPath,
                         &pTConState->fileName.FileName);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -463,9 +463,9 @@ SrvCreateTreeRootHandle_SMB_V2(
 
     if (!pTConState->pTree->hFile)
     {
-        SrvPrepareTreeConnectStateAsync_SMB_V2(pTConState, pExecContext);
+        NfsPrepareTreeConnectStateAsync_SMB_V2(pTConState, pExecContext);
 
-        ntStatus = SrvIoCreateFile(
+        ntStatus = NfsIoCreateFile(
                         pTConState->pTree->pShareInfo,
                         &pTConState->pTree->hFile,
                         pTConState->pAcb,
@@ -485,7 +485,7 @@ SrvCreateTreeRootHandle_SMB_V2(
                         &pTConState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvReleaseTreeConnectStateAsync_SMB_V2(pTConState); // completed sync
+        NfsReleaseTreeConnectStateAsync_SMB_V2(pTConState); // completed sync
     }
 
 cleanup:
@@ -501,26 +501,26 @@ error:
 
 static
 NTSTATUS
-SrvBuildTreeConnectResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildTreeConnectResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection  = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse = &pCtxSmb2->pResponses[iMsg];
     PSMB2_TREE_CONNECT_RESPONSE_HEADER pTreeConnectResponseHeader = NULL; // Do not free
-    PSRV_TREE_CONNECT_STATE_SMB_V2     pTConState  = NULL;
+    PNFS_TREE_CONNECT_STATE_SMB_V2     pTConState  = NULL;
     PBYTE   pOutBuffer       = pSmbResponse->pBuffer;
     ULONG   ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG   ulOffset         = 0;
     ULONG   ulBytesUsed      = 0;
     ULONG   ulTotalBytesUsed = 0;
 
-    pTConState = (PSRV_TREE_CONNECT_STATE_SMB_V2)pCtxSmb2->hState;
+    pTConState = (PNFS_TREE_CONNECT_STATE_SMB_V2)pCtxSmb2->hState;
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
@@ -625,29 +625,29 @@ error:
 
 static
 VOID
-SrvReleaseTreeConnectStateHandle_SMB_V2(
+NfsReleaseTreeConnectStateHandle_SMB_V2(
     HANDLE hTConState
     )
 {
-    SrvReleaseTreeConnectState_SMB_V2((PSRV_TREE_CONNECT_STATE_SMB_V2)hTConState);
+    NfsReleaseTreeConnectState_SMB_V2((PNFS_TREE_CONNECT_STATE_SMB_V2)hTConState);
 }
 
 static
 VOID
-SrvReleaseTreeConnectState_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState
+NfsReleaseTreeConnectState_SMB_V2(
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState
     )
 {
     if (InterlockedDecrement(&pTConState->refCount) == 0)
     {
-        SrvFreeTreeConnectState_SMB_V2(pTConState);
+        NfsFreeTreeConnectState_SMB_V2(pTConState);
     }
 }
 
 static
 VOID
-SrvFreeTreeConnectState_SMB_V2(
-    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState
+NfsFreeTreeConnectState_SMB_V2(
+    PNFS_TREE_CONNECT_STATE_SMB_V2 pTConState
     )
 {
     if (pTConState->pAcb && pTConState->pAcb->AsyncCancelContext)
@@ -666,19 +666,19 @@ SrvFreeTreeConnectState_SMB_V2(
 
     if (pTConState->fileName.FileName)
     {
-        SrvFreeMemory(pTConState->fileName.FileName);
+        NfsFreeMemory(pTConState->fileName.FileName);
     }
 
     if (pTConState->pwszPath)
     {
-        SrvFreeMemory(pTConState->pwszPath);
+        NfsFreeMemory(pTConState->pwszPath);
     }
 
     if (pTConState->bRemoveTreeFromSession)
     {
         NTSTATUS ntStatus2 = 0;
 
-        ntStatus2 = SrvSession2RemoveTree(
+        ntStatus2 = NfsSession2RemoveTree(
                         pTConState->pSession,
                         pTConState->pTree->ulTid);
         if (ntStatus2)
@@ -693,12 +693,12 @@ SrvFreeTreeConnectState_SMB_V2(
 
     if (pTConState->pSession)
     {
-        SrvSession2Release(pTConState->pSession);
+        NfsSession2Release(pTConState->pSession);
     }
 
     if (pTConState->pTree)
     {
-        SrvTree2Release(pTConState->pTree);
+        NfsTree2Release(pTConState->pTree);
     }
 
     if (pTConState->pMutex)
@@ -706,6 +706,6 @@ SrvFreeTreeConnectState_SMB_V2(
         pthread_mutex_destroy(&pTConState->mutex);
     }
 
-    SrvFreeMemory(pTConState);
+    NfsFreeMemory(pTConState);
 }
 

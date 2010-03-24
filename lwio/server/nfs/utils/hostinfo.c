@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - NFS
  *
  *        Utilities
  *
@@ -47,26 +47,26 @@
 
 static
 VOID
-SrvFreeHostInfo(
-    PSRV_HOST_INFO pHostinfo
+NfsFreeHostInfo(
+    PNFS_HOST_INFO pHostinfo
     );
 
 NTSTATUS
-SrvAcquireHostInfo(
-    PSRV_HOST_INFO  pOrigHostInfo,
-    PSRV_HOST_INFO* ppNewHostInfo
+NfsAcquireHostInfo(
+    PNFS_HOST_INFO  pOrigHostInfo,
+    PNFS_HOST_INFO* ppNewHostInfo
     )
 {
     NTSTATUS ntStatus = 0;
     DWORD dwError = 0;
     PSTR pszDomain = NULL;
-    PSRV_HOST_INFO pHostInfo = NULL;
-    PSRV_HOST_INFO pNewHostInfo = NULL;
+    PNFS_HOST_INFO pHostInfo = NULL;
+    PNFS_HOST_INFO pNewHostInfo = NULL;
 
     if (!pOrigHostInfo)
     {
-        ntStatus = SrvAllocateMemory(
-                        sizeof(SRV_HOST_INFO),
+        ntStatus = NfsAllocateMemory(
+                        sizeof(NFS_HOST_INFO),
                         (PVOID*)&pHostInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -121,27 +121,27 @@ error:
 
     if (pHostInfo)
     {
-        SrvFreeHostInfo(pHostInfo);
+        NfsFreeHostInfo(pHostInfo);
     }
 
     goto cleanup;
 }
 
 VOID
-SrvReleaseHostInfo(
-    PSRV_HOST_INFO pHostinfo
+NfsReleaseHostInfo(
+    PNFS_HOST_INFO pHostinfo
     )
 {
     if (InterlockedDecrement(&pHostinfo->refcount) == 0)
     {
-        SrvFreeHostInfo(pHostinfo);
+        NfsFreeHostInfo(pHostinfo);
     }
 }
 
 static
 VOID
-SrvFreeHostInfo(
-    PSRV_HOST_INFO pHostinfo
+NfsFreeHostInfo(
+    PNFS_HOST_INFO pHostinfo
     )
 {
     if (pHostinfo->pMutex)
@@ -152,7 +152,7 @@ SrvFreeHostInfo(
     LWIO_SAFE_FREE_STRING(pHostinfo->pszHostname);
     LWIO_SAFE_FREE_STRING(pHostinfo->pszDomain);
 
-    SrvFreeMemory(pHostinfo);
+    NfsFreeMemory(pHostinfo);
 }
 
 

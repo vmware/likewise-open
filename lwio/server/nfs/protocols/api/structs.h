@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols
  *
@@ -50,7 +50,7 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-typedef struct _LWIO_SRV_PROTOCOL_WORKER_CONTEXT
+typedef struct _LWIO_NFS_PROTOCOL_WORKER_CONTEXT
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
@@ -61,47 +61,47 @@ typedef struct _LWIO_SRV_PROTOCOL_WORKER_CONTEXT
 
     PSMB_PROD_CONS_QUEUE pWorkQueue;
 
-} LWIO_SRV_PROTOCOL_WORKER_CONTEXT, *PLWIO_SRV_PROTOCOL_WORKER_CONTEXT;
+} LWIO_NFS_PROTOCOL_WORKER_CONTEXT, *PLWIO_NFS_PROTOCOL_WORKER_CONTEXT;
 
-typedef struct _LWIO_SRV_PROTOCOL_WORKER
+typedef struct _LWIO_NFS_PROTOCOL_WORKER
 {
     pthread_t  worker;
     pthread_t* pWorker;
 
     ULONG      workerId;
 
-    LWIO_SRV_PROTOCOL_WORKER_CONTEXT context;
+    LWIO_NFS_PROTOCOL_WORKER_CONTEXT context;
 
-} LWIO_SRV_PROTOCOL_WORKER, *PLWIO_SRV_PROTOCOL_WORKER;
+} LWIO_NFS_PROTOCOL_WORKER, *PLWIO_NFS_PROTOCOL_WORKER;
 
-typedef struct _SRV_PROTOCOL_CONFIG
+typedef struct _NFS_PROTOCOL_CONFIG
 {
     BOOLEAN bEnableSmb2;
     BOOLEAN bEnableSigning;
     BOOLEAN bRequireSigning;
-} SRV_PROTOCOL_CONFIG, *PSRV_PROTOCOL_CONFIG;
+} NFS_PROTOCOL_CONFIG, *PNFS_PROTOCOL_CONFIG;
 
-typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT {
+typedef struct _NFS_PROTOCOL_TRANSPORT_CONTEXT {
     // Initialized on startup
-    struct _SRV_PROTOCOL_API_GLOBALS* pGlobals;
-    SRV_TRANSPORT_HANDLE hTransport;
-    SRV_TRANSPORT_PROTOCOL_DISPATCH Dispatch;
-    SRV_CONNECTION_SOCKET_DISPATCH SocketDispatch;
+    struct _NFS_PROTOCOL_API_GLOBALS* pGlobals;
+    NFS_TRANSPORT_HANDLE hTransport;
+    NFS_TRANSPORT_PROTOCOL_DISPATCH Dispatch;
+    NFS_CONNECTION_SOCKET_DISPATCH SocketDispatch;
     uuid_t Guid;
     // Initialized on first use
     HANDLE hGssContext;
-} SRV_PROTOCOL_TRANSPORT_CONTEXT;
+} NFS_PROTOCOL_TRANSPORT_CONTEXT;
 
-typedef struct _SRV_PROTOCOL_API_GLOBALS
+typedef struct _NFS_PROTOCOL_API_GLOBALS
 {
     pthread_mutex_t           mutex;
 
     PSMB_PROD_CONS_QUEUE      pWorkQueue;
     PLWIO_PACKET_ALLOCATOR     hPacketAllocator;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
-    SRV_PROTOCOL_CONFIG        Config;
-    SRV_PROTOCOL_TRANSPORT_CONTEXT TransportContext;
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList;
+    NFS_PROTOCOL_CONFIG        Config;
+    NFS_PROTOCOL_TRANSPORT_CONTEXT TransportContext;
 
-} SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
+} NFS_PROTOCOL_API_GLOBALS, *PNFS_PROTOCOL_API_GLOBALS;
 
 #endif /* __STRUCTS_H__ */

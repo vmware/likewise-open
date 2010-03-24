@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O (LWIO) - NFS
  *
  *        Share Repository based on Registry
  *
@@ -47,21 +47,21 @@
 #define __STRUCTS_H__
 
 
-typedef struct _SRV_SHARE_REG_GLOBALS
+typedef struct _NFS_SHARE_REG_GLOBALS
 {
     pthread_mutex_t      mutex;
 
-    SRV_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
+    NFS_SHARE_REPOSITORY_FUNCTION_TABLE fnTable;
 
-} SRV_SHARE_REG_GLOBALS, *PSRV_SHARE_REG_GLOBALS;
+} NFS_SHARE_REG_GLOBALS, *PNFS_SHARE_REG_GLOBALS;
 
-typedef struct _SRV_SHARE_REG_ENUM_CONTEXT
+typedef struct _NFS_SHARE_REG_ENUM_CONTEXT
 {
     ULONG ulBatchIndex;
     ULONG ulBatchLimit;
     ULONG ulValuesAvailable;
     ULONG ulMaxValueNameLen;
     ULONG ulMaxValueLen;
-} SRV_SHARE_REG_ENUM_CONTEXT, *PSRV_SHARE_REG_ENUM_CONTEXT;
+} NFS_SHARE_REG_ENUM_CONTEXT, *PNFS_SHARE_REG_ENUM_CONTEXT;
 
 #endif /* __STRUCTS_H__ */

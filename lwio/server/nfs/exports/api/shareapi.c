@@ -49,48 +49,48 @@
 
 static
 NTSTATUS
-SrvShareFindByName_inlock(
-    IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareFindByName_inlock(
+    IN  PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN  PWSTR                      pwszShareName,
-    OUT PSRV_SHARE_INFO*           ppShareInfo
+    OUT PNFS_SHARE_INFO*           ppShareInfo
     );
 
 static
 NTSTATUS
-SrvShareRemoveFromList_inlock(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareRemoveFromList_inlock(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN     PWSTR                      pwszShareName
     );
 
 static
 int
-SrvShareCompareInfo(
+NfsShareCompareInfo(
     PVOID pKey1,
     PVOID pKey2
     );
 
 static
 VOID
-SrvShareReleaseInfoHandle(
+NfsShareReleaseInfoHandle(
     PVOID hShareInfo
     );
 
 static
 VOID
-SrvShareFreeInfo(
-    PSRV_SHARE_INFO pShareInfo
+NfsShareFreeInfo(
+    PNFS_SHARE_INFO pShareInfo
     );
 
 NTSTATUS
-SrvShareInitList(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+NfsShareInitList(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList
     )
 {
     NTSTATUS ntStatus = 0;
     HANDLE   hRepository = NULL;
     HANDLE   hResume = NULL;
-    PSRV_SHARE_INFO* ppShareInfoList = NULL;
-    PSRV_SHARE_ENTRY pShareEntry = NULL;
+    PNFS_SHARE_INFO* ppShareInfoList = NULL;
+    PNFS_SHARE_ENTRY pShareEntry = NULL;
     ULONG            ulBatchLimit  = 256;
     ULONG            ulNumSharesFound = 0;
 
@@ -100,16 +100,16 @@ SrvShareInitList(
     pShareList->pShareEntry = NULL;
 
     ntStatus = LwRtlRBTreeCreate(
-                    &SrvShareCompareInfo,
+                    &NfsShareCompareInfo,
                     NULL,
-                    &SrvShareReleaseInfoHandle,
+                    &NfsShareReleaseInfoHandle,
                     &pShareList->pShareCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryBeginEnum(
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryBeginEnum(
                                             hRepository,
                                             ulBatchLimit,
                                             &hResume);
@@ -121,12 +121,12 @@ SrvShareInitList(
 
         if (ppShareInfoList)
         {
-            SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
+            NfsShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
             ppShareInfoList = NULL;
             ulNumSharesFound = 0;
         }
 
-        ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryEnum(
+        ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryEnum(
                                                 hRepository,
                                                 hResume,
                                                 &ppShareInfoList,
@@ -135,14 +135,14 @@ SrvShareInitList(
 
         for (; iShare < ulNumSharesFound; iShare++)
         {
-            PSRV_SHARE_INFO pShareInfo = ppShareInfoList[iShare];
+            PNFS_SHARE_INFO pShareInfo = ppShareInfoList[iShare];
 
-            ntStatus = SrvAllocateMemory(
-                            sizeof(SRV_SHARE_ENTRY),
+            ntStatus = NfsAllocateMemory(
+                            sizeof(NFS_SHARE_ENTRY),
                             (PVOID*)&pShareEntry);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pShareEntry->pInfo = SrvShareAcquireInfo(pShareInfo);
+            pShareEntry->pInfo = NfsShareAcquireInfo(pShareInfo);
 
             pShareEntry->pNext = pShareList->pShareEntry;
             pShareList->pShareEntry = pShareEntry;
@@ -163,35 +163,35 @@ cleanup:
 
     if (hResume)
     {
-        gSrvShareApi.pFnTable->pfnShareRepositoryEndEnum(
+        gNfsShareApi.pFnTable->pfnShareRepositoryEndEnum(
                                     hRepository,
                                     hResume);
     }
 
     if (hRepository)
     {
-        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+        gNfsShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
     }
 
     if (ppShareInfoList)
     {
-        SrvShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
+        NfsShareFreeInfoList(ppShareInfoList, ulNumSharesFound);
     }
 
     return ntStatus;
 
 error:
 
-    SrvShareFreeListContents(pShareList);
+    NfsShareFreeListContents(pShareList);
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvShareFindByName(
-    IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareFindByName(
+    IN  PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN  PWSTR                      pwszShareName,
-    OUT PSRV_SHARE_INFO*           ppShareInfo
+    OUT PNFS_SHARE_INFO*           ppShareInfo
     )
 {
     NTSTATUS ntStatus = 0;
@@ -199,7 +199,7 @@ SrvShareFindByName(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
-    ntStatus = SrvShareFindByName_inlock(
+    ntStatus = NfsShareFindByName_inlock(
                         pShareList,
                         pwszShareName,
                         ppShareInfo);
@@ -211,14 +211,14 @@ SrvShareFindByName(
 
 static
 NTSTATUS
-SrvShareFindByName_inlock(
-    IN  PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareFindByName_inlock(
+    IN  PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN  PWSTR                      pwszShareName,
-    OUT PSRV_SHARE_INFO*           ppShareInfo
+    OUT PNFS_SHARE_INFO*           ppShareInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_SHARE_INFO pShareInfo = NULL;
+    PNFS_SHARE_INFO pShareInfo = NULL;
 
     ntStatus = LwRtlRBTreeFind(
                     pShareList->pShareCollection,
@@ -226,7 +226,7 @@ SrvShareFindByName_inlock(
                     (PVOID*)&pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppShareInfo = SrvShareAcquireInfo(pShareInfo);
+    *ppShareInfo = NfsShareAcquireInfo(pShareInfo);
 
 cleanup:
 
@@ -241,8 +241,8 @@ error:
 
 
 NTSTATUS
-SrvShareAdd(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareAdd(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN     PWSTR                      pwszShareName,
     IN     PWSTR                      pwszSharePath,
     IN     PWSTR                      pwszShareComment,
@@ -253,9 +253,9 @@ SrvShareAdd(
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PSRV_SHARE_ENTRY pShareEntry = NULL;
-    PSRV_SHARE_INFO pShareInfo = NULL;
-    wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
+    PNFS_SHARE_ENTRY pShareEntry = NULL;
+    PNFS_SHARE_INFO pShareInfo = NULL;
+    wchar16_t wszServiceType[] = LWIO_NFS_SHARE_STRING_ID_DISK_W;
     wchar16_t wszShareComment[] = {0};
     PWSTR     pwszShareCommentRef =
                     (pwszShareComment ? pwszShareComment : &wszShareComment[0]);
@@ -278,7 +278,7 @@ SrvShareAdd(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
-    ntStatus = SrvShareFindByName_inlock(
+    ntStatus = NfsShareFindByName_inlock(
                         pShareList,
                         pwszShareName,
                         &pShareInfo);
@@ -288,8 +288,8 @@ SrvShareAdd(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_SHARE_INFO),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_SHARE_INFO),
                     (PVOID*)&pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -298,24 +298,24 @@ SrvShareAdd(
     pthread_rwlock_init(&pShareInfo->mutex, NULL);
     pShareInfo->pMutex = &pShareInfo->mutex;
 
-    ntStatus = SrvAllocateStringW(
+    ntStatus = NfsAllocateStringW(
                     pwszShareName,
                     &pShareInfo->pwszName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAllocateStringW(
+    ntStatus = NfsAllocateStringW(
                     pwszSharePath,
                     &pShareInfo->pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAllocateStringW(
+    ntStatus = NfsAllocateStringW(
                         pwszShareCommentRef,
                         &pShareInfo->pwszComment);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (ulSecDescLen)
     {
-        ntStatus = SrvShareSetSecurity(
+        ntStatus = NfsShareSetSecurity(
                        pShareInfo,
                        (PSECURITY_DESCRIPTOR_RELATIVE)pSecDesc,
                        ulSecDescLen);
@@ -327,25 +327,25 @@ SrvShareAdd(
         pShareInfo->ulSecDescLen = 0;
     }
 
-    ntStatus = SrvShareMapServiceStringToIdW(
+    ntStatus = NfsShareMapServiceStringToIdW(
                     pwszShareType,
                     &pShareInfo->service);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pShareInfo->bMarkedForDeletion = FALSE;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_SHARE_ENTRY),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_SHARE_ENTRY),
                     (PVOID*)&pShareEntry);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pShareEntry->pInfo = SrvShareAcquireInfo(pShareInfo);
+    pShareEntry->pInfo = NfsShareAcquireInfo(pShareInfo);
 
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // TODO: We only allow adding disk sharess
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryAdd(
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryAdd(
                                             hRepository,
                                             pShareInfo->pwszName,
                                             pShareInfo->pwszPath,
@@ -370,14 +370,14 @@ cleanup:
 
     if (hRepository)
     {
-        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+        gNfsShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
     if (pShareInfo)
     {
-        SrvShareReleaseInfo(pShareInfo);
+        NfsShareReleaseInfo(pShareInfo);
     }
 
     return ntStatus;
@@ -386,20 +386,20 @@ error:
 
     if (pShareEntry)
     {
-        SrvShareFreeEntry(pShareEntry);
+        NfsShareFreeEntry(pShareEntry);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvShareUpdate(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    IN     PSRV_SHARE_INFO pShareInfo
+NfsShareUpdate(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
+    IN     PNFS_SHARE_INFO pShareInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    WCHAR wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
+    WCHAR wszServiceType[] = LWIO_NFS_SHARE_STRING_ID_DISK_W;
     BOOLEAN  bInLock = FALSE;
     BOOLEAN  bShareInLock = FALSE;
     HANDLE   hRepository = NULL;
@@ -412,17 +412,17 @@ SrvShareUpdate(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryDelete(
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryDelete(
                                             hRepository,
                                             pShareInfo->pwszName);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pShareInfo->mutex);
 
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryAdd(
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryAdd(
                                             hRepository,
                                             pShareInfo->pwszName,
                                             pShareInfo->pwszPath,
@@ -434,7 +434,7 @@ SrvShareUpdate(
 
     LWIO_UNLOCK_RWMUTEX(bShareInLock, &pShareInfo->mutex);
 
-    gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+    gNfsShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
     hRepository = NULL;
 
 cleanup:
@@ -449,15 +449,15 @@ error:
 
     if (hRepository)
     {
-        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+        gNfsShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvShareDelete(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareDelete(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN     PWSTR                      pwszShareName
     )
 {
@@ -473,21 +473,21 @@ SrvShareDelete(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareList->mutex);
 
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryDelete(
+    ntStatus = gNfsShareApi.pFnTable->pfnShareRepositoryDelete(
                                             hRepository,
                                             pwszShareName);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (hRepository)
     {
-        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+        gNfsShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
         hRepository = NULL;
     }
 
-    ntStatus = SrvShareRemoveFromList_inlock(
+    ntStatus = NfsShareRemoveFromList_inlock(
                         pShareList,
                         pwszShareName);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -501,7 +501,7 @@ cleanup:
 
     if (hRepository)
     {
-        gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
+        gNfsShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
@@ -515,13 +515,13 @@ error:
 
 static
 NTSTATUS
-SrvShareRemoveFromList_inlock(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
+NfsShareRemoveFromList_inlock(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
     IN     PWSTR                      pwszShareName
     )
 {
-    PSRV_SHARE_ENTRY pShareEntry = NULL;
-    PSRV_SHARE_ENTRY pPrevShareEntry = NULL;
+    PNFS_SHARE_ENTRY pShareEntry = NULL;
+    PNFS_SHARE_ENTRY pPrevShareEntry = NULL;
     ULONG ulRemoved = 0;
 
     pShareEntry = pShareList->pShareEntry;
@@ -540,7 +540,7 @@ SrvShareRemoveFromList_inlock(
             }
 
             pShareEntry->pNext = NULL;
-            SrvShareFreeEntry(pShareEntry);
+            NfsShareFreeEntry(pShareEntry);
 
             ulRemoved++;
 
@@ -555,17 +555,17 @@ SrvShareRemoveFromList_inlock(
 }
 
 NTSTATUS
-SrvShareEnum(
-    IN      PLWIO_SRV_SHARE_ENTRY_LIST pShareList,
-    OUT     PSRV_SHARE_INFO**          pppShareInfo,
+NfsShareEnum(
+    IN      PLWIO_NFS_SHARE_ENTRY_LIST pShareList,
+    OUT     PNFS_SHARE_INFO**          pppShareInfo,
     IN  OUT PULONG                     pulNumEntries
     )
 {
     NTSTATUS ntStatus = 0;
     ULONG ulCount = 0;
     BOOLEAN bInLock = FALSE;
-    PSRV_SHARE_ENTRY pShareEntry = NULL;
-    PSRV_SHARE_INFO* ppShares = NULL;
+    PNFS_SHARE_ENTRY pShareEntry = NULL;
+    PNFS_SHARE_INFO* ppShares = NULL;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareList->mutex);
 
@@ -581,15 +581,15 @@ SrvShareEnum(
     {
         ULONG i = 0;
 
-        ntStatus = SrvAllocateMemory(
-                        ulCount * sizeof(PSRV_SHARE_INFO),
+        ntStatus = NfsAllocateMemory(
+                        ulCount * sizeof(PNFS_SHARE_INFO),
                         (PVOID*)&ppShares);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pShareEntry = pShareList->pShareEntry;
         for (; i < ulCount; i++)
         {
-            ntStatus = SrvShareDuplicateInfo(pShareEntry->pInfo, &ppShares[i]);
+            ntStatus = NfsShareDuplicateInfo(pShareEntry->pInfo, &ppShares[i]);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pShareEntry = pShareEntry->pNext;
@@ -609,7 +609,7 @@ error:
 
     if (ppShares)
     {
-        SrvShareFreeInfoList(ppShares, ulCount);
+        NfsShareFreeInfoList(ppShares, ulCount);
     }
 
     *pppShareInfo   = NULL;
@@ -619,19 +619,19 @@ error:
 }
 
 NTSTATUS
-SrvShareDuplicateInfo(
-    PSRV_SHARE_INFO  pShareInfo,
-    PSRV_SHARE_INFO* ppShareInfo
+NfsShareDuplicateInfo(
+    PNFS_SHARE_INFO  pShareInfo,
+    PNFS_SHARE_INFO* ppShareInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock = FALSE;
-    PSRV_SHARE_INFO pShareInfoCopy = NULL;
+    PNFS_SHARE_INFO pShareInfoCopy = NULL;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pShareInfo->mutex);
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_SHARE_INFO),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_SHARE_INFO),
                     (PVOID*)&pShareInfoCopy);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -642,7 +642,7 @@ SrvShareDuplicateInfo(
 
     if (pShareInfo->pwszName)
     {
-        ntStatus = SrvAllocateStringW(
+        ntStatus = NfsAllocateStringW(
                         pShareInfo->pwszName,
                         &pShareInfoCopy->pwszName);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -650,7 +650,7 @@ SrvShareDuplicateInfo(
 
     if (pShareInfo->pwszPath)
     {
-        ntStatus = SrvAllocateStringW(
+        ntStatus = NfsAllocateStringW(
                         pShareInfo->pwszPath,
                         &pShareInfoCopy->pwszPath);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -658,7 +658,7 @@ SrvShareDuplicateInfo(
 
     if (pShareInfo->pwszComment)
     {
-        ntStatus = SrvAllocateStringW(
+        ntStatus = NfsAllocateStringW(
                         pShareInfo->pwszComment,
                         &pShareInfoCopy->pwszComment);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -666,7 +666,7 @@ SrvShareDuplicateInfo(
 
     if (pShareInfo->ulSecDescLen)
     {
-        ntStatus = SrvShareSetSecurity(
+        ntStatus = NfsShareSetSecurity(
                         pShareInfoCopy,
                         pShareInfo->pSecDesc,
                         pShareInfo->ulSecDescLen);
@@ -691,7 +691,7 @@ error:
 
     if (pShareInfoCopy)
     {
-        SrvShareFreeInfo(pShareInfoCopy);
+        NfsShareFreeInfo(pShareInfoCopy);
     }
 
     goto cleanup;
@@ -699,7 +699,7 @@ error:
 
 static
 int
-SrvShareCompareInfo(
+NfsShareCompareInfo(
     PVOID pKey1,
     PVOID pKey2
     )
@@ -712,21 +712,21 @@ SrvShareCompareInfo(
 
 static
 VOID
-SrvShareReleaseInfoHandle(
+NfsShareReleaseInfoHandle(
     PVOID hShareInfo
     )
 {
-    SrvShareReleaseInfo((PSRV_SHARE_INFO)hShareInfo);
+    NfsShareReleaseInfo((PNFS_SHARE_INFO)hShareInfo);
 }
 
 VOID
-SrvShareFreeListContents(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+NfsShareFreeListContents(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList
     )
 {
     if (pShareList->pShareEntry)
     {
-        SrvShareFreeEntry(pShareList->pShareEntry);
+        NfsShareFreeEntry(pShareList->pShareEntry);
         pShareList->pShareEntry = NULL;
     }
 
@@ -743,28 +743,28 @@ SrvShareFreeListContents(
 }
 
 VOID
-SrvShareFreeEntry(
-    IN PSRV_SHARE_ENTRY pShareEntry
+NfsShareFreeEntry(
+    IN PNFS_SHARE_ENTRY pShareEntry
     )
 {
     while (pShareEntry)
     {
-        PSRV_SHARE_ENTRY pTmpShareEntry = pShareEntry;
+        PNFS_SHARE_ENTRY pTmpShareEntry = pShareEntry;
 
         pShareEntry = pShareEntry->pNext;
 
         if (pTmpShareEntry->pInfo)
         {
-            SrvShareReleaseInfo(pTmpShareEntry->pInfo);
+            NfsShareReleaseInfo(pTmpShareEntry->pInfo);
         }
 
-        SrvFreeMemory(pTmpShareEntry);
+        NfsFreeMemory(pTmpShareEntry);
     }
 }
 
 VOID
-SrvShareFreeInfoList(
-    PSRV_SHARE_INFO* ppInfoList,
+NfsShareFreeInfoList(
+    PNFS_SHARE_INFO* ppInfoList,
     ULONG            ulNumInfos
     )
 {
@@ -772,20 +772,20 @@ SrvShareFreeInfoList(
 
     for (; iInfo < ulNumInfos; iInfo++)
     {
-        PSRV_SHARE_INFO pShareInfo = ppInfoList[iInfo];
+        PNFS_SHARE_INFO pShareInfo = ppInfoList[iInfo];
 
         if (pShareInfo)
         {
-            SrvShareReleaseInfo(pShareInfo);
+            NfsShareReleaseInfo(pShareInfo);
         }
     }
 
-    SrvFreeMemory(ppInfoList);
+    NfsFreeMemory(ppInfoList);
 }
 
-PSRV_SHARE_INFO
-SrvShareAcquireInfo(
-    IN PSRV_SHARE_INFO pShareInfo
+PNFS_SHARE_INFO
+NfsShareAcquireInfo(
+    IN PNFS_SHARE_INFO pShareInfo
     )
 {
     InterlockedIncrement(&pShareInfo->refcount);
@@ -794,20 +794,20 @@ SrvShareAcquireInfo(
 }
 
 VOID
-SrvShareReleaseInfo(
-    IN PSRV_SHARE_INFO pShareInfo
+NfsShareReleaseInfo(
+    IN PNFS_SHARE_INFO pShareInfo
     )
 {
     if (InterlockedDecrement(&pShareInfo->refcount) == 0)
     {
-        SrvShareFreeInfo(pShareInfo);
+        NfsShareFreeInfo(pShareInfo);
     }
 }
 
 static
 VOID
-SrvShareFreeInfo(
-    IN PSRV_SHARE_INFO pShareInfo
+NfsShareFreeInfo(
+    IN PNFS_SHARE_INFO pShareInfo
     )
 {
     if (pShareInfo->pMutex)
@@ -817,20 +817,20 @@ SrvShareFreeInfo(
 
     if (pShareInfo->pwszName)
     {
-        SrvFreeMemory(pShareInfo->pwszName);
+        NfsFreeMemory(pShareInfo->pwszName);
     }
     if (pShareInfo->pwszPath)
     {
-        SrvFreeMemory(pShareInfo->pwszPath);
+        NfsFreeMemory(pShareInfo->pwszPath);
     }
     if (pShareInfo->pwszComment)
     {
-        SrvFreeMemory(pShareInfo->pwszComment);
+        NfsFreeMemory(pShareInfo->pwszComment);
     }
 
-    SrvShareFreeSecurity(pShareInfo);
+    NfsShareFreeSecurity(pShareInfo);
 
-    SrvFreeMemory(pShareInfo);
+    NfsFreeMemory(pShareInfo);
 }
 
 /*

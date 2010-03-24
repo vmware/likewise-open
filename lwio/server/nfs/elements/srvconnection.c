@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -51,15 +51,15 @@
 
 static
 NTSTATUS
-SrvConnection2AcquireAsyncId_inlock(
-   PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2AcquireAsyncId_inlock(
+   PLWIO_NFS_CONNECTION pConnection,
    PULONG64             pullAsyncId
    );
 
 static
 VOID
-SrvConnectionFree(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionFree(
+    PLWIO_NFS_CONNECTION pConnection
     );
 
 // Rules:
@@ -72,72 +72,72 @@ SrvConnectionFree(
 
 static
 NTSTATUS
-SrvConnectionAcquireSessionId_inlock(
-   PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionAcquireSessionId_inlock(
+   PLWIO_NFS_CONNECTION pConnection,
    PUSHORT             pUid
    );
 
 static
 VOID
-SrvConnectionFreeContentsClientProperties(
-    PSRV_CLIENT_PROPERTIES pProperties
+NfsConnectionFreeContentsClientProperties(
+    PNFS_CLIENT_PROPERTIES pProperties
     );
 
 static
 int
-SrvConnectionSessionCompare(
+NfsConnectionSessionCompare(
     PVOID pKey1,
     PVOID pKey2
     );
 
 static
 VOID
-SrvConnectionSessionRelease(
+NfsConnectionSessionRelease(
     PVOID pSession
     );
 
 static
 NTSTATUS
-SrvConnection2AcquireSessionId_inlock(
-   PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2AcquireSessionId_inlock(
+   PLWIO_NFS_CONNECTION pConnection,
    PULONG64             pUid
    );
 
 static
 int
-SrvConnection2SessionCompare(
+NfsConnection2SessionCompare(
     PVOID pKey1,
     PVOID pKey2
     );
 
 static
 VOID
-SrvConnection2SessionRelease(
+NfsConnection2SessionRelease(
     PVOID pSession
     );
 
 static
 int
-SrvConnection2AsyncStateCompare(
+NfsConnection2AsyncStateCompare(
     PVOID pKey1,
     PVOID pKey2
     );
 
 static
 VOID
-SrvConnection2AsyncStateRelease(
+NfsConnection2AsyncStateRelease(
     PVOID pAsyncState
     );
 
 static
 VOID
-SrvConnectionRundown_inlock(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionRundown_inlock(
+    PLWIO_NFS_CONNECTION pConnection
     );
 
 static
 NTSTATUS
-SrvConnectionRundownSessionRbTreeVisit(
+NfsConnectionRundownSessionRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
@@ -146,7 +146,7 @@ SrvConnectionRundownSessionRbTreeVisit(
 
 static
 NTSTATUS
-SrvConnection2RundownSessionRbTreeVisit(
+NfsConnection2RundownSessionRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
@@ -155,7 +155,7 @@ SrvConnection2RundownSessionRbTreeVisit(
 
 static
 NTSTATUS
-SrvConnection2RundownAsyncStatesRbTreeVisit(
+NfsConnection2RundownAsyncStatesRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
@@ -163,21 +163,21 @@ SrvConnection2RundownAsyncStatesRbTreeVisit(
     );
 
 NTSTATUS
-SrvConnectionCreate(
-    PLWIO_SRV_SOCKET                pSocket,
+NfsConnectionCreate(
+    PLWIO_NFS_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
-    PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
-    PSRV_PROPERTIES                 pServerProperties,
-    PSRV_HOST_INFO                  pHostinfo,
-    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch,
-    PLWIO_SRV_CONNECTION*           ppConnection
+    PLWIO_NFS_SHARE_ENTRY_LIST      pShareList,
+    PNFS_PROPERTIES                 pServerProperties,
+    PNFS_HOST_INFO                  pHostinfo,
+    PNFS_CONNECTION_SOCKET_DISPATCH pSocketDispatch,
+    PLWIO_NFS_CONNECTION*           ppConnection
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_CONNECTION pConnection = NULL;
+    PLWIO_NFS_CONNECTION pConnection = NULL;
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     sizeof(*pConnection),
                     (PVOID*)&pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -191,25 +191,25 @@ SrvConnectionCreate(
     pConnection->pMutexGssNegotiate = &pConnection->mutexGssNegotiate;
 
     ntStatus = LwRtlRBTreeCreate(
-                    &SrvConnectionSessionCompare,
+                    &NfsConnectionSessionCompare,
                     NULL,
-                    &SrvConnectionSessionRelease,
+                    &NfsConnectionSessionRelease,
                     &pConnection->pSessionCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlRBTreeCreate(
-                    &SrvConnection2AsyncStateCompare,
+                    &NfsConnection2AsyncStateCompare,
                     NULL,
-                    &SrvConnection2AsyncStateRelease,
+                    &NfsConnection2AsyncStateRelease,
                     &pConnection->pAsyncStateCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAcquireHostInfo(
+    ntStatus = NfsAcquireHostInfo(
                     pHostinfo,
                     &pConnection->pHostinfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvGssAcquireContext(
+    ntStatus = NfsGssAcquireContext(
                     pConnection->pHostinfo,
                     hGssContext,
                     &pConnection->hGssContext);
@@ -218,14 +218,14 @@ SrvConnectionCreate(
     pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;
     pConnection->pShareList = pShareList;
-    pConnection->state = LWIO_SRV_CONN_STATE_INITIAL;
+    pConnection->state = LWIO_NFS_CONN_STATE_INITIAL;
     pConnection->pSocket = pSocket;
     pConnection->pSocketDispatch = pSocketDispatch;
 
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
     uuid_copy(pConnection->serverProperties.GUID, pServerProperties->GUID);
 
-    SRV_ELEMENTS_INCREMENT_CONNECTIONS;
+    NFS_ELEMENTS_INCREMENT_CONNECTIONS;
 
     *ppConnection = pConnection;
 
@@ -239,15 +239,15 @@ error:
 
     if (pConnection)
     {
-        SrvConnectionRelease(pConnection);
+        NfsConnectionRelease(pConnection);
     }
 
     goto cleanup;
 }
 
 SMB_PROTOCOL_VERSION
-SrvConnectionGetProtocolVersion(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionGetProtocolVersion(
+    PLWIO_NFS_CONNECTION pConnection
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -263,8 +263,8 @@ SrvConnectionGetProtocolVersion(
 }
 
 NTSTATUS
-SrvConnectionSetProtocolVersion(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionSetProtocolVersion(
+    PLWIO_NFS_CONNECTION pConnection,
     SMB_PROTOCOL_VERSION protoVer
     )
 {
@@ -273,7 +273,7 @@ SrvConnectionSetProtocolVersion(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    ntStatus = SrvConnectionSetProtocolVersion_inlock(pConnection, protoVer);
+    ntStatus = NfsConnectionSetProtocolVersion_inlock(pConnection, protoVer);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
@@ -281,8 +281,8 @@ SrvConnectionSetProtocolVersion(
 }
 
 NTSTATUS
-SrvConnectionSetProtocolVersion_inlock(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionSetProtocolVersion_inlock(
+    PLWIO_NFS_CONNECTION pConnection,
     SMB_PROTOCOL_VERSION protoVer
     )
 {
@@ -306,9 +306,9 @@ SrvConnectionSetProtocolVersion_inlock(
                 pConnection->usNextAvailableUid = 0;
 
                 ntStatus = LwRtlRBTreeCreate(
-                                &SrvConnectionSessionCompare,
+                                &NfsConnectionSessionCompare,
                                 NULL,
-                                &SrvConnectionSessionRelease,
+                                &NfsConnectionSessionRelease,
                                 &pConnection->pSessionCollection);
 
                 break;
@@ -318,9 +318,9 @@ SrvConnectionSetProtocolVersion_inlock(
                 pConnection->ullNextAvailableUid = 0;
 
                 ntStatus = LwRtlRBTreeCreate(
-                                &SrvConnection2SessionCompare,
+                                &NfsConnection2SessionCompare,
                                 NULL,
-                                &SrvConnection2SessionRelease,
+                                &NfsConnection2SessionRelease,
                                 &pConnection->pSessionCollection);
 
                 break;
@@ -340,8 +340,8 @@ error:
 }
 
 BOOLEAN
-SrvConnectionIsInvalid(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionIsInvalid(
+    PLWIO_NFS_CONNECTION pConnection
     )
 {
     BOOLEAN bInvalid = FALSE;
@@ -349,7 +349,7 @@ SrvConnectionIsInvalid(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    bInvalid = pConnection->state == LWIO_SRV_CONN_STATE_INVALID;
+    bInvalid = pConnection->state == LWIO_NFS_CONN_STATE_INVALID;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
@@ -357,8 +357,8 @@ SrvConnectionIsInvalid(
 }
 
 VOID
-SrvConnectionSetInvalid(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionSetInvalid(
+    PLWIO_NFS_CONNECTION pConnection
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -366,11 +366,11 @@ SrvConnectionSetInvalid(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    if (pConnection->state != LWIO_SRV_CONN_STATE_INVALID)
+    if (pConnection->state != LWIO_NFS_CONN_STATE_INVALID)
     {
         bDisconnect = TRUE;
-        pConnection->state = LWIO_SRV_CONN_STATE_INVALID;
-        SrvConnectionRundown_inlock(pConnection);
+        pConnection->state = LWIO_NFS_CONN_STATE_INVALID;
+        NfsConnectionRundown_inlock(pConnection);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
@@ -382,12 +382,12 @@ SrvConnectionSetInvalid(
     }
 }
 
-LWIO_SRV_CONN_STATE
-SrvConnectionGetState(
-    PLWIO_SRV_CONNECTION pConnection
+LWIO_NFS_CONN_STATE
+NfsConnectionGetState(
+    PLWIO_NFS_CONNECTION pConnection
     )
 {
-    LWIO_SRV_CONN_STATE connState = LWIO_SRV_CONN_STATE_INITIAL;
+    LWIO_NFS_CONN_STATE connState = LWIO_NFS_CONN_STATE_INITIAL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
@@ -400,9 +400,9 @@ SrvConnectionGetState(
 }
 
 VOID
-SrvConnectionSetState(
-    PLWIO_SRV_CONNECTION pConnection,
-    LWIO_SRV_CONN_STATE  connState
+NfsConnectionSetState(
+    PLWIO_NFS_CONNECTION pConnection,
+    LWIO_NFS_CONN_STATE  connState
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -416,19 +416,19 @@ SrvConnectionSetState(
 
 
 NTSTATUS
-SrvConnectionFindSession(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionFindSession(
+    PLWIO_NFS_CONNECTION pConnection,
     USHORT uid,
-    PLWIO_SRV_SESSION* ppSession
+    PLWIO_NFS_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_NFS_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    pSession = pConnection->lruSession[ uid % SRV_LRU_CAPACITY ];
+    pSession = pConnection->lruSession[ uid % NFS_LRU_CAPACITY ];
     if (!pSession || (pSession->uid != uid))
     {
         ntStatus = LwRtlRBTreeFind(
@@ -437,7 +437,7 @@ SrvConnectionFindSession(
                         (PVOID*)&pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pConnection->lruSession[ uid % SRV_LRU_CAPACITY ] = pSession;
+        pConnection->lruSession[ uid % NFS_LRU_CAPACITY ] = pSession;
     }
 
     InterlockedIncrement(&pSession->refcount);
@@ -462,19 +462,19 @@ error:
 }
 
 NTSTATUS
-SrvConnection2FindSession(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2FindSession(
+    PLWIO_NFS_CONNECTION pConnection,
     ULONG64              ullUid,
-    PLWIO_SRV_SESSION_2* ppSession
+    PLWIO_NFS_SESSION_2* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
+    PLWIO_NFS_SESSION_2 pSession = NULL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-    pSession = pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ];
+    pSession = pConnection->lruSession2[ ullUid % NFS_LRU_CAPACITY ];
     if (!pSession || (pSession->ullUid != ullUid))
     {
         ntStatus = LwRtlRBTreeFind(
@@ -483,7 +483,7 @@ SrvConnection2FindSession(
                         (PVOID*)&pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ] = pSession;
+        pConnection->lruSession2[ ullUid % NFS_LRU_CAPACITY ] = pSession;
     }
 
     InterlockedIncrement(&pSession->refcount);
@@ -508,21 +508,21 @@ error:
 }
 
 NTSTATUS
-SrvConnectionRemoveSession(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionRemoveSession(
+    PLWIO_NFS_CONNECTION pConnection,
     USHORT              uid
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_NFS_SESSION pSession = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    pSession = pConnection->lruSession[ uid % SRV_LRU_CAPACITY ];
+    pSession = pConnection->lruSession[ uid % NFS_LRU_CAPACITY ];
     if (pSession && (pSession->uid == uid))
     {
-        pConnection->lruSession[ uid % SRV_LRU_CAPACITY ] = NULL;
+        pConnection->lruSession[ uid % NFS_LRU_CAPACITY ] = NULL;
     }
 
     ntStatus = LwRtlRBTreeRemove(
@@ -542,21 +542,21 @@ error:
 }
 
 NTSTATUS
-SrvConnection2RemoveSession(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2RemoveSession(
+    PLWIO_NFS_CONNECTION pConnection,
     ULONG64              ullUid
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
+    PLWIO_NFS_SESSION_2 pSession = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    pSession = pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ];
+    pSession = pConnection->lruSession2[ ullUid % NFS_LRU_CAPACITY ];
     if (pSession && (pSession->ullUid == ullUid))
     {
-        pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ] = NULL;
+        pConnection->lruSession2[ ullUid % NFS_LRU_CAPACITY ] = NULL;
     }
 
     ntStatus = LwRtlRBTreeRemove(
@@ -576,24 +576,24 @@ error:
 }
 
 NTSTATUS
-SrvConnectionCreateSession(
-    PLWIO_SRV_CONNECTION pConnection,
-    PLWIO_SRV_SESSION* ppSession
+NfsConnectionCreateSession(
+    PLWIO_NFS_CONNECTION pConnection,
+    PLWIO_NFS_SESSION* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SESSION pSession = NULL;
+    PLWIO_NFS_SESSION pSession = NULL;
     BOOLEAN bInLock = FALSE;
     USHORT  uid = 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    ntStatus = SrvConnectionAcquireSessionId_inlock(
+    ntStatus = NfsConnectionAcquireSessionId_inlock(
                     pConnection,
                     &uid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSessionCreate(
+    ntStatus = NfsSessionCreate(
                     uid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -620,31 +620,31 @@ error:
 
     if (pSession)
     {
-        SrvSessionRelease(pSession);
+        NfsSessionRelease(pSession);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvConnection2CreateSession(
-    PLWIO_SRV_CONNECTION pConnection,
-    PLWIO_SRV_SESSION_2* ppSession
+NfsConnection2CreateSession(
+    PLWIO_NFS_CONNECTION pConnection,
+    PLWIO_NFS_SESSION_2* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
+    PLWIO_NFS_SESSION_2 pSession = NULL;
     BOOLEAN bInLock = FALSE;
     ULONG64 ullUid = 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    ntStatus = SrvConnection2AcquireSessionId_inlock(
+    ntStatus = NfsConnection2AcquireSessionId_inlock(
                     pConnection,
                     &ullUid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2Create(
+    ntStatus = NfsSession2Create(
                     ullUid,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -671,18 +671,18 @@ error:
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvConnection2CreateAsyncState(
-    PLWIO_SRV_CONNECTION            pConnection,
+NfsConnection2CreateAsyncState(
+    PLWIO_NFS_CONNECTION            pConnection,
     USHORT                          usCommand,
-    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
+    PFN_LWIO_NFS_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PFN_LWIO_NFS_FREE_ASYNC_STATE   pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*              ppAsyncState
     )
 {
@@ -693,12 +693,12 @@ SrvConnection2CreateAsyncState(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    ntStatus = SrvConnection2AcquireAsyncId_inlock(
+    ntStatus = NfsConnection2AcquireAsyncId_inlock(
                     pConnection,
                     &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAsyncStateCreate(
+    ntStatus = NfsAsyncStateCreate(
                     ullAsyncId,
                     usCommand,
                     NULL,
@@ -713,7 +713,7 @@ SrvConnection2CreateAsyncState(
                     pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
+    *ppAsyncState = NfsAsyncStateAcquire(pAsyncState);
 
 cleanup:
 
@@ -727,7 +727,7 @@ error:
 
     if (pAsyncState)
     {
-        SrvAsyncStateRelease(pAsyncState);
+        NfsAsyncStateRelease(pAsyncState);
     }
 
     goto cleanup;
@@ -735,8 +735,8 @@ error:
 
 static
 NTSTATUS
-SrvConnection2AcquireAsyncId_inlock(
-   PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2AcquireAsyncId_inlock(
+   PLWIO_NFS_CONNECTION pConnection,
    PULONG64             pullAsyncId
    )
 {
@@ -797,8 +797,8 @@ error:
 }
 
 NTSTATUS
-SrvConnection2FindAsyncState(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2FindAsyncState(
+    PLWIO_NFS_CONNECTION pConnection,
     ULONG64              ullAsyncId,
     PLWIO_ASYNC_STATE*   ppAsyncState
     )
@@ -815,7 +815,7 @@ SrvConnection2FindAsyncState(
                     (PVOID*)&pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
+    *ppAsyncState = NfsAsyncStateAcquire(pAsyncState);
 
 cleanup:
 
@@ -831,8 +831,8 @@ error:
 }
 
 NTSTATUS
-SrvConnection2RemoveAsyncState(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2RemoveAsyncState(
+    PLWIO_NFS_CONNECTION pConnection,
     ULONG64              ullAsyncId
     )
 {
@@ -851,8 +851,8 @@ SrvConnection2RemoveAsyncState(
 }
 
 NTSTATUS
-SrvConnectionGetNamedPipeClientAddress(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionGetNamedPipeClientAddress(
+    PLWIO_NFS_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
     )
 {
@@ -883,8 +883,8 @@ error:
 }
 
 NTSTATUS
-SrvConnectionGetNamedPipeSessionKey(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionGetNamedPipeSessionKey(
+    PLWIO_NFS_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
     )
 {
@@ -911,9 +911,9 @@ error:
     goto cleanup;
 }
 
-PLWIO_SRV_CONNECTION
-SrvConnectionAcquire(
-    PLWIO_SRV_CONNECTION pConnection
+PLWIO_NFS_CONNECTION
+NfsConnectionAcquire(
+    PLWIO_NFS_CONNECTION pConnection
     )
 {
     InterlockedIncrement(&pConnection->refCount);
@@ -922,22 +922,22 @@ SrvConnectionAcquire(
 }
 
 VOID
-SrvConnectionRelease(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionRelease(
+    PLWIO_NFS_CONNECTION pConnection
     )
 {
     if (InterlockedDecrement(&pConnection->refCount) == 0)
     {
-        SRV_ELEMENTS_DECREMENT_CONNECTIONS;
+        NFS_ELEMENTS_DECREMENT_CONNECTIONS;
 
-        SrvConnectionFree(pConnection);
+        NfsConnectionFree(pConnection);
     }
 }
 
 static
 VOID
-SrvConnectionFree(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionFree(
+    PLWIO_NFS_CONNECTION pConnection
     )
 {
     if (pConnection->readerState.pRequestPacket)
@@ -949,19 +949,19 @@ SrvConnectionFree(
 
     if (pConnection->pSessionKey)
     {
-        SrvFreeMemory(pConnection->pSessionKey);
+        NfsFreeMemory(pConnection->pSessionKey);
     }
 
     if (pConnection->hGssNegotiate)
     {
-        SrvGssEndNegotiate(
+        NfsGssEndNegotiate(
             pConnection->hGssContext,
             pConnection->hGssNegotiate);
     }
 
     if (pConnection->hGssContext)
     {
-        SrvGssReleaseContext(pConnection->hGssContext);
+        NfsGssReleaseContext(pConnection->hGssContext);
     }
 
     if (pConnection->pSocket)
@@ -981,7 +981,7 @@ SrvConnectionFree(
 
     if (pConnection->pHostinfo)
     {
-        SrvReleaseHostInfo(pConnection->pHostinfo);
+        NfsReleaseHostInfo(pConnection->pHostinfo);
     }
 
     if (pConnection->pMutex)
@@ -996,15 +996,15 @@ SrvConnectionFree(
         pConnection->pMutexGssNegotiate = NULL;
     }
 
-    SrvConnectionFreeContentsClientProperties(&pConnection->clientProperties);
+    NfsConnectionFreeContentsClientProperties(&pConnection->clientProperties);
 
-    SrvFreeMemory(pConnection);
+    NfsFreeMemory(pConnection);
 }
 
 static
 NTSTATUS
-SrvConnectionAcquireSessionId_inlock(
-   PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionAcquireSessionId_inlock(
+   PLWIO_NFS_CONNECTION pConnection,
    PUSHORT             pUid
    )
 {
@@ -1014,7 +1014,7 @@ SrvConnectionAcquireSessionId_inlock(
 
     do
     {
-        PLWIO_SRV_SESSION pSession = NULL;
+        PLWIO_NFS_SESSION pSession = NULL;
 
         /* 0 is never a valid session vuid */
 
@@ -1066,27 +1066,27 @@ error:
 
 static
 VOID
-SrvConnectionFreeContentsClientProperties(
-    PSRV_CLIENT_PROPERTIES pProperties
+NfsConnectionFreeContentsClientProperties(
+    PNFS_CLIENT_PROPERTIES pProperties
     )
 {
     if (pProperties->pwszNativeLanMan)
     {
-        SrvFreeMemory(pProperties->pwszNativeLanMan);
+        NfsFreeMemory(pProperties->pwszNativeLanMan);
     }
     if (pProperties->pwszNativeOS)
     {
-        SrvFreeMemory(pProperties->pwszNativeOS);
+        NfsFreeMemory(pProperties->pwszNativeOS);
     }
     if (pProperties->pwszNativeDomain)
     {
-        SrvFreeMemory(pProperties->pwszNativeDomain);
+        NfsFreeMemory(pProperties->pwszNativeDomain);
     }
 }
 
 static
 int
-SrvConnectionSessionCompare(
+NfsConnectionSessionCompare(
     PVOID pKey1,
     PVOID pKey2
     )
@@ -1113,17 +1113,17 @@ SrvConnectionSessionCompare(
 
 static
 VOID
-SrvConnectionSessionRelease(
+NfsConnectionSessionRelease(
     PVOID pSession
     )
 {
-    SrvSessionRelease((PLWIO_SRV_SESSION)pSession);
+    NfsSessionRelease((PLWIO_NFS_SESSION)pSession);
 }
 
 static
 NTSTATUS
-SrvConnection2AcquireSessionId_inlock(
-   PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2AcquireSessionId_inlock(
+   PLWIO_NFS_CONNECTION pConnection,
    PULONG64             pUid
    )
 {
@@ -1133,7 +1133,7 @@ SrvConnection2AcquireSessionId_inlock(
 
     do
     {
-        PLWIO_SRV_SESSION_2 pSession = NULL;
+        PLWIO_NFS_SESSION_2 pSession = NULL;
 
         /* 0 is never a valid session vuid */
 
@@ -1185,7 +1185,7 @@ error:
 
 static
 int
-SrvConnection2SessionCompare(
+NfsConnection2SessionCompare(
     PVOID pKey1,
     PVOID pKey2
     )
@@ -1212,16 +1212,16 @@ SrvConnection2SessionCompare(
 
 static
 VOID
-SrvConnection2SessionRelease(
+NfsConnection2SessionRelease(
     PVOID pSession
     )
 {
-    SrvSession2Release((PLWIO_SRV_SESSION_2)pSession);
+    NfsSession2Release((PLWIO_NFS_SESSION_2)pSession);
 }
 
 static
 int
-SrvConnection2AsyncStateCompare(
+NfsConnection2AsyncStateCompare(
     PVOID pKey1,
     PVOID pKey2
     )
@@ -1245,19 +1245,19 @@ SrvConnection2AsyncStateCompare(
 
 static
 VOID
-SrvConnection2AsyncStateRelease(
+NfsConnection2AsyncStateRelease(
     PVOID pAsyncState
     )
 {
-    SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
+    NfsAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
 }
 
 
 
 static
 VOID
-SrvConnectionRundown_inlock(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionRundown_inlock(
+    PLWIO_NFS_CONNECTION pConnection
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -1271,7 +1271,7 @@ SrvConnectionRundown_inlock(
                 ntStatus = LwRtlRBTreeTraverse(
                                 pConnection->pSessionCollection,
                                 LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                                &SrvConnectionRundownSessionRbTreeVisit,
+                                &NfsConnectionRundownSessionRbTreeVisit,
                                 NULL);
                 break;
 
@@ -1280,7 +1280,7 @@ SrvConnectionRundown_inlock(
                 ntStatus = LwRtlRBTreeTraverse(
                                 pConnection->pSessionCollection,
                                 LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                                &SrvConnection2RundownSessionRbTreeVisit,
+                                &NfsConnection2RundownSessionRbTreeVisit,
                                 NULL);
                 break;
 
@@ -1298,7 +1298,7 @@ SrvConnectionRundown_inlock(
         ntStatus = LwRtlRBTreeTraverse(
                         pConnection->pAsyncStateCollection,
                         LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                        &SrvConnection2RundownAsyncStatesRbTreeVisit,
+                        &NfsConnection2RundownAsyncStatesRbTreeVisit,
                         NULL);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -1319,18 +1319,18 @@ error:
 
 static
 NTSTATUS
-SrvConnectionRundownSessionRbTreeVisit(
+NfsConnectionRundownSessionRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
     PBOOLEAN pbContinue
     )
 {
-    PLWIO_SRV_SESSION pSession = (PLWIO_SRV_SESSION)pData;
+    PLWIO_NFS_SESSION pSession = (PLWIO_NFS_SESSION)pData;
 
     if (pSession)
     {
-        SrvSessionRundown(pSession);
+        NfsSessionRundown(pSession);
     }
 
     *pbContinue = TRUE;
@@ -1340,18 +1340,18 @@ SrvConnectionRundownSessionRbTreeVisit(
 
 static
 NTSTATUS
-SrvConnection2RundownSessionRbTreeVisit(
+NfsConnection2RundownSessionRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
     PBOOLEAN pbContinue
     )
 {
-    PLWIO_SRV_SESSION_2 pSession = (PLWIO_SRV_SESSION_2)pData;
+    PLWIO_NFS_SESSION_2 pSession = (PLWIO_NFS_SESSION_2)pData;
 
     if (pSession)
     {
-        SrvSession2Rundown(pSession);
+        NfsSession2Rundown(pSession);
     }
 
     *pbContinue = TRUE;
@@ -1361,7 +1361,7 @@ SrvConnection2RundownSessionRbTreeVisit(
 
 static
 NTSTATUS
-SrvConnection2RundownAsyncStatesRbTreeVisit(
+NfsConnection2RundownAsyncStatesRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
@@ -1372,7 +1372,7 @@ SrvConnection2RundownAsyncStatesRbTreeVisit(
 
     if (pAsyncState)
     {
-        SrvAsyncStateCancel(pAsyncState);
+        NfsAsyncStateCancel(pAsyncState);
     }
 
     *pbContinue = TRUE;

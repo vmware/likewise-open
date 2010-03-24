@@ -36,7 +36,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API
  *
@@ -52,45 +52,45 @@
 
 #define SMB_PACKET_DEFAULT_SIZE ((64 * 1024) + 4096)
 
-typedef struct _SRV_SEND_CONTEXT {
-    PSRV_CONNECTION pConnection;
+typedef struct _NFS_SEND_CONTEXT {
+    PNFS_CONNECTION pConnection;
     PSMB_PACKET pPacket;
-} SRV_SEND_CONTEXT;
+} NFS_SEND_CONTEXT;
 
 // Transport Callbacks
 
 static
 NTSTATUS
-SrvProtocolTransportDriverConnectionNew(
-    OUT PSRV_CONNECTION* ppConnection,
-    IN PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
-    IN PSRV_SOCKET pSocket
+NfsProtocolTransportDriverConnectionNew(
+    OUT PNFS_CONNECTION* ppConnection,
+    IN PNFS_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
+    IN PNFS_SOCKET pSocket
     );
 
 static
 NTSTATUS
-SrvProtocolTransportDriverConnectionData(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverConnectionData(
+    IN PNFS_CONNECTION pConnection,
     IN ULONG Length
     );
 
 static
 VOID
-SrvProtocolTransportDriverConnectionDone(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverConnectionDone(
+    IN PNFS_CONNECTION pConnection,
     IN NTSTATUS Status
     );
 
 static
 NTSTATUS
-SrvProtocolTransportDriverSendPrepare(
-    IN PSRV_SEND_CONTEXT pSendContext
+NfsProtocolTransportDriverSendPrepare(
+    IN PNFS_SEND_CONTEXT pSendContext
     );
 
 static
 VOID
-SrvProtocolTransportDriverSendDone(
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsProtocolTransportDriverSendDone(
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN NTSTATUS Status
     );
 
@@ -98,99 +98,99 @@ SrvProtocolTransportDriverSendDone(
 
 static
 VOID
-SrvProtocolTransportDriverSocketFree(
-    IN OUT PSRV_SOCKET pSocket
+NfsProtocolTransportDriverSocketFree(
+    IN OUT PNFS_SOCKET pSocket
     );
 
 static
 VOID
-SrvProtocolTransportDriverSocketDisconnect(
-    IN PSRV_SOCKET pSocket
+NfsProtocolTransportDriverSocketDisconnect(
+    IN PNFS_SOCKET pSocket
     );
 
 static
 NTSTATUS
-SrvProtocolTransportDriverSocketGetAddressBytes(
-    IN PSRV_SOCKET pSocket,
+NfsProtocolTransportDriverSocketGetAddressBytes(
+    IN PNFS_SOCKET pSocket,
     OUT PVOID* ppAddress,
     OUT PULONG pAddressLength
     );
 
 static
 NTSTATUS
-SrvProtocolTransportDriverAllocatePacket(
-    IN PSRV_CONNECTION pConnection
+NfsProtocolTransportDriverAllocatePacket(
+    IN PNFS_CONNECTION pConnection
     );
 
 static
 NTSTATUS
-SrvProtocolTransportDriverUpdateBuffer(
-    IN PSRV_CONNECTION pConnection
+NfsProtocolTransportDriverUpdateBuffer(
+    IN PNFS_CONNECTION pConnection
     );
 
 static
 VOID
-SrvProtocolTransportDriverRemoveBuffer(
-    IN PSRV_CONNECTION pConnection
+NfsProtocolTransportDriverRemoveBuffer(
+    IN PNFS_CONNECTION pConnection
     );
 
 static
 NTSTATUS
-SrvProtocolTransportDriverDetectPacket(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverDetectPacket(
+    IN PNFS_CONNECTION pConnection,
     IN OUT PULONG pulBytesAvailable,
     OUT PSMB_PACKET* ppPacket
     );
 
 static
 NTSTATUS
-SrvProtocolTransportDriverDispatchPacket(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverDispatchPacket(
+    IN PNFS_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
     );
 
 static
 NTSTATUS
-SrvProtocolTransportDriverCheckSignature(
-    IN PSRV_EXEC_CONTEXT pContext
+NfsProtocolTransportDriverCheckSignature(
+    IN PNFS_EXEC_CONTEXT pContext
     );
 
 static
 ULONG
-SrvProtocolTransportDriverGetNextSequence(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverGetNextSequence(
+    IN PNFS_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
     );
 
 // Implementations
 
 NTSTATUS
-SrvProtocolTransportDriverInit(
-    PSRV_PROTOCOL_API_GLOBALS pGlobals
+NfsProtocolTransportDriverInit(
+    PNFS_PROTOCOL_API_GLOBALS pGlobals
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->TransportContext;
-    PSRV_TRANSPORT_PROTOCOL_DISPATCH pTransportDispatch = &pTransportContext->Dispatch;
-    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch = &pTransportContext->SocketDispatch;
+    PNFS_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->TransportContext;
+    PNFS_TRANSPORT_PROTOCOL_DISPATCH pTransportDispatch = &pTransportContext->Dispatch;
+    PNFS_CONNECTION_SOCKET_DISPATCH pSocketDispatch = &pTransportContext->SocketDispatch;
 
     RtlZeroMemory(pTransportContext, sizeof(*pTransportContext));
 
     pTransportContext->pGlobals = pGlobals;
 
-    pTransportDispatch->pfnConnectionNew = SrvProtocolTransportDriverConnectionNew;
-    pTransportDispatch->pfnConnectionData = SrvProtocolTransportDriverConnectionData;
-    pTransportDispatch->pfnConnectionDone = SrvProtocolTransportDriverConnectionDone;
-    pTransportDispatch->pfnSendPrepare = SrvProtocolTransportDriverSendPrepare;
-    pTransportDispatch->pfnSendDone = SrvProtocolTransportDriverSendDone;
+    pTransportDispatch->pfnConnectionNew = NfsProtocolTransportDriverConnectionNew;
+    pTransportDispatch->pfnConnectionData = NfsProtocolTransportDriverConnectionData;
+    pTransportDispatch->pfnConnectionDone = NfsProtocolTransportDriverConnectionDone;
+    pTransportDispatch->pfnSendPrepare = NfsProtocolTransportDriverSendPrepare;
+    pTransportDispatch->pfnSendDone = NfsProtocolTransportDriverSendDone;
 
-    pSocketDispatch->pfnFree = SrvProtocolTransportDriverSocketFree;
-    pSocketDispatch->pfnDisconnect = SrvProtocolTransportDriverSocketDisconnect;
-    pSocketDispatch->pfnGetAddressBytes = SrvProtocolTransportDriverSocketGetAddressBytes;
+    pSocketDispatch->pfnFree = NfsProtocolTransportDriverSocketFree;
+    pSocketDispatch->pfnDisconnect = NfsProtocolTransportDriverSocketDisconnect;
+    pSocketDispatch->pfnGetAddressBytes = NfsProtocolTransportDriverSocketGetAddressBytes;
 
     uuid_generate(pTransportContext->Guid);
 
-    ntStatus = SrvTransportInit(
+    ntStatus = NfsTransportInit(
                     &pTransportContext->hTransport,
                     pTransportDispatch,
                     pTransportContext);
@@ -202,30 +202,30 @@ cleanup:
 
 error:
 
-    SrvProtocolTransportDriverShutdown(pGlobals);
+    NfsProtocolTransportDriverShutdown(pGlobals);
 
     goto cleanup;
 }
 
 VOID
-SrvProtocolTransportDriverShutdown(
-    PSRV_PROTOCOL_API_GLOBALS pGlobals
+NfsProtocolTransportDriverShutdown(
+    PNFS_PROTOCOL_API_GLOBALS pGlobals
     )
 {
-    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->TransportContext;
+    PNFS_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->TransportContext;
 
     if (pTransportContext->hTransport)
     {
         // This will cause done notifications to occur,
         // which will get rid of any last remaining connection
         // references.
-        SrvTransportShutdown(pTransportContext->hTransport);
+        NfsTransportShutdown(pTransportContext->hTransport);
         pTransportContext->hTransport = NULL;
     }
 
     if (pTransportContext->hGssContext)
     {
-        SrvGssReleaseContext(pTransportContext->hGssContext);
+        NfsGssReleaseContext(pTransportContext->hGssContext);
     }
 
     RtlZeroMemory(pTransportContext, sizeof(*pTransportContext));
@@ -233,19 +233,19 @@ SrvProtocolTransportDriverShutdown(
 
 static
 NTSTATUS
-SrvProtocolTransportDriverConnectionNew(
-    OUT PSRV_CONNECTION* ppConnection,
-    IN PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
-    IN PSRV_SOCKET pSocket
+NfsProtocolTransportDriverConnectionNew(
+    OUT PNFS_CONNECTION* ppConnection,
+    IN PNFS_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
+    IN PNFS_SOCKET pSocket
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_API_GLOBALS pGlobals = pProtocolDispatchContext->pGlobals;
-    SRV_PROPERTIES properties = { 0 };
-    PSRV_HOST_INFO pHostinfo = NULL;
-    PLWIO_SRV_CONNECTION pConnection = NULL;
+    PNFS_PROTOCOL_API_GLOBALS pGlobals = pProtocolDispatchContext->pGlobals;
+    NFS_PROPERTIES properties = { 0 };
+    PNFS_HOST_INFO pHostinfo = NULL;
+    PLWIO_NFS_CONNECTION pConnection = NULL;
 
-    ntStatus = SrvAcquireHostInfo(NULL, &pHostinfo);
+    ntStatus = NfsAcquireHostInfo(NULL, &pHostinfo);
     if (ntStatus)
     {
         LWIO_LOG_ERROR("Failed to acquire current host information (status = 0x%08x)", ntStatus);
@@ -257,7 +257,7 @@ SrvProtocolTransportDriverConnectionNew(
 
     if (!pProtocolDispatchContext->hGssContext)
     {
-        ntStatus = SrvGssAcquireContext(
+        ntStatus = NfsGssAcquireContext(
                         pHostinfo,
                         NULL,
                         &pProtocolDispatchContext->hGssContext);
@@ -269,8 +269,8 @@ SrvProtocolTransportDriverConnectionNew(
     }
 
     properties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
-    properties.bEnableSecuritySignatures = SrvProtocolConfigIsSigningEnabled();
-    properties.bRequireSecuritySignatures = SrvProtocolConfigIsSigningRequired();
+    properties.bEnableSecuritySignatures = NfsProtocolConfigIsSigningEnabled();
+    properties.bRequireSecuritySignatures = NfsProtocolConfigIsSigningRequired();
     properties.bEncryptPasswords = TRUE;
     properties.MaxRawSize = 64 * 1024;
     properties.MaxMpxCount = 50;
@@ -288,7 +288,7 @@ SrvProtocolTransportDriverConnectionNew(
     properties.Capabilities |= CAP_EXTENDED_SECURITY;
     uuid_copy(properties.GUID, pProtocolDispatchContext->Guid);
 
-    ntStatus = SrvConnectionCreate(
+    ntStatus = NfsConnectionCreate(
                     pSocket,
                     pGlobals->hPacketAllocator,
                     pProtocolDispatchContext->hGssContext,
@@ -302,18 +302,18 @@ SrvProtocolTransportDriverConnectionNew(
     pConnection->pProtocolTransportDriverContext = pProtocolDispatchContext;
 
     // Allocate buffer space
-    ntStatus = SrvProtocolTransportDriverAllocatePacket(pConnection);
+    ntStatus = NfsProtocolTransportDriverAllocatePacket(pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     // Update remaining buffer space
-    ntStatus = SrvProtocolTransportDriverUpdateBuffer(pConnection);
+    ntStatus = NfsProtocolTransportDriverUpdateBuffer(pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     if (pHostinfo)
     {
-        SrvReleaseHostInfo(pHostinfo);
+        NfsReleaseHostInfo(pHostinfo);
     }
 
     *ppConnection = pConnection;
@@ -324,7 +324,7 @@ error:
 
     if (pConnection)
     {
-        SrvConnectionRelease(pConnection);
+        NfsConnectionRelease(pConnection);
         pConnection = NULL;
     }
 
@@ -335,8 +335,8 @@ error:
 // TODO-Add ZCT SMB write support
 static
 NTSTATUS
-SrvProtocolTransportDriverConnectionData(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverConnectionData(
+    IN PNFS_CONNECTION pConnection,
     IN ULONG BytesAvailable
     )
 {
@@ -355,7 +355,7 @@ SrvProtocolTransportDriverConnectionData(
 
     while (bytesRemaining > 0)
     {
-        ntStatus = SrvProtocolTransportDriverDetectPacket(
+        ntStatus = NfsProtocolTransportDriverDetectPacket(
                         pConnection,
                         &bytesRemaining,
                         &pPacket);
@@ -364,7 +364,7 @@ SrvProtocolTransportDriverConnectionData(
         if (pPacket)
         {
             // allocate a new packet buffer
-            ntStatus = SrvProtocolTransportDriverAllocatePacket(pConnection);
+            ntStatus = NfsProtocolTransportDriverAllocatePacket(pConnection);
             BAIL_ON_NT_STATUS(ntStatus);
 
             if (bytesRemaining)
@@ -383,7 +383,7 @@ SrvProtocolTransportDriverConnectionData(
             }
 
             // dispatch packet -- takes a reference
-            ntStatus = SrvProtocolTransportDriverDispatchPacket(
+            ntStatus = NfsProtocolTransportDriverDispatchPacket(
                             pConnection,
                             pPacket);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -396,7 +396,7 @@ SrvProtocolTransportDriverConnectionData(
     }
 
     // Update remaining buffer space
-    ntStatus = SrvProtocolTransportDriverUpdateBuffer(pConnection);
+    ntStatus = NfsProtocolTransportDriverUpdateBuffer(pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -408,11 +408,11 @@ cleanup:
 error:
 
     // Do not give any buffer to the socket.
-    SrvProtocolTransportDriverRemoveBuffer(pConnection);
+    NfsProtocolTransportDriverRemoveBuffer(pConnection);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
-    SrvConnectionSetInvalid(pConnection);
+    NfsConnectionSetInvalid(pConnection);
 
     if (pPacket)
     {
@@ -426,30 +426,30 @@ error:
 
 static
 VOID
-SrvProtocolTransportDriverConnectionDone(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverConnectionDone(
+    IN PNFS_CONNECTION pConnection,
     IN NTSTATUS Status
     )
 {
     if (STATUS_CONNECTION_RESET == Status)
     {
         LWIO_LOG_DEBUG("Connection reset by peer '%s' (fd = %d)",
-                SrvTransportSocketGetAddressString(pConnection->pSocket),
-                SrvTransportSocketGetFileDescriptor(pConnection->pSocket));
+                NfsTransportSocketGetAddressString(pConnection->pSocket),
+                NfsTransportSocketGetFileDescriptor(pConnection->pSocket));
     }
 
-    SrvConnectionSetInvalid(pConnection);
-    SrvConnectionRelease(pConnection);
+    NfsConnectionSetInvalid(pConnection);
+    NfsConnectionRelease(pConnection);
 }
 
 static
 NTSTATUS
-SrvProtocolTransportDriverSendPrepare(
-    IN PSRV_SEND_CONTEXT pSendContext
+NfsProtocolTransportDriverSendPrepare(
+    IN PNFS_SEND_CONTEXT pSendContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_CONNECTION pConnection = pSendContext->pConnection;
+    PNFS_CONNECTION pConnection = pSendContext->pConnection;
     PSMB_PACKET pPacket = pSendContext->pPacket;
 
     // Sign the packet.
@@ -503,12 +503,12 @@ error:
 
 static
 VOID
-SrvProtocolTransportDriverSendDone(
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsProtocolTransportDriverSendDone(
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN NTSTATUS Status
     )
 {
-    PSRV_CONNECTION pConnection = pSendContext->pConnection;
+    PNFS_CONNECTION pConnection = pSendContext->pConnection;
     PSMB_PACKET pPacket = pSendContext->pPacket;
 
     // There is no need to close the socket here as the transport will
@@ -519,33 +519,33 @@ SrvProtocolTransportDriverSendDone(
         pConnection->hPacketAllocator,
         pPacket);
 
-    SrvConnectionRelease(pConnection);
+    NfsConnectionRelease(pConnection);
 
-    SrvFreeMemory(pSendContext);
+    NfsFreeMemory(pSendContext);
 }
 
 static
 VOID
-SrvProtocolTransportDriverSocketFree(
-    IN OUT PSRV_SOCKET pSocket
+NfsProtocolTransportDriverSocketFree(
+    IN OUT PNFS_SOCKET pSocket
     )
 {
-    SrvTransportSocketClose(pSocket);
+    NfsTransportSocketClose(pSocket);
 }
 
 static
 VOID
-SrvProtocolTransportDriverSocketDisconnect(
-    IN PSRV_SOCKET pSocket
+NfsProtocolTransportDriverSocketDisconnect(
+    IN PNFS_SOCKET pSocket
     )
 {
-    SrvTransportSocketDisconnect(pSocket);
+    NfsTransportSocketDisconnect(pSocket);
 }
 
 static
 NTSTATUS
-SrvProtocolTransportDriverSocketGetAddressBytes(
-    IN PSRV_SOCKET pSocket,
+NfsProtocolTransportDriverSocketGetAddressBytes(
+    IN PNFS_SOCKET pSocket,
     OUT PVOID* ppAddress,
     OUT PULONG pAddressLength
     )
@@ -556,7 +556,7 @@ SrvProtocolTransportDriverSocketGetAddressBytes(
     PVOID pAddressPart = NULL;
     ULONG addressPartLength = 0;
 
-    SrvTransportSocketGetAddress(pSocket, &pSocketAddress, &socketAddressLength);
+    NfsTransportSocketGetAddress(pSocket, &pSocketAddress, &socketAddressLength);
     switch (pSocketAddress->sa_family)
     {
         case AF_INET:
@@ -588,8 +588,8 @@ error:
 
 static
 NTSTATUS
-SrvProtocolTransportDriverAllocatePacket(
-    IN PSRV_CONNECTION pConnection
+NfsProtocolTransportDriverAllocatePacket(
+    IN PNFS_CONNECTION pConnection
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -630,8 +630,8 @@ error:
 
 static
 NTSTATUS
-SrvProtocolTransportDriverUpdateBuffer(
-    IN PSRV_CONNECTION pConnection
+NfsProtocolTransportDriverUpdateBuffer(
+    IN PNFS_CONNECTION pConnection
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -651,7 +651,7 @@ SrvProtocolTransportDriverUpdateBuffer(
 
     // TODO-Set Minimum = 1 (or something smarter) for ZCT for SMB write.
     // TODO-Test out setting Size = Minimum (perhaps registry config) -- IFF not doing ZCT SMB write support.
-    ntStatus = SrvTransportSocketSetBuffer(
+    ntStatus = NfsTransportSocketSetBuffer(
                     pConnection->pSocket,
                     pBuffer,
                     Size,
@@ -669,12 +669,12 @@ error:
 
 static
 VOID
-SrvProtocolTransportDriverRemoveBuffer(
-    IN PSRV_CONNECTION pConnection
+NfsProtocolTransportDriverRemoveBuffer(
+    IN PNFS_CONNECTION pConnection
     )
 {
     // Do not give any buffer to the socket.
-    SrvTransportSocketSetBuffer(
+    NfsTransportSocketSetBuffer(
             pConnection->pSocket,
             NULL,
             0,
@@ -683,8 +683,8 @@ SrvProtocolTransportDriverRemoveBuffer(
 
 static
 NTSTATUS
-SrvProtocolTransportDriverDetectPacket(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverDetectPacket(
+    IN PNFS_CONNECTION pConnection,
     IN OUT PULONG pulBytesAvailable,
     OUT PSMB_PACKET* ppPacket
     )
@@ -808,7 +808,7 @@ SrvProtocolTransportDriverDetectPacket(
         switch (pConnection->protocolVer)
         {
             case SMB_PROTOCOL_VERSION_UNKNOWN:
-                ntStatus = SrvConnectionSetProtocolVersion_inlock(
+                ntStatus = NfsConnectionSetProtocolVersion_inlock(
                                 pConnection,
                                 pPacket->protocolVer);
                 break;
@@ -843,25 +843,25 @@ error:
 
 static
 NTSTATUS
-SrvProtocolTransportDriverDispatchPacket(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverDispatchPacket(
+    IN PNFS_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_TRANSPORT_CONTEXT pDriverContext = (PSRV_PROTOCOL_TRANSPORT_CONTEXT) pConnection->pProtocolTransportDriverContext;
-    PSRV_EXEC_CONTEXT pContext = NULL;
+    PNFS_PROTOCOL_TRANSPORT_CONTEXT pDriverContext = (PNFS_PROTOCOL_TRANSPORT_CONTEXT) pConnection->pProtocolTransportDriverContext;
+    PNFS_EXEC_CONTEXT pContext = NULL;
 
     // Already in pConnection lock.
 
     // Note that building the context takes its own reference.
-    ntStatus = SrvBuildExecContext(pConnection, pPacket, FALSE, &pContext);
+    ntStatus = NfsBuildExecContext(pConnection, pPacket, FALSE, &pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProtocolTransportDriverCheckSignature(pContext);
+    ntStatus = NfsProtocolTransportDriverCheckSignature(pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsEnqueue(
+    ntStatus = NfsProdConsEnqueue(
                     pDriverContext->pGlobals->pWorkQueue,
                     pContext);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -876,7 +876,7 @@ error:
 
     if (pContext)
     {
-        SrvReleaseExecContext(pContext);
+        NfsReleaseExecContext(pContext);
     }
 
     goto cleanup;
@@ -884,12 +884,12 @@ error:
 
 static
 NTSTATUS
-SrvProtocolTransportDriverCheckSignature(
-    IN PSRV_EXEC_CONTEXT pContext
+NfsProtocolTransportDriverCheckSignature(
+    IN PNFS_EXEC_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_NFS_CONNECTION pConnection = pContext->pConnection;
 
     // Already in pConnection lock.
 
@@ -897,7 +897,7 @@ SrvProtocolTransportDriverCheckSignature(
     {
         case SMB_PROTOCOL_VERSION_1:
             // Update the sequence whether we end up signing or not
-            pContext->pSmbRequest->sequence = SrvProtocolTransportDriverGetNextSequence(
+            pContext->pSmbRequest->sequence = NfsProtocolTransportDriverGetNextSequence(
                             pConnection,
                             pContext->pSmbRequest);
             break;
@@ -954,8 +954,8 @@ error:
 
 static
 ULONG
-SrvProtocolTransportDriverGetNextSequence(
-    IN PSRV_CONNECTION pConnection,
+NfsProtocolTransportDriverGetNextSequence(
+    IN PNFS_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
     )
 {
@@ -980,7 +980,7 @@ SrvProtocolTransportDriverGetNextSequence(
             /* Sequence number increments don't start until the last leg
                of the first successful session setup */
 
-            if (pConnection->state == LWIO_SRV_CONN_STATE_NEGOTIATE)
+            if (pConnection->state == LWIO_NFS_CONN_STATE_NEGOTIATE)
             {
                 ulRequestSequence = 0;
                 pConnection->ulSequence = 2;
@@ -1006,25 +1006,25 @@ SrvProtocolTransportDriverGetNextSequence(
 
 // TODO-Add ZCT SMB read support.
 NTSTATUS
-SrvProtocolTransportSendResponse(
-    IN PLWIO_SRV_CONNECTION pConnection,
+NfsProtocolTransportSendResponse(
+    IN PLWIO_NFS_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_SEND_CONTEXT pSendContext = NULL;
+    PNFS_SEND_CONTEXT pSendContext = NULL;
 
-    ntStatus = SrvAllocateMemory(sizeof(*pSendContext), OUT_PPVOID(&pSendContext));
+    ntStatus = NfsAllocateMemory(sizeof(*pSendContext), OUT_PPVOID(&pSendContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pSendContext->pConnection = pConnection;
-    SrvConnectionAcquire(pConnection);
+    NfsConnectionAcquire(pConnection);
 
     // TODO-Should remove refcounting from pPacket altogether?
     pSendContext->pPacket = pPacket;
     InterlockedIncrement(&pPacket->refCount);
 
-    ntStatus = SrvTransportSocketSendReply(
+    ntStatus = NfsTransportSocketSendReply(
                     pConnection->pSocket,
                     pSendContext,
                     pSendContext->pPacket->pRawBuffer,
@@ -1039,11 +1039,11 @@ error:
 
     if (pSendContext)
     {
-        SrvProtocolTransportDriverSendDone(pSendContext, ntStatus);
+        NfsProtocolTransportDriverSendDone(pSendContext, ntStatus);
     }
 
     // This will trigger rundown in protocol code.
-    SrvConnectionSetInvalid(pConnection);
+    NfsConnectionSetInvalid(pConnection);
 
     goto cleanup;
 }

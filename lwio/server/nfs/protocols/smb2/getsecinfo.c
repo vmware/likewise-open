@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -53,21 +53,21 @@
 
 static
 NTSTATUS
-SrvExecuteQuerySecurityDescriptor_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsExecuteQuerySecurityDescriptor_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 NTSTATUS
-SrvGetSecurityInfo_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsGetSecurityInfo_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
 
-    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+    pGetInfoState = (PNFS_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
     switch (pGetInfoState->pRequestHeader->ucInfoClass)
     {
@@ -80,7 +80,7 @@ SrvGetSecurityInfo_SMB_V2(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            ntStatus = SrvExecuteQuerySecurityDescriptor_SMB_V2(pExecContext);
+            ntStatus = NfsExecuteQuerySecurityDescriptor_SMB_V2(pExecContext);
 
             break;
 
@@ -98,18 +98,18 @@ error:
 
 static
 NTSTATUS
-SrvExecuteQuerySecurityDescriptor_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsExecuteQuerySecurityDescriptor_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
     BOOLEAN                    bContinue     = TRUE;
     PBYTE                      pErrorMessage = NULL;
 
-    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+    pGetInfoState = (PNFS_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
     do
     {
@@ -128,7 +128,7 @@ SrvExecuteQuerySecurityDescriptor_SMB_V2(
                 {
                     ULONG ulSecurityDescInitialLen = 256;
 
-                    ntStatus = SrvAllocateMemory(
+                    ntStatus = NfsAllocateMemory(
                                     ulSecurityDescInitialLen,
                                     (PVOID*)&pGetInfoState->pData2);
                     BAIL_ON_NT_STATUS(ntStatus);
@@ -143,12 +143,12 @@ SrvExecuteQuerySecurityDescriptor_SMB_V2(
                         LW_MIN( SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE,
                                         pGetInfoState->ulDataLength + 4096);
 
-                    ntStatus = SrvAllocateMemory(ulNewLen, (PVOID*)&pNewMemory);
+                    ntStatus = NfsAllocateMemory(ulNewLen, (PVOID*)&pNewMemory);
                     BAIL_ON_NT_STATUS(ntStatus);
 
                     if (pGetInfoState->pData2)
                     {
-                        SrvFreeMemory(pGetInfoState->pData2);
+                        NfsFreeMemory(pGetInfoState->pData2);
                     }
 
                     pGetInfoState->pData2 = pNewMemory;
@@ -160,7 +160,7 @@ SrvExecuteQuerySecurityDescriptor_SMB_V2(
                 }
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                SrvPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
+                NfsPrepareGetInfoStateAsync_SMB_V2(pGetInfoState, pExecContext);
 
                 ntStatus = IoQuerySecurityFile(
                                 pGetInfoState->pFile->hFile,
@@ -175,7 +175,7 @@ SrvExecuteQuerySecurityDescriptor_SMB_V2(
                     case STATUS_BUFFER_TOO_SMALL:
 
                         // completed synchronously
-                        SrvReleaseGetInfoStateAsync_SMB_V2(pGetInfoState);
+                        NfsReleaseGetInfoStateAsync_SMB_V2(pGetInfoState);
 
                         break;
 
@@ -216,7 +216,7 @@ cleanup:
 
     if (pErrorMessage)
     {
-        SrvFreeMemory(pErrorMessage);
+        NfsFreeMemory(pErrorMessage);
     }
 
     return ntStatus;
@@ -245,7 +245,7 @@ error:
                     ulLength = pGetInfoState->ulDataLength;
                 }
 
-                ntStatus2 = SrvAllocateMemory(
+                ntStatus2 = NfsAllocateMemory(
                                 sizeof(ULONG),
                                 (PVOID*)&pErrorMessage);
                 if (ntStatus2)
@@ -259,7 +259,7 @@ error:
                 {
                     memcpy(pErrorMessage, (PBYTE)&ulLength, sizeof(ulLength));
 
-                    ntStatus2 = SrvSetErrorMessage_SMB_V2(
+                    ntStatus2 = NfsSetErrorMessage_SMB_V2(
                                     pCtxSmb2,
                                     pErrorMessage,
                                     sizeof(ulLength));
@@ -288,24 +288,24 @@ error:
 }
 
 NTSTATUS
-SrvBuildSecurityInfoResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildSecurityInfoResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                    ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_GET_INFO_STATE_SMB_V2 pGetInfoState = NULL;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
     ULONG ulTotalBytesUsed = 0;
     PSMB2_GET_INFO_RESPONSE_HEADER pGetInfoResponseHeader = NULL;
 
-    pGetInfoState = (PSRV_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
+    pGetInfoState = (PNFS_GET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,

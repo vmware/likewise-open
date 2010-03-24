@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O (LWIO) - NFS
  *
  *        Driver
  *
@@ -51,44 +51,44 @@
 
 static
 NTSTATUS
-SrvDriverDispatch(
+NfsDriverDispatch(
     IN IO_DEVICE_HANDLE hDevice,
     IN PIRP pIrp
     );
 
 static
 VOID
-SrvDriverShutdown(
+NfsDriverShutdown(
     IN IO_DRIVER_HANDLE hDriver
     );
 
 static
 NTSTATUS
-SrvInitialize(
+NfsInitialize(
     IO_DEVICE_HANDLE hDevice
     );
 
 static
 NTSTATUS
-SrvShareBootstrap(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+NfsShareBootstrap(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList
     );
 
 static
 NTSTATUS
-SrvCreateDefaultSharePath(
+NfsCreateDefaultSharePath(
     PCSTR pszDefaultSharePath
     );
 
 static
 NTSTATUS
-SrvShutdown(
+NfsShutdown(
     VOID
     );
 
 static
 VOID
-SrvUnblockOneWorker(
+NfsUnblockOneWorker(
     IN PSMB_PROD_CONS_QUEUE pWorkQueue
     );
 
@@ -112,8 +112,8 @@ IO_DRIVER_ENTRY(srv)(
     ntStatus = IoDriverInitialize(
                     hDriver,
                     NULL,
-                    SrvDriverShutdown,
-                    SrvDriverDispatch);
+                    NfsDriverShutdown,
+                    NfsDriverDispatch);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoDeviceCreate(
@@ -123,7 +123,7 @@ IO_DRIVER_ENTRY(srv)(
                     pDeviceContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvInitialize(hDevice);
+    ntStatus = NfsInitialize(hDevice);
     BAIL_ON_NT_STATUS(ntStatus);
 
     hDevice = NULL;
@@ -144,7 +144,7 @@ error:
 
 static
 NTSTATUS
-SrvDriverDispatch(
+NfsDriverDispatch(
     IN IO_DEVICE_HANDLE hDevice,
     IN PIRP pIrp
     )
@@ -155,14 +155,14 @@ SrvDriverDispatch(
     {
         case IRP_TYPE_CREATE:
 
-            ntStatus = SrvDeviceCreate(
+            ntStatus = NfsDeviceCreate(
                             hDevice,
                             pIrp);
             break;
 
         case IRP_TYPE_CLOSE:
 
-            ntStatus = SrvDeviceClose(
+            ntStatus = NfsDeviceClose(
                             hDevice,
                             pIrp);
 
@@ -170,7 +170,7 @@ SrvDriverDispatch(
 
         case IRP_TYPE_READ:
 
-            ntStatus = SrvDeviceRead(
+            ntStatus = NfsDeviceRead(
                             hDevice,
                             pIrp);
 
@@ -178,7 +178,7 @@ SrvDriverDispatch(
 
         case IRP_TYPE_WRITE:
 
-            ntStatus = SrvDeviceWrite(
+            ntStatus = NfsDeviceWrite(
                             hDevice,
                             pIrp);
 
@@ -186,7 +186,7 @@ SrvDriverDispatch(
 
         case IRP_TYPE_DEVICE_IO_CONTROL:
 
-            ntStatus = SrvDeviceControlIo(
+            ntStatus = NfsDeviceControlIo(
                             hDevice,
                             pIrp);
 
@@ -194,7 +194,7 @@ SrvDriverDispatch(
 
         case IRP_TYPE_FS_CONTROL:
 
-            ntStatus = SrvDeviceControlFS(
+            ntStatus = NfsDeviceControlFS(
                             hDevice,
                             pIrp);
 
@@ -202,7 +202,7 @@ SrvDriverDispatch(
 
         case IRP_TYPE_FLUSH_BUFFERS:
 
-            ntStatus = SrvDeviceFlush(
+            ntStatus = NfsDeviceFlush(
                             hDevice,
                             pIrp);
 
@@ -210,7 +210,7 @@ SrvDriverDispatch(
 
         case IRP_TYPE_QUERY_INFORMATION:
 
-            ntStatus = SrvDeviceQueryInfo(
+            ntStatus = NfsDeviceQueryInfo(
                             hDevice,
                             pIrp);
 
@@ -218,7 +218,7 @@ SrvDriverDispatch(
 
         case IRP_TYPE_SET_INFORMATION:
 
-            ntStatus = SrvDeviceSetInfo(
+            ntStatus = NfsDeviceSetInfo(
                             hDevice,
                             pIrp);
 
@@ -237,18 +237,18 @@ error:
 
 static
 VOID
-SrvDriverShutdown(
+NfsDriverShutdown(
     IN IO_DRIVER_HANDLE hDriver
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    ntStatus = SrvShutdown();
+    ntStatus = NfsShutdown();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (gSMBSrvGlobals.hDevice)
+    if (gSMBNfsGlobals.hDevice)
     {
-        IoDeviceDelete(&gSMBSrvGlobals.hDevice);
+        IoDeviceDelete(&gSMBNfsGlobals.hDevice);
     }
 
 cleanup:
@@ -267,71 +267,71 @@ error:
 
 static
 NTSTATUS
-SrvInitialize(
+NfsInitialize(
     IO_DEVICE_HANDLE hDevice
     )
 {
     NTSTATUS ntStatus = 0;
     INT      iWorker = 0;
 
-    memset(&gSMBSrvGlobals, 0, sizeof(gSMBSrvGlobals));
+    memset(&gSMBNfsGlobals, 0, sizeof(gSMBNfsGlobals));
 
-    pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
-    gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
+    pthread_mutex_init(&gSMBNfsGlobals.mutex, NULL);
+    gSMBNfsGlobals.pMutex = &gSMBNfsGlobals.mutex;
 
-    ntStatus = SrvInitConfig(&gSMBSrvGlobals.config);
+    ntStatus = NfsInitConfig(&gSMBNfsGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvReadConfig(&gSMBSrvGlobals.config);
+    ntStatus = NfsReadConfig(&gSMBNfsGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SMBPacketCreateAllocator(
-                    gSMBSrvGlobals.config.ulMaxNumPackets,
-                    &gSMBSrvGlobals.hPacketAllocator);
+                    gSMBNfsGlobals.config.ulMaxNumPackets,
+                    &gSMBNfsGlobals.hPacketAllocator);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsInitContents(
-                    &gSMBSrvGlobals.workQueue,
-                    gSMBSrvGlobals.config.ulMaxNumWorkItemsInQueue,
-                    &SrvReleaseExecContextHandle);
+    ntStatus = NfsProdConsInitContents(
+                    &gSMBNfsGlobals.workQueue,
+                    gSMBNfsGlobals.config.ulMaxNumWorkItemsInQueue,
+                    &NfsReleaseExecContextHandle);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareInit();
+    ntStatus = NfsShareInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareInitList(&gSMBSrvGlobals.shareList);
+    ntStatus = NfsShareInitList(&gSMBNfsGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareBootstrap(&gSMBSrvGlobals.shareList);
+    ntStatus = NfsShareBootstrap(&gSMBNfsGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvElementsInit();
+    ntStatus = NfsElementsInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProtocolInit(
-                    &gSMBSrvGlobals.workQueue,
-                    gSMBSrvGlobals.hPacketAllocator,
-                    &gSMBSrvGlobals.shareList);
+    ntStatus = NfsProtocolInit(
+                    &gSMBNfsGlobals.workQueue,
+                    gSMBNfsGlobals.hPacketAllocator,
+                    &gSMBNfsGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAllocateMemory(
-                    gSMBSrvGlobals.config.ulNumWorkers * sizeof(LWIO_SRV_WORKER),
-                    (PVOID*)&gSMBSrvGlobals.pWorkerArray);
+    ntStatus = NfsAllocateMemory(
+                    gSMBNfsGlobals.config.ulNumWorkers * sizeof(LWIO_NFS_WORKER),
+                    (PVOID*)&gSMBNfsGlobals.pWorkerArray);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    gSMBSrvGlobals.ulNumWorkers = gSMBSrvGlobals.config.ulNumWorkers;
+    gSMBNfsGlobals.ulNumWorkers = gSMBNfsGlobals.config.ulNumWorkers;
 
-    for (; iWorker < gSMBSrvGlobals.config.ulNumWorkers; iWorker++)
+    for (; iWorker < gSMBNfsGlobals.config.ulNumWorkers; iWorker++)
     {
-        PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+        PLWIO_NFS_WORKER pWorker = &gSMBNfsGlobals.pWorkerArray[iWorker];
 
         pWorker->workerId = iWorker + 1;
 
-        ntStatus = SrvWorkerInit(pWorker);
+        ntStatus = NfsWorkerInit(pWorker);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    gSMBSrvGlobals.hDevice = hDevice;
+    gSMBNfsGlobals.hDevice = hDevice;
 
 error:
 
@@ -340,8 +340,8 @@ error:
 
 static
 NTSTATUS
-SrvShareBootstrap(
-    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+NfsShareBootstrap(
+    IN OUT PLWIO_NFS_SHARE_ENTRY_LIST pShareList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -349,19 +349,19 @@ SrvShareBootstrap(
     wchar16_t wszFileRootName[] = {'C','$',0};
     PSTR  pszFileSystemRoot = NULL;
     PWSTR pwszFileSystemRoot = NULL;
-    PSRV_SHARE_INFO pShareInfo = NULL;
+    PNFS_SHARE_INFO pShareInfo = NULL;
 
-    ntStatus = SrvShareFindByName(
+    ntStatus = NfsShareFindByName(
                     pShareList,
                     &wszPipeRootName[0],
                     &pShareInfo);
     if (ntStatus == STATUS_NOT_FOUND)
     {
-        wchar16_t wszPipeSystemRoot[] = LWIO_SRV_PIPE_SYSTEM_ROOT_W;
-        wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_IPC_W;
+        wchar16_t wszPipeSystemRoot[] = LWIO_NFS_PIPE_SYSTEM_ROOT_W;
+        wchar16_t wszServiceType[] = LWIO_NFS_SHARE_STRING_ID_IPC_W;
         wchar16_t wszDesc[] = {'R','e','m','o','t','e',' ','I','P','C',0};
 
-        ntStatus = SrvShareAdd(
+        ntStatus = NfsShareAdd(
                             pShareList,
                             &wszPipeRootName[0],
                             &wszPipeSystemRoot[0],
@@ -372,12 +372,12 @@ SrvShareBootstrap(
     }
     else
     {
-        SrvShareReleaseInfo(pShareInfo);
+        NfsShareReleaseInfo(pShareInfo);
         pShareInfo = NULL;
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareFindByName(
+    ntStatus = NfsShareFindByName(
                         pShareList,
                         &wszFileRootName[0],
                         &pShareInfo);
@@ -385,14 +385,14 @@ SrvShareBootstrap(
     {
         wchar16_t wszDesc[] =
                         {'D','e','f','a','u','l','t',' ','S','h','a','r','e',0};
-        wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
-        CHAR      szTmpFSRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
-        CHAR      szDefaultSharePath[] = LWIO_SRV_DEFAULT_SHARE_PATH_A;
+        wchar16_t wszServiceType[] = LWIO_NFS_SHARE_STRING_ID_DISK_W;
+        CHAR      szTmpFSRoot[] = LWIO_NFS_FILE_SYSTEM_ROOT_A;
+        CHAR      szDefaultSharePath[] = LWIO_NFS_DEFAULT_SHARE_PATH_A;
 
-        ntStatus = SrvCreateDefaultSharePath(&szDefaultSharePath[0]);
+        ntStatus = NfsCreateDefaultSharePath(&szDefaultSharePath[0]);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvAllocateStringPrintf(
+        ntStatus = NfsAllocateStringPrintf(
                             &pszFileSystemRoot,
                             "%s%s%s",
                             &szTmpFSRoot[0],
@@ -401,10 +401,10 @@ SrvShareBootstrap(
                             &szDefaultSharePath[0]);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvMbsToWc16s(pszFileSystemRoot, &pwszFileSystemRoot);
+        ntStatus = NfsMbsToWc16s(pszFileSystemRoot, &pwszFileSystemRoot);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvShareAdd(
+        ntStatus = NfsShareAdd(
                         pShareList,
                         &wszFileRootName[0],
                         pwszFileSystemRoot,
@@ -417,8 +417,8 @@ SrvShareBootstrap(
 
 cleanup:
 
-    SRV_SAFE_FREE_MEMORY(pszFileSystemRoot);
-    SRV_SAFE_FREE_MEMORY(pwszFileSystemRoot);
+    NFS_SAFE_FREE_MEMORY(pszFileSystemRoot);
+    NFS_SAFE_FREE_MEMORY(pwszFileSystemRoot);
 
     return ntStatus;
 
@@ -432,7 +432,7 @@ error:
 
 static
 NTSTATUS
-SrvCreateDefaultSharePath(
+NfsCreateDefaultSharePath(
     PCSTR pszDefaultSharePath
     )
 {
@@ -479,7 +479,7 @@ error:
 
 static
 NTSTATUS
-SrvShutdown(
+NfsShutdown(
     VOID
     )
 {
@@ -488,59 +488,59 @@ SrvShutdown(
     // TODO: All existing requests must be waited on to be completed before
     //       shutting down the worker queues.
 
-    if (gSMBSrvGlobals.pMutex)
+    if (gSMBNfsGlobals.pMutex)
     {
-        pthread_mutex_lock(gSMBSrvGlobals.pMutex);
+        pthread_mutex_lock(gSMBNfsGlobals.pMutex);
 
-        if (gSMBSrvGlobals.pWorkerArray)
+        if (gSMBNfsGlobals.pWorkerArray)
         {
             INT iWorker = 0;
 
-            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+            for (iWorker = 0; iWorker < gSMBNfsGlobals.ulNumWorkers; iWorker++)
             {
-                PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+                PLWIO_NFS_WORKER pWorker = &gSMBNfsGlobals.pWorkerArray[iWorker];
 
-                SrvWorkerIndicateStop(pWorker);
+                NfsWorkerIndicateStop(pWorker);
             }
 
             // Must indicate stop for all workers before queueing the
             // unblocks.
-            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+            for (iWorker = 0; iWorker < gSMBNfsGlobals.ulNumWorkers; iWorker++)
             {
-                SrvUnblockOneWorker(&gSMBSrvGlobals.workQueue);
+                NfsUnblockOneWorker(&gSMBNfsGlobals.workQueue);
             }
 
-            for (iWorker = 0; iWorker < gSMBSrvGlobals.ulNumWorkers; iWorker++)
+            for (iWorker = 0; iWorker < gSMBNfsGlobals.ulNumWorkers; iWorker++)
             {
-                PLWIO_SRV_WORKER pWorker = &gSMBSrvGlobals.pWorkerArray[iWorker];
+                PLWIO_NFS_WORKER pWorker = &gSMBNfsGlobals.pWorkerArray[iWorker];
 
-                SrvWorkerFreeContents(pWorker);
+                NfsWorkerFreeContents(pWorker);
             }
 
-            SrvFreeMemory(gSMBSrvGlobals.pWorkerArray);
-            gSMBSrvGlobals.pWorkerArray = NULL;
+            NfsFreeMemory(gSMBNfsGlobals.pWorkerArray);
+            gSMBNfsGlobals.pWorkerArray = NULL;
         }
 
-        SrvProtocolShutdown();
+        NfsProtocolShutdown();
 
-        SrvElementsShutdown();
+        NfsElementsShutdown();
 
-        SrvShareFreeListContents(&gSMBSrvGlobals.shareList);
+        NfsShareFreeListContents(&gSMBNfsGlobals.shareList);
 
-        SrvShareShutdown();
+        NfsShareShutdown();
 
-        SrvProdConsFreeContents(&gSMBSrvGlobals.workQueue);
+        NfsProdConsFreeContents(&gSMBNfsGlobals.workQueue);
 
-        if (gSMBSrvGlobals.hPacketAllocator)
+        if (gSMBNfsGlobals.hPacketAllocator)
         {
-            SMBPacketFreeAllocator(gSMBSrvGlobals.hPacketAllocator);
-            gSMBSrvGlobals.hPacketAllocator = NULL;
+            SMBPacketFreeAllocator(gSMBNfsGlobals.hPacketAllocator);
+            gSMBNfsGlobals.hPacketAllocator = NULL;
         }
 
-        SrvFreeConfigContents(&gSMBSrvGlobals.config);
+        NfsFreeConfigContents(&gSMBNfsGlobals.config);
 
-        pthread_mutex_unlock(gSMBSrvGlobals.pMutex);
-        gSMBSrvGlobals.pMutex = NULL;
+        pthread_mutex_unlock(gSMBNfsGlobals.pMutex);
+        gSMBNfsGlobals.pMutex = NULL;
     }
 
     return ntStatus;
@@ -548,17 +548,17 @@ SrvShutdown(
 
 static
 VOID
-SrvUnblockOneWorker(
+NfsUnblockOneWorker(
     IN PSMB_PROD_CONS_QUEUE pWorkQueue
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT pExecContext = NULL;
+    PNFS_EXEC_CONTEXT pExecContext = NULL;
 
-    ntStatus = SrvBuildEmptyExecContext(&pExecContext);
+    ntStatus = NfsBuildEmptyExecContext(&pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsEnqueue(pWorkQueue, pExecContext);
+    ntStatus = NfsProdConsEnqueue(pWorkQueue, pExecContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -569,7 +569,7 @@ error:
 
     if (pExecContext)
     {
-        SrvReleaseExecContext(pExecContext);
+        NfsReleaseExecContext(pExecContext);
     }
 
     goto cleanup;

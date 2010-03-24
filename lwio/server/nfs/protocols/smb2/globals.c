@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols
  *
@@ -49,7 +49,7 @@
 
 #include "includes.h"
 
-SRV_RUNTIME_GLOBALS_SMB_V2 gProtocolGlobals_SMB_V2 =
+NFS_RUNTIME_GLOBALS_SMB_V2 gProtocolGlobals_SMB_V2 =
 {
     .mutex           = PTHREAD_MUTEX_INITIALIZER,
     .pWorkQueue      = NULL,

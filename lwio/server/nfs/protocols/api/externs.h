@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols
  *
@@ -50,6 +50,6 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern SRV_PROTOCOL_API_GLOBALS gProtocolApiGlobals;
+extern NFS_PROTOCOL_API_GLOBALS gProtocolApiGlobals;
 
 #endif /* __EXTERNS_H__ */

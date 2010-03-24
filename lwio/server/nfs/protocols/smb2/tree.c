@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -50,16 +50,16 @@
 #include "includes.h"
 
 NTSTATUS
-SrvTree2FindFile_SMB_V2(
-    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
-    PLWIO_SRV_TREE_2         pTree,
+NfsTree2FindFile_SMB_V2(
+    PNFS_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PLWIO_NFS_TREE_2         pTree,
     PSMB2_FID                pFid,
     BOOLEAN                  bRelated,
-    PLWIO_SRV_FILE_2*        ppFile
+    PLWIO_NFS_FILE_2*        ppFile
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_FILE_2 pFile = NULL;
+    PLWIO_NFS_FILE_2 pFile = NULL;
 
     if (!pFid)
     {
@@ -75,7 +75,7 @@ SrvTree2FindFile_SMB_V2(
         {
             if (pSmb2Context->pFile)
             {
-                pFile = SrvFile2Acquire(pSmb2Context->pFile);
+                pFile = NfsFile2Acquire(pSmb2Context->pFile);
             }
             else
             {
@@ -87,7 +87,7 @@ SrvTree2FindFile_SMB_V2(
             if ((pSmb2Context->pFile->fid.ullPersistentId == pFid->ullPersistentId) &&
                 (pSmb2Context->pFile->fid.ullVolatileId == pFid->ullVolatileId))
             {
-                pFile = SrvFile2Acquire(pSmb2Context->pFile);
+                pFile = NfsFile2Acquire(pSmb2Context->pFile);
             }
             else
             {
@@ -96,10 +96,10 @@ SrvTree2FindFile_SMB_V2(
         }
         else
         {
-            ntStatus = SrvTree2FindFile(pTree, pFid, &pFile);
+            ntStatus = NfsTree2FindFile(pTree, pFid, &pFile);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pSmb2Context->pFile = SrvFile2Acquire(pFile);
+            pSmb2Context->pFile = NfsFile2Acquire(pFile);
         }
     }
     else // not related; therefore, do not use the context
@@ -111,7 +111,7 @@ SrvTree2FindFile_SMB_V2(
         }
         else
         {
-            ntStatus = SrvTree2FindFile(pTree, pFid, &pFile);
+            ntStatus = NfsTree2FindFile(pTree, pFid, &pFile);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }

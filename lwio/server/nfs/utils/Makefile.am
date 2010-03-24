@@ -1,18 +1,18 @@
-noinst_LTLIBRARIES = libsrvutils.la
+noinst_LTLIBRARIES = libnfsutils.la
 
-libsrvutils_la_SOURCES = \
+libnfsutils_la_SOURCES = \
     hostinfo.c           \
     memory.c             \
     path.c               \
     prodcons.c           \
     string.c
 
-libsrvutils_la_CPPFLAGS =  \
+libnfsutils_la_CPPFLAGS =  \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv/include
+    -I@top_srcdir@/server/nfs/include
 
-libsrvutils_la_LDFLAGS = -static
+libnfsutils_la_LDFLAGS = -static
 

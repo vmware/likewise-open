@@ -47,18 +47,18 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-#define LWIO_SRV_DEFAULT_NUM_WORKERS             8
-#define LWIO_SRV_DEFAULT_NUM_MAX_PACKETS       128
-#define LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS  4096
+#define LWIO_NFS_DEFAULT_NUM_WORKERS             8
+#define LWIO_NFS_DEFAULT_NUM_MAX_PACKETS       128
+#define LWIO_NFS_DEFAULT_NUM_MAX_QUEUE_ITEMS  4096
 
 typedef ULONG CCB_TYPE;
 
-#define SRV_CCB_DEVICE 1
+#define NFS_CCB_DEVICE 1
 
-#define SRV_CONFIG_TAG_DRIVER  "driver:"
-#define SRV_CONFIG_DRIVER_NAME "srv"
+#define NFS_CONFIG_TAG_DRIVER  "driver:"
+#define NFS_CONFIG_DRIVER_NAME "srv"
 
-#define SRV_CONFIG_FILE_PATH   CONFIGDIR "/lwiod.conf"
+#define NFS_CONFIG_FILE_PATH   CONFIGDIR "/lwiod.conf"
 
 #endif /* __DEFS_H__ */
 

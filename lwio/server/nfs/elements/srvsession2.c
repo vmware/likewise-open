@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -51,33 +51,33 @@
 
 static
 NTSTATUS
-SrvSession2AcquireTreeId_inlock(
-   PLWIO_SRV_SESSION_2 pSession,
+NfsSession2AcquireTreeId_inlock(
+   PLWIO_NFS_SESSION_2 pSession,
    PULONG              pulTid
    );
 
 static
 int
-SrvSession2TreeCompare(
+NfsSession2TreeCompare(
     PVOID pKey1,
     PVOID pKey2
     );
 
 static
 VOID
-SrvSession2TreeRelease(
+NfsSession2TreeRelease(
     PVOID pTree
     );
 
 static
 VOID
-SrvSession2Free(
-    PLWIO_SRV_SESSION_2 pSession
+NfsSession2Free(
+    PLWIO_NFS_SESSION_2 pSession
     );
 
 static
 NTSTATUS
-SrvSession2RundownTreeRbTreeVisit(
+NfsSession2RundownTreeRbTreeVisit(
     PVOID    pKey,
     PVOID    pData,
     PVOID    pUserData,
@@ -85,18 +85,18 @@ SrvSession2RundownTreeRbTreeVisit(
     );
 
 NTSTATUS
-SrvSession2Create(
+NfsSession2Create(
     ULONG64              ullUid,
-    PLWIO_SRV_SESSION_2* ppSession
+    PLWIO_NFS_SESSION_2* ppSession
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
+    PLWIO_NFS_SESSION_2 pSession = NULL;
 
     LWIO_LOG_DEBUG("Creating session [uid:%lu]", ullUid);
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(LWIO_SRV_SESSION_2),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(LWIO_NFS_SESSION_2),
                     (PVOID*)&pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -112,16 +112,16 @@ SrvSession2Create(
                     ullUid);
 
     ntStatus = LwRtlRBTreeCreate(
-                    &SrvSession2TreeCompare,
+                    &NfsSession2TreeCompare,
                     NULL,
-                    &SrvSession2TreeRelease,
+                    &NfsSession2TreeRelease,
                     &pSession->pTreeCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvFinderCreateRepository(&pSession->hFinderRepository);
+    ntStatus = NfsFinderCreateRepository(&pSession->hFinderRepository);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SRV_ELEMENTS_INCREMENT_SESSIONS;
+    NFS_ELEMENTS_INCREMENT_SESSIONS;
 
     *ppSession = pSession;
 
@@ -135,26 +135,26 @@ error:
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvSession2FindTree(
-    PLWIO_SRV_SESSION_2 pSession,
+NfsSession2FindTree(
+    PLWIO_NFS_SESSION_2 pSession,
     ULONG               ulTid,
-    PLWIO_SRV_TREE_2*   ppTree
+    PLWIO_NFS_TREE_2*   ppTree
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_TREE_2 pTree = NULL;
+    PLWIO_NFS_TREE_2 pTree = NULL;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
-    pTree = pSession->lruTree[ulTid % SRV_LRU_CAPACITY];
+    pTree = pSession->lruTree[ulTid % NFS_LRU_CAPACITY];
 
     if (!pTree || (pTree->ulTid != ulTid))
     {
@@ -164,7 +164,7 @@ SrvSession2FindTree(
                         (PVOID*)&pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pSession->lruTree[ ulTid % SRV_LRU_CAPACITY ] = pTree;
+        pSession->lruTree[ ulTid % NFS_LRU_CAPACITY ] = pTree;
     }
 
     InterlockedIncrement(&pTree->refcount);
@@ -189,21 +189,21 @@ error:
 }
 
 NTSTATUS
-SrvSession2RemoveTree(
-    PLWIO_SRV_SESSION_2 pSession,
+NfsSession2RemoveTree(
+    PLWIO_NFS_SESSION_2 pSession,
     ULONG               ulTid
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_TREE_2 pTree = NULL;
+    PLWIO_NFS_TREE_2 pTree = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
-    pTree = pSession->lruTree[ ulTid % SRV_LRU_CAPACITY ];
+    pTree = pSession->lruTree[ ulTid % NFS_LRU_CAPACITY ];
     if (pTree && (pTree->ulTid == ulTid))
     {
-        pSession->lruTree[ ulTid % SRV_LRU_CAPACITY ] = NULL;
+        pSession->lruTree[ ulTid % NFS_LRU_CAPACITY ] = NULL;
     }
 
     ntStatus = LwRtlRBTreeRemove(
@@ -223,25 +223,25 @@ error:
 }
 
 NTSTATUS
-SrvSession2CreateTree(
-    PLWIO_SRV_SESSION_2 pSession,
-    PSRV_SHARE_INFO     pShareInfo,
-    PLWIO_SRV_TREE_2*   ppTree
+NfsSession2CreateTree(
+    PLWIO_NFS_SESSION_2 pSession,
+    PNFS_SHARE_INFO     pShareInfo,
+    PLWIO_NFS_TREE_2*   ppTree
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_TREE_2 pTree = NULL;
+    PLWIO_NFS_TREE_2 pTree = NULL;
     BOOLEAN bInLock = FALSE;
     ULONG   ulTid = 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
-    ntStatus = SrvSession2AcquireTreeId_inlock(
+    ntStatus = NfsSession2AcquireTreeId_inlock(
                     pSession,
                     &ulTid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTree2Create(
+    ntStatus = NfsTree2Create(
                     ulTid,
                     pShareInfo,
                     &pTree);
@@ -269,15 +269,15 @@ error:
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     goto cleanup;
 }
 
-PLWIO_SRV_SESSION_2
-SrvSession2Acquire(
-    PLWIO_SRV_SESSION_2 pSession
+PLWIO_NFS_SESSION_2
+NfsSession2Acquire(
+    PLWIO_NFS_SESSION_2 pSession
     )
 {
     LWIO_LOG_DEBUG("Acquiring session [uid:%u]", pSession->ullUid);
@@ -288,23 +288,23 @@ SrvSession2Acquire(
 }
 
 VOID
-SrvSession2Release(
-    PLWIO_SRV_SESSION_2 pSession
+NfsSession2Release(
+    PLWIO_NFS_SESSION_2 pSession
     )
 {
     LWIO_LOG_DEBUG("Releasing session [uid:%u]", pSession->ullUid);
 
     if (InterlockedDecrement(&pSession->refcount) == 0)
     {
-        SRV_ELEMENTS_DECREMENT_SESSIONS;
+        NFS_ELEMENTS_DECREMENT_SESSIONS;
 
-        SrvSession2Free(pSession);
+        NfsSession2Free(pSession);
     }
 }
 
 VOID
-SrvSession2Rundown(
-    PLWIO_SRV_SESSION_2 pSession
+NfsSession2Rundown(
+    PLWIO_NFS_SESSION_2 pSession
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -314,7 +314,7 @@ SrvSession2Rundown(
     LwRtlRBTreeTraverse(
             pSession->pTreeCollection,
             LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-            SrvSession2RundownTreeRbTreeVisit,
+            NfsSession2RundownTreeRbTreeVisit,
             NULL);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
@@ -322,8 +322,8 @@ SrvSession2Rundown(
 
 static
 NTSTATUS
-SrvSession2AcquireTreeId_inlock(
-   PLWIO_SRV_SESSION_2 pSession,
+NfsSession2AcquireTreeId_inlock(
+   PLWIO_NFS_SESSION_2 pSession,
    PULONG              pulTid
    )
 {
@@ -333,7 +333,7 @@ SrvSession2AcquireTreeId_inlock(
 
     do
     {
-        PLWIO_SRV_TREE_2 pTree = NULL;
+        PLWIO_NFS_TREE_2 pTree = NULL;
 
         /* 0 is never a valid tid */
 
@@ -385,7 +385,7 @@ error:
 
 static
 int
-SrvSession2TreeCompare(
+NfsSession2TreeCompare(
     PVOID pKey1,
     PVOID pKey2
     )
@@ -412,17 +412,17 @@ SrvSession2TreeCompare(
 
 static
 VOID
-SrvSession2TreeRelease(
+NfsSession2TreeRelease(
     PVOID pTree
     )
 {
-    SrvTree2Release((PLWIO_SRV_TREE_2)pTree);
+    NfsTree2Release((PLWIO_NFS_TREE_2)pTree);
 }
 
 static
 VOID
-SrvSession2Free(
-    PLWIO_SRV_SESSION_2 pSession
+NfsSession2Free(
+    PLWIO_NFS_SESSION_2 pSession
     )
 {
     LWIO_LOG_DEBUG("Freeing session [object:0x%x][uid:%u]",
@@ -442,7 +442,7 @@ SrvSession2Free(
 
     if (pSession->hFinderRepository)
     {
-        SrvFinderCloseRepository(pSession->hFinderRepository);
+        NfsFinderCloseRepository(pSession->hFinderRepository);
     }
 
     IO_SAFE_FREE_MEMORY(pSession->pszClientPrincipalName);
@@ -451,23 +451,23 @@ SrvSession2Free(
         IoSecurityDereferenceSecurityContext(&pSession->pIoSecurityContext);
     }
 
-    SrvFreeMemory(pSession);
+    NfsFreeMemory(pSession);
 }
 
 static
 NTSTATUS
-SrvSession2RundownTreeRbTreeVisit(
+NfsSession2RundownTreeRbTreeVisit(
     PVOID    pKey,
     PVOID    pData,
     PVOID    pUserData,
     PBOOLEAN pbContinue
     )
 {
-    PLWIO_SRV_TREE_2 pTree = (PLWIO_SRV_TREE_2)pData;
+    PLWIO_NFS_TREE_2 pTree = (PLWIO_NFS_TREE_2)pData;
 
     if (pTree)
     {
-        SrvTree2Rundown(pTree);
+        NfsTree2Rundown(pTree);
     }
 
     *pbContinue = TRUE;

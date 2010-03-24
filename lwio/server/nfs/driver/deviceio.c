@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (Srv)
+ *        Likewise Posix File System Driver (Nfs)
  *
  *       DeviceIo Dispatch Routine
  *
@@ -51,31 +51,31 @@
 
 static
 NTSTATUS
-SrvDeviceIoCommon(
-    PSRV_IRP_CONTEXT pIrpContext,
+NfsDeviceIoCommon(
+    PNFS_IRP_CONTEXT pIrpContext,
     PIRP             pIrp
     );
 
 NTSTATUS
-SrvDeviceControlIo(
+NfsDeviceControlIo(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP             pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_IRP_CONTEXT pIrpContext = NULL;
+    PNFS_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = SrvAllocateIrpContext(pIrp, &pIrpContext);
+    ntStatus = NfsAllocateIrpContext(pIrp, &pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvDeviceIoCommon(pIrpContext, pIrp);
+    ntStatus = NfsDeviceIoCommon(pIrpContext, pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
     if (pIrpContext)
     {
-        SrvFreeIrpContext(pIrpContext);
+        NfsFreeIrpContext(pIrpContext);
     }
 
     return ntStatus;
@@ -87,8 +87,8 @@ error:
 
 static
 NTSTATUS
-SrvDeviceIoCommon(
-    PSRV_IRP_CONTEXT pIrpContext,
+NfsDeviceIoCommon(
+    PNFS_IRP_CONTEXT pIrpContext,
     PIRP             pIrp
     )
 {
@@ -109,9 +109,9 @@ SrvDeviceIoCommon(
     switch (ControlCode)
     {
 
-      case SRV_DEVCTL_ADD_SHARE:
+      case NFS_DEVCTL_ADD_SHARE:
 
-          ntStatus = SrvShareDevCtlAdd(
+          ntStatus = NfsShareDevCtlAdd(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -119,9 +119,9 @@ SrvDeviceIoCommon(
                         );
           break;
 
-      case SRV_DEVCTL_DELETE_SHARE:
+      case NFS_DEVCTL_DELETE_SHARE:
 
-          ntStatus = SrvShareDevCtlDelete(
+          ntStatus = NfsShareDevCtlDelete(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -129,9 +129,9 @@ SrvDeviceIoCommon(
                         );
           break;
 
-      case SRV_DEVCTL_ENUM_SHARE:
+      case NFS_DEVCTL_ENUM_SHARE:
 
-          ntStatus = SrvShareDevCtlEnum(
+          ntStatus = NfsShareDevCtlEnum(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -140,9 +140,9 @@ SrvDeviceIoCommon(
                         );
           break;
 
-      case SRV_DEVCTL_SET_SHARE_INFO:
+      case NFS_DEVCTL_SET_SHARE_INFO:
 
-          ntStatus = SrvShareDevCtlSetInfo(
+          ntStatus = NfsShareDevCtlSetInfo(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -150,9 +150,9 @@ SrvDeviceIoCommon(
                         );
           break;
 
-      case SRV_DEVCTL_GET_SHARE_INFO:
+      case NFS_DEVCTL_GET_SHARE_INFO:
 
-          ntStatus = SrvShareDevCtlGetInfo(
+          ntStatus = NfsShareDevCtlGetInfo(
                         pInBuffer,
                         ulInBufferSize,
                         pOutBuffer,
@@ -163,7 +163,7 @@ SrvDeviceIoCommon(
 
       case IO_DEVICE_CTL_STATISTICS:
 
-          ntStatus = SrvProcessStatistics(
+          ntStatus = NfsProcessStatistics(
                           pInBuffer,
                           ulInBufferSize,
                           pOutBuffer,

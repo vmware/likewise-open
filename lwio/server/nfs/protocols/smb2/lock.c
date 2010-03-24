@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -53,13 +53,13 @@
 
 static
 NTSTATUS
-SrvValidateLockRequest_SMB_V2(
+NfsValidateLockRequest_SMB_V2(
     PSMB2_LOCK_REQUEST_HEADER pLockRequestHeader
     );
 
 static
 NTSTATUS
-SrvAscertainIfLocksFailImmediately(
+NfsAscertainIfLocksFailImmediately(
     PSMB2_LOCK* ppUnlockArray,
     ULONG       ulNumUnlocks,
     PSMB2_LOCK* ppLockArray,
@@ -69,99 +69,99 @@ SrvAscertainIfLocksFailImmediately(
 
 static
 NTSTATUS
-SrvBuildLockRequestState_SMB_V2(
-    PSRV_EXEC_CONTEXT               pExecContext,
+NfsBuildLockRequestState_SMB_V2(
+    PNFS_EXEC_CONTEXT               pExecContext,
     PSMB2_LOCK_REQUEST_HEADER       pLockRequestHeader,
-    PLWIO_SRV_TREE_2                pTree,
-    PLWIO_SRV_FILE_2                pFile,
-    PSRV_LOCK_REQUEST_STATE_SMB_V2* ppLockRequestState
+    PLWIO_NFS_TREE_2                pTree,
+    PLWIO_NFS_FILE_2                pFile,
+    PNFS_LOCK_REQUEST_STATE_SMB_V2* ppLockRequestState
     );
 
 static
 NTSTATUS
-SrvProcessSyncLockRequest_SMB_V2(
-    PSRV_EXEC_CONTEXT              pExecContext,
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsProcessSyncLockRequest_SMB_V2(
+    PNFS_EXEC_CONTEXT              pExecContext,
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     );
 
 static
 VOID
-SrvPrepareSyncLockStateAsync_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState,
-    PSRV_EXEC_CONTEXT              pExecContext
+NfsPrepareSyncLockStateAsync_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState,
+    PNFS_EXEC_CONTEXT              pExecContext
     );
 
 static
 VOID
-SrvExecuteLockContextAsyncCB_SMB_V2(
+NfsExecuteLockContextAsyncCB_SMB_V2(
     PVOID pContext
     );
 
 static
 VOID
-SrvReleaseSyncLockStateAsync_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsReleaseSyncLockStateAsync_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     );
 
 static
 VOID
-SrvClearLocks_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsClearLocks_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     );
 
 static
 VOID
-SrvClearLocks_SMB_V2_inlock(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsClearLocks_SMB_V2_inlock(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     );
 
 static
 NTSTATUS
-SrvBuildLockResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildLockResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 VOID
-SrvReleaseLockRequestStateHandle_SMB_V2(
+NfsReleaseLockRequestStateHandle_SMB_V2(
     HANDLE hLockRequestState
     );
 
 static
 VOID
-SrvReleaseLockRequestState_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsReleaseLockRequestState_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     );
 
 static
 VOID
-SrvFreeLockRequestState_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsFreeLockRequestState_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     );
 
 NTSTATUS
-SrvProcessLock_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessLock_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus       = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection    = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2       = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection    = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2       = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg           = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest    = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest    = &pCtxSmb2->pRequests[iMsg];
     PSMB2_LOCK_REQUEST_HEADER  pRequestHeader = NULL; // Do not free
-    PLWIO_SRV_SESSION_2        pSession       = NULL;
-    PLWIO_SRV_TREE_2           pTree          = NULL;
-    PLWIO_SRV_FILE_2           pFile          = NULL;
+    PLWIO_NFS_SESSION_2        pSession       = NULL;
+    PLWIO_NFS_TREE_2           pTree          = NULL;
+    PLWIO_NFS_FILE_2           pFile          = NULL;
     BOOLEAN                    bInLock        = FALSE;
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState = NULL;
-    PSRV_EXEC_CONTEXT              pExecContextAsync = NULL;
-    PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2         pAsyncLockState   = NULL;
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState = NULL;
+    PNFS_EXEC_CONTEXT              pExecContextAsync = NULL;
+    PNFS_ASYNC_LOCK_REQUEST_STATE_SMB_V2         pAsyncLockState   = NULL;
     PLWIO_ASYNC_STATE              pAsyncState       = NULL;
     BOOLEAN                        bUnregisterAsync  = FALSE;
 
-    pLockRequestState = (PSRV_LOCK_REQUEST_STATE_SMB_V2)pCtxSmb2->hState;
+    pLockRequestState = (PNFS_LOCK_REQUEST_STATE_SMB_V2)pCtxSmb2->hState;
 
     if (pLockRequestState)
     {
@@ -169,14 +169,14 @@ SrvProcessLock_SMB_V2(
     }
     else
     {
-        ntStatus = SrvConnection2FindSession_SMB_V2(
+        ntStatus = NfsConnection2FindSession_SMB_V2(
                         pCtxSmb2,
                         pConnection,
                         pSmbRequest->pHeader->ullSessionId,
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSession2FindTree_SMB_V2(
+        ntStatus = NfsSession2FindTree_SMB_V2(
                         pCtxSmb2,
                         pSession,
                         pSmbRequest->pHeader->ulTid,
@@ -186,7 +186,7 @@ SrvProcessLock_SMB_V2(
         ntStatus = SMB2UnmarshalLockRequest(pSmbRequest, &pRequestHeader);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvTree2FindFile_SMB_V2(
+        ntStatus = NfsTree2FindFile_SMB_V2(
                             pCtxSmb2,
                             pTree,
                             &pRequestHeader->fid,
@@ -196,7 +196,7 @@ SrvProcessLock_SMB_V2(
                             &pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvBuildLockRequestState_SMB_V2(
+        ntStatus = NfsBuildLockRequestState_SMB_V2(
                             pExecContext,
                             pRequestHeader,
                             pTree,
@@ -205,7 +205,7 @@ SrvProcessLock_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
 
         pCtxSmb2->hState = pLockRequestState;
-        pCtxSmb2->pfnStateRelease = &SrvReleaseLockRequestStateHandle_SMB_V2;
+        pCtxSmb2->pfnStateRelease = &NfsReleaseLockRequestStateHandle_SMB_V2;
         InterlockedIncrement(&pLockRequestState->refCount);
     }
 
@@ -213,7 +213,7 @@ SrvProcessLock_SMB_V2(
 
     switch (pLockRequestState->stage)
     {
-        case SRV_LOCK_STAGE_SMB_V2_INITIAL:
+        case NFS_LOCK_STAGE_SMB_V2_INITIAL:
 
             //
             // If all we have are unlocks, don't make this asynchronous
@@ -229,17 +229,17 @@ SrvProcessLock_SMB_V2(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
 
-                ntStatus = SrvConnection2CreateAsyncState(
+                ntStatus = NfsConnection2CreateAsyncState(
                                 pConnection,
                                 COM2_LOCK,
-                                &SrvCancelAsyncLockState_SMB_V2,
-                                &SrvReleaseAsyncLockStateHandle_SMB_V2,
+                                &NfsCancelAsyncLockState_SMB_V2,
+                                &NfsReleaseAsyncLockStateHandle_SMB_V2,
                                 &pAsyncState);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 bUnregisterAsync = TRUE;
 
-                ntStatus = SrvBuildAsyncLockState_SMB_V2(
+                ntStatus = NfsBuildAsyncLockState_SMB_V2(
                                 pAsyncState->ullAsyncId,
                                 pExecContext,
                                 pLockRequestState,
@@ -247,32 +247,32 @@ SrvProcessLock_SMB_V2(
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 pAsyncState->hAsyncState =
-                            SrvAcquireAsyncLockState_SMB_V2(pAsyncLockState);
+                            NfsAcquireAsyncLockState_SMB_V2(pAsyncLockState);
             }
 
-            pLockRequestState->stage = SRV_LOCK_STAGE_SMB_V2_ATTEMPT_LOCK;
+            pLockRequestState->stage = NFS_LOCK_STAGE_SMB_V2_ATTEMPT_LOCK;
 
             // intentional fall through
 
-        case SRV_LOCK_STAGE_SMB_V2_ATTEMPT_LOCK:
+        case NFS_LOCK_STAGE_SMB_V2_ATTEMPT_LOCK:
 
             if (pAsyncLockState)
             {
-                ntStatus = SrvBuildInterimResponse_SMB_V2(
+                ntStatus = NfsBuildInterimResponse_SMB_V2(
                                     pExecContext,
                                     pAsyncLockState->ullAsyncId);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 bUnregisterAsync = FALSE;
 
-                ntStatus = SrvBuildExecContextAsyncLock_SMB_V2(
+                ntStatus = NfsBuildExecContextAsyncLock_SMB_V2(
                                 pExecContext,
                                 pLockRequestState,
                                 pAsyncLockState->ullAsyncId,
                                 &pExecContextAsync);
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                ntStatus = SrvProdConsEnqueue(
+                ntStatus = NfsProdConsEnqueue(
                                 gProtocolGlobals_SMB_V2.pWorkQueue,
                                 pExecContextAsync);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -284,26 +284,26 @@ SrvProcessLock_SMB_V2(
             }
             else
             {
-                ntStatus = SrvProcessSyncLockRequest_SMB_V2(
+                ntStatus = NfsProcessSyncLockRequest_SMB_V2(
                                 pExecContext,
                                 pLockRequestState);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            pLockRequestState->stage = SRV_LOCK_STAGE_SMB_V2_BUILD_RESPONSE;
+            pLockRequestState->stage = NFS_LOCK_STAGE_SMB_V2_BUILD_RESPONSE;
 
             // intentional fall through
 
-        case SRV_LOCK_STAGE_SMB_V2_BUILD_RESPONSE:
+        case NFS_LOCK_STAGE_SMB_V2_BUILD_RESPONSE:
 
-            ntStatus = SrvBuildLockResponse_SMB_V2(pExecContext);
+            ntStatus = NfsBuildLockResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pLockRequestState->stage = SRV_LOCK_STAGE_SMB_V2_DONE;
+            pLockRequestState->stage = NFS_LOCK_STAGE_SMB_V2_DONE;
 
             // intentional fall through
 
-        case SRV_LOCK_STAGE_SMB_V2_DONE:
+        case NFS_LOCK_STAGE_SMB_V2_DONE:
 
             break;
     }
@@ -312,46 +312,46 @@ cleanup:
 
     if (pFile)
     {
-        SrvFile2Release(pFile);
+        NfsFile2Release(pFile);
     }
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     if (pLockRequestState)
     {
         LWIO_UNLOCK_MUTEX(bInLock, &pLockRequestState->mutex);
 
-        SrvReleaseLockRequestState_SMB_V2(pLockRequestState);
+        NfsReleaseLockRequestState_SMB_V2(pLockRequestState);
     }
 
     if (pAsyncLockState)
     {
         if (bUnregisterAsync)
         {
-            SrvConnection2RemoveAsyncState(
+            NfsConnection2RemoveAsyncState(
                     pConnection,
                     pAsyncLockState->ullAsyncId);
         }
 
-        SrvReleaseAsyncLockState_SMB_V2(pAsyncLockState);
+        NfsReleaseAsyncLockState_SMB_V2(pAsyncLockState);
     }
 
     if (pAsyncState)
     {
-        SrvAsyncStateRelease(pAsyncState);
+        NfsAsyncStateRelease(pAsyncState);
     }
 
     if (pExecContextAsync)
     {
-        SrvReleaseExecContext(pExecContextAsync);
+        NfsReleaseExecContext(pExecContextAsync);
     }
 
     return ntStatus;
@@ -372,15 +372,15 @@ error:
 
             if (pLockRequestState)
             {
-                SrvReleaseSyncLockStateAsync_SMB_V2(pLockRequestState);
+                NfsReleaseSyncLockStateAsync_SMB_V2(pLockRequestState);
 
                 if (bInLock)
                 {
-                    SrvClearLocks_SMB_V2_inlock(pLockRequestState);
+                    NfsClearLocks_SMB_V2_inlock(pLockRequestState);
                 }
                 else
                 {
-                    SrvClearLocks_SMB_V2(pLockRequestState);
+                    NfsClearLocks_SMB_V2(pLockRequestState);
                 }
             }
 
@@ -392,19 +392,19 @@ error:
 
 static
 NTSTATUS
-SrvBuildLockRequestState_SMB_V2(
-    PSRV_EXEC_CONTEXT               pExecContext,
+NfsBuildLockRequestState_SMB_V2(
+    PNFS_EXEC_CONTEXT               pExecContext,
     PSMB2_LOCK_REQUEST_HEADER       pLockRequestHeader,
-    PLWIO_SRV_TREE_2                pTree,
-    PLWIO_SRV_FILE_2                pFile,
-    PSRV_LOCK_REQUEST_STATE_SMB_V2* ppLockRequestState
+    PLWIO_NFS_TREE_2                pTree,
+    PLWIO_NFS_FILE_2                pFile,
+    PNFS_LOCK_REQUEST_STATE_SMB_V2* ppLockRequestState
     )
 {
     NTSTATUS                       ntStatus          = STATUS_SUCCESS;
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState = NULL;
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                        sizeof(SRV_LOCK_REQUEST_STATE_SMB_V2),
+    ntStatus = NfsAllocateMemory(
+                        sizeof(NFS_LOCK_REQUEST_STATE_SMB_V2),
                         (PVOID*)&pLockRequestState);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -413,28 +413,28 @@ SrvBuildLockRequestState_SMB_V2(
 
     pLockRequestState->refCount = 1;
 
-    pLockRequestState->stage = SRV_LOCK_STAGE_SMB_V2_INITIAL;
+    pLockRequestState->stage = NFS_LOCK_STAGE_SMB_V2_INITIAL;
 
-    ntStatus = SrvValidateLockRequest_SMB_V2(pLockRequestHeader);
+    ntStatus = NfsValidateLockRequest_SMB_V2(pLockRequestHeader);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pLockRequestState->ulTid          = pTree->ulTid;
-    pLockRequestState->pFile          = SrvFile2Acquire(pFile);
+    pLockRequestState->pFile          = NfsFile2Acquire(pFile);
     pLockRequestState->pRequestHeader = pLockRequestHeader;
 
-    ntStatus = SrvDetermineLocks_SMB_V2(
+    ntStatus = NfsDetermineLocks_SMB_V2(
                     pLockRequestHeader,
                     &pLockRequestState->ppLockArray,
                     &pLockRequestState->ulNumLocks);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvDetermineUnlocks_SMB_V2(
+    ntStatus = NfsDetermineUnlocks_SMB_V2(
                     pLockRequestHeader,
                     &pLockRequestState->ppUnlockArray,
                     &pLockRequestState->ulNumUnlocks);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvAscertainIfLocksFailImmediately(
+    ntStatus = NfsAscertainIfLocksFailImmediately(
                     pLockRequestState->ppUnlockArray,
                     pLockRequestState->ulNumUnlocks,
                     pLockRequestState->ppLockArray,
@@ -454,7 +454,7 @@ error:
 
     if (pLockRequestState)
     {
-        SrvReleaseLockRequestState_SMB_V2(pLockRequestState);
+        NfsReleaseLockRequestState_SMB_V2(pLockRequestState);
     }
 
     goto cleanup;
@@ -462,7 +462,7 @@ error:
 
 static
 NTSTATUS
-SrvValidateLockRequest_SMB_V2(
+NfsValidateLockRequest_SMB_V2(
     PSMB2_LOCK_REQUEST_HEADER pLockRequestHeader
     )
 {
@@ -504,7 +504,7 @@ error:
 }
 
 NTSTATUS
-SrvDetermineLocks_SMB_V2(
+NfsDetermineLocks_SMB_V2(
     PSMB2_LOCK_REQUEST_HEADER pLockRequestHeader,
     PSMB2_LOCK**              pppLockArray,
     PULONG                    pulNumLocks
@@ -529,7 +529,7 @@ SrvDetermineLocks_SMB_V2(
     {
         ULONG iLock2 = 0;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         sizeof(PSMB2_LOCK*) * usNumLocks,
                         (PVOID*)&ppLockArray);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -556,7 +556,7 @@ error:
 
     if (ppLockArray)
     {
-        SrvFreeMemory(ppLockArray);
+        NfsFreeMemory(ppLockArray);
     }
 
     *pppLockArray      = NULL;
@@ -566,7 +566,7 @@ error:
 }
 
 NTSTATUS
-SrvDetermineUnlocks_SMB_V2(
+NfsDetermineUnlocks_SMB_V2(
     PSMB2_LOCK_REQUEST_HEADER pLockRequestHeader,
     PSMB2_LOCK**              pppUnlockArray,
     PULONG                    pulNumUnlocks
@@ -591,7 +591,7 @@ SrvDetermineUnlocks_SMB_V2(
     {
         ULONG iLock2 = 0;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         sizeof(PSMB2_LOCK*) * usNumUnlocks,
                         (PVOID*)&ppUnlockArray);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -618,7 +618,7 @@ error:
 
     if (ppUnlockArray)
     {
-        SrvFreeMemory(ppUnlockArray);
+        NfsFreeMemory(ppUnlockArray);
     }
 
     *pppUnlockArray    = NULL;
@@ -629,7 +629,7 @@ error:
 
 static
 NTSTATUS
-SrvAscertainIfLocksFailImmediately(
+NfsAscertainIfLocksFailImmediately(
     PSMB2_LOCK* ppUnlockArray,
     ULONG       ulNumUnlocks,
     PSMB2_LOCK* ppLockArray,
@@ -668,9 +668,9 @@ SrvAscertainIfLocksFailImmediately(
 
 static
 NTSTATUS
-SrvProcessSyncLockRequest_SMB_V2(
-    PSRV_EXEC_CONTEXT              pExecContext,
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsProcessSyncLockRequest_SMB_V2(
+    PNFS_EXEC_CONTEXT              pExecContext,
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -700,7 +700,7 @@ SrvProcessSyncLockRequest_SMB_V2(
         PSMB2_LOCK pLock =
                 pLockRequestState->ppUnlockArray[pLockRequestState->iUnlock];
 
-        SrvPrepareSyncLockStateAsync_SMB_V2(pLockRequestState, pExecContext);
+        NfsPrepareSyncLockStateAsync_SMB_V2(pLockRequestState, pExecContext);
 
         ntStatus = IoUnlockFile(
                         pLockRequestState->pFile->hFile,
@@ -715,7 +715,7 @@ SrvProcessSyncLockRequest_SMB_V2(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvReleaseSyncLockStateAsync_SMB_V2(pLockRequestState); // completed sync
+        NfsReleaseSyncLockStateAsync_SMB_V2(pLockRequestState); // completed sync
     }
 
     // Lock requests
@@ -725,7 +725,7 @@ SrvProcessSyncLockRequest_SMB_V2(
         PSMB2_LOCK pLock =
                 pLockRequestState->ppLockArray[pLockRequestState->iLock];
 
-        SrvPrepareSyncLockStateAsync_SMB_V2(pLockRequestState, pExecContext);
+        NfsPrepareSyncLockStateAsync_SMB_V2(pLockRequestState, pExecContext);
 
         ntStatus = IoLockFile(
                         pLockRequestState->pFile->hFile,
@@ -743,7 +743,7 @@ SrvProcessSyncLockRequest_SMB_V2(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvReleaseSyncLockStateAsync_SMB_V2(pLockRequestState); // completed sync
+        NfsReleaseSyncLockStateAsync_SMB_V2(pLockRequestState); // completed sync
     }
 
 error:
@@ -753,12 +753,12 @@ error:
 
 static
 VOID
-SrvPrepareSyncLockStateAsync_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState,
-    PSRV_EXEC_CONTEXT              pExecContext
+NfsPrepareSyncLockStateAsync_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState,
+    PNFS_EXEC_CONTEXT              pExecContext
     )
 {
-    pLockRequestState->acb.Callback = &SrvExecuteLockContextAsyncCB_SMB_V2;
+    pLockRequestState->acb.Callback = &NfsExecuteLockContextAsyncCB_SMB_V2;
 
     pLockRequestState->acb.CallbackContext = pExecContext;
     InterlockedIncrement(&pExecContext->refCount);
@@ -770,16 +770,16 @@ SrvPrepareSyncLockStateAsync_SMB_V2(
 
 static
 VOID
-SrvExecuteLockContextAsyncCB_SMB_V2(
+NfsExecuteLockContextAsyncCB_SMB_V2(
     PVOID pContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT          pExecContext = (PSRV_EXEC_CONTEXT)pContext;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState =
-                            (PSRV_LOCK_REQUEST_STATE_SMB_V2)pCtxSmb2->hState;
+    PNFS_EXEC_CONTEXT          pExecContext = (PNFS_EXEC_CONTEXT)pContext;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState =
+                            (PNFS_LOCK_REQUEST_STATE_SMB_V2)pCtxSmb2->hState;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pLockRequestState->mutex);
@@ -794,7 +794,7 @@ SrvExecuteLockContextAsyncCB_SMB_V2(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pLockRequestState->mutex);
 
-    ntStatus = SrvProdConsEnqueue(
+    ntStatus = NfsProdConsEnqueue(
                     gProtocolGlobals_SMB_V2.pWorkQueue,
                     pExecContext);
     if (ntStatus != STATUS_SUCCESS)
@@ -802,14 +802,14 @@ SrvExecuteLockContextAsyncCB_SMB_V2(
         LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
                         ntStatus);
 
-        SrvReleaseExecContext(pExecContext);
+        NfsReleaseExecContext(pExecContext);
     }
 }
 
 static
 VOID
-SrvReleaseSyncLockStateAsync_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsReleaseSyncLockStateAsync_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     )
 {
     if (pLockRequestState->pAcb)
@@ -818,11 +818,11 @@ SrvReleaseSyncLockStateAsync_SMB_V2(
 
         if (pLockRequestState->pAcb->CallbackContext)
         {
-            PSRV_EXEC_CONTEXT pExecContext = NULL;
+            PNFS_EXEC_CONTEXT pExecContext = NULL;
 
-            pExecContext = (PSRV_EXEC_CONTEXT)pLockRequestState->pAcb->CallbackContext;
+            pExecContext = (PNFS_EXEC_CONTEXT)pLockRequestState->pAcb->CallbackContext;
 
-            SrvReleaseExecContext(pExecContext);
+            NfsReleaseExecContext(pExecContext);
 
             pLockRequestState->pAcb->CallbackContext = NULL;
         }
@@ -839,23 +839,23 @@ SrvReleaseSyncLockStateAsync_SMB_V2(
 
 static
 VOID
-SrvClearLocks_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsClearLocks_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     )
 {
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_MUTEX(bInLock, &pLockRequestState->mutex);
 
-    SrvClearLocks_SMB_V2_inlock(pLockRequestState);
+    NfsClearLocks_SMB_V2_inlock(pLockRequestState);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pLockRequestState->mutex);
 }
 
 static
 VOID
-SrvClearLocks_SMB_V2_inlock(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsClearLocks_SMB_V2_inlock(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     )
 {
     //
@@ -887,16 +887,16 @@ SrvClearLocks_SMB_V2_inlock(
 
 static
 NTSTATUS
-SrvBuildLockResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT      pExecContext
+NfsBuildLockResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT      pExecContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset         = 0;
@@ -963,30 +963,30 @@ error:
 
 static
 VOID
-SrvReleaseLockRequestStateHandle_SMB_V2(
+NfsReleaseLockRequestStateHandle_SMB_V2(
     HANDLE hLockRequestState
     )
 {
-    return SrvReleaseLockRequestState_SMB_V2(
-                (PSRV_LOCK_REQUEST_STATE_SMB_V2)hLockRequestState);
+    return NfsReleaseLockRequestState_SMB_V2(
+                (PNFS_LOCK_REQUEST_STATE_SMB_V2)hLockRequestState);
 }
 
 static
 VOID
-SrvReleaseLockRequestState_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsReleaseLockRequestState_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     )
 {
     if (InterlockedDecrement(&pLockRequestState->refCount) == 0)
     {
-        SrvFreeLockRequestState_SMB_V2(pLockRequestState);
+        NfsFreeLockRequestState_SMB_V2(pLockRequestState);
     }
 }
 
 static
 VOID
-SrvFreeLockRequestState_SMB_V2(
-    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+NfsFreeLockRequestState_SMB_V2(
+    PNFS_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     )
 {
     if (pLockRequestState->pAcb && pLockRequestState->pAcb->AsyncCancelContext)
@@ -997,11 +997,11 @@ SrvFreeLockRequestState_SMB_V2(
 
     if (pLockRequestState->pFile)
     {
-        SrvFile2Release(pLockRequestState->pFile);
+        NfsFile2Release(pLockRequestState->pFile);
     }
 
-    SRV_SAFE_FREE_MEMORY(pLockRequestState->ppLockArray);
-    SRV_SAFE_FREE_MEMORY(pLockRequestState->ppUnlockArray);
+    NFS_SAFE_FREE_MEMORY(pLockRequestState->ppLockArray);
+    NFS_SAFE_FREE_MEMORY(pLockRequestState->ppUnlockArray);
 
     if (pLockRequestState->pMutex)
     {

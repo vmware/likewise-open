@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -52,12 +52,12 @@
 
 static
 VOID
-SrvFile2Free(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2Free(
+    PLWIO_NFS_FILE_2 pFile
     );
 
 NTSTATUS
-SrvFile2Create(
+NfsFile2Create(
     PSMB2_FID               pFid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
@@ -68,18 +68,18 @@ SrvFile2Create(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE_2*       ppFile
+    PLWIO_NFS_FILE_2*       ppFile
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_FILE_2 pFile = NULL;
+    PLWIO_NFS_FILE_2 pFile = NULL;
 
     LWIO_LOG_DEBUG("Creating file [fid: (persistent:%08X)(volatile:%08X)]",
                    pFid->ullPersistentId,
                    pFid->ullVolatileId);
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(LWIO_SRV_FILE_2),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(LWIO_NFS_FILE_2),
                     (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -88,7 +88,7 @@ SrvFile2Create(
     pthread_rwlock_init(&pFile->mutex, NULL);
     pFile->pMutex = &pFile->mutex;
 
-    ntStatus = SrvAllocateStringW(pwszFilename, &pFile->pwszFilename);
+    ntStatus = NfsAllocateStringW(pwszFilename, &pFile->pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFile->fid = *pFid;
@@ -109,7 +109,7 @@ SrvFile2Create(
                     pFid->ullPersistentId,
                     pFid->ullVolatileId);
 
-    SRV_ELEMENTS_INCREMENT_OPEN_FILES;
+    NFS_ELEMENTS_INCREMENT_OPEN_FILES;
 
     *ppFile = pFile;
 
@@ -123,17 +123,17 @@ error:
 
     if (pFile)
     {
-        SrvFile2Release(pFile);
+        NfsFile2Release(pFile);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvFile2SetOplockState(
-    PLWIO_SRV_FILE_2               pFile,
+NfsFile2SetOplockState(
+    PLWIO_NFS_FILE_2               pFile,
     HANDLE                         hOplockState,
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState
+    PFN_LWIO_NFS_FREE_OPLOCK_STATE pfnFreeOplockState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -157,8 +157,8 @@ SrvFile2SetOplockState(
 }
 
 HANDLE
-SrvFile2RemoveOplockState(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2RemoveOplockState(
+    PLWIO_NFS_FILE_2 pFile
     )
 {
     HANDLE  hOplockState = NULL;
@@ -177,8 +177,8 @@ SrvFile2RemoveOplockState(
 }
 
 VOID
-SrvFile2ResetOplockState(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2ResetOplockState(
+    PLWIO_NFS_FILE_2 pFile
     )
 {
     BOOLEAN  bInLock  = FALSE;
@@ -196,8 +196,8 @@ SrvFile2ResetOplockState(
 }
 
 VOID
-SrvFile2SetOplockLevel(
-    PLWIO_SRV_FILE_2 pFile,
+NfsFile2SetOplockLevel(
+    PLWIO_NFS_FILE_2 pFile,
     UCHAR            ucOplockLevel
     )
 {
@@ -211,8 +211,8 @@ SrvFile2SetOplockLevel(
 }
 
 UCHAR
-SrvFile2GetOplockLevel(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2GetOplockLevel(
+    PLWIO_NFS_FILE_2 pFile
     )
 {
     UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
@@ -228,9 +228,9 @@ SrvFile2GetOplockLevel(
     return ucOplockLevel;
 }
 
-PLWIO_SRV_FILE_2
-SrvFile2Acquire(
-    PLWIO_SRV_FILE_2 pFile
+PLWIO_NFS_FILE_2
+NfsFile2Acquire(
+    PLWIO_NFS_FILE_2 pFile
     )
 {
     LWIO_LOG_DEBUG("Acquiring file [fid: (persistent:%08X)(volatile:%08X)]",
@@ -243,8 +243,8 @@ SrvFile2Acquire(
 }
 
 VOID
-SrvFile2Release(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2Release(
+    PLWIO_NFS_FILE_2 pFile
     )
 {
     LWIO_LOG_DEBUG("Releasing file [fid: (persistent:%08X)(volatile:%08X)]",
@@ -253,15 +253,15 @@ SrvFile2Release(
 
     if (InterlockedDecrement(&pFile->refcount) == 0)
     {
-        SRV_ELEMENTS_DECREMENT_OPEN_FILES;
+        NFS_ELEMENTS_DECREMENT_OPEN_FILES;
 
-        SrvFile2Free(pFile);
+        NfsFile2Free(pFile);
     }
 }
 
 VOID
-SrvFile2Rundown(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2Rundown(
+    PLWIO_NFS_FILE_2 pFile
     )
 {
     if (pFile->hFile)
@@ -272,8 +272,8 @@ SrvFile2Rundown(
 
 static
 VOID
-SrvFile2Free(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2Free(
+    PLWIO_NFS_FILE_2 pFile
     )
 {
     LWIO_LOG_DEBUG( "Freeing file [object:0x%x]"
@@ -292,10 +292,10 @@ SrvFile2Free(
     {
         if (pFile->pFilename->FileName)
         {
-            SrvFreeMemory (pFile->pFilename->FileName);
+            NfsFreeMemory (pFile->pFilename->FileName);
         }
 
-        SrvFreeMemory(pFile->pFilename);
+        NfsFreeMemory(pFile->pFilename);
     }
 
     if (pFile->hFile)
@@ -305,23 +305,23 @@ SrvFile2Free(
 
     if (pFile->pwszFilename)
     {
-        SrvFreeMemory(pFile->pwszFilename);
+        NfsFreeMemory(pFile->pwszFilename);
     }
 
     if (pFile->searchSpace.pwszSearchPattern)
     {
-        SrvFreeMemory(pFile->searchSpace.pwszSearchPattern);
+        NfsFreeMemory(pFile->searchSpace.pwszSearchPattern);
     }
 
     if (pFile->searchSpace.pwszSearchPatternRaw)
     {
-        SrvFreeMemory(pFile->searchSpace.pwszSearchPatternRaw);
+        NfsFreeMemory(pFile->searchSpace.pwszSearchPatternRaw);
     }
 
     if (pFile->searchSpace.pFileInfo)
     {
-        SrvFreeMemory(pFile->searchSpace.pFileInfo);
+        NfsFreeMemory(pFile->searchSpace.pFileInfo);
     }
 
-    SrvFreeMemory(pFile);
+    NfsFreeMemory(pFile);
 }

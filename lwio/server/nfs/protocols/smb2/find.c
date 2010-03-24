@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -53,9 +53,9 @@
 
 static
 NTSTATUS
-SrvFindIdBothDirInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindIdBothDirInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -65,8 +65,8 @@ SrvFindIdBothDirInformation(
 
 static
 NTSTATUS
-SrvMarshalIdBothDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2            pSearchSpace,
+NfsMarshalIdBothDirInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2            pSearchSpace,
     PBYTE                               pBuffer,
     ULONG                               ulBytesAvailable,
     ULONG                               ulOffset,
@@ -77,9 +77,9 @@ SrvMarshalIdBothDirInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindBothDirInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindBothDirInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -89,8 +89,8 @@ SrvFindBothDirInformation(
 
 static
 NTSTATUS
-SrvMarshalBothDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2         pSearchSpace,
+NfsMarshalBothDirInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2         pSearchSpace,
     PBYTE                            pBuffer,
     ULONG                            ulBytesAvailable,
     ULONG                            ulOffset,
@@ -101,9 +101,9 @@ SrvMarshalBothDirInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindIdFullDirInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindIdFullDirInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -113,8 +113,8 @@ SrvFindIdFullDirInformation(
 
 static
 NTSTATUS
-SrvMarshalIdFullDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2            pSearchSpace,
+NfsMarshalIdFullDirInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2            pSearchSpace,
     PBYTE                               pBuffer,
     ULONG                               ulBytesAvailable,
     ULONG                               ulOffset,
@@ -125,9 +125,9 @@ SrvMarshalIdFullDirInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindFullDirInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindFullDirInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -137,8 +137,8 @@ SrvFindFullDirInformation(
 
 static
 NTSTATUS
-SrvMarshalFullDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2         pSearchSpace,
+NfsMarshalFullDirInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2         pSearchSpace,
     PBYTE                            pBuffer,
     ULONG                            ulBytesAvailable,
     ULONG                            ulOffset,
@@ -149,9 +149,9 @@ SrvMarshalFullDirInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindDirectoryInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindDirectoryInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -161,8 +161,8 @@ SrvFindDirectoryInformation(
 
 static
 NTSTATUS
-SrvMarshalDirectoryInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2          pSearchSpace,
+NfsMarshalDirectoryInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2          pSearchSpace,
     PBYTE                             pBuffer,
     ULONG                             ulBytesAvailable,
     ULONG                             ulOffset,
@@ -173,9 +173,9 @@ SrvMarshalDirectoryInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindNamesInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindNamesInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -185,8 +185,8 @@ SrvFindNamesInformation(
 
 static
 NTSTATUS
-SrvMarshalNamesInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2      pSearchSpace,
+NfsMarshalNamesInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2      pSearchSpace,
     PBYTE                         pBuffer,
     ULONG                         ulBytesAvailable,
     ULONG                         ulOffset,
@@ -196,20 +196,20 @@ SrvMarshalNamesInfoSearchResults(
     );
 
 NTSTATUS
-SrvProcessFind_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessFind_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus                = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection   = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
-    PLWIO_SRV_SESSION_2 pSession     = NULL;
-    PLWIO_SRV_TREE_2    pTree        = NULL;
-    PLWIO_SRV_FILE_2    pFile        = NULL;
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PLWIO_NFS_SESSION_2 pSession     = NULL;
+    PLWIO_NFS_TREE_2    pTree        = NULL;
+    PLWIO_NFS_FILE_2    pFile        = NULL;
     IO_FILE_HANDLE      hFile2       = NULL;
     PSMB2_FIND_REQUEST_HEADER  pRequestHeader  = NULL; // Do not free
     PSMB2_FIND_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
@@ -231,14 +231,14 @@ SrvProcessFind_SMB_V2(
     ULONG ulTotalBytesUsed = 0;
     PIO_ECP_LIST pEcpList = NULL;
 
-    ntStatus = SrvConnection2FindSession_SMB_V2(
+    ntStatus = NfsConnection2FindSession_SMB_V2(
                     pCtxSmb2,
                     pConnection,
                     pSmbRequest->pHeader->ullSessionId,
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvSession2FindTree_SMB_V2(
+    ntStatus = NfsSession2FindTree_SMB_V2(
                     pCtxSmb2,
                     pSession,
                     pSmbRequest->pHeader->ulTid,
@@ -251,7 +251,7 @@ SrvProcessFind_SMB_V2(
                     &wszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTree2FindFile_SMB_V2(
+    ntStatus = NfsTree2FindFile_SMB_V2(
                     pCtxSmb2,
                     pTree,
                     &pRequestHeader->fid,
@@ -288,7 +288,7 @@ SrvProcessFind_SMB_V2(
     {
         IO_STATUS_BLOCK ioStatusBlock = {0};
 
-        ntStatus = SrvIoCreateFile(
+        ntStatus = NfsIoCreateFile(
                         pTree->pShareInfo,
                         &hFile2,
                         NULL,
@@ -321,20 +321,20 @@ SrvProcessFind_SMB_V2(
         {
             if (pFile->searchSpace.pwszSearchPattern)
             {
-                SrvFreeMemory(pFile->searchSpace.pwszSearchPattern);
+                NfsFreeMemory(pFile->searchSpace.pwszSearchPattern);
                 pFile->searchSpace.pwszSearchPattern = NULL;
             }
 
             if (pFile->searchSpace.pwszSearchPatternRaw)
             {
-                SrvFreeMemory(pFile->searchSpace.pwszSearchPatternRaw);
+                NfsFreeMemory(pFile->searchSpace.pwszSearchPatternRaw);
                 pFile->searchSpace.pwszSearchPatternRaw = NULL;
                 pFile->searchSpace.pwszSearchPatternRef = NULL;
             }
 
             if (pFile->searchSpace.pFileInfo)
             {
-                SrvFreeMemory(pFile->searchSpace.pFileInfo);
+                NfsFreeMemory(pFile->searchSpace.pFileInfo);
                 pFile->searchSpace.pFileInfo = NULL;
             }
 
@@ -366,7 +366,7 @@ SrvProcessFind_SMB_V2(
         {
             wchar16_t wszBackSlash[] = {'\\', 0};
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             wszFilename.Length + sizeof(wchar16_t),
                             (PVOID*)&pFile->searchSpace.pwszSearchPatternRaw);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -389,7 +389,7 @@ SrvProcessFind_SMB_V2(
 
         LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
 
-        ntStatus = SrvBuildFilePath(
+        ntStatus = NfsBuildFilePath(
                         pTree->pShareInfo->pwszPath,
                         pFile->pwszFilename,
                         &pwszFilePath);
@@ -397,7 +397,7 @@ SrvProcessFind_SMB_V2(
 
         LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
-        ntStatus = SrvFinderBuildSearchPath(
+        ntStatus = NfsFinderBuildSearchPath(
                         pwszFilePath,
                         pFile->searchSpace.pwszSearchPatternRef,
                         &pwszFilesystemPath,
@@ -458,7 +458,7 @@ SrvProcessFind_SMB_V2(
     {
 		case SMB2_FILE_INFO_CLASS_ID_BOTH_DIR:
 
-            ntStatus = SrvFindIdBothDirInformation(
+            ntStatus = NfsFindIdBothDirInformation(
                             pExecContext,
                             pFile,
                             pRequestHeader,
@@ -471,7 +471,7 @@ SrvProcessFind_SMB_V2(
 
 		case SMB2_FILE_INFO_CLASS_ID_FULL_DIR:
 
-            ntStatus = SrvFindIdFullDirInformation(
+            ntStatus = NfsFindIdFullDirInformation(
                             pExecContext,
                             pFile,
                             pRequestHeader,
@@ -484,7 +484,7 @@ SrvProcessFind_SMB_V2(
 
         case SMB2_FILE_INFO_CLASS_BOTH_DIR:
 
-            ntStatus = SrvFindBothDirInformation(
+            ntStatus = NfsFindBothDirInformation(
                             pExecContext,
                             pFile,
                             pRequestHeader,
@@ -497,7 +497,7 @@ SrvProcessFind_SMB_V2(
 
         case SMB2_FILE_INFO_CLASS_FULL_DIR:
 
-            ntStatus = SrvFindFullDirInformation(
+            ntStatus = NfsFindFullDirInformation(
                             pExecContext,
                             pFile,
                             pRequestHeader,
@@ -510,7 +510,7 @@ SrvProcessFind_SMB_V2(
 
         case SMB2_FILE_INFO_CLASS_DIR:
 
-            ntStatus = SrvFindDirectoryInformation(
+            ntStatus = NfsFindDirectoryInformation(
                             pExecContext,
                             pFile,
                             pRequestHeader,
@@ -523,7 +523,7 @@ SrvProcessFind_SMB_V2(
 
         case SMB2_FILE_INFO_CLASS_NAMES:
 
-            ntStatus = SrvFindNamesInformation(
+            ntStatus = NfsFindNamesInformation(
                             pExecContext,
                             pFile,
                             pRequestHeader,
@@ -610,28 +610,28 @@ cleanup:
 
     if (pwszFilesystemPath)
     {
-        SrvFreeMemory(pwszFilesystemPath);
+        NfsFreeMemory(pwszFilesystemPath);
     }
     if (pwszFilePath)
     {
-        SrvFreeMemory(pwszFilePath);
+        NfsFreeMemory(pwszFilePath);
     }
 
     if (pFile)
     {
-        SrvFile2Release(pFile);
+        NfsFile2Release(pFile);
     }
 
     if (pTree)
     {
         LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     if (hFile2)
@@ -657,9 +657,9 @@ error:
 
 static
 NTSTATUS
-SrvFindIdBothDirInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindIdBothDirInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -684,7 +684,7 @@ SrvFindIdBothDirInformation(
                                     SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_ID_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_ID_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
+    PLWIO_NFS_SEARCH_SPACE_2 pSearchSpace = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
@@ -696,7 +696,7 @@ SrvFindIdBothDirInformation(
         USHORT usBytesAllocated = (sizeof(FILE_ID_BOTH_DIR_INFORMATION) +
                                    256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         usBytesAllocated,
                         (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -775,7 +775,7 @@ SrvFindIdBothDirInformation(
 
         if (pSearchSpace->pFileInfoCursor)
         {
-            ntStatus = SrvMarshalIdBothDirInfoSearchResults(
+            ntStatus = NfsMarshalIdBothDirInfoSearchResults(
                             pSearchSpace,
                             pDataBuffer + ulDataLength,
                             ulBytesAvailable,
@@ -834,8 +834,8 @@ error:
 
 static
 NTSTATUS
-SrvMarshalIdBothDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2            pSearchSpace,
+NfsMarshalIdBothDirInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2            pSearchSpace,
     PBYTE                               pBuffer,
     ULONG                               ulBytesAvailable,
     ULONG                               ulOffset,
@@ -999,9 +999,9 @@ SrvMarshalIdBothDirInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindBothDirInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindBothDirInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -1026,7 +1026,7 @@ SrvFindBothDirInformation(
                                        SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_BOTH_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_BOTH_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
+    PLWIO_NFS_SEARCH_SPACE_2 pSearchSpace = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
@@ -1038,7 +1038,7 @@ SrvFindBothDirInformation(
         USHORT usBytesAllocated = (sizeof(FILE_BOTH_DIR_INFORMATION) +
                                    256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         usBytesAllocated,
                         (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1116,7 +1116,7 @@ SrvFindBothDirInformation(
 
         if (pSearchSpace->pFileInfoCursor)
         {
-            ntStatus = SrvMarshalBothDirInfoSearchResults(
+            ntStatus = NfsMarshalBothDirInfoSearchResults(
                             pSearchSpace,
                             pDataBuffer + ulDataLength,
                             ulBytesAvailable,
@@ -1175,8 +1175,8 @@ error:
 
 static
 NTSTATUS
-SrvMarshalBothDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2         pSearchSpace,
+NfsMarshalBothDirInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2         pSearchSpace,
     PBYTE                            pBuffer,
     ULONG                            ulBytesAvailable,
     ULONG                            ulOffset,
@@ -1336,9 +1336,9 @@ SrvMarshalBothDirInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindIdFullDirInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindIdFullDirInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -1363,7 +1363,7 @@ SrvFindIdFullDirInformation(
                                        SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_ID_FULL_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_ID_FULL_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
+    PLWIO_NFS_SEARCH_SPACE_2 pSearchSpace = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
@@ -1375,7 +1375,7 @@ SrvFindIdFullDirInformation(
         USHORT usBytesAllocated = (sizeof(FILE_ID_FULL_DIR_INFORMATION) +
                                    256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         usBytesAllocated,
                         (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1453,7 +1453,7 @@ SrvFindIdFullDirInformation(
 
         if (pSearchSpace->pFileInfoCursor)
         {
-            ntStatus = SrvMarshalIdFullDirInfoSearchResults(
+            ntStatus = NfsMarshalIdFullDirInfoSearchResults(
                             pSearchSpace,
                             pDataBuffer + ulDataLength,
                             ulBytesAvailable,
@@ -1512,8 +1512,8 @@ error:
 
 static
 NTSTATUS
-SrvMarshalIdFullDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2            pSearchSpace,
+NfsMarshalIdFullDirInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2            pSearchSpace,
     PBYTE                               pBuffer,
     ULONG                               ulBytesAvailable,
     ULONG                               ulOffset,
@@ -1653,9 +1653,9 @@ SrvMarshalIdFullDirInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindFullDirInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindFullDirInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -1680,7 +1680,7 @@ SrvFindFullDirInformation(
                                        SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_FULL_DIR_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_FULL_DIR_INFO_HEADER pLastInfoHeader = NULL; // Do not free
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
+    PLWIO_NFS_SEARCH_SPACE_2 pSearchSpace = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
@@ -1692,7 +1692,7 @@ SrvFindFullDirInformation(
         USHORT usBytesAllocated = (sizeof(FILE_FULL_DIR_INFORMATION) +
                                    256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         usBytesAllocated,
                         (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -1770,7 +1770,7 @@ SrvFindFullDirInformation(
 
         if (pSearchSpace->pFileInfoCursor)
         {
-            ntStatus = SrvMarshalFullDirInfoSearchResults(
+            ntStatus = NfsMarshalFullDirInfoSearchResults(
                             pSearchSpace,
                             pDataBuffer + ulDataLength,
                             ulBytesAvailable,
@@ -1829,8 +1829,8 @@ error:
 
 static
 NTSTATUS
-SrvMarshalFullDirInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2         pSearchSpace,
+NfsMarshalFullDirInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2         pSearchSpace,
     PBYTE                            pBuffer,
     ULONG                            ulBytesAvailable,
     ULONG                            ulOffset,
@@ -1969,9 +1969,9 @@ SrvMarshalFullDirInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindDirectoryInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindDirectoryInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -1996,7 +1996,7 @@ SrvFindDirectoryInformation(
                                        SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_DIRECTORY_INFORMATION pFileInfoCursor = NULL;
     PSMB2_FILE_DIRECTORY_INFO_HEADER pLastInfoHeader = NULL; // Do not free
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace = NULL;
+    PLWIO_NFS_SEARCH_SPACE_2 pSearchSpace = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
@@ -2008,7 +2008,7 @@ SrvFindDirectoryInformation(
         USHORT usBytesAllocated = (sizeof(FILE_DIRECTORY_INFORMATION) +
                                    256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         usBytesAllocated,
                         (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -2086,7 +2086,7 @@ SrvFindDirectoryInformation(
 
         if (pSearchSpace->pFileInfoCursor)
         {
-            ntStatus = SrvMarshalDirectoryInfoSearchResults(
+            ntStatus = NfsMarshalDirectoryInfoSearchResults(
                             pSearchSpace,
                             pDataBuffer + ulDataLength,
                             ulBytesAvailable,
@@ -2145,8 +2145,8 @@ error:
 
 static
 NTSTATUS
-SrvMarshalDirectoryInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2          pSearchSpace,
+NfsMarshalDirectoryInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2          pSearchSpace,
     PBYTE                             pBuffer,
     ULONG                             ulBytesAvailable,
     ULONG                             ulOffset,
@@ -2284,9 +2284,9 @@ SrvMarshalDirectoryInfoSearchResults(
 
 static
 NTSTATUS
-SrvFindNamesInformation(
-    PSRV_EXEC_CONTEXT         pExecContext,
-    PLWIO_SRV_FILE_2          pFile,
+NfsFindNamesInformation(
+    PNFS_EXEC_CONTEXT         pExecContext,
+    PLWIO_NFS_FILE_2          pFile,
     PSMB2_FIND_REQUEST_HEADER pRequestHeader,
     PBYTE                     pDataBuffer,
     ULONG                     ulDataOffset,
@@ -2311,7 +2311,7 @@ SrvFindNamesInformation(
                                        SMB2_SEARCH_FLAGS_RETURN_SINGLE_ENTRY);
     PFILE_NAMES_INFORMATION      pFileInfoCursor = NULL;
     PSMB2_FILE_NAMES_INFO_HEADER pLastInfoHeader = NULL; // Do not free
-    PLWIO_SRV_SEARCH_SPACE_2     pSearchSpace = NULL;
+    PLWIO_NFS_SEARCH_SPACE_2     pSearchSpace = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
@@ -2323,7 +2323,7 @@ SrvFindNamesInformation(
         USHORT usBytesAllocated = (sizeof(FILE_NAMES_INFORMATION) +
                                        256 * sizeof(wchar16_t)) * 10;
 
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         usBytesAllocated,
                         (PVOID*)&pSearchSpace->pFileInfo);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -2402,7 +2402,7 @@ SrvFindNamesInformation(
 
         if (pSearchSpace->pFileInfoCursor)
         {
-            ntStatus = SrvMarshalNamesInfoSearchResults(
+            ntStatus = NfsMarshalNamesInfoSearchResults(
                             pSearchSpace,
                             pDataBuffer + ulDataLength,
                             ulBytesAvailable,
@@ -2461,8 +2461,8 @@ error:
 
 static
 NTSTATUS
-SrvMarshalNamesInfoSearchResults(
-    PLWIO_SRV_SEARCH_SPACE_2      pSearchSpace,
+NfsMarshalNamesInfoSearchResults(
+    PLWIO_NFS_SEARCH_SPACE_2      pSearchSpace,
     PBYTE                         pBuffer,
     ULONG                         ulBytesAvailable,
     ULONG                         ulOffset,

@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Transport API
  *
@@ -53,10 +53,10 @@
 #define SMB_SERVER_PORT 445
 
 #ifdef LW_USE_INET6
-#define SRV_SOCKET_ADDRESS_STRING_MAX_SIZE \
+#define NFS_SOCKET_ADDRESS_STRING_MAX_SIZE \
     (LW_MAX(INET_ADDRSTRLEN, INET6_ADDRSTRLEN) + 1)
 #else
-#define SRV_SOCKET_ADDRESS_STRING_MAX_SIZE \
+#define NFS_SOCKET_ADDRESS_STRING_MAX_SIZE \
     (INET_ADDRSTRLEN + 1)
 #endif
 

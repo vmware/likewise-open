@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Share Repository API
  *
@@ -50,7 +50,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvShareInit(
+NfsShareInit(
     VOID
     )
 {
@@ -58,11 +58,11 @@ SrvShareInit(
 
 #if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
 
-    status = LwSqliteShareRepositoryInit(&gSrvShareApi.pFnTable);
+    status = LwSqliteShareRepositoryInit(&gNfsShareApi.pFnTable);
 
 #elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
 
-    status = LwRegShareRepositoryInit(&gSrvShareApi.pFnTable);
+    status = LwRegShareRepositoryInit(&gNfsShareApi.pFnTable);
 
 #endif
 
@@ -70,7 +70,7 @@ SrvShareInit(
 }
 
 NTSTATUS
-SrvShareShutdown(
+NfsShareShutdown(
     VOID
     )
 {
@@ -78,16 +78,16 @@ SrvShareShutdown(
 
 #if defined(LW_USE_SHARE_REPOSITORY_SQLITE)
 
-    status = LwSqliteShareRepositoryShutdown(gSrvShareApi.pFnTable);
+    status = LwSqliteShareRepositoryShutdown(gNfsShareApi.pFnTable);
 
 #elif defined(LW_USE_SHARE_REPOSITORY_REGISTRY)
 
-    status = LwRegShareRepositoryShutdown(gSrvShareApi.pFnTable);
+    status = LwRegShareRepositoryShutdown(gNfsShareApi.pFnTable);
 
 #endif
     BAIL_ON_NT_STATUS(status);
 
-    gSrvShareApi.pFnTable = NULL;
+    gNfsShareApi.pFnTable = NULL;
 
 error:
 

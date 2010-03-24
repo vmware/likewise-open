@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - NFS
  *
  *        Utilities
  *
@@ -46,7 +46,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvProdConsInit(
+NfsProdConsInit(
     ULONG                         ulNumMaxItems,
     PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,
     PSMB_PROD_CONS_QUEUE*         ppQueue
@@ -61,12 +61,12 @@ SrvProdConsInit(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     sizeof(SMB_PROD_CONS_QUEUE),
                     (PVOID*)&pQueue);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProdConsInitContents(
+    ntStatus = NfsProdConsInitContents(
                     pQueue,
                     ulNumMaxItems,
                     pfnFreeItem);
@@ -84,14 +84,14 @@ error:
 
     if (pQueue)
     {
-        SrvProdConsFree(pQueue);
+        NfsProdConsFree(pQueue);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvProdConsInitContents(
+NfsProdConsInitContents(
     PSMB_PROD_CONS_QUEUE          pQueue,
     ULONG                         ulNumMaxItems,
     PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem
@@ -114,7 +114,7 @@ SrvProdConsInitContents(
 }
 
 NTSTATUS
-SrvProdConsEnqueue(
+NfsProdConsEnqueue(
     PSMB_PROD_CONS_QUEUE pQueue,
     PVOID                pItem
     )
@@ -157,7 +157,7 @@ error:
 }
 
 NTSTATUS
-SrvProdConsDequeue(
+NfsProdConsDequeue(
     PSMB_PROD_CONS_QUEUE pQueue,
     PVOID*               ppItem
     )
@@ -196,7 +196,7 @@ SrvProdConsDequeue(
 }
 
 NTSTATUS
-SrvProdConsTimedDequeue(
+NfsProdConsTimedDequeue(
     PSMB_PROD_CONS_QUEUE pQueue,
     struct timespec*     pTimespec,
     PVOID*               ppItem
@@ -272,17 +272,17 @@ error:
 }
 
 VOID
-SrvProdConsFree(
+NfsProdConsFree(
     PSMB_PROD_CONS_QUEUE pQueue
     )
 {
-    SrvProdConsFreeContents(pQueue);
+    NfsProdConsFreeContents(pQueue);
 
-    SrvFreeMemory(pQueue);
+    NfsFreeMemory(pQueue);
 }
 
 VOID
-SrvProdConsFreeContents(
+NfsProdConsFreeContents(
     PSMB_PROD_CONS_QUEUE pQueue
     )
 {

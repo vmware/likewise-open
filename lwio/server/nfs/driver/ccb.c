@@ -2,23 +2,23 @@
 
 static
 VOID
-SrvCCBFree(
-    PSRV_CCB pCCB
+NfsCCBFree(
+    PNFS_CCB pCCB
     );
 
 NTSTATUS
-SrvCCBCreate(
-    PSRV_IRP_CONTEXT pIrpContext,
-    PSRV_CCB*        ppCCB
+NfsCCBCreate(
+    PNFS_IRP_CONTEXT pIrpContext,
+    PNFS_CCB*        ppCCB
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_CCB pCCB = NULL;
+    PNFS_CCB pCCB = NULL;
 
-    ntStatus = SrvAllocateMemory(sizeof(SRV_CCB), (PVOID*)&pCCB);
+    ntStatus = NfsAllocateMemory(sizeof(NFS_CCB), (PVOID*)&pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pCCB->CcbType = SRV_CCB_DEVICE;
+    pCCB->CcbType = NFS_CCB_DEVICE;
     pCCB->refCount = 1;
 
     *ppCCB = pCCB;
@@ -35,15 +35,15 @@ error:
 }
 
 NTSTATUS
-SrvCCBGet(
+NfsCCBGet(
     IO_FILE_HANDLE FileHandle,
-    PSRV_CCB*      ppCCB
+    PNFS_CCB*      ppCCB
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_CCB pCCB = NULL;
+    PNFS_CCB pCCB = NULL;
 
-    pCCB = (PSRV_CCB)IoFileGetContext(FileHandle);
+    pCCB = (PNFS_CCB)IoFileGetContext(FileHandle);
     if (!pCCB)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
@@ -64,31 +64,31 @@ error:
 }
 
 NTSTATUS
-SrvCCBSet(
+NfsCCBSet(
     IO_FILE_HANDLE FileHandle,
-    PSRV_CCB       pCCB
+    PNFS_CCB       pCCB
     )
 {
     return IoFileSetContext(FileHandle, pCCB);
 }
 
 VOID
-SrvCCBRelease(
-    PSRV_CCB pCCB
+NfsCCBRelease(
+    PNFS_CCB pCCB
     )
 {
     if (InterlockedDecrement(&pCCB->refCount) == 0)
     {
-        SrvCCBFree(pCCB);
+        NfsCCBFree(pCCB);
     }
 }
 
 static
 VOID
-SrvCCBFree(
-    PSRV_CCB pCCB
+NfsCCBFree(
+    PNFS_CCB pCCB
     )
 {
-    SrvFreeMemory(pCCB);
+    NfsFreeMemory(pCCB);
 }
 

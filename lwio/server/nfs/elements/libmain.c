@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        File Sharing Essential Elements
  *
@@ -50,14 +50,14 @@
 #include "includes.h"
 
 NTSTATUS
-SrvElementsInit(
+NfsElementsInit(
     VOID
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     int      iIter = 0;
 
-    status = WireGetCurrentNTTime(&gSrvElements.llBootTime);
+    status = WireGetCurrentNTTime(&gNfsElements.llBootTime);
     BAIL_ON_NT_STATUS(status);
 
     while (!RAND_status() && (iIter++ < 10))
@@ -73,11 +73,11 @@ SrvElementsInit(
         RAND_seed(szUUID, sizeof(szUUID));
     }
 
-    status = SrvTimerInit(&gSrvElements.timer);
+    status = NfsTimerInit(&gNfsElements.timer);
     BAIL_ON_NT_STATUS(status);
 
-    pthread_rwlock_init(&gSrvElements.statsLock, NULL);
-    gSrvElements.pStatsLock = &gSrvElements.statsLock;
+    pthread_rwlock_init(&gNfsElements.statsLock, NULL);
+    gNfsElements.pStatsLock = &gNfsElements.statsLock;
 
 error:
 
@@ -85,15 +85,15 @@ error:
 }
 
 NTSTATUS
-SrvTimerPostRequest(
+NfsTimerPostRequest(
     IN  LONG64                 llExpiry,
     IN  PVOID                  pUserData,
-    IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-    OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+    IN  PFN_NFS_TIMER_CALLBACK pfnTimerExpiredCB,
+    OUT PNFS_TIMER_REQUEST*    ppTimerRequest
     )
 {
-    return SrvTimerPostRequestSpecific(
-                &gSrvElements.timer,
+    return NfsTimerPostRequestSpecific(
+                &gNfsElements.timer,
                 llExpiry,
                 pUserData,
                 pfnTimerExpiredCB,
@@ -101,30 +101,30 @@ SrvTimerPostRequest(
 }
 
 NTSTATUS
-SrvTimerCancelRequest(
-    IN  PSRV_TIMER_REQUEST pTimerRequest,
+NfsTimerCancelRequest(
+    IN  PNFS_TIMER_REQUEST pTimerRequest,
     PVOID*                 ppUserData
     )
 {
-    return SrvTimerCancelRequestSpecific(
-                &gSrvElements.timer,
+    return NfsTimerCancelRequestSpecific(
+                &gNfsElements.timer,
                 pTimerRequest,
                 ppUserData);
 }
 
 NTSTATUS
-SrvElementsGetBootTime(
+NfsElementsGetBootTime(
     PULONG64 pullBootTime
     )
 {
     LONG64   llBootTime = 0LL;
     BOOLEAN  bInLock    = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_LOCK_MUTEX(bInLock, &gNfsElements.mutex);
 
-    llBootTime = gSrvElements.llBootTime;
+    llBootTime = gNfsElements.llBootTime;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvElements.mutex);
+    LWIO_UNLOCK_MUTEX(bInLock, &gNfsElements.mutex);
 
     *pullBootTime = llBootTime;
 
@@ -132,68 +132,68 @@ SrvElementsGetBootTime(
 }
 
 BOOLEAN
-SrvElementsGetShareNameEcpEnabled(
+NfsElementsGetShareNameEcpEnabled(
     VOID
     )
 {
-    return gSrvElements.bShareNameEcpEnabled;
+    return gNfsElements.bShareNameEcpEnabled;
 }
 
 NTSTATUS
-SrvElementsGetStats(
-    PSRV_ELEMENTS_STATISTICS pStats
+NfsElementsGetStats(
+    PNFS_ELEMENTS_STATISTICS pStats
     )
 {
     BOOLEAN  bInLock  = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvElements.statsLock);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gNfsElements.statsLock);
 
-    *pStats = gSrvElements.stats;
+    *pStats = gNfsElements.stats;
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gNfsElements.statsLock);
 
     return STATUS_SUCCESS;
 }
 
 NTSTATUS
-SrvElementsResetStats(
+NfsElementsResetStats(
     VOID
     )
 {
     BOOLEAN  bInLock  = FALSE;
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvElements.statsLock);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gNfsElements.statsLock);
 
-    memset(&gSrvElements.stats, 0, sizeof(gSrvElements.stats));
+    memset(&gNfsElements.stats, 0, sizeof(gNfsElements.stats));
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.statsLock);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gNfsElements.statsLock);
 
     return STATUS_SUCCESS;
 }
 
 NTSTATUS
-SrvElementsShutdown(
+NfsElementsShutdown(
     VOID
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    ntStatus = SrvTimerIndicateStop(&gSrvElements.timer);
+    ntStatus = NfsTimerIndicateStop(&gNfsElements.timer);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvTimerFreeContents(&gSrvElements.timer);
+    NfsTimerFreeContents(&gNfsElements.timer);
 
-    if (gSrvElements.pHintsBuffer != NULL)
+    if (gNfsElements.pHintsBuffer != NULL)
     {
-        SrvFreeMemory(gSrvElements.pHintsBuffer);
-        gSrvElements.pHintsBuffer = NULL;
-        gSrvElements.ulHintsLength = 0;
+        NfsFreeMemory(gNfsElements.pHintsBuffer);
+        gNfsElements.pHintsBuffer = NULL;
+        gNfsElements.ulHintsLength = 0;
     }
 
-    if (gSrvElements.pStatsLock)
+    if (gNfsElements.pStatsLock)
     {
-        pthread_rwlock_destroy(&gSrvElements.statsLock);
-        gSrvElements.pStatsLock = NULL;
+        pthread_rwlock_destroy(&gNfsElements.statsLock);
+        gNfsElements.pStatsLock = NULL;
     }
 
 error:

@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -47,38 +47,38 @@
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
-#ifndef __SRV_TIMER_H__
-#define __SRV_TIMER_H__
+#ifndef __NFS_TIMER_H__
+#define __NFS_TIMER_H__
 
 NTSTATUS
-SrvTimerInit(
-    IN PSRV_TIMER pTimer
+NfsTimerInit(
+    IN PNFS_TIMER pTimer
     );
 
 NTSTATUS
-SrvTimerPostRequestSpecific(
-    IN  PSRV_TIMER             pTimer,
+NfsTimerPostRequestSpecific(
+    IN  PNFS_TIMER             pTimer,
     IN  LONG64                 llExpiry,
     IN  PVOID                  pUserData,
-    IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-    OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+    IN  PFN_NFS_TIMER_CALLBACK pfnTimerExpiredCB,
+    OUT PNFS_TIMER_REQUEST*    ppTimerRequest
     );
 
 NTSTATUS
-SrvTimerCancelRequestSpecific(
-    IN  PSRV_TIMER         pTimer,
-    IN  PSRV_TIMER_REQUEST pTimerRequest,
+NfsTimerCancelRequestSpecific(
+    IN  PNFS_TIMER         pTimer,
+    IN  PNFS_TIMER_REQUEST pTimerRequest,
     OUT PVOID*             ppUserData
     );
 
 NTSTATUS
-SrvTimerIndicateStop(
-    PSRV_TIMER pTimer
+NfsTimerIndicateStop(
+    PNFS_TIMER pTimer
     );
 
 VOID
-SrvTimerFreeContents(
-    PSRV_TIMER pTimer
+NfsTimerFreeContents(
+    PNFS_TIMER pTimer
     );
 
-#endif /* __SRV_TIMER_H__ */
+#endif /* __NFS_TIMER_H__ */

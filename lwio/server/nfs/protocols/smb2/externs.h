@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols - SMB V2
  *
@@ -50,6 +50,6 @@
 #ifndef __EXTERNS_H__
 #define __EXTERNS_H__
 
-extern SRV_RUNTIME_GLOBALS_SMB_V2 gProtocolGlobals_SMB_V2;
+extern NFS_RUNTIME_GLOBALS_SMB_V2 gProtocolGlobals_SMB_V2;
 
 #endif /* __EXTERNS_H__ */

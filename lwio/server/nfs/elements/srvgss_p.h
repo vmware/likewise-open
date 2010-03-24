@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -47,8 +47,8 @@
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  */
 
-#ifndef __SRVGSS_P_H__
-#define __SRVGSS_P_H__
+#ifndef __NFSGSS_P_H__
+#define __NFSGSS_P_H__
 
 #define BAIL_ON_SEC_ERROR(ulMajorStatus) \
     if ((ulMajorStatus != GSS_S_COMPLETE)\
@@ -87,10 +87,10 @@
         goto error;                                                   \
     }
 
-#define SRV_PRINCIPAL       "not_defined_in_RFC4178@please_ignore"
-#define SRV_KRB5_CACHE_PATH "MEMORY:lwio_krb5_cc"
+#define NFS_PRINCIPAL       "not_defined_in_RFC4178@please_ignore"
+#define NFS_KRB5_CACHE_PATH "MEMORY:lwio_krb5_cc"
 
-typedef struct _SRV_KRB5_CONTEXT
+typedef struct _NFS_KRB5_CONTEXT
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
@@ -101,36 +101,36 @@ typedef struct _SRV_KRB5_CONTEXT
     PSTR            pszMachinePrincipal;
     time_t          ticketExpiryTime;
 
-} SRV_KRB5_CONTEXT, *PSRV_KRB5_CONTEXT;
+} NFS_KRB5_CONTEXT, *PNFS_KRB5_CONTEXT;
 
 typedef enum
 {
-    SRV_GSS_CONTEXT_STATE_INITIAL = 0,
-    SRV_GSS_CONTEXT_STATE_HINTS,
-    SRV_GSS_CONTEXT_STATE_NEGOTIATE,
-    SRV_GSS_CONTEXT_STATE_COMPLETE
-} SRV_GSS_CONTEXT_STATE;
+    NFS_GSS_CONTEXT_STATE_INITIAL = 0,
+    NFS_GSS_CONTEXT_STATE_HINTS,
+    NFS_GSS_CONTEXT_STATE_NEGOTIATE,
+    NFS_GSS_CONTEXT_STATE_COMPLETE
+} NFS_GSS_CONTEXT_STATE;
 
-typedef struct _SRV_GSS_NEGOTIATE_CONTEXT
+typedef struct _NFS_GSS_NEGOTIATE_CONTEXT
 {
-    SRV_GSS_CONTEXT_STATE state;
+    NFS_GSS_CONTEXT_STATE state;
 
     gss_ctx_id_t* pGssContext;
 
-} SRV_GSS_NEGOTIATE_CONTEXT, *PSRV_GSS_NEGOTIATE_CONTEXT;
+} NFS_GSS_NEGOTIATE_CONTEXT, *PNFS_GSS_NEGOTIATE_CONTEXT;
 
 static
 NTSTATUS
-SrvGssNewContext(
-    PSRV_HOST_INFO     pHostinfo,
-    PSRV_KRB5_CONTEXT* ppContext
+NfsGssNewContext(
+    PNFS_HOST_INFO     pHostinfo,
+    PNFS_KRB5_CONTEXT* ppContext
     );
 
 static
 NTSTATUS
-SrvGssInitNegotiate(
-    PSRV_KRB5_CONTEXT          pGssContext,
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
+NfsGssInitNegotiate(
+    PNFS_KRB5_CONTEXT          pGssContext,
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
     PBYTE                      pSecurityInputBlob,
     ULONG                      ulSecurityInputBlobLen,
     PBYTE*                     ppSecurityOutputBlob,
@@ -139,9 +139,9 @@ SrvGssInitNegotiate(
 
 static
 NTSTATUS
-SrvGssContinueNegotiate(
-    PSRV_KRB5_CONTEXT          pGssContext,
-    PSRV_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
+NfsGssContinueNegotiate(
+    PNFS_KRB5_CONTEXT          pGssContext,
+    PNFS_GSS_NEGOTIATE_CONTEXT pGssNegotiate,
     PBYTE                      pSecurityInputBlob,
     ULONG                      ulSecurityInputBlobLen,
     PBYTE*                     ppSecurityOutputBlob,
@@ -150,8 +150,8 @@ SrvGssContinueNegotiate(
 
 static
 VOID
-SrvGssFreeContext(
-    PSRV_KRB5_CONTEXT pContext
+NfsGssFreeContext(
+    PNFS_KRB5_CONTEXT pContext
     );
 
 static
@@ -172,13 +172,13 @@ srv_display_status_1(
 
 static
 NTSTATUS
-SrvGssRenew(
-   PSRV_KRB5_CONTEXT pContext
+NfsGssRenew(
+   PNFS_KRB5_CONTEXT pContext
    );
 
 static
 NTSTATUS
-SrvGetTGTFromKeytab(
+NfsGetTGTFromKeytab(
     PCSTR   pszUserName,
     PCSTR   pszPassword,
     PCSTR   pszCachePath,
@@ -187,15 +187,15 @@ SrvGetTGTFromKeytab(
 
 static
 NTSTATUS
-SrvDestroyKrb5Cache(
+NfsDestroyKrb5Cache(
     PCSTR pszCachePath
     );
 
 static
 NTSTATUS
-SrvSetDefaultKrb5CachePath(
+NfsSetDefaultKrb5CachePath(
     PCSTR pszCachePath,
     PSTR* ppszOrigCachePath
     );
 
-#endif /* __SRVGSS_P_H__ */
+#endif /* __NFSGSS_P_H__ */

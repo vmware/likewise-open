@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols
  *
@@ -49,7 +49,7 @@
 
 #include "includes.h"
 
-SRV_PROTOCOL_API_GLOBALS gProtocolApiGlobals =
+NFS_PROTOCOL_API_GLOBALS gProtocolApiGlobals =
 {
     .mutex         = PTHREAD_MUTEX_INITIALIZER,
 };

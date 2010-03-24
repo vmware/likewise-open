@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - NFS
  *
  *        Utility Functions
  *
@@ -41,14 +41,14 @@
  *
  */
 
-#ifndef __SRV_UTILS_H__
-#define __SRV_UTILS_H__
+#ifndef __NFS_UTILS_H__
+#define __NFS_UTILS_H__
 
-#define SRV_SAFE_FREE_MEMORY(pMemory) \
-    if (pMemory) { SrvFreeMemory(pMemory); }
+#define NFS_SAFE_FREE_MEMORY(pMemory) \
+    if (pMemory) { NfsFreeMemory(pMemory); }
 
-#define SRV_SAFE_FREE_MEMORY_AND_RESET(pMemory) \
-    if (pMemory) { SrvFreeMemory(pMemory); (pMemory) = NULL; }
+#define NFS_SAFE_FREE_MEMORY_AND_RESET(pMemory) \
+    if (pMemory) { NfsFreeMemory(pMemory); (pMemory) = NULL; }
 
 typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
 
@@ -70,7 +70,7 @@ typedef struct _SMB_PROD_CONS_QUEUE
 } SMB_PROD_CONS_QUEUE, *PSMB_PROD_CONS_QUEUE;
 
 
-typedef struct _SRV_HOST_INFO
+typedef struct _NFS_HOST_INFO
 {
     LONG  refcount;
 
@@ -82,125 +82,125 @@ typedef struct _SRV_HOST_INFO
 
     BOOLEAN bIsJoined;
 
-} SRV_HOST_INFO, *PSRV_HOST_INFO;
+} NFS_HOST_INFO, *PNFS_HOST_INFO;
 
 NTSTATUS
-SrvAllocateMemory(
+NfsAllocateMemory(
     IN  size_t size,
     OUT PVOID* ppMemory
     );
 
 NTSTATUS
-SrvReallocMemory(
+NfsReallocMemory(
     IN  PVOID  pMemory,
     IN  size_t size,
     OUT PVOID* ppNewMemory
     );
 
 VOID
-SrvFreeMemory(
+NfsFreeMemory(
     IN PVOID pMemory
     );
 
 NTSTATUS
-SrvAcquireHostInfo(
-    PSRV_HOST_INFO  pOrigHostInfo,
-    PSRV_HOST_INFO* ppNewHostInfo
+NfsAcquireHostInfo(
+    PNFS_HOST_INFO  pOrigHostInfo,
+    PNFS_HOST_INFO* ppNewHostInfo
     );
 
 VOID
-SrvReleaseHostInfo(
-    PSRV_HOST_INFO pHostinfo
+NfsReleaseHostInfo(
+    PNFS_HOST_INFO pHostinfo
     );
 
 NTSTATUS
-SrvBuildFilePath(
+NfsBuildFilePath(
     PWSTR  pwszPrefix,
     PWSTR  pwszSuffix,
     PWSTR* ppwszFilename
     );
 
 NTSTATUS
-SrvGetParentPath(
+NfsGetParentPath(
     PWSTR  pwszPath,
     PWSTR* ppwszParentPath
     );
 
 NTSTATUS
-SrvMatchPathPrefix(
+NfsMatchPathPrefix(
     PWSTR pwszPath,
     ULONG ulPathLength,
     PWSTR pwszPrefix
     );
 
 NTSTATUS
-SrvProdConsInit(
+NfsProdConsInit(
     ULONG                         ulNumMaxItems,
     PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem,
     PSMB_PROD_CONS_QUEUE*         ppQueue
     );
 
 NTSTATUS
-SrvProdConsInitContents(
+NfsProdConsInitContents(
     PSMB_PROD_CONS_QUEUE          pQueue,
     ULONG                         ulNumMaxItems,
     PFN_PROD_CONS_QUEUE_FREE_ITEM pfnFreeItem
     );
 
 NTSTATUS
-SrvProdConsEnqueue(
+NfsProdConsEnqueue(
     PSMB_PROD_CONS_QUEUE pQueue,
     PVOID                pItem
     );
 
 NTSTATUS
-SrvProdConsDequeue(
+NfsProdConsDequeue(
     PSMB_PROD_CONS_QUEUE pQueue,
     PVOID*               ppItem
     );
 
 NTSTATUS
-SrvProdConsTimedDequeue(
+NfsProdConsTimedDequeue(
     PSMB_PROD_CONS_QUEUE pQueue,
     struct timespec*     pTimespec,
     PVOID*               ppItem
     );
 
 VOID
-SrvProdConsFree(
+NfsProdConsFree(
     PSMB_PROD_CONS_QUEUE pQueue
     );
 NTSTATUS
-SrvMbsToWc16s(
+NfsMbsToWc16s(
     IN  PCSTR  pszString,
     OUT PWSTR* ppwszString
     );
 
 NTSTATUS
-SrvWc16sToMbs(
+NfsWc16sToMbs(
     IN  PCWSTR pwszString,
     OUT PSTR*  ppszString
     );
 
 NTSTATUS
-SrvAllocateStringW(
+NfsAllocateStringW(
     IN  PWSTR  pwszInputString,
     OUT PWSTR* ppwszOutputString
     );
 
 NTSTATUS
-SrvAllocateStringPrintf(
+NfsAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,
     ...
     );
 
 VOID
-SrvProdConsFreeContents(
+NfsProdConsFreeContents(
     PSMB_PROD_CONS_QUEUE pQueue
     );
 
-#endif /* __SRV_UTILS_H__ */
+#endif /* __NFS_UTILS_H__ */
 
 /*
 local variables:

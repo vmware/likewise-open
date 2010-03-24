@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -52,12 +52,12 @@
 
 static
 VOID
-SrvFileFree(
-    PLWIO_SRV_FILE pFile
+NfsFileFree(
+    PLWIO_NFS_FILE pFile
     );
 
 NTSTATUS
-SrvFileCreate(
+NfsFileCreate(
     USHORT                  fid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
@@ -68,16 +68,16 @@ SrvFileCreate(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE*          ppFile
+    PLWIO_NFS_FILE*          ppFile
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_FILE pFile = NULL;
+    PLWIO_NFS_FILE pFile = NULL;
 
     LWIO_LOG_DEBUG("Creating file [fid:%u]", fid);
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(LWIO_SRV_FILE),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(LWIO_NFS_FILE),
                     (PVOID*)&pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -86,7 +86,7 @@ SrvFileCreate(
     pthread_rwlock_init(&pFile->mutex, NULL);
     pFile->pMutex = &pFile->mutex;
 
-    ntStatus = SrvAllocateStringW(pwszFilename, &pFile->pwszFilename);
+    ntStatus = NfsAllocateStringW(pwszFilename, &pFile->pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pFile->fid = fid;
@@ -106,7 +106,7 @@ SrvFileCreate(
                     pFile,
                     fid);
 
-    SRV_ELEMENTS_INCREMENT_OPEN_FILES;
+    NFS_ELEMENTS_INCREMENT_OPEN_FILES;
 
     *ppFile = pFile;
 
@@ -120,17 +120,17 @@ error:
 
     if (pFile)
     {
-        SrvFileRelease(pFile);
+        NfsFileRelease(pFile);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvFileSetOplockState(
-    PLWIO_SRV_FILE                 pFile,
+NfsFileSetOplockState(
+    PLWIO_NFS_FILE                 pFile,
     HANDLE                         hOplockState,
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState
+    PFN_LWIO_NFS_FREE_OPLOCK_STATE pfnFreeOplockState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -154,8 +154,8 @@ SrvFileSetOplockState(
 }
 
 HANDLE
-SrvFileRemoveOplockState(
-    PLWIO_SRV_FILE pFile
+NfsFileRemoveOplockState(
+    PLWIO_NFS_FILE pFile
     )
 {
     HANDLE  hOplockState = NULL;
@@ -174,8 +174,8 @@ SrvFileRemoveOplockState(
 }
 
 VOID
-SrvFileResetOplockState(
-    PLWIO_SRV_FILE pFile
+NfsFileResetOplockState(
+    PLWIO_NFS_FILE pFile
     )
 {
     BOOLEAN  bInLock  = FALSE;
@@ -193,8 +193,8 @@ SrvFileResetOplockState(
 }
 
 VOID
-SrvFileSetOplockLevel(
-    PLWIO_SRV_FILE pFile,
+NfsFileSetOplockLevel(
+    PLWIO_NFS_FILE pFile,
     UCHAR          ucOplockLevel
     )
 {
@@ -208,8 +208,8 @@ SrvFileSetOplockLevel(
 }
 
 UCHAR
-SrvFileGetOplockLevel(
-    PLWIO_SRV_FILE pFile
+NfsFileGetOplockLevel(
+    PLWIO_NFS_FILE pFile
     )
 {
     UCHAR ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
@@ -226,8 +226,8 @@ SrvFileGetOplockLevel(
 }
 
 VOID
-SrvFileSetLastFailedLockOffset(
-    PLWIO_SRV_FILE pFile,
+NfsFileSetLastFailedLockOffset(
+    PLWIO_NFS_FILE pFile,
     ULONG64        ullLastFailedLockOffset
     )
 {
@@ -241,8 +241,8 @@ SrvFileSetLastFailedLockOffset(
 }
 
 ULONG64
-SrvFileGetLastFailedLockOffset(
-    PLWIO_SRV_FILE pFile
+NfsFileGetLastFailedLockOffset(
+    PLWIO_NFS_FILE pFile
     )
 {
     ULONG64 ullLastFailedLockOffset = -1;
@@ -258,9 +258,9 @@ SrvFileGetLastFailedLockOffset(
     return ullLastFailedLockOffset;
 }
 
-PLWIO_SRV_FILE
-SrvFileAcquire(
-    PLWIO_SRV_FILE pFile
+PLWIO_NFS_FILE
+NfsFileAcquire(
+    PLWIO_NFS_FILE pFile
     )
 {
     LWIO_LOG_DEBUG("Acquiring file [fid:%u]", pFile->fid);
@@ -271,23 +271,23 @@ SrvFileAcquire(
 }
 
 VOID
-SrvFileRelease(
-    PLWIO_SRV_FILE pFile
+NfsFileRelease(
+    PLWIO_NFS_FILE pFile
     )
 {
     LWIO_LOG_DEBUG("Releasing file [fid:%u]", pFile->fid);
 
     if (InterlockedDecrement(&pFile->refcount) == 0)
     {
-        SRV_ELEMENTS_DECREMENT_OPEN_FILES;
+        NFS_ELEMENTS_DECREMENT_OPEN_FILES;
 
-        SrvFileFree(pFile);
+        NfsFileFree(pFile);
     }
 }
 
 VOID
-SrvFileRundown(
-    PLWIO_SRV_FILE pFile
+NfsFileRundown(
+    PLWIO_NFS_FILE pFile
     )
 {
     if (pFile->hFile)
@@ -298,8 +298,8 @@ SrvFileRundown(
 
 static
 VOID
-SrvFileFree(
-    PLWIO_SRV_FILE pFile
+NfsFileFree(
+    PLWIO_NFS_FILE pFile
     )
 {
     LWIO_LOG_DEBUG("Freeing file [object:0x%x][fid:%u]",
@@ -316,15 +316,15 @@ SrvFileFree(
     {
         if (pFile->pFilename->FileName)
         {
-            SrvFreeMemory (pFile->pFilename->FileName);
+            NfsFreeMemory (pFile->pFilename->FileName);
         }
 
-        SrvFreeMemory(pFile->pFilename);
+        NfsFreeMemory(pFile->pFilename);
     }
 
     if (pFile->pwszFilename)
     {
-        SrvFreeMemory(pFile->pwszFilename);
+        NfsFreeMemory(pFile->pwszFilename);
     }
 
     if (pFile->hOplockState && pFile->pfnFreeOplockState)
@@ -342,5 +342,5 @@ SrvFileFree(
         IoCloseFile(pFile->hFile);
     }
 
-    SrvFreeMemory(pFile);
+    NfsFreeMemory(pFile);
 }

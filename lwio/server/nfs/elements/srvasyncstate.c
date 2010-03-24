@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -51,12 +51,12 @@
 
 static
 VOID
-SrvAsyncStateFree(
+NfsAsyncStateFree(
     PLWIO_ASYNC_STATE pAsyncState
     );
 
 ULONG64
-SrvAsyncStateBuildId(
+NfsAsyncStateBuildId(
     ULONG  ulPid,
     USHORT usMid
     )
@@ -65,19 +65,19 @@ SrvAsyncStateBuildId(
 }
 
 NTSTATUS
-SrvAsyncStateCreate(
+NfsAsyncStateCreate(
     ULONG64                         ullAsyncId,
     USHORT                          usCommand,
     HANDLE                          hAsyncState,
-    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
+    PFN_LWIO_NFS_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PFN_LWIO_NFS_FREE_ASYNC_STATE   pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*              ppAsyncState
     )
 {
     NTSTATUS          ntStatus    = STATUS_SUCCESS;
     PLWIO_ASYNC_STATE pAsyncState = NULL;
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     sizeof(LWIO_ASYNC_STATE),
                     (PVOID*)&pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -107,7 +107,7 @@ error:
 }
 
 VOID
-SrvAsyncStateCancel(
+NfsAsyncStateCancel(
     PLWIO_ASYNC_STATE pAsyncState
     )
 {
@@ -118,7 +118,7 @@ SrvAsyncStateCancel(
 }
 
 PLWIO_ASYNC_STATE
-SrvAsyncStateAcquire(
+NfsAsyncStateAcquire(
     PLWIO_ASYNC_STATE pAsyncState
     )
 {
@@ -128,19 +128,19 @@ SrvAsyncStateAcquire(
 }
 
 VOID
-SrvAsyncStateRelease(
+NfsAsyncStateRelease(
     PLWIO_ASYNC_STATE pAsyncState
     )
 {
     if (InterlockedDecrement(&pAsyncState->refcount) == 0)
     {
-        SrvAsyncStateFree(pAsyncState);
+        NfsAsyncStateFree(pAsyncState);
     }
 }
 
 static
 VOID
-SrvAsyncStateFree(
+NfsAsyncStateFree(
     PLWIO_ASYNC_STATE pAsyncState
     )
 {
@@ -154,5 +154,5 @@ SrvAsyncStateFree(
         pthread_rwlock_destroy(&pAsyncState->mutex);
     }
 
-    SrvFreeMemory(pAsyncState);
+    NfsFreeMemory(pAsyncState);
 }

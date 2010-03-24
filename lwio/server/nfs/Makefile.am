@@ -1,7 +1,7 @@
 
 SUBDIRS = \
     utils     \
-    shares    \
+    exports   \
     elements  \
     protocols \
     transport \

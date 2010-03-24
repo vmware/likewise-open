@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - NFS
  *
  *        Utilities
  *
@@ -46,7 +46,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvMbsToWc16s(
+NfsMbsToWc16s(
     IN  PCSTR  pszString,
     OUT PWSTR* ppwszString
     )
@@ -55,7 +55,7 @@ SrvMbsToWc16s(
 }
 
 NTSTATUS
-SrvWc16sToMbs(
+NfsWc16sToMbs(
     IN  PCWSTR pwszString,
     OUT PSTR*  ppszString
     )
@@ -64,7 +64,7 @@ SrvWc16sToMbs(
 }
 
 NTSTATUS
-SrvAllocateStringW(
+NfsAllocateStringW(
     PWSTR  pwszInputString,
     PWSTR* ppwszOutputString
     )
@@ -73,7 +73,7 @@ SrvAllocateStringW(
 }
 
 NTSTATUS
-SrvAllocateStringPrintf(
+NfsAllocateStringPrintf(
     PSTR* ppszOutputString,
     PCSTR pszFormat,
     ...

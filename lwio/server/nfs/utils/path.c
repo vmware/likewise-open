@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - NFS
  *
  *        Utilities
  *
@@ -46,7 +46,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvBuildFilePath(
+NfsBuildFilePath(
     PWSTR  pwszPrefix,
     PWSTR  pwszSuffix,
     PWSTR* ppwszFilename
@@ -80,7 +80,7 @@ SrvBuildFilePath(
         len_separator = sizeof(wszBackSlash[0]);
     }
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     (len_prefix + len_suffix + len_separator + 1 ) * sizeof(wchar16_t),
                     (PVOID*)&pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -123,14 +123,14 @@ error:
 
     if (pwszFilename)
     {
-        SrvFreeMemory(pwszFilename);
+        NfsFreeMemory(pwszFilename);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvGetParentPath(
+NfsGetParentPath(
     PWSTR  pwszPath,
     PWSTR* ppwszParentPath
     )
@@ -156,7 +156,7 @@ SrvGetParentPath(
     {
         if ((*pwszCursor == wszBackSlash[0]) || (*pwszCursor == wszFwdSlash[0]))
         {
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             (pwszCursor - pwszPath + 1) * sizeof(wchar16_t),
                             (PVOID*)&pwszParentPath);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -173,7 +173,7 @@ SrvGetParentPath(
 
     if (!pwszParentPath)
     {
-        ntStatus = SrvAllocateStringW(&wszBackSlash[0], &pwszParentPath);
+        ntStatus = NfsAllocateStringW(&wszBackSlash[0], &pwszParentPath);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -187,13 +187,13 @@ error:
 
     *ppwszParentPath = NULL;
 
-    SRV_SAFE_FREE_MEMORY(pwszParentPath);
+    NFS_SAFE_FREE_MEMORY(pwszParentPath);
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvMatchPathPrefix(
+NfsMatchPathPrefix(
     PWSTR pwszPath,
     ULONG ulPathLength,
     PWSTR pwszPrefix
@@ -205,7 +205,7 @@ SrvMatchPathPrefix(
 
     if (ulPathLength >= ulPrefixLength)
     {
-        ntStatus = SrvAllocateMemory(
+        ntStatus = NfsAllocateMemory(
                         (ulPrefixLength + 1) * sizeof(wchar16_t),
                         (PVOID*)&pwszTmp);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -222,7 +222,7 @@ SrvMatchPathPrefix(
 
 error:
 
-    SRV_SAFE_FREE_MEMORY(pwszTmp);
+    NFS_SAFE_FREE_MEMORY(pwszTmp);
 
     return ntStatus;
 }

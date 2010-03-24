@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        SMB V2 API
  *
@@ -50,7 +50,7 @@
 #include "includes.h"
 
 ULONG
-SrvConfigGetOplockTimeout_SMB_V2(
+NfsConfigGetOplockTimeout_SMB_V2(
     VOID
     )
 {

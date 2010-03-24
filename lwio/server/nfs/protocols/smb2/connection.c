@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -50,15 +50,15 @@
 #include "includes.h"
 
 NTSTATUS
-SrvConnection2FindSession_SMB_V2(
-    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
-    PLWIO_SRV_CONNECTION     pConnection,
+NfsConnection2FindSession_SMB_V2(
+    PNFS_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+    PLWIO_NFS_CONNECTION     pConnection,
     ULONG64                  ullUid,
-    PLWIO_SRV_SESSION_2*     ppSession
+    PLWIO_NFS_SESSION_2*     ppSession
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_SESSION_2 pSession = NULL;
+    PLWIO_NFS_SESSION_2 pSession = NULL;
 
     if (ullUid)
     {
@@ -71,23 +71,23 @@ SrvConnection2FindSession_SMB_V2(
             }
             else
             {
-                pSession = SrvSession2Acquire(pSmb2Context->pSession);
+                pSession = NfsSession2Acquire(pSmb2Context->pSession);
             }
         }
         else
         {
-            ntStatus = SrvConnection2FindSession(
+            ntStatus = NfsConnection2FindSession(
                             pConnection,
                             ullUid,
                             &pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pSmb2Context->pSession = SrvSession2Acquire(pSession);
+            pSmb2Context->pSession = NfsSession2Acquire(pSession);
         }
     }
     else if (pSmb2Context->pSession)
     {
-        pSession = SrvSession2Acquire(pSmb2Context->pSession);
+        pSession = NfsSession2Acquire(pSmb2Context->pSession);
     }
     else
     {

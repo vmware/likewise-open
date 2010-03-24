@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O (LWIO) - NFS
  *
  *        Share Repository based on Registry
  *
@@ -49,7 +49,7 @@
 #ifndef __LWREGSHARE_EXTERNS_H__
 #define __LWREGSHARE_EXTERNS_H__
 
-extern SRV_SHARE_REG_GLOBALS gShareRepository_registry;
+extern NFS_SHARE_REG_GLOBALS gShareRepository_registry;
 
 #endif /* __LWREGSHARE_EXTERNS_H__ */
 

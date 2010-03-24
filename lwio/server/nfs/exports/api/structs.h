@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Share Repository API
  *
@@ -49,15 +49,15 @@
  *
  */
 
-#ifndef __SRV_SHAREAPI_STRUCTS_H__
-#define __SRV_SHAREAPI_STRUCTS_H__
+#ifndef __NFS_SHAREAPI_STRUCTS_H__
+#define __NFS_SHAREAPI_STRUCTS_H__
 
-typedef struct _SRV_SHAREAPI_GLOBALS
+typedef struct _NFS_SHAREAPI_GLOBALS
 {
 
-    PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable;
+    PNFS_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable;
 
-} SRV_SHAREAPI_GLOBALS, *PSRV_SHAREAPI_GLOBALS;
+} NFS_SHAREAPI_GLOBALS, *PNFS_SHAREAPI_GLOBALS;
 
-#endif /* __SRV_SHAREAPI_STRUCTS_H__ */
+#endif /* __NFS_SHAREAPI_STRUCTS_H__ */
 

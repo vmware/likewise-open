@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -51,25 +51,25 @@
 
 static
 VOID
-SrvFreeExecContext(
-   IN PSRV_EXEC_CONTEXT pContext
+NfsFreeExecContext(
+   IN PNFS_EXEC_CONTEXT pContext
    );
 
 NTSTATUS
-SrvBuildExecContext(
-   IN  PLWIO_SRV_CONNECTION pConnection,
+NfsBuildExecContext(
+   IN  PLWIO_NFS_CONNECTION pConnection,
    IN  PSMB_PACKET          pSmbRequest,
    IN  BOOLEAN              bInternal,
-   OUT PSRV_EXEC_CONTEXT*   ppContext
+   OUT PNFS_EXEC_CONTEXT*   ppContext
    )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT pContext = NULL;
+    PNFS_EXEC_CONTEXT pContext = NULL;
 
-    ntStatus = SrvBuildEmptyExecContext(&pContext);
+    ntStatus = NfsBuildEmptyExecContext(&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pContext->pConnection = SrvConnectionAcquire(pConnection);
+    pContext->pConnection = NfsConnectionAcquire(pConnection);
 
     pContext->pSmbRequest = pSmbRequest;
     InterlockedIncrement(&pSmbRequest->refCount);
@@ -90,14 +90,14 @@ error:
 }
 
 NTSTATUS
-SrvBuildEmptyExecContext(
-   OUT PSRV_EXEC_CONTEXT* ppContext
+NfsBuildEmptyExecContext(
+   OUT PNFS_EXEC_CONTEXT* ppContext
    )
 {
     NTSTATUS          ntStatus = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT pContext = NULL;
+    PNFS_EXEC_CONTEXT pContext = NULL;
 
-    ntStatus = SrvAllocateMemory(sizeof(SRV_EXEC_CONTEXT), (PVOID*)&pContext);
+    ntStatus = NfsAllocateMemory(sizeof(NFS_EXEC_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pContext->refCount = 1;
@@ -118,8 +118,8 @@ error:
 }
 
 BOOLEAN
-SrvIsValidExecContext(
-   IN PSRV_EXEC_CONTEXT pExecContext
+NfsIsValidExecContext(
+   IN PNFS_EXEC_CONTEXT pExecContext
    )
 {
     return (pExecContext &&
@@ -128,16 +128,16 @@ SrvIsValidExecContext(
 }
 
 VOID
-SrvReleaseExecContextHandle(
+NfsReleaseExecContextHandle(
    IN HANDLE hExecContext
    )
 {
-    SrvReleaseExecContext((PSRV_EXEC_CONTEXT)hExecContext);
+    NfsReleaseExecContext((PNFS_EXEC_CONTEXT)hExecContext);
 }
 
-PSRV_EXEC_CONTEXT
-SrvAcquireExecContext(
-   PSRV_EXEC_CONTEXT pContext
+PNFS_EXEC_CONTEXT
+NfsAcquireExecContext(
+   PNFS_EXEC_CONTEXT pContext
    )
 {
     InterlockedIncrement(&pContext->refCount);
@@ -145,20 +145,20 @@ SrvAcquireExecContext(
 }
 
 VOID
-SrvReleaseExecContext(
-   IN PSRV_EXEC_CONTEXT pContext
+NfsReleaseExecContext(
+   IN PNFS_EXEC_CONTEXT pContext
    )
 {
     if (InterlockedDecrement(&pContext->refCount) == 0)
     {
-        SrvFreeExecContext(pContext);
+        NfsFreeExecContext(pContext);
     }
 }
 
 static
 VOID
-SrvFreeExecContext(
-   IN PSRV_EXEC_CONTEXT pContext
+NfsFreeExecContext(
+   IN PNFS_EXEC_CONTEXT pContext
    )
 {
     if (pContext->pProtocolContext)
@@ -189,7 +189,7 @@ SrvFreeExecContext(
 
     if (pContext->pConnection)
     {
-        SrvConnectionRelease(pContext->pConnection);
+        NfsConnectionRelease(pContext->pConnection);
     }
 
     if (pContext->pMutex)
@@ -197,5 +197,5 @@ SrvFreeExecContext(
         pthread_mutex_destroy(&pContext->mutex);
     }
 
-    SrvFreeMemory(pContext);
+    NfsFreeMemory(pContext);
 }

@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -47,49 +47,49 @@
  *
  */
 
-#define SRV_ELEMENTS_INCREMENT_STAT(stat, maxstat) \
+#define NFS_ELEMENTS_INCREMENT_STAT(stat, maxstat) \
 { \
     BOOLEAN bStatsInLock = FALSE; \
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bStatsInLock, &gSrvElements.statsLock); \
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bStatsInLock, &gNfsElements.statsLock); \
     if (++stat > maxstat) \
     { \
         maxstat = stat; \
     } \
-    LWIO_UNLOCK_RWMUTEX(bStatsInLock, &gSrvElements.statsLock); \
+    LWIO_UNLOCK_RWMUTEX(bStatsInLock, &gNfsElements.statsLock); \
 }
 
-#define SRV_ELEMENTS_DECREMENT_STAT(stat) \
+#define NFS_ELEMENTS_DECREMENT_STAT(stat) \
 { \
     BOOLEAN bStatsInLock = FALSE; \
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bStatsInLock, &gSrvElements.statsLock); \
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bStatsInLock, &gNfsElements.statsLock); \
     stat--; \
-    LWIO_UNLOCK_RWMUTEX(bStatsInLock, &gSrvElements.statsLock); \
+    LWIO_UNLOCK_RWMUTEX(bStatsInLock, &gNfsElements.statsLock); \
 }
 
-#define SRV_ELEMENTS_INCREMENT_CONNECTIONS \
-        SRV_ELEMENTS_INCREMENT_STAT(gSrvElements.stats.llNumConnections, \
-                                    gSrvElements.stats.llMaxNumConnections)
+#define NFS_ELEMENTS_INCREMENT_CONNECTIONS \
+        NFS_ELEMENTS_INCREMENT_STAT(gNfsElements.stats.llNumConnections, \
+                                    gNfsElements.stats.llMaxNumConnections)
 
-#define SRV_ELEMENTS_DECREMENT_CONNECTIONS \
-        SRV_ELEMENTS_DECREMENT_STAT(gSrvElements.stats.llNumConnections)
+#define NFS_ELEMENTS_DECREMENT_CONNECTIONS \
+        NFS_ELEMENTS_DECREMENT_STAT(gNfsElements.stats.llNumConnections)
 
-#define SRV_ELEMENTS_INCREMENT_SESSIONS \
-        SRV_ELEMENTS_INCREMENT_STAT(gSrvElements.stats.llNumSessions, \
-                                    gSrvElements.stats.llMaxNumSessions)
+#define NFS_ELEMENTS_INCREMENT_SESSIONS \
+        NFS_ELEMENTS_INCREMENT_STAT(gNfsElements.stats.llNumSessions, \
+                                    gNfsElements.stats.llMaxNumSessions)
 
-#define SRV_ELEMENTS_DECREMENT_SESSIONS \
-        SRV_ELEMENTS_DECREMENT_STAT(gSrvElements.stats.llNumSessions)
+#define NFS_ELEMENTS_DECREMENT_SESSIONS \
+        NFS_ELEMENTS_DECREMENT_STAT(gNfsElements.stats.llNumSessions)
 
-#define SRV_ELEMENTS_INCREMENT_TREE_CONNECTS \
-        SRV_ELEMENTS_INCREMENT_STAT(gSrvElements.stats.llNumTreeConnects, \
-                                    gSrvElements.stats.llMaxNumTreeConnects)
+#define NFS_ELEMENTS_INCREMENT_TREE_CONNECTS \
+        NFS_ELEMENTS_INCREMENT_STAT(gNfsElements.stats.llNumTreeConnects, \
+                                    gNfsElements.stats.llMaxNumTreeConnects)
 
-#define SRV_ELEMENTS_DECREMENT_TREE_CONNECTS \
-        SRV_ELEMENTS_DECREMENT_STAT(gSrvElements.stats.llNumTreeConnects)
+#define NFS_ELEMENTS_DECREMENT_TREE_CONNECTS \
+        NFS_ELEMENTS_DECREMENT_STAT(gNfsElements.stats.llNumTreeConnects)
 
-#define SRV_ELEMENTS_INCREMENT_OPEN_FILES \
-        SRV_ELEMENTS_INCREMENT_STAT(gSrvElements.stats.llNumOpenFiles, \
-                                    gSrvElements.stats.llMaxNumOpenFiles)
+#define NFS_ELEMENTS_INCREMENT_OPEN_FILES \
+        NFS_ELEMENTS_INCREMENT_STAT(gNfsElements.stats.llNumOpenFiles, \
+                                    gNfsElements.stats.llMaxNumOpenFiles)
 
-#define SRV_ELEMENTS_DECREMENT_OPEN_FILES \
-        SRV_ELEMENTS_DECREMENT_STAT(gSrvElements.stats.llNumOpenFiles)
+#define NFS_ELEMENTS_DECREMENT_OPEN_FILES \
+        NFS_ELEMENTS_DECREMENT_STAT(gNfsElements.stats.llNumOpenFiles)

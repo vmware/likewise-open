@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols
  *
@@ -51,22 +51,22 @@
 
 static
 NTSTATUS
-SrvProtocolTransferConfigContents(
-    PSRV_PROTOCOL_CONFIG pSrc,
-    PSRV_PROTOCOL_CONFIG pDest
+NfsProtocolTransferConfigContents(
+    PNFS_PROTOCOL_CONFIG pSrc,
+    PNFS_PROTOCOL_CONFIG pDest
     );
 
 
 NTSTATUS
-SrvProtocolReadConfig(
-    PSRV_PROTOCOL_CONFIG pConfig
+NfsProtocolReadConfig(
+    PNFS_PROTOCOL_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    SRV_PROTOCOL_CONFIG config = { 0 };
+    NFS_PROTOCOL_CONFIG config = { 0 };
     PLWIO_CONFIG_REG pReg = NULL;
 
-    ntStatus = SrvProtocolInitConfig(&config);
+    ntStatus = NfsProtocolInitConfig(&config);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwIoOpenConfig(
@@ -86,22 +86,22 @@ SrvProtocolReadConfig(
     LwIoReadConfigBoolean(
             pReg,
             "SupportSmb2",
-            SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2,
+            NFS_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2,
             &config.bEnableSmb2);
 
     LwIoReadConfigBoolean(
             pReg,
             "EnableSecuritySignatures",
-            SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING,
+            NFS_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING,
             &config.bEnableSigning);
 
     LwIoReadConfigBoolean(
             pReg,
             "RequireSecuritySignatures",
-            SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING,
+            NFS_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING,
             &config.bRequireSigning);
 
-    ntStatus = SrvProtocolTransferConfigContents(&config, pConfig);
+    ntStatus = NfsProtocolTransferConfigContents(&config, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -111,7 +111,7 @@ cleanup:
         LwIoCloseConfig(pReg);
     }
 
-    SrvProtocolFreeConfigContents(&config);
+    NfsProtocolFreeConfigContents(&config);
 
     return ntStatus;
 
@@ -121,42 +121,42 @@ error:
 }
 
 NTSTATUS
-SrvProtocolInitConfig(
-    PSRV_PROTOCOL_CONFIG pConfig
+NfsProtocolInitConfig(
+    PNFS_PROTOCOL_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    SrvProtocolFreeConfigContents(pConfig);
+    NfsProtocolFreeConfigContents(pConfig);
 
-    pConfig->bEnableSmb2 = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2;
-    pConfig->bEnableSigning = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING;
-    pConfig->bRequireSigning = SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING;
+    pConfig->bEnableSmb2 = NFS_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2;
+    pConfig->bEnableSigning = NFS_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING;
+    pConfig->bRequireSigning = NFS_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING;
 
     return ntStatus;
 }
 
 static
 NTSTATUS
-SrvProtocolTransferConfigContents(
-    PSRV_PROTOCOL_CONFIG pSrc,
-    PSRV_PROTOCOL_CONFIG pDest
+NfsProtocolTransferConfigContents(
+    PNFS_PROTOCOL_CONFIG pSrc,
+    PNFS_PROTOCOL_CONFIG pDest
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    SrvProtocolFreeConfigContents(pDest);
+    NfsProtocolFreeConfigContents(pDest);
 
     *pDest = *pSrc;
 
-    SrvProtocolFreeConfigContents(pSrc);
+    NfsProtocolFreeConfigContents(pSrc);
 
     return ntStatus;
 }
 
 VOID
-SrvProtocolFreeConfigContents(
-    PSRV_PROTOCOL_CONFIG pConfig
+NfsProtocolFreeConfigContents(
+    PNFS_PROTOCOL_CONFIG pConfig
     )
 {
     // Nothing to free right now
@@ -164,7 +164,7 @@ SrvProtocolFreeConfigContents(
 }
 
 BOOLEAN
-SrvProtocolConfigIsSigningEnabled(
+NfsProtocolConfigIsSigningEnabled(
     VOID
     )
 {
@@ -181,7 +181,7 @@ SrvProtocolConfigIsSigningEnabled(
 }
 
 BOOLEAN
-SrvProtocolConfigIsSigningRequired(
+NfsProtocolConfigIsSigningRequired(
     VOID
     )
 {
@@ -198,7 +198,7 @@ SrvProtocolConfigIsSigningRequired(
 }
 
 BOOLEAN
-SrvProtocolConfigIsSmb2Enabled(
+NfsProtocolConfigIsSmb2Enabled(
     VOID
     )
 {

@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API
  *
@@ -51,21 +51,21 @@
 
 static
 NTSTATUS
-SrvProtocolExecute_SMB_V1_Filter(
-    PSRV_EXEC_CONTEXT pContext
+NfsProtocolExecute_SMB_V1_Filter(
+    PNFS_EXEC_CONTEXT pContext
     );
 
 static
 VOID
-SrvProtocolFreeExecContext(
-    PSRV_PROTOCOL_EXEC_CONTEXT pContext
+NfsProtocolFreeExecContext(
+    PNFS_PROTOCOL_EXEC_CONTEXT pContext
     );
 
 NTSTATUS
-SrvProtocolInit(
+NfsProtocolInit(
     PSMB_PROD_CONS_QUEUE pWorkQueue,
     PLWIO_PACKET_ALLOCATOR hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -75,22 +75,22 @@ SrvProtocolInit(
     gProtocolApiGlobals.hPacketAllocator = hPacketAllocator;
     gProtocolApiGlobals.pShareList = pShareList;
 
-    SrvProtocolInitConfig(&gProtocolApiGlobals.Config);
+    NfsProtocolInitConfig(&gProtocolApiGlobals.Config);
 
-    ntStatus = SrvProtocolReadConfig(&gProtocolApiGlobals.Config);
+    ntStatus = NfsProtocolReadConfig(&gProtocolApiGlobals.Config);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvProtocolInit_SMB_V1(pWorkQueue);
+    ntStatus = NfsProtocolInit_SMB_V1(pWorkQueue);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    bSupportSMBV2 = SrvProtocolConfigIsSmb2Enabled();
+    bSupportSMBV2 = NfsProtocolConfigIsSmb2Enabled();
     if (bSupportSMBV2)
     {
-        ntStatus = SrvProtocolInit_SMB_V2(pWorkQueue);
+        ntStatus = NfsProtocolInit_SMB_V2(pWorkQueue);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvProtocolTransportDriverInit(&gProtocolApiGlobals);
+    ntStatus = NfsProtocolTransportDriverInit(&gProtocolApiGlobals);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -99,35 +99,35 @@ cleanup:
 
 error:
 
-    SrvProtocolShutdown();
+    NfsProtocolShutdown();
     goto cleanup;
 }
 
 NTSTATUS
-SrvProtocolExecute(
-    PSRV_EXEC_CONTEXT pContext
+NfsProtocolExecute(
+    PNFS_EXEC_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
     if (!pContext->pProtocolContext)
     {
-        ntStatus = SrvAllocateMemory(
-                        sizeof(SRV_PROTOCOL_EXEC_CONTEXT),
+        ntStatus = NfsAllocateMemory(
+                        sizeof(NFS_PROTOCOL_EXEC_CONTEXT),
                         (PVOID*)&pContext->pProtocolContext);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pContext->pProtocolContext->protocolVersion =
-                        SrvConnectionGetProtocolVersion(pContext->pConnection);
+                        NfsConnectionGetProtocolVersion(pContext->pConnection);
 
-        pContext->pfnFreeContext = &SrvProtocolFreeExecContext;
+        pContext->pfnFreeContext = &NfsProtocolFreeExecContext;
     }
 
     if ((pContext->pSmbRequest->pSMBHeader->command == COM_NEGOTIATE) &&
-        (SrvConnectionGetState(pContext->pConnection) !=
-                                        LWIO_SRV_CONN_STATE_INITIAL))
+        (NfsConnectionGetState(pContext->pConnection) !=
+                                        LWIO_NFS_CONN_STATE_INITIAL))
     {
-        SrvConnectionSetInvalid(pContext->pConnection);
+        NfsConnectionSetInvalid(pContext->pConnection);
 
         ntStatus = STATUS_CONNECTION_RESET;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -137,13 +137,13 @@ SrvProtocolExecute(
     {
         case SMB_PROTOCOL_VERSION_1:
 
-            ntStatus = SrvProtocolExecute_SMB_V1_Filter(pContext);
+            ntStatus = NfsProtocolExecute_SMB_V1_Filter(pContext);
 
             break;
 
         case SMB_PROTOCOL_VERSION_2:
 
-            ntStatus = SrvProtocolExecute_SMB_V2(pContext);
+            ntStatus = NfsProtocolExecute_SMB_V2(pContext);
 
             break;
 
@@ -172,7 +172,7 @@ SrvProtocolExecute(
         for (; iRepeat < (pContext->ulNumDuplicates + 1); iRepeat++)
         {
             /* synchronous response */
-            ntStatus = SrvProtocolTransportSendResponse(
+            ntStatus = NfsProtocolTransportSendResponse(
                             pContext->pConnection,
                             pContext->pSmbResponse);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -203,26 +203,26 @@ error:
 
 static
 NTSTATUS
-SrvProtocolExecute_SMB_V1_Filter(
-    PSRV_EXEC_CONTEXT pContext
+NfsProtocolExecute_SMB_V1_Filter(
+    PNFS_EXEC_CONTEXT pContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
+    PLWIO_NFS_CONNECTION pConnection = pContext->pConnection;
     PSMB_PACKET pSmbRequest = pContext->pSmbRequest;
 
     switch (pSmbRequest->pSMBHeader->command)
     {
         case COM_NEGOTIATE:
 
-                ntStatus = SrvProcessNegotiate(
+                ntStatus = NfsProcessNegotiate(
                                 pConnection,
                                 pSmbRequest,
                                 &pContext->pSmbResponse);
 
                 if (ntStatus)
                 {
-                    ntStatus = SrvProtocolBuildErrorResponse_SMB_V1(
+                    ntStatus = NfsProtocolBuildErrorResponse_SMB_V1(
                                     pConnection,
                                     pSmbRequest->pSMBHeader,
                                     ntStatus,
@@ -233,7 +233,7 @@ SrvProtocolExecute_SMB_V1_Filter(
 
         default:
 
-                ntStatus = SrvProtocolExecute_SMB_V1(pContext);
+                ntStatus = NfsProtocolExecute_SMB_V1(pContext);
 
                 break;
     }
@@ -246,8 +246,8 @@ error:
 
 static
 VOID
-SrvProtocolFreeExecContext(
-    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext
+NfsProtocolFreeExecContext(
+    PNFS_PROTOCOL_EXEC_CONTEXT pProtocolContext
     )
 {
     switch (pProtocolContext->protocolVersion)
@@ -256,7 +256,7 @@ SrvProtocolFreeExecContext(
 
             if (pProtocolContext->pSmb1Context)
             {
-                SrvProtocolFreeContext_SMB_V1(pProtocolContext->pSmb1Context);
+                NfsProtocolFreeContext_SMB_V1(pProtocolContext->pSmb1Context);
             }
 
             break;
@@ -265,7 +265,7 @@ SrvProtocolFreeExecContext(
 
             if (pProtocolContext->pSmb2Context)
             {
-                SrvProtocolFreeContext_SMB_V2(pProtocolContext->pSmb2Context);
+                NfsProtocolFreeContext_SMB_V2(pProtocolContext->pSmb2Context);
             }
 
             break;
@@ -275,23 +275,23 @@ SrvProtocolFreeExecContext(
             break;
     }
 
-    SrvFreeMemory(pProtocolContext);
+    NfsFreeMemory(pProtocolContext);
 }
 
 VOID
-SrvProtocolShutdown(
+NfsProtocolShutdown(
     VOID
     )
 {
-    SrvProtocolTransportDriverShutdown(&gProtocolApiGlobals);
+    NfsProtocolTransportDriverShutdown(&gProtocolApiGlobals);
 
     // Always shutdown all protocols regardless of enabled state
     // to allow implementing dynamic enable/disable where pre-existing
     // connections are not torn down.
-    SrvProtocolShutdown_SMB_V1();
-    SrvProtocolShutdown_SMB_V2();
+    NfsProtocolShutdown_SMB_V1();
+    NfsProtocolShutdown_SMB_V2();
 
-    SrvProtocolFreeConfigContents(&gProtocolApiGlobals.Config);
+    NfsProtocolFreeConfigContents(&gProtocolApiGlobals.Config);
 
     gProtocolApiGlobals.pWorkQueue = NULL;
     gProtocolApiGlobals.hPacketAllocator = NULL;

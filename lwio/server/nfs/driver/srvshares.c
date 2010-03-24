@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise File System Driver (Srv)
+ *        Likewise File System Driver (Nfs)
  *
  *        DeviceIo Dispatch Routine
  *
@@ -52,41 +52,41 @@
 
 static
 NTSTATUS
-SrvShareUpdateInfo0(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo0(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_0 pInfo0
     );
 
 static
 NTSTATUS
-SrvShareUpdateInfo1(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo1(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_1 pInfo1
     );
 
 static
 NTSTATUS
-SrvShareUpdateInfo2(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo2(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_2 pInfo2
     );
 
 static
 NTSTATUS
-SrvShareUpdateInfo501(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo501(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_501 pInfo501
     );
 
 static
 NTSTATUS
-SrvShareUpdateInfo502(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo502(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_502 pInfo502
     );
 
 NTSTATUS
-SrvShareDevCtlAdd(
+NfsShareDevCtlAdd(
     IN     PBYTE lpInBuffer,
     IN     ULONG ulInBufferSize,
     IN OUT PBYTE lpOutBuffer,
@@ -94,7 +94,7 @@ SrvShareDevCtlAdd(
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_ADD_PARAMS pAddShareInfoParams = NULL;
     PSHARE_INFO_0 pShareInfo0 = NULL;
     PSHARE_INFO_1 pShareInfo1 = NULL;
@@ -168,19 +168,19 @@ SrvShareDevCtlAdd(
 
     }
 
-    pShareList = &gSMBSrvGlobals.shareList;
+    pShareList = &gSMBNfsGlobals.shareList;
 
-    ntStatus = SrvShareMapFromWindowsPath(
+    ntStatus = NfsShareMapFromWindowsPath(
                     pwszPath,
                     &pwszPathLocal);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareMapIdToServiceStringW(
+    ntStatus = NfsShareMapIdToServiceStringW(
                     ulShareType,
                     &pwszShareType);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareAdd(
+    ntStatus = NfsShareAdd(
                         pShareList,
                         pwszShareName,
                         pwszPathLocal,
@@ -192,17 +192,17 @@ SrvShareDevCtlAdd(
 error:
 
     if (pAddShareInfoParams) {
-        SrvFreeMemory(pAddShareInfoParams);
+        NfsFreeMemory(pAddShareInfoParams);
     }
 
     if (pwszPathLocal)
     {
-        SrvFreeMemory(pwszPathLocal);
+        NfsFreeMemory(pwszPathLocal);
     }
 
     if (pwszShareType)
     {
-        SrvFreeMemory(pwszShareType);
+        NfsFreeMemory(pwszShareType);
     }
 
     return ntStatus;
@@ -210,7 +210,7 @@ error:
 
 
 NTSTATUS
-SrvShareDevCtlDelete(
+NfsShareDevCtlDelete(
     IN     PBYTE lpInBuffer,
     IN     ULONG ulInBufferSize,
     IN OUT PBYTE lpOutBuffer,
@@ -218,7 +218,7 @@ SrvShareDevCtlDelete(
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_DELETE_PARAMS pDeleteShareInfoParams = NULL;
     PWSTR pwszShareName = NULL;
 
@@ -229,15 +229,15 @@ SrvShareDevCtlDelete(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pShareList    = &gSMBSrvGlobals.shareList;
+    pShareList    = &gSMBNfsGlobals.shareList;
     pwszShareName = pDeleteShareInfoParams->netname;
 
-    ntStatus = SrvShareDelete(pShareList, pwszShareName);
+    ntStatus = NfsShareDelete(pShareList, pwszShareName);
 
 error:
 
     if (pDeleteShareInfoParams) {
-        SrvFreeMemory(pDeleteShareInfoParams);
+        NfsFreeMemory(pDeleteShareInfoParams);
     }
 
     return ntStatus;
@@ -245,7 +245,7 @@ error:
 
 
 NTSTATUS
-SrvShareDevCtlEnum(
+NfsShareDevCtlEnum(
     IN     PBYTE  lpInBuffer,
     IN     ULONG  ulInBufferSize,
     IN OUT PBYTE  lpOutBuffer,
@@ -259,10 +259,10 @@ SrvShareDevCtlEnum(
     ULONG i = 0;
     PBYTE pBuffer = NULL;
     ULONG ulBufferSize = 0;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_ENUM_PARAMS pEnumShareInfoParamsIn = NULL;
     SHARE_INFO_ENUM_PARAMS EnumShareInfoParamsOut;
-    PSRV_SHARE_INFO* ppShares = NULL;
+    PNFS_SHARE_INFO* ppShares = NULL;
     PSHARE_INFO_0 p0 = NULL;
     PSHARE_INFO_1 p1 = NULL;
     PSHARE_INFO_2 p2 = NULL;
@@ -278,10 +278,10 @@ SrvShareDevCtlEnum(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pShareList = &gSMBSrvGlobals.shareList;
+    pShareList = &gSMBNfsGlobals.shareList;
     ulLevel    = pEnumShareInfoParamsIn->dwInfoLevel;
 
-    ntStatus = SrvShareEnum(
+    ntStatus = NfsShareEnum(
                         pShareList,
                         &ppShares,
                         &ulNumEntries);
@@ -291,14 +291,14 @@ SrvShareDevCtlEnum(
     {
         case 0:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p0) * ulNumEntries,
                             (PVOID*)&p0);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSRV_SHARE_INFO pShareInfo = ppShares[i];
+                PNFS_SHARE_INFO pShareInfo = ppShares[i];
 
                 p0[i].shi0_netname             = pShareInfo->pwszName;
             }
@@ -309,14 +309,14 @@ SrvShareDevCtlEnum(
 
         case 1:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p1) * ulNumEntries,
                             (PVOID*)&p1);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSRV_SHARE_INFO pShareInfo = ppShares[i];
+                PNFS_SHARE_INFO pShareInfo = ppShares[i];
 
                 p1[i].shi1_netname             = pShareInfo->pwszName;
                 p1[i].shi1_type                = pShareInfo->service;
@@ -329,14 +329,14 @@ SrvShareDevCtlEnum(
 
         case 2:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p2) * ulNumEntries,
                             (PVOID*)&p2);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSRV_SHARE_INFO pShareInfo = ppShares[i];
+                PNFS_SHARE_INFO pShareInfo = ppShares[i];
 
                 p2[i].shi2_netname             = pShareInfo->pwszName;
                 p2[i].shi2_type                = pShareInfo->service;
@@ -345,7 +345,7 @@ SrvShareDevCtlEnum(
                 p2[i].shi2_max_uses            = (UINT32)-1;
                 p2[i].shi2_current_uses        = 0;
 
-                ntStatus = SrvShareMapToWindowsPath(
+                ntStatus = NfsShareMapToWindowsPath(
                                 pShareInfo->pwszPath,
                                 &p2[i].shi2_path);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -359,14 +359,14 @@ SrvShareDevCtlEnum(
 
         case 501:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p501) * ulNumEntries,
                             (PVOID*)&p501);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSRV_SHARE_INFO pShareInfo = ppShares[i];
+                PNFS_SHARE_INFO pShareInfo = ppShares[i];
 
                 p501[i].shi501_netname         = pShareInfo->pwszName;
                 p501[i].shi501_type            = pShareInfo->service;
@@ -380,14 +380,14 @@ SrvShareDevCtlEnum(
 
         case 502:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p502) * ulNumEntries,
                             (PVOID*)&p502);
             BAIL_ON_NT_STATUS(ntStatus);
 
             for (i = 0; i < ulNumEntries; i++)
             {
-                PSRV_SHARE_INFO pShareInfo = ppShares[i];
+                PNFS_SHARE_INFO pShareInfo = ppShares[i];
 
                 p502[i].shi502_netname             = pShareInfo->pwszName;
                 p502[i].shi502_type                = pShareInfo->service;
@@ -396,7 +396,7 @@ SrvShareDevCtlEnum(
                 p502[i].shi502_max_uses            = (UINT32)-1;
                 p502[i].shi502_current_uses        = 0;
 
-                ntStatus = SrvShareMapToWindowsPath(
+                ntStatus = NfsShareMapToWindowsPath(
                                 pShareInfo->pwszPath,
                                 &p502[i].shi502_path);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -445,11 +445,11 @@ cleanup:
     {
         for (i = 0; i < ulNumEntries; i++)
         {
-            PSRV_SHARE_INFO pShareInfo = ppShares[i];
+            PNFS_SHARE_INFO pShareInfo = ppShares[i];
 
             if (pShareInfo)
             {
-                SrvShareReleaseInfo(pShareInfo);
+                NfsShareReleaseInfo(pShareInfo);
             }
         }
 
@@ -458,11 +458,11 @@ cleanup:
 
     if (p0)
     {
-        SrvFreeMemory(p0);
+        NfsFreeMemory(p0);
     }
     if (p1)
     {
-        SrvFreeMemory(p1);
+        NfsFreeMemory(p1);
     }
     if (p2)
     {
@@ -470,14 +470,14 @@ cleanup:
         {
             if (p2[i].shi2_path)
             {
-                SrvFreeMemory(p2[i].shi2_path);
+                NfsFreeMemory(p2[i].shi2_path);
             }
         }
-        SrvFreeMemory(p2);
+        NfsFreeMemory(p2);
     }
     if (p501)
     {
-        SrvFreeMemory(p501);
+        NfsFreeMemory(p501);
     }
     if (p502)
     {
@@ -485,19 +485,19 @@ cleanup:
         {
             if (p502[i].shi502_path)
             {
-                SrvFreeMemory(p502[i].shi502_path);
+                NfsFreeMemory(p502[i].shi502_path);
             }
         }
 
-        SrvFreeMemory(p502);
+        NfsFreeMemory(p502);
     }
     if (pBuffer)
     {
-        SrvFreeMemory(pBuffer);
+        NfsFreeMemory(pBuffer);
     }
     if (pEnumShareInfoParamsIn)
     {
-        SrvFreeMemory(pEnumShareInfoParamsIn);
+        NfsFreeMemory(pEnumShareInfoParamsIn);
     }
 
     return ntStatus;
@@ -512,7 +512,7 @@ error:
 
 
 NTSTATUS
-SrvShareDevCtlGetInfo(
+NfsShareDevCtlGetInfo(
     IN     PBYTE  lpInBuffer,
     IN     ULONG  ulInBufferSize,
     IN OUT PBYTE  lpOutBuffer,
@@ -524,11 +524,11 @@ SrvShareDevCtlGetInfo(
     ULONG ulLevel = 0;
     PBYTE pBuffer = NULL;
     ULONG ulBufferSize = 0;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = NULL;
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList = NULL;
     PSHARE_INFO_GETINFO_PARAMS pGetShareInfoParamsIn = NULL;
     SHARE_INFO_GETINFO_PARAMS GetShareInfoParamsOut;
     PWSTR pwszShareName = NULL;
-    PSRV_SHARE_INFO pShareInfo = NULL;
+    PNFS_SHARE_INFO pShareInfo = NULL;
     BOOLEAN         bInLock = FALSE;
     PSHARE_INFO_0 p0 = NULL;
     PSHARE_INFO_1 p1 = NULL;
@@ -545,11 +545,11 @@ SrvShareDevCtlGetInfo(
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pShareList    = &gSMBSrvGlobals.shareList;
+    pShareList    = &gSMBNfsGlobals.shareList;
     pwszShareName = pGetShareInfoParamsIn->pwszNetname;
     ulLevel       = pGetShareInfoParamsIn->dwInfoLevel;
 
-    ntStatus = SrvShareFindByName(
+    ntStatus = NfsShareFindByName(
                         pShareList,
                         pwszShareName,
                         &pShareInfo);
@@ -561,7 +561,7 @@ SrvShareDevCtlGetInfo(
     {
         case 0:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p0),
                             (PVOID*)&p0);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -574,7 +574,7 @@ SrvShareDevCtlGetInfo(
 
         case 1:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                         sizeof(*p1),
                         (PVOID*)&p1);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -589,7 +589,7 @@ SrvShareDevCtlGetInfo(
 
         case 2:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p2),
                             (PVOID*)&p2);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -601,7 +601,7 @@ SrvShareDevCtlGetInfo(
             p2->shi2_max_uses            = (UINT32)-1;
             p2->shi2_current_uses        = 0;
 
-            ntStatus = SrvShareMapToWindowsPath(
+            ntStatus = NfsShareMapToWindowsPath(
                             pShareInfo->pwszPath,
                             &p2->shi2_path);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -614,7 +614,7 @@ SrvShareDevCtlGetInfo(
 
         case 501:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p501),
                             (PVOID*)&p501);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -630,7 +630,7 @@ SrvShareDevCtlGetInfo(
 
         case 502:
 
-            ntStatus = SrvAllocateMemory(
+            ntStatus = NfsAllocateMemory(
                             sizeof(*p502),
                             (PVOID*)&p502);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -642,7 +642,7 @@ SrvShareDevCtlGetInfo(
             p502->shi502_max_uses            = (UINT32)-1;
             p502->shi502_current_uses        = 0;
 
-            ntStatus = SrvShareMapToWindowsPath(
+            ntStatus = NfsShareMapToWindowsPath(
                             pShareInfo->pwszPath,
                             &p502->shi502_path);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -688,45 +688,45 @@ cleanup:
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
     if (pShareInfo) {
-        SrvShareReleaseInfo(pShareInfo);
+        NfsShareReleaseInfo(pShareInfo);
     }
 
     if (pGetShareInfoParamsIn) {
-        SrvFreeMemory(pGetShareInfoParamsIn);
+        NfsFreeMemory(pGetShareInfoParamsIn);
     }
 
     if (p0)
     {
-        SrvFreeMemory(p0);
+        NfsFreeMemory(p0);
     }
     if (p1)
     {
-        SrvFreeMemory(p1);
+        NfsFreeMemory(p1);
     }
     if (p2)
     {
         if (p2->shi2_path)
         {
-            SrvFreeMemory(p2->shi2_path);
+            NfsFreeMemory(p2->shi2_path);
         }
-        SrvFreeMemory(p2);
+        NfsFreeMemory(p2);
     }
     if (p501)
     {
-        SrvFreeMemory(p501);
+        NfsFreeMemory(p501);
     }
     if (p502)
     {
         if (p502->shi502_path)
         {
-            SrvFreeMemory(p502->shi502_path);
+            NfsFreeMemory(p502->shi502_path);
         }
 
-        SrvFreeMemory(p502);
+        NfsFreeMemory(p502);
     }
     if (pBuffer)
     {
-        SrvFreeMemory(pBuffer);
+        NfsFreeMemory(pBuffer);
     }
 
     return ntStatus;
@@ -740,7 +740,7 @@ error:
 }
 
 NTSTATUS
-SrvShareDevCtlSetInfo(
+NfsShareDevCtlSetInfo(
     IN     PBYTE lpInBuffer,
     IN     ULONG ulInBufferSize,
     IN OUT PBYTE lpOutBuffer,
@@ -748,9 +748,9 @@ SrvShareDevCtlSetInfo(
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList = &gSMBSrvGlobals.shareList;
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList = &gSMBNfsGlobals.shareList;
     PSHARE_INFO_SETINFO_PARAMS pSetShareInfoParamsIn = NULL;
-    PSRV_SHARE_INFO pShareInfo = NULL;
+    PNFS_SHARE_INFO pShareInfo = NULL;
     BOOLEAN bShareLocked = FALSE;
 
     ntStatus = LwShareInfoUnmarshalSetParameters(
@@ -759,7 +759,7 @@ SrvShareDevCtlSetInfo(
                    &pSetShareInfoParamsIn);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareFindByName(
+    ntStatus = NfsShareFindByName(
                    pShareList,
                    pSetShareInfoParamsIn->pwszNetname,
                    &pShareInfo);
@@ -770,31 +770,31 @@ SrvShareDevCtlSetInfo(
     switch (pSetShareInfoParamsIn->dwInfoLevel)
     {
         case 0:
-            ntStatus = SrvShareUpdateInfo0(
+            ntStatus = NfsShareUpdateInfo0(
                            pShareInfo,
                            pSetShareInfoParamsIn->Info.p0);
             break;
 
         case 1:
-            ntStatus = SrvShareUpdateInfo1(
+            ntStatus = NfsShareUpdateInfo1(
                            pShareInfo,
                            pSetShareInfoParamsIn->Info.p1);
             break;
 
         case 2:
-            ntStatus = SrvShareUpdateInfo2(
+            ntStatus = NfsShareUpdateInfo2(
                            pShareInfo,
                            pSetShareInfoParamsIn->Info.p2);
             break;
 
         case 501:
-            ntStatus = SrvShareUpdateInfo501(
+            ntStatus = NfsShareUpdateInfo501(
                            pShareInfo,
                            pSetShareInfoParamsIn->Info.p501);
             break;
 
         case 502:
-            ntStatus = SrvShareUpdateInfo502(
+            ntStatus = NfsShareUpdateInfo502(
                            pShareInfo,
                            pSetShareInfoParamsIn->Info.p502);
             break;
@@ -807,7 +807,7 @@ SrvShareDevCtlSetInfo(
 
     LWIO_UNLOCK_RWMUTEX(bShareLocked, &pShareInfo->mutex);
 
-    ntStatus = SrvShareUpdate(pShareList, pShareInfo);
+    ntStatus = NfsShareUpdate(pShareList, pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
@@ -815,11 +815,11 @@ error:
     LWIO_UNLOCK_RWMUTEX(bShareLocked, &pShareInfo->mutex);
 
     if (pSetShareInfoParamsIn) {
-        SrvFreeMemory(pSetShareInfoParamsIn);
+        NfsFreeMemory(pSetShareInfoParamsIn);
     }
 
     if (pShareInfo) {
-        SrvShareReleaseInfo(pShareInfo);
+        NfsShareReleaseInfo(pShareInfo);
     }
 
     return ntStatus;
@@ -827,8 +827,8 @@ error:
 
 static
 NTSTATUS
-SrvShareUpdateInfo0(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo0(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_0   pInfo0
     )
 {
@@ -839,8 +839,8 @@ SrvShareUpdateInfo0(
 
 static
 NTSTATUS
-SrvShareUpdateInfo1(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo1(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_1   pInfo1
     )
 {
@@ -860,13 +860,13 @@ SrvShareUpdateInfo1(
 
     if (pInfo1->shi1_remark)
     {
-        ntStatus = SrvAllocateStringW(pInfo1->shi1_remark, &pwszComment);
+        ntStatus = NfsAllocateStringW(pInfo1->shi1_remark, &pwszComment);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (pwszComment && SMBWc16sCmp(pShareInfo->pwszComment, pwszComment))
     {
-        SrvFreeMemory(pShareInfo->pwszComment);
+        NfsFreeMemory(pShareInfo->pwszComment);
 
         pShareInfo->pwszComment = pwszComment;
 
@@ -877,7 +877,7 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
-    SRV_SAFE_FREE_MEMORY(pwszComment);
+    NFS_SAFE_FREE_MEMORY(pwszComment);
 
     return ntStatus;
 
@@ -888,8 +888,8 @@ error:
 
 static
 NTSTATUS
-SrvShareUpdateInfo2(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo2(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_2   pInfo2
     )
 {
@@ -912,20 +912,20 @@ SrvShareUpdateInfo2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvShareMapFromWindowsPath(pInfo2->shi2_path, &pwszPath);
+    ntStatus = NfsShareMapFromWindowsPath(pInfo2->shi2_path, &pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->mutex);
 
     if (pInfo2->shi2_remark)
     {
-        ntStatus = SrvAllocateStringW(pInfo2->shi2_remark, &pwszComment);
+        ntStatus = NfsAllocateStringW(pInfo2->shi2_remark, &pwszComment);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (pwszPath && SMBWc16sCmp(pShareInfo->pwszPath, pwszPath))
     {
-        SrvFreeMemory(pShareInfo->pwszPath);
+        NfsFreeMemory(pShareInfo->pwszPath);
 
         pShareInfo->pwszPath = pwszPath;
 
@@ -934,7 +934,7 @@ SrvShareUpdateInfo2(
 
     if (pwszComment && SMBWc16sCmp(pShareInfo->pwszComment, pwszComment))
     {
-        SrvFreeMemory(pShareInfo->pwszComment);
+        NfsFreeMemory(pShareInfo->pwszComment);
 
         pShareInfo->pwszComment = pwszComment;
 
@@ -945,9 +945,9 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
-    SRV_SAFE_FREE_MEMORY(pwszComment);
+    NFS_SAFE_FREE_MEMORY(pwszComment);
 
-    SRV_SAFE_FREE_MEMORY(pwszPath);
+    NFS_SAFE_FREE_MEMORY(pwszPath);
 
     return ntStatus;
 
@@ -958,8 +958,8 @@ error:
 
 static
 NTSTATUS
-SrvShareUpdateInfo501(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo501(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_501 pInfo501
     )
 {
@@ -977,7 +977,7 @@ SrvShareUpdateInfo501(
 
     if (pInfo501->shi501_remark)
     {
-        ntStatus = SrvAllocateStringW(pInfo501->shi501_remark, &pwszComment);
+        ntStatus = NfsAllocateStringW(pInfo501->shi501_remark, &pwszComment);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -985,7 +985,7 @@ SrvShareUpdateInfo501(
 
     if (pwszComment && SMBWc16sCmp(pShareInfo->pwszComment, pwszComment))
     {
-        SrvFreeMemory(pShareInfo->pwszComment);
+        NfsFreeMemory(pShareInfo->pwszComment);
 
         pShareInfo->pwszComment = pwszComment;
 
@@ -996,7 +996,7 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
 
-    SRV_SAFE_FREE_MEMORY(pwszComment);
+    NFS_SAFE_FREE_MEMORY(pwszComment);
 
     return ntStatus;
 
@@ -1007,8 +1007,8 @@ error:
 
 static
 NTSTATUS
-SrvShareUpdateInfo502(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareUpdateInfo502(
+    PNFS_SHARE_INFO pShareInfo,
     PSHARE_INFO_502 pInfo502
     )
 {
@@ -1017,7 +1017,7 @@ SrvShareUpdateInfo502(
     PWSTR    pwszComment = NULL;
     BOOLEAN  bInLock     = FALSE;
     BOOLEAN  bSecDescUpdated       = FALSE;
-    PSRV_SHARE_INFO pShareInfoCopy = NULL;
+    PNFS_SHARE_INFO pShareInfoCopy = NULL;
 
     /* Sanity Check */
 
@@ -1033,23 +1033,23 @@ SrvShareUpdateInfo502(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvShareMapFromWindowsPath(pInfo502->shi502_path, &pwszPath);
+    ntStatus = NfsShareMapFromWindowsPath(pInfo502->shi502_path, &pwszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pInfo502->shi502_remark)
     {
-        ntStatus = SrvAllocateStringW(
+        ntStatus = NfsAllocateStringW(
                         pInfo502->shi502_remark,
                         &pwszComment);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvShareDuplicateInfo(pShareInfo, &pShareInfoCopy);
+    ntStatus = NfsShareDuplicateInfo(pShareInfo, &pShareInfoCopy);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pInfo502->shi502_security_descriptor)
     {
-        ntStatus = SrvShareSetSecurity(
+        ntStatus = NfsShareSetSecurity(
                        pShareInfoCopy,
                        (PSECURITY_DESCRIPTOR_RELATIVE)pInfo502->shi502_security_descriptor,
                        pInfo502->shi502_reserved);
@@ -1062,7 +1062,7 @@ SrvShareUpdateInfo502(
 
     if (pwszPath && SMBWc16sCmp(pShareInfo->pwszPath, pwszPath))
     {
-        SrvFreeMemory(pShareInfo->pwszPath);
+        NfsFreeMemory(pShareInfo->pwszPath);
 
         pShareInfo->pwszPath = pwszPath;
         pwszPath = NULL;
@@ -1070,7 +1070,7 @@ SrvShareUpdateInfo502(
 
     if (pwszComment && SMBWc16sCmp(pShareInfo->pwszComment, pwszComment))
     {
-        SrvFreeMemory(pShareInfo->pwszComment);
+        NfsFreeMemory(pShareInfo->pwszComment);
 
         pShareInfo->pwszComment = pwszComment;
         pwszComment = NULL;
@@ -1078,7 +1078,7 @@ SrvShareUpdateInfo502(
 
     if (bSecDescUpdated)
     {
-        SrvShareFreeSecurity(pShareInfo);
+        NfsShareFreeSecurity(pShareInfo);
 
         pShareInfo->pSecDesc = pShareInfoCopy->pSecDesc;
         pShareInfoCopy->pSecDesc = NULL;
@@ -1093,12 +1093,12 @@ cleanup:
 
     if (pShareInfoCopy)
     {
-        SrvShareReleaseInfo(pShareInfoCopy);
+        NfsShareReleaseInfo(pShareInfoCopy);
     }
 
-    SRV_SAFE_FREE_MEMORY(pwszPath);
+    NFS_SAFE_FREE_MEMORY(pwszPath);
 
-    SRV_SAFE_FREE_MEMORY(pwszComment);
+    NFS_SAFE_FREE_MEMORY(pwszComment);
 
     return ntStatus;
 

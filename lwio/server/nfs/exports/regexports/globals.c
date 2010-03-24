@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O (LWIO) - NFS
  *
  *        Share Repository based on Registry
  *
@@ -45,20 +45,20 @@
 
 #include "includes.h"
 
-SRV_SHARE_REG_GLOBALS gShareRepository_registry =
+NFS_SHARE_REG_GLOBALS gShareRepository_registry =
 {
     .mutex                  = PTHREAD_MUTEX_INITIALIZER,
 
     .fnTable =
         {
-            .pfnShareRepositoryOpen       = &SrvShareRegOpen,
-            .pfnShareRepositoryFindByName = &SrvShareRegFindByName,
-            .pfnShareRepositoryAdd        = &SrvShareRegAdd,
-            .pfnShareRepositoryBeginEnum  = &SrvShareRegBeginEnum,
-            .pfnShareRepositoryEnum       = &SrvShareRegEnum,
-            .pfnShareRepositoryEndEnum    = &SrvShareRegEndEnum,
-            .pfnShareRepositoryDelete     = &SrvShareRegDelete,
-            .pfnShareRepositoryClose      = &SrvShareRegClose
+            .pfnShareRepositoryOpen       = &NfsShareRegOpen,
+            .pfnShareRepositoryFindByName = &NfsShareRegFindByName,
+            .pfnShareRepositoryAdd        = &NfsShareRegAdd,
+            .pfnShareRepositoryBeginEnum  = &NfsShareRegBeginEnum,
+            .pfnShareRepositoryEnum       = &NfsShareRegEnum,
+            .pfnShareRepositoryEndEnum    = &NfsShareRegEndEnum,
+            .pfnShareRepositoryDelete     = &NfsShareRegDelete,
+            .pfnShareRepositoryClose      = &NfsShareRegClose
         }
 };
 

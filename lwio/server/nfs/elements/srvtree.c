@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -51,46 +51,46 @@
 
 static
 NTSTATUS
-SrvTreeAcquireFileId_inlock(
-   PLWIO_SRV_TREE pTree,
+NfsTreeAcquireFileId_inlock(
+   PLWIO_NFS_TREE pTree,
    PUSHORT       pFid
    );
 
 static
 int
-SrvTreeFileCompare(
+NfsTreeFileCompare(
     PVOID pKey1,
     PVOID pKey2
     );
 
 static
 VOID
-SrvTreeFileRelease(
+NfsTreeFileRelease(
     PVOID pFile
     );
 
 static
 VOID
-SrvTreeFree(
-    PLWIO_SRV_TREE pTree
+NfsTreeFree(
+    PLWIO_NFS_TREE pTree
     );
 
 static
 int
-SrvTreeAsyncStateCompare(
+NfsTreeAsyncStateCompare(
     PVOID pKey1,
     PVOID pKey2
     );
 
 static
 VOID
-SrvTreeAsyncStateRelease(
+NfsTreeAsyncStateRelease(
     PVOID pAsyncState
     );
 
 static
 NTSTATUS
-SrvTreeRundownAsyncStatesRbTreeVisit(
+NfsTreeRundownAsyncStatesRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
@@ -99,7 +99,7 @@ SrvTreeRundownAsyncStatesRbTreeVisit(
 
 static
 NTSTATUS
-SrvTreeRundownFileRbTreeVisit(
+NfsTreeRundownFileRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
@@ -107,18 +107,18 @@ SrvTreeRundownFileRbTreeVisit(
     );
 
 NTSTATUS
-SrvTreeCreate(
+NfsTreeCreate(
     USHORT          tid,
-    PSRV_SHARE_INFO pShareInfo,
-    PLWIO_SRV_TREE* ppTree
+    PNFS_SHARE_INFO pShareInfo,
+    PLWIO_NFS_TREE* ppTree
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_TREE pTree = NULL;
+    PLWIO_NFS_TREE pTree = NULL;
 
     LWIO_LOG_DEBUG("Creating Tree [tid: %u]", tid);
 
-    ntStatus = SrvAllocateMemory(sizeof(LWIO_SRV_TREE), (PVOID*)&pTree);
+    ntStatus = NfsAllocateMemory(sizeof(LWIO_NFS_TREE), (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTree->refcount = 1;
@@ -132,23 +132,23 @@ SrvTreeCreate(
                     pTree,
                     tid);
 
-    pTree->pShareInfo = SrvShareAcquireInfo(pShareInfo);
+    pTree->pShareInfo = NfsShareAcquireInfo(pShareInfo);
 
     ntStatus = LwRtlRBTreeCreate(
-                    &SrvTreeFileCompare,
+                    &NfsTreeFileCompare,
                     NULL,
-                    &SrvTreeFileRelease,
+                    &NfsTreeFileRelease,
                     &pTree->pFileCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlRBTreeCreate(
-                    &SrvTreeAsyncStateCompare,
+                    &NfsTreeAsyncStateCompare,
                     NULL,
-                    &SrvTreeAsyncStateRelease,
+                    &NfsTreeAsyncStateRelease,
                     &pTree->pAsyncStateCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SRV_ELEMENTS_INCREMENT_TREE_CONNECTS;
+    NFS_ELEMENTS_INCREMENT_TREE_CONNECTS;
 
     *ppTree = pTree;
 
@@ -162,26 +162,26 @@ error:
 
     if (pTree)
     {
-        SrvTreeRelease(pTree);
+        NfsTreeRelease(pTree);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvTreeFindFile(
-    PLWIO_SRV_TREE  pTree,
+NfsTreeFindFile(
+    PLWIO_NFS_TREE  pTree,
     USHORT         fid,
-    PLWIO_SRV_FILE* ppFile
+    PLWIO_NFS_FILE* ppFile
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_FILE pFile = NULL;
+    PLWIO_NFS_FILE pFile = NULL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
-    pFile = pTree->lruFile[fid % SRV_LRU_CAPACITY];
+    pFile = pTree->lruFile[fid % NFS_LRU_CAPACITY];
 
     if (!pFile || (pFile->fid != fid))
     {
@@ -191,10 +191,10 @@ SrvTreeFindFile(
                         (PVOID*)&pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pTree->lruFile[fid % SRV_LRU_CAPACITY] = pFile;
+        pTree->lruFile[fid % NFS_LRU_CAPACITY] = pFile;
     }
 
-    *ppFile = SrvFileAcquire(pFile);
+    *ppFile = NfsFileAcquire(pFile);
 
 cleanup:
 
@@ -214,8 +214,8 @@ error:
 }
 
 NTSTATUS
-SrvTreeCreateFile(
-    PLWIO_SRV_TREE          pTree,
+NfsTreeCreateFile(
+    PLWIO_NFS_TREE          pTree,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
@@ -225,22 +225,22 @@ SrvTreeCreateFile(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE*         ppFile
+    PLWIO_NFS_FILE*         ppFile
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_FILE pFile = NULL;
+    PLWIO_NFS_FILE pFile = NULL;
     USHORT  fid = 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
-    ntStatus = SrvTreeAcquireFileId_inlock(
+    ntStatus = NfsTreeAcquireFileId_inlock(
                     pTree,
                     &fid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvFileCreate(
+    ntStatus = NfsFileCreate(
                     fid,
                     pwszFilename,
                     phFile,
@@ -260,7 +260,7 @@ SrvTreeCreateFile(
                     pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppFile = SrvFileAcquire(pFile);
+    *ppFile = NfsFileAcquire(pFile);
 
 cleanup:
 
@@ -274,28 +274,28 @@ error:
 
     if (pFile)
     {
-        SrvFileRelease(pFile);
+        NfsFileRelease(pFile);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvTreeRemoveFile(
-    PLWIO_SRV_TREE pTree,
+NfsTreeRemoveFile(
+    PLWIO_NFS_TREE pTree,
     USHORT        fid
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_FILE pFile = NULL;
+    PLWIO_NFS_FILE pFile = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
-    pFile = pTree->lruFile[ fid % SRV_LRU_CAPACITY ];
+    pFile = pTree->lruFile[ fid % NFS_LRU_CAPACITY ];
     if (pFile && (pFile->fid == fid))
     {
-        pTree->lruFile[ fid % SRV_LRU_CAPACITY ] = NULL;
+        pTree->lruFile[ fid % NFS_LRU_CAPACITY ] = NULL;
     }
 
     ntStatus = LwRtlRBTreeRemove(
@@ -315,8 +315,8 @@ error:
 }
 
 NTSTATUS
-SrvTreeAddAsyncState(
-    PLWIO_SRV_TREE    pTree,
+NfsTreeAddAsyncState(
+    PLWIO_NFS_TREE    pTree,
     PLWIO_ASYNC_STATE pAsyncState
     )
 {
@@ -340,7 +340,7 @@ SrvTreeAddAsyncState(
                             pAsyncState);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvAsyncStateAcquire(pAsyncState);
+            NfsAsyncStateAcquire(pAsyncState);
 
             break;
 
@@ -364,8 +364,8 @@ error:
 }
 
 NTSTATUS
-SrvTreeFindAsyncState(
-    PLWIO_SRV_TREE     pTree,
+NfsTreeFindAsyncState(
+    PLWIO_NFS_TREE     pTree,
     ULONG64            ullAsyncId,
     PLWIO_ASYNC_STATE* ppAsyncState
     )
@@ -382,7 +382,7 @@ SrvTreeFindAsyncState(
                     (PVOID*)&pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppAsyncState = SrvAsyncStateAcquire(pAsyncState);
+    *ppAsyncState = NfsAsyncStateAcquire(pAsyncState);
 
 cleanup:
 
@@ -398,8 +398,8 @@ error:
 }
 
 NTSTATUS
-SrvTreeRemoveAsyncState(
-    PLWIO_SRV_TREE pTree,
+NfsTreeRemoveAsyncState(
+    PLWIO_NFS_TREE pTree,
     ULONG64        ullAsyncId
     )
 {
@@ -418,8 +418,8 @@ SrvTreeRemoveAsyncState(
 }
 
 BOOLEAN
-SrvTreeIsNamedPipe(
-    PLWIO_SRV_TREE pTree
+NfsTreeIsNamedPipe(
+    PLWIO_NFS_TREE pTree
     )
 {
     BOOLEAN bResult = FALSE;
@@ -435,7 +435,7 @@ SrvTreeIsNamedPipe(
 }
 
 NTSTATUS
-SrvGetTreeRelativePath(
+NfsGetTreeRelativePath(
     PWSTR  pwszOriginalPath,
     PWSTR* ppwszSpecificPath
     )
@@ -481,9 +481,9 @@ error:
     goto cleanup;
 }
 
-PLWIO_SRV_TREE
-SrvTreeAcquire(
-    PLWIO_SRV_TREE pTree
+PLWIO_NFS_TREE
+NfsTreeAcquire(
+    PLWIO_NFS_TREE pTree
     )
 {
     LWIO_LOG_DEBUG("Acquiring tree [tid:%u]", pTree->tid);
@@ -494,23 +494,23 @@ SrvTreeAcquire(
 }
 
 VOID
-SrvTreeRelease(
-    PLWIO_SRV_TREE pTree
+NfsTreeRelease(
+    PLWIO_NFS_TREE pTree
     )
 {
     LWIO_LOG_DEBUG("Releasing tree [tid:%u]", pTree->tid);
 
     if (InterlockedDecrement(&pTree->refcount) == 0)
     {
-        SRV_ELEMENTS_DECREMENT_TREE_CONNECTS;
+        NFS_ELEMENTS_DECREMENT_TREE_CONNECTS;
 
-        SrvTreeFree(pTree);
+        NfsTreeFree(pTree);
     }
 }
 
 VOID
-SrvTreeRundown(
-    PLWIO_SRV_TREE pTree
+NfsTreeRundown(
+    PLWIO_NFS_TREE pTree
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -520,7 +520,7 @@ SrvTreeRundown(
     LwRtlRBTreeTraverse(
                 pTree->pAsyncStateCollection,
                 LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                SrvTreeRundownAsyncStatesRbTreeVisit,
+                NfsTreeRundownAsyncStatesRbTreeVisit,
                 NULL);
 
 	if (pTree->pAsyncStateCollection)
@@ -531,7 +531,7 @@ SrvTreeRundown(
     LwRtlRBTreeTraverse(
             pTree->pFileCollection,
             LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-            SrvTreeRundownFileRbTreeVisit,
+            NfsTreeRundownFileRbTreeVisit,
             NULL);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
@@ -539,8 +539,8 @@ SrvTreeRundown(
 
 static
 NTSTATUS
-SrvTreeAcquireFileId_inlock(
-   PLWIO_SRV_TREE pTree,
+NfsTreeAcquireFileId_inlock(
+   PLWIO_NFS_TREE pTree,
    PUSHORT       pFid
    )
 {
@@ -550,7 +550,7 @@ SrvTreeAcquireFileId_inlock(
 
     do
     {
-        PLWIO_SRV_FILE pFile = NULL;
+        PLWIO_NFS_FILE pFile = NULL;
 
         /* 0 is never a valid fid */
 
@@ -602,7 +602,7 @@ error:
 
 static
 int
-SrvTreeFileCompare(
+NfsTreeFileCompare(
     PVOID pKey1,
     PVOID pKey2
     )
@@ -626,17 +626,17 @@ SrvTreeFileCompare(
 
 static
 VOID
-SrvTreeFileRelease(
+NfsTreeFileRelease(
     PVOID pFile
     )
 {
-    SrvFileRelease((PLWIO_SRV_FILE)pFile);
+    NfsFileRelease((PLWIO_NFS_FILE)pFile);
 }
 
 static
 VOID
-SrvTreeFree(
-    PLWIO_SRV_TREE pTree
+NfsTreeFree(
+    PLWIO_NFS_TREE pTree
     )
 {
     LWIO_LOG_DEBUG("Freeing tree [object:0x%x][tid:%u]",
@@ -666,15 +666,15 @@ SrvTreeFree(
 
     if (pTree->pShareInfo)
     {
-        SrvShareReleaseInfo(pTree->pShareInfo);
+        NfsShareReleaseInfo(pTree->pShareInfo);
     }
 
-    SrvFreeMemory(pTree);
+    NfsFreeMemory(pTree);
 }
 
 static
 int
-SrvTreeAsyncStateCompare(
+NfsTreeAsyncStateCompare(
     PVOID pKey1,
     PVOID pKey2
     )
@@ -698,16 +698,16 @@ SrvTreeAsyncStateCompare(
 
 static
 VOID
-SrvTreeAsyncStateRelease(
+NfsTreeAsyncStateRelease(
     PVOID pAsyncState
     )
 {
-    SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
+    NfsAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
 }
 
 static
 NTSTATUS
-SrvTreeRundownAsyncStatesRbTreeVisit(
+NfsTreeRundownAsyncStatesRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
@@ -718,7 +718,7 @@ SrvTreeRundownAsyncStatesRbTreeVisit(
 
     if (pAsyncState)
     {
-        SrvAsyncStateCancel(pAsyncState);
+        NfsAsyncStateCancel(pAsyncState);
     }
 
     *pbContinue = TRUE;
@@ -728,18 +728,18 @@ SrvTreeRundownAsyncStatesRbTreeVisit(
 
 static
 NTSTATUS
-SrvTreeRundownFileRbTreeVisit(
+NfsTreeRundownFileRbTreeVisit(
     PVOID pKey,
     PVOID pData,
     PVOID pUserData,
     PBOOLEAN pbContinue
     )
 {
-    PLWIO_SRV_FILE pFile = (PLWIO_SRV_FILE)pData;
+    PLWIO_NFS_FILE pFile = (PLWIO_NFS_FILE)pData;
 
     if (pFile)
     {
-        SrvFileRundown(pFile);
+        NfsFileRundown(pFile);
     }
 
     *pbContinue = TRUE;

@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O (LWIO) - NFS
  *
  *        Configuration
  *
@@ -51,29 +51,29 @@
 
 static
 NTSTATUS
-SrvTransferConfigContents(
-    PLWIO_SRV_CONFIG pSrc,
-    PLWIO_SRV_CONFIG pDest
+NfsTransferConfigContents(
+    PLWIO_NFS_CONFIG pSrc,
+    PLWIO_NFS_CONFIG pDest
     );
 
 
 NTSTATUS
-SrvReadConfig(
-    PLWIO_SRV_CONFIG pConfig
+NfsReadConfig(
+    PLWIO_NFS_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    LWIO_SRV_CONFIG srvConfig = {0};
+    LWIO_NFS_CONFIG srvConfig = {0};
 
-    ntStatus = SrvInitConfig(&srvConfig);
+    ntStatus = NfsInitConfig(&srvConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvTransferConfigContents(&srvConfig, pConfig);
+    ntStatus = NfsTransferConfigContents(&srvConfig, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    SrvFreeConfigContents(&srvConfig);
+    NfsFreeConfigContents(&srvConfig);
 
     return ntStatus;
 
@@ -83,40 +83,40 @@ error:
 }
 
 NTSTATUS
-SrvInitConfig(
-    PLWIO_SRV_CONFIG pConfig
+NfsInitConfig(
+    PLWIO_NFS_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    SrvFreeConfigContents(pConfig);
+    NfsFreeConfigContents(pConfig);
 
-    pConfig->ulMaxNumPackets          = LWIO_SRV_DEFAULT_NUM_MAX_PACKETS;
-    pConfig->ulNumWorkers             = LWIO_SRV_DEFAULT_NUM_WORKERS;
-    pConfig->ulMaxNumWorkItemsInQueue = LWIO_SRV_DEFAULT_NUM_MAX_QUEUE_ITEMS;
+    pConfig->ulMaxNumPackets          = LWIO_NFS_DEFAULT_NUM_MAX_PACKETS;
+    pConfig->ulNumWorkers             = LWIO_NFS_DEFAULT_NUM_WORKERS;
+    pConfig->ulMaxNumWorkItemsInQueue = LWIO_NFS_DEFAULT_NUM_MAX_QUEUE_ITEMS;
 
     return ntStatus;
 }
 
 static
 NTSTATUS
-SrvTransferConfigContents(
-    PLWIO_SRV_CONFIG pSrc,
-    PLWIO_SRV_CONFIG pDest
+NfsTransferConfigContents(
+    PLWIO_NFS_CONFIG pSrc,
+    PLWIO_NFS_CONFIG pDest
     )
 {
-    SrvFreeConfigContents(pDest);
+    NfsFreeConfigContents(pDest);
 
     *pDest = *pSrc;
 
-    SrvFreeConfigContents(pSrc);
+    NfsFreeConfigContents(pSrc);
 
     return 0;
 }
 
 VOID
-SrvFreeConfigContents(
-    PLWIO_SRV_CONFIG pConfig
+NfsFreeConfigContents(
+    PLWIO_NFS_CONFIG pConfig
     )
 {
     // Nothing to free right now

@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O (LWIO) - NFS
  *
  *        Share Repository based on Registry
  *
@@ -43,10 +43,10 @@
  *
  */
 
-#define REG_KEY_PATH_SRV_SHARES_A \
+#define REG_KEY_PATH_NFS_SHARES_A \
                 "services\\lwio\\parameters\\drivers\\srv\\shares"
 
-#define REG_KEY_PATH_SRV_SHARES_W \
+#define REG_KEY_PATH_NFS_SHARES_W \
           {'s','e','r','v','i','c','e','s','\\',         \
            'l','w','i','o','\\',                         \
            'p','a','r','a','m','e','t','e','r','s','\\', \
@@ -54,10 +54,10 @@
            's','r','v','\\',                             \
            's','h','a','r','e','s',0}
 
-#define REG_KEY_PATH_SRV_SHARES_SECURITY_A \
+#define REG_KEY_PATH_NFS_SHARES_SECURITY_A \
                 "services\\lwio\\parameters\\drivers\\srv\\shares\\security"
 
-#define REG_KEY_PATH_SRV_SHARES_SECURITY_W \
+#define REG_KEY_PATH_NFS_SHARES_SECURITY_W \
           {'s','e','r','v','i','c','e','s','\\',         \
            'l','w','i','o','\\',                         \
            'p','a','r','a','m','e','t','e','r','s','\\', \

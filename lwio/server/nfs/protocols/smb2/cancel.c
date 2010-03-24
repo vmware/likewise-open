@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -50,16 +50,16 @@
 #include "includes.h"
 
 NTSTATUS
-SrvProcessCancel_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessCancel_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection  = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId   = 0LL;
 
@@ -73,26 +73,26 @@ SrvProcessCancel_SMB_V2(
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
+    ntStatus = NfsConnection2FindAsyncState(pConnection, ullAsyncId, &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
     switch (pAsyncState->usCommand)
     {
         case COM2_NOTIFY:
 
-            ntStatus = SrvCancelChangeNotify_SMB_V2(pExecContext);
+            ntStatus = NfsCancelChangeNotify_SMB_V2(pExecContext);
 
             break;
 
         case COM2_CREATE:
 
-            ntStatus = SrvCancelCreate_SMB_V2(pExecContext);
+            ntStatus = NfsCancelCreate_SMB_V2(pExecContext);
 
             break;
 
         case COM2_LOCK:
 
-            ntStatus = SrvCancelLock_SMB_V2(pExecContext);
+            ntStatus = NfsCancelLock_SMB_V2(pExecContext);
 
             break;
 
@@ -108,7 +108,7 @@ cleanup:
 
     if (pAsyncState)
     {
-        SrvAsyncStateRelease(pAsyncState);
+        NfsAsyncStateRelease(pAsyncState);
     }
 
     return ntStatus;

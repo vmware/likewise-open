@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocol Handler API
  *
@@ -54,40 +54,40 @@
 // config.c
 
 NTSTATUS
-SrvProtocolReadConfig(
-    PSRV_PROTOCOL_CONFIG pConfig
+NfsProtocolReadConfig(
+    PNFS_PROTOCOL_CONFIG pConfig
     );
 
 NTSTATUS
-SrvProtocolInitConfig(
-    PSRV_PROTOCOL_CONFIG pConfig
+NfsProtocolInitConfig(
+    PNFS_PROTOCOL_CONFIG pConfig
     );
 
 VOID
-SrvProtocolFreeConfigContents(
-    PSRV_PROTOCOL_CONFIG pConfig
+NfsProtocolFreeConfigContents(
+    PNFS_PROTOCOL_CONFIG pConfig
     );
 
 BOOLEAN
-SrvProtocolConfigIsSigningEnabled(
+NfsProtocolConfigIsSigningEnabled(
     VOID
     );
 
 BOOLEAN
-SrvProtocolConfigIsSigningRequired(
+NfsProtocolConfigIsSigningRequired(
     VOID
     );
 
 BOOLEAN
-SrvProtocolConfigIsSmb2Enabled(
+NfsProtocolConfigIsSmb2Enabled(
     VOID
     );
 
 // negotiate.c
 
 NTSTATUS
-SrvProcessNegotiate(
-        IN  PLWIO_SRV_CONNECTION pConnection,
+NfsProcessNegotiate(
+        IN  PLWIO_NFS_CONNECTION pConnection,
         IN  PSMB_PACKET          pSmbRequest,
         OUT PSMB_PACKET*         ppSmbResponse
         );
@@ -95,13 +95,13 @@ SrvProcessNegotiate(
 // transport.c
 
 NTSTATUS
-SrvProtocolTransportDriverInit(
-    PSRV_PROTOCOL_API_GLOBALS pGlobals
+NfsProtocolTransportDriverInit(
+    PNFS_PROTOCOL_API_GLOBALS pGlobals
     );
 
 VOID
-SrvProtocolTransportDriverShutdown(
-    PSRV_PROTOCOL_API_GLOBALS pGlobals
+NfsProtocolTransportDriverShutdown(
+    PNFS_PROTOCOL_API_GLOBALS pGlobals
     );
 
 #endif /* __PROTOTYPES_H__ */

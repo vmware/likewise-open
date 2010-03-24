@@ -34,20 +34,20 @@
 
 static
 NTSTATUS
-SrvIoPrepareEcpList(
-    IN PSRV_SHARE_INFO pShareInfo,
+NfsIoPrepareEcpList(
+    IN PNFS_SHARE_INFO pShareInfo,
     IN OUT PIO_ECP_LIST* ppEcpList
     );
 
 static
 VOID
-SrvIoFreeEcpShareName(
+NfsIoFreeEcpShareName(
     IN PVOID pContext
     );
 
 NTSTATUS
-SrvIoCreateFile(
-    IN PSRV_SHARE_INFO pShareInfo,
+NfsIoCreateFile(
+    IN PNFS_SHARE_INFO pShareInfo,
     OUT PIO_FILE_HANDLE pFileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock,
     OUT PIO_STATUS_BLOCK pIoStatusBlock,
@@ -85,7 +85,7 @@ SrvIoCreateFile(
 
     /* Check against the Share Security Descriptor */
 
-    ntStatus = SrvShareAccessCheck(
+    ntStatus = NfsShareAccessCheck(
                    pShareInfo,
                    pAccessToken,
                    MAXIMUM_ALLOWED,
@@ -153,7 +153,7 @@ SrvIoCreateFile(
         }
     }
 
-    ntStatus = SrvIoPrepareEcpList(pShareInfo, ppEcpList);
+    ntStatus = NfsIoPrepareEcpList(pShareInfo, ppEcpList);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Do the open */
@@ -188,15 +188,15 @@ error:
 
 static
 NTSTATUS
-SrvIoPrepareEcpList(
-    IN PSRV_SHARE_INFO pShareInfo,
+NfsIoPrepareEcpList(
+    IN PNFS_SHARE_INFO pShareInfo,
     IN OUT PIO_ECP_LIST* ppEcpList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PUNICODE_STRING pShareName = NULL;
 
-    if (SrvElementsGetShareNameEcpEnabled())
+    if (NfsElementsGetShareNameEcpEnabled())
     {
         if (!*ppEcpList)
         {
@@ -214,10 +214,10 @@ SrvIoPrepareEcpList(
 
         ntStatus = IoRtlEcpListInsert(
                         *ppEcpList,
-                        SRV_ECP_TYPE_SHARE_NAME,
+                        NFS_ECP_TYPE_SHARE_NAME,
                         pShareName,
                         sizeof(*pShareName),
-                        SrvIoFreeEcpShareName);
+                        NfsIoFreeEcpShareName);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pShareName = NULL;
@@ -236,7 +236,7 @@ error:
 
 static
 VOID
-SrvIoFreeEcpShareName(
+NfsIoFreeEcpShareName(
     IN PVOID pContext
     )
 {

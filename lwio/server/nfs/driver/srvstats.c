@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise SMB Server Driver (SRV)
+ *        Likewise SMB Server Driver (NFS)
  *
  *        Server Statistics
  *
@@ -50,7 +50,7 @@
 
 static
 NTSTATUS
-SrvGetStatistics(
+NfsGetStatistics(
     PIO_STATISTICS_INFO_INPUT_BUFFER pInBuf,
     PBYTE                            lpOutBuffer,
     ULONG                            ulOutBufferSize,
@@ -59,14 +59,14 @@ SrvGetStatistics(
 
 static
 NTSTATUS
-SrvGetStatistics_level_0(
+NfsGetStatistics_level_0(
     PBYTE  lpOutBuffer,
     ULONG  ulOutBufferSize,
     PULONG pulBytesTransferred
     );
 
 NTSTATUS
-SrvProcessStatistics(
+NfsProcessStatistics(
     IN     PBYTE  lpInBuffer,
     IN     ULONG  ulInBufferSize,
     IN OUT PBYTE  lpOutBuffer,
@@ -90,7 +90,7 @@ SrvProcessStatistics(
     {
         case IO_STATISTICS_ACTION_TYPE_GET:
 
-            ntStatus = SrvGetStatistics(
+            ntStatus = NfsGetStatistics(
                             &inBuf,
                             lpOutBuffer,
                             ulOutBufferSize,
@@ -100,7 +100,7 @@ SrvProcessStatistics(
 
         case IO_STATISTICS_ACTION_TYPE_RESET:
 
-            ntStatus = SrvElementsResetStats();
+            ntStatus = NfsElementsResetStats();
 
             break;
 
@@ -125,7 +125,7 @@ error:
 
 static
 NTSTATUS
-SrvGetStatistics(
+NfsGetStatistics(
     PIO_STATISTICS_INFO_INPUT_BUFFER pInBuf,
     PBYTE                            lpOutBuffer,
     ULONG                            ulOutBufferSize,
@@ -139,7 +139,7 @@ SrvGetStatistics(
     {
         case 0:
 
-            ntStatus = SrvGetStatistics_level_0(
+            ntStatus = NfsGetStatistics_level_0(
                             lpOutBuffer,
                             ulOutBufferSize,
                             &ulBytesTransferred);
@@ -169,14 +169,14 @@ error:
 
 static
 NTSTATUS
-SrvGetStatistics_level_0(
+NfsGetStatistics_level_0(
     PBYTE  lpOutBuffer,
     ULONG  ulOutBufferSize,
     PULONG pulBytesTransferred
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    SRV_ELEMENTS_STATISTICS stats = {0};
+    NFS_ELEMENTS_STATISTICS stats = {0};
     IO_STATISTICS_INFO_0 statBuf = {0};
 
     if (ulOutBufferSize < sizeof(statBuf))
@@ -185,7 +185,7 @@ SrvGetStatistics_level_0(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvElementsGetStats(&stats);
+    ntStatus = NfsElementsGetStats(&stats);
     BAIL_ON_NT_STATUS(ntStatus);
 
     statBuf.llNumConnections = stats.llNumConnections;

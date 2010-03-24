@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -49,17 +49,17 @@
 #include "includes.h"
 
 NTSTATUS
-SrvProcessSessionSetup_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessSessionSetup_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION pConnection = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PSMB2_SESSION_SETUP_REQUEST_HEADER pSessionSetupHeader = NULL;// Do not free
     PBYTE       pSecurityBlob             = NULL; // Do not free
     ULONG       ulSecurityBlobLen         = 0;
@@ -89,12 +89,12 @@ SrvProcessSessionSetup_SMB_V2(
 
     if (pConnection->hGssNegotiate == NULL)
     {
-        ntStatus = SrvGssBeginNegotiate(
+        ntStatus = NfsGssBeginNegotiate(
                        pConnection->hGssContext,
                        &pConnection->hGssNegotiate);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvGssNegotiate(
+        ntStatus = NfsGssNegotiate(
                        pConnection->hGssContext,
                        pConnection->hGssNegotiate,
                        NULL,
@@ -104,7 +104,7 @@ SrvProcessSessionSetup_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvGssNegotiate(
+    ntStatus = NfsGssNegotiate(
                     pConnection->hGssContext,
                     pConnection->hGssNegotiate,
                     pSecurityBlob,
@@ -139,21 +139,21 @@ SrvProcessSessionSetup_SMB_V2(
     ulBytesAvailable -= pSmbResponse->ulHeaderSize;
     ulTotalBytesUsed += pSmbResponse->ulHeaderSize;
 
-    if (!SrvGssNegotiateIsComplete(pConnection->hGssContext,
+    if (!NfsGssNegotiateIsComplete(pConnection->hGssContext,
                                    pConnection->hGssNegotiate))
     {
         pSmbResponse->pHeader->error = STATUS_MORE_PROCESSING_REQUIRED;
     }
     else
     {
-        ntStatus = SrvConnection2CreateSession(
+        ntStatus = NfsConnection2CreateSession(
                         pConnection,
                         &pCtxSmb2->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (!pConnection->pSessionKey)
         {
-             ntStatus = SrvGssGetSessionDetails(
+             ntStatus = NfsGssGetSessionDetails(
                              pConnection->hGssContext,
                              pConnection->hGssNegotiate,
                              &pConnection->pSessionKey,
@@ -163,7 +163,7 @@ SrvProcessSessionSetup_SMB_V2(
         }
         else
         {
-             ntStatus = SrvGssGetSessionDetails(
+             ntStatus = NfsGssGetSessionDetails(
                              pConnection->hGssContext,
                              pConnection->hGssNegotiate,
                              NULL,
@@ -180,7 +180,7 @@ SrvProcessSessionSetup_SMB_V2(
 
         pSmbResponse->pHeader->ullSessionId = pCtxSmb2->pSession->ullUid;
 
-        SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
+        NfsConnectionSetState(pConnection, LWIO_NFS_CONN_STATE_READY);
     }
 
     ntStatus = SMB2MarshalSessionSetup(
@@ -204,10 +204,10 @@ cleanup:
 
     if (pInitSecurityBlob)
     {
-        SrvFreeMemory(pInitSecurityBlob);
+        NfsFreeMemory(pInitSecurityBlob);
     }
 
-    SRV_SAFE_FREE_MEMORY(pReplySecurityBlob);
+    NFS_SAFE_FREE_MEMORY(pReplySecurityBlob);
 
     return ntStatus;
 

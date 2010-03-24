@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -53,98 +53,98 @@
 
 static
 NTSTATUS
-SrvBuildCreateState_SMB_V2(
-    PSRV_EXEC_CONTEXT           pExecContext,
+NfsBuildCreateState_SMB_V2(
+    PNFS_EXEC_CONTEXT           pExecContext,
     PSMB2_CREATE_REQUEST_HEADER pRequestHeader,
     PUNICODE_STRING             pwszFilename,
-    PSRV_CREATE_CONTEXT*        ppCreateContexts,
+    PNFS_CREATE_CONTEXT*        ppCreateContexts,
     ULONG                       ulNumContexts,
     ULONG64                     ullAsyncId,
-    PSRV_CREATE_STATE_SMB_V2*   ppCreateState
+    PNFS_CREATE_STATE_SMB_V2*   ppCreateState
     );
 
 static
 VOID
-SrvCancelCreateStateHandle_SMB_V2(
+NfsCancelCreateStateHandle_SMB_V2(
     HANDLE hCreateState
     );
 
 static
 VOID
-SrvCancelCreateStateHandle_SMB_V2_inlock(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+NfsCancelCreateStateHandle_SMB_V2_inlock(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     );
 
 static
 NTSTATUS
-SrvQueryFileInformation_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsQueryFileInformation_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
-SrvProcessCreateContexts_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessCreateContexts_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
-SrvRequestCreateOplocks_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsRequestCreateOplocks_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 VOID
-SrvPrepareCreateStateAsync_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState,
-    PSRV_EXEC_CONTEXT        pExecContext
+NfsPrepareCreateStateAsync_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState,
+    PNFS_EXEC_CONTEXT        pExecContext
     );
 
 static
 VOID
-SrvReleaseCreateStateAsync_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+NfsReleaseCreateStateAsync_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     );
 
 static
 VOID
-SrvExecuteCreateAsyncCB_SMB_V2(
+NfsExecuteCreateAsyncCB_SMB_V2(
     PVOID pContext
     );
 
 static
 VOID
-SrvReleaseCreateStateHandle_SMB_V2(
+NfsReleaseCreateStateHandle_SMB_V2(
     HANDLE hState
     );
 
 static
-PSRV_CREATE_STATE_SMB_V2
-SrvAcquireCreateState_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+PNFS_CREATE_STATE_SMB_V2
+NfsAcquireCreateState_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     );
 
 static
 VOID
-SrvReleaseCreateState_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+NfsReleaseCreateState_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     );
 
 static
 VOID
-SrvFreeCreateState_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+NfsFreeCreateState_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     );
 
 static
 NTSTATUS
-SrvBuildCreateResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildCreateResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
-SrvWriteCreateContext(
+NfsWriteCreateContext(
     PBYTE                 pOutBuffer,
     ULONG                 ulOffset,
     ULONG                 ulBytesAvailable,
@@ -158,24 +158,24 @@ SrvWriteCreateContext(
     );
 
 NTSTATUS
-SrvProcessCreate_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessCreate_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus      = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection   = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PLWIO_SRV_SESSION_2        pSession = NULL;
-    PLWIO_SRV_TREE_2           pTree = NULL;
-    PSRV_CREATE_STATE_SMB_V2   pCreateState = NULL;
+    PLWIO_NFS_CONNECTION       pConnection   = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_SESSION_2        pSession = NULL;
+    PLWIO_NFS_TREE_2           pTree = NULL;
+    PNFS_CREATE_STATE_SMB_V2   pCreateState = NULL;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     BOOLEAN                    bUnregisterAsync = FALSE;
-    PSRV_CREATE_CONTEXT        pCreateContexts = NULL;
+    PNFS_CREATE_CONTEXT        pCreateContexts = NULL;
     ULONG                      ulNumContexts = 0;
     BOOLEAN                    bInLock = FALSE;
 
-    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+    pCreateState = (PNFS_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
     if (pCreateState)
     {
         InterlockedIncrement(&pCreateState->refCount);
@@ -183,7 +183,7 @@ SrvProcessCreate_SMB_V2(
     else
     {
         ULONG               iMsg        = pCtxSmb2->iMsg;
-        PSRV_MESSAGE_SMB_V2 pSmbRequest = &pCtxSmb2->pRequests[iMsg];
+        PNFS_MESSAGE_SMB_V2 pSmbRequest = &pCtxSmb2->pRequests[iMsg];
         PSMB2_CREATE_REQUEST_HEADER pCreateRequestHeader = NULL;// Do not free
         UNICODE_STRING              wszFileName = {0};          // Do not free
         wchar16_t                   wszEmpty[] = {0};
@@ -194,14 +194,14 @@ SrvProcessCreate_SMB_V2(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = SrvConnection2FindSession_SMB_V2(
+        ntStatus = NfsConnection2FindSession_SMB_V2(
                         pCtxSmb2,
                         pConnection,
                         pSmbRequest->pHeader->ullSessionId,
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSession2FindTree_SMB_V2(
+        ntStatus = NfsSession2FindTree_SMB_V2(
                         pCtxSmb2,
                         pSession,
                         pSmbRequest->pHeader->ulTid,
@@ -223,17 +223,17 @@ SrvProcessCreate_SMB_V2(
             wszFileName.MaximumLength = sizeof(wszEmpty);
         }
 
-        ntStatus = SrvConnection2CreateAsyncState(
+        ntStatus = NfsConnection2CreateAsyncState(
                                 pConnection,
                                 COM2_CREATE,
-                                &SrvCancelCreateStateHandle_SMB_V2,
-                                &SrvReleaseCreateStateHandle_SMB_V2,
+                                &NfsCancelCreateStateHandle_SMB_V2,
+                                &NfsReleaseCreateStateHandle_SMB_V2,
                                 &pAsyncState);
         BAIL_ON_NT_STATUS(ntStatus);
 
         bUnregisterAsync = TRUE;
 
-        ntStatus = SrvBuildCreateState_SMB_V2(
+        ntStatus = NfsBuildCreateState_SMB_V2(
                         pExecContext,
                         pCreateRequestHeader,
                         &wszFileName,
@@ -245,22 +245,22 @@ SrvProcessCreate_SMB_V2(
 
         pCtxSmb2->hState = pCreateState;
         InterlockedIncrement(&pCreateState->refCount);
-        pCtxSmb2->pfnStateRelease = &SrvReleaseCreateStateHandle_SMB_V2;
+        pCtxSmb2->pfnStateRelease = &NfsReleaseCreateStateHandle_SMB_V2;
 
-        pAsyncState->hAsyncState = SrvAcquireCreateState_SMB_V2(pCreateState);
+        pAsyncState->hAsyncState = NfsAcquireCreateState_SMB_V2(pCreateState);
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
 
     switch (pCreateState->stage)
     {
-        case SRV_CREATE_STAGE_SMB_V2_INITIAL:
+        case NFS_CREATE_STAGE_SMB_V2_INITIAL:
 
-            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED;
+            pCreateState->stage = NFS_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED;
 
-            SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+            NfsPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
 
-            ntStatus = SrvIoCreateFile(
+            ntStatus = NfsIoCreateFile(
                             pCreateState->pTree->pShareInfo,
                             &pCreateState->hFile,
                             pCreateState->pAcb,
@@ -286,7 +286,7 @@ SrvProcessCreate_SMB_V2(
                 {
                     // TODO: Might have to cancel the entire operation
                     //
-                    NTSTATUS ntStatus2 = SrvBuildInterimResponse_SMB_V2(
+                    NTSTATUS ntStatus2 = NfsBuildInterimResponse_SMB_V2(
                                                 pExecContext,
                                                 pCreateState->ullAsyncId);
                     if (ntStatus2 != STATUS_SUCCESS)
@@ -304,7 +304,7 @@ SrvProcessCreate_SMB_V2(
 
                     // completed synchronously; remove asynchronous state
                     //
-                    ntStatus = SrvConnection2RemoveAsyncState(
+                    ntStatus = NfsConnection2RemoveAsyncState(
                                     pConnection,
                                     pCreateState->ullAsyncId);
                     BAIL_ON_NT_STATUS(ntStatus);
@@ -319,11 +319,11 @@ SrvProcessCreate_SMB_V2(
             }
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+            NfsReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED:
+        case NFS_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED:
 
             ntStatus = pCreateState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
@@ -331,7 +331,7 @@ SrvProcessCreate_SMB_V2(
             pCreateState->ulCreateAction =
                             pCreateState->ioStatusBlock.CreateResult;
 
-            ntStatus = SrvTree2CreateFile(
+            ntStatus = NfsTree2CreateFile(
                             pCreateState->pTree,
                             pCreateState->pwszFilename,
                             &pCreateState->hFile,
@@ -347,54 +347,54 @@ SrvProcessCreate_SMB_V2(
 
             pCreateState->bRemoveFileFromTree = TRUE;
 
-            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO;
+            pCreateState->stage = NFS_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO;
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO:
+        case NFS_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO:
 
-            ntStatus = SrvQueryFileInformation_SMB_V2(pExecContext);
+            ntStatus = NfsQueryFileInformation_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS;
+            pCreateState->stage = NFS_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS;
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS:
+        case NFS_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS:
 
-            ntStatus = SrvProcessCreateContexts_SMB_V2(pExecContext);
+            ntStatus = NfsProcessCreateContexts_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK;
+            pCreateState->stage = NFS_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK;
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK:
+        case NFS_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK:
 
-            ntStatus = SrvRequestCreateOplocks_SMB_V2(pExecContext);
+            ntStatus = NfsRequestCreateOplocks_SMB_V2(pExecContext);
             // Don't fail if the op-lock cannot be granted
 
-            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED;
+            pCreateState->stage = NFS_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED;
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED:
+        case NFS_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED:
 
             ntStatus = pCreateState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvBuildCreateResponse_SMB_V2(pExecContext);
+            ntStatus = NfsBuildCreateResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_DONE;
+            pCreateState->stage = NFS_CREATE_STAGE_SMB_V2_DONE;
 
             // intentional fall through
 
-        case SRV_CREATE_STAGE_SMB_V2_DONE:
+        case NFS_CREATE_STAGE_SMB_V2_DONE:
 
             if (pCreateState->ullAsyncId)
             {
-                ntStatus = SrvConnection2RemoveAsyncState(
+                ntStatus = NfsConnection2RemoveAsyncState(
                                 pConnection,
                                 pCreateState->ullAsyncId);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -402,7 +402,7 @@ SrvProcessCreate_SMB_V2(
 
             pCreateState->bRemoveFileFromTree = FALSE;
 
-            pCtxSmb2->pFile = SrvFile2Acquire(pCreateState->pFile);
+            pCtxSmb2->pFile = NfsFile2Acquire(pCreateState->pFile);
             pCtxSmb2->llNumSuccessfulCreates++;
 
             break;
@@ -412,12 +412,12 @@ cleanup:
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     if (pCreateState)
@@ -426,20 +426,20 @@ cleanup:
 
         if (bUnregisterAsync)
         {
-            SrvConnection2RemoveAsyncState(
+            NfsConnection2RemoveAsyncState(
                     pConnection,
                     pCreateState->ullAsyncId);
         }
 
-        SrvReleaseCreateState_SMB_V2(pCreateState);
+        NfsReleaseCreateState_SMB_V2(pCreateState);
     }
 
     if (pAsyncState)
     {
-        SrvAsyncStateRelease(pAsyncState);
+        NfsAsyncStateRelease(pAsyncState);
     }
 
-    SRV_SAFE_FREE_MEMORY(pCreateContexts);
+    NFS_SAFE_FREE_MEMORY(pCreateContexts);
 
     return ntStatus;
 
@@ -459,7 +459,7 @@ error:
 
             if (pCreateState)
             {
-                SrvReleaseCreateStateAsync_SMB_V2(pCreateState);
+                NfsReleaseCreateStateAsync_SMB_V2(pCreateState);
             }
 
             break;
@@ -469,35 +469,35 @@ error:
 }
 
 NTSTATUS
-SrvCancelCreate_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsCancelCreate_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus     = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection  = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
     BOOLEAN                    bInLock      = FALSE;
     PLWIO_ASYNC_STATE          pAsyncState  = NULL;
     ULONG64                    ullAsyncId   = 0LL;
-    PSRV_CREATE_STATE_SMB_V2   pCreateState = NULL;
+    PNFS_CREATE_STATE_SMB_V2   pCreateState = NULL;
 
     ntStatus = SMB2GetAsyncId(pSmbRequest->pHeader, &ullAsyncId);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvConnection2FindAsyncState(
+    ntStatus = NfsConnection2FindAsyncState(
                     pConnection,
                     ullAsyncId,
                     &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pAsyncState->hAsyncState;
+    pCreateState = (PNFS_CREATE_STATE_SMB_V2)pAsyncState->hAsyncState;
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
 
-    SrvCancelCreateStateHandle_SMB_V2_inlock(pCreateState);
+    NfsCancelCreateStateHandle_SMB_V2_inlock(pCreateState);
 
 cleanup:
 
@@ -508,7 +508,7 @@ cleanup:
 
     if (pAsyncState)
     {
-        SrvAsyncStateRelease(pAsyncState);
+        NfsAsyncStateRelease(pAsyncState);
     }
 
     return ntStatus;
@@ -520,21 +520,21 @@ error:
 
 static
 NTSTATUS
-SrvBuildCreateState_SMB_V2(
-    PSRV_EXEC_CONTEXT           pExecContext,
+NfsBuildCreateState_SMB_V2(
+    PNFS_EXEC_CONTEXT           pExecContext,
     PSMB2_CREATE_REQUEST_HEADER pRequestHeader,
     PUNICODE_STRING             pwszFilename,
-    PSRV_CREATE_CONTEXT*        ppCreateContexts,
+    PNFS_CREATE_CONTEXT*        ppCreateContexts,
     ULONG                       ulNumContexts,
     ULONG64                     ullAsyncId,
-    PSRV_CREATE_STATE_SMB_V2*   ppCreateState
+    PNFS_CREATE_STATE_SMB_V2*   ppCreateState
     )
 {
     NTSTATUS                   ntStatus       = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection    = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2       = pCtxProtocol->pSmb2Context;
-    PSRV_CREATE_STATE_SMB_V2   pCreateState   = NULL;
+    PLWIO_NFS_CONNECTION       pConnection    = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2       = pCtxProtocol->pSmb2Context;
+    PNFS_CREATE_STATE_SMB_V2   pCreateState   = NULL;
     BOOLEAN                    bShareInLock    = FALSE;
     ULONG                      iCtx       = 0;
     wchar16_t wszBackSlash[]              = { '\\', 0};
@@ -552,8 +552,8 @@ SrvBuildCreateState_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_CREATE_STATE_SMB_V2),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_CREATE_STATE_SMB_V2),
                     (PVOID*)&pCreateState);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -562,11 +562,11 @@ SrvBuildCreateState_SMB_V2(
     pthread_mutex_init(&pCreateState->mutex, NULL);
     pCreateState->pMutex = &pCreateState->mutex;
 
-    pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_INITIAL;
+    pCreateState->stage = NFS_CREATE_STAGE_SMB_V2_INITIAL;
 
     pCreateState->ullAsyncId = ullAsyncId;
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     pwszFilename->Length + sizeof(wchar16_t),
                     (PVOID*)&pCreateState->pwszFilename);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -579,16 +579,16 @@ SrvBuildCreateState_SMB_V2(
     }
 
     // TODO: Handle root fids
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                     sizeof(IO_FILE_NAME),
                     (PVOID*)&pCreateState->pFilename);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pCreateState->pTree = SrvTree2Acquire(pCtxSmb2->pTree);
+    pCreateState->pTree = NfsTree2Acquire(pCtxSmb2->pTree);
 
     LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pCtxSmb2->pTree->pShareInfo->mutex);
 
-    ntStatus = SrvBuildFilePath(
+    ntStatus = NfsBuildFilePath(
                     pCtxSmb2->pTree->pShareInfo->pwszPath,
                     pCreateState->pwszFilename,
                     &pCreateState->pFilename->FileName);
@@ -601,17 +601,17 @@ SrvBuildCreateState_SMB_V2(
      *  - Client principal name
      *  - Client address
      */
-    if (SrvTree2IsNamedPipe(pCtxSmb2->pTree))
+    if (NfsTree2IsNamedPipe(pCtxSmb2->pTree))
     {
         ntStatus = IoRtlEcpListAllocate(&pCreateState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvConnectionGetNamedPipeSessionKey(
+        ntStatus = NfsConnectionGetNamedPipeSessionKey(
                        pConnection,
                        pCreateState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvConnectionGetNamedPipeClientAddress(
+        ntStatus = NfsConnectionGetNamedPipeClientAddress(
                        pConnection,
                        pCreateState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -624,7 +624,7 @@ SrvBuildCreateState_SMB_V2(
 
     for (iCtx = 0; iCtx < pCreateState->ulNumContexts; iCtx++)
     {
-        PSRV_CREATE_CONTEXT pContext = &pCreateState->pCreateContexts[iCtx];
+        PNFS_CREATE_CONTEXT pContext = &pCreateState->pCreateContexts[iCtx];
 
         switch (pContext->contextItemType)
         {
@@ -637,7 +637,7 @@ SrvBuildCreateState_SMB_V2(
 
                 ntStatus = IoRtlEcpListInsert(
                                 pCreateState->pEcpList,
-                                SRV_ECP_TYPE_MAX_ACCESS,
+                                NFS_ECP_TYPE_MAX_ACCESS,
                                 &pCreateState->ulMaximalAccessMask,
                                 sizeof(pCreateState->ulMaximalAccessMask),
                                 NULL);
@@ -687,7 +687,7 @@ error:
 
     if (pCreateState)
     {
-        SrvFreeCreateState_SMB_V2(pCreateState);
+        NfsFreeCreateState_SMB_V2(pCreateState);
     }
 
     goto cleanup;
@@ -695,25 +695,25 @@ error:
 
 static
 VOID
-SrvCancelCreateStateHandle_SMB_V2(
+NfsCancelCreateStateHandle_SMB_V2(
     HANDLE hCreateState
     )
 {
     BOOLEAN bInLock = FALSE;
-    PSRV_CREATE_STATE_SMB_V2 pCreateState =
-                (PSRV_CREATE_STATE_SMB_V2)hCreateState;
+    PNFS_CREATE_STATE_SMB_V2 pCreateState =
+                (PNFS_CREATE_STATE_SMB_V2)hCreateState;
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
 
-    SrvCancelCreateStateHandle_SMB_V2_inlock(pCreateState);
+    NfsCancelCreateStateHandle_SMB_V2_inlock(pCreateState);
 
     LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
 }
 
 static
 VOID
-SrvCancelCreateStateHandle_SMB_V2_inlock(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+NfsCancelCreateStateHandle_SMB_V2_inlock(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     )
 {
     if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
@@ -724,22 +724,22 @@ SrvCancelCreateStateHandle_SMB_V2_inlock(
 
 static
 NTSTATUS
-SrvQueryFileInformation_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsQueryFileInformation_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                    ntStatus = 0;
-    PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2    pCtxSmb2     = pCtxProtocol->pSmb2Context;
-    PSRV_CREATE_STATE_SMB_V2    pCreateState = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT  pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2    pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PNFS_CREATE_STATE_SMB_V2    pCreateState = NULL;
 
-    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+    pCreateState = (PNFS_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
 
     if (!pCreateState->pFileBasicInfo)
     {
         pCreateState->pFileBasicInfo = &pCreateState->fileBasicInfo;
 
-        SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+        NfsPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
                         pCreateState->pFile->hFile,
@@ -750,14 +750,14 @@ SrvQueryFileInformation_SMB_V2(
                         FileBasicInformation);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+        NfsReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
     }
 
     if (!pCreateState->pFileStdInfo)
     {
         pCreateState->pFileStdInfo = &pCreateState->fileStdInfo;
 
-        SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+        NfsPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
                         pCreateState->pFile->hFile,
@@ -768,16 +768,16 @@ SrvQueryFileInformation_SMB_V2(
                         FileStandardInformation);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+        NfsReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
     }
 
-    if (SrvTree2IsNamedPipe(pCreateState->pTree))
+    if (NfsTree2IsNamedPipe(pCreateState->pTree))
     {
         if (!pCreateState->pFilePipeInfo)
         {
             pCreateState->pFilePipeInfo = &pCreateState->filePipeInfo;
 
-            SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+            NfsPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
 
             ntStatus = IoQueryInformationFile(
                             pCreateState->pFile->hFile,
@@ -788,14 +788,14 @@ SrvQueryFileInformation_SMB_V2(
                             FilePipeInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+            NfsReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
         }
 
         if (!pCreateState->pFilePipeLocalInfo)
         {
             pCreateState->pFilePipeLocalInfo = &pCreateState->filePipeLocalInfo;
 
-            SrvPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
+            NfsPrepareCreateStateAsync_SMB_V2(pCreateState, pExecContext);
 
             ntStatus = IoQueryInformationFile(
                             pCreateState->pFile->hFile,
@@ -806,7 +806,7 @@ SrvQueryFileInformation_SMB_V2(
                             FilePipeLocalInformation);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
+            NfsReleaseCreateStateAsync_SMB_V2(pCreateState); // completed sync
         }
     }
 
@@ -821,22 +821,22 @@ error:
 
 static
 NTSTATUS
-SrvProcessCreateContexts_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessCreateContexts_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                    ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT  pCtxProtocol = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2    pCtxSmb2     = pCtxProtocol->pSmb2Context;
-    PSRV_CREATE_STATE_SMB_V2    pCreateState = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT  pCtxProtocol = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2    pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    PNFS_CREATE_STATE_SMB_V2    pCreateState = NULL;
 
-    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+    pCreateState = (PNFS_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
 
     for (;
          pCreateState->iContext < pCreateState->ulNumContexts;
          pCreateState->iContext++)
     {
-        PSRV_CREATE_CONTEXT pCreateContext =
+        PNFS_CREATE_CONTEXT pCreateContext =
                         &pCreateState->pCreateContexts[pCreateState->iContext];
 
         switch (pCreateContext->contextItemType)
@@ -865,37 +865,37 @@ SrvProcessCreateContexts_SMB_V2(
 
 static
 NTSTATUS
-SrvRequestCreateOplocks_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsRequestCreateOplocks_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS        ntStatus           = STATUS_SUCCESS;
-    SRV_OPLOCK_INFO batchOplockChain[] =
+    NFS_OPLOCK_INFO batchOplockChain[] =
             {
                { IO_OPLOCK_REQUEST_OPLOCK_BATCH,   SMB_OPLOCK_LEVEL_BATCH },
                { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
                { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
             };
-    SRV_OPLOCK_INFO exclOplockChain[] =
+    NFS_OPLOCK_INFO exclOplockChain[] =
             {
                { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_1, SMB_OPLOCK_LEVEL_I     },
                { IO_OPLOCK_REQUEST_OPLOCK_LEVEL_2, SMB_OPLOCK_LEVEL_II    },
                { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
             };
-    SRV_OPLOCK_INFO noOplockChain[] =
+    NFS_OPLOCK_INFO noOplockChain[] =
             {
                { SMB_OPLOCK_LEVEL_NONE,            SMB_OPLOCK_LEVEL_NONE  }
             };
-    PSRV_OPLOCK_INFO           pOplockCursor = NULL;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
-    PSRV_CREATE_STATE_SMB_V2   pCreateState  = NULL;
-    PSRV_OPLOCK_STATE_SMB_V2   pOplockState  = NULL;
+    PNFS_OPLOCK_INFO           pOplockCursor = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_CREATE_STATE_SMB_V2   pCreateState  = NULL;
+    PNFS_OPLOCK_STATE_SMB_V2   pOplockState  = NULL;
     BOOLEAN                    bContinue     = TRUE;
 
-    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+    pCreateState = (PNFS_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
 
-    if (SrvTree2IsNamedPipe(pCreateState->pTree) ||
+    if (NfsTree2IsNamedPipe(pCreateState->pTree) ||
         pCreateState->fileStdInfo.Directory)
     {
         pOplockCursor = &noOplockChain[0];
@@ -903,7 +903,7 @@ SrvRequestCreateOplocks_SMB_V2(
         goto done;
     }
 
-    ntStatus = SrvBuildOplockState_SMB_V2(
+    ntStatus = NfsBuildOplockState_SMB_V2(
                     pExecContext->pConnection,
                     pCtxSmb2->pSession,
                     pCtxSmb2->pTree,
@@ -937,7 +937,7 @@ SrvRequestCreateOplocks_SMB_V2(
         pOplockState->oplockBuffer_in.OplockRequestType =
                         pOplockCursor->oplockRequest;
 
-        SrvPrepareOplockStateAsync_SMB_V2(pOplockState);
+        NfsPrepareOplockStateAsync_SMB_V2(pOplockState);
 
         ntStatus = IoFsControlFile(
                         pCreateState->pFile->hFile,
@@ -952,7 +952,7 @@ SrvRequestCreateOplocks_SMB_V2(
         {
             case STATUS_OPLOCK_NOT_GRANTED:
 
-                SrvReleaseOplockStateAsync_SMB_V2(pOplockState); // completed sync
+                NfsReleaseOplockStateAsync_SMB_V2(pOplockState); // completed sync
 
                 pOplockCursor++;
 
@@ -960,15 +960,15 @@ SrvRequestCreateOplocks_SMB_V2(
 
             case STATUS_PENDING:
 
-                ntStatus = SrvFile2SetOplockState(
+                ntStatus = NfsFile2SetOplockState(
                                pCreateState->pFile,
                                pOplockState,
-                               &SrvReleaseOplockStateHandle_SMB_V2);
+                               &NfsReleaseOplockStateHandle_SMB_V2);
                 BAIL_ON_NT_STATUS(ntStatus);
 
                 InterlockedIncrement(&pOplockState->refCount);
 
-                SrvFile2SetOplockLevel(
+                NfsFile2SetOplockLevel(
                         pCreateState->pFile,
                         pOplockCursor->oplockLevel);
 
@@ -980,7 +980,7 @@ SrvRequestCreateOplocks_SMB_V2(
 
             default:
 
-                SrvReleaseOplockStateAsync_SMB_V2(pOplockState); // completed sync
+                NfsReleaseOplockStateAsync_SMB_V2(pOplockState); // completed sync
 
                 BAIL_ON_NT_STATUS(ntStatus);
 
@@ -996,7 +996,7 @@ cleanup:
 
     if (pOplockState)
     {
-        SrvReleaseOplockState_SMB_V2(pOplockState);
+        NfsReleaseOplockState_SMB_V2(pOplockState);
     }
 
     return ntStatus;
@@ -1008,12 +1008,12 @@ error:
 
 static
 VOID
-SrvPrepareCreateStateAsync_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState,
-    PSRV_EXEC_CONTEXT        pExecContext
+NfsPrepareCreateStateAsync_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState,
+    PNFS_EXEC_CONTEXT        pExecContext
     )
 {
-    pCreateState->acb.Callback        = &SrvExecuteCreateAsyncCB_SMB_V2;
+    pCreateState->acb.Callback        = &NfsExecuteCreateAsyncCB_SMB_V2;
 
     pCreateState->acb.CallbackContext = pExecContext;
     InterlockedIncrement(&pExecContext->refCount);
@@ -1025,17 +1025,17 @@ SrvPrepareCreateStateAsync_SMB_V2(
 
 static
 VOID
-SrvExecuteCreateAsyncCB_SMB_V2(
+NfsExecuteCreateAsyncCB_SMB_V2(
     PVOID pContext
     )
 {
     NTSTATUS                   ntStatus         = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
-    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
-    PSRV_CREATE_STATE_SMB_V2   pCreateState     = NULL;
+    PNFS_EXEC_CONTEXT          pExecContext     = (PNFS_EXEC_CONTEXT)pContext;
+    PNFS_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PNFS_CREATE_STATE_SMB_V2   pCreateState     = NULL;
     BOOLEAN                    bInLock          = FALSE;
 
-    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
+    pCreateState = (PNFS_CREATE_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
 
     LWIO_LOCK_MUTEX(bInLock, &pCreateState->mutex);
 
@@ -1049,20 +1049,20 @@ SrvExecuteCreateAsyncCB_SMB_V2(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pCreateState->mutex);
 
-    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
+    ntStatus = NfsProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
     if (ntStatus != STATUS_SUCCESS)
     {
         LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
                        ntStatus);
 
-        SrvReleaseExecContext(pExecContext);
+        NfsReleaseExecContext(pExecContext);
     }
 }
 
 static
 VOID
-SrvReleaseCreateStateAsync_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+NfsReleaseCreateStateAsync_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     )
 {
     if (pCreateState->pAcb)
@@ -1071,11 +1071,11 @@ SrvReleaseCreateStateAsync_SMB_V2(
 
         if (pCreateState->pAcb->CallbackContext)
         {
-            PSRV_EXEC_CONTEXT pExecContext = NULL;
+            PNFS_EXEC_CONTEXT pExecContext = NULL;
 
-            pExecContext = (PSRV_EXEC_CONTEXT)pCreateState->pAcb->CallbackContext;
+            pExecContext = (PNFS_EXEC_CONTEXT)pCreateState->pAcb->CallbackContext;
 
-            SrvReleaseExecContext(pExecContext);
+            NfsReleaseExecContext(pExecContext);
 
             pCreateState->pAcb->CallbackContext = NULL;
         }
@@ -1092,17 +1092,17 @@ SrvReleaseCreateStateAsync_SMB_V2(
 
 static
 VOID
-SrvReleaseCreateStateHandle_SMB_V2(
+NfsReleaseCreateStateHandle_SMB_V2(
     HANDLE hState
     )
 {
-    SrvReleaseCreateState_SMB_V2((PSRV_CREATE_STATE_SMB_V2)hState);
+    NfsReleaseCreateState_SMB_V2((PNFS_CREATE_STATE_SMB_V2)hState);
 }
 
 static
-PSRV_CREATE_STATE_SMB_V2
-SrvAcquireCreateState_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+PNFS_CREATE_STATE_SMB_V2
+NfsAcquireCreateState_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     )
 {
     InterlockedIncrement(&pCreateState->refCount);
@@ -1112,20 +1112,20 @@ SrvAcquireCreateState_SMB_V2(
 
 static
 VOID
-SrvReleaseCreateState_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+NfsReleaseCreateState_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     )
 {
     if (InterlockedDecrement(&pCreateState->refCount) == 0)
     {
-        SrvFreeCreateState_SMB_V2(pCreateState);
+        NfsFreeCreateState_SMB_V2(pCreateState);
     }
 }
 
 static
 VOID
-SrvFreeCreateState_SMB_V2(
-    PSRV_CREATE_STATE_SMB_V2 pCreateState
+NfsFreeCreateState_SMB_V2(
+    PNFS_CREATE_STATE_SMB_V2 pCreateState
     )
 {
     if (pCreateState->pAcb && pCreateState->pAcb->AsyncCancelContext)
@@ -1147,10 +1147,10 @@ SrvFreeCreateState_SMB_V2(
     {
         if (pCreateState->pFilename->FileName)
         {
-            SrvFreeMemory(pCreateState->pFilename->FileName);
+            NfsFreeMemory(pCreateState->pFilename->FileName);
         }
 
-        SrvFreeMemory(pCreateState->pFilename);
+        NfsFreeMemory(pCreateState->pFilename);
     }
 
     if (pCreateState->hFile)
@@ -1162,9 +1162,9 @@ SrvFreeCreateState_SMB_V2(
     {
         NTSTATUS ntStatus2 = 0;
 
-        SrvFile2ResetOplockState(pCreateState->pFile);
+        NfsFile2ResetOplockState(pCreateState->pFile);
 
-        ntStatus2 = SrvTree2RemoveFile(
+        ntStatus2 = NfsTree2RemoveFile(
                         pCreateState->pTree,
                         &pCreateState->pFile->fid);
         if (ntStatus2)
@@ -1178,17 +1178,17 @@ SrvFreeCreateState_SMB_V2(
         }
     }
 
-    SRV_SAFE_FREE_MEMORY(pCreateState->pwszFilename);
-    SRV_SAFE_FREE_MEMORY(pCreateState->pCreateContexts);
+    NFS_SAFE_FREE_MEMORY(pCreateState->pwszFilename);
+    NFS_SAFE_FREE_MEMORY(pCreateState->pCreateContexts);
 
     if (pCreateState->pFile)
     {
-        SrvFile2Release(pCreateState->pFile);
+        NfsFile2Release(pCreateState->pFile);
     }
 
     if (pCreateState->pTree)
     {
-        SrvTree2Release(pCreateState->pTree);
+        NfsTree2Release(pCreateState->pTree);
     }
 
     if (pCreateState->pMutex)
@@ -1196,22 +1196,22 @@ SrvFreeCreateState_SMB_V2(
         pthread_mutex_destroy(&pCreateState->mutex);
     }
 
-    SrvFreeMemory(pCreateState);
+    NfsFreeMemory(pCreateState);
 }
 
 static
 NTSTATUS
-SrvBuildCreateResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildCreateResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus      = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
-    PSRV_CREATE_STATE_SMB_V2   pCreateState  = NULL;
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PNFS_CREATE_STATE_SMB_V2   pCreateState  = NULL;
     ULONG                      iContext      = 0;
     ULONG                      ulCreateContextOffset = 0;
     ULONG                      ulCreateContextLength = 0;
@@ -1223,7 +1223,7 @@ SrvBuildCreateResponse_SMB_V2(
     ULONG ulBytesUsed      = 0;
     ULONG ulTotalBytesUsed = 0;
 
-    pCreateState = (PSRV_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
+    pCreateState = (PNFS_CREATE_STATE_SMB_V2)pCtxSmb2->hState;
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
@@ -1314,7 +1314,7 @@ SrvBuildCreateResponse_SMB_V2(
         PSMB2_CREATE_CONTEXT pCurCreateContext     = NULL;
         ULONG                ulCCBytesUsed         = 0;
         ULONG                ulAlignBytesUsed      = 0;
-        PSRV_CREATE_CONTEXT  pCreateContextRequest =
+        PNFS_CREATE_CONTEXT  pCreateContextRequest =
                         &pCreateState->pCreateContexts[iContext];
 
         switch (pCreateContextRequest->contextItemType)
@@ -1327,7 +1327,7 @@ SrvBuildCreateResponse_SMB_V2(
 
                     maxAcCC.accessMask = pCreateState->ulMaximalAccessMask;
 
-                    ntStatus = SrvWriteCreateContext(
+                    ntStatus = NfsWriteCreateContext(
                                     pOutBuffer,
                                     ulOffset,
                                     ulBytesAvailable,
@@ -1420,7 +1420,7 @@ error:
 
 static
 NTSTATUS
-SrvWriteCreateContext(
+NfsWriteCreateContext(
     PBYTE                 pOutBuffer,
     ULONG                 ulOffset,
     ULONG                 ulBytesAvailable,

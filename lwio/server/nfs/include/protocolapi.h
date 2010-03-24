@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols
  *
@@ -51,25 +51,25 @@
 #define __PROTOCOL_API_H__
 
 NTSTATUS
-SrvProtocolInit(
+NfsProtocolInit(
     PSMB_PROD_CONS_QUEUE pWorkQueue,
     PLWIO_PACKET_ALLOCATOR hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList
     );
 
 NTSTATUS
-SrvProtocolExecute(
-    PSRV_EXEC_CONTEXT pContext
+NfsProtocolExecute(
+    PNFS_EXEC_CONTEXT pContext
     );
 
 NTSTATUS
-SrvProtocolTransportSendResponse(
-    IN PLWIO_SRV_CONNECTION pConnection,
+NfsProtocolTransportSendResponse(
+    IN PLWIO_NFS_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
     );
 
 VOID
-SrvProtocolShutdown(
+NfsProtocolShutdown(
     VOID
     );
 

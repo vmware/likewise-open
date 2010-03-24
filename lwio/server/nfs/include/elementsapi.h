@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise Input Output (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - NFS
  *
  *        Elements API
  *
@@ -44,7 +44,7 @@
 #ifndef __ELEMENTSAPI_H__
 #define __ELEMENTSAPI_H__
 
-#define SRV_LRU_CAPACITY             64
+#define NFS_LRU_CAPACITY             64
 
 #define SMB_FIND_CLOSE_AFTER_REQUEST 0x1
 #define SMB_FIND_CLOSE_IF_EOS        0x2
@@ -61,10 +61,10 @@ typedef UCHAR SMB_OPLOCK_LEVEL;
 
 #define SMB_CN_MAX_BUFFER_SIZE 0x00010000
 
-typedef VOID (*PFN_LWIO_SRV_FREE_OPLOCK_STATE)(HANDLE hOplockState);
-typedef VOID (*PFN_LWIO_SRV_FREE_BRL_STATE_LIST)(HANDLE hBRLStateList);
-typedef VOID (*PFN_LWIO_SRV_CANCEL_ASYNC_STATE)(HANDLE hAsyncState);
-typedef VOID (*PFN_LWIO_SRV_FREE_ASYNC_STATE)(HANDLE hAsyncState);
+typedef VOID (*PFN_LWIO_NFS_FREE_OPLOCK_STATE)(HANDLE hOplockState);
+typedef VOID (*PFN_LWIO_NFS_FREE_BRL_STATE_LIST)(HANDLE hBRLStateList);
+typedef VOID (*PFN_LWIO_NFS_CANCEL_ASYNC_STATE)(HANDLE hAsyncState);
+typedef VOID (*PFN_LWIO_NFS_FREE_ASYNC_STATE)(HANDLE hAsyncState);
 
 typedef struct __SMB2_FID
 {
@@ -84,12 +84,12 @@ typedef struct _LWIO_ASYNC_STATE
 
     HANDLE                         hAsyncState;
 
-    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState;
-    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState;
+    PFN_LWIO_NFS_FREE_ASYNC_STATE   pfnFreeAsyncState;
+    PFN_LWIO_NFS_CANCEL_ASYNC_STATE pfnCancelAsyncState;
 
 } LWIO_ASYNC_STATE, *PLWIO_ASYNC_STATE;
 
-typedef struct _LWIO_SRV_FILE
+typedef struct _LWIO_NFS_FILE
 {
     pthread_rwlock_t        mutex;
     pthread_rwlock_t*       pMutex;
@@ -111,16 +111,16 @@ typedef struct _LWIO_SRV_FILE
     UCHAR                          ucCurrentOplockLevel;
 
     HANDLE                         hOplockState;
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
+    PFN_LWIO_NFS_FREE_OPLOCK_STATE pfnFreeOplockState;
 
     HANDLE                           hCancellableBRLStateList;
-    PFN_LWIO_SRV_FREE_BRL_STATE_LIST pfnFreeBRLStateList;
+    PFN_LWIO_NFS_FREE_BRL_STATE_LIST pfnFreeBRLStateList;
 
     ULONG64                        ullLastFailedLockOffset;
 
-} LWIO_SRV_FILE, *PLWIO_SRV_FILE;
+} LWIO_NFS_FILE, *PLWIO_NFS_FILE;
 
-typedef struct _LWIO_SRV_SEARCH_SPACE_2
+typedef struct _LWIO_NFS_SEARCH_SPACE_2
 {
     UCHAR                  ucInfoClass;
     UCHAR                  ucSearchFlags;
@@ -134,9 +134,9 @@ typedef struct _LWIO_SRV_SEARCH_SPACE_2
     USHORT                 usFileInfoLen;
     BOOLEAN                bUseLongFilenames;
 
-} LWIO_SRV_SEARCH_SPACE_2, *PLWIO_SRV_SEARCH_SPACE_2;
+} LWIO_NFS_SEARCH_SPACE_2, *PLWIO_NFS_SEARCH_SPACE_2;
 
-typedef struct _LWIO_SRV_FILE_2
+typedef struct _LWIO_NFS_FILE_2
 {
     pthread_rwlock_t        mutex;
     pthread_rwlock_t*       pMutex;
@@ -155,17 +155,17 @@ typedef struct _LWIO_SRV_FILE_2
     FILE_CREATE_DISPOSITION createDisposition;
     FILE_CREATE_OPTIONS     createOptions;
 
-    LWIO_SRV_SEARCH_SPACE_2  searchSpace;
-    PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace;
+    LWIO_NFS_SEARCH_SPACE_2  searchSpace;
+    PLWIO_NFS_SEARCH_SPACE_2 pSearchSpace;
 
     UCHAR                          ucCurrentOplockLevel;
 
     HANDLE                         hOplockState;
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
+    PFN_LWIO_NFS_FREE_OPLOCK_STATE pfnFreeOplockState;
 
-} LWIO_SRV_FILE_2, *PLWIO_SRV_FILE_2;
+} LWIO_NFS_FILE_2, *PLWIO_NFS_FILE_2;
 
-typedef struct _LWIO_SRV_TREE
+typedef struct _LWIO_NFS_TREE
 {
     LONG              refcount;
 
@@ -174,11 +174,11 @@ typedef struct _LWIO_SRV_TREE
 
     USHORT            tid;
 
-    PSRV_SHARE_INFO   pShareInfo;
+    PNFS_SHARE_INFO   pShareInfo;
 
     IO_FILE_HANDLE    hFile;
 
-    PLWIO_SRV_FILE    lruFile[SRV_LRU_CAPACITY];
+    PLWIO_NFS_FILE    lruFile[NFS_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pFileCollection;
 
@@ -186,9 +186,9 @@ typedef struct _LWIO_SRV_TREE
 
     USHORT            nextAvailableFid;
 
-} LWIO_SRV_TREE, *PLWIO_SRV_TREE;
+} LWIO_NFS_TREE, *PLWIO_NFS_TREE;
 
-typedef struct _LWIO_SRV_TREE_2
+typedef struct _LWIO_NFS_TREE_2
 {
     LONG              refcount;
 
@@ -197,19 +197,19 @@ typedef struct _LWIO_SRV_TREE_2
 
     ULONG             ulTid;
 
-    PSRV_SHARE_INFO   pShareInfo;
+    PNFS_SHARE_INFO   pShareInfo;
 
     IO_FILE_HANDLE    hFile;
 
-    PLWIO_SRV_FILE_2  lruFile[SRV_LRU_CAPACITY];
+    PLWIO_NFS_FILE_2  lruFile[NFS_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pFileCollection;
 
     ULONG64           ullNextAvailableFid;
 
-} LWIO_SRV_TREE_2, *PLWIO_SRV_TREE_2;
+} LWIO_NFS_TREE_2, *PLWIO_NFS_TREE_2;
 
-typedef struct _LWIO_SRV_SESSION
+typedef struct _LWIO_NFS_SESSION
 {
     LONG              refcount;
 
@@ -218,7 +218,7 @@ typedef struct _LWIO_SRV_SESSION
 
     USHORT            uid;
 
-    PLWIO_SRV_TREE    lruTree[SRV_LRU_CAPACITY];
+    PLWIO_NFS_TREE    lruTree[NFS_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pTreeCollection;
 
@@ -230,9 +230,9 @@ typedef struct _LWIO_SRV_SESSION
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
-} LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
+} LWIO_NFS_SESSION, *PLWIO_NFS_SESSION;
 
-typedef struct _LWIO_SRV_SESSION_2
+typedef struct _LWIO_NFS_SESSION_2
 {
     LONG              refcount;
 
@@ -241,7 +241,7 @@ typedef struct _LWIO_SRV_SESSION_2
 
     ULONG64           ullUid;
 
-    PLWIO_SRV_TREE_2  lruTree[SRV_LRU_CAPACITY];
+    PLWIO_NFS_TREE_2  lruTree[NFS_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pTreeCollection;
 
@@ -253,17 +253,17 @@ typedef struct _LWIO_SRV_SESSION_2
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
-} LWIO_SRV_SESSION_2, *PLWIO_SRV_SESSION_2;
+} LWIO_NFS_SESSION_2, *PLWIO_NFS_SESSION_2;
 
 typedef enum
 {
-    LWIO_SRV_CONN_STATE_INITIAL = 0,
-    LWIO_SRV_CONN_STATE_NEGOTIATE,
-    LWIO_SRV_CONN_STATE_READY,
-    LWIO_SRV_CONN_STATE_INVALID
-} LWIO_SRV_CONN_STATE;
+    LWIO_NFS_CONN_STATE_INITIAL = 0,
+    LWIO_NFS_CONN_STATE_NEGOTIATE,
+    LWIO_NFS_CONN_STATE_READY,
+    LWIO_NFS_CONN_STATE_INVALID
+} LWIO_NFS_CONN_STATE;
 
-typedef struct _SRV_PROPERTIES
+typedef struct _NFS_PROPERTIES
 {
     USHORT  preferredSecurityMode;
     BOOLEAN bEncryptPasswords;
@@ -276,9 +276,9 @@ typedef struct _SRV_PROPERTIES
     ULONG   Capabilities;
     uuid_t  GUID;
 
-} SRV_PROPERTIES, *PSRV_PROPERTIES;
+} NFS_PROPERTIES, *PNFS_PROPERTIES;
 
-typedef struct _SRV_CLIENT_PROPERITES
+typedef struct _NFS_CLIENT_PROPERITES
 {
 
     USHORT MaxBufferSize;
@@ -290,34 +290,34 @@ typedef struct _SRV_CLIENT_PROPERITES
     PWSTR  pwszNativeLanMan;
     PWSTR  pwszNativeDomain;
 
-} SRV_CLIENT_PROPERTIES, *PSRV_CLIENT_PROPERTIES;
+} NFS_CLIENT_PROPERTIES, *PNFS_CLIENT_PROPERTIES;
 
-typedef struct _SRV_SOCKET *PLWIO_SRV_SOCKET;
-typedef VOID (*PFN_SRV_SOCKET_FREE)(PLWIO_SRV_SOCKET pSocket);
-typedef VOID (*PFN_SRV_SOCKET_DISCONNECT)(PLWIO_SRV_SOCKET pSocket);
-typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(PLWIO_SRV_SOCKET pSocket, PVOID* ppAddr, PULONG pulAddrLength);
+typedef struct _NFS_SOCKET *PLWIO_NFS_SOCKET;
+typedef VOID (*PFN_NFS_SOCKET_FREE)(PLWIO_NFS_SOCKET pSocket);
+typedef VOID (*PFN_NFS_SOCKET_DISCONNECT)(PLWIO_NFS_SOCKET pSocket);
+typedef NTSTATUS (*PFN_NFS_SOCKET_GET_ADDRESS_BYTES)(PLWIO_NFS_SOCKET pSocket, PVOID* ppAddr, PULONG pulAddrLength);
 
-typedef struct _SRV_CONNECTION_SOCKET_DISPATCH {
-    PFN_SRV_SOCKET_FREE pfnFree;
-    PFN_SRV_SOCKET_DISCONNECT pfnDisconnect;
-    PFN_SRV_SOCKET_GET_ADDRESS_BYTES pfnGetAddressBytes;
-} SRV_CONNECTION_SOCKET_DISPATCH, *PSRV_CONNECTION_SOCKET_DISPATCH;
+typedef struct _NFS_CONNECTION_SOCKET_DISPATCH {
+    PFN_NFS_SOCKET_FREE pfnFree;
+    PFN_NFS_SOCKET_DISCONNECT pfnDisconnect;
+    PFN_NFS_SOCKET_GET_ADDRESS_BYTES pfnGetAddressBytes;
+} NFS_CONNECTION_SOCKET_DISPATCH, *PNFS_CONNECTION_SOCKET_DISPATCH;
 
-typedef struct _SRV_CONNECTION
+typedef struct _NFS_CONNECTION
 {
     LONG                refCount;
 
     pthread_rwlock_t     mutex;
     pthread_rwlock_t*    pMutex;
 
-    LWIO_SRV_CONN_STATE  state;
+    LWIO_NFS_CONN_STATE  state;
 
     // Immutable for lifetime of connection.
-    PLWIO_SRV_SOCKET pSocket;
-    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
+    PLWIO_NFS_SOCKET pSocket;
+    PNFS_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
 
-    SRV_PROPERTIES        serverProperties;
-    SRV_CLIENT_PROPERTIES clientProperties;
+    NFS_PROPERTIES        serverProperties;
+    NFS_CLIENT_PROPERTIES clientProperties;
 
     SMB_PROTOCOL_VERSION protocolVer;
 
@@ -346,8 +346,8 @@ typedef struct _SRV_CONNECTION
     ULONG               ulSessionKeyLength;
 
     // Server-wide state
-    PSRV_HOST_INFO             pHostinfo;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
+    PNFS_HOST_INFO             pHostinfo;
+    PLWIO_NFS_SHARE_ENTRY_LIST pShareList;
     PVOID                      pProtocolTransportDriverContext;
 
     HANDLE              hGssContext;
@@ -359,8 +359,8 @@ typedef struct _SRV_CONNECTION
 
     union
     {
-        PLWIO_SRV_SESSION   lruSession[SRV_LRU_CAPACITY];
-        PLWIO_SRV_SESSION_2 lruSession2[SRV_LRU_CAPACITY];
+        PLWIO_NFS_SESSION   lruSession[NFS_LRU_CAPACITY];
+        PLWIO_NFS_SESSION_2 lruSession2[NFS_LRU_CAPACITY];
     };
 
     PLWRTL_RB_TREE      pSessionCollection;
@@ -369,9 +369,9 @@ typedef struct _SRV_CONNECTION
 
     PLWRTL_RB_TREE      pAsyncStateCollection;
 
-} LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
+} LWIO_NFS_CONNECTION, *PLWIO_NFS_CONNECTION;
 
-typedef struct _SRV_FINDER_REPOSITORY
+typedef struct _NFS_FINDER_REPOSITORY
 {
     LONG             refCount;
 
@@ -382,9 +382,9 @@ typedef struct _SRV_FINDER_REPOSITORY
 
     USHORT           usNextSearchId;
 
-} SRV_FINDER_REPOSITORY, *PSRV_FINDER_REPOSITORY;
+} NFS_FINDER_REPOSITORY, *PNFS_FINDER_REPOSITORY;
 
-typedef struct _SRV_SEARCH_SPACE
+typedef struct _NFS_SEARCH_SPACE
 {
     LONG             refCount;
 
@@ -403,12 +403,12 @@ typedef struct _SRV_SEARCH_SPACE
     SMB_INFO_LEVEL   infoLevel;
     BOOLEAN          bUseLongFilenames;
 
-} SRV_SEARCH_SPACE, *PSRV_SEARCH_SPACE;
+} NFS_SEARCH_SPACE, *PNFS_SEARCH_SPACE;
 
-typedef struct _SRV_TIMER_REQUEST* PSRV_TIMER_REQUEST;
+typedef struct _NFS_TIMER_REQUEST* PNFS_TIMER_REQUEST;
 
-typedef VOID (*PFN_SRV_TIMER_CALLBACK)(
-                    PSRV_TIMER_REQUEST pTimerRequest,
+typedef VOID (*PFN_NFS_TIMER_CALLBACK)(
+                    PNFS_TIMER_REQUEST pTimerRequest,
                     PVOID              pUserData
                     );
 
@@ -465,24 +465,24 @@ typedef struct _SMB_FILE_EA_INFO_HEADER
 } __attribute__((__packed__)) SMB_FILE_EA_INFO_HEADER,
                              *PSMB_FILE_EA_INFO_HEADER;
 
-typedef struct _SRV_PROTOCOL_EXEC_CONTEXT* PSRV_PROTOCOL_EXEC_CONTEXT;
+typedef struct _NFS_PROTOCOL_EXEC_CONTEXT* PNFS_PROTOCOL_EXEC_CONTEXT;
 
-typedef VOID (*PFN_SRV_PROTOCOL_FREE_EXEC_CONTEXT)(
-                        PSRV_PROTOCOL_EXEC_CONTEXT pContext
+typedef VOID (*PFN_NFS_PROTOCOL_FREE_EXEC_CONTEXT)(
+                        PNFS_PROTOCOL_EXEC_CONTEXT pContext
                         );
 
-typedef struct _SRV_EXEC_CONTEXT
+typedef struct _NFS_EXEC_CONTEXT
 {
     LONG                               refCount;
 
     pthread_mutex_t                    mutex;
     pthread_mutex_t*                   pMutex;
 
-    PLWIO_SRV_CONNECTION               pConnection;
+    PLWIO_NFS_CONNECTION               pConnection;
     PSMB_PACKET                        pSmbRequest;
 
-    PSRV_PROTOCOL_EXEC_CONTEXT         pProtocolContext;
-    PFN_SRV_PROTOCOL_FREE_EXEC_CONTEXT pfnFreeContext;
+    PNFS_PROTOCOL_EXEC_CONTEXT         pProtocolContext;
+    PFN_NFS_PROTOCOL_FREE_EXEC_CONTEXT pfnFreeContext;
 
     PSMB_PACKET                        pSmbResponse;
     ULONG                              ulNumDuplicates;
@@ -493,9 +493,9 @@ typedef struct _SRV_EXEC_CONTEXT
 
     ULONG64                            ullAsyncId;
 
-} SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
+} NFS_EXEC_CONTEXT, *PNFS_EXEC_CONTEXT;
 
-typedef struct _SRV_ELEMENTS_STATISTICS
+typedef struct _NFS_ELEMENTS_STATISTICS
 {
     LONG64 llNumConnections;
     LONG64 llMaxNumConnections;
@@ -509,47 +509,47 @@ typedef struct _SRV_ELEMENTS_STATISTICS
     LONG64 llNumOpenFiles;
     LONG64 llMaxNumOpenFiles;
 
-} SRV_ELEMENTS_STATISTICS, *PSRV_ELEMENTS_STATISTICS;
+} NFS_ELEMENTS_STATISTICS, *PNFS_ELEMENTS_STATISTICS;
 
 NTSTATUS
-SrvElementsInit(
+NfsElementsInit(
     VOID
     );
 
 NTSTATUS
-SrvTimerPostRequest(
+NfsTimerPostRequest(
     IN  LONG64                 llExpiry,
     IN  PVOID                  pUserData,
-    IN  PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB,
-    OUT PSRV_TIMER_REQUEST*    ppTimerRequest
+    IN  PFN_NFS_TIMER_CALLBACK pfnTimerExpiredCB,
+    OUT PNFS_TIMER_REQUEST*    ppTimerRequest
     );
 
 NTSTATUS
-SrvTimerCancelRequest(
-    IN  PSRV_TIMER_REQUEST pTimerRequest,
+NfsTimerCancelRequest(
+    IN  PNFS_TIMER_REQUEST pTimerRequest,
     OUT PVOID*             ppUserData
     );
 
 NTSTATUS
-SrvTimerRelease(
-    IN  PSRV_TIMER_REQUEST pTimerRequest
+NfsTimerRelease(
+    IN  PNFS_TIMER_REQUEST pTimerRequest
     );
 
 NTSTATUS
-SrvGssAcquireContext(
-    PSRV_HOST_INFO pHostinfo,
+NfsGssAcquireContext(
+    PNFS_HOST_INFO pHostinfo,
     HANDLE         hGssOrig,
     PHANDLE        phGssNew
     );
 
 BOOLEAN
-SrvGssNegotiateIsComplete(
+NfsGssNegotiateIsComplete(
     HANDLE hGss,
     HANDLE hGssNegotiate
     );
 
 NTSTATUS
-SrvGssGetSessionDetails(
+NfsGssGetSessionDetails(
     HANDLE hGss,
     HANDLE hGssNegotiate,
     PBYTE* ppSessionKey,
@@ -559,13 +559,13 @@ SrvGssGetSessionDetails(
     );
 
 NTSTATUS
-SrvGssBeginNegotiate(
+NfsGssBeginNegotiate(
     HANDLE  hGss,
     PHANDLE phGssNegotiate
     );
 
 NTSTATUS
-SrvGssNegotiate(
+NfsGssNegotiate(
     HANDLE  hGss,
     HANDLE  hGssResume,
     PBYTE   pSecurityInputBlob,
@@ -575,285 +575,285 @@ SrvGssNegotiate(
     );
 
 VOID
-SrvGssEndNegotiate(
+NfsGssEndNegotiate(
     HANDLE hGss,
     HANDLE hGssNegotiate
     );
 
 VOID
-SrvGssReleaseContext(
+NfsGssReleaseContext(
     HANDLE hGss
     );
 
 NTSTATUS
-SrvGssNegHints(
+NfsGssNegHints(
     HANDLE hGssContext,
     PBYTE *ppNegHints,
     ULONG *pulNegHintsLength
     );
 
 ULONG64
-SrvAsyncStateBuildId(
+NfsAsyncStateBuildId(
     ULONG  ulPid,
     USHORT usMid
     );
 
 NTSTATUS
-SrvAsyncStateCreate(
+NfsAsyncStateCreate(
     ULONG64                         ullAsyncId,
     USHORT                          usCommand,
     HANDLE                          hAsyncState,
-    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
+    PFN_LWIO_NFS_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PFN_LWIO_NFS_FREE_ASYNC_STATE   pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*              ppAsyncState
     );
 
 VOID
-SrvAsyncStateCancel(
+NfsAsyncStateCancel(
     PLWIO_ASYNC_STATE pAsyncState
     );
 
 PLWIO_ASYNC_STATE
-SrvAsyncStateAcquire(
+NfsAsyncStateAcquire(
     PLWIO_ASYNC_STATE pAsyncState
     );
 
 VOID
-SrvAsyncStateRelease(
+NfsAsyncStateRelease(
     PLWIO_ASYNC_STATE pAsyncState
     );
 
 NTSTATUS
-SrvConnectionCreate(
-    PLWIO_SRV_SOCKET                pSocket,
+NfsConnectionCreate(
+    PLWIO_NFS_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
-    PLWIO_SRV_SHARE_ENTRY_LIST      pShareList,
-    PSRV_PROPERTIES                 pServerProperties,
-    PSRV_HOST_INFO                  pHostinfo,
-    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch,
-    PLWIO_SRV_CONNECTION*           ppConnection
+    PLWIO_NFS_SHARE_ENTRY_LIST      pShareList,
+    PNFS_PROPERTIES                 pServerProperties,
+    PNFS_HOST_INFO                  pHostinfo,
+    PNFS_CONNECTION_SOCKET_DISPATCH pSocketDispatch,
+    PLWIO_NFS_CONNECTION*           ppConnection
     );
 
 SMB_PROTOCOL_VERSION
-SrvConnectionGetProtocolVersion(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionGetProtocolVersion(
+    PLWIO_NFS_CONNECTION pConnection
     );
 
 NTSTATUS
-SrvConnectionSetProtocolVersion(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionSetProtocolVersion(
+    PLWIO_NFS_CONNECTION pConnection,
     SMB_PROTOCOL_VERSION protoVer
     );
 
 NTSTATUS
-SrvConnectionSetProtocolVersion_inlock(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionSetProtocolVersion_inlock(
+    PLWIO_NFS_CONNECTION pConnection,
     SMB_PROTOCOL_VERSION protoVer
     );
 
 NTSTATUS
-SrvConnectionCreateSession(
-    PLWIO_SRV_CONNECTION pConnection,
-    PLWIO_SRV_SESSION* ppSession
+NfsConnectionCreateSession(
+    PLWIO_NFS_CONNECTION pConnection,
+    PLWIO_NFS_SESSION* ppSession
     );
 
 NTSTATUS
-SrvConnection2CreateSession(
-    PLWIO_SRV_CONNECTION pConnection,
-    PLWIO_SRV_SESSION_2* ppSession
+NfsConnection2CreateSession(
+    PLWIO_NFS_CONNECTION pConnection,
+    PLWIO_NFS_SESSION_2* ppSession
     );
 
 NTSTATUS
-SrvConnectionFindSession(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionFindSession(
+    PLWIO_NFS_CONNECTION pConnection,
     USHORT               uid,
-    PLWIO_SRV_SESSION*   ppSession
+    PLWIO_NFS_SESSION*   ppSession
     );
 
 NTSTATUS
-SrvConnection2FindSession(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2FindSession(
+    PLWIO_NFS_CONNECTION pConnection,
     ULONG64              ullUid,
-    PLWIO_SRV_SESSION_2* ppSession
+    PLWIO_NFS_SESSION_2* ppSession
     );
 
 NTSTATUS
-SrvConnection2CreateAsyncState(
-    PLWIO_SRV_CONNECTION            pConnection,
+NfsConnection2CreateAsyncState(
+    PLWIO_NFS_CONNECTION            pConnection,
     USHORT                          usCommand,
-    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
+    PFN_LWIO_NFS_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PFN_LWIO_NFS_FREE_ASYNC_STATE   pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*              ppAsyncState
     );
 
 NTSTATUS
-SrvConnection2FindAsyncState(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2FindAsyncState(
+    PLWIO_NFS_CONNECTION pConnection,
     ULONG64              ullAsyncId,
     PLWIO_ASYNC_STATE*   ppAsyncState
     );
 
 NTSTATUS
-SrvConnection2RemoveAsyncState(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2RemoveAsyncState(
+    PLWIO_NFS_CONNECTION pConnection,
     ULONG64              ullAsyncId
     );
 
 NTSTATUS
-SrvConnectionGetNamedPipeClientAddress(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionGetNamedPipeClientAddress(
+    PLWIO_NFS_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
     );
 
 NTSTATUS
-SrvConnectionGetNamedPipeSessionKey(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionGetNamedPipeSessionKey(
+    PLWIO_NFS_CONNECTION pConnection,
     PIO_ECP_LIST        pEcpList
     );
 
-LWIO_SRV_CONN_STATE
-SrvConnectionGetState(
-    PLWIO_SRV_CONNECTION pConnection
+LWIO_NFS_CONN_STATE
+NfsConnectionGetState(
+    PLWIO_NFS_CONNECTION pConnection
     );
 
 BOOLEAN
-SrvConnectionIsInvalid(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionIsInvalid(
+    PLWIO_NFS_CONNECTION pConnection
     );
 
-PLWIO_SRV_CONNECTION
-SrvConnectionAcquire(
-    PLWIO_SRV_CONNECTION pConnection
+PLWIO_NFS_CONNECTION
+NfsConnectionAcquire(
+    PLWIO_NFS_CONNECTION pConnection
     );
 
 VOID
-SrvConnectionRelease(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionRelease(
+    PLWIO_NFS_CONNECTION pConnection
     );
 
 NTSTATUS
-SrvConnectionRemoveSession(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnectionRemoveSession(
+    PLWIO_NFS_CONNECTION pConnection,
     USHORT              uid
     );
 
 NTSTATUS
-SrvConnection2RemoveSession(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsConnection2RemoveSession(
+    PLWIO_NFS_CONNECTION pConnection,
     ULONG64              ullUid
     );
 
 VOID
-SrvConnectionSetInvalid(
-    PLWIO_SRV_CONNECTION pConnection
+NfsConnectionSetInvalid(
+    PLWIO_NFS_CONNECTION pConnection
     );
 
 VOID
-SrvConnectionSetState(
-    PLWIO_SRV_CONNECTION pConnection,
-    LWIO_SRV_CONN_STATE  connState
+NfsConnectionSetState(
+    PLWIO_NFS_CONNECTION pConnection,
+    LWIO_NFS_CONN_STATE  connState
     );
 
 NTSTATUS
-SrvSessionCreate(
+NfsSessionCreate(
     USHORT            uid,
-    PLWIO_SRV_SESSION* ppSession
+    PLWIO_NFS_SESSION* ppSession
     );
 
 NTSTATUS
-SrvSessionFindTree(
-    PLWIO_SRV_SESSION pSession,
+NfsSessionFindTree(
+    PLWIO_NFS_SESSION pSession,
     USHORT           tid,
-    PLWIO_SRV_TREE*   ppTree
+    PLWIO_NFS_TREE*   ppTree
     );
 
 NTSTATUS
-SrvSessionRemoveTree(
-    PLWIO_SRV_SESSION pSession,
+NfsSessionRemoveTree(
+    PLWIO_NFS_SESSION pSession,
     USHORT           tid
     );
 
 NTSTATUS
-SrvSessionCreateTree(
-    PLWIO_SRV_SESSION pSession,
-    PSRV_SHARE_INFO   pShareInfo,
-    PLWIO_SRV_TREE*   ppTree
+NfsSessionCreateTree(
+    PLWIO_NFS_SESSION pSession,
+    PNFS_SHARE_INFO   pShareInfo,
+    PLWIO_NFS_TREE*   ppTree
     );
 
-PLWIO_SRV_SESSION
-SrvSessionAcquire(
-    PLWIO_SRV_SESSION pSession
-    );
-
-VOID
-SrvSessionRelease(
-    PLWIO_SRV_SESSION pSession
+PLWIO_NFS_SESSION
+NfsSessionAcquire(
+    PLWIO_NFS_SESSION pSession
     );
 
 VOID
-SrvSessionRundown(
-    PLWIO_SRV_SESSION pSession
+NfsSessionRelease(
+    PLWIO_NFS_SESSION pSession
+    );
+
+VOID
+NfsSessionRundown(
+    PLWIO_NFS_SESSION pSession
     );
 
 NTSTATUS
-SrvSession2Create(
+NfsSession2Create(
     ULONG64              ullUid,
-    PLWIO_SRV_SESSION_2* ppSession
+    PLWIO_NFS_SESSION_2* ppSession
     );
 
 NTSTATUS
-SrvSession2FindTree(
-    PLWIO_SRV_SESSION_2 pSession,
+NfsSession2FindTree(
+    PLWIO_NFS_SESSION_2 pSession,
     ULONG               ulTid,
-    PLWIO_SRV_TREE_2*   ppTree
+    PLWIO_NFS_TREE_2*   ppTree
     );
 
 NTSTATUS
-SrvSession2RemoveTree(
-    PLWIO_SRV_SESSION_2 pSession,
+NfsSession2RemoveTree(
+    PLWIO_NFS_SESSION_2 pSession,
     ULONG               ulTid
     );
 
 NTSTATUS
-SrvSession2CreateTree(
-    PLWIO_SRV_SESSION_2 pSession,
-    PSRV_SHARE_INFO     pShareInfo,
-    PLWIO_SRV_TREE_2*   ppTree
+NfsSession2CreateTree(
+    PLWIO_NFS_SESSION_2 pSession,
+    PNFS_SHARE_INFO     pShareInfo,
+    PLWIO_NFS_TREE_2*   ppTree
     );
 
-PLWIO_SRV_SESSION_2
-SrvSession2Acquire(
-    PLWIO_SRV_SESSION_2 pSession
-    );
-
-VOID
-SrvSession2Release(
-    PLWIO_SRV_SESSION_2 pSession
+PLWIO_NFS_SESSION_2
+NfsSession2Acquire(
+    PLWIO_NFS_SESSION_2 pSession
     );
 
 VOID
-SrvSession2Rundown(
-    PLWIO_SRV_SESSION_2 pSession
+NfsSession2Release(
+    PLWIO_NFS_SESSION_2 pSession
+    );
+
+VOID
+NfsSession2Rundown(
+    PLWIO_NFS_SESSION_2 pSession
     );
 
 NTSTATUS
-SrvTreeCreate(
+NfsTreeCreate(
     USHORT            tid,
-    PSRV_SHARE_INFO   pShareInfo,
-    PLWIO_SRV_TREE*    ppTree
+    PNFS_SHARE_INFO   pShareInfo,
+    PLWIO_NFS_TREE*    ppTree
     );
 
 NTSTATUS
-SrvTreeFindFile(
-    PLWIO_SRV_TREE  pTree,
+NfsTreeFindFile(
+    PLWIO_NFS_TREE  pTree,
     USHORT         fid,
-    PLWIO_SRV_FILE* ppFile
+    PLWIO_NFS_FILE* ppFile
     );
 
 NTSTATUS
-SrvTreeCreateFile(
-    PLWIO_SRV_TREE           pTree,
+NfsTreeCreateFile(
+    PLWIO_NFS_TREE           pTree,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
@@ -863,77 +863,77 @@ SrvTreeCreateFile(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE*          ppFile
+    PLWIO_NFS_FILE*          ppFile
     );
 
 NTSTATUS
-SrvTreeRemoveFile(
-    PLWIO_SRV_TREE pTree,
+NfsTreeRemoveFile(
+    PLWIO_NFS_TREE pTree,
     USHORT        fid
     );
 
 NTSTATUS
-SrvTreeAddAsyncState(
-    PLWIO_SRV_TREE    pTree,
+NfsTreeAddAsyncState(
+    PLWIO_NFS_TREE    pTree,
     PLWIO_ASYNC_STATE pAsyncState
     );
 
 NTSTATUS
-SrvTreeFindAsyncState(
-    PLWIO_SRV_TREE     pTree,
+NfsTreeFindAsyncState(
+    PLWIO_NFS_TREE     pTree,
     ULONG64            ullAsyncId,
     PLWIO_ASYNC_STATE* ppAsyncState
     );
 
 NTSTATUS
-SrvTreeRemoveAsyncState(
-    PLWIO_SRV_TREE pTree,
+NfsTreeRemoveAsyncState(
+    PLWIO_NFS_TREE pTree,
     ULONG64        ullAsyncId
     );
 
 BOOLEAN
-SrvTreeIsNamedPipe(
-    PLWIO_SRV_TREE pTree
+NfsTreeIsNamedPipe(
+    PLWIO_NFS_TREE pTree
     );
 
 NTSTATUS
-SrvGetTreeRelativePath(
+NfsGetTreeRelativePath(
     PWSTR  pwszOriginalPath,
     PWSTR* ppwszSpecificPath
     );
 
-PLWIO_SRV_TREE
-SrvTreeAcquire(
-    PLWIO_SRV_TREE pTree
+PLWIO_NFS_TREE
+NfsTreeAcquire(
+    PLWIO_NFS_TREE pTree
     );
 
 VOID
-SrvTreeRelease(
-    PLWIO_SRV_TREE pTree
+NfsTreeRelease(
+    PLWIO_NFS_TREE pTree
     );
 
 VOID
-SrvTreeRundown(
-    PLWIO_SRV_TREE pTree
+NfsTreeRundown(
+    PLWIO_NFS_TREE pTree
     );
 
 NTSTATUS
-SrvTree2Create(
+NfsTree2Create(
     ULONG             ulTid,
-    PSRV_SHARE_INFO   pShareInfo,
-    PLWIO_SRV_TREE_2* ppTree
+    PNFS_SHARE_INFO   pShareInfo,
+    PLWIO_NFS_TREE_2* ppTree
     );
 
 NTSTATUS
-SrvTree2FindFile(
-    PLWIO_SRV_TREE_2  pTree,
+NfsTree2FindFile(
+    PLWIO_NFS_TREE_2  pTree,
     PSMB2_FID         pFid,
-    PLWIO_SRV_FILE_2* ppFile
+    PLWIO_NFS_FILE_2* ppFile
     );
 
 NTSTATUS
-SrvTree2CreateFile(
-    PLWIO_SRV_TREE_2        pTree,
+NfsTree2CreateFile(
+    PLWIO_NFS_TREE_2        pTree,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
@@ -943,38 +943,38 @@ SrvTree2CreateFile(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE_2*       ppFile
+    PLWIO_NFS_FILE_2*       ppFile
     );
 
 NTSTATUS
-SrvTree2RemoveFile(
-    PLWIO_SRV_TREE_2 pTree,
+NfsTree2RemoveFile(
+    PLWIO_NFS_TREE_2 pTree,
     PSMB2_FID        pFid
     );
 
 BOOLEAN
-SrvTree2IsNamedPipe(
-    PLWIO_SRV_TREE_2 pTree
+NfsTree2IsNamedPipe(
+    PLWIO_NFS_TREE_2 pTree
     );
 
-PLWIO_SRV_TREE_2
-SrvTree2Acquire(
-    PLWIO_SRV_TREE_2 pTree
-    );
-
-VOID
-SrvTree2Release(
-    PLWIO_SRV_TREE_2 pTree
+PLWIO_NFS_TREE_2
+NfsTree2Acquire(
+    PLWIO_NFS_TREE_2 pTree
     );
 
 VOID
-SrvTree2Rundown(
-    PLWIO_SRV_TREE_2 pTree
+NfsTree2Release(
+    PLWIO_NFS_TREE_2 pTree
+    );
+
+VOID
+NfsTree2Rundown(
+    PLWIO_NFS_TREE_2 pTree
     );
 
 NTSTATUS
-SrvIoCreateFile(
-    IN PSRV_SHARE_INFO pShareInfo,
+NfsIoCreateFile(
+    IN PNFS_SHARE_INFO pShareInfo,
     OUT PIO_FILE_HANDLE pFileHandle,
     IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock,
     OUT PIO_STATUS_BLOCK pIoStatusBlock,
@@ -994,7 +994,7 @@ SrvIoCreateFile(
     );
 
 NTSTATUS
-SrvFileCreate(
+NfsFileCreate(
     USHORT                  fid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
@@ -1005,65 +1005,65 @@ SrvFileCreate(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE*          ppFile
+    PLWIO_NFS_FILE*          ppFile
     );
 
 NTSTATUS
-SrvFileSetOplockState(
-    PLWIO_SRV_FILE                 pFile,
+NfsFileSetOplockState(
+    PLWIO_NFS_FILE                 pFile,
     HANDLE                         hOplockState,
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnReleaseOplockState
+    PFN_LWIO_NFS_FREE_OPLOCK_STATE pfnReleaseOplockState
     );
 
 HANDLE
-SrvFileRemoveOplockState(
-    PLWIO_SRV_FILE pFile
+NfsFileRemoveOplockState(
+    PLWIO_NFS_FILE pFile
     );
 
 VOID
-SrvFileResetOplockState(
-    PLWIO_SRV_FILE pFile
+NfsFileResetOplockState(
+    PLWIO_NFS_FILE pFile
     );
 
 VOID
-SrvFileSetOplockLevel(
-    PLWIO_SRV_FILE pFile,
+NfsFileSetOplockLevel(
+    PLWIO_NFS_FILE pFile,
     UCHAR          ucOplockLevel
     );
 
 UCHAR
-SrvFileGetOplockLevel(
-    PLWIO_SRV_FILE pFile
+NfsFileGetOplockLevel(
+    PLWIO_NFS_FILE pFile
     );
 
 VOID
-SrvFileSetLastFailedLockOffset(
-    PLWIO_SRV_FILE pFile,
+NfsFileSetLastFailedLockOffset(
+    PLWIO_NFS_FILE pFile,
     ULONG64        ullLastFailedLockOffset
     );
 
 ULONG64
-SrvFileGetLastFailedLockOffset(
-    PLWIO_SRV_FILE pFile
+NfsFileGetLastFailedLockOffset(
+    PLWIO_NFS_FILE pFile
     );
 
-PLWIO_SRV_FILE
-SrvFileAcquire(
-    PLWIO_SRV_FILE pFile
-    );
-
-VOID
-SrvFileRelease(
-    PLWIO_SRV_FILE pFile
+PLWIO_NFS_FILE
+NfsFileAcquire(
+    PLWIO_NFS_FILE pFile
     );
 
 VOID
-SrvFileRundown(
-    PLWIO_SRV_FILE pFile
+NfsFileRelease(
+    PLWIO_NFS_FILE pFile
+    );
+
+VOID
+NfsFileRundown(
+    PLWIO_NFS_FILE pFile
     );
 
 NTSTATUS
-SrvFile2Create(
+NfsFile2Create(
     PSMB2_FID               pFid,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
@@ -1074,59 +1074,59 @@ SrvFile2Create(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE_2*       ppFile
+    PLWIO_NFS_FILE_2*       ppFile
     );
 
 NTSTATUS
-SrvFile2SetOplockState(
-    PLWIO_SRV_FILE_2               pFile,
+NfsFile2SetOplockState(
+    PLWIO_NFS_FILE_2               pFile,
     HANDLE                         hOplockState,
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnReleaseOplockState
+    PFN_LWIO_NFS_FREE_OPLOCK_STATE pfnReleaseOplockState
     );
 
 HANDLE
-SrvFile2RemoveOplockState(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2RemoveOplockState(
+    PLWIO_NFS_FILE_2 pFile
     );
 
 VOID
-SrvFile2ResetOplockState(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2ResetOplockState(
+    PLWIO_NFS_FILE_2 pFile
     );
 
 VOID
-SrvFile2SetOplockLevel(
-    PLWIO_SRV_FILE_2 pFile,
+NfsFile2SetOplockLevel(
+    PLWIO_NFS_FILE_2 pFile,
     UCHAR            ucOplockLevel
     );
 
 UCHAR
-SrvFile2GetOplockLevel(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2GetOplockLevel(
+    PLWIO_NFS_FILE_2 pFile
     );
 
-PLWIO_SRV_FILE_2
-SrvFile2Acquire(
-    PLWIO_SRV_FILE_2 pFile
-    );
-
-VOID
-SrvFile2Release(
-    PLWIO_SRV_FILE_2 pFile
+PLWIO_NFS_FILE_2
+NfsFile2Acquire(
+    PLWIO_NFS_FILE_2 pFile
     );
 
 VOID
-SrvFile2Rundown(
-    PLWIO_SRV_FILE_2 pFile
+NfsFile2Release(
+    PLWIO_NFS_FILE_2 pFile
+    );
+
+VOID
+NfsFile2Rundown(
+    PLWIO_NFS_FILE_2 pFile
     );
 
 NTSTATUS
-SrvFinderCreateRepository(
+NfsFinderCreateRepository(
     OUT PHANDLE phFinderRepository
     );
 
 NTSTATUS
-SrvFinderBuildSearchPath(
+NfsFinderBuildSearchPath(
     IN              PWSTR    pwszPath,
     IN              PWSTR    pwszSearchPattern,
        OUT          PWSTR*   ppwszFilesystemPath,
@@ -1135,8 +1135,8 @@ SrvFinderBuildSearchPath(
     );
 
 NTSTATUS
-SrvFinderCreateSearchSpace(
-    IN  PSRV_SHARE_INFO pShareInfo,
+NfsFinderCreateSearchSpace(
+    IN  PNFS_SHARE_INFO pShareInfo,
     IN  PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     IN  HANDLE         hFinderRepository,
     IN  PWSTR          pwszFilesystemPath,
@@ -1151,83 +1151,83 @@ SrvFinderCreateSearchSpace(
     );
 
 NTSTATUS
-SrvFinderGetSearchSpace(
+NfsFinderGetSearchSpace(
     IN  HANDLE  hFinderRepository,
     IN  USHORT  usSearchId,
     OUT PHANDLE phFinder
     );
 
 VOID
-SrvFinderReleaseSearchSpace(
+NfsFinderReleaseSearchSpace(
     IN HANDLE hFinder
     );
 
 NTSTATUS
-SrvFinderCloseSearchSpace(
+NfsFinderCloseSearchSpace(
     IN HANDLE hFinderRepository,
     IN USHORT usSearchId
     );
 
 VOID
-SrvFinderCloseRepository(
+NfsFinderCloseRepository(
     IN HANDLE hFinderRepository
     );
 
 NTSTATUS
-SrvBuildExecContext(
-   IN  PLWIO_SRV_CONNECTION pConnection,
+NfsBuildExecContext(
+   IN  PLWIO_NFS_CONNECTION pConnection,
    IN  PSMB_PACKET          pSmbRequest,
    IN  BOOLEAN              bInternal,
-   OUT PSRV_EXEC_CONTEXT*   ppContext
+   OUT PNFS_EXEC_CONTEXT*   ppContext
    );
 
 NTSTATUS
-SrvBuildEmptyExecContext(
-   OUT PSRV_EXEC_CONTEXT* ppContext
+NfsBuildEmptyExecContext(
+   OUT PNFS_EXEC_CONTEXT* ppContext
    );
 
 BOOLEAN
-SrvIsValidExecContext(
-   IN PSRV_EXEC_CONTEXT pExecContext
+NfsIsValidExecContext(
+   IN PNFS_EXEC_CONTEXT pExecContext
    );
 
 VOID
-SrvReleaseExecContextHandle(
+NfsReleaseExecContextHandle(
    IN HANDLE hExecContext
    );
 
-PSRV_EXEC_CONTEXT
-SrvAcquireExecContext(
-   PSRV_EXEC_CONTEXT pContext
+PNFS_EXEC_CONTEXT
+NfsAcquireExecContext(
+   PNFS_EXEC_CONTEXT pContext
    );
 
 VOID
-SrvReleaseExecContext(
-   IN PSRV_EXEC_CONTEXT pContext
+NfsReleaseExecContext(
+   IN PNFS_EXEC_CONTEXT pContext
    );
 
 NTSTATUS
-SrvElementsGetBootTime(
+NfsElementsGetBootTime(
     PULONG64 pullBootTime
     );
 
 BOOLEAN
-SrvElementsGetShareNameEcpEnabled(
+NfsElementsGetShareNameEcpEnabled(
     VOID
     );
 
 NTSTATUS
-SrvElementsGetStats(
-    PSRV_ELEMENTS_STATISTICS pStats
+NfsElementsGetStats(
+    PNFS_ELEMENTS_STATISTICS pStats
     );
 
 NTSTATUS
-SrvElementsResetStats(
+NfsElementsResetStats(
     VOID
     );
 
 NTSTATUS
-SrvElementsShutdown(
+NfsElementsShutdown(
     VOID
     );
 

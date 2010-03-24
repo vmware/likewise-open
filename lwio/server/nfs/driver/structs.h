@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Structures
  *
@@ -49,15 +49,15 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-typedef struct _LWIO_SRV_CONFIG
+typedef struct _LWIO_NFS_CONFIG
 {
     ULONG ulNumWorkers;
     ULONG ulMaxNumPackets;
     ULONG ulMaxNumWorkItemsInQueue;
 
-} LWIO_SRV_CONFIG, *PLWIO_SRV_CONFIG;
+} LWIO_NFS_CONFIG, *PLWIO_NFS_CONFIG;
 
-typedef struct _SRV_CCB
+typedef struct _NFS_CCB
 {
     LONG                    refCount;
 
@@ -70,11 +70,11 @@ typedef struct _SRV_CCB
     FILE_CREATE_DISPOSITION CreateDisposition;
     FILE_CREATE_OPTIONS     CreateOptions;
 
-    struct _SRV_CCB *       pNext;
+    struct _NFS_CCB *       pNext;
 
-} SRV_CCB, *PSRV_CCB;
+} NFS_CCB, *PNFS_CCB;
 
-typedef struct _SRV_IRP_CONTEXT
+typedef struct _NFS_IRP_CONTEXT
 {
     PIRP             pIrp;
     IO_DEVICE_HANDLE targetDeviceHandle;
@@ -82,9 +82,9 @@ typedef struct _SRV_IRP_CONTEXT
     UNICODE_STRING   relativePathName;
     UNICODE_STRING   absolutePathName;
 
-} SRV_IRP_CONTEXT, *PSRV_IRP_CONTEXT;
+} NFS_IRP_CONTEXT, *PNFS_IRP_CONTEXT;
 
-typedef struct _LWIO_SRV_WORKER_CONTEXT
+typedef struct _LWIO_NFS_WORKER_CONTEXT
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
@@ -93,39 +93,39 @@ typedef struct _LWIO_SRV_WORKER_CONTEXT
 
     ULONG   workerId;
 
-} LWIO_SRV_WORKER_CONTEXT, *PLWIO_SRV_WORKER_CONTEXT;
+} LWIO_NFS_WORKER_CONTEXT, *PLWIO_NFS_WORKER_CONTEXT;
 
-typedef struct _LWIO_SRV_WORKER
+typedef struct _LWIO_NFS_WORKER
 {
     pthread_t  worker;
     pthread_t* pWorker;
 
     ULONG      workerId;
 
-    LWIO_SRV_WORKER_CONTEXT context;
+    LWIO_NFS_WORKER_CONTEXT context;
 
-} LWIO_SRV_WORKER, *PLWIO_SRV_WORKER;
+} LWIO_NFS_WORKER, *PLWIO_NFS_WORKER;
 
-typedef struct _LWIO_SRV_RUNTIME_GLOBALS
+typedef struct _LWIO_NFS_RUNTIME_GLOBALS
 {
     pthread_mutex_t           mutex;
     pthread_mutex_t*          pMutex;
 
-    LWIO_SRV_CONFIG           config;
+    LWIO_NFS_CONFIG           config;
 
-    LWIO_SRV_SHARE_ENTRY_LIST shareList;
+    LWIO_NFS_SHARE_ENTRY_LIST shareList;
 
     SMB_PROD_CONS_QUEUE       workQueue;
     ULONG                     ulMaxNumWorkItemsInQueue;
 
-    PLWIO_SRV_WORKER          pWorkerArray;
+    PLWIO_NFS_WORKER          pWorkerArray;
     ULONG                     ulNumWorkers;
 
     PLWIO_PACKET_ALLOCATOR    hPacketAllocator;
 
     IO_DEVICE_HANDLE          hDevice;
 
-} LWIO_SRV_RUNTIME_GLOBALS, *PLWIO_SRV_RUNTIME_GLOBALS;
+} LWIO_NFS_RUNTIME_GLOBALS, *PLWIO_NFS_RUNTIME_GLOBALS;
 
 
 #endif /* __STRUCTS_H__ */

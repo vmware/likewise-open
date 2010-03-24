@@ -32,8 +32,8 @@
 
 static
 NTSTATUS
-SrvBuildNegotiateResponseForDialect(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsBuildNegotiateResponseForDialect(
+    PLWIO_NFS_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     PSTR*                ppszDialectArray,
     ULONG                ulNumDialects,
@@ -41,8 +41,8 @@ SrvBuildNegotiateResponseForDialect(
     );
 
 NTSTATUS
-SrvProcessNegotiate(
-    IN  PLWIO_SRV_CONNECTION pConnection,
+NfsProcessNegotiate(
+    IN  PLWIO_NFS_CONNECTION pConnection,
     IN  PSMB_PACKET          pSmbRequest,
     OUT PSMB_PACKET*         ppSmbResponse
     )
@@ -62,7 +62,7 @@ SrvProcessNegotiate(
                     &ulNumDialects);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvBuildNegotiateResponseForDialect(
+    ntStatus = NfsBuildNegotiateResponseForDialect(
                     pConnection,
                     pSmbRequest,
                     pszDialectArray,
@@ -70,7 +70,7 @@ SrvProcessNegotiate(
                     &pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_NEGOTIATE);
+    NfsConnectionSetState(pConnection, LWIO_NFS_CONN_STATE_NEGOTIATE);
 
     *ppSmbResponse = pSmbResponse;
 
@@ -94,8 +94,8 @@ error:
 
 static
 NTSTATUS
-SrvBuildNegotiateResponseForDialect(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsBuildNegotiateResponseForDialect(
+    PLWIO_NFS_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     PSTR*                ppszDialectArray,
     ULONG                ulNumDialects,
@@ -107,21 +107,21 @@ SrvBuildNegotiateResponseForDialect(
     BOOLEAN bSupportSMBV2 = FALSE;
     PSMB_PACKET pSmbResponse = NULL;
 
-    bSupportSMBV2 = SrvProtocolConfigIsSmb2Enabled();
+    bSupportSMBV2 = NfsProtocolConfigIsSmb2Enabled();
     if (bSupportSMBV2)
     {
         for (iDialect = 0; iDialect < ulNumDialects; iDialect++)
         {
             if (!strcmp(ppszDialectArray[iDialect],
-                        SRV_NEGOTIATE_DIALECT_SMB_2))
+                        NFS_NEGOTIATE_DIALECT_SMB_2))
             {
-                ntStatus = SrvBuildNegotiateResponse_SMB_V2(
+                ntStatus = NfsBuildNegotiateResponse_SMB_V2(
                                 pConnection,
                                 pSmbRequest,
                                 &pSmbResponse);
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                ntStatus = SrvConnectionSetProtocolVersion(
+                ntStatus = NfsConnectionSetProtocolVersion(
                                 pConnection,
                                 SMB_PROTOCOL_VERSION_2);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -134,9 +134,9 @@ SrvBuildNegotiateResponseForDialect(
     for (iDialect = 0; iDialect < ulNumDialects; iDialect++)
     {
         if (!strcmp(ppszDialectArray[iDialect],
-                    SRV_NEGOTIATE_DIALECT_NTLM_0_12))
+                    NFS_NEGOTIATE_DIALECT_NTLM_0_12))
         {
-            ntStatus = SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
+            ntStatus = NfsBuildNegotiateResponse_SMB_V1_NTLM_0_12(
                                 pConnection,
                                 pSmbRequest,
                                 iDialect,
@@ -147,7 +147,7 @@ SrvBuildNegotiateResponseForDialect(
         }
     }
 
-    ntStatus = SrvBuildNegotiateResponse_SMB_V1_Invalid(
+    ntStatus = NfsBuildNegotiateResponse_SMB_V1_Invalid(
                         pConnection,
                         pSmbRequest,
                         &pSmbResponse);

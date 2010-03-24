@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -50,13 +50,13 @@
 #include "includes.h"
 
 NTSTATUS
-SrvSetErrorMessage_SMB_V2(
-    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context,
+NfsSetErrorMessage_SMB_V2(
+    PNFS_EXEC_CONTEXT_SMB_V2 pSmb2Context,
     PBYTE                    pErrorMessage,
     ULONG                    ulErrorMessageLength
     )
 {
-    SrvFreeErrorMessage_SMB_V2(pSmb2Context);
+    NfsFreeErrorMessage_SMB_V2(pSmb2Context);
 
     pSmb2Context->pErrorMessage        = pErrorMessage;
     pSmb2Context->ulErrorMessageLength = ulErrorMessageLength;
@@ -65,13 +65,13 @@ SrvSetErrorMessage_SMB_V2(
 }
 
 VOID
-SrvFreeErrorMessage_SMB_V2(
-    PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context
+NfsFreeErrorMessage_SMB_V2(
+    PNFS_EXEC_CONTEXT_SMB_V2 pSmb2Context
     )
 {
     if (pSmb2Context->pErrorMessage)
     {
-        SrvFreeMemory(pSmb2Context->pErrorMessage);
+        NfsFreeMemory(pSmb2Context->pErrorMessage);
 
         pSmb2Context->pErrorMessage = NULL;
         pSmb2Context->ulErrorMessageLength = 0;
@@ -79,18 +79,18 @@ SrvFreeErrorMessage_SMB_V2(
 }
 
 NTSTATUS
-SrvBuildErrorResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT    pExecContext,
+NfsBuildErrorResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT    pExecContext,
     ULONG64              ullAsyncId,
     NTSTATUS             errorStatus
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
+    PNFS_PROTOCOL_EXEC_CONTEXT pCtxProtocol  = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2      = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg          = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest   = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse  = &pCtxSmb2->pResponses[iMsg];
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulOffset         = 0;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;

@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -49,20 +49,20 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
-typedef struct _SRV_TIMER_REQUEST
+typedef struct _NFS_TIMER_REQUEST
 {
     LONG                   refCount;
 
     LONG64                 llExpiry;
     PVOID                  pUserData;
-    PFN_SRV_TIMER_CALLBACK pfnTimerExpiredCB;
+    PFN_NFS_TIMER_CALLBACK pfnTimerExpiredCB;
 
-    struct _SRV_TIMER_REQUEST* pNext;
-    struct _SRV_TIMER_REQUEST* pPrev;
+    struct _NFS_TIMER_REQUEST* pNext;
+    struct _NFS_TIMER_REQUEST* pPrev;
 
-} SRV_TIMER_REQUEST;
+} NFS_TIMER_REQUEST;
 
-typedef struct _SRV_TIMER_CONTEXT
+typedef struct _NFS_TIMER_CONTEXT
 {
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
@@ -70,26 +70,26 @@ typedef struct _SRV_TIMER_CONTEXT
     pthread_cond_t   event;
     pthread_cond_t*  pEvent;
 
-    PSRV_TIMER_REQUEST pRequests;
+    PNFS_TIMER_REQUEST pRequests;
 
     BOOLEAN bStop;
 
-} SRV_TIMER_CONTEXT, *PSRV_TIMER_CONTEXT;
+} NFS_TIMER_CONTEXT, *PNFS_TIMER_CONTEXT;
 
-typedef struct _SRV_TIMER
+typedef struct _NFS_TIMER
 {
     pthread_t  timerThread;
     pthread_t* pTimerThread;
 
-    SRV_TIMER_CONTEXT context;
+    NFS_TIMER_CONTEXT context;
 
-} SRV_TIMER, *PSRV_TIMER;
+} NFS_TIMER, *PNFS_TIMER;
 
-typedef struct _SRV_ELEMENTS_GLOBALS
+typedef struct _NFS_ELEMENTS_GLOBALS
 {
     pthread_mutex_t  mutex;
 
-    SRV_TIMER timer;
+    NFS_TIMER timer;
 
     PBYTE pHintsBuffer;
     ULONG ulHintsLength;
@@ -102,9 +102,9 @@ typedef struct _SRV_ELEMENTS_GLOBALS
     pthread_rwlock_t        statsLock;
     pthread_rwlock_t*       pStatsLock;
 
-    SRV_ELEMENTS_STATISTICS stats;
+    NFS_ELEMENTS_STATISTICS stats;
 
-} SRV_ELEMENTS_GLOBALS, *PSRV_ELEMENTS_GLOBALS;
+} NFS_ELEMENTS_GLOBALS, *PNFS_ELEMENTS_GLOBALS;
 
 #endif /* __STRUCTS_H__ */
 

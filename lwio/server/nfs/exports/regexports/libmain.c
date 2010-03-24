@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O (LWIO) - NFS
  *
  *        Share Repository based on Registry
  *
@@ -47,7 +47,7 @@
 
 NTSTATUS
 LwRegShareRepositoryInit(
-    OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
+    OUT PNFS_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -59,7 +59,7 @@ LwRegShareRepositoryInit(
 
 NTSTATUS
 LwRegShareRepositoryShutdown(
-    IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
+    IN PNFS_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
     )
 {
     return STATUS_SUCCESS;

@@ -38,7 +38,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -51,33 +51,33 @@
 
 static
 NTSTATUS
-SrvTree2AcquireFileId_inlock(
-   PLWIO_SRV_TREE_2 pTree,
+NfsTree2AcquireFileId_inlock(
+   PLWIO_NFS_TREE_2 pTree,
    PSMB2_FID        pFid
    );
 
 static
 int
-SrvTree2FileCompare(
+NfsTree2FileCompare(
     PVOID pKey1,
     PVOID pKey2
     );
 
 static
 VOID
-SrvTree2FileRelease(
+NfsTree2FileRelease(
     PVOID pFile
     );
 
 static
 VOID
-SrvTree2Free(
-    PLWIO_SRV_TREE_2 pTree
+NfsTree2Free(
+    PLWIO_NFS_TREE_2 pTree
     );
 
 static
 NTSTATUS
-SrvTree2RundownFileRbTreeVisit(
+NfsTree2RundownFileRbTreeVisit(
     PVOID    pKey,
     PVOID    pData,
     PVOID    pUserData,
@@ -85,18 +85,18 @@ SrvTree2RundownFileRbTreeVisit(
     );
 
 NTSTATUS
-SrvTree2Create(
+NfsTree2Create(
     ULONG             ulTid,
-    PSRV_SHARE_INFO   pShareInfo,
-    PLWIO_SRV_TREE_2* ppTree
+    PNFS_SHARE_INFO   pShareInfo,
+    PLWIO_NFS_TREE_2* ppTree
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_TREE_2 pTree = NULL;
+    PLWIO_NFS_TREE_2 pTree = NULL;
 
     LWIO_LOG_DEBUG("Creating Tree [tid: %u]", ulTid);
 
-    ntStatus = SrvAllocateMemory(sizeof(LWIO_SRV_TREE_2), (PVOID*)&pTree);
+    ntStatus = NfsAllocateMemory(sizeof(LWIO_NFS_TREE_2), (PVOID*)&pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pTree->refcount = 1;
@@ -116,13 +116,13 @@ SrvTree2Create(
     pTree->ullNextAvailableFid = 0xFFFFFFFF00000001LL;
 
     ntStatus = LwRtlRBTreeCreate(
-                    &SrvTree2FileCompare,
+                    &NfsTree2FileCompare,
                     NULL,
-                    &SrvTree2FileRelease,
+                    &NfsTree2FileRelease,
                     &pTree->pFileCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SRV_ELEMENTS_INCREMENT_TREE_CONNECTS;
+    NFS_ELEMENTS_INCREMENT_TREE_CONNECTS;
 
     *ppTree = pTree;
 
@@ -136,26 +136,26 @@ error:
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvTree2FindFile(
-    PLWIO_SRV_TREE_2  pTree,
+NfsTree2FindFile(
+    PLWIO_NFS_TREE_2  pTree,
     PSMB2_FID         pFid,
-    PLWIO_SRV_FILE_2* ppFile
+    PLWIO_NFS_FILE_2* ppFile
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_FILE_2 pFile = NULL;
+    PLWIO_NFS_FILE_2 pFile = NULL;
     BOOLEAN bInLock = FALSE;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
 
-    pFile = pTree->lruFile[ pFid->ullVolatileId % SRV_LRU_CAPACITY ];
+    pFile = pTree->lruFile[ pFid->ullVolatileId % NFS_LRU_CAPACITY ];
 
     if (!pFile ||
         (pFile->fid.ullPersistentId != pFid->ullPersistentId) ||
@@ -167,7 +167,7 @@ SrvTree2FindFile(
                         (PVOID*)&pFile);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pTree->lruFile[pFid->ullVolatileId % SRV_LRU_CAPACITY] = pFile;
+        pTree->lruFile[pFid->ullVolatileId % NFS_LRU_CAPACITY] = pFile;
     }
 
     InterlockedIncrement(&pFile->refcount);
@@ -192,8 +192,8 @@ error:
 }
 
 NTSTATUS
-SrvTree2CreateFile(
-    PLWIO_SRV_TREE_2        pTree,
+NfsTree2CreateFile(
+    PLWIO_NFS_TREE_2        pTree,
     PWSTR                   pwszFilename,
     PIO_FILE_HANDLE         phFile,
     PIO_FILE_NAME*          ppFilename,
@@ -203,22 +203,22 @@ SrvTree2CreateFile(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE_2*       ppFile
+    PLWIO_NFS_FILE_2*       ppFile
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_FILE_2 pFile = NULL;
+    PLWIO_NFS_FILE_2 pFile = NULL;
     SMB2_FID  fid = {0};
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
-    ntStatus = SrvTree2AcquireFileId_inlock(
+    ntStatus = NfsTree2AcquireFileId_inlock(
                     pTree,
                     &fid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvFile2Create(
+    ntStatus = NfsFile2Create(
                     &fid,
                     pwszFilename,
                     phFile,
@@ -254,30 +254,30 @@ error:
 
     if (pFile)
     {
-        SrvFile2Release(pFile);
+        NfsFile2Release(pFile);
     }
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvTree2RemoveFile(
-    PLWIO_SRV_TREE_2 pTree,
+NfsTree2RemoveFile(
+    PLWIO_NFS_TREE_2 pTree,
     PSMB2_FID        pFid
     )
 {
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
-    PLWIO_SRV_FILE_2 pFile = NULL;
+    PLWIO_NFS_FILE_2 pFile = NULL;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
 
-    pFile = pTree->lruFile[ pFid->ullVolatileId % SRV_LRU_CAPACITY ];
+    pFile = pTree->lruFile[ pFid->ullVolatileId % NFS_LRU_CAPACITY ];
     if (pFile &&
         (pFile->fid.ullPersistentId == pFid->ullPersistentId) &&
         (pFile->fid.ullVolatileId == pFid->ullVolatileId))
     {
-        pTree->lruFile[ pFile->fid.ullVolatileId % SRV_LRU_CAPACITY ] = NULL;
+        pTree->lruFile[ pFile->fid.ullVolatileId % NFS_LRU_CAPACITY ] = NULL;
     }
 
     ntStatus = LwRtlRBTreeRemove(pTree->pFileCollection, pFid);
@@ -295,8 +295,8 @@ error:
 }
 
 BOOLEAN
-SrvTree2IsNamedPipe(
-    PLWIO_SRV_TREE_2 pTree
+NfsTree2IsNamedPipe(
+    PLWIO_NFS_TREE_2 pTree
     )
 {
     BOOLEAN bResult = FALSE;
@@ -311,9 +311,9 @@ SrvTree2IsNamedPipe(
     return bResult;
 }
 
-PLWIO_SRV_TREE_2
-SrvTree2Acquire(
-    PLWIO_SRV_TREE_2 pTree
+PLWIO_NFS_TREE_2
+NfsTree2Acquire(
+    PLWIO_NFS_TREE_2 pTree
     )
 {
     LWIO_LOG_DEBUG("Acquring tree [tid:%u]", pTree->ulTid);
@@ -324,23 +324,23 @@ SrvTree2Acquire(
 }
 
 VOID
-SrvTree2Release(
-    PLWIO_SRV_TREE_2 pTree
+NfsTree2Release(
+    PLWIO_NFS_TREE_2 pTree
     )
 {
     LWIO_LOG_DEBUG("Releasing tree [tid:%u]", pTree->ulTid);
 
     if (InterlockedDecrement(&pTree->refcount) == 0)
     {
-        SRV_ELEMENTS_DECREMENT_TREE_CONNECTS;
+        NFS_ELEMENTS_DECREMENT_TREE_CONNECTS;
 
-        SrvTree2Free(pTree);
+        NfsTree2Free(pTree);
     }
 }
 
 VOID
-SrvTree2Rundown(
-    PLWIO_SRV_TREE_2 pTree
+NfsTree2Rundown(
+    PLWIO_NFS_TREE_2 pTree
     )
 {
     BOOLEAN bInLock = FALSE;
@@ -350,7 +350,7 @@ SrvTree2Rundown(
     LwRtlRBTreeTraverse(
             pTree->pFileCollection,
             LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-            SrvTree2RundownFileRbTreeVisit,
+            NfsTree2RundownFileRbTreeVisit,
             NULL);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
@@ -358,8 +358,8 @@ SrvTree2Rundown(
 
 static
 NTSTATUS
-SrvTree2AcquireFileId_inlock(
-   PLWIO_SRV_TREE_2 pTree,
+NfsTree2AcquireFileId_inlock(
+   PLWIO_NFS_TREE_2 pTree,
    PSMB2_FID        pFid
    )
 {
@@ -371,7 +371,7 @@ SrvTree2AcquireFileId_inlock(
 
     do
     {
-        PLWIO_SRV_FILE_2 pFile = NULL;
+        PLWIO_NFS_FILE_2 pFile = NULL;
 
         /* 0 is never a valid fid */
 
@@ -430,7 +430,7 @@ error:
 
 static
 int
-SrvTree2FileCompare(
+NfsTree2FileCompare(
     PVOID pKey1,
     PVOID pKey2
     )
@@ -443,17 +443,17 @@ SrvTree2FileCompare(
 
 static
 VOID
-SrvTree2FileRelease(
+NfsTree2FileRelease(
     PVOID pFile
     )
 {
-    SrvFile2Release((PLWIO_SRV_FILE_2)pFile);
+    NfsFile2Release((PLWIO_NFS_FILE_2)pFile);
 }
 
 static
 VOID
-SrvTree2Free(
-    PLWIO_SRV_TREE_2 pTree
+NfsTree2Free(
+    PLWIO_NFS_TREE_2 pTree
     )
 {
     LWIO_LOG_DEBUG("Freeing tree [object:0x%x][tid:%u]",
@@ -478,26 +478,26 @@ SrvTree2Free(
 
     if (pTree->pShareInfo)
     {
-        SrvShareReleaseInfo(pTree->pShareInfo);
+        NfsShareReleaseInfo(pTree->pShareInfo);
     }
 
-    SrvFreeMemory(pTree);
+    NfsFreeMemory(pTree);
 }
 
 static
 NTSTATUS
-SrvTree2RundownFileRbTreeVisit(
+NfsTree2RundownFileRbTreeVisit(
     PVOID    pKey,
     PVOID    pData,
     PVOID    pUserData,
     PBOOLEAN pbContinue
     )
 {
-    PLWIO_SRV_FILE_2 pFile = (PLWIO_SRV_FILE_2)pData;
+    PLWIO_NFS_FILE_2 pFile = (PLWIO_NFS_FILE_2)pData;
 
     if (pFile)
     {
-        SrvFile2Rundown(pFile);
+        NfsFile2Rundown(pFile);
     }
 
     *pbContinue = TRUE;

@@ -33,7 +33,7 @@
  *
  * Abstract:
  *
- *        Likewise I/O (LWIO) - SRV
+ *        Likewise I/O (LWIO) - NFS
  *
  *        Share Repository based on Sqlite
  *
@@ -48,12 +48,12 @@
 
 NTSTATUS
 LwSqliteShareRepositoryInit(
-    OUT PSRV_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
+    OUT PNFS_SHARE_REPOSITORY_FUNCTION_TABLE* ppFnTable
     );
 
 NTSTATUS
 LwSqliteShareRepositoryShutdown(
-    IN PSRV_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
+    IN PNFS_SHARE_REPOSITORY_FUNCTION_TABLE pFnTable
     );
 
 #endif /* __LWSQLITESHARE_H__ */

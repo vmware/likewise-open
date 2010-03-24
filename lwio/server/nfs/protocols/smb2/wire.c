@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -55,7 +55,7 @@ SMB2UnmarshalCreateContexts(
     PBYTE                pBuffer,
     ULONG                ulOffset,
     ULONG                ulPacketSize,
-    PSRV_CREATE_CONTEXT* ppCreateContexts,
+    PNFS_CREATE_CONTEXT* ppCreateContexts,
     PULONG               pulNumContexts
     );
 
@@ -90,7 +90,7 @@ error:
 }
 
 NTSTATUS
-SrvUnmarshalHeader_SMB_V2(
+NfsUnmarshalHeader_SMB_V2(
     IN     PBYTE         pBuffer,
     IN     ULONG         ulOffset,
     IN     ULONG         ulBytesAvailable,
@@ -275,7 +275,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalNegotiateRequest(
-    PSRV_MESSAGE_SMB_V2             pRequest,
+    PNFS_MESSAGE_SMB_V2             pRequest,
     PSMB2_NEGOTIATE_REQUEST_HEADER* ppHeader,
     PUSHORT*                        ppusDialects
     )
@@ -324,7 +324,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshallSessionSetup(
-    PSRV_MESSAGE_SMB_V2                 pRequest,
+    PNFS_MESSAGE_SMB_V2                 pRequest,
     PSMB2_SESSION_SETUP_REQUEST_HEADER* ppHeader,
     PBYTE*                              ppSecurityBlob,
     PULONG                              pulSecurityBlobLen
@@ -482,7 +482,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalLogoffRequest(
-    IN     PSRV_MESSAGE_SMB_V2          pRequest,
+    IN     PNFS_MESSAGE_SMB_V2          pRequest,
     IN OUT PSMB2_LOGOFF_REQUEST_HEADER* ppHeader
     )
 {
@@ -558,7 +558,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalTreeConnect(
-    IN     PSRV_MESSAGE_SMB_V2                pRequest,
+    IN     PNFS_MESSAGE_SMB_V2                pRequest,
     IN OUT PSMB2_TREE_CONNECT_REQUEST_HEADER* ppHeader,
     IN OUT PUNICODE_STRING                    pwszPath
     )
@@ -622,8 +622,8 @@ SMB2MarshalTreeConnectResponse(
     IN OUT PBYTE                               pBuffer,
     IN     ULONG                               ulOffset,
     IN     ULONG                               ulBytesAvailable,
-    IN     PLWIO_SRV_CONNECTION                pConnection,
-    IN     PLWIO_SRV_TREE_2                    pTree,
+    IN     PLWIO_NFS_CONNECTION                pConnection,
+    IN     PLWIO_NFS_TREE_2                    pTree,
     IN OUT PSMB2_TREE_CONNECT_RESPONSE_HEADER* ppResponseHeader,
     IN OUT PULONG                              pulBytesUsed
     )
@@ -647,7 +647,7 @@ SMB2MarshalTreeConnectResponse(
 
     pResponseHeader->usLength = ulBytesUsed;
 
-    ntStatus = SrvGetMaximalShareAccessMask(
+    ntStatus = NfsGetMaximalShareAccessMask(
                     pTree->pShareInfo,
                     &pResponseHeader->ulShareAccessMask);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -695,7 +695,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalTreeDisconnectRequest(
-    IN  PSRV_MESSAGE_SMB_V2                   pSmbRequest,
+    IN  PNFS_MESSAGE_SMB_V2                   pSmbRequest,
     OUT PSMB2_TREE_DISCONNECT_REQUEST_HEADER* ppTreeDisconnectHeader
     )
 {
@@ -766,10 +766,10 @@ error:
 
 NTSTATUS
 SMB2UnmarshalCreateRequest(
-    IN     PSRV_MESSAGE_SMB_V2          pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2          pSmbRequest,
     IN OUT PSMB2_CREATE_REQUEST_HEADER* ppCreateRequestHeader,
     IN OUT PUNICODE_STRING              pwszFileName,
-    OUT    PSRV_CREATE_CONTEXT*         ppCreateContexts,
+    OUT    PNFS_CREATE_CONTEXT*         ppCreateContexts,
     IN OUT PULONG                       pulNumContexts
     )
 {
@@ -780,7 +780,7 @@ SMB2UnmarshalCreateRequest(
     ULONG ulPacketSize     = pSmbRequest->ulMessageSize;
     PSMB2_CREATE_REQUEST_HEADER pHeader = NULL; // Do not free
     UNICODE_STRING              wszFileName = {0}; // Do not free
-    PSRV_CREATE_CONTEXT pCreateContexts = NULL;
+    PNFS_CREATE_CONTEXT pCreateContexts = NULL;
     ULONG               ulNumContexts = 0;
 
     if (ulBytesAvailable < sizeof(SMB2_CREATE_REQUEST_HEADER))
@@ -857,7 +857,7 @@ error:
     *ppCreateContexts = NULL;
     *pulNumContexts = 0;
 
-    SRV_SAFE_FREE_MEMORY(pCreateContexts);
+    NFS_SAFE_FREE_MEMORY(pCreateContexts);
 
     goto cleanup;
 }
@@ -868,7 +868,7 @@ SMB2UnmarshalCreateContexts(
     PBYTE                pBuffer,
     ULONG                ulOffset,
     ULONG                ulPacketSize,
-    PSRV_CREATE_CONTEXT* ppCreateContexts,
+    PNFS_CREATE_CONTEXT* ppCreateContexts,
     PULONG               pulNumContexts
     )
 {
@@ -877,7 +877,7 @@ SMB2UnmarshalCreateContexts(
     ULONG    ulNumContexts = 0;
     ULONG    ulCurrentOffset = ulOffset;
     PSMB2_CREATE_CONTEXT pCContext = (PSMB2_CREATE_CONTEXT)pBuffer;
-    PSRV_CREATE_CONTEXT pCreateContexts = NULL;
+    PNFS_CREATE_CONTEXT pCreateContexts = NULL;
 
     while (pCContext)
     {
@@ -904,67 +904,67 @@ SMB2UnmarshalCreateContexts(
         }
     }
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_CREATE_CONTEXT) * ulNumContexts,
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_CREATE_CONTEXT) * ulNumContexts,
                     (PVOID*)&pCreateContexts);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCContext = (PSMB2_CREATE_CONTEXT)pBuffer;
     for (iContext = 0; iContext < ulNumContexts; iContext++)
     {
-        PSRV_CREATE_CONTEXT pSrvCContext = &pCreateContexts[iContext];
+        PNFS_CREATE_CONTEXT pNfsCContext = &pCreateContexts[iContext];
 
-        pSrvCContext->pszName = (PCSTR)((PBYTE)pCContext +
+        pNfsCContext->pszName = (PCSTR)((PBYTE)pCContext +
                                         pCContext->usNameOffset);
-        pSrvCContext->usNameLen = pCContext->usNameLength;
+        pNfsCContext->usNameLen = pCContext->usNameLength;
 
-        pSrvCContext->pData = (PBYTE)pCContext + pCContext->usDataOffset;
-        pSrvCContext->ulDataLength = pCContext->ulDataLength;
+        pNfsCContext->pData = (PBYTE)pCContext + pCContext->usDataOffset;
+        pNfsCContext->ulDataLength = pCContext->ulDataLength;
 
-        pSrvCContext->contextItemType = SMB2_CONTEXT_ITEM_TYPE_UNKNOWN;
+        pNfsCContext->contextItemType = SMB2_CONTEXT_ITEM_TYPE_UNKNOWN;
 
-        if (pSrvCContext->usNameLen)
+        if (pNfsCContext->usNameLen)
         {
-            if (!strncmp(pSrvCContext->pszName,
+            if (!strncmp(pNfsCContext->pszName,
                          SMB2_CONTEXT_NAME_DURABLE_HANDLE,
                          sizeof(SMB2_CONTEXT_NAME_DURABLE_HANDLE) - 1))
             {
-                pSrvCContext->contextItemType =
+                pNfsCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_DURABLE_HANDLE;
             }
-            else if (!strncmp(pSrvCContext->pszName,
+            else if (!strncmp(pNfsCContext->pszName,
                               SMB2_CONTEXT_NAME_MAX_ACCESS,
                               sizeof(SMB2_CONTEXT_NAME_MAX_ACCESS) - 1))
             {
-                pSrvCContext->contextItemType =
+                pNfsCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_MAX_ACCESS;
             }
-            else if (!strncmp(pSrvCContext->pszName,
+            else if (!strncmp(pNfsCContext->pszName,
                             SMB2_CONTEXT_NAME_QUERY_DISK_ID,
                             sizeof(SMB2_CONTEXT_NAME_QUERY_DISK_ID) - 1))
             {
-                pSrvCContext->contextItemType =
+                pNfsCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_QUERY_DISK_ID;
             }
-            else if (!strncmp(pSrvCContext->pszName,
+            else if (!strncmp(pNfsCContext->pszName,
                             SMB2_CONTEXT_NAME_EXT_ATTRS,
                             sizeof(SMB2_CONTEXT_NAME_EXT_ATTRS) - 1))
             {
-                pSrvCContext->contextItemType =
+                pNfsCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_EXT_ATTRS;
             }
-            else if (!strncmp(pSrvCContext->pszName,
+            else if (!strncmp(pNfsCContext->pszName,
                             SMB2_CONTEXT_NAME_SHADOW_COPY,
                             sizeof(SMB2_CONTEXT_NAME_SHADOW_COPY) - 1))
             {
-                pSrvCContext->contextItemType =
+                pNfsCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_SHADOW_COPY;
             }
-            else if (!strncmp(pSrvCContext->pszName,
+            else if (!strncmp(pNfsCContext->pszName,
                         SMB2_CONTEXT_NAME_SEC_DESC,
                         sizeof(SMB2_CONTEXT_NAME_SEC_DESC) - 1))
             {
-                pSrvCContext->contextItemType =
+                pNfsCContext->contextItemType =
                                 SMB2_CONTEXT_ITEM_TYPE_SEC_DESC;
             }
         }
@@ -985,7 +985,7 @@ error:
     *ppCreateContexts = NULL;
     *pulNumContexts   = 0;
 
-    SRV_SAFE_FREE_MEMORY(pCreateContexts);
+    NFS_SAFE_FREE_MEMORY(pCreateContexts);
 
     goto cleanup;
 }
@@ -1104,7 +1104,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalCloseRequest(
-   IN     PSRV_MESSAGE_SMB_V2         pSmbRequest,
+   IN     PNFS_MESSAGE_SMB_V2         pSmbRequest,
    IN OUT PSMB2_CLOSE_REQUEST_HEADER* ppHeader
    )
 {
@@ -1136,7 +1136,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalFlushRequest(
-   IN     PSRV_MESSAGE_SMB_V2 pSmbRequest,
+   IN     PNFS_MESSAGE_SMB_V2 pSmbRequest,
    IN OUT PSMB2_FID*          ppFid
    )
 {
@@ -1210,7 +1210,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalEchoRequest(
-   IN     PSRV_MESSAGE_SMB_V2        pSmbRequest,
+   IN     PNFS_MESSAGE_SMB_V2        pSmbRequest,
    IN OUT PSMB2_ECHO_REQUEST_HEADER* ppHeader
    )
 {
@@ -1284,7 +1284,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalGetInfoRequest(
-    IN     PSRV_MESSAGE_SMB_V2            pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2            pSmbRequest,
     IN OUT PSMB2_GET_INFO_REQUEST_HEADER* ppHeader
     )
 {
@@ -1316,7 +1316,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalSetInfoRequest(
-    IN     PSRV_MESSAGE_SMB_V2            pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2            pSmbRequest,
     IN OUT PSMB2_SET_INFO_REQUEST_HEADER* ppHeader,
     IN OUT PBYTE*                         ppData
     )
@@ -1363,7 +1363,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalReadRequest(
-    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2        pSmbRequest,
     IN OUT PSMB2_READ_REQUEST_HEADER* ppRequestHeader
     )
 {
@@ -1469,7 +1469,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalWriteRequest(
-    IN     PSRV_MESSAGE_SMB_V2         pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2         pSmbRequest,
     IN OUT PSMB2_WRITE_REQUEST_HEADER* ppRequestHeader,
     IN OUT PBYTE*                      ppData
     )
@@ -1577,7 +1577,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalLockRequest(
-    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2        pSmbRequest,
     IN OUT PSMB2_LOCK_REQUEST_HEADER* ppRequestHeader
     )
 {
@@ -1672,7 +1672,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalIOCTLRequest(
-    IN     PSRV_MESSAGE_SMB_V2         pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2         pSmbRequest,
     IN OUT PSMB2_IOCTL_REQUEST_HEADER* ppRequestHeader,
     IN OUT PBYTE*                      ppData
     )
@@ -1799,7 +1799,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalFindRequest(
-    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2        pSmbRequest,
     IN OUT PSMB2_FIND_REQUEST_HEADER* ppRequestHeader,
     IN OUT PUNICODE_STRING            pwszFilename
     )
@@ -1861,7 +1861,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalOplockBreakRequest(
-    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2        pSmbRequest,
     IN OUT PSMB2_OPLOCK_BREAK_HEADER* ppRequestHeader
     )
 {
@@ -1986,7 +1986,7 @@ error:
 
 NTSTATUS
 SMB2UnmarshalNotifyRequest(
-    IN     PSRV_MESSAGE_SMB_V2         pSmbRequest,
+    IN     PNFS_MESSAGE_SMB_V2         pSmbRequest,
     IN OUT PSMB2_NOTIFY_CHANGE_HEADER* ppNotifyRequestHeader
     )
 {

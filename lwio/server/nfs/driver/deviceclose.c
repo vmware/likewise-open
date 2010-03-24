@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise SMB Server Driver (SRV)
+ *        Likewise SMB Server Driver (NFS)
  *
  *        Close Dispatch Function
  *
@@ -50,18 +50,18 @@
 #include "includes.h"
 
 NTSTATUS
-SrvDeviceClose(
+NfsDeviceClose(
     IO_DEVICE_HANDLE hDevice,
     PIRP             pIrp
     )
 {
     NTSTATUS         ntStatus    = 0;
-    PSRV_CCB         pCCB        = NULL;
+    PNFS_CCB         pCCB        = NULL;
 
-    ntStatus = SrvCCBGet(pIrp->FileHandle, &pCCB);
+    ntStatus = NfsCCBGet(pIrp->FileHandle, &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    SrvCCBRelease(pCCB);
+    NfsCCBRelease(pCCB);
 
 error:
 

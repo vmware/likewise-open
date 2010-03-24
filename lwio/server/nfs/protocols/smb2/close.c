@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -53,85 +53,85 @@
 
 static
 NTSTATUS
-SrvBuildCloseState_SMB_V2(
+NfsBuildCloseState_SMB_V2(
     PSMB2_CLOSE_REQUEST_HEADER pRequestHeader,
-    PLWIO_SRV_TREE_2           pTree,
-    PLWIO_SRV_FILE_2           pFile,
-    PSRV_CLOSE_STATE_SMB_V2*   ppCloseState
+    PLWIO_NFS_TREE_2           pTree,
+    PLWIO_NFS_FILE_2           pFile,
+    PNFS_CLOSE_STATE_SMB_V2*   ppCloseState
     );
 
 static
 NTSTATUS
-SrvGetFileInformation_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsGetFileInformation_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 NTSTATUS
-SrvBuildCloseResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildCloseResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     );
 
 static
 VOID
-SrvPrepareCloseStateAsync_SMB_V2(
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState,
-    PSRV_EXEC_CONTEXT       pExecContext
+NfsPrepareCloseStateAsync_SMB_V2(
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState,
+    PNFS_EXEC_CONTEXT       pExecContext
     );
 
 static
 VOID
-SrvExecuteCloseAsyncCB_SMB_V2(
+NfsExecuteCloseAsyncCB_SMB_V2(
     PVOID pContext
     );
 
 static
 VOID
-SrvReleaseCloseStateAsync_SMB_V2(
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState
+NfsReleaseCloseStateAsync_SMB_V2(
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState
     );
 
 static
 VOID
-SrvReleaseCloseStateHandle_SMB_V2(
+NfsReleaseCloseStateHandle_SMB_V2(
     HANDLE hCloseState
     );
 
 static
 VOID
-SrvReleaseCloseState_SMB_V2(
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState
+NfsReleaseCloseState_SMB_V2(
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState
     );
 
 static
 VOID
-SrvFreeCloseState_SMB_V2(
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState
+NfsFreeCloseState_SMB_V2(
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState
     );
 
 NTSTATUS
-SrvProcessClose_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsProcessClose_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus         = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION       pConnection      = pExecContext->pConnection;
-    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2         = pProtocolContext->pSmb2Context;
+    PLWIO_NFS_CONNECTION       pConnection      = pExecContext->pConnection;
+    PNFS_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2         = pProtocolContext->pSmb2Context;
     ULONG                      iMsg             = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest      = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest      = &pCtxSmb2->pRequests[iMsg];
     BOOLEAN                    bRelated         = FALSE;
-    PSRV_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
-    PLWIO_SRV_SESSION_2        pSession         = NULL;
-    PLWIO_SRV_TREE_2           pTree            = NULL;
-    PLWIO_SRV_FILE_2           pFile            = NULL;
+    PNFS_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
+    PLWIO_NFS_SESSION_2        pSession         = NULL;
+    PLWIO_NFS_TREE_2           pTree            = NULL;
+    PLWIO_NFS_FILE_2           pFile            = NULL;
     BOOLEAN                    bInLock          = FALSE;
 
     bRelated = LwIsSetFlag(
                     pSmbRequest->pHeader->ulFlags,
                     SMB2_FLAGS_RELATED_OPERATION);
 
-    pCloseState = (PSRV_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
+    pCloseState = (PNFS_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
     if (pCloseState)
     {
         InterlockedIncrement(&pCloseState->refCount);
@@ -140,14 +140,14 @@ SrvProcessClose_SMB_V2(
     {
         PSMB2_CLOSE_REQUEST_HEADER pRequestHeader = NULL; // Do not free
 
-        ntStatus = SrvConnection2FindSession_SMB_V2(
+        ntStatus = NfsConnection2FindSession_SMB_V2(
                         pCtxSmb2,
                         pConnection,
                         pSmbRequest->pHeader->ullSessionId,
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvSession2FindTree_SMB_V2(
+        ntStatus = NfsSession2FindTree_SMB_V2(
                         pCtxSmb2,
                         pSession,
                         pSmbRequest->pHeader->ulTid,
@@ -163,7 +163,7 @@ SrvProcessClose_SMB_V2(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = SrvTree2FindFile_SMB_V2(
+        ntStatus = NfsTree2FindFile_SMB_V2(
                         pCtxSmb2,
                         pTree,
                         &pRequestHeader->fid,
@@ -200,7 +200,7 @@ SrvProcessClose_SMB_V2(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvBuildCloseState_SMB_V2(
+        ntStatus = NfsBuildCloseState_SMB_V2(
                         pRequestHeader,
                         pTree,
                         pFile,
@@ -209,58 +209,58 @@ SrvProcessClose_SMB_V2(
 
         pCtxSmb2->hState = pCloseState;
         InterlockedIncrement(&pCloseState->refCount);
-        pCtxSmb2->pfnStateRelease = &SrvReleaseCloseStateHandle_SMB_V2;
+        pCtxSmb2->pfnStateRelease = &NfsReleaseCloseStateHandle_SMB_V2;
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pCloseState->mutex);
 
     switch (pCloseState->stage)
     {
-        case SRV_CLOSE_STAGE_SMB_V2_INITIAL:
+        case NFS_CLOSE_STAGE_SMB_V2_INITIAL:
 
             if (pCloseState->pRequestHeader->usFlags &
                     SMB2_CLOSE_FLAGS_GET_FILE_ATTRIBUTES)
             {
-                ntStatus = SrvGetFileInformation_SMB_V2(pExecContext);
+                ntStatus = NfsGetFileInformation_SMB_V2(pExecContext);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            pCloseState->stage = SRV_CLOSE_STAGE_SMB_V2_ATTEMPT_IO;
+            pCloseState->stage = NFS_CLOSE_STAGE_SMB_V2_ATTEMPT_IO;
 
             // intentional fall through
 
-        case SRV_CLOSE_STAGE_SMB_V2_ATTEMPT_IO:
+        case NFS_CLOSE_STAGE_SMB_V2_ATTEMPT_IO:
 
-            SrvFile2ResetOplockState(pCloseState->pFile);
+            NfsFile2ResetOplockState(pCloseState->pFile);
 
-            ntStatus = SrvTree2RemoveFile(
+            ntStatus = NfsTree2RemoveFile(
                             pCloseState->pTree,
                             &pCloseState->pFile->fid);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCloseState->stage = SRV_CLOSE_STAGE_SMB_V2_BUILD_RESPONSE;
+            pCloseState->stage = NFS_CLOSE_STAGE_SMB_V2_BUILD_RESPONSE;
 
             // intentional fall through
 
-        case SRV_CLOSE_STAGE_SMB_V2_BUILD_RESPONSE:
+        case NFS_CLOSE_STAGE_SMB_V2_BUILD_RESPONSE:
 
-            ntStatus = SrvBuildCloseResponse_SMB_V2(pExecContext);
+            ntStatus = NfsBuildCloseResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCloseState->stage = SRV_CLOSE_STAGE_SMB_V2_DONE;
+            pCloseState->stage = NFS_CLOSE_STAGE_SMB_V2_DONE;
 
             // intentional fall through
 
-        case SRV_CLOSE_STAGE_SMB_V2_DONE:
+        case NFS_CLOSE_STAGE_SMB_V2_DONE:
 
             if (pCloseState->pFile)
             {
-                SrvFile2Rundown(pCloseState->pFile);
+                NfsFile2Rundown(pCloseState->pFile);
             }
 
             if (bRelated && pCtxSmb2->pFile)
             {
-                SrvFile2Release(pCtxSmb2->pFile);
+                NfsFile2Release(pCtxSmb2->pFile);
                 pCtxSmb2->pFile = NULL;
             }
 
@@ -271,24 +271,24 @@ cleanup:
 
     if (pFile)
     {
-        SrvFile2Release(pFile);
+        NfsFile2Release(pFile);
     }
 
     if (pTree)
     {
-        SrvTree2Release(pTree);
+        NfsTree2Release(pTree);
     }
 
     if (pSession)
     {
-        SrvSession2Release(pSession);
+        NfsSession2Release(pSession);
     }
 
     if (pCloseState)
     {
         LWIO_UNLOCK_MUTEX(bInLock, &pCloseState->mutex);
 
-        SrvReleaseCloseState_SMB_V2(pCloseState);
+        NfsReleaseCloseState_SMB_V2(pCloseState);
     }
 
     return ntStatus;
@@ -309,7 +309,7 @@ error:
 
             if (pCloseState)
             {
-                SrvReleaseCloseStateAsync_SMB_V2(pCloseState);
+                NfsReleaseCloseStateAsync_SMB_V2(pCloseState);
             }
 
             break;
@@ -320,18 +320,18 @@ error:
 
 static
 NTSTATUS
-SrvBuildCloseState_SMB_V2(
+NfsBuildCloseState_SMB_V2(
     PSMB2_CLOSE_REQUEST_HEADER pRequestHeader,
-    PLWIO_SRV_TREE_2           pTree,
-    PLWIO_SRV_FILE_2           pFile,
-    PSRV_CLOSE_STATE_SMB_V2*   ppCloseState
+    PLWIO_NFS_TREE_2           pTree,
+    PLWIO_NFS_FILE_2           pFile,
+    PNFS_CLOSE_STATE_SMB_V2*   ppCloseState
     )
 {
     NTSTATUS                ntStatus    = STATUS_SUCCESS;
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState = NULL;
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(SRV_CLOSE_STATE_SMB_V2),
+    ntStatus = NfsAllocateMemory(
+                    sizeof(NFS_CLOSE_STATE_SMB_V2),
                     (PVOID*)&pCloseState);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -342,9 +342,9 @@ SrvBuildCloseState_SMB_V2(
 
     pCloseState->pRequestHeader = pRequestHeader;
 
-    pCloseState->pTree = SrvTree2Acquire(pTree);
+    pCloseState->pTree = NfsTree2Acquire(pTree);
 
-    pCloseState->pFile = SrvFile2Acquire(pFile);
+    pCloseState->pFile = NfsFile2Acquire(pFile);
 
     *ppCloseState = pCloseState;
 
@@ -358,7 +358,7 @@ error:
 
     if (pCloseState)
     {
-        SrvFreeCloseState_SMB_V2(pCloseState);
+        NfsFreeCloseState_SMB_V2(pCloseState);
     }
 
     goto cleanup;
@@ -366,16 +366,16 @@ error:
 
 static
 NTSTATUS
-SrvGetFileInformation_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsGetFileInformation_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus         = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2         = pProtocolContext->pSmb2Context;
-    PSRV_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2         = pProtocolContext->pSmb2Context;
+    PNFS_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
 
-    pCloseState = (PSRV_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
+    pCloseState = (PNFS_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
 
     ntStatus = pCloseState->ioStatusBlock.Status;
     BAIL_ON_NT_STATUS(ntStatus);
@@ -384,7 +384,7 @@ SrvGetFileInformation_SMB_V2(
     {
         pCloseState->pFileBasicInfo = &pCloseState->fileBasicInfo;
 
-        SrvPrepareCloseStateAsync_SMB_V2(pCloseState, pExecContext);
+        NfsPrepareCloseStateAsync_SMB_V2(pCloseState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
                         pCloseState->pFile->hFile,
@@ -395,14 +395,14 @@ SrvGetFileInformation_SMB_V2(
                         FileBasicInformation);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvReleaseCloseStateAsync_SMB_V2(pCloseState);
+        NfsReleaseCloseStateAsync_SMB_V2(pCloseState);
     }
 
     if (!pCloseState->pFileStdInfo)
     {
         pCloseState->pFileStdInfo = &pCloseState->fileStdInfo;
 
-        SrvPrepareCloseStateAsync_SMB_V2(pCloseState, pExecContext);
+        NfsPrepareCloseStateAsync_SMB_V2(pCloseState, pExecContext);
 
         ntStatus = IoQueryInformationFile(
                         pCloseState->pFile->hFile,
@@ -413,7 +413,7 @@ SrvGetFileInformation_SMB_V2(
                         FileStandardInformation);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        SrvReleaseCloseStateAsync_SMB_V2(pCloseState);
+        NfsReleaseCloseStateAsync_SMB_V2(pCloseState);
     }
 
 error:
@@ -423,17 +423,17 @@ error:
 
 static
 NTSTATUS
-SrvBuildCloseResponse_SMB_V2(
-    PSRV_EXEC_CONTEXT pExecContext
+NfsBuildCloseResponse_SMB_V2(
+    PNFS_EXEC_CONTEXT pExecContext
     )
 {
     NTSTATUS                   ntStatus         = STATUS_SUCCESS;
-    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
-    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2         = pProtocolContext->pSmb2Context;
-    PSRV_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
+    PNFS_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PNFS_EXEC_CONTEXT_SMB_V2   pCtxSmb2         = pProtocolContext->pSmb2Context;
+    PNFS_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
     ULONG                      iMsg             = pCtxSmb2->iMsg;
-    PSRV_MESSAGE_SMB_V2        pSmbRequest      = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse     = &pCtxSmb2->pResponses[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbRequest      = &pCtxSmb2->pRequests[iMsg];
+    PNFS_MESSAGE_SMB_V2        pSmbResponse     = &pCtxSmb2->pResponses[iMsg];
     PSMB2_CLOSE_RESPONSE_HEADER pResponseHeader = NULL; // Do not free
     PBYTE  pOutBuffer       = pSmbResponse->pBuffer;
     ULONG  ulOffset         = 0;
@@ -441,7 +441,7 @@ SrvBuildCloseResponse_SMB_V2(
     ULONG  ulBytesUsed      = 0;
     ULONG  ulBytesAvailable = pSmbResponse->ulBytesAvailable;
 
-    pCloseState = (PSRV_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
+    pCloseState = (PNFS_CLOSE_STATE_SMB_V2)pCtxSmb2->hState;
 
     ntStatus = SMB2MarshalHeader(
                     pOutBuffer,
@@ -528,12 +528,12 @@ error:
 
 static
 VOID
-SrvPrepareCloseStateAsync_SMB_V2(
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState,
-    PSRV_EXEC_CONTEXT       pExecContext
+NfsPrepareCloseStateAsync_SMB_V2(
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState,
+    PNFS_EXEC_CONTEXT       pExecContext
     )
 {
-    pCloseState->acb.Callback        = &SrvExecuteCloseAsyncCB_SMB_V2;
+    pCloseState->acb.Callback        = &NfsExecuteCloseAsyncCB_SMB_V2;
 
     pCloseState->acb.CallbackContext = pExecContext;
     InterlockedIncrement(&pExecContext->refCount);
@@ -545,17 +545,17 @@ SrvPrepareCloseStateAsync_SMB_V2(
 
 static
 VOID
-SrvExecuteCloseAsyncCB_SMB_V2(
+NfsExecuteCloseAsyncCB_SMB_V2(
     PVOID pContext
     )
 {
     NTSTATUS                   ntStatus         = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
-    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
-    PSRV_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
+    PNFS_EXEC_CONTEXT          pExecContext     = (PNFS_EXEC_CONTEXT)pContext;
+    PNFS_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PNFS_CLOSE_STATE_SMB_V2    pCloseState      = NULL;
     BOOLEAN                    bInLock          = FALSE;
 
-    pCloseState = (PSRV_CLOSE_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
+    pCloseState = (PNFS_CLOSE_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
 
     LWIO_LOCK_MUTEX(bInLock, &pCloseState->mutex);
 
@@ -569,20 +569,20 @@ SrvExecuteCloseAsyncCB_SMB_V2(
 
     LWIO_UNLOCK_MUTEX(bInLock, &pCloseState->mutex);
 
-    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
+    ntStatus = NfsProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
     if (ntStatus != STATUS_SUCCESS)
     {
         LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
                        ntStatus);
 
-        SrvReleaseExecContext(pExecContext);
+        NfsReleaseExecContext(pExecContext);
     }
 }
 
 static
 VOID
-SrvReleaseCloseStateAsync_SMB_V2(
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState
+NfsReleaseCloseStateAsync_SMB_V2(
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState
     )
 {
     if (pCloseState->pAcb)
@@ -591,11 +591,11 @@ SrvReleaseCloseStateAsync_SMB_V2(
 
         if (pCloseState->pAcb->CallbackContext)
         {
-            PSRV_EXEC_CONTEXT pExecContext = NULL;
+            PNFS_EXEC_CONTEXT pExecContext = NULL;
 
-            pExecContext = (PSRV_EXEC_CONTEXT)pCloseState->pAcb->CallbackContext;
+            pExecContext = (PNFS_EXEC_CONTEXT)pCloseState->pAcb->CallbackContext;
 
-            SrvReleaseExecContext(pExecContext);
+            NfsReleaseExecContext(pExecContext);
 
             pCloseState->pAcb->CallbackContext = NULL;
         }
@@ -612,29 +612,29 @@ SrvReleaseCloseStateAsync_SMB_V2(
 
 static
 VOID
-SrvReleaseCloseStateHandle_SMB_V2(
+NfsReleaseCloseStateHandle_SMB_V2(
     HANDLE hCloseState
     )
 {
-    return SrvReleaseCloseState_SMB_V2((PSRV_CLOSE_STATE_SMB_V2)hCloseState);
+    return NfsReleaseCloseState_SMB_V2((PNFS_CLOSE_STATE_SMB_V2)hCloseState);
 }
 
 static
 VOID
-SrvReleaseCloseState_SMB_V2(
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState
+NfsReleaseCloseState_SMB_V2(
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState
     )
 {
     if (InterlockedDecrement(&pCloseState->refCount) == 0)
     {
-        SrvFreeCloseState_SMB_V2(pCloseState);
+        NfsFreeCloseState_SMB_V2(pCloseState);
     }
 }
 
 static
 VOID
-SrvFreeCloseState_SMB_V2(
-    PSRV_CLOSE_STATE_SMB_V2 pCloseState
+NfsFreeCloseState_SMB_V2(
+    PNFS_CLOSE_STATE_SMB_V2 pCloseState
     )
 {
     if (pCloseState->pAcb && pCloseState->pAcb->AsyncCancelContext)
@@ -645,12 +645,12 @@ SrvFreeCloseState_SMB_V2(
 
     if (pCloseState->pFile)
     {
-        SrvFile2Release(pCloseState->pFile);
+        NfsFile2Release(pCloseState->pFile);
     }
 
     if (pCloseState->pTree)
     {
-        SrvTree2Release(pCloseState->pTree);
+        NfsTree2Release(pCloseState->pTree);
     }
 
     if (pCloseState->pMutex)
@@ -658,6 +658,6 @@ SrvFreeCloseState_SMB_V2(
         pthread_mutex_destroy(&pCloseState->mutex);
     }
 
-    SrvFreeMemory(pCloseState);
+    NfsFreeMemory(pCloseState);
 }
 

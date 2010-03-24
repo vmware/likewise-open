@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Elements
  *
@@ -49,7 +49,7 @@
 
 #include "includes.h"
 
-SRV_ELEMENTS_GLOBALS gSrvElements =
+NFS_ELEMENTS_GLOBALS gNfsElements =
 {
     .mutex            = PTHREAD_MUTEX_INITIALIZER,
     .pHintsBuffer     = NULL,

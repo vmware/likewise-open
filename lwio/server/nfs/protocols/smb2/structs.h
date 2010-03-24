@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Protocols API - SMBV2
  *
@@ -178,14 +178,14 @@ typedef struct __SMB2_CREATE_CONTEXT
 } __attribute__((__packed__)) SMB2_CREATE_CONTEXT,
                              *PSMB2_CREATE_CONTEXT;
 
-typedef struct __SRV_CREATE_CONTEXT
+typedef struct __NFS_CREATE_CONTEXT
 {
     SMB2_CONTEXT_ITEM_TYPE contextItemType;
     PCSTR                  pszName;
     USHORT                 usNameLen;
     ULONG                  ulDataLength;
     PBYTE                  pData;
-} SRV_CREATE_CONTEXT, *PSRV_CREATE_CONTEXT;
+} NFS_CREATE_CONTEXT, *PNFS_CREATE_CONTEXT;
 
 typedef struct __SMB2_CREATE_REQUEST_HEADER
 {
@@ -712,20 +712,20 @@ typedef struct
 
 typedef enum
 {
-    SRV_TREE_CONNECT_STAGE_SMB_V2_INITIAL = 0,
-    SRV_TREE_CONNECT_STAGE_SMB_V2_CREATE_TREE_ROOT_HANDLE,
-    SRV_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_TREE_CONNECT_STAGE_SMB_V2_DONE
-} SRV_TREE_CONNECT_STAGE_SMB_V2;
+    NFS_TREE_CONNECT_STAGE_SMB_V2_INITIAL = 0,
+    NFS_TREE_CONNECT_STAGE_SMB_V2_CREATE_TREE_ROOT_HANDLE,
+    NFS_TREE_CONNECT_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_TREE_CONNECT_STAGE_SMB_V2_DONE
+} NFS_TREE_CONNECT_STAGE_SMB_V2;
 
-typedef struct _SRV_TREE_CONNECT_STATE_SMB_V2
+typedef struct _NFS_TREE_CONNECT_STATE_SMB_V2
 {
     LONG                          refCount;
 
     pthread_mutex_t               mutex;
     pthread_mutex_t*              pMutex;
 
-    SRV_TREE_CONNECT_STAGE_SMB_V2 stage;
+    NFS_TREE_CONNECT_STAGE_SMB_V2 stage;
 
     IO_STATUS_BLOCK               ioStatusBlock;
 
@@ -740,24 +740,24 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V2
     PVOID                         pSecurityQOS;
     PIO_ECP_LIST                  pEcpList;
 
-    PLWIO_SRV_SESSION_2           pSession;
-    PLWIO_SRV_TREE_2              pTree;
+    PLWIO_NFS_SESSION_2           pSession;
+    PLWIO_NFS_TREE_2              pTree;
 
     IO_FILE_NAME                  fileName;
 
     BOOLEAN                       bRemoveTreeFromSession;
 
-} SRV_TREE_CONNECT_STATE_SMB_V2, *PSRV_TREE_CONNECT_STATE_SMB_V2;
+} NFS_TREE_CONNECT_STATE_SMB_V2, *PNFS_TREE_CONNECT_STATE_SMB_V2;
 
-typedef VOID (*PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
+typedef VOID (*PFN_NFS_MESSAGE_STATE_RELEASE_SMB_V2)(HANDLE hState);
 
-typedef struct _SRV_OPLOCK_INFO
+typedef struct _NFS_OPLOCK_INFO
 {
     UCHAR oplockRequest;
     UCHAR oplockLevel;
-} SRV_OPLOCK_INFO, *PSRV_OPLOCK_INFO;
+} NFS_OPLOCK_INFO, *PNFS_OPLOCK_INFO;
 
-typedef struct _SRV_OPLOCK_STATE_SMB_V2
+typedef struct _NFS_OPLOCK_STATE_SMB_V2
 {
     LONG                    refCount;
 
@@ -769,7 +769,7 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V2
     IO_ASYNC_CONTROL_BLOCK  acb;
     PIO_ASYNC_CONTROL_BLOCK pAcb;
 
-    PLWIO_SRV_CONNECTION    pConnection;
+    PLWIO_NFS_CONNECTION    pConnection;
 
     ULONG64                 ullUid;
     ULONG64                 ulTid;
@@ -777,33 +777,33 @@ typedef struct _SRV_OPLOCK_STATE_SMB_V2
     SMB2_FID                fid;
     BOOLEAN                 bBreakRequestSent;
 
-    PSRV_TIMER_REQUEST      pTimerRequest;
+    PNFS_TIMER_REQUEST      pTimerRequest;
 
     IO_FSCTL_OPLOCK_REQUEST_INPUT_BUFFER   oplockBuffer_in;
     IO_FSCTL_OPLOCK_REQUEST_OUTPUT_BUFFER  oplockBuffer_out;
     IO_FSCTL_OPLOCK_BREAK_ACK_INPUT_BUFFER oplockBuffer_ack;
 
-} SRV_OPLOCK_STATE_SMB_V2, *PSRV_OPLOCK_STATE_SMB_V2;
+} NFS_OPLOCK_STATE_SMB_V2, *PNFS_OPLOCK_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_CREATE_STAGE_SMB_V2_INITIAL = 0,
-    SRV_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED,
-    SRV_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO,
-    SRV_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS,
-    SRV_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED,
-    SRV_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK,
-    SRV_CREATE_STAGE_SMB_V2_DONE
-} SRV_CREATE_STAGE_SMB_V2;
+    NFS_CREATE_STAGE_SMB_V2_INITIAL = 0,
+    NFS_CREATE_STAGE_SMB_V2_CREATE_FILE_COMPLETED,
+    NFS_CREATE_STAGE_SMB_V2_ATTEMPT_QUERY_INFO,
+    NFS_CREATE_STAGE_SMB_V2_QUERY_CREATE_CONTEXTS,
+    NFS_CREATE_STAGE_SMB_V2_QUERY_INFO_COMPLETED,
+    NFS_CREATE_STAGE_SMB_V2_REQUEST_OPLOCK,
+    NFS_CREATE_STAGE_SMB_V2_DONE
+} NFS_CREATE_STAGE_SMB_V2;
 
-typedef struct _SRV_CREATE_STATE_SMB_V2
+typedef struct _NFS_CREATE_STATE_SMB_V2
 {
     LONG                         refCount;
 
     pthread_mutex_t              mutex;
     pthread_mutex_t*             pMutex;
 
-    SRV_CREATE_STAGE_SMB_V2      stage;
+    NFS_CREATE_STAGE_SMB_V2      stage;
 
     PSMB2_CREATE_REQUEST_HEADER  pRequestHeader; // Do not free
 
@@ -820,11 +820,11 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
     PIO_ECP_LIST                  pEcpList;
     IO_FILE_HANDLE                hFile;
 
-    PSRV_CREATE_CONTEXT          pCreateContexts;
+    PNFS_CREATE_CONTEXT          pCreateContexts;
     ULONG                        iContext;
     ULONG                        ulNumContexts;
 
-    PSRV_CREATE_CONTEXT          pExtAContext;
+    PNFS_CREATE_CONTEXT          pExtAContext;
 
     FILE_BASIC_INFORMATION       fileBasicInfo;
     PFILE_BASIC_INFORMATION      pFileBasicInfo;
@@ -844,30 +844,30 @@ typedef struct _SRV_CREATE_STATE_SMB_V2
 
     UCHAR                        ucOplockLevel;
 
-    PLWIO_SRV_TREE_2             pTree;
-    PLWIO_SRV_FILE_2             pFile;
+    PLWIO_NFS_TREE_2             pTree;
+    PLWIO_NFS_FILE_2             pFile;
     BOOLEAN                      bRemoveFileFromTree;
 
     ULONG64                      ullAsyncId;
 
-} SRV_CREATE_STATE_SMB_V2, *PSRV_CREATE_STATE_SMB_V2;
+} NFS_CREATE_STATE_SMB_V2, *PNFS_CREATE_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_FLUSH_STAGE_SMB_V2_INITIAL = 0,
-    SRV_FLUSH_STAGE_SMB_V2_FLUSH_COMPLETED,
-    SRV_FLUSH_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_FLUSH_STAGE_SMB_V2_DONE
-} SRV_FLUSH_STAGE_SMB_V2;
+    NFS_FLUSH_STAGE_SMB_V2_INITIAL = 0,
+    NFS_FLUSH_STAGE_SMB_V2_FLUSH_COMPLETED,
+    NFS_FLUSH_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_FLUSH_STAGE_SMB_V2_DONE
+} NFS_FLUSH_STAGE_SMB_V2;
 
-typedef struct _SRV_FLUSH_STATE_SMB_V2
+typedef struct _NFS_FLUSH_STATE_SMB_V2
 {
     LONG                      refCount;
 
     pthread_mutex_t           mutex;
     pthread_mutex_t*          pMutex;
 
-    SRV_FLUSH_STAGE_SMB_V2    stage;
+    NFS_FLUSH_STAGE_SMB_V2    stage;
 
     IO_STATUS_BLOCK           ioStatusBlock;
 
@@ -876,34 +876,34 @@ typedef struct _SRV_FLUSH_STATE_SMB_V2
 
     PSMB2_FID                 pFid; // Do not free
 
-    PLWIO_SRV_FILE_2          pFile;
+    PLWIO_NFS_FILE_2          pFile;
 
-} SRV_FLUSH_STATE_SMB_V2, *PSRV_FLUSH_STATE_SMB_V2;
+} NFS_FLUSH_STATE_SMB_V2, *PNFS_FLUSH_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_READ_STAGE_SMB_V2_INITIAL = 0,
-    SRV_READ_STAGE_SMB_V2_ATTEMPT_READ,
-    SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED,
-    SRV_READ_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_READ_STAGE_SMB_V2_DONE
-} SRV_READ_STAGE_SMB_V2;
+    NFS_READ_STAGE_SMB_V2_INITIAL = 0,
+    NFS_READ_STAGE_SMB_V2_ATTEMPT_READ,
+    NFS_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED,
+    NFS_READ_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_READ_STAGE_SMB_V2_DONE
+} NFS_READ_STAGE_SMB_V2;
 
-typedef struct _SRV_READ_STATE_SMB_V2
+typedef struct _NFS_READ_STATE_SMB_V2
 {
     LONG                      refCount;
 
     pthread_mutex_t           mutex;
     pthread_mutex_t*          pMutex;
 
-    SRV_READ_STAGE_SMB_V2     stage;
+    NFS_READ_STAGE_SMB_V2     stage;
 
     IO_STATUS_BLOCK           ioStatusBlock;
 
     IO_ASYNC_CONTROL_BLOCK    acb;
     PIO_ASYNC_CONTROL_BLOCK   pAcb;
 
-    PLWIO_SRV_FILE_2          pFile;
+    PLWIO_NFS_FILE_2          pFile;
 
     LONG64                    llByteOffset;
     ULONG                     ulBytesRead;
@@ -914,31 +914,31 @@ typedef struct _SRV_READ_STATE_SMB_V2
     PBYTE                     pData;
     ULONG                     ulKey;
 
-} SRV_READ_STATE_SMB_V2, *PSRV_READ_STATE_SMB_V2;
+} NFS_READ_STATE_SMB_V2, *PNFS_READ_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_WRITE_STAGE_SMB_V2_INITIAL = 0,
-    SRV_WRITE_STAGE_SMB_V2_ATTEMPT_WRITE,
-    SRV_WRITE_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_WRITE_STAGE_SMB_V2_DONE
-} SRV_WRITE_STAGE_SMB_V2;
+    NFS_WRITE_STAGE_SMB_V2_INITIAL = 0,
+    NFS_WRITE_STAGE_SMB_V2_ATTEMPT_WRITE,
+    NFS_WRITE_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_WRITE_STAGE_SMB_V2_DONE
+} NFS_WRITE_STAGE_SMB_V2;
 
-typedef struct _SRV_WRITE_STATE_SMB_V2
+typedef struct _NFS_WRITE_STATE_SMB_V2
 {
     LONG                       refCount;
 
     pthread_mutex_t            mutex;
     pthread_mutex_t*           pMutex;
 
-    SRV_WRITE_STAGE_SMB_V2     stage;
+    NFS_WRITE_STAGE_SMB_V2     stage;
 
     IO_STATUS_BLOCK            ioStatusBlock;
 
     IO_ASYNC_CONTROL_BLOCK     acb;
     PIO_ASYNC_CONTROL_BLOCK    pAcb;
 
-    PLWIO_SRV_FILE_2           pFile;
+    PLWIO_NFS_FILE_2           pFile;
 
     PSMB2_WRITE_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                      pData;          // Do not free
@@ -947,24 +947,24 @@ typedef struct _SRV_WRITE_STATE_SMB_V2
     LONG64                     llDataOffset;
     ULONG                      ulKey;
 
-} SRV_WRITE_STATE_SMB_V2, *PSRV_WRITE_STATE_SMB_V2;
+} NFS_WRITE_STATE_SMB_V2, *PNFS_WRITE_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_GET_INFO_STAGE_SMB_V2_INITIAL = 0,
-    SRV_GET_INFO_STAGE_SMB_V2_ATTEMPT_IO,
-    SRV_GET_INFO_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_GET_INFO_STAGE_SMB_V2_DONE
-} SRV_GET_INFO_STAGE_SMB_V2;
+    NFS_GET_INFO_STAGE_SMB_V2_INITIAL = 0,
+    NFS_GET_INFO_STAGE_SMB_V2_ATTEMPT_IO,
+    NFS_GET_INFO_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_GET_INFO_STAGE_SMB_V2_DONE
+} NFS_GET_INFO_STAGE_SMB_V2;
 
-typedef struct _SRV_GET_INFO_STATE_SMB_V2
+typedef struct _NFS_GET_INFO_STATE_SMB_V2
 {
     LONG                          refCount;
 
     pthread_mutex_t               mutex;
     pthread_mutex_t*              pMutex;
 
-    SRV_GET_INFO_STAGE_SMB_V2     stage;
+    NFS_GET_INFO_STAGE_SMB_V2     stage;
 
     IO_STATUS_BLOCK               ioStatusBlock;
 
@@ -973,30 +973,30 @@ typedef struct _SRV_GET_INFO_STATE_SMB_V2
 
     PSMB2_GET_INFO_REQUEST_HEADER pRequestHeader; // Do not free
 
-    PLWIO_SRV_FILE_2              pFile;
+    PLWIO_NFS_FILE_2              pFile;
 
     PBYTE                         pData2;
     ULONG                         ulDataLength;
     ULONG                         ulActualDataLength;
 
-} SRV_GET_INFO_STATE_SMB_V2, *PSRV_GET_INFO_STATE_SMB_V2;
+} NFS_GET_INFO_STATE_SMB_V2, *PNFS_GET_INFO_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_SET_INFO_STAGE_SMB_V2_INITIAL = 0,
-    SRV_SET_INFO_STAGE_SMB_V2_ATTEMPT_IO,
-    SRV_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_SET_INFO_STAGE_SMB_V2_DONE
-} SRV_SET_INFO_STAGE_SMB_V2;
+    NFS_SET_INFO_STAGE_SMB_V2_INITIAL = 0,
+    NFS_SET_INFO_STAGE_SMB_V2_ATTEMPT_IO,
+    NFS_SET_INFO_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_SET_INFO_STAGE_SMB_V2_DONE
+} NFS_SET_INFO_STAGE_SMB_V2;
 
-typedef struct _SRV_SET_INFO_STATE_SMB_V2
+typedef struct _NFS_SET_INFO_STATE_SMB_V2
 {
     LONG                          refCount;
 
     pthread_mutex_t               mutex;
     pthread_mutex_t*              pMutex;
 
-    SRV_SET_INFO_STAGE_SMB_V2     stage;
+    NFS_SET_INFO_STAGE_SMB_V2     stage;
 
     IO_STATUS_BLOCK               ioStatusBlock;
 
@@ -1015,27 +1015,27 @@ typedef struct _SRV_SET_INFO_STATE_SMB_V2
     PBYTE                         pData2;
     ULONG                         ulData2Length;
 
-    PLWIO_SRV_FILE_2              pFile;
-    PLWIO_SRV_FILE_2              pRootDir;
+    PLWIO_NFS_FILE_2              pFile;
+    PLWIO_NFS_FILE_2              pRootDir;
 
-} SRV_SET_INFO_STATE_SMB_V2, *PSRV_SET_INFO_STATE_SMB_V2;
+} NFS_SET_INFO_STATE_SMB_V2, *PNFS_SET_INFO_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_IOCTL_STAGE_SMB_V2_INITIAL = 0,
-    SRV_IOCTL_STAGE_SMB_V2_ATTEMPT_IO,
-    SRV_IOCTL_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_IOCTL_STAGE_SMB_V2_DONE
-} SRV_IOCTL_STAGE_SMB_V2;
+    NFS_IOCTL_STAGE_SMB_V2_INITIAL = 0,
+    NFS_IOCTL_STAGE_SMB_V2_ATTEMPT_IO,
+    NFS_IOCTL_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_IOCTL_STAGE_SMB_V2_DONE
+} NFS_IOCTL_STAGE_SMB_V2;
 
-typedef struct _SRV_IOCTL_STATE_SMB_V2
+typedef struct _NFS_IOCTL_STATE_SMB_V2
 {
     LONG                       refCount;
 
     pthread_mutex_t            mutex;
     pthread_mutex_t*           pMutex;
 
-    SRV_IOCTL_STAGE_SMB_V2     stage;
+    NFS_IOCTL_STAGE_SMB_V2     stage;
 
     IO_STATUS_BLOCK            ioStatusBlock;
 
@@ -1045,16 +1045,16 @@ typedef struct _SRV_IOCTL_STATE_SMB_V2
     PSMB2_IOCTL_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                      pData;          // Do not free
 
-    PLWIO_SRV_CONNECTION       pConnection;
-    PLWIO_SRV_FILE_2           pFile;
+    PLWIO_NFS_CONNECTION       pConnection;
+    PLWIO_NFS_FILE_2           pFile;
 
     PBYTE                      pResponseBuffer;
     size_t                     sResponseBufferLen;
     ULONG                      ulResponseBufferLen;
 
-} SRV_IOCTL_STATE_SMB_V2, *PSRV_IOCTL_STATE_SMB_V2;
+} NFS_IOCTL_STATE_SMB_V2, *PNFS_IOCTL_STATE_SMB_V2;
 
-typedef struct _SRV_NOTIFY_STATE_SMB_V2
+typedef struct _NFS_NOTIFY_STATE_SMB_V2
 {
     LONG                    refCount;
 
@@ -1071,7 +1071,7 @@ typedef struct _SRV_NOTIFY_STATE_SMB_V2
     ULONG                   ulCompletionFilter;
     BOOLEAN                 bWatchTree;
 
-    PLWIO_SRV_CONNECTION    pConnection;
+    PLWIO_NFS_CONNECTION    pConnection;
 
     USHORT                  usEpoch;
     ULONG64                 ullSessionId;
@@ -1079,7 +1079,7 @@ typedef struct _SRV_NOTIFY_STATE_SMB_V2
     ULONG                   ulPid;
     ULONG64                 ullCommandSequence;
 
-    PLWIO_SRV_FILE_2        pFile;
+    PLWIO_NFS_FILE_2        pFile;
 
     PBYTE                   pBuffer;
     ULONG                   ulBufferLength;
@@ -1087,24 +1087,24 @@ typedef struct _SRV_NOTIFY_STATE_SMB_V2
 
     ULONG                   ulMaxBufferSize;
 
-} SRV_NOTIFY_STATE_SMB_V2, *PSRV_NOTIFY_STATE_SMB_V2;
+} NFS_NOTIFY_STATE_SMB_V2, *PNFS_NOTIFY_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_NOTIFY_STAGE_SMB_V2_INITIAL = 0,
-    SRV_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO,
-    SRV_NOTIFY_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_NOTIFY_STAGE_SMB_V2_DONE
-} SRV_NOTIFY_STAGE_SMB_V2;
+    NFS_NOTIFY_STAGE_SMB_V2_INITIAL = 0,
+    NFS_NOTIFY_STAGE_SMB_V2_ATTEMPT_IO,
+    NFS_NOTIFY_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_NOTIFY_STAGE_SMB_V2_DONE
+} NFS_NOTIFY_STAGE_SMB_V2;
 
-typedef struct _SRV_NOTIFY_REQUEST_STATE_SMB_V2
+typedef struct _NFS_NOTIFY_REQUEST_STATE_SMB_V2
 {
     LONG                       refCount;
 
     pthread_mutex_t            mutex;
     pthread_mutex_t*           pMutex;
 
-    SRV_NOTIFY_STAGE_SMB_V2    stage;
+    NFS_NOTIFY_STAGE_SMB_V2    stage;
 
     IO_STATUS_BLOCK            ioStatusBlock;
 
@@ -1113,7 +1113,7 @@ typedef struct _SRV_NOTIFY_REQUEST_STATE_SMB_V2
 
     PSMB2_NOTIFY_CHANGE_HEADER pRequestHeader; // Do not free
 
-    PLWIO_SRV_FILE_2           pFile;
+    PLWIO_NFS_FILE_2           pFile;
 
     ULONG64                    ullAsyncId;
 
@@ -1121,25 +1121,25 @@ typedef struct _SRV_NOTIFY_REQUEST_STATE_SMB_V2
     size_t                     sResponseBufferLen;
     ULONG                      ulResponseBufferLen;
 
-} SRV_NOTIFY_REQUEST_STATE_SMB_V2, *PSRV_NOTIFY_REQUEST_STATE_SMB_V2;
+} NFS_NOTIFY_REQUEST_STATE_SMB_V2, *PNFS_NOTIFY_REQUEST_STATE_SMB_V2;
 
 
 typedef enum
 {
-    SRV_LOCK_STAGE_SMB_V2_INITIAL = 0,
-    SRV_LOCK_STAGE_SMB_V2_ATTEMPT_LOCK,
-    SRV_LOCK_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_LOCK_STAGE_SMB_V2_DONE
-} SRV_LOCK_STAGE_SMB_V2;
+    NFS_LOCK_STAGE_SMB_V2_INITIAL = 0,
+    NFS_LOCK_STAGE_SMB_V2_ATTEMPT_LOCK,
+    NFS_LOCK_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_LOCK_STAGE_SMB_V2_DONE
+} NFS_LOCK_STAGE_SMB_V2;
 
-typedef struct _SRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2
+typedef struct _NFS_ASYNC_LOCK_REQUEST_STATE_SMB_V2
 {
     LONG                      refCount;
 
     pthread_mutex_t           mutex;
     pthread_mutex_t*          pMutex;
 
-    SRV_LOCK_STAGE_SMB_V2     stage;
+    NFS_LOCK_STAGE_SMB_V2     stage;
 
     ULONG64                   ullAsyncId;
 
@@ -1151,7 +1151,7 @@ typedef struct _SRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2
     PSMB2_LOCK_REQUEST_HEADER pRequestHeader; // Do not free
 
     ULONG                     ulTid;
-    PLWIO_SRV_FILE_2          pFile;
+    PLWIO_NFS_FILE_2          pFile;
 
     PSMB2_LOCK*               ppUnlockArray;
     ULONG                     ulNumUnlocks;
@@ -1165,16 +1165,16 @@ typedef struct _SRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2
 
     BOOLEAN                   bFailImmediately;
 
-} SRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2, *PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2;
+} NFS_ASYNC_LOCK_REQUEST_STATE_SMB_V2, *PNFS_ASYNC_LOCK_REQUEST_STATE_SMB_V2;
 
-typedef struct _SRV_LOCK_REQUEST_STATE_SMB_V2
+typedef struct _NFS_LOCK_REQUEST_STATE_SMB_V2
 {
     LONG                      refCount;
 
     pthread_mutex_t           mutex;
     pthread_mutex_t*          pMutex;
 
-    SRV_LOCK_STAGE_SMB_V2     stage;
+    NFS_LOCK_STAGE_SMB_V2     stage;
 
     IO_STATUS_BLOCK           ioStatusBlock;
 
@@ -1185,7 +1185,7 @@ typedef struct _SRV_LOCK_REQUEST_STATE_SMB_V2
 
     ULONG                     ulTid;
 
-    PLWIO_SRV_FILE_2          pFile;
+    PLWIO_NFS_FILE_2          pFile;
 
     PSMB2_LOCK*               ppUnlockArray;
     ULONG                     ulNumUnlocks;
@@ -1201,24 +1201,24 @@ typedef struct _SRV_LOCK_REQUEST_STATE_SMB_V2
 
     ULONG64                   ullAsyncId;
 
-} SRV_LOCK_REQUEST_STATE_SMB_V2, *PSRV_LOCK_REQUEST_STATE_SMB_V2;
+} NFS_LOCK_REQUEST_STATE_SMB_V2, *PNFS_LOCK_REQUEST_STATE_SMB_V2;
 
 typedef enum
 {
-    SRV_CLOSE_STAGE_SMB_V2_INITIAL = 0,
-    SRV_CLOSE_STAGE_SMB_V2_ATTEMPT_IO,
-    SRV_CLOSE_STAGE_SMB_V2_BUILD_RESPONSE,
-    SRV_CLOSE_STAGE_SMB_V2_DONE
-} SRV_CLOSE_STAGE_SMB_V2;
+    NFS_CLOSE_STAGE_SMB_V2_INITIAL = 0,
+    NFS_CLOSE_STAGE_SMB_V2_ATTEMPT_IO,
+    NFS_CLOSE_STAGE_SMB_V2_BUILD_RESPONSE,
+    NFS_CLOSE_STAGE_SMB_V2_DONE
+} NFS_CLOSE_STAGE_SMB_V2;
 
-typedef struct _SRV_CLOSE_STATE_SMB_V2
+typedef struct _NFS_CLOSE_STATE_SMB_V2
 {
     LONG                       refCount;
 
     pthread_mutex_t            mutex;
     pthread_mutex_t*           pMutex;
 
-    SRV_CLOSE_STAGE_SMB_V2     stage;
+    NFS_CLOSE_STAGE_SMB_V2     stage;
 
     IO_STATUS_BLOCK            ioStatusBlock;
 
@@ -1233,12 +1233,12 @@ typedef struct _SRV_CLOSE_STATE_SMB_V2
     FILE_STANDARD_INFORMATION  fileStdInfo;
     PFILE_STANDARD_INFORMATION pFileStdInfo;
 
-    PLWIO_SRV_TREE_2           pTree;
-    PLWIO_SRV_FILE_2           pFile;
+    PLWIO_NFS_TREE_2           pTree;
+    PLWIO_NFS_FILE_2           pFile;
 
-} SRV_CLOSE_STATE_SMB_V2, *PSRV_CLOSE_STATE_SMB_V2;
+} NFS_CLOSE_STATE_SMB_V2, *PNFS_CLOSE_STATE_SMB_V2;
 
-typedef struct __SRV_MESSAGE_SMB_V2
+typedef struct __NFS_MESSAGE_SMB_V2
 {
     PBYTE        pBuffer;
     PSMB2_HEADER pHeader;
@@ -1247,33 +1247,33 @@ typedef struct __SRV_MESSAGE_SMB_V2
 
     ULONG        ulBytesAvailable;
 
-} SRV_MESSAGE_SMB_V2, *PSRV_MESSAGE_SMB_V2;
+} NFS_MESSAGE_SMB_V2, *PNFS_MESSAGE_SMB_V2;
 
-typedef struct _SRV_EXEC_CONTEXT_SMB_V2
+typedef struct _NFS_EXEC_CONTEXT_SMB_V2
 {
-    PSRV_MESSAGE_SMB_V2                  pRequests;
+    PNFS_MESSAGE_SMB_V2                  pRequests;
     ULONG                                ulNumRequests;
     ULONG                                iMsg;
 
-    PLWIO_SRV_SESSION_2                  pSession;
-    PLWIO_SRV_TREE_2                     pTree;
-    PLWIO_SRV_FILE_2                     pFile;
+    PLWIO_NFS_SESSION_2                  pSession;
+    PLWIO_NFS_TREE_2                     pTree;
+    PLWIO_NFS_FILE_2                     pFile;
 
     LONG                                 llNumSuccessfulCreates;
     NTSTATUS                             lastCloseStatus;
 
     HANDLE                               hState;
-    PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2 pfnStateRelease;
+    PFN_NFS_MESSAGE_STATE_RELEASE_SMB_V2 pfnStateRelease;
 
     ULONG                                ulNumResponses;
-    PSRV_MESSAGE_SMB_V2                  pResponses;
+    PNFS_MESSAGE_SMB_V2                  pResponses;
 
     PBYTE                                pErrorMessage;
     ULONG                                ulErrorMessageLength;
 
-} SRV_EXEC_CONTEXT_SMB_V2;
+} NFS_EXEC_CONTEXT_SMB_V2;
 
-typedef struct _SRV_RUNTIME_GLOBALS_SMB_V2
+typedef struct _NFS_RUNTIME_GLOBALS_SMB_V2
 {
     pthread_mutex_t      mutex;
 
@@ -1281,6 +1281,6 @@ typedef struct _SRV_RUNTIME_GLOBALS_SMB_V2
 
     ULONG                ulOplockTimeout;
 
-} SRV_RUNTIME_GLOBALS_SMB_V2, *PSRV_RUNTIME_GLOBALS_SMB_V2;
+} NFS_RUNTIME_GLOBALS_SMB_V2, *PNFS_RUNTIME_GLOBALS_SMB_V2;
 
 #endif /* __STRUCTS_H__ */

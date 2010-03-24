@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        SMB V1 Protocol Handler API
  *
@@ -49,45 +49,45 @@
 #define __SMB_V1_H__
 
 NTSTATUS
-SrvProtocolInit_SMB_V1(
+NfsProtocolInit_SMB_V1(
     PSMB_PROD_CONS_QUEUE pWorkQueue
     );
 
 NTSTATUS
-SrvBuildNegotiateResponse_SMB_V1_NTLM_0_12(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsBuildNegotiateResponse_SMB_V1_NTLM_0_12(
+    PLWIO_NFS_CONNECTION pConnection,
     PSMB_PACKET          pSmbRequest,
     USHORT               idxDialect,
     PSMB_PACKET*         ppSmbResponse
     );
 
 NTSTATUS
-SrvBuildNegotiateResponse_SMB_V1_Invalid(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsBuildNegotiateResponse_SMB_V1_Invalid(
+    PLWIO_NFS_CONNECTION pConnection,
     PSMB_PACKET  pSmbRequest,
     PSMB_PACKET* ppSmbResponse
     );
 
 NTSTATUS
-SrvProtocolExecute_SMB_V1(
-    PSRV_EXEC_CONTEXT pContext
+NfsProtocolExecute_SMB_V1(
+    PNFS_EXEC_CONTEXT pContext
     );
 
 NTSTATUS
-SrvProtocolBuildErrorResponse_SMB_V1(
-    PLWIO_SRV_CONNECTION pConnection,
+NfsProtocolBuildErrorResponse_SMB_V1(
+    PLWIO_NFS_CONNECTION pConnection,
     PSMB_HEADER          pRequestHeader,
     NTSTATUS             errorStatus,
     PSMB_PACKET*         ppSmbResponse
     );
 
 VOID
-SrvProtocolFreeContext_SMB_V1(
-    PSRV_EXEC_CONTEXT_SMB_V1 pProtocolContext
+NfsProtocolFreeContext_SMB_V1(
+    PNFS_EXEC_CONTEXT_SMB_V1 pProtocolContext
     );
 
 VOID
-SrvProtocolShutdown_SMB_V1(
+NfsProtocolShutdown_SMB_V1(
     VOID
     );
 

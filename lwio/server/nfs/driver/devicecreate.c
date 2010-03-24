@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise Posix File System Driver (SRV)
+ *        Likewise Posix File System Driver (NFS)
  *
  *       Create Dispatch Routine
  *
@@ -51,33 +51,33 @@
 
 static
 NTSTATUS
-SrvCommonCreate(
-    PSRV_IRP_CONTEXT pIrpContext,
+NfsCommonCreate(
+    PNFS_IRP_CONTEXT pIrpContext,
     PIRP             pIrp
     );
 
 static
 NTSTATUS
-SrvValidateCreate(
-    PSRV_IRP_CONTEXT pIrpContext,
+NfsValidateCreate(
+    PNFS_IRP_CONTEXT pIrpContext,
     PUNICODE_STRING  pDeviceName
     );
 
 NTSTATUS
-SrvDeviceCreate(
+NfsDeviceCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP             pIrp
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_IRP_CONTEXT pIrpContext = NULL;
+    PNFS_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = SrvAllocateIrpContext(
+    ntStatus = NfsAllocateIrpContext(
                         pIrp,
                         &pIrpContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvCommonCreate(
+    ntStatus = NfsCommonCreate(
                     pIrpContext,
                     pIrp);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -86,7 +86,7 @@ cleanup:
 
     if (pIrpContext)
     {
-        SrvFreeIrpContext(pIrpContext);
+        NfsFreeIrpContext(pIrpContext);
     }
 
     return ntStatus;
@@ -97,15 +97,15 @@ error:
 }
 
 NTSTATUS
-SrvAllocateIrpContext(
+NfsAllocateIrpContext(
     PIRP              pIrp,
-    PSRV_IRP_CONTEXT* ppIrpContext
+    PNFS_IRP_CONTEXT* ppIrpContext
     )
 {
     NTSTATUS ntStatus = 0;
-    PSRV_IRP_CONTEXT pIrpContext = NULL;
+    PNFS_IRP_CONTEXT pIrpContext = NULL;
 
-    ntStatus = IO_ALLOCATE(&pIrpContext, SRV_IRP_CONTEXT, sizeof(*pIrpContext));
+    ntStatus = IO_ALLOCATE(&pIrpContext, NFS_IRP_CONTEXT, sizeof(*pIrpContext));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pIrpContext->pIrp = pIrp;
@@ -124,8 +124,8 @@ error:
 }
 
 VOID
-SrvFreeIrpContext(
-    PSRV_IRP_CONTEXT pIrpContext
+NfsFreeIrpContext(
+    PNFS_IRP_CONTEXT pIrpContext
     )
 {
     IO_FREE(&pIrpContext);
@@ -133,26 +133,26 @@ SrvFreeIrpContext(
 
 static
 NTSTATUS
-SrvCommonCreate(
-    PSRV_IRP_CONTEXT pIrpContext,
+NfsCommonCreate(
+    PNFS_IRP_CONTEXT pIrpContext,
     PIRP             pIrp
     )
 {
     NTSTATUS ntStatus = 0;
     UNICODE_STRING DeviceName = {0};
-    PSRV_CCB pCCB = NULL;
+    PNFS_CCB pCCB = NULL;
 
-    ntStatus = SrvValidateCreate(
+    ntStatus = NfsValidateCreate(
                     pIrpContext,
                     &DeviceName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvCCBCreate(
+    ntStatus = NfsCCBCreate(
                     pIrpContext,
                     &pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvCCBSet(
+    ntStatus = NfsCCBSet(
                     pIrpContext->pIrp->FileHandle,
                     pCCB);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -174,8 +174,8 @@ error:
 
 static
 NTSTATUS
-SrvValidateCreate(
-    PSRV_IRP_CONTEXT pIrpContext,
+NfsValidateCreate(
+    PNFS_IRP_CONTEXT pIrpContext,
     PUNICODE_STRING  pDeviceName
     )
 {

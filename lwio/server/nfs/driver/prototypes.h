@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Driver
  *
@@ -50,116 +50,116 @@
 // ccb.c
 
 NTSTATUS
-SrvCCBCreate(
-    PSRV_IRP_CONTEXT pIrpContext,
-    PSRV_CCB * ppCCB
+NfsCCBCreate(
+    PNFS_IRP_CONTEXT pIrpContext,
+    PNFS_CCB * ppCCB
     );
 
 NTSTATUS
-SrvCCBGet(
+NfsCCBGet(
     IO_FILE_HANDLE FileHandle,
-    PSRV_CCB*      ppCCB
+    PNFS_CCB*      ppCCB
     );
 
 NTSTATUS
-SrvCCBSet(
+NfsCCBSet(
     IO_FILE_HANDLE FileHandle,
-    PSRV_CCB       pCCB
+    PNFS_CCB       pCCB
     );
 
 VOID
-SrvCCBRelease(
-    PSRV_CCB pCCB
+NfsCCBRelease(
+    PNFS_CCB pCCB
     );
 
 // config.c
 
 NTSTATUS
-SrvReadConfig(
-    PLWIO_SRV_CONFIG pConfig
+NfsReadConfig(
+    PLWIO_NFS_CONFIG pConfig
     );
 
 NTSTATUS
-SrvInitConfig(
-    PLWIO_SRV_CONFIG pConfig
+NfsInitConfig(
+    PLWIO_NFS_CONFIG pConfig
     );
 
 VOID
-SrvFreeConfigContents(
-    PLWIO_SRV_CONFIG pConfig
+NfsFreeConfigContents(
+    PLWIO_NFS_CONFIG pConfig
     );
 
 // devicecreate.c
 
 NTSTATUS
-SrvDeviceCreate(
+NfsDeviceCreate(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP pIrp
     );
 
 NTSTATUS
-SrvAllocateIrpContext(
+NfsAllocateIrpContext(
     PIRP pIrp,
-    PSRV_IRP_CONTEXT * ppIrpContext
+    PNFS_IRP_CONTEXT * ppIrpContext
     );
 
 VOID
-SrvFreeIrpContext(
-    PSRV_IRP_CONTEXT pIrpContext
+NfsFreeIrpContext(
+    PNFS_IRP_CONTEXT pIrpContext
     );
 
 // device.c
 
 NTSTATUS
-SrvDeviceCreate(
+NfsDeviceCreate(
     IO_DEVICE_HANDLE hDevice,
     PIRP      pIrp
     );
 
 NTSTATUS
-SrvDeviceClose(
+NfsDeviceClose(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     );
 
 NTSTATUS
-SrvDeviceRead(
+NfsDeviceRead(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     );
 
 NTSTATUS
-SrvDeviceWrite(
+NfsDeviceWrite(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     );
 
 NTSTATUS
-SrvDeviceControlIO(
+NfsDeviceControlIO(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     );
 
 NTSTATUS
-SrvDeviceControlFS(
+NfsDeviceControlFS(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     );
 
 NTSTATUS
-SrvDeviceFlush(
+NfsDeviceFlush(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     );
 
 NTSTATUS
-SrvDeviceQueryInfo(
+NfsDeviceQueryInfo(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     );
 
 NTSTATUS
-SrvDeviceSetInfo(
+NfsDeviceSetInfo(
     IO_DEVICE_HANDLE hDevice,
     PIRP pIrp
     );
@@ -167,7 +167,7 @@ SrvDeviceSetInfo(
 // deviceio.c
 
 NTSTATUS
-SrvDeviceControlIo(
+NfsDeviceControlIo(
     IO_DEVICE_HANDLE IoDeviceHandle,
     PIRP             pIrp
     );
@@ -175,19 +175,19 @@ SrvDeviceControlIo(
 // srvshares.c
 
 NTSTATUS
-SrvShareGetServiceStringId(
+NfsShareGetServiceStringId(
     IN  SHARE_SERVICE  service,
     OUT PSTR*          ppszService
     );
 
 NTSTATUS
-SrvShareGetServiceId(
+NfsShareGetServiceId(
     IN  PCSTR          pszService,
     OUT SHARE_SERVICE* pService
     );
 
 NTSTATUS
-SrvShareDevCtlAdd(
+NfsShareDevCtlAdd(
     IN     PBYTE lpInBuffer,
     IN     ULONG ulInBufferSize,
     IN OUT PBYTE lpOutBuffer,
@@ -195,7 +195,7 @@ SrvShareDevCtlAdd(
     );
 
 NTSTATUS
-SrvShareDevCtlDelete(
+NfsShareDevCtlDelete(
     IN     PBYTE lpInBuffer,
     IN     ULONG ulInBufferSize,
     IN OUT PBYTE lpOutBuffer,
@@ -203,7 +203,7 @@ SrvShareDevCtlDelete(
     );
 
 NTSTATUS
-SrvShareDevCtlEnum(
+NfsShareDevCtlEnum(
     IN     PBYTE  lpInBuffer,
     IN     ULONG  ulInBufferSize,
     IN OUT PBYTE  lpOutBuffer,
@@ -212,7 +212,7 @@ SrvShareDevCtlEnum(
     );
 
 NTSTATUS
-SrvShareDevCtlGetInfo(
+NfsShareDevCtlGetInfo(
     IN     PBYTE  lpInBuffer,
     IN     ULONG  ulInBufferSize,
     IN OUT PBYTE  lpOutBuffer,
@@ -221,7 +221,7 @@ SrvShareDevCtlGetInfo(
     );
 
 NTSTATUS
-SrvShareDevCtlSetInfo(
+NfsShareDevCtlSetInfo(
     IN     PBYTE lpInBuffer,
     IN     ULONG ulInBufferSize,
     IN OUT PBYTE lpOutBuffer,
@@ -231,7 +231,7 @@ SrvShareDevCtlSetInfo(
 // srvstats.c
 
 NTSTATUS
-SrvProcessStatistics(
+NfsProcessStatistics(
     IN     PBYTE  lpInBuffer,
     IN     ULONG  ulInBufferSize,
     IN OUT PBYTE  lpOutBuffer,
@@ -242,17 +242,17 @@ SrvProcessStatistics(
 // srvworker.c
 
 NTSTATUS
-SrvWorkerInit(
-    PLWIO_SRV_WORKER      pWorker
+NfsWorkerInit(
+    PLWIO_NFS_WORKER      pWorker
     );
 
 VOID
-SrvWorkerIndicateStop(
-    PLWIO_SRV_WORKER pWorker
+NfsWorkerIndicateStop(
+    PLWIO_NFS_WORKER pWorker
     );
 
 VOID
-SrvWorkerFreeContents(
-    PLWIO_SRV_WORKER pWorker
+NfsWorkerFreeContents(
+    PLWIO_NFS_WORKER pWorker
     );
 

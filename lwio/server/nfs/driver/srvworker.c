@@ -32,32 +32,32 @@
 
 static
 PVOID
-SrvWorkerMain(
+NfsWorkerMain(
     PVOID pData
     );
 
 static
 NTSTATUS
-SrvGetNextExecutionContext(
+NfsGetNextExecutionContext(
     struct timespec*   pTimespec,
-    PSRV_EXEC_CONTEXT* ppContext
+    PNFS_EXEC_CONTEXT* ppContext
     );
 
 static
 BOOLEAN
-SrvWorkerMustStop(
-    PLWIO_SRV_WORKER_CONTEXT pContext
+NfsWorkerMustStop(
+    PLWIO_NFS_WORKER_CONTEXT pContext
     );
 
 static
 VOID
-SrvWorkerIndicateStopContext(
-    PLWIO_SRV_WORKER_CONTEXT pContext
+NfsWorkerIndicateStopContext(
+    PLWIO_NFS_WORKER_CONTEXT pContext
     );
 
 NTSTATUS
-SrvWorkerInit(
-    PLWIO_SRV_WORKER pWorker
+NfsWorkerInit(
+    PLWIO_NFS_WORKER pWorker
     )
 {
     NTSTATUS ntStatus = 0;
@@ -73,7 +73,7 @@ SrvWorkerInit(
     ntStatus = pthread_create(
                     &pWorker->worker,
                     NULL,
-                    &SrvWorkerMain,
+                    &NfsWorkerMain,
                     &pWorker->context);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -86,46 +86,46 @@ error:
 
 static
 PVOID
-SrvWorkerMain(
+NfsWorkerMain(
     PVOID pData
     )
 {
     NTSTATUS ntStatus = 0;
-    PLWIO_SRV_WORKER_CONTEXT pContext = (PLWIO_SRV_WORKER_CONTEXT)pData;
-    PSRV_EXEC_CONTEXT pExecContext = NULL;
+    PLWIO_NFS_WORKER_CONTEXT pContext = (PLWIO_NFS_WORKER_CONTEXT)pData;
+    PNFS_EXEC_CONTEXT pExecContext = NULL;
     struct timespec ts = {0, 0};
 
-    LWIO_LOG_DEBUG("Srv worker [id:%u] starting", pContext->workerId);
+    LWIO_LOG_DEBUG("Nfs worker [id:%u] starting", pContext->workerId);
 
-    while (!SrvWorkerMustStop(pContext))
+    while (!NfsWorkerMustStop(pContext))
     {
         ts.tv_sec = time(NULL) + 30;
         ts.tv_nsec = 0;
 
-        ntStatus = SrvGetNextExecutionContext(&ts, &pExecContext);
+        ntStatus = NfsGetNextExecutionContext(&ts, &pExecContext);
         if (ntStatus == STATUS_IO_TIMEOUT)
         {
             ntStatus = 0;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (SrvWorkerMustStop(pContext))
+        if (NfsWorkerMustStop(pContext))
         {
             break;
         }
 
         if (pExecContext)
         {
-            if (SrvIsValidExecContext(pExecContext))
+            if (NfsIsValidExecContext(pExecContext))
             {
-                NTSTATUS ntStatus2 = SrvProtocolExecute(pExecContext);
+                NTSTATUS ntStatus2 = NfsProtocolExecute(pExecContext);
                 if (ntStatus2)
                 {
                     LWIO_LOG_ERROR("Failed to execute server task [code:%d]", ntStatus2);
                 }
             }
 
-            SrvReleaseExecContext(pExecContext);
+            NfsReleaseExecContext(pExecContext);
             pExecContext = NULL;
         }
     }
@@ -134,10 +134,10 @@ cleanup:
 
     if (pExecContext)
     {
-        SrvReleaseExecContext(pExecContext);
+        NfsReleaseExecContext(pExecContext);
     }
 
-    LWIO_LOG_DEBUG("Srv worker [id:%u] stopping", pContext->workerId);
+    LWIO_LOG_DEBUG("Nfs worker [id:%u] stopping", pContext->workerId);
 
     return NULL;
 
@@ -147,24 +147,24 @@ error:
 }
 
 VOID
-SrvWorkerIndicateStop(
-    PLWIO_SRV_WORKER pWorker
+NfsWorkerIndicateStop(
+    PLWIO_NFS_WORKER pWorker
     )
 {
     if (pWorker->pWorker)
     {
-        SrvWorkerIndicateStopContext(&pWorker->context);
+        NfsWorkerIndicateStopContext(&pWorker->context);
     }
 }
 
 VOID
-SrvWorkerFreeContents(
-    PLWIO_SRV_WORKER pWorker
+NfsWorkerFreeContents(
+    PLWIO_NFS_WORKER pWorker
     )
 {
     if (pWorker->pWorker)
     {
-        // Someone must have already called SrvWorkerIndicateStop
+        // Someone must have already called NfsWorkerIndicateStop
         // and unblocked the prod/cons queue.
 
         pthread_join(pWorker->worker, NULL);
@@ -179,16 +179,16 @@ SrvWorkerFreeContents(
 
 static
 NTSTATUS
-SrvGetNextExecutionContext(
+NfsGetNextExecutionContext(
     struct timespec*   pTimespec,
-    PSRV_EXEC_CONTEXT* ppContext
+    PNFS_EXEC_CONTEXT* ppContext
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSRV_EXEC_CONTEXT pContext = NULL;
+    PNFS_EXEC_CONTEXT pContext = NULL;
 
-    status = SrvProdConsTimedDequeue(
-                    &gSMBSrvGlobals.workQueue,
+    status = NfsProdConsTimedDequeue(
+                    &gSMBNfsGlobals.workQueue,
                     pTimespec,
                     (PVOID*)&pContext);
     if (status != STATUS_SUCCESS)
@@ -211,8 +211,8 @@ error:
 
 static
 BOOLEAN
-SrvWorkerMustStop(
-    PLWIO_SRV_WORKER_CONTEXT pContext
+NfsWorkerMustStop(
+    PLWIO_NFS_WORKER_CONTEXT pContext
     )
 {
     BOOLEAN bStop = FALSE;
@@ -228,8 +228,8 @@ SrvWorkerMustStop(
 
 static
 VOID
-SrvWorkerIndicateStopContext(
-    PLWIO_SRV_WORKER_CONTEXT pContext
+NfsWorkerIndicateStopContext(
+    PLWIO_NFS_WORKER_CONTEXT pContext
     )
 {
     pthread_mutex_lock(&pContext->mutex);

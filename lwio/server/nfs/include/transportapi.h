@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Transport
  *
@@ -53,15 +53,15 @@
 #include "lwzct.h"
 
 // Provided by Transport layer -- Opaque to Protocol layer:
-typedef struct _SRV_TRANSPORT_HANDLE_DATA *SRV_TRANSPORT_HANDLE, **PSRV_TRANSPORT_HANDLE;
-typedef struct _SRV_SOCKET *PSRV_SOCKET;
+typedef struct _NFS_TRANSPORT_HANDLE_DATA *NFS_TRANSPORT_HANDLE, **PNFS_TRANSPORT_HANDLE;
+typedef struct _NFS_SOCKET *PNFS_SOCKET;
 
 // Provided by Protocol layer's Protocol Transport Driver -- opaque to Transport layer:
-// TODO: Perhaps rename PSRV_PROTOCOL_TRANSPORT_CONTEXT to PSRV_PTD_CONTEXT for Protocol Transport Driver.
+// TODO: Perhaps rename PNFS_PROTOCOL_TRANSPORT_CONTEXT to PNFS_PTD_CONTEXT for Protocol Transport Driver.
 //       If so, perhaps use _PTD_ for these three.  Plus perhaps change any "_TRANSPORT_PROTOCOL_" stuff to "_PTD_".
-typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT *PSRV_PROTOCOL_TRANSPORT_CONTEXT;
-typedef struct _SRV_CONNECTION *PSRV_CONNECTION;
-typedef struct _SRV_SEND_CONTEXT *PSRV_SEND_CONTEXT;
+typedef struct _NFS_PROTOCOL_TRANSPORT_CONTEXT *PNFS_PROTOCOL_TRANSPORT_CONTEXT;
+typedef struct _NFS_CONNECTION *PNFS_CONNECTION;
+typedef struct _NFS_SEND_CONTEXT *PNFS_SEND_CONTEXT;
 
 //
 // Callbacks for protocol driver layer
@@ -73,37 +73,37 @@ typedef struct _SRV_SEND_CONTEXT *PSRV_SEND_CONTEXT;
 /// This is called when a new connection arrives.  It should return
 /// STATUS_ACCESS_DENIED or any other error to reject the connection.
 ///
-/// If the connection is accepted, #PFN_SRV_TRANSPORT_CONNECTION_DONE
+/// If the connection is accepted, #PFN_NFS_TRANSPORT_CONNECTION_DONE
 /// will be called unless the socket is explicitly closed with
-/// SrvTransportSocketClose().
+/// NfsTransportSocketClose().
 ///
-typedef NTSTATUS (*PFN_SRV_TRANSPORT_CONNECTION_NEW)(
-    OUT PSRV_CONNECTION* ppConnection,
-    IN PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
-    IN PSRV_SOCKET pSocket
+typedef NTSTATUS (*PFN_NFS_TRANSPORT_CONNECTION_NEW)(
+    OUT PNFS_CONNECTION* ppConnection,
+    IN PNFS_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext,
+    IN PNFS_SOCKET pSocket
     );
 
 ///
 /// Transport indication that there is data available.
 ///
 /// This is called when at least the minimum requested number of bytes are
-/// available in the buffer specified via SrvTransportSocketSetBuffer().
+/// available in the buffer specified via NfsTransportSocketSetBuffer().
 ///
 /// This call is always asynchronous.
 ///
-typedef NTSTATUS (*PFN_SRV_TRANSPORT_CONNECTION_DATA)(
-    IN PSRV_CONNECTION pConnection,
+typedef NTSTATUS (*PFN_NFS_TRANSPORT_CONNECTION_DATA)(
+    IN PNFS_CONNECTION pConnection,
     IN ULONG BytesAvailable
     );
 
 ///
 /// Transport indication that the connection is done.
 ///
-/// This is called if #PFN_SRV_TRANSPORT_CONNECTION_NEW succeeded
-/// and SrvTransportSocketClose() was not called to indicate
+/// This is called if #PFN_NFS_TRANSPORT_CONNECTION_NEW succeeded
+/// and NfsTransportSocketClose() was not called to indicate
 /// that the transport is done with the socket.
 ///
-/// Note that any #PFN_SRV_TRANSPORT_SEND_DONE will happen
+/// Note that any #PFN_NFS_TRANSPORT_SEND_DONE will happen
 /// before this is called.
 ///
 /// This call is always asynchronous.
@@ -111,22 +111,22 @@ typedef NTSTATUS (*PFN_SRV_TRANSPORT_CONNECTION_DATA)(
 /// The PTD cannot call back into the driver while and after processing
 /// this.
 ///
-typedef VOID (*PFN_SRV_TRANSPORT_CONNECTION_DONE)(
-    IN PSRV_CONNECTION pConnection,
+typedef VOID (*PFN_NFS_TRANSPORT_CONNECTION_DONE)(
+    IN PNFS_CONNECTION pConnection,
     IN NTSTATUS Status
     );
 
 ///
 /// Transport indication that the send reply is queued.
 ///
-/// This is called from within SrvTransportSocketSendReply() and
-/// SrvTransportSocketSendZctReply() so that the PTD can perform signing,
+/// This is called from within NfsTransportSocketSendReply() and
+/// NfsTransportSocketSendZctReply() so that the PTD can perform signing,
 /// etc. in the same order that the replies are queued.  If this returns
-/// an error, SrvTransportSocketSendReply()/SrvTransportSocketSendZctReply()
+/// an error, NfsTransportSocketSendReply()/NfsTransportSocketSendZctReply()
 /// will also return an error.
 ///
-typedef NTSTATUS (*PFN_SRV_TRANSPORT_SEND_PREPARE)(
-    IN PSRV_SEND_CONTEXT pSendContext
+typedef NTSTATUS (*PFN_NFS_TRANSPORT_SEND_PREPARE)(
+    IN PNFS_SEND_CONTEXT pSendContext
     );
 
 ///
@@ -134,53 +134,53 @@ typedef NTSTATUS (*PFN_SRV_TRANSPORT_SEND_PREPARE)(
 ///
 /// This is called with a status code indicating whether or not
 /// sending the reply was successful.  This called IFF
-/// SrvTransportSocketSendReply()/SrvTransportSocketSendZctReply()
-/// succeeded and SrvTransportSocketClose() has not been called.
+/// NfsTransportSocketSendReply()/NfsTransportSocketSendZctReply()
+/// succeeded and NfsTransportSocketClose() has not been called.
 ///
 /// This can be called synchronously from inside the send reply
 /// functions or asynchronously.
 ///
-typedef VOID (*PFN_SRV_TRANSPORT_SEND_DONE)(
-    IN PSRV_SEND_CONTEXT pSendContext,
+typedef VOID (*PFN_NFS_TRANSPORT_SEND_DONE)(
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN NTSTATUS Status
     );
 
-typedef struct _SRV_TRANSPORT_PROTOCOL_DISPATCH {
-    PFN_SRV_TRANSPORT_CONNECTION_NEW pfnConnectionNew;
-    PFN_SRV_TRANSPORT_CONNECTION_DATA pfnConnectionData;
-    PFN_SRV_TRANSPORT_CONNECTION_DONE pfnConnectionDone;
-    PFN_SRV_TRANSPORT_SEND_PREPARE pfnSendPrepare;
-    PFN_SRV_TRANSPORT_SEND_DONE pfnSendDone;
-} SRV_TRANSPORT_PROTOCOL_DISPATCH, *PSRV_TRANSPORT_PROTOCOL_DISPATCH;
+typedef struct _NFS_TRANSPORT_PROTOCOL_DISPATCH {
+    PFN_NFS_TRANSPORT_CONNECTION_NEW pfnConnectionNew;
+    PFN_NFS_TRANSPORT_CONNECTION_DATA pfnConnectionData;
+    PFN_NFS_TRANSPORT_CONNECTION_DONE pfnConnectionDone;
+    PFN_NFS_TRANSPORT_SEND_PREPARE pfnSendPrepare;
+    PFN_NFS_TRANSPORT_SEND_DONE pfnSendDone;
+} NFS_TRANSPORT_PROTOCOL_DISPATCH, *PNFS_TRANSPORT_PROTOCOL_DISPATCH;
 
 NTSTATUS
-SrvTransportInit(
-    OUT PSRV_TRANSPORT_HANDLE phTransport,
-    IN PSRV_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
-    IN OPTIONAL PSRV_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
+NfsTransportInit(
+    OUT PNFS_TRANSPORT_HANDLE phTransport,
+    IN PNFS_TRANSPORT_PROTOCOL_DISPATCH pProtocolDispatch,
+    IN OPTIONAL PNFS_PROTOCOL_TRANSPORT_CONTEXT pProtocolDispatchContext
     );
 
 VOID
-SrvTransportShutdown(
-    IN OUT SRV_TRANSPORT_HANDLE hTransport
+NfsTransportShutdown(
+    IN OUT NFS_TRANSPORT_HANDLE hTransport
     );
 
 VOID
-SrvTransportSocketGetAddress(
-    IN PSRV_SOCKET pSocket,
+NfsTransportSocketGetAddress(
+    IN PNFS_SOCKET pSocket,
     OUT const struct sockaddr** ppAddress,
     OUT size_t* pAddressLength
     );
 
 PCSTR
-SrvTransportSocketGetAddressString(
-    IN PSRV_SOCKET pSocket
+NfsTransportSocketGetAddressString(
+    IN PNFS_SOCKET pSocket
     );
 
 // For logging only.
 int
-SrvTransportSocketGetFileDescriptor(
-    IN PSRV_SOCKET pSocket
+NfsTransportSocketGetFileDescriptor(
+    IN PNFS_SOCKET pSocket
     );
 
 ///
@@ -189,7 +189,7 @@ SrvTransportSocketGetFileDescriptor(
 /// This will set the buffer into which to receive data.  If a NULL
 /// or zero-size buffer is specified, no more data will be accepted.
 /// Normally, this function can only be called from within
-/// #PFN_SRV_TRANSPORT_CONNECTION_DATA.  However, if the buffer is
+/// #PFN_NFS_TRANSPORT_CONNECTION_DATA.  However, if the buffer is
 /// already NULL or zero, this can be called from outside to resume
 /// receiving data.
 ///
@@ -197,8 +197,8 @@ SrvTransportSocketGetFileDescriptor(
 /// any locks help that can also be held by a callback.
 ///
 NTSTATUS
-SrvTransportSocketSetBuffer(
-    IN PSRV_SOCKET pSocket,
+NfsTransportSocketSetBuffer(
+    IN PNFS_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
     IN ULONG Minimum
@@ -208,16 +208,16 @@ SrvTransportSocketSetBuffer(
 /// Send a reply.
 ///
 /// This will send a reply, queueing it as needed.  Once the reply is queued,
-/// tt will synchronously call #PFN_SRV_TRANSPORT_SEND_PREPARE.  It may also
-/// call #PFN_SRV_TRANSPORT_SEND_DONE if the send is done synchronously.
+/// tt will synchronously call #PFN_NFS_TRANSPORT_SEND_PREPARE.  It may also
+/// call #PFN_NFS_TRANSPORT_SEND_DONE if the send is done synchronously.
 ///
 /// If called from outside of a callback, this cannot be called with
 /// any locks help that can also be held by a callback.
 ///
 NTSTATUS
-SrvTransportSocketSendReply(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsTransportSocketSendReply(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN PVOID pBuffer,
     IN ULONG Size
     );
@@ -226,16 +226,16 @@ SrvTransportSocketSendReply(
 /// Send a reply.
 ///
 /// This will send a reply, queueing it as needed.  Once the reply is queued,
-/// tt will synchronously call #PFN_SRV_TRANSPORT_SEND_PREPARE.  It may also
-/// call #PFN_SRV_TRANSPORT_SEND_DONE if the send is done synchronously.
+/// tt will synchronously call #PFN_NFS_TRANSPORT_SEND_PREPARE.  It may also
+/// call #PFN_NFS_TRANSPORT_SEND_DONE if the send is done synchronously.
 ///
 /// If called from outside of a callback, this cannot be called with
 /// any locks help that can also be held by a callback.
 ///
 NTSTATUS
-SrvTransportSocketSendZctReply(
-    IN PSRV_SOCKET pSocket,
-    IN PSRV_SEND_CONTEXT pSendContext,
+NfsTransportSocketSendZctReply(
+    IN PNFS_SOCKET pSocket,
+    IN PNFS_SEND_CONTEXT pSendContext,
     IN PLW_ZCT_VECTOR pZct
     );
 
@@ -243,31 +243,31 @@ SrvTransportSocketSendZctReply(
 /// Disconnect a socket.
 ///
 /// This will disconnect a socket while keeping the memory referece valid.
-/// It will asynchronously call #PFN_SRV_TRANSPORT_SEND_DONE and
-/// #PFN_SRV_TRANSPORT_CONNECTION_DONE.
+/// It will asynchronously call #PFN_NFS_TRANSPORT_SEND_DONE and
+/// #PFN_NFS_TRANSPORT_CONNECTION_DONE.
 ///
 /// If called from outside of a callback, this cannot be called with
 /// any locks help that can also be held by a callback.
 ///
 VOID
-SrvTransportSocketDisconnect(
-    IN PSRV_SOCKET pSocket
+NfsTransportSocketDisconnect(
+    IN PNFS_SOCKET pSocket
     );
 
 ///
 /// Close the socket.
 ///
 /// This should be done when the PTD is completely done with the socket.
-/// No #PFN_SRV_TRANSPORT_SEND_DONE or #PFN_SRV_TRANSPORT_CONNECTION_DONE
+/// No #PFN_NFS_TRANSPORT_SEND_DONE or #PFN_NFS_TRANSPORT_CONNECTION_DONE
 /// callbacks are triggered by this.  So the the PTD needs those callbacks,
-/// it must call SrvTransportSocketDisconnect() and wait for the callbacks.
+/// it must call NfsTransportSocketDisconnect() and wait for the callbacks.
 ///
 /// If called from outside of a callback, this cannot be called with
 /// any locks help that can also be held by a callback.
 ///
 VOID
-SrvTransportSocketClose(
-    IN OUT PSRV_SOCKET pSocket
+NfsTransportSocketClose(
+    IN OUT PNFS_SOCKET pSocket
     );
 
 #endif /* __TRANSPORT_API_H__ */

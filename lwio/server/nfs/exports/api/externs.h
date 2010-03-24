@@ -39,7 +39,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Share Repository API
  *
@@ -49,9 +49,9 @@
  *
  */
 
-#ifndef __SRV_SHAREAPI_EXTERNS_H__
-#define __SRV_SHAREAPI_EXTERNS_H__
+#ifndef __NFS_SHAREAPI_EXTERNS_H__
+#define __NFS_SHAREAPI_EXTERNS_H__
 
-extern SRV_SHAREAPI_GLOBALS gSrvShareApi;
+extern NFS_SHAREAPI_GLOBALS gNfsShareApi;
 
-#endif /* __SRV_SHAREAPI_EXTERNS_H__ */
+#endif /* __NFS_SHAREAPI_EXTERNS_H__ */

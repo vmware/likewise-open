@@ -37,7 +37,7 @@
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise IO (LWIO) - NFS
  *
  *        Server share utilities
  *
@@ -51,25 +51,25 @@
 
 static
 VOID
-SrvShareFreeAbsoluteSecurityDescriptor(
+NfsShareFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
 static
 NTSTATUS
-SrvShareCreateAbsoluteSecDescFromRel(
+NfsShareCreateAbsoluteSecDescFromRel(
     OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsSecDesc,
     IN   PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc
     );
 
 static
 NTSTATUS
-SrvShareSetDefaultSecurity(
-    PSRV_SHARE_INFO pShareInfo
+NfsShareSetDefaultSecurity(
+    PNFS_SHARE_INFO pShareInfo
     );
 
 NTSTATUS
-SrvGetShareName(
+NfsGetShareName(
     IN  PCSTR  pszHostname,
     IN  PCSTR  pszDomain,
     IN  PWSTR  pwszPath,
@@ -82,7 +82,7 @@ SrvGetShareName(
     PSTR     pszShareName = NULL;
     PSTR     pszCursor = NULL;
 
-    ntStatus = SrvWc16sToMbs(pwszPath, &pszPath);
+    ntStatus = NfsWc16sToMbs(pwszPath, &pszPath);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pszCursor = pszPath;
@@ -112,7 +112,7 @@ SrvGetShareName(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SrvMbsToWc16s(pszShareName, &pwszSharename);
+    ntStatus = NfsMbsToWc16s(pszShareName, &pwszSharename);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppwszSharename = pwszSharename;
@@ -121,7 +121,7 @@ cleanup:
 
     if (pszPath)
     {
-        SrvFreeMemory(pszPath);
+        NfsFreeMemory(pszPath);
     }
 
     return ntStatus;
@@ -134,8 +134,8 @@ error:
 }
 
 NTSTATUS
-SrvGetMaximalShareAccessMask(
-    PSRV_SHARE_INFO pShareInfo,
+NfsGetMaximalShareAccessMask(
+    PNFS_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     )
 {
@@ -190,8 +190,8 @@ SrvGetMaximalShareAccessMask(
 }
 
 NTSTATUS
-SrvGetGuestShareAccessMask(
-    PSRV_SHARE_INFO pShareInfo,
+NfsGetGuestShareAccessMask(
+    PNFS_SHARE_INFO pShareInfo,
     ACCESS_MASK*   pMask
     )
 {
@@ -246,28 +246,28 @@ SrvGetGuestShareAccessMask(
 }
 
 VOID
-SrvShareFreeSecurity(
-    IN PSRV_SHARE_INFO pShareInfo
+NfsShareFreeSecurity(
+    IN PNFS_SHARE_INFO pShareInfo
     )
 {
     if (pShareInfo->pSecDesc)
     {
-        SrvFreeMemory(pShareInfo->pSecDesc);
+        NfsFreeMemory(pShareInfo->pSecDesc);
         pShareInfo->pSecDesc = NULL;
         pShareInfo->ulSecDescLen = 0;
     }
 
     if (pShareInfo->pAbsSecDesc)
     {
-        SrvShareFreeAbsoluteSecurityDescriptor(&pShareInfo->pAbsSecDesc);
+        NfsShareFreeAbsoluteSecurityDescriptor(&pShareInfo->pAbsSecDesc);
         pShareInfo->pAbsSecDesc = NULL;
     }
 }
 
 
 NTSTATUS
-SrvShareSetSecurity(
-    IN  PSRV_SHARE_INFO pShareInfo,
+NfsShareSetSecurity(
+    IN  PNFS_SHARE_INFO pShareInfo,
     IN  PSECURITY_DESCRIPTOR_RELATIVE pIncRelSecDesc,
     IN  ULONG ulIncRelSecDescLen
     )
@@ -300,14 +300,14 @@ SrvShareSetSecurity(
 
     if (pShareInfo->ulSecDescLen == 0)
     {
-        ntStatus = SrvShareSetDefaultSecurity(pShareInfo);
+        ntStatus = NfsShareSetDefaultSecurity(pShareInfo);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     /* Make the Absolute version of thr incoming SD and
        get the SecurityInformation */
 
-    ntStatus = SrvShareCreateAbsoluteSecDescFromRel(
+    ntStatus = NfsShareCreateAbsoluteSecDescFromRel(
                     &pIncAbsSecDesc,
                     pIncRelSecDesc) ;
     BAIL_ON_NT_STATUS(ntStatus);
@@ -345,7 +345,7 @@ SrvShareSetSecurity(
 
     ulFinalRelSecDescLen = ulIncRelSecDescLen + pShareInfo->ulSecDescLen;
 
-    ntStatus = SrvAllocateMemory(
+    ntStatus = NfsAllocateMemory(
                    ulFinalRelSecDescLen,
                    (PVOID*)&pFinalRelSecDesc);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -359,14 +359,14 @@ SrvShareSetSecurity(
                    &GenericMap);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareCreateAbsoluteSecDescFromRel(
+    ntStatus = NfsShareCreateAbsoluteSecDescFromRel(
                     &pFinalAbsSecDesc,
                     pFinalRelSecDesc) ;
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Free the old SecDesc and save the new one */
 
-    SrvShareFreeSecurity(pShareInfo);
+    NfsShareFreeSecurity(pShareInfo);
 
     pShareInfo->pSecDesc = pFinalRelSecDesc;
     pShareInfo->ulSecDescLen = ulFinalRelSecDescLen;
@@ -377,7 +377,7 @@ SrvShareSetSecurity(
 cleanup:
     if (pIncAbsSecDesc)
     {
-        SrvShareFreeAbsoluteSecurityDescriptor(&pIncAbsSecDesc);
+        NfsShareFreeAbsoluteSecurityDescriptor(&pIncAbsSecDesc);
     }
 
     return ntStatus;
@@ -385,12 +385,12 @@ cleanup:
 error:
     if (pFinalRelSecDesc)
     {
-        SrvFreeMemory(pFinalRelSecDesc);
+        NfsFreeMemory(pFinalRelSecDesc);
     }
 
     if (pFinalAbsSecDesc)
     {
-        SrvShareFreeAbsoluteSecurityDescriptor(&pFinalAbsSecDesc);
+        NfsShareFreeAbsoluteSecurityDescriptor(&pFinalAbsSecDesc);
     }
 
     goto cleanup;
@@ -398,7 +398,7 @@ error:
 
 static
 NTSTATUS
-SrvShareCreateAbsoluteSecDescFromRel(
+NfsShareCreateAbsoluteSecDescFromRel(
     OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppAbsSecDesc,
     IN   PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc
     )
@@ -505,7 +505,7 @@ error:
 
 static
 VOID
-SrvShareFreeAbsoluteSecurityDescriptor(
+NfsShareFreeAbsoluteSecurityDescriptor(
     IN OUT PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     )
 {
@@ -544,8 +544,8 @@ SrvShareFreeAbsoluteSecurityDescriptor(
 
 
 NTSTATUS
-SrvShareAccessCheck(
-    PSRV_SHARE_INFO pShareInfo,
+NfsShareAccessCheck(
+    PNFS_SHARE_INFO pShareInfo,
     PACCESS_TOKEN pToken,
     ACCESS_MASK DesiredAccess,
     PGENERIC_MAPPING pGenericMap,
@@ -606,8 +606,8 @@ error:
 
 static
 NTSTATUS
-SrvShareSetDefaultSecurity(
-    PSRV_SHARE_INFO pShareInfo
+NfsShareSetDefaultSecurity(
+    PNFS_SHARE_INFO pShareInfo
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -627,7 +627,7 @@ SrvShareSetDefaultSecurity(
 
     if (pShareInfo->ulSecDescLen)
     {
-        SrvShareFreeSecurity(pShareInfo);
+        NfsShareFreeSecurity(pShareInfo);
     }
 
     /* Build the new Absolute Security Descriptor */
@@ -718,7 +718,7 @@ SrvShareSetDefaultSecurity(
                    &ulRelSecDescLen);
     if (ntStatus == STATUS_BUFFER_TOO_SMALL)
     {
-        ntStatus = SrvAllocateMemory(ulRelSecDescLen, (PVOID*)&pRelSecDesc);
+        ntStatus = NfsAllocateMemory(ulRelSecDescLen, (PVOID*)&pRelSecDesc);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = RtlAbsoluteToSelfRelativeSD(
@@ -749,7 +749,7 @@ error:
 
     if (pRelSecDesc)
     {
-        SrvFreeMemory(pRelSecDesc);
+        NfsFreeMemory(pRelSecDesc);
     }
 
     goto cleanup;
