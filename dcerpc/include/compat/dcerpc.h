@@ -25,6 +25,9 @@
 #define rpc_binding_from_string_binding(string_binding, binding, status) \
     (*(status) = RpcBindingFromStringBinding(string_binding, binding))
 
+#define rpc_binding_set_auth_info(binding, server_name, authn_level, authn_protocol, auth_identity, authz_protocol, status) \
+    (*(status) = RpcBindingSetAuthInfo(binding, server_name, authn_level, authn_protocol, auth_identity, authz_protocol))
+
 #define rpc_binding_to_string_binding(binding, string_binding, status) \
     (*(status) = RpcBindingToStringBinding(binding, string_binding))
 
@@ -43,6 +46,9 @@
 // NOTE: Difference between DCE and MS
 #define rpc_server_listen(max_calls_exec, status) \
     (*(status) = RpcServerListen(1, max_calls_exec, FALSE))
+
+#define rpc_server_register_auth_info(server_name, auth_svc, get_key_func, arg, status) \
+    (*(status) = RpcServerRegisterAuthInfo(server_name, auth_svc, get_key_func, arg))
 
 #define rpc_server_register_if(if_handle, mgr_type_uuid, mgr_epv, status) \
     (*(status) = RpcServerRegisterIf(if_handle, mgr_type_uuid, mgr_epv))
@@ -97,5 +103,30 @@ typedef boolean idl_boolean;
 
 typedef TCHAR dce_error_string_t[1024];
 #define dce_error_inq_text(error_code, error_string, status) (*(status) = DceErrorInqText(error_code, error_string))
+
+#define rpc_c_protect_level_default RPC_C_AUTHN_LEVEL_DEFAULT
+#define rpc_c_protect_level_none RPC_C_AUTHN_LEVEL_NONE
+#define rpc_c_protect_level_connect RPC_C_AUTHN_LEVEL_CONNECT
+#define rpc_c_protect_level_call RPC_C_AUTHN_LEVEL_CALL
+#define rpc_c_protect_level_pkt RPC_C_AUTHN_LEVEL_PKT
+#define rpc_c_protect_level_pkt_integ RPC_C_AUTHN_LEVEL_PKT_INTEGRITY
+#define rpc_c_protect_level_pkt_privacy RPC_C_AUTHN_LEVEL_PKT_PRIVACY
+
+#define rpc_c_authn_none           RPC_C_AUTHN_NONE
+#define rpc_c_authn_dce_secret     RPC_C_AUTHN_DCE_PRIVATE
+#define rpc_c_authn_dce_public     RPC_C_AUTHN_DCE_PUBLIC
+#define rpc_c_authn_dssa_public    RPC_C_AUTHN_DEC_PUBLIC
+#define rpc_c_authn_gss_negotiate  RPC_C_AUTHN_GSS_NEGOTIATE
+#define rpc_c_authn_winnt          RPC_C_AUTHN_WINNT
+#define rpc_c_authn_gss_tls        RPC_C_AUTHN_GSS_SCHANNEL
+#define rpc_c_authn_gss_mskrb      RPC_C_AUTHN_GSS_KERBEROS
+#define rpc_c_authn_msn            RPC_C_AUTHN_DPA
+#define rpc_c_authn_dpa            RPC_C_AUTHN_MSN
+#define rpc_c_authn_default        RPC_C_AUTHN_DEFAULT
+
+#define rpc_c_authz_none     RPC_C_AUTHZ_NONE
+#define rpc_c_authz_name     RPC_C_AUTHZ_NAME
+#define rpc_c_authz_dce      RPC_C_AUTHZ_DCE
+#define rpc_c_authz_gss_name RPC_C_AUTHZ_DEFAULT
 
 #endif

@@ -53,8 +53,10 @@ get_client_rpc_binding(
 
 static void usage()
 {
-    printf("usage: echo_client [-h hostname] [-e endpoint] [-n] [-u] [-t]\n");
+    printf("usage: echo_client [-h hostname] [-a name [-p level]] [-e endpoint] [-n] [-u] [-t]\n");
     printf("         -h:  specify host of RPC server (default is localhost)\n");
+    printf("         -a:  specify authentication identity\n");
+    printf("         -p:  specify protection level\n");
     printf("         -e:  specify endpoint for protocol\n");
     printf("         -n:  use named pipe protocol\n");
     printf("         -u:  use UDP protocol\n");
@@ -83,6 +85,8 @@ main(
     char * rpc_host = "localhost";
     char * protocol = PROTOCOL_TCP;
     char * endpoint = NULL;
+    char * spn = NULL;
+    unsigned32 protect_level = rpc_c_protect_level_pkt_integ;
 
     char buf[MAX_LINE+1];
 
@@ -104,12 +108,18 @@ main(
      * Process the cmd line args
      */
 
-    while ((c = getopt(argc, argv, "h:e:nutdg:")) != EOF)
+    while ((c = getopt(argc, argv, "h:a:p:e:nutdg:")) != EOF)
     {
         switch (c)
         {
         case 'h':
             rpc_host = optarg;
+            break;
+        case 'a':
+            spn = optarg;
+            break;
+        case 'p':
+            protect_level = atoi(optarg);
             break;
         case 'e':
             endpoint = optarg;
@@ -158,6 +168,20 @@ main(
         exit(1);
     }
 
+    if (spn)
+    {
+        rpc_binding_set_auth_info(echo_server,
+            spn,
+            protect_level,
+            rpc_c_authn_gss_negotiate,
+            NULL,
+            rpc_c_authz_name, &status);
+        if (status)
+        {
+            printf ("Couldn't set auth info %u. exiting.\n", status);
+            exit(1);
+        }
+    }
 
     /*
      * Allocate an "args" struct with enough room to accomodate

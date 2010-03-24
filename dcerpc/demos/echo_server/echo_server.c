@@ -92,7 +92,8 @@ bind_server(
 
 static void usage()
 {
-    printf("usage: echo_server [-e endpoint] [-n] [-u] [-t]\n");
+    printf("usage: echo_server [-a name] [-e endpoint] [-n] [-u] [-t]\n");
+    printf("         -a:  specify authentication identity\n");
     printf("         -e:  specify endpoint\n");
     printf("         -n:  use named pipe protocol\n");
     printf("         -u:  use UDP protocol\n");
@@ -111,15 +112,19 @@ int main(int argc, char *argv[])
     char * endpoint = NULL;
     int c;
     char * function = NULL;
+    char * spn = NULL;
 
     /*
      * Process the cmd line args
      */
 
-    while ((c = getopt(argc, argv, "e:nut")) != EOF)
+    while ((c = getopt(argc, argv, "a:e:nut")) != EOF)
     {
         switch (c)
         {
+        case 'a':
+            spn = optarg;
+            break;
         case 'e':
             endpoint = optarg;
             break;
@@ -150,6 +155,21 @@ int main(int argc, char *argv[])
         protocol = PROTOCOL_TCP;
     }
 #endif
+
+    if (spn)
+    {
+        rpc_server_register_auth_info(
+            spn,
+            rpc_c_authn_gss_negotiate,
+            NULL,
+            NULL,
+            &status);
+        if (status)
+        {
+            printf ("Couldn't set auth info. exiting.\n");
+            exit(1);
+        }
+    }
 
     /*
      * Register the Interface with the local endpoint mapper (rpcd)
