@@ -247,6 +247,12 @@ SrvShareEnum(
     IN OUT PULONG                     pulNumEntries
     );
 
+NTSTATUS
+SrvShareDuplicateInfo(
+    PSRV_SHARE_INFO  pShareInfo,
+    PSRV_SHARE_INFO* ppShareInfo
+    );
+
 VOID
 SrvShareFreeListContents(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
@@ -261,6 +267,11 @@ VOID
 SrvShareFreeInfoList(
     PSRV_SHARE_INFO* ppInfoList,
     ULONG            ulNumInfos
+    );
+
+PSRV_SHARE_INFO
+SrvShareAcquireInfo(
+    IN PSRV_SHARE_INFO pShareInfo
     );
 
 VOID

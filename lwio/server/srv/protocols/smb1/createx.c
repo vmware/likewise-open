@@ -740,7 +740,7 @@ SrvBuildCreateState(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1       = pCtxProtocol->pSmb1Context;
     PSRV_CREATE_STATE_SMB_V1   pCreateState   = NULL;
-    BOOLEAN                    bTreeInLock    = FALSE;
+    BOOLEAN                    bShareInLock    = FALSE;
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_CREATE_STATE_SMB_V1),
@@ -781,7 +781,7 @@ SrvBuildCreateState(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb1->pTree->mutex);
+            LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pCtxSmb1->pTree->mutex);
 
             ntStatus = SrvBuildFilePath(
                             NULL, /* relative path */
@@ -789,7 +789,7 @@ SrvBuildCreateState(
                             &pCreateState->pFilename->FileName);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+            LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb1->pTree->mutex);
         }
 
         pCreateState->pFilename->RootFileHandle =
@@ -797,7 +797,9 @@ SrvBuildCreateState(
     }
     else
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pCtxSmb1->pTree->mutex);
+        LWIO_LOCK_RWMUTEX_SHARED(
+                bShareInLock,
+                &pCtxSmb1->pTree->pShareInfo->mutex);
 
         ntStatus = SrvBuildFilePath(
                         pCtxSmb1->pTree->pShareInfo->pwszPath,
@@ -805,7 +807,7 @@ SrvBuildCreateState(
                         &pCreateState->pFilename->FileName);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+        LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
     }
 
     pCreateState->pwszFilename = pwszFilename;
@@ -837,7 +839,7 @@ SrvBuildCreateState(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
 
     return ntStatus;
 

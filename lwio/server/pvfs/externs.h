@@ -52,7 +52,7 @@
 extern PSTR             gpszPVFSProviderName;
 extern GENERIC_MAPPING  gPvfsFileGenericMapping;
 
-PVFS_WORKER_POOL gWorkPool;
+extern PVFS_WORKER_POOL gWorkPool;
 
 extern PPVFS_WORK_QUEUE gpPvfsIoWorkQueue;
 extern PPVFS_WORK_QUEUE gpPvfsInternalWorkQueue;

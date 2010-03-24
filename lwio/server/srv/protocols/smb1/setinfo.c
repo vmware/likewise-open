@@ -121,7 +121,7 @@ SrvProcessSetInformation(
     PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
     PSRV_SET_INFO_STATE_SMB_V1 pInfoState   = NULL;
     BOOLEAN                    bInLock      = FALSE;
-    BOOLEAN                    bTreeInLock  = FALSE;
+    BOOLEAN                    bShareInLock  = FALSE;
     PLWIO_SRV_SESSION          pSession     = NULL;
     PLWIO_SRV_TREE             pTree        = NULL;
 
@@ -192,7 +192,9 @@ SrvProcessSetInformation(
                             &pInfoState->fileBasicInfo.LastWriteTime);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pInfoState->pTree->mutex);
+            LWIO_LOCK_RWMUTEX_SHARED(
+                    bShareInLock,
+                    &pInfoState->pTree->pShareInfo->mutex);
 
             ntStatus = SrvBuildFilePath(
                             pInfoState->pTree->pShareInfo->pwszPath,
@@ -200,7 +202,9 @@ SrvProcessSetInformation(
                             &pInfoState->fileName.FileName);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pInfoState->pTree->mutex);
+            LWIO_UNLOCK_RWMUTEX(
+                    bShareInLock,
+                    &pInfoState->pTree->pShareInfo->mutex);
 
             pInfoState->stage = SRV_SET_INFO_STAGE_SMB_V1_ATTEMPT_SET;
 
@@ -257,7 +261,7 @@ SrvProcessSetInformation(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pInfoState->pTree->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pInfoState->pTree->pShareInfo->mutex);
 
     if (pSession)
     {

@@ -63,13 +63,6 @@ SrvShareRemoveFromList_inlock(
     );
 
 static
-NTSTATUS
-SrvShareDuplicateInfo(
-    PSRV_SHARE_INFO  pShareInfo,
-    PSRV_SHARE_INFO* ppShareInfo
-    );
-
-static
 int
 SrvShareCompareInfo(
     PVOID pKey1,
@@ -149,8 +142,7 @@ SrvShareInitList(
                             (PVOID*)&pShareEntry);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pShareEntry->pInfo = pShareInfo;
-            InterlockedIncrement(&pShareInfo->refcount);
+            pShareEntry->pInfo = SrvShareAcquireInfo(pShareInfo);
 
             pShareEntry->pNext = pShareList->pShareEntry;
             pShareList->pShareEntry = pShareEntry;
@@ -234,9 +226,7 @@ SrvShareFindByName_inlock(
                     (PVOID*)&pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    InterlockedIncrement(&pShareInfo->refcount);
-
-    *ppShareInfo = pShareInfo;
+    *ppShareInfo = SrvShareAcquireInfo(pShareInfo);
 
 cleanup:
 
@@ -349,8 +339,7 @@ SrvShareAdd(
                     (PVOID*)&pShareEntry);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pShareEntry->pInfo = pShareInfo;
-    InterlockedIncrement(&pShareInfo->refcount);
+    pShareEntry->pInfo = SrvShareAcquireInfo(pShareInfo);
 
     ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryOpen(&hRepository);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -372,7 +361,7 @@ SrvShareAdd(
                     pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    InterlockedIncrement(&pShareInfo->refcount);
+    pShareInfo = NULL;
 
     pShareEntry->pNext = pShareList->pShareEntry;
     pShareList->pShareEntry = pShareEntry;
@@ -412,6 +401,7 @@ SrvShareUpdate(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     WCHAR wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
     BOOLEAN  bInLock = FALSE;
+    BOOLEAN  bShareInLock = FALSE;
     HANDLE   hRepository = NULL;
 
     if (!pShareInfo || IsNullOrEmptyString(pShareInfo->pwszName))
@@ -430,6 +420,8 @@ SrvShareUpdate(
                                             pShareInfo->pwszName);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pShareInfo->mutex);
+
     ntStatus = gSrvShareApi.pFnTable->pfnShareRepositoryAdd(
                                             hRepository,
                                             pShareInfo->pwszName,
@@ -440,10 +432,14 @@ SrvShareUpdate(
                                             wszServiceType);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pShareInfo->mutex);
+
     gSrvShareApi.pFnTable->pfnShareRepositoryClose(hRepository);
     hRepository = NULL;
 
 cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pShareInfo->mutex);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pShareList->mutex);
 
@@ -622,7 +618,6 @@ error:
     goto cleanup;
 }
 
-static
 NTSTATUS
 SrvShareDuplicateInfo(
     PSRV_SHARE_INFO  pShareInfo,
@@ -786,6 +781,16 @@ SrvShareFreeInfoList(
     }
 
     SrvFreeMemory(ppInfoList);
+}
+
+PSRV_SHARE_INFO
+SrvShareAcquireInfo(
+    IN PSRV_SHARE_INFO pShareInfo
+    )
+{
+    InterlockedIncrement(&pShareInfo->refcount);
+
+    return pShareInfo;
 }
 
 VOID

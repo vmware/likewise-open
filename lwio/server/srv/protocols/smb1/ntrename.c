@@ -100,7 +100,7 @@ SrvProcessNtRename(
     PLWIO_SRV_SESSION           pSession     = NULL;
     PLWIO_SRV_TREE              pTree        = NULL;
     PSRV_NT_RENAME_STATE_SMB_V1 pRenameState = NULL;
-    BOOLEAN                     bTreeInLock  = FALSE;
+    BOOLEAN                     bShareInLock  = FALSE;
     BOOLEAN                     bInLock      = FALSE;
 
     pRenameState = (PSRV_NT_RENAME_STATE_SMB_V1)pCtxSmb1->hState;
@@ -160,7 +160,7 @@ SrvProcessNtRename(
     {
         case SRV_NT_RENAME_STAGE_SMB_V1_INITIAL:
 
-            LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
+            LWIO_LOCK_RWMUTEX_SHARED(   bShareInLock,
                                         &pCtxSmb1->pTree->pShareInfo->mutex);
 
             ntStatus = SrvBuildFilePath(
@@ -176,7 +176,7 @@ SrvProcessNtRename(
 
             pRenameState->newName.FileName = pRenameState->pwszNewName;
 
-            LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+            LWIO_UNLOCK_RWMUTEX(bShareInLock,
                                 &pCtxSmb1->pTree->pShareInfo->mutex);
 
             pRenameState->stage = SRV_NT_RENAME_STAGE_SMB_V1_ATTEMPT_RENAME;
@@ -208,7 +208,7 @@ SrvProcessNtRename(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
 
     if (pSession)
     {
