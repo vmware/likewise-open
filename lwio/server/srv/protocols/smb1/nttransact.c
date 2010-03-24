@@ -2075,7 +2075,7 @@ SrvParseNtTransactCreateParameters(
     ULONG                        ulOffset         = 0;
     ULONG                        ulBytesAvailable = 0;
     PWSTR                        pwszFilename     = NULL;
-    BOOLEAN                      bTreeInLock      = FALSE;
+    BOOLEAN                      bShareInLock      = FALSE;
 
     pNTTransactState = (PSRV_NTTRANSACT_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -2217,7 +2217,7 @@ SrvParseNtTransactCreateParameters(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pNTTransactState->pTree->mutex);
+            LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pNTTransactState->pTree->mutex);
 
             ntStatus = SrvBuildFilePath(
                             NULL, /* relative path */
@@ -2225,7 +2225,7 @@ SrvParseNtTransactCreateParameters(
                             &pNTTransactState->pFilename->FileName);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pNTTransactState->pTree->mutex);
+            LWIO_UNLOCK_RWMUTEX(bShareInLock, &pNTTransactState->pTree->mutex);
         }
 
         pNTTransactState->pFilename->RootFileHandle =
@@ -2233,7 +2233,9 @@ SrvParseNtTransactCreateParameters(
     }
     else
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pNTTransactState->pTree->mutex);
+        LWIO_LOCK_RWMUTEX_SHARED(
+                bShareInLock,
+                &pNTTransactState->pTree->pShareInfo->mutex);
 
         ntStatus = SrvBuildFilePath(
                         pNTTransactState->pTree->pShareInfo->pwszPath,
@@ -2241,7 +2243,9 @@ SrvParseNtTransactCreateParameters(
                         &pNTTransactState->pFilename->FileName);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pNTTransactState->pTree->mutex);
+        LWIO_UNLOCK_RWMUTEX(
+                bShareInLock,
+                &pNTTransactState->pTree->pShareInfo->mutex);
     }
 
     /* For named pipes, we need to pipe some extra data into the npfs driver:
@@ -2267,7 +2271,9 @@ SrvParseNtTransactCreateParameters(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pNTTransactState->pTree->mutex);
+    LWIO_UNLOCK_RWMUTEX(
+            bShareInLock,
+            &pNTTransactState->pTree->pShareInfo->mutex);
 
     SRV_SAFE_FREE_MEMORY(pwszFilename);
 

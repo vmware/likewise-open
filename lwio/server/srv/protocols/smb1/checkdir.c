@@ -111,7 +111,7 @@ SrvProcessCheckDirectory(
     PLWIO_SRV_SESSION          pSession       = NULL;
     PLWIO_SRV_TREE             pTree          = NULL;
     PSRV_CHECKDIR_STATE_SMB_V1 pCheckdirState = NULL;
-    BOOLEAN                    bTreeInLock    = FALSE;
+    BOOLEAN                    bShareInLock    = FALSE;
     BOOLEAN                    bInLock        = FALSE;
 
     pCheckdirState = (PSRV_CHECKDIR_STATE_SMB_V1)pCtxSmb1->hState;
@@ -174,7 +174,7 @@ SrvProcessCheckDirectory(
     {
         case SRV_CHECKDIR_STAGE_SMB_V1_INITIAL:
 
-            LWIO_LOCK_RWMUTEX_SHARED(   bTreeInLock,
+            LWIO_LOCK_RWMUTEX_SHARED(   bShareInLock,
                                         &pCtxSmb1->pTree->pShareInfo->mutex);
 
             ntStatus = SrvBuildFilePath(
@@ -183,7 +183,7 @@ SrvProcessCheckDirectory(
                             &pCheckdirState->fileName.FileName);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_UNLOCK_RWMUTEX(bTreeInLock,
+            LWIO_UNLOCK_RWMUTEX(bShareInLock,
                                 &pCtxSmb1->pTree->pShareInfo->mutex);
 
             pCheckdirState->stage = SRV_CHECKDIR_STAGE_SMB_V1_ATTEMPT_CHECK;
@@ -247,7 +247,7 @@ SrvProcessCheckDirectory(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
+    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
 
     if (pTree)
     {

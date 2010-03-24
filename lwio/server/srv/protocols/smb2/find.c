@@ -217,7 +217,7 @@ SrvProcessFind_SMB_V2(
     PWSTR    pwszFilePath       = NULL;
     PWSTR    pwszFilesystemPath = NULL;
     BOOLEAN  bInLock           = FALSE;
-    BOOLEAN  bTreeInLock       = FALSE;
+    BOOLEAN  bShareInLock       = FALSE;
     PBYTE    pData             = NULL; // Do not free
     ULONG    ulMaxDataLength   = 0;
     ULONG    ulDataLength      = 0;
@@ -387,7 +387,7 @@ SrvProcessFind_SMB_V2(
             }
         }
 
-        LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTree->mutex);
+        LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
 
         ntStatus = SrvBuildFilePath(
                         pTree->pShareInfo->pwszPath,
@@ -395,7 +395,7 @@ SrvProcessFind_SMB_V2(
                         &pwszFilePath);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+        LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
         ntStatus = SrvFinderBuildSearchPath(
                         pwszFilePath,
@@ -624,7 +624,7 @@ cleanup:
 
     if (pTree)
     {
-        LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+        LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
         SrvTree2Release(pTree);
     }
