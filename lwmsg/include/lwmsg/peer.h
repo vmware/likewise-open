@@ -216,7 +216,7 @@ typedef
 LWMsgStatus
 (*LWMsgPeerCallFunction) (
     LWMsgCall* call,
-    LWMsgParams* in,
+    const LWMsgParams* in,
     LWMsgParams* out,
     void* data
     );
