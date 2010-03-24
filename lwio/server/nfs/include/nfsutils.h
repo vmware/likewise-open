@@ -29,7 +29,7 @@
  *
  * Module Name:
  *
- *        srvutils.h
+ *        nfsutils.h
  *
  * Abstract:
  *

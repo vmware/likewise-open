@@ -62,7 +62,7 @@
 #include <lw/ntstatus.h>
 
 #include <shareapi.h>
-#include <srvutils.h>
+#include <nfsutils.h>
 #include <sharerepository.h>
 
 #include "defs.h"

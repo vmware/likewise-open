@@ -74,7 +74,7 @@
 #include <srvecp.h>
 
 #include <shareapi.h>
-#include <srvutils.h>
+#include <nfsutils.h>
 #include <elementsapi.h>
 
 #include "defs.h"

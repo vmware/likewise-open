@@ -74,7 +74,7 @@
 #include <smbwire.h>
 
 #include <shareapi.h>
-#include <srvutils.h>
+#include <nfsutils.h>
 #include <elementsapi.h>
 #include <transportapi.h>
 
