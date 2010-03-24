@@ -1,6 +1,6 @@
-noinst_LTLIBRARIES = libsrv.protocols.smb2.la
+noinst_LTLIBRARIES = libnfs.protocols.smb2.la
 
-libsrv_protocols_smb2_la_SOURCES = \
+libnfs_protocols_smb2_la_SOURCES = \
     cancel.c         \
     close.c          \
     connection.c     \
@@ -34,13 +34,13 @@ libsrv_protocols_smb2_la_SOURCES = \
     wire.c           \
     write.c
 
-libsrv_protocols_smb2_la_CPPFLAGS = \
+libnfs_protocols_smb2_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv/include \
-    -I@top_srcdir@/server/srv/protocols/include
+    -I@top_srcdir@/server/nfs/include \
+    -I@top_srcdir@/server/nfs/protocols/include
 
-libsrv_protocols_smb2_la_LDFLAGS = -static
+libnfs_protocols_smb2_la_LDFLAGS = -static
 

@@ -1,14 +1,14 @@
 if ENABLE_STATIC_DRIVERS
-noinst_LTLIBRARIES = libsrv.sys.la
+noinst_LTLIBRARIES = libnfs.sys.la
 DRIVER_CFLAGS =
 DRIVER_LDFLAGS =
 else
-lib_LTLIBRARIES = libsrv.sys.la
+lib_LTLIBRARIES = libnfs.sys.la
 DRIVER_CFLAGS = -shared
 DRIVER_LDFLAGS = -module -shared -avoid-version
 endif
 
-libsrv_sys_la_SOURCES = \
+libnfs_sys_la_SOURCES = \
     ccb.c          \
     config.c       \
     device.c       \
@@ -17,25 +17,25 @@ libsrv_sys_la_SOURCES = \
     deviceio.c     \
     driver.c       \
     globals.c      \
-    srvshares.c    \
-    srvstats.c     \
-    srvworker.c
+    nfsshares.c    \
+    nfsstats.c     \
+    nfsworker.c
 
-libsrv_sys_la_CPPFLAGS = \
+libnfs_sys_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv/include
+    -I@top_srcdir@/server/nfs/include
 
-libsrv_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
+libnfs_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
-libsrv_sys_la_LIBADD = \
-    @top_builddir@/server/srv/protocols/api/libsrv.protocols.api.la \
-    @top_builddir@/server/srv/transport/threadpool/libsrv.transport.threadpool.la \
-    @top_builddir@/server/srv/elements/libsrvelements.la \
-    @top_builddir@/server/srv/shares/api/libshareapi.la \
-    @top_builddir@/server/srv/utils/libsrvutils.la \
+libnfs_sys_la_LIBADD = \
+    @top_builddir@/server/nfs/protocols/api/libnfs.protocols.api.la \
+    @top_builddir@/server/nfs/transport/threadpool/libnfs.transport.threadpool.la \
+    @top_builddir@/server/nfs/elements/libnfselements.la \
+    @top_builddir@/server/nfs/shares/api/libshareapi.la \
+    @top_builddir@/server/nfs/utils/libnfsutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/server/smbcommon/liblwiosmbcommon.la \
     @top_builddir@/libshareinfo/liblwioshareinfo.la \
@@ -43,5 +43,5 @@ libsrv_sys_la_LIBADD = \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
 
-libsrv_sys_la_LDFLAGS = $(DRIVER_LDFLAGS)
+libnfs_sys_la_LDFLAGS = $(DRIVER_LDFLAGS)
 

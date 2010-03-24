@@ -386,6 +386,12 @@ then
 	AC_DEFINE([ENABLE_NPFS], [], [Define if npfs driver should be built])
 fi
 
+AM_CONDITIONAL(ENABLE_NFS, test x"$enable_nfs" = x"yes")
+if test x"$enable_nfs" = x"yes"
+then
+	AC_DEFINE([ENABLE_NFS], [], [Define if nfs driver should be built])
+fi
+
 # Boolean settings
 
 AC_ARG_ENABLE([static-drivers], [AC_HELP_STRING([--enable-static-drivers], [build drivers directly into lwiod])])
@@ -893,6 +899,18 @@ AC_CONFIG_FILES([Makefile
         server/srv/transport/Makefile
         server/srv/transport/threadpool/Makefile
         server/srv/driver/Makefile
+        server/nfs/Makefile
+        server/nfs/utils/Makefile
+        server/nfs/exports/Makefile
+        server/nfs/exports/regexports/Makefile
+        server/nfs/exports/api/Makefile
+        server/nfs/elements/Makefile
+        server/nfs/protocols/Makefile
+        server/nfs/protocols/api/Makefile
+        server/nfs/protocols/smb2/Makefile
+        server/nfs/transport/Makefile
+        server/nfs/transport/threadpool/Makefile
+        server/nfs/driver/Makefile
         server/npfs/Makefile
         server/pvfs/Makefile
         server/dfs/Makefile

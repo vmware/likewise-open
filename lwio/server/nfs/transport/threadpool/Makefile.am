@@ -1,16 +1,16 @@
-noinst_LTLIBRARIES = libsrv.transport.threadpool.la
+noinst_LTLIBRARIES = libnfs.transport.threadpool.la
 
-libsrv_transport_threadpool_la_SOURCES = \
+libnfs_transport_threadpool_la_SOURCES = \
     libmain.c       \
     listener.c      \
-    srvsocket.c
+    nfssocket.c
 
-libsrv_transport_threadpool_la_CPPFLAGS = \
+libnfs_transport_threadpool_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
-    -I@top_srcdir@/server/srv/include \
-    -I@top_srcdir@/server/srv/transport/include
+    -I@top_srcdir@/server/nfs/include \
+    -I@top_srcdir@/server/nfs/transport/include
 
-libsrv_transport_threadpool_la_LDFLAGS =
+libnfs_transport_threadpool_la_LDFLAGS =
