@@ -360,7 +360,10 @@ SrvExecuteIOCTL_SMB_V2(
                         &pIOCTLState->sResponseBufferLen);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pIOCTLState->ulResponseBufferLen = pIOCTLState->sResponseBufferLen;
+        pIOCTLState->ulResponseBufferLen =
+            pIOCTLState->pRequestHeader->ulMaxOutLength > 0 ?
+            pIOCTLState->pRequestHeader->ulMaxOutLength:
+            pIOCTLState->sResponseBufferLen;
 
         SrvPrepareIOCTLStateAsync_SMB_V2(pIOCTLState, pExecContext);
 
