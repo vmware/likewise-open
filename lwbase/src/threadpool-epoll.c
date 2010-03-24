@@ -1147,7 +1147,9 @@ InitEventThread(
 
     if (pAttrs && pAttrs->ulTaskThreadStackSize)
     {
-        pthread_attr_setstacksize(&threadAttr, pAttrs->ulTaskThreadStackSize);
+        status = LwErrnoToNtStatus(
+            pthread_attr_setstacksize(&threadAttr, pAttrs->ulTaskThreadStackSize));
+        GOTO_ERROR_ON_STATUS(status);
     }
 
     status = LwErrnoToNtStatus(
@@ -1214,13 +1216,17 @@ InitWorkThread(
 
     if (pAttrs && pAttrs->ulWorkThreadStackSize)
     {
-        pthread_attr_setstacksize(&pthreadAttr, pAttrs->ulWorkThreadStackSize);
+        status = LwErrnoToNtStatus(
+            pthread_attr_setstacksize(&pthreadAttr, pAttrs->ulWorkThreadStackSize));
+        GOTO_ERROR_ON_STATUS(status);
     }
-    status = pthread_create(
-        &pThread->Thread,
-        NULL,
-        WorkThread,
-        pThread);
+
+    status = LwErrnoToNtStatus(
+        pthread_create(
+            &pThread->Thread,
+            &pthreadAttr,
+            WorkThread,
+            pThread));
     GOTO_ERROR_ON_STATUS(status);
 
 error:
