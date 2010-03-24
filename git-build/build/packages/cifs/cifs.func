@@ -19,7 +19,7 @@ COMPONENTS="krb5 openldap libcrypto lwbase ${_UUID} ${_ICONV} libunistr \
             lwmsg lwadvapi lwrpcrt centutils lwmapsecurity \
             libkeytab libgss sqlite libtdb pstore lsass lwdns \
             domainjoin eventlog lwio lwreg lwsm netlogon dcerpc librpc \
-            lwnetapi lwtools srvsvc"
+            srvsvc"
 
 for comp in ${COMPONENTS}; do
     echo "Populating files from $comp..."
