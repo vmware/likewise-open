@@ -1593,6 +1593,18 @@ typedef struct _TRANS2_FILE_INTERNAL_INFORMATION {
 } __attribute__((__packed__)) TRANS2_FILE_INTERNAL_INFORMATION,
                              *PTRANS2_FILE_INTERNAL_INFORMATION;
 
+typedef struct _TRANS2_FILE_NETWORK_OPEN_INFORMATION {
+    LONG64    CreationTime;
+    LONG64    LastAccessTime;
+    LONG64    LastWriteTime;
+    LONG64    ChangeTime;
+    LONG64    AllocationSize;
+    LONG64    EndOfFile;
+    FILE_ATTRIBUTES FileAttributes;
+    ULONG     pad;
+} __attribute__((__packed__)) TRANS2_FILE_NETWORK_OPEN_INFORMATION,
+                             *PTRANS2_FILE_NETWORK_OPEN_INFORMATION;
+
 typedef struct {
     LONG64 EndOfFile;
 } __attribute__((__packed__)) TRANS2_FILE_END_OF_FILE_INFORMATION,
