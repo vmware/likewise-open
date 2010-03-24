@@ -2798,7 +2798,7 @@ LsaDmpLdapReconnectCallback(
         {
             if (pLdap->dwConnectionPeriod == pDomain->dwGcConnectionPeriod)
             {
-                LSA_LOG_ERROR("Clearing ldap GC connection list for domain '%s' due to a network error.",
+                LSA_LOG_INFO("Clearing ldap GC connection list for domain '%s' due to a network error.",
                         pLdap->pszDnsDomainName);
                 pDomain->dwGcConnectionPeriod++;
                 LsaDmpLdapConnectionListDestroy(&pDomain->pFreeGcConn);
@@ -2808,7 +2808,7 @@ LsaDmpLdapReconnectCallback(
         {
             if (pLdap->dwConnectionPeriod == pDomain->dwDcConnectionPeriod)
             {
-                LSA_LOG_ERROR("Clearing ldap DC connection list for domain '%s' due to a network error.",
+                LSA_LOG_INFO("Clearing ldap DC connection list for domain '%s' due to a network error.",
                         pLdap->pszDnsDomainName);
                 pDomain->dwDcConnectionPeriod++;
                 LsaDmpLdapConnectionListDestroy(&pDomain->pFreeDcConn);
