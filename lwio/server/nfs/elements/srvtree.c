@@ -34,7 +34,7 @@
  *
  * Module Name:
  *
- *        srvtree.c
+ *        nfstree.c
  *
  * Abstract:
  *

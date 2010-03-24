@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        srvshares.c
+ *        nfsshares.c
  *
  * Abstract:
  *

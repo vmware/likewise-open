@@ -44,7 +44,7 @@
  */
 
 #define REG_KEY_PATH_NFS_SHARES_A \
-                "services\\lwio\\parameters\\drivers\\srv\\shares"
+                "services\\lwio\\parameters\\drivers\\nfs\\shares"
 
 #define REG_KEY_PATH_NFS_SHARES_W \
           {'s','e','r','v','i','c','e','s','\\',         \
@@ -55,7 +55,7 @@
            's','h','a','r','e','s',0}
 
 #define REG_KEY_PATH_NFS_SHARES_SECURITY_A \
-                "services\\lwio\\parameters\\drivers\\srv\\shares\\security"
+                "services\\lwio\\parameters\\drivers\\nfs\\shares\\security"
 
 #define REG_KEY_PATH_NFS_SHARES_SECURITY_W \
           {'s','e','r','v','i','c','e','s','\\',         \

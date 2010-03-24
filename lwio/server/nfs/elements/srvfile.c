@@ -35,7 +35,7 @@
  *
  * Module Name:
  *
- *        srvfile.c
+ *        nfsfile.c
  *
  * Abstract:
  *

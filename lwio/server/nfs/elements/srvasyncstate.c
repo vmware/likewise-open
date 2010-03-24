@@ -34,7 +34,7 @@
  *
  * Module Name:
  *
- *        srvasyncstate.c
+ *        nfsasyncstate.c
  *
  * Abstract:
  *

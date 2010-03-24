@@ -70,8 +70,8 @@ NfsProtocolReadConfig(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwIoOpenConfig(
-                "Services\\lwio\\Parameters\\Drivers\\srv",
-                "Policy\\Services\\lwio\\Parameters\\Drivers\\srv",
+                "Services\\lwio\\Parameters\\Drivers\\nfs",
+                "Policy\\Services\\lwio\\Parameters\\Drivers\\nfs",
                 &pReg);
     if (ntStatus)
     {

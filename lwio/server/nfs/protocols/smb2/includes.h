@@ -68,7 +68,7 @@
 #include <lwiofsctl.h>
 
 #include <smbwire.h>
-#include <srvecp.h>
+#include <nfsecp.h>
 
 #include <shareapi.h>
 #include <nfsutils.h>

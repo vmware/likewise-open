@@ -34,7 +34,7 @@
  *
  * Module Name:
  *
- *        srvsession.c
+ *        nfssession.c
  *
  * Abstract:
  *

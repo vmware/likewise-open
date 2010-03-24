@@ -56,7 +56,7 @@ typedef ULONG CCB_TYPE;
 #define NFS_CCB_DEVICE 1
 
 #define NFS_CONFIG_TAG_DRIVER  "driver:"
-#define NFS_CONFIG_DRIVER_NAME "srv"
+#define NFS_CONFIG_DRIVER_NAME "nfs"
 
 #define NFS_CONFIG_FILE_PATH   CONFIGDIR "/lwiod.conf"
 

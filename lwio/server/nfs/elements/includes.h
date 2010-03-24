@@ -71,7 +71,7 @@
 #include <ioapi.h>
 
 #include <smbwire.h>
-#include <srvecp.h>
+#include <nfsecp.h>
 
 #include <shareapi.h>
 #include <nfsutils.h>
@@ -79,7 +79,7 @@
 
 #include "defs.h"
 #include "structs.h"
-#include "srvtimer.h"
+#include "nfstimer.h"
 
 #include "externs.h"
 

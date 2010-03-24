@@ -34,7 +34,7 @@
  *
  * Module Name:
  *
- *        srvgss.c
+ *        nfsgss.c
  *
  * Abstract:
  *
@@ -48,7 +48,7 @@
  */
 
 #include "includes.h"
-#include "srvgss_p.h"
+#include "nfsgss_p.h"
 
 NTSTATUS
 NfsGssAcquireContext(
@@ -115,7 +115,7 @@ NfsGssGetSessionKey(
                     &sessionKey);
     if (gssMajor != GSS_S_COMPLETE)
     {
-        srv_display_status("gss_inquire_sec_context_by_oid", gssMajor, gssMinor);
+        nfs_display_status("gss_inquire_sec_context_by_oid", gssMajor, gssMinor);
         // TODO - error code conversion
         status = gssMajor;
         BAIL_ON_LWIO_ERROR(status);
@@ -637,7 +637,7 @@ NfsGssInitNegotiate(
                         &input_name,
                         (gss_OID) gss_nt_krb5_name,
                         &target_name);
-    srv_display_status("gss_import_name", ulMajorStatus, ulMinorStatus);
+    nfs_display_status("gss_import_name", ulMajorStatus, ulMinorStatus);
     BAIL_ON_SEC_ERROR(ulMajorStatus);
 
     ulMajorStatus = gss_acquire_cred(
@@ -649,7 +649,7 @@ NfsGssInitNegotiate(
                         &pServerCreds,
                         NULL,
                         NULL);
-    srv_display_status("gss_acquire_sec_context", ulMajorStatus, ulMinorStatus);
+    nfs_display_status("gss_acquire_sec_context", ulMajorStatus, ulMinorStatus);
     BAIL_ON_SEC_ERROR(ulMajorStatus);
 
     ulMajorStatus = gss_init_sec_context(
@@ -667,7 +667,7 @@ NfsGssInitNegotiate(
                             &ret_flags,
                             NULL);
 
-    srv_display_status("gss_init_sec_context", ulMajorStatus, ulMinorStatus);
+    nfs_display_status("gss_init_sec_context", ulMajorStatus, ulMinorStatus);
 
     BAIL_ON_SEC_ERROR(ulMajorStatus);
 
@@ -800,7 +800,7 @@ NfsGssContinueNegotiate(
                         NULL,
                         NULL);
 
-    srv_display_status("gss_accept_sec_context", ulMajorStatus, ulMinorStatus);
+    nfs_display_status("gss_accept_sec_context", ulMajorStatus, ulMinorStatus);
 
     BAIL_ON_SEC_ERROR(ulMajorStatus);
 
@@ -902,19 +902,19 @@ NfsGssFreeContext(
 
 static
 void
-srv_display_status(
+nfs_display_status(
     PCSTR     pszId,
     OM_uint32 maj_stat,
     OM_uint32 min_stat
     )
 {
-     srv_display_status_1(pszId, maj_stat, GSS_C_GSS_CODE);
-     srv_display_status_1(pszId, min_stat, GSS_C_MECH_CODE);
+     nfs_display_status_1(pszId, maj_stat, GSS_C_GSS_CODE);
+     nfs_display_status_1(pszId, min_stat, GSS_C_MECH_CODE);
 }
 
 static
 void
-srv_display_status_1(
+nfs_display_status_1(
     PCSTR     pszId,
     OM_uint32 code,
     int       type

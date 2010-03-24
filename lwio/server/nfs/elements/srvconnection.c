@@ -34,7 +34,7 @@
  *
  * Module Name:
  *
- *        srvconnection.c
+ *        nfsconnection.c
  *
  * Abstract:
  *

@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        srv/protocol.h
+ *        nfs/protocol.h
  *
  * Abstract:
  *

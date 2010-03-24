@@ -34,7 +34,7 @@
  *
  * Module Name:
  *
- *        srvtimer.h
+ *        nfstimer.h
  *
  * Abstract:
  *

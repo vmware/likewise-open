@@ -63,17 +63,17 @@ NfsReadConfig(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    LWIO_NFS_CONFIG srvConfig = {0};
+    LWIO_NFS_CONFIG nfsConfig = {0};
 
-    ntStatus = NfsInitConfig(&srvConfig);
+    ntStatus = NfsInitConfig(&nfsConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NfsTransferConfigContents(&srvConfig, pConfig);
+    ntStatus = NfsTransferConfigContents(&nfsConfig, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    NfsFreeConfigContents(&srvConfig);
+    NfsFreeConfigContents(&nfsConfig);
 
     return ntStatus;
 

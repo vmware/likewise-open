@@ -34,7 +34,7 @@
  *
  * Module Name:
  *
- *        srvgss_p.h
+ *        nfsgss_p.h
  *
  * Abstract:
  *
@@ -156,7 +156,7 @@ NfsGssFreeContext(
 
 static
 void
-srv_display_status(
+nfs_display_status(
     PCSTR     pszId,
     OM_uint32 maj_stat,
     OM_uint32 min_stat
@@ -164,7 +164,7 @@ srv_display_status(
 
 static
 void
-srv_display_status_1(
+nfs_display_status_1(
     PCSTR     pszId,
     OM_uint32 code,
     int       type

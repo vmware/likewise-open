@@ -62,7 +62,7 @@ NfsListenerShutdown(
     IN OUT PNFS_TRANSPORT_LISTENER pListener
     );
 
-// srvsocket.c
+// nfssocket.c
 
 PCSTR
 NfsSocketAddressToString(

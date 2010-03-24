@@ -93,13 +93,13 @@ NfsUnblockOneWorker(
     );
 
 NTSTATUS
-IO_DRIVER_ENTRY(srv)(
+IO_DRIVER_ENTRY(nfs)(
     IN IO_DRIVER_HANDLE hDriver,
     IN ULONG ulInterfaceVersion
     )
 {
     NTSTATUS ntStatus = 0;
-    PCSTR    pszName  = "srv";
+    PCSTR    pszName  = "nfs";
     PVOID    pDeviceContext = NULL;
     IO_DEVICE_HANDLE hDevice = NULL;
 
@@ -259,7 +259,7 @@ error:
 
     if (ntStatus)
     {
-        LWIO_LOG_ERROR("[srv] driver failed to stop. [code: %d]", ntStatus);
+        LWIO_LOG_ERROR("[nfs] driver failed to stop. [code: %d]", ntStatus);
     }
 
     goto cleanup;

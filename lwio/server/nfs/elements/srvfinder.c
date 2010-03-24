@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        srvfinder.c
+ *        nfsfinder.c
  *
  * Abstract:
  *

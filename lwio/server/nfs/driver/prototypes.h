@@ -172,7 +172,7 @@ NfsDeviceControlIo(
     PIRP             pIrp
     );
 
-// srvshares.c
+// nfsshares.c
 
 NTSTATUS
 NfsShareGetServiceStringId(
@@ -228,7 +228,7 @@ NfsShareDevCtlSetInfo(
     IN     ULONG ulOutBufferSize
     );
 
-// srvstats.c
+// nfsstats.c
 
 NTSTATUS
 NfsProcessStatistics(
@@ -239,7 +239,7 @@ NfsProcessStatistics(
     IN OUT PULONG pulBytesTransferred
     );
 
-// srvworker.c
+// nfsworker.c
 
 NTSTATUS
 NfsWorkerInit(
