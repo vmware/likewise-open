@@ -59,11 +59,13 @@ SamrLookupRids(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     NTSTATUS ntLookupStatus = STATUS_SUCCESS;
-    UINT32 iRid = 0;
     UnicodeStringArray Names = {0};
     Ids Types = {0};
     PWSTR *ppwszNames = NULL;
     UINT32 *pTypes = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hDomain, ntStatus);
@@ -85,29 +87,46 @@ SamrLookupRids(
 
     ntLookupStatus = ntStatus;
 
-    if (Names.count > 0) {
-        ntStatus = SamrAllocateMemory((void**)&ppwszNames,
-                                      sizeof(wchar16_t*) * Names.count,
-                                      NULL);
+    if (Names.count > 0)
+    {
+        ntStatus = SamrAllocateNamesFromUnicodeStringArray(
+                                      NULL,
+                                      &dwOffset,
+                                      NULL,
+                                      &Names,
+                                      &dwSize);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SamrAllocateMemory((void**)&pTypes,
-                                      sizeof(UINT32) * Names.count,
-                                      NULL);
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&ppwszNames),
+                                      dwSpaceLeft);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        for (iRid = 0; iRid < Names.count; iRid++) {
-            UnicodeString *pName = &(Names.names[iRid]);
+        ntStatus = SamrAllocateNamesFromUnicodeStringArray(
+                                      ppwszNames,
+                                      &dwOffset,
+                                      &dwSpaceLeft,
+                                      &Names,
+                                      &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            ppwszNames[iRid] = GetFromUnicodeString(pName);
-            BAIL_ON_NULL_PTR(ppwszNames[iRid], ntStatus);
+        dwSpaceLeft = sizeof(pTypes[0]) * Types.count;
+        dwSize      = 0;
+        dwOffset    = 0;
 
-            ntStatus = SamrAddDepMemory(ppwszNames[iRid],
-                                        (void*)ppwszNames);
-            BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&pTypes),
+                                      dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-            pTypes[iRid] = Types.ids[iRid];
-        }
+        ntStatus = SamrAllocateIds(pTypes,
+                                   &dwOffset,
+                                   &dwSpaceLeft,
+                                   &Types,
+                                   &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *pppwszNames = ppwszNames;
@@ -126,12 +145,14 @@ cleanup:
     return ntStatus;
 
 error:
-    if (ppwszNames) {
-        SamrFreeMemory((void*)ppwszNames);
+    if (ppwszNames)
+    {
+        SamrFreeMemory(ppwszNames);
     }
 
-    if (pTypes) {
-        SamrFreeMemory((void*)pTypes);
+    if (pTypes)
+    {
+        SamrFreeMemory(pTypes);
     }
 
     *pppwszNames = NULL;

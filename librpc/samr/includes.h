@@ -56,6 +56,7 @@
 #include <DceSupport.h>
 #include <wc16str.h>
 #include <lw/ntstatus.h>
+#include <lwbuffer.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/unicodestring.h>

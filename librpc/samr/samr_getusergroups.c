@@ -60,6 +60,9 @@ SamrGetUserGroups(
     UINT32 *pRids = NULL;
     UINT32 *pAttributes = NULL;
     RidWithAttributeArray *pRidWithAttr = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hUser, ntStatus);
@@ -72,17 +75,46 @@ SamrGetUserGroups(
                                              &pRidWithAttr));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SamrAllocateRidsAndAttributes(&pRids,
-                                             &pAttributes,
-                                             pRidWithAttr);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pRidWithAttr)
+    {
+        dwSpaceLeft = sizeof(pRids[0]) * pRidWithAttr->count;
+
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&pRids),
+                                      dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SamrAllocateRidsFromRidWithAttributeArray(
+                                      pRids,
+                                      &dwOffset,
+                                      &dwSpaceLeft,
+                                      pRidWithAttr,
+                                      &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = sizeof(pAttributes[0]) * pRidWithAttr->count;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&pAttributes),
+                                      dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SamrAllocateAttributesFromRidWithAttributeArray(
+                                      pAttributes,
+                                      &dwOffset,
+                                      &dwSpaceLeft,
+                                      pRidWithAttr,
+                                      &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     *ppRids       = pRids;
     *ppAttributes = pAttributes;
     *pCount       = pRidWithAttr->count;
 
 cleanup:
-    if (pRidWithAttr) {
+    if (pRidWithAttr)
+    {
         SamrFreeStubRidWithAttributeArray(pRidWithAttr);
     }
 

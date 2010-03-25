@@ -65,6 +65,9 @@ SamrLookupNames(
     Ids Types = {0};
     UINT32 *pRids = NULL;
     UINT32 *pTypes = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hDomain, ntStatus);
@@ -97,10 +100,41 @@ SamrLookupNames(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SamrAllocateIds(&pRids, &Rids);
+    ntStatus = SamrAllocateIds(NULL,
+                               &dwOffset,
+                               NULL,
+                               &Rids,
+                               &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SamrAllocateIds(&pTypes, &Types);
+    dwSpaceLeft = sizeof(pRids[0]) * Rids.count;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = SamrAllocateMemory(OUT_PPVOID(&pRids),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SamrAllocateIds(pRids,
+                               &dwOffset,
+                               &dwSpaceLeft,
+                               &Rids,
+                               &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = sizeof(pTypes[0]) * Types.count;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = SamrAllocateMemory(OUT_PPVOID(&pTypes),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SamrAllocateIds(pTypes,
+                               &dwOffset,
+                               &dwSpaceLeft,
+                               &Types,
+                               &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pRidsCount)
@@ -131,15 +165,18 @@ cleanup:
     return ntStatus;
 
 error:
-    if (pRids) {
-        SamrFreeMemory((void*)pRids);
+    if (pRids)
+    {
+        SamrFreeMemory(pRids);
     }
 
-    if (pTypes) {
-        SamrFreeMemory((void*)pTypes);
+    if (pTypes)
+    {
+        SamrFreeMemory(pTypes);
     }
 
-    if (pRidsCount) {
+    if (pRidsCount)
+    {
         *pRidsCount = 0;
     }
 

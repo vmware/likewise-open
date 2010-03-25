@@ -294,8 +294,7 @@ cpp_quote("#endif")
 
     /* function 0x23 */
     NTSTATUS _SamrDeleteUser(
-        [in] ACCOUNT_HANDLE hUserIn,
-        [out] ACCOUNT_HANDLE *hUserOut
+        [in,out] ACCOUNT_HANDLE *hUserIn,
         );
 
     /* function 0x24 */

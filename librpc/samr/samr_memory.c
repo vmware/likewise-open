@@ -47,31 +47,79 @@
 #include "includes.h"
 
 
+static
+NTSTATUS
+SamrAllocateLogonHours(
+    OUT PVOID        pBuffer,
+    IN OUT PDWORD    pdwOffset,
+    IN OUT PDWORD    pdwSpaceLeft,
+    IN LogonHours   *pIn,
+    IN OUT PDWORD    pdwSize
+    );
+
+
+static
+NTSTATUS
+SamrAllocateUserInfo21(
+    OUT UserInfo   *pOut,
+    IN OUT PDWORD   pdwOffset,
+    IN OUT PDWORD   pdwSpaceLeft,
+    IN  UserInfo21 *pIn,
+    IN OUT PDWORD   pdwSize
+    );
+
+
+static
+NTSTATUS
+SamrAllocateDisplayEntryFull(
+    OUT PVOID                 pOut,
+    IN OUT PDWORD             pdwOffset,
+    IN OUT PDWORD             pdwSpaceLeft,
+    IN  SamrDisplayEntryFull *pIn,
+    IN OUT PDWORD             pdwSize
+    );
+
+
+static
+NTSTATUS
+SamrAllocateDisplayEntryGeneral(
+    OUT PVOID                    pOut,
+    IN OUT PDWORD                pdwOffset,
+    IN OUT PDWORD                pdwSpaceLeft,
+    IN  SamrDisplayEntryGeneral *pIn,
+    IN OUT PDWORD                pdwSize
+    );
+
+
+static
+NTSTATUS
+SamrAllocateDisplayEntryGeneralGroup(
+    OUT PVOID                         pOut,
+    IN OUT PDWORD                     pdwOffset,
+    IN OUT PDWORD                     pdwSpaceLeft,
+    IN  SamrDisplayEntryGeneralGroup *pIn,
+    IN OUT PDWORD                     pdwSize
+    );
+
+
+static
+NTSTATUS
+SamrAllocateDisplayEntryAscii(
+    OUT PVOID                   pOut,
+    IN OUT PDWORD               pdwOffset,
+    IN OUT PDWORD               pdwSpaceLeft,
+    IN  SamrDisplayEntryAscii  *pIn,
+    IN OUT PDWORD               pdwSize
+    );
+
+
 NTSTATUS
 SamrInitMemory(
     void
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-
-    LIBRPC_LOCK_MUTEX(bLocked, &gSamrDataMutex);
-
-    if (!bSamrInitialised)
-    {
-        ntStatus = MemPtrListInit((PtrList**)&gSamrMemoryList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bSamrInitialised = 1;
-    }
-
-cleanup:
-    LIBRPC_UNLOCK_MUTEX(bLocked, &gSamrDataMutex);
-
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 
@@ -81,361 +129,424 @@ SamrDestroyMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    int bLocked = 0;
-
-    LIBRPC_LOCK_MUTEX(bLocked, &gSamrDataMutex);
-
-    if (bSamrInitialised && gSamrMemoryList) {
-        ntStatus = MemPtrListDestroy((PtrList**)&gSamrMemoryList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bSamrInitialised = 0;
-    }
-
-cleanup:
-    LIBRPC_UNLOCK_MUTEX(bLocked, &gSamrDataMutex);
-
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 
 NTSTATUS
 SamrAllocateMemory(
     OUT PVOID  *ppOut,
-    IN  size_t  Size,
-    IN  PVOID   pDep
-    )
-{
-    return MemPtrAllocate((PtrList*)gSamrMemoryList,
-                          ppOut,
-                          Size,
-                          pDep);
-}
-
-
-NTSTATUS
-SamrFreeMemory(
-    IN  PVOID pPtr
-    )
-{
-    return MemPtrFree((PtrList*)gSamrMemoryList,
-                      pPtr);
-}
-
-
-NTSTATUS
-SamrAddDepMemory(
-    IN  PVOID pPtr,
-    IN  PVOID pDep
-    )
-{
-    return MemPtrAddDependant((PtrList*)gSamrMemoryList,
-                              pPtr,
-                              pDep);
-}
-
-
-NTSTATUS
-SamrAllocateNamesAndRids(
-    OUT PWSTR        **pppNames,
-    OUT UINT32       **ppRids,
-    IN  RidNameArray  *pIn
+    IN  size_t  sSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PWSTR *ppNames = NULL;
-    UINT32 *pRids = NULL;
-    UINT32 iName = 0;
+    PVOID pMem = NULL;
 
-    BAIL_ON_INVALID_PTR(pppNames, ntStatus);
-    BAIL_ON_INVALID_PTR(ppRids, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrAllocateMemory((void**)&ppNames,
-                                  sizeof(PWSTR) * pIn->count,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrAllocateMemory((void**)&pRids,
-                                  sizeof(UINT32) * pIn->count,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (iName = 0; iName < pIn->count; iName++) {
-        RidName *pRidName = &(pIn->entries[iName]);
-
-        pRids[iName]   = pRidName->rid;
-        ppNames[iName] = GetFromUnicodeString(&pRidName->name);
-        BAIL_ON_NULL_PTR(ppNames[iName], ntStatus);
-
-        ntStatus = SamrAddDepMemory((void*)ppNames[iName],
-                                    (void*)ppNames);
+    pMem = malloc(sSize);
+    if (pMem == NULL)
+    {
+        ntStatus = STATUS_NO_MEMORY;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *pppNames = ppNames;
-    *ppRids   = pRids;
+    memset(pMem, 0, sSize);
+    *ppOut = pMem;
 
 cleanup:
     return ntStatus;
 
 error:
-    if (ppNames) {
-        SamrFreeMemory((void*)ppNames);
+    *ppOut = NULL;
+    goto cleanup;
+}
+
+
+VOID
+SamrFreeMemory(
+    IN  PVOID pPtr
+    )
+{
+    free(pPtr);
+}
+
+
+NTSTATUS
+SamrAllocateNamesFromRidNameArray(
+    OUT PWSTR         *ppwszNames,
+    IN OUT PDWORD      pdwOffset,
+    IN OUT PDWORD      pdwSpaceLeft,
+    IN  RidNameArray  *pIn,
+    IN OUT PDWORD      pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD iName = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iName = 0; iName < pIn->count; iName++)
+    {
+        LWBUF_ALLOC_WC16STR_FROM_UNICODE_STRING(
+                               ppwszNames,
+                               (PUNICODE_STRING)&(pIn->entries[iName].name));
     }
 
-    if (pRids) {
-        SamrFreeMemory((void*)pRids);
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *pppNames = NULL;
-    *ppRids = NULL;
+    return ntStatus;
 
+error:
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrAllocateRidsFromRidNameArray(
+    OUT UINT32        *pRids,
+    IN OUT PDWORD      pdwOffset,
+    IN OUT PDWORD      pdwSpaceLeft,
+    IN  RidNameArray  *pIn,
+    IN OUT PDWORD      pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    UINT32 iRid = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iRid = 0; iRid < pIn->count; iRid++)
+    {
+        LWBUF_ALLOC_DWORD(pRids, pIn->entries[iRid].rid);
+    }
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
     goto cleanup;
 }
 
 
 NTSTATUS
 SamrAllocateNames(
-    OUT PWSTR **pppwszNames,
-    IN  EntryArray *pNamesArray
+    OUT PWSTR       *ppwszNames,
+    IN OUT PDWORD    pdwOffset,
+    IN OUT PDWORD    pdwSpaceLeft,
+    IN  EntryArray  *pIn,
+    IN OUT PDWORD    pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PWSTR *ppwszNames = NULL;
-    UINT32 iName = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD iName = 0;
 
-    BAIL_ON_INVALID_PTR(pppwszNames, ntStatus);
-    BAIL_ON_INVALID_PTR(pNamesArray, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = SamrAllocateMemory((void**)&ppwszNames,
-                                  sizeof(PWSTR) * pNamesArray->count,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (iName = 0; iName < pNamesArray->count; iName++) {
-        Entry *pName = &(pNamesArray->entries[iName]);
-
-        ppwszNames[iName] = GetFromUnicodeString(&pName->name);
-        BAIL_ON_NULL_PTR(ppwszNames[iName], ntStatus);
-
-        ntStatus = SamrAddDepMemory((void*)ppwszNames[iName],
-                                    (void*)ppwszNames);
-        BAIL_ON_NT_STATUS(ntStatus);
+    for (iName = 0; iName < pIn->count; iName++)
+    {
+        LWBUF_ALLOC_WC16STR_FROM_UNICODE_STRING(
+                          ppwszNames,
+                          (PUNICODE_STRING)&(pIn->entries[iName].name));
     }
 
-    *pppwszNames = ppwszNames;
-
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (ppwszNames) {
-        SamrFreeMemory((void*)ppwszNames);
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrAllocateNamesFromUnicodeStringArray(
+    OUT PWSTR              *ppwszNames,
+    IN OUT PDWORD           pdwOffset,
+    IN OUT PDWORD           pdwSpaceLeft,
+    IN UnicodeStringArray  *pIn,
+    IN OUT PDWORD           pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD iName = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iName = 0; iName < pIn->count; iName++)
+    {
+        LWBUF_ALLOC_WC16STR_FROM_UNICODE_STRING(
+                          ppwszNames,
+                          (PUNICODE_STRING)&(pIn->names[iName]));
     }
 
-    *pppwszNames = NULL;
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
+    return ntStatus;
+
+error:
     goto cleanup;
 }
 
 
 NTSTATUS
 SamrAllocateIds(
-    OUT UINT32 **ppOutIds,
-    IN  Ids *pInIds
+    OUT UINT32     *pIds,
+    IN OUT PDWORD   pdwOffset,
+    IN OUT PDWORD   pdwSpaceLeft,
+    IN  Ids        *pIn,
+    IN OUT PDWORD   pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    UINT32 *pIds = NULL;
-    UINT32 i = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD iId = 0;
 
-    BAIL_ON_INVALID_PTR(ppOutIds, ntStatus);
-    BAIL_ON_INVALID_PTR(pInIds, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = SamrAllocateMemory((void**)&pIds,
-                                  sizeof(UINT32) * pInIds->count,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pInIds->count; i++) {
-        pIds[i] = pInIds->ids[i];
+    for (iId = 0; iId < pIn->count; iId++)
+    {
+        LWBUF_ALLOC_DWORD(pIds, pIn->ids[iId]);
     }
 
-    *ppOutIds = pIds;
-
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pIds) {
-        SamrFreeMemory((void*)pIds);
-    }
-
-    *ppOutIds = NULL;
-
-    goto cleanup;
-}
-
-
-NTSTATUS
-SamrAllocateDomSid(
-    OUT PSID *ppOut,
-    IN  PSID  pIn,
-    IN  PVOID pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSID pSid = NULL;
-
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
-
-    MsRpcDuplicateSid(&pSid, pIn);
-    BAIL_ON_NULL_PTR(pSid, ntStatus);
-
-    ntStatus = SamrAddDepMemory((void*)pSid, (void*)pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppOut = pSid;
-
-cleanup:
-    return ntStatus;
-
-error:
-    if (pSid) {
-        SamrFreeMemory((void*)pSid);
-    }
-
-    *ppOut = NULL;
-
     goto cleanup;
 }
 
 
 NTSTATUS
 SamrAllocateSids(
-    OUT PSID     **pppSids,
-    IN  SidArray  *pSidArray
+    OUT PSID      *ppSids,
+    IN OUT PDWORD  pdwOffset,
+    IN OUT PDWORD  pdwSpaceLeft,
+    IN  SidArray  *pIn,
+    IN OUT PDWORD  pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSID *ppSids = NULL;
-    int i = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD iSid = 0;
 
-    BAIL_ON_INVALID_PTR(pppSids, ntStatus);
-    BAIL_ON_INVALID_PTR(pSidArray, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = SamrAllocateMemory((void**)&ppSids,
-                                  sizeof(PSID) * pSidArray->num_sids,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pSidArray->num_sids; i++) {
-        PSID pSid = pSidArray->sids[i].sid;
-
-        ntStatus = SamrAllocateDomSid(&(ppSids[i]),
-                                      pSid,
-                                      (void*)ppSids);
-        BAIL_ON_NT_STATUS(ntStatus);
+    for (iSid = 0; iSid < pIn->num_sids; iSid++)
+    {
+        LWBUF_ALLOC_PSID(ppSids, pIn->sids[iSid].sid);
     }
 
-    *pppSids = ppSids;
-
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (ppSids) {
-        SamrFreeMemory((void*)ppSids);
-    }
-
-    *pppSids = NULL;
-
     goto cleanup;
 }
 
 
 NTSTATUS
-SamrAllocateRidsAndAttributes(
-    OUT UINT32                **ppRids,
-    OUT UINT32                **ppAttributes,
-    IN  RidWithAttributeArray  *pIn
+SamrAllocateRidsFromRidWithAttributeArray(
+    OUT UINT32                 *pRids,
+    IN OUT PDWORD               pdwOffset,
+    IN OUT PDWORD               pdwSpaceLeft,
+    IN  RidWithAttributeArray  *pIn,
+    IN OUT PDWORD               pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    UINT32 *pRids = NULL;
-    UINT32 *pAttributes = NULL;
-    int i = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD iRid = 0;
 
-    BAIL_ON_INVALID_PTR(ppRids, ntStatus);
-    BAIL_ON_INVALID_PTR(ppAttributes, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = SamrAllocateMemory((void**)&pRids,
-                                  sizeof(UINT32) * pIn->count,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrAllocateMemory((void**)&pAttributes,
-                                  sizeof(UINT32) * pIn->count,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pIn->count; i++) {
-        RidWithAttribute *pRidAttr = &(pIn->rids[i]);
-
-        pRids[i]       = pRidAttr->rid;
-        pAttributes[i] = pRidAttr->attributes;
+    for (iRid = 0; iRid < pIn->count; iRid++)
+    {
+        LWBUF_ALLOC_DWORD(pRids, pIn->rids[iRid].rid);
     }
 
-    *ppRids       = pRids;
-    *ppAttributes = pAttributes;
-
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pRids) {
-        SamrFreeMemory((void*)pRids);
+    goto cleanup;
+}
+
+
+NTSTATUS
+SamrAllocateAttributesFromRidWithAttributeArray(
+    OUT UINT32                 *pAttributes,
+    IN OUT PDWORD               pdwOffset,
+    IN OUT PDWORD               pdwSpaceLeft,
+    IN  RidWithAttributeArray  *pIn,
+    IN OUT PDWORD               pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD iAttr = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    for (iAttr = 0; iAttr < pIn->count; iAttr++)
+    {
+        LWBUF_ALLOC_DWORD(pAttributes, pIn->rids[iAttr].attributes);
     }
 
-    if (pAttributes) {
-        SamrFreeMemory((void*)pAttributes);
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *ppRids       = NULL;
-    *ppAttributes = NULL;
+    return ntStatus;
 
+error:
     goto cleanup;
 }
 
 
 static
 NTSTATUS
-SamrCopyUnicodeString(
-    OUT UnicodeString *pOut,
-    IN  UnicodeString *pIn,
-    IN  PVOID pDep
+SamrAllocateLogonHours(
+    OUT PVOID        pOut,
+    IN OUT PDWORD    pdwOffset,
+    IN OUT PDWORD    pdwSpaceLeft,
+    IN LogonHours   *pIn,
+    IN OUT PDWORD    pdwSize
     )
 {
+    const DWORD dwLogonHoursSize = 1260;
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    PVOID pLogonHours = NULL;
+    PVOID *ppLogonHours = NULL;
+    DWORD dwBlobSpaceLeft = 0;
+    DWORD dwBlobOffset = 0;
 
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = CopyUnicodeString(pOut, pIn);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-    if (pOut->string) {
-        ntStatus = SamrAddDepMemory((void*)pOut->string,
-                                    pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
+    /* length field */
+    dwError = LwBufferAllocWord(pBuffer,
+                                pdwOffset,
+                                pdwSpaceLeft,
+                                (WORD)pIn->units_per_week,
+                                pdwSize);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwLogonHoursSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
+
+        if (pIn->units)
+        {
+            pLogonHours = LWBUF_TARGET_PTR(pBuffer, dwLogonHoursSize, pdwSpaceLeft);
+
+            BAIL_IF_PTR_OVERLAP(PUINT8, pLogonHours, dwError);
+
+            dwBlobSpaceLeft = dwLogonHoursSize;
+            dwBlobOffset    = 0;
+
+            /* logon hours blob */
+            dwError  = LwBufferAllocFixedBlob(pLogonHours,
+                                              &dwBlobOffset,
+                                              &dwBlobSpaceLeft,
+                                              pIn->units,
+                                              dwLogonHoursSize,
+                                              pdwSize);
+            BAIL_ON_WIN_ERROR(dwError);
+        }
+
+        ppLogonHours     = (PVOID*)pCursor;
+        *ppLogonHours    = pLogonHours;
+        (*pdwSpaceLeft) -= (pLogonHours) ? dwLogonHoursSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft) -= sizeof(PVOID);
+    }
+    else
+    {
+        (*pdwSize) += dwLogonHoursSize;
     }
 
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(PVOID);
+    (*pdwSize)   += sizeof(PVOID);
+
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
@@ -445,363 +556,52 @@ error:
 
 NTSTATUS
 SamrAllocateAliasInfo(
-    OUT AliasInfo **ppOut,
+    OUT AliasInfo  *pOut,
+    IN OUT PDWORD   pdwOffset,
+    IN OUT PDWORD   pdwSpaceLeft,
+    IN  WORD        swLevel,
     IN  AliasInfo  *pIn,
-    IN  UINT16      Level
+    IN OUT PDWORD   pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    AliasInfo *pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = SamrAllocateMemory((void*)&pInfo,
-                                  sizeof(AliasInfo),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    switch (Level) {
+    switch (swLevel)
+    {
     case ALIAS_INFO_ALL:
-        ntStatus = SamrCopyUnicodeString(&pInfo->all.name,
-                                         &pIn->all.name,
-                                         (void*)pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = SamrCopyUnicodeString(&pInfo->all.description,
-                                         &pIn->all.description,
-                                         (void*)pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pInfo->all.num_members = pIn->all.num_members;
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->all.name);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->all.num_members);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->all.description);
         break;
 
     case ALIAS_INFO_NAME:
-        ntStatus = SamrCopyUnicodeString(&pInfo->name,
-                                         &pIn->name,
-                                         (void*)pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->name);
         break;
 
     case ALIAS_INFO_DESCRIPTION:
-        ntStatus = SamrCopyUnicodeString(&pInfo->description,
-                                         &pIn->description,
-                                         (void*)pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->description);
         break;
 
     default:
-        ntStatus = STATUS_INVALID_LEVEL;
+        ntStatus = STATUS_INVALID_INFO_CLASS;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    *ppOut = pInfo;
-
 cleanup:
-    return ntStatus;
-
-error:
-    if (pInfo) {
-        SamrFreeMemory((void*)pInfo);
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *ppOut = NULL;
-
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo1(
-    OUT DomainInfo1 *pOut,
-    IN  DomainInfo1 *pIn,
-    IN  PVOID        pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    memcpy((void*)pOut, (void*)pIn, sizeof(DomainInfo1));
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo2(
-    OUT DomainInfo2 *pOut,
-    IN  DomainInfo2 *pIn,
-    IN  PVOID        pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = CopyUnicodeString(&pOut->comment,
-                                 &pIn->comment);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->comment.string) {
-        ntStatus = SamrAddDepMemory((void*)pOut->comment.string,
-                                    pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeString(&pOut->domain_name, &pIn->domain_name);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->domain_name.string) {
-        ntStatus = SamrAddDepMemory((void*)pOut->domain_name.string,
-                                    pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeString(&pOut->primary,
-                                 &pIn->primary);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->primary.string) {
-        ntStatus = SamrAddDepMemory((void*)pOut->primary.string,
-                                    pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pOut->force_logoff_time = pIn->force_logoff_time;
-    pOut->sequence_num      = pIn->sequence_num;
-    pOut->unknown1          = pIn->unknown1;
-    pOut->role              = pIn->role;
-    pOut->unknown2          = pIn->unknown2;
-    pOut->num_users         = pIn->num_users;
-    pOut->num_groups        = pIn->num_groups;
-    pOut->num_aliases       = pIn->num_aliases;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo3(
-    OUT DomainInfo3 *pOut,
-    IN  DomainInfo3 *pIn,
-    IN  PVOID        pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->force_logoff_time = pIn->force_logoff_time;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo4(
-    OUT DomainInfo4 *pOut,
-    IN  DomainInfo4 *pIn,
-    IN  PVOID pDep
-    )
-{
-    return SamrCopyUnicodeString(&pOut->comment,
-                                 &pIn->comment,
-                                 pDep);
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo5(
-    OUT DomainInfo5 *pOut,
-    IN  DomainInfo5 *pIn,
-    IN  PVOID        pDep
-    )
-{
-    return SamrCopyUnicodeString(&pOut->domain_name,
-                                 &pIn->domain_name,
-                                 pDep);
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo6(
-    OUT DomainInfo6 *pOut,
-    IN  DomainInfo6 *pIn,
-    IN  PVOID        pDep
-    )
-{
-    return SamrCopyUnicodeString(&pOut->primary,
-                                 &pIn->primary,
-                                 pDep);
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo7(
-    OUT DomainInfo7 *pOut,
-    IN  DomainInfo7 *pIn,
-    IN  PVOID        pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->role = pIn->role;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo8(
-    OUT DomainInfo8 *pOut,
-    IN  DomainInfo8 *pIn,
-    IN  PVOID        pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->sequence_number    = pIn->sequence_number;
-    pOut->domain_create_time = pIn->domain_create_time;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo9(
-    OUT DomainInfo9 *pOut,
-    IN  DomainInfo9 *pIn,
-    IN  PVOID        pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->unknown = pIn->unknown;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo11(
-    OUT DomainInfo11 *pOut,
-    IN  DomainInfo11 *pIn,
-    IN  PVOID         pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyDomainInfo2(&pOut->info2,
-                                   &pIn->info2,
-                                   pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->lockout_duration  = pIn->lockout_duration;
-    pOut->lockout_window    = pIn->lockout_window;
-    pOut->lockout_threshold = pIn->lockout_threshold;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo12(
-    OUT DomainInfo12 *pOut,
-    IN  DomainInfo12 *pIn,
-    IN  PVOID         pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->lockout_duration  = pIn->lockout_duration;
-    pOut->lockout_window    = pIn->lockout_window;
-    pOut->lockout_threshold = pIn->lockout_threshold;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDomainInfo13(
-    OUT DomainInfo13 *pOut,
-    IN  DomainInfo13 *pIn,
-    IN  PVOID         pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->sequence_number    = pIn->sequence_number;
-    pOut->domain_create_time = pIn->domain_create_time;
-    pOut->unknown1           = pIn->unknown1;
-    pOut->unknown2           = pIn->unknown2;
-
-cleanup:
     return ntStatus;
 
 error:
@@ -811,994 +611,128 @@ error:
 
 NTSTATUS
 SamrAllocateDomainInfo(
-    OUT DomainInfo **ppOut,
-    IN  DomainInfo *pIn,
-    IN  UINT16 Level
+    OUT DomainInfo  *pOut,
+    IN OUT PDWORD    pdwOffset,
+    IN OUT PDWORD    pdwSpaceLeft,
+    IN  WORD         swLevel,
+    IN  DomainInfo  *pIn,
+    IN OUT PDWORD    pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    DomainInfo *pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = SamrAllocateMemory((void*)&pInfo,
-                                  sizeof(DomainInfo),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    switch (swLevel)
+    {
+    case 1:
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info1.min_pass_length);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info1.pass_history_length);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info1.pass_properties);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info1.max_pass_age);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info1.min_pass_age);
+        break;
 
-    if (pIn != NULL) {
-        switch (Level) {
-        case 1:
-            ntStatus = SamrCopyDomainInfo1(&pInfo->info1,
-                                           &pIn->info1,
-                                           (void*)pInfo);
-            break;
+    case 2:
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info2.force_logoff_time);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info2.comment);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info2.domain_name);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info2.primary);
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->info2.sequence_num);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info2.unknown1);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info2.role);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info2.unknown2);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info2.num_users);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info2.num_groups);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info2.num_aliases);
+        break;
 
-        case 2:
-            ntStatus = SamrCopyDomainInfo2(&pInfo->info2,
-                                           &pIn->info2,
-                                           (void*)pInfo);
-            break;
+    case 3:
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info3.force_logoff_time);
+        break;
 
-        case 3:
-            ntStatus = SamrCopyDomainInfo3(&pInfo->info3,
-                                           &pIn->info3,
-                                           (void*)pInfo);
-            break;
+    case 4:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info4.comment);
+        break;
 
-        case 4:
-            ntStatus = SamrCopyDomainInfo4(&pInfo->info4,
-                                           &pIn->info4,
-                                           (void*)pInfo);
-            break;
+    case 5:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.domain_name);
+        break;
 
-        case 5:
-            ntStatus = SamrCopyDomainInfo5(&pInfo->info5,
-                                           &pIn->info5,
-                                           (void*)pInfo);
-            break;
+    case 6:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info6.primary);
+        break;
 
-        case 6:
-            ntStatus = SamrCopyDomainInfo6(&pInfo->info6,
-                                           &pIn->info6,
-                                           (void*)pInfo);
-            break;
+    case 7:
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info7.role);
+        break;
 
-        case 7:
-            ntStatus = SamrCopyDomainInfo7(&pInfo->info7,
-                                           &pIn->info7,
-                                           (void*)pInfo);
-            break;
+    case 8:
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->info8.sequence_number);
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->info8.domain_create_time);
+        break;
 
-        case 8:
-            ntStatus = SamrCopyDomainInfo8(&pInfo->info8,
-                                           &pIn->info8,
-                                           (void*)pInfo);
-            break;
+    case 9:
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->info9.unknown);
+        break;
 
-        case 9:
-            ntStatus = SamrCopyDomainInfo9(&pInfo->info9,
-                                           &pIn->info9,
-                                           (void*)pInfo);
-            break;
+    case 11:
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info11.info2.force_logoff_time);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info11.info2.comment);
+        LWBUF_ALLOC_UNICODE_STRING(
+                               pBuffer,
+                               (PUNICODE_STRING)&pIn->info11.info2.domain_name);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info11.info2.primary);
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->info11.info2.sequence_num);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info11.info2.unknown1);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info11.info2.role);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info11.info2.unknown2);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info11.info2.num_users);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info11.info2.num_groups);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info11.info2.num_aliases);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info11.lockout_duration);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info11.lockout_window);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info11.lockout_threshold);
+        break;
 
-        case 11:
-            ntStatus = SamrCopyDomainInfo11(&pInfo->info11,
-                                            &pIn->info11,
-                                            (void*)pInfo);
-            break;
+    case 12:
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info12.lockout_duration);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info12.lockout_window);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info12.lockout_threshold);
+        break;
 
-        case 12:
-            ntStatus = SamrCopyDomainInfo12(&pInfo->info12,
-                                            &pIn->info12,
-                                            (void*)pInfo);
-            break;
+    case 13:
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->info13.sequence_number);
+        LWBUF_ALLOC_ULONG64(pBuffer, pIn->info13.domain_create_time);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info13.unknown1);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info13.unknown2);
+        break;
 
-        case 13:
-            ntStatus = SamrCopyDomainInfo13(&pInfo->info13,
-                                            &pIn->info13,
-                                            (void*)pInfo);
-            break;
-
-        default:
-            ntStatus = STATUS_INVALID_LEVEL;
-            goto error;
-        }
-
+    default:
+        ntStatus = STATUS_INVALID_INFO_CLASS;
         BAIL_ON_NT_STATUS(ntStatus);
+        goto error;
     }
 
-    *ppOut = pInfo;
-
 cleanup:
-    return ntStatus;
-
-error:
-    if (pInfo) {
-        SamrFreeMemory((void*)pInfo);
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *ppOut = NULL;
-
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo1(
-    OUT UserInfo1 *pOut,
-    IN  UserInfo1 *pIn,
-    IN  PVOID      pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
-                                     &pIn->full_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->description,
-                                     &pIn->description,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->comment,
-                                     &pIn->comment,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->primary_gid = pIn->primary_gid;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo2(
-    OUT UserInfo2 *pOut,
-    IN  UserInfo2 *pIn,
-    IN  PVOID      pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->comment,
-                                     &pIn->comment,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->unknown1,
-                                     &pIn->unknown1,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->country_code = pIn->country_code;
-    pOut->code_page    = pIn->code_page;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyLogonHours(
-    OUT LogonHours *pOut,
-    IN  LogonHours *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    /* Allocate 1260 bytes and copy units_per_week/8 bytes
-       according to samr.idl */
-
-    ntStatus = SamrAllocateMemory((void**)&pOut->units, sizeof(UINT8) * 1260, NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    memcpy((void*)pOut->units, (void*)pIn->units, pIn->units_per_week/8);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo3(
-    OUT UserInfo3 *pOut,
-    IN  UserInfo3 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
-                                     &pIn->full_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->rid         = pIn->rid;
-    pOut->primary_gid = pIn->primary_gid;
-
-    ntStatus = SamrCopyUnicodeString(&pOut->home_directory,
-                                     &pIn->home_directory,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->home_drive,
-                                     &pIn->home_drive,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->logon_script,
-                                     &pIn->logon_script,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->profile_path,
-                                     &pIn->profile_path,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->workstations,
-                                     &pIn->workstations,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->last_logon             = pIn->last_logon;
-    pOut->last_logoff            = pIn->last_logoff;
-    pOut->last_password_change   = pIn->last_password_change;
-    pOut->allow_password_change  = pIn->allow_password_change;
-    pOut->force_password_change  = pIn->force_password_change;
-
-    ntStatus = SamrCopyLogonHours(&pOut->logon_hours,
-                                  &pIn->logon_hours,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->bad_password_count = pIn->bad_password_count;
-    pOut->logon_count        = pIn->logon_count;
-    pOut->account_flags      = pIn->account_flags;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-static
-NTSTATUS
-SamrCopyUserInfo4(
-    OUT UserInfo4 *pOut,
-    IN  UserInfo4 *pIn,
-    IN  PVOID      pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyLogonHours(&pOut->logon_hours,
-                                  &pIn->logon_hours,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo5(
-    OUT UserInfo5 *pOut,
-    IN  UserInfo5 *pIn,
-    IN  PVOID      pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
-                                     &pIn->full_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->rid         = pIn->rid;
-    pOut->primary_gid = pIn->primary_gid;
-
-    ntStatus = SamrCopyUnicodeString(&pOut->home_directory,
-                                     &pIn->home_directory,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->home_drive,
-                                     &pIn->home_drive,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->logon_script,
-                                     &pIn->logon_script,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->profile_path,
-                                     &pIn->profile_path,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->description,
-                                     &pIn->description,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->workstations,
-                                     &pIn->workstations,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->last_logon   = pIn->last_logon;
-    pOut->last_logoff  = pIn->last_logoff;
-
-    ntStatus = SamrCopyLogonHours(&pOut->logon_hours,
-                                  &pIn->logon_hours,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->bad_password_count   = pIn->bad_password_count;
-    pOut->logon_count          = pIn->logon_count;
-    pOut->last_password_change = pIn->last_password_change;
-    pOut->account_expiry       = pIn->account_expiry;
-    pOut->account_flags        = pIn->account_flags;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo6(
-    OUT UserInfo6 *pOut,
-    IN  UserInfo6 *pIn,
-    IN  PVOID      pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
-                                     &pIn->full_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo7(
-    OUT UserInfo7 *pOut,
-    IN  UserInfo7 *pIn,
-    IN  PVOID      pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo8(
-    OUT UserInfo8 *pOut,
-    IN  UserInfo8 *pIn,
-    IN  PVOID      pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
-                                     &pIn->full_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo9(
-    OUT UserInfo9 *pOut,
-    IN  UserInfo9 *pIn,
-    IN  PVOID      pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->primary_gid = pIn->primary_gid;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo10(
-    OUT UserInfo10 *pOut,
-    IN  UserInfo10 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->home_directory,
-                                     &pIn->home_directory,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->home_drive,
-                                     &pIn->home_drive,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo11(
-    OUT UserInfo11 *pOut,
-    IN  UserInfo11 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->logon_script,
-                                     &pIn->logon_script,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo12(
-    OUT UserInfo12 *pOut,
-    IN  UserInfo12 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->profile_path,
-                                     &pIn->profile_path,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo13(
-    OUT UserInfo13 *pOut,
-    IN  UserInfo13 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->description,
-                                     &pIn->description,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo14(
-    OUT UserInfo14 *pOut,
-    IN  UserInfo14 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->workstations,
-                                     &pIn->workstations,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo16(
-    OUT UserInfo16 *pOut,
-    IN  UserInfo16 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->account_flags = pIn->account_flags;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo17(
-    OUT UserInfo17 *pOut,
-    IN  UserInfo17 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->account_expiry = pIn->account_expiry;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo20(
-    OUT UserInfo20 *pOut,
-    IN  UserInfo20 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->parameters,
-                                     &pIn->parameters,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo21(
-    OUT UserInfo21 *pOut,
-    IN  UserInfo21 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->last_logon            = pIn->last_logon;
-    pOut->last_logoff           = pIn->last_logoff;
-    pOut->last_password_change  = pIn->last_password_change;
-    pOut->account_expiry        = pIn->account_expiry;
-    pOut->allow_password_change = pIn->allow_password_change;
-    pOut->force_password_change = pIn->force_password_change;
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
-                                     &pIn->full_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->home_directory,
-                                     &pIn->home_directory,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->home_drive,
-                                     &pIn->home_drive,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->logon_script,
-                                     &pIn->logon_script,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->profile_path,
-                                     &pIn->profile_path,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->description,
-                                     &pIn->description,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->workstations,
-                                     &pIn->workstations,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->comment,
-                                     &pIn->comment,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->parameters,
-                                     &pIn->parameters,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->unknown1,
-                                     &pIn->unknown1,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->unknown2,
-                                     &pIn->unknown2,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->unknown3,
-                                     &pIn->unknown2,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->buf_count = pIn->buf_count;
-
-    ntStatus = SamrAllocateMemory((void**)&pOut->buffer,
-                                  pOut->buf_count,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    memcpy((void*)pOut->buffer, (void*)pIn->buffer, pOut->buf_count);
-
-    pOut->rid            = pIn->rid;
-    pOut->primary_gid    = pIn->primary_gid;
-    pOut->account_flags  = pIn->account_flags;
-    pOut->fields_present = pIn->fields_present;
-
-    ntStatus = SamrCopyLogonHours(&pOut->logon_hours,
-                                  &pIn->logon_hours,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->bad_password_count = pIn->bad_password_count;
-    pOut->logon_count        = pIn->logon_count;
-    pOut->country_code       = pIn->country_code;
-    pOut->code_page          = pIn->code_page;
-    pOut->nt_password_set    = pIn->nt_password_set;
-    pOut->lm_password_set    = pIn->lm_password_set;
-    pOut->password_expired   = pIn->password_expired;
-    pOut->unknown4           = pIn->unknown4;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyCryptPassword(
-    OUT CryptPassword *pOut,
-    IN  CryptPassword *pIn,
-    IN  PVOID          pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    memcpy((void*)pOut->data, (void*)pIn->data, sizeof(pOut->data));
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo23(
-    OUT UserInfo23 *pOut,
-    IN  UserInfo23 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUserInfo21(&pOut->info,
-                                  &pIn->info,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyCryptPassword(&pOut->password,
-                                     &pIn->password,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo24(
-    OUT UserInfo24 *pOut,
-    IN  UserInfo24 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyCryptPassword(&pOut->password,
-                                     &pIn->password,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->password_len = pIn->password_len;
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyCryptPasswordEx(
-    OUT CryptPasswordEx *pOut,
-    IN  CryptPasswordEx *pIn,
-    IN  PVOID            pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    memcpy((void*)&pOut->data, (void*)&pIn->data, sizeof(pOut->data));
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo25(
-    OUT UserInfo25 *pOut,
-    IN  UserInfo25 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyUserInfo21(&pOut->info,
-                                  &pIn->info,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyCryptPasswordEx(&pOut->password,
-                                       &pIn->password,
-                                       pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyUserInfo26(
-    OUT UserInfo26 *pOut,
-    IN  UserInfo26 *pIn,
-    IN  PVOID       pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    ntStatus = SamrCopyCryptPasswordEx(&pOut->password,
-                                       &pIn->password,
-                                       pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pOut->password_len = pIn->password_len;
-
-cleanup:
     return ntStatus;
 
 error:
@@ -1808,460 +742,344 @@ error:
 
 NTSTATUS
 SamrAllocateUserInfo(
-    OUT UserInfo **ppOut,
-    IN  UserInfo *pIn,
-    IN  UINT16    Level
+    OUT UserInfo   *pOut,
+    IN OUT PDWORD   pdwOffset,
+    IN OUT PDWORD   pdwSpaceLeft,
+    IN  WORD        swLevel,
+    IN  UserInfo   *pIn,
+    IN OUT PDWORD   pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    UserInfo *pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = SamrAllocateMemory((void*)&pInfo,
-                                  sizeof(UserInfo),
-                                  NULL);
+    switch (swLevel)
+    {
+    case 1:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info1.account_name);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info1.full_name);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info1.primary_gid);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info1.description);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info1.comment);
+        break;
+
+    case 2:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info2.comment);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info2.unknown1);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info2.country_code);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info2.code_page);
+        break;
+
+    case 3:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info3.account_name);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info3.full_name);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info3.rid);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info3.primary_gid);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info3.home_directory);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info3.home_drive);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info3.logon_script);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info3.profile_path);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info3.workstations);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info3.last_logon);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info3.last_logoff);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info3.last_password_change);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info3.allow_password_change);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info3.force_password_change);
+        LWBUF_ALLOC_LOGON_HOURS(pBuffer, &pIn->info3.logon_hours);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info3.bad_password_count);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info3.logon_count);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info3.account_flags);
+        break;
+
+    case 4:
+        LWBUF_ALLOC_LOGON_HOURS(pBuffer, &pIn->info4.logon_hours);
+        break;
+
+    case 5:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.account_name);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.full_name);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info5.rid);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info5.primary_gid);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.home_directory);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.home_drive);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.logon_script);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.profile_path);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.description);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info5.workstations);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info5.last_logon);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info5.last_logoff);
+        LWBUF_ALLOC_LOGON_HOURS(pBuffer, &pIn->info5.logon_hours);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info5.bad_password_count);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->info5.logon_count);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info5.last_password_change);
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info5.account_expiry);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info5.account_flags);
+        break;
+
+    case 6:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info6.account_name);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info6.full_name);
+        break;
+
+    case 7:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info7.account_name);
+        break;
+
+    case 8:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info8.full_name);
+        break;
+
+    case 9:
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info9.primary_gid);
+        break;
+
+    case 10:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info10.home_directory);
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info10.home_drive);
+        break;
+
+    case 11:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info11.logon_script);
+        break;
+
+    case 12:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info12.profile_path);
+        break;
+
+    case 13:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info13.description);
+        break;
+
+    case 14:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info14.workstations);
+        break;
+
+    case 16:
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->info16.account_flags);
+        break;
+
+    case 17:
+        LWBUF_ALLOC_NTTIME(pBuffer, pIn->info17.account_expiry);
+        break;
+
+    case 20:
+        LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                                   (PUNICODE_STRING)&pIn->info20.parameters);
+        break;
+
+    case 21:
+        ntStatus = SamrAllocateUserInfo21(pBuffer,
+                                          pdwOffset,
+                                          pdwSpaceLeft,
+                                          &pIn->info21,
+                                          pdwSize);
+        break;
+
+    case 23:
+        ntStatus = SamrAllocateUserInfo21(pBuffer,
+                                          pdwOffset,
+                                          pdwSpaceLeft,
+                                          &pIn->info23.info,
+                                          pdwSize);
+        LWBUF_ALLOC_CRYPT_PASSWORD(pBuffer, pIn->info23.password);
+        break;
+
+    case 24:
+        LWBUF_ALLOC_CRYPT_PASSWORD(pBuffer, pIn->info24.password);
+        LWBUF_ALLOC_BYTE(pBuffer, pIn->info24.password_len);
+        break;
+
+    case 25:
+        ntStatus = SamrAllocateUserInfo21(pBuffer,
+                                          pdwOffset,
+                                          pdwSpaceLeft,
+                                          &pIn->info25.info,
+                                          pdwSize);
+        LWBUF_ALLOC_CRYPT_PASSWORD_EX(pBuffer, pIn->info25.password);
+        break;
+
+    case 26:
+        LWBUF_ALLOC_CRYPT_PASSWORD_EX(pBuffer, pIn->info26.password);
+        LWBUF_ALLOC_BYTE(pBuffer, pIn->info26.password_len);
+        break;
+
+    default:
+        ntStatus = STATUS_INVALID_LEVEL;
+    }
+
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pIn != NULL) {
-        switch (Level) {
-        case 1:
-            ntStatus = SamrCopyUserInfo1(&pInfo->info1,
-                                         &pIn->info1,
-                                         (void*)pInfo);
-            break;
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
-        case 2:
-            ntStatus = SamrCopyUserInfo2(&pInfo->info2,
-                                         &pIn->info2,
-                                         (void*)pInfo);
-            break;
+    return ntStatus;
 
-        case 3:
-            ntStatus = SamrCopyUserInfo3(&pInfo->info3,
-                                         &pIn->info3,
-                                         (void*)pInfo);
-            break;
+error:
+    goto cleanup;
+}
 
-        case 4:
-            ntStatus = SamrCopyUserInfo4(&pInfo->info4,
-                                         &pIn->info4,
-                                         (void*)pInfo);
-            break;
 
-        case 5:
-            ntStatus = SamrCopyUserInfo5(&pInfo->info5,
-                                         &pIn->info5,
-                                         (void*)pInfo);
-            break;
+static
+NTSTATUS
+SamrAllocateUserInfo21(
+    OUT UserInfo   *pOut,
+    IN OUT PDWORD   pdwOffset,
+    IN OUT PDWORD   pdwSpaceLeft,
+    IN  UserInfo21 *pIn,
+    IN OUT PDWORD   pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    UserInfo21 *pInfo = &pOut->info21;
+    PVOID pBuffer = pInfo;
+    PVOID pCursor = NULL;
+    PVOID pBufBlob = NULL;
+    PVOID *ppBufBlob = NULL;
+    DWORD dwBufBlobSpaceLeft = 0;
+    DWORD dwBufBlobOffset = 0;
+    DWORD dwBufBlobSize = 0;
 
-        case 6:
-            ntStatus = SamrCopyUserInfo6(&pInfo->info6,
-                                         &pIn->info6,
-                                         (void*)pInfo);
-            break;
+    LWBUF_ALLOC_NTTIME(pBuffer, pIn->last_logon);
+    LWBUF_ALLOC_NTTIME(pBuffer, pIn->last_logoff);
+    LWBUF_ALLOC_NTTIME(pBuffer, pIn->last_password_change);
+    LWBUF_ALLOC_NTTIME(pBuffer, pIn->account_expiry);
+    LWBUF_ALLOC_NTTIME(pBuffer, pIn->allow_password_change);
+    LWBUF_ALLOC_NTTIME(pBuffer, pIn->force_password_change);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->account_name);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->full_name);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->home_directory);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->home_drive);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->logon_script);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->profile_path);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->description);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->workstations);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->comment);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->parameters);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->unknown1);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->unknown2);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->unknown3);
 
-        case 7:
-            ntStatus = SamrCopyUserInfo7(&pInfo->info7,
-                                         &pIn->info7,
-                                         (void*)pInfo);
-            break;
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->buf_count);
+    dwBufBlobSize = pIn->buf_count;
 
-        case 8:
-            ntStatus = SamrCopyUserInfo8(&pInfo->info8,
-                                         &pIn->info8,
-                                         (void*)pInfo);
-            break;
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-        case 9:
-            ntStatus = SamrCopyUserInfo9(&pInfo->info9,
-                                         &pIn->info9,
-                                         (void*)pInfo);
-            break;
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwBufBlobSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
 
-        case 10:
-            ntStatus = SamrCopyUserInfo10(&pInfo->info10,
-                                          &pIn->info10,
-                                          (void*)pInfo);
-            break;
+        if (pIn->buffer)
+        {
+            pBufBlob = LWBUF_TARGET_PTR(pBuffer, dwBufBlobSize, pdwSpaceLeft);
 
-        case 11:
-            ntStatus = SamrCopyUserInfo11(&pInfo->info11,
-                                          &pIn->info11,
-                                          (void*)pInfo);
-            break;
+            /* sanity check - the data pointer and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(PUINT8, pBufBlob, dwError);
 
-        case 12:
-            ntStatus = SamrCopyUserInfo12(&pInfo->info12,
-                                          &pIn->info12,
-                                          (void*)pInfo);
-            break;
+            dwBufBlobSpaceLeft = dwBufBlobSize;
+            dwBufBlobOffset    = 0;
 
-        case 13:
-            ntStatus = SamrCopyUserInfo13(&pInfo->info13,
-                                          &pIn->info13,
-                                          (void*)pInfo);
-            break;
-
-        case 14:
-            ntStatus = SamrCopyUserInfo14(&pInfo->info14,
-                                          &pIn->info14,
-                                          (void*)pInfo);
-            break;
-
-        case 16:
-            ntStatus = SamrCopyUserInfo16(&pInfo->info16,
-                                          &pIn->info16,
-                                          (void*)pInfo);
-            break;
-
-        case 17:
-            ntStatus = SamrCopyUserInfo17(&pInfo->info17,
-                                          &pIn->info17,
-                                          (void*)pInfo);
-            break;
-
-        case 20:
-            ntStatus = SamrCopyUserInfo20(&pInfo->info20,
-                                          &pIn->info20,
-                                          (void*)pInfo);
-            break;
-
-        case 21:
-            ntStatus = SamrCopyUserInfo21(&pInfo->info21,
-                                          &pIn->info21,
-                                          (void*)pInfo);
-            break;
-
-        case 23:
-            ntStatus = SamrCopyUserInfo23(&pInfo->info23,
-                                          &pIn->info23,
-                                          (void*)pInfo);
-            break;
-
-        case 24:
-            ntStatus = SamrCopyUserInfo24(&pInfo->info24,
-                                          &pIn->info24,
-                                          (void*)pInfo);
-            break;
-
-        case 25:
-            ntStatus = SamrCopyUserInfo25(&pInfo->info25,
-                                          &pIn->info25,
-                                          (void*)pInfo);
-            break;
-
-        case 26:
-            ntStatus = SamrCopyUserInfo26(&pInfo->info26,
-                                          &pIn->info26,
-                                          (void*)pInfo);
-            break;
-
-        default:
-            ntStatus = STATUS_INVALID_LEVEL;
+            dwError = LwBufferAllocFixedBlob(pBufBlob,
+                                             &dwBufBlobOffset,
+                                             &dwBufBlobSpaceLeft,
+                                             pIn->buffer,
+                                             pIn->buf_count,
+                                             pdwSize);
+            BAIL_ON_WIN_ERROR(dwError);
         }
 
-        BAIL_ON_NT_STATUS(ntStatus);
+        ppBufBlob        = (PVOID*)pCursor;
+        *ppBufBlob       = pBufBlob;
+        (*pdwSpaceLeft) -= (pBufBlob) ? dwBufBlobSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft) -= sizeof(PVOID);
+    }
+    else
+    {
+        (*pdwSize) += dwBufBlobSize;
     }
 
-    *ppOut = pInfo;
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(PVOID);
+    (*pdwSize)   += sizeof(PVOID);
+
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->rid);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->primary_gid);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->account_flags);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->fields_present);
+    LWBUF_ALLOC_LOGON_HOURS(pBuffer, &pIn->logon_hours);
+    LWBUF_ALLOC_WORD(pBuffer, pIn->bad_password_count);
+    LWBUF_ALLOC_WORD(pBuffer, pIn->logon_count);
+    LWBUF_ALLOC_WORD(pBuffer, pIn->country_code);
+    LWBUF_ALLOC_WORD(pBuffer, pIn->code_page);
+    LWBUF_ALLOC_BYTE(pBuffer, pIn->nt_password_set);
+    LWBUF_ALLOC_BYTE(pBuffer, pIn->lm_password_set);
+    LWBUF_ALLOC_BYTE(pBuffer, pIn->password_expired);
+    LWBUF_ALLOC_BYTE(pBuffer, pIn->unknown4);
 
 cleanup:
-    return ntStatus;
-
-error:
-    if (pInfo) {
-        SamrFreeMemory((void*)pInfo);
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *ppOut = NULL;
-
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDisplayEntryFull(
-    OUT SamrDisplayEntryFull *pOut,
-    IN  SamrDisplayEntryFull *pIn,
-    IN  PVOID                 pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->idx           = pIn->idx;
-    pOut->rid           = pIn->rid;
-    pOut->account_flags = pIn->account_flags;
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->description,
-                                     &pIn->description,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->full_name,
-                                     &pIn->full_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDisplayInfoFull(
-    OUT SamrDisplayInfoFull *pOut,
-    IN  SamrDisplayInfoFull *pIn,
-    IN  PVOID                pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    UINT32 i = 0;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->count = pIn->count;
-
-    ntStatus = SamrAllocateMemory((void**)&pOut->entries,
-                                  sizeof(pOut->entries[0]) * pOut->count,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pOut->count; i++) {
-        ntStatus = SamrCopyDisplayEntryFull(&(pOut->entries[i]),
-                                            &(pIn->entries[i]),
-                                            pOut->entries);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDisplayEntryGeneral(
-    OUT SamrDisplayEntryGeneral *pOut,
-    IN  SamrDisplayEntryGeneral *pIn,
-    IN  PVOID                    pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->idx           = pIn->idx;
-    pOut->rid           = pIn->rid;
-    pOut->account_flags = pIn->account_flags;
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->description,
-                                     &pIn->description,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDisplayInfoGeneral(
-    OUT SamrDisplayInfoGeneral *pOut,
-    IN  SamrDisplayInfoGeneral *pIn,
-    IN  PVOID                   pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    UINT32 i = 0;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->count = pIn->count;
-
-    ntStatus = SamrAllocateMemory((void**)&pOut->entries,
-                                  sizeof(pOut->entries[0]) * pOut->count,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pOut->count; i++) {
-        ntStatus = SamrCopyDisplayEntryGeneral(&(pOut->entries[i]),
-                                               &(pIn->entries[i]),
-                                               pOut->entries);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDisplayEntryGeneralGroup(
-    OUT SamrDisplayEntryGeneralGroup *pOut,
-    IN  SamrDisplayEntryGeneralGroup *pIn,
-    IN  PVOID                         pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->idx           = pIn->idx;
-    pOut->rid           = pIn->rid;
-    pOut->account_flags = pIn->account_flags;
-
-    ntStatus = SamrCopyUnicodeString(&pOut->account_name,
-                                     &pIn->account_name,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SamrCopyUnicodeString(&pOut->description,
-                                     &pIn->description,
-                                     pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDisplayInfoGeneralGroups(
-    OUT SamrDisplayInfoGeneralGroups *pOut,
-    IN  SamrDisplayInfoGeneralGroups *pIn,
-    IN  PVOID                         pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    UINT32 i = 0;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->count = pIn->count;
-
-    ntStatus = SamrAllocateMemory((void**)&pOut->entries,
-                                  sizeof(pOut->entries[0]) * pOut->count,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pOut->count; i++) {
-        ntStatus = SamrCopyDisplayEntryGeneralGroup(&(pOut->entries[i]),
-                                                    &(pIn->entries[i]),
-                                                    pOut->entries);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDisplayEntryAscii(
-    OUT SamrDisplayEntryAscii *pOut,
-    IN  SamrDisplayEntryAscii *pIn,
-    IN  PVOID                  pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->idx                        = pIn->idx;
-    pOut->account_name.Length        = pIn->account_name.Length;
-    pOut->account_name.MaximumLength = pIn->account_name.MaximumLength;
-
-    ntStatus = SamrAllocateMemory((void**)&pOut->account_name.Buffer,
-                                  sizeof(CHAR) * pOut->account_name.MaximumLength,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    memcpy(pOut->account_name.Buffer,
-           pIn->account_name.Buffer,
-           pOut->account_name.Length);
-
-cleanup:
-    return ntStatus;
-
-error:
-    goto cleanup;
-}
-
-
-static
-NTSTATUS
-SamrCopyDisplayInfoAscii(
-    OUT SamrDisplayInfoAscii *pOut,
-    IN  SamrDisplayInfoAscii *pIn,
-    IN  PVOID                 pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    UINT32 i = 0;
-
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pIn, ntStatus);
-
-    pOut->count = pIn->count;
-
-    ntStatus = SamrAllocateMemory((void**)&pOut->entries,
-                                  sizeof(pOut->entries[0]) * pOut->count,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pOut->count; i++) {
-        ntStatus = SamrCopyDisplayEntryAscii(&(pOut->entries[i]),
-                                             &(pIn->entries[i]),
-                                             pOut->entries);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-cleanup:
     return ntStatus;
 
 error:
@@ -2271,71 +1089,248 @@ error:
 
 NTSTATUS
 SamrAllocateDisplayInfo(
-    OUT SamrDisplayInfo **ppOut,
-    IN  SamrDisplayInfo  *pIn,
-    IN  UINT16            Level
+    OUT PVOID              pOut,
+    IN OUT PDWORD          pdwOffset,
+    IN OUT PDWORD          pdwSpaceLeft,
+    IN WORD                swLevel,
+    IN  SamrDisplayInfo   *pIn,
+    IN OUT PDWORD          pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    SamrDisplayInfo *pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    PVOID *ppEntry = NULL;
+    DWORD i = 0;
+    DWORD dwCount = 0;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = SamrAllocateMemory((void**)&pInfo,
-                                  sizeof(*pInfo),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    /*
+     * All info levels start the same way so it is safe
+     * to use level 1 to get the counter field
+     */
+    dwCount = pIn->info1.count;
 
-    if (pIn == NULL) goto cleanup;
+    LWBUF_ALLOC_DWORD(pBuffer, dwCount);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-    switch (Level) {
-    case 1:
-        ntStatus = SamrCopyDisplayInfoFull(&pInfo->info1,
-                                           &pIn->info1,
-                                           pInfo);
-        break;
-
-    case 2:
-        ntStatus = SamrCopyDisplayInfoGeneral(&pInfo->info2,
-                                              &pIn->info2,
-                                              pInfo);
-        break;
-
-    case 3:
-        ntStatus = SamrCopyDisplayInfoGeneralGroups(&pInfo->info3,
-                                                    &pIn->info3,
-                                                    pInfo);
-        break;
-
-    case 4:
-        ntStatus = SamrCopyDisplayInfoAscii(&pInfo->info4,
-                                            &pIn->info4,
-                                            pInfo);
-        break;
-
-    case 5:
-        ntStatus = SamrCopyDisplayInfoAscii(&pInfo->info5,
-                                            &pIn->info5,
-                                            pInfo);
-
-    default:
-        ntStatus = STATUS_INVALID_INFO_CLASS;
+    /* Set pointer to the entries array */
+    if (pBuffer)
+    {
+        pCursor  = pBuffer + (*pdwOffset);
+        ppEntry  = (PVOID*)pCursor;
     }
 
-    BAIL_ON_NT_STATUS(ntStatus);
+    (*pdwOffset) += sizeof(PVOID);
+    (*pdwSize) += sizeof(PVOID);
 
-    *ppOut = pInfo;
+    if (pdwSpaceLeft)
+    {
+        (*pdwSpaceLeft) -= sizeof(PVOID);
+    }
+
+    if (pBuffer)
+    {
+        *ppEntry = (PVOID)(pBuffer + (*pdwOffset));
+    }
+
+    /* Allocate the entries */
+    for (i = 0; i < dwCount; i++)
+    {
+        switch (swLevel)
+        {
+        case 1:
+            ntStatus = SamrAllocateDisplayEntryFull(pBuffer,
+                                                    pdwOffset,
+                                                    pdwSpaceLeft,
+                                                    &(pIn->info1.entries[i]),
+                                                    pdwSize);
+            break;
+
+        case 2:
+            ntStatus = SamrAllocateDisplayEntryGeneral(pBuffer,
+                                                       pdwOffset,
+                                                       pdwSpaceLeft,
+                                                       &(pIn->info2.entries[i]),
+                                                       pdwSize);
+            break;
+
+        case 3:
+            ntStatus = SamrAllocateDisplayEntryGeneralGroup(
+                                                    pBuffer,
+                                                    pdwOffset,
+                                                    pdwSpaceLeft,
+                                                    &(pIn->info3.entries[i]),
+                                                    pdwSize);
+            break;
+
+        case 4:
+            ntStatus = SamrAllocateDisplayEntryAscii(pBuffer,
+                                                     pdwOffset,
+                                                     pdwSpaceLeft,
+                                                     &(pIn->info4.entries[i]),
+                                                     pdwSize);
+            break;
+
+        case 5:
+            ntStatus = SamrAllocateDisplayEntryAscii(pBuffer,
+                                                     pdwOffset,
+                                                     pdwSpaceLeft,
+                                                     &(pIn->info5.entries[i]),
+                                                     pdwSize);
+            break;
+
+        default:
+            ntStatus = STATUS_INVALID_INFO_CLASS;
+            break;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pInfo) {
-        SamrFreeMemory((void*)pInfo);
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SamrAllocateDisplayEntryFull(
+    OUT PVOID                 pOut,
+    IN OUT PDWORD             pdwOffset,
+    IN OUT PDWORD             pdwSpaceLeft,
+    IN  SamrDisplayEntryFull *pIn,
+    IN OUT PDWORD             pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+
+    LWBUF_ALLOC_DWORD(pOut, pIn->idx);
+    LWBUF_ALLOC_DWORD(pOut, pIn->rid);
+    LWBUF_ALLOC_DWORD(pOut, pIn->account_flags);
+    LWBUF_ALLOC_UNICODE_STRING(pOut, (PUNICODE_STRING)&pIn->account_name);
+    LWBUF_ALLOC_UNICODE_STRING(pOut, (PUNICODE_STRING)&pIn->description);
+    LWBUF_ALLOC_UNICODE_STRING(pOut, (PUNICODE_STRING)&pIn->full_name);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *ppOut = NULL;
+    return ntStatus;
 
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SamrAllocateDisplayEntryGeneral(
+    OUT PVOID                    pOut,
+    IN OUT PDWORD                pdwOffset,
+    IN OUT PDWORD                pdwSpaceLeft,
+    IN  SamrDisplayEntryGeneral *pIn,
+    IN OUT PDWORD                pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+
+    LWBUF_ALLOC_DWORD(pOut, pIn->idx);
+    LWBUF_ALLOC_DWORD(pOut, pIn->rid);
+    LWBUF_ALLOC_DWORD(pOut, pIn->account_flags);
+    LWBUF_ALLOC_UNICODE_STRING(pOut, (PUNICODE_STRING)&pIn->account_name);
+    LWBUF_ALLOC_UNICODE_STRING(pOut, (PUNICODE_STRING)&pIn->description);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SamrAllocateDisplayEntryGeneralGroup(
+    OUT PVOID                         pOut,
+    IN OUT PDWORD                     pdwOffset,
+    IN OUT PDWORD                     pdwSpaceLeft,
+    IN  SamrDisplayEntryGeneralGroup *pIn,
+    IN OUT PDWORD                     pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+
+    LWBUF_ALLOC_DWORD(pOut, pIn->idx);
+    LWBUF_ALLOC_DWORD(pOut, pIn->rid);
+    LWBUF_ALLOC_DWORD(pOut, pIn->account_flags);
+    LWBUF_ALLOC_UNICODE_STRING(pOut, (PUNICODE_STRING)&pIn->account_name);
+    LWBUF_ALLOC_UNICODE_STRING(pOut, (PUNICODE_STRING)&pIn->description);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+SamrAllocateDisplayEntryAscii(
+    OUT PVOID                   pOut,
+    IN OUT PDWORD               pdwOffset,
+    IN OUT PDWORD               pdwSpaceLeft,
+    IN  SamrDisplayEntryAscii  *pIn,
+    IN OUT PDWORD               pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+
+    LWBUF_ALLOC_DWORD(pOut, pIn->idx);
+    LWBUF_ALLOC_ANSI_STRING(pOut, &pIn->account_name);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
     goto cleanup;
 }
 
@@ -2353,8 +1348,7 @@ SamrAllocateSecurityDescriptor(
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
 
     ntStatus = SamrAllocateMemory((PVOID*)&pSecDesc,
-                                  pIn->ulBufferLen,
-                                  NULL);
+                                  pIn->ulBufferLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy(pSecDesc, pIn->pBuffer, pIn->ulBufferLen);

@@ -66,6 +66,9 @@ SamrEnumDomainUsers(
     RidNameArray *pEntries = NULL;
     PWSTR *ppwszNames = NULL;
     UINT32 *pRids = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hDomain, ntStatus);
@@ -89,14 +92,62 @@ SamrEnumDomainUsers(
 
     /* Status other than success doesn't have to mean failure here */
     if (ntStatus != STATUS_SUCCESS &&
-        ntStatus != STATUS_MORE_ENTRIES) {
+        ntStatus != STATUS_MORE_ENTRIES)
+    {
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (pEntries) {
-        ntStatus = SamrAllocateNamesAndRids(&ppwszNames,
-                                            &pRids,
-                                            pEntries);
+    if (pEntries)
+    {
+        ntStatus = SamrAllocateNamesFromRidNameArray(
+                                            NULL,
+                                            &dwOffset,
+                                            NULL,
+                                            pEntries,
+                                            &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&ppwszNames),
+                                      dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SamrAllocateNamesFromRidNameArray(
+                                            ppwszNames,
+                                            &dwOffset,
+                                            &dwSpaceLeft,
+                                            pEntries,
+                                            &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwOffset = 0;
+        dwSize   = 0;
+
+        ntStatus = SamrAllocateRidsFromRidNameArray(
+                                            NULL,
+                                            &dwOffset,
+                                            &dwSpaceLeft,
+                                            pEntries,
+                                            &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&pRids),
+                                      dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SamrAllocateRidsFromRidNameArray(
+                                            pRids,
+                                            &dwOffset,
+                                            &dwSpaceLeft,
+                                            pEntries,
+                                            &dwSize);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -106,25 +157,29 @@ SamrEnumDomainUsers(
     *ppRids      = pRids;
 
 cleanup:
-    if (pEntries) {
+    if (pEntries)
+    {
         SamrFreeStubRidNameArray(pEntries);
     }
 
     if (ntStatus == STATUS_SUCCESS &&
         (ntRetStatus == STATUS_SUCCESS ||
-         ntRetStatus == STATUS_MORE_ENTRIES)) {
+         ntRetStatus == STATUS_MORE_ENTRIES))
+    {
         ntStatus = ntRetStatus;
     }
 
     return ntStatus;
 
 error:
-    if (ppwszNames) {
-        SamrFreeMemory((void*)ppwszNames);
+    if (ppwszNames)
+    {
+        SamrFreeMemory(ppwszNames);
     }
 
-    if (pRids) {
-        SamrFreeMemory((void*)pRids);
+    if (pRids)
+    {
+        SamrFreeMemory(pRids);
     }
 
     *pResume     = 0;

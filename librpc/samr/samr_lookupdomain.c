@@ -57,6 +57,7 @@ SamrLookupDomain(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     UnicodeString DomainName = {0};
+    DWORD dwSidSize = 0;
     PSID pSid = NULL;
     PSID pRetSid = NULL;
 
@@ -75,7 +76,14 @@ SamrLookupDomain(
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pSid) {
-        ntStatus = SamrAllocateDomSid(&pRetSid, pSid, NULL);
+        dwSidSize = RtlLengthRequiredSid(pSid->SubAuthorityCount);
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&pRetSid),
+                                      dwSidSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = RtlCopySid(dwSidSize,
+                              pRetSid,
+                              pSid);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -84,15 +92,17 @@ SamrLookupDomain(
 cleanup:
     FreeUnicodeString(&DomainName);
 
-    if (pSid) {
+    if (pSid)
+    {
         SamrFreeStubDomSid(pSid);
     }
 
     return ntStatus;
 
 error:
-    if (pRetSid) {
-        SamrFreeMemory((void*)pRetSid);
+    if (pRetSid)
+    {
+        SamrFreeMemory(pRetSid);
     }
 
     *ppSid = NULL;

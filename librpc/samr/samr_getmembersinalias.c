@@ -58,6 +58,9 @@ SamrGetMembersInAlias(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SidArray Sids = {0};
     PSID *ppSids = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hAlias, ntStatus);
@@ -69,8 +72,30 @@ SamrGetMembersInAlias(
                                                  &Sids));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SamrAllocateSids(&ppSids, &Sids);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (Sids.num_sids)
+    {
+        ntStatus = SamrAllocateSids(NULL,
+                                    &dwOffset,
+                                    NULL,
+                                    &Sids,
+                                    &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&ppSids),
+                                      dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SamrAllocateSids(ppSids,
+                                    &dwOffset,
+                                    &dwSpaceLeft,
+                                    &Sids,
+                                    &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     *pppSids = ppSids;
     *pCount  = Sids.num_sids;
@@ -81,8 +106,9 @@ cleanup:
     return ntStatus;
 
 error:
-    if (ppSids) {
-        SamrFreeMemory((void*)ppSids);
+    if (ppSids)
+    {
+        SamrFreeMemory(ppSids);
     }
 
     *pppSids = NULL;

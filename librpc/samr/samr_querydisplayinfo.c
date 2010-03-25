@@ -66,6 +66,9 @@ SamrQueryDisplayInfo(
     UINT32 ReturnedSize = 0;
     SamrDisplayInfo Info;
     SamrDisplayInfo *pDispInfo = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hDomain, ntStatus);
@@ -89,13 +92,33 @@ SamrQueryDisplayInfo(
 
     /* Status other than success doesn't have to mean failure here */
     if (ntStatus != STATUS_SUCCESS &&
-        ntStatus != STATUS_MORE_ENTRIES) {
+        ntStatus != STATUS_MORE_ENTRIES)
+    {
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = SamrAllocateDisplayInfo(&pDispInfo,
+    ntStatus = SamrAllocateDisplayInfo(NULL,
+                                       &dwOffset,
+                                       NULL,
+                                       Level,
                                        &Info,
-                                       Level);
+                                       &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = SamrAllocateMemory(OUT_PPVOID(&pDispInfo),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SamrAllocateDisplayInfo(pDispInfo,
+                                       &dwOffset,
+                                       &dwSpaceLeft,
+                                       Level,
+                                       &Info,
+                                       &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *pTotalSize    = TotalSize;
@@ -107,15 +130,17 @@ cleanup:
 
     if (ntStatus == STATUS_SUCCESS &&
         (ntRetStatus == STATUS_SUCCESS ||
-         ntRetStatus == STATUS_MORE_ENTRIES)) {
+         ntRetStatus == STATUS_MORE_ENTRIES))
+    {
         ntStatus = ntRetStatus;
     }
 
     return ntStatus;
 
 error:
-    if (pDispInfo) {
-        SamrFreeMemory((void*)pDispInfo);
+    if (pDispInfo)
+    {
+        SamrFreeMemory(pDispInfo);
     }
 
     *pTotalSize    = 0;

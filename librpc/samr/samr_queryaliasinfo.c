@@ -58,6 +58,9 @@ SamrQueryAliasInfo(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     AliasInfo *pInfo = NULL;
     AliasInfo *pOutInfo = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hAlias, ntStatus);
@@ -69,25 +72,47 @@ SamrQueryAliasInfo(
                                               &pInfo));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pInfo) {
-        ntStatus = SamrAllocateAliasInfo(&pOutInfo,
+    if (pInfo)
+    {
+        ntStatus = SamrAllocateAliasInfo(NULL,
+                                         &dwOffset,
+                                         NULL,
+                                         Level,
                                          pInfo,
-                                         Level);
+                                         &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&pOutInfo),
+                                      dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SamrAllocateAliasInfo(pOutInfo,
+                                         &dwOffset,
+                                         &dwSpaceLeft,
+                                         Level,
+                                         pInfo,
+                                         &dwSize);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
     *ppInfo = pOutInfo;
 
 cleanup:
-    if (pInfo) {
+    if (pInfo)
+    {
         SamrFreeStubAliasInfo(pInfo, Level);
     }
 
     return ntStatus;
 
 error:
-    if (pOutInfo) {
-        SamrFreeMemory((void*)pOutInfo);
+    if (pOutInfo)
+    {
+        SamrFreeMemory(pOutInfo);
     }
 
     *ppInfo = NULL;

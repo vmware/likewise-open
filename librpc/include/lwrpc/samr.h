@@ -385,8 +385,9 @@ SamrDestroyMemory(
     void
     );
 
-NTSTATUS SamrFreeMemory(
-    void *ptr
+VOID
+SamrFreeMemory(
+    PVOID pPtr
     );
 
 

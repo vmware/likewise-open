@@ -63,6 +63,9 @@ SamrEnumDomains(
     UINT32 Resume = 0;
     UINT32 Count = 0;
     PWSTR *ppwszNames = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hConn, ntStatus);
@@ -84,13 +87,33 @@ SamrEnumDomains(
 
     /* Status other than success doesn't have to mean failure here */
     if (ntRetStatus != STATUS_SUCCESS &&
-        ntRetStatus != STATUS_MORE_ENTRIES) {
+        ntRetStatus != STATUS_MORE_ENTRIES)
+    {
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (pDomains) {
-        ntStatus = SamrAllocateNames(&ppwszNames,
-                                     pDomains);
+    if (pDomains)
+    {
+        ntStatus = SamrAllocateNames(NULL,
+                                     &dwOffset,
+                                     NULL,
+                                     pDomains,
+                                     &dwSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        dwSpaceLeft = dwSize;
+        dwSize      = 0;
+        dwOffset    = 0;
+
+        ntStatus = SamrAllocateMemory(OUT_PPVOID(&ppwszNames),
+                                      dwSpaceLeft);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SamrAllocateNames(ppwszNames,
+                                     &dwOffset,
+                                     &dwSpaceLeft,
+                                     pDomains,
+                                     &dwSize);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -99,21 +122,24 @@ SamrEnumDomains(
     *pppwszNames = ppwszNames;
 
 cleanup:
-    if (pDomains) {
+    if (pDomains)
+    {
         SamrFreeStubEntryArray(pDomains);
     }
 
     if (ntStatus == STATUS_SUCCESS &&
         (ntRetStatus == STATUS_SUCCESS ||
-         ntRetStatus == STATUS_MORE_ENTRIES)) {
+         ntRetStatus == STATUS_MORE_ENTRIES))
+    {
         ntStatus = ntRetStatus;
     }
 
     return ntStatus;
 
 error:
-    if (ppwszNames) {
-        SamrFreeMemory((void*)ppwszNames);
+    if (ppwszNames)
+    {
+        SamrFreeMemory(ppwszNames);
     }
 
     *pResume     = 0;
