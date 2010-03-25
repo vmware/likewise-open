@@ -109,7 +109,7 @@ NfsDeviceIoCommon(
     switch (ControlCode)
     {
 
-      case NFS_DEVCTL_ADD_SHARE:
+      case SRV_DEVCTL_ADD_SHARE:
 
           ntStatus = NfsShareDevCtlAdd(
                         pInBuffer,
@@ -119,7 +119,7 @@ NfsDeviceIoCommon(
                         );
           break;
 
-      case NFS_DEVCTL_DELETE_SHARE:
+      case SRV_DEVCTL_DELETE_SHARE:
 
           ntStatus = NfsShareDevCtlDelete(
                         pInBuffer,
@@ -129,7 +129,7 @@ NfsDeviceIoCommon(
                         );
           break;
 
-      case NFS_DEVCTL_ENUM_SHARE:
+      case SRV_DEVCTL_ENUM_SHARE:
 
           ntStatus = NfsShareDevCtlEnum(
                         pInBuffer,
@@ -140,7 +140,7 @@ NfsDeviceIoCommon(
                         );
           break;
 
-      case NFS_DEVCTL_SET_SHARE_INFO:
+      case SRV_DEVCTL_SET_SHARE_INFO:
 
           ntStatus = NfsShareDevCtlSetInfo(
                         pInBuffer,
@@ -150,7 +150,7 @@ NfsDeviceIoCommon(
                         );
           break;
 
-      case NFS_DEVCTL_GET_SHARE_INFO:
+      case SRV_DEVCTL_GET_SHARE_INFO:
 
           ntStatus = NfsShareDevCtlGetInfo(
                         pInBuffer,

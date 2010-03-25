@@ -16,7 +16,6 @@ libnfs_protocols_api_la_CPPFLAGS = \
     -I@top_srcdir@/server/nfs/protocols/include
 
 libnfs_protocols_api_la_LIBADD = \
-    @top_builddir@/server/nfs/protocols/smb1/libnfs.protocols.smb1.la \
     @top_builddir@/server/nfs/protocols/smb2/libnfs.protocols.smb2.la
 
 libnfs_protocols_api_la_LDFLAGS = -static

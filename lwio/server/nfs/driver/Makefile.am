@@ -17,7 +17,7 @@ libnfs_sys_la_SOURCES = \
     deviceio.c     \
     driver.c       \
     globals.c      \
-    nfsshares.c    \
+    nfsexports.c   \
     nfsstats.c     \
     nfsworker.c
 
@@ -34,7 +34,7 @@ libnfs_sys_la_LIBADD = \
     @top_builddir@/server/nfs/protocols/api/libnfs.protocols.api.la \
     @top_builddir@/server/nfs/transport/threadpool/libnfs.transport.threadpool.la \
     @top_builddir@/server/nfs/elements/libnfselements.la \
-    @top_builddir@/server/nfs/shares/api/libshareapi.la \
+    @top_builddir@/server/nfs/exports/api/libshareapi.la \
     @top_builddir@/server/nfs/utils/libnfsutils.la \
     @top_builddir@/server/iomgr2/libiomgr2.la \
     @top_builddir@/server/smbcommon/liblwiosmbcommon.la \
