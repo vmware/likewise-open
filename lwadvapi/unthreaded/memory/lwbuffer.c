@@ -57,7 +57,7 @@
 #endif
 
 
-#define LWBUF_ALIGN_TYPE(cursor, offset, size, left, type)              \
+#define LWBUF_ALIGN_TYPE(offset, size, left, type)                      \
     {                                                                   \
         DWORD dwAlign = (offset) % sizeof(type);                        \
                                                                         \
@@ -65,16 +65,15 @@
         (size)   += dwAlign;                                            \
         (offset) += dwAlign;                                            \
         (left)   -= dwAlign;                                            \
-                                                                        \
-        if (cursor)                                                     \
-        {                                                               \
-            (cursor) += dwAlign;                                        \
-        }                                                               \
     }
 
 
-#define LWBUF_ALIGN(cursor, offset, size, left)                         \
-    LWBUF_ALIGN_TYPE(cursor, offset, size, left, PVOID)
+#define LWBUF_ALIGN(offset, size, left)                                 \
+    LWBUF_ALIGN_TYPE(offset, size, left, PVOID)
+
+
+#define LWBUF_ALIGN_PTR(offset, size, left)                             \
+    LWBUF_ALIGN_TYPE(offset, size, left, PVOID)
 
 
 #define BAIL_IF_NOT_ENOUGH_SPACE(size, space, err)                      \
@@ -87,12 +86,13 @@
 #define BAIL_IF_PTR_OVERLAP(type, target_ptr, err)                      \
     if ((pCursor + sizeof(type)) > target_ptr)                          \
     {                                                                   \
-        err = ERROR_INSUFFICIENT_BUFFER;                                  \
+        err = ERROR_INSUFFICIENT_BUFFER;                                \
         BAIL_ON_LW_ERROR(err);                                          \
     }
 
-#define LWBUF_TARGET_PTR(target_size, space)                            \
-    ((pCursor + (space)) - (target_size))
+#define LWBUF_TARGET_PTR(buffer_ptr, target_size, space)                \
+    ((pCursor = (buffer_ptr) + dwOffset),                               \
+     ((pCursor + (space)) - (target_size)))
 
 
 
@@ -382,7 +382,7 @@ LwBufferAllocWC16String(
         dwSpaceLeft = *pdwSpaceLeft;
     }
 
-    LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
+    LWBUF_ALIGN_PTR(dwOffset, dwSize, dwSpaceLeft);
 
     if (pwszSource)
     {
@@ -402,7 +402,7 @@ LwBufferAllocWC16String(
 
         if (pwszSource)
         {
-            pStr = LWBUF_TARGET_PTR(dwStrSize, dwSpaceLeft);
+            pStr = LWBUF_TARGET_PTR(pBuffer, dwStrSize, dwSpaceLeft);
 
             /* sanity check - the string and current buffer cursor
                must not overlap */
@@ -480,32 +480,36 @@ LwBufferAllocUnicodeString(
         dwStrSize = (pSource->Buffer) ? (pSource->Length + sizeof(WCHAR)) : 0;
     }
 
+    LWBUF_ALIGN(dwOffset, dwSize, dwSpaceLeft);
+
+    /* string length field */
+    dwError = LwBufferAllocWord(pBuffer,
+                                &dwOffset,
+                                &dwSpaceLeft,
+                                (WORD)pSource->Length,
+                                &dwSize);
+    BAIL_ON_LW_ERROR(dwError);
+
+    /* string size field */
+    dwError = LwBufferAllocWord(pBuffer,
+                                &dwOffset,
+                                &dwSpaceLeft,
+                                (WORD)pSource->MaximumLength,
+                                &dwSize);
+    BAIL_ON_LW_ERROR(dwError);
+
+    LWBUF_ALIGN_PTR(dwOffset, dwSize, dwSpaceLeft);
+
     if (pBuffer && pdwSpaceLeft)
     {
-        /* string length field */
-        dwError = LwBufferAllocWord(pBuffer,
-                                    &dwOffset,
-                                    &dwSpaceLeft,
-                                    (WORD)pSource->Length,
-                                    &dwSize);
-        BAIL_ON_LW_ERROR(dwError);
-
-        /* string size field */
-        dwError = LwBufferAllocWord(pBuffer,
-                                    &dwOffset,
-                                    &dwSpaceLeft,
-                                    (WORD)pSource->MaximumLength,
-                                    &dwSize);
-        BAIL_ON_LW_ERROR(dwError);
-
-        LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
         pCursor = pBuffer + dwOffset;
 
         BAIL_IF_NOT_ENOUGH_SPACE(dwSize, dwSpaceLeft, dwError);
 
-        if (pSource && pSource->Buffer)
+        if (pSource &&
+            pSource->MaximumLength && pSource->Buffer)
         {
-            pStr = LWBUF_TARGET_PTR(dwStrSize, dwSpaceLeft);
+            pStr = LWBUF_TARGET_PTR(pBuffer, dwStrSize, dwSpaceLeft);
 
             /* sanity check - the string and current buffer cursor
                must not overlap */
@@ -530,11 +534,6 @@ LwBufferAllocUnicodeString(
     }
     else
     {
-        /* size of length and size fields */
-        dwSize   += 2 * sizeof(USHORT);
-        dwOffset += 2 * sizeof(USHORT);
-
-        LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
         dwSize += dwStrSize;
     }
 
@@ -595,6 +594,8 @@ LwBufferAllocAnsiString(
 
     if (pBuffer && pdwSpaceLeft && pSource)
     {
+        LWBUF_ALIGN(dwOffset, dwSize, dwSpaceLeft);
+
         /* string length field */
         dwError = LwBufferAllocWord(pBuffer,
                                     &dwOffset,
@@ -611,12 +612,12 @@ LwBufferAllocAnsiString(
                                     &dwSize);
         BAIL_ON_LW_ERROR(dwError);
 
-        LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
+        LWBUF_ALIGN_PTR(dwOffset, dwSize, dwSpaceLeft);
         pCursor = pBuffer + dwOffset;
 
         BAIL_IF_NOT_ENOUGH_SPACE(dwSize, dwSpaceLeft, dwError);
 
-        pStr = LWBUF_TARGET_PTR(dwStrSize, dwSpaceLeft);
+        pStr = LWBUF_TARGET_PTR(pBuffer, dwStrSize, dwSpaceLeft);
 
         /* sanity check - the string and current buffer cursor
            must not overlap */
@@ -653,7 +654,7 @@ LwBufferAllocAnsiString(
                                     &dwSize);
         BAIL_ON_LW_ERROR(dwError);
 
-        LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
+        LWBUF_ALIGN(dwOffset, dwSize, dwSpaceLeft);
         pCursor = pBuffer + dwOffset;
 
         /* recalculate space after copying the string */
@@ -671,7 +672,7 @@ LwBufferAllocAnsiString(
         dwSize   += 2 * sizeof(USHORT);
         dwOffset += 2 * sizeof(USHORT);
 
-        LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
+        LWBUF_ALIGN(dwOffset, dwSize, dwSpaceLeft);
         dwSize += dwStrSize;
     }
 
@@ -729,7 +730,7 @@ LwBufferAllocWC16StringFromUnicodeString(
         dwSpaceLeft = *pdwSpaceLeft;
     }
 
-    LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
+    LWBUF_ALIGN(dwOffset, dwSize, dwSpaceLeft);
 
     if (pSource)
     {
@@ -741,7 +742,7 @@ LwBufferAllocWC16StringFromUnicodeString(
     {
         BAIL_IF_NOT_ENOUGH_SPACE(dwSize, dwSpaceLeft, dwError);
 
-        pStr = LWBUF_TARGET_PTR(dwSize, dwSpaceLeft);
+        pStr = LWBUF_TARGET_PTR(pBuffer, dwSize, dwSpaceLeft);
 
         /* sanity check - the string and current buffer cursor
            must not overlap */
@@ -805,7 +806,6 @@ LwBufferAllocUnicodeStringFromWC16String(
 {
     const WCHAR wszNullStr[] = {'\0'};
     DWORD dwError = ERROR_SUCCESS;
-    PVOID pCursor = NULL;
     DWORD dwOffset = 0;
     size_t sStrLen = 0;
     DWORD dwStrSize = 0;
@@ -822,7 +822,7 @@ LwBufferAllocUnicodeStringFromWC16String(
         dwSpaceLeft = *pdwSpaceLeft;
     }
 
-    LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
+    LWBUF_ALIGN(dwOffset, dwSize, dwSpaceLeft);
 
     if (!pwszSource)
     {
@@ -1005,7 +1005,7 @@ LwBufferAllocSid(
         dwSpaceLeft = *pdwSpaceLeft;
     }
 
-    LWBUF_ALIGN(pCursor, dwOffset, dwSize, dwSpaceLeft);
+    LWBUF_ALIGN(dwOffset, dwSize, dwSpaceLeft);
 
     if (pSourceSid)
     {
@@ -1025,7 +1025,7 @@ LwBufferAllocSid(
     {
         BAIL_IF_NOT_ENOUGH_SPACE(dwSidSize, dwSpaceLeft, dwError);
 
-        pSid = LWBUF_TARGET_PTR(dwSidSize, dwSpaceLeft);
+        pSid = LWBUF_TARGET_PTR(pBuffer, dwSidSize, dwSpaceLeft);
 
         /* sanity check - the string and current buffer cursor
            must not overlap */

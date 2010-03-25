@@ -47,8 +47,13 @@
 #include "config.h"
 #include <lw/types.h>
 #include <lw/attrs.h>
-#include <stdarg.h>
+#include <lw/rtlmemory.h>
+#include <lw/security-types.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <ctype.h>
 #include <wc16str.h>
 #include <wc16printf.h>
 #include "lwmem.h"

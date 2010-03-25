@@ -429,6 +429,129 @@ error:
 }
 
 
+DWORD
+LwAllocateUnicodeStringFromCString(
+    PUNICODE_STRING   pOutputString,
+    PCSTR             pszInputString
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    DWORD dwLen = 0;
+    DWORD dwSize = 0;
+    PWSTR pwszBuffer = NULL;
+
+    if (!pOutputString)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    if (pszInputString)
+    {
+        dwLen  = strlen(pszInputString);
+    }
+
+    dwSize = dwLen + 1;
+    dwError = LwAllocateMemory(sizeof(pwszBuffer[0]) * dwSize,
+                               OUT_PPVOID(&pwszBuffer));
+    BAIL_ON_LW_ERROR(dwError);
+
+    if (dwLen)
+    {
+        mbstowc16s(pwszBuffer, pszInputString, dwLen);
+    }
+
+    pOutputString->Length        = sizeof(pwszBuffer[0]) * dwLen;
+    pOutputString->MaximumLength = sizeof(pwszBuffer[0]) * dwSize;
+    pOutputString->Buffer        = pwszBuffer;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszBuffer);
+
+    pOutputString->Length        = 0;
+    pOutputString->MaximumLength = 0;
+    pOutputString->Buffer = NULL;
+
+    goto cleanup;
+}
+
+
+DWORD
+LwAllocateCStringFromUnicodeString(
+    PSTR             *ppszOutputString,
+    PUNICODE_STRING   pInputString
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    PSTR pszString = NULL;
+    DWORD dwSize = 0;
+
+    if (!ppszOutputString ||
+        !pInputString ||
+        !pInputString->Buffer)
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    /*
+     * Correctly handle the case where windows (incorrectly) sets
+     * max length to the same value as length
+     */
+    if (pInputString->MaximumLength > pInputString->Length)
+    {
+        dwSize = (pInputString->MaximumLength / sizeof(WCHAR));
+    }
+    else if (pInputString->MaximumLength == pInputString->Length)
+    {
+        dwSize = (pInputString->Length / sizeof(WCHAR)) + sizeof(CHAR);
+    }
+    else
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+        BAIL_ON_LW_ERROR(dwError);
+    }
+
+    dwError = LwAllocateMemory(dwSize,
+                               OUT_PPVOID(&pszString));
+    BAIL_ON_LW_ERROR(dwError);
+
+    wc16stombs(pszString, pInputString->Buffer,
+               pInputString->Length / sizeof(WCHAR));
+
+    *ppszOutputString = pszString;
+
+cleanup:
+    return dwError;
+
+error:
+    LW_SAFE_FREE_MEMORY(pszString);
+    *ppszOutputString = NULL;
+
+    goto cleanup;
+}
+
+
+VOID
+LwFreeUnicodeString(
+    PUNICODE_STRING pString
+    )
+{
+    if (!pString ||
+        pString->MaximumLength == 0 ||
+        !pString->Buffer)
+    {
+        return;
+    }
+
+    LW_SAFE_FREE_MEMORY(pString->Buffer);
+    pString->Buffer = NULL;
+}
+
+
 /*
 local variables:
 mode: c
