@@ -16,6 +16,7 @@
 #include <lw/winerror.h>
 #include <lwmem.h>
 #include <lwstr.h>
+#include <lwsid.h>
 #include <lwio/lwio.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>

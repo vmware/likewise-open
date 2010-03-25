@@ -77,6 +77,7 @@ CallSamrOpenDomains(
     CONNECT_HANDLE  hConn,
     PSID            pDomainSid,
     PSID            pBuiltinSid,
+    DWORD           dwAccessRights,
     DOMAIN_HANDLE  *phDomain,
     DOMAIN_HANDLE  *phBuiltin
     );
@@ -96,7 +97,9 @@ static
 BOOLEAN
 CallSamrEnumDomainAliases(
     handle_t       hBinding,
-    DOMAIN_HANDLE  hDomain
+    DOMAIN_HANDLE  hDomain,
+    PDWORD        *ppdwAliasRids,
+    PDWORD         pdwNumAliases
     );
 
 
@@ -106,8 +109,178 @@ CallSamrQueryDomainUsers(
     handle_t        hBinding,
     DOMAIN_HANDLE   hDomain,
     PDWORD          pdwRids,
+    DWORD           dwNumRids,
+    UserInfo     ***pppInfo
+    );
+
+
+static
+BOOLEAN
+CallSamrQueryDomainAliases(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PDWORD          pdwRids,
     DWORD           dwNumRids
     );
+
+
+static
+BOOLEAN
+CallSamrGetAliasMemberships(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PSID            pDomainSid
+    );
+
+
+static
+BOOLEAN
+CallSamrGetMembersInAlias(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PDWORD          pdwAliasRids,
+    DWORD           dwNumRids
+    );
+
+
+static
+BOOLEAN
+CallCreateUserAccounts(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PSTR            pszTestSetName,
+    PDWORD         *ppdwNewAccountRids,
+    PDWORD          pdwNumAccounts,
+    UserInfo     ***pppNewAccountInfo
+    );
+
+
+static
+BOOLEAN
+CallCleanupAccounts(
+    handle_t       hBinding,
+    DOMAIN_HANDLE  hDomain,
+    PWSTR         *ppwszUsernames,
+    DWORD          dwNumUsernames
+    );
+
+
+static
+BOOLEAN
+CallSamrDeleteDomainUsers(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PDWORD          pdwUserRids,
+    DWORD           dwNumUsers
+    );
+
+
+static
+BOOLEAN
+TestValidateDomainInfo(
+    DomainInfo    **ppDomainInfo
+    );
+
+
+static
+BOOLEAN
+TestValidateUserInfo(
+    UserInfo      **ppUserInfo,
+    DWORD           dwRid
+    );
+
+
+static
+BOOLEAN
+TestValidateAliasInfo(
+    AliasInfo **ppAliasInfo,
+    DWORD       dwRid
+    );
+
+
+static
+BOOLEAN
+TestVerifyUsers(
+    UserInfo   **ppNewUserInfo,
+    UserInfo  ***pppUserInfo,
+    DWORD        dwNumUsers
+    );
+
+
+typedef struct _TEST_USER
+{
+    PSTR   pszAccountName;
+    PSTR   pszFullName;
+    PSTR   pszHomeDirectory;
+    PSTR   pszHomeDrive;
+    PSTR   pszLogonScript;
+    PSTR   pszProfilePath;
+    PSTR   pszDescription;
+    PSTR   pszWorkstations;
+    PSTR   pszComment;
+    PSTR   pszParameters;
+    DWORD  dwPrimaryGroup;
+    DWORD  dwAccountFlags;
+    DWORD  dwCountryCode;
+    DWORD  dwCodePage;
+    PSTR   pszPassword;
+} TEST_USER, *PTEST_USER;
+
+
+static
+TEST_USER SimpleStandaloneAccounts[] = {
+    {
+        .pszAccountName      = "testuser1",
+        .pszFullName         = "xxx FullName aaa",
+        .pszHomeDirectory    = "xxxHomeDiraaa",
+        .pszHomeDrive        = "K:",
+        .pszLogonScript      = "xxxLogonScriptaaa",
+        .pszProfilePath      = "xxxProfilePathaaa",
+        .pszDescription      = "xxx Description aaa",
+        .pszWorkstations     = NULL,
+        .pszComment          = "xxx Comment aaa",
+        .pszParameters       = NULL,
+        .dwPrimaryGroup      = 0,
+        .dwAccountFlags      = ACB_NORMAL | ACB_DISABLED,
+        .dwCountryCode       = 0,
+        .dwCodePage          = 0,
+        .pszPassword         = NULL
+    },
+    {
+        .pszAccountName      = "testuser2",
+        .pszFullName         = "xxx FullName bbb",
+        .pszHomeDirectory    = "xxxHomeDirbbb",
+        .pszHomeDrive        = "L:",
+        .pszLogonScript      = "xxxLogonScriptbbb",
+        .pszProfilePath      = "xxxProfilePathbbb",
+        .pszDescription      = "xxx Description bbb",
+        .pszWorkstations     = NULL,
+        .pszComment          = "xxx Comment bbb",
+        .pszParameters       = NULL,
+        .dwPrimaryGroup      = 0,
+        .dwAccountFlags      = ACB_NORMAL | ACB_DISABLED,
+        .dwCountryCode       = 0,
+        .dwCodePage          = 0,
+        .pszPassword         = NULL
+    },
+    {
+        .pszAccountName      = "testuser3",
+        .pszFullName         = "xxx FullName ccc",
+        .pszHomeDirectory    = "xxxHomeDirccc",
+        .pszHomeDrive        = "M:",
+        .pszLogonScript      = "xxxLogonScriptccc",
+        .pszProfilePath      = "xxxProfilePathccc",
+        .pszDescription      = "xxx Description ccc",
+        .pszWorkstations     = NULL,
+        .pszComment          = "xxx Comment ccc",
+        .pszParameters       = NULL,
+        .dwPrimaryGroup      = 0,
+        .dwAccountFlags      = ACB_NORMAL | ACB_DISABLED,
+        .dwCountryCode       = 0,
+        .dwCodePage          = 0,
+        .pszPassword         = NULL
+    }
+};
 
 
 handle_t CreateSamrBinding(handle_t *binding, const wchar16_t *host)
@@ -584,6 +757,41 @@ done:
 }
 
 
+DWORD
+TestGetUserAccountTestSet(
+    PTEST_USER     *ppTestSet,
+    PDWORD          pdwNumNames,
+    PCSTR           pszTestSetName
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    PTEST_USER pTestSet = NULL;
+    DWORD dwNumNames = 0;
+
+    if (strcmp(pszTestSetName, "standalone-simple") == 0 ||
+        strcmp(pszTestSetName, "STANDALONE-SIMPLE") == 0)
+    {
+        pTestSet = SimpleStandaloneAccounts;
+        dwNumNames = (sizeof(SimpleStandaloneAccounts)
+                      /sizeof(SimpleStandaloneAccounts[0]));
+    }
+    else
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+    }
+    BAIL_ON_WIN_ERROR(dwError);
+
+    *ppTestSet   = pTestSet;
+    *pdwNumNames = dwNumNames;
+
+error:
+    return dwError;
+}
+
+
+
+
+
 static
 BOOLEAN
 CallSamrConnect(
@@ -928,28 +1136,32 @@ CallSamrOpenDomains(
     CONNECT_HANDLE  hConn,
     PSID            pDomainSid,
     PSID            pBuiltinSid,
+    DWORD           dwAccessRights,
     DOMAIN_HANDLE  *phDomain,
     DOMAIN_HANDLE  *phBuiltin
     )
 {
     BOOL bRet = TRUE;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    UINT32 dwAccessMask = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                          DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                          DOMAIN_ACCESS_CREATE_USER |
-                          DOMAIN_ACCESS_CREATE_ALIAS |
-                          DOMAIN_ACCESS_LOOKUP_INFO_2 |
-                          DOMAIN_ACCESS_LOOKUP_INFO_1;
+    UINT32 dwDefaultAccessMask = DOMAIN_ACCESS_OPEN_ACCOUNT |
+                                 DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                 DOMAIN_ACCESS_LOOKUP_INFO_2 |
+                                 DOMAIN_ACCESS_LOOKUP_INFO_1;
     DOMAIN_HANDLE hDomain = NULL;
     DOMAIN_HANDLE hBuiltin = NULL;
     DomainInfo *pDomainInfo[14] = {NULL};
     DWORD i = 0;
 
+    if (dwAccessRights == 0)
+    {
+        dwAccessRights = dwDefaultAccessMask;
+    }
+
     if (pDomainSid)
     {
         DISPLAY_COMMENT(("Testing SamrOpenDomain\n"));
 
-        CALL_MSRPC(ntStatus, SamrOpenDomain(hBinding, hConn, dwAccessMask,
+        CALL_MSRPC(ntStatus, SamrOpenDomain(hBinding, hConn, dwAccessRights,
                                             pDomainSid, &hDomain));
         if (ntStatus)
         {
@@ -977,37 +1189,7 @@ CallSamrOpenDomains(
                 }
             }
 
-            ASSERT_TEST(pDomainInfo[1]->info1.min_pass_age <
-                        pDomainInfo[1]->info1.max_pass_age);
-            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.comment);
-            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.domain_name);
-            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.primary);
-            ASSERT_TEST(pDomainInfo[2]->info2.role >= SAMR_ROLE_STANDALONE &&
-                        pDomainInfo[2]->info2.role <= SAMR_ROLE_DOMAIN_PDC);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[4]->info4.comment,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.comment);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[5]->info5.domain_name,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.domain_name);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[6]->info6.primary,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.primary);
-            ASSERT_TEST(pDomainInfo[7]->info7.role ==
-                        pDomainInfo[2]->info2.role);
-            ASSERT_TEST(pDomainInfo[11]->info11.info2.role >= SAMR_ROLE_STANDALONE &&
-                        pDomainInfo[11]->info11.info2.role <= SAMR_ROLE_DOMAIN_PDC);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.comment,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.comment);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.domain_name,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.domain_name);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.primary,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.primary);
-            ASSERT_TEST(pDomainInfo[11]->info11.info2.role ==
-                        pDomainInfo[2]->info2.role);
-            ASSERT_TEST(pDomainInfo[12]->info12.lockout_duration ==
-                        pDomainInfo[11]->info11.lockout_duration);
-            ASSERT_TEST(pDomainInfo[12]->info12.lockout_window ==
-                        pDomainInfo[11]->info11.lockout_window);
-            ASSERT_TEST(pDomainInfo[12]->info12.lockout_threshold ==
-                        pDomainInfo[11]->info11.lockout_threshold);
+            bRet &= TestValidateDomainInfo(pDomainInfo);
         }
     }
     else
@@ -1028,7 +1210,7 @@ CallSamrOpenDomains(
     {
         DISPLAY_COMMENT(("Testing SamrOpenDomain\n"));
 
-        CALL_MSRPC(ntStatus, SamrOpenDomain(hBinding, hConn, dwAccessMask,
+        CALL_MSRPC(ntStatus, SamrOpenDomain(hBinding, hConn, dwAccessRights,
                                             pBuiltinSid, &hBuiltin));
         if (ntStatus)
         {
@@ -1056,37 +1238,7 @@ CallSamrOpenDomains(
                 }
             }
 
-            ASSERT_TEST(pDomainInfo[1]->info1.min_pass_age <
-                        pDomainInfo[1]->info1.max_pass_age);
-            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.comment);
-            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.domain_name);
-            ASSERT_UNICODE_STRING_VALID(&pDomainInfo[2]->info2.primary);
-            ASSERT_TEST(pDomainInfo[2]->info2.role >= SAMR_ROLE_STANDALONE &&
-                        pDomainInfo[2]->info2.role <= SAMR_ROLE_DOMAIN_PDC);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[4]->info4.comment,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.comment);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[5]->info5.domain_name,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.domain_name);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[6]->info6.primary,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.primary);
-            ASSERT_TEST(pDomainInfo[7]->info7.role ==
-                        pDomainInfo[2]->info2.role);
-            ASSERT_TEST(pDomainInfo[11]->info11.info2.role >= SAMR_ROLE_STANDALONE &&
-                        pDomainInfo[11]->info11.info2.role <= SAMR_ROLE_DOMAIN_PDC);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.comment,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.comment);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.domain_name,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.domain_name);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pDomainInfo[11]->info11.info2.primary,
-                                        (PUNICODE_STRING)&pDomainInfo[2]->info2.primary);
-            ASSERT_TEST(pDomainInfo[11]->info11.info2.role ==
-                        pDomainInfo[2]->info2.role);
-            ASSERT_TEST(pDomainInfo[12]->info12.lockout_duration ==
-                        pDomainInfo[11]->info11.lockout_duration);
-            ASSERT_TEST(pDomainInfo[12]->info12.lockout_window ==
-                        pDomainInfo[11]->info11.lockout_window);
-            ASSERT_TEST(pDomainInfo[12]->info12.lockout_threshold ==
-                        pDomainInfo[11]->info11.lockout_threshold);
+            bRet &= TestValidateDomainInfo(pDomainInfo);
         }
     }
     else
@@ -1097,7 +1249,6 @@ CallSamrOpenDomains(
     *phDomain  = hDomain;
     *phBuiltin = hBuiltin;
 
-error:
     for (i = 1; i <= 13; i++)
     {
         if (pDomainInfo[i])
@@ -1110,6 +1261,48 @@ error:
     {
         bRet = FALSE;
     }
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+TestValidateDomainInfo(
+    DomainInfo    **ppDomainInfo
+    )
+{
+    BOOLEAN bRet = TRUE;
+
+    ASSERT_UNICODE_STRING_VALID(&ppDomainInfo[2]->info2.comment);
+    ASSERT_UNICODE_STRING_VALID(&ppDomainInfo[2]->info2.domain_name);
+    ASSERT_UNICODE_STRING_VALID(&ppDomainInfo[2]->info2.primary);
+    ASSERT_TEST(ppDomainInfo[2]->info2.role >= SAMR_ROLE_STANDALONE &&
+                ppDomainInfo[2]->info2.role <= SAMR_ROLE_DOMAIN_PDC);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppDomainInfo[4]->info4.comment,
+                                (PUNICODE_STRING)&ppDomainInfo[2]->info2.comment);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppDomainInfo[5]->info5.domain_name,
+                                (PUNICODE_STRING)&ppDomainInfo[2]->info2.domain_name);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppDomainInfo[6]->info6.primary,
+                                (PUNICODE_STRING)&ppDomainInfo[2]->info2.primary);
+    ASSERT_TEST(ppDomainInfo[7]->info7.role ==
+                ppDomainInfo[2]->info2.role);
+    ASSERT_TEST(ppDomainInfo[11]->info11.info2.role >= SAMR_ROLE_STANDALONE &&
+                ppDomainInfo[11]->info11.info2.role <= SAMR_ROLE_DOMAIN_PDC);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppDomainInfo[11]->info11.info2.comment,
+                                (PUNICODE_STRING)&ppDomainInfo[2]->info2.comment);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppDomainInfo[11]->info11.info2.domain_name,
+                                (PUNICODE_STRING)&ppDomainInfo[2]->info2.domain_name);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppDomainInfo[11]->info11.info2.primary,
+                                (PUNICODE_STRING)&ppDomainInfo[2]->info2.primary);
+    ASSERT_TEST(ppDomainInfo[11]->info11.info2.role ==
+                ppDomainInfo[2]->info2.role);
+    ASSERT_TEST(ppDomainInfo[12]->info12.lockout_duration ==
+                ppDomainInfo[11]->info11.lockout_duration);
+    ASSERT_TEST(ppDomainInfo[12]->info12.lockout_window ==
+                ppDomainInfo[11]->info11.lockout_window);
+    ASSERT_TEST(ppDomainInfo[12]->info12.lockout_threshold ==
+                ppDomainInfo[11]->info11.lockout_threshold);
 
     return bRet;
 }
@@ -1351,20 +1544,27 @@ static
 BOOLEAN
 CallSamrEnumDomainAliases(
     handle_t       hBinding,
-    DOMAIN_HANDLE  hDomain
+    DOMAIN_HANDLE  hDomain,
+    PDWORD        *ppdwAliasRids,
+    PDWORD         pdwNumAliases
     )
 {
     BOOL bRet = TRUE;
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    NTSTATUS ntEnumStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     DWORD dwResume = 0;
     DWORD dwAccountFlags = 0;
     PWSTR *ppwszAliases = NULL;
     PDWORD pdwRids = NULL;
     PDWORD pdwTypes = NULL;
     DWORD dwNumEntries = 0;
+    DWORD dwResumeIndex = 0;
+    DWORD dwTotalNumAliases = 0;
     DWORD dwRidsCount = 0;
     DWORD i = 0;
-    PWSTR ppwszNames[2] = {NULL};
+    PWSTR ppwszNames[2] = {0};
+    PDWORD pdwAliasRids = NULL;
 
     dwResume = 0;
     dwAccountFlags = ACB_NORMAL;
@@ -1375,9 +1575,43 @@ CallSamrEnumDomainAliases(
     {
         ntStatus = SamrEnumDomainAliases(hBinding, hDomain, &dwResume, dwAccountFlags,
                                          &ppwszAliases, &pdwRids, &dwNumEntries);
-
         if (ntStatus != STATUS_SUCCESS &&
             ntStatus != STATUS_MORE_ENTRIES)
+        {
+            DISPLAY_ERROR(("SamrEnumDomainAliases error %s\n", LwNtStatusToName(ntStatus)));
+            bRet = FALSE;
+            goto error;
+        }
+
+        if (ppwszAliases)
+        {
+            SamrFreeMemory(ppwszAliases);
+            ppwszAliases = NULL;
+        }
+
+        if (pdwRids)
+        {
+            SamrFreeMemory(pdwRids);
+            pdwRids = NULL;
+        }
+
+        dwTotalNumAliases += dwNumEntries;
+    }
+    while (ntStatus == STATUS_MORE_ENTRIES);
+
+    dwError = LwAllocateMemory(sizeof(pdwAliasRids[0]) * dwTotalNumAliases,
+                               OUT_PPVOID(&pdwAliasRids));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    do
+    {
+        ntEnumStatus = SamrEnumDomainAliases(hBinding, hDomain,
+                                             &dwResume, dwAccountFlags,
+                                             &ppwszAliases, &pdwRids,
+                                             &dwNumEntries);
+
+        if (ntEnumStatus != STATUS_SUCCESS &&
+            ntEnumStatus != STATUS_MORE_ENTRIES)
         {
             DISPLAY_ERROR(("SamrEnumDomainAliases error %s\n", LwNtStatusToName(ntStatus)));
             bRet = FALSE;
@@ -1385,6 +1619,10 @@ CallSamrEnumDomainAliases(
         else
         {
             DISPLAY_USERS(ppwszAliases, dwNumEntries);
+
+            memcpy(&pdwAliasRids[dwResumeIndex], pdwRids,
+                   sizeof(pdwAliasRids[0]) * dwNumEntries);
+            dwResumeIndex += dwNumEntries;
 
             if (pdwRids)
             {
@@ -1429,8 +1667,23 @@ CallSamrEnumDomainAliases(
             }
         }
     }
-    while (ntStatus == STATUS_MORE_ENTRIES);
+    while (ntEnumStatus == STATUS_MORE_ENTRIES);
 
+    if (ppdwAliasRids)
+    {
+        *ppdwAliasRids = pdwAliasRids;
+    }
+    else
+    {
+        LW_SAFE_FREE_MEMORY(pdwAliasRids);
+    }
+
+    if (pdwNumAliases)
+    {
+        *pdwNumAliases = dwTotalNumAliases;
+    }
+
+error:
     if (pdwRids)
     {
         SamrFreeMemory(pdwRids);
@@ -1456,7 +1709,8 @@ CallSamrQueryDomainUsers(
     handle_t        hBinding,
     DOMAIN_HANDLE   hDomain,
     PDWORD          pdwRids,
-    DWORD           dwNumRids
+    DWORD           dwNumRids,
+    UserInfo     ***pppInfo
     )
 {
     const DWORD dwAccessMask = USER_ACCESS_GET_NAME_ETC |
@@ -1464,17 +1718,21 @@ CallSamrQueryDomainUsers(
                                USER_ACCESS_GET_LOGONINFO |
                                USER_ACCESS_GET_ATTRIBUTES;
     BOOLEAN bRet = TRUE;
+    DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
     DWORD dwRid = 0;
     ACCOUNT_HANDLE hUser = NULL;
     DWORD iUser = 0;
-    UserInfo *pUserInfo[21] = {NULL};
+    UserInfo **ppUserInfo = NULL;
     DWORD iLevel = 0;
 
     for (iUser = 0; iUser < dwNumRids; iUser++)
     {
-        dwRid = pdwRids[iUser];
+        dwError = LwAllocateMemory(sizeof(ppUserInfo[0]) * 22,
+                                   OUT_PPVOID(&ppUserInfo));
+        BAIL_ON_WIN_ERROR(dwError);
 
+        dwRid = pdwRids[iUser];
         CALL_MSRPC(ntStatus, SamrOpenUser(hBinding, hDomain, dwAccessMask,
                                           dwRid, &hUser));
         if (ntStatus)
@@ -1483,59 +1741,1083 @@ CallSamrQueryDomainUsers(
         }
         else
         {
-            for (iLevel = 1; iLevel < 21; iLevel++)
+            for (iLevel = 1; iLevel <= 21; iLevel++)
             {
+                if (iLevel == 5)      /* This level doesn't work at the moment */
+                {
+                    continue;
+                }
+
                 CALL_MSRPC(ntStatus, SamrQueryUserInfo(hBinding, hUser,
-                                                       iLevel, &pUserInfo[iLevel]));
+                                                       iLevel, &ppUserInfo[iLevel]));
+                if (ntStatus == STATUS_INVALID_INFO_CLASS &&
+                    (iLevel == 15 ||
+                     iLevel == 18 ||
+                     iLevel == 19 ))
+                {
+                    ntStatus = STATUS_SUCCESS;
+                }
+
                 if (ntStatus)
                 {
                     bRet = FALSE;
                 }
             }
 
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[1]->info1.account_name);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[1]->info1.full_name);
-            ASSERT_TEST(pUserInfo[1]->info1.primary_gid > 0);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[1]->info1.description);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[1]->info1.comment);
-
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pUserInfo[2]->info2.comment,
-                                        (PUNICODE_STRING)&pUserInfo[1]->info1.comment);
-
-
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pUserInfo[3]->info3.account_name,
-                                        (PUNICODE_STRING)&pUserInfo[1]->info1.account_name);
-            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&pUserInfo[3]->info3.full_name,
-                                        (PUNICODE_STRING)&pUserInfo[1]->info1.full_name);
-            ASSERT_TEST(pUserInfo[3]->info3.rid == dwRid);
-            ASSERT_TEST(pUserInfo[3]->info3.primary_gid == pUserInfo[1]->info1.primary_gid);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.home_directory);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.home_drive);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.logon_script);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.profile_path);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.workstations);
-            ASSERT_UNICODE_STRING_VALID(&pUserInfo[3]->info3.home_directory);
-            ASSERT_TEST((pUserInfo[3]->info3.account_flags & ACB_NORMAL));
+            bRet &= TestValidateUserInfo(ppUserInfo, dwRid);
         }
 
         CALL_MSRPC(ntStatus, SamrClose(hBinding, hUser));
 
-        for (iLevel = 1; iLevel < 21; iLevel++)
+        if (pppInfo)
         {
-            if (pUserInfo[iLevel])
+            pppInfo[iUser] = ppUserInfo;
+        }
+        else
+        {
+            for (iLevel = 1; iLevel <= 21; iLevel++)
             {
-                SamrFreeMemory(pUserInfo[iLevel]);
-                pUserInfo[iLevel] = NULL;
+                if (ppUserInfo[iLevel])
+                {
+                    SamrFreeMemory(ppUserInfo[iLevel]);
+                    ppUserInfo[iLevel] = NULL;
+                }
             }
+
+            LW_SAFE_FREE_MEMORY(ppUserInfo);
+            ppUserInfo = NULL;
         }
     }
 
 error:
-    for (iLevel = 1; iLevel < 21; iLevel++)
+    return bRet;
+}
+
+
+static
+BOOLEAN
+CallSamrQueryDomainAliases(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PDWORD          pdwRids,
+    DWORD           dwNumRids
+    )
+{
+    const DWORD dwAccessMask = ALIAS_ACCESS_LOOKUP_INFO;
+
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwRid = 0;
+    ACCOUNT_HANDLE hAlias = NULL;
+    DWORD iAlias = 0;
+    AliasInfo *ppAliasInfo[4] = {NULL};
+    DWORD iLevel = 0;
+
+    for (iAlias = 0; iAlias < dwNumRids; iAlias++)
     {
-        if (pUserInfo[iLevel])
+        dwRid = pdwRids[iAlias];
+
+        CALL_MSRPC(ntStatus, SamrOpenAlias(hBinding, hDomain, dwAccessMask,
+                                           dwRid, &hAlias));
+        if (ntStatus)
         {
-            SamrFreeMemory(pUserInfo[iLevel]);
+            bRet = FALSE;
+        }
+        else
+        {
+            for (iLevel = 1; iLevel <= 3; iLevel++)
+            {
+                CALL_MSRPC(ntStatus, SamrQueryAliasInfo(hBinding, hAlias,
+                                                        iLevel, &ppAliasInfo[iLevel]));
+                if (ntStatus)
+                {
+                    bRet = FALSE;
+                }
+            }
+
+            bRet &= TestValidateAliasInfo(ppAliasInfo, dwRid);
+        }
+
+        CALL_MSRPC(ntStatus, SamrClose(hBinding, hAlias));
+
+        for (iLevel = 1; iLevel <= 3; iLevel++)
+        {
+            if (ppAliasInfo[iLevel])
+            {
+                SamrFreeMemory(ppAliasInfo[iLevel]);
+                ppAliasInfo[iLevel] = NULL;
+            }
+        }
+    }
+
+    for (iLevel = 1; iLevel <= 3; iLevel++)
+    {
+        if (ppAliasInfo[iLevel])
+        {
+            SamrFreeMemory(ppAliasInfo[iLevel]);
+        }
+    }
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+CallSamrGetAliasMemberships(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PSID            pDomainSid
+    )
+{
+    BOOLEAN bRet = TRUE;
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSID *ppWellKnownSids = NULL;
+    DWORD iSid = 0;
+    DWORD dwNumWellKnownSids = 4;
+    PDWORD pdwRids = NULL;
+    DWORD dwRidsCount = 0;
+
+    dwError = LwAllocateMemory(sizeof(ppWellKnownSids[0]) * dwNumWellKnownSids,
+                               OUT_PPVOID(&ppWellKnownSids));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwCreateWellKnownSid(WinBuiltinUsersSid,
+                                   NULL,
+                                   &(ppWellKnownSids[iSid++]),
+                                   NULL);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwCreateWellKnownSid(WinBuiltinAdministratorsSid,
+                                   NULL,
+                                   &(ppWellKnownSids[iSid++]),
+                                   NULL);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwCreateWellKnownSid(WinAccountDomainUsersSid,
+                                   pDomainSid,
+                                   &(ppWellKnownSids[iSid++]),
+                                   NULL);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwCreateWellKnownSid(WinAccountDomainAdminsSid,
+                                   pDomainSid,
+                                   &(ppWellKnownSids[iSid++]),
+                                   NULL);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    CALL_MSRPC(ntStatus, SamrGetAliasMembership(hBinding,
+                                                hDomain,
+                                                ppWellKnownSids,
+                                                dwNumWellKnownSids,
+                                                &pdwRids,
+                                                &dwRidsCount));
+    if (ntStatus)
+    {
+        bRet = FALSE;
+    }
+
+    if (pdwRids)
+    {
+        SamrFreeMemory(pdwRids);
+        pdwRids = NULL;
+    }
+
+    for (iSid = 0; iSid < dwNumWellKnownSids; iSid++)
+    {
+        CALL_MSRPC(ntStatus, SamrGetAliasMembership(hBinding,
+                                                    hDomain,
+                                                    &(ppWellKnownSids[iSid]),
+                                                    1,
+                                                    &pdwRids,
+                                                    &dwRidsCount));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+        }
+
+        if (pdwRids)
+        {
+            SamrFreeMemory(pdwRids);
+            pdwRids = NULL;
+        }
+    }
+
+error:
+    for (iSid = 0; iSid < dwNumWellKnownSids; iSid++)
+    {
+        LW_SAFE_FREE_MEMORY(ppWellKnownSids[iSid]);
+    }
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+CallSamrGetMembersInAlias(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PDWORD          pdwAliasRids,
+    DWORD           dwNumRids
+    )
+{
+    const DWORD dwAccessMask = ALIAS_ACCESS_LOOKUP_INFO |
+                               ALIAS_ACCESS_GET_MEMBERS;
+
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwRid = 0;
+    ACCOUNT_HANDLE hAlias = NULL;
+    DWORD iAlias = 0;
+    PSID *ppSids = NULL;
+    DWORD dwSidsCount = 0;
+    DWORD iSid = 0;
+
+    for (iAlias = 0; iAlias < dwNumRids; iAlias++)
+    {
+        dwRid = pdwAliasRids[iAlias];
+
+        CALL_MSRPC(ntStatus, SamrOpenAlias(hBinding,
+                                           hDomain,
+                                           dwAccessMask,
+                                           dwRid,
+                                           &hAlias));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            goto cleanup;
+        }
+
+        CALL_MSRPC(ntStatus, SamrGetMembersInAlias(hBinding,
+                                                   hAlias,
+                                                   &ppSids,
+                                                   &dwSidsCount));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            goto cleanup;
+        }
+
+        for (iSid = 0; iSid < dwSidsCount; iSid++)
+        {
+            ASSERT_TEST_MSG((ppSids[iSid] != NULL && RtlValidSid(ppSids[iSid])),
+                            ("(i = %d)\n", iSid));
+        }
+
+cleanup:
+        CALL_MSRPC(ntStatus, SamrClose(hBinding, hAlias));
+
+        if (ppSids)
+        {
+            SamrFreeMemory(ppSids);
+            ppSids = NULL;
+        }
+
+        hAlias = NULL;
+    }
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+CallCreateUserAccounts(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PSTR            pszTestSetName,
+    PDWORD         *ppdwNewAccountRids,
+    PDWORD          pdwNumAccounts,
+    UserInfo     ***pppNewAccountInfo
+    )
+{
+    BOOLEAN bRet = TRUE;
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PTEST_USER pTestSet = NULL;
+    DWORD dwNumUsers = 0;
+    DWORD iUser = 0;
+    PWSTR pwszAccountName = NULL;
+    DWORD dwCreateUserAccessMask = USER_ACCESS_GET_ATTRIBUTES |
+                                   USER_ACCESS_SET_ATTRIBUTES |
+                                   USER_ACCESS_SET_PASSWORD;
+    PDWORD pdwRids = NULL;
+    DWORD dwNumAccounts = 0;
+    UserInfo **ppUserInfo = NULL;
+
+    dwError = TestGetUserAccountTestSet(&pTestSet, &dwNumUsers, pszTestSetName);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(pdwRids[0]) * dwNumUsers,
+                               OUT_PPVOID(&pdwRids));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwAllocateMemory(sizeof(ppUserInfo[0]) * dwNumUsers,
+                               OUT_PPVOID(&ppUserInfo));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    for (iUser = 0; iUser < dwNumUsers; iUser++)
+    {
+        DWORD dwAccessGranted = 0;
+        PTEST_USER pUser = &(pTestSet[iUser]);
+        ACCOUNT_HANDLE hUser = NULL;
+        DWORD dwRid = 0;
+        DWORD dwLevel = 0;
+        UserInfo Info8;
+        UserInfo Info9;
+        UserInfo Info10;
+        UserInfo Info11;
+        UserInfo Info12;
+        UserInfo Info13;
+        UserInfo Info14;
+        UserInfo Info16;
+        UserInfo *pInfo21 = NULL;
+
+        memset(&Info8, 0, sizeof(Info8));
+        memset(&Info9, 0, sizeof(Info9));
+        memset(&Info10, 0, sizeof(Info10));
+        memset(&Info11, 0, sizeof(Info11));
+        memset(&Info12, 0, sizeof(Info12));
+        memset(&Info13, 0, sizeof(Info13));
+        memset(&Info14, 0, sizeof(Info14));
+        memset(&Info16, 0, sizeof(Info16));
+
+        dwError = LwMbsToWc16s(pUser->pszAccountName, &pwszAccountName);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        bRet &= CallCleanupAccounts(hBinding,
+                                    hDomain,
+                                    &pwszAccountName,
+                                    1);
+
+        CALL_MSRPC(ntStatus, SamrCreateUser2(hBinding,
+                                             hDomain,
+                                             pwszAccountName,
+                                             ACB_NORMAL,
+                                             dwCreateUserAccessMask,
+                                             &hUser,
+                                             &dwAccessGranted,
+                                             &dwRid));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            goto cleanup;
+        }
+
+        pdwRids[iUser] = dwRid;
+        dwNumAccounts++;
+
+        CALL_MSRPC(ntStatus, SamrClose(hBinding, hUser));
+
+        CALL_MSRPC(ntStatus, SamrOpenUser(hBinding,
+                                          hDomain,
+                                          dwCreateUserAccessMask,
+                                          dwRid,
+                                          &hUser));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            goto cleanup;
+        }
+
+        if (pUser->pszFullName)
+        {
+            dwLevel = 8;
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&Info8.info8.full_name,
+                                          pUser->pszFullName);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            CALL_MSRPC(ntStatus, SamrSetUserInfo2(hBinding, hUser, dwLevel, &Info8));
+            if (ntStatus)
+            {
+                bRet = FALSE;
+                goto cleanup;
+            }
+        }
+
+        if (pUser->pszHomeDirectory ||
+            pUser->pszHomeDrive)
+        {
+            dwLevel = 10;
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&Info10.info10.home_directory,
+                                          pUser->pszHomeDirectory);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&Info10.info10.home_drive,
+                                          pUser->pszHomeDrive);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            CALL_MSRPC(ntStatus, SamrSetUserInfo2(hBinding, hUser, dwLevel, &Info10));
+            if (ntStatus)
+            {
+                bRet = FALSE;
+                goto cleanup;
+            }
+        }
+
+        if (pUser->pszLogonScript)
+        {
+            dwLevel = 11;
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&Info11.info11.logon_script,
+                                          pUser->pszLogonScript);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            CALL_MSRPC(ntStatus, SamrSetUserInfo2(hBinding, hUser, dwLevel, &Info11));
+            if (ntStatus)
+            {
+                bRet = FALSE;
+                goto cleanup;
+            }
+        }
+
+        if (pUser->pszProfilePath)
+        {
+            dwLevel = 12;
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&Info12.info12.profile_path,
+                                          pUser->pszProfilePath);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            CALL_MSRPC(ntStatus, SamrSetUserInfo2(hBinding, hUser, dwLevel, &Info12));
+            if (ntStatus)
+            {
+                bRet = FALSE;
+                goto cleanup;
+            }
+        }
+
+        if (pUser->pszDescription)
+        {
+            dwLevel = 13;
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&Info13.info13.description,
+                                          pUser->pszDescription);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            CALL_MSRPC(ntStatus, SamrSetUserInfo2(hBinding, hUser, dwLevel, &Info13));
+            if (ntStatus)
+            {
+                bRet = FALSE;
+                goto cleanup;
+            }
+        }
+
+        if (pUser->pszWorkstations)
+        {
+            dwLevel = 14;
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&Info14.info14.workstations,
+                                          pUser->pszWorkstations);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            CALL_MSRPC(ntStatus, SamrSetUserInfo2(hBinding, hUser, dwLevel, &Info14));
+            if (ntStatus)
+            {
+                bRet = FALSE;
+                goto cleanup;
+            }
+        }
+
+        if (pUser->dwPrimaryGroup)
+        {
+            dwLevel = 9;
+            Info9.info9.primary_gid = pUser->dwPrimaryGroup;
+
+            CALL_MSRPC(ntStatus, SamrSetUserInfo2(hBinding, hUser, dwLevel, &Info9));
+            if (ntStatus)
+            {
+                bRet = FALSE;
+                goto cleanup;
+            }
+        }
+
+        dwLevel = 21;
+        dwError = LwAllocateMemory(sizeof(*pInfo21), OUT_PPVOID(&pInfo21));
+        BAIL_ON_WIN_ERROR(dwError);
+
+        if (pUser->pszFullName)
+        {
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&pInfo21->info21.full_name,
+                                          pUser->pszFullName);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            pInfo21->info21.fields_present |= SAMR_FIELD_FULL_NAME;
+        }
+
+        if (pUser->pszHomeDirectory)
+        {
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&pInfo21->info21.home_directory,
+                                          pUser->pszHomeDirectory);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            pInfo21->info21.fields_present |= SAMR_FIELD_HOME_DIRECTORY;
+        }
+
+        if (pUser->pszHomeDrive)
+        {
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&pInfo21->info21.home_drive,
+                                          pUser->pszHomeDrive);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            pInfo21->info21.fields_present |= SAMR_FIELD_HOME_DRIVE;
+        }
+
+        if (pUser->pszLogonScript)
+        {
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&pInfo21->info21.logon_script,
+                                          pUser->pszLogonScript);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            pInfo21->info21.fields_present |= SAMR_FIELD_LOGON_SCRIPT;
+        }
+
+        if (pUser->pszProfilePath)
+        {
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&pInfo21->info21.profile_path,
+                                          pUser->pszProfilePath);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            pInfo21->info21.fields_present |= SAMR_FIELD_PROFILE_PATH;
+        }
+
+        if (pUser->pszDescription)
+        {
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&pInfo21->info21.description,
+                                          pUser->pszDescription);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            pInfo21->info21.fields_present |= SAMR_FIELD_DESCRIPTION;
+        }
+
+        if (pUser->pszWorkstations)
+        {
+            dwError = LwAllocateUnicodeStringFromCString(
+                                          (PUNICODE_STRING)&pInfo21->info21.workstations,
+                                          pUser->pszWorkstations);
+            BAIL_ON_WIN_ERROR(dwError);
+
+            pInfo21->info21.fields_present |= SAMR_FIELD_WORKSTATIONS;
+        }
+
+        if (pUser->dwPrimaryGroup)
+        {
+            pInfo21->info21.primary_gid = pUser->dwPrimaryGroup;
+            pInfo21->info21.fields_present |= SAMR_FIELD_PRIMARY_GID;
+        }
+
+        CALL_MSRPC(ntStatus, SamrSetUserInfo2(hBinding, hUser, dwLevel, pInfo21));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            goto cleanup;
+        }
+
+        ppUserInfo[iUser] = pInfo21;
+
+cleanup:
+        CALL_MSRPC(ntStatus, SamrClose(hBinding, hUser));
+
+        LW_SAFE_FREE_MEMORY(pwszAccountName);
+        LwFreeUnicodeString((PUNICODE_STRING)&Info8.info8.full_name);
+        LwFreeUnicodeString((PUNICODE_STRING)&Info10.info10.home_directory);
+        LwFreeUnicodeString((PUNICODE_STRING)&Info10.info10.home_drive);
+        LwFreeUnicodeString((PUNICODE_STRING)&Info11.info11.logon_script);
+        LwFreeUnicodeString((PUNICODE_STRING)&Info12.info12.profile_path);
+        LwFreeUnicodeString((PUNICODE_STRING)&Info13.info13.description);
+        LwFreeUnicodeString((PUNICODE_STRING)&Info14.info14.workstations);
+
+        pwszAccountName = NULL;
+        hUser = NULL;
+    }
+
+    *ppdwNewAccountRids = pdwRids;
+    *pdwNumAccounts     = dwNumAccounts;
+    *pppNewAccountInfo  = ppUserInfo;
+
+error:
+    LW_SAFE_FREE_MEMORY(pwszAccountName);
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+CallCleanupAccounts(
+    handle_t       hBinding,
+    DOMAIN_HANDLE  hDomain,
+    PWSTR         *ppwszUsernames,
+    DWORD          dwNumUsernames
+    )
+{
+    DWORD dwUserAccess = DELETE;
+
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ACCOUNT_HANDLE hAccount = NULL;
+    PDWORD pdwRids = NULL;
+    PDWORD pdwTypes = NULL;
+    DWORD dwRidsCount = 0;
+    DWORD iRid = 0;
+
+    CALL_MSRPC(ntStatus, SamrLookupNames(hBinding,
+                                         hDomain,
+                                         dwNumUsernames,
+                                         ppwszUsernames,
+                                         &pdwRids,
+                                         &pdwTypes,
+                                         &dwRidsCount));
+    /* if no account has been found return success */
+    if (ntStatus == STATUS_NONE_MAPPED)
+    {
+        goto done;
+    }
+    /* if some accounts haven't been found keep going */
+    else if (ntStatus == STATUS_SOME_NOT_MAPPED)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+    else if (ntStatus)
+    {
+        bRet = FALSE;
+        goto done;
+    }
+
+    for (iRid = 0; iRid < dwRidsCount; iRid++)
+    {
+        ASSERT_TEST_MSG((pdwTypes[iRid] >= SID_TYPE_USE_NONE &&
+                         pdwTypes[iRid] <= SID_TYPE_LABEL),
+                        ("(iRid = %d)\n", iRid));
+
+        if (pdwTypes[iRid] == SID_TYPE_UNKNOWN)
+        {
+            continue;
+        }
+
+        CALL_MSRPC(ntStatus, SamrOpenUser(hBinding,
+                                          hDomain,
+                                          dwUserAccess,
+                                          pdwRids[iRid],
+                                          &hAccount));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            continue;
+        }
+
+        CALL_MSRPC(ntStatus, SamrDeleteUser(hBinding, hAccount));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            continue;
+        }
+    }
+
+done:
+    if (pdwRids)
+    {
+        SamrFreeMemory(pdwRids);
+    }
+
+    if (pdwTypes)
+    {
+        SamrFreeMemory(pdwTypes);
+    }
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+TestValidateUserInfo(
+    UserInfo      **ppUserInfo,
+    DWORD           dwRid
+    )
+{
+    BOOLEAN bRet = TRUE;
+
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[1]->info1.account_name);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[1]->info1.full_name);
+    ASSERT_TEST(ppUserInfo[1]->info1.primary_gid > 0);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[1]->info1.description);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[1]->info1.comment);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[2]->info2.comment,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.comment);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[3]->info3.account_name,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.account_name);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[3]->info3.full_name,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.full_name);
+    ASSERT_TEST(ppUserInfo[3]->info3.rid == dwRid);
+    ASSERT_TEST(ppUserInfo[3]->info3.primary_gid == ppUserInfo[1]->info1.primary_gid);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[3]->info3.home_directory);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[3]->info3.home_drive);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[3]->info3.logon_script);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[3]->info3.profile_path);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[3]->info3.workstations);
+    ASSERT_TEST((ppUserInfo[3]->info3.account_flags & ACB_NORMAL));
+
+    ASSERT_TEST((ppUserInfo[4]->info4.logon_hours.units_per_week / 8) <= 1260);
+
+#if 0
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[5]->info5.account_name,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.account_name);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[5]->info5.full_name,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.full_name);
+    ASSERT_TEST(ppUserInfo[5]->info5.rid == ppUserInfo[3]->info3.rid);
+    ASSERT_TEST(ppUserInfo[5]->info5.primary_gid == ppUserInfo[1]->info1.primary_gid);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[5]->info5.home_directory,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.home_directory);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[5]->info5.home_drive,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.home_drive);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[5]->info5.logon_script,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.logon_script);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[5]->info5.profile_path,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.profile_path);
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[5]->info5.description);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[5]->info5.workstations,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.workstations);
+    ASSERT_TEST(ppUserInfo[5]->info5.logon_hours.units_per_week ==
+                ppUserInfo[4]->info4.logon_hours.units_per_week);
+    ASSERT_TEST(memcmp(ppUserInfo[5]->info5.logon_hours.units,
+                       ppUserInfo[4]->info4.logon_hours.units,
+                       ppUserInfo[5]->info5.logon_hours.units_per_week / 8) == 0);
+    ASSERT_TEST(ppUserInfo[5]->info5.account_flags == ppUserInfo[3]->info3.account_flags);
+#endif
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[6]->info6.account_name,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.account_name);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[6]->info6.full_name,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.full_name);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[7]->info7.account_name,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.account_name);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[8]->info8.full_name,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.full_name);
+
+    ASSERT_TEST(ppUserInfo[9]->info9.primary_gid == ppUserInfo[1]->info1.primary_gid);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[10]->info10.home_directory,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.home_directory);
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[10]->info10.home_drive,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.home_drive);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[11]->info11.logon_script,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.logon_script);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[12]->info12.profile_path,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.profile_path);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[13]->info13.description,
+                                (PUNICODE_STRING)&ppUserInfo[1]->info1.description);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[14]->info14.workstations,
+                                (PUNICODE_STRING)&ppUserInfo[3]->info3.workstations);
+
+    ASSERT_TEST(ppUserInfo[16]->info16.account_flags == ppUserInfo[3]->info3.account_flags);
+
+#if 0
+    ASSERT_TEST(ppUserInfo[17]->info17.account_expiry == ppUserInfo[5]->info5.account_expiry);
+#endif
+
+    ASSERT_UNICODE_STRING_VALID(&ppUserInfo[20]->info20.parameters);
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_ACCOUNT_NAME)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.account_name,
+                                    (PUNICODE_STRING)&ppUserInfo[1]->info1.account_name);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_FULL_NAME)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.full_name,
+                                    (PUNICODE_STRING)&ppUserInfo[1]->info1.full_name);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_RID)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.rid == ppUserInfo[3]->info3.rid);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_PRIMARY_GID)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.primary_gid == ppUserInfo[3]->info3.primary_gid);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_DESCRIPTION)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.description,
+                                    (PUNICODE_STRING)&ppUserInfo[1]->info1.description);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_COMMENT)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.comment,
+                                    (PUNICODE_STRING)&ppUserInfo[1]->info1.comment);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_HOME_DIRECTORY)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.home_directory,
+                                    (PUNICODE_STRING)&ppUserInfo[3]->info3.home_directory);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_HOME_DRIVE)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.home_drive,
+                                    (PUNICODE_STRING)&ppUserInfo[3]->info3.home_drive);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_LOGON_SCRIPT)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.logon_script,
+                                    (PUNICODE_STRING)&ppUserInfo[3]->info3.logon_script);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_PROFILE_PATH)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.profile_path,
+                                    (PUNICODE_STRING)&ppUserInfo[3]->info3.profile_path);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_WORKSTATIONS)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.workstations,
+                                    (PUNICODE_STRING)&ppUserInfo[3]->info3.workstations);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_LAST_LOGON)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.last_logon == ppUserInfo[3]->info3.last_logon);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_LAST_LOGOFF)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.last_logoff == ppUserInfo[3]->info3.last_logoff);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_LOGON_HOURS)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.logon_hours.units_per_week ==
+                    ppUserInfo[4]->info4.logon_hours.units_per_week);
+        ASSERT_TEST(memcmp(ppUserInfo[21]->info21.logon_hours.units,
+                           ppUserInfo[4]->info4.logon_hours.units,
+                           ppUserInfo[21]->info21.logon_hours.units_per_week / 8) == 0);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_BAD_PWD_COUNT)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.bad_password_count ==
+                    ppUserInfo[3]->info3.bad_password_count);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_NUM_LOGONS)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.logon_count == ppUserInfo[3]->info3.logon_count);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_ALLOW_PWD_CHANGE)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.allow_password_change ==
+                    ppUserInfo[3]->info3.allow_password_change);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_FORCE_PWD_CHANGE)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.force_password_change ==
+                    ppUserInfo[3]->info3.force_password_change);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_LAST_PWD_CHANGE)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.last_password_change ==
+                    ppUserInfo[3]->info3.last_password_change);
+    }
+
+#if 0
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_ACCT_EXPIRY)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.account_expiry == ppUserInfo[5]->info5.account_expiry);
+    }
+#endif
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_ACCT_FLAGS)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.account_flags == ppUserInfo[3]->info3.account_flags);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_PARAMETERS)
+    {
+        ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppUserInfo[21]->info21.parameters,
+                                    (PUNICODE_STRING)&ppUserInfo[20]->info20.parameters);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_COUNTRY_CODE)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.country_code == ppUserInfo[2]->info2.country_code);
+    }
+
+    if (ppUserInfo[21]->info21.fields_present & SAMR_FIELD_CODE_PAGE)
+    {
+        ASSERT_TEST(ppUserInfo[21]->info21.code_page == ppUserInfo[2]->info2.code_page);
+    }
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+TestValidateAliasInfo(
+    AliasInfo **ppAliasInfo,
+    DWORD       dwRid
+    )
+{
+    BOOLEAN bRet = TRUE;
+
+    ASSERT_UNICODE_STRING_VALID(&ppAliasInfo[1]->all.name);
+    ASSERT_UNICODE_STRING_VALID(&ppAliasInfo[1]->all.description);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppAliasInfo[2]->name,
+                                (PUNICODE_STRING)&ppAliasInfo[1]->all.name);
+
+    ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppAliasInfo[3]->description,
+                                (PUNICODE_STRING)&ppAliasInfo[1]->all.description);
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+TestVerifyUsers(
+    UserInfo   **ppNewUserInfo,
+    UserInfo  ***pppUserInfo,
+    DWORD        dwNumUsers
+    )
+{
+    BOOLEAN bRet = TRUE;
+    DWORD dwFieldsPresent1 = 0;
+    DWORD dwFieldsPresent2 = 0;
+    DWORD i = 0;
+
+    for (i = 0; i < dwNumUsers; i++)
+    {
+        dwFieldsPresent1 = ppNewUserInfo[i]->info21.fields_present;
+        dwFieldsPresent2 = pppUserInfo[i][21]->info21.fields_present;
+
+        DISPLAY_COMMENT(("Verifying user (i = %d)\n", i));
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_ACCOUNT_NAME) &&
+            (dwFieldsPresent2 & SAMR_FIELD_ACCOUNT_NAME))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.account_name,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.account_name);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_FULL_NAME) &&
+            (dwFieldsPresent2 & SAMR_FIELD_FULL_NAME))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.full_name,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.full_name);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_HOME_DIRECTORY) &&
+            (dwFieldsPresent2 & SAMR_FIELD_HOME_DIRECTORY))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.home_directory,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.home_directory);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_HOME_DRIVE) &&
+            (dwFieldsPresent2 & SAMR_FIELD_HOME_DRIVE))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.home_drive,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.home_drive);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_LOGON_SCRIPT) &&
+            (dwFieldsPresent2 & SAMR_FIELD_LOGON_SCRIPT))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.logon_script,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.logon_script);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_PROFILE_PATH) &&
+            (dwFieldsPresent2 & SAMR_FIELD_PROFILE_PATH))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.profile_path,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.profile_path);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_DESCRIPTION) &&
+            (dwFieldsPresent2 & SAMR_FIELD_DESCRIPTION))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.description,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.description);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_WORKSTATIONS) &&
+            (dwFieldsPresent2 & SAMR_FIELD_WORKSTATIONS))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.workstations,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.workstations);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_COMMENT) &&
+            (dwFieldsPresent2 & SAMR_FIELD_COMMENT))
+        {
+            ASSERT_UNICODE_STRING_EQUAL((PUNICODE_STRING)&ppNewUserInfo[i]->info21.comment,
+                                        (PUNICODE_STRING)&pppUserInfo[i][21]->info21.comment);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_RID) &&
+            (dwFieldsPresent2 & SAMR_FIELD_RID))
+        {
+            ASSERT_TEST(ppNewUserInfo[i]->info21.rid == pppUserInfo[i][21]->info21.rid);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_PRIMARY_GID) &&
+            (dwFieldsPresent2 & SAMR_FIELD_PRIMARY_GID))
+        {
+            ASSERT_TEST(ppNewUserInfo[i]->info21.primary_gid ==
+                        pppUserInfo[i][21]->info21.primary_gid);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_ACCT_FLAGS) &&
+            (dwFieldsPresent2 & SAMR_FIELD_ACCT_FLAGS))
+        {
+            ASSERT_TEST(ppNewUserInfo[i]->info21.account_flags ==
+                        pppUserInfo[i][21]->info21.account_flags);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_COUNTRY_CODE) &&
+            (dwFieldsPresent2 & SAMR_FIELD_COUNTRY_CODE))
+        {
+            ASSERT_TEST(ppNewUserInfo[i]->info21.country_code ==
+                        pppUserInfo[i][21]->info21.country_code);
+        }
+
+        if ((dwFieldsPresent1 & SAMR_FIELD_CODE_PAGE) &&
+            (dwFieldsPresent2 & SAMR_FIELD_CODE_PAGE))
+        {
+            ASSERT_TEST(ppNewUserInfo[i]->info21.code_page ==
+                        pppUserInfo[i][21]->info21.code_page);
         }
     }
 
@@ -1645,6 +2927,8 @@ TestSamrDomainsQuery(struct test *t, const wchar16_t *hostname,
     PWSTR pwszSysName = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     DOMAIN_HANDLE hBuiltin = NULL;
+    DWORD dwDomainReadRights = DOMAIN_ACCESS_LOOKUP_INFO_2 |
+                               DOMAIN_ACCESS_LOOKUP_INFO_1;
 
     perr = fetch_value(options, optcount, "systemname", pt_w16string,
                        &pwszSysName, &pszDefSysName);
@@ -1669,6 +2953,7 @@ TestSamrDomainsQuery(struct test *t, const wchar16_t *hostname,
                                 hConn,
                                 pDomainSid,
                                 pBuiltinSid,
+                                dwDomainReadRights,
                                 &hDomain,
                                 &hBuiltin);
 
@@ -1698,19 +2983,40 @@ TestSamrUsers(
     )
 {
     PCSTR pszDefSysName = "";
+    PCSTR pszDefTestSetName = "standalone-simple";
 
     BOOL bRet = TRUE;
     enum param_err perr = perr_success;
     handle_t hBinding = NULL;
+    DWORD dwError = ERROR_SUCCESS;
     CONNECT_HANDLE hConn = NULL;
     PSID pDomainSid = NULL;
     PSID pBuiltinSid = NULL;
     PWSTR pwszSysName = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     DOMAIN_HANDLE hBuiltin = NULL;
+    DWORD dwDomainReadRights = DOMAIN_ACCESS_LOOKUP_INFO_2 |
+                               DOMAIN_ACCESS_LOOKUP_INFO_1;
+    DWORD dwCreateAccountRights = DOMAIN_ACCESS_CREATE_USER |
+                                  DOMAIN_ACCESS_OPEN_ACCOUNT |
+                                  DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                  dwDomainReadRights;
+    DWORD dwReadOnlyAccountRights = DOMAIN_ACCESS_OPEN_ACCOUNT |
+                                    DOMAIN_ACCESS_ENUM_ACCOUNTS |
+                                    dwDomainReadRights;
+    BOOLEAN bCreate = FALSE;
+    PSTR pszTestSetName = NULL;
+    PDWORD pdwNewAccountRids = NULL;
+    DWORD dwNumNewAccounts = 0;
+    UserInfo **ppNewAccountInfo = NULL;
+    UserInfo ***pppUserInfo = NULL;
 
     perr = fetch_value(options, optcount, "systemname", pt_w16string,
                        &pwszSysName, &pszDefSysName);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "testsetname", pt_string,
+                       &pszTestSetName, &pszDefTestSetName);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     TESTINFO(t, hostname, user, pass);
@@ -1728,20 +3034,73 @@ TestSamrUsers(
                                 &pDomainSid,
                                 &pBuiltinSid);
 
-    bRet &= CallSamrOpenDomains(hBinding,
-                                hConn,
-                                pDomainSid,
-                                pBuiltinSid,
-                                &hDomain,
-                                &hBuiltin);
+    if (CallSamrOpenDomains(hBinding,
+                            hConn,
+                            pDomainSid,
+                            pBuiltinSid,
+                            dwCreateAccountRights,
+                            &hDomain,
+                            &hBuiltin))
+    {
+        bRet    &= TRUE;
+        bCreate  = TRUE;
+    }
+    else
+    {
+        bRet &= CallSamrOpenDomains(hBinding,
+                                    hConn,
+                                    pDomainSid,
+                                    pBuiltinSid,
+                                    dwReadOnlyAccountRights,
+                                    &hDomain,
+                                    &hBuiltin);
+    }
 
     bRet &= CallSamrEnumDomainUsers(hBinding, hDomain, NULL, NULL);
 
     bRet &= CallSamrEnumDomainUsers(hBinding, hBuiltin, NULL, NULL);
 
+    if (bCreate)
+    {
+        bRet &= CallCreateUserAccounts(hBinding,
+                                       hDomain,
+                                       pszTestSetName,
+                                       &pdwNewAccountRids,
+                                       &dwNumNewAccounts,
+                                       &ppNewAccountInfo);
+
+        dwError = LwAllocateMemory(sizeof(pppUserInfo[0]) * dwNumNewAccounts,
+                                   OUT_PPVOID(&pppUserInfo));
+        BAIL_ON_WIN_ERROR(dwError);
+
+        bRet &= CallSamrQueryDomainUsers(hBinding,
+                                         hDomain,
+                                         pdwNewAccountRids,
+                                         dwNumNewAccounts,
+                                         pppUserInfo);
+
+        bRet &= TestVerifyUsers(ppNewAccountInfo,
+                                pppUserInfo,
+                                dwNumNewAccounts);
+
+        bRet &= CallSamrDeleteDomainUsers(hBinding,
+                                          hDomain,
+                                          pdwNewAccountRids,
+                                          dwNumNewAccounts);
+    }
+
+    bRet &= CallSamrGetAliasMemberships(hBinding,
+                                        hDomain,
+                                        pDomainSid);
+
+    bRet &= CallSamrGetAliasMemberships(hBinding,
+                                        hBuiltin,
+                                        pDomainSid);
+
     bRet &= CallSamrClose(hBinding, &hConn);
 
 done:
+error:
     FreeSamrBinding(&hBinding);
 
     LW_SAFE_FREE_MEMORY(pwszSysName);
@@ -1801,14 +3160,35 @@ TestSamrQueryUsers(
                                 hConn,
                                 pDomainSid,
                                 pBuiltinSid,
+                                0,
                                 &hDomain,
                                 &hBuiltin);
 
-    bRet &= CallSamrEnumDomainUsers(hBinding, hDomain, &pdwDomainRids, &dwNumDomainUsers);
+    bRet &= CallSamrEnumDomainUsers(hBinding,
+                                    hDomain,
+                                    &pdwDomainRids,
+                                    &dwNumDomainUsers);
 
-    bRet &= CallSamrQueryDomainUsers(hBinding, hDomain, pdwDomainRids, dwNumDomainUsers);
+    bRet &= CallSamrQueryDomainUsers(hBinding,
+                                     hDomain,
+                                     pdwDomainRids,
+                                     dwNumDomainUsers,
+                                     NULL);
 
-    bRet &= CallSamrEnumDomainUsers(hBinding, hBuiltin, &pdwBuiltinRids, &dwNumBuiltinUsers);
+    bRet &= CallSamrEnumDomainUsers(hBinding,
+                                    hBuiltin,
+                                    &pdwBuiltinRids,
+                                    &dwNumBuiltinUsers);
+
+    bRet &= CallSamrQueryDomainUsers(hBinding,
+                                     hBuiltin,
+                                     pdwBuiltinRids,
+                                     dwNumBuiltinUsers,
+                                     NULL);
+
+    bRet &= CallSamrClose(hBinding, &hDomain);
+
+    bRet &= CallSamrClose(hBinding, &hBuiltin);
 
     bRet &= CallSamrClose(hBinding, &hConn);
 
@@ -1825,10 +3205,57 @@ done:
 }
 
 
+static
+BOOLEAN
+CallSamrDeleteDomainUsers(
+    handle_t        hBinding,
+    DOMAIN_HANDLE   hDomain,
+    PDWORD          pdwUserRids,
+    DWORD           dwNumUsers
+    )
+{
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD iUser = 0;
+    DWORD dwAccessRights = DELETE;
+    ACCOUNT_HANDLE hUser = NULL;
+
+    for (iUser = 0; iUser < dwNumUsers; iUser++)
+    {
+        DWORD dwRid = pdwUserRids[iUser];
+
+        CALL_MSRPC(ntStatus, SamrOpenUser(hBinding,
+                                          hDomain,
+                                          dwAccessRights,
+                                          dwRid,
+                                          &hUser));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            continue;
+        }
+
+        CALL_MSRPC(ntStatus, SamrDeleteUser(hBinding, hUser));
+        if (ntStatus)
+        {
+            bRet = FALSE;
+            continue;
+        }
+    }
+
+    return bRet;
+}
+
+
 int
-TestSamrAliases(struct test *t, const wchar16_t *hostname,
-                const wchar16_t *user, const wchar16_t *pass,
-                struct parameter *options, int optcount)
+TestSamrAliases(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
 {
     PCSTR pszDefSysName = "";
 
@@ -1841,6 +3268,10 @@ TestSamrAliases(struct test *t, const wchar16_t *hostname,
     PWSTR pwszSysName = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     DOMAIN_HANDLE hBuiltin = NULL;
+    PDWORD pdwDomainRids = NULL;
+    DWORD dwNumDomainAliases = 0;
+    PDWORD pdwBuiltinRids = NULL;
+    DWORD dwNumBuiltinAliases = 0;
 
     perr = fetch_value(options, optcount, "systemname", pt_w16string,
                        &pwszSysName, &pszDefSysName);
@@ -1865,13 +3296,29 @@ TestSamrAliases(struct test *t, const wchar16_t *hostname,
                                 hConn,
                                 pDomainSid,
                                 pBuiltinSid,
+                                0,
                                 &hDomain,
                                 &hBuiltin);
 
-    bRet &= CallSamrEnumDomainAliases(hBinding, hDomain);
+    bRet &= CallSamrEnumDomainAliases(hBinding,
+                                      hDomain,
+                                      &pdwDomainRids,
+                                      &dwNumDomainAliases);
 
     bRet &= CallSamrEnumDomainAliases(hBinding,
-                                     hBuiltin);
+                                      hBuiltin,
+                                      &pdwBuiltinRids,
+                                      &dwNumBuiltinAliases);
+
+    bRet &= CallSamrGetMembersInAlias(hBinding,
+                                      hDomain,
+                                      pdwDomainRids,
+                                      dwNumDomainAliases);
+
+    bRet &= CallSamrGetMembersInAlias(hBinding,
+                                      hBuiltin,
+                                      pdwBuiltinRids,
+                                      dwNumBuiltinAliases);
 
     bRet &= CallSamrClose(hBinding, &hConn);
 
@@ -1879,149 +3326,102 @@ done:
     FreeSamrBinding(&hBinding);
 
     LW_SAFE_FREE_MEMORY(pwszSysName);
+    LW_SAFE_FREE_MEMORY(pdwDomainRids);
+    LW_SAFE_FREE_MEMORY(pdwBuiltinRids);
 
     return (int)bRet;
 }
 
 
-int TestSamrQueryUser(struct test *t, const wchar16_t *hostname,
-                      const wchar16_t *user, const wchar16_t *pass,
-                      struct parameter *options, int optcount)
+int
+TestSamrQueryAliases(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
 {
-    const UINT32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
-                                    SAMR_ACCESS_ENUM_DOMAINS |
-                                    SAMR_ACCESS_CONNECT_TO_SERVER;
+    PCSTR pszDefSysName = "";
 
-    const UINT32 dom_access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                                   DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                   DOMAIN_ACCESS_CREATE_USER |
-                                   DOMAIN_ACCESS_CREATE_ALIAS |
-                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
-
-    const UINT32 usr_access_mask = USER_ACCESS_GET_NAME_ETC |
-                                   USER_ACCESS_GET_LOCALE |
-                                   USER_ACCESS_GET_LOGONINFO |
-                                   USER_ACCESS_GET_ATTRIBUTES |
-                                   USER_ACCESS_CHANGE_PASSWORD |
-                                   DELETE;
-    const char *def_guestname = "Guest";
-    const char *def_domainname = "Builtin";
-    const int def_level = 0;
-
-    NTSTATUS status = STATUS_SUCCESS;
+    BOOL bRet = TRUE;
     enum param_err perr = perr_success;
-    handle_t samr_binding = NULL;
-    int i = 0;
+    handle_t hBinding = NULL;
     CONNECT_HANDLE hConn = NULL;
+    PSID pDomainSid = NULL;
+    PSID pBuiltinSid = NULL;
+    PWSTR pwszSysName = NULL;
     DOMAIN_HANDLE hDomain = NULL;
-    ACCOUNT_HANDLE hUser = NULL;
-    PSID sid = NULL;
-    wchar16_t *names[1];
-    wchar16_t *username = NULL;
-    wchar16_t *domainname = NULL;
-    UINT32 *rids = NULL;
-    UINT32 *types = NULL;
-    UINT32 rids_count = 0;
-    UserInfo *info = NULL;
-    INT32 level = 0;
+    DOMAIN_HANDLE hBuiltin = NULL;
+    PDWORD pdwDomainRids = NULL;
+    DWORD dwNumDomainUsers = 0;
+    PDWORD pdwBuiltinRids = NULL;
+    DWORD dwNumBuiltinUsers = 0;
+
+    perr = fetch_value(options, optcount, "systemname", pt_w16string,
+                       &pwszSysName, &pszDefSysName);
+    if (!perr_is_ok(perr)) perr_fail(perr);
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    samr_binding = CreateSamrBinding(&samr_binding, hostname);
-    if (samr_binding == NULL) return -1;
+    CreateSamrBinding(&hBinding, hostname);
 
-    perr = fetch_value(options, optcount, "username", pt_w16string, &username,
-                       &def_guestname);
-    if (!perr_is_ok(perr)) perr_fail(perr);
+    bRet &= CallSamrConnect(hBinding,
+                            pwszSysName,
+                            &hConn);
 
-    perr = fetch_value(options, optcount, "domainname", pt_w16string, &domainname,
-                       &def_domainname);
-    if (!perr_is_ok(perr)) perr_fail(perr);
+    bRet &= CallSamrEnumDomains(hBinding,
+                                hConn,
+                                &pDomainSid,
+                                &pBuiltinSid);
 
-    perr = fetch_value(options, optcount, "level", pt_int32, &level,
-                       &def_level);
-    if (!perr_is_ok(perr)) perr_fail(perr);
+    bRet &= CallSamrOpenDomains(hBinding,
+                                hConn,
+                                pDomainSid,
+                                pBuiltinSid,
+                                0,
+                                &hDomain,
+                                &hBuiltin);
 
-    PARAM_INFO("domainname", pt_w16string, domainname);
-    PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("level", pt_int32, &level);
+    bRet &= CallSamrEnumDomainAliases(hBinding,
+                                      hDomain,
+                                      &pdwDomainRids,
+                                      &dwNumDomainUsers);
 
-    names[0] = username;
+    bRet &= CallSamrQueryDomainAliases(hBinding,
+                                       hDomain,
+                                       pdwDomainRids,
+                                       dwNumDomainUsers);
 
-    /*
-     * Simple user account querying
-     */
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask, &hConn);
-    if (status != 0) rpc_fail(status);
+    bRet &= CallSamrEnumDomainAliases(hBinding,
+                                      hBuiltin,
+                                      &pdwBuiltinRids,
+                                      &dwNumBuiltinUsers);
 
-    status = SamrLookupDomain(samr_binding, hConn, domainname, &sid);
-    if (status != 0) rpc_fail(status);
+    bRet &= CallSamrQueryDomainAliases(hBinding,
+                                       hBuiltin,
+                                       pdwBuiltinRids,
+                                       dwNumBuiltinUsers);
 
-    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask, sid,
-                            &hDomain);
-    if (status != 0) rpc_fail(status);
+    bRet &= CallSamrClose(hBinding, &hDomain);
 
-    status = SamrLookupNames(samr_binding, hDomain, 1, names, &rids, &types,
-                             &rids_count);
-    if (status != 0) rpc_fail(status);
+    bRet &= CallSamrClose(hBinding, &hBuiltin);
 
-    status = SamrOpenUser(samr_binding, hDomain, usr_access_mask, rids[0],
-                          &hUser);
-    if (status != 0) rpc_fail(status);
-
-    SamrFreeMemory((void*)rids);
-    SamrFreeMemory((void*)types);
-
-    if (level == 0) {
-        for (i = 1; i < 26; i++) {
-            if (i == 5) continue;      /* infolevel 5 is still broken for some reason */
-
-            INPUT_ARG_PTR(samr_binding);
-            INPUT_ARG_PTR(hUser);
-            INPUT_ARG_UINT(i);
-
-            CALL_MSRPC(status, SamrQueryUserInfo(samr_binding, hUser,
-                                                 (UINT16)i, &info));
-            if (status != STATUS_SUCCESS &&
-                status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
-
-            SamrFreeMemory((void*)info);
-            info = NULL;
-        }
-    } else {
-        INPUT_ARG_PTR(samr_binding);
-        INPUT_ARG_PTR(hUser);
-        INPUT_ARG_UINT(level);
-
-        CALL_MSRPC(status, SamrQueryUserInfo(samr_binding, hUser,
-                                             (UINT16)level, &info));
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
-
-        SamrFreeMemory((void*)info);
-        info = NULL;
-    }
-
-    status = SamrClose(samr_binding, hUser);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hConn);
-    if (status != 0) rpc_fail(status);
-
-    RELEASE_SESSION_CREDS;
+    bRet &= CallSamrClose(hBinding, &hConn);
 
 done:
-    SAFE_FREE(username);
-    SAFE_FREE(domainname);
+    FreeSamrBinding(&hBinding);
 
-    SamrDestroyMemory();
+    LW_SAFE_FREE_MEMORY(pdwDomainRids);
+    LW_SAFE_FREE_MEMORY(pdwBuiltinRids);
+    LW_SAFE_FREE_MEMORY(pwszSysName);
+    RTL_FREE(&pDomainSid);
+    RTL_FREE(&pBuiltinSid);
 
-    return (status == STATUS_SUCCESS);
+    return (int)bRet;
 }
 
 
@@ -2043,144 +3443,6 @@ done:
             break;                                                \
         }                                                         \
     }
-
-
-int TestSamrQueryAlias(struct test *t, const wchar16_t *hostname,
-                       const wchar16_t *user, const wchar16_t *pass,
-                       struct parameter *options, int optcount)
-{
-    const UINT32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
-                                    SAMR_ACCESS_ENUM_DOMAINS |
-                                    SAMR_ACCESS_CONNECT_TO_SERVER;
-
-    const UINT32 dom_access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                                   DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                   DOMAIN_ACCESS_CREATE_USER |
-                                   DOMAIN_ACCESS_CREATE_ALIAS |
-                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
-
-    const UINT32 alias_access_mask = ALIAS_ACCESS_GET_MEMBERS |
-                                     ALIAS_ACCESS_LOOKUP_INFO;
-
-    const char *def_guestsname = "Guests";
-    const char *def_domainname = "Builtin";
-    const int def_level = 0;
-
-    NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr = perr_success;
-    handle_t samr_binding = NULL;
-    int i = 0;
-    CONNECT_HANDLE hConn = NULL;
-    DOMAIN_HANDLE hDomain = NULL;
-    ACCOUNT_HANDLE hAlias = NULL;
-    PSID sid = NULL;
-    wchar16_t *names[1];
-    wchar16_t *aliasname = NULL;
-    wchar16_t *domainname = NULL;
-    UINT32 *rids = NULL;
-    UINT32 *types = NULL;
-    UINT32 rids_count = 0;
-    AliasInfo *info = NULL;
-    INT32 level = 0;
-
-    TESTINFO(t, hostname, user, pass);
-
-    SET_SESSION_CREDS(hCreds);
-
-    samr_binding = CreateSamrBinding(&samr_binding, hostname);
-    if (samr_binding == NULL) return -1;
-
-    perr = fetch_value(options, optcount, "aliasname", pt_w16string, &aliasname,
-                       &def_guestsname);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "domainname", pt_w16string, &domainname,
-                       &def_domainname);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "level", pt_int32, &level,
-                       &def_level);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    PARAM_INFO("domainname", pt_w16string, domainname);
-    PARAM_INFO("aliasname", pt_w16string, aliasname);
-    PARAM_INFO("level", pt_int32, &level);
-
-    names[0] = aliasname;
-
-    /*
-     * Simple alias account querying
-     */
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask, &hConn);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrLookupDomain(samr_binding, hConn, domainname, &sid);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask, sid,
-                            &hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrLookupNames(samr_binding, hDomain, 1, names, &rids, &types,
-                             &rids_count);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenAlias(samr_binding, hDomain, alias_access_mask, rids[0],
-                           &hAlias);
-    if (status != 0) rpc_fail(status);
-
-    SamrFreeMemory((void*)rids);
-    SamrFreeMemory((void*)types);
-
-    if (level == 0) {
-        for (i = 1; i <= 3; i++) {
-            INPUT_ARG_PTR(samr_binding);
-            INPUT_ARG_PTR(hAlias);
-            INPUT_ARG_UINT(i);
-
-            CALL_MSRPC(status, SamrQueryAliasInfo(samr_binding, hAlias,
-                                                  (UINT16)i, &info));
-            if (status != STATUS_SUCCESS &&
-                status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
-
-            DISPLAY_ALIAS_INFO(info, i);
-
-            SamrFreeMemory((void*)info);
-            info = NULL;
-        }
-    } else {
-        INPUT_ARG_PTR(samr_binding);
-        INPUT_ARG_PTR(hAlias);
-        INPUT_ARG_UINT(level);
-
-        CALL_MSRPC(status, SamrQueryAliasInfo(samr_binding, hAlias,
-                                              (UINT16)level, &info));
-        if (status != STATUS_SUCCESS &&
-            status != STATUS_INVALID_INFO_CLASS) rpc_fail(status);
-
-        DISPLAY_ALIAS_INFO(info, i);
-
-        SamrFreeMemory((void*)info);
-        info = NULL;
-    }
-
-    status = SamrClose(samr_binding, hAlias);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hConn);
-    if (status != 0) rpc_fail(status);
-
-    RELEASE_SESSION_CREDS;
-
-done:
-    SAFE_FREE(aliasname);
-    SamrDestroyMemory();
-
-    return (status == STATUS_SUCCESS);
-}
 
 
 int TestSamrAlias(struct test *t, const wchar16_t *hostname,
@@ -2512,146 +3774,6 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
 done:
     RTL_FREE(&sid);
     SAFE_FREE(sidstr);
-
-    return (status == STATUS_SUCCESS);
-}
-
-
-int TestSamrOpenDomain(struct test *t, const wchar16_t *hostname,
-                       const wchar16_t *user, const wchar16_t *pass,
-                       struct parameter *options, int optcount)
-{
-    const UINT32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
-                                    SAMR_ACCESS_ENUM_DOMAINS |
-                                    SAMR_ACCESS_CONNECT_TO_SERVER;
-
-    const UINT32 dom_access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                                   DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                   DOMAIN_ACCESS_CREATE_USER |
-                                   DOMAIN_ACCESS_CREATE_ALIAS |
-                                   DOMAIN_ACCESS_LOOKUP_INFO_2 |
-                                   DOMAIN_ACCESS_LOOKUP_INFO_1;
-
-    const char *def_domainname = "BUILTIN";
-
-    NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr = perr_success;
-    handle_t samr_binding = NULL;
-    CONNECT_HANDLE hConn = NULL;
-    DOMAIN_HANDLE hDomain = NULL;
-    PSID sid = NULL;
-    wchar16_t *domainname = NULL;
-
-    SET_SESSION_CREDS(hCreds);
-
-    perr = fetch_value(options, optcount, "domainname", pt_w16string,
-                       &domainname, &def_domainname);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    samr_binding = CreateSamrBinding(&samr_binding, hostname);
-    if (samr_binding == NULL) return false;
-
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &hConn);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrLookupDomain(samr_binding, hConn, domainname, &sid);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
-                            sid, &hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hConn);
-    if (status != 0) rpc_fail(status);
-
-    FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS;
-
-done:
-    if (sid) SamrFreeMemory((void*)sid);
-    SAFE_FREE(domainname);
-
-    return (status == STATUS_SUCCESS);
-}
-
-
-int TestSamrQueryDomain(struct test *t, const wchar16_t *hostname,
-                        const wchar16_t *user, const wchar16_t *pass,
-                        struct parameter *options, int optcount)
-{
-    const UINT32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
-                                    SAMR_ACCESS_ENUM_DOMAINS |
-                                    SAMR_ACCESS_CONNECT_TO_SERVER;
-
-    const UINT32 dom_access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                                   DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                   DOMAIN_ACCESS_CREATE_USER |
-                                   DOMAIN_ACCESS_CREATE_ALIAS |
-                                   DOMAIN_ACCESS_LOOKUP_INFO_2 |
-                                   DOMAIN_ACCESS_LOOKUP_INFO_1;
-
-    NTSTATUS status = STATUS_SUCCESS;
-    handle_t samr_binding = NULL;
-    int i = 0;
-    CONNECT_HANDLE hConn = NULL;
-    DOMAIN_HANDLE hDomain = NULL;
-    PSID sid = NULL;
-    DomainInfo *dominfo = NULL;
-    wchar16_t *domname = NULL;
-
-    SET_SESSION_CREDS(hCreds);
-
-    samr_binding = CreateSamrBinding(&samr_binding, hostname);
-    if (samr_binding == NULL) return false;
-
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &hConn);
-    if (status != 0) rpc_fail(status);
-
-    status = GetSamDomainName(&domname, hostname);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
-                            sid, &hDomain);
-    if (status != 0) rpc_fail(status);
-
-    for (i = 1; i < 13; i++) {
-        if (i == 10) continue;
-
-        INPUT_ARG_PTR(samr_binding);
-        INPUT_ARG_PTR(hDomain);
-        INPUT_ARG_INT(i);
-        INPUT_ARG_PTR(dominfo);
-
-        CALL_MSRPC(status, SamrQueryDomainInfo(samr_binding, hDomain,
-                                               (UINT16)i, &dominfo));
-
-        OUTPUT_ARG_PTR(dominfo);
-
-        if (dominfo) {
-            SamrFreeMemory((void*)dominfo);
-        }
-    }
-
-    status = SamrClose(samr_binding, hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hConn);
-    if (status != 0) rpc_fail(status);
-
-    FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS;
-
-done:
-    if (sid) SamrFreeMemory((void*)sid);
-    SAFE_FREE(domname);
 
     return (status == STATUS_SUCCESS);
 }
@@ -3029,163 +4151,6 @@ done:
 
     SAFE_FREE(domname);
     SAFE_FREE(domainname);
-
-    return (status == STATUS_SUCCESS);
-}
-
-
-int TestSamrEnumDomains(struct test *t, const wchar16_t *hostname,
-                        const wchar16_t *user, const wchar16_t *pass,
-                        struct parameter *options, int optcount)
-{
-    const UINT32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
-                                    SAMR_ACCESS_ENUM_DOMAINS |
-                                    SAMR_ACCESS_CONNECT_TO_SERVER;
-
-    const UINT32 def_max_size = (UINT32)(-1);
-
-    NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr = perr_success;
-    handle_t samr_binding = NULL;
-    UINT32 resume = 0;
-    UINT32 num_entries = 0;
-    UINT32 max_size = 0;
-    wchar16_t **enum_domains = NULL;
-    CONNECT_HANDLE hConn = NULL;
-
-    perr = fetch_value(options, optcount, "maxsize", pt_uint32,
-                       &max_size, &def_max_size);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    SET_SESSION_CREDS(hCreds);
-
-    samr_binding = CreateSamrBinding(&samr_binding, hostname);
-    if (samr_binding == NULL) return false;
-
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &hConn);
-    if (status != 0) rpc_fail(status);
-
-    resume = 0;
-
-    do {
-        status = SamrEnumDomains(samr_binding, hConn, &resume, max_size,
-                                 &enum_domains, &num_entries);
-
-        DISPLAY_DOMAINS(enum_domains, num_entries);
-
-        if (enum_domains) SamrFreeMemory((void*)enum_domains);
-
-    } while (status == STATUS_MORE_ENTRIES);
-
-    status = SamrClose(samr_binding, hConn);
-    if (status != 0) rpc_fail(status);
-
-    FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS;
-
-done:
-    return (status == STATUS_SUCCESS);
-}
-
-
-int TestSamrCreateUserAccount(struct test *t, const wchar16_t *hostname,
-                              const wchar16_t *user, const wchar16_t *pass,
-                              struct parameter *options, int optcount)
-{
-    const UINT32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
-                                    SAMR_ACCESS_ENUM_DOMAINS |
-                                    SAMR_ACCESS_CONNECT_TO_SERVER;
-
-    const UINT32 dom_access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                                   DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                   DOMAIN_ACCESS_CREATE_USER |
-                                   DOMAIN_ACCESS_CREATE_ALIAS |
-                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
-
-    const UINT32 usr_access_mask = USER_ACCESS_GET_NAME_ETC |
-                                   USER_ACCESS_GET_LOCALE |
-                                   USER_ACCESS_GET_LOGONINFO |
-                                   USER_ACCESS_GET_ATTRIBUTES |
-                                   USER_ACCESS_CHANGE_PASSWORD |
-                                   DELETE;
-
-    const UINT32 account_flags = ACB_NORMAL;
-    const char *newuser = "Testuser";
-
-    NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr = perr_success;
-    handle_t samr_binding = NULL;
-    wchar16_t *newusername = NULL;
-    wchar16_t *domname = NULL;
-    UINT32 rid = 0;
-    CONNECT_HANDLE hConn = NULL;
-    DOMAIN_HANDLE hDomain = NULL;
-    ACCOUNT_HANDLE hAccount = NULL;
-    PSID sid = NULL;
-
-    perr = fetch_value(options, optcount, "username", pt_w16string,
-                       &newusername, &newuser);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-
-    SET_SESSION_CREDS(hCreds);
-
-    /*
-     * Make sure there's no account with the same name already
-     */
-    status = CleanupAccount(hostname, newusername);
-    if (status != 0) goto done;
-
-    samr_binding = CreateSamrBinding(&samr_binding, hostname);
-    if (samr_binding == NULL) return false;
-
-    /*
-     * Creating and deleting user account
-     */
-
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &hConn);
-    if (status != 0) rpc_fail(status);
-
-    status = GetSamDomainName(&domname, hostname);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
-                            sid, &hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrCreateUser(samr_binding, hDomain, newusername,
-                            account_flags, &hAccount, &rid);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hAccount);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenUser(samr_binding, hDomain, usr_access_mask,
-                          rid, &hAccount);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrDeleteUser(samr_binding, hAccount);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_binding, hConn);
-    if (status != 0) rpc_fail(status);
-
-    FreeSamrBinding(&samr_binding);
-    RELEASE_SESSION_CREDS;
-
-done:
-    if (sid) SamrFreeMemory((void*)sid);
-
-    SAFE_FREE(newusername);
-    SAFE_FREE(domname);
 
     return (status == STATUS_SUCCESS);
 }
@@ -3651,111 +4616,6 @@ done:
     SAFE_FREE(newpassword);
 
     return (status == STATUS_SUCCESS);
-}
-
-
-int TestSamrEnumAliases(struct test *t, const wchar16_t *hostname,
-                        const wchar16_t *user, const wchar16_t *pass,
-                        struct parameter *options, int optcount)
-{
-    const UINT32 conn_access_mask = SAMR_ACCESS_OPEN_DOMAIN |
-                                    SAMR_ACCESS_ENUM_DOMAINS |
-                                    SAMR_ACCESS_CONNECT_TO_SERVER;
-
-    const UINT32 dom_access_mask = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                                   DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                   DOMAIN_ACCESS_CREATE_USER |
-                                   DOMAIN_ACCESS_CREATE_ALIAS |
-                                   DOMAIN_ACCESS_LOOKUP_INFO_2;
-
-    const int def_specifydomain = 0;
-    const char *def_domainname = "BUILTIN";
-
-    NTSTATUS status = STATUS_SUCCESS;
-    handle_t samr_binding;
-    enum param_err perr = perr_success;
-    UINT32 resume, num_entries, max_size;
-    UINT32 account_flags;
-    wchar16_t **enum_names, *domname, *domainname;
-    UINT32 *enum_rids;
-    CONNECT_HANDLE hConn = NULL;
-    DOMAIN_HANDLE hDomain = NULL;
-    PSID sid = NULL;
-    int specifydomain;
-
-    perr = fetch_value(options, optcount, "specifydomain", pt_int32,
-                       &specifydomain, &def_specifydomain);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "domainname", pt_w16string,
-                       &domainname, &def_domainname);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-
-    SET_SESSION_CREDS(hCreds);
-
-    samr_binding = CreateSamrBinding(&samr_binding, hostname);
-    if (samr_binding == NULL) return false;
-
-    status = SamrConnect2(samr_binding, hostname, conn_access_mask,
-                          &hConn);
-    if (status != 0) rpc_fail(status);
-
-    if (specifydomain) {
-        domname = wc16sdup(domainname);
-
-    } else {
-        status = GetSamDomainName(&domname, hostname);
-        if (status != 0) rpc_fail(status);
-    }
-
-    status = SamrLookupDomain(samr_binding, hConn, domname, &sid);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenDomain(samr_binding, hConn, dom_access_mask,
-                            sid, &hDomain);
-    if (status != 0) rpc_fail(status);
-
-    /*
-     * Enumerating domain aliases
-     */
-
-    max_size = 128;
-    resume = 0;
-    account_flags = ACB_NORMAL;
-    do {
-        enum_names = NULL;
-        enum_rids  = NULL;
-
-        status = SamrEnumDomainAliases(samr_binding, hDomain, &resume,
-                                       account_flags, &enum_names, &enum_rids,
-                                       &num_entries);
-
-        if (status == STATUS_SUCCESS ||
-            status == STATUS_MORE_ENTRIES)
-            DISPLAY_ACCOUNTS("Alias", account_flags, enum_names, enum_rids,
-                             num_entries);
-
-        if (enum_names) SamrFreeMemory((void*)enum_names);
-        if (enum_rids) SamrFreeMemory((void*)enum_rids);
-
-    } while (status == STATUS_MORE_ENTRIES);
-
-    SamrClose(samr_binding, hDomain);
-    if (status != 0) rpc_fail(status);
-
-    SamrClose(samr_binding, hConn);
-    if (status != 0) rpc_fail(status);
-
-    RELEASE_SESSION_CREDS;
-
-done:
-    if (sid) SamrFreeMemory((void*)sid);
-
-    SAFE_FREE(domname);
-    SAFE_FREE(domainname);
-
-    return true;
 }
 
 
@@ -4397,26 +5257,14 @@ done:
 
 void SetupSamrTests(struct test *t)
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
-    status = SamrInitMemory();
-    if (status) return;
-
-    AddTest(t, "SAMR-QUERY-USER", TestSamrQueryUser);
-    AddTest(t, "SAMR-QUERY-ALIAS", TestSamrQueryAlias);
     AddTest(t, "SAMR-ALIAS", TestSamrAlias);
     AddTest(t, "SAMR-ALIAS-MEMBERS", TestSamrUsersInAliases);
-    AddTest(t, "SAMR-QUERY-DOMAIN", TestSamrQueryDomain);
     AddTest(t, "SAMR-ENUM-USERS", TestSamrEnumUsers);
-    AddTest(t, "SAMR-OPEN-DOMAIN", TestSamrOpenDomain);
-    AddTest(t, "SAMR-ENUM-DOMAINS", TestSamrEnumDomains);
-    AddTest(t, "SAMR-CREATE-USER", TestSamrCreateUserAccount);
     AddTest(t, "SAMR-CREATE-ALIAS", TestSamrCreateAlias);
     AddTest(t, "SAMR-CREATE-GROUP", TestSamrCreateGroup);
     AddTest(t, "SAMR-USER-PASSWORD", TestSamrSetUserPassword);
     AddTest(t, "SAMR-MULTIPLE-CONNECTION", TestSamrMultipleConnections);
     AddTest(t, "SAMR-USER-PASSWORD-CHANGE", TestSamrChangeUserPassword);
-    AddTest(t, "SAMR-ENUM-ALIASES", TestSamrEnumAliases);
     AddTest(t, "SAMR-GET-USER-GROUPS", TestSamrGetUserGroups);
     AddTest(t, "SAMR-GET-USER-ALIASES", TestSamrGetUserAliases);
     AddTest(t, "SAMR-QUERY-DISPLAY-INFO", TestSamrQueryDisplayInfo);
@@ -4424,6 +5272,8 @@ void SetupSamrTests(struct test *t)
     AddTest(t, "SAMR-DOMAINS", TestSamrDomains);
     AddTest(t, "SAMR-DOMAINS-QUERY", TestSamrDomainsQuery);
     AddTest(t, "SAMR-USERS", TestSamrUsers);
+    AddTest(t, "SAMR-USERS-QUERY", TestSamrQueryUsers);
+    AddTest(t, "SAMR-ALIASES-QUERY", TestSamrQueryAliases);
     AddTest(t, "SAMR-ALIASES", TestSamrAliases);
     AddTest(t, "SAMR-QUERY-SECURITY", TestSamrQuerySecurity);
 }

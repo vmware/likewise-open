@@ -251,24 +251,20 @@ extern int verbose_mode;
 
 #define CALL_MSRPC(status, msrpc_call)                             \
     do {                                                           \
-        if (verbose_mode) {                                        \
-            printf("= Function call:\n=   %s\n", #msrpc_call);     \
-        }                                                          \
+        printf("-> %s = ", #msrpc_call);                            \
                                                                    \
         status = msrpc_call;                                       \
-        printf("= Returned status:\n=   %s (0x%08x)\n",            \
+        printf("%s (0x%08x)\n",                                    \
                NtStatusToName((status)), (status));                \
     } while (0)
 
 
 #define CALL_NETAPI(status, netapi_call)                           \
     do {                                                           \
-        if (verbose_mode) {                                        \
-            printf("= Function call:\n=   %s\n", #netapi_call);    \
-        }                                                          \
+        printf("-> %s = ", #netapi_call);                           \
                                                                    \
         status = netapi_call;                                      \
-        printf("= Returned status:\n=   %s (0x%08x)\n",            \
+        printf("%s (0x%08x)\n",                                    \
                Win32ErrorToName((status)), (status));              \
     } while (0)
 
@@ -309,7 +305,6 @@ extern int verbose_mode;
         DISPLAY_ERROR(("assert failed: %s != %s\n",                \
                        #str1_ptr, #str2_ptr));                     \
         bRet = FALSE;                                              \
-        goto error;                                                \
     }
 
 
