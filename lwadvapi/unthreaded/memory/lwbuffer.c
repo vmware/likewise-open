@@ -504,7 +504,7 @@ LwBufferAllocUnicodeString(
     {
         pCursor = pBuffer + dwOffset;
 
-        BAIL_IF_NOT_ENOUGH_SPACE(dwSize, dwSpaceLeft, dwError);
+        BAIL_IF_NOT_ENOUGH_SPACE(dwStrSize, dwSpaceLeft, dwError);
 
         if (pSource &&
             pSource->MaximumLength && pSource->Buffer)
