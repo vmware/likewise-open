@@ -539,6 +539,36 @@ EVTParseArgs(
 }
 
 static
+void
+EVTSrvNOPHandler(
+    int unused
+    )
+{
+}
+
+DWORD
+EVTSrvIgnoreSIGHUP(
+    VOID
+    )
+{
+    DWORD dwError = 0;
+
+    // Instead of ignoring the signal by passing SIG_IGN, we install a nop
+    // signal handler. This way if we later decide to catch it with sigwait,
+    // the signal will still get delivered to the process.
+    if (signal(SIGHUP, EVTSrvNOPHandler) < 0) {
+        dwError = errno;
+        BAIL_ON_EVT_ERROR(dwError);
+    }
+
+cleanup:
+    return dwError;
+
+error:
+    goto cleanup;
+}
+
+static
 DWORD
 EVTStartAsDaemon()
 {
@@ -561,10 +591,8 @@ EVTStartAsDaemon()
     // its session would receive the SIGHUP signal. By ignoring
     // this signal, we are ensuring that our second child will
     // ignore this signal and will continue execution.
-    if (signal(SIGHUP, SIG_IGN) < 0) {
-        dwError = errno;
-        BAIL_ON_EVT_ERROR(dwError);
-    }
+    dwError = EVTSrvIgnoreSIGHUP();
+    BAIL_ON_EVT_ERROR(dwError);
 
     // Spawn a second child
     if ((pid = fork()) != 0) {
