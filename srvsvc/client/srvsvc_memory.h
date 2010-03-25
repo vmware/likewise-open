@@ -31,33 +31,24 @@
 #ifndef _SRVSVC_MEMORY_H_
 #define _SRVSVC_MEMORY_H_
 
-NET_API_STATUS SrvSvcAllocateMemory(void **ptr, size_t len, void *dep);
+NET_API_STATUS
+SrvSvcAllocateMemory(
+    void **ptr,
+    size_t len,
+    void *dep
+    );
 
-NET_API_STATUS SrvSvcAddDepMemory(void *ptr, void *dep);
+NET_API_STATUS
+SrvSvcAddDepStringW(
+    PVOID  pDep,
+    PCWSTR pwszSource
+    );
 
-NET_API_STATUS SrvSvcCopyNetConnCtr(UINT32 level, srvsvc_NetConnCtr *ctr,
-                                    UINT32 *entriesread, UINT8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetFileCtr(UINT32 level, srvsvc_NetFileCtr *ctr,
-                                    UINT32 *entriesread, UINT8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetFileInfo(UINT32 level, srvsvc_NetFileInfo *info,
-                                     UINT8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetSessCtr(UINT32 level, srvsvc_NetSessCtr *ctr,
-                                    UINT32 *entriesread, UINT8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetShareCtr(UINT32 level, srvsvc_NetShareCtr *ctr,
-                                     UINT32 *entriesread, UINT8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetShareInfo(UINT32 level, srvsvc_NetShareInfo *info,
-                                      UINT8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyNetSrvInfo(UINT32 level, srvsvc_NetSrvInfo *info,
-                                    UINT8 **bufptr);
-
-NET_API_STATUS SrvSvcCopyTIME_OF_DAY_INFO(PTIME_OF_DAY_INFO info,
-                                          UINT8 **bufptr);
+NET_API_STATUS
+SrvSvcAddDepMemory(
+    void *ptr,
+    void *dep
+    );
 
 #endif /* _SRVSVC_MEMORY_H_ */
 

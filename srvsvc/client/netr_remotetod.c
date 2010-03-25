@@ -30,6 +30,12 @@
 
 #include "includes.h"
 
+static
+NET_API_STATUS
+SrvSvcCopyTIME_OF_DAY_INFO(
+    PTIME_OF_DAY_INFO info,
+    UINT8**           bufptr
+    );
 
 NET_API_STATUS
 NetrRemoteTOD(
@@ -38,23 +44,30 @@ NetrRemoteTOD(
     UINT8 **bufptr
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
+    NET_API_STATUS status  = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
     PTIME_OF_DAY_INFO info = NULL;
 
     BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
 
-    DCERPC_CALL(status,
-                _NetrRemoteTOD(
+    TRY
+    {
+        status = _NetrRemoteTOD(
                         pContext->hBinding,
                         (wchar16_t *)servername,
-                        &info));
+                        &info);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
     BAIL_ON_WIN_ERROR(status);
 
-    memerr = SrvSvcCopyTIME_OF_DAY_INFO(info, bufptr);
-    BAIL_ON_WIN_ERROR(memerr);
+    status = SrvSvcCopyTIME_OF_DAY_INFO(info, bufptr);
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
     SRVSVC_SAFE_FREE(info);
@@ -64,6 +77,41 @@ error:
     goto cleanup;
 }
 
+static
+NET_API_STATUS
+SrvSvcCopyTIME_OF_DAY_INFO(
+    PTIME_OF_DAY_INFO info,
+    UINT8**           bufptr
+    )
+{
+    NET_API_STATUS status = ERROR_SUCCESS;
+    void *ptr = NULL;
+
+    BAIL_ON_INVALID_PTR(bufptr, status);
+
+    if (info) {
+        PTIME_OF_DAY_INFO a;
+
+        status = SrvSvcAllocateMemory(&ptr,
+                                      sizeof(TIME_OF_DAY_INFO),
+                                      NULL);
+        BAIL_ON_WIN_ERROR(status);
+
+        a = (PTIME_OF_DAY_INFO)ptr;
+
+        *a = *info;
+    }
+
+    *bufptr = (UINT8 *)ptr;
+
+cleanup:
+    return status;
+
+error:
+    *bufptr = NULL;
+
+    goto cleanup;
+}
 
 /*
 local variables:

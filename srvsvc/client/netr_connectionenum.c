@@ -30,6 +30,14 @@
 
 #include "includes.h"
 
+static
+NET_API_STATUS
+SrvSvcCopyNetConnCtr(
+    UINT32             level,
+    srvsvc_NetConnCtr* ctr,
+    UINT32*            entriesread,
+    UINT8**            bufptr
+    );
 
 NET_API_STATUS
 NetrConnectionEnum(
@@ -45,14 +53,13 @@ NetrConnectionEnum(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
     srvsvc_NetConnCtr ctr;
     srvsvc_NetConnCtr0 ctr0;
     srvsvc_NetConnCtr1 ctr1;
     UINT32 l = level;
 
     BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
     BAIL_ON_INVALID_PTR(entriesread, status);
     BAIL_ON_INVALID_PTR(totalentries, status);
@@ -63,51 +70,159 @@ NetrConnectionEnum(
     *entriesread = 0;
     *bufptr = NULL;
 
-    switch (level) {
-    case 0:
-        ctr.ctr0 = &ctr0;
-        break;
-    case 1:
-        ctr.ctr1 = &ctr1;
-        break;
+    switch (level)
+    {
+        case 0:
+            ctr.ctr0 = &ctr0;
+            break;
+        case 1:
+            ctr.ctr1 = &ctr1;
+            break;
+        default:
+            status = ERROR_INVALID_LEVEL;
+            BAIL_ON_WIN_ERROR(status);
+            break;
     }
 
-    DCERPC_CALL(status,
-                _NetrConnectionEnum(pContext->hBinding,
-                                    (wchar16_t *)servername,
-                                    (wchar16_t *)qualifier,
-                                    &l, &ctr,
-                                    prefmaxlen, totalentries,
-                                    resume_handle));
+    TRY
+    {
+        status = _NetrConnectionEnum(
+                    pContext->hBinding,
+                    (wchar16_t *)servername,
+                    (wchar16_t *)qualifier,
+                    &l,
+                    &ctr,
+                    prefmaxlen,
+                    totalentries,
+                    resume_handle);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
-    if (l != level) {
+    if (l != level)
+    {
         status = ERROR_BAD_NET_RESP;
         BAIL_ON_WIN_ERROR(status);
     }
 
-    memerr = SrvSvcCopyNetConnCtr(l, &ctr, entriesread, bufptr);
-    BAIL_ON_WIN_ERROR(memerr);
+    status = SrvSvcCopyNetConnCtr(l, &ctr, entriesread, bufptr);
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
-    switch (level) {
-    case 0:
-        if (ctr.ctr0 == &ctr0) {
-            ctr.ctr0 = NULL;
-        }
-        break;
-    case 1:
-        if (ctr.ctr1 == &ctr1) {
-            ctr.ctr1 = NULL;
-        }
-        break;
+
+    switch (level)
+    {
+        case 0:
+            if (ctr.ctr0 == &ctr0) {
+                ctr.ctr0 = NULL;
+            }
+            break;
+        case 1:
+            if (ctr.ctr1 == &ctr1) {
+                ctr.ctr1 = NULL;
+            }
+            break;
     }
+
     SrvSvcClearNetConnCtr(l, &ctr);
 
     return status;
 
 error:
+
     goto cleanup;
 }
+
+static
+NET_API_STATUS
+SrvSvcCopyNetConnCtr(
+    UINT32             level,
+    srvsvc_NetConnCtr* ctr,
+    UINT32*            entriesread,
+    UINT8**            bufptr
+    )
+{
+    NET_API_STATUS status = ERROR_SUCCESS;
+    int i;
+    int count = 0;
+    void *ptr = NULL;
+
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ctr, status);
+
+    *entriesread = 0;
+    *bufptr = NULL;
+
+    switch (level) {
+    case 0:
+        if (ctr->ctr0) {
+            PCONNECTION_INFO_0 a0;
+
+            count = ctr->ctr0->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(CONNECTION_INFO_0) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a0 = (PCONNECTION_INFO_0)ptr;
+
+            for (i=0; i < count; i++) {
+                 a0[i] = ctr->ctr0->array[i];
+            }
+        }
+        break;
+    case 1:
+        if (ctr->ctr1) {
+            PCONNECTION_INFO_1 a1;
+
+            count = ctr->ctr1->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(CONNECTION_INFO_1) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a1 = (PCONNECTION_INFO_1)ptr;
+
+            for (i=0; i < count; i++)
+            {
+                 a1[i] = ctr->ctr1->array[i];
+
+                 if (a1[i].coni1_username)
+                 {
+                     status = SrvSvcAddDepStringW(a1, a1[i].coni1_username);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a1[i].coni1_netname)
+                 {
+                     status = SrvSvcAddDepStringW(a1, a1[i].coni1_netname);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+            }
+        }
+        break;
+    }
+
+    *entriesread = count;
+    *bufptr = (UINT8 *)ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        SrvSvcFreeMemory(ptr);
+    }
+    goto cleanup;
+}
+
 
 /*
 local variables:

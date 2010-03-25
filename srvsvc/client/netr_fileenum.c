@@ -30,6 +30,14 @@
 
 #include "includes.h"
 
+static
+NET_API_STATUS
+SrvSvcCopyNetFileCtr(
+    UINT32             level,
+    srvsvc_NetFileCtr* ctr,
+    UINT32*            entriesread,
+    UINT8**            bufptr
+    );
 
 NET_API_STATUS
 NetrFileEnum(
@@ -46,14 +54,13 @@ NetrFileEnum(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
     srvsvc_NetFileCtr ctr;
     srvsvc_NetFileCtr2 ctr2;
     srvsvc_NetFileCtr3 ctr3;
     UINT32 l = level;
 
     BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
     BAIL_ON_INVALID_PTR(entriesread, status);
     BAIL_ON_INVALID_PTR(totalentries, status);
@@ -74,22 +81,34 @@ NetrFileEnum(
         break;
     }
 
-    DCERPC_CALL(status,
-                _NetrFileEnum(pContext->hBinding,
-                              (wchar16_t *)servername,
-                              (wchar16_t *)basepath,
-                              (wchar16_t *)username,
-                              &l, &ctr,
-                              prefmaxlen, totalentries,
-                              resume_handle));
+    TRY
+    {
+        status = _NetrFileEnum(
+                    pContext->hBinding,
+                    (wchar16_t *)servername,
+                    (wchar16_t *)basepath,
+                    (wchar16_t *)username,
+                    &l,
+                    &ctr,
+                    prefmaxlen,
+                    totalentries,
+                    resume_handle);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
     if (l != level) {
         status = ERROR_BAD_NET_RESP;
         BAIL_ON_WIN_ERROR(status);
     }
 
-    memerr = SrvSvcCopyNetFileCtr(l, &ctr, entriesread, bufptr);
-    BAIL_ON_WIN_ERROR(memerr);
+    status = SrvSvcCopyNetFileCtr(l, &ctr, entriesread, bufptr);
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
     switch (level) {
@@ -111,6 +130,92 @@ cleanup:
 error:
     goto cleanup;
 }
+
+static
+NET_API_STATUS
+SrvSvcCopyNetFileCtr(
+    UINT32             level,
+    srvsvc_NetFileCtr* ctr,
+    UINT32*            entriesread,
+    UINT8**            bufptr
+    )
+{
+    NET_API_STATUS status = ERROR_SUCCESS;
+    int i;
+    int count = 0;
+    void *ptr = NULL;
+
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ctr, status);
+
+    *entriesread = 0;
+    *bufptr = NULL;
+
+    switch (level) {
+    case 2:
+        if (ctr->ctr2) {
+            PFILE_INFO_2 a2;
+
+            count = ctr->ctr2->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(FILE_INFO_2) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a2 = (PFILE_INFO_2)ptr;
+
+            for (i=0; i < count; i++) {
+                 a2[i] = ctr->ctr2->array[i];
+            }
+        }
+        break;
+    case 3:
+        if (ctr->ctr3) {
+            PFILE_INFO_3 a3;
+
+            count = ctr->ctr3->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(FILE_INFO_3) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a3 = (PFILE_INFO_3)ptr;
+
+            for (i=0; i < count; i++)
+            {
+                 a3[i] = ctr->ctr3->array[i];
+
+                 if (a3[i].fi3_path_name)
+                 {
+                     status = SrvSvcAddDepStringW(a3, a3[i].fi3_path_name);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a3[i].fi3_username)
+                 {
+                     status = SrvSvcAddDepStringW(a3, a3[i].fi3_username);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+            }
+        }
+        break;
+    }
+
+    *entriesread = count;
+    *bufptr = (UINT8 *)ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        SrvSvcFreeMemory(ptr);
+    }
+    goto cleanup;
+}
+
 
 
 /*

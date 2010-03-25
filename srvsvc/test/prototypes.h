@@ -130,6 +130,15 @@ NetFileEnum(
     );
 
 NET_API_STATUS
+NetFileGetInfo(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    DWORD           dwFileId,          /* IN              */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer           /*    OUT          */
+    );
+
+NET_API_STATUS
 NetFileClose(
     PSRVSVC_CONTEXT pContext,          /* IN              */
     PCWSTR          pwszServername,    /* IN    OPTIONAL  */

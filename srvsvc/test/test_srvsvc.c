@@ -800,7 +800,7 @@ CallNetShareAdd(
 {
     BOOL ret = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
-    PVOID pBuffer = NULL;
+    PBYTE pBuffer = NULL;
     SHARE_INFO_0 Info0 = {0};
     SHARE_INFO_2 Info2 = {0};
     DWORD dwParmErr = 0;
@@ -842,7 +842,7 @@ CallNetShareEnum(
 {
     BOOL ret = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
-    PVOID pBuffer = NULL;
+    PBYTE pBuffer = NULL;
     DWORD dwMaxLen = (DWORD)(-1);
     DWORD dwNumEntries = 0;
     DWORD dwLastTotal = 0;
@@ -938,7 +938,7 @@ CallNetShareGetInfo(
 {
     BOOLEAN ret = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
-    PVOID pBuffer = NULL;
+    PBYTE pBuffer = NULL;
 
     err = NetShareGetInfo(pwszHostname,
                           pwszShareName,
@@ -1008,7 +1008,7 @@ CallNetShareSetInfo(
 {
     BOOLEAN ret = TRUE;
     NET_API_STATUS err = ERROR_SUCCESS;
-    PVOID pBuffer = NULL;
+    PBYTE pBuffer = NULL;
     SHARE_INFO_0 Info0 = {0};
     SHARE_INFO_1 Info1 = {0};
     SHARE_INFO_2 Info2 = {0};

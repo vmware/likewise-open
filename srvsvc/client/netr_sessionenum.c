@@ -30,6 +30,14 @@
 
 #include "includes.h"
 
+static
+NET_API_STATUS
+SrvSvcCopyNetSessCtr(
+    UINT32             level,
+    srvsvc_NetSessCtr* ctr,
+    UINT32*            entriesread,
+    UINT8**            bufptr
+    );
 
 NET_API_STATUS
 NetrSessionEnum(
@@ -46,7 +54,7 @@ NetrSessionEnum(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
     srvsvc_NetSessCtr ctr;
     srvsvc_NetSessCtr0 ctr0;
     srvsvc_NetSessCtr1 ctr1;
@@ -56,7 +64,6 @@ NetrSessionEnum(
     UINT32 l = level;
 
     BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
     BAIL_ON_INVALID_PTR(bufptr, status);
     BAIL_ON_INVALID_PTR(entriesread, status);
     BAIL_ON_INVALID_PTR(totalentries, status);
@@ -89,22 +96,34 @@ NetrSessionEnum(
         break;
     }
 
-    DCERPC_CALL(status,
-                _NetrSessionEnum(pContext->hBinding,
-                                 (wchar16_t *)servername,
-                                 (wchar16_t *)unc_client_name,
-                                 (wchar16_t *)username,
-                                 &l, &ctr,
-                                 prefmaxlen, totalentries,
-                                 resume_handle));
+    TRY
+    {
+        status = _NetrSessionEnum(
+                        pContext->hBinding,
+                        (wchar16_t *)servername,
+                        (wchar16_t *)unc_client_name,
+                        (wchar16_t *)username,
+                        &l,
+                        &ctr,
+                        prefmaxlen,
+                        totalentries,
+                        resume_handle);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
     if (l != level) {
         status = ERROR_BAD_NET_RESP;
         BAIL_ON_WIN_ERROR(status);
     }
 
-    memerr = SrvSvcCopyNetSessCtr(l, &ctr, entriesread, bufptr);
-    BAIL_ON_WIN_ERROR(memerr);
+    status = SrvSvcCopyNetSessCtr(l, &ctr, entriesread, bufptr);
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
     switch (level) {
@@ -142,6 +161,199 @@ error:
     goto cleanup;
 }
 
+static
+NET_API_STATUS
+SrvSvcCopyNetSessCtr(
+    UINT32             level,
+    srvsvc_NetSessCtr* ctr,
+    UINT32*            entriesread,
+    UINT8**            bufptr
+    )
+{
+    NET_API_STATUS status = ERROR_SUCCESS;
+    int i;
+    int count = 0;
+    void *ptr = NULL;
+
+    BAIL_ON_INVALID_PTR(entriesread, status);
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ctr, status);
+
+    *entriesread = 0;
+    *bufptr = NULL;
+
+    switch (level) {
+    case 0:
+        if (ctr->ctr0) {
+            PSESSION_INFO_0 a0;
+
+            count = ctr->ctr0->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(SESSION_INFO_0) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a0 = (PSESSION_INFO_0)ptr;
+
+            for (i=0; i < count; i++)
+            {
+                 a0[i] = ctr->ctr0->array[i];
+
+                 if (a0[i].sesi0_cname)
+                 {
+                     status = SrvSvcAddDepStringW(a0, a0[i].sesi0_cname);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+            }
+        }
+        break;
+    case 1:
+        if (ctr->ctr1) {
+            PSESSION_INFO_1 a1;
+
+            count = ctr->ctr1->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(SESSION_INFO_1) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a1 = (PSESSION_INFO_1)ptr;
+
+            for (i=0; i < count; i++) {
+                 a1[i] = ctr->ctr1->array[i];
+
+                 if (a1[i].sesi1_cname)
+                 {
+                     status = SrvSvcAddDepStringW(a1, a1[i].sesi1_cname);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a1[i].sesi1_username)
+                 {
+                     status = SrvSvcAddDepStringW(a1, a1[i].sesi1_username);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+            }
+        }
+        break;
+    case 2:
+        if (ctr->ctr2) {
+            PSESSION_INFO_2 a2;
+
+            count = ctr->ctr2->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(SESSION_INFO_2) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a2 = (PSESSION_INFO_2)ptr;
+
+            for (i=0; i < count; i++) {
+                 a2[i] = ctr->ctr2->array[i];
+
+                 if (a2[i].sesi2_cname)
+                 {
+                     status = SrvSvcAddDepStringW(a2, a2[i].sesi2_cname);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a2[i].sesi2_username)
+                 {
+                     status = SrvSvcAddDepStringW(a2, a2[i].sesi2_username);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a2[i].sesi2_cltype_name)
+                 {
+                     status = SrvSvcAddDepStringW(a2, a2[i].sesi2_cltype_name);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+            }
+        }
+        break;
+    case 10:
+        if (ctr->ctr10) {
+            PSESSION_INFO_10 a10;
+
+            count = ctr->ctr10->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(SESSION_INFO_10) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a10 = (PSESSION_INFO_10)ptr;
+
+            for (i=0; i < count; i++) {
+                 a10[i] = ctr->ctr10->array[i];
+
+                 if (a10[i].sesi10_cname)
+                 {
+                     status = SrvSvcAddDepStringW(a10, a10[i].sesi10_cname);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a10[i].sesi10_username)
+                 {
+                     status = SrvSvcAddDepStringW(a10, a10[i].sesi10_username);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+            }
+        }
+        break;
+    case 502:
+        if (ctr->ctr502) {
+            PSESSION_INFO_502 a502;
+
+            count = ctr->ctr502->count;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(SESSION_INFO_502) * count,
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a502 = (PSESSION_INFO_502)ptr;
+
+            for (i=0; i < count; i++)
+            {
+                 a502[i] = ctr->ctr502->array[i];
+
+                 if (a502[i].sesi502_cname)
+                 {
+                     status = SrvSvcAddDepStringW(a502, a502[i].sesi502_cname);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a502[i].sesi502_username)
+                 {
+                     status = SrvSvcAddDepStringW(a502, a502[i].sesi502_username);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a502[i].sesi502_cltype_name)
+                 {
+                     status = SrvSvcAddDepStringW(a502, a502[i].sesi502_cltype_name);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+                 if (a502[i].sesi502_transport)
+                 {
+                     status = SrvSvcAddDepStringW(a502, a502[i].sesi502_transport);
+                     BAIL_ON_WIN_ERROR(status);
+                 }
+            }
+        }
+        break;
+    }
+
+    *entriesread = count;
+    *bufptr = (UINT8 *)ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        SrvSvcFreeMemory(ptr);
+    }
+    goto cleanup;
+}
 
 /*
 local variables:

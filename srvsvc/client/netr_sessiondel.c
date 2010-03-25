@@ -38,21 +38,30 @@ NetrSessionDel(
     PCWSTR  pwszUsername       /* IN     OPTIONAL */
     )
 {
-    NET_API_STATUS err = ERROR_SUCCESS;
+    NET_API_STATUS status = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
 
-    BAIL_ON_INVALID_PTR(pContext, err);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, err);
+    BAIL_ON_INVALID_PTR(pContext, status);
 
-    DCERPC_CALL(err,
-                _NetrSessionDel(
-                        pContext->hBinding,
-                        pwszServername,
-                        pwszUncClientname,
-                        pwszUsername));
+    TRY
+    {
+        status = _NetrSessionDel(
+                    pContext->hBinding,
+                    pwszServername,
+                    pwszUncClientname,
+                    pwszUsername);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
 
-    return err;
+    return status;
 
 error:
     goto cleanup;

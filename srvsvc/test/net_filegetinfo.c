@@ -28,37 +28,32 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Copyright (C) Likewise Software. All rights reserved.
- *
- * Module Name:
- *
- *        macros.h
- *
- * Abstract:
- *
- *        Remote Procedure Call (RPC) Client Interface
- *
- *        Common private macros for rpc client library
- *
- * Authors: Rafal Szczesniak (rafal@likewise.com)
- */
+#include "includes.h"
 
-#define SRVSVC_DEFAULT_PROT_SEQ   "ncacn_np"
-#define SRVSVC_DEFAULT_ENDPOINT   "\\pipe\\srvsvc"
-#define SRVSVC_LOCAL_ENDPOINT     "/var/lib/likewise/rpc/srvsvc"
+NET_API_STATUS
+NetFileGetInfo(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    DWORD           dwFileId,          /* IN              */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer           /*    OUT          */
+    )
+{
+    NET_API_STATUS  status = 0;
 
-#define TRY                      DCETHREAD_TRY
-#define CATCH_ALL(pDceException) DCETHREAD_CATCH_ALL(pDceException)
-#define CATCH(x)                 DCETHREAD_CATCH(x)
-#define ENDTRY                   DCETHREAD_ENDTRY
+    status = NetrFileGetInfo(
+                pContext,
+                pwszServername,
+                dwFileId,
+                dwInfoLevel,
+                ppBuffer);
+    BAIL_ON_WIN_ERROR(status);
 
+cleanup:
 
-/*
-local variables:
-mode: c
-c-basic-offset: 4
-indent-tabs-mode: nil
-tab-width: 4
-end:
-*/
+    return status;
+
+error:
+
+    goto cleanup;
+}

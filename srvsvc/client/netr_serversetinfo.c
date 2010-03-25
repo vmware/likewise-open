@@ -40,10 +40,10 @@ NetrServerSetInfo(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
     srvsvc_NetSrvInfo info;
 
     BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
 
     memset(&info, 0, sizeof(info));
 
@@ -225,15 +225,31 @@ NetrServerSetInfo(
     case 1556:
         info.info1556 = (PSERVER_INFO_1556)bufptr;
         break;
+
+    default:
+
+        status = ERROR_INVALID_LEVEL;
+        BAIL_ON_WIN_ERROR(status);
+
+        break;
     }
 
-    DCERPC_CALL(status,
-                _NetrServerSetInfo(
-                        pContext->hBinding,
-                        (wchar16_t *)servername,
-                        level,
-                        info,
-                        parm_err));
+    TRY
+    {
+        status = _NetrServerSetInfo(
+                    pContext->hBinding,
+                    (wchar16_t *)servername,
+                    level,
+                    info,
+                    parm_err);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
     return status;

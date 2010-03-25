@@ -39,15 +39,24 @@ NetrFileClose(
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
 
     BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
 
-    DCERPC_CALL(status,
-                _NetrFileClose(
-                        pContext->hBinding,
-                        (wchar16_t *)servername,
-                        fileid));
+    TRY
+    {
+        status = _NetrFileClose(
+                    pContext->hBinding,
+                    (wchar16_t *)servername,
+                    fileid);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
     return status;

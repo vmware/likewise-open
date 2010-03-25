@@ -39,43 +39,31 @@ NetrShareDel(
     IN  DWORD    dwReserved
     )
 {
-    NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PWSTR pwszServer = NULL;
-    PWSTR pwszName = NULL;
+    NET_API_STATUS status = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
 
-    BAIL_ON_INVALID_PTR(pContext, ntStatus);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszSharename, ntStatus);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pwszSharename, status);
 
-    if (pwszServername)
+    TRY
     {
-        err = LwAllocateWc16String(&pwszServer,
-                                   pwszServername);
-        BAIL_ON_WIN_ERROR(err);
+        status = _NetrShareDel(
+                        pContext->hBinding,
+                        (PWSTR)pwszServername,
+                        (PWSTR)pwszSharename,
+                        dwReserved);
     }
-
-    err = LwAllocateWc16String(&pwszName,
-                               pwszSharename);
-    BAIL_ON_WIN_ERROR(err);
-
-    DCERPC_CALL(err,
-                _NetrShareDel(pContext->hBinding,
-                              pwszServer,
-                              pwszName,
-                              dwReserved));
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
-    SRVSVC_SAFE_FREE(pwszServer);
-    SRVSVC_SAFE_FREE(pwszName);
 
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
-    {
-        err = LwNtStatusToWin32Error(ntStatus);
-    }
-
-    return err;
+    return status;
 
 error:
     goto cleanup;

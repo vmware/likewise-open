@@ -40,9 +40,8 @@ NetrShareSetInfo(
     OUT PDWORD          pdwParmErr
     )
 {
-    NET_API_STATUS err = ERROR_SUCCESS;
-    PWSTR pwszServer = NULL;
-    PWSTR pwszShare = NULL;
+    NET_API_STATUS status = ERROR_SUCCESS;
+    dcethread_exc* pDceException  = NULL;
     srvsvc_NetShareInfo Info;
     PSHARE_INFO_502 pInfo502 = NULL;
     SHARE_INFO_502_I Info502i = {0};
@@ -50,9 +49,8 @@ NetrShareSetInfo(
     SHARE_INFO_1501_I Info1501i = {0};
     PVOID pSecDescBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(pContext, err);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, err);
-    BAIL_ON_INVALID_PTR(pwszNetname, err);
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(pwszNetname, status);
 
     memset(&Info, 0, sizeof(Info));
     memset(&Info502i, 0, sizeof(Info502i));
@@ -75,8 +73,8 @@ NetrShareSetInfo(
             if ((pInfo502->shi502_security_descriptor && !pInfo502->shi502_reserved) ||
                 (!pInfo502->shi502_security_descriptor && pInfo502->shi502_reserved))
             {
-                err = ERROR_INVALID_PARAMETER;
-                BAIL_ON_WIN_ERROR(err);
+                status = ERROR_INVALID_PARAMETER;
+                BAIL_ON_WIN_ERROR(status);
             }
 
             Info502i.shi502_netname             = pInfo502->shi502_netname;
@@ -113,8 +111,8 @@ NetrShareSetInfo(
             if ((pInfo1501->shi1501_security_descriptor && !pInfo1501->shi1501_reserved) ||
                 (!pInfo1501->shi1501_security_descriptor && pInfo1501->shi1501_reserved))
             {
-                err = ERROR_INVALID_PARAMETER;
-                BAIL_ON_WIN_ERROR(err);
+                status = ERROR_INVALID_PARAMETER;
+                BAIL_ON_WIN_ERROR(status);
             }
 
             Info1501i.shi1501_reserved            = pInfo1501->shi1501_reserved;
@@ -123,21 +121,37 @@ NetrShareSetInfo(
             Info.info1501 = &Info1501i;
         }
         break;
+
+    default:
+
+        status = ERROR_INVALID_LEVEL;
+        BAIL_ON_WIN_ERROR(status);
+
+        break;
     }
 
-    DCERPC_CALL(err,
-                _NetrShareSetInfo(pContext->hBinding,
-                                  pwszServername,
-                                  pwszNetname,
-                                  dwLevel,
-                                  Info,
-                                  pdwParmErr));
-    BAIL_ON_WIN_ERROR(err);
+    TRY
+    {
+        status = _NetrShareSetInfo(
+                        pContext->hBinding,
+                        pwszServername,
+                        pwszNetname,
+                        dwLevel,
+                        Info,
+                        pdwParmErr);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
     LW_SAFE_FREE_MEMORY(pSecDescBuffer);
 
-    return err;
+    return status;
 
 error:
     goto cleanup;

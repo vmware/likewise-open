@@ -40,44 +40,46 @@ NetrShareAdd(
     OUT PDWORD   pdwParmErr
     )
 {
-    NET_API_STATUS err = ERROR_SUCCESS;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    NET_API_STATUS status = ERROR_SUCCESS;
     srvsvc_NetShareInfo Info;
     DWORD dwParmErr = 0;
-    PWSTR pwszServer = NULL;
 
-    BAIL_ON_INVALID_PTR(pContext, ntStatus);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, ntStatus);
-
-    if (pwszServername)
-    {
-        err = LwAllocateWc16String(&pwszServer, pwszServername);
-        BAIL_ON_WIN_ERROR(err);
-    }
+    BAIL_ON_INVALID_PTR(pContext, status);
 
     memset(&Info, 0, sizeof(Info));
 
-    switch (dwLevel) {
-    case 2:
-        Info.info2 = (PSHARE_INFO_2)pBuffer;
-        break;
+    switch (dwLevel)
+    {
+        case 2:
+            Info.info2 = (PSHARE_INFO_2)pBuffer;
+            break;
 
-    case 502:
-        Info.info502 = (PSHARE_INFO_502)pBuffer;
-        break;
+        case 502:
+            Info.info502 = (PSHARE_INFO_502)pBuffer;
+            break;
 
-    default:
-        err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WIN_ERROR(err);
-        break;
+        default:
+            status = ERROR_INVALID_LEVEL;
+            BAIL_ON_WIN_ERROR(status);
+            break;
     }
 
-    DCERPC_CALL(err, _NetrShareAdd(pContext->hBinding,
-                                   pwszServer,
-                                   dwLevel,
-                                   Info,
-                                   &dwParmErr));
-    BAIL_ON_WIN_ERROR(err);
+    TRY
+    {
+        status = _NetrShareAdd(
+                    pContext->hBinding,
+                    (PWSTR)pwszServername,
+                    dwLevel,
+                    Info,
+                    &dwParmErr);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
+    BAIL_ON_WIN_ERROR(status);
 
     if (pdwParmErr)
     {
@@ -85,15 +87,8 @@ NetrShareAdd(
     }
 
 cleanup:
-    SRVSVC_SAFE_FREE(pwszServer);
 
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
-    {
-        err = LwNtStatusToWin32Error(ntStatus);
-    }
-
-    return err;
+    return status;
 
 error:
     goto cleanup;

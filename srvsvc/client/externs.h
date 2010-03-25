@@ -38,33 +38,42 @@ extern pthread_mutex_t g_srvsvc_data_mutex;
 extern int bSrvSvcInitialised;
 
 
-#define GLOBAL_DATA_LOCK(locked)                      \
-    do {                                              \
-        int ret = 0;                                  \
-        ret = pthread_mutex_lock(&g_srvsvc_data_mutex);  \
-        if (ret) {                                    \
-            status = STATUS_UNSUCCESSFUL;		      \
-            goto error;                               \
-                                                      \
-        } else {                                      \
-            locked = 1;                               \
-        }                                             \
+#define GLOBAL_DATA_LOCK(locked)                             \
+    do {                                                     \
+        if (!(locked))                                       \
+        {                                                    \
+            int ret = 0;                                     \
+            ret = pthread_mutex_lock(&g_srvsvc_data_mutex);  \
+            if (ret) {                                       \
+                ntStatus = LwErrnoToNtStatus(ret);		     \
+                if (ntStatus == STATUS_SUCCESS)              \
+                {                                            \
+                    ntStatus = STATUS_INTERNAL_ERROR;        \
+                }                                            \
+                goto error;                                  \
+            } else {                                         \
+                (locked) = 1;                                \
+            }                                                \
+        }                                                    \
     } while (0);
 
 
-#define GLOBAL_DATA_UNLOCK(locked)                    \
-    do {                                              \
-        int ret = 0;                                  \
-        if (!locked) break;                           \
-        ret = pthread_mutex_unlock(&g_srvsvc_data_mutex);\
-        if (ret && status == STATUS_SUCCESS) {        \
-            status = STATUS_UNSUCCESSFUL;             \
-                                                      \
-        } else {                                      \
-            locked = 0;                               \
-        }                                             \
+#define GLOBAL_DATA_UNLOCK(locked)                           \
+    do {                                                     \
+        if (locked) {                                        \
+            int ret = 0;                                     \
+            ret = pthread_mutex_unlock(&g_srvsvc_data_mutex);\
+            if (ret) {                                       \
+                ntStatus = LwErrnoToNtStatus(ret);           \
+                if (ntStatus == STATUS_SUCCESS)              \
+                {                                            \
+                    ntStatus = STATUS_INTERNAL_ERROR;        \
+                }                                            \
+            } else {                                         \
+                (locked) = 0;                                \
+            }                                                \
+        }                                                    \
     } while (0);
-
 
 #endif /* _EXTERN_H_ */
 

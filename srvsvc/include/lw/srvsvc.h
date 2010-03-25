@@ -1435,6 +1435,15 @@ NetrFileEnum(
     );
 
 NET_API_STATUS
+NetrFileGetInfo(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    DWORD           dwFileId,          /* IN              */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer           /*    OUT          */
+    );
+
+NET_API_STATUS
 NetrFileClose(
     PSRVSVC_CONTEXT pContext,          /* IN              */
     PCWSTR          pwszServername,    /* IN    OPTIONAL  */

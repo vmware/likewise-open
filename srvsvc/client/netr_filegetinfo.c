@@ -30,45 +30,135 @@
 
 #include "includes.h"
 
+static
+NET_API_STATUS
+SrvSvcCopyNetFileInfo(
+    UINT32              level,
+    srvsvc_NetFileInfo* info,
+    UINT8**             bufptr
+    );
 
-NET_API_STATUS NetFileGetInfo(
-    PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    UINT32 fileid,
-    UINT32 level,
-    UINT8 **bufptr
+
+NET_API_STATUS
+NetrFileGetInfo(
+    PSRVSVC_CONTEXT pContext,          /* IN              */
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    DWORD           dwFileId,          /* IN              */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer           /*    OUT          */
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
-    NET_API_STATUS memerr = ERROR_SUCCESS;
+    dcethread_exc* pDceException = NULL;
     srvsvc_NetFileInfo info;
 
     BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(pContext->hBinding, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ppBuffer, status);
 
     memset(&info, 0, sizeof(info));
-    *bufptr = NULL;
+    *ppBuffer = NULL;
 
-    DCERPC_CALL(status,
-                _NetrFileGetInfo(
-                        pContext->hBinding,
-                        (wchar16_t *)servername,
-                        fileid,
-                        level,
-                        &info));
+    TRY
+    {
+        status = _NetrFileGetInfo(
+                    pContext->hBinding,
+                    (PWSTR)pwszServername,
+                    dwFileId,
+                    dwInfoLevel,
+                    &info);
+    }
+    CATCH_ALL(pDceException)
+    {
+        NTSTATUS ntStatus = LwRpcStatusToNtStatus(pDceException->match.value);
+        status = LwNtStatusToWin32Error(ntStatus);
+    }
+    ENDTRY;
     BAIL_ON_WIN_ERROR(status);
 
-    memerr = SrvSvcCopyNetFileInfo(level, &info, bufptr);
-    BAIL_ON_WIN_ERROR(memerr);
+    status = SrvSvcCopyNetFileInfo(dwInfoLevel, &info, ppBuffer);
+    BAIL_ON_WIN_ERROR(status);
 
 cleanup:
-    SrvSvcClearNetFileInfo(level, &info);
+
+    SrvSvcClearNetFileInfo(dwInfoLevel, &info);
+
     return status;
 
 error:
+
     goto cleanup;
 }
+
+static
+NET_API_STATUS
+SrvSvcCopyNetFileInfo(
+    UINT32              level,
+    srvsvc_NetFileInfo* info,
+    UINT8**             bufptr
+    )
+{
+    NET_API_STATUS status = ERROR_SUCCESS;
+    void *ptr = NULL;
+
+    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(info, status);
+
+    *bufptr = NULL;
+
+    switch (level) {
+    case 2:
+        if (info->info2) {
+            PFILE_INFO_2 a2;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(FILE_INFO_2),
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a2 = (PFILE_INFO_2)ptr;
+
+            *a2 = *info->info2;
+        }
+        break;
+    case 3:
+        if (info->info3) {
+            PFILE_INFO_3 a3;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(FILE_INFO_3),
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a3 = (PFILE_INFO_3)ptr;
+
+            *a3 = *info->info3;
+
+            if (a3->fi3_path_name)
+            {
+                status = SrvSvcAddDepStringW(a3, a3->fi3_path_name);
+                BAIL_ON_WIN_ERROR(status);
+            }
+            if (a3->fi3_username)
+            {
+                status = SrvSvcAddDepStringW(a3, a3->fi3_username);
+                BAIL_ON_WIN_ERROR(status);
+            }
+        }
+        break;
+    }
+
+    *bufptr = (UINT8 *)ptr;
+
+cleanup:
+    return status;
+
+error:
+    if (ptr) {
+        SrvSvcFreeMemory(ptr);
+    }
+    goto cleanup;
+}
+
 
 
 /*

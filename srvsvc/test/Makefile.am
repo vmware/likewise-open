@@ -6,6 +6,7 @@ testsrvsvc_SOURCES = \
     net_connectionenum.c \
     net_fileclose.c      \
     net_fileenum.c       \
+    net_filegetinfo.c    \
     net_remotetod.c      \
     net_servergetinfo.c  \
     net_serversetinfo.c  \
