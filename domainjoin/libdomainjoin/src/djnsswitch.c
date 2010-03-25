@@ -1163,7 +1163,7 @@ static CENTERROR UnsuportedSeLinuxEnabled(BOOLEAN *hasBadSeLinux)
             }
             break;
         case DISTRO_FEDORA:
-            if(distro.version[0] < '6')
+            if(atol(distro.version) < 6)
             {
                 DJ_LOG_INFO("Safe version of Fedora");
                 goto cleanup;
