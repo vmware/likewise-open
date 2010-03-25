@@ -258,6 +258,35 @@ NfsProcessRequestSpecific_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+#if 0
+    switch (pSmbRequest->pHeader->command)
+    {
+        case NFS_SETATTR:
+        case NFS_LOOKUP
+        case NFS_ACCESS
+        case NFS_READLINK
+        case NFS_READ
+        case NFS_WRITE
+        case NFS_CREATE
+        case NFS_MKDIR
+        case NFS_SYMLINK
+        case NFS_MKNOD
+        case NFS_REMOVE
+        case NFS_RMDIR
+        case NFS_LINK
+        case NFS_READDIR
+        case NFS_READDIRPLUS
+        case NFS_FSSTAT
+        case NFS_FSINFO
+        case NFS_PATHCONF
+        case NFS_COMMIT
+             break;
+
+        default:
+             break;
+    }
+#endif
+
     switch (pSmbRequest->pHeader->command)
     {
         case COM2_NEGOTIATE:
