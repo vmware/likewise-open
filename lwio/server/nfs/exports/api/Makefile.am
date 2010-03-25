@@ -4,7 +4,7 @@ libshareapi_la_SOURCES = \
     globals.c  \
     libmain.c  \
     mapping.c  \
-    shareapi.c \
+    exportapi.c \
     utils.c
 
 libshareapi_la_CPPFLAGS = \
@@ -14,19 +14,12 @@ libshareapi_la_CPPFLAGS = \
     -I@top_srcdir@/include \
     -I@top_srcdir@/server/include \
     -I@top_srcdir@/server/nfs/include \
-    -I@top_srcdir@/server/nfs/shares/include
-
-if ENABLE_SHARE_REPOSITORY_SQLITE
-
-libshareapi_la_LIBADD = \
-    @top_builddir@/server/nfs/shares/lwshare/liblwshare.la
-
-endif
+    -I@top_srcdir@/server/nfs/exports/include
 
 if ENABLE_SHARE_REPOSITORY_REGISTRY
 
 libshareapi_la_LIBADD = \
-    @top_builddir@/server/nfs/shares/regshare/liblwregshare.la
+    @top_builddir@/server/nfs/exports/regexports/liblwregexports.la
 
 endif
 

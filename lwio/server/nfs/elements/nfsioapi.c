@@ -214,7 +214,7 @@ NfsIoPrepareEcpList(
 
         ntStatus = IoRtlEcpListInsert(
                         *ppEcpList,
-                        NFS_ECP_TYPE_SHARE_NAME,
+                        SRV_ECP_TYPE_SHARE_NAME,
                         pShareName,
                         sizeof(*pShareName),
                         NfsIoFreeEcpShareName);

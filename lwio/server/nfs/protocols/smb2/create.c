@@ -637,7 +637,7 @@ NfsBuildCreateState_SMB_V2(
 
                 ntStatus = IoRtlEcpListInsert(
                                 pCreateState->pEcpList,
-                                NFS_ECP_TYPE_MAX_ACCESS,
+                                SRV_ECP_TYPE_MAX_ACCESS,
                                 &pCreateState->ulMaximalAccessMask,
                                 sizeof(pCreateState->ulMaximalAccessMask),
                                 NULL);
