@@ -1462,9 +1462,9 @@ error:
 
 NET_API_STATUS
 NetFileEnumW(
-    PWSTR  pwszServername,     /* IN    OPTIONAL  */
-    PWSTR  pwszBasepath,       /* IN    OPTIONAL  */
-    PWSTR  pwszUsername,       /* IN    OPTIONAL  */
+    PCWSTR pwszServername,     /* IN    OPTIONAL  */
+    PCWSTR pwszBasepath,       /* IN    OPTIONAL  */
+    PCWSTR pwszUsername,       /* IN    OPTIONAL  */
     DWORD  dwInfoLevel,        /* IN              */
     PBYTE* ppBuffer,           /*    OUT          */
     DWORD  dwPrefmaxLen,       /* IN              */
@@ -1689,7 +1689,7 @@ error:
 
 NET_API_STATUS
 NetFileCloseW(
-    PWSTR  pwszServername,     /* IN    OPTIONAL  */
+    PCWSTR pwszServername,     /* IN    OPTIONAL  */
     DWORD  dwFileId            /* IN              */
     )
 {
