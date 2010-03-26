@@ -29,11 +29,12 @@
  */
 
 DWORD
-NetExecSessionDel(
-    PNET_SESSION_DEL_INFO_PARAMS pCommandInfo
+NetExecSessionEnum(
+    PWSTR pwszServername
     );
 
 DWORD
-NetExecSessionEnum(
-    PNET_SESSION_ENUM_INFO_PARAMS pCommandInfo
+NetExecSessionLogoff(
+    PWSTR pwszServername,
+    PWSTR pwszSessionname
     );

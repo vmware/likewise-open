@@ -28,37 +28,12 @@
  *
  */
 
-typedef DWORD NET_SESSION_CTRL_CODE;
-
-#define NET_SESSION_UNKNOWN 0
-#define NET_SESSION_HELP 1
-#define NET_SESSION_DEL  2
-#define NET_SESSION_ENUM 3
-
-#define NET_SESSION_COMMAND_HELP "HELP"
-#define NET_SESSION_COMMAND_DEL "DEL"
-
-#define NET_SESSION_NAME_TITLE "Session name"
-
-typedef struct _NET_SESSION_DEL_INFO_PARAMS
+typedef struct _NET_SESSION_COMMAND_INFO
 {
     PWSTR pwszServerName;
     PWSTR pwszSessionName;
-} NET_SESSION_DEL_INFO_PARAMS, *PNET_SESSION_DEL_INFO_PARAMS;
 
-typedef struct _NET_SESSION_ENUM_INFO_PARAMS
-{
-    PWSTR pwszServerName;
-} NET_SESSION_ENUM_INFO_PARAMS, *PNET_SESSION_ENUM_INFO_PARAMS;
-
-typedef struct _NET_SESSION_COMMAND_INFO
-{
-    NET_SESSION_CTRL_CODE dwControlCode;
-
-    union
-    {
-        NET_SESSION_ENUM_INFO_PARAMS SessionEnumInfo;
-        NET_SESSION_DEL_INFO_PARAMS SessionDelInfo;
-    };
+    BOOLEAN bEnumerate;
+    BOOLEAN bLogoff;
 } NET_SESSION_COMMAND_INFO, *PNET_SESSION_COMMAND_INFO;
 

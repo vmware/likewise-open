@@ -48,17 +48,20 @@
 #include "includes.h"
 
 DWORD
-NetExecSessionDel(
-    PNET_SESSION_DEL_INFO_PARAMS pCommandInfo
+NetExecSessionEnum(
+    PWSTR pwszServername
     )
 {
+    printf("Enumerating sessions...\n");
     return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
 DWORD
-NetExecSessionEnum(
-    PNET_SESSION_ENUM_INFO_PARAMS pCommandInfo
+NetExecSessionLogoff(
+    PWSTR pwszServername,
+    PWSTR pwszSessionname
     )
 {
+    printf("Logging off sessions...\n");
     return ERROR_CALL_NOT_IMPLEMENTED;
 }

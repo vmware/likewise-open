@@ -47,174 +47,28 @@
 
 #include "includes.h"
 
-VOID
-NetSessionShowUsage(
-    VOID
-    )
-{
-    printf(
-        "Usage: lwnet session help\n"
-        "       lwnet session [ <options> ... ]\n"
-        "       lwnet session del [ <options> ... ] <name>\n");
-
-    printf("\n"
-           "Options:\n"
-           "\n"
-           "  --server <server>       Specify target server (default: local machine)\n"
-           "\n");
-}
-
-static
-VOID
-NetSessionFreeCommandInfo(
-    PNET_SESSION_COMMAND_INFO* ppCommandInfo
-    );
-
-static
-DWORD
-NetSessionDelParseArguments(
-    int argc,
-    char** argv,
-    IN OUT PNET_SESSION_COMMAND_INFO pCommandInfo
-    )
-{
-    DWORD dwError = 0;
-    int indexSessionDelArg = 3;
-
-    if (!argv[indexSessionDelArg])
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-
-    if (!strcasecmp(argv[indexSessionDelArg], "--server"))
-    {
-        dwError = LwMbsToWc16s(argv[++indexSessionDelArg], &pCommandInfo->SessionDelInfo.pwszServerName);
-        BAIL_ON_LWUTIL_ERROR(dwError);
-
-        indexSessionDelArg++;
-    }
-
-    if (indexSessionDelArg > argc-1)
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-
-    dwError = LwMbsToWc16s(argv[indexSessionDelArg], &pCommandInfo->SessionDelInfo.pwszSessionName);
-    BAIL_ON_LWUTIL_ERROR(dwError);
-
-cleanup:
-
-    return dwError;
-
-error:
-    LW_SAFE_FREE_MEMORY(pCommandInfo->SessionDelInfo.pwszServerName);
-    LW_SAFE_FREE_MEMORY(pCommandInfo->SessionDelInfo.pwszSessionName);
-
-    goto cleanup;
-}
-
-static
-DWORD
-NetSessionEnumParseArguments(
-    int argc,
-    char ** argv,
-    IN OUT PNET_SESSION_COMMAND_INFO pCommandInfo
-    )
-{
-    DWORD dwError = 0;
-
-    if (!argv[3])
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-
-    dwError = LwMbsToWc16s(argv[3], &pCommandInfo->SessionEnumInfo.pwszServerName);
-    BAIL_ON_LWUTIL_ERROR(dwError);
-
-cleanup:
-
-    return dwError;
-
-error:
-    LW_SAFE_FREE_MEMORY(pCommandInfo->SessionEnumInfo.pwszServerName);
-
-    goto cleanup;
-}
-
-
 static
 DWORD
 NetSessionParseArguments(
     int argc,
     char ** argv,
     PNET_SESSION_COMMAND_INFO* ppCommandInfo
+    );
+
+static
+VOID
+NetSessionFreeCommandInfo(
+    PNET_SESSION_COMMAND_INFO pCommandInfo
+    );
+
+VOID
+NetSessionShowUsage(
+    VOID
     )
 {
-    DWORD dwError = 0;
-    PNET_SESSION_COMMAND_INFO pCommandInfo = NULL;
-
-    if (argc < 2)
-    {
-        dwError = LW_ERROR_INTERNAL;
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-
-    dwError = LwNetUtilAllocateMemory(sizeof(*pCommandInfo),
-                                   (PVOID*)&pCommandInfo);
-    BAIL_ON_LWUTIL_ERROR(dwError);
-
-
-    if (!argv[2])
-    {
-        pCommandInfo->dwControlCode = NET_SESSION_ENUM;
-        goto cleanup;
-    }
-
-    if (!strcasecmp(argv[2], NET_SESSION_COMMAND_HELP))
-    {
-        NetSessionShowUsage();
-        goto cleanup;
-    }
-    else if (!strcasecmp(argv[2], NET_SESSION_COMMAND_DEL))
-    {
-        pCommandInfo->dwControlCode = NET_SESSION_DEL;
-
-        dwError = NetSessionDelParseArguments(argc, argv, pCommandInfo);
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-    else if (!strcasecmp(argv[2], "--server"))
-    {
-        pCommandInfo->dwControlCode = NET_SESSION_ENUM;
-
-        dwError = NetSessionEnumParseArguments(argc, argv, pCommandInfo);
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-    else
-    {
-        dwError = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LWUTIL_ERROR(dwError);
-    }
-
-cleanup:
-
-    *ppCommandInfo = pCommandInfo;
-
-    return dwError;
-
-error:
-    if (LW_ERROR_INVALID_PARAMETER == dwError)
-    {
-        NetSessionShowUsage();
-    }
-
-    LwNetUtilFreeMemory(pCommandInfo);
-    pCommandInfo = NULL;
-
-    goto cleanup;
+    printf("Usage: lwnet session [\\\\computername] [del | delete]\n");
 }
+
 
 DWORD
 NetSessionInitialize(
@@ -243,30 +97,28 @@ NetSession(
     dwError = NetSessionInitialize();
     BAIL_ON_LWUTIL_ERROR(dwError);
 
-    switch (pCommandInfo->dwControlCode)
+    if (pCommandInfo->bEnumerate)
     {
-        case NET_SESSION_DEL:
-
-            dwError = NetExecSessionDel(&pCommandInfo->SessionDelInfo);
-            BAIL_ON_LWUTIL_ERROR(dwError);
-
-            break;
-
-        case NET_SESSION_ENUM:
-
-            dwError = NetExecSessionEnum(&pCommandInfo->SessionEnumInfo);
-            BAIL_ON_LWUTIL_ERROR(dwError);
-
-            break;
-
-        default:
-
-            break;
+        dwError = NetExecSessionEnum(pCommandInfo->pwszServerName);
     }
+    else if (pCommandInfo->bLogoff)
+    {
+        dwError = NetExecSessionLogoff(
+                        pCommandInfo->pwszServerName,
+                        pCommandInfo->pwszSessionName);
+    }
+    else
+    {
+        dwError = ERROR_INVALID_PARAMETER;
+    }
+    BAIL_ON_LWUTIL_ERROR(dwError);
 
 cleanup:
 
-    NetSessionFreeCommandInfo(&pCommandInfo);
+    if (pCommandInfo)
+    {
+        NetSessionFreeCommandInfo(pCommandInfo);
+    }
 
     return dwError;
 
@@ -283,36 +135,138 @@ NetSessionShutdown(
 }
 
 static
-VOID
-NetSessionFreeCommandInfo(
+DWORD
+NetSessionParseArguments(
+    int argc,
+    char ** argv,
     PNET_SESSION_COMMAND_INFO* ppCommandInfo
     )
 {
-    PNET_SESSION_COMMAND_INFO pCommandInfo = ppCommandInfo ? *ppCommandInfo : NULL;
-
-    if (!pCommandInfo)
-        return;
-
-    switch (pCommandInfo->dwControlCode)
+    DWORD dwError = 0;
+    PNET_SESSION_COMMAND_INFO pCommandInfo = NULL;
+    int   iArg = 1;
+    enum NetSessionParseState
     {
-        case NET_SESSION_DEL:
+        NET_SESSION_ARG_OPEN = 0,
+        NET_SESSION_ARG_SESSION,
+        NET_SESSION_ARG_NAME
+    } parseState = NET_SESSION_ARG_OPEN;
 
-            LW_SAFE_FREE_MEMORY(pCommandInfo->SessionDelInfo.pwszServerName);
-            LW_SAFE_FREE_MEMORY(pCommandInfo->SessionDelInfo.pwszSessionName);
-            break;
+    dwError = LwNetUtilAllocateMemory(
+                    sizeof(*pCommandInfo),
+                    (PVOID*)&pCommandInfo);
+    BAIL_ON_LWUTIL_ERROR(dwError);
 
-        case NET_SESSION_ENUM:
+    for (iArg = 1; iArg < argc; iArg++)
+    {
+        PSTR  pszArg = argv[iArg];
 
-            LW_SAFE_FREE_MEMORY(pCommandInfo->SessionEnumInfo.pwszServerName);
+        switch (parseState)
+        {
+            case NET_SESSION_ARG_OPEN:
 
-            break;
+                if (!strcasecmp(pszArg, "-h") || !strcasecmp(pszArg, "--help"))
+                {
+                    NetSessionShowUsage();
+                    goto cleanup;
+                }
+                else if (!strcasecmp(pszArg, "session"))
+                {
+                    parseState = NET_SESSION_ARG_SESSION;
 
-         default:
-            break;
+                    pCommandInfo->bEnumerate = TRUE;
+                }
+                else
+                {
+                    dwError = LW_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_LWUTIL_ERROR(dwError);
+                }
+
+                break;
+
+            case NET_SESSION_ARG_SESSION:
+
+                if (!strncmp(pszArg, "\\\\", sizeof("\\\\")-1))
+                {
+                    dwError = LwMbsToWc16s(pszArg, &pCommandInfo->pwszSessionName);
+                    BAIL_ON_LWUTIL_ERROR(dwError);
+
+                    pCommandInfo->bEnumerate = FALSE;
+
+                    parseState = NET_SESSION_ARG_NAME;
+                }
+                else if (!strcasecmp(pszArg, "-h") || !strcasecmp(pszArg, "--help"))
+                {
+                    NetSessionShowUsage();
+                    goto cleanup;
+                }
+                else
+                {
+                    dwError = LW_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_LWUTIL_ERROR(dwError);
+                }
+
+                break;
+
+            case NET_SESSION_ARG_NAME:
+
+                if (!strcasecmp(pszArg, "del") || !strcasecmp(pszArg, "delete"))
+                {
+                    pCommandInfo->bEnumerate = FALSE;
+                    pCommandInfo->bLogoff = TRUE;
+                }
+                else
+                {
+                    dwError = LW_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_LWUTIL_ERROR(dwError);
+                }
+
+                parseState = NET_SESSION_ARG_OPEN;
+
+                break;
+
+            default:
+
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LWUTIL_ERROR(dwError);
+
+                break;
+        }
     }
 
-    LW_SAFE_FREE_MEMORY(pCommandInfo);
+    if (!pCommandInfo->bEnumerate && !pCommandInfo->bLogoff)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LWUTIL_ERROR(dwError);
+    }
+
+    *ppCommandInfo = pCommandInfo;
+
+cleanup:
+
+    return dwError;
+
+error:
+
     *ppCommandInfo = NULL;
 
-    return;
+    if (LW_ERROR_INVALID_PARAMETER == dwError)
+    {
+        NetSessionShowUsage();
+    }
+
+    LwNetUtilFreeMemory(pCommandInfo);
+
+    goto cleanup;
+}
+
+static
+VOID
+NetSessionFreeCommandInfo(
+    PNET_SESSION_COMMAND_INFO pCommandInfo
+    )
+{
+    LW_SAFE_FREE_MEMORY(pCommandInfo->pwszServerName);
+    LW_SAFE_FREE_MEMORY(pCommandInfo->pwszSessionName);
+    LW_SAFE_FREE_MEMORY(pCommandInfo);
 }
