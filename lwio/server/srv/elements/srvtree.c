@@ -185,7 +185,7 @@ SrvTreeFindFile(
         pTree->lruFile[fid % SRV_LRU_CAPACITY] = pFile;
     }
 
-    InterlockedIncrement(&pFile->refcount);
+    SrvFileAcquire(pFile);
 
     *ppFile = pFile;
 
@@ -253,7 +253,7 @@ SrvTreeCreateFile(
                     pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    InterlockedIncrement(&pFile->refcount);
+    SrvFileAcquire(pFile);
 
     *ppFile = pFile;
 
@@ -510,7 +510,12 @@ SrvTreeRundown(
 {
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pTree->mutex);
+
+	if (pTree->pAsyncStateCollection)
+	{
+	LwRtlRBTreeRemoveAll(pTree->pAsyncStateCollection);
+	}
 
     LwRtlRBTreeTraverse(
             pTree->pFileCollection,
