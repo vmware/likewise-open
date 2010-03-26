@@ -62,6 +62,60 @@ SrvSvcSetProcessShouldExit(
     BOOLEAN val
     );
 
+// netfile.c
+
+NET_API_STATUS
+SrvSvcNetFileEnum(
+    handle_t           IDL_handle,           /* [in]      */
+    PWSTR              pwszServername,       /* [in]      */
+    PWSTR              pwszBasepath,         /* [in]      */
+    PWSTR              pwszUsername,         /* [in]      */
+    DWORD              dwInfoLevel,          /* [in, out] */
+    srvsvc_NetFileCtr* pInfo,                /* [in, out] */
+    DWORD              dwPreferredMaxLength, /* [in]      */
+    PDWORD             pdwTotalEntries,      /* [out]     */
+    PDWORD             pdwResumeHandle       /* [in, out] */
+    );
+
+NET_API_STATUS
+SrvSvcNetFileGetInfo(
+    handle_t            IDL_handle,          /* [in]  */
+    PWSTR               pwszServername,      /* [in]  */
+    DWORD               dwFileId,            /* [in]  */
+    DWORD               dwInfoLevel,         /* [in]  */
+    srvsvc_NetFileInfo* pInfo                /* [out] */
+    );
+
+NET_API_STATUS
+SrvSvcNetFileClose(
+    handle_t IDL_handle,                     /* [in] */
+    PWSTR    pwszServername,                 /* [in] */
+    DWORD    dwFileId                        /* [in] */
+    );
+
+// netsession.c
+
+NET_API_STATUS
+SrvSvcNetSessionEnum(
+    handle_t           IDL_handle,           /* [in]      */
+    PWSTR              pwszServername,       /* [in]      */
+    PWSTR              pwszUncClientname,    /* [in]      */
+    PWSTR              pwszUsername,         /* [in]      */
+    DWORD              dwInfoLevel,          /* [in, out] */
+    srvsvc_NetSessCtr* pInfo,                /* [in, out] */
+    DWORD              dwPreferredMaxLength, /* [in]      */
+    PDWORD             pdwTotalEntries,      /* [out]     */
+    PDWORD             pdwResumeHandle       /* [in, out] */
+    );
+
+NET_API_STATUS
+SrvSvcNetSessionDel(
+    handle_t IDL_handle,                     /* [in] */
+    PWSTR    pwszServername,                 /* [in] */
+    PWSTR    pwszUncClientname,              /* [in] */
+    PWSTR    pwszUsername                    /* [in] */
+    );
+
 // signalhandler.c
 
 VOID

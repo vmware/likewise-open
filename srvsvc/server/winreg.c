@@ -280,7 +280,7 @@ _RegOpenKey(
 
     if (dwError == ERROR_SUCCESS)
     {
-        dwError = LwAllocateMemory(sizeof(UINT32), &h);
+        dwError = LwAllocateMemory(sizeof(UINT32), (PVOID*)&h);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         *handle = (REGISTRY_HANDLE)h;
@@ -352,7 +352,7 @@ _RegQueryValue(
             memcpy(buffer, pwszProductTypeValue, sizeof(WCHAR)*dwPTValueLen);
             *buffer_len = dwPTValueLen * sizeof(WCHAR);
 
-            LW_SAFE_FREE_STRING(pwszProductTypeValue);
+            LW_SAFE_FREE_MEMORY(pwszProductTypeValue);
         }
         else
         {

@@ -301,75 +301,226 @@ NET_API_STATUS _NetrConnectionEnum(
     return dwError;
 }
 
-NET_API_STATUS _NetrFileEnum(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *basepath,
-    /* [in] */ wchar16_t *username,
-    /* [in, out] */ UINT32 *level,
-    /* [in, out] */ srvsvc_NetFileCtr *ctr,
-    /* [in] */ UINT32 prefered_maximum_length,
-    /* [out] */ UINT32 *total_entries,
-    /* [in, out] */ UINT32 *resume_handle
+NET_API_STATUS
+_NetrFileEnum(
+    handle_t           IDL_handle,           /* [in]      */
+    PWSTR              pwszServername,       /* [in]      */
+    PWSTR              pwszBasepath,         /* [in]      */
+    PWSTR              pwszUsername,         /* [in]      */
+    PDWORD             pdwInfoLevel,         /* [in, out] */
+    srvsvc_NetFileCtr* pInfo,                /* [in, out] */
+    DWORD              dwPreferredMaxLength, /* [in]      */
+    PDWORD             pdwTotalEntries,      /* [out]     */
+    PDWORD             pdwResumeHandle       /* [in, out] */
     )
 {
-    DWORD dwError = ERROR_NOT_SUPPORTED;
+    DWORD dwError        = 0;
+    DWORD dwInfoLevel    = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = 0;
+
+    BAIL_ON_INVALID_PTR(pwszBasepath,    dwError);
+    BAIL_ON_INVALID_PTR(pwszUsername,    dwError);
+    BAIL_ON_INVALID_PTR(pdwInfoLevel,    dwError);
+    BAIL_ON_INVALID_PTR(pInfo,           dwError);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries, dwError);
+    BAIL_ON_INVALID_PTR(pdwResumeHandle, dwError);
+
+    dwInfoLevel    = *pdwInfoLevel;
+    dwResumeHandle = *pdwResumeHandle;
+
+    dwError = SrvSvcAccessCheck(
+                    IDL_handle,
+                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcNetFileEnum(
+                    IDL_handle,
+                    pwszServername,
+                    pwszBasepath,
+                    pwszUsername,
+                    dwInfoLevel,
+                    pInfo,
+                    dwPreferredMaxLength,
+                    &dwTotalEntries,
+                    &dwResumeHandle);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    *pdwTotalEntries = dwTotalEntries;
+    *pdwResumeHandle = dwResumeHandle;
+
+cleanup:
 
     return dwError;
+
+error:
+
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = dwTotalEntries;
+    }
+
+    goto cleanup;
 }
 
-
-NET_API_STATUS _NetrFileGetInfo(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ UINT32 fileid,
-    /* [in] */ UINT32 level,
-    /* [out] */ srvsvc_NetFileInfo *info
+NET_API_STATUS
+_NetrFileGetInfo(
+    handle_t            IDL_handle,     /* [in] */
+    PWSTR               pwszServername, /* [in] */
+    DWORD               dwFileId,       /* [in] */
+    DWORD               dwInfoLevel,    /* [in] */
+    srvsvc_NetFileInfo* pInfo           /* [out] */
     )
 {
-    DWORD dwError = ERROR_NOT_SUPPORTED;
+    DWORD dwError        = 0;
+
+    BAIL_ON_INVALID_PTR(pInfo, dwError);
+
+    dwError = SrvSvcAccessCheck(
+                    IDL_handle,
+                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcNetFileGetInfo(
+                    IDL_handle,
+                    pwszServername,
+                    dwFileId,
+                    dwInfoLevel,
+                    pInfo);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+cleanup:
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
-NET_API_STATUS _NetrFileClose(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ UINT32 fileid
+NET_API_STATUS
+_NetrFileClose(
+    handle_t IDL_handle,     /* [in] */
+    PWSTR    pwszServername, /* [in] */
+    DWORD    dwFileId        /* [in] */
     )
 {
-    DWORD dwError = ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    dwError = SrvSvcAccessCheck(
+                    IDL_handle,
+                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcNetFileClose(
+                    IDL_handle,
+                    pwszServername,
+                    dwFileId);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+cleanup:
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
-NET_API_STATUS _NetrSessionEnum(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *unc_client_name,
-    /* [in] */ wchar16_t *username,
-    /* [in, out] */ UINT32 *level,
-    /* [in, out] */ srvsvc_NetSessCtr *ctr,
-    /* [in] */ UINT32 prefered_maximum_length,
-    /* [out] */ UINT32 *total_entries,
-    /* [in, out] */ UINT32 *resume_handle
+NET_API_STATUS
+_NetrSessionEnum(
+    handle_t           IDL_handle,           /* [in]      */
+    PWSTR              pwszServername,       /* [in]      */
+    PWSTR              pwszUncClientname,    /* [in]      */
+    PWSTR              pwszUsername,         /* [in]      */
+    PDWORD             pdwInfoLevel,         /* [in, out] */
+    srvsvc_NetSessCtr* pInfo,                /* [in, out] */
+    DWORD              dwPreferredMaxLength, /* [in]      */
+    PDWORD             pdwTotalEntries,      /* [out]     */
+    PDWORD             pdwResumeHandle       /* [in, out] */
     )
 {
-    DWORD dwError = ERROR_NOT_SUPPORTED;
+    DWORD dwError        = 0;
+    DWORD dwInfoLevel    = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = 0;
+
+    BAIL_ON_INVALID_PTR(pwszUncClientname, dwError);
+    BAIL_ON_INVALID_PTR(pwszUsername,      dwError);
+    BAIL_ON_INVALID_PTR(pdwInfoLevel,      dwError);
+    BAIL_ON_INVALID_PTR(pInfo,             dwError);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries,   dwError);
+    BAIL_ON_INVALID_PTR(pdwResumeHandle,   dwError);
+
+    dwInfoLevel    = *pdwInfoLevel;
+    dwResumeHandle = *pdwResumeHandle;
+
+    dwError = SrvSvcAccessCheck(
+                    IDL_handle,
+                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcNetSessionEnum(
+                    IDL_handle,
+                    pwszServername,
+                    pwszUncClientname,
+                    pwszUsername,
+                    dwInfoLevel,
+                    pInfo,
+                    dwPreferredMaxLength,
+                    &dwTotalEntries,
+                    &dwResumeHandle);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    *pdwTotalEntries = dwTotalEntries;
+    *pdwResumeHandle = dwResumeHandle;
+
+cleanup:
 
     return dwError;
+
+error:
+
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = dwTotalEntries;
+    }
+
+    goto cleanup;
 }
 
-NET_API_STATUS _NetrSessionDel(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *server_name,
-    /* [in] */ wchar16_t *unc_client_name,
-    /* [in] */ wchar16_t *username
+NET_API_STATUS
+_NetrSessionDel(
+    handle_t IDL_handle,        /* [in] */
+    PWSTR    pwszServername,    /* [in] */
+    PWSTR    pwszUncClientname, /* [in] */
+    PWSTR    pwszUsername       /* [in] */
     )
 {
-    DWORD dwError = ERROR_NOT_SUPPORTED;
+    DWORD dwError = 0;
+
+    BAIL_ON_INVALID_PTR(pwszUncClientname, dwError);
+    BAIL_ON_INVALID_PTR(pwszUsername,      dwError);
+
+    dwError = SrvSvcAccessCheck(
+                    IDL_handle,
+                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcNetSessionDel(
+                    IDL_handle,
+                    pwszServername,
+                    pwszUncClientname,
+                    pwszUsername);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+cleanup:
 
     return dwError;
+
+error:
+
+    goto cleanup;
 }
 
 NET_API_STATUS _NetrShareAdd(

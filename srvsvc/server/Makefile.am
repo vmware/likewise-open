@@ -9,6 +9,8 @@ include_srcdir = $(top_srcdir)/include
 
 srvsvcd_SOURCES =              \
     config.c                   \
+    netfile.c                  \
+    netsession.c               \
     srvsvc.c                   \
     srvsvc_srv.c               \
     wkssvc.c                   \

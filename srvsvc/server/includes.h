@@ -49,6 +49,7 @@
 #include <lw/base.h>
 #include <lwio/lwio.h>
 #include <lwio/ntfileapi.h>
+#include <lwio/lwiodevctl.h>
 #include <lwio/lmshare.h>
 #include <lwio/lwshareinfo.h>
 #include <dce/rpc.h>
