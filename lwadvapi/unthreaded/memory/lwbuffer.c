@@ -1017,8 +1017,7 @@ LwBufferAllocSid(
     }
     else
     {
-        /* reserve max space if there's no clue about the size */
-        dwSidSize = RtlLengthRequiredSid(SID_MAX_SUB_AUTHORITIES);
+        dwSidSize = 0;
     }
 
     if (pCursor && pdwSpaceLeft)
@@ -1041,7 +1040,7 @@ LwBufferAllocSid(
 
         /* recalculate size and space after copying the SID */
         ppDest        = (PSID*)pCursor;
-        *ppDest       = (PSID)pSid;
+        *ppDest       = pSourceSid ? (PSID)pSid : NULL;
         dwSpaceLeft  -= dwSidSize;
 
         /* recalculate size and space after setting the SID pointer */
