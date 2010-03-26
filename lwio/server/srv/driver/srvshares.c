@@ -751,7 +751,6 @@ SrvShareDevCtlSetInfo(
     PLWIO_SRV_SHARE_ENTRY_LIST pShareList = &gSMBSrvGlobals.shareList;
     PSHARE_INFO_SETINFO_PARAMS pSetShareInfoParamsIn = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
-    BOOLEAN bShareLocked = FALSE;
 
     ntStatus = LwShareInfoUnmarshalSetParameters(
                    lpInBuffer,
@@ -764,8 +763,6 @@ SrvShareDevCtlSetInfo(
                    pSetShareInfoParamsIn->pwszNetname,
                    &pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bShareLocked, &pShareInfo->mutex);
 
     switch (pSetShareInfoParamsIn->dwInfoLevel)
     {
@@ -805,14 +802,10 @@ SrvShareDevCtlSetInfo(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_UNLOCK_RWMUTEX(bShareLocked, &pShareInfo->mutex);
-
     ntStatus = SrvShareUpdate(pShareList, pShareInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
 error:
-
-    LWIO_UNLOCK_RWMUTEX(bShareLocked, &pShareInfo->mutex);
 
     if (pSetShareInfoParamsIn) {
         SrvFreeMemory(pSetShareInfoParamsIn);
