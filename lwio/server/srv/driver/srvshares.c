@@ -1074,6 +1074,7 @@ SrvShareUpdateInfo502(
         SrvShareFreeSecurity(pShareInfo);
 
         pShareInfo->pSecDesc = pShareInfoCopy->pSecDesc;
+        pShareInfo->ulSecDescLen = pShareInfoCopy->ulSecDescLen;
         pShareInfoCopy->pSecDesc = NULL;
 
         pShareInfo->pAbsSecDesc = pShareInfoCopy->pAbsSecDesc;
