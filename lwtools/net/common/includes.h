@@ -61,7 +61,8 @@
 #include <lwsecurityidentifier.h>
 #include <lwtools.h>
 
-#include "lwnetutils.h"
+#include <lwnetutils.h>
+
 #include "externs.h"
 
 

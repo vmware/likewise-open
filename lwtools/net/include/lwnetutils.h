@@ -70,6 +70,11 @@ LwNetUtilFreeMemory(
     PVOID pMemory
     );
 
+BOOLEAN
+LwNetCheckUnsignedInteger(
+    PCSTR pszIntegerCandidate
+    );
+
 #endif /* __LW_NETUTILS_H__ */
 
 

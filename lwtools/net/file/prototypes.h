@@ -28,28 +28,20 @@
  *
  */
 
-#include <config.h>
+DWORD
+NetExecFileEnum(
+    PCWSTR pwszServername
+    );
 
-#include <lwtoolsystem.h>
+DWORD
+NetExecFileQueryInfo(
+    PCWSTR pwszServername,
+    DWORD  dwFileId
+    );
 
-#include <lw/errno.h>
-#include <lw/security-types.h>
-#include <lw/security-api.h>
-#include <lw/rtlstring.h>
-#include <lw/rtlmemory.h>
-#include <lwerror.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwsecurityidentifier.h>
-#include <lwtools.h>
-
-#include <lw/lm.h>
-#include <lwio/lmsession.h>
-#include <lwio/io-types.h>
-#include <lsa/lsa.h>
-
-#include <lwnetutils.h>
-
-#include "structs.h"
-#include "prototypes.h"
+DWORD
+NetExecFileClose(
+    PCWSTR pwszServername,
+    DWORD  dwFileId
+    );
 

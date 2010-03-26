@@ -33,6 +33,7 @@
 #include <lwtoolsystem.h>
 
 #include <lw/errno.h>
+#include <lw/winerror.h>
 #include <lw/security-types.h>
 #include <lw/security-api.h>
 #include <lw/rtlstring.h>
@@ -48,5 +49,8 @@
 #include <lwio/io-types.h>
 #include <lsa/lsa.h>
 
+#include <lwnetutils.h>
+
 #include "structs.h"
-#include "../common/lwnetutils.h"
+#include "prototypes.h"
+

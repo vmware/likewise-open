@@ -32,33 +32,16 @@ typedef DWORD NET_FILE_CTRL_CODE;
 
 #define NET_FILE_UNKNOWN 0
 #define NET_FILE_HELP  1
-#define NET_FILE_CLOSE 2
-#define NET_FILE_ENUM  3
 
 #define NET_FILE_COMMAND_HELP  "HELP"
-#define NET_FILE_COMMAND_CLOSE "CLOSE"
 
 #define NET_FILE_NAME_TITLE "File name"
 
-typedef struct _NET_FILE_CLOSE_INFO_PARAMS
-{
-    PWSTR pwszServerName;
-    DWORD dwFileId;
-} NET_FILE_CLOSE_INFO_PARAMS, *PNET_FILE_CLOSE_INFO_PARAMS;
-
-typedef struct _NET_FILE_ENUM_INFO_PARAMS
-{
-    PWSTR pwszServerName;
-} NET_FILE_ENUM_INFO_PARAMS, *PNET_FILE_ENUM_INFO_PARAMS;
-
 typedef struct _NET_FILE_COMMAND_INFO
 {
-    NET_FILE_CTRL_CODE dwControlCode;
-
-    union
-    {
-        NET_FILE_ENUM_INFO_PARAMS FileEnumInfo;
-        NET_FILE_CLOSE_INFO_PARAMS FileCloseInfo;
-    };
+    PWSTR  pwszServerName;
+    DWORD  dwFileId;
+    BOOL   bEnumerate;
+    BOOL   bQueryInfo;
+    BOOL   bCloseFile;
 } NET_FILE_COMMAND_INFO, *PNET_FILE_COMMAND_INFO;
-

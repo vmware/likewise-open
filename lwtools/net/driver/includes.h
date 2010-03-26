@@ -41,6 +41,6 @@
 #include <netfile.h>
 #include <netsession.h>
 #include <netshare.h>
+#include <lwnetutils.h>
 
 #include "driverdef.h"
-#include "../common/lwnetutils.h"

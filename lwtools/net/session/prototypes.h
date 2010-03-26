@@ -28,28 +28,12 @@
  *
  */
 
-#include <config.h>
+DWORD
+NetExecSessionDel(
+    PNET_SESSION_DEL_INFO_PARAMS pCommandInfo
+    );
 
-#include <lwtoolsystem.h>
-
-#include <lw/errno.h>
-#include <lw/security-types.h>
-#include <lw/security-api.h>
-#include <lw/rtlstring.h>
-#include <lw/rtlmemory.h>
-#include <lwerror.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwsecurityidentifier.h>
-#include <lwtools.h>
-
-#include <lw/lm.h>
-#include <lwio/lmsession.h>
-#include <lwio/io-types.h>
-#include <lsa/lsa.h>
-
-#include <lwnetutils.h>
-
-#include "structs.h"
-#include "prototypes.h"
-
+DWORD
+NetExecSessionEnum(
+    PNET_SESSION_ENUM_INFO_PARAMS pCommandInfo
+    );

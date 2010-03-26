@@ -221,13 +221,15 @@ main(
         	break;
 
         case NET_COMMAND_SHARE:
+
             dwError = NetShare(argc, argv);
-            BAIL_ON_LWUTIL_ERROR(dwError);
 
             break;
 
         case NET_COMMAND_SESSION:
-        	printf("net session\n");
+
+            dwError = NetSession(argc, argv);
+
         	break;
 
         case NET_COMMAND_USER:
@@ -247,14 +249,17 @@ main(
 		break;
 
         case NET_COMMAND_FILE:
-		printf("net file\n");
+
+            dwError = NetFile(argc, argv);
+
 		break;
 
         case NET_COMMAND_UNKNOWN:
         default:
 		NetShowUsage();
-        	break;
+		break;
     }
+    BAIL_ON_LWUTIL_ERROR(dwError);
 
  error:
 

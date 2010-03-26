@@ -6,7 +6,7 @@ liblwutilnetshare_la_SOURCES = \
     
 liblwutilnetshare_la_CPPFLAGS = \
     -I$(top_srcdir)/include \
-    -I@top_srcdir@/net/share/common \
+    -I$(top_srcdir)/net/include \
     @LWNETAPI_INCLUDES@ \
     @LWADVAPI_INCLUDES@ \
     $(AM_CPPFLAGS)

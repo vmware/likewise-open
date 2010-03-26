@@ -48,7 +48,7 @@
 #include <lwio/io-types.h>
 #include <lsa/lsa.h>
 
+#include <lwnetutils.h>
 
 #include "sharedef.h"
 #include "share_p.h"
-#include "../common/lwnetutils.h"

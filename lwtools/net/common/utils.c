@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        netsession.c
+ *        utils.c
  *
  * Abstract:
  *
  *        Likewise System NET Utilities
  *
- *        Session Module
+ *        Utilities
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Wei Fu (wfu@likewise.com)
@@ -47,18 +47,77 @@
 
 #include "includes.h"
 
-DWORD
-NetExecSessionDel(
-    PNET_SESSION_DEL_INFO_PARAMS pCommandInfo
+BOOLEAN
+LwNetCheckUnsignedInteger(
+    PCSTR pszIntegerCandidate
     )
 {
-    return ERROR_CALL_NOT_IMPLEMENTED;
-}
+    typedef enum {
+        PARSE_MODE_LEADING_SPACE = 0,
+        PARSE_MODE_INTEGER,
+        PARSE_MODE_TRAILING_SPACE
+    } ParseMode;
 
-DWORD
-NetExecSessionEnum(
-    PNET_SESSION_ENUM_INFO_PARAMS pCommandInfo
-    )
-{
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    ParseMode parseMode = PARSE_MODE_LEADING_SPACE;
+    BOOLEAN bIsUnsignedInteger = TRUE;
+    INT iLength = 0;
+    INT iCharIdx = 0;
+    CHAR cNext = '\0';
+
+    if (LW_IS_NULL_OR_EMPTY_STR(pszIntegerCandidate))
+    {
+        bIsUnsignedInteger = FALSE;
+        goto error;
+    }
+
+    iLength = strlen(pszIntegerCandidate);
+
+    do {
+
+      cNext = pszIntegerCandidate[iCharIdx++];
+
+      switch(parseMode) {
+
+          case PARSE_MODE_LEADING_SPACE:
+          {
+              if (isdigit((int)cNext))
+              {
+                  parseMode = PARSE_MODE_INTEGER;
+              }
+              else if (!isspace((int)cNext))
+              {
+                  bIsUnsignedInteger = FALSE;
+              }
+              break;
+          }
+
+          case PARSE_MODE_INTEGER:
+          {
+              if (isspace((int)cNext))
+              {
+                  parseMode = PARSE_MODE_TRAILING_SPACE;
+              }
+              else if (!isdigit((int)cNext))
+              {
+                  bIsUnsignedInteger = FALSE;
+              }
+              break;
+          }
+
+          case PARSE_MODE_TRAILING_SPACE:
+          {
+              if (!isspace((int)cNext))
+              {
+                  bIsUnsignedInteger = FALSE;
+              }
+              break;
+          }
+      }
+
+    } while (iCharIdx < iLength && bIsUnsignedInteger == TRUE);
+
+
+error:
+
+    return bIsUnsignedInteger;
 }

@@ -1,11 +1,13 @@
 noinst_LTLIBRARIES = liblwnetutils.la
 
 liblwnetutils_la_SOURCES =       \
-    memory.c
+    memory.c \
+    utils.c
     
 liblwnetutils_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
     -I$(top_srcdir)/include \
+    -I$(top_srcdir)/net/include \
     $(LWBASE_INCLUDES) \
     $(LWADVAPI_INCLUDES)
 
