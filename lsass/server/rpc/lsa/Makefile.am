@@ -74,10 +74,13 @@ liblsa_ss_la_LIBADD = \
     liblsa.la
 
 liblsa_srv_la_SOURCES =
+
 liblsa_srv_la_CFLAGS = \
        $(AM_CFLAGS)
+
 liblsa_srv_la_LIBADD = \
     liblsa_ss.la
+
 liblsa_srv_la_LDFLAGS = -module -avoid-version
 
 CLEAN_FILES = lsa_cstub.c lsa_sstub.c lsa_h.h

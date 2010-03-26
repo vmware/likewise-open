@@ -58,10 +58,13 @@ libdssetup_ss_la_LIBADD = \
     libdssetup.la
 
 libdssetup_srv_la_SOURCES =
+
 libdssetup_srv_la_CFLAGS = \
     $(AM_CFLAGS)
+
 libdssetup_srv_la_LIBADD = \
     libdssetup_ss.la
+
 libdssetup_srv_la_LDFLAGS = -module -avoid-version
 
 CLEAN_FILES = dssetup_cstub.c dssetup_sstub.c dssetup_h.h
