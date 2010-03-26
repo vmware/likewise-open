@@ -63,6 +63,10 @@ static struct
         ERROR_ACCESS_DENIED,
         "Access is denied"
     },
+    {
+        ERROR_PASSWORD_RESTRICTION,
+        "Password does not meet requirements"
+    },
     {   LW_ERROR_ACCESS_DENIED,
         "Incorrect access attempt"
     },
