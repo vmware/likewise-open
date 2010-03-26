@@ -1188,6 +1188,7 @@ SetInfo(
         &dwSecDescSize);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
+    newShareInfo.shi502_type = pShareInfo->shi502_type;
     newShareInfo.shi502_reserved = dwSecDescSize;
     newShareInfo.shi502_security_descriptor = (PBYTE) pSecDesc;
 
