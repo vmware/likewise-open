@@ -6,10 +6,11 @@ lwioinclude_HEADERS = \
 	lwio/iortl.h         \
 	lwio/ntfileapi.h     \
 	lwio/smbfileapi.h    \
-        lwio/lmfile.h        \
+    lwio/lmfile.h        \
 	lwio/lmsession.h     \
 	lwio/lmshare.h       \
-        lwio/lwfileinfo.h    \
+    lwio/lwfileinfo.h    \
+    lwio/lwiodevctl.h    \
 	lwio/lwsessioninfo.h \
 	lwio/lwshareinfo.h
 
