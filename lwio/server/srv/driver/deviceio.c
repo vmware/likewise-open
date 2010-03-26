@@ -161,6 +161,16 @@ SrvDeviceIoCommon(
                         );
           break;
 
+      case SRV_DEVCTL_ENUM_SESSIONS:
+      case SRV_DEVCTL_DELETE_SESSION:
+      case SRV_DEVCTL_ENUM_FILES:
+      case SRV_DEVCTL_GET_FILE_INFO:
+      case SRV_DEVCTL_CLOSE_FILE:
+
+          ntStatus = STATUS_NOT_SUPPORTED;
+
+          break;
+
       case IO_DEVICE_CTL_STATISTICS:
 
           ntStatus = SrvProcessStatistics(

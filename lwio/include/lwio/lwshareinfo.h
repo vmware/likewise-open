@@ -49,18 +49,6 @@
 #ifndef _LWSHAREINFO_H_
 #define _LWSHAREINFO_H_
 
-
-/*
- * IoControl codes for shares handling
- */
-
-#define SRV_DEVCTL_ADD_SHARE      1
-#define SRV_DEVCTL_DELETE_SHARE   2
-#define SRV_DEVCTL_ENUM_SHARE     3
-#define SRV_DEVCTL_SET_SHARE_INFO 4
-#define SRV_DEVCTL_GET_SHARE_INFO 5
-
-
 typedef union _SHARE_INFO_UNION
 {
     PSHARE_INFO_0   p0;
@@ -106,7 +94,6 @@ typedef struct _SHARE_INFO_GETINFO_PARAMS
     DWORD dwInfoLevel;
     SHARE_INFO_UNION Info;
 } SHARE_INFO_GETINFO_PARAMS, *PSHARE_INFO_GETINFO_PARAMS;
-
 
 LW_NTSTATUS
 LwShareInfoMarshalAddParameters(

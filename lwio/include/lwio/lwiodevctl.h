@@ -58,6 +58,18 @@
 #define IO_DEVICE_TRANSFER_TYPE_OUT_DIRECT  0x00000002
 #define IO_DEVICE_TRANSFER_TYPE_NEITHER     0x00000003
 
+// TODO: Assign standard codes
+#define SRV_DEVCTL_ADD_SHARE      1
+#define SRV_DEVCTL_DELETE_SHARE   2
+#define SRV_DEVCTL_ENUM_SHARE     3
+#define SRV_DEVCTL_SET_SHARE_INFO 4
+#define SRV_DEVCTL_GET_SHARE_INFO 5
+#define SRV_DEVCTL_ENUM_SESSIONS  6
+#define SRV_DEVCTL_DELETE_SESSION 7
+#define SRV_DEVCTL_ENUM_FILES     8
+#define SRV_DEVCTL_GET_FILE_INFO  9
+#define SRV_DEVCTL_CLOSE_FILE     10
+
 #define IO_DEVICE_CTL_OPEN_FILE_INFO   ( IO_DEVICE_TYPE_DISK_FILE_SYSTEM     | \
                                          IO_DEVICE_REQ_ACCESS_READ_DATA      | \
                                          IO_DEVICE_CUSTOM_CONTROL_CODE       | \

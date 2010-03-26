@@ -27,23 +27,14 @@
  * license@likewise.com
  */
 
-#include "config.h"
-#include <pthread.h>
+// libmain.c
 
-#include <lw/base.h>
-#include <lwmsg/lwmsg.h>
+LW_NTSTATUS
+LwSrvInfoAcquireDataContext(
+    LWMsgDataContext** ppDataContext
+    );
 
-#include <lwio/lwio.h>
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-#include <lwio/lmsession.h>
-#include <lwio/lwsessioninfo.h>
-#include <lwio/lmfile.h>
-#include <lwio/lwfileinfo.h>
-#include <lwioipc.h>
-#include <lwioutils.h>
-#include <ntipcmsg.h>
-
-#include "prototypes.h"
-
-
+void
+LwSrvInfoReleaseDataContext(
+    LWMsgDataContext* pDataContext
+    );

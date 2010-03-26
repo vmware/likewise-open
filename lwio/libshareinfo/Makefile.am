@@ -1,6 +1,9 @@
 lib_LTLIBRARIES = liblwioshareinfo.la
 
 liblwioshareinfo_la_SOURCES = \
+    libmain.c       \
+    lwfileinfo.c    \
+    lwsessioninfo.c \
     lwshareinfo.c
 
 liblwioshareinfo_la_CPPFLAGS = \
