@@ -181,6 +181,7 @@ NetrSamLogoff(
 NTSTATUS
 NetrSamLogonEx(
     IN  handle_t              hNetrBinding,
+    IN  NetrCredentials      *pCreds,
     IN  PCWSTR                pwszServer,
     IN  PCWSTR                pwszDomain,
     IN  PCWSTR                pwszComputer,
@@ -263,9 +264,9 @@ NetrDestroyMemory(
     );
 
 
-NTSTATUS
+VOID
 NetrFreeMemory(
-    IN  PVOID pBuffer
+    IN PVOID pPtr
     );
 
 

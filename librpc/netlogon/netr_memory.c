@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2010
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -29,12 +29,145 @@
  */
 
 /*
- * Abstract: Netlogon memory (de)allocation routines (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        netr_memory.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Netlogon rpc memory management functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
+
 #include "includes.h"
+
+
+static
+NTSTATUS
+NetrAllocateRidWithAttributeArray(
+    OUT PVOID                   *pOut,
+    IN OUT PDWORD                pdwOffset,
+    IN OUT PDWORD                pdwSpaceLeft,
+    IN  RidWithAttributeArray   *pIn,
+    IN OUT PDWORD                pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocateRidWithAttribute(
+    OUT RidWithAttribute  *pOut,
+    IN OUT PDWORD          pdwOffset,
+    IN OUT PDWORD          pdwSpaceLeft,
+    IN  RidWithAttribute  *pRids,
+    IN OUT PDWORD          pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocateChallengeResponse(
+    OUT PVOID         pOut,
+    IN OUT PDWORD     pdwOffset,
+    IN OUT PDWORD     pdwSpaceLeft,
+    IN  PBYTE         pResponse,
+    IN  DWORD         dwResponseLen,
+    IN OUT PDWORD     pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocateSamInfo2(
+    OUT NetrSamInfo2    *pOut,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
+    IN  NetrSamInfo2    *pIn,
+    IN OUT PDWORD        pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrInitSamBaseInfo(
+    OUT NetrSamBaseInfo *pOut,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
+    IN  NetrSamBaseInfo *pIn,
+    IN OUT PDWORD        pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocateSamInfo3(
+    OUT NetrSamInfo3    *pOut,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
+    IN  NetrSamInfo3    *pIn,
+    IN OUT PDWORD        pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocateSidAttr(
+    OUT NetrSidAttr  *pOut,
+    IN OUT PDWORD     pdwOffset,
+    IN OUT PDWORD     pdwSpaceLeft,
+    IN  NetrSidAttr  *pIn,
+    IN OUT PDWORD     pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocatePacInfo(
+    OUT NetrPacInfo  *pOut,
+    IN OUT PDWORD     pdwOffset,
+    IN OUT PDWORD     pdwSpaceLeft,
+    IN  NetrPacInfo  *pIn,
+    IN OUT PDWORD     pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocateSamInfo6(
+    OUT NetrSamInfo6  *pOut,
+    IN OUT PDWORD      pdwOffset,
+    IN OUT PDWORD      pdwSpaceLeft,
+    IN  NetrSamInfo6  *pIn,
+    IN OUT PDWORD      pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocateDomainInfo1(
+    OUT NetrDomainInfo1  *pOut,
+    IN OUT PDWORD         pdwOffset,
+    IN OUT PDWORD         pdwSpaceLeft,
+    IN  NetrDomainInfo1  *pIn,
+    IN OUT PDWORD         pdwSize
+    );
+
+
+static
+NTSTATUS
+NetrAllocateDomainTrustInfo(
+    OUT NetrDomainTrustInfo *pOut,
+    IN OUT PDWORD            pdwOffset,
+    IN OUT PDWORD            pdwSpaceLeft,
+    IN  NetrDomainTrustInfo *pIn,
+    IN OUT PDWORD            pdwSize
+    );
 
 
 NTSTATUS
@@ -43,24 +176,7 @@ NetrInitMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-
-    LIBRPC_LOCK_MUTEX(bLocked, &gNetrDataMutex);
-
-    if (!bInitialised) {
-        ntStatus = MemPtrListInit((PtrList**)&gNetrMemoryList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bInitialised = TRUE;
-    }
-
-cleanup:
-    LIBRPC_UNLOCK_MUTEX(bLocked, &gNetrDataMutex);
-
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 
@@ -70,60 +186,44 @@ NetrDestroyMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-
-    LIBRPC_LOCK_MUTEX(bLocked, &gNetrDataMutex);
-
-    if (bInitialised && gNetrMemoryList) {
-        ntStatus = MemPtrListDestroy((PtrList**)&gNetrMemoryList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bInitialised = FALSE;
-    }
-
-cleanup:
-    LIBRPC_UNLOCK_MUTEX(bLocked, &gNetrDataMutex);
-
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 
 NTSTATUS
 NetrAllocateMemory(
-    OUT PVOID *pOut,
-    IN  size_t Size,
-    IN  PVOID  pDep
+    OUT PVOID *ppOut,
+    IN  size_t sSize
     )
 {
-    return MemPtrAllocate((PtrList*)gNetrMemoryList,
-                          pOut,
-                          Size,
-                          pDep);
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID pMem = NULL;
+
+    pMem = malloc(sSize);
+    if (pMem == NULL)
+    {
+        ntStatus = STATUS_NO_MEMORY;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    memset(pMem, 0, sSize);
+    *ppOut = pMem;
+
+cleanup:
+    return ntStatus;
+
+error:
+    *ppOut = NULL;
+    goto cleanup;
 }
 
 
-NTSTATUS
+VOID
 NetrFreeMemory(
-    IN  PVOID pBuffer
+    IN PVOID pPtr
     )
 {
-    return MemPtrFree((PtrList*)gNetrMemoryList,
-                      pBuffer);
-}
-
-
-NTSTATUS
-NetrAddDepMemory(
-    IN  PVOID pPtr,
-    IN  PVOID pDep
-    )
-{
-    return MemPtrAddDependant((PtrList*)gNetrMemoryList,
-                              pPtr,
-                              pDep);
+    free(pPtr);
 }
 
 
@@ -132,146 +232,89 @@ NetrAddDepMemory(
  */
 
 NTSTATUS
-NetrAllocateUniString(
-    OUT  PWSTR  *ppwszOut,
-    IN   PCWSTR  pwszIn,
-    IN   PVOID   pDep
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    size_t Len = 0;
-    PWSTR pwszOut = NULL;
-
-    BAIL_ON_INVALID_PTR(ppwszOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszIn, ntStatus);
-
-    Len = wc16slen(pwszIn);
-
-    ntStatus = NetrAllocateMemory((void**)&pwszOut, sizeof(WCHAR) * (Len + 1),
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    wc16sncpy(pwszOut, pwszIn, Len);
-
-    *ppwszOut = pwszOut;
-
-cleanup:
-    return ntStatus;
-
-error:
-    if (pwszOut) {
-        NetrFreeMemory((void*)pwszOut);
-    }
-
-    *ppwszOut = NULL;
-
-    goto cleanup;
-}
-
-
-NTSTATUS
 NetrAllocateDomainTrusts(
-    OUT NetrDomainTrust     **ppOut,
-    IN  NetrDomainTrustList  *pIn
+    OUT NetrDomainTrust      *pOut,
+    IN OUT PDWORD             pdwOffset,
+    IN OUT PDWORD             pdwSpaceLeft,
+    IN  NetrDomainTrustList  *pIn,
+    IN OUT PDWORD             pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    NetrDomainTrust *pOut = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
     UINT32 i = 0;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = NetrAllocateMemory((void**)&pOut,
-                                  sizeof(NetrDomainTrust) * pIn->count,
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pIn->count; i++) {
-        NetrDomainTrust *pTrustOut = &pOut[i];
-        NetrDomainTrust *pTrustIn  = &pIn->array[i];
-
-        pTrustOut->trust_flags  = pTrustIn->trust_flags;
-        pTrustOut->parent_index = pTrustIn->parent_index;
-        pTrustOut->trust_type   = pTrustIn->trust_type;
-        pTrustOut->trust_attrs  = pTrustIn->trust_attrs;
-
-        if (pTrustIn->netbios_name) {
-            pTrustOut->netbios_name = wc16sdup(pTrustIn->netbios_name);
-            BAIL_ON_NULL_PTR(pTrustOut->netbios_name, ntStatus);
-
-            ntStatus = NetrAddDepMemory((void*)pTrustOut->netbios_name,
-                                        (void*)pOut);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        if (pTrustIn->dns_name) {
-            pTrustOut->dns_name = wc16sdup(pTrustIn->dns_name);
-            BAIL_ON_NULL_PTR(pTrustOut->dns_name, ntStatus);
-
-            ntStatus = NetrAddDepMemory((void*)pTrustOut->dns_name,
-                                        (void*)pOut);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        if (pTrustIn->sid)
-        {
-            MsRpcDuplicateSid(&pTrustOut->sid, pTrustIn->sid);
-            BAIL_ON_NULL_PTR(pTrustOut->sid, ntStatus);
-
-            ntStatus = NetrAddDepMemory((void*)pTrustOut->sid,
-                                        (void*)pOut);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        pTrustOut->guid = pTrustIn->guid;
+    for (i = 0; i < pIn->count; i++)
+    {
+        LWBUF_ALLOC_PWSTR(pBuffer, pIn->array[i].netbios_name);
+        LWBUF_ALLOC_PWSTR(pBuffer, pIn->array[i].dns_name);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->array[i].trust_flags);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->array[i].parent_index);
+        LWBUF_ALLOC_WORD(pBuffer, pIn->array[i].trust_type);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->array[i].trust_attrs);
+        LWBUF_ALLOC_PSID(pBuffer, pIn->array[i].sid);
+        LWBUF_ALLOC_BLOB(pBuffer,
+                         sizeof(pIn->array[i].guid),
+                         &(pIn->array[i].guid));
     }
 
 cleanup:
-    *ppOut = pOut;
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
     return ntStatus;
 
 error:
-    if (pOut) {
-        NetrFreeMemory((void*)pOut);
-    }
-
-    *ppOut = NULL;
-
     goto cleanup;
 }
 
 
 NTSTATUS
 NetrInitIdentityInfo(
-    OUT NetrIdentityInfo *pIdentity,
-    IN  PVOID pDep,
-    IN  PCWSTR pwszDomain,
-    IN  PCWSTR pwszWorkstation,
-    IN  PCWSTR pwszAccount,
-    IN  UINT32 ParamControl,
-    IN  UINT32 LogonIdLow,
-    IN  UINT32 LogonIdHigh
+    OUT PVOID            *pIdentity,
+    IN OUT PDWORD         pdwOffset,
+    IN OUT PDWORD         pdwSpaceLeft,
+    IN  PCWSTR            pwszDomain,
+    IN  PCWSTR            pwszWorkstation,
+    IN  PCWSTR            pwszAccount,
+    IN  UINT32            ParamControl,
+    IN  UINT32            LogonIdLow,
+    IN  UINT32            LogonIdHigh,
+    IN OUT PDWORD         pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pIdentity;
     PWSTR pwszNbtWorkstation = NULL;
-    size_t NbtWorkstationLen = 0;
+    size_t sNbtWorkstationLen = 0;
 
-    BAIL_ON_INVALID_PTR(pIdentity, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pwszWorkstation, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    NbtWorkstationLen = wc16slen(pwszWorkstation);
-    ntStatus = NetrAllocateMemory((void**)&pwszNbtWorkstation,
-                                  (NbtWorkstationLen  + 3) * sizeof(WCHAR),
-                                  pDep);
+    /*
+     * Create "\\WORKSTATION" name
+     */
+    dwError = LwWc16sLen(pwszWorkstation, &sNbtWorkstationLen);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pwszNbtWorkstation),
+                                  sizeof(WCHAR) * (sNbtWorkstationLen  + 3));
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (sw16printfw(
             pwszNbtWorkstation,
-            NbtWorkstationLen + 3,
+            sNbtWorkstationLen + 3,
             L"\\\\%ws",
             pwszWorkstation) < 0)
     {
@@ -279,285 +322,289 @@ NetrInitIdentityInfo(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    /* The domain is NULL when the user passes in a UPN */
-    if (pwszDomain)
-    {
-        ntStatus = InitUnicodeString(&pIdentity->domain_name, pwszDomain);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
-    {
-        ntStatus = InitEmptyUnicodeString(&pIdentity->domain_name);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pIdentity->domain_name.string) {
-        ntStatus = NetrAddDepMemory((void*)pIdentity->domain_name.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = InitUnicodeString(&pIdentity->account_name,
-                                 pwszAccount);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIdentity->account_name.string) {
-        ntStatus = NetrAddDepMemory((void*)pIdentity->account_name.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = InitUnicodeString(&pIdentity->workstation,
-                                 pwszNbtWorkstation);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIdentity->workstation.string) {
-        ntStatus = NetrAddDepMemory((void*)pIdentity->workstation.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pIdentity->param_control = ParamControl;
-    pIdentity->logon_id_low  = LogonIdLow;
-    pIdentity->logon_id_high = LogonIdHigh;
+    LWBUF_ALLOC_UNICODE_STRING_FROM_WC16STR(pBuffer, pwszDomain);
+    LWBUF_ALLOC_DWORD(pBuffer, ParamControl);
+    LWBUF_ALLOC_DWORD(pBuffer, LogonIdLow);
+    LWBUF_ALLOC_DWORD(pBuffer, LogonIdHigh);
+    LWBUF_ALLOC_UNICODE_STRING_FROM_WC16STR(pBuffer, pwszAccount);
+    LWBUF_ALLOC_UNICODE_STRING_FROM_WC16STR(pBuffer, pwszNbtWorkstation);
 
 cleanup:
-    if (pwszNbtWorkstation) {
-        NetrFreeMemory((void*)pwszNbtWorkstation);
+    if (pwszNbtWorkstation)
+    {
+        NetrFreeMemory(pwszNbtWorkstation);
+    }
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;
 
 error:
-    FreeUnicodeString(&pIdentity->domain_name);
-    FreeUnicodeString(&pIdentity->account_name);
-    FreeUnicodeString(&pIdentity->workstation);
-
     goto cleanup;
 }
 
-/*
- * Compatibility wrapper
- */
-NTSTATUS
-NetrAllocateLogonInfo(
-    OUT NetrLogonInfo **ppOut,
-    IN  UINT16          Level,
-    IN  PCWSTR          pwszDomain,
-    IN  PCWSTR          pwszWorkstation,
-    IN  PCWSTR          pwszAccount,
-    IN  PCWSTR          pwszPassword
-    )
-{
-    return NetrAllocateLogonInfoHash(ppOut,
-                                     Level,
-                                     pwszDomain,
-                                     pwszWorkstation,
-                                     pwszAccount,
-                                     pwszPassword);
-}
-
 
 NTSTATUS
-NetrAllocateLogonInfoHash(
-    OUT NetrLogonInfo **ppOut,
-    IN  UINT16          Level,
-    IN  PCWSTR          pwszDomain,
-    IN  PCWSTR          pwszWorkstation,
-    IN  PCWSTR          pwszAccount,
-    IN  PCWSTR          pwszPassword
+NetrAllocateLogonPasswordInfo(
+    OUT NetrPasswordInfo  *pOut,
+    IN OUT PDWORD          pdwOffset,
+    IN OUT PDWORD          pdwSpaceLeft,
+    IN  PCWSTR             pwszDomain,
+    IN  PCWSTR             pwszWorkstation,
+    IN  PCWSTR             pwszAccount,
+    IN  PCWSTR             pwszPassword,
+    IN  NetrCredentials   *pCreds,
+    IN OUT PDWORD          pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    NetrLogonInfo *pLogonInfo = NULL;
-    NetrPasswordInfo *pPassword = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
     BYTE LmHash[16] = {0};
     BYTE NtHash[16] = {0};
+    RC4_KEY RC4Key = {0};
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    /* pwszDomain can be NULL */
     BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
     BAIL_ON_INVALID_PTR(pwszWorkstation, ntStatus);
     BAIL_ON_INVALID_PTR(pwszPassword, ntStatus);
+    BAIL_ON_INVALID_PTR(pCreds, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = NetrAllocateMemory((void**)&pLogonInfo,
-                                  sizeof(NetrLogonInfo),
-                                  NULL);
+    /* Create password hashes (NT and LM) */
+    deshash(LmHash, pwszPassword);
+    NetrGetNtHash(NtHash, pwszPassword);
+
+    RC4_set_key(&RC4Key,
+                sizeof(pCreds->session_key),
+                pCreds->session_key);
+    RC4(&RC4Key, sizeof(NtHash), NtHash, NtHash);
+    RC4(&RC4Key, sizeof(LmHash), LmHash, LmHash);
+
+    ntStatus = NetrInitIdentityInfo(pBuffer,
+                                    pdwOffset,
+                                    pdwSpaceLeft,
+                                    pwszDomain,
+                                    pwszWorkstation,
+                                    pwszAccount,
+                                    0,
+                                    0,
+                                    0,
+                                    pdwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-
-    switch (Level)
-    {
-    case 1:
-    case 3:
-    case 5:
-        /* Create password hashes (NT and LM) */
-        deshash(LmHash, pwszPassword);
-        md4hash(NtHash, pwszPassword);
-
-        ntStatus = NetrAllocateMemory((void**)&pPassword,
-                                      sizeof(*pPassword),
-                                      (void*)pLogonInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = NetrInitIdentityInfo(&pPassword->identity,
-                                        (void*)pPassword,
-                                        pwszDomain,
-                                        pwszWorkstation,
-                                        pwszAccount,
-                                        0,
-                                        0,
-                                        0);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        /* Copy the password hashes */
-        memcpy((void*)pPassword->lmpassword.data,
-               (void*)LmHash,
-               sizeof(pPassword->lmpassword.data));
-        memcpy((void*)pPassword->ntpassword.data,
-               (void*)NtHash,
-               sizeof(pPassword->ntpassword.data));
-        break;
-
-    default:
-        ntStatus = STATUS_INVALID_LEVEL;
-        goto error;
-    }
-
-    switch (Level) {
-    case 1:
-        pLogonInfo->password1 = pPassword;
-        break;
-    case 3:
-        pLogonInfo->password3 = pPassword;
-        break;
-    case 5:
-        pLogonInfo->password5 = pPassword;
-        break;
-    }
+    LWBUF_ALLOC_HASH_PASSWORD(pBuffer, LmHash);
+    LWBUF_ALLOC_HASH_PASSWORD(pBuffer, NtHash);
 
 cleanup:
-    *ppOut = pLogonInfo;
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
     return ntStatus;
 
 error:
-    if (pLogonInfo) {
-        NetrFreeMemory((void*)pLogonInfo);
-    }
-
-    pLogonInfo = NULL;
-
     goto cleanup;
 }
 
+
 NTSTATUS
-NetrAllocateLogonInfoNet(
-    OUT NetrLogonInfo **ppOut,
-    IN  UINT16          Level,
-    IN  PCWSTR          pwszDomain,
-    IN  PCWSTR          pwszWorkstation,
-    IN  PCWSTR          pwszAccount,
-    IN  PBYTE           pChallenge,
-    IN  PBYTE           pLmResp,
-    IN  UINT32          LmRespLen,
-    IN  PBYTE           pNtResp,
-    IN  UINT32          NtRespLen
+NetrAllocateLogonNetworkInfo(
+    OUT NetrNetworkInfo  *pOut,
+    IN OUT PDWORD         pdwOffset,
+    IN OUT PDWORD         pdwSpaceLeft,
+    IN  PCWSTR            pwszDomain,
+    IN  PCWSTR            pwszWorkstation,
+    IN  PCWSTR            pwszAccount,
+    IN  PBYTE             pChallenge,
+    IN  PBYTE             pLmResp,
+    IN  UINT32            LmRespLen,
+    IN  PBYTE             pNtResp,
+    IN  UINT32            NtRespLen,
+    IN OUT PDWORD         pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    NetrLogonInfo *pLogonInfo = NULL;
-    NetrNetworkInfo *pNetworkInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
-    /* domain can be NULL */
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    /* pwszDomain can be NULL */
     BAIL_ON_INVALID_PTR(pwszAccount, ntStatus);
     BAIL_ON_INVALID_PTR(pwszWorkstation, ntStatus);
     BAIL_ON_INVALID_PTR(pChallenge, ntStatus);
     /* LanMan Response can be NULL */
     BAIL_ON_INVALID_PTR(pNtResp, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = NetrAllocateMemory((void**)&pLogonInfo,
-                                  sizeof(NetrLogonInfo),
-                                  NULL);
+    ntStatus = NetrInitIdentityInfo(pBuffer,
+                                    pdwOffset,
+                                    pdwSpaceLeft,
+                                    pwszDomain,
+                                    pwszWorkstation,
+                                    pwszAccount,
+                                    0,
+                                    0,
+                                    0,
+                                    pdwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    switch (Level)
+    LWBUF_ALLOC_BLOB(pBuffer,
+                     sizeof(pOut->challenge),
+                     pChallenge);
+
+    /* Allocate NT Response */
+    ntStatus = NetrAllocateChallengeResponse(pBuffer,
+                                             pdwOffset,
+                                             pdwSpaceLeft,
+                                             pNtResp,
+                                             NtRespLen,
+                                             pdwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Allocate optional LM Response */
+    ntStatus = NetrAllocateChallengeResponse(pBuffer,
+                                             pdwOffset,
+                                             pdwSpaceLeft,
+                                             pLmResp,
+                                             LmRespLen,
+                                             pdwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
     {
-    case 2:
-    case 6:
-        ntStatus = NetrAllocateMemory((void**)&pNetworkInfo,
-                                      sizeof(NetrNetworkInfo),
-                                      (void*)pLogonInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
-        ntStatus = NetrInitIdentityInfo(&pNetworkInfo->identity,
-                                        (void*)pLogonInfo,
-                                        pwszDomain,
-                                        pwszWorkstation,
-                                        pwszAccount,
-                                        0,
-                                        0,
-                                        0);
-        BAIL_ON_NT_STATUS(ntStatus);
+    return ntStatus;
 
-        memcpy(pNetworkInfo->challenge,
-               pChallenge,
-               sizeof(pNetworkInfo->challenge));
+error:
+    goto cleanup;
+}
 
-        /* Allocate challenge structures */
-        if ((pLmResp != NULL) && (LmRespLen != 0))
+
+static
+NTSTATUS
+NetrAllocateChallengeResponse(
+    OUT PVOID         pOut,
+    IN OUT PDWORD     pdwOffset,
+    IN OUT PDWORD     pdwSpaceLeft,
+    IN  PBYTE         pResponse,
+    IN  DWORD         dwResponseLen,
+    IN OUT PDWORD     pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    PVOID pRespData = NULL;
+    PBYTE *ppRespData = NULL;
+    DWORD dwResponseSize = dwResponseLen;
+    DWORD dwResponseSpaceLeft = 0;
+    DWORD dwResponseOffset = 0;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+
+    LWBUF_ALLOC_WORD(pBuffer, dwResponseLen);
+    LWBUF_ALLOC_WORD(pBuffer, dwResponseLen);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwResponseSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
+
+        if (pResponse)
         {
-            ntStatus = NetrAllocateMemory((void**)&pNetworkInfo->lm.data,
-                                          LmRespLen,
-                                          (void*)pLogonInfo);
-            BAIL_ON_NT_STATUS(ntStatus);
+            pRespData = LWBUF_TARGET_PTR(pBuffer, dwResponseSize, pdwSpaceLeft);
 
-            pNetworkInfo->lm.length = LmRespLen;
-            pNetworkInfo->lm.size   = LmRespLen;
-            memcpy(pNetworkInfo->lm.data, pLmResp, pNetworkInfo->lm.size);
+            /* sanity check - the data pointer and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(PBYTE, pRespData, dwError);
+
+            dwResponseSpaceLeft = dwResponseSize;
+            dwResponseOffset    = 0;
+
+            dwError = LwBufferAllocFixedBlob(pRespData,
+                                             &dwResponseOffset,
+                                             &dwResponseSpaceLeft,
+                                             pResponse,
+                                             dwResponseSize,
+                                             pdwSize);
+            BAIL_ON_WIN_ERROR(dwError);
         }
 
-        /* Always have NT Response */
+        ppRespData       = (PBYTE*)pCursor;
+        *ppRespData      = pRespData;
+        (*pdwSpaceLeft) -= (pRespData) ? dwResponseSize : 0;
 
-        ntStatus = NetrAllocateMemory((void**)&pNetworkInfo->nt.data,
-                                      NtRespLen,
-                                      (void*)pLogonInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pNetworkInfo->nt.length = NtRespLen;
-        pNetworkInfo->nt.size   = NtRespLen;
-        memcpy(pNetworkInfo->nt.data, pNtResp, pNetworkInfo->nt.size);
-
-        break;
-
-    default:
-        ntStatus = STATUS_INVALID_LEVEL;
-        goto error;
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft)  -= sizeof(PBYTE);
+    }
+    else
+    {
+        (*pdwSize) += dwResponseSize;
     }
 
-    switch (Level) {
-    case 2:
-        pLogonInfo->network2  = pNetworkInfo;
-        break;
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(PBYTE);
+    (*pdwSize)   += sizeof(PBYTE);
 
-    case 6:
-        pLogonInfo->network6  = pNetworkInfo;
-        break;
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *ppOut = pLogonInfo;
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+NetrAllocateSamInfo2(
+    OUT NetrSamInfo2    *pOut,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
+    IN  NetrSamInfo2    *pIn,
+    IN OUT PDWORD        pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID pBuffer = pOut;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    ntStatus = NetrInitSamBaseInfo(pBuffer,
+                                   pdwOffset,
+                                   pdwSpaceLeft,
+                                   &pIn->base,
+                                   pdwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
     return ntStatus;
 
 error:
-    if (pLogonInfo) {
-        NetrFreeMemory((void*)pLogonInfo);
-    }
-
-    *ppOut = NULL;
-
     goto cleanup;
 }
 
@@ -566,206 +613,197 @@ static
 NTSTATUS
 NetrInitSamBaseInfo(
     OUT NetrSamBaseInfo *pOut,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
     IN  NetrSamBaseInfo *pIn,
-    IN  PVOID            pDep)
+    IN OUT PDWORD        pdwSize
+    )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    int i = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
 
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    pOut->last_logon            = pIn->last_logon;
-    pOut->last_logoff           = pIn->last_logoff;
-    pOut->acct_expiry           = pIn->acct_expiry;
-    pOut->last_password_change  = pIn->last_password_change;
-    pOut->allow_password_change = pIn->allow_password_change;
-    pOut->force_password_change = pIn->force_password_change;
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-    ntStatus = CopyUnicodeStringEx(&pOut->account_name,
-                                   &pIn->account_name);
+    LWBUF_ALLOC_WINNTTIME(pBuffer, pIn->last_logon);
+    LWBUF_ALLOC_WINNTTIME(pBuffer, pIn->last_logoff);
+    LWBUF_ALLOC_WINNTTIME(pBuffer, pIn->acct_expiry);
+    LWBUF_ALLOC_WINNTTIME(pBuffer, pIn->last_password_change);
+    LWBUF_ALLOC_WINNTTIME(pBuffer, pIn->allow_password_change);
+    LWBUF_ALLOC_WINNTTIME(pBuffer, pIn->force_password_change);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->account_name);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->full_name);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->logon_script);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->profile_path);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->home_directory);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->home_drive);
+    LWBUF_ALLOC_WORD(pBuffer, pIn->logon_count);
+    LWBUF_ALLOC_WORD(pBuffer, pIn->bad_password_count);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->rid);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->primary_gid);
+
+    ntStatus = NetrAllocateRidWithAttributeArray(pBuffer,
+                                                 pdwOffset,
+                                                 pdwSpaceLeft,
+                                                 &pIn->groups,
+                                                 pdwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pOut->account_name.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->account_name.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeStringEx(&pOut->full_name,
-                                   &pIn->full_name);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->full_name.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->full_name.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeStringEx(&pOut->logon_script,
-                                   &pIn->logon_script);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->logon_script.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->logon_script.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeStringEx(&pOut->profile_path,
-                                   &pIn->profile_path);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->profile_path.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->profile_path.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeStringEx(&pOut->home_directory,
-                                   &pIn->home_directory);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->home_directory.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->home_directory.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeStringEx(&pOut->home_drive,
-                                   &pIn->home_drive);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->home_drive.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->home_drive.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pOut->logon_count        = pIn->logon_count;
-    pOut->bad_password_count = pIn->bad_password_count;
-    pOut->rid                = pIn->rid;
-    pOut->primary_gid        = pIn->primary_gid;
-
-    pOut->groups.count       = pIn->groups.count;
-    ntStatus = NetrAllocateMemory((void*)&pOut->groups.rids,
-                                sizeof(RidWithAttribute) * pOut->groups.count,
-                                (void*)pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pOut->groups.count; i++) {
-        RidWithAttribute *pRidAttrOut = &(pOut->groups.rids[i]);
-        RidWithAttribute *pRidAttrIn  = &(pIn->groups.rids[i]);
-
-        pRidAttrOut->rid        = pRidAttrIn->rid;
-        pRidAttrOut->attributes = pRidAttrIn->attributes;
-    }
-
-    pOut->user_flags = pIn->user_flags;
-
-    memcpy((void*)pOut->key.key,
-           (void*)pIn->key.key,
-           sizeof(pOut->key.key));
-
-    ntStatus = CopyUnicodeStringEx(&pOut->logon_server,
-                                   &pIn->logon_server);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->logon_server.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->logon_server.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    ntStatus = CopyUnicodeStringEx(&pOut->domain,
-                                   &pIn->domain);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->domain.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->domain.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pIn->domain_sid) {
-        MsRpcDuplicateSid(&pOut->domain_sid, pIn->domain_sid);
-        BAIL_ON_NULL_PTR(pOut->domain_sid, ntStatus);
-
-        ntStatus = NetrAddDepMemory((void*)pOut->domain_sid,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-    } else {
-        pOut->domain_sid = NULL;
-    }
-
-    memcpy((void*)pOut->lmkey.key, (void*)pIn->lmkey.key,
-           sizeof(pOut->lmkey.key));
-
-    pOut->acct_flags = pIn->acct_flags;
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->user_flags);
+    LWBUF_ALLOC_SESSION_KEY(pBuffer, &pIn->key);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->logon_server);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->domain);
+    LWBUF_ALLOC_PSID(pBuffer, pIn->domain_sid);
+    LWBUF_ALLOC_SESSION_KEY(pBuffer, &pIn->lmkey);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->acct_flags);
+    LWBUF_ALLOC_BLOB(pBuffer, sizeof(pIn->unknown), pIn->unknown);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    FreeUnicodeStringEx(&pOut->account_name);
-    FreeUnicodeStringEx(&pOut->full_name);
-    FreeUnicodeStringEx(&pOut->logon_script);
-    FreeUnicodeStringEx(&pOut->profile_path);
-    FreeUnicodeStringEx(&pOut->home_directory);
-    FreeUnicodeStringEx(&pOut->home_drive);
-    FreeUnicodeStringEx(&pOut->logon_server);
-    FreeUnicodeStringEx(&pOut->domain);
-
-    if (pOut->groups.rids) {
-        NetrFreeMemory((void*)pOut->groups.rids);
-    }
-
-    if (pOut->domain_sid) {
-        MsRpcFreeSid(pOut->domain_sid);
-    }
-
     goto cleanup;
 }
 
 
 static
 NTSTATUS
-NetrAllocateSamInfo2(
-    OUT NetrSamInfo2 **ppOut,
-    IN  NetrSamInfo2  *pIn,
-    IN  PVOID          pDep
+NetrAllocateRidWithAttributeArray(
+    OUT PVOID                   *pOut,
+    IN OUT PDWORD                pdwOffset,
+    IN OUT PDWORD                pdwSpaceLeft,
+    IN  RidWithAttributeArray   *pIn,
+    IN OUT PDWORD                pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    NetrSamInfo2 *pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    DWORD dwRidsSize = 0;
+    DWORD dwRidsSpaceLeft = 0;
+    DWORD dwRidsOffset = 0;
+    DWORD iRid = 0;
+    PVOID pRids = NULL;
+    RidWithAttribute **ppRids = NULL;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = NetrAllocateMemory((void*)&pInfo,
-                                  sizeof(NetrSamInfo2),
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-    if (pIn) {
-        ntStatus = NetrInitSamBaseInfo(&pInfo->base,
-                                       &pIn->base,
-                                       (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->count);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+
+    if (pIn->count)
+    {
+        dwRidsSize = sizeof(pIn->rids[0]) * pIn->count;
     }
 
-    *ppOut = pInfo;
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwRidsSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
+
+        if (pIn->rids)
+        {
+            pRids = LWBUF_TARGET_PTR(pBuffer, dwRidsSize, pdwSpaceLeft);
+
+            /* sanity check - the rids pointer and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(RidWithAttribute*, pRids, dwError);
+
+            dwRidsSpaceLeft = dwRidsSize;
+            dwRidsOffset    = 0;
+
+            /* Allocate the rid entries */
+            for (iRid = 0; iRid < pIn->count; iRid++)
+            {
+                PVOID pRidCursor = pRids + (iRid * sizeof(pIn->rids[0]));
+
+                ntStatus = NetrAllocateRidWithAttribute(pRidCursor,
+                                                        &dwRidsOffset,
+                                                        &dwRidsSpaceLeft,
+                                                        &(pIn->rids[iRid]),
+                                                        pdwSize);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                dwRidsOffset = 0;
+            }
+        }
+
+        ppRids           = (RidWithAttribute**)pCursor;
+        *ppRids          = (RidWithAttribute*)pRids;
+        (*pdwSpaceLeft) -= (pRids) ? dwRidsSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft)  -= sizeof(RidWithAttribute*);
+    }
+    else
+    {
+        (*pdwSize) += dwRidsSize;
+    }
+
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(RidWithAttribute*);
+    (*pdwSize)   += sizeof(RidWithAttribute*);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pInfo) {
-        NetrFreeMemory((void*)pInfo);
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+NetrAllocateRidWithAttribute(
+    OUT RidWithAttribute  *pOut,
+    IN OUT PDWORD          pdwOffset,
+    IN OUT PDWORD          pdwSpaceLeft,
+    IN  RidWithAttribute  *pRids,
+    IN OUT PDWORD          pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pRids, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    LWBUF_ALLOC_DWORD(pBuffer, pRids->rid);
+    LWBUF_ALLOC_DWORD(pBuffer, pRids->attributes);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *ppOut = NULL;
+    return ntStatus;
 
+error:
     goto cleanup;
 }
 
@@ -773,66 +811,144 @@ error:
 static
 NTSTATUS
 NetrAllocateSamInfo3(
-    OUT NetrSamInfo3 **ppOut,
-    IN  NetrSamInfo3  *pIn,
-    IN  PVOID          pDep)
+    OUT NetrSamInfo3    *pOut,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
+    IN  NetrSamInfo3    *pIn,
+    IN OUT PDWORD        pdwSize
+    )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    NetrSamInfo3 *pInfo = NULL;
-    UINT32 i = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    UINT32 iSid = 0;
+    DWORD dwSidsOffset = 0;
+    DWORD dwSidsSize = 0;
+    DWORD dwSidsSpaceLeft = 0;
+    PVOID pSids = NULL;
+    NetrSidAttr **ppSids = NULL;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = NetrAllocateMemory((void*)&pInfo,
-                                  sizeof(NetrSamInfo3),
-                                  pDep);
+    ntStatus = NetrInitSamBaseInfo((NetrSamBaseInfo*)pBuffer,
+                                   pdwOffset,
+                                   pdwSpaceLeft,
+                                   &pIn->base,
+                                   pdwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pIn) {
-        ntStatus = NetrInitSamBaseInfo(&pInfo->base,
-                                       &pIn->base,
-                                       (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->sidcount);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-        pInfo->sidcount = pIn->sidcount;
-
-        ntStatus = NetrAllocateMemory((void*)&pInfo->sids,
-                                      sizeof(NetrSidAttr) * pInfo->sidcount,
-                                      (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        for (i = 0; i < pInfo->sidcount; i++) {
-            NetrSidAttr *pSidAttrOut = &(pInfo->sids[i]);
-            NetrSidAttr *pSidAttrIn  = &(pIn->sids[i]);
-
-            if (pSidAttrIn->sid) {
-                MsRpcDuplicateSid(&pSidAttrOut->sid, pSidAttrIn->sid);
-                BAIL_ON_NULL_PTR(pSidAttrOut->sid, ntStatus);
-
-                ntStatus = NetrAddDepMemory((void*)pSidAttrOut->sid,
-                                            (void*)pDep);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-            } else {
-                pSidAttrOut->sid = NULL;
-            }
-
-            pSidAttrOut->attribute = pSidAttrIn->attribute;
+    if (pIn->sidcount)
+    {
+        for (iSid = 0; iSid < pIn->sidcount; iSid++)
+        {
+            ntStatus = NetrAllocateSidAttr(NULL,
+                                           &dwSidsOffset,
+                                           NULL,
+                                           &(pIn->sids[iSid]),
+                                           &dwSidsSize);
+            BAIL_ON_NT_STATUS(ntStatus);
         }
     }
 
-    *ppOut = pInfo;
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwSidsSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
+
+        if (pIn->sids)
+        {
+            pSids = LWBUF_TARGET_PTR(pBuffer, dwSidsSize, pdwSpaceLeft);
+
+            /* sanity check - the sids pointer and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(NetrSidAttr*, pSids, dwError);
+
+            dwSidsSpaceLeft = dwSidsSize;
+            dwSidsOffset    = 0;
+
+            /* Allocate the sid entries */
+            for (iSid = 0; iSid < pIn->sidcount; iSid++)
+            {
+                PVOID pSidCursor = pSids + (iSid * sizeof(pIn->sids[0]));
+
+                ntStatus = NetrAllocateSidAttr(pSidCursor,
+                                               &dwSidsOffset,
+                                               &dwSidsSpaceLeft,
+                                               &(pIn->sids[iSid]),
+                                               pdwSize);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                dwSidsOffset = 0;
+            }
+        }
+
+        ppSids           = (NetrSidAttr**)pCursor;
+        *ppSids          = (NetrSidAttr*)pSids;
+        (*pdwSpaceLeft) -= (pSids) ? dwSidsSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft)  -= sizeof(NetrSidAttr*);
+    }
+    else
+    {
+        (*pdwSize) += dwSidsSize;
+    }
+
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(NetrSidAttr*);
+    (*pdwSize)   += sizeof(NetrSidAttr*);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pInfo) {
-        NetrFreeMemory((void*)pInfo);
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+NetrAllocateSidAttr(
+    OUT NetrSidAttr  *pOut,
+    IN OUT PDWORD     pdwOffset,
+    IN OUT PDWORD     pdwSpaceLeft,
+    IN  NetrSidAttr  *pIn,
+    IN OUT PDWORD     pdwSize
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    LWBUF_ALLOC_PSID(pBuffer, pIn->sid);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->attribute);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
-    *ppOut = NULL;
+    return ntStatus;
 
+error:
     goto cleanup;
 }
 
@@ -840,9 +956,11 @@ error:
 static
 NTSTATUS
 NetrAllocatePacInfo(
-    OUT NetrPacInfo **ppOut,
+    OUT NetrPacInfo  *pOut,
+    IN OUT PDWORD     pdwOffset,
+    IN OUT PDWORD     pdwSpaceLeft,
     IN  NetrPacInfo  *pIn,
-    IN  PVOID         pDep
+    IN OUT PDWORD     pdwSize
     )
 {
     return STATUS_NOT_IMPLEMENTED;
@@ -852,143 +970,337 @@ NetrAllocatePacInfo(
 static
 NTSTATUS
 NetrAllocateSamInfo6(
-    OUT NetrSamInfo6 **ppOut,
+    OUT NetrSamInfo6  *pOut,
+    IN OUT PDWORD      pdwOffset,
+    IN OUT PDWORD      pdwSpaceLeft,
     IN  NetrSamInfo6  *pIn,
-    IN  PVOID          pDep
+    IN OUT PDWORD      pdwSize
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    ntStatus = NetrAllocateSamInfo3((NetrSamInfo3*)pBuffer,
+                                    pdwOffset,
+                                    pdwSpaceLeft,
+                                    (NetrSamInfo3*)pIn,
+                                    pdwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->forest);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer, (PUNICODE_STRING)&pIn->principal);
+    LWBUF_ALLOC_BLOB(pBuffer, sizeof(pIn->unknown), pIn->unknown);
+
+cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
+    return ntStatus;
+
+error:
+    goto cleanup;
 }
 
 
 NTSTATUS
 NetrAllocateValidationInfo(
-    OUT NetrValidationInfo **ppOut,
+    OUT NetrValidationInfo  *pOut,
+    IN OUT PDWORD            pdwOffset,
+    IN OUT PDWORD            pdwSpaceLeft,
+    IN  WORD                 swLevel,
     IN  NetrValidationInfo  *pIn,
-    IN  UINT16               Level
+    IN OUT PDWORD            pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    NetrValidationInfo *pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    DWORD dwInfoOffset = 0;
+    DWORD dwInfoSize = 0;
+    DWORD dwInfoSpaceLeft = 0;
+    PVOID pInfo = NULL;
+    PVOID *ppInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = NetrAllocateMemory((void**)&pInfo,
-                                  sizeof(NetrValidationInfo),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    /*
+     * pIn->sam2 is essentially the same pointer as other legs of the union
+     * so the following condition checks if anything has been passed at all
+     */
+    if (pIn->sam2)
+    {
+        switch (swLevel)
+        {
+        case 2:
+            ntStatus = NetrAllocateSamInfo2(NULL,
+                                            &dwInfoOffset,
+                                            NULL,
+                                            pIn->sam2,
+                                            &dwInfoSize);
+            break;
 
-    switch (Level) {
-    case 2:
-        ntStatus = NetrAllocateSamInfo2(&pInfo->sam2,
-                                        pIn->sam2,
-                                        (void*)pInfo);
-        break;
+        case 3:
+            ntStatus = NetrAllocateSamInfo3(NULL,
+                                            &dwInfoOffset,
+                                            NULL,
+                                            pIn->sam3,
+                                            &dwInfoSize);
+            break;
 
-    case 3:
-        ntStatus = NetrAllocateSamInfo3(&pInfo->sam3,
-                                        pIn->sam3,
-                                        (void*)pInfo);
-        break;
+        case 4:
+            ntStatus = NetrAllocatePacInfo(NULL,
+                                           &dwInfoOffset,
+                                           NULL,
+                                           pIn->pac4,
+                                           &dwInfoSize);
+            break;
 
-    case 4:
-        ntStatus = NetrAllocatePacInfo(&pInfo->pac4,
-                                       pIn->pac4,
-                                       (void*)pInfo);
-        break;
+        case 5:
+            ntStatus = NetrAllocatePacInfo(NULL,
+                                           &dwInfoOffset,
+                                           NULL,
+                                           pIn->pac5,
+                                           &dwInfoSize);
+            break;
 
-    case 5:
-        ntStatus = NetrAllocatePacInfo(&pInfo->pac5,
-                                       pIn->pac5,
-                                       (void*)pInfo);
-        break;
+        case 6:
+            ntStatus = NetrAllocateSamInfo6(NULL,
+                                            &dwInfoOffset,
+                                            NULL,
+                                            pIn->sam6,
+                                            &dwInfoSize);
+            break;
 
-    case 6:
-        ntStatus = NetrAllocateSamInfo6(&pInfo->sam6,
-                                        pIn->sam6,
-                                        (void*)pInfo);
-        break;
-
-    default:
-        ntStatus = STATUS_INVALID_LEVEL;
+        default:
+            ntStatus = STATUS_INVALID_LEVEL;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwInfoSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
 
-    *ppOut = pInfo;
+        if (pIn->sam2)
+        {
+            pInfo = LWBUF_TARGET_PTR(pBuffer, dwInfoSize, pdwSpaceLeft);
+
+            /* sanity check - the info pointer and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(PVOID, pInfo, dwError);
+
+            dwInfoSpaceLeft = dwInfoSize;
+            dwInfoOffset    = 0;
+
+            /* Allocate the info */
+            switch (swLevel)
+            {
+            case 2:
+                ntStatus = NetrAllocateSamInfo2(pInfo,
+                                                &dwInfoOffset,
+                                                &dwInfoSpaceLeft,
+                                                pIn->sam2,
+                                                pdwSize);
+                break;
+
+            case 3:
+                ntStatus = NetrAllocateSamInfo3(pInfo,
+                                                &dwInfoOffset,
+                                                &dwInfoSpaceLeft,
+                                                pIn->sam3,
+                                                pdwSize);
+                break;
+
+            case 4:
+                ntStatus = NetrAllocatePacInfo(pInfo,
+                                               &dwInfoOffset,
+                                               &dwInfoSpaceLeft,
+                                               pIn->pac4,
+                                               pdwSize);
+                break;
+
+            case 5:
+                ntStatus = NetrAllocatePacInfo(pInfo,
+                                               &dwInfoOffset,
+                                               &dwInfoSpaceLeft,
+                                               pIn->pac5,
+                                               pdwSize);
+                break;
+
+            case 6:
+                ntStatus = NetrAllocateSamInfo6(pInfo,
+                                                &dwInfoOffset,
+                                                &dwInfoSpaceLeft,
+                                                pIn->sam6,
+                                                pdwSize);
+                break;
+
+            default:
+                ntStatus = STATUS_INVALID_LEVEL;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ppInfo           = pCursor;
+        *ppInfo          = pInfo;
+        (*pdwSpaceLeft) -= (pInfo) ? dwInfoSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft)  -= sizeof(PVOID);
+    }
+    else
+    {
+        (*pdwSize) += dwInfoSize;
+    }
+
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(PVOID);
+    (*pdwSize)   += sizeof(PVOID);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pInfo) {
-        NetrFreeMemory((void*)pInfo);
-    }
-
-    *ppOut = NULL;
-
     goto cleanup;
 }
 
 
-static
 NTSTATUS
-NetrCopyDomainTrustInfo(
-    OUT NetrDomainTrustInfo *pOut,
-    IN  NetrDomainTrustInfo *pIn,
-    IN  PVOID                pDep
+NetrAllocateDomainInfo(
+    OUT NetrDomainInfo  *pOut,
+    IN OUT PDWORD        pdwOffset,
+    IN OUT PDWORD        pdwSpaceLeft,
+    IN  WORD             swLevel,
+    IN  NetrDomainInfo  *pIn,
+    IN OUT PDWORD        pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    DWORD dwInfoSize = 0;
+    DWORD dwInfoOffset = 0;
+    DWORD dwInfoSpaceLeft = 0;
+    PVOID pInfo = NULL;
+    NetrDomainInfo1 **ppInfo = NULL;
 
-    BAIL_ON_INVALID_PTR(pOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
     BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = CopyUnicodeString(&pOut->domain_name,
-                                 &pIn->domain_name);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-    if (pOut->domain_name.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->domain_name.string,
-                                    (void*)pDep);
+    if (pIn->info1)
+    {
+        switch (swLevel)
+        {
+        case 1:
+            ntStatus = NetrAllocateDomainInfo1(NULL,
+                                               &dwInfoOffset,
+                                               NULL,
+                                               pIn->info1,
+                                               &dwInfoSize);
+            break;
+
+        case 2:
+            ntStatus = NetrAllocateDomainInfo1(NULL,
+                                               &dwInfoOffset,
+                                               NULL,
+                                               pIn->info2,
+                                               &dwInfoSize);
+            break;
+
+        default:
+            ntStatus = STATUS_INVALID_LEVEL;
+        }
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = CopyUnicodeString(&pOut->full_domain_name,
-                                 &pIn->full_domain_name);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwInfoSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
 
-    if (pOut->full_domain_name.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->full_domain_name.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
+        if (pIn->info1)
+        {
+            pInfo = LWBUF_TARGET_PTR(pBuffer, dwInfoSize, pdwSpaceLeft);
+
+            /* sanity check - the rids pointer and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(NetrDomainInfo1*, pInfo, dwError);
+
+            dwInfoSpaceLeft = dwInfoSize;
+            dwInfoOffset    = 0;
+
+            switch (swLevel)
+            {
+            case 1:
+                ntStatus = NetrAllocateDomainInfo1(pBuffer,
+                                                   &dwInfoOffset,
+                                                   &dwInfoSpaceLeft,
+                                                   pIn->info1,
+                                                   pdwSize);
+                break;
+
+            case 2:
+                ntStatus = NetrAllocateDomainInfo1(pBuffer,
+                                                   &dwInfoOffset,
+                                                   &dwInfoSpaceLeft,
+                                                   pIn->info2,
+                                                   pdwSize);
+                break;
+
+            default:
+                ntStatus = STATUS_INVALID_LEVEL;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ppInfo           = (NetrDomainInfo1**)pCursor;
+        *ppInfo          = (NetrDomainInfo1*)pInfo;
+        (*pdwSpaceLeft) -= (pInfo) ? dwInfoSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft)  -= sizeof(NetrDomainInfo1*);
+    }
+    else
+    {
+        (*pdwSize) += dwInfoSize;
     }
 
-    ntStatus = CopyUnicodeString(&pOut->forest,
-                                 &pIn->forest);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pOut->forest.string) {
-        ntStatus = NetrAddDepMemory((void*)pOut->forest.string,
-                                    (void*)pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    memcpy(&pOut->guid, &pIn->guid, sizeof(pOut->guid));
-
-    if (pIn->sid) {
-        MsRpcDuplicateSid(&pOut->sid, pIn->sid);
-        BAIL_ON_NULL_PTR(pOut->sid, ntStatus);
-
-        ntStatus = NetrAddDepMemory((void*)pOut->sid, pDep);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(NetrDomainInfo1*);
+    (*pdwSize)   += sizeof(NetrDomainInfo1*);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    memset(pOut, 0, sizeof(*pOut));
     goto cleanup;
 }
 
@@ -996,197 +1308,196 @@ error:
 static
 NTSTATUS
 NetrAllocateDomainInfo1(
-    OUT NetrDomainInfo1 **ppOut,
+    OUT NetrDomainInfo1  *pOut,
+    IN OUT PDWORD         pdwOffset,
+    IN OUT PDWORD         pdwSpaceLeft,
     IN  NetrDomainInfo1  *pIn,
-    IN  PVOID             pDep
+    IN OUT PDWORD         pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    NetrDomainInfo1 *pInfo = NULL;
-    UINT32 i = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
+    PVOID pCursor = NULL;
+    DWORD iTrust = 0;
+    DWORD dwTrustsSize = 0;
+    DWORD dwTrustsOffset = 0;
+    DWORD dwTrustsSpaceLeft = 0;
+    PVOID pTrusts = NULL;
+    NetrDomainTrustInfo **ppTrusts = NULL;
 
-    ntStatus = NetrAllocateMemory((void**)&pInfo,
-                                  sizeof(NetrDomainInfo1),
-                                  pDep);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
+
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
+
+    ntStatus = NetrAllocateDomainTrustInfo(pBuffer,
+                                           pdwOffset,
+                                           pdwSpaceLeft,
+                                           &pIn->domain_info,
+                                           pdwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pIn == NULL) goto cleanup;
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->num_trusts);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-    ntStatus = NetrCopyDomainTrustInfo(&pInfo->domain_info,
-                                       &pInfo->domain_info,
-                                       pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pInfo->num_trusts = pIn->num_trusts;
-
-    ntStatus = NetrAllocateMemory((void**)&pInfo->trusts,
-                                  sizeof(NetrDomainTrustInfo) * pInfo->num_trusts,
-                                  pDep);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    for (i = 0; i < pInfo->num_trusts; i++) {
-        ntStatus = NetrCopyDomainTrustInfo(&pInfo->trusts[i],
-                                           &pIn->trusts[i],
-                                           pInfo->trusts);
-        BAIL_ON_NT_STATUS(ntStatus);
+    if (pIn->num_trusts)
+    {
+        for (iTrust = 0; iTrust < pIn->num_trusts; iTrust++)
+        {
+            ntStatus = NetrAllocateDomainTrustInfo(NULL,
+                                                   &dwTrustsOffset,
+                                                   NULL,
+                                                   &(pIn->trusts[iTrust]),
+                                                   &dwTrustsSize);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
 
-    *ppOut = pInfo;
+    if (pBuffer && pdwSpaceLeft)
+    {
+        BAIL_IF_NOT_ENOUGH_SPACE(dwTrustsSize, pdwSpaceLeft, dwError);
+        pCursor = pBuffer + (*pdwOffset);
+
+        if (pIn->trusts)
+        {
+            pTrusts = LWBUF_TARGET_PTR(pBuffer, dwTrustsSize, pdwSpaceLeft);
+
+            /* sanity check - the rids pointer and current buffer cursor
+               must not overlap */
+            BAIL_IF_PTR_OVERLAP(NetrDomainTrustInfo*, pTrusts, dwError);
+
+            dwTrustsSpaceLeft = dwTrustsSize;
+            dwTrustsOffset    = 0;
+
+            /* Allocate the trust entries */
+            for (iTrust = 0; iTrust < pIn->num_trusts; iTrust++)
+            {
+                PVOID pTrustCursor = pTrusts +
+                                     (iTrust * sizeof(NetrDomainTrustInfo));
+
+                ntStatus = NetrAllocateDomainTrustInfo(pTrustCursor,
+                                                       &dwTrustsOffset,
+                                                       &dwTrustsSpaceLeft,
+                                                       &(pIn->trusts[iTrust]),
+                                                       pdwSize);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                dwTrustsOffset = 0;
+            }
+        }
+
+        ppTrusts         = (NetrDomainTrustInfo**)pCursor;
+        *ppTrusts        = (NetrDomainTrustInfo*)pTrusts;
+        (*pdwSpaceLeft) -= (pTrusts) ? dwTrustsSize : 0;
+
+        /* recalculate space after setting the pointer */
+        (*pdwSpaceLeft)  -= sizeof(NetrDomainTrustInfo*);
+    }
+    else
+    {
+        (*pdwSize) += dwTrustsSize;
+    }
+
+    /* include size of the pointer */
+    (*pdwOffset) += sizeof(NetrDomainTrustInfo*);
+    (*pdwSize)   += sizeof(NetrDomainTrustInfo*);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pInfo) {
-        NetrFreeMemory(pInfo);
-    }
-
-    *ppOut = NULL;
-
     goto cleanup;
 }
 
 
+static
 NTSTATUS
-NetrAllocateDomainInfo(
-    OUT NetrDomainInfo **ppOut,
-    IN  NetrDomainInfo  *pIn,
-    IN  UINT32           Level
+NetrAllocateDomainTrustInfo(
+    OUT NetrDomainTrustInfo *pOut,
+    IN OUT PDWORD            pdwOffset,
+    IN OUT PDWORD            pdwSpaceLeft,
+    IN  NetrDomainTrustInfo *pIn,
+    IN OUT PDWORD            pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    NetrDomainInfo *pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    NetrDomainTrustInfo *pBuffer = pOut;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = NetrAllocateMemory((void**)&pInfo,
-                                  sizeof(NetrDomainInfo),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    LWBUF_ALIGN(pdwOffset, pdwSize, pdwSpaceLeft);
 
-    if (pIn == NULL) goto cleanup;
-
-    switch (Level) {
-    case 1:
-        ntStatus = NetrAllocateDomainInfo1(&pInfo->info1,
-                                           pIn->info1,
-                                           (void*)pInfo);
-        break;
-
-    case 2:
-        ntStatus = NetrAllocateDomainInfo1(&pInfo->info2,
-                                           pIn->info2,
-                                           (void*)pInfo);
-        break;
-
-    default:
-        ntStatus = STATUS_INVALID_LEVEL;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *ppOut = pInfo;
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->domain_name);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->full_domain_name);
+    LWBUF_ALLOC_UNICODE_STRING(pBuffer,
+                               (PUNICODE_STRING)&pIn->forest);
+    LWBUF_ALLOC_BLOB(pBuffer, sizeof(pIn->guid), &pIn->guid);
+    LWBUF_ALLOC_PSID(pBuffer, pIn->sid);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pInfo) {
-        NetrFreeMemory((void*)pInfo);
-    }
-
-    *ppOut = NULL;
-
     goto cleanup;
 }
 
 
 NTSTATUS
 NetrAllocateDcNameInfo(
-    OUT DsrDcNameInfo **ppOut,
-    IN  DsrDcNameInfo  *pIn
+    OUT DsrDcNameInfo  *pOut,
+    IN OUT PDWORD       pdwOffset,
+    IN OUT PDWORD       pdwSpaceLeft,
+    IN  DsrDcNameInfo  *pIn,
+    IN OUT PDWORD       pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    DsrDcNameInfo *pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    DsrDcNameInfo *pBuffer = pOut;
 
-    BAIL_ON_INVALID_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = NetrAllocateMemory((void**)&pInfo,
-                                  sizeof(DsrDcNameInfo),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIn == NULL) goto cleanup;
-
-    if (pIn->dc_name) {
-        pInfo->dc_name = wc16sdup(pIn->dc_name);
-        BAIL_ON_NULL_PTR(pInfo->dc_name, ntStatus);
-
-        ntStatus = NetrAddDepMemory(pInfo->dc_name, pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pIn->dc_address) {
-        pInfo->dc_address = wc16sdup(pIn->dc_address);
-        BAIL_ON_NULL_PTR(pInfo->dc_address, ntStatus);
-
-        ntStatus = NetrAddDepMemory(pInfo->dc_address, pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    pInfo->address_type = pIn->address_type;
-    pInfo->flags        = pIn->flags;
-
-    memcpy(&pInfo->domain_guid, &pIn->domain_guid, sizeof(pInfo->domain_guid));
-
-    if (pIn->domain_name) {
-        pInfo->domain_name = wc16sdup(pIn->domain_name);
-        BAIL_ON_NULL_PTR(pInfo->domain_name, ntStatus);
-
-        ntStatus = NetrAddDepMemory(pInfo->domain_name,
-                                    pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pIn->forest_name) {
-        pInfo->forest_name = wc16sdup(pIn->forest_name);
-        BAIL_ON_NULL_PTR(pInfo->forest_name, ntStatus);
-
-        ntStatus = NetrAddDepMemory(pInfo->forest_name,
-                                    pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pIn->dc_site_name) {
-        pInfo->dc_site_name = wc16sdup(pIn->dc_site_name);
-        BAIL_ON_NULL_PTR(pInfo->dc_site_name, ntStatus);
-
-        ntStatus = NetrAddDepMemory(pInfo->dc_site_name,
-                                    pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if (pIn->cli_site_name) {
-        pInfo->cli_site_name = wc16sdup(pIn->cli_site_name);
-        BAIL_ON_NULL_PTR(pInfo->cli_site_name, ntStatus);
-
-        ntStatus = NetrAddDepMemory(pInfo->cli_site_name,
-                                    pInfo);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    *ppOut = pInfo;
+    LWBUF_ALLOC_PWSTR(pBuffer, pIn->dc_name);
+    LWBUF_ALLOC_PWSTR(pBuffer, pIn->dc_address);
+    LWBUF_ALLOC_WORD(pBuffer, pIn->address_type);
+    LWBUF_ALLOC_BLOB(pBuffer, sizeof(pIn->domain_guid), &pIn->domain_guid);
+    LWBUF_ALLOC_PWSTR(pBuffer, pIn->domain_name);
+    LWBUF_ALLOC_PWSTR(pBuffer, pIn->forest_name);
+    LWBUF_ALLOC_DWORD(pBuffer, pIn->flags);
+    LWBUF_ALLOC_PWSTR(pBuffer, pIn->dc_site_name);
+    LWBUF_ALLOC_PWSTR(pBuffer, pIn->cli_site_name);
 
 cleanup:
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
+
     return ntStatus;
 
 error:
-    if (pInfo) {
-        NetrFreeMemory((void*)pInfo);
-    }
-
-    *ppOut = NULL;
-
     goto cleanup;
 }
 

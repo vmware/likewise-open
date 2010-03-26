@@ -28,11 +28,61 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
 #include "includes.h"
+
+
+static
+BOOLEAN
+CallOpenSchannel(
+    handle_t         hNetr,
+    PWSTR            pwszMachineAccount,
+    PCWSTR           pwszMachineName,
+    PWSTR            pwszServer,
+    PWSTR            pwszDomain,
+    PWSTR            pwszComputer,
+    PWSTR            pwszMachpass,
+    NetrCredentials *pCreds,
+    handle_t        *phSchn
+    );
+
+
+static
+BOOLEAN
+CallCloseSchannel(
+    handle_t  hSchannel
+    );
+
+
+static
+BOOLEAN
+CallNetrSamLogonInteractive(
+    handle_t               hSchannel,
+    NetrCredentials       *pCreds,
+    PWSTR                  pwszServer,
+    PWSTR                  pwszDomain,
+    PWSTR                  pwszComputer,
+    PWSTR                  pwszUsername,
+    PWSTR                  pwszPassword,
+    PDWORD                 pdwLevels,
+    DWORD                  dwNumLevels,
+    NetrValidationInfo  ***pppSamLogonInfo
+    );
+
+
+static
+BOOLEAN
+TestValidateSamLogonInfo(
+    NetrValidationInfo ***pLogonInfo,
+    DWORD                 dwNumLogonInfos
+    );
+
+
+static
+BOOLEAN
+TestValidateDomainTrusts(
+    NetrDomainTrust      *pTrust,
+    DWORD                 dwNumTrusts
+    );
 
 
 handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
@@ -79,7 +129,7 @@ handle_t CreateNetlogonBinding(handle_t *binding, const wchar16_t *host)
 }
 
 
-handle_t TestOpenSchannel(handle_t netr_b,
+handle_t TestOpenSchannel(handle_t hNetr,
                           const wchar16_t *hostname,
                           const wchar16_t *user, const wchar16_t *pass,
                           wchar16_t *server, wchar16_t *domain,
@@ -101,7 +151,7 @@ handle_t TestOpenSchannel(handle_t netr_b,
     machine_acct = asw16printfw(L"%ws$", computer);
     if (machine_acct == NULL) goto error;
 
-    status = NetrOpenSchannel(netr_b, machine_acct, hostname, server, domain,
+    status = NetrOpenSchannel(hNetr, machine_acct, hostname, server, domain,
                               computer, machpass, creds, &schn_b);
     goto_if_ntstatus_not_success(status, error);
 
@@ -142,167 +192,584 @@ void TestCloseSchannel(handle_t schn_b)
 }
 
 
+static
+BOOLEAN
+CallOpenSchannel(
+    handle_t         hNetr,
+    PWSTR            pwszMachineAccount,
+    PCWSTR           pwszMachineName,
+    PWSTR            pwszServer,
+    PWSTR            pwszDomain,
+    PWSTR            pwszComputer,
+    PWSTR            pwszMachpass,
+    NetrCredentials *pCreds,
+    handle_t        *phSchn
+    )
+{
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    handle_t hSchn = NULL;
+
+    CALL_MSRPC(ntStatus, NetrOpenSchannel(hNetr,
+                                          pwszMachineAccount,
+                                          pwszMachineName,
+                                          pwszServer,
+                                          pwszDomain,
+                                          pwszComputer,
+                                          pwszMachpass,
+                                          pCreds, &hSchn));
+    if (ntStatus)
+    {
+        bRet = FALSE;
+    }
+
+    *phSchn = hSchn;
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+CallCloseSchannel(
+    handle_t  hSchannel
+    )
+{
+    BOOLEAN bRet = TRUE;
+
+    FreeNetlogonBinding(&hSchannel);
+
+    LwIoSetThreadCreds(NULL);
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+CallNetrSamLogonInteractive(
+    handle_t               hSchannel,
+    NetrCredentials       *pCreds,
+    PWSTR                  pwszServer,
+    PWSTR                  pwszDomain,
+    PWSTR                  pwszComputer,
+    PWSTR                  pwszUsername,
+    PWSTR                  pwszPassword,
+    PDWORD                 pdwLevels,
+    DWORD                  dwNumLevels,
+    NetrValidationInfo  ***pppSamLogonInfo
+    )
+{
+    BOOLEAN bRet = TRUE;
+    DWORD dwError = ERROR_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwLogonLevel = 0;
+    DWORD dwValidationLevel = 0;
+    DWORD dwLogonLevels[] = { 1, 3, 5 };
+    DWORD i = 0;
+    DWORD j = 0;
+    NetrValidationInfo *pValidationInfo = NULL;
+    NetrValidationInfo **ppSamLogonInfo = NULL;
+    BYTE Authoritative = 0;
+    DWORD dwTotalNumLevels = 7;
+
+    dwError = LwAllocateMemory(sizeof(ppSamLogonInfo[0]) * dwTotalNumLevels,
+                               OUT_PPVOID(&ppSamLogonInfo));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    for (i = 0; i < (sizeof(dwLogonLevels)/sizeof(dwLogonLevels[0])); i++)
+    {
+        dwLogonLevel = dwLogonLevels[i];
+
+        for (j = 0; j < dwTotalNumLevels; j++)
+        {
+            if (ppSamLogonInfo[j])
+            {
+                NetrFreeMemory(ppSamLogonInfo[j]);
+            }
+        }
+
+        for (j = 0; j < dwNumLevels; j++)
+        {
+            dwValidationLevel = pdwLevels[j];
+
+            CALL_MSRPC(ntStatus, NetrSamLogonInteractive(hSchannel,
+                                                         pCreds,
+                                                         pwszServer,
+                                                         pwszDomain,
+                                                         pwszComputer,
+                                                         pwszUsername,
+                                                         pwszPassword,
+                                                         dwLogonLevel,
+                                                         dwValidationLevel,
+                                                         &pValidationInfo,
+                                                         &Authoritative));
+            if (ntStatus)
+            {
+                bRet = FALSE;
+            }
+
+            ppSamLogonInfo[dwValidationLevel] = pValidationInfo;
+        }
+    }
+
+    *pppSamLogonInfo = ppSamLogonInfo;
+
+error:
+    return bRet;
+}
+
+
+static
+BOOLEAN
+TestValidateSamLogonInfo(
+    NetrValidationInfo ***pppLogonInfo,
+    DWORD                 dwNumUsers
+    )
+{
+    BOOLEAN bRet = TRUE;
+    DWORD i = 0;
+
+    for (i = 0; i < dwNumUsers; i++)
+    {
+        NetrValidationInfo **ppLogonInfo = pppLogonInfo[i];
+
+        ASSERT_UNICODE_STRING_VALID_MSG(&ppLogonInfo[2]->sam2->base.account_name, ("(i = %d)\n", i));
+        ASSERT_UNICODE_STRING_VALID_MSG(&ppLogonInfo[2]->sam2->base.full_name, ("(i = %d)\n", i));
+        ASSERT_UNICODE_STRING_VALID_MSG(&ppLogonInfo[2]->sam2->base.logon_script, ("(i = %d)\n", i));
+        ASSERT_UNICODE_STRING_VALID_MSG(&ppLogonInfo[2]->sam2->base.profile_path, ("(i = %d)\n", i));
+        ASSERT_UNICODE_STRING_VALID_MSG(&ppLogonInfo[2]->sam2->base.home_directory, ("(i = %d)\n", i));
+        ASSERT_UNICODE_STRING_VALID_MSG(&ppLogonInfo[2]->sam2->base.home_drive, ("(i = %d)\n", i));
+        ASSERT_UNICODE_STRING_VALID_MSG(&ppLogonInfo[2]->sam2->base.logon_server, ("(i = %d)\n", i));
+        ASSERT_UNICODE_STRING_VALID_MSG(&ppLogonInfo[2]->sam2->base.domain, ("(i = %d)\n", i));
+        ASSERT_TEST_MSG((ppLogonInfo[2]->sam2->base.domain_sid != NULL &&
+                         RtlValidSid(ppLogonInfo[2]->sam2->base.domain_sid)), ("(i = %d)\n", i));
+        ASSERT_TEST_MSG(ppLogonInfo[2]->sam2->base.acct_flags & ACB_NORMAL, ("(i = %d)\n", i));
+    }
+
+    return bRet;
+}
+
+
+static
+BOOLEAN
+TestValidateDomainTrusts(
+    NetrDomainTrust      *pTrusts,
+    DWORD                 dwNumTrusts
+    )
+{
+    BOOLEAN bRet = TRUE;
+    DWORD i = 0;
+
+    for (i = 0; i < dwNumTrusts; i++)
+    {
+        NetrDomainTrust *pTrust = &(pTrusts[i]);
+
+        ASSERT_TEST_MSG(pTrust->netbios_name != NULL, ("(i = %d)\n", i));
+        ASSERT_TEST_MSG(pTrust->dns_name != NULL, ("(i = %d)\n", i));
+        ASSERT_TEST_MSG((pTrust->trust_type >= 1 &&
+                         pTrust->trust_type <= 4), ("(i = %d)\n", i));
+        ASSERT_TEST_MSG((pTrust->sid != NULL &&
+                         RtlValidSid(pTrust->sid)), ("(i = %d)\n", i));
+    }
+
+    return bRet;
+}
+
+
+int
+TestNetlogonSamLogonInteractive(
+    struct test *t,
+    const wchar16_t *hostname,
+    const wchar16_t *user,
+    const wchar16_t *pass,
+    struct parameter *options,
+    int optcount
+    )
+{
+    PCSTR pszDefComputer = "TestWks4";
+    PCSTR pszDefMachpass = "secret01$";
+    PCSTR pszDefUsername = "user";
+    PCSTR pszDefPassword = "pass";
+    const DWORD dwDefLogonLevel = 2;
+    const DWORD dwDefValidationLevel = 2;
+
+    BOOLEAN bRet = TRUE;
+    DWORD dwError = ERROR_SUCCESS;
+    handle_t hNetr = NULL;
+    handle_t hSchn = NULL;
+    enum param_err perr = perr_success;
+    NetrCredentials Creds = {0};
+    NetrValidationInfo **ppSamLogonInfo = NULL;
+    PSTR pszComputer = NULL;
+    PSTR pszMachpass = NULL;
+    PWSTR pwszComputer = NULL;
+    PWSTR pwszMachAcct = NULL;
+    PWSTR pwszMachpass = NULL;
+    PWSTR pwszServer = NULL;
+    PWSTR pwszDomain = NULL;
+    PWSTR pwszUsername = NULL;
+    PWSTR pwszPassword = NULL;
+    DWORD dwLogonLevel = 0;
+    DWORD dwValidationLevel = 0;
+    HANDLE hStore = (HANDLE)NULL;
+    LWPS_PASSWORD_INFO *pPassInfo = NULL;
+    DWORD pdwLevels[] = { 2, 3, 6 };
+    DWORD dwNumLevels = sizeof(pdwLevels)/sizeof(pdwLevels[0]);
+    DWORD iLevel = 0;
+
+    TESTINFO(t, hostname, user, pass);
+
+    perr = fetch_value(options, optcount, "computer", pt_w16string, &pwszComputer,
+                       &pszDefComputer);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "machpass", pt_w16string, &pwszMachpass,
+                       &pszDefMachpass);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "server", pt_w16string, &pwszServer,
+                       NULL);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "domain", pt_w16string, &pwszDomain,
+                       NULL);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "username", pt_w16string, &pwszUsername,
+                       &pszDefUsername);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "password", pt_w16string, &pwszPassword,
+                       &pszDefPassword);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "logon_level", pt_uint32, &dwLogonLevel,
+                       &dwDefLogonLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    perr = fetch_value(options, optcount, "validation_level", pt_uint32,
+                       &dwValidationLevel, &dwDefValidationLevel);
+    if (!perr_is_ok(perr)) perr_fail(perr);
+
+    SET_SESSION_CREDS(hCreds);
+
+    dwError = LwWc16sToMbs(pwszComputer, &pszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwWc16sToMbs(pwszMachpass, &pszMachpass);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    if (strcmp(pszComputer, pszDefComputer) == 0 &&
+        strcmp(pszMachpass, pszDefMachpass) == 0)
+    {
+        LW_SAFE_FREE_MEMORY(pwszComputer);
+        LW_SAFE_FREE_MEMORY(pwszMachpass);
+
+        dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwpsGetPasswordByCurrentHostName(hStore, &pPassInfo);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwAllocateWc16String(&pwszMachAcct,
+                                       pPassInfo->pwszMachineAccount);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwAllocateWc16String(&pwszMachpass,
+                                       pPassInfo->pwszMachinePassword);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwAllocateWc16String(&pwszComputer,
+                                       pPassInfo->pwszHostname);
+        BAIL_ON_WIN_ERROR(dwError);
+    }
+
+    PARAM_INFO("computer", pt_w16string, pwszComputer);
+    PARAM_INFO("machpass", pt_w16string, pwszMachpass);
+    PARAM_INFO("server", pt_w16string, pwszServer);
+    PARAM_INFO("domain", pt_w16string, pwszDomain);
+    PARAM_INFO("username", pt_w16string, pwszUsername);
+    PARAM_INFO("password", pt_w16string, pwszPassword);
+    PARAM_INFO("logon_level", pt_int32, &dwLogonLevel);
+    PARAM_INFO("validation_level", pt_int32, &dwValidationLevel);
+
+    CreateNetlogonBinding(&hNetr, hostname);
+
+    bRet &= CallOpenSchannel(hNetr,
+                             pwszMachAcct,
+                             hostname,
+                             pwszServer,
+                             pwszDomain,
+                             pwszComputer,
+                             pwszMachpass,
+                             &Creds,
+                             &hSchn);
+
+    if (hSchn == NULL)
+    {
+        bRet = FALSE;
+        goto done;
+    }
+
+    bRet &= CallNetrSamLogonInteractive(hSchn,
+                                        &Creds,
+                                        pwszServer,
+                                        pwszDomain,
+                                        pwszComputer,
+                                        pwszUsername,
+                                        pwszPassword,
+                                        pdwLevels,
+                                        dwNumLevels,
+                                        &ppSamLogonInfo);
+
+    bRet &= TestValidateSamLogonInfo(&ppSamLogonInfo, 1);
+
+    bRet &= CallCloseSchannel(hSchn);
+
+done:
+error:
+    for (iLevel = 0; ppSamLogonInfo && iLevel <= 6; iLevel++)
+    {
+        if (ppSamLogonInfo[iLevel])
+        {
+            NetrFreeMemory(ppSamLogonInfo[iLevel]);
+        }
+    }
+
+    LwpsFreePasswordInfo(hStore, pPassInfo);
+    LwpsClosePasswordStore(hStore);
+
+    FreeNetlogonBinding(&hNetr);
+
+    RELEASE_SESSION_CREDS;
+
+    LW_SAFE_FREE_MEMORY(pwszMachAcct);
+    LW_SAFE_FREE_MEMORY(pwszComputer);
+    LW_SAFE_FREE_MEMORY(pwszServer);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszUsername);
+    LW_SAFE_FREE_MEMORY(pwszPassword);
+    LW_SAFE_FREE_MEMORY(pszComputer);
+    LW_SAFE_FREE_MEMORY(pszMachpass);
+
+    return (int)bRet;
+}
+
 
 int TestNetlogonSamLogon(struct test *t, const wchar16_t *hostname,
                          const wchar16_t *user, const wchar16_t *pass,
                          struct parameter *options, int optcount)
 {
-    const char *def_server = "TEST";
-    const char *def_domain = "TESTNET";
-    const char *def_computer = "TEST";
-    const char *def_machpass = "SECRET";
-    const char *def_username = "user";
-    const char *def_password = "pass";
-    const UINT32 def_logon_level = 3;
-    const UINT32 def_validation_level = 2;
+    PCSTR pszDefServer = "TEST";
+    PCSTR pszDefDomain = NULL;
+    PCSTR pszDefComputer = "TestWks4";
+    PCSTR pszDefMachpass = "secret01$";
+    PCSTR pszDefUsername = "user";
+    PCSTR pszDefPassword = "pass";
+    const DWORD dwDefLogonLevel = 2;
+    const DWORD dwDefValidationLevel = 2;
 
-    NTSTATUS status = STATUS_SUCCESS;
-    handle_t netr_b = NULL;
-    handle_t schn_b = NULL;
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    handle_t hNetr = NULL;
+    handle_t hSchn = NULL;
     enum param_err perr = perr_success;
-    wchar16_t *computer = NULL;
-    wchar16_t *machacct = NULL;
-    wchar16_t *machpass = NULL;
-    wchar16_t *server = NULL;
-    wchar16_t *domain = NULL;
-    wchar16_t *username = NULL;
-    wchar16_t *password = NULL;
-    char *computer_name = NULL;
-    char *machine_pass = NULL;
-    UINT32 logon_level = 0;
-    UINT32 validation_level = 0;
-    NetrCredentials creds = {0};
-    NetrValidationInfo *validation_info = NULL;
-    UINT8 authoritative = 0;
-    HANDLE store = (HANDLE)NULL;
-    LWPS_PASSWORD_INFO *pi = NULL;
-    char host[128] = {0};
-    NetrDomainQuery Query;
+    PSTR pszComputer = NULL;
+    PSTR pszMachpass = NULL;
+    PWSTR pwszComputer = NULL;
+    PWSTR pwszMachAcct = NULL;
+    PWSTR pwszMachpass = NULL;
+    PWSTR pwszServer = NULL;
+    PWSTR pwszDomain = NULL;
+    PWSTR pwszUsername = NULL;
+    PWSTR pwszPassword = NULL;
+    DWORD dwLogonLevel = 0;
+    DWORD dwValidationLevel = 0;
+    PWSTR pwszSite = NULL;
+    NetrCredentials Creds = {0};
+    NetrValidationInfo **ppSamLogonInfo = NULL;
+    NetrValidationInfo *pValidationInfo = NULL;
+    NetrValidationInfo **ppValidationInfo = NULL;
+    BYTE Authoritative = 0;
+    HANDLE hStore = (HANDLE)NULL;
+    LWPS_PASSWORD_INFO *pPassInfo = NULL;
+    NetrDomainQuery Query = {0};
     NetrDomainQuery1 Query1;
     NetrDomainInfo *pInfo = NULL;
 
+    memset(&Query1, 0, sizeof(Query1));
+
     TESTINFO(t, hostname, user, pass);
 
-    perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
-                       &def_computer);
+    perr = fetch_value(options, optcount, "computer", pt_w16string, &pwszComputer,
+                       &pszDefComputer);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "machpass", pt_w16string, &machpass,
-                       &def_machpass);
+    perr = fetch_value(options, optcount, "machpass", pt_w16string, &pwszMachpass,
+                       &pszDefMachpass);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "server", pt_w16string, &server,
-                       &def_server);
+    perr = fetch_value(options, optcount, "server", pt_w16string, &pwszServer,
+                       &pszDefServer);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "domain", pt_w16string, &domain,
-                       &def_domain);
+    perr = fetch_value(options, optcount, "domain", pt_w16string, &pwszDomain,
+                       &pszDefDomain);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "username", pt_w16string, &username,
-                       &def_username);
+    perr = fetch_value(options, optcount, "username", pt_w16string, &pwszUsername,
+                       &pszDefUsername);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "password", pt_w16string, &password,
-                       &def_password);
+    perr = fetch_value(options, optcount, "password", pt_w16string, &pwszPassword,
+                       &pszDefPassword);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "logon_level", pt_uint32, &logon_level,
-                       &def_logon_level);
+    perr = fetch_value(options, optcount, "logon_level", pt_uint32, &dwLogonLevel,
+                       &dwDefLogonLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "validation_level", pt_uint32,
-                       &validation_level, &def_validation_level);
+                       &dwValidationLevel, &dwDefValidationLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     SET_SESSION_CREDS(hCreds);
 
-    computer_name = awc16stombs(computer);
-    machine_pass  = awc16stombs(machpass);
+    dwError = LwWc16sToMbs(pwszComputer, &pszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    if (strcmp(computer_name, def_computer) == 0 &&
-        strcmp(machine_pass, def_machpass) == 0) {
+    dwError = LwWc16sToMbs(pwszMachpass, &pszMachpass);
+    BAIL_ON_WIN_ERROR(dwError);
 
-        SAFE_FREE(computer);
-        SAFE_FREE(machpass);
+    if (strcmp(pszComputer, pszDefComputer) == 0 &&
+        strcmp(pszMachpass, pszDefMachpass) == 0)
+    {
+        LW_SAFE_FREE_MEMORY(pwszComputer);
+        LW_SAFE_FREE_MEMORY(pwszMachpass);
 
-        status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &store);
-        if (status != STATUS_SUCCESS) return false;
+        dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
+        BAIL_ON_WIN_ERROR(dwError);
 
-        gethostname(host, sizeof(host));
+        dwError = LwpsGetPasswordByCurrentHostName(hStore, &pPassInfo);
+        BAIL_ON_WIN_ERROR(dwError);
 
-        status = LwpsGetPasswordByHostName(store, host, &pi);
-        if (status != STATUS_SUCCESS) return false;
+        dwError = LwAllocateWc16String(&pwszMachAcct,
+                                       pPassInfo->pwszMachineAccount);
+        BAIL_ON_WIN_ERROR(dwError);
 
-        machacct = wc16sdup(pi->pwszMachineAccount);
-        machpass = wc16sdup(pi->pwszMachinePassword);
-        computer = wc16sdup(pi->pwszHostname);
+        dwError = LwAllocateWc16String(&pwszMachpass,
+                                       pPassInfo->pwszMachinePassword);
+        BAIL_ON_WIN_ERROR(dwError);
 
-        status = LwpsClosePasswordStore(store);
-        if (status != STATUS_SUCCESS) return false;
+        dwError = LwAllocateWc16String(&pwszComputer,
+                                       pPassInfo->pwszHostname);
+        BAIL_ON_WIN_ERROR(dwError);
     }
 
-    PARAM_INFO("computer", pt_w16string, computer);
-    PARAM_INFO("machpass", pt_w16string, machpass);
-    PARAM_INFO("server", pt_w16string, server);
-    PARAM_INFO("domain", pt_w16string, domain);
-    PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("password", pt_w16string, password);
-    PARAM_INFO("logon_level", pt_int32, &logon_level);
-    PARAM_INFO("validation_level", pt_int32, &validation_level);
+    PARAM_INFO("computer", pt_w16string, pwszComputer);
+    PARAM_INFO("machpass", pt_w16string, pwszMachpass);
+    PARAM_INFO("server", pt_w16string, pwszServer);
+    PARAM_INFO("domain", pt_w16string, pwszDomain);
+    PARAM_INFO("username", pt_w16string, pwszUsername);
+    PARAM_INFO("password", pt_w16string, pwszPassword);
+    PARAM_INFO("logon_level", pt_int32, &dwLogonLevel);
+    PARAM_INFO("validation_level", pt_int32, &dwValidationLevel);
 
+    hNetr = CreateNetlogonBinding(&hNetr, hostname);
+    if (hNetr == NULL)
+    {
+        bRet = FALSE;
+        goto done;
+    }
 
-    netr_b = CreateNetlogonBinding(&netr_b, hostname);
-    if (netr_b == NULL) goto cleanup;
-
-    status = NetrOpenSchannel(netr_b, machacct, hostname, server, domain,
-                              computer, machpass, &creds, &schn_b);
-    if (status != STATUS_SUCCESS) goto close;
+    ntStatus = NetrOpenSchannel(hNetr, pwszMachAcct, hostname, pwszServer,
+                                pwszDomain, pwszComputer, pwszMachpass,
+                                &Creds, &hSchn);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     memset(&Query1, 0, sizeof(Query1));
 
-    Query1.workstation_domain = domain;
-    Query1.workstation_site   = ambstowc16s("Default-First-Site-Name");
+    dwError = LwMbsToWc16s("Default-First-Site-Name", &pwszSite);
+    BAIL_ON_WIN_ERROR(dwError);
 
+    Query1.workstation_domain = pwszDomain;
+    Query1.workstation_site   = pwszSite;
     Query.query1 = &Query1;
 
-    status = NetrGetDomainInfo(schn_b, &creds, server, computer,
-                               1, &Query, &pInfo);
-    if (status != STATUS_SUCCESS) goto close;
+    ntStatus = NetrGetDomainInfo(hSchn, &Creds, pwszServer, pwszComputer,
+                                 1, &Query, &pInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    NetrFreeMemory(pInfo);
+    if (pInfo)
+    {
+        NetrFreeMemory(pInfo);
+        pInfo = NULL;
+    }
 
-    status = NetrGetDomainInfo(schn_b, &creds, server, computer,
-                               1, &Query, &pInfo);
-    if (status != STATUS_SUCCESS) goto close;
+    ntStatus = NetrGetDomainInfo(hSchn, &Creds, pwszServer, pwszComputer,
+                                 1, &Query, &pInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    NetrFreeMemory(pInfo);
+    dwError = LwAllocateMemory(sizeof(ppSamLogonInfo[0]) * 7,
+                               OUT_PPVOID(&ppSamLogonInfo));
+    BAIL_ON_WIN_ERROR(dwError);
 
-    CALL_MSRPC(status, NetrSamLogonInteractive(schn_b, &creds, server, domain, computer,
-                                                username, password,
-                                                (UINT16)logon_level,
-                                                (UINT16)validation_level,
-                                                &validation_info, &authoritative));
-    if (status != STATUS_SUCCESS) goto close;
+    for (dwLogonLevel = 2; dwLogonLevel <= 6; dwLogonLevel++)
+    {
+        CALL_MSRPC(ntStatus, NetrSamLogonInteractive(hSchn, &Creds, pwszServer,
+                                                     pwszDomain, pwszComputer,
+                                                     pwszUsername, pwszPassword,
+                                                     dwLogonLevel,
+                                                     dwValidationLevel,
+                                                     &pValidationInfo,
+                                                     &Authoritative));
+        BAIL_ON_NT_STATUS(ntStatus);
 
-    TestCloseSchannel(schn_b);
-
-close:
-    FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS;
+        ppValidationInfo[dwLogonLevel] = pValidationInfo;
+    }
 
 done:
-cleanup:
-    SAFE_FREE(computer);
-    SAFE_FREE(machpass);
-    SAFE_FREE(server);
-    SAFE_FREE(domain);
-    SAFE_FREE(username);
-    SAFE_FREE(password);
-    SAFE_FREE(computer_name);
-    SAFE_FREE(machine_pass);
+error:
+    if (hSchn)
+    {
+        TestCloseSchannel(hSchn);
+    }
 
-    return (status == STATUS_SUCCESS);
+    FreeNetlogonBinding(&hNetr);
+
+    LwpsFreePasswordInfo(hStore, pPassInfo);
+    LwpsClosePasswordStore(hStore);
+
+    RELEASE_SESSION_CREDS;
+
+    if (pInfo)
+    {
+        NetrFreeMemory(pInfo);
+    }
+
+    if (pValidationInfo)
+    {
+        NetrFreeMemory(pValidationInfo);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszMachAcct);
+    LW_SAFE_FREE_MEMORY(pwszComputer);
+    LW_SAFE_FREE_MEMORY(pwszServer);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszUsername);
+    LW_SAFE_FREE_MEMORY(pwszPassword);
+    LW_SAFE_FREE_MEMORY(pszComputer);
+    LW_SAFE_FREE_MEMORY(pszMachpass);
+
+    if (ntStatus != STATUS_SUCCESS ||
+        dwError != ERROR_SUCCESS)
+    {
+        bRet = FALSE;
+    }
+
+    return bRet;
 }
 
 
@@ -310,119 +777,154 @@ int TestNetlogonSamLogoff(struct test *t, const wchar16_t *hostname,
                           const wchar16_t *user, const wchar16_t *pass,
                           struct parameter *options, int optcount)
 {
-    const char *def_server = "TEST";
-    const char *def_domain = "TESTNET";
-    const char *def_computer = "TestWks4";
-    const char *def_machpass = "secret01$";
-    const char *def_username = "user";
-    const char *def_password = "pass";
-    const UINT32 def_logon_level = 2;
-    const UINT32 def_validation_level = 2;
+    PCSTR pszDefServer = "TEST";
+    PCSTR pszDefDomain = "TESTNET";
+    PCSTR pszDefComputer = "TestWks4";
+    PCSTR pszDefMachpass = "secret01$";
+    PCSTR pszDefUsername = "user";
+    PCSTR pszDefPassword = "pass";
+    const DWORD dwDefLogonLevel = 2;
+    const DWORD dwDefValidationLevel = 2;
 
-    NTSTATUS status = STATUS_SUCCESS;
-    handle_t netr_b = NULL;
-    handle_t schn_b = NULL;
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    handle_t hNetr = NULL;
+    handle_t hSchn = NULL;
     enum param_err perr = perr_success;
-    wchar16_t *computer = NULL;
-    wchar16_t *machpass = NULL;
-    wchar16_t *server = NULL;
-    wchar16_t *domain = NULL;
-    wchar16_t *username = NULL;
-    wchar16_t *password = NULL;
-    UINT32 logon_level = 0;
-    UINT32 validation_level = 0;
-    NetrCredentials creds = {0};
-    int hostname_len;
+    PSTR pszComputer = NULL;
+    PSTR pszMachpass = NULL;
+    PWSTR pwszComputer = NULL;
+    PWSTR pwszMachAcct = NULL;
+    PWSTR pwszMachpass = NULL;
+    PWSTR pwszServer = NULL;
+    PWSTR pwszDomain = NULL;
+    PWSTR pwszUsername = NULL;
+    PWSTR pwszPassword = NULL;
+    DWORD dwLogonLevel = 0;
+    DWORD dwValidationLevel = 0;
+    NetrCredentials Creds = {0};
+    HANDLE hStore = (HANDLE)NULL;
+    LWPS_PASSWORD_INFO *pPassInfo = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
-    hostname_len = wc16slen(hostname);
-
-    perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
-                       &def_computer);
+    perr = fetch_value(options, optcount, "computer", pt_w16string, &pwszComputer,
+                       &pszDefComputer);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "machpass", pt_w16string, &machpass,
-                       &def_machpass);
+    perr = fetch_value(options, optcount, "machpass", pt_w16string, &pwszMachpass,
+                       &pszDefMachpass);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "server", pt_w16string, &server,
-                       &def_server);
+    perr = fetch_value(options, optcount, "server", pt_w16string, &pwszServer,
+                       &pszDefServer);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "domain", pt_w16string, &domain,
-                       &def_domain);
+    perr = fetch_value(options, optcount, "domain", pt_w16string, &pwszDomain,
+                       &pszDefDomain);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "username", pt_w16string, &username,
-                       &def_username);
+    perr = fetch_value(options, optcount, "username", pt_w16string, &pwszUsername,
+                       &pszDefUsername);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "password", pt_w16string, &password,
-                       &def_password);
+    perr = fetch_value(options, optcount, "password", pt_w16string, &pwszPassword,
+                       &pszDefPassword);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "logon_level", pt_uint32, &logon_level,
-                       &def_logon_level);
+    perr = fetch_value(options, optcount, "logon_level", pt_uint32, &dwLogonLevel,
+                       &dwDefLogonLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "validation_level", pt_uint32,
-                       &validation_level, &def_validation_level);
+                       &dwValidationLevel, &dwDefValidationLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("computer", pt_w16string, computer);
-    PARAM_INFO("machpass", pt_w16string, machpass);
-    PARAM_INFO("server", pt_w16string, server);
-    PARAM_INFO("domain", pt_w16string, domain);
-    PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("password", pt_w16string, password);
-    PARAM_INFO("logon_level", pt_int32, &logon_level);
-    PARAM_INFO("validation_level", pt_int32, &validation_level);
+    dwError = LwWc16sToMbs(pwszComputer, &pszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    if (username && password)
-    {
-        /* Set up access token */
-        PIO_CREDS hCreds = NULL;
+    dwError = LwWc16sToMbs(pwszMachpass, &pszMachpass);
+    BAIL_ON_WIN_ERROR(dwError);
 
-        status = LwIoCreatePlainCredsW(user, domain, pass, &hCreds);
-        goto_if_ntstatus_not_success(status, done);
+    if (strcmp(pszComputer, pszDefComputer) == 0 &&
+        strcmp(pszMachpass, pszDefMachpass) == 0) {
 
-        status = LwIoSetThreadCreds(hCreds);
-        goto_if_ntstatus_not_success(status, done);
+        LW_SAFE_FREE_MEMORY(pwszComputer);
+        LW_SAFE_FREE_MEMORY(pwszMachpass);
 
-        LwIoDeleteCreds(hCreds);
+        dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwpsGetPasswordByCurrentHostName(hStore, &pPassInfo);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwAllocateWc16String(&pwszMachAcct,
+                                       pPassInfo->pwszMachineAccount);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwAllocateWc16String(&pwszMachpass,
+                                       pPassInfo->pwszMachinePassword);
+        BAIL_ON_WIN_ERROR(dwError);
+
+        dwError = LwAllocateWc16String(&pwszComputer,
+                                       pPassInfo->pwszHostname);
+        BAIL_ON_WIN_ERROR(dwError);
     }
 
-    netr_b = CreateNetlogonBinding(&netr_b, hostname);
-    if (netr_b == NULL) goto cleanup;
+    PARAM_INFO("computer", pt_w16string, pwszComputer);
+    PARAM_INFO("machpass", pt_w16string, pwszMachpass);
+    PARAM_INFO("server", pt_w16string, pwszServer);
+    PARAM_INFO("domain", pt_w16string, pwszDomain);
+    PARAM_INFO("username", pt_w16string, pwszUsername);
+    PARAM_INFO("password", pt_w16string, pwszPassword);
+    PARAM_INFO("logon_level", pt_int32, &dwLogonLevel);
+    PARAM_INFO("validation_level", pt_int32, &dwValidationLevel);
 
-    schn_b = TestOpenSchannel(netr_b, hostname, user, pass,
-                          server, domain, computer, machpass,
-                          rpc_c_authn_level_pkt_privacy,
-                          &creds);
-
-    CALL_MSRPC(status, NetrSamLogoff(schn_b, &creds, server, domain, computer,
-                                      username, password, (UINT16)logon_level));
-    if (status != STATUS_SUCCESS) goto close;
-
-    TestCloseSchannel(schn_b);
-
-close:
-    FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS;
-
-    if (username && password)
+    hNetr = CreateNetlogonBinding(&hNetr, hostname);
+    if (hNetr == NULL)
     {
-        status = LwIoSetThreadCreds(NULL);
-        goto_if_ntstatus_not_success(status, cleanup);
+        bRet = FALSE;
+        goto done;
     }
+
+    ntStatus = NetrOpenSchannel(hNetr, pwszMachAcct, hostname, pwszServer,
+                                pwszDomain, pwszComputer, pwszMachpass,
+                                &Creds, &hSchn);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    CALL_MSRPC(ntStatus, NetrSamLogoff(hSchn, &Creds, pwszServer, pwszDomain,
+                                       pwszComputer, pwszUsername, pwszPassword,
+                                       dwLogonLevel));
+    BAIL_ON_NT_STATUS(ntStatus);
 
 done:
-cleanup:
-    SAFE_FREE(computer);
-    SAFE_FREE(server);
+error:
+    if (hSchn)
+    {
+        TestCloseSchannel(hSchn);
+    }
 
-    return (status == STATUS_SUCCESS);
+    FreeNetlogonBinding(&hNetr);
+
+    LwpsFreePasswordInfo(hStore, pPassInfo);
+    LwpsClosePasswordStore(hStore);
+
+    RELEASE_SESSION_CREDS;
+
+    LW_SAFE_FREE_MEMORY(pwszMachAcct);
+    LW_SAFE_FREE_MEMORY(pwszComputer);
+    LW_SAFE_FREE_MEMORY(pwszServer);
+    LW_SAFE_FREE_MEMORY(pwszUsername);
+    LW_SAFE_FREE_MEMORY(pwszPassword);
+
+    if (ntStatus != STATUS_SUCCESS ||
+        dwError != ERROR_SUCCESS)
+    {
+        bRet = FALSE;
+    }
+
+    return bRet;
 }
 
 
@@ -431,138 +933,171 @@ int TestNetlogonSamLogonEx(struct test *t, const wchar16_t *hostname,
                            const wchar16_t *user, const wchar16_t *pass,
                            struct parameter *options, int optcount)
 {
-    const char *def_server = "TEST";
-    const char *def_domain = "TESTNET";
-    const char *def_computer = "TestWks4";
-    const char *def_machpass = "secret01$";
-    const char *def_username = "user";
-    const char *def_password = "pass";
-    const UINT32 def_logon_level = 2;
-    const UINT32 def_validation_level = 2;
+    PCSTR pszDefServer = "TEST";
+    PCSTR pszDefDomain = NULL;
+    PCSTR pszDefComputer = "TestWks4";
+    PCSTR pszDefMachpass = "secret01$";
+    PCSTR pszDefUsername = "user";
+    PCSTR pszDefPassword = "pass";
+    const DWORD dwDefLogonLevel = 2;
+    const DWORD dwDefValidationLevel = 2;
 
-    NTSTATUS status = STATUS_SUCCESS;
-    handle_t netr_b = NULL;
-    handle_t schn_b = NULL;
-    rpc_schannel_auth_info_t schnauth_info = {0};
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    handle_t hNetr = NULL;
+    handle_t hSchn = NULL;
     enum param_err perr = perr_success;
-    char *computer_name = NULL;
-    char *machine_pass = NULL;
-    wchar16_t *computer = NULL;
-    wchar16_t *machacct = NULL;
-    wchar16_t *machpass = NULL;
-    wchar16_t *server = NULL;
-    wchar16_t *domain = NULL;
-    wchar16_t *username = NULL;
-    wchar16_t *password = NULL;
-    UINT32 logon_level = 0;
-    UINT32 validation_level = 0;
-    NetrCredentials creds = {0};
-    NetrValidationInfo *validation_info = NULL;
-    UINT8 authoritative = 0;
-    HANDLE store = (HANDLE)NULL;
-    LWPS_PASSWORD_INFO *pi = NULL;
-    char host[128] = {0};
+    PSTR pszComputer = NULL;
+    PSTR pszMachpass = NULL;
+    PWSTR pwszComputer = NULL;
+    PWSTR pwszMachAcct = NULL;
+    PWSTR pwszMachpass = NULL;
+    PWSTR pwszServer = NULL;
+    PWSTR pwszDomain = NULL;
+    PWSTR pwszUsername = NULL;
+    PWSTR pwszPassword = NULL;
+    DWORD dwLogonLevel = 0;
+    DWORD dwValidationLevel = 0;
+    NetrCredentials Creds = {0};
+    NetrValidationInfo *pValidationInfo = NULL;
+    BYTE Authoritative = 0;
+    HANDLE hStore = (HANDLE)NULL;
+    LWPS_PASSWORD_INFO *pPassInfo = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
-                       &def_computer);
+    perr = fetch_value(options, optcount, "computer", pt_w16string, &pwszComputer,
+                       &pszDefComputer);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "machpass", pt_w16string, &machpass,
-                       &def_machpass);
+    perr = fetch_value(options, optcount, "machpass", pt_w16string, &pwszMachpass,
+                       &pszDefMachpass);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "server", pt_w16string, &server,
-                       &def_server);
+    perr = fetch_value(options, optcount, "server", pt_w16string, &pwszServer,
+                       &pszDefServer);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "domain", pt_w16string, &domain,
-                       &def_domain);
+    perr = fetch_value(options, optcount, "domain", pt_w16string, &pwszDomain,
+                       &pszDefDomain);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "username", pt_w16string, &username,
-                       &def_username);
+    perr = fetch_value(options, optcount, "username", pt_w16string, &pwszUsername,
+                       &pszDefUsername);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "password", pt_w16string, &password,
-                       &def_password);
+    perr = fetch_value(options, optcount, "password", pt_w16string, &pwszPassword,
+                       &pszDefPassword);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "logon_level", pt_uint32, &logon_level,
-                       &def_logon_level);
+    perr = fetch_value(options, optcount, "logon_level", pt_uint32, &dwLogonLevel,
+                       &dwDefLogonLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
     perr = fetch_value(options, optcount, "validation_level", pt_uint32,
-                       &validation_level, &def_validation_level);
+                       &dwValidationLevel, &dwDefValidationLevel);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    computer_name = awc16stombs(computer);
-    machine_pass  = awc16stombs(machpass);
+    dwError = LwWc16sToMbs(pwszComputer, &pszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    if (strcmp(computer_name, def_computer) == 0 &&
-        strcmp(machine_pass, def_machpass) == 0) {
+    dwError = LwWc16sToMbs(pwszMachpass, &pszMachpass);
+    BAIL_ON_WIN_ERROR(dwError);
 
-        SAFE_FREE(computer);
-        SAFE_FREE(machpass);
+    if (strcmp(pszComputer, pszDefComputer) == 0 &&
+        strcmp(pszMachpass, pszDefMachpass) == 0)
+    {
+        LW_SAFE_FREE_MEMORY(pwszComputer);
+        LW_SAFE_FREE_MEMORY(pwszMachpass);
 
-        status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &store);
-        if (status != STATUS_SUCCESS) return false;
+        dwError = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
+        BAIL_ON_WIN_ERROR(dwError);
 
-        gethostname(host, sizeof(host));
+        dwError = LwpsGetPasswordByCurrentHostName(hStore, &pPassInfo);
+        BAIL_ON_WIN_ERROR(dwError);
 
-        status = LwpsGetPasswordByHostName(store, host, &pi);
-        if (status != STATUS_SUCCESS) return false;
+        dwError = LwAllocateWc16String(&pwszMachAcct,
+                                       pPassInfo->pwszMachineAccount);
+        BAIL_ON_WIN_ERROR(dwError);
 
-        machacct = wc16sdup(pi->pwszMachineAccount);
-        machpass = wc16sdup(pi->pwszMachinePassword);
-        computer = wc16sdup(pi->pwszHostname);
+        dwError = LwAllocateWc16String(&pwszMachpass,
+                                       pPassInfo->pwszMachinePassword);
+        BAIL_ON_WIN_ERROR(dwError);
 
-        status = LwpsClosePasswordStore(store);
-        if (status != STATUS_SUCCESS) return false;
+        dwError = LwAllocateWc16String(&pwszComputer,
+                                       pPassInfo->pwszHostname);
+        BAIL_ON_WIN_ERROR(dwError);
     }
 
+    PARAM_INFO("computer", pt_w16string, pwszComputer);
+    PARAM_INFO("machpass", pt_w16string, pwszMachpass);
+    PARAM_INFO("server", pt_w16string, pwszServer);
+    PARAM_INFO("domain", pt_w16string, pwszDomain);
+    PARAM_INFO("username", pt_w16string, pwszUsername);
+    PARAM_INFO("password", pt_w16string, pwszPassword);
+    PARAM_INFO("logon_level", pt_int32, &dwLogonLevel);
+    PARAM_INFO("validation_level", pt_int32, &dwValidationLevel);
 
-    PARAM_INFO("computer", pt_w16string, computer);
-    PARAM_INFO("machpass", pt_w16string, machpass);
-    PARAM_INFO("server", pt_w16string, server);
-    PARAM_INFO("domain", pt_w16string, domain);
-    PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("password", pt_w16string, password);
-    PARAM_INFO("logon_level", pt_int32, &logon_level);
-    PARAM_INFO("validation_level", pt_int32, &validation_level);
+    hNetr = CreateNetlogonBinding(&hNetr, hostname);
+    if (hNetr == NULL)
+    {
+        bRet = FALSE;
+        goto done;
+    }
 
-    netr_b = CreateNetlogonBinding(&netr_b, hostname);
-    if (netr_b == NULL) goto cleanup;
+    ntStatus = NetrOpenSchannel(hNetr, pwszMachAcct, hostname, pwszServer,
+                                pwszDomain, pwszComputer, pwszMachpass,
+                                &Creds, &hSchn);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetrOpenSchannel(netr_b, machacct, hostname, server, domain,
-                              computer, machpass, &creds, &schn_b);
-    if (status != STATUS_SUCCESS) goto close;
-
-    CALL_MSRPC(status, NetrSamLogonEx(schn_b, server, domain, computer,
-                                       username, password,
-                                       (UINT16)logon_level,
-                                       (UINT16)validation_level,
-                                       &validation_info, &authoritative));
-    if (status != STATUS_SUCCESS) goto close;
-
-    TestCloseSchannel(schn_b);
-
-close:
-    FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS;
+    CALL_MSRPC(ntStatus, NetrSamLogonEx(hSchn, &Creds, pwszServer,
+                                        pwszDomain, pwszComputer,
+                                        pwszUsername,
+                                        pwszPassword,
+                                        dwLogonLevel,
+                                        dwValidationLevel,
+                                        &pValidationInfo,
+                                        &Authoritative));
+    BAIL_ON_NT_STATUS(ntStatus);
 
 done:
-cleanup:
-    SAFE_FREE(machacct);
-    SAFE_FREE(computer);
-    SAFE_FREE(server);
-    SAFE_FREE(schnauth_info.domain_name);
-    SAFE_FREE(schnauth_info.machine_name);
+error:
+    if (hSchn)
+    {
+        TestCloseSchannel(hSchn);
+    }
 
-    return (status == STATUS_SUCCESS);
+    FreeNetlogonBinding(&hNetr);
+
+    LwpsFreePasswordInfo(hStore, pPassInfo);
+    LwpsClosePasswordStore(hStore);
+
+    RELEASE_SESSION_CREDS;
+
+    if (pValidationInfo)
+    {
+        NetrFreeMemory(pValidationInfo);
+    }
+
+    LW_SAFE_FREE_MEMORY(pwszMachAcct);
+    LW_SAFE_FREE_MEMORY(pwszComputer);
+    LW_SAFE_FREE_MEMORY(pwszServer);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszUsername);
+    LW_SAFE_FREE_MEMORY(pwszPassword);
+    LW_SAFE_FREE_MEMORY(pszComputer);
+    LW_SAFE_FREE_MEMORY(pszMachpass);
+
+    if (ntStatus != STATUS_SUCCESS ||
+        dwError != ERROR_SUCCESS)
+    {
+        bRet = FALSE;
+    }
+
+    return bRet;
 }
 
 
@@ -571,60 +1106,72 @@ int TestNetlogonCredentials(struct test *t, const wchar16_t *hostname,
                             const wchar16_t *user, const wchar16_t *pass,
                             struct parameter *options, int optcount)
 {
-    const char *def_computer = "TEST";
-    const char *def_machpass = "secret01$";
-    const char *def_clichal = "0123";
-    const char *def_srvchal = "4567";
+    PCSTR pszDefComputer = "TEST";
+    PCSTR pszDefMachpass = "secret01$";
+    PCSTR pszDefCliChal = "0123";
+    PCSTR pszDefSrvChal = "4567";
 
+    BOOLEAN bRet = TRUE;
     enum param_err perr = perr_success;
-    wchar16_t *machpass, *computer;
-    char *clichal, *srvchal;
-    size_t clichal_len, srvchal_len;
-    UINT8 cli_chal[8], srv_chal[8];
-    UINT8 pass_hash[16];
-    NetrCredentials creds;
+    PWSTR pwszMachpass = NULL;
+    PWSTR pwszComputer = NULL;
+    PCHAR pCliChal = NULL;
+    PCHAR pSrvChal = NULL;
+    size_t sCliChalLen = 0;
+    size_t sSrvChalLen = 0;
+    BYTE CliChal[8] = {0};
+    BYTE SrvChal[8] = {0};
+    BYTE PassHash[16] = {0};
+    NetrCredentials Creds;
+
+    memset(&Creds, 0, sizeof(Creds));
 
     TESTINFO(t, hostname, user, pass);
 
-    perr = fetch_value(options, optcount, "computer", pt_w16string, &computer,
-                       &def_computer);
+    perr = fetch_value(options, optcount, "computer", pt_w16string, &pwszComputer,
+                       &pszDefComputer);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "machpass", pt_w16string, &machpass,
-                       &def_machpass);
+    perr = fetch_value(options, optcount, "machpass", pt_w16string, &pwszMachpass,
+                       &pszDefMachpass);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "clichal", pt_string, &clichal,
-                       &def_clichal);
+    perr = fetch_value(options, optcount, "clichal", pt_string, &pCliChal,
+                       &pszDefCliChal);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "srvchal", pt_string, &srvchal,
-                       &def_srvchal);
+    perr = fetch_value(options, optcount, "srvchal", pt_string, &pSrvChal,
+                       &pszDefSrvChal);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("machpass", pt_w16string, machpass);
-    PARAM_INFO("clichal", pt_string, clichal);
-    PARAM_INFO("srvchal", pt_string, srvchal);
+    PARAM_INFO("machpass", pt_w16string, pwszMachpass);
+    PARAM_INFO("clichal", pt_string, pCliChal);
+    PARAM_INFO("srvchal", pt_string, pSrvChal);
 
-    md4hash(pass_hash, machpass);
+    md4hash(PassHash, pwszMachpass);
 
-    clichal_len = strlen(clichal);
-    clichal_len = (clichal_len > sizeof(cli_chal)) ? sizeof(cli_chal) : clichal_len;
-    srvchal_len = strlen(srvchal);
-    srvchal_len = (srvchal_len > sizeof(srv_chal)) ? sizeof(srv_chal) : srvchal_len;
+    sCliChalLen = strlen(pCliChal);
+    sCliChalLen = (sCliChalLen > sizeof(pCliChal)) ? sizeof(pCliChal) : sCliChalLen;
+    sSrvChalLen = strlen(pSrvChal);
+    sSrvChalLen = (sSrvChalLen > sizeof(pSrvChal)) ? sizeof(pSrvChal) : sSrvChalLen;
 
-    memset(cli_chal, 0, sizeof(cli_chal));
-    memset(srv_chal, 0, sizeof(srv_chal));
-    memcpy(cli_chal, clichal, clichal_len);
-    memcpy(srv_chal, srvchal, srvchal_len);
+    memset(CliChal, 0, sizeof(CliChal));
+    memset(SrvChal, 0, sizeof(SrvChal));
+    memcpy(CliChal, pCliChal, sCliChalLen);
+    memcpy(SrvChal, pSrvChal, sSrvChalLen);
 
-    NetrCredentialsInit(&creds, cli_chal, srv_chal, pass_hash,
+    NetrCredentialsInit(&Creds, CliChal, SrvChal, PassHash,
                         NETLOGON_NET_ADS_FLAGS);
 
 done:
     RELEASE_SESSION_CREDS;
 
-    return true;
+    LW_SAFE_FREE_MEMORY(pwszComputer);
+    LW_SAFE_FREE_MEMORY(pwszMachpass);
+    LW_SAFE_FREE_MEMORY(pCliChal);
+    LW_SAFE_FREE_MEMORY(pSrvChal);
+
+    return bRet;
 }
 
 
@@ -632,43 +1179,64 @@ int TestNetlogonEnumTrustedDomains(struct test *t, const wchar16_t *hostname,
                                    const wchar16_t *user, const wchar16_t *pass,
                                    struct parameter *options, int optcount)
 {
-    const char *def_server = "TEST";
+    PCSTR pszDefServer = "TEST";
 
-    NTSTATUS status = STATUS_SUCCESS;
-    handle_t netr_b;
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    handle_t hNetr = NULL;
     enum param_err perr = perr_success;
-    wchar16_t *server = NULL;
-    UINT32 count = 0;
-    NetrDomainTrust *trusts = NULL;
+    PWSTR pwszServer = NULL;
+    DWORD dwCount = 0;
+    NetrDomainTrust *pTrusts = NULL;
+    DWORD iTrust = 0;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    perr = fetch_value(options, optcount, "server", pt_w16string, &server,
-                       &def_server);
+    perr = fetch_value(options, optcount, "server", pt_w16string, &pwszServer,
+                       &pszDefServer);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("server", pt_w16string, server);
+    PARAM_INFO("server", pt_w16string, pwszServer);
 
-    netr_b = CreateNetlogonBinding(&netr_b, hostname);
-    if (netr_b == NULL) return false;
+    hNetr = CreateNetlogonBinding(&hNetr, hostname);
+    if (hNetr == NULL)
+    {
+        bRet = FALSE;
+        goto done;
+    }
 
-    CALL_MSRPC(status, NetrEnumerateTrustedDomainsEx(netr_b, server,
-                                                      &trusts, &count));
-    if (status != STATUS_SUCCESS) goto done;
+    CALL_MSRPC(ntStatus, NetrEnumerateTrustedDomainsEx(hNetr, pwszServer,
+                                                     &pTrusts, &dwCount));
+    if (ntStatus != STATUS_SUCCESS) goto done;
 
-    status = NetrFreeMemory((void*)trusts);
+    bRet  &= TestValidateDomainTrusts(pTrusts, dwCount);
 
-    FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS;
+    for (iTrust = 0; iTrust < dwCount; iTrust++)
+    {
+        OUTPUT_ARG_WSTR(pTrusts[iTrust].netbios_name);
+        OUTPUT_ARG_WSTR(pTrusts[iTrust].dns_name);
+        OUTPUT_ARG_UINT(pTrusts[iTrust].trust_flags);
+    }
 
 done:
-    SAFE_FREE(server);
+    if (pTrusts)
+    {
+        NetrFreeMemory(pTrusts);
+    }
 
-    NetrDestroyMemory();
+    FreeNetlogonBinding(&hNetr);
+    RELEASE_SESSION_CREDS;
 
-    return (status == STATUS_SUCCESS);
+    LW_SAFE_FREE_MEMORY(pwszServer);
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        bRet = FALSE;
+    }
+
+    return bRet;
 }
 
 
@@ -676,48 +1244,70 @@ int TestNetlogonEnumDomainTrusts(struct test *t, const wchar16_t *hostname,
                                  const wchar16_t *user, const wchar16_t *pass,
                                  struct parameter *options, int optcount)
 {
-    const UINT32 def_trustflags = NETR_TRUST_FLAG_IN_FOREST |
+    const DWORD dwDefTrustFlags = NETR_TRUST_FLAG_IN_FOREST |
                                   NETR_TRUST_FLAG_OUTBOUND |
                                   NETR_TRUST_FLAG_TREEROOT |
                                   NETR_TRUST_FLAG_PRIMARY |
                                   NETR_TRUST_FLAG_NATIVE |
                                   NETR_TRUST_FLAG_INBOUND;
 
-    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    handle_t netr_b = NULL;
+    handle_t hNetr = NULL;
     enum param_err perr = perr_success;
-    UINT32 trustflags = 0;
-    UINT32 count = 0;
-    NetrDomainTrust *trusts = NULL;
+    DWORD dwTrustFlags = 0;
+    DWORD dwCount = 0;
+    NetrDomainTrust *pTrusts = NULL;
+    DWORD iTrust = 0;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    perr = fetch_value(options, optcount, "trustflags", pt_uint32, &trustflags,
-                       &def_trustflags);
+    perr = fetch_value(options, optcount, "trustflags", pt_uint32, &dwTrustFlags,
+                       &dwDefTrustFlags);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("trustflags", pt_uint32, &trustflags);
+    PARAM_INFO("trustflags", pt_uint32, &dwTrustFlags);
 
-    netr_b = CreateNetlogonBinding(&netr_b, hostname);
-    if (netr_b == NULL) return false;
+    hNetr = CreateNetlogonBinding(&hNetr, hostname);
+    if (hNetr == NULL)
+    {
+        bRet = FALSE;
+        goto done;
+    }
 
-    CALL_NETAPI(err, DsrEnumerateDomainTrusts(netr_b, hostname, trustflags,
-                                               &trusts, &count));
-    if (err != ERROR_SUCCESS) goto done;
+    CALL_NETAPI(err, DsrEnumerateDomainTrusts(hNetr, hostname, dwTrustFlags,
+                                              &pTrusts, &dwCount));
+    BAIL_ON_WIN_ERROR(err);
 
-    status = NetrFreeMemory((void*)trusts);
+    bRet  &= TestValidateDomainTrusts(pTrusts, dwCount);
 
-    FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS;
+    for (iTrust = 0; iTrust < dwCount; iTrust++)
+    {
+        OUTPUT_ARG_WSTR(pTrusts[iTrust].netbios_name);
+        OUTPUT_ARG_WSTR(pTrusts[iTrust].dns_name);
+        OUTPUT_ARG_UINT(pTrusts[iTrust].trust_flags);
+    }
 
 done:
-    NetrDestroyMemory();
+error:
+    if (pTrusts)
+    {
+        NetrFreeMemory(pTrusts);
+    }
 
-    return (status == STATUS_SUCCESS &&
-            err == ERROR_SUCCESS);
+    FreeNetlogonBinding(&hNetr);
+    RELEASE_SESSION_CREDS;
+
+    if (ntStatus != STATUS_SUCCESS ||
+        err != ERROR_SUCCESS)
+    {
+        bRet = FALSE;
+    }
+
+    return bRet;
 }
 
 
@@ -725,63 +1315,71 @@ int TestNetlogonGetDcName(struct test *t, const wchar16_t *hostname,
                           const wchar16_t *user, const wchar16_t *pass,
                           struct parameter *options, int optcount)
 {
-    const UINT32 def_getdcflags = DS_FORCE_REDISCOVERY;
-    const char *def_domain_name = "DOMAIN";
+    const DWORD dwDefGetDcFlags = DS_FORCE_REDISCOVERY;
+    const PSTR pszDefDomainName = "DOMAIN";
 
-    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN bRet = TRUE;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    handle_t netr_b = NULL;
+    handle_t hNetr = NULL;
     enum param_err perr = perr_success;
-    UINT32 getdcflags = 0;
-    wchar16_t *domain_name = NULL;
-    DsrDcNameInfo *info = NULL;
+    DWORD dwGetDcFlags = 0;
+    PWSTR pwszDomainName = NULL;
+    DsrDcNameInfo *pInfo = NULL;
 
     TESTINFO(t, hostname, user, pass);
 
     SET_SESSION_CREDS(hCreds);
 
-    perr = fetch_value(options, optcount, "getdcflags", pt_uint32, &getdcflags,
-                       &def_getdcflags);
+    perr = fetch_value(options, optcount, "getdcflags", pt_uint32, &dwGetDcFlags,
+                       &dwDefGetDcFlags);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    perr = fetch_value(options, optcount, "domainname", pt_w16string, &domain_name,
-                       &def_domain_name);
+    perr = fetch_value(options, optcount, "domainname", pt_w16string, &pwszDomainName,
+                       &pszDefDomainName);
     if (!perr_is_ok(perr)) perr_fail(perr);
 
-    PARAM_INFO("getdcflags", pt_uint32, &getdcflags);
-    PARAM_INFO("domainname", pt_w16string, domain_name);
+    PARAM_INFO("getdcflags", pt_uint32, &dwGetDcFlags);
+    PARAM_INFO("domainname", pt_w16string, &pwszDomainName);
 
-    netr_b = CreateNetlogonBinding(&netr_b, hostname);
-    if (netr_b == NULL) return false;
+    hNetr = CreateNetlogonBinding(&hNetr, hostname);
+    if (hNetr == NULL)
+    {
+        bRet = FALSE;
+        goto done;
+    }
 
-    CALL_NETAPI(err, DsrGetDcName(netr_b, hostname, domain_name,
-                                   NULL, NULL, getdcflags, &info));
-    if (err != ERROR_SUCCESS) goto done;
-
-    NetrFreeMemory((void*)info);
-
-    FreeNetlogonBinding(&netr_b);
-    RELEASE_SESSION_CREDS;
+    CALL_NETAPI(err, DsrGetDcName(hNetr, hostname, pwszDomainName,
+                                  NULL, NULL, dwGetDcFlags, &pInfo));
+    BAIL_ON_WIN_ERROR(err);
 
 done:
-    NetrDestroyMemory();
+error:
+    if (pInfo)
+    {
+        NetrFreeMemory(pInfo);
+    }
 
-    return (status == STATUS_SUCCESS &&
-            err == ERROR_SUCCESS);
+    FreeNetlogonBinding(&hNetr);
+    RELEASE_SESSION_CREDS;
+
+    if (ntStatus != STATUS_SUCCESS ||
+        err != ERROR_SUCCESS)
+    {
+        bRet = FALSE;
+    }
+
+    return bRet;
 }
 
 
 void SetupNetlogonTests(struct test *t)
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
-    status = NetrInitMemory();
-    if (status) return;
-
     AddTest(t, "NETR-CREDS-TEST", TestNetlogonCredentials);
     AddTest(t, "NETR-ENUM-TRUSTED-DOM" , TestNetlogonEnumTrustedDomains);
     AddTest(t, "NETR-DSR-ENUM-DOMTRUSTS", TestNetlogonEnumDomainTrusts);
     AddTest(t, "NETR-SAM-LOGON", TestNetlogonSamLogon);
+    AddTest(t, "NETR-SAM-LOGON-INTERACTIVE", TestNetlogonSamLogonInteractive);
     AddTest(t, "NETR-SAM-LOGOFF", TestNetlogonSamLogoff);
     AddTest(t, "NETR-SAM-LOGON-EX", TestNetlogonSamLogonEx);
     AddTest(t, "NETR-DSR-GET-DC-NAME", TestNetlogonGetDcName);

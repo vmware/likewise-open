@@ -29,7 +29,20 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        netr_samlogoff.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetrSamLogoff functions.
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ *          Gerald Carter (gcarter@likewise.com)
  */
 
 #include "includes.h"
@@ -48,55 +61,103 @@ NetrSamLogoff(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PWSTR pwszServerName = NULL;
     PWSTR pwszComputerName = NULL;
     NetrAuth *pAuth = NULL;
     NetrAuth *pReturnedAuth = NULL;
-    NetrLogonInfo *pLogonInfo = NULL;
+    NetrLogonInfo LogonInfo = {0};
+    NetrPasswordInfo *pPassInfo = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pCreds, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    /* pwszDomain can be NULL */
     BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
     BAIL_ON_INVALID_PTR(pwszUsername, ntStatus);
     BAIL_ON_INVALID_PTR(pwszPassword, ntStatus);
 
-    ntStatus = NetrAllocateUniString(&pwszServerName,
-                                     pwszServer,
-                                     NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (!(LogonLevel == 1 ||
+          LogonLevel == 3 ||
+          LogonLevel == 5))
+    {
+        ntStatus = STATUS_INVALID_INFO_CLASS;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-    ntStatus = NetrAllocateUniString(&pwszComputerName,
-                                     pwszComputer,
-                                     NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwAllocateWc16String(&pwszServerName,
+                                   pwszServer);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    dwError = LwAllocateWc16String(&pwszComputerName,
+                                   pwszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
 
     /* Create authenticator info with credentials chain */
-    ntStatus = NetrAllocateMemory((void**)&pAuth,
-                                  sizeof(NetrAuth),
-                                  NULL);
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pAuth),
+                                  sizeof(NetrAuth));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCreds->sequence += 2;
     NetrCredentialsCliStep(pCreds);
 
     pAuth->timestamp = pCreds->sequence;
-    memcpy(pAuth->cred.data, pCreds->cli_chal.data, sizeof(pAuth->cred.data));
+    memcpy(pAuth->cred.data,
+           pCreds->cli_chal.data,
+           sizeof(pAuth->cred.data));
 
     /* Allocate returned authenticator */
-    ntStatus = NetrAllocateMemory((void**)&pReturnedAuth,
-                                  sizeof(NetrAuth),
-                                  NULL);
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pReturnedAuth),
+                                  sizeof(NetrAuth));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetrAllocateLogonInfo(&pLogonInfo,
-                                     LogonLevel,
-                                     pwszDomain,
-                                     pwszComputerName,
-                                     pwszUsername,
-                                     pwszPassword);
+    ntStatus = NetrAllocateLogonPasswordInfo(NULL,
+                                             &dwOffset,
+                                             NULL,
+                                             pwszDomain,
+                                             pwszComputerName,
+                                             pwszUsername,
+                                             pwszPassword,
+                                             pCreds,
+                                             &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pPassInfo),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NetrAllocateLogonPasswordInfo(pPassInfo,
+                                             &dwOffset,
+                                             &dwSpaceLeft,
+                                             pwszDomain,
+                                             pwszComputerName,
+                                             pwszUsername,
+                                             pwszPassword,
+                                             pCreds,
+                                             &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (LogonLevel)
+    {
+    case 1:
+        LogonInfo.password1 = pPassInfo;
+        break;
+
+    case 3:
+        LogonInfo.password3 = pPassInfo;
+        break;
+
+    case 5:
+        LogonInfo.password5 = pPassInfo;
+        break;
+    }
 
     DCERPC_CALL(ntStatus, _NetrLogonSamLogoff(hNetrBinding,
                                               pwszServerName,
@@ -104,24 +165,32 @@ NetrSamLogoff(
                                               pAuth,
                                               pReturnedAuth,
                                               LogonLevel,
-                                              pLogonInfo));
+                                              &LogonInfo));
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    if (pwszServerName) {
-        NetrFreeMemory((void*)pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszComputerName);
+
+    if (pAuth)
+    {
+        NetrFreeMemory(pAuth);
     }
 
-    if (pwszComputerName) {
-        NetrFreeMemory((void*)pwszComputerName);
+    if (pReturnedAuth)
+    {
+        NetrFreeMemory(pReturnedAuth);
     }
 
-    if (pAuth) {
-        NetrFreeMemory((void*)pAuth);
+    if (pPassInfo)
+    {
+        NetrFreeMemory(pPassInfo);
     }
 
-    if (pLogonInfo) {
-        NetrFreeMemory((void*)pLogonInfo);
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;

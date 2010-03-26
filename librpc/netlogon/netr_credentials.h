@@ -29,9 +29,19 @@
  */
 
 /*
- * Abstract: Netlogon schannel credentials functions (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        netr_credentials.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Netlogon credentials functions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #ifndef _NETR_CREDENTIALS_H_
@@ -47,6 +57,13 @@ NetrCredentialsCliStep(
 VOID
 NetrCredentialsSrvStep(
     IN OUT NetrCredentials *pCreds
+    );
+
+
+VOID
+NetrGetNtHash(
+    OUT BYTE    Hash[16],
+    IN  PCWSTR  pwszPassword
     );
 
 

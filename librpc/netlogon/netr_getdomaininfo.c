@@ -29,6 +29,18 @@
  */
 
 /*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        netr_getdomaininfo.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetrGetDomainInfo function
+ *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
@@ -47,14 +59,16 @@ NetrGetDomainInfo(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PWSTR pwszServerName = NULL;
     PWSTR pwszComputerName = NULL;
     NetrAuth *pAuth = NULL;
     NetrAuth *pReturnedAuth = NULL;
+    NetrDomainInfo DomainInfo = {0};
     NetrDomainInfo *pDomainInfo = NULL;
-    NetrDomainInfo DomainInfo;
-
-    memset((void*)&DomainInfo, 0, sizeof(DomainInfo));
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pCreds, ntStatus);
@@ -63,20 +77,18 @@ NetrGetDomainInfo(
     BAIL_ON_INVALID_PTR(pQuery, ntStatus);
     BAIL_ON_INVALID_PTR(ppDomainInfo, ntStatus);
 
-    ntStatus = NetrAllocateUniString(&pwszServerName,
-                                     pwszServer,
-                                     NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwAllocateWc16String(&pwszServerName,
+                                   pwszServer);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    ntStatus = NetrAllocateUniString(&pwszComputerName,
-                                     pwszComputer,
-                                     NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwAllocateWc16String(&pwszComputerName,
+                                   pwszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
+
 
     /* Create authenticator info with credentials chain */
-    ntStatus = NetrAllocateMemory((void**)&pAuth,
-                                  sizeof(NetrAuth),
-                                  NULL);
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pAuth),
+                                  sizeof(NetrAuth));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCreds->sequence += 2;
@@ -88,9 +100,8 @@ NetrGetDomainInfo(
            sizeof(pAuth->cred.data));
 
     /* Allocate returned authenticator */
-    ntStatus = NetrAllocateMemory((void**)&pReturnedAuth,
-                                  sizeof(NetrAuth),
-                                  NULL);
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pReturnedAuth),
+                                  sizeof(NetrAuth));
     BAIL_ON_NT_STATUS(ntStatus);
 
     DCERPC_CALL(ntStatus, _NetrLogonGetDomainInfo(hNetrBinding,
@@ -103,9 +114,28 @@ NetrGetDomainInfo(
                                                   &DomainInfo));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetrAllocateDomainInfo(&pDomainInfo,
+    ntStatus = NetrAllocateDomainInfo(NULL,
+                                      &dwOffset,
+                                      NULL,
+                                      Level,
                                       &DomainInfo,
-                                      Level);
+                                      &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pDomainInfo),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NetrAllocateDomainInfo(pDomainInfo,
+                                      &dwOffset,
+                                      &dwSpaceLeft,
+                                      Level,
+                                      &DomainInfo,
+                                      &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppDomainInfo = pDomainInfo;
@@ -113,23 +143,31 @@ NetrGetDomainInfo(
 cleanup:
     NetrCleanStubDomainInfo(&DomainInfo, Level);
 
-    if (pwszServerName) {
-        NetrFreeMemory((void*)pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszComputerName);
+
+    if (pAuth)
+    {
+        NetrFreeMemory(pAuth);
     }
 
-    if (pwszComputerName) {
-        NetrFreeMemory((void*)pwszComputerName);
+    if (pReturnedAuth)
+    {
+        NetrFreeMemory(pReturnedAuth);
     }
 
-    if (pAuth) {
-        NetrFreeMemory((void*)pAuth);
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;
 
 error:
-    if (pDomainInfo) {
-        NetrFreeMemory((void*)pDomainInfo);
+    if (pDomainInfo)
+    {
+        NetrFreeMemory(pDomainInfo);
     }
 
     *ppDomainInfo = NULL;

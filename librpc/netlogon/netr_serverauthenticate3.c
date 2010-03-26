@@ -29,8 +29,21 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        netr_serverauthenticate3.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetrServerAuthenticate3 function.
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #include "includes.h"
 
@@ -49,6 +62,7 @@ NetrServerAuthenticate3(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     NetrCred Creds;
     PWSTR pwszServerName = NULL;
     PWSTR pwszAccountName = NULL;
@@ -56,7 +70,7 @@ NetrServerAuthenticate3(
     UINT32 Flags = 0;
     UINT32 Rid = 0;
 
-    memset((void*)&Creds, 0, sizeof(Creds));
+    memset(&Creds, 0, sizeof(Creds));
 
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
@@ -69,14 +83,17 @@ NetrServerAuthenticate3(
 
     memcpy(Creds.data, CliCreds, sizeof(Creds.data));
 
-    pwszServerName = wc16sdup(pwszServer);
-    BAIL_ON_NULL_PTR(pwszServerName, ntStatus);
+    dwError = LwAllocateWc16String(&pwszServerName,
+                                   pwszServer);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    pwszAccountName = wc16sdup(pwszAccount);
-    BAIL_ON_NULL_PTR(pwszAccountName, ntStatus);
+    dwError = LwAllocateWc16String(&pwszAccountName,
+                                   pwszAccount);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    pwszComputerName = wc16sdup(pwszComputer);
-    BAIL_ON_NULL_PTR(pwszComputerName, ntStatus);
+    dwError = LwAllocateWc16String(&pwszComputerName,
+                                   pwszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
 
     DCERPC_CALL(ntStatus, _NetrServerAuthenticate3(hNetrBinding,
                                                    pwszServerName,
@@ -96,9 +113,15 @@ NetrServerAuthenticate3(
 cleanup:
     memset(&Creds, 0, sizeof(Creds));
 
-    SAFE_FREE(pwszServerName);
-    SAFE_FREE(pwszAccountName);
-    SAFE_FREE(pwszComputerName);
+    LW_SAFE_FREE_MEMORY(pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszAccountName);
+    LW_SAFE_FREE_MEMORY(pwszComputerName);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
     return ntStatus;
 

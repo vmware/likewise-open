@@ -11,7 +11,7 @@
  * the Free Software Foundation; either version 2.1 of the license, or (at
  * your option) any later version.
  *
-n * This library is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
@@ -29,9 +29,22 @@ n * This library is distributed in the hope that it will be useful,
  */
 
 /*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        netr_schannel.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Netlogon schannel functions.
+ *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  *          Gerald Carter (gcarter@likewise.com)
  */
+
 
 #include "includes.h"
 
@@ -51,17 +64,17 @@ NetrOpenSchannel(
 {
     RPCSTATUS rpcStatus = RPC_S_OK;
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     BYTE PassHash[16] = {0};
     BYTE CliChal[8] = {0};
     BYTE SrvChal[8] = {0};
     BYTE SrvCred[8] = {0};
     rpc_schannel_auth_info_t SchannelAuthInfo = {0};
     PIO_CREDS pIoCreds = NULL;
-    size_t HostnameSize = 0;
     PSTR pszHostname = NULL;
     handle_t hSchannelBinding = NULL;
 
-    md4hash(PassHash, pwszMachinePassword);
+    NetrGetNtHash(PassHash, pwszMachinePassword);
 
     get_random_buffer((UINT8*)CliChal, sizeof(CliChal));
     ntStatus = NetrServerReqChallenge(hNetrBinding,
@@ -87,7 +100,8 @@ NetrOpenSchannel(
                                        &pCreds->negotiate_flags);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (!NetrCredentialsCorrect(pCreds, SrvCred)) {
+    if (!NetrCredentialsCorrect(pCreds, SrvCred))
+    {
         ntStatus = STATUS_ACCESS_DENIED;
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -96,23 +110,21 @@ NetrOpenSchannel(
            pCreds->session_key,
            16);
 
-    SchannelAuthInfo.domain_name  = (unsigned char*) awc16stombs(pwszDomain);
-    SchannelAuthInfo.machine_name = (unsigned char*) awc16stombs(pwszComputer);
-    SchannelAuthInfo.sender_flags = rpc_schn_initiator_flags;
+    dwError = LwWc16sToMbs(pwszDomain,
+                           (PSTR*)&SchannelAuthInfo.domain_name);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    BAIL_ON_NULL_PTR(SchannelAuthInfo.domain_name, ntStatus);
-    BAIL_ON_NULL_PTR(SchannelAuthInfo.machine_name, ntStatus);
+    dwError = LwWc16sToMbs(pwszComputer,
+                           (PSTR*)&SchannelAuthInfo.machine_name);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    SchannelAuthInfo.sender_flags = rpc_schn_initiator_flags;
 
     ntStatus = LwIoGetActiveCreds(NULL, &pIoCreds);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    HostnameSize = wc16slen(pwszHostname) + 1;
-    ntStatus = NetrAllocateMemory((void**)&pszHostname,
-                                  HostnameSize * sizeof(CHAR),
-                                  NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    wc16stombs(pszHostname, pwszHostname, HostnameSize);
+    dwError = LwWc16sToMbs(pwszHostname, &pszHostname);
+    BAIL_ON_WIN_ERROR(dwError);
 
     ntStatus = InitNetlogonBindingDefault(&hSchannelBinding,
                                           pszHostname,
@@ -138,17 +150,19 @@ NetrOpenSchannel(
     *phSchannelBinding = hSchannelBinding;
 
 cleanup:
-    SAFE_FREE(SchannelAuthInfo.domain_name);
-    SAFE_FREE(SchannelAuthInfo.machine_name);
-
-    if (pszHostname)
-    {
-        NetrFreeMemory(pszHostname);
-    }
+    LW_SAFE_FREE_MEMORY(SchannelAuthInfo.domain_name);
+    LW_SAFE_FREE_MEMORY(SchannelAuthInfo.machine_name);
+    LW_SAFE_FREE_MEMORY(pszHostname);
 
     if (pIoCreds)
     {
         LwIoDeleteCreds(pIoCreds);
+    }
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;

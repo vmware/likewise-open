@@ -28,8 +28,21 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        netr_serverreqchallenge.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetrServerReqChallenge function.
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
+
 
 #include "includes.h"
 
@@ -44,11 +57,12 @@ NetrServerReqChallenge(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     NetrCred Creds;
     PWSTR pwszServerName = NULL;
     PWSTR pwszComputerName = NULL;
 
-    memset((void*)&Creds, 0, sizeof(Creds));
+    memset(&Creds, 0, sizeof(Creds));
 
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
@@ -58,11 +72,13 @@ NetrServerReqChallenge(
 
     memcpy(Creds.data, CliChal, sizeof(Creds.data));
 
-    pwszServerName = wc16sdup(pwszServer);
-    BAIL_ON_NULL_PTR(pwszServerName, ntStatus);
+    dwError = LwAllocateWc16String(&pwszServerName,
+                                   pwszServer);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    pwszComputerName = wc16sdup(pwszComputer);
-    BAIL_ON_NULL_PTR(pwszComputerName, ntStatus);
+    dwError = LwAllocateWc16String(&pwszComputerName,
+                                   pwszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
 
     DCERPC_CALL(ntStatus, _NetrServerReqChallenge(hNetrBinding,
                                                   pwszServerName,
@@ -75,8 +91,14 @@ NetrServerReqChallenge(
 cleanup:
     memset(&Creds, 0, sizeof(Creds));
 
-    SAFE_FREE(pwszServerName);
-    SAFE_FREE(pwszComputerName);
+    LW_SAFE_FREE_MEMORY(pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszComputerName);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
     return ntStatus;
 

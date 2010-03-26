@@ -28,6 +28,23 @@
  * license@likewisesoftware.com
  */
 
+/*
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        netr_enumeratetrusteddomainsex.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetrEnumerateTrustedDomainsEx function
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ */
+
+
 #include "includes.h"
 
 
@@ -40,17 +57,21 @@ NetrEnumerateTrustedDomainsEx(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PWSTR pwszName = NULL;
     NetrDomainTrustList TrustList = {0};
     NetrDomainTrust *pTrusts = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServerName, ntStatus);
     BAIL_ON_INVALID_PTR(ppTrusts, ntStatus);
     BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-    pwszName = wc16sdup(pwszServerName);
-    BAIL_ON_NULL_PTR(pwszName, ntStatus);
+    dwError = LwAllocateWc16String(&pwszName, pwszServerName);
+    BAIL_ON_WIN_ERROR(dwError);
 
     DCERPC_CALL(ntStatus, _NetrEnumerateTrustedDomainsEx(hNetrBinding,
                                                          pwszName,
@@ -59,21 +80,46 @@ NetrEnumerateTrustedDomainsEx(
 
     *pCount  = TrustList.count;
 
-    ntStatus = NetrAllocateDomainTrusts(&pTrusts,
-                                        &TrustList);
+    ntStatus = NetrAllocateDomainTrusts(NULL,
+                                        &dwOffset,
+                                        NULL,
+                                        &TrustList,
+                                        &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pTrusts),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NetrAllocateDomainTrusts(pTrusts,
+                                        &dwOffset,
+                                        &dwSpaceLeft,
+                                        &TrustList,
+                                        &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppTrusts = pTrusts;
 
 cleanup:
-    SAFE_FREE(pwszName);
     NetrCleanStubDomainTrustList(&TrustList);
+    LW_SAFE_FREE_MEMORY(pwszName);
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
+    }
 
     return ntStatus;
 
 error:
-    if (pTrusts) {
-        NetrFreeMemory((void*)pTrusts);
+    if (pTrusts)
+    {
+        NetrFreeMemory(pTrusts);
     }
 
     *ppTrusts = NULL;

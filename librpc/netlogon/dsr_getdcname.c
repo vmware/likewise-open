@@ -43,29 +43,34 @@ DsrGetDcName(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PWSTR pwszServer = NULL;
     PWSTR pwszDomain = NULL;
     Guid *pDomainGuidCopy = NULL;
     Guid *pSiteGuidCopy = NULL;
     DsrDcNameInfo *pDcInfo = NULL;
     DsrDcNameInfo *pDcRetInfo = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
 
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServerName, ntStatus);
     BAIL_ON_INVALID_PTR(pwszDomainName, ntStatus);
     BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-    pwszServer = wc16sdup(pwszServerName);
-    BAIL_ON_NULL_PTR(pwszServer, ntStatus);
+    dwError = LwAllocateWc16String(&pwszServer,
+                                   pwszServerName);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    pwszDomain = wc16sdup(pwszDomainName);
-    BAIL_ON_NULL_PTR(pwszDomain, ntStatus);
+    dwError = LwAllocateWc16String(&pwszDomain,
+                                   pwszDomainName);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    if (pDomainGuid) {
-        ntStatus = NetrAllocateMemory((void**)&pDomainGuidCopy,
-                                      sizeof(*pDomainGuidCopy),
-                                      NULL);
+    if (pDomainGuid)
+    {
+        ntStatus = NetrAllocateMemory(OUT_PPVOID(&pDomainGuidCopy),
+                                      sizeof(*pDomainGuidCopy));
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pDomainGuidCopy,
@@ -73,10 +78,10 @@ DsrGetDcName(
                sizeof(*pDomainGuidCopy));
     }
 
-    if (pSiteGuid) {
-        ntStatus = NetrAllocateMemory((void**)&pSiteGuidCopy,
-                                      sizeof(*pSiteGuidCopy),
-                                      NULL);
+    if (pSiteGuid)
+    {
+        ntStatus = NetrAllocateMemory(OUT_PPVOID(&pSiteGuidCopy),
+                                      sizeof(*pSiteGuidCopy));
         BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pSiteGuidCopy,
@@ -84,30 +89,50 @@ DsrGetDcName(
                sizeof(*pSiteGuid));
     }
 
-    DCERPC_CALL(err, _DsrGetDcName(hNetrBinding,
-                                   pwszServer,
-                                   pwszDomain,
-                                   pDomainGuidCopy,
-                                   pSiteGuidCopy,
-                                   GetDcFlags,
-                                   &pDcInfo));
-    BAIL_ON_WIN_ERROR(err);
+    DCERPC_CALL(dwError, _DsrGetDcName(hNetrBinding,
+                                       pwszServer,
+                                       pwszDomain,
+                                       pDomainGuidCopy,
+                                       pSiteGuidCopy,
+                                       GetDcFlags,
+                                       &pDcInfo));
+    BAIL_ON_WIN_ERROR(dwError);
 
-    ntStatus = NetrAllocateDcNameInfo(&pDcRetInfo,
-                                      pDcInfo);
+    ntStatus = NetrAllocateDcNameInfo(NULL,
+                                      &dwOffset,
+                                      NULL,
+                                      pDcInfo,
+                                      &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pDcRetInfo),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NetrAllocateDcNameInfo(pDcRetInfo,
+                                      &dwOffset,
+                                      &dwSpaceLeft,
+                                      pDcInfo,
+                                      &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppInfo = pDcRetInfo;
 
 cleanup:
-    SAFE_FREE(pwszServer);
-    SAFE_FREE(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszServer);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
 
-    if (pDomainGuidCopy) {
+    if (pDomainGuidCopy)
+    {
         NetrFreeMemory(pDomainGuidCopy);
     }
 
-    if (pSiteGuidCopy) {
+    if (pSiteGuidCopy)
+    {
         NetrFreeMemory(pSiteGuidCopy);
     }
 
@@ -115,20 +140,17 @@ cleanup:
         NetrFreeStubDcNameInfo(pDcInfo);
     }
 
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(ntStatus);
+    if (dwError == ERROR_SUCCESS &&
+        ntStatus != STATUS_SUCCESS)
+    {
+        dwError = NtStatusToWin32Error(ntStatus);
     }
 
-    return err;
+    return dwError;
 
 error:
-    if (err == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(ntStatus);
-    }
-
-    if (pDcRetInfo) {
+    if (pDcRetInfo)
+    {
         NetrFreeMemory(pDcRetInfo);
     }
 

@@ -185,8 +185,8 @@ NetrCleanSamInfo6(
                         pInfo->sidcount);
     }
 
-    rpc_sm_client_free(&pInfo->forest.string, &rpcStatus);
-    rpc_sm_client_free(&pInfo->principal.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->forest.string, &rpcStatus);
+    rpc_sm_client_free(pInfo->principal.string, &rpcStatus);
 }
 
 

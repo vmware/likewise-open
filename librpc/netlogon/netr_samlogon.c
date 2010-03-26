@@ -29,7 +29,20 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        netr_samlogon.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        NetrSamLogon functions.
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
+ *          Gerald Carter (gcarter@likewise.com)
  */
 
 #include "includes.h"
@@ -51,11 +64,16 @@ NetrSamLogonInteractive(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    wchar16_t *pwszServerName = NULL;
-    wchar16_t *pwszComputerName = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PWSTR pwszServerName = NULL;
+    PWSTR pwszComputerName = NULL;
     NetrAuth *pAuth = NULL;
     NetrAuth *pReturnedAuth = NULL;
-    NetrLogonInfo *pLogonInfo = NULL;
+    NetrLogonInfo LogonInfo = {0};
+    NetrPasswordInfo *pPassInfo = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
     NetrValidationInfo ValidationInfo = {0};
     NetrValidationInfo *pValidationInfo = NULL;
     BYTE Authoritative = 0;
@@ -63,7 +81,7 @@ NetrSamLogonInteractive(
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pCreds, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    /* pwszDomain can be NULL */
     BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
     BAIL_ON_INVALID_PTR(pwszUsername, ntStatus);
     BAIL_ON_INVALID_PTR(pwszPassword, ntStatus);
@@ -78,20 +96,17 @@ NetrSamLogonInteractive(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = NetrAllocateUniString(&pwszServerName,
-                                     pwszServer,
-                                     NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwAllocateWc16String(&pwszServerName,
+                                   pwszServer);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    ntStatus = NetrAllocateUniString(&pwszComputerName,
-                                     pwszComputer,
-                                     NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwAllocateWc16String(&pwszComputerName,
+                                   pwszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
 
     /* Create authenticator info with credentials chain */
-    ntStatus = NetrAllocateMemory((void**)&pAuth,
-                                  sizeof(NetrAuth),
-                                  NULL);
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pAuth),
+                                  sizeof(NetrAuth));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCreds->sequence += 2;
@@ -103,18 +118,54 @@ NetrSamLogonInteractive(
            sizeof(pAuth->cred.data));
 
     /* Allocate returned authenticator */
-    ntStatus = NetrAllocateMemory((void**)&pReturnedAuth,
-                                  sizeof(NetrAuth),
-                                  NULL);
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pReturnedAuth),
+                                  sizeof(NetrAuth));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetrAllocateLogonInfoHash(&pLogonInfo,
-                                         LogonLevel,
-                                         pwszDomain,
-                                         pwszComputer,
-                                         pwszUsername,
-                                         pwszPassword);
+    ntStatus = NetrAllocateLogonPasswordInfo(NULL,
+                                             &dwOffset,
+                                             NULL,
+                                             pwszDomain,
+                                             pwszComputer,
+                                             pwszUsername,
+                                             pwszPassword,
+                                             pCreds,
+                                             &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pPassInfo),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus)
+
+    ntStatus = NetrAllocateLogonPasswordInfo(pPassInfo,
+                                             &dwOffset,
+                                             &dwSpaceLeft,
+                                             pwszDomain,
+                                             pwszComputer,
+                                             pwszUsername,
+                                             pwszPassword,
+                                             pCreds,
+                                             &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (LogonLevel)
+    {
+    case 1:
+        LogonInfo.password1 = pPassInfo;
+        break;
+
+    case 3:
+        LogonInfo.password3 = pPassInfo;
+        break;
+
+    case 5:
+        LogonInfo.password5 = pPassInfo;
+        break;
+    }
 
     DCERPC_CALL(ntStatus, _NetrLogonSamLogon(hNetrBinding,
                                              pwszServerName,
@@ -122,15 +173,37 @@ NetrSamLogonInteractive(
                                              pAuth,
                                              pReturnedAuth,
                                              LogonLevel,
-                                             pLogonInfo,
+                                             &LogonInfo,
                                              ValidationLevel,
                                              &ValidationInfo,
                                              &Authoritative));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetrAllocateValidationInfo(&pValidationInfo,
+    dwSize   = 0;
+    dwOffset = 0;
+
+    ntStatus = NetrAllocateValidationInfo(NULL,
+                                          &dwOffset,
+                                          NULL,
+                                          ValidationLevel,
                                           &ValidationInfo,
-                                          ValidationLevel);
+                                          &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pValidationInfo),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NetrAllocateValidationInfo(pValidationInfo,
+                                          &dwOffset,
+                                          &dwSpaceLeft,
+                                          ValidationLevel,
+                                          &ValidationInfo,
+                                          &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppValidationInfo  = pValidationInfo;
@@ -140,27 +213,36 @@ cleanup:
     NetrCleanStubValidationInfo(&ValidationInfo,
                                 ValidationLevel);
 
-    if (pwszServerName) {
-        NetrFreeMemory((void*)pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszComputerName);
+
+    if (pAuth)
+    {
+        NetrFreeMemory(pAuth);
     }
 
-    if (pwszComputerName) {
-        NetrFreeMemory((void*)pwszComputerName);
+    if (pReturnedAuth)
+    {
+        NetrFreeMemory(pReturnedAuth);
     }
 
-    if (pAuth) {
-        NetrFreeMemory((void*)pAuth);
+    if (pPassInfo)
+    {
+        NetrFreeMemory(pPassInfo);
     }
 
-    if (pLogonInfo) {
-        NetrFreeMemory((void*)pLogonInfo);
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;
 
 error:
-    if (pValidationInfo) {
-        NetrFreeMemory((void*)pValidationInfo);
+    if (pValidationInfo)
+    {
+        NetrFreeMemory(pValidationInfo);
     }
 
     *ppValidationInfo  = NULL;
@@ -190,11 +272,16 @@ NetrSamLogonNetwork(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     PWSTR pwszServerName = NULL;
     PWSTR pwszComputerName = NULL;
     NetrAuth *pAuth = NULL;
     NetrAuth *pReturnedAuth = NULL;
-    NetrLogonInfo *pLogonInfo = NULL;
+    NetrLogonInfo LogonInfo = {0};
+    NetrNetworkInfo *pNetInfo = NULL;
+    DWORD dwOffset = 0;
+    DWORD dwSpaceLeft = 0;
+    DWORD dwSize = 0;
     NetrValidationInfo ValidationInfo = {0};
     NetrValidationInfo *pValidationInfo = NULL;
     BYTE Authoritative = 0;
@@ -202,7 +289,7 @@ NetrSamLogonNetwork(
     BAIL_ON_INVALID_PTR(hNetrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(pCreds, ntStatus);
     BAIL_ON_INVALID_PTR(pwszServer, ntStatus);
-    BAIL_ON_INVALID_PTR(pwszDomain, ntStatus);
+    /* pwszDomain can be NULL */
     BAIL_ON_INVALID_PTR(pwszComputer, ntStatus);
     BAIL_ON_INVALID_PTR(pwszUsername, ntStatus);
     BAIL_ON_INVALID_PTR(pChallenge, ntStatus);
@@ -218,18 +305,17 @@ NetrSamLogonNetwork(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    ntStatus = RtlWC16StringDuplicate(&pwszServerName,
-                                      pwszServer);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwAllocateWc16String(&pwszServerName,
+                                   pwszServer);
+    BAIL_ON_WIN_ERROR(dwError);
 
-    ntStatus = RtlWC16StringDuplicate(&pwszComputerName,
-                                      pwszComputer);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwAllocateWc16String(&pwszComputerName,
+                                   pwszComputer);
+    BAIL_ON_WIN_ERROR(dwError);
 
     /* Create authenticator info with credentials chain */
-    ntStatus = RTL_ALLOCATE((void**)&pAuth,
-                            NetrAuth,
-                            sizeof(NetrAuth));
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pAuth),
+                                 sizeof(NetrAuth));
     BAIL_ON_NT_STATUS(ntStatus);
 
     pCreds->sequence += 2;
@@ -241,22 +327,56 @@ NetrSamLogonNetwork(
            sizeof(pAuth->cred.data));
 
     /* Allocate returned authenticator */
-    ntStatus = RTL_ALLOCATE((void**)&pReturnedAuth,
-                            NetrAuth,
-                            sizeof(NetrAuth));
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pReturnedAuth),
+                                  sizeof(NetrAuth));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetrAllocateLogonInfoNet(&pLogonInfo,
-                                        LogonLevel,
-                                        pwszDomain,
-                                        pwszComputer,
-                                        pwszUsername,
-                                        pChallenge,
-                                        pLmResp,
-                                        LmRespLen,
-                                        pNtResp,
-                                        NtRespLen);
+    ntStatus = NetrAllocateLogonNetworkInfo(NULL,
+                                            &dwOffset,
+                                            NULL,
+                                            pwszDomain,
+                                            pwszComputer,
+                                            pwszUsername,
+                                            pChallenge,
+                                            pLmResp,
+                                            LmRespLen,
+                                            pNtResp,
+                                            NtRespLen,
+                                            &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pNetInfo),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus)
+
+    ntStatus = NetrAllocateLogonNetworkInfo(pNetInfo,
+                                            &dwOffset,
+                                            &dwSpaceLeft,
+                                            pwszDomain,
+                                            pwszComputer,
+                                            pwszUsername,
+                                            pChallenge,
+                                            pLmResp,
+                                            LmRespLen,
+                                            pNtResp,
+                                            NtRespLen,
+                                            &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (LogonLevel)
+    {
+    case 2:
+        LogonInfo.network2 = pNetInfo;
+        break;
+
+    case 6:
+        LogonInfo.network6 = pNetInfo;
+        break;
+    }
 
     DCERPC_CALL(ntStatus, _NetrLogonSamLogon(hNetrBinding,
                                              pwszServerName,
@@ -264,15 +384,37 @@ NetrSamLogonNetwork(
                                              pAuth,
                                              pReturnedAuth,
                                              LogonLevel,
-                                             pLogonInfo,
+                                             &LogonInfo,
                                              ValidationLevel,
                                              &ValidationInfo,
                                              &Authoritative));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = NetrAllocateValidationInfo(&pValidationInfo,
+    dwSize   = 0;
+    dwOffset = 0;
+
+    ntStatus = NetrAllocateValidationInfo(NULL,
+                                          &dwOffset,
+                                          NULL,
+                                          ValidationLevel,
                                           &ValidationInfo,
-                                          ValidationLevel);
+                                          &dwSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwSpaceLeft = dwSize;
+    dwSize      = 0;
+    dwOffset    = 0;
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pValidationInfo),
+                                  dwSpaceLeft);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NetrAllocateValidationInfo(pValidationInfo,
+                                          &dwOffset,
+                                          &dwSpaceLeft,
+                                          ValidationLevel,
+                                          &ValidationInfo,
+                                          &dwSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppValidationInfo  = pValidationInfo;
@@ -282,20 +424,36 @@ cleanup:
     NetrCleanStubValidationInfo(&ValidationInfo,
                                 ValidationLevel);
 
-    RtlWC16StringFree(&pwszServerName);
-    RtlWC16StringFree(&pwszComputerName);
-    RTL_FREE(&pAuth);
-    RTL_FREE(&pReturnedAuth);
+    LW_SAFE_FREE_MEMORY(pwszServerName);
+    LW_SAFE_FREE_MEMORY(pwszComputerName);
 
-    if (pLogonInfo) {
-        NetrFreeMemory((void*)pLogonInfo);
+    if (pAuth)
+    {
+        NetrFreeMemory(pAuth);
+    }
+
+    if (pReturnedAuth)
+    {
+        NetrFreeMemory(pReturnedAuth);
+    }
+
+    if (pNetInfo)
+    {
+        NetrFreeMemory(pNetInfo);
+    }
+
+    if (ntStatus == STATUS_SUCCESS &&
+        dwError != ERROR_SUCCESS)
+    {
+        ntStatus = LwWin32ErrorToNtStatus(dwError);
     }
 
     return ntStatus;
 
 error:
-    if (pValidationInfo) {
-        NetrFreeMemory((void*)pValidationInfo);
+    if (pValidationInfo)
+    {
+        NetrFreeMemory(pValidationInfo);
     }
 
     *ppValidationInfo  = NULL;

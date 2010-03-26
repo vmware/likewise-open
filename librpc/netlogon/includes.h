@@ -28,12 +28,6 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Netlogon interface (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
@@ -47,8 +41,13 @@
 #include <dce/schannel.h>
 #include <wc16str.h>
 #include <wc16printf.h>
+#include <openssl/md4.h>
+#include <openssl/rc4.h>
 #include <lw/ntstatus.h>
 #include <lw/winerror.h>
+#include <lwmem.h>
+#include <lwstr.h>
+#include <lwbuffer.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/allocate.h>

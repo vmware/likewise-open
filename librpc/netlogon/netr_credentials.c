@@ -29,7 +29,19 @@
  */
 
 /*
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Copyright (C) Likewise Software. All rights reserved.
+ *
+ * Module Name:
+ *
+ *        netr_credentials.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        Netlogon credentials functions (rpc client library)
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
@@ -195,6 +207,44 @@ NetrCredentialsSrvStep(
     IN OUT NetrCredentials *pCreds
     )
 {
+}
+
+
+VOID
+NetrGetNtHash(
+    OUT BYTE    Hash[16],
+    IN  PCWSTR  pwszPassword
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
+    size_t sPasswordLen = 0;
+    size_t sPasswordSize = 0;
+    /* Little-endian encoded password string */
+    PWSTR pwszPasswordLE = NULL;
+
+    BAIL_ON_INVALID_PTR(Hash, ntStatus);
+    BAIL_ON_INVALID_PTR(pwszPassword, ntStatus);
+
+    dwError = LwWc16sLen(pwszPassword, &sPasswordLen);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    sPasswordSize = sPasswordLen * sizeof(pwszPasswordLE[0]);
+
+    ntStatus = NetrAllocateMemory(OUT_PPVOID(&pwszPasswordLE),
+                                  sPasswordSize + sizeof(pwszPasswordLE[0]));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    wc16stowc16les(pwszPasswordLE, pwszPassword, sPasswordLen);
+    MD4((PBYTE)pwszPasswordLE, sPasswordSize, Hash);
+
+error:
+    if (pwszPasswordLE)
+    {
+        NetrFreeMemory(pwszPasswordLE);
+    }
+
+    return;
 }
 
 
