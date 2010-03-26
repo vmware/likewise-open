@@ -455,6 +455,10 @@ NetJoinDomainLocalInternal(
             err = MachAcctSetAttribute(ld, dn,
                                        dns_attr_name,
                                        (const wchar16_t**)dns_attr_val, 0);
+            if (err == ERROR_DS_CONSTRAINT_VIOLATION)
+            {
+                err = ERROR_DS_NAME_ERROR_NO_MAPPING;
+            }
             BAIL_ON_WINERR_ERROR(err);
 
             spn_attr_name   = ambstowc16s("servicePrincipalName");
