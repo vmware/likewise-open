@@ -747,8 +747,8 @@ SrvRegisterPendingLockState(
                     pBRLState->ullAsyncId,
                     COM_LOCKING_ANDX,
                     pLockState,
-                    &SrvReleaseLockStateHandle,
                     &SrvCancelLockState,
+                    &SrvReleaseLockStateHandle,
                     &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 

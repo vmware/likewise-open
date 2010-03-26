@@ -673,8 +673,8 @@ NTSTATUS
 SrvConnection2CreateAsyncState(
     PLWIO_SRV_CONNECTION            pConnection,
     USHORT                          usCommand,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
     PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
     PLWIO_ASYNC_STATE*              ppAsyncState
     )
 {
@@ -694,8 +694,8 @@ SrvConnection2CreateAsyncState(
                     ullAsyncId,
                     usCommand,
                     NULL,
-                    pfnFreeAsyncState,
                     pfnCancelAsyncState,
+                    pfnFreeAsyncState,
                     &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
