@@ -49,19 +49,160 @@
 
 DWORD
 NetExecSessionEnum(
-    PWSTR pwszServername
+    PWSTR pwszServername    /* IN     OPTIONAL */
     )
 {
-    printf("Enumerating sessions...\n");
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS nStatus  = 0;
+    PWSTR pwszUncClientname = NULL;
+    PWSTR pwszUsername      = NULL;
+    DWORD dwInfoLevel       = 2;
+    PBYTE pBuffer           = NULL;
+    DWORD dwPrefmaxLen      = UINT32_MAX;
+    DWORD dwEntriesRead     = 0;
+    DWORD dwTotalEntries    = 0;
+    DWORD dwResumeHandle    = 0;
+    DWORD iSession          = 0;
+    DWORD iSessionCursor    = 0;
+    PSESSION_INFO_2 pSessionCursor = NULL;
+    PSTR  pszSessionname    = NULL;
+    PSTR  pszUsername       = NULL;
+    PSTR  pszClientType     = NULL;
+
+    do
+    {
+        if (pBuffer)
+        {
+            NetApiBufferFree(pBuffer);
+            pBuffer = NULL;
+        }
+
+        nStatus = NetSessionEnumW(
+                        pwszServername,
+                        pwszUncClientname,
+                        pwszUsername,
+                        dwInfoLevel,
+                        &pBuffer,
+                        dwPrefmaxLen,
+                        &dwEntriesRead,
+                        &dwTotalEntries,
+                        &dwResumeHandle);
+        switch (nStatus)
+        {
+            case ERROR_SUCCESS:
+            case ERROR_MORE_DATA:
+
+                pSessionCursor = (PSESSION_INFO_2)pBuffer;
+
+                for (   iSession = 0;
+                        iSession < dwEntriesRead;
+                        iSession++, pSessionCursor++)
+                {
+                    if (pSessionCursor->sesi2_cname)
+                    {
+                        LW_SAFE_FREE_STRING(pszSessionname);
+
+                        nStatus = LwWc16sToMbs(
+                                        pSessionCursor->sesi2_cname,
+                                        &pszSessionname);
+                        BAIL_ON_LWUTIL_ERROR(nStatus);
+                    }
+
+                    if (pSessionCursor->sesi2_username)
+                    {
+                        LW_SAFE_FREE_STRING(pszUsername);
+
+                        nStatus = LwWc16sToMbs(
+                                        pSessionCursor->sesi2_username,
+                                        &pszUsername);
+                        BAIL_ON_LWUTIL_ERROR(nStatus);
+                    }
+
+                    if (pSessionCursor->sesi2_cltype_name)
+                    {
+                        LW_SAFE_FREE_STRING(pszClientType);
+
+                        nStatus = LwWc16sToMbs(
+                                        pSessionCursor->sesi2_cltype_name,
+                                        &pszClientType);
+                        BAIL_ON_LWUTIL_ERROR(nStatus);
+                    }
+
+                    printf("Session [%u]\n", ++iSessionCursor);
+
+                    printf("\tComputer:        %s\n",
+                            (pszSessionname ? pszSessionname : ""));
+                    printf("\tUsername:        %s\n",
+                            (pszUsername ? pszUsername : ""));
+                    printf("\tClient type:     %s\n",
+                            (pszClientType ? pszClientType : ""));
+                    printf("\tNumber of opens: %u\n",
+                            pSessionCursor->sesi2_num_opens);
+                    printf("\tActive time:     %u\n",
+                            pSessionCursor->sesi2_time);
+                    printf("\tIdle time:       %u\n",
+                            pSessionCursor->sesi2_idle_time);
+                    printf("\tGuest login?     %s\n",
+                            pSessionCursor->sesi2_user_flags & 0x1 ? "yes" : "no");
+                    printf("\tNo encryption?   %s\n\n",
+                            pSessionCursor->sesi2_user_flags & 0x2 ? "yes" : "no");
+
+                }
+
+                break;
+
+            default:
+
+                BAIL_ON_LWUTIL_ERROR(nStatus);
+
+                break;
+        }
+
+    } while (nStatus == ERROR_MORE_DATA);
+
+    if (!iSessionCursor)
+    {
+        printf("There are no entries in the list\n");
+    }
+
+cleanup:
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    LW_SAFE_FREE_STRING(pszSessionname);
+    LW_SAFE_FREE_STRING(pszUsername);
+    LW_SAFE_FREE_STRING(pszClientType);
+
+    return nStatus;
+
+error:
+
+    fprintf(stderr, "Failed to enumerate sessions.\n");
+
+    goto cleanup;
 }
 
 DWORD
 NetExecSessionLogoff(
-    PWSTR pwszServername,
-    PWSTR pwszSessionname
+    PWSTR pwszServername,   /* IN     OPTIONAL */
+    PWSTR pwszUncClientname /* IN     OPTIONAL */
     )
 {
-    printf("Logging off sessions...\n");
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS nStatus = 0;
+    PWSTR   pwszUsername = NULL;
+
+    nStatus = NetSessionDelW(pwszServername, pwszUncClientname, pwszUsername);
+    BAIL_ON_LWUTIL_ERROR(nStatus);
+
+cleanup:
+
+    return nStatus;
+
+error:
+
+    fprintf(stderr, "Failed to delete session.\n");
+
+    goto cleanup;
 }

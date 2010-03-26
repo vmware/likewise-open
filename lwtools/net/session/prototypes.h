@@ -30,11 +30,11 @@
 
 DWORD
 NetExecSessionEnum(
-    PWSTR pwszServername
+    PWSTR pwszServername    /* IN     OPTIONAL */
     );
 
 DWORD
 NetExecSessionLogoff(
-    PWSTR pwszServername,
-    PWSTR pwszSessionname
+    PWSTR pwszServername,   /* IN     OPTIONAL */
+    PWSTR pwszSessionname   /* IN     OPTIONAL */
     );

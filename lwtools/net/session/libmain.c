@@ -123,6 +123,13 @@ cleanup:
     return dwError;
 
 error:
+
+    fprintf(stderr,
+            "Error [%u][%s] %s",
+            dwError,
+            LwWin32ExtErrorToName(dwError),
+            LwWin32ExtErrorToDescription(dwError));
+
     goto cleanup;
 }
 

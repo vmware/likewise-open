@@ -35,8 +35,114 @@ NetExecFileEnum(
     PCWSTR pwszServername
     )
 {
-    printf("Enumerating files...\n");
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS nStatus  = 0;
+    PWSTR pwszBasepath      = NULL;
+    PWSTR pwszUsername      = NULL;
+    DWORD dwInfoLevel       = 3;
+    PBYTE pBuffer           = NULL;
+    DWORD dwPrefmaxLen      = UINT32_MAX;
+    DWORD dwEntriesRead     = 0;
+    DWORD dwTotalEntries    = 0;
+    DWORD dwResumeHandle    = 0;
+    DWORD iFile             = 0;
+    DWORD iFileCursor       = 0;
+    PFILE_INFO_3 pFileCursor = NULL;
+    PSTR  pszPathname       = NULL;
+    PSTR  pszUsername       = NULL;
+
+    do
+    {
+        if (pBuffer)
+        {
+            NetApiBufferFree(pBuffer);
+            pBuffer = NULL;
+        }
+
+        nStatus = NetFileEnumW(
+                        pwszServername,
+                        pwszBasepath,
+                        pwszUsername,
+                        dwInfoLevel,
+                        &pBuffer,
+                        dwPrefmaxLen,
+                        &dwEntriesRead,
+                        &dwTotalEntries,
+                        &dwResumeHandle);
+        switch (nStatus)
+        {
+            case ERROR_SUCCESS:
+            case ERROR_MORE_DATA:
+
+                pFileCursor = (PFILE_INFO_3)pBuffer;
+
+                for (iFile = 0; iFile < dwEntriesRead; iFile++, pFileCursor++)
+                {
+                    if (pFileCursor->fi3_path_name)
+                    {
+                        LW_SAFE_FREE_STRING(pszPathname);
+
+                        nStatus = LwWc16sToMbs(
+                                        pFileCursor->fi3_path_name,
+                                        &pszPathname);
+                        BAIL_ON_LWUTIL_ERROR(nStatus);
+                    }
+
+                    if (pFileCursor->fi3_username)
+                    {
+                        LW_SAFE_FREE_STRING(pszUsername);
+
+                        nStatus = LwWc16sToMbs(
+                                        pFileCursor->fi3_username,
+                                        &pszUsername);
+                        BAIL_ON_LWUTIL_ERROR(nStatus);
+                    }
+
+                    printf("File [%u]\n", ++iFileCursor);
+
+                    printf("\tId:              %u\n", pFileCursor->fi3_idd);
+                    printf("\tPathname:        %s\n",
+                            (pszPathname ? pszPathname : ""));
+                    printf("\tUsername:        %s\n",
+                            (pszUsername ? pszUsername : ""));
+                    printf("\tNumber of locks: %u\n",
+                            pFileCursor->fi3_num_locks);
+                    printf("\tPermissions:     0x%08x\n",
+                            pFileCursor->fi3_permissions);
+                }
+
+                break;
+
+            default:
+
+                BAIL_ON_LWUTIL_ERROR(nStatus);
+
+                break;
+        }
+
+    } while (nStatus == ERROR_MORE_DATA);
+
+    if (!iFileCursor)
+    {
+        printf("There are no entries in the list\n");
+    }
+
+cleanup:
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    LW_SAFE_FREE_STRING(pszPathname);
+    LW_SAFE_FREE_STRING(pszUsername);
+
+    return nStatus;
+
+error:
+
+    fprintf(stderr, "Failed to enumerate files.\n");
+
+    goto cleanup;
 }
 
 DWORD
@@ -45,8 +151,55 @@ NetExecFileQueryInfo(
     DWORD  dwFileId
     )
 {
-    printf("Querying file info by id [%u]...\n", dwFileId);
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS nStatus     = 0;
+    DWORD          dwInfoLevel = 3;
+    PBYTE          pBuffer     = NULL;
+    PFILE_INFO_3   pFileInfo   = NULL;
+    PSTR           pszPathname = NULL;
+    PSTR           pszUsername = NULL;
+
+    nStatus = NetFileGetInfoW(pwszServername, dwFileId, dwInfoLevel, &pBuffer);
+    BAIL_ON_LWUTIL_ERROR(nStatus);
+
+    if (pFileInfo->fi3_path_name)
+    {
+        LW_SAFE_FREE_STRING(pszPathname);
+
+        nStatus = LwWc16sToMbs(pFileInfo->fi3_path_name, &pszPathname);
+        BAIL_ON_LWUTIL_ERROR(nStatus);
+    }
+
+    if (pFileInfo->fi3_username)
+    {
+        LW_SAFE_FREE_STRING(pszUsername);
+
+        nStatus = LwWc16sToMbs(pFileInfo->fi3_username, &pszUsername);
+        BAIL_ON_LWUTIL_ERROR(nStatus);
+    }
+
+    printf("\tId:              %u\n",     pFileInfo->fi3_idd);
+    printf("\tPathname:        %s\n",     (pszPathname ? pszPathname : ""));
+    printf("\tUsername:        %s\n",     (pszUsername ? pszUsername : ""));
+    printf("\tNumber of locks: %u\n",     pFileInfo->fi3_num_locks);
+    printf("\tPermissions:     0x%08x\n", pFileInfo->fi3_permissions);
+
+cleanup:
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    LW_SAFE_FREE_STRING(pszPathname);
+    LW_SAFE_FREE_STRING(pszUsername);
+
+    return nStatus;
+
+error:
+
+    fprintf(stderr, "Failed to get information on file [Id: %u].\n", dwFileId);
+
+    goto cleanup;
 }
 
 DWORD
@@ -55,7 +208,19 @@ NetExecFileClose(
     DWORD  dwFileId
     )
 {
-    printf("Closing file by id [%u]...\n", dwFileId);
-    return ERROR_CALL_NOT_IMPLEMENTED;
+    NET_API_STATUS nStatus = 0;
+
+    nStatus = NetFileCloseW(pwszServername, dwFileId);
+    BAIL_ON_LWUTIL_ERROR(nStatus);
+
+cleanup:
+
+    return nStatus;
+
+error:
+
+    fprintf(stderr, "Failed to close file [Id: %u].\n", dwFileId);
+
+    goto cleanup;
 }
 
