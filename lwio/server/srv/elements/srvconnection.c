@@ -153,6 +153,14 @@ SrvConnection2RundownSessionRbTreeVisit(
     PBOOLEAN pbContinue
     );
 
+static
+NTSTATUS
+SrvConnection2RundownAsyncStatesRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    );
 
 NTSTATUS
 SrvConnectionCreate(
@@ -663,10 +671,11 @@ error:
 
 NTSTATUS
 SrvConnection2CreateAsyncState(
-    PLWIO_SRV_CONNECTION          pConnection,
-    USHORT                        usCommand,
-    PFN_LWIO_SRV_FREE_ASYNC_STATE pfnFreeAsyncState,
-    PLWIO_ASYNC_STATE*            ppAsyncState
+    PLWIO_SRV_CONNECTION            pConnection,
+    USHORT                          usCommand,
+    PFN_LWIO_SRV_FREE_ASYNC_STATE   pfnFreeAsyncState,
+    PFN_LWIO_SRV_CANCEL_ASYNC_STATE pfnCancelAsyncState,
+    PLWIO_ASYNC_STATE*              ppAsyncState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -686,6 +695,7 @@ SrvConnection2CreateAsyncState(
                     usCommand,
                     NULL,
                     pfnFreeAsyncState,
+                    pfnCancelAsyncState,
                     &pAsyncState);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1243,6 +1253,16 @@ SrvConnectionRundown_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (pConnection->pAsyncStateCollection)
+    {
+        ntStatus = LwRtlRBTreeTraverse(
+                        pConnection->pAsyncStateCollection,
+                        LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                        &SrvConnection2RundownAsyncStatesRbTreeVisit,
+                        NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
 cleanup:
 
     return;
@@ -1298,3 +1318,26 @@ SrvConnection2RundownSessionRbTreeVisit(
 
     return STATUS_SUCCESS;
 }
+
+static
+NTSTATUS
+SrvConnection2RundownAsyncStatesRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_ASYNC_STATE pAsyncState = (PLWIO_ASYNC_STATE)pData;
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateCancel(pAsyncState);
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
+}
+
+

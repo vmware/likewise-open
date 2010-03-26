@@ -248,17 +248,17 @@ SrvProcessOpenAndX(
             ntStatus = pOpenState->ioStatusBlock.Status;
             BAIL_ON_NT_STATUS(ntStatus);
 
-            if (!pOpenState->pFile->hByteRangeLockState)
+            if (!pOpenState->pFile->hCancellableBRLStateList)
             {
-                PSRV_PENDING_LOCK_STATE_LIST pPendingLockStateList = NULL;
+                PSRV_BYTE_RANGE_LOCK_STATE_LIST pBRLStateList = NULL;
 
-                ntStatus = SrvCreatePendingLockStateList(&pPendingLockStateList);
+                ntStatus = SrvCreatePendingLockStateList(&pBRLStateList);
                 BAIL_ON_NT_STATUS(ntStatus);
 
-                pOpenState->pFile->hByteRangeLockState =
-                                (HANDLE)pPendingLockStateList;
+                pOpenState->pFile->hCancellableBRLStateList =
+                                (HANDLE)pBRLStateList;
 
-                pOpenState->pFile->pfnFreeByteRangeLockState =
+                pOpenState->pFile->pfnFreeBRLStateList =
                                 &SrvFreePendingLockStateListHandle;
             }
 
