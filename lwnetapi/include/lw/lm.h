@@ -276,6 +276,22 @@ NetFileEnumW(
     );
 
 NET_API_STATUS
+NetFileGetInfoA(
+    PSTR          pszServername,      /* IN    OPTIONAL  */
+    DWORD         dwFileId,           /* IN              */
+    DWORD         dwInfoLevel,        /* IN              */
+    PBYTE*        ppBuffer            /*    OUT          */
+    );
+
+NET_API_STATUS
+NetFileGetInfoW(
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    DWORD           dwFileId,          /* IN              */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer           /*    OUT          */
+    );
+
+NET_API_STATUS
 NetFileCloseA(
     PSTR   pszServername,      /* IN    OPTIONAL  */
     DWORD  dwFileId            /* IN              */
@@ -317,6 +333,7 @@ NetApiShutdown(
 #define NetSessionDel      NetSessionDelW
 #define NetConnectionEnum  NetConnectionEnumW
 #define NetFileEnum        NetFileEnumW
+#define NetFileGetInfo     NetFileGetInfoW
 #define NetFileClose       NetFileCloseW
 #define NetRemoteTOD       NetRemoteTODW
 
@@ -333,6 +350,7 @@ NetApiShutdown(
 #define NetSessionDel      NetSessionDelA
 #define NetConnectionEnum  NetConnectionEnumA
 #define NetFileEnum        NetFileEnumA
+#define NetFileGetInfo     NetFileGetInfoA
 #define NetFileClose       NetFileCloseA
 #define NetRemoteTOD       NetRemoteTODA
 

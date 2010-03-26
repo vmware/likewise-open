@@ -1544,6 +1544,118 @@ error:
 }
 
 NET_API_STATUS
+NetFileGetInfoA(
+    PSTR          pszServername,      /* IN    OPTIONAL  */
+    DWORD         dwFileId,           /* IN              */
+    DWORD         dwInfoLevel,        /* IN              */
+    PBYTE*        ppBuffer            /*    OUT          */
+    )
+{
+    NET_API_STATUS status = 0;
+    PWSTR pwszServername = NULL;
+    PBYTE pBuffer = NULL;
+
+    if (!ppBuffer)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    if (pszServername)
+    {
+        status = LwMbsToWc16s(pszServername, &pwszServername);
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = NetFileGetInfoW(
+                pwszServername,
+                dwFileId,
+                dwInfoLevel,
+                &pBuffer);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *ppBuffer = pBuffer;
+
+cleanup:
+
+    if (pwszServername)
+    {
+        LwFreeMemory(pwszServername);
+    }
+
+    return status;
+
+error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
+}
+
+NET_API_STATUS
+NetFileGetInfoW(
+    PCWSTR          pwszServername,    /* IN    OPTIONAL  */
+    DWORD           dwFileId,          /* IN              */
+    DWORD           dwInfoLevel,       /* IN              */
+    PBYTE*          ppBuffer           /*    OUT          */
+    )
+{
+    NET_API_STATUS  status   = 0;
+    PSRVSVC_CONTEXT pContext = NULL;
+    PBYTE           pBuffer  = NULL;
+
+    if (!ppBuffer)
+    {
+        status = ERROR_INVALID_PARAMETER;
+        BAIL_ON_NETAPI_ERROR(status);
+    }
+
+    status = SrvSvcCreateContext(pwszServername, &pContext);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    status = NetrFileGetInfo(
+                pContext,
+                pwszServername,
+                dwFileId,
+                dwInfoLevel,
+                &pBuffer);
+    BAIL_ON_NETAPI_ERROR(status);
+
+    *ppBuffer = pBuffer;
+
+cleanup:
+
+    if (pContext)
+    {
+        SrvSvcCloseContext(pContext);
+    }
+
+    return status;
+
+error:
+
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+
+    if (pBuffer)
+    {
+        NetApiBufferFree(pBuffer);
+    }
+
+    goto cleanup;
+}
+
+NET_API_STATUS
 NetFileCloseA(
     PSTR   pszServername,      /* IN    OPTIONAL  */
     DWORD  dwFileId            /* IN              */
