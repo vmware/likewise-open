@@ -33,66 +33,79 @@
 static
 NET_API_STATUS
 SrvSvcCopyNetFileCtr(
-    UINT32             level,
+    DWORD              dwInfoLevel,
     srvsvc_NetFileCtr* ctr,
-    UINT32*            entriesread,
-    UINT8**            bufptr
+    PDWORD             pdwEntriesRead,
+    PBYTE*             ppBuffer
     );
 
 NET_API_STATUS
 NetrFileEnum(
     PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    const wchar16_t *basepath,
-    const wchar16_t *username,
-    UINT32 level,
-    UINT8 **bufptr,
-    UINT32 prefmaxlen,
-    UINT32 *entriesread,
-    UINT32 *totalentries,
-    UINT32 *resume_handle
+    PCWSTR          pwszServername,
+    PCWSTR          pwszBasepath,
+    PCWSTR          pwszUsername,
+    UINT32          dwInfoLevel,
+    PBYTE*          ppBuffer,
+    DWORD           dwPrefmaxlen,
+    PDWORD          pdwEntriesRead,
+    PDWORD          pdwTotalEntries,
+    PDWORD          pdwResumeHandle
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
     dcethread_exc* pDceException  = NULL;
-    srvsvc_NetFileCtr ctr;
+    DWORD dwInfoLevel2   = dwInfoLevel;
+    DWORD dwEntriesRead  = 0;
+    DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = (pdwResumeHandle ? *pdwResumeHandle : 0);
+    PBYTE pBuffer        = NULL;
+    BOOLEAN bMoreDataAvailable = FALSE;
+    srvsvc_NetFileCtr  ctr;
     srvsvc_NetFileCtr2 ctr2;
     srvsvc_NetFileCtr3 ctr3;
-    UINT32 l = level;
-
-    BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
-    BAIL_ON_INVALID_PTR(entriesread, status);
-    BAIL_ON_INVALID_PTR(totalentries, status);
 
     memset(&ctr, 0, sizeof(ctr));
     memset(&ctr2, 0, sizeof(ctr2));
     memset(&ctr3, 0, sizeof(ctr3));
 
-    *entriesread = 0;
-    *bufptr = NULL;
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(ppBuffer, status);
+    BAIL_ON_INVALID_PTR(pdwEntriesRead, status);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries, status);
 
-    switch (level) {
-    case 2:
-        ctr.ctr2 = &ctr2;
-        break;
-    case 3:
-        ctr.ctr3 = &ctr3;
-        break;
+    switch (dwInfoLevel)
+    {
+        case 2:
+
+            ctr.ctr2 = &ctr2;
+            break;
+
+        case 3:
+
+            ctr.ctr3 = &ctr3;
+            break;
+
+        default:
+
+            status = ERROR_INVALID_LEVEL;
+            BAIL_ON_WIN_ERROR(status);
+
+            break;
     }
 
     TRY
     {
         status = _NetrFileEnum(
                     pContext->hBinding,
-                    (wchar16_t *)servername,
-                    (wchar16_t *)basepath,
-                    (wchar16_t *)username,
-                    &l,
+                    (PWSTR)pwszServername,
+                    (PWSTR)pwszBasepath,
+                    (PWSTR)pwszUsername,
+                    &dwInfoLevel2,
                     &ctr,
-                    prefmaxlen,
-                    totalentries,
-                    resume_handle);
+                    dwPrefmaxlen,
+                    &dwTotalEntries,
+                    pdwResumeHandle ? &dwResumeHandle : NULL);
     }
     CATCH_ALL(pDceException)
     {
@@ -100,73 +113,121 @@ NetrFileEnum(
         status = LwNtStatusToWin32Error(ntStatus);
     }
     ENDTRY;
-    BAIL_ON_WIN_ERROR(status);
 
-    if (l != level) {
-        status = ERROR_BAD_NET_RESP;
-        BAIL_ON_WIN_ERROR(status);
+    switch (status)
+    {
+        case ERROR_MORE_DATA:
+
+            bMoreDataAvailable = TRUE;
+
+            // intentional fall through
+
+        case ERROR_SUCCESS:
+
+            if (dwInfoLevel2 != dwInfoLevel)
+            {
+                status = ERROR_BAD_NET_RESP;
+                BAIL_ON_WIN_ERROR(status);
+            }
+
+            status = SrvSvcCopyNetFileCtr(
+                            dwInfoLevel,
+                            &ctr,
+                            &dwEntriesRead,
+                            &pBuffer);
+            BAIL_ON_WIN_ERROR(status);
+
+            if (bMoreDataAvailable)
+            {
+                status = ERROR_MORE_DATA;
+            }
+
+            break;
+
+        default:
+
+            BAIL_ON_WIN_ERROR(status);
+
+            break;
     }
 
-    status = SrvSvcCopyNetFileCtr(l, &ctr, entriesread, bufptr);
-    BAIL_ON_WIN_ERROR(status);
+    *pdwEntriesRead  = dwEntriesRead;
+    *pdwTotalEntries = dwTotalEntries;
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = dwResumeHandle;
+    }
+    *ppBuffer        = pBuffer;
 
 cleanup:
-    switch (level) {
-    case 2:
-        if (ctr.ctr2 == &ctr2) {
-            ctr.ctr2 = NULL;
-        }
-        break;
-    case 3:
-        if (ctr.ctr3 == &ctr3) {
-            ctr.ctr3 = NULL;
-        }
-        break;
+
+    switch (dwInfoLevel)
+    {
+        case 2:
+            if (ctr.ctr2 == &ctr2) {
+                ctr.ctr2 = NULL;
+            }
+            break;
+        case 3:
+            if (ctr.ctr3 == &ctr3) {
+                ctr.ctr3 = NULL;
+            }
+            break;
     }
-    SrvSvcClearNetFileCtr(l, &ctr);
+
+    SrvSvcClearNetFileCtr(dwInfoLevel2, &ctr);
 
     return status;
 
 error:
+
+    *pdwEntriesRead  = 0;
+    *pdwTotalEntries = 0;
+    *ppBuffer        = NULL;
+
+    if (pBuffer)
+    {
+        SrvSvcFreeMemory(pBuffer);
+    }
+
     goto cleanup;
 }
 
 static
 NET_API_STATUS
 SrvSvcCopyNetFileCtr(
-    UINT32             level,
+    DWORD              dwInfoLevel,
     srvsvc_NetFileCtr* ctr,
-    UINT32*            entriesread,
-    UINT8**            bufptr
+    PDWORD             pdwEntriesRead,
+    PBYTE*             ppBuffer
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
     int i;
-    int count = 0;
-    void *ptr = NULL;
+    DWORD dwEntriesRead = 0;
+    void *pBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(entriesread, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(ppBuffer, status);
     BAIL_ON_INVALID_PTR(ctr, status);
 
-    *entriesread = 0;
-    *bufptr = NULL;
-
-    switch (level) {
+    switch (dwInfoLevel)
+    {
     case 2:
-        if (ctr->ctr2) {
+
+        if (ctr->ctr2)
+        {
             PFILE_INFO_2 a2;
 
-            count = ctr->ctr2->count;
+            dwEntriesRead = ctr->ctr2->count;
 
-            status = SrvSvcAllocateMemory(&ptr,
-                                          sizeof(FILE_INFO_2) * count,
+            status = SrvSvcAllocateMemory(&pBuffer,
+                                          sizeof(FILE_INFO_2) * dwEntriesRead,
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a2 = (PFILE_INFO_2)ptr;
+            a2 = (PFILE_INFO_2)pBuffer;
 
-            for (i=0; i < count; i++) {
+            for (i=0; i < dwEntriesRead; i++) {
                  a2[i] = ctr->ctr2->array[i];
             }
         }
@@ -175,16 +236,16 @@ SrvSvcCopyNetFileCtr(
         if (ctr->ctr3) {
             PFILE_INFO_3 a3;
 
-            count = ctr->ctr3->count;
+            dwEntriesRead = ctr->ctr3->count;
 
-            status = SrvSvcAllocateMemory(&ptr,
-                                          sizeof(FILE_INFO_3) * count,
+            status = SrvSvcAllocateMemory(&pBuffer,
+                                          sizeof(FILE_INFO_3) * dwEntriesRead,
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a3 = (PFILE_INFO_3)ptr;
+            a3 = (PFILE_INFO_3)pBuffer;
 
-            for (i=0; i < count; i++)
+            for (i=0; i < dwEntriesRead; i++)
             {
                  a3[i] = ctr->ctr3->array[i];
 
@@ -203,16 +264,29 @@ SrvSvcCopyNetFileCtr(
         break;
     }
 
-    *entriesread = count;
-    *bufptr = (UINT8 *)ptr;
+    *pdwEntriesRead = dwEntriesRead;
+    *ppBuffer = (PBYTE)pBuffer;
 
 cleanup:
+
     return status;
 
 error:
-    if (ptr) {
-        SrvSvcFreeMemory(ptr);
+
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
     }
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+
+    if (pBuffer)
+    {
+        SrvSvcFreeMemory(pBuffer);
+    }
+
     goto cleanup;
 }
 

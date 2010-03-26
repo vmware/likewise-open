@@ -33,81 +33,87 @@
 static
 NET_API_STATUS
 SrvSvcCopyNetSessCtr(
-    UINT32             level,
+    UINT32             dwInfoLevel,
     srvsvc_NetSessCtr* ctr,
-    UINT32*            entriesread,
-    UINT8**            bufptr
+    UINT32*            pdwEntriesRead,
+    UINT8**            ppBuffer
     );
 
 NET_API_STATUS
 NetrSessionEnum(
     PSRVSVC_CONTEXT pContext,
-    const wchar16_t *servername,
-    const wchar16_t *unc_client_name,
-    const wchar16_t *username,
-    UINT32 level,
-    UINT8 **bufptr,
-    UINT32 prefmaxlen,
-    UINT32 *entriesread,
-    UINT32 *totalentries,
-    UINT32 *resume_handle
+    PCWSTR          pwszServername,
+    PCWSTR          pwszUncClientname,
+    PCWSTR          pwszUsername,
+    DWORD           dwInfoLevel,
+    PBYTE*          ppBuffer,
+    DWORD           dwPrefmaxlen,
+    PDWORD          pdwEntriesRead,
+    PDWORD          pdwTotalEntries,
+    PDWORD          pdwResumeHandle
     )
 {
-    NET_API_STATUS status = ERROR_SUCCESS;
+    NET_API_STATUS status         = ERROR_SUCCESS;
     dcethread_exc* pDceException  = NULL;
-    srvsvc_NetSessCtr ctr;
-    srvsvc_NetSessCtr0 ctr0;
-    srvsvc_NetSessCtr1 ctr1;
-    srvsvc_NetSessCtr2 ctr2;
-    srvsvc_NetSessCtr10 ctr10;
+    DWORD   dwInfoLevel2          = dwInfoLevel;
+    BOOLEAN bMoreDataAvailable    = FALSE;
+    DWORD   dwEntriesRead         = 0;
+    DWORD   dwTotalEntries        = 0;
+    DWORD   dwResumeHandle        = pdwResumeHandle ? *pdwResumeHandle : 0;
+    PBYTE   pBuffer               = NULL;
+    srvsvc_NetSessCtr    ctr;
+    srvsvc_NetSessCtr0   ctr0;
+    srvsvc_NetSessCtr1   ctr1;
+    srvsvc_NetSessCtr2   ctr2;
+    srvsvc_NetSessCtr10  ctr10;
     srvsvc_NetSessCtr502 ctr502;
-    UINT32 l = level;
 
-    BAIL_ON_INVALID_PTR(pContext, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
-    BAIL_ON_INVALID_PTR(entriesread, status);
-    BAIL_ON_INVALID_PTR(totalentries, status);
-
-    memset(&ctr, 0, sizeof(ctr));
-    memset(&ctr0, 0, sizeof(ctr0));
-    memset(&ctr1, 0, sizeof(ctr1));
-    memset(&ctr2, 0, sizeof(ctr2));
-    memset(&ctr10, 0, sizeof(ctr10));
+    memset(&ctr,    0, sizeof(ctr));
+    memset(&ctr0,   0, sizeof(ctr0));
+    memset(&ctr1,   0, sizeof(ctr1));
+    memset(&ctr2,   0, sizeof(ctr2));
+    memset(&ctr10,  0, sizeof(ctr10));
     memset(&ctr502, 0, sizeof(ctr502));
 
-    *entriesread = 0;
-    *bufptr = NULL;
+    BAIL_ON_INVALID_PTR(pContext, status);
+    BAIL_ON_INVALID_PTR(ppBuffer, status);
+    BAIL_ON_INVALID_PTR(pdwEntriesRead, status);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries, status);
 
-    switch (level) {
-    case 0:
-        ctr.ctr0 = &ctr0;
-        break;
-    case 1:
-        ctr.ctr1 = &ctr1;
-        break;
-    case 2:
-        ctr.ctr2 = &ctr2;
-        break;
-    case 10:
-        ctr.ctr10 = &ctr10;
-        break;
-    case 502:
-        ctr.ctr502 = &ctr502;
-        break;
+    switch (dwInfoLevel)
+    {
+        case 0:
+            ctr.ctr0 = &ctr0;
+            break;
+        case 1:
+            ctr.ctr1 = &ctr1;
+            break;
+        case 2:
+            ctr.ctr2 = &ctr2;
+            break;
+        case 10:
+            ctr.ctr10 = &ctr10;
+            break;
+        case 502:
+            ctr.ctr502 = &ctr502;
+            break;
+        default:
+            status = ERROR_INVALID_LEVEL;
+            BAIL_ON_WIN_ERROR(status);
     }
 
     TRY
     {
         status = _NetrSessionEnum(
                         pContext->hBinding,
-                        (wchar16_t *)servername,
-                        (wchar16_t *)unc_client_name,
-                        (wchar16_t *)username,
-                        &l,
+                        (PWSTR)pwszServername,
+                        (PWSTR)pwszUncClientname,
+                        (PWSTR)pwszUsername,
+                        &dwInfoLevel2,
                         &ctr,
-                        prefmaxlen,
-                        totalentries,
-                        resume_handle);
+                        dwPrefmaxlen,
+                        &dwTotalEntries,
+                        pdwResumeHandle ? &dwResumeHandle : NULL);
     }
     CATCH_ALL(pDceException)
     {
@@ -115,88 +121,134 @@ NetrSessionEnum(
         status = LwNtStatusToWin32Error(ntStatus);
     }
     ENDTRY;
-    BAIL_ON_WIN_ERROR(status);
 
-    if (l != level) {
-        status = ERROR_BAD_NET_RESP;
-        BAIL_ON_WIN_ERROR(status);
+    switch (status)
+    {
+        case ERROR_MORE_DATA:
+
+            bMoreDataAvailable = TRUE;
+
+            // intentional fall through
+
+        case ERROR_SUCCESS:
+
+            if (dwInfoLevel2 != dwInfoLevel)
+            {
+                status = ERROR_BAD_NET_RESP;
+                BAIL_ON_WIN_ERROR(status);
+            }
+
+            status = SrvSvcCopyNetSessCtr(
+                            dwInfoLevel2,
+                            &ctr,
+                            &dwEntriesRead,
+                            &pBuffer);
+            BAIL_ON_WIN_ERROR(status);
+
+            if (bMoreDataAvailable)
+            {
+                status = ERROR_MORE_DATA;
+            }
+
+            break;
+
+        default:
+
+            BAIL_ON_WIN_ERROR(status);
+
+            break;
     }
 
-    status = SrvSvcCopyNetSessCtr(l, &ctr, entriesread, bufptr);
-    BAIL_ON_WIN_ERROR(status);
+    *pdwEntriesRead  = dwEntriesRead;
+    *pdwTotalEntries = dwTotalEntries;
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = dwResumeHandle;
+    }
+    *ppBuffer        = pBuffer;
 
 cleanup:
-    switch (level) {
-    case 0:
-        if (ctr.ctr0 == &ctr0) {
-            ctr.ctr0 = NULL;
-        }
-        break;
-    case 1:
-        if (ctr.ctr1 == &ctr1) {
-            ctr.ctr1 = NULL;
-        }
-        break;
-    case 2:
-        if (ctr.ctr2 == &ctr2) {
-            ctr.ctr2 = NULL;
-        }
-        break;
-    case 10:
-        if (ctr.ctr10 == &ctr10) {
-            ctr.ctr10 = NULL;
-        }
-        break;
-    case 502:
-        if (ctr.ctr502 == &ctr502) {
-            ctr.ctr502 = NULL;
-        }
-        break;
+
+    switch (dwInfoLevel2)
+    {
+        case 0:
+            if (ctr.ctr0 == &ctr0) {
+                ctr.ctr0 = NULL;
+            }
+            break;
+        case 1:
+            if (ctr.ctr1 == &ctr1) {
+                ctr.ctr1 = NULL;
+            }
+            break;
+        case 2:
+            if (ctr.ctr2 == &ctr2) {
+                ctr.ctr2 = NULL;
+            }
+            break;
+        case 10:
+            if (ctr.ctr10 == &ctr10) {
+                ctr.ctr10 = NULL;
+            }
+            break;
+        case 502:
+            if (ctr.ctr502 == &ctr502) {
+                ctr.ctr502 = NULL;
+            }
+            break;
     }
-    SrvSvcClearNetSessCtr(l, &ctr);
+    SrvSvcClearNetSessCtr(dwInfoLevel2, &ctr);
 
     return status;
 
 error:
+
+    *pdwEntriesRead  = 0;
+    *pdwTotalEntries = 0;
+    *ppBuffer        = NULL;
+
+    if (pBuffer)
+    {
+        SrvSvcFreeMemory(pBuffer);
+    }
+
     goto cleanup;
 }
 
 static
 NET_API_STATUS
 SrvSvcCopyNetSessCtr(
-    UINT32             level,
+    DWORD              dwInfoLevel,
     srvsvc_NetSessCtr* ctr,
-    UINT32*            entriesread,
-    UINT8**            bufptr
+    PDWORD             pdwEntriesRead,
+    PBYTE*             ppBuffer
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
     int i;
-    int count = 0;
-    void *ptr = NULL;
+    int dwEntriesRead = 0;
+    void *pBuffer = NULL;
 
-    BAIL_ON_INVALID_PTR(entriesread, status);
-    BAIL_ON_INVALID_PTR(bufptr, status);
+    BAIL_ON_INVALID_PTR(pdwEntriesRead, status);
+    BAIL_ON_INVALID_PTR(ppBuffer, status);
     BAIL_ON_INVALID_PTR(ctr, status);
 
-    *entriesread = 0;
-    *bufptr = NULL;
-
-    switch (level) {
+    switch (dwInfoLevel)
+    {
     case 0:
         if (ctr->ctr0) {
             PSESSION_INFO_0 a0;
 
-            count = ctr->ctr0->count;
+            dwEntriesRead = ctr->ctr0->count;
 
-            status = SrvSvcAllocateMemory(&ptr,
-                                          sizeof(SESSION_INFO_0) * count,
+            status = SrvSvcAllocateMemory(&pBuffer,
+                                          sizeof(SESSION_INFO_0) * dwEntriesRead,
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a0 = (PSESSION_INFO_0)ptr;
+            a0 = (PSESSION_INFO_0)pBuffer;
 
-            for (i=0; i < count; i++)
+            for (i=0; i < dwEntriesRead; i++)
             {
                  a0[i] = ctr->ctr0->array[i];
 
@@ -212,16 +264,16 @@ SrvSvcCopyNetSessCtr(
         if (ctr->ctr1) {
             PSESSION_INFO_1 a1;
 
-            count = ctr->ctr1->count;
+            dwEntriesRead = ctr->ctr1->count;
 
-            status = SrvSvcAllocateMemory(&ptr,
-                                          sizeof(SESSION_INFO_1) * count,
+            status = SrvSvcAllocateMemory(&pBuffer,
+                                          sizeof(SESSION_INFO_1) * dwEntriesRead,
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a1 = (PSESSION_INFO_1)ptr;
+            a1 = (PSESSION_INFO_1)pBuffer;
 
-            for (i=0; i < count; i++) {
+            for (i=0; i < dwEntriesRead; i++) {
                  a1[i] = ctr->ctr1->array[i];
 
                  if (a1[i].sesi1_cname)
@@ -241,16 +293,16 @@ SrvSvcCopyNetSessCtr(
         if (ctr->ctr2) {
             PSESSION_INFO_2 a2;
 
-            count = ctr->ctr2->count;
+            dwEntriesRead = ctr->ctr2->count;
 
-            status = SrvSvcAllocateMemory(&ptr,
-                                          sizeof(SESSION_INFO_2) * count,
+            status = SrvSvcAllocateMemory(&pBuffer,
+                                          sizeof(SESSION_INFO_2) * dwEntriesRead,
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a2 = (PSESSION_INFO_2)ptr;
+            a2 = (PSESSION_INFO_2)pBuffer;
 
-            for (i=0; i < count; i++) {
+            for (i=0; i < dwEntriesRead; i++) {
                  a2[i] = ctr->ctr2->array[i];
 
                  if (a2[i].sesi2_cname)
@@ -275,16 +327,16 @@ SrvSvcCopyNetSessCtr(
         if (ctr->ctr10) {
             PSESSION_INFO_10 a10;
 
-            count = ctr->ctr10->count;
+            dwEntriesRead = ctr->ctr10->count;
 
-            status = SrvSvcAllocateMemory(&ptr,
-                                          sizeof(SESSION_INFO_10) * count,
+            status = SrvSvcAllocateMemory(&pBuffer,
+                                          sizeof(SESSION_INFO_10) * dwEntriesRead,
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a10 = (PSESSION_INFO_10)ptr;
+            a10 = (PSESSION_INFO_10)pBuffer;
 
-            for (i=0; i < count; i++) {
+            for (i=0; i < dwEntriesRead; i++) {
                  a10[i] = ctr->ctr10->array[i];
 
                  if (a10[i].sesi10_cname)
@@ -304,16 +356,16 @@ SrvSvcCopyNetSessCtr(
         if (ctr->ctr502) {
             PSESSION_INFO_502 a502;
 
-            count = ctr->ctr502->count;
+            dwEntriesRead = ctr->ctr502->count;
 
-            status = SrvSvcAllocateMemory(&ptr,
-                                          sizeof(SESSION_INFO_502) * count,
+            status = SrvSvcAllocateMemory(&pBuffer,
+                                          sizeof(SESSION_INFO_502) * dwEntriesRead,
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a502 = (PSESSION_INFO_502)ptr;
+            a502 = (PSESSION_INFO_502)pBuffer;
 
-            for (i=0; i < count; i++)
+            for (i=0; i < dwEntriesRead; i++)
             {
                  a502[i] = ctr->ctr502->array[i];
 
@@ -342,15 +394,26 @@ SrvSvcCopyNetSessCtr(
         break;
     }
 
-    *entriesread = count;
-    *bufptr = (UINT8 *)ptr;
+    *pdwEntriesRead = dwEntriesRead;
+    *ppBuffer = (UINT8 *)pBuffer;
 
 cleanup:
+
     return status;
 
 error:
-    if (ptr) {
-        SrvSvcFreeMemory(ptr);
+
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
+    }
+    if (ppBuffer)
+    {
+        *ppBuffer = NULL;
+    }
+
+    if (pBuffer) {
+        SrvSvcFreeMemory(pBuffer);
     }
     goto cleanup;
 }

@@ -48,7 +48,7 @@ NetrShareEnum(
     IN  DWORD    dwMaxLen,
     OUT PDWORD   pdwNumEntries,
     OUT PDWORD   pdwTotalEntries,
-    OUT PDWORD   pdwResume
+    OUT PDWORD   pdwResumeHandle
     )
 {
     NET_API_STATUS status = ERROR_SUCCESS;
@@ -62,19 +62,21 @@ NetrShareEnum(
     PBYTE pBuffer = NULL;
     DWORD dwNumEntries = 0;
     DWORD dwTotalEntries = 0;
+    DWORD dwResumeHandle = (pdwResumeHandle ? *pdwResumeHandle : 0);
     DWORD dwReturnedLevel = dwLevel;
+    BOOLEAN bMoreDataAvailable = FALSE;
+
+    memset(&ctr,    0, sizeof(ctr));
+    memset(&ctr0,   0, sizeof(ctr0));
+    memset(&ctr1,   0, sizeof(ctr1));
+    memset(&ctr2,   0, sizeof(ctr2));
+    memset(&ctr501, 0, sizeof(ctr501));
+    memset(&ctr502, 0, sizeof(ctr502));
 
     BAIL_ON_INVALID_PTR(pContext, status);
     BAIL_ON_INVALID_PTR(ppBuffer, status);
     BAIL_ON_INVALID_PTR(pdwNumEntries, status);
     BAIL_ON_INVALID_PTR(pdwTotalEntries, status);
-
-    memset(&ctr, 0, sizeof(ctr));
-    memset(&ctr0, 0, sizeof(ctr0));
-    memset(&ctr1, 0, sizeof(ctr1));
-    memset(&ctr2, 0, sizeof(ctr2));
-    memset(&ctr501, 0, sizeof(ctr501));
-    memset(&ctr502, 0, sizeof(ctr502));
 
     switch (dwLevel)
     {
@@ -115,7 +117,7 @@ NetrShareEnum(
                     &ctr,
                     dwMaxLen,
                     &dwTotalEntries,
-                    pdwResume);
+                    pdwResumeHandle ? &dwResumeHandle : NULL);
     }
     CATCH_ALL(pDceException)
     {
@@ -123,22 +125,49 @@ NetrShareEnum(
         status = LwNtStatusToWin32Error(ntStatus);
     }
     ENDTRY;
-    BAIL_ON_WIN_ERROR(status);
 
-    if (dwReturnedLevel != dwLevel)
+    switch (status)
     {
-        status = ERROR_BAD_NET_RESP;
-        BAIL_ON_WIN_ERROR(status);
-    }
+        case ERROR_MORE_DATA:
 
-    status = SrvSvcCopyNetShareCtr(dwLevel,
-                                   &ctr,
-                                   &dwNumEntries,
-                                   &pBuffer);
-    BAIL_ON_WIN_ERROR(status);
+            bMoreDataAvailable = TRUE;
+
+            // intentional fall through
+
+        case ERROR_SUCCESS:
+
+            if (dwReturnedLevel != dwLevel)
+            {
+                status = ERROR_BAD_NET_RESP;
+                BAIL_ON_WIN_ERROR(status);
+            }
+
+            status = SrvSvcCopyNetShareCtr(dwLevel,
+                                           &ctr,
+                                           &dwNumEntries,
+                                           &pBuffer);
+            BAIL_ON_WIN_ERROR(status);
+
+            if (bMoreDataAvailable)
+            {
+                status = ERROR_MORE_DATA;
+            }
+
+            break;
+
+        default:
+
+            BAIL_ON_WIN_ERROR(status);
+
+            break;
+    }
 
     *pdwNumEntries   = dwNumEntries;
     *pdwTotalEntries = dwTotalEntries;
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = dwResumeHandle;
+    }
     *ppBuffer        = pBuffer;
 
 cleanup:
@@ -149,10 +178,23 @@ cleanup:
 
 error:
 
-    *pdwNumEntries   = 0;
-    *pdwTotalEntries = 0;
-    *pdwResume       = 0;
-    *ppBuffer        = NULL;
+    if (pdwNumEntries)
+    {
+        *pdwNumEntries   = 0;
+    }
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = 0;
+    }
+    if (ppBuffer)
+    {
+        *ppBuffer        = NULL;
+    }
+
+    if (pBuffer)
+    {
+        SrvSvcFreeMemory(pBuffer);
+    }
 
     goto cleanup;
 }

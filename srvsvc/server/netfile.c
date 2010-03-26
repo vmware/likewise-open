@@ -62,7 +62,60 @@ SrvSvcNetFileEnum(
     PDWORD             pdwResumeHandle       /* [in, out] */
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD     dwError  = 0;
+    NTSTATUS  ntStatus = 0;
+    wchar16_t       wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_HANDLE  hFile           = NULL;
+    IO_STATUS_BLOCK IoStatusBlock   = { 0 };
+    IO_FILE_NAME    filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
+    ACCESS_MASK             dwDesiredAccess     = 0;
+    LONG64                  llAllocationSize    = 0;
+    FILE_ATTRIBUTES         dwFileAttributes    = 0;
+    FILE_SHARE_FLAGS        dwShareAccess       = 0;
+    FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
+    FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
+    ULONG                   dwIoControlCode     = SRV_DEVCTL_ENUM_FILES;
+
+    ntStatus = NtCreateFile(
+                    &hFile,
+                    NULL,
+                    &IoStatusBlock,
+                    &filename,
+                    NULL,
+                    NULL,
+                    dwDesiredAccess,
+                    llAllocationSize,
+                    dwFileAttributes,
+                    dwShareAccess,
+                    dwCreateDisposition,
+                    dwCreateOptions,
+                    NULL,
+                    0,
+                    NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (hFile)
+    {
+        NtCloseFile(hFile);
+    }
+
+    return dwError;
+
+error:
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -74,7 +127,64 @@ SrvSvcNetFileGetInfo(
     srvsvc_NetFileInfo* pInfo           /* [out] */
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD     dwError     = 0;
+    NTSTATUS  ntStatus    = 0;
+    PBYTE     pInBuffer   = NULL;
+    DWORD     dwInLength  = 0;
+    PBYTE     pOutBuffer  = NULL;
+    DWORD     dwOutLength = 4096;
+    wchar16_t       wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_HANDLE  hFile           = NULL;
+    IO_STATUS_BLOCK IoStatusBlock   = { 0 };
+    IO_FILE_NAME    filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
+    ACCESS_MASK             dwDesiredAccess     = 0;
+    LONG64                  llAllocationSize    = 0;
+    FILE_ATTRIBUTES         dwFileAttributes    = 0;
+    FILE_SHARE_FLAGS        dwShareAccess       = 0;
+    FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
+    FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
+    ULONG                   dwIoControlCode     = SRV_DEVCTL_GET_FILE_INFO;
+
+    ntStatus = NtCreateFile(
+                    &hFile,
+                    NULL,
+                    &IoStatusBlock,
+                    &filename,
+                    NULL,
+                    NULL,
+                    dwDesiredAccess,
+                    llAllocationSize,
+                    dwFileAttributes,
+                    dwShareAccess,
+                    dwCreateDisposition,
+                    dwCreateOptions,
+                    NULL,
+                    0,
+                    NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (hFile)
+    {
+        NtCloseFile(hFile);
+    }
+
+    return dwError;
+
+error:
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    goto cleanup;
 }
 
 NET_API_STATUS
@@ -84,7 +194,60 @@ SrvSvcNetFileClose(
     DWORD    dwFileId        /* [in] */
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD     dwError  = 0;
+    NTSTATUS  ntStatus = 0;
+    wchar16_t       wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_HANDLE  hFile           = NULL;
+    IO_STATUS_BLOCK IoStatusBlock   = { 0 };
+    IO_FILE_NAME    filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
+    ACCESS_MASK             dwDesiredAccess     = 0;
+    LONG64                  llAllocationSize    = 0;
+    FILE_ATTRIBUTES         dwFileAttributes    = 0;
+    FILE_SHARE_FLAGS        dwShareAccess       = 0;
+    FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
+    FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
+    ULONG                   dwIoControlCode     = SRV_DEVCTL_CLOSE_FILE;
+
+    ntStatus = NtCreateFile(
+                    &hFile,
+                    NULL,
+                    &IoStatusBlock,
+                    &filename,
+                    NULL,
+                    NULL,
+                    dwDesiredAccess,
+                    llAllocationSize,
+                    dwFileAttributes,
+                    dwShareAccess,
+                    dwCreateDisposition,
+                    dwCreateOptions,
+                    NULL,
+                    0,
+                    NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (hFile)
+    {
+        NtCloseFile(hFile);
+    }
+
+    return dwError;
+
+error:
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    goto cleanup;
 }
 
 

@@ -126,5 +126,58 @@ SrvSvcNetSessionDel(
     PWSTR    pwszUsername       /* [in] */
     )
 {
-    return ERROR_NOT_SUPPORTED;
+    DWORD     dwError  = 0;
+    NTSTATUS  ntStatus = 0;
+    wchar16_t       wszDriverName[] = SRV_DRIVER_NAME_W;
+    IO_FILE_HANDLE  hFile           = NULL;
+    IO_STATUS_BLOCK IoStatusBlock   = { 0 };
+    IO_FILE_NAME    filename =
+                        {
+                              .RootFileHandle = NULL,
+                              .FileName = &wszDriverName[0],
+                              .IoNameOptions = 0
+                        };
+    ACCESS_MASK             dwDesiredAccess     = 0;
+    LONG64                  llAllocationSize    = 0;
+    FILE_ATTRIBUTES         dwFileAttributes    = 0;
+    FILE_SHARE_FLAGS        dwShareAccess       = 0;
+    FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
+    FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
+    ULONG                   dwIoControlCode     = SRV_DEVCTL_DELETE_SESSION;
+
+    ntStatus = NtCreateFile(
+                    &hFile,
+                    NULL,
+                    &IoStatusBlock,
+                    &filename,
+                    NULL,
+                    NULL,
+                    dwDesiredAccess,
+                    llAllocationSize,
+                    dwFileAttributes,
+                    dwShareAccess,
+                    dwCreateDisposition,
+                    dwCreateOptions,
+                    NULL,
+                    0,
+                    NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (hFile)
+    {
+        NtCloseFile(hFile);
+    }
+
+    return dwError;
+
+error:
+
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    goto cleanup;
 }
