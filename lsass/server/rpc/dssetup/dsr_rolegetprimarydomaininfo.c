@@ -250,8 +250,8 @@ DsrSrvRoleGetPDCInfoBasic(
     ntStatus = LsaClose(hLsaBinding, hLocalPolicy);
     BAIL_ON_NTSTATUS_ERROR(ntStatus);
 
-    pInfo->uiRole        = DS_ROLE_MEMBER_SERVER;
-    pInfo->uiFlags       = DS_ROLE_PRIMARY_DOMAIN_GUID_PRESENT;
+    pInfo->dwRole        = DS_ROLE_MEMBER_SERVER;
+    pInfo->dwFlags       = DS_ROLE_PRIMARY_DOMAIN_GUID_PRESENT;
     pInfo->pwszDomain    = pwszDomain;
     pInfo->pwszDnsDomain = pwszDnsDomain;
     pInfo->pwszForest    = pwszForest;
@@ -291,8 +291,8 @@ DsrSrvRoleGetPDCInfoUpgrade(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    pInfo->uiUpgradeStatus = DS_ROLE_NOT_UPGRADING;
-    pInfo->uiPrevious      = DS_ROLE_PREVIOUS_UNKNOWN;
+    pInfo->swUpgradeStatus = DS_ROLE_NOT_UPGRADING;
+    pInfo->dwPrevious      = DS_ROLE_PREVIOUS_UNKNOWN;
 
     return ntStatus;
 }
@@ -306,7 +306,7 @@ DsrSrvRoleGetPDCInfoOpStatus(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    pInfo->uiStatus = DS_ROLE_OP_IDLE;
+    pInfo->swStatus = DS_ROLE_OP_IDLE;
 
     return ntStatus;
 }
