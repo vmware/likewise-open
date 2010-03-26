@@ -47,8 +47,6 @@
 
 #include "includes.h"
 
-NET_SHARE_STATE gState = {0};
-
 static
 DWORD
 MapNameToSid(
@@ -92,20 +90,20 @@ LwUtilNetShareAdd(
     DWORD dwSecDescSize = 0;
 
     dwError = ConstructSecurityDescriptor(
-        gState.dwAllowUserCount,
-        gState.ppwszAllowUsers,
-        gState.dwDenyUserCount,
-        gState.ppwszDenyUsers,
-        gState.bReadOnly && !gState.bReadWrite,
+	ShareAddInfo.dwAllowUserCount,
+	ShareAddInfo.ppwszAllowUsers,
+	ShareAddInfo.dwDenyUserCount,
+	ShareAddInfo.ppwszDenyUsers,
+	ShareAddInfo.bReadOnly && !ShareAddInfo.bReadWrite,
         &pSecDesc,
         &dwSecDescSize);
     BAIL_ON_LWUTIL_ERROR(dwError);
 
-    shareInfo.shi502_netname = ShareAddInfo.pwszShareName;
+    shareInfo.shi502_netname = ShareAddInfo.pwszShareName ? ShareAddInfo.pwszShareName : ShareAddInfo.pwszTarget;
     shareInfo.shi502_path = ShareAddInfo.pwszPath;
 
     shareInfo.shi502_type = 0; // SHARE_SERVICE_DISK_SHARE
-    shareInfo.shi502_remark = gState.pwszComment;
+    shareInfo.shi502_remark = ShareAddInfo.pwszComment;
     shareInfo.shi502_reserved = dwSecDescSize;
     shareInfo.shi502_security_descriptor = (PBYTE) pSecDesc;
 

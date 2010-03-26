@@ -54,6 +54,17 @@ typedef struct _NET_SHARE_ADD_INFO_PARAMS
 	PWSTR pwszServerName;
 	PWSTR pwszShareName;
 	PWSTR pwszPath;
+
+    DWORD dwAllowUserCount;
+    PWSTR* ppwszAllowUsers;
+    DWORD dwDenyUserCount;
+    PWSTR* ppwszDenyUsers;
+    PWSTR pwszComment;
+    PWSTR pwszTarget;
+    BOOLEAN bReadOnly;
+    BOOLEAN bReadWrite;
+    BOOLEAN bClearAllow;
+    BOOLEAN bClearDeny;
 }NET_SHARE_ADD_INFO_PARAMS, *PNET_SHARE_ADD_INFO_PARAMS;
 
 typedef struct _NET_SHARE_DEL_INFO_PARAMS
@@ -77,21 +88,5 @@ typedef struct _NET_SHARE_COMMAND_INFO {
     	NET_SHARE_DEL_INFO_PARAMS ShareDelInfo;
     };
 }NET_SHARE_COMMAND_INFO, *PNET_SHARE_COMMAND_INFO;
-
-
-typedef struct _NET_SHARE_STATE
-{
-    DWORD dwAllowUserCount;
-    PWSTR* ppwszAllowUsers;
-    DWORD dwDenyUserCount;
-    PWSTR* ppwszDenyUsers;
-    PWSTR pwszComment;
-    PWSTR pwszTarget;
-    BOOLEAN bReadOnly;
-    BOOLEAN bReadWrite;
-    BOOLEAN bClearAllow;
-    BOOLEAN bClearDeny;
-} NET_SHARE_STATE, *PNET_SHARE_STATE;
-
 
 #endif /* SHAREDEF_H_ */

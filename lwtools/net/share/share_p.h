@@ -31,7 +31,6 @@
 #ifndef SHARE_P_H_
 #define SHARE_P_H_
 
-extern NET_SHARE_STATE gState;
 
 DWORD
 LwUtilNetShareEnum(

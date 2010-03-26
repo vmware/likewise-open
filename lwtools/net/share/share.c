@@ -73,6 +73,111 @@ NetShareFreeCommandInfo(
 
 static
 DWORD
+AppendStringArray(
+    PDWORD pdwCount,
+    PWSTR** pppwszArray,
+    PWSTR pwszString
+    )
+{
+    DWORD dwError = 0;
+    PWSTR* ppwszNewArray = NULL;
+
+    dwError = LwReallocMemory(
+        *pppwszArray,
+        OUT_PPVOID(&ppwszNewArray),
+        sizeof(*ppwszNewArray) * (*pdwCount + 1));
+    BAIL_ON_LWUTIL_ERROR(dwError);
+
+    ppwszNewArray[(*pdwCount)++] = pwszString;
+
+    *pppwszArray = ppwszNewArray;
+
+error:
+
+    return dwError;
+}
+
+
+static
+DWORD
+ParseShareAddOptionArgs(
+    IN int argc,
+    IN int indexStart,
+    IN char** argv,
+    IN OUT NET_SHARE_ADD_INFO_PARAMS ShareAddParams
+    )
+{
+    DWORD dwError = 0;
+    DWORD dwIndex = 0;
+    PWSTR pwszArg = NULL;
+
+    for (dwIndex = indexStart; dwIndex < argc; dwIndex++)
+    {
+        if (!strcmp(argv[dwIndex], "--allow"))
+        {
+            dwError = LwMbsToWc16s(argv[++dwIndex], &pwszArg);
+            BAIL_ON_LWUTIL_ERROR(dwError);
+
+            dwError = AppendStringArray(
+                &ShareAddParams.dwAllowUserCount,
+                &ShareAddParams.ppwszAllowUsers,
+                pwszArg);
+            BAIL_ON_LWUTIL_ERROR(dwError);
+
+            pwszArg = NULL;
+        }
+        else if (!strcmp(argv[dwIndex], "--deny"))
+        {
+            dwError = LwMbsToWc16s(argv[++dwIndex], &pwszArg);
+            BAIL_ON_LWUTIL_ERROR(dwError);
+
+            dwError = AppendStringArray(
+                &ShareAddParams.dwDenyUserCount,
+                &ShareAddParams.ppwszDenyUsers,
+                pwszArg);
+            BAIL_ON_LWUTIL_ERROR(dwError);
+
+            pwszArg = NULL;
+        }
+        else if (!strcmp(argv[dwIndex], "--comment"))
+        {
+            dwError = LwMbsToWc16s(argv[++dwIndex], &ShareAddParams.pwszComment);
+            BAIL_ON_LWUTIL_ERROR(dwError);
+        }
+        else if (!strcmp(argv[dwIndex], "--read-only"))
+        {
+		ShareAddParams.bReadOnly = TRUE;
+        }
+        else if (!strcmp(argv[dwIndex], "--read-write"))
+        {
+		ShareAddParams.bReadWrite = TRUE;
+        }
+        else if (!strcmp(argv[dwIndex], "--clear-allow"))
+        {
+		ShareAddParams.bClearAllow = TRUE;
+        }
+        else if (!strcmp(argv[dwIndex], "--clear-deny"))
+        {
+		ShareAddParams.bClearDeny = TRUE;
+        }
+        else
+        {
+            dwError = LwMbsToWc16s(argv[dwIndex], &ShareAddParams.pwszTarget);
+            BAIL_ON_LWUTIL_ERROR(dwError);
+            break;
+        }
+    }
+
+error:
+
+    LW_SAFE_FREE_MEMORY(pwszArg);
+
+    return dwError;
+}
+
+
+static
+DWORD
 NetShareAddParseArguments(
 	int argc,
 	char** argv,
@@ -136,7 +241,9 @@ NetShareAddParseArguments(
     dwError = LwMbsToWc16s(pszShareName, &pCommandInfo->ShareAddInfo.pwszShareName);
     BAIL_ON_LWUTIL_ERROR(dwError);
 
-    //Todo: process add options
+    // Process add options
+    dwError = ParseShareAddOptionArgs(argc, ++indexShareAddArg, argv, pCommandInfo->ShareAddInfo);
+    BAIL_ON_LWUTIL_ERROR(dwError);
 
 cleanup:
     LW_SAFE_FREE_STRING(pszShareName);
