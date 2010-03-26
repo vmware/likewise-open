@@ -28,19 +28,37 @@
  *
  */
 
-#include <config.h>
+typedef DWORD NET_FILE_CTRL_CODE;
 
-#include <lwtoolsystem.h>
+#define NET_FILE_UNKNOWN 0
+#define NET_FILE_HELP  1
+#define NET_FILE_CLOSE 2
+#define NET_FILE_ENUM  3
 
-#include <lw/errno.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwsecurityidentifier.h>
-#include <lwtools.h>
+#define NET_FILE_COMMAND_HELP  "HELP"
+#define NET_FILE_COMMAND_CLOSE "CLOSE"
 
-#include <netfile.h>
-#include <netsession.h>
-#include <netshare.h>
+#define NET_FILE_NAME_TITLE "File name"
 
-#include "driverdef.h"
-#include "../common/lwnetutils.h"
+typedef struct _NET_FILE_CLOSE_INFO_PARAMS
+{
+    PWSTR pwszServerName;
+    DWORD dwFileId;
+} NET_FILE_CLOSE_INFO_PARAMS, *PNET_FILE_CLOSE_INFO_PARAMS;
+
+typedef struct _NET_FILE_ENUM_INFO_PARAMS
+{
+    PWSTR pwszServerName;
+} NET_FILE_ENUM_INFO_PARAMS, *PNET_FILE_ENUM_INFO_PARAMS;
+
+typedef struct _NET_FILE_COMMAND_INFO
+{
+    NET_FILE_CTRL_CODE dwControlCode;
+
+    union
+    {
+        NET_FILE_ENUM_INFO_PARAMS FileEnumInfo;
+        NET_FILE_CLOSE_INFO_PARAMS FileCloseInfo;
+    };
+} NET_FILE_COMMAND_INFO, *PNET_FILE_COMMAND_INFO;
+

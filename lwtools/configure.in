@@ -301,6 +301,8 @@ AC_CONFIG_FILES([Makefile
                  net/Makefile
                  net/common/Makefile
                  net/driver/Makefile
+                 net/file/Makefile
+                 net/session/Makefile
                  net/share/Makefile])
 
 AC_OUTPUT

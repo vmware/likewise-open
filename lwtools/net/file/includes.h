@@ -33,14 +33,20 @@
 #include <lwtoolsystem.h>
 
 #include <lw/errno.h>
+#include <lw/security-types.h>
+#include <lw/security-api.h>
+#include <lw/rtlstring.h>
+#include <lw/rtlmemory.h>
+#include <lwerror.h>
 #include <lwmem.h>
 #include <lwstr.h>
 #include <lwsecurityidentifier.h>
 #include <lwtools.h>
 
-#include <netfile.h>
-#include <netsession.h>
-#include <netshare.h>
+#include <lw/lm.h>
+#include <lwio/lmfile.h>
+#include <lwio/io-types.h>
+#include <lsa/lsa.h>
 
-#include "driverdef.h"
+#include "structs.h"
 #include "../common/lwnetutils.h"

@@ -28,19 +28,28 @@
  *
  */
 
-#include <config.h>
+#ifndef __NETSESSION_H__
+#define __NETSESSION_H__
 
-#include <lwtoolsystem.h>
+DWORD
+NetSessionInitialize(
+    VOID
+    );
 
-#include <lw/errno.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwsecurityidentifier.h>
-#include <lwtools.h>
+DWORD
+NetSession(
+    int argc,
+    char ** argv
+    );
 
-#include <netfile.h>
-#include <netsession.h>
-#include <netshare.h>
+DWORD
+NetSessionShutdown(
+    VOID
+    );
 
-#include "driverdef.h"
-#include "../common/lwnetutils.h"
+VOID
+NetSessionShowUsage(
+	VOID
+	);
+
+#endif /* __NETSESSION_H__ */

@@ -28,19 +28,37 @@
  *
  */
 
-#include <config.h>
+typedef DWORD NET_SESSION_CTRL_CODE;
 
-#include <lwtoolsystem.h>
+#define NET_SESSION_UNKNOWN 0
+#define NET_SESSION_HELP 1
+#define NET_SESSION_DEL  2
+#define NET_SESSION_ENUM 3
 
-#include <lw/errno.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwsecurityidentifier.h>
-#include <lwtools.h>
+#define NET_SESSION_COMMAND_HELP "HELP"
+#define NET_SESSION_COMMAND_DEL "DEL"
 
-#include <netfile.h>
-#include <netsession.h>
-#include <netshare.h>
+#define NET_SESSION_NAME_TITLE "Session name"
 
-#include "driverdef.h"
-#include "../common/lwnetutils.h"
+typedef struct _NET_SESSION_DEL_INFO_PARAMS
+{
+    PWSTR pwszServerName;
+    PWSTR pwszSessionName;
+} NET_SESSION_DEL_INFO_PARAMS, *PNET_SESSION_DEL_INFO_PARAMS;
+
+typedef struct _NET_SESSION_ENUM_INFO_PARAMS
+{
+    PWSTR pwszServerName;
+} NET_SESSION_ENUM_INFO_PARAMS, *PNET_SESSION_ENUM_INFO_PARAMS;
+
+typedef struct _NET_SESSION_COMMAND_INFO
+{
+    NET_SESSION_CTRL_CODE dwControlCode;
+
+    union
+    {
+        NET_SESSION_ENUM_INFO_PARAMS SessionEnumInfo;
+        NET_SESSION_DEL_INFO_PARAMS SessionDelInfo;
+    };
+} NET_SESSION_COMMAND_INFO, *PNET_SESSION_COMMAND_INFO;
+

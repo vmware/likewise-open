@@ -55,6 +55,7 @@
 #define NET_COMMAND_VIEW 5
 #define NET_COMMAND_LOCALGROUP 6
 #define NET_COMMAND_TIME 7
+#define NET_COMMAND_FILE 8
 
 #define NET_COMMAND_HELP_NAME "HELP"
 #define NET_COMMAND_SHARE_NAME "SHARE"
@@ -63,6 +64,7 @@
 #define NET_COMMAND_VIEW_NAME "VIEW"
 #define NET_COMMAND_LOCALGROUP_NAME "LOCALGROUP"
 #define NET_COMMAND_TIME_NAME "TIME"
+#define NET_COMMAND_FILE_NAME "FILE"
 
 
 static
@@ -73,6 +75,8 @@ NetShowUsage(
 {
     printf(
         "lwnet commands available: \n"
+        "       lwnet file \n"
+        "       lwnet session \n"
         "       lwnet share \n");
 
     printf("\n"
@@ -88,7 +92,7 @@ NetCommandShow(
 {
     printf(
         "The syntax of lwnet command is: \n"
-        "       lwnet [ share | use ]\n");
+        "       lwnet [ file | session | share | use ]\n");
 }
 
 static
@@ -103,7 +107,7 @@ NetShowCommandUsage(
 	}
 	else if (!strcasecmp(param, NET_COMMAND_SESSION_NAME))
 	{
-		//NetSessionShowUsage();
+		NetSessionShowUsage();
 	}
 	else if (!strcasecmp(param, NET_COMMAND_USER_NAME))
 	{
@@ -120,6 +124,10 @@ NetShowCommandUsage(
 	else if (!strcasecmp(param, NET_COMMAND_TIME_NAME))
 	{
 		//NetTimeShowUsage();
+	}
+	else if (!strcasecmp(param, NET_COMMAND_FILE_NAME))
+	{
+		NetFileShowUsage();
 	}
 	else
 	{
@@ -165,6 +173,10 @@ NetMapSubCommand(
 	else if (!strcasecmp(param, NET_COMMAND_TIME_NAME))
 	{
 		dwSubCommand = NET_COMMAND_TIME;
+	}
+	else if (!strcasecmp(param, NET_COMMAND_FILE_NAME))
+	{
+		dwSubCommand = NET_COMMAND_FILE;
 	}
 
 	*pdwSubCommand = dwSubCommand;
@@ -231,8 +243,12 @@ main(
         	break;
 
         case NET_COMMAND_TIME:
-        	printf("net time\n");
-        	break;
+		printf("net time\n");
+		break;
+
+        case NET_COMMAND_FILE:
+		printf("net file\n");
+		break;
 
         case NET_COMMAND_UNKNOWN:
         default:

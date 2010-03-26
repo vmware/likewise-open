@@ -28,19 +28,28 @@
  *
  */
 
-#include <config.h>
+#ifndef __NETFILE_H__
+#define __NETFILE_H__
 
-#include <lwtoolsystem.h>
+DWORD
+NetFileInitialize(
+    VOID
+    );
 
-#include <lw/errno.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwsecurityidentifier.h>
-#include <lwtools.h>
+DWORD
+NetFile(
+    int argc,
+    char ** argv
+    );
 
-#include <netfile.h>
-#include <netsession.h>
-#include <netshare.h>
+DWORD
+NetFileShutdown(
+    VOID
+    );
 
-#include "driverdef.h"
-#include "../common/lwnetutils.h"
+VOID
+NetFileShowUsage(
+	VOID
+	);
+
+#endif /* __NETFILE_H__ */

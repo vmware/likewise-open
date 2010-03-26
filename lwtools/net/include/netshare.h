@@ -28,8 +28,8 @@
  *
  */
 
-#ifndef SHARE_H_
-#define SHARE_H_
+#ifndef __NETSHARE_H__
+#define __NETSHARE_H__
 
 DWORD
 NetShareInitialize(
@@ -52,4 +52,4 @@ NetShareShowUsage(
 	VOID
 	);
 
-#endif /* SHARE_H_ */
+#endif /* __NETSHARE_H__ */
