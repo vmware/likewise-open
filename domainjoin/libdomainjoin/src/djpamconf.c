@@ -3675,6 +3675,16 @@ static QueryResult QueryPam(const JoinProcessOptions *options, LWException **exc
 
     if(!options->joiningDomain)
     {
+        if (distro.os == OS_SUNOS)
+        {
+            // The "pam_lsass.so set_default_repository" line is necessary when
+            // lsass appears in nsswitch.conf for password changes to continue
+            // working.
+            DJ_LOG_INFO("Pam cannot be deconfigured without deconfiguring nsswitch on Solaris.");
+            result = FullyConfigured;
+            goto cleanup;
+        }
+
         LW_TRY(exc, DJUpdatePamConf(NULL, &conf, NULL, NULL, options->joiningDomain,
                 &LW_EXC));
         if(conf.modified)
