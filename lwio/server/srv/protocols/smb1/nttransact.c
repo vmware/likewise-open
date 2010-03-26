@@ -1581,7 +1581,7 @@ SrvProcessChangeNotifyCompletion(
                     &pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ullNotifyId = SrvNotifyGetId(
+    ullNotifyId = SrvAsyncStateBuildId(
                     SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
                     pSmbRequest->pHeader->mid);
 

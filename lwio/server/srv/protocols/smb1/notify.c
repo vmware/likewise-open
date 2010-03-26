@@ -96,7 +96,7 @@ SrvNotifyCreateState(
     pthread_mutex_init(&pNotifyState->mutex, NULL);
     pNotifyState->pMutex = &pNotifyState->mutex;
 
-    pNotifyState->ullNotifyId = SrvNotifyGetId(ulPid, usMid);
+    pNotifyState->ullNotifyId = SrvAsyncStateBuildId(ulPid, usMid);
 
     pNotifyState->pConnection = SrvConnectionAcquire(pConnection);
 
@@ -139,15 +139,6 @@ error:
     }
 
     goto cleanup;
-}
-
-ULONG64
-SrvNotifyGetId(
-    ULONG  ulPid,
-    USHORT usMid
-    )
-{
-    return (((ULONG64)ulPid) << 32) | ((ULONG64)usMid);
 }
 
 VOID
