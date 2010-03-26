@@ -28,12 +28,6 @@
  * license@likewisesoftware.com
  */
 
-/*
- * Abstract: Lsa interface (rpc client library)
- *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
- */
-
 #include <stdlib.h>
 #include <stddef.h>
 #include <iconv.h>
@@ -47,6 +41,7 @@
 #include <wc16str.h>
 #include <lw/ntstatus.h>
 #include <lw/winerror.h>
+#include <lwbuffer.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/dssetup.h>

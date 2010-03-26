@@ -50,8 +50,8 @@
 
 
 typedef struct ds_role_primary_domain_info {
-    UINT32 uiRole;
-    UINT32 uiFlags;
+    DWORD   dwRole;
+    DWORD   dwFlags;
 #ifdef _DCE_IDL_
     [string]
 #endif
@@ -77,8 +77,8 @@ typedef struct ds_role_primary_domain_info {
 #define DS_ROLE_PREVIOUS_BACKUP                (2)
 
 typedef struct ds_role_upgrade_status {
-    UINT16 uiUpgradeStatus;
-    UINT32 uiPrevious;
+    WORD   swUpgradeStatus;
+    DWORD  dwPrevious;
 } DsRoleUpgradeStatus, DS_ROLE_UPGRADE_STATUS, *PDS_ROLE_UPGRADE_STATUS;
 
 
@@ -87,7 +87,7 @@ typedef struct ds_role_upgrade_status {
 #define DS_ROLE_NEEDS_REBOOT                   (2)
 
 typedef struct ds_role_op_status {
-    UINT32 uiStatus;
+    WORD  swStatus;
 } DsRoleOpStatus, DS_ROLE_OP_STATUS, *PDS_ROLE_OP_STATUS;
 
 

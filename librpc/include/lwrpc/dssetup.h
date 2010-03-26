@@ -70,7 +70,7 @@ DsrDestroyMemory(
 
 VOID
 DsrFreeMemory(
-    IN OUT PVOID pBuffer
+    IN OUT PVOID pPtr
     );
 
 

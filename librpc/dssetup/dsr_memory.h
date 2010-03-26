@@ -29,33 +29,96 @@
  */
 
 /*
- * Abstract: Dsr memory (de)allocation routines (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        dsr_memory.h
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        DsSetup rpc memory management functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #ifndef _DSR_MEMORY_H_
 #define _DSR_MEMORY_H_
 
 
-NTSTATUS
-DsrAllocateMemory(
-    OUT PVOID *ppOutBuffer,
-    IN  size_t Size,
-    IN  PVOID pDependent
-    );
+#define LWBUF_ALLOC_WORD(buffer, val)                           \
+    dwError = LwBufferAllocWord((buffer),                       \
+                                 pdwOffset,                     \
+                                 pdwSpaceLeft,                  \
+                                 (val),                         \
+                                 pdwSize);                      \
+    BAIL_ON_WIN_ERROR(dwError)
+
+#define LWBUF_ALLOC_DWORD(buffer, val)                          \
+    dwError = LwBufferAllocDword((buffer),                      \
+                                 pdwOffset,                     \
+                                 pdwSpaceLeft,                  \
+                                 (val),                         \
+                                 pdwSize);                      \
+    BAIL_ON_WIN_ERROR(dwError)
+
+#define LWBUF_ALLOC_PWSTR(buffer, val)                          \
+    dwError = LwBufferAllocWC16String((buffer),                 \
+                                      pdwOffset,                \
+                                      pdwSpaceLeft,             \
+                                      (val),                    \
+                                      pdwSize);                 \
+    BAIL_ON_WIN_ERROR(dwError)
+
+#define LWBUF_ALLOC_BLOB(buffer, size, ptr)                     \
+    dwError = LwBufferAllocFixedBlob((buffer),                  \
+                                     pdwOffset,                 \
+                                     pdwSpaceLeft,              \
+                                     (ptr),                     \
+                                     (size),                    \
+                                     pdwSize);                  \
+    BAIL_ON_WIN_ERROR(dwError)
+
+
+#define LWBUF_ALIGN_TYPE(offset_ptr, size_ptr, space_ptr, type)     \
+    {                                                               \
+        DWORD dwAlign = (*(offset_ptr)) % sizeof(type);             \
+                                                                    \
+        dwAlign   = (dwAlign) ? (sizeof(type) - dwAlign) : 0;       \
+        if ((size_ptr))                                             \
+        {                                                           \
+            (*(size_ptr)) += dwAlign;                               \
+        }                                                           \
+                                                                    \
+        (*(offset_ptr)) += dwAlign;                                 \
+                                                                    \
+        if (space_ptr)                                              \
+        {                                                           \
+            (*(space_ptr)) -= dwAlign;                              \
+        }                                                           \
+    }
+
+#define LWBUF_ALIGN(offset_ptr, size_ptr, space_ptr)                \
+    LWBUF_ALIGN_TYPE(offset_ptr, size_ptr, space_ptr, PVOID)
+
 
 NTSTATUS
-DsrAddDepMemory(
-    IN PVOID pBuffer,
-    IN PVOID pDependent
+DsrAllocateMemory(
+    OUT PVOID *ppOut,
+    IN  size_t sSize
     );
+
 
 NTSTATUS
 DsrAllocateDsRoleInfo(
-    OUT PDS_ROLE_INFO *ppOut,
-    IN  PDS_ROLE_INFO pIn,
-    IN  UINT16 uiLevel
+    OUT PDS_ROLE_INFO   pOut,
+    IN OUT PDWORD       pdwOffset,
+    IN OUT PDWORD       pdwSpaceLeft,
+    IN  PDS_ROLE_INFO   pIn,
+    IN  WORD            swLevel,
+    IN OUT PDWORD       dwSize
     );
 
 

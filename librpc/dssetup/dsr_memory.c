@@ -29,20 +29,23 @@
  */
 
 /*
- * Abstract: Dsr memory (de)allocation routines (rpc client library)
+ * Copyright (C) Likewise Software. All rights reserved.
  *
- * Authors: Rafal Szczesniak (rafal@likewisesoftware.com)
+ * Module Name:
+ *
+ *        dsr_memory.c
+ *
+ * Abstract:
+ *
+ *        Remote Procedure Call (RPC) Client Interface
+ *
+ *        DsSetup rpc memory management functions
+ *
+ * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
 #include "includes.h"
 
-/* File globals */
-
-static PVOID gpDsrMemoryList = NULL;
-static pthread_mutex_t gDsrDataMutex = PTHREAD_MUTEX_INITIALIZER;
-static BOOLEAN bDsrInitialised = FALSE;
-
-/* Code */
 
 NTSTATUS
 DsrInitMemory(
@@ -50,25 +53,7 @@ DsrInitMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-
-    LIBRPC_LOCK_MUTEX(bLocked, &gDsrDataMutex);
-
-    if (!bDsrInitialised)
-    {
-        ntStatus = MemPtrListInit((PtrList**)&gpDsrMemoryList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bDsrInitialised = TRUE;
-    }
-
-cleanup:
-    LIBRPC_UNLOCK_MUTEX(bLocked, &gDsrDataMutex);
-
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 
@@ -78,176 +63,86 @@ DsrDestroyMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-
-    LIBRPC_LOCK_MUTEX(bLocked, &gDsrDataMutex);
-
-    if (bDsrInitialised && gpDsrMemoryList)
-    {
-        ntStatus = MemPtrListDestroy((PtrList**)&gpDsrMemoryList);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        bDsrInitialised = 0;
-    }
-
-cleanup:
-    LIBRPC_UNLOCK_MUTEX(bLocked, &gDsrDataMutex);
-
     return ntStatus;
-
-error:
-    goto cleanup;
 }
 
 
 NTSTATUS
 DsrAllocateMemory(
-    OUT PVOID *ppOutBuffer,
-    IN  size_t Size,
-    IN  PVOID pDependent
-    )
-{
-    return MemPtrAllocate(
-               (PtrList*)gpDsrMemoryList,
-               ppOutBuffer,
-               Size,
-               pDependent);
-}
-
-
-VOID
-DsrFreeMemory(
-    IN OUT PVOID pBuffer
-    )
-{
-    if (pBuffer == NULL)
-    {
-        return;
-    }
-
-    MemPtrFree((PtrList*)gpDsrMemoryList, pBuffer);
-}
-
-
-NTSTATUS
-DsrAddDepMemory(
-    IN PVOID pBuffer,
-    IN PVOID pDependent
-    )
-{
-    return MemPtrAddDependant(
-               (PtrList*)gpDsrMemoryList,
-               pBuffer,
-               pDependent);
-}
-
-
-static
-NTSTATUS
-DsrAllocateDsRoleInfoBasic(
-    OUT PDS_ROLE_PRIMARY_DOMAIN_INFO_BASIC pOut,
-    IN  PDS_ROLE_PRIMARY_DOMAIN_INFO_BASIC pIn,
-    IN  PVOID pDependent
+    OUT PVOID *ppOut,
+    IN  size_t sSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    DWORD dwDomainLen = 0;
-    DWORD dwDnsDomainLen = 0;
-    DWORD dwForestLen = 0;
+    PVOID pMem = NULL;
 
-    pOut->uiRole  = pIn->uiRole;
-    pOut->uiFlags = pIn->uiFlags;
-
-    if (pIn->pwszDomain)
+    pMem = malloc(sSize);
+    if (pMem == NULL)
     {
-        dwDomainLen = RtlWC16StringNumChars(pIn->pwszDomain);
-
-        ntStatus = DsrAllocateMemory(
-                       (PVOID*)&pOut->pwszDomain,
-                       (dwDomainLen + 1) * sizeof(WCHAR),
-                       pDependent);
+        ntStatus = STATUS_NO_MEMORY;
         BAIL_ON_NT_STATUS(ntStatus);
-
-        wc16sncpy(pOut->pwszDomain, pIn->pwszDomain, dwDomainLen);
     }
 
-    if (pIn->pwszDnsDomain)
-    {
-        dwDnsDomainLen = RtlWC16StringNumChars(pIn->pwszDnsDomain);
-
-        ntStatus = DsrAllocateMemory(
-                       (PVOID*)&pOut->pwszDnsDomain,
-                       (dwDnsDomainLen + 1) * sizeof(WCHAR),
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        wc16sncpy(pOut->pwszDnsDomain, pIn->pwszDnsDomain, dwDnsDomainLen);
-    }
-
-    if (pIn->pwszForest)
-    {
-        dwForestLen = RtlWC16StringNumChars(pIn->pwszForest);
-
-        ntStatus = DsrAllocateMemory(
-                       (PVOID*)&pOut->pwszForest,
-                       (dwForestLen + 1) * sizeof(WCHAR),
-                       pDependent);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        wc16sncpy(pOut->pwszForest, pIn->pwszForest, dwForestLen);
-    }
-
-    memcpy(&pOut->DomainGuid,
-           &pIn->DomainGuid,
-           sizeof(pOut->DomainGuid));
+    memset(pMem, 0, sSize);
+    *ppOut = pMem;
 
 cleanup:
     return ntStatus;
 
 error:
+    *ppOut = NULL;
     goto cleanup;
+}
+
+
+VOID
+DsrFreeMemory(
+    IN OUT PVOID pPtr
+    )
+{
+    free(pPtr);
 }
 
 
 NTSTATUS
 DsrAllocateDsRoleInfo(
-    OUT PDS_ROLE_INFO *ppOut,
-    IN  PDS_ROLE_INFO pIn,
-    IN  UINT16 uiLevel
+    OUT PDS_ROLE_INFO   pOut,
+    IN OUT PDWORD       pdwOffset,
+    IN OUT PDWORD       pdwSpaceLeft,
+    IN  PDS_ROLE_INFO   pIn,
+    IN  WORD            swLevel,
+    IN OUT PDWORD       pdwSize
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PDS_ROLE_INFO pInfo = NULL;
+    DWORD dwError = ERROR_SUCCESS;
+    PVOID pBuffer = pOut;
 
-    BAIL_ON_NULL_PTR(ppOut, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwOffset, ntStatus);
+    BAIL_ON_INVALID_PTR(pIn, ntStatus);
+    BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
-    ntStatus = DsrAllocateMemory(
-                   (PVOID*)&pInfo,
-                   sizeof(*pInfo),
-                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pIn == NULL)
-    {
-        goto cleanup;
-    }
-
-    switch(uiLevel)
+    switch(swLevel)
     {
     case DS_ROLE_BASIC_INFORMATION:
-        ntStatus = DsrAllocateDsRoleInfoBasic(
-                       &pInfo->basic,
-                       &pIn->basic,
-                       pInfo);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->basic.dwRole);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->basic.dwFlags);
+        LWBUF_ALLOC_PWSTR(pBuffer, pIn->basic.pwszDomain);
+        LWBUF_ALLOC_PWSTR(pBuffer, pIn->basic.pwszDnsDomain);
+        LWBUF_ALLOC_PWSTR(pBuffer, pIn->basic.pwszForest);
+        LWBUF_ALLOC_BLOB(pBuffer,
+                         sizeof(pIn->basic.DomainGuid),
+                         &pIn->basic.DomainGuid);
         break;
 
     case DS_ROLE_UPGRADE_STATUS:
-        pInfo->upgrade.uiUpgradeStatus = pIn->upgrade.uiUpgradeStatus;
-        pInfo->upgrade.uiPrevious      = pIn->upgrade.uiPrevious;
+        LWBUF_ALLOC_WORD(pBuffer, pIn->upgrade.swUpgradeStatus);
+        LWBUF_ALIGN_TYPE(pdwOffset, pdwSize, pdwSpaceLeft, DWORD);
+        LWBUF_ALLOC_DWORD(pBuffer, pIn->upgrade.dwPrevious);
         break;
 
     case DS_ROLE_OP_STATUS:
-        pInfo->opstatus.uiStatus = pIn->opstatus.uiStatus;
+        LWBUF_ALLOC_WORD(pBuffer, pIn->opstatus.swStatus);
         break;
 
     default:
@@ -257,17 +152,10 @@ DsrAllocateDsRoleInfo(
 
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *ppOut = pInfo;
-    pInfo = NULL;
-
 cleanup:
     return ntStatus;
 
 error:
-    DsrFreeMemory(pInfo);
-
-    *ppOut = NULL;
-
     goto cleanup;
 }
 
