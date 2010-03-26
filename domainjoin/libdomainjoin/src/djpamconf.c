@@ -1531,6 +1531,12 @@ static BOOLEAN PamModuleUnderstandsTryFirstPass( const char * phase, const char 
     if(!strcmp(buffer, "pam_unix") && CTStrStartsWith(moduleBasename, "lib"))
         return FALSE;
 
+    /* pam_unix2 on OpenSuse 11, and SLES 9.x is known to not support this
+     * option. The man page also says it is not supported. No distros that use
+     * pam_unix2 are currently known to suport it. */
+    if (!strcmp(buffer, "pam_unix2"))
+        return FALSE;
+
     return TRUE;
 }
 
