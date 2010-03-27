@@ -890,6 +890,19 @@ RegCStringAllocateFromWC16String(
     );
 
 DWORD
+RegWC16StringAllocatePrintfW(
+    LW_OUT LW_PWSTR* ppszString,
+    LW_IN const wchar_t* pszFormat,
+    LW_IN ...
+    );
+
+DWORD
+RegWC16StringDuplicate(
+    PWSTR* ppwszNewString,
+    PCWSTR pwszOriginalString
+    );
+
+DWORD
 RegCStringAllocatePrintf(
     OUT PSTR* ppszString,
     IN PCSTR pszFormat,

@@ -52,6 +52,7 @@ ProcessSubKeys(
     HANDLE hReg,
     FILE* fp,
     HKEY hKey,
+    PSTR pszFullKeyName,
     DWORD dwNumSubKeys,
     DWORD dwMaxSubKeyLen
     );
@@ -488,7 +489,7 @@ ProcessExportedKeyInfo(
     IN HANDLE hReg,
     IN FILE* fp,
     IN HKEY hKey,
-    IN PSTR pszKeyName,
+    IN PSTR pszFullKeyName,
     IN OUT PREG_DATA_TYPE pPrevType
     )
 {
@@ -503,7 +504,7 @@ ProcessExportedKeyInfo(
 
     dwError = PrintToRegFile(
                           fp,
-                          pszKeyName,
+                          pszFullKeyName,
                           REG_KEY,
                           NULL,
                           REG_KEY,
@@ -553,7 +554,7 @@ ProcessExportedKeyInfo(
 
        dwError = PrintToRegFile(
                       fp,
-                      pszKeyName,
+                      pszFullKeyName,
                       dataType,
                       valueName,
                       dataType,
@@ -580,6 +581,7 @@ ProcessSubKeys(
     HANDLE hReg,
     FILE* fp,
     HKEY hKey,
+    PSTR pszFullKeyName,
     DWORD dwNumSubKeys,
     DWORD dwMaxSubKeyLen
     )
@@ -587,28 +589,25 @@ ProcessSubKeys(
     DWORD dwError = 0;
     int iCount = 0;
     DWORD dwSubKeyLen = dwMaxSubKeyLen+1;
-    PWSTR subKey = NULL;   // buffer for subkey name
+    PWSTR pwszSubKey = NULL;   // buffer for subkey name
     PSTR pszSubKey = NULL;
+    PSTR pszFullSubKeyName = NULL;
     HKEY hSubKey = NULL;
     DWORD dwNumSubSubKeys = 0;
     DWORD dwMaxSubSubKeyLen = 0;
-    CHAR c = '\\';
-    //Do not free
-    PSTR pszSubKeyName = NULL;
-    PWSTR pSubKey = NULL;
 
     // Get the subkeys and values under this key from registry
     for (iCount = 0; iCount < dwNumSubKeys; iCount++)
     {
 	dwSubKeyLen = dwMaxSubKeyLen+1;
 
-        dwError = RegAllocateMemory(sizeof(*subKey) * dwSubKeyLen, (PVOID*)&subKey);
+        dwError = RegAllocateMemory(sizeof(*pwszSubKey) * dwSubKeyLen, (PVOID*)&pwszSubKey);
         BAIL_ON_REG_ERROR(dwError);
 
         dwError = RegEnumKeyExW((HANDLE)hReg,
                                 hKey,
                                 iCount,
-                                subKey,
+                                pwszSubKey,
                                 &dwSubKeyLen,
                                 NULL,
                                 NULL,
@@ -616,28 +615,10 @@ ProcessSubKeys(
                                 NULL);
         BAIL_ON_REG_ERROR(dwError);
 
-	dwError = RegCStringAllocateFromWC16String(&pszSubKey, subKey);
-        BAIL_ON_REG_ERROR(dwError);
-
-        LWREG_SAFE_FREE_MEMORY(subKey);
-        subKey = NULL;
-
-        pszSubKeyName = strrchr(pszSubKey, c);
-
-        if (!pszSubKeyName || LW_IS_NULL_OR_EMPTY_STR(pszSubKeyName+1))
-        {
-            continue;
-        }
-
-        //Open the subkey
-	dwError = LwRtlWC16StringAllocateFromCString(&pSubKey,
-			                                     pszSubKeyName+1);
-	BAIL_ON_REG_ERROR(dwError);
-
         dwError = RegOpenKeyExW(
             hReg,
             hKey,
-            pSubKey,
+            pwszSubKey,
             0,
             KEY_READ,
             &hSubKey);
@@ -659,11 +640,22 @@ ProcessSubKeys(
             NULL);
         BAIL_ON_REG_ERROR(dwError);
 
+        // Get the pszFullSubKeyName
+	dwError = RegCStringAllocateFromWC16String(&pszSubKey, pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+
+        dwError = RegCStringAllocatePrintf(
+                  &pszFullSubKeyName,
+                  "%s\\%s",
+                  pszFullKeyName,
+                  pszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+
         dwError = RegShellUtilExport(
                         hReg,
                         fp,
                         hSubKey,
-                        pszSubKey,
+                        pszFullSubKeyName,
                         dwNumSubSubKeys,
                         dwMaxSubSubKeyLen);
         BAIL_ON_REG_ERROR(dwError);
@@ -676,10 +668,14 @@ ProcessSubKeys(
             hSubKey = NULL;
         }
 
+        LWREG_SAFE_FREE_STRING(pszFullSubKeyName);
         LWREG_SAFE_FREE_STRING(pszSubKey);
+        LWREG_SAFE_FREE_MEMORY(pwszSubKey);
         dwNumSubSubKeys = 0;
         dwMaxSubSubKeyLen = 0;
-        LWREG_SAFE_FREE_MEMORY(pSubKey);
+        pszFullSubKeyName = NULL;
+        pszSubKey = NULL;
+        pwszSubKey = NULL;
     }
 
 cleanup:
@@ -689,10 +685,10 @@ cleanup:
         hSubKey = NULL;
     }
 
+    LWREG_SAFE_FREE_STRING(pszFullSubKeyName);
     LWREG_SAFE_FREE_STRING(pszSubKey);
-    LWREG_SAFE_FREE_MEMORY(subKey);
+    LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     dwNumSubKeys = 0;
-    LWREG_SAFE_FREE_MEMORY(pSubKey);
 
     return dwError;
 
@@ -813,6 +809,7 @@ RegShellUtilExport(
         dwError = ProcessSubKeys(hReg,
                                  fp,
                                  hKey,
+                                 pszKeyName,
                                  dwNumSubKeys,
                                  dwMaxSubKeyLen);
         BAIL_ON_REG_ERROR(dwError);

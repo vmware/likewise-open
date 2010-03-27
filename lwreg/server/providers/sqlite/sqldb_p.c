@@ -1102,25 +1102,23 @@ RegDbSafeRecordSubKeysInfo_inlock(
     //Remove previous subKey information if there is any
     RegFreeWC16StringArray(pKeyResult->ppwszSubKeyNames, pKeyResult->dwNumCacheSubKeys);
 
-    if (!sCacheCount)
+    if (sCacheCount)
     {
-        goto cleanup;
-    }
-
-    status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppwszSubKeyNames,
+        status = LW_RTL_ALLOCATE((PVOID*)&pKeyResult->ppwszSubKeyNames,
 		                 PWSTR,
-		                 sizeof(*(pKeyResult->ppwszSubKeyNames)) * sCacheCount);
-    BAIL_ON_NT_STATUS(status);
+		                     sizeof(*(pKeyResult->ppwszSubKeyNames)) * sCacheCount);
+        BAIL_ON_NT_STATUS(status);
+    }
 
     for (iCount = 0; iCount < (DWORD)sCacheCount; iCount++)
     {
-        status = LwRtlWC16StringDuplicate(&pKeyResult->ppwszSubKeyNames[iCount],
-			                          ppRegEntries[iCount]->pwszFullKeyName);
-        BAIL_ON_NT_STATUS(status);
-
-		if (ppRegEntries[iCount]->pwszFullKeyName)
+		if (ppRegEntries[iCount]->pwszKeyName)
 		{
-			sSubKeyLen = RtlWC16StringNumChars(ppRegEntries[iCount]->pwszFullKeyName);
+			sSubKeyLen = RtlWC16StringNumChars(ppRegEntries[iCount]->pwszKeyName);
+
+	        status = LwRtlWC16StringDuplicate(&pKeyResult->ppwszSubKeyNames[iCount],
+				                      ppRegEntries[iCount]->pwszKeyName);
+	        BAIL_ON_NT_STATUS(status);
 	    }
 
 		if (pKeyResult->sMaxSubKeyLen < sSubKeyLen)
@@ -1129,14 +1127,15 @@ RegDbSafeRecordSubKeysInfo_inlock(
         sSubKeyLen = 0;
     }
 
-cleanup:
     pKeyResult->dwNumSubKeys = (DWORD)sCount;
     pKeyResult->dwNumCacheSubKeys = sCacheCount;
     pKeyResult->bHasSubKeyInfo = TRUE;
 
+cleanup:
     return status;
 
 error:
+    pKeyResult->bHasSubKeyInfo = FALSE;
     goto cleanup;
 }
 

@@ -580,6 +580,7 @@ RegShellUtilGetKeys(
     PSTR pszParentPath = NULL;
     PWSTR pwszSubKey = NULL;
     PSTR pszKeyName = NULL;
+    PWSTR pwszParentKeyName = NULL;
 
 
     if (!hReg)
@@ -620,12 +621,23 @@ RegShellUtilGetKeys(
                       KEY_READ,
                       &pFullKey);
         BAIL_ON_REG_ERROR(dwError);
+
+        dwError = RegWC16StringAllocatePrintfW(
+                        &pwszParentKeyName,
+                        L"%s\\%ws",
+                        pszRootKeyName,
+                        pwszSubKey);
+        BAIL_ON_REG_ERROR(dwError);
+
         LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     }
     else
     {
         pFullKey = pRootKey;
         pRootKey = NULL;
+
+        dwError = RegWC16StringAllocateFromCString(&pwszParentKeyName, pszRootKeyName);
+        BAIL_ON_REG_ERROR(dwError);
     }
 
     dwError = RegQueryInfoKeyA(
@@ -674,8 +686,12 @@ RegShellUtilGetKeys(
                                 NULL);
         BAIL_ON_REG_ERROR(dwError);
 
-	dwError = RegWC16StringAllocateFromCString(&subKeys[i], pszKeyName);
-	BAIL_ON_REG_ERROR(dwError);
+        dwError = RegWC16StringAllocatePrintfW(
+                        &subKeys[i],
+                        L"%ws\\%s",
+                        pwszParentKeyName,
+                        pszKeyName);
+        BAIL_ON_REG_ERROR(dwError);
 
         LWREG_SAFE_FREE_STRING(pszKeyName);
         pszKeyName = NULL;
@@ -698,6 +714,7 @@ cleanup:
     }
     LWREG_SAFE_FREE_STRING(pszParentPath);
     LWREG_SAFE_FREE_STRING(pszKeyName);
+    LWREG_SAFE_FREE_MEMORY(pwszParentKeyName);
 
     return dwError;
 

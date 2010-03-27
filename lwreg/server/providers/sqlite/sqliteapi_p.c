@@ -731,10 +731,7 @@ SqliteDeleteTreeInternal_inDblock(
     DWORD dwSubKeyCount = 0;
     LW_WCHAR psubKeyName[MAX_KEY_LENGTH];
     DWORD dwSubKeyLen = 0;
-    PSTR* ppszSubKey = NULL;
-    // Do not free
-    PSTR pszSubKeyName = NULL;
-    PWSTR pwszSubKey = NULL;
+    PWSTR* ppwszSubKey = NULL;
     PREG_KEY_HANDLE pKeyHandle = (PREG_KEY_HANDLE)hKey;
     PREG_KEY_CONTEXT pKeyCtx = NULL;
 
@@ -750,7 +747,7 @@ SqliteDeleteTreeInternal_inDblock(
 
     if (dwSubKeyCount)
     {
-        status = LW_RTL_ALLOCATE((PVOID*)&ppszSubKey, PSTR, sizeof(*ppszSubKey) * dwSubKeyCount);
+        status = LW_RTL_ALLOCATE((PVOID*)&ppwszSubKey, PWSTR, sizeof(*ppwszSubKey) * dwSubKeyCount);
         BAIL_ON_NT_STATUS(status);
     }
 
@@ -770,28 +767,22 @@ SqliteDeleteTreeInternal_inDblock(
                                   NULL);
         BAIL_ON_NT_STATUS(status);
 
-
-	status = LwRtlCStringAllocateFromWC16String(&ppszSubKey[iCount], psubKeyName);
+	status = LwRtlWC16StringDuplicate(&ppwszSubKey[iCount], psubKeyName);
         BAIL_ON_NT_STATUS(status);
     }
 
     for (iCount = 0; iCount < dwSubKeyCount; iCount++)
     {
-        pszSubKeyName = strrchr(ppszSubKey[iCount], '\\');
-
-	status = LwRtlWC16StringAllocateFromCString(&pwszSubKey,
-			                 pszSubKeyName ? pszSubKeyName+1 : ppszSubKey[iCount]);
-	BAIL_ON_NT_STATUS(status);
-
         status = SqliteOpenKeyEx_inDblock(Handle,
                                   hKey,
-                                  pwszSubKey,
+                                  ppwszSubKey[iCount],
                                   0,
                                   KEY_ALL_ACCESS,
                                   &hCurrKey);
         BAIL_ON_NT_STATUS(status);
 
-        status = SqliteDeleteTreeInternal_inDblock(Handle,
+        status = SqliteDeleteTreeInternal_inDblock(
+			                           Handle,
                                            hCurrKey);
         BAIL_ON_NT_STATUS(status);
 
@@ -801,10 +792,8 @@ SqliteDeleteTreeInternal_inDblock(
             hCurrKey = NULL;
         }
 
-        status = SqliteDeleteKey_inDblock(Handle, hKey, pwszSubKey);
+        status = SqliteDeleteKey_inDblock(Handle, hKey, ppwszSubKey[iCount]);
         BAIL_ON_NT_STATUS(status);
-
-        LWREG_SAFE_FREE_MEMORY(pwszSubKey);
     }
 
 cleanup:
@@ -812,8 +801,7 @@ cleanup:
     {
         SqliteCloseKey(hCurrKey);
     }
-    RegFreeStringArray(ppszSubKey, dwSubKeyCount);
-    LWREG_SAFE_FREE_MEMORY(pwszSubKey);
+    RegFreeWC16StringArray(ppwszSubKey, dwSubKeyCount);
 
     return status;
 

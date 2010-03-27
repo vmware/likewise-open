@@ -521,6 +521,17 @@ RegMemoryFree(
 }
 
 DWORD
+RegWC16StringDuplicate(
+    PWSTR* ppwszNewString,
+    PCWSTR pwszOriginalString
+    )
+{
+	return RegNtStatusToWin32Error(
+	        LwRtlWC16StringDuplicate(ppwszNewString, pwszOriginalString)
+	        );
+}
+
+DWORD
 RegWC16StringAllocateFromCString(
     OUT PWSTR* ppszNewString,
     IN PCSTR pszOriginalString
@@ -540,6 +551,23 @@ RegCStringAllocateFromWC16String(
 	return RegNtStatusToWin32Error(
 			LwRtlCStringAllocateFromWC16String(ppszNewString, pszOriginalString)
 			    );
+}
+
+DWORD
+RegWC16StringAllocatePrintfW(
+    LW_OUT LW_PWSTR* ppszString,
+    LW_IN const wchar_t* pszFormat,
+    LW_IN ...
+    )
+{
+    DWORD dwError = 0;
+    va_list args;
+
+    va_start(args, pszFormat);
+    dwError = RegNtStatusToWin32Error(LwRtlWC16StringAllocatePrintfWV(ppszString, pszFormat, args));
+    va_end(args);
+
+    return dwError;
 }
 
 DWORD
