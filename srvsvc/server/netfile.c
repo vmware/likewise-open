@@ -142,6 +142,7 @@ SrvSvcNetFileGetInfo(
                               .FileName = &wszDriverName[0],
                               .IoNameOptions = 0
                         };
+    IO_STATUS_BLOCK         ioStatusBlock       = {0};
     ACCESS_MASK             dwDesiredAccess     = 0;
     LONG64                  llAllocationSize    = 0;
     FILE_ATTRIBUTES         dwFileAttributes    = 0;
@@ -149,6 +150,22 @@ SrvSvcNetFileGetInfo(
     FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
     FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
     ULONG                   dwIoControlCode     = SRV_DEVCTL_GET_FILE_INFO;
+    FILE_INFO_GET_INFO_PARAMS  fileGetInfoParamsIn = {0};
+    PFILE_INFO_GET_INFO_PARAMS pFileGetInfoParamsOut = NULL;
+    PFILE_INFO pFileInfo   = NULL;
+
+    switch (dwInfoLevel)
+    {
+        case 2:
+        case 3:
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_LEVEL;
+            BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = NtCreateFile(
                     &hFile,
@@ -168,6 +185,86 @@ SrvSvcNetFileGetInfo(
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    memset(&fileGetInfoParamsIn, 0, sizeof(fileGetInfoParamsIn));
+
+    fileGetInfoParamsIn.dwFileId    = dwFileId;
+    fileGetInfoParamsIn.dwInfoLevel = dwInfoLevel;
+
+    ntStatus = LwFileInfoMarshalGetInfoParameters(
+                        &fileGetInfoParamsIn,
+                        &pInBuffer,
+                        &dwInLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = LwAllocateMemory(dwOutLength, (void**)&pOutBuffer);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    ntStatus = NtDeviceIoControlFile(
+                    hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    dwIoControlCode,
+                    pInBuffer,
+                    dwInLength,
+                    pOutBuffer,
+                    dwOutLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    while (ntStatus == STATUS_BUFFER_TOO_SMALL)
+    {
+        /* We need more space in output buffer to make this call */
+
+        LW_SAFE_FREE_MEMORY(pOutBuffer);
+        dwOutLength *= 2;
+
+        dwError = LwAllocateMemory(dwOutLength, (void**)&pOutBuffer);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        ntStatus = NtDeviceIoControlFile(
+                        hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        dwIoControlCode,
+                        pInBuffer,
+                        dwInLength,
+                        pOutBuffer,
+                        dwOutLength);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwFileInfoUnmarshalGetInfoParameters(
+                        pOutBuffer,
+                        dwOutLength,
+                        &pFileGetInfoParamsOut);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = SrvSvcSrvAllocateMemory(sizeof(*pFileInfo), (PVOID*)&pFileInfo);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    switch (pFileGetInfoParamsOut->dwInfoLevel)
+    {
+        case 2:
+
+            pInfo->info2   = &pFileInfo->info2;
+            memcpy(pInfo->info2, pFileGetInfoParamsOut->info.p2, sizeof(*pInfo->info2));
+
+            break;
+
+        case 3:
+
+            pInfo->info3   = &pFileInfo->info3;
+            memcpy(pInfo->info3, pFileGetInfoParamsOut->info.p3, sizeof(*pInfo->info3));
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_LEVEL;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
 cleanup:
 
     if (hFile)
@@ -175,13 +272,27 @@ cleanup:
         NtCloseFile(hFile);
     }
 
+    LW_SAFE_FREE_MEMORY(pInBuffer);
+    LW_SAFE_FREE_MEMORY(pOutBuffer);
+    LW_SAFE_FREE_MEMORY(pFileGetInfoParamsOut);
+
     return dwError;
 
 error:
 
+    if (pInfo)
+    {
+        memset(pInfo, 0x0, sizeof(*pInfo));
+    }
+
     if (ntStatus != STATUS_SUCCESS)
     {
         dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    if (pFileInfo)
+    {
+        SrvSvcSrvFreeMemory(pFileInfo);
     }
 
     goto cleanup;
@@ -212,6 +323,14 @@ SrvSvcNetFileClose(
     FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
     FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
     ULONG                   dwIoControlCode     = SRV_DEVCTL_CLOSE_FILE;
+    FILE_INFO_CLOSE_PARAMS  fileCloseParams =
+    {
+        .dwFileId          = dwFileId
+    };
+    PBYTE                    pInBuffer = NULL;
+    DWORD                    dwInBufferLength = 0;
+    PBYTE                    pOutBuffer = NULL;
+    DWORD                    dwOutBufferLength = 0;
 
     ntStatus = NtCreateFile(
                     &hFile,
@@ -231,12 +350,32 @@ SrvSvcNetFileClose(
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = LwFileInfoMarshalCloseParameters(
+                    &fileCloseParams,
+                    &pInBuffer,
+                    &dwInBufferLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NtDeviceIoControlFile(
+                    hFile,
+                    NULL,
+                    &IoStatusBlock,
+                    dwIoControlCode,
+                    pInBuffer,
+                    dwInBufferLength,
+                    pOutBuffer,
+                    dwOutBufferLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
 cleanup:
 
     if (hFile)
     {
         NtCloseFile(hFile);
     }
+
+    LW_SAFE_FREE_MEMORY(pInBuffer);
+    LW_SAFE_FREE_MEMORY(pOutBuffer);
 
     return dwError;
 

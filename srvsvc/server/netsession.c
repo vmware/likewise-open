@@ -144,6 +144,16 @@ SrvSvcNetSessionDel(
     FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
     FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
     ULONG                   dwIoControlCode     = SRV_DEVCTL_DELETE_SESSION;
+    SESSION_INFO_DELETE_PARAMS deleteParams =
+    {
+        .pwszServername    = pwszServername,
+        .pwszUncClientname = pwszUncClientname,
+        .pwszUncUsername   = pwszUsername
+    };
+    PBYTE                    pInBuffer = NULL;
+    DWORD                    dwInBufferLength = 0;
+    PBYTE                    pOutBuffer = NULL;
+    DWORD                    dwOutBufferLength = 0;
 
     ntStatus = NtCreateFile(
                     &hFile,
@@ -163,12 +173,32 @@ SrvSvcNetSessionDel(
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = LwSessionInfoMarshalDeleteParameters(
+                    &deleteParams,
+                    &pInBuffer,
+                    &dwInBufferLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NtDeviceIoControlFile(
+                    hFile,
+                    NULL,
+                    &IoStatusBlock,
+                    dwIoControlCode,
+                    pInBuffer,
+                    dwInBufferLength,
+                    pOutBuffer,
+                    dwOutBufferLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
 cleanup:
 
     if (hFile)
     {
         NtCloseFile(hFile);
     }
+
+    LW_SAFE_FREE_MEMORY(pInBuffer);
+    LW_SAFE_FREE_MEMORY(pOutBuffer);
 
     return dwError;
 

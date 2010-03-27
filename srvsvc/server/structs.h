@@ -49,6 +49,13 @@ typedef struct _NET_SHARE_INFO503
     PSTR pszSID;
 } NET_SHARE_INFO503, *PNET_SHARE_INFO503;
 
+typedef union __srvsvc_NetFileInfo
+{
+    FILE_INFO_2 info2;
+    FILE_INFO_3 info3;
+
+} FILE_INFO, *PFILE_INFO;
+
 typedef struct _SRVSVC_CONFIG
 {
     pthread_mutex_t mutex;

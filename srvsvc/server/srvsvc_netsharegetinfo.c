@@ -106,7 +106,7 @@ SrvSvcNetShareGetInfo(
     case 502:
         break;
     default:
-        ntStatus = STATUS_INVALID_INFO_CLASS;
+        ntStatus = STATUS_INVALID_LEVEL;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
