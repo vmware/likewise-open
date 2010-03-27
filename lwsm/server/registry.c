@@ -88,7 +88,6 @@ LwSmRegistryEnumServices(
     HKEY pParentKey = NULL;
     PWSTR* ppwszNames = NULL;
     PWSTR pwszParentPath = NULL;
-    PWSTR pwszSlash = NULL;
     DWORD i = 0;
 
     static const PSTR pszServicesKeyName = "\\Services";
@@ -139,15 +138,6 @@ LwSmRegistryEnumServices(
 
         dwError = RegEnumKeyExW(hReg, pParentKey, i, ppwszNames[i], &dwKeyLen, NULL, NULL, NULL, NULL);
         BAIL_ON_ERROR(dwError);
-
-        pwszSlash = LwSmWc16sLastChar(ppwszNames[i], (WCHAR) '\\');
-        if (pwszSlash)
-        {
-            memmove(
-                ppwszNames[i],
-                pwszSlash + 1,
-                (dwKeyLen - (pwszSlash + 1 - ppwszNames[i]) + 1) * sizeof(*pwszSlash));
-        }
     }
 
     *pppwszNames = ppwszNames;
