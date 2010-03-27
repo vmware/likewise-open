@@ -152,15 +152,14 @@ TestDsrRoleGetPrimaryDomainInformation(
             break;
 
         case DS_ROLE_UPGRADE_STATUS:
-            ASSERT_TEST((pInfo->upgrade.swUpgradeStatus >= DS_ROLE_NOT_UPGRADING &&
-                         pInfo->upgrade.swUpgradeStatus <= DS_ROLE_UPGRADING));
+            ASSERT_TEST((pInfo->upgrade.swUpgradeStatus == DS_ROLE_NOT_UPGRADING ||
+                         pInfo->upgrade.swUpgradeStatus == DS_ROLE_UPGRADING));
             ASSERT_TEST((pInfo->upgrade.dwPrevious >= DS_ROLE_PREVIOUS_UNKNOWN &&
                          pInfo->upgrade.dwPrevious <= DS_ROLE_PREVIOUS_BACKUP));
             break;
 
         case DS_ROLE_OP_STATUS:
-            ASSERT_TEST((pInfo->opstatus.swStatus >= DS_ROLE_OP_IDLE &&
-                         pInfo->opstatus.swStatus <= DS_ROLE_NEEDS_REBOOT));
+            ASSERT_TEST(pInfo->opstatus.swStatus <= DS_ROLE_NEEDS_REBOOT);
             break;
         }
 
