@@ -104,6 +104,7 @@ NetrFileEnum(
                     &dwInfoLevel2,
                     &ctr,
                     dwPrefmaxlen,
+                    &dwEntriesRead,
                     &dwTotalEntries,
                     pdwResumeHandle ? &dwResumeHandle : NULL);
     }

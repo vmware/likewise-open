@@ -58,12 +58,17 @@ SrvSvcNetFileEnum(
     DWORD              dwInfoLevel,          /* [in, out] */
     srvsvc_NetFileCtr* pInfo,                /* [in, out] */
     DWORD              dwPreferredMaxLength, /* [in]      */
+    PDWORD             pdwEntriesRead,       /* [out]     */
     PDWORD             pdwTotalEntries,      /* [out]     */
     PDWORD             pdwResumeHandle       /* [in, out] */
     )
 {
     DWORD     dwError  = 0;
     NTSTATUS  ntStatus = 0;
+    PBYTE     pInBuffer   = NULL;
+    DWORD     dwInLength  = 0;
+    PBYTE     pOutBuffer  = NULL;
+    DWORD     dwOutLength = 4096;
     wchar16_t       wszDriverName[] = SRV_DRIVER_NAME_W;
     IO_FILE_HANDLE  hFile           = NULL;
     IO_STATUS_BLOCK IoStatusBlock   = { 0 };
@@ -73,6 +78,7 @@ SrvSvcNetFileEnum(
                               .FileName = &wszDriverName[0],
                               .IoNameOptions = 0
                         };
+    IO_STATUS_BLOCK         ioStatusBlock       = {0};
     ACCESS_MASK             dwDesiredAccess     = 0;
     LONG64                  llAllocationSize    = 0;
     FILE_ATTRIBUTES         dwFileAttributes    = 0;
@@ -80,6 +86,26 @@ SrvSvcNetFileEnum(
     FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
     FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
     ULONG                   dwIoControlCode     = SRV_DEVCTL_ENUM_FILES;
+    FILE_INFO_ENUM_PARAMS   fileEnumParamsIn    =
+    {
+            .pwszBasepath    = pwszBasepath,
+            .pwszUsername    = pwszUsername,
+            .dwInfoLevel     = dwInfoLevel,
+            .dwNumEntries    = dwPreferredMaxLength,
+            .dwTotalEntries  = 0,
+            .pdwResumeHandle = pdwResumeHandle ? pdwResumeHandle : NULL,
+            .info            = {0}
+    };
+    PFILE_INFO_ENUM_PARAMS  pFileEnumParamsOut = NULL;
+    srvsvc_NetFileCtr2*     ctr2 = NULL;
+    srvsvc_NetFileCtr3*     ctr3 = NULL;
+    BOOLEAN                 bMoreDataAvailable = FALSE;
+
+    ntStatus = LwFileInfoMarshalEnumParameters(
+                            &fileEnumParamsIn,
+                            &pInBuffer,
+                            &dwInLength);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NtCreateFile(
                     &hFile,
@@ -99,6 +125,119 @@ SrvSvcNetFileEnum(
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    dwError = LwAllocateMemory(dwOutLength, (void**)&pOutBuffer);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    ntStatus = NtDeviceIoControlFile(
+                    hFile,
+                    NULL,
+                    &ioStatusBlock,
+                    dwIoControlCode,
+                    pInBuffer,
+                    dwInLength,
+                    pOutBuffer,
+                    dwOutLength);
+
+    while (ntStatus == STATUS_BUFFER_TOO_SMALL)
+    {
+        /* We need more space in output buffer to make this call */
+
+        LW_SAFE_FREE_MEMORY(pOutBuffer);
+        dwOutLength *= 2;
+
+        dwError = LwAllocateMemory(dwOutLength, (void**)&pOutBuffer);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        ntStatus = NtDeviceIoControlFile(
+                        hFile,
+                        NULL,
+                        &ioStatusBlock,
+                        dwIoControlCode,
+                        pInBuffer,
+                        dwInLength,
+                        pOutBuffer,
+                        dwOutLength);
+    }
+    switch (ntStatus)
+    {
+        case STATUS_MORE_ENTRIES:
+
+            bMoreDataAvailable = TRUE;
+
+            // intentional fall through
+
+        case STATUS_SUCCESS:
+
+            ntStatus = LwFileInfoUnmarshalEnumParameters(
+                                    pOutBuffer,
+                                    dwOutLength,
+                                    &pFileEnumParamsOut);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            switch (pFileEnumParamsOut->dwInfoLevel)
+            {
+                case 2:
+
+                    ctr2 = pInfo->ctr2;
+                    ctr2->count = pFileEnumParamsOut->dwNumEntries;
+
+                    dwError = SrvSvcSrvAllocateMemory(
+                                        sizeof(*ctr2->array) * ctr2->count,
+                                        (void**)&ctr2->array);
+                    BAIL_ON_SRVSVC_ERROR(dwError);
+
+                    memcpy(
+                        (void*)ctr2->array,
+                        (void*)pFileEnumParamsOut->info.p2,
+                           sizeof(*ctr2->array) * ctr2->count);
+
+                    break;
+
+                case 3:
+
+                    ctr3 = pInfo->ctr3;
+                    ctr3->count = pFileEnumParamsOut->dwNumEntries;
+
+                    dwError = SrvSvcSrvAllocateMemory(
+                                        sizeof(*ctr3->array) * ctr3->count,
+                                        (void**)&ctr3->array);
+                    BAIL_ON_SRVSVC_ERROR(dwError);
+
+                    memcpy(
+                        (void*)ctr3->array,
+                        (void*)pFileEnumParamsOut->info.p3,
+                        sizeof(*ctr3->array) * ctr2->count);
+
+                    break;
+
+                default:
+
+                    ntStatus = STATUS_NOT_SUPPORTED;
+                    break;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+
+        default:
+
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
+    *pdwEntriesRead  = pFileEnumParamsOut->dwNumEntries;
+    *pdwTotalEntries = pFileEnumParamsOut->dwTotalEntries;
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = *pFileEnumParamsOut->pdwResumeHandle;
+    }
+
+    if (bMoreDataAvailable)
+    {
+        dwError = ERROR_MORE_DATA;
+    }
+
 cleanup:
 
     if (hFile)
@@ -106,13 +245,59 @@ cleanup:
         NtCloseFile(hFile);
     }
 
+    LW_SAFE_FREE_MEMORY(pInBuffer);
+    LW_SAFE_FREE_MEMORY(pOutBuffer);
+    LW_SAFE_FREE_MEMORY(pFileEnumParamsOut);
+
     return dwError;
 
 error:
 
+    if (pFileEnumParamsOut && pInfo)
+    {
+        switch (pFileEnumParamsOut->dwInfoLevel)
+        {
+            case 2:
+
+                if (ctr2 && ctr2->array)
+                {
+                    SrvSvcSrvFreeMemory(ctr2->array);
+                }
+                break;
+
+            case 3:
+
+                if (ctr3 && ctr3->array)
+                {
+                    SrvSvcSrvFreeMemory(ctr3->array);
+                }
+                break;
+
+            default:
+
+                SRVSVC_LOG_ERROR("Unsupported info level [%u]",
+                                 pFileEnumParamsOut->dwInfoLevel);
+                break;
+        }
+    }
+
     if (ntStatus != STATUS_SUCCESS)
     {
         dwError = LwNtStatusToWin32Error(ntStatus);
+    }
+
+    if (pInfo)
+    {
+        memset(pInfo, 0, sizeof(*pInfo));
+    }
+
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
+    }
+    if (pdwTotalEntries)
+    {
+        *pdwTotalEntries = 0;
     }
 
     goto cleanup;
