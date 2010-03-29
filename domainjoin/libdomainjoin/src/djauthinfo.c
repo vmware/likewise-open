@@ -571,63 +571,6 @@ RemoveCacheFiles()
         }
     }
 
-    /* Revert login.defs */
-    ceError = CTCheckFileExists("/etc/login.defs.lwidentity.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/login.defs.lwidentity.orig file to /etc/login.defs");
-        ceError = CTMoveFile("/etc/login.defs.lwidentity.orig", "/etc/login.defs");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-#if defined (__LWI_SOLARIS__)
-    /*Revert shadow file -- only for Solaris*/
-    ceError = CTCheckFileExists("/etc/shadow.lwidentity.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/shadow.lwidentity.orig file to /etc/shadow");
-        ceError = CTMoveFile("/etc/shadow.lwidentity.orig", "/etc/shadow");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    ceError = CTCheckFileExists("/etc/default/passwd.lwidentity.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/default/passwd.lwidentity.orig file to /etc/default/passwd");
-        ceError = CTMoveFile("/etc/default/passwd.lwidentity.orig", "/etc/default/passwd");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-#endif
-
-#if defined (__LWI_AIX__)
-    /*Revert /etc/passwd and /etc/security/user -- only for AIX*/
-    ceError = CTCheckFileExists("/etc/security/user.lwidentity.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/security/user.lwidentity.orig file to /etc/security/user");
-        ceError = CTMoveFile("/etc/security/user.lwidentity.orig", "/etc/security/user");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-
-    ceError = CTCheckFileExists("/etc/security/passwd.lwidentity.orig", &bFileExists);
-    BAIL_ON_CENTERIS_ERROR(ceError);
-
-    if (bFileExists)
-    {
-        DJ_LOG_VERBOSE("Restoring /etc/security/passwd.lwidentity.orig file to /etc/security/passwd");
-        ceError = CTMoveFile("/etc/security/passwd.lwidentity.orig", "/etc/security/passwd");
-        BAIL_ON_CENTERIS_ERROR(ceError);
-    }
-#endif
-
 error:
 
     CT_SAFE_FREE_STRING(pszSearchPath);
