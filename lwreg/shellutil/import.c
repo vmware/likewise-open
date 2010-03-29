@@ -134,6 +134,7 @@ ProcessImportedKeyName(
         }
 
         hCurrKey = pNewKey;
+        pNewKey = NULL;
 
         pszKeyToken = strtok_r (NULL, pszDelim, &pszStrTokSav);
     }
