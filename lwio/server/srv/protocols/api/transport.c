@@ -50,13 +50,6 @@
 
 #include "includes.h"
 
-#define SMB_PACKET_DEFAULT_SIZE ((64 * 1024) + 4096)
-
-typedef struct _SRV_SEND_CONTEXT {
-    PSRV_CONNECTION pConnection;
-    PSMB_PACKET pPacket;
-} SRV_SEND_CONTEXT;
-
 // Transport Callbacks
 
 static
@@ -160,6 +153,12 @@ ULONG
 SrvProtocolTransportDriverGetNextSequence(
     IN PSRV_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
+    );
+
+static
+VOID
+SrvProtocolTransportDriverFreeResources(
+    IN PSRV_SEND_CONTEXT pSendContext
     );
 
 // Implementations
@@ -269,9 +268,11 @@ SrvProtocolTransportDriverConnectionNew(
     }
 
     properties.preferredSecurityMode = SMB_SECURITY_MODE_USER;
+    properties.bEncryptPasswords = TRUE;
     properties.bEnableSecuritySignatures = SrvProtocolConfigIsSigningEnabled();
     properties.bRequireSecuritySignatures = SrvProtocolConfigIsSigningRequired();
-    properties.bEncryptPasswords = TRUE;
+    properties.ulZctReadThreshold = SrvProtocolConfigGetZctReadThreshold();
+    properties.ulZctWriteThreshold = SrvProtocolConfigGetZctWriteThreshold();
     properties.MaxRawSize = 64 * 1024;
     properties.MaxMpxCount = 50;
     properties.MaxNumberVCs = 1;
@@ -454,8 +455,7 @@ SrvProtocolTransportDriverSendPrepare(
 
     // Sign the packet.
 
-    if (pConnection->serverProperties.bRequireSecuritySignatures &&
-        pConnection->pSessionKey)
+    if (SrvConnectionIsSigningActive_inlock(pConnection))
     {
         switch (pPacket->protocolVer)
         {
@@ -508,20 +508,25 @@ SrvProtocolTransportDriverSendDone(
     IN NTSTATUS Status
     )
 {
-    PSRV_CONNECTION pConnection = pSendContext->pConnection;
-    PSMB_PACKET pPacket = pSendContext->pPacket;
+    PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback = NULL;
+    PVOID pCallbackContext = NULL;
 
-    // There is no need to close the socket here as the transport will
-    // take care of doing a ConnectionDone which will trigger the close
-    // socket.
+    // There is no need to close the socket here on an error Status as
+    // the transport will take care of doing a ConnectionDone which will
+    // trigger the closing of the socket.
 
-    SMBPacketRelease(
-        pConnection->hPacketAllocator,
-        pPacket);
+    if (pSendContext->bIsZct)
+    {
+        pfnCallback = pSendContext->pfnCallback;
+        pCallbackContext = pSendContext->pCallbackContext;
+    }
 
-    SrvConnectionRelease(pConnection);
+    SrvProtocolTransportDriverFreeResources(pSendContext);
 
-    SrvFreeMemory(pSendContext);
+    if (pfnCallback)
+    {
+        pfnCallback(pCallbackContext, Status);
+    }
 }
 
 static
@@ -907,8 +912,7 @@ SrvProtocolTransportDriverCheckSignature(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pConnection->serverProperties.bRequireSecuritySignatures &&
-        pConnection->pSessionKey)
+    if (SrvConnectionIsSigningActive_inlock(pConnection))
     {
         switch (pConnection->protocolVer)
         {
@@ -1004,7 +1008,24 @@ SrvProtocolTransportDriverGetNextSequence(
     return ulRequestSequence;
 }
 
-// TODO-Add ZCT SMB read support.
+static
+VOID
+SrvProtocolTransportDriverFreeResources(
+    IN PSRV_SEND_CONTEXT pSendContext
+    )
+{
+    if (!pSendContext->bIsZct)
+    {
+        SMBPacketRelease(
+            pSendContext->pConnection->hPacketAllocator,
+            pSendContext->pPacket);
+    }
+
+    SrvConnectionRelease(pSendContext->pConnection);
+
+    SrvFreeMemory(pSendContext);
+}
+
 NTSTATUS
 SrvProtocolTransportSendResponse(
     IN PLWIO_SRV_CONNECTION pConnection,
@@ -1031,19 +1052,85 @@ SrvProtocolTransportSendResponse(
                     pSendContext->pPacket->bufferUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    SrvProtocolTransportDriverFreeResources(pSendContext);
+
+cleanup:
+
+    // This function never returns pending because the caller
+    // does not have a callback mechanism.
+    if (ntStatus == STATUS_PENDING)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
+    return ntStatus;
+
+error:
+
+    if (ntStatus != STATUS_PENDING)
+    {
+        if (pSendContext)
+        {
+            SrvProtocolTransportDriverFreeResources(pSendContext);
+        }
+
+        // This will trigger rundown in protocol code.
+        SrvConnectionSetInvalid(pConnection);
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvProtocolTransportSendZctResponse(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PLW_ZCT_VECTOR pZct,
+    IN OPTIONAL PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback,
+    IN OPTIONAL PVOID pCallbackContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSRV_SEND_CONTEXT pSendContext = NULL;
+
+    LWIO_ASSERT(!pCallbackContext || pfnCallback);
+
+    ntStatus = SrvAllocateMemory(sizeof(*pSendContext), OUT_PPVOID(&pSendContext));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSendContext->pConnection = pConnection;
+    SrvConnectionAcquire(pConnection);
+
+    pSendContext->bIsZct = TRUE;
+
+    pSendContext->pZct = pZct;
+    pSendContext->pfnCallback = pfnCallback;
+    pSendContext->pCallbackContext = pCallbackContext;
+
+    ntStatus = SrvTransportSocketSendZctReply(
+                    pConnection->pSocket,
+                    pSendContext,
+                    pSendContext->pZct);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvProtocolTransportDriverFreeResources(pSendContext);
+
 cleanup:
 
     return ntStatus;
 
 error:
 
-    if (pSendContext)
+    if (ntStatus != STATUS_PENDING)
     {
-        SrvProtocolTransportDriverSendDone(pSendContext, ntStatus);
-    }
+        if (pSendContext)
+        {
+            SrvProtocolTransportDriverFreeResources(pSendContext);
+        }
 
-    // This will trigger rundown in protocol code.
-    SrvConnectionSetInvalid(pConnection);
+        // This will trigger rundown in protocol code.
+        SrvConnectionSetInvalid(pConnection);
+    }
 
     goto cleanup;
 }
+

@@ -414,6 +414,31 @@ SrvConnectionSetState(
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 }
 
+BOOLEAN
+SrvConnectionIsSigningActive(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    BOOLEAN bResult = FALSE;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    bResult = SrvConnectionIsSigningActive_inlock(pConnection);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return bResult;
+}
+
+BOOLEAN
+SrvConnectionIsSigningActive_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    return (pConnection->serverProperties.bRequireSecuritySignatures &&
+            pConnection->pSessionKey);
+}
 
 NTSTATUS
 SrvConnectionFindSession(

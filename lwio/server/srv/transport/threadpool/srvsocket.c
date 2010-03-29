@@ -89,7 +89,8 @@ SrvSocketFree(
 static
 NTSTATUS
 SrvSocketProcessTaskWrite(
-    IN OUT PSRV_SOCKET pSocket
+    IN OUT PSRV_SOCKET pSocket,
+    IN OPTIONAL PSRV_SEND_ITEM pNoNotifySendItem
     );
 
 static
@@ -422,16 +423,19 @@ SrvSocketSendReplyCommon(
     if (IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_WRITABLE))
     {
         // Try to write inline.
-        ntStatus = SrvSocketProcessTaskWrite(pSocket);
+        ntStatus = SrvSocketProcessTaskWrite(pSocket, pSendItem);
     }
 
     // Wake task to process list or send error
     if (!LwListIsEmpty(&pSocket->SendHead) || ntStatus)
     {
+        ntStatus = STATUS_PENDING;
         LwRtlWakeTask(pSocket->pTask);
     }
-
-    ntStatus = STATUS_SUCCESS;
+    else
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
 
 cleanup:
 
@@ -440,6 +444,8 @@ cleanup:
     return ntStatus;
 
 error:
+
+    LWIO_ASSERT(!(ntStatus == STATUS_PENDING));
 
     if (pSendItem)
     {
@@ -725,7 +731,8 @@ error:
 static
 NTSTATUS
 SrvSocketProcessTaskWrite(
-    IN OUT PSRV_SOCKET pSocket
+    IN OUT PSRV_SOCKET pSocket,
+    IN OPTIONAL PSRV_SEND_ITEM pNoNotifySendItem
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -784,9 +791,12 @@ SrvSocketProcessTaskWrite(
 
         if (!bytesRemaining)
         {
-            SrvSocketGetDispatch(pSocket)->pfnSendDone(
-                    pSendItem->pSendContext,
-                    STATUS_SUCCESS);
+            if (pSendItem != pNoNotifySendItem)
+            {
+                SrvSocketGetDispatch(pSocket)->pfnSendDone(
+                        pSendItem->pSendContext,
+                        STATUS_SUCCESS);
+            }
 
             LwListRemove(&pSendItem->SendLinks);
             SrvFreeMemory(pSendItem);
@@ -936,7 +946,7 @@ SrvSocketProcessTask(
     // Process FD state, handling write first so we can free up
     // memory.
 
-    ntStatus = SrvSocketProcessTaskWrite(pSocket);
+    ntStatus = SrvSocketProcessTaskWrite(pSocket, NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSocketProcessTaskRead(pSocket);

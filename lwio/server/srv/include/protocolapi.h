@@ -50,6 +50,11 @@
 #ifndef __PROTOCOL_API_H__
 #define __PROTOCOL_API_H__
 
+typedef VOID (*PFN_SRV_PROTOCOL_SEND_COMPLETE)(
+    IN PVOID pContext,
+    IN NTSTATUS Status
+    );
+
 NTSTATUS
 SrvProtocolInit(
     PSMB_PROD_CONS_QUEUE pWorkQueue,
@@ -66,6 +71,14 @@ NTSTATUS
 SrvProtocolTransportSendResponse(
     IN PLWIO_SRV_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
+    );
+
+NTSTATUS
+SrvProtocolTransportSendZctResponse(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PLW_ZCT_VECTOR pZct,
+    IN OPTIONAL PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback,
+    IN OPTIONAL PVOID pCallbackContext
     );
 
 VOID

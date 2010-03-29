@@ -65,6 +65,7 @@ SrvProtocolReadConfig(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SRV_PROTOCOL_CONFIG config = { 0 };
     PLWIO_CONFIG_REG pReg = NULL;
+    BOOLEAN bUsePolicy = TRUE;
 
     ntStatus = SrvProtocolInitConfig(&config);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -86,20 +87,36 @@ SrvProtocolReadConfig(
     LwIoReadConfigBoolean(
             pReg,
             "SupportSmb2",
-            SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2,
+            bUsePolicy,
             &config.bEnableSmb2);
 
     LwIoReadConfigBoolean(
             pReg,
             "EnableSecuritySignatures",
-            SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING,
+            bUsePolicy,
             &config.bEnableSigning);
 
     LwIoReadConfigBoolean(
             pReg,
             "RequireSecuritySignatures",
-            SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING,
+            bUsePolicy,
             &config.bRequireSigning);
+
+    LwIoReadConfigDword(
+            pReg,
+            "ZctReadThreshold",
+            bUsePolicy,
+            0,
+            MAXULONG,
+            &config.ulZctReadThreshold);
+
+    LwIoReadConfigDword(
+            pReg,
+            "ZctWriteThreshold",
+            bUsePolicy,
+            0,
+            MAXULONG,
+            &config.ulZctWriteThreshold);
 
     ntStatus = SrvProtocolTransferConfigContents(&config, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -132,6 +149,8 @@ SrvProtocolInitConfig(
     pConfig->bEnableSmb2 = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SMB2;
     pConfig->bEnableSigning = SRV_PROTOCOL_CONFIG_DEFAULT_ENABLE_SIGNING;
     pConfig->bRequireSigning = SRV_PROTOCOL_CONFIG_DEFAULT_REQUIRE_SIGNING;
+    pConfig->ulZctReadThreshold = SRV_PROTOCOL_CONFIG_DEFAULT_ZCT_READ_THRESHOLD;
+    pConfig->ulZctWriteThreshold = SRV_PROTOCOL_CONFIG_DEFAULT_ZCT_WRITE_THRESHOLD;
 
     return ntStatus;
 }
@@ -212,4 +231,38 @@ SrvProtocolConfigIsSmb2Enabled(
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     return bEnabled;
+}
+
+ULONG
+SrvProtocolConfigGetZctReadThreshold(
+    VOID
+    )
+{
+    ULONG ulThreshold = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    ulThreshold = gProtocolApiGlobals.Config.ulZctReadThreshold;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    return ulThreshold;
+}
+
+ULONG
+SrvProtocolConfigGetZctWriteThreshold(
+    VOID
+    )
+{
+    ULONG ulThreshold = 0;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    ulThreshold = gProtocolApiGlobals.Config.ulZctWriteThreshold;
+
+    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    return ulThreshold;
 }

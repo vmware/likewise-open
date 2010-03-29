@@ -83,6 +83,16 @@ SrvProtocolConfigIsSmb2Enabled(
     VOID
     );
 
+ULONG
+SrvProtocolConfigGetZctReadThreshold(
+    VOID
+    );
+
+ULONG
+SrvProtocolConfigGetZctWriteThreshold(
+    VOID
+    );
+
 // negotiate.c
 
 NTSTATUS

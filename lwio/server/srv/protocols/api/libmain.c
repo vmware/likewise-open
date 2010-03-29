@@ -171,7 +171,6 @@ SrvProtocolExecute(
         // TODO: Find out if the repeats must have different sequence numbers
         for (; iRepeat < (pContext->ulNumDuplicates + 1); iRepeat++)
         {
-            /* synchronous response */
             ntStatus = SrvProtocolTransportSendResponse(
                             pContext->pConnection,
                             pContext->pSmbResponse);

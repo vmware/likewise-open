@@ -79,6 +79,8 @@ typedef struct _SRV_PROTOCOL_CONFIG
     BOOLEAN bEnableSmb2;
     BOOLEAN bEnableSigning;
     BOOLEAN bRequireSigning;
+    ULONG ulZctReadThreshold;
+    ULONG ulZctWriteThreshold;
 } SRV_PROTOCOL_CONFIG, *PSRV_PROTOCOL_CONFIG;
 
 typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT {
@@ -103,5 +105,18 @@ typedef struct _SRV_PROTOCOL_API_GLOBALS
     SRV_PROTOCOL_TRANSPORT_CONTEXT TransportContext;
 
 } SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
+
+typedef struct _SRV_SEND_CONTEXT {
+    PSRV_CONNECTION pConnection;
+    BOOLEAN bIsZct;
+    union {
+        PSMB_PACKET pPacket;
+        struct {
+            PLW_ZCT_VECTOR pZct;
+            PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback;
+            PVOID pCallbackContext;
+        };
+    };
+} SRV_SEND_CONTEXT;
 
 #endif /* __STRUCTS_H__ */

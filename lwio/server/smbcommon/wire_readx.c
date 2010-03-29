@@ -176,8 +176,10 @@ WireMarshallReadResponseDataEx(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        memcpy(pDataCursor, pBuffer, ulBytesToWrite);
-
+        if (pBuffer)
+        {
+            memcpy(pDataCursor, pBuffer, ulBytesToWrite);
+        }
         // ulBytesAvailable -= ulBytesToWrite;
         ulBytesUsed += ulBytesToWrite;
     }

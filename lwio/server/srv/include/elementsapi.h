@@ -269,6 +269,8 @@ typedef struct _SRV_PROPERTIES
     BOOLEAN bEncryptPasswords;
     BOOLEAN bEnableSecuritySignatures;
     BOOLEAN bRequireSecuritySignatures;
+    ULONG   ulZctReadThreshold;
+    ULONG   ulZctWriteThreshold;
     USHORT  MaxMpxCount;
     USHORT  MaxNumberVCs;
     ULONG   MaxBufferSize;
@@ -753,6 +755,16 @@ VOID
 SrvConnectionSetState(
     PLWIO_SRV_CONNECTION pConnection,
     LWIO_SRV_CONN_STATE  connState
+    );
+
+BOOLEAN
+SrvConnectionIsSigningActive(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+BOOLEAN
+SrvConnectionIsSigningActive_inlock(
+    PLWIO_SRV_CONNECTION pConnection
     );
 
 NTSTATUS

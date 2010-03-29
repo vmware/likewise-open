@@ -135,7 +135,7 @@ typedef NTSTATUS (*PFN_SRV_TRANSPORT_SEND_PREPARE)(
 /// This is called with a status code indicating whether or not
 /// sending the reply was successful.  This called IFF
 /// SrvTransportSocketSendReply()/SrvTransportSocketSendZctReply()
-/// succeeded and SrvTransportSocketClose() has not been called.
+/// returns STATUS_PENDING and SrvTransportSocketClose() has not been called.
 ///
 /// This can be called synchronously from inside the send reply
 /// functions or asynchronously.
@@ -205,14 +205,18 @@ SrvTransportSocketSetBuffer(
     );
 
 ///
-/// Send a reply.
+/// Send a reply using a bufer.
 ///
 /// This will send a reply, queueing it as needed.  Once the reply is queued,
-/// tt will synchronously call #PFN_SRV_TRANSPORT_SEND_PREPARE.  It may also
-/// call #PFN_SRV_TRANSPORT_SEND_DONE if the send is done synchronously.
+/// tt will synchronously call #PFN_SRV_TRANSPORT_SEND_PREPARE.  Will call
+/// #PFN_SRV_TRANSPORT_SEND_DONE asynchronously IFF returning STATUS_PENDING.
 ///
 /// If called from outside of a callback, this cannot be called with
 /// any locks help that can also be held by a callback.
+///
+/// @retval STATUS_SUCCESS
+/// @retval STATUS_PENDING
+/// @retval !NT_SUCCESS
 ///
 NTSTATUS
 SrvTransportSocketSendReply(
@@ -223,14 +227,18 @@ SrvTransportSocketSendReply(
     );
 
 ///
-/// Send a reply.
+/// Send a reply using a ZCT.
 ///
 /// This will send a reply, queueing it as needed.  Once the reply is queued,
-/// tt will synchronously call #PFN_SRV_TRANSPORT_SEND_PREPARE.  It may also
-/// call #PFN_SRV_TRANSPORT_SEND_DONE if the send is done synchronously.
+/// tt will synchronously call #PFN_SRV_TRANSPORT_SEND_PREPARE.  Will call
+/// #PFN_SRV_TRANSPORT_SEND_DONE asynchronously IFF returning STATUS_PENDING.
 ///
 /// If called from outside of a callback, this cannot be called with
 /// any locks help that can also be held by a callback.
+///
+/// @retval STATUS_SUCCESS
+/// @retval STATUS_PENDING
+/// @retval !NT_SUCCESS
 ///
 NTSTATUS
 SrvTransportSocketSendZctReply(
