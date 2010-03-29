@@ -138,20 +138,61 @@ IopIpcCompleteGenericCall(
 
 static
 VOID
+IopIpcCompleteCloseCall(
+    IN PVOID pData
+    )
+{
+    PIO_STATUS_BLOCK pIoStatus = (PIO_STATUS_BLOCK) pData;
+
+    if (pIoStatus->Status)
+    {
+        LWIO_LOG_ERROR("failed to cleanup handle (status = 0x%08x)", pIoStatus->Status);
+    }
+
+    RTL_FREE(&pIoStatus);
+}
+
+static
+VOID
 IopIpcCleanupFileHandle(
     PVOID pHandle
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     IO_FILE_HANDLE fileHandle = (IO_FILE_HANDLE) pHandle;
-    assert(fileHandle);
-    if (fileHandle)
+    PIO_STATUS_BLOCK pIoStatus = NULL;
+    IO_ASYNC_CONTROL_BLOCK async = {0};
+
+    if (RTL_ALLOCATE(&pIoStatus, IO_STATUS_BLOCK, sizeof(*pIoStatus)) != STATUS_SUCCESS)
     {
-        NTSTATUS status = IoCloseFile(fileHandle);
-        if (status)
+        status = IoCloseFile(fileHandle);
+        GOTO_ERROR_ON_STATUS(status);
+    }
+    else
+    {
+        async.Callback = IopIpcCompleteCloseCall;
+        async.CallbackContext = pIoStatus;
+
+        status = IoAsyncCloseFile(fileHandle, &async, pIoStatus);
+        switch (status)
         {
-            LWIO_LOG_ERROR("failed to cleanup handle (status = 0x%08x)", status);
-            assert(FALSE);
+        case STATUS_SUCCESS:
+            RTL_FREE(&pIoStatus);
+            break;
+        case STATUS_PENDING:
+            IoDereferenceAsyncCancelContext(&async.AsyncCancelContext);
+            status = STATUS_SUCCESS;
+            break;
+        default:
+            GOTO_ERROR_ON_STATUS(status);
         }
+    }
+
+error:
+
+    if (status)
+    {
+        LWIO_LOG_ERROR("failed to cleanup handle (status = 0x%08x)", status);
     }
 }
 
