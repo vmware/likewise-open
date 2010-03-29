@@ -335,7 +335,12 @@ LwZctCreate(
     pZct->Mask = LwZctGetSystemSupportedMask(IoType);
 
 cleanup:
-    LwZctDestroy(&pZct);
+    if (status)
+    {
+        LwZctDestroy(&pZct);
+    }
+
+    *ppZct = pZct;
 
     return status;
 }
@@ -769,6 +774,7 @@ LwpZctCursorAllocateForSocketIo(
     ULONG sendFileVecCount = 0;
     ULONG sendFileVecSize = 0;
 #endif
+    ULONG baseSize = LW_FIELD_OFFSET(LW_ZCT_CURSOR, Entry);
     ULONG size = 0;
     PLW_ZCT_CURSOR pCursor = NULL;
 
@@ -820,6 +826,8 @@ LwpZctCursorAllocateForSocketIo(
         i += count;
     }
 
+    size += baseSize;
+
     cursorEntrySize = cursorEntryCount * sizeof(LW_ZCT_CURSOR_ENTRY);
     size += cursorEntrySize;
 
@@ -835,7 +843,7 @@ LwpZctCursorAllocateForSocketIo(
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
     pCursor->Size = size;
-    pCursor->IoVecOffset = cursorEntrySize;
+    pCursor->IoVecOffset = baseSize + cursorEntrySize;
     pCursor->FreeIoVecOffset = pCursor->IoVecOffset;
 #if defined(HAVE_SENDFILEV)
     pCursor->SendFileVecOffset = pCursor->IoVecOffset + ioVecSize;
@@ -1192,7 +1200,7 @@ LwpZctReadWriteSocket(
         GOTO_CLEANUP_EE(EE);
     }
 
-    if (!pZct->IoType != ioType)
+    if (pZct->IoType != ioType)
     {
         status = STATUS_INVALID_PARAMETER;
         GOTO_CLEANUP_EE(EE);
@@ -1223,7 +1231,7 @@ LwpZctReadWriteSocket(
             status = STATUS_SUCCESS;
             break;
         }
-        GOTO_CLEANUP_EE(EE);
+        GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
         totalBytesTransferred += bytesTransferred;
         if (isDoneEntry)
@@ -1354,11 +1362,11 @@ LwpZctIoVecReadWrite(
 
     if (IsWrite)
     {
-        result = readv(FileDescriptor, vector, count);
+        result = writev(FileDescriptor, vector, count);
     }
     else
     {
-        result = writev(FileDescriptor, vector, count);
+        result = readv(FileDescriptor, vector, count);
     }
     if (result < 0)
     {
