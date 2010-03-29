@@ -105,6 +105,7 @@ SrvSvcNetSessionEnum(
     DWORD              dwInfoLevel,          /* [in, out] */
     srvsvc_NetSessCtr* pInfo,                /* [in, out] */
     DWORD              dwPreferredMaxLength, /* [in]      */
+    PDWORD             pdwEntriesRead,       /* [out]     */
     PDWORD             pdwTotalEntries,      /* [out]     */
     PDWORD             pdwResumeHandle       /* [in, out] */
     );

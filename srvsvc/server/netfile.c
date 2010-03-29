@@ -88,13 +88,14 @@ SrvSvcNetFileEnum(
     ULONG                   dwIoControlCode     = SRV_DEVCTL_ENUM_FILES;
     FILE_INFO_ENUM_PARAMS   fileEnumParamsIn    =
     {
-            .pwszBasepath    = pwszBasepath,
-            .pwszUsername    = pwszUsername,
-            .dwInfoLevel     = dwInfoLevel,
-            .dwNumEntries    = dwPreferredMaxLength,
-            .dwTotalEntries  = 0,
-            .pdwResumeHandle = pdwResumeHandle ? pdwResumeHandle : NULL,
-            .info            = {0}
+            .pwszBasepath         = pwszBasepath,
+            .pwszUsername         = pwszUsername,
+            .dwInfoLevel          = dwInfoLevel,
+            .dwPreferredMaxLength = dwPreferredMaxLength,
+            .dwEntriesRead        = 0,
+            .dwTotalEntries       = 0,
+            .pdwResumeHandle      = pdwResumeHandle ? pdwResumeHandle : NULL,
+            .info                 = {0}
     };
     PFILE_INFO_ENUM_PARAMS  pFileEnumParamsOut = NULL;
     srvsvc_NetFileCtr2*     ctr2 = NULL;
@@ -179,7 +180,7 @@ SrvSvcNetFileEnum(
                 case 2:
 
                     ctr2 = pInfo->ctr2;
-                    ctr2->count = pFileEnumParamsOut->dwNumEntries;
+                    ctr2->count = pFileEnumParamsOut->dwEntriesRead;
 
                     dwError = SrvSvcSrvAllocateMemory(
                                         sizeof(*ctr2->array) * ctr2->count,
@@ -196,7 +197,7 @@ SrvSvcNetFileEnum(
                 case 3:
 
                     ctr3 = pInfo->ctr3;
-                    ctr3->count = pFileEnumParamsOut->dwNumEntries;
+                    ctr3->count = pFileEnumParamsOut->dwEntriesRead;
 
                     dwError = SrvSvcSrvAllocateMemory(
                                         sizeof(*ctr3->array) * ctr3->count,
@@ -226,7 +227,7 @@ SrvSvcNetFileEnum(
             break;
     }
 
-    *pdwEntriesRead  = pFileEnumParamsOut->dwNumEntries;
+    *pdwEntriesRead  = pFileEnumParamsOut->dwEntriesRead;
     *pdwTotalEntries = pFileEnumParamsOut->dwTotalEntries;
     if (pdwResumeHandle)
     {

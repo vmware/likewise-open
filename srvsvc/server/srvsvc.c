@@ -453,6 +453,7 @@ _NetrSessionEnum(
 {
     DWORD dwError        = 0;
     DWORD dwInfoLevel    = 0;
+    DWORD dwEntriesRead  = 0;
     DWORD dwTotalEntries = 0;
     DWORD dwResumeHandle = 0;
 
@@ -464,7 +465,7 @@ _NetrSessionEnum(
     BAIL_ON_INVALID_PTR(pdwResumeHandle,   dwError);
 
     dwInfoLevel    = *pdwInfoLevel;
-    dwResumeHandle = *pdwResumeHandle;
+    dwResumeHandle = pdwResumeHandle ? *pdwResumeHandle : 0;
 
     dwError = SrvSvcAccessCheck(
                     IDL_handle,
@@ -479,8 +480,9 @@ _NetrSessionEnum(
                     dwInfoLevel,
                     pInfo,
                     dwPreferredMaxLength,
+                    &dwEntriesRead,
                     &dwTotalEntries,
-                    &dwResumeHandle);
+                    pdwResumeHandle ? &dwResumeHandle : NULL);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     *pdwTotalEntries = dwTotalEntries;
