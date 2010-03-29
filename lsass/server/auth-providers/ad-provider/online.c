@@ -2658,6 +2658,7 @@ AD_OnlineChangePassword(
     BOOLEAN bFoundDomain = FALSE;
     LSA_TRUST_DIRECTION dwTrustDirection = LSA_TRUST_DIRECTION_UNKNOWN;
     PLWNET_DC_INFO pDcInfo = NULL;
+    DWORD dwGoodUntilTime = 0;
 
     dwError = LsaCrackDomainQualifiedName(
                     pszLoginId,
@@ -2745,6 +2746,15 @@ AD_OnlineChangePassword(
     LsaUmModifyUser(
         pCachedUser->userInfo.uid,
         pszPassword);
+
+    // Run a check against the new password. This will download a pac for the
+    // user and store their user kerberos creds.
+    dwError = AD_OnlineCheckUserPassword(
+                    hProvider,
+                    pCachedUser,
+                    pszPassword,
+                    &dwGoodUntilTime);
+    BAIL_ON_LSA_ERROR(dwError);
 
 cleanup:
     LWNET_SAFE_FREE_DC_INFO(pDcInfo);
