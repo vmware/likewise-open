@@ -291,7 +291,6 @@ SrvProcessReadAndX(
             ntStatus = SrvAttemptReadIo(pReadState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            LWIO_ASSERT(!pReadState->bStartedRead);
             pReadState->stage = SRV_READ_STAGE_SMB_V1_RESPONSE_FINISH;
 
             // intentional fall through
@@ -319,7 +318,6 @@ SrvProcessReadAndX(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            LWIO_ASSERT(!pReadState->bStartedRead);
             pReadState->stage = SRV_READ_STAGE_SMB_V1_DONE;
 
             // Intentional fall through
@@ -385,8 +383,6 @@ SrvBuildReadAndXResponseStart(
     PSRV_READ_STATE_SMB_V1     pReadState   = NULL;
 
     pReadState = (PSRV_READ_STATE_SMB_V1)pCtxSmb1->hState;
-
-    LWIO_ASSERT(!pReadState->pResponseHeader);
 
     pReadState->pOutBuffer       = pSmbResponse->pBuffer;
     pReadState->ulBytesAvailable = pSmbResponse->ulBytesAvailable;
@@ -705,7 +701,6 @@ SrvAttemptReadIo(
         }
 
         ntStatus = pReadState->ioStatusBlock.Status;
-        LWIO_ASSERT(ntStatus != STATUS_PENDING);
         if (ntStatus == STATUS_NOT_SUPPORTED)
         {
             // Retry as non-ZCT
@@ -758,7 +753,6 @@ SrvAttemptReadIo(
         }
 
         ntStatus = pReadState->ioStatusBlock.Status;
-        LWIO_ASSERT(ntStatus != STATUS_PENDING);
         if (ntStatus == STATUS_END_OF_FILE)
         {
             ntStatus = STATUS_SUCCESS;
@@ -768,12 +762,9 @@ SrvAttemptReadIo(
 
     if (pReadState->pZct && pReadState->ioStatusBlock.Status)
     {
-        LWIO_ASSERT(pReadState->ioStatusBlock.Status == STATUS_END_OF_FILE);
         // No data, must treat this as non-ZCT for the rest of processing.
         LwZctDestroy(&pReadState->pZct);
     }
-
-    LWIO_ASSERT(!pReadState->pZct || pReadState->pZctCompletion);
 
     pReadState->ulBytesRead = pReadState->ioStatusBlock.BytesTransferred;
 
@@ -877,7 +868,6 @@ SrvCompleteZctRead(
     }
 
     ntStatus = pReadState->ioStatusBlock.Status;
-    LWIO_ASSERT(ntStatus != STATUS_PENDING);
     if (ntStatus)
     {
         LWIO_LOG_ERROR("Failed to complete ZCT read file [status:0x%x]",
