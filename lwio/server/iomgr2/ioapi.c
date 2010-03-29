@@ -496,7 +496,7 @@ IopPrepareZctReadWriteFile(
         ioStatusBlock = pIrp->IoStatusBlock;
         LWIO_ASSERT(ioStatusBlock.BytesTransferred <= Length);
         completionContext = pIrp->Args.ReadWrite.ZctCompletionContext;
-        LWIO_ASSERT(completionContext);
+        LWIO_ASSERT(LW_IS_BOTH_OR_NEITHER(completionContext, STATUS_SUCCESS == status));
     }
 
 cleanup:
