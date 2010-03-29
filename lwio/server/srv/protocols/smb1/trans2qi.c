@@ -2441,7 +2441,7 @@ SrvQueryNetworkOpenInfo(
     if (!pTrans2State->pData2)
     {
         ntStatus = SrvAllocateMemory(
-                        sizeof(FILE_INTERNAL_INFORMATION),
+                        sizeof(FILE_NETWORK_OPEN_INFORMATION),
                         (PVOID*)&pTrans2State->pData2);
         BAIL_ON_NT_STATUS(ntStatus);
 
