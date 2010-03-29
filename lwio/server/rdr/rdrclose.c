@@ -76,13 +76,13 @@ error:
 }
 
 static
-NTSTATUS
-RdrCommonClose(
-    PRDR_IRP_CONTEXT pIrpContext,
-    PIRP pIrp
+VOID
+RdrCloseWorkItem(
+    PVOID pContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PIRP pIrp = (PIRP) pContext;
     PSMB_CLIENT_FILE_HANDLE pFile = NULL;
 
     pFile = IoFileGetContext(pIrp->FileHandle);
@@ -104,13 +104,51 @@ cleanup:
 
     pIrp->IoStatusBlock.Status = ntStatus;
 
-    return ntStatus;
+    IoIrpComplete(pIrp);
+
+    return;
 
 error:
 
     /* We discard any errors on close and proceed to
        release all local resources */
     ntStatus = STATUS_SUCCESS;
+
+    goto cleanup;
+}
+
+static
+VOID
+RdrCancelClose(
+    PIRP pIrp,
+    PVOID pContext
+    )
+{
+    return;
+}
+
+static
+NTSTATUS
+RdrCommonClose(
+    PRDR_IRP_CONTEXT pIrpContext,
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    IoIrpMarkPending(pIrp, RdrCancelClose, NULL);
+
+    ntStatus = LwRtlQueueWorkItem(gRdrRuntime.pThreadPool, RdrCloseWorkItem, pIrp, 0);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = STATUS_PENDING;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
