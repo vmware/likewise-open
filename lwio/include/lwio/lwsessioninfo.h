@@ -62,8 +62,14 @@ typedef union _SESSION_INFO_UNION
 
 typedef struct _SESSION_INFO_ENUM_PARAMS
 {
+    PWSTR              pwszServername;
+    PWSTR              pwszUncClientname;
+    PWSTR              pwszUsername;
     DWORD              dwInfoLevel;
-    DWORD              dwNumEntries;
+    DWORD              dwPreferredMaxLength;
+    DWORD              dwEntriesRead;
+    DWORD              dwTotalEntries;
+    PDWORD             pdwResumeHandle;
     SESSION_INFO_UNION info;
 } SESSION_INFO_ENUM_PARAMS, *PSESSION_INFO_ENUM_PARAMS;
 

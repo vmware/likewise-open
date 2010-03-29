@@ -62,7 +62,8 @@ typedef struct _FILE_INFO_ENUM_PARAMS
     PWSTR           pwszBasepath;
     PWSTR           pwszUsername;
     DWORD           dwInfoLevel;
-    DWORD           dwNumEntries;
+    DWORD           dwPreferredMaxLength;
+    DWORD           dwEntriesRead;
     DWORD           dwTotalEntries;
     PDWORD          pdwResumeHandle;
     FILE_INFO_UNION info;
