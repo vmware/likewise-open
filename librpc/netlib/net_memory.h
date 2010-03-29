@@ -66,35 +66,15 @@
 
 
 NTSTATUS
-NetInitMemory(
-    void
-    );
-
-
-NTSTATUS
-NetDestroyMemory(
-    void
-    );
-
-
-NTSTATUS
 NetAllocateMemory(
-    void **out,
-    size_t size,
-    void *dep
+    OUT PVOID *ppOut,
+    IN  size_t sSize
     );
 
 
-NTSTATUS
+VOID
 NetFreeMemory(
-    void *ptr
-    );
-
-
-NTSTATUS
-NetAddDepMemory(
-    void *ptr,
-    void *dep
+    IN PVOID pPtr
     );
 
 

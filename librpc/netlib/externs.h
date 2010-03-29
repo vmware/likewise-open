@@ -35,8 +35,6 @@
 #ifndef _EXTERNS_H_
 #define _EXTERNS_H_
 
-extern void *netapi_ptr_list;
-
 extern pthread_mutex_t g_netapi_data_mutex;
 
 extern int bNetApiInitialised;
@@ -72,8 +70,6 @@ extern int bNetApiInitialised;
 
 extern const wchar16_t null_char;
 extern const wchar16_t *null_string;
-
-extern NetConnList *conn_list;
 
 extern int errno;
 

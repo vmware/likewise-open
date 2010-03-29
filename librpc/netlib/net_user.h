@@ -50,7 +50,7 @@
 
 NTSTATUS
 NetOpenUser(
-    NetConn        *pConn,
+    PNET_CONN       pConn,
     PCWSTR          pwszUsername,
     DWORD           dwAccessMask,
     ACCOUNT_HANDLE *phUser,
@@ -60,7 +60,7 @@ NetOpenUser(
 
 NTSTATUS
 NetOpenAlias(
-    NetConn        *pConn,
+    PNET_CONN       pConn,
     PCWSTR          pwszAliasname,
     DWORD           dwAccessMask,
     ACCOUNT_HANDLE *phAlias,

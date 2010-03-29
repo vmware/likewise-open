@@ -109,7 +109,7 @@ NetAllocateLocalGroupMembersInfo(
         err = ERROR_INVALID_LEVEL;
         break;
     }
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
 cleanup:
     return err;
@@ -158,7 +158,7 @@ NetAllocateLocalGroupMembersInfo0(
                             pSid,
                             dwSidLen,
                             &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     if (pdwSpaceLeft)
     {
@@ -213,12 +213,12 @@ NetAllocateLocalGroupMembersInfo3(
     err = LwAllocateWc16StringFromUnicodeString(
                              &pwszDomainName,
                              (PUNICODE_STRING)&pName->DomainName);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     err = LwAllocateWc16StringFromUnicodeString(
                              &pwszAccountName,
                              (PUNICODE_STRING)&pName->AccountName);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     /* lgrmi3_domainandname */
     err = NetAllocBufferNT4Name(&pCursor,
@@ -226,7 +226,7 @@ NetAllocateLocalGroupMembersInfo3(
                                 pwszDomainName,
                                 pwszAccountName,
                                 &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     if (pdwSpaceLeft)
     {
@@ -271,7 +271,7 @@ NetAllocateLocalGroupUsersInfo(
         err = ERROR_INVALID_LEVEL;
         break;
     }
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
 cleanup:
     return err;
@@ -316,7 +316,7 @@ NetAllocateLocalGroupUsersInfo0(
                                    &dwSpaceLeft,
                                    pwszName,
                                    &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     if (pdwSpaceLeft)
     {

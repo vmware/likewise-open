@@ -51,13 +51,13 @@ NetMachineChangePassword(
     memset((void*)newpassword, 0, sizeof(newpassword));
 
     err = NetGetHostInfo(&localname);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = LwpsGetPasswordByHostName(hStore, localname, &pass_info);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     if (!pass_info) {
         err = ERROR_INTERNAL_ERROR;
@@ -66,7 +66,7 @@ NetMachineChangePassword(
 
     status = NetpGetRwDcName(pass_info->pwszDnsDomainName, FALSE,
                            &domain_controller_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     username    = pass_info->pwszMachineAccount;
     oldpassword = pass_info->pwszMachinePassword;
@@ -79,7 +79,7 @@ NetMachineChangePassword(
 
     err = NetUserChangePassword(domain_controller_name, username,
                                 oldpassword, newpassword);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     err = SaveMachinePassword(
               pass_info->pwszHostname,
@@ -91,7 +91,7 @@ NetMachineChangePassword(
               domain_controller_name,
               pass_info->pwszSID,
               newpassword);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     if (pass_info) {
         LwpsFreePasswordInfo(hStore, pass_info);
@@ -101,7 +101,7 @@ NetMachineChangePassword(
     if (hStore != (HANDLE)NULL) {
         status = LwpsClosePasswordStore(hStore);
         hStore = NULL;
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:

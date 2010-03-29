@@ -66,7 +66,7 @@ NetUserGetInfo(
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     PWSTR pwszNameCopy = NULL;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hUser = NULL;
     DWORD dwUserRid = 0;
@@ -77,8 +77,8 @@ NetUserGetInfo(
     PVOID pBuffer = NULL;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszUsername);
-    BAIL_ON_INVALID_PTR(ppBuffer);
+    BAIL_ON_INVALID_PTR(pwszUsername, err);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
 
     if (!(dwLevel == 0 ||
           dwLevel == 1 ||
@@ -91,33 +91,33 @@ NetUserGetInfo(
           dwLevel == 23))
     {
         err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             0,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetOpenUser(pConn,
                          pwszUsername,
                          dwUserAccessFlags,
                          &hUser,
                          &dwUserRid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
 
     if (dwLevel == 0)
     {
         err = LwAllocateWc16String(&pwszNameCopy,
                                    pwszUsername);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         pSourceBuffer = pwszNameCopy;
     }
@@ -127,7 +127,7 @@ NetUserGetInfo(
                                    hUser,
                                    dwSamrInfoLevel,
                                    &pSamrUserInfo);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
         pSourceBuffer = &pSamrUserInfo->info21;
     }
@@ -137,29 +137,30 @@ NetUserGetInfo(
                               dwLevel,
                               pSourceBuffer,
                               &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     dwSpaceAvailable = dwSize;
     dwSize           = 0;
 
-    status = NetAllocateMemory((void**)&pBuffer,
-                               dwSpaceAvailable,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    status = NetAllocateMemory(OUT_PPVOID(&pBuffer),
+                               dwSpaceAvailable);
+    BAIL_ON_NT_STATUS(status);
 
     err = NetAllocateUserInfo(pBuffer,
                               &dwSpaceAvailable,
                               dwLevel,
                               pSourceBuffer,
                               &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     status = SamrClose(hSamrBinding, hUser);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *ppBuffer = pBuffer;
 
 cleanup:
+    NetDisconnectSamr(&pConn);
+
     if (pSamrUserInfo)
     {
         SamrFreeMemory(pSamrUserInfo);

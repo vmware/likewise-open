@@ -42,7 +42,7 @@ ResetAccountPasswordTimer(
 
 NTSTATUS
 ResetWksAccount(
-    NetConn        *conn,
+    PNET_CONN       pConn,
     wchar16_t      *name,
     ACCOUNT_HANDLE  hAccount
     );
@@ -50,7 +50,7 @@ ResetWksAccount(
 
 NTSTATUS
 CreateWksAccount(
-    NetConn        *conn,
+    PNET_CONN       pConn,
     wchar16_t      *samacct_name,
     ACCOUNT_HANDLE *phAccount
     );
@@ -58,7 +58,7 @@ CreateWksAccount(
 
 NTSTATUS
 SetMachinePassword(
-    NetConn        *conn,
+    PNET_CONN       pConn,
     ACCOUNT_HANDLE  hAccount,
     UINT32          new,
     wchar16_t      *name,

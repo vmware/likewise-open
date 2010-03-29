@@ -61,7 +61,7 @@ NetLocalGroupAdd(
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
@@ -75,17 +75,17 @@ NetLocalGroupAdd(
 
     memset(&Info, 0, sizeof(Info));
 
-    BAIL_ON_INVALID_PTR(pBuffer);
+    BAIL_ON_INVALID_PTR(pBuffer, err);
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             dwDomainAccessRights,
                             0,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     switch (dwLevel) {
     case 0:
@@ -93,27 +93,27 @@ NetLocalGroupAdd(
 
         err = LwAllocateWc16String(&pwszAliasname,
                                    pInfo0->lgrpi0_name);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
         break;
     case 1:
         pInfo1 = (PLOCALGROUP_INFO_1)pBuffer;
 
         err = LwAllocateWc16String(&pwszAliasname,
                                    pInfo1->lgrpi1_name);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         err = LwAllocateWc16String(&pwszComment,
                                    pInfo1->lgrpi1_comment);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
         break;
 
     default:
         err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
-    hSamrBinding = pConn->samr.bind;
-    hDomain      = pConn->samr.hDomain;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
+    hDomain      = pConn->Rpc.Samr.hDomain;
 
     status = SamrCreateDomAlias(hSamrBinding,
                                 hDomain,
@@ -121,7 +121,7 @@ NetLocalGroupAdd(
                                 dwAliasAccessRights,
                                 &hAlias,
                                 &dwRid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     if (pwszComment)
     {
@@ -133,11 +133,11 @@ NetLocalGroupAdd(
                                   hAlias,
                                   ALIAS_INFO_DESCRIPTION,
                                   &Info);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
     status = SamrClose(hSamrBinding, hAlias);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     if (pdwParmErr)
     {
@@ -145,21 +145,22 @@ NetLocalGroupAdd(
     }
 
 cleanup:
-    /* FreeUnicodeString is NULL-proof */
-    FreeUnicodeString(&Info.description);
+    NetDisconnectSamr(&pConn);
+
+    LwFreeUnicodeString((PUNICODE_STRING)&Info.description);
 
     LW_SAFE_FREE_MEMORY(pwszAliasname);
     LW_SAFE_FREE_MEMORY(pwszComment);
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
 
     if (err == ERROR_SUCCESS &&
         status != STATUS_SUCCESS)
     {
         err = NtStatusToWin32Error(status);
-    }
-
-    if (pCreds)
-    {
-        LwIoDeleteCreds(pCreds);
     }
 
     return err;

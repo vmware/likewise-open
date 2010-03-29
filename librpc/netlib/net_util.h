@@ -32,16 +32,13 @@
 #define _NET_UTIL_H_
 
 
-#define BAIL_ON_NTSTATUS_ERROR(s)            \
-    if ((s) != STATUS_SUCCESS) {             \
-        status = (s);                        \
-        err = NtStatusToWin32Error((s));     \
+#define BAIL_ON_NT_STATUS(err)               \
+    if ((err) != STATUS_SUCCESS) {           \
         goto error;                          \
     }
 
-#define BAIL_ON_WINERR_ERROR(e)              \
-    if ((e) != ERROR_SUCCESS) {              \
-        err = (e);                           \
+#define BAIL_ON_WIN_ERROR(err)               \
+    if ((err) != ERROR_SUCCESS) {            \
         goto error;                          \
     }
 
@@ -51,9 +48,15 @@
         goto error;                          \
     }
 
-#define BAIL_ON_NO_MEMORY(p)                 \
+#define BAIL_ON_NO_MEMORY(p, err)            \
     if ((p) == NULL) {                       \
         err = ERROR_OUTOFMEMORY;             \
+        goto error;                          \
+    }
+
+#define BAIL_ON_INVALID_PTR(p, err)          \
+    if ((p) == NULL) {                       \
+        err = ERROR_INVALID_PARAMETER;       \
         goto error;                          \
     }
 
@@ -62,13 +65,6 @@
         lderr = LDAP_NO_MEMORY;         \
         err = ERROR_OUTOFMEMORY;        \
         goto lbl;                       \
-    }
-
-#define BAIL_ON_INVALID_PTR(p)                 \
-    if ((p) == NULL) {                         \
-        status = STATUS_INVALID_PARAMETER;     \
-        err = ERROR_INVALID_PARAMETER;         \
-        goto error;                            \
     }
 
 

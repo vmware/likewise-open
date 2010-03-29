@@ -33,7 +33,7 @@
 
 NTSTATUS
 DisableWksAccount(
-    NetConn        *conn,
+    PNET_CONN       pConn,
     wchar16_t      *account_name,
     ACCOUNT_HANDLE *phAccount
     )
@@ -54,8 +54,8 @@ DisableWksAccount(
 
     memset((void*)&sinfo, 0, sizeof(sinfo));
 
-	samr_b  = conn->samr.bind;
-	hDomain = conn->samr.hDomain;
+	samr_b  = pConn->Rpc.Samr.hBinding;
+	hDomain = pConn->Rpc.Samr.hDomain;
 	info16  = &sinfo.info16;
 
 	names[0] = account_name;
@@ -80,9 +80,20 @@ DisableWksAccount(
     *phAccount = hAccount;
 
 cleanup:
-    if (rids) SamrFreeMemory((void*)rids);
-    if (types) SamrFreeMemory((void*)types);
-    if (qinfo) SamrFreeMemory((void*)qinfo);
+    if (rids)
+    {
+        SamrFreeMemory(rids);
+    }
+
+    if (types)
+    {
+        SamrFreeMemory(types);
+    }
+
+    if (qinfo)
+    {
+        SamrFreeMemory(qinfo);
+    }
 
 	return status;
 

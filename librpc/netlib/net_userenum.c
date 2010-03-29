@@ -71,7 +71,7 @@ NetUserEnum(
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     ACCOUNT_HANDLE hUser = NULL;
@@ -95,10 +95,10 @@ NetUserEnum(
     DWORD dwSize = 0;
     DWORD dwSpaceAvailable = 0;
 
-    BAIL_ON_INVALID_PTR(ppBuffer);
-    BAIL_ON_INVALID_PTR(pdwNumEntries);
-    BAIL_ON_INVALID_PTR(pdwTotalEntries);
-    BAIL_ON_INVALID_PTR(pdwResume);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
+    BAIL_ON_INVALID_PTR(pdwNumEntries, err);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries, err);
+    BAIL_ON_INVALID_PTR(pdwResume, err);
 
     switch (dwFilter)
     {
@@ -120,7 +120,7 @@ NetUserEnum(
 
     default:
         err = NtStatusToWin32Error(STATUS_INVALID_PARAMETER);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     switch (dwLevel)
@@ -147,23 +147,23 @@ NetUserEnum(
 
     default:
         err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     dwResume = *pdwResume;
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             dwDomainAccessFlags,
                             0,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
-    hDomain      = pConn->samr.hDomain;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
+    hDomain      = pConn->Rpc.Samr.hDomain;
 
     status = SamrEnumDomainUsers(hSamrBinding,
                                  hDomain,
@@ -173,12 +173,11 @@ NetUserEnum(
                                  &ppwszUsernames,
                                  &pdwUserRids,
                                  &dwTotalNumEntries);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    status = NetAllocateMemory((void**)&ppSamrUserInfo21,
-                               sizeof(UserInfo*) * dwTotalNumEntries,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    status = NetAllocateMemory(OUT_PPVOID(&ppSamrUserInfo21),
+                               sizeof(UserInfo*) * dwTotalNumEntries);
+    BAIL_ON_NT_STATUS(status);
 
     for (i = 0; i + dwResume < dwTotalNumEntries; i++)
     {
@@ -193,19 +192,19 @@ NetUserEnum(
                                   dwUserAccessFlags,
                                   pdwUserRids[i + dwResume],
                                   &hUser);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
 
             status = SamrQueryUserInfo(hSamrBinding,
                                        hUser,
                                        wInfoLevel,
                                        &pSamrUserInfo);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
 
             ppSamrUserInfo21[i] = &pSamrUserInfo->info21;
             pSourceBuffer       = &pSamrUserInfo->info21;
 
             status = SamrClose(hSamrBinding, hUser);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
         dwSize = 0;
@@ -214,7 +213,7 @@ NetUserEnum(
                                   dwLevel,
                                   pSourceBuffer,
                                   &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         dwTotalSize += dwSize;
         dwNumEntries++;
@@ -230,15 +229,14 @@ NetUserEnum(
     if (dwTotalNumEntries > 0 && dwNumEntries == 0)
     {
         err = ERROR_INSUFFICIENT_BUFFER;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     if (dwTotalSize)
     {
-        status = NetAllocateMemory((void**)&pBuffer,
-                                   dwTotalSize,
-                                   NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        status = NetAllocateMemory(OUT_PPVOID(&pBuffer),
+                                   dwTotalSize);
+        BAIL_ON_NT_STATUS(status);
     }
 
     dwSize           = 0;
@@ -263,7 +261,7 @@ NetUserEnum(
                                   dwLevel,
                                   pSourceBuffer,
                                   &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         /*
          * Special case - level 4 and 23 include a user SID which can't
@@ -293,17 +291,17 @@ NetUserEnum(
             }
 
             dwUserSidLength = RtlLengthRequiredSid(
-                                   pConn->samr.dom_sid->SubAuthorityCount + 1);
+                             pConn->Rpc.Samr.pDomainSid->SubAuthorityCount + 1);
 
             status = RtlCopySid(dwUserSidLength,
                                 pUserSid,
-                                pConn->samr.dom_sid);
-            BAIL_ON_NTSTATUS_ERROR(status);
+                                pConn->Rpc.Samr.pDomainSid);
+            BAIL_ON_NT_STATUS(status);
 
             status = RtlAppendRidSid(dwUserSidLength,
                                      pUserSid,
                                      pSamrUserInfo21->rid);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
     }
 
@@ -318,27 +316,29 @@ NetUserEnum(
     *pdwTotalEntries = dwTotalNumEntries;
 
 cleanup:
+    NetDisconnectSamr(&pConn);
+
     for (i = 0; i < dwNumEntries; i++)
     {
         if (ppSamrUserInfo21[i])
         {
-            SamrFreeMemory((void*)ppSamrUserInfo21[i]);
+            SamrFreeMemory(ppSamrUserInfo21[i]);
         }
     }
 
     if (ppSamrUserInfo21)
     {
-        NetFreeMemory((void*)ppSamrUserInfo21);
+        NetFreeMemory(ppSamrUserInfo21);
     }
 
     if (ppwszUsernames)
     {
-        SamrFreeMemory((void*)ppwszUsernames);
+        SamrFreeMemory(ppwszUsernames);
     }
 
     if (pdwUserRids)
     {
-        SamrFreeMemory((void*)pdwUserRids);
+        SamrFreeMemory(pdwUserRids);
     }
 
     if (pCreds)

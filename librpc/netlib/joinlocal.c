@@ -50,23 +50,23 @@ ResetAccountPasswordTimer(
     memset((void*)&info, 0, sizeof(info));
     info16 = &info.info16;
 
-    BAIL_ON_INVALID_PTR(samr_b);
-    BAIL_ON_INVALID_PTR(hAccount);
+    BAIL_ON_INVALID_PTR(samr_b, err);
+    BAIL_ON_INVALID_PTR(hAccount, err);
 
     /* flip ACB_DISABLED flag - this way password timeout counter
        gets restarted */
 
     info16->account_flags = flags_enable;
     status = SamrSetUserInfo(samr_b, hAccount, level, &info);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     info16->account_flags = flags_disable;
     status = SamrSetUserInfo(samr_b, hAccount, level, &info);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     info16->account_flags = flags_enable;
     status = SamrSetUserInfo(samr_b, hAccount, level, &info);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
     return status;
@@ -78,7 +78,7 @@ error:
 
 NTSTATUS
 ResetWksAccount(
-    NetConn        *conn,
+    PNET_CONN       pConn,
     wchar16_t      *name,
     ACCOUNT_HANDLE  hAccount
     )
@@ -88,11 +88,11 @@ ResetWksAccount(
     handle_t samr_b = NULL;
     UserInfo *info = NULL;
 
-    BAIL_ON_INVALID_PTR(conn);
-    BAIL_ON_INVALID_PTR(name);
-    BAIL_ON_INVALID_PTR(hAccount);
+    BAIL_ON_INVALID_PTR(pConn, err);
+    BAIL_ON_INVALID_PTR(name, err);
+    BAIL_ON_INVALID_PTR(hAccount, err);
 
-    samr_b = conn->samr.bind;
+    samr_b = pConn->Rpc.Samr.hBinding;
 
     status = SamrQueryUserInfo(samr_b, hAccount, 16, &info);
     if (status == STATUS_SUCCESS &&
@@ -106,7 +106,7 @@ ResetWksAccount(
 
     status = ResetAccountPasswordTimer(samr_b, hAccount,
                                        info->info16.account_flags);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
     if (info) {
@@ -122,7 +122,7 @@ error:
 
 NTSTATUS
 CreateWksAccount(
-    NetConn        *conn,
+    PNET_CONN       pConn,
     wchar16_t      *samacct_name,
     ACCOUNT_HANDLE *phAccount
     )
@@ -143,16 +143,16 @@ CreateWksAccount(
 
     memset((void*)&pwinfo, 0, sizeof(pwinfo));
 
-    BAIL_ON_INVALID_PTR(conn);
-    BAIL_ON_INVALID_PTR(samacct_name);
-    BAIL_ON_INVALID_PTR(phAccount);
+    BAIL_ON_INVALID_PTR(pConn, err);
+    BAIL_ON_INVALID_PTR(samacct_name, err);
+    BAIL_ON_INVALID_PTR(phAccount, err);
 
-    samr_b  = conn->samr.bind;
-    hDomain = conn->samr.hDomain;
+    samr_b  = pConn->Rpc.Samr.hBinding;
+    hDomain = pConn->Rpc.Samr.hDomain;
 
     status = SamrCreateUser2(samr_b, hDomain, samacct_name, ACB_WSTRUST,
                              user_access, &hAccount, &access_granted, &rid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrQueryUserInfo(samr_b, hAccount, 16, &info);
     if (status == STATUS_SUCCESS &&
@@ -160,7 +160,7 @@ CreateWksAccount(
         status = STATUS_INVALID_ACCOUNT_NAME;
     }
 
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     /* It's not certain yet what is this call for here.
        Access denied is not fatal here, so we don't want to report
@@ -189,7 +189,7 @@ error:
 
 NTSTATUS
 SetMachinePassword(
-    NetConn        *conn,
+    PNET_CONN       pConn,
     ACCOUNT_HANDLE  hAccount,
     UINT32          new,
     wchar16_t      *name,
@@ -208,20 +208,20 @@ SetMachinePassword(
 
     memset((void*)&pwinfo, 0, sizeof(pwinfo));
 
-    BAIL_ON_INVALID_PTR(conn);
-    BAIL_ON_INVALID_PTR(hAccount);
-    BAIL_ON_INVALID_PTR(name);
-    BAIL_ON_INVALID_PTR(password);
+    BAIL_ON_INVALID_PTR(pConn, err);
+    BAIL_ON_INVALID_PTR(hAccount, err);
+    BAIL_ON_INVALID_PTR(name, err);
+    BAIL_ON_INVALID_PTR(password, err);
 
-	samr_b = conn->samr.bind;
+	samr_b       = pConn->Rpc.Samr.hBinding;
 	password_len = wc16slen(password);
 
 	if (new) {
 		/* set account password */
 		info25 = &pwinfo.info25;
 		status = NetEncPasswordEx(info25->password.data, password,
-                                  password_len, conn);
-        BAIL_ON_NTSTATUS_ERROR(status);
+                                  password_len, pConn);
+        BAIL_ON_NT_STATUS(status);
 
         full_name = &info25->info.full_name;
 
@@ -229,7 +229,7 @@ SetMachinePassword(
 		   active with password timeout reset */
 		info25->info.account_flags = ACB_WSTRUST;
 		status = InitUnicodeString(full_name, name);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
 		info25->info.fields_present = SAMR_FIELD_FULL_NAME |
                                       SAMR_FIELD_ACCT_FLAGS |
@@ -240,14 +240,14 @@ SetMachinePassword(
 		/* set account password */
 		info26 = &pwinfo.info26;
 		status = NetEncPasswordEx(info26->password.data, password,
-                               password_len, conn);
-        BAIL_ON_NTSTATUS_ERROR(status);
+                               password_len, pConn);
+        BAIL_ON_NT_STATUS(status);
 
 		level = 26;
 	}
 
 	status = SamrSetUserInfo(samr_b, hAccount, level, &pwinfo);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
     if (full_name) {
@@ -269,7 +269,6 @@ DirectoryConnect(
     )
 {
     WINERR err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
     int lderr = LDAP_SUCCESS;
     int close_lderr = LDAP_SUCCESS;
     LDAP *ld = NULL;
@@ -278,9 +277,9 @@ DirectoryConnect(
     wchar16_t *dn_context_name = NULL;
     wchar16_t **dn_context_val = NULL;
 
-    BAIL_ON_INVALID_PTR(domain);
-    BAIL_ON_INVALID_PTR(ldconn);
-    BAIL_ON_INVALID_PTR(dn_context);
+    BAIL_ON_INVALID_PTR(domain, err);
+    BAIL_ON_INVALID_PTR(ldconn, err);
+    BAIL_ON_INVALID_PTR(dn_context, err);
 
     *ldconn     = NULL;
     *dn_context = NULL;
@@ -354,17 +353,16 @@ MachDnsNameSearch(
     wchar16_t **samacct)
 {
     WINERR err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAPMessage *res = NULL;
     wchar16_t *samacct_attr_name = NULL;
     wchar16_t **samacct_attr_val = NULL;
 
-    BAIL_ON_INVALID_PTR(ldconn);
-    BAIL_ON_INVALID_PTR(name);
-    BAIL_ON_INVALID_PTR(dn_context);
-    BAIL_ON_INVALID_PTR(dns_domain_name);
-    BAIL_ON_INVALID_PTR(samacct);
+    BAIL_ON_INVALID_PTR(ldconn, err);
+    BAIL_ON_INVALID_PTR(name, err);
+    BAIL_ON_INVALID_PTR(dn_context, err);
+    BAIL_ON_INVALID_PTR(dns_domain_name, err);
+    BAIL_ON_INVALID_PTR(samacct, err);
 
     *samacct = NULL;
 
@@ -416,16 +414,15 @@ MachAcctSearch(
     )
 {
     WINERR err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAPMessage *res = NULL;
     wchar16_t *dn_attr_name = NULL;
     wchar16_t **dn_attr_val = NULL;
 
-    BAIL_ON_INVALID_PTR(ldconn);
-    BAIL_ON_INVALID_PTR(name);
-    BAIL_ON_INVALID_PTR(dn_context);
-    BAIL_ON_INVALID_PTR(dn);
+    BAIL_ON_INVALID_PTR(ldconn, err);
+    BAIL_ON_INVALID_PTR(name, err);
+    BAIL_ON_INVALID_PTR(dn_context, err);
+    BAIL_ON_INVALID_PTR(dn, err);
 
     *dn = NULL;
 
@@ -470,7 +467,6 @@ MachAcctCreate(
     )
 {
     WINERR err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
     int lderr = LDAP_SUCCESS;
     LDAPMessage *machacct = NULL;
     LDAPMessage *res = NULL;
@@ -480,10 +476,10 @@ MachAcctCreate(
     wchar16_t *dn_name = NULL;
     wchar16_t **dn_val = NULL;
 
-    BAIL_ON_INVALID_PTR(ld);
-    BAIL_ON_INVALID_PTR(machine_name);
-    BAIL_ON_INVALID_PTR(machacct_name);
-    BAIL_ON_INVALID_PTR(ou);
+    BAIL_ON_INVALID_PTR(ld, err);
+    BAIL_ON_INVALID_PTR(machine_name, err);
+    BAIL_ON_INVALID_PTR(machacct_name, err);
+    BAIL_ON_INVALID_PTR(ou, err);
 
     lderr = LdapMachAcctCreate(ld, machine_name, machacct_name, ou);
     if (lderr == LDAP_ALREADY_EXISTS && rejoin) {

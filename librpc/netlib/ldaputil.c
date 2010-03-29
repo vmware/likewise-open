@@ -173,16 +173,15 @@ int LdapInitConnection(LDAP **ldconn, const wchar16_t *host,
     char* ldap_srv = NULL;
     char* ldap_url = NULL;
 
-    BAIL_ON_INVALID_PTR(ldconn);
-    BAIL_ON_INVALID_PTR(host);
+    BAIL_ON_INVALID_PTR(ldconn, err);
+    BAIL_ON_INVALID_PTR(host, err);
 
     ldap_srv = awc16stombs(host);
     goto_if_no_memory_lderr(ldap_srv, error);
 
-    status = NetAllocateMemory((void**)&ldap_url,
-                               strlen(ldap_srv) + strlen(url_prefix) + 1,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    status = NetAllocateMemory(OUT_PPVOID(&ldap_url),
+                               strlen(ldap_srv) + strlen(url_prefix) + 1);
+    BAIL_ON_NT_STATUS(status);
 
     if (sprintf(ldap_url, "%s%s", url_prefix, ldap_srv) < 0) {
         lderr = LDAP_LOCAL_ERROR;
@@ -250,15 +249,14 @@ int LdapGetDirectoryInfo(LDAPMessage **info, LDAPMessage **result, LDAP *ld)
     const char *filter = "(objectClass=*)";
 
     WINERR err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
     int lderr = LDAP_SUCCESS;
     char *allattr[] = { NULL };
     LDAPMessage *res = NULL;
     LDAPMessage *entry = NULL;
 
-    BAIL_ON_INVALID_PTR(info);
-    BAIL_ON_INVALID_PTR(result);
-    BAIL_ON_INVALID_PTR(ld);
+    BAIL_ON_INVALID_PTR(info, err);
+    BAIL_ON_INVALID_PTR(result, err);
+    BAIL_ON_INVALID_PTR(ld, err);
 
     lderr = ldap_search_ext_s(ld, basedn, scope, filter, allattr, 0,
                               NULL, NULL, NULL, 0, &res);
@@ -298,8 +296,8 @@ wchar16_t **LdapAttributeGet(LDAP *ld, LDAPMessage *info, const wchar16_t *name,
     struct berval **value = NULL;
     char *strval = NULL;
 
-    BAIL_ON_INVALID_PTR(info);
-    BAIL_ON_INVALID_PTR(name);
+    BAIL_ON_INVALID_PTR(info, err);
+    BAIL_ON_INVALID_PTR(name, err);
 
     attr = ldap_first_attribute(ld, info, &be);
     while (attr) {
@@ -314,12 +312,11 @@ wchar16_t **LdapAttributeGet(LDAP *ld, LDAPMessage *info, const wchar16_t *name,
             goto_if_no_memory_lderr(out, error);
 
             for (i = 0; i < vcount; i++) {
-                status = NetAllocateMemory((void**)&strval,
-                                           value[i]->bv_len + 1,
-                                           NULL);
-                BAIL_ON_NTSTATUS_ERROR(status);
+                status = NetAllocateMemory(OUT_PPVOID(&strval),
+                                           value[i]->bv_len + 1);
+                BAIL_ON_NT_STATUS(status);
 
-                memcpy((void*)strval, value[i]->bv_val, value[i]->bv_len);
+                memcpy(strval, value[i]->bv_val, value[i]->bv_len);
 
                 out[i] = ambstowc16s(strval);
                 goto_if_no_memory_lderr(out[i], error);
@@ -509,7 +506,6 @@ LdapMachDnsNameSearch(
 
     int lderr = LDAP_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
     size_t filter_len = 0;
     size_t dnsname_len = 0;
     wchar16_t *dnsname = NULL;
@@ -520,11 +516,11 @@ LdapMachDnsNameSearch(
     LDAPControl **sctrl = NULL;
     LDAPControl **cctrl = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(ld);
-    BAIL_ON_INVALID_PTR(name);
-    BAIL_ON_INVALID_PTR(dns_domain_name);
-    BAIL_ON_INVALID_PTR(base);
+    BAIL_ON_INVALID_PTR(out, err);
+    BAIL_ON_INVALID_PTR(ld, err);
+    BAIL_ON_INVALID_PTR(name, err);
+    BAIL_ON_INVALID_PTR(dns_domain_name, err);
+    BAIL_ON_INVALID_PTR(base, err);
 
     basedn = awc16stombs(base);
     goto_if_no_memory_lderr(basedn, error);
@@ -580,7 +576,6 @@ LdapMachAcctSearch(
 
     int lderr = LDAP_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
     size_t basedn_len = 0;
     size_t filter_len = 0;
     size_t samacctname_len = 0;
@@ -591,10 +586,10 @@ LdapMachAcctSearch(
     LDAPControl **sctrl = NULL;
     LDAPControl **cctrl = NULL;
 
-    BAIL_ON_INVALID_PTR(out);
-    BAIL_ON_INVALID_PTR(ld);
-    BAIL_ON_INVALID_PTR(samacct_name);
-    BAIL_ON_INVALID_PTR(base);
+    BAIL_ON_INVALID_PTR(out, err);
+    BAIL_ON_INVALID_PTR(ld, err);
+    BAIL_ON_INVALID_PTR(samacct_name, err);
+    BAIL_ON_INVALID_PTR(base, err);
 
     basedn = awc16stombs(base);
     goto_if_no_memory_lderr(basedn, error);

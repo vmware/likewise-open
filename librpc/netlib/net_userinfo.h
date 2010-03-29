@@ -65,22 +65,22 @@ NetAllocateUserInfo(
 
 DWORD
 NetAllocateSamrUserInfo(
-    PVOID    pInfoBuffer,
-    PDWORD   pdwSamrLevel,
-    PDWORD   pdwSpaceLeft,
-    DWORD    dwLevel,
-    PVOID    pSource,
-    NetConn *pConn,
-    PDWORD   pdwSize
+    PVOID      pInfoBuffer,
+    PDWORD     pdwSamrLevel,
+    PDWORD     pdwSpaceLeft,
+    DWORD      dwLevel,
+    PVOID      pSource,
+    PNET_CONN  pConn,
+    PDWORD     pdwSize
     );
 
 
 NTSTATUS
 NetEncPasswordEx(
-    BYTE     PasswordBuffer[532],
-    PWSTR    pwszPassword,
-    DWORD    dwPasswordLen,
-    NetConn *pConn
+    BYTE       PasswordBuffer[532],
+    PWSTR      pwszPassword,
+    DWORD      dwPasswordLen,
+    PNET_CONN  pConn
     );
 
 

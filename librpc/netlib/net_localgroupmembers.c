@@ -114,7 +114,8 @@ NetLocalGroupChangeMembers(
     NET_API_STATUS err = ERROR_SUCCESS;
     NTSTATUS status = STATUS_SUCCESS;
     DWORD dwAliasAccessFlags = 0;
-    NetConn *pConn = NULL;
+    PNET_CONN pSamrConn = NULL;
+    PNET_CONN pLsaConn = NULL;
     handle_t hSamrBinding = NULL;
     handle_t hLsaBinding = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
@@ -131,8 +132,8 @@ NetLocalGroupChangeMembers(
     PSID pMemberSid = NULL;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszAliasname);
-    BAIL_ON_INVALID_PTR(pBuffer);
+    BAIL_ON_INVALID_PTR(pwszAliasname, err);
+    BAIL_ON_INVALID_PTR(pBuffer, err);
 
     switch (dwLevel)
     {
@@ -146,24 +147,24 @@ NetLocalGroupChangeMembers(
 
     default:
         err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     dwAliasAccessFlags = dwAliasAccess;
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    status = NetConnectSamr(&pConn,
+    status = NetConnectSamr(&pSamrConn,
                             pwszHostname,
                             dwAliasAccess,
                             dwBuiltinDomainAccessFlags,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
+    hSamrBinding = pSamrConn->Rpc.Samr.hBinding;
 
-    status = NetOpenAlias(pConn,
+    status = NetOpenAlias(pSamrConn,
                           pwszAliasname,
                           dwAliasAccessFlags,
                           &hAlias,
@@ -172,23 +173,22 @@ NetLocalGroupChangeMembers(
     {
         /* No such alias in host's domain.
            Try to look in builtin domain. */
-        status = NetOpenAlias(pConn,
+        status = NetOpenAlias(pSamrConn,
                               pwszAliasname,
                               dwAliasAccessFlags,
                               &hAlias,
                               &dwAliasRid);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
     }
     else if (status != STATUS_SUCCESS)
     {
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
     status = NetAllocateMemory(OUT_PPVOID(&ppSids),
-                               sizeof(ppSids[0]) * dwNumEntries,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+                               sizeof(ppSids[0]) * dwNumEntries);
+    BAIL_ON_NT_STATUS(status);
 
     if (dwLevel == 0)
     {
@@ -199,25 +199,24 @@ NetLocalGroupChangeMembers(
     }
     else if (dwLevel == 3)
     {
-        status = NetConnectLsa(&pConn,
+        status = NetConnectLsa(&pLsaConn,
                                pwszHostname,
                                dwLsaAccessFlags,
                                pCreds);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
-        hLsaBinding = pConn->lsa.bind;
-        hLsaPolicy  = pConn->lsa.hPolicy;
+        hLsaBinding = pLsaConn->Rpc.Lsa.hBinding;
+        hLsaPolicy  = pLsaConn->Rpc.Lsa.hPolicy;
 
         status = NetAllocateMemory(OUT_PPVOID(&ppNames),
-                                   sizeof(ppNames[0]) * dwNumEntries,
-                                   NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+                                   sizeof(ppNames[0]) * dwNumEntries);
+        BAIL_ON_NT_STATUS(status);
 
         for (i = 0; i < dwNumEntries; i++)
         {
             err = LwAllocateWc16String(&(ppNames[i]),
                                        pInfo3[i].lgrmi3_domainandname);
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         status = LsaLookupNames3(hLsaBinding,
@@ -228,7 +227,7 @@ NetLocalGroupChangeMembers(
                                  &pTransSids,
                                  wLsaLookupLevel,
                                  &dwSidsCount);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
         for (i = 0; i < dwSidsCount; i++)
         {
@@ -252,13 +251,16 @@ NetLocalGroupChangeMembers(
                                            hAlias,
                                            pMemberSid);
         }
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
     status = SamrClose(hSamrBinding, hAlias);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
+    NetDisconnectSamr(&pSamrConn);
+    NetDisconnectLsa(&pLsaConn);
+
     if (ppSids)
     {
         NetFreeMemory(ppSids);

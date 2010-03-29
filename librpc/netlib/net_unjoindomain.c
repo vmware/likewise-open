@@ -50,29 +50,29 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     ACCOUNT_HANDLE hAccount = NULL;
     HANDLE hStore = (HANDLE)NULL;
     PLWPS_PASSWORD_INFO pi = NULL;
-    NetConn *conn = NULL;
+    PNET_CONN pConn = NULL;
     char *localname = NULL;
     wchar16_t *domain_controller_name = NULL;
     wchar16_t *machine_name = NULL;
     PIO_CREDS creds = NULL;
 
-    BAIL_ON_INVALID_PTR(machine);
-    BAIL_ON_INVALID_PTR(domain);
+    BAIL_ON_INVALID_PTR(machine, err);
+    BAIL_ON_INVALID_PTR(domain, err);
 
     machine_name = wc16sdup(machine);
-    BAIL_ON_NO_MEMORY(machine_name);
+    BAIL_ON_NO_MEMORY(machine_name, err);
 
     err = NetGetHostInfo(&localname);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     status = NetpGetRwDcName(domain, FALSE, &domain_controller_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = LwpsGetPasswordByHostName(hStore, localname, &pi);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     /* zero the machine password */
     memset((void*)pi->pwszMachinePassword, 0,
@@ -80,32 +80,30 @@ NET_API_STATUS NetUnjoinDomainLocal(const wchar16_t *machine,
     pi->last_change_time = time(NULL);
 
     status = LwpsWritePasswordToAllStores(pi);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     /* disable the account only if requested */
     if (options & NETSETUP_ACCT_DELETE) {
         if (account && password)
         {
             status = LwIoCreatePlainCredsW(account, domain, password, &creds);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
         else
         {
             status = LwIoGetActiveCreds(NULL, &creds);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
-        status = NetConnectSamr(&conn, domain_controller_name, domain_access, 0, creds);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        status = NetConnectSamr(&pConn, domain_controller_name, domain_access, 0, creds);
+        BAIL_ON_NT_STATUS(status);
 
-        status = DisableWksAccount(conn, pi->pwszMachineAccount, &hAccount);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        status = NetDisconnectSamr(conn);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        status = DisableWksAccount(pConn, pi->pwszMachineAccount, &hAccount);
+        BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:
+    NetDisconnectSamr(&pConn);
 
     if (localname)
     {
@@ -115,16 +113,19 @@ cleanup:
     SAFE_FREE(domain_controller_name);
     SAFE_FREE(machine_name);
 
-    if (pi) {
+    if (pi)
+    {
         LwpsFreePasswordInfo(hStore, pi);
     }
 
-    if (hStore != (HANDLE)NULL) {
+    if (hStore != (HANDLE)NULL)
+    {
        LwpsClosePasswordStore(hStore);
     }
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
+        status != STATUS_SUCCESS)
+    {
         err = NtStatusToWin32Error(status);
     }
 
@@ -162,24 +163,24 @@ NET_API_STATUS NetUnjoinDomain(const wchar16_t *hostname,
         wchar16_t host[MAXHOSTNAMELEN];
 
         err = NetGetHostInfo(&localname);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         mbstowc16s(host, localname, sizeof(wchar16_t)*MAXHOSTNAMELEN);
 
         status = LwpsOpenPasswordStore(LWPS_PASSWORD_STORE_DEFAULT, &hStore);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
         status = LwpsGetPasswordByHostName(hStore, localname, &pi);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
         domain = pi->pwszDnsDomainName;
         err = NetUnjoinDomainLocal(host, domain, account, password, options);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     if (hStore != (HANDLE)NULL) {
        status = LwpsClosePasswordStore(hStore);
-       BAIL_ON_NTSTATUS_ERROR(status);
+       BAIL_ON_NT_STATUS(status);
     }
 
 cleanup:

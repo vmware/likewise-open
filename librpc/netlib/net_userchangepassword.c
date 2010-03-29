@@ -33,93 +33,103 @@
 
 NET_API_STATUS
 NetUserChangePassword(
-    const wchar16_t *domain,
-    const wchar16_t *user,
-    const wchar16_t *oldpassword,
-    const wchar16_t *newpassword
+    IN  PCWSTR  pwszDomainName,
+    IN  PCWSTR  pwszUserName,
+    IN  PCWSTR  pwszOldPassword,
+    IN  PCWSTR  pwszNewPassword
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    handle_t samr_b = NULL;
-    char *hostname = NULL;
-    wchar16_t *domainname = NULL;
-    wchar16_t *username = NULL;
-    size_t oldlen = 0;
-    size_t newlen = 0;
-    UINT8 old_nthash[16];
-    UINT8 new_nthash[16];
-    UINT8 ntpassbuf[516];
-    UINT8 ntverhash[16];
-    PIO_CREDS creds = NULL;
+    handle_t hSamrBinding = NULL;
+    PSTR pszHostname = NULL;
+    PWSTR pwszDomain = NULL;
+    PWSTR pwszUser = NULL;
+    size_t sOldPasswordLen = 0;
+    size_t sNewPasswordLen = 0;
+    BYTE OldNtHash[16];
+    BYTE NewNtHash[16];
+    BYTE NtPasswordBuffer[516];
+    BYTE NtVerHash[16];
+    PIO_CREDS pCreds = NULL;
 
-    memset((void*)old_nthash, 0, sizeof(old_nthash));
-    memset((void*)new_nthash, 0, sizeof(new_nthash));
-    memset((void*)ntpassbuf, 0, sizeof(ntpassbuf));
-    memset((void*)ntverhash, 0, sizeof(ntverhash));
+    memset(OldNtHash, 0, sizeof(OldNtHash));
+    memset(NewNtHash, 0, sizeof(NewNtHash));
+    memset(NtPasswordBuffer, 0, sizeof(NtPasswordBuffer));
+    memset(NtVerHash, 0, sizeof(NtVerHash));
 
-    BAIL_ON_INVALID_PTR(domain);
-    BAIL_ON_INVALID_PTR(user);
-    BAIL_ON_INVALID_PTR(oldpassword);
-    BAIL_ON_INVALID_PTR(newpassword);
+    BAIL_ON_INVALID_PTR(pwszDomainName, err);
+    BAIL_ON_INVALID_PTR(pwszUserName, err);
+    BAIL_ON_INVALID_PTR(pwszOldPassword, err);
+    BAIL_ON_INVALID_PTR(pwszNewPassword, err);
 
-    status = LwIoGetActiveCreds(NULL, &creds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    hostname = awc16stombs(domain);
-    BAIL_ON_NO_MEMORY(hostname);
+    err = LwWc16sToMbs(pwszDomainName, &pszHostname);
+    BAIL_ON_WIN_ERROR(err);
 
-    domainname = wc16sdup(domain);
-    BAIL_ON_NO_MEMORY(domainname);
+    err = LwAllocateWc16String(&pwszDomain, pwszDomainName);
+    BAIL_ON_WIN_ERROR(err);
 
-    username = wc16sdup(user);
-    BAIL_ON_NO_MEMORY(username);
+    err = LwAllocateWc16String(&pwszUser, pwszUserName);
+    BAIL_ON_WIN_ERROR(err);
 
-    status = InitSamrBindingDefault(&samr_b, hostname, creds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = InitSamrBindingDefault(&hSamrBinding, pszHostname, pCreds);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    oldlen = wc16slen(oldpassword);
-    newlen = wc16slen(newpassword);
+    err = LwWc16sLen(pwszOldPassword, &sOldPasswordLen);
+    BAIL_ON_WIN_ERROR(err);
+
+    err = LwWc16sLen(pwszNewPassword, &sNewPasswordLen);
+    BAIL_ON_WIN_ERROR(err);
 
     /* prepare NT password hashes */
-    md4hash(old_nthash, oldpassword);
-    md4hash(new_nthash, newpassword);
+    md4hash(OldNtHash, pwszOldPassword);
+    md4hash(NewNtHash, pwszNewPassword);
 
     /* encode password buffer */
-    EncodePassBufferW16(ntpassbuf, newpassword);
-    rc4(ntpassbuf, 516, old_nthash, 16);
+    EncodePassBufferW16(NtPasswordBuffer, pwszNewPassword);
+    rc4(NtPasswordBuffer, 516, OldNtHash, 16);
 
     /* encode NT verifier */
-    des56(ntverhash, old_nthash, 8, new_nthash);
-    des56(&ntverhash[8], &old_nthash[8], 8, &new_nthash[7]);
+    des56(NtVerHash, OldNtHash, 8, NewNtHash);
+    des56(&NtVerHash[8], &OldNtHash[8], 8, &NewNtHash[7]);
 
-    status = SamrChangePasswordUser2(samr_b, domainname, username, ntpassbuf,
-                                     ntverhash, 0, NULL, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = SamrChangePasswordUser2(hSamrBinding,
+                                       pwszDomain,
+                                       pwszUser,
+                                       NtPasswordBuffer,
+                                       NtVerHash,
+                                       0,
+                                       NULL,
+                                       NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
-    if (samr_b) {
-        FreeSamrBinding(&samr_b);
+    if (hSamrBinding)
+    {
+        FreeSamrBinding(&hSamrBinding);
     }
 
-    SAFE_FREE(hostname);
-    SAFE_FREE(domainname);
-    SAFE_FREE(username);
+    LW_SAFE_FREE_MEMORY(pszHostname);
+    LW_SAFE_FREE_MEMORY(pwszDomain);
+    LW_SAFE_FREE_MEMORY(pwszUser);
 
-    if (creds)
+    if (pCreds)
     {
-        LwIoDeleteCreds(creds);
+        LwIoDeleteCreds(pCreds);
     }
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
+        ntStatus != STATUS_SUCCESS)
+    {
+        err = NtStatusToWin32Error(ntStatus);
     }
 
     return err;
 
 error:
-
     goto cleanup;
 }
 

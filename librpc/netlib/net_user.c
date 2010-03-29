@@ -49,7 +49,7 @@
 
 NTSTATUS
 NetOpenUser(
-    NetConn        *pConn,
+    PNET_CONN       pConn,
     PCWSTR          pwszUsername,
     DWORD           dwAccessMask,
     ACCOUNT_HANDLE *phUser,
@@ -67,16 +67,16 @@ NetOpenUser(
     PDWORD pdwRids = NULL;
     PDWORD pdwTypes = NULL;
 
-    BAIL_ON_INVALID_PTR(pConn);
-    BAIL_ON_INVALID_PTR(pwszUsername);
-    BAIL_ON_INVALID_PTR(phUser);
-    BAIL_ON_INVALID_PTR(pdwRid);
+    BAIL_ON_INVALID_PTR(pConn, err);
+    BAIL_ON_INVALID_PTR(pwszUsername, err);
+    BAIL_ON_INVALID_PTR(phUser, err);
+    BAIL_ON_INVALID_PTR(pdwRid, err);
 
-    hSamrBinding = pConn->samr.bind;
-    hDomain      = pConn->samr.hDomain;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
+    hDomain      = pConn->Rpc.Samr.hDomain;
 
-    ppwszUsernames[0] = wc16sdup(pwszUsername);
-    BAIL_ON_NO_MEMORY(ppwszUsernames[0]);
+    err = LwAllocateWc16String(&ppwszUsernames[0], pwszUsername);
+    BAIL_ON_WIN_ERROR(err);
 
     status = SamrLookupNames(hSamrBinding,
                              hDomain,
@@ -85,14 +85,14 @@ NetOpenUser(
                              &pdwRids,
                              &pdwTypes,
                              NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrOpenUser(hSamrBinding,
                           hDomain,
                           dwAccessMask,
                           pdwRids[0],
                           &hUser);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *pdwRid = pdwRids[0];
     *phUser = hUser;
@@ -100,15 +100,15 @@ NetOpenUser(
 cleanup:
     if (pdwRids)
     {
-        SamrFreeMemory((void*)pdwRids);
+        SamrFreeMemory(pdwRids);
     }
 
     if (pdwTypes)
     {
-        SamrFreeMemory((void*)pdwTypes);
+        SamrFreeMemory(pdwTypes);
     }
 
-    SAFE_FREE(ppwszUsernames[0]);
+    LW_SAFE_FREE_MEMORY(ppwszUsernames[0]);
 
     return status;
 
@@ -122,7 +122,7 @@ error:
 
 NTSTATUS
 NetOpenAlias(
-    NetConn        *pConn,
+    PNET_CONN       pConn,
     PCWSTR          pwszAliasname,
     DWORD           dwAccessMask,
     ACCOUNT_HANDLE *phAlias,
@@ -143,17 +143,17 @@ NetOpenAlias(
     DWORD dwAliasRid = 0;
     DWORD i = 0;
 
-    BAIL_ON_INVALID_PTR(pConn);
-    BAIL_ON_INVALID_PTR(pwszAliasname);
-    BAIL_ON_INVALID_PTR(phAlias);
-    BAIL_ON_INVALID_PTR(pdwRid);
+    BAIL_ON_INVALID_PTR(pConn, err);
+    BAIL_ON_INVALID_PTR(pwszAliasname, err);
+    BAIL_ON_INVALID_PTR(phAlias, err);
+    BAIL_ON_INVALID_PTR(pdwRid, err);
 
-    hSamrBinding = pConn->samr.bind;
-    hDomains[0]  = pConn->samr.hDomain;
-    hDomains[1]  = pConn->samr.hBtinDomain;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
+    hDomains[0]  = pConn->Rpc.Samr.hDomain;
+    hDomains[1]  = pConn->Rpc.Samr.hBuiltin;
 
-    ppwszAliasnames[0] = wc16sdup(pwszAliasname);
-    BAIL_ON_NO_MEMORY(ppwszAliasnames[0]);
+    err = LwAllocateWc16String(&ppwszAliasnames[0], pwszAliasname);
+    BAIL_ON_WIN_ERROR(err);
 
     /*
      * Try to look for alias in host domain first, then in builtin
@@ -196,18 +196,18 @@ NetOpenAlias(
         }
 
         /* Catch other possible errors */
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
     /* Allow to open alias only if a valid one has been found */
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrOpenAlias(hSamrBinding,
                            hDomain,
                            dwAccessMask,
                            dwAliasRid,
                            &hAlias);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *pdwRid  = dwAliasRid;
     *phAlias = hAlias;

@@ -35,7 +35,7 @@
 
 NTSTATUS
 DisableWksAccount(
-    NetConn        *conn,
+    PNET_CONN       pConn,
     wchar16_t      *account_name,
     ACCOUNT_HANDLE *phAccount
     );

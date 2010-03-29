@@ -57,37 +57,39 @@ NetLocalGroupDel(
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
     DWORD dwAliasRid = 0;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszAliasname);
+    BAIL_ON_INVALID_PTR(pwszAliasname, err);
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             0,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetOpenAlias(pConn,
                           pwszAliasname,
                           dwAliasAccessRights,
                           &hAlias,
                           &dwAliasRid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
 
     status = SamrDeleteDomAlias(hSamrBinding, hAlias);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
+    NetDisconnectSamr(&pConn);
+
     if (pCreds)
     {
         LwIoDeleteCreds(pCreds);

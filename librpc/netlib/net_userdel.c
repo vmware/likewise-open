@@ -57,37 +57,39 @@ NetUserDel(
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hUser = NULL;
     DWORD dwUserRid = 0;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszUsername);
+    BAIL_ON_INVALID_PTR(pwszUsername, err);
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             0,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
 
     status = NetOpenUser(pConn,
                          pwszUsername,
                          dwUserAccess,
                          &hUser,
                          &dwUserRid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrDeleteUser(hSamrBinding, hUser);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
+    NetDisconnectSamr(&pConn);
+
     if (pCreds)
     {
         LwIoDeleteCreds(pCreds);

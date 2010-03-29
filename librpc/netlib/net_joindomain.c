@@ -117,18 +117,18 @@ NetGetAccountName(
     if (wc16slen(machname) < 16)
     {
         samname = wc16sdup(machname);
-        BAIL_ON_NO_MEMORY(samname);
+        BAIL_ON_NO_MEMORY(samname, err);
     }
 
     /* look for an existing account using the dns_host_name attribute */
     if (!samname)
     {
         machname_lc = wc16sdup(machname);
-        BAIL_ON_NO_MEMORY(machname_lc);
+        BAIL_ON_NO_MEMORY(machname_lc, err);
         wc16slower(machname_lc);
 
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         err = MachDnsNameSearch(ld, machname_lc, base_dn, dns_domain_name, &samname);
         if (err == ERROR_SUCCESS)
@@ -155,11 +155,11 @@ NetGetAccountName(
         for (offset = 0 ; offset < 100 ; offset++)
         {
             hashstr = NetHashToWc16s(hash + offset);
-            BAIL_ON_NO_MEMORY(hashstr);
+            BAIL_ON_NO_MEMORY(hashstr, err);
             hashstrlen = wc16slen(hashstr);
 
-            wc16sncpy( newname, machname, 15 - hashstrlen);
-            wc16sncpy( newname + 15 - hashstrlen, hashstr, hashstrlen);
+            wc16sncpy(newname, machname, 15 - hashstrlen);
+            wc16sncpy(newname + 15 - hashstrlen, hashstr, hashstrlen);
 
             SAFE_FREE(hashstr);
 
@@ -169,7 +169,7 @@ NetGetAccountName(
                             newname) < 0)
             {
                 err = ErrnoToWin32Error(errno);
-                BAIL_ON_WINERR_ERROR(err);
+                BAIL_ON_WIN_ERROR(err);
             }
 
             err = MachAcctSearch( ld, searchname, base_dn, &dn );
@@ -178,7 +178,7 @@ NetGetAccountName(
                 err = ERROR_SUCCESS;
 
                 samname = wc16sdup(newname);
-                BAIL_ON_NO_MEMORY(samname);
+                BAIL_ON_NO_MEMORY(samname, err);
 
                 break;
             }
@@ -193,7 +193,7 @@ NetGetAccountName(
 
     samacctname_len = wc16slen(samname) + 2;
     samacctname = (wchar16_t*) malloc(sizeof(wchar16_t) * samacctname_len);
-    BAIL_ON_NO_MEMORY(samacctname);
+    BAIL_ON_NO_MEMORY(samacctname, err);
 
     if (sw16printfw(samacctname,
                     samacctname_len,
@@ -201,7 +201,7 @@ NetGetAccountName(
                     samname) < 0)
     {
         err = ErrnoToWin32Error(errno);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     *account_name = samacctname;
@@ -267,8 +267,8 @@ NetJoinDomainLocalInternal(
     wchar16_t *dns_domain_name = NULL;
     wchar16_t *domain_controller_name = NULL;
     UINT32 rid, newacct;
-    NetConn *conn = NULL;
-    NetConn *lsa_conn = NULL;
+    PNET_CONN pSamrConn = NULL;
+    PNET_CONN pLsaConn = NULL;
     LDAP *ld = NULL;
     wchar16_t *machname_lc = NULL;    /* machine name lower cased */
     wchar16_t *base_dn = NULL;
@@ -289,68 +289,68 @@ NetJoinDomainLocalInternal(
     LW_PIO_CREDS creds = NULL;
 
     machname = wc16sdup(machine);
-    BAIL_ON_NO_MEMORY(machname);
+    BAIL_ON_NO_MEMORY(machname, err);
     wc16supper(machname);
 
     status = NetpGetRwDcName(domain, is_retry, &domain_controller_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     if (account && password)
     {
         status = LwIoCreatePlainCredsW(account, domain, password, &creds);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
     else
     {
         status = LwIoGetActiveCreds(NULL, &creds);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
-    status = NetConnectLsa(&lsa_conn,
+    status = NetConnectLsa(&pLsaConn,
                            domain_controller_name,
                            lsa_access,
                            creds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    lsa_b = lsa_conn->lsa.bind;
+    lsa_b = pLsaConn->Rpc.Lsa.hBinding;
 
-    status = LsaQueryInfoPolicy2(lsa_b, lsa_conn->lsa.hPolicy,
+    status = LsaQueryInfoPolicy2(lsa_b, pLsaConn->Rpc.Lsa.hPolicy,
                                  LSA_POLICY_INFO_DNS, &lsa_policy_info);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     dns_domain_name = GetFromUnicodeStringEx(&lsa_policy_info->dns.dns_domain);
-    BAIL_ON_NO_MEMORY(dns_domain_name);
+    BAIL_ON_NO_MEMORY(dns_domain_name, err);
 
     err = NetGetAccountName(
         machname,
         domain_controller_name,
         machine_dns_domain ? machine_dns_domain : dns_domain_name,
         &machacct_name);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     /* If account_ou is specified pre-create disabled machine
        account object in given branch of directory. It will
        be reset afterwards by means of rpc calls */
     if (account_ou) {
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         err = MachAcctCreate(ld, machname, machacct_name, account_ou,
                              (options & NETSETUP_DOMAIN_JOIN_IF_JOINED));
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         err = DirectoryDisconnect(ld);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
-    status = NetConnectSamr(&conn,
+    status = NetConnectSamr(&pSamrConn,
                             domain_controller_name,
                             domain_access,
                             0,
                             creds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    samr_b = conn->samr.bind;
+    samr_b = pSamrConn->Rpc.Samr.hBinding;
 
     GenerateMachinePassword(
         machine_pass,
@@ -359,66 +359,66 @@ NetJoinDomainLocalInternal(
     /* for start, let's assume the account already exists */
     newacct = false;
 
-    status = NetOpenUser(conn, machacct_name, user_access,
+    status = NetOpenUser(pSamrConn, machacct_name, user_access,
                          &hAccount, &rid);
     if (status == STATUS_NONE_MAPPED) {
         if (!(options & NETSETUP_ACCT_CREATE)) goto error;
 
-        status = CreateWksAccount(conn, machacct_name, &hAccount);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        status = CreateWksAccount(pSamrConn, machacct_name, &hAccount);
+        BAIL_ON_NT_STATUS(status);
 
         if (machine_pass[0] == '\0') {
-            BAIL_ON_NTSTATUS_ERROR(STATUS_INTERNAL_ERROR);
+            BAIL_ON_NT_STATUS(STATUS_INTERNAL_ERROR);
         }
 
         newacct = true;
 
     } else if (status == STATUS_SUCCESS &&
                !(options & NETSETUP_DOMAIN_JOIN_IF_JOINED)) {
-        BAIL_ON_WINERR_ERROR(NERR_SetupAlreadyJoined);
+        BAIL_ON_WIN_ERROR(NERR_SetupAlreadyJoined);
     }
     else
     {
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
-    status = ResetWksAccount(conn, machacct_name, hAccount);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    status = ResetWksAccount(pSamrConn, machacct_name, hAccount);
+    BAIL_ON_NT_STATUS(status);
 
-    status = SetMachinePassword(conn, hAccount, newacct, machname,
+    status = SetMachinePassword(pSamrConn, hAccount, newacct, machname,
                                 machine_pass);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    status = RtlAllocateWC16StringFromSid(&sid_str, conn->samr.dom_sid);
+    status = RtlAllocateWC16StringFromSid(&sid_str, pSamrConn->Rpc.Samr.pDomainSid);
     if (status != STATUS_SUCCESS) {
-        SamrClose(conn->samr.bind, hAccount);
+        SamrClose(pSamrConn->Rpc.Samr.hBinding, hAccount);
         hAccount = NULL;
 
-        close_status = DisableWksAccount(conn, machacct_name, &hAccount);
-        BAIL_ON_NTSTATUS_ERROR(close_status);
+        close_status = DisableWksAccount(pSamrConn, machacct_name, &hAccount);
+        BAIL_ON_NT_STATUS(close_status);
 
         err = NtStatusToWin32Error(status);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     err = SaveMachinePassword(
               machname,
               machacct_name,
               machine_dns_domain ? machine_dns_domain : dns_domain_name,
-              conn->samr.dom_name,
+              pSamrConn->Rpc.Samr.pwszDomainName,
               dns_domain_name,
               domain_controller_name,
               sid_str,
               machine_pass);
 
     if (err != ERROR_SUCCESS) {
-        SamrClose(conn->samr.bind, hAccount);
+        SamrClose(pSamrConn->Rpc.Samr.hBinding, hAccount);
         hAccount = NULL;
 
-        close_status = DisableWksAccount(conn, machacct_name, &hAccount);
-        BAIL_ON_NTSTATUS_ERROR(close_status);
+        close_status = DisableWksAccount(pSamrConn, machacct_name, &hAccount);
+        BAIL_ON_NT_STATUS(close_status);
 
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     /*
@@ -428,10 +428,10 @@ NetJoinDomainLocalInternal(
         osname || osver || ospack) {
 
         err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         err = MachAcctSearch(ld, machacct_name, base_dn, &dn);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         /*
          * Set SPN and dnsHostName attributes unless this part is to be deferred
@@ -440,7 +440,7 @@ NetJoinDomainLocalInternal(
             wchar16_t *dnshostname;
 
             machname_lc = wc16sdup(machname);
-            BAIL_ON_NO_MEMORY(machname_lc);
+            BAIL_ON_NO_MEMORY(machname_lc, err);
             wc16slower(machname_lc);
 
             dns_attr_name   = ambstowc16s("dNSHostName");
@@ -459,7 +459,7 @@ NetJoinDomainLocalInternal(
             {
                 err = ERROR_DS_NAME_ERROR_NO_MAPPING;
             }
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
 
             spn_attr_name   = ambstowc16s("servicePrincipalName");
             spn_attr_val[0] = LdapAttrValSvcPrincipalName(dnshostname);
@@ -468,7 +468,7 @@ NetJoinDomainLocalInternal(
 
             err = MachAcctSetAttribute(ld, dn, spn_attr_name,
                                        (const wchar16_t**)spn_attr_val, 0);
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         if ( wc16scmp(machname, machacct_name) )
@@ -483,7 +483,7 @@ NetJoinDomainLocalInternal(
                       desc_attr_name,
                       (const wchar16_t**)desc_attr_val,
                       0);
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         /*
@@ -507,7 +507,7 @@ NetJoinDomainLocalInternal(
             }
             else
             {
-                BAIL_ON_WINERR_ERROR(err);
+                BAIL_ON_WIN_ERROR(err);
             }
         }
 
@@ -526,7 +526,7 @@ NetJoinDomainLocalInternal(
             }
             else
             {
-                BAIL_ON_WINERR_ERROR(err);
+                BAIL_ON_WIN_ERROR(err);
             }
         }
 
@@ -545,43 +545,34 @@ NetJoinDomainLocalInternal(
             }
             else
             {
-                BAIL_ON_WINERR_ERROR(err);
+                BAIL_ON_WIN_ERROR(err);
             }
         }
 
         err = DirectoryDisconnect(ld);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
 cleanup:
 
-    if (conn) {
-
-        if (conn->samr.bind && hAccount)
+    if (pSamrConn)
+    {
+        if (pSamrConn->Rpc.Samr.hBinding && hAccount)
         {
-            SamrClose(conn->samr.bind, hAccount);
+            SamrClose(pSamrConn->Rpc.Samr.hBinding, hAccount);
         }
 
-        close_status = NetDisconnectSamr(conn);
-        if (status == STATUS_SUCCESS &&
-            close_status != STATUS_SUCCESS)
-        {
-            status = close_status;
-        }
+        NetDisconnectSamr(&pSamrConn);
     }
 
-    if (lsa_conn) {
-        close_status = NetDisconnectLsa(lsa_conn);
-        if (status == STATUS_SUCCESS &&
-            close_status != STATUS_SUCCESS)
-        {
-            status = close_status;
-        }
+    if (pLsaConn)
+    {
+        NetDisconnectLsa(&pLsaConn);
     }
 
     if (lsa_policy_info)
     {
-        LsaRpcFreeMemory((void*)lsa_policy_info);
+        LsaRpcFreeMemory(lsa_policy_info);
     }
 
     if (creds)

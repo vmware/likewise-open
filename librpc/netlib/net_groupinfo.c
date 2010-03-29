@@ -98,7 +98,7 @@ NetAllocateLocalGroupInfo(
         err = ERROR_INVALID_LEVEL;
         break;
     }
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
 cleanup:
     return err;
@@ -143,7 +143,7 @@ NetAllocateLocalGroupInfo0(
                                    &dwSpaceLeft,
                                    pwszName,
                                    &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     if (pdwSpaceLeft)
     {
@@ -200,7 +200,7 @@ NetAllocateLocalGroupInfo1(
                                    &dwSpaceLeft,
                                    &pInfoAll->name,
                                    &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     /* lgrpi1_comment */
     err = NetAllocBufferWC16StringFromUnicodeString(
@@ -208,7 +208,7 @@ NetAllocateLocalGroupInfo1(
                                    &dwSpaceLeft,
                                    &pInfoAll->description,
                                    &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     if (pdwSpaceLeft)
     {

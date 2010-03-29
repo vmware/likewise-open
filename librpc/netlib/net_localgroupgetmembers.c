@@ -65,7 +65,7 @@ NetLocalGroupGetMembers(
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     handle_t hLsaBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
@@ -93,11 +93,11 @@ NetLocalGroupGetMembers(
     DWORD dwSpaceAvailable = 0;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszAliasname);
-    BAIL_ON_INVALID_PTR(ppBuffer);
-    BAIL_ON_INVALID_PTR(pdwNumEntries);
-    BAIL_ON_INVALID_PTR(pdwTotalEntries);
-    BAIL_ON_INVALID_PTR(pdwResume);
+    BAIL_ON_INVALID_PTR(pwszAliasname, err);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
+    BAIL_ON_INVALID_PTR(pdwNumEntries, err);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries, err);
+    BAIL_ON_INVALID_PTR(pdwResume, err);
 
     switch (dwLevel)
     {
@@ -113,24 +113,24 @@ NetLocalGroupGetMembers(
     case 2:
     default:
         err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     dwResume = *pdwResume;
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             0,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
-    hDomain      = pConn->samr.hDomain;
-    hBtinDomain  = pConn->samr.hBtinDomain;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
+    hDomain      = pConn->Rpc.Samr.hDomain;
+    hBtinDomain  = pConn->Rpc.Samr.hBuiltin;
 
     status = NetOpenAlias(pConn,
                           pwszAliasname,
@@ -146,22 +146,22 @@ NetLocalGroupGetMembers(
                               dwAliasAccessFlags,
                               &hAlias,
                               &dwAliasRid);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
     }
     else if (status != STATUS_SUCCESS)
     {
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
     }
 
     status = SamrGetMembersInAlias(hSamrBinding,
                                    hAlias,
                                    &ppSids,
                                    &dwNumSids);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrClose(hSamrBinding, hAlias);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     dwTotalNumEntries = dwNumSids;
 
@@ -176,7 +176,7 @@ NetLocalGroupGetMembers(
                                                    dwLevel,
                                                    pSourceBuffer,
                                                    &dwSize);
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
 
             dwTotalSize += dwSize;
             dwNumEntries++;
@@ -195,16 +195,15 @@ NetLocalGroupGetMembers(
                                pwszHostname,
                                dwLsaAccessFlags,
                                pCreds);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
-        hLsaBinding  = pConn->lsa.bind;
-        hLsaPolicy   = pConn->lsa.hPolicy;
+        hLsaBinding  = pConn->Rpc.Lsa.hBinding;
+        hLsaPolicy   = pConn->Rpc.Lsa.hPolicy;
 
         Sids.num_sids = dwNumSids;
         status = NetAllocateMemory((void**)&Sids.sids,
-                                   sizeof(SidPtr) * Sids.num_sids,
-                                   NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+                                   sizeof(SidPtr) * Sids.num_sids);
+        BAIL_ON_NT_STATUS(status);
 
         for (i = 0; i < Sids.num_sids; i++)
         {
@@ -221,13 +220,12 @@ NetLocalGroupGetMembers(
         if (status != STATUS_SUCCESS &&
             status != LW_STATUS_SOME_NOT_MAPPED)
         {
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
-        status = NetAllocateMemory((void**)&pResolvedNames,
-                                   sizeof(*pResolvedNames) * dwCount,
-                                   NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        status = NetAllocateMemory(OUT_PPVOID(&pResolvedNames),
+                                   sizeof(*pResolvedNames) * dwCount);
+        BAIL_ON_NT_STATUS(status);
 
         for (i = 0; i + dwResume < dwCount; i++)
         {
@@ -244,7 +242,7 @@ NetLocalGroupGetMembers(
                                                    dwLevel,
                                                    pSourceBuffer,
                                                    &dwSize);
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
 
             dwTotalSize += dwSize;
             dwNumEntries++;
@@ -261,15 +259,14 @@ NetLocalGroupGetMembers(
     if (dwTotalNumEntries > 0 && dwNumEntries == 0)
     {
         err = ERROR_INSUFFICIENT_BUFFER;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     if (dwTotalSize)
     {
-        status = NetAllocateMemory((void**)&pBuffer,
-                                   dwTotalSize,
-                                   NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        status = NetAllocateMemory(OUT_PPVOID(&pBuffer),
+                                   dwTotalSize);
+        BAIL_ON_NT_STATUS(status);
     }
 
     dwSize           = 0;
@@ -294,7 +291,7 @@ NetLocalGroupGetMembers(
                                                dwLevel,
                                                pSourceBuffer,
                                                &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     if (dwResume + dwNumEntries < dwTotalNumEntries)
@@ -308,6 +305,8 @@ NetLocalGroupGetMembers(
     *pdwTotalEntries = dwTotalNumEntries;
 
 cleanup:
+    NetDisconnectSamr(&pConn);
+
     if (Sids.sids)
     {
         NetFreeMemory(Sids.sids);
@@ -315,17 +314,17 @@ cleanup:
 
     if (ppSids)
     {
-        SamrFreeMemory((void*)ppSids);
+        SamrFreeMemory(ppSids);
     }
 
     if (pNames)
     {
-        SamrFreeMemory((void*)pNames);
+        SamrFreeMemory(pNames);
     }
 
     if (pDomains)
     {
-        SamrFreeMemory((void*)pDomains);
+        SamrFreeMemory(pDomains);
     }
 
     if (pCreds)

@@ -53,31 +53,7 @@ NetInitMemory(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    /* Init allocation of dependant rpc libraries first */
-    status = LsaRpcInitMemory();
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = SamrInitMemory();
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    if (!bNetApiInitialised) {
-        status = MemPtrListInit((PtrList**)&netapi_ptr_list);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        bNetApiInitialised = 1;
-    }
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
     return status;
-
-error:
-    goto cleanup;
 }
 
 
@@ -87,62 +63,44 @@ NetDestroyMemory(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    WINERR err = ERROR_SUCCESS;
-    int locked = 0;
-
-    GLOBAL_DATA_LOCK(locked);
-
-    if (bNetApiInitialised && netapi_ptr_list) {
-        status = MemPtrListDestroy((PtrList**)&netapi_ptr_list);
-        BAIL_ON_NTSTATUS_ERROR(status);
-
-        bNetApiInitialised = 0;
-    }
-
-    /* Destroy allocation of dependant rpc libraries */
-    status = LsaRpcDestroyMemory();
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-    status = SamrDestroyMemory();
-    BAIL_ON_NTSTATUS_ERROR(status);
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(locked);
-
     return status;
-
-error:
-    goto cleanup;
 }
 
 
 NTSTATUS
 NetAllocateMemory(
-    void **out,
-    size_t size,
-    void *dep
+    OUT PVOID *ppOut,
+    IN  size_t sSize
     )
 {
-    return MemPtrAllocate((PtrList*)netapi_ptr_list, out, size, dep);
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PVOID pMem = NULL;
+
+    pMem = malloc(sSize);
+    if (pMem == NULL)
+    {
+        ntStatus = STATUS_NO_MEMORY;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    memset(pMem, 0, sSize);
+    *ppOut = pMem;
+
+cleanup:
+    return ntStatus;
+
+error:
+    *ppOut = NULL;
+    goto cleanup;
 }
 
 
-NTSTATUS
+VOID
 NetFreeMemory(
-    void *ptr
+    IN PVOID pPtr
     )
 {
-    return MemPtrFree((PtrList*)netapi_ptr_list, ptr);
-}
-
-
-NTSTATUS
-NetAddDepMemory(
-    void *ptr,
-    void *dep
-    )
-{
-    return MemPtrAddDependant((PtrList*)netapi_ptr_list, ptr, dep);
+    free(pPtr);
 }
 
 
@@ -177,7 +135,7 @@ NetAllocBufferByte(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pubDest  = (PBYTE)pCursor;
@@ -233,7 +191,7 @@ NetAllocBufferWord(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pwDest    = (PWORD)pCursor;
@@ -289,7 +247,7 @@ NetAllocBufferDword(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pdwDest   = (PDWORD)pCursor;
@@ -345,7 +303,7 @@ NetAllocBufferUlong64(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pullDest      = (PULONG64)pCursor;
@@ -546,7 +504,7 @@ NetAllocBufferWC16String(
     if (pwszSource)
     {
         err = LwWc16sLen(pwszSource, &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         /* it's a 2-byte unicode string */
         dwSize *= 2;
@@ -560,7 +518,7 @@ NetAllocBufferWC16String(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pStr = (pCursor + dwSpaceLeft) - dwSize;
@@ -570,11 +528,11 @@ NetAllocBufferWC16String(
         if ((pCursor + sizeof(PWSTR)) > pStr)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         err = LwWc16snCpy((PWSTR)pStr, pwszSource, (dwSize / 2) - 1);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         /* recalculate size and space after copying the string */
         ppwszDest     = (PWSTR*)pCursor;
@@ -648,7 +606,7 @@ NetAllocBufferWC16StringFromUnicodeString(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pStr = (pCursor + dwSpaceLeft) - dwSize;
@@ -658,13 +616,13 @@ NetAllocBufferWC16StringFromUnicodeString(
         if ((pCursor + sizeof(PWSTR)) > pStr)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         err = LwWc16snCpy((PWSTR)pStr,
                           pSource->string,
                           pSource->len / 2);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         /* recalculate size and space after copying the string */
         ppwszDest     = (PWSTR*)pCursor;
@@ -734,7 +692,7 @@ NetAllocBufferUnicodeStringFromWC16String(
     }
 
     err = LwWc16sLen(pwszSource, (size_t*)&dwStrSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     /* it's a 2-byte unicode string */
     dwStrSize *= 2;
@@ -749,14 +707,14 @@ NetAllocBufferUnicodeStringFromWC16String(
                                  &dwSpaceLeft,
                                  (WORD)(dwStrSize - sizeof(WCHAR)),
                                  &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         /* string size field */
         err = NetAllocBufferWord(&pCursor,
                                  &dwSpaceLeft,
                                  (WORD)dwStrSize,
                                  &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         ALIGN_PTR_IN_BUFFER(UnicodeString, size, pCursor, dwSize, dwSpaceLeft);
 
@@ -765,7 +723,7 @@ NetAllocBufferUnicodeStringFromWC16String(
                                        &dwSpaceLeft,
                                        pwszSource,
                                        &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         *ppCursor     = pCursor;
         *pdwSpaceLeft = dwSpaceLeft;
@@ -837,7 +795,7 @@ NetAllocBufferLogonHours(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pbBytes = (pCursor + dwSpaceLeft) - dwSize;
@@ -847,7 +805,7 @@ NetAllocBufferLogonHours(
         if ((pCursor + sizeof(PWSTR)) > (PVOID)pbBytes)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         /* Allow all logon hours */
@@ -929,14 +887,14 @@ NetAllocBufferSamrLogonHoursFromNetLogonHours(
                                  &dwSpaceLeft,
                                  wUnitsPerWeek,
                                  &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         err = NetAllocBufferByteBlob(&pCursor,
                                      &dwSpaceLeft,
                                      pbUnits,
                                      (DWORD)wUnitsPerWeek,
                                      &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         *ppCursor     = pCursor;
         *pdwSpaceLeft = dwSpaceLeft;
@@ -1016,7 +974,7 @@ NetAllocBufferSid(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pSid = (pCursor + dwSpaceLeft) - dwSize;
@@ -1026,7 +984,7 @@ NetAllocBufferSid(
         if ((pCursor + sizeof(PSID)) > pSid)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         if (pSourceSid)
@@ -1034,7 +992,7 @@ NetAllocBufferSid(
             status = RtlCopySid(dwSize,
                                 (PSID)pSid,
                                 pSourceSid);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
         /* recalculate size and space after copying the SID */
@@ -1109,7 +1067,7 @@ NetAllocBufferByteBlob(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pbBytes = (pCursor + dwSpaceLeft) - dwSize;
@@ -1119,7 +1077,7 @@ NetAllocBufferByteBlob(
         if ((pCursor + sizeof(PWSTR)) > (PVOID)pbBytes)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         /* copy the blob */
@@ -1197,7 +1155,7 @@ NetAllocBufferFixedBlob(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         /* copy the blob */
@@ -1267,14 +1225,14 @@ NetAllocBufferNT4Name(
     if (err != ERROR_SUCCESS &&
         err != ERROR_INVALID_PARAMETER)
     {
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     err = LwWc16sLen(pwszAccountName, &sAccountNameLen);
     if (err != ERROR_SUCCESS &&
         err != ERROR_INVALID_PARAMETER)
     {
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     /* +2 because extra space is needed for the separator ('\')
@@ -1286,7 +1244,7 @@ NetAllocBufferNT4Name(
         if (dwSize > dwSpaceLeft)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         pNT4Name = (pCursor + dwSpaceLeft) - dwSize;
@@ -1296,7 +1254,7 @@ NetAllocBufferNT4Name(
         if ((pCursor + sizeof(PWSTR)) > pNT4Name)
         {
             err = ERROR_NOT_ENOUGH_MEMORY;
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
         }
 
         if (pwszDomainName && pwszAccountName)
@@ -1308,7 +1266,7 @@ NetAllocBufferNT4Name(
                             pwszAccountName) < 0)
             {
                 err = LwErrnoToWin32Error(errno);
-                BAIL_ON_WINERR_ERROR(err);
+                BAIL_ON_WIN_ERROR(err);
             }
         }
         else if (pwszDomainName)
@@ -1319,7 +1277,7 @@ NetAllocBufferNT4Name(
                             pwszDomainName) < 0)
             {
                 err = LwErrnoToWin32Error(errno);
-                BAIL_ON_WINERR_ERROR(err);
+                BAIL_ON_WIN_ERROR(err);
             }
         }
         else if (pwszAccountName)
@@ -1330,7 +1288,7 @@ NetAllocBufferNT4Name(
                             pwszAccountName) < 0)
             {
                 err = LwErrnoToWin32Error(errno);
-                BAIL_ON_WINERR_ERROR(err);
+                BAIL_ON_WIN_ERROR(err);
             }
         }
         else

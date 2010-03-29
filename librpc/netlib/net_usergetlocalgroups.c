@@ -66,7 +66,7 @@ NetUserGetLocalGroups(
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     DOMAIN_HANDLE hBtinDomain = NULL;
@@ -98,10 +98,10 @@ NetUserGetLocalGroups(
     DWORD dwSpaceAvailable = 0;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszUsername);
-    BAIL_ON_INVALID_PTR(ppBuffer);
-    BAIL_ON_INVALID_PTR(pdwNumEntries);
-    BAIL_ON_INVALID_PTR(pdwTotalEntries);
+    BAIL_ON_INVALID_PTR(pwszUsername, err);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
+    BAIL_ON_INVALID_PTR(pdwNumEntries, err);
+    BAIL_ON_INVALID_PTR(pdwTotalEntries, err);
 
     switch (dwLevel)
     {
@@ -111,45 +111,45 @@ NetUserGetLocalGroups(
 
     default:
         err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             dwBuiltinDomainAccess,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
-    hDomain      = pConn->samr.hDomain;
-    hBtinDomain  = pConn->samr.hBtinDomain;
-    pDomainSid   = pConn->samr.dom_sid;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
+    hDomain      = pConn->Rpc.Samr.hDomain;
+    hBtinDomain  = pConn->Rpc.Samr.hBuiltin;
+    pDomainSid   = pConn->Rpc.Samr.pDomainSid;
 
     status = NetOpenUser(pConn,
                          pwszUsername,
                          dwUserAccess,
                          &hUser,
                          &dwUserRid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     dwSidLen = RtlLengthRequiredSid(pDomainSid->SubAuthorityCount + 1);
     err = LwAllocateMemory(dwSidLen,
                            OUT_PPVOID(&pUserSid));
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     status = RtlCopySid(dwSidLen,
                         pUserSid,
                         pDomainSid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = RtlAppendRidSid(dwSidLen,
                              pUserSid,
                              dwUserRid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     Sidptr.sid    = pUserSid;
     Sids.sids     = &Sidptr;
@@ -161,7 +161,7 @@ NetUserGetLocalGroups(
                                     1,
                                     &pdwUserRids,
                                     &dwRidsCount);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrGetAliasMembership(hSamrBinding,
                                     hBtinDomain,
@@ -169,14 +169,14 @@ NetUserGetLocalGroups(
                                     1,
                                     &pdwBuiltinUserRids,
                                     &dwBuiltinRidsCount);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     dwTotalNumEntries = dwRidsCount + dwBuiltinRidsCount;
 
     err = LwAllocateMemory(
                       sizeof(ppwszLocalGroupNames[0]) * dwTotalNumEntries,
                       OUT_PPVOID(&ppwszLocalGroupNames));
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     if (dwRidsCount > 0)
     {
@@ -186,7 +186,7 @@ NetUserGetLocalGroups(
                                 pdwUserRids,
                                 &ppwszAliasNames,
                                 &pdwAliasTypes);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
         for (i = 0; i < dwRidsCount; i++)
         {
@@ -202,7 +202,7 @@ NetUserGetLocalGroups(
                                 pdwBuiltinUserRids,
                                 &ppwszBuiltinAliasNames,
                                 &pdwBuiltinAliasTypes);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        BAIL_ON_NT_STATUS(status);
 
         for (i = 0; i < dwBuiltinRidsCount; i++)
         {
@@ -220,7 +220,7 @@ NetUserGetLocalGroups(
                                              dwLevel,
                                              pSourceBuffer,
                                              &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         dwTotalSize += dwSize;
         dwNumEntries++;
@@ -236,15 +236,14 @@ NetUserGetLocalGroups(
     if (dwTotalNumEntries > 0 && dwNumEntries == 0)
     {
         err = ERROR_INSUFFICIENT_BUFFER;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     if (dwTotalSize)
     {
         status = NetAllocateMemory(OUT_PPVOID(&pBuffer),
-                                   dwTotalSize,
-                                   NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+                                   dwTotalSize);
+        BAIL_ON_NT_STATUS(status);
     }
 
     dwSize           = 0;
@@ -261,7 +260,7 @@ NetUserGetLocalGroups(
                                              dwLevel,
                                              pSourceBuffer,
                                              &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     if (dwNumEntries < dwTotalNumEntries)
@@ -270,7 +269,7 @@ NetUserGetLocalGroups(
     }
 
     status = SamrClose(hSamrBinding, hUser);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *ppBuffer        = pBuffer;
     *pdwNumEntries   = dwNumEntries;

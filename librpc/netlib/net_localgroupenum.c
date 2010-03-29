@@ -65,7 +65,7 @@ NetLocalGroupEnum(
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
     DWORD dwResume = 0;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     DOMAIN_HANDLE hDomain = NULL;
     DOMAIN_HANDLE hBtinDomain = NULL;
@@ -95,10 +95,10 @@ NetLocalGroupEnum(
     PVOID pBufferCursor = NULL;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(ppBuffer);
-    BAIL_ON_INVALID_PTR(pdwNumEntries);
-    BAIL_ON_INVALID_PTR(pdwTotalNumEntries);
-    BAIL_ON_INVALID_PTR(pdwResume);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
+    BAIL_ON_INVALID_PTR(pdwNumEntries, err);
+    BAIL_ON_INVALID_PTR(pdwTotalNumEntries, err);
+    BAIL_ON_INVALID_PTR(pdwResume, err);
 
     switch (dwLevel)
     {
@@ -110,24 +110,24 @@ NetLocalGroupEnum(
 
     default:
         err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     dwResume = *pdwResume;
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             0,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
-    hDomain      = pConn->samr.hDomain;
-    hBtinDomain  = pConn->samr.hBtinDomain;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
+    hDomain      = pConn->Rpc.Samr.hDomain;
+    hBtinDomain  = pConn->Rpc.Samr.hBuiltin;
 
     do
     {
@@ -141,7 +141,7 @@ NetLocalGroupEnum(
         if (status != STATUS_SUCCESS &&
             status != STATUS_MORE_ENTRIES)
         {
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
         if (ppwszDomainAliases)
@@ -175,7 +175,7 @@ NetLocalGroupEnum(
         if (status != STATUS_SUCCESS &&
             status != STATUS_MORE_ENTRIES)
         {
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
         if (ppwszBtinDomainAliases)
@@ -197,20 +197,17 @@ NetLocalGroupEnum(
 
     dwTotalNumEntries = dwTotalNumDomainEntries + dwTotalNumBtinDomainEntries;
 
-    status = NetAllocateMemory((void**)&pdwRids,
-                               sizeof(pdwRids[0]) * dwTotalNumEntries,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    status = NetAllocateMemory(OUT_PPVOID(&pdwRids),
+                               sizeof(pdwRids[0]) * dwTotalNumEntries);
+    BAIL_ON_NT_STATUS(status);
 
-    status = NetAllocateMemory((void**)&ppwszAliases,
-                               sizeof(ppwszAliases[0]) * dwTotalNumEntries,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    status = NetAllocateMemory(OUT_PPVOID(&ppwszAliases),
+                               sizeof(ppwszAliases[0]) * dwTotalNumEntries);
+    BAIL_ON_NT_STATUS(status);
 
-    status = NetAllocateMemory((void**)&ppAliasInfo,
-                               sizeof(ppAliasInfo[0]) * dwTotalNumEntries,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    status = NetAllocateMemory(OUT_PPVOID(&ppAliasInfo),
+                               sizeof(ppAliasInfo[0]) * dwTotalNumEntries);
+    BAIL_ON_NT_STATUS(status);
 
     dwTotalNumDomainEntries     = 0;
     dwTotalNumBtinDomainEntries = 0;
@@ -228,14 +225,14 @@ NetLocalGroupEnum(
         if (status != STATUS_SUCCESS &&
             status != STATUS_MORE_ENTRIES)
         {
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
         for (i = 0; i < dwNumDomainEntries; i++)
         {
             err = LwAllocateWc16String(&ppwszAliases[dwTotalNumDomainEntries + i],
                                        ppwszDomainAliases[i]);
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
 
             pdwRids[dwTotalNumDomainEntries + i] = pdwDomainRids[i];
         }
@@ -272,7 +269,7 @@ NetLocalGroupEnum(
         if (status != STATUS_SUCCESS &&
             status != STATUS_MORE_ENTRIES)
         {
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
         for (i = 0; i < dwNumBtinDomainEntries; i++)
@@ -280,7 +277,7 @@ NetLocalGroupEnum(
             err = LwAllocateWc16String(&ppwszAliases[dwTotalNumDomainEntries +
                                                      dwTotalNumBtinDomainEntries + i],
                                        ppwszBtinDomainAliases[i]);
-            BAIL_ON_WINERR_ERROR(err);
+            BAIL_ON_WIN_ERROR(err);
 
             pdwRids[dwTotalNumDomainEntries +
                     dwTotalNumBtinDomainEntries + i] = pdwBtinDomainRids[i];
@@ -322,19 +319,19 @@ NetLocalGroupEnum(
                                    dwAliasAccessFlags,
                                    dwRid,
                                    &hAlias);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
 
             status = SamrQueryAliasInfo(hSamrBinding,
                                         hAlias,
                                         wInfoLevel,
                                         &pSamrAliasInfo);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
 
             ppAliasInfo[i - dwResume]  = &pSamrAliasInfo->all;
             pSourceBuffer              = &pSamrAliasInfo->all;
 
             status = SamrClose(hSamrBinding, hAlias);
-            BAIL_ON_NTSTATUS_ERROR(status);
+            BAIL_ON_NT_STATUS(status);
         }
 
         dwSize = 0;
@@ -343,7 +340,7 @@ NetLocalGroupEnum(
                                         dwLevel,
                                         pSourceBuffer,
                                         &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
         dwTotalSize += dwSize;
         dwNumEntries++;
@@ -359,15 +356,14 @@ NetLocalGroupEnum(
     if (dwTotalNumEntries > 0 && dwNumEntries == 0)
     {
         err = ERROR_INSUFFICIENT_BUFFER;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     if (dwTotalSize)
     {
-        status = NetAllocateMemory((void**)&pBuffer,
-                                   dwTotalSize,
-                                   NULL);
-        BAIL_ON_NTSTATUS_ERROR(status);
+        status = NetAllocateMemory(OUT_PPVOID(&pBuffer),
+                                   dwTotalSize);
+        BAIL_ON_NT_STATUS(status);
     }
 
     dwSize           = 0;
@@ -392,7 +388,7 @@ NetLocalGroupEnum(
                                         dwLevel,
                                         pSourceBuffer,
                                         &dwSize);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
 
     }
 
@@ -407,6 +403,8 @@ NetLocalGroupEnum(
     *pdwResume          = dwResume + dwNumEntries;
 
 cleanup:
+    NetDisconnectSamr(&pConn);
+
     if (pdwRids)
     {
         NetFreeMemory(pdwRids);
@@ -428,7 +426,7 @@ cleanup:
         {
             if (ppAliasInfo[i])
             {
-                SamrFreeMemory((void*)ppAliasInfo[i]);
+                SamrFreeMemory(ppAliasInfo[i]);
             }
         }
 

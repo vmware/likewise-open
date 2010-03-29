@@ -58,14 +58,14 @@ NetCreateKrb5CredentialsW(
     NTSTATUS status = STATUS_SUCCESS;
     LW_PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszPrincipal);
-    BAIL_ON_INVALID_PTR(pwszCache);
-    BAIL_ON_INVALID_PTR(phCreds);
+    BAIL_ON_INVALID_PTR(pwszPrincipal, err);
+    BAIL_ON_INVALID_PTR(pwszCache, err);
+    BAIL_ON_INVALID_PTR(phCreds, err);
 
     status = LwIoCreateKrb5CredsW(pwszPrincipal,
                                   pwszCache,
                                   &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *phCreds = pCreds;
 
@@ -99,14 +99,14 @@ NetCreateKrb5CredentialsA(
     NTSTATUS status = STATUS_SUCCESS;
     LW_PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pszPrincipal);
-    BAIL_ON_INVALID_PTR(pszCache);
-    BAIL_ON_INVALID_PTR(phCreds);
+    BAIL_ON_INVALID_PTR(pszPrincipal, err);
+    BAIL_ON_INVALID_PTR(pszCache, err);
+    BAIL_ON_INVALID_PTR(phCreds, err);
 
     status = LwIoCreateKrb5CredsA(pszPrincipal,
                                   pszCache,
                                   &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *phCreds = (NET_CREDS_HANDLE)pCreds;
 
@@ -142,16 +142,16 @@ NetCreateNtlmCredentialsW(
     NTSTATUS status = STATUS_SUCCESS;
     LW_PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszUsername);
-    BAIL_ON_INVALID_PTR(pwszPassword);
-    BAIL_ON_INVALID_PTR(pwszDomainName);
-    BAIL_ON_INVALID_PTR(phCreds);
+    BAIL_ON_INVALID_PTR(pwszUsername, err);
+    BAIL_ON_INVALID_PTR(pwszPassword, err);
+    BAIL_ON_INVALID_PTR(pwszDomainName, err);
+    BAIL_ON_INVALID_PTR(phCreds, err);
 
     status = LwIoCreatePlainCredsW(pwszUsername,
                                    pwszDomainName,
                                    pwszPassword,
                                    &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *phCreds = pCreds;
 
@@ -187,16 +187,16 @@ NetCreateNtlmCredentialsA(
     NTSTATUS status = STATUS_SUCCESS;
     LW_PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pszUsername);
-    BAIL_ON_INVALID_PTR(pszPassword);
-    BAIL_ON_INVALID_PTR(pszDomainName);
-    BAIL_ON_INVALID_PTR(phCreds);
+    BAIL_ON_INVALID_PTR(pszUsername, err);
+    BAIL_ON_INVALID_PTR(pszPassword, err);
+    BAIL_ON_INVALID_PTR(pszDomainName, err);
+    BAIL_ON_INVALID_PTR(phCreds, err);
 
     status = LwIoCreatePlainCredsA(pszUsername,
                                    pszDomainName,
                                    pszPassword,
                                    &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *phCreds = pCreds;
 
@@ -229,7 +229,7 @@ NetSetCredentials(
     LW_PIO_CREDS pCreds = (LW_PIO_CREDS)hCreds;
 
     status = LwIoSetThreadCreds(pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
 cleanup:
     if (err == ERROR_SUCCESS &&

@@ -33,18 +33,17 @@
 
 NET_API_STATUS
 NetApiBufferFree(
-   void *buffer
+   PVOID pBuffer
    )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
 
-    BAIL_ON_INVALID_PTR(buffer);
+    BAIL_ON_INVALID_PTR(pBuffer, err);
 
-    NetFreeMemory(buffer);
+    NetFreeMemory(pBuffer);
 
 cleanup:
-    return status;
+    return err;
 
 error:
     goto cleanup;

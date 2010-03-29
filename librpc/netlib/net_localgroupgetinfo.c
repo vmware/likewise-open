@@ -56,11 +56,11 @@ NetLocalGroupGetInfo(
     )
 {
     const DWORD dwAliasAccessFlags = ALIAS_ACCESS_LOOKUP_INFO;
-    const WORD wInfoLevel = ALIAS_INFO_ALL;
+    const WORD swInfoLevel = ALIAS_INFO_ALL;
 
     NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *pConn = NULL;
+    PNET_CONN pConn = NULL;
     handle_t hSamrBinding = NULL;
     ACCOUNT_HANDLE hAlias = NULL;
     DWORD dwAliasRid = 0;
@@ -71,39 +71,39 @@ NetLocalGroupGetInfo(
     PVOID pBuffer = NULL;
     PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(pwszAliasname);
-    BAIL_ON_INVALID_PTR(ppBuffer);
+    BAIL_ON_INVALID_PTR(pwszAliasname, err);
+    BAIL_ON_INVALID_PTR(ppBuffer, err);
 
     if (dwLevel != 1)
     {
         err = ERROR_INVALID_LEVEL;
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     status = LwIoGetActiveCreds(NULL, &pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = NetConnectSamr(&pConn,
                             pwszHostname,
                             0,
                             0,
                             pCreds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
-    hSamrBinding = pConn->samr.bind;
+    hSamrBinding = pConn->Rpc.Samr.hBinding;
 
     status = NetOpenAlias(pConn,
                           pwszAliasname,
                           dwAliasAccessFlags,
                           &hAlias,
                           &dwAliasRid);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     status = SamrQueryAliasInfo(hSamrBinding,
                                 hAlias,
-                                wInfoLevel,
+                                swInfoLevel,
                                 &pInfo);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     pSourceBuffer = &pInfo->all;
 
@@ -112,32 +112,33 @@ NetLocalGroupGetInfo(
                                     dwLevel,
                                     pSourceBuffer,
                                     &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     dwSpaceAvailable = dwSize;
     dwSize           = 0;
 
     status = NetAllocateMemory((void**)&pBuffer,
-                               dwSpaceAvailable,
-                               NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+                               dwSpaceAvailable);
+    BAIL_ON_NT_STATUS(status);
 
     err = NetAllocateLocalGroupInfo(pBuffer,
                                     &dwSpaceAvailable,
                                     dwLevel,
                                     pSourceBuffer,
                                     &dwSize);
-    BAIL_ON_WINERR_ERROR(err);
+    BAIL_ON_WIN_ERROR(err);
 
     status = SamrClose(hSamrBinding, hAlias);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_NT_STATUS(status);
 
     *ppBuffer = pBuffer;
 
 cleanup:
+    NetDisconnectSamr(&pConn);
+
     if (pInfo)
     {
-        SamrFreeMemory((void*)pInfo);
+        SamrFreeMemory(pInfo);
     }
 
     if (pCreds)
@@ -156,7 +157,7 @@ cleanup:
 error:
     if (pBuffer)
     {
-        NetFreeMemory((void*)pBuffer);
+        NetFreeMemory(pBuffer);
     }
 
     *ppBuffer = NULL;

@@ -30,13 +30,13 @@
 
 #include "includes.h"
 
-WINERR
+NET_API_STATUS
 NetGetHostInfo(
     PSTR* ppszHostname
     )
 {
     WINERR err = ERROR_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     CHAR szBuffer[256];
     PSTR pszLocal = NULL;
     PSTR pszDot = NULL;
@@ -48,7 +48,7 @@ NetGetHostInfo(
     if (gethostname(szBuffer, sizeof(szBuffer)) != 0)
     {
         err = ErrnoToWin32Error(errno);
-        BAIL_ON_WINERR_ERROR(err);
+        BAIL_ON_WIN_ERROR(err);
     }
 
     len = strlen(szBuffer);
@@ -70,8 +70,8 @@ NetGetHostInfo(
     }
 
     len = strlen(szBuffer) + 1;
-    status = NetAllocateMemory((void**)&pszHostname, len, NULL);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetAllocateMemory(OUT_PPVOID(&pszHostname), len);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy((void *)pszHostname, szBuffer, len);
 
@@ -89,11 +89,12 @@ cleanup:
     }
 
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
+        ntStatus != STATUS_SUCCESS)
+    {
+        err = NtStatusToWin32Error(ntStatus);
     }
 
-    return status;
+    return err;
 
 error:
     goto cleanup;

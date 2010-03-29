@@ -34,10 +34,6 @@
 
 #include "includes.h"
 
-/* The first connection node on the list */
-NetConn *first = NULL;
-
-
 /* This is a pointer to list of allocated pointers.
    The list enables freeing a pointer and dependant pointers */
 void *netapi_ptr_list = NULL;
@@ -51,8 +47,6 @@ int bNetApiInitialised = 0;
 
 const wchar16_t null_char = 0;
 const wchar16_t *null_string = &null_char;
-
-NetConnList *conn_list = NULL;
 
 
 /*

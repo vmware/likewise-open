@@ -462,7 +462,7 @@ NTSTATUS GetSamDomainSid(PSID* sid, const wchar16_t *hostname)
     if (status != 0) rpc_fail(status);
 
     /* Allocate a copy of sid so it can be freed clean by the caller */
-    MsRpcDuplicateSid(sid, out_sid);
+    status = RtlDuplicateSid(sid, out_sid);
 
 done:
     FreeSamrBinding(&samr_b);
@@ -540,7 +540,7 @@ EnsureUserAccount(
 done:
 
     FreeSamrBinding(&samr_b);
-    if (sid) MsRpcFreeSid(sid);
+    RTL_FREE(&sid);
 
     return status;
 }
@@ -680,7 +680,7 @@ EnsureAlias(
 
 done:
     FreeSamrBinding(&samr_b);
-    if (sid) MsRpcFreeSid(sid);
+    RTL_FREE(&sid);
 
     return status;
 }
@@ -3471,8 +3471,10 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     const char *testalias_desc = "TestAlias Comment";
 
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
+    DWORD dwSidSize = 0;
     UINT32 user_rid = 0;
     UINT32 *rids = NULL;
     UINT32 *types = NULL;
@@ -3606,7 +3608,14 @@ int TestSamrAlias(struct test *t, const wchar16_t *hostname,
     status = SamrSetAliasInfo(samr_binding, hAlias, 3, &setaliasinfo);
     if (status != 0) rpc_fail(status);
 
-    status = MsRpcAllocateSidAppendRid(&user_sid, sid, user_rid);
+    dwSidSize = RtlLengthRequiredSid(sid->SubAuthorityCount + 1);
+    dwError = LwAllocateMemory(dwSidSize, OUT_PPVOID(&user_sid));
+    if (dwError != 0) netapi_fail(dwError);
+
+    status = RtlCopySid(dwSidSize, user_sid, sid);
+    if (status != 0) rpc_fail(status);
+
+    status = RtlAppendRidSid(dwSidSize, user_sid, user_rid);
     if (status != 0) rpc_fail(status);
 
     status = SamrGetAliasMembership(samr_binding, hDomain, &user_sid, 1,
@@ -3665,7 +3674,7 @@ done:
     if (types) SamrFreeMemory((void*)types);
 
     FreeUnicodeString(&setaliasinfo.description);
-    if (user_sid) MsRpcFreeSid(user_sid);
+    LW_SAFE_FREE_MEMORY(user_sid);
 
     SAFE_FREE(aliasname);
     SAFE_FREE(aliasdesc);
@@ -3689,12 +3698,14 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
     const char *btin_sidstr = "S-1-5-32";
 
     NTSTATUS status = STATUS_SUCCESS;
+    DWORD dwError = ERROR_SUCCESS;
     enum param_err perr = perr_success;
     handle_t samr_binding = NULL;
     CONNECT_HANDLE hConn = NULL;
     DOMAIN_HANDLE hBtinDomain = NULL;
     char *sidstr = NULL;
     PSID sid = NULL;
+    DWORD dwSidSize = 0;
     DomainInfo *dominfo = NULL;
 
     TESTINFO(t, hostname, user, pass);
@@ -3738,16 +3749,22 @@ int TestSamrUsersInAliases(struct test *t, const wchar16_t *hostname,
                 UINT32 *member_rids = NULL;
                 UINT32 count = 0;
 
-                status = MsRpcAllocateSidAppendRid(&alias_sid,
-                                                   sid,
-                                                   rids[i]);
+                dwSidSize = RtlLengthRequiredSid(sid->SubAuthorityCount + 1);
+                dwError = LwAllocateMemory(dwSidSize, OUT_PPVOID(&alias_sid));
+                if (dwError != 0) netapi_fail(dwError);
+
+                status = RtlCopySid(dwSidSize, alias_sid, sid);
+                if (status != 0) rpc_fail(status);
+
+                status = RtlAppendRidSid(dwSidSize, alias_sid, rids[i]);
+                if (status != 0) rpc_fail(status);
 
                 /* there's actually no need to check status code here */
                 status = SamrGetAliasMembership(samr_binding,
                                                 hBtinDomain,
                                                 &alias_sid, 1, &member_rids,
                                                 &count);
-                SAFE_FREE(alias_sid);
+                LW_SAFE_FREE_MEMORY(alias_sid);
 
                 if (member_rids) SamrFreeMemory((void*)member_rids);
             }
@@ -4619,470 +4636,6 @@ done:
 }
 
 
-int TestSamrGetUserGroups(struct test *t, const wchar16_t *hostname,
-                          const wchar16_t *user, const wchar16_t *pass,
-                          struct parameter *options, int optcount)
-{
-    const UINT32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
-                               SAMR_ACCESS_ENUM_DOMAINS;
-    const UINT32 domain_access = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                                 DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                 DOMAIN_ACCESS_CREATE_USER |
-                                 DOMAIN_ACCESS_LOOKUP_INFO_2;
-
-    const UINT32 user_access = USER_ACCESS_GET_NAME_ETC |
-                               USER_ACCESS_GET_LOCALE |
-                               USER_ACCESS_GET_LOGONINFO |
-                               USER_ACCESS_GET_ATTRIBUTES |
-                               USER_ACCESS_GET_GROUPS |
-                               USER_ACCESS_GET_GROUP_MEMBERSHIP;
-
-    const UINT32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-
-    const char *def_username = "Guest";
-    const int def_resolvesids = 0;
-    const UINT32 def_resolvelevel = 6;
-
-    NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr = perr_success;
-    handle_t samr_b = NULL;
-    handle_t lsa_b = NULL;
-    PSID domsid = NULL;
-    CONNECT_HANDLE hConn = NULL;
-    DOMAIN_HANDLE hDomain = NULL;
-    ACCOUNT_HANDLE hUser = NULL;
-    POLICY_HANDLE hPolicy = NULL;
-    wchar16_t *username = NULL;
-    int resolvesids = 0;
-    UINT32 resolve_level = 0;
-    wchar16_t *names[1] = {0};
-    UINT32 *rids = NULL;
-    UINT32 *types = NULL;
-    UINT32 rids_count = 0;
-    UINT32 *grp_rids = NULL;
-    UINT32 *grp_attrs = NULL;
-    UINT32 grp_count = 0;
-    int i = 0;
-    PSID* grp_sids = NULL;
-    wchar16_t **grp_sidstrs = NULL;
-    SidArray sid_array = {0};
-    RefDomainList *domains = NULL;
-    TranslatedName *trans_names = NULL;
-    UINT32 names_count = 0;
-    wchar16_t *grp_name = NULL;
-    wchar16_t *dom_name = NULL;
-
-    perr = fetch_value(options, optcount, "username", pt_w16string,
-                       &username, &def_username);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "resolvesids", pt_int32,
-                       &resolvesids, &def_resolvesids);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "resolvelevel", pt_uint32,
-                       &resolve_level, &def_resolvelevel);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("resolvesids", pt_int32, &resolvesids);
-    PARAM_INFO("resolvelevel", pt_uint32, &resolve_level);
-
-    SET_SESSION_CREDS(hCreds);
-
-    status = GetSamDomainSid(&domsid, hostname);
-    if (status != 0) rpc_fail(status);
-
-    samr_b = CreateSamrBinding(&samr_b, hostname);
-    if (samr_b == NULL) return false;
-
-    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenDomain(samr_b, hConn, domain_access, domsid, &hDomain);
-    if (status != 0) rpc_fail(status);
-
-    names[0] = username;
-    status = SamrLookupNames(samr_b, hDomain, 1, names, &rids, &types,
-                             &rids_count);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrOpenUser(samr_b, hDomain, user_access, rids[0], &hUser);
-    if (status != 0) rpc_fail(status);
-
-    INPUT_ARG_PTR(samr_b);
-    INPUT_ARG_PTR(hUser);
-    INPUT_ARG_PTR(grp_rids);
-    INPUT_ARG_PTR(grp_attrs);
-
-    CALL_MSRPC(status, SamrGetUserGroups(samr_b, hUser, &grp_rids,
-                                         &grp_attrs, &grp_count));
-
-    OUTPUT_ARG_PTR(grp_rids);
-    OUTPUT_ARG_PTR(grp_attrs);
-    OUTPUT_ARG_PTR(grp_count);
-
-    grp_sids = (PSID*) malloc(sizeof(PSID) * grp_count);
-    if (grp_sids == NULL) rpc_fail(STATUS_NO_MEMORY);
-
-    grp_sidstrs = (wchar16_t**) malloc(sizeof(wchar16_t*) * grp_count);
-    if (grp_sidstrs == NULL) rpc_fail(STATUS_NO_MEMORY);
-
-    if (resolvesids) {
-        sid_array.num_sids = grp_count;
-        sid_array.sids = (SidPtr*) malloc(sizeof(SidPtr) * grp_count);
-        if (sid_array.sids == NULL) rpc_fail(STATUS_NO_MEMORY);
-    }
-
-    for (i = 0; i < grp_count; i++) {
-        status = MsRpcAllocateSidAppendRid(&grp_sids[i],
-                                           domsid,
-                                           grp_rids[i]);
-        if (status != 0) rpc_fail(status);
-
-        status = RtlAllocateWC16StringFromSid(&grp_sidstrs[i], grp_sids[i]);
-        if (status != 0) rpc_fail(status);
-
-        if (resolvesids) {
-            sid_array.sids[i].sid = grp_sids[i];
-        }
-    }
-
-    if (resolvesids) {
-        lsa_b = CreateLsaBinding(&lsa_b, hostname);
-        if (lsa_b == NULL) rpc_fail(STATUS_UNSUCCESSFUL);
-
-        status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &hPolicy);
-        if (status != 0) rpc_fail(status);
-
-        status = LsaLookupSids(lsa_b, hPolicy, &sid_array, &domains,
-                               &trans_names, resolve_level, &names_count);
-        if (status != 0) rpc_fail(status);
-    }
-
-    for (i = 0; i < grp_count; i++) {
-        w16printfw(L"%ws", grp_sidstrs[i]);
-
-        if (resolvesids && i < names_count) {
-            LsaDomainInfo *di = NULL;
-            TranslatedName *tn = &(trans_names[i]);
-
-            grp_name = GetFromUnicodeString(&tn->name);
-            if (grp_name == NULL) rpc_fail(STATUS_NO_MEMORY);
-
-            di = &(domains->domains[tn->sid_index]);
-            dom_name = GetFromUnicodeStringEx(&di->name);
-            if (dom_name == NULL) rpc_fail(STATUS_NO_MEMORY);
-
-            w16printfw(L" [%ws\\%ws]", dom_name, grp_name);
-
-            SAFE_FREE(grp_name);
-            SAFE_FREE(dom_name);
-        }
-
-        printf("\n");
-    }
-
-    status = SamrClose(samr_b, hUser);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_b, hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_b, hConn);
-    if (status != 0) rpc_fail(status);
-
-    if (resolvesids) {
-        status = LsaClose(lsa_b, hPolicy);
-        if (status != 0) rpc_fail(status);
-
-        FreeLsaBinding(&lsa_b);
-    }
-
-    FreeSamrBinding(&samr_b);
-    RELEASE_SESSION_CREDS;
-
-done:
-    SAFE_FREE(username);
-    if (domsid) MsRpcFreeSid(domsid);
-    if (rids) SamrFreeMemory((void*)rids);
-    if (types) SamrFreeMemory((void*)types);
-    if (grp_rids) SamrFreeMemory((void*)grp_rids);
-    if (grp_attrs) SamrFreeMemory((void*)grp_attrs);
-
-    if (trans_names) LsaRpcFreeMemory((void*)trans_names);
-    if (domains) LsaRpcFreeMemory((void*)domains);
-
-    for (i = 0; i < grp_count; i++) {
-        MsRpcFreeSid(grp_sids[i]);
-        RTL_FREE(&grp_sidstrs[i]);
-    }
-    SAFE_FREE(grp_sids);
-    SAFE_FREE(grp_sidstrs);
-    SAFE_FREE(sid_array.sids);
-
-    SAFE_FREE(grp_name);
-    SAFE_FREE(dom_name);
-
-    SamrDestroyMemory();
-    LsaRpcDestroyMemory();
-
-    return (status == STATUS_SUCCESS);
-}
-
-
-int TestSamrGetUserAliases(struct test *t, const wchar16_t *hostname,
-                           const wchar16_t *user, const wchar16_t *pass,
-                           struct parameter *options, int optcount)
-{
-    const UINT32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
-                               SAMR_ACCESS_ENUM_DOMAINS;
-    const UINT32 domain_access = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                                 DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                                 DOMAIN_ACCESS_LOOKUP_INFO_2;
-
-    const UINT32 btin_access = DOMAIN_ACCESS_OPEN_ACCOUNT |
-                               DOMAIN_ACCESS_ENUM_ACCOUNTS |
-                               DOMAIN_ACCESS_LOOKUP_INFO_2;
-
-    const UINT32 lsa_access = LSA_ACCESS_LOOKUP_NAMES_SIDS;
-
-    const char *btin_sidstr = "S-1-5-32";
-
-    const char *def_username = "Guest";
-    const int def_resolvesids = 0;
-    const UINT32 def_resolvelevel = 6;
-
-    NTSTATUS status = STATUS_SUCCESS;
-    enum param_err perr = perr_success;
-    handle_t samr_b = NULL;
-    handle_t lsa_b = NULL;
-    PSID btinsid = NULL;
-    PSID domsid = NULL;
-    POLICY_HANDLE hPolicy = NULL;
-    CONNECT_HANDLE hConn = NULL;
-    DOMAIN_HANDLE hBtinDomain = NULL;
-    DOMAIN_HANDLE hDomain = NULL;
-    wchar16_t *username = NULL;
-    int resolvesids = 0;
-    wchar16_t *names[1];
-    RefDomainList *usr_domains = NULL;
-    TranslatedSid2 *trans_sids = NULL;
-    PSID usr_sid = NULL;
-    UINT32 sids_count = 0;
-    UINT32 level = 0;
-    UINT32 resolve_level = 0;
-    UINT32 *btin_rids = NULL;
-    UINT32 *dom_rids = NULL;
-    UINT32 btin_rids_count = 0;
-    UINT32 dom_rids_count = 0;
-    SidArray sid_array = {0};
-    UINT32 alias_count = 0;
-    int i = 0;
-    wchar16_t **alias_sidstrs = NULL;
-    RefDomainList *alias_domains = NULL;
-    TranslatedName *trans_names = NULL;
-    UINT32 names_count = 0;
-    wchar16_t *alias_name = NULL;
-    wchar16_t *dom_name = NULL;
-
-    perr = fetch_value(options, optcount, "username", pt_w16string,
-                       &username, &def_username);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "resolvesids", pt_int32,
-                       &resolvesids, &def_resolvesids);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "resolvelevel", pt_uint32,
-                       &resolve_level, &def_resolvelevel);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    PARAM_INFO("username", pt_w16string, username);
-    PARAM_INFO("resolvesids", pt_int32, &resolvesids);
-    PARAM_INFO("resolvelevel", pt_uint32, &resolve_level);
-
-    SET_SESSION_CREDS(hCreds);
-
-    /*
-     * Resolve username to sid first
-     */
-    lsa_b = CreateLsaBinding(&lsa_b, hostname);
-    if (lsa_b == NULL) rpc_fail(STATUS_UNSUCCESSFUL);
-
-    status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &hPolicy);
-    if (status != 0) rpc_fail(status);
-
-    names[0] = username;
-    level = LSA_LOOKUP_NAMES_ALL;
-
-    status = LsaLookupNames2(lsa_b, hPolicy, 1, names, &usr_domains, &trans_sids,
-                             level, &sids_count);
-    if (status != 0) rpc_fail(status);
-
-    if (sids_count == 0) rpc_fail(STATUS_UNSUCCESSFUL);
-
-    /* Create user account sid */
-    MsRpcDuplicateSid(&domsid, usr_domains->domains[trans_sids[0].index].sid);
-    if (domsid == NULL) rpc_fail(STATUS_NO_MEMORY);
-
-    status = MsRpcAllocateSidAppendRid(&usr_sid, domsid, trans_sids[0].rid);
-    if (status != 0) rpc_fail(status);
-
-    samr_b = CreateSamrBinding(&samr_b, hostname);
-    if (samr_b == NULL) return false;
-
-    status = SamrConnect2(samr_b, hostname, conn_access, &hConn);
-    if (status != 0) rpc_fail(status);
-
-    RtlAllocateSidFromCString(&btinsid, btin_sidstr);
-
-    status = SamrOpenDomain(samr_b, hConn, btin_access, btinsid, &hBtinDomain);
-    if (status != 0) rpc_fail(status);
-
-    INPUT_ARG_PTR(samr_b);
-    INPUT_ARG_PTR(hBtinDomain);
-    INPUT_ARG_PTR(usr_sid);
-    INPUT_ARG_UINT(sids_count);
-
-    CALL_MSRPC(status, SamrGetAliasMembership(samr_b,
-                                              hBtinDomain,
-                                              &usr_sid,
-                                              sids_count,
-                                              &btin_rids,
-                                              &btin_rids_count));
-
-    OUTPUT_ARG_PTR(&btin_rids);
-    OUTPUT_ARG_UINT(btin_rids_count);
-
-    status = SamrOpenDomain(samr_b, hConn, domain_access, domsid, &hDomain);
-    if (status != 0) rpc_fail(status);
-
-    INPUT_ARG_PTR(samr_b);
-    INPUT_ARG_PTR(hDomain);
-    INPUT_ARG_PTR(usr_sid);
-    INPUT_ARG_UINT(sids_count);
-
-    CALL_MSRPC(status, SamrGetAliasMembership(samr_b,
-                                              &hDomain,
-                                              &usr_sid,
-                                              sids_count,
-                                              &dom_rids,
-                                              &dom_rids_count));
-
-    OUTPUT_ARG_PTR(&dom_rids);
-    OUTPUT_ARG_UINT(dom_rids_count);
-
-    alias_count = btin_rids_count + dom_rids_count;
-    alias_sidstrs = (wchar16_t**) malloc(sizeof(wchar16_t*) * alias_count);
-    if (alias_sidstrs == NULL) rpc_fail(STATUS_NO_MEMORY);
-
-    if (resolvesids) {
-        sid_array.num_sids = alias_count;
-        sid_array.sids = (SidPtr*) malloc(sizeof(SidPtr) * alias_count);
-        if (sid_array.sids == NULL) rpc_fail(STATUS_NO_MEMORY);
-    }
-
-    for (i = 0; i < alias_count; i++) {
-        PSID alias_sid = NULL;
-        PSID dom_sid = (i < btin_rids_count) ? btinsid : domsid;
-        UINT32 rid = 0;
-
-        if (i < btin_rids_count) {
-            rid = btin_rids[i];
-        } else {
-            rid = dom_rids[i - btin_rids_count];
-        }
-
-        status = MsRpcAllocateSidAppendRid(&alias_sid, dom_sid, rid);
-        if (status != 0) rpc_fail(status);
-
-        status = RtlAllocateWC16StringFromSid(&alias_sidstrs[i], alias_sid);
-        if (status != 0) rpc_fail(status);
-
-        if (resolvesids) {
-            sid_array.sids[i].sid = alias_sid;
-        }
-    };
-
-    if (resolvesids) {
-        lsa_b = CreateLsaBinding(&lsa_b, hostname);
-        if (lsa_b == NULL) rpc_fail(STATUS_UNSUCCESSFUL);
-
-        status = LsaOpenPolicy2(lsa_b, hostname, NULL, lsa_access, &hPolicy);
-        if (status != 0) rpc_fail(status);
-
-        status = LsaLookupSids(lsa_b, hPolicy, &sid_array, &alias_domains,
-                               &trans_names, resolve_level, &names_count);
-        if (status != 0) rpc_fail(status);
-    }
-
-    for (i = 0; i < alias_count; i++) {
-        w16printfw(L"%ws", alias_sidstrs[i]);
-
-        if (resolvesids && i < names_count) {
-            LsaDomainInfo *di = NULL;
-            TranslatedName *tn = &(trans_names[i]);
-
-            alias_name = GetFromUnicodeString(&tn->name);
-            if (alias_name == NULL) rpc_fail(STATUS_NO_MEMORY);
-
-            di = &(alias_domains->domains[tn->sid_index]);
-            dom_name = GetFromUnicodeStringEx(&di->name);
-            if (dom_name == NULL) rpc_fail(STATUS_NO_MEMORY);
-
-            w16printfw(L" [%ws\\%ws]", dom_name, alias_name);
-
-            SAFE_FREE(alias_name);
-            SAFE_FREE(dom_name);
-        }
-
-        printf("\n");
-    }
-
-    status = LsaClose(lsa_b, hPolicy);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_b, hBtinDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_b, hDomain);
-    if (status != 0) rpc_fail(status);
-
-    status = SamrClose(samr_b, hConn);
-    if (status != 0) rpc_fail(status);
-
-    FreeLsaBinding(&lsa_b);
-    FreeSamrBinding(&samr_b);
-
-    RELEASE_SESSION_CREDS;
-
-done:
-    SAFE_FREE(username);
-    RTL_FREE(&btinsid);
-    if (domsid) MsRpcFreeSid(domsid);
-    if (usr_sid) MsRpcFreeSid(usr_sid);
-    if (usr_domains) LsaRpcFreeMemory((void*)usr_domains);
-    if (trans_sids) LsaRpcFreeMemory((void*)trans_sids);
-    if (alias_domains) LsaRpcFreeMemory((void*)alias_domains);
-    if (trans_names) LsaRpcFreeMemory((void*)trans_names);
-    if (btin_rids) SamrFreeMemory((void*)btin_rids);
-    if (dom_rids) SamrFreeMemory((void*)dom_rids);
-
-    for (i = 0; i < alias_count; i++) {
-        if (resolvesids) {
-            MsRpcFreeSid(sid_array.sids[i].sid);
-        }
-        RTL_FREE(&alias_sidstrs[i]);
-    }
-
-    SAFE_FREE(sid_array.sids);
-    SAFE_FREE(alias_sidstrs);
-
-    return (status == STATUS_SUCCESS);
-}
-
-
 int TestSamrQuerySecurity(struct test *t, const wchar16_t *hostname,
                           const wchar16_t *user, const wchar16_t *pass,
                           struct parameter *options, int optcount)
@@ -5265,8 +4818,6 @@ void SetupSamrTests(struct test *t)
     AddTest(t, "SAMR-USER-PASSWORD", TestSamrSetUserPassword);
     AddTest(t, "SAMR-MULTIPLE-CONNECTION", TestSamrMultipleConnections);
     AddTest(t, "SAMR-USER-PASSWORD-CHANGE", TestSamrChangeUserPassword);
-    AddTest(t, "SAMR-GET-USER-GROUPS", TestSamrGetUserGroups);
-    AddTest(t, "SAMR-GET-USER-ALIASES", TestSamrGetUserAliases);
     AddTest(t, "SAMR-QUERY-DISPLAY-INFO", TestSamrQueryDisplayInfo);
     AddTest(t, "SAMR-CONNECT", TestSamrConnect);
     AddTest(t, "SAMR-DOMAINS", TestSamrDomains);

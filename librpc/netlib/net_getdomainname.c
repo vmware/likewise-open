@@ -33,50 +33,66 @@
 
 NET_API_STATUS
 NetGetDomainName(
-    const wchar16_t *hostname,
-    wchar16_t **domname
+    IN  PCWSTR    pwszHostname,
+    OUT PWSTR    *ppwszDomainName
     )
 {
-    const UINT32 conn_access = SAMR_ACCESS_OPEN_DOMAIN |
+    const DWORD dwConnAccess = SAMR_ACCESS_OPEN_DOMAIN |
                                SAMR_ACCESS_ENUM_DOMAINS;
 
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-    NetConn *cn = NULL;
-    wchar16_t *domain_name = NULL;
-    PIO_CREDS creds = NULL;
+    PNET_CONN pConn = NULL;
+    size_t sDomainNameLen = 0;
+    PWSTR pwszDomainName = NULL;
+    PIO_CREDS pCreds = NULL;
 
-    BAIL_ON_INVALID_PTR(domname);
+    BAIL_ON_INVALID_PTR(ppwszDomainName, err);
 
-    status = LwIoGetActiveCreds(NULL, &creds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = LwIoGetActiveCreds(NULL, &pCreds);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    status = NetConnectSamr(&cn, hostname, conn_access, 0, creds);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetConnectSamr(&pConn, pwszHostname, dwConnAccess, 0, pCreds);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    domain_name = wc16sdup(cn->samr.dom_name);
-    BAIL_ON_NO_MEMORY(domain_name);
+    err = LwWc16sLen(pConn->Rpc.Samr.pwszDomainName, &sDomainNameLen);
+    BAIL_ON_WIN_ERROR(err);
 
-    status = NetDisconnectSamr(cn);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    ntStatus = NetAllocateMemory(
+                    OUT_PPVOID(&pwszDomainName),
+                    sizeof(pwszDomainName[0]) * (sDomainNameLen + 1));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    *domname = domain_name;
+    err = LwWc16snCpy(pwszDomainName,
+                      pConn->Rpc.Samr.pwszDomainName,
+                      sDomainNameLen);
+    BAIL_ON_WIN_ERROR(err);
+
+    *ppwszDomainName = pwszDomainName;
 
 cleanup:
+    NetDisconnectSamr(&pConn);
+
+    if (pCreds)
+    {
+        LwIoDeleteCreds(pCreds);
+    }
+
     if (err == ERROR_SUCCESS &&
-        status != STATUS_SUCCESS) {
-        err = NtStatusToWin32Error(status);
+        ntStatus != STATUS_SUCCESS)
+    {
+        err = NtStatusToWin32Error(ntStatus);
     }
 
     return err;
 
 error:
-    *domname = NULL;
-
-    if (creds)
+    if (pwszDomainName)
     {
-        LwIoDeleteCreds(creds);
+        NetFreeMemory(pwszDomainName);
     }
+
+    *ppwszDomainName = NULL;
 
     goto cleanup;
 }
