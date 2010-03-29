@@ -655,6 +655,55 @@ PvfsCcbSetFileBasicInformation(
     PFILE_BASIC_INFORMATION pFileInfo
     );
 
+/* From read.c */
+
+NTSTATUS
+PvfsDoReadIo(
+    IN PPVFS_CCB pCcb,
+    OUT PVOID pBuffer,
+    IN ULONG BufferLength,
+    IN LONG64 Offset,
+    OUT PULONG pBytesRead
+    );
+
+/* From zct.c */
+
+VOID
+PvfsInitializeZctSupport(
+    IN PPVFS_CCB pCcb,
+    IN IO_FILE_HANDLE FileHandle
+    );
+
+NTSTATUS
+PvfsCreateZctContext(
+    OUT PPVFS_ZCT_CONTEXT *ppZctContext,
+    IN  PPVFS_IRP_CONTEXT pIrpContext,
+    IN  PPVFS_CCB pCcb
+    );
+
+VOID
+PvfsFreeZctContext(
+    IN OUT PPVFS_ZCT_CONTEXT *ppZctContext
+    );
+
+NTSTATUS
+PvfsDoZctReadIo(
+    IN PPVFS_ZCT_CONTEXT pZctContext,
+    IN OUT PLW_ZCT_VECTOR pZct,
+    IN ULONG BufferLength,
+    IN LONG64 Offset,
+    OUT PULONG pBytesRead
+    );
+
+NTSTATUS
+PvfsZctCompleteRead(
+    IN PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+VOID
+PvfsZctCloseCcb(
+    IN PPVFS_CCB pCcb
+    );
 
 #endif /* __PVFS_H__ */
 

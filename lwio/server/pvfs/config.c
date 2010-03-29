@@ -64,6 +64,7 @@ PvfsConfigRegistryInit(
 {
     NTSTATUS ntError = STATUS_SUCCESS;
     PLWIO_CONFIG_REG pReg = NULL;
+    DWORD ZctMode = 0;
 
     ntError = PvfsConfigDefaultInit(pConfig);
     BAIL_ON_NT_STATUS(ntError);
@@ -105,6 +106,16 @@ PvfsConfigRegistryInit(
 
     LwIoReadConfigDword(
         pReg,
+        "ZctMode",
+        TRUE,
+        0,
+        0xffffffff,
+        &ZctMode);
+
+    pConfig->ZctMode = (PVFS_ZCT_MODE) ZctMode;
+
+    LwIoReadConfigDword(
+        pReg,
         "WorkerThreadPoolSize",
         TRUE,
         1,
@@ -126,7 +137,6 @@ PvfsConfigRegistryInit(
         1,
         0x00000fff,
         &pConfig->CreateDirectoryMode);
-
 
 cleanup:
 
@@ -160,6 +170,7 @@ PvfsConfigDefaultInit(
     pConfig->EnableOplocks = TRUE;
     pConfig->EnableFullAsync = FALSE;
     pConfig->EnableDriverDebug = FALSE;
+    pConfig->ZctMode = PVFS_ZCT_MODE_DISABLED;
 
     pConfig->WorkerThreadPoolSize = 4;
 

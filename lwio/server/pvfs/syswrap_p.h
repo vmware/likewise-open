@@ -195,6 +195,28 @@ PvfsSysNanoSleep(
     struct timespec *pRemainingTime
     );
 
+NTSTATUS
+PvfsSysPipe(
+    int PipeFds[2]
+    );
+
+NTSTATUS
+PvfsSysSetNonBlocking(
+    int Fd
+    );
+
+#ifdef HAVE_SPLICE
+NTSTATUS
+PvfsSysSplice(
+    int FromFd,
+    PLONG64 pFromOffset,
+    int ToFd,
+    PLONG64 pToOffset,
+    ULONG Length,
+    unsigned int Flags,
+    PULONG pBytesSpliced
+    );
+#endif
 
 #endif     /* _PVFS_SYSWRAP_P_H */
 

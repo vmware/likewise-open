@@ -56,6 +56,11 @@
  ****************************************************************************/
 
 static NTSTATUS
+PvfsReadInternal(
+    PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+static NTSTATUS
 PvfsReadFileWithContext(
     PVOID pContext
     );
@@ -72,16 +77,49 @@ PvfsFreeReadContext(
     IN OUT PVOID *ppContext
     );
 
-
 NTSTATUS
 PvfsRead(
     PPVFS_IRP_CONTEXT pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    switch (pIrpContext->pIrp->Args.ReadWrite.ZctOperation)
+    {
+    case IRP_ZCT_OPERATION_NONE:
+        LWIO_ASSERT(!pIrpContext->pIrp->Args.ReadWrite.Length || pIrpContext->pIrp->Args.ReadWrite.Buffer);
+        ntError = PvfsReadInternal(pIrpContext);
+        break;
+    case IRP_ZCT_OPERATION_PREPARE:
+        LWIO_ASSERT(pIrpContext->pIrp->Args.ReadWrite.Zct);
+        ntError = PvfsReadInternal(pIrpContext);
+        break;
+    case IRP_ZCT_OPERATION_COMPLETE:
+        LWIO_ASSERT(pIrpContext->pIrp->Args.ReadWrite.ZctCompletionContext);
+        ntError = PvfsZctCompleteRead(pIrpContext);
+        break;
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsReadInternal(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
-    ULONG BufferLength = pIrp->Args.ReadWrite.Length;
     PPVFS_CCB pCcb = NULL;
     PPVFS_PENDING_READ pReadCtx = NULL;
 
@@ -89,11 +127,6 @@ PvfsRead(
 
     ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
-
-    if (BufferLength > 0)
-    {
-        BAIL_ON_INVALID_PTR(pBuffer, ntError);
-    }
 
     if (PVFS_IS_DIR(pCcb)) {
         ntError = STATUS_FILE_IS_A_DIRECTORY;
@@ -190,10 +223,9 @@ PvfsReadFileWithContext(
     PPVFS_PENDING_READ pReadCtx = (PPVFS_PENDING_READ)pContext;
     PIRP pIrp = pReadCtx->pIrpContext->pIrp;
     PPVFS_CCB pCcb = pReadCtx->pCcb;
-    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     ULONG bufLen = pIrp->Args.ReadWrite.Length;
     ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
-    size_t totalBytesRead = 0;
+    ULONG totalBytesRead = 0;
     LONG64 Offset = 0;
     BOOLEAN bMutexLocked = FALSE;
 
@@ -222,31 +254,26 @@ PvfsReadFileWithContext(
                   bufLen);
     BAIL_ON_NT_STATUS(ntError);
 
-    while (totalBytesRead < bufLen)
+    if (pReadCtx->pZctContext)
     {
-        ULONG bytesRead = 0;
-
-        ntError = PvfsSysRead(pCcb,
-                              pBuffer + totalBytesRead,
-                              bufLen - totalBytesRead,
-                              &Offset,
-                              &bytesRead);
-        if (ntError == STATUS_MORE_PROCESSING_REQUIRED)
-        {
-            continue;
-        }
+        ntError = PvfsDoZctReadIo(pReadCtx->pZctContext,
+                                  pIrp->Args.ReadWrite.Zct,
+                                  bufLen,
+                                  Offset,
+                                  &totalBytesRead);
         BAIL_ON_NT_STATUS(ntError);
-
-        /* Check for EOF */
-        if (bytesRead == 0) {
-            break;
-        }
-
-        totalBytesRead += bytesRead;
-        Offset += bytesRead;
+    }
+    else
+    {
+        ntError = PvfsDoReadIo(pCcb,
+                               pIrp->Args.ReadWrite.Buffer,
+                               bufLen,
+                               Offset,
+                               &totalBytesRead);
+        BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Can only get here is the loop was completed successfully */
+    /* Can only get here is the I/O was completed successfully */
 
     pIrp->IoStatusBlock.BytesTransferred = totalBytesRead;
 
@@ -261,6 +288,14 @@ PvfsReadFileWithContext(
                   STATUS_END_OF_FILE;
     }
 
+    if (pReadCtx->pZctContext && (STATUS_SUCCESS == ntError))
+    {
+        /* Save the ZCT context for complete */
+        pIrp->Args.ReadWrite.ZctCompletionContext = pReadCtx->pZctContext;
+        LwListInsertHead(&pCcb->ZctContextListHead, &pReadCtx->pZctContext->CcbLinks);
+        pReadCtx->pZctContext = NULL;
+    }
+
     pCcb->ChangeEvent |= FILE_NOTIFY_CHANGE_LAST_ACCESS;
 
 cleanup:
@@ -272,6 +307,59 @@ error:
     goto cleanup;
 }
 
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsDoReadIo(
+    IN PPVFS_CCB pCcb,
+    OUT PVOID pBuffer,
+    IN ULONG BufferLength,
+    IN LONG64 Offset,
+    OUT PULONG pBytesRead
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    LONG64 currentOffset = Offset;
+    size_t totalBytesRead = 0;
+
+    while (totalBytesRead < BufferLength)
+    {
+        ULONG bytesRead = 0;
+
+        ntError = PvfsSysRead(pCcb,
+                              pBuffer + totalBytesRead,
+                              BufferLength - totalBytesRead,
+                              &currentOffset,
+                              &bytesRead);
+        if (ntError == STATUS_MORE_PROCESSING_REQUIRED)
+        {
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntError);
+
+        /* Check for EOF */
+        if (bytesRead == 0) {
+            break;
+        }
+
+        totalBytesRead += bytesRead;
+        currentOffset += bytesRead;
+    }
+
+    /* Can only get here is the loop was completed successfully */
+
+    *pBytesRead = totalBytesRead;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
 
 /*****************************************************************************
  ****************************************************************************/
@@ -294,6 +382,15 @@ PvfsCreateReadContext(
     pReadCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
     pReadCtx->pCcb = PvfsReferenceCCB(pCcb);
 
+    if (IRP_ZCT_OPERATION_PREPARE == pIrpContext->pIrp->Args.ReadWrite.ZctOperation)
+    {
+        ntError = PvfsCreateZctContext(
+                        &pReadCtx->pZctContext,
+                        pIrpContext,
+                        pCcb);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     *ppReadContext = pReadCtx;
 
     ntError = STATUS_SUCCESS;
@@ -302,6 +399,8 @@ cleanup:
     return ntError;
 
 error:
+    PvfsFreeReadContext(OUT_PPVOID(&pReadCtx));
+
     goto cleanup;
 }
 
@@ -319,6 +418,11 @@ PvfsFreeReadContext(
     if (ppContext && *ppContext)
     {
         pReadCtx = (PPVFS_PENDING_READ)(*ppContext);
+
+        if (pReadCtx->pZctContext)
+        {
+            PvfsFreeZctContext(&pReadCtx->pZctContext);
+        }
 
         if (pReadCtx->pIrpContext)
         {

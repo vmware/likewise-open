@@ -133,6 +133,8 @@ PvfsClose(
             pCcb->pszFilename);
     }
 
+    PvfsZctCloseCcb(pCcb);
+
 cleanup:
     /* This is the final Release that will free the memory */
 

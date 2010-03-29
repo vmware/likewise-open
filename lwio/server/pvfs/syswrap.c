@@ -730,6 +730,91 @@ error:
     goto cleanup;
 }
 
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysPipe(
+    int PipeFds[2]
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+
+    if (pipe(PipeFds) == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    PipeFds[0] = -1;
+    PipeFds[1] = -1;
+
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+NTSTATUS
+PvfsSysSetNonBlocking(
+    int Fd
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    int unixerr = 0;
+
+    if (fcntl(Fd, F_SETFL, O_NONBLOCK) == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+/**********************************************************
+ *********************************************************/
+
+#ifdef HAVE_SPLICE
+NTSTATUS
+PvfsSysSplice(
+    int FromFd,
+    PLONG64 pFromOffset,
+    int ToFd,
+    PLONG64 pToOffset,
+    ULONG Length,
+    unsigned int Flags,
+    PULONG pBytesSpliced
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    long result = 0;
+    int unixerr = 0;
+
+    result = splice(FromFd, pFromOffset, ToFd, pToOffset, Length, Flags);
+    if (result == -1)
+    {
+        PVFS_BAIL_ON_UNIX_ERROR(unixerr, ntError);
+    }
+
+cleanup:
+    *pBytesSpliced = result;
+
+    return ntError;
+
+error:
+    result = 0;
+    goto cleanup;
+}
+#endif
+
 /*
 local variables:
 mode: c

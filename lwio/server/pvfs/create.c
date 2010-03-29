@@ -272,6 +272,8 @@ PvfsCreateFileDoSysOpen(
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
+    PvfsInitializeZctSupport(pCreateContext->pCcb, pIrp->FileHandle);
+
     CreateResult = PvfsSetCreateResult(
                        Args.CreateDisposition,
                        pCreateContext->bFileExisted,
@@ -431,6 +433,8 @@ PvfsCreateDirDoSysOpen(
 
     ntError = PvfsStoreCCB(pIrp->FileHandle, pCreateContext->pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    PvfsInitializeZctSupport(pCreateContext->pCcb, pIrp->FileHandle);
 
     CreateResult = PvfsSetCreateResult(
                        Args.CreateDisposition,

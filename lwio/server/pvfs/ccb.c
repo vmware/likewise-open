@@ -73,6 +73,8 @@ PvfsAllocateCCB(
     pCCB->bCloseInProgress = FALSE;
     pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
 
+    LwListInit(&pCCB->ZctContextListHead);
+
     /* Add initial ref count */
 
     pCCB->RefCount = 1;
@@ -117,6 +119,8 @@ PvfsFreeCCB(
         RtlReleaseAccessToken(&pCCB->pUserToken);
         pCCB->pUserToken = NULL;
     }
+
+    LWIO_ASSERT(LwListIsEmpty(&pCCB->ZctContextListHead));
 
     LwRtlCStringFree(&pCCB->pszFilename);
 

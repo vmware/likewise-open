@@ -80,7 +80,8 @@ libpvfs_sys_la_SOURCES = \
     oplock.c \
     notify.c \
     ioctlOpenFileInfo.c \
-    listq.c
+    listq.c \
+    zct.c
 
 
 libpvfs_sys_la_CPPFLAGS = \

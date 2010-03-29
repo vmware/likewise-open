@@ -113,6 +113,7 @@ typedef struct _PVFS_FCB PVFS_FCB, *PPVFS_FCB;
 typedef struct _PVFS_IRP_CONTEXT PVFS_IRP_CONTEXT, *PPVFS_IRP_CONTEXT;
 typedef struct _PVFS_CCB_LIST_NODE PVFS_CCB_LIST_NODE, *PPVFS_CCB_LIST_NODE;
 typedef struct _PVFS_OPLOCK_RECORD PVFS_OPLOCK_RECORD, *PPVFS_OPLOCK_RECORD;
+typedef struct _PVFS_ZCT_CONTEXT PVFS_ZCT_CONTEXT, *PPVFS_ZCT_CONTEXT;
 
 typedef DWORD PVFS_LOCK_FLAGS;
 
@@ -168,6 +169,7 @@ typedef struct _PVFS_PENDING_READ
 {
     PPVFS_IRP_CONTEXT pIrpContext;
     PPVFS_CCB pCcb;
+    PPVFS_ZCT_CONTEXT pZctContext;
 
 } PVFS_PENDING_READ, *PPVFS_PENDING_READ;
 
@@ -365,6 +367,9 @@ struct _PVFS_CCB
 
     FILE_NOTIFY_CHANGE ChangeEvent;
     LONG64 FileSize;
+
+    /* ZCT contexts for this open (PVFS_ZCT_CONTEXT) */
+    LW_LIST_LINKS ZctContextListHead;
 };
 
 typedef enum
@@ -492,6 +497,11 @@ typedef struct _PVFS_ID_CACHE
     PSID pSid;
 } PVFS_ID_CACHE, *PPVFS_ID_CACHE;
 
+typedef enum {
+    PVFS_ZCT_MODE_DISABLED = 0,
+    PVFS_ZCT_MODE_MEMORY,
+    PVFS_ZCT_MODE_SPLICE
+} PVFS_ZCT_MODE, *PPVFS_ZCT_MODE;
 
 typedef struct _PVFS_DRIVER_CONFIG
 {
@@ -503,10 +513,27 @@ typedef struct _PVFS_DRIVER_CONFIG
     BOOLEAN   EnableOplocks;
     BOOLEAN   EnableFullAsync;
     BOOLEAN   EnableDriverDebug;
+    PVFS_ZCT_MODE ZctMode;
 
     DWORD     WorkerThreadPoolSize;
 
 } PVFS_DRIVER_CONFIG, *PPVFS_DRIVER_CONFIG;
+
+
+/* ZCT */
+
+struct _PVFS_ZCT_CONTEXT
+{
+    PVFS_ZCT_MODE Mode;
+    PPVFS_CCB pCcb;
+    LW_LIST_LINKS CcbLinks;
+    union {
+        PVOID pBuffer;
+#ifdef HAVE_SPLICE
+        int PipeFds[2];
+#endif
+    };
+};
 
 
 #endif    /* _PVFS_STRUCTS_H */
