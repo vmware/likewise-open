@@ -332,9 +332,7 @@ _NetrFileEnum(
         dwResumeHandle = *pdwResumeHandle;
     }
 
-    dwError = SrvSvcAccessCheck(
-                    IDL_handle,
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetFileEnum(
@@ -459,9 +457,7 @@ _NetrSessionEnum(
     dwInfoLevel    = *pdwInfoLevel;
     dwResumeHandle = pdwResumeHandle ? *pdwResumeHandle : 0;
 
-    dwError = SrvSvcAccessCheck(
-                    IDL_handle,
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcNetSessionEnum(
