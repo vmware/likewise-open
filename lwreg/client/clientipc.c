@@ -47,6 +47,15 @@
  */
 #include "client.h"
 
+static REG_CLIENT_CONNECTION_CONTEXT gContext = {0};
+#if defined(__LWI_SOLARIS__) || defined (__LWI_AIX__)
+static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
+#else
+static pthread_once_t gOnceControl = PTHREAD_ONCE_INIT;
+#endif
+static NTSTATUS gdwOnceError = 0;
+
+
 static
 NTSTATUS
 RegIpcUnregisterHandle(
@@ -74,73 +83,75 @@ RegOpenServer(
 		NtRegOpenServer(phConnection));
 }
 
+VOID
+NtRegOpenServerOnce(
+    VOID
+    )
+{
+    NTSTATUS status = 0;
+
+    status = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &gContext.pProtocol));
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(gContext.pProtocol, RegIPCGetProtocolSpec()));
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_ERROR(lwmsg_client_new(NULL, gContext.pProtocol, &gContext.pClient));
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_ERROR(lwmsg_client_set_endpoint(
+                                  gContext.pClient,
+                                  LWMSG_CONNECTION_MODE_LOCAL,
+                                  CACHEDIR "/" REG_SERVER_FILENAME));
+    BAIL_ON_NT_STATUS(status);
+
+cleanup:
+
+    gdwOnceError = status;
+
+    return;
+
+error:
+
+    if (gContext.pClient)
+    {
+        lwmsg_client_delete(gContext.pClient);
+    }
+
+    if (gContext.pProtocol)
+    {
+        lwmsg_protocol_delete(gContext.pProtocol);
+    }
+
+    goto cleanup;
+}
+
+
 NTSTATUS
 NtRegOpenServer(
     OUT PHANDLE phConnection
     )
 {
     NTSTATUS status = 0;
-    PREG_CLIENT_CONNECTION_CONTEXT pContext = NULL;
-    static LWMsgTime connectTimeout = {2, 0};
 
     BAIL_ON_NT_INVALID_POINTER(phConnection);
 
-    status = LW_RTL_ALLOCATE((PVOID*)&pContext, REG_CLIENT_CONNECTION_CONTEXT, sizeof(*pContext));
+    pthread_once(&gOnceControl, NtRegOpenServerOnce);
+
+    status = gdwOnceError;
     BAIL_ON_NT_STATUS(status);
 
-    status = MAP_LWMSG_ERROR(lwmsg_protocol_new(NULL, &pContext->pProtocol));
-    BAIL_ON_NT_STATUS(status);
-
-    status = MAP_LWMSG_ERROR(lwmsg_protocol_add_protocol_spec(pContext->pProtocol, RegIPCGetProtocolSpec()));
-    BAIL_ON_NT_STATUS(status);
-
-    status = MAP_LWMSG_ERROR(lwmsg_connection_new(NULL, pContext->pProtocol, &pContext->pAssoc));
-    BAIL_ON_NT_STATUS(status);
-
-    status = MAP_LWMSG_ERROR(lwmsg_connection_set_endpoint(
-                                  pContext->pAssoc,
-                                  LWMSG_CONNECTION_MODE_LOCAL,
-                                  CACHEDIR "/" REG_SERVER_FILENAME));
-    BAIL_ON_NT_STATUS(status);
-
-    if (getenv("LW_DISABLE_CONNECT_TIMEOUT") == NULL)
-    {
-        /* Give up connecting within 2 seconds in case lsassd
-           is unresponsive (e.g. it's being traced in a debugger) */
-	status = MAP_LWMSG_ERROR(lwmsg_assoc_set_timeout(
-                                      pContext->pAssoc,
-                                      LWMSG_TIMEOUT_ESTABLISH,
-                                      &connectTimeout));
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    status = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
-    BAIL_ON_NT_STATUS(status);
-
-    *phConnection = (HANDLE)pContext;
+    *phConnection = (HANDLE) &gContext;
 
 cleanup:
+
     return status;
 
 error:
-    if (pContext)
-    {
-        if (pContext->pAssoc)
-        {
-            lwmsg_assoc_delete(pContext->pAssoc);
-        }
-
-        if (pContext->pProtocol)
-        {
-            lwmsg_protocol_delete(pContext->pProtocol);
-        }
-
-        LwRtlMemoryFree(pContext);
-    }
 
     if (phConnection)
     {
-        *phConnection = (HANDLE)NULL;
+        *phConnection = NULL;
     }
 
     goto cleanup;
@@ -157,27 +168,30 @@ RegCloseServer(
 
 VOID
 NtRegCloseServer(
-    IN HANDLE hConnection
+    HANDLE hConnection
     )
 {
-    PREG_CLIENT_CONNECTION_CONTEXT pContext =
-                     (PREG_CLIENT_CONNECTION_CONTEXT)hConnection;
+    return;
+}
 
-    if (!pContext)
-        return;
-
-    if (pContext->pAssoc)
+static
+__attribute__((destructor))
+VOID
+NtRegCloseServerOnce(
+    VOID
+    )
+{
+    if (gContext.pClient)
     {
-        lwmsg_assoc_close(pContext->pAssoc);
-        lwmsg_assoc_delete(pContext->pAssoc);
+        lwmsg_client_delete(gContext.pClient);
     }
 
-    if (pContext->pProtocol)
+    if (gContext.pProtocol)
     {
-        lwmsg_protocol_delete(pContext->pProtocol);
+        lwmsg_protocol_delete(gContext.pProtocol);
     }
 
-    LwRtlMemoryFree(pContext);
+    memset(&gContext, 0, sizeof(gContext));
 }
 
 NTSTATUS
@@ -189,7 +203,7 @@ RegIpcAcquireCall(
     NTSTATUS status = 0;
     PREG_CLIENT_CONNECTION_CONTEXT pContext = hConnection;
 
-    status = MAP_LWMSG_ERROR(lwmsg_assoc_acquire_call(pContext->pAssoc, ppCall));
+    status = MAP_LWMSG_ERROR(lwmsg_client_acquire_call(pContext->pClient, ppCall));
     BAIL_ON_NT_STATUS(status);
 
 error:
