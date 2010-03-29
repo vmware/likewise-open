@@ -188,7 +188,6 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
         [in,out,ref] UINT32 *level,
         [in,out,ref,switch_is(level)] srvsvc_NetFileCtr *ctr,
         [in] UINT32 prefered_maximum_length,
-	[out,ref] UINT32 *read_entries,
         [out,ref] UINT32 *total_entries,
         [in,out,unique] UINT32 *resume_handle
         );

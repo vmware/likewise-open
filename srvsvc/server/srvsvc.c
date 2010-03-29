@@ -310,14 +310,12 @@ _NetrFileEnum(
     PDWORD             pdwInfoLevel,         /* [in, out] */
     srvsvc_NetFileCtr* pInfo,                /* [in, out] */
     DWORD              dwPreferredMaxLength, /* [in]      */
-    PDWORD             pdwEntriesRead,       /* [out]     */
     PDWORD             pdwTotalEntries,      /* [out]     */
     PDWORD             pdwResumeHandle       /* [in, out] */
     )
 {
     DWORD dwError        = 0;
     DWORD dwInfoLevel    = 0;
-    DWORD dwEntriesRead  = 0;
     DWORD dwTotalEntries = 0;
     DWORD dwResumeHandle = 0;
 
@@ -325,7 +323,6 @@ _NetrFileEnum(
     BAIL_ON_INVALID_PTR(pwszUsername,    dwError);
     BAIL_ON_INVALID_PTR(pdwInfoLevel,    dwError);
     BAIL_ON_INVALID_PTR(pInfo,           dwError);
-    BAIL_ON_INVALID_PTR(pdwEntriesRead,  dwError);
     BAIL_ON_INVALID_PTR(pdwTotalEntries, dwError);
     BAIL_ON_INVALID_PTR(pdwResumeHandle, dwError);
 
@@ -348,13 +345,11 @@ _NetrFileEnum(
                     dwInfoLevel,
                     pInfo,
                     dwPreferredMaxLength,
-                    &dwEntriesRead,
                     &dwTotalEntries,
                     pdwResumeHandle ? &dwResumeHandle : NULL);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     *pdwTotalEntries = dwTotalEntries;
-    *pdwEntriesRead  = dwEntriesRead;
     if (pdwResumeHandle)
     {
         *pdwResumeHandle = dwResumeHandle;

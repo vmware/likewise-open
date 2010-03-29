@@ -58,7 +58,6 @@ SrvSvcNetFileEnum(
     DWORD              dwInfoLevel,          /* [in, out] */
     srvsvc_NetFileCtr* pInfo,                /* [in, out] */
     DWORD              dwPreferredMaxLength, /* [in]      */
-    PDWORD             pdwEntriesRead,       /* [out]     */
     PDWORD             pdwTotalEntries,      /* [out]     */
     PDWORD             pdwResumeHandle       /* [in, out] */
     )
@@ -227,7 +226,6 @@ SrvSvcNetFileEnum(
             break;
     }
 
-    *pdwEntriesRead  = pFileEnumParamsOut->dwEntriesRead;
     *pdwTotalEntries = pFileEnumParamsOut->dwTotalEntries;
     if (pdwResumeHandle)
     {
@@ -292,10 +290,6 @@ error:
         memset(pInfo, 0, sizeof(*pInfo));
     }
 
-    if (pdwEntriesRead)
-    {
-        *pdwEntriesRead = 0;
-    }
     if (pdwTotalEntries)
     {
         *pdwTotalEntries = 0;
