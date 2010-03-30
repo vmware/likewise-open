@@ -104,6 +104,7 @@ typedef struct _SRV_PROTOCOL_API_GLOBALS
     PLWIO_SRV_SHARE_ENTRY_LIST     pShareList;
     SRV_PROTOCOL_CONFIG            config;
     SRV_PROTOCOL_TRANSPORT_CONTEXT transportContext;
+    PLWRTL_RB_TREE                 pConnections;
 
 } SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
 

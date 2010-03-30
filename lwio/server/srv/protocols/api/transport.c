@@ -50,6 +50,19 @@
 
 #include "includes.h"
 
+static
+int
+SrvProtocolTransportConnectionCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    );
+
+static
+VOID
+SrvProtocolTransportConnectionRelease(
+    PVOID pConnection
+    );
+
 // Transport Callbacks
 
 static
@@ -189,6 +202,13 @@ SrvProtocolTransportDriverInit(
 
     uuid_generate(pTransportContext->guid);
 
+    ntStatus = LwRtlRBTreeCreate(
+                    &SrvProtocolTransportConnectionCompare,
+                    NULL,
+                    &SrvProtocolTransportConnectionRelease,
+                    &pGlobals->pConnections);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvTransportInit(
                     &pTransportContext->hTransport,
                     pTransportDispatch,
@@ -206,12 +226,40 @@ error:
     goto cleanup;
 }
 
+static
+int
+SrvProtocolTransportConnectionCompare(
+    PVOID pKey1,
+    PVOID pKey2
+    )
+{
+    PCSTR pszAddress1 = (PCSTR)pKey1;
+    PCSTR pszAddress2 = (PCSTR)pKey2;
+
+    return strcasecmp(pszAddress1, pszAddress2);
+}
+
+static
+VOID
+SrvProtocolTransportConnectionRelease(
+    PVOID pConnection
+    )
+{
+    SrvConnectionRelease((PLWIO_SRV_CONNECTION)pConnection);
+}
+
 VOID
 SrvProtocolTransportDriverShutdown(
     PSRV_PROTOCOL_API_GLOBALS pGlobals
     )
 {
     PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
+
+    if (pGlobals->pConnections)
+    {
+        LwRtlRBTreeFree(pGlobals->pConnections);
+        pGlobals->pConnections = NULL;
+    }
 
     if (pTransportContext->hTransport)
     {
@@ -243,6 +291,7 @@ SrvProtocolTransportDriverConnectionNew(
     SRV_PROPERTIES properties = { 0 };
     PSRV_HOST_INFO pHostinfo = NULL;
     PLWIO_SRV_CONNECTION pConnection = NULL;
+    BOOLEAN bInLock = FALSE;
 
     ntStatus = SrvAcquireHostInfo(NULL, &pHostinfo);
     if (ntStatus)
@@ -310,14 +359,24 @@ SrvProtocolTransportDriverConnectionNew(
     ntStatus = SrvProtocolTransportDriverUpdateBuffer(pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
+
+    ntStatus = LwRtlRBTreeAdd(
+                    gProtocolApiGlobals.pConnections,
+                    (PVOID)SrvTransportSocketGetAddressString(pSocket),
+                    pConnection);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppConnection = SrvConnectionAcquire(pConnection);;
+
 cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     if (pHostinfo)
     {
         SrvReleaseHostInfo(pHostinfo);
     }
-
-    *ppConnection = pConnection;
 
     return ntStatus;
 
@@ -326,7 +385,6 @@ error:
     if (pConnection)
     {
         SrvConnectionRelease(pConnection);
-        pConnection = NULL;
     }
 
     goto cleanup;
@@ -432,12 +490,22 @@ SrvProtocolTransportDriverConnectionDone(
     IN NTSTATUS Status
     )
 {
+    BOOLEAN bInLock = FALSE;
+
     if (STATUS_CONNECTION_RESET == Status)
     {
         LWIO_LOG_DEBUG("Connection reset by peer '%s' (fd = %d)",
                 SrvTransportSocketGetAddressString(pConnection->pSocket),
                 SrvTransportSocketGetFileDescriptor(pConnection->pSocket));
     }
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
+
+    LwRtlRBTreeRemove(
+            gProtocolApiGlobals.pConnections,
+            (PVOID)SrvTransportSocketGetAddressString(pConnection->pSocket));
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     SrvConnectionSetInvalid(pConnection);
     SrvConnectionRelease(pConnection);

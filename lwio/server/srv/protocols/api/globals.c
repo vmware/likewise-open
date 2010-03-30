@@ -56,7 +56,8 @@ SRV_PROTOCOL_API_GLOBALS gProtocolApiGlobals =
     .hPacketAllocator = NULL,
     .pShareList       = NULL,
     .config           = {0},
-    .transportContext = {0}
+    .transportContext = {0},
+    .pConnections     = NULL
 };
 
 
