@@ -173,7 +173,7 @@ NfsProtocolConfigIsSigningEnabled(
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    bEnabled = gProtocolApiGlobals.Config.bEnableSigning;
+    bEnabled = gProtocolApiGlobals.config.bEnableSigning;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
@@ -190,7 +190,7 @@ NfsProtocolConfigIsSigningRequired(
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    bRequired = gProtocolApiGlobals.Config.bRequireSigning;
+    bRequired = gProtocolApiGlobals.config.bRequireSigning;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
@@ -207,7 +207,7 @@ NfsProtocolConfigIsSmb2Enabled(
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    bEnabled = gProtocolApiGlobals.Config.bEnableSmb2;
+    bEnabled = gProtocolApiGlobals.config.bEnableSmb2;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 

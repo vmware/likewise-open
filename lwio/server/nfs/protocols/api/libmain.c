@@ -75,9 +75,9 @@ NfsProtocolInit(
     gProtocolApiGlobals.hPacketAllocator = hPacketAllocator;
     gProtocolApiGlobals.pShareList = pShareList;
 
-    NfsProtocolInitConfig(&gProtocolApiGlobals.Config);
+    NfsProtocolInitConfig(&gProtocolApiGlobals.config);
 
-    ntStatus = NfsProtocolReadConfig(&gProtocolApiGlobals.Config);
+    ntStatus = NfsProtocolReadConfig(&gProtocolApiGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NfsProtocolInit_SMB_V1(pWorkQueue);
@@ -291,7 +291,7 @@ NfsProtocolShutdown(
     NfsProtocolShutdown_SMB_V1();
     NfsProtocolShutdown_SMB_V2();
 
-    NfsProtocolFreeConfigContents(&gProtocolApiGlobals.Config);
+    NfsProtocolFreeConfigContents(&gProtocolApiGlobals.config);
 
     gProtocolApiGlobals.pWorkQueue = NULL;
     gProtocolApiGlobals.hPacketAllocator = NULL;

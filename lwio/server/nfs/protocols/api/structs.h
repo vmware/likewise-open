@@ -81,26 +81,25 @@ typedef struct _NFS_PROTOCOL_CONFIG
     BOOLEAN bRequireSigning;
 } NFS_PROTOCOL_CONFIG, *PNFS_PROTOCOL_CONFIG;
 
-typedef struct _NFS_PROTOCOL_TRANSPORT_CONTEXT {
-    // Initialized on startup
-    struct _NFS_PROTOCOL_API_GLOBALS* pGlobals;
-    NFS_TRANSPORT_HANDLE hTransport;
-    NFS_TRANSPORT_PROTOCOL_DISPATCH Dispatch;
-    NFS_CONNECTION_SOCKET_DISPATCH SocketDispatch;
-    uuid_t Guid;
-    // Initialized on first use
-    HANDLE hGssContext;
+typedef struct _NFS_PROTOCOL_TRANSPORT_CONTEXT
+{
+    struct _NFS_PROTOCOL_API_GLOBALS* pGlobals; // Initialized on startup
+    NFS_TRANSPORT_HANDLE              hTransport;
+    NFS_TRANSPORT_PROTOCOL_DISPATCH   dispatch;
+    NFS_CONNECTION_SOCKET_DISPATCH    socketDispatch;
+    uuid_t                            guid;
+    HANDLE                            hGssContext; // Initialized on first use
 } NFS_PROTOCOL_TRANSPORT_CONTEXT;
 
 typedef struct _NFS_PROTOCOL_API_GLOBALS
 {
-    pthread_mutex_t           mutex;
+    pthread_mutex_t                mutex;
 
-    PSMB_PROD_CONS_QUEUE      pWorkQueue;
-    PLWIO_PACKET_ALLOCATOR     hPacketAllocator;
-    PLWIO_NFS_SHARE_ENTRY_LIST pShareList;
-    NFS_PROTOCOL_CONFIG        Config;
-    NFS_PROTOCOL_TRANSPORT_CONTEXT TransportContext;
+    PSMB_PROD_CONS_QUEUE           pWorkQueue;
+    PLWIO_PACKET_ALLOCATOR         hPacketAllocator;
+    PLWIO_NFS_SHARE_ENTRY_LIST     pShareList;
+    NFS_PROTOCOL_CONFIG            config;
+    NFS_PROTOCOL_TRANSPORT_CONTEXT transportContext;
 
 } NFS_PROTOCOL_API_GLOBALS, *PNFS_PROTOCOL_API_GLOBALS;
 
