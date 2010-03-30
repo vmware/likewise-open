@@ -272,6 +272,9 @@ SrvProcessNTCreateAndX(
             ntStatus = SrvBuildNTCreateResponse_inlock(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            ntStatus = SrvSessionIncrementFileCount(pCtxSmb1->pSession);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V1_DONE;
 
             // intentional fall through

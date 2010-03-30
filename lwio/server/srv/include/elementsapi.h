@@ -232,6 +232,8 @@ typedef struct _LWIO_SRV_SESSION
 
     LONG64            llLastActivityTime;
 
+    ULONG64           ullTotalFileCount;
+
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
 } LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
@@ -258,6 +260,8 @@ typedef struct _LWIO_SRV_SESSION_2
     PSTR              pszClientPrincipalName;
 
     LONG64            llLastActivityTime;
+
+    ULONG64           ullTotalFileCount;
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
@@ -801,6 +805,17 @@ SrvSessionCreateTree(
     PLWIO_SRV_TREE*   ppTree
     );
 
+NTSTATUS
+SrvSessionIncrementFileCount(
+    PLWIO_SRV_SESSION pSession
+    );
+
+NTSTATUS
+SrvSessionGetFileCount(
+    PLWIO_SRV_SESSION pSession,
+    PULONG64          pullFileCount
+    );
+
 PLWIO_SRV_SESSION
 SrvSessionAcquire(
     PLWIO_SRV_SESSION pSession
@@ -840,6 +855,17 @@ SrvSession2CreateTree(
     PLWIO_SRV_SESSION_2 pSession,
     PSRV_SHARE_INFO     pShareInfo,
     PLWIO_SRV_TREE_2*   ppTree
+    );
+
+NTSTATUS
+SrvSession2IncrementFileCount(
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
+NTSTATUS
+SrvSession2GetFileCount(
+    PLWIO_SRV_SESSION_2 pSession,
+    PULONG64            pullFileCount
     );
 
 PLWIO_SRV_SESSION_2

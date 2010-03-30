@@ -400,6 +400,9 @@ SrvProcessCreate_SMB_V2(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
+            ntStatus = SrvSession2IncrementFileCount(pCtxSmb2->pSession);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             pCreateState->bRemoveFileFromTree = FALSE;
 
             pCtxSmb2->pFile = SrvFile2Acquire(pCreateState->pFile);

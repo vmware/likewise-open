@@ -300,6 +300,61 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvSessionIncrementFileCount(
+    PLWIO_SRV_SESSION pSession
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    ntStatus = SrvSessionUpdateLastActivityTime_inlock(pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSession->ullTotalFileCount++;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvSessionGetFileCount(
+    PLWIO_SRV_SESSION pSession,
+    PULONG64          pullFileCount
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    ntStatus = SrvSessionUpdateLastActivityTime(pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    *pullFileCount = pSession->ullTotalFileCount;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+
+error:
+
+    *pullFileCount = 0;
+
+    goto cleanup;
+}
+
 PLWIO_SRV_SESSION
 SrvSessionAcquire(
     PLWIO_SRV_SESSION pSession
