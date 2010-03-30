@@ -51,7 +51,12 @@
 
 SRV_PROTOCOL_API_GLOBALS gProtocolApiGlobals =
 {
-    .mutex         = PTHREAD_MUTEX_INITIALIZER,
+    .pMutex           = NULL,
+    .pWorkQueue       = NULL,
+    .hPacketAllocator = NULL,
+    .pShareList       = NULL,
+    .config           = {0},
+    .transportContext = {0}
 };
 
 

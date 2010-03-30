@@ -96,7 +96,8 @@ typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT
 
 typedef struct _SRV_PROTOCOL_API_GLOBALS
 {
-    pthread_mutex_t                mutex;
+    pthread_rwlock_t               mutex;
+    pthread_rwlock_t*              pMutex;
 
     PSMB_PROD_CONS_QUEUE           pWorkQueue;
     PLWIO_PACKET_ALLOCATOR         hPacketAllocator;

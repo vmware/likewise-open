@@ -71,6 +71,9 @@ SrvProtocolInit(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bSupportSMBV2 = FALSE;
 
+    pthread_rwlock_init(&gProtocolApiGlobals.mutex, NULL);
+    gProtocolApiGlobals.pMutex = &gProtocolApiGlobals.mutex;
+
     gProtocolApiGlobals.pWorkQueue = pWorkQueue;
     gProtocolApiGlobals.hPacketAllocator = hPacketAllocator;
     gProtocolApiGlobals.pShareList = pShareList;
@@ -295,5 +298,11 @@ SrvProtocolShutdown(
     gProtocolApiGlobals.pWorkQueue = NULL;
     gProtocolApiGlobals.hPacketAllocator = NULL;
     gProtocolApiGlobals.pShareList = NULL;
+
+    if (gProtocolApiGlobals.pMutex)
+    {
+        pthread_rwlock_destroy(&gProtocolApiGlobals.mutex);
+        gProtocolApiGlobals.pMutex = NULL;
+    }
 }
 

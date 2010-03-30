@@ -190,11 +190,11 @@ SrvProtocolConfigIsSigningEnabled(
     BOOLEAN bEnabled = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
     bEnabled = gProtocolApiGlobals.config.bEnableSigning;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     return bEnabled;
 }
@@ -207,11 +207,11 @@ SrvProtocolConfigIsSigningRequired(
     BOOLEAN bRequired = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
     bRequired = gProtocolApiGlobals.config.bRequireSigning;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     return bRequired;
 }
@@ -224,11 +224,11 @@ SrvProtocolConfigIsSmb2Enabled(
     BOOLEAN bEnabled = FALSE;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
     bEnabled = gProtocolApiGlobals.config.bEnableSmb2;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     return bEnabled;
 }
@@ -241,11 +241,11 @@ SrvProtocolConfigGetZctReadThreshold(
     ULONG ulThreshold = 0;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
     ulThreshold = gProtocolApiGlobals.config.ulZctReadThreshold;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     return ulThreshold;
 }
@@ -258,11 +258,11 @@ SrvProtocolConfigGetZctWriteThreshold(
     ULONG ulThreshold = 0;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
     ulThreshold = gProtocolApiGlobals.config.ulZctWriteThreshold;
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
     return ulThreshold;
 }
