@@ -94,8 +94,7 @@ PvfsClose(
 
         ntError = PvfsUnlockFile(pCcb, TRUE, 0, 0, 0);
 
-        /* Deal with any pended operations awaiting an oplock
-           break response */
+        /* Deal with any pended operations awaiting an oplock break response */
 
         switch (pCcb->OplockState)
         {
@@ -103,8 +102,8 @@ PvfsClose(
             break;
 
         case PVFS_OPLOCK_STATE_GRANTED:
-            /* Cancel any outstanding oplock grants on this file */
-            ntError = PvfsOplockCloseFile(pCcb->pFcb, pCcb);
+            /* The IoMgr will cancel all pending IRPs on a handle prior to close
+               so this state is not possible unless there is a bug in the IoMgr */
             break;
 
         case PVFS_OPLOCK_STATE_BREAK_IN_PROGRESS:
