@@ -168,14 +168,16 @@ lsassd_main(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
+    /* Start NTLM IPC server before we initialize providers
+       because the providers might end up attempting to use
+       NTLM via gss-api */
+    dwError = NtlmSrvStartListenThread();
+    BAIL_ON_LSA_ERROR(dwError);
+
     dwError = LsaSrvInitialize();
     BAIL_ON_LSA_ERROR(dwError);
 
-    //dwError = LsaSrvStartListenThread(&listenerThreadId, &pListenerThreadId);
     dwError = LsaSrvStartListenThread();
-    BAIL_ON_LSA_ERROR(dwError);
-
-    dwError = NtlmSrvStartListenThread();
     BAIL_ON_LSA_ERROR(dwError);
 
     if ((pszSmNotify = getenv("LIKEWISE_SM_NOTIFY")) != NULL)
