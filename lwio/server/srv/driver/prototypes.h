@@ -172,6 +172,55 @@ SrvDeviceControlIo(
     PIRP             pIrp
     );
 
+// files.c
+
+NTSTATUS
+SrvDevCtlEnumerateFiles(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
+NTSTATUS
+SrvDevCtlGetFileInfo(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
+NTSTATUS
+SrvDevCtlCloseFile(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
+// sessions.c
+
+NTSTATUS
+SrvDevCtlEnumerateSessions(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
+NTSTATUS
+SrvDevCtlDeleteSession(
+    IN     PBYTE  lpInBuffer,
+    IN     ULONG  ulInBufferSize,
+    IN OUT PBYTE  lpOutBuffer,
+    IN     ULONG  ulOutBufferSize,
+    IN OUT PULONG pulBytesTransferred
+    );
+
 // srvshares.c
 
 NTSTATUS

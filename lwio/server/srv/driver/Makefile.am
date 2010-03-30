@@ -16,7 +16,9 @@ libsrv_sys_la_SOURCES = \
     devicecreate.c \
     deviceio.c     \
     driver.c       \
+    files.c        \
     globals.c      \
+    sessions.c     \
     srvshares.c    \
     srvstats.c     \
     srvworker.c

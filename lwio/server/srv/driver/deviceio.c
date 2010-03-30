@@ -162,12 +162,57 @@ SrvDeviceIoCommon(
           break;
 
       case SRV_DEVCTL_ENUM_SESSIONS:
+
+          ntStatus = SrvDevCtlEnumerateSessions(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+
+          break;
+
       case SRV_DEVCTL_DELETE_SESSION:
+
+          ntStatus = SrvDevCtlDeleteSession(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+
+          break;
+
       case SRV_DEVCTL_ENUM_FILES:
+
+          ntStatus = SrvDevCtlEnumerateFiles(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+
+          break;
+
       case SRV_DEVCTL_GET_FILE_INFO:
+
+          ntStatus = SrvDevCtlGetFileInfo(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
+
+          break;
+
       case SRV_DEVCTL_CLOSE_FILE:
 
-          ntStatus = STATUS_NOT_SUPPORTED;
+          ntStatus = SrvDevCtlCloseFile(
+                          pInBuffer,
+                          ulInBufferSize,
+                          pOutBuffer,
+                          ulOutBufferSize,
+                          &ulBytesTransferred);
 
           break;
 
