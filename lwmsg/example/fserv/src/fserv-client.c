@@ -8,6 +8,7 @@
 
 static LWMsgProtocol* protocol = NULL;
 static LWMsgPeer* client = NULL;
+static LWMsgSession* session = NULL;
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 static LWMsgStatus volatile once_status = LWMSG_STATUS_SUCCESS;
 
@@ -49,7 +50,7 @@ __fserv_construct(
     }
 
     /* Connect */
-    once_status = lwmsg_peer_connect(client);
+    once_status = lwmsg_peer_connect(client, &session);
     if (once_status)
     {
         goto error;
@@ -83,11 +84,14 @@ fserv_destruct(
         /* Disconnect and delete */
         lwmsg_peer_disconnect(client);
         lwmsg_peer_delete(client);
+        session = NULL;
+        client = NULL;
     }
 
     if (protocol)
     {
         lwmsg_protocol_delete(protocol);
+        protocol = NULL;
     }
 }
 
@@ -105,7 +109,6 @@ fserv_open(
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* call = NULL;
-    FServFile* file = NULL;
 
     status = fserv_construct();
     if (status)
@@ -318,7 +321,6 @@ fserv_close(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
-    LWMsgSession* session = NULL;
     LWMsgCall* call = NULL;
 
     status = lwmsg_peer_acquire_call(client, &call);
@@ -327,8 +329,6 @@ fserv_close(
         ret = -1;
         goto error;
     }
-
-    session = lwmsg_call_get_session(call);
 
     in.tag = FSERV_CLOSE_REQ;
     in.data = file;
@@ -344,16 +344,9 @@ fserv_close(
     switch (out.tag)
     {
     case FSERV_VOID_RES:
-        /* Release the handle */
-        status = lwmsg_session_release_handle(session, file);
-        if (status)
-        {
-            ret = -1;
-            goto error;
-        }
         break;
     case FSERV_ERROR_RES:
-        /* In either case, extract the status code and get out of here */
+        /* Extract the status code */
         ret = ((StatusReply*) out.data)->err;
         if (ret)
         {
@@ -366,6 +359,9 @@ fserv_close(
     }
 
 error:
+
+    /* Release the handle even on failure */
+    lwmsg_session_release_handle(session, file);
 
     if (call)
     {

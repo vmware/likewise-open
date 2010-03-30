@@ -113,15 +113,18 @@ trivial_sender(void* _assocs)
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     TrivialRequest request;
     TrivialHandle* handle;
-    char smid_str[17];
-    LWMsgSessionID id;
+    LWMsgSession* session = NULL;
 
-    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_establish(assocs[0]));
+    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_connect(assocs[0], NULL));
 
+    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_get_session(assocs[0], &session));
+
+#if 0
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_get_peer_session_id(assocs[0], &id));
     lwmsg_session_id_to_string(&id, smid_str);
     MU_VERBOSE("Sending first message to peer with session ID %s", smid_str);
-    
+#endif
+
     request.trivial = 42;
     request_msg.tag = TRIVIAL_OPEN;
     request_msg.data = &request;
@@ -131,11 +134,13 @@ trivial_sender(void* _assocs)
 
     handle = reply_msg.data;
 
-    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_establish(assocs[1]));
+    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_connect(assocs[1], session));
 
+#if 0
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_get_peer_session_id(assocs[1], &id));
     lwmsg_session_id_to_string(&id, smid_str);
     MU_VERBOSE("Sending second message to peer with session ID %s", smid_str);
+#endif
 
     request_msg.tag = TRIVIAL_CLOSE;
     request_msg.data = handle;
@@ -159,14 +164,18 @@ trivial_receiver(void* _assocs)
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     TrivialHandle* handle;
     TrivialReply reply;
-    char smid_str[17];
-    LWMsgSessionID id;
+    LWMsgSessionManager* manager = NULL;
+    LWMsgSession* session = NULL;
 
-    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_establish(assocs[0]));
+    MU_TRY(lwmsg_shared_session_manager_new(NULL, NULL, NULL, &manager));
 
+    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_accept(assocs[0], manager, &session));
+
+#if 0
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_get_peer_session_id(assocs[0], &id));
     lwmsg_session_id_to_string(&id, smid_str);
     MU_VERBOSE("Receiving first message from peer with session ID %s", smid_str);
+#endif
 
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_recv_message(assocs[0], &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, TRIVIAL_OPEN);
@@ -176,14 +185,16 @@ trivial_receiver(void* _assocs)
     reply_msg.tag = TRIVIAL_OPEN_SUCCESS;
     reply_msg.data = handle;
 
-    MU_TRY_ASSOC(assocs[0], lwmsg_assoc_register_handle(assocs[0], "TrivialHandle", handle, free));
+    MU_TRY_ASSOC(assocs[0], lwmsg_session_register_handle(session, "TrivialHandle", handle, free));
     MU_TRY_ASSOC(assocs[0], lwmsg_assoc_send_message(assocs[0], &reply_msg));
 
-    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_establish(assocs[1]));
+    MU_TRY_ASSOC(assocs[1], lwmsg_assoc_accept(assocs[1], manager, NULL));
 
+#if 0
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_get_peer_session_id(assocs[1], &id));
     lwmsg_session_id_to_string(&id, smid_str);
     MU_VERBOSE("Receiving second message from peer with session ID %s", smid_str);
+#endif
 
     MU_TRY_ASSOC(assocs[1], lwmsg_assoc_recv_message(assocs[1], &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, TRIVIAL_CLOSE);
@@ -213,11 +224,6 @@ MU_TEST(session, trivial_send_recv)
     pthread_t sender;
     pthread_t receiver;
     LWMsgProtocol* trivial_protocol = NULL;
-    LWMsgSessionManager* send_manager = NULL;
-    LWMsgSessionManager* recv_manager = NULL;
-
-    MU_TRY(lwmsg_shared_session_manager_new(&send_manager));
-    MU_TRY(lwmsg_shared_session_manager_new(&recv_manager));
 
     MU_TRY(lwmsg_protocol_new(NULL, &trivial_protocol));
     MU_TRY_PROTOCOL(trivial_protocol, lwmsg_protocol_add_protocol_spec(trivial_protocol, trivialprotocol_spec));
@@ -267,13 +273,6 @@ MU_TEST(session, trivial_send_recv)
                recv_assocs[1],
                LWMSG_CONNECTION_MODE_PAIR,
                sockets_b[1]));
-
-    /* Put send sockets and recv sockets into same session managers */
-    MU_TRY(lwmsg_assoc_set_session_manager(send_assocs[0], send_manager));
-    MU_TRY(lwmsg_assoc_set_session_manager(send_assocs[1], send_manager));
-
-    MU_TRY(lwmsg_assoc_set_session_manager(recv_assocs[0], recv_manager));
-    MU_TRY(lwmsg_assoc_set_session_manager(recv_assocs[1], recv_manager));
 
     if ((err = pthread_create(&sender, NULL, trivial_sender, send_assocs)))
     {

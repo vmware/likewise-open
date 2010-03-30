@@ -70,22 +70,19 @@ lwmsg_assoc_marshal_handle(
     void* pointer = NULL;
     TransmitHandle* transmit = transmit_object;
     LWMsgAssoc* assoc = NULL;
-    LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
     const char* type = NULL;
     const LWMsgContext* context = lwmsg_data_context_get_context(mcontext);
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
-    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     pointer = *(void**) object;
 
     if (pointer != NULL)
     {
-        status = lwmsg_session_manager_handle_pointer_to_id(
-            manager,
+        status = lwmsg_session_handle_pointer_to_id(
             session,
             pointer,
             &type,
@@ -170,14 +167,12 @@ lwmsg_assoc_unmarshal_handle(
     LWMsgAssoc* assoc = NULL;
     void* pointer = NULL;
     TransmitHandle* transmit = transmit_object;
-    LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
     const LWMsgContext* context = lwmsg_data_context_get_context(mcontext);
     LWMsgHandleType location = transmit->type;
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
-    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     if (location != LWMSG_HANDLE_NULL)
@@ -214,8 +209,7 @@ lwmsg_assoc_unmarshal_handle(
         }
 
         /* Convert handle to pointer */
-        status = lwmsg_session_manager_handle_id_to_pointer(
-            manager,
+        status = lwmsg_session_handle_id_to_pointer(
             session,
             (const char*) data,
             location,
@@ -228,8 +222,7 @@ lwmsg_assoc_unmarshal_handle(
             if (location == LWMSG_HANDLE_REMOTE)
             {
                 /* Implicitly register handle seen from the peer for the first time */
-                BAIL_ON_ERROR(status = lwmsg_session_manager_register_handle_remote(
-                                  manager,
+                BAIL_ON_ERROR(status = lwmsg_session_register_handle_remote(
                                   session,
                                   (const char*) data,
                                   transmit->data.id,
@@ -277,17 +270,20 @@ lwmsg_assoc_free_handle(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     LWMsgAssoc* assoc = NULL;
     void* pointer = NULL;
+    LWMsgSession* session = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(
                       lwmsg_data_context_get_context(context),
                       "assoc",
                       (void**) (void*) &assoc));
 
+    BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
+
     pointer = *(void**) object;
 
     if (pointer)
     {
-        BAIL_ON_ERROR(status = lwmsg_assoc_release_handle(assoc, pointer));
+        BAIL_ON_ERROR(status = lwmsg_session_release_handle(session, pointer));
     }
 
 error:
@@ -310,22 +306,19 @@ lwmsg_assoc_print_handle(
     LWMsgHandleType location;
     LWMsgHandleID handle;
     LWMsgAssoc* assoc = NULL;
-    LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
     const char* type;
     char* str = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
 
-    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
     pointer = *(void**) object;
 
     if (pointer != NULL)
     {
-        status = lwmsg_session_manager_handle_pointer_to_id(
-            manager,
+        status = lwmsg_session_handle_pointer_to_id(
             session,
             pointer,
             &type,

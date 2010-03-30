@@ -425,137 +425,6 @@ lwmsg_assoc_set_nonblock(
 
 /**
  * @ingroup assoc
- * @brief Register a handle <b>[DEPRECATED]</b>
- *
- * Explicitly registers a handle with the specified association.
- * Handles are pointers to structures which may be transmitted back
- * and forth in messages but are opaque to the peer -- their contents
- * are not transmitted.
- *
- * @param[in] assoc the association
- * @param[in] typename the type of the handle as a constant string, which should
- * @param[in] handle the handle pointer
- * be the same as that in the type specification
- * @param[in] cleanup the cleanup function to invoke when the handle is unregistered
- * or the association deleted
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_memory
- * @lwmsg_code{INVALID_PARAMETER, the specified handle was already registered}
- * @lwmsg_endstatus
- *
- * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_register_handle()
- */
-LWMsgStatus
-lwmsg_assoc_register_handle(
-    LWMsgAssoc* assoc,
-    const char* typename,
-    void* handle,
-    LWMsgHandleCleanupFunction cleanup
-    );
-
-/**
- * @ingroup assoc
- * @brief Retain a handle <b>[DEPRECATED]</b>
- *
- * Indicates that there is an additional reference to a handle,
- * and that it should remain available in the session until the
- * reference is released.
- *
- * @param[in] assoc the assocation
- * @param[in] handle the handle pointer
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_HANDLE, the specified handle was not known}
- * @lwmsg_endstatus
- *
- * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_retain_handle()
- */
-LWMsgStatus
-lwmsg_assoc_retain_handle(
-    LWMsgAssoc* assoc,
-    void* handle
-    );
-
-/**
- * @ingroup assoc
- * @brief Release a handle <b>[DEPRECATED]</b>
- *
- * Releases a reference to a handle.  The handle will be
- * cleaned up when the last reference to it is released.
- *
- * @param[in] assoc the assocation
- * @param[in] handle the handle pointer
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_HANDLE, the specified handle was not known}
- * @lwmsg_endstatus
- *
- * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_release_handle()
- */
-LWMsgStatus
-lwmsg_assoc_release_handle(
-    LWMsgAssoc* assoc,
-    void* handle
-    );
-
-/**
- * @ingroup assoc
- * @brief Unregister a handle <b>[DEPRECATED]</b>
- *
- * Releases a reference to a handle and unregisters it.
- * Subsequent calls to #lwmsg_assoc_retain_handle()
- * and #lwmsg_assoc_release_handle() on the handle will
- * succeed if there are still outstanding references,
- * but all other uses will be considered invalid.
- *
- * This allows other portions of the program which may still
- * hold outstanding references to the handle to finish gracefully
- * before the handle cleanup function is invoked, but prevents
- * any further use of the handle within the session.
- *
- * @param[in] assoc the assocation
- * @param[in] handle the handle pointer
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_HANDLE, the specified handle was not registered}
- * @lwmsg_endstatus
- *
- * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_unregister_handle()
- */
-LWMsgStatus
-lwmsg_assoc_unregister_handle(
-    LWMsgAssoc* assoc,
-    void* handle
-    );
-
-/**
- * @ingroup assoc
- * @brief Query handle location
- *
- * Queries the location of a handle (local or remote).  Local handles may
- * be dereferenced safely, but remote handles are proxies with undefined
- * contents -- their addresses are only guaranteed to be unique with respect
- * to other handles in the session.  This function allows the location
- * of a handle to be discovered before its contents are accessed.
- *
- * @param[in] assoc the assocation
- * @param[in] handle the handle pointer
- * @param[out] location the location of the handle
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_HANDLE, the specified handle was not registered}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_get_handle_location(
-    LWMsgAssoc* assoc,
-    void* handle,
-    LWMsgHandleType* location
-    );
-
-/**
- * @ingroup assoc
  * @brief Destroy a message
  *
  * Destroys a message structure, freeing any data payload it may contain.
@@ -607,25 +476,6 @@ lwmsg_assoc_free_graph(
 
 /**
  * @ingroup assoc
- * @brief Retrieve peer security token
- *
- * Retrieves credentials of the peer from an association.
- *
- * @param[in] assoc the assocation
- * @param[out] token the retrieved security token
- * @lwmsg_status
- * @lwmsg_code{INVALID_STATE, no session is established}
- * @lwmsg_etc{an implementation-specific error}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_get_peer_security_token(
-    LWMsgAssoc* assoc,
-    LWMsgSecurityToken** token
-    );
-
-/**
- * @ingroup assoc
  * @brief Retrieve last error message
  *
  * Fetches the error message for the last error which occured on the specified association.
@@ -648,8 +498,8 @@ lwmsg_assoc_get_error_message(
  * 
  * Gets the current session for the specified association.  The session can be used
  * for handle management and authentication of the peer.  A session will only be
- * available after calling #lwmsg_assoc_establish() and before calling
- * #lwmsg_assoc_close().  Some types of associations may not support sessions,
+ * available after calling #lwmsg_assoc_connect() or #lwmsg_assoc_accept() and before
+ * calling #lwmsg_assoc_close().  Some types of associations may not support sessions,
  * in which case this function will return #LWMSG_STATUS_SUCCESS and set session
  * to NULL.
  *
@@ -687,28 +537,6 @@ lwmsg_assoc_get_state(
 
 /**
  * @ingroup assoc
- * @brief Get user data for session <b>[DEPRECATED]</b>
- *
- * Gets a user data pointer for the session which the specified assocation
- * is part of.
- *
- * @param[in] assoc the association
- * @param[out] data the user data pointer
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, no session was established}
- * @lwmsg_endstatus
- *
- * @deprecated Use #lwmsg_assoc_get_session() and #lwmsg_session_get_data()
- */
-LWMsgStatus
-lwmsg_assoc_get_session_data(
-    LWMsgAssoc* assoc,
-    void** data
-    );
-
-/**
- * @ingroup assoc
  * @brief Set timeout
  *
  * Sets a timeout that should be used for subsequent operations.
@@ -731,31 +559,69 @@ lwmsg_assoc_set_timeout(
 
 /**
  * @ingroup assoc
- * @brief Establish session with peer
+ * @brief Connect association to peer
  *
- * Causes the specified association to establish a session with
- * its peer if it has not already.
+ * Connects an association to a peer.  The peer should call #lwmsg_assoc_accept()
+ * to accept the connection.  An existing session can be passed in the <tt>session</tt>
+ * parameter -- otherwise, a new session will be created automatically and can be
+ * accessed later with @lwmsg_assoc_get_session().
  *
- * @param[in] assoc the association
+ * @param[in,out] assoc the association
+ * @param[in,out] session an optional existing session to use for the association
  * @lwmsg_status
  * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the association cannot establish a session from its current state}
- * @lwmsg_etc{implementation-specific error}
+ * @lwmsg_memory
+ * @lwmsg_code{CONNECTION_REFUSED, connection refused}
  * @lwmsg_endstatus
  */
 LWMsgStatus
-lwmsg_assoc_establish(
-    LWMsgAssoc* assoc
-    );
-
-LWMsgStatus
-lwmsg_assoc_set_session_functions(
+lwmsg_assoc_connect(
     LWMsgAssoc* assoc,
-    LWMsgSessionConstructFunction construct,
-    LWMsgSessionDestructFunction destruct,
-    void* data
+    LWMsgSession* session
     );
 
+/**
+ * @ingroup assoc
+ * @brief Accept connection from peer on assocation
+ *
+ * Accepts a connection from a peer on the given association.  The peer should call
+ * #lwmsg_assoc_connect() to initiate the connection.  An existing session manager can be
+ * passed in the <tt>manager</tt> parameter.  This session manager will be used to find
+ * a session for the connecting peer.  If one is not specified explicitly, the association
+ * will fall back on a default session manager.
+ *
+ * @param[in,out] assoc the association
+ * @param[in,out] manager (optional) a session manager to use to find a session for the connecting peer
+ * @param[out] session (optional) the session for the accepted peer
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{CONNECTION_REFUSED, connection refused}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_assoc_accept(
+    LWMsgAssoc* assoc,
+    LWMsgSessionManager* manager,
+    LWMsgSession** session
+    );
+
+/**
+ * @ingroup assoc
+ * @brief Print message in human-readable form
+ *
+ * Prints a message in a human-readable using the protocol information
+ * for the given association.  The result is allocated using the same
+ * memory manager as the association.
+ *
+ * @param[in] assoc the association
+ * @param[in] message the message to print
+ * @param[out] result the printed form of the message
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_endstatus
+ */
 LWMsgStatus
 lwmsg_assoc_print_message_alloc(
     LWMsgAssoc* assoc,

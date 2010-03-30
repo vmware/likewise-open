@@ -54,24 +54,15 @@
  *
  * Connections provide a concrete implementation of the
  * association abstraction based on the BSD socket layer,
- * allowing messages to be exchanged over local (domain) and
- * remote (tcp) sockets.
+ * allowing messages to be exchanged over UNIX domain sockets.
  *
- * Connections enforce a reply-response message ordering; a
- * send must be followed by a receive and vice versa.  Either
- * peer may initiate a reply-response sequence, so the role
- * of "client" and "server" is implicit in their behavior.
- * The functions #lwmsg_assoc_send_message_transact() and
- * #lwmsg_assoc_recv_message_transact() can assist in
- * maintaining this discipline.
- *
- * Connections over UNIX domain sockets support additional features.
+ * Connections over UNIX domain sockets support special features.
  * Access to the identity of the connected peer is available through
- * #lwmsg_assoc_get_peer_security_token(), which returns a security token
+ * #lwmsg_session_get_peer_security_token(), which returns a security token
  * of type "local".  Use #lwmsg_local_token_get_eid() on the token
  * to query the effective uid and gid of the peer.
  *
- * Additionally, messages sent over a local connection may
+ * Additionally, messages sent over a UNIX domain socket connection may
  * contain embedded file descriptors which will be mirrored
  * into the peer process through an underlying mechanism such
  * as SCM_RIGHTS.  This has applications ranging from implementing

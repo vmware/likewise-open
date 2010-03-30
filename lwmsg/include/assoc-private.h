@@ -136,21 +136,7 @@ typedef struct LWMsgAssocClass
     LWMsgStatus (*reset)(LWMsgAssoc* assoc);
     LWMsgStatus (*finish)(LWMsgAssoc* assoc, LWMsgMessage** message);
     LWMsgStatus (*set_nonblock)(LWMsgAssoc* assoc, LWMsgBool nonblock);
-    /**
-     * @ingroup assoc_impl
-     * @brief Peer security token access method
-     *
-     * This method retrieves a security information token for the peer.
-     *
-     * @param[in] assoc the association
-     * @param[out] token the security token
-     * @lwmsg_status
-     * @lwmsg_success
-     * @lwmsg_code{INVALID_STATE, the security token is not available in the current state}
-     * @lwmsg_etc{implementation-specific failure}
-     * @lwmsg_endstatus
-     */
-    LWMsgStatus (*get_peer_security_token)(LWMsgAssoc* assoc, LWMsgSecurityToken** token);
+
     /**
      * @ingroup assoc_impl
      * @brief Peer session manager ID access method
@@ -199,30 +185,17 @@ typedef struct LWMsgAssocClass
         LWMsgTime* value
         );
 
-    /**
-     * @ingroup assoc_impl
-     * @brief Establish session with peer
-     *
-     * This method causes the association to establish a session with
-     * its peer if it has not already.
-     *
-     * @param[in] assoc the association
-     * @param[in] construct session constructor function
-     * @param[in] destruct session destructor function
-     * @param[in] data user data pointer to pass to the session constructor
-     * @lwmsg_status
-     * @lwmsg_success
-     * @lwmsg_code{TIMEOUT, the operation timed out}
-     * @lwmsg_code{INVALID_STATE, the association cannot establish a session from its current state}
-     * @lwmsg_etc{implementation-specific error}
-     * @lwmsg_endstatus
-     */
     LWMsgStatus
-    (*establish)(
+    (*connect)(
         LWMsgAssoc* assoc,
-        LWMsgSessionConstructFunction construct,
-        LWMsgSessionDestructFunction destruct,
-        void* data
+        LWMsgSession* session
+        );
+
+    LWMsgStatus
+    (*accept)(
+        LWMsgAssoc* assoc,
+        LWMsgSessionManager* manager,
+        LWMsgSession** session
         );
 } LWMsgAssocClass;
 
@@ -237,13 +210,8 @@ struct LWMsgAssoc
     LWMsgContext context;
     LWMsgAssocClass* aclass;
     LWMsgProtocol* prot;
-    LWMsgSessionManager* manager;
-    LWMsgSessionConstructFunction construct;
-    LWMsgSessionDestructFunction destruct;
     void* construct_data;
     AssocCall call;
-
-    unsigned manager_is_private:1;
 };
 
 #define ASSOC_RAISE_ERROR(_assoc_, ...) RAISE_ERROR(&(_assoc_)->context, __VA_ARGS__)
@@ -276,53 +244,6 @@ lwmsg_assoc_new(
 LWMsgStatus
 lwmsg_assoc_call_init(
     AssocCall* call
-    );
-
-LWMsgStatus
-lwmsg_assoc_get_session_manager(
-    LWMsgAssoc* assoc,
-    LWMsgSessionManager** manager
-    );
-
-/**
- * @ingroup assoc
- * @brief Set session manager
- *
- * Sets the session manager (and thus the session) for the specified association.
- * Associations sharing the same session may share handles.
- *
- * @param[in] assoc the association
- * @param[in] manager the session manager
- * @lwmsg_status
- * @lwmsg_success
- * @lwmsg_code{INVALID_STATE, the session manager cannot be changed in the association's current state}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_set_session_manager(
-    LWMsgAssoc* assoc,
-    LWMsgSessionManager* manager
-    );
-
-/**
- * @ingroup assoc_impl
- * @brief Retrieve peer session ID
- *
- * Retrieves the session ID of the peer.  It is usually
- * not necessary for applications to access this value,
- * but it may be useful in some scenarios.
- *
- * @param[in] assoc the association
- * @param[out] id the session ID structure into which the ID will be written
- * @lwmsg_status
- * @lwmsg_code{INVALID_STATE, no session is established}
- * @lwmsg_etc{an implementation-specific error}
- * @lwmsg_endstatus
- */
-LWMsgStatus
-lwmsg_assoc_get_peer_session_id(
-    LWMsgAssoc* assoc,
-    LWMsgSessionID* id
     );
 
 #endif

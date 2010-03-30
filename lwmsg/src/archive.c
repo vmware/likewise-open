@@ -164,23 +164,6 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_archive_get_peer_security_token(
-    LWMsgAssoc* assoc,
-    LWMsgSecurityToken** out_token
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-
-    BAIL_ON_ERROR(status = LWMSG_STATUS_UNSUPPORTED);
-
-error:
-
-    *out_token = NULL;
-
-    return status;
-}
-
-static LWMsgStatus
 lwmsg_archive_get_session(
     LWMsgAssoc* assoc,
     LWMsgSession** session
@@ -263,11 +246,9 @@ error:
 
 static
 LWMsgStatus
-lwmsg_archive_establish(
+lwmsg_archive_connect(
     LWMsgAssoc* assoc,
-    LWMsgSessionConstructFunction construct,
-    LWMsgSessionDestructFunction destruct,
-    void* data
+    LWMsgSession* session
     )
 {
     LWMsgArchive* archive = ARCHIVE_PRIVATE(assoc);
@@ -283,11 +264,10 @@ static LWMsgAssocClass archive_class =
     .recv_msg = lwmsg_archive_recv_msg,
     .close = lwmsg_archive_close_assoc,
     .reset = lwmsg_archive_reset,
-    .get_peer_security_token = lwmsg_archive_get_peer_security_token,
     .get_session = lwmsg_archive_get_session,
     .get_state = lwmsg_archive_get_state,
     .set_timeout = lwmsg_archive_set_timeout,
-    .establish = lwmsg_archive_establish,
+    .connect = lwmsg_archive_connect,
     .set_nonblock = lwmsg_archive_set_nonblock,
     .finish = lwmsg_archive_finish
 };

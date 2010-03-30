@@ -55,14 +55,19 @@
 
 /*@{*/
 
-typedef struct LWMsgSessionID
+typedef struct
 {
     unsigned char bytes[8];
+} LWMsgSessionCookie;
+
+typedef struct LWMsgSessionID
+{
+    LWMsgSessionCookie connect;
+    LWMsgSessionCookie accept;
 } LWMsgSessionID;
 
-typedef char LWMsgSessionString[33];
+typedef char LWMsgSessionString[66];
 typedef uint32_t LWMsgHandleID;
-typedef struct LWMsgSessionManager LWMsgSessionManager;
 
 /**
  * @internal
@@ -84,65 +89,28 @@ typedef struct LWMsgSessionManagerClass
         LWMsgSessionManager* manager
         );
 
-    /**
-     * @brief Enter session
-     *
-     * Called to indicate entry into a new or existing
-     * session with a peer.
-     *
-     * @param[in,out] manager the session manager
-     * @param[in] rsmid the ID of the peer's session manager
-     * @param[in] rtoken a security token representing the identity of the peer
-     * @param[in] construct an optional constructor function to initialize custom session data
-     * @param[in] destruct an optional destructor function to destroy custom session data
-     * @param[in] construct_data a data pointer to pass to the construct function
-     * @param[out] session the session handle for the session that was entered
-     * @lwmsg_status
-     * @lwmsg_success
-     * @lwmsg_memory
-     * @lwmsg_code{SECURITY, the peer does not have permission to enter the given session}
-     * @lwmsg_endstatus
-     */
     LWMsgStatus
-    (*enter_session) (
+    (*create) (
         LWMsgSessionManager* manager,
-        const LWMsgSessionID* rsmid,
-        LWMsgSecurityToken* rtoken,
-        LWMsgSessionConstructFunction construct,
-        LWMsgSessionDestructFunction destruct,
-        void* construct_data,
         LWMsgSession** session
         );
 
-    /**
-     * @brief Leave session
-     *
-     * Called to indicate that an existing session has been left.
-     * When a session has been left as many times as it has been
-     * entered, it is destroyed.
-     *
-     * @param manager the session manager
-     * @param session the session handle
-     * @lwmsg_status
-     * @lwmsg_success
-     * @lwmsg_endstatus
-     */
     LWMsgStatus
-    (*leave_session) (
-        LWMsgSessionManager* manager,
-        LWMsgSession* session
+    (*connect) (
+        LWMsgSession* session,
+        const LWMsgSessionCookie* accept,
+        LWMsgSecurityToken* token
         );
 
-    /**
-     * @brief Retain session
-     *
-     * Retains an additional reference to a session without
-     * indicating entry into it.  The reference is still
-     * released with leave_session
-     */
-    void
-    (*retain_session) (
+    LWMsgStatus
+    (*accept) (
         LWMsgSessionManager* manager,
+        const LWMsgSessionCookie* connect,
+        LWMsgSecurityToken* token,
+        LWMsgSession** session);
+
+    void
+    (*release) (
         LWMsgSession* session
         );
 
@@ -165,7 +133,6 @@ typedef struct LWMsgSessionManagerClass
      */
     LWMsgStatus
     (*register_handle_local) (
-        LWMsgSessionManager* manager,
         LWMsgSession* session,
         const char* type,
         void* ptr,
@@ -192,37 +159,11 @@ typedef struct LWMsgSessionManagerClass
      */
     LWMsgStatus
     (*register_handle_remote) (
-        LWMsgSessionManager* manager,
         LWMsgSession* session,
         const char* type,
         LWMsgHandleID hid,
         void (*cleanup)(void* ptr),
         void** ptr
-        );
-
-    /**
-     * @brief Remap handle pointer
-     *
-     * Replaces one handle with another in the session.  The internal handle ID
-     * will remain the same.
-     *
-     * @param[in] manager the session manager
-     * @param[in,out] handle the session handle
-     * @param[in] ptr the old handle pointer
-     * @param[in] newptr the new handle pointer
-     * @param[in] cleanup an optional new cleanup function for the handle
-     * @lwmsg_status
-     * @lwmsg_success
-     * @lwmsg_code{INVALID_HANDLE, the pointer is not registered or the new one already is}
-     * @lwmsg_endstatus
-     */
-    LWMsgStatus
-    (*remap_handle) (
-        LWMsgSessionManager* manager,
-        LWMsgSession* session,
-        void* ptr,
-        void* newptr,
-        void (*cleanup)(void* ptr)
         );
 
     /**
@@ -241,7 +182,6 @@ typedef struct LWMsgSessionManagerClass
      */
     LWMsgStatus
     (*retain_handle) (
-        LWMsgSessionManager* manager,
         LWMsgSession* session,
         void* ptr
         );
@@ -263,7 +203,6 @@ typedef struct LWMsgSessionManagerClass
      */
     LWMsgStatus
     (*release_handle) (
-        LWMsgSessionManager* manager,
         LWMsgSession* session,
         void* ptr
         );
@@ -286,7 +225,6 @@ typedef struct LWMsgSessionManagerClass
      */
     LWMsgStatus
     (*unregister_handle) (
-        LWMsgSessionManager* manager,
         LWMsgSession* session,
         void* ptr
         );
@@ -309,7 +247,6 @@ typedef struct LWMsgSessionManagerClass
      */
     LWMsgStatus
     (*handle_pointer_to_id) (
-        LWMsgSessionManager* manager,
         LWMsgSession* session,
         void* ptr,
         const char** type,
@@ -334,7 +271,6 @@ typedef struct LWMsgSessionManagerClass
      */
     LWMsgStatus
     (*handle_id_to_pointer) (
-        LWMsgSessionManager* manager,
         LWMsgSession* session,
         const char* type,
         LWMsgHandleType htype,
@@ -353,8 +289,7 @@ typedef struct LWMsgSessionManagerClass
      * @return a security token representing the peer identity, or NULL if unauthenticated
      */
     LWMsgSecurityToken*
-    (*get_session_peer_security_token) (
-        LWMsgSessionManager* manager,
+    (*get_peer_security_token) (
         LWMsgSession* session
         );
 
@@ -370,26 +305,22 @@ typedef struct LWMsgSessionManagerClass
      * @return the session data pointer
      */
     void*
-    (*get_session_data) (
-        LWMsgSessionManager* manager,
+    (*get_data) (
         LWMsgSession* session
         );
 
     const LWMsgSessionID*
-    (*get_session_id) (
-        LWMsgSessionManager* manager,
+    (*get_id) (
         LWMsgSession* session
         );
 
     size_t
-    (*get_session_assoc_count) (
-        LWMsgSessionManager* manager,
+    (*get_assoc_count) (
         LWMsgSession* session
         );
 
     size_t
-    (*get_session_handle_count) (
-        LWMsgSessionManager* manager,
+    (*get_handle_count) (
         LWMsgSession* session
         );
 } LWMsgSessionManagerClass;
@@ -402,7 +333,6 @@ struct LWMsgSession
 struct LWMsgSessionManager
 {
     LWMsgSessionManagerClass* mclass;
-    LWMsgSessionID smid;
 };
 
 const LWMsgSessionID*
@@ -410,20 +340,23 @@ lwmsg_session_get_id(
     LWMsgSession* session
     );
 
+void
+lwmsg_session_generate_cookie(
+    LWMsgSessionCookie* cookie
+    );
+
 #ifndef LWMSG_NO_THREADS
 LWMsgStatus
 lwmsg_shared_session_manager_new(
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
+    void* construct_data,
     LWMsgSessionManager** out_manager
     );
 #endif
 
 void
 lwmsg_session_manager_delete(
-    LWMsgSessionManager* manager
-    );
-
-const LWMsgSessionID*
-lwmsg_session_manager_get_id(
     LWMsgSessionManager* manager
     );
 
@@ -434,31 +367,33 @@ lwmsg_session_id_to_string(
     );
 
 LWMsgStatus
-lwmsg_session_manager_enter_session (
+lwmsg_session_create (
     LWMsgSessionManager* manager,
-    const LWMsgSessionID* rsmid,
-    LWMsgSecurityToken* rtoken,
-    LWMsgSessionConstructFunction construct,
-    LWMsgSessionDestructFunction destruct,
-    void* construct_data,
     LWMsgSession** session
     );
 
-LWMsgStatus 
-lwmsg_session_manager_leave_session (
+LWMsgStatus
+lwmsg_session_connect (
+    LWMsgSession* session,
+    const LWMsgSessionCookie* accept,
+    LWMsgSecurityToken* token
+    );
+
+LWMsgStatus
+lwmsg_session_accept(
     LWMsgSessionManager* manager,
-    LWMsgSession* session
+    const LWMsgSessionCookie* connect,
+    LWMsgSecurityToken* token,
+    LWMsgSession** session
     );
 
 void
-lwmsg_session_manager_retain_session (
-    LWMsgSessionManager* manager,
+lwmsg_session_release(
     LWMsgSession* session
     );
 
 LWMsgStatus
-lwmsg_session_manager_register_handle_local (
-    LWMsgSessionManager* manager,
+lwmsg_session_register_handle_local (
     LWMsgSession* session,
     const char* type,
     void* ptr,
@@ -467,8 +402,7 @@ lwmsg_session_manager_register_handle_local (
     );
 
 LWMsgStatus
-lwmsg_session_manager_register_handle_remote (
-    LWMsgSessionManager* manager,
+lwmsg_session_register_handle_remote (
     LWMsgSession* session,
     const char* type,
     LWMsgHandleID hid,
@@ -477,38 +411,7 @@ lwmsg_session_manager_register_handle_remote (
     );
 
 LWMsgStatus
-lwmsg_session_manager_remap_handle (
-    LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    void* ptr,
-    void* newptr,
-    void (*cleanup) (void* ptr)
-    );
-
-LWMsgStatus
-lwmsg_session_manager_unregister_handle(
-    LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    void* ptr
-    );
-
-LWMsgStatus
-lwmsg_session_manager_retain_handle (
-    LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    void* ptr
-    );
-
-LWMsgStatus
-lwmsg_session_manager_release_handle (
-    LWMsgSessionManager* manager,
-    LWMsgSession* session,
-    void* ptr
-    );
-
-LWMsgStatus
-lwmsg_session_manager_handle_pointer_to_id (
-    LWMsgSessionManager* manager,
+lwmsg_session_handle_pointer_to_id (
     LWMsgSession* session,
     void* ptr,
     const char** type,
@@ -517,8 +420,7 @@ lwmsg_session_manager_handle_pointer_to_id (
     );
 
 LWMsgStatus
-lwmsg_session_manager_handle_id_to_pointer (
-    LWMsgSessionManager* manager,
+lwmsg_session_handle_id_to_pointer (
     LWMsgSession* session,
     const char* type,
     LWMsgHandleType htype,
@@ -526,20 +428,11 @@ lwmsg_session_manager_handle_id_to_pointer (
     void** ptr
     );
 
-void*
-lwmsg_session_manager_get_session_data (
-    LWMsgSessionManager* manager,
-    LWMsgSession* session
-    );
-
-const LWMsgSessionID*
-lwmsg_session_manager_get_session_id(
-    LWMsgSessionManager* manager,
-    LWMsgSession* session
-    );
-
 LWMsgStatus
 lwmsg_default_session_manager_new(
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
+    void* construct_data,
     LWMsgSessionManager** out_manager
     );
 

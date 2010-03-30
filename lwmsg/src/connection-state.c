@@ -56,7 +56,7 @@ lwmsg_connection_state_start(
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_begin_connect(
+lwmsg_connection_state_begin_connect_socket(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -64,7 +64,7 @@ lwmsg_connection_state_begin_connect(
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_finish_connect(
+lwmsg_connection_state_finish_connect_socket(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -72,7 +72,7 @@ lwmsg_connection_state_finish_connect(
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_begin_send_handshake(
+lwmsg_connection_state_begin_send_connect(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -80,7 +80,7 @@ lwmsg_connection_state_begin_send_handshake(
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_finish_send_handshake(
+lwmsg_connection_state_finish_send_connect(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -88,7 +88,7 @@ lwmsg_connection_state_finish_send_handshake(
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_begin_recv_handshake(
+lwmsg_connection_state_begin_recv_connect(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -96,7 +96,39 @@ lwmsg_connection_state_begin_recv_handshake(
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_finish_recv_handshake(
+lwmsg_connection_state_finish_recv_connect(
+    LWMsgAssoc* assoc,
+    ConnectionState* state,
+    ConnectionEvent* event
+    );
+
+static inline
+LWMsgStatus
+lwmsg_connection_state_begin_send_accept(
+    LWMsgAssoc* assoc,
+    ConnectionState* state,
+    ConnectionEvent* event
+    );
+
+static inline
+LWMsgStatus
+lwmsg_connection_state_finish_send_accept(
+    LWMsgAssoc* assoc,
+    ConnectionState* state,
+    ConnectionEvent* event
+    );
+
+static inline
+LWMsgStatus
+lwmsg_connection_state_begin_recv_accept(
+    LWMsgAssoc* assoc,
+    ConnectionState* state,
+    ConnectionEvent* event
+    );
+
+static inline
+LWMsgStatus
+lwmsg_connection_state_finish_recv_accept(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -182,23 +214,35 @@ lwmsg_connection_run(
         case CONNECTION_STATE_START:
             BAIL_ON_ERROR(status = lwmsg_connection_state_start(assoc, &state, &event));
             break;
-        case CONNECTION_STATE_BEGIN_CONNECT:
-            BAIL_ON_ERROR(status = lwmsg_connection_state_begin_connect(assoc, &state, &event));
+        case CONNECTION_STATE_BEGIN_CONNECT_SOCKET:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_begin_connect_socket(assoc, &state, &event));
             break;
-        case CONNECTION_STATE_FINISH_CONNECT:
-            BAIL_ON_ERROR(status = lwmsg_connection_state_finish_connect(assoc, &state, &event));
+        case CONNECTION_STATE_FINISH_CONNECT_SOCKET:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_finish_connect_socket(assoc, &state, &event));
             break;
-        case CONNECTION_STATE_BEGIN_SEND_HANDSHAKE:
-            BAIL_ON_ERROR(status = lwmsg_connection_state_begin_send_handshake(assoc, &state, &event));
+        case CONNECTION_STATE_BEGIN_SEND_CONNECT:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_begin_send_connect(assoc, &state, &event));
             break;
-        case CONNECTION_STATE_FINISH_SEND_HANDSHAKE:
-            BAIL_ON_ERROR(status = lwmsg_connection_state_finish_send_handshake(assoc, &state, &event));
+        case CONNECTION_STATE_FINISH_SEND_CONNECT:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_finish_send_connect(assoc, &state, &event));
             break;
-        case CONNECTION_STATE_BEGIN_RECV_HANDSHAKE:
-            BAIL_ON_ERROR(status = lwmsg_connection_state_begin_recv_handshake(assoc, &state, &event));
+        case CONNECTION_STATE_BEGIN_RECV_CONNECT:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_begin_recv_connect(assoc, &state, &event));
             break;
-        case CONNECTION_STATE_FINISH_RECV_HANDSHAKE:
-            BAIL_ON_ERROR(status = lwmsg_connection_state_finish_recv_handshake(assoc, &state, &event));
+        case CONNECTION_STATE_FINISH_RECV_CONNECT:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_finish_recv_connect(assoc, &state, &event));
+            break;
+        case CONNECTION_STATE_BEGIN_SEND_ACCEPT:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_begin_send_accept(assoc, &state, &event));
+            break;
+        case CONNECTION_STATE_FINISH_SEND_ACCEPT:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_finish_send_accept(assoc, &state, &event));
+            break;
+        case CONNECTION_STATE_BEGIN_RECV_ACCEPT:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_begin_recv_accept(assoc, &state, &event));
+            break;
+        case CONNECTION_STATE_FINISH_RECV_ACCEPT:
+            BAIL_ON_ERROR(status = lwmsg_connection_state_finish_recv_accept(assoc, &state, &event));
             break;
         case CONNECTION_STATE_ESTABLISHED:
             BAIL_ON_ERROR(status = lwmsg_connection_state_established(assoc, &state, &event));
@@ -265,20 +309,37 @@ lwmsg_connection_state_start(
 
     switch (*event)
     {
-    case CONNECTION_EVENT_ESTABLISH:
+    case CONNECTION_EVENT_CONNECT:
         if (priv->fd != -1)
         {
             /* Set up pre-connected fd */
             BAIL_ON_ERROR(status = lwmsg_connection_connect_existing(assoc));
 
-            /* Go straight to the handshake */
-            *state = CONNECTION_STATE_BEGIN_SEND_HANDSHAKE;
+            /* Go straight to the connect */
+            *state = CONNECTION_STATE_BEGIN_SEND_CONNECT;
             *event = CONNECTION_EVENT_FINISH;
         }
         else if (priv->endpoint != NULL)
         {
-            /* If we were given an endpoint, we need to establish a connection */
-            *state = CONNECTION_STATE_BEGIN_CONNECT;
+            /* If we were given an endpoint, we need to establish a connected socket */
+            *state = CONNECTION_STATE_BEGIN_CONNECT_SOCKET;
+            *event = CONNECTION_EVENT_FINISH;
+        }
+        else
+        {
+            /* Otherwise, we have a problem */
+            ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_INVALID_STATE,
+                              "Cannot initialize connection: no file descriptor or endpoint specified");
+        }
+        break;
+    case CONNECTION_EVENT_ACCEPT:
+        if (priv->fd != -1)
+        {
+            /* Set up pre-connected fd */
+            BAIL_ON_ERROR(status = lwmsg_connection_connect_existing(assoc));
+
+            /* Go straight to the accept */
+            *state = CONNECTION_STATE_BEGIN_RECV_CONNECT;
             *event = CONNECTION_EVENT_FINISH;
         }
         else
@@ -305,7 +366,7 @@ error:
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_begin_connect(
+lwmsg_connection_state_begin_connect_socket(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -313,18 +374,18 @@ lwmsg_connection_state_begin_connect(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    BAIL_ON_ERROR(status = lwmsg_connection_begin_connect(assoc));
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_connect_socket(assoc));
 
 done:
 
     if (status == LWMSG_STATUS_PENDING)
     {
-        *state = CONNECTION_STATE_FINISH_CONNECT;
+        *state = CONNECTION_STATE_FINISH_CONNECT_SOCKET;
         *event = CONNECTION_EVENT_FINISH;
     }
     else if (status == LWMSG_STATUS_SUCCESS)
     {
-        *state = CONNECTION_STATE_BEGIN_SEND_HANDSHAKE;
+        *state = CONNECTION_STATE_BEGIN_SEND_CONNECT;
     }
 
     return status;
@@ -336,7 +397,7 @@ error:
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_finish_connect(
+lwmsg_connection_state_finish_connect_socket(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -347,8 +408,8 @@ lwmsg_connection_state_finish_connect(
     switch (*event)
     {
     case CONNECTION_EVENT_FINISH:
-        BAIL_ON_ERROR(status = lwmsg_connection_finish_connect(assoc));
-        *state = CONNECTION_STATE_BEGIN_SEND_HANDSHAKE;
+        BAIL_ON_ERROR(status = lwmsg_connection_finish_connect_socket(assoc));
+        *state = CONNECTION_STATE_BEGIN_SEND_CONNECT;
         break;
     case CONNECTION_EVENT_CLOSE:
         *state = CONNECTION_STATE_BEGIN_CLOSE;
@@ -375,21 +436,24 @@ error:
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_begin_send_handshake(
+lwmsg_connection_state_begin_send_connect(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
 
-    BAIL_ON_ERROR(status = lwmsg_connection_begin_send_handshake(assoc));
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_send_connect(
+                      assoc,
+                      priv->params.connect.session));
 
 done:
 
     if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
-        *state = CONNECTION_STATE_FINISH_SEND_HANDSHAKE;
+        *state = CONNECTION_STATE_FINISH_SEND_CONNECT;
         *event = CONNECTION_EVENT_FINISH;
     }
 
@@ -402,7 +466,7 @@ error:
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_finish_send_handshake(
+lwmsg_connection_state_finish_send_connect(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -413,8 +477,8 @@ lwmsg_connection_state_finish_send_handshake(
     switch (*event)
     {
     case CONNECTION_EVENT_FINISH:
-        BAIL_ON_ERROR(status = lwmsg_connection_finish_send_handshake(assoc));
-        *state = CONNECTION_STATE_BEGIN_RECV_HANDSHAKE;
+        BAIL_ON_ERROR(status = lwmsg_connection_finish_send_connect(assoc));
+        *state = CONNECTION_STATE_BEGIN_RECV_ACCEPT;
         break;
     case CONNECTION_EVENT_CLOSE:
         *state = CONNECTION_STATE_BEGIN_CLOSE;
@@ -441,7 +505,7 @@ error:
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_begin_recv_handshake(
+lwmsg_connection_state_begin_recv_connect(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -449,13 +513,13 @@ lwmsg_connection_state_begin_recv_handshake(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    BAIL_ON_ERROR(status = lwmsg_connection_begin_recv_handshake(assoc));
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_recv_connect(assoc));
 
 done:
 
     if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
     {
-        *state = CONNECTION_STATE_FINISH_RECV_HANDSHAKE;
+        *state = CONNECTION_STATE_FINISH_RECV_CONNECT;
         *event = CONNECTION_EVENT_FINISH;
     }
 
@@ -468,7 +532,93 @@ error:
 
 static inline
 LWMsgStatus
-lwmsg_connection_state_finish_recv_handshake(
+lwmsg_connection_state_finish_recv_connect(
+    LWMsgAssoc* assoc,
+    ConnectionState* state,
+    ConnectionEvent* event
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
+    LWMsgSession* session = NULL;
+
+    switch (*event)
+    {
+    case CONNECTION_EVENT_FINISH:
+        BAIL_ON_ERROR(status = lwmsg_connection_finish_recv_connect(
+                          assoc,
+                          priv->params.accept.manager,
+                          &session));
+
+        if (priv->session)
+        {
+            lwmsg_session_release(priv->session);
+        }
+
+        priv->session = session;
+
+        /* Set output parameter to accept() call */
+        if (priv->params.accept.session)
+        {
+            *priv->params.accept.session = session;
+        }
+
+        *state = CONNECTION_STATE_BEGIN_SEND_ACCEPT;
+        *event = CONNECTION_EVENT_FINISH;
+        break;
+    case CONNECTION_EVENT_CLOSE:
+        *state = CONNECTION_STATE_BEGIN_CLOSE;
+        break;
+    case CONNECTION_EVENT_RESET:
+        *state = CONNECTION_STATE_BEGIN_RESET;
+        break;
+    case CONNECTION_EVENT_ABORT:
+        *state = CONNECTION_STATE_BEGIN_CLOSE;
+        break;
+    default:
+        BAIL_ON_ERROR(status = LWMSG_STATUS_BUSY);
+    }
+
+done:
+
+    return status;
+
+error:
+
+    goto done;
+}
+
+static inline
+LWMsgStatus
+lwmsg_connection_state_begin_send_accept(
+    LWMsgAssoc* assoc,
+    ConnectionState* state,
+    ConnectionEvent* event
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
+
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_send_accept(assoc, priv->session));
+
+done:
+
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
+    {
+        *state = CONNECTION_STATE_FINISH_SEND_ACCEPT;
+        *event = CONNECTION_EVENT_FINISH;
+    }
+
+    return status;
+
+error:
+
+    goto done;
+}
+
+static inline
+LWMsgStatus
+lwmsg_connection_state_finish_send_accept(
     LWMsgAssoc* assoc,
     ConnectionState* state,
     ConnectionEvent* event
@@ -479,7 +629,84 @@ lwmsg_connection_state_finish_recv_handshake(
     switch (*event)
     {
     case CONNECTION_EVENT_FINISH:
-        BAIL_ON_ERROR(status = lwmsg_connection_finish_recv_handshake(assoc));
+        BAIL_ON_ERROR(status = lwmsg_connection_finish_send_accept(assoc));
+        *state = CONNECTION_STATE_ESTABLISHED;
+        break;
+    case CONNECTION_EVENT_CLOSE:
+        *state = CONNECTION_STATE_BEGIN_CLOSE;
+        break;
+    case CONNECTION_EVENT_RESET:
+        *state = CONNECTION_STATE_BEGIN_RESET;
+        break;
+    case CONNECTION_EVENT_ABORT:
+        *state = CONNECTION_STATE_BEGIN_CLOSE;
+        break;
+    default:
+        BAIL_ON_ERROR(status = LWMSG_STATUS_BUSY);
+        break;
+    }
+
+done:
+
+    return status;
+
+error:
+
+    goto done;
+}
+
+static inline
+LWMsgStatus
+lwmsg_connection_state_begin_recv_accept(
+    LWMsgAssoc* assoc,
+    ConnectionState* state,
+    ConnectionEvent* event
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_begin_recv_accept(assoc));
+
+done:
+
+    if (status == LWMSG_STATUS_SUCCESS || status == LWMSG_STATUS_PENDING)
+    {
+        *state = CONNECTION_STATE_FINISH_RECV_ACCEPT;
+        *event = CONNECTION_EVENT_FINISH;
+    }
+
+    return status;
+
+error:
+
+    goto done;
+}
+
+static inline
+LWMsgStatus
+lwmsg_connection_state_finish_recv_accept(
+    LWMsgAssoc* assoc,
+    ConnectionState* state,
+    ConnectionEvent* event
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
+
+    switch (*event)
+    {
+    case CONNECTION_EVENT_FINISH:
+        BAIL_ON_ERROR(status = lwmsg_connection_finish_recv_accept(
+                          assoc,
+                          priv->params.connect.session));
+
+        if (priv->session)
+        {
+            lwmsg_session_release(priv->session);
+        }
+
+        priv->session = priv->params.connect.session;
+
         *state = CONNECTION_STATE_ESTABLISHED;
         *event = CONNECTION_EVENT_NONE;
         break;
@@ -521,7 +748,8 @@ lwmsg_connection_state_established(
     case CONNECTION_EVENT_NONE:
         BAIL_ON_ERROR(status = LWMSG_STATUS_INTERNAL);
         break;
-    case CONNECTION_EVENT_ESTABLISH:
+    case CONNECTION_EVENT_CONNECT:
+    case CONNECTION_EVENT_ACCEPT:
         *event = CONNECTION_EVENT_NONE;
         break;
     case CONNECTION_EVENT_FINISH:
@@ -828,7 +1056,6 @@ lwmsg_connection_finish_close(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
-    LWMsgSessionManager* manager = NULL;
 
     if (priv->fd != -1)
     {
@@ -836,18 +1063,9 @@ lwmsg_connection_finish_close(
         priv->fd = -1;
     }
 
-    if (priv->sec_token)
-    {
-        lwmsg_security_token_delete(priv->sec_token);
-        priv->sec_token = NULL;
-    }
-
     if (priv->session)
     {
-        BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-
-        BAIL_ON_ERROR(status = lwmsg_session_manager_leave_session(manager, priv->session));
-
+        lwmsg_session_release(priv->session);
         priv->session = NULL;
     }
 

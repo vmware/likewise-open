@@ -725,6 +725,7 @@ LWMsgStatus
 lwmsg_peer_assoc_task_new_connect(
     LWMsgPeer* peer,
     LWMsgAssoc* assoc,
+    LWMsgSession* session,
     PeerAssocTask** task
     )
 {
@@ -734,6 +735,7 @@ lwmsg_peer_assoc_task_new_connect(
     BAIL_ON_ERROR(status = lwmsg_peer_assoc_task_new(peer, peer->connect_tasks, PEER_TASK_BEGIN_CONNECT, &my_task));
 
     my_task->assoc = assoc;
+    my_task->session = session;
 
     *task = my_task;
 
@@ -952,12 +954,6 @@ lwmsg_peer_task_run_listen(
             /* Create new connection with client fd, put it into task, schedule task */
             BAIL_ON_ERROR(status = lwmsg_connection_new(task->peer->context, task->peer->protocol, &assoc));
             BAIL_ON_ERROR(status = lwmsg_connection_set_fd(assoc, LWMSG_CONNECTION_MODE_LOCAL, client_fd));
-            BAIL_ON_ERROR(status = lwmsg_assoc_set_session_manager(assoc, task->peer->session_manager));
-            BAIL_ON_ERROR(status = lwmsg_assoc_set_session_functions(
-                              assoc,
-                              task->peer->session_construct,
-                              task->peer->session_destruct,
-                              task->peer->session_construct_data));
             BAIL_ON_ERROR(status = lwmsg_assoc_set_nonblock(assoc, LWMSG_TRUE));
             BAIL_ON_ERROR(status = lwmsg_peer_assoc_task_new_accept(task->peer, assoc, &client_task));
             assoc = NULL;
@@ -1023,12 +1019,11 @@ lwmsg_peer_task_run_accept(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    status = lwmsg_assoc_establish(task->assoc);
+    status = lwmsg_assoc_accept(task->assoc, peer->session_manager, &task->session);
 
     switch (status)
     {
     case LWMSG_STATUS_SUCCESS:
-        BAIL_ON_ERROR(status = lwmsg_assoc_get_session(task->assoc, &task->session));
         task->type = PEER_TASK_DISPATCH;
         BAIL_ON_ERROR(status = lwmsg_peer_log_accept(peer, task->assoc));
         break;
@@ -1065,13 +1060,12 @@ lwmsg_peer_task_run_connect(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
 
-    status = lwmsg_assoc_establish(task->assoc);
+    status = lwmsg_assoc_connect(task->assoc, task->session);
 
     switch (status)
     {
     case LWMSG_STATUS_SUCCESS:
         task->type = PEER_TASK_DISPATCH;
-        BAIL_ON_ERROR(status = lwmsg_assoc_get_session(task->assoc, &task->session));
         BAIL_ON_ERROR(status = lwmsg_peer_log_connect(peer, task->assoc));
         lwmsg_peer_task_notify_status(task, LWMSG_STATUS_SUCCESS);
         break;
@@ -1422,12 +1416,10 @@ lwmsg_peer_task_run_finish(
             switch (task->type)
             {
             case PEER_TASK_FINISH_ACCEPT:
-                BAIL_ON_ERROR(status = lwmsg_assoc_get_session(task->assoc, &task->session));
                 BAIL_ON_ERROR(status = lwmsg_peer_log_accept(peer, task->assoc));
                 task->type = PEER_TASK_DISPATCH;
                 break;
             case PEER_TASK_FINISH_CONNECT:
-                BAIL_ON_ERROR(status = lwmsg_assoc_get_session(task->assoc, &task->session));
                 BAIL_ON_ERROR(status = lwmsg_peer_log_connect(peer, task->assoc));
                 lwmsg_peer_task_notify_status(task, LWMSG_STATUS_SUCCESS);
                 task->type = PEER_TASK_DISPATCH;

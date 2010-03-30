@@ -176,6 +176,9 @@ Finally, we connect the peer node to the server:
 @skip Connect
 @until ;
 
+Connecting to the server gives us a session which can be used for
+handle management later.
+
 @section discon Disconnecting
 
 To disconnect from the server, the client simply disconnects the peer

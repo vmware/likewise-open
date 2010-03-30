@@ -65,6 +65,7 @@ lwmsg_assoc_call_dispatch(
     LWMsgAssoc* assoc = LWMSG_OBJECT_FROM_MEMBER(call, LWMsgAssoc, call);
     LWMsgMessage request = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage response = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgSession* session = NULL;
 
     if (complete)
     {
@@ -83,8 +84,9 @@ lwmsg_assoc_call_dispatch(
             (status == LWMSG_STATUS_PEER_RESET ||
              status == LWMSG_STATUS_PEER_CLOSE))
         {
+            BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
             BAIL_ON_ERROR(status = lwmsg_assoc_reset(assoc));
-            BAIL_ON_ERROR(status = lwmsg_assoc_establish(assoc));
+            BAIL_ON_ERROR(status = lwmsg_assoc_connect(assoc, session));
             status = LWMSG_STATUS_AGAIN;
             retry = LWMSG_TRUE;
         }

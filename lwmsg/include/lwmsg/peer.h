@@ -545,16 +545,19 @@ lwmsg_peer_add_connect_endpoint(
     );
 
 /**
- * @brief Establish outgoing association
+ * @brief Establish outgoing session
  *
- * Establishes an outgoing association on one of the endpoints registered
+ * Establishes an outgoing session on one of the endpoints registered
  * with #lwmsg_peer_add_connect_endpoint().  The endpoints will be tried
  * in the order they were added until one succeeds.  If an outgoing
- * association is already established, this function is a no-op.  If an
- * outgoing association is in the process of being established, this
- * function will block until it either succeeds or fails.
+ * session is already established, this function will perform no action
+ * but will still return the established session.  If an outgoing session
+ * is in the process of being established, this function will block until
+ * it either succeeds or fails.  The session returned is guaranteed to
+ * remain valid until #lwmsg_peer_disconnect() is used.
  *
  * @param[in,out] peer the peer handle
+ * @param[out] session the established session
  * @lwmsg_status
  * @lwmsg_success
  * @lwmsg_code{CONNECTION_REFUSED, the connection was refused}
@@ -563,15 +566,16 @@ lwmsg_peer_add_connect_endpoint(
  */
 LWMsgStatus
 lwmsg_peer_connect(
-    LWMsgPeer* peer
+    LWMsgPeer* peer,
+    LWMsgSession** session
     );
 
 /**
- * @brief Close outgoing association
+ * @brief Close outgoing session
  *
- * Closes any assocation established by #lwmsg_peer_connect().  All outstanding
- * outgoing calls will be cancelled.  If no association is currently established,
- * thus function is a no-op.  If the association is already being disconnected,
+ * Closes the session established by #lwmsg_peer_connect().  All outstanding
+ * outgoing calls will be cancelled.  If no session is currently established,
+ * this function is a no-op.  If the association is already being disconnected,
  * this function will block until it either succeeds or fails.
  *
  * @param[in,out] peer the peer handle

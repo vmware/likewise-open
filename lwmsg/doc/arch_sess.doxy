@@ -87,7 +87,7 @@ of the session being left, it decrements this count.
 When the count of a session reaches zero, the session is torn down and
 freed.  In particular, any active handles remaining in the session are
 cleaned up using the cleanup function registered with
-#lwmsg_assoc_register_handle().
+#lwmsg_session_register_handle().
 
 During the lifetime of a session, handles may be registered and unregistered
 by participating associations.  Handles, unlike sessions, are not reference

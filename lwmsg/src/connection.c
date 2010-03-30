@@ -76,7 +76,6 @@ lwmsg_connection_destruct(
     )
 {
     ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
-    LWMsgSessionManager* manager = NULL;
 
     lwmsg_connection_buffer_destruct(&priv->sendbuffer);
     lwmsg_connection_buffer_destruct(&priv->recvbuffer);
@@ -93,27 +92,15 @@ lwmsg_connection_destruct(
         priv->endpoint = NULL;
     }
 
-    if (priv->sec_token)
-    {
-        lwmsg_security_token_delete(priv->sec_token);
-        priv->sec_token = NULL;
-    }
-
     if (priv->session)
     {
-        if (lwmsg_assoc_get_session_manager(assoc, &manager))
-        {
-            /* This should never happen, really */
-            abort();
-        }
-
-        if (lwmsg_session_manager_leave_session(manager, priv->session))
-        {
-            /* Neither should this */
-            abort();
-        }
-
+        lwmsg_session_release(priv->session);
         priv->session = NULL;
+    }
+
+    if (priv->manager)
+    {
+        lwmsg_session_manager_delete(priv->manager);
     }
 
     if (priv->marshal_context)
@@ -240,27 +227,6 @@ error:
 }
 
 static LWMsgStatus
-lwmsg_connection_get_peer_security_token(
-    LWMsgAssoc* assoc,
-    LWMsgSecurityToken** out_token
-    )
-{
-    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
-    
-    if (!priv->sec_token)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_STATE);
-    }
-    
-    *out_token = priv->sec_token;
-
-error:
-
-    return status;
-}
-
-static LWMsgStatus
 lwmsg_connection_get_session(
     LWMsgAssoc* assoc,
     LWMsgSession** session
@@ -315,11 +281,13 @@ lwmsg_connection_get_state(
         {
             return LWMSG_ASSOC_STATE_IDLE;
         }
-    case CONNECTION_STATE_FINISH_CONNECT:
+    case CONNECTION_STATE_FINISH_CONNECT_SOCKET:
         return LWMSG_ASSOC_STATE_BLOCKED_SEND;
-    case CONNECTION_STATE_FINISH_SEND_HANDSHAKE:
+    case CONNECTION_STATE_FINISH_SEND_CONNECT:
+    case CONNECTION_STATE_FINISH_SEND_ACCEPT:
         return LWMSG_ASSOC_STATE_BLOCKED_SEND_RECV;
-    case CONNECTION_STATE_FINISH_RECV_HANDSHAKE:
+    case CONNECTION_STATE_FINISH_RECV_CONNECT:
+    case CONNECTION_STATE_FINISH_RECV_ACCEPT:
         return LWMSG_ASSOC_STATE_BLOCKED_RECV;
     case CONNECTION_STATE_CLOSED:
         return LWMSG_ASSOC_STATE_CLOSED;
@@ -378,11 +346,9 @@ error:
 
 static
 LWMsgStatus
-lwmsg_connection_establish(
+lwmsg_connection_connect(
     LWMsgAssoc* assoc,
-    LWMsgSessionConstructFunction construct,
-    LWMsgSessionDestructFunction destruct,
-    void* data
+    LWMsgSession* session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -390,11 +356,68 @@ lwmsg_connection_establish(
 
     if (!priv->session)
     {
-        priv->params.establish.construct = construct;
-        priv->params.establish.destruct = destruct;
-        priv->params.establish.construct_data = data;
+        if (!session)
+        {
+            if (!priv->manager)
+            {
+                BAIL_ON_ERROR(status = lwmsg_default_session_manager_new(
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  &priv->manager));
+            }
 
-        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_ESTABLISH));
+            BAIL_ON_ERROR(status = lwmsg_session_create(priv->manager, &priv->session));
+
+            priv->params.connect.session = priv->session;
+        }
+        else
+        {
+            priv->params.connect.session = session;
+        }
+
+        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_CONNECT));
+    }
+
+error:
+
+    return status;
+}
+
+static
+LWMsgStatus
+lwmsg_connection_accept(
+    LWMsgAssoc* assoc,
+    LWMsgSessionManager* manager,
+    LWMsgSession** session
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
+
+    if (!priv->session)
+    {
+        if (!manager)
+        {
+            if (!priv->manager)
+            {
+                BAIL_ON_ERROR(status = lwmsg_default_session_manager_new(
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  &priv->manager));
+            }
+
+            priv->params.accept.manager = priv->manager;
+        }
+        else
+        {
+            priv->params.accept.manager = manager;
+        }
+
+        priv->params.accept.session = session;
+
+        BAIL_ON_ERROR(status = lwmsg_connection_run(assoc, CONNECTION_EVENT_ACCEPT));
     }
 
 error:
@@ -410,11 +433,11 @@ static LWMsgAssocClass connection_class =
     .recv_msg = lwmsg_connection_recv_msg,
     .close = lwmsg_connection_close,
     .reset = lwmsg_connection_reset,
-    .get_peer_security_token = lwmsg_connection_get_peer_security_token,
     .get_session = lwmsg_connection_get_session,
     .get_state = lwmsg_connection_get_state,
     .set_timeout = lwmsg_connection_set_timeout,
-    .establish = lwmsg_connection_establish,
+    .connect = lwmsg_connection_connect,
+    .accept = lwmsg_connection_accept,
     .set_nonblock = lwmsg_connection_set_nonblock,
     .finish = lwmsg_connection_finish
 };

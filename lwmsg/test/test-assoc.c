@@ -70,7 +70,7 @@ empty_sender(void* _assoc)
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_connect(assoc, NULL));
     
     request_msg.tag = EMPTY_REQUEST;
     request_msg.data = NULL;
@@ -92,7 +92,7 @@ empty_receiver(void* _assoc)
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_accept(assoc, NULL, NULL));
     
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, EMPTY_REQUEST);
@@ -220,7 +220,7 @@ foo_sender(void* _assoc)
     FooReply* reply;
     size_t i;
     
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_connect(assoc, NULL));
 
     request.size = 1024;
     request_msg.tag = FOO_REQUEST;
@@ -256,7 +256,7 @@ foo_receiver(void* _assoc)
     FooReply* reply;
     size_t i;
     
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_accept(assoc, NULL, NULL));
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, FOO_REQUEST);
@@ -436,7 +436,7 @@ MU_TEST(assoc, foo_send_timeout_connect_pair)
     
     lwmsg_assoc_set_timeout(send_assoc, LWMSG_TIMEOUT_ESTABLISH, &time);
 
-    status = lwmsg_assoc_establish(send_assoc);
+    status = lwmsg_assoc_connect(send_assoc, NULL);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_TIMEOUT);
 
     MU_TRY_ASSOC(send_assoc, lwmsg_assoc_close(send_assoc));
@@ -478,7 +478,7 @@ MU_TEST(assoc, foo_send_timeout_connect_endpoint)
 
     lwmsg_assoc_set_timeout(send_assoc, LWMSG_TIMEOUT_ESTABLISH, &time);
 
-    status = lwmsg_assoc_establish(send_assoc);
+    status = lwmsg_assoc_connect(send_assoc, NULL);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_TIMEOUT);
 
     MU_TRY_ASSOC(send_assoc, lwmsg_assoc_close(send_assoc));
@@ -539,7 +539,7 @@ auth_sender(void* _assoc)
     request_msg.tag = AUTH_REQUEST;
     request_msg.data = &request;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_connect(assoc, NULL));
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message_transact(assoc, &request_msg, &reply_msg));
 
@@ -570,8 +570,9 @@ auth_receiver(void* _assoc)
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgSecurityToken* token;
+    LWMsgSession* session = NULL;
     
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_accept(assoc, NULL, &session));
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, AUTH_REQUEST);
@@ -579,7 +580,8 @@ auth_receiver(void* _assoc)
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request->fortytwo, 42);
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_peer_security_token(assoc, &token));
+    token = lwmsg_session_get_peer_security_token(session);
+
     MU_ASSERT(token != NULL);
     MU_ASSERT_EQUAL(MU_TYPE_STRING, lwmsg_security_token_get_type(token), "local");
     MU_TRY(lwmsg_local_token_get_eid(token, &reply.uid, &reply.gid));
@@ -780,13 +782,15 @@ handle_sender(void* _assoc)
     HandleDestroyReply* destroy_reply = NULL;
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgSession* session = NULL;
     
     create_request.save_string = (char*) "Hello, world!";
     create_request.save_integer = 42;
     request_msg.tag = HANDLE_CREATE_REQUEST;
     request_msg.data = &create_request;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_connect(assoc, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message_transact(assoc, &request_msg, &reply_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, reply_msg.tag, HANDLE_CREATE_REPLY);
@@ -830,7 +834,7 @@ handle_sender(void* _assoc)
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, destroy_reply->status, 0);
     free(destroy_reply);
     
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, handle));
+    MU_TRY_ASSOC(assoc, lwmsg_session_unregister_handle(session, handle));
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_close(assoc));
     lwmsg_assoc_delete(assoc);
@@ -848,17 +852,19 @@ handle_create_srv(
 {
     HandleCreateRequest* request = in->data;
     Handle* handle = NULL;
+    LWMsgSession* session = NULL;
 
     handle = malloc(sizeof(*handle));
     handle->saved_string = strdup(request->save_string);
     handle->saved_integer = request->save_integer;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "Handle", handle, free));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
+    MU_TRY_ASSOC(assoc, lwmsg_session_register_handle(session, "Handle", handle, free));
 
     out->tag = HANDLE_CREATE_REPLY;
     out->data = handle;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_retain_handle(assoc, handle));
+    MU_TRY_ASSOC(assoc, lwmsg_session_retain_handle(session, handle));
     
     return LWMSG_STATUS_SUCCESS;
 }
@@ -873,13 +879,15 @@ handle_destroy_srv(
 {
     Handle* handle = in->data;
     HandleDestroyReply* reply = malloc(sizeof(*reply));
+    LWMsgSession* session = NULL;
 
     reply->status = 0;
 
     out->tag = HANDLE_DESTROY_REPLY;
     out->data = reply;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, handle));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
+    MU_TRY_ASSOC(assoc, lwmsg_session_unregister_handle(session, handle));
 
     return LWMSG_STATUS_EOF;
 }
@@ -930,7 +938,7 @@ handle_receiver(void* _assoc)
     LWMsgMessage send_message;
     size_t i;
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_accept(assoc, NULL, NULL));
 
     do
     {
@@ -1083,7 +1091,7 @@ fd_sender(void* _assoc)
         MU_FAILURE("write(): %s", strerror(errno));
     }
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_connect(assoc, NULL));
 
     request_msg.tag = FD_REQUEST;
     request_msg.data = &request;
@@ -1115,7 +1123,7 @@ fd_receiver(void* _assoc)
     FdReply reply;
     char buffer[1024];
 
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_establish(assoc));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_accept(assoc, NULL, NULL));
     
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &request_msg));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, request_msg.tag, FD_REQUEST);
@@ -1230,12 +1238,14 @@ send_local_recv_back_success(LWMsgAssoc* assoc)
     int dummy;
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgSession* session = NULL;
 
     request_msg.tag = TRIVIAL_REMOTE;
     request_msg.data = &dummy;
 
     /* The handle is being created by us, so it is REMOTE for the receiver */
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
+    MU_TRY_ASSOC(assoc, lwmsg_session_register_handle(session, "AHandle", &dummy, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &reply_msg));
 
@@ -1265,9 +1275,11 @@ send_local_recv_back_failure(LWMsgAssoc* assoc)
     int* dummy2 = NULL;
     LWMsgTag tag = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSession* session = NULL;
 
     /* The handle is being created by us, so it is REMOTE for the recvr */
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
+    MU_TRY_ASSOC(assoc, lwmsg_session_register_handle(session, "AHandle", &dummy, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, TRIVIAL_REMOTE, &dummy));
     /* The peer is going to bomb out on us, so expect a disconnect */
     status = lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy2);
@@ -1284,11 +1296,14 @@ recv_remote_send_back_failure(LWMsgAssoc* assoc)
     int dummy2 = 0;
     LWMsgTag tag = 0;
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgSession* session = NULL;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
 
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy));
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, tag, TRIVIAL_REMOTE);
     /* Send back a local handle instead of what it expects */
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy2, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_session_register_handle(session, "AHandle", &dummy2, NULL));
     status = lwmsg_assoc_send(assoc, TRIVIAL_LOCAL, &dummy2);
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, status, LWMSG_STATUS_INVALID_HANDLE);
     MU_VERBOSE("%s", lwmsg_assoc_get_error_message(assoc, status));
@@ -1326,9 +1341,12 @@ send_local_recv_back_send_back_success(LWMsgAssoc* assoc)
     int dummy = 0;
     int* dummy2 = NULL;
     LWMsgTag tag = 0;
+    LWMsgSession* session = NULL;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
 
     /* The handle is being created by us, so it is REMOTE for the receiver */
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_session_register_handle(session, "AHandle", &dummy, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send(assoc, TRIVIAL_REMOTE, &dummy));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv(assoc, &tag, (void**) (void*) &dummy2));
 
@@ -1378,15 +1396,18 @@ send_local_recv_back_local_send_failure(LWMsgAssoc* assoc)
     int dummy;
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgSession* session = NULL;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
 
     request_msg.tag = TRIVIAL_REMOTE;
     request_msg.data = &dummy;
 
     /* The handle is being created by us, so it is REMOTE for the receiver */
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_session_register_handle(session, "AHandle", &dummy, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
     /* Before receiving it back, we sabotage things by unregistering the handle */
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_unregister_handle(assoc, &dummy));
+    MU_TRY_ASSOC(assoc, lwmsg_session_unregister_handle(session, &dummy));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &reply_msg));
 
     MU_ASSERT(reply_msg.flags & LWMSG_MESSAGE_FLAG_SYNTHETIC);
@@ -1425,12 +1446,15 @@ send_local_recv_back_bogus(LWMsgAssoc* assoc)
     int dummy;
     LWMsgMessage request_msg = LWMSG_MESSAGE_INITIALIZER;
     LWMsgMessage reply_msg = LWMSG_MESSAGE_INITIALIZER;
+    LWMsgSession* session = NULL;
+
+    MU_TRY_ASSOC(assoc, lwmsg_assoc_get_session(assoc, &session));
 
     request_msg.tag = TRIVIAL_REMOTE;
     request_msg.data = &dummy;
 
     /* The handle is being created by us, so it is REMOTE for the receiver */
-    MU_TRY_ASSOC(assoc, lwmsg_assoc_register_handle(assoc, "AHandle", &dummy, NULL));
+    MU_TRY_ASSOC(assoc, lwmsg_session_register_handle(session, "AHandle", &dummy, NULL));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_send_message(assoc, &request_msg));
     MU_TRY_ASSOC(assoc, lwmsg_assoc_recv_message(assoc, &reply_msg));
 

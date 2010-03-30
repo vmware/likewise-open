@@ -61,6 +61,7 @@ MU_LIBRARY_SETUP()
 
 typedef struct StartInfo
 {
+    LWMsgBool connect;
     LWMsgAssoc* assoc;
     void (*func) (LWMsgAssoc* assoc);
 } StartInfo;
@@ -73,9 +74,14 @@ lwmsg_test_assoc_thread(
 {
     StartInfo* info = data;
 
-    MU_TRY_ASSOC(info->assoc, lwmsg_assoc_establish(info->assoc));
-
-    MU_TRY_ASSOC(info->assoc, lwmsg_assoc_establish(info->assoc));
+    if (info->connect)
+    {
+        MU_TRY_ASSOC(info->assoc, lwmsg_assoc_connect(info->assoc, NULL));
+    }
+    else
+    {
+        MU_TRY_ASSOC(info->assoc, lwmsg_assoc_accept(info->assoc, NULL, NULL));
+    }
 
     info->func(info->assoc);
 
@@ -89,7 +95,8 @@ lwmsg_test_assoc_pair(
     void (*func2) (LWMsgAssoc* assoc)
     )
 {
-    StartInfo s1, s2;
+    StartInfo s1 = {0};
+    StartInfo s2 = {0};
     pthread_t thread1, thread2;
     int sockets[2];
     static LWMsgProtocol* protocol = NULL;
@@ -122,6 +129,8 @@ lwmsg_test_assoc_pair(
 
     s1.func = func1;
     s2.func = func2;
+
+    s1.connect = LWMSG_TRUE;
 
     if (pthread_create(&thread1, NULL, lwmsg_test_assoc_thread, &s1) ||
         pthread_create(&thread2, NULL, lwmsg_test_assoc_thread, &s2))

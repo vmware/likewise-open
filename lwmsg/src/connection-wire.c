@@ -100,7 +100,8 @@ lwmsg_connection_packet_ntoh(ConnectionPacket* packet)
             LWMSG_BIG_ENDIAN,
             LWMSG_NATIVE_ENDIAN);
         break;
-    case CONNECTION_PACKET_GREETING:
+    case CONNECTION_PACKET_CONNECT:
+    case CONNECTION_PACKET_ACCEPT:
         packet->contents.greeting.packet_size = lwmsg_convert_uint32(
             packet->contents.greeting.packet_size,
             LWMSG_BIG_ENDIAN,
@@ -460,7 +461,8 @@ lwmsg_connection_check_full_fragment(
             BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
         }
         break;
-    case CONNECTION_PACKET_GREETING:
+    case CONNECTION_PACKET_CONNECT:
+    case CONNECTION_PACKET_ACCEPT:
         if (lwmsg_connection_packet_length(packet) != CONNECTION_PACKET_SIZE(ConnectionPacketGreeting))
         {
             BAIL_ON_ERROR(status = LWMSG_STATUS_MALFORMED);
@@ -834,7 +836,7 @@ error:
 }
 
 LWMsgStatus
-lwmsg_connection_begin_connect(
+lwmsg_connection_begin_connect_socket(
     LWMsgAssoc* assoc
     )
 {
@@ -860,7 +862,7 @@ error:
 }
 
 LWMsgStatus
-lwmsg_connection_finish_connect(
+lwmsg_connection_finish_connect_socket(
     LWMsgAssoc* assoc
     )
 {
@@ -985,8 +987,9 @@ error:
 
 
 LWMsgStatus
-lwmsg_connection_begin_send_handshake(
-    LWMsgAssoc* assoc
+lwmsg_connection_begin_send_connect(
+    LWMsgAssoc* assoc,
+    LWMsgSession* session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -994,12 +997,7 @@ lwmsg_connection_begin_send_handshake(
     ConnectionFragment* fragment = NULL;
     ConnectionPacket* packet = NULL;
     int fds[2] = { -1, -1 };
-    LWMsgSessionManager* manager = NULL;
-    const LWMsgSessionID* smid = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
-    
-    smid = lwmsg_session_manager_get_id(manager);
+    const LWMsgSessionID* id = lwmsg_session_get_id(session);
 
     BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
                       &priv->sendbuffer,
@@ -1008,13 +1006,13 @@ lwmsg_connection_begin_send_handshake(
 
     packet = (ConnectionPacket*) fragment->data;
 
-    packet->type = CONNECTION_PACKET_GREETING;
+    packet->type = CONNECTION_PACKET_CONNECT;
     packet->length = CONNECTION_PACKET_SIZE(ConnectionPacketGreeting);
     packet->flags = CONNECTION_PACKET_FLAG_SINGLE;
     packet->contents.greeting.packet_size = (uint32_t) priv->packet_size;
     packet->contents.greeting.flags = 0;
     
-    memcpy(packet->contents.greeting.smid, smid->bytes, sizeof(smid->bytes));
+    memcpy(packet->contents.greeting.cookie, id->connect.bytes, sizeof(LWMsgSessionCookie));
 
 #ifndef HAVE_PEERID_METHOD
     /* If this system does not have a simple method for getting the identity
@@ -1076,7 +1074,7 @@ error:
 }
 
 LWMsgStatus
-lwmsg_connection_finish_send_handshake(
+lwmsg_connection_finish_send_connect(
     LWMsgAssoc* assoc
     )
 {
@@ -1090,7 +1088,7 @@ error:
 }
 
 LWMsgStatus
-lwmsg_connection_begin_recv_handshake(
+lwmsg_connection_begin_recv_connect(
     LWMsgAssoc* assoc
     )
 {
@@ -1098,8 +1096,10 @@ lwmsg_connection_begin_recv_handshake(
 }
 
 LWMsgStatus
-lwmsg_connection_finish_recv_handshake(
-    LWMsgAssoc* assoc
+lwmsg_connection_finish_recv_connect(
+    LWMsgAssoc* assoc,
+    LWMsgSessionManager* manager,
+    LWMsgSession** session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
@@ -1107,18 +1107,16 @@ lwmsg_connection_finish_recv_handshake(
     ConnectionFragment* fragment = NULL;
     ConnectionPacket* packet = NULL;
     int fd = -1;
-    LWMsgSessionManager* manager = NULL;
-
-    BAIL_ON_ERROR(status = lwmsg_assoc_get_session_manager(assoc, &manager));
+    LWMsgSecurityToken* token = NULL;
 
     BAIL_ON_ERROR(status = lwmsg_connection_recv_next_fragment(assoc, &fragment));
     BAIL_ON_ERROR(status = lwmsg_connection_dequeue_fragment(assoc, &fragment));
 
     packet = (ConnectionPacket*) fragment->data;
 
-    if (packet->type != CONNECTION_PACKET_GREETING)
+    if (packet->type != CONNECTION_PACKET_CONNECT)
     {
-        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED, "Received malformed greeting packet");
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED, "Received malformed connect packet");
     }
 
     if (packet->contents.greeting.packet_size < sizeof(ConnectionPacket) + 1)
@@ -1135,7 +1133,7 @@ lwmsg_connection_finish_recv_handshake(
     {
 #ifdef HAVE_PEERID_METHOD
         /* If we have a simple way of getting the peer id, just use it */
-        BAIL_ON_ERROR(status = lwmsg_local_token_from_socket_peer(priv->fd, &priv->sec_token));
+        BAIL_ON_ERROR(status = lwmsg_local_token_from_socket_peer(priv->fd, &token));
 #else
         /* Otherwise, use the explicit auth method */
         if (packet->contents.greeting.flags & CONNECTION_GREETING_AUTH_LOCAL)
@@ -1143,19 +1141,19 @@ lwmsg_connection_finish_recv_handshake(
             struct stat statbuf;
 
             BAIL_ON_ERROR(status = lwmsg_connection_dequeue_fd(assoc, &fd));
-            
+
             if (fstat(fd, &statbuf))
             {
                 BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
             }
-            
+
             if (!S_ISFIFO(statbuf.st_mode) ||
                 (statbuf.st_mode & (S_IRWXO | S_IRWXG)) != 0)
             {
                 ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SECURITY, "Received invalid security token");
             }
-            
-            BAIL_ON_ERROR(status = lwmsg_local_token_new(statbuf.st_uid, statbuf.st_gid, (pid_t)-1, &priv->sec_token));
+
+            BAIL_ON_ERROR(status = lwmsg_local_token_new(statbuf.st_uid, statbuf.st_gid, (pid_t)-1, &token));
         }
         else if (priv->endpoint)
         {
@@ -1169,24 +1167,23 @@ lwmsg_connection_finish_recv_handshake(
                               &uid,
                               &gid));
 
-            BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, (pid_t)-1, &priv->sec_token));
+            BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, (pid_t)-1, &token));
         }
 #endif
     }
     else if (priv->mode == LWMSG_CONNECTION_MODE_PAIR)
     {
-        BAIL_ON_ERROR(status = lwmsg_local_token_new(getuid(), getgid(), getpid(), &priv->sec_token));
+        BAIL_ON_ERROR(status = lwmsg_local_token_new(getuid(), getgid(), getpid(), &token));
     }
 
-    /* Register session with local session manager */
-    BAIL_ON_ERROR(status = lwmsg_session_manager_enter_session(
+    /* Accept client into a session */
+    BAIL_ON_ERROR(status = lwmsg_session_accept(
                       manager,
-                      (LWMsgSessionID*) packet->contents.greeting.smid,
-                      priv->sec_token,
-                      priv->params.establish.construct,
-                      priv->params.establish.destruct,
-                      priv->params.establish.construct_data,
-                      &priv->session));
+                      (const LWMsgSessionCookie*) packet->contents.greeting.cookie,
+                      token,
+                      session));
+
+    token = NULL;
 
     /* Reconstruct buffers in case our packet size changed */
     lwmsg_connection_buffer_destruct(&priv->recvbuffer);
@@ -1214,6 +1211,243 @@ error:
     if (fd != -1)
     {
         close(fd);
+    }
+
+    if (token)
+    {
+        lwmsg_security_token_delete(token);
+    }
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_begin_send_accept(
+    LWMsgAssoc* assoc,
+    LWMsgSession* session
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
+    ConnectionFragment* fragment = NULL;
+    ConnectionPacket* packet = NULL;
+    int fds[2] = { -1, -1 };
+    const LWMsgSessionID* id = lwmsg_session_get_id(session);
+
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_create_fragment(
+                      &priv->sendbuffer,
+                      priv->packet_size,
+                      &fragment));
+
+    packet = (ConnectionPacket*) fragment->data;
+
+    packet->type = CONNECTION_PACKET_ACCEPT;
+    packet->length = CONNECTION_PACKET_SIZE(ConnectionPacketGreeting);
+    packet->flags = CONNECTION_PACKET_FLAG_SINGLE;
+    packet->contents.greeting.packet_size = (uint32_t) priv->packet_size;
+    packet->contents.greeting.flags = 0;
+    
+    memcpy(packet->contents.greeting.cookie, id->accept.bytes, sizeof(LWMsgSessionCookie));
+
+#ifndef HAVE_PEERID_METHOD
+    /* If this system does not have a simple method for getting the identity
+     * of a socket peer, improvise
+     */
+    if (priv->mode == LWMSG_CONNECTION_MODE_LOCAL)
+    {
+        /* If we are connecting to a local endpoint */
+        if (priv->endpoint)
+        {
+            uid_t uid;
+            gid_t gid;
+
+            BAIL_ON_ERROR(status = lwmsg_connection_get_endpoint_owner(
+                              assoc,
+                              priv->endpoint,
+                              &uid,
+                              &gid));
+
+            /* Only send a token to root or ourselves since it could
+               be used by the peer to impersonate us */
+            if (uid == 0 || uid == getuid())
+            {
+                /* Send an auth fd */
+                if (pipe(fds) != 0)
+                {
+                    BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
+                }
+
+                BAIL_ON_ERROR(status = lwmsg_connection_queue_fd(assoc, fds[0]));
+
+                packet->contents.greeting.flags |= CONNECTION_GREETING_AUTH_LOCAL;
+            }
+        }
+    }
+#endif
+
+    lwmsg_connection_buffer_queue_fragment(&priv->sendbuffer, fragment);
+    fragment = NULL;
+
+error:
+
+    if (fds[0] != -1)
+    {
+        close(fds[0]);
+    }
+
+    if (fds[1] != -1)
+    {
+        close(fds[1]);
+    }
+
+    if (fragment)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->sendbuffer, fragment);
+    }
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_finish_send_accept(
+    LWMsgAssoc* assoc
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_send_all_fragments(assoc));
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_connection_begin_recv_accept(
+    LWMsgAssoc* assoc
+    )
+{
+    return LWMSG_STATUS_SUCCESS;
+}
+
+LWMsgStatus
+lwmsg_connection_finish_recv_accept(
+    LWMsgAssoc* assoc,
+    LWMsgSession* session
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    ConnectionPrivate* priv = CONNECTION_PRIVATE(assoc);
+    ConnectionFragment* fragment = NULL;
+    ConnectionPacket* packet = NULL;
+    int fd = -1;
+    LWMsgSecurityToken* token = NULL;
+
+    BAIL_ON_ERROR(status = lwmsg_connection_recv_next_fragment(assoc, &fragment));
+    BAIL_ON_ERROR(status = lwmsg_connection_dequeue_fragment(assoc, &fragment));
+
+    packet = (ConnectionPacket*) fragment->data;
+
+    if (packet->type != CONNECTION_PACKET_ACCEPT)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED, "Received malformed accept packet");
+    }
+
+    if (packet->contents.greeting.packet_size < sizeof(ConnectionPacket) + 1)
+    {
+        ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_MALFORMED, "Invalid packet size request from peer");
+    }
+
+    if (packet->contents.greeting.packet_size < (uint32_t) priv->packet_size)
+    {
+        priv->packet_size = packet->contents.greeting.packet_size;
+    }
+
+    if (priv->mode == LWMSG_CONNECTION_MODE_LOCAL)
+    {
+#ifdef HAVE_PEERID_METHOD
+        /* If we have a simple way of getting the peer id, just use it */
+        BAIL_ON_ERROR(status = lwmsg_local_token_from_socket_peer(priv->fd, &token));
+#else
+        /* Otherwise, use the explicit auth method */
+        if (packet->contents.greeting.flags & CONNECTION_GREETING_AUTH_LOCAL)
+        {
+            struct stat statbuf;
+
+            BAIL_ON_ERROR(status = lwmsg_connection_dequeue_fd(assoc, &fd));
+            
+            if (fstat(fd, &statbuf))
+            {
+                BAIL_ON_ERROR(status = lwmsg_error_raise_errno(&assoc->context.error, errno));
+            }
+            
+            if (!S_ISFIFO(statbuf.st_mode) ||
+                (statbuf.st_mode & (S_IRWXO | S_IRWXG)) != 0)
+            {
+                ASSOC_RAISE_ERROR(assoc, status = LWMSG_STATUS_SECURITY, "Received invalid security token");
+            }
+            
+            BAIL_ON_ERROR(status = lwmsg_local_token_new(statbuf.st_uid, statbuf.st_gid, (pid_t)-1, &token));
+        }
+        else if (priv->endpoint)
+        {
+            uid_t uid;
+            gid_t gid;
+
+            /* Attempt to stat endpoint for owner information */
+            BAIL_ON_ERROR(status = lwmsg_connection_get_endpoint_owner(
+                              assoc,
+                              priv->endpoint,
+                              &uid,
+                              &gid));
+
+            BAIL_ON_ERROR(status = lwmsg_local_token_new(uid, gid, (pid_t)-1, &token));
+        }
+#endif
+    }
+    else if (priv->mode == LWMSG_CONNECTION_MODE_PAIR)
+    {
+        BAIL_ON_ERROR(status = lwmsg_local_token_new(getuid(), getgid(), getpid(), &token));
+    }
+
+    /* Connect the session */
+    BAIL_ON_ERROR(status = lwmsg_session_connect(
+                      session,
+                      (const LWMsgSessionCookie*) packet->contents.greeting.cookie,
+                      token));
+    token = NULL;
+
+    /* Reconstruct buffers in case our packet size changed */
+    lwmsg_connection_buffer_destruct(&priv->recvbuffer);
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->recvbuffer));
+    lwmsg_connection_buffer_destruct(&priv->sendbuffer);
+    BAIL_ON_ERROR(status = lwmsg_connection_buffer_construct(&priv->sendbuffer));
+
+    /* Set up marshal context for message exchange (this is where byte order
+       and other negotiated format settings should be set) */
+    if (priv->marshal_context)
+    {
+        lwmsg_data_context_delete(priv->marshal_context);
+        priv->marshal_context = NULL;
+    }
+
+    BAIL_ON_ERROR(status = lwmsg_data_context_new(&assoc->context, &priv->marshal_context));
+
+error:
+
+    if (fragment)
+    {
+        lwmsg_connection_buffer_free_fragment(&priv->recvbuffer, fragment);
+    }
+
+    if (fd != -1)
+    {
+        close(fd);
+    }
+
+    if (token)
+    {
+        lwmsg_security_token_delete(token);
     }
 
     return status;

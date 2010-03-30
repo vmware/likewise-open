@@ -62,17 +62,17 @@ typedef enum ConnectionState
     /* Start state */
     CONNECTION_STATE_START,
     /* Begin connect */
-    CONNECTION_STATE_BEGIN_CONNECT,
+    CONNECTION_STATE_BEGIN_CONNECT_SOCKET,
     /* Finish connect() call */
-    CONNECTION_STATE_FINISH_CONNECT,
-    /* Begin sending handshake */
-    CONNECTION_STATE_BEGIN_SEND_HANDSHAKE,
-    /* Finish sending handshake */
-    CONNECTION_STATE_FINISH_SEND_HANDSHAKE,
-    /* Begin receiving handshake */
-    CONNECTION_STATE_BEGIN_RECV_HANDSHAKE,
-    /* Finish receiving handshake */
-    CONNECTION_STATE_FINISH_RECV_HANDSHAKE,
+    CONNECTION_STATE_FINISH_CONNECT_SOCKET,
+    CONNECTION_STATE_BEGIN_SEND_CONNECT,
+    CONNECTION_STATE_FINISH_SEND_CONNECT,
+    CONNECTION_STATE_BEGIN_RECV_CONNECT,
+    CONNECTION_STATE_FINISH_RECV_CONNECT,
+    CONNECTION_STATE_BEGIN_SEND_ACCEPT,
+    CONNECTION_STATE_FINISH_SEND_ACCEPT,
+    CONNECTION_STATE_BEGIN_RECV_ACCEPT,
+    CONNECTION_STATE_FINISH_RECV_ACCEPT,
     /* Established */
     CONNECTION_STATE_ESTABLISHED,
     /* Begin a close */
@@ -93,8 +93,8 @@ typedef enum ConnectionEvent
 {
     /* No event */
     CONNECTION_EVENT_NONE,
-    /* Establish session */
-    CONNECTION_EVENT_ESTABLISH,
+    CONNECTION_EVENT_CONNECT,
+    CONNECTION_EVENT_ACCEPT,
     /* Send a message (start or send fragment) */
     CONNECTION_EVENT_SEND,
     /* Receive a message (start or receive fragment) */
@@ -128,7 +128,8 @@ typedef struct ConnectionBuffer
 typedef enum ConnectionPacketType
 {   
     CONNECTION_PACKET_MESSAGE = 1,
-    CONNECTION_PACKET_GREETING = 4,
+    CONNECTION_PACKET_CONNECT = 2,
+    CONNECTION_PACKET_ACCEPT = 3,
     CONNECTION_PACKET_SHUTDOWN = 5
 } ConnectionPacketType;
 
@@ -157,10 +158,13 @@ typedef struct ConnectionPrivate
         LWMsgMessage* message;
         struct
         {
-            LWMsgSessionConstructFunction construct;
-            LWMsgSessionDestructFunction destruct;
-            void* construct_data;
-        } establish;
+            LWMsgSession* session;
+        } connect;
+        struct
+        {
+            LWMsgSessionManager* manager;
+            LWMsgSession** session;
+        } accept;
     } params;
 
     /* Timeouts (relative) */
@@ -175,8 +179,8 @@ typedef struct ConnectionPrivate
     } timeout;
     /* Negotiated packet size */
     size_t packet_size;
-    /* Peer security token */
-    LWMsgSecurityToken* sec_token;
+    /* Private session manager */
+    LWMsgSessionManager* manager;
     /* Session handle */
     LWMsgSession* session;
     /* Flag: this connection is nonblocking */
@@ -219,7 +223,7 @@ typedef struct ConnectionPacket
         {
             uint8_t flags;
             uint32_t packet_size;
-            uint8_t smid[8];
+            uint8_t cookie[8];
         } PACKED greeting;
         struct ConnectionPacketShutdown
         {
@@ -353,12 +357,12 @@ lwmsg_connection_get_endpoint_owner(
     );
 
 LWMsgStatus
-lwmsg_connection_begin_connect(
+lwmsg_connection_begin_connect_socket(
     LWMsgAssoc* assoc
     );
 
 LWMsgStatus
-lwmsg_connection_finish_connect(
+lwmsg_connection_finish_connect_socket(
     LWMsgAssoc* assoc
     );
 
@@ -368,23 +372,48 @@ lwmsg_connection_connect_existing(
     );
 
 LWMsgStatus
-lwmsg_connection_begin_send_handshake(
+lwmsg_connection_begin_send_connect(
+    LWMsgAssoc* assoc,
+    LWMsgSession* session
+    );
+
+LWMsgStatus
+lwmsg_connection_finish_send_connect(
     LWMsgAssoc* assoc
     );
 
 LWMsgStatus
-lwmsg_connection_finish_send_handshake(
+lwmsg_connection_begin_recv_connect(
     LWMsgAssoc* assoc
     );
 
 LWMsgStatus
-lwmsg_connection_begin_recv_handshake(
+lwmsg_connection_finish_recv_connect(
+    LWMsgAssoc* assoc,
+    LWMsgSessionManager* manager,
+    LWMsgSession** session
+    );
+
+LWMsgStatus
+lwmsg_connection_begin_send_accept(
+    LWMsgAssoc* assoc,
+    LWMsgSession* session
+    );
+
+LWMsgStatus
+lwmsg_connection_finish_send_accept(
     LWMsgAssoc* assoc
     );
 
 LWMsgStatus
-lwmsg_connection_finish_recv_handshake(
+lwmsg_connection_begin_recv_accept(
     LWMsgAssoc* assoc
+    );
+
+LWMsgStatus
+lwmsg_connection_finish_recv_accept(
+    LWMsgAssoc* assoc,
+    LWMsgSession* session
     );
 
 LWMsgStatus

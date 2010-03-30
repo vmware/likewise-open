@@ -261,6 +261,7 @@ LWMsgStatus
 lwmsg_peer_assoc_task_new_connect(
     LWMsgPeer* peer,
     LWMsgAssoc* assoc,
+    LWMsgSession* session,
     PeerAssocTask** task
     );
 

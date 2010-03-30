@@ -46,8 +46,8 @@
 typedef struct DefaultSession
 {
     LWMsgSession base;
-    /* Remote session identifier */
-    LWMsgSessionID rsmid;
+    /* Session identifier */
+    LWMsgSessionID id;
     /* Security token of session creator */
     LWMsgSecurityToken* sec_token;
     /* Reference count */
@@ -60,8 +60,6 @@ typedef struct DefaultSession
     struct DefaultSession* next, *prev;
     /* User data pointer */
     void* data;
-    /* Destruct function */
-    LWMsgSessionDestructFunction destruct;
 } DefaultSession;
 
 typedef struct DefaultHandle
@@ -89,6 +87,9 @@ typedef struct DefaultManager
     LWMsgSessionManager base;
     DefaultSession* sessions;
     unsigned long next_hid;
+    LWMsgSessionConstructFunction construct;
+    LWMsgSessionDestructFunction destruct;
+    void* construct_data;
 } DefaultManager;
 
 #define DEFAULT_MANAGER(obj) ((DefaultManager*) (obj))
@@ -168,14 +169,14 @@ static
 DefaultSession*
 default_find_session(
     DefaultManager* priv,
-    const LWMsgSessionID* rsmid
+    const LWMsgSessionCookie* connect
     )
 {
     DefaultSession* entry = NULL;
 
     for (entry = priv->sessions; entry; entry = entry->next)
     {
-        if (!memcmp(rsmid->bytes, entry->rsmid.bytes, sizeof(rsmid->bytes)))
+        if (!memcmp(connect->bytes, entry->id.connect.bytes, sizeof(connect->bytes)))
         {
             return entry;
         }
@@ -198,9 +199,9 @@ default_free_session(
         default_free_handle(handle);
     }
 
-    if (session->destruct && session->data)
+    if (DEFAULT_MANAGER(session->base.manager)->destruct && session->data)
     {
-        session->destruct(session->sec_token, session->data);
+        DEFAULT_MANAGER(session->base.manager)->destruct(session->sec_token, session->data);
     }
 
     if (session->sec_token)
@@ -232,29 +233,55 @@ default_delete(
 
 static
 LWMsgStatus
-default_enter_session(
+default_create(
     LWMsgSessionManager* manager,
-    const LWMsgSessionID* rsmid,
-    LWMsgSecurityToken* rtoken,
-    LWMsgSessionConstructFunction construct,
-    LWMsgSessionDestructFunction destruct,
-    void* construct_data,
+    LWMsgSession** out_session
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    DefaultSession* session = NULL;
+
+    session = calloc(1, sizeof(*session));
+    if (!session)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_MEMORY);
+    }
+
+    session->base.manager = manager;
+    session->refs = 1;
+
+    lwmsg_session_generate_cookie(&session->id.connect);
+
+    *out_session = LWMSG_SESSION(session);
+
+error:
+
+    return status;
+}
+
+static
+LWMsgStatus
+default_accept(
+    LWMsgSessionManager* manager,
+    const LWMsgSessionCookie* connect,
+    LWMsgSecurityToken* token,
     LWMsgSession** out_session
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     DefaultManager* priv = DEFAULT_MANAGER(manager);
-    DefaultSession* session = default_find_session(priv, rsmid);
+    DefaultSession* session = default_find_session(priv, connect);
     
     if (session)
     {
-        if (!session->sec_token || !lwmsg_security_token_can_access(session->sec_token, rtoken))
+        if (!session->sec_token || !lwmsg_security_token_can_access(session->sec_token, token))
         {
             session = NULL;
             BAIL_ON_ERROR(status = LWMSG_STATUS_SECURITY);
         }
 
         session->refs++;
+        lwmsg_security_token_delete(token);
     }
     else
     {
@@ -266,21 +293,17 @@ default_enter_session(
 
         session->base.manager = manager;
 
-        memcpy(session->rsmid.bytes, rsmid->bytes, sizeof(rsmid->bytes));
+        memcpy(session->id.connect.bytes, connect->bytes, sizeof(connect->bytes));
+        lwmsg_session_generate_cookie(&session->id.accept);
 
-        if (rtoken)
-        {
-            BAIL_ON_ERROR(status = lwmsg_security_token_copy(rtoken, &session->sec_token));
-        }
-
+        session->sec_token = token;
         session->refs = 1;
-        session->destruct = destruct;
 
-        if (construct)
+        if (DEFAULT_MANAGER(manager)->construct)
         {
-            BAIL_ON_ERROR(status = construct(
+            BAIL_ON_ERROR(status = DEFAULT_MANAGER(manager)->construct(
                               session->sec_token,
-                              construct_data,
+                              DEFAULT_MANAGER(manager)->construct_data,
                               &session->data));
         }
 
@@ -311,13 +334,59 @@ error:
 
 static
 LWMsgStatus
-default_leave_session(
-    LWMsgSessionManager* manager,
-    LWMsgSession* session
+default_connect(
+    LWMsgSession* session,
+    const LWMsgSessionCookie* accept,
+    LWMsgSecurityToken* token
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    DefaultManager* priv = DEFAULT_MANAGER(manager);
+    DefaultSession* dsession = DEFAULT_SESSION(session);
+
+    if (dsession->sec_token)
+    {
+        /* Session has been connected before */
+        if (!lwmsg_security_token_can_access(dsession->sec_token, token))
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_SECURITY);
+        }
+
+        /* Has session state been lost? */
+        if (memcmp(&dsession->id.accept.bytes, accept->bytes, sizeof(accept->bytes)) &&
+            dsession->num_handles > 0)
+        {
+            BAIL_ON_ERROR(status = LWMSG_STATUS_SESSION_LOST);
+        }
+
+        lwmsg_security_token_delete(token);
+        /* Update accept cookie if it changed */
+        memcpy(dsession->id.accept.bytes, accept->bytes, sizeof(accept->bytes));
+    }
+    else
+    {
+        /* Session has not been connected bfore */
+        dsession->sec_token = token;
+        memcpy(dsession->id.accept.bytes, accept->bytes, sizeof(accept->bytes));
+    }
+
+    dsession->refs++;
+
+done:
+
+    return status;
+
+error:
+
+    goto done;
+}
+
+static
+void
+default_release(
+    LWMsgSession* session
+    )
+{
+    DefaultManager* priv = DEFAULT_MANAGER(session->manager);
     DefaultSession* my_session = DEFAULT_SESSION(session);
 
     my_session->refs--;
@@ -341,27 +410,11 @@ default_leave_session(
 
         default_free_session(my_session);
     }
-
-    return status;
 }
-
-static
-void
-default_retain_session(
-    LWMsgSessionManager* manager,
-    LWMsgSession* session
-    )
-{
-    DefaultSession* my_session = DEFAULT_SESSION(session);
-
-    my_session->refs++;
-}
-
 
 static
 LWMsgSecurityToken*
-default_get_session_peer_security_token (
-    LWMsgSessionManager* manager,
+default_get_peer_security_token (
     LWMsgSession* session
     )
 {
@@ -373,7 +426,6 @@ default_get_session_peer_security_token (
 static
 LWMsgStatus
 default_register_handle_remote(
-    LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
     LWMsgHandleID hid,
@@ -405,7 +457,6 @@ error:
 static
 LWMsgStatus
 default_register_handle_local(
-    LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
     void* pointer,
@@ -414,7 +465,7 @@ default_register_handle_local(
     )
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
-    DefaultManager* priv = DEFAULT_MANAGER(manager);
+    DefaultManager* priv = DEFAULT_MANAGER(session->manager);
     DefaultHandle* handle = NULL;
 
     BAIL_ON_ERROR(status = default_add_handle(
@@ -439,7 +490,6 @@ error:
 static
 LWMsgStatus
 default_retain_handle(
-    LWMsgSessionManager* manager,
     LWMsgSession* session,
     void* ptr
     )
@@ -476,7 +526,6 @@ error:
 static
 LWMsgStatus
 default_release_handle(
-    LWMsgSessionManager* manager,
     LWMsgSession* session,
     void* ptr
     )
@@ -522,7 +571,6 @@ error:
 static
 LWMsgStatus
 default_unregister_handle(
-    LWMsgSessionManager* manager,
     LWMsgSession* session,
     void* ptr
     )
@@ -575,7 +623,6 @@ error:
 static
 LWMsgStatus
 default_handle_pointer_to_id(
-    LWMsgSessionManager* manager,
     LWMsgSession* session,
     void* pointer,
     const char** type,
@@ -587,18 +634,13 @@ default_handle_pointer_to_id(
     DefaultHandle* handle = NULL;
     DefaultSession* my_session = DEFAULT_SESSION(session);
 
-    if (!my_session)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
-    }
-
     for (handle = my_session->handles; handle; handle = handle->next)
     {
         if (handle->pointer == pointer)
         {
             if (!handle->valid)
             {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+                BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
             }
 
             if (type)
@@ -617,7 +659,7 @@ default_handle_pointer_to_id(
         }
     }
 
-    BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
 
 done:
 
@@ -631,7 +673,6 @@ error:
 static
 LWMsgStatus
 default_handle_id_to_pointer(
-    LWMsgSessionManager* manager,
     LWMsgSession* session,
     const char* type,
     LWMsgHandleType htype,
@@ -647,14 +688,9 @@ default_handle_id_to_pointer(
     {
         if (handle->hid == hid && handle->locality == htype)
         {
-            if (!handle->valid)
+            if (!handle->valid || (type && strcmp(type, handle->type)))
             {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
-            }
-
-            if (type && strcmp(type, handle->type))
-            {
-                BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+                BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
             }
 
             *pointer = handle->pointer;
@@ -676,8 +712,7 @@ error:
 
 static
 void*
-default_get_session_data (
-    LWMsgSessionManager* manager,
+default_get_data (
     LWMsgSession* session
     )
 {
@@ -686,18 +721,16 @@ default_get_session_data (
 
 static
 const LWMsgSessionID*
-default_get_session_id(
-    LWMsgSessionManager* manager,
+default_get_id(
     LWMsgSession* session
     )
 {
-    return &DEFAULT_SESSION(session)->rsmid;
+    return &DEFAULT_SESSION(session)->id;
 }
 
 static
 size_t
-default_get_session_assoc_count(
-    LWMsgSessionManager* manager,
+default_get_assoc_count(
     LWMsgSession* session
     )
 {
@@ -706,8 +739,7 @@ default_get_session_assoc_count(
 
 static
 size_t
-default_get_session_handle_count(
-    LWMsgSessionManager* manager,
+default_get_handle_count(
     LWMsgSession* session
     )
 {
@@ -717,9 +749,10 @@ default_get_session_handle_count(
 static LWMsgSessionManagerClass default_class = 
 {
     .delete = default_delete,
-    .enter_session = default_enter_session,
-    .leave_session = default_leave_session,
-    .retain_session = default_retain_session,
+    .create = default_create,
+    .accept = default_accept,
+    .connect = default_connect,
+    .release = default_release,
     .register_handle_local = default_register_handle_local,
     .register_handle_remote = default_register_handle_remote,
     .retain_handle = default_retain_handle,
@@ -727,15 +760,18 @@ static LWMsgSessionManagerClass default_class =
     .unregister_handle = default_unregister_handle,
     .handle_pointer_to_id = default_handle_pointer_to_id,
     .handle_id_to_pointer = default_handle_id_to_pointer,
-    .get_session_data = default_get_session_data,
-    .get_session_id = default_get_session_id,
-    .get_session_assoc_count = default_get_session_assoc_count,
-    .get_session_handle_count = default_get_session_handle_count,
-    .get_session_peer_security_token = default_get_session_peer_security_token
+    .get_data = default_get_data,
+    .get_id = default_get_id,
+    .get_assoc_count = default_get_assoc_count,
+    .get_handle_count = default_get_handle_count,
+    .get_peer_security_token = default_get_peer_security_token
 };
-                                         
+
 LWMsgStatus
 lwmsg_default_session_manager_new(
+    LWMsgSessionConstructFunction construct,
+    LWMsgSessionDestructFunction destruct,
+    void* construct_data,
     LWMsgSessionManager** manager
     )
 {
@@ -743,6 +779,11 @@ lwmsg_default_session_manager_new(
     DefaultManager* my_manager = NULL;
 
     BAIL_ON_ERROR(status = LWMSG_ALLOC(&my_manager));
+
+    my_manager->construct = construct;
+    my_manager->destruct = destruct;
+    my_manager->construct_data = construct_data;
+
     BAIL_ON_ERROR(status = lwmsg_session_manager_init(&my_manager->base, &default_class));
 
     *manager = LWMSG_SESSION_MANAGER(my_manager);
