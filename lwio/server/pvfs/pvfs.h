@@ -585,12 +585,6 @@ PvfsOplockMarkPendedOpsReady(
     PPVFS_FCB pFcb
     );
 
-NTSTATUS
-PvfsOplockCloseFile(
-    PPVFS_FCB pFcb,
-    PPVFS_CCB pCcb
-    );
-
 
 /* From ioctlOpenFileInfo.c */
 

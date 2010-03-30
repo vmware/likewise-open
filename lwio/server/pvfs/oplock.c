@@ -1377,54 +1377,6 @@ PvfsOplockCleanOplockFree(
 /*****************************************************************************
  ****************************************************************************/
 
-NTSTATUS
-PvfsOplockCloseFile(
-    PPVFS_FCB pFcb,
-    PPVFS_CCB pCcb
-    )
-{
-    NTSTATUS ntError = STATUS_SUCCESS;
-    BOOLEAN bLocked = FALSE;
-    PPVFS_OPLOCK_RECORD pOplock = NULL;
-    PLW_LIST_LINKS pOplockLink = NULL;
-    PLW_LIST_LINKS pNextLink = NULL;
-
-    LWIO_LOCK_MUTEX(bLocked, &pFcb->mutexOplock);
-
-    pOplockLink = PvfsListTraverse(pFcb->pOplockList, NULL);
-
-    while (pOplockLink)
-    {
-        pOplock = LW_STRUCT_FROM_FIELD(
-                      pOplockLink,
-                      PVFS_OPLOCK_RECORD,
-                      OplockList);
-
-        pNextLink = PvfsListTraverse(pFcb->pOplockList, pOplockLink);
-
-        if (pOplock->pCcb == pCcb)
-        {
-            PvfsListRemoveItem(pFcb->pOplockList, pOplockLink);
-
-            pOplock->pIrpContext->pIrp->IoStatusBlock.Status = STATUS_FILE_CLOSED;
-
-            PvfsAsyncIrpComplete(pOplock->pIrpContext);
-
-            PvfsFreeOplockRecord(&pOplock);
-        }
-
-        pOplockLink = pNextLink;
-    }
-
-    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->mutexOplock);
-
-    return ntError;
-}
-
-
-/*****************************************************************************
- ****************************************************************************/
-
 static NTSTATUS
 PvfsOplockGrantBatchOrLevel1(
     PPVFS_IRP_CONTEXT pIrpContext,
