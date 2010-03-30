@@ -238,8 +238,6 @@ SrvTree2CreateFile(
                     pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pTree->ullNumOpenFiles++;
-
     InterlockedIncrement(&pFile->refcount);
 
     *ppFile = pFile;
@@ -285,8 +283,6 @@ SrvTree2RemoveFile(
     ntStatus = LwRtlRBTreeRemove(pTree->pFileCollection, pFid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pTree->ullNumOpenFiles--;
-
 cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
@@ -296,27 +292,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-NTSTATUS
-SrvTree2GetOpenFileCount(
-    PLWIO_SRV_TREE_2 pTree,
-    PULONG64         pullNumOpenFiles
-    )
-{
-    NTSTATUS ntStatus        = STATUS_SUCCESS;
-    BOOLEAN  bInLock         = FALSE;
-    ULONG64  ullNumOpenFiles = 0;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
-
-    ullNumOpenFiles = pTree->ullNumOpenFiles;
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
-
-    *pullNumOpenFiles = ullNumOpenFiles;
-
-    return ntStatus;
 }
 
 BOOLEAN

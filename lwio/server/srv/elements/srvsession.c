@@ -96,15 +96,6 @@ SrvSessionRundownTreeRbTreeVisit(
     PBOOLEAN pbContinue
     );
 
-static
-NTSTATUS
-SrvSessionCountFilesTreeRbTreeVisit(
-    PVOID pKey,
-    PVOID pData,
-    PVOID pUserData,
-    PBOOLEAN pbContinue
-    );
-
 NTSTATUS
 SrvSessionCreate(
     USHORT            uid,
@@ -307,31 +298,6 @@ error:
     }
 
     goto cleanup;
-}
-
-NTSTATUS
-SrvSessionGetFileCount(
-    PLWIO_SRV_SESSION pSession,
-    PULONG64          pullNumOpenFiles
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-    ULONG64  ullNumOpenFiles = 0;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
-
-    LwRtlRBTreeTraverse(
-            pSession->pTreeCollection,
-            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-            SrvSessionCountFilesTreeRbTreeVisit,
-            &ullNumOpenFiles);
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
-
-    *pullNumOpenFiles = ullNumOpenFiles;
-
-    return ntStatus;
 }
 
 PLWIO_SRV_SESSION
@@ -562,33 +528,6 @@ SrvSessionRundownTreeRbTreeVisit(
 
     return STATUS_SUCCESS;
 }
-
-static
-NTSTATUS
-SrvSessionCountFilesTreeRbTreeVisit(
-    PVOID pKey,
-    PVOID pData,
-    PVOID pUserData,
-    PBOOLEAN pbContinue
-    )
-{
-    PLWIO_SRV_TREE pTree = (PLWIO_SRV_TREE)pData;
-    PULONG64 pullFileCount = (PULONG64)pUserData;
-
-    if (pTree && pullFileCount)
-    {
-        ULONG ulNumOpenFiles = 0;
-
-        SrvTreeGetOpenFileCount(pTree, &ulNumOpenFiles);
-
-        *pullFileCount += ulNumOpenFiles;
-    }
-
-    *pbContinue = TRUE;
-
-    return STATUS_SUCCESS;
-}
-
 
 
 /*

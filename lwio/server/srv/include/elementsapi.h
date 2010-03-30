@@ -186,8 +186,6 @@ typedef struct _LWIO_SRV_TREE
 
     USHORT            nextAvailableFid;
 
-    ULONG             ulNumOpenFiles;
-
 } LWIO_SRV_TREE, *PLWIO_SRV_TREE;
 
 typedef struct _LWIO_SRV_TREE_2
@@ -208,8 +206,6 @@ typedef struct _LWIO_SRV_TREE_2
     PLWRTL_RB_TREE    pFileCollection;
 
     ULONG64           ullNextAvailableFid;
-
-    ULONG64           ullNumOpenFiles;
 
 } LWIO_SRV_TREE_2, *PLWIO_SRV_TREE_2;
 
@@ -805,12 +801,6 @@ SrvSessionCreateTree(
     PLWIO_SRV_TREE*   ppTree
     );
 
-NTSTATUS
-SrvSessionGetFileCount(
-    PLWIO_SRV_SESSION pSession,
-    PULONG64          pullNumOpenFiles
-    );
-
 PLWIO_SRV_SESSION
 SrvSessionAcquire(
     PLWIO_SRV_SESSION pSession
@@ -850,12 +840,6 @@ SrvSession2CreateTree(
     PLWIO_SRV_SESSION_2 pSession,
     PSRV_SHARE_INFO     pShareInfo,
     PLWIO_SRV_TREE_2*   ppTree
-    );
-
-NTSTATUS
-SrvSession2GetFileCount(
-    PLWIO_SRV_SESSION_2 pSession,
-    PULONG64            pullNumOpenFiles
     );
 
 PLWIO_SRV_SESSION_2
@@ -906,12 +890,6 @@ NTSTATUS
 SrvTreeRemoveFile(
     PLWIO_SRV_TREE pTree,
     USHORT        fid
-    );
-
-NTSTATUS
-SrvTreeGetOpenFileCount(
-    PLWIO_SRV_TREE pTree,
-    PULONG         pulNumOpenFiles
     );
 
 NTSTATUS
@@ -992,12 +970,6 @@ NTSTATUS
 SrvTree2RemoveFile(
     PLWIO_SRV_TREE_2 pTree,
     PSMB2_FID        pFid
-    );
-
-NTSTATUS
-SrvTree2GetOpenFileCount(
-    PLWIO_SRV_TREE_2 pTree,
-    PULONG64         pullNumOpenFiles
     );
 
 BOOLEAN
