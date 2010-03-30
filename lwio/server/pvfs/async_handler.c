@@ -64,6 +64,8 @@ PvfsQueueCancelIrp(
     PPVFS_IRP_CONTEXT pIrpContext = (PPVFS_IRP_CONTEXT)pCancelContext;
     USHORT SetFlag = 0;
 
+    PvfsReferenceIrpContext(pIrpContext);
+
     SetFlag = PvfsIrpContextConditionalSetFlag(
                   pIrpContext,
                   PVFS_IRP_CTX_FLAG_ACTIVE,
@@ -102,6 +104,8 @@ PvfsQueueCancelIrp(
             break;
         }
     }
+
+    PvfsReleaseIrpContext(&pIrpContext);
 
     return;
 }
