@@ -75,9 +75,9 @@ SrvProtocolInit(
     gProtocolApiGlobals.hPacketAllocator = hPacketAllocator;
     gProtocolApiGlobals.pShareList = pShareList;
 
-    SrvProtocolInitConfig(&gProtocolApiGlobals.Config);
+    SrvProtocolInitConfig(&gProtocolApiGlobals.config);
 
-    ntStatus = SrvProtocolReadConfig(&gProtocolApiGlobals.Config);
+    ntStatus = SrvProtocolReadConfig(&gProtocolApiGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvProtocolInit_SMB_V1(pWorkQueue);
@@ -290,7 +290,7 @@ SrvProtocolShutdown(
     SrvProtocolShutdown_SMB_V1();
     SrvProtocolShutdown_SMB_V2();
 
-    SrvProtocolFreeConfigContents(&gProtocolApiGlobals.Config);
+    SrvProtocolFreeConfigContents(&gProtocolApiGlobals.config);
 
     gProtocolApiGlobals.pWorkQueue = NULL;
     gProtocolApiGlobals.hPacketAllocator = NULL;

@@ -192,7 +192,7 @@ SrvProtocolConfigIsSigningEnabled(
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    bEnabled = gProtocolApiGlobals.Config.bEnableSigning;
+    bEnabled = gProtocolApiGlobals.config.bEnableSigning;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
@@ -209,7 +209,7 @@ SrvProtocolConfigIsSigningRequired(
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    bRequired = gProtocolApiGlobals.Config.bRequireSigning;
+    bRequired = gProtocolApiGlobals.config.bRequireSigning;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
@@ -226,7 +226,7 @@ SrvProtocolConfigIsSmb2Enabled(
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    bEnabled = gProtocolApiGlobals.Config.bEnableSmb2;
+    bEnabled = gProtocolApiGlobals.config.bEnableSmb2;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
@@ -243,7 +243,7 @@ SrvProtocolConfigGetZctReadThreshold(
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    ulThreshold = gProtocolApiGlobals.Config.ulZctReadThreshold;
+    ulThreshold = gProtocolApiGlobals.config.ulZctReadThreshold;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
@@ -260,7 +260,7 @@ SrvProtocolConfigGetZctWriteThreshold(
 
     LWIO_LOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    ulThreshold = gProtocolApiGlobals.Config.ulZctWriteThreshold;
+    ulThreshold = gProtocolApiGlobals.config.ulZctWriteThreshold;
 
     LWIO_UNLOCK_MUTEX(bInLock, &gProtocolApiGlobals.mutex);
 

@@ -169,9 +169,9 @@ SrvProtocolTransportDriverInit(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->TransportContext;
-    PSRV_TRANSPORT_PROTOCOL_DISPATCH pTransportDispatch = &pTransportContext->Dispatch;
-    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch = &pTransportContext->SocketDispatch;
+    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
+    PSRV_TRANSPORT_PROTOCOL_DISPATCH pTransportDispatch = &pTransportContext->dispatch;
+    PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch = &pTransportContext->socketDispatch;
 
     RtlZeroMemory(pTransportContext, sizeof(*pTransportContext));
 
@@ -187,7 +187,7 @@ SrvProtocolTransportDriverInit(
     pSocketDispatch->pfnDisconnect = SrvProtocolTransportDriverSocketDisconnect;
     pSocketDispatch->pfnGetAddressBytes = SrvProtocolTransportDriverSocketGetAddressBytes;
 
-    uuid_generate(pTransportContext->Guid);
+    uuid_generate(pTransportContext->guid);
 
     ntStatus = SrvTransportInit(
                     &pTransportContext->hTransport,
@@ -211,7 +211,7 @@ SrvProtocolTransportDriverShutdown(
     PSRV_PROTOCOL_API_GLOBALS pGlobals
     )
 {
-    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->TransportContext;
+    PSRV_PROTOCOL_TRANSPORT_CONTEXT pTransportContext = &pGlobals->transportContext;
 
     if (pTransportContext->hTransport)
     {
@@ -287,7 +287,7 @@ SrvProtocolTransportDriverConnectionNew(
     properties.Capabilities |= CAP_LARGE_READX;
     properties.Capabilities |= CAP_LARGE_WRITEX;
     properties.Capabilities |= CAP_EXTENDED_SECURITY;
-    uuid_copy(properties.GUID, pProtocolDispatchContext->Guid);
+    uuid_copy(properties.GUID, pProtocolDispatchContext->guid);
 
     ntStatus = SrvConnectionCreate(
                     pSocket,
@@ -296,7 +296,7 @@ SrvProtocolTransportDriverConnectionNew(
                     pGlobals->pShareList,
                     &properties,
                     pHostinfo,
-                    &pProtocolDispatchContext->SocketDispatch,
+                    &pProtocolDispatchContext->socketDispatch,
                     &pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 

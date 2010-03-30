@@ -83,26 +83,26 @@ typedef struct _SRV_PROTOCOL_CONFIG
     ULONG ulZctWriteThreshold;
 } SRV_PROTOCOL_CONFIG, *PSRV_PROTOCOL_CONFIG;
 
-typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT {
-    // Initialized on startup
-    struct _SRV_PROTOCOL_API_GLOBALS* pGlobals;
-    SRV_TRANSPORT_HANDLE hTransport;
-    SRV_TRANSPORT_PROTOCOL_DISPATCH Dispatch;
-    SRV_CONNECTION_SOCKET_DISPATCH SocketDispatch;
-    uuid_t Guid;
-    // Initialized on first use
-    HANDLE hGssContext;
+typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT
+{
+    struct _SRV_PROTOCOL_API_GLOBALS* pGlobals;    // Initialized on startup
+    SRV_TRANSPORT_HANDLE              hTransport;
+    SRV_TRANSPORT_PROTOCOL_DISPATCH   dispatch;
+    SRV_CONNECTION_SOCKET_DISPATCH    socketDispatch;
+    uuid_t                            guid;
+
+    HANDLE                            hGssContext; // Initialized on first use
 } SRV_PROTOCOL_TRANSPORT_CONTEXT;
 
 typedef struct _SRV_PROTOCOL_API_GLOBALS
 {
-    pthread_mutex_t           mutex;
+    pthread_mutex_t                mutex;
 
-    PSMB_PROD_CONS_QUEUE      pWorkQueue;
-    PLWIO_PACKET_ALLOCATOR     hPacketAllocator;
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList;
-    SRV_PROTOCOL_CONFIG        Config;
-    SRV_PROTOCOL_TRANSPORT_CONTEXT TransportContext;
+    PSMB_PROD_CONS_QUEUE           pWorkQueue;
+    PLWIO_PACKET_ALLOCATOR         hPacketAllocator;
+    PLWIO_SRV_SHARE_ENTRY_LIST     pShareList;
+    SRV_PROTOCOL_CONFIG            config;
+    SRV_PROTOCOL_TRANSPORT_CONTEXT transportContext;
 
 } SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
 
