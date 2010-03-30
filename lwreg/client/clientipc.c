@@ -58,15 +58,15 @@ static NTSTATUS gdwOnceError = 0;
 
 static
 NTSTATUS
-RegIpcUnregisterHandle(
-    LWMsgCall* pCall,
-    PVOID pHandle
+RegIpcReleaseHandle(
+    IN HANDLE hConnection,
+    IN PVOID pHandle
     )
 {
     NTSTATUS status = 0;
-    LWMsgSession* pSession = lwmsg_call_get_session(pCall);
+    PREG_CLIENT_CONNECTION_CONTEXT pContext = hConnection;
 
-    status = MAP_LWMSG_ERROR(lwmsg_session_unregister_handle(pSession, pHandle));
+    status = MAP_LWMSG_ERROR(lwmsg_session_release_handle(pContext->pSession, pHandle));
     BAIL_ON_NT_STATUS(status);
 
 error:
@@ -103,6 +103,9 @@ NtRegOpenServerOnce(
                                   gContext.pClient,
                                   LWMSG_CONNECTION_MODE_LOCAL,
                                   CACHEDIR "/" REG_SERVER_FILENAME));
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_ERROR(lwmsg_peer_connect(gContext.pClient, &gContext.pSession));
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
@@ -475,9 +478,6 @@ RegTransactCloseKey(
     switch (out.tag)
     {
         case REG_R_CLOSE_KEY:
-		status = RegIpcUnregisterHandle(pCall, hKey);
-            BAIL_ON_NT_STATUS(status);
-
             break;
 
         case REG_R_ERROR:
@@ -492,6 +492,10 @@ RegTransactCloseKey(
     }
 
 cleanup:
+
+    /* Release handle no matter what */
+    RegIpcReleaseHandle(hConnection, hKey);
+
     if (pCall)
     {
         lwmsg_call_destroy_params(pCall, &out);
