@@ -695,6 +695,19 @@ SrvAttemptReadIo(
                             &pReadState->ulKey,
                             &pReadState->pZctCompletion);
 
+            if (ntStatus == STATUS_NOT_SUPPORTED)
+            {
+                SrvReleaseReadStateAsync(pReadState); // Retry as non-ZCT
+                pReadState->bStartedRead = FALSE;
+                LwZctDestroy(&pReadState->pZct);
+                pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
+            }
+            else if (ntStatus == STATUS_END_OF_FILE)
+            {
+                pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+
             // completed synchronously
             SrvReleaseReadStateAsync(pReadState);
             pReadState->bStartedRead = FALSE;
@@ -707,11 +720,11 @@ SrvAttemptReadIo(
             SrvReleaseReadStateAsync(pReadState);
             pReadState->bStartedRead = FALSE;
             LwZctDestroy(&pReadState->pZct);
-            ntStatus = STATUS_SUCCESS;
+            pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
         }
         else if (ntStatus == STATUS_END_OF_FILE)
         {
-            ntStatus = STATUS_SUCCESS;
+            pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
         }
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -746,6 +759,11 @@ SrvAttemptReadIo(
                                 &pReadState->llByteOffset,
                                 &pReadState->ulKey);
             }
+            if (ntStatus == STATUS_END_OF_FILE)
+            {
+                pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
 
             // completed synchronously
             SrvReleaseReadStateAsync(pReadState);
@@ -776,7 +794,6 @@ error:
 
     if (ntStatus != STATUS_PENDING)
     {
-        SrvReleaseReadStateAsync(pReadState);
         pReadState->bStartedRead = FALSE;
     }
 
@@ -796,9 +813,8 @@ SrvSendZctReadResponse(
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     ULONG                      iMsg         = pCtxSmb1->iMsg;
     PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PSRV_EXEC_CONTEXT          pZctContext  = NULL;
     LW_ZCT_ENTRY entry = { 0 };
-
-    SrvAcquireExecContext(pExecContext);
 
     pExecContext->pSmbResponse->bufferUsed += pSmbResponse->ulMessageSize;
     SMBPacketMarshallFooter(pExecContext->pSmbResponse);
@@ -813,28 +829,28 @@ SrvSendZctReadResponse(
     ntStatus = LwZctPrepareIo(pReadState->pZct);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pZctContext = SrvAcquireExecContext(pExecContext);
+
     ntStatus = SrvProtocolTransportSendZctResponse(
                     pConnection,
                     pReadState->pZct,
                     SrvExecuteReadSendZctCB,
-                    pExecContext);
+                    pZctContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // completed synchronously
-    SrvReleaseExecContext(pExecContext);
+    SrvReleaseExecContext(pZctContext); // completed synchronously
 
 cleanup:
 
-    // Never send out response via non-ZCT
-    pSmbResponse->ulMessageSize = 0;
+    pSmbResponse->ulMessageSize = 0; // Never send out response via non-ZCT
 
     return ntStatus;
 
 error:
 
-    if (ntStatus != STATUS_PENDING)
+    if (pZctContext && (ntStatus != STATUS_PENDING))
     {
-        SrvReleaseExecContext(pExecContext);
+        SrvReleaseExecContext(pZctContext);
     }
 
     goto cleanup;
