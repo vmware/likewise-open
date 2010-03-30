@@ -115,8 +115,9 @@
 #define opt_dia             29
 #define opt_standard        30	/* (int)     Standard level */
 #define opt_midl            40  /* (bool)    MIDL compatibility mode */
-#define opt_lang            41
-
+#define opt_cstub_pref      41  /* (char*)   Client stub function prefix */
+#define opt_sstub_pref      42  /* (char*)   Server stub function prefix */
+#define opt_lang            43
 
 /*
  * Remaining options are valid only when code built with DUMPERS.

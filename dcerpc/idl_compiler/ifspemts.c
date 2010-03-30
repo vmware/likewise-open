@@ -100,6 +100,7 @@ void CSPELL_manager_epv
         if (p_export->kind == AST_operation_k)
         {
             if ( ! first_op ) fprintf( fid, "," );
+            fprintf( fid, "%s", sstub_pref);
             spell_name( fid, p_export->thing_p.exported_operation->name );
             fprintf( fid, "\n" );
             first_op = false;

@@ -164,15 +164,31 @@ static void CSPELL_operation_def
     AST_operation_n_t *op;
 #endif
 {
+    char op_internal_name[3 * MAX_ID];
     AST_type_n_t       func_type_node;
+    NAMETABLE_id_t emitted_name;
 
     func_type_node = *BE_function_p;
     func_type_node.type_structure.function = op;
 
+    sprintf(op_internal_name, "%s%s", cstub_pref, BE_get_name(op->name));
+    emitted_name = NAMETABLE_add_id(op_internal_name);
+
     fprintf (fid, "extern ");
-    CSPELL_typed_name (fid, &func_type_node, op->name, NULL, false, true,
+    CSPELL_typed_name (fid, &func_type_node, emitted_name, NULL, false, true,
                         (AST_ENCODE_SET(op) || AST_DECODE_SET(op)));
     fprintf (fid, ";\n");
+
+    if (strcmp(cstub_pref, sstub_pref))
+    {
+        sprintf(op_internal_name, "%s%s", sstub_pref, BE_get_name(op->name));
+        emitted_name = NAMETABLE_add_id(op_internal_name);
+
+        fprintf (fid, "extern ");
+        CSPELL_typed_name (fid, &func_type_node, emitted_name, NULL, false, true,
+                           (AST_ENCODE_SET(op) || AST_DECODE_SET(op)));
+        fprintf (fid, ";\n");
+    }
 }
 
 

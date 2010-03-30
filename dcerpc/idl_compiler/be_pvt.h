@@ -47,6 +47,9 @@ extern struct AST_type_n_t *BE_ulong_int_p, *BE_ushort_int_p;
 extern struct AST_type_n_t *BE_pointer_p, *BE_function_p;
 extern struct AST_type_n_t *BE_hyper_null_p, *BE_long_null_p, *BE_short_null_p;
 
+extern char* cstub_pref;
+extern char* sstub_pref;
+
 #ifndef MIA
 extern boolean BE_bug_array_no_ref_hole;
 #endif

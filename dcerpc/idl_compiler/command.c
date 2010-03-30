@@ -209,6 +209,8 @@ OPTIONS option_table[]={
 	{"server",       STRARG,                         FD(server)},
 	{"space_opt",    ASSERTARG,                      FD(cmd_opt[opt_space_opt])},
 	{"sstub",        STRARG,                         FD(sstub_file)},
+	{"cstub_pref",   STRARG,                         FD(cmd_val[opt_cstub_pref])},
+	{"sstub_pref",   STRARG,                         FD(cmd_val[opt_sstub_pref])},
 	{"standard",     STRARG,                         FD(standard)},
 #ifdef UNIX
 	{"stdin",        ASSERTARG,                      FD(cmd_opt[opt_stdin])},
@@ -389,6 +391,8 @@ static opt_struct opt_info[NUM_OPTS] =
     { "version",            bit },
     { "warn",               bit },
     { "standard",           number },
+    { "cstub_pref",         string },
+    { "sstub_pref",         string },
     { "midl",               bit}
 #ifdef DUMPERS
     ,
@@ -776,6 +780,8 @@ boolean CMD_parse_args          /* Returns TRUE on success */
 
     standard_opt = opt_standard_dce_1_1;
     cmd_val[opt_standard] = (void*)&standard_opt;
+    cmd_val[opt_cstub_pref] = "";
+    cmd_val[opt_sstub_pref] = "";
 
     cmd_opt[opt_midl]           = FALSE;
 

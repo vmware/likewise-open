@@ -138,8 +138,9 @@ void CSPELL_csr_header
 			p_operation->parameters = p_operation->parameters->next;
 		}
 	} else {
-		fprintf (fid, "\n");
-		emitted_name = p_operation->name;
+            sprintf(op_internal_name, "%s%s", cstub_pref, BE_get_name(p_operation->name));
+            emitted_name = NAMETABLE_add_id(op_internal_name);
+            fprintf (fid, "\n");
 	}
 
 	CSPELL_function_def_header (fid, p_operation, emitted_name);

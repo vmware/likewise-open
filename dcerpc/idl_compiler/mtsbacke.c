@@ -54,6 +54,9 @@ boolean BE_space_opt, BE_bug_array_align, BE_bug_array_align2,
         BE_bug_boolean_def
                                                                 ;
 
+char* cstub_pref;
+char* sstub_pref;
+
 #ifdef DUMPERS
 boolean BE_dump_debug, BE_dump_flat, BE_dump_mnode, BE_dump_mool,
         BE_dump_recs, BE_dump_sends, BE_dump_unode, BE_dump_uool,
@@ -137,6 +140,8 @@ static void be_init
     BE_hyper_null_p->alignment_size = 8;
     BE_hyper_null_p->ndr_size = 0;
 
+    cstub_pref = cmd_val[opt_cstub_pref];
+    sstub_pref = cmd_val[opt_sstub_pref];
 }
 
 
