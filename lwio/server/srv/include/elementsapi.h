@@ -213,10 +213,12 @@ typedef struct _LWIO_SRV_SESSION
 {
     LONG              refcount;
 
-    pthread_rwlock_t   mutex;
-    pthread_rwlock_t*  pMutex;
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
 
     USHORT            uid;
+
+    LONG64            llBirthTime;
 
     PLWIO_SRV_TREE    lruTree[SRV_LRU_CAPACITY];
 
@@ -228,6 +230,8 @@ typedef struct _LWIO_SRV_SESSION
 
     PSTR              pszClientPrincipalName;
 
+    LONG64            llLastActivityTime;
+
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
 } LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
@@ -236,10 +240,12 @@ typedef struct _LWIO_SRV_SESSION_2
 {
     LONG              refcount;
 
-    pthread_rwlock_t   mutex;
-    pthread_rwlock_t*  pMutex;
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
 
     ULONG64           ullUid;
+
+    LONG64            llBirthTime;
 
     PLWIO_SRV_TREE_2  lruTree[SRV_LRU_CAPACITY];
 
@@ -250,6 +256,8 @@ typedef struct _LWIO_SRV_SESSION_2
     ULONG             ulNextAvailableTid;
 
     PSTR              pszClientPrincipalName;
+
+    LONG64            llLastActivityTime;
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 

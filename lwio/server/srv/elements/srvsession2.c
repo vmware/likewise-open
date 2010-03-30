@@ -51,6 +51,18 @@
 
 static
 NTSTATUS
+SrvSession2UpdateLastActivityTime(
+   PLWIO_SRV_SESSION_2 pSession
+   );
+
+static
+NTSTATUS
+SrvSession2UpdateLastActivityTime_inlock(
+   PLWIO_SRV_SESSION_2 pSession
+   );
+
+static
+NTSTATUS
 SrvSession2AcquireTreeId_inlock(
    PLWIO_SRV_SESSION_2 pSession,
    PULONG              pulTid
@@ -107,6 +119,11 @@ SrvSession2Create(
 
     pSession->ullUid = ullUid;
 
+    ntStatus = WireGetCurrentNTTime(&pSession->llBirthTime);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pSession->llLastActivityTime = pSession->llBirthTime;
+
     LWIO_LOG_DEBUG("Associating session [object:0x%x][uid:%lu]",
                     pSession,
                     ullUid);
@@ -151,6 +168,9 @@ SrvSession2FindTree(
     NTSTATUS ntStatus = 0;
     BOOLEAN bInLock = FALSE;
     PLWIO_SRV_TREE_2 pTree = NULL;
+
+    ntStatus = SrvSession2UpdateLastActivityTime(pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
@@ -200,6 +220,9 @@ SrvSession2RemoveTree(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
+    ntStatus = SrvSession2UpdateLastActivityTime_inlock(pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pTree = pSession->lruTree[ ulTid % SRV_LRU_CAPACITY ];
     if (pTree && (pTree->ulTid == ulTid))
     {
@@ -235,6 +258,9 @@ SrvSession2CreateTree(
     ULONG   ulTid = 0;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    ntStatus = SrvSession2UpdateLastActivityTime_inlock(pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvSession2AcquireTreeId_inlock(
                     pSession,
@@ -311,6 +337,8 @@ SrvSession2Rundown(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
 
+    SrvSession2UpdateLastActivityTime_inlock(pSession);
+
     LwRtlRBTreeTraverse(
             pSession->pTreeCollection,
             LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
@@ -318,6 +346,33 @@ SrvSession2Rundown(
             NULL);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+}
+
+static
+NTSTATUS
+SrvSession2UpdateLastActivityTime(
+   PLWIO_SRV_SESSION_2 pSession
+   )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    ntStatus = SrvSession2UpdateLastActivityTime_inlock(pSession);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvSession2UpdateLastActivityTime_inlock(
+   PLWIO_SRV_SESSION_2 pSession
+   )
+{
+    return WireGetCurrentNTTime(&pSession->llLastActivityTime);
 }
 
 static
