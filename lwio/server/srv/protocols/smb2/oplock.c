@@ -1189,6 +1189,21 @@ SrvReleaseOplockStateAsync_SMB_V2(
     }
 }
 
+VOID
+SrvOplock2StateRundown(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    PSRV_OPLOCK_STATE_SMB_V2 pOplockState  = NULL;
+
+    pOplockState = (PSRV_OPLOCK_STATE_SMB_V2)SrvFile2RemoveOplockState(pFile);
+
+    if (pOplockState)
+    {
+        SrvReleaseOplockState_SMB_V2(pOplockState);
+    }
+}
+
 
 /*
 local variables:

@@ -268,6 +268,8 @@ SrvFile2Rundown(
     {
         IoCancelFile(pFile->hFile);
     }
+
+    SrvOplock2StateRundown(pFile);
 }
 
 static
@@ -325,3 +327,12 @@ SrvFile2Free(
 
     SrvFreeMemory(pFile);
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

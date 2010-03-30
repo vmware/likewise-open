@@ -83,3 +83,13 @@
 
 #include "externs.h"
 
+VOID
+SrvOplockStateRundown(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvOplock2StateRundown(
+    PLWIO_SRV_FILE_2 pFile
+    );
+

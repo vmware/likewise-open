@@ -923,6 +923,21 @@ SrvReleaseOplockStateAsync(
     }
 }
 
+VOID
+SrvOplockStateRundown(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState  = NULL;
+
+    pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pFile);
+
+    if (pOplockState)
+    {
+        SrvReleaseOplockState(pOplockState);
+    }
+}
+
 
 /*
 local variables:
