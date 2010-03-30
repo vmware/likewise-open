@@ -31,6 +31,7 @@
 #include "includes.h"
 
 static LWMsgClient* gpClient = NULL;
+static LWMsgSession* gpSession = NULL;
 static PIO_CREDS gpProcessCreds = NULL;
 static pthread_mutex_t gLock = PTHREAD_MUTEX_INITIALIZER;
 static LW_LIST_LINKS gPathCreds = {&gPathCreds, &gPathCreds};
@@ -305,23 +306,22 @@ __LwIoThreadInit(
     void
     )
 {
-    const DWORD dwMaxConnections = 10;
     NTSTATUS Status = 0;
 
     LwIoInitialize();
 
-    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_new(NULL, gpLwIoProtocol, &gpClient));
+    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_new(NULL, gpLwIoProtocol, &gpClient));
     BAIL_ON_NT_STATUS(Status);
 
-    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_set_max_concurrent(
+    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_add_connect_endpoint(
                                             gpClient,
-                                            dwMaxConnections));
-    BAIL_ON_NT_STATUS(Status);
-
-    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_client_set_endpoint(
-                                            gpClient,
-                                            LWMSG_CONNECTION_MODE_LOCAL,
+                                            LWMSG_ENDPOINT_LOCAL,
                                             LWIO_SERVER_FILENAME));
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_connect(
+                                            gpClient,
+                                            &gpSession));
     BAIL_ON_NT_STATUS(Status);
 
     if (pthread_key_create(&gStateKey, LwIoThreadStateDestruct))
@@ -545,6 +545,7 @@ LwIoAcquireContext(
     LwIoThreadInit();
 
     pContext->pClient = gpClient;
+    pContext->pSession = gpSession;
 
     return Status;
 }
@@ -577,6 +578,7 @@ LwIoOpenContextShared(
     BAIL_ON_NT_STATUS(Status);
 
     pContext->pClient = gpClient;
+    pContext->pSession = gpSession;
 
     *ppContext = pContext;
 

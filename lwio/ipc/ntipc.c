@@ -539,3 +539,22 @@ NtIpcUnregisterFileHandle(
             FileHandle));
     return status;
 }
+
+
+NTSTATUS
+NtIpcReleaseFileHandle(
+    IN LWMsgCall* pCall,
+    IN IO_FILE_HANDLE FileHandle
+    )
+{
+    NTSTATUS status = 0;
+    LWMsgSession* pSession = NULL;
+
+    pSession = lwmsg_call_get_session(pCall);
+
+    status = NtIpcLWMsgStatusToNtStatus(
+        lwmsg_session_release_handle(
+            pSession,
+            FileHandle));
+    return status;
+}

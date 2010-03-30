@@ -428,6 +428,12 @@ NtIpcUnregisterFileHandle(
     IN IO_FILE_HANDLE FileHandle
     );
 
+NTSTATUS
+NtIpcReleaseFileHandle(
+    IN LWMsgCall* pCall,
+    IN IO_FILE_HANDLE FileHandle
+    );
+
 #endif /* __NT_IPC_MSG_H__ */
 
 

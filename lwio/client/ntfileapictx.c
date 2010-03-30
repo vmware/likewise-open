@@ -548,9 +548,10 @@ LwNtCtxCloseFile(
     assert(0 == ioStatusBlock.BytesTransferred);
     GOTO_CLEANUP_ON_STATUS_EE(status, EE);
 
-    status = NtIpcUnregisterFileHandle(pCall, FileHandle);
-
 cleanup:
+
+    /* Release file handle regardless of result */
+    lwmsg_session_release_handle(pConnection->pSession, FileHandle);
 
     if (pCall)
     {

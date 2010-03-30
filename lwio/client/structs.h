@@ -34,6 +34,7 @@
 struct __LW_IO_CONTEXT
 {
     LWMsgClient* pClient;
+    LWMsgSession* pSession;
 };
 
 typedef struct __LW_IO_THREAD_STATE
