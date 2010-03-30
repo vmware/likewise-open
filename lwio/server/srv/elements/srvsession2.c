@@ -96,6 +96,15 @@ SrvSession2RundownTreeRbTreeVisit(
     PBOOLEAN pbContinue
     );
 
+static
+NTSTATUS
+SrvSession2CountFilesTreeRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    );
+
 NTSTATUS
 SrvSession2Create(
     ULONG64              ullUid,
@@ -299,6 +308,31 @@ error:
     }
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvSession2GetFileCount(
+    PLWIO_SRV_SESSION_2 pSession,
+    PULONG64            pullNumOpenFiles
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    ULONG64  ullNumOpenFiles = 0;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    LwRtlRBTreeTraverse(
+            pSession->pTreeCollection,
+            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+            SrvSession2CountFilesTreeRbTreeVisit,
+            &ullNumOpenFiles);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    *pullNumOpenFiles = ullNumOpenFiles;
+
+    return ntStatus;
 }
 
 PLWIO_SRV_SESSION_2
@@ -529,6 +563,33 @@ SrvSession2RundownTreeRbTreeVisit(
 
     return STATUS_SUCCESS;
 }
+
+static
+NTSTATUS
+SrvSession2CountFilesTreeRbTreeVisit(
+    PVOID pKey,
+    PVOID pData,
+    PVOID pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_TREE_2 pTree = (PLWIO_SRV_TREE_2)pData;
+    PULONG64 pullFileCount = (PULONG64)pUserData;
+
+    if (pTree && pullFileCount)
+    {
+        ULONG64 ullNumOpenFiles = 0;
+
+        SrvTree2GetOpenFileCount(pTree, &ullNumOpenFiles);
+
+        *pullFileCount += ullNumOpenFiles;
+    }
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
+}
+
 
 /*
 local variables:

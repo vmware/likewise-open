@@ -260,6 +260,8 @@ SrvTreeCreateFile(
                     pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pTree->ulNumOpenFiles++;
+
     *ppFile = SrvFileAcquire(pFile);
 
 cleanup:
@@ -303,6 +305,8 @@ SrvTreeRemoveFile(
                     &fid);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pTree->ulNumOpenFiles--;
+
 cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
@@ -312,6 +316,27 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvTreeGetOpenFileCount(
+    PLWIO_SRV_TREE pTree,
+    PULONG         pulNumOpenFiles
+    )
+{
+    NTSTATUS ntStatus       = STATUS_SUCCESS;
+    BOOLEAN  bInLock        = FALSE;
+    ULONG    ulNumOpenFiles = 0;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->mutex);
+
+    ulNumOpenFiles = pTree->ulNumOpenFiles;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->mutex);
+
+    *pulNumOpenFiles = ulNumOpenFiles;
+
+    return ntStatus;
 }
 
 NTSTATUS
