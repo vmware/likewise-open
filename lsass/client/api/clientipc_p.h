@@ -55,6 +55,7 @@ typedef struct __LSA_CLIENT_CONNECTION_CONTEXT
 {
     LWMsgProtocol* pProtocol;
     LWMsgAssoc* pAssoc;
+    LWMsgSession* pSession;
 } LSA_CLIENT_CONNECTION_CONTEXT, *PLSA_CLIENT_CONNECTION_CONTEXT;
 
 DWORD

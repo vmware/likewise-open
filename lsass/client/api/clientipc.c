@@ -86,7 +86,10 @@ LsaOpenServer(
         BAIL_ON_LSA_ERROR(dwError);
     }
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_establish(pContext->pAssoc));
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_connect(pContext->pAssoc, NULL));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    dwError = MAP_LWMSG_ERROR(lwmsg_assoc_get_session(pContext->pAssoc, &pContext->pSession));
     BAIL_ON_LSA_ERROR(dwError);
 
     *phConnection = (HANDLE)pContext;
@@ -161,15 +164,15 @@ error:
 }
 
 DWORD
-LsaIpcUnregisterHandle(
-    LWMsgCall* pCall,
+LsaIpcReleaseHandle(
+    HANDLE hServer,
     PVOID pHandle
     )
 {
     DWORD dwError = 0;
-    LWMsgSession* pSession = lwmsg_call_get_session(pCall);
+    PLSA_CLIENT_CONNECTION_CONTEXT pContext = hServer;
 
-    dwError = MAP_LWMSG_ERROR(lwmsg_session_unregister_handle(pSession, pHandle));
+    dwError = MAP_LWMSG_ERROR(lwmsg_session_release_handle(pContext->pSession, pHandle));
     BAIL_ON_LSA_ERROR(dwError);
 
 error:
@@ -1338,12 +1341,9 @@ LsaTransactCloseEnum(
     LWMsgParams in = LWMSG_PARAMS_INITIALIZER;
     LWMsgParams out = LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
-    LWMsgSession* pSession = NULL;
 
     dwError = LsaIpcAcquireCall(hLsa, &pCall);
     BAIL_ON_LSA_ERROR(dwError);
-
-    pSession = lwmsg_call_get_session(pCall);
 
     in.tag = LSA2_Q_CLOSE_ENUM;
     in.data = hEnum;
@@ -1354,7 +1354,6 @@ LsaTransactCloseEnum(
     switch (out.tag)
     {
     case LSA2_R_CLOSE_ENUM:
-        lwmsg_session_unregister_handle(pSession, hEnum);
         break;
     case LSA2_R_ERROR:
         pError = (PLSA_IPC_ERROR) out.data;
@@ -1367,6 +1366,9 @@ LsaTransactCloseEnum(
     }
 
 cleanup:
+
+    /* Release handle no matter what */
+    LsaIpcReleaseHandle(hLsa, hEnum);
 
     if (pCall)
     {

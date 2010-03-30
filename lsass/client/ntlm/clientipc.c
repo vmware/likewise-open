@@ -49,6 +49,7 @@
 
 static LWMsgClient* gpClient = NULL;
 static LWMsgProtocol* gpProtocol = NULL;
+static LWMsgSession* gpSession = NULL;
 
 #if defined(__LWI_SOLARIS__) || defined (__LWI_AIX__)
 static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
@@ -85,6 +86,10 @@ __NtlmInitialize(VOID)
             CACHEDIR "/" NTLM_SERVER_FILENAME));
     BAIL_ON_LSA_ERROR(dwError);
 
+    dwError = LwMapLwmsgStatusToLwError(
+        lwmsg_peer_connect(gpClient, &gpSession));
+    BAIL_ON_LSA_ERROR(dwError);
+
     return;
 
 error:
@@ -119,16 +124,14 @@ error:
 }
 
 DWORD
-NtlmIpcUnregisterHandle(
-    LWMsgCall* pCall,
+NtlmIpcReleaseHandle(
     PVOID pHandle
     )
 {
     DWORD dwError = 0;
-    LWMsgSession* pSession = lwmsg_call_get_session(pCall);
 
     dwError = MAP_LWMSG_ERROR(
-        lwmsg_session_unregister_handle(pSession, pHandle));
+        lwmsg_session_release_handle(gpSession, pHandle));
     BAIL_ON_LSA_ERROR(dwError);
 
 error:
@@ -421,8 +424,6 @@ NtlmTransactDeleteSecurityContext(
     switch (Out.tag)
     {
         case NTLM_R_DELETE_SEC_CTXT_SUCCESS:
-            dwError = NtlmIpcUnregisterHandle(pCall, *phContext);
-            BAIL_ON_LSA_ERROR(dwError);
             break;
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
@@ -435,6 +436,9 @@ NtlmTransactDeleteSecurityContext(
     }
 
 cleanup:
+
+    NtlmIpcReleaseHandle(*phContext);
+
     if (pCall)
     {
         lwmsg_call_destroy_params(pCall, &Out);
@@ -629,8 +633,6 @@ NtlmTransactFreeCredentialsHandle(
     switch (Out.tag)
     {
         case NTLM_R_FREE_CREDS_SUCCESS:
-            dwError = NtlmIpcUnregisterHandle(pCall, *phCredential);
-            BAIL_ON_LSA_ERROR(dwError);
             break;
         case NTLM_R_GENERIC_FAILURE:
             pError = (PNTLM_IPC_ERROR) Out.data;
@@ -643,6 +645,9 @@ NtlmTransactFreeCredentialsHandle(
     }
 
 cleanup:
+
+    NtlmIpcReleaseHandle(*phCredential);
+
     if (pCall)
     {
         lwmsg_call_destroy_params(pCall, &Out);
