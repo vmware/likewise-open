@@ -47,6 +47,32 @@
 #include "includes.h"
 
 
+static
+NTSTATUS
+NetrEncryptChallenge(
+    OUT BYTE   EncryptedChal[8],
+    IN  BYTE   Challenge[8],
+    IN  BYTE   SessionKey[14]
+    );
+
+
+static
+NTSTATUS
+NetrPrepareDesKey(
+    IN  PBYTE  pInput,
+    OUT PBYTE  pOutput
+    );
+
+
+static
+NTSTATUS
+NetrEncryptSessionKey(
+    OUT BYTE   EncryptedSessKey[8],
+    IN  BYTE   SessionKey[8],
+    IN  BYTE   Key[16]
+    );
+
+
 VOID
 NetrCredentialsInit(
     OUT NetrCredentials *pCreds,
@@ -56,13 +82,14 @@ NetrCredentialsInit(
     IN  UINT32           NegFlags
     )
 {
-    struct md5context md5ctx;
-    hmac_md5_ctx hmacmd5ctx;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    HMAC_CTX HmacCtx;
+    MD5_CTX MD5Ctx;
 
     if (pCreds == NULL) return;
 
-    memset((void*)&md5ctx, 0, sizeof(md5ctx));
-    memset((void*)&hmacmd5ctx, 0, sizeof(hmacmd5ctx));
+    memset(&HmacCtx, 0, sizeof(HmacCtx));
+    memset(&MD5Ctx, 0, sizeof(MD5Ctx));
 
     pCreds->negotiate_flags = NegFlags;
     pCreds->channel_type    = SCHANNEL_WKSTA;  /* default schannel type */
@@ -71,40 +98,44 @@ NetrCredentialsInit(
     memcpy(pCreds->pass_hash, PassHash, sizeof(pCreds->pass_hash));
     memset(pCreds->session_key, 0, sizeof(pCreds->session_key));
 
-    if (pCreds->negotiate_flags & NETLOGON_NEG_128BIT) {
+    if (pCreds->negotiate_flags & NETLOGON_NEG_128BIT)
+    {
         BYTE Zero[4] = {0};
-        BYTE Digest[16];
+        BYTE Digest[16] = {0};
+        DWORD dwSessionKeyLen = sizeof(pCreds->session_key);
 
-        hmac_md5_init(&hmacmd5ctx,
-                      pCreds->pass_hash,
-                      sizeof(pCreds->pass_hash));
+        HMAC_CTX_init(&HmacCtx);
+        HMAC_Init_ex(&HmacCtx,
+                     pCreds->pass_hash, sizeof(pCreds->pass_hash),
+                     EVP_md5(), NULL);
 
-        md5init(&md5ctx);
-        md5update(&md5ctx, Zero, sizeof(Zero));
-        md5update(&md5ctx, CliChal, 8);
-        md5update(&md5ctx, SrvChal, 8);
-        md5final(&md5ctx, Digest);
+        MD5_Init(&MD5Ctx);
+        MD5_Update(&MD5Ctx, Zero, sizeof(Zero));
+        MD5_Update(&MD5Ctx, CliChal, 8);
+        MD5_Update(&MD5Ctx, SrvChal, 8);
+        MD5_Final(Digest, &MD5Ctx);
 
-        hmac_md5_update(&hmacmd5ctx,
-                        Digest,
-                        sizeof(Digest));
-        hmac_md5_final(&hmacmd5ctx,
-                       pCreds->session_key);
+        HMAC_Update(&HmacCtx, Digest, sizeof(Digest));
+        HMAC_Final(&HmacCtx, pCreds->session_key, &dwSessionKeyLen);
 
-        des112(pCreds->cli_chal.data,
-               CliChal,
-               pCreds->session_key);
-        des112(pCreds->srv_chal.data,
-               SrvChal,
-               pCreds->session_key);
+        ntStatus = NetrEncryptChallenge(pCreds->cli_chal.data,
+                                        CliChal,
+                                        pCreds->session_key);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = NetrEncryptChallenge(pCreds->srv_chal.data,
+                                        SrvChal,
+                                        pCreds->session_key);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pCreds->seed.data,
                pCreds->cli_chal.data,
                sizeof(pCreds->seed.data));
-
-    } else {
-        UINT32 Sum1[2];
-        BYTE Sum2[8];
+    }
+    else
+    {
+        UINT32 Sum1[2] = {0};
+        BYTE Sum2[8] = {0};
 
         Sum1[0] = GETUINT32(CliChal, 0) +
                   GETUINT32(SrvChal, 0);
@@ -118,20 +149,180 @@ NetrCredentialsInit(
                0,
                sizeof(pCreds->session_key));
 
-        des128(pCreds->session_key,
-               Sum2,
-               pCreds->pass_hash);
-        des112(pCreds->cli_chal.data,
-               CliChal,
-               pCreds->session_key);
-        des112(pCreds->srv_chal.data,
-               SrvChal,
-               pCreds->session_key);
+        ntStatus = NetrEncryptSessionKey(pCreds->session_key,
+                                         Sum2,
+                                         pCreds->pass_hash);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = NetrEncryptChallenge(pCreds->cli_chal.data,
+                                        CliChal,
+                                        pCreds->session_key);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = NetrEncryptChallenge(pCreds->srv_chal.data,
+                                        SrvChal,
+                                        pCreds->session_key);
+        BAIL_ON_NT_STATUS(ntStatus);
 
         memcpy(pCreds->seed.data,
                pCreds->cli_chal.data,
                sizeof(pCreds->seed.data));
     }
+
+error:
+    return;
+}
+
+
+static
+NTSTATUS
+NetrEncryptChallenge(
+    OUT BYTE   EncryptedChal[8],
+    IN  BYTE   Challenge[8],
+    IN  BYTE   SessionKey[14]
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DES_cblock KeyBlockLo;
+    DES_cblock KeyBlockHi;
+    DES_key_schedule KeyLo;
+    DES_key_schedule KeyHi;
+    BYTE InOutBuffer[8] = {0};
+    BYTE EncryptedChallenge[8] = {0};
+
+    memset(&KeyBlockLo, 0, sizeof(KeyBlockLo));
+    memset(&KeyBlockHi, 0, sizeof(KeyBlockHi));
+    memset(&KeyLo, 0, sizeof(KeyLo));
+    memset(&KeyHi, 0, sizeof(KeyHi));
+
+    ntStatus = NetrPrepareDesKey(&SessionKey[0],
+                                 (PBYTE)KeyBlockLo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    DES_set_odd_parity(&KeyBlockLo);
+    DES_set_key_unchecked(&KeyBlockLo, &KeyLo);
+
+    ntStatus = NetrPrepareDesKey(&SessionKey[7],
+                                 (PBYTE)KeyBlockHi);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    DES_set_odd_parity(&KeyBlockHi);
+    DES_set_key_unchecked(&KeyBlockHi, &KeyHi);
+
+    DES_ecb_encrypt((DES_cblock*)Challenge,
+                    (DES_cblock*)InOutBuffer,
+                    &KeyLo,
+                    DES_ENCRYPT);
+    DES_ecb_encrypt((DES_cblock*)InOutBuffer,
+                    (DES_cblock*)EncryptedChallenge,
+                    &KeyHi,
+                    DES_ENCRYPT);
+
+    memcpy(EncryptedChal, EncryptedChallenge, sizeof(EncryptedChallenge));
+
+cleanup:
+    memset(EncryptedChallenge, 0, sizeof(EncryptedChallenge));
+
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+NetrPrepareDesKey(
+    IN  PBYTE  pInput,
+    OUT PBYTE  pOutput
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DWORD i = 0;
+
+    BAIL_ON_INVALID_PTR(pInput, ntStatus);
+    BAIL_ON_INVALID_PTR(pOutput, ntStatus);
+
+    /*
+     * Expand the input 7x8 bits so that each 7 bits are
+     * appended with 1 bit space for parity bit and yield
+     * 8x8 bits ready to become a DES key
+     */
+    pOutput[0] = pInput[0] >> 1;
+    pOutput[1] = ((pInput[0]&0x01) << 6) | (pInput[1] >> 2);
+    pOutput[2] = ((pInput[1]&0x03) << 5) | (pInput[2] >> 3);
+    pOutput[3] = ((pInput[2]&0x07) << 4) | (pInput[3] >> 4);
+    pOutput[4] = ((pInput[3]&0x0F) << 3) | (pInput[4] >> 5);
+    pOutput[5] = ((pInput[4]&0x1F) << 2) | (pInput[5] >> 6);
+    pOutput[6] = ((pInput[5]&0x3F) << 1) | (pInput[6] >> 7);
+    pOutput[7] = pInput[6]&0x7F;
+
+    for (i = 0; i < 8; i++)
+    {
+        pOutput[i] = pOutput[i] << 1;
+    }
+
+cleanup:
+    return ntStatus;
+
+error:
+    goto cleanup;
+}
+
+
+static
+NTSTATUS
+NetrEncryptSessionKey(
+    OUT BYTE   EncryptedSessKey[8],
+    IN  BYTE   SessionKey[8],
+    IN  BYTE   Key[16]
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    DES_cblock KeyBlockLo;
+    DES_cblock KeyBlockHi;
+    DES_key_schedule KeyLo;
+    DES_key_schedule KeyHi;
+    BYTE InOutBuffer[8] = {0};
+    BYTE EncryptedSessionKey[8] = {0};
+
+    memset(&KeyBlockLo, 0, sizeof(KeyBlockLo));
+    memset(&KeyBlockHi, 0, sizeof(KeyBlockHi));
+    memset(&KeyLo, 0, sizeof(KeyLo));
+    memset(&KeyHi, 0, sizeof(KeyHi));
+
+    ntStatus = NetrPrepareDesKey(&Key[0],
+                                 (PBYTE)KeyBlockLo);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    DES_set_odd_parity(&KeyBlockLo);
+    DES_set_key_unchecked(&KeyBlockLo, &KeyLo);
+
+    ntStatus = NetrPrepareDesKey(&Key[8],
+                                 (PBYTE)KeyBlockHi);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    DES_set_odd_parity(&KeyBlockHi);
+    DES_set_key_unchecked(&KeyBlockHi, &KeyHi);
+
+    DES_ecb_encrypt((DES_cblock*)SessionKey,
+                    (DES_cblock*)InOutBuffer,
+                    &KeyLo,
+                    DES_ENCRYPT);
+    DES_ecb_encrypt((DES_cblock*)InOutBuffer,
+                    (DES_cblock*)EncryptedSessionKey,
+                    &KeyHi,
+                    DES_ENCRYPT);
+
+    memcpy(EncryptedSessKey, EncryptedSessionKey, sizeof(EncryptedSessionKey));
+
+cleanup:
+    memset(EncryptedSessKey, 0, sizeof(EncryptedSessKey));
+
+    return ntStatus;
+
+error:
+    goto cleanup;
 }
 
 
@@ -241,10 +432,90 @@ NetrGetNtHash(
 error:
     if (pwszPasswordLE)
     {
+        memset(pwszPasswordLE, 0, sPasswordSize + sizeof(pwszPasswordLE[0]));
         NetrFreeMemory(pwszPasswordLE);
     }
 
     return;
+}
+
+
+VOID
+NetrGetLmHash(
+    OUT BYTE    Hash[16],
+    IN  PCWSTR  pwszPassword
+    )
+{
+    const size_t sMaxPasswordLen = 14;
+    const BYTE InputData[] = "KGS!@#$%";
+
+    DWORD dwError = ERROR_SUCCESS;
+    size_t sPasswordLen = 0;
+    PSTR pszPassword = NULL;
+    DWORD i = 0;
+    DES_cblock KeyBlockLo;
+    DES_cblock KeyBlockHi;
+    DES_key_schedule KeyLo;
+    DES_key_schedule KeyHi;
+
+    memset(Hash, 0, sizeof(Hash));
+    memset(&KeyBlockLo, 0, sizeof(KeyBlockLo));
+    memset(&KeyBlockHi, 0, sizeof(KeyBlockHi));
+    memset(&KeyLo, 0, sizeof(KeyLo));
+    memset(&KeyHi, 0, sizeof(KeyHi));
+
+
+    /* password can be 14 characters long at most */
+    dwError = LwWc16sLen(pwszPassword, &sPasswordLen);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    if (sPasswordLen > sMaxPasswordLen)
+    {
+        goto error;
+    }
+
+    dwError = LwWc16sToMbs(pwszPassword, &pszPassword);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    for (i = 0; i < sPasswordLen; i++)
+    {
+        pszPassword[i] = (CHAR) toupper(pszPassword[i]);
+    }
+
+    dwError = NetrPrepareDesKey((PBYTE)&pszPassword[0],
+                                (PBYTE)KeyBlockLo);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    DES_set_odd_parity(&KeyBlockLo);
+    DES_set_key_unchecked(&KeyBlockLo, &KeyLo);
+
+    dwError = NetrPrepareDesKey((PBYTE)&pszPassword[7],
+                                (PBYTE)KeyBlockHi);
+    BAIL_ON_WIN_ERROR(dwError);
+
+    DES_set_odd_parity(&KeyBlockHi);
+    DES_set_key_unchecked(&KeyBlockHi, &KeyHi);
+
+    DES_ecb_encrypt((DES_cblock*)InputData,
+                    (DES_cblock*)&Hash[0],
+                    &KeyLo,
+                    DES_ENCRYPT);
+    DES_ecb_encrypt((DES_cblock*)InputData,
+                    (DES_cblock*)&Hash[8],
+                    &KeyHi,
+                    DES_ENCRYPT);
+
+    /*
+    des56(h, input, input_len, mbspass);
+    des56(&h[8], input, input_len, &mbspass[7]);
+    */
+
+error:
+    if (pszPassword)
+    {
+        memset(pszPassword, 0, sizeof(pszPassword[0]) * sPasswordLen);
+        NetrFreeMemory(pszPassword);
+    }
 }
 
 

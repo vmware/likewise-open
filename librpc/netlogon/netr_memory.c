@@ -377,7 +377,7 @@ NetrAllocateLogonPasswordInfo(
     BAIL_ON_INVALID_PTR(pdwSize, ntStatus);
 
     /* Create password hashes (NT and LM) */
-    deshash(LmHash, pwszPassword);
+    NetrGetLmHash(LmHash, pwszPassword);
     NetrGetNtHash(NtHash, pwszPassword);
 
     RC4_set_key(&RC4Key,

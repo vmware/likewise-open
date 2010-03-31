@@ -42,7 +42,11 @@
 #include <wc16str.h>
 #include <wc16printf.h>
 #include <openssl/md4.h>
+#include <openssl/md5.h>
 #include <openssl/rc4.h>
+#include <openssl/hmac.h>
+#include <openssl/des.h>
+#include <openssl/rand.h>
 #include <lw/ntstatus.h>
 #include <lw/winerror.h>
 #include <lwmem.h>

@@ -67,6 +67,13 @@ NetrGetNtHash(
     );
 
 
+VOID
+NetrGetLmHash(
+    OUT BYTE    Hash[16],
+    IN  PCWSTR  pwszPassword
+    );
+
+
 #endif /* _NETR_CREDENTIALS_H_ */
 
 

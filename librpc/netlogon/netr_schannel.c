@@ -76,7 +76,12 @@ NetrOpenSchannel(
 
     NetrGetNtHash(PassHash, pwszMachinePassword);
 
-    get_random_buffer((UINT8*)CliChal, sizeof(CliChal));
+    if (!RAND_bytes((unsigned char*)CliChal, sizeof(CliChal)))
+    {
+        dwError = ERROR_ENCRYPTION_FAILED;
+        BAIL_ON_WIN_ERROR(dwError);
+    }
+
     ntStatus = NetrServerReqChallenge(hNetrBinding,
                                       pwszServer,
                                       pwszComputer,
