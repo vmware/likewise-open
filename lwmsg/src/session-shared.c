@@ -712,6 +712,11 @@ shared_register_handle_local(
     SharedSession* my_session = SHARED_SESSION(session);
     SharedHandleKey key = {0};
 
+    if (!pointer)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
+    }
+
     session_lock(my_session);
 
     if (lwmsg_hash_get_count(&my_session->handle_by_id) == UINT32_MAX)
@@ -757,12 +762,19 @@ shared_retain_handle(
     SharedHandle* handle = NULL;
     SharedSession* my_session = SHARED_SESSION(session);
 
+    if (!ptr)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
+    }
+
     session_lock(my_session);
 
     handle = shared_find_handle_by_ptr(my_session, ptr);
     handle->refs++;
 
     session_unlock(my_session);
+
+error:
 
     return status;
 }
@@ -778,6 +790,11 @@ shared_release_handle(
     SharedHandle* handle = NULL;
     SharedSession* my_session = SHARED_SESSION(session);
 
+    if (!ptr)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
+    }
+
     session_lock(my_session);
 
     handle = shared_find_handle_by_ptr(my_session, ptr);
@@ -787,6 +804,8 @@ shared_release_handle(
     }
 
     session_unlock(my_session);
+
+error:
 
     return status;
 }
@@ -801,6 +820,11 @@ shared_unregister_handle(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     SharedHandle* handle = NULL;
     SharedSession* my_session = SHARED_SESSION(session);
+
+    if (!ptr)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
+    }
 
     session_lock(my_session);
 
@@ -842,6 +866,11 @@ shared_handle_pointer_to_id(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     SharedHandle* handle = NULL;
     SharedSession* my_session = SHARED_SESSION(session);
+
+    if (!pointer)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_HANDLE);
+    }
 
     session_lock(my_session);
 
