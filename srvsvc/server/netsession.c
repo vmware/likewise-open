@@ -362,9 +362,23 @@ error:
         }
     }
 
-    if (ntStatus != STATUS_SUCCESS)
+    switch (ntStatus)
     {
-        dwError = LwNtStatusToWin32Error(ntStatus);
+        case STATUS_SUCCESS:
+
+            break;
+
+        case STATUS_INVALID_COMPUTER_NAME:
+
+            dwError = NERR_InvalidComputer;
+
+            break;
+
+        default:
+
+            dwError = LwNtStatusToWin32Error(ntStatus);
+
+            break;
     }
 
     if (pInfo)
