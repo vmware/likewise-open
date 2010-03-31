@@ -1102,79 +1102,6 @@ error:
 
 
 
-int TestNetlogonCredentials(struct test *t, const wchar16_t *hostname,
-                            const wchar16_t *user, const wchar16_t *pass,
-                            struct parameter *options, int optcount)
-{
-    PCSTR pszDefComputer = "TEST";
-    PCSTR pszDefMachpass = "secret01$";
-    PCSTR pszDefCliChal = "0123";
-    PCSTR pszDefSrvChal = "4567";
-
-    BOOLEAN bRet = TRUE;
-    enum param_err perr = perr_success;
-    PWSTR pwszMachpass = NULL;
-    PWSTR pwszComputer = NULL;
-    PCHAR pCliChal = NULL;
-    PCHAR pSrvChal = NULL;
-    size_t sCliChalLen = 0;
-    size_t sSrvChalLen = 0;
-    BYTE CliChal[8] = {0};
-    BYTE SrvChal[8] = {0};
-    BYTE PassHash[16] = {0};
-    NetrCredentials Creds;
-
-    memset(&Creds, 0, sizeof(Creds));
-
-    TESTINFO(t, hostname, user, pass);
-
-    perr = fetch_value(options, optcount, "computer", pt_w16string, &pwszComputer,
-                       &pszDefComputer);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "machpass", pt_w16string, &pwszMachpass,
-                       &pszDefMachpass);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "clichal", pt_string, &pCliChal,
-                       &pszDefCliChal);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    perr = fetch_value(options, optcount, "srvchal", pt_string, &pSrvChal,
-                       &pszDefSrvChal);
-    if (!perr_is_ok(perr)) perr_fail(perr);
-
-    PARAM_INFO("machpass", pt_w16string, pwszMachpass);
-    PARAM_INFO("clichal", pt_string, pCliChal);
-    PARAM_INFO("srvchal", pt_string, pSrvChal);
-
-    md4hash(PassHash, pwszMachpass);
-
-    sCliChalLen = strlen(pCliChal);
-    sCliChalLen = (sCliChalLen > sizeof(pCliChal)) ? sizeof(pCliChal) : sCliChalLen;
-    sSrvChalLen = strlen(pSrvChal);
-    sSrvChalLen = (sSrvChalLen > sizeof(pSrvChal)) ? sizeof(pSrvChal) : sSrvChalLen;
-
-    memset(CliChal, 0, sizeof(CliChal));
-    memset(SrvChal, 0, sizeof(SrvChal));
-    memcpy(CliChal, pCliChal, sCliChalLen);
-    memcpy(SrvChal, pSrvChal, sSrvChalLen);
-
-    NetrCredentialsInit(&Creds, CliChal, SrvChal, PassHash,
-                        NETLOGON_NET_ADS_FLAGS);
-
-done:
-    RELEASE_SESSION_CREDS;
-
-    LW_SAFE_FREE_MEMORY(pwszComputer);
-    LW_SAFE_FREE_MEMORY(pwszMachpass);
-    LW_SAFE_FREE_MEMORY(pCliChal);
-    LW_SAFE_FREE_MEMORY(pSrvChal);
-
-    return bRet;
-}
-
-
 int TestNetlogonEnumTrustedDomains(struct test *t, const wchar16_t *hostname,
                                    const wchar16_t *user, const wchar16_t *pass,
                                    struct parameter *options, int optcount)
@@ -1375,7 +1302,6 @@ error:
 
 void SetupNetlogonTests(struct test *t)
 {
-    AddTest(t, "NETR-CREDS-TEST", TestNetlogonCredentials);
     AddTest(t, "NETR-ENUM-TRUSTED-DOM" , TestNetlogonEnumTrustedDomains);
     AddTest(t, "NETR-DSR-ENUM-DOMTRUSTS", TestNetlogonEnumDomainTrusts);
     AddTest(t, "NETR-SAM-LOGON", TestNetlogonSamLogon);

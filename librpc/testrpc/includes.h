@@ -20,6 +20,8 @@
 #include <lwio/lwio.h>
 #include <lwps/lwps.h>
 #include <lwnet.h>
+#include <openssl/rc4.h>
+#include <openssl/md5.h>
 
 #include <lwrpc/types.h>
 #include <lwrpc/allocate.h>
