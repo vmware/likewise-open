@@ -99,13 +99,6 @@ SrvIoCreateFile(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    /* Empirical testing implies that the WRITE_DAC|WRITE_OWNER
-       bits are not enforced in Share ACLs.  For example, it
-       is possible to update the SD on a file on a "ReadOnly"
-       Windows 2008 Share if the NTFS permissions allow it */
-
-    GrantedAccess |= (WRITE_DAC|WRITE_OWNER);
-
     /* Special access requirements for specific CreateDispositions */
 
     switch (CreateDisposition)
