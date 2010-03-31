@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-20010
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,83 +33,43 @@
  *
  * Module Name:
  *
- *        net_localgroupgetinfo.c
+ *        net_crypto.h
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Client Interface
  *
- *        Network Management API, aka LanMan API (rpc client library)
+ *        NetAPI cryptographic functions.
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
-#include <wchar.h>
-#include <time.h>
-#include <pthread.h>
-#include <errno.h>
-#include <sys/utsname.h>
 
-#include <wc16str.h>
-#include <wc16printf.h>
-#include <gssapi/gssapi.h>
-#include <keytab.h>
-#include <dce/rpc.h>
-#include <dce/smb.h>
-#include <lw/ntstatus.h>
-#include <lw/winerror.h>
-#include <lwldap-error.h>
-#include <lwmem.h>
-#include <lwstr.h>
-#include <lwtime.h>
-#include <openssl/md4.h>
-#include <openssl/md5.h>
-#include <openssl/rc4.h>
-#include <openssl/rand.h>
-#include <openssl/des.h>
-#include <ldap.h>
-#include <lwps/lwps.h>
-#include <lwio/lwio.h>
+DWORD
+NetGetNtPasswordHash(
+    IN  PCWSTR  pwszPassword,
+    OUT PBYTE   pNtHash,
+    IN  DWORD   dwNtHashSize
+    );
 
-#include <lwrpc/types.h>
-#include <lwrpc/unicodestring.h>
-#include <lwrpc/samr.h>
-#include <lwrpc/lsa.h>
-#include <lwrpc/netlogon.h>
-#include <lwrpc/allocate.h>
-#include <lwrpc/memptr.h>
-#include <lwrpc/sidhelper.h>
-#include <lwrpc/LM.h>
 
-#include <random.h>
-#include <crypto.h>
-#include <md5.h>
-#include <rc4.h>
-#include <des.h>
+DWORD
+NetEncodePasswordBuffer(
+    IN  PCWSTR  pwszPassword,
+    OUT PBYTE   pBlob,
+    IN  DWORD   dwBlobSize
+    );
 
-#include "net_connection.h"
-#include "net_user.h"
-#include "net_util.h"
-#include "net_memory.h"
-#include "net_hostinfo.h"
-#include "net_info.h"
-#include "net_userinfo.h"
-#include "net_groupinfo.h"
-#include "net_memberinfo.h"
-#include "net_getdcname.h"
-#include "net_crypto.h"
-#include "ldaputil.h"
-#include "joinlocal.h"
-#include "unjoinlocal.h"
-#include "machinepassword.h"
-#include "externs.h"
 
+DWORD
+NetEncryptNtHashVerifier(
+    IN  PBYTE    pNewNtHash,
+    IN  DWORD    dwNewNtHashLen,
+    IN  PBYTE    pOldNtHash,
+    IN  DWORD    dwOldNtHashLen,
+    OUT PBYTE    pNtVerifier,
+    IN  DWORD    dwNtVerifierSize
+    );
 
 
 /*

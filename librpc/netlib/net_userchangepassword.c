@@ -47,16 +47,14 @@ NetUserChangePassword(
     PWSTR pwszUser = NULL;
     size_t sOldPasswordLen = 0;
     size_t sNewPasswordLen = 0;
-    BYTE OldNtHash[16];
-    BYTE NewNtHash[16];
-    BYTE NtPasswordBuffer[516];
-    BYTE NtVerHash[16];
+    BYTE OldNtHash[16] = {0};
+    BYTE NewNtHash[16] = {0};
+    BYTE NtPasswordBuffer[516] = {0};
+    BYTE NtVerHash[16] = {0};
+    RC4_KEY RC4Key;
     PIO_CREDS pCreds = NULL;
 
-    memset(OldNtHash, 0, sizeof(OldNtHash));
-    memset(NewNtHash, 0, sizeof(NewNtHash));
-    memset(NtPasswordBuffer, 0, sizeof(NtPasswordBuffer));
-    memset(NtVerHash, 0, sizeof(NtVerHash));
+    memset(&RC4Key, 0, sizeof(RC4Key));
 
     BAIL_ON_INVALID_PTR(pwszDomainName, err);
     BAIL_ON_INVALID_PTR(pwszUserName, err);
@@ -85,16 +83,30 @@ NetUserChangePassword(
     BAIL_ON_WIN_ERROR(err);
 
     /* prepare NT password hashes */
-    md4hash(OldNtHash, pwszOldPassword);
-    md4hash(NewNtHash, pwszNewPassword);
+    err = NetGetNtPasswordHash(pwszOldPassword,
+                               OldNtHash,
+                               sizeof(OldNtHash));
+    BAIL_ON_WIN_ERROR(err);
+
+    err = NetGetNtPasswordHash(pwszNewPassword,
+                               NewNtHash,
+                               sizeof(NewNtHash));
+    BAIL_ON_WIN_ERROR(err);
 
     /* encode password buffer */
-    EncodePassBufferW16(NtPasswordBuffer, pwszNewPassword);
-    rc4(NtPasswordBuffer, 516, OldNtHash, 16);
+    err = NetEncodePasswordBuffer(pwszNewPassword,
+                                  NtPasswordBuffer,
+                                  sizeof(NtPasswordBuffer));
+    BAIL_ON_WIN_ERROR(err);
+
+    RC4_set_key(&RC4Key, 16, (unsigned char*)OldNtHash);
+    RC4(&RC4Key, sizeof(NtPasswordBuffer), NtPasswordBuffer, NtPasswordBuffer);
 
     /* encode NT verifier */
-    des56(NtVerHash, OldNtHash, 8, NewNtHash);
-    des56(&NtVerHash[8], &OldNtHash[8], 8, &NewNtHash[7]);
+    err = NetEncryptNtHashVerifier(NewNtHash, sizeof(NewNtHash),
+                                   OldNtHash, sizeof(OldNtHash),
+                                   NtVerHash, sizeof(NtVerHash));
+    BAIL_ON_WIN_ERROR(err);
 
     ntStatus = SamrChangePasswordUser2(hSamrBinding,
                                        pwszDomain,
@@ -115,6 +127,10 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pszHostname);
     LW_SAFE_FREE_MEMORY(pwszDomain);
     LW_SAFE_FREE_MEMORY(pwszUser);
+
+    memset(OldNtHash, 0, sizeof(OldNtHash));
+    memset(NewNtHash, 0, sizeof(NewNtHash));
+    memset(NtPasswordBuffer, 0, sizeof(NtPasswordBuffer));
 
     if (pCreds)
     {

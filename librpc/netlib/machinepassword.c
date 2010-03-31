@@ -36,11 +36,21 @@
 
 #include "includes.h"
 
+
+static
+VOID
+GenerateRandomString(
+    PWSTR   pwszBuffer,
+    size_t  sBufferLen
+    );
+
+
 static
 DWORD
 CharacterClassesInPassword(
     const wchar16_t *password,
     size_t len);
+
 
 static WINERR SavePrincipalKey(const wchar16_t *name, const wchar16_t *pass,
                                UINT32 pass_len, const wchar16_t *realm,
@@ -431,7 +441,7 @@ GenerateMachinePassword(
     password[0] = '\0';
     do
     {
-        get_random_string_w16(password, len);
+        GenerateRandomString(password, len);
 
         dwGenerationAttempts++;
 
@@ -442,6 +452,52 @@ GenerateMachinePassword(
     {
         abort();
     }
+}
+
+
+static
+const CHAR
+RandomCharsSet[] = "abcdefghijklmnoprstuvwxyz"
+                   "ABCDEFGHIJKLMNOPRSTUVWXYZ"
+                   "-+/*,.;:!<=>%'&()0123456789";
+
+static
+VOID
+GenerateRandomString(
+    PWSTR   pwszBuffer,
+    size_t  sBufferLen
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+    PBYTE pBuffer = NULL;
+    DWORD i = 0;
+
+    dwError = LwAllocateMemory(sizeof(pBuffer[0]) * sBufferLen,
+                               OUT_PPVOID(&pBuffer));
+    BAIL_ON_WIN_ERROR(dwError);
+
+    if (!RAND_bytes((unsigned char*)pBuffer, (int)sBufferLen))
+    {
+        goto error;
+    }
+
+    for (i = 0; i < sBufferLen - 1; i++)
+    {
+        DWORD iChar = pBuffer[i] % (sizeof(RandomCharsSet) - 1);
+        pwszBuffer[i] = (WCHAR)RandomCharsSet[iChar];
+    }
+
+    pwszBuffer[sBufferLen - 1] = (WCHAR)'\0';
+
+cleanup:
+    LW_SAFE_FREE_MEMORY(pBuffer);
+
+    return;
+
+error:
+    memset(pwszBuffer, 0, sizeof(pwszBuffer[0] * sBufferLen));
+
+    goto cleanup;
 }
 
 static

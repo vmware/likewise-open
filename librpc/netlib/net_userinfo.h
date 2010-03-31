@@ -75,9 +75,10 @@ NetAllocateSamrUserInfo(
     );
 
 
-NTSTATUS
-NetEncPasswordEx(
-    BYTE       PasswordBuffer[532],
+DWORD
+NetEncryptPasswordBufferEx(
+    PBYTE      pPasswordBuffer,
+    DWORD      dwPasswordBufferSize,
     PWSTR      pwszPassword,
     DWORD      dwPasswordLen,
     PNET_CONN  pConn

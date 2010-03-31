@@ -1348,9 +1348,10 @@ error:
 }
 
 
-NTSTATUS
-NetEncPasswordEx(
-    BYTE       PasswordBuffer[532],
+DWORD
+NetEncryptPasswordBufferEx(
+    PBYTE      pPasswordBuffer,
+    DWORD      dwPasswordBufferSize,
     PWSTR      pwszPassword,
     DWORD      dwPasswordLen,
     PNET_CONN  pConn
@@ -1360,20 +1361,33 @@ NetEncPasswordEx(
     WINERR err = ERROR_SUCCESS;
     MD5_CTX ctx;
     RC4_KEY rc4_key;
-    BYTE InitValue[16];
-    BYTE DigestedSessKey[16];
+    BYTE InitValue[16] = {0};
+    BYTE DigestedSessKey[16] = {0};
+    BYTE PasswordBuffer[532] = {0};
 
-    BAIL_ON_INVALID_PTR(PasswordBuffer, err);
+    BAIL_ON_INVALID_PTR(pPasswordBuffer, err);
     BAIL_ON_INVALID_PTR(pwszPassword, err);
     BAIL_ON_INVALID_PTR(pConn, err);
 
+    if (dwPasswordBufferSize < sizeof(PasswordBuffer))
+    {
+        err = ERROR_INSUFFICIENT_BUFFER;
+        BAIL_ON_WIN_ERROR(err);
+    }
+
     memset(&ctx, 0, sizeof(ctx));
-    memset(InitValue, 0, sizeof(InitValue));
-    memset(DigestedSessKey, 0, sizeof(DigestedSessKey));
+    memset(&rc4_key, 0, sizeof(rc4_key));
 
-    EncodePassBufferW16(PasswordBuffer, pwszPassword);
+    err = NetEncodePasswordBuffer(pwszPassword,
+                                  PasswordBuffer,
+                                  sizeof(PasswordBuffer));
+    BAIL_ON_WIN_ERROR(err);
 
-    get_random_buffer((unsigned char*)InitValue, sizeof(InitValue));
+    if (!RAND_bytes((unsigned char*)InitValue, sizeof(InitValue)))
+    {
+        err = ERROR_ENCRYPTION_FAILED;
+        BAIL_ON_WIN_ERROR(err);
+    }
 
     MD5_Init(&ctx);
     MD5_Update(&ctx, InitValue, 16);
@@ -1381,11 +1395,22 @@ NetEncPasswordEx(
     MD5_Final(DigestedSessKey, &ctx);
 
     RC4_set_key(&rc4_key, 16, (unsigned char*)DigestedSessKey);
-    RC4(&rc4_key, 516, (PBYTE)PasswordBuffer, (PBYTE)PasswordBuffer);
+    RC4(&rc4_key, 516, PasswordBuffer, PasswordBuffer);
+
     memcpy((PVOID)&PasswordBuffer[516], InitValue, 16);
 
+    memcpy(pPasswordBuffer, PasswordBuffer, sizeof(PasswordBuffer));
+
 cleanup:
-    return status;
+    memset(PasswordBuffer, 0, sizeof(PasswordBuffer));
+
+    if (err == ERROR_SUCCESS &&
+        status != STATUS_SUCCESS)
+    {
+        err = LwNtStatusToWin32Error(status);
+    }
+
+    return err;
 
 error:
     goto cleanup;
@@ -3052,11 +3077,12 @@ NetAllocateSamrUserInfo26FromPassword(
                      (size_t*)&dwPasswordLen);
     BAIL_ON_WIN_ERROR(err);
 
-    status = NetEncPasswordEx(PasswordBuffer,
-                              pwszPassword,
-                              dwPasswordLen,
-                              pConn);
-    BAIL_ON_NT_STATUS(status);
+    err = NetEncryptPasswordBufferEx(PasswordBuffer,
+                                        sizeof(PasswordBuffer),
+                                        pwszPassword,
+                                        dwPasswordLen,
+                                        pConn);
+    BAIL_ON_WIN_ERROR(err);
 
     err = NetAllocBufferFixedBlob(&pCursor,
                                   &dwSpaceLeft,

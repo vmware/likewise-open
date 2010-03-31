@@ -2,13 +2,14 @@ librpc_srcdir = $(top_srcdir)
 
 lib_LTLIBRARIES = libnetapi.la
 
-libnetapi_la_SOURCES =                \
+libnetapi_la_SOURCES =            \
     globals.c                     \
     net_connection.c              \
     net_memory.c                  \
     net_userinfo.c                \
     net_groupinfo.c               \
     net_memberinfo.c              \
+    net_crypto.c                  \
     net_userenum.c                \
     net_useradd.c                 \
     net_userdel.c                 \

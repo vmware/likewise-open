@@ -196,14 +196,14 @@ SetMachinePassword(
     wchar16_t      *password
     )
 {
-	NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
     WINERR err = ERROR_SUCCESS;
-	handle_t samr_b = NULL;
-	UINT32 level = 0;
+    handle_t samr_b = NULL;
+    UINT32 level = 0;
     UINT32 password_len = 0;
-	UserInfo25 *info25 = NULL;
-	UserInfo26 *info26 = NULL;
-	UserInfo pwinfo;
+    UserInfo25 *info25 = NULL;
+    UserInfo26 *info26 = NULL;
+    UserInfo pwinfo;
     UnicodeString *full_name = NULL;
 
     memset((void*)&pwinfo, 0, sizeof(pwinfo));
@@ -213,45 +213,59 @@ SetMachinePassword(
     BAIL_ON_INVALID_PTR(name, err);
     BAIL_ON_INVALID_PTR(password, err);
 
-	samr_b       = pConn->Rpc.Samr.hBinding;
-	password_len = wc16slen(password);
+    samr_b       = pConn->Rpc.Samr.hBinding;
+    password_len = wc16slen(password);
 
-	if (new) {
-		/* set account password */
-		info25 = &pwinfo.info25;
-		status = NetEncPasswordEx(info25->password.data, password,
-                                  password_len, pConn);
-        BAIL_ON_NT_STATUS(status);
+    if (new) {
+        /* set account password */
+        info25 = &pwinfo.info25;
+        err = NetEncryptPasswordBufferEx(info25->password.data,
+                                         sizeof(info25->password.data),
+                                         password,
+                                         password_len,
+                                         pConn);
+        BAIL_ON_WIN_ERROR(err);
 
         full_name = &info25->info.full_name;
 
-		/* this clears ACB_DISABLED flag and thus makes the account
-		   active with password timeout reset */
-		info25->info.account_flags = ACB_WSTRUST;
-		status = InitUnicodeString(full_name, name);
+        /*
+         * This clears ACB_DISABLED flag and thus makes the account
+         * active with password timeout reset
+         */
+        info25->info.account_flags = ACB_WSTRUST;
+        status = InitUnicodeString(full_name, name);
         BAIL_ON_NT_STATUS(status);
 
-		info25->info.fields_present = SAMR_FIELD_FULL_NAME |
+        info25->info.fields_present = SAMR_FIELD_FULL_NAME |
                                       SAMR_FIELD_ACCT_FLAGS |
                                       SAMR_FIELD_PASSWORD;
-		level = 25;
+        level = 25;
 
 	} else {
-		/* set account password */
-		info26 = &pwinfo.info26;
-		status = NetEncPasswordEx(info26->password.data, password,
-                               password_len, pConn);
-        BAIL_ON_NT_STATUS(status);
+        /* set account password */
+        info26 = &pwinfo.info26;
+        err = NetEncryptPasswordBufferEx(info26->password.data,
+                                         sizeof(info26->password.data),
+                                         password,
+                                         password_len,
+                                         pConn);
+        BAIL_ON_WIN_ERROR(err);
 
-		level = 26;
-	}
+        level = 26;
+    }
 
-	status = SamrSetUserInfo(samr_b, hAccount, level, &pwinfo);
+    status = SamrSetUserInfo(samr_b, hAccount, level, &pwinfo);
     BAIL_ON_NT_STATUS(status);
 
 cleanup:
     if (full_name) {
         FreeUnicodeString(full_name);
+    }
+
+    if (status == STATUS_SUCCESS &&
+        err != ERROR_SUCCESS)
+    {
+        status = LwWin32ErrorToNtStatus(err);
     }
 
     return status;
