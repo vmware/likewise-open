@@ -4,9 +4,9 @@
 
 Likewise Open has several goals:
 
-(a) Simply the process of joining non-Microsoft hosts to Active Directory
+(a) Simplify the process of joining non-Microsoft hosts to Active Directory
     domains,
-(b) Simply the management of these hosts, and
+(b) Simplify the management of these hosts, and
 (c) Provide a rich development platform for writing applications in
     heterogeneous networks.
 
