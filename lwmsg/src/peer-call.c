@@ -87,11 +87,6 @@ lwmsg_peer_call_thunk(
         if (call->state & PEER_CALL_COMPLETED)
         {
             /* The call was already completed */
-            incoming_message.tag = call->params.incoming.in.tag;
-            incoming_message.data = call->params.incoming.in.data;
-
-            lwmsg_assoc_destroy_message(call->task->assoc, &incoming_message);
-
             lwmsg_task_wake(call->task->event_task);
         }
         else if ((call->state & PEER_CALL_CANCELLED) &&
@@ -217,15 +212,28 @@ lwmsg_peer_call_dispatch_outgoing(
 
     BAIL_ON_ERROR(status = pcall->task->status);
 
+    /* Are we out of cookie slots? */
+    if (lwmsg_hash_get_count(&pcall->task->outgoing_calls) == ((LWMsgCookie) -1) + 1)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_BUSY);
+    }
+
     pcall->state = PEER_CALL_NONE;
-    pcall->is_outgoing = LWMSG_TRUE;
     pcall->params.outgoing.complete = complete;
     pcall->params.outgoing.complete_data = data;
     pcall->params.outgoing.in = input;
     pcall->params.outgoing.out = output;
-    pcall->cookie = pcall->task->next_cookie++;
     pcall->status = LWMSG_STATUS_SUCCESS;
-    lwmsg_ring_enqueue(&pcall->task->calls, &pcall->ring);
+
+    /* Find an unused cookie */
+    while (lwmsg_hash_find_key(&pcall->task->outgoing_calls, (const void*) &pcall->task->next_cookie))
+    {
+        pcall->task->next_cookie++;
+    }
+
+    pcall->cookie = pcall->task->next_cookie++;
+
+    lwmsg_hash_insert_entry(&pcall->task->outgoing_calls, pcall);
 
     lwmsg_task_wake(pcall->task->event_task);
 
@@ -281,25 +289,17 @@ lwmsg_peer_call_complete_incoming(
 {
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PeerCall* pcall = PEER_CALL(call);
-    LWMsgMessage message = LWMSG_MESSAGE_INITIALIZER;
 
     pthread_mutex_lock(&pcall->task->call_lock);
 
     pcall->status = call_status;
     pcall->state |= PEER_CALL_COMPLETED;
 
-    /* Only free data and wake up the task
-       if the dispatch function has finished running.
-       Otherwise, these steps will be performed once
-       the dispatch function is finished */
+    /* Only wake up the task if the dispatch function
+       has finished running. Otherwise, these steps will be
+       performed once the dispatch function is finished */
     if (pcall->state & PEER_CALL_DISPATCHED)
     {
-        /* Destroy parameters to call */
-        message.tag = pcall->params.incoming.in.tag;
-        message.data = pcall->params.incoming.in.data;
-
-        lwmsg_assoc_destroy_message(pcall->task->assoc, &message);
-
         lwmsg_task_wake(pcall->task->event_task);
     }
 
@@ -424,7 +424,6 @@ lwmsg_peer_call_release_outgoing(
     else
     {
         delete = LWMSG_TRUE;
-        lwmsg_ring_remove(&pcall->ring);
     }
     pthread_mutex_unlock(&task->call_lock);
 
@@ -481,11 +480,6 @@ lwmsg_peer_call_acquire_callback(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     PeerCall* pcall = PEER_CALL(call);
     PeerCall* my_callback = NULL;
-
-    if (pcall->is_outgoing)
-    {
-        BAIL_ON_ERROR(status = LWMSG_STATUS_INVALID_PARAMETER);
-    }
 
     BAIL_ON_ERROR(status = lwmsg_peer_call_new(pcall->task, &my_callback));
 
@@ -545,8 +539,6 @@ lwmsg_peer_call_delete(
     PeerCall* call
     )
 {
-    lwmsg_ring_remove(&call->ring);
-
     if (call->task)
     {
         lwmsg_peer_task_unref(call->task);

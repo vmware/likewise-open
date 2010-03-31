@@ -59,7 +59,7 @@ lwmsg_assoc_marshal_handle(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     void* pointer = NULL;
     LWMsgHandleType location;
-    unsigned long handle;
+    LWMsgHandleID handle;
     LWMsgAssoc* assoc = NULL;
     LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;
@@ -331,7 +331,7 @@ lwmsg_assoc_print_handle(
     LWMsgStatus status = LWMSG_STATUS_SUCCESS;
     void* pointer = NULL;
     LWMsgHandleType location;
-    unsigned long handle;
+    LWMsgHandleID handle;
     LWMsgAssoc* assoc = NULL;
     LWMsgSessionManager* manager = NULL;
     LWMsgSession* session = NULL;

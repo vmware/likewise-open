@@ -620,3 +620,220 @@ lwmsg_sendmsg_timeout(
     return sendmsg(sock, msg, flags);
 }
 #endif
+
+static
+LWMsgRing*
+lwmsg_hash_ring_from_entry(
+    LWMsgHashTable* table,
+    void* entry
+    )
+{
+    return (LWMsgRing*) ((unsigned char*) entry + table->ring_offset);
+}
+
+static
+void*
+lwmsg_hash_entry_from_ring(
+    LWMsgHashTable* table,
+    LWMsgRing* ring
+    )
+{
+    return (void*) ((unsigned char*) ring - table->ring_offset);
+}
+
+LWMsgStatus
+lwmsg_hash_init(
+    LWMsgHashTable* table,
+    size_t capacity,
+    LWMsgHashGetKeyFunc get_key,
+    LWMsgHashDigestFunc digest,
+    LWMsgHashEqualFunc equal,
+    size_t ring_offset
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    size_t i = 0;
+
+    table->count = 0;
+    table->capacity = capacity;
+    table->get_key = get_key;
+    table->digest = digest;
+    table->equal = equal;
+    table->ring_offset = ring_offset;
+
+    BAIL_ON_ERROR(status = LWMSG_ALLOC_ARRAY(capacity, &table->buckets));
+
+    for (i = 0; i < capacity; i++)
+    {
+        lwmsg_ring_init(&table->buckets[i]);
+    }
+
+error:
+
+    return status;
+}
+
+size_t
+lwmsg_hash_get_count(
+    LWMsgHashTable* table
+    )
+{
+    return table->count;
+}
+
+void
+lwmsg_hash_insert_entry(
+    LWMsgHashTable* table,
+    void* entry
+    )
+{
+    void* key = table->get_key(entry);
+    size_t hash = table->digest(key);
+    LWMsgRing* bucket = &table->buckets[hash % table->capacity];
+    LWMsgRing* ring = lwmsg_hash_ring_from_entry(table, entry);
+
+    lwmsg_ring_remove(ring);
+    lwmsg_ring_insert_after(bucket, ring);
+
+    table->count++;
+}
+
+void*
+lwmsg_hash_find_key(
+    LWMsgHashTable* table,
+    const void* key
+    )
+{
+    size_t hash = table->digest(key);
+    LWMsgRing* bucket = &table->buckets[hash % table->capacity];
+    LWMsgRing* ring = NULL;
+    void* entry;
+
+    for (ring = bucket->next; ring != bucket; ring = ring->next)
+    {
+        entry = lwmsg_hash_entry_from_ring(table, ring);
+
+        if (table->equal(key, table->get_key(entry)))
+        {
+            return entry;
+        }
+    }
+
+    return NULL;
+}
+
+LWMsgStatus
+lwmsg_hash_remove_key(
+    LWMsgHashTable* table,
+    const void* key
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    void* entry = lwmsg_hash_find_key(table, key);
+
+    if (!entry)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    }
+
+    lwmsg_ring_remove(lwmsg_hash_ring_from_entry(table, entry));
+
+    table->count--;
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
+lwmsg_hash_remove_entry(
+    LWMsgHashTable* table,
+    void* entry
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgRing* ring = lwmsg_hash_ring_from_entry(table, entry);
+
+    if (lwmsg_ring_is_empty(ring))
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_NOT_FOUND);
+    }
+
+    lwmsg_ring_remove(lwmsg_hash_ring_from_entry(table, entry));
+
+    table->count--;
+
+error:
+
+    return status;
+}
+
+void
+lwmsg_hash_iter_begin(
+    LWMsgHashTable* table,
+    LWMsgHashIter* iter
+    )
+{
+    if (table->buckets)
+    {
+        iter->bucket = table->buckets;
+        iter->ring = iter->bucket->next;
+    }
+    else
+    {
+        iter->bucket = NULL;
+        iter->ring = NULL;
+    }
+}
+
+void*
+lwmsg_hash_iter_next(
+    LWMsgHashTable* table,
+    LWMsgHashIter* iter
+    )
+{
+    void* entry = NULL;
+
+    if (!iter->bucket)
+    {
+        return NULL;
+    }
+
+    while (iter->ring == iter->bucket)
+    {
+        if ((iter->bucket - table->buckets) == table->capacity - 1)
+        {
+            return NULL;
+        }
+
+        iter->bucket++;
+        iter->ring = iter->bucket->next;
+    }
+
+    entry = lwmsg_hash_entry_from_ring(table, iter->ring);
+    iter->ring = iter->ring->next;
+
+    return entry;
+}
+
+void
+lwmsg_hash_iter_end(
+    LWMsgHashTable* table,
+    LWMsgHashIter* iter
+    )
+{
+    iter->bucket = NULL;
+    iter->ring = NULL;
+}
+
+void
+lwmsg_hash_destroy(
+    LWMsgHashTable* table
+    )
+{
+    if (table->buckets)
+    {
+        free(table->buckets);
+        table->buckets = NULL;
+    }
+}
