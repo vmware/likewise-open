@@ -138,33 +138,6 @@ AC_SUBST(KRB5_INCLUDES)
 AC_SUBST(KRB5_LDFLAGS)
 AC_SUBST(KRB5_LIBS)
 
-# libunistr
-
-AC_ARG_WITH([libunistr],
-        [AC_HELP_STRING([--with-libunistr=<dir>], [use libunistr located in prefix <dir>])],
-        [
-		LIBUNISTR_INCLUDES="-I$withval/include"
-                LIBUNISTR_LDFLAGS="-L$withval/lib"
-        ])
-
-AC_ARG_WITH([libunistr-includes],
-        [AC_HELP_STRING([--with-libunistr-includes=<dir>], [use libunistr includes located in <dir>])],
-        [
-		LIBUNISTR_INCLUDES="-I$withval"
-        ])
-
-AC_ARG_WITH([libunistr-libs],
-        [AC_HELP_STRING([--with-libunistr-libs=<dir>], [use libunistr libs located in <dir>])],
-        [
-		LIBUNISTR_LDFLAGS="-L$withval"
-        ])
-
-LIBUNISTR_LIBS="-lunistr"
-
-AC_SUBST(LIBUNISTR_INCLUDES)
-AC_SUBST(LIBUNISTR_LDFLAGS)
-AC_SUBST(LIBUNISTR_LIBS)
-
 # crypto
 
 AC_ARG_WITH([crypto],
@@ -657,8 +630,6 @@ AC_SUBST(DL_LIBS)
 
 AC_CHECK_LIB([rt], [sem_init], [SEM_LIBS="-lrt"])
 AC_SUBST(SEM_LIBS)
-
-AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNISTR_LDFLAGS])
 
 AC_CHECK_LIB([crypto], [DES_set_key], [CRYPTO_LIBS="-lcrypto"], [], [$CRYPTO_LDFLAGS])
 
