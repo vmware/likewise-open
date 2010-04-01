@@ -62,6 +62,7 @@ SrvDevCtlEnumerateSessions(
     NTSTATUS ntStatus         = STATUS_SUCCESS;
     PBYTE    pBuffer          = pOutBuffer;
     ULONG    ulBufferSize     = ulOutBufferSize;
+    ULONG    ulPreambleSize   = 0;
     ULONG    ulBytesUsed      = 0;
     ULONG    ulTotalBytesUsed = 0;
     ULONG    ulEntriesRead    = 0;
@@ -106,17 +107,21 @@ SrvDevCtlEnumerateSessions(
     paramsOutPreamble.dwInfoLevel    = pParamsIn->dwInfoLevel;
     paramsOutPreamble.dwEntriesRead  = ulEntriesRead;
     paramsOutPreamble.dwTotalEntries = ulTotalEntries;
+    if (pulResumeHandle)
+    {
+        paramsOutPreamble.pdwResumeHandle = &ulResumeHandle;
+    }
 
     ntStatus = LwSessionInfoMarshalEnumOutputPreamble(
                     pBuffer,
                     ulBufferSize,
                     &paramsOutPreamble,
-                    &ulBytesUsed);
+                    &ulPreambleSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pBuffer          += ulBytesUsed;
-    ulBufferSize     -= ulBytesUsed;
-    ulTotalBytesUsed += ulBytesUsed;
+    pBuffer          += ulPreambleSize;
+    ulBufferSize     -= ulPreambleSize;
+    ulTotalBytesUsed += ulPreambleSize;
 
     ntStatus = SrvProtocolEnumerateSessions(
                     pwszUncClientname,
@@ -134,14 +139,10 @@ SrvDevCtlEnumerateSessions(
 
     paramsOutPreamble.dwEntriesRead  = ulEntriesRead;
     paramsOutPreamble.dwTotalEntries = ulTotalEntries;
-    if (pulResumeHandle)
-    {
-        paramsOutPreamble.pdwResumeHandle = &ulResumeHandle;
-    }
 
     ntStatus = LwSessionInfoMarshalEnumOutputPreamble(
                     pOutBuffer,
-                    ulOutBufferSize,
+                    ulPreambleSize,
                     &paramsOutPreamble,
                     &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
