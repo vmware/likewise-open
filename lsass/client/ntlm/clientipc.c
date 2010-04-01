@@ -50,58 +50,54 @@
 static LWMsgClient* gpClient = NULL;
 static LWMsgProtocol* gpProtocol = NULL;
 static LWMsgSession* gpSession = NULL;
-
-#if defined(__LWI_SOLARIS__) || defined (__LWI_AIX__)
-static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
-#else
-static pthread_once_t gOnceControl = PTHREAD_ONCE_INIT;
-#endif
+static pthread_mutex_t gLock = PTHREAD_MUTEX_INITIALIZER;
 
 static
-VOID
-__NtlmInitialize(VOID)
+DWORD
+NtlmInitialize(
+    VOID
+    )
 {
-    const DWORD dwMaxConnections = 10;
     DWORD dwError = LW_ERROR_SUCCESS;
 
-    dwError = LwMapLwmsgStatusToLwError(lwmsg_protocol_new(NULL, &gpProtocol));
-    BAIL_ON_LSA_ERROR(dwError);
+    pthread_mutex_lock(&gLock);
 
-    dwError = LwMapLwmsgStatusToLwError(
-        lwmsg_protocol_add_protocol_spec(gpProtocol, NtlmIpcGetProtocolSpec()));
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!gpProtocol)
+    {
+        dwError = LwMapLwmsgStatusToLwError(lwmsg_protocol_new(NULL, &gpProtocol));
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwMapLwmsgStatusToLwError(
-        lwmsg_client_new(NULL, gpProtocol, &gpClient));
-    BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwMapLwmsgStatusToLwError(
+            lwmsg_protocol_add_protocol_spec(gpProtocol, NtlmIpcGetProtocolSpec()));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    dwError = LwMapLwmsgStatusToLwError(
-        lwmsg_client_set_max_concurrent(gpClient, dwMaxConnections));
-    BAIL_ON_LSA_ERROR(dwError);
+    if (!gpClient)
+    {
+        dwError = LwMapLwmsgStatusToLwError(
+            lwmsg_client_new(NULL, gpProtocol, &gpClient));
+        BAIL_ON_LSA_ERROR(dwError);
 
-    dwError = LwMapLwmsgStatusToLwError(
-        lwmsg_client_set_endpoint(
-            gpClient,
-            LWMSG_CONNECTION_MODE_LOCAL,
-            CACHEDIR "/" NTLM_SERVER_FILENAME));
-    BAIL_ON_LSA_ERROR(dwError);
+        dwError = LwMapLwmsgStatusToLwError(
+            lwmsg_client_set_endpoint(
+                gpClient,
+                LWMSG_CONNECTION_MODE_LOCAL,
+                CACHEDIR "/" NTLM_SERVER_FILENAME));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
-    dwError = LwMapLwmsgStatusToLwError(
-        lwmsg_peer_connect(gpClient, &gpSession));
-    BAIL_ON_LSA_ERROR(dwError);
-
-    return;
+    if (!gpSession)
+    {
+        dwError = LwMapLwmsgStatusToLwError(
+            lwmsg_peer_connect(gpClient, &gpSession));
+        BAIL_ON_LSA_ERROR(dwError);
+    }
 
 error:
 
-    abort();
-}
+    pthread_mutex_unlock(&gLock);
 
-static
-VOID
-NtlmInitialize()
-{
-    pthread_once(&gOnceControl, __NtlmInitialize);
+    return dwError;
 }
 
 static
@@ -111,6 +107,9 @@ NtlmIpcAcquireCall(
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
+
+    dwError = NtlmInitialize();
+    BAIL_ON_LSA_ERROR(dwError);
 
     dwError = LwMapLwmsgStatusToLwError(
         lwmsg_client_acquire_call(
@@ -158,8 +157,6 @@ NtlmTransactAcceptSecurityContext(
     LWMsgParams In= LWMSG_PARAMS_INITIALIZER;
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
-
-    NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LSA_ERROR(dwError);
@@ -257,8 +254,6 @@ NtlmTransactAcquireCredentialsHandle(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    NtlmInitialize();
-
     dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -330,8 +325,6 @@ NtlmTransactDecryptMessage(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    NtlmInitialize();
-
     dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -402,8 +395,6 @@ NtlmTransactDeleteSecurityContext(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    NtlmInitialize();
-
     dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -465,8 +456,6 @@ NtlmTransactEncryptMessage(
     LWMsgParams In= LWMSG_PARAMS_INITIALIZER;
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
-
-    NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LSA_ERROR(dwError);
@@ -540,8 +529,6 @@ NtlmTransactExportSecurityContext(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    NtlmInitialize();
-
     dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -611,8 +598,6 @@ NtlmTransactFreeCredentialsHandle(
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
 
-    NtlmInitialize();
-
     dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LSA_ERROR(dwError);
 
@@ -674,8 +659,6 @@ NtlmTransactImportSecurityContext(
     LWMsgParams In= LWMSG_PARAMS_INITIALIZER;
     LWMsgParams Out= LWMSG_PARAMS_INITIALIZER;
     LWMsgCall* pCall = NULL;
-
-    NtlmInitialize();
 
     dwError = NtlmIpcAcquireCall(&pCall);
     BAIL_ON_LSA_ERROR(dwError);
