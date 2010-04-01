@@ -365,7 +365,7 @@ PvfsExecuteDeleteOnClose(
 
     /* Always reset the delete-on-close state to be safe */
 
-    pFcb->bDeleteOnClose = FALSE;
+    PvfsFcbSetPendingDelete(pFcb, FALSE);
 
     /* Verify we are deleting the file we think we are */
 
@@ -401,7 +401,6 @@ PvfsReleaseFCB(
     BOOLEAN bFcbControlLocked = FALSE;
     PVFS_STAT Stat = {0};
     PPVFS_FCB pFcb = NULL;
-    BOOLEAN bDeleteLocked = FALSE;
 
     /* Do housekeeping such as setting the last write time or
        honoring DeletOnClose when the CCB handle count reaches
@@ -438,8 +437,7 @@ PvfsReleaseFCB(
                 }
             }
 
-            LWIO_LOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
-            if (pFcb->bDeleteOnClose)
+            if (PvfsFcbIsPendingDelete(pFcb))
             {
                 ntError = PvfsExecuteDeleteOnClose(pFcb);
 
@@ -448,6 +446,7 @@ PvfsReleaseFCB(
                    any future opens. */
 
                 LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
+                LWIO_LOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
 
                 if (!pFcb->bRemoved)
                 {
@@ -455,8 +454,8 @@ PvfsReleaseFCB(
                     pFcb->bRemoved = TRUE;
                 }
 
+                LWIO_UNLOCK_MUTEX(bFcbControlLocked, &pFcb->ControlBlock);
                 LWIO_UNLOCK_RWMUTEX(bTableLocked, &gFcbTable.rwLock);
-                LWIO_UNLOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
 
                 if (ntError == STATUS_SUCCESS)
                 {
@@ -473,7 +472,6 @@ PvfsReleaseFCB(
                         pFcb->pszFilename);
                 }
             }
-            LWIO_UNLOCK_MUTEX(bDeleteLocked, &pFcb->ControlBlock);
         }
     }
 
@@ -1280,6 +1278,7 @@ PvfsRenameFCB(
     PPVFS_FCB pOldParentFcb = NULL;
     PPVFS_FCB pExistingTargetFcb = NULL;
     BOOLEAN bExistingFcbLocked = FALSE;
+    BOOLEAN bTargetFcbControl = FALSE;
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bTableLocked, &gFcbTable.rwLock);
 
@@ -1323,7 +1322,13 @@ PvfsRenameFCB(
                Another reason to use the dev/inode pair instead if
                we could solve the "Create New File" issue.  */
 
+            LWIO_LOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
             ntError = PvfsRemoveFCB(pFcb);
+            if (ntError == STATUS_SUCCESS)
+            {
+                pFcb->bRemoved = TRUE;
+            }
+            LWIO_UNLOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
             BAIL_ON_NT_STATUS(ntError);
 
             PVFS_FREE(&pFcb->pszFilename);
@@ -1344,7 +1349,13 @@ PvfsRenameFCB(
             }
             LWIO_UNLOCK_RWMUTEX(bParentLinkLocked, &pFcb->rwParent);
 
+            LWIO_LOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
             ntError = PvfsAddFCB(pFcb);
+            if (ntError == STATUS_SUCCESS)
+            {
+                pFcb->bRemoved = FALSE;
+            }
+            LWIO_UNLOCK_MUTEX(bTargetFcbControl, &pFcb->ControlBlock);
             BAIL_ON_NT_STATUS(ntError);
 
         LWIO_UNLOCK_RWMUTEX(bFcbLocked, &pFcb->rwFileName);
