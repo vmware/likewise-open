@@ -16,8 +16,7 @@ eventlogd_SOURCES = \
 eventlogd_CPPFLAGS = \
     $(AM_CPPFLAGS) \
     @GSSAPI_INCLUDES@ \
-    @DCERPC_INCLUDES@ \
-    @LIBUNISTR_INCLUDES@
+    @DCERPC_INCLUDES@
 
 eventlogd_LDADD = \
     @top_builddir@/utils/libeventlogutils.la \

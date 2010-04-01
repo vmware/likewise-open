@@ -17,17 +17,14 @@ libeventlogutils_la_SOURCES = \
 libeventlogutils_la_LIBADD = \
     @DCERPC_LIBS@    \
     $(LWRPCRT_LIBS)    \
-    @LIBUNISTR_LIBS@ \
-	@LWREG_LIBS@
+    @LWREG_LIBS@
 
 libeventlogutils_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
     @DCERPC_INCLUDES@   \
-    $(LWRPCRT_INCLUDES)   \
-    @LIBUNISTR_INCLUDES@
+    $(LWRPCRT_INCLUDES)
 
 libeventlogutils_la_LDFLAGS = \
     @DCERPC_LDFLAGS@   \
-    $(LWRPCRT_LDFLAGS)   \
-    @LIBUNISTR_LDFLAGS@
+    $(LWRPCRT_LDFLAGS)
 

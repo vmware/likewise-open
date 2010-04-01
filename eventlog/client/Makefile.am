@@ -14,8 +14,7 @@ libeventlog_la_LIBADD = \
 
 libeventlog_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
-    @DCERPC_INCLUDES@   \
-    @LIBUNISTR_INCLUDES@
+    @DCERPC_INCLUDES@
 
 libeventlog_mac_la_SOURCES = \
     $(libeventlog_la_SOURCES)
