@@ -20,5 +20,4 @@ libdcerpc_la_LIBADD =			\
 	../libdcethread/libdcethread.la	\
 	$(LIB_socket)			\
 	$(LIB_nsl)			\
-	$(LIB_dl)			\
-	$(LIB_unistr)
+	$(LIB_dl)
