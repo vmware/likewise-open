@@ -72,6 +72,12 @@ SrvEnqueueOplockAckTask(
 
 static
 VOID
+SrvCancelOplockState(
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState
+    );
+
+static
+VOID
 SrvFreeOplockState(
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState
     );
@@ -156,6 +162,7 @@ SrvProcessOplock(
     PLWIO_SRV_FILE           pFile         = NULL;
     PSRV_OPLOCK_STATE_SMB_V1 pOplockState  = NULL;
     UCHAR                    ucOplockLevel = SMB_OPLOCK_LEVEL_NONE;
+    BOOLEAN                  bFileLocked   = FALSE;
 
     ntStatus = SrvConnectionFindSession_SMB_V1(
                             pCtxSmb1,
@@ -198,8 +205,13 @@ SrvProcessOplock(
     {
         case LW_OPLOCK_ACTION_SEND_BREAK:
 
-            pOplockState =
-                    (PSRV_OPLOCK_STATE_SMB_V1)pFile->hOplockState;
+            LWIO_LOCK_RWMUTEX_SHARED(bFileLocked, &pFile->mutex);
+            pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)pFile->hOplockState;
+            if (pOplockState)
+            {
+                InterlockedIncrement(&pOplockState->refCount);
+            }
+            LWIO_UNLOCK_RWMUTEX(bFileLocked, &pFile->mutex);
 
             if (!pOplockState)
             {
@@ -250,33 +262,40 @@ SrvProcessOplock(
                             (SrvConfigGetOplockTimeoutMillisecs_SMB_V1() *
                                 WIRE_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS);
 
+                        InterlockedIncrement(&pOplockState->refCount);
+
                         ntStatus = SrvTimerPostRequest(
                                         llExpiry,
                                         pOplockState,
                                         &SrvOplockExpiredCB,
                                         &pOplockState->pTimerRequest);
+                        if (ntStatus != STATUS_SUCCESS)
+                        {
+                            InterlockedDecrement(&pOplockState->refCount);
+                        }
                         BAIL_ON_NT_STATUS(ntStatus);
-
-                        InterlockedIncrement(&pOplockState->refCount);
                     }
 
                     break;
 
                 case SMB_OPLOCK_LEVEL_II:
+                {
+                    PSRV_OPLOCK_STATE_SMB_V1 pOplockState2 = NULL;
 
                     /* Level2 can only break to none. No Ack needed.
                        Remove any remaining oplock state */
 
-                    pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pFile);
-                    if (pOplockState)
+                    pOplockState2 = (PSRV_OPLOCK_STATE_SMB_V1)SrvFileRemoveOplockState(pFile);
+                    if (pOplockState2)
                     {
-                        SrvReleaseOplockState(pOplockState);
-                        pOplockState = NULL;
+                        SrvReleaseOplockState(pOplockState2);
+                        pOplockState2 = NULL;
                     }
 
                     ntStatus = STATUS_SUCCESS;
 
                     break;
+                }
 
                 case SMB_OPLOCK_LEVEL_NONE:
                 default:
@@ -291,8 +310,13 @@ SrvProcessOplock(
 
         case LW_OPLOCK_ACTION_PROCESS_ACK:
 
-            pOplockState =
-                    (PSRV_OPLOCK_STATE_SMB_V1)pFile->hOplockState;
+            LWIO_LOCK_RWMUTEX_SHARED(bFileLocked, &pFile->mutex);
+            pOplockState = (PSRV_OPLOCK_STATE_SMB_V1)pFile->hOplockState;
+            if (pOplockState)
+            {
+                InterlockedIncrement(&pOplockState->refCount);
+            }
+            LWIO_UNLOCK_RWMUTEX(bFileLocked, &pFile->mutex);
 
             if (pOplockState)
             {
@@ -313,6 +337,12 @@ SrvProcessOplock(
     }
 
 cleanup:
+
+    if (pOplockState)
+    {
+        SrvReleaseOplockState(pOplockState);
+    }
+
 
     if (pFile)
     {
@@ -427,13 +457,19 @@ SrvAcknowledgeOplockBreak(
     {
         case STATUS_PENDING:
 
+            InterlockedIncrement(&pOplockState->refCount);
+
             ntStatus = SrvFileSetOplockState(
                            pFile,
                            pOplockState,
+                           &SrvCancelOplockStateHandle,
                            &SrvReleaseOplockStateHandle);
+            if (ntStatus != STATUS_SUCCESS)
+            {
+                InterlockedDecrement(&pOplockState->refCount);
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
-            InterlockedIncrement(&pOplockState->refCount);
 
             SrvFileSetOplockLevel(pFile, ucOplockLevel);
 
@@ -635,6 +671,49 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+VOID
+SrvCancelOplockStateHandle(
+    HANDLE hOplockState
+    )
+{
+    SrvCancelOplockState((PSRV_OPLOCK_STATE_SMB_V1)hOplockState);
+}
+
+static
+VOID
+SrvCancelOplockState(
+    PSRV_OPLOCK_STATE_SMB_V1 pOplockState
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_MUTEX(bInLock, &pOplockState->mutex);
+
+    if (pOplockState->pAcb && pOplockState->pAcb->AsyncCancelContext)
+    {
+        IoCancelAsyncCancelContext(pOplockState->pAcb->AsyncCancelContext);
+    }
+
+    if (pOplockState->pTimerRequest)
+    {
+        PSRV_OPLOCK_STATE_SMB_V1 pOplockState1 = NULL;
+
+        SrvTimerCancelRequest(
+                pOplockState->pTimerRequest,
+                (PVOID*)&pOplockState1);
+
+        if (pOplockState1)
+        {
+            SrvReleaseOplockState(pOplockState1);
+        }
+
+        SrvTimerRelease(pOplockState->pTimerRequest);
+        pOplockState->pTimerRequest = NULL;
+    }
+
+    LWIO_UNLOCK_MUTEX(bInLock, &pOplockState->mutex);
 }
 
 VOID
@@ -934,6 +1013,11 @@ SrvOplockStateRundown(
 
     if (pOplockState)
     {
+        if (pFile->pfnCancelOplockState)
+        {
+            pFile->pfnCancelOplockState(pOplockState);
+        }
+
         SrvReleaseOplockState(pOplockState);
     }
 }

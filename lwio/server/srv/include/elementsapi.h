@@ -62,6 +62,7 @@ typedef UCHAR SMB_OPLOCK_LEVEL;
 #define SMB_CN_MAX_BUFFER_SIZE 0x00010000
 
 typedef VOID (*PFN_LWIO_SRV_FREE_OPLOCK_STATE)(HANDLE hOplockState);
+typedef VOID (*PFN_LWIO_SRV_CANCEL_OPLOCK_STATE)(HANDLE hOplockState);
 typedef VOID (*PFN_LWIO_SRV_FREE_BRL_STATE_LIST)(HANDLE hBRLStateList);
 typedef VOID (*PFN_LWIO_SRV_CANCEL_ASYNC_STATE)(HANDLE hAsyncState);
 typedef VOID (*PFN_LWIO_SRV_FREE_ASYNC_STATE)(HANDLE hAsyncState);
@@ -110,8 +111,9 @@ typedef struct _LWIO_SRV_FILE
 
     UCHAR                          ucCurrentOplockLevel;
 
-    HANDLE                         hOplockState;
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
+    HANDLE                           hOplockState;
+    PFN_LWIO_SRV_CANCEL_OPLOCK_STATE pfnCancelOplockState;
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE   pfnFreeOplockState;
 
     HANDLE                           hCancellableBRLStateList;
     PFN_LWIO_SRV_FREE_BRL_STATE_LIST pfnFreeBRLStateList;
@@ -994,9 +996,10 @@ SrvFileCreate(
 
 NTSTATUS
 SrvFileSetOplockState(
-    PLWIO_SRV_FILE                 pFile,
-    HANDLE                         hOplockState,
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnReleaseOplockState
+    PLWIO_SRV_FILE                   pFile,
+    HANDLE                           hOplockState,
+    PFN_LWIO_SRV_CANCEL_OPLOCK_STATE pfnCancelOplockState,
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE   pfnFreeOplockState
     );
 
 HANDLE
