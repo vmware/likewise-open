@@ -409,12 +409,11 @@ lwmsg_peer_add_listen_endpoint(
     );
 
 /**
- * @brief Set session construct and destruct functions for incoming assocations
+ * @brief Set session construct and destruct functions for incoming clients
  *
- * Sets functions which will be called when a new session
- * is established through an incoming association.  The constructor function
- * may set up a session context which the destructor function
- * should clean up when the session is terminated.
+ * Sets functions which will be called when a client is accepted into a session
+ * for the first time.  The constructor function may set up a session context
+ * which the destructor function should clean up when the session is terminated.
  *
  * @param[in,out] peer the peer handle
  * @param[in] construct a session constructor function

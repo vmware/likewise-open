@@ -568,7 +568,7 @@ lwmsg_assoc_set_timeout(
  * Connects an association to a peer.  The peer should call #lwmsg_assoc_accept()
  * to accept the connection.  An existing session can be passed in the <tt>session</tt>
  * parameter -- otherwise, a new session will be created automatically and can be
- * accessed later with @lwmsg_assoc_get_session().
+ * accessed later with #lwmsg_assoc_get_session().
  *
  * @param[in,out] assoc the association
  * @param[in,out] session an optional existing session to use for the association
