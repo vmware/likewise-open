@@ -128,9 +128,10 @@ error:
 
 NTSTATUS
 SrvFileSetOplockState(
-    PLWIO_SRV_FILE                 pFile,
-    HANDLE                         hOplockState,
-    PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState
+    PLWIO_SRV_FILE                   pFile,
+    HANDLE                           hOplockState,
+    PFN_LWIO_SRV_CANCEL_OPLOCK_STATE pfnCancelOplockState,
+    PFN_LWIO_SRV_FREE_OPLOCK_STATE   pfnFreeOplockState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -138,15 +139,26 @@ SrvFileSetOplockState(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
 
-    if (pFile->hOplockState && pFile->pfnFreeOplockState)
+    if (pFile->hOplockState)
     {
-        pFile->pfnFreeOplockState(pFile->hOplockState);
-        pFile->hOplockState       = NULL;
-        pFile->pfnFreeOplockState = NULL;
+        if (pFile->pfnCancelOplockState)
+        {
+            pFile->pfnCancelOplockState(pFile->hOplockState);
+        }
+
+        if (pFile->pfnFreeOplockState)
+        {
+            pFile->pfnFreeOplockState(pFile->hOplockState);
+        }
+
+        pFile->hOplockState         = NULL;
+        pFile->pfnFreeOplockState   = NULL;
+        pFile->pfnCancelOplockState = NULL;
     }
 
-    pFile->hOplockState       = hOplockState;
-    pFile->pfnFreeOplockState = pfnFreeOplockState;
+    pFile->hOplockState         = hOplockState;
+    pFile->pfnFreeOplockState   = pfnFreeOplockState;
+    pFile->pfnCancelOplockState = pfnCancelOplockState;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
@@ -165,8 +177,9 @@ SrvFileRemoveOplockState(
 
     hOplockState = pFile->hOplockState;
 
-    pFile->hOplockState       = NULL;
-    pFile->pfnFreeOplockState = NULL;
+    pFile->hOplockState         = NULL;
+    pFile->pfnFreeOplockState   = NULL;
+    pFile->pfnCancelOplockState = NULL;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
 
@@ -178,18 +191,7 @@ SrvFileResetOplockState(
     PLWIO_SRV_FILE pFile
     )
 {
-    BOOLEAN  bInLock  = FALSE;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
-
-    if (pFile->hOplockState && pFile->pfnFreeOplockState)
-    {
-        pFile->pfnFreeOplockState(pFile->hOplockState);
-        pFile->hOplockState       = NULL;
-        pFile->pfnFreeOplockState = NULL;
-    }
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+    SrvFileSetOplockState(pFile, NULL, NULL, NULL);
 }
 
 VOID

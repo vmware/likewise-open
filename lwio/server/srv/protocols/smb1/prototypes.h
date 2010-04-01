@@ -346,6 +346,11 @@ SrvAcknowledgeOplockBreak(
     BOOLEAN                  bFileIsClosed
     );
 
+VOID
+SrvCancelOplockStateHandle(
+    HANDLE hOplockState
+    );
+
 NTSTATUS
 SrvBuildOplockState(
     PLWIO_SRV_CONNECTION      pConnection,
