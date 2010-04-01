@@ -18,13 +18,12 @@ liblwps_sqldb_la_SOURCES = \
 	provider-main.c
 
 liblwps_sqldb_la_CFLAGS = \
-	@LIBUNISTR_INCLUDES@ \
 	@SQLITE_INCLUDES@ \
 	$(PROVIDER_CFLAGS)
 
-liblwps_sqldb_la_LIBADD = @LIBUNISTR_LIBS@ @SQLITE_LIBS@ $(PROVIDER_LIBADD)
+liblwps_sqldb_la_LIBADD = @SQLITE_LIBS@ $(PROVIDER_LIBADD)
 
-liblwps_sqldb_la_LDFLAGS = $(PROVIDER_LDFLAGS) @LIBUNISTR_LDFLAGS@ @SQLITE_LDFLAGS@
+liblwps_sqldb_la_LDFLAGS = $(PROVIDER_LDFLAGS) @SQLITE_LDFLAGS@
 
 noinst_HEADERS = \
 	 db_p.h \

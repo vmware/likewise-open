@@ -14,10 +14,9 @@ liblwps_utils_la_SOURCES = \
        lwps-strerror.c \
        lwps-sysfuncs.c
 
-liblwps_utils_la_CPPFLAGS = @LIBUNISTR_INCLUDES@ $(AM_CPPFLAGS)
-liblwps_utils_la_LDFLAGS = @LIBUNISTR_LDFLAGS@
+liblwps_utils_la_LDFLAGS =
 liblwps_utils_la_LIBADD = \
-	$(LIBUNISTR_LIBS) \
+	-llwbase \
 	$(top_builddir)/logging/liblwps_logging.la
 
 noinst_HEADERS = \

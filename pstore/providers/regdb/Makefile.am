@@ -18,18 +18,16 @@ liblwps_regdb_la_CPPFLAGS = \
         @LWMAPSECURITY_INCLUDES@
 
 liblwps_regdb_la_SOURCES = \
-	globals.c          \
+	globals.c \
 	provider-main.c \
-    pstoresec.c
+	pstoresec.c
 
 liblwps_regdb_la_CFLAGS = \
 	$(AM_CFLAGS) \
-	@LIBUNISTR_INCLUDES@ \
 	@LWMSG_INCLUDES@ \
 	$(PROVIDER_CFLAGS)
 
-liblwps_regdb_la_LIBADD = @LIBUNISTR_LIBS@ \
-                          @LWMSG_LIBS@ \
+liblwps_regdb_la_LIBADD = @LWMSG_LIBS@ \
                           @LWREG_LIBS@ \
                           $(PROVIDER_LIBADD) \
                           @PTHREAD_LIBS@ \
@@ -37,7 +35,6 @@ liblwps_regdb_la_LIBADD = @LIBUNISTR_LIBS@ \
 
 liblwps_regdb_la_LDFLAGS = $(AM_LDFLAGS) \
                            $(PROVIDER_LDFLAGS) \
-                           @LIBUNISTR_LDFLAGS@ \
                            @LWMAPSECURITY_LDFLAGS@
 
 noinst_HEADERS = \

@@ -19,11 +19,11 @@ liblwps_tdb_la_SOURCES = \
 	util_str.c \
 	util_tdbkey.c
 
-liblwps_tdb_la_CFLAGS = @LIBUNISTR_INCLUDES@ @TDB_INCLUDES@ $(PROVIDER_CFLAGS)
+liblwps_tdb_la_CFLAGS = @TDB_INCLUDES@ $(PROVIDER_CFLAGS)
 
-liblwps_tdb_la_LIBADD = @LIBUNISTR_LIBS@ @TDB_LIBS@ @PTHREAD_LIBS@ $(PROVIDER_LIBADD)
+liblwps_tdb_la_LIBADD = @TDB_LIBS@ @PTHREAD_LIBS@ $(PROVIDER_LIBADD)
 
-liblwps_tdb_la_LDFLAGS = $(PROVIDER_LDFLAGS) @LIBUNISTR_LDFLAGS@ @TDB_LDFLAGS@
+liblwps_tdb_la_LDFLAGS = $(PROVIDER_LDFLAGS) @TDB_LDFLAGS@
 
 noinst_HEADERS = \
 	param.h \
