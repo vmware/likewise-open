@@ -219,7 +219,7 @@ LWMsgDispatchSpec counter_dispatch[] =
 
 typedef struct
 {
-    LWMsgClient* client;
+    LWMsgPeer* client;
     CounterHandle* handle;
     int iters;
     pthread_mutex_t lock;
@@ -250,7 +250,7 @@ add_thread(void* _data)
 
     for (i = 0; i < data->iters; i++)
     {
-        MU_TRY(lwmsg_client_acquire_call(data->client, &call));
+        MU_TRY(lwmsg_peer_acquire_call(data->client, &call));
 
         in.tag = COUNTER_ADD;
         in.data = &add;
@@ -284,8 +284,8 @@ MU_TEST(stress, parallel)
     int i;
     LWMsgContext* context = NULL;
     LWMsgProtocol* protocol = NULL;
-    LWMsgClient* client = NULL;
-    LWMsgServer* server = NULL;
+    LWMsgPeer* client = NULL;
+    LWMsgPeer* server = NULL;
     CounterRequest request;
     CounterReply* reply;
     LWMsgCall* call;
@@ -299,21 +299,19 @@ MU_TEST(stress, parallel)
     MU_TRY(lwmsg_protocol_new(context, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, counterprotocol_spec));
 
-    MU_TRY(lwmsg_server_new(context, protocol, &server));
-    MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
-    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
-    MU_TRY(lwmsg_server_set_max_clients(server, MAX_CLIENTS));
-    MU_TRY(lwmsg_server_set_max_dispatch(server, MAX_DISPATCH));
-    MU_TRY(lwmsg_server_set_timeout(server, LWMSG_TIMEOUT_IDLE, &timeout));
-    MU_TRY(lwmsg_server_start(server));
+    MU_TRY(lwmsg_peer_new(context, protocol, &server));
+    MU_TRY(lwmsg_peer_add_dispatch_spec(server, counter_dispatch));
+    MU_TRY(lwmsg_peer_add_listen_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
+    MU_TRY(lwmsg_peer_set_max_listen_clients(server, MAX_CLIENTS));
+    MU_TRY(lwmsg_peer_set_timeout(server, LWMSG_TIMEOUT_IDLE, &timeout));
+    MU_TRY(lwmsg_peer_start_listen(server));
 
-    MU_TRY(lwmsg_client_new(context, protocol, &client));
-    MU_TRY(lwmsg_client_set_max_concurrent(client, NUM_THREADS));
-    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
+    MU_TRY(lwmsg_peer_new(context, protocol, &client));
+    MU_TRY(lwmsg_peer_add_connect_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 
     request.counter = 0;
 
-    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_peer_acquire_call(client, &call));
     in.tag = COUNTER_OPEN;
     in.data = &request;
 
@@ -344,7 +342,7 @@ MU_TEST(stress, parallel)
         pthread_join(threads[i], NULL);
     }
 
-    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_peer_acquire_call(client, &call));
     in.tag = COUNTER_READ;
     in.data = data.handle;
 
@@ -358,7 +356,7 @@ MU_TEST(stress, parallel)
     lwmsg_call_destroy_params(call, &out);
     lwmsg_call_release(call);
 
-    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_peer_acquire_call(client, &call));
     in.tag = COUNTER_CLOSE;
     in.data = data.handle;
 
@@ -369,11 +367,11 @@ MU_TEST(stress, parallel)
     lwmsg_call_destroy_params(call, &out);
     lwmsg_call_release(call);
 
-    MU_TRY(lwmsg_client_shutdown(client));
-    lwmsg_client_delete(client);
+    MU_TRY(lwmsg_peer_disconnect(client));
+    lwmsg_peer_delete(client);
 
-    MU_TRY(lwmsg_server_stop(server));
-    lwmsg_server_delete(server);
+    MU_TRY(lwmsg_peer_stop_listen(server));
+    lwmsg_peer_delete(server);
 
     pthread_mutex_destroy(&data.lock);
     pthread_cond_destroy(&data.event);
@@ -383,8 +381,8 @@ MU_TEST(client_server, handle_invalidation)
 {
     LWMsgContext* context = NULL;
     LWMsgProtocol* protocol = NULL;
-    LWMsgClient* client = NULL;
-    LWMsgServer* server = NULL;
+    LWMsgPeer* client = NULL;
+    LWMsgPeer* server = NULL;
     CounterHandle* handle = NULL;
     CounterRequest request;
     LWMsgCall* call;
@@ -398,17 +396,17 @@ MU_TEST(client_server, handle_invalidation)
     MU_TRY(lwmsg_protocol_new(context, &protocol));
     MU_TRY(lwmsg_protocol_add_protocol_spec(protocol, counterprotocol_spec));
 
-    MU_TRY(lwmsg_server_new(context, protocol, &server));
-    MU_TRY(lwmsg_server_add_dispatch_spec(server, counter_dispatch));
-    MU_TRY(lwmsg_server_set_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
-    MU_TRY(lwmsg_server_start(server));
+    MU_TRY(lwmsg_peer_new(context, protocol, &server));
+    MU_TRY(lwmsg_peer_add_dispatch_spec(server, counter_dispatch));
+    MU_TRY(lwmsg_peer_add_listen_endpoint(server, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT, 0600));
+    MU_TRY(lwmsg_peer_start_listen(server));
 
-    MU_TRY(lwmsg_client_new(context, protocol, &client));
-    MU_TRY(lwmsg_client_set_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
+    MU_TRY(lwmsg_peer_new(context, protocol, &client));
+    MU_TRY(lwmsg_peer_add_connect_endpoint(client, LWMSG_CONNECTION_MODE_LOCAL, TEST_ENDPOINT));
 
     request.counter = 0;
 
-    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_peer_acquire_call(client, &call));
     session = lwmsg_call_get_session(call);
 
     in.tag = COUNTER_OPEN;
@@ -421,21 +419,21 @@ MU_TEST(client_server, handle_invalidation)
 
     handle = out.data;
 
-    MU_TRY(lwmsg_server_stop(server));
+    MU_TRY(lwmsg_peer_stop_listen(server));
     nanosleep(&ts, NULL);
-    MU_TRY(lwmsg_server_start(server));
+    MU_TRY(lwmsg_peer_start_listen(server));
 
-    MU_TRY(lwmsg_client_acquire_call(client, &call));
+    MU_TRY(lwmsg_peer_acquire_call(client, &call));
 
     MU_ASSERT_EQUAL(MU_TYPE_INTEGER, lwmsg_session_get_handle_location(session, handle, &locality), LWMSG_STATUS_INVALID_HANDLE);
 
     MU_TRY(lwmsg_session_release_handle(session, handle));
 
-    MU_TRY(lwmsg_client_shutdown(client));
-    lwmsg_client_delete(client);
+    MU_TRY(lwmsg_peer_disconnect(client));
+    lwmsg_peer_delete(client);
 
-    MU_TRY(lwmsg_server_stop(server));
-    lwmsg_server_delete(server);
+    MU_TRY(lwmsg_peer_stop_listen(server));
+    lwmsg_peer_delete(server);
 }
 
 

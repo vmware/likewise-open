@@ -39,6 +39,11 @@
 #define __LWMSG_H__
 
 #define __LWMSG_INCLUDE_ENABLE__
+#ifdef LW_DISABLE_DEPRECATED
+#ifndef LWMSG_DISABLE_DEPRECATED
+#define LWMSG_DISABLE_DEPRECATED
+#endif
+#endif
 
 #include <lwmsg/data.h>
 #include <lwmsg/buffer.h>
@@ -55,8 +60,10 @@
 
 #ifndef LWMSG_NO_THREADS
 #include <lwmsg/peer.h>
+#ifndef LWMSG_DISABLE_DEPRECATED
 #include <lwmsg/server.h>
 #include <lwmsg/client.h>
+#endif
 #endif
 
 #undef __LWMSG_INCLUDE_ENABLE__

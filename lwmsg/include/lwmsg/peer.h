@@ -116,6 +116,7 @@ typedef struct LWMsgDispatchSpec
 #endif
 const LWMsgDispatchSpec;
 
+#ifndef LWMSG_DISABLE_DEPRECATED
 /**
  * @brief Define message handler in a dispatch table <b>(DEPRECATED)</b>
  *
@@ -128,6 +129,7 @@ const LWMsgDispatchSpec;
  */
 #define LWMSG_DISPATCH(tag, func) \
     {LWMSG_DISPATCH_TYPE_OLD, (tag), (void*) (LWMsgAssocDispatchFunction) (func)}
+#endif
 
 /**
  * @brief Define blocking message handler

@@ -273,6 +273,7 @@ lwmsg_assoc_recv_message_transact(
     void* data
     );
 
+#ifndef LWMSG_DISABLE_DEPRECATED
 /**
  * @ingroup assoc
  * @brief Send a message (simple) <b>[DEPRECATED]</b>
@@ -350,6 +351,7 @@ lwmsg_assoc_send_transact(
     LWMsgTag* out_type,
     void** out_object
     );
+#endif
 
 /**
  * @ingroup assoc
@@ -443,6 +445,7 @@ lwmsg_assoc_destroy_message(
     LWMsgMessage* message
     );
 
+#ifndef LWMSG_DISABLE_DEPRECATED
 /**
  * @brief Destroy a message <b>[DEPRECATED]</b>
  * @deprecated Use #lwmsg_assoc_destroy_message()
@@ -473,6 +476,7 @@ lwmsg_assoc_free_graph(
     LWMsgTag tag,
     void* root
     );
+#endif
 
 /**
  * @ingroup assoc
