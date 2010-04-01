@@ -229,6 +229,27 @@ lwmsg_data_free_graph(
     );
 
 /**
+ * @brief Destroy in-memory data graph
+ *
+ * Recursively destroys the data graph rooted at <tt>root</tt>
+ * whose type is specified by <tt>type</tt>.  In contrast to
+ * #lwmsg_data_free_graph(), the top-level structure is not freed.
+ * Every child memory object will be freed using the context given
+ * to #lwmsg_data_context_new() when the specified data context
+ * was created.
+ *
+ * @param[in,out] context the data context
+ * @param[in] type the type of the root node of the graph
+ * @param[in,out] root the root of the graph
+ */
+LWMsgStatus
+lwmsg_data_destroy_graph(
+    LWMsgDataContext* context,
+    LWMsgTypeSpec* type,
+    void* root
+    );
+
+/**
  * @brief Marshal a data structure
  *
  * Converts a data structure of the specified type to a flat, serialized form, storing

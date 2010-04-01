@@ -452,3 +452,17 @@ lwmsg_data_free_graph(
 
     return lwmsg_data_free_graph_internal(context, &iter, (unsigned char*) &root);
 }
+
+LWMsgStatus
+lwmsg_data_destroy_graph(
+    LWMsgDataContext* context,
+    LWMsgTypeSpec* type,
+    void* root
+    )
+{
+    LWMsgTypeIter iter;
+
+    lwmsg_type_iterate(type, &iter);
+
+    return lwmsg_data_free_graph_internal(context, &iter, root);
+}

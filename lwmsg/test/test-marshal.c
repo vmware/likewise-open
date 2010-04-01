@@ -147,6 +147,8 @@ MU_TEST(marshal, basic)
     MU_ASSERT(basic.len == out->len);
     MU_ASSERT(basic.long_ptr[0] == out->long_ptr[0]);
     MU_ASSERT(basic.long_ptr[1] == out->long_ptr[1]);
+
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_free_graph(dcontext, type, out));
 }
 
 MU_TEST(marshal, basic_into)
@@ -191,6 +193,8 @@ MU_TEST(marshal, basic_into)
     MU_ASSERT(basic.len == out.len);
     MU_ASSERT(basic.long_ptr[0] == out.long_ptr[0]);
     MU_ASSERT(basic.long_ptr[1] == out.long_ptr[1]);
+
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_destroy_graph(dcontext, type, &out));
 }
 
 MU_TEST(marshal, basic_verify_marshal_failure)
