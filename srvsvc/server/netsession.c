@@ -51,6 +51,21 @@
 
 static
 DWORD
+SrvSvcMarshalSessionInfoResults(
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pOutPreamble, /* IN     */
+    PSESSION_INFO_UNION             pSessionInfo, /* IN     */
+    srvsvc_NetSessCtr*              pInfo         /* IN OUT */
+    );
+
+static
+DWORD
+SrvSvcFreeSessionInfoResults(
+    DWORD              dwInfoLevel,
+    srvsvc_NetSessCtr* pInfo
+    );
+
+static
+DWORD
 SrvSvcSrvMarshalSessionInfo_level_0(
     PSESSION_INFO_0  pSessionInfoIn,
     DWORD            dwNumEntries,
@@ -253,67 +268,11 @@ SrvSvcNetSessionEnum(
                             &pSessionInfo);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            if (pOutPreamble->dwEntriesRead)
-            {
-                switch (pOutPreamble->dwInfoLevel)
-                {
-                    case 0:
-
-                        dwError = SrvSvcSrvMarshalSessionInfo_level_0(
-                                        pSessionInfo->p0,
-                                        pOutPreamble->dwEntriesRead,
-                                        &pInfo->ctr0->array,
-                                        &pInfo->ctr0->count);
-
-                        break;
-
-                    case 1:
-
-                        dwError = SrvSvcSrvMarshalSessionInfo_level_1(
-                                        pSessionInfo->p1,
-                                        pOutPreamble->dwEntriesRead,
-                                        &pInfo->ctr1->array,
-                                        &pInfo->ctr1->count);
-
-                        break;
-
-                    case 2:
-
-                        dwError = SrvSvcSrvMarshalSessionInfo_level_2(
-                                        pSessionInfo->p2,
-                                        pOutPreamble->dwEntriesRead,
-                                        &pInfo->ctr2->array,
-                                        &pInfo->ctr2->count);
-
-                        break;
-
-                    case 10:
-
-                        dwError = SrvSvcSrvMarshalSessionInfo_level_10(
-                                        pSessionInfo->p10,
-                                        pOutPreamble->dwEntriesRead,
-                                        &pInfo->ctr10->array,
-                                        &pInfo->ctr10->count);
-
-                        break;
-
-                    case 502:
-
-                        dwError = SrvSvcSrvMarshalSessionInfo_level_502(
-                                        pSessionInfo->p502,
-                                        pOutPreamble->dwEntriesRead,
-                                        &pInfo->ctr502->array,
-                                        &pInfo->ctr502->count);
-
-                        break;
-
-                    default:
-
-                        dwError = ERROR_INVALID_LEVEL;
-                        break;
-                }
-                BAIL_ON_SRVSVC_ERROR(dwError);
-            }
+            dwError = SrvSvcMarshalSessionInfoResults(
+                            pOutPreamble,
+                            pSessionInfo,
+                            pInfo);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             break;
 
@@ -364,65 +323,7 @@ error:
 
     if (pInfo)
     {
-        switch (pOutPreamble->dwInfoLevel)
-        {
-            case 0:
-
-                if (pInfo->ctr0 && pInfo->ctr0->array)
-                {
-                    SrvSvcSrvFreeSessionInfo_level_0(
-                            pInfo->ctr0->array,
-                            pOutPreamble->dwEntriesRead);
-                }
-                break;
-
-            case 1:
-
-
-                if (pInfo->ctr1 && pInfo->ctr1->array)
-                {
-                    SrvSvcSrvFreeSessionInfo_level_1(
-                                                pInfo->ctr1->array,
-                                                pOutPreamble->dwEntriesRead);
-                }
-                break;
-
-            case 2:
-
-                if (pInfo->ctr2 && pInfo->ctr2->array)
-                {
-                    SrvSvcSrvFreeSessionInfo_level_2(
-                                                pInfo->ctr2->array,
-                                                pOutPreamble->dwEntriesRead);
-                }
-                break;
-
-            case 10:
-
-                if (pInfo->ctr10 && pInfo->ctr10->array)
-                {
-                    SrvSvcSrvFreeSessionInfo_level_10(
-                                                pInfo->ctr10->array,
-                                                pOutPreamble->dwEntriesRead);
-                }
-                break;
-
-            case 502:
-
-                if (pInfo->ctr502 && pInfo->ctr502->array)
-                {
-                    SrvSvcSrvFreeSessionInfo_level_502(
-                                                pInfo->ctr502->array,
-                                                pOutPreamble->dwEntriesRead);
-                }
-                break;
-
-            default:
-
-                SRVSVC_LOG_ERROR("Unsupported info level [%u]",
-                                 pOutPreamble->dwInfoLevel);
-                break;
-        }
+        SrvSvcFreeSessionInfoResults(pOutPreamble->dwInfoLevel, pInfo);
 
         memset(pInfo, 0, sizeof(*pInfo));
     }
@@ -456,6 +357,148 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+DWORD
+SrvSvcMarshalSessionInfoResults(
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pOutPreamble, /* IN     */
+    PSESSION_INFO_UNION             pSessionInfo, /* IN     */
+    srvsvc_NetSessCtr*              pInfo         /* IN OUT */
+    )
+{
+    DWORD dwError = 0;
+
+    if (pOutPreamble->dwEntriesRead)
+    {
+        switch (pOutPreamble->dwInfoLevel)
+        {
+            case 0:
+
+                dwError = SrvSvcSrvMarshalSessionInfo_level_0(
+                                pSessionInfo->p0,
+                                pOutPreamble->dwEntriesRead,
+                                &pInfo->ctr0->array,
+                                &pInfo->ctr0->count);
+
+                break;
+
+            case 1:
+
+                dwError = SrvSvcSrvMarshalSessionInfo_level_1(
+                                pSessionInfo->p1,
+                                pOutPreamble->dwEntriesRead,
+                                &pInfo->ctr1->array,
+                                &pInfo->ctr1->count);
+
+                break;
+
+            case 2:
+
+                dwError = SrvSvcSrvMarshalSessionInfo_level_2(
+                                pSessionInfo->p2,
+                                pOutPreamble->dwEntriesRead,
+                                &pInfo->ctr2->array,
+                                &pInfo->ctr2->count);
+
+                break;
+
+            case 10:
+
+                dwError = SrvSvcSrvMarshalSessionInfo_level_10(
+                                pSessionInfo->p10,
+                                pOutPreamble->dwEntriesRead,
+                                &pInfo->ctr10->array,
+                                &pInfo->ctr10->count);
+
+                break;
+
+            case 502:
+
+                dwError = SrvSvcSrvMarshalSessionInfo_level_502(
+                                pSessionInfo->p502,
+                                pOutPreamble->dwEntriesRead,
+                                &pInfo->ctr502->array,
+                                &pInfo->ctr502->count);
+
+                break;
+
+            default:
+
+                dwError = ERROR_INVALID_LEVEL;
+                break;
+        }
+    }
+
+    return dwError;
+}
+
+static
+DWORD
+SrvSvcFreeSessionInfoResults(
+    DWORD              dwInfoLevel,
+    srvsvc_NetSessCtr* pInfo
+    )
+{
+    switch (dwInfoLevel)
+    {
+        case 0:
+
+            if (pInfo->ctr0 && pInfo->ctr0->array)
+            {
+                SrvSvcSrvFreeSessionInfo_level_0(
+                        pInfo->ctr0->array,
+                        pInfo->ctr0->count);
+            }
+            break;
+
+        case 1:
+
+
+            if (pInfo->ctr1 && pInfo->ctr1->array)
+            {
+                SrvSvcSrvFreeSessionInfo_level_1(
+                                            pInfo->ctr1->array,
+                                            pInfo->ctr1->count);
+            }
+            break;
+
+        case 2:
+
+            if (pInfo->ctr2 && pInfo->ctr2->array)
+            {
+                SrvSvcSrvFreeSessionInfo_level_2(
+                                            pInfo->ctr2->array,
+                                            pInfo->ctr2->count);
+            }
+            break;
+
+        case 10:
+
+            if (pInfo->ctr10 && pInfo->ctr10->array)
+            {
+                SrvSvcSrvFreeSessionInfo_level_10(
+                                            pInfo->ctr10->array,
+                                            pInfo->ctr10->count);
+            }
+            break;
+
+        case 502:
+
+            if (pInfo->ctr502 && pInfo->ctr502->array)
+            {
+                SrvSvcSrvFreeSessionInfo_level_502(
+                                            pInfo->ctr502->array,
+                                            pInfo->ctr502->count);
+            }
+            break;
+
+        default:
+
+            SRVSVC_LOG_ERROR("Unsupported info level [%u]", dwInfoLevel);
+
+            break;
+    }
 }
 
 static
