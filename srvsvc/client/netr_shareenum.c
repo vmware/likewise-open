@@ -223,7 +223,7 @@ SrvSvcCopyNetShareCtr(
     switch (level) {
     case 0:
         if (ctr->ctr0) {
-            PSHARE_INFO_0 a0;
+            PSHARE_INFO_0 pShareInfo;
 
             count = ctr->ctr0->count;
 
@@ -232,14 +232,20 @@ SrvSvcCopyNetShareCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a0 = (PSHARE_INFO_0)ptr;
+            pShareInfo = (PSHARE_INFO_0)ptr;
 
-            for (i=0; i < count; i++) {
-                 a0[i] = ctr->ctr0->array[i];
+            for (i=0; i < count; i++)
+            {
+                 pShareInfo[i] = ctr->ctr0->array[i];
 
-                 if (a0[i].shi0_netname)
+                 pShareInfo[i].shi0_netname = NULL;
+
+                 if (ctr->ctr0->array[i].shi0_netname)
                  {
-                     status = SrvSvcAddDepStringW(a0, a0[i].shi0_netname);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr0->array[i].shi0_netname,
+                                 &pShareInfo[i].shi0_netname);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
@@ -247,7 +253,7 @@ SrvSvcCopyNetShareCtr(
         break;
     case 1:
         if (ctr->ctr1) {
-            PSHARE_INFO_1 a1;
+            PSHARE_INFO_1 pShareInfo;
 
             count = ctr->ctr1->count;
 
@@ -256,19 +262,29 @@ SrvSvcCopyNetShareCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a1 = (PSHARE_INFO_1)ptr;
+            pShareInfo = (PSHARE_INFO_1)ptr;
 
-            for (i=0; i < count; i++) {
-                 a1[i] = ctr->ctr1->array[i];
+            for (i=0; i < count; i++)
+            {
+                 pShareInfo[i] = ctr->ctr1->array[i];
 
-                 if (a1[i].shi1_netname)
+                 pShareInfo[i].shi1_netname = NULL;
+                 pShareInfo[i].shi1_remark = NULL;
+
+                 if (ctr->ctr1->array[i].shi1_netname)
                  {
-                     status = SrvSvcAddDepStringW(a1, a1[i].shi1_netname);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr1->array[i].shi1_netname,
+                                 &pShareInfo[i].shi1_netname);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a1[i].shi1_remark)
+                 if (ctr->ctr1->array[i].shi1_remark)
                  {
-                     status = SrvSvcAddDepStringW(a1, a1[i].shi1_remark);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr1->array[i].shi1_remark,
+                                 &pShareInfo[i].shi1_remark);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
@@ -276,7 +292,7 @@ SrvSvcCopyNetShareCtr(
         break;
     case 2:
         if (ctr->ctr2) {
-            PSHARE_INFO_2 a2;
+            PSHARE_INFO_2 pShareInfo;
 
             count = ctr->ctr2->count;
 
@@ -285,28 +301,47 @@ SrvSvcCopyNetShareCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a2 = (PSHARE_INFO_2)ptr;
+            pShareInfo = (PSHARE_INFO_2)ptr;
 
-            for (i=0; i < count; i++) {
-                 a2[i] = ctr->ctr2->array[i];
-                 if (a2[i].shi2_netname)
+            for (i=0; i < count; i++)
+            {
+                 pShareInfo[i] = ctr->ctr2->array[i];
+
+                 pShareInfo[i].shi2_netname  = NULL;
+                 pShareInfo[i].shi2_remark   = NULL;
+                 pShareInfo[i].shi2_path     = NULL;
+                 pShareInfo[i].shi2_password = NULL;
+
+                 if (ctr->ctr2->array[i].shi2_netname)
                  {
-                     status = SrvSvcAddDepStringW(a2, a2[i].shi2_netname);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr2->array[i].shi2_netname,
+                                 &pShareInfo[i].shi2_netname);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a2[i].shi2_remark)
+                 if (ctr->ctr2->array[i].shi2_remark)
                  {
-                     status = SrvSvcAddDepStringW(a2, a2[i].shi2_remark);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr2->array[i].shi2_remark,
+                                 &pShareInfo[i].shi2_remark);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a2[i].shi2_path)
+                 if (ctr->ctr2->array[i].shi2_path)
                  {
-                     status = SrvSvcAddDepStringW(a2, a2[i].shi2_path);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr2->array[i].shi2_path,
+                                 &pShareInfo[i].shi2_path);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a2[i].shi2_password)
+                 if (ctr->ctr2->array[i].shi2_password)
                  {
-                     status = SrvSvcAddDepStringW(a2, a2[i].shi2_password);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr2->array[i].shi2_password,
+                                 &pShareInfo[i].shi2_password);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
@@ -314,7 +349,7 @@ SrvSvcCopyNetShareCtr(
         break;
     case 501:
         if (ctr->ctr501) {
-            PSHARE_INFO_501 a501;
+            PSHARE_INFO_501 pShareInfo;
 
             count = ctr->ctr501->count;
 
@@ -323,19 +358,29 @@ SrvSvcCopyNetShareCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a501 = (PSHARE_INFO_501)ptr;
+            pShareInfo = (PSHARE_INFO_501)ptr;
 
-            for (i=0; i < count; i++) {
-                 a501[i] = ctr->ctr501->array[i];
+            for (i=0; i < count; i++)
+            {
+                 pShareInfo[i] = ctr->ctr501->array[i];
 
-                 if (a501[i].shi501_netname)
+                 pShareInfo[i].shi501_netname = NULL;
+                 pShareInfo[i].shi501_remark  = NULL;
+
+                 if (ctr->ctr501->array[i].shi501_netname)
                  {
-                     status = SrvSvcAddDepStringW(a501, a501[i].shi501_netname);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr501->array[i].shi501_netname,
+                                 &pShareInfo[i].shi501_netname);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a501[i].shi501_remark)
+                 if (ctr->ctr501->array[i].shi501_remark)
                  {
-                     status = SrvSvcAddDepStringW(a501, a501[i].shi501_remark);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfo,
+                                 ctr->ctr501->array[i].shi501_remark,
+                                 &pShareInfo[i].shi501_remark);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
@@ -343,7 +388,7 @@ SrvSvcCopyNetShareCtr(
         break;
     case 502:
         if (ctr->ctr502) {
-            PSHARE_INFO_502 a502;
+            PSHARE_INFO_502 pShareInfoCopy;
 
             count = ctr->ctr502->count;
 
@@ -352,53 +397,72 @@ SrvSvcCopyNetShareCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a502 = (PSHARE_INFO_502)ptr;
+            pShareInfoCopy = (PSHARE_INFO_502)ptr;
 
-            for (i=0; i < count; i++) {
-                 PSHARE_INFO_502_I e;
+            for (i=0; i < count; i++)
+            {
+                 PSHARE_INFO_502_I pShareInfo = &ctr->ctr502->array[i];
 
-                 e = &ctr->ctr502->array[i];
+                 pShareInfoCopy[i].shi502_netname      = NULL;
+                 pShareInfoCopy[i].shi502_type         =
+                                             pShareInfo->shi502_type;
+                 pShareInfoCopy[i].shi502_remark       = NULL;
+                 pShareInfoCopy[i].shi502_permissions  =
+                                             pShareInfo->shi502_permissions;
+                 pShareInfoCopy[i].shi502_max_uses     =
+                                             pShareInfo->shi502_max_uses;
+                 pShareInfoCopy[i].shi502_current_uses =
+                                             pShareInfo->shi502_current_uses;
+                 pShareInfoCopy[i].shi502_path         = NULL;
+                 pShareInfoCopy[i].shi502_password     = NULL;
+                 pShareInfoCopy[i].shi502_reserved     =
+                                             pShareInfo->shi502_reserved;
 
-                 a502[i].shi502_netname      = e->shi502_netname;
-                 a502[i].shi502_type         = e->shi502_type;
-                 a502[i].shi502_remark       = e->shi502_remark;
-                 a502[i].shi502_permissions  = e->shi502_permissions;
-                 a502[i].shi502_max_uses     = e->shi502_max_uses;
-                 a502[i].shi502_current_uses = e->shi502_current_uses;
-                 a502[i].shi502_path         = e->shi502_path;
-                 a502[i].shi502_password     = e->shi502_password;
-                 a502[i].shi502_reserved     = e->shi502_reserved;
-
-                 if (e->shi502_reserved)
+                 if (pShareInfo->shi502_reserved)
                  {
-                     status = SrvSvcAllocateMemory(OUT_PPVOID(&a502[i].shi502_security_descriptor),
-                                                   e->shi502_reserved,
-                                                   a502);
+                     status = SrvSvcAllocateMemory(
+                                     OUT_PPVOID(&pShareInfoCopy[i].shi502_security_descriptor),
+                                     pShareInfo->shi502_reserved,
+                                     pShareInfoCopy);
                      BAIL_ON_WIN_ERROR(status);
                  }
 
-                 if (a502[i].shi502_netname)
+                 if (pShareInfo->shi502_netname)
                  {
-                     status = SrvSvcAddDepStringW(a502, a502[i].shi502_netname);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfoCopy,
+                                 pShareInfo->shi502_netname,
+                                 &pShareInfoCopy[i].shi502_netname);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a502[i].shi502_remark)
+                 if (pShareInfo->shi502_remark)
                  {
-                     status = SrvSvcAddDepStringW(a502, a502[i].shi502_remark);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfoCopy,
+                                 pShareInfo->shi502_remark,
+                                 &pShareInfoCopy[i].shi502_remark);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a502[i].shi502_path)
+                 if (pShareInfo->shi502_path)
                  {
-                     status = SrvSvcAddDepStringW(a502, a502[i].shi502_path);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfoCopy,
+                                 pShareInfo->shi502_path,
+                                 &pShareInfoCopy[i].shi502_path);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a502[i].shi502_password)
+                 if (pShareInfo->shi502_password)
                  {
-                     status = SrvSvcAddDepStringW(a502, a502[i].shi502_password);
+                     status = SrvSvcAddDepStringW(
+                                 pShareInfoCopy,
+                                 pShareInfo->shi502_password,
+                                 &pShareInfoCopy[i].shi502_password);
                      BAIL_ON_WIN_ERROR(status);
                  }
 
-                 memcpy(a502[i].shi502_security_descriptor, e->shi502_security_descriptor, e->shi502_reserved);
+                 memcpy(pShareInfoCopy[i].shi502_security_descriptor,
+                        pShareInfo->shi502_security_descriptor,
+                        pShareInfo->shi502_reserved);
             }
         }
         break;
@@ -406,12 +470,18 @@ SrvSvcCopyNetShareCtr(
 
     *entriesread = count;
     *bufptr = (UINT8 *)ptr;
+
 cleanup:
+
     return status;
+
 error:
-    if (ptr) {
+
+    if (ptr)
+    {
         SrvSvcFreeMemory(ptr);
     }
+
     goto cleanup;
 }
 

@@ -180,7 +180,7 @@ SrvSvcCopyNetConnCtr(
         break;
     case 1:
         if (ctr->ctr1) {
-            PCONNECTION_INFO_1 a1;
+            PCONNECTION_INFO_1 pConnectionInfo;
 
             count = ctr->ctr1->count;
 
@@ -189,20 +189,29 @@ SrvSvcCopyNetConnCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a1 = (PCONNECTION_INFO_1)ptr;
+            pConnectionInfo = (PCONNECTION_INFO_1)ptr;
 
             for (i=0; i < count; i++)
             {
-                 a1[i] = ctr->ctr1->array[i];
+                 pConnectionInfo[i] = ctr->ctr1->array[i];
 
-                 if (a1[i].coni1_username)
+                 pConnectionInfo[i].coni1_username = NULL;
+                 pConnectionInfo[i].coni1_netname  = NULL;
+
+                 if (ctr->ctr1->array[i].coni1_username)
                  {
-                     status = SrvSvcAddDepStringW(a1, a1[i].coni1_username);
+                     status = SrvSvcAddDepStringW(
+                                 pConnectionInfo,
+                                 ctr->ctr1->array[i].coni1_username,
+                                 &pConnectionInfo[i].coni1_username);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a1[i].coni1_netname)
+                 if (ctr->ctr1->array[i].coni1_netname)
                  {
-                     status = SrvSvcAddDepStringW(a1, a1[i].coni1_netname);
+                     status = SrvSvcAddDepStringW(
+                                 pConnectionInfo,
+                                 ctr->ctr1->array[i].coni1_netname,
+                                 &pConnectionInfo[i].coni1_netname);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }

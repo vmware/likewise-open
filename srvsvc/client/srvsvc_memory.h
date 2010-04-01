@@ -41,7 +41,8 @@ SrvSvcAllocateMemory(
 NET_API_STATUS
 SrvSvcAddDepStringW(
     PVOID  pDep,
-    PCWSTR pwszSource
+    PCWSTR pwszSource,
+    PWSTR* ppwszDest
     );
 
 NET_API_STATUS

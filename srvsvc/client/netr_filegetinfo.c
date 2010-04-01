@@ -122,25 +122,34 @@ SrvSvcCopyNetFileInfo(
         break;
     case 3:
         if (info->info3) {
-            PFILE_INFO_3 a3;
+            PFILE_INFO_3 pFileInfo;
 
             status = SrvSvcAllocateMemory(&ptr,
                                           sizeof(FILE_INFO_3),
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a3 = (PFILE_INFO_3)ptr;
+            pFileInfo = (PFILE_INFO_3)ptr;
 
-            *a3 = *info->info3;
+            *pFileInfo = *info->info3;
 
-            if (a3->fi3_path_name)
+            pFileInfo->fi3_path_name = NULL;
+            pFileInfo->fi3_username  = NULL;
+
+            if (info->info3->fi3_path_name)
             {
-                status = SrvSvcAddDepStringW(a3, a3->fi3_path_name);
+                status = SrvSvcAddDepStringW(
+                            pFileInfo,
+                            info->info3->fi3_path_name,
+                            &pFileInfo->fi3_path_name);
                 BAIL_ON_WIN_ERROR(status);
             }
-            if (a3->fi3_username)
+            if (info->info3->fi3_username)
             {
-                status = SrvSvcAddDepStringW(a3, a3->fi3_username);
+                status = SrvSvcAddDepStringW(
+                            pFileInfo,
+                            info->info3->fi3_username,
+                            &pFileInfo->fi3_username);
                 BAIL_ON_WIN_ERROR(status);
             }
         }

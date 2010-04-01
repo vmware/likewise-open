@@ -237,7 +237,7 @@ SrvSvcCopyNetSessCtr(
     {
     case 0:
         if (ctr->ctr0) {
-            PSESSION_INFO_0 a0;
+            PSESSION_INFO_0 pSessionInfo;
 
             dwEntriesRead = ctr->ctr0->count;
 
@@ -246,15 +246,20 @@ SrvSvcCopyNetSessCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a0 = (PSESSION_INFO_0)pBuffer;
+            pSessionInfo = (PSESSION_INFO_0)pBuffer;
 
             for (i=0; i < dwEntriesRead; i++)
             {
-                 a0[i] = ctr->ctr0->array[i];
+                 pSessionInfo[i] = ctr->ctr0->array[i];
 
-                 if (a0[i].sesi0_cname)
+                 pSessionInfo[i].sesi0_cname = NULL;
+
+                 if (ctr->ctr0->array[i].sesi0_cname)
                  {
-                     status = SrvSvcAddDepStringW(a0, a0[i].sesi0_cname);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr0->array[i].sesi0_cname,
+                                 &pSessionInfo[i].sesi0_cname);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
@@ -262,7 +267,7 @@ SrvSvcCopyNetSessCtr(
         break;
     case 1:
         if (ctr->ctr1) {
-            PSESSION_INFO_1 a1;
+            PSESSION_INFO_1 pSessionInfo;
 
             dwEntriesRead = ctr->ctr1->count;
 
@@ -271,19 +276,29 @@ SrvSvcCopyNetSessCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a1 = (PSESSION_INFO_1)pBuffer;
+            pSessionInfo = (PSESSION_INFO_1)pBuffer;
 
-            for (i=0; i < dwEntriesRead; i++) {
-                 a1[i] = ctr->ctr1->array[i];
+            for (i=0; i < dwEntriesRead; i++)
+            {
+                 pSessionInfo[i] = ctr->ctr1->array[i];
 
-                 if (a1[i].sesi1_cname)
+                 pSessionInfo[i].sesi1_cname    = NULL;
+                 pSessionInfo[i].sesi1_username = NULL;
+
+                 if (ctr->ctr1->array[i].sesi1_cname)
                  {
-                     status = SrvSvcAddDepStringW(a1, a1[i].sesi1_cname);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr1->array[i].sesi1_cname,
+                                 &pSessionInfo[i].sesi1_cname);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a1[i].sesi1_username)
+                 if (ctr->ctr1->array[i].sesi1_username)
                  {
-                     status = SrvSvcAddDepStringW(a1, a1[i].sesi1_username);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr1->array[i].sesi1_username,
+                                 &pSessionInfo[i].sesi1_username);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
@@ -291,7 +306,7 @@ SrvSvcCopyNetSessCtr(
         break;
     case 2:
         if (ctr->ctr2) {
-            PSESSION_INFO_2 a2;
+            PSESSION_INFO_2 pSessionInfo;
 
             dwEntriesRead = ctr->ctr2->count;
 
@@ -300,24 +315,38 @@ SrvSvcCopyNetSessCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a2 = (PSESSION_INFO_2)pBuffer;
+            pSessionInfo = (PSESSION_INFO_2)pBuffer;
 
-            for (i=0; i < dwEntriesRead; i++) {
-                 a2[i] = ctr->ctr2->array[i];
+            for (i=0; i < dwEntriesRead; i++)
+            {
+                 pSessionInfo[i] = ctr->ctr2->array[i];
 
-                 if (a2[i].sesi2_cname)
+                 pSessionInfo[i].sesi2_cname       = NULL;
+                 pSessionInfo[i].sesi2_username    = NULL;
+                 pSessionInfo[i].sesi2_cltype_name = NULL;
+
+                 if (ctr->ctr2->array[i].sesi2_cname)
                  {
-                     status = SrvSvcAddDepStringW(a2, a2[i].sesi2_cname);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr2->array[i].sesi2_cname,
+                                 &pSessionInfo[i].sesi2_cname);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a2[i].sesi2_username)
+                 if (ctr->ctr2->array[i].sesi2_username)
                  {
-                     status = SrvSvcAddDepStringW(a2, a2[i].sesi2_username);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr2->array[i].sesi2_username,
+                                 &pSessionInfo[i].sesi2_username);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a2[i].sesi2_cltype_name)
+                 if (ctr->ctr2->array[i].sesi2_cltype_name)
                  {
-                     status = SrvSvcAddDepStringW(a2, a2[i].sesi2_cltype_name);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr2->array[i].sesi2_cltype_name,
+                                 &pSessionInfo[i].sesi2_cltype_name);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
@@ -325,7 +354,7 @@ SrvSvcCopyNetSessCtr(
         break;
     case 10:
         if (ctr->ctr10) {
-            PSESSION_INFO_10 a10;
+            PSESSION_INFO_10 pSessionInfo;
 
             dwEntriesRead = ctr->ctr10->count;
 
@@ -334,19 +363,29 @@ SrvSvcCopyNetSessCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a10 = (PSESSION_INFO_10)pBuffer;
+            pSessionInfo = (PSESSION_INFO_10)pBuffer;
 
-            for (i=0; i < dwEntriesRead; i++) {
-                 a10[i] = ctr->ctr10->array[i];
+            for (i=0; i < dwEntriesRead; i++)
+            {
+                 pSessionInfo[i] = ctr->ctr10->array[i];
 
-                 if (a10[i].sesi10_cname)
+                 pSessionInfo[i].sesi10_cname    = NULL;
+                 pSessionInfo[i].sesi10_username = NULL;
+
+                 if (ctr->ctr10->array[i].sesi10_cname)
                  {
-                     status = SrvSvcAddDepStringW(a10, a10[i].sesi10_cname);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr10->array[i].sesi10_cname,
+                                 &pSessionInfo[i].sesi10_cname);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a10[i].sesi10_username)
+                 if (ctr->ctr10->array[i].sesi10_username)
                  {
-                     status = SrvSvcAddDepStringW(a10, a10[i].sesi10_username);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr10->array[i].sesi10_username,
+                                 &pSessionInfo[i].sesi10_username);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
@@ -354,7 +393,7 @@ SrvSvcCopyNetSessCtr(
         break;
     case 502:
         if (ctr->ctr502) {
-            PSESSION_INFO_502 a502;
+            PSESSION_INFO_502 pSessionInfo;
 
             dwEntriesRead = ctr->ctr502->count;
 
@@ -363,30 +402,47 @@ SrvSvcCopyNetSessCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a502 = (PSESSION_INFO_502)pBuffer;
+            pSessionInfo = (PSESSION_INFO_502)pBuffer;
 
             for (i=0; i < dwEntriesRead; i++)
             {
-                 a502[i] = ctr->ctr502->array[i];
+                 pSessionInfo[i] = ctr->ctr502->array[i];
 
-                 if (a502[i].sesi502_cname)
+                 pSessionInfo[i].sesi502_cname       = NULL;
+                 pSessionInfo[i].sesi502_username    = NULL;
+                 pSessionInfo[i].sesi502_cltype_name = NULL;
+                 pSessionInfo[i].sesi502_transport   = NULL;
+
+                 if (ctr->ctr502->array[i].sesi502_cname)
                  {
-                     status = SrvSvcAddDepStringW(a502, a502[i].sesi502_cname);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr502->array[i].sesi502_cname,
+                                 &pSessionInfo[i].sesi502_cname);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a502[i].sesi502_username)
+                 if (ctr->ctr502->array[i].sesi502_username)
                  {
-                     status = SrvSvcAddDepStringW(a502, a502[i].sesi502_username);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr502->array[i].sesi502_username,
+                                 &pSessionInfo[i].sesi502_username);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a502[i].sesi502_cltype_name)
+                 if (ctr->ctr502->array[i].sesi502_cltype_name)
                  {
-                     status = SrvSvcAddDepStringW(a502, a502[i].sesi502_cltype_name);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr502->array[i].sesi502_cltype_name,
+                                 &pSessionInfo[i].sesi502_cltype_name);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a502[i].sesi502_transport)
+                 if (ctr->ctr502->array[i].sesi502_transport)
                  {
-                     status = SrvSvcAddDepStringW(a502, a502[i].sesi502_transport);
+                     status = SrvSvcAddDepStringW(
+                                 pSessionInfo,
+                                 ctr->ctr502->array[i].sesi502_transport,
+                                 &pSessionInfo[i].sesi502_transport);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }

@@ -89,7 +89,8 @@ SrvSvcFreeMemory(
 NET_API_STATUS
 SrvSvcAddDepStringW(
     PVOID  pDep,
-    PCWSTR pwszSource
+    PCWSTR pwszSource,
+    PWSTR* ppwszDest
     )
 {
     NET_API_STATUS status = 0;
@@ -101,11 +102,15 @@ SrvSvcAddDepStringW(
     status = SrvSvcAddDepMemory(pwszCopy, pDep);
     BAIL_ON_WIN_ERROR(status);
 
+    *ppwszDest = pwszCopy;
+
 cleanup:
 
     return status;
 
 error:
+
+    *ppwszDest = NULL;
 
     if (pwszCopy)
     {

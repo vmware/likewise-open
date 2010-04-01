@@ -234,7 +234,7 @@ SrvSvcCopyNetFileCtr(
         break;
     case 3:
         if (ctr->ctr3) {
-            PFILE_INFO_3 a3;
+            PFILE_INFO_3 pFileInfo;
 
             dwEntriesRead = ctr->ctr3->count;
 
@@ -243,20 +243,29 @@ SrvSvcCopyNetFileCtr(
                                           NULL);
             BAIL_ON_WIN_ERROR(status);
 
-            a3 = (PFILE_INFO_3)pBuffer;
+            pFileInfo = (PFILE_INFO_3)pBuffer;
 
             for (i=0; i < dwEntriesRead; i++)
             {
-                 a3[i] = ctr->ctr3->array[i];
+                 pFileInfo[i] = ctr->ctr3->array[i];
 
-                 if (a3[i].fi3_path_name)
+                 pFileInfo[i].fi3_path_name = NULL;
+                 pFileInfo[i].fi3_username  = NULL;
+
+                 if (ctr->ctr3->array[i].fi3_path_name)
                  {
-                     status = SrvSvcAddDepStringW(a3, a3[i].fi3_path_name);
+                     status = SrvSvcAddDepStringW(
+                                 pFileInfo,
+                                 ctr->ctr3->array[i].fi3_path_name,
+                                 &pFileInfo[i].fi3_path_name);
                      BAIL_ON_WIN_ERROR(status);
                  }
-                 if (a3[i].fi3_username)
+                 if (ctr->ctr3->array[i].fi3_username)
                  {
-                     status = SrvSvcAddDepStringW(a3, a3[i].fi3_username);
+                     status = SrvSvcAddDepStringW(
+                                 pFileInfo,
+                                 ctr->ctr3->array[i].fi3_username,
+                                 &pFileInfo[i].fi3_username);
                      BAIL_ON_WIN_ERROR(status);
                  }
             }
