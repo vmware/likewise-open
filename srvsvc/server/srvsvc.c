@@ -316,6 +316,7 @@ _NetrFileEnum(
 {
     DWORD dwError        = 0;
     DWORD dwInfoLevel    = 0;
+    DWORD dwEntriesRead  = 0;
     DWORD dwTotalEntries = 0;
     DWORD dwResumeHandle = 0;
 
@@ -343,6 +344,7 @@ _NetrFileEnum(
                     dwInfoLevel,
                     pInfo,
                     dwPreferredMaxLength,
+                    &dwEntriesRead,
                     &dwTotalEntries,
                     pdwResumeHandle ? &dwResumeHandle : NULL);
     BAIL_ON_SRVSVC_ERROR(dwError);

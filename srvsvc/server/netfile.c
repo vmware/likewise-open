@@ -49,6 +49,53 @@
 
 #include "includes.h"
 
+static
+DWORD
+SrvSvcMarshalFileInfoResults(
+    PFILE_INFO_ENUM_OUT_PREAMBLE pOutPreamble, /* IN     */
+    PFILE_INFO_UNION             pFileInfo,    /* IN     */
+    srvsvc_NetFileCtr*           pInfo         /* IN OUT */
+    );
+
+static
+DWORD
+SrvSvcFreeFileInfoResults(
+    DWORD              dwInfoLevel,
+    srvsvc_NetFileCtr* pInfo
+    );
+
+static
+DWORD
+SrvSvcSrvMarshalFileInfo_level_2(
+    PFILE_INFO_2  pFileInfoIn,
+    DWORD         dwNumEntries,
+    PFILE_INFO_2* ppFileInfoOut,
+    PDWORD        pdwNumEntries
+    );
+
+static
+VOID
+SrvSvcSrvFreeFileInfo_level_2(
+    PFILE_INFO_2 pFileInfo,
+    DWORD        dwNumEntries
+    );
+
+static
+DWORD
+SrvSvcSrvMarshalFileInfo_level_3(
+    PFILE_INFO_3  pFileInfoIn,
+    DWORD         dwNumEntries,
+    PFILE_INFO_3* ppFileInfoOut,
+    PDWORD        pdwNumEntries
+    );
+
+static
+VOID
+SrvSvcSrvFreeFileInfo_level_3(
+    PFILE_INFO_3 pFileInfo,
+    DWORD        dwNumEntries
+    );
+
 NET_API_STATUS
 SrvSvcNetFileEnum(
     handle_t           IDL_handle,           /* [in]      */
@@ -58,6 +105,7 @@ SrvSvcNetFileEnum(
     DWORD              dwInfoLevel,          /* [in, out] */
     srvsvc_NetFileCtr* pInfo,                /* [in, out] */
     DWORD              dwPreferredMaxLength, /* [in]      */
+    PDWORD             pdwEntriesRead,       /* [out]     */
     PDWORD             pdwTotalEntries,      /* [out]     */
     PDWORD             pdwResumeHandle       /* [in, out] */
     )
@@ -85,7 +133,7 @@ SrvSvcNetFileEnum(
     FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
     FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
     ULONG                   dwIoControlCode     = SRV_DEVCTL_ENUM_FILES;
-    FILE_INFO_ENUM_PARAMS   fileEnumParamsIn    =
+    FILE_INFO_ENUM_IN_PARAMS fileEnumParamsIn    =
     {
             .pwszBasepath         = pwszBasepath,
             .pwszUsername         = pwszUsername,
@@ -93,15 +141,13 @@ SrvSvcNetFileEnum(
             .dwPreferredMaxLength = dwPreferredMaxLength,
             .dwEntriesRead        = 0,
             .dwTotalEntries       = 0,
-            .pdwResumeHandle      = pdwResumeHandle ? pdwResumeHandle : NULL,
-            .info                 = {0}
+            .pdwResumeHandle      = pdwResumeHandle ? pdwResumeHandle : NULL
     };
-    PFILE_INFO_ENUM_PARAMS  pFileEnumParamsOut = NULL;
-    srvsvc_NetFileCtr2*     ctr2 = NULL;
-    srvsvc_NetFileCtr3*     ctr3 = NULL;
-    BOOLEAN                 bMoreDataAvailable = FALSE;
+    PFILE_INFO_ENUM_OUT_PREAMBLE pOutPreamble = NULL;
+    PFILE_INFO_UNION             pFileInfo    = NULL;
+    BOOLEAN bMoreDataAvailable = FALSE;
 
-    ntStatus = LwFileInfoMarshalEnumParameters(
+    ntStatus = LwFileInfoMarshalEnumInputParameters(
                             &fileEnumParamsIn,
                             &pInBuffer,
                             &dwInLength);
@@ -168,54 +214,18 @@ SrvSvcNetFileEnum(
 
         case STATUS_SUCCESS:
 
-            ntStatus = LwFileInfoUnmarshalEnumParameters(
+            ntStatus = LwFileInfoUnmarshalEnumOutputParameters(
                                     pOutBuffer,
                                     dwOutLength,
-                                    &pFileEnumParamsOut);
+                                    &pOutPreamble,
+                                    &pFileInfo);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            switch (pFileEnumParamsOut->dwInfoLevel)
-            {
-                case 2:
-
-                    ctr2 = pInfo->ctr2;
-                    ctr2->count = pFileEnumParamsOut->dwEntriesRead;
-
-                    dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr2->array) * ctr2->count,
-                                        (void**)&ctr2->array);
-                    BAIL_ON_SRVSVC_ERROR(dwError);
-
-                    memcpy(
-                        (void*)ctr2->array,
-                        (void*)pFileEnumParamsOut->info.p2,
-                           sizeof(*ctr2->array) * ctr2->count);
-
-                    break;
-
-                case 3:
-
-                    ctr3 = pInfo->ctr3;
-                    ctr3->count = pFileEnumParamsOut->dwEntriesRead;
-
-                    dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr3->array) * ctr3->count,
-                                        (void**)&ctr3->array);
-                    BAIL_ON_SRVSVC_ERROR(dwError);
-
-                    memcpy(
-                        (void*)ctr3->array,
-                        (void*)pFileEnumParamsOut->info.p3,
-                        sizeof(*ctr3->array) * ctr2->count);
-
-                    break;
-
-                default:
-
-                    ntStatus = STATUS_NOT_SUPPORTED;
-                    break;
-            }
-            BAIL_ON_NT_STATUS(ntStatus);
+            dwError = SrvSvcMarshalFileInfoResults(
+                                        pOutPreamble,
+                                        pFileInfo,
+                                        pInfo);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             break;
 
@@ -226,10 +236,11 @@ SrvSvcNetFileEnum(
             break;
     }
 
-    *pdwTotalEntries = pFileEnumParamsOut->dwTotalEntries;
+    *pdwEntriesRead  = pOutPreamble->dwEntriesRead;
+    *pdwTotalEntries = pOutPreamble->dwTotalEntries;
     if (pdwResumeHandle)
     {
-        *pdwResumeHandle = *pFileEnumParamsOut->pdwResumeHandle;
+        *pdwResumeHandle = *pOutPreamble->pdwResumeHandle;
     }
 
     if (bMoreDataAvailable)
@@ -246,56 +257,287 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
-    LW_SAFE_FREE_MEMORY(pFileEnumParamsOut);
+
+    if (pFileInfo)
+    {
+        LwFileInfoFree(
+                pOutPreamble->dwInfoLevel,
+                pOutPreamble->dwEntriesRead,
+                pFileInfo);
+    }
+    if (pOutPreamble)
+    {
+        LwFileInfoFreeEnumOutPreamble(pOutPreamble);
+    }
 
     return dwError;
 
 error:
 
-    if (pFileEnumParamsOut && pInfo)
-    {
-        switch (pFileEnumParamsOut->dwInfoLevel)
-        {
-            case 2:
-
-                if (ctr2 && ctr2->array)
-                {
-                    SrvSvcSrvFreeMemory(ctr2->array);
-                }
-                break;
-
-            case 3:
-
-                if (ctr3 && ctr3->array)
-                {
-                    SrvSvcSrvFreeMemory(ctr3->array);
-                }
-                break;
-
-            default:
-
-                SRVSVC_LOG_ERROR("Unsupported info level [%u]",
-                                 pFileEnumParamsOut->dwInfoLevel);
-                break;
-        }
-    }
-
-    if (ntStatus != STATUS_SUCCESS)
-    {
-        dwError = LwNtStatusToWin32Error(ntStatus);
-    }
-
     if (pInfo)
     {
+        SrvSvcFreeFileInfoResults(pOutPreamble->dwInfoLevel, pInfo);
+
         memset(pInfo, 0, sizeof(*pInfo));
     }
 
+    switch (ntStatus)
+    {
+        case STATUS_SUCCESS:
+
+            break;
+
+        default:
+
+            dwError = LwNtStatusToWin32Error(ntStatus);
+
+            break;
+    }
+
+    if (pdwEntriesRead)
+    {
+        *pdwEntriesRead = 0;
+    }
     if (pdwTotalEntries)
     {
         *pdwTotalEntries = 0;
     }
 
     goto cleanup;
+}
+
+static
+DWORD
+SrvSvcMarshalFileInfoResults(
+    PFILE_INFO_ENUM_OUT_PREAMBLE pOutPreamble, /* IN     */
+    PFILE_INFO_UNION             pFileInfo,    /* IN     */
+    srvsvc_NetFileCtr*           pInfo         /* IN OUT */
+    )
+{
+    DWORD dwError = 0;
+
+    if (pOutPreamble->dwEntriesRead)
+    {
+        switch (pOutPreamble->dwInfoLevel)
+        {
+            case 2:
+
+                dwError = SrvSvcSrvMarshalFileInfo_level_2(
+                                pFileInfo->p2,
+                                pOutPreamble->dwEntriesRead,
+                                &pInfo->ctr2->array,
+                                &pInfo->ctr2->count);
+
+                break;
+
+            case 3:
+
+                dwError = SrvSvcSrvMarshalFileInfo_level_3(
+                                pFileInfo->p3,
+                                pOutPreamble->dwEntriesRead,
+                                &pInfo->ctr3->array,
+                                &pInfo->ctr3->count);
+
+                break;
+
+            default:
+
+                dwError = ERROR_INVALID_LEVEL;
+                break;
+        }
+    }
+
+    return dwError;
+}
+
+static
+DWORD
+SrvSvcFreeFileInfoResults(
+    DWORD              dwInfoLevel,
+    srvsvc_NetFileCtr* pInfo
+    )
+{
+    switch (dwInfoLevel)
+    {
+        case 2:
+
+            if (pInfo->ctr2 && pInfo->ctr2->array)
+            {
+                SrvSvcSrvFreeFileInfo_level_2(
+                        pInfo->ctr2->array,
+                        pInfo->ctr2->count);
+            }
+            break;
+
+        case 3:
+
+
+            if (pInfo->ctr3 && pInfo->ctr3->array)
+            {
+                SrvSvcSrvFreeFileInfo_level_3(
+                                            pInfo->ctr3->array,
+                                            pInfo->ctr3->count);
+            }
+            break;
+
+        default:
+
+            SRVSVC_LOG_ERROR("Unsupported info level [%u]", dwInfoLevel);
+
+            break;
+    }
+}
+
+static
+DWORD
+SrvSvcSrvMarshalFileInfo_level_2(
+    PFILE_INFO_2  pFileInfoIn,
+    DWORD         dwNumEntries,
+    PFILE_INFO_2* ppFileInfoOut,
+    PDWORD        pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PFILE_INFO_2 pFileInfoOut = NULL;
+
+    if (dwNumEntries)
+    {
+        DWORD idx = 0;
+
+        dwError = SrvSvcSrvAllocateMemory(
+                            sizeof(FILE_INFO_2) * dwNumEntries,
+                            (PVOID*)&pFileInfoOut);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        for (; idx < dwNumEntries; idx++)
+        {
+            PFILE_INFO_2 pInfoIn = &pFileInfoIn[idx];
+            PFILE_INFO_2 pInfoOut = &pFileInfoOut[idx];
+
+            pInfoOut->fi2_id = pInfoIn->fi2_id;
+        }
+    }
+
+    *ppFileInfoOut = pFileInfoOut;
+    *pdwNumEntries = dwNumEntries;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppFileInfoOut = NULL;
+    *pdwNumEntries    = 0;
+
+    if (pFileInfoOut)
+    {
+        SrvSvcSrvFreeFileInfo_level_2(pFileInfoOut, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvSvcSrvFreeFileInfo_level_2(
+    PFILE_INFO_2 pFileInfo,
+    DWORD        dwNumEntries
+    )
+{
+    SrvSvcSrvFreeMemory(pFileInfo);
+}
+
+static
+DWORD
+SrvSvcSrvMarshalFileInfo_level_3(
+    PFILE_INFO_3  pFileInfoIn,
+    DWORD         dwNumEntries,
+    PFILE_INFO_3* ppFileInfoOut,
+    PDWORD        pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PFILE_INFO_3 pFileInfoOut = NULL;
+
+    if (dwNumEntries)
+    {
+        DWORD idx = 0;
+
+        dwError = SrvSvcSrvAllocateMemory(
+                            sizeof(FILE_INFO_3) * dwNumEntries,
+                            (PVOID*)&pFileInfoOut);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        for (; idx < dwNumEntries; idx++)
+        {
+            PFILE_INFO_3 pInfoIn = &pFileInfoIn[idx];
+            PFILE_INFO_3 pInfoOut = &pFileInfoOut[idx];
+
+            if (pInfoIn->fi3_path_name)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->fi3_path_name,
+                                pInfoIn->fi3_path_name);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            if (pInfoIn->fi3_username)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->fi3_username,
+                                pInfoIn->fi3_username);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            pInfoOut->fi3_idd         = pInfoIn->fi3_idd;
+            pInfoOut->fi3_num_locks   = pInfoIn->fi3_num_locks;
+            pInfoOut->fi3_permissions = pInfoIn->fi3_permissions;
+        }
+    }
+
+    *ppFileInfoOut = pFileInfoOut;
+    *pdwNumEntries = dwNumEntries;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppFileInfoOut = NULL;
+    *pdwNumEntries    = 0;
+
+    if (pFileInfoOut)
+    {
+        SrvSvcSrvFreeFileInfo_level_3(pFileInfoOut, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvSvcSrvFreeFileInfo_level_3(
+    PFILE_INFO_3 pFileInfo,
+    DWORD        dwNumEntries
+    )
+{
+    DWORD idx = 0;
+
+    for (; idx < dwNumEntries; idx++)
+    {
+        PFILE_INFO_3 pInfo = &pFileInfo[idx];
+
+        if (pInfo->fi3_path_name)
+        {
+            SrvSvcSrvFreeMemory(pInfo->fi3_path_name);
+        }
+        if (pInfo->fi3_username)
+        {
+            SrvSvcSrvFreeMemory(pInfo->fi3_username);
+        }
+    }
+
+    SrvSvcSrvFreeMemory(pFileInfo);
 }
 
 NET_API_STATUS
