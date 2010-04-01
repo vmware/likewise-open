@@ -49,6 +49,86 @@
 
 #include "includes.h"
 
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_0(
+    PSESSION_INFO_0  pSessionInfoIn,
+    DWORD            dwNumEntries,
+    PSESSION_INFO_0* ppSessionInfoOut,
+    PDWORD           pdwNumEntries
+    );
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_0(
+    PSESSION_INFO_0 pSessionInfo,
+    DWORD           dwNumEntries
+    );
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_1(
+    PSESSION_INFO_1  pSessionInfoIn,
+    DWORD            dwNumEntries,
+    PSESSION_INFO_1* ppSessionInfoOut,
+    PDWORD           pdwNumEntries
+    );
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_1(
+    PSESSION_INFO_1 pSessionInfo,
+    DWORD           dwNumEntries
+    );
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_2(
+    PSESSION_INFO_2  pSessionInfoIn,
+    DWORD            dwNumEntries,
+    PSESSION_INFO_2* ppSessionInfoOut,
+    PDWORD           pdwNumEntries
+    );
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_2(
+    PSESSION_INFO_2 pSessionInfo,
+    DWORD           dwNumEntries
+    );
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_10(
+    PSESSION_INFO_10  pSessionInfoIn,
+    DWORD             dwNumEntries,
+    PSESSION_INFO_10* ppSessionInfoOut,
+    PDWORD            pdwNumEntries
+    );
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_10(
+    PSESSION_INFO_10 pSessionInfo,
+    DWORD            dwNumEntries
+    );
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_502(
+    PSESSION_INFO_502  pSessionInfoIn,
+    DWORD              dwNumEntries,
+    PSESSION_INFO_502* ppSessionInfoOut,
+    PDWORD             pdwNumEntries
+    );
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_502(
+    PSESSION_INFO_502 pSessionInfo,
+    DWORD             dwNumEntries
+    );
+
 NET_API_STATUS
 SrvSvcNetSessionEnum(
     handle_t           IDL_handle,           /* [in]      */
@@ -97,12 +177,7 @@ SrvSvcNetSessionEnum(
     };
     PSESSION_INFO_ENUM_OUT_PREAMBLE pOutPreamble = NULL;
     PSESSION_INFO_UNION             pSessionInfo = NULL;
-    srvsvc_NetSessCtr0*     ctr0 = NULL;
-    srvsvc_NetSessCtr1*     ctr1= NULL;
-    srvsvc_NetSessCtr2*     ctr2 = NULL;
-    srvsvc_NetSessCtr10*    ctr10 = NULL;
-    srvsvc_NetSessCtr502*   ctr502 = NULL;
-    BOOLEAN                 bMoreDataAvailable = FALSE;
+    BOOLEAN bMoreDataAvailable = FALSE;
 
     ntStatus = LwSessionInfoMarshalEnumInputParameters(
                             &sessionEnumParamsIn,
@@ -182,110 +257,60 @@ SrvSvcNetSessionEnum(
             {
                 case 0:
 
-                    ctr0 = pInfo->ctr0;
-                    ctr0->count = pOutPreamble->dwEntriesRead;
-
-                    if (ctr0->count)
-                    {
-                        dwError = SrvSvcSrvAllocateMemory(
-                                            sizeof(*ctr0->array) * ctr0->count,
-                                            (void**)&ctr0->array);
-                        BAIL_ON_SRVSVC_ERROR(dwError);
-
-                        memcpy(
-                            (void*)ctr0->array,
-                            (void*)pSessionInfo->p0,
-                               sizeof(*ctr0->array) * ctr0->count);
-                    }
+                    dwError = SrvSvcSrvMarshalSessionInfo_level_0(
+                                    pSessionInfo->p0,
+                                    pOutPreamble->dwEntriesRead,
+                                    &pInfo->ctr0->array,
+                                    &pInfo->ctr0->count);
 
                     break;
 
                 case 1:
 
-                    ctr1 = pInfo->ctr1;
-                    ctr1->count = pOutPreamble->dwEntriesRead;
-
-                    if (ctr1->count)
-                    {
-                        dwError = SrvSvcSrvAllocateMemory(
-                                            sizeof(*ctr1->array) * ctr1->count,
-                                            (void**)&ctr1->array);
-                        BAIL_ON_SRVSVC_ERROR(dwError);
-
-                        memcpy(
-                            (void*)ctr1->array,
-                            (void*)pSessionInfo->p1,
-                               sizeof(*ctr1->array) * ctr1->count);
-                    }
+                    dwError = SrvSvcSrvMarshalSessionInfo_level_1(
+                                    pSessionInfo->p1,
+                                    pOutPreamble->dwEntriesRead,
+                                    &pInfo->ctr1->array,
+                                    &pInfo->ctr1->count);
 
                     break;
 
                 case 2:
 
-                    ctr2 = pInfo->ctr2;
-                    ctr2->count = pOutPreamble->dwEntriesRead;
-
-                    if (ctr2->count)
-                    {
-                        dwError = SrvSvcSrvAllocateMemory(
-                                            sizeof(*ctr2->array) * ctr2->count,
-                                            (void**)&ctr2->array);
-                        BAIL_ON_SRVSVC_ERROR(dwError);
-
-                        memcpy(
-                            (void*)ctr2->array,
-                            (void*)pSessionInfo->p2,
-                               sizeof(*ctr2->array) * ctr2->count);
-                    }
+                    dwError = SrvSvcSrvMarshalSessionInfo_level_2(
+                                    pSessionInfo->p2,
+                                    pOutPreamble->dwEntriesRead,
+                                    &pInfo->ctr2->array,
+                                    &pInfo->ctr2->count);
 
                     break;
 
                 case 10:
 
-                    ctr10 = pInfo->ctr10;
-                    ctr10->count = pOutPreamble->dwEntriesRead;
-
-                    if (ctr10->count)
-                    {
-                        dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr10->array) * ctr10->count,
-                                        (void**)&ctr10->array);
-                        BAIL_ON_SRVSVC_ERROR(dwError);
-
-                        memcpy(
-                            (void*)ctr10->array,
-                            (void*)pSessionInfo->p10,
-                            sizeof(*ctr10->array) * ctr10->count);
-                    }
+                    dwError = SrvSvcSrvMarshalSessionInfo_level_10(
+                                    pSessionInfo->p10,
+                                    pOutPreamble->dwEntriesRead,
+                                    &pInfo->ctr10->array,
+                                    &pInfo->ctr10->count);
 
                     break;
 
                 case 502:
 
-                    ctr502 = pInfo->ctr502;
-                    ctr502->count = pOutPreamble->dwEntriesRead;
-
-                    if (ctr502->count)
-                    {
-                        dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr502->array) * ctr502->count,
-                                        (void**)&ctr502->array);
-                        BAIL_ON_SRVSVC_ERROR(dwError);
-
-                        memcpy(
-                            (void*)ctr502->array,
-                            (void*)pSessionInfo->p502,
-                            sizeof(*ctr502->array) * ctr502->count);
-                    }
+                    dwError = SrvSvcSrvMarshalSessionInfo_level_502(
+                                    pSessionInfo->p502,
+                                    pOutPreamble->dwEntriesRead,
+                                    &pInfo->ctr502->array,
+                                    &pInfo->ctr502->count);
 
                     break;
 
                 default:
 
-                    ntStatus = STATUS_NOT_SUPPORTED;
+                    dwError = ERROR_INVALID_LEVEL;
                     break;
             }
-            BAIL_ON_NT_STATUS(ntStatus);
+            BAIL_ON_SRVSVC_ERROR(dwError);
 
             break;
 
@@ -334,48 +359,58 @@ cleanup:
 
 error:
 
-    if (pSessionInfo && pInfo)
+    if (pInfo)
     {
         switch (pOutPreamble->dwInfoLevel)
         {
             case 0:
 
-                if (ctr0 && ctr0->array)
+                if (pInfo->ctr0 && pInfo->ctr0->array)
                 {
-                    SrvSvcSrvFreeMemory(ctr0->array);
+                    SrvSvcSrvFreeSessionInfo_level_0(
+                            pInfo->ctr0->array,
+                            pOutPreamble->dwEntriesRead);
                 }
                 break;
 
             case 1:
 
 
-                if (ctr1 && ctr1->array)
+                if (pInfo->ctr1 && pInfo->ctr1->array)
                 {
-                    SrvSvcSrvFreeMemory(ctr1->array);
+                    SrvSvcSrvFreeSessionInfo_level_1(
+                                                pInfo->ctr1->array,
+                                                pOutPreamble->dwEntriesRead);
                 }
                 break;
 
             case 2:
 
-                if (ctr2 && ctr2->array)
+                if (pInfo->ctr2 && pInfo->ctr2->array)
                 {
-                    SrvSvcSrvFreeMemory(ctr2->array);
+                    SrvSvcSrvFreeSessionInfo_level_2(
+                                                pInfo->ctr2->array,
+                                                pOutPreamble->dwEntriesRead);
                 }
                 break;
 
             case 10:
 
-                if (ctr10 && ctr10->array)
+                if (pInfo->ctr10 && pInfo->ctr10->array)
                 {
-                    SrvSvcSrvFreeMemory(ctr10->array);
+                    SrvSvcSrvFreeSessionInfo_level_10(
+                                                pInfo->ctr10->array,
+                                                pOutPreamble->dwEntriesRead);
                 }
                 break;
 
             case 502:
 
-                if (ctr502 && ctr502->array)
+                if (pInfo->ctr502 && pInfo->ctr502->array)
                 {
-                    SrvSvcSrvFreeMemory(ctr502->array);
+                    SrvSvcSrvFreeSessionInfo_level_502(
+                                                pInfo->ctr502->array,
+                                                pOutPreamble->dwEntriesRead);
                 }
                 break;
 
@@ -385,6 +420,8 @@ error:
                                  pOutPreamble->dwInfoLevel);
                 break;
         }
+
+        memset(pInfo, 0, sizeof(*pInfo));
     }
 
     switch (ntStatus)
@@ -406,11 +443,6 @@ error:
             break;
     }
 
-    if (pInfo)
-    {
-        memset(pInfo, 0, sizeof(*pInfo));
-    }
-
     if (pdwEntriesRead)
     {
         *pdwEntriesRead = 0;
@@ -421,6 +453,491 @@ error:
     }
 
     goto cleanup;
+}
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_0(
+    PSESSION_INFO_0  pSessionInfoIn,
+    DWORD            dwNumEntries,
+    PSESSION_INFO_0* ppSessionInfoOut,
+    PDWORD           pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PSESSION_INFO_0 pSessionInfoOut = NULL;
+
+    if (dwNumEntries)
+    {
+        DWORD idx = 0;
+
+        dwError = SrvSvcSrvAllocateMemory(
+                            sizeof(SESSION_INFO_0) * dwNumEntries,
+                            (PVOID*)&pSessionInfoOut);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        for (; idx < dwNumEntries; idx++)
+        {
+            PSESSION_INFO_0 pInfoIn = &pSessionInfoIn[idx];
+            PSESSION_INFO_0 pInfoOut = &pSessionInfoOut[idx];
+
+            if (pInfoIn->sesi0_cname)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi0_cname,
+                                pInfoIn->sesi0_cname);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+        }
+    }
+
+    *ppSessionInfoOut = pSessionInfoOut;
+    *pdwNumEntries    = dwNumEntries;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppSessionInfoOut = NULL;
+    *pdwNumEntries    = 0;
+
+    if (pSessionInfoOut)
+    {
+        SrvSvcSrvFreeSessionInfo_level_0(pSessionInfoOut, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_0(
+    PSESSION_INFO_0 pSessionInfo,
+    DWORD           dwNumEntries
+    )
+{
+    DWORD idx = 0;
+
+    for (; idx < dwNumEntries; idx++)
+    {
+        PSESSION_INFO_0 pInfo = &pSessionInfo[idx];
+
+        if (pInfo->sesi0_cname)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi0_cname);
+        }
+    }
+
+    SrvSvcSrvFreeMemory(pSessionInfo);
+}
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_1(
+    PSESSION_INFO_1  pSessionInfoIn,
+    DWORD            dwNumEntries,
+    PSESSION_INFO_1* ppSessionInfoOut,
+    PDWORD           pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PSESSION_INFO_1 pSessionInfoOut = NULL;
+
+    if (dwNumEntries)
+    {
+        DWORD idx = 0;
+
+        dwError = SrvSvcSrvAllocateMemory(
+                            sizeof(SESSION_INFO_1) * dwNumEntries,
+                            (PVOID*)&pSessionInfoOut);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        for (; idx < dwNumEntries; idx++)
+        {
+            PSESSION_INFO_1 pInfoIn = &pSessionInfoIn[idx];
+            PSESSION_INFO_1 pInfoOut = &pSessionInfoOut[idx];
+
+            if (pInfoIn->sesi1_cname)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi1_cname,
+                                pInfoIn->sesi1_cname);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            if (pInfoIn->sesi1_username)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi1_username,
+                                pInfoIn->sesi1_username);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            pInfoOut->sesi1_num_opens  = pInfoIn->sesi1_num_opens;
+            pInfoOut->sesi1_time       = pInfoIn->sesi1_time;
+            pInfoOut->sesi1_idle_time  = pInfoIn->sesi1_idle_time;
+            pInfoOut->sesi1_user_flags = pInfoIn->sesi1_user_flags;
+        }
+    }
+
+    *ppSessionInfoOut = pSessionInfoOut;
+    *pdwNumEntries    = dwNumEntries;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppSessionInfoOut = NULL;
+    *pdwNumEntries    = 0;
+
+    if (pSessionInfoOut)
+    {
+        SrvSvcSrvFreeSessionInfo_level_1(pSessionInfoOut, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_1(
+    PSESSION_INFO_1 pSessionInfo,
+    DWORD           dwNumEntries
+    )
+{
+    DWORD idx = 0;
+
+    for (; idx < dwNumEntries; idx++)
+    {
+        PSESSION_INFO_1 pInfo = &pSessionInfo[idx];
+
+        if (pInfo->sesi1_cname)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi1_cname);
+        }
+        if (pInfo->sesi1_username)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi1_username);
+        }
+    }
+
+    SrvSvcSrvFreeMemory(pSessionInfo);
+}
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_2(
+    PSESSION_INFO_2  pSessionInfoIn,
+    DWORD            dwNumEntries,
+    PSESSION_INFO_2* ppSessionInfoOut,
+    PDWORD           pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PSESSION_INFO_2 pSessionInfoOut = NULL;
+
+    if (dwNumEntries)
+    {
+        DWORD idx = 0;
+
+        dwError = SrvSvcSrvAllocateMemory(
+                            sizeof(SESSION_INFO_2) * dwNumEntries,
+                            (PVOID*)&pSessionInfoOut);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        for (; idx < dwNumEntries; idx++)
+        {
+            PSESSION_INFO_2 pInfoIn = &pSessionInfoIn[idx];
+            PSESSION_INFO_2 pInfoOut = &pSessionInfoOut[idx];
+
+            if (pInfoIn->sesi2_cname)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi2_cname,
+                                pInfoIn->sesi2_cname);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            if (pInfoIn->sesi2_username)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi2_username,
+                                pInfoIn->sesi2_username);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            if (pInfoIn->sesi2_cltype_name)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi2_cltype_name,
+                                pInfoIn->sesi2_cltype_name);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+
+            pInfoOut->sesi2_num_opens  = pInfoIn->sesi2_num_opens;
+            pInfoOut->sesi2_time       = pInfoIn->sesi2_time;
+            pInfoOut->sesi2_idle_time  = pInfoIn->sesi2_idle_time;
+            pInfoOut->sesi2_user_flags = pInfoIn->sesi2_user_flags;
+        }
+    }
+
+    *ppSessionInfoOut = pSessionInfoOut;
+    *pdwNumEntries    = dwNumEntries;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppSessionInfoOut = NULL;
+    *pdwNumEntries    = 0;
+
+    if (pSessionInfoOut)
+    {
+        SrvSvcSrvFreeSessionInfo_level_2(pSessionInfoOut, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_2(
+    PSESSION_INFO_2 pSessionInfo,
+    DWORD           dwNumEntries
+    )
+{
+    DWORD idx = 0;
+
+    for (; idx < dwNumEntries; idx++)
+    {
+        PSESSION_INFO_2 pInfo = &pSessionInfo[idx];
+
+        if (pInfo->sesi2_cname)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi2_cname);
+        }
+        if (pInfo->sesi2_username)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi2_username);
+        }
+        if (pInfo->sesi2_cltype_name)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi2_cltype_name);
+        }
+    }
+
+    SrvSvcSrvFreeMemory(pSessionInfo);
+}
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_10(
+    PSESSION_INFO_10  pSessionInfoIn,
+    DWORD             dwNumEntries,
+    PSESSION_INFO_10* ppSessionInfoOut,
+    PDWORD            pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PSESSION_INFO_10 pSessionInfoOut = NULL;
+
+    if (dwNumEntries)
+    {
+        DWORD idx = 0;
+
+        dwError = SrvSvcSrvAllocateMemory(
+                            sizeof(SESSION_INFO_10) * dwNumEntries,
+                            (PVOID*)&pSessionInfoOut);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        for (; idx < dwNumEntries; idx++)
+        {
+            PSESSION_INFO_10 pInfoIn = &pSessionInfoIn[idx];
+            PSESSION_INFO_10 pInfoOut = &pSessionInfoOut[idx];
+
+            if (pInfoIn->sesi10_cname)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi10_cname,
+                                pInfoIn->sesi10_cname);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            if (pInfoIn->sesi10_username)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi10_username,
+                                pInfoIn->sesi10_username);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+
+            pInfoOut->sesi10_time       = pInfoIn->sesi10_time;
+            pInfoOut->sesi10_idle_time  = pInfoIn->sesi10_idle_time;
+        }
+    }
+
+    *ppSessionInfoOut = pSessionInfoOut;
+    *pdwNumEntries    = dwNumEntries;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppSessionInfoOut = NULL;
+    *pdwNumEntries    = 0;
+
+    if (pSessionInfoOut)
+    {
+        SrvSvcSrvFreeSessionInfo_level_10(pSessionInfoOut, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_10(
+    PSESSION_INFO_10 pSessionInfo,
+    DWORD            dwNumEntries
+    )
+{
+    DWORD idx = 0;
+
+    for (; idx < dwNumEntries; idx++)
+    {
+        PSESSION_INFO_10 pInfo = &pSessionInfo[idx];
+
+        if (pInfo->sesi10_cname)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi10_cname);
+        }
+        if (pInfo->sesi10_username)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi10_username);
+        }
+    }
+
+    SrvSvcSrvFreeMemory(pSessionInfo);
+}
+
+static
+DWORD
+SrvSvcSrvMarshalSessionInfo_level_502(
+    PSESSION_INFO_502  pSessionInfoIn,
+    DWORD              dwNumEntries,
+    PSESSION_INFO_502* ppSessionInfoOut,
+    PDWORD             pdwNumEntries
+    )
+{
+    DWORD dwError = 0;
+    PSESSION_INFO_502 pSessionInfoOut = NULL;
+
+    if (dwNumEntries)
+    {
+        DWORD idx = 0;
+
+        dwError = SrvSvcSrvAllocateMemory(
+                            sizeof(SESSION_INFO_502) * dwNumEntries,
+                            (PVOID*)&pSessionInfoOut);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
+        for (; idx < dwNumEntries; idx++)
+        {
+            PSESSION_INFO_502 pInfoIn  = &pSessionInfoIn[idx];
+            PSESSION_INFO_502 pInfoOut = &pSessionInfoOut[idx];
+
+            if (pInfoIn->sesi502_cname)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi502_cname,
+                                pInfoIn->sesi502_cname);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            if (pInfoIn->sesi502_username)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi502_username,
+                                pInfoIn->sesi502_username);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+
+            pInfoOut->sesi502_num_opens  = pInfoIn->sesi502_num_opens;
+            pInfoOut->sesi502_time       = pInfoIn->sesi502_time;
+            pInfoOut->sesi502_idle_time  = pInfoIn->sesi502_idle_time;
+            pInfoOut->sesi502_user_flags = pInfoIn->sesi502_user_flags;
+
+            if (pInfoIn->sesi502_cltype_name)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi502_cltype_name,
+                                pInfoIn->sesi502_cltype_name);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+            if (pInfoIn->sesi502_transport)
+            {
+                dwError = SrvSvcSrvAllocateWC16String(
+                                &pInfoOut->sesi502_transport,
+                                pInfoIn->sesi502_transport);
+                BAIL_ON_SRVSVC_ERROR(dwError);
+            }
+        }
+    }
+
+    *ppSessionInfoOut = pSessionInfoOut;
+    *pdwNumEntries    = dwNumEntries;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    *ppSessionInfoOut = NULL;
+    *pdwNumEntries    = 0;
+
+    if (pSessionInfoOut)
+    {
+        SrvSvcSrvFreeSessionInfo_level_502(pSessionInfoOut, dwNumEntries);
+    }
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvSvcSrvFreeSessionInfo_level_502(
+    PSESSION_INFO_502 pSessionInfo,
+    DWORD             dwNumEntries
+    )
+{
+    DWORD idx = 0;
+
+    for (; idx < dwNumEntries; idx++)
+    {
+        PSESSION_INFO_502 pInfo = &pSessionInfo[idx];
+
+        if (pInfo->sesi502_cname)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi502_cname);
+        }
+        if (pInfo->sesi502_username)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi502_username);
+        }
+        if (pInfo->sesi502_cltype_name)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi502_cltype_name);
+        }
+        if (pInfo->sesi502_transport)
+        {
+            SrvSvcSrvFreeMemory(pInfo->sesi502_transport);
+        }
+    }
+
+    SrvSvcSrvFreeMemory(pSessionInfo);
 }
 
 NET_API_STATUS
