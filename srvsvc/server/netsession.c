@@ -86,19 +86,17 @@ SrvSvcNetSessionEnum(
     FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
     FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
     ULONG                   dwIoControlCode     = SRV_DEVCTL_ENUM_SESSIONS;
-    SESSION_INFO_ENUM_PARAMS sessionEnumParamsIn    =
+    SESSION_INFO_ENUM_IN_PARAMS sessionEnumParamsIn    =
     {
             .pwszServername       = pwszServername,
             .pwszUncClientname    = pwszUncClientname,
             .pwszUsername         = pwszUsername,
             .dwInfoLevel          = dwInfoLevel,
             .dwPreferredMaxLength = dwPreferredMaxLength,
-            .dwEntriesRead        = 0,
-            .dwTotalEntries       = 0,
-            .pdwResumeHandle      = pdwResumeHandle ? pdwResumeHandle : NULL,
-            .info                 = {0}
+            .pdwResumeHandle      = pdwResumeHandle ? pdwResumeHandle : NULL
     };
-    PSESSION_INFO_ENUM_PARAMS  pSessionEnumParamsOut = NULL;
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pOutPreamble = NULL;
+    PSESSION_INFO_UNION             pSessionInfo = NULL;
     srvsvc_NetSessCtr0*     ctr0 = NULL;
     srvsvc_NetSessCtr1*     ctr1= NULL;
     srvsvc_NetSessCtr2*     ctr2 = NULL;
@@ -106,7 +104,7 @@ SrvSvcNetSessionEnum(
     srvsvc_NetSessCtr502*   ctr502 = NULL;
     BOOLEAN                 bMoreDataAvailable = FALSE;
 
-    ntStatus = LwSessionInfoMarshalEnumParameters(
+    ntStatus = LwSessionInfoMarshalEnumInputParameters(
                             &sessionEnumParamsIn,
                             &pInBuffer,
                             &dwInLength);
@@ -173,18 +171,19 @@ SrvSvcNetSessionEnum(
 
         case STATUS_SUCCESS:
 
-            ntStatus = LwSessionInfoUnmarshalEnumParameters(
-                                    pOutBuffer,
-                                    dwOutLength,
-                                    &pSessionEnumParamsOut);
+            ntStatus = LwSessionInfoUnmarshalEnumOutputParameters(
+                            pOutBuffer,
+                            dwOutLength,
+                            &pOutPreamble,
+                            &pSessionInfo);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            switch (pSessionEnumParamsOut->dwInfoLevel)
+            switch (pOutPreamble->dwInfoLevel)
             {
                 case 0:
 
                     ctr0 = pInfo->ctr0;
-                    ctr0->count = pSessionEnumParamsOut->dwEntriesRead;
+                    ctr0->count = pOutPreamble->dwEntriesRead;
 
                     dwError = SrvSvcSrvAllocateMemory(
                                         sizeof(*ctr0->array) * ctr0->count,
@@ -193,7 +192,7 @@ SrvSvcNetSessionEnum(
 
                     memcpy(
                         (void*)ctr0->array,
-                        (void*)pSessionEnumParamsOut->info.p0,
+                        (void*)pSessionInfo->p0,
                            sizeof(*ctr0->array) * ctr0->count);
 
                     break;
@@ -201,7 +200,7 @@ SrvSvcNetSessionEnum(
                 case 1:
 
                     ctr1 = pInfo->ctr1;
-                    ctr1->count = pSessionEnumParamsOut->dwEntriesRead;
+                    ctr1->count = pOutPreamble->dwEntriesRead;
 
                     dwError = SrvSvcSrvAllocateMemory(
                                         sizeof(*ctr1->array) * ctr1->count,
@@ -210,7 +209,7 @@ SrvSvcNetSessionEnum(
 
                     memcpy(
                         (void*)ctr1->array,
-                        (void*)pSessionEnumParamsOut->info.p1,
+                        (void*)pSessionInfo->p1,
                            sizeof(*ctr1->array) * ctr1->count);
 
                     break;
@@ -218,7 +217,7 @@ SrvSvcNetSessionEnum(
                 case 2:
 
                     ctr2 = pInfo->ctr2;
-                    ctr2->count = pSessionEnumParamsOut->dwEntriesRead;
+                    ctr2->count = pOutPreamble->dwEntriesRead;
 
                     dwError = SrvSvcSrvAllocateMemory(
                                         sizeof(*ctr2->array) * ctr2->count,
@@ -227,7 +226,7 @@ SrvSvcNetSessionEnum(
 
                     memcpy(
                         (void*)ctr2->array,
-                        (void*)pSessionEnumParamsOut->info.p2,
+                        (void*)pSessionInfo->p2,
                            sizeof(*ctr2->array) * ctr2->count);
 
                     break;
@@ -235,7 +234,7 @@ SrvSvcNetSessionEnum(
                 case 10:
 
                     ctr10 = pInfo->ctr10;
-                    ctr10->count = pSessionEnumParamsOut->dwEntriesRead;
+                    ctr10->count = pOutPreamble->dwEntriesRead;
 
                     dwError = SrvSvcSrvAllocateMemory(
                                         sizeof(*ctr10->array) * ctr10->count,
@@ -244,7 +243,7 @@ SrvSvcNetSessionEnum(
 
                     memcpy(
                         (void*)ctr10->array,
-                        (void*)pSessionEnumParamsOut->info.p10,
+                        (void*)pSessionInfo->p10,
                         sizeof(*ctr10->array) * ctr10->count);
 
                     break;
@@ -252,7 +251,7 @@ SrvSvcNetSessionEnum(
                 case 502:
 
                     ctr502 = pInfo->ctr502;
-                    ctr502->count = pSessionEnumParamsOut->dwEntriesRead;
+                    ctr502->count = pOutPreamble->dwEntriesRead;
 
                     dwError = SrvSvcSrvAllocateMemory(
                                         sizeof(*ctr502->array) * ctr502->count,
@@ -261,7 +260,7 @@ SrvSvcNetSessionEnum(
 
                     memcpy(
                         (void*)ctr502->array,
-                        (void*)pSessionEnumParamsOut->info.p502,
+                        (void*)pSessionInfo->p502,
                         sizeof(*ctr502->array) * ctr502->count);
 
                     break;
@@ -282,11 +281,11 @@ SrvSvcNetSessionEnum(
             break;
     }
 
-    *pdwEntriesRead  = pSessionEnumParamsOut->dwEntriesRead;
-    *pdwTotalEntries = pSessionEnumParamsOut->dwTotalEntries;
+    *pdwEntriesRead  = pOutPreamble->dwEntriesRead;
+    *pdwTotalEntries = pOutPreamble->dwTotalEntries;
     if (pdwResumeHandle)
     {
-        *pdwResumeHandle = *pSessionEnumParamsOut->pdwResumeHandle;
+        *pdwResumeHandle = *pOutPreamble->pdwResumeHandle;
     }
 
     if (bMoreDataAvailable)
@@ -303,15 +302,26 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
-    LW_SAFE_FREE_MEMORY(pSessionEnumParamsOut);
+
+    if (pSessionInfo)
+    {
+        LwSessionInfoFree(
+                pOutPreamble->dwInfoLevel,
+                pOutPreamble->dwEntriesRead,
+                pSessionInfo);
+    }
+    if (pOutPreamble)
+    {
+        LwSessionInfoFreeEnumOutPreamble(pOutPreamble);
+    }
 
     return dwError;
 
 error:
 
-    if (pSessionEnumParamsOut && pInfo)
+    if (pSessionInfo && pInfo)
     {
-        switch (pSessionEnumParamsOut->dwInfoLevel)
+        switch (pOutPreamble->dwInfoLevel)
         {
             case 0:
 
@@ -357,7 +367,7 @@ error:
             default:
 
                 SRVSVC_LOG_ERROR("Unsupported info level [%u]",
-                                 pSessionEnumParamsOut->dwInfoLevel);
+                                 pOutPreamble->dwInfoLevel);
                 break;
         }
     }
