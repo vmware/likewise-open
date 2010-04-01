@@ -25,11 +25,11 @@
         <include name="include"/>
         <include name="include\lw"/>
         <include name="include\win32"/>
-        <include name="..\libunistr\include"/>
       </includedirs>
       <sources>
 	      <include name="src/rtlmemory.c"/>
 	      <include name="src/rtlstring*.c"/>
+	      <include name="src/wc16*.c"/>
       </sources>
       <defines>
         <define name="UNICODE"/>
@@ -45,7 +45,6 @@
     <link output="${build.meta.current}/${local.output}.dll" options="/dll">
       <sources basedir="${build.meta.current}/">
 	      <include name="*.obj"/>
-	      <include name="${build.meta.current}\..\libunistr\libunistr.lib"/>
       </sources>
       <arg value="/DEF:lwbase.def"/>
       <arg line="${build.lflags}" />

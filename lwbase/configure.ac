@@ -60,34 +60,6 @@ AC_SUBST([DOXYGEN],[$DOXYGEN])
 AM_CONDITIONAL([HAVE_DOXYGEN], [$HAVE_DOXYGEN])
 AM_CONDITIONAL([HAVE_DOXYGEN_PDF], [$HAVE_DOXYGEN_PDF])
 
-# libunistr
-
-AC_ARG_WITH([libunistr],
-        [AC_HELP_STRING([--with-libunistr=<dir>], [use libunistr located in prefix <dir>])],
-        [
-		LIBUNISTR_INCLUDES="-I$withval/include"
-                LIBUNISTR_LDFLAGS="-L$withval/lib"
-        ])
-
-AC_ARG_WITH([libunistr-includes],
-        [AC_HELP_STRING([--with-libunistr-includes=<dir>], [use libunistr includes located in <dir>])],
-        [
-		LIBUNISTR_INCLUDES="-I$withval"
-        ])
-
-AC_ARG_WITH([libunistr-libs],
-        [AC_HELP_STRING([--with-libunistr-libs=<dir>], [use libunistr libs located in <dir>])],
-        [
-		LIBUNISTR_LDFLAGS="-L$withval"
-        ])
-
-LIBUNISTR_LIBS="-lunistr"
-
-AC_SUBST(LIBUNISTR_INCLUDES)
-AC_SUBST(LIBUNISTR_LDFLAGS)
-AC_SUBST(LIBUNISTR_LIBS)
-
-
 # libuuid
 
 AC_ARG_WITH([libuuid],
@@ -118,7 +90,6 @@ AC_SUBST(LIBUUID_LIBS)
 
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
-AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNISTR_LDFLAGS])
 AC_CHECK_LIB([uuid], [uuid_generate_time], [LIBUUID_LIBS="-luuid"], [], [$LIBUUID_LDFLAGS])
 AC_CHECK_LIB(xnet, __xnet_connect, [LIB_XNET="-lxnet"], [LIB_XNET=""])
 
@@ -137,9 +108,38 @@ CFLAGS="$old_CFLAGSS"
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN
+AC_CHECK_SIZEOF(wchar_t)
 
 # Checks for library functions.
 AC_HEADER_STDC
+
+AC_CHECK_HEADERS([wctype.h])
+
+AC_CHECK_LIB(iconv, iconv, [LIB_ICONV="-liconv"],
+    AC_CHECK_LIB(iconv, libiconv, [LIB_ICONV="-liconv"], [LIB_ICONV=""]))
+
+AC_SUBST(LIB_ICONV)
+
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wall -Werror"
+
+AC_MSG_CHECKING([whether iconv() takes const char** as its second parameter])
+
+AC_TRY_COMPILE(
+[#include <iconv.h>
+ #include <stddef.h>
+ ],
+		[iconv_t h = iconv_open(NULL, NULL);
+		 char* in;
+		 (void) iconv(h, (const char**) &in, NULL, NULL, NULL);
+		],
+		[AC_MSG_RESULT([yes]); AC_DEFINE_UNQUOTED(ICONV_IN_TYPE, [const char**], [iconv in type])],
+		[AC_MSG_RESULT([no]); AC_DEFINE_UNQUOTED(ICONV_IN_TYPE, [char**], [iconv in type])])
+
+CFLAGS="$saved_CFLAGS"
+
+AC_CHECK_FUNCS([wcscasecmp])
+
 
 # Check for epoll
 

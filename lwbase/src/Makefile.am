@@ -19,12 +19,14 @@ liblwbase_nothr_la_SOURCES = \
         rbtree.c \
         security-sid.c \
         security-acl.c \
-        security-sd.c
+        security-sd.c \
+	wc16str.c \
+	wc16printf.c
 
 liblwbase_nothr_la_LIBADD = \
         @DS_FRAMEWORK_LDFLAGS@ \
-        @LIBUNISTR_LIBS@ \
-        @LIBUUID_LIBS@
+        @LIBUUID_LIBS@ \
+	@LIB_ICONV@
 
 liblwbase_la_SOURCES = \
 	atomic.c \
