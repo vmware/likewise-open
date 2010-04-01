@@ -822,6 +822,38 @@ error:
 }
 
 LWMsgStatus
+lwmsg_data_unmarshal_into(
+    LWMsgDataContext* context,
+    LWMsgTypeSpec* type,
+    LWMsgBuffer* buffer,
+    void* object,
+    size_t size
+    )
+{
+    LWMsgStatus status = LWMSG_STATUS_SUCCESS;
+    LWMsgUnmarshalState my_state = {NULL};
+    LWMsgTypeIter iter;
+
+    lwmsg_type_iterate(type, &iter);
+
+    if (size < iter.size)
+    {
+        BAIL_ON_ERROR(status = LWMSG_STATUS_BUFFER_TOO_SMALL);
+    }
+
+    BAIL_ON_ERROR(status = lwmsg_data_unmarshal_internal(context, &my_state, &iter, buffer, object));
+
+    if (buffer->wrap)
+    {
+        BAIL_ON_ERROR(status = buffer->wrap(buffer, 0));
+    }
+
+error:
+
+    return status;
+}
+
+LWMsgStatus
 lwmsg_data_unmarshal_flat(LWMsgDataContext* context, LWMsgTypeSpec* type, void* buffer, size_t length, void** out)
 {
     LWMsgBuffer mbuf;

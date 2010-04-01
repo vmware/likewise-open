@@ -341,6 +341,37 @@ lwmsg_data_unmarshal(
     );
 
 /**
+ * @brief Unmarshal a data structure into pre-allocated memory
+ *
+ * Converts a serialized data structure to its unmarshalled form without allocating memory for the
+ * top-level structure -- instead, the caller must provide sufficient space for it.  Memory for
+ * embedded pointers will still be allocated automatically as in #lwmsg_data_unmarshal().
+ *
+ * @param[in,out] context the data context
+ * @param[in] type the type specification which describes the type of the data
+ * @param[in,out] buffer the marshalling buffer from which data will be read
+ * @param[out] object the memory object into which the unmarshalled data will be written
+ * @param[in] size the size of <tt>object</tt> in bytes
+ * @lwmsg_status
+ * @lwmsg_success
+ * @lwmsg_memory
+ * @lwmsg_code{MALFORMED, the provided data did not conform in some way to the provided type information}
+ * @lwmsg_code{OVERFLOW, an arithmetic overflow occured while converting an integer to its unmarshalled form}
+ * @lwmsg_code{UNDERFLOW, an arithmetic underflow occured while converting an integer to its unmarshalled form}
+ * @lwmsg_code{BUFFER_TOO_SMALL, <tt>object</tt> was too small to contain the unmarshalled structure}
+ * @lwmsg_etc{the provided context and buffer may raise implementation-specific errors}
+ * @lwmsg_endstatus
+ */
+LWMsgStatus
+lwmsg_data_unmarshal_into(
+    LWMsgDataContext* context,
+    LWMsgTypeSpec* type,
+    LWMsgBuffer* buffer,
+    void* object,
+    size_t size
+    );
+
+/**
  * @brief Unmarshal a data structure from a simple buffer
  *
  * Converts a serialized data structure to its unmarshalled form, allocating memory as necessary

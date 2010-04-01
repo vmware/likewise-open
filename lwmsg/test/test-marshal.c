@@ -149,6 +149,50 @@ MU_TEST(marshal, basic)
     MU_ASSERT(basic.long_ptr[1] == out->long_ptr[1]);
 }
 
+MU_TEST(marshal, basic_into)
+{
+    static const unsigned char expected[] =
+    {
+        /* -42 */
+        0xFF, 0xD6,
+        /* 2 */
+        0x00, 0x00, 0x00, 0x02,
+        /* 1234 */
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0xD2,
+        /* 4321 */
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xE1
+    };
+    LWMsgTypeSpec* type = basic_spec;
+    void* buffer;
+    size_t length;
+    basic_struct basic;
+    basic_struct out;
+    long longs[2];
+    LWMsgBuffer mbuf = {0};
+
+    basic.foo = (short) -42;
+    basic.len = 2;
+    basic.long_ptr = longs;
+    longs[0] = 1234;
+    longs[1] = 4321;
+
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_marshal_flat_alloc(dcontext, type, &basic, &buffer, &length));
+
+    MU_ASSERT_EQUAL(MU_TYPE_INTEGER, sizeof(expected), length);
+    MU_ASSERT(!memcmp(buffer, expected, sizeof(expected)));
+
+    mbuf.base = buffer;
+    mbuf.end = buffer + length;
+    mbuf.cursor = mbuf.base;
+
+    MU_TRY_DCONTEXT(dcontext, lwmsg_data_unmarshal_into(dcontext, type, &mbuf, &out, sizeof(out)));
+
+    MU_ASSERT(basic.foo == out.foo);
+    MU_ASSERT(basic.len == out.len);
+    MU_ASSERT(basic.long_ptr[0] == out.long_ptr[0]);
+    MU_ASSERT(basic.long_ptr[1] == out.long_ptr[1]);
+}
+
 MU_TEST(marshal, basic_verify_marshal_failure)
 {
     LWMsgTypeSpec* type = basic_spec;

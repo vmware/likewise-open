@@ -183,6 +183,11 @@ typedef enum
      * @hideinitializer
      */
     LWMSG_STATUS_RESOURCE_LIMIT = 27,
+    /**
+     * Buffer was not large enough
+     * @hideinitializer
+     */
+    LWMSG_STATUS_BUFFER_TOO_SMALL = 28,
 #ifndef DOXYGEN
     LWMSG_STATUS_COUNT
 #endif
