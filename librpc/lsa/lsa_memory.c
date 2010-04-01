@@ -255,7 +255,7 @@ LsaAllocateTranslatedSids3(
 
     ntStatus = LsaRpcAllocateMemory(
                    (PVOID*)&pNewArray,
-                   sizeof(TranslatedSid2) * count,
+                   sizeof(TranslatedSid3) * count,
                    NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
