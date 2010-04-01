@@ -105,37 +105,6 @@ AC_SUBST(DCERPC_INCLUDES)
 AC_SUBST(DCERPC_LDFLAGS)
 
 
-# libunistr
-
-AC_ARG_WITH(
-	[libunistr],
-	[AC_HELP_STRING([--with-libunistr=<dir>], [look for libunistr headers/libraries in <dir>])],
-	[
-	    LIBUNISTR_INCLUDES="-I$withval/include"
-	    LIBUNISTR_LDFLAGS="-L$withval/lib"
-	]
-)
-
-AC_ARG_WITH(
-	[libunistr-includes],
-	[AC_HELP_STRING([--with-libunistr-includes=<dir>], [look for libunistr headers in <dir>])],
-	[
-	    LIBUNISTR_INCLUDES="-I$withval"
-	]
-)
-
-AC_ARG_WITH(
-	[libunistr-libs],
-	[AC_HELP_STRING([--with-libunistr-libs=<dir>], [look for dcerpc libraries in <dir>])],
-	[
-	    LIBUNISTR_LDFLAGS="-L$withval"
-	]
-)
-
-AC_SUBST(LIBUNISTR_INCLUDES)
-AC_SUBST(LIBUNISTR_LDFLAGS)
-
-
 # ldap
 
 AC_ARG_WITH(
@@ -335,16 +304,13 @@ AC_SUBST(LWBASE_NOTHR_LIBS)
 
 AC_CHECK_HEADER([lwerror.h],,[AC_MSG_ERROR([Could not find lwadvapi headers])])
 
-AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], [], [$LIBUNISTR_LDFLAGS])
-AC_SUBST(LIBUNISTR_LIBS)
-
 AC_CHECK_LIB([ldap], [ldap_gssapi_bind_s], [LDAP_LIBS="-lldap_r"], [], [$LDAP_LDFLAGS])
 AC_SUBST(LDAP_LIBS)
 
 AC_CHECK_LIB([crypto], [DES_set_key], [CRYPTO_LIBS="-lcrypto"], [], [$CRYPTO_LDFLAGS])
 
 
-for i in $CPPFLAGS ${DCERPC_INCLUDES} ${LIBUNISTR_INCLUDES}; do
+for i in $CPPFLAGS ${DCERPC_INCLUDES}; do
     j=`echo $i | grep '^-I'`
     if test x != x"$j"
     then
