@@ -178,99 +178,102 @@ SrvSvcNetSessionEnum(
                             &pSessionInfo);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            switch (pOutPreamble->dwInfoLevel)
+            if (pOutPreamble->dwEntriesRead)
             {
-                case 0:
+                switch (pOutPreamble->dwInfoLevel)
+                {
+                    case 0:
 
-                    ctr0 = pInfo->ctr0;
-                    ctr0->count = pOutPreamble->dwEntriesRead;
+                        ctr0 = pInfo->ctr0;
+                        ctr0->count = pOutPreamble->dwEntriesRead;
 
-                    dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr0->array) * ctr0->count,
-                                        (void**)&ctr0->array);
-                    BAIL_ON_SRVSVC_ERROR(dwError);
+                        dwError = SrvSvcSrvAllocateMemory(
+                                            sizeof(*ctr0->array) * ctr0->count,
+                                            (void**)&ctr0->array);
+                        BAIL_ON_SRVSVC_ERROR(dwError);
 
-                    memcpy(
-                        (void*)ctr0->array,
-                        (void*)pSessionInfo->p0,
-                           sizeof(*ctr0->array) * ctr0->count);
+                        memcpy(
+                            (void*)ctr0->array,
+                            (void*)pSessionInfo->p0,
+                               sizeof(*ctr0->array) * ctr0->count);
 
-                    break;
+                        break;
 
-                case 1:
+                    case 1:
 
-                    ctr1 = pInfo->ctr1;
-                    ctr1->count = pOutPreamble->dwEntriesRead;
+                        ctr1 = pInfo->ctr1;
+                        ctr1->count = pOutPreamble->dwEntriesRead;
 
-                    dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr1->array) * ctr1->count,
-                                        (void**)&ctr1->array);
-                    BAIL_ON_SRVSVC_ERROR(dwError);
+                        dwError = SrvSvcSrvAllocateMemory(
+                                            sizeof(*ctr1->array) * ctr1->count,
+                                            (void**)&ctr1->array);
+                        BAIL_ON_SRVSVC_ERROR(dwError);
 
-                    memcpy(
-                        (void*)ctr1->array,
-                        (void*)pSessionInfo->p1,
-                           sizeof(*ctr1->array) * ctr1->count);
+                        memcpy(
+                            (void*)ctr1->array,
+                            (void*)pSessionInfo->p1,
+                               sizeof(*ctr1->array) * ctr1->count);
 
-                    break;
+                        break;
 
-                case 2:
+                    case 2:
 
-                    ctr2 = pInfo->ctr2;
-                    ctr2->count = pOutPreamble->dwEntriesRead;
+                        ctr2 = pInfo->ctr2;
+                        ctr2->count = pOutPreamble->dwEntriesRead;
 
-                    dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr2->array) * ctr2->count,
-                                        (void**)&ctr2->array);
-                    BAIL_ON_SRVSVC_ERROR(dwError);
+                        dwError = SrvSvcSrvAllocateMemory(
+                                            sizeof(*ctr2->array) * ctr2->count,
+                                            (void**)&ctr2->array);
+                        BAIL_ON_SRVSVC_ERROR(dwError);
 
-                    memcpy(
-                        (void*)ctr2->array,
-                        (void*)pSessionInfo->p2,
-                           sizeof(*ctr2->array) * ctr2->count);
+                        memcpy(
+                            (void*)ctr2->array,
+                            (void*)pSessionInfo->p2,
+                               sizeof(*ctr2->array) * ctr2->count);
 
-                    break;
+                        break;
 
-                case 10:
+                    case 10:
 
-                    ctr10 = pInfo->ctr10;
-                    ctr10->count = pOutPreamble->dwEntriesRead;
+                        ctr10 = pInfo->ctr10;
+                        ctr10->count = pOutPreamble->dwEntriesRead;
 
-                    dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr10->array) * ctr10->count,
-                                        (void**)&ctr10->array);
-                    BAIL_ON_SRVSVC_ERROR(dwError);
+                        dwError = SrvSvcSrvAllocateMemory(
+                                            sizeof(*ctr10->array) * ctr10->count,
+                                            (void**)&ctr10->array);
+                        BAIL_ON_SRVSVC_ERROR(dwError);
 
-                    memcpy(
-                        (void*)ctr10->array,
-                        (void*)pSessionInfo->p10,
-                        sizeof(*ctr10->array) * ctr10->count);
+                        memcpy(
+                            (void*)ctr10->array,
+                            (void*)pSessionInfo->p10,
+                            sizeof(*ctr10->array) * ctr10->count);
 
-                    break;
+                        break;
 
-                case 502:
+                    case 502:
 
-                    ctr502 = pInfo->ctr502;
-                    ctr502->count = pOutPreamble->dwEntriesRead;
+                        ctr502 = pInfo->ctr502;
+                        ctr502->count = pOutPreamble->dwEntriesRead;
 
-                    dwError = SrvSvcSrvAllocateMemory(
-                                        sizeof(*ctr502->array) * ctr502->count,
-                                        (void**)&ctr502->array);
-                    BAIL_ON_SRVSVC_ERROR(dwError);
+                        dwError = SrvSvcSrvAllocateMemory(
+                                            sizeof(*ctr502->array) * ctr502->count,
+                                            (void**)&ctr502->array);
+                        BAIL_ON_SRVSVC_ERROR(dwError);
 
-                    memcpy(
-                        (void*)ctr502->array,
-                        (void*)pSessionInfo->p502,
-                        sizeof(*ctr502->array) * ctr502->count);
+                        memcpy(
+                            (void*)ctr502->array,
+                            (void*)pSessionInfo->p502,
+                            sizeof(*ctr502->array) * ctr502->count);
 
-                    break;
+                        break;
 
-                default:
+                    default:
 
-                    ntStatus = STATUS_NOT_SUPPORTED;
-                    break;
+                        ntStatus = STATUS_NOT_SUPPORTED;
+                        break;
+                }
+                BAIL_ON_NT_STATUS(ntStatus);
             }
-            BAIL_ON_NT_STATUS(ntStatus);
 
             break;
 
