@@ -253,64 +253,67 @@ SrvSvcNetSessionEnum(
                             &pSessionInfo);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            switch (pOutPreamble->dwInfoLevel)
+            if (pOutPreamble->dwEntriesRead)
             {
-                case 0:
+                switch (pOutPreamble->dwInfoLevel)
+                {
+                    case 0:
 
-                    dwError = SrvSvcSrvMarshalSessionInfo_level_0(
-                                    pSessionInfo->p0,
-                                    pOutPreamble->dwEntriesRead,
-                                    &pInfo->ctr0->array,
-                                    &pInfo->ctr0->count);
+                        dwError = SrvSvcSrvMarshalSessionInfo_level_0(
+                                        pSessionInfo->p0,
+                                        pOutPreamble->dwEntriesRead,
+                                        &pInfo->ctr0->array,
+                                        &pInfo->ctr0->count);
 
-                    break;
+                        break;
 
-                case 1:
+                    case 1:
 
-                    dwError = SrvSvcSrvMarshalSessionInfo_level_1(
-                                    pSessionInfo->p1,
-                                    pOutPreamble->dwEntriesRead,
-                                    &pInfo->ctr1->array,
-                                    &pInfo->ctr1->count);
+                        dwError = SrvSvcSrvMarshalSessionInfo_level_1(
+                                        pSessionInfo->p1,
+                                        pOutPreamble->dwEntriesRead,
+                                        &pInfo->ctr1->array,
+                                        &pInfo->ctr1->count);
 
-                    break;
+                        break;
 
-                case 2:
+                    case 2:
 
-                    dwError = SrvSvcSrvMarshalSessionInfo_level_2(
-                                    pSessionInfo->p2,
-                                    pOutPreamble->dwEntriesRead,
-                                    &pInfo->ctr2->array,
-                                    &pInfo->ctr2->count);
+                        dwError = SrvSvcSrvMarshalSessionInfo_level_2(
+                                        pSessionInfo->p2,
+                                        pOutPreamble->dwEntriesRead,
+                                        &pInfo->ctr2->array,
+                                        &pInfo->ctr2->count);
 
-                    break;
+                        break;
 
-                case 10:
+                    case 10:
 
-                    dwError = SrvSvcSrvMarshalSessionInfo_level_10(
-                                    pSessionInfo->p10,
-                                    pOutPreamble->dwEntriesRead,
-                                    &pInfo->ctr10->array,
-                                    &pInfo->ctr10->count);
+                        dwError = SrvSvcSrvMarshalSessionInfo_level_10(
+                                        pSessionInfo->p10,
+                                        pOutPreamble->dwEntriesRead,
+                                        &pInfo->ctr10->array,
+                                        &pInfo->ctr10->count);
 
-                    break;
+                        break;
 
-                case 502:
+                    case 502:
 
-                    dwError = SrvSvcSrvMarshalSessionInfo_level_502(
-                                    pSessionInfo->p502,
-                                    pOutPreamble->dwEntriesRead,
-                                    &pInfo->ctr502->array,
-                                    &pInfo->ctr502->count);
+                        dwError = SrvSvcSrvMarshalSessionInfo_level_502(
+                                        pSessionInfo->p502,
+                                        pOutPreamble->dwEntriesRead,
+                                        &pInfo->ctr502->array,
+                                        &pInfo->ctr502->count);
 
-                    break;
+                        break;
 
-                default:
+                    default:
 
-                    dwError = ERROR_INVALID_LEVEL;
-                    break;
+                        dwError = ERROR_INVALID_LEVEL;
+                        break;
+                }
+                BAIL_ON_SRVSVC_ERROR(dwError);
             }
-            BAIL_ON_SRVSVC_ERROR(dwError);
 
             break;
 
