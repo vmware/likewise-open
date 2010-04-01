@@ -35,14 +35,8 @@ static LWMsgSession* gpSession = NULL;
 static PIO_CREDS gpProcessCreds = NULL;
 static pthread_mutex_t gLock = PTHREAD_MUTEX_INITIALIZER;
 static LW_LIST_LINKS gPathCreds = {&gPathCreds, &gPathCreds};
-
-#if defined(__LWI_SOLARIS__) || defined (__LWI_AIX__)
-static pthread_once_t gOnceControl = {PTHREAD_ONCE_INIT};
-#else
-static pthread_once_t gOnceControl = PTHREAD_ONCE_INIT;
-#endif
-
 static pthread_key_t gStateKey;
+static BOOLEAN gbStateKeyInit = FALSE;
 
 static
 NTSTATUS
@@ -301,49 +295,60 @@ error:
     return Status;
 }
 
-static void
-__LwIoThreadInit(
+static
+NTSTATUS
+LwIoThreadInit(
     void
     )
 {
     NTSTATUS Status = 0;
+    BOOL bInLock = FALSE;
 
-    LwIoInitialize();
+    LWIO_LOCK_MUTEX(bInLock, &gLock);
 
-    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_new(NULL, gpLwIoProtocol, &gpClient));
-    BAIL_ON_NT_STATUS(Status);
-
-    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_add_connect_endpoint(
-                                            gpClient,
-                                            LWMSG_ENDPOINT_LOCAL,
-                                            LWIO_SERVER_FILENAME));
-    BAIL_ON_NT_STATUS(Status);
-
-    Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_connect(
-                                            gpClient,
-                                            &gpSession));
-    BAIL_ON_NT_STATUS(Status);
-
-    if (pthread_key_create(&gStateKey, LwIoThreadStateDestruct))
+    if (!gpLwIoProtocol)
     {
-        Status = STATUS_INSUFFICIENT_RESOURCES;
+        LwIoInitialize();
+    }
+
+    if (!gbStateKeyInit)
+    {
+        Status = LwErrnoToNtStatus(pthread_key_create(&gStateKey, LwIoThreadStateDestruct));
+        BAIL_ON_NT_STATUS(Status);
+        gbStateKeyInit = TRUE;
+    }
+
+    if (!gpProcessCreds)
+    {
+        Status = LwIoInitProcessCreds();
         BAIL_ON_NT_STATUS(Status);
     }
 
-    Status = LwIoInitProcessCreds();
-    BAIL_ON_NT_STATUS(Status);
+    if (!gpClient)
+    {
+        Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_new(NULL, gpLwIoProtocol, &gpClient));
+        BAIL_ON_NT_STATUS(Status);
 
-    return;
+        Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_add_connect_endpoint(
+                                                gpClient,
+                                                LWMSG_ENDPOINT_LOCAL,
+                                                LWIO_SERVER_FILENAME));
+        BAIL_ON_NT_STATUS(Status);
+    }
+
+    if (!gpSession)
+    {
+        Status = NtIpcLWMsgStatusToNtStatus(lwmsg_peer_connect(
+                                                gpClient,
+                                                &gpSession));
+        BAIL_ON_NT_STATUS(Status);
+    }
 
 error:
 
-    abort();
-}
+    LWIO_UNLOCK_MUTEX(bInLock, &gLock);
 
-static void
-LwIoThreadInit()
-{
-    pthread_once(&gOnceControl, __LwIoThreadInit);
+    return Status;
 }
 
 NTSTATUS
@@ -354,7 +359,8 @@ LwIoGetThreadState(
     NTSTATUS Status = STATUS_SUCCESS;
     PIO_THREAD_STATE pState = NULL;
 
-    LwIoThreadInit();
+    Status = LwIoThreadInit();
+    BAIL_ON_NT_STATUS(Status);
 
     pState = pthread_getspecific(gStateKey);
 
@@ -542,10 +548,13 @@ LwIoAcquireContext(
 {
     NTSTATUS Status = STATUS_SUCCESS;
 
-    LwIoThreadInit();
+    Status = LwIoThreadInit();
+    BAIL_ON_NT_STATUS(Status);
 
     pContext->pClient = gpClient;
     pContext->pSession = gpSession;
+
+error:
 
     return Status;
 }
@@ -570,7 +579,8 @@ LwIoOpenContextShared(
     PIO_CONTEXT pContext = NULL;
     NTSTATUS Status = STATUS_SUCCESS;
 
-    LwIoThreadInit();
+    Status = LwIoThreadInit();
+    BAIL_ON_NT_STATUS(Status);
 
     Status = LwIoAllocateMemory(
         sizeof(*pContext),
