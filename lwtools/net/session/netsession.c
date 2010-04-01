@@ -143,7 +143,7 @@ NetExecSessionEnum(
                             pSessionCursor->sesi2_idle_time);
                     printf("\tGuest login?     %s\n",
                             pSessionCursor->sesi2_user_flags & 0x1 ? "yes" : "no");
-                    printf("\tNo encryption?   %s\n\n",
+                    printf("\tEncryption?      %s\n\n",
                             pSessionCursor->sesi2_user_flags & 0x2 ? "yes" : "no");
 
                 }
