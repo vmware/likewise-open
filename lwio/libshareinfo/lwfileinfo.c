@@ -81,27 +81,31 @@ static LWMsgTypeSpec gFileInfoUnionSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gFileInfoEnumParamsSpec[] =
+static LWMsgTypeSpec gFileInfoEnumInParamsSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(FILE_INFO_ENUM_PARAMS),
-    LWMSG_MEMBER_PWSTR(FILE_INFO_ENUM_PARAMS, pwszBasepath),
-    LWMSG_MEMBER_PWSTR(FILE_INFO_ENUM_PARAMS, pwszUsername),
-    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_PARAMS, dwInfoLevel),
-    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_PARAMS, dwPreferredMaxLength),
-    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_PARAMS, dwTotalEntries),
-    LWMSG_MEMBER_POINTER_BEGIN(FILE_INFO_ENUM_PARAMS, pdwResumeHandle),
+    LWMSG_STRUCT_BEGIN(FILE_INFO_ENUM_IN_PARAMS),
+    LWMSG_MEMBER_PWSTR(FILE_INFO_ENUM_IN_PARAMS,         pwszBasepath),
+    LWMSG_MEMBER_PWSTR(FILE_INFO_ENUM_IN_PARAMS,         pwszUsername),
+    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_IN_PARAMS,        dwInfoLevel),
+    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_IN_PARAMS,        dwPreferredMaxLength),
+    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_IN_PARAMS,        dwEntriesRead),
+    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_IN_PARAMS,        dwTotalEntries),
+    LWMSG_MEMBER_POINTER_BEGIN(FILE_INFO_ENUM_IN_PARAMS, pdwResumeHandle),
     LWMSG_UINT8(UINT32),
     LWMSG_POINTER_END,
-    LWMSG_MEMBER_UNION_BEGIN(FILE_INFO_ENUM_PARAMS, info),
-    LWMSG_MEMBER_POINTER(FILE_INFO_UNION, p2, LWMSG_TYPESPEC(gFileInfo2Spec)),
-    LWMSG_ATTR_LENGTH_MEMBER(FILE_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_ATTR_TAG(FILE_INFO_LEVEL_2),
-    LWMSG_MEMBER_POINTER(FILE_INFO_UNION, p3, LWMSG_TYPESPEC(gFileInfo3Spec)),
-    LWMSG_ATTR_LENGTH_MEMBER(FILE_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_ATTR_TAG(FILE_INFO_LEVEL_3),
-    LWMSG_UNION_END,
-    LWMSG_ATTR_DISCRIM(FILE_INFO_ENUM_PARAMS, dwInfoLevel),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gFileInfoEnumOutParamsPreambleSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(FILE_INFO_ENUM_OUT_PREAMBLE),
+    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_OUT_PREAMBLE, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_OUT_PREAMBLE, dwEntriesRead),
+    LWMSG_MEMBER_UINT32(FILE_INFO_ENUM_OUT_PREAMBLE, dwTotalEntries),
+    LWMSG_MEMBER_POINTER_BEGIN(FILE_INFO_ENUM_OUT_PREAMBLE, pdwResumeHandle),
+    LWMSG_UINT8(UINT32),
+    LWMSG_POINTER_END,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -130,11 +134,27 @@ static LWMsgTypeSpec gFileInfoCloseParamsSpec[] =
     LWMSG_TYPE_END
 };
 
+static
+VOID
+LwFileInfoFreeEnumOutPreambleInternal(
+    LWMsgDataContext*            pDataContext,
+    PFILE_INFO_ENUM_OUT_PREAMBLE pPreamble
+    );
+
+static
+VOID
+LwFileInfoFreeInternal(
+    LWMsgDataContext* pDataContext,
+    DWORD             dwInfoLevel,
+    DWORD             dwCount,
+    PFILE_INFO_UNION  pFileInfo
+    );
+
 LW_NTSTATUS
-LwFileInfoMarshalEnumParameters(
-    PFILE_INFO_ENUM_PARAMS pParams,
-    PBYTE* ppBuffer,
-    ULONG* pulBufferSize
+LwFileInfoMarshalEnumInputParameters(
+    PFILE_INFO_ENUM_IN_PARAMS pParams,
+    PBYTE*                    ppBuffer,
+    ULONG*                    pulBufferSize
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -148,7 +168,7 @@ LwFileInfoMarshalEnumParameters(
     status = MAP_LWMSG_STATUS(
         lwmsg_data_marshal_flat_alloc(
             pDataContext,
-            gFileInfoEnumParamsSpec,
+            gFileInfoEnumInParamsSpec,
             pParams,
             &pBuffer,
             &ulBufferSize));
@@ -177,14 +197,14 @@ error:
 
 
 LW_NTSTATUS
-LwFileInfoUnmarshalEnumParameters(
-    PBYTE pBuffer,
-    ULONG ulBufferSize,
-    PFILE_INFO_ENUM_PARAMS* ppParams
+LwFileInfoUnmarshalEnumInputParameters(
+    PBYTE                      pBuffer,
+    ULONG                      ulBufferSize,
+    PFILE_INFO_ENUM_IN_PARAMS* ppParams
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PFILE_INFO_ENUM_PARAMS pParams = NULL;
+    PFILE_INFO_ENUM_IN_PARAMS pParams = NULL;
     LWMsgDataContext* pDataContext = NULL;
 
     Status = LwSrvInfoAcquireDataContext(&pDataContext);
@@ -193,7 +213,7 @@ LwFileInfoUnmarshalEnumParameters(
     Status = MAP_LWMSG_STATUS(
         lwmsg_data_unmarshal_flat(
             pDataContext,
-            gFileInfoEnumParamsSpec,
+            gFileInfoEnumInParamsSpec,
             pBuffer,
             ulBufferSize,
             OUT_PPVOID(&pParams)));
@@ -213,11 +233,455 @@ error:
 
     if (pParams)
     {
-        lwmsg_data_free_graph(pDataContext, gFileInfoEnumParamsSpec, pParams);
+        lwmsg_data_free_graph(pDataContext, gFileInfoEnumInParamsSpec, pParams);
     }
 
     goto cleanup;
 }
+
+LW_NTSTATUS
+LwFileInfoFreeEnumInputParameters(
+    PFILE_INFO_ENUM_IN_PARAMS pParams
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+
+    Status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(Status);
+
+    lwmsg_data_free_graph(
+                    pDataContext,
+                    gFileInfoEnumInParamsSpec,
+                    pParams);
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return Status;
+
+error:
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwFileInfoMarshalEnumOutputPreamble(
+    PBYTE                        pBuffer,
+    ULONG                        ulBufferSize,
+    PFILE_INFO_ENUM_OUT_PREAMBLE pPreamble,
+    PULONG                       pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gFileInfoEnumOutParamsPreambleSpec,
+                        pPreamble,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwFileInfoMarshalEnumOutputInfo_level_2(
+    PFILE_INFO_2 pFileInfo,
+    PBYTE        pBuffer,
+    ULONG        ulBufferSize,
+    PULONG       pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gFileInfo2Spec,
+                        pFileInfo,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwFileInfoMarshalEnumOutputInfo_level_3(
+    PFILE_INFO_3 pFileInfo,
+    PBYTE        pBuffer,
+    ULONG        ulBufferSize,
+    PULONG       pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gFileInfo3Spec,
+                        pFileInfo,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwFileInfoUnmarshalEnumOutputParameters(
+    PBYTE                         pBuffer,
+    ULONG                         ulBufferSize,
+    PFILE_INFO_ENUM_OUT_PREAMBLE* ppPreamble,
+    PFILE_INFO_UNION*             ppFileInfo
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    LWMsgBuffer mbuf   =
+        {
+            .base   = pBuffer,
+            .end    = pBuffer + ulBufferSize,
+            .cursor = pBuffer,
+            .wrap   = NULL
+        };
+    ULONG                           ulBytesUsed = 0;
+    PFILE_INFO_ENUM_OUT_PREAMBLE pPreamble   = NULL;
+    PFILE_INFO_UNION             pFileInfo = NULL;
+    LWMsgDataContext* pDataContext = NULL;
+
+    Status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = MAP_LWMSG_STATUS(
+                lwmsg_data_unmarshal(
+                    pDataContext,
+                    gFileInfoEnumOutParamsPreambleSpec,
+                    &mbuf,
+                    OUT_PPVOID(&pPreamble)));
+    BAIL_ON_NT_STATUS(Status);
+
+    ulBytesUsed = mbuf.cursor - mbuf.base;
+
+    if (pPreamble->dwEntriesRead)
+    {
+        ULONG iInfo = 0;
+
+        Status = MAP_LWMSG_STATUS(
+                    lwmsg_data_alloc_memory(
+                        pDataContext,
+                        sizeof(FILE_INFO_UNION),
+                        OUT_PPVOID(&pFileInfo)));
+        BAIL_ON_NT_STATUS(Status);
+
+        switch (pPreamble->dwInfoLevel)
+        {
+            case 2:
+
+                Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(FILE_INFO_2) * pPreamble->dwEntriesRead,
+                            OUT_PPVOID(&pFileInfo->p2)));
+
+                break;
+
+            case 3:
+
+                Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(FILE_INFO_3) * pPreamble->dwEntriesRead,
+                            OUT_PPVOID(&pFileInfo->p3)));
+
+                break;
+
+            default:
+
+                Status = STATUS_INVALID_INFO_CLASS;
+
+                break;
+        }
+        BAIL_ON_NT_STATUS(Status);
+
+        for (; iInfo < pPreamble->dwEntriesRead; iInfo++)
+        {
+            mbuf.cursor = pBuffer + ulBytesUsed;
+
+            switch (pPreamble->dwInfoLevel)
+            {
+                case 2:
+
+                    Status = MAP_LWMSG_STATUS(
+                                lwmsg_data_unmarshal_into(
+                                    pDataContext,
+                                    gFileInfo2Spec,
+                                    &mbuf,
+                                    &pFileInfo->p2[iInfo],
+                                    sizeof(pFileInfo->p2[iInfo])));
+
+                    break;
+
+                case 3:
+
+                    Status = MAP_LWMSG_STATUS(
+                                lwmsg_data_unmarshal_into(
+                                    pDataContext,
+                                    gFileInfo3Spec,
+                                    &mbuf,
+                                    &pFileInfo->p3[iInfo],
+                                    sizeof(pFileInfo->p3[iInfo])));
+
+                    break;
+
+                default:
+
+                    Status = STATUS_INVALID_INFO_CLASS;
+
+                    break;
+            }
+            BAIL_ON_NT_STATUS(Status);
+
+            ulBytesUsed = mbuf.cursor - mbuf.base;
+        }
+    }
+
+    *ppPreamble = pPreamble;
+    *ppFileInfo = pFileInfo;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return Status;
+
+error:
+
+    *ppPreamble    = NULL;
+    *ppFileInfo = NULL;
+
+    if (pFileInfo)
+    {
+        LwFileInfoFreeInternal(
+            pDataContext,
+            pPreamble->dwInfoLevel,
+            pPreamble->dwEntriesRead,
+            pFileInfo);
+    }
+
+    if (pPreamble)
+    {
+        LwFileInfoFreeEnumOutPreambleInternal(pDataContext, pPreamble);
+    }
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwFileInfoFreeEnumOutPreamble(
+    PFILE_INFO_ENUM_OUT_PREAMBLE pPreamble
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    LwFileInfoFreeEnumOutPreambleInternal(pDataContext, pPreamble);
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LwFileInfoFreeEnumOutPreambleInternal(
+    LWMsgDataContext*            pDataContext,
+    PFILE_INFO_ENUM_OUT_PREAMBLE pPreamble
+    )
+{
+    lwmsg_data_free_graph(
+                    pDataContext,
+                    gFileInfoEnumOutParamsPreambleSpec,
+                    pPreamble);
+}
+
+LW_NTSTATUS
+LwFileInfoFree(
+    DWORD            dwInfoLevel,
+    DWORD            dwCount,
+    PFILE_INFO_UNION pFileInfo
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    LwFileInfoFreeInternal(pDataContext, dwInfoLevel, dwCount, pFileInfo);
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LwFileInfoFreeInternal(
+    LWMsgDataContext* pDataContext,
+    DWORD             dwInfoLevel,
+    DWORD             dwCount,
+    PFILE_INFO_UNION  pFileInfo
+    )
+{
+    ULONG iInfo = 0;
+
+    for(; iInfo < dwCount; iInfo++)
+    {
+        switch (dwInfoLevel)
+        {
+            case 2:
+
+                if (pFileInfo->p2)
+                {
+                    lwmsg_data_destroy_graph(
+                                    pDataContext,
+                                    gFileInfo2Spec,
+                                    &pFileInfo->p2[iInfo]);
+                }
+
+                break;
+
+            case 3:
+
+                if (pFileInfo->p3)
+                {
+                    lwmsg_data_destroy_graph(
+                                    pDataContext,
+                                    gFileInfo3Spec,
+                                    &pFileInfo->p3[iInfo]);
+                }
+
+                break;
+
+            default:
+
+                break;
+        }
+    }
+
+    switch (dwInfoLevel)
+    {
+        case 2:
+
+            if (pFileInfo->p2)
+            {
+                lwmsg_data_free_memory(pDataContext, pFileInfo->p2);
+            }
+
+            break;
+
+        case 3:
+
+            if (pFileInfo->p3)
+            {
+                lwmsg_data_free_memory(pDataContext, pFileInfo->p3);
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    lwmsg_data_free_memory(pDataContext, pFileInfo);
+}
+
 
 LW_NTSTATUS
 LwFileInfoMarshalGetInfoParameters(

@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- */
+ * */
 
 /*
  * Copyright Likewise Software
@@ -28,71 +28,27 @@
  * license@likewisesoftware.com
  */
 
+
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        srv/protocol.h
+ *        files.c
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise File System Driver (Srv)
  *
- *        Protocols
+ *        DeviceIo Dispatch Routine
  *
- *        Definitions
+ *        File Management
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
- *
  */
 
-#ifndef __PROTOCOL_API_H__
-#define __PROTOCOL_API_H__
-
-typedef VOID (*PFN_SRV_PROTOCOL_SEND_COMPLETE)(
-    IN PVOID pContext,
-    IN NTSTATUS Status
-    );
-
-NTSTATUS
-SrvProtocolInit(
-    PSMB_PROD_CONS_QUEUE pWorkQueue,
-    PLWIO_PACKET_ALLOCATOR hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
-    );
-
-NTSTATUS
-SrvProtocolExecute(
-    PSRV_EXEC_CONTEXT pContext
-    );
-
-NTSTATUS
-SrvProtocolTransportSendResponse(
-    IN PLWIO_SRV_CONNECTION pConnection,
-    IN PSMB_PACKET pPacket
-    );
-
-NTSTATUS
-SrvProtocolTransportSendZctResponse(
-    IN PLWIO_SRV_CONNECTION pConnection,
-    IN PLW_ZCT_VECTOR pZct,
-    IN OPTIONAL PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback,
-    IN OPTIONAL PVOID pCallbackContext
-    );
-
-NTSTATUS
-SrvProtocolEnumerateSessions(
-    PWSTR  pwszUncClientname,
-    PWSTR  pwszUsername,
-    ULONG  ulInfoLevel,
-    PBYTE  pBuffer,
-    ULONG  ulBufferSize,
-    PULONG pulBytesUsed,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries,
-    PULONG pulResumeHandle
-    );
+#include "includes.h"
 
 NTSTATUS
 SrvProtocolEnumerateFiles(
@@ -105,11 +61,7 @@ SrvProtocolEnumerateFiles(
     PULONG pulEntriesRead,
     PULONG pulTotalEntries,
     PULONG pulResumeHandle
-    );
-
-VOID
-SrvProtocolShutdown(
-    VOID
-    );
-
-#endif /* __PROTOCOL_API_H__ */
+    )
+{
+    return STATUS_NOT_SUPPORTED;
+}

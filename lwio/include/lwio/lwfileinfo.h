@@ -57,7 +57,7 @@ typedef union _FILE_INFO_UNION
 
 } FILE_INFO_UNION, *PFILE_INFO_UNION;
 
-typedef struct _FILE_INFO_ENUM_PARAMS
+typedef struct _FILE_INFO_ENUM_IN_PARAMS
 {
     PWSTR           pwszBasepath;
     PWSTR           pwszUsername;
@@ -66,8 +66,16 @@ typedef struct _FILE_INFO_ENUM_PARAMS
     DWORD           dwEntriesRead;
     DWORD           dwTotalEntries;
     PDWORD          pdwResumeHandle;
-    FILE_INFO_UNION info;
-} FILE_INFO_ENUM_PARAMS, *PFILE_INFO_ENUM_PARAMS;
+} FILE_INFO_ENUM_IN_PARAMS, *PFILE_INFO_ENUM_IN_PARAMS;
+
+typedef struct _FILE_INFO_ENUM_OUT_PREAMBLE
+{
+    DWORD  dwInfoLevel;
+    DWORD  dwEntriesRead;
+    DWORD  dwTotalEntries;
+    PDWORD pdwResumeHandle;
+
+} FILE_INFO_ENUM_OUT_PREAMBLE, *PFILE_INFO_ENUM_OUT_PREAMBLE;
 
 typedef struct _FILE_INFO_GET_INFO_PARAMS
 {
@@ -82,17 +90,66 @@ typedef struct _FILE_INFO_CLOSE_PARAMS
 } FILE_INFO_CLOSE_PARAMS, *PFILE_INFO_CLOSE_PARAMS;
 
 LW_NTSTATUS
-LwFileInfoMarshalEnumParameters(
-    PFILE_INFO_ENUM_PARAMS pParams,
-    PBYTE*                 ppBuffer,
-    ULONG*                 pulBufferSize
+LwFileInfoMarshalEnumInputParameters(
+    PFILE_INFO_ENUM_IN_PARAMS pParams,
+    PBYTE*                    ppBuffer,
+    ULONG*                    pulBufferSize
     );
 
 LW_NTSTATUS
-LwFileInfoUnmarshalEnumParameters(
-    PBYTE                   pBuffer,
-    ULONG                   ulBufferSize,
-    PFILE_INFO_ENUM_PARAMS* ppParams
+LwFileInfoUnmarshalEnumInputParameters(
+    PBYTE                      pBuffer,
+    ULONG                      ulBufferSize,
+    PFILE_INFO_ENUM_IN_PARAMS* ppParams
+    );
+
+LW_NTSTATUS
+LwFileInfoFreeEnumInputParameters(
+    PFILE_INFO_ENUM_IN_PARAMS pParams
+    );
+
+LW_NTSTATUS
+LwFileInfoMarshalEnumOutputPreamble(
+    PBYTE                        pBuffer,
+    ULONG                        ulBufferSize,
+    PFILE_INFO_ENUM_OUT_PREAMBLE pPreamble,
+    PULONG                       pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwFileInfoMarshalEnumOutputInfo_level_2(
+    PFILE_INFO_2 pFileInfo,
+    PBYTE        pBuffer,
+    ULONG        ulBufferSize,
+    PULONG       pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwFileInfoMarshalEnumOutputInfo_level_3(
+    PFILE_INFO_3 pFileInfo,
+    PBYTE        pBuffer,
+    ULONG        ulBufferSize,
+    PULONG       pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwFileInfoUnmarshalEnumOutputParameters(
+    PBYTE                         pBuffer,
+    ULONG                         ulBufferSize,
+    PFILE_INFO_ENUM_OUT_PREAMBLE* ppPreamble,
+    PFILE_INFO_UNION*             ppFileInfo
+    );
+
+LW_NTSTATUS
+LwFileInfoFreeEnumOutPreamble(
+    PFILE_INFO_ENUM_OUT_PREAMBLE pPreamble
+    );
+
+LW_NTSTATUS
+LwFileInfoFree(
+    DWORD            dwInfoLevel,
+    DWORD            dwCount,
+    PFILE_INFO_UNION pFileInfo
     );
 
 LW_NTSTATUS

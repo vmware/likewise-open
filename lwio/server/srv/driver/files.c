@@ -50,26 +50,6 @@
 
 #include "includes.h"
 
-static
-NTSTATUS
-SrvDevCtlEnumerateFiles_level_2(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    );
-
-static
-NTSTATUS
-SrvDevCtlEnumerateFiles_level_3(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    );
-
 NTSTATUS
 SrvDevCtlEnumerateFiles(
     IN     PBYTE  pInBuffer,
@@ -79,17 +59,20 @@ SrvDevCtlEnumerateFiles(
     IN OUT PULONG pulBytesTransferred
     )
 {
-    NTSTATUS ntStatus        = STATUS_SUCCESS;
-    PBYTE    pBuffer         = NULL;
-    ULONG    ulBufferSize    = 0;
-    ULONG    ulEntriesRead   = 0;
-    ULONG    ulTotalEntries  = 0;
-    ULONG    ulResumeHandle  = 0;
-    PULONG   pulResumeHandle = NULL;
-    PFILE_INFO_ENUM_PARAMS pParamsIn = NULL;
-    FILE_INFO_ENUM_PARAMS  paramsOut = {0};
+    NTSTATUS ntStatus         = STATUS_SUCCESS;
+    PBYTE    pBuffer          = pOutBuffer;
+    ULONG    ulBufferSize     = ulOutBufferSize;
+    ULONG    ulPreambleSize   = 0;
+    ULONG    ulBytesUsed      = 0;
+    ULONG    ulTotalBytesUsed = 0;
+    ULONG    ulEntriesRead    = 0;
+    ULONG    ulTotalEntries   = 0;
+    ULONG    ulResumeHandle   = 0;
+    PULONG   pulResumeHandle  = NULL;
+    PFILE_INFO_ENUM_IN_PARAMS   pParamsIn         = NULL;
+    FILE_INFO_ENUM_OUT_PREAMBLE paramsOutPreamble = {0};
 
-    ntStatus = LwFileInfoUnmarshalEnumParameters(
+    ntStatus = LwFileInfoUnmarshalEnumInputParameters(
                         pInBuffer,
                         ulInBufferSize,
                         &pParamsIn);
@@ -101,63 +84,56 @@ SrvDevCtlEnumerateFiles(
         pulResumeHandle = &ulResumeHandle;
     }
 
-    switch (pParamsIn->dwInfoLevel)
-    {
-        case 2:
-
-            ntStatus = SrvDevCtlEnumerateFiles_level_2(
-                            pulResumeHandle,
-                            pOutBuffer,
-                            ulOutBufferSize,
-                            &ulEntriesRead,
-                            &ulTotalEntries);
-
-            break;
-
-        case 3:
-
-            ntStatus = SrvDevCtlEnumerateFiles_level_3(
-                            pulResumeHandle,
-                            pOutBuffer,
-                            ulOutBufferSize,
-                            &ulEntriesRead,
-                            &ulTotalEntries);
-
-            break;
-
-        default:
-
-            ntStatus = STATUS_INVALID_INFO_CLASS;
-
-            break;
-    }
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    paramsOut.dwInfoLevel    = pParamsIn->dwInfoLevel;
-    paramsOut.dwEntriesRead  = ulEntriesRead;
-    paramsOut.dwTotalEntries = ulTotalEntries;
+    paramsOutPreamble.dwInfoLevel    = pParamsIn->dwInfoLevel;
+    paramsOutPreamble.dwEntriesRead  = ulEntriesRead;
+    paramsOutPreamble.dwTotalEntries = ulTotalEntries;
     if (pulResumeHandle)
     {
-        *paramsOut.pdwResumeHandle = *pulResumeHandle;
+        paramsOutPreamble.pdwResumeHandle = &ulResumeHandle;
     }
 
-    ntStatus = LwFileInfoMarshalEnumParameters(
-                        &paramsOut,
-                        &pBuffer,
-                        &ulBufferSize);
+    ntStatus = LwFileInfoMarshalEnumOutputPreamble(
+                    pBuffer,
+                    ulBufferSize,
+                    &paramsOutPreamble,
+                    &ulPreambleSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *pulBytesTransferred = ulBufferSize;
+    pBuffer          += ulPreambleSize;
+    ulBufferSize     -= ulPreambleSize;
+    ulTotalBytesUsed += ulPreambleSize;
+
+    ntStatus = SrvProtocolEnumerateFiles(
+                    pParamsIn->pwszBasepath,
+                    pParamsIn->pwszUsername,
+                    pParamsIn->dwInfoLevel,
+                    pBuffer,
+                    ulBufferSize,
+                    &ulBytesUsed,
+                    &ulEntriesRead,
+                    &ulTotalEntries,
+                    pulResumeHandle);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulTotalBytesUsed += ulBytesUsed;
+
+    paramsOutPreamble.dwEntriesRead  = ulEntriesRead;
+    paramsOutPreamble.dwTotalEntries = ulTotalEntries;
+
+    ntStatus = LwFileInfoMarshalEnumOutputPreamble(
+                    pOutBuffer,
+                    ulPreambleSize,
+                    &paramsOutPreamble,
+                    &ulBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pulBytesTransferred = ulTotalBytesUsed;
 
 cleanup:
 
-    if (pBuffer)
-    {
-        SrvFreeMemory(pBuffer);
-    }
     if (pParamsIn)
     {
-        SrvFreeMemory(pParamsIn);
+        LwFileInfoFreeEnumInputParameters(pParamsIn);
     }
 
     return ntStatus;
@@ -168,35 +144,10 @@ error:
     {
         memset(pOutBuffer, 0, ulOutBufferSize);
     }
+
     *pulBytesTransferred = 0;
 
     goto cleanup;
-}
-
-static
-NTSTATUS
-SrvDevCtlEnumerateFiles_level_2(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    )
-{
-    return STATUS_NOT_SUPPORTED;
-}
-
-static
-NTSTATUS
-SrvDevCtlEnumerateFiles_level_3(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    )
-{
-    return STATUS_NOT_SUPPORTED;
 }
 
 NTSTATUS
