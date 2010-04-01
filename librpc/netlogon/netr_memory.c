@@ -256,6 +256,7 @@ NetrAllocateDomainTrusts(
         LWBUF_ALLOC_DWORD(pBuffer, pIn->array[i].trust_flags);
         LWBUF_ALLOC_DWORD(pBuffer, pIn->array[i].parent_index);
         LWBUF_ALLOC_WORD(pBuffer, pIn->array[i].trust_type);
+        LWBUF_ALIGN_TYPE(pdwOffset, pdwSize, pdwSpaceLeft, DWORD);
         LWBUF_ALLOC_DWORD(pBuffer, pIn->array[i].trust_attrs);
         LWBUF_ALLOC_PSID(pBuffer, pIn->array[i].sid);
         LWBUF_ALLOC_BLOB(pBuffer,
