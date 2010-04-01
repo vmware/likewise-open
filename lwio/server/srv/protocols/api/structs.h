@@ -90,7 +90,6 @@ typedef struct _SRV_PROTOCOL_TRANSPORT_CONTEXT
     SRV_TRANSPORT_PROTOCOL_DISPATCH   dispatch;
     SRV_CONNECTION_SOCKET_DISPATCH    socketDispatch;
     uuid_t                            guid;
-
     HANDLE                            hGssContext; // Initialized on first use
 } SRV_PROTOCOL_TRANSPORT_CONTEXT;
 
@@ -108,17 +107,41 @@ typedef struct _SRV_PROTOCOL_API_GLOBALS
 
 } SRV_PROTOCOL_API_GLOBALS, *PSRV_PROTOCOL_API_GLOBALS;
 
-typedef struct _SRV_SEND_CONTEXT {
+typedef struct _SRV_SEND_CONTEXT
+{
     PSRV_CONNECTION pConnection;
-    BOOLEAN bIsZct;
-    union {
+    BOOLEAN         bIsZct;
+    union
+    {
         PSMB_PACKET pPacket;
-        struct {
-            PLW_ZCT_VECTOR pZct;
+        struct
+        {
+            PLW_ZCT_VECTOR                 pZct;
             PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback;
-            PVOID pCallbackContext;
+            PVOID                          pCallbackContext;
         };
     };
 } SRV_SEND_CONTEXT;
+
+typedef struct _SRV_PROTOCOL_SESSION_ENUM_QUERY
+{
+    PWSTR    pwszUncClientname;
+    PWSTR    pwszUncClientnameRef;
+    PWSTR    pwszUsername;
+    ULONG    ulInfoLevel;
+
+    LONG64   llCurTime;
+
+    ULONG    iEntryIndex;
+    ULONG    iResumeIndex;
+
+    ULONG    ulEntriesRead;
+    ULONG    ulTotalEntries;
+
+    PBYTE    pBuffer;
+    ULONG    ulBufferSize;
+    ULONG    ulBytesUsed;
+
+} SRV_PROTOCOL_SESSION_ENUM_QUERY, *PSRV_PROTOCOL_SESSION_ENUM_QUERY;
 
 #endif /* __STRUCTS_H__ */

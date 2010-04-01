@@ -67,6 +67,7 @@ SrvProcessSessionSetup_SMB_V2(
     ULONG       ulReplySecurityBlobLength = 0;
     PBYTE       pInitSecurityBlob         = NULL;
     ULONG       ulInitSecurityBlobLength  = 0;
+    PSTR        pszClientPrincipalName    = NULL;
     PBYTE pOutBuffer       = pSmbResponse->pBuffer;
     ULONG ulBytesAvailable = pSmbResponse->ulBytesAvailable;
     ULONG ulOffset    = 0;
@@ -158,7 +159,7 @@ SrvProcessSessionSetup_SMB_V2(
                              pConnection->hGssNegotiate,
                              &pConnection->pSessionKey,
                              &pConnection->ulSessionKeyLength,
-                             &pCtxSmb2->pSession->pszClientPrincipalName,
+                             &pszClientPrincipalName,
                              &hContextHandle);
         }
         else
@@ -168,10 +169,18 @@ SrvProcessSessionSetup_SMB_V2(
                              pConnection->hGssNegotiate,
                              NULL,
                              NULL,
-                             &pCtxSmb2->pSession->pszClientPrincipalName,
+                             &pszClientPrincipalName,
                              &hContextHandle);
         }
         BAIL_ON_NT_STATUS(ntStatus);
+
+        if (pszClientPrincipalName)
+        {
+            ntStatus = SrvSession2SetPrincipalName(
+                                pCtxSmb2->pSession,
+                                pszClientPrincipalName);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
         ntStatus = IoSecurityCreateSecurityContextFromGssContext(
                        &pCtxSmb2->pSession->pIoSecurityContext,
@@ -202,12 +211,9 @@ SrvProcessSessionSetup_SMB_V2(
 
 cleanup:
 
-    if (pInitSecurityBlob)
-    {
-        SrvFreeMemory(pInitSecurityBlob);
-    }
-
+    SRV_SAFE_FREE_MEMORY(pInitSecurityBlob);
     SRV_SAFE_FREE_MEMORY(pReplySecurityBlob);
+    SRV_SAFE_FREE_MEMORY(pszClientPrincipalName);
 
     return ntStatus;
 

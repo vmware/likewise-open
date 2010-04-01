@@ -51,6 +51,24 @@
 
 static
 NTSTATUS
+SrvConnectionCountSessions(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
+SrvConnection2CountSessions(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
 SrvConnection2AcquireAsyncId_inlock(
    PLWIO_SRV_CONNECTION pConnection,
    PULONG64             pullAsyncId
@@ -164,6 +182,7 @@ SrvConnection2RundownAsyncStatesRbTreeVisit(
 
 NTSTATUS
 SrvConnectionCreate(
+    PCSTR                           pszClientAddress,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
@@ -213,6 +232,9 @@ SrvConnectionCreate(
                     pConnection->pHostinfo,
                     hGssContext,
                     &pConnection->hGssContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SMBMbsToWc16s(pszClientAddress, &pConnection->pwszClientAddress);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->ulSequence = 0;
@@ -295,6 +317,7 @@ SrvConnectionSetProtocolVersion_inlock(
             LwRtlRBTreeFree(pConnection->pSessionCollection);
             pConnection->pSessionCollection = NULL;
         }
+        pConnection->ullSessionCount = 0;
 
         pConnection->protocolVer = protoVer;
 
@@ -533,6 +556,188 @@ error:
 }
 
 NTSTATUS
+SrvConnectionGetSessionCount(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername,
+    PULONG64             pullSessionCount
+    )
+{
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+    BOOLEAN  bInLock         = FALSE;
+    SRV_SESSION_ENUM_QUERY sessionEnumQuery =
+    {
+          .pwszUsername    = pwszUsername,
+          .ullSessionCount = 0
+    };
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    if (!pwszUsername)
+    {
+        sessionEnumQuery.ullSessionCount = pConnection->ullSessionCount;
+    }
+    else
+    {
+        ntStatus = LwRtlRBTreeTraverse(
+                        pConnection->pSessionCollection,
+                        LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                        &SrvConnectionCountSessions,
+                        &sessionEnumQuery);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pullSessionCount = sessionEnumQuery.ullSessionCount;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+
+    *pullSessionCount = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionCountSessions(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS                ntStatus          = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION       pSession          = (PLWIO_SRV_SESSION)pData;
+    PSRV_SESSION_ENUM_QUERY pSessionEnumQuery =
+                                (PSRV_SESSION_ENUM_QUERY)pUserData;
+    BOOLEAN                 bIsMatch          = FALSE;
+
+    if (!pSessionEnumQuery->pwszUsername)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvSessionCheckPrincipal(
+                    pSession,
+                    pSessionEnumQuery->pwszUsername,
+                    &bIsMatch);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (bIsMatch)
+    {
+        pSessionEnumQuery->ullSessionCount++;
+    }
+
+    *pbContinue = TRUE;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvConnection2GetSessionCount(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername,
+    PULONG64             pullSessionCount
+    )
+{
+    NTSTATUS ntStatus        = STATUS_SUCCESS;
+    BOOLEAN  bInLock         = FALSE;
+    SRV_SESSION_ENUM_QUERY sessionEnumQuery =
+    {
+          .pwszUsername    = pwszUsername,
+          .ullSessionCount = 0
+    };
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    if (!pwszUsername)
+    {
+        sessionEnumQuery.ullSessionCount = pConnection->ullSessionCount;
+    }
+    else
+    {
+        ntStatus = LwRtlRBTreeTraverse(
+                        pConnection->pSessionCollection,
+                        LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                        &SrvConnection2CountSessions,
+                        &sessionEnumQuery);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pullSessionCount = sessionEnumQuery.ullSessionCount;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+
+    *pullSessionCount = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnection2CountSessions(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS                ntStatus          = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION_2     pSession          = (PLWIO_SRV_SESSION_2)pData;
+    PSRV_SESSION_ENUM_QUERY pSessionEnumQuery =
+                                (PSRV_SESSION_ENUM_QUERY)pUserData;
+    BOOLEAN                 bIsMatch          = FALSE;
+
+    if (!pSessionEnumQuery->pwszUsername)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvSession2CheckPrincipal(
+                    pSession,
+                    pSessionEnumQuery->pwszUsername,
+                    &bIsMatch);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (bIsMatch)
+    {
+        pSessionEnumQuery->ullSessionCount++;
+    }
+
+    *pbContinue = TRUE;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvConnectionRemoveSession(
     PLWIO_SRV_CONNECTION pConnection,
     USHORT              uid
@@ -554,6 +759,8 @@ SrvConnectionRemoveSession(
                     pConnection->pSessionCollection,
                     &uid);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pConnection->ullSessionCount--;
 
 cleanup:
 
@@ -588,6 +795,8 @@ SrvConnection2RemoveSession(
                     pConnection->pSessionCollection,
                     &ullUid);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pConnection->ullSessionCount--;
 
 cleanup:
 
@@ -630,6 +839,8 @@ SrvConnectionCreateSession(
     BAIL_ON_NT_STATUS(ntStatus);
 
     InterlockedIncrement(&pSession->refcount);
+
+    pConnection->ullSessionCount++;
 
     *ppSession = pSession;
 
@@ -681,6 +892,8 @@ SrvConnection2CreateSession(
     BAIL_ON_NT_STATUS(ntStatus);
 
     InterlockedIncrement(&pSession->refcount);
+
+    pConnection->ullSessionCount++;
 
     *ppSession = pSession;
 
@@ -1007,6 +1220,11 @@ SrvConnectionFree(
     if (pConnection->pHostinfo)
     {
         SrvReleaseHostInfo(pConnection->pHostinfo);
+    }
+
+    if (pConnection->pwszClientAddress)
+    {
+        SrvFreeMemory(pConnection->pwszClientAddress);
     }
 
     if (pConnection->pMutex)

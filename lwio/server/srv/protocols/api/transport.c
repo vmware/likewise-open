@@ -339,6 +339,7 @@ SrvProtocolTransportDriverConnectionNew(
     uuid_copy(properties.GUID, pProtocolDispatchContext->guid);
 
     ntStatus = SrvConnectionCreate(
+                    SrvTransportSocketGetAddressString(pSocket),
                     pSocket,
                     pGlobals->hPacketAllocator,
                     pProtocolDispatchContext->hGssContext,

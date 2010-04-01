@@ -230,11 +230,13 @@ typedef struct _LWIO_SRV_SESSION
 
     USHORT            nextAvailableTid;
 
-    PSTR              pszClientPrincipalName;
+    PWSTR             pwszClientPrincipalName;
 
     LONG64            llLastActivityTime;
 
     ULONG64           ullTotalFileCount;
+
+    ULONG             ulUserFlags;
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
@@ -259,11 +261,13 @@ typedef struct _LWIO_SRV_SESSION_2
 
     ULONG             ulNextAvailableTid;
 
-    PSTR              pszClientPrincipalName;
+    PWSTR             pwszClientPrincipalName;
 
     LONG64            llLastActivityTime;
 
     ULONG64           ullTotalFileCount;
+
+    ULONG             ulUserFlags;
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
@@ -329,6 +333,7 @@ typedef struct _SRV_CONNECTION
     LWIO_SRV_CONN_STATE  state;
 
     // Immutable for lifetime of connection.
+    PWSTR            pwszClientAddress;
     PLWIO_SRV_SOCKET pSocket;
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
 
@@ -380,6 +385,7 @@ typedef struct _SRV_CONNECTION
     };
 
     PLWRTL_RB_TREE      pSessionCollection;
+    ULONG64             ullSessionCount;
 
     ULONG64             ullNextAvailableAsyncId;
 
@@ -641,6 +647,7 @@ SrvAsyncStateRelease(
 
 NTSTATUS
 SrvConnectionCreate(
+    PCSTR                           pszClientAddress,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
@@ -692,6 +699,20 @@ SrvConnection2FindSession(
     PLWIO_SRV_CONNECTION pConnection,
     ULONG64              ullUid,
     PLWIO_SRV_SESSION_2* ppSession
+    );
+
+NTSTATUS
+SrvConnectionGetSessionCount(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername,
+    PULONG64             pullSessionCount
+    );
+
+NTSTATUS
+SrvConnection2GetSessionCount(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername,
+    PULONG64             pullSessionCount
     );
 
 NTSTATUS
@@ -808,6 +829,25 @@ SrvSessionCreateTree(
     );
 
 NTSTATUS
+SrvSessionSetPrincipalName(
+    PLWIO_SRV_SESSION pSession,
+    PCSTR             pszClientPrincipal
+    );
+
+NTSTATUS
+SrvSessionCheckPrincipal(
+    PLWIO_SRV_SESSION pSession,
+    PCWSTR            pwszClientPrincipal,
+    PBOOLEAN          pbIsMatch
+    );
+
+NTSTATUS
+SrvSessionGetPrincipalName(
+    PLWIO_SRV_SESSION pSession,
+    PWSTR*            ppwszClientPrincipal
+    );
+
+NTSTATUS
 SrvSessionIncrementFileCount(
     PLWIO_SRV_SESSION pSession
     );
@@ -857,6 +897,25 @@ SrvSession2CreateTree(
     PLWIO_SRV_SESSION_2 pSession,
     PSRV_SHARE_INFO     pShareInfo,
     PLWIO_SRV_TREE_2*   ppTree
+    );
+
+NTSTATUS
+SrvSession2SetPrincipalName(
+    PLWIO_SRV_SESSION_2 pSession,
+    PCSTR               pszClientPrincipal
+    );
+
+NTSTATUS
+SrvSession2CheckPrincipal(
+    PLWIO_SRV_SESSION_2 pSession,
+    PCWSTR              pwszClientPrincipal,
+    PBOOLEAN            pbIsMatch
+    );
+
+NTSTATUS
+SrvSession2GetPrincipalName(
+    PLWIO_SRV_SESSION_2 pSession,
+    PWSTR*              ppwszClientPrincipal
     );
 
 NTSTATUS

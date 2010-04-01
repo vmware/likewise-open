@@ -30,8 +30,6 @@
 
 #include "includes.h"
 
-#if defined(UNICODE)
-
 DWORD
 SMBAllocateStringW(
     PWSTR  pwszInputString,
@@ -222,6 +220,16 @@ SMBWc16sCmp(
 }
 
 int
+SMBWc16snCmp(
+    PCWSTR pwszFirst,
+    PCWSTR pwszSecond,
+    size_t sLen
+    )
+{
+    return wc16sncmp(pwszFirst, pwszSecond, sLen);
+}
+
+int
 SMBWc16sCaseCmp(
     PCWSTR  pwszFirst,
     PCWSTR  pwszSecond
@@ -247,6 +255,4 @@ SMBWc16sDup(
         return 0;
     }
 }
-
-#endif /* defined(UNICODE) */
 

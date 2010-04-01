@@ -714,8 +714,6 @@ SMBFreeNullTerminatedStringArray(
     PSTR * ppStringArray
     );
 
-#if defined(UNICODE)
-
 DWORD
 SMBAllocateStringW(
     PWSTR  pwszInputString,
@@ -754,6 +752,13 @@ SMBWc16sCmp(
     );
 
 int
+SMBWc16snCmp(
+    PCWSTR pwszFirst,
+    PCWSTR pwszSecond,
+    size_t sLen
+    );
+
+int
 SMBWc16sCaseCmp(
     PCWSTR  pwszFirst,
     PCWSTR  pwszSecond
@@ -764,8 +769,6 @@ SMBWc16sDup(
     PCWSTR pwszInput,
     PWSTR* pwszOutput
     );
-
-#endif /* defined(UNICODE) */
 
 DWORD
 SMBDLinkedListPrepend(

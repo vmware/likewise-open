@@ -50,57 +50,6 @@
 
 #include "includes.h"
 
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_0(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    );
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_1(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    );
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_2(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    );
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_10(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    );
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_502(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    );
-
-
 NTSTATUS
 SrvDevCtlEnumerateSessions(
     IN     PBYTE  pInBuffer,
@@ -110,17 +59,23 @@ SrvDevCtlEnumerateSessions(
     IN OUT PULONG pulBytesTransferred
     )
 {
-    NTSTATUS ntStatus        = STATUS_SUCCESS;
-    PBYTE    pBuffer         = NULL;
-    ULONG    ulBufferSize    = 0;
-    ULONG    ulEntriesRead   = 0;
-    ULONG    ulTotalEntries  = 0;
-    ULONG    ulResumeHandle  = 0;
-    PULONG   pulResumeHandle = NULL;
-    PSESSION_INFO_ENUM_PARAMS pParamsIn = NULL;
-    SESSION_INFO_ENUM_PARAMS  paramsOut = {0};
+    NTSTATUS ntStatus         = STATUS_SUCCESS;
+    PBYTE    pBuffer          = pOutBuffer;
+    ULONG    ulBufferSize     = ulOutBufferSize;
+    ULONG    ulBytesUsed      = 0;
+    ULONG    ulTotalBytesUsed = 0;
+    ULONG    ulEntriesRead    = 0;
+    ULONG    ulTotalEntries   = 0;
+    ULONG    ulResumeHandle   = 0;
+    PULONG   pulResumeHandle  = NULL;
+    PSESSION_INFO_ENUM_IN_PARAMS   pParamsIn         = NULL;
+    SESSION_INFO_ENUM_OUT_PREAMBLE paramsOutPreamble = {0};
+    wchar16_t wszClientPrefix[] = {'\\', '\\', 0};
+    ULONG     ulClientPrefixLen =
+                (sizeof(wszClientPrefix)/sizeof(wszClientPrefix[0])) - 1;
+    PWSTR     pwszUncClientname = NULL;
 
-    ntStatus = LwSessionInfoUnmarshalEnumParameters(
+    ntStatus = LwSessionInfoUnmarshalEnumInputParameters(
                         pInBuffer,
                         ulInBufferSize,
                         &pParamsIn);
@@ -132,96 +87,72 @@ SrvDevCtlEnumerateSessions(
         pulResumeHandle = &ulResumeHandle;
     }
 
-    switch (pParamsIn->dwInfoLevel)
+    if (pParamsIn->pwszUncClientname)
     {
-        case 0:
-
-            ntStatus = SrvDevCtlEnumerateSessions_level_0(
-                            pulResumeHandle,
-                            pOutBuffer,
-                            ulOutBufferSize,
-                            &ulEntriesRead,
-                            &ulTotalEntries);
-
-            break;
-
-        case 1:
-
-            ntStatus = SrvDevCtlEnumerateSessions_level_1(
-                            pulResumeHandle,
-                            pOutBuffer,
-                            ulOutBufferSize,
-                            &ulEntriesRead,
-                            &ulTotalEntries);
-
-            break;
-
-        case 2:
-
-            ntStatus = SrvDevCtlEnumerateSessions_level_2(
-                            pulResumeHandle,
-                            pOutBuffer,
-                            ulOutBufferSize,
-                            &ulEntriesRead,
-                            &ulTotalEntries);
-
-            break;
-
-        case 10:
-
-            ntStatus = SrvDevCtlEnumerateSessions_level_10(
-                            pulResumeHandle,
-                            pOutBuffer,
-                            ulOutBufferSize,
-                            &ulEntriesRead,
-                            &ulTotalEntries);
-
-            break;
-
-        case 502:
-
-            ntStatus = SrvDevCtlEnumerateSessions_level_502(
-                            pulResumeHandle,
-                            pOutBuffer,
-                            ulOutBufferSize,
-                            &ulEntriesRead,
-                            &ulTotalEntries);
-
-            break;
-
-        default:
-
-            ntStatus = STATUS_INVALID_INFO_CLASS;
-
-            break;
+        if (!SMBWc16snCmp(  pParamsIn->pwszUncClientname,
+                            &wszClientPrefix[0],
+                            ulClientPrefixLen))
+        {
+            pwszUncClientname =
+                        pParamsIn->pwszUncClientname + ulClientPrefixLen;
+        }
+        else
+        {
+            ntStatus = STATUS_INVALID_COMPUTER_NAME;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
     }
+
+    paramsOutPreamble.dwInfoLevel    = pParamsIn->dwInfoLevel;
+    paramsOutPreamble.dwEntriesRead  = ulEntriesRead;
+    paramsOutPreamble.dwTotalEntries = ulTotalEntries;
+
+    ntStatus = LwSessionInfoMarshalEnumOutputPreamble(
+                    pBuffer,
+                    ulBufferSize,
+                    &paramsOutPreamble,
+                    &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    paramsOut.dwInfoLevel    = pParamsIn->dwInfoLevel;
-    paramsOut.dwEntriesRead  = ulEntriesRead;
-    paramsOut.dwTotalEntries = ulTotalEntries;
+    pBuffer          += ulBytesUsed;
+    ulBufferSize     -= ulBytesUsed;
+    ulTotalBytesUsed += ulBytesUsed;
+
+    ntStatus = SrvProtocolEnumerateSessions(
+                    pwszUncClientname,
+                    pParamsIn->pwszUsername,
+                    pParamsIn->dwInfoLevel,
+                    pBuffer,
+                    ulBufferSize,
+                    &ulBytesUsed,
+                    &ulEntriesRead,
+                    &ulTotalEntries,
+                    pulResumeHandle);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ulTotalBytesUsed += ulBytesUsed;
+
+    paramsOutPreamble.dwEntriesRead  = ulEntriesRead;
+    paramsOutPreamble.dwTotalEntries = ulTotalEntries;
     if (pulResumeHandle)
     {
-        *paramsOut.pdwResumeHandle = *pulResumeHandle;
+        paramsOutPreamble.pdwResumeHandle = &ulResumeHandle;
     }
 
-    ntStatus = LwSessionInfoMarshalEnumParameters(
-                        &paramsOut,
-                        &pBuffer,
-                        &ulBufferSize);
+    ntStatus = LwSessionInfoMarshalEnumOutputPreamble(
+                    pOutBuffer,
+                    ulOutBufferSize,
+                    &paramsOutPreamble,
+                    &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    *pulBytesTransferred = ulBufferSize;
+    *pulBytesTransferred = ulTotalBytesUsed;
 
 cleanup:
 
-    if (pBuffer)
-    {
-        SrvFreeMemory(pBuffer);
-    }
     if (pParamsIn)
     {
-        SrvFreeMemory(pParamsIn);
+        LwSessionInfoFreeEnumInputParameters(pParamsIn);
     }
 
     return ntStatus;
@@ -235,71 +166,6 @@ error:
     *pulBytesTransferred = 0;
 
     goto cleanup;
-}
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_0(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    )
-{
-    return STATUS_NOT_SUPPORTED;
-}
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_1(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    )
-{
-    return STATUS_NOT_SUPPORTED;
-}
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_2(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    )
-{
-    return STATUS_NOT_SUPPORTED;
-}
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_10(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    )
-{
-    return STATUS_NOT_SUPPORTED;
-}
-
-static
-NTSTATUS
-SrvDevCtlEnumerateSessions_level_502(
-    PULONG pulResumeHandle,
-    PBYTE  pOutBuffer,
-    ULONG  ulOutBufferSize,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries
-    )
-{
-    return STATUS_NOT_SUPPORTED;
 }
 
 NTSTATUS

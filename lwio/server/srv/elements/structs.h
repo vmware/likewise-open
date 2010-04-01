@@ -49,6 +49,13 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+typedef struct _SRV_SESSION_ENUM_QUERY
+{
+    PWSTR    pwszUsername;
+    ULONG64  ullSessionCount;
+
+} SRV_SESSION_ENUM_QUERY, *PSRV_SESSION_ENUM_QUERY;
+
 typedef struct _SRV_TIMER_REQUEST
 {
     LONG                   refCount;

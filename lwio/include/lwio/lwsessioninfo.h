@@ -60,18 +60,25 @@ typedef union _SESSION_INFO_UNION
 
 } SESSION_INFO_UNION, *PSESSION_INFO_UNION;
 
-typedef struct _SESSION_INFO_ENUM_PARAMS
+typedef struct _SESSION_INFO_ENUM_IN_PARAMS
 {
-    PWSTR              pwszServername;
-    PWSTR              pwszUncClientname;
-    PWSTR              pwszUsername;
-    DWORD              dwInfoLevel;
-    DWORD              dwPreferredMaxLength;
-    DWORD              dwEntriesRead;
-    DWORD              dwTotalEntries;
-    PDWORD             pdwResumeHandle;
-    SESSION_INFO_UNION info;
-} SESSION_INFO_ENUM_PARAMS, *PSESSION_INFO_ENUM_PARAMS;
+    PWSTR  pwszServername;
+    PWSTR  pwszUncClientname;
+    PWSTR  pwszUsername;
+    DWORD  dwInfoLevel;
+    DWORD  dwPreferredMaxLength;
+    PDWORD pdwResumeHandle;
+
+} SESSION_INFO_ENUM_IN_PARAMS, *PSESSION_INFO_ENUM_IN_PARAMS;
+
+typedef struct _SESSION_INFO_ENUM_OUT_PREAMBLE
+{
+    DWORD  dwInfoLevel;
+    DWORD  dwEntriesRead;
+    DWORD  dwTotalEntries;
+    PDWORD pdwResumeHandle;
+
+} SESSION_INFO_ENUM_OUT_PREAMBLE, *PSESSION_INFO_ENUM_OUT_PREAMBLE;
 
 typedef struct _SESSION_INFO_DELETE_PARAMS
 {
@@ -81,17 +88,90 @@ typedef struct _SESSION_INFO_DELETE_PARAMS
 } SESSION_INFO_DELETE_PARAMS, *PSESSION_INFO_DELETE_PARAMS;
 
 LW_NTSTATUS
-LwSessionInfoMarshalEnumParameters(
-    PSESSION_INFO_ENUM_PARAMS pParams,
-    PBYTE*                    ppBuffer,
-    ULONG*                    pulBufferSize
+LwSessionInfoMarshalEnumInputParameters(
+    PSESSION_INFO_ENUM_IN_PARAMS pParams,
+    PBYTE*                       ppBuffer,
+    ULONG*                       pulBufferSize
     );
 
 LW_NTSTATUS
-LwSessionInfoUnmarshalEnumParameters(
-    PBYTE                      pBuffer,
-    ULONG                      ulBufferSize,
-    PSESSION_INFO_ENUM_PARAMS* ppParams
+LwSessionInfoUnmarshalEnumInputParameters(
+    PBYTE                         pBuffer,
+    ULONG                         ulBufferSize,
+    PSESSION_INFO_ENUM_IN_PARAMS* ppParams
+    );
+
+LW_NTSTATUS
+LwSessionInfoFreeEnumInputParameters(
+    PSESSION_INFO_ENUM_IN_PARAMS pParams
+    );
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputPreamble(
+    PBYTE                           pBuffer,
+    ULONG                           ulBufferSize,
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pPreamble,
+    PULONG                          pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_0(
+    PSESSION_INFO_0 pSessionInfo,
+    PBYTE           pBuffer,
+    ULONG           ulBufferSize,
+    PULONG          pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_1(
+    PSESSION_INFO_1 pSessionInfo,
+    PBYTE           pBuffer,
+    ULONG           ulBufferSize,
+    PULONG          pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_2(
+    PSESSION_INFO_2 pSessionInfo,
+    PBYTE           pBuffer,
+    ULONG           ulBufferSize,
+    PULONG          pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_10(
+    PSESSION_INFO_10 pSessionInfo,
+    PBYTE            pBuffer,
+    ULONG            ulBufferSize,
+    PULONG           pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_502(
+    PSESSION_INFO_502 pSessionInfo,
+    PBYTE             pBuffer,
+    ULONG             ulBufferSize,
+    PULONG            pulBytesUsed
+    );
+
+LW_NTSTATUS
+LwSessionInfoUnmarshalEnumOutputParameters(
+    PBYTE                            pBuffer,
+    ULONG                            ulBufferSize,
+    PSESSION_INFO_ENUM_OUT_PREAMBLE* ppPreamble,
+    PSESSION_INFO_UNION*             ppSessionInfo
+    );
+
+LW_NTSTATUS
+LwSessionInfoFreeEnumOutPreamble(
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pPreamble
+    );
+
+LW_NTSTATUS
+LwSessionInfoFree(
+    DWORD               dwInfoLevel,
+    DWORD               dwCount,
+    PSESSION_INFO_UNION pSessionInfo
     );
 
 LW_NTSTATUS

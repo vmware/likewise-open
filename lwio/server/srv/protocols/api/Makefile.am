@@ -5,6 +5,7 @@ libsrv_protocols_api_la_SOURCES = \
     globals.c   \
     libmain.c   \
     negotiate.c \
+    sessions.c  \
     transport.c
 
 libsrv_protocols_api_la_CPPFLAGS = \

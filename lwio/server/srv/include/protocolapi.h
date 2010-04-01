@@ -81,6 +81,19 @@ SrvProtocolTransportSendZctResponse(
     IN OPTIONAL PVOID pCallbackContext
     );
 
+NTSTATUS
+SrvProtocolEnumerateSessions(
+    PWSTR  pwszUncClientname,
+    PWSTR  pwszUsername,
+    ULONG  ulInfoLevel,
+    PBYTE  pBuffer,
+    ULONG  ulBufferSize,
+    PULONG pulBytesUsed,
+    PULONG pulEntriesRead,
+    PULONG pulTotalEntries,
+    PULONG pulResumeHandle
+    );
+
 VOID
 SrvProtocolShutdown(
     VOID

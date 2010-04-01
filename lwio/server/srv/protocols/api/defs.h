@@ -64,4 +64,6 @@
 
 #define SMB_PACKET_DEFAULT_SIZE ((64 * 1024) + 4096)
 
+#define SRV_CLIENT_TYPE_W {'D','O','S',' ','L','M',' ','2','.','0',0}
+
 #endif /* __DEFS_H__ */

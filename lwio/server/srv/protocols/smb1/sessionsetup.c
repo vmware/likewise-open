@@ -64,6 +64,7 @@ SrvProcessSessionSetup(
     ULONG                      ulInitSecurityBlobLength = 0;
     LW_MAP_SECURITY_GSS_CONTEXT hContextHandle = NULL;
     BOOLEAN                    bGssNegotiateLocked = FALSE;
+    PSTR                       pszClientPrincipalName = NULL;
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
@@ -113,7 +114,7 @@ SrvProcessSessionSetup(
                              pConnection->hGssNegotiate,
                              &pConnection->pSessionKey,
                              &pConnection->ulSessionKeyLength,
-                             &pCtxSmb1->pSession->pszClientPrincipalName,
+                             &pszClientPrincipalName,
                              &hContextHandle);
         }
         else
@@ -123,7 +124,7 @@ SrvProcessSessionSetup(
                             pConnection->hGssNegotiate,
                             NULL,
                             NULL,
-                            &pCtxSmb1->pSession->pszClientPrincipalName,
+                            &pszClientPrincipalName,
                             &hContextHandle);
         }
 
@@ -147,6 +148,14 @@ SrvProcessSessionSetup(
 
         BAIL_ON_NT_STATUS(ntStatus);
 
+        if (pszClientPrincipalName)
+        {
+            ntStatus = SrvSessionSetPrincipalName(
+                            pCtxSmb1->pSession,
+                            pszClientPrincipalName);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
 
         SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
@@ -156,10 +165,8 @@ cleanup:
 
     LWIO_UNLOCK_MUTEX(bGssNegotiateLocked, &pConnection->mutexGssNegotiate);
 
-    if (pInitSecurityBlob)
-    {
-        SrvFreeMemory(pInitSecurityBlob);
-    }
+    SRV_SAFE_FREE_MEMORY(pInitSecurityBlob);
+    SRV_SAFE_FREE_MEMORY(pszClientPrincipalName);
 
     return ntStatus;
 

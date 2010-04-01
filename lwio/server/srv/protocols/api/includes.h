@@ -63,6 +63,10 @@
 
 #include <lwio/lmshare.h>
 #include <lwio/lwshareinfo.h>
+#include <lwio/lmsession.h>
+#include <lwio/lwsessioninfo.h>
+#include <lwio/lmfile.h>
+#include <lwio/lwfileinfo.h>
 
 #include <iodriver.h>
 #include <ioapi.h>

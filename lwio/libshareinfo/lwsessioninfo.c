@@ -131,36 +131,29 @@ static LWMsgTypeSpec gSessionInfoUnionSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gSessionInfoEnumParamsSpec[] =
+static LWMsgTypeSpec gSessionInfoEnumInParamsSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(SESSION_INFO_ENUM_PARAMS),
-    LWMSG_MEMBER_PWSTR(SESSION_INFO_ENUM_PARAMS,  pwszServername),
-    LWMSG_MEMBER_PWSTR(SESSION_INFO_ENUM_PARAMS,  pwszUncClientname),
-    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_PARAMS, dwInfoLevel),
-    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_PARAMS, dwPreferredMaxLength),
-    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_PARAMS, dwTotalEntries),
-    LWMSG_MEMBER_POINTER_BEGIN(SESSION_INFO_ENUM_PARAMS, pdwResumeHandle),
+    LWMSG_STRUCT_BEGIN(SESSION_INFO_ENUM_IN_PARAMS),
+    LWMSG_MEMBER_PWSTR(SESSION_INFO_ENUM_IN_PARAMS,  pwszServername),
+    LWMSG_MEMBER_PWSTR(SESSION_INFO_ENUM_IN_PARAMS,  pwszUncClientname),
+    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_IN_PARAMS, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_IN_PARAMS, dwPreferredMaxLength),
+    LWMSG_MEMBER_POINTER_BEGIN(SESSION_INFO_ENUM_IN_PARAMS, pdwResumeHandle),
     LWMSG_UINT8(UINT32),
     LWMSG_POINTER_END,
-    LWMSG_MEMBER_UNION_BEGIN(SESSION_INFO_ENUM_PARAMS, info),
-    LWMSG_MEMBER_POINTER(SESSION_INFO_UNION, p0, LWMSG_TYPESPEC(gSessionInfo0Spec)),
-    LWMSG_ATTR_LENGTH_MEMBER(SESSION_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_ATTR_TAG(SESSION_INFO_LEVEL_0),
-    LWMSG_MEMBER_POINTER(SESSION_INFO_UNION, p1, LWMSG_TYPESPEC(gSessionInfo1Spec)),
-    LWMSG_ATTR_LENGTH_MEMBER(SESSION_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_ATTR_TAG(SESSION_INFO_LEVEL_1),
-    LWMSG_MEMBER_POINTER(SESSION_INFO_UNION, p2, LWMSG_TYPESPEC(gSessionInfo2Spec)),
-    LWMSG_ATTR_LENGTH_MEMBER(SESSION_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_ATTR_TAG(SESSION_INFO_LEVEL_2),
-    LWMSG_MEMBER_POINTER(SESSION_INFO_UNION, p10, LWMSG_TYPESPEC(gSessionInfo10Spec)),
-    LWMSG_ATTR_LENGTH_MEMBER(SESSION_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_ATTR_TAG(SESSION_INFO_LEVEL_10),
-    LWMSG_MEMBER_POINTER(SESSION_INFO_UNION, p502, LWMSG_TYPESPEC(gSessionInfo502Spec)),
-    LWMSG_ATTR_LENGTH_MEMBER(SESSION_INFO_ENUM_PARAMS, dwEntriesRead),
-    LWMSG_ATTR_TAG(SESSION_INFO_LEVEL_502),
-    LWMSG_UNION_END,
-    LWMSG_ATTR_DISCRIM(SESSION_INFO_ENUM_PARAMS, dwInfoLevel),
+    LWMSG_STRUCT_END,
+    LWMSG_TYPE_END
+};
+
+static LWMsgTypeSpec gSessionInfoEnumOutParamsPreambleSpec[] =
+{
+    LWMSG_STRUCT_BEGIN(SESSION_INFO_ENUM_OUT_PREAMBLE),
+    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_OUT_PREAMBLE, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_OUT_PREAMBLE, dwEntriesRead),
+    LWMSG_MEMBER_UINT32(SESSION_INFO_ENUM_OUT_PREAMBLE, dwTotalEntries),
+    LWMSG_MEMBER_POINTER_BEGIN(SESSION_INFO_ENUM_OUT_PREAMBLE, pdwResumeHandle),
+    LWMSG_UINT8(UINT32),
+    LWMSG_POINTER_END,
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -175,11 +168,27 @@ static LWMsgTypeSpec gSessionInfoDeleteParamsSpec[] =
     LWMSG_TYPE_END
 };
 
+static
+VOID
+LwSessionInfoFreeEnumOutPreambleInternal(
+    LWMsgDataContext* pDataContext,
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pPreamble
+    );
+
+static
+VOID
+LwSessionInfoFreeInternal(
+    LWMsgDataContext*   pDataContext,
+    DWORD               dwInfoLevel,
+    DWORD               dwCount,
+    PSESSION_INFO_UNION pSessionInfo
+    );
+
 LW_NTSTATUS
-LwSessionInfoMarshalEnumParameters(
-    PSESSION_INFO_ENUM_PARAMS pParams,
-    PBYTE*                    ppBuffer,
-    ULONG*                    pulBufferSize
+LwSessionInfoMarshalEnumInputParameters(
+    PSESSION_INFO_ENUM_IN_PARAMS pParams,
+    PBYTE*                       ppBuffer,
+    ULONG*                       pulBufferSize
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -193,7 +202,7 @@ LwSessionInfoMarshalEnumParameters(
     status = MAP_LWMSG_STATUS(
         lwmsg_data_marshal_flat_alloc(
             pDataContext,
-            gSessionInfoEnumParamsSpec,
+            gSessionInfoEnumInParamsSpec,
             pParams,
             &pBuffer,
             &ulBufferSize));
@@ -222,14 +231,14 @@ error:
 
 
 LW_NTSTATUS
-LwSessionInfoUnmarshalEnumParameters(
-    PBYTE                      pBuffer,
-    ULONG                      ulBufferSize,
-    PSESSION_INFO_ENUM_PARAMS* ppParams
+LwSessionInfoUnmarshalEnumInputParameters(
+    PBYTE                         pBuffer,
+    ULONG                         ulBufferSize,
+    PSESSION_INFO_ENUM_IN_PARAMS* ppParams
     )
 {
     NTSTATUS Status = STATUS_SUCCESS;
-    PSESSION_INFO_ENUM_PARAMS pParams = NULL;
+    PSESSION_INFO_ENUM_IN_PARAMS pParams = NULL;
     LWMsgDataContext* pDataContext = NULL;
 
     Status = LwSrvInfoAcquireDataContext(&pDataContext);
@@ -238,7 +247,7 @@ LwSessionInfoUnmarshalEnumParameters(
     Status = MAP_LWMSG_STATUS(
         lwmsg_data_unmarshal_flat(
             pDataContext,
-            gSessionInfoEnumParamsSpec,
+            gSessionInfoEnumInParamsSpec,
             pBuffer,
             ulBufferSize,
             OUT_PPVOID(&pParams)));
@@ -258,10 +267,717 @@ error:
 
     if (pParams)
     {
-        lwmsg_data_free_graph(pDataContext, gSessionInfoEnumParamsSpec, pParams);
+        lwmsg_data_free_graph(
+                pDataContext,
+                gSessionInfoEnumInParamsSpec,
+                pParams);
     }
 
     goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoFreeEnumInputParameters(
+    PSESSION_INFO_ENUM_IN_PARAMS pParams
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+
+    Status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(Status);
+
+    lwmsg_data_free_graph(
+                    pDataContext,
+                    gSessionInfoEnumInParamsSpec,
+                    pParams);
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return Status;
+
+error:
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputPreamble(
+    PBYTE                           pBuffer,
+    ULONG                           ulBufferSize,
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pPreamble,
+    PULONG                          pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gSessionInfoEnumOutParamsPreambleSpec,
+                        pPreamble,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_0(
+    PSESSION_INFO_0 pSessionInfo,
+    PBYTE           pBuffer,
+    ULONG           ulBufferSize,
+    PULONG          pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gSessionInfo0Spec,
+                        pSessionInfo,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_1(
+    PSESSION_INFO_1 pSessionInfo,
+    PBYTE           pBuffer,
+    ULONG           ulBufferSize,
+    PULONG          pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gSessionInfo1Spec,
+                        pSessionInfo,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_2(
+    PSESSION_INFO_2 pSessionInfo,
+    PBYTE           pBuffer,
+    ULONG           ulBufferSize,
+    PULONG          pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gSessionInfo2Spec,
+                        pSessionInfo,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_10(
+    PSESSION_INFO_10 pSessionInfo,
+    PBYTE            pBuffer,
+    ULONG            ulBufferSize,
+    PULONG           pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gSessionInfo10Spec,
+                        pSessionInfo,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoMarshalEnumOutputInfo_level_502(
+    PSESSION_INFO_502 pSessionInfo,
+    PBYTE             pBuffer,
+    ULONG             ulBufferSize,
+    PULONG            pulBytesUsed
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+    LWMsgBuffer mbuf   =
+    {
+        .base   = pBuffer,
+        .end    = pBuffer + ulBufferSize,
+        .cursor = pBuffer,
+        .wrap   = NULL
+    };
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = MAP_LWMSG_STATUS(
+                lwmsg_data_marshal(
+                        pDataContext,
+                        gSessionInfo502Spec,
+                        pSessionInfo,
+                        &mbuf));
+    BAIL_ON_NT_STATUS(status);
+
+    *pulBytesUsed = mbuf.cursor - mbuf.base;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoUnmarshalEnumOutputParameters(
+    PBYTE                            pBuffer,
+    ULONG                            ulBufferSize,
+    PSESSION_INFO_ENUM_OUT_PREAMBLE* ppPreamble,
+    PSESSION_INFO_UNION*             ppSessionInfo
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    LWMsgBuffer mbuf   =
+        {
+            .base   = pBuffer,
+            .end    = pBuffer + ulBufferSize,
+            .cursor = pBuffer,
+            .wrap   = NULL
+        };
+    ULONG                           ulBytesUsed = 0;
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pPreamble   = NULL;
+    PSESSION_INFO_UNION             pSessionInfo = NULL;
+    LWMsgDataContext* pDataContext = NULL;
+
+    Status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = MAP_LWMSG_STATUS(
+                lwmsg_data_unmarshal(
+                    pDataContext,
+                    gSessionInfoEnumOutParamsPreambleSpec,
+                    &mbuf,
+                    OUT_PPVOID(&pPreamble)));
+    BAIL_ON_NT_STATUS(Status);
+
+    ulBytesUsed = mbuf.cursor - mbuf.base;
+
+    if (pPreamble->dwEntriesRead)
+    {
+        ULONG iInfo = 0;
+
+        Status = MAP_LWMSG_STATUS(
+                    lwmsg_data_alloc_memory(
+                        pDataContext,
+                        sizeof(SESSION_INFO_UNION),
+                        OUT_PPVOID(&pSessionInfo)));
+        BAIL_ON_NT_STATUS(Status);
+
+        switch (pPreamble->dwInfoLevel)
+        {
+            case 0:
+
+                Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(SESSION_INFO_0) * pPreamble->dwEntriesRead,
+                            OUT_PPVOID(&pSessionInfo->p0)));
+
+                break;
+
+            case 1:
+
+                Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(SESSION_INFO_1) * pPreamble->dwEntriesRead,
+                            OUT_PPVOID(&pSessionInfo->p1)));
+
+                break;
+
+            case 2:
+
+                Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(SESSION_INFO_2) * pPreamble->dwEntriesRead,
+                            OUT_PPVOID(&pSessionInfo->p2)));
+
+                break;
+
+            case 10:
+
+                Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(SESSION_INFO_10) * pPreamble->dwEntriesRead,
+                            OUT_PPVOID(&pSessionInfo->p10)));
+
+                break;
+
+            case 502:
+
+                Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(SESSION_INFO_502) * pPreamble->dwEntriesRead,
+                            OUT_PPVOID(&pSessionInfo->p502)));
+
+                break;
+
+            default:
+
+                Status = STATUS_INVALID_INFO_CLASS;
+
+                break;
+        }
+        BAIL_ON_NT_STATUS(Status);
+
+        for (; iInfo < pPreamble->dwEntriesRead; iInfo++)
+        {
+            mbuf.cursor = pBuffer + ulBytesUsed;
+
+            switch (pPreamble->dwInfoLevel)
+            {
+                case 0:
+
+                    Status = MAP_LWMSG_STATUS(
+                                lwmsg_data_unmarshal_into(
+                                    pDataContext,
+                                    gSessionInfo0Spec,
+                                    &mbuf,
+                                    &pSessionInfo->p0[iInfo],
+                                    sizeof(pSessionInfo->p0[iInfo])));
+
+                    break;
+
+                case 1:
+
+                    Status = MAP_LWMSG_STATUS(
+                                lwmsg_data_unmarshal_into(
+                                    pDataContext,
+                                    gSessionInfo1Spec,
+                                    &mbuf,
+                                    &pSessionInfo->p1[iInfo],
+                                    sizeof(pSessionInfo->p1[iInfo])));
+
+                    break;
+
+                case 2:
+
+                    Status = MAP_LWMSG_STATUS(
+                                lwmsg_data_unmarshal_into(
+                                    pDataContext,
+                                    gSessionInfo2Spec,
+                                    &mbuf,
+                                    &pSessionInfo->p2[iInfo],
+                                    sizeof(pSessionInfo->p2[iInfo])));
+
+                    break;
+
+                case 10:
+
+                    Status = MAP_LWMSG_STATUS(
+                                lwmsg_data_unmarshal_into(
+                                    pDataContext,
+                                    gSessionInfo10Spec,
+                                    &mbuf,
+                                    &pSessionInfo->p10[iInfo],
+                                    sizeof(pSessionInfo->p10[iInfo])));
+
+                    break;
+
+                case 502:
+
+                    Status = MAP_LWMSG_STATUS(
+                                lwmsg_data_unmarshal_into(
+                                    pDataContext,
+                                    gSessionInfo502Spec,
+                                    &mbuf,
+                                    &pSessionInfo->p502[iInfo],
+                                    sizeof(pSessionInfo->p502[iInfo])));
+
+                    break;
+
+                default:
+
+                    Status = STATUS_INVALID_INFO_CLASS;
+
+                    break;
+            }
+            BAIL_ON_NT_STATUS(Status);
+
+            ulBytesUsed = mbuf.cursor - mbuf.base;
+        }
+    }
+
+    *ppPreamble = pPreamble;
+    *ppSessionInfo = pSessionInfo;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return Status;
+
+error:
+
+    *ppPreamble    = NULL;
+    *ppSessionInfo = NULL;
+
+    if (pSessionInfo)
+    {
+        LwSessionInfoFreeInternal(
+            pDataContext,
+            pPreamble->dwInfoLevel,
+            pPreamble->dwEntriesRead,
+            pSessionInfo);
+    }
+
+    if (pPreamble)
+    {
+        LwSessionInfoFreeEnumOutPreambleInternal(pDataContext, pPreamble);
+    }
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwSessionInfoFreeEnumOutPreamble(
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pPreamble
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    LwSessionInfoFreeEnumOutPreambleInternal(pDataContext, pPreamble);
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LwSessionInfoFreeEnumOutPreambleInternal(
+    LWMsgDataContext* pDataContext,
+    PSESSION_INFO_ENUM_OUT_PREAMBLE pPreamble
+    )
+{
+    lwmsg_data_free_graph(
+                    pDataContext,
+                    gSessionInfoEnumOutParamsPreambleSpec,
+                    pPreamble);
+}
+
+LW_NTSTATUS
+LwSessionInfoFree(
+    DWORD               dwInfoLevel,
+    DWORD               dwCount,
+    PSESSION_INFO_UNION pSessionInfo
+    )
+{
+    NTSTATUS    status = STATUS_SUCCESS;
+    LWMsgDataContext* pDataContext = NULL;
+
+    status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(status);
+
+    LwSessionInfoFreeInternal(pDataContext, dwInfoLevel, dwCount, pSessionInfo);
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return status;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+LwSessionInfoFreeInternal(
+    LWMsgDataContext*   pDataContext,
+    DWORD               dwInfoLevel,
+    DWORD               dwCount,
+    PSESSION_INFO_UNION pSessionInfo
+    )
+{
+    ULONG iInfo = 0;
+
+    for(; iInfo < dwCount; iInfo++)
+    {
+        switch (dwInfoLevel)
+        {
+            case 0:
+
+                if (pSessionInfo->p0)
+                {
+                    lwmsg_data_destroy_graph(
+                                    pDataContext,
+                                    gSessionInfo0Spec,
+                                    &pSessionInfo->p0[iInfo]);
+                }
+
+                break;
+
+            case 1:
+
+                if (pSessionInfo->p1)
+                {
+                    lwmsg_data_destroy_graph(
+                                    pDataContext,
+                                    gSessionInfo1Spec,
+                                    &pSessionInfo->p1[iInfo]);
+                }
+
+                break;
+
+            case 2:
+
+                if (pSessionInfo->p2)
+                {
+                    lwmsg_data_destroy_graph(
+                                    pDataContext,
+                                    gSessionInfo2Spec,
+                                    &pSessionInfo->p2[iInfo]);
+                }
+
+                break;
+
+            case 10:
+
+                if (pSessionInfo->p10)
+                {
+                    lwmsg_data_destroy_graph(
+                                    pDataContext,
+                                    gSessionInfo10Spec,
+                                    &pSessionInfo->p10[iInfo]);
+                }
+
+                break;
+
+            case 502:
+
+                if (pSessionInfo->p502)
+                {
+                    lwmsg_data_destroy_graph(
+                                    pDataContext,
+                                    gSessionInfo502Spec,
+                                    &pSessionInfo->p502[iInfo]);
+                }
+
+                break;
+
+            default:
+
+                break;
+        }
+    }
+
+    switch (dwInfoLevel)
+    {
+        case 0:
+
+            if (pSessionInfo->p0)
+            {
+                lwmsg_data_free_memory(pDataContext, pSessionInfo->p0);
+            }
+
+            break;
+
+        case 1:
+
+            if (pSessionInfo->p1)
+            {
+                lwmsg_data_free_memory(pDataContext, pSessionInfo->p1);
+            }
+
+            break;
+
+        case 2:
+
+            if (pSessionInfo->p2)
+            {
+                lwmsg_data_free_memory(pDataContext, pSessionInfo->p2);
+            }
+
+            break;
+
+        case 10:
+
+            if (pSessionInfo->p10)
+            {
+                lwmsg_data_free_memory(pDataContext, pSessionInfo->p10);
+            }
+
+            break;
+
+        case 502:
+
+            if (pSessionInfo->p502)
+            {
+                lwmsg_data_free_memory(pDataContext, pSessionInfo->p502);
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+
+    lwmsg_data_free_memory(pDataContext, pSessionInfo);
 }
 
 LW_NTSTATUS

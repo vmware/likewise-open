@@ -302,6 +302,122 @@ error:
 }
 
 NTSTATUS
+SrvSession2SetPrincipalName(
+    PLWIO_SRV_SESSION_2 pSession,
+    PCSTR               pszClientPrincipal
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    if (!pszClientPrincipal)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    SRV_SAFE_FREE_MEMORY(pSession->pwszClientPrincipalName);
+
+    ntStatus = SMBMbsToWc16s(
+                    pszClientPrincipal,
+                    &pSession->pwszClientPrincipalName);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvSession2CheckPrincipal(
+    PLWIO_SRV_SESSION_2 pSession,
+    PCWSTR              pwszClientPrincipal,
+    PBOOLEAN            pbIsMatch
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    if (!pwszClientPrincipal)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    if (!pSession->pwszClientPrincipalName ||
+        (0 != SMBWc16sCaseCmp(  pSession->pwszClientPrincipalName,
+                                pwszClientPrincipal)))
+    {
+        *pbIsMatch = FALSE;
+    }
+    else
+    {
+        *pbIsMatch = TRUE;
+    }
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+
+error:
+
+    *pbIsMatch = FALSE;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvSession2GetPrincipalName(
+    PLWIO_SRV_SESSION_2 pSession,
+    PWSTR*              ppwszClientPrincipal
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    PWSTR    pwszClientPrincipal = NULL;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
+
+    if (pSession->pwszClientPrincipalName)
+    {
+        ntStatus = SMBAllocateStringW(
+                        pSession->pwszClientPrincipalName,
+                        &pwszClientPrincipal);
+    }
+    else
+    {
+        ntStatus = STATUS_NO_USER_SESSION_KEY;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppwszClientPrincipal = pwszClientPrincipal;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return ntStatus;
+
+error:
+
+    *ppwszClientPrincipal = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvSession2IncrementFileCount(
     PLWIO_SRV_SESSION_2 pSession
     )
@@ -555,7 +671,7 @@ SrvSession2Free(
         SrvFinderCloseRepository(pSession->hFinderRepository);
     }
 
-    IO_SAFE_FREE_MEMORY(pSession->pszClientPrincipalName);
+    SRV_SAFE_FREE_MEMORY(pSession->pwszClientPrincipalName);
 
     if (pSession->pIoSecurityContext) {
         IoSecurityDereferenceSecurityContext(&pSession->pIoSecurityContext);
