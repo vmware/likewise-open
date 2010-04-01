@@ -96,25 +96,6 @@ AC_ARG_WITH(
 )
 
 AC_ARG_WITH(
-        libunistr-dir,
-        [  --with-libunistr-dir=<prefix>     look for libunistr headers/libraries in <prefix>],
-        [
-            LIBUNISTR_INCLUDE=-I$withval/include
-            LIBUNISTR_LDFLAGS=-L$withval/lib
-            LIBUNISTR_LIBDIR=$withval/lib
-        ]
-)
-
-AC_ARG_WITH(
-        libunistr-libdir,
-        [  --with-libunistr-libdir=<libdir>     look for libunistr libraries in <libdir>],
-        [
-            LIBUNISTR_LDFLAGS=-L$withval
-            LIBUNISTR_LIBDIR=$withval
-        ]
-)
-
-AC_ARG_WITH(
         pstore-dir,
         [  --with-pstore-dir=<prefix>     look for pstore headers/libraries in <prefix>],
         [
@@ -345,36 +326,29 @@ AC_SUBST(OPENLDAP_INCLUDE)
 AC_SUBST(OPENLDAP_LDFLAGS)
 AC_SUBST(OPENLDAP_LIBS)
 
-LIBUNISTR_LIBS=""
-AC_CHECK_LIB([unistr], [mbstowc16s], [LIBUNISTR_LIBS="-lunistr"], AC_MSG_ERROR([Use --with-libunistr-dir to find libunistr.so]), [$LIBUNISTR_LDFLAGS])
-
-AC_SUBST(LIBUNISTR_INCLUDE)
-AC_SUBST(LIBUNISTR_LDFLAGS)
-AC_SUBST(LIBUNISTR_LIBS)
-
 PSTORE_LIBS=""
-AC_CHECK_LIB([lwpsapi], [LwpsOpenPasswordStore], [PSTORE_LIBS="-llwpsapi"], AC_MSG_ERROR([Use --with-pstore-dir to find liblwpsapi.so]), [$PSTORE_LDFLAGS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([lwpsapi], [LwpsOpenPasswordStore], [PSTORE_LIBS="-llwpsapi"], AC_MSG_ERROR([Use --with-pstore-dir to find liblwpsapi.so]), [$PSTORE_LDFLAGS])
 
 AC_SUBST(PSTORE_INCLUDE)
 AC_SUBST(PSTORE_LDFLAGS)
 AC_SUBST(PSTORE_LIBS)
 
 NETLOGON_LIBS=""
-AC_CHECK_LIB([lwnetclientapi], [LWNetGetDCName], [NETLOGON_LIBS="-llwnetclientapi"], AC_MSG_ERROR([Use --with-netlogon-dir to find liblwnetclientapi.so]), [$NETLOGON_LDFLAGS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([lwnetclientapi], [LWNetGetDCName], [NETLOGON_LIBS="-llwnetclientapi"], AC_MSG_ERROR([Use --with-netlogon-dir to find liblwnetclientapi.so]), [$NETLOGON_LDFLAGS])
 
 AC_SUBST(NETLOGON_INCLUDE)
 AC_SUBST(NETLOGON_LDFLAGS)
 AC_SUBST(NETLOGON_LIBS)
 
 DCERPC_LIBS=""
-AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc"], AC_MSG_ERROR([Use --with-dcerpc-dir to find libdcerpc.so]), [$DCERPC_LDFLAGS $KRB5_LDFLAGS $KRB5_LIBS])
 
 AC_SUBST(DCERPC_INCLUDE)
 AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_LIBS)
 
 LIBRPC_LIBS=""
-AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS $LIBUNISTR_LDFLAGS $LIBUNISTR_LIBS])
+AC_CHECK_LIB([netapi], [NetJoinDomainLocal], [LIBRPC_LIBS="-lnetapi"], AC_MSG_ERROR([Use --with-librpc-dir to find libnetapi.so]), [$LIBRPC_LDFLAGS $PSTORE_LDFLAGS $PSTORE_LIBS $DCERPC_LDFLAGS $DCERPC_LIBS $OPENLDAP_LDFLAGS $OPENLDAP_LIBS $KRB5_LDFLAGS $KRB5_LIBS])
 
 AC_SUBST(LIBRPC_INCLUDE)
 AC_SUBST(LIBRPC_LDFLAGS)
@@ -558,9 +532,9 @@ fi
 
 AM_CONDITIONAL([BUILD_GTK], [test "x$have_gtk" = "xyes"])
 
-LIBDOMAINJOIN_LDFLAGS="$KRB5_LDFLAGS $OPENLDAP_LDFLAGS $LIBXML2_LDFLAGS $CENTUTILS_LDFLAGS $LIBUNISTR_LDFLAGS $PSTORE_LDFLAGS $NETLOGON_LDFLAGS $DCERPC_LDFLAGS $LIBRPC_LDFLAGS"
+LIBDOMAINJOIN_LDFLAGS="$KRB5_LDFLAGS $OPENLDAP_LDFLAGS $LIBXML2_LDFLAGS $CENTUTILS_LDFLAGS $PSTORE_LDFLAGS $NETLOGON_LDFLAGS $DCERPC_LDFLAGS $LIBRPC_LDFLAGS"
 
-LIBDOMAINJOIN_LIBS="$LIBXML2_LIBS $CENTUTILS_LIBS $NETLOGON_LIBS $LIBRPC_LIBS $DCERPC_LIBS $PSTORE_LIBS $LIBUNISTR_LIBS $KRB5_LIBS"
+LIBDOMAINJOIN_LIBS="$LIBXML2_LIBS $CENTUTILS_LIBS $NETLOGON_LIBS $LIBRPC_LIBS $DCERPC_LIBS $PSTORE_LIBS $KRB5_LIBS"
 
 AC_SUBST(LIBDOMAINJOIN_LDFLAGS)
 AC_SUBST(LIBDOMAINJOIN_LIBS)
