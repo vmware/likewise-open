@@ -5,7 +5,6 @@ noinst_LTLIBRARIES = liblwnetserverapi.la
 liblwnetserverapi_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I@top_srcdir@/server/include \
-	@LIBUNISTR_INCLUDES@          \
 	@PSTORE_INCLUDES@             \
 	@LWADVAPI_INCLUDES@           \
 	@LWMSG_INCLUDES@              \
@@ -24,7 +23,6 @@ liblwnetserverapi_la_SOURCES = \
        state.c
 
 liblwnetserverapi_la_LIBADD = \
-	@LIBUNISTR_LIBS@      \
 	@PSTORE_LIBS@         \
 	@LWADVAPI_LIBS@       \
 	@PTHREAD_LIBS@        \
@@ -32,7 +30,6 @@ liblwnetserverapi_la_LIBADD = \
 	@LWREG_LIBS@
 
 liblwnetserverapi_la_LDFLAGS = \
-        @LIBUNISTR_LDFLAGS@    \
         @PSTORE_LDFLAGS@       \
         @LWADVAPI_LDFLAGS@     \
         @LWREG_LDFLAGS@
