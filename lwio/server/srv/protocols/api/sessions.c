@@ -329,7 +329,7 @@ SrvProtocolEnumCandidateSessions(
             case SMB_PROTOCOL_VERSION_1:
 
                 ntStatus = LwRtlRBTreeTraverse(
-                                gProtocolApiGlobals.pConnections,
+                                pConnection->pSessionCollection,
                                 LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
                                 &SrvProtocolProcessCandidateSession,
                                 pSessionEnumQuery);
@@ -339,7 +339,7 @@ SrvProtocolEnumCandidateSessions(
             case SMB_PROTOCOL_VERSION_2:
 
                 ntStatus = LwRtlRBTreeTraverse(
-                                gProtocolApiGlobals.pConnections,
+                                pConnection->pSessionCollection,
                                 LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
                                 &SrvProtocolProcessCandidateSession2,
                                 pSessionEnumQuery);
