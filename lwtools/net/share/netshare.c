@@ -33,13 +33,13 @@
  *
  * Module Name:
  *
- *        share_p.c
+ *        netshare.c
  *
  * Abstract:
  *
  *        Likewise System NET Utilities
  *
- *        Share Helper Routines
+ *        Net Share Internal Routines
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Wei Fu (wfu@likewise.com)
@@ -178,24 +178,24 @@ LwUtilNetShareEnum(
 
         if (!ppszShareComment)
         {
-        	dwError = LwAllocateMemory((dwTotalShares+1)*sizeof(PCSTR), (PVOID *)&ppszShareComment);
+		dwError = LwAllocateMemory((dwTotalShares+1)*sizeof(PCSTR), (PVOID *)&ppszShareComment);
             BAIL_ON_LWUTIL_ERROR(dwError);
         }
 
         for (dwIndex = 0; dwIndex < dwNumShares; dwIndex++)
         {
             dwError = LwWc16sToMbs(pShareInfo[dwIndex].shi2_netname,
-            		               &ppszShareName[dwIndex+dwVisitedShares]);
+			               &ppszShareName[dwIndex+dwVisitedShares]);
             BAIL_ON_LWUTIL_ERROR(dwError);
 
             dwError = LwWc16sToMbs(pShareInfo[dwIndex].shi2_path,
-            		               &ppszSharePath[dwIndex+dwVisitedShares]);
+			               &ppszSharePath[dwIndex+dwVisitedShares]);
             BAIL_ON_LWUTIL_ERROR(dwError);
 
             if (pShareInfo[dwIndex].shi2_remark)
             {
                 dwError = LwWc16sToMbs(pShareInfo[dwIndex].shi2_remark,
-                		               &ppszShareComment[dwIndex+dwVisitedShares]);
+				               &ppszShareComment[dwIndex+dwVisitedShares]);
                 BAIL_ON_LWUTIL_ERROR(dwError);
             }
         }
@@ -224,13 +224,13 @@ LwUtilNetShareEnum(
         dwShareNameLen = strlen(ppszShareName[dwIndex]);
         if (dwShareNameLen>dwShareNameLenMax)
         {
-        	dwShareNameLenMax = dwShareNameLen;
+		dwShareNameLenMax = dwShareNameLen;
         }
 
         dwSharePathLen = strlen(ppszSharePath[dwIndex]);
         if (dwSharePathLen>dwSharePathLenMax)
         {
-        	dwSharePathLenMax = dwSharePathLen;
+		dwSharePathLenMax = dwSharePathLen;
         }
 
         if (ppszShareComment[dwIndex])
@@ -238,7 +238,7 @@ LwUtilNetShareEnum(
             dwShareCommentLen = strlen(ppszShareComment[dwIndex]);
             if (dwShareCommentLen>dwShareCommentLenMax)
             {
-            	dwShareCommentLenMax = dwShareCommentLen;
+		dwShareCommentLenMax = dwShareCommentLen;
             }
         }
     }
@@ -246,20 +246,20 @@ LwUtilNetShareEnum(
     //print share enum header
 
     printf("  %s%*s",
-    		NET_SHARE_NAME_TITLE,
+		NET_SHARE_NAME_TITLE,
            (int) (strlen(NET_SHARE_NAME_TITLE)-dwShareNameLenMax),
            "");
     printf("  %s%*s",
-    		NET_SHARE_PATH_TITLE,
+		NET_SHARE_PATH_TITLE,
            (int) (strlen(NET_SHARE_PATH_TITLE)-dwSharePathLenMax),
            "");
     printf("  %s%*s\n",
-    		NET_SHARE_COMMENT_TITLE,
+		NET_SHARE_COMMENT_TITLE,
            (int) (strlen(NET_SHARE_COMMENT_TITLE)-dwShareCommentLenMax),
            "");
 
     for (dwIndex = 0; dwIndex < dwShareNameLenMax+dwSharePathLenMax+dwShareCommentLenMax+10; dwIndex++)
-    	printf("%s", "-");
+	printf("%s", "-");
 
     printf("\n");
 
@@ -267,19 +267,19 @@ LwUtilNetShareEnum(
     for (dwIndex = 0; dwIndex < dwTotalShares; dwIndex++)
     {
         printf("  %s%*s",
-        		ppszShareName[dwIndex],
+			ppszShareName[dwIndex],
                (int) (strlen(ppszShareName[dwIndex])-dwShareNameLenMax),
                "");
 
         printf("  %s%*s",
-        		ppszSharePath[dwIndex],
+			ppszSharePath[dwIndex],
                (int) (strlen(ppszSharePath[dwIndex])-dwSharePathLenMax),
                "");
 
         if (ppszShareComment[dwIndex])
         {
-        	printf("  %s%*s",
-        		ppszShareComment[dwIndex],
+		printf("  %s%*s",
+			ppszShareComment[dwIndex],
                (int) (strlen(ppszShareComment[dwIndex])-dwShareCommentLenMax),
                "");
         }
@@ -291,20 +291,20 @@ cleanup:
 
     if (ppszShareName)
     {
-    	LwFreeStringArray(ppszShareName, dwTotalShares);
+	LwFreeStringArray(ppszShareName, dwTotalShares);
     }
     if (ppszSharePath)
     {
-    	LwFreeStringArray(ppszSharePath, dwTotalShares);
+	LwFreeStringArray(ppszSharePath, dwTotalShares);
     }
     if (ppszShareComment)
     {
-    	LwFreeStringArray(ppszShareComment, dwTotalShares);
+	LwFreeStringArray(ppszShareComment, dwTotalShares);
     }
 
     if (pShareInfo)
     {
-    	NetApiBufferFree(pShareInfo);
+	NetApiBufferFree(pShareInfo);
         pShareInfo = NULL;
     }
 

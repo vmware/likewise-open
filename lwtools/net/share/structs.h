@@ -28,8 +28,8 @@
  *
  */
 
-#ifndef SHAREDEF_H_
-#define SHAREDEF_H_
+#ifndef STRUCTS_H_
+#define STRUCTS_H_
 
 typedef DWORD NET_SHARE_CTRL_CODE;
 
@@ -85,8 +85,8 @@ typedef struct _NET_SHARE_COMMAND_INFO {
     union {
 		NET_SHARE_ENUM_INFO_PARAMS ShareEnumInfo;
 		NET_SHARE_ADD_INFO_PARAMS ShareAddInfo;
-    	NET_SHARE_DEL_INFO_PARAMS ShareDelInfo;
+	NET_SHARE_DEL_INFO_PARAMS ShareDelInfo;
     };
 }NET_SHARE_COMMAND_INFO, *PNET_SHARE_COMMAND_INFO;
 
-#endif /* SHAREDEF_H_ */
+#endif /* STRUCTS_H_ */

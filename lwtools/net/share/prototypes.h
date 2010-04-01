@@ -28,8 +28,8 @@
  *
  */
 
-#ifndef SHARE_P_H_
-#define SHARE_P_H_
+#ifndef PROTOTYPES_H_
+#define PROTOTYPES_H_
 
 
 DWORD
@@ -47,4 +47,4 @@ LwUtilNetShareDel(
 	NET_SHARE_DEL_INFO_PARAMS ShareDelInfo
     );
 
-#endif /* SHARE_P_H_ */
+#endif /* PROTOTYPES_H_ */

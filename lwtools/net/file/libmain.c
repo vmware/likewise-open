@@ -154,7 +154,7 @@ NetFileParseArguments(
         {
             case NET_FILE_ARG_OPEN:
 
-                if (!strcasecmp(pszArg, "-h") || !strcasecmp(pszArg, "--help"))
+                if (!strcasecmp(pszArg, "-h") || !strcasecmp(pszArg, "help"))
                 {
                     NetFileShowUsage();
                     goto cleanup;
@@ -184,7 +184,7 @@ NetFileParseArguments(
 
                     parseState = NET_FILE_ARG_FILE_ID;
                 }
-                else if (!strcasecmp(pszArg, "-h") || !strcasecmp(pszArg, "--help"))
+                else if (!strcasecmp(pszArg, "-h") || !strcasecmp(pszArg, "help"))
                 {
                     NetFileShowUsage();
                     goto cleanup;

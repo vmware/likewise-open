@@ -351,14 +351,14 @@ NetShareParseArguments(
 	}
 
     dwError = LwNetUtilAllocateMemory(sizeof(*pCommandInfo),
-    		                       (PVOID*)&pCommandInfo);
+		                       (PVOID*)&pCommandInfo);
     BAIL_ON_LWUTIL_ERROR(dwError);
 
 
     if (!argv[2])
     {
-    	pCommandInfo->dwControlCode = NET_SHARE_ENUM;
-    	goto cleanup;
+	pCommandInfo->dwControlCode = NET_SHARE_ENUM;
+	goto cleanup;
     }
 
     if (!strcasecmp(argv[2], NET_SHARE_COMMAND_HELP))
@@ -408,7 +408,7 @@ cleanup:
 error:
     if (LW_ERROR_INVALID_PARAMETER == dwError)
     {
-    	NetShareShowUsage();
+	NetShareShowUsage();
     }
 
     LwNetUtilFreeMemory(pCommandInfo);
@@ -449,24 +449,24 @@ NetShare(
 
         case NET_SHARE_ADD:
 
-        	dwError = LwUtilNetShareAdd(pCommandInfo->ShareAddInfo);
-        	BAIL_ON_LWUTIL_ERROR(dwError);
-        	break;
+		dwError = LwUtilNetShareAdd(pCommandInfo->ShareAddInfo);
+		BAIL_ON_LWUTIL_ERROR(dwError);
+		break;
 
 
         case NET_SHARE_DEL:
             dwError = LwUtilNetShareDel(pCommandInfo->ShareDelInfo);
 		BAIL_ON_LWUTIL_ERROR(dwError);
-        	break;
+		break;
 
         case NET_SHARE_ENUM:
 
             dwError = LwUtilNetShareEnum(pCommandInfo->ShareEnumInfo);
-        	BAIL_ON_LWUTIL_ERROR(dwError);
-        	break;
+		BAIL_ON_LWUTIL_ERROR(dwError);
+		break;
 
         default:
-        	break;
+		break;
     }
 
 cleanup:

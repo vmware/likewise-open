@@ -1,8 +1,8 @@
 noinst_LTLIBRARIES = liblwutilnetshare.la
 
 liblwutilnetshare_la_SOURCES = \
-    share_p.c \
-    share.c
+    netshare.c \
+    libmain.c
     
 liblwutilnetshare_la_CPPFLAGS = \
     -I$(top_srcdir)/include \

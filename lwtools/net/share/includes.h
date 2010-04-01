@@ -50,5 +50,6 @@
 
 #include <lwnetutils.h>
 
-#include "sharedef.h"
-#include "share_p.h"
+#include "structs.h"
+#include "prototypes.h"
+
