@@ -2,8 +2,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 
 noinst_PROGRAMS = addkey getkey rmkey
 
-CFLAGS = @LIBUNISTR_INCLUDES@
-
 addkey_SOURCES = addkey.c
 addkey_LDADD = @top_builddir@/ktkrb5/libktkrb5.la
 

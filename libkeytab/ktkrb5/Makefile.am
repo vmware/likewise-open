@@ -4,7 +4,6 @@ lib_LTLIBRARIES = libktkrb5.la
 
 libktkrb5_la_CFLAGS = \
        $(AM_CFLAGS) \
-       @LIBUNISTR_INCLUDES@ \
        @KRB5_INCLUDES@      \
        @OPENLDAP_INCLUDES@
 
@@ -18,12 +17,12 @@ libktkrb5_la_SOURCES = \
        ldap_w16.c
 
 libktkrb5_la_LDFLAGS = \
-       @LIBUNISTR_LDFLAGS@ \
        @KRB5_LDFLAGS@      \
        @OPENLDAP_LDFLAGS@
 
 libktkrb5_la_LIBADD = \
        @top_builddir@/utils/libktutils.la \
+       -llwbase                           \
        @OPENLDAP_LIBS@                    \
        @KRB5_LIBS@                        \
        @PTHREAD_LIBS@
