@@ -1729,25 +1729,42 @@ LwLdapConvertDNToDomain(
     DWORD dwError = LW_ERROR_SUCCESS;
     PSTR pszDomainName = NULL;
     PSTR pszCurrent = NULL;
-    PSTR pszDNCopy = NULL;
+    PWSTR pwszDNCopy = NULL;
+    // Do not free
+    PWSTR pwszDcLocation = NULL;
     PSTR pszDcLocation = NULL;
     PCSTR pszDelim = ",";
     PSTR pszDomainPart = NULL;
     PSTR pszStrTokSav = NULL;
+    const wchar16_t pwszDcPrefix[] = { 'd', 'c', '=', 0 };
 
     LW_BAIL_ON_INVALID_STRING(pszDN);
 
-    dwError = LwAllocateString(pszDN, &pszDNCopy);
+    dwError = LwMbsToWc16s(pszDN, &pwszDNCopy);
     BAIL_ON_LW_ERROR(dwError);
 
-    LwStrToLower(pszDNCopy);
+    LwWc16sToLower(pwszDNCopy);
 
-    pszDcLocation = strstr(pszDNCopy, DC_PREFIX);
+    pwszDcLocation = pwszDNCopy;
 
-    if (LW_IS_NULL_OR_EMPTY_STR(pszDcLocation)){
-        dwError = LW_ERROR_INVALID_LDAP_DN;
-        BAIL_ON_LW_ERROR(dwError);
+    while (wc16sncmp(pwszDcLocation, pwszDcPrefix,
+                sizeof(pwszDcPrefix)/2 - 1))
+    {
+        if (pwszDcLocation[0] == '\\')
+        {
+            // Skip one extra character and make sure the next one is not null
+            pwszDcLocation++;
+        }
+        if (!pwszDcLocation[0])
+        {
+            dwError = LW_ERROR_INVALID_LDAP_DN;
+            BAIL_ON_LW_ERROR(dwError);
+        }
+        pwszDcLocation++;
     }
+
+    dwError = LwWc16sToMbs(pwszDcLocation, &pszDcLocation);
+    BAIL_ON_LW_ERROR(dwError);
 
     dwError = LwAllocateMemory(strlen(pszDcLocation)*sizeof(CHAR),
                                 OUT_PPVOID(&pszDomainName));
@@ -1782,7 +1799,8 @@ LwLdapConvertDNToDomain(
 
 cleanup:
 
-    LW_SAFE_FREE_STRING(pszDNCopy);
+    LW_SAFE_FREE_MEMORY(pwszDNCopy);
+    LW_SAFE_FREE_STRING(pszDcLocation);
 
     return dwError;
 
