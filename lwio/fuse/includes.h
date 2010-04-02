@@ -39,7 +39,6 @@
 
 #include <lw/base.h>
 #include <lwio/lwio.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #include <fuse.h>
 #include <fuse/fuse_opt.h>

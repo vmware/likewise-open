@@ -27,6 +27,5 @@ lwio_fuse_mount_SOURCES = \
 lwio_fuse_mount_LDADD =   \
 	$(LWBASE_LIBS) \
 	$(top_builddir)/client/liblwioclient.la \
-	$(LWMAPSECURITY_LIBS) \
 	-lfuse
 

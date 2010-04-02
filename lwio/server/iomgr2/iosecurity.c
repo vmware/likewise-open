@@ -29,7 +29,6 @@
  */
 
 #include "iop.h"
-#include <lwmapsecurity/lwmapsecurity.h>
 
 typedef struct _IO_CREATE_SECURITY_CONTEXT {
     LONG ReferenceCount;

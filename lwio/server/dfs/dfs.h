@@ -50,8 +50,6 @@
 #include "config.h"
 
 #include <lw/base.h>
-#include <lw/security-types.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #include "lwiosys.h"
 #include "lwio/lwiofsctl.h"

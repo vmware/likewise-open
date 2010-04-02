@@ -40,7 +40,7 @@
 #define __IODRIVER_H__
 
 #include <lwio/lwio.h>
-#include <lwmapsecurity/lwmapsecurity.h>
+#include <lw/base.h>
 #include "lwzct.h"
 
 struct _IO_DRIVER_OBJECT;

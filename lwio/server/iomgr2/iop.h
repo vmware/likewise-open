@@ -33,7 +33,7 @@
 
 #include "iodriver.h"
 #include "ioinit.h"
-#include <lw/rtlstring.h>
+#include <lw/base.h>
 #include <lw/rtlgoto.h>
 #include <reg/lwntreg.h>
 
@@ -43,7 +43,6 @@
 #include "ntlogmacros.h"
 
 #include "lwthreads.h"
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #define NT_PENDING_OR_SUCCESS_OR_NOT(status) \
     (LW_NT_SUCCESS_OR_NOT(status) || (STATUS_PENDING == (status)))

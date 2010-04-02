@@ -28,7 +28,6 @@ libiomgr2_la_CPPFLAGS = \
 libiomgr2_la_LIBADD = \
     @top_builddir@/common/liblwiocommon.la \
     @top_builddir@/logging_r/liblwiolog_r.la  \
-    @LWMAPSECURITY_LIBS@ \
     @LWBASE_LIBS@ \
     @LWMSG_LIBS@ \
     @UUID_LIBS@  \
