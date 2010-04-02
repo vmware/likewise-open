@@ -39,7 +39,6 @@
 
 #include <gssauth.h>
 #include <lw/base.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 /*
  * Size of buffer used when asking for remote server's principal name

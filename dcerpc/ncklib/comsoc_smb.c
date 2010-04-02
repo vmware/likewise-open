@@ -15,7 +15,6 @@
 
 #include <lwio/lwio.h>
 #include <lw/base.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #define SMB_SOCKET_LOCK(sock) (rpc__smb_socket_lock(sock))
 #define SMB_SOCKET_UNLOCK(sock) (rpc__smb_socket_unlock(sock))

@@ -55,7 +55,6 @@
 #include <sys/socket.h>
 #include <cnp.h>
 #include <lw/base.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 /* Bizarre hack for HP-UX ia64 where a system header
  * makes reference to a kernel-only data structure
