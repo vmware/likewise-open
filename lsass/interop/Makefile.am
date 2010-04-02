@@ -6,8 +6,6 @@ full_subdirs= \
 	$(compat_subdirs) \
 	gssntlm \
 	lwmapsecurity \
-	wbclient \
-	lwicompat \
 	access
 
 if ENABLE_COMPAT
