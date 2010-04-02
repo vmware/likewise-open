@@ -58,27 +58,6 @@ LwIoWinToUnixTime(
 
 static
 NTSTATUS
-LwIoGetNtNameForSid(
-    PCSTR pszSidStr,
-    PSTR* ppszNtName
-    );
-
-static
-NTSTATUS
-LwIoGetUidForNtName(
-    PCSTR pszNtName,
-    uid_t* pUid
-    );
-
-static
-NTSTATUS
-LwIoGetGidForNtName(
-    PCSTR pszNtName,
-    gid_t* pGid
-    );
-
-static
-NTSTATUS
 LwIoFuseTranslateSecurityDescriptorPermissions(
     PSECURITY_DESCRIPTOR_ABSOLUTE pSecurityDescriptor,
     PACCESS_TOKEN pOwnerToken,
@@ -497,70 +476,42 @@ LwIoFuseTranslateAbsoluteSecurityDescriptor(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PSTR pszOwnerSidStr = NULL;
-    PSTR pszGroupSidStr = NULL;
-    PSTR pszUserName = NULL;
-    PSTR pszGroupName = NULL;
     PACCESS_TOKEN pOwnerToken = NULL;
     PACCESS_TOKEN pGroupToken = NULL;
     PACCESS_TOKEN pOtherToken = NULL;
-    
-    pStatbuf->st_uid = (uid_t) 65534;
-    pStatbuf->st_gid = (gid_t) 65534;
+    PLW_MAP_SECURITY_CONTEXT pContext = NULL;
+    ULONG ulUserId = 0;
+    ULONG ulGroupId = 0;
+    BOOLEAN bIsUser = TRUE;
 
-    /* Translate owner/group sids to uid/gid */
-    status = RtlAllocateCStringFromSid(
-        &pszOwnerSidStr,
+    status = LwMapSecurityCreateContext(&pContext);
+    BAIL_ON_NT_STATUS(status);
+
+    status = LwMapSecurityGetIdFromSid(
+        pContext,
+        &bIsUser,
+        &ulUserId,
         pOwnerSid);
-    BAIL_ON_NT_STATUS(status);
+    if (status != STATUS_SUCCESS || bIsUser != TRUE)
+    {
+        status = STATUS_SUCCESS;
+        ulUserId = 0;
+    }
 
-    status = RtlAllocateCStringFromSid(
-        &pszGroupSidStr,
+    status = LwMapSecurityGetIdFromSid(
+        pContext,
+        &bIsUser,
+        &ulGroupId,
         pGroupSid);
-    BAIL_ON_NT_STATUS(status);
-
-    status = LwIoGetNtNameForSid(
-        pszOwnerSidStr,
-        &pszUserName);
-    if (status == STATUS_GENERIC_NOT_MAPPED)
+    if (status != STATUS_SUCCESS || bIsUser != FALSE)
     {
         status = STATUS_SUCCESS;
-    }
-    BAIL_ON_NT_STATUS(status);
-
-    status = LwIoGetNtNameForSid(
-        pszGroupSidStr,
-        &pszGroupName);
-    if (status == STATUS_GENERIC_NOT_MAPPED)
-    {
-        status = STATUS_SUCCESS;
-    }
-    BAIL_ON_NT_STATUS(status);
-
-    if (pszUserName)
-    {
-        status = LwIoGetUidForNtName(
-            pszUserName,
-            &pStatbuf->st_uid);
-        if (status == STATUS_GENERIC_NOT_MAPPED)
-        {
-            status = STATUS_SUCCESS;
-        }
-        BAIL_ON_NT_STATUS(status);
+        ulUserId = 0;
     }
 
-    if (pszGroupName)
-    {
-        status = LwIoGetGidForNtName(
-            pszGroupName,
-            &pStatbuf->st_gid);
-        if (status == STATUS_GENERIC_NOT_MAPPED)
-        {
-            status = STATUS_SUCCESS;
-        }
-        BAIL_ON_NT_STATUS(status);
-    }
-    
+    pStatbuf->st_uid = (uid_t) ulUserId;
+    pStatbuf->st_gid = (gid_t) ulGroupId;
+
     /* Create access tokens for user/group/other */
     status = LwIoFuseCreateAccessTokenForOwner(
         pOwnerSid,
@@ -587,11 +538,6 @@ LwIoFuseTranslateAbsoluteSecurityDescriptor(
 
 error:
     
-    RTL_FREE(&pszUserName);
-    RTL_FREE(&pszGroupName);
-    RTL_FREE(&pszOwnerSidStr);
-    RTL_FREE(&pszGroupSidStr);
-
     if (pOwnerToken)
     {
         RtlReleaseAccessToken(&pOwnerToken);
@@ -622,182 +568,6 @@ LwIoWinToUnixTime(
     *pUnixTime = (WinTime /  10000000LL) - TIME_SEC_CONVERSION_CONSTANT;
 
     return status;
-}
-
-static
-NTSTATUS
-LwIoGetNtNameForSid(
-    PCSTR pszSidStr,
-    PSTR* ppszNtName
-    )
-{
-    DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
-    HANDLE hLsaConnection = NULL;
-    PLSA_SID_INFO pSidInfo = NULL;
-    PSTR pszNtName = NULL;
-
-    dwError = LsaOpenServer(&hLsaConnection);
-    if (dwError)
-    {
-        status = STATUS_GENERIC_NOT_MAPPED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    dwError = LsaGetNamesBySidList(
-        hLsaConnection,
-        1,
-        (PSTR*) &pszSidStr,
-        &pSidInfo,
-        NULL);
-    if (dwError)
-    {
-        status = STATUS_GENERIC_NOT_MAPPED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    
-    if (pSidInfo->accountType != AccountType_NotFound)
-    {
-        status = LwRtlCStringAllocatePrintf(
-            &pszNtName,
-            "%s\\%s",
-            pSidInfo->pszDomainName,
-            pSidInfo->pszSamAccountName);
-        BAIL_ON_NT_STATUS(status);
-    }
-    else
-    {
-        status = STATUS_GENERIC_NOT_MAPPED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    *ppszNtName = pszNtName;
-
-cleanup:
-
-    if (pSidInfo)
-    {
-        LsaFreeSIDInfoList(pSidInfo, 1);
-    }
-
-    if (hLsaConnection)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
-
-    return status;
-
-error:
-
-    *ppszNtName = NULL;
-
-    RTL_FREE(&pszNtName);
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-LwIoGetUidForNtName(
-    PCSTR pszNtName,
-    uid_t* pUid
-    )
-{
-    DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
-    HANDLE hLsaConnection = NULL;
-    PLSA_USER_INFO_0 pUserInfo = NULL;
-
-    dwError = LsaOpenServer(&hLsaConnection);
-    if (dwError)
-    {
-        status = STATUS_GENERIC_NOT_MAPPED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    dwError = LsaFindUserByName(
-        hLsaConnection,
-        pszNtName,
-        0,
-        OUT_PPVOID(&pUserInfo));
-    if (dwError)
-    {
-        status = STATUS_GENERIC_NOT_MAPPED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    *pUid = pUserInfo->uid;
-
-cleanup:
-
-    if (pUserInfo)
-    {
-        LsaFreeUserInfo(0, pUserInfo);
-    }
-
-    if (hLsaConnection)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
-
-    return status;
-
-error:
-
-    goto cleanup;
-}
-
-static
-NTSTATUS
-LwIoGetGidForNtName(
-    PCSTR pszNtName,
-    gid_t* pGid
-    )
-{
-    DWORD dwError = 0;
-    NTSTATUS status = STATUS_SUCCESS;
-    HANDLE hLsaConnection = NULL;
-    PLSA_GROUP_INFO_0 pGroupInfo = NULL;
-
-    dwError = LsaOpenServer(&hLsaConnection);
-    if (dwError)
-    {
-        status = STATUS_GENERIC_NOT_MAPPED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    dwError = LsaFindGroupByName(
-        hLsaConnection,
-        pszNtName,
-        0,
-        0,
-        OUT_PPVOID(&pGroupInfo));
-    if (dwError)
-    {
-        status = STATUS_GENERIC_NOT_MAPPED;
-        BAIL_ON_NT_STATUS(status);
-    }
-
-    *pGid = pGroupInfo->gid;
-
-cleanup:
-
-    if (pGroupInfo)
-    {
-        LsaFreeGroupInfo(0, pGroupInfo);
-    }
-
-    if (hLsaConnection)
-    {
-        LsaCloseServer(hLsaConnection);
-    }
-
-    return status;
-
-error:
-
-    goto cleanup;
 }
 
 static

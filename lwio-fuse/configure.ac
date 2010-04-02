@@ -11,7 +11,7 @@ AC_SUBST(LWIO_FUSE_CFLAGS)
 AC_SUBST(LWIO_FUSE_LDFLAGS)
 AC_SUBST(LIB_LWIOCLIENT)
 AC_SUBST(LIB_LWBASE)
-AC_SUBST(LIB_LSACLIENT)
+AC_SUBST(LIB_LWMAPSECURITY)
 AC_SUBST(LIB_FUSE)
 
 # Checks for programs.
@@ -24,7 +24,7 @@ AC_PROG_LIBTOOL
 # Checks for libraries.
 AC_CHECK_LIB(lwioclient, LwIoOpenContextShared, [LIB_LWIOCLIENT="-llwioclient"], [AC_MSG_ERROR([liblwioclient not found])])
 AC_CHECK_LIB(lwbase, LwNtStatusToErrno, [LIB_LWBASE="-llwbase"], [AC_MSG_ERROR([liblwbase not found])])
-AC_CHECK_LIB(lsaclient, LsaOpenServer, [LIB_LSACLIENT="-llsaclient"], [AC_MSG_ERROR([liblsaclient not found])])
+AC_CHECK_LIB(lwmapsecurity, LwMapSecurityCreateContext, [LIB_LWMAPSECURITY="-llwmapsecurity"], [AC_MSG_ERROR([liblwmapsecurity not found])])
 AC_CHECK_LIB(fuse, fuse_new, [LIB_FUSE="-lfuse"], [AC_MSG_ERROR([libfuse not found])])
 
 # Checks for header files.

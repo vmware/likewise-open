@@ -29,6 +29,6 @@ lwio_fuse_mount_SOURCES = \
 lwio_fuse_mount_LDADD =   \
 	$(LIB_LWBASE)     \
 	$(LIB_LWIOCLIENT) \
-	$(LIB_LSACLIENT)  \
+	$(LIB_LWMAPSECURITY) \
 	$(LIB_FUSE)
 
