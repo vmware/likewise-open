@@ -47,7 +47,7 @@
 #ifndef _LWMAPSECURITY_LSASS_H_
 #define _LWMAPSECURITY_LSASS_H_
 
-#include <lwmapsecurity/lwmapsecurity-plugin.h>
+#include <lw/mapsecurity-plugin.h>
 
 
 NTSTATUS

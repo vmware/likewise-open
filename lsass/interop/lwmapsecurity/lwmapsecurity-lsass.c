@@ -43,11 +43,10 @@
  * Authors: Danilo Almeida (dalmeida@likewise.com)
  */
 
-#include <lwmapsecurity/lwmapsecurity-plugin.h>
 #include <lw/base.h>
-#include <lsa/lsa.h>
+#include <lw/mapsecurity-plugin.h>
 #include <lw/rtlgoto.h>
-#include <lw/safeint.h>
+#include <lsa/lsa.h>
 #include <uuid/uuid.h>
 #include <lwrpc/krb5pac.h>
 #include <gssapi/gssapi.h>

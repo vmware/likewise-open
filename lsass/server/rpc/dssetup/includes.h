@@ -50,7 +50,6 @@
 #include <dce/dcethread.h>
 #include <wc16str.h>
 #include <lw/base.h>
-#include <lw/winerror.h>
 #include <lwsid.h>
 #include <lwrpc/allocate.h>
 #include <lwrpc/lsa.h>
@@ -58,7 +57,6 @@
 #include <lwio/lwio.h>
 #include <lwnet.h>
 #include <lwps/lwps.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #include <lsa/lsa.h>
 #include <lsaunistr.h>

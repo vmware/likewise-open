@@ -54,11 +54,8 @@
 
 #include <dce/rpc.h>
 #include <dce/dcethread.h>
-#include <lw/winerror.h>
-#include <lw/ntstatus.h>
 #include <lw/base.h>
 #include <reg/reg.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #include <eventlog.h>
 

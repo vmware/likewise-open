@@ -60,7 +60,6 @@
 #include <lwnet.h>
 #include <lwps/lwps.h>
 #include <lwkrb5.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #include <lsa/lsa.h>
 #include <lsaunistr.h>

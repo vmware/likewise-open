@@ -55,7 +55,6 @@
 #include <openssl/rc4.h>
 #include <openssl/des.h>
 #include <lw/base.h>
-#include <lw/winerror.h>
 #include <lwsid.h>
 #include <lwtime.h>
 #include <lwrpc/allocate.h>
@@ -66,7 +65,6 @@
 #include <lwio/lwio.h>
 #include <lwnet.h>
 #include <lwkrb5.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #include <lsa/lsa.h>
 #include "lwmem.h"
