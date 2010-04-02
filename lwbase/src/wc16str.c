@@ -38,6 +38,7 @@
 #include <wc16str.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <errno.h>
 #ifdef HAVE_WCTYPE_H
 #    include <wctype.h>
 #endif
@@ -45,7 +46,6 @@
 #include <iconv.h>
 #include <inttypes.h>
 #endif
-#include <errno.h>
 #include <wchar.h>
 #include <string.h>
 #include <limits.h>

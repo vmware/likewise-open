@@ -23,7 +23,6 @@
     <cl outputdir="${build.meta.current}/">
       <includedirs>
         <include name="include"/>
-        <include name="include\lw"/>
         <include name="include\win32"/>
       </includedirs>
       <sources>
@@ -39,6 +38,7 @@
         <define name="NDEBUG"/>
         <define name="_USRDLL"/>
         <define name="LWBASE_EXPORTS"/>
+        <define name="LIBUNISTR_EXPORTS"/>
       </defines>
       <arg line="${build.cflags}" />
     </cl>

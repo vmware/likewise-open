@@ -41,12 +41,12 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <string.h>
 #include <wchar.h>
 #include <wchar16.h>
 #include <wc16str.h>
 #include <wc16printf.h>
-#include <errno.h>
 #include <limits.h>
 
 #ifdef _WIN32
