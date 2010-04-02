@@ -1,0 +1,68 @@
+[
+uuid(6bffd098-a112-3610-9833-46c3f87e345a),
+pointer_default(unique),
+version(1.0)
+]
+interface wkssvc
+{
+cpp_quote("#ifdef DCERPC_STUB_BUILD")
+
+#include <lw/rpc/wkssvc.h>
+
+    typedef [switch_type(UINT32)] union _NET_WKSTA_INFO
+    {
+        [case(100)]           WKSTA_INFO_100 *info100;
+        [default];
+    } NET_WKSTA_INFO, *PNET_WKSTA_INFO;
+
+cpp_quote("#endif /* DCERPC_STUB_BUILD */")
+
+
+    /* Function 0x00 */
+    WINERR NetrWkstaGetInfo(
+        [in,string,unique] PWSTR pwszServerName,
+        [in] DWORD dwLevel,
+        [out,ref,switch_is(level)] NET_WKSTA_INFO *pInfo
+    );
+
+    WINERR wkssvc_Function0x01();
+    WINERR wkssvc_Function0x02();
+    WINERR wkssvc_Function0x03();
+    WINERR wkssvc_Function0x04();
+    WINERR wkssvc_Function0x05();
+    WINERR wkssvc_Function0x06();
+    WINERR wkssvc_Function0x07();
+    WINERR wkssvc_Function0x08();
+    WINERR wkssvc_Function0x09();
+    WINERR wkssvc_Function0x0a();
+    WINERR wkssvc_Function0x0b();
+    WINERR wkssvc_Function0x0c();
+    WINERR wkssvc_Function0x0d();
+    WINERR wkssvc_Function0x0e();
+    WINERR wkssvc_Function0x0f();
+    WINERR wkssvc_Function0x10();
+    WINERR wkssvc_Function0x11();
+    WINERR wkssvc_Function0x12();
+    WINERR wkssvc_Function0x13();
+    WINERR wkssvc_Function0x14();
+    WINERR wkssvc_Function0x15();
+    WINERR wkssvc_Function0x16();
+    WINERR wkssvc_Function0x17();
+    WINERR wkssvc_Function0x18();
+    WINERR wkssvc_Function0x19();
+    WINERR wkssvc_Function0x1a();
+    WINERR wkssvc_Function0x1b();
+    WINERR wkssvc_Function0x1c();
+    WINERR wkssvc_Function0x1d();
+    WINERR wkssvc_Function0x1e();
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
