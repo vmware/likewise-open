@@ -282,6 +282,7 @@ AC_SUBST(SQLITE_INCLUDES)
 AC_SUBST(SQLITE_LDFLAGS)
 AC_SUBST(SQLITE_LIBS)
 
+
 # share repository
 share_repository=registry
 
@@ -658,6 +659,22 @@ AC_SUBST(LWMAPSECURITY_INCLUDES)
 AC_SUBST(LWMAPSECURITY_LDFLAGS)
 AC_SUBST(LWMAPSECURITY_LIBS)
 
+saved_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -D_FILE_OFFSET_BITS=64"
+AC_CHECK_HEADER([fuse.h], [HAVE_FUSE_H=true], [HAVE_FUSE_H=false])
+CPPFLAGS="$saved_CPPFLAGS"
+
+AC_CHECK_LIB(fuse, fuse_new, [HAVE_FUSE_LIB=true], [HAVE_FUSE_LIB=false])
+
+if test x"$HAVE_FUSE_H" = x"true" -a x"$HAVE_FUSE_LIB" = x"true"
+then
+	HAVE_FUSE=true
+else
+	HAVE_FUSE=false
+fi
+
+AM_CONDITIONAL(ENABLE_FUSE, test x"$HAVE_FUSE" = x"true")
+
 AC_CHECK_TYPES([socklen_t], [], [], [AC_INCLUDES_DEFAULT
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -909,6 +926,7 @@ AC_CONFIG_FILES([Makefile
         tests/transactnp/Makefile
         scripts/Makefile
         scripts/lwnet
-        libshareinfo/Makefile])
+        libshareinfo/Makefile
+	fuse/Makefile])
 
 AC_OUTPUT

@@ -13,3 +13,7 @@ SUBDIRS = \
     drivers      \
     tools        \
     tests
+
+if ENABLE_FUSE
+SUBDIRS += fuse
+endif
