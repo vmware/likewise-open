@@ -62,7 +62,7 @@ DsrRoleGetPrimaryDomainInformation(
     DWORD dwSpaceLeft = 0;
     DWORD dwSize = 0;
 
-    DCERPC_CALL(ntStatus, _DsrRoleGetPrimaryDomainInformation(
+    DCERPC_CALL(ntStatus, cli_DsrRoleGetPrimaryDomainInformation(
                               hBinding,
                               uiLevel,
                               &pStubInfo));
