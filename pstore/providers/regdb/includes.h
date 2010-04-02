@@ -60,9 +60,6 @@
 #include "provider-main_p.h"
 
 #include <lw/base.h>
-#include <lw/ntstatus.h>
-#include <lw/security-types.h>
-#include <lwmapsecurity/lwmapsecurity.h>
 
 #include "externs.h"
 
