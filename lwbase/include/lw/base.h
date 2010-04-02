@@ -53,5 +53,7 @@
 #include <lw/security-api.h>
 #include <lw/dscache.h>
 #include <lw/threadpool.h>
+#include <lw/mapsecurity.h>
+#include <lw/safeint.h>
 
 #endif

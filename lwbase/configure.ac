@@ -12,12 +12,15 @@ DS_FRAMEWORK_LDFLAGS=""
 
 CPPFLAGS="$CPPFLAGS -D_REENTRANT -D_GNU_SOURCE"
 
+MOD_EXT=".so"
+
 case "$host_os:$host_cpu" in
         solaris*:*)
                 LWBASE_CPPFLAGS="$LWBASE_CPPFLAGS -D_XOPEN_SOURCE=500 -D_EXTENSIONS -D_REENTRANT"
 		;;
 	hpux*:hppa*)
 		LWBASE_CPPFLAGS="$LWBASE_CPPFLAGS -D_XOPEN_SOURCE_EXTENDED=1 -D_XOPEN_SOURCE=500"
+		MOD_EXT=".sl"
 		;;
 	hpux*:ia64*)
 		LWBASE_CPPFLAGS="$LWBASE_CPPFLAGS -D_XOPEN_SOURCE_EXTENDED=1 -D_XOPEN_SOURCE=500"
@@ -44,6 +47,11 @@ case "$host_cpu" in
 		;;
 esac
 
+AS_AC_EXPAND(LIBDIR, $libdir)
+AC_DEFINE_UNQUOTED(LIBDIR, "$LIBDIR", [Library directory])
+AC_DEFINE_UNQUOTED([MOD_EXT], ["$MOD_EXT"], [Extension of shared modules])
+
+AC_SUBST(MOD_EXT)
 AC_SUBST(LWBASE_CPPFLAGS)
 AC_SUBST(LWBASE_CFLAGS)
 AC_SUBST(LWBASE_LDFLAGS)
@@ -92,7 +100,9 @@ AC_SUBST(LIBUUID_LIBS)
 AC_CHECK_LIB(pthread, pthread_self, [LIB_PTHREAD="-lpthread"], [LIB_PTHREAD=""])
 AC_CHECK_LIB([uuid], [uuid_generate_time], [LIBUUID_LIBS="-luuid"], [], [$LIBUUID_LDFLAGS])
 AC_CHECK_LIB(xnet, __xnet_connect, [LIB_XNET="-lxnet"], [LIB_XNET=""])
+AC_CHECK_LIB([dl], [dlopen], [LIB_DL="-ldl"], [LIB_DL=""])
 
+AC_SUBST(LIB_DL)
 AC_SUBST(LIB_XNET)
 AC_SUBST(LIB_PTHREAD)
 

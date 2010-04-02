@@ -18,4 +18,6 @@ lwinclude_HEADERS = \
         safeint.h \
         security-types.h \
         security-api.h \
-	threadpool.h
+	threadpool.h \
+	mapsecurity.h \
+	mapsecurity-plugin.h
