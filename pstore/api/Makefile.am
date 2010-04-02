@@ -16,9 +16,6 @@ if ENABLE_STATIC_PROVIDERS
 if ENABLE_SQLDB
 liblwpsapi_la_LIBADD += $(top_builddir)/providers/sqldb/liblwps-sqldb.la
 endif
-if ENABLE_TDB
-liblwpsapi_la_LIBADD += $(top_builddir)/providers/tdb/liblwps-tdb.la
-endif
 if ENABLE_FILEDB
 liblwpsapi_la_LIBADD += $(top_builddir)/providers/filedb/liblwps-filedb.la
 endif
