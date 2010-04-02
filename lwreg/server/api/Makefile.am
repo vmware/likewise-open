@@ -12,11 +12,9 @@ libregserverapi_la_CPPFLAGS =        \
 	$(AM_CPPFLAGS)                \
 	-I@top_srcdir@/server/include \
 	@LWBASE_INCLUDES@ \
-	@REG_BACKEND_DEFINES@ \
-	@LWMAPSECURITY_INCLUDES@
+	@REG_BACKEND_DEFINES@
 
-libregserverapi_la_LDFLAGS = @LWBASE_LDFLAGS@ \
-                             @LWMAPSECURITY_LDFLAGS@
+libregserverapi_la_LDFLAGS = @LWBASE_LDFLAGS@
 
 if USE_SQLITE_BACKEND
 
@@ -36,6 +34,4 @@ libregserverapi_la_LIBADD = \
     $(BACKEND_LIB) \
     @LWBASE_LIBS@ \
     @UUID_LIBS@ \
-    @PTHREAD_LIBS@ \
-    @LWBASE_NOTHR_LIBS@ \
-    @LWMAPSECURITY_LIBS@
+    @PTHREAD_LIBS@
