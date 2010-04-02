@@ -5,7 +5,7 @@ conf2reg_SOURCES = \
 
 conf2reg_CPPFLAGS = \
     $(AM_CPPFLAGS) \
-    -I$(top_builddir)/include \
+    -I$(top_srcdir)/include \
     $(SQLITE_INCLUDES)
 
 conf2reg_LDADD = \
@@ -19,9 +19,4 @@ conf2reg_LDADD = \
     $(top_builddir)/utils/libupgradeutils.la \
     $(SQLITE_LIBS)
 
-#if ENABLE_TDB
-conf2reg_LDADD += \
-    $(top_builddir)/tools/conf2reg/agents/lwiauth/libconflwiauth.la \
-    $(TDB_LIBS)
-#endif
 

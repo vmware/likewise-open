@@ -156,33 +156,6 @@ AC_SUBST(SQLITE_INCLUDES)
 AC_SUBST(SQLITE_LDFLAGS)
 AC_SUBST(SQLITE_LIBS)
 
-# tdb
-
-AC_ARG_WITH([tdb],
-        [AC_HELP_STRING([--with-tdb=<dir>], [use tdb located in prefix <dir>])],
-        [
-        TDB_INCLUDES="-I$withval/include"
-        TDB_LDFLAGS="-L$withval/lib"
-        ])
-
-AC_ARG_WITH([tdb-includes],
-        [AC_HELP_STRING([--with-tdb-includes=<dir>], [use tdb includes located in <dir>])],
-        [
-        TDB_INCLUDES="-I$withval"
-        ])
-
-AC_ARG_WITH([tdb-libs],
-        [AC_HELP_STRING([--with-tdb-libs=<dir>], [use tdb libs located in <dir>])],
-        [
-        TDB_LDFLAGS="-L$withval"
-        ])
-
-TDB_LIBS="-ltdb"
-
-AC_SUBST(TDB_INCLUDES)
-AC_SUBST(TDB_LDFLAGS)
-AC_SUBST(TDB_LIBS)
-
 # pstore
 
 AC_ARG_WITH([pstore],
@@ -241,12 +214,6 @@ AC_SUBST(LWREG_LIBS)
 AM_CPPFLAGS="$AM_CPPFLAGS $LWREG_INCLUDES"
 AM_LDFLAGS="$AM_LDFLAGS $LWREG_LDFLAGS $LWREG_LIBS"
 
-AM_CONDITIONAL(ENABLE_TDB, test x"$enable_tdb" = x"yes")
-if test x"$enable_tdb" = x"yes"
-then
-        AC_DEFINE([ENABLE_TDB], [], [Define if tdb provider should be built])
-fi
-
 # Checks for library functions
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([strndup strncasecmp strtoul strtoll __strtoll])
@@ -280,7 +247,6 @@ AC_CONFIG_FILES([Makefile
                  tools/conf2reg/agents/Makefile
                  tools/conf2reg/agents/eventlog/Makefile
                  tools/conf2reg/agents/lsass/Makefile
-                 tools/conf2reg/agents/lwiauth/Makefile
                  tools/conf2reg/agents/lwio/Makefile
                  tools/conf2reg/agents/netlogon/Makefile
                  tools/conf2reg/agents/pstore-sqlite/Makefile

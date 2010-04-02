@@ -7,6 +7,3 @@ SUBDIRS = \
     testparse \
     testsambaparse
 
-#if ENABLE_TDB
-SUBDIRS += lwiauth
-#endif

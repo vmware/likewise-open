@@ -5,4 +5,4 @@ libconfnetlogon_la_SOURCES = \
 
 libconfnetlogon_la_CPPFLAGS = \
     $(AM_CPPFLAGS) \
-    -I$(top_builddir)/include
+    -I$(top_srcdir)/include
