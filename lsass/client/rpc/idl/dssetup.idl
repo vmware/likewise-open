@@ -19,7 +19,7 @@ typedef [switch_type(UINT16)] union ds_role_info {
 
 cpp_quote("#endif")
 
-    DWORD _DsrRoleGetPrimaryDomainInformation(
+    DWORD DsrRoleGetPrimaryDomainInformation(
         [in] UINT16 uiLevel,
         [out,switch_is(uiLevel)] DsRoleInfo **ppInfo
         );

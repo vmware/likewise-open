@@ -91,19 +91,19 @@ cpp_quote("#endif")
         );
 
     /* function 0x01 */
-    NTSTATUS _SamrClose(
+    NTSTATUS SamrClose(
         [in,out,context_handle] void **phInOut,
         );
 
     /* function 0x02 */
-    NTSTATUS _SamrSetSecurity(
+    NTSTATUS SamrSetSecurity(
         [in,context_handle] void *hObject,
         [in] UINT32 security_info,
         [in,ref] SAMR_SECURITY_DESCRIPTOR_BUFFER *secdesc
         );
 
     /* function 0x03 */
-    NTSTATUS _SamrQuerySecurity(
+    NTSTATUS SamrQuerySecurity(
         [in,context_handle] void *hObject,
         [in] UINT32 security_info,
         [out] PSAMR_SECURITY_DESCRIPTOR_BUFFER *secdesc
@@ -112,13 +112,13 @@ cpp_quote("#endif")
     NTSTATUS samr_Function04();
 
     /* function 0x05 */
-    NTSTATUS _SamrLookupDomain(
+    NTSTATUS SamrLookupDomain(
         [in] CONNECT_HANDLE hConn,
         [in,ref] UnicodeString *domain_name,
         [out] PSID* sid
         );
 
-    NTSTATUS _SamrEnumDomains(
+    NTSTATUS SamrEnumDomains(
         [in] CONNECT_HANDLE hConn,
         [in,out,ref] UINT32 *resume,
         [in] UINT32 size,
@@ -127,7 +127,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x07 */
-    NTSTATUS _SamrOpenDomain(
+    NTSTATUS SamrOpenDomain(
         [in] CONNECT_HANDLE hConn,
         [in] UINT32 access_mask,
         [in,ref] IDLREF_PSID sid,
@@ -135,7 +135,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x08 */
-    NTSTATUS _SamrQueryDomainInfo(
+    NTSTATUS SamrQueryDomainInfo(
         [in] DOMAIN_HANDLE hDomain,
         [in] UINT16 level,
         [out,switch_is(level)] DomainInfo **info
@@ -144,7 +144,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function09();
 
     /* function 0x0a */
-    NTSTATUS _SamrCreateDomGroup(
+    NTSTATUS SamrCreateDomGroup(
         [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeString *group_name,
         [in] UINT32 access_mask,
@@ -155,7 +155,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function0b();
 
     /* function 0x0c */
-    NTSTATUS _SamrCreateUser(
+    NTSTATUS SamrCreateUser(
         [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeString *account_name,
         [in] UINT32 access_mask,
@@ -164,7 +164,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x0d */
-    NTSTATUS _SamrEnumDomainUsers(
+    NTSTATUS SamrEnumDomainUsers(
         [in] DOMAIN_HANDLE hDomain,
         [in,out,ref] UINT32 *resume,
         [in] UINT32 account_flags,
@@ -174,7 +174,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x0e */
-    NTSTATUS _SamrCreateDomAlias(
+    NTSTATUS SamrCreateDomAlias(
         [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeString *alias_name,
         [in] UINT32 access_mask,
@@ -183,7 +183,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x0f */
-    NTSTATUS _SamrEnumDomainAliases(
+    NTSTATUS SamrEnumDomainAliases(
         [in] DOMAIN_HANDLE hDomain,
         [in,out,ref] UINT32 *resume,
         [in] UINT32 account_flags,
@@ -192,14 +192,14 @@ cpp_quote("#endif")
         );
 
     /* function 0x10 */
-    NTSTATUS _SamrGetAliasMembership(
+    NTSTATUS SamrGetAliasMembership(
         [in] DOMAIN_HANDLE hDomain,
         [in,ref] SidArray *sids,
         [out,ref] Ids *rids
         );
 
     /* function 0x11 */
-    NTSTATUS _SamrLookupNames(
+    NTSTATUS SamrLookupNames(
         [in] DOMAIN_HANDLE hDomain,
         [in,range(0,1000)] UINT32 num_names,
         [in,size_is(1000),length_is(num_names)] UnicodeString *names,
@@ -208,7 +208,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x12 */
-    NTSTATUS _SamrLookupRids(
+    NTSTATUS SamrLookupRids(
         [in] DOMAIN_HANDLE hDomain,
         [in,range(0,1000)] UINT32 num_rids,
         [in,size_is(1000),length_is(num_rids)] UINT32 rids[],
@@ -217,7 +217,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x13 */
-    NTSTATUS _SamrOpenGroup(
+    NTSTATUS SamrOpenGroup(
         [in] DOMAIN_HANDLE hDomain,
         [in,range(0,1000)] UINT32 access_mask,
         [in] UINT32 rid,
@@ -229,7 +229,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function16();
 
     /* function 0x17 */
-    NTSTATUS _SamrDeleteDomGroup(
+    NTSTATUS SamrDeleteDomGroup(
         [in] ACCOUNT_HANDLE hGroupIn,
         [out] ACCOUNT_HANDLE *hGroupOut
         );
@@ -239,7 +239,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function1a();
 
     /* function 0x1b */
-    NTSTATUS _SamrOpenAlias(
+    NTSTATUS SamrOpenAlias(
         [in] DOMAIN_HANDLE hDomain,
         [in] UINT32 access_mask,
         [in] UINT32 rid,
@@ -247,45 +247,45 @@ cpp_quote("#endif")
         );
 
     /* function 0x1c */
-    NTSTATUS _SamrQueryAliasInfo(
+    NTSTATUS SamrQueryAliasInfo(
         [in] ACCOUNT_HANDLE hAlias,
         [in] UINT16 level,
         [out,switch_is(level)] AliasInfo **info
         );
 
     /* function 0x1d */
-    NTSTATUS _SamrSetAliasInfo(
+    NTSTATUS SamrSetAliasInfo(
         [in] ACCOUNT_HANDLE hAlias,
         [in] UINT16 level,
         [in,switch_is(level),ref] AliasInfo *info
         );
 
     /* function 0x1e */
-    NTSTATUS _SamrDeleteDomAlias(
+    NTSTATUS SamrDeleteDomAlias(
         [in] ACCOUNT_HANDLE hAliasIn,
         [out] ACCOUNT_HANDLE *hAliasOut
         );
 
     /* function 0x1f */
-    NTSTATUS _SamrAddAliasMember(
+    NTSTATUS SamrAddAliasMember(
         [in] ACCOUNT_HANDLE hAlias,
         [in,ref] IDLREF_PSID sid
         );
 
     /* function 0x20 */
-    NTSTATUS _SamrDeleteAliasMember(
+    NTSTATUS SamrDeleteAliasMember(
         [in] ACCOUNT_HANDLE hAlias,
         [in,ref] IDLREF_PSID sid
         );
 
     /* function 0x21 */
-    NTSTATUS _SamrGetMembersInAlias(
+    NTSTATUS SamrGetMembersInAlias(
         [in] ACCOUNT_HANDLE hAlias,
         [out,ref] SidArray *sids
         );
 
     /* function 0x22 */
-    NTSTATUS _SamrOpenUser(
+    NTSTATUS SamrOpenUser(
         [in] DOMAIN_HANDLE hDomain,
         [in] UINT32 access_mask,
         [in] UINT32 rid,
@@ -293,19 +293,19 @@ cpp_quote("#endif")
         );
 
     /* function 0x23 */
-    NTSTATUS _SamrDeleteUser(
+    NTSTATUS SamrDeleteUser(
         [in,out] ACCOUNT_HANDLE *hUserIn,
         );
 
     /* function 0x24 */
-    NTSTATUS _SamrQueryUserInfo(
+    NTSTATUS SamrQueryUserInfo(
         [in] ACCOUNT_HANDLE hUser,
         [in] UINT16 level,
         [out,switch_is(level)] UserInfo **info
         );
 
     /* function 0x25 */
-    NTSTATUS _SamrSetUserInfo(
+    NTSTATUS SamrSetUserInfo(
         [in] ACCOUNT_HANDLE hUser,
         [in] UINT16 level,
         [in,ref,switch_is(level)] UserInfo *info
@@ -314,13 +314,13 @@ cpp_quote("#endif")
     NTSTATUS samr_Function26();
 
     /* function 0x27 */
-    NTSTATUS _SamrGetUserGroups(
+    NTSTATUS SamrGetUserGroups(
         [in] ACCOUNT_HANDLE hUser,
         [out] RidWithAttributeArray **rids
         );
 
     /* function 0x28 */
-    NTSTATUS _SamrQueryDisplayInfo(
+    NTSTATUS SamrQueryDisplayInfo(
         [in] DOMAIN_HANDLE hDomain,
         [in] UINT16 level,
         [in] UINT32 start_idx,
@@ -336,7 +336,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function2b();
 
     /* function 0x2c */
-    NTSTATUS _SamrGetUserPwInfo(
+    NTSTATUS SamrGetUserPwInfo(
         [in] ACCOUNT_HANDLE hUser,
         [out] PwInfo *info
         );
@@ -348,7 +348,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function31();
 
     /* function 0x32 */
-    NTSTATUS _SamrCreateUser2(
+    NTSTATUS SamrCreateUser2(
         [in] DOMAIN_HANDLE hDomain,
         [in,ref] UnicodeStringEx *account_name,
         [in] UINT32 account_flags,
@@ -364,7 +364,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function36();
 
     /* function 0x37 */
-    NTSTATUS _SamrChangePasswordUser2(
+    NTSTATUS SamrChangePasswordUser2(
         [in,unique] UnicodeString *server,
         [in,ref] UnicodeString *account_name,
         [in,unique] CryptPassword *nt_password,
@@ -377,7 +377,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function38();
 
     /* function 0x39 */
-    NTSTATUS _SamrConnect2(
+    NTSTATUS SamrConnect2(
         [in] UINT32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
         [in] UINT32 access_mask,
@@ -385,7 +385,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x3a */
-    NTSTATUS _SamrSetUserInfo2(
+    NTSTATUS SamrSetUserInfo2(
         [in] ACCOUNT_HANDLE hUser,
         [in] UINT16 level,
         [in,ref,switch_is(level)] UserInfo *info
@@ -395,7 +395,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function3c();
 
     /* function 0x3d */
-    NTSTATUS _SamrConnect3(
+    NTSTATUS SamrConnect3(
         [in] UINT32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
         [in] UINT32 unknown,
@@ -404,7 +404,7 @@ cpp_quote("#endif")
         );
 
     /* function 0x3e */
-    NTSTATUS _SamrConnect4(
+    NTSTATUS SamrConnect4(
         [in] UINT32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
         [in] UINT32 client_version,
@@ -415,7 +415,7 @@ cpp_quote("#endif")
     NTSTATUS samr_Function3f();
 
     /* function 0x40 */
-    NTSTATUS _SamrConnect5(
+    NTSTATUS SamrConnect5(
         [in] UINT32 size,
         [in,string,size_is(size)] wchar16_t *system_name,
         [in] UINT32 access_mask,
