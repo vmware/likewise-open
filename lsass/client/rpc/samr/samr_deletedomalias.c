@@ -59,9 +59,9 @@ SamrDeleteDomAlias(
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hAlias, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrDeleteDomAlias(hSamrBinding,
-                                              hAlias,
-                                              &hAliasOut));
+    DCERPC_CALL(ntStatus, cli_SamrDeleteDomAlias(hSamrBinding,
+                                                 hAlias,
+                                                 &hAliasOut));
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

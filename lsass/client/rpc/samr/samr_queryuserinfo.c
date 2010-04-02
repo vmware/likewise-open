@@ -66,10 +66,10 @@ SamrQueryUserInfo(
     BAIL_ON_INVALID_PTR(hUser, ntStatus);
     BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrQueryUserInfo(hSamrBinding,
-                                             hUser,
-                                             Level,
-                                             &pInfo));
+    DCERPC_CALL(ntStatus, cli_SamrQueryUserInfo(hSamrBinding,
+                                                hUser,
+                                                Level,
+                                                &pInfo));
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pInfo)

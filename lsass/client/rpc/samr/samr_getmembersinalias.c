@@ -67,9 +67,9 @@ SamrGetMembersInAlias(
     BAIL_ON_INVALID_PTR(pppSids, ntStatus);
     BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrGetMembersInAlias(hSamrBinding,
-                                                 hAlias,
-                                                 &Sids));
+    DCERPC_CALL(ntStatus, cli_SamrGetMembersInAlias(hSamrBinding,
+                                                    hAlias,
+                                                    &Sids));
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (Sids.num_sids)

@@ -82,10 +82,10 @@ SamrGetAliasMembership(
         Sids.sids[iSid].sid = ppSids[iSid];
     }
 
-    DCERPC_CALL(ntStatus, _SamrGetAliasMembership(hSamrBinding,
-                                                  hDomain,
-                                                  &Sids,
-                                                  &Rids));
+    DCERPC_CALL(ntStatus, cli_SamrGetAliasMembership(hSamrBinding,
+                                                     hDomain,
+                                                     &Sids,
+                                                     &Rids));
     BAIL_ON_NT_STATUS(ntStatus);
 
     dwSpaceLeft = sizeof(pRids[0]) * Rids.count;

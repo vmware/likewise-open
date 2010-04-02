@@ -63,11 +63,11 @@ SamrOpenUser(
     BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(phUser, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrOpenUser(hSamrBinding,
-                                        hDomain,
-                                        AccessMask,
-                                        Rid,
-                                        &hUser));
+    DCERPC_CALL(ntStatus, cli_SamrOpenUser(hSamrBinding,
+                                           hDomain,
+                                           AccessMask,
+                                           Rid,
+                                           &hUser));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phUser = hUser;

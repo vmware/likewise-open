@@ -63,11 +63,11 @@ SamrOpenGroup(
     BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(phGroup, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrOpenGroup(hSamrBinding,
-                                         hDomain,
-                                         AccessMask,
-                                         Rid,
-                                         &hGroup));
+    DCERPC_CALL(ntStatus, cli_SamrOpenGroup(hSamrBinding,
+                                            hDomain,
+                                            AccessMask,
+                                            Rid,
+                                            &hGroup));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phGroup = hGroup;

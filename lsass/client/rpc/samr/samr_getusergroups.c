@@ -70,9 +70,9 @@ SamrGetUserGroups(
     BAIL_ON_INVALID_PTR(ppAttributes, ntStatus);
     BAIL_ON_INVALID_PTR(pCount, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrGetUserGroups(hSamrBinding,
-                                             hUser,
-                                             &pRidWithAttr));
+    DCERPC_CALL(ntStatus, cli_SamrGetUserGroups(hSamrBinding,
+                                                hUser,
+                                                &pRidWithAttr));
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pRidWithAttr)

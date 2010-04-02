@@ -63,11 +63,11 @@ SamrOpenAlias(
     BAIL_ON_INVALID_PTR(hDomain, ntStatus);
     BAIL_ON_INVALID_PTR(phAlias, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrOpenAlias(hSamrBinding,
-                                         hDomain,
-                                         AccessMask,
-                                         Rid,
-                                         &hAlias));
+    DCERPC_CALL(ntStatus, cli_SamrOpenAlias(hSamrBinding,
+                                            hDomain,
+                                            AccessMask,
+                                            Rid,
+                                            &hAlias));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phAlias = hAlias;

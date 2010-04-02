@@ -79,13 +79,13 @@ SamrEnumDomainUsers(
 
     Resume = *pResume;
 
-    DCERPC_CALL(ntStatus, _SamrEnumDomainUsers(hSamrBinding,
-                                               hDomain,
-                                               &Resume,
-                                               AccountFlags,
-                                               MaxSize,
-                                               &pEntries,
-                                               &Count));
+    DCERPC_CALL(ntStatus, cli_SamrEnumDomainUsers(hSamrBinding,
+                                                  hDomain,
+                                                  &Resume,
+                                                  AccountFlags,
+                                                  MaxSize,
+                                                  &pEntries,
+                                                  &Count));
 
     /* Preserve returned status code */
     ntRetStatus = ntStatus;

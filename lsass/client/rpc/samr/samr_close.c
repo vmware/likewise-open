@@ -59,8 +59,8 @@ SamrClose(
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hIn, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrClose(hSamrBinding,
-                                     &hIn))
+    DCERPC_CALL(ntStatus, cli_SamrClose(hSamrBinding,
+                                        &hIn))
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

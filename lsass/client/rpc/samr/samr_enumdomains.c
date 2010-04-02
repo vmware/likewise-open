@@ -75,12 +75,12 @@ SamrEnumDomains(
 
     Resume = *pResume;
 
-    DCERPC_CALL(ntStatus, _SamrEnumDomains(hSamrBinding,
-                                           hConn,
-                                           &Resume,
-                                           Size,
-                                           &pDomains,
-                                           &Count));
+    DCERPC_CALL(ntStatus, cli_SamrEnumDomains(hSamrBinding,
+                                              hConn,
+                                              &Resume,
+                                              Size,
+                                              &pDomains,
+                                              &Count));
 
     /* Preserve returned status code */
     ntRetStatus = ntStatus;

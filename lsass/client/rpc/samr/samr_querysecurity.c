@@ -65,10 +65,10 @@ SamrQuerySecurity(
     BAIL_ON_INVALID_PTR(ppSecDesc, ntStatus);
     BAIL_ON_INVALID_PTR(pulSecDescLen, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrQuerySecurity(hSamrBinding,
-                                             hObject,
-                                             ulSecurityInfo,
-                                             &pSecDescBuffer));
+    DCERPC_CALL(ntStatus, cli_SamrQuerySecurity(hSamrBinding,
+                                                hObject,
+                                                ulSecurityInfo,
+                                                &pSecDescBuffer));
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SamrAllocateSecurityDescriptor(&pSecDesc,

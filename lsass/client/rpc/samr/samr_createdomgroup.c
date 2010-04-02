@@ -70,12 +70,12 @@ SamrCreateDomGroup(
     ntStatus = InitUnicodeString(&GroupName, pwszGroupName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrCreateDomGroup(hSamrBinding,
-                                              hDomain,
-                                              &GroupName,
-                                              AccessMask,
-                                              &hGroup,
-                                              &Rid));
+    DCERPC_CALL(ntStatus, cli_SamrCreateDomGroup(hSamrBinding,
+                                                 hDomain,
+                                                 &GroupName,
+                                                 AccessMask,
+                                                 &hGroup,
+                                                 &Rid));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phGroup = hGroup;

@@ -60,9 +60,9 @@ SamrGetUserPwInfo(
     BAIL_ON_INVALID_PTR(hUser, ntStatus);
     BAIL_ON_INVALID_PTR(pInfo, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrGetUserPwInfo(hSamrBinding,
-                                             hUser,
-                                             pInfo));
+    DCERPC_CALL(ntStatus, cli_SamrGetUserPwInfo(hSamrBinding,
+                                                hUser,
+                                                pInfo));
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

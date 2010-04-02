@@ -75,14 +75,14 @@ SamrCreateUser2(
     ntStatus = InitUnicodeStringEx(&AccountName, pwszAccountName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrCreateUser2(hSamrBinding,
-                                           hDomain,
-                                           &AccountName,
-                                           AccountFlags,
-                                           AccessMask,
-                                           &hUser,
-                                           &AccessGranted,
-                                           &Rid));
+    DCERPC_CALL(ntStatus, cli_SamrCreateUser2(hSamrBinding,
+                                              hDomain,
+                                              &AccountName,
+                                              AccountFlags,
+                                              AccessMask,
+                                              &hUser,
+                                              &AccessGranted,
+                                              &Rid));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phUser         = hUser;

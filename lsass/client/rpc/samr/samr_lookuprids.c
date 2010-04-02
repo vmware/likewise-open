@@ -73,12 +73,12 @@ SamrLookupRids(
     BAIL_ON_INVALID_PTR(pppwszNames, ntStatus);
     BAIL_ON_INVALID_PTR(ppTypes, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrLookupRids(hSamrBinding,
-                                          hDomain,
-                                          NumRids,
-                                          pRids,
-                                          &Names,
-                                          &Types));
+    DCERPC_CALL(ntStatus, cli_SamrLookupRids(hSamrBinding,
+                                             hDomain,
+                                             NumRids,
+                                             pRids,
+                                             &Names,
+                                             &Types));
     if (ntStatus != STATUS_SUCCESS &&
         ntStatus != STATUS_SOME_NOT_MAPPED)
     {

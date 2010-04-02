@@ -78,12 +78,12 @@ SamrEnumDomainAliases(
 
     Resume = *pResume;
 
-    DCERPC_CALL(ntStatus, _SamrEnumDomainAliases(hSamrBinding,
-                                                 hDomain,
-                                                 &Resume,
-                                                 AccountFlags,
-                                                 &pEntries,
-                                                 &Count));
+    DCERPC_CALL(ntStatus, cli_SamrEnumDomainAliases(hSamrBinding,
+                                                    hDomain,
+                                                    &Resume,
+                                                    AccountFlags,
+                                                    &pEntries,
+                                                    &Count));
 
     /* Preserve returned status code */
     ntRetStatus = ntStatus;

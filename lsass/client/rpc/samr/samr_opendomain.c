@@ -64,11 +64,11 @@ SamrOpenDomain(
     BAIL_ON_INVALID_PTR(pSid, ntStatus);
     BAIL_ON_INVALID_PTR(phDomain, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrOpenDomain(hSamrBinding,
-                                          hConn,
-                                          AccessMask,
-                                          pSid,
-                                          &hDomain));
+    DCERPC_CALL(ntStatus, cli_SamrOpenDomain(hSamrBinding,
+                                             hConn,
+                                             AccessMask,
+                                             pSid,
+                                             &hDomain));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phDomain = hDomain;

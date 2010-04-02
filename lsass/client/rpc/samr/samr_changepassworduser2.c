@@ -101,14 +101,14 @@ SamrChangePasswordUser2(
     }
 
     DCERPC_CALL(ntStatus,
-                _SamrChangePasswordUser2(hSamrBinding,
-                                         &Server,
-                                         &Account,
-                                         &NtPass,
-                                         &NtVer,
-                                         bLmChange,
-                                         pLmPass,
-                                         pLmVer));
+                cli_SamrChangePasswordUser2(hSamrBinding,
+                                            &Server,
+                                            &Account,
+                                            &NtPass,
+                                            &NtVer,
+                                            bLmChange,
+                                            pLmPass,
+                                            pLmVer));
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

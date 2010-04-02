@@ -60,9 +60,9 @@ SamrDeleteAliasMember(
     BAIL_ON_INVALID_PTR(hAlias, ntStatus);
     BAIL_ON_INVALID_PTR(pSid, ntStatus);
 
-    DCERPC_CALL(ntStatus,_SamrDeleteAliasMember(hSamrBinding,
-                                                hAlias,
-                                                pSid));
+    DCERPC_CALL(ntStatus, cli_SamrDeleteAliasMember(hSamrBinding,
+                                                    hAlias,
+                                                    pSid));
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

@@ -78,15 +78,15 @@ SamrQueryDisplayInfo(
 
     memset(&Info, 0, sizeof(Info));
 
-    DCERPC_CALL(ntStatus, _SamrQueryDisplayInfo(hSamrBinding,
-                                                hDomain,
-                                                Level,
-                                                StartIdx,
-                                                MaxEntries,
-                                                BufferSize,
-                                                &TotalSize,
-                                                &ReturnedSize,
-                                                &Info));
+    DCERPC_CALL(ntStatus, cli_SamrQueryDisplayInfo(hSamrBinding,
+                                                   hDomain,
+                                                   Level,
+                                                   StartIdx,
+                                                   MaxEntries,
+                                                   BufferSize,
+                                                   &TotalSize,
+                                                   &ReturnedSize,
+                                                   &Info));
     /* Preserve returned status code */
     ntRetStatus = ntStatus;
 

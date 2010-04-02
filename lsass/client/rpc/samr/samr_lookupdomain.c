@@ -69,10 +69,10 @@ SamrLookupDomain(
     ntStatus = InitUnicodeString(&DomainName, pwszDomainName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrLookupDomain(hSamrBinding,
-                                            hConn,
-                                            &DomainName,
-                                            &pSid));
+    DCERPC_CALL(ntStatus, cli_SamrLookupDomain(hSamrBinding,
+                                               hConn,
+                                               &DomainName,
+                                               &pSid));
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pSid) {

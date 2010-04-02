@@ -59,9 +59,9 @@ SamrDeleteDomGroup(
     BAIL_ON_INVALID_PTR(hSamrBinding, ntStatus);
     BAIL_ON_INVALID_PTR(hGroup, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrDeleteDomGroup(hSamrBinding,
-                                              hGroup,
-                                              &hGroupOut));
+    DCERPC_CALL(ntStatus, cli_SamrDeleteDomGroup(hSamrBinding,
+                                                 hGroup,
+                                                 &hGroupOut));
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

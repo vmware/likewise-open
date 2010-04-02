@@ -70,11 +70,11 @@ SamrConnect2(
 
     SystemNameLen = (UINT32) wc16slen(pwszSystemName) + 1;
 
-    DCERPC_CALL(ntStatus, _SamrConnect2(hSamrBinding,
-                                        SystemNameLen,
-                                        pwszSystemName,
-                                        AccessMask,
-                                        &hConn));
+    DCERPC_CALL(ntStatus, cli_SamrConnect2(hSamrBinding,
+                                           SystemNameLen,
+                                           pwszSystemName,
+                                           AccessMask,
+                                           &hConn));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phConn = hConn;

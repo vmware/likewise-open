@@ -80,12 +80,12 @@ SamrLookupNames(
     pNames = InitUnicodeStringArray(ppwszNames, NumNames);
     BAIL_ON_NULL_PTR(pNames, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrLookupNames(hSamrBinding,
-                                           hDomain,
-                                           NumNames,
-                                           pNames,
-                                           &Rids,
-                                           &Types));
+    DCERPC_CALL(ntStatus, cli_SamrLookupNames(hSamrBinding,
+                                              hDomain,
+                                              NumNames,
+                                              pNames,
+                                              &Rids,
+                                              &Types));
     if (ntStatus != STATUS_SUCCESS &&
         ntStatus != STATUS_SOME_NOT_MAPPED)
     {

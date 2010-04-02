@@ -81,13 +81,13 @@ SamrConnect5(
 
     SystemNameLen = (UINT32) wc16slen(pwszSystemName) + 1;
 
-    DCERPC_CALL(ntStatus, _SamrConnect5(hSamrBinding,
-                                        SystemNameLen,
-                                        pwszSystemName,
-                                        AccessMask,
-                                        LevelIn,
-                                        pInfoIn,
-                                        &Level,
+    DCERPC_CALL(ntStatus, cli_SamrConnect5(hSamrBinding,
+                                           SystemNameLen,
+                                           pwszSystemName,
+                                           AccessMask,
+                                           LevelIn,
+                                           pInfoIn,
+                                           &Level,
                                         &Info,
                                         &hConn));
     BAIL_ON_NT_STATUS(ntStatus);

@@ -66,7 +66,7 @@ SamrQueryAliasInfo(
     BAIL_ON_INVALID_PTR(hAlias, ntStatus);
     BAIL_ON_INVALID_PTR(ppInfo, ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrQueryAliasInfo(hSamrBinding,
+    DCERPC_CALL(ntStatus, cli_SamrQueryAliasInfo(hSamrBinding,
                                               hAlias,
                                               Level,
                                               &pInfo));

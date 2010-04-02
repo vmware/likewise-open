@@ -71,12 +71,12 @@ SamrCreateDomAlias(
     ntStatus = InitUnicodeString(&AliasName, pwszAliasName);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    DCERPC_CALL(ntStatus, _SamrCreateDomAlias(hSamrBinding,
-                                              hDomain,
-                                              &AliasName,
-                                              AccessMask,
-                                              &hAlias,
-                                              &Rid));
+    DCERPC_CALL(ntStatus, cli_SamrCreateDomAlias(hSamrBinding,
+                                                 hDomain,
+                                                 &AliasName,
+                                                 AccessMask,
+                                                 &hAlias,
+                                                 &Rid));
     BAIL_ON_NT_STATUS(ntStatus);
 
     *phAlias = hAlias;
