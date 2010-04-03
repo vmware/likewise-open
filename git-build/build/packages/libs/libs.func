@@ -16,8 +16,8 @@ esac
 
 
 PKG="libs"
-COMPONENTS="krb5 openldap libcrypto lwbase ${_UUID} ${_ICONV} libunistr \
-            lwmsg lwadvapi lwrpcrt centutils lwmapsecurity \
+COMPONENTS="krb5 openldap libcrypto lwbase ${_UUID} ${_ICONV} \
+            lwmsg lwadvapi lwrpcrt centutils \
             libkeytab libgss sqlite"
 
 for comp in ${COMPONENTS}; do

@@ -15,9 +15,9 @@ case `uname -s` in
 esac
 
 PKG="cifs"
-COMPONENTS="krb5 openldap libcrypto lwbase ${_UUID} ${_ICONV} libunistr \
-            lwmsg lwadvapi lwrpcrt centutils lwmapsecurity \
-            libkeytab libgss sqlite libtdb pstore lsass lwdns \
+COMPONENTS="krb5 openldap libcrypto lwbase ${_UUID} ${_ICONV} \
+            lwmsg lwadvapi lwrpcrt centutils \
+            libkeytab libgss sqlite pstore lsass lwdns \
             domainjoin eventlog lwio lwreg lwsm netlogon dcerpc librpc \
             lwnetapi lwtools srvsvc"
 
