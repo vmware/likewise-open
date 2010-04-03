@@ -320,12 +320,9 @@ _NetrFileEnum(
     DWORD dwTotalEntries = 0;
     DWORD dwResumeHandle = 0;
 
-    BAIL_ON_INVALID_PTR(pwszBasepath,    dwError);
-    BAIL_ON_INVALID_PTR(pwszUsername,    dwError);
     BAIL_ON_INVALID_PTR(pdwInfoLevel,    dwError);
     BAIL_ON_INVALID_PTR(pInfo,           dwError);
     BAIL_ON_INVALID_PTR(pdwTotalEntries, dwError);
-    BAIL_ON_INVALID_PTR(pdwResumeHandle, dwError);
 
     dwInfoLevel    = *pdwInfoLevel;
     if (pdwResumeHandle)

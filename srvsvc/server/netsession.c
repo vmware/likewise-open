@@ -321,7 +321,7 @@ cleanup:
 
 error:
 
-    if (pInfo)
+    if (pInfo && pOutPreamble)
     {
         SrvSvcFreeSessionInfoResults(pOutPreamble->dwInfoLevel, pInfo);
 

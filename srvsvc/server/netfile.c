@@ -274,7 +274,7 @@ cleanup:
 
 error:
 
-    if (pInfo)
+    if (pInfo && pOutPreamble)
     {
         SrvSvcFreeFileInfoResults(pOutPreamble->dwInfoLevel, pInfo);
 
