@@ -1434,6 +1434,14 @@ SrvElementsRegisterResource(
     );
 
 NTSTATUS
+SrvElementsFindResource(
+    ULONG              ulResourceId,
+    SRV_RESOURCE_TYPE  resourceType,
+    PFN_ENUM_RESOURCES pfnEnumResourcesCB,
+    PVOID              pUserData
+    );
+
+NTSTATUS
 SrvElementsEnumResources(
     SRV_RESOURCE_TYPE  resourceType,
     PFN_ENUM_RESOURCES pfnEnumResourcesCB,

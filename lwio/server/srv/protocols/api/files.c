@@ -74,6 +74,14 @@ SrvProtocolEnumAllFiles(
 
 static
 NTSTATUS
+SrvProtocolFindFile(
+    PSRV_RESOURCE pResource,
+    PVOID         pUserData,
+    PBOOLEAN      pbContinue
+    );
+
+static
+NTSTATUS
 SrvProtocolUpdateQueryConnection(
     PSRV_RESOURCE                 pResource,
     PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery
@@ -194,9 +202,9 @@ SrvProtocolEnumerateFiles(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvElementsEnumResources(
-                                SRV_RESOURCE_TYPE_FILE,
-                                &SrvProtocolEnumAllFiles,
-                                &fileEnumQuery);
+                        SRV_RESOURCE_TYPE_FILE,
+                        &SrvProtocolEnumAllFiles,
+                        &fileEnumQuery);
         BAIL_ON_NT_STATUS(ntStatus);
     }
     else
@@ -229,6 +237,65 @@ error:
     if (pBuffer && ulBufferSize)
     {
         memset(pBuffer, 0, ulBufferSize);
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvProtocolGetFileInfo(
+    ULONG  ulInfoLevel,       /* IN              */
+    ULONG  ulFileId,          /* IN              */
+    PBYTE  pBuffer,           /* IN              */
+    ULONG  ulBufferSize,      /* IN              */
+    PULONG pulBytesUsed       /* IN OUT          */
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_PROTOCOL_FILE_ENUM_QUERY fileEnumQuery =
+    {
+            .pwszBasepath   = NULL,
+            .pwszUsername   = NULL,
+            .ulInfoLevel    = ulInfoLevel,
+            .iEntryIndex    = 0,
+            .iResumeIndex   = 0,
+            .ulEntriesRead  = 0,
+            .ulTotalEntries = 0,
+            .pBuffer        = pBuffer,
+            .ulBufferSize   = ulBufferSize,
+            .ulBytesUsed    = 0
+    };
+
+    ntStatus = SrvProtocolValidateFileInfoLevel(fileEnumQuery.ulInfoLevel);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvElementsFindResource(
+                    ulFileId,
+                    SRV_RESOURCE_TYPE_FILE,
+                    &SrvProtocolFindFile,
+                    &fileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pulBytesUsed = fileEnumQuery.ulBytesUsed;
+
+cleanup:
+
+    SrvProtocolClearFileQueryContents(&fileEnumQuery);
+
+    return ntStatus;
+
+error:
+
+    *pulBytesUsed = 0;
+
+    if (pBuffer && ulBufferSize)
+    {
+        memset(pBuffer, 0, ulBufferSize);
+    }
+
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        ntStatus = STATUS_NO_SUCH_FILE;
     }
 
     goto cleanup;
@@ -383,6 +450,89 @@ error:
     if (ntStatus == STATUS_END_OF_FILE)
     {
         ntStatus = STATUS_SUCCESS;
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolFindFile(
+    PSRV_RESOURCE pResource,
+    PVOID         pUserData,
+    PBOOLEAN      pbContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery =
+                                    (PSRV_PROTOCOL_FILE_ENUM_QUERY)pUserData;
+    ULONG ulBytesUsed = 0;
+
+    ntStatus = SrvProtocolUpdateQueryConnection(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProtocolUpdateQuerySession(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProtocolUpdateQueryTree(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pResource->pAttributes->protocolVersion)
+    {
+        case SMB_PROTOCOL_VERSION_1:
+
+            ntStatus = SrvProtocolProcessFile(
+                            pResource->ulResourceId,
+                            pFileEnumQuery->pSession,
+                            pFileEnumQuery->pTree,
+                            pResource->pAttributes->fileId.pFid1,
+                            pFileEnumQuery->ulInfoLevel,
+                            pFileEnumQuery->pBuffer,
+                            pFileEnumQuery->ulBufferSize,
+                            &ulBytesUsed);
+
+            break;
+
+        case SMB_PROTOCOL_VERSION_2:
+
+            ntStatus = SrvProtocolProcessFile2(
+                            pResource->ulResourceId,
+                            pFileEnumQuery->pSession2,
+                            pFileEnumQuery->pTree2,
+                            pResource->pAttributes->fileId.pFid2,
+                            pFileEnumQuery->ulInfoLevel,
+                            pFileEnumQuery->pBuffer,
+                            pFileEnumQuery->ulBufferSize,
+                            &ulBytesUsed);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pFileEnumQuery->pBuffer      += ulBytesUsed;
+    pFileEnumQuery->ulBufferSize -= ulBytesUsed;
+    pFileEnumQuery->ulBytesUsed  += ulBytesUsed;
+
+    pFileEnumQuery->iEntryIndex++;
+    pFileEnumQuery->ulEntriesRead++;
+
+cleanup:
+
+    *pbContinue = FALSE;
+
+    return ntStatus;
+
+error:
+
+    if (ntStatus == STATUS_END_OF_FILE)
+    {
+        ntStatus = STATUS_BUFFER_TOO_SMALL;
     }
 
     goto cleanup;

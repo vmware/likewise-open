@@ -231,6 +231,52 @@ error:
 }
 
 NTSTATUS
+SrvElementsFindResource(
+    ULONG              ulResourceId,
+    SRV_RESOURCE_TYPE  resourceType,
+    PFN_ENUM_RESOURCES pfnEnumResourcesCB,
+    PVOID              pUserData
+    )
+{
+    NTSTATUS      ntStatus  = STATUS_SUCCESS;
+    BOOLEAN       bInLock   = FALSE;
+    PSRV_RESOURCE pResource = NULL;
+    BOOLEAN       bContinue = FALSE;
+
+    if ((resourceType == SRV_RESOURCE_TYPE_UNKNOWN) || !pfnEnumResourcesCB)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvElements.resources.mutex);
+
+    ntStatus = LwRtlRBTreeFind(
+                    gSrvElements.resources.pResources,
+                    &ulResourceId,
+                    (PVOID*)&pResource);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pResource->resourceType != resourceType)
+    {
+        ntStatus = STATUS_NOT_FOUND;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = pfnEnumResourcesCB(pResource, pUserData, &bContinue);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvElements.resources.mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvElementsEnumResources(
     SRV_RESOURCE_TYPE  resourceType,
     PFN_ENUM_RESOURCES pfnEnumResourcesCB,

@@ -110,18 +110,11 @@ static LWMsgTypeSpec gFileInfoEnumOutParamsPreambleSpec[] =
     LWMSG_TYPE_END
 };
 
-static LWMsgTypeSpec gFileInfoGetParamsSpec[] =
+static LWMsgTypeSpec gFileInfoGetInParamsSpec[] =
 {
-    LWMSG_STRUCT_BEGIN(FILE_INFO_GET_INFO_PARAMS),
-    LWMSG_MEMBER_UINT32(FILE_INFO_GET_INFO_PARAMS, dwInfoLevel),
-    LWMSG_MEMBER_UINT32(FILE_INFO_GET_INFO_PARAMS, dwFileId),
-    LWMSG_MEMBER_UNION_BEGIN(FILE_INFO_GET_INFO_PARAMS, info),
-    LWMSG_MEMBER_POINTER(FILE_INFO_UNION, p2, LWMSG_TYPESPEC(gFileInfo2Spec)),
-    LWMSG_ATTR_TAG(FILE_INFO_LEVEL_2),
-    LWMSG_MEMBER_POINTER(FILE_INFO_UNION, p3, LWMSG_TYPESPEC(gFileInfo3Spec)),
-    LWMSG_ATTR_TAG(FILE_INFO_LEVEL_3),
-    LWMSG_UNION_END,
-    LWMSG_ATTR_DISCRIM(FILE_INFO_GET_INFO_PARAMS, dwInfoLevel),
+    LWMSG_STRUCT_BEGIN(FILE_INFO_GET_INFO_IN_PARAMS),
+    LWMSG_MEMBER_UINT32(FILE_INFO_GET_INFO_IN_PARAMS, dwInfoLevel),
+    LWMSG_MEMBER_UINT32(FILE_INFO_GET_INFO_IN_PARAMS, dwFileId),
     LWMSG_STRUCT_END,
     LWMSG_TYPE_END
 };
@@ -684,10 +677,10 @@ LwFileInfoFreeInternal(
 
 
 LW_NTSTATUS
-LwFileInfoMarshalGetInfoParameters(
-    PFILE_INFO_GET_INFO_PARAMS pParams,
-    PBYTE*                     ppBuffer,
-    ULONG*                     pulBufferSize
+LwFileInfoMarshalGetInfoInParameters(
+    PFILE_INFO_GET_INFO_IN_PARAMS pParams,
+    PBYTE*                        ppBuffer,
+    ULONG*                        pulBufferSize
     )
 {
     NTSTATUS ntStatus = 0;
@@ -701,7 +694,7 @@ LwFileInfoMarshalGetInfoParameters(
     ntStatus = MAP_LWMSG_STATUS(
         lwmsg_data_marshal_flat_alloc(
             pDataContext,
-            gFileInfoGetParamsSpec,
+            gFileInfoGetInParamsSpec,
             pParams,
             &pBuffer,
             &ulBufferSize));
@@ -730,14 +723,14 @@ error:
 }
 
 LW_NTSTATUS
-LwFileInfoUnmarshalGetInfoParameters(
-    PBYTE                       pBuffer,
-    ULONG                       ulBufferSize,
-    PFILE_INFO_GET_INFO_PARAMS* ppParams
+LwFileInfoUnmarshalGetInfoInParameters(
+    PBYTE                          pBuffer,
+    ULONG                          ulBufferSize,
+    PFILE_INFO_GET_INFO_IN_PARAMS* ppParams
     )
 {
     NTSTATUS ntStatus = 0;
-    PFILE_INFO_GET_INFO_PARAMS pParams = NULL;
+    PFILE_INFO_GET_INFO_IN_PARAMS pParams = NULL;
     LWMsgDataContext* pDataContext = NULL;
 
     ntStatus = LwSrvInfoAcquireDataContext(&pDataContext);
@@ -746,7 +739,7 @@ LwFileInfoUnmarshalGetInfoParameters(
     ntStatus = MAP_LWMSG_STATUS(
         lwmsg_data_unmarshal_flat(
             pDataContext,
-            gFileInfoGetParamsSpec,
+            gFileInfoGetInParamsSpec,
             pBuffer,
             ulBufferSize,
             OUT_PPVOID(&pParams)));
@@ -766,7 +759,135 @@ error:
 
     if (pParams)
     {
-        lwmsg_data_free_graph(pDataContext, gFileInfoGetParamsSpec, pParams);
+        lwmsg_data_free_graph(pDataContext, gFileInfoGetInParamsSpec, pParams);
+    }
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwFileInfoFreeGetInfoInParameters(
+    PFILE_INFO_GET_INFO_IN_PARAMS pParams
+    )
+{
+    NTSTATUS ntStatus = 0;
+    LWMsgDataContext* pDataContext = NULL;
+
+    ntStatus = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pParams)
+    {
+        lwmsg_data_free_graph(pDataContext, gFileInfoGetInParamsSpec, pParams);
+    }
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+LW_NTSTATUS
+LwFileInfoUnmarshalGetInfoOutParameters(
+    PBYTE             pBuffer,
+    ULONG             ulBufferSize,
+    DWORD             dwInfoLevel,
+    PFILE_INFO_UNION* ppFileInfo
+    )
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    LWMsgBuffer mbuf   =
+        {
+            .base   = pBuffer,
+            .end    = pBuffer + ulBufferSize,
+            .cursor = pBuffer,
+            .wrap   = NULL
+        };
+    PFILE_INFO_UNION  pFileInfo    = NULL;
+    LWMsgDataContext* pDataContext = NULL;
+
+    Status = LwSrvInfoAcquireDataContext(&pDataContext);
+    BAIL_ON_NT_STATUS(Status);
+
+    Status = MAP_LWMSG_STATUS(
+                lwmsg_data_alloc_memory(
+                    pDataContext,
+                    sizeof(FILE_INFO_UNION),
+                    OUT_PPVOID(&pFileInfo)));
+    BAIL_ON_NT_STATUS(Status);
+
+    switch (dwInfoLevel)
+    {
+        case 2:
+
+            Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(FILE_INFO_2),
+                            OUT_PPVOID(&pFileInfo->p2)));
+            BAIL_ON_NT_STATUS(Status);
+
+            Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_unmarshal_into(
+                            pDataContext,
+                            gFileInfo2Spec,
+                            &mbuf,
+                            pFileInfo->p2,
+                            sizeof(FILE_INFO_2)));
+
+            break;
+
+        case 3:
+
+            Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_alloc_memory(
+                            pDataContext,
+                            sizeof(FILE_INFO_3),
+                            OUT_PPVOID(&pFileInfo->p3)));
+            BAIL_ON_NT_STATUS(Status);
+
+            Status = MAP_LWMSG_STATUS(
+                        lwmsg_data_unmarshal_into(
+                            pDataContext,
+                            gFileInfo3Spec,
+                            &mbuf,
+                            pFileInfo->p3,
+                            sizeof(FILE_INFO_3)));
+
+            break;
+
+        default:
+
+            Status = STATUS_INVALID_INFO_CLASS;
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(Status);
+
+    *ppFileInfo = pFileInfo;
+
+cleanup:
+
+    LwSrvInfoReleaseDataContext(pDataContext);
+
+    return Status;
+
+error:
+
+    *ppFileInfo = NULL;
+
+    if (pFileInfo)
+    {
+        LwFileInfoFreeInternal(
+            pDataContext,
+            dwInfoLevel,
+            1,
+            pFileInfo);
     }
 
     goto cleanup;

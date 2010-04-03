@@ -160,38 +160,30 @@ SrvDevCtlGetFileInfo(
     )
 {
     NTSTATUS ntStatus        = STATUS_SUCCESS;
-    PBYTE    pBuffer         = NULL;
-    ULONG    ulBufferSize    = 0;
-    PFILE_INFO_GET_INFO_PARAMS pParamsIn = NULL;
-    FILE_INFO_GET_INFO_PARAMS  paramsOut = {0};
+    ULONG    ulBytesUsed     = 0;
+    PFILE_INFO_GET_INFO_IN_PARAMS pParamsIn = NULL;
 
-    ntStatus = LwFileInfoUnmarshalGetInfoParameters(
+    ntStatus = LwFileInfoUnmarshalGetInfoInParameters(
                         pInBuffer,
                         ulInBufferSize,
                         &pParamsIn);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO: get file info
-    ntStatus = STATUS_NOT_SUPPORTED;
+    ntStatus = SrvProtocolGetFileInfo(
+                        pParamsIn->dwInfoLevel,
+                        pParamsIn->dwFileId,
+                        pOutBuffer,
+                        ulOutBufferSize,
+                        &ulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwFileInfoMarshalGetInfoParameters(
-                        &paramsOut,
-                        &pBuffer,
-                        &ulBufferSize);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    *pulBytesTransferred = ulBufferSize;
+    *pulBytesTransferred = ulBytesUsed;
 
 cleanup:
 
-    if (pBuffer)
-    {
-        SrvFreeMemory(pBuffer);
-    }
     if (pParamsIn)
     {
-        SrvFreeMemory(pParamsIn);
+        LwFileInfoFreeGetInfoInParameters(pParamsIn);
     }
 
     return ntStatus;

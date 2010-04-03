@@ -77,12 +77,11 @@ typedef struct _FILE_INFO_ENUM_OUT_PREAMBLE
 
 } FILE_INFO_ENUM_OUT_PREAMBLE, *PFILE_INFO_ENUM_OUT_PREAMBLE;
 
-typedef struct _FILE_INFO_GET_INFO_PARAMS
+typedef struct _FILE_INFO_GET_INFO_IN_PARAMS
 {
     DWORD           dwInfoLevel;
     DWORD           dwFileId;
-    FILE_INFO_UNION info;
-} FILE_INFO_GET_INFO_PARAMS, *PFILE_INFO_GET_INFO_PARAMS;
+} FILE_INFO_GET_INFO_IN_PARAMS, *PFILE_INFO_GET_INFO_IN_PARAMS;
 
 typedef struct _FILE_INFO_CLOSE_PARAMS
 {
@@ -153,17 +152,30 @@ LwFileInfoFree(
     );
 
 LW_NTSTATUS
-LwFileInfoMarshalGetInfoParameters(
-    PFILE_INFO_GET_INFO_PARAMS pParams,
-    PBYTE*                     ppBuffer,
-    ULONG*                     pulBufferSize
+LwFileInfoMarshalGetInfoInParameters(
+    PFILE_INFO_GET_INFO_IN_PARAMS pParams,
+    PBYTE*                        ppBuffer,
+    ULONG*                        pulBufferSize
     );
 
 LW_NTSTATUS
-LwFileInfoUnmarshalGetInfoParameters(
-    PBYTE                       pBuffer,
-    ULONG                       ulBufferSize,
-    PFILE_INFO_GET_INFO_PARAMS* ppParams
+LwFileInfoUnmarshalGetInfoInParameters(
+    PBYTE                          pBuffer,
+    ULONG                          ulBufferSize,
+    PFILE_INFO_GET_INFO_IN_PARAMS* ppParams
+    );
+
+LW_NTSTATUS
+LwFileInfoFreeGetInfoInParameters(
+    PFILE_INFO_GET_INFO_IN_PARAMS pParams
+    );
+
+LW_NTSTATUS
+LwFileInfoUnmarshalGetInfoOutParameters(
+    PBYTE             pBuffer,
+    ULONG             ulBufferSize,
+    DWORD             dwInfoLevel,
+    PFILE_INFO_UNION* ppFileInfo
     );
 
 LW_NTSTATUS

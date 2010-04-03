@@ -105,6 +105,15 @@ SrvProtocolEnumerateFiles(
     PULONG pulResumeHandle    /* IN OUT OPTIONAL */
     );
 
+NTSTATUS
+SrvProtocolGetFileInfo(
+    ULONG  ulInfoLevel,       /* IN              */
+    ULONG  ulFileId,          /* IN              */
+    PBYTE  pBuffer,           /* IN              */
+    ULONG  ulBufferSize,      /* IN              */
+    PULONG pulBytesUsed       /* IN OUT          */
+    );
+
 VOID
 SrvProtocolShutdown(
     VOID
