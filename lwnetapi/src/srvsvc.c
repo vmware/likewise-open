@@ -1499,13 +1499,16 @@ NetFileEnumW(
                     dwPrefmaxLen,
                     &dwEntriesRead,
                     &dwTotalEntries,
-                    &dwResumeHandle);
+                    pdwResumeHandle ? &dwResumeHandle : NULL);
     BAIL_ON_NETAPI_ERROR(status);
 
     *ppBuffer = pBuffer;
     *pdwEntriesRead = dwEntriesRead;
     *pdwTotalEntries = dwTotalEntries;
-    *pdwResumeHandle = dwResumeHandle;
+    if (pdwResumeHandle)
+    {
+        *pdwResumeHandle = dwResumeHandle;
+    }
 
 cleanup:
 
@@ -1529,10 +1532,6 @@ error:
     if (pdwTotalEntries)
     {
         *pdwTotalEntries = 0;
-    }
-    if (pdwResumeHandle)
-    {
-        *pdwResumeHandle = 0;
     }
 
     if (pBuffer)
