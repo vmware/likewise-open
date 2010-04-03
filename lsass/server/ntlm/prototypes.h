@@ -103,7 +103,7 @@ NtlmServerEncryptMessage(
 DWORD
 NtlmInitializeSignature(
     PNTLM_CONTEXT pContext,
-    const SecBuffer* pData,
+    const PSecBufferDesc pMessage,
     PNTLM_SIGNATURE pSignature
     );
 
@@ -115,8 +115,7 @@ NtlmFinalizeSignature(
 
 DWORD
 NtlmCrc32(
-    PBYTE pData,
-    DWORD dwBufferSize,
+    const SecBufferDesc* pMessage,
     PDWORD pdwCrc32
     );
 
@@ -190,7 +189,7 @@ NtlmServerVerifySignature(
 DWORD
 NtlmVerifySignature(
     IN PNTLM_CONTEXT pContext,
-    IN const SecBuffer* pData,
+    IN const SecBufferDesc* pMessage,
     IN const SecBuffer* pToken
     );
 
@@ -585,7 +584,6 @@ VOID
 NtlmGetSecBuffers(
     PSecBufferDesc pMessage,
     PSecBuffer* ppToken,
-    PSecBuffer* ppData,
     PSecBuffer* ppPadding
     );
 

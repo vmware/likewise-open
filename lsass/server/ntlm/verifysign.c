@@ -59,20 +59,16 @@ NtlmServerVerifySignature(
     PNTLM_CONTEXT pContext = *phContext;
     // The following pointers point into pMessage and will not be freed
     const SecBuffer* pToken = NULL;
-    const SecBuffer* pData = NULL;
 
     NtlmGetSecBuffers(
             (PSecBufferDesc)pMessage,
             (PSecBuffer *)&pToken,
-            (PSecBuffer *)&pData,
             NULL);
 
     // Do a full sanity check here
     if (!pToken ||
         pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
-        !pToken->pvBuffer ||
-        !pData ||
-        !pData->pvBuffer)
+        !pToken->pvBuffer)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -80,7 +76,7 @@ NtlmServerVerifySignature(
 
     dwError = NtlmVerifySignature(
         pContext,
-        pData,
+        pMessage,
         pToken
         );
     BAIL_ON_LSA_ERROR(dwError);
@@ -95,13 +91,17 @@ error:
 DWORD
 NtlmVerifySignature(
     IN PNTLM_CONTEXT pContext,
-    IN const SecBuffer* pData,
+    IN const SecBufferDesc* pMessage,
     IN const SecBuffer* pToken
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     DWORD dwCrc32 = 0;
     NTLM_SIGNATURE signature;
+    DWORD dwIndex = 0;
+    BOOLEAN bFoundData = FALSE;
+    // Do not free
+    SecBuffer* pData = NULL;
 
     if (pToken->cbBuffer != sizeof(signature))
     {
@@ -133,10 +133,31 @@ NtlmVerifySignature(
                 (PBYTE)&signature.v2.dwMsgSeqNum,
                 sizeof(signature.v2.dwMsgSeqNum));
 
-        HMAC_Update(
-                &c,
-                pData->pvBuffer,
-                pData->cbBuffer);
+        for (dwIndex = 0 ; dwIndex < pMessage->cBuffers ; dwIndex++)
+        {
+            pData = &pMessage->pBuffers[dwIndex];
+
+            if ((pData->BufferType & ~SECBUFFER_ATTRMASK) == SECBUFFER_DATA)
+            {
+                if (!pData->pvBuffer)
+                {
+                    dwError = LW_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                bFoundData = TRUE;
+
+                HMAC_Update(
+                        &c,
+                        pData->pvBuffer,
+                        pData->cbBuffer);
+            }
+        }
+        if (!bFoundData)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         HMAC_Final(
                 &c,
@@ -180,7 +201,7 @@ NtlmVerifySignature(
         else if (pContext->NegotiatedFlags & NTLM_FLAG_SIGN)
         {
             // generate a crc for the message
-            dwError = NtlmCrc32(pData->pvBuffer, pData->cbBuffer, &dwCrc32);
+            dwError = NtlmCrc32(pMessage, &dwCrc32);
             BAIL_ON_LSA_ERROR(dwError);
         }
         else
@@ -219,13 +240,11 @@ VOID
 NtlmGetSecBuffers(
     PSecBufferDesc pMessage,
     PSecBuffer* ppToken,
-    PSecBuffer* ppData,
     PSecBuffer* ppPadding
     )
 {
     DWORD dwIndex = 0;
     PSecBuffer pToken = NULL;
-    PSecBuffer pData = NULL;
     PSecBuffer pPadding = NULL;
 
     for (dwIndex = 0; dwIndex < pMessage->cBuffers; dwIndex++)
@@ -235,13 +254,6 @@ NtlmGetSecBuffers(
             if (!pToken)
             {
                 pToken = &pMessage->pBuffers[dwIndex];
-            }
-        }
-        else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_DATA)
-        {
-            if (!pData)
-            {
-                pData = &pMessage->pBuffers[dwIndex];
             }
         }
         else if (pMessage->pBuffers[dwIndex].BufferType == SECBUFFER_PADDING)
@@ -256,11 +268,6 @@ NtlmGetSecBuffers(
     if (ppToken)
     {
         *ppToken = pToken;
-    }
-
-    if (ppData)
-    {
-        *ppData = pData;
     }
 
     if (ppPadding)

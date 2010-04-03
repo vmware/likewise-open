@@ -59,18 +59,14 @@ NtlmServerMakeSignature(
     PNTLM_CONTEXT pContext = *phContext;
     // The following pointers point into pMessage and will not be freed
     PSecBuffer pToken = NULL;
-    PSecBuffer pData = NULL;
     PNTLM_SIGNATURE pSignature = NULL;
 
-    NtlmGetSecBuffers(pMessage, &pToken, &pData, NULL);
+    NtlmGetSecBuffers(pMessage, &pToken, NULL);
 
     // Do a full sanity check here
     if (!pToken ||
         pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
-        !pToken->pvBuffer ||
-        !pData ||
-        !pData->cbBuffer ||
-        !pData->pvBuffer)
+        !pToken->pvBuffer)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -92,7 +88,7 @@ NtlmServerMakeSignature(
     {
         dwError = NtlmInitializeSignature(
                     pContext,
-                    pData,
+                    pMessage,
                     pSignature);
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -114,11 +110,15 @@ error:
 DWORD
 NtlmInitializeSignature(
     PNTLM_CONTEXT pContext,
-    const SecBuffer* pData,
+    const PSecBufferDesc pMessage,
     PNTLM_SIGNATURE pSignature
     )
 {
     DWORD dwError = 0;
+    DWORD dwIndex = 0;
+    // Do not free
+    SecBuffer *pData = NULL;
+    BOOLEAN bFoundData = FALSE;
 
     if (!pContext->pdwSendMsgSeq)
     {
@@ -147,10 +147,32 @@ NtlmInitializeSignature(
                 (PBYTE)&pSignature->v2.dwMsgSeqNum,
                 sizeof(pSignature->v2.dwMsgSeqNum));
 
-        HMAC_Update(
-                &c,
-                pData->pvBuffer,
-                pData->cbBuffer);
+        for (dwIndex = 0 ; dwIndex < pMessage->cBuffers ; dwIndex++)
+        {
+            pData = &pMessage->pBuffers[dwIndex];
+
+            if ((pData->BufferType & ~SECBUFFER_ATTRMASK) == SECBUFFER_DATA)
+            {
+                if (!pData->pvBuffer)
+                {
+                    dwError = LW_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_LSA_ERROR(dwError);
+                }
+
+                bFoundData = TRUE;
+
+                HMAC_Update(
+                        &c,
+                        pData->pvBuffer,
+                        pData->cbBuffer);
+            }
+        }
+
+        if (!bFoundData)
+        {
+            dwError = LW_ERROR_INVALID_PARAMETER;
+            BAIL_ON_LSA_ERROR(dwError);
+        }
 
         HMAC_Final(
                 &c,
@@ -164,8 +186,7 @@ NtlmInitializeSignature(
     else
     {
         dwError = NtlmCrc32(
-                pData->pvBuffer,
-                pData->cbBuffer,
+                pMessage,
                 &pSignature->v1.encrypted.dwCrc32);
         BAIL_ON_LSA_ERROR(dwError);
     }

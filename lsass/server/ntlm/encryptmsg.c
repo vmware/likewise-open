@@ -61,6 +61,7 @@ NtlmServerEncryptMessage(
     PSecBuffer pToken = NULL;
     PSecBuffer pData = NULL;
     PNTLM_SIGNATURE pSignature = NULL;
+    DWORD dwIndex = 0;
 
     // Sanity check to see if we handle sealing
     if (bEncrypt && !(pContext->NegotiatedFlags & NTLM_FLAG_SEAL))
@@ -76,14 +77,12 @@ NtlmServerEncryptMessage(
     //
     // Find these buffers... the first one found of each type will be the one
     // that is used.
-    NtlmGetSecBuffers(pMessage, &pToken, &pData, NULL);
+    NtlmGetSecBuffers(pMessage, &pToken, NULL);
 
     // Do a full sanity check here
     if (!pToken ||
         pToken->cbBuffer != NTLM_SIGNATURE_SIZE ||
-        !pToken->pvBuffer ||
-        !pData ||
-        !pData->pvBuffer)
+        !pToken->pvBuffer)
     {
         dwError = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(dwError);
@@ -94,16 +93,30 @@ NtlmServerEncryptMessage(
     // Sign the original message before sealing it.
     dwError = NtlmInitializeSignature(
                 pContext,
-                pData,
+                pMessage,
                 pSignature);
     BAIL_ON_LSA_ERROR(dwError);
 
     // Always encrypt the message to match Windows' behavior
-    RC4(
-        pContext->pSealKey,
-        pData->cbBuffer,
-        pData->pvBuffer,
-        pData->pvBuffer);
+    for (dwIndex = 0 ; dwIndex < pMessage->cBuffers ; dwIndex++)
+    {
+        pData = &pMessage->pBuffers[dwIndex];
+
+        if (pData->BufferType == SECBUFFER_DATA)
+        {
+            if (!pData->pvBuffer)
+            {
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            RC4(
+                pContext->pSealKey,
+                pData->cbBuffer,
+                pData->pvBuffer,
+                pData->pvBuffer);
+        }
+    }
 
     NtlmFinalizeSignature(pContext, pSignature);
 
