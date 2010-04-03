@@ -161,6 +161,8 @@ NetExecFileQueryInfo(
     nStatus = NetFileGetInfoW(pwszServername, dwFileId, dwInfoLevel, &pBuffer);
     BAIL_ON_LWUTIL_ERROR(nStatus);
 
+    pFileInfo = (PFILE_INFO_3)pBuffer;
+
     if (pFileInfo->fi3_path_name)
     {
         LW_SAFE_FREE_STRING(pszPathname);
