@@ -88,12 +88,13 @@ pam_sm_authenticate(
                 pamh,
                 PAM_REPOSITORY,
                 (PAM_GET_ITEM_TYPE)&currentRepository);
-        if(currentRepository == NULL)
+        if (currentRepository == NULL)
         {
             struct pam_repository files = { "files", NULL, 0 };
-            if(pam_set_item(pamh, PAM_REPOSITORY, &files) != PAM_SUCCESS)
+            int pam_result = pam_set_item(pamh, PAM_REPOSITORY, &files);
+            if (pam_result != PAM_SUCCESS)
             {
-                dwError = LW_ERROR_INTERNAL;
+                LSA_LOG_PAM_WARNING("pam_sm_authenticate: warning unable to set pam repository [error code: %d]. This will cause password changes on login to fail, and it may cause password changes in general to fail.", pam_result);
                 BAIL_ON_LSA_ERROR(dwError);
             }
         }
