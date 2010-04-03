@@ -79,7 +79,7 @@
 
 #include "defs.h"
 #include "structs.h"
-#include "srvtimer.h"
+#include "prototypes.h"
 
 #include "externs.h"
 

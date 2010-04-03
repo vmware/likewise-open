@@ -240,6 +240,11 @@ SrvTree2CreateFile(
 
     InterlockedIncrement(&pFile->refcount);
 
+    pFile->resource.pAttributes->treeId.usTid     = pTree->ulTid;
+    pFile->resource.pAttributes->sessionId.ullUid = pTree->ullUid;
+    pFile->resource.pAttributes->ulConnectionResourceId =
+                                                pTree->ulConnectionResourceId;
+
     *ppFile = pFile;
 
 cleanup:

@@ -92,6 +92,26 @@ typedef struct _SRV_TIMER
 
 } SRV_TIMER, *PSRV_TIMER;
 
+typedef struct _SRV_ELEMENTS_RESOURCES
+{
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
+    PLWRTL_RB_TREE    pResources;
+
+    ULONG             ulNextAvailableId;
+
+} SRV_ELEMENTS_RESOURCES, *PSRV_ELEMENTS_RESOURCES;
+
+typedef struct _SRV_ELEMENTS_ENUM_RESOURCES
+{
+    SRV_RESOURCE_TYPE  resourceType;
+    PFN_ENUM_RESOURCES pfnEnumResourcesCB;
+    PVOID              pUserData;
+    BOOLEAN            bContinue;
+
+} SRV_ELEMENTS_ENUM_RESOURCES, *PSRV_ELEMENTS_ENUM_RESOURCES;
+
 typedef struct _SRV_ELEMENTS_GLOBALS
 {
     pthread_mutex_t  mutex;
@@ -110,6 +130,8 @@ typedef struct _SRV_ELEMENTS_GLOBALS
     pthread_rwlock_t*       pStatsLock;
 
     SRV_ELEMENTS_STATISTICS stats;
+
+    SRV_ELEMENTS_RESOURCES  resources;
 
 } SRV_ELEMENTS_GLOBALS, *PSRV_ELEMENTS_GLOBALS;
 

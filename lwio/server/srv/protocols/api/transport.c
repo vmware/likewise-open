@@ -350,6 +350,9 @@ SrvProtocolTransportDriverConnectionNew(
                     &pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvElementsRegisterResource(&pConnection->resource, NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pConnection->pProtocolTransportDriverContext = pProtocolDispatchContext;
 
     // Allocate buffer space
@@ -364,7 +367,7 @@ SrvProtocolTransportDriverConnectionNew(
 
     ntStatus = LwRtlRBTreeAdd(
                     gProtocolApiGlobals.pConnections,
-                    (PVOID)SrvTransportSocketGetAddressString(pSocket),
+                    &pConnection->resource.ulResourceId,
                     pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -500,13 +503,22 @@ SrvProtocolTransportDriverConnectionDone(
                 SrvTransportSocketGetFileDescriptor(pConnection->pSocket));
     }
 
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
+    if (pConnection->resource.ulResourceId)
+    {
+        PSRV_RESOURCE pResource = NULL;
 
-    LwRtlRBTreeRemove(
-            gProtocolApiGlobals.pConnections,
-            (PVOID)SrvTransportSocketGetAddressString(pConnection->pSocket));
+        SrvElementsUnregisterResource(
+                pConnection->resource.ulResourceId,
+                &pResource);
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
+
+        LwRtlRBTreeRemove(
+                gProtocolApiGlobals.pConnections,
+                &pConnection->resource.ulResourceId);
+
+        LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+    }
 
     SrvConnectionSetInvalid(pConnection);
     SrvConnectionRelease(pConnection);

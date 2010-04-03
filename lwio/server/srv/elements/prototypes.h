@@ -1,6 +1,7 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
+
 /*
  * Copyright Likewise Software
  * All rights reserved.
@@ -27,28 +28,38 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        srvtimer.h
+ *        prototypes.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Elements
+ *        Elements API
  *
- *        Timer
+ *        prototypes
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#ifndef __SRV_TIMER_H__
-#define __SRV_TIMER_H__
+// resources.c
+
+NTSTATUS
+SrvElementsResourcesInit(
+    VOID
+    );
+
+VOID
+SrvElementsResourcesShutdown(
+    VOID
+    );
+
+// srvtimer.h
 
 NTSTATUS
 SrvTimerInit(
@@ -81,4 +92,3 @@ SrvTimerFreeContents(
     PSRV_TIMER pTimer
     );
 
-#endif /* __SRV_TIMER_H__ */

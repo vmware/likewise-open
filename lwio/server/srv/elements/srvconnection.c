@@ -247,6 +247,8 @@ SrvConnectionCreate(
     memcpy(&pConnection->serverProperties, pServerProperties, sizeof(*pServerProperties));
     uuid_copy(pConnection->serverProperties.GUID, pServerProperties->GUID);
 
+    pConnection->resource.resourceType = SRV_RESOURCE_TYPE_CONNECTION;
+
     SRV_ELEMENTS_INCREMENT_CONNECTIONS;
 
     *ppConnection = pConnection;
@@ -840,6 +842,8 @@ SrvConnectionCreateSession(
 
     InterlockedIncrement(&pSession->refcount);
 
+    pSession->ulConnectionResourceId = pConnection->resource.ulResourceId;
+
     pConnection->ullSessionCount++;
 
     *ppSession = pSession;
@@ -892,6 +896,8 @@ SrvConnection2CreateSession(
     BAIL_ON_NT_STATUS(ntStatus);
 
     InterlockedIncrement(&pSession->refcount);
+
+    pSession->ulConnectionResourceId = pConnection->resource.ulResourceId;
 
     pConnection->ullSessionCount++;
 

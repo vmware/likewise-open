@@ -103,6 +103,11 @@ SrvFile2Create(
     pFile->createDisposition = createDisposition;
     pFile->createOptions = createOptions;
 
+    pFile->resource.resourceType                 = SRV_RESOURCE_TYPE_FILE;
+    pFile->resource.pAttributes                  = &pFile->resourceAttrs;
+    pFile->resource.pAttributes->protocolVersion = SMB_PROTOCOL_VERSION_2;
+    pFile->resource.pAttributes->fileId.pFid2    = &pFile->fid;
+
     LWIO_LOG_DEBUG( "Associating file [object:0x%x]"
                     "[fid: (persistent:%08X)(volatile:%08X)]",
                     pFile,
@@ -228,6 +233,34 @@ SrvFile2GetOplockLevel(
     return ucOplockLevel;
 }
 
+VOID
+SrvFile2RegisterLock(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    pFile->ulNumLocks++;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
+VOID
+SrvFile2RegisterUnlock(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    pFile->ulNumLocks--;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
 PLWIO_SRV_FILE_2
 SrvFile2Acquire(
     PLWIO_SRV_FILE_2 pFile
@@ -264,6 +297,13 @@ SrvFile2Rundown(
     PLWIO_SRV_FILE_2 pFile
     )
 {
+    if (pFile->resource.ulResourceId)
+    {
+        PSRV_RESOURCE pResource = NULL;
+
+        SrvElementsUnregisterResource(pFile->resource.ulResourceId, &pResource);
+        pFile->resource.ulResourceId = 0;
+    }
     if (pFile->hFile)
     {
         IoCancelFile(pFile->hFile);
@@ -323,6 +363,14 @@ SrvFile2Free(
     if (pFile->searchSpace.pFileInfo)
     {
         SrvFreeMemory(pFile->searchSpace.pFileInfo);
+    }
+
+    if (pFile->resource.ulResourceId)
+    {
+        PSRV_RESOURCE pResource = NULL;
+
+        SrvElementsUnregisterResource(pFile->resource.ulResourceId, &pResource);
+        pFile->resource.ulResourceId = 0;
     }
 
     SrvFreeMemory(pFile);

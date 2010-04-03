@@ -2033,6 +2033,11 @@ SrvProcessNtTransactCreate(
             ntStatus = SrvBuildNTTransactCreateResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            ntStatus = SrvElementsRegisterResource(
+                            &pNTTransactState->pFile->resource,
+                            NULL);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvSessionIncrementFileCount(pCtxSmb1->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 

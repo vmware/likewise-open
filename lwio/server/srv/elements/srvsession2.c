@@ -279,9 +279,10 @@ SrvSession2CreateTree(
                     pTree);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    InterlockedIncrement(&pTree->refcount);
+    pTree->ullUid                 = pSession->ullUid;
+    pTree->ulConnectionResourceId = pSession->ulConnectionResourceId;
 
-    *ppTree = pTree;
+    *ppTree = SrvTree2Acquire(pTree);
 
 cleanup:
 

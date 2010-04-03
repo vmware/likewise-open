@@ -57,6 +57,9 @@ SrvElementsInit(
     NTSTATUS status = STATUS_SUCCESS;
     int      iIter = 0;
 
+    status = SrvElementsResourcesInit();
+    BAIL_ON_NT_STATUS(status);
+
     status = WireGetCurrentNTTime(&gSrvElements.llBootTime);
     BAIL_ON_NT_STATUS(status);
 
@@ -195,6 +198,8 @@ SrvElementsShutdown(
         pthread_rwlock_destroy(&gSrvElements.statsLock);
         gSrvElements.pStatsLock = NULL;
     }
+
+    SrvElementsResourcesShutdown();
 
 error:
 

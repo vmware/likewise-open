@@ -57,5 +57,10 @@ SRV_ELEMENTS_GLOBALS gSrvElements =
     .llBootTime       = 0LL,
     .bShareNameEcpEnabled = FALSE,
     .pStatsLock       = NULL,
-    .stats            = {0}
+    .stats            = {0},
+    .resources        =
+        {
+            .pMutex     = NULL,
+            .pResources = NULL
+        }
 };

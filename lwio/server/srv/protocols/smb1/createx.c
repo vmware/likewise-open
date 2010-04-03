@@ -272,6 +272,11 @@ SrvProcessNTCreateAndX(
             ntStatus = SrvBuildNTCreateResponse_inlock(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            ntStatus = SrvElementsRegisterResource(
+                            &pCreateState->pFile->resource,
+                            NULL);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvSessionIncrementFileCount(pCtxSmb1->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 

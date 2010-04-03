@@ -144,4 +144,28 @@ typedef struct _SRV_PROTOCOL_SESSION_ENUM_QUERY
 
 } SRV_PROTOCOL_SESSION_ENUM_QUERY, *PSRV_PROTOCOL_SESSION_ENUM_QUERY;
 
+typedef struct _SRV_PROTOCOL_FILE_ENUM_QUERY
+{
+    PWSTR    pwszBasepath;
+    PWSTR    pwszUsername;
+    ULONG    ulInfoLevel;
+
+    ULONG    iEntryIndex;
+    ULONG    iResumeIndex;
+
+    ULONG    ulEntriesRead;
+    ULONG    ulTotalEntries;
+
+    PBYTE    pBuffer;
+    ULONG    ulBufferSize;
+    ULONG    ulBytesUsed;
+
+    PLWIO_SRV_CONNECTION pConnection;
+    PLWIO_SRV_SESSION    pSession;
+    PLWIO_SRV_SESSION_2  pSession2;
+    PLWIO_SRV_TREE       pTree;
+    PLWIO_SRV_TREE_2     pTree2;
+
+} SRV_PROTOCOL_FILE_ENUM_QUERY, *PSRV_PROTOCOL_FILE_ENUM_QUERY;
+
 #endif /* __STRUCTS_H__ */

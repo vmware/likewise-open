@@ -68,7 +68,7 @@ SrvFileCreate(
     FILE_SHARE_FLAGS        shareAccess,
     FILE_CREATE_DISPOSITION createDisposition,
     FILE_CREATE_OPTIONS     createOptions,
-    PLWIO_SRV_FILE*          ppFile
+    PLWIO_SRV_FILE*         ppFile
     )
 {
     NTSTATUS ntStatus = 0;
@@ -101,6 +101,11 @@ SrvFileCreate(
     pFile->createDisposition = createDisposition;
     pFile->createOptions = createOptions;
     pFile->ullLastFailedLockOffset = -1;
+
+    pFile->resource.resourceType                 = SRV_RESOURCE_TYPE_FILE;
+    pFile->resource.pAttributes                  = &pFile->resourceAttrs;
+    pFile->resource.pAttributes->protocolVersion = SMB_PROTOCOL_VERSION_1;
+    pFile->resource.pAttributes->fileId.pFid1    = &pFile->fid;
 
     LWIO_LOG_DEBUG("Associating file [object:0x%x][fid:%u]",
                     pFile,
@@ -260,6 +265,34 @@ SrvFileGetLastFailedLockOffset(
     return ullLastFailedLockOffset;
 }
 
+VOID
+SrvFileRegisterLock(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    pFile->ulNumLocks++;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
+VOID
+SrvFileRegisterUnlock(
+    PLWIO_SRV_FILE pFile
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pFile->mutex);
+
+    pFile->ulNumLocks--;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
 PLWIO_SRV_FILE
 SrvFileAcquire(
     PLWIO_SRV_FILE pFile
@@ -292,13 +325,19 @@ SrvFileRundown(
     PLWIO_SRV_FILE pFile
     )
 {
+    if (pFile->resource.ulResourceId)
+    {
+        PSRV_RESOURCE pResource = NULL;
+
+        SrvElementsUnregisterResource(pFile->resource.ulResourceId, &pResource);
+        pFile->resource.ulResourceId = 0;
+    }
     if (pFile->hFile)
     {
         IoCancelFile(pFile->hFile);
     }
 
     SrvOplockStateRundown(pFile);
-
 }
 
 static
@@ -345,6 +384,14 @@ SrvFileFree(
     if (pFile->hFile)
     {
         IoCloseFile(pFile->hFile);
+    }
+
+    if (pFile->resource.ulResourceId)
+    {
+        PSRV_RESOURCE pResource = NULL;
+
+        SrvElementsUnregisterResource(pFile->resource.ulResourceId, &pResource);
+        pFile->resource.ulResourceId = 0;
     }
 
     SrvFreeMemory(pFile);

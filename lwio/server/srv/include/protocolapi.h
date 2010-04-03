@@ -33,15 +33,13 @@
  *
  * Module Name:
  *
- *        srv/protocol.h
+ *        protocolapi.h
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
  *        Protocols
- *
- *        Definitions
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
@@ -51,60 +49,60 @@
 #define __PROTOCOL_API_H__
 
 typedef VOID (*PFN_SRV_PROTOCOL_SEND_COMPLETE)(
-    IN PVOID pContext,
-    IN NTSTATUS Status
+    PVOID    pContext, /* IN */
+    NTSTATUS Status    /* IN */
     );
 
 NTSTATUS
 SrvProtocolInit(
-    PSMB_PROD_CONS_QUEUE pWorkQueue,
-    PLWIO_PACKET_ALLOCATOR hPacketAllocator,
-    PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    PSMB_PROD_CONS_QUEUE       pWorkQueue,        /* IN */
+    PLWIO_PACKET_ALLOCATOR     hPacketAllocator,  /* IN */
+    PLWIO_SRV_SHARE_ENTRY_LIST pShareList         /* IN */
     );
 
 NTSTATUS
 SrvProtocolExecute(
-    PSRV_EXEC_CONTEXT pContext
+    PSRV_EXEC_CONTEXT pContext /* IN */
     );
 
 NTSTATUS
 SrvProtocolTransportSendResponse(
-    IN PLWIO_SRV_CONNECTION pConnection,
-    IN PSMB_PACKET pPacket
+    PLWIO_SRV_CONNECTION pConnection, /* IN */
+    PSMB_PACKET          pPacket      /* IN */
     );
 
 NTSTATUS
 SrvProtocolTransportSendZctResponse(
-    IN PLWIO_SRV_CONNECTION pConnection,
-    IN PLW_ZCT_VECTOR pZct,
-    IN OPTIONAL PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback,
-    IN OPTIONAL PVOID pCallbackContext
+    PLWIO_SRV_CONNECTION           pConnection,     /* IN          */
+    PLW_ZCT_VECTOR                 pZct,            /* IN          */
+    PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback,     /* IN OPTIONAL */
+    PVOID                          pCallbackContext /* IN OPTIONAL */
     );
 
 NTSTATUS
 SrvProtocolEnumerateSessions(
-    PWSTR  pwszUncClientname,
-    PWSTR  pwszUsername,
-    ULONG  ulInfoLevel,
-    PBYTE  pBuffer,
-    ULONG  ulBufferSize,
-    PULONG pulBytesUsed,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries,
-    PULONG pulResumeHandle
+    PWSTR  pwszUncClientname, /* IN     OPTIONAL */
+    PWSTR  pwszUsername,      /* IN     OPTIONAL */
+    ULONG  ulInfoLevel,       /* IN              */
+    PBYTE  pBuffer,           /* IN              */
+    ULONG  ulBufferSize,      /* IN              */
+    PULONG pulBytesUsed,      /* IN OUT          */
+    PULONG pulEntriesRead,    /* IN OUT          */
+    PULONG pulTotalEntries,   /* IN OUT          */
+    PULONG pulResumeHandle    /* IN OUT OPTIONAL */
     );
 
 NTSTATUS
 SrvProtocolEnumerateFiles(
-    PWSTR  pwszBasepath,
-    PWSTR  pwszUsername,
-    ULONG  ulInfoLevel,
-    PBYTE  pBuffer,
-    ULONG  ulBufferSize,
-    PULONG pulBytesUsed,
-    PULONG pulEntriesRead,
-    PULONG pulTotalEntries,
-    PULONG pulResumeHandle
+    PWSTR  pwszBasepath,      /* IN     OPTIONAL */
+    PWSTR  pwszUsername,      /* IN     OPTIONAL */
+    ULONG  ulInfoLevel,       /* IN              */
+    PBYTE  pBuffer,           /* IN              */
+    ULONG  ulBufferSize,      /* IN              */
+    PULONG pulBytesUsed,      /* IN OUT          */
+    PULONG pulEntriesRead,    /* IN OUT          */
+    PULONG pulTotalEntries,   /* IN OUT          */
+    PULONG pulResumeHandle    /* IN OUT OPTIONAL */
     );
 
 VOID

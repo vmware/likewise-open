@@ -260,6 +260,11 @@ SrvTreeCreateFile(
                     pFile);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pFile->resource.pAttributes->treeId.usTid    = pTree->tid;
+    pFile->resource.pAttributes->sessionId.usUid = pTree->uid;
+    pFile->resource.pAttributes->ulConnectionResourceId =
+                                                pTree->ulConnectionResourceId;
+
     *ppFile = SrvFileAcquire(pFile);
 
 cleanup:

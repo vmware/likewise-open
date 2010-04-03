@@ -265,6 +265,11 @@ SrvProcessOpenAndX(
             ntStatus = SrvBuildOpenResponse(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            ntStatus = SrvElementsRegisterResource(
+                            &pOpenState->pFile->resource,
+                            NULL);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvSessionIncrementFileCount(pCtxSmb1->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
@@ -273,9 +278,6 @@ SrvProcessOpenAndX(
             // intentional fall through
 
         case SRV_OPEN_STAGE_SMB_V1_DONE:
-
-            ntStatus = pOpenState->ioStatusBlock.Status;
-            BAIL_ON_NT_STATUS(ntStatus);
 
             pOpenState->bRemoveFileFromTree = FALSE;
 

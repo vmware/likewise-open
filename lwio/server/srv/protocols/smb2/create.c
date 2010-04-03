@@ -386,12 +386,6 @@ SrvProcessCreate_SMB_V2(
             ntStatus = SrvBuildCreateResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_DONE;
-
-            // intentional fall through
-
-        case SRV_CREATE_STAGE_SMB_V2_DONE:
-
             if (pCreateState->ullAsyncId)
             {
                 ntStatus = SrvConnection2RemoveAsyncState(
@@ -400,8 +394,19 @@ SrvProcessCreate_SMB_V2(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
+            ntStatus = SrvElementsRegisterResource(
+                            &pCreateState->pFile->resource,
+                            NULL);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvSession2IncrementFileCount(pCtxSmb2->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_DONE;
+
+            // intentional fall through
+
+        case SRV_CREATE_STAGE_SMB_V2_DONE:
 
             pCreateState->bRemoveFileFromTree = FALSE;
 

@@ -73,6 +73,63 @@ typedef struct __SMB2_FID
     ULONG64 ullVolatileId;
 } __attribute__((__packed__)) SMB2_FID, *PSMB2_FID;
 
+typedef enum
+{
+    SRV_RESOURCE_TYPE_UNKNOWN = 0,
+    SRV_RESOURCE_TYPE_CONNECTION,
+    SRV_RESOURCE_TYPE_FILE
+} SRV_RESOURCE_TYPE;
+
+typedef struct _SRV_RESOURCE_ATTRIBUTES
+{
+    SMB_PROTOCOL_VERSION protocolVersion;
+
+    ULONG        ulConnectionResourceId;
+
+    union
+    {
+
+        USHORT   usUid;
+        ULONG64  ullUid;
+
+    } sessionId;
+
+    union
+    {
+
+        USHORT   usTid;
+        ULONG    ulTid;
+
+    } treeId;
+
+    union
+    {
+
+        PUSHORT   pFid1;
+        PSMB2_FID pFid2;
+
+    } fileId;
+
+} SRV_RESOURCE_ATTRIBUTES, *PSRV_RESOURCE_ATTRIBUTES;
+
+typedef struct _SRV_RESOURCE
+{
+    LONG                     refCount;
+
+    ULONG                    ulResourceId;
+
+    SRV_RESOURCE_TYPE        resourceType;
+
+    PSRV_RESOURCE_ATTRIBUTES pAttributes;
+
+} SRV_RESOURCE, *PSRV_RESOURCE;
+
+typedef NTSTATUS (*PFN_ENUM_RESOURCES)(
+                    PSRV_RESOURCE pResource,
+                    PVOID         pUserData,
+                    PBOOLEAN      pbContinue
+                    );
+
 typedef struct _LWIO_ASYNC_STATE
 {
     pthread_rwlock_t               mutex;
@@ -99,6 +156,9 @@ typedef struct _LWIO_SRV_FILE
 
     USHORT                  fid;
 
+    SRV_RESOURCE            resource;
+    SRV_RESOURCE_ATTRIBUTES resourceAttrs;
+
     IO_FILE_HANDLE          hFile;
     PIO_FILE_NAME           pFilename; // physical path on server
     PWSTR                   pwszFilename; // requested path
@@ -109,7 +169,10 @@ typedef struct _LWIO_SRV_FILE
     FILE_CREATE_DISPOSITION createDisposition;
     FILE_CREATE_OPTIONS     createOptions;
 
-    UCHAR                          ucCurrentOplockLevel;
+    UCHAR                   ucCurrentOplockLevel;
+
+    ULONG                   ulPermissions;
+    ULONG                   ulNumLocks;
 
     HANDLE                           hOplockState;
     PFN_LWIO_SRV_CANCEL_OPLOCK_STATE pfnCancelOplockState;
@@ -147,6 +210,9 @@ typedef struct _LWIO_SRV_FILE_2
 
     SMB2_FID                fid;
 
+    SRV_RESOURCE            resource;
+    SRV_RESOURCE_ATTRIBUTES resourceAttrs;
+
     IO_FILE_HANDLE          hFile;
     PIO_FILE_NAME           pFilename; // physical path on server
     PWSTR                   pwszFilename; // requested path
@@ -160,7 +226,10 @@ typedef struct _LWIO_SRV_FILE_2
     LWIO_SRV_SEARCH_SPACE_2  searchSpace;
     PLWIO_SRV_SEARCH_SPACE_2 pSearchSpace;
 
-    UCHAR                          ucCurrentOplockLevel;
+    UCHAR                    ucCurrentOplockLevel;
+
+    ULONG                    ulPermissions;
+    ULONG                    ulNumLocks;
 
     HANDLE                         hOplockState;
     PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
@@ -175,6 +244,8 @@ typedef struct _LWIO_SRV_TREE
     pthread_rwlock_t* pMutex;
 
     USHORT            tid;
+    USHORT            uid;
+    ULONG             ulConnectionResourceId;
 
     PSRV_SHARE_INFO   pShareInfo;
 
@@ -198,6 +269,8 @@ typedef struct _LWIO_SRV_TREE_2
     pthread_rwlock_t* pMutex;
 
     ULONG             ulTid;
+    ULONG64           ullUid;
+    ULONG             ulConnectionResourceId;
 
     PSRV_SHARE_INFO   pShareInfo;
 
@@ -219,6 +292,8 @@ typedef struct _LWIO_SRV_SESSION
     pthread_rwlock_t* pMutex;
 
     USHORT            uid;
+
+    ULONG             ulConnectionResourceId;
 
     LONG64            llBirthTime;
 
@@ -250,6 +325,8 @@ typedef struct _LWIO_SRV_SESSION_2
     pthread_rwlock_t* pMutex;
 
     ULONG64           ullUid;
+
+    ULONG             ulConnectionResourceId;
 
     LONG64            llBirthTime;
 
@@ -333,6 +410,7 @@ typedef struct _SRV_CONNECTION
     LWIO_SRV_CONN_STATE  state;
 
     // Immutable for lifetime of connection.
+    SRV_RESOURCE     resource;
     PWSTR            pwszClientAddress;
     PLWIO_SRV_SOCKET pSocket;
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
@@ -1155,6 +1233,16 @@ SrvFileGetLastFailedLockOffset(
     PLWIO_SRV_FILE pFile
     );
 
+VOID
+SrvFileRegisterLock(
+    PLWIO_SRV_FILE pFile
+    );
+
+VOID
+SrvFileRegisterUnlock(
+    PLWIO_SRV_FILE pFile
+    );
+
 PLWIO_SRV_FILE
 SrvFileAcquire(
     PLWIO_SRV_FILE pFile
@@ -1210,6 +1298,16 @@ SrvFile2SetOplockLevel(
 
 UCHAR
 SrvFile2GetOplockLevel(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2RegisterLock(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2RegisterUnlock(
     PLWIO_SRV_FILE_2 pFile
     );
 
@@ -1327,6 +1425,25 @@ SrvElementsGetShareNameEcpEnabled(
 NTSTATUS
 SrvElementsGetStats(
     PSRV_ELEMENTS_STATISTICS pStats
+    );
+
+NTSTATUS
+SrvElementsRegisterResource(
+    PSRV_RESOURCE pResource,     /* IN OUT          */
+    PULONG        pulResourceId  /* IN OUT OPTIONAL */
+    );
+
+NTSTATUS
+SrvElementsEnumResources(
+    SRV_RESOURCE_TYPE  resourceType,
+    PFN_ENUM_RESOURCES pfnEnumResourcesCB,
+    PVOID              pUserData
+    );
+
+NTSTATUS
+SrvElementsUnregisterResource(
+    ULONG          ulResourceId, /* IN              */
+    PSRV_RESOURCE* ppResource    /*    OUT OPTIONAL */
     );
 
 NTSTATUS
