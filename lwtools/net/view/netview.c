@@ -36,7 +36,7 @@ NetView(
 
         case NETVIEW_EMPTY:
             dwError = NetViewEmpty();
-    
+
 
         case NETVIEW_DEL:
             dwError = NetViewUNCName();
