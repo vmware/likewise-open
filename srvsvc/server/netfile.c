@@ -96,6 +96,13 @@ SrvSvcSrvFreeFileInfo_level_3(
     DWORD        dwNumEntries
     );
 
+static
+VOID
+SrvSvcFreeFileInfoContents(
+    DWORD               dwInfoLevel,
+    srvsvc_NetFileInfo* pInfo
+    );
+
 NET_API_STATUS
 SrvSvcNetFileEnum(
     handle_t           IDL_handle,           /* [in]      */
@@ -572,9 +579,9 @@ SrvSvcNetFileGetInfo(
     FILE_CREATE_DISPOSITION dwCreateDisposition = 0;
     FILE_CREATE_OPTIONS     dwCreateOptions     = 0;
     ULONG                   dwIoControlCode     = SRV_DEVCTL_GET_FILE_INFO;
-    FILE_INFO_GET_INFO_PARAMS  fileGetInfoParamsIn = {0};
-    PFILE_INFO_GET_INFO_PARAMS pFileGetInfoParamsOut = NULL;
-    PFILE_INFO pFileInfo   = NULL;
+    ULONG                   dwCount             = 0;
+    FILE_INFO_GET_INFO_IN_PARAMS  fileGetInfoParamsIn = {0};
+    PFILE_INFO_UNION pFileInfo = NULL;
 
     switch (dwInfoLevel)
     {
@@ -612,7 +619,7 @@ SrvSvcNetFileGetInfo(
     fileGetInfoParamsIn.dwFileId    = dwFileId;
     fileGetInfoParamsIn.dwInfoLevel = dwInfoLevel;
 
-    ntStatus = LwFileInfoMarshalGetInfoParameters(
+    ntStatus = LwFileInfoMarshalGetInfoInParameters(
                         &fileGetInfoParamsIn,
                         &pInBuffer,
                         &dwInLength);
@@ -654,38 +661,41 @@ SrvSvcNetFileGetInfo(
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwFileInfoUnmarshalGetInfoParameters(
+    ntStatus = LwFileInfoUnmarshalGetInfoOutParameters(
                         pOutBuffer,
                         dwOutLength,
-                        &pFileGetInfoParamsOut);
+                        dwInfoLevel,
+                        &pFileInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SrvSvcSrvAllocateMemory(sizeof(*pFileInfo), (PVOID*)&pFileInfo);
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    switch (pFileGetInfoParamsOut->dwInfoLevel)
+    switch (dwInfoLevel)
     {
         case 2:
 
-            pInfo->info2   = &pFileInfo->info2;
-            memcpy(pInfo->info2, pFileGetInfoParamsOut->info.p2, sizeof(*pInfo->info2));
+            dwError = SrvSvcSrvMarshalFileInfo_level_2(
+                            pFileInfo->p2,
+                            1,
+                            &pInfo->info2,
+                            &dwCount);
 
             break;
 
         case 3:
 
-            pInfo->info3   = &pFileInfo->info3;
-            memcpy(pInfo->info3, pFileGetInfoParamsOut->info.p3, sizeof(*pInfo->info3));
+            dwError = SrvSvcSrvMarshalFileInfo_level_3(
+                            pFileInfo->p3,
+                            1,
+                            &pInfo->info3,
+                            &dwCount);
 
             break;
 
         default:
 
-            ntStatus = STATUS_INVALID_LEVEL;
-            BAIL_ON_NT_STATUS(ntStatus);
-
+            dwError = ERROR_INVALID_LEVEL;
             break;
     }
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
 
@@ -696,7 +706,10 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
-    LW_SAFE_FREE_MEMORY(pFileGetInfoParamsOut);
+    if (pFileInfo)
+    {
+        LwFileInfoFree(dwInfoLevel, 1, pFileInfo);
+    }
 
     return dwError;
 
@@ -704,6 +717,8 @@ error:
 
     if (pInfo)
     {
+        SrvSvcFreeFileInfoContents(dwInfoLevel, pInfo);
+
         memset(pInfo, 0x0, sizeof(*pInfo));
     }
 
@@ -712,12 +727,34 @@ error:
         dwError = LwNtStatusToWin32Error(ntStatus);
     }
 
-    if (pFileInfo)
-    {
-        SrvSvcSrvFreeMemory(pFileInfo);
-    }
-
     goto cleanup;
+}
+
+static
+VOID
+SrvSvcFreeFileInfoContents(
+    DWORD               dwInfoLevel,
+    srvsvc_NetFileInfo* pInfo
+    )
+{
+    switch (dwInfoLevel)
+    {
+        case 2:
+
+            SrvSvcSrvFreeFileInfo_level_2(pInfo->info2, 1);
+
+            break;
+
+        case 3:
+
+            SrvSvcSrvFreeFileInfo_level_3(pInfo->info3, 1);
+
+            break;
+
+        default:
+
+            break;
+    }
 }
 
 NET_API_STATUS
