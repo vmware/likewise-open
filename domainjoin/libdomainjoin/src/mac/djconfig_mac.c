@@ -43,7 +43,7 @@ typedef enum
 #define LWIDSPLUGIN_INSTALL_PATH LIBDIR "/LWIDSPlugin.dsplug"
 #define LWEDSPLUGIN_INSTALL_PATH LIBDIR "/LWEDSPlugin.dsplug"
 #define LWDSPLUGIN_NAME         "/Likewise - Active Directory"
-#define APPLEADDSPLUGIN_NAME    "/Active Directory"
+#define APPLEADDSPLUGIN_NAME    "^Active Directory"
 #define PID_FILE_CONTENTS_SIZE   ((9 * 2) + 2)
 #define CONFIGD_PID_FILE         "/var/run/configd.pid"
 
@@ -428,7 +428,6 @@ DJFlushCache(
 
     DJ_LOG_INFO("Flushing dns cache");
 
-
     for (i = 0; i < (sizeof(cacheUtils) / sizeof(cacheUtils[0])); i++)
     {
         const char* command = cacheUtils[i];
@@ -518,7 +517,13 @@ DJIsAppleADPluginInUse(BOOLEAN* pExists)
     ceError = CTAllocateString("-list", ppszArgs+2);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
-    ceError = CTAllocateString(APPLEADDSPLUGIN_NAME, ppszArgs+3);
+    ceError = CTAllocateString("|", ppszArgs+3);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString("grep", ppszArgs+4);
+    BAIL_ON_CENTERIS_ERROR(ceError);
+
+    ceError = CTAllocateString(APPLEADDSPLUGIN_NAME, ppszArgs+5);
     BAIL_ON_CENTERIS_ERROR(ceError);
 
     ceError = DJSpawnProcess(ppszArgs[0], ppszArgs, &pProcInfo);
