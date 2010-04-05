@@ -48,18 +48,16 @@
 
 /* Forward declarations */
 
-static NTSTATUS
+static
+NTSTATUS
 PvfsResolvePath(
     PSTR *ppszResolvedPath,
     PCSTR pszLookupPath
     );
 
 
-/* Code */
-
-
-/********************************************************
- *******************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsCanonicalPathName(
@@ -67,12 +65,53 @@ PvfsCanonicalPathName(
     IO_FILE_NAME IoPath
     )
 {
-    return PvfsWC16CanonicalPathName(ppszPath, IoPath.FileName);
+    PPVFS_CCB pRootCcb = NULL;
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PSTR pszFilename = NULL;
+    PSTR pszCompletePath = NULL;
+
+    ntError = PvfsWC16CanonicalPathName(&pszFilename, IoPath.FileName);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (IoPath.RootFileHandle)
+    {
+        ntError = PvfsAcquireCCB(IoPath.RootFileHandle, &pRootCcb);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = LwRtlCStringAllocatePrintf(
+            &pszCompletePath,
+            "%s%s%s",
+            pRootCcb->pszFilename,
+            *pszFilename == '/' ? "" : "/",
+            pszFilename);
+        BAIL_ON_NT_STATUS(ntError);
+    }
+    else
+    {
+        pszCompletePath = pszFilename;
+        pszFilename = NULL;
+    }
+
+    *ppszPath = pszCompletePath;
+
+cleanup:
+    LwRtlCStringFree(&pszFilename);
+
+    if (pRootCcb)
+    {
+        PvfsReleaseCCB(pRootCcb);
+    }
+
+    return ntError;
+
+error:
+    LwRtlCStringFree(&pszCompletePath);
+
+    goto cleanup;
 }
 
-
-/********************************************************
- *******************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsWC16CanonicalPathName(
