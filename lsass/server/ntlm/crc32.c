@@ -106,7 +106,7 @@ NtlmCrc32(
     // to -1.
     kiov[dwKiovPos].flags = KRB5_CRYPTO_TYPE_SIGN_ONLY;
     kiov[dwKiovPos].data.length = sizeof(pbMagic);
-    kiov[dwKiovPos++].data.data = pbMagic;
+    kiov[dwKiovPos++].data.data = (void*)&pbMagic[0];
 
     for (dwIndex = 0 ; dwIndex < pMessage->cBuffers ; dwIndex++)
     {
