@@ -251,6 +251,11 @@ PvfsAccessCheckFile(
     ntError = STATUS_SUCCESS;
 
 cleanup:
+    if (pszParentPath)
+    {
+        LwRtlCStringFree(&pszParentPath);
+    }
+
     if (pParentSecDesc)
     {
         PvfsFreeAbsoluteSecurityDescriptor(&pParentSecDesc);
