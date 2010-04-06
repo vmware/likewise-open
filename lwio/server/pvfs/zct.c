@@ -120,7 +120,12 @@ PvfsCreateZctContext(
     PPVFS_ZCT_CONTEXT pZctContext = NULL;
     PVFS_ZCT_MODE ZctMode = gPvfsDriverConfig.ZctMode;
 
-    LWIO_ASSERT(IRP_ZCT_OPERATION_PREPARE == pIrpContext->pIrp->Args.ReadWrite.ZctOperation);
+    if (IRP_ZCT_OPERATION_PREPARE != pIrpContext->pIrp->Args.ReadWrite.ZctOperation)
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
 
     switch (ZctMode)
     {
@@ -164,7 +169,6 @@ PvfsCreateZctContext(
 #endif
     default:
         // can never happen
-        LWIO_ASSERT(FALSE);
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
@@ -221,7 +225,7 @@ PvfsFreeZctContext(
 #endif
         default:
             // can never happen
-            LWIO_ASSERT(FALSE);
+            break;
         }
         if (pZctContext->pCcb)
         {
@@ -420,15 +424,28 @@ PvfsZctCloseCcb(
     )
 {
     BOOLEAN bMutexLocked = FALSE;
+    PLW_LIST_LINKS pZctCtxLink = NULL;
+    PLW_LIST_LINKS pNextLink = NULL;
+    PPVFS_ZCT_CONTEXT pZctContext = NULL;
 
     LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
-    while (!LwListIsEmpty(&pCcb->ZctContextListHead))
+
+    pZctCtxLink = PvfsListTraverse(pCcb->pZctContextList, NULL);
+
+    while (pZctCtxLink)
     {
-        PLW_LIST_LINKS pLinks = pCcb->ZctContextListHead.Next;
-        PPVFS_ZCT_CONTEXT pZctContext = LW_STRUCT_FROM_FIELD(pLinks, PVFS_ZCT_CONTEXT, CcbLinks);
+        pZctContext = LW_STRUCT_FROM_FIELD(
+                          pZctCtxLink,
+                          PVFS_ZCT_CONTEXT,
+                          CcbLinks);
+
+        pNextLink = PvfsListTraverse(pCcb->pZctContextList, pZctCtxLink);
+        PvfsListRemoveItem(pCcb->pZctContextList, pZctCtxLink);
+        pZctCtxLink = pNextLink;
 
         PvfsFreeZctContext(&pZctContext);
     }
+
     LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 }
 

@@ -73,7 +73,11 @@ PvfsAllocateCCB(
     pCCB->bCloseInProgress = FALSE;
     pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
 
-    LwListInit(&pCCB->ZctContextListHead);
+    ntError = PvfsListInit(
+                  &pCCB->pZctContextList,
+                  0,  /* no max size */
+                  (PPVFS_LIST_FREE_DATA_FN)PvfsFreeZctContext);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Add initial ref count */
 
@@ -120,7 +124,7 @@ PvfsFreeCCB(
         pCCB->pUserToken = NULL;
     }
 
-    LWIO_ASSERT(LwListIsEmpty(&pCCB->ZctContextListHead));
+    PvfsListDestroy(&pCCB->pZctContextList);
 
     LwRtlCStringFree(&pCCB->pszFilename);
 

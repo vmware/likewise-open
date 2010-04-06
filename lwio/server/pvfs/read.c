@@ -83,19 +83,19 @@ PvfsRead(
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    IRP_ARGS_READ_WRITE Args = pIrpContext->pIrp->Args.ReadWrite;
 
     switch (pIrpContext->pIrp->Args.ReadWrite.ZctOperation)
     {
     case IRP_ZCT_OPERATION_NONE:
-        LWIO_ASSERT(!pIrpContext->pIrp->Args.ReadWrite.Length || pIrpContext->pIrp->Args.ReadWrite.Buffer);
         ntError = PvfsReadInternal(pIrpContext);
         break;
     case IRP_ZCT_OPERATION_PREPARE:
-        LWIO_ASSERT(pIrpContext->pIrp->Args.ReadWrite.Zct);
+        BAIL_ON_INVALID_PTR(Args.Zct, ntError);
         ntError = PvfsReadInternal(pIrpContext);
         break;
     case IRP_ZCT_OPERATION_COMPLETE:
-        LWIO_ASSERT(pIrpContext->pIrp->Args.ReadWrite.ZctCompletionContext);
+        BAIL_ON_INVALID_PTR(Args.ZctCompletionContext, ntError);
         ntError = PvfsZctCompleteRead(pIrpContext);
         break;
     default:
@@ -292,7 +292,12 @@ PvfsReadFileWithContext(
     {
         /* Save the ZCT context for complete */
         pIrp->Args.ReadWrite.ZctCompletionContext = pReadCtx->pZctContext;
-        LwListInsertHead(&pCcb->ZctContextListHead, &pReadCtx->pZctContext->CcbLinks);
+
+        ntError = PvfsListAddTail(
+                      pCcb->pZctContextList,
+                      &pReadCtx->pZctContext->CcbLinks);
+        BAIL_ON_NT_STATUS(ntError);
+
         pReadCtx->pZctContext = NULL;
     }
 

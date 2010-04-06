@@ -368,8 +368,7 @@ struct _PVFS_CCB
     FILE_NOTIFY_CHANGE ChangeEvent;
     LONG64 FileSize;
 
-    /* ZCT contexts for this open (PVFS_ZCT_CONTEXT) */
-    LW_LIST_LINKS ZctContextListHead;
+    PPVFS_LIST pZctContextList;
 };
 
 typedef enum
