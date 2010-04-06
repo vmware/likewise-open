@@ -46,19 +46,55 @@
 
 DWORD
 NtlmCrc32(
-    PBYTE pBuffer,
-    DWORD dwBufferSize,
+    const SecBufferDesc* pMessage,
     PDWORD pdwCrc32
     )
 {
     DWORD dwError = LW_ERROR_SUCCESS;
     krb5_error_code KrbError= 0;
-    krb5_data Input;
-    krb5_checksum Output;
     DWORD dwChecksum = 0;
+    size_t cKiov = 0;
+    krb5_crypto_iov *kiov = NULL;
+    DWORD dwIndex = 0;
+    DWORD dwKiovPos = 0;
+    // Do not free
+    SecBuffer *pData = NULL;
+    BYTE pbMagic[] = { 0x62, 0xF5, 0x26, 0x92 };
 
-    memset(&Input, 0, sizeof(Input));
-    memset(&Output, 0, sizeof(Output));
+    for (dwIndex = 0 ; dwIndex < pMessage->cBuffers ; dwIndex++)
+    {
+        pData = &pMessage->pBuffers[dwIndex];
+
+        if ((pData->BufferType & ~SECBUFFER_ATTRMASK) == SECBUFFER_DATA)
+        {
+            if (!pData->pvBuffer)
+            {
+                dwError = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(dwError);
+            }
+
+            cKiov++;
+        }
+    }
+    if (cKiov == 0)
+    {
+        dwError = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(dwError);
+    }
+
+    // Add 1 for the checksum buffer and 1 for the magic buffer
+    cKiov += 2;
+
+    dwError = LwAllocateMemory(
+                  cKiov * sizeof(*kiov),
+                  OUT_PPVOID(&kiov));
+    BAIL_ON_LSA_ERROR(dwError);
+
+    kiov[dwKiovPos].flags = KRB5_CRYPTO_TYPE_CHECKSUM;
+    kiov[dwKiovPos].data.length = sizeof(dwChecksum);
+    kiov[dwKiovPos].data.data = (void *)&dwChecksum;
+
+    dwKiovPos++;
 
     // NTLM uses the "Preset to -1" and "Post-invert" variant of CRC32, where
     // the checksum is initialized to -1 before taking the input data into
@@ -66,63 +102,43 @@ NtlmCrc32(
     // checksum is calculated. (see
     // http://en.wikipedia.org/wiki/Computation_of_CRC#Preset_to_.E2.88.921 )
 
-    if (dwBufferSize < 4)
+    // Calculating this 4 byte magic sequence will set the current checksum
+    // to -1.
+    kiov[dwKiovPos].flags = KRB5_CRYPTO_TYPE_SIGN_ONLY;
+    kiov[dwKiovPos].data.length = sizeof(pbMagic);
+    kiov[dwKiovPos++].data.data = pbMagic;
+
+    for (dwIndex = 0 ; dwIndex < pMessage->cBuffers ; dwIndex++)
     {
-        // Calculating this 4 byte magic sequence will set the current checksum
-        // to -1. The remaining 4 bytes are used for the input data.
-        BYTE pbTemp[] = { 0x62, 0xF5, 0x26, 0x92, 0, 0, 0, 0 };
-        memcpy(pbTemp + 4, pBuffer, dwBufferSize);
+        pData = &pMessage->pBuffers[dwIndex];
 
-        Input.data = (char*)pbTemp;
-        Input.length = 4 + dwBufferSize;
-
-        KrbError = krb5_c_make_checksum(
-            NULL,
-            CKSUMTYPE_CRC32,
-            NULL,
-            0,
-            &Input,
-            &Output
-            );
-    }
-    else
-    {
-        // Initializing the checksum to -1 is the same as inverting the first
-        // 32bits of the input data. So this will be temporarily done on the
-        // input data.
-        int i = 0;
-        for (i = 0; i < 4; i++)
+        if ((pData->BufferType & ~SECBUFFER_ATTRMASK) == SECBUFFER_DATA)
         {
-            pBuffer[i] ^= 0xFF;
-        }
-
-        Input.data = (PCHAR)pBuffer;
-        Input.length = dwBufferSize;
-
-        KrbError = krb5_c_make_checksum(
-            NULL,
-            CKSUMTYPE_CRC32,
-            NULL,
-            0,
-            &Input,
-            &Output
-            );
-
-        for (i = 0; i < 4; i++)
-        {
-            pBuffer[i] ^= 0xFF;
+            kiov[dwKiovPos].flags = KRB5_CRYPTO_TYPE_SIGN_ONLY;
+            kiov[dwKiovPos].data.length = pData->cbBuffer;
+            kiov[dwKiovPos++].data.data = pData->pvBuffer;
         }
     }
+
+    KrbError = krb5_c_make_checksum_iov(
+                   NULL,
+                   CKSUMTYPE_CRC32,
+                   NULL,
+                   0,
+                   kiov,
+                   cKiov
+                   );
     BAIL_ON_KRB_ERROR(NULL, KrbError);
 
-    LW_ASSERT(Output.length == 4);
+    LW_ASSERT(kiov[0].data.length == 4);
 
-    memcpy(&dwChecksum, Output.contents, Output.length);
+    memcpy(&dwChecksum, kiov[0].data.data, kiov[0].data.length);
     // Do the post-invert
     *pdwCrc32 = dwChecksum ^ 0xFFFFFFFF;
 
 cleanup:
-    krb5_free_checksum_contents(NULL, &Output);
+    LW_SAFE_FREE_MEMORY(kiov);
+
     return dwError;
 
 error:

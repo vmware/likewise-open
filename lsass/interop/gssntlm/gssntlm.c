@@ -1490,25 +1490,30 @@ ntlm_gss_wrap_iov(
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
     SecBufferDesc Message = {0};
-    SecBuffer NtlmBuffer[2];
+    SecBuffer *NtlmBuffer = NULL;
     SecPkgContext_Sizes Sizes = {0};
     INT nEncrypted = 0;
+    DWORD dwIndex = 0;
+    BOOLEAN bFoundHeader = FALSE;
 
-    Message.cBuffers = 2;
+    if (cBuffers < 2)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    MinorStatus = LwAllocateMemory(
+        cBuffers * sizeof(SecBuffer),
+        OUT_PPVOID(&NtlmBuffer));
+    BAIL_ON_LSA_ERROR(MinorStatus);
+
+    Message.cBuffers = cBuffers;
     Message.pBuffers = NtlmBuffer;
-
-    memset(NtlmBuffer, 0, sizeof(SecBuffer) * Message.cBuffers);
 
     if (Qop != GSS_C_QOP_DEFAULT)
     {
         MajorStatus = GSS_S_BAD_QOP;
         BAIL_ON_LSA_ERROR(MajorStatus);
-    }
-
-    if (cBuffers != 2)
-    {
-        MinorStatus = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(MinorStatus);
     }
 
     // Since every encrypted message gets a signature, we need to get the size
@@ -1519,36 +1524,74 @@ ntlm_gss_wrap_iov(
         );
     BAIL_ON_LSA_ERROR(MinorStatus);
 
-    if (GSS_IOV_BUFFER_TYPE(pBuffers[0].type) != GSS_IOV_BUFFER_TYPE_HEADER)
+    for (dwIndex = 0 ; dwIndex < cBuffers ; dwIndex++ )
+    {
+        if (GSS_IOV_BUFFER_FLAGS(pBuffers[dwIndex].type) & GSS_IOV_BUFFER_FLAG_ALLOCATE)
+        {
+            switch (GSS_IOV_BUFFER_TYPE(pBuffers[dwIndex].type))
+            {
+                case GSS_IOV_BUFFER_TYPE_HEADER:
+                    pBuffers[dwIndex].buffer.length = Sizes.cbMaxSignature;
+                    bFoundHeader = TRUE;
+                    break;
+                case GSS_IOV_BUFFER_TYPE_PADDING:
+                    pBuffers[dwIndex].buffer.length = 0;
+                    break;
+                default:
+                    MinorStatus = LW_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_LSA_ERROR(MinorStatus);
+                    break;
+            }
+
+            if (pBuffers[dwIndex].buffer.length == 0)
+            {
+                pBuffers[dwIndex].buffer.value = NULL;
+            }
+            else
+            {
+                MinorStatus = LwAllocateMemory(
+                    pBuffers[dwIndex].buffer.length,
+                    OUT_PPVOID(&pBuffers[dwIndex].buffer.value));
+                BAIL_ON_LSA_ERROR(MinorStatus);
+
+                pBuffers[dwIndex].type |= GSS_IOV_BUFFER_FLAG_ALLOCATED;
+            }
+        }
+        else
+        {
+            switch (GSS_IOV_BUFFER_TYPE(pBuffers[dwIndex].type))
+            {
+                case GSS_IOV_BUFFER_TYPE_HEADER:
+                    NtlmBuffer[dwIndex].BufferType = SECBUFFER_TOKEN;
+                    bFoundHeader = TRUE;
+                    break;
+                case GSS_IOV_BUFFER_TYPE_DATA:
+                    NtlmBuffer[dwIndex].BufferType = SECBUFFER_DATA;
+                    break;
+                case GSS_IOV_BUFFER_TYPE_SIGN_ONLY:
+                    NtlmBuffer[dwIndex].BufferType = SECBUFFER_DATA |
+                                                     SECBUFFER_READONLY_WITH_CHECKSUM;
+                    break;
+                case GSS_IOV_BUFFER_TYPE_PADDING:
+                    NtlmBuffer[dwIndex].BufferType = SECBUFFER_PADDING;
+                    pBuffers[dwIndex].buffer.length = 0;
+                    break;
+                default:
+                    MinorStatus = LW_ERROR_INVALID_PARAMETER;
+                    BAIL_ON_LSA_ERROR(MinorStatus);
+                    break;
+            }
+        }
+
+        NtlmBuffer[dwIndex].cbBuffer = pBuffers[dwIndex].buffer.length;
+        NtlmBuffer[dwIndex].pvBuffer = pBuffers[dwIndex].buffer.value;
+    }
+
+    if (!bFoundHeader)
     {
         MinorStatus = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(MinorStatus);
     }
-
-    if (GSS_IOV_BUFFER_FLAGS(pBuffers[0].type) & GSS_IOV_BUFFER_FLAG_ALLOCATE)
-    {
-        pBuffers[0].buffer.length = Sizes.cbMaxSignature;
-        MinorStatus = LwAllocateMemory(
-            pBuffers[0].buffer.length,
-            OUT_PPVOID(&pBuffers[0].buffer.value));
-        BAIL_ON_LSA_ERROR(MinorStatus);
-
-        pBuffers[0].type |= GSS_IOV_BUFFER_FLAG_ALLOCATED;
-    }
-
-    NtlmBuffer[0].BufferType = SECBUFFER_TOKEN;
-    NtlmBuffer[0].cbBuffer = pBuffers[0].buffer.length;
-    NtlmBuffer[0].pvBuffer = pBuffers[0].buffer.value;
-
-    if (pBuffers[1].type != GSS_IOV_BUFFER_TYPE_DATA)
-    {
-        MinorStatus = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(MinorStatus);
-    }
-
-    NtlmBuffer[1].BufferType = SECBUFFER_DATA;
-    NtlmBuffer[1].cbBuffer = pBuffers[1].buffer.length;
-    NtlmBuffer[1].pvBuffer = pBuffers[1].buffer.value;
 
     MinorStatus = NtlmClientEncryptMessage(
         &ContextHandle,
@@ -1565,6 +1608,8 @@ ntlm_gss_wrap_iov(
 
 cleanup:
 
+    LW_SAFE_FREE_MEMORY(NtlmBuffer);
+
     if (pEncrypted)
     {
         *pEncrypted = nEncrypted;
@@ -1574,6 +1619,16 @@ cleanup:
     return MajorStatus;
 
 error:
+
+    for (dwIndex = 0 ; dwIndex < cBuffers ; dwIndex++ )
+    {
+        if (GSS_IOV_BUFFER_FLAGS(pBuffers[dwIndex].type) & GSS_IOV_BUFFER_FLAG_ALLOCATED)
+        {
+            LW_SAFE_FREE_MEMORY(pBuffers[dwIndex].buffer.value);
+            pBuffers[dwIndex].type |= ~GSS_IOV_BUFFER_FLAG_ALLOCATED;
+        }
+    }
+
     nEncrypted = 0;
 
     if (MajorStatus == GSS_S_COMPLETE)
@@ -1730,39 +1785,58 @@ ntlm_gss_unwrap_iov(
     OM_uint32 MinorStatus = LW_ERROR_SUCCESS;
     NTLM_CONTEXT_HANDLE ContextHandle = (NTLM_CONTEXT_HANDLE)GssCtxtHandle;
     SecBufferDesc Message;
-    SecBuffer NtlmBuffer[2];
+    SecBuffer *NtlmBuffer = NULL;
     BOOLEAN bEncrypted = FALSE;
+    DWORD dwIndex = 0;
+    BOOLEAN bFoundHeader = FALSE;
 
-    Message.cBuffers = 2;
+    if (cBuffers < 2)
+    {
+        MinorStatus = LW_ERROR_INVALID_PARAMETER;
+        BAIL_ON_LSA_ERROR(MinorStatus);
+    }
+
+    MinorStatus = LwAllocateMemory(
+        cBuffers * sizeof(SecBuffer),
+        OUT_PPVOID(&NtlmBuffer));
+    BAIL_ON_LSA_ERROR(MinorStatus);
+
+    Message.cBuffers = cBuffers;
     Message.pBuffers = NtlmBuffer;
 
-    memset(NtlmBuffer, 0, sizeof(SecBuffer) * Message.cBuffers);
+    for (dwIndex = 0 ; dwIndex < cBuffers ; dwIndex++)
+    {
+        switch (GSS_IOV_BUFFER_TYPE(pBuffers[dwIndex].type))
+        {
+            case GSS_IOV_BUFFER_TYPE_HEADER:
+                NtlmBuffer[dwIndex].BufferType = SECBUFFER_TOKEN;
+                bFoundHeader = TRUE;
+                break;
+            case GSS_IOV_BUFFER_TYPE_DATA:
+                NtlmBuffer[dwIndex].BufferType = SECBUFFER_DATA;
+                break;
+            case GSS_IOV_BUFFER_TYPE_SIGN_ONLY:
+                NtlmBuffer[dwIndex].BufferType = SECBUFFER_DATA |
+                                                 SECBUFFER_READONLY_WITH_CHECKSUM;
+                break;
+            case GSS_IOV_BUFFER_TYPE_PADDING:
+                NtlmBuffer[dwIndex].BufferType = SECBUFFER_PADDING;
+                break;
+            default:
+                MinorStatus = LW_ERROR_INVALID_PARAMETER;
+                BAIL_ON_LSA_ERROR(MinorStatus);
+                break;
+        }
 
-    if (cBuffers != 2)
+        NtlmBuffer[dwIndex].cbBuffer = pBuffers[dwIndex].buffer.length;
+        NtlmBuffer[dwIndex].pvBuffer = pBuffers[dwIndex].buffer.value;
+    }
+
+    if (!bFoundHeader)
     {
         MinorStatus = LW_ERROR_INVALID_PARAMETER;
         BAIL_ON_LSA_ERROR(MinorStatus);
     }
-
-    if (pBuffers[0].type != GSS_IOV_BUFFER_TYPE_HEADER)
-    {
-        MinorStatus = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(MinorStatus);
-    }
-
-    NtlmBuffer[0].BufferType = SECBUFFER_TOKEN;
-    NtlmBuffer[0].cbBuffer = pBuffers[0].buffer.length;
-    NtlmBuffer[0].pvBuffer = pBuffers[0].buffer.value;
-
-    if (pBuffers[1].type != GSS_IOV_BUFFER_TYPE_DATA)
-    {
-        MinorStatus = LW_ERROR_INVALID_PARAMETER;
-        BAIL_ON_LSA_ERROR(MinorStatus);
-    }
-
-    NtlmBuffer[1].BufferType = SECBUFFER_DATA;
-    NtlmBuffer[1].cbBuffer = pBuffers[1].buffer.length;
-    NtlmBuffer[1].pvBuffer = pBuffers[1].buffer.value;
 
     MinorStatus = NtlmClientDecryptMessage(
         &ContextHandle,
@@ -1773,6 +1847,8 @@ ntlm_gss_unwrap_iov(
     BAIL_ON_LSA_ERROR(MinorStatus);
 
 cleanup:
+
+    LW_SAFE_FREE_MEMORY(NtlmBuffer);
 
     if (pEncrypted)
     {
