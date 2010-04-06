@@ -140,9 +140,6 @@ lwmsg_fd_type_class
 lwmsg_handle_type_class
 lwmsg_error_name
 lwmsg_set_close_on_exec
-lwmsg_type_get_flags
-lwmsg_type_get_custom_flags
-lwmsg_type_get_integer_range
 lwmsg_hash_init
 lwmsg_hash_get_count
 lwmsg_hash_insert_entry
