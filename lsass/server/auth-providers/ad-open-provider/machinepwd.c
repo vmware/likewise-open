@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Machine Password API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -145,12 +145,12 @@ ADInitMachinePasswordSync(
     )
 {
     DWORD dwError = 0;
-    
+
     dwError = LwpsOpenPasswordStore(
                     LWPS_PASSWORD_STORE_DEFAULT,
                     &gAdMachinePasswordSyncState.hPasswordStore);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
 cleanup:
 
     return dwError;
@@ -195,7 +195,7 @@ ADSyncMachinePasswordThreadRoutine(
     DWORD dwError = 0;
     DWORD dwPasswordSyncLifetime = 0;
     struct timespec timeout = {0, 0};
-    PLWPS_PASSWORD_INFO pAcctInfo = NULL;    
+    PLWPS_PASSWORD_INFO pAcctInfo = NULL;
     PSTR pszHostname = NULL;
     PSTR pszDnsDomainName = NULL;
     DWORD dwGoodUntilTime = 0;
@@ -220,7 +220,7 @@ ADSyncMachinePasswordThreadRoutine(
         }
 
         ADSyncTimeToDC(gpADProviderData->szDomain);
-        
+
         dwError = LwpsGetPasswordByHostName(
                         gAdMachinePasswordSyncState.hPasswordStore,
                         pszHostname,
@@ -232,7 +232,7 @@ ADSyncMachinePasswordThreadRoutine(
             goto lsa_wait_resync;
         }
 
-        dwCurrentPasswordAge = 
+        dwCurrentPasswordAge =
                          difftime(
                               time(NULL),
                               pAcctInfo->last_change_time);
@@ -408,18 +408,18 @@ ADSyncTimeToDC(
                     pszDomainFQDN,
                     &dcTime);
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     ttDcTime = (time_t) dcTime;
-    
+
     if (labs(ttDcTime - time(NULL)) > AD_GetClockDriftSeconds()) {
         dwError = LsaSetSystemTime(ttDcTime);
         BAIL_ON_LSA_ERROR(dwError);
     }
-    
+
 cleanup:
 
     return;
-    
+
 error:
 
     LSA_LOG_ERROR("Failed to sync system time [error code: %u]", dwError);
@@ -433,7 +433,7 @@ ADShutdownMachinePasswordSync(
     )
 {
     if (gAdMachinePasswordSyncState.pThread)
-    {   
+    {
         pthread_mutex_lock(&gAdMachinePasswordSyncState.ThreadLock);
         gAdMachinePasswordSyncState.bThreadShutdown = TRUE;
         pthread_cond_signal(&gAdMachinePasswordSyncState.ThreadCondition);
@@ -573,24 +573,24 @@ ADLogMachinePWUpdateFailureEvent(
                  "     Authentication provider:   %s",
                  LSA_SAFE_LOG_STRING(gpszADProviderName));
     BAIL_ON_LSA_ERROR(dwError);
-    
+
     dwError = LsaGetErrorMessageForLoggingEvent(
                          dwErrCode,
                          &pszData);
-      
+
     LsaSrvLogServiceFailureEvent(
             LSASS_EVENT_FAILED_MACHINE_ACCOUNT_PASSWORD_UPDATE,
             PASSWORD_EVENT_CATEGORY,
             pszDescription,
             pszData);
-    
+
 cleanup:
 
     LW_SAFE_FREE_STRING(pszDescription);
     LW_SAFE_FREE_STRING(pszData);
 
     return;
-    
+
 error:
 
     goto cleanup;

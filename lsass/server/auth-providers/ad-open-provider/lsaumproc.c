@@ -238,7 +238,7 @@ LsaUmpIsUserActive(
 
     // There are two calls to sysctl.  The first is to obtain
     // the size of the required buffer.  Because the data changes
-    // frequently, the result is an estimate of what will be 
+    // frequently, the result is an estimate of what will be
     // needed and it rounds upwards.  It's not until the second
     // call where the data is retrieved that an accurate size is
     // obtained.

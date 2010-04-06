@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,49 +33,61 @@
  *
  * Module Name:
  *
- *        machinepwd_p.h
+ *        adldap_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        Machine Password Sync API (Private Header)
+ *
+ *        AD LDAP User Marshalling functions (private header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Brian Dunstan (bdunstan@likewisesoftware.com)
+ *          Wei Fu (wfu@likewisesoftware.com)
  */
-#ifndef __MACHINEPWD_P_H__
-#define __MACHINEPWD_P_H__
+#ifndef __LSALDAP_MARSHAL_USER_P_H__
+#define __LSALDAP_MARSHAL_USER_P_H__
 
 DWORD
-ADInitMachinePasswordSync(
-    VOID
+ADGetCurrentNtTime(
+    OUT UINT64* pqwResult
     );
 
 DWORD
-ADStartMachinePasswordSync(
-    VOID
+ADConvertTimeNt2Unix(
+    UINT64 ntTime,
+    PUINT64 pUnixTime
     );
 
-VOID
-ADSyncTimeToDC(
-    PCSTR pszDomainFQDN
+DWORD
+ADConvertTimeUnix2Nt(
+    UINT64 unixTime,
+    PUINT64 pNtTime
     );
 
-VOID
-ADShutdownMachinePasswordSync(
-    VOID
+DWORD
+ADNonSchemaKeywordGetString(
+    PSTR *ppszValues,
+    DWORD dwNumValues,
+    PCSTR pszAttributeName,
+    PSTR *ppszResult
     );
 
-VOID
-ADSetMachineTGTExpiry(
-    DWORD dwGoodUntil
+DWORD
+ADNonSchemaKeywordGetUInt32(
+    PSTR *ppszValues,
+    DWORD dwNumValues,
+    PCSTR pszAttributeName,
+    DWORD *pdwResult
     );
 
-VOID
-ADSetMachineTGTExpiryError(
-    VOID
+DWORD
+AD_BuildHomeDirFromTemplate(
+    PCSTR pszHomedirTemplate,
+    PCSTR pszNetBIOSDomainName,
+    PCSTR pszSamAccountName,
+    PSTR* ppszHomedir
     );
 
-#endif /* __MACHINEPWD_P_H__ */
+#endif //__LSALDAP_MARSHAL_USER_P_H__
+

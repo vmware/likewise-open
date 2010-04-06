@@ -29,7 +29,7 @@
  */
 
 
- 
+
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
@@ -40,7 +40,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        AD auth provider state (Private Header)
  *
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)

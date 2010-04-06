@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,61 +33,56 @@
  *
  * Module Name:
  *
- *        adldap_p.h
+ *        media-sense.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        AD LDAP User Marshalling functions (private header)
  *
- * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
- *          Sriram Nambakam (snambakam@likewisesoftware.com)
- *          Wei Fu (wfu@likewisesoftware.com)
+ *        Media Sense Support
+ *
+ * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
  */
-#ifndef __LSALDAP_MARSHAL_USER_P_H__
-#define __LSALDAP_MARSHAL_USER_P_H__
+
+#include "config.h"
+#include "lsasystem.h"
+#include "lsadef.h"
+#include "lsa/lsa.h"
+#include "lwmem.h"
+#include "lwstr.h"
+#include "lwsecurityidentifier.h"
+#include "lsautils.h"
+
+#include "media-sense.h"
+
+#if defined (__LWI_DARWIN__)
+#include "media-sense-mac.c"
+#endif
 
 DWORD
-ADGetCurrentNtTime(
-    OUT UINT64* pqwResult
-    );
+MediaSenseStart(
+    OUT PMEDIA_SENSE_HANDLE MediaSenseHandle,
+    IN OPTIONAL MEDIA_SENSE_TRANSITION_CALLBACK TransitionCallback,
+    IN OPTIONAL void* TransitionCallbackContext
+    )
+{
+#if defined (__LWI_DARWIN__)
+    return MediaSenseStart_Mac(MediaSenseHandle,
+                               TransitionCallback,
+                               TransitionCallbackContext);
+#else
+    return 0;
+#endif
+}
 
-DWORD
-ADConvertTimeNt2Unix(
-    UINT64 ntTime,
-    PUINT64 pUnixTime
-    );
-
-DWORD
-ADConvertTimeUnix2Nt(
-    UINT64 unixTime,
-    PUINT64 pNtTime
-    );
-
-DWORD
-ADNonSchemaKeywordGetString(
-    PSTR *ppszValues,
-    DWORD dwNumValues,
-    PCSTR pszAttributeName,
-    PSTR *ppszResult
-    );
-
-DWORD
-ADNonSchemaKeywordGetUInt32(
-    PSTR *ppszValues,
-    DWORD dwNumValues,
-    PCSTR pszAttributeName,
-    DWORD *pdwResult
-    );
-
-DWORD
-AD_BuildHomeDirFromTemplate(
-    PCSTR pszHomedirTemplate,
-    PCSTR pszNetBIOSDomainName,
-    PCSTR pszSamAccountName,
-    PSTR* ppszHomedir
-    );
-
-#endif //__LSALDAP_MARSHAL_USER_P_H__
-
+VOID
+MediaSenseStop(
+    IN OUT PMEDIA_SENSE_HANDLE MediaSenseHandle
+    )
+{
+#if defined (__LWI_DARWIN__)
+    MediaSenseStop_Mac(MediaSenseHandle);
+#else
+    ;
+#endif
+}

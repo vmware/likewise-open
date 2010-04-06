@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -38,7 +38,7 @@
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
+ *
  *        Media Sense Support for Mac OS X.
  *
  * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
@@ -107,7 +107,7 @@ struct _MEDIA_SENSE_HANDLE_DATA {
             (Pointer) = NULL; \
         } \
     } while (0)
-        
+
 #define CF_RELEASE(Reference) \
     _RELEASE_HELPER(Reference, CFRelease)
 
@@ -178,7 +178,7 @@ MediaSenseAppendStrings(
 
 cleanup:
     CF_RELEASE(stringRef);
-    return error;    
+    return error;
 }
 
 static

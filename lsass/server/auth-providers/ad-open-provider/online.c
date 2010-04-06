@@ -2317,7 +2317,7 @@ AD_OnlineFindUserObjectById(
 
     if (uid == 0) {
 	dwError = LW_ERROR_NO_SUCH_USER;
-    	BAIL_ON_LSA_ERROR(dwError);
+	BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = ADCacheFindUserById(
@@ -2584,10 +2584,10 @@ AD_OnlineFindGroupObjectByName(
     BAIL_ON_LSA_ERROR(dwError);
 
     if ((pGroupNameInfo->nameType == NameType_Alias) &&
-    	!strcasecmp(pGroupNameInfo->pszName, "root"))
+	!strcasecmp(pGroupNameInfo->pszName, "root"))
     {
 	dwError = LW_ERROR_NO_SUCH_GROUP;
-    	BAIL_ON_LSA_ERROR(dwError);
+	BAIL_ON_LSA_ERROR(dwError);
     }
 
     dwError = ADCacheFindGroupByName(

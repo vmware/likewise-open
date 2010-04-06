@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,56 +33,36 @@
  *
  * Module Name:
  *
- *        media-sense.c
+ *        provider_state.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        Media Sense Support
  *
- * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
+ *        Active Directory Authentication Provider
+ *
+ *        Provider State API
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
-
-#include "config.h"
-#include "lsasystem.h"
-#include "lsadef.h"
-#include "lsa/lsa.h"
-#include "lwmem.h"
-#include "lwstr.h"
-#include "lwsecurityidentifier.h"
-#include "lsautils.h"
-
-#include "media-sense.h"
-
-#if defined (__LWI_DARWIN__)
-#include "media-sense-mac.c"
-#endif
-
-DWORD
-MediaSenseStart(
-    OUT PMEDIA_SENSE_HANDLE MediaSenseHandle,
-    IN OPTIONAL MEDIA_SENSE_TRANSITION_CALLBACK TransitionCallback,
-    IN OPTIONAL void* TransitionCallbackContext
-    )
-{
-#if defined (__LWI_DARWIN__)
-    return MediaSenseStart_Mac(MediaSenseHandle,
-                               TransitionCallback,
-                               TransitionCallbackContext);
-#else
-    return 0;
-#endif
-}
+#ifndef __PROVIDER_STATE_H__
+#define __PROVIDER_STATE_H__
 
 VOID
-MediaSenseStop(
-    IN OUT PMEDIA_SENSE_HANDLE MediaSenseHandle
-    )
-{
-#if defined (__LWI_DARWIN__)
-    MediaSenseStop_Mac(MediaSenseHandle);
-#else
-    ;
-#endif
-}
+ADProviderFreeCellInfo(
+    IN OUT PAD_LINKED_CELL_INFO pCell
+    );
+
+VOID
+ADProviderFreeCellList(
+    IN OUT PDLINKEDLIST pList
+    );
+
+VOID
+ADProviderFreeProviderData(
+    IN OUT PAD_PROVIDER_DATA pData
+    );
+
+#endif /* __PROVIDER_STATE_H__ */

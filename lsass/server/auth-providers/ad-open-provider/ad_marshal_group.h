@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,63 +33,24 @@
  *
  * Module Name:
  *
- *        providerstate.c
+ *        adldap_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        Active Directory Authentication Provider State
+ *
+ *        AD LDAP Group Marshalling functions (public header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
+#ifndef __LSALDAP_MARSHAL_GROUP_H__
+#define __LSALDAP_MARSHAL_GROUP_H__
 
-#include "adprovider.h"
-#include "providerstate_p.h"
+DWORD
+ADMarshalGetCanonicalName(
+    PLSA_SECURITY_OBJECT     pObject,
+    PSTR*                   ppszResult);
 
-VOID
-ADProviderFreeCellInfo(
-    IN OUT PAD_LINKED_CELL_INFO pCell
-    )
-{
-    LW_SAFE_FREE_STRING(pCell->pszCellDN);
-    LW_SAFE_FREE_STRING(pCell->pszDomain);
-    LwFreeMemory(pCell);
-}
+#endif //__LSALDAP_MARSHAL_GROUP_H__
 
-VOID
-ADProviderFreeCellInfoNode(
-    IN PVOID pData,
-    IN PVOID pUserData
-    )
-{
-    PAD_LINKED_CELL_INFO pCell = (PAD_LINKED_CELL_INFO)pData;
-    if (pCell)
-    {
-        ADProviderFreeCellInfo(pCell);
-    }
-}
-
-VOID
-ADProviderFreeCellList(
-    IN OUT PDLINKEDLIST pList
-    )
-{
-    LsaDLinkedListForEach(
-        pList,
-        ADProviderFreeCellInfoNode,
-        NULL);
-
-    LsaDLinkedListFree(pList);
-}
-
-VOID
-ADProviderFreeProviderData(
-    IN OUT PAD_PROVIDER_DATA pData
-    )
-{
-    ADProviderFreeCellList(pData->pCellList);
-
-    LW_SAFE_FREE_MEMORY(pData);
-}

@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,24 +33,49 @@
  *
  * Module Name:
  *
- *        adldap_p.h
+ *        machinepwd_p.h
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        AD LDAP Group Marshalling functions (public header)
+ *
+ *        Machine Password Sync API (Private Header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
+ *          Brian Dunstan (bdunstan@likewisesoftware.com)
  */
-#ifndef __LSALDAP_MARSHAL_GROUP_H__
-#define __LSALDAP_MARSHAL_GROUP_H__
+#ifndef __MACHINEPWD_P_H__
+#define __MACHINEPWD_P_H__
 
 DWORD
-ADMarshalGetCanonicalName(
-    PLSA_SECURITY_OBJECT     pObject,
-    PSTR*                   ppszResult);
+ADInitMachinePasswordSync(
+    VOID
+    );
 
-#endif //__LSALDAP_MARSHAL_GROUP_H__
+DWORD
+ADStartMachinePasswordSync(
+    VOID
+    );
 
+VOID
+ADSyncTimeToDC(
+    PCSTR pszDomainFQDN
+    );
+
+VOID
+ADShutdownMachinePasswordSync(
+    VOID
+    );
+
+VOID
+ADSetMachineTGTExpiry(
+    DWORD dwGoodUntil
+    );
+
+VOID
+ADSetMachineTGTExpiryError(
+    VOID
+    );
+
+#endif /* __MACHINEPWD_P_H__ */

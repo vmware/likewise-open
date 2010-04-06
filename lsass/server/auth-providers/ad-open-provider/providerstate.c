@@ -15,7 +15,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.  You should have received a copy of the GNU General
- * Public License along with this program.  If not, see 
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * LIKEWISE SOFTWARE MAKES THIS SOFTWARE AVAILABLE UNDER OTHER LICENSING
@@ -33,35 +33,63 @@
  *
  * Module Name:
  *
- *        media-sense.h
+ *        providerstate.c
  *
  * Abstract:
  *
  *        Likewise Security and Authentication Subsystem (LSASS)
- * 
- *        Media Sense Support
  *
- * Authors: Danilo Almeida (dalmeida@likewisesoftware.com)
+ *        Active Directory Authentication Provider State
+ *
+ * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
+ *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
 
-#ifndef __MEDIA_SENSE_H__
-#define __MEDIA_SENSE_H__
-
-struct _MEDIA_SENSE_HANDLE_DATA;
-typedef struct _MEDIA_SENSE_HANDLE_DATA *MEDIA_SENSE_HANDLE, **PMEDIA_SENSE_HANDLE;
-
-typedef void (*MEDIA_SENSE_TRANSITION_CALLBACK)(IN OPTIONAL PVOID Context, IN BOOLEAN bIsOnline);
-
-DWORD
-MediaSenseStart(
-    OUT PMEDIA_SENSE_HANDLE MediaSenseHandle,
-    IN OPTIONAL MEDIA_SENSE_TRANSITION_CALLBACK TransitionCallback,
-    IN OPTIONAL void* TransitionCallbackContext
-    );
+#include "adprovider.h"
+#include "providerstate_p.h"
 
 VOID
-MediaSenseStop(
-    IN OUT PMEDIA_SENSE_HANDLE MediaSenseHandle
-    );
+ADProviderFreeCellInfo(
+    IN OUT PAD_LINKED_CELL_INFO pCell
+    )
+{
+    LW_SAFE_FREE_STRING(pCell->pszCellDN);
+    LW_SAFE_FREE_STRING(pCell->pszDomain);
+    LwFreeMemory(pCell);
+}
 
-#endif /* __MEDIA_SENSE_H__ */
+VOID
+ADProviderFreeCellInfoNode(
+    IN PVOID pData,
+    IN PVOID pUserData
+    )
+{
+    PAD_LINKED_CELL_INFO pCell = (PAD_LINKED_CELL_INFO)pData;
+    if (pCell)
+    {
+        ADProviderFreeCellInfo(pCell);
+    }
+}
+
+VOID
+ADProviderFreeCellList(
+    IN OUT PDLINKEDLIST pList
+    )
+{
+    LsaDLinkedListForEach(
+        pList,
+        ADProviderFreeCellInfoNode,
+        NULL);
+
+    LsaDLinkedListFree(pList);
+}
+
+VOID
+ADProviderFreeProviderData(
+    IN OUT PAD_PROVIDER_DATA pData
+    )
+{
+    ADProviderFreeCellList(pData->pCellList);
+
+    LW_SAFE_FREE_MEMORY(pData);
+}
