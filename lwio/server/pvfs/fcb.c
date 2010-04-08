@@ -1097,13 +1097,16 @@ PvfsScheduleCancelPendingOp(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_WORK_CONTEXT pWorkCtx = NULL;
+    PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
     BAIL_ON_INVALID_PTR(pIrpContext->pFcb, ntError);
+
+    pIrpCtx = PvfsReferenceIrpContext(pIrpContext);
 
     ntError = PvfsCreateWorkContext(
                   &pWorkCtx,
                   FALSE,
-                  pIrpContext,
+                  pIrpCtx,
                   (PPVFS_WORK_CONTEXT_CALLBACK)PvfsOplockCleanPendingOpQueue,
                   (PPVFS_WORK_CONTEXT_FREE_CTX)PvfsOplockCleanPendingOpFree);
     BAIL_ON_NT_STATUS(ntError);
@@ -1111,14 +1114,17 @@ PvfsScheduleCancelPendingOp(
     ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    pWorkCtx = NULL;
-
 cleanup:
-    PVFS_FREE(&pWorkCtx);
-
     return ntError;
 
 error:
+    if (pIrpCtx)
+    {
+        PvfsReleaseIrpContext(&pIrpCtx);
+    }
+
+    PvfsFreeWorkContext(&pWorkCtx);
+
     goto cleanup;
 }
 
@@ -1167,6 +1173,11 @@ cleanup:
     if (pFcb)
     {
         PvfsReleaseFCB(&pFcb);
+    }
+
+    if (pIrpCtx)
+    {
+        PvfsReleaseIrpContext(&pIrpCtx);
     }
 
     return ntError;

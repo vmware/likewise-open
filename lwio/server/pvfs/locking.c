@@ -1176,11 +1176,7 @@ PvfsScheduleCancelLock(
     ntError = PvfsAddWorkItem(gpPvfsInternalWorkQueue, (PVOID)pWorkCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    pWorkCtx = NULL;
-
 cleanup:
-    PVFS_FREE(&pWorkCtx);
-
     return ntError;
 
 error:
@@ -1188,6 +1184,8 @@ error:
     {
         PvfsReleaseIrpContext(&pIrpCtx);
     }
+
+    PvfsFreeWorkContext(&pWorkCtx);
 
     goto cleanup;
 }
