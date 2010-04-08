@@ -123,6 +123,7 @@ typedef struct _SRV_ELEMENTS_GLOBALS
 
     LONG64 llBootTime;
     BOOLEAN bShareNameEcpEnabled;
+    BOOLEAN bClientAddressEcpEnabled;
 
     GENERIC_MAPPING ShareGenericMapping;
 

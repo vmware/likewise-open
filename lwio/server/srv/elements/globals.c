@@ -51,14 +51,15 @@
 
 SRV_ELEMENTS_GLOBALS gSrvElements =
 {
-    .mutex            = PTHREAD_MUTEX_INITIALIZER,
-    .pHintsBuffer     = NULL,
-    .ulHintsLength    = 0,
-    .llBootTime       = 0LL,
-    .bShareNameEcpEnabled = FALSE,
-    .pStatsLock       = NULL,
-    .stats            = {0},
-    .resources        =
+    .mutex                    = PTHREAD_MUTEX_INITIALIZER,
+    .pHintsBuffer             = NULL,
+    .ulHintsLength            = 0,
+    .llBootTime               = 0LL,
+    .bShareNameEcpEnabled     = FALSE,
+    .bClientAddressEcpEnabled = FALSE,
+    .pStatsLock               = NULL,
+    .stats                    = {0},
+    .resources                =
         {
             .pMutex     = NULL,
             .pResources = NULL

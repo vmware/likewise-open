@@ -1423,6 +1423,11 @@ SrvElementsGetShareNameEcpEnabled(
     VOID
     );
 
+BOOLEAN
+SrvElementsGetClientAddressEcpEnabled(
+    VOID
+    );
+
 NTSTATUS
 SrvElementsGetStats(
     PSRV_ELEMENTS_STATISTICS pStats

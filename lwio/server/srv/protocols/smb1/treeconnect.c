@@ -74,13 +74,14 @@ SrvCreateTreeRootHandle(
 static
 NTSTATUS
 SrvIoPrepareEcpList(
-    PSRV_SHARE_INFO pShareInfo, /* IN     */
-    PIO_ECP_LIST*   ppEcpList   /* IN OUT */
+    PLWIO_SRV_CONNECTION pConnection, /* IN     */
+    PSRV_SHARE_INFO      pShareInfo,  /* IN     */
+    PIO_ECP_LIST*        ppEcpList    /* IN OUT */
     );
 
 static
 VOID
-SrvIoFreeEcpShareName(
+SrvIoFreeEcpString(
     IN PVOID pContext
     );
 
@@ -563,6 +564,7 @@ SrvCreateTreeRootHandle(
         LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTConState->pShareInfo->mutex);
 
         ntStatus = SrvIoPrepareEcpList(
+                        pExecContext->pConnection,
                         pTConState->pTree->pShareInfo,
                         &pTConState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -610,12 +612,14 @@ error:
 static
 NTSTATUS
 SrvIoPrepareEcpList(
-    PSRV_SHARE_INFO pShareInfo, /* IN     */
-    PIO_ECP_LIST*   ppEcpList   /* IN OUT */
+    PLWIO_SRV_CONNECTION pConnection, /* IN     */
+    PSRV_SHARE_INFO      pShareInfo,  /* IN     */
+    PIO_ECP_LIST*        ppEcpList    /* IN OUT */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PUNICODE_STRING pShareName = NULL;
+    PUNICODE_STRING pClientAddress = NULL;
 
     if (SrvElementsGetShareNameEcpEnabled())
     {
@@ -638,15 +642,46 @@ SrvIoPrepareEcpList(
                         SRV_ECP_TYPE_SHARE_NAME,
                         pShareName,
                         sizeof(*pShareName),
-                        SrvIoFreeEcpShareName);
+                        SrvIoFreeEcpString);
         BAIL_ON_NT_STATUS(ntStatus);
 
         pShareName = NULL;
     }
 
+    if (SrvElementsGetClientAddressEcpEnabled())
+    {
+        if (!*ppEcpList)
+        {
+            ntStatus = IoRtlEcpListAllocate(ppEcpList);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = RTL_ALLOCATE(
+                        &pClientAddress,
+                        UNICODE_STRING,
+                        sizeof(*pClientAddress));
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = RtlUnicodeStringAllocateFromWC16String(
+                        pClientAddress,
+                        pConnection->pwszClientAddress);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListInsert(
+                        *ppEcpList,
+                        SRV_ECP_TYPE_CLIENT_ADDRESS,
+                        pClientAddress,
+                        sizeof(*pClientAddress),
+                        SrvIoFreeEcpString);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pClientAddress = NULL;
+    }
+
 cleanup:
 
     RTL_FREE(&pShareName);
+    RTL_FREE(&pClientAddress);
 
     return ntStatus;
 
@@ -657,16 +692,16 @@ error:
 
 static
 VOID
-SrvIoFreeEcpShareName(
+SrvIoFreeEcpString(
     IN PVOID pContext
     )
 {
-    PUNICODE_STRING pShareName = (PUNICODE_STRING) pContext;
+    PUNICODE_STRING pEcpString = (PUNICODE_STRING) pContext;
 
-    if (pShareName)
+    if (pEcpString)
     {
-        RtlUnicodeStringFree(pShareName);
-        RtlMemoryFree(pShareName);
+        RtlUnicodeStringFree(pEcpString);
+        RtlMemoryFree(pEcpString);
     }
 }
 

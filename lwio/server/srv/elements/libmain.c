@@ -142,6 +142,14 @@ SrvElementsGetShareNameEcpEnabled(
     return gSrvElements.bShareNameEcpEnabled;
 }
 
+BOOLEAN
+SrvElementsGetClientAddressEcpEnabled(
+    VOID
+    )
+{
+    return gSrvElements.bClientAddressEcpEnabled;
+}
+
 NTSTATUS
 SrvElementsGetStats(
     PSRV_ELEMENTS_STATISTICS pStats
