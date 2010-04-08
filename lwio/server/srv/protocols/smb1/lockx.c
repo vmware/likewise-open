@@ -1314,10 +1314,6 @@ SrvUnregisterBRLState(
     PSRV_BYTE_RANGE_LOCK_STATE pCursor = NULL;
     PSRV_BYTE_RANGE_LOCK_STATE pPrev   = NULL;
 
-    LWIO_LOG_ALWAYS("Unregistering lock state 0x%x with lock state list 0x%x",
-                    pLockState,
-                    pBRLStateList);
-
     LWIO_LOCK_MUTEX(bInLock, &pBRLStateList->mutex);
 
     pCursor = pBRLStateList->pHead;
