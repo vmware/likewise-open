@@ -70,8 +70,11 @@ PvfsCanonicalPathName(
     PSTR pszFilename = NULL;
     PSTR pszCompletePath = NULL;
 
-    ntError = PvfsWC16CanonicalPathName(&pszFilename, IoPath.FileName);
-    BAIL_ON_NT_STATUS(ntError);
+    if (IoPath.FileName)
+    {
+        ntError = PvfsWC16CanonicalPathName(&pszFilename, IoPath.FileName);
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     if (IoPath.RootFileHandle)
     {
@@ -82,8 +85,8 @@ PvfsCanonicalPathName(
             &pszCompletePath,
             "%s%s%s",
             pRootCcb->pszFilename,
-            *pszFilename == '/' ? "" : "/",
-            pszFilename);
+            (pszFilename ? (*pszFilename == '/' ? "" : "/") : ""),
+            (pszFilename ? pszFilename : ""));
         BAIL_ON_NT_STATUS(ntError);
     }
     else
@@ -91,6 +94,13 @@ PvfsCanonicalPathName(
         pszCompletePath = pszFilename;
         pszFilename = NULL;
     }
+
+    if (!pszCompletePath)
+    {
+        ntError = STATUS_OBJECT_NAME_INVALID;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
 
     *ppszPath = pszCompletePath;
 

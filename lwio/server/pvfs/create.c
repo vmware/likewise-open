@@ -68,9 +68,12 @@ PvfsCreate(
                                         FILE_NON_DIRECTORY_FILE);
 
 
-    /* Check to see if this is a Device Create() */
+    /* Check to see if this is a Device Create (i.e. NULL RootFileHandle
+       and empty Filename) */
 
-    if (*pIrp->Args.Create.FileName.FileName == '\0')
+    if (!pIrp->Args.Create.FileName.RootFileHandle &&
+        pIrp->Args.Create.FileName.FileName &&
+        *pIrp->Args.Create.FileName.FileName == '\0')
     {
         ntError = PvfsCreateDevice(pIrpContext);
         BAIL_ON_NT_STATUS(ntError);
