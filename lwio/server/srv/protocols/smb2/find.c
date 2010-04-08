@@ -217,7 +217,6 @@ SrvProcessFind_SMB_V2(
     PWSTR    pwszFilePath       = NULL;
     PWSTR    pwszFilesystemPath = NULL;
     BOOLEAN  bInLock           = FALSE;
-    BOOLEAN  bShareInLock       = FALSE;
     PBYTE    pData             = NULL; // Do not free
     ULONG    ulMaxDataLength   = 0;
     ULONG    ulDataLength      = 0;
@@ -305,7 +304,7 @@ SrvProcessFind_SMB_V2(
                         pFile->createOptions,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        &pEcpList);
+                        pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (pFile->hFile)
@@ -355,6 +354,8 @@ SrvProcessFind_SMB_V2(
 
     if (!pFile->pSearchSpace)
     {
+        wchar16_t wszBackSlash[] = {'\\', 0};
+
         pFile->searchSpace.ucInfoClass = pRequestHeader->ucInfoClass;
         pFile->searchSpace.ucSearchFlags = pRequestHeader->ucSearchFlags;
         pFile->searchSpace.ulFileIndex = pRequestHeader->ulFileIndex;
@@ -364,8 +365,6 @@ SrvProcessFind_SMB_V2(
 
         if (wszFilename.Length)
         {
-            wchar16_t wszBackSlash[] = {'\\', 0};
-
             ntStatus = SrvAllocateMemory(
                             wszFilename.Length + sizeof(wchar16_t),
                             (PVOID*)&pFile->searchSpace.pwszSearchPatternRaw);
@@ -387,18 +386,8 @@ SrvProcessFind_SMB_V2(
             }
         }
 
-        LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
-
-        ntStatus = SrvBuildFilePath(
-                        pTree->pShareInfo->pwszPath,
-                        pFile->pwszFilename,
-                        &pwszFilePath);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
-
         ntStatus = SrvFinderBuildSearchPath(
-                        pwszFilePath,
+                        NULL,
                         pFile->searchSpace.pwszSearchPatternRef,
                         &pwszFilesystemPath,
                         &pFile->searchSpace.pwszSearchPattern,
@@ -624,8 +613,6 @@ cleanup:
 
     if (pTree)
     {
-        LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
-
         SrvTree2Release(pTree);
     }
 

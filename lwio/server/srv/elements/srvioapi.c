@@ -31,39 +31,25 @@
 
 #include "includes.h"
 
-
-static
-NTSTATUS
-SrvIoPrepareEcpList(
-    IN PSRV_SHARE_INFO pShareInfo,
-    IN OUT PIO_ECP_LIST* ppEcpList
-    );
-
-static
-VOID
-SrvIoFreeEcpShareName(
-    IN PVOID pContext
-    );
-
 NTSTATUS
 SrvIoCreateFile(
-    IN PSRV_SHARE_INFO pShareInfo,
-    OUT PIO_FILE_HANDLE pFileHandle,
-    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock,
-    OUT PIO_STATUS_BLOCK pIoStatusBlock,
-    IN PIO_CREATE_SECURITY_CONTEXT pSecurityContext,
-    IN PIO_FILE_NAME pFileName,
-    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
-    IN OPTIONAL PVOID pSecurityQualityOfService,
-    IN ACCESS_MASK DesiredAccess,
-    IN OPTIONAL LONG64 AllocationSize,
-    IN FILE_ATTRIBUTES FileAttributes,
-    IN FILE_SHARE_FLAGS ShareAccess,
-    IN FILE_CREATE_DISPOSITION CreateDisposition,
-    IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PVOID pEaBuffer,
-    IN ULONG EaLength,
-    IN OUT PIO_ECP_LIST* ppEcpList
+    PSRV_SHARE_INFO               pShareInfo,              /* IN              */
+    PIO_FILE_HANDLE               pFileHandle,             /*    OUT          */
+    PIO_ASYNC_CONTROL_BLOCK       pAsyncControlBlock,      /* IN OUT OPTIONAL */
+    PIO_STATUS_BLOCK              pIoStatusBlock,          /*    OUT          */
+    PIO_CREATE_SECURITY_CONTEXT   pSecurityContext,        /* IN              */
+    PIO_FILE_NAME                 pFileName,               /* IN              */
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,     /* IN     OPTIONAL */
+    PVOID                         pSecurityQOS,            /* IN     OPTIONAL */
+    ACCESS_MASK                   DesiredAccess,           /* IN              */
+    LONG64                        AllocationSize,          /* IN     OPTIONAL */
+    FILE_ATTRIBUTES               FileAttributes,          /* IN              */
+    FILE_SHARE_FLAGS              ShareAccess,             /* IN              */
+    FILE_CREATE_DISPOSITION       CreateDisposition,       /* IN              */
+    FILE_CREATE_OPTIONS           CreateOptions,           /* IN              */
+    PVOID                         pEaBuffer,               /* IN     OPTIONAL */
+    ULONG                         EaLength,                /* IN              */
+    PIO_ECP_LIST                  pEcpList                 /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -75,6 +61,13 @@ SrvIoCreateFile(
         .GenericWrite   = FILE_GENERIC_WRITE,
         .GenericExecute = FILE_GENERIC_EXECUTE,
         .GenericAll     = FILE_ALL_ACCESS };
+    wchar16_t    wszBackslash[] = {'\\', 0};
+    IO_FILE_NAME fileName =
+    {
+          .RootFileHandle = pFileName ? pFileName->RootFileHandle : NULL,
+          .FileName       = pFileName ? pFileName->FileName       : NULL,
+          .IoNameOptions  = pFileName ? pFileName->IoNameOptions  : 0
+    };
 
     pAccessToken = IoSecurityGetAccessToken(pSecurityContext);
     if (pAccessToken == NULL)
@@ -146,8 +139,20 @@ SrvIoCreateFile(
         }
     }
 
-    ntStatus = SrvIoPrepareEcpList(pShareInfo, ppEcpList);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (fileName.RootFileHandle)
+    {
+       if (!IsNullOrEmptyString(fileName.FileName) &&
+           (fileName.FileName[0] == wszBackslash[0]))
+       {
+           fileName.FileName++;
+       }
+
+       if (IsNullOrEmptyString(fileName.FileName) ||
+           !SMBWc16sCmp(fileName.FileName, &wszBackslash[0]))
+        {
+            fileName.FileName = NULL;
+        }
+    }
 
     /* Do the open */
 
@@ -156,9 +161,9 @@ SrvIoCreateFile(
                    pAsyncControlBlock,
                    pIoStatusBlock,
                    pSecurityContext,
-                   pFileName,
+                   &fileName,
                    pSecurityDescriptor,
-                   pSecurityQualityOfService,
+                   pSecurityQOS,
                    DesiredAccess,
                    AllocationSize,
                    FileAttributes,
@@ -167,7 +172,7 @@ SrvIoCreateFile(
                    CreateOptions,
                    pEaBuffer,
                    EaLength,
-                   *ppEcpList);
+                   pEcpList);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -177,69 +182,6 @@ cleanup:
 error:
 
     goto cleanup;
-}
-
-static
-NTSTATUS
-SrvIoPrepareEcpList(
-    IN PSRV_SHARE_INFO pShareInfo,
-    IN OUT PIO_ECP_LIST* ppEcpList
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PUNICODE_STRING pShareName = NULL;
-
-    if (SrvElementsGetShareNameEcpEnabled())
-    {
-        if (!*ppEcpList)
-        {
-            ntStatus = IoRtlEcpListAllocate(ppEcpList);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
-
-        ntStatus = RTL_ALLOCATE(&pShareName, UNICODE_STRING, sizeof(*pShareName));
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = RtlUnicodeStringAllocateFromWC16String(
-                        pShareName,
-                        pShareInfo->pwszName);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = IoRtlEcpListInsert(
-                        *ppEcpList,
-                        SRV_ECP_TYPE_SHARE_NAME,
-                        pShareName,
-                        sizeof(*pShareName),
-                        SrvIoFreeEcpShareName);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pShareName = NULL;
-    }
-
-cleanup:
-
-    RTL_FREE(&pShareName);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-static
-VOID
-SrvIoFreeEcpShareName(
-    IN PVOID pContext
-    )
-{
-    PUNICODE_STRING pShareName = (PUNICODE_STRING) pContext;
-
-    if (pShareName)
-    {
-        RtlUnicodeStringFree(pShareName);
-        RtlMemoryFree(pShareName);
-    }
 }
 
 /*

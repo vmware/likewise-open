@@ -1958,7 +1958,7 @@ SrvProcessNtTransactCreate(
                             pNTTransactState->pNtTransactCreateHeader->ulCreateOptions,
                             pNTTransactState->pEA,
                             pNTTransactState->pNtTransactCreateHeader->ulEALength,
-                            &pNTTransactState->pEcpList);
+                            pNTTransactState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseNTTransactStateAsync(pNTTransactState); // completed sync
@@ -2242,19 +2242,11 @@ SrvParseNtTransactCreateParameters(
     }
     else
     {
-        LWIO_LOCK_RWMUTEX_SHARED(
-                bShareInLock,
-                &pNTTransactState->pTree->pShareInfo->mutex);
-
-        ntStatus = SrvBuildFilePath(
-                        pNTTransactState->pTree->pShareInfo->pwszPath,
+        ntStatus = SrvBuildTreeRelativePath(
+                        pNTTransactState->pTree,
                         pwszFilename,
-                        &pNTTransactState->pFilename->FileName);
+                        pNTTransactState->pFilename);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_RWMUTEX(
-                bShareInLock,
-                &pNTTransactState->pTree->pShareInfo->mutex);
     }
 
     /* For named pipes, we need to pipe some extra data into the npfs driver:

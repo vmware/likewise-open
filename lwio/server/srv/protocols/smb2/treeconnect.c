@@ -86,6 +86,19 @@ SrvCreateTreeRootHandle_SMB_V2(
 
 static
 NTSTATUS
+SrvIoPrepareEcpList_SMB_V2(
+    PSRV_SHARE_INFO pShareInfo, /* IN     */
+    PIO_ECP_LIST*   ppEcpList   /* IN OUT */
+    );
+
+static
+VOID
+SrvIoFreeEcpShareName_SMB_V2(
+    IN PVOID pContext
+    );
+
+static
+NTSTATUS
 SrvBuildTreeConnectResponse_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
@@ -459,6 +472,11 @@ SrvCreateTreeRootHandle_SMB_V2(
         LWIO_UNLOCK_RWMUTEX(
                     bShareInLock,
                     &pTConState->pTree->pShareInfo->mutex);
+
+        ntStatus = SrvIoPrepareEcpList_SMB_V2(
+                        pTConState->pTree->pShareInfo,
+                        &pTConState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     if (!pTConState->pTree->hFile)
@@ -482,7 +500,7 @@ SrvCreateTreeRootHandle_SMB_V2(
                         0,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        &pTConState->pEcpList);
+                        pTConState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
 
         SrvReleaseTreeConnectStateAsync_SMB_V2(pTConState); // completed sync
@@ -497,6 +515,69 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvIoPrepareEcpList_SMB_V2(
+    PSRV_SHARE_INFO pShareInfo, /* IN     */
+    PIO_ECP_LIST*   ppEcpList   /* IN OUT */
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PUNICODE_STRING pShareName = NULL;
+
+    if (SrvElementsGetShareNameEcpEnabled())
+    {
+        if (!*ppEcpList)
+        {
+            ntStatus = IoRtlEcpListAllocate(ppEcpList);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = RTL_ALLOCATE(&pShareName, UNICODE_STRING, sizeof(*pShareName));
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = RtlUnicodeStringAllocateFromWC16String(
+                        pShareName,
+                        pShareInfo->pwszName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoRtlEcpListInsert(
+                        *ppEcpList,
+                        SRV_ECP_TYPE_SHARE_NAME,
+                        pShareName,
+                        sizeof(*pShareName),
+                        SrvIoFreeEcpShareName_SMB_V2);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pShareName = NULL;
+    }
+
+cleanup:
+
+    RTL_FREE(&pShareName);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+VOID
+SrvIoFreeEcpShareName_SMB_V2(
+    IN PVOID pContext
+    )
+{
+    PUNICODE_STRING pShareName = (PUNICODE_STRING) pContext;
+
+    if (pShareName)
+    {
+        RtlUnicodeStringFree(pShareName);
+        RtlMemoryFree(pShareName);
+    }
 }
 
 static

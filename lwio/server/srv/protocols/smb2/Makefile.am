@@ -31,6 +31,7 @@ libsrv_protocols_smb2_la_SOURCES = \
     tree.c           \
     treeconnect.c    \
     treedisconnect.c \
+    utils.c          \
     wire.c           \
     write.c
 

@@ -669,7 +669,6 @@ SrvSetFileRenameInfo_SMB_V2(
     PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PSRV_SET_INFO_STATE_SMB_V2   pSetInfoState = NULL;
-    BOOLEAN                      bShareInLock   = FALSE;
 
     pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
@@ -686,16 +685,11 @@ SrvSetFileRenameInfo_SMB_V2(
     }
     else if (!pSetInfoState->hDir)
     {
-        LWIO_LOCK_RWMUTEX_SHARED(   bShareInLock,
-                                    &pCtxSmb2->pTree->pShareInfo->mutex);
-
-        ntStatus = SrvAllocateStringW(
-                        pCtxSmb2->pTree->pShareInfo->pwszPath,
-                        &pSetInfoState->dirPath.FileName);
+        ntStatus = SrvBuildTreeRelativePath_SMB_V2(
+                        pCtxSmb2->pTree,
+                        NULL,
+                        &pSetInfoState->dirPath);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        LWIO_UNLOCK_RWMUTEX(bShareInLock,
-                            &pCtxSmb2->pTree->pShareInfo->mutex);
 
         // Catch failed CreateFile calls when they come back around
 
@@ -721,7 +715,7 @@ SrvSetFileRenameInfo_SMB_V2(
                                 FILE_DIRECTORY_FILE,
                                 NULL, /* EA Buffer */
                                 0,    /* EA Length */
-                                &pSetInfoState->pEcpList
+                                pSetInfoState->pEcpList
                                 );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -748,8 +742,6 @@ SrvSetFileRenameInfo_SMB_V2(
     SrvReleaseSetInfoStateAsync_SMB_V2(pSetInfoState); // completed sync
 
 error:
-
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb2->pTree->pShareInfo->mutex);
 
     return ntStatus;
 }

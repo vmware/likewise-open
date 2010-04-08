@@ -140,13 +140,7 @@ SrvFinderBuildSearchPath(
     PWSTR     pwszSearchPattern2 = NULL;
     BOOLEAN   bPathHasWildCards  = FALSE;
 
-    if (!pwszPath || !*pwszPath)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER_1;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    sLen = wc16slen(pwszPath);
+    sLen = IsNullOrEmptyString(pwszPath) ? 0 : wc16slen(pwszPath);
 
     while (pwszSearchPattern && *pwszSearchPattern &&
            (*pwszSearchPattern == wszBackslash[0]))
@@ -237,17 +231,22 @@ SrvFinderBuildSearchPath(
         BAIL_ON_NT_STATUS(ntStatus);
 
         pDataCursor = (PBYTE)pwszFilesystemPath;
-        memcpy(pDataCursor, (PBYTE)pwszPath, sLen * sizeof(wchar16_t));
-        pDataCursor += sLen * sizeof(wchar16_t);
+        if (sLen)
+        {
+            memcpy(pDataCursor, (PBYTE)pwszPath, sLen * sizeof(wchar16_t));
+            pDataCursor += sLen * sizeof(wchar16_t);
+        }
 
         *((wchar16_t*)pDataCursor) = wszBackslash[0];
         pDataCursor += sizeof(wszBackslash[0]);
 
         memcpy(pDataCursor, pwszSearchPattern, sSuffixLen);
     }
-    else
+    else if (pwszPath)
     {
-        ntStatus = SrvAllocateStringW(pwszPath, &pwszFilesystemPath);
+        ntStatus = SrvAllocateStringW(
+                        pwszPath,
+                        &pwszFilesystemPath);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -295,6 +294,7 @@ error:
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
+    IN  IO_FILE_HANDLE  hRootFileHandle,
     IN  PSRV_SHARE_INFO pShareInfo,
     IN  PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     IN  HANDLE         hFinderRepository,
@@ -324,6 +324,7 @@ SrvFinderCreateSearchSpace(
 
     pFinderRepository = (PSRV_FINDER_REPOSITORY)hFinderRepository;
 
+    fileName.RootFileHandle = hRootFileHandle;
     fileName.FileName = pwszFilesystemPath;
 
     ntStatus = SrvIoCreateFile(
@@ -343,8 +344,7 @@ SrvFinderCreateSearchSpace(
                     0,
                     NULL, /* EA Buffer */
                     0,    /* EA Length */
-                    &pEcpList
-                    );
+                    pEcpList);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_MUTEX(bInLock, &pFinderRepository->mutex);

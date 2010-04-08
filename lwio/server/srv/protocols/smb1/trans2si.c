@@ -557,7 +557,6 @@ SrvRenameFile(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
-    BOOLEAN                    bTreeInLock  = FALSE;
 
     pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
 
@@ -601,6 +600,8 @@ SrvRenameFile(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
+        pTrans2State->dirPath.RootFileHandle = pTrans2State->pTree->hFile;
+
         // Catch failed CreateFile calls when they come back around
 
         ntStatus = pTrans2State->ioStatusBlock.Status;
@@ -625,7 +626,7 @@ SrvRenameFile(
                                 FILE_DIRECTORY_FILE,
                                 NULL, /* EA Buffer */
                                 0,    /* EA Length */
-                                &pTrans2State->pEcpList
+                                pTrans2State->pEcpList
                                 );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -653,9 +654,6 @@ SrvRenameFile(
     SrvReleaseTrans2StateAsync(pTrans2State); // completed synchronously
 
 error:
-
-    LWIO_UNLOCK_RWMUTEX(bTreeInLock,
-                        &pCtxSmb1->pTree->pShareInfo->mutex);
 
     return ntStatus;
 }

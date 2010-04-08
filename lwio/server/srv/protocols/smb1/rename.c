@@ -100,7 +100,6 @@ SrvProcessRename(
     PLWIO_SRV_SESSION          pSession     = NULL;
     PLWIO_SRV_TREE             pTree        = NULL;
     PSRV_RENAME_STATE_SMB_V1   pRenameState = NULL;
-    BOOLEAN                    bShareInLock  = FALSE;
     BOOLEAN                    bInLock      = FALSE;
 
     pRenameState = (PSRV_RENAME_STATE_SMB_V1)pCtxSmb1->hState;
@@ -160,24 +159,19 @@ SrvProcessRename(
     {
         case SRV_RENAME_STAGE_SMB_V1_INITIAL:
 
-            LWIO_LOCK_RWMUTEX_SHARED(   bShareInLock,
-                                        &pCtxSmb1->pTree->pShareInfo->mutex);
-
-            ntStatus = SrvBuildFilePath(
-                            pCtxSmb1->pTree->pShareInfo->pwszPath,
+            ntStatus = SrvBuildTreeRelativePath(
+                            pCtxSmb1->pTree,
                             pRenameState->pwszOldName,
-                            &pRenameState->oldName.FileName);
+                            &pRenameState->oldName);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvAllocateStringW(
-                            pTree->pShareInfo->pwszPath,
-                            &pRenameState->dirPath.FileName);
+            ntStatus = SrvBuildTreeRelativePath(
+                            pCtxSmb1->pTree,
+                            NULL,
+                            &pRenameState->dirPath);
             BAIL_ON_NT_STATUS(ntStatus);
 
             pRenameState->newName.FileName = pRenameState->pwszNewName;
-
-            LWIO_UNLOCK_RWMUTEX(bShareInLock,
-                                &pCtxSmb1->pTree->pShareInfo->mutex);
 
             pRenameState->stage = SRV_RENAME_STAGE_SMB_V1_ATTEMPT_RENAME;
 
@@ -207,8 +201,6 @@ SrvProcessRename(
     }
 
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
 
     if (pSession)
     {
@@ -343,7 +335,7 @@ SrvExecuteRename(
                         FILE_DIRECTORY_FILE,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        &pRenameState->pDirEcpList
+                        pRenameState->pDirEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -371,7 +363,7 @@ SrvExecuteRename(
                         0,
                         NULL, /* EA Buffer */
                         0,    /* EA Length */
-                        &pRenameState->pFileEcpList
+                        pRenameState->pFileEcpList
                         );
         BAIL_ON_NT_STATUS(ntStatus);
 

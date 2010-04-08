@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software
@@ -28,65 +28,76 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        utils.c
  *
  * Abstract:
  *
  *        Likewise IO (LWIO) - SRV
  *
- *        Protocols
+ *        Protocols API - SMBV1
+ *
+ *        Utilities
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <uuid/uuid.h>
+NTSTATUS
+SrvBuildTreeRelativePath_SMB_V2(
+    PLWIO_SRV_TREE_2 pTree,
+    PWSTR            pwszFilename,
+    PIO_FILE_NAME    pFilename
+    )
+{
+    NTSTATUS ntStatus     = STATUS_SUCCESS;
+    BOOLEAN  bInLock      = FALSE;
+    PWSTR    pwszFilePath = NULL;
 
-#include <lwio/lwio.h>
+    if (SrvTree2IsNamedPipe(pTree))
+    {
+        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiocfg.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
+        ntStatus = SrvBuildFilePath(
+                        pTree->pShareInfo->pwszPath,
+                        pwszFilename,
+                        &pwszFilePath);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+    else
+    {
+        wchar16_t wszBackslash[] = {'\\', 0};
 
-#include <lw/ntstatus.h>
-#include <lw/winerror.h>
+        if (!IsNullOrEmptyString(pwszFilename) &&
+            SMBWc16sCmp(pwszFilename, &wszBackslash[0]))
+        {
+            ntStatus = SrvBuildFilePath(
+                            NULL,
+                            pwszFilename,
+                            &pwszFilePath);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
+        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pTree->pShareInfo->mutex);
 
-#include <iodriver.h>
-#include <ioapi.h>
-#include <lwiofsctl.h>
+        pFilename->RootFileHandle = pTree->hFile;
+    }
 
-#include <smbwire.h>
-#include <srvecp.h>
+    pFilename->FileName = pwszFilePath;
 
-#include <shareapi.h>
-#include <srvutils.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
+cleanup:
 
-#include <protocolapi_p.h>
-#include <smb1.h>
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pTree->pShareInfo->mutex);
 
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
+    return ntStatus;
 
-#include "externs.h"
+error:
 
-
-
-
+    goto cleanup;
+}

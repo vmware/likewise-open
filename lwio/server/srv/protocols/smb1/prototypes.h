@@ -565,6 +565,15 @@ SrvProcessTreeConnectAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+// utils.c
+
+NTSTATUS
+SrvBuildTreeRelativePath(
+    PLWIO_SRV_TREE pTree,
+    PWSTR          pwszFilename,
+    PIO_FILE_NAME  pFilename
+    );
+
 // wire.c
 
 NTSTATUS

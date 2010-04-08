@@ -47,6 +47,7 @@ libsrv_protocols_smb1_la_SOURCES = \
     tree.c           \
     treeconnect.c    \
     treedisconnect.c \
+    utils.c          \
     wire.c           \
     write.c          \
     writex.c

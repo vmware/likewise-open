@@ -190,7 +190,7 @@ SrvProcessOpenAndX(
                             pOpenState->usCreateOptions,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            &pOpenState->pEcpList);
+                            pOpenState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseOpenStateAsync(pOpenState); // completed synchronously
@@ -346,7 +346,6 @@ SrvBuildOpenState(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1       = pCtxProtocol->pSmb1Context;
     PSRV_OPEN_STATE_SMB_V1     pOpenState   = NULL;
-    BOOLEAN                    bShareInLock    = FALSE;
 
     ntStatus = SrvAllocateMemory(
                     sizeof(SRV_OPEN_STATE_SMB_V1),
@@ -368,15 +367,11 @@ SrvBuildOpenState(
 
     pOpenState->pTree = SrvTreeAcquire(pCtxSmb1->pTree);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
-
-    ntStatus = SrvBuildFilePath(
-                    pCtxSmb1->pTree->pShareInfo->pwszPath,
+    ntStatus = SrvBuildTreeRelativePath(
+                    pCtxSmb1->pTree,
                     pwszFilename,
-                    &pOpenState->pFilename->FileName);
+                    pOpenState->pFilename);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
 
     pOpenState->pwszFilename = pwszFilename;
 
@@ -533,8 +528,6 @@ SrvBuildOpenState(
     *ppOpenState = pOpenState;
 
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb1->pTree->pShareInfo->mutex);
 
     return ntStatus;
 

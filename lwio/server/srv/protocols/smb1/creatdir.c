@@ -92,7 +92,6 @@ SrvProcessCreateDirectory(
     PSRV_EXEC_CONTEXT_SMB_V1    pCtxSmb1     = pCtxProtocol->pSmb1Context;
     PLWIO_SRV_SESSION           pSession     = NULL;
     PLWIO_SRV_TREE              pTree        = NULL;
-    BOOLEAN                     bShareInLock  = FALSE;
     BOOLEAN                     bInLock      = FALSE;
     PSRV_CREATEDIR_STATE_SMB_V1 pCreatedirState = NULL;
 
@@ -156,16 +155,11 @@ SrvProcessCreateDirectory(
     {
         case SRV_CREATEDIR_STAGE_SMB_V1_INITIAL:
 
-            LWIO_LOCK_RWMUTEX_SHARED(   bShareInLock,
-                                        &pCtxSmb1->pTree->pShareInfo->mutex);
-
-            ntStatus = SrvBuildFilePath(
-                            pCtxSmb1->pTree->pShareInfo->pwszPath,
+            ntStatus = SrvBuildTreeRelativePath(
+                            pCtxSmb1->pTree,
                             pCreatedirState->pwszPathFragment,
-                            &pCreatedirState->fileName.FileName);
+                            &pCreatedirState->fileName);
             BAIL_ON_NT_STATUS(ntStatus);
-
-            LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
             pCreatedirState->stage = SRV_CREATEDIR_STAGE_SMB_V1_COMPLETED;
 
@@ -188,7 +182,7 @@ SrvProcessCreateDirectory(
                             FILE_DIRECTORY_FILE,
                             NULL, /* EA Buffer */
                             0,    /* EA Length */
-                            &pCreatedirState->pEcpList);
+                            pCreatedirState->pEcpList);
             BAIL_ON_NT_STATUS(ntStatus);
 
             SrvReleaseCreatedirStateAsync(pCreatedirState); // completed sync
@@ -219,8 +213,6 @@ SrvProcessCreateDirectory(
     }
 
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
 
     if (pTree)
     {

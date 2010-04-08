@@ -279,7 +279,7 @@ SrvProcessCreate_SMB_V2(
                                 pCreateState->pExtAContext->pData : NULL),
                             (pCreateState->pExtAContext ?
                                 pCreateState->pExtAContext->ulDataLength : 0),
-                            &pCreateState->pEcpList);
+                            pCreateState->pEcpList);
             switch (ntStatus)
             {
                 case STATUS_PENDING:
@@ -543,7 +543,6 @@ SrvBuildCreateState_SMB_V2(
     PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol   = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2       = pCtxProtocol->pSmb2Context;
     PSRV_CREATE_STATE_SMB_V2   pCreateState   = NULL;
-    BOOLEAN                    bShareInLock    = FALSE;
     ULONG                      iCtx       = 0;
     wchar16_t wszBackSlash[]              = { '\\', 0};
     wchar16_t wszForwardSlash[]           = { '/' , 0};
@@ -594,15 +593,11 @@ SrvBuildCreateState_SMB_V2(
 
     pCreateState->pTree = SrvTree2Acquire(pCtxSmb2->pTree);
 
-    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pCtxSmb2->pTree->pShareInfo->mutex);
-
-    ntStatus = SrvBuildFilePath(
-                    pCtxSmb2->pTree->pShareInfo->pwszPath,
+    ntStatus = SrvBuildTreeRelativePath_SMB_V2(
+                    pCtxSmb2->pTree,
                     pCreateState->pwszFilename,
-                    &pCreateState->pFilename->FileName);
+                    pCreateState->pFilename);
     BAIL_ON_NT_STATUS(ntStatus);
-
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb2->pTree->pShareInfo->mutex);
 
     /* For named pipes, we need to pipe some extra data into the npfs driver:
      *  - Session key
@@ -684,8 +679,6 @@ SrvBuildCreateState_SMB_V2(
     *ppCreateState = pCreateState;
 
 cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pCtxSmb2->pTree->pShareInfo->mutex);
 
     return ntStatus;
 

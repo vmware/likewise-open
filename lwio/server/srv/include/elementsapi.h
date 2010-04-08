@@ -1159,23 +1159,23 @@ SrvTree2Rundown(
 
 NTSTATUS
 SrvIoCreateFile(
-    IN PSRV_SHARE_INFO pShareInfo,
-    OUT PIO_FILE_HANDLE pFileHandle,
-    IN OUT OPTIONAL PIO_ASYNC_CONTROL_BLOCK pAsyncControlBlock,
-    OUT PIO_STATUS_BLOCK pIoStatusBlock,
-    IN PIO_CREATE_SECURITY_CONTEXT pSecurityContext,
-    IN PIO_FILE_NAME pFileName,
-    IN OPTIONAL PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,
-    IN OPTIONAL PVOID pSecurityQualityOfService,
-    IN ACCESS_MASK DesiredAccess,
-    IN OPTIONAL LONG64 AllocationSize,
-    IN FILE_ATTRIBUTES FileAttributes,
-    IN FILE_SHARE_FLAGS ShareAccess,
-    IN FILE_CREATE_DISPOSITION CreateDisposition,
-    IN FILE_CREATE_OPTIONS CreateOptions,
-    IN OPTIONAL PVOID pEaBuffer,
-    IN ULONG EaLength,
-    IN OUT PIO_ECP_LIST* ppEcpList
+    PSRV_SHARE_INFO               pShareInfo,              /* IN              */
+    PIO_FILE_HANDLE               pFileHandle,             /*    OUT          */
+    PIO_ASYNC_CONTROL_BLOCK       pAsyncControlBlock,      /* IN OUT OPTIONAL */
+    PIO_STATUS_BLOCK              pIoStatusBlock,          /*    OUT          */
+    PIO_CREATE_SECURITY_CONTEXT   pSecurityContext,        /* IN              */
+    PIO_FILE_NAME                 pFileName,               /* IN              */
+    PSECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor,     /* IN     OPTIONAL */
+    PVOID                         pSecurityQOS,            /* IN     OPTIONAL */
+    ACCESS_MASK                   DesiredAccess,           /* IN              */
+    LONG64                        AllocationSize,          /* IN     OPTIONAL */
+    FILE_ATTRIBUTES               FileAttributes,          /* IN              */
+    FILE_SHARE_FLAGS              ShareAccess,             /* IN              */
+    FILE_CREATE_DISPOSITION       CreateDisposition,       /* IN              */
+    FILE_CREATE_OPTIONS           CreateOptions,           /* IN              */
+    PVOID                         pEaBuffer,               /* IN     OPTIONAL */
+    ULONG                         EaLength,                /* IN              */
+    PIO_ECP_LIST                  pEcpList                 /* IN              */
     );
 
 NTSTATUS
@@ -1342,6 +1342,7 @@ SrvFinderBuildSearchPath(
 
 NTSTATUS
 SrvFinderCreateSearchSpace(
+    IN  IO_FILE_HANDLE  hRootFileHandle,
     IN  PSRV_SHARE_INFO pShareInfo,
     IN  PIO_CREATE_SECURITY_CONTEXT pIoSecurityContext,
     IN  HANDLE         hFinderRepository,

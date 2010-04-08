@@ -268,7 +268,6 @@ SrvBuildFindFirst2Response(
     PUSHORT   pSetup = NULL;
     BYTE      setupCount = 0;
     BOOLEAN   bEndOfSearch = FALSE;
-    BOOLEAN   bShareInLock = FALSE;
     PWSTR     pwszFilesystemPath = NULL;
     PWSTR     pwszSearchPattern2 = NULL;
 
@@ -291,19 +290,16 @@ SrvBuildFindFirst2Response(
         pwszSearchPattern++;
     }
 
-    LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pTree->pShareInfo->mutex);
-
     ntStatus = SrvFinderBuildSearchPath(
-                    pTree->pShareInfo->pwszPath,
+                    NULL,
                     pwszSearchPattern,
                     &pwszFilesystemPath,
                     &pwszSearchPattern2,
                     NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
-
     ntStatus = SrvFinderCreateSearchSpace(
+                    pTree->hFile,
                     pTree->pShareInfo,
                     pSession->pIoSecurityContext,
                     pSession->hFinderRepository,
@@ -431,8 +427,6 @@ cleanup:
 
     if (pTree)
     {
-        LWIO_UNLOCK_RWMUTEX(bShareInLock, &pTree->pShareInfo->mutex);
-
         SrvTreeRelease(pTree);
     }
 
