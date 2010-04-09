@@ -296,6 +296,8 @@ SrvProtocolTransportDriverConnectionNew(
     SRV_PROPERTIES properties = { 0 };
     PSRV_HOST_INFO pHostinfo = NULL;
     PLWIO_SRV_CONNECTION pConnection = NULL;
+    const struct sockaddr* pClientAddress = NULL;
+    SOCKLEN_T              clientAddrLen = 0;
     BOOLEAN bInLock = FALSE;
 
     ntStatus = SrvAcquireHostInfo(NULL, &pHostinfo);
@@ -343,8 +345,11 @@ SrvProtocolTransportDriverConnectionNew(
     properties.Capabilities |= CAP_EXTENDED_SECURITY;
     uuid_copy(properties.GUID, pProtocolDispatchContext->guid);
 
+    SrvTransportSocketGetAddress(pSocket, &pClientAddress, &clientAddrLen);
+
     ntStatus = SrvConnectionCreate(
-                    SrvTransportSocketGetAddressString(pSocket),
+                    pClientAddress,
+                    clientAddrLen,
                     pSocket,
                     pGlobals->hPacketAllocator,
                     pProtocolDispatchContext->hGssContext,
@@ -643,7 +648,7 @@ SrvProtocolTransportDriverSocketGetAddressBytes(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     const struct sockaddr* pSocketAddress = NULL;
-    size_t socketAddressLength = 0;
+    SOCKLEN_T socketAddressLength = 0;
     PVOID pAddressPart = NULL;
     ULONG addressPartLength = 0;
 

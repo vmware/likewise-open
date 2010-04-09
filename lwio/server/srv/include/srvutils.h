@@ -50,6 +50,14 @@
 #define SRV_SAFE_FREE_MEMORY_AND_RESET(pMemory) \
     if (pMemory) { SrvFreeMemory(pMemory); (pMemory) = NULL; }
 
+#ifdef LW_USE_INET6
+#define SRV_SOCKET_ADDRESS_STRING_MAX_SIZE \
+    (LW_MAX(INET_ADDRSTRLEN, INET6_ADDRSTRLEN) + 1)
+#else
+#define SRV_SOCKET_ADDRESS_STRING_MAX_SIZE \
+    (INET_ADDRSTRLEN + 1)
+#endif
+
 typedef VOID (*PFN_PROD_CONS_QUEUE_FREE_ITEM)(PVOID pItem);
 
 typedef struct _SMB_PROD_CONS_QUEUE
@@ -198,6 +206,40 @@ SrvAllocateStringPrintf(
 VOID
 SrvProdConsFreeContents(
     PSMB_PROD_CONS_QUEUE pQueue
+    );
+
+NTSTATUS
+SrvSocketAddressToStringW(
+    struct sockaddr* pSocketAddress,
+    PWSTR*           ppwszAddress
+    );
+
+NTSTATUS
+SrvSocketAddressToString(
+    struct sockaddr* pSocketAddress, /* IN     */
+    PSTR             pszAddress,     /*    OUT */
+    ULONG            ulAddressLength /* IN     */
+    );
+
+NTSTATUS
+SrvSocketGetAddrInfoW(
+    PCWSTR            pwszClientname,
+    struct addrinfo** ppAddrInfo
+    );
+
+NTSTATUS
+SrvSocketGetAddrInfoA(
+    PCSTR             pszClientname,
+    struct addrinfo** ppAddrInfo
+    );
+
+NTSTATUS
+SrvSocketCompareAddress(
+    const struct sockaddr* pAddress1,
+    SOCKLEN_T              addrLength1,
+    const struct sockaddr* pAddress2,
+    SOCKLEN_T              addrLength2,
+    PBOOLEAN               pbMatch
     );
 
 #endif /* __SRV_UTILS_H__ */

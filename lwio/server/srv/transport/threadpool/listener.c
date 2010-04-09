@@ -229,7 +229,7 @@ SrvListenerProcessTask(
     PSRV_TRANSPORT_LISTENER pListener = (PSRV_TRANSPORT_LISTENER) pDataContext;
     int connFd = -1;
     PSRV_SOCKET pSocket = NULL;
-    SRV_SOCKET_ADDRESS clientAddress;
+    struct sockaddr clientAddress;
     SOCKLEN_T clientAddressLength = sizeof(clientAddress);
     CHAR clientAddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
     LW_TASK_EVENT_MASK waitMask = 0;
@@ -258,7 +258,7 @@ SrvListenerProcessTask(
     }
 
     connFd = accept(pListener->ListenFd,
-                    &clientAddress.Generic,
+                    &clientAddress,
                     &clientAddressLength);
     if (connFd < 0)
     {
@@ -283,7 +283,7 @@ SrvListenerProcessTask(
     }
 
     // TODO - getpeername should not be necessary after accept.
-    if (getpeername(connFd, &clientAddress.Generic, &clientAddressLength) < 0)
+    if (getpeername(connFd, &clientAddress, &clientAddressLength) < 0)
     {
         // Note that task will terminate.
         ntStatus = LwErrnoToNtStatus(errno);
@@ -292,10 +292,11 @@ SrvListenerProcessTask(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    SrvSocketAddressToString(
-            &clientAddress.Generic,
-            clientAddressStringBuffer,
-            sizeof(clientAddressStringBuffer));
+    ntStatus = SrvSocketAddressToString(
+                    &clientAddress,
+                    clientAddressStringBuffer,
+                    sizeof(clientAddressStringBuffer));
+    BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOG_INFO("Handling client from '%s' on fd = %d",
                   clientAddressStringBuffer,
@@ -304,7 +305,7 @@ SrvListenerProcessTask(
     ntStatus = SrvSocketCreate(
                     pListener,
                     connFd,
-                    &clientAddress.Generic,
+                    &clientAddress,
                     clientAddressLength,
                     &pSocket);
     if (ntStatus)

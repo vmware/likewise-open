@@ -411,7 +411,8 @@ typedef struct _SRV_CONNECTION
 
     // Immutable for lifetime of connection.
     SRV_RESOURCE     resource;
-    PWSTR            pwszClientAddress;
+    struct sockaddr  clientAddress;
+    SOCKLEN_T        clientAddrLen;
     PLWIO_SRV_SOCKET pSocket;
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
 
@@ -725,7 +726,8 @@ SrvAsyncStateRelease(
 
 NTSTATUS
 SrvConnectionCreate(
-    PCSTR                           pszClientAddress,
+    const struct sockaddr*          pClientAddress,
+    SOCKLEN_T                       clientAddrLen,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,

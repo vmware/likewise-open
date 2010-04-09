@@ -167,9 +167,9 @@ SrvTransportShutdown(
 
 VOID
 SrvTransportSocketGetAddress(
-    IN PSRV_SOCKET pSocket,
+    IN PSRV_SOCKET              pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT size_t* pAddressLength
+    OUT SOCKLEN_T*              pAddressLength
     );
 
 PCSTR

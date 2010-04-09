@@ -64,13 +64,6 @@ SrvListenerShutdown(
 
 // srvsocket.c
 
-PCSTR
-SrvSocketAddressToString(
-    IN struct sockaddr* pSocketAddress,
-    OUT PSTR pszAddress,
-    IN ULONG AddressLength
-    );
-
 NTSTATUS
 SrvSocketCreate(
     IN PSRV_TRANSPORT_LISTENER pListener,
@@ -87,9 +80,9 @@ SrvSocketRelease(
 
 VOID
 SrvSocketGetAddress(
-    IN PSRV_SOCKET pSocket,
+    IN PSRV_SOCKET              pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT size_t* pAddressLength
+    OUT SOCKLEN_T*              pAddressLength
     );
 
 PCSTR

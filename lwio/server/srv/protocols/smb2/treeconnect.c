@@ -53,6 +53,7 @@
 static
 NTSTATUS
 SrvBuildTreeConnectState_SMB_V2(
+    PLWIO_SRV_CONNECTION              pConnection,
     PLWIO_SRV_SESSION_2               pSession,
     PSMB2_TREE_CONNECT_REQUEST_HEADER pTreeConnectHeader,
     PUNICODE_STRING                   pPath,
@@ -87,9 +88,8 @@ SrvCreateTreeRootHandle_SMB_V2(
 static
 NTSTATUS
 SrvIoPrepareEcpList_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection, /* IN     */
-    PSRV_SHARE_INFO      pShareInfo,  /* IN     */
-    PIO_ECP_LIST*        ppEcpList    /* IN OUT */
+    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState, /* IN     */
+    PIO_ECP_LIST*                  ppEcpList   /* IN OUT */
     );
 
 static
@@ -170,6 +170,7 @@ SrvProcessTreeConnect_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvBuildTreeConnectState_SMB_V2(
+                        pConnection,
                         pSession,
                         pTreeConnectHeader,
                         &wszPath,
@@ -311,6 +312,7 @@ error:
 static
 NTSTATUS
 SrvBuildTreeConnectState_SMB_V2(
+    PLWIO_SRV_CONNECTION              pConnection,
     PLWIO_SRV_SESSION_2               pSession,
     PSMB2_TREE_CONNECT_REQUEST_HEADER pTreeConnectHeader,
     PUNICODE_STRING                   pPath,
@@ -340,6 +342,9 @@ SrvBuildTreeConnectState_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     memcpy((PBYTE)pTConState->pwszPath, (PBYTE)pPath->Buffer, pPath->Length);
+
+    pTConState->clientAddress         = pConnection->clientAddress;
+    pTConState->ulClientAddressLength = pConnection->clientAddrLen;
 
     pTConState->pSession = SrvSession2Acquire(pSession);
 
@@ -475,8 +480,7 @@ SrvCreateTreeRootHandle_SMB_V2(
                     &pTConState->pTree->pShareInfo->mutex);
 
         ntStatus = SrvIoPrepareEcpList_SMB_V2(
-                        pExecContext->pConnection,
-                        pTConState->pTree->pShareInfo,
+                        pTConState,
                         &pTConState->pEcpList);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -522,14 +526,12 @@ error:
 static
 NTSTATUS
 SrvIoPrepareEcpList_SMB_V2(
-    PLWIO_SRV_CONNECTION pConnection, /* IN     */
-    PSRV_SHARE_INFO      pShareInfo,  /* IN     */
-    PIO_ECP_LIST*        ppEcpList    /* IN OUT */
+    PSRV_TREE_CONNECT_STATE_SMB_V2 pTConState, /* IN     */
+    PIO_ECP_LIST*                  ppEcpList   /* IN OUT */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PUNICODE_STRING pShareName = NULL;
-    PUNICODE_STRING pClientAddress = NULL;
 
     if (SrvElementsGetShareNameEcpEnabled())
     {
@@ -544,7 +546,7 @@ SrvIoPrepareEcpList_SMB_V2(
 
         ntStatus = RtlUnicodeStringAllocateFromWC16String(
                         pShareName,
-                        pShareInfo->pwszName);
+                        pTConState->pTree->pShareInfo->pwszName);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = IoRtlEcpListInsert(
@@ -566,33 +568,19 @@ SrvIoPrepareEcpList_SMB_V2(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        ntStatus = RTL_ALLOCATE(
-                        &pClientAddress,
-                        UNICODE_STRING,
-                        sizeof(*pClientAddress));
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        ntStatus = RtlUnicodeStringAllocateFromWC16String(
-                        pClientAddress,
-                        pConnection->pwszClientAddress);
-        BAIL_ON_NT_STATUS(ntStatus);
-
         ntStatus = IoRtlEcpListInsert(
                         *ppEcpList,
                         SRV_ECP_TYPE_CLIENT_ADDRESS,
-                        pClientAddress,
-                        sizeof(*pClientAddress),
-                        SrvIoFreeEcpString_SMB_V2);
+                        &pTConState->clientAddress,
+                        pTConState->ulClientAddressLength,
+                        NULL);
         BAIL_ON_NT_STATUS(ntStatus);
-
-        pClientAddress = NULL;
     }
 
 
 cleanup:
 
     RTL_FREE(&pShareName);
-    RTL_FREE(&pClientAddress);
 
     return ntStatus;
 

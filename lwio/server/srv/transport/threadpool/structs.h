@@ -24,15 +24,6 @@ typedef ULONG SRV_SOCKET_STATE_MASK, *PSRV_SOCKET_STATE_MASK;
 #define SRV_SOCKET_STATE_FD_READABLE    0x00000004
 #define SRV_SOCKET_STATE_DISCONNECTED   0x00000008
 
-// Abstraction for socket address to handle different address types.
-typedef union {
-    struct sockaddr Generic;
-    struct sockaddr_in Ip;
-#ifdef LW_USE_INET6
-    struct sockaddr_in6 Ip6;
-#endif
-} SRV_SOCKET_ADDRESS, *PSRV_SOCKET_ADDRESS;
-
 // Transport abstraction for a connection.
 typedef struct _SRV_SOCKET
 {
@@ -49,7 +40,7 @@ typedef struct _SRV_SOCKET
 
     // Immutable for life of the task.
     int fd;
-    SRV_SOCKET_ADDRESS ClientAddress;
+    struct sockaddr clientAddress;
     SOCKLEN_T ClientAddressLength;
     CHAR AddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
 

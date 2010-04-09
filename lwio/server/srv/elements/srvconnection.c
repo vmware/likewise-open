@@ -182,7 +182,8 @@ SrvConnection2RundownAsyncStatesRbTreeVisit(
 
 NTSTATUS
 SrvConnectionCreate(
-    PCSTR                           pszClientAddress,
+    const struct sockaddr*          pClientAddress,
+    SOCKLEN_T                       clientAddrLen,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
@@ -196,9 +197,13 @@ SrvConnectionCreate(
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_CONNECTION pConnection = NULL;
 
-    ntStatus = SrvAllocateMemory(
-                    sizeof(*pConnection),
-                    (PVOID*)&pConnection);
+    if (!pClientAddress)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvAllocateMemory(sizeof(*pConnection), (PVOID*)&pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
     pConnection->refCount = 1;
@@ -234,8 +239,8 @@ SrvConnectionCreate(
                     &pConnection->hGssContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SMBMbsToWc16s(pszClientAddress, &pConnection->pwszClientAddress);
-    BAIL_ON_NT_STATUS(ntStatus);
+    pConnection->clientAddress = *pClientAddress;
+    pConnection->clientAddrLen = clientAddrLen;
 
     pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;
@@ -1226,11 +1231,6 @@ SrvConnectionFree(
     if (pConnection->pHostinfo)
     {
         SrvReleaseHostInfo(pConnection->pHostinfo);
-    }
-
-    if (pConnection->pwszClientAddress)
-    {
-        SrvFreeMemory(pConnection->pwszClientAddress);
     }
 
     if (pConnection->pMutex)

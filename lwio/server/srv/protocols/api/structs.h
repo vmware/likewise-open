@@ -126,7 +126,6 @@ typedef struct _SRV_SEND_CONTEXT
 typedef struct _SRV_PROTOCOL_SESSION_ENUM_QUERY
 {
     PWSTR    pwszUncClientname;
-    PWSTR    pwszUncClientnameRef;
     PWSTR    pwszUsername;
     ULONG    ulInfoLevel;
 
@@ -141,6 +140,11 @@ typedef struct _SRV_PROTOCOL_SESSION_ENUM_QUERY
     PBYTE    pBuffer;
     ULONG    ulBufferSize;
     ULONG    ulBytesUsed;
+
+    struct sockaddr* pClientAddress;
+    SOCKLEN_T        clientAddrLen;
+
+    struct addrinfo* pQueryAddress;
 
 } SRV_PROTOCOL_SESSION_ENUM_QUERY, *PSRV_PROTOCOL_SESSION_ENUM_QUERY;
 

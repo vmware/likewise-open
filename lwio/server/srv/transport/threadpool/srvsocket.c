@@ -112,52 +112,6 @@ SrvSocketProcessTask(
 
 // Implementations
 
-PCSTR
-SrvSocketAddressToString(
-    IN struct sockaddr* pSocketAddress,
-    OUT PSTR pszAddress,
-    IN ULONG AddressLength
-    )
-{
-    PCSTR pszResult = NULL;
-    PVOID pAddressPart = NULL;
-
-    switch (pSocketAddress->sa_family)
-    {
-        case AF_INET:
-            pAddressPart = &((struct sockaddr_in*)pSocketAddress)->sin_addr;
-            break;
-#ifdef LW_USE_INET6
-        case AF_INET6:
-            pAddressPart = &((struct sockaddr_in6*)pSocketAddress)->sin6_addr;
-            break;
-#endif
-        default:
-            goto error;
-    }
-
-    pszResult = inet_ntop(pSocketAddress->sa_family,
-                          pAddressPart,
-                          pszAddress,
-                          AddressLength);
-
-cleanup:
-
-    return pszResult;
-
-error:
-
-    pszResult = NULL;
-
-    // Terminate output buffer
-    if (AddressLength > 0)
-    {
-        pszAddress[0] = 0;
-    }
-
-    goto cleanup;
-}
-
 NTSTATUS
 SrvSocketCreate(
     IN PSRV_TRANSPORT_LISTENER pListener,
@@ -169,9 +123,8 @@ SrvSocketCreate(
 {
     NTSTATUS ntStatus = 0;
     PSRV_SOCKET pSocket = NULL;
-    PCSTR pszAddress = NULL;
 
-    if (ClientAddressLength > sizeof(pSocket->ClientAddress))
+    if (ClientAddressLength > sizeof(pSocket->clientAddress))
     {
         LWIO_LOG_ERROR("Client address is too long at %d bytes",
                        ClientAddressLength);
@@ -197,22 +150,16 @@ SrvSocketCreate(
     pSocket->pListener = pListener;
     pSocket->fd = fd;
 
-    memcpy(&pSocket->ClientAddress, pClientAddress, ClientAddressLength);
+    memcpy(&pSocket->clientAddress, pClientAddress, ClientAddressLength);
     pSocket->ClientAddressLength = ClientAddressLength;
 
-    pszAddress = SrvSocketAddressToString(
-                            &pSocket->ClientAddress.Generic,
+    ntStatus = SrvSocketAddressToString(
+                            &pSocket->clientAddress,
                             pSocket->AddressStringBuffer,
                             sizeof(pSocket->AddressStringBuffer));
-    if (!pszAddress)
-    {
-        // This should never happen.
-        LWIO_LOG_ERROR("Cannot fetch address string for fd = %d", fd);
-        ntStatus = STATUS_INSUFFICIENT_RESOURCES;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO-Use separeate listener and socket task groups
+    // TODO-Use separate listener and socket task groups
     // in case of shutdown as we are adding a new socket task.
     ntStatus = LwRtlCreateTask(
                     pListener->pPool,
@@ -298,13 +245,13 @@ SrvSocketFree(
 
 VOID
 SrvSocketGetAddress(
-    IN PSRV_SOCKET pSocket,
+    IN PSRV_SOCKET              pSocket,
     OUT const struct sockaddr** ppAddress,
-    OUT size_t* pAddressLength
+    OUT SOCKLEN_T*              pAddressLength
     )
 {
     // immutable, so lock not needed.
-    *ppAddress = &pSocket->ClientAddress.Generic;
+    *ppAddress = &pSocket->clientAddress;
     *pAddressLength = pSocket->ClientAddressLength;
 }
 

@@ -132,6 +132,12 @@ SrvProtocolProcessSession_level_502(
     PULONG  pulBytesUsed
     );
 
+static
+VOID
+SrvProtocolFreeSessionQueryContents(
+    PSRV_PROTOCOL_SESSION_ENUM_QUERY pSessionEnumQuery
+    );
+
 NTSTATUS
 SrvProtocolEnumerateSessions(
     PWSTR  pwszUncClientname,
@@ -150,7 +156,8 @@ SrvProtocolEnumerateSessions(
     SRV_PROTOCOL_SESSION_ENUM_QUERY sessionEnumQuery =
     {
             .pwszUncClientname    = pwszUncClientname,
-            .pwszUncClientnameRef = NULL,
+            .pClientAddress       = NULL,
+            .clientAddrLen        = 0,
             .pwszUsername         = pwszUsername,
             .ulInfoLevel          = ulInfoLevel,
             .iEntryIndex          = 0,
@@ -159,8 +166,17 @@ SrvProtocolEnumerateSessions(
             .ulTotalEntries       = 0,
             .pBuffer              = pBuffer,
             .ulBufferSize         = ulBufferSize,
-            .ulBytesUsed          = 0
+            .ulBytesUsed          = 0,
+            .pQueryAddress        = NULL
     };
+
+    if (pwszUncClientname)
+    {
+        ntStatus = SrvSocketGetAddrInfoW(
+                        pwszUncClientname,
+                        &sessionEnumQuery.pQueryAddress);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gProtocolApiGlobals.mutex);
 
@@ -190,6 +206,8 @@ SrvProtocolEnumerateSessions(
 cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    SrvProtocolFreeSessionQueryContents(&sessionEnumQuery);
 
     return ntStatus;
 
@@ -222,11 +240,26 @@ SrvProtocolCountCandidateSessions(
                                     (PSRV_PROTOCOL_SESSION_ENUM_QUERY)pUserData;
     BOOLEAN bContinue = TRUE;
 
-    if (pSessionEnumQuery->pwszUncClientname &&
-        (0 != SMBWc16sCaseCmp(  pSessionEnumQuery->pwszUncClientname,
-                                pConnection->pwszClientAddress)))
+    if (pSessionEnumQuery->pQueryAddress)
     {
-        pConnection = NULL;
+        struct addrinfo* pCursor = pSessionEnumQuery->pQueryAddress;
+        BOOLEAN bMatch = FALSE;
+
+        for (; !bMatch && (pCursor != NULL); pCursor = pCursor->ai_next)
+        {
+            ntStatus = SrvSocketCompareAddress(
+                            &pConnection->clientAddress,
+                            pConnection->clientAddrLen,
+                            pCursor->ai_addr,
+                            pCursor->ai_addrlen,
+                            &bMatch);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (!bMatch)
+        {
+            pConnection = NULL;
+        }
     }
 
     if (pConnection)
@@ -307,19 +340,34 @@ SrvProtocolEnumCandidateSessions(
                                     (PSRV_PROTOCOL_SESSION_ENUM_QUERY)pUserData;
     BOOLEAN bInLock = FALSE;
 
-    if (pSessionEnumQuery->pwszUncClientname &&
-        (0 != SMBWc16sCaseCmp(  pSessionEnumQuery->pwszUncClientname,
-                                pConnection->pwszClientAddress)))
+    if (pSessionEnumQuery->pQueryAddress)
     {
-        pConnection = NULL;
+        struct addrinfo* pCursor = pSessionEnumQuery->pQueryAddress;
+        BOOLEAN bMatch = FALSE;
+
+        for (; !bMatch && (pCursor != NULL); pCursor = pCursor->ai_next)
+        {
+            ntStatus = SrvSocketCompareAddress(
+                            &pConnection->clientAddress,
+                            pConnection->clientAddrLen,
+                            pCursor->ai_addr,
+                            pCursor->ai_addrlen,
+                            &bMatch);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (!bMatch)
+        {
+            pConnection = NULL;
+        }
     }
 
     if (pConnection)
     {
         LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
-        pSessionEnumQuery->pwszUncClientnameRef =
-                            pConnection->pwszClientAddress;
+        pSessionEnumQuery->pClientAddress = &pConnection->clientAddress;
+        pSessionEnumQuery->clientAddrLen  = pConnection->clientAddrLen;
 
         ntStatus = WireGetCurrentNTTime(&pSessionEnumQuery->llCurTime);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -365,7 +413,8 @@ SrvProtocolEnumCandidateSessions(
 
 cleanup:
 
-    pSessionEnumQuery->pwszUncClientnameRef = NULL;
+    pSessionEnumQuery->pClientAddress = NULL;
+    pSessionEnumQuery->clientAddrLen  = 0;
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
@@ -391,6 +440,7 @@ SrvProtocolProcessCandidateSession(
     PLWIO_SRV_SESSION pSession = (PLWIO_SRV_SESSION)pData;
     PSRV_PROTOCOL_SESSION_ENUM_QUERY pSessionEnumQuery =
                                     (PSRV_PROTOCOL_SESSION_ENUM_QUERY)pUserData;
+    PWSTR   pwszClientname = NULL;
     BOOLEAN bInLock = FALSE;
 
     if (pSessionEnumQuery->pwszUsername)
@@ -437,12 +487,17 @@ SrvProtocolProcessCandidateSession(
                               pSession->llLastActivityTime)/WIRE_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS;
         }
 
+        ntStatus = SrvSocketAddressToStringW(
+                                pSessionEnumQuery->pClientAddress,
+                                &pwszClientname);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         switch (pSessionEnumQuery->ulInfoLevel)
         {
             case 0:
 
                 ntStatus = SrvProtocolProcessSession_level_0(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSessionEnumQuery->pBuffer,
                                 pSessionEnumQuery->ulBufferSize,
                                 &ulBytesUsed);
@@ -452,7 +507,7 @@ SrvProtocolProcessCandidateSession(
             case 1:
 
                 ntStatus = SrvProtocolProcessSession_level_1(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSession->pwszClientPrincipalName,
                                 pSession->ullTotalFileCount,
                                 ulActiveTime,
@@ -467,7 +522,7 @@ SrvProtocolProcessCandidateSession(
             case 2:
 
                 ntStatus = SrvProtocolProcessSession_level_2(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSession->pwszClientPrincipalName,
                                 pSession->ullTotalFileCount,
                                 ulActiveTime,
@@ -483,7 +538,7 @@ SrvProtocolProcessCandidateSession(
             case 10:
 
                 ntStatus = SrvProtocolProcessSession_level_10(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSession->pwszClientPrincipalName,
                                 ulActiveTime,
                                 ulIdleTime,
@@ -496,7 +551,7 @@ SrvProtocolProcessCandidateSession(
             case 502:
 
                 ntStatus = SrvProtocolProcessSession_level_502(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSession->pwszClientPrincipalName,
                                 pSession->ullTotalFileCount,
                                 ulActiveTime,
@@ -532,6 +587,8 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
 
+    SRV_SAFE_FREE_MEMORY(pwszClientname);
+
     return ntStatus;
 
 error:
@@ -559,6 +616,7 @@ SrvProtocolProcessCandidateSession2(
     PLWIO_SRV_SESSION_2 pSession = (PLWIO_SRV_SESSION_2)pData;
     PSRV_PROTOCOL_SESSION_ENUM_QUERY pSessionEnumQuery =
                                     (PSRV_PROTOCOL_SESSION_ENUM_QUERY)pUserData;
+    PWSTR   pwszClientname = NULL;
     BOOLEAN bInLock = FALSE;
 
     if (pSessionEnumQuery->pwszUsername)
@@ -594,6 +652,11 @@ SrvProtocolProcessCandidateSession2(
         wchar16_t wszClientType[]      = SRV_CLIENT_TYPE_W;
         wchar16_t wszClientTransport[] = {0};
 
+        ntStatus = SrvSocketAddressToStringW(
+                                pSessionEnumQuery->pClientAddress,
+                                &pwszClientname);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
         if (pSessionEnumQuery->ulInfoLevel != 0)
@@ -610,7 +673,7 @@ SrvProtocolProcessCandidateSession2(
             case 0:
 
                 ntStatus = SrvProtocolProcessSession_level_0(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSessionEnumQuery->pBuffer,
                                 pSessionEnumQuery->ulBufferSize,
                                 &ulBytesUsed);
@@ -620,7 +683,7 @@ SrvProtocolProcessCandidateSession2(
             case 1:
 
                 ntStatus = SrvProtocolProcessSession_level_1(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSession->pwszClientPrincipalName,
                                 pSession->ullTotalFileCount,
                                 ulActiveTime,
@@ -635,7 +698,7 @@ SrvProtocolProcessCandidateSession2(
             case 2:
 
                 ntStatus = SrvProtocolProcessSession_level_2(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSession->pwszClientPrincipalName,
                                 pSession->ullTotalFileCount,
                                 ulActiveTime,
@@ -651,7 +714,7 @@ SrvProtocolProcessCandidateSession2(
             case 10:
 
                 ntStatus = SrvProtocolProcessSession_level_10(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSession->pwszClientPrincipalName,
                                 ulActiveTime,
                                 ulIdleTime,
@@ -664,7 +727,7 @@ SrvProtocolProcessCandidateSession2(
             case 502:
 
                 ntStatus = SrvProtocolProcessSession_level_502(
-                                pSessionEnumQuery->pwszUncClientnameRef,
+                                pwszClientname,
                                 pSession->pwszClientPrincipalName,
                                 pSession->ullTotalFileCount,
                                 ulActiveTime,
@@ -699,6 +762,8 @@ SrvProtocolProcessCandidateSession2(
 cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    SRV_SAFE_FREE_MEMORY(pwszClientname);
 
     return ntStatus;
 
@@ -929,5 +994,17 @@ error:
     *pulBytesUsed = 0;
 
     goto cleanup;
+}
+
+static
+VOID
+SrvProtocolFreeSessionQueryContents(
+    PSRV_PROTOCOL_SESSION_ENUM_QUERY pSessionEnumQuery
+    )
+{
+    if (pSessionEnumQuery->pQueryAddress)
+    {
+        freeaddrinfo(pSessionEnumQuery->pQueryAddress);
+    }
 }
 

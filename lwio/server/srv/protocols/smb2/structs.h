@@ -745,6 +745,9 @@ typedef struct _SRV_TREE_CONNECT_STATE_SMB_V2
 
     IO_FILE_NAME                  fileName;
 
+    struct sockaddr               clientAddress;
+    ULONG                         ulClientAddressLength;
+
     BOOLEAN                       bRemoveTreeFromSession;
 
 } SRV_TREE_CONNECT_STATE_SMB_V2, *PSRV_TREE_CONNECT_STATE_SMB_V2;

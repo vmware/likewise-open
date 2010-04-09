@@ -5,6 +5,7 @@ libsrvutils_la_SOURCES = \
     memory.c             \
     path.c               \
     prodcons.c           \
+    socket.c             \
     string.c
 
 libsrvutils_la_CPPFLAGS =  \
