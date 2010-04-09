@@ -480,7 +480,7 @@ error:
 
 NTSTATUS
 PvfsSysRemove(
-    PSTR pszPath
+    PCSTR pszPath
     )
 {
     NTSTATUS ntError = STATUS_SUCCESS;
