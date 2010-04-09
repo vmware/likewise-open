@@ -273,9 +273,14 @@ SrvProtocolTransportDriverShutdown(
     if (pTransportContext->hGssContext)
     {
         SrvGssReleaseContext(pTransportContext->hGssContext);
+	pTransportContext->hGssContext = NULL;
     }
 
-    RtlZeroMemory(pTransportContext, sizeof(*pTransportContext));
+    // Zero the transport dispatch but leave the socket dispatch for
+    // the Producer/Consumer Queue shutdown in case there is an existing socket
+    // on a connection
+
+    RtlZeroMemory(&pTransportContext->dispatch, sizeof(pTransportContext->dispatch));
 }
 
 static
