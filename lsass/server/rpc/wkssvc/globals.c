@@ -43,7 +43,7 @@ LSA_RPCSRV_FUNCTION_TABLE gWkssRpcFuncTable = {
 
 rpc_binding_vector_p_t gpWkssSrvBinding = NULL;
 
-LSA_SRV_CONFIG gWkssSrvConfig;
+WKSS_SRV_CONFIG gWkssSrvConfig;
 
 /* wkssvc server security descriptor */
 PSECURITY_DESCRIPTOR_ABSOLUTE gpWkssSecDesc = NULL;

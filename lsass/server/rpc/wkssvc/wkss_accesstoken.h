@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        lsa_accesstoken.h
+ *        wkss_accesstoken.h
  *
  * Abstract:
  *
@@ -44,25 +44,25 @@
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _LSA_ACCESSTOKEN_H_
-#define _LSA_ACCESSTOKEN_H_
+#ifndef _WKSS_ACCESSTOKEN_H_
+#define _WKSS_ACCESSTOKEN_H_
 
 
-NTSTATUS
-LsaSrvInitAuthInfo(
-    IN  handle_t          hBinding,
-    OUT PPOLICY_CONTEXT   pConnCtx
+DWORD
+WkssSrvInitAuthInfo(
+    IN  handle_t            hBinding,
+    OUT PWKSS_SRV_CONTEXT   pSrvCtx
     );
 
 
 VOID
-LsaSrvFreeAuthInfo(
-    IN  PPOLICY_CONTEXT   pConnCtx
+WkssSrvFreeAuthInfo(
+    IN  PWKSS_SRV_CONTEXT   pSrvCtx
     );
 
 
-NTSTATUS
-LsaSrvGetSystemCreds(
+DWORD
+WkssSrvGetSystemCreds(
     OUT LW_PIO_CREDS *ppCreds
     );
 

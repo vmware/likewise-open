@@ -52,12 +52,12 @@ typedef struct wkss_rpc_context {
 
 
 DWORD
-LsaRpcStartServer(
+WkssRpcStartServer(
     VOID
     );
 
 DWORD
-LsaRpcStopServer(
+WkssRpcStopServer(
     VOID
     );
 

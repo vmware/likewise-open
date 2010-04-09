@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2008
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,124 +33,90 @@
  *
  * Module Name:
  *
- *        wkssvc_cfg.c
+ *        wkssvc_memeory.c
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        WksSvc rpc server configuration
+ *        WksSvc memory allocation manager
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
-
 
 #include "includes.h"
 
 
 DWORD
-WkssSrvInitialiseConfig(
-    PLSA_SRV_CONFIG pConfig
+WkssSrvAllocateMemory(
+    PVOID  *ppOut,
+    DWORD  dwSize
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    void *pOut = NULL;
 
-    memset(pConfig, 0, sizeof(*pConfig));
+    pOut = rpc_ss_allocate(dwSize);
+    BAIL_ON_NO_MEMORY(pOut, dwError);
 
-    dwError = LwAllocateString(
-            LSA_DEFAULT_LPC_SOCKET_PATH,
-            &pConfig->pszLpcSocketPath);
-    BAIL_ON_LSA_ERROR(dwError);
+    memset(pOut, 0, dwSize);
+
+    *ppOut = pOut;
 
 cleanup:
     return dwError;
 
 error:
-    WkssSrvFreeConfigContents(pConfig);
+    *ppOut = NULL;
     goto cleanup;
 }
+
 
 VOID
-WkssSrvFreeConfigContents(
-    PLSA_SRV_CONFIG pConfig
+WkssSrvFreeMemory(
+    PVOID pPtr
     )
 {
-    if ( pConfig )
-    {
-        LW_SAFE_FREE_STRING(pConfig->pszLpcSocketPath);
-    }
+    rpc_ss_free(pPtr);
 }
 
 
 DWORD
-WkssSrvReadRegistry(
-    PLSA_SRV_CONFIG pConfig
+WkssSrvAllocateWC16StringFromUnicodeStringEx(
+    OUT PWSTR            *ppwszOut,
+    IN  UNICODE_STRING   *pIn
     )
 {
-    DWORD dwError = 0;
+    DWORD dwError = ERROR_SUCCESS;
+    PWSTR pwszStr = NULL;
 
-    PLSA_CONFIG_REG pReg = NULL;
+    BAIL_ON_INVALID_PTR(ppwszOut, dwError);
+    BAIL_ON_INVALID_PTR(pIn, dwError);
 
-    dwError = LsaOpenConfig(
-                "Services\\lsass\\Parameters\\RPCServers\\wkssvc",
-                "Policy\\Services\\lsass\\Parameters\\RPCServers\\wkssvc",
-                &pReg);
+    dwError = WkssSrvAllocateMemory(OUT_PPVOID(&pwszStr),
+                                    pIn->MaximumLength * sizeof(WCHAR));
     BAIL_ON_LSA_ERROR(dwError);
 
-    if (!pReg)
-    {
-        goto error;
-    }
-
-    dwError = LsaReadConfigString(
-                pReg,
-                "LpcSocketPath",
-                FALSE,
-                &pConfig->pszLpcSocketPath);
+    dwError = LwWc16snCpy(pwszStr,
+                          pIn->Buffer,
+                          pIn->Length / sizeof(WCHAR));
     BAIL_ON_LSA_ERROR(dwError);
 
-    LsaCloseConfig(pReg);
-    pReg = NULL;
+    *ppwszOut = pwszStr;
 
 cleanup:
     return dwError;
 
 error:
-    LsaCloseConfig(pReg);
-    pReg = NULL;
-
-    goto cleanup;
-}
-
-DWORD
-WkssSrvConfigGetLpcSocketPath(
-    PSTR *ppszLpcSocketPath
-    )
-{
-    DWORD dwError = 0;
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOL bLocked = 0;
-    PSTR pszLpcSocketPath = NULL;
-
-    GLOBAL_DATA_LOCK(bLocked);
-
-    if (LW_IS_NULL_OR_EMPTY_STR(gWkssSrvConfig.pszLpcSocketPath)) {
-        goto cleanup;
+    if (pwszStr)
+    {
+        WkssSrvFreeMemory(pwszStr);
     }
 
-    dwError = LwAllocateString(gWkssSrvConfig.pszLpcSocketPath,
-                                &pszLpcSocketPath);
-    BAIL_ON_LSA_ERROR(dwError);
-
-    *ppszLpcSocketPath = pszLpcSocketPath;
-
-cleanup:
-    GLOBAL_DATA_UNLOCK(bLocked);
-    return dwError;
-
-error:
+    *ppwszOut = NULL;
     goto cleanup;
 }
+
 
 
 /*

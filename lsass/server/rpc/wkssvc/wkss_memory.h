@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        wkssvc_memory.h
+ *        wkss_memory.h
  *
  * Abstract:
  *
@@ -44,92 +44,28 @@
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _WKSSSRV_MEMORY_H_
-#define _WKSSSRV_MEMORY_H_
+#ifndef _WKSS_MEMORY_H_
+#define _WKSS_MEMORY_H_
 
 
-NTSTATUS
+DWORD
 WkssSrvAllocateMemory(
-    void **ppOut,
+    PVOID *ppOut,
     DWORD dwSize
     );
 
 
-void
+VOID
 WkssSrvFreeMemory(
-    void *pPtr
+    PVOID pPtr
     );
 
 
-NTSTATUS
-WkssSrvAllocateSidFromWC16String(
-    PSID *ppSid,
-    PCWSTR pwszSidStr
+DWORD
+WkssSrvAllocateWC16StringFromUnicodeStringEx(
+    OUT PWSTR            *ppwszOut,
+    IN  UNICODE_STRING   *pIn
     );
 
 
-NTSTATUS
-WkssSrvDuplicateSid(
-    PSID *ppSidOut,
-    PSID pSidIn
-    );
-
-
-NTSTATUS
-WkssSrvDuplicateWC16String(
-    PWSTR *ppwszOut,
-    PWSTR pwszIn
-    );
-
-
-NTSTATUS
-WkssSrvDuplicateWC16String(
-    PWSTR *ppwszOut,
-    PWSTR pwszIn
-    );
-
-
-NTSTATUS
-WkssSrvGetFromUnicodeString(
-    PWSTR *ppwszOut,
-    UnicodeString *pIn
-    );
-
-
-NTSTATUS
-WkssSrvGetFromUnicodeStringEx(
-    PWSTR *ppwszOut,
-    UnicodeStringEx *pIn
-    );
-
-
-NTSTATUS
-WkssSrvInitUnicodeString(
-    UnicodeString *pOut,
-    PCWSTR pwszIn
-    );
-
-
-NTSTATUS
-WkssSrvInitUnicodeStringEx(
-    UnicodeStringEx *pOut,
-    PCWSTR pwszIn
-    );
-
-
-NTSTATUS
-WkssSrvDuplicateUnicodeString(
-    UnicodeString *pOut,
-    UnicodeString *pIn
-    );
-
-
-NTSTATUS
-WkssSrvSidAppendRid(
-    PSID *ppOutSid,
-    PSID pInSid,
-    DWORD dwRid
-    );
-
-
-#endif /* _WKSSSRV_MEMORY_H_ */
+#endif /* _WKSS_MEMORY_H_ */
