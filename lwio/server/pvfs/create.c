@@ -149,6 +149,14 @@ error:
 /*****************************************************************************
  ****************************************************************************/
 
+static
+VOID
+PvfsCleanupFailedCreate(
+    int fd,
+    PCSTR pszPath,
+    BOOLEAN bWasCreated
+    );
+
 NTSTATUS
 PvfsCreateFileDoSysOpen(
     IN PVOID pContext
@@ -309,9 +317,19 @@ error:
 
     if (fd != -1)
     {
-        close(fd);
-    }
+        PSTR pszRemovePath = NULL;
 
+        /* Pick up where we started the pathname */
+
+        pszRemovePath = pCreateContext->pszDiskFilename ?
+                        pCreateContext->pszDiskFilename :
+                        pCreateContext->pCcb->pszFilename;
+
+        PvfsCleanupFailedCreate(
+            fd,
+            pszRemovePath,
+            !pCreateContext->bFileExisted);
+    }
 
     goto cleanup;
 }
@@ -471,9 +489,19 @@ error:
 
     if (fd != -1)
     {
-        close(fd);
-    }
+        PSTR pszRemovePath = NULL;
 
+        /* Pick up where we started the pathname */
+
+        pszRemovePath = pCreateContext->pszDiskFilename ?
+                        pCreateContext->pszDiskFilename :
+                        pCreateContext->pCcb->pszFilename;
+
+        PvfsCleanupFailedCreate(
+            fd,
+            pszRemovePath,
+            !pCreateContext->bFileExisted);
+    }
 
     goto cleanup;
 }
@@ -760,6 +788,44 @@ error:
 }
 
 
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+VOID
+PvfsCleanupFailedCreate(
+    int fd,
+    PCSTR pszPath,
+    BOOLEAN bWasCreated
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PVFS_STAT Stat1 = {0};
+    PVFS_STAT Stat2 = {0};
+
+    /* Remove the file if it was created and the Dev/Inode matches our fd */
+
+    if (bWasCreated && (pszPath != NULL))
+    {
+        ntError = PvfsSysFstat(fd, &Stat1);
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsSysStat(pszPath, &Stat2);
+            if (ntError == STATUS_SUCCESS)
+            {
+                if ((Stat1.s_dev == Stat1.s_dev) &&
+                    (Stat2.s_ino == Stat2.s_ino))
+                {
+                    ntError = PvfsSysRemove(pszPath);
+                }
+            }
+        }
+    }
+
+    ntError = PvfsSysClose(fd);
+
+    return;
+}
 
 /*
 local variables:

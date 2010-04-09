@@ -144,7 +144,7 @@ PvfsSysFstatFs(
 
 NTSTATUS
 PvfsSysRemove(
-    PSTR pszPath
+    PCSTR pszPath
     );
 
 NTSTATUS
