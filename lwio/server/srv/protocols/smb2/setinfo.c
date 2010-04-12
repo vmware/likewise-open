@@ -631,6 +631,7 @@ SrvSetFileDispositionInfo_SMB_V2(
     PSRV_PROTOCOL_EXEC_CONTEXT   pCtxProtocol  = pExecContext->pProtocolContext;
     PSRV_EXEC_CONTEXT_SMB_V2     pCtxSmb2      = pCtxProtocol->pSmb2Context;
     PSRV_SET_INFO_STATE_SMB_V2   pSetInfoState = NULL;
+    PFILE_DISPOSITION_INFORMATION pFileDispositionInfo = NULL;
 
     pSetInfoState = (PSRV_SET_INFO_STATE_SMB_V2)pCtxSmb2->hState;
 
@@ -641,13 +642,17 @@ SrvSetFileDispositionInfo_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    pFileDispositionInfo = (PFILE_DISPOSITION_INFORMATION)pSetInfoState->pData;
+
+    SMB2UnmarshallBoolean(&pFileDispositionInfo->DeleteFile);
+
     SrvPrepareSetInfoStateAsync_SMB_V2(pSetInfoState, pExecContext);
 
     ntStatus = IoSetInformationFile(
                     pSetInfoState->pFile->hFile,
                     pSetInfoState->pAcb,
                     &pSetInfoState->ioStatusBlock,
-                    (PFILE_DISPOSITION_INFORMATION)pSetInfoState->pData,
+                    pFileDispositionInfo,
                     sizeof(FILE_DISPOSITION_INFORMATION),
                     FileDispositionInformation);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -808,7 +813,7 @@ SrvUnmarshalRenameHeader_SMB_V2(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->ReplaceIfExists =
-                    pRenameInfoHeader->ucReplaceIfExists;
+                    pRenameInfoHeader->ucReplaceIfExists ? TRUE : FALSE;
     ((PFILE_RENAME_INFORMATION)pSetInfoState->pData2)->FileNameLength =
                     pRenameInfoHeader->ulFileNameLength;
 

@@ -2196,3 +2196,11 @@ SMB2MarshalFooter(
 
     return 0;
 }
+
+VOID
+SMB2UnmarshallBoolean(
+    PBOOLEAN pbValue
+    )
+{
+    *pbValue = *pbValue > 0 ? TRUE : FALSE;
+}

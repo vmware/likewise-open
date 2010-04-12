@@ -646,6 +646,11 @@ SrvVerifyAndXCommandSequence(
     UCHAR ucFollowerCommand
     );
 
+VOID
+SrvUnmarshallBoolean(
+    PBOOLEAN pbValue
+    );
+
 // write.c
 
 NTSTATUS

@@ -774,6 +774,11 @@ SMB2MarshalFooter(
     PSMB_PACKET pPacket
     );
 
+VOID
+SMB2UnmarshallBoolean(
+    PBOOLEAN pbValue
+    );
+
 // write.c
 
 NTSTATUS

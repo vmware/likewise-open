@@ -433,6 +433,8 @@ SrvSetDispositionInfo(
         PFILE_DISPOSITION_INFORMATION pFileDispositionInfo =
                         (PFILE_DISPOSITION_INFORMATION)pTrans2State->pData;
 
+        SrvUnmarshallBoolean(&pFileDispositionInfo->DeleteFile);
+
 		pTrans2State->bSetInfoAttempted = TRUE;
 
         SrvPrepareTrans2StateAsync(pTrans2State, pExecContext);

@@ -931,6 +931,8 @@ SrvProcessIOCTL(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
+            SrvUnmarshallBoolean(&pNTTransactState->pIoctlRequest->bIsFsctl);
+
             if (pNTTransactState->pIoctlRequest->ucFlags & 0x1)
             {
                 // TODO: Apply only to DFS Share
@@ -1377,6 +1379,8 @@ SrvProcessNotifyChange(
 
             pNTTransactState->pNotifyChangeHeader =
                 (PSMB_NOTIFY_CHANGE_HEADER)(PBYTE)pNTTransactState->pSetup;
+
+            SrvUnmarshallBoolean(&pNTTransactState->pNotifyChangeHeader->bWatchTree);
 
             ntStatus = SrvTreeFindFile_SMB_V1(
                             pCtxSmb1,

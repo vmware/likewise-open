@@ -713,3 +713,11 @@ SrvVerifyAndXCommandSequence(
 
     return ntStatus;
 }
+
+VOID
+SrvUnmarshallBoolean(
+    PBOOLEAN pbValue
+    )
+{
+    *pbValue = *pbValue > 0 ? TRUE : FALSE;
+}
