@@ -213,6 +213,15 @@ SrvConfigFreeContents_SMB_V1(
                 SrvFreeMemory(pszString);
             }
         }
+	if (ConfigTable[dwEntry].Type == LwIoTypeMultiString)
+        {
+            PSTR *ppszStrings = ConfigTable[dwEntry].pValue;
+            if (ppszStrings != NULL)
+            {
+                LwIoMultiStringFree(ppszStrings);
+            }
+        }
+
     }
 }
 
