@@ -528,9 +528,9 @@ SrvBuildWriteAndXResponse(
     pResponseHeader->remaining = 0;
     pResponseHeader->reserved = 0;
     pResponseHeader->count =
-                    (pWriteState->ullBytesWritten & 0x00000000FFFFFFFFLL);
+                    (pWriteState->ullBytesWritten & 0x000000000000FFFFLL);
     pResponseHeader->countHigh =
-                    (pWriteState->ullBytesWritten & 0xFFFFFFFF00000000LL) >> 32;
+                    (pWriteState->ullBytesWritten & 0xFFFFFFFFFFFF0000LL) >> 16;
 
     pResponseHeader->byteCount = 0;
 
