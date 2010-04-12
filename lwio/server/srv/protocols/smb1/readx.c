@@ -446,9 +446,10 @@ SrvBuildReadAndXResponseStart(
             0,
             sizeof(pReadState->pResponseHeader->reserved2));
     pReadState->pResponseHeader->dataCompactionMode = 0;
-    pReadState->pResponseHeader->dataLength = pReadState->ulBytesRead;
-    // TODO: For large cap files
-    pReadState->pResponseHeader->dataLengthHigh = 0;
+    pReadState->pResponseHeader->dataLength =
+        (pReadState->ulBytesRead & 0x000000000000FFFFLL);
+    pReadState->pResponseHeader->dataLengthHigh =
+        (pReadState->ulBytesRead & 0xFFFFFFFFFFFF0000LL) >> 16;
 
     // Estimate how much data can fit in message
     ntStatus = WireMarshallReadResponseDataEx(
@@ -514,9 +515,10 @@ SrvBuildReadAndXResponseFinish(
                     &pReadState->ulPackageByteCount);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pReadState->pResponseHeader->dataLength = pReadState->ulBytesRead;
-    // TODO: For large cap files
-    pReadState->pResponseHeader->dataLengthHigh = 0;
+    pReadState->pResponseHeader->dataLength =
+        (pReadState->ulBytesRead & 0x000000000000FFFFLL);
+    pReadState->pResponseHeader->dataLengthHigh =
+        (pReadState->ulBytesRead & 0xFFFFFFFFFFFF0000LL) >> 16;
 
     // The data offset will fit in 16 bits
     assert((pReadState->ulDataOffset + pSmbResponse->ulOffset) <= UINT16_MAX);
