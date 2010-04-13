@@ -43,6 +43,8 @@
 #include <dce/lrpc.h>
 #include <dce/dcethread.h>
 #include <wc16str.h>
+#include <openssl/md5.h>
+#include <openssl/rc4.h>
 #include <lw/base.h>
 #include <lwsid.h>
 #include <lwio/lwio.h>
@@ -50,14 +52,13 @@
 #include <lwps/lwps.h>
 #include <lwkrb5.h>
 #include <lw/rpc/wkssvc.h>
-#include <lwrpc/lsa.h>
+#include <lw/rpc/lsa.h>
 
-#include <lsa/lsa.h>
-#include <lsaunistr.h>
 #include <lsarpcsrv.h>
 #include <lsasrvutils.h>
 #include <rpcctl-register.h>
-#include <directory.h>
+#include <lsasrvapi.h>
+#include <lsaadprovider.h>
 
 #include "structs.h"
 #include "wkss_srv.h"
@@ -66,6 +67,7 @@
 #include "wkss_accesstoken.h"
 #include "wkss_security.h"
 #include "wkss_memory.h"
+#include "wkss_crypto.h"
 #include "wkssvc.h"
 #include "wkssvc_h.h"
 

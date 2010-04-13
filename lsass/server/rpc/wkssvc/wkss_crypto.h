@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright Likewise Software    2004-2010
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This library is free software; you can redistribute it and/or modify it
@@ -33,53 +33,45 @@
  *
  * Module Name:
  *
- *        wkssvc.h
+ *        wkss_crypto.h
  *
  * Abstract:
  *
  *        Remote Procedure Call (RPC) Server Interface
  *
- *        WksSvc wrapper functions called from DCE/RPC stubs (rpc server library)
+ *        Encrypted password blob handling functions
  *
  * Authors: Rafal Szczesniak (rafal@likewise.com)
  */
 
-#ifndef _WKSSVC_H_
-#define _WKSSVC_H_
+#ifndef _WKSS_SRV_CRYPTO_H_
+#define _WKSS_SRV_CRYPTO_H_
 
 
-WINERROR
-NetrSrvWkstaGetInfo(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *pwszServerName,
-    /* [in] */ DWORD dwLevel,
-    /* [out] */ PNETR_WKSTA_INFO pInfo
+DWORD
+WkssSrvDecryptPasswordBlob(
+    IN  PWKSS_SRV_CONTEXT          pSrvCtx,
+    IN  PENC_JOIN_PASSWORD_BUFFER  pPassBuffer,
+    IN  PBYTE                      pCryptKey,
+    IN  DWORD                      dwCryptKeyLen,
+    OUT PWSTR                     *ppwszPassword
     );
 
 
-WINERROR
-NetrSrvJoinDomain2(
-    /* [in] */ handle_t IDL_handle,
-    /* [in] */ wchar16_t *pwszServerName,
-    /* [in] */ wchar16_t *pwszDomainName,
-    /* [in] */ wchar16_t *pwszAccountOu,
-    /* [in] */ wchar16_t *pwszAccountName,
-    /* [in] */ ENC_JOIN_PASSWORD_BUFFER *pPassword,
-    /* [in] */ DWORD dwJoinFlags
+DWORD
+WkssSrvEncryptPasswordBlobEx(
+    IN  PWKSS_SRV_CONTEXT          pSrvCtx,
+    IN  PCWSTR                     pwszPassword,
+    IN  PBYTE                      pCryptoKey,
+    IN  DWORD                      dwCryptoKeyLen,
+    IN  PBYTE                      pKeyInit,
+    IN  DWORD                      dwKeyInitLen,
+    IN  PBYTE                      pBlobInit,
+    OUT PENC_JOIN_PASSWORD_BUFFER  pEncryptedPassBlob
     );
 
 
-WINERROR
-NetrSrvUnjoinDomain2(
-    /* [in] */ handle_t                  hBinding,
-    /* [in] */ PWSTR                     pwszServerName,
-    /* [in] */ PWSTR                     pwszAccountName,
-    /* [in] */ PENC_JOIN_PASSWORD_BUFFER pPassword,
-    /* [in] */ DWORD                     dwUnjoinFlags
-    );
-
-
-#endif /* _WKSSVC_H_ */
+#endif /* _WKSS_SRV_CRYPTO */
 
 
 /*
