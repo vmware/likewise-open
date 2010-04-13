@@ -341,7 +341,11 @@ PvfsSetLastWriteTime(
                            LastAccessTime);
     BAIL_ON_NT_STATUS(ntError);
 
-    pFcb->LastWriteTime = 0;
+    /* Do not reset the LastWriteTime to 0 here unless you add proper
+       locking to prevent multiple invocations this function from stepping
+       on each other and ending up with a 31-Dec-1969 timestamp on files */
+
+    // pFcb->LastWriteTime = 0;
 
 cleanup:
     return ntError;
