@@ -319,9 +319,11 @@ PvfsReferenceFCB(
  ******************************************************/
 
 
-static NTSTATUS
-PvfsSetLastWriteTime(
-    PPVFS_FCB pFcb
+static
+NTSTATUS
+PvfsFlushLastWriteTime(
+    PPVFS_FCB pFcb,
+    LONG64 LastWriteTime
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
@@ -337,11 +339,9 @@ PvfsSetLastWriteTime(
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsSysUtime(pFcb->pszFilename,
-                           pFcb->LastWriteTime,
+                           LastWriteTime,
                            LastAccessTime);
     BAIL_ON_NT_STATUS(ntError);
-
-    pFcb->LastWriteTime = 0;
 
 cleanup:
     return ntError;
@@ -417,10 +417,12 @@ PvfsReleaseFCB(
         ntError = PvfsSysStat(pFcb->pszFilename, &Stat);
         if (ntError == STATUS_SUCCESS)
         {
-            if (pFcb->LastWriteTime != 0)
+            LONG64 LastWriteTime = PvfsClearLastWriteTimeFCB(pFcb);
+
+            if (LastWriteTime != 0)
             {
 
-                ntError = PvfsSetLastWriteTime(pFcb);
+                ntError = PvfsFlushLastWriteTime(pFcb, LastWriteTime);
 
                 if (ntError == STATUS_SUCCESS)
                 {
@@ -1461,6 +1463,44 @@ PvfsGetParentFCB(
 
     return pParent;
 }
+
+/*****************************************************************************
+ ****************************************************************************/
+
+LONG64
+PvfsClearLastWriteTimeFCB(
+    PPVFS_FCB pFcb
+    )
+{
+    BOOLEAN bLocked = FALSE;
+    LONG64 LastWriteTime = 0;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+    LastWriteTime = pFcb->LastWriteTime;
+    pFcb->LastWriteTime = 0;
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+
+    return LastWriteTime;
+}
+
+/*****************************************************************************
+ ****************************************************************************/
+
+VOID
+PvfsSetLastWriteTimeFCB(
+    PPVFS_FCB pFcb,
+    LONG64 LastWriteTime
+    )
+{
+    BOOLEAN bLocked = FALSE;
+
+    LWIO_LOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+    pFcb->LastWriteTime = LastWriteTime;
+    LWIO_UNLOCK_MUTEX(bLocked, &pFcb->ControlBlock);
+}
+
+
+
 
 /*
 local variables:

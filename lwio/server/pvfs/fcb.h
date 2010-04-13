@@ -188,6 +188,17 @@ PvfsGetParentFCB(
     PPVFS_FCB pFcb
     );
 
+LONG64
+PvfsClearLastWriteTimeFCB(
+    PPVFS_FCB pFcb
+    );
+
+VOID
+PvfsSetLastWriteTimeFCB(
+    PPVFS_FCB pFcb,
+    LONG64 LastWriteTime
+    );
+
 #endif   /* _PVFS_FCB_H */
 
 /*
