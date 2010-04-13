@@ -157,7 +157,7 @@ InitSrvSvcBindingDefault(
     IN  PIO_CREDS  pCreds
     )
 {
-    RPCSTATUS rpcStatus = RPC_S_OK;
+    unsigned32 rpcStatus = RPC_S_OK;
     PSTR pszProtSeq = (PSTR)SRVSVC_DEFAULT_PROT_SEQ;
     PSTR pszLpcProtSeq = (PSTR)"ncalrpc";
     PSTR pszEndpoint = (PSTR)SRVSVC_DEFAULT_ENDPOINT;
@@ -200,8 +200,8 @@ InitSrvSvcBindingFull(
     IN  PIO_CREDS pCreds
     )
 {
-    RPCSTATUS rpcStatus = RPC_S_OK;
-    RPCSTATUS rpcStatus2 = RPC_S_OK;
+    unsigned32 rpcStatus = RPC_S_OK;
+    unsigned32 rpcStatus2 = RPC_S_OK;
     PBYTE pbBindingString = NULL;
     PBYTE pbProtSeq = NULL;
     PBYTE pbEndpoint= NULL;
@@ -312,7 +312,7 @@ FreeSrvSvcBinding(
     handle_t *phBinding
     )
 {
-    RPCSTATUS rpcStatus = RPC_S_OK;
+    unsigned32 rpcStatus = RPC_S_OK;
 
     /* Free the binding itself */
     if (phBinding && *phBinding)

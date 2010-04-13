@@ -210,9 +210,9 @@ SrvSvcNetNameValidate(
 // utils.c
 
 DWORD
-SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
-    OUT PWSTR            *ppwszOut,
-    IN  UnicodeStringEx  *pIn
+SrvSvcSrvAllocateWC16StringFromUnicodeString(
+    OUT PWSTR           *ppwszOut,
+    IN  PUNICODE_STRING pIn
     );
 
 DWORD

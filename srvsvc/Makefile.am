@@ -6,5 +6,4 @@ SUBDIRS=      \
     utils     \
     logging_r \
     client    \
-    server    \
-    test
+    server

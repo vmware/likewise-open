@@ -29,8 +29,7 @@ SRVSVC_INCLUDES= \
 testsrvsvc_CFLAGS =       \
     $(AM_CPPFLAGS)        \
     $(SRVSVC_INCLUDES)    \
-    -D_GNU_SOURCE         \
-    -DLIBRPC_BUILD
+    -D_GNU_SOURCE
 
 testsrvsvc_LDFLAGS=       \
     -rpath ${libdir}      \
@@ -40,5 +39,4 @@ testsrvsvc_LDFLAGS=       \
 testsrvsvc_LDADD =        \
     $(DCERPC_LIBS)        \
     $(LIBUNISTR_LIBS)     \
-    $(LIBRPC_LIBS)        \
     $(top_builddir)/client/libsrvsvc.la

@@ -795,14 +795,6 @@ SrvSvcRpcShutdown(
         gServerInfo.pServerBinding = NULL;
     }
 
-    if (gServerInfo.pWkstaBinding)
-    {
-        dwError = WksSvcUnregisterForRPC(gServerInfo.pWkstaBinding);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        gServerInfo.pWkstaBinding = NULL;
-    }
-
     if (gServerInfo.pRegistryBinding)
     {
         dwError = WinRegUnregisterForRPC(gServerInfo.pRegistryBinding);

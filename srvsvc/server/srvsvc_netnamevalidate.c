@@ -57,7 +57,7 @@ SrvSvcNetNameValidate(
     /* [in] */ UINT32 flags
     )
 {
-    WINERR winError = ERROR_SUCCESS;
+    WINERROR winError = ERROR_SUCCESS;
 
     return winError;
 }

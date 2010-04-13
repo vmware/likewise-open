@@ -34,8 +34,6 @@
 #include <lw/winerror.h>
 #include <lw/ntstatus.h>
 
-#include <lwrpc/types.h>
-
 #define NTSTATUS_CODE(status) ((NTSTATUS)(0xc0000000 | (status)))
 
 #define ERROR_SUCCESS 0

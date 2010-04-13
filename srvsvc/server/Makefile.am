@@ -2,7 +2,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 
 sbin_PROGRAMS = srvsvcd
 
-lib_LTLIBRARIES = libsrvsvc_ss.la libwkssvc_ss.la libwinreg_ss.la
+lib_LTLIBRARIES = libsrvsvc_ss.la libwinreg_ss.la
 
 idl_srcdir = $(top_srcdir)/idl
 include_srcdir = $(top_srcdir)/include
@@ -13,8 +13,6 @@ srvsvcd_SOURCES =              \
     netsession.c               \
     srvsvc.c                   \
     srvsvc_srv.c               \
-    wkssvc.c                   \
-    wkssvc_srv.c               \
     winreg.c                   \
     winreg_srv.c               \
     globals.c                  \
@@ -29,31 +27,20 @@ srvsvcd_SOURCES =              \
     srvsvc_netservergetinfo.c  \
     srvsvc_netnamevalidate.c   \
     utils.c                    \
-    wkssvc_netwkstagetinfo.c   \
     main.c
 
 
 libsrvsvc_ss_la_SOURCES = srvsvc_sstub.c
-libwkssvc_ss_la_SOURCES = wkssvc_sstub.c
 libwinreg_ss_la_SOURCES = winreg_sstub.c
 
 libsrvsvc_ss_la_CPPFLAGS = \
     $(AM_CPPFLAGS)         \
     -DLW_ENABLE_THREADS=1  \
     -DDCERPC_STUB_BUILD    \
-    $(DCERPC_INCLUDES)
+    $(DCERPC_INCLUDES)     \
+    $(LSASS_INCLUDES)
 
 libsrvsvc_ss_la_CFLAGS = \
-    $(AM_CPPFLAGS)       \
-    -DDCERPC_STUB_BUILD  \
-    $(DCERPC_INCLUDES)
-
-libwkssvc_ss_la_CPPFLAGS = \
-    $(AM_CPPFLAGS)         \
-    -DDCERPC_STUB_BUILD    \
-    $(DCERPC_INCLUDES)
-
-libwkssvc_ss_la_CFLAGS = \
     $(AM_CPPFLAGS)       \
     -DDCERPC_STUB_BUILD  \
     $(DCERPC_INCLUDES)
@@ -61,7 +48,8 @@ libwkssvc_ss_la_CFLAGS = \
 libwinreg_ss_la_CPPFLAGS = \
     $(AM_CPPFLAGS)         \
     -DDCERPC_STUB_BUILD    \
-    $(DCERPC_INCLUDES)
+    $(DCERPC_INCLUDES)     \
+    $(LSASS_INCLUDES)
 
 libwinreg_ss_la_CFLAGS = \
     $(AM_CPPFLAGS)       \
@@ -70,13 +58,12 @@ libwinreg_ss_la_CFLAGS = \
 
 
 srvsvcd_CFLAGS = \
-    -DSRVSVC_BUILD   \
-    -DLIBRPC_BUILD
+    -DSRVSVC_BUILD
 
 srvsvcd_CPPFLAGS = \
     $(AM_CPPFLAGS)        \
     $(DCERPC_INCLUDES)    \
-    $(LIBRPC_INCLUDES)    \
+    $(LSASS_INCLUDES)     \
     $(LIBUNISTR_INCLUDES) \
     $(LWADVAPI_INCLUDES)  \
     $(LWIO_INCLUDES)      \
@@ -84,7 +71,6 @@ srvsvcd_CPPFLAGS = \
 
 srvsvcd_LDFLAGS = \
     $(DCERPC_LDFLAGS)    \
-    $(LIBRPC_LDFLAGS)    \
     $(LIBUNISTR_LDFLAGS) \
     $(LWADVAPI_LDFLAGS)  \
     $(LWIO_LDFLAGS)      \
@@ -95,30 +81,23 @@ srvsvcd_LDADD = \
     $(top_builddir)/logging_r/libsrvsvclog_r.la \
     $(top_builddir)/utils/libsrvsvcutils.la \
     libsrvsvc_ss.la                         \
-    libwkssvc_ss.la                         \
     libwinreg_ss.la                         \
+    $(LSASS_LIBS)                           \
     $(DCERPC_LIBS)                          \
-    $(LIBRPC_LIBS)                          \
     $(LIBUNISTR_LIBS)                       \
     $(LWADVAPI_LIBS)                        \
     $(LWIO_LIBS)                            \
     $(NETLOGON_LIBS)
 
 CLEANFILES = srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c \
-             wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c \
              winreg_h.h winreg_cstub.c winreg_sstub.c
 
 BUILT_SOURCES = \
     srvsvc_h.h  \
-    wkssvc_h.h  \
     winreg_h.h
 
 srvsvc_h.h srvsvc_cstub.c srvsvc_sstub.c: $(idl_srcdir)/srvsvc.idl $(idl_srcdir)/srvsvc.acf
 	$(IDL) $(IDLFLAGS) -keep c_source -header srvsvc_h.h \
-		-I$(srcdir) -I$(idl_srcdir) -I$(include_srcdir) $<
-
-wkssvc_h.h wkssvc_cstub.c wkssvc_sstub.c: $(idl_srcdir)/wkssvc.idl $(idl_srcdir)/wkssvc.acf
-	$(IDL) $(IDLFLAGS) -keep c_source -header wkssvc_h.h \
 		-I$(srcdir) -I$(idl_srcdir) -I$(include_srcdir) $<
 
 winreg_h.h winreg_cstub.c winreg_sstub.c: $(idl_srcdir)/winreg.idl $(idl_srcdir)/winreg.acf

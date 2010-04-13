@@ -32,6 +32,9 @@
 #ifndef _WINREG_DEFS_H_
 #define _WINREG_DEFS_H_
 
+#include <lw/types.h>
+#include <lw/ntstatus.h>
+
 typedef
 #ifdef _DCE_IDL_
 [context_handle]

@@ -9,7 +9,6 @@
 #include <lwio/lwio.h>
 
 #include <lw/srvsvc.h>
-#include <lwrpc/LMcreds.h>
 
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>

@@ -48,8 +48,6 @@
 #ifndef _SRVSVC_TYPES_H_
 #define _SRVSVC_TYPES_H_
 
-// TODO-Exploit commonality wrt <lwrpc/types.h>
-
 #include <lw/types.h>
 #include <lw/ntstatus.h>
 

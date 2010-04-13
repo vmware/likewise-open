@@ -61,7 +61,7 @@ SrvSvcNetrServerGetInfo(
 
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    RPCSTATUS rpcStatus = RPC_S_OK;
+    unsigned32 rpcStatus = RPC_S_OK;
     PSTR pszLsaLpcSocketPath = NULL;
     handle_t hLsaBinding = NULL;
     CHAR szHostname[64] = {0};
@@ -79,7 +79,7 @@ SrvSvcNetrServerGetInfo(
     dwError = SrvSvcConfigGetLsaLpcSocketPath(&pszLsaLpcSocketPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    rpcStatus = InitLsaBindingFull(&hLsaBinding,
+    rpcStatus = LsaInitBindingFull(&hLsaBinding,
                                    "ncalrpc",
                                    NULL,
                                    pszLsaLpcSocketPath,
@@ -117,7 +117,7 @@ SrvSvcNetrServerGetInfo(
                                           OUT_PPVOID(&pInfo101));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
+        dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
                                               &pwszHostname,
                                               &pPolInfo->dns.name);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -149,7 +149,7 @@ SrvSvcNetrServerGetInfo(
                                           OUT_PPVOID(&pInfo101));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
+        dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
                                               &pwszHostname,
                                               &pPolInfo->dns.name);
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -196,7 +196,7 @@ cleanup:
         LsaRpcFreeMemory(pPolInfo);
     }
 
-    FreeLsaBinding(&hLsaBinding);
+    LsaFreeBinding(&hLsaBinding);
 
     LW_SAFE_FREE_MEMORY(pszLsaLpcSocketPath);
     LW_SAFE_FREE_MEMORY(pwszLocalHost);

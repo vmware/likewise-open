@@ -8,7 +8,6 @@
 #include <lwstr.h>
 #include <wc16str.h>
 #include <lwio/io-types.h>
-#include <lwrpc/unicodestring.h>
 
 #include <lw/srvsvc.h>
 

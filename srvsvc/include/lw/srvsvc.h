@@ -47,7 +47,8 @@
 #ifndef _SRVSVC_H_
 #define _SRVSVC_H_
 
-#include <lwrpc/types.h>
+#include <lw/types.h>
+#include <lw/ntstatus.h>
 #include <lwio/lmshare.h>
 #include <lwio/lmsession.h>
 #include <lwio/lmfile.h>
@@ -1085,7 +1086,7 @@ typedef struct _TIME_OF_DAY_INFO {
 #define SRVSVC_ERROR_SENTINEL                  0x9426 // 37926
 
 #ifndef NET_API_STATUS_DEFINED
-typedef WINERR NET_API_STATUS;
+typedef WINERROR NET_API_STATUS;
 
 #define NET_API_STATUS_DEFINED
 #endif

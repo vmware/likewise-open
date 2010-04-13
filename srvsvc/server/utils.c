@@ -43,24 +43,24 @@
 
 
 DWORD
-SrvSvcSrvAllocateWC16StringFromUnicodeStringEx(
-    OUT PWSTR            *ppwszOut,
-    IN  UnicodeStringEx  *pIn
+SrvSvcSrvAllocateWC16StringFromUnicodeString(
+    OUT PWSTR          *ppwszOut,
+    IN  PUNICODE_STRING pIn
     )
 {
-    WINERR dwError = 0;
+    WINERROR dwError = 0;
     PWSTR pwszStr = NULL;
 
     BAIL_ON_INVALID_PTR(ppwszOut, dwError);
     BAIL_ON_INVALID_PTR(pIn, dwError);
 
-    dwError = SrvSvcSrvAllocateMemory(pIn->size * sizeof(WCHAR),
+    dwError = SrvSvcSrvAllocateMemory(pIn->Length,
                                       OUT_PPVOID(&pwszStr));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwWc16snCpy(pwszStr,
-                          pIn->string,
-                          pIn->len / sizeof(WCHAR));
+                          pIn->Buffer,
+                          pIn->Length / sizeof(WCHAR));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     *ppwszOut = pwszStr;

@@ -170,7 +170,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _srvsvc_Function7();
 
     /* Function: 0x08 */
-    WINERR _NetrConnectionEnum(
+    WINERROR _NetrConnectionEnum(
         [in,string,unique] wchar16_t *server_name,
         [in,string,unique] wchar16_t *qualifier,
         [in,out,ref] UINT32 *level,
@@ -181,7 +181,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     );
 
     /* Function: 0x09 */
-    WINERR _NetrFileEnum(
+    WINERROR _NetrFileEnum(
         [in,string,unique] wchar16_t *server_name,
         [in,string,unique] wchar16_t *basepath,
         [in,string,unique] wchar16_t *username,
@@ -193,7 +193,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
         );
 
     /* Function: 0x0a */
-    WINERR _NetrFileGetInfo(
+    WINERROR _NetrFileGetInfo(
         [in,string,unique] wchar16_t *server_name,
         [in] UINT32 fileid,
         [in] UINT32 level,
@@ -201,13 +201,13 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
         );
 
     /* Function: 0x0b */
-    WINERR _NetrFileClose(
+    WINERROR _NetrFileClose(
         [in,string,unique] wchar16_t *server_name,
         [in] UINT32 fileid
         );
 
     /* Function: 0x0c */
-    WINERR _NetrSessionEnum(
+    WINERROR _NetrSessionEnum(
         [in,string,unique] wchar16_t *server_name,
         [in,string,unique] wchar16_t *unc_client_name,
         [in,string,unique] wchar16_t *username,
@@ -219,14 +219,14 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     );
 
     /* Function: 0x0d */
-    WINERR _NetrSessionDel(
+    WINERROR _NetrSessionDel(
         [in,string,unique] wchar16_t *server_name,
         [in,string,unique] wchar16_t *unc_client_name,
         [in,string,unique] wchar16_t *username
     );
 
     /* Function: 0x0e */
-    WINERR _NetrShareAdd(
+    WINERROR _NetrShareAdd(
         [in,string,unique] wchar16_t *server_name,
         [in] UINT32 level,
         [in,switch_is(level)] srvsvc_NetShareInfo info,
@@ -234,7 +234,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     );
 
     /* Function: 0x0f */
-    WINERR _NetrShareEnum(
+    WINERROR _NetrShareEnum(
         [in,string,unique] wchar16_t *server_name,
         [in,out] UINT32 *level,
         [in,out,switch_is(*level)] srvsvc_NetShareCtr *ctr,
@@ -244,7 +244,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     );
 
     /* Function: 0x10 */
-    WINERR _NetrShareGetInfo(
+    WINERROR _NetrShareGetInfo(
         [in,string,unique] wchar16_t *server_name,
         [in,string,ref] wchar16_t *netname,
         [in] UINT32 level,
@@ -252,7 +252,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     );
 
     /* Function: 0x11 */
-    WINERR _NetrShareSetInfo(
+    WINERROR _NetrShareSetInfo(
         [in,string,unique] wchar16_t *server_name,
         [in,string,ref] wchar16_t *netname,
         [in] UINT32 level,
@@ -261,7 +261,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     );
 
     /* Function: 0x12 */
-    WINERR _NetrShareDel(
+    WINERROR _NetrShareDel(
         [in,string,unique] wchar16_t *server_name,
         [in,string,ref] wchar16_t *netname,
         [in] UINT32 reserved
@@ -271,14 +271,14 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _srvsvc_Function14();
 
     /* Function: 0x15 */
-    WINERR _NetrServerGetInfo(
+    WINERROR _NetrServerGetInfo(
         [in,string,unique] wchar16_t *server_name,
         [in] UINT32 level,
         [out,ref,switch_is(level)] srvsvc_NetSrvInfo *info
     );
 
     /* Function: 0x16 */
-    WINERR _NetrServerSetInfo(
+    WINERROR _NetrServerSetInfo(
         [in,string,unique] wchar16_t *server_name,
         [in] UINT32 level,
         [in,switch_is(level)] srvsvc_NetSrvInfo info,
@@ -292,7 +292,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _srvsvc_Function1b();
 
     /* Function: 0x1c */
-    WINERR _NetrRemoteTOD(
+    WINERROR _NetrRemoteTOD(
         [in,string,unique] wchar16_t *server_name,
         [out] TIME_OF_DAY_INFO **info
     );
@@ -303,7 +303,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _srvsvc_Function20();
 
     /* Function: 0x21 */
-    WINERR _NetrNameValidate(
+    WINERROR _NetrNameValidate(
         [in,string,unique] wchar16_t *server_name,
 	[in,string] wchar16_t *name,
 	[in] UINT32 type,

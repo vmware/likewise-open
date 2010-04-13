@@ -110,33 +110,33 @@ AC_SUBST(DCERPC_INCLUDES)
 AC_SUBST(DCERPC_LDFLAGS)
 AC_SUBST(DCERPC_LIBS)
 
-# librpc
+# lsass
 
-AC_ARG_WITH([librpc],
-        [AC_HELP_STRING([--with-librpc=<dir>], [use librpc located in prefix <dir>])],
+AC_ARG_WITH([lsass],
+        [AC_HELP_STRING([--with-lsass=<dir>], [use lsass located in prefix <dir>])],
         [
-		LIBRPC_INCLUDES="-I$withval/include"
-                LIBRPC_LDFLAGS="-L$withval/lib"
-		LIBRPC_PATH="$withval/bin"
+                LSASS_INCLUDES="-I$withval/include"
+                LSASS_LDFLAGS="-L$withval/lib"
+                LSASS_PATH="$withval/bin"
         ])
 
-AC_ARG_WITH([librpc-includes],
-        [AC_HELP_STRING([--with-librpc-includes=<dir>], [use librpc includes located in <dir>])],
+AC_ARG_WITH([lsass-includes],
+        [AC_HELP_STRING([--with-lsass-includes=<dir>], [use lsass includes located in <dir>])],
         [
-		LIBRPC_INCLUDES="-I$withval"
+                LSASS_INCLUDES="-I$withval"
         ])
 
-AC_ARG_WITH([librpc-libs],
-        [AC_HELP_STRING([--with-librpc-libs=<dir>], [use librpc libs located in <dir>])],
+AC_ARG_WITH([lsass-libs],
+        [AC_HELP_STRING([--with-lsass-libs=<dir>], [use lsass libs located in <dir>])],
         [
-		LIBRPC_LDFLAGS="-L$withval"
+                LSASS_LDFLAGS="-L$withval"
         ])
 
-LIBRPC_LIBS="-lnetapi"
+LSASS_LIBS="-llsarpc"
 
-AC_SUBST(LIBRPC_INCLUDES)
-AC_SUBST(LIBRPC_LDFLAGS)
-AC_SUBST(LIBRPC_LIBS)
+AC_SUBST(LSASS_INCLUDES)
+AC_SUBST(LSASS_LDFLAGS)
+AC_SUBST(LSASS_LIBS)
 
 # gssapi
 
@@ -326,6 +326,7 @@ AC_CHECK_LIB([uuid], [uuid_copy], [UUID_LIBS="-luuid"])
 AC_CHECK_LIB([socket], [bind], [SOCKET_LIBS="-lsocket"])
 
 AC_CHECK_LIB([dcerpc], [rpc__init], [DCERPC_LIBS="-ldcerpc"],[],[$DCERPC_LDFLAGS])
+AC_CHECK_LIB([lsarpc], [LsaOpenPolicy2], [LSASS_LIBS="-llsarpc"],[],[$LSASS_LDFLAGS])
 
 AC_SUBST(NSL_LIBS)
 AC_SUBST(DL_LIBS)

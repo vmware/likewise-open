@@ -85,7 +85,7 @@ void _winreg_Function0x1(
 /********************************************************************
  *******************************************************************/
 
-WINERR
+WINERROR
 _RegOpenHKLM(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ WCHAR *system_name,
@@ -93,7 +93,7 @@ _RegOpenHKLM(
     /* [out] */ REGISTRY_HANDLE *handle
     )
 {
-    WINERR dwError = ERROR_SUCCESS;
+    WINERROR dwError = ERROR_SUCCESS;
     UINT32 *h = NULL;
 
     dwError = LwAllocateMemory(sizeof(*h), OUT_PPVOID(&h));
@@ -133,13 +133,13 @@ void _winreg_Function0x4(
 /********************************************************************
  *******************************************************************/
 
-WINERR
+WINERROR
 _RegCloseKey(
     /* [in] */ handle_t IDL_handle,
     /* [in, out] */ REGISTRY_HANDLE *handle
     )
 {
-    WINERR dwError = ERROR_SUCCESS;
+    WINERROR dwError = ERROR_SUCCESS;
     UINT32* h = *handle;
 
     if (h)
@@ -242,7 +242,7 @@ void _winreg_Function0xe(
 /********************************************************************
  *******************************************************************/
 
-WINERR
+WINERROR
 _RegOpenKey(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ REGISTRY_HANDLE parent_handle,
@@ -252,7 +252,7 @@ _RegOpenKey(
     /* [out] */ REGISTRY_HANDLE *handle
     )
 {
-    WINERR dwError = ERROR_FILE_NOT_FOUND;
+    WINERROR dwError = ERROR_FILE_NOT_FOUND;
     PSTR pszKeyName = NULL;
     UINT32 *h = NULL;
 
@@ -311,7 +311,7 @@ void _winreg_Function0x10(
 /********************************************************************
  *******************************************************************/
 
-WINERR
+WINERROR
 _RegQueryValue(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ REGISTRY_HANDLE handle,
@@ -324,7 +324,7 @@ _RegQueryValue(
     /* [in, out] */ UINT32 *buffer_len
     )
 {
-    WINERR dwError = ERROR_FILE_NOT_FOUND;
+    WINERROR dwError = ERROR_FILE_NOT_FOUND;
     PSTR pszValueName = NULL;
 
     *buffer_size_ptr = 1;
@@ -447,7 +447,7 @@ void _winreg_Function0x19(
 /********************************************************************
  *******************************************************************/
 
-WINERR
+WINERROR
 _RegGetVersion(
     /* [in] */ handle_t IDL_handle,
     /* [in] */ REGISTRY_HANDLE handle,

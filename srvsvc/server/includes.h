@@ -58,12 +58,11 @@
 #include <lwio/lwfileinfo.h>
 #include <dce/rpc.h>
 #include <compat/dcerpc.h>
-#include <lwrpc/lsa.h>
+#include <lw/lsa.h>
 #include <lwnet.h>
 
 #include <lw/srvsvc.h>
 #include <lw/winreg.h>
-#include <lw/wkssvc.h>
 
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>
@@ -72,10 +71,6 @@
 
 #include "srvsvc_srv.h"
 #include "srvsvc_h.h"
-
-#include "wkssvc.h"
-#include "wkssvc_srv.h"
-#include "wkssvc_h.h"
 
 #include "winreg.h"
 #include "winreg_srv.h"

@@ -31,7 +31,6 @@ interface winreg
 {
 cpp_quote("#ifdef DCERPC_STUB_BUILD")
 
-#include <lwrpc/types.h>
 #include <lw/winreg.h>
 
     cpp_quote("#ifndef __WINREG_IDL__")
@@ -56,7 +55,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _winreg_Function0x1();
 
     /* Function 0x02 */
-    WINERR _RegOpenHKLM(
+    WINERROR _RegOpenHKLM(
 	[in] WCHAR *system_name,
 	[in] UINT32 access_mask,
 	[out,ref] REGISTRY_HANDLE *handle
@@ -66,7 +65,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _winreg_Function0x4();
 
     /* Function 0x05 */
-    WINERR _RegCloseKey(
+    WINERROR _RegCloseKey(
         [in,out,ref] REGISTRY_HANDLE *handle
     );
 
@@ -81,7 +80,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _winreg_Function0xe();
 
     /* Function 0x0f */
-    WINERR _RegOpenKey(
+    WINERROR _RegOpenKey(
         [in] REGISTRY_HANDLE parent_handle,
 	[in] RegString key_name,
         [in] UINT32 unknown,
@@ -92,7 +91,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _winreg_Function0x10();
 
     /* Function 0x11 */
-    WINERR _RegQueryValue(
+    WINERROR _RegQueryValue(
         [in] REGISTRY_HANDLE handle,
 	[in] RegString value_name,
         [in,out,unique] UINT32 *type,
@@ -115,7 +114,7 @@ cpp_quote("#endif /* DCERPC_STUB_BUILD */")
     void _winreg_Function0x19();
 
     /* Function 0x1a */
-    WINERR _RegGetVersion(
+    WINERROR _RegGetVersion(
         [in] REGISTRY_HANDLE handle,
 	[out,ref] UINT32 *version
     );

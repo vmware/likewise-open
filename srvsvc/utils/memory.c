@@ -48,7 +48,7 @@ SrvSvcSrvAllocateMemory(
     PVOID *ppMemory
     )
 {
-    WINERR winError = 0;
+    WINERROR winError = 0;
     PVOID pMemory = NULL;
 
     pMemory = rpc_ss_allocate(dwSize);

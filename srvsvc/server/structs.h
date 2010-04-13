@@ -74,7 +74,6 @@ typedef struct _SRVSVC_RUNTIME_GLOBALS
     dcethread*      pRpcListenerThread;
 
     rpc_binding_vector_p_t pServerBinding;
-    rpc_binding_vector_p_t pWkstaBinding;
     rpc_binding_vector_p_t pRegistryBinding;
 
     DWORD           dwStartAsDaemon;             /* Should start as daemon */

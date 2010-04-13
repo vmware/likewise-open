@@ -50,7 +50,6 @@ SRVSVC_RUNTIME_GLOBALS gServerInfo =
     .mutex                 = PTHREAD_MUTEX_INITIALIZER,
     .pRpcListenerThread    = NULL,
     .pServerBinding        = NULL,
-    .pWkstaBinding         = NULL,
     .pRegistryBinding      = NULL,
     .dwStartAsDaemon       = 0,
     .logTarget             = SRVSVC_LOG_TARGET_DISABLED,
