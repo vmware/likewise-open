@@ -4639,6 +4639,12 @@ AD_OnlineQueryMemberOfForSid(
     }
 
     dwError = AD_FindObjectBySid(hProvider, pszSid, &pUserInfo);
+    if (dwError == LW_ERROR_NO_SUCH_OBJECT)
+    {
+        /* Skip over unknown SIDs without failing */
+        dwError = LW_ERROR_SUCCESS;
+        goto cleanup;
+    }
     BAIL_ON_LSA_ERROR(dwError);
 
     dwError = ADCacheGetGroupsForUser(
