@@ -732,29 +732,7 @@ SrvSvcRpcInitialize(
     /* Bail if we still haven't succeeded after several attempts */
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    /* Now register the wkssvc pipe */
-
-    for (dwBindAttempts = 0; dwBindAttempts < dwMaxBindAttempts; dwBindAttempts++)
-    {
-        dwError = WksSvcRegisterForRPC(
-                        "Likewise Workstation Service",
-                        &gServerInfo.pWkstaBinding);
-        if (dwError)
-        {
-            SRVSVC_LOG_INFO("Failed to bind wkssvc endpoint; retrying in "
-                            "%i seconds...",
-                            (int) dwBindSleepSeconds);
-            sleep(dwBindSleepSeconds);
-        }
-        else
-        {
-            break;
-        }
-    }
-    /* Bail if we still haven't succeeded after several attempts */
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    /* Now register the wkssvc pipe */
+    /* Now register the winreg pipe */
 
     for (dwBindAttempts = 0; dwBindAttempts < dwMaxBindAttempts; dwBindAttempts++)
     {
