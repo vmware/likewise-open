@@ -31,7 +31,7 @@ libdfs_sys_la_CPPFLAGS = \
 libdfs_sys_la_CFLAGS = $(AM_CFLAGS) $(DRIVER_CFLAGS)
 
 libdfs_sys_la_LIBADD = \
-    @top_builddir@/server/iomgr2/libiomgr2.la \
+    @top_builddir@/server/iomgr/libiomgr.la \
     @UUID_LIBS@ \
     @PTHREAD_LIBS@
 
