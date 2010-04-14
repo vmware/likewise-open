@@ -60,6 +60,7 @@
 #include <compat/dcerpc.h>
 #include <lw/rpc/lsa.h>
 #include <lwnet.h>
+#include <lw/rpc/lsa.h>
 
 #include <lw/srvsvc.h>
 #include <lw/winreg.h>
