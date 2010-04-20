@@ -56,6 +56,11 @@ SrvDriverDispatch(
     IN PIRP pIrp
     );
 
+static NTSTATUS
+SrvDriverRefresh(
+    IN IO_DRIVER_HANDLE DriverHandle
+    );
+
 static
 VOID
 SrvDriverShutdown(
@@ -124,6 +129,11 @@ IO_DRIVER_ENTRY(srv)(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvInitialize(hDevice);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoDriverRegisterRefreshCallback(
+                    hDriver,
+                    SrvDriverRefresh);
     BAIL_ON_NT_STATUS(ntStatus);
 
     hDevice = NULL;
@@ -233,6 +243,24 @@ SrvDriverDispatch(
 error:
 
     return ntStatus;
+}
+
+static NTSTATUS
+SrvDriverRefresh(
+    IN IO_DRIVER_HANDLE DriverHandle
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static
