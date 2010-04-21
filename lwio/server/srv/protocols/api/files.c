@@ -82,6 +82,14 @@ SrvProtocolFindFile(
 
 static
 NTSTATUS
+SrvProtocolCloseFileCB(
+    PSRV_RESOURCE pResource,
+    PVOID         pUserData,
+    PBOOLEAN      pbContinue
+    );
+
+static
+NTSTATUS
 SrvProtocolUpdateQueryConnection(
     PSRV_RESOURCE                 pResource,
     PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery
@@ -292,6 +300,43 @@ error:
     {
         memset(pBuffer, 0, ulBufferSize);
     }
+
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        ntStatus = STATUS_NO_SUCH_FILE;
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvProtocolCloseFile(
+    ULONG  ulFileId           /* IN              */
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_PROTOCOL_FILE_ENUM_QUERY fileEnumQuery = {0};
+
+    if (!ulFileId || (ulFileId == UINT32_MAX))
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvElementsFindResource(
+                        ulFileId,
+                        SRV_RESOURCE_TYPE_FILE,
+                        &SrvProtocolCloseFileCB,
+                        &fileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    SrvProtocolClearFileQueryContents(&fileEnumQuery);
+
+    return ntStatus;
+
+error:
 
     if (ntStatus == STATUS_NOT_FOUND)
     {
@@ -534,6 +579,73 @@ error:
     {
         ntStatus = STATUS_BUFFER_TOO_SMALL;
     }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolCloseFileCB(
+    PSRV_RESOURCE pResource,
+    PVOID         pUserData,
+    PBOOLEAN      pbContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery =
+                                    (PSRV_PROTOCOL_FILE_ENUM_QUERY)pUserData;
+
+    if (pFileEnumQuery->iEntryIndex > 0)
+    {
+        ntStatus = STATUS_INTERNAL_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvProtocolUpdateQueryConnection(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProtocolUpdateQuerySession(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProtocolUpdateQueryTree(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    switch (pResource->pAttributes->protocolVersion)
+    {
+        case SMB_PROTOCOL_VERSION_1:
+
+            ntStatus = SrvProtocolCloseFile_SMB_V1(
+                            pFileEnumQuery->pTree,
+                            pResource->pAttributes->fileId.pFid1);
+
+            break;
+
+        case SMB_PROTOCOL_VERSION_2:
+
+            ntStatus = SrvProtocolCloseFile_SMB_V2(
+                            pFileEnumQuery->pTree2,
+                            pResource->pAttributes->fileId.pFid2);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pFileEnumQuery->iEntryIndex++;
+    pFileEnumQuery->ulEntriesRead++;
+
+cleanup:
+
+    *pbContinue = FALSE;
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }

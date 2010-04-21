@@ -64,6 +64,12 @@ SrvProcessCloseAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+VOID
+SrvFileCancelAsyncOperations(
+    PLWIO_SRV_TREE pTree,
+    PLWIO_SRV_FILE pFile
+    );
+
 // config.c
 
 NTSTATUS

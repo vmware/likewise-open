@@ -114,6 +114,11 @@ SrvProtocolGetFileInfo(
     PULONG pulBytesUsed       /* IN OUT          */
     );
 
+NTSTATUS
+SrvProtocolCloseFile(
+    ULONG  ulFileId           /* IN              */
+    );
+
 VOID
 SrvProtocolShutdown(
     VOID

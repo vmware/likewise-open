@@ -74,6 +74,12 @@ SrvProtocolExecute_SMB_V1(
     );
 
 NTSTATUS
+SrvProtocolCloseFile_SMB_V1(
+    PLWIO_SRV_TREE pTree,
+    PUSHORT        pFid
+    );
+
+NTSTATUS
 SrvProtocolBuildErrorResponse_SMB_V1(
     PLWIO_SRV_CONNECTION pConnection,
     PSMB_HEADER          pRequestHeader,

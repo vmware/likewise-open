@@ -58,6 +58,12 @@ SrvProtocolExecute_SMB_V2(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+NTSTATUS
+SrvProtocolCloseFile_SMB_V2(
+    PLWIO_SRV_TREE_2 pTree,
+    PSMB2_FID        pFid
+    );
+
 VOID
 SrvProtocolFreeContext_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2 pProtocolContext

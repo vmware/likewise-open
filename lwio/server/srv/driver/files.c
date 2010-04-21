@@ -220,8 +220,7 @@ SrvDevCtlCloseFile(
                         &pParamsIn);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO: close file by id
-    ntStatus = STATUS_NOT_SUPPORTED;
+    ntStatus = SrvProtocolCloseFile(pParamsIn->dwFileId);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwFileInfoMarshalCloseParameters(

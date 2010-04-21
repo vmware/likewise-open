@@ -498,6 +498,52 @@ error:
 }
 
 NTSTATUS
+SrvProtocolCloseFile_SMB_V1(
+    PLWIO_SRV_TREE pTree,
+    PUSHORT        pFid
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_FILE pFile = NULL;
+
+    if (!pTree || !pFid)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvTreeFindFile(
+                    pTree,
+                    *pFid,
+                    &pFile);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvFileResetOplockState(pFile);
+
+    ntStatus = SrvTreeRemoveFile(
+                    pTree,
+                    pFile->fid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvFileCancelAsyncOperations(pTree, pFile);
+
+    SrvFileRundown(pFile);
+
+cleanup:
+
+    if (pFile)
+    {
+        SrvFileRelease(pFile);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
 SrvBuildExecContext_SMB_V1(
     PLWIO_SRV_CONNECTION      pConnection,
     PSMB_PACKET               pSmbRequest,

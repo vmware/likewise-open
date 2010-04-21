@@ -46,13 +46,6 @@ SrvBuildCloseResponse(
 
 static
 VOID
-SrvFileCancelAsyncOperations(
-    PLWIO_SRV_TREE pTree,
-    PLWIO_SRV_FILE pFile
-    );
-
-static
-VOID
 SrvPrepareCloseStateAsync(
     PSRV_CLOSE_STATE_SMB_V1 pCloseState,
     PSRV_EXEC_CONTEXT       pExecContext
@@ -450,7 +443,6 @@ error:
     goto cleanup;
 }
 
-static
 VOID
 SrvFileCancelAsyncOperations(
     PLWIO_SRV_TREE pTree,
