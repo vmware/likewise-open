@@ -232,7 +232,9 @@ PvfsFreeZctContext(
             PvfsReleaseCCB(pZctContext->pCcb);
             if (pZctContext->CcbLinks.Next)
             {
-                LwListRemove(&pZctContext->CcbLinks);
+                PvfsListRemoveItem(
+                    pZctContext->pCcb->pZctContextList,
+                    &pZctContext->CcbLinks);
             }
         }
         PVFS_FREE(ppZctContext);
