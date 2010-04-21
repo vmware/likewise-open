@@ -267,6 +267,12 @@ SrvListenerProcessTask(
             waitMask = LW_TASK_EVENT_YIELD;
             goto cleanup;
         }
+        else if (errno == EMFILE)
+        {
+            LWIO_LOG_ERROR("Failed to accept connection due to too many open files");
+            waitMask = LW_TASK_EVENT_YIELD;
+            goto cleanup;
+        }
         else if (errno == EAGAIN)
         {
             waitMask = LW_TASK_EVENT_FD_READABLE;
