@@ -75,6 +75,55 @@ SrvConnection2AcquireAsyncId_inlock(
    );
 
 static
+NTSTATUS
+SrvConnectionDeleteAllSessions(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+static
+NTSTATUS
+SrvConnectionDeleteSessionsSelective(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername
+    );
+
+static
+NTSTATUS
+SrvConnectionSelectCandidateSession(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
+SrvConnection2SelectCandidateSession(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
+SrvConnectionDeleteSession(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
+SrvConnection2DeleteSession(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
 VOID
 SrvConnectionFree(
     PLWIO_SRV_CONNECTION pConnection
@@ -119,6 +168,18 @@ NTSTATUS
 SrvConnection2AcquireSessionId_inlock(
    PLWIO_SRV_CONNECTION pConnection,
    PULONG64             pUid
+   );
+
+static
+NTSTATUS
+SrvConnectionCreateSessionCollection(
+   PLWRTL_RB_TREE* ppSessionCollection
+   );
+
+static
+NTSTATUS
+SrvConnection2CreateSessionCollection(
+   PLWRTL_RB_TREE* ppSessionCollection
    );
 
 static
@@ -214,10 +275,7 @@ SrvConnectionCreate(
     pthread_mutex_init(&pConnection->mutexGssNegotiate, NULL);
     pConnection->pMutexGssNegotiate = &pConnection->mutexGssNegotiate;
 
-    ntStatus = LwRtlRBTreeCreate(
-                    &SrvConnectionSessionCompare,
-                    NULL,
-                    &SrvConnectionSessionRelease,
+    ntStatus = SrvConnectionCreateSessionCollection(
                     &pConnection->pSessionCollection);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -335,10 +393,7 @@ SrvConnectionSetProtocolVersion_inlock(
                 pConnection->ulSequence = 0;
                 pConnection->usNextAvailableUid = 0;
 
-                ntStatus = LwRtlRBTreeCreate(
-                                &SrvConnectionSessionCompare,
-                                NULL,
-                                &SrvConnectionSessionRelease,
+                ntStatus = SrvConnectionCreateSessionCollection(
                                 &pConnection->pSessionCollection);
 
                 break;
@@ -347,10 +402,7 @@ SrvConnectionSetProtocolVersion_inlock(
 
                 pConnection->ullNextAvailableUid = 0;
 
-                ntStatus = LwRtlRBTreeCreate(
-                                &SrvConnection2SessionCompare,
-                                NULL,
-                                &SrvConnection2SessionRelease,
+                ntStatus = SrvConnection2CreateSessionCollection(
                                 &pConnection->pSessionCollection);
 
                 break;
@@ -1160,6 +1212,297 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvConnectionDeleteSessions(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (IsNullOrEmptyString(pwszUsername))
+    {
+        ntStatus = SrvConnectionDeleteAllSessions(pConnection);
+    }
+    else
+    {
+        ntStatus = SrvConnectionDeleteSessionsSelective(
+                        pConnection,
+                        pwszUsername);
+    }
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvConnectionDeleteAllSessions(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    SrvConnectionRundown_inlock(pConnection); // run-down all sessions
+
+    LwRtlRBTreeRemoveAll(pConnection->pSessionCollection);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvConnectionDeleteSessionsSelective(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    SRV_SESSION_DEL_QUERY sessionDelQuery =
+    {
+            .pSessionCollection = NULL,
+            .pwszUsername       = pwszUsername
+    };
+    BOOLEAN  bInLock  = FALSE;
+
+    switch (pConnection->protocolVer)
+    {
+        case SMB_PROTOCOL_VERSION_1:
+
+            ntStatus = SrvConnectionCreateSessionCollection(
+                            &sessionDelQuery.pSessionCollection);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+            ntStatus = LwRtlRBTreeTraverse(
+                            pConnection->pSessionCollection,
+                            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                            &SrvConnectionSelectCandidateSession,
+                            &sessionDelQuery);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+            ntStatus = LwRtlRBTreeTraverse(
+                           sessionDelQuery.pSessionCollection,
+                           LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                           &SrvConnectionDeleteSession,
+                           pConnection);
+
+            break;
+
+        case SMB_PROTOCOL_VERSION_2:
+
+            ntStatus = SrvConnection2CreateSessionCollection(
+                            &sessionDelQuery.pSessionCollection);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+            ntStatus = LwRtlRBTreeTraverse(
+                            pConnection->pSessionCollection,
+                            LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                            &SrvConnection2SelectCandidateSession,
+                            &sessionDelQuery);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+            ntStatus = LwRtlRBTreeTraverse(
+                           sessionDelQuery.pSessionCollection,
+                           LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                           &SrvConnection2DeleteSession,
+                           pConnection);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INTERNAL_ERROR;
+
+            break;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    if (sessionDelQuery.pSessionCollection)
+    {
+        LwRtlRBTreeFree(sessionDelQuery.pSessionCollection);
+    }
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionSelectCandidateSession(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS               ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION      pSession = (PLWIO_SRV_SESSION)pData;
+    BOOLEAN                bIsMatch = FALSE;
+    PSRV_SESSION_DEL_QUERY pSessionDelQuery = (PSRV_SESSION_DEL_QUERY)pUserData;
+
+    ntStatus = SrvSessionCheckPrincipal(
+                    pSession,
+                    pSessionDelQuery->pwszUsername,
+                    &bIsMatch);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (bIsMatch)
+    {
+        ntStatus = LwRtlRBTreeAdd(
+                        pSessionDelQuery->pSessionCollection,
+                        &pSession->uid,
+                        pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvSessionAcquire(pSession);
+    }
+
+    *pbContinue = TRUE;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnection2SelectCandidateSession(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION_2 pSession = (PLWIO_SRV_SESSION_2)pData;
+    PSRV_SESSION_DEL_QUERY pSessionDelQuery = (PSRV_SESSION_DEL_QUERY)pUserData;
+    BOOLEAN bIsMatch = FALSE;
+
+    ntStatus = SrvSession2CheckPrincipal(
+                    pSession,
+                    pSessionDelQuery->pwszUsername,
+                    &bIsMatch);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (bIsMatch)
+    {
+        ntStatus = LwRtlRBTreeAdd(
+                        pSessionDelQuery->pSessionCollection,
+                        &pSession->ullUid,
+                        pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvSession2Acquire(pSession);
+    }
+
+    *pbContinue = TRUE;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionDeleteSession(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION pSession  = (PLWIO_SRV_SESSION)pData;
+    PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pUserData;
+
+    SrvSessionRundown(pSession);
+
+    ntStatus = SrvConnectionRemoveSession(pConnection, pSession->uid);
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pbContinue = TRUE;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnection2DeleteSession(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_SESSION_2 pSession  = (PLWIO_SRV_SESSION_2)pData;
+    PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pUserData;
+
+    SrvSession2Rundown(pSession);
+
+    ntStatus = SrvConnection2RemoveSession(pConnection, pSession->ullUid);
+    if (ntStatus == STATUS_NOT_FOUND)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pbContinue = TRUE;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
 PLWIO_SRV_CONNECTION
 SrvConnectionAcquire(
     PLWIO_SRV_CONNECTION pConnection
@@ -1433,6 +1776,32 @@ error:
 }
 
 static
+NTSTATUS
+SrvConnectionCreateSessionCollection(
+   PLWRTL_RB_TREE* ppSessionCollection
+   )
+{
+    return LwRtlRBTreeCreate(
+                &SrvConnectionSessionCompare,
+                NULL,
+                &SrvConnectionSessionRelease,
+                ppSessionCollection);
+}
+
+static
+NTSTATUS
+SrvConnection2CreateSessionCollection(
+   PLWRTL_RB_TREE* ppSessionCollection
+   )
+{
+    return LwRtlRBTreeCreate(
+                &SrvConnection2SessionCompare,
+                NULL,
+                &SrvConnection2SessionRelease,
+                ppSessionCollection);
+}
+
+static
 int
 SrvConnection2SessionCompare(
     PVOID pKey1,
@@ -1500,8 +1869,6 @@ SrvConnection2AsyncStateRelease(
 {
     SrvAsyncStateRelease((PLWIO_ASYNC_STATE)pAsyncState);
 }
-
-
 
 static
 VOID
@@ -1575,7 +1942,22 @@ SrvConnectionRundownSessionRbTreeVisit(
     PBOOLEAN pbContinue
     )
 {
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_SESSION pSession = (PLWIO_SRV_SESSION)pData;
+    PWSTR pwszUsername = (PWSTR)pUserData;
+
+    if (!IsNullOrEmptyString(pwszUsername))
+    {
+        BOOLEAN bIsMatch = FALSE;
+
+        ntStatus = SrvSessionCheckPrincipal(pSession, pwszUsername, &bIsMatch);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!bIsMatch)
+        {
+            pSession = NULL;
+        }
+    }
 
     if (pSession)
     {
@@ -1584,7 +1966,15 @@ SrvConnectionRundownSessionRbTreeVisit(
 
     *pbContinue = TRUE;
 
-    return STATUS_SUCCESS;
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
 }
 
 static
@@ -1596,7 +1986,22 @@ SrvConnection2RundownSessionRbTreeVisit(
     PBOOLEAN pbContinue
     )
 {
+    NTSTATUS ntStatus = STATUS_SUCCESS;
     PLWIO_SRV_SESSION_2 pSession = (PLWIO_SRV_SESSION_2)pData;
+    PWSTR pwszUsername = (PWSTR)pUserData;
+
+    if (!IsNullOrEmptyString(pwszUsername))
+    {
+        BOOLEAN bIsMatch = FALSE;
+
+        ntStatus = SrvSession2CheckPrincipal(pSession, pwszUsername, &bIsMatch);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!bIsMatch)
+        {
+            pSession = NULL;
+        }
+    }
 
     if (pSession)
     {
@@ -1605,7 +2010,15 @@ SrvConnection2RundownSessionRbTreeVisit(
 
     *pbContinue = TRUE;
 
-    return STATUS_SUCCESS;
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
 }
 
 static

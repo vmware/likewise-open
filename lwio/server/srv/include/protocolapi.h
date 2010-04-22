@@ -93,6 +93,12 @@ SrvProtocolEnumerateSessions(
     );
 
 NTSTATUS
+SrvProtocolDeleteSession(
+    PWSTR pwszUncClientname,  /* IN              */
+    PWSTR pwszUncUsername     /* IN              */
+    );
+
+NTSTATUS
 SrvProtocolEnumerateFiles(
     PWSTR  pwszBasepath,      /* IN     OPTIONAL */
     PWSTR  pwszUsername,      /* IN     OPTIONAL */

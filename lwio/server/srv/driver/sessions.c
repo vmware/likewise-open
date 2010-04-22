@@ -190,8 +190,9 @@ SrvDevCtlDeleteSession(
                         &pParamsIn);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    // TODO: execute deletion
-    ntStatus = STATUS_NOT_SUPPORTED;
+    ntStatus = SrvProtocolDeleteSession(
+                        pParamsIn->pwszUncClientname,
+                        pParamsIn->pwszUncUsername);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwSessionInfoMarshalDeleteParameters(

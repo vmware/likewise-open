@@ -829,6 +829,12 @@ SrvConnectionGetNamedPipeSessionKey(
     PIO_ECP_LIST        pEcpList
     );
 
+NTSTATUS
+SrvConnectionDeleteSessions(
+    PLWIO_SRV_CONNECTION pConnection,
+    PWSTR                pwszUsername
+    );
+
 LWIO_SRV_CONN_STATE
 SrvConnectionGetState(
     PLWIO_SRV_CONNECTION pConnection

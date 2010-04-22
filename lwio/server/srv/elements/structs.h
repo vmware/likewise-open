@@ -56,6 +56,12 @@ typedef struct _SRV_SESSION_ENUM_QUERY
 
 } SRV_SESSION_ENUM_QUERY, *PSRV_SESSION_ENUM_QUERY;
 
+typedef struct _SRV_SESSION_DEL_QUERY
+{
+    PLWRTL_RB_TREE pSessionCollection;
+    PWSTR          pwszUsername;
+} SRV_SESSION_DEL_QUERY, *PSRV_SESSION_DEL_QUERY;
+
 typedef struct _SRV_TIMER_REQUEST
 {
     LONG                   refCount;

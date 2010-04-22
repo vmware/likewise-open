@@ -133,8 +133,17 @@ SrvProtocolProcessSession_level_502(
     );
 
 static
+NTSTATUS
+SrvProtocolDeleteCandidateSessions(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
 VOID
-SrvProtocolFreeSessionQueryContents(
+SrvProtocolFreeSessionEnumQueryContents(
     PSRV_PROTOCOL_SESSION_ENUM_QUERY pSessionEnumQuery
     );
 
@@ -207,7 +216,7 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
 
-    SrvProtocolFreeSessionQueryContents(&sessionEnumQuery);
+    SrvProtocolFreeSessionEnumQueryContents(&sessionEnumQuery);
 
     return ntStatus;
 
@@ -221,6 +230,49 @@ error:
     {
         memset(pBuffer, 0, ulBufferSize);
     }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvProtocolDeleteSession(
+    PWSTR pwszUncClientname,  /* IN              */
+    PWSTR pwszUncUsername     /* IN              */
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    SRV_PROTOCOL_SESSION_ENUM_QUERY sessionEnumQuery = {0};
+
+    sessionEnumQuery.pwszUncClientname = pwszUncClientname;
+    sessionEnumQuery.pwszUsername      = pwszUncUsername;
+
+    if (pwszUncClientname)
+    {
+        ntStatus = SrvSocketGetAddrInfoW(
+                        pwszUncClientname,
+                        &sessionEnumQuery.pQueryAddress);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gProtocolApiGlobals.mutex);
+
+    ntStatus = LwRtlRBTreeTraverse(
+                    gProtocolApiGlobals.pConnections,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    &SrvProtocolDeleteCandidateSessions,
+                    &sessionEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gProtocolApiGlobals.mutex);
+
+    SrvProtocolFreeSessionEnumQueryContents(&sessionEnumQuery);
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
@@ -997,8 +1049,68 @@ error:
 }
 
 static
+NTSTATUS
+SrvProtocolDeleteCandidateSessions(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION pConnection = (PLWIO_SRV_CONNECTION)pData;
+    PSRV_PROTOCOL_SESSION_ENUM_QUERY pSessionEnumQuery =
+                                  (PSRV_PROTOCOL_SESSION_ENUM_QUERY)pUserData;
+
+    if (pSessionEnumQuery->pQueryAddress)
+    {
+        struct addrinfo* pCursor = pSessionEnumQuery->pQueryAddress;
+        BOOLEAN bMatch = FALSE;
+
+        for (; !bMatch && (pCursor != NULL); pCursor = pCursor->ai_next)
+        {
+            ntStatus = SrvSocketCompareAddress(
+                            &pConnection->clientAddress,
+                            pConnection->clientAddrLen,
+                            pCursor->ai_addr,
+                            pCursor->ai_addrlen,
+                            &bMatch);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (!bMatch)
+        {
+            pConnection = NULL;
+        }
+    }
+
+    if (pConnection)
+    {
+        ntStatus = SrvConnectionDeleteSessions(
+                        pConnection,
+                        pSessionEnumQuery->pwszUsername);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *pbContinue = TRUE;
+
+cleanup:
+
+    pSessionEnumQuery->pClientAddress = NULL;
+    pSessionEnumQuery->clientAddrLen  = 0;
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
 VOID
-SrvProtocolFreeSessionQueryContents(
+SrvProtocolFreeSessionEnumQueryContents(
     PSRV_PROTOCOL_SESSION_ENUM_QUERY pSessionEnumQuery
     )
 {
@@ -1007,4 +1119,3 @@ SrvProtocolFreeSessionQueryContents(
         freeaddrinfo(pSessionEnumQuery->pQueryAddress);
     }
 }
-
