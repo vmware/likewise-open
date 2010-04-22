@@ -58,7 +58,6 @@ typedef struct rpc_smb_socket_s
     IO_FILE_HANDLE np;
     rpc_smb_buffer_t sendbuffer;
     rpc_smb_buffer_t recvbuffer;
-    boolean received_last;
     struct
     {
         IO_FILE_HANDLE* queue;
@@ -1308,7 +1307,7 @@ rpc__smb_socket_recvmsg(
 
     if (rpc__smb_buffer_length(&smb->recvbuffer) == 0)
     {
-        /* Nothing in buffer, read a complete PDU */
+        /* Nothing in buffer, read a complete message */
         do
         {
             serr = rpc__smb_socket_do_recv(sock, &count);
@@ -1320,7 +1319,7 @@ rpc__smb_socket_recvmsg(
             {
                 break;
             }
-        } while (!rpc__smb_buffer_advance_cursor(&smb->recvbuffer, &smb->received_last));
+        } while (!rpc__smb_buffer_advance_cursor(&smb->recvbuffer, NULL));
 
         /* Reset cursor back to start to begin disperal into scatter buffer */
         smb->recvbuffer.start_cursor = smb->recvbuffer.base;
@@ -1344,11 +1343,8 @@ rpc__smb_socket_recvmsg(
 
             /* Reset buffer because we have emptied it */
             smb->recvbuffer.start_cursor = smb->recvbuffer.end_cursor = smb->recvbuffer.base;
-            /* Switch into send mode if this was the last PDU */
-            if (smb->received_last)
-            {
-                rpc__smb_socket_change_state(smb, SMB_STATE_SEND);
-            }
+            /* Switch into send mode */
+            rpc__smb_socket_change_state(smb, SMB_STATE_SEND);
         }
     }
 
