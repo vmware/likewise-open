@@ -789,7 +789,7 @@ SrvSvcNetFileClose(
     PBYTE                    pInBuffer = NULL;
     DWORD                    dwInBufferLength = 0;
     PBYTE                    pOutBuffer = NULL;
-    DWORD                    dwOutBufferLength = 0;
+    DWORD                    dwOutBufferLength = 256;
 
     ntStatus = NtCreateFile(
                     &hFile,
@@ -814,6 +814,9 @@ SrvSvcNetFileClose(
                     &pInBuffer,
                     &dwInBufferLength);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    dwError = LwAllocateMemory(dwOutBufferLength, (void**)&pOutBuffer);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     ntStatus = NtDeviceIoControlFile(
                     hFile,
