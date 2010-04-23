@@ -181,6 +181,17 @@ SrvProtocolEnumerateSessions(
 
     if (pwszUncClientname)
     {
+        wchar16_t wszPrefix[] = {'\\','\\', 0};
+        size_t    sPrefixLen =
+                (sizeof(wszPrefix)-sizeof(wszPrefix[0]))/sizeof(wszPrefix[0]);
+
+        if (!SMBWc16snCmp(pwszUncClientname, &wszPrefix[0], sPrefixLen))
+        {
+            pwszUncClientname += sPrefixLen;
+        }
+
+        sessionEnumQuery.pwszUncClientname = pwszUncClientname;
+
         ntStatus = SrvSocketGetAddrInfoW(
                         pwszUncClientname,
                         &sessionEnumQuery.pQueryAddress);
@@ -244,7 +255,20 @@ SrvProtocolDeleteSession(
     BOOLEAN  bInLock  = FALSE;
     SRV_PROTOCOL_SESSION_ENUM_QUERY sessionEnumQuery = {0};
 
-    sessionEnumQuery.pwszUncClientname = pwszUncClientname;
+    if (pwszUncClientname)
+    {
+        wchar16_t wszPrefix[] = {'\\','\\', 0};
+        size_t    sPrefixLen =
+                (sizeof(wszPrefix)-sizeof(wszPrefix[0]))/sizeof(wszPrefix[0]);
+
+        if (!SMBWc16snCmp(pwszUncClientname, &wszPrefix[0], sPrefixLen))
+        {
+            pwszUncClientname += sPrefixLen;
+        }
+
+        sessionEnumQuery.pwszUncClientname = pwszUncClientname;
+    }
+
     sessionEnumQuery.pwszUsername      = pwszUncUsername;
 
     if (pwszUncClientname)

@@ -216,6 +216,12 @@ SrvConnectionRundown_inlock(
 
 static
 NTSTATUS
+SrvConnectionRundownAllSessions_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
+static
+NTSTATUS
 SrvConnectionRundownSessionRbTreeVisit(
     PVOID pKey,
     PVOID pData,
@@ -1245,13 +1251,20 @@ SrvConnectionDeleteAllSessions(
 
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
-    SrvConnectionRundown_inlock(pConnection); // run-down all sessions
+    ntStatus = SrvConnectionRundownAllSessions_inlock(pConnection);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     LwRtlRBTreeRemoveAll(pConnection->pSessionCollection);
+
+cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }
 
 static
@@ -1878,6 +1891,41 @@ SrvConnectionRundown_inlock(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
+    ntStatus = SrvConnectionRundownAllSessions_inlock(pConnection);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pConnection->pAsyncStateCollection)
+    {
+        ntStatus = LwRtlRBTreeTraverse(
+                        pConnection->pAsyncStateCollection,
+                        LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                        &SrvConnection2RundownAsyncStatesRbTreeVisit,
+                        NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    return;
+
+error:
+
+    LWIO_LOG_ERROR("Connection run down failed [status: %s = 0x%08X (%d)]",
+                   LwNtStatusToName(ntStatus),
+                   ntStatus,
+                   ntStatus);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvConnectionRundownAllSessions_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
     if (pConnection->pSessionCollection)
     {
         switch (pConnection->protocolVer)
@@ -1909,28 +1957,9 @@ SrvConnectionRundown_inlock(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    if (pConnection->pAsyncStateCollection)
-    {
-        ntStatus = LwRtlRBTreeTraverse(
-                        pConnection->pAsyncStateCollection,
-                        LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
-                        &SrvConnection2RundownAsyncStatesRbTreeVisit,
-                        NULL);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-cleanup:
-
-    return;
-
 error:
 
-    LWIO_LOG_ERROR("Connection run down failed [status: %s = 0x%08X (%d)]",
-                   LwNtStatusToName(ntStatus),
-                   ntStatus,
-                   ntStatus);
-
-    goto cleanup;
+    return ntStatus;
 }
 
 static
