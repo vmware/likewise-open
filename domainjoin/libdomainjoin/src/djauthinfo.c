@@ -1100,6 +1100,7 @@ void DJCreateComputerAccount(
     PSTR dnsDomain = NULL;
     CHAR krb5ConfEnv[256];
     DWORD dwFlags = 0;
+    DWORD dwError = 0;
 
     PSTR likewiseVersion = NULL;
     PSTR likewiseBuild = NULL;
@@ -1173,18 +1174,34 @@ void DJCreateComputerAccount(
 
     LW_CLEANUP_LSERR(exc, LsaOpenServer(&lsa));
 
-    LW_CLEANUP_LSERR(exc, LsaAdJoinDomain(
-                         lsa,
-                         options->computerName,
-                         dnsDomain,
-                         options->domainName,
-                         options->ouName,
-                         options->username,
-                         options->password,
-                         osName,
-                         distro.version,
-                         likewiseOSServicePack,
-                         dwFlags));
+    dwError = LsaAdJoinDomain(
+                 lsa,
+                 options->computerName,
+                 dnsDomain,
+                 options->domainName,
+                 options->ouName,
+                 options->username,
+                 options->password,
+                 osName,
+                 distro.version,
+                 likewiseOSServicePack,
+                 dwFlags);
+    if (dwError)
+    {
+        switch(dwError)
+        {
+            case ERROR_FILE_NOT_FOUND:
+                LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INVALID_OU, "Lsass Error", "The OU is invalid.");
+                break;
+            case ERROR_INVALID_PARAMETER:
+                LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INVALID_FORMAT, "Lsass Error", "The OU format is invalid.");
+                break;
+            default:
+                LW_RAISE_LSERR(exc, dwError);
+                break;
+        }
+        goto cleanup;
+    }
 
     LW_TRY(exc, DJGuessShortDomainName(
                                  options->domainName,
