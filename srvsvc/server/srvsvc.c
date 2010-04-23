@@ -499,9 +499,6 @@ _NetrSessionDel(
 {
     DWORD dwError = 0;
 
-    BAIL_ON_INVALID_PTR(pwszUncClientname, dwError);
-    BAIL_ON_INVALID_PTR(pwszUsername,      dwError);
-
     dwError = SrvSvcAccessCheck(
                     IDL_handle,
                     FILE_GENERIC_READ | FILE_GENERIC_WRITE);
