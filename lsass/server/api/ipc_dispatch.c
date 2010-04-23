@@ -48,6 +48,40 @@
 #include "api.h"
 
 static
+VOID
+LsaFreeSecurityObjectPrivateAttrs(
+    PLSA_SECURITY_OBJECT pObject
+    )
+{
+    if (pObject)
+    {
+        if (pObject->type == LSA_OBJECT_TYPE_USER)
+        {
+            LW_SAFE_FREE_MEMORY(pObject->userInfo.pLmHash);
+            LW_SAFE_FREE_MEMORY(pObject->userInfo.pNtHash);
+        }
+    }
+}
+
+static
+VOID
+LsaFreeSecurityObjectListPrivateAttrs(
+    DWORD dwCount,
+    PLSA_SECURITY_OBJECT* ppObjectList
+    )
+{
+    DWORD dwIndex = 0;
+
+    if (ppObjectList)
+    {
+        for (dwIndex = 0; dwIndex < dwCount; dwIndex++)
+        {
+            LsaFreeSecurityObjectPrivateAttrs(ppObjectList[dwIndex]);
+        }
+    }
+}
+
+static
 DWORD
 LsaSrvIpcRegisterHandle(
     LWMsgCall* pCall,
@@ -1510,6 +1544,10 @@ LsaSrvIpcFindObjects(
 
     if (!dwError)
     {
+        LsaFreeSecurityObjectListPrivateAttrs(
+            pReq->dwCount,
+            ppObjects);
+
         dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
         BAIL_ON_LSA_ERROR(dwError);
 
@@ -1621,6 +1659,10 @@ LsaSrvIpcEnumObjects(
 
     if (!dwError)
     {
+        LsaFreeSecurityObjectListPrivateAttrs(
+            dwObjectsCount,
+            ppObjects);
+
         dwError = LwAllocateMemory(sizeof(*pRes), OUT_PPVOID(&pRes));
         BAIL_ON_LSA_ERROR(dwError);
 
