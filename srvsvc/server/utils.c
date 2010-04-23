@@ -54,7 +54,7 @@ SrvSvcSrvAllocateWC16StringFromUnicodeString(
     BAIL_ON_INVALID_PTR(ppwszOut, dwError);
     BAIL_ON_INVALID_PTR(pIn, dwError);
 
-    dwError = SrvSvcSrvAllocateMemory(pIn->Length,
+    dwError = SrvSvcSrvAllocateMemory(pIn->MaximumLength,
                                       OUT_PPVOID(&pwszStr));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
