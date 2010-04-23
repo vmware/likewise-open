@@ -257,7 +257,10 @@ PvfsWorkerDoWork(
                 ntError = STATUS_CANCELLED;
             }
 
-            /* Check to to see if the request was requeued */
+            /* Check to to see if the request was requeued.  We finish cancelled IRPs
+               here since it is expected that any item in the I/O queue is handled in
+               full in this loop.  Other pended IRPs (e.g. oplocks) that may be cancelled
+               will appear in other PVFS_QUEUE_TYPE's */
 
             if (ntError != STATUS_PENDING)
             {
