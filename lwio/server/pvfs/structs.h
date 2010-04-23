@@ -429,11 +429,14 @@ typedef VOID (*PPVFS_WORK_CONTEXT_FREE_CTX)(
     IN PVOID *ppContext
     );
 
+#define PVFS_WORK_CTX_FLAG_IRP_CONTEXT    0x00000001
+#define PVFS_WORK_CTX_FLAG_TERMINATE      0x00000002
+
 typedef struct _PVFS_WORK_CONTEXT
 {
     LW_LIST_LINKS WorkList;
 
-    BOOLEAN bIsIrpContext;
+    LONG Flags;
     PVOID pContext;
 
     PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion;

@@ -52,6 +52,7 @@
 typedef struct _PVFS_WORKER_THREAD {
 
     pthread_t   hThread;
+    BOOLEAN     bTerminate;
 
 } PVFS_WORKER, *PPVFS_WORKER;
 
@@ -84,6 +85,11 @@ typedef struct _PVFS_WORK_QUEUE {
 
 NTSTATUS
 PvfsInitWorkerThreads(
+    VOID
+    );
+
+NTSTATUS
+PvfsStopWorkerThreads(
     VOID
     );
 

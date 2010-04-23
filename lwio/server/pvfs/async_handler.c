@@ -145,7 +145,7 @@ PvfsQueueCancelIrpIfRequested(
 /***********************************************************************
  **********************************************************************/
 
-static NTSTATUS
+NTSTATUS
 PvfsScheduleIoWorkItem(
     IN PPVFS_WORK_CONTEXT pWorkContext
     )
@@ -153,7 +153,7 @@ PvfsScheduleIoWorkItem(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_IRP_CONTEXT pIrpCtx = NULL;
 
-    if (pWorkContext->bIsIrpContext)
+    if (IsSetFlag(pWorkContext->Flags, PVFS_WORK_CTX_FLAG_IRP_CONTEXT))
     {
         pIrpCtx = (PPVFS_IRP_CONTEXT)pWorkContext->pContext;
         pIrpCtx->QueueType = PVFS_QUEUE_TYPE_IO;
@@ -163,7 +163,8 @@ PvfsScheduleIoWorkItem(
 
     ntError = PvfsAddWorkItem(gpPvfsIoWorkQueue, (PVOID)pWorkContext);
 
-    if (ntError != STATUS_SUCCESS && pWorkContext->bIsIrpContext)
+    if (ntError != STATUS_SUCCESS &&
+        IsSetFlag(pWorkContext->Flags, PVFS_WORK_CTX_FLAG_IRP_CONTEXT))
     {
         pIrpCtx->pIrp->IoStatusBlock.Status = ntError;
 
@@ -187,7 +188,7 @@ error:
 NTSTATUS
 PvfsCreateWorkContext(
     OUT PPVFS_WORK_CONTEXT *ppWorkContext,
-    IN  BOOLEAN bIsIrpContext,
+    IN  LONG lFlags,
     IN  PVOID pContext,
     IN  PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion,
     IN  PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext
@@ -201,15 +202,12 @@ PvfsCreateWorkContext(
                   sizeof(PVFS_WORK_CONTEXT));
     BAIL_ON_NT_STATUS(ntError);
 
-    pWorkCtx->bIsIrpContext = bIsIrpContext;
-    if (bIsIrpContext)
+    pWorkCtx->Flags = lFlags;
+    pWorkCtx->pContext = pContext;
+
+    if (IsSetFlag(lFlags, PVFS_WORK_CTX_FLAG_IRP_CONTEXT))
     {
-        pWorkCtx->pContext = (PVOID)PvfsReferenceIrpContext(
-                                    (PPVFS_IRP_CONTEXT)pContext);
-    }
-    else
-    {
-        pWorkCtx->pContext = pContext;
+        PvfsReferenceIrpContext((PPVFS_IRP_CONTEXT)pContext);
     }
 
     pWorkCtx->pfnCompletion = pfnCompletion;
@@ -245,7 +243,7 @@ PvfsFreeWorkContext(
 
         if (pWorkCtx->pContext)
         {
-            if (pWorkCtx->bIsIrpContext)
+            if (IsSetFlag(pWorkCtx->Flags, PVFS_WORK_CTX_FLAG_IRP_CONTEXT))
             {
                 PvfsReleaseIrpContext((PPVFS_IRP_CONTEXT*)&pWorkCtx->pContext);
             }

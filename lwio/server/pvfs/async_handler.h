@@ -53,7 +53,7 @@
 NTSTATUS
 PvfsCreateWorkContext(
     OUT PPVFS_WORK_CONTEXT *ppWorkContext,
-    IN  BOOLEAN bIsIrpContext,
+    IN  LONG lFlags,
     IN  PVOID pContext,
     IN  PPVFS_WORK_CONTEXT_CALLBACK pfnCompletion,
     IN  PPVFS_WORK_CONTEXT_FREE_CTX pfnFreeContext
@@ -62,6 +62,11 @@ PvfsCreateWorkContext(
 VOID
 PvfsFreeWorkContext(
     IN OUT PPVFS_WORK_CONTEXT *ppWorkContext
+    );
+
+NTSTATUS
+PvfsScheduleIoWorkItem(
+    IN PPVFS_WORK_CONTEXT pWorkContext
     );
 
 

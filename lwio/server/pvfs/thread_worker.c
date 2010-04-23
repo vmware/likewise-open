@@ -54,10 +54,8 @@ PvfsWorkerDoWork(
     );
 
 
-/* Code */
-
-/************************************************************
-  **********************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsInitWorkerThreads(
@@ -97,6 +95,7 @@ PvfsInitWorkerThreads(
 
     for (i=0; i<gWorkPool.PoolSize; i++)
     {
+        gWorkPool.IoWorkers[i].bTerminate = FALSE;
         ret = pthread_create(
                   &gWorkPool.IoWorkers[i].hThread,
                   NULL,
@@ -109,6 +108,7 @@ PvfsInitWorkerThreads(
 
     /* One priority internal work queue thread */
 
+    gWorkPool.PriorityWorker.bTerminate = FALSE;
     ret = pthread_create(
               &gWorkPool.PriorityWorker.hThread,
               NULL,
@@ -125,11 +125,70 @@ error:
     goto cleanup;
 }
 
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+PvfsStopWorkerThreads(
+    VOID
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    LONG count  = 0;
+    PPVFS_WORK_CONTEXT pWorkContext = NULL;
+
+    for (count=0; count < gWorkPool.PoolSize; count++)
+    {
+        ntError = PvfsCreateWorkContext(
+                      &pWorkContext,
+                      PVFS_WORK_CTX_FLAG_TERMINATE,
+                      NULL,
+                      NULL,
+                      NULL);
+        /* Don't bail on error since we are trying to shutdown */
+        if (ntError == STATUS_SUCCESS)
+        {
+            ntError = PvfsScheduleIoWorkItem(pWorkContext);
+            pWorkContext = NULL;
+        }
+
+        PvfsFreeWorkContext(&pWorkContext);
+    }
+
+    ntError = PvfsCreateWorkContext(
+                  &pWorkContext,
+                  PVFS_WORK_CTX_FLAG_TERMINATE,
+                  NULL,
+                  NULL,
+                  NULL);
+    /* Don't bail on error since we are trying to shutdown */
+    if (ntError == STATUS_SUCCESS)
+    {
+        ntError = PvfsAddWorkItem(
+                      gpPvfsInternalWorkQueue,
+                      (PVOID)pWorkContext);
+        pWorkContext = NULL;
+    }
+
+    PvfsFreeWorkContext(&pWorkContext);
+
+    /* Wait on threads to shutdown */
+
+    for (count=0; count < gWorkPool.PoolSize; count++)
+    {
+        pthread_join(gWorkPool.IoWorkers[count].hThread, NULL);
+    }
+    pthread_join(gWorkPool.PriorityWorker.hThread, NULL);
+
+    return STATUS_SUCCESS;
+}
+
 
 /***********************************************************************
  **********************************************************************/
 
-static PVOID
+static
+PVOID
 PvfsWorkerDoWork(
     PVOID pQueue
     )
@@ -169,9 +228,16 @@ PvfsWorkerDoWork(
                 AvailableThreads);
         }
 
+        if (IsSetFlag(pWorkCtx->Flags, PVFS_WORK_CTX_FLAG_TERMINATE))
+        {
+            /* All Done */
+            PvfsFreeWorkContext(&pWorkCtx);
+            return NULL;
+        }
+
         /* Deal with IRPs slightly differently than non IRP work items */
 
-        if (pWorkCtx->bIsIrpContext)
+        if (IsSetFlag(pWorkCtx->Flags, PVFS_WORK_CTX_FLAG_IRP_CONTEXT))
         {
             pIrpCtx = (PPVFS_IRP_CONTEXT)pWorkCtx->pContext;
 

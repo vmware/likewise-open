@@ -50,6 +50,8 @@
 
 
 extern PSTR             gpszPVFSProviderName;
+extern IO_DEVICE_HANDLE gPvfsDeviceHandle;
+
 extern GENERIC_MAPPING  gPvfsFileGenericMapping;
 
 extern PVFS_WORKER_POOL gWorkPool;

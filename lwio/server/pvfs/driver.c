@@ -97,6 +97,8 @@ IO_DRIVER_ENTRY(pvfs)(
                              NULL);
     BAIL_ON_NT_STATUS(ntError);
 
+    gPvfsDeviceHandle = deviceHandle;
+
     ntError = PvfsDriverInitialize();
     BAIL_ON_NT_STATUS(ntError);
 
@@ -124,6 +126,10 @@ PvfsDriverShutdown(
     IN IO_DRIVER_HANDLE DriverHandle
     )
 {
+    NTSTATUS ntError = STATUS_SUCCESS;
+
+    ntError = PvfsStopWorkerThreads();
+
     PvfsDestroyFCBTable();
 
     if (gpPathCacheRwLock)

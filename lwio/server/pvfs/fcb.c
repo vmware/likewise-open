@@ -102,10 +102,17 @@ PvfsDestroyFCBTable(
     VOID
     )
 {
-    /* Need to add tree traversal here and remove
-       data */
+    BOOLEAN bLocked = FALSE;
 
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bLocked, &gFcbTable.rwLock);
+
+    /* Need a traversal to close all open CCBs first.  Then free the
+       RBTree */
     LwRtlRBTreeFree(gFcbTable.pFcbTree);
+    gFcbTable.pFcbTree = NULL;
+
+    LWIO_UNLOCK_RWMUTEX(bLocked, &gFcbTable.rwLock);
+
     pthread_rwlock_destroy(&gFcbTable.rwLock);
 
     PVFS_ZERO_MEMORY(&gFcbTable);

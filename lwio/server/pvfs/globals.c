@@ -47,6 +47,7 @@
 #include "pvfs.h"
 
 PSTR gpszPVFSProviderName = "Posix Virtual File System";
+IO_DEVICE_HANDLE gPvfsDeviceHandle = (IO_DEVICE_HANDLE)NULL;
 
 GENERIC_MAPPING gPvfsFileGenericMapping = {
     .GenericRead    = FILE_GENERIC_READ,
