@@ -330,6 +330,24 @@ SrvProtocolCloseFile(
                         &fileEnumQuery);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (fileEnumQuery.pFile)
+    {
+        ntStatus = SrvProtocolCloseFile_SMB_V1(
+                        fileEnumQuery.pTree,
+                        fileEnumQuery.pFile);
+    }
+    else if (fileEnumQuery.pFile2)
+    {
+        ntStatus = SrvProtocolCloseFile_SMB_V2(
+                        fileEnumQuery.pTree2,
+                        fileEnumQuery.pFile2);
+    }
+    else
+    {
+        ntStatus = STATUS_INTERNAL_ERROR;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
 cleanup:
 
     SrvProtocolClearFileQueryContents(&fileEnumQuery);
@@ -614,17 +632,19 @@ SrvProtocolCloseFileCB(
     {
         case SMB_PROTOCOL_VERSION_1:
 
-            ntStatus = SrvProtocolCloseFile_SMB_V1(
+            ntStatus = SrvTreeFindFile(
                             pFileEnumQuery->pTree,
-                            pResource->pAttributes->fileId.pFid1);
+                            *pResource->pAttributes->fileId.pFid1,
+                            &pFileEnumQuery->pFile);
 
             break;
 
         case SMB_PROTOCOL_VERSION_2:
 
-            ntStatus = SrvProtocolCloseFile_SMB_V2(
+            ntStatus = SrvTree2FindFile(
                             pFileEnumQuery->pTree2,
-                            pResource->pAttributes->fileId.pFid2);
+                            pResource->pAttributes->fileId.pFid2,
+                            &pFileEnumQuery->pFile2);
 
             break;
 
@@ -1089,6 +1109,14 @@ SrvProtocolClearFileQueryContents(
     PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery
     )
 {
+    if (pFileEnumQuery->pFile)
+    {
+        SrvFileRelease(pFileEnumQuery->pFile);
+    }
+    if (pFileEnumQuery->pFile2)
+    {
+        SrvFile2Release(pFileEnumQuery->pFile2);
+    }
     if (pFileEnumQuery->pTree)
     {
         SrvTreeRelease(pFileEnumQuery->pTree);

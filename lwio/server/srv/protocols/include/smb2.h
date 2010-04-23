@@ -61,7 +61,7 @@ SrvProtocolExecute_SMB_V2(
 NTSTATUS
 SrvProtocolCloseFile_SMB_V2(
     PLWIO_SRV_TREE_2 pTree,
-    PSMB2_FID        pFid
+    PLWIO_SRV_FILE_2 pFile
     );
 
 VOID

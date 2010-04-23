@@ -500,23 +500,16 @@ error:
 NTSTATUS
 SrvProtocolCloseFile_SMB_V1(
     PLWIO_SRV_TREE pTree,
-    PUSHORT        pFid
+    PLWIO_SRV_FILE pFile
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_FILE pFile = NULL;
 
-    if (!pTree || !pFid)
+    if (!pTree || !pFile)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    ntStatus = SrvTreeFindFile(
-                    pTree,
-                    *pFid,
-                    &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     SrvFileResetOplockState(pFile);
 
@@ -529,18 +522,9 @@ SrvProtocolCloseFile_SMB_V1(
 
     SrvFileRundown(pFile);
 
-cleanup:
-
-    if (pFile)
-    {
-        SrvFileRelease(pFile);
-    }
-
-    return ntStatus;
-
 error:
 
-    goto cleanup;
+    return ntStatus;
 }
 
 NTSTATUS

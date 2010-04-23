@@ -238,23 +238,16 @@ error:
 NTSTATUS
 SrvProtocolCloseFile_SMB_V2(
     PLWIO_SRV_TREE_2 pTree,
-    PSMB2_FID        pFid
+    PLWIO_SRV_FILE_2 pFile
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_FILE_2 pFile = NULL;
 
-    if (!pTree || !pFid)
+    if (!pTree || !pFile)
     {
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    ntStatus = SrvTree2FindFile(
-                    pTree,
-                    pFid,
-                    &pFile);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     SrvFile2ResetOplockState(pFile);
 
@@ -265,18 +258,9 @@ SrvProtocolCloseFile_SMB_V2(
 
     SrvFile2Rundown(pFile);
 
-cleanup:
-
-    if (pFile)
-    {
-        SrvFile2Release(pFile);
-    }
-
-    return ntStatus;
-
 error:
 
-    goto cleanup;
+    return ntStatus;
 }
 
 static
