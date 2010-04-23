@@ -1196,6 +1196,10 @@ void DJCreateComputerAccount(
             case ERROR_INVALID_PARAMETER:
                 LW_RAISE_EX(exc, CENTERROR_DOMAINJOIN_INVALID_FORMAT, "Lsass Error", "The OU format is invalid.");
                 break;
+            case ERROR_DS_NAME_ERROR_NO_MAPPING:
+                LW_RAISE_EX(exc, CENTERROR_INVALID_COMPUTERNAME, "Lsass Error", "The dnsHostName attribute cannot be set on the computer account because your user account does not have permission to write arbitrary values, and your computer's domain name is not listed in the msDS-AllowedDNSSuffixes attribute.");
+                break;
+                break;
             default:
                 LW_RAISE_LSERR(exc, dwError);
                 break;
