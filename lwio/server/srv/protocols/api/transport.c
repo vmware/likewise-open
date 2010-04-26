@@ -158,7 +158,8 @@ SrvProtocolTransportDriverDispatchPacket(
 static
 NTSTATUS
 SrvProtocolTransportDriverCheckSignature(
-    IN PSRV_EXEC_CONTEXT pContext
+    IN PSRV_CONNECTION pConnection,
+    IN PSMB_PACKET pPacket
     );
 
 static
@@ -436,6 +437,9 @@ SrvProtocolTransportDriverConnectionData(
 
         if (pPacket)
         {
+            ntStatus = SrvProtocolTransportDriverCheckSignature(pConnection, pPacket);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             // allocate a new packet buffer
             ntStatus = SrvProtocolTransportDriverAllocatePacket(pConnection);
             BAIL_ON_NT_STATUS(ntStatus);
@@ -948,13 +952,8 @@ SrvProtocolTransportDriverDispatchPacket(
     PSRV_PROTOCOL_TRANSPORT_CONTEXT pDriverContext = (PSRV_PROTOCOL_TRANSPORT_CONTEXT) pConnection->pProtocolTransportDriverContext;
     PSRV_EXEC_CONTEXT pContext = NULL;
 
-    // Already in pConnection lock.
-
     // Note that building the context takes its own reference.
     ntStatus = SrvBuildExecContext(pConnection, pPacket, FALSE, &pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = SrvProtocolTransportDriverCheckSignature(pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvProdConsEnqueue(
@@ -981,11 +980,11 @@ error:
 static
 NTSTATUS
 SrvProtocolTransportDriverCheckSignature(
-    IN PSRV_EXEC_CONTEXT pContext
+    IN PSRV_CONNECTION pConnection,
+    IN PSMB_PACKET pPacket
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PLWIO_SRV_CONNECTION pConnection = pContext->pConnection;
 
     // Already in pConnection lock.
 
@@ -993,9 +992,9 @@ SrvProtocolTransportDriverCheckSignature(
     {
         case SMB_PROTOCOL_VERSION_1:
             // Update the sequence whether we end up signing or not
-            pContext->pSmbRequest->sequence = SrvProtocolTransportDriverGetNextSequence(
-                            pConnection,
-                            pContext->pSmbRequest);
+            pPacket->sequence = SrvProtocolTransportDriverGetNextSequence(
+                                    pConnection,
+                                    pPacket);
             break;
 
         default:
@@ -1009,8 +1008,8 @@ SrvProtocolTransportDriverCheckSignature(
         {
             case SMB_PROTOCOL_VERSION_1:
                 ntStatus = SMBPacketVerifySignature(
-                                pContext->pSmbRequest,
-                                pContext->pSmbRequest->sequence,
+                                pPacket,
+                                pPacket->sequence,
                                 pConnection->pSessionKey,
                                 pConnection->ulSessionKeyLength);
 
@@ -1018,15 +1017,15 @@ SrvProtocolTransportDriverCheckSignature(
 
             case SMB_PROTOCOL_VERSION_2:
                 // Allow CANCEL and ECHO requests to be unsigned
-                if (SMB2PacketIsSigned(pContext->pSmbRequest))
+                if (SMB2PacketIsSigned(pPacket))
                 {
                     ntStatus = SMB2PacketVerifySignature(
-                        pContext->pSmbRequest,
+                        pPacket,
                         pConnection->pSessionKey,
                         pConnection->ulSessionKeyLength);
                 }
-                else if (pContext->pSmbRequest->pSMB2Header->command != COM2_CANCEL &&
-                         pContext->pSmbRequest->pSMB2Header->command != COM2_ECHO)
+                else if (pPacket->pSMB2Header->command != COM2_CANCEL &&
+                         pPacket->pSMB2Header->command != COM2_ECHO)
                 {
                     ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
                     BAIL_ON_NT_STATUS(ntStatus);
