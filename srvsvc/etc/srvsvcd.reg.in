@@ -4,5 +4,6 @@
 "Description"="Likewise Server Service"
 "Path"="@SBINDIR@/srvsvcd"
 "Arguments"="@SBINDIR@/srvsvcd --syslog"
+"Environment"=""
 "Dependencies"="dcerpc lwio srv npfs"
 "Type"=dword:00000001
