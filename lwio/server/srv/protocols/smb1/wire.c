@@ -284,7 +284,7 @@ SrvUnmarshalHeader_SMB_V1(
     ulBytesAvailable -= sizeof(SMB_HEADER);
     usBytesUsed      += sizeof(SMB_HEADER);
 
-    LWIO_LOG_DEBUG("Unmarshalling pid=%lu, tid=%u, uid=%u, mid=%u",
+    LWIO_LOG_DEBUG("Unmarshalling pid=%u, tid=%u, uid=%u, mid=%u",
 	pHeader->pid, pHeader->tid, pHeader->uid, pHeader->mid);
 
     if (SMBIsAndXCommand(pHeader->command))
