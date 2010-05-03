@@ -97,5 +97,12 @@ SrvProtocolShutdown_SMB_V1(
     VOID
     );
 
+NTSTATUS
+SrvDetectZctWrite_SMB_V1(
+    IN PSRV_CONNECTION pConnection,
+    IN PSMB_PACKET pPacket,
+    OUT PSRV_EXEC_CONTEXT* ppZctExecContext
+    );
+
 #endif /* __SMB_V1_H__ */
 

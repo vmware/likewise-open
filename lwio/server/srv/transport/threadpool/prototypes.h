@@ -104,6 +104,12 @@ SrvSocketSetBuffer(
     );
 
 NTSTATUS
+SrvSocketReceiveZct(
+    IN PSRV_SOCKET pSocket,
+    IN PLW_ZCT_VECTOR pZct
+    );
+
+NTSTATUS
 SrvSocketSendReply(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,

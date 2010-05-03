@@ -447,6 +447,16 @@ typedef struct _SRV_READ_STATE_SMB_V1
 
 } SRV_READ_STATE_SMB_V1, *PSRV_READ_STATE_SMB_V1;
 
+typedef struct _SRV_ZCT_WRITE_STATE {
+    ULONG ulDataBytesMissing;
+    ULONG ulDataBytesResident;
+    ULONG ulSkipBytes;
+    PLW_ZCT_VECTOR pZct;
+    PVOID pZctCompletion;
+    PVOID pPadding;
+    PLWIO_SRV_CONNECTION pPausedConnection;
+} SRV_ZCT_WRITE_STATE, *PSRV_ZCT_WRITE_STATE;
+
 typedef enum
 {
     SRV_WRITEX_STAGE_SMB_V1_INITIAL = 0,
@@ -473,10 +483,15 @@ typedef struct _SRV_WRITEX_STATE_SMB_V1
 
     PWRITE_ANDX_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                      pData;          // Do not free
-    LONG64                     llDataOffset;
-    LONG64                     llDataLength;
-    ULONG64                    ullBytesWritten;
+    LONG64                     llOffset;
+    ULONG                      ulLength;
     ULONG                      ulKey;
+    ULONG                      ulBytesWritten;
+
+    BOOLEAN bStartedIo;
+
+    // ZCT information
+    SRV_ZCT_WRITE_STATE Zct;
 
 } SRV_WRITEX_STATE_SMB_V1, *PSRV_WRITEX_STATE_SMB_V1;
 
@@ -484,6 +499,8 @@ typedef enum
 {
     SRV_WRITE_STAGE_SMB_V1_INITIAL = 0,
     SRV_WRITE_STAGE_SMB_V1_ATTEMPT_WRITE,
+    SRV_WRITE_STAGE_SMB_V1_ZCT_IO,
+    SRV_WRITE_STAGE_SMB_V1_ZCT_COMPLETE,
     SRV_WRITE_STAGE_SMB_V1_BUILD_RESPONSE,
     SRV_WRITE_STAGE_SMB_V1_DONE
 } SRV_WRITE_STAGE_SMB_V1;
@@ -506,11 +523,15 @@ typedef struct _SRV_WRITE_STATE_SMB_V1
 
     PWRITE_REQUEST_HEADER   pRequestHeader; // Do not free
     PBYTE                   pData;          // Do not free
-    ULONG                   ulDataOffset;
-    LONG64                  llDataOffset;
-    USHORT                  usDataLength;
-    USHORT                  usBytesWritten;
+    LONG64                  llOffset;
+    ULONG                   ulLength;
     ULONG                   ulKey;
+    ULONG                   ulBytesWritten;
+
+    BOOLEAN bStartedIo;
+
+    // ZCT information
+    SRV_ZCT_WRITE_STATE Zct;
 
     FILE_END_OF_FILE_INFORMATION  fileEofInfo;
     PFILE_END_OF_FILE_INFORMATION pFileEofInfo;

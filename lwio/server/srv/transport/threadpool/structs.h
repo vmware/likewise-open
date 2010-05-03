@@ -52,6 +52,9 @@ typedef struct _SRV_SOCKET
     ULONG Size;
     ULONG Minimum;
     ULONG Offset;
+    // Support for reading into a ZCT vector
+    PLW_ZCT_VECTOR pZct;
+    ULONG ZctSize;
     // Send queue - (SRV_SEND_ITEM.SendLinks)
     LW_LIST_LINKS SendHead;
 } SRV_SOCKET;

@@ -113,18 +113,8 @@ SrvProtocolExecute(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    if (!pContext->pProtocolContext)
-    {
-        ntStatus = SrvAllocateMemory(
-                        sizeof(SRV_PROTOCOL_EXEC_CONTEXT),
-                        (PVOID*)&pContext->pProtocolContext);
-        BAIL_ON_NT_STATUS(ntStatus);
-
-        pContext->pProtocolContext->protocolVersion =
-                        SrvConnectionGetProtocolVersion(pContext->pConnection);
-
-        pContext->pfnFreeContext = &SrvProtocolFreeExecContext;
-    }
+    ntStatus = SrvProtocolAddContext(pContext, FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     if ((pContext->pSmbRequest->pSMBHeader->command == COM_NEGOTIATE) &&
         (SrvConnectionGetState(pContext->pConnection) !=
@@ -201,6 +191,34 @@ error:
     }
 
     goto cleanup;
+}
+
+NTSTATUS
+SrvProtocolAddContext(
+    PSRV_EXEC_CONTEXT pExecContext,
+    BOOLEAN bInConnectionLock
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (!pExecContext->pProtocolContext)
+    {
+        ntStatus = SrvAllocateMemory(
+                        sizeof(SRV_PROTOCOL_EXEC_CONTEXT),
+                        (PVOID*)&pExecContext->pProtocolContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pExecContext->pProtocolContext->protocolVersion =
+            (bInConnectionLock ?
+             SrvConnectionGetProtocolVersion_inlock(pExecContext->pConnection) :
+             SrvConnectionGetProtocolVersion(pExecContext->pConnection));
+
+        pExecContext->pfnFreeContext = &SrvProtocolFreeExecContext;
+    }
+
+error:
+
+    return ntStatus;
 }
 
 static

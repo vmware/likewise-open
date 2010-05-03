@@ -48,6 +48,7 @@
 #ifndef __PROTOCOL_API_H__
 #define __PROTOCOL_API_H__
 
+// Switch this to PFN_SRV_CONNECTION_IO_COMPLETE
 typedef VOID (*PFN_SRV_PROTOCOL_SEND_COMPLETE)(
     PVOID    pContext, /* IN */
     NTSTATUS Status    /* IN */
@@ -66,6 +67,12 @@ SrvProtocolExecute(
     );
 
 NTSTATUS
+SrvProtocolAddContext(
+    PSRV_EXEC_CONTEXT pExecContext, /* IN OUT */
+    BOOLEAN bInConnectionLock       /* IN */
+    );
+
+NTSTATUS
 SrvProtocolTransportSendResponse(
     PLWIO_SRV_CONNECTION pConnection, /* IN */
     PSMB_PACKET          pPacket      /* IN */
@@ -77,6 +84,25 @@ SrvProtocolTransportSendZctResponse(
     PLW_ZCT_VECTOR                 pZct,            /* IN          */
     PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback,     /* IN OPTIONAL */
     PVOID                          pCallbackContext /* IN OPTIONAL */
+    );
+
+NTSTATUS
+SrvProtocolTransportContinueAsNonZct(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSRV_EXEC_CONTEXT pZctExecContext
+    );
+
+NTSTATUS
+SrvProtocolTransportReceiveZct(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PLW_ZCT_VECTOR pZct,
+    IN PFN_SRV_CONNECTION_IO_COMPLETE pfnCallback,
+    IN PVOID pCallbackContext
+    );
+
+NTSTATUS
+SrvProtocolTransportResumeFromZct(
+    IN PLWIO_SRV_CONNECTION pConnection
     );
 
 NTSTATUS

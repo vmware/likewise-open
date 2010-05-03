@@ -671,4 +671,17 @@ SrvProcessWriteAndX(
     PSRV_EXEC_CONTEXT pExecContext
     );
 
+NTSTATUS
+SrvBuildWriteXState(
+    PWRITE_ANDX_REQUEST_HEADER pRequestHeader,
+    PBYTE                      pData,
+    PLWIO_SRV_FILE             pFile,
+    PSRV_WRITEX_STATE_SMB_V1*  ppWriteState
+    );
+
+VOID
+SrvReleaseWriteXStateHandle(
+    HANDLE hWriteState
+    );
+
 #endif /* __PROTOTYPES_H__ */

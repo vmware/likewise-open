@@ -132,6 +132,15 @@ SrvTransportSocketSetBuffer(
 }
 
 NTSTATUS
+SrvTransportSocketReceiveZct(
+    IN PSRV_SOCKET pSocket,
+    IN PLW_ZCT_VECTOR pZct
+    )
+{
+    return SrvSocketReceiveZct(pSocket, pZct);
+}
+
+NTSTATUS
 SrvTransportSocketSendReply(
     IN PSRV_SOCKET pSocket,
     IN PSRV_SEND_CONTEXT pSendContext,

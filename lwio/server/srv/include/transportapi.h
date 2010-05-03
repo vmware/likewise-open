@@ -196,12 +196,39 @@ SrvTransportSocketGetFileDescriptor(
 /// If called from outside of a callback, this cannot be called with
 /// any locks help that can also be held by a callback.
 ///
+/// The caller must ensure that no SrvTransportSocketReceiveZct()
+/// call overlaps calling into this function w/a non-zero buffer.
+///
 NTSTATUS
 SrvTransportSocketSetBuffer(
     IN PSRV_SOCKET pSocket,
     IN PVOID pBuffer,
     IN ULONG Size,
     IN ULONG Minimum
+    );
+
+///
+/// Receive data using a ZCT vector.
+///
+/// This will receive data into a ZCT vector which must have > 0 bytes
+/// remaining. Will call #PFN_SRV_TRANSPORT_CONNECTION_DATA or
+/// #PFN_SRV_TRANSPORT_CONNECTION_DONE asynchronously IFF
+/// retrning STATUS_PENDING.
+///
+/// This function cal only be called if there is no pending call
+/// to either SrvTransportSocketReceiveBuffer() or
+/// SrvTransportSocketReceiveZct() for this socket.
+///
+/// The caller must ensure that the socket buffer is NULL before calling
+/// this function (see SrvTransportSocketSetBuffer()).
+///
+/// If called from outside of a callback, this cannot be called with
+/// any locks help that can also be held by a callback.
+///
+NTSTATUS
+SrvTransportSocketReceiveZct(
+    IN PSRV_SOCKET pSocket,
+    IN PLW_ZCT_VECTOR pZct
     );
 
 ///

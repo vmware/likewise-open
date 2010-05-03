@@ -145,7 +145,8 @@ NTSTATUS
 SrvProtocolTransportDriverDetectPacket(
     IN PSRV_CONNECTION pConnection,
     IN OUT PULONG pulBytesAvailable,
-    OUT PSMB_PACKET* ppPacket
+    OUT PSMB_PACKET* ppPacket,
+    OUT PSRV_EXEC_CONTEXT* ppZctExecContext
     );
 
 static
@@ -173,6 +174,13 @@ static
 VOID
 SrvProtocolTransportDriverFreeResources(
     IN PSRV_SEND_CONTEXT pSendContext
+    );
+
+static
+PFN_SRV_CONNECTION_IO_COMPLETE
+SrvProtocolTransportDriverGetZctCallback(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    OUT PVOID* ppCallbackContext
     );
 
 // Implementations
@@ -418,6 +426,9 @@ SrvProtocolTransportDriverConnectionData(
     BOOLEAN bInLock = FALSE;
     ULONG bytesRemaining = BytesAvailable;
     PSMB_PACKET pPacket = NULL;
+    PSRV_EXEC_CONTEXT pZctExecContext = NULL;
+    PFN_SRV_PROTOCOL_SEND_COMPLETE pfnZctCallback = NULL;
+    PVOID pZctCallbackContext = NULL;
 
     LWIO_ASSERT(BytesAvailable > 0);
 
@@ -427,13 +438,29 @@ SrvProtocolTransportDriverConnectionData(
     // might be when we introduce buffer manipulation from another thread.
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
 
+    pfnZctCallback = SrvProtocolTransportDriverGetZctCallback(
+                        pConnection,
+                        &pZctCallbackContext);
+    if (pfnZctCallback)
+    {
+        goto cleanup;
+    }
+
     while (bytesRemaining > 0)
     {
         ntStatus = SrvProtocolTransportDriverDetectPacket(
                         pConnection,
                         &bytesRemaining,
-                        &pPacket);
+                        &pPacket,
+                        &pZctExecContext);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        // Note that a ZCT packet is not signed.
+
+        if (pZctExecContext)
+        {
+            goto cleanup;
+        }
 
         if (pPacket)
         {
@@ -480,6 +507,34 @@ cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
+    if (pfnZctCallback)
+    {
+        LWIO_ASSERT(STATUS_SUCCESS == ntStatus);
+        pfnZctCallback(pZctCallbackContext, STATUS_SUCCESS);
+    }
+
+    if (pZctExecContext)
+    {
+        NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+        // Do not give any buffer to the socket.
+        SrvProtocolTransportDriverRemoveBuffer(pConnection);
+
+        LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+        // The packet execution will resume the connection as needed.
+        ntStatus2 = SrvProtocolExecute(pZctExecContext);
+        if (ntStatus2)
+        {
+            LWIO_LOG_ERROR("Failed to synchronously execute server task (status = 0x%08x)", ntStatus2);
+            // TODO: Do we need to disconnect if we fail to execute?
+            //       Need to check w/Sriram.
+            LWIO_ASSERT(FALSE);
+        }
+
+        SrvReleaseExecContext(pZctExecContext);
+    }
+
     return ntStatus;
 
 error:
@@ -509,12 +564,27 @@ SrvProtocolTransportDriverConnectionDone(
     )
 {
     BOOLEAN bInLock = FALSE;
+    PFN_SRV_PROTOCOL_SEND_COMPLETE pfnZctCallback = NULL;
+    PVOID pZctCallbackContext = NULL;
 
     if (STATUS_CONNECTION_RESET == Status)
     {
         LWIO_LOG_DEBUG("Connection reset by peer '%s' (fd = %d)",
                 SrvTransportSocketGetAddressString(pConnection->pSocket),
                 SrvTransportSocketGetFileDescriptor(pConnection->pSocket));
+    }
+
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    pfnZctCallback = SrvProtocolTransportDriverGetZctCallback(
+                        pConnection,
+                        &pZctCallbackContext);
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    if (pfnZctCallback)
+    {
+        LWIO_ASSERT(STATUS_SUCCESS != Status);
+        pfnZctCallback(pZctCallbackContext, Status);
     }
 
     if (pConnection->resource.ulResourceId)
@@ -712,6 +782,7 @@ SrvProtocolTransportDriverAllocatePacket(
     pConnection->readerState.sNumBytesToRead = sizeof(NETBIOS_HEADER);
     pConnection->readerState.sOffset = 0;
     pConnection->readerState.pRequestPacket->bufferUsed = 0;
+    pConnection->readerState.zctState = SRV_ZCT_STATE_UNKNOWN;
 
 cleanup:
 
@@ -786,12 +857,14 @@ NTSTATUS
 SrvProtocolTransportDriverDetectPacket(
     IN PSRV_CONNECTION pConnection,
     IN OUT PULONG pulBytesAvailable,
-    OUT PSMB_PACKET* ppPacket
+    OUT PSMB_PACKET* ppPacket,
+    OUT PSRV_EXEC_CONTEXT* ppZctExecContext
     )
 {
     NTSTATUS ntStatus = 0;
     ULONG ulBytesAvailable = *pulBytesAvailable;
     PSMB_PACKET pPacketFound = NULL;
+    PSRV_EXEC_CONTEXT pZctExecContext = NULL;
 
     LWIO_ASSERT(ulBytesAvailable > 0);
 
@@ -925,11 +998,66 @@ SrvProtocolTransportDriverDetectPacket(
         pPacketFound = pConnection->readerState.pRequestPacket;
         pConnection->readerState.pRequestPacket = NULL;
     }
+    // partial packet with known protocol version
+    else if (!pConnection->readerState.bNeedHeader &&
+             (pConnection->serverProperties.ulZctWriteThreshold > 0) &&
+             (pConnection->readerState.zctState == SRV_ZCT_STATE_UNKNOWN) &&
+             (pConnection->state == LWIO_SRV_CONN_STATE_READY) &&
+             (pConnection->protocolVer != SMB_PROTOCOL_VERSION_UNKNOWN) &&
+             !SrvConnectionIsSigningActive_inlock(pConnection))
+    {
+        PSMB_PACKET pPacket = pConnection->readerState.pRequestPacket;
+
+        switch (pConnection->protocolVer)
+        {
+            case SMB_PROTOCOL_VERSION_1:
+                ntStatus = SrvDetectZctWrite_SMB_V1(
+                                pConnection,
+                                pPacket,
+                                &pZctExecContext);
+                break;
+            case SMB_PROTOCOL_VERSION_2:
+#if 1
+                ntStatus = STATUS_SUCCESS;
+#else
+                ntStatus = SrvCanTryZctWrite_SMB_V2(
+                                pConnection,
+                                pPacket,
+                                &bCanTryZct);
+#endif
+                break;
+            default:
+                ntStatus = STATUS_SUCCESS;
+                break;
+
+        }
+        if (ntStatus == STATUS_MORE_PROCESSING_REQUIRED)
+        {
+            ntStatus = STATUS_SUCCESS;
+        }
+        else
+        {
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            if (pZctExecContext)
+            {
+                pConnection->readerState.zctState = SRV_ZCT_STATE_IS_ZCT;
+
+                pPacketFound = pConnection->readerState.pRequestPacket;
+                pConnection->readerState.pRequestPacket = NULL;
+            }
+            else
+            {
+                pConnection->readerState.zctState = SRV_ZCT_STATE_NOT_ZCT;
+            }
+        }
+    }
 
 cleanup:
 
     *pulBytesAvailable = ulBytesAvailable;
     *ppPacket = pPacketFound;
+    *ppZctExecContext = pZctExecContext;
 
     return ntStatus;
 
@@ -952,9 +1080,17 @@ SrvProtocolTransportDriverDispatchPacket(
     PSRV_PROTOCOL_TRANSPORT_CONTEXT pDriverContext = (PSRV_PROTOCOL_TRANSPORT_CONTEXT) pConnection->pProtocolTransportDriverContext;
     PSRV_EXEC_CONTEXT pContext = NULL;
 
-    // Note that building the context takes its own reference.
-    ntStatus = SrvBuildExecContext(pConnection, pPacket, FALSE, &pContext);
-    BAIL_ON_NT_STATUS(ntStatus);
+    if (pConnection->readerState.pContinueExecContext)
+    {
+        pContext = pConnection->readerState.pContinueExecContext;
+        pConnection->readerState.pContinueExecContext = NULL;
+    }
+    else
+    {
+        // Note that building the context takes its own reference on the packet.
+        ntStatus = SrvBuildExecContext(pConnection, pPacket, FALSE, &pContext);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvProdConsEnqueue(
                     pDriverContext->pGlobals->pWorkQueue,
@@ -1116,6 +1252,32 @@ SrvProtocolTransportDriverFreeResources(
     SrvFreeMemory(pSendContext);
 }
 
+static
+PFN_SRV_CONNECTION_IO_COMPLETE
+SrvProtocolTransportDriverGetZctCallback(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    OUT PVOID* ppCallbackContext
+    )
+{
+    PFN_SRV_CONNECTION_IO_COMPLETE pfnCallback = NULL;
+    PVOID pCallbackContext = NULL;
+
+    // pConnection lock must be held.
+
+    if (pConnection->readerState.pfnZctCallback)
+    {
+        pfnCallback = pConnection->readerState.pfnZctCallback;
+        pCallbackContext = pConnection->readerState.pZctCallbackContext;
+
+        pConnection->readerState.pfnZctCallback = NULL;
+        pConnection->readerState.pZctCallbackContext = NULL;
+    }
+
+    *ppCallbackContext = pCallbackContext;
+
+    return pfnCallback;
+}
+
 NTSTATUS
 SrvProtocolTransportSendResponse(
     IN PLWIO_SRV_CONNECTION pConnection,
@@ -1224,3 +1386,125 @@ error:
     goto cleanup;
 }
 
+NTSTATUS
+SrvProtocolTransportContinueAsNonZct(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PSRV_EXEC_CONTEXT pZctExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    pConnection->readerState.zctState = SRV_ZCT_STATE_NOT_ZCT;
+    pConnection->readerState.pRequestPacket = pZctExecContext->pSmbRequest;
+    SrvAcquireExecContext(pZctExecContext);
+    pConnection->readerState.pContinueExecContext = pZctExecContext;
+
+    // Update remaining buffer space
+    ntStatus = SrvProtocolTransportDriverUpdateBuffer(pConnection);
+    // should never fail as there are no invalid params.
+    LWIO_ASSERT(STATUS_SUCCESS == ntStatus);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    // TODO -- Add support for receiving sycnhronously?
+
+    ntStatus = STATUS_PENDING;
+
+    return ntStatus;
+}
+
+NTSTATUS
+SrvProtocolTransportReceiveZct(
+    IN PLWIO_SRV_CONNECTION pConnection,
+    IN PLW_ZCT_VECTOR pZct,
+    IN PFN_SRV_CONNECTION_IO_COMPLETE pfnCallback,
+    IN PVOID pCallbackContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_ASSERT(pfnCallback);
+
+    if (!pfnCallback)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // TODO-remove lock from here as there can be only one ZCT write
+    // on a connection that is trying to read from the socket.
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    pConnection->readerState.pfnZctCallback = pfnCallback;
+    pConnection->readerState.pZctCallbackContext = pCallbackContext;
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    ntStatus = SrvTransportSocketReceiveZct(pConnection->pSocket, pZct);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+    pConnection->readerState.pfnZctCallback = NULL;
+    pConnection->readerState.pZctCallbackContext = NULL;
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+
+    if (ntStatus != STATUS_PENDING)
+    {
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+        pConnection->readerState.pfnZctCallback = NULL;
+        pConnection->readerState.pZctCallbackContext = NULL;
+        LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+        // This will trigger rundown in protocol code.
+        SrvConnectionSetInvalid(pConnection);
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvProtocolTransportResumeFromZct(
+    IN PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
+
+    LWIO_ASSERT(pConnection->readerState.zctState == SRV_ZCT_STATE_IS_ZCT);
+    pConnection->readerState.zctState = SRV_ZCT_STATE_NOT_ZCT;
+
+    ntStatus = SrvProtocolTransportDriverAllocatePacket(pConnection);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // Update remaining buffer space
+    ntStatus = SrvProtocolTransportDriverUpdateBuffer(pConnection);
+    // should never fail as there are no invalid params.
+    LWIO_ASSERT(STATUS_SUCCESS == ntStatus);
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    // This will trigger rundown in protocol code.
+    SrvConnectionSetInvalid(pConnection);
+
+    goto cleanup;
+
+}

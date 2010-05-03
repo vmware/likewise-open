@@ -88,6 +88,13 @@ SrvSocketFree(
 
 static
 NTSTATUS
+SrvSocketProcessTaskReadZct(
+    IN OUT PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsAsync
+    );
+
+static
+NTSTATUS
 SrvSocketProcessTaskWrite(
     IN OUT PSRV_SOCKET pSocket,
     IN OPTIONAL PSRV_SEND_ITEM pNoNotifySendItem
@@ -314,6 +321,7 @@ SrvSocketSetBuffer(
         pSocket->Offset = 0;
         if (Size > 0)
         {
+            LWIO_ASSERT(!pSocket->pZct);
             // Notify task that there is a buffer
             LwRtlWakeTask(pSocket->pTask);
         }
@@ -321,6 +329,88 @@ SrvSocketSetBuffer(
     }
 
     return ntStatus;
+}
+
+NTSTATUS
+SrvSocketReceiveZct(
+    IN PSRV_SOCKET pSocket,
+    IN PLW_ZCT_VECTOR pZct
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG zctSize = 0;
+
+    SRV_SOCKET_LOCK(pSocket);
+
+    if (!pZct)
+    {
+        // Caller behavior is underfined.
+        LWIO_ASSERT(FALSE);
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    zctSize = LwZctGetRemaining(pZct);
+    if (!zctSize)
+    {
+        // Caller behavior is underfined.
+        LWIO_ASSERT(FALSE);
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pSocket->Size)
+    {
+        // Internal state is inconsistent.
+        LWIO_ASSERT(FALSE);
+        ntStatus = STATUS_ASSERTION_FAILURE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pSocket->pZct)
+    {
+        // Internal state is inconsistent.
+        LWIO_ASSERT(FALSE);
+        ntStatus = STATUS_ASSERTION_FAILURE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pSocket->pZct = pZct;
+    pSocket->ZctSize = zctSize;
+
+    // Try to receive inline
+    ntStatus = SrvSocketProcessTaskReadZct(pSocket, FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    zctSize = LwZctGetRemaining(pSocket->pZct);
+    if (zctSize > 0)
+    {
+        // Notify task that it needs to read into ZCT
+        LwRtlWakeTask(pSocket->pTask);
+        ntStatus = STATUS_PENDING;
+    }
+    else
+    {
+        pSocket->pZct = NULL;
+        pSocket->ZctSize = 0;
+
+        ntStatus = STATUS_SUCCESS;
+    }
+
+cleanup:
+
+    SRV_SOCKET_UNLOCK(pSocket);
+
+    return ntStatus;
+
+error:
+
+    LWIO_ASSERT(ntStatus != STATUS_PENDING);
+
+    pSocket->pZct = NULL;
+    pSocket->ZctSize = 0;
+
+    goto cleanup;
 }
 
 static
@@ -392,7 +482,7 @@ cleanup:
 
 error:
 
-    LWIO_ASSERT(!(ntStatus == STATUS_PENDING));
+    LWIO_ASSERT(ntStatus != STATUS_PENDING);
 
     if (pSendItem)
     {
@@ -606,7 +696,7 @@ error:
 
 static
 NTSTATUS
-SrvSocketProcessTaskRead(
+SrvSocketProcessTaskReadBuffer(
     IN OUT PSRV_SOCKET pSocket
     )
 {
@@ -673,6 +763,86 @@ error:
     pSocket->DoneStatus = ntStatus;
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSocketProcessTaskReadZct(
+    IN OUT PSRV_SOCKET pSocket,
+    IN BOOLEAN bIsAsync
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    ULONG bytesRemaining = 0;
+
+    ntStatus = pSocket->DoneStatus;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_READABLE) && bIsAsync)
+    {
+        ntStatus = STATUS_SUCCESS;
+        goto cleanup;
+    }
+
+    bytesRemaining = LwZctGetRemaining(pSocket->pZct);
+    while (bytesRemaining > 0)
+    {
+        ULONG bytesTransferred = 0;
+
+        ntStatus = LwZctReadSocketIo(pSocket->pZct, pSocket->fd, &bytesTransferred, &bytesRemaining);
+        if (STATUS_MORE_PROCESSING_REQUIRED == ntStatus)
+        {
+            ClearFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_READABLE);
+            ntStatus = STATUS_SUCCESS;
+            break;
+        }
+        else if (STATUS_SUCCESS != ntStatus)
+        {
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        if (0 == bytesTransferred)
+        {
+            ntStatus = STATUS_CONNECTION_RESET;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+    }
+
+    // Call protocol transport driver, if needed.
+    if (!bytesRemaining && bIsAsync)
+    {
+        ntStatus = SrvSocketGetDispatch(pSocket)->pfnConnectionData(
+                        pSocket->pConnection,
+                        pSocket->ZctSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    pSocket->DoneStatus = ntStatus;
+
+    goto cleanup;
+
+}
+
+static
+NTSTATUS
+SrvSocketProcessTaskRead(
+    IN OUT PSRV_SOCKET pSocket
+    )
+{
+    if (pSocket->ZctSize > 0)
+    {
+        return SrvSocketProcessTaskReadZct(pSocket, TRUE);
+    }
+    else
+    {
+        return SrvSocketProcessTaskReadBuffer(pSocket);
+    }
 }
 
 static
@@ -900,7 +1070,7 @@ SrvSocketProcessTask(
     BAIL_ON_NT_STATUS(ntStatus);
 
     // Determine what wait mask is needed.
-    if ((pSocket->Size - pSocket->Offset) > 0)
+    if (((pSocket->Size - pSocket->Offset) > 0) || (pSocket->ZctSize > 0))
     {
         SetFlag(waitMask, LW_TASK_EVENT_FD_READABLE);
         if (IsSetFlag(pSocket->StateMask, SRV_SOCKET_STATE_FD_READABLE))

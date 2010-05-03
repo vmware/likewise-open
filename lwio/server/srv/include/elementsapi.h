@@ -358,6 +358,13 @@ typedef enum
     LWIO_SRV_CONN_STATE_INVALID
 } LWIO_SRV_CONN_STATE;
 
+typedef enum
+{
+    SRV_ZCT_STATE_UNKNOWN = 0,
+    SRV_ZCT_STATE_NOT_ZCT,
+    SRV_ZCT_STATE_IS_ZCT
+} SRV_ZCT_STATE, *PSRV_ZCT_STATE;
+
 typedef struct _SRV_PROPERTIES
 {
     USHORT  preferredSecurityMode;
@@ -393,6 +400,8 @@ typedef struct _SRV_SOCKET *PLWIO_SRV_SOCKET;
 typedef VOID (*PFN_SRV_SOCKET_FREE)(PLWIO_SRV_SOCKET pSocket);
 typedef VOID (*PFN_SRV_SOCKET_DISCONNECT)(PLWIO_SRV_SOCKET pSocket);
 typedef NTSTATUS (*PFN_SRV_SOCKET_GET_ADDRESS_BYTES)(PLWIO_SRV_SOCKET pSocket, PVOID* ppAddr, PULONG pulAddrLength);
+typedef VOID (*PFN_SRV_CONNECTION_IO_COMPLETE)(PVOID pContext, NTSTATUS Status);
+struct _SRV_EXEC_CONTEXT;
 
 typedef struct _SRV_CONNECTION_SOCKET_DISPATCH {
     PFN_SRV_SOCKET_FREE pfnFree;
@@ -439,6 +448,10 @@ typedef struct _SRV_CONNECTION
         size_t          sNumBytesToRead;
         size_t          sOffset;
         PSMB_PACKET     pRequestPacket;
+        SRV_ZCT_STATE   zctState;
+        struct _SRV_EXEC_CONTEXT* pContinueExecContext;
+        PFN_SRV_CONNECTION_IO_COMPLETE pfnZctCallback;
+        PVOID           pZctCallbackContext;
 
     } readerState;
 
@@ -743,6 +756,11 @@ SrvConnectionGetProtocolVersion(
     PLWIO_SRV_CONNECTION pConnection
     );
 
+SMB_PROTOCOL_VERSION
+SrvConnectionGetProtocolVersion_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    );
+
 NTSTATUS
 SrvConnectionSetProtocolVersion(
     PLWIO_SRV_CONNECTION pConnection,
@@ -765,6 +783,13 @@ NTSTATUS
 SrvConnection2CreateSession(
     PLWIO_SRV_CONNECTION pConnection,
     PLWIO_SRV_SESSION_2* ppSession
+    );
+
+NTSTATUS
+SrvConnectionFindSession_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    USHORT               uid,
+    PLWIO_SRV_SESSION*   ppSession
     );
 
 NTSTATUS

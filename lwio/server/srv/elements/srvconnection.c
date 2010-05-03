@@ -355,6 +355,14 @@ SrvConnectionGetProtocolVersion(
     return protocolVersion;
 }
 
+SMB_PROTOCOL_VERSION
+SrvConnectionGetProtocolVersion_inlock(
+    PLWIO_SRV_CONNECTION pConnection
+    )
+{
+    return pConnection->protocolVer;
+}
+
 NTSTATUS
 SrvConnectionSetProtocolVersion(
     PLWIO_SRV_CONNECTION pConnection,
@@ -529,7 +537,7 @@ SrvConnectionIsSigningActive_inlock(
 }
 
 NTSTATUS
-SrvConnectionFindSession(
+SrvConnectionFindSession_inlock(
     PLWIO_SRV_CONNECTION pConnection,
     USHORT uid,
     PLWIO_SRV_SESSION* ppSession
@@ -537,9 +545,6 @@ SrvConnectionFindSession(
 {
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_SESSION pSession = NULL;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
     pSession = pConnection->lruSession[ uid % SRV_LRU_CAPACITY ];
     if (!pSession || (pSession->uid != uid))
@@ -559,8 +564,6 @@ SrvConnectionFindSession(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
-
     return ntStatus;
 
 error:
@@ -568,6 +571,37 @@ error:
     {
         ntStatus = STATUS_INVALID_HANDLE;
     }
+
+    *ppSession = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvConnectionFindSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    USHORT uid,
+    PLWIO_SRV_SESSION* ppSession
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PLWIO_SRV_SESSION pSession = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    ntStatus = SrvConnectionFindSession_inlock(pConnection, uid, &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSession = pSession;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
 
     *ppSession = NULL;
 
