@@ -868,7 +868,29 @@ SrvProtocolTransportDriverDetectPacket(
 
     LWIO_ASSERT(ulBytesAvailable > 0);
 
-    if (pConnection->readerState.bNeedHeader)
+    if (pConnection->readerState.ulSkipBytes)
+    {
+        size_t sNumBytesRead = LW_MIN(pConnection->readerState.ulSkipBytes, ulBytesAvailable);
+
+        LWIO_ASSERT(pConnection->readerState.bNeedHeader);
+        LWIO_ASSERT(0 == pConnection->readerState.pRequestPacket->bufferUsed);
+
+        if (ulBytesAvailable > sNumBytesRead)
+        {
+            PVOID pRemainder = LwRtlOffsetToPointer(
+                                    pConnection->readerState.pRequestPacket->pRawBuffer,
+                                    sNumBytesRead);
+            RtlMoveMemory(pConnection->readerState.pRequestPacket->pRawBuffer,
+                          pRemainder,
+                          ulBytesAvailable - sNumBytesRead);
+        }
+
+        pConnection->readerState.ulSkipBytes -= sNumBytesRead;
+        ulBytesAvailable -= sNumBytesRead;
+    }
+
+    if (ulBytesAvailable &&
+        pConnection->readerState.bNeedHeader)
     {
         size_t sNumBytesRead = LW_MIN(pConnection->readerState.sNumBytesToRead, ulBytesAvailable);
 
@@ -1271,6 +1293,7 @@ SrvProtocolTransportDriverGetZctCallback(
 
         pConnection->readerState.pfnZctCallback = NULL;
         pConnection->readerState.pZctCallbackContext = NULL;
+        pConnection->readerState.sNumBytesToRead = 0;
     }
 
     *ppCallbackContext = pCallbackContext;
@@ -1439,6 +1462,7 @@ SrvProtocolTransportReceiveZct(
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
     pConnection->readerState.pfnZctCallback = pfnCallback;
     pConnection->readerState.pZctCallbackContext = pCallbackContext;
+    LWIO_ASSERT(LwZctGetRemaining(pZct) == pConnection->readerState.sNumBytesToRead);
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
     ntStatus = SrvTransportSocketReceiveZct(pConnection->pSocket, pZct);
@@ -1447,6 +1471,7 @@ SrvProtocolTransportReceiveZct(
     LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pConnection->mutex);
     pConnection->readerState.pfnZctCallback = NULL;
     pConnection->readerState.pZctCallbackContext = NULL;
+    pConnection->readerState.sNumBytesToRead = 0;
     LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
 
 cleanup:
@@ -1484,6 +1509,11 @@ SrvProtocolTransportResumeFromZct(
     LWIO_ASSERT(pConnection->readerState.zctState == SRV_ZCT_STATE_IS_ZCT);
     pConnection->readerState.zctState = SRV_ZCT_STATE_NOT_ZCT;
 
+    // Handle draining if ZCT transfer was not done (as in case
+    // of an error prior to transfer).
+    pConnection->readerState.ulSkipBytes = pConnection->readerState.sNumBytesToRead;
+    pConnection->readerState.sNumBytesToRead = 0;
+
     ntStatus = SrvProtocolTransportDriverAllocatePacket(pConnection);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -1506,5 +1536,4 @@ error:
     SrvConnectionSetInvalid(pConnection);
 
     goto cleanup;
-
 }

@@ -452,6 +452,7 @@ typedef struct _SRV_CONNECTION
         struct _SRV_EXEC_CONTEXT* pContinueExecContext;
         PFN_SRV_CONNECTION_IO_COMPLETE pfnZctCallback;
         PVOID           pZctCallbackContext;
+        ULONG           ulSkipBytes;
 
     } readerState;
 
