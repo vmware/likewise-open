@@ -293,6 +293,7 @@ PvfsReadFileWithContext(
         /* Save the ZCT context for complete */
         pIrp->Args.ReadWrite.ZctCompletionContext = pReadCtx->pZctContext;
 
+        /* Cannot fail */
         ntError = PvfsListAddTail(
                       pCcb->pZctContextList,
                       &pReadCtx->pZctContext->CcbLinks);

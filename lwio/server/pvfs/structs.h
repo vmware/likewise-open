@@ -178,6 +178,7 @@ typedef struct _PVFS_PENDING_WRITE
 {
     PPVFS_IRP_CONTEXT pIrpContext;
     PPVFS_CCB pCcb;
+    PPVFS_ZCT_CONTEXT pZctContext;
 
 } PVFS_PENDING_WRITE, *PPVFS_PENDING_WRITE;
 

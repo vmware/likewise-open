@@ -658,6 +658,17 @@ PvfsDoReadIo(
     OUT PULONG pBytesRead
     );
 
+/* From write.c */
+
+NTSTATUS
+PvfsDoWriteIo(
+    IN PPVFS_CCB pCcb,
+    OUT PVOID pBuffer,
+    IN ULONG BufferLength,
+    IN LONG64 Offset,
+    OUT PULONG pBytesWritten
+    );
+
 /* From zct.c */
 
 VOID
@@ -690,6 +701,21 @@ PvfsDoZctReadIo(
 NTSTATUS
 PvfsZctCompleteRead(
     IN PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+NTSTATUS
+PvfsAddZctWriteEntries(
+    IN OUT PLW_ZCT_VECTOR pZct,
+    IN PPVFS_ZCT_CONTEXT pZctContext,
+    IN ULONG Length
+    );
+
+NTSTATUS
+PvfsDoZctWriteIo(
+    IN PPVFS_ZCT_CONTEXT pZctContext,
+    IN ULONG BufferLength,
+    IN LONG64 Offset,
+    OUT PULONG pBytesWritten
     );
 
 VOID

@@ -48,6 +48,23 @@
 
 /*****************************************************************************
  ****************************************************************************/
+
+static NTSTATUS
+PvfsWriteInternal(
+    PPVFS_IRP_CONTEXT  pIrpContext
+    );
+
+static NTSTATUS
+PvfsPrepareZctWrite(
+    IN PPVFS_IRP_CONTEXT pIrpContext
+    );
+
+static NTSTATUS
+PvfsPreCheckWrite(
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PPVFS_CCB pCcb
+    );
+
 static NTSTATUS
 PvfsWriteFileWithContext(
     PVOID pContext
@@ -66,41 +83,79 @@ PvfsFreeWriteContext(
     );
 
 
+/*****************************************************************************
+ ****************************************************************************/
+
 NTSTATUS
 PvfsWrite(
+    PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    switch (pIrpContext->pIrp->Args.ReadWrite.ZctOperation)
+    {
+    case IRP_ZCT_OPERATION_NONE:
+        LWIO_ASSERT(!pIrpContext->pIrp->Args.ReadWrite.Length || pIrpContext->pIrp->Args.ReadWrite.Buffer);
+        LWIO_ASSERT(!pIrpContext->pIrp->Args.ReadWrite.ZctCompletionContext);
+        ntError = PvfsWriteInternal(pIrpContext);
+        break;
+    case IRP_ZCT_OPERATION_PREPARE:
+        LWIO_ASSERT(pIrpContext->pIrp->Args.ReadWrite.Zct);
+        LWIO_ASSERT(!pIrpContext->pIrp->Args.ReadWrite.ZctCompletionContext);
+        ntError = PvfsPrepareZctWrite(pIrpContext);
+        break;
+    case IRP_ZCT_OPERATION_COMPLETE:
+        LWIO_ASSERT(pIrpContext->pIrp->Args.ReadWrite.ZctCompletionContext);
+        ntError = PvfsWriteInternal(pIrpContext);
+        break;
+    default:
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsWriteInternal(
     PPVFS_IRP_CONTEXT  pIrpContext
     )
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PIRP pIrp = pIrpContext->pIrp;
-    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
     PPVFS_CCB pCcb = NULL;
     PPVFS_PENDING_WRITE pWriteCtx = NULL;
+    PPVFS_ZCT_CONTEXT pZctContext = NULL;
 
-    /* Sanity checks */
-
-    ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
-    BAIL_ON_NT_STATUS(ntError);
-
-    BAIL_ON_INVALID_PTR(pBuffer, ntError);
-
-    if (PVFS_IS_DIR(pCcb)) {
-        ntError = STATUS_FILE_IS_A_DIRECTORY;
-        BAIL_ON_NT_STATUS(ntError);
+    if (pIrp->Args.ReadWrite.ZctOperation == IRP_ZCT_OPERATION_COMPLETE)
+    {
+        pZctContext = (PPVFS_ZCT_CONTEXT) pIrp->Args.ReadWrite.ZctCompletionContext;
+        LwListRemove(&pZctContext->CcbLinks);
     }
 
-#if 0xFFFFFFFF > SSIZE_MAX
-    if ((size_t)pIrp->Args.ReadWrite.Length > (size_t) SSIZE_MAX) {
-        ntError = STATUS_INVALID_PARAMETER;
+    ntError = PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    if (!pZctContext)
+    {
+        ntError = PvfsPreCheckWrite(pIrpContext, pCcb);
         BAIL_ON_NT_STATUS(ntError);
     }
-#endif
-
-    ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_WRITE_DATA|FILE_APPEND_DATA);
-    BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCreateWriteContext(&pWriteCtx, pIrpContext, pCcb);
     BAIL_ON_NT_STATUS(ntError);
+
+    pWriteCtx->pZctContext = pZctContext;
+    pZctContext = NULL;
 
     ntError = PvfsOplockBreakIfLocked(pIrpContext, pCcb, pCcb->pFcb);
 
@@ -141,12 +196,110 @@ PvfsWrite(
 
 cleanup:
     PvfsFreeWriteContext((PVOID*)&pWriteCtx);
+    PvfsFreeZctContext(&pZctContext);
 
     if (pCcb)
     {
         PvfsReleaseCCB(pCcb);
     }
 
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsPrepareZctWrite(
+    IN PPVFS_IRP_CONTEXT pIrpContext
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PIRP pIrp = pIrpContext->pIrp;
+    PPVFS_CCB pCcb = NULL;
+    PPVFS_ZCT_CONTEXT pZctContext = NULL;
+    BOOLEAN bMutexLocked = FALSE;
+
+    ntError = PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsPreCheckWrite(pIrpContext, pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsCreateZctContext(
+                    &pZctContext,
+                    pIrpContext,
+                    pCcb);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsAddZctWriteEntries(pIrp->Args.ReadWrite.Zct,
+                                     pZctContext,
+                                     pIrp->Args.ReadWrite.Length);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_LOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+
+    /* Save the ZCT context for complete */
+    pIrp->Args.ReadWrite.ZctCompletionContext = pZctContext;
+
+    /* Cannot fail */
+    ntError = PvfsListAddTail(
+                  pCcb->pZctContextList,
+                  &pZctContext->CcbLinks);
+    BAIL_ON_NT_STATUS(ntError);
+
+    LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
+    if (pCcb)
+    {
+        PvfsReleaseCCB(pCcb);
+    }
+
+    return ntError;
+
+error:
+    PvfsFreeZctContext(&pZctContext);
+
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static NTSTATUS
+PvfsPreCheckWrite(
+    IN PPVFS_IRP_CONTEXT pIrpContext,
+    IN PPVFS_CCB pCcb
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+
+    /* Sanity checks */
+
+    if (PVFS_IS_DIR(pCcb)) {
+        ntError = STATUS_FILE_IS_A_DIRECTORY;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+#if 0xFFFFFFFF > SSIZE_MAX
+    if ((size_t)pIrpContext->pIrp->Args.ReadWrite.Length > (size_t) SSIZE_MAX) {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+#endif
+
+    ntError = PvfsAccessCheckAnyFileHandle(pCcb, FILE_WRITE_DATA|FILE_APPEND_DATA);
+    BAIL_ON_NT_STATUS(ntError);
+
+cleanup:
     return ntError;
 
 error:
@@ -166,13 +319,11 @@ PvfsWriteFileWithContext(
     PPVFS_PENDING_WRITE pWriteCtx = (PPVFS_PENDING_WRITE)pContext;
     PIRP pIrp = pWriteCtx->pIrpContext->pIrp;
     PPVFS_CCB pCcb = pWriteCtx->pCcb;
-    PVOID pBuffer = pIrp->Args.ReadWrite.Buffer;
-    ULONG bufLen = pIrp->Args.ReadWrite.Length;
+    ULONG bufLen = pWriteCtx->pZctContext ? pIrp->Args.ReadWrite.ZctWriteBytesTransferred : pIrp->Args.ReadWrite.Length;
     ULONG Key = pIrp->Args.ReadWrite.Key ? *pIrp->Args.ReadWrite.Key : 0;
-    size_t totalBytesWritten = 0;
+    ULONG totalBytesWritten = 0;
     LONG64 Offset = 0;
     BOOLEAN bMutexLocked = FALSE;
-
 
     /* Enter critical region - WriteFile() needs to fill
        the buffer atomically while it may take several write()
@@ -195,29 +346,27 @@ PvfsWriteFileWithContext(
                                     Key, Offset, bufLen);
     BAIL_ON_NT_STATUS(ntError);
 
-    while (totalBytesWritten < bufLen)
+    if (pWriteCtx->pZctContext)
     {
-        ULONG bytesWritten = 0;
-
-        ntError = PvfsSysWrite(pCcb,
-                               pBuffer + totalBytesWritten,
-                               bufLen - totalBytesWritten,
-                               &Offset,
-                               &bytesWritten);
-        if (ntError == STATUS_MORE_PROCESSING_REQUIRED)
-        {
-            continue;
-        }
+        ntError = PvfsDoZctWriteIo(pWriteCtx->pZctContext,
+                                   bufLen,
+                                   Offset,
+                                   &totalBytesWritten);
         BAIL_ON_NT_STATUS(ntError);
-
-        totalBytesWritten += bytesWritten;
-        Offset += bytesWritten;
+    }
+    else
+    {
+        ntError = PvfsDoWriteIo(pCcb,
+                                pIrp->Args.ReadWrite.Buffer,
+                                bufLen,
+                                Offset,
+                                &totalBytesWritten);
+        BAIL_ON_NT_STATUS(ntError);
     }
 
-    /* Can only get here is the loop was completed successfully */
+    /* Can only get here is the I/O was completed successfully */
 
     pIrp->IoStatusBlock.BytesTransferred = totalBytesWritten;
-    ntError = STATUS_SUCCESS;
 
     if (totalBytesWritten > 0)
     {
@@ -233,6 +382,55 @@ PvfsWriteFileWithContext(
 cleanup:
     LWIO_UNLOCK_MUTEX(bMutexLocked, &pCcb->FileMutex);
 
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/*****************************************************************************
+ ****************************************************************************/
+
+NTSTATUS
+PvfsDoWriteIo(
+    IN PPVFS_CCB pCcb,
+    OUT PVOID pBuffer,
+    IN ULONG BufferLength,
+    IN LONG64 Offset,
+    OUT PULONG pBytesWritten
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    LONG64 currentOffset = Offset;
+    size_t totalBytesWritten = 0;
+
+    while (totalBytesWritten < BufferLength)
+    {
+        ULONG bytesWritten = 0;
+
+        ntError = PvfsSysWrite(pCcb,
+                               pBuffer + totalBytesWritten,
+                               BufferLength - totalBytesWritten,
+                               &currentOffset,
+                               &bytesWritten);
+        if (ntError == STATUS_MORE_PROCESSING_REQUIRED)
+        {
+            continue;
+        }
+        BAIL_ON_NT_STATUS(ntError);
+
+        totalBytesWritten += bytesWritten;
+        currentOffset += bytesWritten;
+    }
+
+    /* Can only get here is the loop was completed successfully */
+
+    *pBytesWritten = totalBytesWritten;
+
+    ntError = STATUS_SUCCESS;
+
+cleanup:
     return ntError;
 
 error:
@@ -287,11 +485,15 @@ PvfsFreeWriteContext(
     {
         pWriteCtx = (PPVFS_PENDING_WRITE)(*ppContext);
 
+        if (pWriteCtx->pZctContext)
+        {
+            PvfsFreeZctContext(&pWriteCtx->pZctContext);
+        }
+
         if (pWriteCtx->pIrpContext)
         {
             PvfsReleaseIrpContext(&pWriteCtx->pIrpContext);
         }
-
 
         if (pWriteCtx->pCcb)
         {
