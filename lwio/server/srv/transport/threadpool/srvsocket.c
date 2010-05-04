@@ -811,9 +811,14 @@ SrvSocketProcessTaskReadZct(
     // Call protocol transport driver, if needed.
     if (!bytesRemaining && bIsAsync)
     {
+        ULONG size = pSocket->ZctSize;
+
+        pSocket->pZct = NULL;
+        pSocket->ZctSize = 0;
+
         ntStatus = SrvSocketGetDispatch(pSocket)->pfnConnectionData(
                         pSocket->pConnection,
-                        pSocket->ZctSize);
+                        size);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
