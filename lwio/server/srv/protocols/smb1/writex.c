@@ -38,6 +38,20 @@ SrvExecuteWriteAndX(
     );
 
 static
+NTSTATUS
+SrvExecuteWriteXZctIo(
+    PSRV_WRITEX_STATE_SMB_V1 pWriteState,
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvExecuteWriteXZctComplete(
+    PSRV_WRITEX_STATE_SMB_V1 pWriteState,
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
 VOID
 SrvPrepareWriteXStateAsync(
     PSRV_WRITEX_STATE_SMB_V1 pWriteState,
@@ -48,6 +62,13 @@ static
 VOID
 SrvExecuteWriteXAsyncCB(
     PVOID pContext
+    );
+
+static
+VOID
+SrvExecuteWriteXReceiveZctCB(
+    IN PVOID pContext,
+    IN NTSTATUS Status
     );
 
 static
@@ -162,6 +183,36 @@ SrvProcessWriteAndX(
 
             ntStatus = SrvExecuteWriteAndX(pWriteState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_ZCT_IO;
+
+            // intentional fall through
+
+        case SRV_WRITEX_STAGE_SMB_V1_ZCT_IO:
+
+            if (pWriteState->Zct.pZct)
+            {
+                ntStatus = SrvExecuteWriteXZctIo(pWriteState, pExecContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_ZCT_COMPLETE;
+
+            // intentional fall through
+
+        case SRV_WRITEX_STAGE_SMB_V1_ZCT_COMPLETE:
+
+            if (pWriteState->Zct.pZct)
+            {
+                LwZctDestroy(&pWriteState->Zct.pZct);
+
+                SrvProtocolTransportResumeFromZct(pWriteState->Zct.pPausedConnection);
+                SrvConnectionRelease(pWriteState->Zct.pPausedConnection);
+                pWriteState->Zct.pPausedConnection = NULL;
+
+                ntStatus = SrvExecuteWriteXZctComplete(pWriteState, pExecContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_BUILD_RESPONSE;
 
@@ -399,6 +450,136 @@ error:
 }
 
 static
+NTSTATUS
+SrvExecuteWriteXZctIo(
+    PSRV_WRITEX_STATE_SMB_V1 pWriteState,
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT pZctContext = NULL;
+
+    if (pWriteState->Zct.ulSkipBytes)
+    {
+        // Skip extra padding
+        LW_ZCT_ENTRY entry;
+
+        ntStatus = SrvAllocateMemory(pWriteState->Zct.ulSkipBytes, OUT_PPVOID(&pWriteState->Zct.pPadding));
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        entry.Type = LW_ZCT_ENTRY_TYPE_MEMORY;
+        entry.Length = pWriteState->Zct.ulSkipBytes;
+        entry.Data.Memory.Buffer = pWriteState->Zct.pPadding;
+
+        ntStatus = LwZctPrepend(pWriteState->Zct.pZct, &entry, 1);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pWriteState->Zct.ulSkipBytes = 0;
+    }
+
+    ntStatus = LwZctPrepareIo(pWriteState->Zct.pZct);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pWriteState->Zct.ulDataBytesResident)
+    {
+        // Copy any bytes we already have
+        ntStatus = LwZctReadBufferIo(
+                        pWriteState->Zct.pZct,
+                        pWriteState->pData,
+                        pWriteState->Zct.ulDataBytesResident,
+                        &pWriteState->ulBytesWritten,
+                        NULL);
+        LWIO_ASSERT(STATUS_MORE_PROCESSING_REQUIRED != ntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        LWIO_ASSERT(pWriteState->ulBytesWritten == pWriteState->Zct.ulDataBytesResident);
+
+        pWriteState->Zct.ulDataBytesResident = 0;
+    }
+
+    LWIO_ASSERT(pWriteState->Zct.ulDataBytesMissing > 0);
+
+    pZctContext = SrvAcquireExecContext(pExecContext);
+
+    // Do ZCT read from the transport for remaining bytes
+    ntStatus = SrvProtocolTransportReceiveZct(
+                    pExecContext->pConnection,
+                    pWriteState->Zct.pZct,
+                    SrvExecuteWriteXReceiveZctCB,
+                    pZctContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // completed synchronously
+    SrvReleaseExecContext(pZctContext);
+
+    pWriteState->ulBytesWritten += pWriteState->Zct.ulDataBytesMissing;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pZctContext && (ntStatus != STATUS_PENDING))
+    {
+        SrvReleaseExecContext(pZctContext);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvExecuteWriteXZctComplete(
+    PSRV_WRITEX_STATE_SMB_V1 pWriteState,
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (!pWriteState->bStartedIo)
+    {
+        SrvPrepareWriteXStateAsync(pWriteState, pExecContext);
+        pWriteState->bStartedIo = TRUE;
+
+        ntStatus = IoCompleteZctWriteFile(
+                        pWriteState->pFile->hFile,
+                        pWriteState->pAcb,
+                        &pWriteState->ioStatusBlock,
+                        0,
+                        pWriteState->Zct.pZctCompletion,
+                        pWriteState->ulBytesWritten);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        // completed synchronously
+        SrvReleaseWriteXStateAsync(pWriteState);
+        pWriteState->bStartedIo = FALSE;
+    }
+
+    ntStatus = pWriteState->ioStatusBlock.Status;
+    if (ntStatus)
+    {
+        LWIO_LOG_ERROR("Failed to complete ZCT write file (status = 0x%08x)",
+                       ntStatus);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ntStatus != STATUS_PENDING)
+    {
+        SrvReleaseWriteXStateAsync(pWriteState);
+        pWriteState->bStartedIo = FALSE;
+    }
+
+    goto cleanup;
+}
+
+static
 VOID
 SrvPrepareWriteXStateAsync(
     PSRV_WRITEX_STATE_SMB_V1 pWriteState,
@@ -445,6 +626,42 @@ SrvExecuteWriteXAsyncCB(
     if (ntStatus != STATUS_SUCCESS)
     {
         LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvExecuteWriteXReceiveZctCB(
+    IN PVOID pContext,
+    IN NTSTATUS Status
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_WRITEX_STATE_SMB_V1   pWriteState       = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pWriteState =
+        (PSRV_WRITEX_STATE_SMB_V1)pProtocolContext->pSmb1Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pWriteState->mutex);
+    pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_ZCT_COMPLETE;
+    if (Status == STATUS_SUCCESS)
+    {
+        pWriteState->ulBytesWritten += pWriteState->Zct.ulDataBytesMissing;
+    }
+    LWIO_UNLOCK_MUTEX(bInLock, &pWriteState->mutex);
+
+    LWIO_LOG_DEBUG("queue exec context = %p (conn = %p)", pContext, pExecContext->pConnection);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V1.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context (status = 0x%08x)",
                        ntStatus);
 
         SrvReleaseExecContext(pExecContext);

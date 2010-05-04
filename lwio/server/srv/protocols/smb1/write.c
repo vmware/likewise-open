@@ -940,6 +940,7 @@ SrvDetectZctWrite_SMB_V1(
     NETBIOS_HEADER* pNetBiosHeader = (NETBIOS_HEADER*) pPacket->pRawBuffer;
     PBYTE pBuffer          = pPacket->pRawBuffer + sizeof(NETBIOS_HEADER);
     ULONG ulBytesAvailable = pPacket->bufferUsed - sizeof(NETBIOS_HEADER);
+    ULONG ulRequestOffset = 0;
     PWRITE_REQUEST_HEADER pWrite = NULL;
     PWRITE_ANDX_REQUEST_HEADER pWriteAndX = NULL;
     PBYTE pData = NULL;
@@ -998,8 +999,9 @@ SrvDetectZctWrite_SMB_V1(
 
         pBuffer             += sizeof(ANDX_HEADER);
         ulBytesAvailable    -= sizeof(ANDX_HEADER);
-
     }
+
+    ulRequestOffset = LwRtlPointerToOffset(pPacket->pSMBHeader, pBuffer);
 
     switch (pPacket->pSMBHeader->command)
     {
@@ -1038,6 +1040,12 @@ SrvDetectZctWrite_SMB_V1(
             llOffset = (((LONG64)pWriteAndX->offsetHigh) << 32) | ((LONG64)pWriteAndX->offset);
             ulLength = (((ULONG)pWriteAndX->dataLengthHigh) << 16) | ((ULONG)pWriteAndX->dataLength);
             ulDataOffset = pWriteAndX->dataOffset;
+            if (ulDataOffset < ulRequestOffset)
+            {
+                ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+            ulDataOffset -= ulRequestOffset;
 
             if (ulDataOffset < LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER, pad))
             {
@@ -1054,7 +1062,7 @@ SrvDetectZctWrite_SMB_V1(
     }
 
     // TODO: guard against overflow
-    if ((ulDataOffset + ulLength) > pNetBiosHeader->len)
+    if ((ulRequestOffset + ulDataOffset + ulLength) > pNetBiosHeader->len)
     {
         ntStatus = STATUS_INVALID_BUFFER_SIZE;
         BAIL_ON_NT_STATUS(ntStatus);
