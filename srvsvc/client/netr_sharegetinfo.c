@@ -328,6 +328,24 @@ SrvSvcCopyNetShareInfo(
             }
         }
         break;
+
+    case 1005:
+        if (info->info1005)
+        {
+            PSHARE_INFO_1005 a1005;
+
+            status = SrvSvcAllocateMemory(&ptr,
+                                          sizeof(SHARE_INFO_1005),
+                                          NULL);
+            BAIL_ON_WIN_ERROR(status);
+
+            a1005 = (PSHARE_INFO_1005)ptr;
+
+            *a1005 = *info->info1005;
+
+            a1005->shi1005_flags = info->info1005->shi1005_flags;
+        }
+        break;
     }
 
     *bufptr = (UINT8 *)ptr;

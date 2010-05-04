@@ -420,6 +420,14 @@ void SrvSvcClearNetShareInfo(UINT32 level, srvsvc_NetShareInfo *info)
         SrvSvcClearSHARE_INFO_502_I(info->info502);
         SRVSVC_SAFE_FREE(info->info502);
         break;
+
+    case 1005:
+        if (!info->info1005) {
+            break;
+        }
+
+        SRVSVC_SAFE_FREE(info->info1005);
+        break;
     }
 }
 
