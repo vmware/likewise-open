@@ -138,9 +138,10 @@ NpfsServerCloseHandle(
     PNPFS_IRP_CONTEXT pReadContext = NULL;
 
     pPipe = pSCB->pPipe;
-    pCCB = pPipe->pCCB;
 
     ENTER_MUTEX(&pPipe->PipeMutex);
+
+    pCCB = pPipe->pCCB;
 
     pPipe->PipeServerState = PIPE_SERVER_CLOSED;
 
@@ -187,9 +188,10 @@ NpfsClientCloseHandle(
     PNPFS_IRP_CONTEXT pReadContext = NULL;
 
     pPipe = pCCB->pPipe;
-    pSCB = pPipe->pSCB;
 
     ENTER_MUTEX(&pPipe->PipeMutex);
+
+    pSCB = pPipe->pSCB;
 
     pPipe->PipeClientState = PIPE_CLIENT_CLOSED;
 
