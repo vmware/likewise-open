@@ -105,6 +105,11 @@ SrvSvcNetShareAdd(
         AddParams.info.p502 = (PSHARE_INFO_502)info.info502;
         break;
 
+    case 1005:
+        AddParams.info.p1005 = (PSHARE_INFO_1005)info.info1005;
+        goto cleanup;
+        break;
+
     default:
         ntStatus = STATUS_INVALID_LEVEL;
         BAIL_ON_NT_STATUS(ntStatus);

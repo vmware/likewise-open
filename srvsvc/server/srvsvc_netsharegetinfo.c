@@ -57,6 +57,7 @@ typedef union __srvsvc_NetShareInfo
     SHARE_INFO_2 info2;
     SHARE_INFO_501 info501;
     SHARE_INFO_502 info502;
+    SHARE_INFO_1005 info1005;
 
 } SHARE_INFO, *PSHARE_INFO;
 
@@ -104,12 +105,13 @@ SrvSvcNetShareGetInfo(
     case 2:
     case 501:
     case 502:
+    case 1005:
         break;
+
     default:
         ntStatus = STATUS_INVALID_LEVEL;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
 
     memset(&GetParamsIn, 0, sizeof(GetParamsIn));
     memset(info, 0x0, sizeof(*info));
@@ -223,8 +225,15 @@ SrvSvcNetShareGetInfo(
         info->info502 = &pShareInfo->info502;
         memcpy(info->info502, pGetParamsOut->Info.p502, sizeof(*info->info502));
         break;
-    default:
 
+    case 1005:
+        info->info1005 = &pShareInfo->info1005;
+        memcpy(info->info1005,
+               pGetParamsOut->Info.p1005,
+               sizeof(*info->info1005));
+        break;
+
+    default:
         ntStatus = STATUS_INVALID_INFO_CLASS;
         BAIL_ON_NT_STATUS(ntStatus);
 

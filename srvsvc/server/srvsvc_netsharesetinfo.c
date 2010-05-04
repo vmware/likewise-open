@@ -109,8 +109,7 @@ SrvSvcNetShareSetInfo(
         break;
 
     case 1005:
-        SetParams.Info.p502 = (PSHARE_INFO_1005)info.info1005;
-        goto cleanup;
+        SetParams.Info.p1005 = (PSHARE_INFO_1005)info.info1005;
         break;
 
     default:
