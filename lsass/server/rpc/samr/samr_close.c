@@ -62,7 +62,8 @@ SamrSrvClose(
 
     pContext = (PSAMR_GENERIC_CONTEXT)hIn;
 
-    switch (pContext->Type) {
+    switch (pContext->Type)
+    {
     case SamrContextConnect:
         CONNECT_HANDLE_rundown(hIn);
         break;
