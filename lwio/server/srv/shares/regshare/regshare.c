@@ -1,6 +1,6 @@
 /* Editor Settings: expandtabs and use 4 spaces for indentation
  * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
+ */
 
 /*
  * Copyright Likewise Software    2004-2008
@@ -56,6 +56,9 @@ SrvShareRegWriteToShareInfo(
     IN  PWSTR            pwszShareName,
     IN  PBYTE            pData,
     IN  ULONG            ulDataLen,
+    IN  REG_DATA_TYPE    regFlagsDataType,
+    IN  PBYTE            pFlagsData,
+    IN  ULONG            ulFlagsDataLen,
     IN  REG_DATA_TYPE    regSecDataType,
     IN  PBYTE            pSecData,
     IN  ULONG            ulSecDataLen,
@@ -92,20 +95,25 @@ SrvShareRegFindByName(
     PSRV_SHARE_INFO* ppShareInfo
     )
 {
-    NTSTATUS        ntStatus       = STATUS_SUCCESS;
-    HKEY            hRootKey       = NULL;
-    HKEY            hKey           = NULL;
-    HKEY            hSecKey        = NULL;
-    REG_DATA_TYPE   dataType       = REG_UNKNOWN;
-    ULONG           ulValueLen     = MAX_VALUE_LENGTH;
-    REG_DATA_TYPE   dataSecType    = REG_UNKNOWN;
-    ULONG           ulSecValueLen  = MAX_VALUE_LENGTH;
-    PSRV_SHARE_INFO pShareInfo     = NULL;
-    BYTE            pData[MAX_VALUE_LENGTH]    = {0};
-    BYTE            pSecData[MAX_VALUE_LENGTH] = {0};
-    wchar16_t       wszHKTM[]        = HKEY_THIS_MACHINE_W;
-    wchar16_t       wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
-    wchar16_t       wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
+    NTSTATUS        ntStatus         = STATUS_SUCCESS;
+    HKEY            hRootKey         = NULL;
+    HKEY            hKey             = NULL;
+    HKEY            hFlagsKey        = NULL;
+    HKEY            hSecKey          = NULL;
+    REG_DATA_TYPE   dataType         = REG_UNKNOWN;
+    ULONG           ulValueLen       = MAX_VALUE_LENGTH;
+    REG_DATA_TYPE   dataFlagsType    = REG_UNKNOWN;
+    ULONG           ulFlagsValueLen  = MAX_VALUE_LENGTH;
+    REG_DATA_TYPE   dataSecType      = REG_UNKNOWN;
+    ULONG           ulSecValueLen    = MAX_VALUE_LENGTH;
+    PSRV_SHARE_INFO pShareInfo       = NULL;
+    BYTE            pData[MAX_VALUE_LENGTH]      = {0};
+    BYTE            pFlagsData[MAX_VALUE_LENGTH] = {0};
+    BYTE            pSecData[MAX_VALUE_LENGTH]   = {0};
+    wchar16_t       wszHKTM[]          = HKEY_THIS_MACHINE_W;
+    wchar16_t       wszSharesKey[]     = REG_KEY_PATH_SRV_SHARES_W;
+    wchar16_t       wszShareFlagsKey[] = REG_KEY_PATH_SRV_SHARES_FLAGS_W;
+    wchar16_t       wszShareSecKey[]   = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
 
     ntStatus = NtRegOpenKeyExW(
                     hRepository,
@@ -123,6 +131,15 @@ SrvShareRegFindByName(
                     0,
                     KEY_READ,
                     &hKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NtRegOpenKeyExW(
+                    hRepository,
+                    hRootKey,
+                    &wszShareFlagsKey[0],
+                    0,
+                    KEY_READ,
+                    &hFlagsKey);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = NtRegOpenKeyExW(
@@ -147,6 +164,17 @@ SrvShareRegFindByName(
 
     ntStatus = NtRegGetValueW(
                     hRepository,
+                    hFlagsKey,
+                    NULL,
+                    pwszShareName,
+                    RRF_RT_REG_DWORD,
+                    &dataFlagsType,
+                    pFlagsData,
+                    &ulFlagsValueLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NtRegGetValueW(
+                    hRepository,
                     hSecKey,
                     NULL,
                     pwszShareName,
@@ -161,6 +189,9 @@ SrvShareRegFindByName(
                     pwszShareName,
                     pData,
                     ulValueLen,
+                    dataFlagsType,
+                    pFlagsData,
+                    ulFlagsValueLen,
                     dataSecType,
                     pSecData,
                     ulSecValueLen,
@@ -178,6 +209,10 @@ cleanup:
     if (hKey)
     {
 	NtRegCloseKey(hRepository, hKey);
+    }
+    if (hFlagsKey)
+    {
+        NtRegCloseKey(hRepository, hFlagsKey);
     }
     if (hSecKey)
     {
@@ -204,20 +239,25 @@ SrvShareRegAdd(
     IN PWSTR  pwszComment,
     IN PBYTE  pSecDesc,
     IN ULONG  ulSecDescLen,
-    IN PWSTR  pwszService
+    IN PWSTR  pwszService,
+    IN ULONG  ulFlags
     )
 {
     NTSTATUS ntStatus    = 0;
     HKEY     hRootKey    = NULL;
     HKEY     hKey        = NULL;
+    HKEY     hFlagsKey   = NULL;
     HKEY     hSecKey     = NULL;
     PWSTR*   ppwszValues = NULL;
     PBYTE    pOutData    = NULL;
     SSIZE_T  cOutDataLen = 0;
+    PBYTE    pFlags      = NULL;
+    SSIZE_T  sFlagsLen   = 0;
     ULONG    ulCount     = 0;
-    wchar16_t wszHKTM[]        = HKEY_THIS_MACHINE_W;
-    wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
-    wchar16_t wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
+    wchar16_t wszHKTM[]          = HKEY_THIS_MACHINE_W;
+    wchar16_t wszSharesKey[]     = REG_KEY_PATH_SRV_SHARES_W;
+    wchar16_t wszShareFlagsKey[] = REG_KEY_PATH_SRV_SHARES_FLAGS_W;
+    wchar16_t wszShareSecKey[]   = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
     wchar16_t wszPathPrefix[]    = REG_KEY_PATH_PREFIX_W;
     ULONG     ulPathPrefixLen =
                         (sizeof(wszPathPrefix)/sizeof(wchar16_t)) - 1;
@@ -316,6 +356,28 @@ SrvShareRegAdd(
                     REG_MULTI_SZ,
                     pOutData,
                     cOutDataLen);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = NtRegOpenKeyExW(
+                    hRepository,
+                    hRootKey,
+                    &wszShareFlagsKey[0],
+                    0,
+                    KEY_ALL_ACCESS,
+                    &hFlagsKey);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pFlags    = (PVOID)&ulFlags;
+    sFlagsLen = sizeof(ulFlags);
+
+    ntStatus = NtRegSetValueExW(
+                    hRepository,
+                    hFlagsKey,
+                    pwszShareName,
+                    0,
+                    REG_DWORD,
+                    pFlags,
+                    sFlagsLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if ((pSecDesc && !ulSecDescLen) || (!pSecDesc && ulSecDescLen))
@@ -479,6 +541,7 @@ SrvShareRegEnum(
     wchar16_t wszSharesKey[]   = REG_KEY_PATH_SRV_SHARES_W;
     wchar16_t wszShareSecKey[] = REG_KEY_PATH_SRV_SHARES_SECURITY_W;
     PSRV_SHARE_INFO* ppShareInfoList  = NULL;
+    REG_DATA_TYPE    dataFlagsType    = REG_UNKNOWN;
     REG_DATA_TYPE    dataSecType      = REG_UNKNOWN;
     ULONG            ulNumSharesFound = 0;
     BYTE             pSecData[MAX_VALUE_LENGTH] = {0};
@@ -596,6 +659,9 @@ SrvShareRegEnum(
                       pwszValueName,
                       pData,
                       ulMaxValueLen,
+                      dataFlagsType,
+                      NULL,
+                      0,
                       dataSecType,
                       pSecData,
                       ulMaxSecValueLen,
@@ -800,6 +866,9 @@ SrvShareRegWriteToShareInfo(
     IN  PWSTR            pwszShareName,
     IN  PBYTE            pData,
     IN  ULONG            ulDataLen,
+    IN  REG_DATA_TYPE    regFlagsDataType,
+    IN  PBYTE            pFlagsData,
+    IN  ULONG            ulFlagsDataLen,
     IN  REG_DATA_TYPE    regSecDataType,
     IN  PBYTE            pSecData,
     IN  ULONG            ulSecDataLen,
@@ -883,6 +952,19 @@ SrvShareRegWriteToShareInfo(
                         &wszComment[0],
                         &pShareInfo->pwszComment);
         BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (ulFlagsDataLen)
+    {
+        if (ulFlagsDataLen != sizeof(pShareInfo->ulFlags))
+        {
+            ntStatus = STATUS_INVALID_BUFFER_SIZE;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        memcpy(&pShareInfo->ulFlags,
+               pFlagsData,
+               ulFlagsDataLen);
     }
 
     if (ulSecDataLen)

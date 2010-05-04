@@ -85,6 +85,13 @@ SrvShareUpdateInfo502(
     PSHARE_INFO_502 pInfo502
     );
 
+static
+NTSTATUS
+SrvShareUpdateInfo1005(
+    PSRV_SHARE_INFO  pShareInfo,
+    PSHARE_INFO_1005 pInfo1005
+    );
+
 NTSTATUS
 SrvShareDevCtlAdd(
     IN     PBYTE lpInBuffer,
@@ -101,12 +108,14 @@ SrvShareDevCtlAdd(
     PSHARE_INFO_2 pShareInfo2 = NULL;
     PSHARE_INFO_501 pShareInfo501 = NULL;
     PSHARE_INFO_502 pShareInfo502 = NULL;
+    PSHARE_INFO_1005 pShareInfo1005 = NULL;
     PWSTR pwszShareName = NULL;
     ULONG ulShareType = 0;
     PWSTR pwszComment = NULL;
     PWSTR pwszPath = NULL;
     PWSTR pwszPathLocal = NULL;
     PWSTR pwszShareType = NULL;
+    ULONG ulShareFlags = 0;
     ULONG ulSecDescLen = 0;
     PBYTE pSecDesc = NULL;
 
@@ -161,6 +170,10 @@ SrvShareDevCtlAdd(
         ulSecDescLen  = pShareInfo502->shi502_reserved;
         break;
 
+    case 1005:
+        pShareInfo1005 = pAddShareInfoParams->info.p1005;
+        ulShareFlags   = pShareInfo1005->shi1005_flags;
+
     default:
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
@@ -187,7 +200,8 @@ SrvShareDevCtlAdd(
                         pwszComment,
                         pSecDesc,
                         ulSecDescLen,
-                        pwszShareType);
+                        pwszShareType,
+                        ulShareFlags);
 
 error:
 
@@ -268,6 +282,7 @@ SrvShareDevCtlEnum(
     PSHARE_INFO_2 p2 = NULL;
     PSHARE_INFO_501 p501 = NULL;
     PSHARE_INFO_502 p502 = NULL;
+    PSHARE_INFO_1005 p1005 = NULL;
 
     memset(&EnumShareInfoParamsOut, 0, sizeof(EnumShareInfoParamsOut));
 
@@ -410,6 +425,24 @@ SrvShareDevCtlEnum(
 
             break;
 
+        case 1005:
+
+            ntStatus = SrvAllocateMemory(
+                            sizeof(*p1005) * ulNumEntries,
+                            OUT_PPVOID(&p1005));
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            for (i = 0; i < ulNumEntries; i++)
+            {
+                PSRV_SHARE_INFO pShareInfo = ppShares[i];
+
+                p1005[i].shi1005_flags = pShareInfo->ulFlags;
+            }
+
+            EnumShareInfoParamsOut.info.p1005 = p1005;
+
+            break;
+
         default:
 
             ntStatus = STATUS_INVALID_LEVEL;
@@ -491,6 +524,10 @@ cleanup:
 
         SrvFreeMemory(p502);
     }
+    if (p1005)
+    {
+        SrvFreeMemory(p1005);
+    }
     if (pBuffer)
     {
         SrvFreeMemory(pBuffer);
@@ -535,6 +572,7 @@ SrvShareDevCtlGetInfo(
     PSHARE_INFO_2 p2 = NULL;
     PSHARE_INFO_501 p501 = NULL;
     PSHARE_INFO_502 p502 = NULL;
+    PSHARE_INFO_1005 p1005 = NULL;
 
     memset(&GetShareInfoParamsOut, 0, sizeof(GetShareInfoParamsOut));
 
@@ -655,6 +693,18 @@ SrvShareDevCtlGetInfo(
 
             break;
 
+        case 1005:
+            ntStatus = SrvAllocateMemory(
+                            sizeof(*p1005),
+                            OUT_PPVOID(&p1005));
+            BAIL_ON_NT_STATUS(ntStatus);
+
+
+            p1005->shi1005_flags = pShareInfo->ulFlags;
+
+            GetShareInfoParamsOut.Info.p1005 = p1005;
+            break;
+
         default:
 
             ntStatus = STATUS_INVALID_LEVEL;
@@ -723,6 +773,10 @@ cleanup:
         }
 
         SrvFreeMemory(p502);
+    }
+    if (p1005)
+    {
+        SrvFreeMemory(p1005);
     }
     if (pBuffer)
     {
@@ -794,6 +848,12 @@ SrvShareDevCtlSetInfo(
             ntStatus = SrvShareUpdateInfo502(
                            pShareInfo,
                            pSetShareInfoParamsIn->Info.p502);
+            break;
+
+        case 1005:
+            ntStatus = SrvShareUpdateInfo1005(
+                           pShareInfo,
+                           pSetShareInfoParamsIn->Info.p1005);
             break;
 
         default:
@@ -1099,6 +1159,26 @@ cleanup:
 error:
 
     goto cleanup;
+}
+
+
+static
+NTSTATUS
+SrvShareUpdateInfo1005(
+    PSRV_SHARE_INFO  pShareInfo,
+    PSHARE_INFO_1005 pInfo1005
+    )
+{
+    NTSTATUS ntStatus    = STATUS_SUCCESS;
+    BOOLEAN  bInLock     = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pShareInfo->mutex);
+
+    pShareInfo->ulFlags = pInfo1005->shi1005_flags;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pShareInfo->mutex);
+
+    return ntStatus;
 }
 
 

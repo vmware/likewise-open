@@ -99,6 +99,7 @@ typedef struct _SRV_SHARE_INFO
     PSECURITY_DESCRIPTOR_ABSOLUTE pAbsSecDesc;
 
     SHARE_SERVICE service;
+    ULONG ulFlags;
 
     BOOLEAN bMarkedForDeletion;
 
@@ -225,7 +226,8 @@ SrvShareAdd(
     IN     PWSTR                      pwszComment,
     IN     PBYTE                      pSecDesc,
     IN     ULONG                      ulSecDescLen,
-    IN     PWSTR                      pwszShareType
+    IN     PWSTR                      pwszShareType,
+    IN     ULONG                      ulFlags
     );
 
 NTSTATUS

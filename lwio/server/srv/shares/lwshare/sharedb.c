@@ -63,7 +63,8 @@ SrvShareDbAdd_inlock(
     IN PCSTR                 pszComment,
     IN PBYTE                 pSecDesc,
     IN ULONG                 ulSecDescLen,
-    IN PCSTR                 pszService
+    IN PCSTR                 pszService,
+    IN ULONG                 ulFlags
     );
 
 static
@@ -293,7 +294,8 @@ SrvShareDbAdd(
     IN PWSTR  pwszComment,
     IN PBYTE  pSecDesc,
     IN ULONG  ulSecDescLen,
-    IN PWSTR  pwszService
+    IN PWSTR  pwszService,
+    IN ULONG  ulFlags
     )
 {
     NTSTATUS ntStatus = 0;
@@ -336,7 +338,8 @@ SrvShareDbAdd(
                     pszComment,
                     pSecDesc,
                     ulSecDescLen,
-                    pszService);
+                    pszService,
+		    ulFlags);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -364,7 +367,8 @@ SrvShareDbAdd_inlock(
     IN PCSTR                 pszComment,
     IN PBYTE                 pSecDesc,
     IN ULONG                 ulSecDescLen,
-    IN PCSTR                 pszService
+    IN PCSTR                 pszService,
+    IN ULONG                 ulFlags
     )
 {
     NTSTATUS ntStatus = 0;
@@ -386,8 +390,9 @@ SrvShareDbAdd_inlock(
                                    LWIO_SRV_SHARES_DB_COL_PATH ","          \
                                    LWIO_SRV_SHARES_DB_COL_COMMENT ","       \
                                    LWIO_SRV_SHARES_DB_COL_SECDESC ","       \
-                                   LWIO_SRV_SHARES_DB_COL_SERVICE           \
-                               ") VALUES (?1, ?2, ?3, ?4, ?5)";
+                                   LWIO_SRV_SHARES_DB_COL_SERVICE ","       \
+                                   LWIO_SRV_SHARES_DB_COL_FLAGS             \
+                               ") VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
         ntStatus = sqlite3_prepare_v2(
                         pDbContext->pDbHandle,
                         pszSqlTemplate,
@@ -449,6 +454,12 @@ SrvShareDbAdd_inlock(
                     pszService,
                     -1,
                     SQLITE_TRANSIENT);
+    BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
+
+    ntStatus = sqlite3_bind_int(
+                    pDbContext->pInsertStmt,
+                    iCol++,
+		    ulFlags);
     BAIL_ON_LWIO_SRV_SQLITE_ERROR_STMT(ntStatus, pDbContext->pInsertStmt);
 
     if ((ntStatus = sqlite3_step(pDbContext->pInsertStmt)) == SQLITE_DONE)
@@ -530,7 +541,8 @@ SrvShareDbEnum(
                                            LWIO_SRV_SHARES_DB_COL_PATH    ","  \
                                            LWIO_SRV_SHARES_DB_COL_COMMENT ","  \
                                            LWIO_SRV_SHARES_DB_COL_SECDESC ","  \
-                                           LWIO_SRV_SHARES_DB_COL_SERVICE      \
+                                           LWIO_SRV_SHARES_DB_COL_SERVICE ","  \
+                                           LWIO_SRV_SHARES_DB_COL_FLAGS        \
                                  " FROM "  LWIO_SRV_SHARES_DB_TABLE_NAME       \
                                  " ORDER BY " LWIO_SRV_SHARES_DB_COL_NAME      \
                                  " LIMIT ?1 OFFSET ?2";
@@ -609,6 +621,8 @@ SrvShareDbWriteToShareInfo(
     NTSTATUS ntStatus = 0;
     PSRV_SHARE_INFO* ppShareInfoList = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
+    PWSTR pwszStringVal = NULL;
+    ULONG ulIntVal = 0;
     ULONG ulNumSharesAllocated = 0;
     ULONG ulNumSharesAvailable = 0;
     ULONG iShare = 0;
@@ -732,10 +746,26 @@ SrvShareDbWriteToShareInfo(
                         pszStringVal = sqlite3_column_text(pSqlStatement, iCol);
                     }
 
-                    ntStatus = SrvShareMapServiceStringToId(
+		    ntStatus = SrvMbsToWc16s(
                                     (PCSTR)pszStringVal,
+				    &pwszStringVal);
+		    BAIL_ON_NT_STATUS(ntStatus);
+
+                    ntStatus = SrvShareMapServiceStringToId(
+                                    pwszStringVal,
                                     &pShareInfo->service);
                     BAIL_ON_NT_STATUS(ntStatus);
+
+                    break;
+
+                case 5: /* flags */
+
+                    if (ulNumBytes)
+                    {
+                        ulIntVal = sqlite3_column_int(pSqlStatement, iCol);
+		    }
+
+                    pShareInfo->ulFlags = ulIntVal;
 
                     break;
             }
@@ -756,6 +786,7 @@ SrvShareDbWriteToShareInfo(
     *pulNumSharesFound = iShare;
 
 cleanup:
+    SRV_SAFE_FREE_MEMORY(pwszStringVal);
 
     if (pShareInfo)
     {

@@ -79,6 +79,7 @@
 #define LWIO_SRV_SHARES_DB_COL_COMMENT "comment"
 #define LWIO_SRV_SHARES_DB_COL_SECDESC "secdesc"
 #define LWIO_SRV_SHARES_DB_COL_SERVICE "service"
+#define LWIO_SRV_SHARES_DB_COL_FLAGS   "flags"
 
 #define DB_QUERY_CREATE_SHARES_TABLE                                           \
     "create table " LWIO_SRV_SHARES_DB_TABLE_NAME                              \
@@ -87,6 +88,7 @@
                       LWIO_SRV_SHARES_DB_COL_COMMENT " text  collate nocase,"  \
                       LWIO_SRV_SHARES_DB_COL_SECDESC " blob,"                  \
                       LWIO_SRV_SHARES_DB_COL_SERVICE " text,"                  \
+                      LWIO_SRV_SHARES_DB_COL_FLAGS   " integer,"               \
                     " UNIQUE (" LWIO_SRV_SHARES_DB_COL_NAME ","                \
                                 LWIO_SRV_SHARES_DB_COL_PATH "),"               \
                     " CHECK(" LWIO_SRV_SHARES_DB_COL_SERVICE "== \"A:\" or "   \

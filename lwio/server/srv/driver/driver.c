@@ -396,7 +396,8 @@ SrvShareBootstrap(
                             &wszDesc[0],
                             NULL,
                             0,
-                            &wszServiceType[0]);
+                            &wszServiceType[0],
+                            0);
     }
     else
     {
@@ -439,7 +440,8 @@ SrvShareBootstrap(
                         &wszDesc[0],
                         NULL,
                         0,
-                        &wszServiceType[0]);
+                        &wszServiceType[0],
+                        0);
     }
     BAIL_ON_NT_STATUS(ntStatus);
 

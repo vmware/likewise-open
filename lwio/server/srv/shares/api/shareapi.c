@@ -248,7 +248,8 @@ SrvShareAdd(
     IN     PWSTR                      pwszShareComment,
     IN     PBYTE                      pSecDesc,
     IN     ULONG                      ulSecDescLen,
-    IN     PWSTR                      pwszShareType
+    IN     PWSTR                      pwszShareType,
+    IN     ULONG                      ulShareFlags
     )
 {
     NTSTATUS ntStatus = 0;
@@ -332,6 +333,8 @@ SrvShareAdd(
                     &pShareInfo->service);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pShareInfo->ulFlags = ulShareFlags;
+
     pShareInfo->bMarkedForDeletion = FALSE;
 
     ntStatus = SrvAllocateMemory(
@@ -352,7 +355,8 @@ SrvShareAdd(
                                             pShareInfo->pwszComment,
                                             (PBYTE)pShareInfo->pSecDesc,
                                             pShareInfo->ulSecDescLen,
-                                            pwszShareType);
+                                            pwszShareType,
+                                            ulShareFlags);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwRtlRBTreeAdd(
@@ -429,7 +433,8 @@ SrvShareUpdate(
                                             pShareInfo->pwszComment,
                                             (PBYTE)pShareInfo->pSecDesc,
                                             pShareInfo->ulSecDescLen,
-                                            wszServiceType);
+                                            wszServiceType,
+                                            pShareInfo->ulFlags);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_UNLOCK_RWMUTEX(bShareInLock, &pShareInfo->mutex);

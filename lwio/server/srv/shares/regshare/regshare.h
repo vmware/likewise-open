@@ -76,7 +76,8 @@ SrvShareRegAdd(
     IN PWSTR  pwszComment,
     IN PBYTE  pSecDesc,
     IN ULONG  ulSecDescLen,
-    IN PWSTR  pwszService
+    IN PWSTR  pwszService,
+    IN ULONG  ulFlags
     );
 
 NTSTATUS
