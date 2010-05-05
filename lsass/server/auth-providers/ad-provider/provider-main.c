@@ -4005,7 +4005,10 @@ LsaAdProviderStateAcquireRead(
     PLSA_AD_PROVIDER_STATE pState
     )
 {
-    LW_ASSERT(pthread_rwlock_rdlock(pState->pStateLock) == 0);
+    int status = 0;
+
+    status = pthread_rwlock_rdlock(pState->pStateLock);
+    LW_ASSERT(status == 0);
 }
 
 static
@@ -4014,7 +4017,10 @@ LsaAdProviderStateAcquireWrite(
     PLSA_AD_PROVIDER_STATE pState
     )
 {
-    LW_ASSERT(pthread_rwlock_wrlock(pState->pStateLock) == 0);
+    int status = 0;
+
+    status = pthread_rwlock_wrlock(pState->pStateLock);
+    LW_ASSERT(status == 0);
 }
 
 static
@@ -4023,7 +4029,10 @@ LsaAdProviderStateRelease(
     PLSA_AD_PROVIDER_STATE pState
     )
 {
-    LW_ASSERT(pthread_rwlock_unlock(pState->pStateLock) == 0);
+    int status = 0;
+
+    status = pthread_rwlock_unlock(pState->pStateLock);
+    LW_ASSERT(status == 0);
 }
 
 static
