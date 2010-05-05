@@ -733,6 +733,12 @@ SrvProtocolTransportDriverSocketGetAddressBytes(
             pAddressPart = &((struct sockaddr_in*)pSocketAddress)->sin_addr.s_addr;
             addressPartLength = sizeof(((struct sockaddr_in*)pSocketAddress)->sin_addr.s_addr);
             break;
+#ifdef AF_INET6
+        case AF_INET6:
+            pAddressPart = &((struct sockaddr_in6*)pSocketAddress)->sin6_addr.s6_addr;
+            addressPartLength = sizeof(((struct sockaddr_in6*)pSocketAddress)->sin6_addr.s6_addr);
+            break;
+#endif
 
         default:
             LWIO_ASSERT(FALSE);

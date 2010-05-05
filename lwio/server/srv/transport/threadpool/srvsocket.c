@@ -131,7 +131,7 @@ SrvSocketCreate(
     NTSTATUS ntStatus = 0;
     PSRV_SOCKET pSocket = NULL;
 
-    if (ClientAddressLength > sizeof(pSocket->clientAddress))
+    if (ClientAddressLength > sizeof(pSocket->ClientAddress))
     {
         LWIO_LOG_ERROR("Client address is too long at %d bytes",
                        ClientAddressLength);
@@ -157,11 +157,11 @@ SrvSocketCreate(
     pSocket->pListener = pListener;
     pSocket->fd = fd;
 
-    memcpy(&pSocket->clientAddress, pClientAddress, ClientAddressLength);
+    memcpy(&pSocket->ClientAddress.Addr, pClientAddress, ClientAddressLength);
     pSocket->ClientAddressLength = ClientAddressLength;
 
     ntStatus = SrvSocketAddressToString(
-                            &pSocket->clientAddress,
+                            &pSocket->ClientAddress.Addr,
                             pSocket->AddressStringBuffer,
                             sizeof(pSocket->AddressStringBuffer));
     BAIL_ON_NT_STATUS(ntStatus);
@@ -169,7 +169,7 @@ SrvSocketCreate(
     // TODO-Use separate listener and socket task groups
     // in case of shutdown as we are adding a new socket task.
     ntStatus = LwRtlCreateTask(
-                    pListener->pPool,
+                    pListener->pTransport->pPool,
                     &pSocket->pTask,
                     pListener->pTaskGroup,
                     SrvSocketProcessTask,
@@ -258,7 +258,7 @@ SrvSocketGetAddress(
     )
 {
     // immutable, so lock not needed.
-    *ppAddress = &pSocket->clientAddress;
+    *ppAddress = &pSocket->ClientAddress.Addr;
     *pAddressLength = pSocket->ClientAddressLength;
 }
 

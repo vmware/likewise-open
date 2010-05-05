@@ -262,7 +262,7 @@ NpfsCommonProcessCreateEcp(
     PNPFS_PIPE pPipe = pCCB->pPipe;
     PBYTE pSessionKey = NULL;
     ULONG ulSessionKeyLength = 0;
-    PULONG pulAddr = NULL;
+    PBYTE pAddr = NULL;
     ULONG ulAddrLen = 0;
 
     ntStatus = IoRtlEcpListFind(
@@ -285,20 +285,21 @@ NpfsCommonProcessCreateEcp(
     ntStatus = IoRtlEcpListFind(
         pIrp->Args.Create.EcpList,
         IO_ECP_TYPE_PEER_ADDRESS,
-        OUT_PPVOID(&pulAddr),
+        OUT_PPVOID(&pAddr),
         &ulAddrLen);
 
     if (ntStatus != STATUS_NOT_FOUND)
     {
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (ulAddrLen > sizeof(pPipe->ulClientAddress))
+        if (ulAddrLen > sizeof(pPipe->ClientAddress))
         {
             /* Only 4-byte (IPv4) address supported */
             ntStatus = STATUS_NOT_SUPPORTED;
         }
 
-        pPipe->ulClientAddress = *pulAddr;
+        pPipe->usClientAddressLen = (USHORT) ulAddrLen;
+        memcpy(pPipe->ClientAddress, pAddr, ulAddrLen);
     }
 
 cleanup:

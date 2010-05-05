@@ -279,9 +279,9 @@ NpfsCommonGetPeerAddress(
     bReleasePipeLock = TRUE;
 
     /* Ensure we actually have an address */
-    if (pPipe->ulClientAddress != 0)
+    if (pPipe->usClientAddressLen != 0)
     {
-        ulAddrLength = sizeof(pPipe->ulClientAddress);
+        ulAddrLength = pPipe->usClientAddressLen;
 
         /* Ensure there is enough space in the output buffer */
         if (ulAddrLength > OutLength)
@@ -290,7 +290,7 @@ NpfsCommonGetPeerAddress(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        memcpy(pOutBuffer, &pPipe->ulClientAddress, ulAddrLength);
+        memcpy(pOutBuffer, pPipe->ClientAddress, ulAddrLength);
 
         pIrp->IoStatusBlock.BytesTransferred = ulAddrLength;
     }

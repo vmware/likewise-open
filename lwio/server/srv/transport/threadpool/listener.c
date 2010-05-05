@@ -56,92 +56,42 @@ SrvListenerProcessTask(
     PLONG64 pllTime
     );
 
-NTSTATUS
-SrvListenerInit(
-    OUT PSRV_TRANSPORT_LISTENER pListener,
-    IN SRV_TRANSPORT_HANDLE pTransport
-    )
-{
-    NTSTATUS ntStatus = 0;
-    PLW_THREAD_POOL_ATTRIBUTES pAttrs = NULL;
-
-    RtlZeroMemory(pListener, sizeof(*pListener));
-
-    pListener->pTransport = pTransport;
-
-    ntStatus = LwRtlCreateThreadPoolAttributes(&pAttrs);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    /* Our tasks sometimes make blocking IPC calls, so use a private set of task threads */
-    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_DELEGATE_TASKS, FALSE);
-    /* Create one task thread per CPU */
-    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_TASK_THREADS, -1);
-    /* We don't presently use work threads, so turn them off */
-    LwRtlSetThreadPoolAttribute(pAttrs, LW_THREAD_POOL_OPTION_WORK_THREADS, 0);
-
-    ntStatus = LwRtlCreateThreadPool(&pListener->pPool, pAttrs);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlCreateTaskGroup(pListener->pPool, &pListener->pTaskGroup);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    ntStatus = LwRtlCreateTask(
-                    pListener->pPool,
-                    &pListener->pTask,
-                    pListener->pTaskGroup,
-                    SrvListenerProcessTask,
-                    pListener);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    LwRtlWakeTask(pListener->pTask);
-
-cleanup:
-
-    LwRtlFreeThreadPoolAttributes(&pAttrs);
-
-    return ntStatus;
-
-error:
-
-    SrvListenerShutdown(pListener);
-
-    goto cleanup;
-}
-
-VOID
-SrvListenerShutdown(
-    IN OUT PSRV_TRANSPORT_LISTENER pListener
-    )
-{
-    if (pListener->pTaskGroup)
-    {
-        LwRtlCancelTaskGroup(pListener->pTaskGroup);
-        LwRtlWaitTaskGroup(pListener->pTaskGroup);
-        LwRtlFreeTaskGroup(&pListener->pTaskGroup);
-    }
-
-    LwRtlReleaseTask(&pListener->pTask);
-
-    if (pListener->pPool)
-    {
-        LwRtlFreeThreadPool(&pListener->pPool);
-    }
-
-    RtlZeroMemory(pListener, sizeof(*pListener));
-}
-
 static
 NTSTATUS
-SrvListenerProcessTaskInit(
-    PSRV_TRANSPORT_LISTENER pListener
+SrvListenerInitSocket(
+    PSRV_TRANSPORT_LISTENER pListener,
+    BOOLEAN bInet6
     )
 {
     NTSTATUS ntStatus = 0;
-    struct sockaddr_in servaddr;
     int on = 1;
     long opts = 0;
 
-    pListener->ListenFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (bInet6)
+    {
+#ifdef AF_INET6
+        pListener->Addr.Addr6.sin6_family = AF_INET6;
+        /* Leave address zero */
+        pListener->Addr.Addr6.sin6_port = htons(SMB_SERVER_PORT);
+        pListener->AddrLen = sizeof(pListener->Addr.Addr6);
+#else
+        ntStatus = STATUS_NOT_SUPPORTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+#endif
+    }
+    else
+    {
+        pListener->Addr.Addr4.sin_family = AF_INET;
+        pListener->Addr.Addr4.sin_addr.s_addr  = htonl(INADDR_ANY);
+        pListener->Addr.Addr4.sin_port = htons(SMB_SERVER_PORT);
+        pListener->AddrLen = sizeof(pListener->Addr.Addr4);
+    }
+
+    pListener->ListenFd = socket(
+        ((const struct sockaddr*)&pListener->Addr)->sa_family,
+        SOCK_STREAM,
+        0);
+
     if (pListener->ListenFd < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
@@ -176,12 +126,7 @@ SrvListenerProcessTaskInit(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr  = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(SMB_SERVER_PORT);
-
-    if (bind(pListener->ListenFd, (const struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
+    if (bind(pListener->ListenFd, (const struct sockaddr*)&pListener->Addr, pListener->AddrLen) < 0)
     {
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -192,6 +137,86 @@ SrvListenerProcessTaskInit(
         ntStatus = LwErrnoToNtStatus(errno);
         BAIL_ON_NT_STATUS(ntStatus);
     }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pListener->ListenFd >= 0)
+    {
+        close(pListener->ListenFd);
+        pListener->ListenFd = -1;
+    }
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvListenerInit(
+    OUT PSRV_TRANSPORT_LISTENER pListener,
+    IN SRV_TRANSPORT_HANDLE pTransport,
+    IN BOOLEAN bInet6
+    )
+{
+    NTSTATUS ntStatus = 0;
+
+    RtlZeroMemory(pListener, sizeof(*pListener));
+
+    pListener->pTransport = pTransport;
+
+    ntStatus = SrvListenerInitSocket(pListener, bInet6);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlCreateTaskGroup(pTransport->pPool, &pListener->pTaskGroup);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwRtlCreateTask(
+                    pTransport->pPool,
+                    &pListener->pTask,
+                    pListener->pTaskGroup,
+                    SrvListenerProcessTask,
+                    pListener);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LwRtlWakeTask(pListener->pTask);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    SrvListenerShutdown(pListener);
+
+    goto cleanup;
+}
+
+VOID
+SrvListenerShutdown(
+    IN OUT PSRV_TRANSPORT_LISTENER pListener
+    )
+{
+    if (pListener->pTaskGroup)
+    {
+        LwRtlCancelTaskGroup(pListener->pTaskGroup);
+        LwRtlWaitTaskGroup(pListener->pTaskGroup);
+        LwRtlFreeTaskGroup(&pListener->pTaskGroup);
+    }
+
+    LwRtlReleaseTask(&pListener->pTask);
+
+    RtlZeroMemory(pListener, sizeof(*pListener));
+}
+
+static
+NTSTATUS
+SrvListenerProcessTaskInit(
+    PSRV_TRANSPORT_LISTENER pListener
+    )
+{
+    NTSTATUS ntStatus = 0;
 
     /* Register fd with thread pool */
     ntStatus = LwRtlSetTaskFd(
@@ -229,7 +254,14 @@ SrvListenerProcessTask(
     PSRV_TRANSPORT_LISTENER pListener = (PSRV_TRANSPORT_LISTENER) pDataContext;
     int connFd = -1;
     PSRV_SOCKET pSocket = NULL;
-    struct sockaddr clientAddress;
+    union
+    {
+        struct sockaddr_in Addr4;
+#ifdef AF_INET6
+        struct sockaddr_in6 Addr6;
+#endif
+    } clientAddress;
+
     SOCKLEN_T clientAddressLength = sizeof(clientAddress);
     CHAR clientAddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
     LW_TASK_EVENT_MASK waitMask = 0;
@@ -258,7 +290,7 @@ SrvListenerProcessTask(
     }
 
     connFd = accept(pListener->ListenFd,
-                    &clientAddress,
+                    (struct sockaddr*) &clientAddress,
                     &clientAddressLength);
     if (connFd < 0)
     {
@@ -289,7 +321,7 @@ SrvListenerProcessTask(
     }
 
     // TODO - getpeername should not be necessary after accept.
-    if (getpeername(connFd, &clientAddress, &clientAddressLength) < 0)
+    if (getpeername(connFd, (struct sockaddr*) &clientAddress, &clientAddressLength) < 0)
     {
         // Note that task will terminate.
         ntStatus = LwErrnoToNtStatus(errno);
@@ -299,9 +331,9 @@ SrvListenerProcessTask(
     }
 
     ntStatus = SrvSocketAddressToString(
-                    &clientAddress,
-                    clientAddressStringBuffer,
-                    sizeof(clientAddressStringBuffer));
+        (struct sockaddr*) &clientAddress,
+        clientAddressStringBuffer,
+        sizeof(clientAddressStringBuffer));
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOG_INFO("Handling client from '%s' on fd = %d",
@@ -311,7 +343,7 @@ SrvListenerProcessTask(
     ntStatus = SrvSocketCreate(
                     pListener,
                     connFd,
-                    &clientAddress,
+                    (struct sockaddr*) &clientAddress,
                     clientAddressLength,
                     &pSocket);
     if (ntStatus)

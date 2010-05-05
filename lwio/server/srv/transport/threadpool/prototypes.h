@@ -54,7 +54,8 @@
 NTSTATUS
 SrvListenerInit(
     OUT PSRV_TRANSPORT_LISTENER pListener,
-    IN SRV_TRANSPORT_HANDLE pTransport
+    IN SRV_TRANSPORT_HANDLE pTransport,
+    IN BOOLEAN bInet6
     );
 
 VOID

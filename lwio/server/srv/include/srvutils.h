@@ -50,7 +50,7 @@
 #define SRV_SAFE_FREE_MEMORY_AND_RESET(pMemory) \
     if (pMemory) { SrvFreeMemory(pMemory); (pMemory) = NULL; }
 
-#ifdef LW_USE_INET6
+#ifdef AF_INET6
 #define SRV_SOCKET_ADDRESS_STRING_MAX_SIZE \
     (LW_MAX(INET_ADDRSTRLEN, INET6_ADDRSTRLEN) + 1)
 #else

@@ -131,7 +131,8 @@ typedef struct _NPFS_PIPE
     PNPFS_CCB pCCB;
     PBYTE pSessionKey;
     ULONG ulSessionKeyLength;
-    ULONG ulClientAddress;
+    BYTE ClientAddress[16];
+    USHORT usClientAddressLen;
     PACCESS_TOKEN pClientAccessToken;
 
     PNPFS_IRP_CONTEXT pPendingServerConnect;

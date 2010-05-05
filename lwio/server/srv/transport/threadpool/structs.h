@@ -4,10 +4,17 @@
 // Owned by listener
 typedef struct _SRV_TRANSPORT_LISTENER {
     SRV_TRANSPORT_HANDLE pTransport;
-    PLW_THREAD_POOL pPool;
     PLW_TASK pTask;
     PLW_TASK_GROUP pTaskGroup;
     int ListenFd;
+    union
+    {
+        struct sockaddr_in Addr4;
+#ifdef AF_INET6
+        struct sockaddr_in6 Addr6;
+#endif
+    } Addr;
+    SOCKLEN_T AddrLen;
 } SRV_TRANSPORT_LISTENER, *PSRV_TRANSPORT_LISTENER;
 
 // Top-level structure
@@ -15,6 +22,10 @@ typedef struct _SRV_TRANSPORT_HANDLE_DATA {
     SRV_TRANSPORT_PROTOCOL_DISPATCH Dispatch;
     PSRV_PROTOCOL_TRANSPORT_CONTEXT pContext;
     SRV_TRANSPORT_LISTENER Listener;
+#ifdef AF_INET6
+    SRV_TRANSPORT_LISTENER Listener6;
+    PLW_THREAD_POOL pPool;
+#endif
 } SRV_TRANSPORT_HANDLE_DATA, *PSRV_TRANSPORT_HANDLE_DATA;
 
 typedef ULONG SRV_SOCKET_STATE_MASK, *PSRV_SOCKET_STATE_MASK;
@@ -40,7 +51,14 @@ typedef struct _SRV_SOCKET
 
     // Immutable for life of the task.
     int fd;
-    struct sockaddr clientAddress;
+    union
+    {
+        struct sockaddr Addr;
+        struct sockaddr_in Addr4;
+#ifdef AF_INET6
+        struct sockaddr_in6 Addr6;
+#endif
+    } ClientAddress;
     SOCKLEN_T ClientAddressLength;
     CHAR AddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
 
@@ -74,7 +92,6 @@ typedef struct _LWIO_SRV_LISTENER_CONTEXT
     pthread_mutex_t  mutex;
     pthread_mutex_t* pMutex;
 
-    PLW_THREAD_POOL pPool;
     PLW_TASK pTask;
     PLW_TASK_GROUP pTaskGroup;
     int listenFd;
