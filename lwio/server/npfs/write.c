@@ -139,18 +139,15 @@ NpfsServerWriteFile(
     pPipe = pSCB->pPipe;
     ENTER_MUTEX(&pPipe->PipeMutex);
 
-    switch(pPipe->PipeServerState)
+    switch(pPipe->PipeClientState)
     {
-    case PIPE_SERVER_CONNECTED:
+    case PIPE_CLIENT_CONNECTED:
         ntStatus = NpfsServerWriteFile_Connected(pSCB, pIrpContext);
         pthread_cond_signal(&pPipe->PipeCondition);
         BAIL_ON_NT_STATUS(ntStatus);
         break;
-    case PIPE_SERVER_WAITING_FOR_CONNECTION:
-    case PIPE_SERVER_INIT_STATE:
-    case PIPE_SERVER_DISCONNECTED:
-    case PIPE_SERVER_CREATED:
-    case PIPE_SERVER_CLOSED:
+    case PIPE_CLIENT_INIT_STATE:
+    case PIPE_CLIENT_CLOSED:
         break;
 
     }
@@ -174,17 +171,21 @@ NpfsClientWriteFile(
     PNPFS_PIPE pPipe = NULL;
 
     pPipe = pCCB->pPipe;
+
     ENTER_MUTEX(&pPipe->PipeMutex);
 
-    switch(pPipe->PipeClientState)
+    switch(pPipe->PipeServerState)
     {
-    case PIPE_CLIENT_CONNECTED:
+    case PIPE_SERVER_CONNECTED:
         ntStatus = NpfsClientWriteFile_Connected(pCCB, pIrpContext);
         pthread_cond_signal(&pPipe->PipeCondition);
         BAIL_ON_NT_STATUS(ntStatus);
         break;
-    case PIPE_CLIENT_INIT_STATE:
-    case PIPE_CLIENT_CLOSED:
+    case PIPE_SERVER_INIT_STATE:
+    case PIPE_SERVER_CLOSED:
+    case PIPE_SERVER_DISCONNECTED:
+    case PIPE_SERVER_CREATED:
+    case PIPE_SERVER_WAITING_FOR_CONNECTION:
         break;
     }
 error:
