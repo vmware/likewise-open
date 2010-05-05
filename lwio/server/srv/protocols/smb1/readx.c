@@ -844,7 +844,11 @@ SrvSendZctReadResponse(
 
 cleanup:
 
-    pSmbResponse->ulMessageSize = 0; // Never send out response via non-ZCT
+    // TODO: Perhaps only if SrvProtocolTransportSendZctResponse() was
+    // called and did not return STATUS_INSUFFICIENT_RESOURCES.
+    // Never send out response via non-ZCT
+    pSmbResponse->ulMessageSize = 0;
+    pExecContext->pSmbResponse->bufferUsed = 0;
 
     return ntStatus;
 
