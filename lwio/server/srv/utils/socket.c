@@ -53,7 +53,7 @@ SrvSocketCompareIPV4Address(
     const struct sockaddr* pAddress2
     );
 
-#ifdef LW_USE_INET6
+#ifdef AF_INET6
 
 static
 inline
@@ -78,7 +78,7 @@ SrvSocketCompareIPV6Address(
     const struct sockaddr* pAddress2
     );
 
-#endif /* LW_USE_INET6 */
+#endif /* AF_INET6 */
 
 NTSTATUS
 SrvSocketAddressToStringW(
@@ -133,7 +133,7 @@ SrvSocketAddressToString(
         case AF_INET:
             pAddressPart = &((struct sockaddr_in*)pSocketAddress)->sin_addr;
             break;
-#ifdef LW_USE_INET6
+#ifdef AF_INET6
         case AF_INET6:
             pAddressPart = &((struct sockaddr_in6*)pSocketAddress)->sin6_addr;
             break;
@@ -262,7 +262,7 @@ SrvSocketCompareAddress(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bMatch   = FALSE;
-#ifdef LW_USE_INET6
+#ifdef AF_INET6
     struct sockaddr mappedAddr1 = {0};
     struct sockaddr mappedAddr2 = {0};
 #endif
@@ -275,7 +275,7 @@ SrvSocketCompareAddress(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
-#ifdef LW_USE_INET6
+#ifdef AF_INET6
 
     if (SrvSocketIsIPV4MappedAddress(pAddress1))
     {
@@ -303,7 +303,7 @@ SrvSocketCompareAddress(
 
                 break;
 
-#ifdef LW_USE_INET6
+#ifdef AF_INET6
 
             case AF_INET6:
 
@@ -311,7 +311,7 @@ SrvSocketCompareAddress(
 
                 break;
 
-#endif /* LW_USE_INET6 */
+#endif /* AF_INET6 */
 
             default:
 
@@ -370,7 +370,7 @@ SrvSocketCompareIPV4Address(
              (addr1.pIPV4Addr->sin_port == addr2.pIPV4Addr->sin_port)));
 }
 
-#ifdef LW_USE_INET6
+#ifdef AF_INET6
 
 static
 inline
@@ -473,7 +473,7 @@ SrvSocketCompareIPV6Address(
              (addr1.pIPV6Addr->sin6_port == addr2.pIPV6Addr->sin6_port)));
 }
 
-#endif /* LW_USE_INET6 */
+#endif /* AF_INET6 */
 
 
 
