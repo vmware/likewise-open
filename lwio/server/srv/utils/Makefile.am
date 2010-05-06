@@ -9,6 +9,7 @@ libsrvutils_la_SOURCES = \
     string.c
 
 libsrvutils_la_CPPFLAGS =  \
+    $(AM_CPPFLAGS)         \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \

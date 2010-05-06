@@ -6,6 +6,7 @@ libsrv_transport_threadpool_la_SOURCES = \
     srvsocket.c
 
 libsrv_transport_threadpool_la_CPPFLAGS = \
+    $(AM_CPPFLAGS)         \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \

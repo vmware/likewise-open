@@ -10,6 +10,7 @@ libsrv_protocols_api_la_SOURCES = \
     transport.c
 
 libsrv_protocols_api_la_CPPFLAGS = \
+    $(AM_CPPFLAGS)         \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include \
