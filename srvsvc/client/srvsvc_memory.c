@@ -71,8 +71,19 @@ SrvSvcAllocateMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    int locked = 0;
+
+    GLOBAL_DATA_LOCK(locked);
+
     ntStatus = MemPtrAllocate((PtrList*)srvsvc_ptr_list, out, size, dep);
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(locked);
+
     return LwNtStatusToWin32Error(ntStatus);
+
+error:
+    goto cleanup;
 }
 
 
@@ -82,8 +93,21 @@ SrvSvcFreeMemory(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    int locked = 0;
+
+    GLOBAL_DATA_LOCK(locked);
+
     ntStatus = MemPtrFree((PtrList*)srvsvc_ptr_list, ptr);
+
+    GLOBAL_DATA_UNLOCK(locked);
+
+cleanup:
+    GLOBAL_DATA_UNLOCK(locked);
+
     return LwNtStatusToWin32Error(ntStatus);
+
+error:
+    goto cleanup;
 }
 
 NET_API_STATUS
