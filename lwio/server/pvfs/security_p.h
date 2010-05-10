@@ -81,6 +81,12 @@ PvfsAccessCheckFile(
     ACCESS_MASK Desired,
     ACCESS_MASK *pGranted);
 
+NTSTATUS
+PvfsAccessCheckFileEnumerate(
+    PPVFS_CCB pCcb,
+    PCSTR pszRelativeFilename
+    );
+
 ACCESS_MASK
 PvfsGetGrantedAccessForNewObject(
     ACCESS_MASK DesiredAccess

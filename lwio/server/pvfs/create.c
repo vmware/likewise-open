@@ -354,6 +354,8 @@ PvfsCreateDirDoSysOpen(
     IO_MATCH_FILE_SPEC FileSpec = {0};
     WCHAR wszPattern[2] = {L'*', 0x0 };
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
+    PBOOLEAN pbEnableAbe = NULL;
+    ULONG ulEcpSize = 0;
 
     /* Do the open() */
 
@@ -380,6 +382,27 @@ PvfsCreateDirDoSysOpen(
 
     pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
     pCreateContext->pszDiskFilename = NULL;
+
+    ntError = IoRtlEcpListFind(
+                  pIrp->Args.Create.EcpList,
+                  SRV_ECP_TYPE_ABE,
+                  OUT_PPVOID(&pbEnableAbe),
+                  &ulEcpSize);
+    if (ntError != STATUS_NOT_FOUND)
+    {
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (ulEcpSize != sizeof(BOOLEAN))
+        {
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        if (*pbEnableAbe)
+        {
+            pCreateContext->pCcb->EcpFlags |= PVFS_ECP_ENABLE_ABE;
+        }
+    }
 
     do
     {

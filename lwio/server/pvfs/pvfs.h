@@ -68,6 +68,7 @@
 #include "lwioutils.h"
 #include "lwiocfg.h"
 #include "lwlist.h"
+#include "srvecp.h"
 
 #include "listq.h"
 #include "structs.h"

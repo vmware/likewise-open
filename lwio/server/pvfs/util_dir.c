@@ -252,6 +252,17 @@ PvfsEnumerateDirectory(
 
         if (PvfsWildcardMatch(pDirEntry->d_name, pszPattern, bCaseSensitive))
         {
+            if (pCcb->EcpFlags & PVFS_ECP_ENABLE_ABE)
+            {
+                ntError = PvfsAccessCheckFileEnumerate(
+                              pCcb,
+                              pDirEntry->d_name);
+                if (ntError != STATUS_SUCCESS)
+                {
+                    continue;
+                }
+            }
+
             ntError = PvfsDirContextAddEntry(pCcb->pDirContext, pDirEntry->d_name);
             BAIL_ON_NT_STATUS(ntError);
         }

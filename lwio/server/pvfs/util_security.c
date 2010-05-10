@@ -138,8 +138,8 @@ PvfsAccessCheckDir(
     return PvfsAccessCheckFile(pToken, pszDirectory, Desired, pGranted);
 }
 
-/***********************************************************
- **********************************************************/
+/***********************************************************************
+ **********************************************************************/
 
 NTSTATUS
 PvfsAccessCheckFile(
@@ -259,6 +259,89 @@ cleanup:
     if (pParentSecDesc)
     {
         PvfsFreeAbsoluteSecurityDescriptor(&pParentSecDesc);
+    }
+
+    if (pSecDesc)
+    {
+        PvfsFreeAbsoluteSecurityDescriptor(&pSecDesc);
+    }
+
+    return ntError;
+
+error:
+    goto cleanup;
+}
+
+
+/***********************************************************************
+ **********************************************************************/
+
+NTSTATUS
+PvfsAccessCheckFileEnumerate(
+    PPVFS_CCB pCcb,
+    PCSTR pszRelativeFilename
+    )
+{
+    NTSTATUS ntError = STATUS_UNSUCCESSFUL;
+    PACCESS_TOKEN pToken = pCcb->pUserToken;
+    PSTR pszFilename = NULL;
+    ACCESS_MASK AccessMask = 0;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
+    BYTE pRelativeSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
+    ULONG ulRelativeSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
+    BOOLEAN bGranted = FALSE;
+    SECURITY_INFORMATION SecInfo = (OWNER_SECURITY_INFORMATION |
+                                    GROUP_SECURITY_INFORMATION |
+                                    DACL_SECURITY_INFORMATION);
+
+    /* Create the absolute path */
+
+    ntError = LwRtlCStringAllocatePrintf(
+                  &pszFilename,
+                  "%s/%s",
+                  pCcb->pszFilename,
+                  pszRelativeFilename);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Check the file object itself */
+
+    ntError = PvfsGetSecurityDescriptorFilename(
+                  pszFilename,
+                  SecInfo,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer,
+                  &ulRelativeSecDescLength);
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
+                  &pSecDesc,
+                  (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer);
+    BAIL_ON_NT_STATUS(ntError);
+
+    /* Now check access */
+
+    bGranted = RtlAccessCheck(
+                   pSecDesc,
+                   pToken,
+                   MAXIMUM_ALLOWED,
+                   0,
+                   &gPvfsFileGenericMapping,
+                   &AccessMask,
+                   &ntError);
+    if (!bGranted)
+    {
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    ntError = STATUS_ACCESS_DENIED;
+    if (AccessMask & (FILE_READ_DATA|FILE_WRITE_DATA))
+    {
+        ntError = STATUS_SUCCESS;
+    }
+
+cleanup:
+    if (pszFilename)
+    {
+        LwRtlCStringFree(&pszFilename);
     }
 
     if (pSecDesc)

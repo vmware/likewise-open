@@ -332,6 +332,9 @@ typedef enum _PVFS_OPLOCK_STATE
 
 } PVFS_OPLOCK_STATE, *PPVFS_OPLOCK_STATE;
 
+
+#define PVFS_ECP_ENABLE_ABE      0x00000001
+
 struct _PVFS_CCB
 {
     LW_LIST_LINKS FcbList;
@@ -360,6 +363,7 @@ struct _PVFS_CCB
 
     /* Handle for Directory enumeraqtion */
     PPVFS_DIRECTORY_CONTEXT pDirContext;
+    DWORD EcpFlags;
 
     PVFS_LOCK_TABLE LockTable;
 
