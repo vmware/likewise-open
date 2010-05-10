@@ -133,6 +133,18 @@ SrvMarshallFSAttributeInfo(
     PUSHORT pusDataLen
     );
 
+static
+NTSTATUS
+SrvQueryFSDeviceInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvBuildFSDeviceInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 NTSTATUS
 SrvProcessTrans2QueryFilesystemInformation(
     PSRV_EXEC_CONTEXT       pExecContext
@@ -305,11 +317,17 @@ SrvQueryFilesystemInfo(
             break;
 
         case SMB_QUERY_FS_DEVICE_INFO:
+        case SMB_QUERY_FS_DEVICE_INFO_ALIAS:
+
+            ntStatus = SrvQueryFSDeviceInfo(pExecContext);
+
+            break;
+
+
         case SMB_QUERY_CIFS_UNIX_INFO:
         case SMB_QUERY_MAC_FS_INFO:
         case SMB_QUERY_FS_FULL_SIZE_INFO:
         case SMB_QUERY_FS_QUOTA_INFO:
-        case SMB_QUERY_FS_DEVICE_INFO_ALIAS:
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
@@ -374,11 +392,16 @@ SrvBuildQueryFilesystemInfoResponse(
             break;
 
         case SMB_QUERY_FS_DEVICE_INFO:
+        case SMB_QUERY_FS_DEVICE_INFO_ALIAS:
+
+            ntStatus = SrvBuildFSDeviceInfoResponse(pExecContext);
+
+            break;
+
         case SMB_QUERY_CIFS_UNIX_INFO:
         case SMB_QUERY_MAC_FS_INFO:
         case SMB_QUERY_FS_FULL_SIZE_INFO:
         case SMB_QUERY_FS_QUOTA_INFO:
-        case SMB_QUERY_FS_DEVICE_INFO_ALIAS:
 
             ntStatus = STATUS_NOT_SUPPORTED;
 
@@ -1472,4 +1495,158 @@ error:
     goto cleanup;
 }
 
+static
+NTSTATUS
+SrvQueryFSDeviceInfo(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    ntStatus = pTrans2State->ioStatusBlock.Status;
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!pTrans2State->pData2)
+    {
+        ntStatus = SrvAllocateMemory(
+                        sizeof(FILE_FS_DEVICE_INFORMATION),
+                        (PVOID*)&pTrans2State->pData2);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pTrans2State->usBytesAllocated = sizeof(FILE_FS_DEVICE_INFORMATION);
+
+        ntStatus = IoQueryVolumeInformationFile(
+                            pTrans2State->hFile,
+                            pTrans2State->pAcb,
+                            &pTrans2State->ioStatusBlock,
+                            pTrans2State->pData2,
+                            pTrans2State->usBytesAllocated,
+                            FileFsDeviceInformation);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+error:
+
+    return ntStatus;
+}
+
+static
+NTSTATUS
+SrvBuildFSDeviceInfoResponse(
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V1   pCtxSmb1     = pCtxProtocol->pSmb1Context;
+    ULONG                      iMsg         = pCtxSmb1->iMsg;
+    PSRV_MESSAGE_SMB_V1        pSmbRequest  = &pCtxSmb1->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+    PSRV_TRANS2_STATE_SMB_V1   pTrans2State = NULL;
+    PBYTE   pOutBuffer        = pSmbResponse->pBuffer;
+    ULONG   ulBytesAvailable  = pSmbResponse->ulBytesAvailable;
+    ULONG   ulOffset          = 0;
+    USHORT  usBytesUsed       = 0;
+    ULONG   ulTotalBytesUsed  = 0;
+    PUSHORT pSetup            = NULL;
+    BYTE    setupCount        = 0;
+    USHORT  usDataOffset      = 0;
+    USHORT  usParameterOffset = 0;
+
+    pTrans2State = (PSRV_TRANS2_STATE_SMB_V1)pCtxSmb1->hState;
+
+    if (!pSmbResponse->ulSerialNum)
+    {
+        ntStatus = SrvMarshalHeader_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        STATUS_SUCCESS,
+                        TRUE,
+                        pTrans2State->pTree->tid,
+                        SMB_V1_GET_PROCESS_ID(pSmbRequest->pHeader),
+                        pTrans2State->pSession->uid,
+                        pSmbRequest->pHeader->mid,
+                        pConnection->serverProperties.bRequireSecuritySignatures,
+                        &pSmbResponse->pHeader,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    else
+    {
+        ntStatus = SrvMarshalHeaderAndX_SMB_V1(
+                        pOutBuffer,
+                        ulOffset,
+                        ulBytesAvailable,
+                        COM_TRANSACTION2,
+                        &pSmbResponse->pWordCount,
+                        &pSmbResponse->pAndXHeader,
+                        &pSmbResponse->usHeaderSize);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pOutBuffer       += pSmbResponse->usHeaderSize;
+    ulOffset         += pSmbResponse->usHeaderSize;
+    ulBytesAvailable -= pSmbResponse->usHeaderSize;
+    ulTotalBytesUsed += pSmbResponse->usHeaderSize;
+
+    *pSmbResponse->pWordCount = 10 + setupCount;
+
+    ntStatus = WireMarshallTransaction2Response(
+                    pOutBuffer,
+                    ulBytesAvailable,
+                    ulOffset,
+                    pSetup,
+                    setupCount,
+                    NULL,
+                    0,
+                    pTrans2State->pData2,
+                    pTrans2State->usBytesAllocated,
+                    &usDataOffset,
+                    &usParameterOffset,
+                    &usBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    // pOutBuffer       += usBytesUsed;
+    // ulOffset         += usBytesUsed;
+    // ulBytesAvailable -= usBytesUsed;
+    ulTotalBytesUsed += usBytesUsed;
+
+    pSmbResponse->ulMessageSize = ulTotalBytesUsed;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ulTotalBytesUsed)
+    {
+        pSmbResponse->pHeader = NULL;
+        pSmbResponse->pAndXHeader = NULL;
+        memset(pSmbResponse->pBuffer, 0, ulTotalBytesUsed);
+    }
+
+    pSmbResponse->ulMessageSize = 0;
+
+    goto cleanup;
+}
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
 
