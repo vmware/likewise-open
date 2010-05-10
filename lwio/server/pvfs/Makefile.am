@@ -71,6 +71,7 @@ libpvfs_sys_la_SOURCES = \
     fileFsAttribInfo.c \
     fileFsVolInfo.c \
     fileFsSizeInfo.c \
+    fileFsDeviceInfo.c \
     fileNetworkOpenInfo.c \
     fileAccessInfo.c \
     filePositionInfo.c \

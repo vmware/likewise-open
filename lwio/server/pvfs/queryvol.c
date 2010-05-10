@@ -52,9 +52,10 @@
 /* File Globals */
 
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
-    { (FILE_INFORMATION_CLASS)FileFsAttributeInformation, &PvfsFileFsAttribInfo },
-    { (FILE_INFORMATION_CLASS)FileFsSizeInformation,      &PvfsFileFsSizeInfo },
-    { (FILE_INFORMATION_CLASS)FileFsVolumeInformation,    &PvfsFileFsVolInfo }
+    { (FILE_INFORMATION_CLASS)FileFsAttributeInformation,  PvfsFileFsAttribInfo },
+    { (FILE_INFORMATION_CLASS)FileFsSizeInformation,       PvfsFileFsSizeInfo },
+    { (FILE_INFORMATION_CLASS)FileFsVolumeInformation,     PvfsFileFsVolInfo },
+    { (FILE_INFORMATION_CLASS)FileFsDeviceInformation,     PvfsFileFsDeviceInfo }
 };
 
 
