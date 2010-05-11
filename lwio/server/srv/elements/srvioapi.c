@@ -184,6 +184,47 @@ error:
     goto cleanup;
 }
 
+
+NTSTATUS
+SrvIoPrepareAbeEcpList(
+    PIO_ECP_LIST pEcpList    /* IN */
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBOOLEAN pEnableAbe = NULL;
+
+    ntStatus = LW_RTL_ALLOCATE(&pEnableAbe, BOOLEAN, sizeof(BOOLEAN));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pEnableAbe = TRUE;
+
+    ntStatus = IoRtlEcpListInsert(
+                   pEcpList,
+                   SRV_ECP_TYPE_ABE,
+                   pEnableAbe,
+                   sizeof(BOOLEAN),
+                   LwRtlMemoryFree);
+    if (ntStatus == STATUS_OBJECT_NAME_EXISTS)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (pEnableAbe)
+    {
+        LW_RTL_FREE(&pEnableAbe);
+    }
+
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c
@@ -192,3 +233,4 @@ indent-tabs-mode: nil
 tab-width: 4
 end:
 */
+

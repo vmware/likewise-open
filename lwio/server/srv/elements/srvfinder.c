@@ -327,6 +327,15 @@ SrvFinderCreateSearchSpace(
     fileName.RootFileHandle = hRootFileHandle;
     fileName.FileName = pwszFilesystemPath;
 
+    if (pShareInfo->ulFlags & SHARE_INFO_FLAG_ABE_ENABLED)
+    {
+        ntStatus = IoRtlEcpListAllocate(&pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvIoPrepareAbeEcpList(pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvIoCreateFile(
                     pShareInfo,
                     &hFile,

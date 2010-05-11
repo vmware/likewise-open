@@ -1213,6 +1213,11 @@ SrvIoCreateFile(
     );
 
 NTSTATUS
+SrvIoPrepareAbeEcpList(
+    PIO_ECP_LIST pEcpList    /* IN */
+    );
+
+NTSTATUS
 SrvFileCreate(
     USHORT                  fid,
     PWSTR                   pwszFilename,
