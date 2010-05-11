@@ -298,7 +298,7 @@ error:
 
 static LWMsgStatus
 lwmsg_assoc_print_handle(
-    const LWMsgContext* context,
+    LWMsgDataContext* context,
     LWMsgTypeAttrs* attrs,
     void* object,
     void* data,
@@ -314,7 +314,7 @@ lwmsg_assoc_print_handle(
     const char* type;
     char* str = NULL;
 
-    BAIL_ON_ERROR(status = lwmsg_context_get_data(context, "assoc", (void**) (void*) &assoc));
+    BAIL_ON_ERROR(status = lwmsg_context_get_data(context->context, "assoc", (void**) (void*) &assoc));
 
     BAIL_ON_ERROR(status = assoc->aclass->get_session(assoc, &session));
 
