@@ -333,7 +333,7 @@ PvfsAccessCheckFileEnumerate(
     }
 
     ntError = STATUS_ACCESS_DENIED;
-    if (AccessMask & (FILE_READ_DATA|FILE_WRITE_DATA))
+    if ((AccessMask & FILE_GENERIC_READ) == FILE_GENERIC_READ)
     {
         ntError = STATUS_SUCCESS;
     }
