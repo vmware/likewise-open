@@ -74,6 +74,30 @@ SrvProtocolEnumAllFiles(
 
 static
 NTSTATUS
+SrvProtocolCountFilteredFiles(
+    PSRV_RESOURCE pResource,
+    PVOID         pUserData,
+    PBOOLEAN      pbContinue
+    );
+
+static
+NTSTATUS
+SrvProtocolEnumFilteredFiles(
+    PSRV_RESOURCE pResource,
+    PVOID         pUserData,
+    PBOOLEAN      pbContinue
+    );
+
+static
+NTSTATUS
+SrvProtocolAcceptFilteredFile(
+    PSRV_RESOURCE                 pResource,
+    PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery,
+    PBOOLEAN                      pbAccept
+    );
+
+static
+NTSTATUS
 SrvProtocolFindFile(
     PSRV_RESOURCE pResource,
     PVOID         pUserData,
@@ -165,6 +189,22 @@ SrvProtocolProcessFile_level_3(
     );
 
 static
+NTSTATUS
+SrvProtocolBuildFilePath(
+    PLWIO_SRV_TREE pTree,
+    PLWIO_SRV_FILE pFile,
+    PWSTR*         ppwszFilePath
+    );
+
+static
+NTSTATUS
+SrvProtocolBuildFilePath2(
+    PLWIO_SRV_TREE_2 pTree,
+    PLWIO_SRV_FILE_2 pFile,
+    PWSTR*           ppwszFilePath
+    );
+
+static
 VOID
 SrvProtocolClearFileQueryContents(
     PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery
@@ -215,9 +255,18 @@ SrvProtocolEnumerateFiles(
                         &fileEnumQuery);
         BAIL_ON_NT_STATUS(ntStatus);
     }
-    else
+    else if (!fileEnumQuery.pwszUsername)
     {
-        ntStatus = STATUS_NOT_SUPPORTED;
+        ntStatus = SrvElementsEnumResources(
+                        SRV_RESOURCE_TYPE_FILE,
+                        &SrvProtocolCountFilteredFiles,
+                        &fileEnumQuery);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = SrvElementsEnumResources(
+                        SRV_RESOURCE_TYPE_FILE,
+                        &SrvProtocolEnumFilteredFiles,
+                        &fileEnumQuery);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -514,6 +563,271 @@ error:
     {
         ntStatus = STATUS_SUCCESS;
     }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolCountFilteredFiles(
+    PSRV_RESOURCE pResource,
+    PVOID         pUserData,
+    PBOOLEAN      pbContinue
+    )
+{
+    NTSTATUS      ntStatus  = STATUS_SUCCESS;
+    PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery =
+                                    (PSRV_PROTOCOL_FILE_ENUM_QUERY)pUserData;
+    BOOLEAN bContinue    = TRUE;
+
+    if (pFileEnumQuery->ulTotalEntries == UINT32_MAX)
+    {
+        bContinue = FALSE;
+    }
+    else
+    {
+        BOOLEAN bAccept = FALSE;
+
+        ntStatus = SrvProtocolAcceptFilteredFile(
+                        pResource,
+                        pFileEnumQuery,
+                        &bAccept);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (bAccept)
+        {
+            pFileEnumQuery->ulTotalEntries++;
+        }
+    }
+
+    *pbContinue = bContinue;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolEnumFilteredFiles(
+    PSRV_RESOURCE pResource,
+    PVOID         pUserData,
+    PBOOLEAN      pbContinue
+    )
+{
+    NTSTATUS      ntStatus  = STATUS_SUCCESS;
+    PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery =
+                                    (PSRV_PROTOCOL_FILE_ENUM_QUERY)pUserData;
+    BOOLEAN bContinue = TRUE;
+    BOOLEAN bAccept   = FALSE;
+
+    ntStatus = SrvProtocolAcceptFilteredFile(
+                    pResource,
+                    pFileEnumQuery,
+                    &bAccept);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (bAccept)
+    {
+        if (pFileEnumQuery->iEntryIndex < pFileEnumQuery->iResumeIndex)
+        {
+            pFileEnumQuery->iEntryIndex++;
+            pResource = NULL; // Skip
+        }
+
+        if (pFileEnumQuery->iEntryIndex == UINT32_MAX)
+        {
+            bContinue = FALSE;
+            pResource = NULL;
+        }
+
+        if (pResource)
+        {
+            ULONG ulBytesUsed = 0;
+
+            switch (pResource->pAttributes->protocolVersion)
+            {
+                case SMB_PROTOCOL_VERSION_1:
+
+                    ntStatus = SrvProtocolProcessFile(
+                                    pResource->ulResourceId,
+                                    pFileEnumQuery->pSession,
+                                    pFileEnumQuery->pTree,
+                                    pResource->pAttributes->fileId.pFid1,
+                                    pFileEnumQuery->ulInfoLevel,
+                                    pFileEnumQuery->pBuffer,
+                                    pFileEnumQuery->ulBufferSize,
+                                    &ulBytesUsed);
+
+                    break;
+
+                case SMB_PROTOCOL_VERSION_2:
+
+                    ntStatus = SrvProtocolProcessFile2(
+                                    pResource->ulResourceId,
+                                    pFileEnumQuery->pSession2,
+                                    pFileEnumQuery->pTree2,
+                                    pResource->pAttributes->fileId.pFid2,
+                                    pFileEnumQuery->ulInfoLevel,
+                                    pFileEnumQuery->pBuffer,
+                                    pFileEnumQuery->ulBufferSize,
+                                    &ulBytesUsed);
+
+                    break;
+
+                default:
+
+                    ntStatus = STATUS_INTERNAL_ERROR;
+
+                    break;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            pFileEnumQuery->pBuffer      += ulBytesUsed;
+            pFileEnumQuery->ulBufferSize -= ulBytesUsed;
+            pFileEnumQuery->ulBytesUsed  += ulBytesUsed;
+
+            pFileEnumQuery->iEntryIndex++;
+            pFileEnumQuery->ulEntriesRead++;
+        }
+    }
+
+    *pbContinue = bContinue;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pbContinue = FALSE;
+
+    if (ntStatus == STATUS_END_OF_FILE)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolAcceptFilteredFile(
+    PSRV_RESOURCE                 pResource,
+    PSRV_PROTOCOL_FILE_ENUM_QUERY pFileEnumQuery,
+    PBOOLEAN                      pbAccept
+    )
+{
+    NTSTATUS ntStatus     = STATUS_SUCCESS;
+    PWSTR    pwszFilePath = NULL;
+    BOOLEAN  bSkip        = FALSE;
+
+    ntStatus = SrvProtocolUpdateQueryConnection(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProtocolUpdateQuerySession(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = SrvProtocolUpdateQueryTree(pResource, pFileEnumQuery);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!IsNullOrEmptyString(pFileEnumQuery->pwszUsername))
+    {
+        switch (pResource->pAttributes->protocolVersion)
+        {
+            case SMB_PROTOCOL_VERSION_1:
+
+                if (SMBWc16sCmp(
+                       pFileEnumQuery->pwszUsername,
+                       pFileEnumQuery->pSession->pwszClientPrincipalName))
+                {
+                    bSkip = TRUE;
+                }
+
+                break;
+
+            case SMB_PROTOCOL_VERSION_2:
+
+                if (SMBWc16sCmp(
+                       pFileEnumQuery->pwszUsername,
+                       pFileEnumQuery->pSession2->pwszClientPrincipalName))
+                {
+                    bSkip = TRUE;
+
+                    goto done;
+                }
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INTERNAL_ERROR;
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
+
+        if (bSkip)
+        {
+            goto done;
+        }
+    }
+
+    if (!IsNullOrEmptyString(pFileEnumQuery->pwszBasepath))
+    {
+        switch (pResource->pAttributes->protocolVersion)
+        {
+            case SMB_PROTOCOL_VERSION_1:
+
+                    ntStatus = SrvProtocolBuildFilePath(
+                                    pFileEnumQuery->pTree,
+                                    pFileEnumQuery->pFile,
+                                    &pwszFilePath);
+
+                    break;
+
+            case SMB_PROTOCOL_VERSION_2:
+
+                    ntStatus = SrvProtocolBuildFilePath2(
+                                    pFileEnumQuery->pTree2,
+                                    pFileEnumQuery->pFile2,
+                                    &pwszFilePath);
+
+                    break;
+
+            default:
+
+                    ntStatus = STATUS_INTERNAL_ERROR;
+
+                    break;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        if (SMBWc16snCmp(pFileEnumQuery->pwszBasepath,
+                         pwszFilePath,
+                         LwRtlWC16StringNumChars(pFileEnumQuery->pwszBasepath)))
+        {
+            bSkip = TRUE;
+        }
+    }
+
+done:
+
+    *pbAccept = !bSkip;
+
+cleanup:
+
+    SRV_SAFE_FREE_MEMORY(pwszFilePath);
+
+    return ntStatus;
+
+error:
 
     goto cleanup;
 }
@@ -882,6 +1196,7 @@ SrvProtocolProcessFile(
     NTSTATUS       ntStatus       = STATUS_SUCCESS;
     PLWIO_SRV_FILE pFile          = NULL;
     ULONG          ulBytesUsed    = 0;
+    PWSTR          pwszFilePath   = NULL;
     BOOLEAN        bSessionInLock = FALSE;
     BOOLEAN        bFileInLock    = FALSE;
 
@@ -903,13 +1218,17 @@ SrvProtocolProcessFile(
         case 3:
 
             LWIO_LOCK_RWMUTEX_SHARED(bSessionInLock, &pSession->mutex);
+
+            ntStatus = SrvProtocolBuildFilePath(pTree, pFile, &pwszFilePath);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             LWIO_LOCK_RWMUTEX_SHARED(bFileInLock, &pFile->mutex);
 
             ntStatus = SrvProtocolProcessFile_level_3(
                             ulResourceId,
                             pFile->ulPermissions,
                             pFile->ulNumLocks,
-                            pFile->pwszFilename,
+                            pwszFilePath,
                             pSession->pwszClientPrincipalName,
                             pBuffer,
                             ulBufferSize,
@@ -937,6 +1256,8 @@ cleanup:
         SrvFileRelease(pFile);
     }
 
+    SRV_SAFE_FREE_MEMORY(pwszFilePath);
+
     return ntStatus;
 
 error:
@@ -962,6 +1283,7 @@ SrvProtocolProcessFile2(
     NTSTATUS         ntStatus       = STATUS_SUCCESS;
     PLWIO_SRV_FILE_2 pFile          = NULL;
     ULONG            ulBytesUsed    = 0;
+    PWSTR            pwszFilePath   = NULL;
     BOOLEAN          bSessionInLock = FALSE;
     BOOLEAN          bFileInLock    = FALSE;
 
@@ -983,6 +1305,10 @@ SrvProtocolProcessFile2(
         case 3:
 
             LWIO_LOCK_RWMUTEX_SHARED(bSessionInLock, &pSession->mutex);
+
+            ntStatus = SrvProtocolBuildFilePath2(pTree, pFile, &pwszFilePath);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             LWIO_LOCK_RWMUTEX_SHARED(bFileInLock, &pFile->mutex);
 
             ntStatus = SrvProtocolProcessFile_level_3(
@@ -1014,6 +1340,8 @@ cleanup:
     {
         SrvFile2Release(pFile);
     }
+
+    SRV_SAFE_FREE_MEMORY(pwszFilePath);
 
     return ntStatus;
 
@@ -1099,6 +1427,128 @@ cleanup:
 error:
 
     *pulBytesUsed = 0;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolBuildFilePath(
+    PLWIO_SRV_TREE pTree,
+    PLWIO_SRV_FILE pFile,
+    PWSTR*         ppwszFilePath
+    )
+{
+    NTSTATUS ntStatus      = STATUS_SUCCESS;
+    BOOLEAN  bTreeInLock   = FALSE;
+    BOOLEAN  bFileInLock   = FALSE;
+    PWSTR    pwszSharePath = NULL;
+    PWSTR    pwszFilePath  = NULL;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bFileInLock, &pFile->mutex);
+
+    ntStatus = SrvShareMapToWindowsPath(
+                    pTree->pShareInfo->pwszPath,
+                    &pwszSharePath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+
+    ntStatus = SrvBuildFilePath(
+                    pwszSharePath,
+                    pFile->pwszFilename,
+                    &pwszFilePath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!IsNullOrEmptyString(pwszFilePath))
+    {
+        wchar16_t wszBackSlash[] = {'\\', 0};
+        size_t    sLen = LwRtlWC16StringNumChars(pwszFilePath);
+
+        if (pwszFilePath[sLen-1] == wszBackSlash[0])
+        {
+            pwszFilePath[sLen-1] = 0;
+        }
+    }
+
+    *ppwszFilePath = pwszFilePath;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bFileInLock, &pFile->mutex);
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+
+    SRV_SAFE_FREE_MEMORY(pwszSharePath);
+
+    return ntStatus;
+
+error:
+
+    *ppwszFilePath = NULL;
+
+    SRV_SAFE_FREE_MEMORY(pwszFilePath);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolBuildFilePath2(
+    PLWIO_SRV_TREE_2 pTree,
+    PLWIO_SRV_FILE_2 pFile,
+    PWSTR*           ppwszFilePath
+    )
+{
+    NTSTATUS ntStatus      = STATUS_SUCCESS;
+    BOOLEAN  bTreeInLock   = FALSE;
+    BOOLEAN  bFileInLock   = FALSE;
+    PWSTR    pwszSharePath = NULL;
+    PWSTR    pwszFilePath  = NULL;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTree->mutex);
+    LWIO_LOCK_RWMUTEX_SHARED(bFileInLock, &pFile->mutex);
+
+    ntStatus = SrvShareMapToWindowsPath(
+                    pTree->pShareInfo->pwszPath,
+                    &pwszSharePath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+
+    ntStatus = SrvBuildFilePath(
+                    pwszSharePath,
+                    pFile->pwszFilename,
+                    &pwszFilePath);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (!IsNullOrEmptyString(pwszFilePath))
+    {
+        wchar16_t wszBackSlash[] = {'\\', 0};
+        size_t    sLen = LwRtlWC16StringNumChars(pwszFilePath);
+
+        if (pwszFilePath[sLen-1] == wszBackSlash[0])
+        {
+            pwszFilePath[sLen-1] = 0;
+        }
+    }
+
+    *ppwszFilePath = pwszFilePath;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bFileInLock, &pFile->mutex);
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+
+    SRV_SAFE_FREE_MEMORY(pwszSharePath);
+
+    return ntStatus;
+
+error:
+
+    *ppwszFilePath = NULL;
+
+    SRV_SAFE_FREE_MEMORY(pwszFilePath);
 
     goto cleanup;
 }
