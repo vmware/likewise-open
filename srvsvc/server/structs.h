@@ -1,6 +1,23 @@
 #ifndef __STRUCTS_H__
 #define __STRUCTS_H__
 
+typedef struct _ACCESS_LIST
+{
+    PSID        *ppSid;
+    ACCESS_MASK AccessMask;
+    ULONG       ulAccessType;
+
+} ACCESS_LIST, *PACCESS_LIST;
+
+typedef struct _SRVSVC_SRV_CONTEXT
+{
+    PACCESS_TOKEN pUserToken;
+    PBYTE         pSessionKey;
+    DWORD         dwSessionKeyLen;
+    DWORD         dwAccessGranted;
+
+} SRVSVC_SRV_CONTEXT, *PSRVSVC_SRV_CONTEXT;
+
 typedef struct _NET_SHARE_INFO0
 {
     PSTR pszName;
@@ -89,6 +106,7 @@ typedef struct _SRVSVC_RUNTIME_GLOBALS
     DWORD           dwExitCode;                  /* Process Exit Code */
 
     PSECURITY_DESCRIPTOR_ABSOLUTE pServerSecDesc;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSessionSecDesc; /* session info management */
 
     GENERIC_MAPPING genericMapping;
 

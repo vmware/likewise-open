@@ -8,6 +8,7 @@ idl_srcdir = $(top_srcdir)/idl
 include_srcdir = $(top_srcdir)/include
 
 srvsvcd_SOURCES =              \
+    accesstoken.c              \
     config.c                   \
     netfile.c                  \
     netsession.c               \
@@ -18,6 +19,7 @@ srvsvcd_SOURCES =              \
     globals.c                  \
     marshall.c                 \
     memutil.c                  \
+    security.c                 \
     signalhandler.c            \
     srvsvc_netshareadd.c       \
     srvsvc_netsharedel.c       \

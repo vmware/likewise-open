@@ -43,6 +43,20 @@
  *
  */
 
+// accesstoken.c
+
+DWORD
+SrvSvcSrvInitAuthInfo(
+    IN  handle_t            hBinding,
+    OUT PSRVSVC_SRV_CONTEXT pSrvCtx
+    );
+
+
+VOID
+SrvSvcSrvFreeAuthInfoContents(
+    IN  PSRVSVC_SRV_CONTEXT pSrvCtx
+    );
+
 // config.c
 
 DWORD
@@ -116,6 +130,18 @@ SrvSvcNetSessionDel(
     PWSTR    pwszServername,                 /* [in] */
     PWSTR    pwszUncClientname,              /* [in] */
     PWSTR    pwszUsername                    /* [in] */
+    );
+
+// security.c
+
+DWORD
+SrvSvcSrvInitServerSecurityDescriptor(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    );
+
+DWORD
+SrvSvcSrvDestroyServerSecurityDescriptor(
+    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
     );
 
 // signalhandler.c

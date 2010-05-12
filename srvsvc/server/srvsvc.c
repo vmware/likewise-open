@@ -70,6 +70,7 @@ SrvSvcInitSecurity(
 {
     DWORD dwError = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pAbsolute = NULL;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSessionSecDesc = NULL;
     union
     {
         SID sid;
@@ -80,6 +81,9 @@ SrvSvcInitSecurity(
     DWORD dwSidSize = 0;
     DWORD dwDaclSize = 0;
     PACL pDacl = NULL;
+
+    dwError = SrvSvcSrvInitServerSecurityDescriptor(&pSessionSecDesc);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwCreateWellKnownSid(
             WinBuiltinAdministratorsSid,
@@ -174,8 +178,10 @@ SrvSvcInitSecurity(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     gServerInfo.pServerSecDesc = pAbsolute;
+    gServerInfo.pSessionSecDesc = pSessionSecDesc;
 
 cleanup:
+
     LW_SAFE_FREE_MEMORY(pAuthedUsersSid);
 
     return dwError;
@@ -185,6 +191,11 @@ error:
     LW_SAFE_FREE_MEMORY(pAbsolute);
     LW_SAFE_FREE_MEMORY(pDacl);
     LW_SAFE_FREE_MEMORY(pBuiltinAdminsSid);
+
+    if (pSessionSecDesc)
+    {
+        SrvSvcSrvDestroyServerSecurityDescriptor(pSessionSecDesc);
+    }
 
     goto cleanup;
 }
@@ -319,6 +330,11 @@ _NetrFileEnum(
     DWORD dwEntriesRead  = 0;
     DWORD dwTotalEntries = 0;
     DWORD dwResumeHandle = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    GENERIC_MAPPING genericMapping = {0};
+    DWORD dwRequiredAccessRights = SRVSVC_ACCESS_GET_INFO_ADMINS;
+    DWORD dwAccessGranted     = 0;
+    SRVSVC_SRV_CONTEXT srvCtx = {0};
 
     BAIL_ON_INVALID_PTR(pdwInfoLevel,    dwError);
     BAIL_ON_INVALID_PTR(pInfo,           dwError);
@@ -330,8 +346,20 @@ _NetrFileEnum(
         dwResumeHandle = *pdwResumeHandle;
     }
 
-    dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ);
+    dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+                        srvCtx.pUserToken,
+                        dwRequiredAccessRights,
+                        0,
+                        &genericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
 
     dwError = SrvSvcNetFileEnum(
                     IDL_handle,
@@ -353,6 +381,8 @@ _NetrFileEnum(
     }
 
 cleanup:
+
+    SrvSvcSrvFreeAuthInfoContents(&srvCtx);
 
     return dwError;
 
@@ -376,13 +406,28 @@ _NetrFileGetInfo(
     )
 {
     DWORD dwError        = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    GENERIC_MAPPING genericMapping = {0};
+    DWORD dwRequiredAccessRights = SRVSVC_ACCESS_GET_INFO_ADMINS;
+    DWORD dwAccessGranted     = 0;
+    SRVSVC_SRV_CONTEXT srvCtx = {0};
 
     BAIL_ON_INVALID_PTR(pInfo, dwError);
 
-    dwError = SrvSvcAccessCheck(
-                    IDL_handle,
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+                        srvCtx.pUserToken,
+                        dwRequiredAccessRights,
+                        0,
+                        &genericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
 
     dwError = SrvSvcNetFileGetInfo(
                     IDL_handle,
@@ -393,6 +438,8 @@ _NetrFileGetInfo(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
+
+    SrvSvcSrvFreeAuthInfoContents(&srvCtx);
 
     return dwError;
 
@@ -409,11 +456,26 @@ _NetrFileClose(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    GENERIC_MAPPING genericMapping = {0};
+    DWORD dwRequiredAccessRights = SRVSVC_ACCESS_DELETE;
+    DWORD dwAccessGranted     = 0;
+    SRVSVC_SRV_CONTEXT srvCtx = {0};
 
-    dwError = SrvSvcAccessCheck(
-                    IDL_handle,
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+                        srvCtx.pUserToken,
+                        dwRequiredAccessRights,
+                        0,
+                        &genericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
 
     dwError = SrvSvcNetFileClose(
                     IDL_handle,
@@ -422,6 +484,8 @@ _NetrFileClose(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
+
+    SrvSvcSrvFreeAuthInfoContents(&srvCtx);
 
     return dwError;
 
@@ -444,10 +508,15 @@ _NetrSessionEnum(
     )
 {
     DWORD dwError        = 0;
+    NTSTATUS ntStatus    = STATUS_SUCCESS;
     DWORD dwInfoLevel    = 0;
     DWORD dwEntriesRead  = 0;
     DWORD dwTotalEntries = 0;
     DWORD dwResumeHandle = 0;
+    GENERIC_MAPPING genericMapping = {0};
+    DWORD dwRequiredAccessRights = 0;
+    DWORD dwAccessGranted     = 0;
+    SRVSVC_SRV_CONTEXT srvCtx = {0};
 
     BAIL_ON_INVALID_PTR(pdwInfoLevel,      dwError);
     BAIL_ON_INVALID_PTR(pInfo,             dwError);
@@ -456,8 +525,43 @@ _NetrSessionEnum(
     dwInfoLevel    = *pdwInfoLevel;
     dwResumeHandle = pdwResumeHandle ? *pdwResumeHandle : 0;
 
-    dwError = SrvSvcAccessCheck(IDL_handle, FILE_GENERIC_READ);
+    switch (dwInfoLevel)
+    {
+        case 0:
+        case 10:
+
+            dwRequiredAccessRights = SRVSVC_ACCESS_GET_INFO_AUTHENTICATED_USERS;
+            break;
+
+        case 1:
+        case 2:
+        case 502:
+
+            dwRequiredAccessRights = SRVSVC_ACCESS_GET_INFO_ADMINS;
+            break;
+
+        default:
+
+            dwError = LwNtStatusToWin32Error(STATUS_INVALID_INFO_CLASS);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+
+            break;
+    }
+
+    dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+                        srvCtx.pUserToken,
+                        dwRequiredAccessRights,
+                        0,
+                        &genericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
 
     dwError = SrvSvcNetSessionEnum(
                     IDL_handle,
@@ -476,6 +580,8 @@ _NetrSessionEnum(
     *pdwResumeHandle = dwResumeHandle;
 
 cleanup:
+
+    SrvSvcSrvFreeAuthInfoContents(&srvCtx);
 
     return dwError;
 
@@ -498,11 +604,26 @@ _NetrSessionDel(
     )
 {
     DWORD dwError = 0;
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    GENERIC_MAPPING genericMapping = {0};
+    DWORD dwRequiredAccessRights = SRVSVC_ACCESS_DELETE;
+    DWORD dwAccessGranted     = 0;
+    SRVSVC_SRV_CONTEXT srvCtx = {0};
 
-    dwError = SrvSvcAccessCheck(
-                    IDL_handle,
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    dwError = SrvSvcSrvInitAuthInfo(IDL_handle, &srvCtx);
     BAIL_ON_SRVSVC_ERROR(dwError);
+
+    if (!RtlAccessCheck(gServerInfo.pSessionSecDesc,
+                        srvCtx.pUserToken,
+                        dwRequiredAccessRights,
+                        0,
+                        &genericMapping,
+                        &dwAccessGranted,
+                        &ntStatus))
+    {
+        dwError = LwNtStatusToWin32Error(ntStatus);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+    }
 
     dwError = SrvSvcNetSessionDel(
                     IDL_handle,
@@ -512,6 +633,8 @@ _NetrSessionDel(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
 cleanup:
+
+    SrvSvcSrvFreeAuthInfoContents(&srvCtx);
 
     return dwError;
 

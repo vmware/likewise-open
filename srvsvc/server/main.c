@@ -819,6 +819,12 @@ SrvSvcRpcShutdown(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
+    if (gServerInfo.pSessionSecDesc)
+    {
+        SrvSvcSrvDestroyServerSecurityDescriptor(gServerInfo.pSessionSecDesc);
+        gServerInfo.pSessionSecDesc = NULL;
+    }
+
 cleanup:
 
     SRVSVC_UNLOCK_MUTEX(bInLock, &gServerInfo.mutex);

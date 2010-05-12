@@ -27,6 +27,12 @@
 #define SECURITY_UNMAPPED_UNIX_UID_RID      1
 #define SECURITY_UNMAPPED_UNIX_RID_COUNT    2
 
+/*
+ * Internal access flags for doing security checks
+ */
+#define SRVSVC_ACCESS_GET_INFO_AUTHENTICATED_USERS (0x00000001)
+#define SRVSVC_ACCESS_GET_INFO_ADMINS              (0x00000002)
+#define SRVSVC_ACCESS_DELETE                       (0x00000020)
 
 #endif /* __DEFS_H__ */
 

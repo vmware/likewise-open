@@ -58,6 +58,7 @@ SRVSVC_RUNTIME_GLOBALS gServerInfo =
     .bProcessShouldExit    = 0,
     .dwExitCode            = 0,
     .pServerSecDesc        = NULL,
+    .pSessionSecDesc       = NULL,
     .config                =    {
                                 .mutex = PTHREAD_MUTEX_INITIALIZER,
                                 .szLsaLpcSocketPath = DEFAULT_LSALPC_SOCKET_PATH
