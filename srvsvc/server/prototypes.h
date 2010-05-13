@@ -141,7 +141,7 @@ SrvSvcSrvInitServerSecurityDescriptor(
 
 DWORD
 SrvSvcSrvDestroyServerSecurityDescriptor(
-    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
     );
 
 // signalhandler.c

@@ -322,12 +322,11 @@ error:
 
 DWORD
 SrvSvcSrvDestroyServerSecurityDescriptor(
-    PSECURITY_DESCRIPTOR_ABSOLUTE *ppSecDesc
+    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc
     )
 {
     DWORD dwError = ERROR_SUCCESS;
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSECURITY_DESCRIPTOR_ABSOLUTE pSecDesc = NULL;
     PSID pOwnerSid = NULL;
     BOOLEAN bOwnerDefaulted = FALSE;
     PSID pPrimaryGroupSid = NULL;
@@ -338,15 +337,6 @@ SrvSvcSrvDestroyServerSecurityDescriptor(
     PACL pSacl = NULL;
     BOOLEAN bSaclPresent = FALSE;
     BOOLEAN bSaclDefaulted = FALSE;
-
-    BAIL_ON_INVALID_PTR(ppSecDesc, dwError);
-
-    pSecDesc = *ppSecDesc;
-    if (pSecDesc == NULL)
-    {
-        dwError = ERROR_SUCCESS;
-        goto cleanup;
-    }
 
     ntStatus = RtlGetOwnerSecurityDescriptor(pSecDesc,
                                              &pOwnerSid,
@@ -385,11 +375,13 @@ cleanup:
     }
 
     LW_SAFE_FREE_MEMORY(pSecDesc);
-    *ppSecDesc = NULL;
 
     return dwError;
 
 error:
+
+    dwError = LwNtStatusToWin32Error(ntStatus);
+
     goto cleanup;
 }
 
