@@ -181,6 +181,9 @@ main(
 
     SrvSvcBlockSelectedSignals();
 
+    dwError = SrvSvcInitSecurity();
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
     dwError = SrvSvcRpcInitialize();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -188,9 +191,6 @@ main(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcSMNotify();
-    BAIL_ON_SRVSVC_ERROR(dwError);
-
-    dwError = SrvSvcInitSecurity();
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcHandleSignals();
