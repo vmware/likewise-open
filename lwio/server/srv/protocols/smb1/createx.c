@@ -288,6 +288,19 @@ SrvProcessNTCreateAndX(
 
             pCreateState->bRemoveFileFromTree = FALSE;
 
+            if (pCreateState->pRequestHeader->desiredAccess & FILE_READ_DATA)
+            {
+                pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_READ;
+            }
+            if (pCreateState->pRequestHeader->desiredAccess & FILE_WRITE_DATA)
+            {
+                pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_WRITE;
+            }
+            if (pCreateState->ulCreateAction == FILE_CREATED)
+            {
+                pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_CREATE;
+            }
+
             pCtxSmb1->pFile = SrvFileAcquire(pCreateState->pFile);
 
             break;

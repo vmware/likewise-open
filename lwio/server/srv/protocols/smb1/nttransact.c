@@ -2053,6 +2053,19 @@ SrvProcessNtTransactCreate(
 
             pNTTransactState->bRemoveFileFromTree = FALSE;
 
+            if (pNTTransactState->pNtTransactCreateHeader->ulDesiredAccess & FILE_READ_DATA)
+            {
+                pNTTransactState->pFile->ulPermissions |= SRV_PERM_FILE_READ;
+            }
+            if (pNTTransactState->pNtTransactCreateHeader->ulDesiredAccess & FILE_WRITE_DATA)
+            {
+                pNTTransactState->pFile->ulPermissions |= SRV_PERM_FILE_WRITE;
+            }
+            if (pNTTransactState->ulCreateAction == FILE_CREATED)
+            {
+                pNTTransactState->pFile->ulPermissions |= SRV_PERM_FILE_CREATE;
+            }
+
             pCtxSmb1->pFile = SrvFileAcquire(pNTTransactState->pFile);
 
             break;

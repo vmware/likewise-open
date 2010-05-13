@@ -281,6 +281,19 @@ SrvProcessOpenAndX(
 
             pOpenState->bRemoveFileFromTree = FALSE;
 
+            if (pOpenState->pRequestHeader->usDesiredAccess & FILE_READ_DATA)
+            {
+                pOpenState->pFile->ulPermissions |= SRV_PERM_FILE_READ;
+            }
+            if (pOpenState->pRequestHeader->usDesiredAccess & FILE_WRITE_DATA)
+            {
+                pOpenState->pFile->ulPermissions |= SRV_PERM_FILE_WRITE;
+            }
+            if (pOpenState->ulCreateAction == FILE_CREATED)
+            {
+                pOpenState->pFile->ulPermissions |= SRV_PERM_FILE_CREATE;
+            }
+
             pCtxSmb1->pFile = SrvFileAcquire(pOpenState->pFile);
 
             break;

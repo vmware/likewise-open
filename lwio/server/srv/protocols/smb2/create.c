@@ -410,6 +410,19 @@ SrvProcessCreate_SMB_V2(
 
             pCreateState->bRemoveFileFromTree = FALSE;
 
+            if (pCreateState->pRequestHeader->ulDesiredAccess & FILE_READ_DATA)
+            {
+                pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_READ;
+            }
+            if (pCreateState->pRequestHeader->ulDesiredAccess & FILE_WRITE_DATA)
+            {
+                pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_WRITE;
+            }
+            if (pCreateState->ulCreateAction == FILE_CREATED)
+            {
+                pCreateState->pFile->ulPermissions |= SRV_PERM_FILE_CREATE;
+            }
+
             pCtxSmb2->pFile = SrvFile2Acquire(pCreateState->pFile);
             pCtxSmb2->llNumSuccessfulCreates++;
 
