@@ -821,7 +821,7 @@ SrvSvcRpcShutdown(
 
     if (gServerInfo.pSessionSecDesc)
     {
-        SrvSvcSrvDestroyServerSecurityDescriptor(gServerInfo.pSessionSecDesc);
+        SrvSvcSrvDestroyServerSecurityDescriptor(&gServerInfo.pSessionSecDesc);
         gServerInfo.pSessionSecDesc = NULL;
     }
 
