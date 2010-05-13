@@ -209,38 +209,42 @@ error:
     switch (level)
     {
     case 101:
-        if (pInfo101->sv101_name)
+        if(pInfo101)
         {
-            SrvSvcSrvFreeMemory(pInfo101->sv101_name);
+            if (pInfo101->sv101_name)
+            {
+                SrvSvcSrvFreeMemory(pInfo101->sv101_name);
+            }
+
+            if (pInfo101->sv101_comment)
+            {
+                SrvSvcSrvFreeMemory(pInfo101->sv101_comment);
+            }
+
+            SrvSvcSrvFreeMemory(pInfo101);
         }
-
-        if (pInfo101->sv101_comment)
-        {
-            SrvSvcSrvFreeMemory(pInfo101->sv101_comment);
-        }
-
-        SrvSvcSrvFreeMemory(pInfo101);
-
         break;
 
     case 102:
-        if (pInfo102->sv102_name)
+        if (pInfo102)
         {
-            SrvSvcSrvFreeMemory(pInfo102->sv102_name);
+            if (pInfo102->sv102_name)
+            {
+                SrvSvcSrvFreeMemory(pInfo102->sv102_name);
+            }
+
+            if (pInfo102->sv102_comment)
+            {
+                SrvSvcSrvFreeMemory(pInfo102->sv102_comment);
+            }
+
+            if (pInfo102->sv102_userpath)
+            {
+                SrvSvcSrvFreeMemory(pInfo102->sv102_userpath);
+            }
+
+            SrvSvcSrvFreeMemory(pInfo102);
         }
-
-        if (pInfo102->sv102_comment)
-        {
-            SrvSvcSrvFreeMemory(pInfo102->sv102_comment);
-        }
-
-        if (pInfo102->sv102_userpath)
-        {
-            SrvSvcSrvFreeMemory(pInfo102->sv102_userpath);
-        }
-
-        SrvSvcSrvFreeMemory(pInfo102);
-
         break;
     }
 
