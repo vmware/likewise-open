@@ -70,11 +70,9 @@ SrvSvcNetrServerGetInfo(
     PWSTR pwszLocalHost = NULL;
     POLICY_HANDLE hLocalPolicy = NULL;
     LsaPolicyInformation *pPolInfo = NULL;
-    PCSTR pszComment = "Likewise RPC";
-    PCSTR pszUserPath = "/testpath";
+    PCSTR pszComment = "Likewise CIFS";
     PWSTR pwszHostname = NULL;
     PWSTR pwszComment = NULL;
-    PWSTR pwszUserPath = NULL;
     SERVER_INFO_101 *pInfo101 = NULL;
     SERVER_INFO_102 *pInfo102 = NULL;
 
@@ -120,68 +118,59 @@ SrvSvcNetrServerGetInfo(
     switch (level)
     {
     case 101:
-        dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo101),
-                                          OUT_PPVOID(&pInfo101));
+        dwError = SrvSvcSrvAllocateMemory(
+                      sizeof(*pInfo101),
+                      OUT_PPVOID(&pInfo101));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
-                                              &pwszHostname,
-                                              &pPolInfo->dns.name);
+                      &pInfo101->sv101_name,
+                      &pPolInfo->dns.name);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = SrvSvcSrvAllocateWC16StringFromCString(
-                                              &pwszComment,
-                                              pszComment);
+                      &pInfo101->sv101_comment,
+                      pszComment);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo101->sv101_platform_id    = 500;
-        pInfo101->sv101_name           = pwszHostname;
         pInfo101->sv101_version_major  = 5;
         pInfo101->sv101_version_minor  = 1;
         pInfo101->sv101_type           = 0x0001003;
-        pInfo101->sv101_comment        = pwszComment;
 
         info->info101 = pInfo101;
-
-        pwszHostname = NULL;
-        pwszComment  = NULL;
 
         break;
 
     case 102:
-        dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo102),
-                                          OUT_PPVOID(&pInfo102));
+        dwError = SrvSvcSrvAllocateMemory(
+                      sizeof(*pInfo102),
+                      OUT_PPVOID(&pInfo102));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
-                                              &pwszHostname,
-                                              &pPolInfo->dns.name);
+                      &pInfo102->sv102_name,
+                      &pPolInfo->dns.name);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = SrvSvcSrvAllocateWC16StringFromCString(
-                                              &pwszComment,
-                                              pszComment);
+                      &pInfo102->sv102_comment,
+                      pszComment);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         pInfo102->sv102_platform_id    = 500;
-        pInfo102->sv102_name           = pwszHostname;
         pInfo102->sv102_version_major  = 5;
         pInfo102->sv102_version_minor  = 1;
         pInfo102->sv102_type           = 0x0001003;
-        pInfo102->sv102_comment        = pwszComment;
         pInfo102->sv102_users          = 0;
         pInfo102->sv102_disc           = 0;
         pInfo102->sv102_hidden         = 0;
         pInfo102->sv102_announce       = 0;
         pInfo102->sv102_anndelta       = 0;
         pInfo102->sv102_licenses       = 5;
-        pInfo102->sv102_userpath       = pwszUserPath;
+        pInfo102->sv102_userpath       = NULL;
 
         info->info102 = pInfo102;
-
-        pwszHostname = NULL;
-        pwszComment  = NULL;
-        pwszUserPath  = NULL;
 
         break;
 
