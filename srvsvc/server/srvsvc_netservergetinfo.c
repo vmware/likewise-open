@@ -117,8 +117,9 @@ SrvSvcNetrServerGetInfo(
                                   &pPolInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (level == 101)
+    switch (level)
     {
+    case 101:
         dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo101),
                                           OUT_PPVOID(&pInfo101));
         BAIL_ON_SRVSVC_ERROR(dwError);
@@ -144,15 +145,12 @@ SrvSvcNetrServerGetInfo(
 
         pwszHostname = NULL;
         pwszComment  = NULL;
-    }
-    else if (level == 102)
-    {
+
+        break;
+
+    case 102:
         dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo102),
                                           OUT_PPVOID(&pInfo102));
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateMemory(sizeof(*pInfo101),
-                                          OUT_PPVOID(&pInfo101));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
@@ -184,9 +182,10 @@ SrvSvcNetrServerGetInfo(
         pwszHostname = NULL;
         pwszComment  = NULL;
         pwszUserPath  = NULL;
-    }
-    else
-    {
+
+        break;
+
+    default:
         dwError = ERROR_NOT_SUPPORTED;
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
@@ -218,8 +217,9 @@ cleanup:
     return dwError;
 
 error:
-    if (pInfo101)
+    switch (level)
     {
+    case 101:
         if (pInfo101->sv101_name)
         {
             SrvSvcSrvFreeMemory(pInfo101->sv101_name);
@@ -231,9 +231,10 @@ error:
         }
 
         SrvSvcSrvFreeMemory(pInfo101);
-    }
-    else if (pInfo102)
-    {
+
+        break;
+
+    case 102:
         if (pInfo102->sv102_name)
         {
             SrvSvcSrvFreeMemory(pInfo102->sv102_name);
@@ -250,6 +251,8 @@ error:
         }
 
         SrvSvcSrvFreeMemory(pInfo102);
+
+        break;
     }
 
     memset(info, 0, sizeof(*info));
