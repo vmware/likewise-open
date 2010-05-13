@@ -1594,6 +1594,8 @@ SrvExecuteLockRequest(
 
         pLockState->iUnlock++;
         pLockState->bUnlockPending = FALSE;
+
+        SrvFileRegisterUnlock(pLockState->pFile);
     }
 
     if (pLockState->bLockPending)
@@ -1603,6 +1605,8 @@ SrvExecuteLockRequest(
 
         pLockState->iLock++;
         pLockState->bLockPending = FALSE;
+
+        SrvFileRegisterLock(pLockState->pFile);
     }
 
     if (pLockState->bCancelled || pLockState->bExpired)
@@ -1657,6 +1661,8 @@ SrvExecuteLockRequest(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
+        SrvFileRegisterUnlock(pLockState->pFile);
+
         if (!bFailImmediately)
         {
             SrvReleaseLockStateAsync(pLockState); // completed synchronously
@@ -1708,6 +1714,8 @@ SrvExecuteLockRequest(
             pLockState->bLockPending = TRUE;
         }
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvFileRegisterLock(pLockState->pFile);
 
         if (!bFailImmediately)
         {
@@ -1893,6 +1901,10 @@ SrvClearLocks(
                             llOffset,
                             llLength,
                             ntStatus);
+        }
+        else
+        {
+            SrvFileRegisterUnlock(pLockState->pFile);
         }
     }
 }

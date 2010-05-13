@@ -682,6 +682,8 @@ SrvProcessSyncLockRequest_SMB_V2(
 
         pLockRequestState->iUnlock++;
         pLockRequestState->bUnlockPending = FALSE;
+
+        SrvFile2RegisterUnlock(pLockRequestState->pFile);
     }
 
     if (pLockRequestState->bLockPending)
@@ -691,6 +693,8 @@ SrvProcessSyncLockRequest_SMB_V2(
 
         pLockRequestState->iLock++;
         pLockRequestState->bLockPending = FALSE;
+
+        SrvFile2RegisterLock(pLockRequestState->pFile);
     }
 
     // Unlock requests
@@ -714,6 +718,8 @@ SrvProcessSyncLockRequest_SMB_V2(
             pLockRequestState->bUnlockPending = TRUE;
         }
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvFile2RegisterUnlock(pLockRequestState->pFile);
 
         SrvReleaseSyncLockStateAsync_SMB_V2(pLockRequestState); // completed sync
     }
@@ -742,6 +748,8 @@ SrvProcessSyncLockRequest_SMB_V2(
             pLockRequestState->bLockPending = TRUE;
         }
         BAIL_ON_NT_STATUS(ntStatus);
+
+        SrvFile2RegisterLock(pLockRequestState->pFile);
 
         SrvReleaseSyncLockStateAsync_SMB_V2(pLockRequestState); // completed sync
     }
@@ -879,6 +887,10 @@ SrvClearLocks_SMB_V2_inlock(
         if (ntStatus1)
         {
             LWIO_LOG_ERROR("Failed in unlock. error code [%d]", ntStatus1);
+        }
+        else
+        {
+            SrvFile2RegisterUnlock(pLockRequestState->pFile);
         }
     }
 
