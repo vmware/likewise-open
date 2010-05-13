@@ -54,7 +54,7 @@ SrvSvcSrvAllocateWC16StringFromUnicodeString(
     BAIL_ON_INVALID_PTR(ppwszOut, dwError);
     BAIL_ON_INVALID_PTR(pIn, dwError);
 
-    dwError = SrvSvcSrvAllocateMemory(pIn->MaximumLength,
+    dwError = SrvSvcSrvAllocateMemory(pIn->MaximumLength + sizeof(WCHAR),
                                       OUT_PPVOID(&pwszStr));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -164,6 +164,202 @@ error:
     goto cleanup;
 }
 
+
+DWORD
+SrvSvcSrvCopyShareInfo0(
+    IN OUT PSHARE_INFO_0 pOutShareInfo,
+    IN     PSHARE_INFO_0 pInShareInfo
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi0_netname,
+                  pInShareInfo->shi0_netname);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+SrvSvcSrvCopyShareInfo1(
+    IN OUT PSHARE_INFO_1 pOutShareInfo,
+    IN     PSHARE_INFO_1 pInShareInfo
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi1_netname,
+                  pInShareInfo->shi1_netname);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi1_remark,
+                  pInShareInfo->shi1_remark);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    pOutShareInfo->shi1_type = pInShareInfo->shi1_type;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+DWORD
+SrvSvcSrvCopyShareInfo2(
+    IN OUT PSHARE_INFO_2 pOutShareInfo,
+    IN     PSHARE_INFO_2 pInShareInfo
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi2_netname,
+                  pInShareInfo->shi2_netname);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi2_remark,
+                  pInShareInfo->shi2_remark);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi2_path,
+                  pInShareInfo->shi2_path);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi2_password,
+                  pInShareInfo->shi2_password);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    pOutShareInfo->shi2_type         = pInShareInfo->shi2_type;
+    pOutShareInfo->shi2_permissions  = pInShareInfo->shi2_permissions;
+    pOutShareInfo->shi2_max_uses     = pInShareInfo->shi2_max_uses;
+    pOutShareInfo->shi2_current_uses = pInShareInfo->shi2_current_uses;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+
+DWORD
+SrvSvcSrvCopyShareInfo501(
+    IN OUT PSHARE_INFO_501 pOutShareInfo,
+    IN     PSHARE_INFO_501 pInShareInfo
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi501_netname,
+                  pInShareInfo->shi501_netname);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi501_remark,
+                  pInShareInfo->shi501_remark);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    pOutShareInfo->shi501_type  = pInShareInfo->shi501_type;
+    pOutShareInfo->shi501_flags = pInShareInfo->shi501_flags;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+
+DWORD
+SrvSvcSrvCopyShareInfo502(
+    IN OUT PSHARE_INFO_502 pOutShareInfo,
+    IN     PSHARE_INFO_502 pInShareInfo
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi502_netname,
+                  pInShareInfo->shi502_netname);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi502_remark,
+                  pInShareInfo->shi502_remark);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi502_path,
+                  pInShareInfo->shi502_path);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateWC16String(
+                  &pOutShareInfo->shi502_password,
+                  pInShareInfo->shi502_password);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    dwError = SrvSvcSrvAllocateMemory(
+                  pInShareInfo->shi502_reserved,
+                  (PVOID*)&pOutShareInfo->shi502_security_descriptor);
+    BAIL_ON_SRVSVC_ERROR(dwError);
+
+    memcpy(pOutShareInfo->shi502_security_descriptor,
+           pInShareInfo->shi502_security_descriptor,
+           pInShareInfo->shi502_reserved);
+
+    pOutShareInfo->shi502_type         = pInShareInfo->shi502_type;
+    pOutShareInfo->shi502_permissions  = pInShareInfo->shi502_permissions;
+    pOutShareInfo->shi502_max_uses     = pInShareInfo->shi502_max_uses;
+    pOutShareInfo->shi502_current_uses = pInShareInfo->shi502_current_uses;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
+
+
+DWORD
+SrvSvcSrvCopyShareInfo1005(
+    IN OUT PSHARE_INFO_1005 pOutShareInfo,
+    IN     PSHARE_INFO_1005 pInShareInfo
+    )
+{
+    DWORD dwError = ERROR_SUCCESS;
+
+    pOutShareInfo->shi1005_flags = pInShareInfo->shi1005_flags;
+
+cleanup:
+
+    return dwError;
+
+error:
+
+    goto cleanup;
+}
 
 /*
 local variables:

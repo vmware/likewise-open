@@ -252,3 +252,50 @@ SrvSvcSrvAllocateWC16StringFromCString(
     OUT PWSTR  *ppwszOut,
     IN  PCSTR   pszIn
     );
+
+DWORD
+SrvSvcSrvCopyShareInfo0(
+    IN OUT PSHARE_INFO_0 pOutShareInfo,
+    IN     PSHARE_INFO_0 pInShareInfo
+    );
+
+DWORD
+SrvSvcSrvCopyShareInfo1(
+    IN OUT PSHARE_INFO_1 pOutShareInfo,
+    IN     PSHARE_INFO_1 pInShareInfo
+    );
+
+DWORD
+SrvSvcSrvCopyShareInfo2(
+    IN OUT PSHARE_INFO_2 pOutShareInfo,
+    IN     PSHARE_INFO_2 pInShareInfo
+    );
+
+DWORD
+SrvSvcSrvCopyShareInfo501(
+    IN OUT PSHARE_INFO_501 pOutShareInfo,
+    IN     PSHARE_INFO_501 pInShareInfo
+    );
+
+DWORD
+SrvSvcSrvCopyShareInfo502(
+    IN OUT PSHARE_INFO_502 pOutShareInfo,
+    IN     PSHARE_INFO_502 pInShareInfo
+    );
+
+DWORD
+SrvSvcSrvCopyShareInfo1005(
+    IN OUT PSHARE_INFO_1005 pOutShareInfo,
+    IN     PSHARE_INFO_1005 pInShareInfo
+    );
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

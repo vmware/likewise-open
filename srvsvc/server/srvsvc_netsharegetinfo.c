@@ -204,9 +204,9 @@ SrvSvcNetShareGetInfo(
     case 0:
         info->info0   = &pShareInfo->info0;
 
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info0->shi0_netname,
-                      pGetParamsOut->Info.p0->shi0_netname);
+        dwError = SrvSvcSrvCopyShareInfo0(
+                      info->info0,
+                      pGetParamsOut->Info.p0);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         break;
@@ -214,111 +214,50 @@ SrvSvcNetShareGetInfo(
     case 1:
         info->info1   = &pShareInfo->info1;
 
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info1->shi1_netname,
-                      pGetParamsOut->Info.p1->shi1_netname);
+        dwError = SrvSvcSrvCopyShareInfo1(
+                      info->info1,
+                      pGetParamsOut->Info.p1);
         BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info1->shi1_remark,
-                      pGetParamsOut->Info.p1->shi1_remark);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        info->info1->shi1_type = pGetParamsOut->Info.p1->shi1_type;
 
         break;
 
     case 2:
         info->info2   = &pShareInfo->info2;
 
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info2->shi2_netname,
-                      pGetParamsOut->Info.p2->shi2_netname);
+        dwError = SrvSvcSrvCopyShareInfo2(
+                      info->info2,
+                      pGetParamsOut->Info.p2);
         BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info2->shi2_remark,
-                      pGetParamsOut->Info.p2->shi2_remark);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info2->shi2_path,
-                      pGetParamsOut->Info.p2->shi2_path);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info2->shi2_password,
-                      pGetParamsOut->Info.p2->shi2_password);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        info->info2->shi2_type         = pGetParamsOut->Info.p2->shi2_type;
-        info->info2->shi2_permissions  = pGetParamsOut->Info.p2->shi2_permissions;
-        info->info2->shi2_max_uses     = pGetParamsOut->Info.p2->shi2_max_uses;
-        info->info2->shi2_current_uses = pGetParamsOut->Info.p2->shi2_current_uses;
 
         break;
 
     case 501:
         info->info501 = &pShareInfo->info501;
 
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info501->shi501_netname,
-                      pGetParamsOut->Info.p501->shi501_netname);
+        dwError = SrvSvcSrvCopyShareInfo501(
+                      info->info501,
+                      pGetParamsOut->Info.p501);
         BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info501->shi501_remark,
-                      pGetParamsOut->Info.p501->shi501_remark);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        info->info501->shi501_type  = pGetParamsOut->Info.p501->shi501_type;
-        info->info501->shi501_flags = pGetParamsOut->Info.p501->shi501_flags;
 
         break;
 
     case 502:
         info->info502 = &pShareInfo->info502;
 
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info502->shi502_netname,
-                      pGetParamsOut->Info.p502->shi502_netname);
+        dwError = SrvSvcSrvCopyShareInfo502(
+                      info->info502,
+                      pGetParamsOut->Info.p502);
         BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info502->shi502_remark,
-                      pGetParamsOut->Info.p502->shi502_remark);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info502->shi502_path,
-                      pGetParamsOut->Info.p502->shi502_path);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateWC16String(
-                      &info->info502->shi502_password,
-                      pGetParamsOut->Info.p502->shi502_password);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        dwError = SrvSvcSrvAllocateMemory(
-                      pGetParamsOut->Info.p502->shi502_reserved,
-                      (PVOID*)&info->info502->shi502_security_descriptor);
-        BAIL_ON_SRVSVC_ERROR(dwError);
-
-        memcpy(&info->info502->shi502_security_descriptor,
-               pGetParamsOut->Info.p502->shi502_security_descriptor,
-               pGetParamsOut->Info.p502->shi502_reserved);
-
-        info->info502->shi502_type         = pGetParamsOut->Info.p502->shi502_type;
-        info->info502->shi502_permissions  = pGetParamsOut->Info.p502->shi502_permissions;
-        info->info502->shi502_max_uses     = pGetParamsOut->Info.p502->shi502_max_uses;
-        info->info502->shi502_current_uses = pGetParamsOut->Info.p502->shi502_current_uses;
 
         break;
 
     case 1005:
         info->info1005 = &pShareInfo->info1005;
 
-        info->info1005->shi1005_flags = pGetParamsOut->Info.p1005->shi1005_flags;
+        dwError = SrvSvcSrvCopyShareInfo1005(
+                      info->info1005,
+                      pGetParamsOut->Info.p1005);
+        BAIL_ON_SRVSVC_ERROR(dwError);
 
         break;
 
@@ -337,7 +276,8 @@ cleanup:
 
     LW_SAFE_FREE_MEMORY(pInBuffer);
     LW_SAFE_FREE_MEMORY(pOutBuffer);
-    LW_SAFE_FREE_MEMORY(pGetParamsOut);
+
+    // SrvSvcFreeShareInfoOutParams(pGetParamsOut->dwInfoLevel, &pGetParamsOut);
 
     return dwError;
 

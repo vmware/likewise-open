@@ -90,17 +90,19 @@ SrvSvcNetShareEnum(
     srvsvc_NetShareCtr2 *ctr2 = NULL;
     srvsvc_NetShareCtr501 *ctr501 = NULL;
     srvsvc_NetShareCtr502 *ctr502 = NULL;
+    SHORT i = 0;
 
     EnumParamsIn.dwInfoLevel = *level;
 
-    ntStatus = LwShareInfoMarshalEnumParameters(
+    dwError = LwNtStatusToWin32Error(
+                  LwShareInfoMarshalEnumParameters(
                         &EnumParamsIn,
                         &pInBuffer,
-                        &dwInLength
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
+                        &dwInLength));
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    ntStatus = NtCreateFile(
+    dwError = LwNtStatusToWin32Error(
+                  NtCreateFile(
                         &hFile,
                         NULL,
                         &IoStatusBlock,
@@ -115,9 +117,8 @@ SrvSvcNetShareEnum(
                         CreateOptions,
                         NULL,
                         0,
-                        NULL
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
+                        NULL));
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwAllocateMemory(dwOutLength, (void**)&pOutBuffer);
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -153,29 +154,35 @@ SrvSvcNetShareEnum(
                         dwOutLength
                         );
     }
+    dwError = LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = LwShareInfoUnmarshalEnumParameters(
+    dwError = LwNtStatusToWin32Error(
+                  LwShareInfoUnmarshalEnumParameters(
                         pOutBuffer,
                         dwOutLength,
-                        &pEnumParamsOut
-                        );
-    BAIL_ON_NT_STATUS(ntStatus);
+                        &pEnumParamsOut));
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    switch (pEnumParamsOut->dwInfoLevel) {
-
+    switch (pEnumParamsOut->dwInfoLevel)
+    {
     case 0:
         ctr0 = ctr->ctr0;
         ctr0->count = pEnumParamsOut->dwNumEntries;
 
         dwError = SrvSvcSrvAllocateMemory(
-                            sizeof(*ctr0->array) * ctr0->count,
-                            (void**)&ctr0->array
-                            );
+                      sizeof(*ctr0->array) * ctr0->count,
+                      (PVOID*)&ctr0->array);
         BAIL_ON_SRVSVC_ERROR(dwError);
-        memcpy((void*)ctr0->array, (void*)pEnumParamsOut->info.p0,
-               sizeof(*ctr0->array) * ctr0->count);
+
+        for (i=0; i<ctr0->count ; i++)
+        {
+            dwError = SrvSvcSrvCopyShareInfo0(
+                          &ctr0->array[i],
+                          &pEnumParamsOut->info.p0[i]);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+        }
         break;
 
     case 1:
@@ -183,12 +190,17 @@ SrvSvcNetShareEnum(
         ctr1->count = pEnumParamsOut->dwNumEntries;
 
         dwError = SrvSvcSrvAllocateMemory(
-                            sizeof(*ctr1->array) * ctr1->count,
-                            (void**)&ctr1->array
-                            );
+                      sizeof(*ctr1->array) * ctr1->count,
+                      (PVOID*)&ctr1->array);
         BAIL_ON_SRVSVC_ERROR(dwError);
-        memcpy((void*)ctr1->array, (void*)pEnumParamsOut->info.p1,
-               sizeof(*ctr1->array) * ctr1->count);
+
+        for (i=0; i<ctr1->count ; i++)
+        {
+            dwError = SrvSvcSrvCopyShareInfo1(
+                          &ctr1->array[i],
+                          &pEnumParamsOut->info.p1[i]);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+        }
         break;
 
     case 2:
@@ -196,12 +208,17 @@ SrvSvcNetShareEnum(
         ctr2->count = pEnumParamsOut->dwNumEntries;
 
         dwError = SrvSvcSrvAllocateMemory(
-                            sizeof(*ctr2->array) * ctr2->count,
-                            (void**)&ctr2->array
-                            );
+                      sizeof(*ctr2->array) * ctr2->count,
+                      (PVOID)&ctr2->array);
         BAIL_ON_SRVSVC_ERROR(dwError);
-        memcpy((void*)ctr2->array, (void*)pEnumParamsOut->info.p2,
-               sizeof(*ctr2->array) * ctr2->count);
+
+        for (i=0; i<ctr2->count ; i++)
+        {
+            dwError = SrvSvcSrvCopyShareInfo2(
+                          &ctr2->array[i],
+                          &pEnumParamsOut->info.p2[i]);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+        }
         break;
 
     case 501:
@@ -209,12 +226,17 @@ SrvSvcNetShareEnum(
         ctr501->count = pEnumParamsOut->dwNumEntries;
 
         dwError = SrvSvcSrvAllocateMemory(
-                            sizeof(*ctr501->array) * ctr501->count,
-                            (void**)&ctr501->array
-                            );
+                      sizeof(*ctr501->array) * ctr501->count,
+                      (PVOID*)&ctr501->array);
         BAIL_ON_SRVSVC_ERROR(dwError);
-        memcpy((void*)ctr501->array, (void*)pEnumParamsOut->info.p501,
-               sizeof(*ctr501->array) * ctr501->count);
+
+        for (i=0; i<ctr501->count ; i++)
+        {
+            dwError = SrvSvcSrvCopyShareInfo501(
+                          &ctr501->array[i],
+                          &pEnumParamsOut->info.p501[i]);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+        }
         break;
 
     case 502:
@@ -222,20 +244,26 @@ SrvSvcNetShareEnum(
         ctr502->count = pEnumParamsOut->dwNumEntries;
 
         dwError = SrvSvcSrvAllocateMemory(
-                            sizeof(*ctr502->array) * ctr502->count,
-                            (void**)&ctr502->array
-                            );
+                      sizeof(*ctr502->array) * ctr502->count,
+                      (void**)&ctr502->array);
         BAIL_ON_SRVSVC_ERROR(dwError);
-        memcpy((void*)ctr502->array, (void*)pEnumParamsOut->info.p502,
-               sizeof(*ctr502->array) * ctr502->count);
+
+        for (i=0; i<ctr502->count ; i++)
+        {
+            dwError = SrvSvcSrvCopyShareInfo502(
+                          &ctr502->array[i],
+                          &pEnumParamsOut->info.p502[i]);
+            BAIL_ON_SRVSVC_ERROR(dwError);
+        }
         break;
 
     default:
 
-        ntStatus = STATUS_NOT_SUPPORTED;
+        dwError = LwNtStatusToWin32Error(STATUS_NOT_SUPPORTED);
+        BAIL_ON_SRVSVC_ERROR(dwError);
+
         break;
     }
-    BAIL_ON_NT_STATUS(ntStatus);
 
     *level         = pEnumParamsOut->dwInfoLevel;
     *total_entries = pEnumParamsOut->dwNumEntries;
@@ -254,43 +282,9 @@ cleanup:
     return dwError;
 
 error:
-    if (pEnumParamsOut)
-    {
-        switch (pEnumParamsOut->dwInfoLevel) {
-        case 0:
-            SrvSvcSrvFreeMemory(ctr0->array);
-            break;
-
-        case 1:
-            SrvSvcSrvFreeMemory(ctr1->array);
-            break;
-
-        case 2:
-            SrvSvcSrvFreeMemory(ctr2->array);
-            break;
-
-        case 501:
-            SrvSvcSrvFreeMemory(ctr501->array);
-            break;
-
-        case 502:
-            SrvSvcSrvFreeMemory(ctr502->array);
-            break;
-        default:
-
-            SRVSVC_LOG_ERROR("Unsupported info level [%u]",
-                             pEnumParamsOut->dwInfoLevel);
-            break;
-        }
-    }
 
     *level         = 0;
     *total_entries = 0;
-
-    if (ntStatus != STATUS_SUCCESS)
-    {
-        dwError = LwNtStatusToWin32Error(ntStatus);
-    }
 
     goto cleanup;
 }
