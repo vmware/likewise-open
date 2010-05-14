@@ -290,7 +290,7 @@ AC_SUBST(srvsvcconfdir)
 AS_AC_EXPAND(CONFIGDIR, $srvsvcconfdir)
 AC_DEFINE_UNQUOTED(CONFIGDIR, "$CONFIGDIR", [Config directory])
 
-srvsvcregdir="$sysconfdir"
+srvsvcregdir="$datadir/config"
 AC_SUBST(srvsvcregdir)
 
 if test x"$localstatedir" = x"/var"; then
