@@ -633,6 +633,21 @@ SrvBuildCreateState_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    /* Enable ABE (but only we if know this is not a file access) */
+
+    if ((pCreateState->pTree->pShareInfo->ulFlags & SHARE_INFO_FLAG_ABE_ENABLED) &&
+        !(pRequestHeader->ulCreateOptions & FILE_NON_DIRECTORY_FILE))
+    {
+        if (!pCreateState->pEcpList)
+        {
+            ntStatus = IoRtlEcpListAllocate(&pCreateState->pEcpList);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = SrvIoPrepareAbeEcpList(pCreateState->pEcpList);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     pCreateState->pCreateContexts = *ppCreateContexts;
     *ppCreateContexts = NULL;
 
@@ -648,8 +663,11 @@ SrvBuildCreateState_SMB_V2(
 
                 pCreateState->pExtAContext = pContext;
 
-                ntStatus = IoRtlEcpListAllocate(&pCreateState->pEcpList);
-                BAIL_ON_NT_STATUS(ntStatus);
+                if (!pCreateState->pEcpList)
+                {
+                    ntStatus = IoRtlEcpListAllocate(&pCreateState->pEcpList);
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
 
                 ntStatus = IoRtlEcpListInsert(
                                 pCreateState->pEcpList,
@@ -1500,3 +1518,13 @@ error:
 
     goto cleanup;
 }
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
