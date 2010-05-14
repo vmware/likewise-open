@@ -75,26 +75,29 @@ SrvSvcNetrServerGetInfo(
     PWSTR pwszComment = NULL;
     SERVER_INFO_101 *pInfo101 = NULL;
     SERVER_INFO_102 *pInfo102 = NULL;
+    BOOLEAN bStandalone = FALSE;
 
-    dwError = LwMbsToWc16s("ncalrpc",
-                           &pwszProtSeq);
+    dwError = LwMbsToWc16s("ncalrpc", &pwszProtSeq);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = SrvSvcConfigGetLsaLpcSocketPath(&pszLsaLpcSocketPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    dwError = LwMbsToWc16s(pszLsaLpcSocketPath,
-                           &pwszLsaLpcSocketPath);
+    dwError = LwMbsToWc16s(
+                  pszLsaLpcSocketPath,
+                  &pwszLsaLpcSocketPath);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    ntStatus = LsaInitBindingFull(&hLsaBinding,
-                                   pwszProtSeq,
-                                   NULL,
-                                   pwszLsaLpcSocketPath,
-                                   NULL,
-                                   NULL,
-                                   NULL);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwNtStatusToWin32Error(
+                  LsaInitBindingFull(
+                      &hLsaBinding,
+                      pwszProtSeq,
+                      NULL,
+                      pwszLsaLpcSocketPath,
+                      NULL,
+                      NULL,
+                      NULL));
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = gethostname(szHostname, sizeof(szHostname));
     BAIL_ON_SRVSVC_ERROR(dwError);
@@ -102,18 +105,35 @@ SrvSvcNetrServerGetInfo(
     dwError = LwMbsToWc16s(szHostname, &pwszLocalHost);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    ntStatus = LsaOpenPolicy2(hLsaBinding,
-                              pwszLocalHost,
-                              NULL,
-                              dwPolicyAccessMask,
-                              &hLocalPolicy);
-    BAIL_ON_NT_STATUS(ntStatus);
+    dwError = LwNtStatusToWin32Error(
+                  LsaOpenPolicy2(
+                      hLsaBinding,
+                      pwszLocalHost,
+                      NULL,
+                      dwPolicyAccessMask,
+                      &hLocalPolicy));
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
-    ntStatus = LsaQueryInfoPolicy(hLsaBinding,
-                                  hLocalPolicy,
-                                  LSA_POLICY_INFO_DNS,
-                                  &pPolInfo);
-    BAIL_ON_NT_STATUS(ntStatus);
+    // Query for the DNS name information.  Fallback to the
+    // account domain in case we are not joined to any domain
+
+    ntStatus = LsaQueryInfoPolicy(
+                   hLsaBinding,
+                   hLocalPolicy,
+                   LSA_POLICY_INFO_DNS,
+                   &pPolInfo);
+    if (ntStatus == STATUS_INVALID_INFO_CLASS)
+    {
+        bStandalone = TRUE;
+
+        ntStatus = LsaQueryInfoPolicy(
+                       hLsaBinding,
+                       hLocalPolicy,
+                       LSA_POLICY_INFO_ACCOUNT_DOMAIN,
+                       &pPolInfo);
+    }
+    dwError = LwNtStatusToWin32Error(ntStatus);
+    BAIL_ON_SRVSVC_ERROR(dwError);
 
     switch (level)
     {
@@ -123,9 +143,18 @@ SrvSvcNetrServerGetInfo(
                       OUT_PPVOID(&pInfo101));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
-                      &pInfo101->sv101_name,
-                      &pPolInfo->dns.name);
+        if (!bStandalone)
+        {
+            dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
+                          &pInfo101->sv101_name,
+                          &pPolInfo->dns.name);
+        }
+        else
+        {
+            dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
+                          &pInfo101->sv101_name,
+                          &pPolInfo->account_domain.name);
+        }
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = SrvSvcSrvAllocateWC16StringFromCString(
@@ -148,9 +177,19 @@ SrvSvcNetrServerGetInfo(
                       OUT_PPVOID(&pInfo102));
         BAIL_ON_SRVSVC_ERROR(dwError);
 
-        dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
-                      &pInfo102->sv102_name,
-                      &pPolInfo->dns.name);
+        if (!bStandalone)
+        {
+            dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
+                          &pInfo102->sv102_name,
+                          &pPolInfo->dns.name);
+        }
+        else
+        {
+            dwError = SrvSvcSrvAllocateWC16StringFromUnicodeString(
+                          &pInfo102->sv102_name,
+                          &pPolInfo->account_domain.name);
+        }
+
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         dwError = SrvSvcSrvAllocateWC16StringFromCString(
@@ -197,54 +236,18 @@ cleanup:
     LW_SAFE_FREE_MEMORY(pwszProtSeq);
     LW_SAFE_FREE_MEMORY(pwszLocalHost);
 
-    if (dwError == ERROR_SUCCESS &&
-        ntStatus != STATUS_SUCCESS)
-    {
-        dwError = LwNtStatusToWin32Error(ntStatus);
-    }
-
     return dwError;
 
 error:
+
     switch (level)
     {
     case 101:
-        if(pInfo101)
-        {
-            if (pInfo101->sv101_name)
-            {
-                SrvSvcSrvFreeMemory(pInfo101->sv101_name);
-            }
-
-            if (pInfo101->sv101_comment)
-            {
-                SrvSvcSrvFreeMemory(pInfo101->sv101_comment);
-            }
-
-            SrvSvcSrvFreeMemory(pInfo101);
-        }
+        SrvSvcSrvFreeServerInfo101(pInfo101);
         break;
 
     case 102:
-        if (pInfo102)
-        {
-            if (pInfo102->sv102_name)
-            {
-                SrvSvcSrvFreeMemory(pInfo102->sv102_name);
-            }
-
-            if (pInfo102->sv102_comment)
-            {
-                SrvSvcSrvFreeMemory(pInfo102->sv102_comment);
-            }
-
-            if (pInfo102->sv102_userpath)
-            {
-                SrvSvcSrvFreeMemory(pInfo102->sv102_userpath);
-            }
-
-            SrvSvcSrvFreeMemory(pInfo102);
-        }
+        SrvSvcSrvFreeServerInfo102(pInfo102);
         break;
     }
 

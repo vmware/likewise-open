@@ -379,6 +379,59 @@ error:
     goto cleanup;
 }
 
+
+VOID
+SrvSvcSrvFreeServerInfo101(
+    PSERVER_INFO_101 pServerInfo101
+    )
+{
+    if (pServerInfo101)
+    {
+        if (pServerInfo101->sv101_name)
+        {
+            SrvSvcSrvFreeMemory(pServerInfo101->sv101_name);
+        }
+
+        if (pServerInfo101->sv101_comment)
+        {
+            SrvSvcSrvFreeMemory(pServerInfo101->sv101_comment);
+        }
+
+        SrvSvcSrvFreeMemory(pServerInfo101);
+    }
+
+    return;
+}
+
+VOID
+SrvSvcSrvFreeServerInfo102(
+    PSERVER_INFO_102 pServerInfo102
+    )
+{
+    if (pServerInfo102)
+    {
+        if (pServerInfo102->sv102_name)
+        {
+            SrvSvcSrvFreeMemory(pServerInfo102->sv102_name);
+        }
+
+        if (pServerInfo102->sv102_comment)
+        {
+            SrvSvcSrvFreeMemory(pServerInfo102->sv102_comment);
+        }
+
+        if (pServerInfo102->sv102_userpath)
+        {
+            SrvSvcSrvFreeMemory(pServerInfo102->sv102_userpath);
+        }
+
+        SrvSvcSrvFreeMemory(pServerInfo102);
+    }
+
+    return;
+}
+
+
 /*
 local variables:
 mode: c

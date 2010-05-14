@@ -289,6 +289,15 @@ SrvSvcSrvCopyShareInfo1005(
     IN     PSHARE_INFO_1005 pInShareInfo
     );
 
+VOID
+SrvSvcSrvFreeServerInfo101(
+    PSERVER_INFO_101 pServerInfo101
+    );
+
+VOID
+SrvSvcSrvFreeServerInfo102(
+    PSERVER_INFO_102 pServerInfo101
+    );
 
 
 /*
