@@ -51,6 +51,15 @@
 
 static
 NTSTATUS
+SrvSessionCountTotalFiles(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    );
+
+static
+NTSTATUS
 SrvSessionUpdateLastActivityTime(
    PLWIO_SRV_SESSION pSession
    );
@@ -418,46 +427,28 @@ error:
 }
 
 NTSTATUS
-SrvSessionIncrementFileCount(
-    PLWIO_SRV_SESSION pSession
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-
-    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
-
-    ntStatus = SrvSessionUpdateLastActivityTime_inlock(pSession);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    pSession->ullTotalFileCount++;
-
-cleanup:
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
-
-    return ntStatus;
-
-error:
-
-    goto cleanup;
-}
-
-NTSTATUS
 SrvSessionGetFileCount(
     PLWIO_SRV_SESSION pSession,
     PULONG64          pullFileCount
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bInLock = FALSE;
+    BOOLEAN  bInLock = FALSE;
+    ULONG64  ullTotalFileCount = 0;
 
     ntStatus = SrvSessionUpdateLastActivityTime(pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
-    *pullFileCount = pSession->ullTotalFileCount;
+    ntStatus = LwRtlRBTreeTraverse(
+                    pSession->pTreeCollection,
+                    LWRTL_TREE_TRAVERSAL_TYPE_IN_ORDER,
+                    &SrvSessionCountTotalFiles,
+                    &ullTotalFileCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *pullFileCount = ullTotalFileCount;
 
 cleanup:
 
@@ -470,6 +461,30 @@ error:
     *pullFileCount = 0;
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSessionCountTotalFiles(
+    PVOID    pKey,
+    PVOID    pData,
+    PVOID    pUserData,
+    PBOOLEAN pbContinue
+    )
+{
+    PLWIO_SRV_TREE pTree = (PLWIO_SRV_TREE)pData;
+    PULONG64 pullTotalFileCount = (PULONG64)pUserData;
+    BOOLEAN bTreeInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bTreeInLock, &pTree->mutex);
+
+    *pullTotalFileCount += pTree->ulNumOpenFiles;
+
+    LWIO_UNLOCK_RWMUTEX(bTreeInLock, &pTree->mutex);
+
+    *pbContinue = TRUE;
+
+    return STATUS_SUCCESS;
 }
 
 PLWIO_SRV_SESSION

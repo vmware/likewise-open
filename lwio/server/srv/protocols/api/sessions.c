@@ -551,6 +551,25 @@ SrvProtocolProcessCandidateSession(
         ULONG     ulIdleTime           = 0;
         wchar16_t wszClientType[]      = SRV_CLIENT_TYPE_W;
         wchar16_t wszClientTransport[] = {0};
+        ULONG64   ullTotalOpenFileCount    = 0;
+
+        switch (pSessionEnumQuery->ulInfoLevel)
+        {
+            case 1:
+            case 2:
+            case 502:
+
+                ntStatus = SrvSessionGetFileCount(
+                                pSession,
+                                &ullTotalOpenFileCount);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+
+            default:
+
+                break;
+        }
 
         LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pSession->mutex);
 
@@ -585,7 +604,7 @@ SrvProtocolProcessCandidateSession(
                 ntStatus = SrvProtocolProcessSession_level_1(
                                 pwszClientname,
                                 pSession->pwszClientPrincipalName,
-                                pSession->ullTotalFileCount,
+                                ullTotalOpenFileCount,
                                 ulActiveTime,
                                 ulIdleTime,
                                 pSession->ulUserFlags,
@@ -600,7 +619,7 @@ SrvProtocolProcessCandidateSession(
                 ntStatus = SrvProtocolProcessSession_level_2(
                                 pwszClientname,
                                 pSession->pwszClientPrincipalName,
-                                pSession->ullTotalFileCount,
+                                ullTotalOpenFileCount,
                                 ulActiveTime,
                                 ulIdleTime,
                                 pSession->ulUserFlags,
@@ -629,7 +648,7 @@ SrvProtocolProcessCandidateSession(
                 ntStatus = SrvProtocolProcessSession_level_502(
                                 pwszClientname,
                                 pSession->pwszClientPrincipalName,
-                                pSession->ullTotalFileCount,
+                                ullTotalOpenFileCount,
                                 ulActiveTime,
                                 ulIdleTime,
                                 pSession->ulUserFlags,
@@ -727,6 +746,25 @@ SrvProtocolProcessCandidateSession2(
         ULONG     ulIdleTime           = 0;
         wchar16_t wszClientType[]      = SRV_CLIENT_TYPE_W;
         wchar16_t wszClientTransport[] = {0};
+        ULONG64   ullTotalOpenFileCount    = 0;
+
+        switch (pSessionEnumQuery->ulInfoLevel)
+        {
+            case 1:
+            case 2:
+            case 502:
+
+                ntStatus = SrvSession2GetFileCount(
+                                pSession,
+                                &ullTotalOpenFileCount);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+
+            default:
+
+                break;
+        }
 
         ntStatus = SrvSocketAddressToStringW(
                                 pSessionEnumQuery->pClientAddress,
@@ -761,7 +799,7 @@ SrvProtocolProcessCandidateSession2(
                 ntStatus = SrvProtocolProcessSession_level_1(
                                 pwszClientname,
                                 pSession->pwszClientPrincipalName,
-                                pSession->ullTotalFileCount,
+                                ullTotalOpenFileCount,
                                 ulActiveTime,
                                 ulIdleTime,
                                 pSession->ulUserFlags,
@@ -776,7 +814,7 @@ SrvProtocolProcessCandidateSession2(
                 ntStatus = SrvProtocolProcessSession_level_2(
                                 pwszClientname,
                                 pSession->pwszClientPrincipalName,
-                                pSession->ullTotalFileCount,
+                                ullTotalOpenFileCount,
                                 ulActiveTime,
                                 ulIdleTime,
                                 pSession->ulUserFlags,
@@ -805,7 +843,7 @@ SrvProtocolProcessCandidateSession2(
                 ntStatus = SrvProtocolProcessSession_level_502(
                                 pwszClientname,
                                 pSession->pwszClientPrincipalName,
-                                pSession->ullTotalFileCount,
+                                ullTotalOpenFileCount,
                                 ulActiveTime,
                                 ulIdleTime,
                                 pSession->ulUserFlags,

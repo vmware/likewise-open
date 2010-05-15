@@ -399,9 +399,6 @@ SrvProcessCreate_SMB_V2(
                             NULL);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            ntStatus = SrvSession2IncrementFileCount(pCtxSmb2->pSession);
-            BAIL_ON_NT_STATUS(ntStatus);
-
             pCreateState->stage = SRV_CREATE_STAGE_SMB_V2_DONE;
 
             // intentional fall through

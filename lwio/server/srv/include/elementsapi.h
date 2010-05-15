@@ -255,6 +255,8 @@ typedef struct _LWIO_SRV_TREE
 
     PLWRTL_RB_TREE    pFileCollection;
 
+    ULONG             ulNumOpenFiles;
+
     PLWRTL_RB_TREE    pAsyncStateCollection;
 
     USHORT            nextAvailableFid;
@@ -279,6 +281,8 @@ typedef struct _LWIO_SRV_TREE_2
     PLWIO_SRV_FILE_2  lruFile[SRV_LRU_CAPACITY];
 
     PLWRTL_RB_TREE    pFileCollection;
+
+    ULONG             ulNumOpenFiles;
 
     ULONG64           ullNextAvailableFid;
 
@@ -308,8 +312,6 @@ typedef struct _LWIO_SRV_SESSION
     PWSTR             pwszClientPrincipalName;
 
     LONG64            llLastActivityTime;
-
-    ULONG64           ullTotalFileCount;
 
     ULONG             ulUserFlags;
 
@@ -341,8 +343,6 @@ typedef struct _LWIO_SRV_SESSION_2
     PWSTR             pwszClientPrincipalName;
 
     LONG64            llLastActivityTime;
-
-    ULONG64           ullTotalFileCount;
 
     ULONG             ulUserFlags;
 
@@ -960,11 +960,6 @@ SrvSessionGetPrincipalName(
     );
 
 NTSTATUS
-SrvSessionIncrementFileCount(
-    PLWIO_SRV_SESSION pSession
-    );
-
-NTSTATUS
 SrvSessionGetFileCount(
     PLWIO_SRV_SESSION pSession,
     PULONG64          pullFileCount
@@ -1028,11 +1023,6 @@ NTSTATUS
 SrvSession2GetPrincipalName(
     PLWIO_SRV_SESSION_2 pSession,
     PWSTR*              ppwszClientPrincipal
-    );
-
-NTSTATUS
-SrvSession2IncrementFileCount(
-    PLWIO_SRV_SESSION_2 pSession
     );
 
 NTSTATUS

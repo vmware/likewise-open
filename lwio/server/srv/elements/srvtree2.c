@@ -245,6 +245,8 @@ SrvTree2CreateFile(
     pFile->resource.pAttributes->ulConnectionResourceId =
                                                 pTree->ulConnectionResourceId;
 
+    pTree->ulNumOpenFiles++;
+
     *ppFile = pFile;
 
 cleanup:
@@ -287,6 +289,8 @@ SrvTree2RemoveFile(
 
     ntStatus = LwRtlRBTreeRemove(pTree->pFileCollection, pFid);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pTree->ulNumOpenFiles--;
 
 cleanup:
 
