@@ -67,6 +67,7 @@ libpvfs_sys_la_SOURCES = \
     fileStreamInfo.c \
     fileEndOfFileInfo.c \
     fileAllocationInfo.c \
+    fileCompressionInfo.c \
     fileDispositionInfo.c \
     fileRenameInfo.c \
     fileFsAttribInfo.c \

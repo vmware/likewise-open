@@ -59,35 +59,36 @@ PvfsQuerySetInformationFile(
 
 static struct _InfoLevelDispatchEntry InfoLevelDispatchTable[] = {
     /* Query Levels */
-    { FileAccessInformation,            &PvfsFileAccessInfo },
+    { FileAccessInformation,            PvfsFileAccessInfo },
     { FileAlignmentInformation,         NULL },
-    { FileAllInformation,               &PvfsFileAllInfo },
+    { FileAllInformation,               PvfsFileAllInfo },
     { FileAlternateNameInformation,     NULL },
     { FileAttributeTagInformation,      NULL },
-    { FileEaInformation,                &PvfsFileEaInfo },
+    { FileCompressionInformation,       PvfsFileCompressionInfo },
+    { FileEaInformation,                PvfsFileEaInfo },
     { FileFullEaInformation,            PvfsFileFullEaInfo },
-    { FileInternalInformation,          &PvfsFileInternalInfo },
-    { FileModeInformation,              &PvfsFileModeInfo },
-    { FileNameInformation,              &PvfsFileNameInfo },
-    { FileNetworkOpenInformation,       &PvfsFileNetworkOpenInfo },
+    { FileInternalInformation,          PvfsFileInternalInfo },
+    { FileModeInformation,              PvfsFileModeInfo },
+    { FileNameInformation,              PvfsFileNameInfo },
+    { FileNetworkOpenInformation,       PvfsFileNetworkOpenInfo },
     { FilePipeInformation,              NULL },
     { FilePipeLocalInformation,         NULL },
     { FilePipeRemoteInformation,        NULL },
-    { FileStreamInformation,            &PvfsFileStreamInfo },
-    { FileStandardInformation,          &PvfsFileStandardInfo },
+    { FileStreamInformation,            PvfsFileStreamInfo },
+    { FileStandardInformation,          PvfsFileStandardInfo },
 
     /* Set Levels */
-    { FileAllocationInformation,        &PvfsFileEndOfFileInfo },
-    { FileDispositionInformation,       &PvfsFileDispositionInfo },
-    { FileEndOfFileInformation,         &PvfsFileEndOfFileInfo },
+    { FileAllocationInformation,        PvfsFileEndOfFileInfo },
+    { FileDispositionInformation,       PvfsFileDispositionInfo },
+    { FileEndOfFileInformation,         PvfsFileEndOfFileInfo },
     { FileLinkInformation,              NULL },
-    { FileRenameInformation,            &PvfsFileRenameInfo },
+    { FileRenameInformation,            PvfsFileRenameInfo },
     { FileShortNameInformation,         NULL },
     { FileValidDataLengthInformation,   NULL },
 
     /* Query & Set Levels */
-    { FileBasicInformation,             &PvfsFileBasicInfo },
-    { FilePositionInformation,          &PvfsFilePositionInfo }
+    { FileBasicInformation,             PvfsFileBasicInfo },
+    { FilePositionInformation,          PvfsFilePositionInfo }
 };
 
 
