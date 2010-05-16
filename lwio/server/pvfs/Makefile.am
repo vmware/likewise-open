@@ -21,6 +21,7 @@ libpvfs_sys_la_SOURCES = \
     lock.c \
     deviceio.c \
     fsctrl.c \
+    fsctrl_stub.c \
     queryfile.c \
     querydir.c \
     queryvol.c \

@@ -62,6 +62,7 @@
 #include <lw/base.h>
 
 #include "lwiosys.h"
+#include "lwio/io-types.h"
 #include "lwio/lwiofsctl.h"
 #include "lwio/lwiodevctl.h"
 #include "iodriver.h"
@@ -723,6 +724,54 @@ VOID
 PvfsZctCloseCcb(
     IN PPVFS_CCB pCcb
     );
+
+/* From fsctrl_stub.c */
+
+NTSTATUS
+PvfsFsCtrlSetCompression(
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
+    );
+
+NTSTATUS
+PvfsFsCtrlSetSparse(
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
+    );
+
+NTSTATUS
+PvfsFsCtrlCreateOrGetObjectId(
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
+    );
+
+NTSTATUS
+PvfsFsCtrlEnumerateSnapshots(
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
+    );
+
+NTSTATUS
+PvfsFsCtrlGetReparsePoint(
+    IN     PPVFS_IRP_CONTEXT pIrpContext,
+    IN     PVOID  InputBuffer,
+    IN     ULONG  InputBufferLength,
+    OUT    PVOID  OutputBuffer,
+    IN OUT PULONG pOutputBufferLength
+    );
+
 
 #endif /* __PVFS_H__ */
 

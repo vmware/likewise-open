@@ -57,8 +57,13 @@ struct _PVFS_FSCTL_DISPATCH_TABLE
         IN OUT PULONG pOutputBufferLength);
 
 } PvfsFsCtlHandlerTable[] = {
-    { IO_FSCTL_OPLOCK_REQUEST,       PvfsOplockRequest },
-    { IO_FSCTL_OPLOCK_BREAK_ACK,     PvfsOplockBreakAck },
+    { IO_FSCTL_OPLOCK_REQUEST,          PvfsOplockRequest  },
+    { IO_FSCTL_OPLOCK_BREAK_ACK,        PvfsOplockBreakAck },
+    { IO_FSCTL_SET_COMPRESSION,         PvfsFsCtrlSetCompression },
+    { IO_FSCTL_SET_SPARSE,              PvfsFsCtrlSetSparse },
+    { IO_FSCTL_CREATE_OR_GET_OBJECT_ID, PvfsFsCtrlCreateOrGetObjectId },
+    { IO_FSCTL_ENUMERATE_SNAPSHOTS,     PvfsFsCtrlEnumerateSnapshots },
+    { IO_FSCTL_GET_REPARSE_POINT,       PvfsFsCtrlGetReparsePoint },
 };
 
 
