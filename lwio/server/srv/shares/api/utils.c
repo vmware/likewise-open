@@ -62,12 +62,6 @@ SrvShareCreateAbsoluteSecDescFromRel(
     IN   PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc
     );
 
-static
-NTSTATUS
-SrvShareSetDefaultSecurity(
-    PSRV_SHARE_INFO pShareInfo
-    );
-
 NTSTATUS
 SrvGetShareName(
     IN  PCSTR  pszHostname,
@@ -604,7 +598,6 @@ error:
 }
 
 
-static
 NTSTATUS
 SrvShareSetDefaultSecurity(
     PSRV_SHARE_INFO pShareInfo

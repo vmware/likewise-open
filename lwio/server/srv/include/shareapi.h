@@ -207,6 +207,11 @@ SrvShareSetSecurity(
     );
 
 NTSTATUS
+SrvShareSetDefaultSecurity(
+    PSRV_SHARE_INFO pShareInfo
+    );
+
+NTSTATUS
 SrvShareInitList(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     );

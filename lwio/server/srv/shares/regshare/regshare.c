@@ -930,6 +930,13 @@ SrvShareRegWriteToShareInfo(
                        ulSecDataLen);
         BAIL_ON_NT_STATUS(ntStatus);
     }
+    else
+    {
+        ntStatus = SrvShareSetDefaultSecurity(pShareInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+
 
     *ppShareInfo = pShareInfo;
 
