@@ -310,6 +310,8 @@ SrvSvcSrvCopyShareInfo502(
 {
     DWORD dwError = ERROR_SUCCESS;
 
+    // Strings
+
     dwError = SrvSvcSrvAllocateWC16String(
                   &pOutShareInfo->shi502_netname,
                   pInShareInfo->shi502_netname);
@@ -328,7 +330,7 @@ SrvSvcSrvCopyShareInfo502(
                   pInShareInfo->shi502_path);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
-    if (pInShareInfo->shi502_remark)
+    if (pInShareInfo->shi502_password)
     {
         dwError = SrvSvcSrvAllocateWC16String(
                       &pOutShareInfo->shi502_password,
@@ -336,14 +338,20 @@ SrvSvcSrvCopyShareInfo502(
         BAIL_ON_SRVSVC_ERROR(dwError);
     }
 
+    // Security descriptor
+
+    pOutShareInfo->shi502_reserved = pInShareInfo->shi502_reserved;
+
     dwError = SrvSvcSrvAllocateMemory(
-                  pInShareInfo->shi502_reserved,
+                  pOutShareInfo->shi502_reserved,
                   (PVOID*)&pOutShareInfo->shi502_security_descriptor);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     memcpy(pOutShareInfo->shi502_security_descriptor,
            pInShareInfo->shi502_security_descriptor,
-           pInShareInfo->shi502_reserved);
+           pOutShareInfo->shi502_reserved);
+
+    // Settings
 
     pOutShareInfo->shi502_type         = pInShareInfo->shi502_type;
     pOutShareInfo->shi502_permissions  = pInShareInfo->shi502_permissions;
