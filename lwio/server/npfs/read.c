@@ -323,19 +323,19 @@ NpfsClientCompleteReadFile(
 
     pPipe = pCCB->pPipe;
 
-    if ((pPipe->PipeServerState == PIPE_CLIENT_CLOSED)
+    if ((pPipe->PipeServerState == PIPE_SERVER_CLOSED)
         && (NpfsMdlListIsEmpty(&pCCB->mdlList)))
     {
         ntStatus = STATUS_END_OF_FILE;
         BAIL_ON_NT_STATUS(ntStatus);
     }
-    else if ((pPipe->PipeServerState == PIPE_CLIENT_CLOSED)
+    else if ((pPipe->PipeServerState == PIPE_SERVER_CLOSED)
              && (!NpfsMdlListIsEmpty(&pCCB->mdlList)))
     {
         ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
         BAIL_ON_NT_STATUS(ntStatus);
     }
-    else if ((pPipe->PipeServerState == PIPE_CLIENT_CONNECTED)
+    else if ((pPipe->PipeServerState == PIPE_SERVER_CONNECTED)
              && (!NpfsMdlListIsEmpty(&pCCB->mdlList)))
     {
         ntStatus = NpfsClientReadFile_Connected(pCCB, pIrpContext);
