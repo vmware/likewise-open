@@ -51,9 +51,12 @@
 
 SRV_STATISTICS_GLOBALS gSrvStatGlobals =
 {
-    .mutex          = PTHREAD_MUTEX_INITIALIZER,
-    .bEnableLogging = FALSE,
-    .bLogParameters = FALSE,
-    .hModule        = NULL
+    .mutex   =  PTHREAD_MUTEX_INITIALIZER,
+    .config  =  {
+                    .pszProviderPath = NULL,
+                    .bEnableLogging  = FALSE,
+                    .bLogParameters  = FALSE
+                },
+    .hModule = NULL
 };
 

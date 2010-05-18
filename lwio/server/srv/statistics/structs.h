@@ -47,13 +47,21 @@
  *
  */
 
-typedef struct _SRV_STATISTICS_GLOBALS
+typedef struct _SRV_STATISTICS_CONFIG
 {
-    pthread_mutex_t mutex;
+    PSTR    pszProviderPath;
 
     BOOLEAN bEnableLogging;
     BOOLEAN bLogParameters;
 
-    PVOID   hModule;
+} SRV_STATISTICS_CONFIG, *PSRV_STATISTICS_CONFIG;
+
+typedef struct _SRV_STATISTICS_GLOBALS
+{
+    pthread_mutex_t       mutex;
+
+    SRV_STATISTICS_CONFIG config;
+
+    PVOID                 hModule;
 
 } SRV_STATISTICS_GLOBALS, *PSRV_STATISTICS_GLOBALS;

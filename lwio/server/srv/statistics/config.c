@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        libmain.c
+ *        config.c
  *
  * Abstract:
  *
@@ -41,7 +41,7 @@
  *
  *        Statistics Logging Module
  *
- *        Module Entry Points
+ *        Configuration
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
@@ -50,50 +50,109 @@
 #include "includes.h"
 
 NTSTATUS
-SrvInitializeStatistics(
-    VOID
+SrvStatsReadConfig(
+    PSRV_STATISTICS_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    SRV_STATISTICS_CONFIG config = {0};
+    SRV_STATISTICS_CONFIG config = { 0 };
+    PLWIO_CONFIG_REG pReg = NULL;
+    BOOLEAN bUsePolicy = TRUE;
 
     ntStatus = SrvStatsInitConfigContents(&config);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvStatsReadConfig(&config);
-    if (ntStatus == STATUS_DEVICE_CONFIGURATION_ERROR)
+    ntStatus = LwIoOpenConfig(
+                "Services\\lwio\\Parameters\\Drivers\\srv\\statistics",
+                "Policy\\Services\\lwio\\Parameters\\Drivers\\srv\\statistics",
+                &pReg);
+    if (ntStatus)
     {
-        ntStatus = STATUS_SUCCESS;
+        LWIO_LOG_ERROR(
+            "Failed to access device statistics configuration [error code: %u]",
+            ntStatus);
+
+        ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
     }
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvStatsTransferConfigContents(&config, &gSrvStatGlobals.config);
+    /* Ignore error as it may not exist; we can still use default. */
+    LwIoReadConfigString(
+            pReg,
+            "Path",
+            bUsePolicy,
+            &config.pszProviderPath);
+
+    LwIoReadConfigBoolean(
+            pReg,
+            "EnableLogging",
+            bUsePolicy,
+            &config.bEnableLogging);
+
+    LwIoReadConfigBoolean(
+            pReg,
+            "LogParameters",
+            bUsePolicy,
+            &config.bLogParameters);
+
+    ntStatus = SrvStatsTransferConfigContents(&config, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
 
-    SrvStatsFreeConfigContents(&config);
+    if (pReg)
+    {
+        LwIoCloseConfig(pReg);
+    }
 
     return ntStatus;
 
 error:
 
+    SrvStatsFreeConfigContents(&config);
+
     goto cleanup;
 }
 
 NTSTATUS
-SrvShutdownStatistics(
-    VOID
+SrvStatsInitConfigContents(
+    PSRV_STATISTICS_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvStatGlobals.mutex);
+    SrvStatsFreeConfigContents(pConfig);
 
-    SrvStatsFreeConfigContents(&gSrvStatGlobals.config);
-
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvStatGlobals.mutex);
+    pConfig->bEnableLogging  = FALSE;
+    pConfig->bLogParameters  = FALSE;
+    pConfig->pszProviderPath = NULL;
 
     return ntStatus;
+}
+
+NTSTATUS
+SrvStatsTransferConfigContents(
+    PSRV_STATISTICS_CONFIG pSrc,
+    PSRV_STATISTICS_CONFIG pDest
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    SrvStatsFreeConfigContents(pDest);
+
+    *pDest = *pSrc;
+
+    memset(pSrc, 0, sizeof(*pSrc));
+
+    return ntStatus;
+}
+
+VOID
+SrvStatsFreeConfigContents(
+    PSRV_STATISTICS_CONFIG pConfig
+    )
+{
+    LwRtlCStringFree(&pConfig->pszProviderPath);
+
+    memset(pConfig, 0, sizeof(*pConfig));
 }

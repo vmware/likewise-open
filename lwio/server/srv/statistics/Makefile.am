@@ -1,6 +1,7 @@
 noinst_LTLIBRARIES = libstatisticsapi.la
 
 libstatisticsapi_la_SOURCES = \
+    config.c   \
     globals.c  \
     libmain.c
 

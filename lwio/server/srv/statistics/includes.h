@@ -65,6 +65,7 @@
 #include <lw/ntstatus.h>
 
 #include <statisticsapi.h>
+#include <srvutils.h>
 
 #include "structs.h"
 #include "prototypes.h"

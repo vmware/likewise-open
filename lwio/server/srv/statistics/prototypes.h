@@ -47,3 +47,25 @@
  *
  */
 
+// config.c
+
+NTSTATUS
+SrvStatsReadConfig(
+    PSRV_STATISTICS_CONFIG pConfig
+    );
+
+NTSTATUS
+SrvStatsInitConfigContents(
+    PSRV_STATISTICS_CONFIG pConfig
+    );
+
+NTSTATUS
+SrvStatsTransferConfigContents(
+    PSRV_STATISTICS_CONFIG pSrc,
+    PSRV_STATISTICS_CONFIG pDest
+    );
+
+VOID
+SrvStatsFreeConfigContents(
+    PSRV_STATISTICS_CONFIG pConfig
+    );
