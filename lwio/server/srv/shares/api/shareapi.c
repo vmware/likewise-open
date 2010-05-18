@@ -738,6 +738,7 @@ SrvShareFreeListContents(
     if (pShareList->pShareCollection)
     {
         LwRtlRBTreeFree(pShareList->pShareCollection);
+        pShareList->pShareCollection = NULL;
     }
 
     if (pShareList->pMutex)
