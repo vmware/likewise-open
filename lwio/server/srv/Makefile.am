@@ -1,9 +1,10 @@
 
 SUBDIRS = \
-    utils     \
-    shares    \
-    elements  \
-    protocols \
-    transport \
+    utils      \
+    statistics \
+    shares     \
+    elements   \
+    protocols  \
+    transport  \
     driver
 
