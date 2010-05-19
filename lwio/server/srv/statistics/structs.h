@@ -64,4 +64,7 @@ typedef struct _SRV_STATISTICS_GLOBALS
 
     PVOID                 hModule;
 
+    PLWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE pStatFnTable;
+    PFN_SHUTDOWN_SRV_STAT_PROVIDER         pfnShutdownStatProvider;
+
 } SRV_STATISTICS_GLOBALS, *PSRV_STATISTICS_GLOBALS;

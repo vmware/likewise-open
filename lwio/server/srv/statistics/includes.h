@@ -53,6 +53,7 @@
 #include <uuid/uuid.h>
 
 #include <lwio/lwio.h>
+#include <lwio/lwiosrvstatprovider.h>
 
 #include <reg/lwntreg.h>
 

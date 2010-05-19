@@ -57,6 +57,8 @@ SRV_STATISTICS_GLOBALS gSrvStatGlobals =
                     .bEnableLogging  = FALSE,
                     .bLogParameters  = FALSE
                 },
-    .hModule = NULL
+    .hModule                 = NULL,
+    .pStatFnTable            = NULL,
+    .pfnShutdownStatProvider = NULL
 };
 
