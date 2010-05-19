@@ -680,11 +680,14 @@ PvfsCreateFileOpenOrOverwriteIf(
                   pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
 
-    if (!pCreateCtx->bFileExisted ||
-        (Args.CreateDisposition == FILE_OVERWRITE_IF))
+    if (!pCreateCtx->bFileExisted)
     {
-        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_SECURITY|
-                                       PVFS_SET_PROP_ATTRIB;
+        pCreateCtx->SetPropertyFlags = (PVFS_SET_PROP_ATTRIB|
+                                        PVFS_SET_PROP_SECURITY);
+    }
+    else if (Args.CreateDisposition == FILE_OVERWRITE_IF)
+    {
+        pCreateCtx->SetPropertyFlags = PVFS_SET_PROP_ATTRIB;
     }
 
     ntError = PvfsCheckShareMode(
