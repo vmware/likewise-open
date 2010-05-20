@@ -131,8 +131,6 @@ typedef struct _SRV_ELEMENTS_GLOBALS
     BOOLEAN bShareNameEcpEnabled;
     BOOLEAN bClientAddressEcpEnabled;
 
-    GENERIC_MAPPING ShareGenericMapping;
-
     pthread_rwlock_t        statsLock;
     pthread_rwlock_t*       pStatsLock;
 
