@@ -58,7 +58,8 @@ typedef struct _SRV_STATISTICS_CONFIG
 
 typedef struct _SRV_STATISTICS_GLOBALS
 {
-    pthread_mutex_t       mutex;
+    pthread_rwlock_t      mutex;
+    pthread_rwlock_t*     pMutex;
 
     SRV_STATISTICS_CONFIG config;
 

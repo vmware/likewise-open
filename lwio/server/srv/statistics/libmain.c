@@ -49,6 +49,12 @@
 
 #include "includes.h"
 
+static
+NTSTATUS
+SrvStatsLoadProvider(
+    VOID
+    );
+
 NTSTATUS
 SrvInitializeStatistics(
     VOID
@@ -56,6 +62,9 @@ SrvInitializeStatistics(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SRV_STATISTICS_CONFIG config = {0};
+
+    pthread_rwlock_init(&gSrvStatGlobals.mutex, NULL);
+    gSrvStatGlobals.pMutex = &gSrvStatGlobals.mutex;
 
     ntStatus = SrvStatsInitConfigContents(&config);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -70,6 +79,9 @@ SrvInitializeStatistics(
     ntStatus = SrvStatsTransferConfigContents(&config, &gSrvStatGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvStatsLoadProvider();
+    BAIL_ON_NT_STATUS(ntStatus);
+
 cleanup:
 
     SrvStatsFreeConfigContents(&config);
@@ -77,6 +89,108 @@ cleanup:
     return ntStatus;
 
 error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvStatsLoadProvider(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    BOOLEAN  bInLock  = FALSE;
+    PVOID    hModule  = NULL;
+    PFN_INIT_SRV_STAT_PROVIDER     pfnInitStatProvider  = NULL;
+    PFN_SHUTDOWN_SRV_STAT_PROVIDER pfnCloseStatProvider = NULL;
+    PLWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE pStatFnTable = NULL;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvStatGlobals.mutex);
+
+    if (!IsNullOrEmptyString(gSrvStatGlobals.config.pszProviderPath))
+    {
+        PCSTR pszError = NULL;
+
+        dlerror();
+
+        hModule = dlopen(gSrvStatGlobals.config.pszProviderPath,
+                         RTLD_NOW | RTLD_GLOBAL);
+        if (!hModule)
+        {
+            pszError = dlerror();
+
+            LWIO_LOG_ERROR("Failed to load statistics provider from '%s' (%s)",
+                            gSrvStatGlobals.config.pszProviderPath,
+                            pszError ? pszError : "");
+
+            ntStatus = STATUS_DLL_NOT_FOUND;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        dlerror();
+
+        pfnInitStatProvider =
+                (PFN_INIT_SRV_STAT_PROVIDER)dlsym(
+                                                hModule,
+                                                LWIO_SYMBOL_NAME_INIT_SRV_STAT_PROVIDER);
+        if (!pfnInitStatProvider)
+        {
+            pszError = dlerror();
+
+            LWIO_LOG_ERROR( "Failed to load "
+                            LWIO_SYMBOL_NAME_INIT_SRV_STAT_PROVIDER
+                            " function for statistics provider from %s (%s)",
+                            gSrvStatGlobals.config.pszProviderPath,
+                            pszError ? pszError : "");
+
+            ntStatus = STATUS_BAD_DLL_ENTRYPOINT;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        pfnCloseStatProvider =
+                (PFN_SHUTDOWN_SRV_STAT_PROVIDER)dlsym(
+                                                    hModule,
+                                                    LWIO_SYMBOL_NAME_CLOSE_SRV_STAT_PROVIDER);
+        if (!pfnCloseStatProvider)
+        {
+            pszError = dlerror();
+
+            LWIO_LOG_ERROR( "Failed to load "
+                            LWIO_SYMBOL_NAME_CLOSE_SRV_STAT_PROVIDER
+                            " function for statistics provider from %s (%s)",
+                            gSrvStatGlobals.config.pszProviderPath,
+                            pszError ? pszError : "");
+
+            ntStatus = STATUS_BAD_DLL_ENTRYPOINT;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = pfnInitStatProvider(&pStatFnTable);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        gSrvStatGlobals.hModule = hModule;
+        gSrvStatGlobals.pfnShutdownStatProvider = pfnCloseStatProvider;
+        gSrvStatGlobals.pStatFnTable = pStatFnTable;
+    }
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
+
+    return ntStatus;
+
+error:
+
+    if (hModule)
+    {
+        if (pfnCloseStatProvider)
+        {
+            pfnCloseStatProvider(pStatFnTable);
+        }
+
+        dlclose(hModule);
+    }
 
     goto cleanup;
 }
@@ -89,11 +203,35 @@ SrvShutdownStatistics(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN bInLock = FALSE;
 
-    LWIO_LOCK_MUTEX(bInLock, &gSrvStatGlobals.mutex);
+    if (gSrvStatGlobals.pMutex)
+    {
+        LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &gSrvStatGlobals.mutex);
+    }
+
+    if (gSrvStatGlobals.hModule)
+    {
+        if (gSrvStatGlobals.pfnShutdownStatProvider)
+        {
+            gSrvStatGlobals.pfnShutdownStatProvider(
+                                gSrvStatGlobals.pStatFnTable);
+
+            gSrvStatGlobals.pfnShutdownStatProvider = NULL;
+            gSrvStatGlobals.pStatFnTable = NULL;
+        }
+
+        dlclose(gSrvStatGlobals.hModule);
+        gSrvStatGlobals.hModule = NULL;
+    }
 
     SrvStatsFreeConfigContents(&gSrvStatGlobals.config);
 
-    LWIO_UNLOCK_MUTEX(bInLock, &gSrvStatGlobals.mutex);
+    if (gSrvStatGlobals.pMutex)
+    {
+        LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
+
+        pthread_rwlock_destroy(&gSrvStatGlobals.mutex);
+        gSrvStatGlobals.pMutex = NULL;
+    }
 
     return ntStatus;
 }
