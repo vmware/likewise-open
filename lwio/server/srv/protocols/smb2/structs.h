@@ -889,6 +889,7 @@ typedef enum
     SRV_READ_STAGE_SMB_V2_ATTEMPT_READ,
     SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED,
     SRV_READ_STAGE_SMB_V2_BUILD_RESPONSE,
+    SRV_READ_STAGE_SMB_V2_ZCT_COMPLETE,
     SRV_READ_STAGE_SMB_V2_DONE
 } SRV_READ_STAGE_SMB_V2;
 
@@ -908,14 +909,21 @@ typedef struct _SRV_READ_STATE_SMB_V2
 
     PLWIO_SRV_FILE_2          pFile;
 
-    LONG64                    llByteOffset;
     ULONG                     ulBytesRead;
     ULONG                     ulRemaining;
 
     PSMB2_READ_REQUEST_HEADER pRequestHeader; // Do not free
 
+    // I/O Parameters
+    LONG64                    llByteOffset;
+    LONG                      ulBytesToRead;
     PBYTE                     pData;
     ULONG                     ulKey;
+
+    // I/O Handling
+    BOOLEAN                   bStartedRead;
+    PLW_ZCT_VECTOR            pZct;
+    PVOID                     pZctCompletion;
 
 } SRV_READ_STATE_SMB_V2, *PSRV_READ_STATE_SMB_V2;
 

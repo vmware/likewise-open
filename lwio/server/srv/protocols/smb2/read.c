@@ -60,6 +60,34 @@ SrvBuildReadState_SMB_V2(
     );
 
 static
+NTSTATUS
+SrvBuildZctReadState_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState,
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvAttemptReadIo_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState,
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvSendZctReadResponse_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState,
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
+NTSTATUS
+SrvCompleteZctRead_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState,
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
+static
 VOID
 SrvPrepareReadStateAsync_SMB_V2(
     PSRV_READ_STATE_SMB_V2 pReadState,
@@ -70,6 +98,13 @@ static
 VOID
 SrvExecuteReadAsyncCB_SMB_V2(
     PVOID pContext
+    );
+
+static
+VOID
+SrvExecuteReadSendZctCB_SMB_V2(
+    IN PVOID pContext,
+    IN NTSTATUS Status
     );
 
 static
@@ -175,7 +210,9 @@ SrvProcessRead_SMB_V2(
             pReadState->llByteOffset =
                                 pReadState->pRequestHeader->ullFileOffset;
 
-            if (pReadState->pRequestHeader->ulDataLength > 0)
+            pReadState->ulBytesToRead = pReadState->pRequestHeader->ulDataLength;
+
+            if (pReadState->ulBytesToRead > 0)
             {
                 ntStatus = SrvAllocateMemory(
                             pReadState->pRequestHeader->ulDataLength,
@@ -183,27 +220,19 @@ SrvProcessRead_SMB_V2(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
+            ntStatus = SrvBuildZctReadState_SMB_V2(pReadState, pExecContext);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             pReadState->stage = SRV_READ_STAGE_SMB_V2_ATTEMPT_READ;
 
             // Intentional fall through
 
         case SRV_READ_STAGE_SMB_V2_ATTEMPT_READ:
 
-            pReadState->stage = SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED;
-
-            SrvPrepareReadStateAsync_SMB_V2(pReadState, pExecContext);
-
-            ntStatus = IoReadFile(
-                            pReadState->pFile->hFile,
-                            pReadState->pAcb,
-                            &pReadState->ioStatusBlock,
-                            pReadState->pData,
-                            pReadState->pRequestHeader->ulDataLength,
-                            &pReadState->llByteOffset,
-                            &pReadState->ulKey);
+            ntStatus = SrvAttemptReadIo_SMB_V2(pReadState, pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            SrvReleaseReadStateAsync_SMB_V2(pReadState); // completed synchronously
+            pReadState->stage = SRV_READ_STAGE_SMB_V2_ATTEMPT_READ_COMPLETED;
 
             // intentional fall through
 
@@ -228,6 +257,24 @@ SrvProcessRead_SMB_V2(
 
             ntStatus = SrvBuildReadResponse_SMB_V2(pExecContext);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            if (pReadState->pZct)
+            {
+                ntStatus = SrvSendZctReadResponse_SMB_V2(pReadState, pExecContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
+
+            pReadState->stage = SRV_READ_STAGE_SMB_V2_ZCT_COMPLETE;
+
+            // intentional fall through
+
+        case SRV_READ_STAGE_SMB_V2_ZCT_COMPLETE:
+
+            if (pReadState->pZctCompletion)
+            {
+                ntStatus = SrvCompleteZctRead_SMB_V2(pReadState, pExecContext);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             pReadState->stage = SRV_READ_STAGE_SMB_V2_DONE;
 
@@ -341,6 +388,290 @@ error:
 }
 
 static
+NTSTATUS
+SrvBuildZctReadState_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState,
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    ULONG ulZctThreshold = 0;
+    LW_ZCT_ENTRY_MASK zctReadMask = 0;
+    LW_ZCT_ENTRY_MASK zctSocketMask = 0;
+
+    // Do not use ZCT if chained or if signing active.
+    if ((pCtxSmb2->ulNumRequests != 1) ||
+        SrvConnectionIsSigningActive(pConnection))
+    {
+        goto cleanup;
+    }
+
+    // Do not use ZCT if threshold disabled or the I/O size < threshold.
+    ulZctThreshold = pConnection->serverProperties.ulZctReadThreshold;
+    if ((ulZctThreshold == 0) ||
+        (pReadState->ulBytesToRead < ulZctThreshold))
+    {
+        goto cleanup;
+    }
+
+    // Use ZCT only if file and system masks intersect.
+
+    IoGetZctSupportMaskFile(
+            pReadState->pFile->hFile,
+            &zctReadMask,
+            NULL);
+
+    zctSocketMask = LwZctGetSystemSupportedMask(LW_ZCT_IO_TYPE_WRITE_SOCKET);
+    if (zctReadMask & zctSocketMask)
+    {
+        ntStatus = LwZctCreate(
+                        &pReadState->pZct,
+                        LW_ZCT_IO_TYPE_WRITE_SOCKET);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    LwZctDestroy(&pReadState->pZct);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvAttemptReadIo_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState,
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (pReadState->pZct)
+    {
+        if (!pReadState->bStartedRead)
+        {
+            SrvPrepareReadStateAsync_SMB_V2(pReadState, pExecContext);
+            pReadState->bStartedRead = TRUE;
+
+            ntStatus = IoPrepareZctReadFile(
+                            pReadState->pFile->hFile,
+                            pReadState->pAcb,
+                            &pReadState->ioStatusBlock,
+                            0,
+                            pReadState->pZct,
+                            pReadState->ulBytesToRead,
+                            &pReadState->llByteOffset,
+                            &pReadState->ulKey,
+                            &pReadState->pZctCompletion);
+            if (ntStatus == STATUS_NOT_SUPPORTED)
+            {
+                SrvReleaseReadStateAsync_SMB_V2(pReadState); // Retry as non-ZCT
+                pReadState->bStartedRead = FALSE;
+                LwZctDestroy(&pReadState->pZct);
+                pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
+            }
+            else if (ntStatus == STATUS_END_OF_FILE)
+            {
+                pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            // completed synchronously
+            SrvReleaseReadStateAsync_SMB_V2(pReadState);
+            pReadState->bStartedRead = FALSE;
+        }
+
+        ntStatus = pReadState->ioStatusBlock.Status;
+        if (ntStatus == STATUS_NOT_SUPPORTED)
+        {
+            // Retry as non-ZCT
+            SrvReleaseReadStateAsync_SMB_V2(pReadState);
+            pReadState->bStartedRead = FALSE;
+            LwZctDestroy(&pReadState->pZct);
+            pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
+        }
+        else if (ntStatus == STATUS_END_OF_FILE)
+        {
+            pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    // This will retry as non-ZCT if ZCT failed above
+    if (!pReadState->pZct)
+    {
+        if (!pReadState->bStartedRead)
+        {
+            SrvPrepareReadStateAsync_SMB_V2(pReadState, pExecContext);
+            pReadState->bStartedRead = TRUE;
+
+            ntStatus = IoReadFile(
+                            pReadState->pFile->hFile,
+                            pReadState->pAcb,
+                            &pReadState->ioStatusBlock,
+                            pReadState->pData,
+                            pReadState->ulBytesToRead,
+                            &pReadState->llByteOffset,
+                            &pReadState->ulKey);
+            if (ntStatus == STATUS_END_OF_FILE)
+            {
+                pReadState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
+            }
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            // completed synchronously
+            SrvReleaseReadStateAsync_SMB_V2(pReadState);
+            pReadState->bStartedRead = FALSE;
+        }
+
+        ntStatus = pReadState->ioStatusBlock.Status;
+        if (ntStatus == STATUS_END_OF_FILE)
+        {
+            ntStatus = STATUS_SUCCESS;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (pReadState->pZct && pReadState->ioStatusBlock.Status)
+    {
+        // No data, must treat this as non-ZCT for the rest of processing.
+        LwZctDestroy(&pReadState->pZct);
+    }
+
+    pReadState->ulBytesRead = pReadState->ioStatusBlock.BytesTransferred;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ntStatus != STATUS_PENDING)
+    {
+        pReadState->bStartedRead = FALSE;
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvSendZctReadResponse_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState,
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PLWIO_SRV_CONNECTION       pConnection  = pExecContext->pConnection;
+    PSRV_PROTOCOL_EXEC_CONTEXT pCtxProtocol = pExecContext->pProtocolContext;
+    PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
+    ULONG                      iMsg         = pCtxSmb2->iMsg;
+    PSRV_MESSAGE_SMB_V2        pSmbResponse = &pCtxSmb2->pResponses[iMsg];
+    PSRV_EXEC_CONTEXT          pZctContext  = NULL;
+    LW_ZCT_ENTRY entry = { 0 };
+
+    pExecContext->pSmbResponse->bufferUsed += pSmbResponse->ulMessageSize;
+    SMBPacketMarshallFooter(pExecContext->pSmbResponse);
+
+    entry.Type = LW_ZCT_ENTRY_TYPE_MEMORY;
+    entry.Length = pExecContext->pSmbResponse->bufferUsed - pReadState->ulBytesRead;
+    entry.Data.Memory.Buffer = pExecContext->pSmbResponse->pRawBuffer;
+
+    ntStatus = LwZctPrepend(pReadState->pZct, &entry, 1);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwZctPrepareIo(pReadState->pZct);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pZctContext = SrvAcquireExecContext(pExecContext);
+
+    ntStatus = SrvProtocolTransportSendZctResponse(
+                    pConnection,
+                    pReadState->pZct,
+                    SrvExecuteReadSendZctCB_SMB_V2,
+                    pZctContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    SrvReleaseExecContext(pZctContext); // completed synchronously
+
+cleanup:
+
+    // TODO: Perhaps only if SrvProtocolTransportSendZctResponse() was
+    // called and did not return STATUS_INSUFFICIENT_RESOURCES.
+    // Never send out response via non-ZCT
+    pSmbResponse->ulMessageSize = 0;
+    pExecContext->pSmbResponse->bufferUsed = 0;
+
+    return ntStatus;
+
+error:
+
+    if (pZctContext && (ntStatus != STATUS_PENDING))
+    {
+        SrvReleaseExecContext(pZctContext);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvCompleteZctRead_SMB_V2(
+    PSRV_READ_STATE_SMB_V2 pReadState,
+    PSRV_EXEC_CONTEXT pExecContext
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (!pReadState->bStartedRead)
+    {
+        SrvPrepareReadStateAsync_SMB_V2(pReadState, pExecContext);
+        pReadState->bStartedRead = TRUE;
+
+        ntStatus = IoCompleteZctReadFile(
+                        pReadState->pFile->hFile,
+                        pReadState->pAcb,
+                        &pReadState->ioStatusBlock,
+                        0,
+                        pReadState->pZctCompletion);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        // completed synchronously
+        SrvReleaseReadStateAsync_SMB_V2(pReadState);
+        pReadState->bStartedRead = FALSE;
+    }
+
+    ntStatus = pReadState->ioStatusBlock.Status;
+    if (ntStatus)
+    {
+        LWIO_LOG_ERROR("Failed to complete ZCT read file [status:0x%x]",
+                       ntStatus);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    if (ntStatus != STATUS_PENDING)
+    {
+        SrvReleaseReadStateAsync_SMB_V2(pReadState);
+        pReadState->bStartedRead = FALSE;
+    }
+
+    goto cleanup;
+}
+
+static
 VOID
 SrvPrepareReadStateAsync_SMB_V2(
     PSRV_READ_STATE_SMB_V2 pReadState,
@@ -381,6 +712,36 @@ SrvExecuteReadAsyncCB_SMB_V2(
 
     pReadState->pAcb = NULL;
 
+    LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
+
+    ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
+    if (ntStatus != STATUS_SUCCESS)
+    {
+        LWIO_LOG_ERROR("Failed to enqueue execution context [status:0x%x]",
+                       ntStatus);
+
+        SrvReleaseExecContext(pExecContext);
+    }
+}
+
+static
+VOID
+SrvExecuteReadSendZctCB_SMB_V2(
+    IN PVOID pContext,
+    IN NTSTATUS Status
+    )
+{
+    NTSTATUS                   ntStatus         = STATUS_SUCCESS;
+    PSRV_EXEC_CONTEXT          pExecContext     = (PSRV_EXEC_CONTEXT)pContext;
+    PSRV_PROTOCOL_EXEC_CONTEXT pProtocolContext = pExecContext->pProtocolContext;
+    PSRV_READ_STATE_SMB_V2     pReadState       = NULL;
+    BOOLEAN                    bInLock          = FALSE;
+
+    pReadState =
+        (PSRV_READ_STATE_SMB_V2)pProtocolContext->pSmb2Context->hState;
+
+    LWIO_LOCK_MUTEX(bInLock, &pReadState->mutex);
+    pReadState->stage = SRV_READ_STAGE_SMB_V2_ZCT_COMPLETE;
     LWIO_UNLOCK_MUTEX(bInLock, &pReadState->mutex);
 
     ntStatus = SrvProdConsEnqueue(gProtocolGlobals_SMB_V2.pWorkQueue, pContext);
