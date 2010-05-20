@@ -2187,16 +2187,6 @@ error:
     goto cleanup;
 }
 
-NTSTATUS
-SMB2MarshalFooter(
-    PSMB_PACKET pPacket
-    )
-{
-    pPacket->pNetBIOSHeader->len = htonl(pPacket->bufferUsed - sizeof(NETBIOS_HEADER));
-
-    return 0;
-}
-
 VOID
 SMB2UnmarshallBoolean(
     PBOOLEAN pbValue

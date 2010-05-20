@@ -1151,7 +1151,7 @@ SrvBuildOplockExecContext_SMB_V2(
 
     pSmbRequest->bufferUsed += ulTotalBytesUsed;
 
-    ntStatus = SMB2MarshalFooter(pSmbRequest);
+    ntStatus = SMBPacketMarshallFooter(pSmbRequest);
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppExecContext = pExecContext;

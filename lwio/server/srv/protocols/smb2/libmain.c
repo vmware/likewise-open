@@ -223,7 +223,7 @@ SrvProtocolExecute_SMB_V2(
         pExecContext->pSmbResponse->bufferUsed += pResponse->ulMessageSize;
     }
 
-    ntStatus = SMB2MarshalFooter(pExecContext->pSmbResponse);
+    ntStatus = SMBPacketMarshallFooter(pExecContext->pSmbResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -672,7 +672,7 @@ SrvBuildInterimResponse_SMB_V2(
 
     pInterimResponse->bufferUsed += ulTotalBytesUsed;
 
-    ntStatus = SMB2MarshalFooter(pInterimResponse);
+    ntStatus = SMBPacketMarshallFooter(pInterimResponse);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pExecContext->pInterimResponse)

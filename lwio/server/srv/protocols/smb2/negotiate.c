@@ -185,7 +185,7 @@ SrvBuildNegotiateResponse_SMB_V2(
 
         pSmbResponse->bufferUsed += response.ulMessageSize;
 
-        ntStatus = SMB2MarshalFooter(pSmbResponse);
+        ntStatus = SMBPacketMarshallFooter(pSmbResponse);
     }
     else
     {

@@ -769,11 +769,6 @@ SMB2MarshalError(
     PULONG   pulBytesUsed
     );
 
-NTSTATUS
-SMB2MarshalFooter(
-    PSMB_PACKET pPacket
-    );
-
 VOID
 SMB2UnmarshallBoolean(
     PBOOLEAN pbValue
