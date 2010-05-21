@@ -424,36 +424,37 @@ typedef struct _SRV_READ_STATE_SMB_V1
         PREAD_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12;
     }; // Do not free
 
-    PLWIO_SRV_FILE            pFile;
+    PLWIO_SRV_FILE             pFile;
 
-    ULONG64                   ullBytesToRead;
-    LONG64                    llByteOffset;
+    ULONG64                    ullBytesToRead;
+    LONG64                     llByteOffset;
 
     PREAD_ANDX_RESPONSE_HEADER pResponseHeader; // Do not free
-    PBYTE pOutBuffer;
-    ULONG ulBytesAvailable;
-    ULONG ulOffset;
-    ULONG ulPackageByteCount;
-    ULONG ulTotalBytesUsed;
-    ULONG ulDataOffset;
-    ULONG ulBytesRead;
-    ULONG ulBytesToRead;
-    PBYTE pData;
-    ULONG ulKey;
-    BOOLEAN bPagedIo;
-    BOOLEAN bStartedRead;
-    PLW_ZCT_VECTOR pZct;
-    PVOID pZctCompletion;
+    PBYTE                      pOutBuffer;
+    ULONG                      ulBytesAvailable;
+    ULONG                      ulOffset;
+    ULONG                      ulPackageByteCount;
+    ULONG                      ulTotalBytesUsed;
+    ULONG                      ulDataOffset;
+    ULONG                      ulBytesRead;
+    ULONG                      ulBytesToRead;
+    PBYTE                      pData;
+    ULONG                      ulKey;
+    BOOLEAN                    bPagedIo;
+    BOOLEAN                    bStartedRead;
+    PLW_ZCT_VECTOR             pZct;
+    PVOID                      pZctCompletion;
 
 } SRV_READ_STATE_SMB_V1, *PSRV_READ_STATE_SMB_V1;
 
-typedef struct _SRV_ZCT_WRITE_STATE {
-    ULONG ulDataBytesMissing;
-    ULONG ulDataBytesResident;
-    ULONG ulSkipBytes;
-    PLW_ZCT_VECTOR pZct;
-    PVOID pZctCompletion;
-    PVOID pPadding;
+typedef struct _SRV_ZCT_WRITE_STATE
+{
+    ULONG                ulDataBytesMissing;
+    ULONG                ulDataBytesResident;
+    ULONG                ulSkipBytes;
+    PLW_ZCT_VECTOR       pZct;
+    PVOID                pZctCompletion;
+    PVOID                pPadding;
     PLWIO_SRV_CONNECTION pPausedConnection;
 } SRV_ZCT_WRITE_STATE, *PSRV_ZCT_WRITE_STATE;
 
@@ -490,10 +491,9 @@ typedef struct _SRV_WRITEX_STATE_SMB_V1
     ULONG                      ulKey;
     ULONG                      ulBytesWritten;
 
-    BOOLEAN bStartedIo;
+    BOOLEAN                    bStartedIo;
 
-    // ZCT information
-    SRV_ZCT_WRITE_STATE Zct;
+    SRV_ZCT_WRITE_STATE        zct;
 
 } SRV_WRITEX_STATE_SMB_V1, *PSRV_WRITEX_STATE_SMB_V1;
 

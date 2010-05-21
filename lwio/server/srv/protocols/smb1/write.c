@@ -1201,10 +1201,10 @@ SrvDetectZctWrite_SMB_V1(
                             &pWriteXState);
             BAIL_ON_NT_STATUS(ntStatus);
 
-            pWriteXState->Zct = zctState;
+            pWriteXState->zct = zctState;
             zctState.pZct = NULL;
 
-            pWriteXState->Zct.pPausedConnection = SrvConnectionAcquire(pConnection);
+            pWriteXState->zct.pPausedConnection = SrvConnectionAcquire(pConnection);
 
             pExecContext->pProtocolContext->pSmb1Context->hState = pWriteXState;
             pExecContext->pProtocolContext->pSmb1Context->pfnStateRelease = SrvReleaseWriteXStateHandle;

@@ -190,7 +190,7 @@ SrvProcessWriteAndX(
 
         case SRV_WRITEX_STAGE_SMB_V1_ZCT_IO:
 
-            if (pWriteState->Zct.pZct)
+            if (pWriteState->zct.pZct)
             {
                 ntStatus = SrvExecuteWriteXZctIo(pWriteState, pExecContext);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -202,13 +202,13 @@ SrvProcessWriteAndX(
 
         case SRV_WRITEX_STAGE_SMB_V1_ZCT_COMPLETE:
 
-            if (pWriteState->Zct.pZct)
+            if (pWriteState->zct.pZct)
             {
-                LwZctDestroy(&pWriteState->Zct.pZct);
+                LwZctDestroy(&pWriteState->zct.pZct);
 
-                SrvProtocolTransportResumeFromZct(pWriteState->Zct.pPausedConnection);
-                SrvConnectionRelease(pWriteState->Zct.pPausedConnection);
-                pWriteState->Zct.pPausedConnection = NULL;
+                SrvProtocolTransportResumeFromZct(pWriteState->zct.pPausedConnection);
+                SrvConnectionRelease(pWriteState->zct.pPausedConnection);
+                pWriteState->zct.pPausedConnection = NULL;
 
                 ntStatus = SrvExecuteWriteXZctComplete(pWriteState, pExecContext);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -337,12 +337,12 @@ static
 NTSTATUS
 SrvExecuteWriteAndX(
     PSRV_WRITEX_STATE_SMB_V1 pWriteState,
-    PSRV_EXEC_CONTEXT pExecContext
+    PSRV_EXEC_CONTEXT        pExecContext
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    if (pWriteState->Zct.pZct)
+    if (pWriteState->zct.pZct)
     {
         if (!pWriteState->bStartedIo)
         {
@@ -354,15 +354,15 @@ SrvExecuteWriteAndX(
                             pWriteState->pAcb,
                             &pWriteState->ioStatusBlock,
                             0,
-                            pWriteState->Zct.pZct,
+                            pWriteState->zct.pZct,
                             pWriteState->ulLength,
                             &pWriteState->llOffset,
                             &pWriteState->ulKey,
-                            &pWriteState->Zct.pZctCompletion);
+                            &pWriteState->zct.pZctCompletion);
             if (ntStatus == STATUS_NOT_SUPPORTED)
             {
                 // Retry as non-ZCT
-                LwZctDestroy(&pWriteState->Zct.pZct);
+                LwZctDestroy(&pWriteState->zct.pZct);
                 pWriteState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
             }
             BAIL_ON_NT_STATUS(ntStatus);
@@ -377,36 +377,38 @@ SrvExecuteWriteAndX(
         if (ntStatus == STATUS_NOT_SUPPORTED)
         {
             // Retry as non-ZCT
-            LwZctDestroy(&pWriteState->Zct.pZct);
+            LwZctDestroy(&pWriteState->zct.pZct);
             pWriteState->ioStatusBlock.Status = ntStatus = STATUS_SUCCESS;
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
-        if (!pWriteState->Zct.pZct)
+        if (!pWriteState->zct.pZct)
         {
             // Cannot do ZCT
 
             // Read rest of data into packet.
             ntStatus = SrvProtocolTransportContinueAsNonZct(
-                    pExecContext->pConnection,
-                    pExecContext);
+                            pExecContext->pConnection,
+                            pExecContext);
+
             // For now, returns STATUS_PENDING.
             LWIO_ASSERT(STATUS_PENDING == ntStatus);
 
-            SrvConnectionRelease(pWriteState->Zct.pPausedConnection);
-            pWriteState->Zct.pPausedConnection = NULL;
+            SrvConnectionRelease(pWriteState->zct.pPausedConnection);
+            pWriteState->zct.pPausedConnection = NULL;
 
             BAIL_ON_NT_STATUS(ntStatus);
         }
         else
         {
-            ULONG zctLength = LwZctGetLength(pWriteState->Zct.pZct);
+            ULONG zctLength = LwZctGetLength(pWriteState->zct.pZct);
+
             LWIO_ASSERT(zctLength == pWriteState->ulLength);
         }
     }
 
     // This will also retry as non-ZCT if ZCT failed above.
-    if (!pWriteState->Zct.pZct)
+    if (!pWriteState->zct.pZct)
     {
         if (!pWriteState->bStartedIo)
         {
@@ -459,52 +461,52 @@ SrvExecuteWriteXZctIo(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_EXEC_CONTEXT pZctContext = NULL;
 
-    if (pWriteState->Zct.ulSkipBytes)
+    if (pWriteState->zct.ulSkipBytes)
     {
         // Skip extra padding
         LW_ZCT_ENTRY entry;
 
-        ntStatus = SrvAllocateMemory(pWriteState->Zct.ulSkipBytes, OUT_PPVOID(&pWriteState->Zct.pPadding));
+        ntStatus = SrvAllocateMemory(pWriteState->zct.ulSkipBytes, OUT_PPVOID(&pWriteState->zct.pPadding));
         BAIL_ON_NT_STATUS(ntStatus);
 
         entry.Type = LW_ZCT_ENTRY_TYPE_MEMORY;
-        entry.Length = pWriteState->Zct.ulSkipBytes;
-        entry.Data.Memory.Buffer = pWriteState->Zct.pPadding;
+        entry.Length = pWriteState->zct.ulSkipBytes;
+        entry.Data.Memory.Buffer = pWriteState->zct.pPadding;
 
-        ntStatus = LwZctPrepend(pWriteState->Zct.pZct, &entry, 1);
+        ntStatus = LwZctPrepend(pWriteState->zct.pZct, &entry, 1);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pWriteState->Zct.ulSkipBytes = 0;
+        pWriteState->zct.ulSkipBytes = 0;
     }
 
-    ntStatus = LwZctPrepareIo(pWriteState->Zct.pZct);
+    ntStatus = LwZctPrepareIo(pWriteState->zct.pZct);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pWriteState->Zct.ulDataBytesResident)
+    if (pWriteState->zct.ulDataBytesResident)
     {
         // Copy any bytes we already have
         ntStatus = LwZctReadBufferIo(
-                        pWriteState->Zct.pZct,
+                        pWriteState->zct.pZct,
                         pWriteState->pData,
-                        pWriteState->Zct.ulDataBytesResident,
+                        pWriteState->zct.ulDataBytesResident,
                         &pWriteState->ulBytesWritten,
                         NULL);
         LWIO_ASSERT(STATUS_MORE_PROCESSING_REQUIRED != ntStatus);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        LWIO_ASSERT(pWriteState->ulBytesWritten == pWriteState->Zct.ulDataBytesResident);
+        LWIO_ASSERT(pWriteState->ulBytesWritten == pWriteState->zct.ulDataBytesResident);
 
-        pWriteState->Zct.ulDataBytesResident = 0;
+        pWriteState->zct.ulDataBytesResident = 0;
     }
 
-    LWIO_ASSERT(pWriteState->Zct.ulDataBytesMissing > 0);
+    LWIO_ASSERT(pWriteState->zct.ulDataBytesMissing > 0);
 
     pZctContext = SrvAcquireExecContext(pExecContext);
 
     // Do ZCT read from the transport for remaining bytes
     ntStatus = SrvProtocolTransportReceiveZct(
                     pExecContext->pConnection,
-                    pWriteState->Zct.pZct,
+                    pWriteState->zct.pZct,
                     SrvExecuteWriteXReceiveZctCB,
                     pZctContext);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -512,7 +514,7 @@ SrvExecuteWriteXZctIo(
     // completed synchronously
     SrvReleaseExecContext(pZctContext);
 
-    pWriteState->ulBytesWritten += pWriteState->Zct.ulDataBytesMissing;
+    pWriteState->ulBytesWritten += pWriteState->zct.ulDataBytesMissing;
 
 cleanup:
 
@@ -547,7 +549,7 @@ SrvExecuteWriteXZctComplete(
                         pWriteState->pAcb,
                         &pWriteState->ioStatusBlock,
                         0,
-                        pWriteState->Zct.pZctCompletion,
+                        pWriteState->zct.pZctCompletion,
                         pWriteState->ulBytesWritten);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -652,7 +654,7 @@ SrvExecuteWriteXReceiveZctCB(
     pWriteState->stage = SRV_WRITEX_STAGE_SMB_V1_ZCT_COMPLETE;
     if (Status == STATUS_SUCCESS)
     {
-        pWriteState->ulBytesWritten += pWriteState->Zct.ulDataBytesMissing;
+        pWriteState->ulBytesWritten += pWriteState->zct.ulDataBytesMissing;
     }
     LWIO_UNLOCK_MUTEX(bInLock, &pWriteState->mutex);
 
