@@ -218,7 +218,7 @@ SrvBuildExecContext_SMB_V1(
     PLWIO_SRV_CONNECTION      pConnection,
     PSMB_PACKET               pSmbRequest,
     PSRV_EXEC_CONTEXT_SMB_V1* ppSmb1Context
-    );;
+    );
 
 NTSTATUS
 SrvBuildErrorResponse_SMB_V1(
