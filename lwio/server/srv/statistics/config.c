@@ -158,7 +158,8 @@ SrvStatsConfigLoggingEnabled(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
 
-    bEnabled = gSrvStatGlobals.config.bEnableLogging;
+    bEnabled = (gSrvStatGlobals.config.bEnableLogging &&
+                gSrvStatGlobals.pStatFnTable);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
 
@@ -176,7 +177,9 @@ SrvStatsConfigParameterLoggingEnabled(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
 
-    bEnabled = gSrvStatGlobals.config.bLogParameters;
+    bEnabled = (gSrvStatGlobals.config.bEnableLogging &&
+                gSrvStatGlobals.config.bLogParameters &&
+                gSrvStatGlobals.pStatFnTable);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
 
