@@ -158,6 +158,14 @@ SrvProtocolTransportDriverDispatchPacket(
 
 static
 NTSTATUS
+SrvProtocolTransportDriverSetStatistics(
+    SMB_PROTOCOL_VERSION       protocolVersion,     /* IN     */
+    ULONG                      ulRequestLength,     /* IN     */
+    PSRV_STAT_REQUEST_CONTEXT* ppStatRequestContext /*    OUT */
+    );
+
+static
+NTSTATUS
 SrvProtocolTransportDriverCheckSignature(
     IN PSRV_CONNECTION pConnection,
     IN PSMB_PACKET pPacket
@@ -895,8 +903,7 @@ SrvProtocolTransportDriverDetectPacket(
         ulBytesAvailable -= sNumBytesRead;
     }
 
-    if (ulBytesAvailable &&
-        pConnection->readerState.bNeedHeader)
+    if (ulBytesAvailable && pConnection->readerState.bNeedHeader)
     {
         size_t sNumBytesRead = LW_MIN(pConnection->readerState.sNumBytesToRead, ulBytesAvailable);
 
@@ -1120,6 +1127,12 @@ SrvProtocolTransportDriverDispatchPacket(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    ntStatus = SrvProtocolTransportDriverSetStatistics(
+                    pPacket->protocolVer,
+                    pPacket->pNetBIOSHeader->len,
+                    &pContext->pStatRequestContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvProdConsEnqueue(
                     pDriverContext->pGlobals->pWorkQueue,
                     pContext);
@@ -1136,6 +1149,69 @@ error:
     if (pContext)
     {
         SrvReleaseExecContext(pContext);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvProtocolTransportDriverSetStatistics(
+    SMB_PROTOCOL_VERSION       protocolVersion,     /* IN     */
+    ULONG                      ulRequestLength,     /* IN     */
+    PSRV_STAT_REQUEST_CONTEXT* ppStatRequestContext /*    OUT */
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pStatRequestContext = NULL;
+
+    ntStatus = SrvStatisticsCreateRequestContext(&pStatRequestContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (pStatRequestContext)
+    {
+        switch (protocolVersion)
+        {
+            case SMB_PROTOCOL_VERSION_1 :
+
+                ntStatus = SrvStatisticsSetRequestInfo(
+                                pStatRequestContext,
+                                SRV_STAT_SMB_VERSION_1,
+                                ulRequestLength);
+                break;
+
+            case SMB_PROTOCOL_VERSION_2 :
+
+                ntStatus = SrvStatisticsSetRequestInfo(
+                                pStatRequestContext,
+                                SRV_STAT_SMB_VERSION_2,
+                                ulRequestLength);
+                break;
+
+            case SMB_PROTOCOL_VERSION_UNKNOWN:
+
+                ntStatus = SrvStatisticsSetRequestInfo(
+                                pStatRequestContext,
+                                SRV_STAT_SMB_VERSION_UNKNOWN,
+                                ulRequestLength);
+                break;
+        }
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppStatRequestContext = pStatRequestContext;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppStatRequestContext = NULL;
+
+    if (pStatRequestContext)
+    {
+        SrvStatisticsCloseRequestContext(pStatRequestContext);
     }
 
     goto cleanup;

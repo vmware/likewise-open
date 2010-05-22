@@ -52,6 +52,7 @@
 #include <uuid/uuid.h>
 
 #include <lwio/lwio.h>
+#include <lwio/lwiosrvstatprovider.h>
 
 #include <lwiodef.h>
 #include <lwioutils.h>
@@ -75,6 +76,7 @@
 
 #include <shareapi.h>
 #include <srvutils.h>
+#include <statisticsapi.h>
 #include <elementsapi.h>
 #include <transportapi.h>
 #include <protocolapi.h>

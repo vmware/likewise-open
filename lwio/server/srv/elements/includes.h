@@ -60,6 +60,7 @@
 #include <gssapi/gssapi_krb5.h>
 
 #include <lwio/lwio.h>
+#include <lwio/lwiosrvstatprovider.h>
 #include <lwio/lmshare.h>
 
 #include <lwiodef.h>
@@ -75,6 +76,7 @@
 #include <smbwire.h>
 
 #include <shareapi.h>
+#include <statisticsapi.h>
 #include <srvutils.h>
 #include <elementsapi.h>
 

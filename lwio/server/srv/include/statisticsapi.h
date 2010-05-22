@@ -45,12 +45,114 @@
 #define __SRV_STATISTICS_H__
 
 NTSTATUS
-SrvInitializeStatistics(
+SrvStatisticsInitialize(
+    VOID
+    );
+
+BOOLEAN
+SrvStatisticsLoggingEnabled(
+    VOID
+    );
+
+BOOLEAN
+SrvStatisticsParameterLoggingEnabled(
     VOID
     );
 
 NTSTATUS
-SrvShutdownStatistics(
+SrvStatisticsCreateRequestContext(
+    PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
+    );
+
+NTSTATUS
+SrvStatisticsSetRequestInfo(
+    PSRV_STAT_REQUEST_CONTEXT  pContext,           /* IN              */
+    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
+    ULONG                      ulRequestLength     /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsPushMessage(
+    PSRV_STAT_REQUEST_CONTEXT    pContext,         /* IN              */
+    ULONG                        ulOpcode,         /* IN              */
+    PSRV_STAT_REQUEST_PARAMETERS pParams,
+    PBYTE                        pMessage,         /* IN     OPTIONAL */
+    ULONG                        ulMessageLen      /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsSetSubOpcode(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    ULONG                     ulSubOpcode          /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsSetIOCTL(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    ULONG                     ulIoCtlCode          /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsSessionCreated(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsTreeCreated(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
+    PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsFileCreated(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
+    PSRV_STAT_TREE_INFO       pTreeInfo,           /* IN              */
+    PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsFileClosed(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsTreeClosed(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsSessionClosed(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsPopMessage(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    ULONG                     ulOpCode,            /* IN              */
+    NTSTATUS                  msgStatus            /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsSetResponseInfo(
+    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    NTSTATUS                  responseStatus,      /* IN              */
+    PBYTE                     pResponseBuffer,     /* IN     OPTIONAL */
+    ULONG                     ulResponseLength     /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsCloseRequestContext(
+    PSRV_STAT_REQUEST_CONTEXT pContext             /* IN              */
+    );
+
+NTSTATUS
+SrvStatisticsShutdown(
     VOID
     );
 

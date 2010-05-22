@@ -336,6 +336,9 @@ SrvInitialize(
     ntStatus = SrvElementsInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvStatisticsInitialize();
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvProtocolInit(
                     &gSMBSrvGlobals.workQueue,
                     gSMBSrvGlobals.hPacketAllocator,
@@ -552,6 +555,8 @@ SrvShutdown(
         }
 
         SrvProtocolShutdown();
+
+        SrvStatisticsShutdown();
 
         SrvElementsShutdown();
 

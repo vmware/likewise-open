@@ -50,22 +50,32 @@
 // config.c
 
 NTSTATUS
-SrvStatsReadConfig(
+SrvStatsConfigRead(
     PSRV_STATISTICS_CONFIG pConfig
     );
 
 NTSTATUS
-SrvStatsInitConfigContents(
+SrvStatsConfigInitContents(
     PSRV_STATISTICS_CONFIG pConfig
     );
 
 NTSTATUS
-SrvStatsTransferConfigContents(
+SrvStatsConfigTransferContents(
     PSRV_STATISTICS_CONFIG pSrc,
     PSRV_STATISTICS_CONFIG pDest
     );
 
+BOOLEAN
+SrvStatsConfigLoggingEnabled(
+    VOID
+    );
+
+BOOLEAN
+SrvStatsConfigParameterLoggingEnabled(
+    VOID
+    );
+
 VOID
-SrvStatsFreeConfigContents(
+SrvStatsConfigFreeContents(
     PSRV_STATISTICS_CONFIG pConfig
     );

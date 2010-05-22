@@ -51,9 +51,14 @@
 
 NTSTATUS
 LwioSrvStatCreateRequestContext(
-    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
-    ULONG                      ulRequestLength,    /* IN              */
     PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
+    );
+
+NTSTATUS
+LwioSrvStatSetRequestInfo(
+    PSRV_STAT_REQUEST_CONTEXT  pContext,           /* IN              */
+    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
+    ULONG                      ulRequestLength     /* IN              */
     );
 
 NTSTATUS

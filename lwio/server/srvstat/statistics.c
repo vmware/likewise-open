@@ -51,8 +51,6 @@
 
 NTSTATUS
 LwioSrvStatCreateRequestContext(
-    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
-    ULONG                      ulRequestLength,    /* IN              */
     PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
     )
 {
@@ -64,8 +62,6 @@ LwioSrvStatCreateRequestContext(
                     SRV_STAT_REQUEST_CONTEXT,
                     sizeof(SRV_STAT_REQUEST_CONTEXT));
     BAIL_ON_NT_STATUS(ntStatus);
-
-    pContext->protocolVersion = protocolVersion;
 
     *ppContext = pContext;
 
@@ -81,6 +77,25 @@ error:
 }
 
 NTSTATUS
+LwioSrvStatSetRequestInfo(
+    PSRV_STAT_REQUEST_CONTEXT  pContext,           /* IN              */
+    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
+    ULONG                      ulRequestLength     /* IN              */
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    BAIL_ON_INVALID_POINTER(pContext);
+
+    pContext->protocolVersion = protocolVersion;
+
+error:
+
+    return ntStatus;
+}
+
+
+NTSTATUS
 LwioSrvStatPushMessage(
     PSRV_STAT_REQUEST_CONTEXT    pContext,         /* IN              */
     ULONG                        ulOpcode,         /* IN              */
@@ -90,6 +105,10 @@ LwioSrvStatPushMessage(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    BAIL_ON_INVALID_POINTER(pContext);
+
+error:
 
     return ntStatus;
 }

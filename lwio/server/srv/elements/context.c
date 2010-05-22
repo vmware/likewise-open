@@ -192,6 +192,11 @@ SrvFreeExecContext(
         SrvConnectionRelease(pContext->pConnection);
     }
 
+    if (pContext->pStatRequestContext)
+    {
+        SrvStatisticsCloseRequestContext(pContext->pStatRequestContext);
+    }
+
     if (pContext->pMutex)
     {
         pthread_mutex_destroy(&pContext->mutex);

@@ -52,6 +52,7 @@
 LWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE gSrvStatFunctionTable =
 {
     .pfnCreateRequestContext = &LwioSrvStatCreateRequestContext,
+    .pfnSetRequestInfo       = &LwioSrvStatSetRequestInfo,
     .pfnPushMessage          = &LwioSrvStatPushMessage,
     .pfnSetSubOpCode         = &LwioSrvStatSetSubOpcode,
     .pfnSetIOCTL             = &LwioSrvStatSetIOCTL,

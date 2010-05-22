@@ -50,7 +50,7 @@
 #include "includes.h"
 
 NTSTATUS
-SrvStatsReadConfig(
+SrvStatsConfigRead(
     PSRV_STATISTICS_CONFIG pConfig
     )
 {
@@ -59,7 +59,7 @@ SrvStatsReadConfig(
     PLWIO_CONFIG_REG pReg = NULL;
     BOOLEAN bUsePolicy = TRUE;
 
-    ntStatus = SrvStatsInitConfigContents(&config);
+    ntStatus = SrvStatsConfigInitContents(&config);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = LwIoOpenConfig(
@@ -95,7 +95,7 @@ SrvStatsReadConfig(
             bUsePolicy,
             &config.bLogParameters);
 
-    ntStatus = SrvStatsTransferConfigContents(&config, pConfig);
+    ntStatus = SrvStatsConfigTransferContents(&config, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:
@@ -109,19 +109,19 @@ cleanup:
 
 error:
 
-    SrvStatsFreeConfigContents(&config);
+    SrvStatsConfigFreeContents(&config);
 
     goto cleanup;
 }
 
 NTSTATUS
-SrvStatsInitConfigContents(
+SrvStatsConfigInitContents(
     PSRV_STATISTICS_CONFIG pConfig
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    SrvStatsFreeConfigContents(pConfig);
+    SrvStatsConfigFreeContents(pConfig);
 
     pConfig->bEnableLogging  = FALSE;
     pConfig->bLogParameters  = FALSE;
@@ -131,14 +131,14 @@ SrvStatsInitConfigContents(
 }
 
 NTSTATUS
-SrvStatsTransferConfigContents(
+SrvStatsConfigTransferContents(
     PSRV_STATISTICS_CONFIG pSrc,
     PSRV_STATISTICS_CONFIG pDest
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    SrvStatsFreeConfigContents(pDest);
+    SrvStatsConfigFreeContents(pDest);
 
     *pDest = *pSrc;
 
@@ -147,8 +147,44 @@ SrvStatsTransferConfigContents(
     return ntStatus;
 }
 
+inline
+BOOLEAN
+SrvStatsConfigLoggingEnabled(
+    VOID
+    )
+{
+    BOOLEAN bEnabled = FALSE;
+    BOOLEAN bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
+
+    bEnabled = gSrvStatGlobals.config.bEnableLogging;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
+
+    return bEnabled;
+}
+
+inline
+BOOLEAN
+SrvStatsConfigParameterLoggingEnabled(
+    VOID
+    )
+{
+    BOOLEAN bEnabled = FALSE;
+    BOOLEAN bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
+
+    bEnabled = gSrvStatGlobals.config.bLogParameters;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
+
+    return bEnabled;
+}
+
 VOID
-SrvStatsFreeConfigContents(
+SrvStatsConfigFreeContents(
     PSRV_STATISTICS_CONFIG pConfig
     )
 {
