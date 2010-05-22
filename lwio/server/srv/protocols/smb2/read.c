@@ -832,6 +832,11 @@ SrvFreeReadState_SMB_V2(
         SrvFreeMemory(pReadState->pData);
     }
 
+    if (pReadState->pZct)
+    {
+        LwZctDestroy(&pReadState->pZct);
+    }
+
     SrvFreeMemory(pReadState);
 }
 
@@ -898,7 +903,7 @@ SrvBuildReadResponse_SMB_V2(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
-                    pReadState->pData,
+                    pReadState->pZct ? NULL : pReadState->pData,
                     pReadState->ulBytesRead,
                     pReadState->ulRemaining,
                     &ulDataOffset,

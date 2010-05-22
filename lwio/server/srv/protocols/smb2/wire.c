@@ -1442,10 +1442,10 @@ SMB2MarshalReadResponse(
     if (pData)
     {
         memcpy(pDataCursor, pData, ulBytesRead);
-        ulBytesUsed += ulBytesRead;
-        ulBytesAvailable -= ulBytesRead;
-        pDataCursor += ulBytesRead;
     }
+    ulBytesUsed += ulBytesRead;
+    ulBytesAvailable -= ulBytesRead;
+    pDataCursor += ulBytesRead;
 
     *pulDataOffset = ulDataOffset;
     *pulBytesUsed = ulBytesUsed;
