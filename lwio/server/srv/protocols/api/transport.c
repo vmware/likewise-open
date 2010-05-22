@@ -1052,14 +1052,10 @@ SrvProtocolTransportDriverDetectPacket(
                                 &pZctExecContext);
                 break;
             case SMB_PROTOCOL_VERSION_2:
-#if 1
-                ntStatus = STATUS_SUCCESS;
-#else
-                ntStatus = SrvCanTryZctWrite_SMB_V2(
+                ntStatus = SrvDetectZctWrite_SMB_V2(
                                 pConnection,
                                 pPacket,
-                                &bCanTryZct);
-#endif
+                                &pZctExecContext);
                 break;
             default:
                 ntStatus = STATUS_SUCCESS;

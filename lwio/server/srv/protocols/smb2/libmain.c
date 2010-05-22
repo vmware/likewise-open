@@ -62,14 +62,6 @@ SrvSendInterimResponse_SMB_V2(
     );
 
 static
-NTSTATUS
-SrvBuildExecContext_SMB_V2(
-    PLWIO_SRV_CONNECTION      pConnection,
-    PSMB_PACKET               pSmbRequest,
-    PSRV_EXEC_CONTEXT_SMB_V2* ppSmb2Context
-    );
-
-static
 PCSTR
 SrvGetCommandDescription_SMB_V2(
     ULONG ulCommand
@@ -703,7 +695,6 @@ error:
     goto cleanup;
 }
 
-static
 NTSTATUS
 SrvBuildExecContext_SMB_V2(
     PLWIO_SRV_CONNECTION      pConnection,

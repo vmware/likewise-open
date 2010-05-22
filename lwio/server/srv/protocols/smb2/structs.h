@@ -927,10 +927,22 @@ typedef struct _SRV_READ_STATE_SMB_V2
 
 } SRV_READ_STATE_SMB_V2, *PSRV_READ_STATE_SMB_V2;
 
+typedef struct _SRV_ZCT_WRITE_STATE_SMB_V2 {
+    ULONG ulDataBytesMissing;
+    ULONG ulDataBytesResident;
+    ULONG ulSkipBytes;
+    PLW_ZCT_VECTOR pZct;
+    PVOID pZctCompletion;
+    PVOID pPadding;
+    PLWIO_SRV_CONNECTION pPausedConnection;
+} SRV_ZCT_WRITE_STATE_SMB_V2, *PSRV_ZCT_WRITE_STATE_SMB_V2;
+
 typedef enum
 {
     SRV_WRITE_STAGE_SMB_V2_INITIAL = 0,
     SRV_WRITE_STAGE_SMB_V2_ATTEMPT_WRITE,
+    SRV_WRITE_STAGE_SMB_V2_ZCT_IO,
+    SRV_WRITE_STAGE_SMB_V2_ZCT_COMPLETE,
     SRV_WRITE_STAGE_SMB_V2_BUILD_RESPONSE,
     SRV_WRITE_STAGE_SMB_V2_DONE
 } SRV_WRITE_STAGE_SMB_V2;
@@ -953,10 +965,15 @@ typedef struct _SRV_WRITE_STATE_SMB_V2
 
     PSMB2_WRITE_REQUEST_HEADER pRequestHeader; // Do not free
     PBYTE                      pData;          // Do not free
-
-    ULONG                      ulBytesWritten;
-    LONG64                     llDataOffset;
+    LONG64                     llOffset;
+    ULONG                      ulLength;
     ULONG                      ulKey;
+    ULONG                      ulBytesWritten;
+
+    BOOLEAN bStartedIo;
+
+    // ZCT information
+    SRV_ZCT_WRITE_STATE_SMB_V2 Zct;
 
 } SRV_WRITE_STATE_SMB_V2, *PSRV_WRITE_STATE_SMB_V2;
 

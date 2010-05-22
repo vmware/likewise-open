@@ -803,6 +803,13 @@ SrvConnectionFindSession(
     );
 
 NTSTATUS
+SrvConnection2FindSession_inlock(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullUid,
+    PLWIO_SRV_SESSION_2* ppSession
+    );
+
+NTSTATUS
 SrvConnection2FindSession(
     PLWIO_SRV_CONNECTION pConnection,
     ULONG64              ullUid,

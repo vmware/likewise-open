@@ -609,7 +609,7 @@ error:
 }
 
 NTSTATUS
-SrvConnection2FindSession(
+SrvConnection2FindSession_inlock(
     PLWIO_SRV_CONNECTION pConnection,
     ULONG64              ullUid,
     PLWIO_SRV_SESSION_2* ppSession
@@ -617,9 +617,6 @@ SrvConnection2FindSession(
 {
     NTSTATUS ntStatus = 0;
     PLWIO_SRV_SESSION_2 pSession = NULL;
-    BOOLEAN bInLock = FALSE;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
 
     pSession = pConnection->lruSession2[ ullUid % SRV_LRU_CAPACITY ];
     if (!pSession || (pSession->ullUid != ullUid))
@@ -639,8 +636,6 @@ SrvConnection2FindSession(
 
 cleanup:
 
-    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
-
     return ntStatus;
 
 error:
@@ -648,6 +643,37 @@ error:
     {
         ntStatus = STATUS_USER_SESSION_DELETED;
     }
+
+    *ppSession = NULL;
+
+    goto cleanup;
+}
+
+NTSTATUS
+SrvConnection2FindSession(
+    PLWIO_SRV_CONNECTION pConnection,
+    ULONG64              ullUid,
+    PLWIO_SRV_SESSION_2* ppSession
+    )
+{
+    NTSTATUS ntStatus = 0;
+    PLWIO_SRV_SESSION_2 pSession = NULL;
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pConnection->mutex);
+
+    ntStatus = SrvConnection2FindSession_inlock(pConnection, ullUid, &pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSession = pSession;
+
+cleanup:
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pConnection->mutex);
+
+    return ntStatus;
+
+error:
 
     *ppSession = NULL;
 
