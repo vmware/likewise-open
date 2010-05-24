@@ -172,6 +172,18 @@ PvfsCreateFileDoSysOpen(
     FILE_CREATE_RESULT CreateResult = 0;
     PIO_SECURITY_CONTEXT_PROCESS_INFORMATION pProcess = NULL;
 
+    pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
+    /* Fail any create that requires setting the security but doesn't
+       have the Unix uid/gid information */
+
+    if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_SECURITY) &&
+        (pProcess == NULL))
+    {
+        ntError = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     ntError = PvfsEnforceShareMode(
                    pCreateContext->pFcb,
                    Args.ShareAccess,
@@ -245,8 +257,6 @@ PvfsCreateFileDoSysOpen(
     if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_SECURITY) && pSecCtx)
     {
         /* Unix Security */
-
-        pProcess = IoSecurityGetProcessInfo(pSecCtx);
 
         ntError = PvfsSysChown(
                       pCreateContext->pCcb,
@@ -357,6 +367,18 @@ PvfsCreateDirDoSysOpen(
     PBOOLEAN pbEnableAbe = NULL;
     ULONG ulEcpSize = 0;
 
+    pProcess = IoSecurityGetProcessInfo(pSecCtx);
+
+    /* Fail any create that requires setting the security but doesn't
+       have the Unix uid/gid information */
+
+    if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_SECURITY) &&
+        (pProcess == NULL))
+    {
+        ntError = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
     /* Do the open() */
 
     ntError = MapPosixOpenFlags(
@@ -431,8 +453,6 @@ PvfsCreateDirDoSysOpen(
     if ((pCreateContext->SetPropertyFlags & PVFS_SET_PROP_SECURITY) && pSecCtx)
     {
         /* Unix Security */
-
-        pProcess = IoSecurityGetProcessInfo(pSecCtx);
 
         ntError = PvfsSysChown(
                       pCreateContext->pCcb,
