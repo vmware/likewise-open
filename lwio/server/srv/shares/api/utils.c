@@ -607,13 +607,30 @@ SrvShareSetDefaultSecurity(
     PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc = NULL;
     ULONG ulRelSecDescLen = 0;
     PSECURITY_DESCRIPTOR_ABSOLUTE pAbsSecDesc = NULL;
-    DWORD dwSidCount = 0;
+    DWORD dwAceCount = 0;
     PSID pOwnerSid = NULL;
     PSID pGroupSid = NULL;
-    PSID pAdministratorsSid = NULL;
-    PSID pEveryoneSid = NULL;
     PACL pDacl = NULL;
     DWORD dwSizeDacl = 0;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } administratorsSid;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } powerUsersSid;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } everyoneSid;
+    ULONG ulAdministratorsSidSize = sizeof(administratorsSid.buffer);
+    ULONG ulPowerUsersSidSize = sizeof(powerUsersSid.buffer);
+    ULONG ulEveryoneSidSize = sizeof(everyoneSid.buffer);
+    ACCESS_MASK worldAccessMask = 0;
 
     /* Clear out any existing SecDesc's.  This is not a normal
        use case, but be paranoid */
@@ -636,9 +653,32 @@ SrvShareSetDefaultSecurity(
                   SECURITY_DESCRIPTOR_REVISION);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    /* Create some SIDs */
+
+    ntStatus = RtlCreateWellKnownSid(
+                   WinBuiltinAdministratorsSid,
+                   NULL,
+                   (PSID)administratorsSid.buffer,
+                   &ulAdministratorsSidSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlCreateWellKnownSid(
+                   WinBuiltinPowerUsersSid,
+                   NULL,
+                   (PSID)powerUsersSid.buffer,
+                   &ulPowerUsersSidSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlCreateWellKnownSid(
+                   WinWorldSid,
+                   NULL,
+                   (PSID)everyoneSid.buffer,
+                   &ulEveryoneSidSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     /* Owner: Administrators */
 
-    ntStatus = RtlAllocateSidFromCString(&pOwnerSid, "S-1-5-32-544");
+    ntStatus = RtlDuplicateSid(&pOwnerSid, &administratorsSid.sid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RtlSetOwnerSecurityDescriptor(
@@ -649,7 +689,7 @@ SrvShareSetDefaultSecurity(
 
     /* Group: Power Users */
 
-    ntStatus = RtlAllocateSidFromCString(&pGroupSid, "S-1-5-32-547");
+    ntStatus = RtlDuplicateSid(&pGroupSid, &powerUsersSid.sid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RtlSetGroupSecurityDescriptor(
@@ -658,21 +698,17 @@ SrvShareSetDefaultSecurity(
                    FALSE);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    /* DACL: Administrators (Full Control), Everyone (Read) */
+    /* DACL:
+       Administrators - (Full Control)
+       Everyone - (Read) for disk shares, (Read/Write) to IPC shares */
 
-    ntStatus = RtlAllocateSidFromCString(&pAdministratorsSid, "S-1-5-32-544");
-    BAIL_ON_NT_STATUS(ntStatus);
-    dwSidCount++;
-
-    ntStatus = RtlAllocateSidFromCString(&pEveryoneSid, "S-1-1-0");
-    BAIL_ON_NT_STATUS(ntStatus);
-    dwSidCount++;
+    dwAceCount = 2;
 
     dwSizeDacl = ACL_HEADER_SIZE +
-        dwSidCount * sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(pAdministratorsSid) +
-        RtlLengthSid(pEveryoneSid) -
-        dwSidCount * sizeof(ULONG);
+        dwAceCount * sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&administratorsSid.sid) +
+        RtlLengthSid(&everyoneSid.sid) -
+        dwAceCount * sizeof(ULONG);
 
     ntStatus= RTL_ALLOCATE(&pDacl, VOID, dwSizeDacl);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -685,15 +721,21 @@ SrvShareSetDefaultSecurity(
                   ACL_REVISION,
                   0,
                   FILE_ALL_ACCESS,
-                  pAdministratorsSid);
+                  &administratorsSid.sid);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    worldAccessMask = FILE_GENERIC_READ;
+    if (pShareInfo->service == SHARE_SERVICE_NAMED_PIPE)
+    {
+        worldAccessMask |= FILE_GENERIC_WRITE;
+    }
 
     ntStatus = RtlAddAccessAllowedAceEx(
                   pDacl,
                   ACL_REVISION,
                   0,
-                  FILE_GENERIC_READ,
-                  pEveryoneSid);
+                  worldAccessMask,
+                  &everyoneSid.sid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RtlSetDaclSecurityDescriptor(
@@ -729,8 +771,6 @@ SrvShareSetDefaultSecurity(
 
 
 cleanup:
-    RTL_FREE(&pAdministratorsSid);
-    RTL_FREE(&pEveryoneSid);
 
     return ntStatus;
 

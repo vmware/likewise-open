@@ -57,6 +57,7 @@
 #include <lwiolog_r.h>
 
 #include <lw/ntstatus.h>
+#include <lw/security-types.h>
 
 #include <shareapi.h>
 #include <srvutils.h>
