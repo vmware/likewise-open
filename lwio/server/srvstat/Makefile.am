@@ -17,4 +17,9 @@ libsrv_stat_la_LIBADD = \
     @LWBASE_LIBS@ \
     @PTHREAD_LIBS@
 
-libsrv_stat_la_LDFLAGS = -module -shared -avoid-version
+libsrv_stat_la_LDFLAGS = \
+	-module        \
+	-shared        \
+	-avoid-version \
+	-export-symbols=srvstat.sym
+
