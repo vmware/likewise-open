@@ -339,6 +339,11 @@ SrvProcessSetNamedPipeHandleState(
                                 &pTransState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
+            ntStatus = SrvSetStatSessionInfo(
+                                pExecContext,
+                                pTransState->pSession);
+            BAIL_ON_NT_STATUS(ntStatus);
+
             ntStatus = SrvSessionFindTree_SMB_V1(
                             pCtxSmb1,
                             pTransState->pSession,
@@ -555,6 +560,11 @@ SrvProcessGetNamedPipeHandleState(
                             pConnection,
                             pSmbRequest->pHeader->uid,
                             &pTransState->pSession);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvSetStatSessionInfo(
+                            pExecContext,
+                            pTransState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
             ntStatus = SrvSessionFindTree_SMB_V1(
@@ -795,6 +805,11 @@ SrvProcessGetNamedPipeInfo(
                             pConnection,
                             pSmbRequest->pHeader->uid,
                             &pTransState->pSession);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvSetStatSessionInfo(
+                            pExecContext,
+                            pTransState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
             ntStatus = SrvSessionFindTree_SMB_V1(
@@ -1046,6 +1061,11 @@ SrvProcessTransactNamedPipe(
                             pConnection,
                             pSmbRequest->pHeader->uid,
                             &pTransState->pSession);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            ntStatus = SrvSetStatSessionInfo(
+                            pExecContext,
+                            pTransState->pSession);
             BAIL_ON_NT_STATUS(ntStatus);
 
             ntStatus = SrvSessionFindTree_SMB_V1(

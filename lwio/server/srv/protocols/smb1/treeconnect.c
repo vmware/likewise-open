@@ -167,6 +167,9 @@ SrvProcessTreeConnectAndX(
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvSetStatSessionInfo(pExecContext, pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         ntStatus = UnmarshallTreeConnectRequest(
                         pBuffer,
                         ulBytesAvailable,

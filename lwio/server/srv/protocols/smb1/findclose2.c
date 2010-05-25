@@ -58,6 +58,9 @@ SrvProcessFindClose2(
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvSetStatSessionInfo(pExecContext, pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = WireUnmarshallFindClose2Request(
                     pBuffer,
                     ulBytesAvailable,

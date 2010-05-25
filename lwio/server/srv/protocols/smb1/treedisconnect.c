@@ -57,6 +57,9 @@ SrvProcessTreeDisconnectAndX(
                     &pSession);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvSetStatSessionInfo(pExecContext, pSession);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvSessionFindTree(
                     pSession,
                     pSmbRequest->pHeader->tid,

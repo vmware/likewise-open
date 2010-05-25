@@ -107,6 +107,9 @@ SrvProcessSessionSetup(
         ntStatus = SrvConnectionCreateSession(pConnection, &pCtxSmb1->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvSetStatSessionInfo(pExecContext, pCtxSmb1->pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         if (!pExecContext->pConnection->pSessionKey)
         {
              ntStatus = SrvGssGetSessionDetails(

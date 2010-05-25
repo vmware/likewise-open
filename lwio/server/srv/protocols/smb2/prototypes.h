@@ -472,6 +472,12 @@ SrvBuildTreeRelativePath_SMB_V2(
     PIO_FILE_NAME    pFilename
     );
 
+NTSTATUS
+SrvSetStatSession2Info(
+    PSRV_EXEC_CONTEXT   pExecContext,
+    PLWIO_SRV_SESSION_2 pSession
+    );
+
 // wire.c
 
 NTSTATUS

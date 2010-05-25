@@ -580,6 +580,12 @@ SrvBuildTreeRelativePath(
     PIO_FILE_NAME  pFilename
     );
 
+NTSTATUS
+SrvSetStatSessionInfo(
+    PSRV_EXEC_CONTEXT pExecContext,
+    PLWIO_SRV_SESSION pSession
+    );
+
 // wire.c
 
 NTSTATUS

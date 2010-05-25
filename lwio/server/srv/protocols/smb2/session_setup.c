@@ -152,6 +152,9 @@ SrvProcessSessionSetup_SMB_V2(
                         &pCtxSmb2->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvSetStatSession2Info(pExecContext, pCtxSmb2->pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         if (!pConnection->pSessionKey)
         {
              ntStatus = SrvGssGetSessionDetails(

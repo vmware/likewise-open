@@ -136,6 +136,9 @@ SrvProcessFlush_SMB_V2(
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvSetStatSession2Info(pExecContext, pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         ntStatus = SrvSession2FindTree_SMB_V2(
                         pCtxSmb2,
                         pSession,

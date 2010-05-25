@@ -101,3 +101,31 @@ error:
 
     goto cleanup;
 }
+
+NTSTATUS
+SrvSetStatSession2Info(
+    PSRV_EXEC_CONTEXT   pExecContext,
+    PLWIO_SRV_SESSION_2 pSession
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+
+    if (pExecContext->pStatInfo)
+    {
+        SRV_STAT_SESSION_INFO statSessionInfo =
+        {
+                .pwszUserPrincipal = pSession->pwszClientPrincipalName,
+                .ullSessionId      = pSession->ullUid
+        };
+
+        ntStatus = SrvStatisticsSetSessionInfo(
+                        pExecContext->pStatInfo,
+                        &statSessionInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+error:
+
+    return ntStatus;
+
+}

@@ -123,6 +123,9 @@ SrvProcessDeleteDirectory(
                         &pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvSetStatSessionInfo(pExecContext, pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
         ntStatus = SrvSessionFindTree_SMB_V1(
                         pCtxSmb1,
                         pSession,
