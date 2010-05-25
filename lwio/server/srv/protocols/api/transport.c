@@ -1169,40 +1169,34 @@ SrvProtocolTransportDriverSetStatistics(
             .clientAddrLen = pConnection->clientAddrLen,
             .ulResourceId  = pConnection->resource.ulResourceId
     };
+    SRV_STAT_SMB_VERSION protocolStatVer = SRV_STAT_SMB_VERSION_UNKNOWN;
 
-    ntStatus = SrvStatisticsCreateRequestContext(&statConnInfo, &pStatInfo);
-    BAIL_ON_NT_STATUS(ntStatus);
-
-    if (pStatInfo)
+    switch (protocolVersion)
     {
-        switch (protocolVersion)
-        {
-            case SMB_PROTOCOL_VERSION_1 :
+        case SMB_PROTOCOL_VERSION_1 :
 
-                ntStatus = SrvStatisticsSetRequestInfo(
-                                pStatInfo,
-                                SRV_STAT_SMB_VERSION_1,
-                                ulRequestLength);
-                break;
+            protocolStatVer = SRV_STAT_SMB_VERSION_1;
 
-            case SMB_PROTOCOL_VERSION_2 :
+            break;
 
-                ntStatus = SrvStatisticsSetRequestInfo(
-                                pStatInfo,
-                                SRV_STAT_SMB_VERSION_2,
-                                ulRequestLength);
-                break;
+        case SMB_PROTOCOL_VERSION_2 :
 
-            case SMB_PROTOCOL_VERSION_UNKNOWN:
+            protocolStatVer = SRV_STAT_SMB_VERSION_2;
 
-                ntStatus = SrvStatisticsSetRequestInfo(
-                                pStatInfo,
-                                SRV_STAT_SMB_VERSION_UNKNOWN,
-                                ulRequestLength);
-                break;
-        }
-        BAIL_ON_NT_STATUS(ntStatus);
+            break;
+
+        case SMB_PROTOCOL_VERSION_UNKNOWN:
+
+            protocolStatVer = SRV_STAT_SMB_VERSION_UNKNOWN;
+
+            break;
     }
+
+    ntStatus = SrvStatisticsCreateRequestContext(
+                    &statConnInfo,
+                    protocolStatVer,
+                    &pStatInfo);
+    BAIL_ON_NT_STATUS(ntStatus);
 
     *ppStatInfo = pStatInfo;
 

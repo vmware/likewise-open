@@ -264,6 +264,7 @@ inline
 NTSTATUS
 SrvStatisticsCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO pConnection,        /* IN              */
+    SRV_STAT_SMB_VERSION      protocolVersion,    /* IN              */
     PSRV_STAT_INFO*           ppStatInfo          /* IN              */
     )
 {
@@ -283,6 +284,7 @@ SrvStatisticsCreateRequestContext(
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnCreateRequestContext(
                         pConnection,
+                        protocolVersion,
                         &pStatInfo->hContext);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -312,7 +314,6 @@ error:
 NTSTATUS
 SrvStatisticsSetRequestInfo(
     PSRV_STAT_INFO             pStatInfo,          /* IN              */
-    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
     ULONG                      ulRequestLength     /* IN              */
     )
 {
@@ -330,7 +331,6 @@ SrvStatisticsSetRequestInfo(
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetRequestInfo(
                         pStatInfo->hContext,
-                        protocolVersion,
                         ulRequestLength);
 
         LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);

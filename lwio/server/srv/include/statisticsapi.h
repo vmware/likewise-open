@@ -67,13 +67,13 @@ inline
 NTSTATUS
 SrvStatisticsCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO pConnection,        /* IN              */
+    SRV_STAT_SMB_VERSION      protocolVersion,    /* IN              */
     PSRV_STAT_INFO*           ppStatInfo          /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsSetRequestInfo(
     PSRV_STAT_INFO       pStatInfo,          /* IN              */
-    SRV_STAT_SMB_VERSION protocolVersion,    /* IN              */
     ULONG                ulRequestLength     /* IN              */
     );
 

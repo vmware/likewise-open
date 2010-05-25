@@ -52,6 +52,7 @@
 NTSTATUS
 LwioSrvStatCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO  pConnection,        /* IN              */
+    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
     PHANDLE                    phContext           /*    OUT          */
     )
 {
@@ -66,6 +67,8 @@ LwioSrvStatCreateRequestContext(
                     SRV_STAT_REQUEST_CONTEXT,
                     sizeof(SRV_STAT_REQUEST_CONTEXT));
     BAIL_ON_NT_STATUS(ntStatus);
+
+    pContext->protocolVersion = protocolVersion;
 
     ntStatus = LwioSrvStatGetCurrentNTTime(&pContext->requestStartTime);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -96,7 +99,6 @@ error:
 NTSTATUS
 LwioSrvStatSetRequestInfo(
     HANDLE                     hContext,           /* IN              */
-    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
     ULONG                      ulRequestLength     /* IN              */
     )
 {
@@ -104,8 +106,6 @@ LwioSrvStatSetRequestInfo(
     PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
-
-    pContext->protocolVersion = protocolVersion;
 
 error:
 
