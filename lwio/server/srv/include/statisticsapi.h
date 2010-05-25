@@ -51,16 +51,19 @@ SrvStatisticsInitialize(
     VOID
     );
 
+inline
 BOOLEAN
 SrvStatisticsLoggingEnabled(
     VOID
     );
 
+inline
 BOOLEAN
 SrvStatisticsParameterLoggingEnabled(
     VOID
     );
 
+inline
 NTSTATUS
 SrvStatisticsCreateRequestContext(
     PSRV_STAT_INFO* pStatInfo                /*    OUT          */
@@ -73,6 +76,7 @@ SrvStatisticsSetRequestInfo(
     ULONG                ulRequestLength     /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsPushMessage(
     PSRV_STAT_INFO               pStatInfo,        /* IN              */
@@ -82,24 +86,28 @@ SrvStatisticsPushMessage(
     ULONG                        ulMessageLen      /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsSetSubOpcode(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulSubOpcode          /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsSetIOCTL(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulIoCtlCode          /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsSessionCreated(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsTreeCreated(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -107,6 +115,7 @@ SrvStatisticsTreeCreated(
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsFileCreated(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -115,24 +124,28 @@ SrvStatisticsFileCreated(
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsFileClosed(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsTreeClosed(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsSessionClosed(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsPopMessage(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -140,6 +153,7 @@ SrvStatisticsPopMessage(
     NTSTATUS                  msgStatus            /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsSetResponseInfo(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -148,6 +162,7 @@ SrvStatisticsSetResponseInfo(
     ULONG                     ulResponseLength     /* IN              */
     );
 
+inline
 NTSTATUS
 SrvStatisticsCloseRequestContext(
     PSRV_STAT_INFO            pStatInfo            /* IN              */
