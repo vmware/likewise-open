@@ -514,6 +514,31 @@ SrvProcessRequestSpecific_SMB_V2(
 
 error:
 
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            break;
+
+        default:
+
+            if (pExecContext->pStatInfo)
+            {
+                NTSTATUS ntStatus2 = SrvStatisticsPopMessage(
+                                            pExecContext->pStatInfo,
+                                            pSmbRequest->pHeader->command,
+                                            ntStatus);
+                if (ntStatus2)
+                {
+                    LWIO_LOG_ERROR( "Error: Failed to notify statistics "
+                                    "module on end of message processing "
+                                    "[error: %u]", ntStatus2);
+                }
+            }
+
+            break;
+    }
+
     return ntStatus;
 }
 

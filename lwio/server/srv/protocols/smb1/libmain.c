@@ -445,9 +445,39 @@ SrvProtocolExecute_SMB_V1(
                     pExecContext->pProtocolContext->pSmb1Context->hState = NULL;
                 }
 
+                if (pExecContext->pStatInfo)
+                {
+                    NTSTATUS ntStatus2 =
+                            SrvStatisticsPopMessage(
+                                    pExecContext->pStatInfo,
+                                    pRequest->ucCommand,
+                                    STATUS_SUCCESS);
+                    if (ntStatus2)
+                    {
+                        LWIO_LOG_ERROR( "Error: Failed to notify statistics "
+                                        "module on end of message processing "
+                                        "[error: %u]", ntStatus2);
+                    }
+                }
+
                 break;
 
             default:
+
+                if (pExecContext->pStatInfo)
+                {
+                    NTSTATUS ntStatus2 =
+                            SrvStatisticsPopMessage(
+                                    pExecContext->pStatInfo,
+                                    pRequest->ucCommand,
+                                    ntStatus);
+                    if (ntStatus2)
+                    {
+                        LWIO_LOG_ERROR( "Error: Failed to notify statistics "
+                                        "module on end of message processing "
+                                        "[error: %u]", ntStatus2);
+                    }
+                }
 
                 if (pExecContext->bInternal)
                     break;
