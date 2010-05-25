@@ -53,6 +53,7 @@ NTSTATUS
 LwioSrvStatCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO  pConnection,        /* IN              */
     SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
+    ULONG                      ulRequestLength,    /* IN              */
     PHANDLE                    phContext           /*    OUT          */
     )
 {
@@ -94,22 +95,6 @@ error:
     }
 
     goto cleanup;
-}
-
-NTSTATUS
-LwioSrvStatSetRequestInfo(
-    HANDLE                     hContext,           /* IN              */
-    ULONG                      ulRequestLength     /* IN              */
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
-
-    BAIL_ON_INVALID_POINTER(pContext);
-
-error:
-
-    return ntStatus;
 }
 
 

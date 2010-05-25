@@ -1195,6 +1195,7 @@ SrvProtocolTransportDriverSetStatistics(
     ntStatus = SrvStatisticsCreateRequestContext(
                     &statConnInfo,
                     protocolStatVer,
+                    ulRequestLength,
                     &pStatInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 

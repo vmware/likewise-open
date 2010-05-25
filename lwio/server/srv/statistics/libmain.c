@@ -221,7 +221,6 @@ SrvStatisticsValidateProviderTable(
 
     if (!pStatFnTable ||
         !pStatFnTable->pfnCreateRequestContext ||
-        !pStatFnTable->pfnSetRequestInfo ||
         !pStatFnTable->pfnPushMessage ||
         !pStatFnTable->pfnSetSubOpCode ||
 		!pStatFnTable->pfnSetIOCTL ||
@@ -265,6 +264,7 @@ NTSTATUS
 SrvStatisticsCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO pConnection,        /* IN              */
     SRV_STAT_SMB_VERSION      protocolVersion,    /* IN              */
+    ULONG                     ulRequestLength,    /* IN              */
     PSRV_STAT_INFO*           ppStatInfo          /* IN              */
     )
 {
@@ -285,6 +285,7 @@ SrvStatisticsCreateRequestContext(
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnCreateRequestContext(
                         pConnection,
                         protocolVersion,
+                        ulRequestLength,
                         &pStatInfo->hContext);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -309,36 +310,6 @@ error:
     }
 
     goto cleanup;
-}
-
-NTSTATUS
-SrvStatisticsSetRequestInfo(
-    PSRV_STAT_INFO             pStatInfo,          /* IN              */
-    ULONG                      ulRequestLength     /* IN              */
-    )
-{
-    NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN  bInLock  = FALSE;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
-
-    if (gSrvStatGlobals.config.bEnableLogging &&
-        gSrvStatGlobals.pStatFnTable)
-    {
-        BOOLEAN  bStatInfoInLock = FALSE;
-
-        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
-
-        ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetRequestInfo(
-                        pStatInfo->hContext,
-                        ulRequestLength);
-
-        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
-    }
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
-
-    return ntStatus;
 }
 
 inline
