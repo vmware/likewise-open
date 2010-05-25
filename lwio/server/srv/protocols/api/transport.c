@@ -159,9 +159,10 @@ SrvProtocolTransportDriverDispatchPacket(
 static
 NTSTATUS
 SrvProtocolTransportDriverSetStatistics(
-    SMB_PROTOCOL_VERSION  protocolVersion,  /* IN     */
-    ULONG                 ulRequestLength,  /* IN     */
-    PSRV_STAT_INFO*       ppStatRequestInfo /*    OUT */
+    PLWIO_SRV_CONNECTION  pConnection,     /* IN     */
+    SMB_PROTOCOL_VERSION  protocolVersion, /* IN     */
+    ULONG                 ulRequestLength, /* IN     */
+    PSRV_STAT_INFO*       ppStatInfo       /*    OUT */
     );
 
 static
@@ -1124,6 +1125,7 @@ SrvProtocolTransportDriverDispatchPacket(
     }
 
     ntStatus = SrvProtocolTransportDriverSetStatistics(
+                    pConnection,
                     pPacket->protocolVer,
                     pPacket->pNetBIOSHeader->len,
                     &pContext->pStatInfo);
@@ -1153,6 +1155,7 @@ error:
 static
 NTSTATUS
 SrvProtocolTransportDriverSetStatistics(
+    PLWIO_SRV_CONNECTION  pConnection,     /* IN     */
     SMB_PROTOCOL_VERSION  protocolVersion, /* IN     */
     ULONG                 ulRequestLength, /* IN     */
     PSRV_STAT_INFO*       ppStatInfo       /*    OUT */
@@ -1160,8 +1163,14 @@ SrvProtocolTransportDriverSetStatistics(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_STAT_INFO pStatInfo = NULL;
+    SRV_STAT_CONNECTION_INFO statConnInfo =
+    {
+            .clientAddress = pConnection->clientAddress,
+            .clientAddrLen = pConnection->clientAddrLen,
+            .ulResourceId  = pConnection->resource.ulResourceId
+    };
 
-    ntStatus = SrvStatisticsCreateRequestContext(&pStatInfo);
+    ntStatus = SrvStatisticsCreateRequestContext(&statConnInfo, &pStatInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
     if (pStatInfo)

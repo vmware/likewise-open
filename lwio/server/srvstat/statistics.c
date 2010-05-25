@@ -51,17 +51,25 @@
 
 NTSTATUS
 LwioSrvStatCreateRequestContext(
+    PSRV_STAT_CONNECTION_INFO  pConnection,        /* IN              */
     PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_STAT_REQUEST_CONTEXT pContext = NULL;
 
+    BAIL_ON_INVALID_POINTER(pConnection);
+
     ntStatus = RTL_ALLOCATE(
                     &pContext,
                     SRV_STAT_REQUEST_CONTEXT,
                     sizeof(SRV_STAT_REQUEST_CONTEXT));
     BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwioSrvStatGetCurrentNTTime(&pContext->requestStartTime);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    memcpy(&pContext->connInfo, pConnection, sizeof(*pConnection));
 
     *ppContext = pContext;
 
@@ -72,6 +80,11 @@ cleanup:
 error:
 
     *ppContext = NULL;
+
+    if (pContext)
+    {
+        LwioSrvStatCloseRequestContext(pContext);
+    }
 
     goto cleanup;
 }
@@ -99,7 +112,7 @@ NTSTATUS
 LwioSrvStatPushMessage(
     PSRV_STAT_REQUEST_CONTEXT    pContext,         /* IN              */
     ULONG                        ulOpcode,         /* IN              */
-    PSRV_STAT_REQUEST_PARAMETERS pParams,
+    PSRV_STAT_REQUEST_PARAMETERS pParams,          /* IN     OPTIONAL */
     PBYTE                        pMessage,         /* IN     OPTIONAL */
     ULONG                        ulMessageLen      /* IN              */
     )
@@ -276,10 +289,19 @@ LwioSrvStatCloseRequestContext(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
+    ntStatus = LwioSrvStatGetCurrentNTTime(&pContext->requestEndTime);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
     if (pContext)
     {
         RtlMemoryFree(pContext);
     }
 
     return ntStatus;
+
+error:
+
+    goto cleanup;
 }

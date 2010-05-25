@@ -3,7 +3,8 @@ lib_LTLIBRARIES = libsrv.stat.la
 libsrv_stat_la_SOURCES = \
     globals.c    \
     libmain.c    \
-    statistics.c
+    statistics.c \
+    times.c
 
 libsrv_stat_la_CFLAGS  = $(AM_CFLAGS) -shared
 

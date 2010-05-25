@@ -66,7 +66,8 @@ SrvStatisticsParameterLoggingEnabled(
 inline
 NTSTATUS
 SrvStatisticsCreateRequestContext(
-    PSRV_STAT_INFO* pStatInfo                /*    OUT          */
+    PSRV_STAT_CONNECTION_INFO pConnection,        /* IN              */
+    PSRV_STAT_INFO*           ppStatInfo          /* IN              */
     );
 
 NTSTATUS

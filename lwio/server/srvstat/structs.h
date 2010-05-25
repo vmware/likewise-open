@@ -49,6 +49,11 @@
 
 typedef struct _SRV_STAT_REQUEST_CONTEXT
 {
-    SRV_STAT_SMB_VERSION protocolVersion;
+    SRV_STAT_SMB_VERSION     protocolVersion;
+
+    SRV_STAT_CONNECTION_INFO connInfo;
+
+    LONG64                   requestStartTime;
+    LONG64                   requestEndTime;
 
 } SRV_STAT_REQUEST_CONTEXT;

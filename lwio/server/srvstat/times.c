@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        defs.h
+ *        times.c
  *
  * Abstract:
  *
@@ -41,29 +41,40 @@
  *
  *        Reference Statistics Logging Module (SRV)
  *
- *        Defines
+ *        Time functions
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#define LWIO_SRV_STAT_NTTIME_EPOCH_DIFFERENCE_SECS  (11644473600LL)
+#include "includes.h"
 
-#define LWIO_SRV_STAT_FACTOR_MICROSECS_TO_HUNDREDS_OF_NANOSECS (10LL)
+NTSTATUS
+LwioSrvStatGetCurrentNTTime(
+    PLONG64 pllCurTime
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    struct timeval tv = {0};
 
-#define LWIO_SRV_STAT_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS \
-            (1000LL * LWIO_SRV_STAT_FACTOR_MICROSECS_TO_HUNDREDS_OF_NANOSECS)
-
-#define LWIO_SRV_STAT_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS \
-            (1000LL * LWIO_SRV_STAT_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS)
-
-#define BAIL_ON_NT_STATUS(ntStatus)                \
-    if ((ntStatus)) {                              \
-       goto error;                                 \
+    if (gettimeofday(&tv, NULL) < 0)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
-#define BAIL_ON_INVALID_POINTER(p)                 \
-        if (NULL == p) {                           \
-           ntStatus = STATUS_INVALID_PARAMETER;    \
-           BAIL_ON_NT_STATUS(ntStatus);            \
-        }
+    *pllCurTime =
+        ((tv.tv_sec + LWIO_SRV_STAT_NTTIME_EPOCH_DIFFERENCE_SECS) *
+                LWIO_SRV_STAT_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS) +
+        tv.tv_usec * LWIO_SRV_STAT_FACTOR_MICROSECS_TO_HUNDREDS_OF_NANOSECS;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *pllCurTime = 0LL;
+
+    goto cleanup;
+}

@@ -51,6 +51,7 @@
 
 NTSTATUS
 LwioSrvStatCreateRequestContext(
+    PSRV_STAT_CONNECTION_INFO  pConnection,        /* IN              */
     PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
     );
 
@@ -65,7 +66,7 @@ NTSTATUS
 LwioSrvStatPushMessage(
     PSRV_STAT_REQUEST_CONTEXT    pContext,         /* IN              */
     ULONG                        ulOpcode,         /* IN              */
-    PSRV_STAT_REQUEST_PARAMETERS pParams,
+    PSRV_STAT_REQUEST_PARAMETERS pParams,          /* IN     OPTIONAL */
     PBYTE                        pMessage,         /* IN     OPTIONAL */
     ULONG                        ulMessageLen      /* IN              */
     );
@@ -139,4 +140,11 @@ LwioSrvStatSetResponseInfo(
 NTSTATUS
 LwioSrvStatCloseRequestContext(
     PSRV_STAT_REQUEST_CONTEXT pContext             /* IN              */
+    );
+
+// times.c
+
+NTSTATUS
+LwioSrvStatGetCurrentNTTime(
+    PLONG64 pllCurTime
     );

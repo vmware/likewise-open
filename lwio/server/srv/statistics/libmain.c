@@ -263,7 +263,8 @@ SrvStatisticsParameterLoggingEnabled(
 inline
 NTSTATUS
 SrvStatisticsCreateRequestContext(
-    PSRV_STAT_INFO* ppStatInfo            /* IN              */
+    PSRV_STAT_CONNECTION_INFO pConnection,        /* IN              */
+    PSRV_STAT_INFO*           ppStatInfo          /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -281,6 +282,7 @@ SrvStatisticsCreateRequestContext(
         pStatInfo->pMutex = &pStatInfo->mutex;
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnCreateRequestContext(
+                        pConnection,
                         &pStatInfo->pContext);
         BAIL_ON_NT_STATUS(ntStatus);
     }
