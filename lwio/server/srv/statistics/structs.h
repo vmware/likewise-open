@@ -53,7 +53,7 @@ typedef struct _SRV_STAT_INFO
 
     SRV_STATISTICS_USAGE_FLAG ulFlags;
 
-    PSRV_STAT_REQUEST_CONTEXT pContext;
+    HANDLE                    hContext;
 
 } SRV_STAT_INFO;
 

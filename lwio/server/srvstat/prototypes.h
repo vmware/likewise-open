@@ -52,19 +52,19 @@
 NTSTATUS
 LwioSrvStatCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO  pConnection,        /* IN              */
-    PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
+    PHANDLE                    phContext           /*    OUT          */
     );
 
 NTSTATUS
 LwioSrvStatSetRequestInfo(
-    PSRV_STAT_REQUEST_CONTEXT  pContext,           /* IN              */
+    HANDLE                    hContext,            /* IN              */
     SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
     ULONG                      ulRequestLength     /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatPushMessage(
-    PSRV_STAT_REQUEST_CONTEXT    pContext,         /* IN              */
+    HANDLE                       hContext,         /* IN              */
     ULONG                        ulOpcode,         /* IN              */
     PSRV_STAT_REQUEST_PARAMETERS pParams,          /* IN     OPTIONAL */
     PBYTE                        pMessage,         /* IN     OPTIONAL */
@@ -73,32 +73,32 @@ LwioSrvStatPushMessage(
 
 NTSTATUS
 LwioSrvStatSetSubOpcode(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     ULONG                     ulSubOpcode          /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatSetIOCTL(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     ULONG                     ulIoCtlCode          /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatSessionCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatTreeCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatFileCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo,           /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
@@ -106,32 +106,32 @@ LwioSrvStatFileCreated(
 
 NTSTATUS
 LwioSrvStatFileClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatTreeClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatSessionClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatPopMessage(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     ULONG                     ulOpCode,            /* IN              */
     NTSTATUS                  msgStatus            /* IN              */
     );
 
 NTSTATUS
 LwioSrvStatSetResponseInfo(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     NTSTATUS                  responseStatus,      /* IN              */
     PBYTE                     pResponseBuffer,     /* IN     OPTIONAL */
     ULONG                     ulResponseLength     /* IN              */
@@ -139,7 +139,7 @@ LwioSrvStatSetResponseInfo(
 
 NTSTATUS
 LwioSrvStatCloseRequestContext(
-    PSRV_STAT_REQUEST_CONTEXT pContext             /* IN              */
+    HANDLE                    hContext             /* IN              */
     );
 
 // times.c

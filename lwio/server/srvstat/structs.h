@@ -56,4 +56,4 @@ typedef struct _SRV_STAT_REQUEST_CONTEXT
     LONG64                   requestStartTime;
     LONG64                   requestEndTime;
 
-} SRV_STAT_REQUEST_CONTEXT;
+} SRV_STAT_REQUEST_CONTEXT, *PSRV_STAT_REQUEST_CONTEXT;

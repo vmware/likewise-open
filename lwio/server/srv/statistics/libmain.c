@@ -283,7 +283,7 @@ SrvStatisticsCreateRequestContext(
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnCreateRequestContext(
                         pConnection,
-                        &pStatInfo->pContext);
+                        &pStatInfo->hContext);
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
@@ -329,7 +329,7 @@ SrvStatisticsSetRequestInfo(
         LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetRequestInfo(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         protocolVersion,
                         ulRequestLength);
 
@@ -365,7 +365,7 @@ SrvStatisticsPushMessage(
         if (!LwIsSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_MESSAGE))
         {
             ntStatus = gSrvStatGlobals.pStatFnTable->pfnPushMessage(
-                            pStatInfo->pContext,
+                            pStatInfo->hContext,
                             ulOpcode,
                             pParams,
                             pMessage,
@@ -406,7 +406,7 @@ SrvStatisticsSetSubOpcode(
         if (!LwIsSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_OPCODE))
         {
             ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetSubOpCode(
-                            pStatInfo->pContext,
+                            pStatInfo->hContext,
                             ulSubOpcode);
 
             if (ntStatus == STATUS_SUCCESS)
@@ -444,7 +444,7 @@ SrvStatisticsSetIOCTL(
         if (!LwIsSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_IOCTL))
         {
             ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetIOCTL(
-                            pStatInfo->pContext,
+                            pStatInfo->hContext,
                             ulIoCtlCode);
 
             if (ntStatus == STATUS_SUCCESS)
@@ -478,7 +478,7 @@ SrvStatisticsSessionCreated(
         gSrvStatGlobals.pStatFnTable)
     {
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSessionCreated(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         pSessionInfo);
     }
 
@@ -509,7 +509,7 @@ SrvStatisticsTreeCreated(
         LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnTreeCreated(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         pSessionInfo,
                         pTreeInfo);
 
@@ -544,7 +544,7 @@ SrvStatisticsFileCreated(
         LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnFileCreated(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         pSessionInfo,
                         pTreeInfo,
                         pFileInfo);
@@ -578,7 +578,7 @@ SrvStatisticsFileClosed(
         LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnFileClosed(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         pFileInfo);
 
         LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
@@ -610,7 +610,7 @@ SrvStatisticsTreeClosed(
         LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnTreeClosed(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         pTreeInfo);
 
         LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
@@ -642,7 +642,7 @@ SrvStatisticsSessionClosed(
         LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSessionClosed(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         pSessionInfo);
 
         LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
@@ -674,7 +674,7 @@ SrvStatisticsPopMessage(
         LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnPopMessage(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         ulOpCode,
                         msgStatus);
 
@@ -710,7 +710,7 @@ SrvStatisticsSetResponseInfo(
         LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetResponseInfo(
-                        pStatInfo->pContext,
+                        pStatInfo->hContext,
                         responseStatus,
                         pResponseBuffer,
                         ulResponseLength);
@@ -734,7 +734,7 @@ SrvStatisticsCloseRequestContext(
 
     if (pStatInfo)
     {
-        if (pStatInfo->pContext)
+        if (pStatInfo->hContext)
         {
             LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
 
@@ -746,7 +746,7 @@ SrvStatisticsCloseRequestContext(
             if (gSrvStatGlobals.pStatFnTable)
             {
                 ntStatus = gSrvStatGlobals.pStatFnTable->pfnCloseRequestContext(
-                                pStatInfo->pContext);
+                                pStatInfo->hContext);
             }
 
             LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);

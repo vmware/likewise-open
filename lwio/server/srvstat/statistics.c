@@ -52,13 +52,14 @@
 NTSTATUS
 LwioSrvStatCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO  pConnection,        /* IN              */
-    PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
+    PHANDLE                    phContext           /*    OUT          */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_STAT_REQUEST_CONTEXT pContext = NULL;
 
     BAIL_ON_INVALID_POINTER(pConnection);
+    BAIL_ON_INVALID_POINTER(phContext);
 
     ntStatus = RTL_ALLOCATE(
                     &pContext,
@@ -71,7 +72,7 @@ LwioSrvStatCreateRequestContext(
 
     memcpy(&pContext->connInfo, pConnection, sizeof(*pConnection));
 
-    *ppContext = pContext;
+    *phContext = (HANDLE)pContext;
 
 cleanup:
 
@@ -79,7 +80,10 @@ cleanup:
 
 error:
 
-    *ppContext = NULL;
+    if (phContext)
+    {
+        *phContext = NULL;
+    }
 
     if (pContext)
     {
@@ -91,12 +95,13 @@ error:
 
 NTSTATUS
 LwioSrvStatSetRequestInfo(
-    PSRV_STAT_REQUEST_CONTEXT  pContext,           /* IN              */
+    HANDLE                     hContext,           /* IN              */
     SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
     ULONG                      ulRequestLength     /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -110,7 +115,7 @@ error:
 
 NTSTATUS
 LwioSrvStatPushMessage(
-    PSRV_STAT_REQUEST_CONTEXT    pContext,         /* IN              */
+    HANDLE                    hContext,            /* IN              */
     ULONG                        ulOpcode,         /* IN              */
     PSRV_STAT_REQUEST_PARAMETERS pParams,          /* IN     OPTIONAL */
     PBYTE                        pMessage,         /* IN     OPTIONAL */
@@ -118,6 +123,7 @@ LwioSrvStatPushMessage(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -128,11 +134,12 @@ error:
 
 NTSTATUS
 LwioSrvStatSetSubOpcode(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     ULONG                     ulSubOpcode          /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -143,11 +150,12 @@ error:
 
 NTSTATUS
 LwioSrvStatSetIOCTL(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     ULONG                     ulIoCtlCode          /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -158,11 +166,12 @@ error:
 
 NTSTATUS
 LwioSrvStatSessionCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -173,12 +182,13 @@ error:
 
 NTSTATUS
 LwioSrvStatTreeCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -189,13 +199,14 @@ error:
 
 NTSTATUS
 LwioSrvStatFileCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo,           /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -206,11 +217,12 @@ error:
 
 NTSTATUS
 LwioSrvStatFileClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -221,11 +233,12 @@ error:
 
 NTSTATUS
 LwioSrvStatTreeClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -236,11 +249,12 @@ error:
 
 NTSTATUS
 LwioSrvStatSessionClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -251,12 +265,13 @@ error:
 
 NTSTATUS
 LwioSrvStatPopMessage(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     ULONG                     ulOpCode,            /* IN              */
     NTSTATUS                  msgStatus            /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -267,13 +282,14 @@ error:
 
 NTSTATUS
 LwioSrvStatSetResponseInfo(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    HANDLE                    hContext,            /* IN              */
     NTSTATUS                  responseStatus,      /* IN              */
     PBYTE                     pResponseBuffer,     /* IN     OPTIONAL */
     ULONG                     ulResponseLength     /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
 
     BAIL_ON_INVALID_POINTER(pContext);
 
@@ -284,10 +300,13 @@ error:
 
 NTSTATUS
 LwioSrvStatCloseRequestContext(
-    PSRV_STAT_REQUEST_CONTEXT pContext             /* IN              */
+    HANDLE                    hContext            /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
+
+    BAIL_ON_INVALID_POINTER(pContext);
 
     ntStatus = LwioSrvStatGetCurrentNTTime(&pContext->requestEndTime);
     BAIL_ON_NT_STATUS(ntStatus);
