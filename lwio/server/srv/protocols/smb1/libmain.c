@@ -184,6 +184,17 @@ SrvProtocolExecute_SMB_V1(
                          SrvGetCommandDescription_SMB_V1(pRequest->ucCommand),
                          pRequest->ucCommand);
 
+        if (pExecContext->pStatInfo)
+        {
+            ntStatus = SrvStatisticsPushMessage(
+                            pExecContext->pStatInfo,
+                            pRequest->ucCommand,
+                            NULL,
+                            pRequest->pBuffer,
+                            pRequest->ulMessageSize);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         switch (pRequest->ucCommand)
         {
             case COM_NEGOTIATE:

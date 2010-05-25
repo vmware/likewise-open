@@ -346,6 +346,14 @@ SrvExecuteIOCTL_SMB_V2(
 
     pIOCTLState = (PSRV_IOCTL_STATE_SMB_V2)pCtxSmb2->hState;
 
+    if (pExecContext->pStatInfo)
+    {
+        ntStatus = SrvStatisticsSetIOCTL(
+                        pExecContext->pStatInfo,
+                        pIOCTLState->pRequestHeader->ulFunctionCode);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = pIOCTLState->ioStatusBlock.Status;
     BAIL_ON_NT_STATUS(ntStatus);
 

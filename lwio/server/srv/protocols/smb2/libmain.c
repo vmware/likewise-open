@@ -271,6 +271,17 @@ SrvProcessRequestSpecific_SMB_V2(
                      SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
                      pSmbRequest->pHeader->command);
 
+    if (pExecContext->pStatInfo)
+    {
+        ntStatus = SrvStatisticsPushMessage(
+                        pExecContext->pStatInfo,
+                        pSmbRequest->pHeader->command,
+                        NULL,
+                        pSmbRequest->pBuffer,
+                        pSmbRequest->ulMessageSize);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     if (!iMsg &&
         LwIsSetFlag(pSmbRequest->pHeader->ulFlags,SMB2_FLAGS_RELATED_OPERATION))
     {

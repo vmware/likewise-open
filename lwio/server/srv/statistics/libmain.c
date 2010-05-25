@@ -61,6 +61,13 @@ SrvStatisticsValidateProviderTable(
     PLWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE pStatFnTable
     );
 
+inline
+static
+VOID
+SrvStatisticsFreeInfo(
+    PSRV_STAT_INFO pStatInfo
+    );
+
 NTSTATUS
 SrvStatisticsInitialize(
     VOID
@@ -217,7 +224,7 @@ SrvStatisticsValidateProviderTable(
         !pStatFnTable->pfnSetRequestInfo ||
         !pStatFnTable->pfnPushMessage ||
         !pStatFnTable->pfnSetSubOpCode ||
-        !pStatFnTable->pfnSetIOCTL ||
+		!pStatFnTable->pfnSetIOCTL ||
         !pStatFnTable->pfnSessionCreated ||
         !pStatFnTable->pfnTreeCreated ||
         !pStatFnTable->pfnFileCreated ||
@@ -256,32 +263,53 @@ SrvStatisticsParameterLoggingEnabled(
 inline
 NTSTATUS
 SrvStatisticsCreateRequestContext(
-    PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
+    PSRV_STAT_INFO* ppStatInfo            /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock  = FALSE;
+    PSRV_STAT_INFO pStatInfo = NULL;
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
 
     if (gSrvStatGlobals.config.bEnableLogging && gSrvStatGlobals.pStatFnTable)
     {
+        ntStatus = SrvAllocateMemory(sizeof(SRV_STAT_INFO), (PVOID*)&pStatInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pthread_mutex_init(&pStatInfo->mutex, NULL);
+        pStatInfo->pMutex = &pStatInfo->mutex;
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnCreateRequestContext(
-                        ppContext);
+                        &pStatInfo->pContext);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
-    else
-    {
-        *ppContext = NULL;
-    }
+
+    *ppStatInfo = pStatInfo;
+
+cleanup:
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
 
     return ntStatus;
+
+error:
+
+    *ppStatInfo = NULL;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
+
+    if (pStatInfo)
+    {
+        SrvStatisticsCloseRequestContext(pStatInfo);
+    }
+
+    goto cleanup;
 }
 
 NTSTATUS
 SrvStatisticsSetRequestInfo(
-    PSRV_STAT_REQUEST_CONTEXT  pContext,           /* IN              */
+    PSRV_STAT_INFO             pStatInfo,          /* IN              */
     SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
     ULONG                      ulRequestLength     /* IN              */
     )
@@ -291,12 +319,19 @@ SrvStatisticsSetRequestInfo(
 
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
 
-    if (gSrvStatGlobals.config.bEnableLogging && gSrvStatGlobals.pStatFnTable)
+    if (gSrvStatGlobals.config.bEnableLogging &&
+        gSrvStatGlobals.pStatFnTable)
     {
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetRequestInfo(
-                        pContext,
+                        pStatInfo->pContext,
                         protocolVersion,
                         ulRequestLength);
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -307,7 +342,7 @@ SrvStatisticsSetRequestInfo(
 inline
 NTSTATUS
 SrvStatisticsPushMessage(
-    PSRV_STAT_REQUEST_CONTEXT    pContext,         /* IN              */
+    PSRV_STAT_INFO               pStatInfo,        /* IN              */
     ULONG                        ulOpcode,         /* IN              */
     PSRV_STAT_REQUEST_PARAMETERS pParams,
     PBYTE                        pMessage,         /* IN     OPTIONAL */
@@ -321,12 +356,26 @@ SrvStatisticsPushMessage(
 
     if (gSrvStatGlobals.config.bEnableLogging && gSrvStatGlobals.pStatFnTable)
     {
-        ntStatus = gSrvStatGlobals.pStatFnTable->pfnPushMessage(
-                        pContext,
-                        ulOpcode,
-                        pParams,
-                        pMessage,
-                        ulMessageLen);
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
+        if (!LwIsSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_MESSAGE))
+        {
+            ntStatus = gSrvStatGlobals.pStatFnTable->pfnPushMessage(
+                            pStatInfo->pContext,
+                            ulOpcode,
+                            pParams,
+                            pMessage,
+                            ulMessageLen);
+
+            if (ntStatus == STATUS_SUCCESS)
+            {
+                LwSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_MESSAGE);
+            }
+        }
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -337,7 +386,7 @@ SrvStatisticsPushMessage(
 inline
 NTSTATUS
 SrvStatisticsSetSubOpcode(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulSubOpcode          /* IN              */
     )
 {
@@ -348,9 +397,23 @@ SrvStatisticsSetSubOpcode(
 
     if (gSrvStatGlobals.config.bEnableLogging && gSrvStatGlobals.pStatFnTable)
     {
-        ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetSubOpCode(
-                        pContext,
-                        ulSubOpcode);
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
+        if (!LwIsSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_OPCODE))
+        {
+            ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetSubOpCode(
+                            pStatInfo->pContext,
+                            ulSubOpcode);
+
+            if (ntStatus == STATUS_SUCCESS)
+            {
+                LwSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_OPCODE);
+            }
+        }
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -361,7 +424,7 @@ SrvStatisticsSetSubOpcode(
 inline
 NTSTATUS
 SrvStatisticsSetIOCTL(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulIoCtlCode          /* IN              */
     )
 {
@@ -372,9 +435,23 @@ SrvStatisticsSetIOCTL(
 
     if (gSrvStatGlobals.config.bEnableLogging && gSrvStatGlobals.pStatFnTable)
     {
-        ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetIOCTL(
-                        pContext,
-                        ulIoCtlCode);
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
+        if (!LwIsSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_IOCTL))
+        {
+            ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetIOCTL(
+                            pStatInfo->pContext,
+                            ulIoCtlCode);
+
+            if (ntStatus == STATUS_SUCCESS)
+            {
+                LwSetFlag(pStatInfo->ulFlags, SRV_STATISTICS_USAGE_FLAG_IOCTL);
+            }
+        }
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -385,7 +462,7 @@ SrvStatisticsSetIOCTL(
 inline
 NTSTATUS
 SrvStatisticsSessionCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     )
 {
@@ -399,7 +476,7 @@ SrvStatisticsSessionCreated(
         gSrvStatGlobals.pStatFnTable)
     {
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSessionCreated(
-                        pContext,
+                        pStatInfo->pContext,
                         pSessionInfo);
     }
 
@@ -411,7 +488,7 @@ SrvStatisticsSessionCreated(
 inline
 NTSTATUS
 SrvStatisticsTreeCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     )
@@ -425,10 +502,16 @@ SrvStatisticsTreeCreated(
         gSrvStatGlobals.config.bLogParameters &&
         gSrvStatGlobals.pStatFnTable)
     {
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnTreeCreated(
-                        pContext,
+                        pStatInfo->pContext,
                         pSessionInfo,
                         pTreeInfo);
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -439,7 +522,7 @@ SrvStatisticsTreeCreated(
 inline
 NTSTATUS
 SrvStatisticsFileCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo,           /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
@@ -454,11 +537,17 @@ SrvStatisticsFileCreated(
         gSrvStatGlobals.config.bLogParameters &&
         gSrvStatGlobals.pStatFnTable)
     {
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnFileCreated(
-                        pContext,
+                        pStatInfo->pContext,
                         pSessionInfo,
                         pTreeInfo,
                         pFileInfo);
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -469,7 +558,7 @@ SrvStatisticsFileCreated(
 inline
 NTSTATUS
 SrvStatisticsFileClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
     )
 {
@@ -482,9 +571,15 @@ SrvStatisticsFileClosed(
         gSrvStatGlobals.config.bLogParameters &&
         gSrvStatGlobals.pStatFnTable)
     {
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnFileClosed(
-                        pContext,
+                        pStatInfo->pContext,
                         pFileInfo);
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -495,7 +590,7 @@ SrvStatisticsFileClosed(
 inline
 NTSTATUS
 SrvStatisticsTreeClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     )
 {
@@ -508,9 +603,15 @@ SrvStatisticsTreeClosed(
         gSrvStatGlobals.config.bLogParameters &&
         gSrvStatGlobals.pStatFnTable)
     {
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnTreeClosed(
-                        pContext,
+                        pStatInfo->pContext,
                         pTreeInfo);
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -521,7 +622,7 @@ SrvStatisticsTreeClosed(
 inline
 NTSTATUS
 SrvStatisticsSessionClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     )
 {
@@ -534,9 +635,15 @@ SrvStatisticsSessionClosed(
         gSrvStatGlobals.config.bLogParameters &&
         gSrvStatGlobals.pStatFnTable)
     {
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSessionClosed(
-                        pContext,
+                        pStatInfo->pContext,
                         pSessionInfo);
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -547,7 +654,7 @@ SrvStatisticsSessionClosed(
 inline
 NTSTATUS
 SrvStatisticsPopMessage(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulOpCode,            /* IN              */
     NTSTATUS                  msgStatus            /* IN              */
     )
@@ -560,10 +667,18 @@ SrvStatisticsPopMessage(
     if (gSrvStatGlobals.config.bEnableLogging &&
         gSrvStatGlobals.pStatFnTable)
     {
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnPopMessage(
-                        pContext,
+                        pStatInfo->pContext,
                         ulOpCode,
                         msgStatus);
+
+        pStatInfo->ulFlags = 0;
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -574,7 +689,7 @@ SrvStatisticsPopMessage(
 inline
 NTSTATUS
 SrvStatisticsSetResponseInfo(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     NTSTATUS                  responseStatus,      /* IN              */
     PBYTE                     pResponseBuffer,     /* IN     OPTIONAL */
     ULONG                     ulResponseLength     /* IN              */
@@ -588,11 +703,17 @@ SrvStatisticsSetResponseInfo(
     if (gSrvStatGlobals.config.bEnableLogging &&
         gSrvStatGlobals.pStatFnTable)
     {
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetResponseInfo(
-                        pContext,
+                        pStatInfo->pContext,
                         responseStatus,
                         pResponseBuffer,
                         ulResponseLength);
+
+        LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
     }
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
@@ -603,31 +724,51 @@ SrvStatisticsSetResponseInfo(
 inline
 NTSTATUS
 SrvStatisticsCloseRequestContext(
-    PSRV_STAT_REQUEST_CONTEXT pContext             /* IN              */
+    PSRV_STAT_INFO            pStatInfo            /* IN              */
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock  = FALSE;
 
-    if (pContext)
+    if (pStatInfo)
     {
-        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
-
-        // NOTE:
-        // If logging was disabled just before this call, we still need to free
-        // the memory that was given out earlier. Once the statistics module is
-        // loaded, it is not recommended that we unload it before accounting for
-        // all the contexts (memory) that were issued.
-        if (gSrvStatGlobals.pStatFnTable)
+        if (pStatInfo->pContext)
         {
-            ntStatus = gSrvStatGlobals.pStatFnTable->pfnCloseRequestContext(
-                            pContext);
+            LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
+
+            // NOTE:
+            // If logging was disabled just before this call, we still need to free
+            // the memory that was given out earlier. Once the statistics module is
+            // loaded, it is not recommended that we unload it before accounting for
+            // all the contexts (memory) that were issued.
+            if (gSrvStatGlobals.pStatFnTable)
+            {
+                ntStatus = gSrvStatGlobals.pStatFnTable->pfnCloseRequestContext(
+                                pStatInfo->pContext);
+            }
+
+            LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
         }
 
-        LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
+        SrvStatisticsFreeInfo(pStatInfo);
     }
 
     return ntStatus;
+}
+
+inline
+static
+VOID
+SrvStatisticsFreeInfo(
+    PSRV_STAT_INFO pStatInfo
+    )
+{
+    if (pStatInfo->pMutex)
+    {
+        pthread_mutex_destroy(&pStatInfo->mutex);
+    }
+
+    SrvFreeMemory(pStatInfo);
 }
 
 NTSTATUS

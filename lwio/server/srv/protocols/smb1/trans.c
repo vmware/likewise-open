@@ -217,6 +217,14 @@ SrvProcessTransaction(
 
     LWIO_LOCK_MUTEX(bInLock, &pTransState->mutex);
 
+    if (pExecContext->pStatInfo)
+    {
+        ntStatus = SrvStatisticsSetSubOpcode(
+                        pExecContext->pStatInfo,
+                        *pTransState->pSetup);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     switch (*pTransState->pSetup)
     {
         case SMB_SUB_COMMAND_TRANS_SET_NAMED_PIPE_HANDLE_STATE:

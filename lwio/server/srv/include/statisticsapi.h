@@ -44,6 +44,8 @@
 #ifndef __SRV_STATISTICS_H__
 #define __SRV_STATISTICS_H__
 
+typedef struct _SRV_STAT_INFO * PSRV_STAT_INFO;
+
 NTSTATUS
 SrvStatisticsInitialize(
     VOID
@@ -61,19 +63,19 @@ SrvStatisticsParameterLoggingEnabled(
 
 NTSTATUS
 SrvStatisticsCreateRequestContext(
-    PSRV_STAT_REQUEST_CONTEXT* ppContext           /*    OUT          */
+    PSRV_STAT_INFO* pStatInfo                /*    OUT          */
     );
 
 NTSTATUS
 SrvStatisticsSetRequestInfo(
-    PSRV_STAT_REQUEST_CONTEXT  pContext,           /* IN              */
-    SRV_STAT_SMB_VERSION       protocolVersion,    /* IN              */
-    ULONG                      ulRequestLength     /* IN              */
+    PSRV_STAT_INFO       pStatInfo,          /* IN              */
+    SRV_STAT_SMB_VERSION protocolVersion,    /* IN              */
+    ULONG                ulRequestLength     /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsPushMessage(
-    PSRV_STAT_REQUEST_CONTEXT    pContext,         /* IN              */
+    PSRV_STAT_INFO               pStatInfo,        /* IN              */
     ULONG                        ulOpcode,         /* IN              */
     PSRV_STAT_REQUEST_PARAMETERS pParams,
     PBYTE                        pMessage,         /* IN     OPTIONAL */
@@ -82,32 +84,32 @@ SrvStatisticsPushMessage(
 
 NTSTATUS
 SrvStatisticsSetSubOpcode(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulSubOpcode          /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsSetIOCTL(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulIoCtlCode          /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsSessionCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsTreeCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsFileCreated(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo,           /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
@@ -115,32 +117,32 @@ SrvStatisticsFileCreated(
 
 NTSTATUS
 SrvStatisticsFileClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsTreeClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsSessionClosed(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsPopMessage(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulOpCode,            /* IN              */
     NTSTATUS                  msgStatus            /* IN              */
     );
 
 NTSTATUS
 SrvStatisticsSetResponseInfo(
-    PSRV_STAT_REQUEST_CONTEXT pContext,            /* IN              */
+    PSRV_STAT_INFO            pStatInfo,           /* IN              */
     NTSTATUS                  responseStatus,      /* IN              */
     PBYTE                     pResponseBuffer,     /* IN     OPTIONAL */
     ULONG                     ulResponseLength     /* IN              */
@@ -148,7 +150,7 @@ SrvStatisticsSetResponseInfo(
 
 NTSTATUS
 SrvStatisticsCloseRequestContext(
-    PSRV_STAT_REQUEST_CONTEXT pContext             /* IN              */
+    PSRV_STAT_INFO            pStatInfo            /* IN              */
     );
 
 NTSTATUS

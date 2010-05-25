@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        globals.c
  *
  * Abstract:
  *
@@ -41,35 +41,15 @@
  *
  *        Statistics Logging Module
  *
- *        Common Private Header
+ *        Structures
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+typedef ULONG SRV_STATISTICS_USAGE_FLAG;
 
-#include <uuid/uuid.h>
-
-#include <lwio/lwio.h>
-#include <lwio/lwiosrvstatprovider.h>
-
-#include <reg/lwntreg.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiocfg.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-
-#include <statisticsapi.h>
-#include <srvutils.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-
-#include "externs.h"
+#define SRV_STATISTICS_USAGE_FLAG_MESSAGE    0x00000001
+#define SRV_STATISTICS_USAGE_FLAG_OPCODE     0x00000002
+#define SRV_STATISTICS_USAGE_FLAG_SUB_OPCODE 0x00000004
+#define SRV_STATISTICS_USAGE_FLAG_IOCTL      0x00000008

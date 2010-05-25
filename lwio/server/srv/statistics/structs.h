@@ -46,6 +46,16 @@
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
+typedef struct _SRV_STAT_INFO
+{
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
+
+    SRV_STATISTICS_USAGE_FLAG ulFlags;
+
+    PSRV_STAT_REQUEST_CONTEXT pContext;
+
+} SRV_STAT_INFO;
 
 typedef struct _SRV_STATISTICS_CONFIG
 {

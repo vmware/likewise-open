@@ -608,7 +608,7 @@ typedef struct _SRV_EXEC_CONTEXT
 
     ULONG64                            ullAsyncId;
 
-    PSRV_STAT_REQUEST_CONTEXT          pStatRequestContext;
+    PSRV_STAT_INFO                     pStatInfo;
 
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
 

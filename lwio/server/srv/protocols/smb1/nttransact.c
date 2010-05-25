@@ -267,6 +267,14 @@ SrvProcessNtTransact(
 
     LWIO_LOCK_MUTEX(bInLock, &pNTTransactState->mutex);
 
+    if (pExecContext->pStatInfo)
+    {
+        ntStatus = SrvStatisticsSetSubOpcode(
+                        pExecContext->pStatInfo,
+                        pNTTransactState->pRequestHeader->usFunction);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     switch (pNTTransactState->pRequestHeader->usFunction)
     {
         case SMB_SUB_COMMAND_NT_TRANSACT_QUERY_SECURITY_DESC:
@@ -953,6 +961,14 @@ SrvProcessIOCTL(
             // intentional fall through
 
         case SRV_NTTRANSACT_STAGE_SMB_V1_ATTEMPT_IO:
+
+            if (pExecContext->pStatInfo)
+            {
+                ntStatus = SrvStatisticsSetIOCTL(
+                                pExecContext->pStatInfo,
+                                pNTTransactState->pIoctlRequest->ulFunctionCode);
+                BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             if (pNTTransactState->pIoctlRequest->bIsFsctl)
             {

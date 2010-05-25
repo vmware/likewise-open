@@ -192,9 +192,9 @@ SrvFreeExecContext(
         SrvConnectionRelease(pContext->pConnection);
     }
 
-    if (pContext->pStatRequestContext)
+    if (pContext->pStatInfo)
     {
-        SrvStatisticsCloseRequestContext(pContext->pStatRequestContext);
+        SrvStatisticsCloseRequestContext(pContext->pStatInfo);
     }
 
     if (pContext->pMutex)

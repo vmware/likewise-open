@@ -99,6 +99,14 @@ SrvProcessTransaction2(
 
     LWIO_LOCK_MUTEX(bInLock, &pTrans2State->mutex);
 
+    if (pExecContext->pStatInfo)
+    {
+        ntStatus = SrvStatisticsSetSubOpcode(
+                        pExecContext->pStatInfo,
+                        *pTrans2State->pSetup);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     switch (*pTrans2State->pSetup)
     {
         case SMB_SUB_COMMAND_TRANS2_FIND_FIRST2 :
