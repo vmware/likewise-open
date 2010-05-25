@@ -79,7 +79,6 @@ NTSTATUS
 SrvStatisticsPushMessage(
     PSRV_STAT_INFO               pStatInfo,        /* IN              */
     ULONG                        ulOpcode,         /* IN              */
-    PSRV_STAT_REQUEST_PARAMETERS pParams,
     PBYTE                        pMessage,         /* IN     OPTIONAL */
     ULONG                        ulMessageLen      /* IN              */
     );
@@ -97,40 +96,7 @@ SrvStatisticsSetIOCTL(
     );
 
 NTSTATUS
-SrvStatisticsSessionCreated(
-    PSRV_STAT_INFO            pStatInfo,           /* IN              */
-    PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
-    );
-
-NTSTATUS
-SrvStatisticsTreeCreated(
-    PSRV_STAT_INFO            pStatInfo,           /* IN              */
-    PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
-    PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
-    );
-
-NTSTATUS
-SrvStatisticsFileCreated(
-    PSRV_STAT_INFO            pStatInfo,           /* IN              */
-    PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
-    PSRV_STAT_TREE_INFO       pTreeInfo,           /* IN              */
-    PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
-    );
-
-NTSTATUS
-SrvStatisticsFileClosed(
-    PSRV_STAT_INFO            pStatInfo,           /* IN              */
-    PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
-    );
-
-NTSTATUS
-SrvStatisticsTreeClosed(
-    PSRV_STAT_INFO            pStatInfo,           /* IN              */
-    PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
-    );
-
-NTSTATUS
-SrvStatisticsSessionClosed(
+SrvStatisticsSetSessionInfo(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     );

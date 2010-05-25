@@ -276,7 +276,6 @@ SrvProcessRequestSpecific_SMB_V2(
         ntStatus = SrvStatisticsPushMessage(
                         pExecContext->pStatInfo,
                         pSmbRequest->pHeader->command,
-                        NULL,
                         pSmbRequest->pBuffer,
                         pSmbRequest->ulMessageSize);
         BAIL_ON_NT_STATUS(ntStatus);

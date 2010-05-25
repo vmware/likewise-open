@@ -61,7 +61,6 @@ NTSTATUS
 LwioSrvStatPushMessage(
     HANDLE                       hContext,         /* IN              */
     ULONG                        ulOpcode,         /* IN              */
-    PSRV_STAT_REQUEST_PARAMETERS pParams,          /* IN     OPTIONAL */
     PBYTE                        pMessage,         /* IN     OPTIONAL */
     ULONG                        ulMessageLen      /* IN              */
     );
@@ -79,40 +78,7 @@ LwioSrvStatSetIOCTL(
     );
 
 NTSTATUS
-LwioSrvStatSessionCreated(
-    HANDLE                    hContext,            /* IN              */
-    PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
-    );
-
-NTSTATUS
-LwioSrvStatTreeCreated(
-    HANDLE                    hContext,            /* IN              */
-    PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
-    PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
-    );
-
-NTSTATUS
-LwioSrvStatFileCreated(
-    HANDLE                    hContext,            /* IN              */
-    PSRV_STAT_SESSION_INFO    pSessionInfo,        /* IN              */
-    PSRV_STAT_TREE_INFO       pTreeInfo,           /* IN              */
-    PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
-    );
-
-NTSTATUS
-LwioSrvStatFileClosed(
-    HANDLE                    hContext,            /* IN              */
-    PSRV_STAT_FILE_INFO       pFileInfo            /* IN              */
-    );
-
-NTSTATUS
-LwioSrvStatTreeClosed(
-    HANDLE                    hContext,            /* IN              */
-    PSRV_STAT_TREE_INFO       pTreeInfo            /* IN              */
-    );
-
-NTSTATUS
-LwioSrvStatSessionClosed(
+LwioSrvStatSetSessionInfo(
     HANDLE                    hContext,            /* IN              */
     PSRV_STAT_SESSION_INFO    pSessionInfo         /* IN              */
     );

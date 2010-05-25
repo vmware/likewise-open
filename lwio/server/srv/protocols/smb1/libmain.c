@@ -189,7 +189,6 @@ SrvProtocolExecute_SMB_V1(
             ntStatus = SrvStatisticsPushMessage(
                             pExecContext->pStatInfo,
                             pRequest->ucCommand,
-                            NULL,
                             pRequest->pBuffer,
                             pRequest->ulMessageSize);
             BAIL_ON_NT_STATUS(ntStatus);

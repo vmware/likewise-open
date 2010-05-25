@@ -240,7 +240,6 @@ SrvProtocolExecute_SMB_V1_Filter(
                     ntStatus = SrvStatisticsPushMessage(
                                     pContext->pStatInfo,
                                     pSmbRequest->pSMBHeader->command,
-                                    NULL,
                                     (PBYTE)pSmbRequest->pSMBHeader,
                                     pSmbRequest->pNetBIOSHeader->len);
                     BAIL_ON_NT_STATUS(ntStatus);
