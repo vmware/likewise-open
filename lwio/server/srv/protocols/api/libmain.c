@@ -166,7 +166,8 @@ SrvProtocolExecute(
         {
             ntStatus = SrvProtocolTransportSendResponse(
                             pContext->pConnection,
-                            pContext->pSmbResponse);
+                            pContext->pSmbResponse,
+                            pContext->pStatInfo);
             BAIL_ON_NT_STATUS(ntStatus);
         }
     }

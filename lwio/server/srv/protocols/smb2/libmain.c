@@ -551,7 +551,8 @@ SrvSendInterimResponse_SMB_V2(
 
     ntStatus = SrvProtocolTransportSendResponse(
                     pExecContext->pConnection,
-                    pExecContext->pInterimResponse);
+                    pExecContext->pInterimResponse,
+                    NULL /* Statistics info */);
     BAIL_ON_NT_STATUS(ntStatus);
 
 cleanup:

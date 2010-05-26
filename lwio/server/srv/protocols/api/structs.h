@@ -110,6 +110,7 @@ typedef struct _SRV_PROTOCOL_API_GLOBALS
 typedef struct _SRV_SEND_CONTEXT
 {
     PSRV_CONNECTION pConnection;
+    PSRV_STAT_INFO  pStatInfo;
     BOOLEAN         bIsZct;
     union
     {

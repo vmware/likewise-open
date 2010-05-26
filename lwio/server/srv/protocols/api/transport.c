@@ -1344,6 +1344,17 @@ SrvProtocolTransportDriverFreeResources(
     IN PSRV_SEND_CONTEXT pSendContext
     )
 {
+    if (pSendContext->pStatInfo)
+    {
+        SrvStatisticsSetResponseInfo(
+            pSendContext->pStatInfo,
+            !pSendContext->bIsZct ?
+                    pSendContext->pPacket->bufferUsed :
+                    LwZctGetLength(pSendContext->pZct));
+
+        SrvStatisticsRelease(pSendContext->pStatInfo);
+    }
+
     if (!pSendContext->bIsZct)
     {
         SMBPacketRelease(
@@ -1386,7 +1397,8 @@ SrvProtocolTransportDriverGetZctCallback(
 NTSTATUS
 SrvProtocolTransportSendResponse(
     IN PLWIO_SRV_CONNECTION pConnection,
-    IN PSMB_PACKET pPacket
+    IN PSMB_PACKET pPacket,
+    IN PSRV_STAT_INFO pStatInfo
     )
 {
     NTSTATUS ntStatus = 0;
@@ -1397,6 +1409,11 @@ SrvProtocolTransportSendResponse(
 
     pSendContext->pConnection = pConnection;
     SrvConnectionAcquire(pConnection);
+
+    if (pStatInfo)
+    {
+        pSendContext->pStatInfo = SrvStatisticsAcquire(pStatInfo);
+    }
 
     // TODO-Should remove refcounting from pPacket altogether?
     pSendContext->pPacket = pPacket;

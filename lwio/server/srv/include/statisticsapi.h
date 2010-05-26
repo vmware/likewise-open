@@ -69,6 +69,16 @@ SrvStatisticsCreateRequestContext(
     PSRV_STAT_INFO*           ppStatInfo          /* IN              */
     );
 
+PSRV_STAT_INFO
+SrvStatisticsAcquire(
+    PSRV_STAT_INFO pStatInfo
+    );
+
+VOID
+SrvStatisticsRelease(
+    PSRV_STAT_INFO pStatInfo
+    );
+
 NTSTATUS
 SrvStatisticsSetRequestInfo(
     PSRV_STAT_INFO       pStatInfo,          /* IN              */
@@ -111,8 +121,6 @@ SrvStatisticsPopMessage(
 NTSTATUS
 SrvStatisticsSetResponseInfo(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
-    NTSTATUS                  responseStatus,      /* IN              */
-    PBYTE                     pResponseBuffer,     /* IN     OPTIONAL */
     ULONG                     ulResponseLength     /* IN              */
     );
 

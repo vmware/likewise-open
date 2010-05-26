@@ -274,6 +274,8 @@ SrvStatisticsCreateRequestContext(
         ntStatus = SrvAllocateMemory(sizeof(SRV_STAT_INFO), (PVOID*)&pStatInfo);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        pStatInfo->refCount = 1;
+
         pthread_mutex_init(&pStatInfo->mutex, NULL);
         pStatInfo->pMutex = &pStatInfo->mutex;
 
@@ -301,10 +303,35 @@ error:
 
     if (pStatInfo)
     {
-        SrvStatisticsCloseRequestContext(pStatInfo);
+        SrvStatisticsRelease(pStatInfo);
     }
 
     goto cleanup;
+}
+
+inline
+PSRV_STAT_INFO
+SrvStatisticsAcquire(
+    PSRV_STAT_INFO pStatInfo
+    )
+{
+    InterlockedIncrement(&pStatInfo->refCount);
+
+    return pStatInfo;
+}
+
+inline
+VOID
+SrvStatisticsRelease(
+    PSRV_STAT_INFO pStatInfo
+    )
+{
+    if (InterlockedDecrement(&pStatInfo->refCount) == 0)
+    {
+        SrvStatisticsCloseRequestContext(pStatInfo);
+
+        SrvStatisticsFreeInfo(pStatInfo);
+    }
 }
 
 inline
@@ -503,8 +530,6 @@ inline
 NTSTATUS
 SrvStatisticsSetResponseInfo(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
-    NTSTATUS                  responseStatus,      /* IN              */
-    PBYTE                     pResponseBuffer,     /* IN     OPTIONAL */
     ULONG                     ulResponseLength     /* IN              */
     )
 {
@@ -522,8 +547,6 @@ SrvStatisticsSetResponseInfo(
 
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnSetResponseInfo(
                         pStatInfo->hContext,
-                        responseStatus,
-                        pResponseBuffer,
                         ulResponseLength);
 
         LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
@@ -543,28 +566,37 @@ SrvStatisticsCloseRequestContext(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     BOOLEAN  bInLock  = FALSE;
 
-    if (pStatInfo)
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
+
+    // NOTE:
+    // If logging was disabled just before this call, we still need to free
+    // the memory that was given out earlier. Once the statistics module is
+    // loaded, it is not recommended that we unload it before accounting for
+    // all the contexts (memory) that were issued.
+    if (gSrvStatGlobals.pStatFnTable)
     {
-        if (pStatInfo->hContext)
+        BOOLEAN  bStatInfoInLock = FALSE;
+
+        if (pStatInfo->pMutex)
         {
-            LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
-
-            // NOTE:
-            // If logging was disabled just before this call, we still need to free
-            // the memory that was given out earlier. Once the statistics module is
-            // loaded, it is not recommended that we unload it before accounting for
-            // all the contexts (memory) that were issued.
-            if (gSrvStatGlobals.pStatFnTable)
-            {
-                ntStatus = gSrvStatGlobals.pStatFnTable->pfnCloseRequestContext(
-                                pStatInfo->hContext);
-            }
-
-            LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
+            LWIO_LOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
         }
 
-        SrvStatisticsFreeInfo(pStatInfo);
+        if (pStatInfo->hContext)
+        {
+            ntStatus = gSrvStatGlobals.pStatFnTable->pfnCloseRequestContext(
+                            pStatInfo->hContext);
+
+            pStatInfo->hContext = NULL;
+        }
+
+        if (pStatInfo->pMutex)
+        {
+            LWIO_UNLOCK_MUTEX(bStatInfoInLock, &pStatInfo->mutex);
+        }
     }
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
 
     return ntStatus;
 }

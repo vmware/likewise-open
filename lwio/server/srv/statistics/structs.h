@@ -48,6 +48,8 @@
  */
 typedef struct _SRV_STAT_INFO
 {
+    LONG                      refCount;
+
     pthread_mutex_t           mutex;
     pthread_mutex_t*          pMutex;
 

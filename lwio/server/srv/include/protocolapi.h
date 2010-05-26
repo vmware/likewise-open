@@ -75,7 +75,8 @@ SrvProtocolAddContext(
 NTSTATUS
 SrvProtocolTransportSendResponse(
     PLWIO_SRV_CONNECTION pConnection, /* IN */
-    PSMB_PACKET          pPacket      /* IN */
+    PSMB_PACKET          pPacket,     /* IN */
+    PSRV_STAT_INFO       pStatInfo
     );
 
 NTSTATUS

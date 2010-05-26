@@ -184,8 +184,6 @@ error:
 NTSTATUS
 LwioSrvStatSetResponseInfo(
     HANDLE                    hContext,            /* IN              */
-    NTSTATUS                  responseStatus,      /* IN              */
-    PBYTE                     pResponseBuffer,     /* IN     OPTIONAL */
     ULONG                     ulResponseLength     /* IN              */
     )
 {
