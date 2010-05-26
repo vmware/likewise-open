@@ -266,6 +266,7 @@ SrvProcessRequestSpecific_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
+    PSRV_MESSAGE_SMB_V2        pSmbResponse = &pCtxSmb2->pResponses[iMsg];
 
     LWIO_LOG_VERBOSE("Executing command [%s:%d]",
                      SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
@@ -276,7 +277,6 @@ SrvProcessRequestSpecific_SMB_V2(
         ntStatus = SrvStatisticsPushMessage(
                         pExecContext->pStatInfo,
                         pSmbRequest->pHeader->command,
-                        pSmbRequest->pBuffer,
                         pSmbRequest->ulMessageSize);
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -526,6 +526,7 @@ error:
                 NTSTATUS ntStatus2 = SrvStatisticsPopMessage(
                                             pExecContext->pStatInfo,
                                             pSmbRequest->pHeader->command,
+                                            pSmbResponse->ulMessageSize,
                                             ntStatus);
                 if (ntStatus2)
                 {

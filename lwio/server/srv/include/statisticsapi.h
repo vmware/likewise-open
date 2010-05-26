@@ -89,7 +89,6 @@ NTSTATUS
 SrvStatisticsPushMessage(
     PSRV_STAT_INFO               pStatInfo,        /* IN              */
     ULONG                        ulOpcode,         /* IN              */
-    PBYTE                        pMessage,         /* IN     OPTIONAL */
     ULONG                        ulMessageLen      /* IN              */
     );
 
@@ -115,6 +114,7 @@ NTSTATUS
 SrvStatisticsPopMessage(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulOpCode,            /* IN              */
+    ULONG                     ulResponseLength,    /* IN              */
     NTSTATUS                  msgStatus            /* IN              */
     );
 

@@ -339,7 +339,6 @@ NTSTATUS
 SrvStatisticsPushMessage(
     PSRV_STAT_INFO               pStatInfo,        /* IN              */
     ULONG                        ulOpcode,         /* IN              */
-    PBYTE                        pMessage,         /* IN     OPTIONAL */
     ULONG                        ulMessageLen      /* IN              */
     )
 {
@@ -359,7 +358,6 @@ SrvStatisticsPushMessage(
             ntStatus = gSrvStatGlobals.pStatFnTable->pfnPushMessage(
                             pStatInfo->hContext,
                             ulOpcode,
-                            pMessage,
                             ulMessageLen);
 
             if (ntStatus == STATUS_SUCCESS)
@@ -496,6 +494,7 @@ NTSTATUS
 SrvStatisticsPopMessage(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
     ULONG                     ulOpCode,            /* IN              */
+    ULONG                     ulResponseLength,    /* IN              */
     NTSTATUS                  msgStatus            /* IN              */
     )
 {
@@ -514,6 +513,7 @@ SrvStatisticsPopMessage(
         ntStatus = gSrvStatGlobals.pStatFnTable->pfnPopMessage(
                         pStatInfo->hContext,
                         ulOpCode,
+                        ulResponseLength,
                         msgStatus);
 
         pStatInfo->ulFlags = 0;

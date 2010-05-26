@@ -189,7 +189,6 @@ SrvProtocolExecute_SMB_V1(
             ntStatus = SrvStatisticsPushMessage(
                             pExecContext->pStatInfo,
                             pRequest->ucCommand,
-                            pRequest->pBuffer,
                             pRequest->ulMessageSize);
             BAIL_ON_NT_STATUS(ntStatus);
         }
@@ -450,6 +449,7 @@ SrvProtocolExecute_SMB_V1(
                             SrvStatisticsPopMessage(
                                     pExecContext->pStatInfo,
                                     pRequest->ucCommand,
+                                    pExecContext->pSmbResponse->bufferUsed,
                                     STATUS_SUCCESS);
                     if (ntStatus2)
                     {
@@ -469,6 +469,7 @@ SrvProtocolExecute_SMB_V1(
                             SrvStatisticsPopMessage(
                                     pExecContext->pStatInfo,
                                     pRequest->ucCommand,
+                                    pExecContext->pSmbResponse->bufferUsed,
                                     ntStatus);
                     if (ntStatus2)
                     {

@@ -102,7 +102,6 @@ NTSTATUS
 LwioSrvStatPushMessage(
     HANDLE                    hContext,            /* IN              */
     ULONG                        ulOpcode,         /* IN              */
-    PBYTE                        pMessage,         /* IN     OPTIONAL */
     ULONG                        ulMessageLen      /* IN              */
     )
 {
@@ -168,6 +167,7 @@ NTSTATUS
 LwioSrvStatPopMessage(
     HANDLE                    hContext,            /* IN              */
     ULONG                     ulOpCode,            /* IN              */
+    ULONG                     ulResponseLength,    /* IN              */
     NTSTATUS                  msgStatus            /* IN              */
     )
 {
