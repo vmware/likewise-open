@@ -68,6 +68,18 @@ SrvStatisticsFreeInfo(
     PSRV_STAT_INFO pStatInfo
     );
 
+inline
+NTSTATUS
+SrvStatisticsCloseRequestContext(
+    PSRV_STAT_INFO            pStatInfo            /* IN              */
+    );
+
+inline
+VOID
+SrvStatisticsRelease(
+    PSRV_STAT_INFO pStatInfo
+    );
+
 NTSTATUS
 SrvStatisticsInitialize(
     VOID
