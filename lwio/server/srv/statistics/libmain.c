@@ -61,7 +61,6 @@ SrvStatisticsValidateProviderTable(
     PLWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE pStatFnTable
     );
 
-inline
 static
 VOID
 SrvStatisticsFreeInfo(
@@ -247,8 +246,6 @@ SrvStatisticsValidateProviderTable(
     return ntStatus;
 }
 
-
-inline
 BOOLEAN
 SrvStatisticsLoggingEnabled(
     VOID
@@ -257,7 +254,6 @@ SrvStatisticsLoggingEnabled(
     return SrvStatsConfigLoggingEnabled();
 }
 
-inline
 NTSTATUS
 SrvStatisticsCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO pConnection,        /* IN              */
@@ -312,7 +308,6 @@ error:
     goto cleanup;
 }
 
-inline
 PSRV_STAT_INFO
 SrvStatisticsAcquire(
     PSRV_STAT_INFO pStatInfo
@@ -323,7 +318,6 @@ SrvStatisticsAcquire(
     return pStatInfo;
 }
 
-inline
 VOID
 SrvStatisticsRelease(
     PSRV_STAT_INFO pStatInfo
@@ -337,7 +331,6 @@ SrvStatisticsRelease(
     }
 }
 
-inline
 NTSTATUS
 SrvStatisticsPushMessage(
     PSRV_STAT_INFO               pStatInfo,        /* IN              */
@@ -377,7 +370,6 @@ SrvStatisticsPushMessage(
     return ntStatus;
 }
 
-inline
 NTSTATUS
 SrvStatisticsSetSubOpcode(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -415,7 +407,6 @@ SrvStatisticsSetSubOpcode(
     return ntStatus;
 }
 
-inline
 NTSTATUS
 SrvStatisticsSetIOCTL(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -453,7 +444,6 @@ SrvStatisticsSetIOCTL(
     return ntStatus;
 }
 
-inline
 NTSTATUS
 SrvStatisticsSetSessionInfo(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -491,7 +481,6 @@ SrvStatisticsSetSessionInfo(
     return ntStatus;
 }
 
-inline
 NTSTATUS
 SrvStatisticsPopMessage(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -528,7 +517,6 @@ SrvStatisticsPopMessage(
     return ntStatus;
 }
 
-inline
 NTSTATUS
 SrvStatisticsSetResponseInfo(
     PSRV_STAT_INFO            pStatInfo,           /* IN              */
@@ -559,7 +547,6 @@ SrvStatisticsSetResponseInfo(
     return ntStatus;
 }
 
-inline
 NTSTATUS
 SrvStatisticsCloseRequestContext(
     PSRV_STAT_INFO            pStatInfo            /* IN              */
@@ -603,7 +590,6 @@ SrvStatisticsCloseRequestContext(
     return ntStatus;
 }
 
-inline
 static
 VOID
 SrvStatisticsFreeInfo(

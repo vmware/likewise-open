@@ -140,7 +140,6 @@ SrvStatsConfigTransferContents(
     return ntStatus;
 }
 
-inline
 BOOLEAN
 SrvStatsConfigLoggingEnabled(
     VOID
