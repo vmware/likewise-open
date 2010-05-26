@@ -54,8 +54,7 @@ SRV_STATISTICS_GLOBALS gSrvStatGlobals =
     .pMutex  =  NULL,
     .config  =  {
                     .pszProviderPath = NULL,
-                    .bEnableLogging  = FALSE,
-                    .bLogParameters  = FALSE
+                    .bEnableLogging  = FALSE
                 },
     .hModule                 = NULL,
     .pStatFnTable            = NULL,

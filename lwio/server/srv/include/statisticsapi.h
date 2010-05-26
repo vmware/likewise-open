@@ -56,11 +56,6 @@ SrvStatisticsLoggingEnabled(
     VOID
     );
 
-BOOLEAN
-SrvStatisticsParameterLoggingEnabled(
-    VOID
-    );
-
 NTSTATUS
 SrvStatisticsCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO pConnection,        /* IN              */

@@ -70,11 +70,6 @@ SrvStatsConfigLoggingEnabled(
     VOID
     );
 
-BOOLEAN
-SrvStatsConfigParameterLoggingEnabled(
-    VOID
-    );
-
 VOID
 SrvStatsConfigFreeContents(
     PSRV_STATISTICS_CONFIG pConfig

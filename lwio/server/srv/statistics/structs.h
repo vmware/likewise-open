@@ -64,7 +64,6 @@ typedef struct _SRV_STATISTICS_CONFIG
     PSTR    pszProviderPath;
 
     BOOLEAN bEnableLogging;
-    BOOLEAN bLogParameters;
 
 } SRV_STATISTICS_CONFIG, *PSRV_STATISTICS_CONFIG;
 

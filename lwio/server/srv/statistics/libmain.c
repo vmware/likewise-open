@@ -246,15 +246,6 @@ SrvStatisticsLoggingEnabled(
 }
 
 inline
-BOOLEAN
-SrvStatisticsParameterLoggingEnabled(
-    VOID
-    )
-{
-    return SrvStatsConfigParameterLoggingEnabled();
-}
-
-inline
 NTSTATUS
 SrvStatisticsCreateRequestContext(
     PSRV_STAT_CONNECTION_INFO pConnection,        /* IN              */
@@ -463,7 +454,6 @@ SrvStatisticsSetSessionInfo(
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
 
     if (gSrvStatGlobals.config.bEnableLogging &&
-        gSrvStatGlobals.config.bLogParameters &&
         gSrvStatGlobals.pStatFnTable)
     {
         BOOLEAN  bStatInfoInLock = FALSE;

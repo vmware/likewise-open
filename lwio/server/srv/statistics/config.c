@@ -89,12 +89,6 @@ SrvStatsConfigRead(
             bUsePolicy,
             &config.bEnableLogging);
 
-    LwIoReadConfigBoolean(
-            pReg,
-            "LogParameters",
-            bUsePolicy,
-            &config.bLogParameters);
-
     ntStatus = SrvStatsConfigTransferContents(&config, pConfig);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -124,7 +118,6 @@ SrvStatsConfigInitContents(
     SrvStatsConfigFreeContents(pConfig);
 
     pConfig->bEnableLogging  = FALSE;
-    pConfig->bLogParameters  = FALSE;
     pConfig->pszProviderPath = NULL;
 
     return ntStatus;
@@ -159,26 +152,6 @@ SrvStatsConfigLoggingEnabled(
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
 
     bEnabled = (gSrvStatGlobals.config.bEnableLogging &&
-                gSrvStatGlobals.pStatFnTable);
-
-    LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
-
-    return bEnabled;
-}
-
-inline
-BOOLEAN
-SrvStatsConfigParameterLoggingEnabled(
-    VOID
-    )
-{
-    BOOLEAN bEnabled = FALSE;
-    BOOLEAN bInLock  = FALSE;
-
-    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvStatGlobals.mutex);
-
-    bEnabled = (gSrvStatGlobals.config.bEnableLogging &&
-                gSrvStatGlobals.config.bLogParameters &&
                 gSrvStatGlobals.pStatFnTable);
 
     LWIO_UNLOCK_RWMUTEX(bInLock, &gSrvStatGlobals.mutex);
