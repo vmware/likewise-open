@@ -915,7 +915,7 @@ SrvProtocolTransportDriverDetectPacket(
         if (!pConnection->readerState.sNumBytesToRead)
         {
             PSMB_PACKET pPacket = pConnection->readerState.pRequestPacket;
-            ULONG ulBytesAvailable = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
+            ULONG ulPacketBytesAvailable = pPacket->bufferLen - sizeof(NETBIOS_HEADER);
 
             pConnection->readerState.bNeedHeader = FALSE;
 
@@ -925,7 +925,7 @@ SrvProtocolTransportDriverDetectPacket(
             pConnection->readerState.sNumBytesToRead = pPacket->pNetBIOSHeader->len;
 
             // check if the message fits in our currently allocated buffer
-            if (pConnection->readerState.sNumBytesToRead > ulBytesAvailable)
+            if (pConnection->readerState.sNumBytesToRead > ulPacketBytesAvailable)
             {
                 ntStatus = STATUS_INVALID_BUFFER_SIZE;
                 BAIL_ON_NT_STATUS(ntStatus);
