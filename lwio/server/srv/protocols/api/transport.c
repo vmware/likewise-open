@@ -50,6 +50,24 @@
 
 #include "includes.h"
 
+// TODO-Remove this duplicate definition (from smb2/structs.h)
+// and use a common SMB2 wire protocol structure header.
+typedef struct __SMB2_WRITE_REQUEST_HEADER
+{
+    USHORT   usLength;
+    USHORT   usDataOffset;
+    ULONG    ulDataLength;
+    ULONG64  ullFileOffset;
+    SMB2_FID fid;
+    ULONG    ulRemaining;
+    ULONG    ulChannel;
+    USHORT   usWriteChannelInfoOffset;
+    USHORT   usWriteChannelInfoLength;
+    ULONG    ulFlags;
+
+} __attribute__((__packed__)) SMB2_WRITE_REQUEST_HEADER,
+                             *PSMB2_WRITE_REQUEST_HEADER;
+
 static
 int
 SrvProtocolTransportConnectionCompare(
@@ -815,6 +833,33 @@ error:
 }
 
 static
+ULONG
+SrvProtocolTransportDriverGetMaxZctWriteFileHeader(
+    IN SMB_PROTOCOL_VERSION ProtocolVersion
+    )
+{
+    ULONG maximum = 0;
+
+    // NOTE: Must match SrvDetectZctWrite_SMB_V1 and SrvDetectZctWrite_SMB_V2.
+    switch (ProtocolVersion)
+    {
+    case SMB_PROTOCOL_VERSION_1:
+        maximum = (sizeof(SMB_HEADER) +
+                   LW_MAX(LW_FIELD_OFFSET(WRITE_REQUEST_HEADER, dataLength) + LW_FIELD_SIZE(WRITE_REQUEST_HEADER, dataLength),
+                       sizeof(ANDX_HEADER) + LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER, offsetHigh) + LW_FIELD_SIZE(WRITE_ANDX_REQUEST_HEADER, offsetHigh)));
+        break;
+    case SMB_PROTOCOL_VERSION_2:
+        maximum = sizeof(SMB2_HEADER) + sizeof(SMB2_WRITE_REQUEST_HEADER);
+        break;
+    default:
+        LWIO_ASSERT(FALSE);
+        break;
+    }
+
+    return maximum;
+}
+
+static
 NTSTATUS
 SrvProtocolTransportDriverUpdateBuffer(
     IN PSRV_CONNECTION pConnection
@@ -835,7 +880,51 @@ SrvProtocolTransportDriverUpdateBuffer(
     Size = pConnection->readerState.pRequestPacket->bufferLen - pConnection->readerState.pRequestPacket->bufferUsed;
     Minimum = pConnection->readerState.sNumBytesToRead;
 
-    // TODO-Set Minimum = 1 (or something smarter) for ZCT for SMB write.
+    // Adjust min/max in case of potential ZCT for SMB write file
+    if ((pConnection->serverProperties.ulZctWriteThreshold > 0) &&
+        (pConnection->protocolVer != SMB_PROTOCOL_VERSION_UNKNOWN) &&
+        !SrvConnectionIsSigningActive_inlock(pConnection))
+    {
+        ULONG maxHeader = SrvProtocolTransportDriverGetMaxZctWriteFileHeader(pConnection->protocolVer);
+        LWIO_ASSERT(maxHeader > 0);
+
+        //
+        // Cases:
+        //
+        // 1) Need framing header --> max read to just include potential
+        //    ZCT write file header.
+        //
+        // 2) Need rest of packet & unknown ZCT state --> (a) min read to
+        //    just include potential ZCT write file header and (b) max read
+        //    to just include this packet plus next framing and potential
+        //    ZCT write file header.
+        //
+        // 3) Need rest of packet & known ZCT state --> max read to just
+        //    include this packet plus next framing and potential ZCT
+        //    write file header.
+        //
+        if (pConnection->readerState.bNeedHeader)
+        {
+            // Case 1
+            LWIO_ASSERT(Minimum <= sizeof(NETBIOS_HEADER));
+            Size = LW_MIN(Size, Minimum + maxHeader);
+        }
+        else
+        {
+            // Cases 2 and 3:
+
+            Size = LW_MIN(Size, Minimum + sizeof(NETBIOS_HEADER) + maxHeader);
+
+            if (pConnection->readerState.zctState == SRV_ZCT_STATE_UNKNOWN)
+            {
+                // Case 2 also needs to set the min
+                LWIO_ASSERT(pConnection->readerState.pRequestPacket->bufferUsed <= (maxHeader + sizeof(NETBIOS_HEADER)));
+
+                Minimum = LW_MIN(Minimum, (maxHeader + sizeof(NETBIOS_HEADER)) - pConnection->readerState.pRequestPacket->bufferUsed);
+            }
+        }
+    }
+
     // TODO-Test out setting Size = Minimum (perhaps registry config) -- IFF not doing ZCT SMB write support.
     ntStatus = SrvTransportSocketSetBuffer(
                     pConnection->pSocket,
