@@ -516,6 +516,7 @@ SrvExecuteWriteZctIo_SMB_V2(
         ntStatus = LwZctPrepend(pWriteState->Zct.pZct, &entry, 1);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        pWriteState->Zct.ulPaddingSize = pWriteState->Zct.ulSkipBytes;
         pWriteState->Zct.ulSkipBytes = 0;
     }
 
@@ -554,7 +555,7 @@ SrvExecuteWriteZctIo_SMB_V2(
     // completed synchronously
     SrvReleaseExecContext(pZctContext);
 
-    pWriteState->ulBytesWritten += pWriteState->Zct.ulDataBytesMissing;
+    pWriteState->ulBytesWritten += pWriteState->Zct.ulDataBytesMissing - pWriteState->Zct.ulPaddingSize;
 
 cleanup:
 
@@ -694,7 +695,7 @@ SrvExecuteWriteReceiveZctCB_SMB_V2(
     pWriteState->stage = SRV_WRITE_STAGE_SMB_V2_ZCT_COMPLETE;
     if (Status == STATUS_SUCCESS)
     {
-        pWriteState->ulBytesWritten += pWriteState->Zct.ulDataBytesMissing;
+        pWriteState->ulBytesWritten += pWriteState->Zct.ulDataBytesMissing - pWriteState->Zct.ulPaddingSize;
     }
     LWIO_UNLOCK_MUTEX(bInLock, &pWriteState->mutex);
 

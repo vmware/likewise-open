@@ -934,6 +934,7 @@ typedef struct _SRV_ZCT_WRITE_STATE_SMB_V2 {
     PLW_ZCT_VECTOR pZct;
     PVOID pZctCompletion;
     PVOID pPadding;
+    ULONG ulPaddingSize;
     PLWIO_SRV_CONNECTION pPausedConnection;
 } SRV_ZCT_WRITE_STATE_SMB_V2, *PSRV_ZCT_WRITE_STATE_SMB_V2;
 
