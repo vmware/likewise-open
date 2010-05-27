@@ -110,8 +110,10 @@ PvfsSetFileRenameInfo(
     IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
     PSTR pszNewFilename = NULL;
     PSTR pszNewPathname = NULL;
+    PSTR pszNewDiskPathname = NULL;
     ACCESS_MASK DirGranted = 0;
     ACCESS_MASK DirDesired = 0;
+    PSTR pszNewFileDiskDirname = NULL;
     PSTR pszNewFileDirname = NULL;
     PSTR pszNewFileBasename = NULL;
     PSTR pszCanonicalNewPathname = NULL;
@@ -185,24 +187,39 @@ PvfsSetFileRenameInfo(
                                 pszNewPathname);
     BAIL_ON_NT_STATUS(ntError);
 
+    ntError = PvfsLookupPath(&pszNewFileDiskDirname, pszNewFileDirname, FALSE);
+    if (ntError == STATUS_OBJECT_NAME_NOT_FOUND)
+    {
+        ntError = STATUS_OBJECT_PATH_NOT_FOUND;
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
     if (PVFS_IS_DIR(pCcb)) {
         DirDesired = FILE_ADD_SUBDIRECTORY;
     } else {
         DirDesired = FILE_ADD_FILE;
     }
-    ntError = PvfsAccessCheckFile(pCcb->pUserToken,
-                                  pszNewFileDirname,
-                                  DirDesired,
-                                  &DirGranted);
+    ntError = PvfsAccessCheckDir(
+                  pCcb->pUserToken,
+                  pszNewFileDiskDirname,
+                  DirDesired,
+                  &DirGranted);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Real work starts here */
+
+    ntError = RtlCStringAllocatePrintf(
+                  &pszNewDiskPathname,
+                  "%s/%s",
+                  pszNewFileDiskDirname,
+                  pszNewFileBasename);
+    BAIL_ON_NT_STATUS(ntError);
 
     /* Check for an existing file */
 
     ntError = PvfsLookupPath(
                   &pszCanonicalNewPathname,
-                  pszNewPathname,
+                  pszNewDiskPathname,
                   FALSE);
     if (ntError == STATUS_SUCCESS)
     {
@@ -214,13 +231,13 @@ PvfsSetFileRenameInfo(
 
         if (LwRtlCStringCompare(
                 pCcb->pFcb->pszFilename,
-                pszNewPathname,
+                pszNewDiskPathname,
                 FALSE) != 0)
         {
             if (pFileInfo->ReplaceIfExists)
             {
-                LwRtlCStringFree(&pszNewPathname);
-                pszNewPathname = pszCanonicalNewPathname;
+                LwRtlCStringFree(&pszNewDiskPathname);
+                pszNewDiskPathname = pszCanonicalNewPathname;
                 pszCanonicalNewPathname = NULL;
             }
             else
@@ -231,7 +248,7 @@ PvfsSetFileRenameInfo(
         }
     }
 
-    ntError = PvfsRenameFCB(pCcb->pFcb, pCcb, pszNewPathname);
+    ntError = PvfsRenameFCB(pCcb->pFcb, pCcb, pszNewDiskPathname);
     BAIL_ON_NT_STATUS(ntError);
 
     pIrp->IoStatusBlock.BytesTransferred = sizeof(*pFileInfo);
@@ -247,7 +264,9 @@ cleanup:
     LwRtlCStringFree(&pszNewFilename);
     LwRtlCStringFree(&pszCanonicalNewPathname);
     LwRtlCStringFree(&pszNewPathname);
+    LwRtlCStringFree(&pszNewDiskPathname);
     LwRtlCStringFree(&pszNewFileDirname);
+    LwRtlCStringFree(&pszNewFileDiskDirname);
     LwRtlCStringFree(&pszNewFileBasename);
 
     if (pCcb)
