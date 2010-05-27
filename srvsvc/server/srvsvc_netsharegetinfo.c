@@ -191,13 +191,14 @@ SrvSvcNetShareGetInfo(
 
     ntStatus = LwShareInfoUnmarshalGetParameters(
                         pOutBuffer,
-                        dwOutLength,
+                        IoStatusBlock.BytesTransferred,
                         &pGetParamsOut
                         );
     BAIL_ON_NT_STATUS(ntStatus);
 
-    dwError = SrvSvcSrvAllocateMemory(sizeof(*pShareInfo),
-                                    (PVOID*)&pShareInfo);
+    dwError = SrvSvcSrvAllocateMemory(
+                  sizeof(*pShareInfo),
+                  (PVOID*)&pShareInfo);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     switch (pGetParamsOut->dwInfoLevel) {
@@ -285,7 +286,8 @@ error:
 
     memset(info, 0x0, sizeof(*info));
 
-    if (pShareInfo) {
+    if (pShareInfo)
+    {
         SrvSvcSrvFreeMemory(pShareInfo);
     }
 

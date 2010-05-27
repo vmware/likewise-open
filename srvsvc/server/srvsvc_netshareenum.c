@@ -161,7 +161,7 @@ SrvSvcNetShareEnum(
     dwError = LwNtStatusToWin32Error(
                   LwShareInfoUnmarshalEnumParameters(
                         pOutBuffer,
-                        dwOutLength,
+                        IoStatusBlock.BytesTransferred,
                         &pEnumParamsOut));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -209,7 +209,7 @@ SrvSvcNetShareEnum(
 
         dwError = SrvSvcSrvAllocateMemory(
                       sizeof(*ctr2->array) * ctr2->count,
-                      (PVOID)&ctr2->array);
+                      (PVOID*)&ctr2->array);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         for (i=0; i<ctr2->count ; i++)
@@ -245,7 +245,7 @@ SrvSvcNetShareEnum(
 
         dwError = SrvSvcSrvAllocateMemory(
                       sizeof(*ctr502->array) * ctr502->count,
-                      (void**)&ctr502->array);
+                      (PVOID*)&ctr502->array);
         BAIL_ON_SRVSVC_ERROR(dwError);
 
         for (i=0; i<ctr502->count ; i++)
