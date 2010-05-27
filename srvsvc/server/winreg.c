@@ -341,7 +341,7 @@ _RegQueryValue(
 
         *type = LW_REG_SZ;
 
-        if ((*buffer_size > 0) && (dwPTValueLen <= *buffer_size))
+        if ((*buffer_size > 0) && ((sizeof(WCHAR)*dwPTValueLen) <= *buffer_size))
         {
             //dwError = SrvSvcSrvAllocateMemory(*buffer_size, (PVOID*)buffer);
             //BAIL_ON_SRVSVC_ERROR(dwError);
