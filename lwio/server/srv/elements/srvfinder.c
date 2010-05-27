@@ -364,9 +364,11 @@ SrvFinderCreateSearchSpace(
     {
         PSRV_SEARCH_SPACE pSearchSpace = NULL;
 
+	// 0 is not a valid search id
+
         if (!usCandidateSearchId || (usCandidateSearchId == UINT16_MAX))
         {
-            usCandidateSearchId++;
+            usCandidateSearchId = 1;
         }
 
         ntStatus = LwRtlRBTreeFind(
@@ -375,9 +377,14 @@ SrvFinderCreateSearchSpace(
                         (PVOID*)&pSearchSpace);
         if (ntStatus == STATUS_NOT_FOUND)
         {
-            ntStatus = 0;
+            ntStatus = STATUS_SUCCESS;
             bFound = TRUE;
         }
+	else
+	{
+            usCandidateSearchId++;
+	}
+
         BAIL_ON_NT_STATUS(ntStatus);
 
     } while ((usCandidateSearchId != pFinderRepository->usNextSearchId) && !bFound);
@@ -637,3 +644,14 @@ SrvFinderFreeSearchSpace(
 
     SrvFreeMemory(pSearchSpace);
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
