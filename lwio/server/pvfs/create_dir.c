@@ -177,7 +177,7 @@ PvfsCreateDirCreate(
 
     ntError = PvfsAccessCheckDir(
                   pCreateCtx->pCcb->pUserToken,
-                  pszDirname,
+                  pszDiskDirname,
                   FILE_ADD_SUBDIRECTORY,
                   &pCreateCtx->GrantedAccess);
     BAIL_ON_NT_STATUS(ntError);
@@ -368,7 +368,7 @@ PvfsCreateDirOpenIf(
 
         ntError = PvfsAccessCheckDir(
                       pCreateCtx->pCcb->pUserToken,
-                      pszDirname,
+                      pszDiskDirname,
                       FILE_ADD_SUBDIRECTORY,
                       &pCreateCtx->GrantedAccess);
         BAIL_ON_NT_STATUS(ntError);
