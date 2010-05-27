@@ -558,17 +558,10 @@ SrvShareAccessCheck(
 
     LWIO_LOCK_RWMUTEX_SHARED(bShareInLock, &pShareInfo->mutex);
 
-    /* This needs to be fixed in the Share API.  A share should
-       never have a NULL SD, but current both C$ and IPC$ do.
-       A NULL SD should be failure to be safe but allow it for
-       now. */
-
     if (!pShareInfo->pAbsSecDesc)
     {
-        // ntStatus = STATUS_ACCESS_DENIED;
-        ntStatus = STATUS_SUCCESS;
-        *pGrantedAccess = FILE_ALL_ACCESS;
-        goto cleanup;
+        ntStatus = STATUS_ACCESS_DENIED;
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     bAccessResult = RtlAccessCheck(
@@ -724,7 +717,7 @@ SrvShareSetDefaultSecurity(
                   &administratorsSid.sid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    worldAccessMask = FILE_GENERIC_READ;
+    worldAccessMask = FILE_GENERIC_READ | FILE_GENERIC_EXECUTE;
     if (pShareInfo->service == SHARE_SERVICE_NAMED_PIPE)
     {
         worldAccessMask |= FILE_GENERIC_WRITE;

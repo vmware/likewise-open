@@ -324,8 +324,8 @@ SrvShareAdd(
     }
     else
     {
-        pShareInfo->pSecDesc     = NULL;
-        pShareInfo->ulSecDescLen = 0;
+        ntStatus = SrvShareSetDefaultSecurity(pShareInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
     ntStatus = SrvShareMapServiceStringToIdW(
