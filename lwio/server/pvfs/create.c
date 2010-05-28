@@ -86,7 +86,8 @@ PvfsCreate(
 
     CreateOptions = pIrp->Args.Create.CreateOptions;
 
-    if ((CreateOptions & ~FILE_CREATE_OPTIONS_VALID) != 0)
+    if (((CreateOptions & ~FILE_CREATE_OPTIONS_VALID) != 0) ||
+        LwIsSetFlag(CreateOptions, FILE_CREATE_TREE_CONNECTION))
     {
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);

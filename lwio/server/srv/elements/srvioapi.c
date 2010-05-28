@@ -76,6 +76,13 @@ SrvIoCreateFile(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (    LwIsSetFlag(CreateOptions, FILE_RESERVE_OPFILTER) ||
+            LwIsSetFlag(CreateOptions, FILE_OPEN_BY_FILE_ID))
+    {
+        ntStatus = STATUS_NOT_SUPPORTED;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     /* Check against the Share Security Descriptor */
 
     ntStatus = SrvShareAccessCheck(
