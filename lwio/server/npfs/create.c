@@ -239,20 +239,6 @@ NpfsValidateCreate(
 {
     NTSTATUS ntStatus = 0;
 
-    if ((pIrpContext->pIrp->Args.Create.CreateOptions &
-            ~FILE_CREATE_OPTIONS_VALID_PIPE) != 0)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
-    if ((pIrpContext->pIrp->Args.Create.FileAttributes &
-            ~FILE_ATTRIBUTE_VALID_SET_FLAGS) != 0)
-    {
-        ntStatus = STATUS_INVALID_PARAMETER;
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-
     RtlUnicodeStringInit(
             pPipeName,
             pIrpContext->pIrp->Args.Create.FileName.FileName
