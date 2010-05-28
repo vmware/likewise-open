@@ -59,6 +59,7 @@ PvfsCreate(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     FILE_CREATE_OPTIONS CreateOptions = 0;
+    FILE_ATTRIBUTES     fileAttributes = 0;
     BOOLEAN bIsDirectory = FALSE;
     PIRP pIrp = pIrpContext->pIrp;
     PSTR pszFilename = NULL;
@@ -84,6 +85,20 @@ PvfsCreate(
     /* Regular File/Directory Create() */
 
     CreateOptions = pIrp->Args.Create.CreateOptions;
+
+    if ((CreateOptions & ~FILE_CREATE_OPTIONS_VALID) != 0)
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
+
+    fileAttributes = pIrp->Args.Create.FileAttributes;
+
+    if ((fileAttributes & ~FILE_ATTRIBUTE_VALID_SET_FLAGS) != 0)
+    {
+        ntError = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntError);
+    }
 
     if ((CreateOptions & FileDirCombo) == FileDirCombo)
     {
