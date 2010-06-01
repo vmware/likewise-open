@@ -121,11 +121,13 @@ SrvSocketProcessTask(
 
 NTSTATUS
 SrvSocketCreate(
-    IN PSRV_TRANSPORT_LISTENER pListener,
-    IN int fd,
-    IN struct sockaddr* pClientAddress,
-    IN SOCKLEN_T ClientAddressLength,
-    OUT PSRV_SOCKET* ppSocket
+    IN  PSRV_TRANSPORT_LISTENER pListener,
+    IN  int                     fd,
+    IN  struct sockaddr*        pClientAddress,
+    IN  SOCKLEN_T               ClientAddressLength,
+    IN  struct sockaddr*        pServerAddress,
+    IN  SOCKLEN_T               serverAddressLength,
+    OUT PSRV_SOCKET*            ppSocket
     )
 {
     NTSTATUS ntStatus = 0;
@@ -135,6 +137,14 @@ SrvSocketCreate(
     {
         LWIO_LOG_ERROR("Client address is too long at %d bytes",
                        ClientAddressLength);
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    if (serverAddressLength > sizeof(pSocket->serverAddress))
+    {
+        LWIO_LOG_ERROR("Server address is too long at %d bytes",
+                        serverAddressLength);
         ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
@@ -159,6 +169,9 @@ SrvSocketCreate(
 
     memcpy(&pSocket->ClientAddress.Addr, pClientAddress, ClientAddressLength);
     pSocket->ClientAddressLength = ClientAddressLength;
+
+    memcpy(&pSocket->serverAddress.Addr, pServerAddress, serverAddressLength);
+    pSocket->serverAddressLength = serverAddressLength;
 
     ntStatus = SrvSocketAddressToString(
                             &pSocket->ClientAddress.Addr,
@@ -260,6 +273,18 @@ SrvSocketGetAddress(
     // immutable, so lock not needed.
     *ppAddress = &pSocket->ClientAddress.Addr;
     *pAddressLength = pSocket->ClientAddressLength;
+}
+
+VOID
+SrvSocketGetServerAddress(
+    IN PSRV_SOCKET              pSocket,
+    OUT const struct sockaddr** ppAddress,
+    OUT SOCKLEN_T*              pAddressLength
+    )
+{
+    // immutable, so lock not needed.
+    *ppAddress = &pSocket->serverAddress.Addr;
+    *pAddressLength = pSocket->serverAddressLength;
 }
 
 PCSTR

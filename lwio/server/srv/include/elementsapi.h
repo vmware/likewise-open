@@ -422,6 +422,8 @@ typedef struct _SRV_CONNECTION
     SRV_RESOURCE     resource;
     struct sockaddr  clientAddress;
     SOCKLEN_T        clientAddrLen;
+    struct sockaddr  serverAddress;
+    SOCKLEN_T        serverAddrLen;
     PLWIO_SRV_SOCKET pSocket;
     PSRV_CONNECTION_SOCKET_DISPATCH pSocketDispatch;
 
@@ -744,6 +746,8 @@ NTSTATUS
 SrvConnectionCreate(
     const struct sockaddr*          pClientAddress,
     SOCKLEN_T                       clientAddrLen,
+    const struct sockaddr*          pServerAddress,
+    SOCKLEN_T                       serverAddrLen,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,

@@ -172,6 +172,13 @@ SrvTransportSocketGetAddress(
     OUT SOCKLEN_T*              pAddressLength
     );
 
+VOID
+SrvTransportSocketGetServerAddress(
+    IN PSRV_SOCKET              pSocket,
+    OUT const struct sockaddr** ppAddress,
+    OUT SOCKLEN_T*              pAddressLength
+    );
+
 PCSTR
 SrvTransportSocketGetAddressString(
     IN PSRV_SOCKET pSocket

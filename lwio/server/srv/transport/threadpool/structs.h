@@ -60,6 +60,15 @@ typedef struct _SRV_SOCKET
 #endif
     } ClientAddress;
     SOCKLEN_T ClientAddressLength;
+    union
+    {
+        struct sockaddr Addr;
+        struct sockaddr_in Addr4;
+#ifdef AF_INET6
+        struct sockaddr_in6 Addr6;
+#endif
+    } serverAddress;
+    SOCKLEN_T serverAddressLength;
     CHAR AddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
 
     PLW_TASK pTask;

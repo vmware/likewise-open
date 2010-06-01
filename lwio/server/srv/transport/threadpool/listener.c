@@ -261,9 +261,18 @@ SrvListenerProcessTask(
         struct sockaddr_in6 Addr6;
 #endif
     } clientAddress;
-
     SOCKLEN_T clientAddressLength = sizeof(clientAddress);
-    CHAR clientAddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE];
+    CHAR clientAddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE] = {0};
+
+    union
+    {
+        struct sockaddr_in Addr4;
+#ifdef AF_INET6
+        struct sockaddr_in6 Addr6;
+#endif
+    } serverAddress;
+    SOCKLEN_T serverAddressLength = sizeof(serverAddress);
+    CHAR serverAddressStringBuffer[SRV_SOCKET_ADDRESS_STRING_MAX_SIZE] = {0};
     LW_TASK_EVENT_MASK waitMask = 0;
 
     if (WakeMask & LW_TASK_EVENT_INIT)
@@ -330,14 +339,30 @@ SrvListenerProcessTask(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (getsockname(connFd, (struct sockaddr*) &serverAddress, &serverAddressLength) < 0)
+    {
+        // Note that task will terminate.
+        ntStatus = LwErrnoToNtStatus(errno);
+        LWIO_LOG_ERROR("Failed to find the local socket address for fd = %d (errno = %d, status = 0x%08x)", connFd, errno, ntStatus);
+        LWIO_ASSERT(ntStatus);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
     ntStatus = SrvSocketAddressToString(
         (struct sockaddr*) &clientAddress,
         clientAddressStringBuffer,
         sizeof(clientAddressStringBuffer));
     BAIL_ON_NT_STATUS(ntStatus);
 
-    LWIO_LOG_INFO("Handling client from '%s' on fd = %d",
+    ntStatus = SrvSocketAddressToString(
+        (struct sockaddr*) &serverAddress,
+        serverAddressStringBuffer,
+        sizeof(serverAddressStringBuffer));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    LWIO_LOG_INFO("Handling client from '%s' [server address: %s] on fd = %d",
                   clientAddressStringBuffer,
+                  serverAddressStringBuffer,
                   connFd);
 
     ntStatus = SrvSocketCreate(
@@ -345,6 +370,8 @@ SrvListenerProcessTask(
                     connFd,
                     (struct sockaddr*) &clientAddress,
                     clientAddressLength,
+                    (struct sockaddr*) &serverAddress,
+                    serverAddressLength,
                     &pSocket);
     if (ntStatus)
     {

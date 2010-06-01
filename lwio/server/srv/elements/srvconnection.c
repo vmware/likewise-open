@@ -251,6 +251,8 @@ NTSTATUS
 SrvConnectionCreate(
     const struct sockaddr*          pClientAddress,
     SOCKLEN_T                       clientAddrLen,
+    const struct sockaddr*          pServerAddress,
+    SOCKLEN_T                       serverAddrLen,
     PLWIO_SRV_SOCKET                pSocket,
     HANDLE                          hPacketAllocator,
     HANDLE                          hGssContext,
@@ -305,6 +307,8 @@ SrvConnectionCreate(
 
     pConnection->clientAddress = *pClientAddress;
     pConnection->clientAddrLen = clientAddrLen;
+    pConnection->serverAddress = *pServerAddress;
+    pConnection->serverAddrLen = serverAddrLen;
 
     pConnection->ulSequence = 0;
     pConnection->hPacketAllocator = hPacketAllocator;

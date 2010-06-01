@@ -144,6 +144,16 @@ SrvTransportSocketGetAddress(
     SrvSocketGetAddress(pSocket, ppAddress, pAddressLength);
 }
 
+VOID
+SrvTransportSocketGetServerAddress(
+    IN PSRV_SOCKET              pSocket,
+    OUT const struct sockaddr** ppAddress,
+    OUT SOCKLEN_T*              pAddressLength
+    )
+{
+    SrvSocketGetServerAddress(pSocket, ppAddress, pAddressLength);
+}
+
 PCSTR
 SrvTransportSocketGetAddressString(
     IN PSRV_SOCKET pSocket

@@ -67,11 +67,13 @@ SrvListenerShutdown(
 
 NTSTATUS
 SrvSocketCreate(
-    IN PSRV_TRANSPORT_LISTENER pListener,
-    IN int fd,
-    IN struct sockaddr* pClientAddress,
-    IN SOCKLEN_T ClientAddressLength,
-    OUT PSRV_SOCKET* ppSocket
+    IN  PSRV_TRANSPORT_LISTENER pListener,
+    IN  int                     fd,
+    IN  struct sockaddr*        pClientAddress,
+    IN  SOCKLEN_T               ClientAddressLength,
+    IN  struct sockaddr*        pServerAddress,
+    IN  SOCKLEN_T               serverAddressLength,
+    OUT PSRV_SOCKET*            ppSocket
     );
 
 VOID
@@ -81,6 +83,13 @@ SrvSocketRelease(
 
 VOID
 SrvSocketGetAddress(
+    IN PSRV_SOCKET              pSocket,
+    OUT const struct sockaddr** ppAddress,
+    OUT SOCKLEN_T*              pAddressLength
+    );
+
+VOID
+SrvSocketGetServerAddress(
     IN PSRV_SOCKET              pSocket,
     OUT const struct sockaddr** ppAddress,
     OUT SOCKLEN_T*              pAddressLength

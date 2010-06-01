@@ -334,6 +334,8 @@ SrvProtocolTransportDriverConnectionNew(
     PLWIO_SRV_CONNECTION pConnection = NULL;
     const struct sockaddr* pClientAddress = NULL;
     SOCKLEN_T              clientAddrLen = 0;
+    const struct sockaddr* pServerAddress = NULL;
+    SOCKLEN_T              serverAddrLen = 0;
     BOOLEAN bInLock = FALSE;
 
     ntStatus = SrvAcquireHostInfo(NULL, &pHostinfo);
@@ -382,10 +384,13 @@ SrvProtocolTransportDriverConnectionNew(
     uuid_copy(properties.GUID, pProtocolDispatchContext->guid);
 
     SrvTransportSocketGetAddress(pSocket, &pClientAddress, &clientAddrLen);
+    SrvTransportSocketGetServerAddress(pSocket, &pServerAddress, &serverAddrLen);
 
     ntStatus = SrvConnectionCreate(
                     pClientAddress,
                     clientAddrLen,
+                    pServerAddress,
+                    serverAddrLen,
                     pSocket,
                     pGlobals->hPacketAllocator,
                     pProtocolDispatchContext->hGssContext,
@@ -1256,6 +1261,8 @@ SrvProtocolTransportDriverSetStatistics(
     {
             .clientAddress = pConnection->clientAddress,
             .clientAddrLen = pConnection->clientAddrLen,
+            .serverAddress = pConnection->serverAddress,
+            .serverAddrLen = pConnection->serverAddrLen,
             .ulResourceId  = pConnection->resource.ulResourceId
     };
     SRV_STAT_SMB_VERSION protocolStatVer = SRV_STAT_SMB_VERSION_UNKNOWN;
