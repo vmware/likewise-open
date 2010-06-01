@@ -75,6 +75,7 @@ liblsass_auth_provider_ad_la_CPPFLAGS = \
     -DLW_ENABLE_THREADS=1         \
 	-I@top_srcdir@/server/include \
         $(PROVIDER_CPPFLAGS)          \
+	@LWBASE_INCLUDES@             \
 	@PSTORE_INCLUDES@             \
 	@NETAPI_INCLUDES@             \
 	@NETLOGON_INCLUDES@
@@ -86,6 +87,7 @@ liblsass_auth_provider_ad_la_LIBADD = \
 	@top_builddir@/common/liblsacommon.la \
 	@top_builddir@/join/liblsajoin.la \
 	$(ADDITIONAL_LIBS) \
+	@LWBASE_LIBS@ \
 	@PSTORE_LIBS@ \
 	@NETAPI_LIBS@ \
 	@NETLOGON_LIBS@ \
@@ -97,6 +99,7 @@ liblsass_auth_provider_ad_la_LIBADD = \
 
 liblsass_auth_provider_ad_la_LDFLAGS = \
 	$(PROVIDER_LDFLAGS) \
+	@LWBASE_LDFLAGS@ \
 	@PSTORE_LDFLAGS@ \
 	@NETAPI_LDFLAGS@ \
 	@NETLOGON_LDFLAGS@ \
