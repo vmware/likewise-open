@@ -314,6 +314,11 @@ SrvShareAdd(
                         &pShareInfo->pwszComment);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvShareMapServiceStringToIdW(
+                    pwszShareType,
+                    &pShareInfo->service);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     if (ulSecDescLen)
     {
         ntStatus = SrvShareSetSecurity(
@@ -327,11 +332,6 @@ SrvShareAdd(
         ntStatus = SrvShareSetDefaultSecurity(pShareInfo);
         BAIL_ON_NT_STATUS(ntStatus);
     }
-
-    ntStatus = SrvShareMapServiceStringToIdW(
-                    pwszShareType,
-                    &pShareInfo->service);
-    BAIL_ON_NT_STATUS(ntStatus);
 
     pShareInfo->ulFlags = ulShareFlags;
 
