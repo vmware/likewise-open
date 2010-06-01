@@ -386,7 +386,7 @@ SrvShareDevCtlEnum(
                 p501[i].shi501_netname         = pShareInfo->pwszName;
                 p501[i].shi501_type            = pShareInfo->service;
                 p501[i].shi501_remark          = pShareInfo->pwszComment;
-                p501[i].shi501_flags           = 0;
+                p501[i].shi501_flags           = pShareInfo->ulFlags;
             }
 
             EnumShareInfoParamsOut.info.p501 = p501;
@@ -660,7 +660,7 @@ SrvShareDevCtlGetInfo(
             p501->shi501_netname         = pShareInfo->pwszName;
             p501->shi501_type            = pShareInfo->service;
             p501->shi501_remark          = pShareInfo->pwszComment;
-            p501->shi501_flags           = 0;
+            p501->shi501_flags           = pShareInfo->ulFlags;
 
             GetShareInfoParamsOut.Info.p501 = p501;
 
