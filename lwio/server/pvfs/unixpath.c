@@ -146,6 +146,18 @@ PvfsWC16CanonicalPathName(
     pszCursor = pszPath;
     while (pszCursor && *pszCursor)
     {
+        if ((*pszCursor == ':') ||
+            (*pszCursor == '"') ||
+            (*pszCursor == '*') ||
+            (*pszCursor == '?') ||
+            (*pszCursor == '<') ||
+            (*pszCursor == '>') ||
+            (*pszCursor == '|'))
+        {
+            ntError = STATUS_OBJECT_NAME_INVALID;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
         if (*pszCursor == '\\')
         {
             *pszCursor = '/';
