@@ -1221,7 +1221,7 @@ SrvProtocolTransportDriverDispatchPacket(
     ntStatus = SrvProtocolTransportDriverSetStatistics(
                     pConnection,
                     pPacket->protocolVer,
-                    pPacket->pNetBIOSHeader->len,
+                    pPacket->bufferUsed,
                     &pContext->pStatInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 

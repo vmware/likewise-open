@@ -90,6 +90,8 @@ SrvProtocolExecute_SMB_V1(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_EXEC_CONTEXT_SMB_V1 pSmb1Context = NULL;
+    UCHAR    ucCurrentCommand = 0;
+    BOOLEAN  bPopStatMessage  = FALSE;
 
     if (!pExecContext->pProtocolContext->pSmb1Context)
     {
@@ -186,11 +188,15 @@ SrvProtocolExecute_SMB_V1(
 
         if (pExecContext->pStatInfo)
         {
+            ucCurrentCommand = pRequest->ucCommand;
+
             ntStatus = SrvStatisticsPushMessage(
                             pExecContext->pStatInfo,
-                            pRequest->ucCommand,
+                            ucCurrentCommand,
                             pRequest->ulMessageSize);
             BAIL_ON_NT_STATUS(ntStatus);
+
+            bPopStatMessage = TRUE;
         }
 
         switch (pRequest->ucCommand)
@@ -443,41 +449,9 @@ SrvProtocolExecute_SMB_V1(
                     pExecContext->pProtocolContext->pSmb1Context->hState = NULL;
                 }
 
-                if (pExecContext->pStatInfo)
-                {
-                    NTSTATUS ntStatus2 =
-                            SrvStatisticsPopMessage(
-                                    pExecContext->pStatInfo,
-                                    pRequest->ucCommand,
-                                    pExecContext->pSmbResponse->bufferUsed,
-                                    STATUS_SUCCESS);
-                    if (ntStatus2)
-                    {
-                        LWIO_LOG_ERROR( "Error: Failed to notify statistics "
-                                        "module on end of message processing "
-                                        "[error: %u]", ntStatus2);
-                    }
-                }
-
                 break;
 
             default:
-
-                if (pExecContext->pStatInfo)
-                {
-                    NTSTATUS ntStatus2 =
-                            SrvStatisticsPopMessage(
-                                    pExecContext->pStatInfo,
-                                    pRequest->ucCommand,
-                                    pExecContext->pSmbResponse->bufferUsed,
-                                    ntStatus);
-                    if (ntStatus2)
-                    {
-                        LWIO_LOG_ERROR( "Error: Failed to notify statistics "
-                                        "module on end of message processing "
-                                        "[error: %u]", ntStatus2);
-                    }
-                }
 
                 if (pExecContext->bInternal)
                     break;
@@ -524,6 +498,25 @@ SrvProtocolExecute_SMB_V1(
         }
 
         pExecContext->pSmbResponse->bufferUsed += pResponse->ulMessageSize;
+
+        if (bPopStatMessage)
+        {
+            NTSTATUS ntStatus2 =
+                    SrvStatisticsPopMessage(
+                            pExecContext->pStatInfo,
+                            ucCurrentCommand,
+                            pExecContext->pSmbResponse->bufferUsed,
+                            ntStatus);
+            if (ntStatus2)
+            {
+                LWIO_LOG_ERROR( "Error: Failed to notify statistics "
+                                "module on end of message processing "
+                                "[error: %u]", ntStatus2);
+            }
+
+            bPopStatMessage = FALSE;
+            ucCurrentCommand = 0;
+        }
     }
 
     ntStatus = SMBPacketMarshallFooter(pExecContext->pSmbResponse);
@@ -534,6 +527,22 @@ cleanup:
     return ntStatus;
 
 error:
+
+    if (bPopStatMessage)
+    {
+        NTSTATUS ntStatus2 =
+                SrvStatisticsPopMessage(
+                        pExecContext->pStatInfo,
+                        ucCurrentCommand,
+                        pExecContext->pSmbResponse->bufferUsed,
+                        ntStatus);
+        if (ntStatus2)
+        {
+            LWIO_LOG_ERROR( "Error: Failed to notify statistics "
+                            "module on end of message processing "
+                            "[error: %u]", ntStatus2);
+        }
+    }
 
     goto cleanup;
 }
