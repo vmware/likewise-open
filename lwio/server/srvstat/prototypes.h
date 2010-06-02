@@ -47,6 +47,48 @@
  *
  */
 
+// config.c
+
+NTSTATUS
+LwioSrvStatConfigInit(
+    VOID
+    );
+
+VOID
+LwioSrvStatConfigClearContents(
+    PSRV_STAT_HANDLER_CONFIG pConfig
+    );
+
+VOID
+LwioSrvStatConfigShutdown(
+    VOID
+    );
+
+// filelog.c
+
+NTSTATUS
+LwioSrvStatFilelogInit(
+    PCSTR                       pszFilePath,
+    PSRV_STAT_HANDLER_FILE_LOG* ppFileLog
+    );
+
+VOID
+LwioSrvStatFilelogShutdown(
+    PSRV_STAT_HANDLER_FILE_LOG pFileLog
+    );
+
+// logging.c
+
+NTSTATUS
+LwioSrvStatLoggingInit(
+    VOID
+    );
+
+VOID
+LwioSrvStatLoggingShutdown(
+    VOID
+    );
+
 // statistics.c
 
 NTSTATUS
@@ -99,6 +141,18 @@ LwioSrvStatSetResponseInfo(
 NTSTATUS
 LwioSrvStatCloseRequestContext(
     HANDLE                    hContext             /* IN              */
+    );
+
+// syslog.c
+
+NTSTATUS
+LwioSrvStatSyslogInit(
+    PSRV_STAT_HANDLER_SYS_LOG* ppSysLog
+    );
+
+VOID
+LwioSrvStatSyslogShutdown(
+    PSRV_STAT_HANDLER_SYS_LOG pSysLog
     );
 
 // times.c

@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        filelog.c
  *
  * Abstract:
  *
@@ -41,24 +41,72 @@
  *
  *        Reference Statistics Logging Module (SRV)
  *
- *        Common Private Header
+ *        Log to File
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <lw/base.h>
-#include <lw/ntstatus.h>
+NTSTATUS
+LwioSrvStatFilelogInit(
+    PCSTR                       pszFilePath,
+    PSRV_STAT_HANDLER_FILE_LOG* ppFileLog
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_HANDLER_FILE_LOG pFileLog = NULL;
 
-#include <lwio/lwiosrvstatprovider.h>
+    if (!pszFilePath || !*pszFilePath)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
-#include <reg/lwreg.h>
+    ntStatus = RTL_ALLOCATE(
+                    &pFileLog,
+                    SRV_STAT_HANDLER_FILE_LOG,
+                    sizeof(SRV_STAT_HANDLER_FILE_LOG));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
+    ntStatus = RtlCStringDuplicate(&pFileLog->pszFilePath, pszFilePath);
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#include "externs.h"
+    if ((pFileLog->fp = fopen(pFileLog->pszFilePath, "w")) == NULL)
+    {
+        ntStatus = LwErrnoToNtStatus(errno);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    *ppFileLog = pFileLog;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppFileLog = NULL;
+
+    if (pFileLog)
+    {
+        LwioSrvStatFilelogShutdown(pFileLog);
+    }
+
+    goto cleanup;
+}
+
+VOID
+LwioSrvStatFilelogShutdown(
+    PSRV_STAT_HANDLER_FILE_LOG pFileLog
+    )
+{
+    if (pFileLog->fp)
+    {
+        fclose(pFileLog->fp);
+    }
+
+    RTL_FREE(&pFileLog->pszFilePath);
+    RTL_FREE(&pFileLog);
+}

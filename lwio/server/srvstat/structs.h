@@ -47,6 +47,20 @@
  *
  */
 
+typedef struct
+{
+    PSTR    pszIdentifier;
+    BOOLEAN bOpened;
+    ULONG   ulFacility;
+    ULONG   ulOptions;
+} SRV_STAT_HANDLER_SYS_LOG, *PSRV_STAT_HANDLER_SYS_LOG;
+
+typedef struct
+{
+    PSTR  pszFilePath;
+    FILE* fp;
+} SRV_STAT_HANDLER_FILE_LOG, *PSRV_STAT_HANDLER_FILE_LOG;
+
 typedef struct _SRV_STAT_REQUEST_CONTEXT
 {
     SRV_STAT_SMB_VERSION     protocolVersion;
@@ -57,3 +71,24 @@ typedef struct _SRV_STAT_REQUEST_CONTEXT
     LONG64                   requestEndTime;
 
 } SRV_STAT_REQUEST_CONTEXT, *PSRV_STAT_REQUEST_CONTEXT;
+
+typedef struct _SRV_STAT_HANDLER_CONFIG
+{
+    SRV_STAT_LOG_TARGET_TYPE logTargetType;
+
+    PSTR                     pszPath;
+
+} SRV_STAT_HANDLER_CONFIG, *PSRV_STAT_HANDLER_CONFIG;
+
+typedef struct _SRV_STAT_HANDLER_GLOBALS
+{
+    SRV_STAT_HANDLER_CONFIG               config;
+    LWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE fnTable;
+
+    union
+    {
+        PSRV_STAT_HANDLER_SYS_LOG  pSysLog;
+        PSRV_STAT_HANDLER_FILE_LOG pFileLog;
+    };
+
+} SRV_STAT_HANDLER_GLOBALS, *PSRV_STAT_HANDLER_GLOBALS;

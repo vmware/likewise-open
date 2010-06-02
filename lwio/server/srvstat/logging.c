@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        logging.c
  *
  * Abstract:
  *
@@ -41,24 +41,78 @@
  *
  *        Reference Statistics Logging Module (SRV)
  *
- *        Common Private Header
+ *        Logging
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <lw/base.h>
-#include <lw/ntstatus.h>
+NTSTATUS
+LwioSrvStatLoggingInit(
+    VOID
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
 
-#include <lwio/lwiosrvstatprovider.h>
+    switch (gSrvStatHandlerGlobals.config.logTargetType)
+    {
+        case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
 
-#include <reg/lwreg.h>
+            ntStatus = LwioSrvStatSyslogInit(&gSrvStatHandlerGlobals.pSysLog);
 
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
+            break;
 
-#include "externs.h"
+        case SRV_STAT_LOG_TARGET_TYPE_FILE:
+
+            ntStatus = LwioSrvStatFilelogInit(
+                            gSrvStatHandlerGlobals.config.pszPath,
+                            &gSrvStatHandlerGlobals.pFileLog);
+
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+
+            break;
+    }
+
+    return ntStatus;
+}
+
+VOID
+LwioSrvStatLoggingShutdown(
+    VOID
+    )
+{
+    switch (gSrvStatHandlerGlobals.config.logTargetType)
+    {
+        case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
+
+            if (gSrvStatHandlerGlobals.pSysLog)
+            {
+                LwioSrvStatSyslogShutdown(gSrvStatHandlerGlobals.pSysLog);
+
+                gSrvStatHandlerGlobals.pSysLog = NULL;
+            }
+
+            break;
+
+        case SRV_STAT_LOG_TARGET_TYPE_FILE:
+
+            if (gSrvStatHandlerGlobals.pFileLog)
+            {
+                LwioSrvStatFilelogShutdown(gSrvStatHandlerGlobals.pFileLog);
+
+                gSrvStatHandlerGlobals.pFileLog = NULL;
+            }
+
+            break;
+
+        default:
+
+            break;
+    }
+}

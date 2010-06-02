@@ -67,3 +67,11 @@
            ntStatus = STATUS_INVALID_PARAMETER;    \
            BAIL_ON_NT_STATUS(ntStatus);            \
         }
+
+typedef enum
+{
+    SRV_STAT_LOG_TARGET_TYPE_NONE = 0,
+    SRV_STAT_LOG_TARGET_TYPE_SYSLOG,
+    SRV_STAT_LOG_TARGET_TYPE_FILE,
+    SRV_STAT_LOG_TARGET_TYPE_CONSOLE
+} SRV_STAT_LOG_TARGET_TYPE;

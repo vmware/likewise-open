@@ -56,9 +56,28 @@ LwioSrvStatInitializeProvider(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    *ppFnTable = &gSrvStatFunctionTable;
+    gSrvStatHandlerGlobals.pFileLog = NULL;
+    gSrvStatHandlerGlobals.pSysLog  = NULL;
+
+    ntStatus = LwioSrvStatConfigInit();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = LwioSrvStatLoggingInit();
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppFnTable = &gSrvStatHandlerGlobals.fnTable;
+
+cleanup:
 
     return ntStatus;
+
+error:
+
+    LwioSrvStatConfigShutdown();
+
+    *ppFnTable = NULL;
+
+    goto cleanup;
 }
 
 NTSTATUS
@@ -66,7 +85,9 @@ LwioSrvStatShutdownProvider(
     PLWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE pFnTable   /* IN  */
     )
 {
-    NTSTATUS ntStatus = STATUS_SUCCESS;
+    LwioSrvStatLoggingShutdown();
 
-    return ntStatus;
+    LwioSrvStatConfigShutdown();
+
+    return STATUS_SUCCESS;
 }

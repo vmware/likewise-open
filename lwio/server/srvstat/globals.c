@@ -49,15 +49,24 @@
 
 #include "includes.h"
 
-LWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE gSrvStatFunctionTable =
+SRV_STAT_HANDLER_GLOBALS gSrvStatHandlerGlobals =
 {
-    .pfnCreateRequestContext = &LwioSrvStatCreateRequestContext,
-    .pfnPushMessage          = &LwioSrvStatPushMessage,
-    .pfnSetSubOpCode         = &LwioSrvStatSetSubOpcode,
-    .pfnSetIOCTL             = &LwioSrvStatSetIOCTL,
-    .pfnSetSessionInfo       = &LwioSrvStatSetSessionInfo,
-    .pfnPopMessage           = &LwioSrvStatPopMessage,
-    .pfnSetResponseInfo      = &LwioSrvStatSetResponseInfo,
-    .pfnCloseRequestContext  = &LwioSrvStatCloseRequestContext
+    .config =
+        {
+            .logTargetType = SRV_STAT_LOG_TARGET_TYPE_SYSLOG,
+            .pszPath = NULL
+        },
+    .fnTable =
+        {
+            .pfnCreateRequestContext = &LwioSrvStatCreateRequestContext,
+            .pfnPushMessage          = &LwioSrvStatPushMessage,
+            .pfnSetSubOpCode         = &LwioSrvStatSetSubOpcode,
+            .pfnSetIOCTL             = &LwioSrvStatSetIOCTL,
+            .pfnSetSessionInfo       = &LwioSrvStatSetSessionInfo,
+            .pfnPopMessage           = &LwioSrvStatPopMessage,
+            .pfnSetResponseInfo      = &LwioSrvStatSetResponseInfo,
+            .pfnCloseRequestContext  = &LwioSrvStatCloseRequestContext
+        }
 };
+
 

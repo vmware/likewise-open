@@ -47,4 +47,4 @@
  *
  */
 
-extern LWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE gSrvStatFunctionTable;
+extern SRV_STAT_HANDLER_GLOBALS gSrvStatHandlerGlobals;

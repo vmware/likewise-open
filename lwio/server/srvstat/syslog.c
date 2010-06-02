@@ -33,7 +33,7 @@
  *
  * Module Name:
  *
- *        includes.h
+ *        syslog.c
  *
  * Abstract:
  *
@@ -41,24 +41,70 @@
  *
  *        Reference Statistics Logging Module (SRV)
  *
- *        Common Private Header
+ *        Log to syslog
  *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
  *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <lw/base.h>
-#include <lw/ntstatus.h>
+NTSTATUS
+LwioSrvStatSyslogInit(
+    PSRV_STAT_HANDLER_SYS_LOG* ppSysLog
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_HANDLER_SYS_LOG pSysLog = NULL;
+    ULONG ulOptions  = LOG_PID;
+    ULONG ulFacility = LOG_DAEMON;
 
-#include <lwio/lwiosrvstatprovider.h>
+    ntStatus = RTL_ALLOCATE(
+                    &pSysLog,
+                    SRV_STAT_HANDLER_SYS_LOG,
+                    sizeof(SRV_STAT_HANDLER_SYS_LOG));
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#include <reg/lwreg.h>
+    ntStatus = RtlCStringDuplicate(&pSysLog->pszIdentifier, "lwiosrvstat");
+    BAIL_ON_NT_STATUS(ntStatus);
 
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
+    pSysLog->ulFacility = ulFacility;
+    pSysLog->ulOptions = ulOptions;
 
-#include "externs.h"
+    openlog(pSysLog->pszIdentifier, pSysLog->ulOptions, pSysLog->ulFacility);
+
+    setlogmask(LOG_INFO);
+
+    pSysLog->bOpened = TRUE;
+
+    *ppSysLog = pSysLog;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppSysLog = NULL;
+
+    if (pSysLog)
+    {
+        LwioSrvStatSyslogShutdown(pSysLog);
+    }
+
+    goto cleanup;
+}
+
+VOID
+LwioSrvStatSyslogShutdown(
+    PSRV_STAT_HANDLER_SYS_LOG pSysLog
+    )
+{
+    if (pSysLog->bOpened)
+    {
+        closelog();
+    }
+
+    RTL_FREE(&pSysLog->pszIdentifier);
+    RTL_FREE(&pSysLog);
+}
