@@ -305,6 +305,11 @@ error:
         SrvStatisticsRelease(pStatInfo);
     }
 
+    if (ntStatus == STATUS_NOT_SUPPORTED)
+    {
+        ntStatus = STATUS_SUCCESS;
+    }
+
     goto cleanup;
 }
 
