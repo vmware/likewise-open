@@ -13,6 +13,7 @@
 
 #include <srvsvcdefs.h>
 #include <srvsvcutils.h>
+#include <dce/rpc.h>
 
 #include "defs.h"
 #include "structs.h"
