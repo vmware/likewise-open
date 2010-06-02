@@ -65,6 +65,9 @@ SrvProcessSessionSetup(
     LW_MAP_SECURITY_GSS_CONTEXT hContextHandle = NULL;
     BOOLEAN                    bGssNegotiateLocked = FALSE;
     PSTR                       pszClientPrincipalName = NULL;
+    PLWIO_SRV_SESSION          pSessionExisting       = NULL;
+    PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
+
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
@@ -98,15 +101,27 @@ SrvProcessSessionSetup(
                     ulSecurityBlobLength);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    if (pSmbRequest->pHeader->uid) {
+        ntStatus = SrvConnectionFindSession_SMB_V1(
+                        pCtxSmb1,
+                        pConnection,
+                        pSmbRequest->pHeader->uid,
+                        &pCtxSmb1->pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pSessionExisting = pCtxSmb1->pSession;
+
+    } else {
+        ntStatus = SrvConnectionCreateSession(pConnection, &pCtxSmb1->pSession);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
+
     if (SrvGssNegotiateIsComplete(
                     pConnection->hGssContext,
                     pConnection->hGssNegotiate))
     {
-        PSRV_MESSAGE_SMB_V1 pSmbResponse = &pCtxSmb1->pResponses[iMsg];
-
-        ntStatus = SrvConnectionCreateSession(pConnection, &pCtxSmb1->pSession);
-        BAIL_ON_NT_STATUS(ntStatus);
-
         ntStatus = SrvSetStatSessionInfo(pExecContext, pCtxSmb1->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
@@ -159,8 +174,6 @@ SrvProcessSessionSetup(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
-        pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
-
         SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
     }
 
@@ -170,6 +183,11 @@ cleanup:
 
     SRV_SAFE_FREE_MEMORY(pInitSecurityBlob);
     SRV_SAFE_FREE_MEMORY(pszClientPrincipalName);
+
+    if (pSessionExisting)
+    {
+        SrvSessionRelease(pSessionExisting);
+    }
 
     return ntStatus;
 
