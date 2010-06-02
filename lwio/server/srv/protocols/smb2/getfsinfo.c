@@ -909,6 +909,8 @@ SrvGetFileSystemInfoGeneric_WithString_SMB_V2(
 
     } while (bContinue);
 
+    BAIL_ON_NT_STATUS(ntStatus);
+
 cleanup:
 
     if (pErrorMessage)
@@ -972,6 +974,10 @@ error:
                         "[error:0x%08x]",
                         ntStatus2);
                     }
+                }
+                if (infoClass == FileFsVolumeInformation)
+                {
+                    ntStatus = STATUS_BUFFER_OVERFLOW;
                 }
             }
 
