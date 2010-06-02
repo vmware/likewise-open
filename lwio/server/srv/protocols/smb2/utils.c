@@ -115,8 +115,25 @@ SrvSetStatSession2Info(
         SRV_STAT_SESSION_INFO statSessionInfo =
         {
                 .pwszUserPrincipal = pSession->pwszClientPrincipalName,
+                .ulUid             = UINT32_MAX,
+                .ulGid             = UINT32_MAX,
                 .ullSessionId      = pSession->ullUid
         };
+
+        if (pSession->pIoSecurityContext)
+        {
+            NTSTATUS ntStatus2 = STATUS_SUCCESS;
+            TOKEN_UNIX tokenUnix = { 0 };
+
+            ntStatus2 = RtlQueryAccessTokenUnixInformation(
+                            IoSecurityGetAccessToken(pSession->pIoSecurityContext),
+                            &tokenUnix);
+            if (ntStatus2 == STATUS_SUCCESS)
+            {
+                statSessionInfo.ulUid = tokenUnix.Uid;
+                statSessionInfo.ulGid = tokenUnix.Gid;
+            }
+        }
 
         ntStatus = SrvStatisticsSetSessionInfo(
                         pExecContext->pStatInfo,
