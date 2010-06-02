@@ -56,9 +56,6 @@ LwioSrvStatInitializeProvider(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
 
-    gSrvStatHandlerGlobals.pFileLog = NULL;
-    gSrvStatHandlerGlobals.pSysLog  = NULL;
-
     ntStatus = LwioSrvStatConfigInit();
     BAIL_ON_NT_STATUS(ntStatus);
 

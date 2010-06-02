@@ -96,6 +96,29 @@ error:
 }
 
 VOID
+LwioSrvStatSyslogMessage(
+    PSRV_STAT_HANDLER_SYS_LOG pSysLog,
+    PCSTR                     pszFormat,
+    va_list                   msgList
+    )
+{
+    #if defined(HAVE_VSYSLOG)
+        vsyslog(LOG_INFO, pszFormat, msgList);
+    #else
+        NTSTATUS ntStatus;
+        PSTR pszBuffer = NULL;
+
+        ntStatus = RtlCStringAllocatePrintf(&pszBuffer, pszFormat, msgList);
+        if (ntStatus == STATUS_SUCCESS)
+        {
+            syslog(LOG_INFO, "%s", pszBuffer);
+        }
+
+        RTL_FREE(&pszBuffer);
+    #endif /* ! HAVE_VSYSLOG */
+}
+
+VOID
 LwioSrvStatSyslogShutdown(
     PSRV_STAT_HANDLER_SYS_LOG pSysLog
     )

@@ -61,6 +61,17 @@ typedef struct
     FILE* fp;
 } SRV_STAT_HANDLER_FILE_LOG, *PSRV_STAT_HANDLER_FILE_LOG;
 
+typedef struct _SRV_STAT_HANDLER_LOGGER
+{
+    SRV_STAT_LOG_TARGET_TYPE logTargetType;
+    union
+    {
+        PSRV_STAT_HANDLER_SYS_LOG  pSysLog;
+        PSRV_STAT_HANDLER_FILE_LOG pFileLog;
+    };
+
+} SRV_STAT_HANDLER_LOGGER, *PSRV_STAT_HANDLER_LOGGER;
+
 typedef struct _SRV_STAT_REQUEST_CONTEXT
 {
     SRV_STAT_SMB_VERSION     protocolVersion;
@@ -82,13 +93,11 @@ typedef struct _SRV_STAT_HANDLER_CONFIG
 
 typedef struct _SRV_STAT_HANDLER_GLOBALS
 {
+    pthread_mutex_t                       mutex;
+
     SRV_STAT_HANDLER_CONFIG               config;
     LWIO_SRV_STAT_PROVIDER_FUNCTION_TABLE fnTable;
 
-    union
-    {
-        PSRV_STAT_HANDLER_SYS_LOG  pSysLog;
-        PSRV_STAT_HANDLER_FILE_LOG pFileLog;
-    };
+    PSRV_STAT_HANDLER_LOGGER              pLogger;
 
 } SRV_STAT_HANDLER_GLOBALS, *PSRV_STAT_HANDLER_GLOBALS;

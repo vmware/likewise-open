@@ -73,6 +73,13 @@ LwioSrvStatFilelogInit(
     );
 
 VOID
+LwioSrvStatFilelogMessage(
+    PSRV_STAT_HANDLER_FILE_LOG pFileLog,
+    PCSTR                      pszFormat,
+    va_list                    msgList
+    );
+
+VOID
 LwioSrvStatFilelogShutdown(
     PSRV_STAT_HANDLER_FILE_LOG pFileLog
     );
@@ -82,6 +89,13 @@ LwioSrvStatFilelogShutdown(
 NTSTATUS
 LwioSrvStatLoggingInit(
     VOID
+    );
+
+VOID
+LwioSrvStatLogMessage(
+    PSRV_STAT_HANDLER_LOGGER pLogger,
+    PCSTR                    pszFormat,
+    va_list                  msgList
     );
 
 VOID
@@ -148,6 +162,13 @@ LwioSrvStatCloseRequestContext(
 NTSTATUS
 LwioSrvStatSyslogInit(
     PSRV_STAT_HANDLER_SYS_LOG* ppSysLog
+    );
+
+VOID
+LwioSrvStatSyslogMessage(
+    PSRV_STAT_HANDLER_SYS_LOG pSysLog,
+    PCSTR                     pszFormat,
+    va_list                   msgList
     );
 
 VOID

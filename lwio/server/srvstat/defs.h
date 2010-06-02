@@ -47,6 +47,8 @@
  *
  */
 
+#define LWIO_SRV_STAT_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
+
 #define LWIO_SRV_STAT_NTTIME_EPOCH_DIFFERENCE_SECS  (11644473600LL)
 
 #define LWIO_SRV_STAT_FACTOR_MICROSECS_TO_HUNDREDS_OF_NANOSECS (10LL)
@@ -67,6 +69,41 @@
            ntStatus = STATUS_INVALID_PARAMETER;    \
            BAIL_ON_NT_STATUS(ntStatus);            \
         }
+
+#define SRV_STAT_HANDLER_LOCK_MUTEX(bInLock, mutex) \
+    if (!bInLock) { \
+       int thr_err = pthread_mutex_lock(mutex); \
+       if (thr_err) { \
+           abort(); \
+       } \
+       bInLock = TRUE; \
+    }
+
+#define SRV_STAT_HANDLER_UNLOCK_MUTEX(bInLock, mutex) \
+    if (bInLock) { \
+       int thr_err = pthread_mutex_unlock(mutex); \
+       if (thr_err) { \
+           abort(); \
+       } \
+       bInLock = FALSE; \
+    }
+
+#define _SRV_STAT_HANDLER_LOG_IF(pszFormat, ...)                         \
+    do {                                                                 \
+        BOOLEAN bInLock;                                                 \
+        SRV_STAT_HANDLER_LOCK_MUTEX(bInLock, &gSrvStatGlobals.mutex);    \
+        if (gSrvStatGlobals.pLogger)                                     \
+        {                                                                \
+            LwioSrvStatLogMessage(                                       \
+                    gSrvStatGlobals.pLogger,                             \
+                    "0x%lx:" pszFormat,                                  \
+                    ((unsigned long)pthread_self()), ## __VA_ARGS__);    \
+        }                                                                \
+        SRV_STAT_HANDLER_UNLOCK_MUTEX(bInLock, &gSrvStatGlobals.mutex);  \
+    } while (0)
+
+#define SRV_STAT_HANDLER_LOG_MESSAGE(pszFmt, ...) \
+    _SRV_STAT_HANDLER_LOG_IF(pszFmt, ## __VA_ARGS__)
 
 typedef enum
 {

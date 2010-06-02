@@ -49,18 +49,33 @@
 
 #include "includes.h"
 
+static
+VOID
+LwioSrvStatFreeLogger(
+    PSRV_STAT_HANDLER_LOGGER pLogger
+    );
+
 NTSTATUS
 LwioSrvStatLoggingInit(
     VOID
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_HANDLER_LOGGER pLogger = NULL;
 
-    switch (gSrvStatHandlerGlobals.config.logTargetType)
+    ntStatus = RTL_ALLOCATE(
+                    &pLogger,
+                    SRV_STAT_HANDLER_LOGGER,
+                    sizeof(SRV_STAT_HANDLER_LOGGER));
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pLogger->logTargetType = gSrvStatHandlerGlobals.config.logTargetType;
+
+    switch (pLogger->logTargetType)
     {
         case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
 
-            ntStatus = LwioSrvStatSyslogInit(&gSrvStatHandlerGlobals.pSysLog);
+            ntStatus = LwioSrvStatSyslogInit(&pLogger->pSysLog);
 
             break;
 
@@ -68,7 +83,7 @@ LwioSrvStatLoggingInit(
 
             ntStatus = LwioSrvStatFilelogInit(
                             gSrvStatHandlerGlobals.config.pszPath,
-                            &gSrvStatHandlerGlobals.pFileLog);
+                            &pLogger->pFileLog);
 
             break;
 
@@ -79,7 +94,47 @@ LwioSrvStatLoggingInit(
             break;
     }
 
+    gSrvStatHandlerGlobals.pLogger = pLogger;
+
+cleanup:
+
     return ntStatus;
+
+error:
+
+    if (pLogger)
+    {
+        LwioSrvStatFreeLogger(pLogger);
+    }
+
+    goto cleanup;
+}
+
+VOID
+LwioSrvStatLogMessage(
+    PSRV_STAT_HANDLER_LOGGER pLogger,
+    PCSTR                    pszFormat,
+    va_list                  msgList
+    )
+{
+    switch (pLogger->logTargetType)
+    {
+        case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
+
+            LwioSrvStatSyslogMessage(pLogger->pSysLog, pszFormat, msgList);
+
+            break;
+
+        case SRV_STAT_LOG_TARGET_TYPE_FILE:
+
+            LwioSrvStatFilelogMessage(pLogger->pFileLog, pszFormat, msgList);
+
+            break;
+
+        default:
+
+            break;
+    }
 }
 
 VOID
@@ -87,26 +142,41 @@ LwioSrvStatLoggingShutdown(
     VOID
     )
 {
-    switch (gSrvStatHandlerGlobals.config.logTargetType)
+    BOOLEAN bInLock = FALSE;
+
+    SRV_STAT_HANDLER_LOCK_MUTEX(bInLock, &gSrvStatHandlerGlobals.mutex);
+
+    if (gSrvStatHandlerGlobals.pLogger)
+    {
+        LwioSrvStatFreeLogger(gSrvStatHandlerGlobals.pLogger);
+        gSrvStatHandlerGlobals.pLogger = NULL;
+    }
+
+    SRV_STAT_HANDLER_UNLOCK_MUTEX(bInLock, &gSrvStatHandlerGlobals.mutex);
+}
+
+static
+VOID
+LwioSrvStatFreeLogger(
+    PSRV_STAT_HANDLER_LOGGER pLogger
+    )
+{
+    switch (pLogger->logTargetType)
     {
         case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
 
-            if (gSrvStatHandlerGlobals.pSysLog)
+            if (pLogger->pSysLog)
             {
-                LwioSrvStatSyslogShutdown(gSrvStatHandlerGlobals.pSysLog);
-
-                gSrvStatHandlerGlobals.pSysLog = NULL;
+                LwioSrvStatSyslogShutdown(pLogger->pSysLog);
             }
 
             break;
 
         case SRV_STAT_LOG_TARGET_TYPE_FILE:
 
-            if (gSrvStatHandlerGlobals.pFileLog)
+            if (pLogger->pFileLog)
             {
-                LwioSrvStatFilelogShutdown(gSrvStatHandlerGlobals.pFileLog);
-
-                gSrvStatHandlerGlobals.pFileLog = NULL;
+                LwioSrvStatFilelogShutdown(pLogger->pFileLog);
             }
 
             break;
@@ -115,4 +185,6 @@ LwioSrvStatLoggingShutdown(
 
             break;
     }
+
+    RTL_FREE(&pLogger);
 }

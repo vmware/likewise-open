@@ -98,6 +98,28 @@ error:
 }
 
 VOID
+LwioSrvStatFilelogMessage(
+    PSRV_STAT_HANDLER_FILE_LOG pFileLog,
+    PCSTR                      pszFormat,
+    va_list                    msgList
+    )
+{
+    time_t currentTime;
+    struct tm tmp = {0};
+    char timeBuf[128];
+
+    currentTime = time(NULL);
+    localtime_r(&currentTime, &tmp);
+
+    strftime(timeBuf, sizeof(timeBuf), LWIO_SRV_STAT_LOG_TIME_FORMAT, &tmp);
+
+    fprintf(pFileLog->fp, "%s:info:", timeBuf);
+    vfprintf(pFileLog->fp, pszFormat, msgList);
+    fprintf(pFileLog->fp, "\n");
+    fflush(pFileLog->fp);
+}
+
+VOID
 LwioSrvStatFilelogShutdown(
     PSRV_STAT_HANDLER_FILE_LOG pFileLog
     )

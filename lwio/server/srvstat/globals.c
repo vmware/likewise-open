@@ -51,6 +51,7 @@
 
 SRV_STAT_HANDLER_GLOBALS gSrvStatHandlerGlobals =
 {
+    .mutex  = PTHREAD_MUTEX_INITIALIZER,
     .config =
         {
             .logTargetType = SRV_STAT_LOG_TARGET_TYPE_SYSLOG,
@@ -66,7 +67,8 @@ SRV_STAT_HANDLER_GLOBALS gSrvStatHandlerGlobals =
             .pfnPopMessage           = &LwioSrvStatPopMessage,
             .pfnSetResponseInfo      = &LwioSrvStatSetResponseInfo,
             .pfnCloseRequestContext  = &LwioSrvStatCloseRequestContext
-        }
+        },
+    .pLogger = NULL
 };
 
 
