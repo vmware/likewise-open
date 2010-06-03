@@ -47,6 +47,8 @@
  *
  */
 
+#define LWIO_SRV_STAT_ENABLE_LOG_ENTRY_TIMESTAMP 1
+
 #define LWIO_SRV_STAT_LOG_TIME_FORMAT "%Y%m%d%H%M%S"
 
 #define LWIO_SRV_STAT_NTTIME_EPOCH_DIFFERENCE_SECS  (11644473600LL)
@@ -97,6 +99,8 @@
        } \
        bInLock = FALSE; \
     }
+
+#define SRV_STAT_SAFE_LOG_STR(x) ((x) ? (x) : "")
 
 typedef ULONG SRV_STAT_FLAG;
 

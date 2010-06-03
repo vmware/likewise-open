@@ -599,12 +599,39 @@ LwioSrvStatLogContextHeader(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     SRV_STAT_HANDLER_VALUE v;
     LONG64 llInterval = 0;
+#ifdef LWIO_SRV_STAT_ENABLE_LOG_ENTRY_TIMESTAMP
+    time_t currentTime;
+    struct tm tmp = {0};
+    char timeBuf[128];
+
+    currentTime = time(NULL);
+    localtime_r(&currentTime, &tmp);
+
+    strftime(timeBuf, sizeof(timeBuf), LWIO_SRV_STAT_LOG_TIME_FORMAT, &tmp);
+
+    v.valueType = SRV_STAT_HANDLER_VALUE_TYPE_PSTR;
+    v.val.pszValue = &timeBuf[0];
+
+    ntStatus = LwioSrvStatLogToString(
+                    "<r ",
+                    "ts",
+                    &v,
+                    NULL,
+                    ppszBuffer,
+                    pulTotalLength,
+                    pulBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+#endif /* LWIO_SRV_STAT_ENABLE_LOG_ENTRY_TIMESTAMP */
 
     v.valueType = SRV_STAT_HANDLER_VALUE_TYPE_PULONG;
     v.val.pulValue = &pStatContext->connInfo.ulResourceId;
 
     ntStatus = LwioSrvStatLogToString(
-                    "(",
+#ifdef LWIO_SRV_STAT_ENABLE_LOG_ENTRY_TIMESTAMP
+                    " ",
+#else
+                    "<r ",
+#endif
                     "connection-id",
                     &v,
                     NULL,
@@ -617,7 +644,7 @@ LwioSrvStatLogContextHeader(
     v.val.pSockAddr = &pStatContext->connInfo.clientAddress;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
+                    " ",
                     "client-address",
                     &v,
                     NULL,
@@ -629,7 +656,7 @@ LwioSrvStatLogContextHeader(
     v.val.pSockAddr = &pStatContext->connInfo.serverAddress;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
+                    " ",
                     "server-address",
                     &v,
                     NULL,
@@ -642,8 +669,8 @@ LwioSrvStatLogContextHeader(
     v.val.pulValue = &pStatContext->ulRequestLength;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "request-length",
+                    " ",
+                    "req-len",
                     &v,
                     NULL,
                     ppszBuffer,
@@ -654,8 +681,8 @@ LwioSrvStatLogContextHeader(
     v.val.pulValue = &pStatContext->ulResponseLength;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "response-length",
+                    " ",
+                    "resp-len",
                     &v,
                     NULL,
                     ppszBuffer,
@@ -666,8 +693,8 @@ LwioSrvStatLogContextHeader(
     v.val.pulValue = &pStatContext->protocolVersion;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "protocol-version",
+                    " ",
+                    "ver",
                     &v,
                     NULL,
                     ppszBuffer,
@@ -678,8 +705,8 @@ LwioSrvStatLogContextHeader(
     v.val.pulValue = &pStatContext->sessionInfo.ulUid;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "user-id",
+                    " ",
+                    "uid",
                     &v,
                     NULL,
                     ppszBuffer,
@@ -694,10 +721,10 @@ LwioSrvStatLogContextHeader(
     v.val.pllValue = &llInterval;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "process-time-ns",
+                    " ",
+                    "time-ns",
                     &v,
-                    NULL,
+                    " > ",
                     ppszBuffer,
                     pulTotalLength,
                     pulBytesUsed);
@@ -725,8 +752,8 @@ LwioSrvStatLogMessageContext(
     v.val.pulValue = &pMessageContext->ulOpcode;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",(",
-                    "opcode",
+                    "<m ",
+                    "op",
                     &v,
                     NULL,
                     ppszBuffer,
@@ -739,8 +766,8 @@ LwioSrvStatLogMessageContext(
         v.val.pulValue = &pMessageContext->ulSubOpcode;
 
         ntStatus = LwioSrvStatLogToString(
-                        ",",
-                        "sub-opcode",
+                        " ",
+                        "sub-op",
                         &v,
                         NULL,
                         ppszBuffer,
@@ -754,8 +781,8 @@ LwioSrvStatLogMessageContext(
         v.val.pulValue = &pMessageContext->ulIOCTLcode;
 
         ntStatus = LwioSrvStatLogToString(
-                        ",",
-                        "ioctl-code",
+                        " ",
+                        "ioctl",
                         &v,
                         NULL,
                         ppszBuffer,
@@ -767,8 +794,8 @@ LwioSrvStatLogMessageContext(
     v.val.pulValue = &pMessageContext->ulMessageRequestLength;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "request-length",
+                    " ",
+                    "req-len",
                     &v,
                     NULL,
                     ppszBuffer,
@@ -779,8 +806,8 @@ LwioSrvStatLogMessageContext(
     v.val.pulValue = &pMessageContext->ulMessageResponseLength;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "response-length",
+                    " ",
+                    "resp-len",
                     &v,
                     NULL,
                     ppszBuffer,
@@ -792,8 +819,8 @@ LwioSrvStatLogMessageContext(
     v.val.plValue = &pMessageContext->responseStatus;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "status-code",
+                    " ",
+                    "status",
                     &v,
                     NULL,
                     ppszBuffer,
@@ -808,10 +835,10 @@ LwioSrvStatLogMessageContext(
     v.val.pllValue = &llInterval;
 
     ntStatus = LwioSrvStatLogToString(
-                    ",",
-                    "process-time-ns",
+                    " ",
+                    "time-ns",
                     &v,
-                    ")",
+                    " />",
                     ppszBuffer,
                     pulTotalLength,
                     pulBytesUsed);
@@ -834,14 +861,14 @@ LwioSrvStatLogContextTrailer(
     SRV_STAT_HANDLER_VALUE v =
     {
         .valueType    = SRV_STAT_HANDLER_VALUE_TYPE_PSTR,
-        .val.pszValue = ""
+        .val.pszValue = NULL
     };
 
     return LwioSrvStatLogToString(
                     NULL,
-                    ")",
-                    &v,
                     NULL,
+                    &v,
+                    " </r>",
                     ppszBuffer,
                     pulTotalLength,
                     pulBytesUsed);
@@ -874,11 +901,12 @@ LwioSrvStatLogToString(
                 nWritten = snprintf(
                                 pszCursor,
                                 nBytesAvbl,
-                                "%s%s=%d%s",
-                                (pszPrefix ? pszPrefix : ""),
-                                pszName,
+                                "%s%s%s'%d'%s",
+                                SRV_STAT_SAFE_LOG_STR(pszPrefix),
+                                SRV_STAT_SAFE_LOG_STR(pszName),
+                                pszName ? "=" : "",
                                 *pValue->val.plValue,
-                                (pszSuffix ? pszSuffix : ""));
+                                SRV_STAT_SAFE_LOG_STR(pszSuffix));
 
                 break;
 
@@ -887,11 +915,12 @@ LwioSrvStatLogToString(
                 nWritten = snprintf(
                                 pszCursor,
                                 nBytesAvbl,
-                                "%s%s=%u%s",
-                                (pszPrefix ? pszPrefix : ""),
-                                pszName,
+                                "%s%s%s'%u'%s",
+                                SRV_STAT_SAFE_LOG_STR(pszPrefix),
+                                SRV_STAT_SAFE_LOG_STR(pszName),
+                                pszName ? "=" : "",
                                 *pValue->val.pulValue,
-                                (pszSuffix ? pszSuffix : ""));
+                                SRV_STAT_SAFE_LOG_STR(pszSuffix));
 
                 break;
 
@@ -900,24 +929,38 @@ LwioSrvStatLogToString(
                 nWritten = snprintf(
                                 pszCursor,
                                 nBytesAvbl,
-                                "%s%s=%lld%s",
-                                (pszPrefix ? pszPrefix : ""),
-                                pszName,
+                                "%s%s%s'%lld'%s",
+                                SRV_STAT_SAFE_LOG_STR(pszPrefix),
+                                SRV_STAT_SAFE_LOG_STR(pszName),
+                                pszName ? "=" : "",
                                 *((long long *)pValue->val.pllValue),
-                                (pszSuffix ? pszSuffix : ""));
+                                SRV_STAT_SAFE_LOG_STR(pszSuffix));
 
                 break;
 
             case SRV_STAT_HANDLER_VALUE_TYPE_PSTR:
 
-                nWritten = snprintf(
-                                pszCursor,
-                                nBytesAvbl,
-                                "%s%s=%s%s",
-                                (pszPrefix ? pszPrefix : ""),
-                                pszName,
-                                pValue->val.pszValue,
-                                (pszSuffix ? pszSuffix : ""));
+                if (!pszName && !pValue->val.pszValue)
+                {
+                    nWritten = snprintf(
+                                    pszCursor,
+                                    nBytesAvbl,
+                                    "%s%s",
+                                    SRV_STAT_SAFE_LOG_STR(pszPrefix),
+                                    SRV_STAT_SAFE_LOG_STR(pszSuffix));
+                }
+                else
+                {
+                    nWritten = snprintf(
+                                    pszCursor,
+                                    nBytesAvbl,
+                                    "%s%s%s'%s'%s",
+                                    SRV_STAT_SAFE_LOG_STR(pszPrefix),
+                                    SRV_STAT_SAFE_LOG_STR(pszName),
+                                    pszName ? "=" : "",
+                                    SRV_STAT_SAFE_LOG_STR(pValue->val.pszValue),
+                                    SRV_STAT_SAFE_LOG_STR(pszSuffix));
+                }
 
                 break;
 
@@ -934,11 +977,12 @@ LwioSrvStatLogToString(
                     nWritten = snprintf(
                                     pszCursor,
                                     nBytesAvbl,
-                                    "%s%s=%s%s",
-                                    (pszPrefix ? pszPrefix : ""),
-                                    pszName,
+                                    "%s%s%s'%s'%s",
+                                    SRV_STAT_SAFE_LOG_STR(pszPrefix),
+                                    SRV_STAT_SAFE_LOG_STR(pszName),
+                                    pszName ? "=" : "",
                                     &szAddr[0],
-                                    (pszSuffix ? pszSuffix : ""));
+                                    SRV_STAT_SAFE_LOG_STR(pszSuffix));
                 }
 
                 break;
