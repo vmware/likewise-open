@@ -59,6 +59,16 @@
 #define LWIO_SRV_STAT_FACTOR_SECS_TO_HUNDREDS_OF_NANOSECS \
             (1000LL * LWIO_SRV_STAT_FACTOR_MILLISECS_TO_HUNDREDS_OF_NANOSECS)
 
+#define LWIO_SRV_STAT_MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+#ifdef AF_INET6
+#define LWIO_SRV_STAT_SOCKET_ADDRESS_STRING_MAX_SIZE \
+    (LWIO_SRV_STAT_MAX(INET_ADDRSTRLEN, INET6_ADDRSTRLEN) + 1)
+#else
+#define LWIO_SRV_STAT_SOCKET_ADDRESS_STRING_MAX_SIZE \
+    (INET_ADDRSTRLEN + 1)
+#endif
+
 #define BAIL_ON_NT_STATUS(ntStatus)                \
     if ((ntStatus)) {                              \
        goto error;                                 \
@@ -88,22 +98,10 @@
        bInLock = FALSE; \
     }
 
-#define _SRV_STAT_HANDLER_LOG_IF(pszFormat, ...)                         \
-    do {                                                                 \
-        BOOLEAN bInLock;                                                 \
-        SRV_STAT_HANDLER_LOCK_MUTEX(bInLock, &gSrvStatGlobals.mutex);    \
-        if (gSrvStatGlobals.pLogger)                                     \
-        {                                                                \
-            LwioSrvStatLogMessage(                                       \
-                    gSrvStatGlobals.pLogger,                             \
-                    "0x%lx:" pszFormat,                                  \
-                    ((unsigned long)pthread_self()), ## __VA_ARGS__);    \
-        }                                                                \
-        SRV_STAT_HANDLER_UNLOCK_MUTEX(bInLock, &gSrvStatGlobals.mutex);  \
-    } while (0)
+typedef ULONG SRV_STAT_FLAG;
 
-#define SRV_STAT_HANDLER_LOG_MESSAGE(pszFmt, ...) \
-    _SRV_STAT_HANDLER_LOG_IF(pszFmt, ## __VA_ARGS__)
+#define SRV_STAT_FLAG_SUB_OPCODE_SET 0x00000001
+#define SRV_STAT_FLAG_IOCTL_SET      0x00000002
 
 typedef enum
 {
@@ -112,3 +110,14 @@ typedef enum
     SRV_STAT_LOG_TARGET_TYPE_FILE,
     SRV_STAT_LOG_TARGET_TYPE_CONSOLE
 } SRV_STAT_LOG_TARGET_TYPE;
+
+typedef enum
+{
+    SRV_STAT_HANDLER_VALUE_TYPE_UNKNOWN = 0,
+    SRV_STAT_HANDLER_VALUE_TYPE_PLONG,
+    SRV_STAT_HANDLER_VALUE_TYPE_PULONG,
+    SRV_STAT_HANDLER_VALUE_TYPE_PLONG64,
+    SRV_STAT_HANDLER_VALUE_TYPE_PSTR,
+    SRV_STAT_HANDLER_VALUE_TYPE_PSOCKADDR
+} SRV_STAT_HANDLER_VALUE_TYPE;
+

@@ -47,7 +47,7 @@
  *
  */
 
-typedef struct
+typedef struct _SRV_STAT_HANDLER_SYS_LOG
 {
     PSTR    pszIdentifier;
     BOOLEAN bOpened;
@@ -55,7 +55,7 @@ typedef struct
     ULONG   ulOptions;
 } SRV_STAT_HANDLER_SYS_LOG, *PSRV_STAT_HANDLER_SYS_LOG;
 
-typedef struct
+typedef struct _SRV_STAT_HANDLER_FILE_LOG
 {
     PSTR  pszFilePath;
     FILE* fp;
@@ -72,14 +72,59 @@ typedef struct _SRV_STAT_HANDLER_LOGGER
 
 } SRV_STAT_HANDLER_LOGGER, *PSRV_STAT_HANDLER_LOGGER;
 
+typedef struct _SRV_STAT_HANDLER_VALUE
+{
+    SRV_STAT_HANDLER_VALUE_TYPE valueType;
+
+    union
+    {
+        PULONG           pulValue;
+        PLONG            plValue;
+        PLONG64          pllValue;
+        PSTR             pszValue;
+        struct sockaddr* pSockAddr;
+    } val;
+
+} SRV_STAT_HANDLER_VALUE, *PSRV_STAT_HANDLER_VALUE;
+
+typedef struct _SRV_STAT_MESSAGE_CONTEXT
+{
+    ULONG  ulOpcode;
+    ULONG  ulSubOpcode;
+    ULONG  ulIOCTLcode;
+
+    LONG64 llMsgStartTime;
+    LONG64 llMsgEndTime;
+
+    ULONG  ulMessageRequestLength;
+    ULONG  ulMessageResponseLength;
+
+    NTSTATUS responseStatus;
+
+    ULONG    ulFlags;
+
+    struct _SRV_STAT_MESSAGE_CONTEXT* pNext;
+
+} SRV_STAT_MESSAGE_CONTEXT, *PSRV_STAT_MESSAGE_CONTEXT;
+
 typedef struct _SRV_STAT_REQUEST_CONTEXT
 {
-    SRV_STAT_SMB_VERSION     protocolVersion;
+    pthread_mutex_t           mutex;
+    pthread_mutex_t*          pMutex;
 
-    SRV_STAT_CONNECTION_INFO connInfo;
+    SRV_STAT_SMB_VERSION      protocolVersion;
 
-    LONG64                   requestStartTime;
-    LONG64                   requestEndTime;
+    SRV_STAT_CONNECTION_INFO  connInfo;
+    SRV_STAT_SESSION_INFO     sessionInfo;
+
+    LONG64                    llRequestStartTime;
+    LONG64                    llRequestEndTime;
+
+    ULONG                     ulRequestLength;
+    ULONG                     ulResponseLength;
+
+    PSRV_STAT_MESSAGE_CONTEXT pMessageStack;
+    PSRV_STAT_MESSAGE_CONTEXT pCurrentMessage;
 
 } SRV_STAT_REQUEST_CONTEXT, *PSRV_STAT_REQUEST_CONTEXT;
 

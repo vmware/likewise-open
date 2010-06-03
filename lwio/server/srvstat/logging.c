@@ -114,9 +114,13 @@ VOID
 LwioSrvStatLogMessage(
     PSRV_STAT_HANDLER_LOGGER pLogger,
     PCSTR                    pszFormat,
-    va_list                  msgList
+    ...
     )
 {
+    va_list msgList;
+
+    va_start(msgList, pszFormat);
+
     switch (pLogger->logTargetType)
     {
         case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
@@ -135,6 +139,8 @@ LwioSrvStatLogMessage(
 
             break;
     }
+
+    va_end(msgList);
 }
 
 VOID

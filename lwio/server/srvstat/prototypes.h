@@ -95,7 +95,7 @@ VOID
 LwioSrvStatLogMessage(
     PSRV_STAT_HANDLER_LOGGER pLogger,
     PCSTR                    pszFormat,
-    va_list                  msgList
+    ...
     );
 
 VOID
