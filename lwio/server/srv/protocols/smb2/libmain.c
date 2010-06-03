@@ -161,8 +161,7 @@ SrvProtocolExecute_SMB_V2(
 
         pResponse->ulMessageSize = 0;
         pResponse->ulBytesAvailable =   pExecContext->pSmbResponse->bufferLen -
-                                        pExecContext->pSmbResponse->bufferUsed -
-                                        sizeof(NETBIOS_HEADER);
+                                        pExecContext->pSmbResponse->bufferUsed;
 
         ntStatus = SrvProcessRequestSpecific_SMB_V2(pExecContext);
 
