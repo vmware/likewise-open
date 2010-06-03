@@ -651,7 +651,7 @@ LwioSrvStatLogContextHeader(
                     pulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    v.val.pulValue = &pStatContext->ulRequestLength;
+    v.val.pulValue = &pStatContext->ulResponseLength;
 
     ntStatus = LwioSrvStatLogToString(
                     ",",

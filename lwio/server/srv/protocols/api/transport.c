@@ -1445,9 +1445,8 @@ SrvProtocolTransportDriverFreeResources(
     {
         SrvStatisticsSetResponseInfo(
             pSendContext->pStatInfo,
-            !pSendContext->bIsZct ?
-                    pSendContext->pPacket->bufferUsed :
-                    LwZctGetLength(pSendContext->pZct));
+            pSendContext->bIsZct ? LwZctGetLength(pSendContext->pZct) :
+                    pSendContext->pPacket->bufferUsed);
 
         SrvStatisticsRelease(pSendContext->pStatInfo);
     }
