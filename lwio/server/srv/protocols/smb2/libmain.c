@@ -742,7 +742,7 @@ SrvBuildExecContext_SMB_V2(
     NTSTATUS ntStatus = STATUS_SUCCESS;
     ULONG    ulNumRequests    = 0;
     ULONG    iRequest         = 0;
-    ULONG    ulBytesAvailable = pSmbRequest->bufferLen;
+    ULONG    ulBytesAvailable = pSmbRequest->bufferUsed;
     PBYTE    pBuffer          = pSmbRequest->pRawBuffer;
     PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context = NULL;
 
@@ -808,7 +808,7 @@ SrvBuildExecContext_SMB_V2(
     pSmb2Context->ulNumResponses = ulNumRequests;
 
     pBuffer = pSmbRequest->pRawBuffer + sizeof(NETBIOS_HEADER);
-    ulBytesAvailable = pSmbRequest->bufferLen - sizeof(NETBIOS_HEADER);
+    ulBytesAvailable = pSmbRequest->bufferUsed - sizeof(NETBIOS_HEADER);
 
     for (; iRequest < ulNumRequests; iRequest++)
     {
