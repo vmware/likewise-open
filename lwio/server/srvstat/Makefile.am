@@ -13,6 +13,7 @@ libsrv_stat_la_SOURCES = \
 libsrv_stat_la_CFLAGS  = $(AM_CFLAGS) -shared
 
 libsrv_stat_la_CPPFLAGS = \
+    $(AM_CPPFLAGS)         \
     -DLW_ENABLE_THREADS=1  \
     -I@top_srcdir@         \
     -I@top_srcdir@/include
