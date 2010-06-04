@@ -1567,6 +1567,7 @@ NTSTATUS
 SrvProtocolTransportSendZctResponse(
     IN PLWIO_SRV_CONNECTION pConnection,
     IN PLW_ZCT_VECTOR pZct,
+    IN PSRV_STAT_INFO pStatInfo,
     IN OPTIONAL PFN_SRV_PROTOCOL_SEND_COMPLETE pfnCallback,
     IN OPTIONAL PVOID pCallbackContext
     )

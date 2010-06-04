@@ -839,6 +839,7 @@ SrvSendZctReadResponse(
     ntStatus = SrvProtocolTransportSendZctResponse(
                     pConnection,
                     pReadState->pZct,
+                    pExecContext->pStatInfo,
                     SrvExecuteReadSendZctCB,
                     pZctContext);
     BAIL_ON_NT_STATUS(ntStatus);

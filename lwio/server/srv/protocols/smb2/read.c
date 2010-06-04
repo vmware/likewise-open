@@ -598,6 +598,7 @@ SrvSendZctReadResponse_SMB_V2(
     ntStatus = SrvProtocolTransportSendZctResponse(
                     pConnection,
                     pReadState->pZct,
+                    pExecContext->pStatInfo,
                     SrvExecuteReadSendZctCB_SMB_V2,
                     pZctContext);
     BAIL_ON_NT_STATUS(ntStatus);
