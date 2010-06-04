@@ -1079,8 +1079,8 @@ SrvDetectZctWrite_SMB_V2(
                     &pExecContext->pProtocolContext->pSmb2Context);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    pExecContext->pProtocolContext->pSmb2Context->pRequests[0].ulMessageSize +=
-            zctState.ulDataBytesMissing + zctState.ulSkipBytes;
+    pExecContext->pProtocolContext->pSmb2Context->pRequests[0].ulMessageSize =
+            pNetBiosHeader->len;
 
     pExecContext->pProtocolContext->pSmb2Context->pSession = pSession;
     pSession = NULL;
