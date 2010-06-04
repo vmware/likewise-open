@@ -75,6 +75,7 @@ typedef struct _SRV_STAT_HANDLER_LOGGER
 typedef struct _SRV_STAT_HANDLER_VALUE
 {
     SRV_STAT_HANDLER_VALUE_TYPE valueType;
+    SRV_STAT_PRINT_FLAG         ulPrintFlags;
 
     union
     {

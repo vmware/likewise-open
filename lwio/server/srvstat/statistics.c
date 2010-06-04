@@ -597,7 +597,11 @@ LwioSrvStatLogContextHeader(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    SRV_STAT_HANDLER_VALUE v;
+    SRV_STAT_HANDLER_VALUE v =
+            {
+                    .valueType    = SRV_STAT_HANDLER_VALUE_TYPE_UNKNOWN,
+                    .ulPrintFlags = 0
+            };
     LONG64 llInterval = 0;
 #ifdef LWIO_SRV_STAT_ENABLE_LOG_ENTRY_TIMESTAMP
     time_t currentTime;
@@ -745,7 +749,11 @@ LwioSrvStatLogMessageContext(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    SRV_STAT_HANDLER_VALUE v;
+    SRV_STAT_HANDLER_VALUE v =
+            {
+               .valueType    = SRV_STAT_HANDLER_VALUE_TYPE_UNKNOWN,
+               .ulPrintFlags = 0
+            };
     LONG64 llInterval = 0;
 
     v.valueType = SRV_STAT_HANDLER_VALUE_TYPE_PULONG;
@@ -817,6 +825,7 @@ LwioSrvStatLogMessageContext(
 
     v.valueType = SRV_STAT_HANDLER_VALUE_TYPE_PLONG;
     v.val.plValue = &pMessageContext->responseStatus;
+    LwSetFlag(v.ulPrintFlags, SRV_STAT_PRINT_FLAG_HEX);
 
     ntStatus = LwioSrvStatLogToString(
                     " ",
@@ -827,6 +836,8 @@ LwioSrvStatLogMessageContext(
                     pulTotalLength,
                     pulBytesUsed);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    LwClearFlag(v.ulPrintFlags, SRV_STAT_PRINT_FLAG_HEX);
 
     llInterval = (pMessageContext->llMsgEndTime -
                     pMessageContext->llMsgStartTime) * 100;
@@ -861,6 +872,7 @@ LwioSrvStatLogContextTrailer(
     SRV_STAT_HANDLER_VALUE v =
     {
         .valueType    = SRV_STAT_HANDLER_VALUE_TYPE_PSTR,
+        .ulPrintFlags = 0,
         .val.pszValue = NULL
     };
 
@@ -901,7 +913,10 @@ LwioSrvStatLogToString(
                 nWritten = snprintf(
                                 pszCursor,
                                 nBytesAvbl,
-                                "%s%s%s'%d'%s",
+                                (LwIsSetFlag(pValue->ulPrintFlags,
+                                            SRV_STAT_PRINT_FLAG_HEX) ?
+                                 "%s%s%s'0X%08X'%s" :
+                                 "%s%s%s'%d'%s"),
                                 SRV_STAT_SAFE_LOG_STR(pszPrefix),
                                 SRV_STAT_SAFE_LOG_STR(pszName),
                                 pszName ? "=" : "",
@@ -915,7 +930,10 @@ LwioSrvStatLogToString(
                 nWritten = snprintf(
                                 pszCursor,
                                 nBytesAvbl,
-                                "%s%s%s'%u'%s",
+                                (LwIsSetFlag(pValue->ulPrintFlags,
+                                            SRV_STAT_PRINT_FLAG_HEX) ?
+                                 "%s%s%s'0X%08X'%s" :
+                                 "%s%s%s'%u'%s"),
                                 SRV_STAT_SAFE_LOG_STR(pszPrefix),
                                 SRV_STAT_SAFE_LOG_STR(pszName),
                                 pszName ? "=" : "",
