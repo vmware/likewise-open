@@ -1182,6 +1182,16 @@ SrvProtocolTransportDriverDetectPacket(
         }
     }
 
+    if (pZctExecContext)
+    {
+        ntStatus = SrvProtocolTransportDriverSetStatistics(
+                        pConnection,
+                        pPacketFound->protocolVer,
+                        pPacketFound->bufferUsed,
+                        &pZctExecContext->pStatInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
 cleanup:
 
     *pulBytesAvailable = ulBytesAvailable;
