@@ -946,7 +946,8 @@ SrvDetectZctWrite_SMB_V1(
     ULONG ulBytesAvailable = pPacket->bufferUsed - sizeof(NETBIOS_HEADER);
     ULONG ulRequestOffset = 0;
     PWRITE_REQUEST_HEADER pWrite = NULL;
-    PWRITE_ANDX_REQUEST_HEADER pWriteAndX = NULL;
+    PWRITE_ANDX_REQUEST_HEADER_WC_12 pWriteAndX_WC_12 = NULL;
+    PWRITE_ANDX_REQUEST_HEADER_WC_14 pWriteAndX_WC_14 = NULL;
     PBYTE pData = NULL;
     uint16_t fid = 0;
     LONG64 llOffset = 0;
@@ -1030,7 +1031,34 @@ SrvDetectZctWrite_SMB_V1(
         }
         case COM_WRITE_ANDX:
         {
-            ULONG ulRequired = LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER, offsetHigh) + LW_FIELD_SIZE(WRITE_ANDX_REQUEST_HEADER, offsetHigh);
+            ULONG ulRequired = 0;
+
+            switch(pPacket->pSMBHeader->wordCount)
+            {
+                case 12:
+                    ulRequired = LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER_WC_14, dataLength) +
+                        LW_FIELD_SIZE(WRITE_ANDX_REQUEST_HEADER_WC_14, dataLength);
+                    pWriteAndX_WC_12 = (PWRITE_ANDX_REQUEST_HEADER_WC_12) pBuffer;
+                    llOffset = (LONG64)pWriteAndX_WC_12->offset;
+                    fid = pWriteAndX_WC_12->fid;
+                    ulLength = (((ULONG)pWriteAndX_WC_12->dataLengthHigh) << 16) | ((ULONG)pWriteAndX_WC_12->dataLength);
+                    ulDataOffset = pWriteAndX_WC_12->dataOffset;
+                    break;
+
+                case 14:
+                    ulRequired = LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER_WC_14, offsetHigh) +
+                        LW_FIELD_SIZE(WRITE_ANDX_REQUEST_HEADER_WC_14, offsetHigh);
+                    pWriteAndX_WC_14 = (PWRITE_ANDX_REQUEST_HEADER_WC_14) pBuffer;
+                    llOffset = (((LONG64)pWriteAndX_WC_14->offsetHigh) << 32) | ((LONG64)pWriteAndX_WC_14->offset);
+                    fid = pWriteAndX_WC_14->fid;
+                    ulLength = (((ULONG)pWriteAndX_WC_14->dataLengthHigh) << 16) | ((ULONG)pWriteAndX_WC_14->dataLength);
+                    ulDataOffset = pWriteAndX_WC_14->dataOffset;
+                    break;
+
+                default:
+                    ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                    BAIL_ON_NT_STATUS(ntStatus);
+            }
 
             if (ulBytesAvailable < ulRequired)
             {
@@ -1038,12 +1066,7 @@ SrvDetectZctWrite_SMB_V1(
                 BAIL_ON_NT_STATUS(ntStatus);
             }
 
-            pWriteAndX = (PWRITE_ANDX_REQUEST_HEADER) pBuffer;
 
-            fid = pWriteAndX->fid;
-            llOffset = (((LONG64)pWriteAndX->offsetHigh) << 32) | ((LONG64)pWriteAndX->offset);
-            ulLength = (((ULONG)pWriteAndX->dataLengthHigh) << 16) | ((ULONG)pWriteAndX->dataLength);
-            ulDataOffset = pWriteAndX->dataOffset;
             if (ulDataOffset < ulRequestOffset)
             {
                 ntStatus = STATUS_INVALID_BUFFER_SIZE;
@@ -1051,11 +1074,23 @@ SrvDetectZctWrite_SMB_V1(
             }
             ulDataOffset -= ulRequestOffset;
 
-            if (ulDataOffset < LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER, pad))
+            switch(pPacket->pSMBHeader->wordCount)
             {
-                ntStatus = STATUS_INVALID_BUFFER_SIZE;
-                BAIL_ON_NT_STATUS(ntStatus);
+                case 12:
+                    if (ulDataOffset < LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER_WC_12, pad))
+                    {
+                        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                    }
+                    break;
+
+                case 14:
+                    if (ulDataOffset < LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER_WC_14, pad))
+                    {
+                        ntStatus = STATUS_INVALID_BUFFER_SIZE;
+                    }
+                    break;
             }
+            BAIL_ON_NT_STATUS(ntStatus);
 
             break;
         }
@@ -1199,7 +1234,9 @@ SrvDetectZctWrite_SMB_V1(
         {
             // gets reference to file.
             ntStatus = SrvBuildWriteXState(
-                            pWriteAndX,
+                            pPacket->pSMBHeader->wordCount,
+                            pWriteAndX_WC_12,
+                            pWriteAndX_WC_14,
                             pData,
                             pFile,
                             &pWriteXState);
@@ -1268,3 +1305,14 @@ error:
 
     goto cleanup;
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

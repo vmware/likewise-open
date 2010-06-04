@@ -485,7 +485,10 @@ typedef struct _SRV_WRITEX_STATE_SMB_V1
 
     PLWIO_SRV_FILE             pFile;
 
-    PWRITE_ANDX_REQUEST_HEADER pRequestHeader; // Do not free
+    UCHAR                      ucWordCount;
+    PWRITE_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12; // Do not free
+    PWRITE_ANDX_REQUEST_HEADER_WC_14 pRequestHeader_WC_14; // Do not free
+
     PBYTE                      pData;          // Do not free
     LONG64                     llOffset;
     ULONG                      ulLength;

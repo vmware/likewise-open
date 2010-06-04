@@ -123,7 +123,8 @@ SrvProcessWriteAndX(
         PBYTE pBuffer          = pSmbRequest->pBuffer + pSmbRequest->usHeaderSize;
         ULONG ulOffset         = pSmbRequest->usHeaderSize;
         ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
-        PWRITE_ANDX_REQUEST_HEADER pRequestHeader = NULL; // Do not free
+        PWRITE_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12 = NULL; // Do not free
+        PWRITE_ANDX_REQUEST_HEADER_WC_14 pRequestHeader_WC_14 = NULL; // Do not free
         PBYTE                      pData          = NULL; // Do not free
 
         ntStatus = SrvConnectionFindSession_SMB_V1(
@@ -143,23 +144,58 @@ SrvProcessWriteAndX(
                         &pTree);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = WireUnmarshallWriteAndXRequest(
-                        pBuffer,
-                        ulBytesAvailable,
-                        ulOffset,
-                        &pRequestHeader,
-                        &pData);
-        BAIL_ON_NT_STATUS(ntStatus);
+        switch (*pSmbRequest->pWordCount)
+        {
+            case 12:
 
-        ntStatus = SrvTreeFindFile_SMB_V1(
-                        pCtxSmb1,
-                        pTree,
-                        pRequestHeader->fid,
-                        &pFile);
-        BAIL_ON_NT_STATUS(ntStatus);
+                ntStatus = WireUnmarshallWriteAndXRequest_WC_12(
+                                pBuffer,
+                                ulBytesAvailable,
+                                ulOffset,
+                                &pRequestHeader_WC_12,
+                                &pData);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                ntStatus = SrvTreeFindFile_SMB_V1(
+                                pCtxSmb1,
+                                pTree,
+                                pRequestHeader_WC_12->fid,
+                                &pFile);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+
+            case 14:
+
+                ntStatus = WireUnmarshallWriteAndXRequest_WC_14(
+                                pBuffer,
+                                ulBytesAvailable,
+                                ulOffset,
+                                &pRequestHeader_WC_14,
+                                &pData);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                ntStatus = SrvTreeFindFile_SMB_V1(
+                                pCtxSmb1,
+                                pTree,
+                                pRequestHeader_WC_14->fid,
+                                &pFile);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+
+            default:
+
+                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                break;
+        }
 
         ntStatus = SrvBuildWriteXState(
-                        pRequestHeader,
+                        *pSmbRequest->pWordCount,
+                        pRequestHeader_WC_12,
+                        pRequestHeader_WC_14,
                         pData,
                         pFile,
                         &pWriteState);
@@ -286,10 +322,12 @@ error:
 
 NTSTATUS
 SrvBuildWriteXState(
-    PWRITE_ANDX_REQUEST_HEADER pRequestHeader,
-    PBYTE                      pData,
-    PLWIO_SRV_FILE             pFile,
-    PSRV_WRITEX_STATE_SMB_V1*  ppWriteState
+    UCHAR                            ucWordCount,
+    PWRITE_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12,
+    PWRITE_ANDX_REQUEST_HEADER_WC_14 pRequestHeader_WC_14,
+    PBYTE                            pData,
+    PLWIO_SRV_FILE                   pFile,
+    PSRV_WRITEX_STATE_SMB_V1*        ppWriteState
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -309,14 +347,40 @@ SrvBuildWriteXState(
 
     pWriteState->pFile          = SrvFileAcquire(pFile);
 
-    pWriteState->pRequestHeader = pRequestHeader;
+    pWriteState->ucWordCount = ucWordCount;
+
+    switch (ucWordCount)
+    {
+        case 12:
+
+            pWriteState->pRequestHeader_WC_12 = pRequestHeader_WC_12;
+            pWriteState->llOffset =
+                ((LONG64)pWriteState->pRequestHeader_WC_12->offset);
+            pWriteState->ulLength =
+                (((LONG64)pWriteState->pRequestHeader_WC_12->dataLengthHigh) << 16) |
+                ((LONG64)pWriteState->pRequestHeader_WC_12->dataLength);
+            break;
+
+        case 14:
+
+            pWriteState->pRequestHeader_WC_14 = pRequestHeader_WC_14;
+            pWriteState->llOffset =
+                (((LONG64)pWriteState->pRequestHeader_WC_14->offsetHigh) << 32) |
+                ((LONG64)pWriteState->pRequestHeader_WC_14->offset);
+            pWriteState->ulLength =
+                (((LONG64)pWriteState->pRequestHeader_WC_14->dataLengthHigh) << 16) |
+                ((LONG64)pWriteState->pRequestHeader_WC_14->dataLength);
+            break;
+
+        default:
+
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            break;
+    }
+
     pWriteState->pData          = pData;
-    pWriteState->llOffset =
-        (((LONG64)pWriteState->pRequestHeader->offsetHigh) << 32) |
-        ((LONG64)pWriteState->pRequestHeader->offset);
-    pWriteState->ulLength =
-        (((ULONG)pWriteState->pRequestHeader->dataLengthHigh) << 16) |
-        ((ULONG)pWriteState->pRequestHeader->dataLength);
 
     *ppWriteState = pWriteState;
 
@@ -851,3 +915,14 @@ SrvFreeWriteXState(
 
     SrvFreeMemory(pWriteState);
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

@@ -851,8 +851,10 @@ SrvProtocolTransportDriverGetMaxZctWriteFileHeader(
     {
     case SMB_PROTOCOL_VERSION_1:
         maximum = (sizeof(SMB_HEADER) +
-                   LW_MAX(LW_FIELD_OFFSET(WRITE_REQUEST_HEADER, dataLength) + LW_FIELD_SIZE(WRITE_REQUEST_HEADER, dataLength),
-                       sizeof(ANDX_HEADER) + LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER, offsetHigh) + LW_FIELD_SIZE(WRITE_ANDX_REQUEST_HEADER, offsetHigh)));
+                   LW_MAX(LW_FIELD_OFFSET(WRITE_REQUEST_HEADER, dataLength) +
+			  LW_FIELD_SIZE(WRITE_REQUEST_HEADER, dataLength),
+			  sizeof(ANDX_HEADER) + LW_FIELD_OFFSET(WRITE_ANDX_REQUEST_HEADER_WC_14, offsetHigh) +
+			  LW_FIELD_SIZE(WRITE_ANDX_REQUEST_HEADER_WC_14, offsetHigh)));
         break;
     case SMB_PROTOCOL_VERSION_2:
         maximum = sizeof(SMB2_HEADER) + sizeof(SMB2_WRITE_REQUEST_HEADER);

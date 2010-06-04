@@ -679,10 +679,12 @@ SrvProcessWriteAndX(
 
 NTSTATUS
 SrvBuildWriteXState(
-    PWRITE_ANDX_REQUEST_HEADER pRequestHeader,
-    PBYTE                      pData,
-    PLWIO_SRV_FILE             pFile,
-    PSRV_WRITEX_STATE_SMB_V1*  ppWriteState
+    UCHAR                            ucWordCount,
+    PWRITE_ANDX_REQUEST_HEADER_WC_12 pRequestHeader_WC_12,
+    PWRITE_ANDX_REQUEST_HEADER_WC_14 pRequestHeader_WC_14,
+    PBYTE                            pData,
+    PLWIO_SRV_FILE                   pFile,
+    PSRV_WRITEX_STATE_SMB_V1*        ppWriteState
     );
 
 VOID
