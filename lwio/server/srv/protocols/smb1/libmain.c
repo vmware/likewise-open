@@ -505,7 +505,7 @@ SrvProtocolExecute_SMB_V1(
                     SrvStatisticsPopMessage(
                             pExecContext->pStatInfo,
                             ucCurrentCommand,
-                            pExecContext->pSmbResponse->bufferUsed,
+                            pResponse->ulMessageSize,
                             ntStatus);
             if (ntStatus2)
             {
