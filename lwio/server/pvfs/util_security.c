@@ -293,6 +293,10 @@ PvfsAccessCheckFileEnumerate(
     SECURITY_INFORMATION SecInfo = (OWNER_SECURITY_INFORMATION |
                                     GROUP_SECURITY_INFORMATION |
                                     DACL_SECURITY_INFORMATION);
+    ACCESS_MASK AccessRequired = (FILE_READ_ATTRIBUTES|
+                                  FILE_READ_EA|
+                                  FILE_READ_DATA|
+                                  READ_CONTROL);
 
     /* Create the absolute path */
 
@@ -333,7 +337,7 @@ PvfsAccessCheckFileEnumerate(
     }
 
     ntError = STATUS_ACCESS_DENIED;
-    if ((AccessMask & FILE_GENERIC_READ) == FILE_GENERIC_READ)
+    if ((AccessMask & AccessRequired) == AccessRequired)
     {
         ntError = STATUS_SUCCESS;
     }
