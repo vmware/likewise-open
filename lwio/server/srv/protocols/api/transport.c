@@ -1583,6 +1583,11 @@ SrvProtocolTransportSendZctResponse(
     pSendContext->pConnection = pConnection;
     SrvConnectionAcquire(pConnection);
 
+    if (pStatInfo)
+    {
+        pSendContext->pStatInfo = SrvStatisticsAcquire(pStatInfo);
+    }
+
     pSendContext->bIsZct = TRUE;
 
     pSendContext->pZct = pZct;
