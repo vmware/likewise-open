@@ -472,7 +472,8 @@ SrvProtocolExecute_SMB_V1(
                     /* Terminate the chain */
                     if (pPrevResponse->pAndXHeader)
                     {
-                        pPrevResponse->pAndXHeader->andXCommand = 0xFF;
+                        pPrevResponse->pAndXHeader->andXCommand =
+                            COM_NO_ANDX_COMMAND;
                         pPrevResponse->pAndXHeader->andXOffset = 0;
                     }
 
@@ -528,20 +529,31 @@ cleanup:
 
 error:
 
-    if (bPopStatMessage)
+    switch (ntStatus)
     {
-        NTSTATUS ntStatus2 =
-                SrvStatisticsPopMessage(
-                        pExecContext->pStatInfo,
-                        ucCurrentCommand,
-                        pExecContext->pSmbResponse->bufferUsed,
-                        ntStatus);
-        if (ntStatus2)
-        {
-            LWIO_LOG_ERROR( "Error: Failed to notify statistics "
-                            "module on end of message processing "
-                            "[error: %u]", ntStatus2);
-        }
+        case STATUS_PENDING:
+
+            break;
+
+        default:
+
+            if (bPopStatMessage)
+            {
+                NTSTATUS ntStatus2 =
+                        SrvStatisticsPopMessage(
+                                pExecContext->pStatInfo,
+                                ucCurrentCommand,
+                                pExecContext->pSmbResponse->bufferUsed,
+                                ntStatus);
+                if (ntStatus2)
+                {
+                    LWIO_LOG_ERROR( "Error: Failed to notify statistics "
+                                    "module on end of message processing "
+                                    "[error: %u]", ntStatus2);
+                }
+            }
+
+            break;
     }
 
     goto cleanup;
@@ -649,7 +661,7 @@ SrvBuildExecContext_SMB_V1(
         {
             switch (pAndXHeader->andXCommand)
             {
-                case 0xFF:
+                case COM_NO_ANDX_COMMAND:
 
                     pBuffer = NULL;
 
@@ -743,7 +755,9 @@ SrvBuildExecContext_SMB_V1(
                 break;
         }
 
-        if (pMessage->pAndXHeader && pMessage->pAndXHeader->andXOffset)
+        if (pMessage->pAndXHeader &&
+            pMessage->pAndXHeader->andXOffset &&
+            pMessage->pAndXHeader->andXCommand != COM_NO_ANDX_COMMAND)
         {
             ucAndXCommand = pMessage->pAndXHeader->andXCommand;
 
