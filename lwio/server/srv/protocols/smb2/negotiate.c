@@ -273,10 +273,9 @@ SrvMarshalNegotiateResponse_SMB_V2(
 
     pNegotiateHeader->ucFlags = 0;
 
-    if (pServerProperties->bEnableSecuritySignatures)
-    {
-        pNegotiateHeader->ucFlags |= 0x1;
-    }
+    // Always set the "Signing Supported" flag for SMbv2
+
+    pNegotiateHeader->ucFlags |= 0x1;
 
     if (pServerProperties->bRequireSecuritySignatures)
     {
