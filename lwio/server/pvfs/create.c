@@ -46,6 +46,11 @@
 
 #include "pvfs.h"
 
+static
+NTSTATUS
+PvfsSetMaximalAccessMask(
+    PIRP pIrp
+    );
 
 /*****************************************************************************
  Main entry to the Create() routine for driver.  Splits work based on the
@@ -139,6 +144,9 @@ PvfsCreate(
         pIrp->Args.Create.CreateOptions |= FILE_NON_DIRECTORY_FILE;
         ntError = PvfsCreateFile(pIrpContext);
     }
+    BAIL_ON_NT_STATUS(ntError);
+
+    ntError = PvfsSetMaximalAccessMask(pIrp);
     BAIL_ON_NT_STATUS(ntError);
 
 cleanup:
@@ -875,6 +883,48 @@ PvfsCleanupFailedCreate(
 
     return;
 }
+
+/*****************************************************************************
+ ****************************************************************************/
+
+static
+NTSTATUS
+PvfsSetMaximalAccessMask(
+    PIRP pIrp
+    )
+{
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PACCESS_MASK pulMaxAccessMask = NULL;
+    ULONG       ulEcpSize = 0;
+
+    ntError = IoRtlEcpListFind(
+                  pIrp->Args.Create.EcpList,
+                  SRV_ECP_TYPE_MAX_ACCESS,
+                  OUT_PPVOID(&pulMaxAccessMask),
+                  &ulEcpSize);
+    if (ntError != STATUS_NOT_FOUND)
+    {
+        BAIL_ON_NT_STATUS(ntError);
+
+        if (ulEcpSize != sizeof(ACCESS_MASK))
+        {
+            ntError = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntError);
+        }
+
+        // TODO: Fill in the correct maximal access
+        *pulMaxAccessMask = 0x1F01FF;
+    }
+    else
+    {
+        ntError = STATUS_SUCCESS;
+    }
+
+error:
+
+    return ntError;
+}
+
 
 /*
 local variables:

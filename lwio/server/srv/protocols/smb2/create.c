@@ -875,8 +875,7 @@ SrvProcessCreateContexts_SMB_V2(
         {
             case SMB2_CONTEXT_ITEM_TYPE_MAX_ACCESS:
 
-                // TODO: Find the real max access mask on the file
-                pCreateState->ulMaximalAccessMask = 0x1F01FF;
+                // The driver should have filled this in.
 
                 break;
 
