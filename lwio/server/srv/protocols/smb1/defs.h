@@ -131,6 +131,8 @@ typedef UCHAR SMB_OPLOCK_REQUEST;
 
 #define SRV_DEFAULT_TIMEOUT_MSECS_SMB_V1 (30 * 1000)
 
+#define SRV_MAX_NUMBER_ECHO_RESPONSES (100)
+
 #define SRV_CONFIG_TABLE_INITIALIZER_SMB_V1                     \
 {                                                               \
     {                                                           \

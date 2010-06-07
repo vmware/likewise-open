@@ -64,7 +64,8 @@ SrvProcessEchoAndX(
 
     if (pEchoHeader->echoCount)
     {
-        pExecContext->ulNumDuplicates = pEchoHeader->echoCount - 1;
+        pExecContext->ulNumDuplicates =
+            LW_MIN(pEchoHeader->echoCount, SRV_MAX_NUMBER_ECHO_RESPONSES) - 1;
 
         ulResponseCount = pExecContext->ulNumDuplicates;
 
