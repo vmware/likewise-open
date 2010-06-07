@@ -77,7 +77,7 @@ SrvSvcInitSecurity(
         BYTE buffer[SID_MAX_SIZE];
     } unixRootSid;
     PSID pBuiltinAdminsSid = NULL;
-    PSID pAuthedUsersSid = NULL;
+    PSID pWorldSid = NULL;
     DWORD dwSidSize = 0;
     DWORD dwDaclSize = 0;
     PACL pDacl = NULL;
@@ -93,9 +93,9 @@ SrvSvcInitSecurity(
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwCreateWellKnownSid(
-            WinAuthenticatedUserSid,
+            WinWorldSid,
             NULL,
-            &pAuthedUsersSid,
+            &pWorldSid,
             &dwSidSize);
     BAIL_ON_SRVSVC_ERROR(dwError);
 
@@ -104,7 +104,7 @@ SrvSvcInitSecurity(
 
     dwDaclSize = ACL_HEADER_SIZE +
         sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(pBuiltinAdminsSid) - sizeof(ULONG) +
-        sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(pAuthedUsersSid) - sizeof(ULONG) +
+        sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(pWorldSid) - sizeof(ULONG) +
         sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(&unixRootSid.sid) - sizeof(ULONG) +
         RtlLengthSid(pBuiltinAdminsSid);
 
@@ -141,7 +141,7 @@ SrvSvcInitSecurity(
             ACL_REVISION,
             0,
             FILE_GENERIC_READ,
-            pAuthedUsersSid));
+            pWorldSid));
     BAIL_ON_SRVSVC_ERROR(dwError);
 
     dwError = LwAllocateMemory(
@@ -182,7 +182,7 @@ SrvSvcInitSecurity(
 
 cleanup:
 
-    LW_SAFE_FREE_MEMORY(pAuthedUsersSid);
+    LW_SAFE_FREE_MEMORY(pWorldSid);
 
     return dwError;
 
@@ -668,7 +668,10 @@ cleanup:
     return dwError;
 
 error:
-    *parm_error = 0;
+    if (parm_error)
+    {
+        *parm_error = 0;
+    }
 
     goto cleanup;
 }
@@ -705,8 +708,15 @@ cleanup:
 error:
     memset(ctr, 0, sizeof(*ctr));
 
-    *total_entries = 0;
-    *resume_handle = 0;
+    if (total_entries)
+    {
+        *total_entries = 0;
+    }
+
+    if (resume_handle)
+    {
+        *resume_handle = 0;
+    }
 
     goto cleanup;
 }
@@ -767,7 +777,10 @@ cleanup:
     return dwError;
 
 error:
-    *parm_error = 0;
+    if (parm_error)
+    {
+        *parm_error = 0;
+    }
 
     goto cleanup;
 }
