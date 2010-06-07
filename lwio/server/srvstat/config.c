@@ -118,7 +118,7 @@ LwioSrvStatConfigRead(
     char   szValue[MAX_VALUE_LENGTH] = {0};
     ULONG  ulType         = 0;
     ULONG  ulSize         = 0;
-    SRV_STAT_LOG_TARGET_TYPE logTargetType = SRV_STAT_LOG_TARGET_TYPE_SYSLOG;
+    SRV_STAT_LOG_TARGET_TYPE logTargetType = SRV_STAT_LOG_TARGET_TYPE_NONE;
 
     ntStatus = NtRegOpenServer(&hConnection);
     BAIL_ON_NT_STATUS(ntStatus);
@@ -152,10 +152,6 @@ LwioSrvStatConfigRead(
     {
         logTargetType = SRV_STAT_LOG_TARGET_TYPE_FILE;
     }
-    else if (!strcasecmp(pszTargetValue, "syslog"))
-    {
-        logTargetType = SRV_STAT_LOG_TARGET_TYPE_SYSLOG;
-    }
     else
     {
         ntStatus = STATUS_INVALID_PARAMETER;
@@ -176,6 +172,12 @@ LwioSrvStatConfigRead(
                         szValue,
                         &ulSize);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        if (!strlen(szValue))
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
 
         ntStatus = LwRtlCStringDuplicate(&pszPathValue, szValue);
         BAIL_ON_NT_STATUS(ntStatus);
@@ -215,7 +217,7 @@ LwioSrvStatConfigInitContents(
 {
     memset(pConfig, 0, sizeof(*pConfig));
 
-    pConfig->logTargetType = SRV_STAT_LOG_TARGET_TYPE_SYSLOG;
+    pConfig->logTargetType = SRV_STAT_LOG_TARGET_TYPE_NONE;
 
     return STATUS_SUCCESS;
 }

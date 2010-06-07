@@ -63,12 +63,8 @@ typedef struct _SRV_STAT_HANDLER_FILE_LOG
 
 typedef struct _SRV_STAT_HANDLER_LOGGER
 {
-    SRV_STAT_LOG_TARGET_TYPE logTargetType;
-    union
-    {
-        PSRV_STAT_HANDLER_SYS_LOG  pSysLog;
-        PSRV_STAT_HANDLER_FILE_LOG pFileLog;
-    };
+    SRV_STAT_LOG_TARGET_TYPE   logTargetType;
+    PSRV_STAT_HANDLER_FILE_LOG pFileLog;
 
 } SRV_STAT_HANDLER_LOGGER, *PSRV_STAT_HANDLER_LOGGER;
 
@@ -123,6 +119,9 @@ typedef struct _SRV_STAT_REQUEST_CONTEXT
 
     ULONG                     ulRequestLength;
     ULONG                     ulResponseLength;
+
+    ULONG                     ulNumResponsesExpected;
+    ULONG                     ulNumResponsesSent;
 
     PSRV_STAT_MESSAGE_CONTEXT pMessageStack;
     PSRV_STAT_MESSAGE_CONTEXT pCurrentMessage;

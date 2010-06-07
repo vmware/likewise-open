@@ -114,6 +114,12 @@ LwioSrvStatCreateRequestContext(
     );
 
 NTSTATUS
+LwioSrvStatSetResponseCount(
+    HANDLE hContext,       /* IN              */
+    ULONG  ulNumResponses  /* IN              */
+    );
+
+NTSTATUS
 LwioSrvStatPushMessage(
     HANDLE                       hContext,         /* IN              */
     ULONG                        ulOpcode,         /* IN              */
@@ -155,25 +161,6 @@ LwioSrvStatSetResponseInfo(
 NTSTATUS
 LwioSrvStatCloseRequestContext(
     HANDLE                    hContext             /* IN              */
-    );
-
-// syslog.c
-
-NTSTATUS
-LwioSrvStatSyslogInit(
-    PSRV_STAT_HANDLER_SYS_LOG* ppSysLog
-    );
-
-VOID
-LwioSrvStatSyslogMessage(
-    PSRV_STAT_HANDLER_SYS_LOG pSysLog,
-    PCSTR                     pszFormat,
-    va_list                   msgList
-    );
-
-VOID
-LwioSrvStatSyslogShutdown(
-    PSRV_STAT_HANDLER_SYS_LOG pSysLog
     );
 
 // times.c

@@ -7,7 +7,6 @@ libsrv_stat_la_SOURCES = \
     libmain.c    \
     logging.c    \
     statistics.c \
-    syslog.c     \
     times.c
 
 libsrv_stat_la_CFLAGS  = $(AM_CFLAGS) -shared

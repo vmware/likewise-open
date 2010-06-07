@@ -73,12 +73,6 @@ LwioSrvStatLoggingInit(
 
     switch (pLogger->logTargetType)
     {
-        case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
-
-            ntStatus = LwioSrvStatSyslogInit(&pLogger->pSysLog);
-
-            break;
-
         case SRV_STAT_LOG_TARGET_TYPE_FILE:
 
             ntStatus = LwioSrvStatFilelogInit(
@@ -123,12 +117,6 @@ LwioSrvStatLogMessage(
 
     switch (pLogger->logTargetType)
     {
-        case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
-
-            LwioSrvStatSyslogMessage(pLogger->pSysLog, pszFormat, msgList);
-
-            break;
-
         case SRV_STAT_LOG_TARGET_TYPE_FILE:
 
             LwioSrvStatFilelogMessage(pLogger->pFileLog, pszFormat, msgList);
@@ -169,15 +157,6 @@ LwioSrvStatFreeLogger(
 {
     switch (pLogger->logTargetType)
     {
-        case SRV_STAT_LOG_TARGET_TYPE_SYSLOG:
-
-            if (pLogger->pSysLog)
-            {
-                LwioSrvStatSyslogShutdown(pLogger->pSysLog);
-            }
-
-            break;
-
         case SRV_STAT_LOG_TARGET_TYPE_FILE:
 
             if (pLogger->pFileLog)

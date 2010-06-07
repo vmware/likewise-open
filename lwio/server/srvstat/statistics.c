@@ -192,6 +192,33 @@ error:
 }
 
 NTSTATUS
+LwioSrvStatSetResponseCount(
+    HANDLE hContext,       /* IN              */
+    ULONG  ulNumResponses  /* IN              */
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_STAT_REQUEST_CONTEXT pContext = (PSRV_STAT_REQUEST_CONTEXT)hContext;
+    BOOLEAN  bInLock = FALSE;
+
+    BAIL_ON_INVALID_POINTER(pContext);
+
+    SRV_STAT_HANDLER_LOCK_MUTEX(bInLock, &pContext->mutex);
+
+    pContext->ulNumResponsesExpected = ulNumResponses;
+
+cleanup:
+
+    SRV_STAT_HANDLER_UNLOCK_MUTEX(bInLock, &pContext->mutex);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+NTSTATUS
 LwioSrvStatPushMessage(
     HANDLE hContext,     /* IN              */
     ULONG  ulOpcode,     /* IN              */
@@ -457,6 +484,7 @@ LwioSrvStatSetResponseInfo(
     SRV_STAT_HANDLER_LOCK_MUTEX(bInLock, &pContext->mutex);
 
     pContext->ulResponseLength = ulResponseLength;
+    pContext->ulNumResponsesSent++;
 
 cleanup:
 
@@ -728,7 +756,32 @@ LwioSrvStatLogContextHeader(
                     " ",
                     "time-ns",
                     &v,
-                    " > ",
+                    NULL,
+                    ppszBuffer,
+                    pulTotalLength,
+                    pulBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    v.valueType = SRV_STAT_HANDLER_VALUE_TYPE_PULONG;
+    v.val.pulValue = &pStatContext->ulNumResponsesExpected;
+
+    ntStatus = LwioSrvStatLogToString(
+                    " ",
+                    "responses-expected",
+                    &v,
+                    NULL,
+                    ppszBuffer,
+                    pulTotalLength,
+                    pulBytesUsed);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    v.val.pulValue = &pStatContext->ulNumResponsesSent;
+
+    ntStatus = LwioSrvStatLogToString(
+                    " ",
+                    "responses-sent",
+                    &v,
+                    " >",
                     ppszBuffer,
                     pulTotalLength,
                     pulBytesUsed);

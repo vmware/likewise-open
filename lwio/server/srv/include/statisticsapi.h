@@ -81,6 +81,12 @@ SrvStatisticsSetRequestInfo(
     );
 
 NTSTATUS
+SrvStatisticsSetResponseCount(
+    PSRV_STAT_INFO               pStatInfo,        /* IN              */
+    ULONG                        ulNumResponses    /* IN              */
+    );
+
+NTSTATUS
 SrvStatisticsPushMessage(
     PSRV_STAT_INFO               pStatInfo,        /* IN              */
     ULONG                        ulOpcode,         /* IN              */

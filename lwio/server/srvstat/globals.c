@@ -54,12 +54,13 @@ SRV_STAT_HANDLER_GLOBALS gSrvStatHandlerGlobals =
     .mutex  = PTHREAD_MUTEX_INITIALIZER,
     .config =
         {
-            .logTargetType = SRV_STAT_LOG_TARGET_TYPE_SYSLOG,
+            .logTargetType = SRV_STAT_LOG_TARGET_TYPE_NONE,
             .pszPath = NULL
         },
     .fnTable =
         {
             .pfnCreateRequestContext = &LwioSrvStatCreateRequestContext,
+            .pfnSetResponseCount     = &LwioSrvStatSetResponseCount,
             .pfnPushMessage          = &LwioSrvStatPushMessage,
             .pfnSetSubOpCode         = &LwioSrvStatSetSubOpcode,
             .pfnSetIOCTL             = &LwioSrvStatSetIOCTL,
