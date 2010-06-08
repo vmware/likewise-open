@@ -251,6 +251,17 @@ SrvProtocolExecute_SMB_V1_Filter(
                                     &pContext->pSmbResponse);
                 }
 
+                if ((ntStatus == STATUS_SUCCESS) && pContext->pStatInfo)
+                {
+                    NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+                    ntStatus2 = SrvStatisticsPopMessage(
+                                    pContext->pStatInfo,
+                                    pSmbRequest->pSMBHeader->command,
+                                    ntohl(pContext->pSmbResponse->pNetBIOSHeader->len),
+                                    pContext->pSmbResponse->pSMBHeader->error);
+                }
+
                 break;
 
         default:
