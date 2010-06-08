@@ -834,6 +834,8 @@ SrvSendZctReadResponse(
     ntStatus = LwZctPrepareIo(pReadState->pZct);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pSmbResponse->ulZctMessageSize = pSmbResponse->ulMessageSize;
+
     pZctContext = SrvAcquireExecContext(pExecContext);
 
     ntStatus = SrvProtocolTransportSendZctResponse(

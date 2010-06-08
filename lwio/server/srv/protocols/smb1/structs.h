@@ -1175,6 +1175,7 @@ typedef struct __SRV_MESSAGE_SMB_V1
     PANDX_HEADER pAndXHeader;
     USHORT       usHeaderSize;
     ULONG        ulMessageSize;
+    ULONG        ulZctMessageSize;
 
     ULONG        ulBytesAvailable;
 

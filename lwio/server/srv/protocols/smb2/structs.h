@@ -1273,6 +1273,7 @@ typedef struct __SRV_MESSAGE_SMB_V2
     PSMB2_HEADER pHeader;
     ULONG        ulHeaderSize;
     ULONG        ulMessageSize;
+    ULONG        ulZctMessageSize;
 
     ULONG        ulBytesAvailable;
 

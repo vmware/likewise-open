@@ -525,7 +525,9 @@ error:
                 NTSTATUS ntStatus2 = SrvStatisticsPopMessage(
                                             pExecContext->pStatInfo,
                                             pSmbRequest->pHeader->command,
-                                            pSmbResponse->ulMessageSize,
+                                            (pSmbResponse->ulMessageSize ?
+                                               pSmbResponse->ulMessageSize :
+                                                pSmbResponse->ulZctMessageSize),
                                             ntStatus);
                 if (ntStatus2)
                 {
