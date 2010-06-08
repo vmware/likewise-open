@@ -120,9 +120,6 @@ typedef struct _SRV_STAT_REQUEST_CONTEXT
     ULONG                     ulRequestLength;
     ULONG                     ulResponseLength;
 
-    ULONG                     ulNumResponsesExpected;
-    ULONG                     ulNumResponsesSent;
-
     PSRV_STAT_MESSAGE_CONTEXT pMessageStack;
     PSRV_STAT_MESSAGE_CONTEXT pCurrentMessage;
 

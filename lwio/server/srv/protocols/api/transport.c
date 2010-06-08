@@ -1308,11 +1308,6 @@ SrvProtocolTransportDriverSetStatistics(
                     &pStatInfo);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvStatisticsSetResponseCount(
-                    pStatInfo,
-                    1);
-    BAIL_ON_NT_STATUS(ntStatus);
-
     *ppStatInfo = pStatInfo;
 
 cleanup:

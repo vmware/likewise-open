@@ -157,19 +157,11 @@ SrvProtocolExecute(
 
     if (pContext->pSmbResponse && pContext->pSmbResponse->pNetBIOSHeader->len)
     {
-        ULONG iRepeat = 0;
-
-        //
-        // Note: An echo request might result in duplicates being sent
-        // TODO: Find out if the repeats must have different sequence numbers
-        for (; iRepeat < (pContext->ulNumDuplicates + 1); iRepeat++)
-        {
-            ntStatus = SrvProtocolTransportSendResponse(
-                            pContext->pConnection,
-                            pContext->pSmbResponse,
-                            pContext->pStatInfo);
-            BAIL_ON_NT_STATUS(ntStatus);
-        }
+        ntStatus = SrvProtocolTransportSendResponse(
+                        pContext->pConnection,
+                        pContext->pSmbResponse,
+                        pContext->pStatInfo);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
 
 cleanup:

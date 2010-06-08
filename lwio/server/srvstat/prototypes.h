@@ -114,12 +114,6 @@ LwioSrvStatCreateRequestContext(
     );
 
 NTSTATUS
-LwioSrvStatSetResponseCount(
-    HANDLE hContext,       /* IN              */
-    ULONG  ulNumResponses  /* IN              */
-    );
-
-NTSTATUS
 LwioSrvStatPushMessage(
     HANDLE                       hContext,         /* IN              */
     ULONG                        ulOpcode,         /* IN              */

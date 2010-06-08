@@ -53,7 +53,6 @@ SrvProcessEchoAndX(
     ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->usHeaderSize;
     PECHO_REQUEST_HEADER pEchoHeader = NULL; // Do not Free
     PBYTE                pEchoBlob   = NULL; // Do Not Free
-    ULONG                ulResponseCount = 0;
 
     ntStatus = WireUnmarshallEchoRequest(
                     pBuffer,
@@ -62,36 +61,26 @@ SrvProcessEchoAndX(
                     &pEchoBlob);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (pEchoHeader->echoCount)
-    {
-        pExecContext->ulNumDuplicates =
-            LW_MIN(pEchoHeader->echoCount, SRV_MAX_NUMBER_ECHO_RESPONSES) - 1;
-
-        ulResponseCount = pExecContext->ulNumDuplicates;
-
-        ntStatus = SrvMarshallEchoResponse(
-                            pExecContext,
-                            pEchoBlob,
-                            pEchoHeader->byteCount);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
-    else
+    if (!pEchoHeader->echoCount)
     {
         // If echo count is zero, no response is sent
-        ulResponseCount = 0;
+        goto cleanup;
     }
 
-    if (pExecContext->pStatInfo)
-    {
-        ntStatus = SrvStatisticsSetResponseCount(
-                        pExecContext->pStatInfo,
-                        ulResponseCount);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
+    // Always send back only one echo response
+    ntStatus = SrvMarshallEchoResponse(
+                        pExecContext,
+                        pEchoBlob,
+                        pEchoHeader->byteCount);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    return ntStatus;
 
 error:
 
-    return ntStatus;
+    goto cleanup;
 }
 
 static

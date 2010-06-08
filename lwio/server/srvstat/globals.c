@@ -60,7 +60,6 @@ SRV_STAT_HANDLER_GLOBALS gSrvStatHandlerGlobals =
     .fnTable =
         {
             .pfnCreateRequestContext = &LwioSrvStatCreateRequestContext,
-            .pfnSetResponseCount     = &LwioSrvStatSetResponseCount,
             .pfnPushMessage          = &LwioSrvStatPushMessage,
             .pfnSetSubOpCode         = &LwioSrvStatSetSubOpcode,
             .pfnSetIOCTL             = &LwioSrvStatSetIOCTL,

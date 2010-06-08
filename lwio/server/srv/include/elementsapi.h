@@ -607,7 +607,6 @@ typedef struct _SRV_EXEC_CONTEXT
     PFN_SRV_PROTOCOL_FREE_EXEC_CONTEXT pfnFreeContext;
 
     PSMB_PACKET                        pSmbResponse;
-    ULONG                              ulNumDuplicates;
 
     PSMB_PACKET                        pInterimResponse;
 
