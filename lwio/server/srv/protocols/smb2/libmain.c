@@ -92,6 +92,8 @@ SrvProtocolExecute_SMB_V2(
     NTSTATUS                 ntStatus     = STATUS_SUCCESS;
     PLWIO_SRV_CONNECTION     pConnection  = pExecContext->pConnection;
     PSRV_EXEC_CONTEXT_SMB_V2 pSmb2Context = NULL;
+    USHORT   usCurrentCommand = 0;
+    BOOLEAN  bPopStatMessage  = FALSE;
 
     if (!pExecContext->pProtocolContext->pSmb2Context)
     {
@@ -126,6 +128,7 @@ SrvProtocolExecute_SMB_V2(
          pSmb2Context->iMsg++)
     {
         ULONG iMsg = pSmb2Context->iMsg;
+        PSRV_MESSAGE_SMB_V2 pRequest = &pSmb2Context->pRequests[iMsg];
         PSRV_MESSAGE_SMB_V2 pResponse = &pSmb2Context->pResponses[iMsg];
         PSRV_MESSAGE_SMB_V2 pPrevResponse = NULL;
 
@@ -162,6 +165,19 @@ SrvProtocolExecute_SMB_V2(
         pResponse->ulMessageSize = 0;
         pResponse->ulBytesAvailable =   pExecContext->pSmbResponse->bufferLen -
                                         pExecContext->pSmbResponse->bufferUsed;
+
+        if (pExecContext->pStatInfo)
+        {
+            usCurrentCommand = pRequest->pHeader->command;
+
+            ntStatus = SrvStatisticsPushMessage(
+                            pExecContext->pStatInfo,
+                            usCurrentCommand,
+                            pRequest->ulMessageSize);
+            BAIL_ON_NT_STATUS(ntStatus);
+
+            bPopStatMessage = TRUE;
+        }
 
         ntStatus = SrvProcessRequestSpecific_SMB_V2(pExecContext);
 
@@ -212,6 +228,27 @@ SrvProtocolExecute_SMB_V2(
         }
 
         pExecContext->pSmbResponse->bufferUsed += pResponse->ulMessageSize;
+
+        if (bPopStatMessage)
+        {
+            NTSTATUS ntStatus2 =
+                    SrvStatisticsPopMessage(
+                            pExecContext->pStatInfo,
+                            usCurrentCommand,
+                            (pResponse->ulMessageSize ?
+                                    pResponse->ulMessageSize :
+                                    pResponse->ulZctMessageSize),
+                            ntStatus);
+            if (ntStatus2)
+            {
+                LWIO_LOG_ERROR( "Error: Failed to notify statistics "
+                                "module on end of message processing "
+                                "[error: %u]", ntStatus2);
+            }
+
+            bPopStatMessage = FALSE;
+            usCurrentCommand = 0;
+        }
     }
 
     ntStatus = SMBPacketMarshallFooter(pExecContext->pSmbResponse);
@@ -222,6 +259,33 @@ cleanup:
     return ntStatus;
 
 error:
+
+    switch (ntStatus)
+    {
+        case STATUS_PENDING:
+
+            break;
+
+        default:
+
+            if (bPopStatMessage)
+            {
+                NTSTATUS ntStatus2 =
+                        SrvStatisticsPopMessage(
+                                pExecContext->pStatInfo,
+                                usCurrentCommand,
+                                pExecContext->pSmbResponse->bufferUsed,
+                                ntStatus);
+                if (ntStatus2)
+                {
+                    LWIO_LOG_ERROR( "Error: Failed to notify statistics "
+                                    "module on end of message processing "
+                                    "[error: %u]", ntStatus2);
+                }
+            }
+
+            break;
+    }
 
     goto cleanup;
 }
@@ -265,20 +329,10 @@ SrvProcessRequestSpecific_SMB_V2(
     PSRV_EXEC_CONTEXT_SMB_V2   pCtxSmb2     = pCtxProtocol->pSmb2Context;
     ULONG                      iMsg         = pCtxSmb2->iMsg;
     PSRV_MESSAGE_SMB_V2        pSmbRequest  = &pCtxSmb2->pRequests[iMsg];
-    PSRV_MESSAGE_SMB_V2        pSmbResponse = &pCtxSmb2->pResponses[iMsg];
 
     LWIO_LOG_VERBOSE("Executing command [%s:%d]",
                      SrvGetCommandDescription_SMB_V2(pSmbRequest->pHeader->command),
                      pSmbRequest->pHeader->command);
-
-    if (pExecContext->pStatInfo)
-    {
-        ntStatus = SrvStatisticsPushMessage(
-                        pExecContext->pStatInfo,
-                        pSmbRequest->pHeader->command,
-                        pSmbRequest->ulMessageSize);
-        BAIL_ON_NT_STATUS(ntStatus);
-    }
 
     if (!iMsg &&
         LwIsSetFlag(pSmbRequest->pHeader->ulFlags,SMB2_FLAGS_RELATED_OPERATION))
@@ -511,34 +565,6 @@ SrvProcessRequestSpecific_SMB_V2(
     }
 
 error:
-
-    switch (ntStatus)
-    {
-        case STATUS_PENDING:
-
-            break;
-
-        default:
-
-            if (pExecContext->pStatInfo)
-            {
-                NTSTATUS ntStatus2 = SrvStatisticsPopMessage(
-                                            pExecContext->pStatInfo,
-                                            pSmbRequest->pHeader->command,
-                                            (pSmbResponse->ulMessageSize ?
-                                               pSmbResponse->ulMessageSize :
-                                                pSmbResponse->ulZctMessageSize),
-                                            ntStatus);
-                if (ntStatus2)
-                {
-                    LWIO_LOG_ERROR( "Error: Failed to notify statistics "
-                                    "module on end of message processing "
-                                    "[error: %u]", ntStatus2);
-                }
-            }
-
-            break;
-    }
 
     return ntStatus;
 }
