@@ -426,6 +426,24 @@ error:
     goto cleanup;
 }
 
+VOID
+SrvSessionSetUserFlags(
+    PLWIO_SRV_SESSION pSession,
+    ULONG Flags
+    )
+{
+    BOOLEAN  bInLock  = FALSE;
+
+    LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pSession->mutex);
+
+    SetFlag(pSession->ulUserFlags, Flags);
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pSession->mutex);
+
+    return;
+}
+
+
 NTSTATUS
 SrvSessionGetFileCount(
     PLWIO_SRV_SESSION pSession,

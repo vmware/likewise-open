@@ -976,6 +976,12 @@ SrvSessionGetPrincipalName(
     PWSTR*            ppwszClientPrincipal
     );
 
+VOID
+SrvSessionSetUserFlags(
+    PLWIO_SRV_SESSION pSession,
+    ULONG Flags
+    );
+
 NTSTATUS
 SrvSessionGetFileCount(
     PLWIO_SRV_SESSION pSession,
@@ -1041,6 +1047,13 @@ SrvSession2GetPrincipalName(
     PLWIO_SRV_SESSION_2 pSession,
     PWSTR*              ppwszClientPrincipal
     );
+
+VOID
+SrvSession2SetUserFlags(
+    PLWIO_SRV_SESSION_2 pSession,
+    ULONG Flags
+    );
+
 
 NTSTATUS
 SrvSession2GetFileCount(

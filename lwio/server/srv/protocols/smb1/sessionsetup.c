@@ -164,6 +164,8 @@ SrvProcessSessionSetup(
 
             ((PSESSION_SETUP_RESPONSE_HEADER)pSessionBuffer)->action = 0x1;
 
+            SrvSessionSetUserFlags(pCtxSmb1->pSession, SMB_SESSION_FLAG_GUEST);
+
             // The session key for this connection has to come from an
             // authenticated session
 

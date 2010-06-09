@@ -189,11 +189,16 @@ SrvProcessSessionSetup_SMB_V2(
         // The session key for this connection has to come from an
         // authenticated session
 
-        if (bLoggedInAsGuest && bInitializedSessionKey)
+        if (bLoggedInAsGuest)
         {
-            SrvFreeMemory(pConnection->pSessionKey);
-            pConnection->pSessionKey = NULL;
-            pConnection->ulSessionKeyLength = 0;
+            SrvSession2SetUserFlags(pCtxSmb2->pSession, SMB_SESSION_FLAG_GUEST);
+
+            if (bInitializedSessionKey)
+            {
+                SrvFreeMemory(pConnection->pSessionKey);
+                pConnection->pSessionKey = NULL;
+                pConnection->ulSessionKeyLength = 0;
+            }
         }
 
         // Go ahead and close out this GSS negotiate state so we can
