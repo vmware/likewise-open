@@ -276,6 +276,18 @@ PvfsSetSecurityDescriptorFile(
     BYTE pNewSecDescBuffer[SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE] = {0};
     ULONG ulNewSecDescLength = SECURITY_DESCRIPTOR_RELATIVE_MAX_SIZE;
     PSECURITY_DESCRIPTOR_ABSOLUTE pIncAbsSecDesc = NULL;
+    union {
+        TOKEN_OWNER TokenOwnerInfo;
+        BYTE Buffer[SID_MAX_SIZE];
+    } TokenOwnerBuffer;
+    PTOKEN_OWNER pTokenOwnerInformation = (PTOKEN_OWNER)&TokenOwnerBuffer;
+    ULONG ulTokenOwnerLength = 0;
+    union {
+        SID Sid;
+        BYTE Buffer[SID_MAX_SIZE];
+    } LocalSystemSidBuffer;
+    PSID pLocalSystemSid = (PSID)&LocalSystemSidBuffer;
+    ULONG ulLocalSystemSidLength = sizeof(LocalSystemSidBuffer);
 
     /* Sanity checks */
 
@@ -300,6 +312,21 @@ PvfsSetSecurityDescriptorFile(
                       pSecDesc);
         BAIL_ON_NT_STATUS(ntError);
 
+        ntError = RtlQueryAccessTokenInformation(
+                      pCcb->pUserToken,
+                      TokenOwner,
+                      (PVOID)pTokenOwnerInformation,
+                      sizeof(TokenOwnerBuffer),
+                      &ulTokenOwnerLength);
+        BAIL_ON_NT_STATUS(ntError);
+
+        ntError = RtlCreateWellKnownSid(
+                      WinLocalSystemSid,
+                      NULL,
+                      pLocalSystemSid,
+                      &ulLocalSystemSidLength);
+        BAIL_ON_NT_STATUS(ntError);
+
         if (SecInfo & OWNER_SECURITY_INFORMATION)
         {
             ntError = RtlGetOwnerSecurityDescriptor(
@@ -308,7 +335,8 @@ PvfsSetSecurityDescriptorFile(
                           &bDefaulted);
             BAIL_ON_NT_STATUS(ntError);
 
-            if (!RtlIsSidMemberOfToken(pCcb->pUserToken, pOwner))
+            if (!RtlIsSidMemberOfToken(pCcb->pUserToken, pOwner) &&
+                !RtlEqualSid(pLocalSystemSid, pTokenOwnerInformation->Owner))
             {
                 ntError = STATUS_ACCESS_DENIED;
                 BAIL_ON_NT_STATUS(ntError);
@@ -323,7 +351,8 @@ PvfsSetSecurityDescriptorFile(
                           &bDefaulted);
             BAIL_ON_NT_STATUS(ntError);
 
-            if (!RtlIsSidMemberOfToken(pCcb->pUserToken, pGroup))
+            if (!RtlIsSidMemberOfToken(pCcb->pUserToken, pGroup) &&
+                !RtlEqualSid(pLocalSystemSid, pTokenOwnerInformation->Owner))
             {
                 ntError = STATUS_ACCESS_DENIED;
                 BAIL_ON_NT_STATUS(ntError);
