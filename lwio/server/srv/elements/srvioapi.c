@@ -260,7 +260,7 @@ SrvIoSecCreateSecurityContext(
     ntStatus = IoSecurityCreateSecurityContextFromGssContext(
                    &pIoSecCreateCtx,
                    hContextHandle);
-    if (ntStatus != STATUS_BAD_LOGON_SESSION_STATE)
+    if (ntStatus == STATUS_BAD_LOGON_SESSION_STATE)
     {
         ntStatus = LwRtlUnicodeStringAllocateFromCString(
                        &uniClientPrincipalName,
