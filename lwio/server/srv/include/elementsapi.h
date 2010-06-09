@@ -1199,6 +1199,14 @@ SrvTree2Rundown(
     );
 
 NTSTATUS
+SrvIoSecCreateSecurityContext(
+    OUT PIO_CREATE_SECURITY_CONTEXT* SecurityContext,
+    OUT PBOOLEAN pbLoggedInAsGuest,
+    IN LW_MAP_SECURITY_GSS_CONTEXT hGssContext,
+    IN PCSTR pszUsername
+    );
+
+NTSTATUS
 SrvIoCreateFile(
     PSRV_SHARE_INFO               pShareInfo,              /* IN              */
     PIO_FILE_HANDLE               pFileHandle,             /*    OUT          */
@@ -1517,3 +1525,14 @@ SrvElementsShutdown(
     );
 
 #endif /* __ELEMENTSAPI_H__ */
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

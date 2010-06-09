@@ -233,6 +233,91 @@ error:
 }
 
 
+NTSTATUS
+SrvIoSecCreateSecurityContext(
+    OUT PIO_CREATE_SECURITY_CONTEXT* ppSecurityContext,
+    OUT PBOOLEAN pbLoggedInAsGuest,
+    IN LW_MAP_SECURITY_GSS_CONTEXT hContextHandle,
+    IN PCSTR pszUsername
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    UNICODE_STRING uniClientPrincipalName = {0};
+    BOOLEAN bLoggedInAsGuest = FALSE;
+    PACCESS_TOKEN pToken = NULL;
+    PIO_CREATE_SECURITY_CONTEXT pIoSecCreateCtx = NULL;
+    union {
+        TOKEN_OWNER TokenOwnerInfo;
+        BYTE Buffer[SID_MAX_SIZE];
+    } TokenOwnerBuffer;
+    PTOKEN_OWNER pTokenOwnerInformation = (PTOKEN_OWNER)&TokenOwnerBuffer;
+    ULONG ulTokenOwnerLength = 0;
+    ULONG ulRid = 0;
+
+    // Generate and store the IoSecurityContext.  Fallback to creating
+    // one from the username if the GssContext based call fails
+
+    ntStatus = IoSecurityCreateSecurityContextFromGssContext(
+                   &pIoSecCreateCtx,
+                   hContextHandle);
+    if (ntStatus != STATUS_BAD_LOGON_SESSION_STATE)
+    {
+        ntStatus = LwRtlUnicodeStringAllocateFromCString(
+                       &uniClientPrincipalName,
+                       pszUsername);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = IoSecurityCreateSecurityContextFromUsername(
+                       &pIoSecCreateCtx,
+                       &uniClientPrincipalName);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pToken = IoSecurityGetAccessToken(pIoSecCreateCtx);
+
+    if (!pToken)
+    {
+        ntStatus = STATUS_NO_TOKEN;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = RtlQueryAccessTokenInformation(
+                   pToken,
+                   TokenOwner,
+                   (PVOID)pTokenOwnerInformation,
+                   sizeof(TokenOwnerBuffer),
+                   &ulTokenOwnerLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlGetRidSid(&ulRid, pTokenOwnerInformation->Owner);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (ulRid == DOMAIN_USER_RID_GUEST)
+    {
+        bLoggedInAsGuest = TRUE;
+    }
+
+    *pbLoggedInAsGuest = bLoggedInAsGuest;
+    *ppSecurityContext = pIoSecCreateCtx;
+
+cleanup:
+
+    LwRtlUnicodeStringFree(&uniClientPrincipalName);
+
+    return ntStatus;
+
+error:
+
+    if (pIoSecCreateCtx)
+    {
+        IoSecurityDereferenceSecurityContext(&pIoSecCreateCtx);
+        pIoSecCreateCtx = NULL;
+    }
+
+    goto cleanup;
+}
+
+
 /*
 local variables:
 mode: c

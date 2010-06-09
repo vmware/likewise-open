@@ -74,6 +74,8 @@ SrvProcessSessionSetup_SMB_V2(
     ULONG ulBytesUsed = 0;
     ULONG ulTotalBytesUsed = 0;
     LW_MAP_SECURITY_GSS_CONTEXT hContextHandle = NULL;
+    BOOLEAN bLoggedInAsGuest = FALSE;
+    BOOLEAN bInitializedSessionKey = FALSE;
 
     if (pCtxSmb2->pSession)
     {
@@ -177,6 +179,31 @@ SrvProcessSessionSetup_SMB_V2(
         }
         BAIL_ON_NT_STATUS(ntStatus);
 
+        ntStatus = SrvIoSecCreateSecurityContext(
+                       &pCtxSmb2->pSession->pIoSecurityContext,
+                       &bLoggedInAsGuest,
+                       hContextHandle,
+                       pszClientPrincipalName);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        // The session key for this connection has to come from an
+        // authenticated session
+
+        if (bLoggedInAsGuest && bInitializedSessionKey)
+        {
+            SrvFreeMemory(pConnection->pSessionKey);
+            pConnection->pSessionKey = NULL;
+            pConnection->ulSessionKeyLength = 0;
+        }
+
+        // Go ahead and close out this GSS negotiate state so we can
+        // handle another Session setup.
+
+        SrvGssEndNegotiate(
+            pConnection->hGssContext,
+            pConnection->hGssNegotiate);
+        pConnection->hGssNegotiate = NULL;
+
         if (pszClientPrincipalName)
         {
             ntStatus = SrvSession2SetPrincipalName(
@@ -184,11 +211,6 @@ SrvProcessSessionSetup_SMB_V2(
                                 pszClientPrincipalName);
             BAIL_ON_NT_STATUS(ntStatus);
         }
-
-        ntStatus = IoSecurityCreateSecurityContextFromGssContext(
-                       &pCtxSmb2->pSession->pIoSecurityContext,
-                       hContextHandle);
-        BAIL_ON_NT_STATUS(ntStatus);
 
         pSmbResponse->pHeader->ullSessionId = pCtxSmb2->pSession->ullUid;
 
@@ -199,7 +221,7 @@ SrvProcessSessionSetup_SMB_V2(
                     pOutBuffer,
                     ulOffset,
                     ulBytesAvailable,
-                    0,
+                    bLoggedInAsGuest ? 0x1 : 0x0,
                     pReplySecurityBlob,
                     ulReplySecurityBlobLength,
                     &ulBytesUsed);
@@ -222,6 +244,15 @@ cleanup:
 
 error:
 
+    if (pConnection->hGssNegotiate)
+    {
+        SrvGssEndNegotiate(
+                pConnection->hGssContext,
+                pConnection->hGssNegotiate);
+
+        pConnection->hGssNegotiate = NULL;
+    }
+
     if (ulTotalBytesUsed)
     {
         pSmbResponse->pHeader      = NULL;
@@ -233,3 +264,14 @@ error:
 
     goto cleanup;
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/

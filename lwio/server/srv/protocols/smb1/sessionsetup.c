@@ -47,6 +47,7 @@ SrvMarshallSessionSetupResponse(
     ULONG                ulSecurityBlobLength
     );
 
+
 NTSTATUS
 SrvProcessSessionSetup(
     PSRV_EXEC_CONTEXT pExecContext
@@ -67,7 +68,8 @@ SrvProcessSessionSetup(
     PSTR                       pszClientPrincipalName = NULL;
     PLWIO_SRV_SESSION          pSessionExisting       = NULL;
     PSRV_MESSAGE_SMB_V1        pSmbResponse = &pCtxSmb1->pResponses[iMsg];
-
+    BOOLEAN                    bLoggedInAsGuest = FALSE;
+    BOOLEAN                    bInitializedSessionKey = FALSE;
 
     ntStatus = SrvUnmarshallSessionSetupRequest(
                     pConnection,
@@ -119,52 +121,67 @@ SrvProcessSessionSetup(
     pSmbResponse->pHeader->uid = pCtxSmb1->pSession->uid;
 
     if (SrvGssNegotiateIsComplete(
-                    pConnection->hGssContext,
-                    pConnection->hGssNegotiate))
+            pConnection->hGssContext,
+            pConnection->hGssNegotiate))
     {
         ntStatus = SrvSetStatSessionInfo(pExecContext, pCtxSmb1->pSession);
         BAIL_ON_NT_STATUS(ntStatus);
 
         if (!pExecContext->pConnection->pSessionKey)
         {
-             ntStatus = SrvGssGetSessionDetails(
-                             pConnection->hGssContext,
-                             pConnection->hGssNegotiate,
-                             &pConnection->pSessionKey,
-                             &pConnection->ulSessionKeyLength,
-                             &pszClientPrincipalName,
-                             &hContextHandle);
+            ntStatus = SrvGssGetSessionDetails(
+                           pConnection->hGssContext,
+                           pConnection->hGssNegotiate,
+                           &pConnection->pSessionKey,
+                           &pConnection->ulSessionKeyLength,
+                           &pszClientPrincipalName,
+                           &hContextHandle);
+
+            bInitializedSessionKey = TRUE;
         }
         else
         {
-             ntStatus = SrvGssGetSessionDetails(
-                            pConnection->hGssContext,
-                            pConnection->hGssNegotiate,
-                            NULL,
-                            NULL,
-                            &pszClientPrincipalName,
-                            &hContextHandle);
+            ntStatus = SrvGssGetSessionDetails(
+                           pConnection->hGssContext,
+                           pConnection->hGssNegotiate,
+                           NULL,
+                           NULL,
+                           &pszClientPrincipalName,
+                           &hContextHandle);
         }
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        /* Generate and store the IoSecurityContext */
+        ntStatus = SrvIoSecCreateSecurityContext(
+                       &pCtxSmb1->pSession->pIoSecurityContext,
+                       &bLoggedInAsGuest,
+                       hContextHandle,
+                       pszClientPrincipalName);
+        BAIL_ON_NT_STATUS(ntStatus);
 
-        if (NT_SUCCESS(ntStatus))
+        if (bLoggedInAsGuest)
         {
-            ntStatus = IoSecurityCreateSecurityContextFromGssContext(
-                &pCtxSmb1->pSession->pIoSecurityContext,
-                hContextHandle);
+            PBYTE pSessionBuffer = pSmbResponse->pBuffer + pSmbResponse->usHeaderSize;
+
+            ((PSESSION_SETUP_RESPONSE_HEADER)pSessionBuffer)->action = 0x1;
+
+            // The session key for this connection has to come from an
+            // authenticated session
+
+            if (bInitializedSessionKey)
+            {
+                SrvFreeMemory(pConnection->pSessionKey);
+                pConnection->pSessionKey = NULL;
+                pConnection->ulSessionKeyLength = 0;
+            }
         }
 
         // Go ahead and close out this GSS negotiate state so we can
-        // handle another Session setup.  Then call BAIL_ON_XXX to handle
-        // errors
+        // handle another Session setup.
 
         SrvGssEndNegotiate(
             pConnection->hGssContext,
             pConnection->hGssNegotiate);
         pConnection->hGssNegotiate = NULL;
-
-        BAIL_ON_NT_STATUS(ntStatus);
 
         if (pszClientPrincipalName)
         {
@@ -385,7 +402,7 @@ SrvMarshallSessionSetupResponse(
 
     /* TODO : change to native domain */
 
-    pResponseHeader->action = 0; // No guest access for now
+    pResponseHeader->action = 0x0;
     pResponseHeader->securityBlobLength = (USHORT)ulReplySecurityBlobLength;
 
     ntStatus = MarshallSessionSetupResponseData(
@@ -439,6 +456,7 @@ error:
 
     goto cleanup;
 }
+
 
 /*
 local variables:
