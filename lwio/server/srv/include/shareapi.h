@@ -47,9 +47,6 @@
 #define LWIO_SRV_FILE_SYSTEM_PREFIX_A "C:\\"
 #define LWIO_SRV_FILE_SYSTEM_PREFIX_W { 'C', ':', '\\', 0 }
 
-#define LWIO_SRV_DEFAULT_SHARE_PATH_A "\\lwcifs"
-#define LWIO_SRV_DEFAULT_SHARE_PATH_W { '\\', 'l', 'w', 'c', 'i', 'f', 's', 0 }
-
 #define LWIO_SRV_FILE_SYSTEM_ROOT_A   "\\pvfs"
 #define LWIO_SRV_FILE_SYSTEM_ROOT_W   { '\\', 'p', 'v', 'f', 's', 0 }
 
