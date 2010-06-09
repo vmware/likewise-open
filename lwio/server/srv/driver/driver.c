@@ -75,14 +75,32 @@ SrvInitialize(
 
 static
 NTSTATUS
-SrvShareBootstrap(
+SrvShareBootstrapNamedPipeRoot(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     );
 
 static
 NTSTATUS
+SrvShareBootstrapDiskRoot(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    );
+
+static
+NTSTATUS
+SrvGetDefaultSharePath(
+    PSTR* ppszFileSystemRoot
+    );
+
+static
+NTSTATUS
 SrvCreateDefaultSharePath(
-    PCSTR pszDefaultSharePath
+    PWSTR pwszDefaultSharePath
+    );
+
+static
+NTSTATUS
+SrvBuildDefaultShareSID(
+    PSECURITY_DESCRIPTOR_RELATIVE* ppSecDesc
     );
 
 static
@@ -330,8 +348,14 @@ SrvInitialize(
     ntStatus = SrvShareInitList(&gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvShareBootstrap(&gSMBSrvGlobals.shareList);
+    ntStatus = SrvShareBootstrapNamedPipeRoot(&gSMBSrvGlobals.shareList);
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (gSMBSrvGlobals.config.bBootstrapDefaultSharePath)
+    {
+        ntStatus = SrvShareBootstrapDiskRoot(&gSMBSrvGlobals.shareList);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
     ntStatus = SrvElementsInit();
     BAIL_ON_NT_STATUS(ntStatus);
@@ -371,15 +395,12 @@ error:
 
 static
 NTSTATUS
-SrvShareBootstrap(
+SrvShareBootstrapNamedPipeRoot(
     IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     wchar16_t wszPipeRootName[] = {'I','P','C','$',0};
-    wchar16_t wszFileRootName[] = {'C','$',0};
-    PSTR  pszFileSystemRoot = NULL;
-    PWSTR pwszFileSystemRoot = NULL;
     PSRV_SHARE_INFO pShareInfo = NULL;
 
     ntStatus = SrvShareFindByName(
@@ -401,13 +422,37 @@ SrvShareBootstrap(
                             0,
                             &wszServiceType[0],
                             0);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
-    else
+
+cleanup:
+
+    if (pShareInfo)
     {
         SrvShareReleaseInfo(pShareInfo);
-        pShareInfo = NULL;
     }
-    BAIL_ON_NT_STATUS(ntStatus);
+
+    return ntStatus;
+
+error:
+
+    LWIO_LOG_ERROR("Failed to bootstrap default IPC$ shares. [error code: %d]",
+                   ntStatus);
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvShareBootstrapDiskRoot(
+    IN OUT PLWIO_SRV_SHARE_ENTRY_LIST pShareList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    wchar16_t wszFileRootName[] = {'C','$',0};
+    PSTR  pszDefaultSharePath = NULL;
+    PWSTR pwszFileSystemRoot = NULL;
+    PSRV_SHARE_INFO pShareInfo = NULL;
 
     ntStatus = SrvShareFindByName(
                         pShareList,
@@ -418,22 +463,14 @@ SrvShareBootstrap(
         wchar16_t wszDesc[] =
                         {'D','e','f','a','u','l','t',' ','S','h','a','r','e',0};
         wchar16_t wszServiceType[] = LWIO_SRV_SHARE_STRING_ID_DISK_W;
-        CHAR      szTmpFSRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
-        CHAR      szDefaultSharePath[] = LWIO_SRV_DEFAULT_SHARE_PATH_A;
 
-        ntStatus = SrvCreateDefaultSharePath(&szDefaultSharePath[0]);
+        ntStatus = SrvGetDefaultSharePath(&pszDefaultSharePath);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvAllocateStringPrintf(
-                            &pszFileSystemRoot,
-                            "%s%s%s",
-                            &szTmpFSRoot[0],
-                            (((szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '/') ||
-                              (szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '\\')) ? "" : "\\"),
-                            &szDefaultSharePath[0]);
+        ntStatus = SrvMbsToWc16s(pszDefaultSharePath, &pwszFileSystemRoot);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        ntStatus = SrvMbsToWc16s(pszFileSystemRoot, &pwszFileSystemRoot);
+        ntStatus = SrvCreateDefaultSharePath(pwszFileSystemRoot);
         BAIL_ON_NT_STATUS(ntStatus);
 
         ntStatus = SrvShareAdd(
@@ -450,7 +487,7 @@ SrvShareBootstrap(
 
 cleanup:
 
-    SRV_SAFE_FREE_MEMORY(pszFileSystemRoot);
+    SRV_SAFE_FREE_MEMORY(pszDefaultSharePath);
     SRV_SAFE_FREE_MEMORY(pwszFileSystemRoot);
 
     return ntStatus;
@@ -465,47 +502,333 @@ error:
 
 static
 NTSTATUS
-SrvCreateDefaultSharePath(
-    PCSTR pszDefaultSharePath
+SrvGetDefaultSharePath(
+    PSTR* ppszFileSystemRoot
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSTR     pszPath = NULL;
+    PSTR     pszDefaultSharePath = NULL;
+    PSTR     pszFileSystemRoot = NULL;
     PSTR     pszCursor = NULL;
-    BOOLEAN  bDirExists = FALSE;
+    BOOLEAN  bUsePolicy = TRUE;
+    CHAR     szTmpFSRoot[] = LWIO_SRV_FILE_SYSTEM_ROOT_A;
+    PLWIO_CONFIG_REG pReg = NULL;
 
-    ntStatus = SMBAllocateString(pszDefaultSharePath, &pszPath);
+    ntStatus = LwIoOpenConfig(
+                        "Services\\lwio\\Parameters\\Drivers\\srv",
+                        "Policy\\Services\\lwio\\Parameters\\Drivers\\srv",
+                        &pReg);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    for (pszCursor = pszPath; pszCursor && *pszCursor; pszCursor++)
-    {
-        if (*pszCursor == '\\')
-        {
-            *pszCursor = '/';
-        }
-    }
-
-    ntStatus = SMBCheckDirectoryExists(pszPath, &bDirExists);
+    ntStatus = LwIoReadConfigString(
+                    pReg,
+                    "DefaultSharePath",
+                    bUsePolicy,
+                    &pszDefaultSharePath);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    if (!bDirExists)
+    if (IsNullOrEmptyString(pszDefaultSharePath) ||
+            ((*pszDefaultSharePath != '/') &&
+             (*pszDefaultSharePath != '\\')))
     {
-        ntStatus = SMBCreateDirectory(
-                        pszPath,
-                        S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+        LWIO_LOG_ERROR("Error: Default share path configured is not an absolute path");
+
+        ntStatus = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    ntStatus = SrvAllocateStringPrintf(
+                    &pszFileSystemRoot,
+                    "%s%s%s",
+                    &szTmpFSRoot[0],
+                    (((szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '/') ||
+                      (szTmpFSRoot[strlen(&szTmpFSRoot[0])-1] == '\\')) ? "" : "\\"),
+                    IsNullOrEmptyString(pszDefaultSharePath+1) ? "" : pszDefaultSharePath+1);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    for (pszCursor = pszFileSystemRoot; pszCursor && *pszCursor; pszCursor++)
+    {
+        if (*pszCursor == '/')
+        {
+            *pszCursor = '\\';
+        }
+    }
+
+    *ppszFileSystemRoot = pszFileSystemRoot;
+
 cleanup:
 
-    if (pszPath)
+    if (pReg)
     {
-        SMBFreeString(pszPath);
+        LwIoCloseConfig(pReg);
     }
+
+    RTL_FREE(&pszDefaultSharePath);
 
     return ntStatus;
 
 error:
+
+    *ppszFileSystemRoot = NULL;
+
+    LWIO_LOG_ERROR("Failed to access device configuration [error code: %u]",
+                   ntStatus);
+
+    ntStatus = STATUS_DEVICE_CONFIGURATION_ERROR;
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvCreateDefaultSharePath(
+    PWSTR pwszDefaultSharePath
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc = NULL;
+    IO_FILE_HANDLE hFile = NULL;
+    IO_STATUS_BLOCK ioStatusBlock = {0};
+    IO_FILE_NAME filename = {0};
+    PIO_CREATE_SECURITY_CONTEXT pSecContext = NULL;
+
+    ntStatus = SrvBuildDefaultShareSID(&pRelSecDesc);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = IoSecurityCreateSecurityContextFromUidGid(
+                    &pSecContext,
+                    0,
+                    0,
+                    NULL);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    filename.FileName = pwszDefaultSharePath;
+
+    ntStatus = IoCreateFile(
+                   &hFile,
+                   NULL,
+                   &ioStatusBlock,
+                   pSecContext,
+                   &filename,
+                   pRelSecDesc,
+                   NULL,                  /* Security QOS        */
+                   FILE_LIST_DIRECTORY | FILE_ADD_SUBDIRECTORY,
+                   0,                     /* Allocation Size     */
+                   FILE_ATTRIBUTE_NORMAL, /* File Attributes     */
+                   0,                     /* No Sharing          */
+                   FILE_OPEN_IF,
+                   FILE_DIRECTORY_FILE,
+                   NULL,                  /* Extended Attributes */
+                   0,                     /* EA Length           */
+                   NULL);                 /* ECP List            */
+    BAIL_ON_NT_STATUS(ntStatus);
+
+cleanup:
+
+    if (hFile)
+    {
+        IoCloseFile(hFile);
+    }
+
+    if (pRelSecDesc)
+    {
+        SrvFreeMemory(pRelSecDesc);
+    }
+
+    IoSecurityDereferenceSecurityContext(&pSecContext);
+
+    return ntStatus;
+
+error:
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvBuildDefaultShareSID(
+    PSECURITY_DESCRIPTOR_RELATIVE* ppSecDesc
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc = NULL;
+    ULONG ulRelSecDescLen = 0;
+    PSECURITY_DESCRIPTOR_ABSOLUTE pAbsSecDesc = NULL;
+    DWORD dwAceCount = 0;
+    PSID pOwnerSid = NULL;
+    PSID pGroupSid = NULL;
+    PACL pDacl = NULL;
+    DWORD dwSizeDacl = 0;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } localSystemSid;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } administratorsSid;
+    union
+    {
+        SID sid;
+        BYTE buffer[SID_MAX_SIZE];
+    } builtinUsersSid;
+    ULONG ulLocalSystemSidSize = sizeof(localSystemSid.buffer);
+    ULONG ulAdministratorsSidSize = sizeof(administratorsSid.buffer);
+    ULONG ulBuiltinUsersSidSize = sizeof(builtinUsersSid.buffer);
+    ACCESS_MASK builtinUsersAccessMask = 0;
+    ULONG ulAceFlags = OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
+
+    /* Build the new Absolute Security Descriptor */
+
+    ntStatus = RTL_ALLOCATE(
+                   &pAbsSecDesc,
+                   VOID,
+                   SECURITY_DESCRIPTOR_ABSOLUTE_MIN_SIZE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlCreateSecurityDescriptorAbsolute(
+                  pAbsSecDesc,
+                  SECURITY_DESCRIPTOR_REVISION);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Create some SIDs */
+
+    ntStatus = RtlCreateWellKnownSid(
+                   WinLocalSystemSid,
+                   NULL,
+                   (PSID)localSystemSid.buffer,
+                   &ulLocalSystemSidSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlCreateWellKnownSid(
+                   WinBuiltinAdministratorsSid,
+                   NULL,
+                   (PSID)administratorsSid.buffer,
+                   &ulAdministratorsSidSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlCreateWellKnownSid(
+                    WinBuiltinUsersSid,
+                    NULL,
+                    (PSID)builtinUsersSid.buffer,
+                    &ulBuiltinUsersSidSize);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Owner: Local System */
+
+    ntStatus = RtlDuplicateSid(&pOwnerSid, &localSystemSid.sid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlSetOwnerSecurityDescriptor(
+                   pAbsSecDesc,
+                   pOwnerSid,
+                   FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Group: Administrators */
+
+    ntStatus = RtlDuplicateSid(&pGroupSid, &administratorsSid.sid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlSetGroupSecurityDescriptor(
+                   pAbsSecDesc,
+                   pGroupSid,
+                   FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* DACL:
+       Administrators - (Full Control)
+       LocalSystem    - (Full Control)
+       Builtin Users  - (Read && Execute && List Directory Contents)
+     */
+
+    dwAceCount = 3;
+
+    dwSizeDacl = ACL_HEADER_SIZE +
+        dwAceCount * sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&localSystemSid.sid) +
+        RtlLengthSid(&administratorsSid.sid) +
+        RtlLengthSid(&builtinUsersSid.sid) -
+        dwAceCount * sizeof(ULONG);
+
+    ntStatus= RTL_ALLOCATE(&pDacl, VOID, dwSizeDacl);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlCreateAcl(pDacl, dwSizeDacl, ACL_REVISION);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlAddAccessAllowedAceEx(
+                  pDacl,
+                  ACL_REVISION,
+                  ulAceFlags,
+                  FILE_ALL_ACCESS,
+                  &localSystemSid.sid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlAddAccessAllowedAceEx(
+                  pDacl,
+                  ACL_REVISION,
+                  ulAceFlags,
+                  FILE_ALL_ACCESS,
+                  &administratorsSid.sid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    builtinUsersAccessMask = FILE_GENERIC_READ | FILE_GENERIC_EXECUTE;
+
+    ntStatus = RtlAddAccessAllowedAceEx(
+                  pDacl,
+                  ACL_REVISION,
+                  ulAceFlags,
+                  builtinUsersAccessMask,
+                  &builtinUsersSid.sid);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    ntStatus = RtlSetDaclSecurityDescriptor(
+                  pAbsSecDesc,
+                  TRUE,
+                  pDacl,
+                  FALSE);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    /* Create the SelfRelative SD */
+
+    ntStatus = RtlAbsoluteToSelfRelativeSD(
+                   pAbsSecDesc,
+                   NULL,
+                   &ulRelSecDescLen);
+    if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+    {
+        ntStatus = SrvAllocateMemory(ulRelSecDescLen, (PVOID*)&pRelSecDesc);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        ntStatus = RtlAbsoluteToSelfRelativeSD(
+                       pAbsSecDesc,
+                       pRelSecDesc,
+                       &ulRelSecDescLen);
+    }
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    *ppSecDesc = pRelSecDesc;
+
+cleanup:
+
+    RTL_FREE(&pAbsSecDesc);
+    RTL_FREE(&pOwnerSid);
+    RTL_FREE(&pGroupSid);
+    RTL_FREE(&pDacl);
+
+    return ntStatus;
+
+error:
+
+    *ppSecDesc = NULL;
+
+    if (pRelSecDesc)
+    {
+        SrvFreeMemory(pRelSecDesc);
+    }
 
     goto cleanup;
 }
