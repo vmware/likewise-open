@@ -1520,7 +1520,10 @@ LsaSrvAddGroup2(
             hProvider = NULL;
             continue;
         }
-        BAIL_ON_LSA_ERROR(dwError);
+        else
+        {
+            BAIL_ON_LSA_ERROR(dwError);
+        }
     }
 
     if (pszTargetProvider && !bFoundProvider)
