@@ -28,7 +28,7 @@
  * license@likewisesoftware.com
  */
 
-NTSTATUS
+WINERR
 NetpGetRwDcName(
     const wchar16_t *DnsDomainName,
     BOOLEAN Force,

@@ -32,7 +32,7 @@
 
 #include <lwnet.h>
 
-NTSTATUS
+WINERR
 NetpGetRwDcName(
     const wchar16_t *DnsDomainName,
     BOOLEAN Force,

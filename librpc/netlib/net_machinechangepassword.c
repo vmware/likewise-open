@@ -64,9 +64,9 @@ NetMachineChangePassword(
         goto error;
     }
 
-    status = NetpGetRwDcName(pass_info->pwszDnsDomainName, FALSE,
+    err = NetpGetRwDcName(pass_info->pwszDnsDomainName, FALSE,
                            &domain_controller_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    BAIL_ON_WINERR_ERROR(err);
 
     username    = pass_info->pwszMachineAccount;
     oldpassword = pass_info->pwszMachinePassword;

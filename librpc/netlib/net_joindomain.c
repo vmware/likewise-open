@@ -292,8 +292,8 @@ NetJoinDomainLocalInternal(
     BAIL_ON_NO_MEMORY(machname);
     wc16supper(machname);
 
-    status = NetpGetRwDcName(domain, is_retry, &domain_controller_name);
-    BAIL_ON_NTSTATUS_ERROR(status);
+    err = NetpGetRwDcName(domain, is_retry, &domain_controller_name);
+    BAIL_ON_WINERR_ERROR(err);
 
     if (account && password)
     {
