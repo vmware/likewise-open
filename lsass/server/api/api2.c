@@ -1348,7 +1348,6 @@ LsaSrvAddUser2(
         }
         else if (dwError == LW_ERROR_NOT_HANDLED && !pszTargetProvider)
         {
-            dwError = 0;
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = NULL;
         }
@@ -1515,10 +1514,8 @@ LsaSrvAddGroup2(
         }
         else if (dwError == LW_ERROR_NOT_HANDLED && !pszTargetProvider)
         {
-            dwError = 0;
             LsaSrvCloseProvider(pProvider, hProvider);
             hProvider = NULL;
-            continue;
         }
         else
         {
