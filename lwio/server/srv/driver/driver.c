@@ -99,8 +99,9 @@ SrvCreateDefaultSharePath(
 
 static
 NTSTATUS
-SrvBuildDefaultShareSID(
-    PSECURITY_DESCRIPTOR_RELATIVE* ppSecDesc
+SrvBuildDefaultShareSD(
+    PSECURITY_DESCRIPTOR_RELATIVE* ppSecDesc,
+    PULONG pulRelSecDescLen
     );
 
 static
@@ -587,12 +588,16 @@ SrvCreateDefaultSharePath(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSECURITY_DESCRIPTOR_RELATIVE pRelSecDesc = NULL;
+    ULONG ulRelSecDescLen = 0;
     IO_FILE_HANDLE hFile = NULL;
     IO_STATUS_BLOCK ioStatusBlock = {0};
     IO_FILE_NAME filename = {0};
     PIO_CREATE_SECURITY_CONTEXT pSecContext = NULL;
+    SECURITY_INFORMATION secInfo = (OWNER_SECURITY_INFORMATION|
+                                    GROUP_SECURITY_INFORMATION|
+                                    DACL_SECURITY_INFORMATION);
 
-    ntStatus = SrvBuildDefaultShareSID(&pRelSecDesc);
+    ntStatus = SrvBuildDefaultShareSD(&pRelSecDesc, &ulRelSecDescLen);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = IoSecurityCreateSecurityContextFromUidGid(
@@ -610,9 +615,9 @@ SrvCreateDefaultSharePath(
                    &ioStatusBlock,
                    pSecContext,
                    &filename,
-                   pRelSecDesc,
+                   NULL,                  /* SecDesc */
                    NULL,                  /* Security QOS        */
-                   FILE_LIST_DIRECTORY | FILE_ADD_SUBDIRECTORY,
+                   WRITE_OWNER|WRITE_DAC|READ_CONTROL,
                    0,                     /* Allocation Size     */
                    FILE_ATTRIBUTE_NORMAL, /* File Attributes     */
                    0,                     /* No Sharing          */
@@ -622,6 +627,18 @@ SrvCreateDefaultSharePath(
                    0,                     /* EA Length           */
                    NULL);                 /* ECP List            */
     BAIL_ON_NT_STATUS(ntStatus);
+
+    if (ioStatusBlock.CreateResult == FILE_CREATED)
+    {
+        ntStatus = IoSetSecurityFile(
+                       hFile,
+                       NULL,
+                       &ioStatusBlock,
+                       secInfo,
+                       pRelSecDesc,
+                       ulRelSecDescLen);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
 
 cleanup:
 
@@ -646,8 +663,9 @@ error:
 
 static
 NTSTATUS
-SrvBuildDefaultShareSID(
-    PSECURITY_DESCRIPTOR_RELATIVE* ppSecDesc
+SrvBuildDefaultShareSD(
+    PSECURITY_DESCRIPTOR_RELATIVE* ppSecDesc,
+    PULONG pulRelSecDescLen
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
@@ -673,11 +691,11 @@ SrvBuildDefaultShareSID(
     {
         SID sid;
         BYTE buffer[SID_MAX_SIZE];
-    } builtinUsersSid;
+    } worldSid;
     ULONG ulLocalSystemSidSize = sizeof(localSystemSid.buffer);
     ULONG ulAdministratorsSidSize = sizeof(administratorsSid.buffer);
-    ULONG ulBuiltinUsersSidSize = sizeof(builtinUsersSid.buffer);
-    ACCESS_MASK builtinUsersAccessMask = 0;
+    ULONG ulWorldSidSize = sizeof(worldSid.buffer);
+    ACCESS_MASK worldAccessMask = 0;
     ULONG ulAceFlags = OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
 
     /* Build the new Absolute Security Descriptor */
@@ -710,10 +728,10 @@ SrvBuildDefaultShareSID(
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RtlCreateWellKnownSid(
-                    WinBuiltinUsersSid,
+                    WinWorldSid,
                     NULL,
-                    (PSID)builtinUsersSid.buffer,
-                    &ulBuiltinUsersSidSize);
+                    (PSID)worldSid.buffer,
+                    &ulWorldSidSize);
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* Owner: Local System */
@@ -739,9 +757,9 @@ SrvBuildDefaultShareSID(
     BAIL_ON_NT_STATUS(ntStatus);
 
     /* DACL:
-       Administrators - (Full Control)
        LocalSystem    - (Full Control)
-       Builtin Users  - (Read && Execute && List Directory Contents)
+       Administrators - (Full Control)
+       Everyone       - (Read && Execute && List Directory Contents)
      */
 
     dwAceCount = 3;
@@ -750,7 +768,7 @@ SrvBuildDefaultShareSID(
         dwAceCount * sizeof(ACCESS_ALLOWED_ACE) +
         RtlLengthSid(&localSystemSid.sid) +
         RtlLengthSid(&administratorsSid.sid) +
-        RtlLengthSid(&builtinUsersSid.sid) -
+        RtlLengthSid(&worldSid.sid) -
         dwAceCount * sizeof(ULONG);
 
     ntStatus= RTL_ALLOCATE(&pDacl, VOID, dwSizeDacl);
@@ -775,14 +793,14 @@ SrvBuildDefaultShareSID(
                   &administratorsSid.sid);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    builtinUsersAccessMask = FILE_GENERIC_READ | FILE_GENERIC_EXECUTE;
+    worldAccessMask = FILE_GENERIC_READ | FILE_GENERIC_EXECUTE;
 
     ntStatus = RtlAddAccessAllowedAceEx(
                   pDacl,
                   ACL_REVISION,
                   ulAceFlags,
-                  builtinUsersAccessMask,
-                  &builtinUsersSid.sid);
+                  worldAccessMask,
+                  &worldSid.sid);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = RtlSetDaclSecurityDescriptor(
@@ -811,6 +829,7 @@ SrvBuildDefaultShareSID(
     BAIL_ON_NT_STATUS(ntStatus);
 
     *ppSecDesc = pRelSecDesc;
+    *pulRelSecDescLen = ulRelSecDescLen;
 
 cleanup:
 
@@ -932,3 +951,15 @@ error:
 
     goto cleanup;
 }
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
+
