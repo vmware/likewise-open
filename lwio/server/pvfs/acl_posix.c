@@ -824,6 +824,10 @@ PvfsSecurityPosixSetGroup(
         BAIL_ON_NT_STATUS(ntError);
     }
 
+    ntError = PvfsSysChown(pCcb, pStat->s_uid, (gid_t)Id);
+    BAIL_ON_NT_STATUS(ntError);
+
+    pStat->s_gid = (gid_t)Id;
 
     ntError = STATUS_SUCCESS;
 
@@ -852,9 +856,6 @@ PvfsSecurityPosixSetDacl(
     PVOID pAce = NULL;
     ULONG AceIndex = 0;
     mode_t Mode = 0;
-    UCHAR InheritFlags = (OBJECT_INHERIT_ACE|
-                          CONTAINER_INHERIT_ACE|
-                          INHERIT_ONLY_ACE);
     BOOLEAN bDefaulted = FALSE;
     BOOLEAN bIsUserSid = FALSE;
     ULONG Id = 0;
@@ -889,14 +890,6 @@ PvfsSecurityPosixSetDacl(
         PSID pSid = NULL;
 
         if (pAceHeader->AceType != ACCESS_ALLOWED_ACE_TYPE)
-        {
-            ntError = STATUS_ACCESS_DENIED;
-            BAIL_ON_NT_STATUS(ntError);
-        }
-
-        /* Ignore directory inheritance for now */
-
-        if (pAceHeader->AceFlags & InheritFlags)
         {
             ntError = STATUS_ACCESS_DENIED;
             BAIL_ON_NT_STATUS(ntError);
