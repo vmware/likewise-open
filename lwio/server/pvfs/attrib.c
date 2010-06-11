@@ -220,11 +220,19 @@ PvfsSetFileAttributes(
                                         FILE_ATTRIBUTE_SPARSE_FILE;
 
     /* Use PvfsSetFileAttributesEx() for IoControl */
-
-    if (Attributes & AttribNotSettable) {
+#if 0
+    if (Attributes & AttribNotSettable)
+    {
         ntError = STATUS_INVALID_PARAMETER;
         BAIL_ON_NT_STATUS(ntError);
     }
+#else
+    /* Clear "un-settable" bits for now rather than failing.
+       Windows XP Explorer.exer drags and drop of sparse files
+       sets the FILE_ATTRIBUTE_SPARSE_FILE in the NTcreate&X */
+
+    Attributes &= ~AttribNotSettable;
+#endif
 
     /* Clear some bits that should not be stored */
 
