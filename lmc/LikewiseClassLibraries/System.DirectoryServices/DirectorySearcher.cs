@@ -35,7 +35,7 @@ using System.Collections.Specialized;
 
 namespace System.DirectoryServices
 {
-    public class DirectorySearcher
+    public class DirectorySearcher : IDisposable
     {
         private string sFilter;
         private DirectoryEntry deSearchRoot;
@@ -195,6 +195,13 @@ namespace System.DirectoryServices
             }
         }
 
+        #region IDisposable Members
 
+        public void Dispose()
+        {
+
+        }
+
+        #endregion
     }
 }

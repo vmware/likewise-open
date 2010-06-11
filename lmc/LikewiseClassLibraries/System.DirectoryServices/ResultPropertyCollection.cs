@@ -12,7 +12,7 @@
  * your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
  * General Public License for more details.  You should have received a copy
  * of the GNU Lesser General Public License along with this program.  If
@@ -34,51 +34,24 @@ using System.Text;
 
 namespace System.DirectoryServices
 {
-    public class SearchResult
+    public class ResultPropertyCollection : Dictionary<string, ResultPropertyValueCollection>, IDisposable
     {
-        private string sPath;
-        private DirectoryEntry foundEntry;
-        private ResultPropertyCollection properties;
-
-        public SearchResult(string sPath)
+        public ResultPropertyCollection()
+            : base()
         {
-            this.sPath = sPath;
-            this.foundEntry = new DirectoryEntry(sPath);
         }
 
-        public DirectoryEntry GetDirectoryEntry()
+        public bool Contains(string skey)
         {
-            return foundEntry;
+            return ContainsKey(skey);
         }
 
-        public string Path
+        #region IDisposable Members
+
+        public void Dispose()
         {
-            get
-            {
-                return sPath;
-            }
         }
 
-        public ResultPropertyCollection Properties
-        {
-            get
-            {
-                if (properties == null)
-                {
-                    properties = new ResultPropertyCollection();
-                    foreach (string property in foundEntry.Properties.Keys)
-                    {
-                        ResultPropertyValueCollection valueCollection = new ResultPropertyValueCollection();
-                        foreach (string value in foundEntry.Properties[property])
-                        {
-                            valueCollection.Add(value);
-                        }
-                        properties.Add(property, valueCollection);
-                    }
-                }
-                return properties;
-            }
-        }
-
+        #endregion
     }
 }

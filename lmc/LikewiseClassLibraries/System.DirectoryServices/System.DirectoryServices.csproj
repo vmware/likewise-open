@@ -63,6 +63,8 @@
       <DependentUpon>DsPicker.cs</DependentUpon>
     </Compile>
     <Compile Include="IdentityReference.cs" />
+    <Compile Include="ResultPropertyCollection.cs" />
+    <Compile Include="ResultPropertyValueCollection.cs" />
     <Compile Include="WaitForm.cs">
       <SubType>Form</SubType>
     </Compile>
