@@ -102,7 +102,7 @@ PvfsQueryFileFsSizeInfo(
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
     PFILE_FS_SIZE_INFORMATION pFileInfo = NULL;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    IRP_ARGS_QUERY_SET_VOLUME_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetVolumeInformation;
     PVFS_STATFS StatFs = {0};
 
     /* Sanity checks */
@@ -110,7 +110,7 @@ PvfsQueryFileFsSizeInfo(
     ntError =  PvfsAcquireCCB(pIrp->FileHandle, &pCcb);
     BAIL_ON_NT_STATUS(ntError);
 
-    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
+    BAIL_ON_INVALID_PTR(Args.FsInformation, ntError);
 
     /* No access check necessary */
 
@@ -120,7 +120,7 @@ PvfsQueryFileFsSizeInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_FS_SIZE_INFORMATION)Args.FileInformation;
+    pFileInfo = (PFILE_FS_SIZE_INFORMATION)Args.FsInformation;
 
     /* Real work starts here */
 

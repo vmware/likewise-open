@@ -100,7 +100,7 @@ PvfsQueryFileFsDeviceInfo(
     PIRP pIrp = pIrpContext->pIrp;
     PPVFS_CCB pCcb = NULL;
     PFILE_FS_DEVICE_INFORMATION pFileInfo = NULL;
-    IRP_ARGS_QUERY_SET_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetInformation;
+    IRP_ARGS_QUERY_SET_VOLUME_INFORMATION Args = pIrpContext->pIrp->Args.QuerySetVolumeInformation;
 
     /* Sanity checks */
 
@@ -112,7 +112,7 @@ PvfsQueryFileFsDeviceInfo(
     ntError = PvfsAccessCheckFileHandle(pCcb, FILE_READ_ATTRIBUTES);
     BAIL_ON_NT_STATUS(ntError);
 
-    BAIL_ON_INVALID_PTR(Args.FileInformation, ntError);
+    BAIL_ON_INVALID_PTR(Args.FsInformation, ntError);
 
     if (Args.Length < sizeof(*pFileInfo))
     {
@@ -120,7 +120,7 @@ PvfsQueryFileFsDeviceInfo(
         BAIL_ON_NT_STATUS(ntError);
     }
 
-    pFileInfo = (PFILE_FS_DEVICE_INFORMATION)Args.FileInformation;
+    pFileInfo = (PFILE_FS_DEVICE_INFORMATION)Args.FsInformation;
 
     /* Real work starts here */
 
