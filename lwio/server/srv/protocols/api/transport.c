@@ -492,6 +492,7 @@ SrvProtocolTransportDriverConnectionData(
 
         if (pZctExecContext)
         {
+            LWIO_ASSERT(pPacket == NULL);
             goto cleanup;
         }
 
@@ -1190,6 +1191,12 @@ SrvProtocolTransportDriverDetectPacket(
                         pPacketFound->bufferUsed,
                         &pZctExecContext->pStatInfo);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        // pZctExecContext is holding a ref, drop ours
+        SMBPacketRelease(
+                pConnection->hPacketAllocator,
+                pPacketFound);
+        pPacketFound = NULL;
     }
 
 cleanup:
@@ -1750,3 +1757,12 @@ error:
 
     goto cleanup;
 }
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
