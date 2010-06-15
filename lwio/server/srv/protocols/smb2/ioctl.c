@@ -465,7 +465,8 @@ SrvBuildIOCTLResponse_SMB_V2(
                     pCtxSmb2->pTree->ulTid,
                     pCtxSmb2->pSession->ullUid,
                     0LL, /* Async Id */
-                    STATUS_SUCCESS,
+                    (pIOCTLState->pRequestHeader->ulMaxOutLength < pIOCTLState->ulResponseBufferLen ?
+                            STATUS_SUCCESS : STATUS_BUFFER_OVERFLOW),
                     TRUE,
                     LwIsSetFlag(
                         pSmbRequest->pHeader->ulFlags,
