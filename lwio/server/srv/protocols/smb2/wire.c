@@ -59,6 +59,12 @@ SMB2UnmarshalCreateContexts(
     PULONG               pulNumContexts
     );
 
+static
+NTSTATUS
+SMB2VerifyLockRequestPreamble(
+    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest
+    );
+
 NTSTATUS
 SMB2InitPacket(
     IN OUT PSMB_PACKET pSmbPacket,
@@ -1587,6 +1593,9 @@ SMB2UnmarshalLockRequest(
     ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->ulHeaderSize;
     PSMB2_LOCK_REQUEST_HEADER pRequestHeader = NULL; // Do not free
 
+    ntStatus = SMB2VerifyLockRequestPreamble(pSmbRequest);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     if (ulBytesAvailable < sizeof(SMB2_LOCK_REQUEST_HEADER))
     {
         ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
@@ -1626,6 +1635,34 @@ error:
     *ppRequestHeader = NULL;
 
     goto cleanup;
+}
+
+static
+NTSTATUS
+SMB2VerifyLockRequestPreamble(
+    IN     PSRV_MESSAGE_SMB_V2        pSmbRequest
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PBYTE pDataCursor = pSmbRequest->pBuffer + pSmbRequest->ulHeaderSize;
+    ULONG ulBytesAvailable = pSmbRequest->ulMessageSize - pSmbRequest->ulHeaderSize;
+    PSMB2_LOCK_REQUEST_PREAMBLE pPreamble = NULL; // Do not free
+
+    if (ulBytesAvailable < sizeof(SMB2_LOCK_REQUEST_PREAMBLE))
+    {
+        ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    pPreamble = (PSMB2_LOCK_REQUEST_PREAMBLE)pDataCursor;
+    if (!pPreamble->usLockCount)
+    {
+        ntStatus = STATUS_INVALID_PARAMETER;
+    }
+
+error:
+
+    return ntStatus;
 }
 
 NTSTATUS
