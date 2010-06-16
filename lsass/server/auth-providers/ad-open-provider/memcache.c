@@ -1441,7 +1441,8 @@ MemCacheRemoveObjectByHashKey(
                         (PVOID)(size_t)pObject->userInfo.uid);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (pObject->userInfo.pszAliasName != NULL)
+        if (pObject->userInfo.pszAliasName != NULL &&
+                pObject->userInfo.pszAliasName[0])
         {
             dwError = LsaHashRemoveKey(
                             pConn->pUserAliasToSecurityObject,
@@ -1449,7 +1450,7 @@ MemCacheRemoveObjectByHashKey(
             BAIL_ON_LSA_ERROR(dwError);
         }
 
-        if (pObject->userInfo.pszUPN != NULL)
+        if (pObject->userInfo.pszUPN != NULL && pObject->userInfo.pszUPN[0])
         {
             dwError = LsaHashRemoveKey(
                             pConn->pUPNToSecurityObject,
@@ -1464,7 +1465,8 @@ MemCacheRemoveObjectByHashKey(
                         (PVOID)(size_t)pObject->groupInfo.gid);
         BAIL_ON_LSA_ERROR(dwError);
 
-        if (pObject->groupInfo.pszAliasName != NULL)
+        if (pObject->groupInfo.pszAliasName != NULL &&
+                pObject->groupInfo.pszAliasName[0])
         {
             dwError = LsaHashRemoveKey(
                             pConn->pGroupAliasToSecurityObject,
