@@ -86,7 +86,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 (prename[i] == '[') || (prename[i] == ']') || (prename[i] == ':') || (prename[i] == ';') ||
                 (prename[i] == '|') || (prename[i] == '=') || (prename[i] == ',') || (prename[i] == '+') ||
                 (prename[i] == '*') || (prename[i] == '?') || (prename[i] == '<') || (prename[i] == '>') ||
-                (prename[i] == '"'))
+                (prename[i] == '"') || (prename[i] == '@'))
                 {
                     Isexists = true;
                     break;
@@ -101,7 +101,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                 "The pre-Windows 2000 logon name " +
                 prename +
                 " contains one or more of the following illegal characters " +
-                ":/\\n []:;|=,*+?<> \n If you continue LAC will replace these " +
+                ":/\\n []:;|=,*+?<>@\" \n If you continue LAC will replace these " +
                 "characters with underscore ('_').\n Do you want to continue?",
                 CommonResources.GetString("Caption_Console"),
                 MessageBoxButtons.YesNo,
@@ -115,7 +115,7 @@ namespace Likewise.LMC.Plugins.ADUCPlugin
                         (prename[i] == '[') || (prename[i] == ']') || (prename[i] == ':') || (prename[i] == ';') ||
                         (prename[i] == '|') || (prename[i] == '=') || (prename[i] == ',') || (prename[i] == '+') ||
                         (prename[i] == '*') || (prename[i] == '?') || (prename[i] == '<') || (prename[i] == '>') ||
-                        (prename[i] == '"'))
+                        (prename[i] == '"') || (prename[i] == '@'))
                         {
                             prename = prename.Replace(prename[i], '_');
                         }
