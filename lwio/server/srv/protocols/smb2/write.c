@@ -196,7 +196,7 @@ SrvProcessWrite_SMB_V2(
                             pRequestHeader,
                             pData,
                             pFile,
-                            pSmbRequest->pHeader->ulPid,
+                            0,
                             &pWriteState);
         BAIL_ON_NT_STATUS(ntStatus);
 
