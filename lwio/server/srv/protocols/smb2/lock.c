@@ -341,6 +341,15 @@ error:
 
             break;
 
+        case STATUS_CANCELLED:
+
+            if (pLockRequestState && !pLockRequestState->bCancelledByClient)
+            {
+                ntStatus = STATUS_RANGE_NOT_LOCKED;
+            }
+
+            // intentional fall through
+
         default:
 
             if (pLockRequestState)
@@ -399,6 +408,8 @@ SrvCancelLockRequest_SMB_V2(
     pLockState = (PSRV_LOCK_REQUEST_STATE_SMB_V2)pAsyncState->hAsyncState;
 
     LWIO_LOCK_MUTEX(bInLock, &pLockState->mutex);
+
+    pLockState->bCancelledByClient = TRUE;
 
     SrvCancelLockRequestStateHandle_SMB_V2_inlock(pLockState);
 

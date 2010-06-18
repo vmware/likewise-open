@@ -1195,6 +1195,8 @@ typedef struct _SRV_LOCK_REQUEST_STATE_SMB_V2
     BOOLEAN                   bLockPending;
     BOOLEAN                   bInitInterimResponse;
 
+    BOOLEAN                   bCancelledByClient;
+
 } SRV_LOCK_REQUEST_STATE_SMB_V2, *PSRV_LOCK_REQUEST_STATE_SMB_V2;
 
 typedef enum
