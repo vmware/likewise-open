@@ -18,7 +18,6 @@ libsrv_protocols_smb2_la_SOURCES = \
     ioctl.c          \
     libmain.c        \
     lock.c           \
-    lockasync.c      \
     logoff.c         \
     negotiate.c      \
     notify_request.c \

@@ -92,7 +92,7 @@ SrvProcessCancel_SMB_V2(
 
         case COM2_LOCK:
 
-            ntStatus = SrvCancelLock_SMB_V2(pExecContext);
+            ntStatus = SrvCancelLockRequest_SMB_V2(pExecContext);
 
             break;
 
