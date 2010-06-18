@@ -510,9 +510,7 @@ SrvProcessLockRequest_SMB_V2(
                 PSMB2_LOCK pPriorLock =
                     &pLockRequestState->pRequestHeader->locks[iPriorLock];
 
-                if (!LwIsSetFlag(pPriorLock->ulFlags, SMB2_LOCK_FLAGS_UNLOCK) &&
-                    (pPriorLock->ullByteRange == pLock->ullByteRange) &&
-                    (pPriorLock->ullFileOffset == pLock->ullFileOffset))
+                if (!LwIsSetFlag(pPriorLock->ulFlags, SMB2_LOCK_FLAGS_UNLOCK))
                 {
                     ntStatus = STATUS_INVALID_PARAMETER;
                     BAIL_ON_NT_STATUS(ntStatus);
@@ -540,6 +538,21 @@ SrvProcessLockRequest_SMB_V2(
         }
         else
         {
+            INT iPriorLock = 0;
+
+            // No prior lock range must exist that matches this unlock
+            for (; iPriorLock < pLockRequestState->iLock; iPriorLock++)
+            {
+                PSMB2_LOCK pPriorLock =
+                    &pLockRequestState->pRequestHeader->locks[iPriorLock];
+
+                if (LwIsSetFlag(pPriorLock->ulFlags, SMB2_LOCK_FLAGS_UNLOCK))
+                {
+                    ntStatus = STATUS_INVALID_PARAMETER;
+                    BAIL_ON_NT_STATUS(ntStatus);
+                }
+            }
+
             ntStatus = IoLockFile(
                             pLockRequestState->pFile->hFile,
                             pLockRequestState->pAcb,
