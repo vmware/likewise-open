@@ -131,6 +131,12 @@ SrvReleaseLockRequestStateHandle_SMB_V2(
     );
 
 static
+PSRV_LOCK_REQUEST_STATE_SMB_V2
+SrvAcquireLockRequestState_SMB_V2(
+    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+    );
+
+static
 VOID
 SrvReleaseLockRequestState_SMB_V2(
     PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
@@ -219,9 +225,10 @@ SrvProcessLock_SMB_V2(
                             &pLockRequestState);
         BAIL_ON_NT_STATUS(ntStatus);
 
-        pCtxSmb2->hState = pLockRequestState;
+        pCtxSmb2->hState = SrvAcquireLockRequestState_SMB_V2(pLockRequestState);
         pCtxSmb2->pfnStateRelease = &SrvReleaseLockRequestStateHandle_SMB_V2;
-        InterlockedIncrement(&pLockRequestState->refCount);
+
+        pAsyncState->hAsyncState = SrvAcquireLockRequestState_SMB_V2(pLockRequestState);
     }
 
     LWIO_LOCK_MUTEX(bInLock, &pLockRequestState->mutex);
@@ -256,6 +263,15 @@ SrvProcessLock_SMB_V2(
 
         case SRV_LOCK_STAGE_SMB_V2_DONE:
 
+            if (pLockRequestState->ullAsyncId)
+            {
+                SrvConnection2RemoveAsyncState(
+                        pConnection,
+                        pLockRequestState->ullAsyncId);
+
+                pLockRequestState->ullAsyncId = 0;
+            }
+
             break;
     }
 
@@ -280,7 +296,19 @@ cleanup:
     {
         LWIO_UNLOCK_MUTEX(bInLock, &pLockRequestState->mutex);
 
+        if (bUnregisterAsync)
+        {
+            SrvConnection2RemoveAsyncState(
+                    pConnection,
+                    pLockRequestState->ullAsyncId);
+        }
+
         SrvReleaseLockRequestState_SMB_V2(pLockRequestState);
+    }
+
+    if (pAsyncState)
+    {
+        SrvAsyncStateRelease(pAsyncState);
     }
 
     return ntStatus;
@@ -306,6 +334,8 @@ error:
                 else
                 {
                     pLockRequestState->bInitInterimResponse = TRUE;
+
+                    bUnregisterAsync = FALSE;
                 }
             }
 
@@ -315,8 +345,6 @@ error:
 
             if (pLockRequestState)
             {
-                SrvReleaseLockStateAsync_SMB_V2(pLockRequestState);
-
                 if (bInLock)
                 {
                     SrvClearLocks_SMB_V2_inlock(pLockRequestState);
@@ -325,6 +353,19 @@ error:
                 {
                     SrvClearLocks_SMB_V2(pLockRequestState);
                 }
+
+                if (pLockRequestState->ullAsyncId)
+                {
+                    SrvConnection2RemoveAsyncState(
+                            pConnection,
+                            pLockRequestState->ullAsyncId);
+
+                    pLockRequestState->ullAsyncId = 0;
+
+                    bUnregisterAsync = FALSE;
+                }
+
+                SrvReleaseLockStateAsync_SMB_V2(pLockRequestState);
             }
 
             break;
@@ -855,6 +896,17 @@ SrvReleaseLockRequestStateHandle_SMB_V2(
 {
     return SrvReleaseLockRequestState_SMB_V2(
                 (PSRV_LOCK_REQUEST_STATE_SMB_V2)hLockRequestState);
+}
+
+static
+PSRV_LOCK_REQUEST_STATE_SMB_V2
+SrvAcquireLockRequestState_SMB_V2(
+    PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
+    )
+{
+    InterlockedDecrement(&pLockRequestState->refCount);
+
+    return pLockRequestState;
 }
 
 static
