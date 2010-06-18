@@ -4158,7 +4158,6 @@ AD_OnlineFindObjectByName(
         case LW_ERROR_NO_SUCH_USER:
         case LW_ERROR_NO_SUCH_GROUP:
         case LW_ERROR_NO_SUCH_OBJECT:
-        case LW_ERROR_DOMAIN_IS_OFFLINE:
             dwError = LW_ERROR_SUCCESS;
             break;
         default:
@@ -4423,7 +4422,6 @@ AD_OnlineFindObjectsById(
             case LW_ERROR_NO_SUCH_USER:
             case LW_ERROR_NO_SUCH_GROUP:
             case LW_ERROR_NO_SUCH_OBJECT:
-            case LW_ERROR_DOMAIN_IS_OFFLINE:
                 dwError = LW_ERROR_SUCCESS;
                 break;
             default:
