@@ -672,6 +672,8 @@ namespace Likewise.LMC.LDAP
             LdapHandle ldapHandle = new LdapHandle(ld);
 
             string distinguishedName = string.Format("cn={0},cn=Users,{1}", UserName, rootDN);
+            if (!String.IsNullOrEmpty(UserName) && !UserName.Equals("administrator", StringComparison.InvariantCultureIgnoreCase))
+                distinguishedName = UserName;
 
             int version = LDAP_VERSION3;
             IntPtr ptrVersion = IntPtr.Zero;

@@ -1613,6 +1613,9 @@ namespace Likewise.LMC.LDAP
                     if (dirContext.BindMethod)
                     {
                         string distinguishedName = string.Format("cn={0},cn=Users,{1}", dirContext.UserName, dirContext.RootDN);
+                        if (!String.IsNullOrEmpty(dirContext.UserName) && !dirContext.UserName.Equals("administrator", StringComparison.InvariantCultureIgnoreCase))
+                            distinguishedName = dirContext.UserName;
+
                         Logger.Log(String.Format("Ldap_Rebind_S: baseDn", distinguishedName), Logger.ldapLogLevel);
 
                         Logger.Log(String.Format("LdapAPI.ldap_bind_s(ld = {0}, distinguishedName = {1} , Password = {2} , (ulong)LDAP_AUTH.LDAP_AUTH_SIMPLE)", _ld.ToString(), distinguishedName, dirContext.Password), Logger.ldapLogLevel);
