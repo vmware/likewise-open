@@ -234,6 +234,39 @@ SrvFile2GetOplockLevel(
 }
 
 VOID
+SrvFile2SetClosing(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pFile->mutex);
+
+    pFile->bIsClosing = TRUE;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+}
+
+
+BOOLEAN
+SrvFile2IsFileClosing(
+    PLWIO_SRV_FILE_2 pFile
+    )
+{
+    BOOLEAN bClosing = FALSE;
+
+    BOOLEAN bInLock = FALSE;
+
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pFile->mutex);
+
+    bClosing = pFile->bIsClosing;
+
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pFile->mutex);
+
+    return bClosing;
+}
+
+VOID
 SrvFile2RegisterLock(
     PLWIO_SRV_FILE_2 pFile
     )
