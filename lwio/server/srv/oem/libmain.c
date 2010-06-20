@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,68 +24,39 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        libmain.c
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - SRV
  *
- *        Protocols
+ *        OEM Utility Functions
  *
- * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *        Library Entry Points
+ *
+ * Authors: Sriram Nambakam (snambakam@likewisesoftware.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#include "includes.h"
 
-#include <uuid/uuid.h>
+NTSTATUS
+SrvOEMInitialize(
+    VOID
+    )
+{
+    return STATUS_SUCCESS;
+}
 
-#include <lwio/lwio.h>
-#include <lwio/lwiosrvstatprovider.h>
-
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiocfg.h>
-#include <lwiolog_r.h>
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-#include <lw/winerror.h>
-
-#include <lwio/lmshare.h>
-#include <lwio/lwshareinfo.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-#include <lwiofsctl.h>
-
-#include <smbwire.h>
-#include <srvecp.h>
-
-#include <shareapi.h>
-#include <srvoem.h>
-#include <srvutils.h>
-#include <statisticsapi.h>
-#include <elementsapi.h>
-#include <transportapi.h>
-#include <protocolapi.h>
-
-#include <protocolapi_p.h>
-#include <smb1.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-
-#include "externs.h"
-
-
-
-
+NTSTATUS
+SrvOEMShutdown(
+    VOID
+    )
+{
+    return STATUS_SUCCESS;
+}

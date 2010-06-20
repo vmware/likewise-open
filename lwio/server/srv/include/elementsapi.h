@@ -325,6 +325,9 @@ typedef struct _LWIO_SRV_SESSION
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
 
+    PVOID             pOEMSession;
+    ULONG             ulOEMSessionLength;
+
 } LWIO_SRV_SESSION, *PLWIO_SRV_SESSION;
 
 typedef struct _LWIO_SRV_SESSION_2
@@ -355,6 +358,9 @@ typedef struct _LWIO_SRV_SESSION_2
     ULONG             ulUserFlags;
 
     PIO_CREATE_SECURITY_CONTEXT   pIoSecurityContext;
+
+    PVOID             pOEMSession;
+    ULONG             ulOEMSessionLength;
 
 } LWIO_SRV_SESSION_2, *PLWIO_SRV_SESSION_2;
 
@@ -493,6 +499,9 @@ typedef struct _SRV_CONNECTION
     ULONG64             ullNextAvailableAsyncId;
 
     PLWRTL_RB_TREE      pAsyncStateCollection;
+
+    PVOID               pOEMConnection;
+    ULONG               ulOEMConnectionLength;
 
 } LWIO_SRV_CONNECTION, *PLWIO_SRV_CONNECTION;
 
@@ -1505,6 +1514,11 @@ SrvElementsGetShareNameEcpEnabled(
 
 BOOLEAN
 SrvElementsGetClientAddressEcpEnabled(
+    VOID
+    );
+
+BOOLEAN
+SrvElementsGetOEMSessionEcpEnabled(
     VOID
     );
 

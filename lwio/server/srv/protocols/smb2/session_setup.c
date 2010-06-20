@@ -219,6 +219,27 @@ SrvProcessSessionSetup_SMB_V2(
 
         pSmbResponse->pHeader->ullSessionId = pCtxSmb2->pSession->ullUid;
 
+        if (pConnection->pOEMConnection)
+        {
+            SRV_OEM_SESSION_ID sessionId =
+            {
+                    .ver    = SMB_PROTOCOL_VERSION_2,
+                    .id     =
+                        {
+                            .ullUid = pCtxSmb2->pSession->ullUid
+                        }
+            };
+
+            ntStatus = SrvOEMCreateSession(
+                            pConnection->pOEMConnection,
+                            pConnection->ulOEMConnectionLength,
+                            &sessionId,
+                            pCtxSmb2->pSession->pIoSecurityContext,
+                            &pCtxSmb2->pSession->pOEMSession,
+                            &pCtxSmb2->pSession->ulOEMSessionLength);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
     }
 

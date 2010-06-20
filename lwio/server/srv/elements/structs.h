@@ -130,6 +130,7 @@ typedef struct _SRV_ELEMENTS_GLOBALS
     LONG64 llBootTime;
     BOOLEAN bShareNameEcpEnabled;
     BOOLEAN bClientAddressEcpEnabled;
+    BOOLEAN bOEMSessionEcpEnabled;
 
     pthread_rwlock_t        statsLock;
     pthread_rwlock_t*       pStatsLock;

@@ -670,6 +670,24 @@ SrvIoPrepareEcpList(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    if (SrvElementsGetOEMSessionEcpEnabled() &&
+        pTConState->pSession->pOEMSession)
+    {
+        if (!*ppEcpList)
+        {
+            ntStatus = IoRtlEcpListAllocate(ppEcpList);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
+        ntStatus = IoRtlEcpListInsert(
+                        *ppEcpList,
+                        SRV_ECP_TYPE_OEM_SESSION,
+                        &pTConState->pSession->pOEMSession,
+                        pTConState->pSession->ulOEMSessionLength,
+                        NULL);
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
 cleanup:
 
     RTL_FREE(&pShareName);

@@ -193,6 +193,27 @@ SrvProcessSessionSetup(
             BAIL_ON_NT_STATUS(ntStatus);
         }
 
+        if (pConnection->pOEMConnection)
+        {
+            SRV_OEM_SESSION_ID sessionId =
+            {
+                    .ver   = SMB_PROTOCOL_VERSION_1,
+                    .id    =
+                        {
+                            .usUid = pCtxSmb1->pSession->uid
+                        }
+            };
+
+            ntStatus = SrvOEMCreateSession(
+                            pConnection->pOEMConnection,
+                            pConnection->ulOEMConnectionLength,
+                            &sessionId,
+                            pCtxSmb1->pSession->pIoSecurityContext,
+                            &pCtxSmb1->pSession->pOEMSession,
+                            &pCtxSmb1->pSession->ulOEMSessionLength);
+            BAIL_ON_NT_STATUS(ntStatus);
+        }
+
         SrvConnectionSetState(pConnection, LWIO_SRV_CONN_STATE_READY);
     }
 

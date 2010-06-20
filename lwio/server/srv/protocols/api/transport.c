@@ -405,6 +405,16 @@ SrvProtocolTransportDriverConnectionNew(
     ntStatus = SrvElementsRegisterResource(&pConnection->resource, NULL);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvOEMCreateClientConnection(
+                    &pConnection->clientAddress,
+                    pConnection->clientAddrLen,
+                    &pConnection->serverAddress,
+                    pConnection->serverAddrLen,
+                    pConnection->resource.ulResourceId,
+                    &pConnection->pOEMConnection,
+                    &pConnection->ulOEMConnectionLength);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pConnection->pProtocolTransportDriverContext = pProtocolDispatchContext;
 
     // Allocate buffer space

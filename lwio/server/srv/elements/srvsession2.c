@@ -710,6 +710,13 @@ SrvSession2Free(
         IoSecurityDereferenceSecurityContext(&pSession->pIoSecurityContext);
     }
 
+    if (pSession->pOEMSession)
+    {
+        SrvOEMCloseSession(
+                pSession->pOEMSession,
+                pSession->ulOEMSessionLength);
+    }
+
     SrvFreeMemory(pSession);
 }
 

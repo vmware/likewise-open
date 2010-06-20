@@ -150,6 +150,14 @@ SrvElementsGetClientAddressEcpEnabled(
     return gSrvElements.bClientAddressEcpEnabled;
 }
 
+BOOLEAN
+SrvElementsGetOEMSessionEcpEnabled(
+    VOID
+    )
+{
+    return gSrvElements.bClientAddressEcpEnabled;
+}
+
 NTSTATUS
 SrvElementsGetStats(
     PSRV_ELEMENTS_STATISTICS pStats

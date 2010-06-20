@@ -358,6 +358,9 @@ SrvInitialize(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    ntStatus = SrvOEMInitialize();
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvElementsInit();
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -901,6 +904,8 @@ SrvShutdown(
         SrvStatisticsShutdown();
 
         SrvElementsShutdown();
+
+        SrvOEMShutdown();
 
         SrvShareFreeListContents(&gSMBSrvGlobals.shareList);
 
