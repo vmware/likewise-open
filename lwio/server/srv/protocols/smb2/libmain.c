@@ -341,6 +341,30 @@ SrvProcessRequestSpecific_SMB_V2(
         BAIL_ON_NT_STATUS(ntStatus);
     }
 
+    // Clear the context items before processing an un-related message
+    if (iMsg &&
+        !LwIsSetFlag(pSmbRequest->pHeader->ulFlags,SMB2_FLAGS_RELATED_OPERATION))
+    {
+        if (pCtxSmb2->pFile)
+        {
+            SrvFile2Release(pCtxSmb2->pFile);
+            pCtxSmb2->pFile = NULL;
+        }
+        if (pCtxSmb2->pTree)
+        {
+            SrvTree2Release(pCtxSmb2->pTree);
+            pCtxSmb2->pTree = NULL;
+        }
+        if (pCtxSmb2->pSession)
+        {
+            SrvSession2Release(pCtxSmb2->pSession);
+            pCtxSmb2->pSession = NULL;
+        }
+
+        pCtxSmb2->bFileOpened = FALSE;
+        pCtxSmb2->bFileClosed = FALSE;
+    }
+
     switch (pSmbRequest->pHeader->command)
     {
         case COM2_NEGOTIATE:

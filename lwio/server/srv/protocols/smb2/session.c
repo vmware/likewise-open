@@ -62,11 +62,22 @@ SrvSession2FindTree_SMB_V2(
 
     if (ulTid)
     {
-        if (pSmb2Context->pTree)
+        if (ulTid == 0xFFFFFFFF)
+        {
+            if (!pSmb2Context->pTree)
+            {
+                ntStatus = STATUS_INVALID_PARAMETER;
+            }
+            else
+            {
+                pTree = SrvTree2Acquire(pSmb2Context->pTree);
+            }
+        }
+        else if (pSmb2Context->pTree)
         {
             if (pSmb2Context->pTree->ulTid != ulTid)
             {
-                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                ntStatus = STATUS_INVALID_PARAMETER;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else

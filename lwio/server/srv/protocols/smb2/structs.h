@@ -1256,9 +1256,6 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V2
     PLWIO_SRV_TREE_2                     pTree;
     PLWIO_SRV_FILE_2                     pFile;
 
-    LONG                                 llNumSuccessfulCreates;
-    NTSTATUS                             lastCloseStatus;
-
     HANDLE                               hState;
     PFN_SRV_MESSAGE_STATE_RELEASE_SMB_V2 pfnStateRelease;
 
@@ -1267,6 +1264,9 @@ typedef struct _SRV_EXEC_CONTEXT_SMB_V2
 
     PBYTE                                pErrorMessage;
     ULONG                                ulErrorMessageLength;
+
+    BOOLEAN                              bFileClosed;
+    BOOLEAN                              bFileOpened;
 
 } SRV_EXEC_CONTEXT_SMB_V2;
 

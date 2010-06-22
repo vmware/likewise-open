@@ -424,7 +424,8 @@ SrvProcessCreate_SMB_V2(
             }
 
             pCtxSmb2->pFile = SrvFile2Acquire(pCreateState->pFile);
-            pCtxSmb2->llNumSuccessfulCreates++;
+
+            pCtxSmb2->bFileOpened = TRUE;
 
             break;
     }
