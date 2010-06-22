@@ -340,6 +340,7 @@ NetJoinDomainLocalInternal(
         BAIL_ON_WINERR_ERROR(err);
 
         err = DirectoryDisconnect(ld);
+        ld = NULL;
         BAIL_ON_WINERR_ERROR(err);
     }
 
@@ -401,6 +402,17 @@ NetJoinDomainLocalInternal(
         BAIL_ON_WINERR_ERROR(err);
     }
 
+    // Make sure we can access the account
+    err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
+    BAIL_ON_WINERR_ERROR(err);
+
+    err = MachAcctSearch(ld, machacct_name, base_dn, &dn);
+    if (err == ERROR_INVALID_PARAMETER)
+    {
+        err = ERROR_ACCESS_DENIED;
+    }
+    BAIL_ON_WINERR_ERROR(err);
+
     err = SaveMachinePassword(
               machname,
               machacct_name,
@@ -426,12 +438,6 @@ NetJoinDomainLocalInternal(
      */
     if (!(options & NETSETUP_DEFER_SPN_SET) ||
         osname || osver || ospack) {
-
-        err = DirectoryConnect(domain_controller_name, &ld, &base_dn);
-        BAIL_ON_WINERR_ERROR(err);
-
-        err = MachAcctSearch(ld, machacct_name, base_dn, &dn);
-        BAIL_ON_WINERR_ERROR(err);
 
         /*
          * Set SPN and dnsHostName attributes unless this part is to be deferred
@@ -548,9 +554,6 @@ NetJoinDomainLocalInternal(
                 BAIL_ON_WINERR_ERROR(err);
             }
         }
-
-        err = DirectoryDisconnect(ld);
-        BAIL_ON_WINERR_ERROR(err);
     }
 
 cleanup:
@@ -587,6 +590,11 @@ cleanup:
     if (creds)
     {
         LwIoDeleteCreds(creds);
+    }
+
+    if (ld)
+    {
+        DirectoryDisconnect(ld);
     }
 
     RTL_FREE(&sid_str);

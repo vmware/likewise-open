@@ -515,8 +515,7 @@ MachAcctCreate(
 
         dn_val = LdapAttributeGet(ld, machacct, dn_name, NULL);
         if (dn_val == NULL) {
-            /* TODO: find more descriptive error code */
-            lderr = LDAP_NO_SUCH_ATTRIBUTE;
+            err = ERROR_ACCESS_DENIED;
             goto error;
         }
 
@@ -536,7 +535,11 @@ cleanup:
         LdapAttributeValueFree(dn_val);
     }
 
-    return LdapErrToWin32Error(lderr);
+    if (!err)
+    {
+        err = LdapErrToWin32Error(lderr);
+    }
+    return err;
 
 error:
     goto cleanup;
