@@ -32,27 +32,24 @@
  *
  * Module Name:
  *
- *        externs.h
+ *        globals.c
  *
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- *        
- *        Extern Declarations in Join Interface
+ *
+ *        Global Variables in Join Interface
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
  *          Sriram Nambakam (snambakam@likewisesoftware.com)
  */
-#ifndef __LW_JOIN_EXTERNS_H__
-#define __LW_JOIN_EXTERNS_H__
 
-extern DWORD gdwClockDriftSecs;
+#include "includes.h"
 
-typedef struct _LW_KRB5_STATE {
-    pthread_mutex_t ExistingClientLock;
-    pthread_mutex_t UserCacheMutex;
-} LW_KRB5_STATE, *PLW_KRB5_STATE;
+DWORD gdwClockDriftSecs = 60;
 
-extern LW_KRB5_STATE gLwKrb5State;
-
-#endif /* __LW_JOIN_EXTERNS_H__ */
+LW_KRB5_STATE gLwKrb5State =
+{
+    .ExistingClientLock = PTHREAD_MUTEX_INITIALIZER,
+    .UserCacheMutex = PTHREAD_MUTEX_INITIALIZER
+};

@@ -37,7 +37,7 @@
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- *        
+ *
  *        Kerberos 5 API
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
@@ -71,7 +71,7 @@ LwKrb5GetDefaultRealm(
     BAIL_ON_LW_ERROR(dwError);
 
     *ppszRealm = pszRealm;
-    
+
 cleanup:
 
     if (pszKrb5Realm)
@@ -86,7 +86,7 @@ cleanup:
 error:
 
     *ppszRealm = NULL;
-    
+
     LW_SAFE_FREE_STRING(pszRealm);
 
     goto cleanup;
@@ -103,7 +103,7 @@ LwKrb5GetSystemCachePath(
     krb5_context ctx = NULL;
     const char *pszKrbDefault = NULL;
     krb5_error_code ret = 0;
-    
+
     ret = krb5_init_context(&ctx);
     BAIL_ON_KRB_ERROR(ctx, ret);
 
@@ -113,9 +113,9 @@ LwKrb5GetSystemCachePath(
                 pszKrbDefault,
                 &pszCachePath);
     BAIL_ON_LW_ERROR(dwError);
-    
+
     *ppszCachePath = pszCachePath;
-    
+
 cleanup:
     if (ctx)
     {
@@ -123,11 +123,11 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     *ppszCachePath = NULL;
-    
+
     goto cleanup;
 }
 
@@ -141,47 +141,47 @@ LwKrb5GetUserCachePath(
 {
     DWORD dwError = 0;
     PSTR  pszCachePath = NULL;
-    
+
     switch (cacheType)
     {
         case KRB5_InMemory_Cache:
-            
+
             dwError = LwAllocateStringPrintf(
                         &pszCachePath,
                         "MEMORY:krb5cc_%ld",
                         (long)uid);
             BAIL_ON_LW_ERROR(dwError);
-            
+
             break;
-            
+
         case KRB5_File_Cache:
-            
+
             dwError = LwAllocateStringPrintf(
                         &pszCachePath,
                         "FILE:/tmp/krb5cc_%ld",
                         (long)uid);
             BAIL_ON_LW_ERROR(dwError);
-            
+
             break;
-            
+
         default:
-            
+
             dwError = LW_ERROR_INVALID_PARAMETER;
             BAIL_ON_LW_ERROR(dwError);
-            
+
             break;
     }
-    
+
     *ppszCachePath = pszCachePath;
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     *ppszCachePath = NULL;
-    
+
     goto cleanup;
 }
 
@@ -207,7 +207,7 @@ LwKrb5SetDefaultCachePath(
     LW_LOG_DEBUG("Switched gss krb5 credentials path from %s to %s",
             LW_SAFE_LOG_STRING(pszOrigCachePath),
             LW_SAFE_LOG_STRING(pszCachePath));
-    
+
     if (ppszOrigCachePath) {
         if (!LW_IS_NULL_OR_EMPTY_STR(pszOrigCachePath)) {
             dwError = LwAllocateString(pszOrigCachePath, ppszOrigCachePath);
@@ -216,11 +216,11 @@ LwKrb5SetDefaultCachePath(
             *ppszOrigCachePath = NULL;
         }
     }
-    
+
 cleanup:
 
     return dwError;
-    
+
 error:
 
     if (ppszOrigCachePath) {
@@ -254,7 +254,7 @@ LwKrb5GetSystemKeytabPath(
 
         ret = krb5_kt_default_name(ctx, pszPath, size);
     } while (ret == KRB5_CONFIG_NOTENUFSPACE);
-    
+
     BAIL_ON_KRB_ERROR(ctx, ret);
     *ppszKeytabPath = pszPath;
 
@@ -268,7 +268,7 @@ cleanup:
 error:
     LW_SAFE_FREE_STRING(pszPath);
     *ppszKeytabPath = NULL;
-    
+
     goto cleanup;
 }
 
@@ -311,7 +311,7 @@ LwKrb5SetProcessDefaultCachePath(
 
 error:
     LW_SAFE_FREE_STRING(pszEnvironmentEntry);
-    
+
     if (bLocked)
     {
         pthread_mutex_unlock(&lock);
@@ -356,7 +356,7 @@ LwSetupMachineSession(
     LwStrToLower(pszDomname);
 
     dwError = LwKrb5GetTgt(
-    		      pszMachPrincipal,
+		      pszMachPrincipal,
                   pszPassword,
                   pszKrb5CcPath,
                   &dwGoodUntilTime);
@@ -364,7 +364,7 @@ LwSetupMachineSession(
 
     if (pdwGoodUntilTime)
     {
-    	*pdwGoodUntilTime = dwGoodUntilTime;
+	*pdwGoodUntilTime = dwGoodUntilTime;
     }
 
 cleanup:
@@ -374,14 +374,14 @@ cleanup:
     LW_SAFE_FREE_STRING(pszRealmCpy);
     LW_SAFE_FREE_STRING(pszKrb5CcPath);
     LW_SAFE_FREE_STRING(pszHostKeytabFile);
-    
+
     return (dwError);
-    
+
 error:
 
     if (pdwGoodUntilTime)
     {
-    	*pdwGoodUntilTime = 0;
+	*pdwGoodUntilTime = 0;
     }
 
 	goto cleanup;
@@ -479,7 +479,7 @@ LwKrb5CopyFromUserCache(
                     KRB5_File_Cache,
                     &pszCachePath);
     BAIL_ON_LW_ERROR(dwError);
-    
+
     ret = krb5_cc_resolve(
             ctx,
             pszCachePath,
@@ -647,7 +647,7 @@ LwKrb5MoveCCacheToUserPath(
                     KRB5_File_Cache,
                     &pszCachePath);
     BAIL_ON_LW_ERROR(dwError);
-    
+
     if (strncasecmp(pszCachePath, "FILE:", sizeof("FILE:")-1)) {
         dwError = LW_ERROR_INTERNAL;
         BAIL_ON_LW_ERROR(dwError);
@@ -709,7 +709,7 @@ LwKrb5GetMachineCreds(
                     LWPS_PASSWORD_STORE_DEFAULT,
                     &hPasswordStore);
     BAIL_ON_LW_ERROR(dwError);
-    
+
     dwError = LwpsGetPasswordByCurrentHostName(
                     hPasswordStore,
                     &pMachineAcctInfo);
@@ -768,7 +768,7 @@ LwKrb5GetMachineCreds(
             &pszHostDnsDomain);
         BAIL_ON_LW_ERROR(dwError);
     }
-    
+
     if (ppszUsername)
     {
         *ppszUsername = pszUsername;
@@ -788,7 +788,7 @@ LwKrb5GetMachineCreds(
     {
         *ppszHostDnsDomain = pszHostDnsDomain;
     }
-    
+
 cleanup:
 
     if (pMachineAcctInfo)
@@ -802,7 +802,7 @@ cleanup:
     }
 
     return dwError;
-    
+
 error:
 
     if (ppszUsername)
@@ -824,7 +824,7 @@ error:
     {
         *ppszHostDnsDomain = NULL;
     }
-    
+
     LW_SAFE_FREE_STRING(pszUsername);
     LW_SAFE_FREE_STRING(pszPassword);
     LW_SAFE_FREE_STRING(pszDomainDnsName);
@@ -853,7 +853,7 @@ LwKrb5RefreshMachineTGT(
                     &pszDomainDnsName,
                     &pszHostDnsDomain);
     BAIL_ON_LW_ERROR(dwError);
-	
+
     dwError = LwSetupMachineSession(
                     pszUsername,
                     pszPassword,
@@ -861,12 +861,12 @@ LwKrb5RefreshMachineTGT(
                     pszHostDnsDomain,
                     &dwGoodUntilTime);
     BAIL_ON_LW_ERROR(dwError);
-    
+
     if (pdwGoodUntilTime != NULL)
     {
         *pdwGoodUntilTime = dwGoodUntilTime;
     }
-	
+
 cleanup:
 
     LW_SAFE_FREE_STRING(pszUsername);
@@ -875,7 +875,7 @@ cleanup:
     LW_SAFE_FREE_STRING(pszHostDnsDomain);
 
     return dwError;
-	
+
 error:
 
     if (pdwGoodUntilTime != NULL)

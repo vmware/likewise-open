@@ -285,7 +285,7 @@ LwLdapOpenDirectoryServerSingleAttempt(
     }
 
     dwSecurity |= GSS_C_INTEG_FLAG;
-    
+
     if (dwFlags & LW_LDAP_OPT_SIGN_AND_SEAL)
     {
         dwSecurity |= GSS_C_CONF_FLAG;
@@ -563,7 +563,7 @@ LwLdapBindDirectory(
                 break;
         }
     }
-	
+
     if (dwMajorStatus != 0 &&
         dwMajorStatus != GSS_S_CONTINUE_NEEDED)
     {
@@ -586,7 +586,7 @@ error:
     if (output_desc.value) {
 	gss_release_buffer((OM_uint32 *)&dwMinorStatus, &output_desc);
     }
-						    
+
     if (*pGSSContext != GSS_C_NO_CONTEXT) {
         gss_delete_sec_context((OM_uint32*)&dwMinorStatus, pGSSContext, GSS_C_NO_BUFFER);
     }
@@ -1481,7 +1481,7 @@ error:
 }
 
 DWORD
-LwLdapGetInt64( 
+LwLdapGetInt64(
     IN HANDLE hDirectory,
     IN LDAPMessage* pMessage,
     IN PCSTR pszFieldName,
@@ -1491,12 +1491,12 @@ LwLdapGetInt64(
     DWORD dwError = 0;
     PSTR pszValue = NULL;
     PSTR pszEndPtr = NULL;
- 
+
     dwError = LwLdapGetString(hDirectory, pMessage, pszFieldName, &pszValue);
     BAIL_ON_LW_ERROR(dwError);
- 
+
     if (pszValue)
-    {     
+    {
 #if SIZEOF_LONG == 8
         *pqwValue = strtol(pszValue, &pszEndPtr, 10);
 #else
@@ -1506,9 +1506,9 @@ LwLdapGetInt64(
         {
             dwError = LW_ERROR_DATA_ERROR;
             BAIL_ON_LW_ERROR(dwError);
-        }   
-    }       
-    else    
+        }
+    }
+    else
     {
         dwError = LW_ERROR_INVALID_LDAP_ATTR_VALUE;
         // This error occurs very frequently (every time an unenabled user

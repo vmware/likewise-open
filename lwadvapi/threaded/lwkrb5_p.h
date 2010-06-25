@@ -37,7 +37,7 @@
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- *        
+ *
  *        KRB5 API (Private Header)
  *
  * Authors: Kyle Stemen (kstemen@likewisesoftware.com)
