@@ -81,6 +81,9 @@ typedef struct _SRV_LOG_SPEC
 
 typedef struct _SRV_LOG_CONTEXT
 {
+    pthread_rwlock_t  mutex;
+    pthread_rwlock_t* pMutex;
+
     PSRV_LOG_SPEC   pLogSpec;
 
     PSRV_LOG_FILTER pCurFilter;
