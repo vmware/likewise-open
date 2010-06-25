@@ -263,6 +263,8 @@ SrvLogSpecCreate(
         ntStatus = SrvAllocateMemory(sizeof(SRV_LOG_SPEC), (PVOID*)&pLogSpec);
         BAIL_ON_NT_STATUS(ntStatus);
 
+        pLogSpec->refCount = 1;
+
         ntStatus = SrvAllocateMemory(
                         sizeof(SRV_LOG_FILTER),
                         (PVOID*)&pLogSpec->pDefaultSpec);
