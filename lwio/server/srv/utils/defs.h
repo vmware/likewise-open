@@ -1,9 +1,5 @@
-/* Editor Settings: expandtabs and use 4 spaces for indentation
- * ex: set softtabstop=4 tabstop=8 expandtab shiftwidth=4: *
- * -*- mode: c, c-basic-offset: 4 -*- */
-
 /*
- * Copyright Likewise Software
+ * Copyright Likewise Software    2004-2009
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,50 +24,45 @@
  * license@likewisesoftware.com
  */
 
-
-
 /*
  * Copyright (C) Likewise Software. All rights reserved.
  *
  * Module Name:
  *
- *        includes.h
+ *        defs.h
  *
  * Abstract:
  *
- *        Likewise IO (LWIO) - SRV
+ *        Likewise Input Output (LWIO) - SRV
  *
  *        Utilities
  *
+ *        Definitions
+ *
  * Authors: Sriram Nambakam (snambakam@likewise.com)
+ *
  */
 
-#include <config.h>
-#include <lwiosys.h>
+#define REG_KEY_PATH_SRV_LOGGING_W \
+              {'s','e','r','v','i','c','e','s','\\',         \
+               'l','w','i','o','\\',                         \
+               'p','a','r','a','m','e','t','e','r','s','\\', \
+               'd','r','i','v','e','r','s','\\',             \
+               's','r','v','\\',                             \
+               'l','o','g','g','i','n','g',0}
 
-#include <lwio/lwio.h>
+#define REG_VALUE_SRV_LOGGING_ENABLED_W \
+            {'E','n','a','b','l','e','L','o','g','g','i','n','g',0}
 
-#include <reg/lwntreg.h>
+#define REG_VALUE_SRV_FILTERS_W \
+            {'F','i','l','t','e','r','s',0}
 
-#include <lwiodef.h>
-#include <lwioutils.h>
-#include <lwiolog_r.h>
-
-#include <lwnet.h>
-
-#include <lw/ntstatus.h>
-#include <lw/winerror.h>
-
-#include <iodriver.h>
-#include <ioapi.h>
-
-#include <srvutils.h>
-
-#include "defs.h"
-#include "structs.h"
-#include "prototypes.h"
-#include "externs.h"
-
-
-
-
+typedef enum
+{
+    SRV_LOG_FILTER_TOKEN_TYPE_STAR = 0,
+    SRV_LOG_FILTER_TOKEN_TYPE_OPEN_BRACE,
+    SRV_LOG_FILTER_TOKEN_TYPE_CLOSE_BRACE,
+    SRV_LOG_FILTER_TOKEN_TYPE_COMMA,
+    SRV_LOG_FILTER_TOKEN_TYPE_PLAIN_TEXT,
+    SRV_LOG_FILTER_TOKEN_TYPE_EOF
+} SRV_LOG_FILTER_TOKEN_TYPE;

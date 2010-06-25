@@ -326,6 +326,9 @@ SrvInitialize(
     pthread_mutex_init(&gSMBSrvGlobals.mutex, NULL);
     gSMBSrvGlobals.pMutex = &gSMBSrvGlobals.mutex;
 
+    ntStatus = SrvUtilsInitialize();
+    BAIL_ON_NT_STATUS(ntStatus);
+
     ntStatus = SrvInitConfig(&gSMBSrvGlobals.config);
     BAIL_ON_NT_STATUS(ntStatus);
 
@@ -920,6 +923,8 @@ SrvShutdown(
         }
 
         SrvFreeConfigContents(&gSMBSrvGlobals.config);
+
+        SrvUtilsShutdown();
 
         pthread_mutex_unlock(gSMBSrvGlobals.pMutex);
         gSMBSrvGlobals.pMutex = NULL;

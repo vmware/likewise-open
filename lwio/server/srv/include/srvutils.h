@@ -92,6 +92,13 @@ typedef struct _SRV_HOST_INFO
 
 } SRV_HOST_INFO, *PSRV_HOST_INFO;
 
+typedef struct _SRV_LOG_CONTEXT* PSRV_LOG_CONTEXT;
+
+NTSTATUS
+SrvUtilsInitialize(
+    VOID
+    );
+
 NTSTATUS
 SrvAllocateMemory(
     IN  size_t size,
@@ -222,6 +229,13 @@ SrvSocketAddressToString(
     );
 
 NTSTATUS
+SrvSocketStringToAddressA(
+    PCSTR            pszAddress,
+    struct sockaddr* pSocketAddress,
+    SOCKLEN_T*       pAddressLength
+    );
+
+NTSTATUS
 SrvSocketGetAddrInfoW(
     PCWSTR            pwszClientname,
     struct addrinfo** ppAddrInfo
@@ -240,6 +254,31 @@ SrvSocketCompareAddress(
     const struct sockaddr* pAddress2,
     SOCKLEN_T              addrLength2,
     PBOOLEAN               pbMatch
+    );
+
+NTSTATUS
+SrvLogContextCreate(
+    PSRV_LOG_CONTEXT* ppLogContext
+    );
+
+NTSTATUS
+SrvLogContextGetLevel(
+    PSRV_LOG_CONTEXT     pLogContext,
+    struct sockaddr*     pClientAddress,
+    SOCKLEN_T            ulClientAddressLength,
+    ULONG                protocolVer,
+    USHORT               usOpcode,
+    LWIO_LOG_LEVEL*      pLogLevel
+    );
+
+VOID
+SrvLogContextFree(
+    PSRV_LOG_CONTEXT pLogContext
+    );
+
+NTSTATUS
+SrvUtilsShutdown(
+    VOID
     );
 
 #endif /* __SRV_UTILS_H__ */
