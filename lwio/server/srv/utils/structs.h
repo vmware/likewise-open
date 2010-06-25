@@ -62,8 +62,6 @@ typedef struct _SRV_LOG_FILTER
 
     LWIO_LOG_LEVEL     defaultLogLevel;
 
-    ULONG              ulProtocolVersion;
-
     PSRV_LOG_FILTER_OP pFilterList_smb1;
     PSRV_LOG_FILTER_OP pFilterList_smb2;
 
