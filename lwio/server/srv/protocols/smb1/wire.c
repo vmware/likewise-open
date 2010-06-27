@@ -66,7 +66,7 @@ SrvInitPacket_SMB_V1(
     }
 
     pSmbPacket->pNetBIOSHeader = (NETBIOS_HEADER *) (pBuffer);
-    pSmbPacket->bufferUsed += sizeof(NETBIOS_HEADER);
+    pSmbPacket->bufferUsed = sizeof(NETBIOS_HEADER);
     pBuffer += sizeof(NETBIOS_HEADER);
     ulBufferAvailable -= sizeof(NETBIOS_HEADER);
 
