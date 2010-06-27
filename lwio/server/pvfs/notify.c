@@ -606,6 +606,7 @@ PvfsNotifyFullReportBuffer(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PLW_LIST_LINKS pFilterLink = NULL;
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
+    PPVFS_FCB pReportParentFcb = NULL;
 
     for (pFilterLink = PvfsListTraverse(pFcb->pNotifyListBuffer, NULL);
          pFilterLink;
@@ -618,8 +619,15 @@ PvfsNotifyFullReportBuffer(
 
         /* Match the filter and depth */
 
+        if (pReportParentFcb)
+        {
+            PvfsReleaseFCB(&pReportParentFcb);
+        }
+
+        pReportParentFcb = PvfsGetParentFCB(pReport->pFcb);
+
         if ((pFilter->NotifyFilter & pReport->Filter) &&
-            ((pFcb == pReport->pFcb->pParentFcb) || pFilter->bWatchTree))
+            ((pFcb == pReportParentFcb) || pFilter->bWatchTree))
         {
             ntError = PvfsNotifyReportBuffer(
                           &pFilter->Buffer,
@@ -628,6 +636,12 @@ PvfsNotifyFullReportBuffer(
             break;
         }
     }
+
+    if (pReportParentFcb)
+    {
+        PvfsReleaseFCB(&pReportParentFcb);
+    }
+
 
     return;
 }
@@ -656,6 +670,7 @@ PvfsNotifyFullReportIrp(
     PLW_LIST_LINKS pFilterLink = NULL;
     PPVFS_NOTIFY_FILTER_RECORD pFilter = NULL;
     BOOLEAN bActive = FALSE;
+    PPVFS_FCB pReportParentFcb = NULL;
 
     for (pFilterLink = PvfsListTraverse(pFcb->pNotifyListIrp, NULL);
          pFilterLink;
@@ -668,8 +683,15 @@ PvfsNotifyFullReportIrp(
 
         /* Continue if we don't match the filter and depth */
 
+        if (pReportParentFcb)
+        {
+            PvfsReleaseFCB(&pReportParentFcb);
+        }
+
+        pReportParentFcb = PvfsGetParentFCB(pReport->pFcb);
+
         if (!((pFilter->NotifyFilter & pReport->Filter) &&
-              ((pFcb == pReport->pFcb->pParentFcb) || pFilter->bWatchTree)))
+              ((pFcb == pReportParentFcb) || pFilter->bWatchTree)))
         {
             pFilter = NULL;
             continue;
@@ -712,6 +734,12 @@ PvfsNotifyFullReportIrp(
     }
 
 cleanup:
+
+    if (pReportParentFcb)
+    {
+        PvfsReleaseFCB(&pReportParentFcb);
+    }
+
     if (pFilter)
     {
         PvfsFreeNotifyRecord(&pFilter);
