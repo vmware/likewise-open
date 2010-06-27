@@ -522,6 +522,9 @@ typedef struct _PVFS_DRIVER_CONFIG
     BOOLEAN   EnableDriverDebug;
     PVFS_ZCT_MODE ZctMode;
 
+    uid_t    VirtualUid;
+    gid_t    VirtualGid;
+
     DWORD     WorkerThreadPoolSize;
 
 } PVFS_DRIVER_CONFIG, *PPVFS_DRIVER_CONFIG;
