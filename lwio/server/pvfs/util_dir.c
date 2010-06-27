@@ -193,7 +193,8 @@ PvfsEnumerateDirectory(
 
         ntError = PvfsAllocateMemory(
                       (PVOID)&pCcb->pDirContext,
-                      sizeof(PVFS_DIRECTORY_CONTEXT));
+                      sizeof(PVFS_DIRECTORY_CONTEXT),
+                      TRUE);
         BAIL_ON_NT_STATUS(ntError);
 
         pCcb->pDirContext->bScanned = FALSE;

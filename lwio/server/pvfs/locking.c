@@ -219,8 +219,10 @@ PvfsAddPendingLock(
     ntError = PvfsQueueCancelIrpIfRequested(pIrpCtx);
     BAIL_ON_NT_STATUS(ntError);
 
-    ntError = PvfsAllocateMemory((PVOID*)&pPendingLock,
-                                 sizeof(PVFS_PENDING_LOCK));
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pPendingLock,
+                  sizeof(PVFS_PENDING_LOCK),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pPendingLock->pIrpContext = PvfsReferenceIrpContext(pIrpCtx);
@@ -992,7 +994,10 @@ PvfsCreateLockContext(
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
     PPVFS_PENDING_LOCK pLockCtx;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pLockCtx, sizeof(PVFS_PENDING_LOCK));
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pLockCtx,
+                  sizeof(PVFS_PENDING_LOCK),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pLockCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);

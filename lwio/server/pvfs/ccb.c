@@ -61,7 +61,10 @@ PvfsAllocateCCB(
 
     *ppCCB = NULL;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pCCB, sizeof(PVFS_CCB));
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pCCB,
+                  sizeof(PVFS_CCB),
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Initialize mutexes and refcounts */
@@ -72,6 +75,17 @@ PvfsAllocateCCB(
     pCCB->bPendingDeleteHandle = FALSE;
     pCCB->bCloseInProgress = FALSE;
     pCCB->OplockState = PVFS_OPLOCK_STATE_NONE;
+
+    pCCB->fd = -1;
+    PVFS_CLEAR_FILEID(pCCB->FileId);
+
+    pCCB->pFcb = NULL;
+    pCCB->pszFilename = NULL;
+    pCCB->pDirContext = NULL;
+    pCCB->pUserToken = NULL;
+    pCCB->EcpFlags = 0;
+
+    LwRtlZeroMemory(&pCCB->LockTable, sizeof(pCCB->LockTable));
 
     ntError = PvfsListInit(
                   &pCCB->pZctContextList,

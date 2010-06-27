@@ -193,7 +193,10 @@ PvfsAllocateFCB(
 
     *ppFcb = NULL;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pFcb, sizeof(PVFS_FCB));
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pFcb,
+                  sizeof(PVFS_FCB),
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* Initialize mutexes and refcounts */
@@ -263,9 +266,14 @@ PvfsAllocateFCB(
 
     /* Miscellaneous */
 
+    PVFS_CLEAR_FILEID(pFcb->FileId);
+
+    pFcb->LastWriteTime = 0;
     pFcb->bDeleteOnClose = FALSE;
     pFcb->bRemoved = FALSE;
+    pFcb->bOplockBreakInProgress = FALSE;
     pFcb->pParentFcb = NULL;
+    pFcb->pszFilename = NULL;
 
     *ppFcb = pFcb;
 
@@ -863,7 +871,8 @@ PvfsAddItemPendingOplockBreakAck(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pPendingOp,
-                  sizeof(PVFS_OPLOCK_PENDING_OPERATION));
+                  sizeof(PVFS_OPLOCK_PENDING_OPERATION),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pPendingOp->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
@@ -1029,7 +1038,8 @@ PvfsAddOplockRecord(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pOplock,
-                  sizeof(PVFS_OPLOCK_RECORD));
+                  sizeof(PVFS_OPLOCK_RECORD),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pOplock->OplockType = OplockType;

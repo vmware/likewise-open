@@ -88,7 +88,8 @@ PvfsInitWorkerThreads(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&gWorkPool.IoWorkers,
-                  gWorkPool.PoolSize * sizeof(PVFS_WORKER));
+                  gWorkPool.PoolSize * sizeof(PVFS_WORKER),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     /* I/O Worker Threads */

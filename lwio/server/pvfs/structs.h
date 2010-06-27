@@ -235,6 +235,12 @@ typedef struct _PVFS_OPLOCK_PENDING_OPERATION
 #define PVFS_FCB_MAX_PENDING_OPERATIONS  50
 #define PVFS_FCB_MAX_PENDING_NOTIFY      50
 
+#define PVFS_CLEAR_FILEID(x)   \
+    do {                       \
+        (x).Device = 0;        \
+        (x).Inode = 0;         \
+    } while(0)
+
 typedef struct _PVFS_FILE_ID
 {
     dev_t Device;

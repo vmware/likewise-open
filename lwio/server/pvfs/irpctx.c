@@ -97,8 +97,10 @@ PvfsAllocateIrpContext(
 
     *ppIrpContext = NULL;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pIrpContext,
-                                 sizeof(PVFS_IRP_CONTEXT));
+    ntError = PvfsAllocateMemory(
+                  (PVOID*)&pIrpContext,
+                  sizeof(PVFS_IRP_CONTEXT),
+                  FALSE);
     BAIL_ON_NT_STATUS(ntError);
 
     pthread_mutex_init(&pIrpContext->Mutex, NULL);

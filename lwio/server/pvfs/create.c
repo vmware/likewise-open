@@ -423,7 +423,8 @@ PvfsCreateDirDoSysOpen(
 
     ntError = PvfsAllocateMemory(
                   (PVOID)&pCreateContext->pCcb->pDirContext,
-                  sizeof(PVFS_DIRECTORY_CONTEXT));
+                  sizeof(PVFS_DIRECTORY_CONTEXT),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pCreateContext->pCcb->pszFilename = pCreateContext->pszDiskFilename;
@@ -794,7 +795,8 @@ PvfsAllocateCreateContext(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pCreateCtx,
-                  sizeof(PVFS_PENDING_CREATE));
+                  sizeof(PVFS_PENDING_CREATE),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsCanonicalPathName(

@@ -52,9 +52,13 @@
 NTSTATUS
 PvfsAllocateMemory(
     OUT PVOID *ppBuffer,
-    IN DWORD dwSize
+    IN DWORD dwSize,
+    IN BOOLEAN bClear
     )
 {
+    NTSTATUS ntError = STATUS_SUCCESS;
+    PVOID pMemory = NULL;
+
     /* No op */
     if (dwSize == 0)
     {
@@ -62,8 +66,29 @@ PvfsAllocateMemory(
         return STATUS_SUCCESS;
     }
 
-    /* Real work */
-    return RTL_ALLOCATE(ppBuffer, VOID, dwSize);
+    if (bClear)
+    {
+        ntError = LW_RTL_ALLOCATE(
+                      &pMemory,
+                      VOID,
+                      dwSize);
+    }
+    else
+    {
+        ntError = LW_RTL_ALLOCATE_NOCLEAR(
+                      &pMemory,
+                      VOID,
+                      dwSize);
+    }
+    BAIL_ON_NT_STATUS(ntError);
+
+    *ppBuffer = pMemory;
+
+cleanup:
+    return ntError;
+
+error:
+    goto cleanup;
 }
 
 
@@ -88,7 +113,7 @@ PvfsReallocateMemory(
 
     if (pBuffer == NULL)
     {
-        return PvfsAllocateMemory(ppBuffer, dwNewSize);
+        return PvfsAllocateMemory(ppBuffer, dwNewSize, TRUE);
     }
 
 

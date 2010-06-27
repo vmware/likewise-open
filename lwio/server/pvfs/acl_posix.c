@@ -280,7 +280,8 @@ PvfsSecuritySidMapFromUid(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&gUidMruCache[Key],
-                  sizeof(PVFS_ID_CACHE));
+                  sizeof(PVFS_ID_CACHE),
+                  TRUE);
     if (ntError != STATUS_SUCCESS)
     {
         ntError = STATUS_SUCCESS;
@@ -352,7 +353,8 @@ PvfsSecuritySidMapFromGid(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&gGidMruCache[Key],
-                  sizeof(PVFS_ID_CACHE));
+                  sizeof(PVFS_ID_CACHE),
+                  TRUE);
     if (ntError != STATUS_SUCCESS)
     {
         ntError = STATUS_SUCCESS;

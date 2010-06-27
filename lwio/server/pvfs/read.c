@@ -382,7 +382,8 @@ PvfsCreateReadContext(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pReadCtx,
-                  sizeof(PVFS_PENDING_READ));
+                  sizeof(PVFS_PENDING_READ),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pReadCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);

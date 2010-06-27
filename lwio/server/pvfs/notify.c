@@ -276,7 +276,7 @@ PvfsNotifyAllocateChangeBuffer(
 {
     NTSTATUS ntError = STATUS_UNSUCCESSFUL;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pBuffer->pData, Length);
+    ntError = PvfsAllocateMemory((PVOID*)&pBuffer->pData, Length, TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pBuffer->Length = Length;
@@ -434,7 +434,8 @@ PvfsNotifyAllocateFilter(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pFilter,
-                  sizeof(PVFS_NOTIFY_FILTER_RECORD));
+                  sizeof(PVFS_NOTIFY_FILTER_RECORD),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pFilter->pIrpContext = PvfsReferenceIrpContext(pIrpContext);
@@ -482,7 +483,8 @@ PvfsNotifyScheduleFullReport(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pReport,
-                  sizeof(PVFS_NOTIFY_REPORT_RECORD));
+                  sizeof(PVFS_NOTIFY_REPORT_RECORD),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pReport->pFcb = PvfsReferenceFCB(pFcb);

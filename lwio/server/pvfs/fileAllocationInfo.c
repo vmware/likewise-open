@@ -250,7 +250,8 @@ PvfsCreateSetAllocationContext(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pSetAllocationCtx,
-                  sizeof(PVFS_PENDING_READ));
+                  sizeof(PVFS_PENDING_READ),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pSetAllocationCtx->pIrpContext = PvfsReferenceIrpContext(pIrpContext);

@@ -61,7 +61,7 @@ PvfsInitWorkQueue(
     NTSTATUS ntError = STATUS_SUCCESS;
     PPVFS_WORK_QUEUE pWorkQ = NULL;
 
-    ntError = PvfsAllocateMemory((PVOID*)&pWorkQ, sizeof(PVFS_WORK_QUEUE));
+    ntError = PvfsAllocateMemory((PVOID*)&pWorkQ, sizeof(PVFS_WORK_QUEUE), TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     ntError = PvfsListInit(&pWorkQ->pQueue, Size, pfnFreeData);

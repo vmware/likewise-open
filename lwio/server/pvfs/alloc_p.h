@@ -50,7 +50,8 @@
 NTSTATUS
 PvfsAllocateMemory(
     IN OUT PVOID *ppBuffer,
-    IN DWORD dwSize
+    IN DWORD dwSize,
+    IN BOOLEAN bClear
     );
 
 NTSTATUS

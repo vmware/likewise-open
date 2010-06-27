@@ -1673,7 +1673,8 @@ PvfsCreateOplockBreakTestContext(
 
     ntError = PvfsAllocateMemory(
                   (PVOID*)&pTestCtx,
-                  sizeof(PVFS_PENDING_OPLOCK_BREAK_TEST));
+                  sizeof(PVFS_PENDING_OPLOCK_BREAK_TEST),
+                  TRUE);
     BAIL_ON_NT_STATUS(ntError);
 
     pTestCtx->pFcb = PvfsReferenceFCB(pFcb);
