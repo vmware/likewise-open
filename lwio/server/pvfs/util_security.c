@@ -160,50 +160,18 @@ PvfsAccessCheckFile(
     BOOLEAN bGranted = FALSE;
     SECURITY_INFORMATION SecInfo = (OWNER_SECURITY_INFORMATION |
                                     GROUP_SECURITY_INFORMATION |
-                                    DACL_SECURITY_INFORMATION);
+                                    DACL_SECURITY_INFORMATION  |
+                                    SACL_SECURITY_INFORMATION);
     PSTR pszParentPath = NULL;
     PSID pOwner = NULL;
     BOOLEAN bOwnerDefaulted = FALSE;
+    BOOLEAN bWantsDelete = FALSE;
+    BOOLEAN bWantsMaximumAccess = FALSE;
 
     BAIL_ON_INVALID_PTR(pToken, ntError);
     BAIL_ON_INVALID_PTR(pGranted, ntError);
 
-    /* if asking for DELETE, check and see if the parent directory
-       will grant us that */
-
-    if (Desired & (MAXIMUM_ALLOWED | DELETE))
-    {
-        ntError = PvfsFileDirname(&pszParentPath, pszFilename);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsGetSecurityDescriptorFilename(
-                      pszParentPath,
-                      SecInfo,
-                      (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer,
-                      &ulParentRelSecDescLength);
-        BAIL_ON_NT_STATUS(ntError);
-
-        ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
-                      &pParentSecDesc,
-                      (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer);
-        BAIL_ON_NT_STATUS(ntError);
-
-        bGranted = RtlAccessCheck(
-                       pParentSecDesc,
-                       pToken,
-                       DELETE,
-                       0,
-                       &gPvfsFileGenericMapping,
-                       &GrantedAccess,
-                       &ntError);
-        if (bGranted)
-        {
-            ClearFlag(Desired, DELETE);
-        }
-
-    }
-
-    /* Check the file object itself */
+    // Check the file object itself
 
     ntError = PvfsGetSecurityDescriptorFilename(
                   pszFilename,
@@ -217,8 +185,8 @@ PvfsAccessCheckFile(
                   (PSECURITY_DESCRIPTOR_RELATIVE)pRelativeSecDescBuffer);
     BAIL_ON_NT_STATUS(ntError);
 
-    /* Tests against NTFS/Win2003R2 show that the file/directory object
-       owner is always granted FILE_READ_ATTRIBUTES */
+    // Tests against NTFS/Win2003R2 show that the file/directory object
+    // owner is always granted FILE_READ_ATTRIBUTE
 
     ntError = RtlGetOwnerSecurityDescriptor(
                   pSecDesc,
@@ -232,7 +200,19 @@ PvfsAccessCheckFile(
         SetFlag(GrantedAccess, FILE_READ_ATTRIBUTES);
     }
 
-    /* Now check access */
+    // Check for access rights.  We'll deal with DELETE separately since that
+    // could be granted by the parent directory security descriptor
+
+    if (Desired & DELETE)
+    {
+        bWantsDelete = TRUE;
+        ClearFlag(Desired, DELETE);
+    }
+
+    if (Desired & MAXIMUM_ALLOWED)
+    {
+        bWantsMaximumAccess = TRUE;
+    }
 
     bGranted = RtlAccessCheck(
                    pSecDesc,
@@ -245,6 +225,66 @@ PvfsAccessCheckFile(
     if (!bGranted)
     {
         BAIL_ON_NT_STATUS(ntError);
+    }
+
+    GrantedAccess = AccessMask;
+
+    // See if the file object security descriptor grants DELETE
+    // Only continue when checking for MAXIMUM_ALLOWED if we haven't been
+    // granted DELETE already
+
+    if (bWantsDelete ||
+        (bWantsMaximumAccess && !(GrantedAccess & DELETE)))
+    {
+        AccessMask = 0;
+
+        bGranted = RtlAccessCheck(
+                   pSecDesc,
+                   pToken,
+                   DELETE,
+                   GrantedAccess,
+                   &gPvfsFileGenericMapping,
+                   &AccessMask,
+                   &ntError);
+        if (!bGranted)
+        {
+            ntError = PvfsFileDirname(&pszParentPath, pszFilename);
+            BAIL_ON_NT_STATUS(ntError);
+
+            ntError = PvfsGetSecurityDescriptorFilename(
+                          pszParentPath,
+                          SecInfo,
+                          (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer,
+                          &ulParentRelSecDescLength);
+            BAIL_ON_NT_STATUS(ntError);
+
+            ntError = PvfsSecurityAclSelfRelativeToAbsoluteSD(
+                          &pParentSecDesc,
+                          (PSECURITY_DESCRIPTOR_RELATIVE)pParentRelSecDescBuffer);
+            BAIL_ON_NT_STATUS(ntError);
+
+            AccessMask = 0;
+            bGranted = RtlAccessCheck(
+                           pParentSecDesc,
+                           pToken,
+                           DELETE,
+                           0,
+                           &gPvfsFileGenericMapping,
+                           &AccessMask,
+                           &ntError);
+
+            // This is a hard failure unless we are just trying to determine
+            // what the maximum allowed access would be
+
+            if (!bGranted && !bWantsMaximumAccess)
+            {
+                BAIL_ON_NT_STATUS(ntError);
+            }
+        }
+
+        // Combine directory and file object granted permissions
+
+        AccessMask |= GrantedAccess;
     }
 
     *pGranted = AccessMask;
