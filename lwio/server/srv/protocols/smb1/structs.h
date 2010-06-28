@@ -736,6 +736,7 @@ typedef struct _SRV_TRANS2_STATE_SMB_V1
     PBYTE                       pParameters;    // Do not free
     PBYTE                       pData;          // Do not free
     PSMB_INFO_LEVEL             pSmbInfoLevel;  // Do not free
+    PUSHORT                     pMaxDfsReferralLevel;  // Do not free
     USHORT                      usFid;          // From request
     PWSTR                       pwszFilename;   // Do not free
 

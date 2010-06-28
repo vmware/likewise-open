@@ -382,6 +382,9 @@ SrvProtocolTransportDriverConnectionNew(
     properties.Capabilities |= CAP_LARGE_READX;
     properties.Capabilities |= CAP_LARGE_WRITEX;
     properties.Capabilities |= CAP_EXTENDED_SECURITY;
+# if 0  /* DISABLED - WIP */
+    properties.Capabilities |= CAP_DFS;
+#endif
     uuid_copy(properties.GUID, pProtocolDispatchContext->guid);
 
     SrvTransportSocketGetAddress(pSocket, &pClientAddress, &clientAddrLen);

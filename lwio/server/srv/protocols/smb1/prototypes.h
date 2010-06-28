@@ -479,6 +479,13 @@ SrvReleaseTrans2StateAsync(
     PSRV_TRANS2_STATE_SMB_V1 pTrans2State
     );
 
+// trans2dfs.c
+
+NTSTATUS
+SrvProcessTrans2GetDfsReferral(
+    PSRV_EXEC_CONTEXT pExecContext
+    );
+
 // trans2qi.h
 
 NTSTATUS
@@ -693,3 +700,15 @@ SrvReleaseWriteXStateHandle(
     );
 
 #endif /* __PROTOTYPES_H__ */
+
+
+
+
+/*
+local variables:
+mode: c
+c-basic-offset: 4
+indent-tabs-mode: nil
+tab-width: 4
+end:
+*/
