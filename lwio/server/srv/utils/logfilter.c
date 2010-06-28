@@ -156,7 +156,7 @@ SrvLogSpecFindFilter(
 static
 NTSTATUS
 SrvLogSpecMergeOpFilters(
-    PSRV_LOG_FILTER_OP* ppSrcFilterOpList,
+    PSRV_LOG_FILTER_OP  pSrcFilterOpList,
     PSRV_LOG_FILTER_OP* ppDestFilterOpList
     );
 
@@ -165,6 +165,26 @@ PSRV_LOG_FILTER_OP
 SrvLogFilterFindOp(
     PSRV_LOG_FILTER_OP pFilterOpList,
     ULONG              ulOpcode
+    );
+
+static
+NTSTATUS
+SrvLogFilterOpListDuplicate(
+    PSRV_LOG_FILTER_OP  pFilterOpList,
+    PSRV_LOG_FILTER_OP* ppDuplicateList
+    );
+
+static
+NTSTATUS
+SrvLogFilterOpDuplicate(
+    PSRV_LOG_FILTER_OP  pFilterOp,
+    PSRV_LOG_FILTER_OP* ppDuplicate
+    );
+
+static
+PSRV_LOG_FILTER_OP
+SrvLogFilterOpListReverse(
+    PSRV_LOG_FILTER_OP pLogFilterOpList
     );
 
 static
@@ -739,20 +759,8 @@ SrvLogSpecParseOpcodes(
     if (pLogOpFilterList)
     {
         PSRV_LOG_FILTER pCursor = pLogFilter;
-        PSRV_LOG_FILTER_OP pPrev = NULL;
-        PSRV_LOG_FILTER_OP pCur  = pLogOpFilterList;
-        PSRV_LOG_FILTER_OP pNext = NULL;
 
-        /* pPrev->pCur->pNext */
-        while (pCur) /* reverse */
-        {
-            pNext = pCur->pNext;
-            pCur->pNext = pPrev;
-            pPrev = pCur;
-            pCur = pNext;
-        }
-
-        pLogOpFilterList = pPrev;
+        pLogOpFilterList = SrvLogFilterOpListReverse(pLogOpFilterList);
 
         for (; pCursor; pCursor = pCursor->pNext)
         {
@@ -1089,7 +1097,7 @@ SrvLogSpecMergeFilter(
             if (pCandidate->pFilterList_smb1)
             {
                 ntStatus = SrvLogSpecMergeOpFilters(
-                                    &pCandidate->pFilterList_smb1,
+                                    pCandidate->pFilterList_smb1,
                                     &pExisting->pFilterList_smb1);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
@@ -1097,7 +1105,7 @@ SrvLogSpecMergeFilter(
             if (pCandidate->pFilterList_smb2)
             {
                 ntStatus = SrvLogSpecMergeOpFilters(
-                                    &pCandidate->pFilterList_smb2,
+                                    pCandidate->pFilterList_smb2,
                                     &pExisting->pFilterList_smb2);
                 BAIL_ON_NT_STATUS(ntStatus);
             }
@@ -1139,11 +1147,12 @@ SrvLogSpecFindFilter(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    BOOLEAN bMatch = FALSE;
     PSRV_LOG_FILTER pCursor = pFilterList;
 
-    for (; !bMatch && pCursor; pCursor = pCursor->pNext)
+    for (; pCursor; pCursor = pCursor->pNext)
     {
+        BOOLEAN bMatch = FALSE;
+
         ntStatus = SrvSocketCompareAddress(
                         &pCursor->clientAddress,
                         pCursor->ulClientAddressLength,
@@ -1151,6 +1160,11 @@ SrvLogSpecFindFilter(
                         ulClientAddressLength,
                         &bMatch);
         BAIL_ON_NT_STATUS(ntStatus);
+
+        if (bMatch)
+        {
+            break;
+        }
     }
 
 cleanup:
@@ -1167,53 +1181,55 @@ error:
 static
 NTSTATUS
 SrvLogSpecMergeOpFilters(
-    PSRV_LOG_FILTER_OP* ppSrcFilterOpList,
+    PSRV_LOG_FILTER_OP  pSrcFilterOpList,
     PSRV_LOG_FILTER_OP* ppDestFilterOpList
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_LOG_FILTER_OP pSrcFilterOpList = *ppSrcFilterOpList;
-
-    *ppSrcFilterOpList = NULL; // take ownership
 
     if (!*ppDestFilterOpList)
     {
-        *ppDestFilterOpList = pSrcFilterOpList;
-        pSrcFilterOpList = NULL;
+        ntStatus = SrvLogFilterOpListDuplicate(
+                        pSrcFilterOpList,
+                        ppDestFilterOpList);
+        BAIL_ON_NT_STATUS(ntStatus);
     }
     else
     {
-        while (pSrcFilterOpList)
+        for (; pSrcFilterOpList; pSrcFilterOpList = pSrcFilterOpList->pNext)
         {
-            PSRV_LOG_FILTER_OP pCandidate = NULL;
             PSRV_LOG_FILTER_OP pExisting  = NULL;
-
-            pCandidate        = pSrcFilterOpList;
-            pSrcFilterOpList  = pSrcFilterOpList->pNext; // advance
-            pCandidate->pNext = NULL;                    // detach
 
             pExisting = SrvLogFilterFindOp(
                             *ppDestFilterOpList,
-                            pCandidate->ulOpcode);
+                            pSrcFilterOpList->ulOpcode);
 
             if (!pExisting)
             {
-                pCandidate->pNext   = *ppDestFilterOpList;
-                *ppDestFilterOpList = pCandidate;
-                pCandidate = NULL;
+                PSRV_LOG_FILTER_OP pDuplicate = NULL;
+
+                // Make duplicates so that if the log level is over-ridden
+                // by another rule, it is specific to a particular client
+                //
+                ntStatus = SrvLogFilterOpDuplicate(
+                                pSrcFilterOpList,
+                                &pDuplicate);
+                BAIL_ON_NT_STATUS(ntStatus);
+
+                pDuplicate->pNext   = *ppDestFilterOpList;
+                *ppDestFilterOpList = pDuplicate;
             }
             else // merge
             {
-                if (pCandidate->logLevel > pExisting->logLevel)
+                if (pSrcFilterOpList->logLevel > pExisting->logLevel)
                 {
-                    pExisting->logLevel = pCandidate->logLevel;
+                    pExisting->logLevel = pSrcFilterOpList->logLevel;
                 }
-
-                SrvLogFilterOpRelease(pCandidate);
-                pCandidate = NULL;
             }
         }
     }
+
+error:
 
     return ntStatus;
 }
@@ -1236,6 +1252,105 @@ SrvLogFilterFindOp(
     }
 
     return pCursor;
+}
+
+static
+NTSTATUS
+SrvLogFilterOpListDuplicate(
+    PSRV_LOG_FILTER_OP  pFilterOpList,
+    PSRV_LOG_FILTER_OP* ppDuplicateList
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_LOG_FILTER_OP pDuplicateList = NULL;
+
+    for (; pFilterOpList; pFilterOpList = pFilterOpList->pNext)
+    {
+        PSRV_LOG_FILTER_OP pDuplicate = NULL;
+
+        ntStatus = SrvLogFilterOpDuplicate(pFilterOpList, &pDuplicate);
+        BAIL_ON_NT_STATUS(ntStatus);
+
+        pDuplicate->pNext = pDuplicateList;
+        pDuplicateList = pDuplicate;
+    }
+
+    *ppDuplicateList = SrvLogFilterOpListReverse(pDuplicateList);
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppDuplicateList = NULL;
+
+    if (pDuplicateList)
+    {
+        SrvLogFilterOpListRelease(pDuplicateList);
+    }
+
+    goto cleanup;
+}
+
+static
+NTSTATUS
+SrvLogFilterOpDuplicate(
+    PSRV_LOG_FILTER_OP  pFilterOp,
+    PSRV_LOG_FILTER_OP* ppDuplicate
+    )
+{
+    NTSTATUS ntStatus = STATUS_SUCCESS;
+    PSRV_LOG_FILTER_OP pDuplicate = NULL;
+
+    ntStatus = SrvAllocateMemory(
+                    sizeof(SRV_LOG_FILTER_OP),
+                    (PVOID*)&pDuplicate);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    pDuplicate->refCount = 1;
+
+    pDuplicate->logLevel = pFilterOp->logLevel;
+    pDuplicate->ulOpcode = pFilterOp->ulOpcode;
+
+    *ppDuplicate = pDuplicate;
+
+cleanup:
+
+    return ntStatus;
+
+error:
+
+    *ppDuplicate = NULL;
+
+    if (pDuplicate)
+    {
+        SrvLogFilterOpRelease(pDuplicate);
+    }
+
+    goto cleanup;
+}
+
+static
+PSRV_LOG_FILTER_OP
+SrvLogFilterOpListReverse(
+    PSRV_LOG_FILTER_OP pLogFilterOpList
+    )
+{
+    PSRV_LOG_FILTER_OP pPrev = NULL;
+    PSRV_LOG_FILTER_OP pCur  = pLogFilterOpList;
+    PSRV_LOG_FILTER_OP pNext = NULL;
+
+    /* pPrev->pCur->pNext */
+    while (pCur) /* reverse */
+    {
+        pNext = pCur->pNext;
+        pCur->pNext = pPrev;
+        pPrev = pCur;
+        pCur = pNext;
+    }
+
+    return pPrev;
 }
 
 PSRV_LOG_SPEC
