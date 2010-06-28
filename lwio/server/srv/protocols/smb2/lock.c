@@ -920,7 +920,7 @@ SrvAcquireLockRequestState_SMB_V2(
     PSRV_LOCK_REQUEST_STATE_SMB_V2 pLockRequestState
     )
 {
-    InterlockedDecrement(&pLockRequestState->refCount);
+    InterlockedIncrement(&pLockRequestState->refCount);
 
     return pLockRequestState;
 }
