@@ -352,6 +352,11 @@ error:
 
         default:
 
+            if (ntStatus == STATUS_FILE_LOCK_CONFLICT)
+            {
+                ntStatus = STATUS_LOCK_NOT_GRANTED;
+            }
+
             if (pLockRequestState)
             {
                 if (bInLock)
