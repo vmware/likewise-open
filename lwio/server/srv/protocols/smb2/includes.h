@@ -72,6 +72,7 @@
 #include <srvecp.h>
 
 #include <shareapi.h>
+#include <srvoem.h>
 #include <srvutils.h>
 #include <statisticsapi.h>
 #include <elementsapi.h>

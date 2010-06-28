@@ -57,6 +57,7 @@ SRV_ELEMENTS_GLOBALS gSrvElements =
     .llBootTime               = 0LL,
     .bShareNameEcpEnabled     = FALSE,
     .bClientAddressEcpEnabled = FALSE,
+    .bOEMSessionEcpEnabled    = FALSE,
     .pStatsLock               = NULL,
     .stats                    = {0},
     .resources                =

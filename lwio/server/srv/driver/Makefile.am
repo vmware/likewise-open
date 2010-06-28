@@ -38,6 +38,7 @@ libsrv_sys_la_LIBADD = \
     @top_builddir@/server/srv/elements/libsrvelements.la \
     @top_builddir@/server/srv/shares/api/libshareapi.la \
     @top_builddir@/server/srv/statistics/libstatisticsapi.la \
+    @top_builddir@/server/srv/oem/libsrvoem.la \
     @top_builddir@/server/srv/utils/libsrvutils.la \
     @top_builddir@/server/iomgr/libiomgr.la \
     @top_builddir@/server/smbcommon/liblwiosmbcommon.la \
