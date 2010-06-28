@@ -69,15 +69,16 @@ SrvLogSpecParseClients(
 static
 NTSTATUS
 SrvLogSpecParseProtocol(
-    PSRV_LOG_FILTER_LEX_STATE pLexState,  /* IN OUT */
-    PSRV_LOG_FILTER           pLogFilter  /*  IN OUT */
+    PSRV_LOG_FILTER_LEX_STATE pLexState,      /* IN OUT */
+    PULONG                    pulProtocolVer  /* IN OUT */
     );
 
 static
 NTSTATUS
 SrvLogSpecParseOpcodes(
-    PSRV_LOG_FILTER_LEX_STATE pLexState,  /* IN OUT */
-    PSRV_LOG_FILTER           pLogFilter  /*  IN OUT */
+    PSRV_LOG_FILTER_LEX_STATE pLexState,     /* IN OUT */
+    ULONG                     ulProtocolVer, /* IN     */
+    PSRV_LOG_FILTER           pLogFilter     /* IN OUT */
     );
 
 static
@@ -340,6 +341,7 @@ SrvLogSpecParseFilter(
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
     PSRV_LOG_FILTER pLogFilter = NULL;
+    ULONG           ulProtocolVer = 0;
     SRV_LOG_FILTER_LEX_STATE lexState =
     {
         .pszData   = pszFilter,
@@ -349,10 +351,10 @@ SrvLogSpecParseFilter(
     ntStatus = SrvLogSpecParseClients(&lexState, &pLogFilter);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvLogSpecParseProtocol(&lexState, pLogFilter);
+    ntStatus = SrvLogSpecParseProtocol(&lexState, &ulProtocolVer);
     BAIL_ON_NT_STATUS(ntStatus);
 
-    ntStatus = SrvLogSpecParseOpcodes(&lexState, pLogFilter);
+    ntStatus = SrvLogSpecParseOpcodes(&lexState, ulProtocolVer, pLogFilter);
     BAIL_ON_NT_STATUS(ntStatus);
 
     ntStatus = SrvLogSpecParseLoglevel(&lexState, pLogFilter);
@@ -506,8 +508,8 @@ error:
 static
 NTSTATUS
 SrvLogSpecParseProtocol(
-    PSRV_LOG_FILTER_LEX_STATE pLexState,  /* IN OUT */
-    PSRV_LOG_FILTER           pLogFilter  /* IN OUT */
+    PSRV_LOG_FILTER_LEX_STATE pLexState,      /* IN OUT */
+    PULONG                    pulProtocolVer  /* IN OUT */
     )
 {
     NTSTATUS        ntStatus   = STATUS_SUCCESS;
@@ -552,13 +554,7 @@ SrvLogSpecParseProtocol(
                             protocols[iProtocol].pszName,
                             protocols[iProtocol].ulLength))
         {
-            PSRV_LOG_FILTER pCursor = pLogFilter;
-
-            for (; pCursor; pCursor = pCursor->pNext)
-            {
-                pCursor->ulProtocolVersion =
-                                protocols[iProtocol].protocolVer;
-            }
+            *pulProtocolVer = protocols[iProtocol].protocolVer;
 
             bFound = TRUE;
 
@@ -578,14 +574,17 @@ cleanup:
 
 error:
 
+    *pulProtocolVer = 0;
+
     goto cleanup;
 }
 
 static
 NTSTATUS
 SrvLogSpecParseOpcodes(
-    PSRV_LOG_FILTER_LEX_STATE pLexState,  /* IN OUT */
-    PSRV_LOG_FILTER           pLogFilter  /* IN OUT */
+    PSRV_LOG_FILTER_LEX_STATE pLexState,     /* IN OUT */
+    ULONG                     ulProtocolVer, /* IN     */
+    PSRV_LOG_FILTER           pLogFilter     /* IN OUT */
     )
 {
     NTSTATUS             ntStatus   = STATUS_SUCCESS;
@@ -710,7 +709,7 @@ SrvLogSpecParseOpcodes(
         {
             PSRV_LOG_FILTER_OP pOpCursor = pLogOpFilterList;
 
-            switch (pCursor->ulProtocolVersion)
+            switch (ulProtocolVer)
             {
                 case 1:
 
