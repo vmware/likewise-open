@@ -472,17 +472,15 @@ SrvProcessRequestSpecific_SMB_V2(
 
         case COM2_LOCK:
 
-            if (pExecContext->bInternal)
+            ntStatus = SrvProcessLock_SMB_V2(pExecContext);
+            if ((ntStatus == STATUS_PENDING) && pExecContext->pInterimResponse)
             {
-                ntStatus = SrvProcessAsyncLockRequest_SMB_V2(pExecContext);
-            }
-            else
-            {
-                ntStatus = SrvProcessLock_SMB_V2(pExecContext);
-                if ((ntStatus == STATUS_PENDING) &&
-                    pExecContext->pInterimResponse)
+                NTSTATUS ntStatus2 = STATUS_SUCCESS;
+
+                ntStatus2 = SrvSendInterimResponse_SMB_V2(pExecContext);
+                if (ntStatus2 != STATUS_SUCCESS)
                 {
-                    ntStatus = SrvSendInterimResponse_SMB_V2(pExecContext);
+                    ntStatus = ntStatus2;
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
             }

@@ -236,6 +236,8 @@ typedef struct _LWIO_SRV_FILE_2
     ULONG                    ulPermissions;
     ULONG                    ulNumLocks;
 
+    BOOLEAN                  bIsDurable;
+
     HANDLE                         hOplockState;
     PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
 

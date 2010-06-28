@@ -1168,41 +1168,6 @@ typedef enum
     SRV_LOCK_STAGE_SMB_V2_DONE
 } SRV_LOCK_STAGE_SMB_V2;
 
-typedef struct _SRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2
-{
-    LONG                      refCount;
-
-    pthread_mutex_t           mutex;
-    pthread_mutex_t*          pMutex;
-
-    SRV_LOCK_STAGE_SMB_V2     stage;
-
-    ULONG64                   ullAsyncId;
-
-    IO_STATUS_BLOCK           ioStatusBlock;
-
-    IO_ASYNC_CONTROL_BLOCK    acb;
-    PIO_ASYNC_CONTROL_BLOCK   pAcb;
-
-    PSMB2_LOCK_REQUEST_HEADER pRequestHeader; // Do not free
-
-    ULONG                     ulTid;
-    PLWIO_SRV_FILE_2          pFile;
-
-    PSMB2_LOCK*               ppUnlockArray;
-    ULONG                     ulNumUnlocks;
-    ULONG                     iUnlock;
-    BOOLEAN                   bUnlockPending;
-
-    PSMB2_LOCK*               ppLockArray;
-    ULONG                     ulNumLocks;
-    ULONG                     iLock;
-    BOOLEAN                   bLockPending;
-
-    BOOLEAN                   bFailImmediately;
-
-} SRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2, *PSRV_ASYNC_LOCK_REQUEST_STATE_SMB_V2;
-
 typedef struct _SRV_LOCK_REQUEST_STATE_SMB_V2
 {
     LONG                      refCount;
@@ -1223,19 +1188,12 @@ typedef struct _SRV_LOCK_REQUEST_STATE_SMB_V2
 
     PLWIO_SRV_FILE_2          pFile;
 
-    PSMB2_LOCK*               ppUnlockArray;
-    ULONG                     ulNumUnlocks;
-    ULONG                     iUnlock;
-    BOOLEAN                   bUnlockPending;
-
-    PSMB2_LOCK*               ppLockArray;
-    ULONG                     ulNumLocks;
     ULONG                     iLock;
-    BOOLEAN                   bLockPending;
-
-    BOOLEAN                   bFailImmediately;
 
     ULONG64                   ullAsyncId;
+
+    BOOLEAN                   bLockPending;
+    BOOLEAN                   bInitInterimResponse;
 
 } SRV_LOCK_REQUEST_STATE_SMB_V2, *PSRV_LOCK_REQUEST_STATE_SMB_V2;
 
