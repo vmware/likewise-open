@@ -66,7 +66,7 @@ SrvSessionFindTree_SMB_V1(
         {
             if (pSmb1Context->pTree->tid != usTid)
             {
-                ntStatus = STATUS_INVALID_NETWORK_RESPONSE;
+                ntStatus = STATUS_INVALID_PARAMETER;
                 BAIL_ON_NT_STATUS(ntStatus);
             }
             else
