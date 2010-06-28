@@ -258,6 +258,8 @@ SrvProcessClose_SMB_V2(
 
             if (pCloseState->pFile)
             {
+                SrvFile2SetClosing(pCloseState->pFile);
+
                 SrvFile2Rundown(pCloseState->pFile);
             }
 

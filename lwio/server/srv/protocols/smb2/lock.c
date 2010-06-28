@@ -246,6 +246,22 @@ SrvProcessLock_SMB_V2(
             ntStatus = SrvProcessLockRequest_SMB_V2(
                                 pExecContext,
                                 pLockRequestState);
+            if ((ntStatus == STATUS_CANCELLED) &&
+                !pLockRequestState->bCancelledByClient)
+            {
+                if (pLockRequestState->pFile &&
+                    SrvFile2IsFileClosing(pLockRequestState->pFile))
+                {
+                    ntStatus = STATUS_RANGE_NOT_LOCKED;
+                }
+                else
+                {
+                    SrvClearLocks_SMB_V2_inlock(pLockRequestState);
+
+                    // could be due to tree disconnect or logoff
+                    ntStatus = STATUS_SUCCESS;
+                }
+            }
             BAIL_ON_NT_STATUS(ntStatus);
 
             pLockRequestState->stage = SRV_LOCK_STAGE_SMB_V2_BUILD_RESPONSE;
@@ -341,12 +357,10 @@ error:
 
             break;
 
-        case STATUS_CANCELLED:
+        case STATUS_NETWORK_NAME_DELETED:
+        case STATUS_USER_SESSION_DELETED:
 
-            if (pLockRequestState && !pLockRequestState->bCancelledByClient)
-            {
-                ntStatus = STATUS_RANGE_NOT_LOCKED;
-            }
+            ntStatus = STATUS_FILE_CLOSED;
 
             // intentional fall through
 

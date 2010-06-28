@@ -237,6 +237,7 @@ typedef struct _LWIO_SRV_FILE_2
     ULONG                    ulNumLocks;
 
     BOOLEAN                  bIsDurable;
+    BOOLEAN                  bIsClosing;
 
     HANDLE                         hOplockState;
     PFN_LWIO_SRV_FREE_OPLOCK_STATE pfnFreeOplockState;
@@ -1367,6 +1368,16 @@ SrvFile2SetOplockLevel(
 
 UCHAR
 SrvFile2GetOplockLevel(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+VOID
+SrvFile2SetClosing(
+    PLWIO_SRV_FILE_2 pFile
+    );
+
+BOOLEAN
+SrvFile2IsFileClosing(
     PLWIO_SRV_FILE_2 pFile
     );
 
