@@ -1269,6 +1269,9 @@ SrvLogContextCreate(
     ntStatus = SrvAllocateMemory(sizeof(SRV_LOG_CONTEXT), (PVOID*)&pLogContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    pthread_rwlock_init(&pLogContext->mutex, NULL);
+    pLogContext->pMutex = &pLogContext->mutex;
+
     LWIO_LOCK_RWMUTEX_SHARED(bInLock, &gSrvUtilsGlobals.mutex);
 
     if (gSrvUtilsGlobals.pLogSpec)
@@ -1307,11 +1310,14 @@ SrvLogContextGetLevel(
     )
 {
     NTSTATUS ntStatus = STATUS_SUCCESS;
-    PSRV_LOG_FILTER pLogFilter = pLogContext->pCurFilter;
+    PSRV_LOG_FILTER pLogFilter = NULL;
     LWIO_LOG_LEVEL  logLevel   = LWIO_LOG_LEVEL_ERROR;
     PSRV_LOG_FILTER_OP pFilterOp = NULL;
+    BOOLEAN         bInLock = FALSE;
 
-    if (!pLogFilter)
+    LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pLogContext->mutex);
+
+    if (!(pLogFilter = pLogContext->pCurFilter))
     {
         pLogFilter = SrvLogSpecFindFilter(
                             pLogContext->pLogSpec->pClientSpecList,
@@ -1320,8 +1326,25 @@ SrvLogContextGetLevel(
 
         if (pLogFilter) // set only if we could look up using the IP Address
         {
-            pLogContext->pCurFilter = pLogFilter;
+            LWIO_UNLOCK_RWMUTEX(bInLock, &pLogContext->mutex);
+
+            LWIO_LOCK_RWMUTEX_EXCLUSIVE(bInLock, &pLogContext->mutex);
+
+            if (!pLogContext->pCurFilter)
+            {
+                pLogContext->pCurFilter = pLogFilter;
+            }
+            else
+            {
+                pLogFilter = pLogContext->pCurFilter;
+            }
+            LWIO_UNLOCK_RWMUTEX(bInLock, &pLogContext->mutex);
         }
+    }
+
+    if (!bInLock)
+    {
+        LWIO_LOCK_RWMUTEX_SHARED(bInLock, &pLogContext->mutex);
     }
 
     if (!pLogFilter)
@@ -1380,6 +1403,8 @@ SrvLogContextGetLevel(
 
     *pLogLevel = logLevel;
 
+    LWIO_UNLOCK_RWMUTEX(bInLock, &pLogContext->mutex);
+
     return ntStatus;
 }
 
@@ -1391,6 +1416,11 @@ SrvLogContextFree(
     if (pLogContext->pLogSpec)
     {
         SrvLogSpecRelease(pLogContext->pLogSpec);
+    }
+
+    if (pLogContext->pMutex)
+    {
+        pthread_rwlock_destroy(&pLogContext->mutex);
     }
 
     SrvFreeMemory(pLogContext);
