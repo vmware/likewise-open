@@ -43,6 +43,49 @@
  *
  */
 
+/*
+ * Log filter grammar
+ *
+ * <srv-log-filter> :=
+ *              <srv-log-filter-client-ip>    ","
+ *              <srv-log-filter-protocol-ver> ","
+ *              <srv-log-filter-op-code>      ","
+ *              <srv-log-filter-log-level>
+ *
+ * <srv-log-filter-log-level> :=
+ *              "error"  | "warning" | "info" | "verbose" | "debug"
+ *
+ * <srv-log-filter-client-ip> :=
+ *              "*" | <srv-log-filter-multi-client-ip>
+ *
+ * <srv-log-filter-multi-client-ip> :=
+ *              "{" <srv-log-filter-ip> ( "," <srv-log-filter-ip>)* "}"
+ *
+ * <srv-log-filter-ip> :=
+ *              <srv-log-filter-ipv4> | <srv-log-filter-ipv6>
+ *
+ * <srv-log-filter-op-code> :=
+ *              "*" | <srv-log-filter-multi-op-code>
+ *
+ * <srv-log-filter-multi-op-code> :=
+ *              "{" <srv-log-filter-op-code> ("," <srv-log-filter-op-code)* "}"
+ *
+ * <srv-log-filter-single-op> :=
+ *              <srv-log-filter-protocol> ":" <srv-log-filter-op-code>
+ *
+ * <srv-log-filter-protocol-ver> :=
+ *              "smb1" | "smb2"
+ *
+ * <srv-log-filter-op-code> :=
+ *              <srv-log-filter-hex-op-code> | <srv-log-filter-decimal-op-code>
+ *
+ * <srv-log-filter-hex-op-code> :=
+ *              ("0x"|"0X") [0-9A-Fa-f]+
+ *
+ * <srv-log-filter-decimal-op-code> :=
+ *              [0-9]+
+ */
+
 #include "includes.h"
 
 static
@@ -627,15 +670,6 @@ SrvLogSpecParseOpcodes(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
 
-                ntStatus = SrvAllocateMemory(
-                                sizeof(SRV_LOG_FILTER_OP),
-                                (PVOID*)&pLogOpFilter);
-                BAIL_ON_NT_STATUS(ntStatus);
-
-                pLogOpFilter->refCount = 1;
-
-                pLogOpFilter->logLevel = LWIO_LOG_LEVEL_ERROR;
-
                 chSave = *(token.pData + token.ulLength);
                 *(token.pData + token.ulLength) = 0;
                 if ((token.ulLength > (sizeof("0x")-1)) &&
@@ -648,13 +682,11 @@ SrvLogSpecParseOpcodes(
                     ulOpcode = strtoul(token.pData, &pszEnd, 0);
                 }
 
-                if (*token.pData && pszEnd && !*pszEnd)
+                if (*token.pData && pszEnd && !*pszEnd) // successful parse
                 {
-                    pLogOpFilter->ulOpcode = ulOpcode;
-
                     *(token.pData + token.ulLength) = chSave;
                 }
-                else
+                else // some characters could not be parsed
                 {
                     *(token.pData + token.ulLength) = chSave;
 
@@ -662,9 +694,24 @@ SrvLogSpecParseOpcodes(
                     BAIL_ON_NT_STATUS(ntStatus);
                 }
 
-                pLogOpFilter->pNext = pLogOpFilterList;
-                pLogOpFilterList = pLogOpFilter;
-                pLogOpFilter = NULL;
+                // check for duplicates
+                if (!SrvLogFilterFindOp(pLogOpFilterList, ulOpcode))
+                {
+                    ntStatus = SrvAllocateMemory(
+                                    sizeof(SRV_LOG_FILTER_OP),
+                                    (PVOID*)&pLogOpFilter);
+                    BAIL_ON_NT_STATUS(ntStatus);
+
+                    pLogOpFilter->refCount = 1;
+
+                    pLogOpFilter->logLevel = LWIO_LOG_LEVEL_ERROR;
+
+                    pLogOpFilter->ulOpcode = ulOpcode;
+
+                    pLogOpFilter->pNext = pLogOpFilterList;
+                    pLogOpFilterList = pLogOpFilter;
+                    pLogOpFilter = NULL;
+                }
 
                 ntStatus = SrvLogSpecGetNextToken(pLexState, &token);
                 BAIL_ON_NT_STATUS(ntStatus);
@@ -869,6 +916,16 @@ SrvLogSpecParseLoglevel(
 
     if (!bFound)
     {
+        ntStatus = STATUS_DATA_ERROR;
+        BAIL_ON_NT_STATUS(ntStatus);
+    }
+
+    ntStatus = SrvLogSpecGetNextToken(pLexState, &token);
+    BAIL_ON_NT_STATUS(ntStatus);
+
+    if (token.tokenType != SRV_LOG_FILTER_TOKEN_TYPE_EOF)
+    {
+        // extraneous data in buffer
         ntStatus = STATUS_DATA_ERROR;
         BAIL_ON_NT_STATUS(ntStatus);
     }
