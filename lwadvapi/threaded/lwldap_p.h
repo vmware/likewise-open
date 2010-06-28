@@ -37,7 +37,7 @@
  * Abstract:
  *
  *        Likewise Advanced API (lwadvapi)
- *        
+ *
  *        LDAP API (Private Header)
  *
  * Authors: Krishna Ganugapati (krishnag@likewisesoftware.com)
