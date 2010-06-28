@@ -100,6 +100,9 @@ SrvBuildEmptyExecContext(
     ntStatus = SrvAllocateMemory(sizeof(SRV_EXEC_CONTEXT), (PVOID*)&pContext);
     BAIL_ON_NT_STATUS(ntStatus);
 
+    ntStatus = SrvLogContextCreate(&pContext->pLogContext);
+    BAIL_ON_NT_STATUS(ntStatus);
+
     pContext->refCount = 1;
 
     pContext->bInternal = TRUE;
@@ -113,6 +116,11 @@ cleanup:
 error:
 
     *ppContext = NULL;
+
+    if (pContext)
+    {
+        SrvReleaseExecContext(pContext);
+    }
 
     goto cleanup;
 }
@@ -195,6 +203,11 @@ SrvFreeExecContext(
     if (pContext->pStatInfo)
     {
         SrvStatisticsRelease(pContext->pStatInfo);
+    }
+
+    if (pContext->pLogContext)
+    {
+        SrvLogContextFree(pContext->pLogContext);
     }
 
     if (pContext->pMutex)

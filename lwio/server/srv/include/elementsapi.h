@@ -628,6 +628,8 @@ typedef struct _SRV_EXEC_CONTEXT
 
     PSRV_STAT_INFO                     pStatInfo;
 
+    PSRV_LOG_CONTEXT                   pLogContext;
+
 } SRV_EXEC_CONTEXT, *PSRV_EXEC_CONTEXT;
 
 typedef struct _SRV_ELEMENTS_STATISTICS
