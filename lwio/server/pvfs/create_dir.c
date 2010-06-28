@@ -226,7 +226,8 @@ error:
                 ntError);
     }
 
-    if (pCreateCtx->pCcb &&
+    if (pCreateCtx &&
+        pCreateCtx->pCcb &&
         pCreateCtx->pCcb->pDirContext &&
         pCreateCtx->pCcb->pDirContext->pDir)
     {
@@ -310,7 +311,8 @@ error:
                 ntError);
     }
 
-    if (pCreateCtx->pCcb &&
+    if (pCreateCtx &&
+        pCreateCtx->pCcb &&
         pCreateCtx->pCcb->pDirContext &&
         pCreateCtx->pCcb->pDirContext->pDir)
     {
@@ -440,7 +442,8 @@ error:
                 ntError);
     }
 
-    if (pCreateCtx->pCcb &&
+    if (pCreateCtx &&
+        pCreateCtx->pCcb &&
         pCreateCtx->pCcb->pDirContext &&
         pCreateCtx->pCcb->pDirContext->pDir)
     {
